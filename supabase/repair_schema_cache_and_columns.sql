@@ -1295,3 +1295,69 @@ alter table public.sales_order_items add column if not exists margin_snapshot nu
 
 notify pgrst, 'reload schema';
 select 'schema cache reload demande - recharge la page Horizon Farm dans 5 a 10 secondes' as message;
+
+-- Sales money flow hardening: orders, payments, receivables and stock sellability.
+ALTER TABLE public.sales_orders
+  ADD COLUMN IF NOT EXISTS finance_transaction_id text,
+  ADD COLUMN IF NOT EXISTS receivable_id text,
+  ADD COLUMN IF NOT EXISTS invoice_document_id text,
+  ADD COLUMN IF NOT EXISTS impact_applied_at timestamptz,
+  ADD COLUMN IF NOT EXISTS cancelled_at timestamptz,
+  ADD COLUMN IF NOT EXISTS payment_method text,
+  ADD COLUMN IF NOT EXISTS source_type text,
+  ADD COLUMN IF NOT EXISTS source_id text,
+  ADD COLUMN IF NOT EXISTS source_label text;
+
+ALTER TABLE public.sales_order_items
+  ADD COLUMN IF NOT EXISTS item_type text,
+  ADD COLUMN IF NOT EXISTS label text,
+  ADD COLUMN IF NOT EXISTS description text,
+  ADD COLUMN IF NOT EXISTS line_total numeric DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS available_quantity_snapshot numeric,
+  ADD COLUMN IF NOT EXISTS cost_snapshot numeric DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS margin_snapshot numeric DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS owner_user_id uuid DEFAULT auth.uid();
+
+ALTER TABLE public.transactions
+  ADD COLUMN IF NOT EXISTS source_type text,
+  ADD COLUMN IF NOT EXISTS source_id text,
+  ADD COLUMN IF NOT EXISTS vente_id text,
+  ADD COLUMN IF NOT EXISTS reste_a_payer numeric DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS payment_method text;
+
+ALTER TABLE public.stocks
+  ADD COLUMN IF NOT EXISTS is_sellable boolean DEFAULT false;
+
+CREATE TABLE IF NOT EXISTS public.client_receivables (
+  id text PRIMARY KEY,
+  client_id text,
+  sale_order_id text,
+  initial_amount numeric DEFAULT 0,
+  paid_amount numeric DEFAULT 0,
+  remaining_amount numeric DEFAULT 0,
+  status text DEFAULT 'ouverte',
+  due_date date,
+  notes text,
+  owner_user_id uuid DEFAULT auth.uid(),
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.client_receivables ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS client_receivables_owner ON public.client_receivables;
+CREATE POLICY client_receivables_owner ON public.client_receivables
+  USING (owner_user_id = auth.uid())
+  WITH CHECK (owner_user_id = auth.uid());
+
+DROP TRIGGER IF EXISTS trg_client_receivables_updated_at ON public.client_receivables;
+CREATE TRIGGER trg_client_receivables_updated_at
+  BEFORE UPDATE ON public.client_receivables
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE INDEX IF NOT EXISTS idx_client_receivables_client ON public.client_receivables(client_id);
+CREATE INDEX IF NOT EXISTS idx_client_receivables_sale ON public.client_receivables(sale_order_id);
+CREATE INDEX IF NOT EXISTS idx_sales_orders_payment_status ON public.sales_orders(statut_paiement);
+CREATE INDEX IF NOT EXISTS idx_sales_orders_client ON public.sales_orders(client_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_sales_source ON public.transactions(source_type, source_id);
+
+NOTIFY pgrst, 'reload schema';

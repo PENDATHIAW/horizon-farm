@@ -428,6 +428,25 @@ test('05. Ventes — onglets, opportunités, commandes', async ({ page }) => {
     }
   }
 
+
+  // Onglet Historique / Commandes : la fiche vente doit etre ouvrable.
+  const historyTab = page.locator('button, [role="tab"]').filter({ hasText: /historique/i }).first();
+  if (await historyTab.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await historyTab.click();
+    await page.waitForTimeout(1000);
+    const viewButton = page.getByRole('button', { name: /voir fiche/i }).first();
+    if (await viewButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await viewButton.click();
+      await page.waitForTimeout(500);
+      const detailText = await page.locator('body').innerText().catch(() => '');
+      if (/fiche vente complete|lignes vendues|impacts inter-modules/i.test(detailText)) console.log('[OK] Fiche vente ouvrable depuis Historique');
+      else console.log('[WARN] Bouton Voir fiche trouve, mais la fiche vente detaillee ne semble pas visible');
+      await page.keyboard.press('Escape');
+    } else {
+      console.log('[INFO] Aucun bouton Voir fiche visible dans Historique (pas de ventes cloturees ou donnees absentes)');
+    }
+  }
+
   if (networkErrors.length > 0) networkErrors.forEach((e) => console.log(`[ERROR réseau] ${e}`));
   if (consoleErrors.length > 0) consoleErrors.slice(0, 3).forEach((e) => console.log(`[ERROR console] ${e.slice(0, 150)}`));
 });
@@ -448,6 +467,8 @@ test('06. Finances — recettes, dépenses, trésorerie', async ({ page }) => {
   if (/recette|entrée|revenue/i.test(bodyText)) console.log('[OK] Recettes visibles');
   else console.log('[WARN] Pas de recettes affichées');
 
+  if (/creances clients|reste a payer|reste ?? payer/i.test(bodyText)) console.log('[OK] Creances clients visibles dans Finances');
+  else console.log('[INFO] Creances clients non visibles ou aucune creance ouverte');
   if (/dépense|sortie/i.test(bodyText)) console.log('[OK] Dépenses visibles');
   if (/trésorerie|solde|caisse/i.test(bodyText)) console.log('[OK] Trésorerie/solde visible');
   if (/wave|orange money|mobile money/i.test(bodyText)) console.log('[OK] Moyens de paiement mobile money visibles');

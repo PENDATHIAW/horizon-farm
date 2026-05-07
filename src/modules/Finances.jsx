@@ -48,6 +48,8 @@ export default function Finances({
   investissements = [],
   alimentationLogs = [],
   businessPlans = [],
+  salesOrders = [],
+  payments = [],
 }) {
   const [typeFilter, setTypeFilter] = useState('tous');
   const [statusFilter, setStatusFilter] = useState('tous');
@@ -66,9 +68,13 @@ export default function Finances({
     );
   }, [businessPlans]);
 
-  const totalRec = useMemo(() => rows.filter((t) => t.type === 'entree').reduce((s, t) => s + Number(t.montant || 0), 0), [rows]);
+  const totalRec = useMemo(() => rows.filter((t) => t.type === 'entree' && (t.statut || 'paye') !== 'impaye').reduce((s, t) => s + Number(t.montant || 0), 0), [rows]);
   const totalDep = useMemo(() => rows.filter((t) => t.type === 'sortie').reduce((s, t) => s + Number(t.montant || 0), 0), [rows]);
   const benefice = totalRec - totalDep;
+  const receivables = useMemo(() => salesOrders.filter((order) => Number(order.reste_a_payer || 0) > 0 && order.statut_commande !== 'annule'), [salesOrders]);
+  const totalCreances = useMemo(() => receivables.reduce((sum, order) => sum + Number(order.reste_a_payer || 0), 0), [receivables]);
+  const ventesPayees = useMemo(() => salesOrders.filter((order) => order.statut_paiement === 'paye').length, [salesOrders]);
+  const paiementsPartiels = useMemo(() => salesOrders.filter((order) => order.statut_paiement === 'partiel').length, [salesOrders]);
 
   const filtered = useMemo(() => rows.filter((t) => {
     const typeOk = typeFilter === 'tous' || t.type === typeFilter;
@@ -117,7 +123,7 @@ export default function Finances({
     rows.forEach((transaction) => {
       const key = transaction.categorie || 'Autre';
       const current = map.get(key) || { name: key, recettes: 0, depenses: 0 };
-      if (transaction.type === 'entree') current.recettes += Number(transaction.montant || 0);
+      if (transaction.type === 'entree' && (transaction.statut || 'paye') !== 'impaye') current.recettes += Number(transaction.montant || 0);
       if (transaction.type === 'sortie') current.depenses += Number(transaction.montant || 0);
       map.set(key, current);
     });
@@ -207,8 +213,36 @@ export default function Finances({
         <KpiCard icon={TrendingDown} label="Depenses totales" value={fmtCurrency(totalDep)} color="bg-red-500/20 text-red-400" trend={-3} />
         <KpiCard icon={Wallet} label="Benefice net" value={fmtCurrency(benefice)} color="bg-sky-500/20 text-sky-400" trend={12} />
         <KpiCard icon={CreditCard} label="Cash disponible" value={fmtCurrency(cashDisponible)} color="bg-purple-500/20 text-purple-400" />
-        <KpiCard icon={Landmark} label="Tresorerie actuelle" value={fmtCurrency(cashDisponible + forecast.cashflow)} color="bg-amber-500/20 text-amber-500" />
+        <KpiCard icon={Landmark} label="Creances clients" value={fmtCurrency(totalCreances)} color="bg-amber-500/20 text-amber-500" />
         <KpiCard icon={BarChart2} label="Marge globale" value={fmtPercent(totalRec ? (benefice / totalRec) * 100 : 0)} color="bg-emerald-500/20 text-emerald-500" />
+      </div>
+
+      <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <p className="font-semibold text-[#2f2415]">Suivi ventes, encaissements et creances</p>
+            <p className="text-xs text-[#8a7456]">Les ventes non payees restent des creances et ne gonflent pas le cash encaisse.</p>
+          </div>
+          <div className="flex gap-2 text-xs text-[#8a7456]">
+            <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-emerald-600">{ventesPayees} payees</span>
+            <span className="rounded-full bg-amber-500/10 px-3 py-1 text-amber-600">{paiementsPartiels} partielles</span>
+            <span className="rounded-full bg-sky-500/10 px-3 py-1 text-sky-600">{payments.length} paiements</span>
+          </div>
+        </div>
+        {receivables.length === 0 ? (
+          <p className="text-sm text-[#8a7456]">Aucune creance client ouverte.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {receivables.slice(0, 6).map((order) => (
+              <div key={order.id} className="rounded-xl bg-[#fffdf8] border border-[#e7d9be] p-3">
+                <p className="text-sm font-semibold text-[#2f2415]">CMD-{String(order.id).slice(-6)}</p>
+                <p className="text-xs text-[#8a7456]">Client: {order.client_id || 'Non renseigne'}</p>
+                <p className="text-xs text-[#8a7456]">Paye {fmtCurrency(order.montant_paye || 0)} / Total {fmtCurrency(order.montant_total || 0)}</p>
+                <p className="mt-1 text-sm font-bold text-red-500">Reste {fmtCurrency(order.reste_a_payer || 0)}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">

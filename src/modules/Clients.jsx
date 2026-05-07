@@ -18,7 +18,7 @@ import { generateSequentialId, toWhatsappLink } from '../utils/ids';
 import { buildSenegalMapQuery } from '../utils/location';
 import { calculateClientMetrics } from '../utils/businessCalculations';
 
-export default function Clients({ rows = [], loading, onCreate, onUpdate, onDelete, onRefresh }) {
+export default function Clients({ rows = [], loading, salesOrders = [], payments = [], onCreate, onUpdate, onDelete, onRefresh }) {
   const [selected, setSelected] = useState(null);
   const [modal, setModal] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -27,6 +27,16 @@ export default function Clients({ rows = [], loading, onCreate, onUpdate, onDele
   const automations = useAutomationSettings();
 
   const metricsFor = (client) => calculateClientMetrics(client);
+  const salesSummaryFor = (client) => {
+    const orders = salesOrders.filter((order) => order.client_id === client.id);
+    const orderIds = new Set(orders.map((order) => order.id));
+    const clientPayments = payments.filter((payment) => orderIds.has(payment.order_id));
+    const totalAchete = orders.reduce((sum, order) => sum + Number(order.montant_total || 0), 0);
+    const totalPaye = orders.reduce((sum, order) => sum + Number(order.montant_paye || 0), 0) || clientPayments.reduce((sum, payment) => sum + Number(payment.montant || 0), 0);
+    const resteAPayer = orders.reduce((sum, order) => sum + Number(order.reste_a_payer || 0), 0);
+    const lastOrder = [...orders].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))[0];
+    return { orders, clientPayments, totalAchete, totalPaye, resteAPayer, derniereCommandeVente: lastOrder?.date || null };
+  };
   const totalCA = useMemo(() => rows.reduce((sum, client) => sum + calculateClientMetrics(client).total, 0), [rows]);
   const premiumClients = useMemo(() => rows.filter((client) => calculateClientMetrics(client).smartStatus === 'VIP' || calculateClientMetrics(client).loyaltyScore >= 88), [rows]);
   const clientsARelancer = useMemo(() => rows.filter((client) => calculateClientMetrics(client).smartStatus === 'a_relancer'), [rows]);
@@ -171,6 +181,7 @@ export default function Clients({ rows = [], loading, onCreate, onUpdate, onDele
             ))
           : filteredRows.map((client) => {
               const metrics = metricsFor(client);
+              const salesSummary = salesSummaryFor(client);
               return (
               <div key={client.id} className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5 hover:border-[#b6975f] transition-all">
                 <div className="flex items-start justify-between mb-3">
@@ -190,7 +201,9 @@ export default function Clients({ rows = [], loading, onCreate, onUpdate, onDele
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="bg-[#fffdf8] rounded-lg p-2.5"><div className="text-xs text-[#8a7456]">CA total auto</div><div className="text-[#2f2415] font-semibold text-sm">{fmtCurrency(metrics.total)}</div></div>
                   <div className="bg-[#fffdf8] rounded-lg p-2.5"><div className="text-xs text-[#8a7456]">Panier moyen est.</div><div className="text-[#2f2415] font-semibold text-sm">{fmtCurrency(metrics.averageBasketEstimate)}</div></div>
-                  <div className="bg-[#fffdf8] rounded-lg p-2.5"><div className="text-xs text-[#8a7456]">Derniere commande</div><div className="text-[#2f2415] font-semibold text-sm">{client.derniereCommande || client.dernierecommande || '-'}</div></div>
+                  <div className="bg-[#fffdf8] rounded-lg p-2.5"><div className="text-xs text-[#8a7456]">Commandes ERP</div><div className="text-[#2f2415] font-semibold text-sm">{salesSummary.orders.length}</div></div>
+                  <div className="bg-[#fffdf8] rounded-lg p-2.5"><div className="text-xs text-[#8a7456]">Reste a payer</div><div className={`font-semibold text-sm ${salesSummary.resteAPayer > 0 ? 'text-red-500' : 'text-[#2f2415]'}`}>{fmtCurrency(salesSummary.resteAPayer)}</div></div>
+                  <div className="bg-[#fffdf8] rounded-lg p-2.5"><div className="text-xs text-[#8a7456]">Derniere commande</div><div className="text-[#2f2415] font-semibold text-sm">{salesSummary.derniereCommandeVente || client.derniereCommande || client.dernierecommande || '-'}</div></div>
                   <div className="bg-[#fffdf8] rounded-lg p-2.5"><div className="text-xs text-[#8a7456]">Statut intelligent</div><div className="text-[#2f2415] font-semibold text-sm">{metrics.smartStatus}</div></div>
                 </div>
 
@@ -209,7 +222,21 @@ export default function Clients({ rows = [], loading, onCreate, onUpdate, onDele
             })}
       </div>
 
-      <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, ...metricsFor(selected) } : selected} title="Fiche client premium" />
+      <DetailsModal
+        open={modal === 'details'}
+        onClose={() => setModal(null)}
+        data={selected ? {
+          ...selected,
+          ...metricsFor(selected),
+          commandes_erp: salesSummaryFor(selected).orders.length,
+          total_achete_ventes: salesSummaryFor(selected).totalAchete,
+          total_paye_ventes: salesSummaryFor(selected).totalPaye,
+          reste_a_payer_ventes: salesSummaryFor(selected).resteAPayer,
+          derniere_commande_vente: salesSummaryFor(selected).derniereCommandeVente || '-',
+          paiements_enregistres: salesSummaryFor(selected).clientPayments.length,
+        } : selected}
+        title="Fiche client premium"
+      />
       <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={MODULE_FORM_FIELDS.clients} initialValues={initialClient} autoId={() => generateSequentialId('clients', rows)} uploadFolder="clients" loading={saving} title="Ajouter client" submitLabel="Ajouter" />
       <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={MODULE_FORM_FIELDS.clients} initialValues={selected || {}} uploadFolder="clients" loading={saving} title="Modifier client" submitLabel="Enregistrer" />
       <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected ? `${selected.nom}` : ''} loading={saving} />

@@ -17,9 +17,10 @@ import {
 } from 'lucide-react';
 import { makeId } from '../utils/ids';
 import { fmtCurrency, toDateInput } from '../utils/format';
+import SaleDetailModal from '../components/SaleDetailModal';
 
 // ── generic modal (factures, livraisons, paiements) ───────────────────────────
-function Modal({ title, fields, initialValues = {}, onSubmit, onClose }) {
+function Modal({ title, fields, initialValues = {}, onSubmit, onClose, submitting = false }) {
   const [form, setForm] = useState(() => {
     const base = {};
     fields.forEach((f) => { base[f.name] = initialValues[f.name] ?? f.default ?? ''; });
@@ -51,8 +52,10 @@ function Modal({ title, fields, initialValues = {}, onSubmit, onClose }) {
             </div>
           ))}
           <div className="flex gap-2 pt-2">
-            <button type="submit" className="flex-1 py-2 rounded-xl bg-[#c9a96a] text-white font-semibold text-sm hover:bg-[#b8924f]">Enregistrer</button>
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl border border-[#e8d5b0] text-[#8a7456] text-sm hover:bg-[#f5ece0]">Annuler</button>
+            <button type="submit" disabled={submitting} className="flex-1 py-2 rounded-xl bg-[#c9a96a] text-white font-semibold text-sm hover:bg-[#b8924f] disabled:cursor-not-allowed disabled:opacity-60">
+              {submitting ? 'Enregistrement...' : 'Enregistrer'}
+            </button>
+            <button type="button" disabled={submitting} onClick={onClose} className="px-4 py-2 rounded-xl border border-[#e8d5b0] text-[#8a7456] text-sm hover:bg-[#f5ece0] disabled:opacity-60">Annuler</button>
           </div>
         </form>
       </div>
@@ -148,6 +151,12 @@ const UNITS_BY_TYPE = {
   culture: 'kg',
   autre: 'unite',
 };
+const INTERNAL_STOCK_KEYWORDS = ['aliment', 'alimentation', 'vaccin', 'medicament', 'médicament', 'antibiotique', 'desinfect', 'désinfect', 'veterinaire', 'vétérinaire'];
+const isSellableStock = (stock = {}) => {
+  if (stock.is_sellable === true || stock.vendable === true) return true;
+  const text = `${stock.produit || ''} ${stock.nom || ''} ${stock.category || ''} ${stock.categorie || ''}`.toLowerCase();
+  return !INTERNAL_STOCK_KEYWORDS.some((keyword) => text.includes(keyword));
+};
 const PAYMENT_OPTIONS = [
   { value: 'especes', label: 'Espèces' },
   { value: 'wave', label: 'Wave' },
@@ -156,7 +165,7 @@ const PAYMENT_OPTIONS = [
   { value: 'cheque', label: 'Chèque' },
 ];
 
-function OrderModal({ lots, animaux, stocks, cultures, clients, initialValues = {}, onSubmit, onClose }) {
+function OrderModal({ lots, animaux, stocks, cultures, clients, initialValues = {}, onSubmit, onClose, submitting = false }) {
   const TODAY_STR = new Date().toISOString().slice(0, 10);
 
   const [form, setForm] = useState({
@@ -203,7 +212,7 @@ function OrderModal({ lots, animaux, stocks, cultures, clients, initialValues = 
     }
     if (form.type_vente === 'stock') {
       return stocks
-        .filter((s) => Number(s.quantite || 0) > 0)
+        .filter((s) => Number(s.quantite || 0) > 0 && isSellableStock(s))
         .map((s) => ({
           value: s.id,
           label: `${s.produit || s.nom || s.id} — Qté: ${s.quantite} ${s.unite || ''}`,
@@ -521,10 +530,10 @@ function OrderModal({ lots, animaux, stocks, cultures, clients, initialValues = 
           </div>
 
           <div className="flex gap-2 pt-1">
-            <button type="submit" className="flex-1 py-2.5 rounded-xl bg-[#c9a96a] text-white font-semibold text-sm hover:bg-[#b8924f]">
-              Enregistrer la commande
+            <button type="submit" disabled={submitting} className="flex-1 py-2.5 rounded-xl bg-[#c9a96a] text-white font-semibold text-sm hover:bg-[#b8924f] disabled:cursor-not-allowed disabled:opacity-60">
+              {submitting ? 'Enregistrement...' : 'Enregistrer la commande'}
             </button>
-            <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-xl border border-[#e8d5b0] text-[#8a7456] text-sm hover:bg-[#f5ece0]">Annuler</button>
+            <button type="button" disabled={submitting} onClick={onClose} className="px-4 py-2.5 rounded-xl border border-[#e8d5b0] text-[#8a7456] text-sm hover:bg-[#f5ece0] disabled:opacity-60">Annuler</button>
           </div>
         </form>
       </div>
@@ -593,6 +602,9 @@ export default function Ventes({
   cultures = [],
   stocks = [],
   clients = [],
+  transactions = [],
+  businessEvents = [],
+  documents = [],
   loading = false,
   onCreate,
   onUpdate,
@@ -626,6 +638,10 @@ export default function Ventes({
   const [toast, setToast] = useState(null);
   const [search, setSearch] = useState('');
   const [prefillOrder, setPrefillOrder] = useState(null);
+  const [prefillRecord, setPrefillRecord] = useState(null);
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [fichePopup, setFichePopup] = useState(null);
+  const [savingAction, setSavingAction] = useState(false);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -665,16 +681,64 @@ export default function Ventes({
     return 0;
   };
 
+  const getSourceRecord = (sourceType, sourceId) => {
+    const type = toSourceType(sourceType);
+    if (type === 'stock') return stocks.find((s) => s.id === sourceId);
+    if (type === 'lot_avicole') return lots.find((l) => l.id === sourceId);
+    if (type === 'animal') return animaux.find((a) => a.id === sourceId);
+    if (type === 'culture') return cultures.find((c) => c.id === sourceId);
+    return null;
+  };
+
+  const getOrderItems = useCallback((orderId) => orderItems.filter((item) => item.order_id === orderId), [orderItems]);
+  const getOrderPayments = useCallback((orderId) => paymentsList.filter((payment) => payment.order_id === orderId), [paymentsList]);
+  const getOrderInvoices = useCallback((orderId) => invoicesList.filter((invoice) => invoice.order_id === orderId), [invoicesList]);
+  const getOrderDeliveries = useCallback((orderId) => deliveriesList.filter((delivery) => delivery.order_id === orderId), [deliveriesList]);
+  const getOrderTransactions = useCallback((orderId) => transactions.filter((tx) =>
+    tx.related_id === orderId || tx.source_id === orderId || tx.vente_id === orderId || tx.linked_sale_id === orderId || String(tx.libelle || '').includes(orderId),
+  ), [transactions]);
+  const getOrderEvents = useCallback((orderId) => businessEvents.filter((event) => event.linked_sale_id === orderId || event.entity_id === orderId), [businessEvents]);
+  const hasImpactApplied = useCallback((order) =>
+    Boolean(order?.impact_applied_at) || getOrderEvents(order?.id).some((event) => ['commande_confirmee', 'vente_animal', 'vente_lot_avicole', 'vente_stock', 'vente_culture'].includes(event.event_type)),
+  [getOrderEvents]);
+
+  const selectedOrder = useMemo(() => rows.find((order) => order.id === selectedOrderId) || null, [rows, selectedOrderId]);
+
+  const openOrderDetail = (order) => {
+    if (order?.id) setSelectedOrderId(order.id);
+  };
+
+  const openSourceFiche = (sourceType, sourceId) => {
+    const record = getSourceRecord(sourceType, sourceId);
+    if (record) setFichePopup({ type: toSourceType(sourceType), item: record });
+  };
+
+  const validateAvailability = ({ source_type, source_id, quantity }) => {
+    const type = toSourceType(source_type);
+    const qty = Number(quantity || 0);
+    if (qty <= 0) throw new Error('Quantite invalide: elle doit etre superieure a 0.');
+    if (!source_id || type === 'autre') return;
+    const available = getAvailableQuantity(type, source_id);
+    if (type === 'stock') {
+      const stock = stocks.find((s) => s.id === source_id);
+      if (stock && !isSellableStock(stock)) throw new Error('Ce stock est interne et ne peut pas etre vendu par defaut.');
+    }
+    if (qty > available) throw new Error(`Quantite indisponible pour ${source_id}. Disponible: ${available}.`);
+    if (type === 'animal' && qty !== 1) throw new Error('Une vente animal individuel doit avoir une quantite de 1.');
+  };
+
   // ── Apply sale impact on stock/lot/animal/culture + emit events ───────────
   const applySaleImpact = async ({ source_type, source_id, quantity, total, client_id, orderId }) => {
     const type = toSourceType(source_type);
     const qty = Number(quantity || 0);
     if (!source_id || qty <= 0 || type === 'autre') return;
+    validateAvailability({ source_type: type, source_id, quantity: qty });
 
     if (type === 'stock') {
       const stock = stocks.find((s) => s.id === source_id);
       if (stock) {
-        await onUpdateStock?.(source_id, { quantite: Math.max(0, Number(stock.quantite || 0) - qty) });
+        const currentQty = Number(stock.quantite || 0);
+        await onUpdateStock?.(source_id, { quantite: currentQty - qty });
         await onCreateBusinessEvent?.({
           id: makeId('EVT'),
           event_type: 'vente_stock',
@@ -694,7 +758,7 @@ export default function Ventes({
       const lot = lots.find((l) => l.id === source_id);
       if (lot) {
         const currentCount = Number(lot.current_count ?? lot.initial_count ?? 0);
-        const nextCurrent = Math.max(0, currentCount - qty);
+        const nextCurrent = currentCount - qty;
         const newVendus = Number(lot.vendus || 0) + qty;
         await onUpdateLot?.(source_id, {
           vendus: newVendus,
@@ -728,6 +792,8 @@ export default function Ventes({
 
     if (type === 'animal') {
       const animal = animaux.find((a) => a.id === source_id);
+      if (!animal) throw new Error(`Animal introuvable: ${source_id}`);
+      if (['vendu', 'mort', 'vole'].includes(animal.status)) throw new Error(`Animal non disponible pour la vente: ${source_id}`);
       await onUpdateAnimal?.(source_id, {
         status: 'vendu',
         sale_price: Number(total || 0),
@@ -769,7 +835,7 @@ export default function Ventes({
       if (culture) {
         const available = Number(culture.quantite_disponible ?? culture.quantite_recoltee ?? culture.quantite_produite ?? 0);
         await onUpdateCulture?.(source_id, {
-          quantite_disponible: Math.max(0, available - qty),
+          quantite_disponible: available - qty,
           revenu_reel: Number(culture.revenu_reel || 0) + Number(total || 0),
         });
         await onCreateBusinessEvent?.({
@@ -790,72 +856,96 @@ export default function Ventes({
 
   // ── Finance impact helpers ────────────────────────────────────────────────
   const createFinanceImpact = async ({ orderId, amount, amountPaid, statut_paiement, moyen_paiement, client_id, date }) => {
-    if (!onCreateFinanceTransaction) return;
+    const links = { finance_transaction_id: null, receivable_id: null };
+    if (!onCreateFinanceTransaction) return links;
 
     const clientName = getClientName(client_id);
 
     if (statut_paiement === 'paye') {
-      await onCreateFinanceTransaction({
+      const tx = await onCreateFinanceTransaction({
         id: makeId('TRX'),
         date: date || TODAY,
         type: 'entree',
         categorie: 'Vente',
-        libelle: `Vente ${orderId} — ${clientName}`,
+        libelle: `Vente ${orderId} - ${clientName}`,
         montant: amount,
         statut: 'paye',
         paiement: moyen_paiement,
+        payment_method: moyen_paiement,
         client_id,
         related_id: orderId,
+        source_type: 'sales_order',
+        source_id: orderId,
+        vente_id: orderId,
         module_lie: 'ventes',
       });
+      links.finance_transaction_id = tx?.id || null;
     } else if (statut_paiement === 'partiel') {
       const paid = Number(amountPaid || 0);
       const remaining = Math.max(0, amount - paid);
       if (paid > 0) {
-        await onCreateFinanceTransaction({
+        const tx = await onCreateFinanceTransaction({
           id: makeId('TRX'),
           date: date || TODAY,
           type: 'entree',
           categorie: 'Vente',
-          libelle: `Acompte ${orderId} — ${clientName}`,
+          libelle: `Acompte ${orderId} - ${clientName}`,
           montant: paid,
           statut: 'partiel',
           paiement: moyen_paiement,
+          payment_method: moyen_paiement,
           client_id,
           related_id: orderId,
+          source_type: 'sales_order',
+          source_id: orderId,
+          vente_id: orderId,
           module_lie: 'ventes',
         });
+        links.finance_transaction_id = tx?.id || null;
       }
       if (remaining > 0) {
-        await onCreateFinanceTransaction({
+        const receivable = await onCreateFinanceTransaction({
           id: makeId('TRX'),
           date: date || TODAY,
           type: 'entree',
-          categorie: 'Vente',
-          libelle: `Créance client ${orderId} — ${clientName} (reste)`,
+          categorie: 'Creance client',
+          libelle: `Creance client ${orderId} - ${clientName} (reste)`,
           montant: remaining,
           statut: 'impaye',
           client_id,
           related_id: orderId,
+          source_type: 'sales_order',
+          source_id: orderId,
+          vente_id: orderId,
+          reste_a_payer: remaining,
           module_lie: 'ventes',
         });
+        links.receivable_id = receivable?.id || null;
       }
     } else {
-      // non_paye — enregistrer CA facturé non encaissé
-      await onCreateFinanceTransaction({
+      // non_paye: creance suivie, mais pas de recette cash encaissee.
+      const receivable = await onCreateFinanceTransaction({
         id: makeId('TRX'),
         date: date || TODAY,
         type: 'entree',
-        categorie: 'Vente',
-        libelle: `Créance client ${orderId} — ${clientName} (non payé)`,
+        categorie: 'Creance client',
+        libelle: `Creance client ${orderId} - ${clientName} (non paye)`,
         montant: amount,
         statut: 'impaye',
         client_id,
         related_id: orderId,
+        source_type: 'sales_order',
+        source_id: orderId,
+        vente_id: orderId,
+        reste_a_payer: amount,
         module_lie: 'ventes',
       });
+      links.receivable_id = receivable?.id || null;
     }
+
+    return links;
   };
+
 
   // ── auto-detected opportunities ───────────────────────────────────────────
   const autoOpportunities = useMemo(() => {
@@ -944,7 +1034,7 @@ export default function Ventes({
     stocks
       .filter((s) => {
         const nom = (s.produit || s.nom || s.category || '').toLowerCase();
-        return ['oeufs', 'plateaux', 'poulets'].some((k) => nom.includes(k)) && Number(s.quantite || 0) > 10;
+        return isSellableStock(s) && ['oeufs', 'plateaux', 'poulets'].some((k) => nom.includes(k)) && Number(s.quantite || 0) > 10;
       })
       .forEach((s) => {
         opps.push({
@@ -1050,18 +1140,29 @@ export default function Ventes({
   // ── KPIs ──────────────────────────────────────────────────────────────────
   const kpis = useMemo(() => ({
     totalCA: rows.reduce((s, o) => s + Number(o.montant_total || 0), 0),
-    totalPaye: paymentsList.reduce((s, p) => s + Number(p.montant || 0), 0),
+    totalPaye: rows.reduce((s, o) => s + Number(o.montant_paye || 0), 0) || paymentsList.reduce((s, p) => s + Number(p.montant || 0), 0),
+    totalReste: rows.reduce((s, o) => s + Number(o.reste_a_payer || 0), 0),
     cmdActive: activeOrders.length,
     totalOpps: allOpportunities.length,
   }), [rows, paymentsList, activeOrders, allOpportunities]);
 
-  // ── quick actions ─────────────────────────────────────────────────────────
-  const quickConfirm = async (order) => {
-    await onUpdate?.(order.id, { statut_commande: 'confirme' });
+  const outstandingOrders = useMemo(
+    () => rows.filter((order) => Number(order.reste_a_payer || 0) > 0 && order.statut_commande !== 'annule'),
+    [rows],
+  );
 
-    // Apply sale impact for each order item
-    const items = orderItems.filter((i) => i.order_id === order.id);
-    for (const item of items) {
+  // ── quick actions ─────────────────────────────────────────────────────────
+  const applyOrderImpacts = async (order) => {
+    const items = getOrderItems(order.id);
+    const impactItems = items.length > 0 ? items : (order.source_id ? [{
+      id: `legacy-${order.id}`,
+      source_type: order.source_type,
+      source_id: order.source_id,
+      quantity: Number(order.quantity || 1),
+      total: Number(order.montant_total || 0),
+    }] : []);
+
+    for (const item of impactItems) {
       await applySaleImpact({
         source_type: item.source_type,
         source_id: item.source_id,
@@ -1071,79 +1172,189 @@ export default function Ventes({
         orderId: order.id,
       });
     }
-    // Fallback: if no items but order has source info, use that
-    if (items.length === 0 && order.source_id) {
-      await applySaleImpact({
-        source_type: order.source_type,
-        source_id: order.source_id,
-        quantity: 1,
-        total: Number(order.montant_total || 0),
-        client_id: order.client_id,
-        orderId: order.id,
+  };
+
+  const quickConfirm = async (order) => {
+    if (!order?.id || savingAction) return;
+    try {
+      setSavingAction(true);
+      if (!hasImpactApplied(order)) {
+        await applyOrderImpacts(order);
+      }
+      await onUpdate?.(order.id, {
+        statut_commande: 'confirme',
+        impact_applied_at: order.impact_applied_at || new Date().toISOString(),
       });
+      await onCreateBusinessEvent?.({
+        id: makeId('EVT'),
+        event_type: 'commande_confirmee',
+        module_source: 'ventes',
+        entity_type: 'commande',
+        entity_id: order.id,
+        title: `Commande CMD-${order.id.slice(-6)} confirmee - ${getClientName(order.client_id)}`,
+        amount: Number(order.montant_total || 0),
+        event_date: new Date().toISOString(),
+        linked_sale_id: order.id,
+        severity: 'info',
+      });
+      showToast(`Commande CMD-${order.id.slice(-6)} confirmee avec succes`);
+      setSelectedOrderId(order.id);
+      await onRefresh?.();
+    } catch (error) {
+      showToast(error.message || 'Confirmation impossible', 'error');
+    } finally {
+      setSavingAction(false);
     }
-
-    await onCreateBusinessEvent?.({
-      id: makeId('EVT'),
-      event_type: 'commande_confirmee',
-      module_source: 'ventes',
-      entity_type: 'commande',
-      entity_id: order.id,
-      title: `Commande CMD-${order.id.slice(-6)} confirmée — ${getClientName(order.client_id)}`,
-      amount: Number(order.montant_total || 0),
-      event_date: new Date().toISOString(),
-      linked_sale_id: order.id,
-      severity: 'info',
-    });
-
-    showToast('Commande confirmée et impacts appliqués');
-    onRefresh?.();
   };
 
   const quickPay = async (order) => {
-    await onUpdate?.(order.id, { statut_paiement: 'paye', montant_paye: order.montant_total, reste_a_payer: 0 });
-    if (Number(order.montant_total) > 0) {
-      await onCreateFinanceTransaction?.({
+    if (!order?.id || savingAction) return;
+    try {
+      setSavingAction(true);
+      const total = Number(order.montant_total || 0);
+      const alreadyPaid = Number(order.montant_paye || 0);
+      const amountToPay = Math.max(0, total - alreadyPaid);
+      if (amountToPay <= 0) throw new Error('Cette commande est deja encaissee.');
+      const payment = await onCreatePayment?.({
+        id: makeId('PAI'),
+        order_id: order.id,
+        date_paiement: TODAY,
+        montant: amountToPay,
+        moyen_paiement: order.moyen_paiement || 'especes',
+        notes: 'Encaissement rapide depuis Ventes',
+      });
+      const tx = await onCreateFinanceTransaction?.({
         id: makeId('TRX'),
         date: TODAY,
         type: 'entree',
         categorie: 'Vente',
-        libelle: `Paiement CMD-${order.id.slice(-6)} — ${getClientName(order.client_id)}`,
-        montant: Number(order.montant_total),
+        libelle: `Encaissement CMD-${order.id.slice(-6)} - ${getClientName(order.client_id)}`,
+        montant: amountToPay,
         statut: 'paye',
+        paiement: order.moyen_paiement || 'especes',
+        payment_method: order.moyen_paiement || 'especes',
         client_id: order.client_id,
         related_id: order.id,
+        source_type: 'sales_order',
+        source_id: order.id,
+        vente_id: order.id,
         module_lie: 'ventes',
       });
+      await onUpdate?.(order.id, {
+        statut_paiement: 'paye',
+        montant_paye: total,
+        reste_a_payer: 0,
+        finance_transaction_id: tx?.id || order.finance_transaction_id || null,
+        receivable_id: null,
+      });
+      await onCreateBusinessEvent?.({
+        id: makeId('EVT'),
+        event_type: 'paiement_client',
+        module_source: 'ventes',
+        entity_type: 'commande',
+        entity_id: order.id,
+        title: `Paiement recu CMD-${order.id.slice(-6)} - ${fmtCurrency(amountToPay)}`,
+        amount: amountToPay,
+        event_date: new Date().toISOString(),
+        linked_sale_id: order.id,
+        linked_transaction_id: tx?.id || null,
+        severity: 'info',
+      });
+      showToast(`Paiement CMD-${order.id.slice(-6)} enregistre avec succes`);
+      setSelectedOrderId(order.id);
+      await onRefresh?.();
+      return payment;
+    } catch (error) {
+      showToast(error.message || 'Paiement impossible', 'error');
+      return null;
+    } finally {
+      setSavingAction(false);
     }
-    await onCreateBusinessEvent?.({
-      id: makeId('EVT'),
-      event_type: 'paiement_recu',
-      module_source: 'ventes',
-      entity_type: 'commande',
-      entity_id: order.id,
-      title: `Paiement reçu CMD-${order.id.slice(-6)} — ${fmtCurrency(Number(order.montant_total || 0))}`,
-      amount: Number(order.montant_total || 0),
-      event_date: new Date().toISOString(),
-      linked_sale_id: order.id,
-      severity: 'info',
-    });
-    showToast('Paiement enregistré');
-    onRefresh?.();
   };
 
   const quickDeliver = async (order) => {
-    await onUpdate?.(order.id, { statut_livraison: 'livre', statut_commande: 'livre' });
-    await onCreateDelivery?.({
-      id: makeId('LIV'),
-      order_id: order.id,
-      date_livraison: TODAY,
-      statut: 'livre',
-      destinataire: getClientName(order.client_id),
-    });
-    showToast('Livraison confirmée');
-    onRefresh?.();
+    if (!order?.id || savingAction) return;
+    try {
+      setSavingAction(true);
+      await onUpdate?.(order.id, { statut_livraison: 'livre', statut_commande: 'livre' });
+      await onCreateDelivery?.({
+        id: makeId('LIV'),
+        order_id: order.id,
+        date_livraison: TODAY,
+        statut: 'livre',
+        destinataire: getClientName(order.client_id),
+      });
+      showToast(`Livraison CMD-${order.id.slice(-6)} confirmee`);
+      setSelectedOrderId(order.id);
+      await onRefresh?.();
+    } catch (error) {
+      showToast(error.message || 'Livraison impossible', 'error');
+    } finally {
+      setSavingAction(false);
+    }
   };
+
+  const reverseSaleImpact = async (item) => {
+    const type = toSourceType(item.source_type);
+    const sourceId = item.source_id;
+    const qty = Number(item.quantity || 0);
+    if (!sourceId || qty <= 0 || type === 'autre') return;
+    if (type === 'stock') {
+      const stock = stocks.find((s) => s.id === sourceId);
+      if (stock) await onUpdateStock?.(sourceId, { quantite: Number(stock.quantite || 0) + qty });
+    }
+    if (type === 'lot_avicole') {
+      const lot = lots.find((l) => l.id === sourceId);
+      if (lot) {
+        const current = Number(lot.current_count ?? lot.initial_count ?? 0);
+        const vendus = Math.max(0, Number(lot.vendus || 0) - qty);
+        await onUpdateLot?.(sourceId, { current_count: current + qty, vendus, status: vendus > 0 ? 'vendu_partiellement' : 'actif' });
+      }
+    }
+    if (type === 'animal') {
+      await onUpdateAnimal?.(sourceId, { status: 'actif', sale_price: 0, prix_vente_reel: 0, date_vente: null, client_id: null });
+    }
+    if (type === 'culture') {
+      const culture = cultures.find((c) => c.id === sourceId);
+      if (culture) {
+        const available = Number(culture.quantite_disponible ?? culture.quantite_recoltee ?? culture.quantite_produite ?? 0);
+        await onUpdateCulture?.(sourceId, { quantite_disponible: available + qty, revenu_reel: Math.max(0, Number(culture.revenu_reel || 0) - Number(item.total || item.line_total || 0)) });
+      }
+    }
+  };
+
+  const cancelOrder = async (order) => {
+    if (!order?.id || savingAction) return;
+    if (!window.confirm(`Annuler la commande CMD-${order.id.slice(-6)} ? Les quantites seront restaurees si les lignes sont disponibles.`)) return;
+    try {
+      setSavingAction(true);
+      const items = getOrderItems(order.id);
+      if (hasImpactApplied(order)) {
+        for (const item of items) await reverseSaleImpact(item);
+      }
+      await onUpdate?.(order.id, { statut_commande: 'annule', statut_livraison: 'annule', cancelled_at: new Date().toISOString() });
+      await onCreateBusinessEvent?.({
+        id: makeId('EVT'),
+        event_type: 'annulation_vente',
+        module_source: 'ventes',
+        entity_type: 'commande',
+        entity_id: order.id,
+        title: `Annulation commande CMD-${order.id.slice(-6)}`,
+        amount: Number(order.montant_total || 0),
+        event_date: new Date().toISOString(),
+        linked_sale_id: order.id,
+        severity: 'warning',
+      });
+      showToast(`Commande CMD-${order.id.slice(-6)} annulee`, 'warning');
+      setSelectedOrderId(order.id);
+      await onRefresh?.();
+    } catch (error) {
+      showToast(error.message || 'Annulation impossible', 'error');
+    } finally {
+      setSavingAction(false);
+    }
+  };
+
 
   // ── create / edit / delete ─────────────────────────────────────────────────
   const prefixMap = { facture: 'FAC', livraison: 'LIV', paiement: 'PAI' };
@@ -1152,134 +1363,245 @@ export default function Ventes({
   const deleteFnMap = { commande: onDelete, facture: onDeleteInvoice, livraison: onDeleteDelivery, paiement: onDeletePayment };
 
   const handleCreate = async (data) => {
-    if (showCreate === 'commande') {
-      const sourceType = toSourceType(data.source_type);
-      const sourceId = data.source_id || '';
-      const quantity = Number(data.quantity || 0);
-      const unitPrice = Number(data.unit_price || 0);
-      const discount = Number(data.discount || 0);
-      const amount = Math.max(0, quantity * unitPrice - discount);
+    if (savingAction) return;
+    try {
+      setSavingAction(true);
 
-      // Validate availability
-      if (sourceType !== 'autre' && sourceId) {
-        const available = getAvailableQuantity(sourceType, sourceId);
-        if (quantity > available) {
-          showToast(`Stock insuffisant — disponible: ${available}`, 'warning');
-          return;
-        }
-      }
+      if (showCreate === 'commande') {
+        const sourceType = toSourceType(data.source_type);
+        const sourceId = data.source_id || '';
+        const quantity = Number(data.quantity || 0);
+        const unitPrice = Number(data.unit_price || 0);
+        const discount = Number(data.discount || 0);
+        const amount = Math.max(0, quantity * unitPrice - discount);
 
-      const statut_paiement = data.statut_paiement || 'non_paye';
-      const montant_paye = statut_paiement === 'paye' ? amount : statut_paiement === 'partiel' ? Number(data.montant_paye || 0) : 0;
-      const reste_a_payer = Math.max(0, amount - montant_paye);
+        if (amount < 0 || Number.isNaN(amount)) throw new Error('Montant total invalide.');
+        if (sourceType !== 'autre') validateAvailability({ source_type: sourceType, source_id: sourceId, quantity });
 
-      const orderId = makeId('CMD');
-      const orderPayload = {
-        id: orderId,
-        date: data.date || TODAY,
-        client_id: data.client_id,
-        type_document: 'commande',
-        statut_commande: data.statut_commande || 'brouillon',
-        statut_paiement,
-        statut_livraison: 'a_livrer',
-        montant_ht: amount,
-        remise: discount,
-        montant_total: amount,
-        montant_paye,
-        reste_a_payer,
-        moyen_paiement: data.moyen_paiement,
-        source_type: sourceType,
-        source_id: sourceId,
-        source_label: data.product_name || getSourceLabel(sourceType, sourceId) || '',
-        notes: data.notes,
-      };
+        const statut_paiement = data.statut_paiement || 'non_paye';
+        const montant_paye = statut_paiement === 'paye' ? amount : statut_paiement === 'partiel' ? Number(data.montant_paye || 0) : 0;
+        if (montant_paye > amount) throw new Error('Le montant paye ne peut pas depasser le total commande.');
+        const reste_a_payer = Math.max(0, amount - montant_paye);
 
-      await onCreate?.(orderPayload);
-
-      // Create order item
-      if (sourceId || data.product_name) {
-        await onCreateItem?.({
-          id: makeId('CMDI'),
-          order_id: orderId,
+        const orderId = makeId('CMD');
+        const orderPayload = {
+          id: orderId,
+          date: data.date || TODAY,
+          client_id: data.client_id || null,
+          type_document: 'commande',
+          statut_commande: data.statut_commande || 'brouillon',
+          statut_paiement,
+          statut_livraison: 'a_livrer',
+          montant_ht: amount,
+          remise: discount,
+          montant_total: amount,
+          montant_paye,
+          reste_a_payer,
+          moyen_paiement: data.moyen_paiement || null,
+          payment_method: data.moyen_paiement || null,
           source_type: sourceType,
-          source_id: sourceId,
-          product_name: data.product_name || getSourceLabel(sourceType, sourceId) || 'Produit vendu',
-          quantity,
-          unit: data.unit || 'unite',
-          unit_price: unitPrice,
-          discount,
-          total: amount,
-        });
-      }
+          source_id: sourceId || null,
+          source_label: data.product_name || getSourceLabel(sourceType, sourceId) || '',
+          notes: data.notes || null,
+        };
 
-      // Apply sale impact if confirmed/delivered
-      if (['confirme', 'livre'].includes(orderPayload.statut_commande)) {
-        await applySaleImpact({ source_type: sourceType, source_id: sourceId, quantity, total: amount, client_id: data.client_id, orderId });
+        await onCreate?.(orderPayload);
+
+        if (sourceId || data.product_name) {
+          await onCreateItem?.({
+            id: makeId('CMDI'),
+            order_id: orderId,
+            source_type: sourceType,
+            source_id: sourceId || null,
+            item_type: sourceType,
+            product_name: data.product_name || getSourceLabel(sourceType, sourceId) || 'Produit vendu',
+            label: data.product_name || getSourceLabel(sourceType, sourceId) || 'Produit vendu',
+            quantity,
+            unit: data.unit || 'unite',
+            unit_price: unitPrice,
+            discount,
+            total: amount,
+            line_total: amount,
+            available_quantity_snapshot: sourceType === 'autre' ? null : getAvailableQuantity(sourceType, sourceId),
+          });
+        }
+
+        let impactAppliedAt = null;
+        if (['confirme', 'livre'].includes(orderPayload.statut_commande)) {
+          await applySaleImpact({ source_type: sourceType, source_id: sourceId, quantity, total: amount, client_id: data.client_id, orderId });
+          impactAppliedAt = new Date().toISOString();
+          await onCreateBusinessEvent?.({
+            id: makeId('EVT'),
+            event_type: 'commande_confirmee',
+            module_source: 'ventes',
+            entity_type: 'commande',
+            entity_id: orderId,
+            title: `Commande CMD-${orderId.slice(-6)} confirmee - ${getClientName(data.client_id)}`,
+            amount,
+            event_date: new Date().toISOString(),
+            linked_sale_id: orderId,
+            severity: 'info',
+          });
+        }
+
+        const links = await createFinanceImpact({
+          orderId,
+          amount,
+          amountPaid: montant_paye,
+          statut_paiement,
+          moyen_paiement: data.moyen_paiement,
+          client_id: data.client_id,
+          date: data.date || TODAY,
+        });
+
+        if (['paye', 'partiel'].includes(statut_paiement) && montant_paye > 0) {
+          await onCreatePayment?.({
+            id: makeId('PAI'),
+            order_id: orderId,
+            date_paiement: data.date || TODAY,
+            montant: montant_paye,
+            moyen_paiement: data.moyen_paiement,
+            notes: 'Paiement cree lors de la vente',
+          });
+        }
+
+        await onUpdate?.(orderId, {
+          finance_transaction_id: links.finance_transaction_id,
+          receivable_id: links.receivable_id,
+          impact_applied_at: impactAppliedAt,
+        });
+
         await onCreateBusinessEvent?.({
           id: makeId('EVT'),
-          event_type: 'commande_confirmee',
+          event_type: 'commande_creee',
           module_source: 'ventes',
           entity_type: 'commande',
           entity_id: orderId,
-          title: `Commande CMD-${orderId.slice(-6)} confirmée — ${getClientName(data.client_id)}`,
+          title: `Commande CMD-${orderId.slice(-6)} creee - ${getClientName(data.client_id)}`,
           amount,
           event_date: new Date().toISOString(),
           linked_sale_id: orderId,
           severity: 'info',
         });
+
+        if (prefillOrder?.opportunity_id && !String(prefillOrder.opportunity_id).startsWith('auto-')) {
+          await onUpdateOpportunity?.(prefillOrder.opportunity_id, { status: 'converti', converted_sale_id: orderId });
+        }
+
+        setShowCreate(null);
+        setPrefillOrder(null);
+        setPrefillRecord(null);
+        showToast(`Commande CMD-${orderId.slice(-6)} creee avec succes`);
+        setSelectedOrderId(orderId);
+        await onRefresh?.();
+        return;
       }
 
-      // Finance impacts
-      await createFinanceImpact({
-        orderId,
-        amount,
-        amountPaid: montant_paye,
-        statut_paiement,
-        moyen_paiement: data.moyen_paiement,
-        client_id: data.client_id,
-        date: data.date || TODAY,
-      });
+      if (showCreate === 'paiement') {
+        const order = rows.find((item) => item.id === data.order_id);
+        if (!order) throw new Error('Commande introuvable pour ce paiement.');
+        const amount = Number(data.montant || 0);
+        const remainingBefore = Number(order.reste_a_payer ?? Math.max(0, Number(order.montant_total || 0) - Number(order.montant_paye || 0)));
+        if (amount <= 0) throw new Error('Le montant du paiement doit etre superieur a 0.');
+        if (amount > remainingBefore) throw new Error(`Paiement trop eleve. Reste a payer: ${fmtCurrency(remainingBefore)}`);
 
-      // Payment record if paye/partiel
-      if (['paye', 'partiel'].includes(statut_paiement) && montant_paye > 0) {
-        await onCreatePayment?.({
-          id: makeId('PAI'),
-          order_id: orderId,
-          date_paiement: data.date || TODAY,
-          montant: montant_paye,
-          moyen_paiement: data.moyen_paiement,
-          notes: `Paiement créé lors de la vente`,
+        const payment = await onCreatePayment?.({ id: makeId('PAI'), ...data, montant: amount });
+        const newPaid = Number(order.montant_paye || 0) + amount;
+        const newRemaining = Math.max(0, Number(order.montant_total || 0) - newPaid);
+        const newStatus = newRemaining === 0 ? 'paye' : 'partiel';
+        const tx = await onCreateFinanceTransaction?.({
+          id: makeId('TRX'),
+          date: data.date_paiement || TODAY,
+          type: 'entree',
+          categorie: 'Vente',
+          libelle: `Paiement CMD-${order.id.slice(-6)} - ${getClientName(order.client_id)}`,
+          montant: amount,
+          statut: newStatus,
+          paiement: data.moyen_paiement,
+          payment_method: data.moyen_paiement,
+          client_id: order.client_id,
+          related_id: order.id,
+          source_type: 'sales_order',
+          source_id: order.id,
+          vente_id: order.id,
+          module_lie: 'ventes',
         });
+        await onUpdate?.(order.id, {
+          montant_paye: newPaid,
+          reste_a_payer: newRemaining,
+          statut_paiement: newStatus,
+          moyen_paiement: data.moyen_paiement || order.moyen_paiement || null,
+          finance_transaction_id: tx?.id || order.finance_transaction_id || null,
+          receivable_id: newRemaining > 0 ? order.receivable_id || null : null,
+        });
+        await onCreateBusinessEvent?.({
+          id: makeId('EVT'),
+          event_type: 'paiement_client',
+          module_source: 'ventes',
+          entity_type: 'commande',
+          entity_id: order.id,
+          title: `Paiement client CMD-${order.id.slice(-6)} - ${fmtCurrency(amount)}`,
+          amount,
+          event_date: new Date().toISOString(),
+          linked_sale_id: order.id,
+          linked_transaction_id: tx?.id || null,
+          severity: 'info',
+        });
+        setShowCreate(null);
+        setPrefillRecord(null);
+        showToast(`Paiement CMD-${order.id.slice(-6)} enregistre avec succes`);
+        setSelectedOrderId(order.id);
+        await onRefresh?.();
+        return payment;
       }
 
-      // Convert opportunity
-      if (prefillOrder?.opportunity_id && !String(prefillOrder.opportunity_id).startsWith('auto-')) {
-        await onUpdateOpportunity?.(prefillOrder.opportunity_id, { status: 'converti', converted_sale_id: orderId });
+      const created = await createFnMap[showCreate]?.({ id: makeId(prefixMap[showCreate] || 'NEW'), ...data });
+      if (showCreate === 'livraison' && data.order_id && data.statut === 'livre') {
+        await onUpdate?.(data.order_id, { statut_livraison: 'livre', statut_commande: 'livre' });
       }
-
-    } else {
-      await createFnMap[showCreate]?.({ id: makeId(prefixMap[showCreate] || 'NEW'), ...data });
+      setShowCreate(null);
+      setPrefillRecord(null);
+      showToast(showCreate === 'facture' ? 'Facture creee avec succes' : showCreate === 'livraison' ? 'Livraison creee avec succes' : 'Cree avec succes');
+      if (data.order_id) setSelectedOrderId(data.order_id);
+      await onRefresh?.();
+      return created;
+    } catch (error) {
+      showToast(error.message || 'Enregistrement impossible', 'error');
+      return null;
+    } finally {
+      setSavingAction(false);
     }
-
-    setShowCreate(null);
-    setPrefillOrder(null);
-    showToast('Créé avec succès');
-    onRefresh?.();
   };
 
   const handleEdit = async (data) => {
-    await updateFnMap[editType]?.(editItem.id, data);
-    setEditItem(null);
-    setEditType(null);
-    showToast('Modifié');
-    onRefresh?.();
+    try {
+      setSavingAction(true);
+      await updateFnMap[editType]?.(editItem.id, data);
+      setEditItem(null);
+      setEditType(null);
+      showToast('Modification enregistree');
+      await onRefresh?.();
+    } catch (error) {
+      showToast(error.message || 'Modification impossible', 'error');
+    } finally {
+      setSavingAction(false);
+    }
   };
 
   const handleDelete = async (id, type) => {
-    await deleteFnMap[type]?.(id);
-    showToast('Supprimé', 'warning');
-    onRefresh?.();
+    if (!window.confirm('Confirmer la suppression ? Cette action est definitive.')) return;
+    try {
+      setSavingAction(true);
+      await deleteFnMap[type]?.(id);
+      showToast('Supprime', 'warning');
+      await onRefresh?.();
+    } catch (error) {
+      showToast(error.message || 'Suppression impossible', 'error');
+    } finally {
+      setSavingAction(false);
+    }
   };
+
 
   // ── filtered lists ────────────────────────────────────────────────────────
   const filteredOrders = useMemo(() => {
@@ -1306,7 +1628,7 @@ export default function Ventes({
   return (
     <div className="p-4 md:p-6 space-y-4 font-sans">
       {toast && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-xl transition-all ${toast.type === 'warning' ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-white'}`}>
+        <div className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-xl transition-all ${toast.type === 'error' ? 'bg-red-600 text-white' : toast.type === 'warning' ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-white'}`}>
           {toast.msg}
         </div>
       )}
@@ -1327,17 +1649,17 @@ export default function Ventes({
             </button>
           )}
           {activeTab === 'factures' && (
-            <button onClick={() => setShowCreate('facture')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-600 text-white text-xs hover:bg-sky-700">
+            <button onClick={() => { setPrefillRecord(null); setShowCreate('facture'); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-600 text-white text-xs hover:bg-sky-700">
               <Plus className="w-3.5 h-3.5" /> Nouvelle facture
             </button>
           )}
           {activeTab === 'livraisons' && (
-            <button onClick={() => setShowCreate('livraison')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs hover:bg-amber-700">
+            <button onClick={() => { setPrefillRecord(null); setShowCreate('livraison'); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs hover:bg-amber-700">
               <Plus className="w-3.5 h-3.5" /> Nouvelle livraison
             </button>
           )}
           {activeTab === 'paiements' && (
-            <button onClick={() => setShowCreate('paiement')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 text-white text-xs hover:bg-purple-700">
+            <button onClick={() => { setPrefillRecord(null); setShowCreate('paiement'); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 text-white text-xs hover:bg-purple-700">
               <Plus className="w-3.5 h-3.5" /> Nouveau paiement
             </button>
           )}
@@ -1345,7 +1667,7 @@ export default function Ventes({
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div className="bg-white rounded-xl p-3 border border-[#e8d5b0]">
           <p className="text-xs text-[#8a7456]">CA total</p>
           <p className="text-lg font-bold text-emerald-600">{fmtCurrency(kpis.totalCA)}</p>
@@ -1353,6 +1675,10 @@ export default function Ventes({
         <div className="bg-white rounded-xl p-3 border border-[#e8d5b0]">
           <p className="text-xs text-[#8a7456]">Encaissé</p>
           <p className="text-lg font-bold text-sky-600">{fmtCurrency(kpis.totalPaye)}</p>
+        </div>
+        <div className="bg-white rounded-xl p-3 border border-[#e8d5b0]">
+          <p className="text-xs text-[#8a7456]">Creances</p>
+          <p className="text-lg font-bold text-red-500">{fmtCurrency(kpis.totalReste)}</p>
         </div>
         <div className="bg-white rounded-xl p-3 border border-[#e8d5b0]">
           <p className="text-xs text-[#8a7456]">Commandes actives</p>
@@ -1488,18 +1814,21 @@ export default function Ventes({
                   {order.notes && <p className="text-xs text-[#8a7456] mt-0.5 truncate">{order.notes}</p>}
                 </div>
                 <div className="flex gap-1 shrink-0 flex-wrap justify-end">
+                  <button onClick={() => openOrderDetail(order)} className="px-2 py-1 text-[10px] bg-sky-500/20 text-sky-500 rounded-lg hover:bg-sky-500/30 font-medium">
+                    Voir fiche
+                  </button>
                   {order.statut_commande === 'brouillon' && (
-                    <button onClick={() => quickConfirm(order)} className="px-2 py-1 text-[10px] bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 font-medium">
+                    <button disabled={savingAction} onClick={() => quickConfirm(order)} className="px-2 py-1 text-[10px] bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 font-medium disabled:opacity-50">
                       Confirmer
                     </button>
                   )}
                   {order.statut_paiement !== 'paye' && (
-                    <button onClick={() => quickPay(order)} className="px-2 py-1 text-[10px] bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30 font-medium">
+                    <button disabled={savingAction} onClick={() => quickPay(order)} className="px-2 py-1 text-[10px] bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30 font-medium disabled:opacity-50">
                       Payé
                     </button>
                   )}
                   {['a_livrer', 'prevue'].includes(order.statut_livraison) && (
-                    <button onClick={() => quickDeliver(order)} className="px-2 py-1 text-[10px] bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30 font-medium">
+                    <button disabled={savingAction} onClick={() => quickDeliver(order)} className="px-2 py-1 text-[10px] bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30 font-medium disabled:opacity-50">
                       Livré
                     </button>
                   )}
@@ -1540,6 +1869,7 @@ export default function Ventes({
                 <p className="text-xs text-[#8a7456]">{fmtDate(inv.date_facture)} · CMD-{(inv.order_id || '').slice(-6)} · {fmtCurrency(inv.montant_total)}</p>
               </div>
               <div className="flex gap-1 shrink-0">
+                <button onClick={() => openOrderDetail(rows.find((order) => order.id === inv.order_id))} className="px-2 py-1 text-[10px] bg-sky-500/20 text-sky-500 rounded-lg hover:bg-sky-500/30">Voir vente</button>
                 <button onClick={() => { setEditItem(inv); setEditType('facture'); }} className="px-2 py-1 text-[10px] bg-[#f5ece0] text-[#8a7456] rounded-lg hover:bg-[#e8d5b0]">Éditer</button>
                 <button onClick={() => handleDelete(inv.id, 'facture')} className="p-1 text-red-400 hover:bg-red-500/10 rounded-lg"><Trash2 className="w-3 h-3" /></button>
               </div>
@@ -1568,6 +1898,7 @@ export default function Ventes({
                 {del.adresse && <p className="text-xs text-[#8a7456] truncate">{del.adresse}</p>}
               </div>
               <div className="flex gap-1 shrink-0">
+                <button onClick={() => openOrderDetail(rows.find((order) => order.id === del.order_id))} className="px-2 py-1 text-[10px] bg-sky-500/20 text-sky-500 rounded-lg hover:bg-sky-500/30">Voir vente</button>
                 {del.statut !== 'livre' && (
                   <button
                     onClick={async () => { await onUpdateDelivery?.(del.id, { statut: 'livre' }); showToast('Livraison confirmée'); onRefresh?.(); }}
@@ -1603,6 +1934,7 @@ export default function Ventes({
                 <p className="text-xs text-[#8a7456]">{fmtDate(pay.date_paiement)} · CMD-{(pay.order_id || '').slice(-6)}{pay.reference ? ` · Réf: ${pay.reference}` : ''}</p>
               </div>
               <div className="flex gap-1 shrink-0">
+                <button onClick={() => openOrderDetail(rows.find((order) => order.id === pay.order_id))} className="px-2 py-1 text-[10px] bg-sky-500/20 text-sky-500 rounded-lg hover:bg-sky-500/30">Voir fiche vente</button>
                 <button onClick={() => { setEditItem(pay); setEditType('paiement'); }} className="px-2 py-1 text-[10px] bg-[#f5ece0] text-[#8a7456] rounded-lg hover:bg-[#e8d5b0]">Éditer</button>
                 <button onClick={() => handleDelete(pay.id, 'paiement')} className="p-1 text-red-400 hover:bg-red-500/10 rounded-lg"><Trash2 className="w-3 h-3" /></button>
               </div>
@@ -1611,6 +1943,25 @@ export default function Ventes({
         </div>
       )}
 
+          {activeTab === 'paiements' && !loading && outstandingOrders.length > 0 && (
+            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4">
+              <p className="mb-3 text-sm font-bold text-red-700">Creances clients a encaisser</p>
+              <div className="space-y-2">
+                {outstandingOrders.map((order) => (
+                  <div key={order.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white p-3 text-sm">
+                    <div>
+                      <p className="font-semibold text-[#2f2415]">CMD-{order.id.slice(-6)} - {getClientName(order.client_id)}</p>
+                      <p className="text-xs text-[#8a7456]">Total {fmtCurrency(order.montant_total)} - Paye {fmtCurrency(order.montant_paye)} - Reste {fmtCurrency(order.reste_a_payer)}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => openOrderDetail(order)} className="rounded-lg bg-sky-500/20 px-3 py-1 text-xs font-semibold text-sky-600">Voir fiche</button>
+                      <button onClick={() => { setPrefillRecord({ order_id: order.id, date_paiement: TODAY, montant: Number(order.reste_a_payer || 0), moyen_paiement: order.moyen_paiement || 'especes' }); setShowCreate('paiement'); }} className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">Encaisser</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
       {/* ── HISTORIQUE ── */}
       {activeTab === 'historique' && !loading && (
         <div className="space-y-2">
@@ -1622,13 +1973,25 @@ export default function Ventes({
             </div>
           )}
           {filteredOrders.map((order) => (
-            <div key={order.id} className="bg-white rounded-xl p-4 border border-[#e8d5b0] opacity-80">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className="font-semibold text-sm text-[#2f2415]">CMD-{order.id.slice(-6)}</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${CMD_COLORS[order.statut_commande] || 'bg-gray-500/20 text-gray-400'}`}>{order.statut_commande}</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${PAY_COLORS[order.statut_paiement] || 'bg-gray-500/20 text-gray-400'}`}>{order.statut_paiement}</span>
+            <div key={order.id} role="button" tabIndex={0} onClick={() => openOrderDetail(order)} onKeyDown={(event) => { if (event.key === 'Enter') openOrderDetail(order); }} className="bg-white rounded-xl p-4 border border-[#e8d5b0] hover:border-[#c9a96a] transition-colors cursor-pointer">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="font-semibold text-sm text-[#2f2415]">CMD-{order.id.slice(-6)}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${CMD_COLORS[order.statut_commande] || 'bg-gray-500/20 text-gray-400'}`}>{order.statut_commande}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${PAY_COLORS[order.statut_paiement] || 'bg-gray-500/20 text-gray-400'}`}>{order.statut_paiement}</span>
+                    {order.statut_livraison && <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${LIV_COLORS[order.statut_livraison] || 'bg-gray-500/20 text-gray-400'}`}>{order.statut_livraison}</span>}
+                  </div>
+                  <p className="text-xs text-[#8a7456]">{fmtDate(order.date)} - {getClientName(order.client_id)} - {fmtCurrency(order.montant_total)}</p>
+                  <p className="text-xs text-[#8a7456] mt-0.5">Paye: {fmtCurrency(order.montant_paye || 0)} - Reste: {fmtCurrency(order.reste_a_payer || 0)} - {order.source_label || 'Produit non detaille'}</p>
+                </div>
+                <div className="flex shrink-0 flex-wrap justify-end gap-1" onClick={(event) => event.stopPropagation()}>
+                  <button onClick={() => openOrderDetail(order)} className="px-2 py-1 text-[10px] bg-sky-500/20 text-sky-500 rounded-lg hover:bg-sky-500/30 font-medium">Voir fiche</button>
+                  {order.statut_paiement !== 'paye' && <button disabled={savingAction} onClick={() => { setPrefillRecord({ order_id: order.id, date_paiement: TODAY, montant: Number(order.reste_a_payer || 0), moyen_paiement: order.moyen_paiement || 'especes' }); setShowCreate('paiement'); }} className="px-2 py-1 text-[10px] bg-emerald-500/20 text-emerald-500 rounded-lg hover:bg-emerald-500/30 font-medium disabled:opacity-50">Encaisser</button>}
+                  <button onClick={() => { setPrefillRecord({ order_id: order.id, numero_facture: `FAC-${order.id.slice(-6)}`, date_facture: TODAY, montant_total: Number(order.montant_total || 0), statut: 'emise' }); setShowCreate('facture'); }} className="px-2 py-1 text-[10px] bg-sky-500/20 text-sky-500 rounded-lg hover:bg-sky-500/30 font-medium">Facture</button>
+                  {order.statut_commande !== 'annule' && <button disabled={savingAction} onClick={() => cancelOrder(order)} className="px-2 py-1 text-[10px] bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 font-medium disabled:opacity-50">Annuler</button>}
+                </div>
               </div>
-              <p className="text-xs text-[#8a7456]">{fmtDate(order.date)} · {getClientName(order.client_id)} · {fmtCurrency(order.montant_total)}</p>
             </div>
           ))}
         </div>
@@ -1644,16 +2007,18 @@ export default function Ventes({
           clients={clients}
           initialValues={prefillOrder || {}}
           onSubmit={handleCreate}
-          onClose={() => { setShowCreate(null); setPrefillOrder(null); }}
+          onClose={() => { setShowCreate(null); setPrefillOrder(null); setPrefillRecord(null); }}
+          submitting={savingAction}
         />
       )}
       {showCreate && showCreate !== 'commande' && (
         <Modal
           title={titleByType[showCreate]}
           fields={fieldsByType[showCreate]}
-          initialValues={{}}
+          initialValues={prefillRecord || {}}
           onSubmit={handleCreate}
-          onClose={() => { setShowCreate(null); setPrefillOrder(null); }}
+          onClose={() => { setShowCreate(null); setPrefillOrder(null); setPrefillRecord(null); }}
+          submitting={savingAction}
         />
       )}
       {editItem && editType && (
@@ -1663,6 +2028,34 @@ export default function Ventes({
           initialValues={editItem}
           onSubmit={handleEdit}
           onClose={() => { setEditItem(null); setEditType(null); }}
+          submitting={savingAction}
+        />
+      )}
+      {selectedOrder && (
+        <SaleDetailModal
+          order={selectedOrder}
+          client={clients.find((client) => client.id === selectedOrder.client_id)}
+          items={getOrderItems(selectedOrder.id)}
+          payments={getOrderPayments(selectedOrder.id)}
+          invoices={getOrderInvoices(selectedOrder.id)}
+          deliveries={getOrderDeliveries(selectedOrder.id)}
+          transactions={getOrderTransactions(selectedOrder.id)}
+          businessEvents={getOrderEvents(selectedOrder.id)}
+          documents={documents}
+          impactApplied={hasImpactApplied(selectedOrder)}
+          onClose={() => setSelectedOrderId(null)}
+          onEdit={() => { setEditItem(selectedOrder); setEditType('commande'); }}
+          onPay={() => { setPrefillRecord({ order_id: selectedOrder.id, date_paiement: TODAY, montant: Number(selectedOrder.reste_a_payer || 0), moyen_paiement: selectedOrder.moyen_paiement || 'especes' }); setShowCreate('paiement'); }}
+          onInvoice={() => { setPrefillRecord({ order_id: selectedOrder.id, numero_facture: `FAC-${selectedOrder.id.slice(-6)}`, date_facture: TODAY, montant_total: Number(selectedOrder.montant_total || 0), statut: 'emise' }); setShowCreate('facture'); }}
+          onCancel={() => cancelOrder(selectedOrder)}
+          onOpenSource={openSourceFiche}
+        />
+      )}
+      {fichePopup && (
+        <FichePopup
+          type={fichePopup.type}
+          item={fichePopup.item}
+          onClose={() => setFichePopup(null)}
         />
       )}
     </div>
