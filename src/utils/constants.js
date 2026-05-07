@@ -207,7 +207,7 @@ export const MODULE_FORM_FIELDS = {
       { value: 'termine', label: 'Termine' },
       { value: 'perdu', label: 'Perdu' },
     ] },
-    { key: 'section_technique', label: 'Indicateurs techniques', type: 'section', description: 'La production oeufs et les oeufs casses se saisissent dans le journal de production, pas dans la fiche lot.' },
+    { key: 'section_technique', label: 'Indicateurs techniques', type: 'section', description: 'Les indicateurs quotidiens se saisissent dans le journal dedie, pas dans la fiche lot.' },
     { key: 'weight_avg', label: 'Poids moyen (kg)', type: 'number' },
     { key: 'poids_objectif', label: 'Poids objectif vente (kg)', type: 'number', showWhen: (form) => form.type === 'Chair' },
     { key: 'ic', label: 'Indice de consommation (IC)', type: 'number', showWhen: (form) => form.type === 'Chair' },

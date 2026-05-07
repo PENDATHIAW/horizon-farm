@@ -21,6 +21,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import AssistantPanel from './components/AssistantPanel';
+import ErrorBoundary from './components/ErrorBoundary';
 import { useAuth } from './context/AuthContext';
 import { useAppData } from './context/AppContext';
 import useCrudModule from './hooks/useCrudModule';
@@ -457,9 +458,15 @@ export default function App() {
       dataMap={dataMap}
       onOpenAssistant={() => setAssistantOpen(true)}
     >
-      <Suspense fallback={<div className="text-sm text-[#8a7456]">Chargement du module...</div>}>
-        <HomePage Module={Module} moduleProps={moduleProps[active] || {}} />
-      </Suspense>
+      <ErrorBoundary
+        resetKey={active}
+        moduleName={navItems.find((item) => item.id === active)?.label || active}
+        onBackToDashboard={() => setActive('dashboard')}
+      >
+        <Suspense fallback={<div className="text-sm text-[#8a7456]">Chargement du module...</div>}>
+          <HomePage Module={Module} moduleProps={moduleProps[active] || {}} />
+        </Suspense>
+      </ErrorBoundary>
       <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={dataMap} onNavigate={setActive} />
     </AppLayout>
   );

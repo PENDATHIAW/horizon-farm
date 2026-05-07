@@ -1,4 +1,44 @@
 ﻿import { toNumber } from './format';
+const DATE_KEY_RE = /(^date($|_)|_date$|_at$|date_|debut|fin|naissance|achat|vente|deces|vol_detecte|intervention|recolte|prevue|prochaine|livraison|paiement|facture|recorded_at|sent_at|detected_at|event_date|last_seen_at)/i;
+const NUMBER_KEY_RE = /(montant|amount|quantite|quantity|prix|price|cout|cost|frais|charge|ca_|marge|margin|roi|score|note|total|solde|seuil|surface|poids|weight|count|nombre|duree|cycle|age|taux|pct|percent|valeur|gain|perte|remise|paye|reste|budget|capacite|production|rendement|niveau|battery|distance|latitude|longitude|initial|current|mortality|malades|vols|vendus|reformes|sorties)/i;
+const UI_FIELD_RE = /(_view$|_label$|_display$|^preview_|^calculated_|^computed_|^ui_)/i;
+
+export const normalizeDate = (value) => {
+  if (value === undefined || value === '') return null;
+  if (value === null) return null;
+  return value;
+};
+
+export const normalizeNumber = (value, defaultValue = null) => {
+  if (value === undefined || value === '') return defaultValue;
+  if (value === null) return defaultValue;
+  const next = Number(value);
+  return Number.isFinite(next) ? next : defaultValue;
+};
+
+export const normalizeText = (value) => {
+  if (value === undefined || value === null) return null;
+  return typeof value === 'string' ? value.trim() : value;
+};
+
+export const normalizePayloadBeforeSave = (payload = {}, options = {}) => {
+  const dropFields = new Set(options.dropFields || []);
+  const numericDefaults = options.numericDefaults || {};
+
+  return Object.fromEntries(
+    Object.entries(payload)
+      .filter(([key, value]) => value !== undefined && !dropFields.has(key) && !UI_FIELD_RE.test(key))
+      .map(([key, value]) => {
+        if (key === 'id' || key.endsWith('_id')) return [key, normalizeText(value)];
+        if (DATE_KEY_RE.test(key)) return [key, normalizeDate(value)];
+        if (NUMBER_KEY_RE.test(key)) return [key, normalizeNumber(value, numericDefaults[key] ?? null)];
+        if (typeof value === 'number') return [key, Number.isFinite(value) ? value : null];
+        if (typeof value === 'string') return [key, normalizeText(value)];
+        if (typeof value === 'boolean') return [key, Boolean(value)];
+        return [key, value];
+      })
+  );
+};
 
 export const normalizeLot = (lot = {}) => ({
   ...lot,
@@ -237,5 +277,6 @@ export const normalizeByModule = (moduleKey, rows) => {
   if (moduleKey === 'veterinaires') return rows.map(normalizeVeterinaire);
   return rows;
 };
+
 
 

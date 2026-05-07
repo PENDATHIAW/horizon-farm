@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 const BASE = 'http://localhost:5173';
 const CREDS = { login: 'penda', password: 'Mariemediatta10#' };

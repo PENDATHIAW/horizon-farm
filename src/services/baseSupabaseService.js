@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { normalizePayloadBeforeSave } from '../utils/normalize';
 
 const dbKeyMap = {
   productionJour: 'productionjour',
@@ -26,11 +27,12 @@ const GENERATED_COLUMNS = {
 
 const toDbPayload = (payload = {}, table = '') => {
   const generated = GENERATED_COLUMNS[table] || [];
-  return Object.fromEntries(
+  const mapped = Object.fromEntries(
     Object.entries(payload)
       .filter(([key]) => !generated.includes(dbKeyMap[key] || key))
-      .map(([key, value]) => [dbKeyMap[key] || key, value === '' ? null : value])
+      .map(([key, value]) => [dbKeyMap[key] || key, value])
   );
+  return normalizePayloadBeforeSave(mapped);
 };
 
 const getMissingSchemaColumn = (error) => {
