@@ -1,0 +1,466 @@
+import { lazy, Suspense, useMemo, useState } from 'react';
+import {
+  Beef,
+  Bird,
+  BookOpen,
+  DollarSign,
+  FileText,
+  GitBranch,
+  History,
+  LayoutDashboard,
+  ListChecks,
+  Package,
+  Radio,
+  Receipt,
+  Sprout,
+  Syringe,
+  TrendingUp,
+  Truck,
+  Users,
+  Wifi,
+  Wrench,
+} from 'lucide-react';
+import AssistantPanel from './components/AssistantPanel';
+import { useAuth } from './context/AuthContext';
+import { useAppData } from './context/AppContext';
+import useCrudModule from './hooks/useCrudModule';
+import useLiveWeather from './hooks/useLiveWeather';
+import useOnlineStatus from './hooks/useOnlineStatus';
+import AppLayout from './layouts/AppLayout';
+import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+
+const MODULES = {
+  dashboard: lazy(() => import('./modules/Dashboard')),
+  animaux: lazy(() => import('./modules/Animaux')),
+  avicole: lazy(() => import('./modules/Avicole')),
+  sante: lazy(() => import('./modules/Sante')),
+  finances: lazy(() => import('./modules/Finances')),
+  comptabilite: lazy(() => import('./modules/Comptabilite')),
+  investissements: lazy(() => import('./modules/Investissements')),
+  stock: lazy(() => import('./modules/Stocks')),
+  clients: lazy(() => import('./modules/Clients')),
+  fournisseurs: lazy(() => import('./modules/Fournisseurs')),
+  tracabilite: lazy(() => import('./modules/Tracabilite')),
+  alertes: lazy(() => import('./modules/AlertesCenter')),
+  sync: lazy(() => import('./modules/Sync')),
+  cultures: lazy(() => import('./modules/Cultures')),
+  smartfarm: lazy(() => import('./modules/SmartFarm')),
+  ventes: lazy(() => import('./modules/Ventes')),
+  documents: lazy(() => import('./modules/Documents')),
+  taches: lazy(() => import('./modules/Taches')),
+  rapports: lazy(() => import('./modules/Rapports')),
+  equipements: lazy(() => import('./modules/Equipements')),
+  audit_logs: lazy(() => import('./modules/AuditLogs')),
+};
+
+export default function App() {
+  const [active, setActive] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+
+  const { user, loading: authLoading, signOut, canAccess } = useAuth();
+  const { dataMap, refreshModule, flushOfflineQueue } = useAppData();
+  const { online, lastOnlineAt } = useOnlineStatus();
+  const { weather: liveMeteo, loading: weatherLoading, source: weatherSource } = useLiveWeather();
+
+  const animauxCrud = useCrudModule('animaux');
+  const avicoleCrud = useCrudModule('avicole');
+  const santeCrud = useCrudModule('sante');
+  const veterinairesCrud = useCrudModule('veterinaires');
+  const financesCrud = useCrudModule('finances');
+  const investissementsCrud = useCrudModule('investissements');
+  const businessPlansCrud = useCrudModule('business_plans');
+  const bpInvestmentLinesCrud = useCrudModule('bp_investment_lines');
+  const bpRecurringCostsCrud = useCrudModule('bp_recurring_costs');
+  const bpRevenueProjectionsCrud = useCrudModule('bp_revenue_projections');
+  const bpFundingSourcesCrud = useCrudModule('bp_funding_sources');
+  const bpLinksCrud = useCrudModule('bp_links');
+  const bpRisksCrud = useCrudModule('bp_risks');
+  const stockCrud = useCrudModule('stock');
+  const clientsCrud = useCrudModule('clients');
+  const fournisseursCrud = useCrudModule('fournisseurs');
+  const tracabiliteCrud = useCrudModule('tracabilite');
+  const culturesCrud = useCrudModule('cultures');
+  const documentsCrud = useCrudModule('documents');
+  const tachesCrud = useCrudModule('taches');
+  const rapportsCrud = useCrudModule('rapports');
+  const equipementsCrud = useCrudModule('equipements');
+  const auditLogsCrud = useCrudModule('audit_logs');
+  const alimentationLogsCrud = useCrudModule('alimentation_logs');
+  const productionOeufsLogsCrud = useCrudModule('production_oeufs_logs');
+  const sensorDevicesCrud = useCrudModule('sensor_devices');
+  const cameraDevicesCrud = useCrudModule('camera_devices');
+  const businessEventsCrud = useCrudModule('business_events');
+  const alertesCenterCrud = useCrudModule('alertes_center');
+  const whatsappTemplatesCrud = useCrudModule('whatsapp_templates');
+  const whatsappLogsCrud = useCrudModule('whatsapp_logs');
+  const salesOrdersCrud = useCrudModule('sales_orders');
+  const salesOrderItemsCrud = useCrudModule('sales_order_items');
+  const deliveriesCrud = useCrudModule('deliveries');
+  const invoicesCrud = useCrudModule('invoices');
+  const paymentsCrud = useCrudModule('payments');
+  const salesOpportunitiesCrud = useCrudModule('sales_opportunities');
+
+  const vaccinsRetard = (dataMap.sante || []).filter((v) => v.statut === 'retard').length;
+  const stocksCritiques = (dataMap.stock || []).filter((s) => Number(s.quantite || 0) <= Number(s.seuil || 0)).length;
+  const animauxMalades = (dataMap.animaux || []).filter((a) => a.health_status === 'malade').length;
+  const culturesRisque = (dataMap.cultures || []).filter((c) => Number(c.score_sante || 0) < 80 || c.statut === 'perdu').length;
+  const lotsAlerte = (dataMap.avicole || []).filter((lot) => Number(lot.mortality || 0) > Number(lot.initial_count || 0) * 0.04 || Number(lot.scoresSante || 100) < 88).length;
+  const financesAlerte = (dataMap.finances || []).filter((trx) => ['impaye', 'partiel'].includes(trx.statut)).length;
+  const fournisseursAlerte = (dataMap.fournisseurs || []).filter((f) => Number(f.dettes || 0) > 0 || f.statut === 'a_risque').length;
+  const equipementsAlerte = (dataMap.equipements || []).filter((e) => ['panne', 'maintenance', 'hors_service'].includes(e.status)).length;
+  const tachesAlerte = (dataMap.taches || []).filter((t) => t.priority === 'critique' || t.status === 'retard').length;
+  const notifs = vaccinsRetard + stocksCritiques + animauxMalades + culturesRisque + lotsAlerte + financesAlerte + fournisseursAlerte + equipementsAlerte + tachesAlerte + (online ? 0 : 1);
+
+  const refreshAll = async () => {
+    await Promise.allSettled([
+      refreshModule('animaux'),
+      refreshModule('avicole'),
+      refreshModule('sante'),
+      refreshModule('veterinaires'),
+      refreshModule('finances'),
+      refreshModule('investissements'),
+      refreshModule('business_plans'),
+      refreshModule('bp_investment_lines'),
+      refreshModule('bp_recurring_costs'),
+      refreshModule('bp_revenue_projections'),
+      refreshModule('bp_funding_sources'),
+      refreshModule('bp_links'),
+      refreshModule('bp_risks'),
+      refreshModule('stock'),
+      refreshModule('clients'),
+      refreshModule('fournisseurs'),
+      refreshModule('tracabilite'),
+      refreshModule('cultures'),
+      refreshModule('ventes'),
+      refreshModule('documents'),
+      refreshModule('taches'),
+      refreshModule('rapports'),
+      refreshModule('equipements'),
+      refreshModule('audit_logs'),
+      refreshModule('alimentation_logs'),
+      refreshModule('production_oeufs_logs'),
+      refreshModule('sensor_devices'),
+      refreshModule('camera_devices'),
+      refreshModule('business_events'),
+      refreshModule('alertes_center'),
+      refreshModule('whatsapp_templates'),
+      refreshModule('whatsapp_logs'),
+      refreshModule('sales_orders'),
+      refreshModule('sales_order_items'),
+      refreshModule('deliveries'),
+      refreshModule('invoices'),
+      refreshModule('payments'),
+      refreshModule('sales_opportunities'),
+      refreshModule('documents'),
+    ]);
+  };
+
+  const navItems = useMemo(
+    () =>
+      [
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { id: 'animaux', label: 'Animaux', icon: Beef },
+        { id: 'avicole', label: 'Avicole', icon: Bird },
+        { id: 'sante', label: 'Sante & Vaccins', icon: Syringe, hasAlert: vaccinsRetard > 0 },
+        { id: 'finances', label: 'Finances', icon: DollarSign },
+        { id: 'comptabilite', label: 'Comptabilite', icon: BookOpen },
+        { id: 'investissements', label: 'Investissements', icon: TrendingUp },
+        { id: 'stock', label: 'Stock', icon: Package, hasAlert: stocksCritiques > 0 },
+        { id: 'clients', label: 'Clients & WhatsApp', icon: Users },
+        { id: 'ventes', label: 'Ventes', icon: Receipt },
+        { id: 'fournisseurs', label: 'Fournisseurs', icon: Truck },
+        { id: 'tracabilite', label: 'Tracabilite', icon: GitBranch },
+        { id: 'alertes', label: 'Centre Alertes', icon: History, hasAlert: (dataMap.alertes_center || []).filter((a) => a.status === 'nouvelle').length > 0 },
+        { id: 'cultures', label: 'Cultures', icon: Sprout, hasAlert: culturesRisque > 0 },
+        { id: 'documents', label: 'Documents', icon: FileText },
+        { id: 'taches', label: 'Taches', icon: ListChecks },
+        { id: 'rapports', label: 'Rapports', icon: FileText },
+        { id: 'equipements', label: 'Equipements', icon: Wrench },
+        { id: 'smartfarm', label: 'Smart Farm', icon: Radio },
+        { id: 'audit_logs', label: 'Audit Logs', icon: History },
+        { id: 'sync', label: 'Sync Offline', icon: Wifi, hasAlert: !online },
+      ].filter((item) => canAccess(item.id)),
+    [vaccinsRetard, stocksCritiques, culturesRisque, online, canAccess, dataMap.alertes_center]
+  );
+
+  const moduleProps = {
+    dashboard: {
+      lotsData: avicoleCrud.rows,
+      animaux: animauxCrud.rows,
+      vaccins: santeCrud.rows,
+      stocks: stockCrud.rows,
+      clients: clientsCrud.rows,
+      cultures: culturesCrud.rows,
+      alimentationLogs: alimentationLogsCrud.rows,
+      productionLogs: productionOeufsLogsCrud.rows,
+      meteo: liveMeteo,
+      onRefresh: refreshAll,
+    },
+    animaux: { rows: animauxCrud.rows, alimentationLogs: alimentationLogsCrud.rows, vaccins: santeCrud.rows, loading: animauxCrud.loading, onCreate: animauxCrud.create, onUpdate: animauxCrud.update, onDelete: animauxCrud.remove, onRefresh: animauxCrud.refresh },
+    avicole: {
+      rows: avicoleCrud.rows,
+      alimentationLogs: alimentationLogsCrud.rows,
+      productionLogs: productionOeufsLogsCrud.rows,
+      loading: avicoleCrud.loading || productionOeufsLogsCrud.loading,
+      onCreate: avicoleCrud.create,
+      onUpdate: avicoleCrud.update,
+      onDelete: avicoleCrud.remove,
+      onRefresh: avicoleCrud.refresh,
+      onCreateProduction: productionOeufsLogsCrud.create,
+      onUpdateProduction: productionOeufsLogsCrud.update,
+      onDeleteProduction: productionOeufsLogsCrud.remove,
+      onRefreshProduction: productionOeufsLogsCrud.refresh,
+      onCreateOpportunity: salesOpportunitiesCrud.create,
+    },
+    sante: {
+      rows: santeCrud.rows,
+      vets: veterinairesCrud.rows,
+      loading: santeCrud.loading,
+      vetsLoading: veterinairesCrud.loading,
+      onCreate: santeCrud.create,
+      onUpdate: santeCrud.update,
+      onDelete: santeCrud.remove,
+      onRefresh: santeCrud.refresh,
+      onCreateVet: veterinairesCrud.create,
+      onUpdateVet: veterinairesCrud.update,
+      onDeleteVet: veterinairesCrud.remove,
+      onRefreshVets: veterinairesCrud.refresh,
+    },
+    finances: {
+      rows: financesCrud.rows,
+      loading: financesCrud.loading,
+      onCreate: financesCrud.create,
+      onUpdate: financesCrud.update,
+      onDelete: financesCrud.remove,
+      onRefresh: financesCrud.refresh,
+      animaux: animauxCrud.rows,
+      lots: avicoleCrud.rows,
+      cultures: culturesCrud.rows,
+      stocks: stockCrud.rows,
+      investissements: investissementsCrud.rows,
+      clients: clientsCrud.rows,
+      fournisseurs: fournisseursCrud.rows,
+      alimentationLogs: alimentationLogsCrud.rows,
+      businessPlans: businessPlansCrud.rows,
+    },
+    comptabilite: {
+      transactions: financesCrud.rows,
+      clients: clientsCrud.rows,
+      fournisseurs: fournisseursCrud.rows,
+      onRefreshFinances: financesCrud.refresh,
+    },
+    investissements: {
+      rows: investissementsCrud.rows,
+      loading: investissementsCrud.loading || businessPlansCrud.loading,
+      onCreate: investissementsCrud.create,
+      onUpdate: investissementsCrud.update,
+      onDelete: investissementsCrud.remove,
+      onRefresh: investissementsCrud.refresh,
+      businessPlans: businessPlansCrud.rows,
+      bpInvestmentLines: bpInvestmentLinesCrud.rows,
+      bpRecurringCosts: bpRecurringCostsCrud.rows,
+      bpRevenueProjections: bpRevenueProjectionsCrud.rows,
+      bpFundingSources: bpFundingSourcesCrud.rows,
+      bpLinks: bpLinksCrud.rows,
+      bpRisks: bpRisksCrud.rows,
+      transactions: financesCrud.rows,
+      lots: avicoleCrud.rows,
+      animaux: animauxCrud.rows,
+      cultures: culturesCrud.rows,
+      onCreateBusinessPlan: businessPlansCrud.create,
+      onUpdateBusinessPlan: businessPlansCrud.update,
+      onDeleteBusinessPlan: businessPlansCrud.remove,
+      onRefreshBusinessPlans: businessPlansCrud.refresh,
+      onCreateBpInvestmentLine: bpInvestmentLinesCrud.create,
+      onUpdateBpInvestmentLine: bpInvestmentLinesCrud.update,
+      onDeleteBpInvestmentLine: bpInvestmentLinesCrud.remove,
+      onCreateBpRecurringCost: bpRecurringCostsCrud.create,
+      onUpdateBpRecurringCost: bpRecurringCostsCrud.update,
+      onDeleteBpRecurringCost: bpRecurringCostsCrud.remove,
+      onCreateBpRevenueProjection: bpRevenueProjectionsCrud.create,
+      onUpdateBpRevenueProjection: bpRevenueProjectionsCrud.update,
+      onDeleteBpRevenueProjection: bpRevenueProjectionsCrud.remove,
+      onCreateBpFundingSource: bpFundingSourcesCrud.create,
+      onUpdateBpFundingSource: bpFundingSourcesCrud.update,
+      onDeleteBpFundingSource: bpFundingSourcesCrud.remove,
+      onCreateBpRisk: bpRisksCrud.create,
+      onUpdateBpRisk: bpRisksCrud.update,
+      onDeleteBpRisk: bpRisksCrud.remove,
+    },
+    stock: {
+      rows: stockCrud.rows,
+      alimentationLogs: alimentationLogsCrud.rows,
+      animaux: animauxCrud.rows,
+      lots: avicoleCrud.rows,
+      fournisseurs: fournisseursCrud.rows,
+      loading: stockCrud.loading,
+      onCreate: stockCrud.create,
+      onUpdate: stockCrud.update,
+      onDelete: stockCrud.remove,
+      onRefresh: stockCrud.refresh,
+      onCreateAlimentation: alimentationLogsCrud.create,
+      onUpdateAlimentation: alimentationLogsCrud.update,
+      onDeleteAlimentation: alimentationLogsCrud.remove,
+      onRefreshAlimentation: alimentationLogsCrud.refresh,
+    },
+    clients: { rows: clientsCrud.rows, loading: clientsCrud.loading, onCreate: clientsCrud.create, onUpdate: clientsCrud.update, onDelete: clientsCrud.remove, onRefresh: clientsCrud.refresh },
+    fournisseurs: { rows: fournisseursCrud.rows, loading: fournisseursCrud.loading, onCreate: fournisseursCrud.create, onUpdate: fournisseursCrud.update, onDelete: fournisseursCrud.remove, onRefresh: fournisseursCrud.refresh },
+    tracabilite: {
+      rows: tracabiliteCrud.rows,
+      events: businessEventsCrud.rows,
+      animaux: animauxCrud.rows,
+      lots: avicoleCrud.rows,
+      cultures: culturesCrud.rows,
+      loading: tracabiliteCrud.loading || businessEventsCrud.loading,
+      onCreate: businessEventsCrud.create,
+      onUpdate: businessEventsCrud.update,
+      onDelete: businessEventsCrud.remove,
+      onNavigate: setActive,
+      onRefresh: async () => { await tracabiliteCrud.refresh(); await businessEventsCrud.refresh(); },
+    },
+    alertes: {
+      alertes: alertesCenterCrud.rows,
+      transactions: financesCrud.rows,
+      animaux: animauxCrud.rows,
+      lots: avicoleCrud.rows,
+      stocks: stockCrud.rows,
+      cultures: culturesCrud.rows,
+      sensorDevices: sensorDevicesCrud.rows,
+      loading: alertesCenterCrud.loading,
+      onCreate: alertesCenterCrud.create,
+      onUpdate: alertesCenterCrud.update,
+      onDelete: alertesCenterCrud.remove,
+      onRefresh: alertesCenterCrud.refresh,
+      whatsappTemplates: whatsappTemplatesCrud.rows,
+      whatsappLogs: whatsappLogsCrud.rows,
+      onSendWhatsApp: async (alerte, recipient = 'responsable') => {
+        await whatsappLogsCrud.create({
+          alert_id: alerte.id,
+          recipient,
+          message: `${alerte.title || 'Alerte Horizon Farm'}\n${alerte.message || ''}\nAction recommandee: ${alerte.action_recommandee || 'Verifier dans Horizon Farm.'}`,
+          status: 'simule',
+          provider: 'simulation',
+          sent_at: new Date().toISOString(),
+        });
+        await whatsappLogsCrud.refresh();
+      },
+    },
+    cultures: { rows: culturesCrud.rows, loading: culturesCrud.loading, onCreate: culturesCrud.create, onUpdate: culturesCrud.update, onDelete: culturesCrud.remove, onRefresh: culturesCrud.refresh },
+    ventes: {
+      rows: salesOrdersCrud.rows,
+      orderItems: salesOrderItemsCrud.rows,
+      deliveriesList: deliveriesCrud.rows,
+      invoicesList: invoicesCrud.rows,
+      paymentsList: paymentsCrud.rows,
+      opportunities: salesOpportunitiesCrud.rows,
+      animaux: animauxCrud.rows,
+      lots: avicoleCrud.rows,
+      cultures: culturesCrud.rows,
+      stocks: stockCrud.rows,
+      clients: clientsCrud.rows,
+      loading: salesOrdersCrud.loading,
+      onCreate: salesOrdersCrud.create,
+      onUpdate: salesOrdersCrud.update,
+      onDelete: salesOrdersCrud.remove,
+      onRefresh: salesOrdersCrud.refresh,
+      onCreateItem: salesOrderItemsCrud.create,
+      onUpdateItem: salesOrderItemsCrud.update,
+      onDeleteItem: salesOrderItemsCrud.remove,
+      onCreateDelivery: deliveriesCrud.create,
+      onUpdateDelivery: deliveriesCrud.update,
+      onDeleteDelivery: deliveriesCrud.remove,
+      onCreateInvoice: invoicesCrud.create,
+      onUpdateInvoice: invoicesCrud.update,
+      onDeleteInvoice: invoicesCrud.remove,
+      onCreatePayment: paymentsCrud.create,
+      onUpdatePayment: paymentsCrud.update,
+      onDeletePayment: paymentsCrud.remove,
+      onCreateOpportunity: salesOpportunitiesCrud.create,
+      onUpdateOpportunity: salesOpportunitiesCrud.update,
+      onDeleteOpportunity: salesOpportunitiesCrud.remove,
+      onUpdateAnimal: animauxCrud.update,
+      onUpdateLot: avicoleCrud.update,
+      onUpdateCulture: culturesCrud.update,
+      onUpdateStock: stockCrud.update,
+      onCreateFinanceTransaction: financesCrud.create,
+      onCreateTrace: tracabiliteCrud.create,
+      onCreateBusinessEvent: businessEventsCrud.create,
+      onUpdateClient: clientsCrud.update,
+    },
+    documents: {
+      rows: documentsCrud.rows,
+      animaux: animauxCrud.rows,
+      lots: avicoleCrud.rows,
+      cultures: culturesCrud.rows,
+      clients: clientsCrud.rows,
+      fournisseurs: fournisseursCrud.rows,
+      loading: documentsCrud.loading,
+      onCreate: documentsCrud.create,
+      onUpdate: documentsCrud.update,
+      onDelete: documentsCrud.remove,
+      onRefresh: documentsCrud.refresh,
+    },
+    taches: { rows: tachesCrud.rows, loading: tachesCrud.loading, onCreate: tachesCrud.create, onUpdate: tachesCrud.update, onDelete: tachesCrud.remove, onRefresh: tachesCrud.refresh },
+    rapports: { rows: rapportsCrud.rows, loading: rapportsCrud.loading, onCreate: rapportsCrud.create, onUpdate: rapportsCrud.update, onDelete: rapportsCrud.remove, onRefresh: rapportsCrud.refresh },
+    equipements: { rows: equipementsCrud.rows, loading: equipementsCrud.loading, onCreate: equipementsCrud.create, onUpdate: equipementsCrud.update, onDelete: equipementsCrud.remove, onRefresh: equipementsCrud.refresh },
+    audit_logs: { rows: auditLogsCrud.rows, loading: auditLogsCrud.loading, onCreate: auditLogsCrud.create, onUpdate: auditLogsCrud.update, onDelete: auditLogsCrud.remove, onRefresh: auditLogsCrud.refresh },
+    smartfarm: {
+      meteo: liveMeteo,
+      online,
+      sensors: sensorDevicesCrud.rows,
+      cameras: cameraDevicesCrud.rows,
+      sensorLoading: sensorDevicesCrud.loading,
+      cameraLoading: cameraDevicesCrud.loading,
+      onCreateSensor: sensorDevicesCrud.create,
+      onUpdateSensor: sensorDevicesCrud.update,
+      onDeleteSensor: sensorDevicesCrud.remove,
+      onRefreshSensors: sensorDevicesCrud.refresh,
+      onCreateCamera: cameraDevicesCrud.create,
+      onUpdateCamera: cameraDevicesCrud.update,
+      onDeleteCamera: cameraDevicesCrud.remove,
+      onRefreshCameras: cameraDevicesCrud.refresh,
+    },
+    sync: { onRefreshAll: refreshAll, onFlushOffline: flushOfflineQueue, online, lastOnlineAt, dataMap },
+  };
+
+  const Module = MODULES[active];
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#f8f5ef] text-[#2f2415] flex items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto mb-4 w-12 h-12 rounded-xl bg-[#c9a96a] animate-pulse" />
+          <p className="text-sm font-semibold text-[#8a7456]">Chargement Horizon Farm...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return <LoginPage />;
+
+  return (
+    <AppLayout
+      navItems={navItems}
+      active={active}
+      setActive={setActive}
+      sidebarOpen={sidebarOpen}
+      setSidebarOpen={setSidebarOpen}
+      online={online}
+      meteo={liveMeteo}
+      weatherLoading={weatherLoading}
+      weatherSource={weatherSource}
+      notifs={notifs}
+      user={user}
+      onSignOut={signOut}
+      dataMap={dataMap}
+      onOpenAssistant={() => setAssistantOpen(true)}
+    >
+      <Suspense fallback={<div className="text-sm text-[#8a7456]">Chargement du module...</div>}>
+        <HomePage Module={Module} moduleProps={moduleProps[active] || {}} />
+      </Suspense>
+      <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={dataMap} onNavigate={setActive} />
+    </AppLayout>
+  );
+}
