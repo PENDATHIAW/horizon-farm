@@ -1,6 +1,5 @@
-import { AlertTriangle, Beef, Bird, DollarSign, HeartPulse, Package, Receipt, ShieldCheck, TrendingUp } from 'lucide-react';
+import { AlertTriangle, Bird, HeartPulse, Receipt, ShieldCheck } from 'lucide-react';
 import Sante from './Sante.jsx';
-import Btn from '../components/Btn';
 import KpiCard from '../components/KpiCard';
 import SectionHeader from '../components/SectionHeader';
 import { MODULE_FORM_FIELDS } from '../utils/constants';
@@ -46,20 +45,13 @@ function openModule(moduleKey) {
   navButtons.find((button) => button.textContent?.toLowerCase().includes(moduleKey.toLowerCase()))?.click();
 }
 
-function MiniLink({ icon: Icon, label, moduleKey }) {
-  return (
-    <button type="button" onClick={() => openModule(moduleKey)} className="inline-flex items-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-xs font-semibold text-[#7d6a4a] hover:border-[#b6975f] transition-all">
-      <Icon size={14} />{label}
-    </button>
-  );
-}
-
-function ActionCard({ title, value, detail, danger, moduleKey }) {
+function ActionCard({ title, value, detail, danger, moduleKey, cta }) {
   return (
     <button type="button" onClick={() => openModule(moduleKey)} className={`text-left border rounded-xl p-4 transition-all hover:border-[#b6975f] ${danger ? 'bg-red-50/70 border-red-200' : 'bg-[#fffdf8] border-[#d6c3a0]'}`}>
       <p className="font-bold text-[#2f2415]">{title}</p>
       <p className="text-2xl font-black text-[#2f2415] mt-1">{value}</p>
       <p className="text-xs text-[#8a7456] mt-1">{detail}</p>
+      <p className="text-xs font-semibold text-[#9a6b12] mt-3">{cta || `Ouvrir ${moduleKey}`}</p>
     </button>
   );
 }
@@ -86,24 +78,16 @@ function HealthImpactSummary({ rows, animaux, lots, stocks, transactions }) {
   const riskScore = Math.min(100, lateVaccines.length * 15 + sickAnimals.length * 10 + sickLots.length * 8 + medicinesLow.length * 8 + avicoleDeaths * 2);
 
   const priorityActions = [
-    lateVaccines.length ? { title: 'Vaccins en retard', value: lateVaccines.length, detail: 'À traiter avant aggravation sanitaire.', moduleKey: 'Sante', danger: true } : null,
-    sickAnimals.length ? { title: 'Animaux malades', value: sickAnimals.length, detail: 'Vérifier les fiches animaux concernées.', moduleKey: 'Animaux', danger: true } : null,
-    sickLots.length ? { title: 'Lots avicoles à risque', value: sickLots.length, detail: 'Morts, malades ou lots sous surveillance.', moduleKey: 'Avicole', danger: true } : null,
-    medicinesLow.length ? { title: 'Stock santé critique', value: medicinesLow.length, detail: 'Vaccins/médicaments sous seuil.', moduleKey: 'Stock', danger: true } : null,
-    healthCosts > 0 ? { title: 'Coût santé suivi', value: money(healthCosts), detail: 'Coûts qui alimentent Impact Business.', moduleKey: 'Impact Business', danger: false } : null,
+    lateVaccines.length ? { title: 'Vaccins en retard', value: lateVaccines.length, detail: 'À traiter avant aggravation sanitaire.', moduleKey: 'Sante', cta: 'Voir les vaccins en retard', danger: true } : null,
+    sickAnimals.length ? { title: 'Animaux malades', value: sickAnimals.length, detail: 'Vérifier les fiches animaux concernées.', moduleKey: 'Animaux', cta: 'Ouvrir les animaux concernés', danger: true } : null,
+    sickLots.length ? { title: 'Lots avicoles à risque', value: sickLots.length, detail: 'Morts, malades ou lots sous surveillance.', moduleKey: 'Avicole', cta: 'Ouvrir les lots avicoles', danger: true } : null,
+    medicinesLow.length ? { title: 'Stock santé critique', value: medicinesLow.length, detail: 'Vaccins/médicaments sous seuil.', moduleKey: 'Stock', cta: 'Vérifier le stock santé', danger: true } : null,
+    healthCosts > 0 ? { title: 'Coût santé suivi', value: money(healthCosts), detail: 'Coûts qui alimentent Impact Business.', moduleKey: 'Impact Business', cta: 'Voir l’impact business santé', danger: false } : null,
   ].filter(Boolean);
 
   return (
     <div className="space-y-5">
       <SectionHeader title="Pilotage santé" sub="Vaccins, soins, retards, coûts et risques sanitaires." />
-
-      <div className="flex flex-wrap gap-2">
-        <MiniLink icon={Beef} label="Animaux liés" moduleKey="Animaux" />
-        <MiniLink icon={Bird} label="Lots avicoles" moduleKey="Avicole" />
-        <MiniLink icon={Package} label="Stock santé" moduleKey="Stock" />
-        <MiniLink icon={DollarSign} label="Coûts santé" moduleKey="Finances" />
-        <MiniLink icon={TrendingUp} label="Impact Business" moduleKey="Impact Business" />
-      </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard icon={ShieldCheck} label="Couverture vaccinale" value={pct(coverage)} sub={`${fmtNumber(doneVaccines.length)} faits / ${fmtNumber(vaccineRows.length)}`} color="bg-emerald-500/20 text-emerald-500" />
