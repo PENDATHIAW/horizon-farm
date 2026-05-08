@@ -39,11 +39,8 @@ import { fmtCurrency, fmtNumber } from '../utils/format';
 import { getFeedingKpis } from '../utils/alimentation';
 import { calculateClientMetrics, calculateCultureMetrics, calculateLotMetrics, calculateLotSaleReadiness, calculateStockMetrics } from '../utils/businessCalculations';
 
-const monthLabel = (dateValue) => {
-  const date = dateValue ? new Date(dateValue) : new Date();
-  if (Number.isNaN(date.getTime())) return 'N/A';
-  return date.toLocaleDateString('fr-FR', { month: 'short' });
-};
+const isActiveFinanceStatus = (status) => !['impaye', 'annule'].includes(status || 'paye');
+const isNotCancelled = (status) => (status || 'paye') !== 'annule';
 
 const buildFinanceChartData = (transactions = []) => {
   const now = new Date();
@@ -62,8 +59,8 @@ const buildFinanceChartData = (transactions = []) => {
     const item = byKey.get(key);
     if (!item) return;
     const amount = Number(transaction.montant || 0);
-    if (transaction.type === 'entree' && (transaction.statut || 'paye') !== 'impaye') item.recettes += amount;
-    if (transaction.type === 'sortie') item.depenses += amount;
+    if (transaction.type === 'entree' && isActiveFinanceStatus(transaction.statut)) item.recettes += amount;
+    if (transaction.type === 'sortie' && isNotCancelled(transaction.statut)) item.depenses += amount;
   });
 
   return months;
@@ -71,9 +68,10 @@ const buildFinanceChartData = (transactions = []) => {
 
 export default function Dashboard({ lotsData = [], animaux = [], vaccins = [], stocks = [], clients = [], cultures = [], transactions = [], alimentationLogs = [], productionLogs = [], meteo, onRefresh }) {
   const [refreshing, setRefreshing] = useState(false);
-  const totalRecettes = transactions.filter((t) => t.type === 'entree' && (t.statut || 'paye') !== 'impaye' && (t.statut || 'paye') !== 'annule').reduce((s, t) => s + Number(t.montant || 0), 0);
-  const totalDepenses = transactions.filter((t) => t.type === 'sortie' && (t.statut || 'paye') !== 'annule').reduce((s, t) => s + Number(t.montant || 0), 0);
-  const cashDisponible = transactions.filter((t) => (t.statut || 'paye') !== 'impaye' && (t.statut || 'paye') !== 'annule').reduce((sum, t) => sum + (t.type === 'sortie' ? -Number(t.montant || 0) : Number(t.montant || 0)), 0);
+  const totalRecettes = transactions.filter((t) => t.type === 'entree' && isActiveFinanceStatus(t.statut)).reduce((s, t) => s + Number(t.montant || 0), 0);
+  const totalDepenses = transactions.filter((t) => t.type === 'sortie' && isNotCancelled(t.statut)).reduce((s, t) => s + Number(t.montant || 0), 0);
+  const cashDisponible = transactions.filter((t) => isActiveFinanceStatus(t.statut)).reduce((sum, t) => sum + (t.type === 'sortie' ? -Number(t.montant || 0) : Number(t.montant || 0)), 0);
+  const transactionCount = transactions.filter((t) => isNotCancelled(t.statut)).length;
   const benefice = totalRecettes - totalDepenses;
   const marge = totalRecettes ? ((benefice / totalRecettes) * 100).toFixed(1) : '0.0';
   const financeChartData = buildFinanceChartData(transactions);
@@ -107,6 +105,8 @@ export default function Dashboard({ lotsData = [], animaux = [], vaccins = [], s
   const feedingKpis = getFeedingKpis({ logs: alimentationLogs, animals: animaux, lots: lotsData });
   const weatherAlerts = (meteo?.alerts || []).map((msg) => ({ type: meteo.riskLevel === 'critique' ? 'danger' : 'amber', msg }));
   const weatherRecommendations = (meteo?.recommendations || []).map((msg) => ({ icon: 'Meteo', msg }));
+  const weatherImpact = meteo?.impact || 'Conditions meteo a verifier: garder les routines terrain et surveiller eau, ventilation et stocks sensibles.';
+  const weatherAdvice = (meteo?.recommendations || [])[0] || 'Conditions stables: maintenir les routines terrain et verifier les stocks critiques.';
 
   const alertes = [
     malades > 0 && { type: 'danger', msg: `${premierMalade?.name || 'Animal'} malade: verifier poids, temperature et traitement aujourd'hui` },
@@ -114,11 +114,13 @@ export default function Dashboard({ lotsData = [], animaux = [], vaccins = [], s
     stocksCritiques > 0 && { type: 'amber', msg: `${premierStockCritique?.produit || 'Stock'} critique: ${premierStockCritique?.quantite}/${premierStockCritique?.seuil} ${premierStockCritique?.unite || ''}`.trim() },
     culturesRisque > 0 && { type: 'amber', msg: `${premiereCultureRisque?.nom || 'Culture'} a surveiller: score sante ${calculateCultureMetrics(premiereCultureRisque).healthScore.toFixed(0)}%` },
     ...weatherAlerts.slice(0, 3),
-    { type: 'info', msg: meteo?.impact || 'Meteo indisponible' },
-    { type: 'success', msg: 'Synchronisation cloud effectuee' },
+    { type: 'info', msg: weatherImpact },
+    { type: 'success', msg: transactionCount ? `${transactionCount} transaction(s) finance suivie(s)` : 'Aucune transaction finance active pour le moment' },
   ].filter(Boolean);
 
   const recommandations = [
+    cashDisponible < 0 && { icon: 'Finance', msg: `Tresorerie negative (${fmtCurrency(cashDisponible)}): priorite aux encaissements et reduction des sorties non urgentes.` },
+    totalRecettes === 0 && { icon: 'Finance', msg: 'Aucune recette encaissee: verifier les ventes payees et les transactions finance.' },
     lotFaible && lotMetrics(lotFaible).scoreSante < 90 && { icon: 'Lot', msg: `${lotFaible.name || lotFaible.id} est le lot le plus fragile (${lotMetrics(lotFaible).scoreSante.toFixed(0)}% sante). Priorite: verifier mortalite, alimentation et ventilation.` },
     premierStockCritique && { icon: 'Stock', msg: `Commander ${premierStockCritique.produit}: niveau ${premierStockCritique.quantite}/${premierStockCritique.seuil} ${premierStockCritique.unite || ''}.` },
     premierVaccinRetard && { icon: 'Sante', msg: `Planifier ${premierVaccinRetard.nom} avec ${premierVaccinRetard.vet || 'un veterinaire'} avant nouvelle vente.` },
@@ -141,13 +143,18 @@ export default function Dashboard({ lotsData = [], animaux = [], vaccins = [], s
       <div className="bg-[#2f2415] text-white border border-[#c9a96a]/40 rounded-3xl p-5 shadow-xl">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4"><div><p className="text-xs uppercase tracking-[0.25em] text-[#c9a96a] font-bold">Dashboard dirigeant</p><h2 className="text-xl font-black mt-1">Vue ultra simple pour decision rapide</h2></div><span className="text-xs rounded-full bg-[#c9a96a]/20 border border-[#c9a96a]/40 px-3 py-1 text-[#f4e6c8]">Mode proprietaire</span></div>
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">{[
-          { label: 'Benefice', value: fmtCurrency(benefice), tone: benefice >= 0 ? 'text-emerald-300' : 'text-red-300' }, { label: 'Alertes', value: alertes.filter((a) => a.type === 'danger' || a.type === 'amber').length, tone: 'text-amber-300' }, { label: 'Mortalite', value: `${mortalityRate.toFixed(1)}%`, tone: 'text-red-300' }, { label: 'Production', value: fmtNumber(productionOeufsJour), tone: 'text-sky-300' }, { label: 'Cash', value: fmtCurrency(cashDisponible), tone: cashDisponible >= 0 ? 'text-emerald-300' : 'text-red-300' }, { label: 'Risques', value: malades + vaccinsRetard + stocksCritiques + culturesRisque, tone: 'text-orange-300' },
+          { label: 'Benefice', value: fmtCurrency(benefice), tone: benefice >= 0 ? 'text-emerald-300' : 'text-red-300' },
+          { label: 'Cash', value: fmtCurrency(cashDisponible), tone: cashDisponible >= 0 ? 'text-emerald-300' : 'text-red-300' },
+          { label: 'Transactions', value: fmtNumber(transactionCount), tone: 'text-sky-300' },
+          { label: 'Production', value: fmtNumber(productionOeufsJour), tone: 'text-sky-300' },
+          { label: 'Alertes', value: alertes.filter((a) => a.type === 'danger' || a.type === 'amber').length, tone: 'text-amber-300' },
+          { label: 'Risques', value: malades + vaccinsRetard + stocksCritiques + culturesRisque, tone: 'text-orange-300' },
         ].map((item) => <div key={item.label} className="rounded-2xl bg-white/10 border border-white/10 p-3"><p className="text-[11px] text-[#f4e6c8]/70">{item.label}</p><p className={`text-lg font-black mt-1 ${item.tone}`}>{item.value}</p></div>)}</div>
       </div>
 
       <div className="bg-gradient-to-r from-sky-900/80 via-sky-800/60 to-[#2f2415] border border-sky-700/30 rounded-3xl p-5 text-white shadow-xl">
         <div className="flex flex-col lg:flex-row lg:items-center gap-5"><div className="flex items-center gap-4 min-w-56"><div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-center">{meteo?.isDay ? <Sun size={30} className="text-amber-300" /> : <Moon size={30} className="text-sky-200" />}</div><div><p className="text-xs uppercase tracking-[0.22em] text-sky-200">Meteo terrain</p><p className="text-lg font-black">{meteo?.condition || 'Conditions locales'}</p><p className="text-xs text-sky-100">{meteo?.moment || 'Jour'} - risque {meteo?.riskLevel || 'stable'}</p></div></div><div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3 flex-1"><WeatherPill icon={Thermometer} label="Temp." value={`${meteo?.temp ?? '-'}C`} sub={`Ress. ${meteo?.apparentTemp ?? '-'}C`} /><WeatherPill icon={Droplets} label="Humidite" value={`${meteo?.humidite ?? '-'}%`} sub="air actuel" /><WeatherPill icon={CloudRain} label="Pluie" value={meteo?.pluie ? 'Oui' : 'Non'} sub={`${meteo?.precipitationProbability ?? 0}% prev.`} /><WeatherPill icon={Wind} label="Vent" value={`${meteo?.windSpeed ?? 0} km/h`} sub={meteo?.windLabel || '-'} /><WeatherPill icon={Cloud} label="Nuages" value={`${meteo?.cloudCover ?? 0}%`} sub={meteo?.thermalLabel || 'doux'} /><WeatherPill icon={Sun} label="Lever" value={meteo?.sunrise || '--:--'} sub="soleil" /><WeatherPill icon={Moon} label="Coucher" value={meteo?.sunset || '--:--'} sub="soleil" /><WeatherPill icon={MapPin} label="Position" value={meteo?.locationLabel || 'Senegal'} sub={meteo?.updatedAt ? new Date(meteo.updatedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : 'live'} /></div></div>
-        <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-3"><div className="text-sm text-amber-100 bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-3">{meteo?.impact}</div><div className="text-sm text-emerald-100 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-4 py-3">{(meteo?.recommendations || [])[0] || 'Conditions stables: maintenir les routines terrain et verifier les stocks critiques.'}</div></div>
+        <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-3"><div className="text-sm text-amber-100 bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-3">{weatherImpact}</div><div className="text-sm text-emerald-100 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-4 py-3">{weatherAdvice}</div></div>
       </div>
 
       <div><p className="text-xs font-semibold text-[#b39b78] uppercase tracking-widest mb-3">Indicateurs Financiers</p><div className="grid grid-cols-2 lg:grid-cols-4 gap-4"><KpiCard icon={TrendingUp} label="Chiffre d'affaires" value={fmtCurrency(totalRecettes)} color="bg-emerald-500/20 text-emerald-400" trend={8} /><KpiCard icon={TrendingDown} label="Depenses totales" value={fmtCurrency(totalDepenses)} color="bg-red-500/20 text-red-400" trend={-3} /><KpiCard icon={BarChart2} label="Benefice net" value={fmtCurrency(benefice)} color="bg-sky-500/20 text-sky-400" trend={12} /><KpiCard icon={BarChart2} label="Marge globale" value={`${marge}%`} sub="Objectif: 40%" color="bg-amber-500/20 text-amber-400" trend={2} /></div></div>
