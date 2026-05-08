@@ -33,6 +33,15 @@ const safeInsertMany = async (table, rows) => {
   return data || [];
 };
 
+const safeFinanceUpdate = async (entryId, payload) => {
+  if (!entryId) return;
+  const targets = ['finances', 'transactions'];
+  await Promise.allSettled(targets.map(async (table) => {
+    const { error } = await supabase.from(table).update(payload).eq('accounting_entry_id', entryId);
+    if (error) console.warn(`Maj ${table} compta ignoree`, error.message);
+  }));
+};
+
 export const comptabiliteService = {
   async getAll() {
     let [accounts, entries, lines, budgets, closures, documents, treasuryAccounts, treasuryMovements] = await Promise.all([
@@ -69,20 +78,35 @@ export const comptabiliteService = {
     const lines = await safeInsertMany('accounting_entry_lines', draft.lines);
 
     if (transaction.id) {
-      await supabase.from('transactions').update({ accounting_entry_id: draft.entry.id }).eq('id', transaction.id);
+      await Promise.allSettled(['finances', 'transactions'].map(async (table) => {
+        const { error } = await supabase.from(table).update({
+          accounting_entry_id: draft.entry.id,
+          accounting_status: 'brouillon',
+          accounting_updated_at: new Date().toISOString(),
+        }).eq('id', transaction.id);
+        if (error) console.warn(`Lien comptable ${table} ignore`, error.message);
+      }));
     }
 
     return { entry, lines };
   },
 
   async validateEntry(entryId) {
+    const validatedAt = new Date().toISOString();
     const { data, error } = await supabase
       .from('accounting_entries')
-      .update({ status: 'valide', validated_at: new Date().toISOString() })
+      .update({ status: 'valide', validated_at: validatedAt })
       .eq('id', entryId)
       .select('*')
       .single();
     if (error) throw error;
+
+    await safeFinanceUpdate(entryId, {
+      accounting_status: 'valide',
+      accounting_validated_at: validatedAt,
+      accounting_updated_at: validatedAt,
+    });
+
     return data;
   },
 
@@ -94,6 +118,12 @@ export const comptabiliteService = {
       .select('*')
       .single();
     if (error) throw error;
+
+    await safeFinanceUpdate(entryId, {
+      accounting_status: 'annule',
+      accounting_updated_at: new Date().toISOString(),
+    });
+
     return data;
   },
 
