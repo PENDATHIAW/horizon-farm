@@ -4,7 +4,6 @@ import {
   Beef,
   Bird,
   CloudRain,
-  CreditCard,
   Droplets,
   Heart,
   Landmark,
@@ -14,7 +13,6 @@ import {
   Sun,
   Syringe,
   Thermometer,
-  TrendingDown,
   TrendingUp,
   Users,
   Wallet,
@@ -29,7 +27,6 @@ import { fmtCurrency, fmtNumber } from '../utils/format';
 import { calculateCultureMetrics, calculateLotMetrics, calculateStockMetrics } from '../utils/businessCalculations';
 
 const isUnpaid = (status) => (status || 'paye') === 'impaye';
-const isCancelled = (status) => (status || 'paye') === 'annule';
 
 export default function Dashboard({
   lotsData = [],
@@ -49,12 +46,8 @@ export default function Dashboard({
 }) {
   const [refreshing, setRefreshing] = useState(false);
 
-  const totalRecettes = transactions
-    .filter((t) => t.type === 'entree' && !isUnpaid(t.statut))
-    .reduce((sum, t) => sum + Number(t.montant || 0), 0);
-  const totalDepenses = transactions
-    .filter((t) => t.type === 'sortie')
-    .reduce((sum, t) => sum + Number(t.montant || 0), 0);
+  const totalRecettes = transactions.filter((t) => t.type === 'entree' && !isUnpaid(t.statut)).reduce((sum, t) => sum + Number(t.montant || 0), 0);
+  const totalDepenses = transactions.filter((t) => t.type === 'sortie').reduce((sum, t) => sum + Number(t.montant || 0), 0);
   const cashDisponible = transactions.reduce((sum, t) => {
     if (isUnpaid(t.statut)) return sum;
     const amount = Number(t.montant || 0);
@@ -63,9 +56,7 @@ export default function Dashboard({
   const benefice = totalRecettes - totalDepenses;
   const marge = totalRecettes ? ((benefice / totalRecettes) * 100).toFixed(1) : '0.0';
 
-  const creancesClient = salesOrders
-    .filter((order) => Number(order.reste_a_payer || 0) > 0 && order.statut_commande !== 'annule')
-    .reduce((sum, order) => sum + Number(order.reste_a_payer || 0), 0);
+  const creancesClient = salesOrders.filter((order) => Number(order.reste_a_payer || 0) > 0 && order.statut_commande !== 'annule').reduce((sum, order) => sum + Number(order.reste_a_payer || 0), 0);
   const ventesPayees = salesOrders.filter((order) => order.statut_paiement === 'paye').length;
   const ventesPartielles = salesOrders.filter((order) => order.statut_paiement === 'partiel').length;
 
@@ -88,7 +79,7 @@ export default function Dashboard({
     culturesRisque > 0 && { type: 'amber', title: 'Cultures a risque', text: `${culturesRisque} culture(s) a surveiller`, module: 'cultures' },
   ].filter(Boolean).slice(0, 4);
 
-  const weatherImpact = meteo?.impact || 'Conditions meteo a verifier: surveiller eau, ventilation et stocks sensibles.';
+  const weatherImpact = meteo?.impact || 'Surveiller eau, ventilation et stocks sensibles.';
   const weatherAdvice = (meteo?.recommendations || [])[0] || 'Maintenir les routines terrain et controler les points sensibles.';
 
   const handleRefresh = async () => {
@@ -104,25 +95,25 @@ export default function Dashboard({
   };
 
   const quickActions = [
-    { label: 'Voir finances', module: 'finances' },
-    { label: 'Nouvelle vente', module: 'ventes' },
-    { label: 'Stocks critiques', module: 'stock' },
+    { label: 'Finances', module: 'finances' },
+    { label: 'Vente', module: 'ventes' },
+    { label: 'Stock', module: 'stock' },
     { label: 'Clients', module: 'clients' },
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <SectionHeader
         title="Tableau de bord"
-        sub="Vue dirigeant: finances, alertes et priorites du jour"
+        sub="Vue dirigeant: chiffres, alertes et priorites"
         actions={<Btn icon={RefreshCw} variant="outline" small onClick={handleRefresh} disabled={refreshing}>{refreshing ? 'Actualisation...' : 'Actualiser'}</Btn>}
       />
 
       <div className="bg-[#2f2415] text-white border border-[#c9a96a]/40 rounded-3xl p-5 shadow-xl">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
+        <div className="flex flex-col gap-4 mb-5">
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-[#c9a96a] font-bold">Dashboard dirigeant</p>
-            <h2 className="text-xl font-black mt-1">Les chiffres a surveiller maintenant</h2>
+            <h2 className="text-xl font-black mt-1">Essentiel de l'exploitation</h2>
           </div>
           <div className="flex flex-wrap gap-2">
             {quickActions.map((action) => (
@@ -134,14 +125,14 @@ export default function Dashboard({
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
           {[
-            { label: 'Cash', value: fmtCurrency(cashDisponible), tone: cashDisponible >= 0 ? 'text-emerald-300' : 'text-red-300' },
-            { label: 'Benefice', value: fmtCurrency(benefice), tone: benefice >= 0 ? 'text-emerald-300' : 'text-red-300' },
-            { label: 'CA', value: fmtCurrency(totalRecettes), tone: 'text-emerald-300' },
-            { label: 'Creances', value: fmtCurrency(creancesClient), tone: creancesClient > 0 ? 'text-amber-300' : 'text-emerald-300' },
-            { label: 'Alertes', value: alertesCount, tone: alertesCount > 0 ? 'text-amber-300' : 'text-emerald-300' },
-            { label: 'Oeufs/jour', value: fmtNumber(productionOeufsJour), tone: 'text-sky-300' },
+            { label: 'Cash', value: fmtCurrency(cashDisponible), module: 'finances', tone: cashDisponible >= 0 ? 'text-emerald-300' : 'text-red-300' },
+            { label: 'Benefice', value: fmtCurrency(benefice), module: 'finances', tone: benefice >= 0 ? 'text-emerald-300' : 'text-red-300' },
+            { label: 'CA', value: fmtCurrency(totalRecettes), module: 'finances', tone: 'text-emerald-300' },
+            { label: 'Creances', value: fmtCurrency(creancesClient), module: 'clients', tone: creancesClient > 0 ? 'text-amber-300' : 'text-emerald-300' },
+            { label: 'Alertes', value: alertesCount, module: 'alertes', tone: alertesCount > 0 ? 'text-amber-300' : 'text-emerald-300' },
+            { label: 'Oeufs/jour', value: fmtNumber(productionOeufsJour), module: 'avicole', tone: 'text-sky-300' },
           ].map((item) => (
-            <button key={item.label} type="button" onClick={() => item.label === 'Cash' || item.label === 'Benefice' || item.label === 'CA' ? onNavigate?.('finances') : item.label === 'Creances' ? onNavigate?.('clients') : null} className="text-left rounded-2xl bg-white/10 border border-white/10 p-3 hover:bg-white/15 transition-colors">
+            <button key={item.label} type="button" onClick={() => onNavigate?.(item.module)} className="text-left rounded-2xl bg-white/10 border border-white/10 p-3 hover:bg-white/15 transition-colors">
               <p className="text-[11px] text-[#f4e6c8]/70">{item.label}</p>
               <p className={`text-lg font-black mt-1 ${item.tone}`}>{item.value}</p>
             </button>
@@ -151,14 +142,14 @@ export default function Dashboard({
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div className="xl:col-span-2 grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard icon={TrendingUp} label="Chiffre d'affaires" value={fmtCurrency(totalRecettes)} color="bg-emerald-500/20 text-emerald-400" />
-          <KpiCard icon={TrendingDown} label="Depenses" value={fmtCurrency(totalDepenses)} color="bg-red-500/20 text-red-400" />
           <KpiCard icon={Wallet} label="Cash disponible" value={fmtCurrency(cashDisponible)} color="bg-purple-500/20 text-purple-400" />
+          <KpiCard icon={TrendingUp} label="Chiffre d'affaires" value={fmtCurrency(totalRecettes)} color="bg-emerald-500/20 text-emerald-400" />
           <KpiCard icon={BarChart2} label="Marge" value={`${marge}%`} color="bg-amber-500/20 text-amber-400" />
           <KpiCard icon={Landmark} label="Creances" value={fmtCurrency(creancesClient)} color="bg-amber-500/20 text-amber-500" />
-          <KpiCard icon={CreditCard} label="Ventes payees" value={ventesPayees} sub={`${ventesPartielles} partielles · ${payments.length} paiements`} color="bg-sky-500/20 text-sky-400" />
           <KpiCard icon={Beef} label="Animaux actifs" value={animauxActifs} color="bg-orange-500/20 text-orange-400" />
           <KpiCard icon={Bird} label="Lots avicoles" value={lotsData.length} sub={`${fmtNumber(totalTetesLots)} tetes`} color="bg-emerald-500/20 text-emerald-400" />
+          <KpiCard icon={AlertTriangle} label="Alertes" value={alertesCount} color="bg-red-500/20 text-red-400" />
+          <KpiCard icon={Users} label="Ventes" value={ventesPayees} sub={`${ventesPartielles} partielles · ${payments.length} paiements`} color="bg-sky-500/20 text-sky-400" />
         </div>
 
         <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5">
