@@ -59,9 +59,10 @@ const stringifyWeightHistory = (animal = {}) => {
 };
 
 const insertGrowthFields = (fields) => {
-  const venteIndex = fields.findIndex((field) => field.key === 'section_vente');
-  if (venteIndex === -1) return [...fields, ...growthFormFields];
-  return [...fields.slice(0, venteIndex), ...growthFormFields, ...fields.slice(venteIndex)];
+  const sanitizedFields = fields.filter((field) => !growthFormFields.some((growthField) => growthField.key === field.key));
+  const venteIndex = sanitizedFields.findIndex((field) => field.key === 'section_vente');
+  if (venteIndex === -1) return [...sanitizedFields, ...growthFormFields];
+  return [...sanitizedFields.slice(0, venteIndex), ...growthFormFields, ...sanitizedFields.slice(venteIndex)];
 };
 
 const opportunityBadge = (animal, metrics) => {
