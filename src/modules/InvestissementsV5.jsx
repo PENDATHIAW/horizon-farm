@@ -8,7 +8,7 @@ import InvestissementsV4 from './InvestissementsV4';
 
 const safeArray = (value) => Array.isArray(value) ? value : [];
 const isHorizon = (bp = {}) => String(bp.nom || '').toLowerCase().includes('horizon farm');
-const RENT_AMOUNT = 500000;
+const DEFAULT_RENT_AMOUNT = 500000;
 
 const ONE_TIME_EXPENSES = [
   { designation: 'Achat poussins pondeuses', categorie: 'cheptel', quantite: 4000, unite: 'sujets', prix_unitaire: 900 },
@@ -33,7 +33,7 @@ const ONE_TIME_EXPENSES = [
 ];
 
 const MONTHLY_EXPENSES = [
-  { designation: 'Location champ prêt à exploiter', categorie: 'location_champ', montant_mensuel: 500000 },
+  { designation: 'Location champ prêt à exploiter', categorie: 'location_champ', montant_mensuel: 0 },
   { designation: 'Location bâtiment / poulailler', categorie: 'location_batiment', montant_mensuel: 0 },
   { designation: 'Aliment pondeuses en production', categorie: 'alimentation', montant_mensuel: 0 },
   { designation: 'Aliment croissance pondeuses avant ponte', categorie: 'alimentation', montant_mensuel: 0 },
@@ -61,18 +61,21 @@ function FieldRentalPatch({ businessPlans = [], bpRecurringCosts = [], bpRevenue
   const costs = useMemo(() => plan ? safeArray(bpRecurringCosts).filter((row) => row.business_plan_id === plan.id) : [], [plan, bpRecurringCosts]);
   const projections = useMemo(() => plan ? safeArray(bpRevenueProjections).filter((row) => row.business_plan_id === plan.id) : [], [plan, bpRevenueProjections]);
   const rentCost = costs.find((row) => String(row.designation || '').toLowerCase().includes('location champ'));
+  const [rentAmount, setRentAmount] = useState(rentCost ? toNumber(rentCost.montant_mensuel) : DEFAULT_RENT_AMOUNT);
 
   if (!plan) return null;
 
   const applyRental = async () => {
+    const nextRent = Math.max(0, toNumber(rentAmount));
     setSaving(true);
     try {
       const previousRent = rentCost ? toNumber(rentCost.montant_mensuel) : 0;
-      const delta = RENT_AMOUNT - previousRent;
+      const delta = nextRent - previousRent;
+      const payload = { designation: 'Location champ prêt à exploiter', categorie: 'location_champ', montant_mensuel: nextRent, frequence: 'mensuelle' };
       if (rentCost) {
-        await onUpdateBpRecurringCost?.(rentCost.id, { designation: 'Location champ prêt à exploiter', categorie: 'location_champ', montant_mensuel: RENT_AMOUNT, frequence: 'mensuelle' });
+        await onUpdateBpRecurringCost?.(rentCost.id, payload);
       } else {
-        await onCreateBpRecurringCost?.({ id: makeId('BPCOST'), business_plan_id: plan.id, designation: 'Location champ prêt à exploiter', categorie: 'location_champ', montant_mensuel: RENT_AMOUNT, frequence: 'mensuelle' });
+        await onCreateBpRecurringCost?.({ id: makeId('BPCOST'), business_plan_id: plan.id, ...payload });
       }
       if (delta !== 0) {
         await Promise.all(projections.map((row) => {
@@ -81,7 +84,7 @@ function FieldRentalPatch({ businessPlans = [], bpRecurringCosts = [], bpRevenue
         }));
       }
       await onRefreshBusinessPlans?.();
-      toast.success('Location champ 500 000F/mois ajoutée aux charges mensuelles');
+      toast.success(`Location champ mise à jour: ${fmtCurrency(nextRent)} / mois`);
     } catch (error) {
       toast.error(error.message || 'Mise à jour location champ impossible');
     } finally {
@@ -96,11 +99,17 @@ function FieldRentalPatch({ businessPlans = [], bpRecurringCosts = [], bpRevenue
           <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0"><Building2 size={18} /></div>
           <div>
             <p className="text-xs uppercase tracking-widest text-emerald-700">Charge mensuelle terrain</p>
-            <h3 className="text-lg font-black text-[#2f2415]">Champ déjà prêt loué à {fmtCurrency(RENT_AMOUNT)} / mois</h3>
-            <p className="text-sm text-[#7d6a4a] mt-1">Je ne supprime plus les postes d’investissement existants. La location est ajoutée comme dépense mensuelle; tu gardes ou retires les autres lignes selon le BP.</p>
+            <h3 className="text-lg font-black text-[#2f2415]">Champ prêt à exploiter en location</h3>
+            <p className="text-sm text-[#7d6a4a] mt-1">La location est une dépense mensuelle modifiable. Aucun prix n’est mis dans le libellé; tu saisis le montant réel du bail.</p>
           </div>
         </div>
-        <Btn icon={RefreshCw} onClick={applyRental} disabled={saving}>Ajouter / mettre à jour location</Btn>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <label className="text-xs font-semibold text-[#7d6a4a]">
+            Montant mensuel
+            <input type="number" min="0" className="mt-1 w-full sm:w-44 rounded-xl border border-[#d6c3a0] px-3 py-2 text-sm text-[#2f2415]" value={rentAmount} onChange={(event) => setRentAmount(event.target.value)} />
+          </label>
+          <Btn icon={RefreshCw} onClick={applyRental} disabled={saving}>Ajouter / mettre à jour</Btn>
+        </div>
       </div>
     </div>
   );
@@ -172,7 +181,7 @@ function ExpenseCatalog({ businessPlans = [], onCreateBpInvestmentLine, onCreate
           {MONTHLY_EXPENSES.map((item) => (
             <button key={item.designation} type="button" onClick={() => addMonthly(item)} disabled={Boolean(savingKey)} className="text-left rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 hover:border-[#b6975f]">
               <p className="font-black text-[#2f2415]">{item.designation}</p>
-              <p className="text-xs text-[#8a7456] mt-1">{item.categorie} · {fmtCurrency(item.montant_mensuel)} / mois</p>
+              <p className="text-xs text-[#8a7456] mt-1">{item.categorie} · montant à ajuster dans le tableau du BP</p>
               <p className="text-xs font-semibold text-[#9a6b12] mt-2"><Plus size={12} className="inline" /> Ajouter</p>
             </button>
           ))}
