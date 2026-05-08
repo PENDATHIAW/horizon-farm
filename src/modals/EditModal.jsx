@@ -45,6 +45,7 @@ const isVisible = (field, form) => {
 
 const optionValue = (option) => (typeof option === 'object' ? option.value : option);
 const optionLabel = (option) => (typeof option === 'object' ? option.label : option);
+const resolveOptions = (field, form) => (typeof field.options === 'function' ? field.options(form) : (field.options || []));
 
 export default function EditModal({ open, onClose, onSubmit, fields = [], initialValues = {}, title = 'Modifier', submitLabel = 'Enregistrer', loading, autoId, uploadFolder, deriveValues }) {
   const [form, setForm] = useState({});
@@ -111,7 +112,7 @@ export default function EditModal({ open, onClose, onSubmit, fields = [], initia
                 {field.type === 'select' ? (
                   <select value={form[field.key] ?? ''} onChange={(e) => handleChange(field.key, e.target.value)} className="w-full bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm text-[#2f2415]">
                     <option value="">Selectionner...</option>
-                    {(field.options || []).map((option) => <option key={optionValue(option)} value={optionValue(option)}>{optionLabel(option)}</option>)}
+                    {resolveOptions(field, form).map((option) => <option key={optionValue(option)} value={optionValue(option)}>{optionLabel(option)}</option>)}
                   </select>
                 ) : field.type === 'checkbox' ? (
                   <button type="button" onClick={() => handleChange(field.key, !form[field.key])} className={`w-full border rounded-lg px-3 py-2 text-sm text-left transition-all ${form[field.key] ? 'bg-emerald-500/15 border-emerald-500 text-emerald-700' : 'bg-[#fffdf8] border-[#d6c3a0] text-[#8a7456]'}`}>{form[field.key] ? 'Oui' : 'Non'}</button>
