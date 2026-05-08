@@ -10,6 +10,8 @@ const safeArray = (value) => Array.isArray(value) ? value : [];
 const today = () => new Date().toISOString().slice(0, 10);
 const sum = (rows, key = 'total') => safeArray(rows).reduce((acc, row) => acc + toNumber(row[key]), 0);
 const round = (value) => Math.round(Number(value || 0));
+const status = (row = {}) => String(row.statut ?? row.status ?? '').toLowerCase();
+const amount = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?? row.total_amount ?? 0);
 
 function openModule(moduleId) {
   if (typeof document === 'undefined') return;
@@ -20,7 +22,7 @@ function openModule(moduleId) {
 }
 
 const investmentLines = (bpId) => [
-  // Pondeuses x2 base BP 2000 sujets
+  // Pondeuses x2 base BP 2000 sujets => Horizon Farm 4000 pondeuses
   { id: makeId('BPLI'), business_plan_id: bpId, designation: 'Poulettes pondeuses 2 mois', categorie: 'cheptel', quantite: 4000, unite: 'sujets', prix_unitaire: 2500, total: 10000000 },
   { id: makeId('BPLI'), business_plan_id: bpId, designation: 'Aliment poulette demarrage 3 mois', categorie: 'alimentation', quantite: 480, unite: 'sacs', prix_unitaire: 16150, total: 7752000 },
   { id: makeId('BPLI'), business_plan_id: bpId, designation: 'Aliment pondeuse initial', categorie: 'alimentation', quantite: 240, unite: 'sacs', prix_unitaire: 17500, total: 4200000 },
@@ -77,7 +79,7 @@ const recurringCosts = (bpId) => [
 
 const revenueProjections = (bpId) => {
   const rows = [];
-  const fullEggRevenue = 6960000;
+  const fullEggRevenue = 6960000; // 4000 pondeuses = base 2000 pondeuses x2
   const eggRatios = [0, 0, 0, 0.30, 0.60, 0.70, 0.95, 0.95, 0.95, 0.95, 0.95, 0.95, 0.95, 0.95, 0.95, 0.95, 0.95, 0.95];
   for (let month = 1; month <= 18; month += 1) {
     const eggCa = round(fullEggRevenue * (eggRatios[month - 1] || 0));
@@ -107,6 +109,87 @@ const risks = (bpId) => [
   { id: makeId('BPRISK'), business_plan_id: bpId, titre: 'Risque culture poivrons', probabilite: 'moyenne', impact: 'moyen', mitigation: 'Irrigation fiable, traitements préventifs, rotation culturale dans Cultures.' },
 ];
 
+function buildInvestmentOpportunities({ businessPlans, bpInvestmentLines, bpRecurringCosts, bpRevenueProjections, transactions, lots, animaux, cultures }) {
+  const plans = safeArray(businessPlans);
+  const tx = safeArray(transactions);
+  const lines = safeArray(bpInvestmentLines);
+  const costs = safeArray(bpRecurringCosts);
+  const projections = safeArray(bpRevenueProjections);
+  const totalCashIn = tx.filter((row) => String(row.type).toLowerCase() === 'entree' && status(row) !== 'annule').reduce((acc, row) => acc + amount(row), 0);
+  const totalCashOut = tx.filter((row) => String(row.type).toLowerCase() === 'sortie' && status(row) !== 'annule').reduce((acc, row) => acc + amount(row), 0);
+  const cashNet = totalCashIn - totalCashOut;
+  const horizon = plans.find((bp) => String(bp.nom || '').toLowerCase().includes('horizon farm'));
+  const horizonId = horizon?.id;
+  const horizonLines = horizonId ? lines.filter((row) => row.business_plan_id === horizonId) : investmentLines('preview');
+  const horizonCosts = horizonId ? costs.filter((row) => row.business_plan_id === horizonId) : recurringCosts('preview');
+  const horizonProjections = horizonId ? projections.filter((row) => row.business_plan_id === horizonId) : revenueProjections('preview');
+  const initialInvestment = sum(horizonLines);
+  const monthlyCosts = sum(horizonCosts, 'montant_mensuel');
+  const projectedMargin = horizonProjections.reduce((acc, row) => acc + toNumber(row.marge_estimee), 0);
+  const positiveMonths = horizonProjections.filter((row) => toNumber(row.marge_estimee) > 0).length;
+  const existingLayers = safeArray(lots).filter((lot) => String(lot.type || '').toLowerCase().includes('pondeuse')).reduce((acc, lot) => acc + toNumber(lot.initial_count ?? lot.current_count), 0);
+  const existingBroilers = safeArray(lots).filter((lot) => String(lot.type || '').toLowerCase().includes('chair')).reduce((acc, lot) => acc + toNumber(lot.initial_count ?? lot.current_count), 0);
+  const existingAnimals = safeArray(animaux).length;
+  const activeCultures = safeArray(cultures).filter((culture) => !['termine', 'perdu', 'vendu'].includes(status(culture))).length;
+
+  const readiness = Math.min(100, Math.round(
+    (horizon ? 25 : 0)
+    + (initialInvestment > 0 ? 15 : 0)
+    + (monthlyCosts > 0 ? 15 : 0)
+    + (positiveMonths >= 6 ? 20 : positiveMonths * 3)
+    + (cashNet > 0 ? 15 : 0)
+    + (plans.length > 0 ? 10 : 0)
+  ));
+
+  return [
+    {
+      title: 'Lancer / sécuriser le BP Horizon Farm intégré',
+      score: readiness,
+      amount: initialInvestment,
+      moduleId: 'investissements',
+      detail: horizon ? 'BP créé: vérifier financement, lignes réelles et justificatifs.' : 'Créer le BP complet puis ajuster les prix fournisseurs réels.',
+      basis: 'BP + lignes investissement + charges + projections + cash net.',
+      priority: readiness >= 70 ? 'prioritaire' : 'à préparer',
+    },
+    {
+      title: 'Pondeuses: capacité et rotation',
+      score: Math.min(100, Math.round((existingLayers / 4000) * 70 + (positiveMonths >= 6 ? 30 : 10))),
+      amount: horizonLines.filter((line) => String(line.designation).toLowerCase().includes('pondeuse') || String(line.designation).toLowerCase().includes('poulettes') || String(line.designation).toLowerCase().includes('pondoir')).reduce((acc, row) => acc + toNumber(row.total), 0),
+      moduleId: 'avicole',
+      detail: `${fmtNumber(existingLayers)} pondeuse(s) déjà suivie(s) / objectif 4000.`,
+      basis: 'Lots avicoles + BP + projection ponte.',
+      priority: existingLayers >= 4000 ? 'suivi' : 'opportunité',
+    },
+    {
+      title: 'Poulets de chair: cycles courts',
+      score: Math.min(100, Math.round((existingBroilers / 200) * 60 + 30)),
+      amount: horizonLines.filter((line) => String(line.designation).toLowerCase().includes('chair')).reduce((acc, row) => acc + toNumber(row.total), 0),
+      moduleId: 'avicole',
+      detail: `${fmtNumber(existingBroilers)} chair(s) suivis / objectif 200, vente possible par cycles de 45 jours.`,
+      basis: 'Lots chair + poids/âge + ventes prévues.',
+      priority: existingBroilers >= 200 ? 'suivi' : 'opportunité rapide',
+    },
+    {
+      title: 'Embouche bovins / moutons / chèvres',
+      score: Math.min(100, Math.round((existingAnimals / 20) * 60 + 25)),
+      amount: horizonLines.filter((line) => ['boeufs', 'moutons', 'chevres'].some((word) => String(line.designation).toLowerCase().includes(word))).reduce((acc, row) => acc + toNumber(row.total), 0),
+      moduleId: 'animaux',
+      detail: `${fmtNumber(existingAnimals)} animal(aux) déjà suivis / objectif 20 têtes.`,
+      basis: 'Animaux + santé + ventes de fin de cycle.',
+      priority: existingAnimals >= 20 ? 'suivi' : 'à financer',
+    },
+    {
+      title: 'Culture de poivrons',
+      score: Math.min(100, activeCultures > 0 ? 75 : 45),
+      amount: horizonLines.filter((line) => ['poivrons', 'irrigation', 'engrais'].some((word) => String(line.designation).toLowerCase().includes(word))).reduce((acc, row) => acc + toNumber(row.total), 0),
+      moduleId: 'cultures',
+      detail: activeCultures > 0 ? `${fmtNumber(activeCultures)} culture(s) active(s), suivre rendement et intrants.` : 'Créer la parcelle poivrons puis suivre intrants, traitement et récolte.',
+      basis: 'Cultures + stock intrants + projections récolte.',
+      priority: activeCultures > 0 ? 'suivi' : 'opportunité',
+    },
+  ].sort((a, b) => b.score - a.score);
+}
+
 function LinkCard({ icon: Icon, title, detail, metric, moduleId }) {
   return (
     <button type="button" onClick={() => openModule(moduleId)} className="text-left rounded-xl border border-[#d6c3a0] bg-[#fffdf8] p-4 hover:border-[#b6975f] transition-all">
@@ -119,6 +202,52 @@ function LinkCard({ icon: Icon, title, detail, metric, moduleId }) {
         </div>
       </div>
     </button>
+  );
+}
+
+function OpportunityCard({ item }) {
+  return (
+    <button type="button" onClick={() => openModule(item.moduleId)} className="rounded-xl border border-[#d6c3a0] bg-[#fffdf8] p-4 text-left hover:border-[#b6975f] transition-all">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-black text-[#2f2415]">{item.title}</p>
+          <p className="text-xs text-[#8a7456] mt-1">{item.detail}</p>
+          <p className="text-xs text-[#9a6b12] mt-2">Base: {item.basis}</p>
+        </div>
+        <span className="shrink-0 rounded-full border border-[#d6c3a0] bg-white px-2 py-1 text-xs font-black text-[#2f2415]">{item.score}%</span>
+      </div>
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <span className="text-sm font-black text-[#2f2415]">{fmtCurrency(item.amount)}</span>
+        <span className="text-xs rounded-full bg-[#eadcc2] text-[#7d6a4a] px-2 py-1">{item.priority}</span>
+      </div>
+    </button>
+  );
+}
+
+function InvestmentOpportunities(props) {
+  const opportunities = useMemo(() => buildInvestmentOpportunities(props), [props.businessPlans, props.bpInvestmentLines, props.bpRecurringCosts, props.bpRevenueProjections, props.transactions, props.lots, props.animaux, props.cultures]);
+  return (
+    <div className="bg-white border border-[#d6c3a0] rounded-2xl p-5">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-3 mb-4">
+        <div>
+          <h3 className="font-black text-[#2f2415]">Opportunités d’investissement</h3>
+          <p className="text-sm text-[#8a7456]">Cette section évolue avec les BP, les montants réels, les lots, les animaux, les cultures et la trésorerie. Elle sert à prioriser quoi financer ou suivre ensuite.</p>
+        </div>
+        <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2">
+          <p className="text-xs text-[#8a7456]">Moteur de décision</p>
+          <p className="text-sm font-black text-[#2f2415]">BP + Réel + Modules liés</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        {opportunities.map((item) => <OpportunityCard key={item.title} item={item} />)}
+      </div>
+      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
+        <div className="flex gap-2">
+          <ShieldAlert size={16} className="text-amber-600 mt-0.5" />
+          <p className="text-xs text-[#7d6a4a]">Le score n’est pas une décision automatique: il indique le niveau de préparation. La décision finale dépend des vrais devis, du financement disponible, de la demande client et de la capacité de gestion.</p>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -187,10 +316,11 @@ function HorizonFarmPanel(props) {
           </div>
         </div>
       </div>
+      <InvestmentOpportunities {...props} />
       <div className="bg-white border border-[#d6c3a0] rounded-2xl p-5">
         <div className="mb-4"><h3 className="font-black text-[#2f2415]">Connexions investissement ↔ modules</h3><p className="text-sm text-[#8a7456]">Chaque bloc ouvre le module où suivre le réel après création du BP.</p></div>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          <LinkCard icon={Bird} title="Avicole" metric="4200 sujets" detail="Pondeuses, chair, ponte, mortalité, poids, réforme." moduleId="avicole" />
+          <LinkCard icon={Bird} title="Avicole" metric="4200 sujets" detail="4000 pondeuses + 200 chairs: ponte, mortalité, poids, réforme." moduleId="avicole" />
           <LinkCard icon={Beef} title="Animaux" metric="20 têtes" detail="Bœufs, moutons, chèvres, santé, vente." moduleId="animaux" />
           <LinkCard icon={Sprout} title="Cultures" metric="Poivrons" detail="Parcelle, intrants, récolte et rendement." moduleId="cultures" />
           <LinkCard icon={Package} title="Stock" metric="Aliments/intrants" detail="Sacs, vaccins, engrais, seuils critiques." moduleId="stock" />
