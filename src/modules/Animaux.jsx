@@ -22,6 +22,7 @@ import { buildGrowthSummary } from '../utils/animalGrowth';
 import { getAnimalSaleReadiness, calculateAnimalSalePricing } from '../utils/animalSalePricing';
 import { calculateAnimalMetrics } from '../utils/businessCalculations';
 import { enrichAnimalLifecycle, getReproductionAlerts } from '../utils/animalLifecycle';
+import { mergeAnimalSeeds } from '../utils/mergeAnimalSeeds';
 
 const activityTabs = ['Bovin', 'Ovin', 'Caprin'];
 
@@ -83,17 +84,18 @@ export default function Animaux({ rows = [], alimentationLogs = [], vaccins = []
   const [modal, setModal] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  const activityRows = useMemo(() => rows.filter((animal) => animal.type === activityType), [rows, activityType]);
+  const testRows = useMemo(() => mergeAnimalSeeds(rows), [rows]);
+  const activityRows = useMemo(() => testRows.filter((animal) => animal.type === activityType), [testRows, activityType]);
   const statuses = ['tous', 'actif', 'pret_a_la_vente', 'reserve', 'vendu', 'mort', 'vole', 'reforme'];
   const healthStatuses = ['tous', 'sain', 'malade', 'blesse', 'sous_traitement', 'a_surveiller'];
   const initialAnimal = useMemo(() => {
-    const id = generateSequentialId('animaux', rows, { type: activityType });
+    const id = generateSequentialId('animaux', testRows, { type: activityType });
     const today = new Date().toISOString().slice(0, 10);
     return { id, tag: id, type: activityType, status: 'actif', health_status: 'sain', mode_acquisition: 'achat', date_achat: today, date_entree_ferme: today, date_poids_entree: today, date_derniere_pesee: today, sexe: 'F', en_gestation: false, statut_reproduction: 'inconnu', marge_cible_pct: 25, sale_price: 0 };
-  }, [rows, activityType]);
+  }, [testRows, activityType]);
 
-  const metricsFor = (animal) => calculateAnimalMetrics({ animal, animals: rows, feedingLogs: alimentationLogs, vaccins });
-  const lifecycleFor = (animal) => enrichAnimalLifecycle({ animal, animals: rows, metrics: metricsFor(animal) });
+  const metricsFor = (animal) => calculateAnimalMetrics({ animal, animals: testRows, feedingLogs: alimentationLogs, vaccins });
+  const lifecycleFor = (animal) => enrichAnimalLifecycle({ animal, animals: testRows, metrics: metricsFor(animal) });
   const readinessFor = (animal) => getAnimalSaleReadiness({ animal, metrics: metricsFor(animal) });
   const pricingFor = (animal) => calculateAnimalSalePricing({ animal, metrics: metricsFor(animal) });
 
@@ -103,7 +105,7 @@ export default function Animaux({ rows = [], alimentationLogs = [], vaccins = []
     const ready = activityRows.filter((a) => a.status === 'pret_a_la_vente' || a.pret_vente_recommande || readinessFor(a).recommended);
     const almostReady = activityRows.filter((a) => readinessFor(a).targetProgress >= 90 && !ready.includes(a));
     const sick = activityRows.filter((a) => ['malade', 'sous_traitement', 'blesse'].includes(a.health_status));
-    const losses = activityRows.filter((a) => ['mort', 'vole', 'reforme'].includes(a.status));
+    const losses = activityRows.filter((a) => ['mort', 'vole'].includes(a.status));
     const invested = activityRows.reduce((sum, a) => sum + metricsFor(a).totalCost, 0);
     const potentialCA = active.reduce((sum, a) => sum + pricingFor(a).recommendedSalePrice, 0);
     const floorCA = active.reduce((sum, a) => sum + pricingFor(a).minimumAcceptablePrice, 0);
@@ -134,8 +136,8 @@ export default function Animaux({ rows = [], alimentationLogs = [], vaccins = []
     return { ...cleanPayload, prix_vente_estime_auto: Math.round(pricing.recommendedSalePrice || 0), prix_minimum_acceptable: Math.round(pricing.minimumAcceptablePrice || 0), marge_prevue: Math.round(pricing.expectedMargin || 0), sale_readiness_score: readiness.targetProgress, sale_readiness_status: readiness.status, pret_vente_recommande: readiness.recommended || Boolean(payload.pret_vente_recommande), raison_pret_vente: readiness.reason, status: readiness.recommended && (payload.status || 'actif') === 'actif' ? 'pret_a_la_vente' : payload.status || 'actif' };
   };
 
-  const motherOptions = useMemo(() => rows.filter((animal) => animal.sexe === 'F').map((animal) => ({ value: animal.id, label: `${animal.id} - ${animal.name || 'Femelle'}` })), [rows]);
-  const fatherOptions = useMemo(() => rows.filter((animal) => animal.sexe === 'M').map((animal) => ({ value: animal.id, label: `${animal.id} - ${animal.name || 'Male'}` })), [rows]);
+  const motherOptions = useMemo(() => testRows.filter((animal) => animal.sexe === 'F').map((animal) => ({ value: animal.id, label: `${animal.id} - ${animal.name || 'Femelle'}` })), [testRows]);
+  const fatherOptions = useMemo(() => testRows.filter((animal) => animal.sexe === 'M').map((animal) => ({ value: animal.id, label: `${animal.id} - ${animal.name || 'Male'}` })), [testRows]);
   const animalFormFields = useMemo(() => insertGrowthFields(MODULE_FORM_FIELDS.animaux).map((field) => { if (field.key === 'mere_id') return { ...field, options: motherOptions }; if (field.key === 'pere_id' || field.key === 'male_reproducteur_id') return { ...field, options: fatherOptions }; return field; }), [motherOptions, fatherOptions]);
   const buildModalValues = (animal = {}) => {
     const data = { ...animal, type: animal.type || activityType, date_naissance: animal.date_naissance || animal.naissance || '', poids_history_text: stringifyWeightHistory(animal) };
@@ -152,7 +154,7 @@ export default function Animaux({ rows = [], alimentationLogs = [], vaccins = []
     const passHealth = healthFilter === 'tous' || (a.health_status || 'sain') === healthFilter;
     const passQuick = quickFilter === 'tous'
       || (quickFilter === 'prets' && (a.status === 'pret_a_la_vente' || a.pret_vente_recommande || readinessFor(a).recommended))
-      || (quickFilter === 'pertes' && ['mort', 'vole', 'reforme'].includes(a.status))
+      || (quickFilter === 'pertes' && ['mort', 'vole'].includes(a.status))
       || (quickFilter === 'actifs' && isActiveAnimalForFeeding(a))
       || (quickFilter === 'vendus' && a.status === 'vendu')
       || (quickFilter === 'malades' && ['malade', 'sous_traitement', 'blesse'].includes(a.health_status));
@@ -186,15 +188,15 @@ export default function Animaux({ rows = [], alimentationLogs = [], vaccins = []
   ];
 
   return <div className="space-y-6"><SectionHeader title="Gestion des Animaux" sub="Bovins - Ovins - Caprins: croissance, sante et rentabilite" actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Actualiser</Btn><Btn icon={Download} variant="outline" small onClick={exportRows}>Exporter</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter {activityType}</Btn></>} />
-    <div className="grid grid-cols-3 gap-2">{activityTabs.map((tab) => <button key={tab} type="button" onClick={() => { setActivityType(tab); setStatusFilter('tous'); setHealthFilter('tous'); setQuickFilter('tous'); }} className={`rounded-2xl border px-4 py-3 text-left transition-all ${activityType === tab ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}><p className="text-xs uppercase tracking-wide">Activite</p><p className="font-black">{tab}s</p><p className="text-xs opacity-75">{rows.filter((a) => a.type === tab).length} animaux</p></button>)}</div>
+    <div className="grid grid-cols-3 gap-2">{activityTabs.map((tab) => <button key={tab} type="button" onClick={() => { setActivityType(tab); setStatusFilter('tous'); setHealthFilter('tous'); setQuickFilter('tous'); }} className={`rounded-2xl border px-4 py-3 text-left transition-all ${activityType === tab ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}><p className="text-xs uppercase tracking-wide">Activite</p><p className="font-black">{tab}s</p><p className="text-xs opacity-75">{testRows.filter((a) => a.type === tab).length} animaux</p></button>)}</div>
     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4"><button onClick={() => applyQuickFilter('actifs')}><KpiCard icon={CheckCircle} label="Actifs" value={activitySummary.active.length} color="bg-emerald-500/20 text-emerald-400" /></button><button onClick={() => applyQuickFilter('prets')}><KpiCard icon={Tag} label="Prets vente" value={activitySummary.ready.length} color="bg-amber-500/20 text-amber-400" /></button><button onClick={() => applyQuickFilter('malades')}><KpiCard icon={AlertTriangle} label="Malades" value={activitySummary.sick.length} color="bg-red-500/20 text-red-400" /></button><button onClick={() => applyQuickFilter('vendus')}><KpiCard icon={Tag} label="Vendus" value={activitySummary.sold.length} color="bg-sky-500/20 text-sky-400" /></button><button onClick={() => applyQuickFilter('pertes')}><KpiCard icon={XCircle} label="Pertes" value={activitySummary.losses.length} color="bg-zinc-700/30 text-zinc-300" /></button></div>
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4"><MiniMetric label="Investi total" value={fmtCurrency(activitySummary.invested)} /><MiniMetric label="CA potentiel" value={fmtCurrency(activitySummary.potentialCA)} /><MiniMetric label="Marge prevue" value={fmtCurrency(activitySummary.expectedMargin)} /><MiniMetric label="Prix plancher total" value={fmtCurrency(activitySummary.floorCA)} /><MiniMetric label="Poids moyen" value={`${activitySummary.avgWeight.toFixed(1)} kg`} /><MiniMetric label="Gain moyen/jour" value={`${activitySummary.avgDailyGain.toFixed(2)} kg/j`} /><MiniMetric label="Presque prets" value={activitySummary.almostReady.length} /><MiniMetric label="Croissance faible" value={activitySummary.slowGrowth.length} danger={activitySummary.slowGrowth.length > 0} /></div>
     {reproductionAlerts.length ? <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4"><p className="text-amber-500 font-semibold mb-3 flex items-center gap-2"><AlertTriangle size={16} />Alertes reproduction {activityType}</p><div className="grid grid-cols-1 md:grid-cols-2 gap-2">{reproductionAlerts.slice(0, 4).map((alert) => <div key={alert.id} className={`rounded-xl border p-3 text-sm ${alert.severity === 'danger' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-amber-500/10 border-amber-500/20 text-[#7d6a4a]'}`}><p className="font-semibold">{alert.title}</p><p className="text-xs mt-1">{alert.message}</p></div>)}</div></div> : null}
     <div className="flex flex-wrap gap-3"><VoiceSearch value={localSearch} onChange={setLocalSearch} placeholder={`Rechercher ${activityType.toLowerCase()}...`} /><div className="flex flex-wrap gap-2">{statuses.map((s) => <button key={s} type="button" onClick={() => { setStatusFilter(s); setQuickFilter('tous'); }} className={`px-3 py-2 rounded-lg text-sm capitalize transition-all ${statusFilter === s && quickFilter === 'tous' ? 'bg-emerald-500 text-black font-semibold' : 'bg-[#ffffff] border border-[#d6c3a0] text-[#8a7456] hover:border-emerald-500'}`}>{s.replaceAll('_', ' ')}</button>)}</div><div className="flex flex-wrap gap-2">{healthStatuses.map((s) => <button key={s} type="button" onClick={() => { setHealthFilter(s); setQuickFilter('tous'); }} className={`px-3 py-2 rounded-lg text-sm capitalize transition-all ${healthFilter === s && quickFilter === 'tous' ? 'bg-sky-500 text-black font-semibold' : 'bg-[#ffffff] border border-[#d6c3a0] text-[#8a7456] hover:border-sky-500'}`}>{s.replace('_', ' ')}</button>)}</div></div>
     <DataTable title={`Liste ${activityType}s`} rows={filtered} columns={columns} loading={loading} initialSortKey="id" searchPlaceholder="Recherche table..." />
     {referenceAnimal ? <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5"><p className="font-semibold text-[#2f2415] mb-4">Decision rapide - {referenceAnimal.id} {referenceAnimal.name}</p><div className="grid grid-cols-2 md:grid-cols-4 gap-4">{[{ label: 'Cout total', value: fmtCurrency(referenceMetrics?.totalCost || 0) }, { label: 'Prix recommande', value: fmtCurrency(referencePricing?.recommendedSalePrice || 0) }, { label: 'Prix plancher', value: fmtCurrency(referencePricing?.minimumAcceptablePrice || 0) }, { label: 'Marge prevue', value: fmtCurrency(referencePricing?.expectedMargin || 0) }, { label: 'Objectif poids', value: `${referenceAnimal.poids || 0} / ${referenceAnimal.poids_objectif || '-'} kg` }, { label: 'Maturite vente', value: referenceReadiness?.status || 'non_pret' }, { label: 'Croissance', value: buildGrowthSummary(referenceAnimal).label }, { label: 'Gain moyen', value: `${buildGrowthSummary(referenceAnimal).averageDailyGain.toFixed(2)} kg/jour` }].map((c) => <div key={c.label} className="bg-[#fffdf8] rounded-xl p-3 border border-[#d6c3a0]"><div className="text-xs text-[#8a7456] mb-1">{c.label}</div><div className="text-[#2f2415] font-semibold">{c.value}</div></div>)}</div></div> : null}
-    <AnimalDetailsModal open={modal === 'details'} onClose={() => setModal(null)} animal={selected} metrics={selected ? metricsFor(selected) : {}} animals={rows} vaccins={vaccins} lifecycle={selected ? lifecycleFor(selected) : null} onOpenTrace={() => toast.success('Ouvre le module Tracabilite pour cette fiche')} onAddDocument={() => toast.success('Ajout document disponible depuis le module Documents')} />
-    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={animalFormFields} initialValues={buildModalValues(initialAnimal)} autoId={(values) => generateSequentialId('animaux', rows, values)} uploadFolder="animaux" loading={saving} title={`Ajouter ${activityType}`} submitLabel="Ajouter" />
+    <AnimalDetailsModal open={modal === 'details'} onClose={() => setModal(null)} animal={selected} metrics={selected ? metricsFor(selected) : {}} animals={testRows} vaccins={vaccins} lifecycle={selected ? lifecycleFor(selected) : null} onOpenTrace={() => toast.success('Ouvre le module Tracabilite pour cette fiche')} onAddDocument={() => toast.success('Ajout document disponible depuis le module Documents')} />
+    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={animalFormFields} initialValues={buildModalValues(initialAnimal)} autoId={(values) => generateSequentialId('animaux', testRows, values)} uploadFolder="animaux" loading={saving} title={`Ajouter ${activityType}`} submitLabel="Ajouter" />
     <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={animalFormFields} initialValues={selected ? buildModalValues(selected) : {}} uploadFolder="animaux" loading={saving} title="Modifier animal" submitLabel="Enregistrer" />
     <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={confirmDelete} itemLabel={selected ? `${selected.name} (${selected.id})` : ''} loading={saving} />
   </div>;
