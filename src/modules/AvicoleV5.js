@@ -1,1 +1,1 @@
-export { default } from './AvicoleV6.jsx';
+export { default } from './AvicoleV7.jsx';
