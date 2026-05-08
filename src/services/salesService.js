@@ -1,7 +1,22 @@
 import { createSupabaseCrudService } from './baseSupabaseService';
-import { syncPaymentToFinance } from './financeSyncService';
+import { syncPaymentToFinance, syncSalesOrderToFinance } from './financeSyncService';
 
-export const salesOrdersService = createSupabaseCrudService('sales_orders');
+const rawSalesOrdersService = createSupabaseCrudService('sales_orders');
+
+export const salesOrdersService = {
+  ...rawSalesOrdersService,
+  async create(payload) {
+    const order = await rawSalesOrdersService.create(payload);
+    await syncSalesOrderToFinance(order || payload);
+    return order;
+  },
+  async update(id, payload) {
+    const order = await rawSalesOrdersService.update(id, payload);
+    await syncSalesOrderToFinance(order || { ...payload, id });
+    return order;
+  },
+};
+
 export const salesOrderItemsService = createSupabaseCrudService('sales_order_items');
 export const deliveriesService = createSupabaseCrudService('deliveries');
 export const invoicesService = createSupabaseCrudService('invoices');
