@@ -18,6 +18,7 @@ import { generateSequentialId } from '../utils/ids';
 
 const safeArray = (value) => Array.isArray(value) ? value : [];
 const amount = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?? row.montant_total ?? row.total_amount ?? 0);
+const hasAmount = (row = {}) => Math.abs(amount(row)) > 0;
 const status = (row = {}) => String(row.statut ?? row.status ?? row.statut_paiement ?? 'paye').toLowerCase();
 const isIn = (row = {}) => String(row.type || '').toLowerCase() === 'entree';
 const isOut = (row = {}) => String(row.type || '').toLowerCase() === 'sortie';
@@ -53,6 +54,7 @@ const ACTIVITY_TYPES = {
 
 const normalizeActivityKey = (row = {}) => {
   const raw = String(row.module_lie || row.module_source || row.categorie || row.category || 'autre').toLowerCase();
+  if (!raw || raw === 'finances' || raw === 'finance') return 'autre';
   if (raw.includes('vente') || raw.includes('client') || raw.includes('paiement')) return 'ventes';
   if (raw.includes('avicole') || raw.includes('oeuf') || raw.includes('poulet') || raw.includes('pondeuse')) return 'avicole';
   if (raw.includes('animal') || raw.includes('bovin') || raw.includes('ovin') || raw.includes('caprin')) return 'animaux';
@@ -86,9 +88,9 @@ function getOrderRemaining(order = {}) {
 }
 
 function computeFinance({ rows, salesOrders, payments, fournisseurs, stocks }) {
-  const tx = safeArray(rows);
+  const tx = safeArray(rows).filter(hasAmount);
   const orders = safeArray(salesOrders).filter((order) => status(order) !== 'annule');
-  const pay = safeArray(payments);
+  const pay = safeArray(payments).filter(hasAmount);
   const suppliers = safeArray(fournisseurs);
   const stockRows = safeArray(stocks);
 
@@ -127,8 +129,9 @@ function computeActivities({ rows = [], alimentationLogs = [], salesOrders = [],
     return map.get(key);
   };
 
-  safeArray(rows).forEach((row) => {
+  safeArray(rows).filter(hasAmount).forEach((row) => {
     const key = normalizeActivityKey(row);
+    if (key === 'autre' && !hasAmount(row)) return;
     const item = ensure(key);
     if (isIn(row)) item.products += amount(row);
     if (isOut(row)) item.charges += amount(row);
@@ -142,17 +145,19 @@ function computeActivities({ rows = [], alimentationLogs = [], salesOrders = [],
   const ordersTotal = safeArray(salesOrders).filter((order) => status(order) !== 'annule').reduce((sum, order) => sum + getOrderTotal(order), 0);
   const ordersPaid = safeArray(salesOrders).reduce((sum, order) => sum + getOrderPaid(order), 0);
   const ordersReceivable = safeArray(salesOrders).filter((order) => status(order) !== 'annule').reduce((sum, order) => sum + getOrderRemaining(order), 0);
-  const paymentsTotal = safeArray(payments).reduce((sum, payment) => sum + amount(payment), 0);
+  const paymentsTotal = safeArray(payments).filter(hasAmount).reduce((sum, payment) => sum + amount(payment), 0);
   sales.products = Math.max(sales.products, ordersTotal, paymentsTotal + ordersReceivable);
   sales.paid = Math.max(sales.paid, ordersPaid, paymentsTotal);
   sales.receivables += ordersReceivable;
   if (ordersTotal || paymentsTotal) sales.sources.add('Ventes/Paiements');
 
   safeArray(alimentationLogs).forEach((log) => {
+    const cost = toNumber(log.cout_total ?? log.total_cost ?? log.montant_total ?? log.montant);
+    if (cost <= 0) return;
     const text = `${log.type_cible || ''} ${log.cible_id || ''} ${log.lot_id || ''} ${log.categorie || ''}`.toLowerCase();
     const key = text.includes('avicole') || text.includes('lot') || text.includes('poule') ? 'avicole' : 'animaux';
     const item = ensure(key);
-    item.charges += toNumber(log.cout_total ?? log.total_cost ?? log.montant_total ?? log.montant);
+    item.charges += cost;
     item.sources.add('Alimentation');
   });
 
@@ -173,17 +178,18 @@ function computeActivities({ rows = [], alimentationLogs = [], salesOrders = [],
   return Array.from(map.values()).map((item) => {
     const margin = item.products - item.charges;
     const roi = item.charges > 0 ? (margin / item.charges) * 100 : item.products > 0 ? 100 : 0;
-    return { ...item, margin, roi, sourcesLabel: Array.from(item.sources).join(' + ') || 'Aucune donnée' };
-  }).filter((item) => item.products || item.charges || item.paid || item.receivables || item.stockValue || item.transactions).sort((a, b) => b.margin - a.margin);
+    const pendingCosts = item.kind === 'profit' && item.products === 0 && item.charges > 0;
+    return { ...item, margin, roi, pendingCosts, sourcesLabel: Array.from(item.sources).join(' + ') || 'Aucune donnée' };
+  }).filter((item) => item.id !== 'autre' && (item.products || item.charges || item.paid || item.receivables || item.stockValue || item.transactions)).sort((a, b) => b.margin - a.margin);
 }
 
-function PriorityCard({ title, value, detail, moduleKey, danger = false }) {
+function PriorityCard({ title, value, detail, moduleKey, danger = false, cta = 'Ouvrir le module' }) {
   return (
     <button type="button" onClick={() => openModule(moduleKey)} className={`text-left rounded-xl border p-4 hover:border-[#b6975f] transition-all ${danger ? 'bg-red-50/70 border-red-200' : 'bg-[#fffdf8] border-[#d6c3a0]'}`}>
       <p className="font-bold text-[#2f2415]">{title}</p>
       <p className="text-2xl font-black text-[#2f2415] mt-1">{value}</p>
       <p className="text-xs text-[#8a7456] mt-1">{detail}</p>
-      <p className="text-xs font-semibold text-[#9a6b12] mt-3">Ouvrir le module</p>
+      <p className="text-xs font-semibold text-[#9a6b12] mt-3">{cta}</p>
     </button>
   );
 }
@@ -199,6 +205,9 @@ function ActivityRow({ activity }) {
   } else if (activity.kind === 'investment') {
     mainLabel = 'Solde investissement';
     detail = `Investi/charges ${fmtCurrency(activity.charges)} · Produits ${fmtCurrency(activity.products)} · Source ${activity.sourcesLabel}`;
+  } else if (activity.pendingCosts) {
+    mainLabel = 'Charges en attente';
+    detail = `Charges ${fmtCurrency(activity.charges)} · Aucun produit enregistré pour l'instant · Source ${activity.sourcesLabel}`;
   } else {
     detail = `Produits ${fmtCurrency(activity.products)} · Encaissé ${fmtCurrency(activity.paid)} · Charges ${fmtCurrency(activity.charges)} · Créances ${fmtCurrency(activity.receivables)} · ROI ${fmtPercent(activity.roi)}`;
   }
@@ -209,7 +218,7 @@ function ActivityRow({ activity }) {
         <p className="text-sm font-black text-[#2f2415]">{activity.label}</p>
         <p className="text-xs text-[#8a7456]">{detail}</p>
       </div>
-      <div className="text-right">
+      <div className="text-right shrink-0">
         <p className="text-[10px] uppercase tracking-wide text-[#8a7456]">{mainLabel}</p>
         <p className={`font-black ${positive ? 'text-emerald-600' : 'text-red-500'}`}>{fmtCurrency(activity.margin)}</p>
       </div>
@@ -257,12 +266,16 @@ export default function FinancesV3({
   const [modal, setModal] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  const summary = useMemo(() => computeFinance({ rows, salesOrders, payments, fournisseurs, stocks }), [rows, salesOrders, payments, fournisseurs, stocks]);
-  const activities = useMemo(() => computeActivities({ rows, alimentationLogs, salesOrders, payments, fournisseurs, stocks }), [rows, alimentationLogs, salesOrders, payments, fournisseurs, stocks]);
-  const deficitActivities = activities.filter((activity) => activity.kind !== 'cost' && activity.margin < 0);
-  const openReceivables = safeArray(salesOrders).filter((order) => status(order) !== 'annule' && getOrderRemaining(order) > 0);
+  const validRows = useMemo(() => safeArray(rows).filter(hasAmount), [rows]);
+  const zeroRows = useMemo(() => safeArray(rows).filter((row) => !hasAmount(row)), [rows]);
+  const summary = useMemo(() => computeFinance({ rows: validRows, salesOrders, payments, fournisseurs, stocks }), [validRows, salesOrders, payments, fournisseurs, stocks]);
+  const activities = useMemo(() => computeActivities({ rows: validRows, alimentationLogs, salesOrders, payments, fournisseurs, stocks }), [validRows, alimentationLogs, salesOrders, payments, fournisseurs, stocks]);
+  const deficitActivities = activities.filter((activity) => activity.kind !== 'cost' && !activity.pendingCosts && activity.products > 0 && activity.margin < 0);
+  const pendingCostActivities = activities.filter((activity) => activity.pendingCosts);
+  const openReceivableOrders = safeArray(salesOrders).filter((order) => status(order) !== 'annule' && getOrderRemaining(order) > 0);
+  const openReceivableTransactions = validRows.filter((row) => isIn(row) && isPartialOrUnpaid(row));
   const supplierDebts = safeArray(fournisseurs).filter((supplier) => toNumber(supplier.dettes) > 0);
-  const txWithoutProof = safeArray(rows).filter((row) => amount(row) > 0 && !row.justificatif_url && ['sortie', 'entree'].includes(String(row.type).toLowerCase()));
+  const txWithoutProof = validRows.filter((row) => !row.justificatif_url && ['sortie', 'entree'].includes(String(row.type).toLowerCase()));
   const expenseOnlyTotal = activities.filter((activity) => activity.kind === 'cost').reduce((sum, item) => sum + item.charges, 0);
 
   const financeFormFields = useMemo(() => {
@@ -270,19 +283,20 @@ export default function FinancesV3({
     return (MODULE_FORM_FIELDS.finances || []).map((field) => field.key === 'business_plan_id' && bpOptions.length ? { ...field, type: 'select', options: [{ value: '', label: '— Aucun —' }, ...bpOptions] } : field);
   }, [businessPlans]);
 
-  const filtered = useMemo(() => safeArray(rows).filter((row) => {
+  const filtered = useMemo(() => validRows.filter((row) => {
     const typeOk = typeFilter === 'tous' || String(row.type || '').toLowerCase() === typeFilter;
     const statusOk = statusFilter === 'tous' || status(row) === statusFilter;
     const activityOk = activityFilter === 'tous' || normalizeActivityKey(row) === activityFilter;
     return typeOk && statusOk && activityOk;
-  }), [rows, typeFilter, statusFilter, activityFilter]);
+  }), [validRows, typeFilter, statusFilter, activityFilter]);
 
   const priorities = [
-    summary.receivables > 0 ? { title: 'Créances clients', value: fmtCurrency(summary.receivables), detail: `${openReceivables.length} vente(s)/paiement(s) à relancer.`, moduleKey: 'Ventes', danger: true } : null,
-    summary.debts > 0 ? { title: 'Dettes à suivre', value: fmtCurrency(summary.debts), detail: `${supplierDebts.length} fournisseur(s) ou sortie(s) non réglée(s).`, moduleKey: 'Fournisseurs', danger: true } : null,
-    deficitActivities.length ? { title: 'Activités déficitaires', value: fmtNumber(deficitActivities.length), detail: deficitActivities.map((a) => a.label).join(', '), moduleKey: 'Impact Business', danger: true } : null,
-    txWithoutProof.length ? { title: 'Justificatifs manquants', value: fmtNumber(txWithoutProof.length), detail: 'Transactions sans reçu/facture attaché.', moduleKey: 'Documents', danger: false } : null,
-    summary.margin < 0 ? { title: 'Marge globale négative', value: fmtCurrency(summary.margin), detail: 'Vérifier prix, coûts et ventes réelles.', moduleKey: 'Impact Business', danger: true } : null,
+    summary.receivables > 0 ? { title: 'Créances clients', value: fmtCurrency(summary.receivables), detail: `${openReceivableOrders.length + openReceivableTransactions.length} élément(s) à relancer ou vérifier.`, moduleKey: 'Ventes', cta: 'Ouvrir ventes / relances', danger: true } : null,
+    summary.debts > 0 ? { title: 'Dettes à suivre', value: fmtCurrency(summary.debts), detail: `${supplierDebts.length} fournisseur(s) ou sortie(s) non réglée(s).`, moduleKey: 'Fournisseurs', cta: 'Ouvrir fournisseurs', danger: true } : null,
+    deficitActivities.length ? { title: 'Marge négative', value: fmtNumber(deficitActivities.length), detail: deficitActivities.map((a) => a.label).join(', '), moduleKey: 'Impact Business', cta: 'Analyser impact business', danger: true } : null,
+    pendingCostActivities.length ? { title: 'Charges en attente de vente', value: fmtNumber(pendingCostActivities.length), detail: pendingCostActivities.map((a) => a.label).join(', '), moduleKey: 'Ventes', cta: 'Vérifier opportunités de vente', danger: false } : null,
+    txWithoutProof.length ? { title: 'Justificatifs manquants', value: fmtNumber(txWithoutProof.length), detail: 'Transactions sans reçu/facture attaché.', moduleKey: 'Documents', cta: 'Ouvrir documents', danger: false } : null,
+    summary.margin < 0 ? { title: 'Marge globale négative', value: fmtCurrency(summary.margin), detail: 'Vérifier prix, coûts et ventes réelles.', moduleKey: 'Impact Business', cta: 'Analyser la rentabilité', danger: true } : null,
   ].filter(Boolean);
 
   const submitCreate = async (payload) => {
@@ -338,9 +352,9 @@ export default function FinancesV3({
 
   const columns = [
     { key: 'date', label: 'Date', sortable: true },
-    { key: 'libelle', label: 'Libellé', sortable: true, render: (row) => <span className="font-semibold text-[#2f2415]">{row.libelle}</span> },
+    { key: 'libelle', label: 'Libellé', sortable: true, render: (row) => <span className="font-semibold text-[#2f2415]">{row.libelle || '-'}</span> },
     { key: 'type', label: 'Type', sortable: true, render: (row) => <span className={`inline-flex items-center gap-1 font-semibold ${isIn(row) ? 'text-emerald-600' : 'text-red-500'}`}>{isIn(row) ? <ArrowUp size={12} /> : <ArrowDown size={12} />}{row.type}</span> },
-    { key: 'categorie', label: 'Catégorie', sortable: true },
+    { key: 'categorie', label: 'Catégorie', sortable: true, render: (row) => row.categorie || row.category || '-' },
     { key: 'module_lie', label: 'Activité', sortable: true, render: (row) => ACTIVITY_LABELS[normalizeActivityKey(row)] || row.module_lie || '-' },
     { key: 'montant', label: 'Montant', sortable: true, render: (row) => <span className={`font-black ${isIn(row) ? 'text-emerald-600' : 'text-red-500'}`}>{isIn(row) ? '+' : '-'}{fmtCurrency(amount(row))}</span> },
     { key: 'statut', label: 'Statut', sortable: true, render: (row) => <Badge status={row.statut || 'paye'} /> },
@@ -349,15 +363,15 @@ export default function FinancesV3({
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-2">
       <SectionHeader
         title="Finances"
         sub="Vue financière métier : argent encaissé, charges, créances, dettes, marges par activité et preuves pour comptabilité."
-        actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter recette/dépense</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn></>}
+        actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter produit/charge</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn></>}
       />
 
-      <div className="grid grid-cols-2 xl:grid-cols-6 gap-4">
-        <KpiCard icon={TrendingUp} label="CA / produits" value={fmtCurrency(summary.revenue)} sub="ventes + recettes facturées" color="bg-emerald-500/20 text-emerald-500" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
+        <KpiCard icon={TrendingUp} label="CA / produits" value={fmtCurrency(summary.revenue)} sub="ventes + produits facturés" color="bg-emerald-500/20 text-emerald-500" />
         <KpiCard icon={CreditCard} label="Cash encaissé" value={fmtCurrency(summary.cashIn)} sub="paiements reçus" color="bg-sky-500/20 text-sky-500" />
         <KpiCard icon={TrendingDown} label="Charges engagées" value={fmtCurrency(summary.expenses)} color="bg-red-500/20 text-red-500" />
         <KpiCard icon={Wallet} label="Cash net" value={fmtCurrency(summary.cash)} color={summary.cash >= 0 ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'} />
@@ -366,16 +380,16 @@ export default function FinancesV3({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <InsightCard icon={FileText} title="Justificatifs à compléter" value={fmtNumber(txWithoutProof.length)} detail="Chaque dépense/recette importante doit avoir reçu, facture ou preuve." />
-        <InsightCard icon={AlertTriangle} title="Charges non productives" value={fmtCurrency(expenseOnlyTotal)} detail="Santé, stock, fournisseurs, équipements: ce sont des décaissements ou investissements, pas des recettes." />
-        <InsightCard icon={BookOpen} title="Passerelle comptabilité" value="À valider" detail="Les transactions propres pourront ensuite être transformées en écritures comptables." />
+        <InsightCard icon={FileText} title="Justificatifs à compléter" value={fmtNumber(txWithoutProof.length)} detail="Chaque produit/charge importante doit avoir reçu, facture ou preuve." />
+        <InsightCard icon={AlertTriangle} title="Charges à suivre" value={fmtCurrency(expenseOnlyTotal)} detail="Santé, stock, fournisseurs, équipements : décaissements ou investissements à contrôler." />
+        <InsightCard icon={BookOpen} title="Écritures ignorées" value={fmtNumber(zeroRows.length)} detail="Les lignes à 0 FCFA sont masquées pour éviter de fausser l’analyse." />
       </div>
 
       <div className="bg-white border border-[#d6c3a0] rounded-2xl p-5">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div>
             <h3 className="font-black text-[#2f2415]">Priorités financières</h3>
-            <p className="text-sm text-[#8a7456]">Les liens vers les autres modules apparaissent seulement lorsqu’une action est utile.</p>
+            <p className="text-sm text-[#8a7456]">Les liens apparaissent uniquement lorsqu’une action est utile.</p>
           </div>
           <Btn variant="outline" small onClick={() => openModule('Comptabilité')}>Préparer comptabilité</Btn>
         </div>
@@ -400,7 +414,7 @@ export default function FinancesV3({
       <DataTable title="Transactions financières" rows={filtered} columns={columns} loading={loading} initialSortKey="date" searchPlaceholder="Rechercher transaction, catégorie, activité..." />
 
       <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected} title="Détail transaction" />
-      <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={financeFormFields} initialValues={{ id: generateSequentialId('finances', rows), type: 'entree', date: today(), statut: 'paye', paiement: 'Wave' }} autoId={() => generateSequentialId('finances', rows)} uploadFolder="finances" loading={saving} title="Ajouter recette / dépense" submitLabel="Ajouter" />
+      <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={financeFormFields} initialValues={{ id: generateSequentialId('finances', rows), type: 'entree', date: today(), statut: 'paye', paiement: 'Wave' }} autoId={() => generateSequentialId('finances', rows)} uploadFolder="finances" loading={saving} title="Ajouter produit / charge" submitLabel="Ajouter" />
       <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={financeFormFields} initialValues={selected || {}} uploadFolder="finances" loading={saving} title="Modifier transaction" submitLabel="Enregistrer" />
       <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected ? `${selected.libelle}` : ''} loading={saving} />
     </div>
