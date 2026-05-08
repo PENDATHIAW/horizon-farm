@@ -13,11 +13,11 @@ import DetailsModal from '../modals/DetailsModal';
 import EditModal from '../modals/EditModal';
 import { MODULE_FORM_FIELDS } from '../utils/constants';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
-import { fmtCurrency, fmtPercent, fmtNumber, toNumber } from '../utils/format';
+import { fmtCurrency, fmtNumber, fmtPercent, toNumber } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
 
 const safeArray = (value) => Array.isArray(value) ? value : [];
-const amount = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?? row.montant_total ?? row.total_amount ?? 0);
+const amount = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?? row.montant_total ?? row.total_amount ?? row.prix_total ?? 0);
 const hasAmount = (row = {}) => Math.abs(amount(row)) > 0;
 const status = (row = {}) => String(row.statut ?? row.status ?? row.statut_paiement ?? 'paye').toLowerCase();
 const isIn = (row = {}) => String(row.type || '').toLowerCase() === 'entree';
@@ -26,46 +26,94 @@ const isPaid = (row = {}) => !['impaye', 'annule'].includes(status(row));
 const isPartialOrUnpaid = (row = {}) => ['impaye', 'partiel', 'en_retard'].includes(status(row));
 const today = () => new Date().toISOString().slice(0, 10);
 
-const ACTIVITY_LABELS = {
-  ventes: 'Ventes',
+const REVENUE_ACTIVITIES = {
   animaux: 'Animaux',
-  avicole: 'Avicole',
+  avicole_oeufs: 'Œufs',
+  avicole_chair: 'Poulets de chair',
+  avicole_reformes: 'Pondeuses réformées',
   cultures: 'Cultures',
-  stock: 'Stock',
+  produits_transformes: 'Produits transformés',
+  services_agricoles: 'Services agricoles',
+  location_materiel: 'Location matériel',
+  transport_service: 'Transport facturé',
+  subventions: 'Subventions',
+  financements: 'Financements / apports',
+  autres_revenus: 'Autres revenus',
+};
+
+const COST_ACTIVITIES = {
+  alimentation: 'Alimentation',
+  stock: 'Stock / achats',
   sante: 'Santé',
+  main_oeuvre: 'Main-d’œuvre',
   fournisseurs: 'Fournisseurs',
+  transport_charge: 'Transport charge',
+  energie: 'Énergie',
+  maintenance: 'Maintenance',
   investissements: 'Investissements',
   equipements: 'Équipements',
-  autre: 'Autre',
+  autres_charges: 'Autres charges',
 };
 
-const ACTIVITY_TYPES = {
-  ventes: 'profit',
-  animaux: 'profit',
-  avicole: 'profit',
-  cultures: 'profit',
-  stock: 'cost',
-  sante: 'cost',
-  fournisseurs: 'cost',
-  investissements: 'investment',
-  equipements: 'investment',
-  autre: 'mixed',
-};
+const ACTIVITY_LABELS = { ventes: 'Ventes globales', ...REVENUE_ACTIVITIES, ...COST_ACTIVITIES };
+const REVENUE_KEYS = Object.keys(REVENUE_ACTIVITIES);
+const COST_KEYS = Object.keys(COST_ACTIVITIES);
 
-const normalizeActivityKey = (row = {}) => {
-  const raw = String(row.module_lie || row.module_source || row.categorie || row.category || 'autre').toLowerCase();
-  if (!raw || raw === 'finances' || raw === 'finance') return 'autre';
-  if (raw.includes('vente') || raw.includes('client') || raw.includes('paiement')) return 'ventes';
-  if (raw.includes('avicole') || raw.includes('oeuf') || raw.includes('poulet') || raw.includes('pondeuse')) return 'avicole';
-  if (raw.includes('animal') || raw.includes('bovin') || raw.includes('ovin') || raw.includes('caprin')) return 'animaux';
-  if (raw.includes('culture') || raw.includes('maraich')) return 'cultures';
-  if (raw.includes('stock') || raw.includes('aliment')) return 'stock';
-  if (raw.includes('sante') || raw.includes('santé') || raw.includes('vaccin') || raw.includes('veto')) return 'sante';
-  if (raw.includes('fournisseur')) return 'fournisseurs';
-  if (raw.includes('invest')) return 'investissements';
-  if (raw.includes('equip')) return 'equipements';
-  return raw || 'autre';
-};
+function ensureFinanceFields() {
+  const fields = MODULE_FORM_FIELDS.finances || [];
+  const categorie = fields.find((field) => field.key === 'categorie');
+  if (categorie) {
+    categorie.options = [
+      'Vente animaux', 'Vente oeufs', 'Vente poulets de chair', 'Vente pondeuses reformees', 'Vente cultures', 'Vente produits transformes',
+      'Prestation agricole', 'Location materiel', 'Transport facture', 'Subvention', 'Financement', 'Apport proprietaire', 'Remboursement',
+      'Alimentation', 'Sante', 'Stock / achat', 'Salaires', 'Transport', 'Energie', 'Maintenance', 'Investissements', 'Equipements', 'Fournisseurs', 'Autre',
+    ];
+  }
+  const moduleLie = fields.find((field) => field.key === 'module_lie');
+  if (moduleLie) {
+    moduleLie.options = [
+      'animaux', 'avicole_oeufs', 'avicole_chair', 'avicole_reformes', 'cultures', 'produits_transformes', 'services_agricoles', 'location_materiel', 'transport_service',
+      'subventions', 'financements', 'stock', 'sante', 'fournisseurs', 'investissements', 'equipements', 'autre',
+    ];
+  }
+}
+
+function textOf(row = {}) {
+  return `${row.module_lie || ''} ${row.module_source || ''} ${row.categorie || ''} ${row.category || ''} ${row.type_produit || ''} ${row.product_type || ''} ${row.source_type || ''} ${row.libelle || ''} ${row.nom || ''}`.toLowerCase();
+}
+
+function normalizeActivityKey(row = {}) {
+  const text = textOf(row);
+  if (!text || text.trim() === 'finances' || text.trim() === 'finance') return isIn(row) ? 'autres_revenus' : 'autres_charges';
+
+  if (text.includes('subvention')) return 'subventions';
+  if (text.includes('financement') || text.includes('apport')) return 'financements';
+  if (text.includes('remboursement')) return isIn(row) ? 'autres_revenus' : 'autres_charges';
+  if (text.includes('location')) return 'location_materiel';
+  if (text.includes('prestation') || text.includes('service agricole') || text.includes('service')) return 'services_agricoles';
+  if (text.includes('transport') && isIn(row)) return 'transport_service';
+  if (text.includes('produit transforme') || text.includes('transform')) return 'produits_transformes';
+  if (text.includes('vente oeuf') || text.includes('œuf') || text.includes('oeuf')) return 'avicole_oeufs';
+  if (text.includes('chair') || text.includes('poulet')) return 'avicole_chair';
+  if (text.includes('reforme') || text.includes('réform')) return 'avicole_reformes';
+  if (text.includes('avicole') || text.includes('pondeuse')) return isIn(row) ? 'avicole_oeufs' : 'alimentation';
+  if (text.includes('culture') || text.includes('maraich') || text.includes('recolte') || text.includes('récolte')) return 'cultures';
+  if (text.includes('animal') || text.includes('bovin') || text.includes('ovin') || text.includes('caprin') || text.includes('betail') || text.includes('bétail')) return 'animaux';
+
+  if (text.includes('sante') || text.includes('santé') || text.includes('vaccin') || text.includes('veto') || text.includes('vét')) return 'sante';
+  if (text.includes('aliment')) return 'alimentation';
+  if (text.includes('stock') || text.includes('achat')) return 'stock';
+  if (text.includes('salaire') || text.includes('main') || text.includes('ouvrier')) return 'main_oeuvre';
+  if (text.includes('fournisseur')) return 'fournisseurs';
+  if (text.includes('transport')) return 'transport_charge';
+  if (text.includes('energie') || text.includes('énergie') || text.includes('electric') || text.includes('carburant')) return 'energie';
+  if (text.includes('maintenance') || text.includes('reparation') || text.includes('réparation')) return 'maintenance';
+  if (text.includes('invest')) return 'investissements';
+  if (text.includes('equip')) return 'equipements';
+  if (text.includes('vente') || text.includes('client') || text.includes('paiement')) return 'ventes';
+
+  return isIn(row) ? 'autres_revenus' : 'autres_charges';
+}
 
 function openModule(moduleKey) {
   if (!moduleKey || typeof document === 'undefined') return;
@@ -87,6 +135,11 @@ function getOrderRemaining(order = {}) {
   return Math.max(0, getOrderTotal(order) - getOrderPaid(order));
 }
 
+function makeActivity(id) {
+  const kind = REVENUE_KEYS.includes(id) || id === 'ventes' ? 'revenue' : 'cost';
+  return { id, label: ACTIVITY_LABELS[id] || id, kind, products: 0, charges: 0, paid: 0, receivables: 0, transactions: 0, sources: new Set() };
+}
+
 function computeFinance({ rows, salesOrders, payments, fournisseurs, stocks }) {
   const tx = safeArray(rows).filter(hasAmount);
   const orders = safeArray(salesOrders).filter((order) => status(order) !== 'annule');
@@ -96,7 +149,7 @@ function computeFinance({ rows, salesOrders, payments, fournisseurs, stocks }) {
 
   const txIncomePaid = tx.filter((row) => isIn(row) && isPaid(row)).reduce((sum, row) => sum + amount(row), 0);
   const txExpensesPaid = tx.filter((row) => isOut(row) && isPaid(row)).reduce((sum, row) => sum + amount(row), 0);
-  const txExpensesCommitted = tx.filter(isOut).reduce((sum, row) => sum + amount(row), 0);
+  const expenses = tx.filter(isOut).reduce((sum, row) => sum + amount(row), 0);
   const paymentsTotal = pay.reduce((sum, row) => sum + amount(row), 0);
   const ordersTotal = orders.reduce((sum, order) => sum + getOrderTotal(order), 0);
   const ordersPaid = orders.reduce((sum, order) => sum + getOrderPaid(order), 0);
@@ -108,18 +161,13 @@ function computeFinance({ rows, salesOrders, payments, fournisseurs, stocks }) {
 
   const cashIn = Math.max(txIncomePaid, paymentsTotal, ordersPaid);
   const revenue = Math.max(ordersTotal, txIncomePaid + receivablesFromTx, cashIn + receivablesFromOrders);
-  const expenses = txExpensesCommitted;
   const cash = cashIn - txExpensesPaid;
   const margin = revenue - expenses;
   const receivables = receivablesFromOrders + receivablesFromTx;
   const debts = debtsFromTx + debtsFromSuppliers;
   const marginRate = revenue > 0 ? (margin / revenue) * 100 : 0;
 
-  return { cashIn, revenue, expenses, cash, margin, receivables, debts, marginRate, stockValue, txExpensesPaid, ordersTotal, paymentsTotal };
-}
-
-function makeActivity(id) {
-  return { id, label: ACTIVITY_LABELS[id] || id, kind: ACTIVITY_TYPES[id] || 'mixed', products: 0, charges: 0, paid: 0, receivables: 0, transactions: 0, sources: new Set() };
+  return { cashIn, revenue, expenses, cash, margin, receivables, debts, marginRate, stockValue, paymentsTotal, ordersTotal };
 }
 
 function computeActivities({ rows = [], alimentationLogs = [], salesOrders = [], payments = [], fournisseurs = [], stocks = [] }) {
@@ -131,7 +179,6 @@ function computeActivities({ rows = [], alimentationLogs = [], salesOrders = [],
 
   safeArray(rows).filter(hasAmount).forEach((row) => {
     const key = normalizeActivityKey(row);
-    if (key === 'autre' && !hasAmount(row)) return;
     const item = ensure(key);
     if (isIn(row)) item.products += amount(row);
     if (isOut(row)) item.charges += amount(row);
@@ -141,21 +188,26 @@ function computeActivities({ rows = [], alimentationLogs = [], salesOrders = [],
     item.sources.add('Transactions');
   });
 
-  const sales = ensure('ventes');
-  const ordersTotal = safeArray(salesOrders).filter((order) => status(order) !== 'annule').reduce((sum, order) => sum + getOrderTotal(order), 0);
-  const ordersPaid = safeArray(salesOrders).reduce((sum, order) => sum + getOrderPaid(order), 0);
-  const ordersReceivable = safeArray(salesOrders).filter((order) => status(order) !== 'annule').reduce((sum, order) => sum + getOrderRemaining(order), 0);
-  const paymentsTotal = safeArray(payments).filter(hasAmount).reduce((sum, payment) => sum + amount(payment), 0);
-  sales.products = Math.max(sales.products, ordersTotal, paymentsTotal + ordersReceivable);
-  sales.paid = Math.max(sales.paid, ordersPaid, paymentsTotal);
-  sales.receivables += ordersReceivable;
-  if (ordersTotal || paymentsTotal) sales.sources.add('Ventes/Paiements');
+  safeArray(salesOrders).filter((order) => status(order) !== 'annule').forEach((order) => {
+    const key = normalizeActivityKey({ ...order, type: 'entree', categorie: order.categorie || order.category || order.source_type || 'vente' });
+    const item = ensure(REVENUE_KEYS.includes(key) ? key : 'ventes');
+    item.products += getOrderTotal(order);
+    item.paid += getOrderPaid(order);
+    item.receivables += getOrderRemaining(order);
+    item.sources.add('Ventes');
+  });
+
+  safeArray(payments).filter(hasAmount).forEach((payment) => {
+    const item = ensure('ventes');
+    item.paid += amount(payment);
+    item.sources.add('Paiements');
+  });
 
   safeArray(alimentationLogs).forEach((log) => {
     const cost = toNumber(log.cout_total ?? log.total_cost ?? log.montant_total ?? log.montant);
     if (cost <= 0) return;
     const text = `${log.type_cible || ''} ${log.cible_id || ''} ${log.lot_id || ''} ${log.categorie || ''}`.toLowerCase();
-    const key = text.includes('avicole') || text.includes('lot') || text.includes('poule') ? 'avicole' : 'animaux';
+    const key = text.includes('avicole') || text.includes('lot') || text.includes('poule') ? 'avicole_chair' : 'animaux';
     const item = ensure(key);
     item.charges += cost;
     item.sources.add('Alimentation');
@@ -163,24 +215,38 @@ function computeActivities({ rows = [], alimentationLogs = [], salesOrders = [],
 
   const supplierDebts = safeArray(fournisseurs).reduce((sum, supplier) => sum + toNumber(supplier.dettes), 0);
   if (supplierDebts > 0) {
-    const supplier = ensure('fournisseurs');
-    supplier.charges += supplierDebts;
-    supplier.sources.add('Fournisseurs');
+    const item = ensure('fournisseurs');
+    item.charges += supplierDebts;
+    item.sources.add('Fournisseurs');
   }
 
   const stockValue = safeArray(stocks).reduce((sum, item) => sum + toNumber(item.quantite ?? item.quantity) * toNumber(item.prix_unitaire ?? item.unit_price ?? item.price), 0);
   if (stockValue > 0) {
-    const stock = ensure('stock');
-    stock.stockValue = stockValue;
-    stock.sources.add('Stock');
+    const item = ensure('stock');
+    item.stockValue = stockValue;
+    item.sources.add('Stock');
   }
 
   return Array.from(map.values()).map((item) => {
     const margin = item.products - item.charges;
     const roi = item.charges > 0 ? (margin / item.charges) * 100 : item.products > 0 ? 100 : 0;
-    const pendingCosts = item.kind === 'profit' && item.products === 0 && item.charges > 0;
+    const pendingCosts = item.kind === 'revenue' && item.products === 0 && item.charges > 0;
     return { ...item, margin, roi, pendingCosts, sourcesLabel: Array.from(item.sources).join(' + ') || 'Aucune donnée' };
-  }).filter((item) => item.id !== 'autre' && (item.products || item.charges || item.paid || item.receivables || item.stockValue || item.transactions)).sort((a, b) => b.margin - a.margin);
+  }).filter((item) => item.products || item.charges || item.paid || item.receivables || item.stockValue || item.transactions).sort((a, b) => b.margin - a.margin);
+}
+
+function computeRevenueCoverage(activities) {
+  return REVENUE_KEYS.map((key) => {
+    const item = activities.find((activity) => activity.id === key);
+    return {
+      key,
+      label: REVENUE_ACTIVITIES[key],
+      amount: item?.products || 0,
+      paid: item?.paid || 0,
+      receivables: item?.receivables || 0,
+      active: Boolean(item?.products || item?.paid || item?.receivables),
+    };
+  });
 }
 
 function PriorityCard({ title, value, detail, moduleKey, danger = false, cta = 'Ouvrir le module' }) {
@@ -195,23 +261,16 @@ function PriorityCard({ title, value, detail, moduleKey, danger = false, cta = '
 }
 
 function ActivityRow({ activity }) {
-  const positive = activity.margin >= 0;
   let detail = '';
-  let mainLabel = 'Marge';
-
+  let mainLabel = activity.kind === 'revenue' ? 'Marge' : 'Charge nette';
   if (activity.kind === 'cost') {
-    mainLabel = 'Charge nette';
     detail = `Charges ${fmtCurrency(activity.charges)}${activity.stockValue ? ` · Valeur stock ${fmtCurrency(activity.stockValue)}` : ''} · Source ${activity.sourcesLabel}`;
-  } else if (activity.kind === 'investment') {
-    mainLabel = 'Solde investissement';
-    detail = `Investi/charges ${fmtCurrency(activity.charges)} · Produits ${fmtCurrency(activity.products)} · Source ${activity.sourcesLabel}`;
   } else if (activity.pendingCosts) {
     mainLabel = 'Charges en attente';
-    detail = `Charges ${fmtCurrency(activity.charges)} · Aucun produit enregistré pour l'instant · Source ${activity.sourcesLabel}`;
+    detail = `Charges ${fmtCurrency(activity.charges)} · Aucun produit enregistré · Source ${activity.sourcesLabel}`;
   } else {
     detail = `Produits ${fmtCurrency(activity.products)} · Encaissé ${fmtCurrency(activity.paid)} · Charges ${fmtCurrency(activity.charges)} · Créances ${fmtCurrency(activity.receivables)} · ROI ${fmtPercent(activity.roi)}`;
   }
-
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl bg-[#fffdf8] border border-[#e7d9be] p-3">
       <div>
@@ -220,8 +279,18 @@ function ActivityRow({ activity }) {
       </div>
       <div className="text-right shrink-0">
         <p className="text-[10px] uppercase tracking-wide text-[#8a7456]">{mainLabel}</p>
-        <p className={`font-black ${positive ? 'text-emerald-600' : 'text-red-500'}`}>{fmtCurrency(activity.margin)}</p>
+        <p className={`font-black ${activity.margin >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{fmtCurrency(activity.margin)}</p>
       </div>
+    </div>
+  );
+}
+
+function RevenueChip({ item }) {
+  return (
+    <div className={`rounded-xl border p-3 ${item.active ? 'bg-emerald-50/70 border-emerald-200' : 'bg-[#fffdf8] border-[#d6c3a0]'}`}>
+      <p className="text-sm font-black text-[#2f2415]">{item.label}</p>
+      <p className={`text-lg font-black mt-1 ${item.active ? 'text-emerald-600' : 'text-[#8a7456]'}`}>{fmtCurrency(item.amount)}</p>
+      <p className="text-xs text-[#8a7456]">encaissé {fmtCurrency(item.paid)} · créances {fmtCurrency(item.receivables)}</p>
     </div>
   );
 }
@@ -231,11 +300,7 @@ function InsightCard({ icon: Icon, title, value, detail }) {
     <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4">
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-xl bg-[#fff3d8] text-[#9a6b12] flex items-center justify-center"><Icon size={18} /></div>
-        <div>
-          <p className="text-xs text-[#8a7456]">{title}</p>
-          <p className="text-xl font-black text-[#2f2415] mt-1">{value}</p>
-          <p className="text-xs text-[#7d6a4a] mt-1">{detail}</p>
-        </div>
+        <div><p className="text-xs text-[#8a7456]">{title}</p><p className="text-xl font-black text-[#2f2415] mt-1">{value}</p><p className="text-xs text-[#7d6a4a] mt-1">{detail}</p></div>
       </div>
     </div>
   );
@@ -246,19 +311,10 @@ function FilterButton({ active, onClick, children }) {
 }
 
 export default function FinancesV3({
-  rows = [],
-  loading,
-  onCreate,
-  onUpdate,
-  onDelete,
-  onRefresh,
-  stocks = [],
-  fournisseurs = [],
-  alimentationLogs = [],
-  businessPlans = [],
-  salesOrders = [],
-  payments = [],
+  rows = [], loading, onCreate, onUpdate, onDelete, onRefresh,
+  stocks = [], fournisseurs = [], alimentationLogs = [], businessPlans = [], salesOrders = [], payments = [],
 }) {
+  ensureFinanceFields();
   const [typeFilter, setTypeFilter] = useState('tous');
   const [statusFilter, setStatusFilter] = useState('tous');
   const [activityFilter, setActivityFilter] = useState('tous');
@@ -270,13 +326,15 @@ export default function FinancesV3({
   const zeroRows = useMemo(() => safeArray(rows).filter((row) => !hasAmount(row)), [rows]);
   const summary = useMemo(() => computeFinance({ rows: validRows, salesOrders, payments, fournisseurs, stocks }), [validRows, salesOrders, payments, fournisseurs, stocks]);
   const activities = useMemo(() => computeActivities({ rows: validRows, alimentationLogs, salesOrders, payments, fournisseurs, stocks }), [validRows, alimentationLogs, salesOrders, payments, fournisseurs, stocks]);
-  const deficitActivities = activities.filter((activity) => activity.kind !== 'cost' && !activity.pendingCosts && activity.products > 0 && activity.margin < 0);
+  const revenueCoverage = useMemo(() => computeRevenueCoverage(activities), [activities]);
+  const activeRevenueCount = revenueCoverage.filter((item) => item.active).length;
   const pendingCostActivities = activities.filter((activity) => activity.pendingCosts);
+  const deficitActivities = activities.filter((activity) => activity.kind === 'revenue' && !activity.pendingCosts && activity.products > 0 && activity.margin < 0);
   const openReceivableOrders = safeArray(salesOrders).filter((order) => status(order) !== 'annule' && getOrderRemaining(order) > 0);
   const openReceivableTransactions = validRows.filter((row) => isIn(row) && isPartialOrUnpaid(row));
   const supplierDebts = safeArray(fournisseurs).filter((supplier) => toNumber(supplier.dettes) > 0);
   const txWithoutProof = validRows.filter((row) => !row.justificatif_url && ['sortie', 'entree'].includes(String(row.type).toLowerCase()));
-  const expenseOnlyTotal = activities.filter((activity) => activity.kind === 'cost').reduce((sum, item) => sum + item.charges, 0);
+  const chargesToWatch = activities.filter((activity) => activity.kind === 'cost').reduce((sum, item) => sum + item.charges, 0);
 
   const financeFormFields = useMemo(() => {
     const bpOptions = safeArray(businessPlans).map((bp) => ({ value: bp.id, label: bp.nom || bp.id }));
@@ -296,53 +354,25 @@ export default function FinancesV3({
     deficitActivities.length ? { title: 'Marge négative', value: fmtNumber(deficitActivities.length), detail: deficitActivities.map((a) => a.label).join(', '), moduleKey: 'Impact Business', cta: 'Analyser impact business', danger: true } : null,
     pendingCostActivities.length ? { title: 'Charges en attente de vente', value: fmtNumber(pendingCostActivities.length), detail: pendingCostActivities.map((a) => a.label).join(', '), moduleKey: 'Ventes', cta: 'Vérifier opportunités de vente', danger: false } : null,
     txWithoutProof.length ? { title: 'Justificatifs manquants', value: fmtNumber(txWithoutProof.length), detail: 'Transactions sans reçu/facture attaché.', moduleKey: 'Documents', cta: 'Ouvrir documents', danger: false } : null,
-    summary.margin < 0 ? { title: 'Marge globale négative', value: fmtCurrency(summary.margin), detail: 'Vérifier prix, coûts et ventes réelles.', moduleKey: 'Impact Business', cta: 'Analyser la rentabilité', danger: true } : null,
   ].filter(Boolean);
 
   const submitCreate = async (payload) => {
-    try {
-      setSaving(true);
-      await onCreate?.({ ...payload, statut: payload.statut || 'paye' });
-      await onRefresh?.();
-      toast.success('Transaction ajoutée');
-      setModal(null);
-    } catch (error) {
-      toast.error(error.message || 'Erreur création transaction');
-    } finally {
-      setSaving(false);
-    }
+    try { setSaving(true); await onCreate?.({ ...payload, statut: payload.statut || 'paye' }); await onRefresh?.(); toast.success('Transaction ajoutée'); setModal(null); }
+    catch (error) { toast.error(error.message || 'Erreur création transaction'); }
+    finally { setSaving(false); }
   };
-
   const submitEdit = async (payload) => {
     if (!selected) return;
-    try {
-      setSaving(true);
-      await onUpdate?.(selected.id, payload);
-      await onRefresh?.();
-      toast.success('Transaction modifiée');
-      setModal(null);
-    } catch (error) {
-      toast.error(error.message || 'Erreur modification transaction');
-    } finally {
-      setSaving(false);
-    }
+    try { setSaving(true); await onUpdate?.(selected.id, payload); await onRefresh?.(); toast.success('Transaction modifiée'); setModal(null); }
+    catch (error) { toast.error(error.message || 'Erreur modification transaction'); }
+    finally { setSaving(false); }
   };
-
   const submitDelete = async () => {
     if (!selected) return;
-    try {
-      setSaving(true);
-      await onDelete?.(selected.id);
-      await onRefresh?.();
-      toast.success('Transaction supprimée');
-      setModal(null);
-    } catch (error) {
-      toast.error(error.message || 'Erreur suppression transaction');
-    } finally {
-      setSaving(false);
-    }
+    try { setSaving(true); await onDelete?.(selected.id); await onRefresh?.(); toast.success('Transaction supprimée'); setModal(null); }
+    catch (error) { toast.error(error.message || 'Erreur suppression transaction'); }
+    finally { setSaving(false); }
   };
-
   const doExports = () => {
     exportToCsv({ rows: filtered, fileName: 'transactions-finances.csv' });
     exportToExcel({ rows: filtered, fileName: 'finances-horizon-farm.xlsx', sheetName: 'Transactions' });
@@ -353,7 +383,7 @@ export default function FinancesV3({
   const columns = [
     { key: 'date', label: 'Date', sortable: true },
     { key: 'libelle', label: 'Libellé', sortable: true, render: (row) => <span className="font-semibold text-[#2f2415]">{row.libelle || '-'}</span> },
-    { key: 'type', label: 'Type', sortable: true, render: (row) => <span className={`inline-flex items-center gap-1 font-semibold ${isIn(row) ? 'text-emerald-600' : 'text-red-500'}`}>{isIn(row) ? <ArrowUp size={12} /> : <ArrowDown size={12} />}{row.type}</span> },
+    { key: 'type', label: 'Type', sortable: true, render: (row) => <span className={`inline-flex items-center gap-1 font-semibold ${isIn(row) ? 'text-emerald-600' : 'text-red-500'}`}>{isIn(row) ? <ArrowUp size={12} /> : <ArrowDown size={12} />}{isIn(row) ? 'produit' : 'charge'}</span> },
     { key: 'categorie', label: 'Catégorie', sortable: true, render: (row) => row.categorie || row.category || '-' },
     { key: 'module_lie', label: 'Activité', sortable: true, render: (row) => ACTIVITY_LABELS[normalizeActivityKey(row)] || row.module_lie || '-' },
     { key: 'montant', label: 'Montant', sortable: true, render: (row) => <span className={`font-black ${isIn(row) ? 'text-emerald-600' : 'text-red-500'}`}>{isIn(row) ? '+' : '-'}{fmtCurrency(amount(row))}</span> },
@@ -364,14 +394,10 @@ export default function FinancesV3({
 
   return (
     <div className="space-y-6 pt-2">
-      <SectionHeader
-        title="Finances"
-        sub="Vue financière métier : argent encaissé, charges, créances, dettes, marges par activité et preuves pour comptabilité."
-        actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter produit/charge</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn></>}
-      />
+      <SectionHeader title="Finances" sub="Toutes les sources d’argent de la ferme: animaux, avicole, cultures, services, transformation, subventions, financements, avec charges et cash réel." actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter produit/charge</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn></>} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
-        <KpiCard icon={TrendingUp} label="CA / produits" value={fmtCurrency(summary.revenue)} sub="ventes + produits facturés" color="bg-emerald-500/20 text-emerald-500" />
+        <KpiCard icon={TrendingUp} label="Produits / CA" value={fmtCurrency(summary.revenue)} sub={`${activeRevenueCount} source(s) active(s)`} color="bg-emerald-500/20 text-emerald-500" />
         <KpiCard icon={CreditCard} label="Cash encaissé" value={fmtCurrency(summary.cashIn)} sub="paiements reçus" color="bg-sky-500/20 text-sky-500" />
         <KpiCard icon={TrendingDown} label="Charges engagées" value={fmtCurrency(summary.expenses)} color="bg-red-500/20 text-red-500" />
         <KpiCard icon={Wallet} label="Cash net" value={fmtCurrency(summary.cash)} color={summary.cash >= 0 ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'} />
@@ -381,29 +407,26 @@ export default function FinancesV3({
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <InsightCard icon={FileText} title="Justificatifs à compléter" value={fmtNumber(txWithoutProof.length)} detail="Chaque produit/charge importante doit avoir reçu, facture ou preuve." />
-        <InsightCard icon={AlertTriangle} title="Charges à suivre" value={fmtCurrency(expenseOnlyTotal)} detail="Santé, stock, fournisseurs, équipements : décaissements ou investissements à contrôler." />
+        <InsightCard icon={AlertTriangle} title="Charges à suivre" value={fmtCurrency(chargesToWatch)} detail="Santé, stock, fournisseurs, équipements, alimentation et maintenance." />
         <InsightCard icon={BookOpen} title="Écritures ignorées" value={fmtNumber(zeroRows.length)} detail="Les lignes à 0 FCFA sont masquées pour éviter de fausser l’analyse." />
       </div>
 
       <div className="bg-white border border-[#d6c3a0] rounded-2xl p-5">
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <div>
-            <h3 className="font-black text-[#2f2415]">Priorités financières</h3>
-            <p className="text-sm text-[#8a7456]">Les liens apparaissent uniquement lorsqu’une action est utile.</p>
-          </div>
-          <Btn variant="outline" small onClick={() => openModule('Comptabilité')}>Préparer comptabilité</Btn>
+        <h3 className="font-black text-[#2f2415] mb-2">Sources de revenus agricoles couvertes</h3>
+        <p className="text-sm text-[#8a7456] mb-4">Cette section vérifie que l’argent peut venir de toutes les activités productives, pas seulement du module Ventes global.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+          {revenueCoverage.map((item) => <RevenueChip key={item.key} item={item} />)}
         </div>
+      </div>
+
+      <div className="bg-white border border-[#d6c3a0] rounded-2xl p-5">
+        <div className="flex items-center justify-between gap-3 mb-4"><div><h3 className="font-black text-[#2f2415]">Priorités financières</h3><p className="text-sm text-[#8a7456]">Les liens apparaissent uniquement lorsqu’une action est utile.</p></div><Btn variant="outline" small onClick={() => openModule('Comptabilité')}>Préparer comptabilité</Btn></div>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {priorities.length ? priorities.map((item) => <PriorityCard key={item.title} {...item} />) : <div className="md:col-span-2 xl:col-span-3 bg-[#fffdf8] border border-[#d6c3a0] rounded-xl p-4 text-sm text-[#8a7456]">Aucune priorité financière critique détectée.</div>}
         </div>
       </div>
 
-      <div className="bg-white border border-[#d6c3a0] rounded-2xl p-5">
-        <h3 className="font-black text-[#2f2415] mb-4">Économie par activité</h3>
-        <div className="space-y-2">
-          {activities.length ? activities.map((activity) => <ActivityRow key={activity.id} activity={activity} />) : <p className="text-sm text-[#8a7456]">Aucune activité financière détectée pour l’instant.</p>}
-        </div>
-      </div>
+      <div className="bg-white border border-[#d6c3a0] rounded-2xl p-5"><h3 className="font-black text-[#2f2415] mb-4">Économie par activité</h3><div className="space-y-2">{activities.length ? activities.map((activity) => <ActivityRow key={activity.id} activity={activity} />) : <p className="text-sm text-[#8a7456]">Aucune activité financière détectée pour l’instant.</p>}</div></div>
 
       <div className="flex flex-wrap gap-2">
         {['tous', 'entree', 'sortie'].map((filter) => <FilterButton key={filter} active={typeFilter === filter} onClick={() => setTypeFilter(filter)}>{filter === 'entree' ? 'Produits' : filter === 'sortie' ? 'Charges' : 'Toutes'}</FilterButton>)}
