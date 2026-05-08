@@ -1,6 +1,15 @@
 ﻿import { ArrowDown, ArrowUp } from 'lucide-react';
 
+const HIDDEN_HELPER_TEXTS = new Set([
+  'Jamais > 100%',
+  'Base effectif disponible',
+  'Donnees coherentes',
+  'Données cohérentes',
+]);
+
 export default function KpiCard({ icon: Icon, label, value, sub, color, trend }) {
+  const displaySub = sub && !HIDDEN_HELPER_TEXTS.has(String(sub).trim());
+
   return (
     <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5 flex flex-col gap-3 hover:border-[#b6975f] transition-all">
       <div className="flex items-center justify-between">
@@ -17,7 +26,7 @@ export default function KpiCard({ icon: Icon, label, value, sub, color, trend })
       <div>
         <div className="text-2xl font-bold text-[#2f2415]">{value}</div>
         <div className="text-xs text-[#8a7456] mt-1">{label}</div>
-        {sub ? <div className="text-xs text-[#b39b78] mt-1">{sub}</div> : null}
+        {displaySub ? <div className="text-xs text-[#b39b78] mt-1">{sub}</div> : null}
       </div>
     </div>
   );
