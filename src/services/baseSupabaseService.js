@@ -25,10 +25,31 @@ const GENERATED_COLUMNS = {
   business_plans: ['apport_total'],
 };
 
+const today = () => new Date().toISOString().slice(0, 10);
+const amountOf = (...values) => values.map((value) => Number(value || 0)).find((value) => value > 0) || 0;
+
+const enrichWorkflowPayload = (payload = {}, table = '') => {
+  if (table !== 'payments') return payload;
+  const paymentDate = payload.date_paiement || payload.date || payload.paid_at || today();
+  const amount = amountOf(payload.montant_paye, payload.montant, payload.amount, payload.paid_amount);
+  return {
+    ...payload,
+    date_paiement: paymentDate,
+    date: payload.date || paymentDate,
+    montant_paye: amount || payload.montant_paye || 0,
+    montant: payload.montant ?? amount,
+    amount: payload.amount ?? amount,
+    mode_paiement: payload.mode_paiement || payload.moyen_paiement || payload.paiement || payload.payment_method || 'Cash',
+    moyen_paiement: payload.moyen_paiement || payload.mode_paiement || payload.paiement || payload.payment_method || 'Cash',
+    statut: payload.statut || 'paye',
+  };
+};
+
 const toDbPayload = (payload = {}, table = '') => {
   const generated = GENERATED_COLUMNS[table] || [];
+  const enriched = enrichWorkflowPayload(payload, table);
   const mapped = Object.fromEntries(
-    Object.entries(payload)
+    Object.entries(enriched)
       .filter(([key]) => !generated.includes(dbKeyMap[key] || key))
       .map(([key, value]) => [dbKeyMap[key] || key, value])
   );
@@ -41,8 +62,21 @@ const getMissingSchemaColumn = (error) => {
   return match?.[1] || null;
 };
 
+const isDuplicateKeyError = (error) => {
+  const message = String(error?.message || '').toLowerCase();
+  return error?.code === '23505' || message.includes('duplicate key value violates unique constraint');
+};
+
 const withoutColumn = (payload, column) =>
   Object.fromEntries(Object.entries(payload).filter(([key]) => (dbKeyMap[key] || key) !== column));
+
+const updateExistingByPrimaryKey = async ({ table, payload, idField }) => {
+  const id = payload?.[idField];
+  if (!id) return null;
+  const { data, error } = await supabase.from(table).update(payload).eq(idField, id).select('*').single();
+  if (error) throw error;
+  return data;
+};
 
 const runMutationWithSchemaRetry = async ({ table, action, payload, id, idField }) => {
   let nextPayload = toDbPayload(payload, table);
@@ -55,6 +89,10 @@ const runMutationWithSchemaRetry = async ({ table, action, payload, id, idField 
 
     const { data, error } = await query;
     if (!error) return data;
+
+    if (action === 'insert' && isDuplicateKeyError(error) && nextPayload?.[idField]) {
+      return updateExistingByPrimaryKey({ table, payload: nextPayload, idField });
+    }
 
     const missingColumn = getMissingSchemaColumn(error);
     if (!missingColumn || removedColumns.includes(missingColumn)) throw error;
