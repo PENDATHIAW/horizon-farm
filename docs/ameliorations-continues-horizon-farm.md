@@ -135,6 +135,7 @@ AvicoleHealthBridge.jsx
 StockFlowPanel.jsx
 Fournisseurs.jsx
 Clients.jsx
+CulturesWorkflowBridge.jsx
 ```
 
 Objectif final : ces composants doivent surtout appeler des workflows centralisés.
@@ -158,6 +159,8 @@ sale_payment:ventes:CMD-123:finance:create
 sale_payment:ventes:CMD-123:document:invoice
 stock_receipt:stock:STK-12:fournisseur:debt
 animal_health:animaux:ANI-44:tache:controle
+culture_harvest:cultures:CUL-12:stock:create
+culture_risk:cultures:CUL-12:alert:create
 ```
 
 À vérifier :
@@ -168,7 +171,8 @@ animal_health:animaux:ANI-44:tache:controle
 - pas de double dette fournisseur ;
 - pas de double alerte ;
 - pas de double tâche ;
-- pas de double business event.
+- pas de double business event ;
+- pas de double stock récolte pour une même culture/récolte.
 
 ---
 
@@ -290,6 +294,21 @@ Objectif : lots connectés à santé, biosécurité, ponte, mortalité, tâches 
 - [ ] créer suivi → santé + tâche + alerte + trace + lot mis à jour ;
 - [ ] mortalité élevée déclenche biosécurité.
 
+### 8. Cultures / Parcelles / Campagnes / Récoltes
+
+Objectif : culture connectée à stock récolte, suivi parcelle/campagne, alertes, tâches, documents et traçabilité.
+
+À vérifier :
+
+- [À tester] culture à risque détectée selon score santé, pertes, statut perdu ou récolte sous objectif ;
+- [À tester] récolte proche détectée depuis `date_recolte_prevue` ;
+- [À tester] créer suivi → tâche + alerte + business_event + culture mise à jour ;
+- [À tester] enregistrer récolte → stock récolte + document + business_event + culture mise à jour ;
+- [À tester] coût/marge par culture visibles dans le module ;
+- [À tester] coût par parcelle et campagne via agrégations existantes ;
+- [À revoir] remplacer les `window.prompt` de récolte par une vraie preview corrigeable ;
+- [À revoir] centraliser le workflow récolte/suivi culture dans `workflowService`.
+
 ---
 
 ## Blocs restants à renforcer
@@ -320,13 +339,15 @@ Vendre récolte
 
 À ajouter / vérifier :
 
-- [ ] coût par campagne ;
-- [ ] coût par parcelle ;
-- [ ] rendement par hectare ;
-- [ ] marge par culture ;
-- [ ] historique cultural ;
-- [ ] alerte rendement faible ;
-- [ ] lien business plan/investissement si applicable.
+- [À tester] coût par campagne ;
+- [À tester] coût par parcelle ;
+- [À revoir] rendement par hectare ;
+- [À tester] marge par culture ;
+- [À revoir] historique cultural exploitable depuis business_events ;
+- [À tester] alerte rendement faible / récolte sous objectif via suivi culture ;
+- [À faire] lien business plan/investissement si applicable ;
+- [À faire] workflow `Utiliser intrant` relié au stock intrants et au coût culture/campagne ;
+- [À revoir] workflow récolte à migrer vers preview centralisée.
 
 ### 2. Finances / Comptabilité
 
@@ -449,6 +470,18 @@ Objectif : rendre les workflows fiables même avec réseau instable.
 
 ---
 
+## Nouvelles améliorations détectées
+
+### 2026-05-09
+
+- [À revoir] Plusieurs bridges ajoutent de la valeur rapidement mais contiennent encore de la logique métier dans React. À centraliser progressivement dans `workflowService` / `workflowEngine`.
+- [À revoir] Les actions `Créer suivi`, `Réceptionner`, `Payer`, `Relancer`, `Enregistrer récolte` doivent évoluer vers une preview uniforme avec badges `Auto` / `Modifié`.
+- [À faire] Ajouter une clé `dedupe_key` dans les créations multi-modules pour éviter les doublons tâche/alerte/event/document/finance.
+- [À faire] Simuler ou créer `workflow_runs` pour mesurer les automatisations et alimenter Impact Business.
+- [À revoir] Les prompts navigateur utilisés temporairement doivent être remplacés par des modales UX propres.
+
+---
+
 ## Journal des avancées
 
 ### 2026-05-09
@@ -464,6 +497,12 @@ Déjà observé :
 - bridges Animaux et Avicole ajoutés ;
 - base workflowService renforcée ;
 - besoin de centraliser progressivement les automatisations dans un moteur workflow.
+
+[À tester] Bloc Cultures ajouté : `CulturesWorkflowBridge.jsx` détecte cultures à risque et récoltes proches, puis peut créer tâche, alerte, business_event, stock récolte, document et mise à jour culture.
+
+[À revoir] Le workflow Cultures fonctionne mais utilise encore des `window.prompt` pour quantité/unité/prix de récolte. À remplacer par une preview corrigeable avant commit.
+
+[À faire] Ajouter le workflow `Utiliser intrant` : sortie stock intrant → coût culture/campagne → tâche/trace si besoin.
 
 ---
 
