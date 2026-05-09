@@ -11,6 +11,7 @@ Modules riches mais simples à utiliser.
 Prévisualisation avant validation.
 Anti-doublon.
 Audit et traçabilité.
+Cohérence fonctionnelle réelle.
 ```
 
 ---
@@ -22,7 +23,7 @@ Audit et traçabilité.
 Puis :
 
 1. Identifier le bloc en cours.
-2. Vérifier les règles UX et architecture ci-dessous.
+2. Vérifier les règles UX, qualité et architecture ci-dessous.
 3. Ajouter ou mettre à jour la section `Journal des avancées`.
 4. Ajouter les nouveaux points d’amélioration détectés.
 5. Ne pas supprimer les anciennes remarques sans les marquer comme traitées.
@@ -90,6 +91,64 @@ La traçabilité garde la preuve.
 - Aucune correction utilisateur ne doit être écrasée silencieusement.
 - Les actions importantes doivent avoir une prévisualisation avant commit.
 - Les workflows doivent afficher le nombre de `saisies_evitees` quand possible.
+
+---
+
+## Définition de terminé : cohérence fonctionnelle obligatoire
+
+Une fonctionnalité n’est pas terminée parce qu’elle s’affiche dans l’interface.
+
+Elle est terminée seulement quand elle est :
+
+```txt
+cohérente,
+testable,
+interconnectée,
+utilisable,
+sans message technique visible,
+et vérifiable dans les modules liés.
+```
+
+Avant de marquer un bloc `[Traité]`, vérifier obligatoirement :
+
+- [ ] aucune erreur visible côté utilisateur ;
+- [ ] pas de commentaire technique ou brouillon métier dans l’ERP ;
+- [ ] les messages utilisateur sont courts, clairs et métier ;
+- [ ] les listes déroulantes sont filtrées selon les vraies entités disponibles ;
+- [ ] les modules sans entité valide ne sont pas proposés comme choix actif ;
+- [ ] les champs dépendants se remplissent ou se réinitialisent correctement ;
+- [ ] les champs liés ne restent pas vides après sélection ;
+- [ ] les interconnexions visibles mettent réellement à jour les modules liés ;
+- [ ] les statuts restent cohérents, séparés et non contradictoires ;
+- [ ] pas de doublons après double clic, refresh ou revalidation ;
+- [ ] les actions importantes sont testables depuis l’UI sans manipulation technique.
+
+Exemple de règle :
+
+```txt
+Si une liste déroulante propose “Animaux”, alors il doit exister au moins un animal valide.
+Si aucun animal valide n’existe, “Animaux” ne doit pas être proposé comme choix actif.
+Si l’utilisateur choisit un animal, les champs animal_id / related_id / module_lie / résumé cible doivent être remplis ou réinitialisés proprement.
+```
+
+Points spécifiques à contrôler :
+
+```txt
+Sélecteurs module/cible
+→ filtrer selon les entités réellement disponibles.
+
+Champs dépendants
+→ remplir automatiquement ou vider explicitement quand le choix parent change.
+
+Interconnexions
+→ vérifier dans le module cible : finance, stock, santé, client, fournisseur, tâche, alerte, document, trace.
+
+Statuts
+→ ne jamais mélanger statut facture, statut paiement, statut commande et statut livraison.
+
+Messages
+→ jamais d’erreur Supabase, stack technique, commentaire développeur ou phrase métier longue non utile.
+```
 
 ---
 
@@ -222,7 +281,9 @@ Objectif : une vente ou un encaissement doit alimenter automatiquement paiement,
 - [ ] facture séparée du statut paiement ;
 - [ ] anti-doublon paiement/facture/finance ;
 - [ ] mise à jour client cohérente ;
-- [ ] source vendue décrémentée ou mise à jour.
+- [ ] source vendue décrémentée ou mise à jour ;
+- [À revoir] vérifier que les boutons facture/paiement/modifier ne masquent jamais une autre modale ;
+- [À revoir] vérifier qu’aucune erreur Supabase ou message technique n’est affiché à l’utilisateur.
 
 ### 2. Clients & WhatsApp
 
@@ -235,7 +296,8 @@ Objectif : éviter la ressaisie pour relance, historique, créances et tâches.
 - [ ] reste à payer auto ;
 - [ ] commandes ouvertes auto ;
 - [ ] relance client prépare message + tâche + alerte/log ;
-- [ ] pas de relance en double pour la même créance.
+- [ ] pas de relance en double pour la même créance ;
+- [À revoir] masquer ou désactiver les actions WhatsApp si aucun téléphone valide n’existe.
 
 ### 3. Fournisseurs
 
@@ -246,7 +308,9 @@ Objectif : fournisseur connecté à stock, finance, documents, tâches, alertes,
 - [ ] commande fournisseur crée tâche/event/message ;
 - [ ] dette fournisseur liée aux réceptions stock ;
 - [ ] paiement dette crée finance sortie + document + trace ;
-- [ ] dette remise à jour sans écrasement erroné.
+- [ ] dette remise à jour sans écrasement erroné ;
+- [À revoir] masquer ou désactiver WhatsApp si aucun téléphone valide n’existe ;
+- [À revoir] éviter de proposer dette fournisseur si aucun fournisseur valide n’est lié.
 
 ### 4. Stock
 
@@ -258,7 +322,9 @@ Objectif : stock comme centre des intrants, aliments, médicaments, récoltes, c
 - [ ] réception dette → stock + fournisseur + document + alerte + tâche + trace ;
 - [ ] sortie santé/alimentation/intrants décrémente bien ;
 - [ ] seuil critique persistant sans boucle de doublons ;
-- [ ] historique mouvements stock exploitable.
+- [ ] historique mouvements stock exploitable ;
+- [À revoir] les choix dette fournisseur doivent dépendre d’un fournisseur réel ;
+- [À revoir] remplacer les prompts par une preview propre.
 
 ### 5. Santé & Biosécurité
 
@@ -270,7 +336,10 @@ Objectif : un soin ou événement sanitaire doit alimenter santé, stock, financ
 - [ ] décrément stock seulement si stock interne ;
 - [ ] blocage si quantité utilisée > disponible ;
 - [ ] cas biosécurité bien séparés du curatif/préventif ;
-- [ ] maladie/mortalité peut déclencher biosécurité.
+- [ ] maladie/mortalité peut déclencher biosécurité ;
+- [À revoir] ne pas proposer animaux/lots si aucune entité valide n’existe ;
+- [À revoir] après changement de périmètre, réinitialiser proprement la cible précise et les IDs liés ;
+- [À revoir] vérifier que `module_lie`, `related_id`, `target_count` et `target_summary` sont toujours cohérents.
 
 ### 6. Animaux
 
@@ -281,7 +350,8 @@ Objectif : détecter automatiquement les animaux à risque et créer un suivi co
 - [ ] malade/blessé/sous traitement détecté ;
 - [ ] croissance lente/perte poids détectée ;
 - [ ] créer suivi → santé + tâche + alerte + trace + animal mis à jour ;
-- [ ] animal sous traitement peut bloquer ou avertir à la vente.
+- [ ] animal sous traitement peut bloquer ou avertir à la vente ;
+- [À revoir] empêcher double création de suivi sur double clic ou refresh.
 
 ### 7. Avicole
 
@@ -292,7 +362,9 @@ Objectif : lots connectés à santé, biosécurité, ponte, mortalité, tâches 
 - [ ] lots malades/morts/mortalité élevée détectés ;
 - [ ] baisse ponte détectée ;
 - [ ] créer suivi → santé + tâche + alerte + trace + lot mis à jour ;
-- [ ] mortalité élevée déclenche biosécurité.
+- [ ] mortalité élevée déclenche biosécurité ;
+- [À revoir] ne pas proposer suivi lot si aucun lot actif valide n’existe ;
+- [À revoir] empêcher double création de suivi pour le même lot/risque.
 
 ### 8. Cultures / Parcelles / Campagnes / Récoltes
 
@@ -307,7 +379,9 @@ Objectif : culture connectée à stock récolte, suivi parcelle/campagne, alerte
 - [À tester] coût/marge par culture visibles dans le module ;
 - [À tester] coût par parcelle et campagne via agrégations existantes ;
 - [À revoir] remplacer les `window.prompt` de récolte par une vraie preview corrigeable ;
-- [À revoir] centraliser le workflow récolte/suivi culture dans `workflowService`.
+- [À revoir] centraliser le workflow récolte/suivi culture dans `workflowService` ;
+- [À revoir] ne pas proposer récolte si quantité prévue absente et aucune culture valide ;
+- [À revoir] empêcher double stock récolte sur double clic/revalidation.
 
 ---
 
@@ -361,7 +435,9 @@ Objectif : finances comme vérité économique, pas double saisie.
 - [ ] justificatifs manquants détectés ;
 - [ ] dettes fournisseurs et créances clients visibles ;
 - [ ] compte résultat simplifié ;
-- [ ] corrections manuelles auditables.
+- [ ] corrections manuelles auditables ;
+- [À revoir] aucune transaction générée ne doit afficher d’erreur technique ;
+- [À revoir] les écritures comptables ne doivent pas être confondues avec les transactions métier.
 
 ### 3. Investissements / Business Plans
 
@@ -384,7 +460,8 @@ Ligne business plan validée
 - [ ] achat animaux/avicole depuis BP crée actif métier ;
 - [ ] financement reçu → entrée finance ;
 - [ ] risques BP reliés aux alertes ;
-- [ ] ROI prévu/réel.
+- [ ] ROI prévu/réel ;
+- [À revoir] ne pas proposer création d’actif si les données minimales de l’actif sont absentes.
 
 ### 4. Alertes / Tâches / Documents / Traçabilité
 
@@ -398,7 +475,8 @@ Objectif : couche transversale d’action et de preuve.
 - [ ] tâche clôturée → trace/preuve ;
 - [ ] document lié par `entity_type/entity_id/module_source` ;
 - [ ] chaque workflow important crée un business_event ;
-- [ ] `saisies_evitees` visible dans les events.
+- [ ] `saisies_evitees` visible dans les events ;
+- [À revoir] une alerte ne doit pas créer une tâche si une tâche ouverte existe déjà pour la même cible/action.
 
 ### 5. Dashboard / Impact Business / Rapports
 
@@ -412,7 +490,8 @@ Objectif : montrer la valeur des interconnexions.
 - [ ] créances détectées ;
 - [ ] alertes traitées ;
 - [ ] incidents sanitaires évités ou réduits ;
-- [ ] rapports finance, ventes, stock, santé, cultures, avicole, animaux, investissements.
+- [ ] rapports finance, ventes, stock, santé, cultures, avicole, animaux, investissements ;
+- [À revoir] ne pas afficher de commentaires métier longs ou techniques dans les KPI.
 
 ### 6. Équipements / Maintenance
 
@@ -440,7 +519,8 @@ Maintenance terminée
 - [ ] taux disponibilité ;
 - [ ] prochaine maintenance ;
 - [ ] achat équipement lié à investissement/finance/document ;
-- [ ] alertes maintenance dues.
+- [ ] alertes maintenance dues ;
+- [À revoir] ne pas proposer maintenance si aucun équipement actif n’existe.
 
 ### 7. Smart Farm / Capteurs / Caméras / Météo
 
@@ -452,7 +532,8 @@ Objectif : transformer les signaux en actions.
 - [ ] température/humidité/eau anormale → alerte + action recommandée ;
 - [ ] signal sanitaire/environnemental → biosécurité ;
 - [ ] recommandation météo → tâche ;
-- [ ] caméra/capteur lié à zone, lot, bâtiment ou parcelle.
+- [ ] caméra/capteur lié à zone, lot, bâtiment ou parcelle ;
+- [À revoir] ne pas proposer action capteur/caméra si aucun device valide n’existe.
 
 ### 8. Sync Offline / Audit Logs
 
@@ -466,7 +547,8 @@ Objectif : rendre les workflows fiables même avec réseau instable.
 - [ ] audit workflow commit ;
 - [ ] audit correction manuelle ;
 - [ ] before/after si possible ;
-- [ ] filtres module/action/date.
+- [ ] filtres module/action/date ;
+- [À revoir] les erreurs de synchronisation doivent être lisibles métier, pas techniques.
 
 ---
 
@@ -479,6 +561,9 @@ Objectif : rendre les workflows fiables même avec réseau instable.
 - [À faire] Ajouter une clé `dedupe_key` dans les créations multi-modules pour éviter les doublons tâche/alerte/event/document/finance.
 - [À faire] Simuler ou créer `workflow_runs` pour mesurer les automatisations et alimenter Impact Business.
 - [À revoir] Les prompts navigateur utilisés temporairement doivent être remplacés par des modales UX propres.
+- [À faire] Ajouter un contrôle qualité fonctionnel avant tout statut `[Traité]` : entités valides, champs dépendants, absence d’erreur visible, interconnexion réellement vérifiable.
+- [À revoir] Les listes déroulantes module/cible doivent être désactivées ou masquées si aucune entité valide n’existe derrière.
+- [À revoir] Tous les messages d’erreur techniques doivent être convertis en messages utilisateur métier.
 
 ---
 
@@ -504,6 +589,8 @@ Déjà observé :
 
 [À faire] Ajouter le workflow `Utiliser intrant` : sortie stock intrant → coût culture/campagne → tâche/trace si besoin.
 
+[Traité] Ajout d’une règle de qualité fonctionnelle : un bloc n’est pas terminé parce qu’il s’affiche, il doit être cohérent, testable, interconnecté, sans message technique visible, sans doublon et vérifiable dans les modules liés.
+
 ---
 
 ## Prompt recommandé pour l’agent développeur
@@ -513,7 +600,7 @@ Déjà observé :
 ```txt
 Avant de continuer Horizon Farm, lis d’abord `docs/ameliorations-continues-horizon-farm.md`.
 
-Respecte la vision produit : moins de saisie, modules riches, interconnexions automatiques, preview avant validation, anti-doublon, audit/traçabilité.
+Respecte la vision produit : moins de saisie, modules riches, interconnexions automatiques, preview avant validation, anti-doublon, audit/traçabilité et cohérence fonctionnelle réelle.
 
 Quand tu avances sur un bloc :
 1. mets à jour le journal des avancées dans ce fichier ;
@@ -521,7 +608,11 @@ Quand tu avances sur un bloc :
 3. ajoute les nouvelles améliorations détectées ;
 4. évite de disperser la logique métier dans les composants React si elle peut aller dans un workflow centralisé ;
 5. vérifie que les workflows ne créent pas de doublons ;
-6. vérifie que les champs déjà connus ne sont pas redemandés à l’utilisateur.
+6. vérifie que les champs déjà connus ne sont pas redemandés à l’utilisateur ;
+7. vérifie que les listes déroulantes ne proposent que des entités valides ;
+8. vérifie que les champs dépendants se remplissent ou se réinitialisent correctement ;
+9. vérifie qu’aucune erreur technique ou commentaire brouillon n’est visible côté utilisateur ;
+10. vérifie que l’interconnexion est réellement visible dans les modules liés.
 
 À la fin de ta session, résume dans ce fichier ce qui a été fait, ce qui reste à tester, et les risques détectés.
 ```
