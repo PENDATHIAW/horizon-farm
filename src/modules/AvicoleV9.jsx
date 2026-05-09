@@ -4,13 +4,14 @@ import AvicoleHealthBridge from './AvicoleHealthBridge.jsx';
 import AvicoleSaleReadinessBridge from './AvicoleSaleReadinessBridge.jsx';
 import { fmtNumber, toNumber } from '../utils/format';
 import { filterLotsByActivity } from '../utils/avicoleActivity';
+import { avicoleActiveCount, avicoleDeadCount, avicoleSickCount } from '../utils/avicoleMetrics';
 
 const safeArray = (value) => Array.isArray(value) ? value : [];
 const eggs = (log = {}) => toNumber(log.oeufs_produits ?? log.eggs ?? log.quantity);
 const broken = (log = {}) => toNumber(log.oeufs_casses ?? log.broken ?? log.casses);
-const losses = (lot = {}) => toNumber(lot.mortality ?? lot.morts ?? lot.pertes ?? 0);
-const sick = (lot = {}) => toNumber(lot.malades ?? lot.sick_count ?? lot.malade_count ?? 0);
-const activeCount = (lot = {}) => Math.max(0, toNumber(lot.current_count ?? lot.effectif_actuel ?? lot.effectif_vendable ?? lot.initial_count) - losses(lot) - toNumber(lot.vendus) - toNumber(lot.reformes) - toNumber(lot.sorties));
+const losses = avicoleDeadCount;
+const sick = avicoleSickCount;
+const activeCount = avicoleActiveCount;
 
 function openModule(moduleKey) {
   if (!moduleKey || typeof document === 'undefined') return;
@@ -33,12 +34,13 @@ function ActivityHealthCard({ title, rows }) {
   const effectif = rows.reduce((sum, lot) => sum + activeCount(lot), 0);
   const totalLosses = rows.reduce((sum, lot) => sum + losses(lot), 0);
   const totalSick = rows.reduce((sum, lot) => sum + sick(lot), 0);
-  const rate = effectif + totalLosses > 0 ? (totalLosses / (effectif + totalLosses)) * 100 : 0;
+  const initialEquivalent = effectif + totalLosses;
+  const rate = initialEquivalent > 0 ? (totalLosses / initialEquivalent) * 100 : 0;
   return (
     <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4">
       <p className="text-xs uppercase tracking-wide text-[#8a7456]">{title}</p>
       <p className="text-xl font-black text-[#2f2415] mt-1">{fmtNumber(effectif)} actifs</p>
-      <p className="text-sm text-[#7d6a4a] mt-1">{fmtNumber(totalLosses)} morts · {fmtNumber(totalSick)} malades · mortalite {rate.toFixed(1)}%</p>
+      <p className="text-sm text-[#7d6a4a] mt-1">{fmtNumber(totalLosses)} morts · {fmtNumber(totalSick)} malades · mortalité {rate.toFixed(1)}%</p>
     </div>
   );
 }
@@ -50,10 +52,10 @@ function HealthAndLinks({ rows = [] }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-        <LinkCard icon={Receipt} title="Ventes" desc="Opportunites et ventes avicoles" moduleKey="Ventes" />
-        <LinkCard icon={Package} title="Stock alimentation" desc="Aliment, reserve et seuils" moduleKey="Stock" />
-        <LinkCard icon={HeartPulse} title="Sante" desc="Vaccins, soins et mortalite" moduleKey="Sante" />
-        <LinkCard icon={Scale} title="Finances" desc="Couts et rentabilite" moduleKey="Finances" />
+        <LinkCard icon={Receipt} title="Ventes" desc="Opportunités et ventes avicoles" moduleKey="Ventes" />
+        <LinkCard icon={Package} title="Stock alimentation" desc="Aliment, réserve et seuils" moduleKey="Stock" />
+        <LinkCard icon={HeartPulse} title="Santé" desc="Vaccins, soins et mortalité" moduleKey="Sante" />
+        <LinkCard icon={Scale} title="Finances" desc="Coûts et rentabilité" moduleKey="Finances" />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <ActivityHealthCard title="Poulets de chair" rows={chair} />
