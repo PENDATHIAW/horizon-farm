@@ -10,6 +10,103 @@ Objectif : tester Horizon Farm comme un ERP complet, pas comme une suite de modu
 
 ---
 
+## Bugs métier observés en test manuel — à corriger en priorité
+
+Ces anomalies viennent de tests utilisateur réels et doivent être traitées avant de considérer les blocs concernés comme stabilisés.
+
+### 1. Animaux / Avicole → prêt à la vente non persistant
+
+**Observation :** lorsqu’un animal ou un lot est confirmé comme `prêt à la vente`, la confirmation semble acceptée, mais en revenant sur la fiche la valeur repasse à `non`.
+
+**Résultat attendu :** la valeur confirmée doit persister dans la fiche animal/lot après sauvegarde, refresh, changement de module et reconnexion.
+
+**Modules impactés :** Animaux, Avicole, Ventes, Opportunités de vente, Traçabilité/Audit.
+
+**À vérifier/corriger :**
+
+- [ ] le champ sauvegardé côté animal/lot est le même que le champ relu par la fiche ;
+- [ ] pas de conflit de noms entre `pret_vente`, `pret_a_la_vente`, `ready_for_sale`, `sale_ready`, `statut_vente` ou équivalent ;
+- [ ] la normalisation Supabase ne supprime pas silencieusement la colonne ;
+- [ ] le refresh du module relit bien la valeur mise à jour ;
+- [ ] une correction manuelle de ce statut ne doit pas être écrasée par un recalcul automatique ;
+- [ ] créer un business event ou audit log lorsque le statut prêt à la vente est confirmé.
+
+### 2. Prêt à la vente → opportunité de vente non créée ou non visible
+
+**Observation :** après confirmation d’un animal ou lot comme prêt à la vente, l’opportunité n’apparaît pas dans `Ventes > Opportunités de vente`.
+
+**Résultat attendu :** confirmer prêt à la vente doit créer ou mettre à jour une opportunité de vente visible dans le module Ventes.
+
+**Modules impactés :** Animaux, Avicole, Ventes, Opportunités de vente, Clients potentiels, Traçabilité.
+
+**Workflow attendu :**
+
+```txt
+Animal ou lot confirmé prêt à la vente
+→ fiche animal/lot mise à jour
+→ opportunité de vente créée ou mise à jour
+→ opportunité visible dans Ventes
+→ trace/business_event créé
+→ pas de doublon si on confirme plusieurs fois
+```
+
+**À vérifier/corriger :**
+
+- [ ] `onCreateOpportunity` est bien appelé depuis Animaux/Avicole ;
+- [ ] l’opportunité utilise le bon `source_module`, `source_type`, `source_id` et `related_id` ;
+- [ ] le module Ventes lit bien la même table/champs que ceux écrits ;
+- [ ] les opportunités déjà existantes sont mises à jour au lieu d’être dupliquées ;
+- [ ] une opportunité fermée/vendue ne doit plus rester proposée comme nouvelle opportunité active.
+
+### 3. Workflow vente encore affiché alors que la commande est soldée
+
+**Observation :** des clients/commandes déjà encaissés et payés gardent encore un workflow d’encaissement visible. Le montant affiché est parfois `0`, ce qui n’est pas logique.
+
+**Résultat attendu :** si `reste_a_payer = 0` ou si `statut_paiement = paye`, le workflow d’encaissement ne doit plus être proposé comme action à faire. Une commande soldée doit sortir des listes d’encaissement et des workflows actifs.
+
+**Modules impactés :** Ventes, Paiements, Factures, Clients, Finances, Dashboard/Alertes.
+
+**À vérifier/corriger :**
+
+- [ ] filtrer les workflows ventes actifs sur `reste_a_payer > 0` ou `statut_paiement != paye` ;
+- [ ] masquer les actions d’encaissement à montant `0` ;
+- [ ] recalculer `reste_a_payer = max(0, montant_total - montant_paye)` après chaque paiement ;
+- [ ] si une commande est payée, son statut doit être cohérent dans ventes, paiements, clients et finances ;
+- [ ] les factures payées ne doivent pas générer de relance ou workflow de paiement ;
+- [ ] créer un test e2e paiement complet : après encaissement final, l’action d’encaissement disparaît.
+
+### 4. Clients & WhatsApp : statut à relancer alors que la créance est à zéro
+
+**Observation :** un client qui devait de l’argent reste avec le statut `à relancer` dans Clients & WhatsApp après paiement complet, alors que sa dette est à `0`.
+
+**Résultat attendu :** un client ne doit être à relancer que si `creances > 0`, `reste_a_payer_total > 0`, ou s’il existe une commande/facture réellement impayée ou partielle. Si le client ne doit plus rien, le statut de relance doit être désactivé ou passé à jour.
+
+**Modules impactés :** Clients & WhatsApp, Ventes, Paiements, Factures, Alertes, Tâches, Finances.
+
+**Workflow attendu :**
+
+```txt
+Client paie le solde
+→ paiement créé
+→ commande soldée
+→ reste_a_payer = 0
+→ créance client = 0
+→ relance client désactivée
+→ alerte créance clôturée ou résolue
+→ tâche relance clôturée ou marquée sans objet
+→ WhatsApp ne propose plus de relance impayé
+```
+
+**À vérifier/corriger :**
+
+- [ ] le module Clients recalcule ses créances depuis ventes/paiements/factures, pas seulement depuis un ancien champ statique ;
+- [ ] le statut `a_relancer` dépend d’une dette réelle strictement supérieure à zéro ;
+- [ ] après paiement complet, les alertes/tâches de relance liées sont mises à jour ;
+- [ ] les relances WhatsApp ne doivent pas être proposées pour un client soldé ;
+- [ ] créer un test e2e client : dette initiale → paiement complet → statut relance disparaît.
+
+---
+
 ## Principe
 
 Un module n’est pas considéré comme terminé parce qu’il s’affiche.
@@ -306,7 +403,9 @@ But : ouvrir les actions métiers, formulaires, modales, champs liés.
 - récolte vers stock ;
 - vente récolte ;
 - alerte vers tâche ;
-- double clic / refresh / revalidation anti-doublon.
+- double clic / refresh / revalidation anti-doublon ;
+- prêt à la vente animal/lot → opportunité visible dans Ventes ;
+- client à relancer → paiement complet → relance disparaît.
 
 ---
 
@@ -340,4 +439,5 @@ La PR ne devrait pas sortir du mode Draft tant que :
 - [ ] les doublons critiques sont évités ;
 - [ ] les messages techniques visibles sont supprimés ;
 - [ ] le fichier `docs/ameliorations-continues-horizon-farm.md` est à jour ;
-- [ ] les nouveaux tests ajoutés par les agents ont été relus et pris en compte.
+- [ ] les nouveaux tests ajoutés par les agents ont été relus et pris en compte ;
+- [ ] les bugs métier observés en test manuel ci-dessus sont corrigés ou explicitement suivis.
