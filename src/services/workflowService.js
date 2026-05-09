@@ -7,6 +7,20 @@ const today = () => new Date().toISOString().slice(0, 10);
 const now = () => new Date().toISOString();
 const getAmount = (row = {}) => toNumber(row.montant_total ?? row.total ?? row.amount ?? row.montant);
 const getPaid = (row = {}) => toNumber(row.montant_paye ?? row.paid_amount ?? row.amount_paid);
+const paymentStatusOf = (amount, paid) => {
+  if (amount > 0 && paid >= amount) return 'paye';
+  if (paid > 0) return 'partiel';
+  return 'non_paye';
+};
+const orderStatusAfterPayment = (order = {}, amount = 0, paid = 0) => {
+  const current = String(order.statut_commande || order.status || '').toLowerCase();
+  const delivery = String(order.statut_livraison || order.delivery_status || '').toLowerCase();
+  if (current === 'annule') return 'annule';
+  if (delivery === 'livre' || current === 'livre') return 'livre';
+  if (paid > 0) return 'confirme';
+  if (amount > 0) return current && current !== 'brouillon' ? current : 'enregistree';
+  return current || 'brouillon';
+};
 
 export const fieldAuto = ({ value, source, previousAuto, confidence = 0.8 }) => ({
   auto_value: value,
@@ -87,6 +101,10 @@ export function prepareSaleWorkflow(payload = {}, context = {}) {
   const alreadyPaid = getPaid(order);
   const remainingBeforePayment = Math.max(0, amount - alreadyPaid);
   const suggestedPayment = toNumber(order.nouveau_paiement ?? order.payment_amount ?? order.montant_a_encaisser) || remainingBeforePayment || amount;
+  const nextPaid = Math.min(amount || alreadyPaid + suggestedPayment, alreadyPaid + suggestedPayment);
+  const nextRemaining = Math.max(0, amount - nextPaid);
+  const nextPaymentStatus = paymentStatusOf(amount, nextPaid);
+  const nextOrderStatus = orderStatusAfterPayment(order, amount, nextPaid);
   const activity = saleActivity(order);
   const invoiceId = order.invoice_id || safeId('FAC', context.invoices);
   const paymentId = order.payment_id || safeId('PAI', context.payments);
@@ -104,7 +122,7 @@ export function prepareSaleWorkflow(payload = {}, context = {}) {
     client ? { id: 'update_client', module: 'clients', type: 'update', label: 'Mettre à jour client' } : null,
     { id: 'update_source_asset', module: activity, type: 'update', label: 'Mettre à jour stock/animal/lot/culture' },
     { id: 'create_trace', module: 'tracabilite', type: 'create', label: 'Créer événement traçabilité' },
-    remainingBeforePayment > suggestedPayment ? { id: 'create_alert', module: 'alertes', type: 'create', label: 'Créer alerte créance' } : null,
+    nextRemaining > 0 ? { id: 'create_alert', module: 'alertes', type: 'create', label: 'Créer alerte créance' } : null,
   ].filter(Boolean);
 
   return {
@@ -117,29 +135,30 @@ export function prepareSaleWorkflow(payload = {}, context = {}) {
       amount: fieldAuto({ value: amount, source: 'vente.montant_total', previousAuto: order.montant_last_auto_value }),
       already_paid: fieldAuto({ value: alreadyPaid, source: 'vente.montant_paye' }),
       payment_to_record: fieldAuto({ value: suggestedPayment, source: 'reste_a_payer', confidence: 0.9 }),
-      remaining_after_payment: fieldAuto({ value: Math.max(0, amount - alreadyPaid - suggestedPayment), source: 'amount - already_paid - payment' }),
+      remaining_after_payment: fieldAuto({ value: nextRemaining, source: 'amount - already_paid - payment' }),
       activity: fieldAuto({ value: activity, source: 'vente.source_type' }),
       category: fieldAuto({ value: getFinanceCategoryFromSale(order), source: 'financeSyncService.category' }),
     },
     records: {
       order_patch: {
-        statut_commande: order.statut_commande === 'brouillon' ? 'confirme' : (order.statut_commande || 'confirme'),
-        statut_paiement: Math.max(0, amount - alreadyPaid - suggestedPayment) > 0 ? 'partiel' : 'paye',
-        montant_paye: Math.min(amount, alreadyPaid + suggestedPayment),
+        statut_commande: nextOrderStatus,
+        statut_paiement: nextPaymentStatus,
+        montant_paye: nextPaid,
+        reste_a_payer: nextRemaining,
         invoice_id: invoiceId,
         payment_id: paymentId,
         transaction_id: transactionId,
         workflow_id: null,
         secured_at: now(),
       },
-      invoice: { id: invoiceId, order_id: order.id, client_id: order.client_id || '', date: today(), total_amount: amount, montant_total: amount, status: 'generee', source_module: 'ventes', source_record_id: order.id },
-      payment: { id: paymentId, order_id: order.id, invoice_id: invoiceId, client_id: order.client_id || '', date: today(), montant: suggestedPayment, amount: suggestedPayment, statut: 'paye', moyen_paiement: order.moyen_paiement || '', source_module: 'ventes', source_record_id: order.id, source_type: order.source_type || order.type_vente || order.product_type, source_id: order.source_id || order.product_id || order.entity_id },
+      invoice: { id: invoiceId, order_id: order.id, client_id: order.client_id || '', date: today(), date_emission: today(), total_amount: amount, montant_total: amount, statut_facture: 'emise', invoice_status: 'emise', statut: 'emise', statut_paiement: nextPaymentStatus, source_module: 'ventes', source_record_id: order.id },
+      payment: { id: paymentId, order_id: order.id, sale_id: order.id, invoice_id: invoiceId, client_id: order.client_id || '', date: today(), date_paiement: today(), montant: suggestedPayment, montant_paye: suggestedPayment, amount: suggestedPayment, statut: 'paye', moyen_paiement: order.moyen_paiement || order.mode_paiement || 'Cash', mode_paiement: order.mode_paiement || order.moyen_paiement || 'Cash', source_module: 'ventes', source_record_id: order.id, source_type: order.source_type || order.type_vente || order.product_type, source_id: order.source_id || order.product_id || order.entity_id },
       finance: { id: transactionId, type: 'entree', libelle: `Encaissement ${order.product_name || order.libelle || order.id}`, montant: suggestedPayment, date: today(), categorie: getFinanceCategoryFromSale(order), module_lie: 'ventes', related_id: order.id, activite: activity, client_id: order.client_id || '', statut: 'paye', source_module: 'ventes', source_record_id: order.id, source_type: order.source_type || order.type_vente || order.product_type, source_id: order.source_id || order.product_id || order.entity_id, invoice_id: invoiceId, payment_id: paymentId, business_plan_id: order.business_plan_id || null, investment_id: order.investment_id || null },
       source_patch: stockPatchAfterSale(order, quantitySold),
-      client_patch: client ? { dernier_achat: today(), total_achats: toNumber(client.total_achats) + amount, creances: Math.max(0, toNumber(client.creances) + amount - suggestedPayment) } : null,
+      client_patch: client ? { dernier_achat: today(), total_achats: toNumber(client.total_achats) + amount, creances: Math.max(0, toNumber(client.creances) + nextRemaining) } : null,
       trace: { id: eventId, event_type: 'vente_complete', module_source: 'ventes', entity_type: 'sales_order', entity_id: order.id, title: 'Vente complète', description: `${order.product_name || order.id} - ${amount}`, event_date: today(), severity: 'info', linked_transaction_id: transactionId, linked_sale_id: order.id, linked_document_id: documentId, saisies_evitees: Math.max(0, actions.length - 1) },
       document: { id: documentId, title: `Facture ${order.product_name || order.id}`, document_category: 'facture', module_source: 'ventes', entity_type: 'sales_order', entity_id: order.id, related_id: order.id, transaction_id: transactionId, notes: `Généré par workflow vente ${order.id}` },
-      alert: remainingBeforePayment > suggestedPayment ? { id: safeId('ALT', context.alerts), title: 'Créance client à suivre', message: `${order.product_name || order.id}: ${Math.max(0, amount - alreadyPaid - suggestedPayment)}`, module_source: 'ventes', entity_id: order.id, severity: 'warning', status: 'nouvelle', action_recommandee: 'Relancer le client ou enregistrer un nouveau paiement' } : null,
+      alert: nextRemaining > 0 ? { id: safeId('ALT', context.alerts), title: 'Créance client à suivre', message: `${order.product_name || order.id}: ${nextRemaining}`, module_source: 'ventes', entity_id: order.id, severity: 'warning', status: 'nouvelle', action_recommandee: 'Relancer le client ou enregistrer un nouveau paiement' } : null,
     },
     actions,
   };
@@ -150,13 +169,14 @@ export async function commitSaleWorkflow(preview, handlers = {}) {
   const amount = toNumber(finalValue(p.fields.amount));
   const alreadyPaid = toNumber(finalValue(p.fields.already_paid));
   const paymentToRecord = toNumber(finalValue(p.fields.payment_to_record));
-  const remaining = Math.max(0, amount - alreadyPaid - paymentToRecord);
+  const nextPaid = Math.min(amount || alreadyPaid + paymentToRecord, alreadyPaid + paymentToRecord);
+  const remaining = Math.max(0, amount - nextPaid);
   const activity = finalValue(p.fields.activity);
   const category = finalValue(p.fields.category);
   const records = p.records;
-  records.order_patch = { ...records.order_patch, montant_paye: Math.min(amount, alreadyPaid + paymentToRecord), statut_paiement: remaining > 0 ? 'partiel' : 'paye', workflow_id: p.workflow_id };
-  records.invoice = { ...records.invoice, total_amount: amount, montant_total: amount };
-  records.payment = { ...records.payment, montant: paymentToRecord, amount: paymentToRecord };
+  records.order_patch = { ...records.order_patch, montant_paye: nextPaid, reste_a_payer: remaining, statut_paiement: paymentStatusOf(amount, nextPaid), statut_commande: orderStatusAfterPayment(p.source_order, amount, nextPaid), workflow_id: p.workflow_id };
+  records.invoice = { ...records.invoice, total_amount: amount, montant_total: amount, statut_facture: 'emise', invoice_status: 'emise', statut: 'emise', statut_paiement: records.order_patch.statut_paiement };
+  records.payment = { ...records.payment, montant: paymentToRecord, montant_paye: paymentToRecord, amount: paymentToRecord, date_paiement: records.payment.date_paiement || today() };
   records.finance = { ...records.finance, montant: paymentToRecord, activite: activity, categorie: category };
   await handlers.onCreateInvoice?.(records.invoice);
   if (paymentToRecord > 0) await handlers.onCreatePayment?.(records.payment);
