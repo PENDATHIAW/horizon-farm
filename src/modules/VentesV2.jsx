@@ -5,6 +5,7 @@ import useCrudModule from '../hooks/useCrudModule';
 import { commitSaleWorkflow, prepareSaleWorkflow, useSuggestion } from '../services/workflowService';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
+import SalesOpportunitiesBridge from './SalesOpportunitiesBridge.jsx';
 import Ventes from './Ventes.jsx';
 
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -91,6 +92,7 @@ async function refreshRelated(props) {
     props.onRefreshBusinessEvents?.(),
     props.onRefreshInvoices?.(),
     props.onRefreshPayments?.(),
+    props.onRefreshOpportunities?.(),
   ]);
 }
 
@@ -301,5 +303,5 @@ export default function VentesV2(props) {
     onCreateAlert: props.onCreateAlert || alertesCrud.create,
     onRefreshAlertes: props.onRefreshAlertes || alertesCrud.refresh,
   };
-  return <div className="space-y-6"><SalesBridge {...mergedProps} /><PaymentCapturePanel {...mergedProps} /><Ventes {...mergedProps} /></div>;
+  return <div className="space-y-6"><SalesOpportunitiesBridge {...mergedProps} /><SalesBridge {...mergedProps} /><PaymentCapturePanel {...mergedProps} /><Ventes {...mergedProps} /></div>;
 }
