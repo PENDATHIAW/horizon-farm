@@ -1,4 +1,5 @@
-import { AlertTriangle, Bird, HeartPulse, Package, Receipt, Scale } from 'lucide-react';
+import { AlertTriangle, Bird, Edit, HeartPulse, Package, Receipt, Scale, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import AvicoleBase from './AvicoleBase.jsx';
 import AvicoleHealthBridge from './AvicoleHealthBridge.jsx';
 import AvicoleSaleReadinessBridge from './AvicoleSaleReadinessBridge.jsx';
@@ -73,10 +74,55 @@ function HealthAndLinks({ rows = [] }) {
   );
 }
 
-function LastEggEntries({ logs = [], lots = [] }) {
+async function editEggLog(log, handlers) {
+  if (!log?.id || !handlers.onUpdateProduction) return toast.error('Modification relevé indisponible');
+  const currentEggs = eggs(log);
+  const currentBroken = broken(log);
+  const eggInput = window.prompt('Œufs produits ?', String(currentEggs));
+  if (eggInput === null) return;
+  const nextEggs = toNumber(eggInput);
+  if (nextEggs <= 0) return toast.error('Saisir un nombre d’œufs supérieur à 0');
+  const brokenInput = window.prompt('Œufs cassés ?', String(currentBroken));
+  if (brokenInput === null) return;
+  const nextBroken = Math.max(0, toNumber(brokenInput));
+  if (nextBroken > nextEggs) return toast.error('Les casses ne peuvent pas dépasser les œufs produits');
+  try {
+    await handlers.onUpdateProduction(log.id, {
+      ...log,
+      oeufs_produits: nextEggs,
+      oeufs_casses: nextBroken,
+      oeufs_vendables: Math.max(0, nextEggs - nextBroken),
+    });
+    await handlers.onRefreshProduction?.();
+    toast.success('Relevé œufs modifié');
+  } catch (error) {
+    toast.error(error.message || 'Modification relevé impossible');
+  }
+}
+
+async function deleteEggLog(log, handlers) {
+  if (!log?.id || !handlers.onDeleteProduction) return toast.error('Suppression relevé indisponible');
+  if (!window.confirm('Supprimer ce relevé œufs ?')) return;
+  try {
+    await handlers.onDeleteProduction(log.id);
+    await handlers.onRefreshProduction?.();
+    toast.success('Relevé œufs supprimé');
+  } catch (error) {
+    toast.error(error.message || 'Suppression relevé impossible');
+  }
+}
+
+function LastEggEntries({ logs = [], lots = [], onUpdateProduction, onDeleteProduction, onRefreshProduction }) {
   const lotById = new Map(lots.map((lot) => [lot.id, lot]));
-  const rows = safeArray(logs).slice().sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.id || '').localeCompare(String(a.id || ''))).slice(0, 6);
-  if (!rows.length) return null;
+  const rows = safeArray(logs)
+    .filter((log) => eggs(log) > 0 || broken(log) > 0)
+    .slice()
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.id || '').localeCompare(String(a.id || '')))
+    .slice(0, 6);
+  if (!rows.length) {
+    return <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4 text-sm text-[#8a7456]"><b className="text-[#2f2415]">Derniers relevés œufs</b><br />Aucun relevé œufs utile. Les anciennes lignes à 0 sont ignorées.</div>;
+  }
+  const handlers = { onUpdateProduction, onDeleteProduction, onRefreshProduction };
   return (
     <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4">
       <div className="flex items-start gap-3 mb-3">
@@ -87,9 +133,9 @@ function LastEggEntries({ logs = [], lots = [] }) {
         </div>
       </div>
       <div className="overflow-x-auto border border-[#d6c3a0] rounded-xl">
-        <table className="w-full min-w-[560px] text-sm">
-          <thead><tr className="bg-[#fffdf8] border-b border-[#d6c3a0]"><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Date</th><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Lot</th><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Œufs</th><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Casses</th><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Vendables</th></tr></thead>
-          <tbody>{rows.map((log) => { const lot = lotById.get(log.lot_id); return <tr key={log.id || `${log.date}-${log.lot_id}-${eggs(log)}`} className="border-b border-[#d6c3a0]/50"><td className="px-3 py-2 text-[#2f2415]">{log.date}</td><td className="px-3 py-2 text-[#2f2415] font-semibold">{log.lot_name || lot?.name || log.lot_id}</td><td className="px-3 py-2 text-[#2f2415]">{fmtNumber(eggs(log))}</td><td className="px-3 py-2 text-[#2f2415]">{fmtNumber(broken(log))}</td><td className="px-3 py-2 text-emerald-600 font-semibold">{fmtNumber(Math.max(0, eggs(log) - broken(log)))}</td></tr>; })}</tbody>
+        <table className="w-full min-w-[680px] text-sm">
+          <thead><tr className="bg-[#fffdf8] border-b border-[#d6c3a0]"><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Date</th><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Lot</th><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Œufs</th><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Casses</th><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Vendables</th><th className="text-right px-3 py-2 text-xs text-[#8a7456]">Actions</th></tr></thead>
+          <tbody>{rows.map((log) => { const lot = lotById.get(log.lot_id); return <tr key={log.id || `${log.date}-${log.lot_id}-${eggs(log)}`} className="border-b border-[#d6c3a0]/50"><td className="px-3 py-2 text-[#2f2415]">{log.date}</td><td className="px-3 py-2 text-[#2f2415] font-semibold">{log.lot_name || lot?.name || log.lot_id}</td><td className="px-3 py-2 text-[#2f2415]">{fmtNumber(eggs(log))}</td><td className="px-3 py-2 text-[#2f2415]">{fmtNumber(broken(log))}</td><td className="px-3 py-2 text-emerald-600 font-semibold">{fmtNumber(Math.max(0, eggs(log) - broken(log)))}</td><td className="px-3 py-2 text-right"><button type="button" className="inline-flex mr-2 text-[#8a7456] hover:text-[#2f2415]" title="Modifier" onClick={() => editEggLog(log, handlers)}><Edit size={16} /></button><button type="button" className="inline-flex text-red-600 hover:text-red-800" title="Supprimer" onClick={() => deleteEggLog(log, handlers)}><Trash2 size={16} /></button></td></tr>; })}</tbody>
         </table>
       </div>
     </div>
@@ -103,7 +149,7 @@ export default function AvicoleV9(props) {
       <AvicoleHealthBridge rows={props.rows || []} productionLogs={props.productionLogs || []} alimentationLogs={props.alimentationLogs || []} onUpdate={props.onUpdate} onRefresh={props.onRefresh} />
       <AvicoleSaleReadinessBridge rows={props.rows || []} opportunities={props.opportunities || []} onUpdate={props.onUpdate} onRefresh={props.onRefresh} onCreateOpportunity={props.onCreateOpportunity} onUpdateOpportunity={props.onUpdateOpportunity} onRefreshOpportunities={props.onRefreshOpportunities} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} />
       <HealthAndLinks rows={props.rows || []} />
-      <LastEggEntries logs={props.productionLogs || []} lots={props.rows || []} />
+      <LastEggEntries logs={props.productionLogs || []} lots={props.rows || []} onUpdateProduction={props.onUpdateProduction} onDeleteProduction={props.onDeleteProduction} onRefreshProduction={props.onRefreshProduction} />
       <AvicoleBase {...props} />
     </div>
   );
