@@ -51,11 +51,34 @@ export function useSuggestion(preview, path) {
 
 function saleActivity(order = {}) {
   const sourceType = String(order.source_type || order.type_vente || '').toLowerCase();
+  const product = String(order.product_name || order.libelle || '').toLowerCase();
+  const text = `${sourceType} ${product}`;
+  if (text.includes('oeuf') || text.includes('œuf')) return 'avicole_oeufs';
+  if (text.includes('reforme') || text.includes('réforme')) return 'avicole_reformes';
+  if (sourceType.includes('avicole') || sourceType.includes('lot') || text.includes('poulet') || text.includes('chair')) return 'avicole_chair';
   if (sourceType.includes('animal')) return 'animaux';
-  if (sourceType.includes('avicole') || sourceType.includes('lot')) return 'avicole';
   if (sourceType.includes('culture')) return 'cultures';
   if (sourceType.includes('stock')) return 'stock';
   return order.activite || 'ventes';
+}
+
+function financeCategoryFromActivity(activity) {
+  return {
+    animaux: 'Vente animaux',
+    avicole_oeufs: 'Vente œufs',
+    avicole_chair: 'Vente poulets',
+    avicole_reformes: 'Vente pondeuses réformées',
+    cultures: 'Vente récolte',
+    stock: 'Vente stock',
+  }[activity] || 'Autres revenus';
+}
+
+function sourceModuleFromActivity(activity) {
+  if (String(activity).startsWith('avicole')) return 'avicole';
+  if (activity === 'animaux') return 'animaux';
+  if (activity === 'cultures') return 'cultures';
+  if (activity === 'stock') return 'stock';
+  return 'ventes';
 }
 
 export function prepareSaleWorkflow(payload = {}, context = {}) {
@@ -64,6 +87,7 @@ export function prepareSaleWorkflow(payload = {}, context = {}) {
   const alreadyPaid = getPaid(order);
   const due = Math.max(0, amount - alreadyPaid);
   const activity = saleActivity(order);
+  const sourceModule = sourceModuleFromActivity(activity);
   const invoiceId = order.invoice_id || safeId('FAC', context.invoices);
   const paymentId = order.payment_id || safeId('PAI', context.payments);
   const transactionId = order.transaction_id || safeId('TRX', context.transactions);
@@ -76,8 +100,8 @@ export function prepareSaleWorkflow(payload = {}, context = {}) {
     { id: 'create_invoice', module: 'documents', type: 'create', label: 'Créer facture/reçu' },
     due > 0 ? { id: 'create_payment', module: 'paiements', type: 'create', label: 'Créer paiement' } : null,
     due > 0 ? { id: 'create_finance', module: 'finances', type: 'create', label: 'Créer transaction finance' } : null,
-    { id: 'update_client', module: 'clients', type: 'update', label: 'Mettre à jour client' },
-    { id: 'update_source_asset', module: activity, type: 'update', label: 'Mettre à jour stock/animal/lot/culture' },
+    client ? { id: 'update_client', module: 'clients', type: 'update', label: 'Mettre à jour client' } : null,
+    { id: 'update_source_asset', module: sourceModule, type: 'update', label: 'Mettre à jour stock/animal/lot/culture' },
     { id: 'create_trace', module: 'tracabilite', type: 'create', label: 'Créer événement traçabilité' },
     due > 0 ? { id: 'create_alert', module: 'alertes', type: 'create', label: 'Créer alerte créance' } : null,
   ].filter(Boolean);
@@ -94,14 +118,14 @@ export function prepareSaleWorkflow(payload = {}, context = {}) {
       activity: fieldAuto({ value: activity, source: 'vente.source_type' }),
     },
     records: {
-      order_patch: { statut_commande: order.statut_commande === 'brouillon' ? 'confirme' : (order.statut_commande || 'confirme'), statut_paiement: due > 0 ? 'paye' : (order.statut_paiement || 'paye'), montant_paye: amount, invoice_id: invoiceId, payment_id: paymentId, transaction_id: transactionId, workflow_id: null, secured_at: now() },
-      invoice: { id: invoiceId, order_id: order.id, client_id: order.client_id || '', date: today(), total_amount: amount, montant_total: amount, status: due > 0 ? 'payee' : 'payee', source_module: 'ventes', source_record_id: order.id },
-      payment: { id: paymentId, order_id: order.id, invoice_id: invoiceId, client_id: order.client_id || '', date: today(), montant: due || amount, amount: due || amount, statut: 'paye', moyen_paiement: order.moyen_paiement || '', source_module: 'ventes', source_record_id: order.id },
-      finance: { id: transactionId, type: 'entree', libelle: `Encaissement ${order.product_name || order.libelle || order.id}`, montant: due || amount, date: today(), categorie: 'Ventes', module_lie: 'ventes', related_id: order.id, activite: activity, client_id: order.client_id || '', statut: 'paye', source_module: 'ventes', source_record_id: order.id, invoice_id: invoiceId, payment_id: paymentId },
+      order_patch: { statut_commande: order.statut_commande === 'brouillon' ? 'confirme' : (order.statut_commande || 'confirme'), statut_paiement: due > 0 ? 'paye' : (order.statut_paiement || 'paye'), montant_paye: amount, invoice_id: invoiceId, payment_id: paymentId, transaction_id: transactionId, workflow_id: null, secured_at: now(), skip_finance_sync: true },
+      invoice: { id: invoiceId, order_id: order.id, client_id: order.client_id || '', date: today(), total_amount: amount, montant_total: amount, status: 'payee', source_module: 'ventes', source_record_id: order.id },
+      payment: { id: paymentId, order_id: order.id, invoice_id: invoiceId, client_id: order.client_id || '', date: today(), montant: due || amount, amount: due || amount, statut: 'paye', moyen_paiement: order.moyen_paiement || '', source_module: 'ventes', source_record_id: order.id, skip_finance_sync: true },
+      finance: { id: transactionId, type: 'entree', libelle: `Encaissement ${order.product_name || order.libelle || order.id}`, montant: due || amount, date: today(), categorie: financeCategoryFromActivity(activity), module_lie: 'ventes', related_id: order.id, activite: activity, client_id: order.client_id || '', statut: 'paye', source_module: 'ventes', source_record_id: order.id, invoice_id: invoiceId, payment_id: paymentId },
       client_patch: client ? { dernier_achat: today(), total_achats: toNumber(client.total_achats) + amount, creances: Math.max(0, toNumber(client.creances) - due) } : null,
-      trace: { id: eventId, event_type: 'vente_complete', module_source: 'ventes', entity_type: 'sales_order', entity_id: order.id, title: 'Vente complète', description: `${order.product_name || order.id} - ${amount}`, event_date: today(), severity: 'success', saisies_evitees: Math.max(0, actions.length - 1) },
+      trace: { id: eventId, event_type: 'vente_complete', module_source: 'ventes', entity_type: 'sales_order', entity_id: order.id, title: 'Vente complète', description: `${order.product_name || order.id} - ${amount}`, event_date: today(), severity: 'success', saisies_evitees: Math.max(0, actions.length - 1), linked_sale_id: order.id, linked_transaction_id: transactionId, linked_document_id: documentId },
       document: { id: documentId, title: `Facture ${order.product_name || order.id}`, document_category: 'facture', module_source: 'ventes', entity_type: 'sales_order', entity_id: order.id, notes: `Généré par workflow vente ${order.id}` },
-      alert: due > 0 ? { id: safeId('ALT', context.alerts), title: 'Créance client à suivre', message: `${order.product_name || order.id}: ${due}`, module_source: 'ventes', entity_id: order.id, severity: 'warning', status: 'nouvelle' } : null,
+      alert: due > 0 ? { id: safeId('ALT', context.alerts), title: 'Créance client à suivre', message: `${order.product_name || order.id}: ${due}`, module_source: 'ventes', entity_id: order.id, severity: 'warning', status: 'nouvelle', action_recommandee: 'Relancer le client et suivre le paiement.' } : null,
     },
     actions,
   };
@@ -116,7 +140,7 @@ export async function commitSaleWorkflow(preview, handlers = {}) {
   records.order_patch = { ...records.order_patch, montant_paye: paidAmount, workflow_id: p.workflow_id };
   records.invoice = { ...records.invoice, total_amount: amount, montant_total: amount };
   records.payment = { ...records.payment, montant: paidAmount, amount: paidAmount };
-  records.finance = { ...records.finance, montant: paidAmount, activite: activity };
+  records.finance = { ...records.finance, montant: paidAmount, activite: activity, categorie: financeCategoryFromActivity(activity) };
   await handlers.onCreateInvoice?.(records.invoice);
   if (paidAmount > 0) await handlers.onCreatePayment?.(records.payment);
   if (paidAmount > 0) await handlers.onCreateFinanceTransaction?.(records.finance);
