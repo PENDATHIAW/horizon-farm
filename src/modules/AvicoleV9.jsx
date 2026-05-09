@@ -1,5 +1,5 @@
 import { AlertTriangle, Bird, HeartPulse, Package, Receipt, Scale } from 'lucide-react';
-import AvicoleV8 from './AvicoleV8.jsx';
+import AvicoleBase from './AvicoleBase.jsx';
 import { fmtNumber, toNumber } from '../utils/format';
 import { filterLotsByActivity } from '../utils/avicoleActivity';
 
@@ -98,7 +98,7 @@ export default function AvicoleV9(props) {
       <style>{`@media (max-width: 640px){.avicole-mobile-final .rounded-2xl{border-radius:18px}.avicole-mobile-final table{font-size:12px}.avicole-mobile-final th,.avicole-mobile-final td{padding-left:10px!important;padding-right:10px!important}.avicole-mobile-final .text-2xl{font-size:1.35rem}.avicole-mobile-final .grid{gap:.75rem}.avicole-mobile-final .overflow-x-auto{max-width:100vw}}`}</style>
       <HealthAndLinks rows={props.rows || []} />
       <LastEggEntries logs={props.productionLogs || []} lots={props.rows || []} />
-      <AvicoleV8 {...props} />
+      <AvicoleBase {...props} />
     </div>
   );
 }
