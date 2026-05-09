@@ -23,6 +23,7 @@ import {
   avicoleSickCount,
   avicoleStatusFor,
 } from '../utils/avicoleMetrics';
+import { getResponsibleOptions, resolveResponsibleLabel } from '../utils/rhDirectory';
 
 const tabs = ['Tous', 'Pondeuse', 'Chair'];
 const DEFAULT_SALE_TARGET_WEIGHT = 1.5;
@@ -50,8 +51,7 @@ const targetWeight = (lot = {}) => toNumber(lot.poids_objectif_vente ?? lot.obje
 function ageDays(lot = {}) {
   const start = lot.date_debut || lot.entry_date || lot.date_entree;
   if (!start) return 0;
-  const diff = Date.now() - new Date(start).getTime();
-  return Math.max(0, Math.floor(diff / 86400000));
+  return Math.max(0, Math.floor((Date.now() - new Date(start).getTime()) / 86400000));
 }
 
 function phaseFor(lot = {}) {
@@ -80,16 +80,8 @@ function readinessLabel(lot = {}) {
 }
 
 export default function AvicoleBase({
-  rows = [],
-  alimentationLogs = [],
-  productionLogs = [],
-  loading,
-  onCreate,
-  onUpdate,
-  onDelete,
-  onRefresh,
-  onCreateProduction,
-  onRefreshProduction,
+  rows = [], alimentationLogs = [], productionLogs = [], loading,
+  onCreate, onUpdate, onDelete, onRefresh, onCreateProduction, onRefreshProduction,
 }) {
   const [tab, setTab] = useState('Tous');
   const [modal, setModal] = useState(null);
@@ -106,15 +98,16 @@ export default function AvicoleBase({
   const malades = lots.reduce((sum, lot) => sum + sickCount(lot), 0);
   const prets = lots.filter((lot) => readinessLabel(lot).toLowerCase().includes('prêt') || readinessLabel(lot).toLowerCase().includes('réforme')).length;
   const coutAlim = lots.reduce((sum, lot) => sum + calculateLotMetrics({ lot, feedingLogs: alimentationLogs, productionLogs }).feedingCost, 0);
+  const responsibleOptions = useMemo(() => getResponsibleOptions({ moduleKey: 'avicole' }), []);
 
   const avicoleFields = useMemo(() => {
     const base = MODULE_FORM_FIELDS.avicole || [];
     const weighingFields = [
-      { key: 'poids_moyen_entree', label: 'Poids moyen entrée (kg)', type: 'number' },
+      { key: 'poids_moyen_entree', label: 'Poids moyen entrée / première pesée (kg)', type: 'number' },
       { key: 'date_pesee_entree', label: 'Date pesée entrée', type: 'date' },
       { key: 'poids_objectif_vente', label: 'Objectif poids vente (kg)', type: 'number' },
-      { key: 'poids_moyen_actuel', label: 'Nouvelle pesée / poids moyen actuel (kg)', type: 'number' },
-      { key: 'date_derniere_pesee', label: 'Date nouvelle pesée', type: 'date' },
+      { key: 'poids_moyen_actuel', label: 'Poids moyen actuel / dernière pesée (kg)', type: 'number' },
+      { key: 'date_derniere_pesee', label: 'Date dernière pesée', type: 'date' },
     ];
     return base.flatMap((field) => {
       if (field.key === 'phase') return [{ ...field, type: 'select', options: phaseOptions }];
@@ -124,16 +117,16 @@ export default function AvicoleBase({
   }, []);
 
   const eggFields = useMemo(() => [
-    { key: 'section_ramassage', label: 'Ramassage œufs', type: 'section', description: 'Choisir uniquement un lot pondeuse actif et disponible.' },
+    { key: 'section_ramassage', label: 'Ramassage œufs', type: 'section', description: 'Choisir uniquement un lot pondeuse actif et disponible. Le responsable vient de RH & Équipe.' },
     { key: 'lot_id', label: 'Lot pondeuse', type: 'select', required: true, options: pondeusesDisponibles.map((lot) => ({ value: lot.id, label: `${lot.name || lot.id} · ${fmtNumber(activeCount(lot))} actifs` })) },
     { key: 'date', label: 'Date ramassage', type: 'date', required: true },
     { key: 'heure_ramassage', label: 'Heure ramassage', type: 'text' },
     { key: 'oeufs_produits', label: 'Œufs ramassés', type: 'number', required: true },
     { key: 'oeufs_casses', label: 'Œufs cassés / abîmés', type: 'number' },
     { key: 'oeufs_vendables_view', label: 'Œufs vendables calculés', type: 'readonly' },
-    { key: 'responsable', label: 'Responsable ramassage', type: 'text' },
+    { key: 'responsable', label: 'Responsable ramassage', type: 'select', required: true, options: responsibleOptions },
     { key: 'notes', label: 'Notes ramassage', type: 'text', fullWidth: true },
-  ], [pondeusesDisponibles]);
+  ], [pondeusesDisponibles, responsibleOptions]);
 
   const initialLot = useMemo(() => {
     const type = tab === 'Chair' ? 'Chair' : 'Pondeuse';
@@ -141,23 +134,17 @@ export default function AvicoleBase({
     return { id, name: `${id} ${type}`, type, status: 'actif', health_status: 'sain', phase: type === 'Chair' ? 'Croissance' : 'Production', date_debut: today(), entry_date: today(), initial_count: 0, mortality: 0, malades: 0, poids_moyen_entree: 0, poids_objectif_vente: DEFAULT_SALE_TARGET_WEIGHT, poids_moyen_actuel: 0, date_pesee_entree: today(), date_derniere_pesee: today(), duree_cycle_unite: type === 'Chair' ? 'jours' : 'mois', duree_cycle_valeur: type === 'Chair' ? 45 : 18 };
   }, [rows, tab]);
 
-  const initialEggEntry = useMemo(() => ({
-    id: `PROD-${Date.now()}`,
-    lot_id: pondeusesDisponibles[0]?.id || '',
-    date: today(),
-    heure_ramassage: '',
-    oeufs_produits: '',
-    oeufs_casses: 0,
-    responsable: '',
-    notes: '',
-  }), [pondeusesDisponibles]);
+  const initialEggEntry = useMemo(() => ({ id: `PROD-${Date.now()}`, lot_id: pondeusesDisponibles[0]?.id || '', date: today(), heure_ramassage: '', oeufs_produits: '', oeufs_casses: 0, responsable: responsibleOptions[0]?.value || 'TEAM-AVICOLE', notes: '' }), [pondeusesDisponibles, responsibleOptions]);
 
   const prepareLot = (payload, existing = {}) => {
     const current = activeCount(payload);
+    const isNewLot = !existing?.id;
     const savedEntryWeight = entryWeight(existing);
-    const nextEntryWeight = savedEntryWeight > 0 ? savedEntryWeight : toNumber(payload.poids_moyen_entree ?? payload.weight_entry);
-    const nextCurrentWeight = toNumber(payload.poids_moyen_actuel ?? payload.last_weight_avg ?? payload.weight_avg ?? payload.average_weight ?? nextEntryWeight);
-    const nextTargetWeight = targetWeight({ ...existing, ...payload });
+    const enteredEntryWeight = toNumber(payload.poids_moyen_entree ?? payload.weight_entry);
+    const enteredCurrentWeight = toNumber(payload.poids_moyen_actuel ?? payload.last_weight_avg ?? payload.weight_avg ?? payload.average_weight);
+    const nextEntryWeight = savedEntryWeight > 0 ? savedEntryWeight : enteredEntryWeight > 0 ? enteredEntryWeight : isNewLot ? enteredCurrentWeight : 0;
+    const nextCurrentWeight = enteredCurrentWeight > 0 ? enteredCurrentWeight : nextEntryWeight;
+    const nextTargetWeight = targetWeight({ ...existing, ...payload, poids_objectif_vente: payload.poids_objectif_vente || existing.poids_objectif_vente || DEFAULT_SALE_TARGET_WEIGHT });
     const entryDate = existing.date_pesee_entree || payload.date_pesee_entree || payload.date_debut || payload.entry_date || today();
     const currentDate = payload.date_derniere_pesee || existing.date_derniere_pesee || (nextCurrentWeight > 0 ? today() : '');
     return {
@@ -195,20 +182,7 @@ export default function AvicoleBase({
     if (brokenCount > eggCount) return toast.error('Les casses ne peuvent pas dépasser les œufs ramassés');
     try {
       setSaving(true);
-      await onCreateProduction?.({
-        ...payload,
-        id: payload.id || `PROD-${Date.now()}`,
-        lot_id: lot.id,
-        lot_name: lot.name || lot.id,
-        date: payload.date || today(),
-        oeufs_produits: eggCount,
-        oeufs_casses: brokenCount,
-        oeufs_vendables: Math.max(0, eggCount - brokenCount),
-        module_lie: 'avicole',
-        related_id: lot.id,
-        source_module: 'avicole',
-        type_evenement: 'ramassage_oeufs',
-      });
+      await onCreateProduction?.({ ...payload, id: payload.id || `PROD-${Date.now()}`, lot_id: lot.id, lot_name: lot.name || lot.id, date: payload.date || today(), oeufs_produits: eggCount, oeufs_casses: brokenCount, oeufs_vendables: Math.max(0, eggCount - brokenCount), responsable_label: resolveResponsibleLabel(payload.responsable), module_lie: 'avicole', related_id: lot.id, source_module: 'avicole', type_evenement: 'ramassage_oeufs' });
       await onRefreshProduction?.();
       toast.success('Ramassage œufs enregistré');
       setModal(null);
