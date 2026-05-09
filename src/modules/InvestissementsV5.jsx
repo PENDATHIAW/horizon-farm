@@ -1,202 +1,235 @@
-import { Building2, CalendarDays, PackagePlus, Plus, RefreshCw } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { BarChart2, CalendarDays, CheckCircle2, Edit, Link as LinkIcon, PackagePlus, Save, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Btn from '../components/Btn';
-import { fmtCurrency, toNumber } from '../utils/format';
+import { fmtCurrency, fmtPercent, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
-import InvestissementsV4 from './InvestissementsV4';
+import BaseInvestissements from './Investissements.jsx';
 
 const safeArray = (value) => Array.isArray(value) ? value : [];
 const isHorizon = (bp = {}) => String(bp.nom || '').toLowerCase().includes('horizon farm');
-const DEFAULT_RENT_AMOUNT = 500000;
+const status = (row = {}) => String(row.statut ?? row.status ?? '').toLowerCase();
+const amount = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?? row.total_amount ?? 0);
+const lineTotal = (line) => Math.round(toNumber(line.quantite) * toNumber(line.prix_unitaire));
+
+const cleanDesignation = (value = '') => String(value)
+  .replace(/\s+\d+\s*(mois|semaines?|jours?)\b/gi, '')
+  .replace(/\s+\d+\s*-\s*\d+\s*semaines?/gi, '')
+  .replace(/\s+à\s+[\d\s.,]+\s*(f|fcfa)\b/gi, '')
+  .replace(/\s*\([^)]*remplacé[^)]*\)/gi, '')
+  .replace(/\s{2,}/g, ' ')
+  .trim();
 
 const ONE_TIME_EXPENSES = [
-  { designation: 'Achat poussins pondeuses', categorie: 'cheptel', quantite: 4000, unite: 'sujets', prix_unitaire: 900 },
-  { designation: 'Achat poussins chair', categorie: 'cheptel', quantite: 200, unite: 'sujets', prix_unitaire: 350 },
-  { designation: 'Achat bœufs embouche', categorie: 'cheptel', quantite: 10, unite: 'têtes', prix_unitaire: 350000 },
-  { designation: 'Achat moutons embouche', categorie: 'cheptel', quantite: 5, unite: 'têtes', prix_unitaire: 50000 },
-  { designation: 'Achat chèvres embouche', categorie: 'cheptel', quantite: 5, unite: 'têtes', prix_unitaire: 20000 },
-  { designation: 'Construction / aménagement poulailler', categorie: 'infrastructure', quantite: 1, unite: 'forfait', prix_unitaire: 0 },
-  { designation: 'Poussinière / chauffage / lampes', categorie: 'equipement', quantite: 1, unite: 'lot', prix_unitaire: 0 },
-  { designation: 'Pondoirs', categorie: 'equipement', quantite: 70, unite: 'pcs', prix_unitaire: 0 },
-  { designation: 'Abreuvoirs', categorie: 'equipement', quantite: 60, unite: 'pcs', prix_unitaire: 0 },
-  { designation: 'Mangeoires', categorie: 'equipement', quantite: 60, unite: 'pcs', prix_unitaire: 0 },
-  { designation: 'Réservoir / pompe / eau', categorie: 'infrastructure', quantite: 1, unite: 'forfait', prix_unitaire: 0 },
-  { designation: 'Magasin stock aliments / intrants', categorie: 'infrastructure', quantite: 1, unite: 'forfait', prix_unitaire: 0 },
-  { designation: 'Clôture / portail / sécurité', categorie: 'infrastructure', quantite: 1, unite: 'forfait', prix_unitaire: 0 },
-  { designation: 'Irrigation culture', categorie: 'equipement', quantite: 1, unite: 'lot', prix_unitaire: 0 },
-  { designation: 'Matériel agricole et manutention', categorie: 'equipement', quantite: 1, unite: 'lot', prix_unitaire: 0 },
-  { designation: 'Transport initial et installation', categorie: 'logistique', quantite: 1, unite: 'forfait', prix_unitaire: 0 },
-  { designation: 'Fonds de roulement initial', categorie: 'fonds_roulement', quantite: 1, unite: 'forfait', prix_unitaire: 0 },
-  { designation: 'Démarches administratives / autorisations', categorie: 'administratif', quantite: 1, unite: 'forfait', prix_unitaire: 0 },
-  { designation: 'Imprévus de démarrage', categorie: 'imprevus', quantite: 1, unite: 'forfait', prix_unitaire: 0 },
-];
+  ['Achat poussins pondeuses', 'cheptel', 4000, 'sujets', 900],
+  ['Achat poussins chair', 'cheptel', 200, 'sujets', 350],
+  ['Achat bovins', 'cheptel', 10, 'têtes', 0],
+  ['Achat moutons', 'cheptel', 5, 'têtes', 0],
+  ['Achat chèvres', 'cheptel', 5, 'têtes', 0],
+  ['Poulailler / bâtiment avicole', 'infrastructure', 1, 'forfait', 0],
+  ['Poussinière / chauffage', 'equipement', 1, 'lot', 0],
+  ['Pondoirs', 'equipement', 1, 'lot', 0],
+  ['Abreuvoirs', 'equipement', 1, 'lot', 0],
+  ['Mangeoires', 'equipement', 1, 'lot', 0],
+  ['Eau / pompe / réservoir', 'infrastructure', 1, 'forfait', 0],
+  ['Magasin stock', 'infrastructure', 1, 'forfait', 0],
+  ['Clôture / sécurité', 'infrastructure', 1, 'forfait', 0],
+  ['Irrigation', 'equipement', 1, 'lot', 0],
+  ['Matériel agricole', 'equipement', 1, 'lot', 0],
+  ['Transport et installation', 'logistique', 1, 'forfait', 0],
+  ['Fonds de roulement', 'fonds_roulement', 1, 'forfait', 0],
+  ['Démarches administratives', 'administratif', 1, 'forfait', 0],
+  ['Imprévus de démarrage', 'imprevus', 1, 'forfait', 0],
+].map(([designation, categorie, quantite, unite, prix_unitaire]) => ({ designation, categorie, quantite, unite, prix_unitaire }));
 
 const MONTHLY_EXPENSES = [
-  { designation: 'Location champ prêt à exploiter', categorie: 'location_champ', montant_mensuel: 0 },
-  { designation: 'Location bâtiment / poulailler', categorie: 'location_batiment', montant_mensuel: 0 },
-  { designation: 'Aliment pondeuses en production', categorie: 'alimentation', montant_mensuel: 0 },
-  { designation: 'Aliment croissance pondeuses avant ponte', categorie: 'alimentation', montant_mensuel: 0 },
-  { designation: 'Aliment poulets de chair', categorie: 'alimentation', montant_mensuel: 0 },
-  { designation: 'Aliment bœufs / moutons / chèvres', categorie: 'alimentation', montant_mensuel: 0 },
-  { designation: 'Salaires / main d’œuvre', categorie: 'salaires', montant_mensuel: 0 },
-  { designation: 'Santé, vaccins et vétérinaire', categorie: 'sante', montant_mensuel: 0 },
-  { designation: 'Énergie, eau et nettoyage', categorie: 'energie', montant_mensuel: 0 },
-  { designation: 'Litière, désinfection, biosécurité', categorie: 'biosécurité', montant_mensuel: 0 },
-  { designation: 'Transport, livraison, commercialisation', categorie: 'logistique', montant_mensuel: 0 },
-  { designation: 'Emballages œufs / sacs / consommables', categorie: 'consommables', montant_mensuel: 0 },
-  { designation: 'Maintenance équipements et bâtiments', categorie: 'maintenance', montant_mensuel: 0 },
-  { designation: 'Téléphone, internet, logiciel, administration', categorie: 'administratif', montant_mensuel: 0 },
-  { designation: 'Remboursement financement', categorie: 'financement', montant_mensuel: 0 },
-  { designation: 'Imprévus exploitation', categorie: 'imprevus', montant_mensuel: 0 },
-];
+  ['Location champ prêt à exploiter', 'location_champ'],
+  ['Location bâtiment / poulailler', 'location_batiment'],
+  ['Aliment pondeuses', 'alimentation'],
+  ['Aliment poulets de chair', 'alimentation'],
+  ['Aliment ruminants', 'alimentation'],
+  ['Salaires / main d’œuvre', 'salaires'],
+  ['Santé / vaccins / vétérinaire', 'sante'],
+  ['Énergie / eau / nettoyage', 'energie'],
+  ['Litière / biosécurité', 'biosecurite'],
+  ['Transport / commercialisation', 'logistique'],
+  ['Emballages / consommables', 'consommables'],
+  ['Maintenance', 'maintenance'],
+  ['Administration', 'administratif'],
+  ['Remboursement financement', 'financement'],
+  ['Imprévus exploitation', 'imprevus'],
+].map(([designation, categorie]) => ({ designation, categorie, montant_mensuel: 0 }));
 
-function getPlan(businessPlans) {
+function navigate(moduleId) {
+  if (typeof document === 'undefined') return;
+  const labels = {
+    finances: ['finances'], comptabilite: ['comptabilite'], avicole: ['avicole'], animaux: ['animaux'], cultures: ['cultures'], stock: ['stock'], sante: ['sante', 'vaccins'], ventes: ['ventes'], documents: ['documents'], fournisseurs: ['fournisseurs'], impact_business: ['impact business'], equipements: ['equipements'],
+  }[moduleId] || [moduleId];
+  Array.from(document.querySelectorAll('nav button')).find((button) => labels.some((label) => button.textContent?.toLowerCase().includes(label)))?.click();
+}
+
+function getActivePlan(businessPlans) {
   return safeArray(businessPlans).find(isHorizon) || safeArray(businessPlans)[0];
 }
 
-function FieldRentalPatch({ businessPlans = [], bpRecurringCosts = [], bpRevenueProjections = [], onCreateBpRecurringCost, onUpdateBpRecurringCost, onUpdateBpRevenueProjection, onRefreshBusinessPlans }) {
-  const [saving, setSaving] = useState(false);
-  const plan = useMemo(() => getPlan(businessPlans), [businessPlans]);
-  const costs = useMemo(() => plan ? safeArray(bpRecurringCosts).filter((row) => row.business_plan_id === plan.id) : [], [plan, bpRecurringCosts]);
-  const projections = useMemo(() => plan ? safeArray(bpRevenueProjections).filter((row) => row.business_plan_id === plan.id) : [], [plan, bpRevenueProjections]);
-  const rentCost = costs.find((row) => String(row.designation || '').toLowerCase().includes('location champ'));
-  const [rentAmount, setRentAmount] = useState(rentCost ? toNumber(rentCost.montant_mensuel) : DEFAULT_RENT_AMOUNT);
+function buildMetrics({ plan, lines, costs, projections, transactions }) {
+  const investment = lines.reduce((acc, row) => acc + toNumber(row.total), 0);
+  const monthly = costs.reduce((acc, row) => acc + toNumber(row.montant_mensuel), 0);
+  const revenue = projections.reduce((acc, row) => acc + toNumber(row.ca_estime), 0);
+  const projectedCharges = projections.reduce((acc, row) => acc + toNumber(row.charges_estimees), 0);
+  const fallbackCharges = monthly * toNumber(plan?.duree_cycle_mois || 12);
+  const totalCharges = projectedCharges || fallbackCharges;
+  const margin = revenue - totalCharges - investment;
+  const roi = investment > 0 ? (margin / investment) * 100 : 0;
+  const cashIn = safeArray(transactions).filter((row) => String(row.type).toLowerCase() === 'entree' && status(row) !== 'annule').reduce((acc, row) => acc + amount(row), 0);
+  const cashOut = safeArray(transactions).filter((row) => String(row.type).toLowerCase() === 'sortie' && status(row) !== 'annule').reduce((acc, row) => acc + amount(row), 0);
+  const realMargin = cashIn - cashOut;
+  return { investment, monthly, revenue, totalCharges, margin, roi, realMargin };
+}
 
+function buildAmortization({ projections, investment }) {
+  let cumulative = -investment;
+  return safeArray(projections).sort((a, b) => toNumber(a.mois_index) - toNumber(b.mois_index)).map((row) => {
+    const ca = toNumber(row.ca_estime);
+    const charges = toNumber(row.charges_estimees);
+    const marge = ca - charges;
+    cumulative += marge;
+    return { mois: row.mois_index, ca, charges, marge, cumulative, paid: Math.min(100, Math.max(0, ((investment + cumulative) / Math.max(1, investment)) * 100)) };
+  });
+}
+
+function Summary({ plan, metrics, amortization }) {
   if (!plan) return null;
-
-  const applyRental = async () => {
-    const nextRent = Math.max(0, toNumber(rentAmount));
-    setSaving(true);
-    try {
-      const previousRent = rentCost ? toNumber(rentCost.montant_mensuel) : 0;
-      const delta = nextRent - previousRent;
-      const payload = { designation: 'Location champ prêt à exploiter', categorie: 'location_champ', montant_mensuel: nextRent, frequence: 'mensuelle' };
-      if (rentCost) {
-        await onUpdateBpRecurringCost?.(rentCost.id, payload);
-      } else {
-        await onCreateBpRecurringCost?.({ id: makeId('BPCOST'), business_plan_id: plan.id, ...payload });
-      }
-      if (delta !== 0) {
-        await Promise.all(projections.map((row) => {
-          const charges = toNumber(row.charges_estimees) + delta;
-          return onUpdateBpRevenueProjection?.(row.id, { charges_estimees: charges, marge_estimee: toNumber(row.ca_estime) - charges });
-        }));
-      }
-      await onRefreshBusinessPlans?.();
-      toast.success(`Location champ mise à jour: ${fmtCurrency(nextRent)} / mois`);
-    } catch (error) {
-      toast.error(error.message || 'Mise à jour location champ impossible');
-    } finally {
-      setSaving(false);
-    }
-  };
-
+  const payback = amortization.find((row) => row.cumulative >= 0)?.mois;
   return (
-    <div className="bg-white border-2 border-emerald-300 rounded-2xl p-5">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="flex gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0"><Building2 size={18} /></div>
-          <div>
-            <p className="text-xs uppercase tracking-widest text-emerald-700">Charge mensuelle terrain</p>
-            <h3 className="text-lg font-black text-[#2f2415]">Champ prêt à exploiter en location</h3>
-            <p className="text-sm text-[#7d6a4a] mt-1">La location est une dépense mensuelle modifiable. Aucun prix n’est mis dans le libellé; tu saisis le montant réel du bail.</p>
-          </div>
+    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+      <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Business Plan actif</p>
+          <h2 className="text-2xl font-black text-[#2f2415] mt-1">{plan.nom}</h2>
+          <p className="text-sm text-[#7d6a4a] mt-1">{plan.localisation || 'Localisation à préciser'} · {plan.statut || 'planifié'}</p>
         </div>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-          <label className="text-xs font-semibold text-[#7d6a4a]">
-            Montant mensuel
-            <input type="number" min="0" className="mt-1 w-full sm:w-44 rounded-xl border border-[#d6c3a0] px-3 py-2 text-sm text-[#2f2415]" value={rentAmount} onChange={(event) => setRentAmount(event.target.value)} />
-          </label>
-          <Btn icon={RefreshCw} onClick={applyRental} disabled={saving}>Ajouter / mettre à jour</Btn>
+        <div className="flex flex-wrap gap-2">
+          <Btn small variant="outline" onClick={() => navigate('finances')}>Finances</Btn>
+          <Btn small variant="outline" onClick={() => navigate('comptabilite')}>Comptabilité</Btn>
+          <Btn small variant="outline" onClick={() => navigate('stock')}>Stock</Btn>
+          <Btn small variant="outline" onClick={() => navigate('avicole')}>Avicole</Btn>
+          <Btn small variant="outline" onClick={() => navigate('animaux')}>Animaux</Btn>
+          <Btn small variant="outline" onClick={() => navigate('cultures')}>Cultures</Btn>
         </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="text-xs text-[#8a7456]">Investissement</p><p className="font-black text-[#2f2415] mt-1">{fmtCurrency(metrics.investment)}</p></div>
+        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="text-xs text-[#8a7456]">Charges mensuelles</p><p className="font-black text-[#2f2415] mt-1">{fmtCurrency(metrics.monthly)}</p></div>
+        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="text-xs text-[#8a7456]">CA prévu cycle</p><p className="font-black text-[#2f2415] mt-1">{fmtCurrency(metrics.revenue)}</p></div>
+        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="text-xs text-[#8a7456]">Marge fin cycle</p><p className={`font-black mt-1 ${metrics.margin >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{fmtCurrency(metrics.margin)}</p></div>
+        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="text-xs text-[#8a7456]">ROI / Payback</p><p className={`font-black mt-1 ${metrics.roi >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{fmtPercent(metrics.roi)} · {payback ? `M${payback}` : '—'}</p></div>
       </div>
     </div>
   );
 }
 
-function ExpenseCatalog({ businessPlans = [], onCreateBpInvestmentLine, onCreateBpRecurringCost, onRefreshBusinessPlans }) {
-  const [savingKey, setSavingKey] = useState('');
-  const plan = useMemo(() => getPlan(businessPlans), [businessPlans]);
+function AmortizationPlan({ rows }) {
+  return (
+    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5">
+      <div className="flex items-center gap-2 mb-3"><BarChart2 size={18} className="text-[#9a6b12]" /><h3 className="font-black text-[#2f2415]">Plan d’amortissement</h3></div>
+      <div className="overflow-x-auto rounded-xl border border-[#eadcc2]">
+        <table className="w-full text-sm">
+          <thead><tr className="bg-[#fffdf8] text-left text-xs uppercase text-[#8a7456]"><th className="px-3 py-2">Mois</th><th className="px-3 py-2">CA prévu</th><th className="px-3 py-2">Charges</th><th className="px-3 py-2">Marge mois</th><th className="px-3 py-2">Solde investissement</th><th className="px-3 py-2">Amorti</th></tr></thead>
+          <tbody>{rows.map((row) => <tr key={row.mois} className="border-t border-[#eadcc2]"><td className="px-3 py-2 font-bold">M{row.mois}</td><td className="px-3 py-2">{fmtCurrency(row.ca)}</td><td className="px-3 py-2">{fmtCurrency(row.charges)}</td><td className={`px-3 py-2 font-bold ${row.marge >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{fmtCurrency(row.marge)}</td><td className={`px-3 py-2 font-bold ${row.cumulative >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{fmtCurrency(row.cumulative)}</td><td className="px-3 py-2">{row.paid.toFixed(0)}%</td></tr>)}</tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ExpenseEditor({ plan, lines, onUpdateBpInvestmentLine, onCreateBpInvestmentLine, onDeleteBpInvestmentLine, onCreateBpRecurringCost, onRefreshBusinessPlans }) {
+  const [editing, setEditing] = useState(false);
+  const [draftLines, setDraftLines] = useState([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setDraftLines(lines.map((line) => ({ ...line, designation: cleanDesignation(line.designation) }))); }, [plan?.id, lines.length]);
 
   if (!plan) return null;
+  const rows = editing ? draftLines : lines;
+  const total = rows.reduce((acc, row) => acc + toNumber(editing ? lineTotal(row) : row.total), 0);
 
-  const addOneTime = async (item) => {
-    setSavingKey(`one-${item.designation}`);
+  const save = async () => {
+    setSaving(true);
     try {
-      await onCreateBpInvestmentLine?.({
-        id: makeId('BPLI'), business_plan_id: plan.id, designation: item.designation, categorie: item.categorie,
-        quantite: item.quantite, unite: item.unite, prix_unitaire: item.prix_unitaire,
-        total: Math.round(toNumber(item.quantite) * toNumber(item.prix_unitaire)),
-      });
+      await Promise.all(draftLines.map((line) => onUpdateBpInvestmentLine?.(line.id, { designation: cleanDesignation(line.designation), categorie: line.categorie, quantite: toNumber(line.quantite), unite: line.unite, prix_unitaire: toNumber(line.prix_unitaire), total: lineTotal(line), statut: line.statut || 'prevu', preuve_url: line.preuve_url || '', transaction_id: line.transaction_id || '' })));
       await onRefreshBusinessPlans?.();
-      toast.success('Dépense ponctuelle ajoutée au BP');
-    } catch (error) {
-      toast.error(error.message || 'Ajout impossible');
-    } finally {
-      setSavingKey('');
-    }
+      setEditing(false);
+      toast.success('Dépenses mises à jour');
+    } catch (error) { toast.error(error.message || 'Mise à jour impossible'); } finally { setSaving(false); }
   };
 
-  const addMonthly = async (item) => {
-    setSavingKey(`month-${item.designation}`);
+  const markEffective = async (line) => {
     try {
-      await onCreateBpRecurringCost?.({
-        id: makeId('BPCOST'), business_plan_id: plan.id, designation: item.designation, categorie: item.categorie,
-        montant_mensuel: item.montant_mensuel, frequence: 'mensuelle',
-      });
+      await onUpdateBpInvestmentLine?.(line.id, { statut: 'effectif', effective_at: new Date().toISOString() });
       await onRefreshBusinessPlans?.();
-      toast.success('Dépense mensuelle ajoutée au BP');
-    } catch (error) {
-      toast.error(error.message || 'Ajout impossible');
-    } finally {
-      setSavingKey('');
-    }
+      toast.success('Ligne marquée effective');
+    } catch (error) { toast.error(error.message || 'Mise à jour impossible'); }
   };
+
+  const addLine = async (item) => {
+    await onCreateBpInvestmentLine?.({ id: makeId('BPLI'), business_plan_id: plan.id, designation: item.designation, categorie: item.categorie, quantite: item.quantite, unite: item.unite, prix_unitaire: item.prix_unitaire, total: Math.round(toNumber(item.quantite) * toNumber(item.prix_unitaire)), statut: 'prevu' });
+    await onRefreshBusinessPlans?.();
+    toast.success('Dépense ajoutée');
+  };
+  const addCost = async (item) => {
+    await onCreateBpRecurringCost?.({ id: makeId('BPCOST'), business_plan_id: plan.id, designation: item.designation, categorie: item.categorie, montant_mensuel: item.montant_mensuel, frequence: 'mensuelle' });
+    await onRefreshBusinessPlans?.();
+    toast.success('Charge ajoutée');
+  };
+
+  const updateDraft = (id, patch) => setDraftLines((prev) => prev.map((line) => line.id === id ? { ...line, ...patch } : line));
 
   return (
-    <div className="bg-white border border-[#d6c3a0] rounded-2xl p-5 space-y-5">
-      <div>
-        <p className="text-xs uppercase tracking-widest text-[#8a7456]">Bibliothèque BP</p>
-        <h3 className="text-xl font-black text-[#2f2415]">Ajouter des dépenses au BP sans sortir du module</h3>
-        <p className="text-sm text-[#7d6a4a] mt-1">Un BP agricole doit séparer les dépenses ponctuelles et les dépenses mensuelles. Tu ajoutes seulement ce qui concerne ton projet, puis tu modifies les prix dans le tableau de correction.</p>
+    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-5">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+        <div><h3 className="font-black text-[#2f2415]">Dépenses du BP</h3><p className="text-sm text-[#8a7456]">Prévu, effectif, preuve et transaction liée.</p></div>
+        <div className="flex flex-wrap gap-2"><div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2"><p className="text-xs text-[#8a7456]">Total lignes</p><p className="font-black text-[#2f2415]">{fmtCurrency(total)}</p></div>{editing ? <Btn icon={Save} onClick={save} disabled={saving}>Enregistrer</Btn> : <Btn icon={Edit} onClick={() => setEditing(true)}>Modifier</Btn>}{editing && <Btn variant="outline" onClick={() => { setDraftLines(lines.map((line) => ({ ...line, designation: cleanDesignation(line.designation) }))); setEditing(false); }}>Annuler</Btn>}</div>
       </div>
-
-      <div>
-        <div className="flex items-center gap-2 mb-3"><PackagePlus size={18} className="text-[#9a6b12]" /><h4 className="font-black text-[#2f2415]">Dépenses ponctuelles / investissement initial</h4></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {ONE_TIME_EXPENSES.map((item) => (
-            <button key={item.designation} type="button" onClick={() => addOneTime(item)} disabled={Boolean(savingKey)} className="text-left rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 hover:border-[#b6975f]">
-              <p className="font-black text-[#2f2415]">{item.designation}</p>
-              <p className="text-xs text-[#8a7456] mt-1">{item.categorie} · {item.quantite} {item.unite} · {fmtCurrency(item.prix_unitaire)}</p>
-              <p className="text-xs font-semibold text-[#9a6b12] mt-2"><Plus size={12} className="inline" /> Ajouter</p>
-            </button>
-          ))}
-        </div>
+      <div className="overflow-x-auto rounded-xl border border-[#eadcc2]">
+        <table className="w-full text-sm"><thead><tr className="bg-[#fffdf8] text-left text-xs uppercase text-[#8a7456]"><th className="px-3 py-2">Dépense</th><th className="px-3 py-2">Catégorie</th><th className="px-3 py-2">Qté</th><th className="px-3 py-2">Unité</th><th className="px-3 py-2">Prix</th><th className="px-3 py-2">Total</th><th className="px-3 py-2">Statut</th><th className="px-3 py-2">Preuve / transaction</th><th className="px-3 py-2">Action</th></tr></thead>
+          <tbody>{rows.map((line) => <tr key={line.id} className="border-t border-[#eadcc2]">
+            <td className="px-3 py-2 min-w-[240px]">{editing ? <input className="w-full rounded-lg border border-[#d6c3a0] px-2 py-1" value={line.designation || ''} onChange={(e) => updateDraft(line.id, { designation: e.target.value })} /> : cleanDesignation(line.designation)}</td>
+            <td className="px-3 py-2 min-w-[110px]">{editing ? <input className="w-full rounded-lg border border-[#d6c3a0] px-2 py-1" value={line.categorie || ''} onChange={(e) => updateDraft(line.id, { categorie: e.target.value })} /> : line.categorie}</td>
+            <td className="px-3 py-2 min-w-[80px]">{editing ? <input type="number" className="w-full rounded-lg border border-[#d6c3a0] px-2 py-1" value={line.quantite ?? 0} onChange={(e) => updateDraft(line.id, { quantite: e.target.value })} /> : line.quantite}</td>
+            <td className="px-3 py-2 min-w-[80px]">{editing ? <input className="w-full rounded-lg border border-[#d6c3a0] px-2 py-1" value={line.unite || ''} onChange={(e) => updateDraft(line.id, { unite: e.target.value })} /> : line.unite}</td>
+            <td className="px-3 py-2 min-w-[110px]">{editing ? <input type="number" className="w-full rounded-lg border border-[#d6c3a0] px-2 py-1" value={line.prix_unitaire ?? 0} onChange={(e) => updateDraft(line.id, { prix_unitaire: e.target.value })} /> : fmtCurrency(line.prix_unitaire)}</td>
+            <td className="px-3 py-2 font-black min-w-[120px]">{fmtCurrency(editing ? lineTotal(line) : line.total)}</td>
+            <td className="px-3 py-2 min-w-[100px]">{editing ? <select className="rounded-lg border border-[#d6c3a0] px-2 py-1" value={line.statut || 'prevu'} onChange={(e) => updateDraft(line.id, { statut: e.target.value })}><option value="prevu">prévu</option><option value="effectif">effectif</option><option value="annule">annulé</option></select> : (line.statut || 'prévu')}</td>
+            <td className="px-3 py-2 min-w-[180px]">{editing ? <div className="space-y-1"><input className="w-full rounded-lg border border-[#d6c3a0] px-2 py-1" placeholder="preuve" value={line.preuve_url || ''} onChange={(e) => updateDraft(line.id, { preuve_url: e.target.value })} /><input className="w-full rounded-lg border border-[#d6c3a0] px-2 py-1" placeholder="transaction" value={line.transaction_id || ''} onChange={(e) => updateDraft(line.id, { transaction_id: e.target.value })} /></div> : <span className="text-xs text-[#8a7456]">{line.preuve_url || line.transaction_id || '—'}</span>}</td>
+            <td className="px-3 py-2 min-w-[110px]">{!editing && line.statut !== 'effectif' ? <button className="text-xs font-bold text-emerald-600" onClick={() => markEffective(line)}><CheckCircle2 size={12} className="inline" /> Effectif</button> : null}{editing ? <button className="text-xs text-red-500" onClick={() => onDeleteBpInvestmentLine?.(line.id)}><Trash2 size={12} className="inline" /> Suppr.</button> : null}</td>
+          </tr>)}</tbody></table>
       </div>
-
-      <div>
-        <div className="flex items-center gap-2 mb-3"><CalendarDays size={18} className="text-[#9a6b12]" /><h4 className="font-black text-[#2f2415]">Dépenses mensuelles / exploitation</h4></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {MONTHLY_EXPENSES.map((item) => (
-            <button key={item.designation} type="button" onClick={() => addMonthly(item)} disabled={Boolean(savingKey)} className="text-left rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 hover:border-[#b6975f]">
-              <p className="font-black text-[#2f2415]">{item.designation}</p>
-              <p className="text-xs text-[#8a7456] mt-1">{item.categorie} · montant à ajuster dans le tableau du BP</p>
-              <p className="text-xs font-semibold text-[#9a6b12] mt-2"><Plus size={12} className="inline" /> Ajouter</p>
-            </button>
-          ))}
-        </div>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div><div className="flex items-center gap-2 mb-2"><PackagePlus size={16} className="text-[#9a6b12]" /><p className="font-bold text-[#2f2415]">Ajouter dépense ponctuelle</p></div><div className="grid grid-cols-1 md:grid-cols-2 gap-2">{ONE_TIME_EXPENSES.map((item) => <button key={item.designation} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-left hover:border-[#b6975f]" onClick={() => addLine(item)}><p className="font-bold text-sm text-[#2f2415]">{item.designation}</p><p className="text-xs text-[#8a7456]">{item.categorie}</p></button>)}</div></div>
+        <div><div className="flex items-center gap-2 mb-2"><CalendarDays size={16} className="text-[#9a6b12]" /><p className="font-bold text-[#2f2415]">Ajouter charge mensuelle</p></div><div className="grid grid-cols-1 md:grid-cols-2 gap-2">{MONTHLY_EXPENSES.map((item) => <button key={item.designation} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-left hover:border-[#b6975f]" onClick={() => addCost(item)}><p className="font-bold text-sm text-[#2f2415]">{item.designation}</p><p className="text-xs text-[#8a7456]">{item.categorie}</p></button>)}</div></div>
       </div>
     </div>
   );
 }
 
 export default function InvestissementsV5(props) {
+  const plan = useMemo(() => getActivePlan(props.businessPlans), [props.businessPlans]);
+  const lines = useMemo(() => plan ? safeArray(props.bpInvestmentLines).filter((row) => row.business_plan_id === plan.id) : [], [plan, props.bpInvestmentLines]);
+  const costs = useMemo(() => plan ? safeArray(props.bpRecurringCosts).filter((row) => row.business_plan_id === plan.id) : [], [plan, props.bpRecurringCosts]);
+  const projections = useMemo(() => plan ? safeArray(props.bpRevenueProjections).filter((row) => row.business_plan_id === plan.id) : [], [plan, props.bpRevenueProjections]);
+  const metrics = useMemo(() => buildMetrics({ plan, lines, costs, projections, transactions: props.transactions }), [plan, lines, costs, projections, props.transactions]);
+  const amortization = useMemo(() => buildAmortization({ projections, investment: metrics.investment }), [projections, metrics.investment]);
+
   return (
     <div className="space-y-6">
-      <FieldRentalPatch {...props} />
-      <ExpenseCatalog {...props} />
-      <InvestissementsV4 {...props} />
+      <Summary plan={plan} metrics={metrics} amortization={amortization} />
+      {amortization.length > 0 && <AmortizationPlan rows={amortization} />}
+      <ExpenseEditor plan={plan} lines={lines} costs={costs} {...props} />
+      <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5">
+        <div className="flex items-center gap-2 mb-3"><LinkIcon size={18} className="text-[#9a6b12]" /><h3 className="font-black text-[#2f2415]">Vue complète</h3></div>
+        <BaseInvestissements {...props} />
+      </div>
     </div>
   );
 }
