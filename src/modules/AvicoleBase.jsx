@@ -32,6 +32,7 @@ const deadCount = avicoleDeadCount;
 const sickCount = avicoleSickCount;
 const hasActiveBirds = avicoleHasActiveBirds;
 const statusFor = avicoleStatusFor;
+const latestWeight = (lot = {}) => toNumber(lot.poids_moyen_actuel ?? lot.weight_avg ?? lot.average_weight ?? lot.poids_moyen_entree ?? lot.weight_entry);
 
 function ageDays(lot = {}) {
   const start = lot.date_debut || lot.entry_date || lot.date_entree;
@@ -54,7 +55,7 @@ function readinessLabel(lot = {}) {
   const current = activeCount(lot);
   if (current <= 0 || statusFor(lot) === 'cloture') return 'Indisponible';
   const age = ageDays(lot);
-  const weight = toNumber(lot.weight_avg ?? lot.average_weight);
+  const weight = latestWeight(lot);
   if (lot.type === 'Chair') {
     if (age >= 30 && weight >= 1.5) return 'Prêt recommandé';
     if (age >= 30) return 'À surveiller poids';
@@ -91,20 +92,43 @@ export default function AvicoleBase({
   const prets = lots.filter((lot) => readinessLabel(lot).toLowerCase().includes('prêt') || readinessLabel(lot).toLowerCase().includes('réforme')).length;
   const coutAlim = lots.reduce((sum, lot) => sum + calculateLotMetrics({ lot, feedingLogs: alimentationLogs, productionLogs }).feedingCost, 0);
 
+  const avicoleFields = useMemo(() => {
+    const base = MODULE_FORM_FIELDS.avicole || [];
+    if (base.some((field) => field.key === 'poids_moyen_entree')) return base;
+    const weighingFields = [
+      { key: 'poids_moyen_entree', label: 'Poids moyen entrée (kg)', type: 'number' },
+      { key: 'date_pesee_entree', label: 'Date pesée entrée', type: 'date' },
+      { key: 'poids_moyen_actuel', label: 'Nouveau poids moyen / dernière pesée (kg)', type: 'number' },
+      { key: 'date_derniere_pesee', label: 'Date nouvelle pesée', type: 'date' },
+    ];
+    return base.flatMap((field) => field.key === 'weight_avg' ? [field, ...weighingFields] : [field]);
+  }, []);
+
   const initialLot = useMemo(() => {
     const type = tab === 'Chair' ? 'Chair' : 'Pondeuse';
     const id = generateSequentialId('avicole', rows, { type });
-    return { id, name: `${id} ${type}`, type, status: 'actif', health_status: 'sain', date_debut: today(), entry_date: today(), initial_count: 0, mortality: 0, malades: 0, weight_avg: 0, duree_cycle_unite: type === 'Chair' ? 'jours' : 'mois', duree_cycle_valeur: type === 'Chair' ? 45 : 18 };
+    return { id, name: `${id} ${type}`, type, status: 'actif', health_status: 'sain', date_debut: today(), entry_date: today(), initial_count: 0, mortality: 0, malades: 0, weight_avg: 0, poids_moyen_entree: 0, poids_moyen_actuel: 0, date_pesee_entree: today(), date_derniere_pesee: today(), duree_cycle_unite: type === 'Chair' ? 'jours' : 'mois', duree_cycle_valeur: type === 'Chair' ? 45 : 18 };
   }, [rows, tab]);
 
   const prepareLot = (payload) => {
     const current = activeCount(payload);
+    const entryWeight = toNumber(payload.poids_moyen_entree ?? payload.weight_entry ?? payload.weight_avg ?? payload.average_weight);
+    const currentWeight = toNumber(payload.poids_moyen_actuel ?? payload.weight_avg ?? payload.average_weight ?? entryWeight);
+    const entryDate = payload.date_pesee_entree || payload.date_debut || payload.entry_date || today();
+    const currentDate = payload.date_derniere_pesee || (currentWeight > 0 ? today() : '');
     return {
       ...payload,
       current_count: current,
       effectif_actuel: current,
+      weight_entry: entryWeight,
+      poids_moyen_entree: entryWeight,
+      weight_avg: currentWeight,
+      average_weight: currentWeight,
+      poids_moyen_actuel: currentWeight,
+      date_pesee_entree: entryDate,
+      date_derniere_pesee: currentDate,
       status: current <= 0 ? 'cloture' : statusFor({ ...payload, current_count: current }),
-      phase: current <= 0 ? 'Clôturé' : phaseFor({ ...payload, current_count: current }),
+      phase: current <= 0 ? 'Clôturé' : phaseFor({ ...payload, current_count: current, weight_avg: currentWeight, poids_moyen_actuel: currentWeight }),
       date_debut: payload.date_debut || payload.entry_date || today(),
       entry_date: payload.entry_date || payload.date_debut || today(),
     };
@@ -146,10 +170,10 @@ export default function AvicoleBase({
 
   const exportRows = () => {
     const fileName = `avicole-${tab.toLowerCase()}`;
-    const exportableRows = filteredByActivity.map((lot) => ({ ...lot, effectif_actuel_calcule: activeCount(lot), statut_calcule: statusFor(lot), decision_vente_calculee: readinessLabel(lot) }));
-    exportToCsv({ rows: exportableRows, columns: ['id', 'name', 'type', 'phase', 'initial_count', 'effectif_actuel_calcule', 'mortality', 'vols', 'vendus', 'reformes', 'autres_sorties', 'malades', 'weight_avg', 'statut_calcule'], fileName: `${fileName}.csv` });
+    const exportableRows = filteredByActivity.map((lot) => ({ ...lot, effectif_actuel_calcule: activeCount(lot), poids_moyen_actuel_calcule: latestWeight(lot), statut_calcule: statusFor(lot), decision_vente_calculee: readinessLabel(lot) }));
+    exportToCsv({ rows: exportableRows, columns: ['id', 'name', 'type', 'phase', 'initial_count', 'effectif_actuel_calcule', 'mortality', 'vols', 'vendus', 'reformes', 'autres_sorties', 'malades', 'poids_moyen_entree', 'poids_moyen_actuel_calcule', 'date_derniere_pesee', 'statut_calcule'], fileName: `${fileName}.csv` });
     exportToExcel({ rows: exportableRows, fileName: `${fileName}.xlsx`, sheetName: 'Avicole' });
-    exportToPdf({ rows: exportableRows, columns: ['id', 'name', 'type', 'initial_count', 'effectif_actuel_calcule', 'statut_calcule'], fileName: `${fileName}.pdf`, title: 'Lots avicoles' });
+    exportToPdf({ rows: exportableRows, columns: ['id', 'name', 'type', 'initial_count', 'effectif_actuel_calcule', 'poids_moyen_actuel_calcule', 'statut_calcule'], fileName: `${fileName}.pdf`, title: 'Lots avicoles' });
     toast.success('Exports générés');
   };
 
@@ -160,7 +184,7 @@ export default function AvicoleBase({
     { key: 'age', label: 'Âge', render: (lot) => `${ageDays(lot)} j` },
     { key: 'effectif', label: 'Effectif', render: (lot) => <span className="font-bold">{fmtNumber(activeCount(lot))}</span> },
     { key: 'morts', label: 'Morts / malades', render: (lot) => `${fmtNumber(deadCount(lot))} / ${fmtNumber(sickCount(lot))}` },
-    { key: 'weight_avg', label: 'Poids moy.', render: (lot) => lot.type === 'Chair' ? `${toNumber(lot.weight_avg ?? lot.average_weight).toFixed(2)} kg` : '—' },
+    { key: 'weight_avg', label: 'Poids moy.', render: (lot) => latestWeight(lot) > 0 ? `${latestWeight(lot).toFixed(2)} kg` : '—' },
     { key: 'readiness', label: 'Décision vente', render: (lot) => readinessLabel(lot) },
     { key: 'status', label: 'Statut', render: (lot) => <Badge status={statusFor(lot)} /> },
     { key: 'actions', label: 'Actions', render: (lot) => <div className="flex gap-1"><ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected(lot); setModal('view'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(lot); setModal('edit'); }} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(lot); setModal('delete'); }} /></div> },
@@ -172,9 +196,9 @@ export default function AvicoleBase({
     <div className="grid grid-cols-2 xl:grid-cols-6 gap-4"><KpiCard label="Effectif actif" value={fmtNumber(totalEffectif)} /><KpiCard label="Lots actifs" value={lots.length} /><KpiCard label="Lots clôturés" value={closedLots.length} /><KpiCard label="Prêts / réforme" value={prets} /><KpiCard label="Morts" value={fmtNumber(morts)} /><KpiCard label="Malades" value={fmtNumber(malades)} /><KpiCard label="Coût alim." value={fmtCurrency(coutAlim)} /></div>
     <DataTable title="Lots avicoles actifs" rows={lots} columns={columns} loading={loading} initialSortKey="id" searchPlaceholder="Rechercher lot..." emptyMessage="Aucun lot actif disponible. Les lots à effectif 0 sont exclus des workflows actifs." />
     {closedLots.length ? <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4 text-sm text-[#8a7456]"><strong className="text-[#2f2415]">Lots clôturés / sans effectif :</strong> {closedLots.length}. Ils restent dans les exports mais sont exclus des ventes, soins, alimentation et production active.</div> : null}
-    {selected && modal === 'view' ? <div className="bg-white border border-[#d6c3a0] rounded-2xl p-5"><div className="flex justify-between gap-3"><div><p className="text-xs uppercase text-[#8a7456]">Fiche lot</p><h3 className="text-xl font-black text-[#2f2415]">{selected.name || selected.id}</h3><p className="text-sm text-[#8a7456] mt-1">{selected.type} · {phaseFor(selected)} · {readinessLabel(selected)} · effectif {fmtNumber(activeCount(selected))}</p></div><Btn variant="outline" onClick={() => setModal(null)}>Fermer</Btn></div></div> : null}
-    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={MODULE_FORM_FIELDS.avicole} initialValues={initialLot} autoId={(values) => generateSequentialId('avicole', rows, values)} loading={saving} title="Ajouter lot avicole" submitLabel="Ajouter" />
-    <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={MODULE_FORM_FIELDS.avicole} initialValues={selected ? { ...selected, current_count: activeCount(selected), effectif_actuel: activeCount(selected), status: statusFor(selected), phase: phaseFor(selected) } : {}} loading={saving} title="Modifier lot avicole" submitLabel="Enregistrer" />
+    {selected && modal === 'view' ? <div className="bg-white border border-[#d6c3a0] rounded-2xl p-5"><div className="flex justify-between gap-3"><div><p className="text-xs uppercase text-[#8a7456]">Fiche lot</p><h3 className="text-xl font-black text-[#2f2415]">{selected.name || selected.id}</h3><p className="text-sm text-[#8a7456] mt-1">{selected.type} · {phaseFor(selected)} · {readinessLabel(selected)} · effectif {fmtNumber(activeCount(selected))} · poids {latestWeight(selected) > 0 ? `${latestWeight(selected).toFixed(2)} kg` : 'non renseigné'}</p></div><Btn variant="outline" onClick={() => setModal(null)}>Fermer</Btn></div></div> : null}
+    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={avicoleFields} initialValues={initialLot} autoId={(values) => generateSequentialId('avicole', rows, values)} loading={saving} title="Ajouter lot avicole" submitLabel="Ajouter" />
+    <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={avicoleFields} initialValues={selected ? { ...selected, current_count: activeCount(selected), effectif_actuel: activeCount(selected), status: statusFor(selected), phase: phaseFor(selected), poids_moyen_entree: toNumber(selected.poids_moyen_entree ?? selected.weight_entry ?? selected.weight_avg), poids_moyen_actuel: latestWeight(selected), date_pesee_entree: selected.date_pesee_entree || selected.date_debut || selected.entry_date || today(), date_derniere_pesee: selected.date_derniere_pesee || today() } : {}} loading={saving} title="Modifier lot avicole" submitLabel="Enregistrer" />
     <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={confirmDelete} itemLabel={selected ? `${selected.name || selected.id}` : ''} loading={saving} />
   </div>;
 }
