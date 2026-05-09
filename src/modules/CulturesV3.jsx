@@ -17,9 +17,12 @@ import { generateSequentialId } from '../utils/ids';
 import { calculateCultureMetrics } from '../utils/businessCalculations';
 import CulturesWorkflowBridge from './CulturesWorkflowBridge.jsx';
 import CulturesSaleOpportunityBridge from './CulturesSaleOpportunityBridge.jsx';
+import CulturesTabActionsBridge, { getRealCultureRows } from './CulturesTabActionsBridge.jsx';
 
 const tabs = ['Vue d’ensemble', 'Cultures', 'Parcelles', 'Campagnes', 'Performance'];
 const today = () => new Date().toISOString().slice(0, 10);
+const recordType = (row = {}) => String(row.record_type || row.type_fiche || 'culture').toLowerCase();
+const isSupportRecord = (row = {}) => ['parcelle', 'campagne', 'performance'].includes(recordType(row));
 const surfaceOf = (row = {}) => toNumber(row.surface_exploitable ?? row.surface);
 const parcelKey = (row = {}) => row.parcelle_code || row.parcelle_nom || row.parcelle || 'Parcelle non renseignée';
 const campaignKey = (row = {}) => row.campagne || row.saison || row.date_debut_campagne || 'Campagne non renseignée';
@@ -50,6 +53,9 @@ const CULTURE_FIELDS = [
   { key: 'cout_traitement', label: 'Coût traitements', type: 'number' },
   { key: 'quantite_prevue', label: 'Quantité prévue', type: 'number' },
   { key: 'quantite_recoltee', label: 'Quantité récoltée', type: 'number' },
+  { key: 'quantite_disponible', label: 'Quantité disponible', type: 'number' },
+  { key: 'unite_recolte', label: 'Unité récolte', type: 'text' },
+  { key: 'prix_vente_unitaire', label: 'Prix vente unitaire', type: 'number' },
   { key: 'revenu_estime', label: 'Revenu estimé', type: 'number' },
   { key: 'revenu_reel', label: 'Revenu réel', type: 'number' },
   { key: 'pertes', label: 'Pertes', type: 'number' },
@@ -74,6 +80,10 @@ function aggregate(rows, keyFn) {
   return Array.from(map.values());
 }
 
+function supportRows(rows, type) {
+  return rows.filter((row) => recordType(row) === type);
+}
+
 function MiniChart({ rows }) {
   const top = rows.slice(0, 8);
   const max = Math.max(1, ...top.map((row) => Math.abs(marginOf(row))));
@@ -86,28 +96,33 @@ export default function CulturesV3({ rows = [], opportunities = [], loading, onC
   const [modal, setModal] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  const parcelles = useMemo(() => aggregate(rows, parcelKey), [rows]);
-  const campagnes = useMemo(() => aggregate(rows, campaignKey), [rows]);
+  const realRows = useMemo(() => getRealCultureRows(rows), [rows]);
+  const parcellesAuto = useMemo(() => aggregate(realRows, parcelKey), [realRows]);
+  const campagnesAuto = useMemo(() => aggregate(realRows, campaignKey), [realRows]);
+  const parcelles = useMemo(() => [...supportRows(rows, 'parcelle'), ...parcellesAuto], [rows, parcellesAuto]);
+  const campagnes = useMemo(() => [...supportRows(rows, 'campagne'), ...campagnesAuto], [rows, campagnesAuto]);
+  const performances = useMemo(() => supportRows(rows, 'performance'), [rows]);
+  const performanceRows = useMemo(() => [...performances, ...realRows], [performances, realRows]);
   const analytics = useMemo(() => {
-    const totalSurface = rows.reduce((sum, row) => sum + surfaceOf(row), 0);
-    const totalCost = rows.reduce((sum, row) => sum + costOf(row), 0);
-    const totalRevenue = rows.reduce((sum, row) => sum + revenueOf(row), 0);
-    const totalMargin = rows.reduce((sum, row) => sum + marginOf(row), 0);
-    const risks = rows.filter((row) => healthOf(row) < 80 || row.statut === 'perdu').length;
-    const harvestSoon = rows.filter((row) => row.date_recolte_prevue && (new Date(row.date_recolte_prevue) - new Date()) / 86400000 <= 14 && (new Date(row.date_recolte_prevue) - new Date()) / 86400000 >= 0).length;
+    const totalSurface = realRows.reduce((sum, row) => sum + surfaceOf(row), 0);
+    const totalCost = realRows.reduce((sum, row) => sum + costOf(row), 0);
+    const totalRevenue = realRows.reduce((sum, row) => sum + revenueOf(row), 0);
+    const totalMargin = realRows.reduce((sum, row) => sum + marginOf(row), 0);
+    const risks = realRows.filter((row) => healthOf(row) < 80 || row.statut === 'perdu').length;
+    const harvestSoon = realRows.filter((row) => row.date_recolte_prevue && (new Date(row.date_recolte_prevue) - new Date()) / 86400000 <= 14 && (new Date(row.date_recolte_prevue) - new Date()) / 86400000 >= 0).length;
     return { totalSurface, totalCost, totalRevenue, totalMargin, risks, harvestSoon };
-  }, [rows]);
+  }, [realRows]);
 
   const submitCreate = async (payload) => {
-    try { setSaving(true); await onCreate?.(payload); toast.success('Culture ajoutée'); setModal(null); } catch (error) { toast.error(error.message || 'Création impossible'); } finally { setSaving(false); }
+    try { setSaving(true); await onCreate?.({ ...payload, record_type: 'culture' }); toast.success('Culture ajoutée'); setModal(null); } catch (error) { toast.error(error.message || 'Création impossible'); } finally { setSaving(false); }
   };
   const submitEdit = async (payload) => {
     if (!selected) return;
-    try { setSaving(true); await onUpdate?.(selected.id, payload); toast.success('Culture modifiée'); setModal(null); } catch (error) { toast.error(error.message || 'Modification impossible'); } finally { setSaving(false); }
+    try { setSaving(true); await onUpdate?.(selected.id, payload); toast.success('Fiche modifiée'); setModal(null); } catch (error) { toast.error(error.message || 'Modification impossible'); } finally { setSaving(false); }
   };
   const submitDelete = async () => {
     if (!selected) return;
-    try { setSaving(true); await onDelete?.(selected.id); toast.success('Culture supprimée'); setModal(null); } catch (error) { toast.error(error.message || 'Suppression impossible'); } finally { setSaving(false); }
+    try { setSaving(true); await onDelete?.(selected.id); toast.success('Fiche supprimée'); setModal(null); } catch (error) { toast.error(error.message || 'Suppression impossible'); } finally { setSaving(false); }
   };
   const doExports = () => {
     const enriched = rows.map((row) => ({ ...row, cout_total_calcule: costOf(row), revenu_calcule: revenueOf(row), marge_calculee: marginOf(row), score_sante_calcule: healthOf(row) }));
@@ -124,6 +139,7 @@ export default function CulturesV3({ rows = [], opportunities = [], loading, onC
     { key: 'surface', label: 'Surface', sortable: true, render: (row) => `${fmtNumber(surfaceOf(row))} ${row.unite_surface || 'm²'}` },
     { key: 'cout', label: 'Coût auto', sortable: true, render: (row) => fmtCurrency(costOf(row)) },
     { key: 'revenu', label: 'Revenu', sortable: true, render: (row) => fmtCurrency(revenueOf(row)) },
+    { key: 'recolte', label: 'Récolte dispo.', render: (row) => `${fmtNumber(toNumber(row.quantite_disponible ?? row.quantite_recoltee))} ${row.unite_recolte || row.unite_production || 'kg'}` },
     { key: 'marge', label: 'Marge', sortable: true, render: (row) => <span className={marginOf(row) >= 0 ? 'text-emerald-600 font-bold' : 'text-red-500 font-bold'}>{fmtCurrency(marginOf(row))}</span> },
     { key: 'sante', label: 'Santé auto', render: (row) => `${healthOf(row).toFixed(0)}%` },
     { key: 'statut', label: 'Statut', render: (row) => <Badge status={row.statut || 'planifiee'} /> },
@@ -131,27 +147,30 @@ export default function CulturesV3({ rows = [], opportunities = [], loading, onC
   ];
   const aggregateColumns = [
     { key: 'nom', label: 'Nom', sortable: true, render: (row) => <span className="font-black text-[#2f2415]">{row.nom}</span> },
-    { key: 'cultures', label: 'Cultures', sortable: true },
+    { key: 'cultures', label: 'Cultures', sortable: true, render: (row) => row.cultures ?? '—' },
     { key: 'surface', label: 'Surface', render: (row) => `${fmtNumber(row.surface)} m²` },
     { key: 'cout', label: 'Coût', render: (row) => fmtCurrency(row.cout) },
     { key: 'revenu', label: 'Revenu', render: (row) => fmtCurrency(row.revenu) },
-    { key: 'marge', label: 'Marge', render: (row) => <span className={row.marge >= 0 ? 'text-emerald-600 font-bold' : 'text-red-500 font-bold'}>{fmtCurrency(row.marge)}</span> },
-    { key: 'risques', label: 'Risques', sortable: true },
+    { key: 'marge', label: 'Marge', render: (row) => <span className={toNumber(row.marge) >= 0 ? 'text-emerald-600 font-bold' : 'text-red-500 font-bold'}>{fmtCurrency(row.marge)}</span> },
+    { key: 'risques', label: 'Risques', sortable: true, render: (row) => row.risques ?? '—' },
+    { key: 'actions', label: 'Actions', render: (row) => isSupportRecord(row) ? <div className="flex gap-1"><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(row); setModal('edit'); }} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(row); setModal('delete'); }} /></div> : <span className="text-xs text-[#8a7456]">Auto</span> },
   ];
 
   return <div className="space-y-6">
     <SectionHeader title="Cultures, Parcelles & Campagnes" sub="Pilotage végétal connecté: parcelles, campagnes, coûts, récoltes, marge et risques" actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter culture</Btn></>} />
-    <CulturesWorkflowBridge rows={rows} onUpdate={onUpdate} onRefresh={onRefresh} />
-    <CulturesSaleOpportunityBridge rows={rows} opportunities={opportunities} onUpdate={onUpdate} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} />
+    <CulturesWorkflowBridge rows={realRows} onUpdate={onUpdate} onRefresh={onRefresh} />
+    <CulturesSaleOpportunityBridge rows={realRows} opportunities={opportunities} onUpdate={onUpdate} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} />
     <div className="flex flex-wrap gap-2">{tabs.map((item) => <button type="button" key={item} onClick={() => setTab(item)} className={`rounded-xl border px-4 py-2 text-sm font-semibold ${tab === item ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}>{item}</button>)}</div>
-    <div className="grid grid-cols-2 lg:grid-cols-6 gap-4"><KpiCard icon={Sprout} label="Cultures" value={rows.length} /><KpiCard icon={Leaf} label="Surface" value={`${fmtNumber(analytics.totalSurface)} m²`} /><KpiCard icon={TrendingUp} label="Revenu" value={fmtCurrency(analytics.totalRevenue)} /><KpiCard icon={TrendingUp} label="Marge" value={fmtCurrency(analytics.totalMargin)} /><KpiCard icon={AlertTriangle} label="Risques" value={analytics.risks} /><KpiCard icon={Calendar} label="Récoltes proches" value={analytics.harvestSoon} /></div>
-    {tab === 'Vue d’ensemble' ? <div className="grid grid-cols-1 xl:grid-cols-3 gap-4"><div className="xl:col-span-2"><MiniChart rows={rows} /></div><div className="rounded-2xl border border-[#d6c3a0] bg-white p-5"><p className="font-black text-[#2f2415] mb-2">Connexions cultures</p><div className="space-y-2 text-sm text-[#7d6a4a]"><p><CheckCircle2 size={14} className="inline text-emerald-600" /> Intrants et coûts viennent du Stock/Finances.</p><p><CheckCircle2 size={14} className="inline text-emerald-600" /> Récolte peut alimenter Stock/Ventes.</p><p><CheckCircle2 size={14} className="inline text-emerald-600" /> Pertes et risques alimentent Alertes/Traçabilité.</p></div></div></div> : null}
-    {['Vue d’ensemble', 'Cultures', 'Performance'].includes(tab) ? <DataTable title={tab === 'Performance' ? 'Performance cultures' : 'Cultures'} rows={rows} columns={cultureColumns} loading={loading} initialSortKey="nom" searchPlaceholder="Rechercher culture, parcelle, campagne..." /> : null}
-    {tab === 'Parcelles' ? <DataTable title="Parcelles dérivées" rows={parcelles} columns={aggregateColumns} loading={loading} initialSortKey="nom" /> : null}
-    {tab === 'Campagnes' ? <DataTable title="Campagnes dérivées" rows={campagnes} columns={aggregateColumns} loading={loading} initialSortKey="nom" /> : null}
+    <CulturesTabActionsBridge tab={tab} rows={rows} opportunities={opportunities} onCreate={onCreate} onUpdate={onUpdate} onDelete={onDelete} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} />
+    <div className="grid grid-cols-2 lg:grid-cols-6 gap-4"><KpiCard icon={Sprout} label="Cultures" value={realRows.length} /><KpiCard icon={Leaf} label="Surface" value={`${fmtNumber(analytics.totalSurface)} m²`} /><KpiCard icon={TrendingUp} label="Revenu" value={fmtCurrency(analytics.totalRevenue)} /><KpiCard icon={TrendingUp} label="Marge" value={fmtCurrency(analytics.totalMargin)} /><KpiCard icon={AlertTriangle} label="Risques" value={analytics.risks} /><KpiCard icon={Calendar} label="Récoltes proches" value={analytics.harvestSoon} /></div>
+    {tab === 'Vue d’ensemble' ? <div className="grid grid-cols-1 xl:grid-cols-3 gap-4"><div className="xl:col-span-2"><MiniChart rows={realRows} /></div><div className="rounded-2xl border border-[#d6c3a0] bg-white p-5"><p className="font-black text-[#2f2415] mb-2">Connexions cultures</p><div className="space-y-2 text-sm text-[#7d6a4a]"><p><CheckCircle2 size={14} className="inline text-emerald-600" /> Intrants et coûts viennent du Stock/Finances.</p><p><CheckCircle2 size={14} className="inline text-emerald-600" /> Récolte peut alimenter Stock/Ventes.</p><p><CheckCircle2 size={14} className="inline text-emerald-600" /> Pertes et risques alimentent Alertes/Traçabilité.</p></div></div></div> : null}
+    {['Vue d’ensemble', 'Cultures'].includes(tab) ? <DataTable title="Cultures" rows={realRows} columns={cultureColumns} loading={loading} initialSortKey="nom" searchPlaceholder="Rechercher culture, parcelle, campagne..." /> : null}
+    {tab === 'Performance' ? <DataTable title="Performance cultures" rows={performanceRows} columns={cultureColumns} loading={loading} initialSortKey="nom" searchPlaceholder="Rechercher performance..." /> : null}
+    {tab === 'Parcelles' ? <DataTable title="Parcelles" rows={parcelles} columns={aggregateColumns} loading={loading} initialSortKey="nom" /> : null}
+    {tab === 'Campagnes' ? <DataTable title="Campagnes" rows={campagnes} columns={aggregateColumns} loading={loading} initialSortKey="nom" /> : null}
     <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, cout_total_calcule: costOf(selected), revenu_calcule: revenueOf(selected), marge_calculee: marginOf(selected), score_sante_calcule: healthOf(selected) } : selected} title="Fiche culture" />
-    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={CULTURE_FIELDS} initialValues={{ id: generateSequentialId('cultures', rows), statut: 'planifiee', date_debut_campagne: today(), unite_surface: 'm²' }} autoId={() => generateSequentialId('cultures', rows)} loading={saving} title="Ajouter culture" submitLabel="Ajouter" />
-    <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={CULTURE_FIELDS} initialValues={selected || {}} loading={saving} title="Modifier culture" submitLabel="Enregistrer" />
+    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={CULTURE_FIELDS} initialValues={{ id: generateSequentialId('cultures', rows), record_type: 'culture', statut: 'planifiee', date_debut_campagne: today(), unite_surface: 'm²', unite_recolte: 'kg' }} autoId={() => generateSequentialId('cultures', rows)} loading={saving} title="Ajouter culture" submitLabel="Ajouter" />
+    <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={CULTURE_FIELDS} initialValues={selected || {}} loading={saving} title="Modifier fiche" submitLabel="Enregistrer" />
     <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected?.nom || selected?.id || ''} loading={saving} />
   </div>;
 }
