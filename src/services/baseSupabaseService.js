@@ -67,15 +67,39 @@ const isDuplicateKeyError = (error) => {
   return error?.code === '23505' || message.includes('duplicate key value violates unique constraint');
 };
 
+const isSingleObjectCoercionError = (error) => {
+  const message = String(error?.message || '').toLowerCase();
+  return error?.code === 'PGRST116' || message.includes('cannot coerce the result to a single json object') || message.includes('json object requested');
+};
+
 const withoutColumn = (payload, column) =>
   Object.fromEntries(Object.entries(payload).filter(([key]) => (dbKeyMap[key] || key) !== column));
 
+const firstRow = (data, fallback = null) => Array.isArray(data) ? (data[0] || fallback) : (data || fallback);
+
+const selectExistingByPrimaryKey = async ({ table, id, idField, fallback }) => {
+  if (!id) return fallback;
+  const { data, error } = await supabase.from(table).select('*').eq(idField, id).limit(1);
+  if (error) return fallback;
+  return firstRow(data, fallback);
+};
+
 const updateExistingByPrimaryKey = async ({ table, payload, idField }) => {
   const id = payload?.[idField];
-  if (!id) return null;
-  const { data, error } = await supabase.from(table).update(payload).eq(idField, id).select('*').single();
-  if (error) throw error;
-  return data;
+  if (!id) return payload;
+  const { data, error } = await supabase.from(table).update(payload).eq(idField, id).select('*').limit(1);
+  if (error) {
+    if (isSingleObjectCoercionError(error)) return selectExistingByPrimaryKey({ table, id, idField, fallback: payload });
+    throw error;
+  }
+  return firstRow(data, payload);
+};
+
+const executeMutation = async ({ table, action, payload, id, idField }) => {
+  if (action === 'insert') {
+    return supabase.from(table).insert(payload).select('*').limit(1);
+  }
+  return supabase.from(table).update(payload).eq(idField, id).select('*').limit(1);
 };
 
 const runMutationWithSchemaRetry = async ({ table, action, payload, id, idField }) => {
@@ -83,12 +107,12 @@ const runMutationWithSchemaRetry = async ({ table, action, payload, id, idField 
   const removedColumns = [];
 
   for (let attempt = 0; attempt < 12; attempt += 1) {
-    const query = action === 'insert'
-      ? supabase.from(table).insert(nextPayload).select('*').single()
-      : supabase.from(table).update(nextPayload).eq(idField, id).select('*').single();
+    const { data, error } = await executeMutation({ table, action, payload: nextPayload, id, idField });
+    if (!error) return firstRow(data, nextPayload);
 
-    const { data, error } = await query;
-    if (!error) return data;
+    if (isSingleObjectCoercionError(error)) {
+      return selectExistingByPrimaryKey({ table, id: id || nextPayload?.[idField], idField, fallback: nextPayload });
+    }
 
     if (action === 'insert' && isDuplicateKeyError(error) && nextPayload?.[idField]) {
       return updateExistingByPrimaryKey({ table, payload: nextPayload, idField });
