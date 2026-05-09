@@ -13,9 +13,9 @@ const fmtDate = (value) => {
 
 const normalizeInvoiceStatus = (invoice = {}) => {
   const raw = String(invoice.statut_facture || invoice.invoice_status || invoice.statut || '').toLowerCase();
-  if (['brouillon', 'emise', 'émise', 'envoyee', 'envoyée', 'annulee', 'annulée'].includes(raw)) return raw.replace('émise', 'emise').replace('envoyée', 'envoyee').replace('annulée', 'annulee');
-  if (['paye', 'payé', 'partiel', 'non_paye', 'impaye', 'impayé'].includes(raw)) return invoice.date_envoi || invoice.sent_at ? 'envoyee' : 'emise';
-  return invoice.id ? 'emise' : 'brouillon';
+  if (['enregistree', 'enregistrée', 'emise', 'émise', 'envoyee', 'envoyée', 'annulee', 'annulée'].includes(raw)) return raw.replace('enregistrée', 'enregistree').replace('émise', 'emise').replace('envoyée', 'envoyee').replace('annulée', 'annulee');
+  if (['paye', 'payé', 'partiel', 'non_paye', 'impaye', 'impayé', 'solde', 'soldé'].includes(raw)) return invoice.date_envoi || invoice.sent_at ? 'envoyee' : 'emise';
+  return invoice.id ? 'emise' : 'enregistree';
 };
 
 const invoicePaymentStatus = (invoice = {}, order = {}) => (
@@ -24,6 +24,13 @@ const invoicePaymentStatus = (invoice = {}, order = {}) => (
   || order.statut_paiement
   || 'non_paye'
 );
+
+const orderTone = (status) => {
+  if (status === 'annule') return 'red';
+  if (status === 'livre') return 'emerald';
+  if (status === 'confirme' || status === 'enregistree') return 'sky';
+  return 'amber';
+};
 
 function Pill({ children, tone = 'slate' }) {
   const tones = {
@@ -96,14 +103,16 @@ export default function SaleDetailModal({
   const paidFromPayments = payments.reduce((sum, payment) => sum + Number(payment.montant || payment.montant_paye || payment.amount || 0), 0);
   const paid = Number(order.montant_paye ?? order.paid_amount ?? paidFromPayments ?? 0);
   const remaining = Number(order.reste_a_payer ?? order.remaining_amount ?? Math.max(0, total - paid));
+  const orderStatus = order.statut_commande || (paid > 0 ? 'confirme' : total > 0 ? 'enregistree' : 'brouillon');
+  const paymentStatus = order.statut_paiement || (paid >= total && total > 0 ? 'paye' : paid > 0 ? 'partiel' : 'non_paye');
+  const deliveryStatus = order.statut_livraison || 'a_livrer';
   const paidTransactions = transactions.filter((tx) => (tx.statut || 'paye') !== 'impaye');
-  const receivableTransactions = transactions.filter((tx) => (tx.statut || '') === 'impaye');
   const linkedEvents = businessEvents.filter((event) => event.linked_sale_id === order.id || event.entity_id === order.id);
   const linkedDocuments = documents.filter((doc) => doc.entity_id === order.id || doc.linked_sale_id === order.id);
   const hasAccounting = transactions.some((tx) => tx.accounting_entry_id);
 
-  const openInvoiceCleanly = () => {
-    onInvoice?.();
+  const openAndClose = (callback) => {
+    callback?.();
     window.setTimeout(() => onClose?.(), 0);
   };
 
@@ -115,9 +124,9 @@ export default function SaleDetailModal({
             <p className="text-xs font-semibold uppercase tracking-wide text-[#8a7456]">Fiche vente</p>
             <h2 className="text-xl font-black text-[#2f2415]">CMD-{String(order.id || '').slice(-6)}</h2>
             <div className="mt-2 flex flex-wrap gap-2">
-              <Pill tone={order.statut_commande === 'annule' ? 'red' : order.statut_commande === 'livre' ? 'emerald' : 'sky'}>Commande: {statusLabel(order.statut_commande || 'brouillon')}</Pill>
-              <Pill tone={order.statut_paiement === 'paye' ? 'emerald' : order.statut_paiement === 'partiel' ? 'amber' : 'red'}>Paiement: {statusLabel(order.statut_paiement || 'non_paye')}</Pill>
-              <Pill tone={order.statut_livraison === 'livre' ? 'emerald' : 'amber'}>Livraison: {statusLabel(order.statut_livraison || 'a_livrer')}</Pill>
+              <Pill tone={orderTone(orderStatus)}>Commande: {statusLabel(orderStatus)}</Pill>
+              <Pill tone={paymentStatus === 'paye' ? 'emerald' : paymentStatus === 'partiel' ? 'amber' : 'red'}>Paiement: {statusLabel(paymentStatus)}</Pill>
+              <Pill tone={deliveryStatus === 'livre' ? 'emerald' : 'amber'}>Livraison: {statusLabel(deliveryStatus)}</Pill>
             </div>
           </div>
           <button onClick={onClose} className="rounded-xl p-2 text-[#8a7456] hover:bg-[#f5ece0]" aria-label="Fermer la fiche vente">
@@ -191,7 +200,7 @@ export default function SaleDetailModal({
 
           <Section title="Impacts inter-modules" icon={CheckCircle}>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              <ImpactBadge label="Source vendue" state={impactApplied ? 'ok' : order.statut_commande === 'brouillon' ? 'neutral' : 'warning'} />
+              <ImpactBadge label="Source vendue" state={impactApplied ? 'ok' : orderStatus === 'brouillon' ? 'neutral' : 'warning'} />
               <ImpactBadge label="Finance" state={paid > 0 && paidTransactions.length > 0 ? 'ok' : paid > 0 ? 'warning' : 'neutral'} />
               <ImpactBadge label="Creance client" state={remaining > 0 ? 'ok' : 'neutral'} />
               <ImpactBadge label="Comptabilite" state={hasAccounting ? 'ok' : 'neutral'} />
@@ -245,10 +254,10 @@ export default function SaleDetailModal({
         </div>
 
         <div className="flex flex-wrap justify-end gap-2 border-t border-[#e8d5b0] px-5 py-4">
-          <button onClick={onEdit} className="rounded-xl border border-[#e8d5b0] px-4 py-2 text-sm font-semibold text-[#8a7456] hover:bg-[#f5ece0]">Modifier</button>
-          {remaining > 0 ? <button onClick={onPay} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Encaisser / Paiement</button> : null}
-          <button onClick={openInvoiceCleanly} className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700">{invoices.length ? 'Ouvrir facture' : 'Generer facture'}</button>
-          {order.statut_commande !== 'annule' ? <button onClick={onCancel} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">Annuler</button> : null}
+          <button onClick={() => openAndClose(onEdit)} className="rounded-xl border border-[#e8d5b0] px-4 py-2 text-sm font-semibold text-[#8a7456] hover:bg-[#f5ece0]">Modifier</button>
+          {remaining > 0 ? <button onClick={() => openAndClose(onPay)} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Encaisser / Paiement</button> : null}
+          <button onClick={() => openAndClose(onInvoice)} className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700">{invoices.length ? 'Ouvrir facture' : 'Generer facture'}</button>
+          {orderStatus !== 'annule' ? <button onClick={onCancel} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">Annuler</button> : null}
         </div>
       </div>
     </div>
