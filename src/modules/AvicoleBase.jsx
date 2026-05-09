@@ -14,7 +14,7 @@ import { MODULE_FORM_FIELDS } from '../utils/constants';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
-import { calculateAvicoleLotMetrics } from '../utils/businessCalculations';
+import { calculateLotMetrics } from '../utils/businessCalculations';
 import { filterLotsByActivity } from '../utils/avicoleActivity';
 
 const tabs = ['Tous', 'Pondeuse', 'Chair'];
@@ -71,7 +71,7 @@ export default function AvicoleBase({
   const morts = lots.reduce((sum, lot) => sum + toNumber(lot.mortality), 0);
   const malades = lots.reduce((sum, lot) => sum + toNumber(lot.malades), 0);
   const prets = lots.filter((lot) => readinessLabel(lot).toLowerCase().includes('prêt') || readinessLabel(lot).toLowerCase().includes('réforme')).length;
-  const coutAlim = lots.reduce((sum, lot) => sum + calculateAvicoleLotMetrics({ lot, feedingLogs: alimentationLogs, productionLogs }).feedingCost, 0);
+  const coutAlim = lots.reduce((sum, lot) => sum + calculateLotMetrics({ lot, feedingLogs: alimentationLogs, productionLogs }).feedingCost, 0);
 
   const initialLot = useMemo(() => {
     const type = tab === 'Chair' ? 'Chair' : 'Pondeuse';
