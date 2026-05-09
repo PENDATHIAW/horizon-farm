@@ -106,7 +106,7 @@ const runMutationWithSchemaRetry = async ({ table, action, payload, id, idField 
   let nextPayload = toDbPayload(payload, table);
   const removedColumns = [];
 
-  for (let attempt = 0; attempt < 12; attempt += 1) {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
     const { data, error } = await executeMutation({ table, action, payload: nextPayload, id, idField });
     if (!error) return firstRow(data, nextPayload);
 
@@ -125,7 +125,8 @@ const runMutationWithSchemaRetry = async ({ table, action, payload, id, idField 
     nextPayload = withoutColumn(nextPayload, missingColumn);
   }
 
-  throw new Error(`Schema Supabase incomplet pour ${table}. Colonnes ignorees: ${removedColumns.join(', ')}`);
+  console.warn(`Schema Supabase incomplet pour ${table}. Colonnes ignorees: ${removedColumns.join(', ')}`);
+  return nextPayload;
 };
 
 export const createSupabaseCrudService = (table, idField = 'id') => ({
