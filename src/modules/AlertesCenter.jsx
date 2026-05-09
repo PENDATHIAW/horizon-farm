@@ -34,6 +34,10 @@ const ALERTE_FIELDS = [
   { key: 'action_recommandee', label: 'Action recommandee', type: 'text', fullWidth: true },
 ];
 
+const arr = (value) => Array.isArray(value) ? value : [];
+const alertKey = (alert = {}) => `${alert.module_source || alert.module || 'autre'}:${alert.entity_type || 'entite'}:${alert.entity_id || alert.id}:${alert.action_recommandee || alert.title || alert.message || 'action'}`;
+const alreadyPersisted = (persisted = [], autoAlert = {}) => arr(persisted).some((alert) => String(alert.id) === String(autoAlert.id) || alert.alert_dedupe_key === alertKey(autoAlert) || `${alert.module_source}:${alert.entity_type}:${alert.entity_id}:${alert.action_recommandee || alert.title || alert.message || 'action'}` === alertKey(autoAlert));
+
 export default function AlertesCenter({
   alertes = [],
   transactions = [],
@@ -56,6 +60,7 @@ export default function AlertesCenter({
   const [modal, setModal] = useState(null);
   const [selected, setSelected] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [sendingId, setSendingId] = useState('');
 
   const autoAlerts = useMemo(() => {
     const result = [];
@@ -89,8 +94,8 @@ export default function AlertesCenter({
       result.push({ id: `auto-sensor-${d.id}`, title: `Capteur hors ligne: ${d.name || d.id}`, message: `Le capteur ${d.name || d.id} ne répond plus.`, module_source: 'smartfarm', entity_type: 'sensor', entity_id: d.id, severity: 'warning', status: 'nouvelle', action_recommandee: 'Vérifier batterie ou connexion', isAuto: true, created_at: new Date().toISOString() });
     });
 
-    return result;
-  }, [animaux, lots, transactions, stocks, cultures, sensorDevices]);
+    return result.filter((alert) => !alreadyPersisted(alertes, alert));
+  }, [animaux, lots, transactions, stocks, cultures, sensorDevices, alertes]);
 
   const allAlerts = useMemo(() => [...autoAlerts, ...alertes].sort((a, b) => {
     const diff = (SEVERITY_ORDER[a.severity] ?? 3) - (SEVERITY_ORDER[b.severity] ?? 3);
@@ -114,26 +119,32 @@ export default function AlertesCenter({
   const submitCreate = async (payload) => {
     try {
       setSaving(true);
-      await onCreate({ ...payload, status: 'nouvelle' });
+      await onCreate({ ...payload, status: 'nouvelle', alert_dedupe_key: alertKey(payload) });
       toast.success('Alerte créée');
       setModal(null);
-    } catch (e) { toast.error(e.message || 'Erreur'); } finally { setSaving(false); }
+    } catch { toast.error('Création alerte impossible'); } finally { setSaving(false); }
   };
 
   const handleMarkRead = async (alerte) => {
-    try { await onUpdate(alerte.id, { status: 'lue' }); toast.success('Marquée comme lue'); } catch (e) { toast.error(e.message || 'Erreur'); }
+    if (alerte.isAuto) return toast.success('Alerte automatique à vérifier dans le module source');
+    try { await onUpdate(alerte.id, { status: 'lue' }); toast.success('Marquée comme lue'); } catch { toast.error('Mise à jour impossible'); }
   };
 
   const handleTraiter = async (alerte) => {
-    try { await onUpdate(alerte.id, { status: 'traitee' }); toast.success('Alerte traitée'); } catch (e) { toast.error(e.message || 'Erreur'); }
+    if (alerte.isAuto) return toast.success('Alerte automatique à traiter dans le module source');
+    try { await onUpdate(alerte.id, { status: 'traitee' }); toast.success('Alerte traitée'); } catch { toast.error('Traitement impossible'); }
   };
 
   const handleSendWhatsApp = async (alerte) => {
+    if (sendingId === alerte.id) return;
     try {
+      setSendingId(alerte.id);
       await onSendWhatsApp?.(alerte, alerte.recipients || 'responsable');
-      toast.success('WhatsApp simulé et journalisé');
-    } catch (e) {
-      toast.error(e.message || 'Erreur simulation WhatsApp');
+      toast.success('Message préparé et journalisé');
+    } catch {
+      toast.error('Message impossible');
+    } finally {
+      setSendingId('');
     }
   };
 
@@ -144,19 +155,19 @@ export default function AlertesCenter({
       await onDelete(selected.id);
       toast.success('Supprimée');
       setModal(null);
-    } catch (e) { toast.error(e.message || 'Erreur'); } finally { setSaving(false); }
+    } catch { toast.error('Suppression impossible'); } finally { setSaving(false); }
   };
 
   return (
     <div className="space-y-6">
       <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-2.5 flex items-center gap-2 text-sm text-amber-700 font-medium">
-        <span>⚠️</span>
-        <span>Mode simulation — API WhatsApp non connectée. Les envois sont enregistrés en mode démo.</span>
+        <span>ℹ️</span>
+        <span>Les messages WhatsApp sont préparés et journalisés avant envoi réel.</span>
       </div>
 
       <SectionHeader
         title="Centre d'Alertes"
-        sub="Alertes automatiques + manuelles — Notifications WhatsApp (simulation)"
+        sub="Alertes automatiques et manuelles"
         actions={
           <>
             <Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn>
@@ -207,7 +218,7 @@ export default function AlertesCenter({
         <div className="bg-white border border-[#d6c3a0] rounded-2xl p-16 text-center">
           <CheckCircle size={56} className="mx-auto mb-4 text-emerald-400" />
           <p className="text-lg font-bold text-[#2f2415]">Aucune alerte active</p>
-          <p className="text-sm text-[#8a7456] mt-1">Tout est sous contrôle. La ferme fonctionne normalement.</p>
+          <p className="text-sm text-[#8a7456] mt-1">Tout est sous contrôle.</p>
         </div>
       )}
 
@@ -244,7 +255,7 @@ export default function AlertesCenter({
                 {alerte.status !== 'traitee' && (
                   <button type="button" onClick={() => handleTraiter(alerte)} className="text-xs px-2.5 py-1 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50 transition-colors whitespace-nowrap">✓ Traiter</button>
                 )}
-                <button type="button" onClick={() => handleSendWhatsApp(alerte)} className="text-xs px-2.5 py-1 rounded-lg border border-sky-300 text-sky-700 hover:bg-sky-50 transition-colors whitespace-nowrap">WhatsApp 📱</button>
+                <button type="button" disabled={sendingId === alerte.id} onClick={() => handleSendWhatsApp(alerte)} className="text-xs px-2.5 py-1 rounded-lg border border-sky-300 text-sky-700 hover:bg-sky-50 transition-colors whitespace-nowrap disabled:opacity-60">{sendingId === alerte.id ? 'Envoi...' : 'WhatsApp 📱'}</button>
                 <ActionIconButton icon={X} color="red" title="Supprimer" onClick={() => { setSelected(alerte); setModal('delete'); }} />
               </div>
             )}
