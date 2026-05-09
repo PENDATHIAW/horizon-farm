@@ -1,18 +1,51 @@
 import { CheckCircle2, CreditCard, FileText, Receipt, RefreshCw, Users } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import useCrudModule from '../hooks/useCrudModule';
 import { commitSaleWorkflow, prepareSaleWorkflow, useSuggestion } from '../services/workflowService';
 import { fmtCurrency, toNumber } from '../utils/format';
+import { makeId } from '../utils/ids';
 import Ventes from './Ventes.jsx';
 
 const arr = (value) => Array.isArray(value) ? value : [];
-const total = (order = {}) => toNumber(order.montant_total ?? order.total ?? order.amount);
-const paid = (order = {}) => toNumber(order.montant_paye ?? order.paid_amount ?? order.amount_paid);
+const today = () => new Date().toISOString().slice(0, 10);
+const total = (order = {}) => toNumber(order.montant_total ?? order.total ?? order.amount ?? order.total_amount);
+const paidFromOrder = (order = {}) => toNumber(order.montant_paye ?? order.paid_amount ?? order.amount_paid);
 const payStatus = (order = {}) => String(order.statut_paiement ?? order.payment_status ?? '').toLowerCase();
 const orderStatus = (order = {}) => String(order.statut_commande ?? order.status ?? '').toLowerCase();
+const paymentOrderId = (payment = {}) => payment.order_id || payment.sale_id || payment.source_record_id || payment.related_id;
 const clientName = (clients, id) => arr(clients).find((c) => c.id === id)?.nom || arr(clients).find((c) => c.id === id)?.name || id || 'Client non renseigné';
 const badgeClass = (kind) => kind === 'Modifié' ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-emerald-100 text-emerald-700 border-emerald-200';
+const paymentMethods = [
+  { value: 'especes', label: 'Espèces' },
+  { value: 'wave', label: 'Wave' },
+  { value: 'orange_money', label: 'Orange Money' },
+  { value: 'virement', label: 'Virement' },
+  { value: 'cheque', label: 'Chèque' },
+];
+
+const paidForOrder = (order, payments = []) => {
+  const fromPayments = arr(payments)
+    .filter((payment) => String(paymentOrderId(payment) || '') === String(order.id || ''))
+    .filter((payment) => String(payment.statut || 'paye') !== 'annule')
+    .reduce((sum, payment) => sum + toNumber(payment.montant_paye ?? payment.montant ?? payment.amount), 0);
+  return Math.max(paidFromOrder(order), fromPayments);
+};
+const remainingForOrder = (order, payments = []) => Math.max(0, total(order) - paidForOrder(order, payments));
+const nextPaymentStatus = (order, payments = [], extra = 0) => {
+  const nextPaid = paidForOrder(order, payments) + toNumber(extra);
+  const amount = total(order);
+  if (amount > 0 && nextPaid >= amount) return 'paye';
+  if (nextPaid > 0) return 'partiel';
+  return 'non_paye';
+};
+const nextOrderStatus = (order, payments = [], extra = 0) => {
+  const current = orderStatus(order);
+  if (current === 'annule' || current === 'livre') return current;
+  if (paidForOrder(order, payments) + toNumber(extra) > 0) return 'confirme';
+  if (total(order) > 0) return current && current !== 'brouillon' ? current : 'enregistree';
+  return current || 'brouillon';
+};
 
 async function secureSale(order, props, setPreview) {
   const preview = prepareSaleWorkflow(order, {
@@ -43,6 +76,8 @@ async function refreshRelated(props) {
     props.onRefreshAlertes?.(),
     props.onRefreshFinances?.(),
     props.onRefreshBusinessEvents?.(),
+    props.onRefreshInvoices?.(),
+    props.onRefreshPayments?.(),
   ]);
 }
 
@@ -65,6 +100,121 @@ async function commitPreview(preview, props, setPreview) {
   } catch (error) {
     toast.error(error.message || 'Validation workflow vente impossible');
   }
+}
+
+function PaymentCapturePanel(props) {
+  const [form, setForm] = useState({ order_id: '', montant: '', moyen_paiement: 'wave', date_paiement: today(), notes: '' });
+  const [saving, setSaving] = useState(false);
+  const payments = arr(props.paymentsList || props.payments);
+  const openOrders = useMemo(() => arr(props.rows)
+    .filter((order) => total(order) > 0)
+    .filter((order) => orderStatus(order) !== 'annule')
+    .filter((order) => payStatus(order) !== 'paye')
+    .filter((order) => remainingForOrder(order, payments) > 0), [props.rows, payments]);
+  const selectedOrder = openOrders.find((order) => String(order.id) === String(form.order_id));
+  const remaining = selectedOrder ? remainingForOrder(selectedOrder, payments) : 0;
+  const amount = toNumber(form.montant || remaining);
+
+  const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const chooseOrder = (id) => {
+    const order = openOrders.find((item) => String(item.id) === String(id));
+    setForm((prev) => ({ ...prev, order_id: id, montant: order ? remainingForOrder(order, payments) : '' }));
+  };
+
+  const submit = async () => {
+    if (!selectedOrder) return toast.error('Choisis une commande à encaisser');
+    if (amount <= 0) return toast.error('Montant invalide');
+    if (amount > remaining) return toast.error(`Montant supérieur au reste à payer (${fmtCurrency(remaining)})`);
+    try {
+      setSaving(true);
+      const nextPaid = paidForOrder(selectedOrder, payments) + amount;
+      const paymentId = makeId('PAY');
+      await props.onCreatePayment?.({
+        id: paymentId,
+        order_id: selectedOrder.id,
+        sale_id: selectedOrder.id,
+        source_record_id: selectedOrder.id,
+        client_id: selectedOrder.client_id,
+        invoice_id: selectedOrder.invoice_id || '',
+        date_paiement: form.date_paiement || today(),
+        date: form.date_paiement || today(),
+        montant_paye: amount,
+        montant: amount,
+        amount,
+        moyen_paiement: form.moyen_paiement,
+        mode_paiement: form.moyen_paiement,
+        statut: 'paye',
+        notes: form.notes || `Paiement commande ${selectedOrder.id}`,
+      });
+      await props.onUpdate?.(selectedOrder.id, {
+        montant_paye: Math.min(total(selectedOrder), nextPaid),
+        reste_a_payer: Math.max(0, total(selectedOrder) - nextPaid),
+        statut_paiement: nextPaymentStatus(selectedOrder, payments, amount),
+        statut_commande: nextOrderStatus(selectedOrder, payments, amount),
+        moyen_paiement: form.moyen_paiement,
+        last_payment_id: paymentId,
+        last_payment_date: form.date_paiement || today(),
+      });
+      await refreshRelated(props);
+      toast.success('Paiement enregistré et commande mise à jour');
+      setForm({ order_id: '', montant: '', moyen_paiement: 'wave', date_paiement: today(), notes: '' });
+    } catch (error) {
+      toast.error(error.message || 'Paiement impossible');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Paiement</p>
+          <h3 className="font-black text-[#2f2415]">Encaisser une commande ouverte</h3>
+        </div>
+        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]">
+          {openOrders.length} commande(s) à encaisser
+        </div>
+      </div>
+      {openOrders.length ? (
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <label className="space-y-1 md:col-span-2">
+            <span className="text-xs text-[#8a7456]">Commande</span>
+            <select className="w-full bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm" value={form.order_id} onChange={(e) => chooseOrder(e.target.value)}>
+              <option value="">Choisir une commande</option>
+              {openOrders.map((order) => (
+                <option key={order.id} value={order.id}>{order.id} · {clientName(props.clients, order.client_id)} · reste {fmtCurrency(remainingForOrder(order, payments))}</option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs text-[#8a7456]">Montant</span>
+            <input type="number" className="w-full bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm" value={form.montant} onChange={(e) => set('montant', e.target.value)} />
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs text-[#8a7456]">Moyen</span>
+            <select className="w-full bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm" value={form.moyen_paiement} onChange={(e) => set('moyen_paiement', e.target.value)}>
+              {paymentMethods.map((method) => <option key={method.value} value={method.value}>{method.label}</option>)}
+            </select>
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs text-[#8a7456]">Date</span>
+            <input type="date" className="w-full bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm" value={form.date_paiement} onChange={(e) => set('date_paiement', e.target.value)} />
+          </label>
+          <label className="space-y-1 md:col-span-4">
+            <span className="text-xs text-[#8a7456]">Notes</span>
+            <input className="w-full bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm" value={form.notes} onChange={(e) => set('notes', e.target.value)} />
+          </label>
+          <div className="flex items-end justify-end">
+            <button type="button" disabled={saving} className="w-full rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-60" onClick={submit}>{saving ? 'Enregistrement...' : 'Encaisser'}</button>
+          </div>
+          {selectedOrder ? <div className="md:col-span-5 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">Reste à payer : <b>{fmtCurrency(remaining)}</b> · Après paiement : <b>{fmtCurrency(Math.max(0, remaining - amount))}</b></div> : null}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]"><CheckCircle2 size={14} className="inline" /> Aucune commande en attente de paiement.</div>
+      )}
+    </div>
+  );
 }
 
 function SalesPreviewModal({ preview, setPreview, props }) {
@@ -106,8 +256,9 @@ function Info({ title, value, badge }) { return <div className="rounded-xl borde
 function SalesBridge(props) {
   const [preview, setPreview] = useState(null);
   const orders = arr(props.rows);
+  const payments = arr(props.paymentsList || props.payments);
   const ca = orders.reduce((sum, order) => sum + total(order), 0);
-  const cash = orders.reduce((sum, order) => sum + paid(order), 0);
+  const cash = orders.reduce((sum, order) => sum + paidForOrder(order, payments), 0);
   const creances = Math.max(0, ca - cash);
   const toSecure = orders.filter((order) => total(order) > 0 && payStatus(order) !== 'paye' && orderStatus(order) !== 'annule').slice(0, 6);
   return (
@@ -121,7 +272,7 @@ function SalesBridge(props) {
         </div>
         <div className="grid grid-cols-3 gap-2 text-sm"><Mini icon={Receipt} label="CA" value={fmtCurrency(ca)} /><Mini icon={CreditCard} label="Cash" value={fmtCurrency(cash)} /><Mini icon={Users} label="Créances" value={fmtCurrency(creances)} /></div>
       </div>
-      {toSecure.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">{toSecure.map((order) => <div key={order.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="font-bold text-[#2f2415]"><FileText size={14} className="inline" /> {order.product_name || order.libelle || order.id}</p><p className="text-xs text-[#8a7456] mt-1">{clientName(props.clients, order.client_id)} · reste {fmtCurrency(Math.max(0, total(order) - paid(order)))}</p><button type="button" className="mt-3 text-sm font-bold text-emerald-700" onClick={() => secureSale(order, props, setPreview)}><CheckCircle2 size={14} className="inline" /> Préparer workflow</button></div>)}</div> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]"><CheckCircle2 size={14} className="inline" /> Aucune vente à sécuriser.</div>}
+      {toSecure.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">{toSecure.map((order) => <div key={order.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="font-bold text-[#2f2415]"><FileText size={14} className="inline" /> {order.product_name || order.libelle || order.id}</p><p className="text-xs text-[#8a7456] mt-1">{clientName(props.clients, order.client_id)} · reste {fmtCurrency(remainingForOrder(order, payments))}</p><button type="button" className="mt-3 text-sm font-bold text-emerald-700" onClick={() => secureSale(order, props, setPreview)}><CheckCircle2 size={14} className="inline" /> Préparer workflow</button></div>)}</div> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]"><CheckCircle2 size={14} className="inline" /> Aucune vente à sécuriser.</div>}
     </div>
   );
 }
@@ -139,5 +290,5 @@ export default function VentesV2(props) {
     onCreateAlert: props.onCreateAlert || alertesCrud.create,
     onRefreshAlertes: props.onRefreshAlertes || alertesCrud.refresh,
   };
-  return <div className="space-y-6"><SalesBridge {...mergedProps} /><Ventes {...props} /></div>;
+  return <div className="space-y-6"><SalesBridge {...mergedProps} /><PaymentCapturePanel {...mergedProps} /><Ventes {...mergedProps} /></div>;
 }
