@@ -1,5 +1,6 @@
 import { AlertTriangle, Bird, HeartPulse, Package, Receipt, Scale } from 'lucide-react';
 import AvicoleBase from './AvicoleBase.jsx';
+import AvicoleHealthBridge from './AvicoleHealthBridge.jsx';
 import { fmtNumber, toNumber } from '../utils/format';
 import { filterLotsByActivity } from '../utils/avicoleActivity';
 
@@ -78,13 +79,13 @@ function LastEggEntries({ logs = [], lots = [] }) {
       <div className="flex items-start gap-3 mb-3">
         <div className="w-10 h-10 rounded-xl bg-[#fff3d8] text-[#9a6b12] flex items-center justify-center"><Bird size={18} /></div>
         <div>
-          <p className="font-black text-[#2f2415]">Derniers releves oeufs saisis</p>
-          <p className="text-xs text-[#8a7456]">Cette section affiche les dernieres saisies une par une pour verifier que l'ajout est bien remonte.</p>
+          <p className="font-black text-[#2f2415]">Derniers relevés œufs</p>
+          <p className="text-xs text-[#8a7456]">Dernières saisies pour vérifier les remontées de ponte.</p>
         </div>
       </div>
       <div className="overflow-x-auto border border-[#d6c3a0] rounded-xl">
         <table className="w-full min-w-[560px] text-sm">
-          <thead><tr className="bg-[#fffdf8] border-b border-[#d6c3a0]"><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Date</th><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Lot</th><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Oeufs</th><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Casses</th><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Vendables</th></tr></thead>
+          <thead><tr className="bg-[#fffdf8] border-b border-[#d6c3a0]"><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Date</th><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Lot</th><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Œufs</th><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Casses</th><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Vendables</th></tr></thead>
           <tbody>{rows.map((log) => { const lot = lotById.get(log.lot_id); return <tr key={log.id || `${log.date}-${log.lot_id}-${eggs(log)}`} className="border-b border-[#d6c3a0]/50"><td className="px-3 py-2 text-[#2f2415]">{log.date}</td><td className="px-3 py-2 text-[#2f2415] font-semibold">{log.lot_name || lot?.name || log.lot_id}</td><td className="px-3 py-2 text-[#2f2415]">{fmtNumber(eggs(log))}</td><td className="px-3 py-2 text-[#2f2415]">{fmtNumber(broken(log))}</td><td className="px-3 py-2 text-emerald-600 font-semibold">{fmtNumber(Math.max(0, eggs(log) - broken(log)))}</td></tr>; })}</tbody>
         </table>
       </div>
@@ -96,6 +97,7 @@ export default function AvicoleV9(props) {
   return (
     <div className="space-y-6 avicole-mobile-final">
       <style>{`@media (max-width: 640px){.avicole-mobile-final .rounded-2xl{border-radius:18px}.avicole-mobile-final table{font-size:12px}.avicole-mobile-final th,.avicole-mobile-final td{padding-left:10px!important;padding-right:10px!important}.avicole-mobile-final .text-2xl{font-size:1.35rem}.avicole-mobile-final .grid{gap:.75rem}.avicole-mobile-final .overflow-x-auto{max-width:100vw}}`}</style>
+      <AvicoleHealthBridge rows={props.rows || []} productionLogs={props.productionLogs || []} alimentationLogs={props.alimentationLogs || []} onUpdate={props.onUpdate} onRefresh={props.onRefresh} />
       <HealthAndLinks rows={props.rows || []} />
       <LastEggEntries logs={props.productionLogs || []} lots={props.rows || []} />
       <AvicoleBase {...props} />
