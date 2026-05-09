@@ -2,14 +2,22 @@ import { AlertTriangle, ArrowDownUp, CheckCircle2, PackagePlus, Receipt, Truck }
 import toast from 'react-hot-toast';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
-import { calculateStockMetrics } from '../utils/businessCalculations';
 
 function today() { return new Date().toISOString().slice(0, 10); }
 function unitPrice(row = {}) { return toNumber(row.prixUnit ?? row.prixunit ?? row.prix_unitaire); }
+function stockMetrics(row = {}) {
+  const qty = toNumber(row.quantite);
+  const threshold = toNumber(row.seuil);
+  const maxQty = toNumber(row.stock_max ?? row.quantite_max ?? row.max_stock);
+  const value = qty * unitPrice(row);
+  const critical = threshold > 0 ? qty <= threshold : false;
+  const suggestedOrderQty = maxQty > 0 ? Math.max(0, maxQty - qty) : Math.max(threshold, 1);
+  return { qty, threshold, value, critical, suggestedOrderQty };
+}
 
 async function stockMove({ row, type, qty, props }) {
   const current = toNumber(row.quantite);
-  const nextQty = type === 'entrée' ? current + qty : type === 'sortie' || type === 'perte' ? Math.max(0, current - qty) : qty;
+  const nextQty = type === 'entree' ? current + qty : type === 'sortie' || type === 'perte' ? Math.max(0, current - qty) : qty;
   await props.onUpdate?.(row.id, {
     quantite: nextQty,
     last_movement_type: type,
@@ -33,10 +41,10 @@ async function stockMove({ row, type, qty, props }) {
 }
 
 async function receiveCritical(row, props) {
-  const metrics = calculateStockMetrics(row);
+  const metrics = stockMetrics(row);
   const qty = Math.max(1, Math.round(metrics.suggestedOrderQty || toNumber(row.seuil) || 1));
   const amount = qty * unitPrice(row);
-  await stockMove({ row, type: 'entrée', qty, props });
+  await stockMove({ row, type: 'entree', qty, props });
   if (amount > 0) {
     await props.onCreateFinanceTransaction?.({
       id: makeId('TRX'),
@@ -59,8 +67,8 @@ async function receiveCritical(row, props) {
 
 export default function StockFlowPanel(props) {
   const rows = Array.isArray(props.rows) ? props.rows : [];
-  const critiques = rows.filter((row) => calculateStockMetrics(row).critical).slice(0, 6);
-  const totalValue = rows.reduce((sum, row) => sum + calculateStockMetrics(row).value, 0);
+  const critiques = rows.filter((row) => stockMetrics(row).critical).slice(0, 6);
+  const totalValue = rows.reduce((sum, row) => sum + stockMetrics(row).value, 0);
   const lastMoves = rows.filter((row) => row.last_movement_type).slice(0, 5);
 
   return (
@@ -80,7 +88,7 @@ export default function StockFlowPanel(props) {
       {critiques.length ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
           {critiques.map((row) => {
-            const metrics = calculateStockMetrics(row);
+            const metrics = stockMetrics(row);
             const qty = Math.max(1, Math.round(metrics.suggestedOrderQty || toNumber(row.seuil) || 1));
             return (
               <div key={row.id} className="rounded-xl border border-red-200 bg-red-50/50 p-3">
@@ -101,7 +109,7 @@ export default function StockFlowPanel(props) {
             <p className="font-bold text-[#2f2415]"><ArrowDownUp size={14} className="inline" /> {row.produit}</p>
             <p className="text-xs text-[#8a7456] mt-1">Quantité actuelle: {fmtNumber(row.quantite)} {row.unite || ''}</p>
             <div className="flex flex-wrap gap-2 mt-3 text-xs font-bold">
-              <button type="button" className="text-emerald-700" onClick={() => stockMove({ row, type: 'entrée', qty: 1, props })}><PackagePlus size={12} className="inline" /> +1</button>
+              <button type="button" className="text-emerald-700" onClick={() => stockMove({ row, type: 'entree', qty: 1, props })}><PackagePlus size={12} className="inline" /> +1</button>
               <button type="button" className="text-amber-700" onClick={() => stockMove({ row, type: 'sortie', qty: 1, props })}><Receipt size={12} className="inline" /> sortie</button>
               <button type="button" className="text-red-600" onClick={() => stockMove({ row, type: 'perte', qty: 1, props })}><AlertTriangle size={12} className="inline" /> perte</button>
             </div>
