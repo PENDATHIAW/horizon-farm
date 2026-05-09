@@ -11,7 +11,7 @@ export const firstNumber = (...values) => {
 
 export const avicoleInitialCount = (lot = {}) => firstNumber(lot.initial_count, lot.effectif_initial, lot.effectif_depart, lot.nombre_initial, lot.effectif, lot.nombre, lot.quantite);
 export const avicoleDeadCount = (lot = {}) => firstNumber(lot.mortality, lot.morts, lot.deaths, lot.pertes);
-export const avicoleStolenCount = (lot = {}) => firstNumber(lot.voles, lot.volés, lot.stolen);
+export const avicoleStolenCount = (lot = {}) => firstNumber(lot.vols, lot.voles, lot.volés, lot.stolen);
 export const avicoleSoldCount = (lot = {}) => firstNumber(lot.vendus, lot.sold_count, lot.sold);
 export const avicoleReformedCount = (lot = {}) => firstNumber(lot.reformes, lot.réformés, lot.reformed);
 export const avicoleOtherExitCount = (lot = {}) => firstNumber(lot.autres_sorties, lot.sorties_autres, lot.sorties, lot.other_exits);
