@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle2, HeartPulse, Package, ShieldCheck, Syringe } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Btn from '../components/Btn';
 import useCrudModule from '../hooks/useCrudModule';
@@ -12,23 +12,24 @@ const arr = (v) => Array.isArray(v) ? v : [];
 const today = () => new Date().toISOString().slice(0, 10);
 const now = () => new Date().toISOString();
 const labelOf = (r = {}) => r.name || r.nom || r.tag || r.produit || r.id || '—';
-const healthStatus = (r = {}) => String(r.health_status || r.sante || r.status_sante || r.status || '').toLowerCase();
-const isAvailableAnimal = (a = {}) => !['vendu', 'mort', 'vole', 'volé', 'reforme', 'réforme'].includes(String(a.status || '').toLowerCase());
-const isActiveLot = (l = {}) => !['vendu', 'termine', 'terminé', 'perdu'].includes(String(l.status || '').toLowerCase());
+const validId = (r = {}) => Boolean(String(r.id || '').trim());
+const healthStatus = (r = {}) => String(r.health_status || r.sante || r.status_sante || r.status || r.statut_sanitaire || '').toLowerCase();
+const isAvailableAnimal = (a = {}) => validId(a) && !['vendu', 'mort', 'vole', 'volé', 'reforme', 'réforme'].includes(String(a.status || '').toLowerCase());
+const isActiveLot = (l = {}) => validId(l) && !['vendu', 'termine', 'terminé', 'perdu', 'archive', 'archivé'].includes(String(l.status || l.statut || '').toLowerCase());
 const isSickAnimal = (a = {}) => ['malade', 'blesse', 'blessé', 'sous_traitement', 'a_surveiller', 'critique'].some((x) => healthStatus(a).includes(x));
 const lotSickCount = (l = {}) => toNumber(l.malades ?? l.sick_count ?? l.malade_count);
 const lotDeadCount = (l = {}) => toNumber(l.morts ?? l.mortality ?? l.dead_count ?? l.pertes);
-const lotTotalCount = (l = {}) => toNumber(l.current_count ?? l.effectif ?? l.initial_count ?? l.nombre ?? l.quantite);
+const lotTotalCount = (l = {}) => toNumber(l.current_count ?? l.effectif ?? l.effectif_actuel ?? l.initial_count ?? l.nombre ?? l.quantite);
 const isSickLot = (l = {}) => ['malade', 'sous_traitement', 'a_surveiller', 'critique', 'baisse_ponte'].some((x) => healthStatus(l).includes(x)) || lotSickCount(l) > 0 || lotDeadCount(l) > 0;
-const isHealthStock = (s = {}) => `${s.categorie || ''} ${s.produit || ''}`.toLowerCase().match(/vaccin|medicament|médicament|soin|vermifuge|antibiotique|desinfectant|désinfectant/);
-const isDisinfectantStock = (s = {}) => `${s.categorie || ''} ${s.produit || ''}`.toLowerCase().match(/desinfectant|désinfectant|biosecurite|biosécurité|nettoyage/);
+const isHealthStock = (s = {}) => validId(s) && `${s.categorie || ''} ${s.produit || ''}`.toLowerCase().match(/vaccin|medicament|médicament|soin|vermifuge|antibiotique|desinfectant|désinfectant/);
+const isDisinfectantStock = (s = {}) => validId(s) && `${s.categorie || ''} ${s.produit || ''}`.toLowerCase().match(/desinfectant|désinfectant|biosecurite|biosécurité|nettoyage/);
 const dueSoon = (v = {}) => v.prevue && ((new Date(v.prevue) - new Date()) / 86400000) >= 0 && ((new Date(v.prevue) - new Date()) / 86400000) <= 7;
 const late = (v = {}) => String(v.statut || '').toLowerCase() === 'retard' || (v.prevue && !v.effectuee && new Date(v.prevue) < new Date());
 const stockAvailable = (s = {}) => toNumber(s.quantite);
 const plural = (unit = '') => {
   const u = String(unit || 'unité').trim();
   if (!u) return 'unités';
-  return stockAvailable({ quantite: 2 }) > 1 && !u.endsWith('s') ? `${u}s` : u;
+  return !u.endsWith('s') ? `${u}s` : u;
 };
 
 const interventionTypes = [
@@ -40,7 +41,7 @@ const interventionTypes = [
   { value: 'biosecurite', label: 'Biosécurité / désinfection / quarantaine', family: 'biosecurite' },
   { value: 'urgence', label: 'Urgence sanitaire / mortalité', family: 'curatif' },
 ];
-const productSources = [
+const allProductSources = [
   { value: 'stock', label: 'Utiliser mon stock' },
   { value: 'veterinaire', label: 'Produit fourni par le véto' },
   { value: 'achat_direct', label: 'Achat direct pendant intervention' },
@@ -49,33 +50,37 @@ const productSources = [
 const familyOf = (type) => interventionTypes.find((t) => t.value === type)?.family || 'preventif';
 const labelType = (type) => interventionTypes.find((t) => t.value === type)?.label || 'Intervention';
 
+function buildMode(value, label, count, enabled = true) {
+  return enabled && count > 0 ? { value, label, count } : null;
+}
 function modesFor(type, animaux, lots) {
   const family = familyOf(type);
   const animals = arr(animaux).filter(isAvailableAnimal);
   const activeLots = arr(lots).filter(isActiveLot);
   const sickAnimals = animals.filter(isSickAnimal);
   const sickLots = activeLots.filter(isSickLot);
+  const sickLotSubjects = sickLots.reduce((sum, lot) => sum + (lotSickCount(lot) || 1), 0);
   if (family === 'curatif') return [
-    { value: 'scope:animaux_malades', label: `Animaux malades / à surveiller (${sickAnimals.length})` },
-    { value: 'scope:avicole_malade', label: `Volaille malade / lots à risque (${sickLots.length})` },
-    { value: 'detail:sick_animal', label: 'Un animal malade précis' },
-    { value: 'detail:sick_lot', label: 'Un lot avicole malade précis' },
-    { value: 'detail:animal', label: 'Autre animal précis' },
-    { value: 'detail:lot', label: 'Autre lot avicole précis' },
-  ];
+    buildMode('scope:animaux_malades', `Animaux malades / à surveiller (${sickAnimals.length})`, sickAnimals.length),
+    buildMode('scope:avicole_malade', `Volaille malade / lots à risque (${sickLotSubjects})`, sickLotSubjects),
+    buildMode('detail:sick_animal', 'Un animal malade précis', sickAnimals.length),
+    buildMode('detail:sick_lot', 'Un lot avicole malade précis', sickLots.length),
+    buildMode('detail:animal', 'Autre animal précis', animals.length),
+    buildMode('detail:lot', 'Autre lot avicole précis', activeLots.length),
+  ].filter(Boolean);
   if (family === 'biosecurite') return [
-    { value: 'scope:avicole_malade', label: `Lots à risque / volaille malade (${sickLots.length})` },
-    { value: 'scope:avicole_all', label: `Tous les lots avicoles actifs (${activeLots.length})` },
-    { value: 'scope:cheptel', label: `Tout le cheptel (${animals.length})` },
-    { value: 'detail:lot', label: 'Un lot avicole précis' },
-    { value: 'detail:animal', label: 'Un animal précis' },
-  ];
+    buildMode('scope:avicole_malade', `Lots à risque / volaille malade (${sickLotSubjects})`, sickLotSubjects),
+    buildMode('scope:avicole_all', `Tous les lots avicoles actifs (${activeLots.length})`, activeLots.length),
+    buildMode('scope:cheptel', `Tout le cheptel (${animals.length})`, animals.length),
+    buildMode('detail:lot', 'Un lot avicole précis', activeLots.length),
+    buildMode('detail:animal', 'Un animal précis', animals.length),
+  ].filter(Boolean);
   return [
-    { value: 'scope:cheptel', label: `Tout le cheptel (${animals.length})` },
-    { value: 'scope:avicole_all', label: `Tous les lots avicoles actifs (${activeLots.length})` },
-    { value: 'detail:animal', label: 'Un animal précis' },
-    { value: 'detail:lot', label: 'Un lot avicole précis' },
-  ];
+    buildMode('scope:cheptel', `Tout le cheptel (${animals.length})`, animals.length),
+    buildMode('scope:avicole_all', `Tous les lots avicoles actifs (${activeLots.length})`, activeLots.length),
+    buildMode('detail:animal', 'Un animal précis', animals.length),
+    buildMode('detail:lot', 'Un lot avicole précis', activeLots.length),
+  ].filter(Boolean);
 }
 
 function detailsFor(mode, animaux, lots) {
@@ -95,24 +100,32 @@ function resolveTarget(mode, detail, type, animaux, lots) {
   const sickLots = activeLots.filter(isSickLot);
   const raw = String(mode?.startsWith('detail:') ? detail : mode || '').trim();
   const snapshot = now();
-  if (raw === 'scope:cheptel') return { module_lie: 'animaux', related_id: 'ALL_ANIMAUX', target_scope: 'cheptel', target_ids: animals.map((a) => a.id), target_count: animals.length, total_count: animals.length, target_summary: `${animals.length} animaux`, target_snapshot_date: snapshot };
-  if (raw === 'scope:animaux_malades') return { module_lie: 'animaux', related_id: 'ANIMAUX_MALADES', target_scope: 'animaux_malades', target_ids: sickAnimals.map((a) => a.id), target_count: sickAnimals.length, total_count: animals.length, target_summary: `${sickAnimals.length} animaux malades`, target_snapshot_date: snapshot };
-  if (raw === 'scope:avicole_all') return { module_lie: 'avicole', related_id: 'ALL_AVICOLE_LOTS', target_scope: 'avicole_all', target_ids: activeLots.map((l) => l.id), target_count: activeLots.reduce((s, l) => s + (lotTotalCount(l) || 0), 0), total_count: activeLots.reduce((s, l) => s + (lotTotalCount(l) || 0), 0), target_summary: `${activeLots.length} lots avicoles`, target_snapshot_date: snapshot };
-  if (raw === 'scope:avicole_malade') return { module_lie: 'avicole', related_id: 'AVICOLE_MALADES', target_scope: 'avicole_malade', target_ids: sickLots.map((l) => l.id), target_count: sickLots.reduce((s, l) => s + (lotSickCount(l) || 1), 0), total_count: sickLots.reduce((s, l) => s + (lotTotalCount(l) || 0), 0), target_summary: `${sickLots.reduce((s, l) => s + (lotSickCount(l) || 1), 0)} volailles malades`, target_snapshot_date: snapshot };
+  if (raw === 'scope:cheptel' && animals.length) return { module_lie: 'animaux', related_id: 'ALL_ANIMAUX', target_scope: 'cheptel', target_ids: animals.map((a) => a.id), target_count: animals.length, total_count: animals.length, target_summary: `${animals.length} animaux`, target_snapshot_date: snapshot };
+  if (raw === 'scope:animaux_malades' && sickAnimals.length) return { module_lie: 'animaux', related_id: 'ANIMAUX_MALADES', target_scope: 'animaux_malades', target_ids: sickAnimals.map((a) => a.id), target_count: sickAnimals.length, total_count: animals.length, target_summary: `${sickAnimals.length} animaux malades`, target_snapshot_date: snapshot };
+  if (raw === 'scope:avicole_all' && activeLots.length) return { module_lie: 'avicole', related_id: 'ALL_AVICOLE_LOTS', target_scope: 'avicole_all', target_ids: activeLots.map((l) => l.id), target_count: activeLots.reduce((s, l) => s + (lotTotalCount(l) || 0), 0), total_count: activeLots.reduce((s, l) => s + (lotTotalCount(l) || 0), 0), target_summary: `${activeLots.length} lots avicoles`, target_snapshot_date: snapshot };
+  if (raw === 'scope:avicole_malade' && sickLots.length) {
+    const count = sickLots.reduce((s, l) => s + (lotSickCount(l) || 1), 0);
+    return { module_lie: 'avicole', related_id: 'AVICOLE_MALADES', target_scope: 'avicole_malade', target_ids: sickLots.map((l) => l.id), target_count: count, total_count: sickLots.reduce((s, l) => s + (lotTotalCount(l) || 0), 0), target_summary: `${count} volailles malades`, target_snapshot_date: snapshot };
+  }
   if (raw.startsWith('animal:')) {
     const id = raw.replace('animal:', '');
-    const animal = animals.find((a) => String(a.id) === id) || {};
+    const animal = animals.find((a) => String(a.id) === id);
+    if (!animal) return emptyTarget(snapshot);
     return { module_lie: 'animaux', related_id: id, target_scope: isSickAnimal(animal) ? 'animal_malade' : 'animal', target_ids: [id], target_count: 1, total_count: 1, target_summary: `${labelOf(animal)} · ${id}`, target_snapshot_date: snapshot };
   }
   if (raw.startsWith('lot_malade:') || raw.startsWith('lot:')) {
     const id = raw.replace('lot_malade:', '').replace('lot:', '');
-    const lot = activeLots.find((l) => String(l.id) === id) || {};
+    const lot = activeLots.find((l) => String(l.id) === id);
+    if (!lot) return emptyTarget(snapshot);
     const curative = familyOf(type) === 'curatif';
     const sick = lotSickCount(lot);
     const total = lotTotalCount(lot);
     return { module_lie: 'avicole', related_id: id, target_scope: curative ? 'lot_avicole_malade' : 'lot_avicole', target_ids: [id], target_count: curative ? (sick || 1) : total, total_count: total, target_summary: curative ? `${sick || 1} malades sur ${total || '?'} · ${labelOf(lot)}` : `${labelOf(lot)} · ${total || '?'} sujets`, target_snapshot_date: snapshot };
   }
-  return { module_lie: '', related_id: '', target_scope: 'manuel', target_ids: [], target_count: 0, total_count: 0, target_summary: '—', target_snapshot_date: snapshot };
+  return emptyTarget(snapshot);
+}
+function emptyTarget(snapshot = now()) {
+  return { module_lie: '', related_id: '', target_scope: 'aucune_cible', target_ids: [], target_count: 0, total_count: 0, target_summary: 'Aucune cible disponible', target_snapshot_date: snapshot };
 }
 
 function Mini({ icon: Icon, label, value }) {
@@ -127,8 +140,8 @@ async function markDone(v, props) {
       await props.onRefreshFinances?.();
     }
     toast.success('Intervention validée');
-  } catch (error) {
-    toast.error(error.message || 'Validation impossible');
+  } catch {
+    toast.error('Validation impossible');
   }
 }
 
@@ -150,24 +163,44 @@ function InterventionPanel(props) {
   const docsCrud = useCrudModule('documents');
   const stockCrud = useCrudModule('stock');
   const vetsCrud = useCrudModule('veterinaires');
-  const [form, setForm] = useState({ type_intervention: 'preventif', target_mode: 'scope:cheptel', target_detail: '', date: today(), statut: 'a_faire', vet_mode: '', product_source: 'stock' });
+  const [form, setForm] = useState({ type_intervention: 'preventif', target_mode: '', target_detail: '', date: today(), statut: 'a_faire', vet_mode: '', product_source: 'veterinaire' });
   const [newVet, setNewVet] = useState({ nom: '', tel: '', specialite: '' });
-  const animals = arr(props.animaux);
-  const lots = arr(props.lots);
-  const vets = arr(props.vets?.length ? props.vets : vetsCrud.rows);
-  const stocks = arr(props.stocks?.length ? props.stocks : stockCrud.rows);
+  const [saving, setSaving] = useState(false);
+  const animals = arr(props.animaux).filter(isAvailableAnimal);
+  const lots = arr(props.lots).filter(isActiveLot);
+  const vets = arr(props.vets?.length ? props.vets : vetsCrud.rows).filter(validId);
+  const stocks = arr(props.stocks?.length ? props.stocks : stockCrud.rows).filter(validId);
   const modes = useMemo(() => modesFor(form.type_intervention, animals, lots), [form.type_intervention, animals, lots]);
   const detailOptions = useMemo(() => detailsFor(form.target_mode, animals, lots), [form.target_mode, animals, lots]);
-  const target = useMemo(() => resolveTarget(form.target_mode, form.target_detail || detailOptions[0]?.value, form.type_intervention, animals, lots), [form.target_mode, form.target_detail, form.type_intervention, animals, lots, detailOptions]);
   const healthStocks = stocks.filter(familyOf(form.type_intervention) === 'biosecurite' ? isDisinfectantStock : isHealthStock);
+  const productSources = useMemo(() => healthStocks.length ? allProductSources : allProductSources.filter((source) => source.value !== 'stock'), [healthStocks.length]);
+
+  useEffect(() => {
+    setForm((prev) => {
+      const next = { ...prev };
+      const hasMode = modes.some((mode) => mode.value === next.target_mode);
+      if (!hasMode) { next.target_mode = modes[0]?.value || ''; next.target_detail = ''; }
+      if (next.target_mode?.startsWith('detail:')) {
+        const hasDetail = detailOptions.some((item) => item.value === next.target_detail);
+        if (!hasDetail) next.target_detail = detailOptions[0]?.value || '';
+      } else if (next.target_detail) next.target_detail = '';
+      if (!productSources.some((item) => item.value === next.product_source)) { next.product_source = productSources[0]?.value || 'aucun'; next.stock_id = ''; }
+      if (next.product_source === 'stock' && next.stock_id && !healthStocks.some((stock) => String(stock.id) === String(next.stock_id))) next.stock_id = '';
+      return next;
+    });
+  }, [modes, detailOptions, productSources, healthStocks]);
+
+  const selectedDetail = form.target_mode?.startsWith('detail:') ? (form.target_detail || detailOptions[0]?.value || '') : '';
+  const target = useMemo(() => resolveTarget(form.target_mode, selectedDetail, form.type_intervention, animals, lots), [form.target_mode, selectedDetail, form.type_intervention, animals, lots]);
   const selectedStock = healthStocks.find((s) => String(s.id) === String(form.stock_id));
   const qty = toNumber(form.quantite_utilisee);
   const availableQty = stockAvailable(selectedStock);
   const stockInsufficient = form.product_source === 'stock' && selectedStock && qty > availableQty;
+  const canSubmit = Boolean(form.nom) && Boolean(form.target_mode) && target.target_count > 0 && !stockInsufficient && !saving;
 
   const update = (key, value) => setForm((prev) => {
     const next = { ...prev, [key]: value };
-    if (key === 'type_intervention') { next.target_mode = modesFor(value, animals, lots)[0]?.value || ''; next.target_detail = ''; }
+    if (key === 'type_intervention') { const nextModes = modesFor(value, animals, lots); next.target_mode = nextModes[0]?.value || ''; next.target_detail = ''; next.stock_id = ''; }
     if (key === 'target_mode') next.target_detail = '';
     if (key === 'product_source' && value !== 'stock') next.stock_id = '';
     return next;
@@ -188,32 +221,31 @@ function InterventionPanel(props) {
   const decrementStock = async () => {
     if (form.product_source !== 'stock' || !form.stock_id || !qty) return;
     const stock = stocks.find((s) => String(s.id) === String(form.stock_id));
-    if (!stock) return;
-    if (qty > toNumber(stock.quantite)) throw new Error('Stock insuffisant. Choisis “Produit fourni par le véto” ou “Achat direct” si le produit ne vient pas du stock.');
+    if (!stock) throw new Error('Stock indisponible');
+    if (qty > toNumber(stock.quantite)) throw new Error('Stock insuffisant');
     const nextQty = Math.max(0, toNumber(stock.quantite) - qty);
     await (props.onUpdateStock || stockCrud.update)?.(stock.id, { quantite: nextQty, last_movement_type: 'sortie', last_movement_label: familyOf(form.type_intervention) === 'biosecurite' ? 'biosécurité' : 'santé', last_movement_qty: qty, last_movement_at: now() });
     if (nextQty <= toNumber(stock.seuil)) await alertesCrud.create?.({ id: makeId('ALT'), title: `Stock santé critique: ${stock.produit}`, message: `${stock.produit} sous le seuil`, module_source: 'stock', entity_type: 'stock', entity_id: stock.id, severity: 'warning', status: 'nouvelle', action_recommandee: 'Réapprovisionnement' });
   };
 
   const submit = async () => {
+    if (saving) return;
     if (!form.nom) return toast.error('Produit ou soin obligatoire');
-    if (form.target_mode?.startsWith('detail:') && !form.target_detail && detailOptions.length) return toast.error('Choisis la cible précise');
-    if (form.product_source === 'stock' && !form.stock_id && form.nom) return toast.error('Choisis le stock utilisé ou change la source du produit');
+    if (!form.target_mode || target.target_count <= 0) return toast.error('Aucune cible valide pour cette intervention');
+    if (form.target_mode?.startsWith('detail:') && !selectedDetail) return toast.error('Choisis la cible précise');
+    if (form.product_source === 'stock' && !form.stock_id) return toast.error('Choisis le stock utilisé ou change la source du produit');
     if (stockInsufficient) return toast.error('Stock insuffisant pour cette intervention');
     try {
+      setSaving(true);
       const id = makeId('SAN');
       const label = labelType(form.type_intervention);
       const vet = await ensureVet();
       const productSourceLabel = productSources.find((s) => s.value === form.product_source)?.label || 'Produit non précisé';
-      await props.onCreate?.({ id, nom: form.nom || label, animal: target.target_summary, prevue: form.date || today(), effectuee: form.statut === 'fait' ? (form.date || today()) : '', statut: form.statut || 'a_faire', vet: vet.vet_name, cout: toNumber(form.cout) });
+      await props.onCreate?.({ id, nom: form.nom || label, animal: target.target_summary, prevue: form.date || today(), effectuee: form.statut === 'fait' ? (form.date || today()) : '', statut: form.statut || 'a_faire', vet: vet.vet_name, cout: toNumber(form.cout), module_lie: target.module_lie, related_id: target.related_id, target_count: target.target_count, total_count: target.total_count, target_scope: target.target_scope, target_summary: target.target_summary, source_module: 'sante' });
       await decrementStock();
       if (toNumber(form.cout) > 0) await props.onCreateFinanceTransaction?.({ id: makeId('TRX'), type: 'sortie', libelle: `${label} - ${form.nom} (${productSourceLabel})`, montant: toNumber(form.cout), date: form.date || today(), categorie: familyOf(form.type_intervention) === 'biosecurite' ? 'Biosecurite' : 'Sante', module_lie: 'sante', related_id: id, statut: 'paye', source_module: 'sante', source_record_id: id, notes: target.target_summary });
-      if (form.product_source === 'achat_direct') {
-        await eventsCrud.create?.({ id: makeId('EVT'), event_type: 'achat_direct_sante', module_source: 'sante', entity_type: target.module_lie, entity_id: target.related_id, title: `Achat direct ${form.nom}`, description: target.target_summary, event_date: form.date || today(), severity: 'info', related_id: id, saisies_evitees: 3 });
-      }
-      if (form.product_source === 'veterinaire') {
-        await eventsCrud.create?.({ id: makeId('EVT'), event_type: 'produit_fourni_veterinaire', module_source: 'sante', entity_type: target.module_lie, entity_id: target.related_id, title: `Produit fourni par le véto: ${form.nom}`, description: target.target_summary, event_date: form.date || today(), severity: 'info', related_id: id, saisies_evitees: 3 });
-      }
+      if (form.product_source === 'achat_direct') await eventsCrud.create?.({ id: makeId('EVT'), event_type: 'achat_direct_sante', module_source: 'sante', entity_type: target.module_lie, entity_id: target.related_id, title: `Achat direct ${form.nom}`, description: target.target_summary, event_date: form.date || today(), severity: 'info', related_id: id, saisies_evitees: 3 });
+      if (form.product_source === 'veterinaire') await eventsCrud.create?.({ id: makeId('EVT'), event_type: 'produit_fourni_veterinaire', module_source: 'sante', entity_type: target.module_lie, entity_id: target.related_id, title: `Produit fourni par le véto: ${form.nom}`, description: target.target_summary, event_date: form.date || today(), severity: 'info', related_id: id, saisies_evitees: 3 });
       if (form.prochaine_action) await tachesCrud.create?.({ id: makeId('TSK'), title: `Suivi ${label}`, module_lie: 'sante', related_id: id, due_date: form.prochaine_action, priority: familyOf(form.type_intervention) === 'curatif' ? 'haute' : 'moyenne', status: 'a_faire', checklist: 'Contrôle; Résultat; Clôture', source_module: 'sante' });
       await eventsCrud.create?.({ id: makeId('EVT'), event_type: familyOf(form.type_intervention) === 'biosecurite' ? 'biosécurité' : 'intervention_sanitaire', module_source: 'sante', entity_type: target.module_lie, entity_id: target.related_id, title: label, description: `${target.target_summary} · ${productSourceLabel}`, event_date: form.date || today(), severity: familyOf(form.type_intervention) === 'curatif' ? 'warning' : 'info', related_id: id, saisies_evitees: 5 });
       if (form.preuve_url) await docsCrud.create?.({ id: makeId('DOC'), title: `Preuve ${label}`, document_category: familyOf(form.type_intervention) === 'biosecurite' ? 'sanitaire' : 'ordonnance', module_source: 'sante', entity_type: 'sante', entity_id: id, file_url: form.preuve_url, related_id: id });
@@ -223,18 +255,21 @@ function InterventionPanel(props) {
       }
       await Promise.allSettled([props.onRefresh?.(), props.onRefreshFinances?.(), stockCrud.refresh?.(), tachesCrud.refresh?.(), alertesCrud.refresh?.(), eventsCrud.refresh?.(), docsCrud.refresh?.()]);
       toast.success('Intervention enregistrée');
-      setForm({ type_intervention: 'preventif', target_mode: 'scope:cheptel', target_detail: '', date: today(), statut: 'a_faire', vet_mode: '', product_source: 'stock' });
+      setForm({ type_intervention: 'preventif', target_mode: modesFor('preventif', animals, lots)[0]?.value || '', target_detail: '', date: today(), statut: 'a_faire', vet_mode: '', product_source: healthStocks.length ? 'stock' : 'veterinaire' });
       setNewVet({ nom: '', tel: '', specialite: '' });
-    } catch (error) {
-      toast.error(error.message || 'Intervention impossible');
+    } catch {
+      toast.error('Intervention impossible');
+    } finally {
+      setSaving(false);
     }
   };
 
-  return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Santé & Biosécurité</p><h3 className="font-black text-[#2f2415]">Nouvelle intervention</h3></div><div className="grid grid-cols-1 md:grid-cols-3 gap-3"><Select label="Type" value={form.type_intervention} onChange={(v) => update('type_intervention', v)} options={interventionTypes} /><Select label="Périmètre" value={form.target_mode || modes[0]?.value || ''} onChange={(v) => update('target_mode', v)} options={modes} />{form.target_mode?.startsWith('detail:') ? <Select label="Cible précise" value={form.target_detail || detailOptions[0]?.value || ''} onChange={(v) => update('target_detail', v)} options={detailOptions} /> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]"><b>{target.target_count || 0}</b> / {target.total_count || 0}<br />{target.target_summary}</div>}<Input label="Vaccin / soin / produit" value={form.nom || ''} onChange={(v) => update('nom', v)} /><Select label="Source produit" value={form.product_source || 'stock'} onChange={(v) => update('product_source', v)} options={productSources} />{form.product_source === 'stock' ? <Select label="Stock utilisé" value={form.stock_id || ''} onChange={(v) => update('stock_id', v)} options={[{ value: '', label: 'Choisir un stock' }, ...healthStocks.map((s) => ({ value: s.id, label: `${s.produit} · ${fmtNumber(s.quantite)} ${plural(s.unite)} disponibles` }))]} /> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]">Aucune sortie stock</div>}<Input label="Quantité utilisée" type="number" value={form.quantite_utilisee || ''} onChange={(v) => update('quantite_utilisee', v)} />{stockInsufficient ? <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">Stock insuffisant : {fmtNumber(availableQty)} disponible(s)</div> : <Input label="Coût" type="number" value={form.cout || ''} onChange={(v) => update('cout', v)} />}<Input label="Date" type="date" value={form.date || today()} onChange={(v) => update('date', v)} /><Input label="Prochain suivi" type="date" value={form.prochaine_action || ''} onChange={(v) => update('prochaine_action', v)} /><Select label="Vétérinaire" value={form.vet_mode || ''} onChange={(v) => update('vet_mode', v)} options={[{ value: '', label: 'Non renseigné' }, ...vets.map((v) => ({ value: v.id, label: v.nom || v.id })), { value: '__new__', label: '+ Nouveau véto' }]} />{form.vet_mode === '__new__' ? <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-3 rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><Input label="Nom véto" value={newVet.nom} onChange={(v) => setNewVet((p) => ({ ...p, nom: v }))} /><Input label="Téléphone" value={newVet.tel} onChange={(v) => setNewVet((p) => ({ ...p, tel: v }))} /><Input label="Spécialité" value={newVet.specialite} onChange={(v) => setNewVet((p) => ({ ...p, specialite: v }))} /></div> : null}<Input label="Notes" value={form.notes || ''} onChange={(v) => update('notes', v)} className="md:col-span-2" /><Input label="Preuve / ordonnance URL" value={form.preuve_url || ''} onChange={(v) => update('preuve_url', v)} /></div><div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"><b>Cible :</b> {target.target_summary} · {target.module_lie || '—'} · {target.related_id || '—'}</div><div className="flex justify-end"><Btn icon={ShieldCheck} onClick={submit}>Valider</Btn></div></div>;
+  return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Santé & Biosécurité</p><h3 className="font-black text-[#2f2415]">Nouvelle intervention</h3></div><div className="grid grid-cols-1 md:grid-cols-3 gap-3"><Select label="Type" value={form.type_intervention} onChange={(v) => update('type_intervention', v)} options={interventionTypes} /><Select label="Périmètre" value={form.target_mode} onChange={(v) => update('target_mode', v)} options={modes} emptyLabel="Aucune cible disponible" />{form.target_mode?.startsWith('detail:') ? <Select label="Cible précise" value={selectedDetail} onChange={(v) => update('target_detail', v)} options={detailOptions} emptyLabel="Aucune cible précise" /> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]"><b>{target.target_count || 0}</b> / {target.total_count || 0}<br />{target.target_summary}</div>}<Input label="Vaccin / soin / produit" value={form.nom || ''} onChange={(v) => update('nom', v)} /><Select label="Source produit" value={form.product_source} onChange={(v) => update('product_source', v)} options={productSources} emptyLabel="Aucune source" />{form.product_source === 'stock' ? <Select label="Stock utilisé" value={form.stock_id || ''} onChange={(v) => update('stock_id', v)} options={healthStocks.map((s) => ({ value: s.id, label: `${s.produit} · ${fmtNumber(s.quantite)} ${plural(s.unite)} disponibles` }))} emptyLabel="Aucun stock santé disponible" /> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]">Aucune sortie stock</div>}<Input label="Quantité utilisée" type="number" value={form.quantite_utilisee || ''} onChange={(v) => update('quantite_utilisee', v)} />{stockInsufficient ? <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">Stock insuffisant : {fmtNumber(availableQty)} disponible(s)</div> : <Input label="Coût" type="number" value={form.cout || ''} onChange={(v) => update('cout', v)} />}<Input label="Date" type="date" value={form.date || today()} onChange={(v) => update('date', v)} /><Input label="Prochain suivi" type="date" value={form.prochaine_action || ''} onChange={(v) => update('prochaine_action', v)} /><Select label="Vétérinaire" value={form.vet_mode || ''} onChange={(v) => update('vet_mode', v)} options={[{ value: '', label: 'Non renseigné' }, ...vets.map((v) => ({ value: v.id, label: v.nom || v.id })), { value: '__new__', label: '+ Nouveau véto' }]} />{form.vet_mode === '__new__' ? <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-3 rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><Input label="Nom véto" value={newVet.nom} onChange={(v) => setNewVet((p) => ({ ...p, nom: v }))} /><Input label="Téléphone" value={newVet.tel} onChange={(v) => setNewVet((p) => ({ ...p, tel: v }))} /><Input label="Spécialité" value={newVet.specialite} onChange={(v) => setNewVet((p) => ({ ...p, specialite: v }))} /></div> : null}<Input label="Notes" value={form.notes || ''} onChange={(v) => update('notes', v)} className="md:col-span-2" /><Input label="Preuve / ordonnance URL" value={form.preuve_url || ''} onChange={(v) => update('preuve_url', v)} /></div><div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"><b>Cible :</b> {target.target_summary} · {target.module_lie || '—'} · {target.related_id || '—'}</div><div className="flex justify-end"><Btn icon={ShieldCheck} onClick={submit} disabled={!canSubmit}>{saving ? 'Enregistrement...' : 'Valider'}</Btn></div></div>;
 }
 
-function Select({ label, value, onChange, options = [] }) {
-  return <label className="space-y-1"><span className="text-xs text-[#8a7456]">{label}</span><select className="w-full bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm" value={value} onChange={(e) => onChange(e.target.value)}>{options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></label>;
+function Select({ label, value, onChange, options = [], emptyLabel = 'Aucune option' }) {
+  const safeOptions = arr(options);
+  return <label className="space-y-1"><span className="text-xs text-[#8a7456]">{label}</span><select className="w-full bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm disabled:opacity-60" value={safeOptions.some((o) => o.value === value) ? value : ''} disabled={!safeOptions.length} onChange={(e) => onChange(e.target.value)}>{safeOptions.length ? safeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>) : <option value="">{emptyLabel}</option>}</select></label>;
 }
 function Input({ label, value, onChange, type = 'text', className = '' }) {
   return <label className={`space-y-1 ${className}`}><span className="text-xs text-[#8a7456]">{label}</span><input type={type} className="w-full bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm" value={value} onChange={(e) => onChange(e.target.value)} /></label>;
