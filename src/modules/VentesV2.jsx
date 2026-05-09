@@ -1,6 +1,7 @@
 import { CheckCircle2, CreditCard, FileText, Receipt, RefreshCw, Users } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import useCrudModule from '../hooks/useCrudModule';
 import { commitSaleWorkflow, prepareSaleWorkflow, useSuggestion } from '../services/workflowService';
 import { fmtCurrency, toNumber } from '../utils/format';
 import Ventes from './Ventes.jsx';
@@ -35,6 +36,16 @@ async function updateSourceAsset(activity, id, patch, props) {
   return null;
 }
 
+async function refreshRelated(props) {
+  await Promise.allSettled([
+    props.onRefresh?.(),
+    props.onRefreshDocuments?.(),
+    props.onRefreshAlertes?.(),
+    props.onRefreshFinances?.(),
+    props.onRefreshBusinessEvents?.(),
+  ]);
+}
+
 async function commitPreview(preview, props, setPreview) {
   try {
     const result = await commitSaleWorkflow(preview, {
@@ -48,7 +59,7 @@ async function commitPreview(preview, props, setPreview) {
       onCreateBusinessEvent: props.onCreateBusinessEvent,
       onCreateAlert: props.onCreateAlert,
     });
-    await props.onRefresh?.();
+    await refreshRelated(props);
     toast.success(`Vente validée · ${result.saisies_evitees} saisies évitées`);
     setPreview(null);
   } catch (error) {
@@ -117,5 +128,16 @@ function SalesBridge(props) {
 function Mini({ icon: Icon, label, value }) { return <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2 min-w-[110px]"><Icon size={14} className="text-[#9a6b12]" /><b className="block text-[#2f2415]">{value}</b><span className="text-xs text-[#8a7456]">{label}</span></div>; }
 
 export default function VentesV2(props) {
-  return <div className="space-y-6"><SalesBridge {...props} /><Ventes {...props} /></div>;
+  const documentsCrud = useCrudModule('documents');
+  const alertesCrud = useCrudModule('alertes_center');
+  const mergedProps = {
+    ...props,
+    documents: props.documents || documentsCrud.rows,
+    alertes: props.alertes || alertesCrud.rows,
+    onCreateDocument: props.onCreateDocument || documentsCrud.create,
+    onRefreshDocuments: props.onRefreshDocuments || documentsCrud.refresh,
+    onCreateAlert: props.onCreateAlert || alertesCrud.create,
+    onRefreshAlertes: props.onRefreshAlertes || alertesCrud.refresh,
+  };
+  return <div className="space-y-6"><SalesBridge {...mergedProps} /><Ventes {...props} /></div>;
 }
