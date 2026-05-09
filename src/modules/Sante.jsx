@@ -39,9 +39,104 @@ const SourceBadge = ({ source }) => (
   </span>
 );
 
+const asArray = (value) => Array.isArray(value) ? value : [];
+const clean = (value) => String(value || '').trim();
+const animalLabel = (animal = {}) => clean(animal.name || animal.nom || animal.tag || animal.id || 'Animal');
+const lotLabel = (lot = {}) => clean(lot.name || lot.nom || lot.id || 'Lot avicole');
+const healthStatus = (row = {}) => String(row.health_status || row.sante || row.status_sante || row.status || '').toLowerCase();
+const isAvailableAnimal = (animal = {}) => !['vendu', 'mort', 'vole', 'volé', 'reforme', 'réforme'].includes(String(animal.status || '').toLowerCase());
+const isSickAnimalOption = (animal = {}) => ['malade', 'blesse', 'blessé', 'sous_traitement', 'a_surveiller', 'critique'].some((status) => healthStatus(animal).includes(status));
+const isActiveLot = (lot = {}) => !['vendu', 'termine', 'terminé', 'perdu'].includes(String(lot.status || '').toLowerCase());
+const isSickLotOption = (lot = {}) => ['malade', 'sous_traitement', 'a_surveiller', 'critique', 'baisse_ponte'].some((status) => healthStatus(lot).includes(status)) || Number(lot.malades || lot.sick_count || 0) > 0 || Number(lot.mortality || lot.morts || 0) > 0;
+
+function buildHealthTargetOptions(animaux = [], lots = []) {
+  const availableAnimals = asArray(animaux).filter(isAvailableAnimal);
+  const activeLots = asArray(lots).filter(isActiveLot);
+  const sickAnimals = availableAnimals.filter(isSickAnimalOption);
+  const sickLots = activeLots.filter(isSickLotOption);
+  return [
+    { value: 'scope:cheptel', label: `Tout le cheptel (${availableAnimals.length})` },
+    { value: 'scope:animaux_malades', label: `Animaux malades / à surveiller (${sickAnimals.length})` },
+    { value: 'scope:avicole_all', label: `Tous les lots avicoles (${activeLots.length})` },
+    { value: 'scope:avicole_malade', label: `Volaille malade / lots à risque (${sickLots.length})` },
+    ...availableAnimals.map((animal) => ({ value: `animal:${animal.id}`, label: `${animalLabel(animal)} · ${animal.id}` })),
+    ...activeLots.map((lot) => ({ value: `lot:${lot.id}`, label: `Tout le lot ${lotLabel(lot)} · ${lot.id}` })),
+  ];
+}
+
+function resolveHealthTarget(value, animaux = [], lots = []) {
+  const raw = clean(value);
+  if (raw === 'scope:cheptel') return { value: raw, label: 'Tout le cheptel', module_lie: 'animaux', related_id: 'ALL_ANIMAUX', scope: 'cheptel' };
+  if (raw === 'scope:animaux_malades') return { value: raw, label: 'Animaux malades / à surveiller', module_lie: 'animaux', related_id: 'ANIMAUX_MALADES', scope: 'animaux_malades' };
+  if (raw === 'scope:avicole_all') return { value: raw, label: 'Tous les lots avicoles', module_lie: 'avicole', related_id: 'ALL_AVICOLE_LOTS', scope: 'avicole_all' };
+  if (raw === 'scope:avicole_malade') return { value: raw, label: 'Volaille malade / lots à risque', module_lie: 'avicole', related_id: 'AVICOLE_MALADES', scope: 'avicole_malade' };
+  if (raw.startsWith('animal:')) {
+    const id = raw.replace('animal:', '');
+    const animal = asArray(animaux).find((item) => String(item.id) === id);
+    return { value: raw, label: animal ? animalLabel(animal) : id, module_lie: 'animaux', related_id: id, scope: 'animal' };
+  }
+  if (raw.startsWith('lot:')) {
+    const id = raw.replace('lot:', '');
+    const lot = asArray(lots).find((item) => String(item.id) === id);
+    return { value: raw, label: lot ? `Tout le lot ${lotLabel(lot)}` : id, module_lie: 'avicole', related_id: id, scope: 'lot_avicole' };
+  }
+  return { value: raw, label: raw, module_lie: '', related_id: '', scope: 'manuel' };
+}
+
+function buildSanteFields(animaux = [], lots = []) {
+  const base = MODULE_FORM_FIELDS.sante || [];
+  const options = buildHealthTargetOptions(animaux, lots);
+  const hasModule = base.some((field) => field.key === 'module_lie');
+  const hasRelated = base.some((field) => field.key === 'related_id');
+  const fields = base.map((field) => {
+    if (field.key !== 'animal') return field;
+    return {
+      ...field,
+      label: 'Cible sanitaire',
+      type: 'select',
+      required: true,
+      options,
+      description: 'Sélectionne un animal, tout le cheptel, un lot avicole ou les volailles malades. L’ID lié est rempli automatiquement.',
+    };
+  });
+  const animalIndex = Math.max(0, fields.findIndex((field) => field.key === 'animal'));
+  if (!hasModule) fields.splice(animalIndex + 1, 0, { key: 'module_lie', label: 'Module lié auto', type: 'select', options: ['animaux', 'avicole'] });
+  if (!hasRelated) fields.splice(animalIndex + 2, 0, { key: 'related_id', label: 'ID cible auto', type: 'text' });
+  if (!fields.some((field) => field.key === 'target_scope')) fields.splice(animalIndex + 3, 0, { key: 'target_scope', label: 'Périmètre cible', type: 'text' });
+  return fields;
+}
+
+function deriveHealthValues(animaux = [], lots = []) {
+  return (next, key) => {
+    if (key !== 'animal') return next;
+    const target = resolveHealthTarget(next.animal, animaux, lots);
+    return {
+      ...next,
+      module_lie: target.module_lie,
+      related_id: target.related_id,
+      target_scope: target.scope,
+    };
+  };
+}
+
+function normalizeHealthPayload(payload = {}, animaux = [], lots = []) {
+  const target = resolveHealthTarget(payload.animal, animaux, lots);
+  if (!target.value || target.scope === 'manuel') return payload;
+  return {
+    ...payload,
+    animal: target.label,
+    cible_sante: target.value,
+    module_lie: payload.module_lie || target.module_lie,
+    related_id: payload.related_id || target.related_id,
+    target_scope: payload.target_scope || target.scope,
+  };
+}
+
 export default function Sante({
   rows = [],
   vets = [],
+  animaux = [],
+  lots = [],
   loading,
   vetsLoading,
   onCreate,
@@ -62,6 +157,9 @@ export default function Sante({
   const [vetMapOpen, setVetMapOpen] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoSearch, setGeoSearch] = useState(null);
+
+  const santeFields = useMemo(() => buildSanteFields(animaux, lots), [animaux, lots]);
+  const deriveSanteValues = useMemo(() => deriveHealthValues(animaux, lots), [animaux, lots]);
 
   const stats = useMemo(
     () => ({
@@ -87,7 +185,7 @@ export default function Sante({
   const submitCreate = async (payload) => {
     try {
       setSaving(true);
-      await onCreate(payload);
+      await onCreate(normalizeHealthPayload(payload, animaux, lots));
       toast.success('Vaccin ajoute');
       setModal(null);
     } catch (error) {
@@ -101,7 +199,7 @@ export default function Sante({
     if (!selected) return;
     try {
       setSaving(true);
-      await onUpdate(selected.id, payload);
+      await onUpdate(selected.id, normalizeHealthPayload(payload, animaux, lots));
       toast.success('Vaccin modifie');
       setModal(null);
     } catch (error) {
@@ -227,7 +325,8 @@ export default function Sante({
 
   const columns = [
     { key: 'nom', label: 'Vaccin', sortable: true, render: (v) => <span className="text-[#2f2415] font-semibold">{v.nom}</span> },
-    { key: 'animal', label: 'Animal', sortable: true },
+    { key: 'animal', label: 'Cible sanitaire', sortable: true },
+    { key: 'related_id', label: 'ID lié', sortable: true, render: (v) => v.related_id || <span className="text-[#b39b78]">—</span> },
     { key: 'prevue', label: 'Date prevue', sortable: true },
     { key: 'effectuee', label: 'Date effectuee', sortable: true, render: (v) => v.effectuee || <span className="text-[#b39b78]">-</span> },
     { key: 'vet', label: 'Veterinaire', sortable: true },
@@ -278,7 +377,7 @@ export default function Sante({
           <AlertTriangle className="text-red-400 shrink-0" size={20} />
           <div className="flex-1">
             <p className="text-red-400 font-semibold">Vaccin en retard : {v.nom}</p>
-            <p className="text-sm text-red-300/70">Animal : {v.animal} - Prevu le : {v.prevue} - Veterinaire : {v.vet}</p>
+            <p className="text-sm text-red-300/70">Cible : {v.animal} - ID : {v.related_id || '—'} - Prevu le : {v.prevue} - Veterinaire : {v.vet}</p>
             <p className="text-xs text-red-300/60 mt-1">Action conseillee : ouvrir la fiche veterinaire, verifier disponibilite, puis planifier l'intervention.</p>
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -411,8 +510,8 @@ export default function Sante({
       </div>
 
       <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, ...calculateVaccineMetrics(selected) } : selected} title="Detail Vaccin" />
-      <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={MODULE_FORM_FIELDS.sante} initialValues={{ id: generateSequentialId('sante', rows), statut: 'a_faire' }} autoId={() => generateSequentialId('sante', rows)} loading={saving} title="Ajouter vaccin" submitLabel="Ajouter" />
-      <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={MODULE_FORM_FIELDS.sante} initialValues={selected || {}} loading={saving} title="Modifier vaccin" submitLabel="Enregistrer" />
+      <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={santeFields} initialValues={{ id: generateSequentialId('sante', rows), statut: 'a_faire', module_lie: 'animaux' }} autoId={() => generateSequentialId('sante', rows)} deriveValues={deriveSanteValues} loading={saving} title="Ajouter vaccin" submitLabel="Ajouter" />
+      <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={santeFields} initialValues={selected || {}} deriveValues={deriveSanteValues} loading={saving} title="Modifier vaccin" submitLabel="Enregistrer" />
       <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected ? `${selected.nom}` : ''} loading={saving} />
 
       <DetailsModal open={vetModal === 'details'} onClose={() => setVetModal(null)} data={selectedVet} title="Fiche veterinaire" />
