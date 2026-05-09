@@ -32,6 +32,7 @@ const paidForOrder = (order, payments = []) => {
   return Math.max(paidFromOrder(order), fromPayments);
 };
 const remainingForOrder = (order, payments = []) => Math.max(0, total(order) - paidForOrder(order, payments));
+const isOrderOpenForPayment = (order, payments = []) => total(order) > 0 && orderStatus(order) !== 'annule' && payStatus(order) !== 'paye' && remainingForOrder(order, payments) > 0;
 const nextPaymentStatus = (order, payments = [], extra = 0) => {
   const nextPaid = paidForOrder(order, payments) + toNumber(extra);
   const amount = total(order);
@@ -48,6 +49,12 @@ const nextOrderStatus = (order, payments = [], extra = 0) => {
 };
 
 async function secureSale(order, props, setPreview) {
+  const payments = arr(props.paymentsList || props.payments);
+  if (!isOrderOpenForPayment(order, payments)) {
+    toast.success('Commande déjà soldée');
+    setPreview(null);
+    return;
+  }
   const preview = prepareSaleWorkflow(order, {
     invoices: props.invoicesList,
     payments: props.paymentsList,
@@ -57,6 +64,12 @@ async function secureSale(order, props, setPreview) {
     events: props.businessEvents,
     alerts: props.alertes,
   });
+  const paymentValue = toNumber(preview?.fields?.payment_to_record?.final_value ?? preview?.fields?.paid?.final_value);
+  if (paymentValue <= 0 || remainingForOrder(order, payments) <= 0) {
+    toast.success('Aucun encaissement restant pour cette commande');
+    setPreview(null);
+    return;
+  }
   setPreview(preview);
 }
 
@@ -83,6 +96,8 @@ async function refreshRelated(props) {
 
 async function commitPreview(preview, props, setPreview) {
   try {
+    const paymentValue = toNumber(preview?.fields?.payment_to_record?.final_value ?? preview?.fields?.paid?.final_value);
+    if (paymentValue <= 0) return toast.error('Aucun montant à encaisser');
     const result = await commitSaleWorkflow(preview, {
       onCreateInvoice: props.onCreateInvoice,
       onCreatePayment: props.onCreatePayment,
@@ -106,11 +121,7 @@ function PaymentCapturePanel(props) {
   const [form, setForm] = useState({ order_id: '', montant: '', moyen_paiement: 'wave', date_paiement: today(), notes: '' });
   const [saving, setSaving] = useState(false);
   const payments = arr(props.paymentsList || props.payments);
-  const openOrders = useMemo(() => arr(props.rows)
-    .filter((order) => total(order) > 0)
-    .filter((order) => orderStatus(order) !== 'annule')
-    .filter((order) => payStatus(order) !== 'paye')
-    .filter((order) => remainingForOrder(order, payments) > 0), [props.rows, payments]);
+  const openOrders = useMemo(() => arr(props.rows).filter((order) => isOrderOpenForPayment(order, payments)), [props.rows, payments]);
   const selectedOrder = openOrders.find((order) => String(order.id) === String(form.order_id));
   const remaining = selectedOrder ? remainingForOrder(selectedOrder, payments) : 0;
   const amount = toNumber(form.montant || remaining);
@@ -260,7 +271,7 @@ function SalesBridge(props) {
   const ca = orders.reduce((sum, order) => sum + total(order), 0);
   const cash = orders.reduce((sum, order) => sum + paidForOrder(order, payments), 0);
   const creances = Math.max(0, ca - cash);
-  const toSecure = orders.filter((order) => total(order) > 0 && payStatus(order) !== 'paye' && orderStatus(order) !== 'annule').slice(0, 6);
+  const toSecure = orders.filter((order) => isOrderOpenForPayment(order, payments)).slice(0, 6);
   return (
     <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
       <SalesPreviewModal preview={preview} setPreview={setPreview} props={props} />
