@@ -15,8 +15,9 @@ const st = (r = {}) => String(r.statut ?? r.status ?? '').toLowerCase();
 function today() { return new Date().toISOString().slice(0, 10); }
 function isAvicole(line = {}) { const d = clean(line.designation).toLowerCase(); return d.includes('poussin') || d.includes('poulet') || d.includes('pondeuse') || d.includes('chair'); }
 function isAnimal(line = {}) { const d = clean(line.designation).toLowerCase(); return d.includes('bovin') || d.includes('bœuf') || d.includes('boeuf') || d.includes('mouton') || d.includes('chèvre') || d.includes('chevre'); }
-function isCulture(line = {}) { const d = clean(line.designation).toLowerCase(); return d.includes('culture') || d.includes('poivron') || d.includes('maraichage') || d.includes('maraîchage'); }
+function isCulture(line = {}) { const d = clean(line.designation).toLowerCase(); return d.includes('culture') || d.includes('poivron') || d.includes('maraichage') || d.includes('maraîchage') || d.includes('champ') || d.includes('irrigation'); }
 function assetType(line = {}) { if (isAvicole(line)) return 'avicole'; if (isAnimal(line)) return 'animal'; if (isCulture(line)) return 'culture'; return ''; }
+function linkPatch(module, id) { return { asset_module: module, asset_id: id, asset_created_at: new Date().toISOString(), source_module: 'investissements', source_record_id: id }; }
 
 async function createOperationalAsset(line, props) {
   const type = assetType(line);
@@ -35,6 +36,7 @@ async function createOperationalAsset(line, props) {
       type: lotType,
       activity: lotType,
       status: 'actif',
+      health_status: 'sain',
       initial_count: qty,
       current_count: qty,
       mortality: 0,
@@ -46,10 +48,14 @@ async function createOperationalAsset(line, props) {
       average_weight: 0,
       purchase_cost: unitCost * qty,
       source: 'business_plan',
+      source_module: 'investissements',
+      source_record_id: line.id,
       business_plan_id: line.business_plan_id,
       bp_line_id: line.id,
+      linked_transaction_id: line.transaction_id || null,
+      preuve_url: line.preuve_url || '',
     });
-    await props.onUpdateBpInvestmentLine?.(line.id, { asset_module: 'avicole', asset_id: id, asset_created_at: new Date().toISOString() });
+    await props.onUpdateBpInvestmentLine?.(line.id, linkPatch('avicole', id));
     await props.onRefreshLots?.();
   }
 
@@ -73,30 +79,47 @@ async function createOperationalAsset(line, props) {
         date_entree_ferme: today(),
         purchase_cost: unitCost,
         source: 'business_plan',
+        source_module: 'investissements',
+        source_record_id: line.id,
         business_plan_id: line.business_plan_id,
         bp_line_id: line.id,
+        linked_transaction_id: line.transaction_id || null,
+        preuve_url: line.preuve_url || '',
       });
     }
-    await props.onUpdateBpInvestmentLine?.(line.id, { asset_module: 'animaux', asset_id: createdIds.join(','), asset_created_at: new Date().toISOString() });
+    await props.onUpdateBpInvestmentLine?.(line.id, linkPatch('animaux', createdIds.join(',')));
     await props.onRefreshAnimals?.();
   }
 
   if (type === 'culture') {
-    const id = makeId('CUL');
+    const id = makeId('CULT');
+    const isPoivron = label.toLowerCase().includes('poivron');
     await props.onCreateCulture?.({
       id,
-      name: label || 'Culture BP',
-      culture: label.toLowerCase().includes('poivron') ? 'Poivrons' : label,
+      nom: isPoivron ? 'Poivrons' : label || 'Culture BP',
+      type: isPoivron ? 'Poivrons' : label || 'Culture',
+      parcelle: 'À préciser',
+      parcelle_code: 'À préciser',
+      campagne: `BP ${line.business_plan_id || ''}`.trim(),
       statut: 'planifiee',
-      date_debut: today(),
+      date_debut_campagne: today(),
+      date_semis: today(),
       surface: toNumber(line.quantite) || 0,
+      surface_exploitable: toNumber(line.quantite) || 0,
       unite_surface: line.unite || 'ha',
-      cout_prevu: toNumber(line.total),
+      budget_prevu: toNumber(line.total),
+      cout_total_reel: 0,
+      revenu_reel: 0,
       source: 'business_plan',
+      source_module: 'investissements',
+      source_record_id: line.id,
       business_plan_id: line.business_plan_id,
+      investment_id: line.id,
       bp_line_id: line.id,
+      linked_transaction_id: line.transaction_id || null,
+      preuve_url: line.preuve_url || '',
     });
-    await props.onUpdateBpInvestmentLine?.(line.id, { asset_module: 'cultures', asset_id: id, asset_created_at: new Date().toISOString() });
+    await props.onUpdateBpInvestmentLine?.(line.id, linkPatch('cultures', id));
     await props.onRefreshCultures?.();
   }
   await props.onRefreshBusinessPlans?.();
