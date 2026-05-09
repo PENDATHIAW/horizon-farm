@@ -1,6 +1,7 @@
 import { AlertTriangle, Bird, HeartPulse, Package, Receipt, Scale } from 'lucide-react';
 import AvicoleBase from './AvicoleBase.jsx';
 import AvicoleHealthBridge from './AvicoleHealthBridge.jsx';
+import AvicoleSaleReadinessBridge from './AvicoleSaleReadinessBridge.jsx';
 import { fmtNumber, toNumber } from '../utils/format';
 import { filterLotsByActivity } from '../utils/avicoleActivity';
 
@@ -98,6 +99,7 @@ export default function AvicoleV9(props) {
     <div className="space-y-6 avicole-mobile-final">
       <style>{`@media (max-width: 640px){.avicole-mobile-final .rounded-2xl{border-radius:18px}.avicole-mobile-final table{font-size:12px}.avicole-mobile-final th,.avicole-mobile-final td{padding-left:10px!important;padding-right:10px!important}.avicole-mobile-final .text-2xl{font-size:1.35rem}.avicole-mobile-final .grid{gap:.75rem}.avicole-mobile-final .overflow-x-auto{max-width:100vw}}`}</style>
       <AvicoleHealthBridge rows={props.rows || []} productionLogs={props.productionLogs || []} alimentationLogs={props.alimentationLogs || []} onUpdate={props.onUpdate} onRefresh={props.onRefresh} />
+      <AvicoleSaleReadinessBridge rows={props.rows || []} opportunities={props.opportunities || []} onUpdate={props.onUpdate} onRefresh={props.onRefresh} onCreateOpportunity={props.onCreateOpportunity} onUpdateOpportunity={props.onUpdateOpportunity} onRefreshOpportunities={props.onRefreshOpportunities} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} />
       <HealthAndLinks rows={props.rows || []} />
       <LastEggEntries logs={props.productionLogs || []} lots={props.rows || []} />
       <AvicoleBase {...props} />
