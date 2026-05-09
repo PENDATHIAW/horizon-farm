@@ -16,30 +16,22 @@ import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
 import { calculateLotMetrics } from '../utils/businessCalculations';
 import { filterLotsByActivity } from '../utils/avicoleActivity';
+import {
+  avicoleActiveCount,
+  avicoleDeadCount,
+  avicoleHasActiveBirds,
+  avicoleSickCount,
+  avicoleStatusFor,
+} from '../utils/avicoleMetrics';
 
 const tabs = ['Tous', 'Pondeuse', 'Chair'];
 const today = () => new Date().toISOString().slice(0, 10);
-const TERMINAL_STATUSES = ['vendu_totalement', 'cloture', 'clôturé', 'termine', 'terminé', 'archive', 'supprime', 'supprimé'];
 
-const firstNumber = (...values) => {
-  for (const value of values) {
-    if (value !== undefined && value !== null && value !== '') return toNumber(value);
-  }
-  return 0;
-};
-
-const initialCount = (lot = {}) => firstNumber(lot.initial_count, lot.effectif_initial, lot.effectif_depart, lot.nombre_initial);
-const deadCount = (lot = {}) => firstNumber(lot.mortality, lot.morts, lot.deaths);
-const stolenCount = (lot = {}) => firstNumber(lot.voles, lot.volés, lot.stolen);
-const soldCount = (lot = {}) => firstNumber(lot.vendus, lot.sold_count, lot.sold);
-const reformedCount = (lot = {}) => firstNumber(lot.reformes, lot.réformés, lot.reformed);
-const otherExitCount = (lot = {}) => firstNumber(lot.autres_sorties, lot.sorties_autres, lot.sorties, lot.other_exits);
-const sickCount = (lot = {}) => firstNumber(lot.malades, lot.sick_count, lot.sick);
-
-// Règle métier : les malades restent présents dans le lot.
-// Ne jamais repartir de current_count/effectif_actuel ici, car ces champs peuvent déjà être calculés.
-const activeCount = (lot = {}) => Math.max(0, initialCount(lot) - deadCount(lot) - stolenCount(lot) - soldCount(lot) - reformedCount(lot) - otherExitCount(lot));
-const hasActiveBirds = (lot = {}) => activeCount(lot) > 0 && !TERMINAL_STATUSES.includes(String(lot.status || '').toLowerCase());
+const activeCount = avicoleActiveCount;
+const deadCount = avicoleDeadCount;
+const sickCount = avicoleSickCount;
+const hasActiveBirds = avicoleHasActiveBirds;
+const statusFor = avicoleStatusFor;
 
 function ageDays(lot = {}) {
   const start = lot.date_debut || lot.entry_date || lot.date_entree;
@@ -58,18 +50,9 @@ function phaseFor(lot = {}) {
   return 'Croissance';
 }
 
-function statusFor(lot = {}) {
-  const current = activeCount(lot);
-  const status = String(lot.status || '').toLowerCase();
-  if (current <= 0) return 'cloture';
-  if (TERMINAL_STATUSES.includes(status)) return 'cloture';
-  if (soldCount(lot) > 0) return 'vendu_partiellement';
-  return lot.status || 'actif';
-}
-
 function readinessLabel(lot = {}) {
   const current = activeCount(lot);
-  if (current <= 0 || TERMINAL_STATUSES.includes(String(lot.status || '').toLowerCase())) return 'Indisponible';
+  if (current <= 0 || statusFor(lot) === 'cloture') return 'Indisponible';
   const age = ageDays(lot);
   const weight = toNumber(lot.weight_avg ?? lot.average_weight);
   if (lot.type === 'Chair') {
@@ -132,19 +115,39 @@ export default function AvicoleBase({
   const confirmDelete = async () => { if (!selected) return; try { setSaving(true); await onDelete?.(selected.id); toast.success('Lot supprimé'); setModal(null); } catch (e) { toast.error(e.message || 'Suppression impossible'); } finally { setSaving(false); } };
 
   const addEggEntry = async () => {
-    const lot = rows.find((item) => item.type === 'Pondeuse' && hasActiveBirds(item));
+    const pondeuses = rows.filter((item) => item.type === 'Pondeuse' && hasActiveBirds(item));
+    const lot = pondeuses[0];
     if (!lot) return toast.error('Aucun lot pondeuse actif disponible');
+
+    const eggsInput = window.prompt(`Œufs produits pour ${lot.name || lot.id} aujourd’hui ?`, '');
+    if (eggsInput === null) return;
+    const eggCount = toNumber(eggsInput);
+    if (eggCount <= 0) return toast.error('Saisir un nombre d’œufs supérieur à 0');
+
+    const brokenInput = window.prompt('Œufs cassés ?', '0');
+    if (brokenInput === null) return;
+    const brokenCount = Math.max(0, toNumber(brokenInput));
+    if (brokenCount > eggCount) return toast.error('Les casses ne peuvent pas dépasser les œufs produits');
+
     try {
-      await onCreateProduction?.({ id: `PROD-${Date.now()}`, lot_id: lot.id, lot_name: lot.name || lot.id, date: today(), oeufs_produits: 0, oeufs_casses: 0 });
+      await onCreateProduction?.({
+        id: `PROD-${Date.now()}`,
+        lot_id: lot.id,
+        lot_name: lot.name || lot.id,
+        date: today(),
+        oeufs_produits: eggCount,
+        oeufs_casses: brokenCount,
+        oeufs_vendables: Math.max(0, eggCount - brokenCount),
+      });
       await onRefreshProduction?.();
-      toast.success('Ligne œufs ajoutée');
+      toast.success('Relevé œufs ajouté');
     } catch (e) { toast.error(e.message || 'Ajout production impossible'); }
   };
 
   const exportRows = () => {
     const fileName = `avicole-${tab.toLowerCase()}`;
     const exportableRows = filteredByActivity.map((lot) => ({ ...lot, effectif_actuel_calcule: activeCount(lot), statut_calcule: statusFor(lot), decision_vente_calculee: readinessLabel(lot) }));
-    exportToCsv({ rows: exportableRows, columns: ['id', 'name', 'type', 'phase', 'initial_count', 'effectif_actuel_calcule', 'mortality', 'voles', 'vendus', 'reformes', 'autres_sorties', 'malades', 'weight_avg', 'statut_calcule'], fileName: `${fileName}.csv` });
+    exportToCsv({ rows: exportableRows, columns: ['id', 'name', 'type', 'phase', 'initial_count', 'effectif_actuel_calcule', 'mortality', 'vols', 'vendus', 'reformes', 'autres_sorties', 'malades', 'weight_avg', 'statut_calcule'], fileName: `${fileName}.csv` });
     exportToExcel({ rows: exportableRows, fileName: `${fileName}.xlsx`, sheetName: 'Avicole' });
     exportToPdf({ rows: exportableRows, columns: ['id', 'name', 'type', 'initial_count', 'effectif_actuel_calcule', 'statut_calcule'], fileName: `${fileName}.pdf`, title: 'Lots avicoles' });
     toast.success('Exports générés');
