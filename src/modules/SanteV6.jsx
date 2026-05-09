@@ -24,6 +24,12 @@ const isHealthStock = (s = {}) => `${s.categorie || ''} ${s.produit || ''}`.toLo
 const isDisinfectantStock = (s = {}) => `${s.categorie || ''} ${s.produit || ''}`.toLowerCase().match(/desinfectant|désinfectant|biosecurite|biosécurité|nettoyage/);
 const dueSoon = (v = {}) => v.prevue && ((new Date(v.prevue) - new Date()) / 86400000) >= 0 && ((new Date(v.prevue) - new Date()) / 86400000) <= 7;
 const late = (v = {}) => String(v.statut || '').toLowerCase() === 'retard' || (v.prevue && !v.effectuee && new Date(v.prevue) < new Date());
+const stockAvailable = (s = {}) => toNumber(s.quantite);
+const plural = (unit = '') => {
+  const u = String(unit || 'unité').trim();
+  if (!u) return 'unités';
+  return stockAvailable({ quantite: 2 }) > 1 && !u.endsWith('s') ? `${u}s` : u;
+};
 
 const interventionTypes = [
   { value: 'vaccination', label: 'Vaccination', family: 'preventif' },
@@ -33,6 +39,12 @@ const interventionTypes = [
   { value: 'visite_veterinaire', label: 'Visite vétérinaire', family: 'mixte' },
   { value: 'biosecurite', label: 'Biosécurité / désinfection / quarantaine', family: 'biosecurite' },
   { value: 'urgence', label: 'Urgence sanitaire / mortalité', family: 'curatif' },
+];
+const productSources = [
+  { value: 'stock', label: 'Utiliser mon stock' },
+  { value: 'veterinaire', label: 'Produit fourni par le véto' },
+  { value: 'achat_direct', label: 'Achat direct pendant intervention' },
+  { value: 'aucun', label: 'Aucun produit consommé' },
 ];
 const familyOf = (type) => interventionTypes.find((t) => t.value === type)?.family || 'preventif';
 const labelType = (type) => interventionTypes.find((t) => t.value === type)?.label || 'Intervention';
@@ -138,7 +150,7 @@ function InterventionPanel(props) {
   const docsCrud = useCrudModule('documents');
   const stockCrud = useCrudModule('stock');
   const vetsCrud = useCrudModule('veterinaires');
-  const [form, setForm] = useState({ type_intervention: 'preventif', target_mode: 'scope:cheptel', target_detail: '', date: today(), statut: 'a_faire', vet_mode: '' });
+  const [form, setForm] = useState({ type_intervention: 'preventif', target_mode: 'scope:cheptel', target_detail: '', date: today(), statut: 'a_faire', vet_mode: '', product_source: 'stock' });
   const [newVet, setNewVet] = useState({ nom: '', tel: '', specialite: '' });
   const animals = arr(props.animaux);
   const lots = arr(props.lots);
@@ -148,10 +160,16 @@ function InterventionPanel(props) {
   const detailOptions = useMemo(() => detailsFor(form.target_mode, animals, lots), [form.target_mode, animals, lots]);
   const target = useMemo(() => resolveTarget(form.target_mode, form.target_detail || detailOptions[0]?.value, form.type_intervention, animals, lots), [form.target_mode, form.target_detail, form.type_intervention, animals, lots, detailOptions]);
   const healthStocks = stocks.filter(familyOf(form.type_intervention) === 'biosecurite' ? isDisinfectantStock : isHealthStock);
+  const selectedStock = healthStocks.find((s) => String(s.id) === String(form.stock_id));
+  const qty = toNumber(form.quantite_utilisee);
+  const availableQty = stockAvailable(selectedStock);
+  const stockInsufficient = form.product_source === 'stock' && selectedStock && qty > availableQty;
+
   const update = (key, value) => setForm((prev) => {
     const next = { ...prev, [key]: value };
     if (key === 'type_intervention') { next.target_mode = modesFor(value, animals, lots)[0]?.value || ''; next.target_detail = ''; }
     if (key === 'target_mode') next.target_detail = '';
+    if (key === 'product_source' && value !== 'stock') next.stock_id = '';
     return next;
   });
 
@@ -168,26 +186,36 @@ function InterventionPanel(props) {
   };
 
   const decrementStock = async () => {
-    if (!form.stock_id || !toNumber(form.quantite_utilisee)) return;
+    if (form.product_source !== 'stock' || !form.stock_id || !qty) return;
     const stock = stocks.find((s) => String(s.id) === String(form.stock_id));
     if (!stock) return;
-    const nextQty = Math.max(0, toNumber(stock.quantite) - toNumber(form.quantite_utilisee));
-    await (props.onUpdateStock || stockCrud.update)?.(stock.id, { quantite: nextQty, last_movement_type: 'sortie', last_movement_label: familyOf(form.type_intervention) === 'biosecurite' ? 'biosécurité' : 'santé', last_movement_qty: toNumber(form.quantite_utilisee), last_movement_at: now() });
+    if (qty > toNumber(stock.quantite)) throw new Error('Stock insuffisant. Choisis “Produit fourni par le véto” ou “Achat direct” si le produit ne vient pas du stock.');
+    const nextQty = Math.max(0, toNumber(stock.quantite) - qty);
+    await (props.onUpdateStock || stockCrud.update)?.(stock.id, { quantite: nextQty, last_movement_type: 'sortie', last_movement_label: familyOf(form.type_intervention) === 'biosecurite' ? 'biosécurité' : 'santé', last_movement_qty: qty, last_movement_at: now() });
     if (nextQty <= toNumber(stock.seuil)) await alertesCrud.create?.({ id: makeId('ALT'), title: `Stock santé critique: ${stock.produit}`, message: `${stock.produit} sous le seuil`, module_source: 'stock', entity_type: 'stock', entity_id: stock.id, severity: 'warning', status: 'nouvelle', action_recommandee: 'Réapprovisionnement' });
   };
 
   const submit = async () => {
     if (!form.nom) return toast.error('Produit ou soin obligatoire');
     if (form.target_mode?.startsWith('detail:') && !form.target_detail && detailOptions.length) return toast.error('Choisis la cible précise');
+    if (form.product_source === 'stock' && !form.stock_id && form.nom) return toast.error('Choisis le stock utilisé ou change la source du produit');
+    if (stockInsufficient) return toast.error('Stock insuffisant pour cette intervention');
     try {
       const id = makeId('SAN');
       const label = labelType(form.type_intervention);
       const vet = await ensureVet();
-      await props.onCreate?.({ id, nom: form.nom || label, type_intervention: form.type_intervention, nature_intervention: familyOf(form.type_intervention), animal: target.target_summary, module_lie: target.module_lie, related_id: target.related_id, target_scope: target.target_scope, target_ids: target.target_ids, target_count: target.target_count, total_count: target.total_count, target_summary: target.target_summary, target_snapshot_date: target.target_snapshot_date, prevue: form.date || today(), effectuee: form.statut === 'fait' ? (form.date || today()) : '', statut: form.statut || 'a_faire', vet: vet.vet_name, veterinaire_id: vet.vet_id, medicament: form.nom || '', quantite_utilisee: toNumber(form.quantite_utilisee), stock_id: form.stock_id || '', cout: toNumber(form.cout), prochaine_action: form.prochaine_action || '', notes: form.notes || '', preuve_url: form.preuve_url || '', biosafety_required: ['curatif', 'urgence', 'biosecurite'].includes(form.type_intervention), source_module: 'sante_biosecurite' });
+      const productSourceLabel = productSources.find((s) => s.value === form.product_source)?.label || 'Produit non précisé';
+      await props.onCreate?.({ id, nom: form.nom || label, animal: target.target_summary, prevue: form.date || today(), effectuee: form.statut === 'fait' ? (form.date || today()) : '', statut: form.statut || 'a_faire', vet: vet.vet_name, cout: toNumber(form.cout) });
       await decrementStock();
-      if (toNumber(form.cout) > 0) await props.onCreateFinanceTransaction?.({ id: makeId('TRX'), type: 'sortie', libelle: `${label} - ${target.target_summary}`, montant: toNumber(form.cout), date: form.date || today(), categorie: familyOf(form.type_intervention) === 'biosecurite' ? 'Biosecurite' : 'Sante', module_lie: 'sante', related_id: id, statut: 'paye', source_module: 'sante', source_record_id: id });
+      if (toNumber(form.cout) > 0) await props.onCreateFinanceTransaction?.({ id: makeId('TRX'), type: 'sortie', libelle: `${label} - ${form.nom} (${productSourceLabel})`, montant: toNumber(form.cout), date: form.date || today(), categorie: familyOf(form.type_intervention) === 'biosecurite' ? 'Biosecurite' : 'Sante', module_lie: 'sante', related_id: id, statut: 'paye', source_module: 'sante', source_record_id: id, notes: target.target_summary });
+      if (form.product_source === 'achat_direct') {
+        await eventsCrud.create?.({ id: makeId('EVT'), event_type: 'achat_direct_sante', module_source: 'sante', entity_type: target.module_lie, entity_id: target.related_id, title: `Achat direct ${form.nom}`, description: target.target_summary, event_date: form.date || today(), severity: 'info', related_id: id, saisies_evitees: 3 });
+      }
+      if (form.product_source === 'veterinaire') {
+        await eventsCrud.create?.({ id: makeId('EVT'), event_type: 'produit_fourni_veterinaire', module_source: 'sante', entity_type: target.module_lie, entity_id: target.related_id, title: `Produit fourni par le véto: ${form.nom}`, description: target.target_summary, event_date: form.date || today(), severity: 'info', related_id: id, saisies_evitees: 3 });
+      }
       if (form.prochaine_action) await tachesCrud.create?.({ id: makeId('TSK'), title: `Suivi ${label}`, module_lie: 'sante', related_id: id, due_date: form.prochaine_action, priority: familyOf(form.type_intervention) === 'curatif' ? 'haute' : 'moyenne', status: 'a_faire', checklist: 'Contrôle; Résultat; Clôture', source_module: 'sante' });
-      await eventsCrud.create?.({ id: makeId('EVT'), event_type: familyOf(form.type_intervention) === 'biosecurite' ? 'biosécurité' : 'intervention_sanitaire', module_source: 'sante', entity_type: target.module_lie, entity_id: target.related_id, title: label, description: target.target_summary, event_date: form.date || today(), severity: familyOf(form.type_intervention) === 'curatif' ? 'warning' : 'info', related_id: id, saisies_evitees: 5 });
+      await eventsCrud.create?.({ id: makeId('EVT'), event_type: familyOf(form.type_intervention) === 'biosecurite' ? 'biosécurité' : 'intervention_sanitaire', module_source: 'sante', entity_type: target.module_lie, entity_id: target.related_id, title: label, description: `${target.target_summary} · ${productSourceLabel}`, event_date: form.date || today(), severity: familyOf(form.type_intervention) === 'curatif' ? 'warning' : 'info', related_id: id, saisies_evitees: 5 });
       if (form.preuve_url) await docsCrud.create?.({ id: makeId('DOC'), title: `Preuve ${label}`, document_category: familyOf(form.type_intervention) === 'biosecurite' ? 'sanitaire' : 'ordonnance', module_source: 'sante', entity_type: 'sante', entity_id: id, file_url: form.preuve_url, related_id: id });
       if (['curatif', 'urgence', 'biosecurite'].includes(form.type_intervention)) {
         const preview = prepareBiosecurityWorkflow({ id, trigger: form.type_intervention, title: `${label} - ${target.target_summary}`, message: form.notes || target.target_summary, module_source: 'sante', entity_type: target.module_lie, entity_id: target.related_id, risk_level: form.type_intervention === 'urgence' ? 'critique' : 'warning', protocol: form.type_intervention === 'biosecurite' ? 'Nettoyage, désinfection, contrôle accès' : 'Isoler si nécessaire, traiter, surveiller', next_control_date: form.prochaine_action || form.date || today(), document_url: form.preuve_url }, { tasks: tachesCrud.rows, alerts: alertesCrud.rows, events: eventsCrud.rows, documents: docsCrud.rows });
@@ -195,14 +223,14 @@ function InterventionPanel(props) {
       }
       await Promise.allSettled([props.onRefresh?.(), props.onRefreshFinances?.(), stockCrud.refresh?.(), tachesCrud.refresh?.(), alertesCrud.refresh?.(), eventsCrud.refresh?.(), docsCrud.refresh?.()]);
       toast.success('Intervention enregistrée');
-      setForm({ type_intervention: 'preventif', target_mode: 'scope:cheptel', target_detail: '', date: today(), statut: 'a_faire', vet_mode: '' });
+      setForm({ type_intervention: 'preventif', target_mode: 'scope:cheptel', target_detail: '', date: today(), statut: 'a_faire', vet_mode: '', product_source: 'stock' });
       setNewVet({ nom: '', tel: '', specialite: '' });
     } catch (error) {
       toast.error(error.message || 'Intervention impossible');
     }
   };
 
-  return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Santé & Biosécurité</p><h3 className="font-black text-[#2f2415]">Nouvelle intervention</h3></div><div className="grid grid-cols-1 md:grid-cols-3 gap-3"><Select label="Type" value={form.type_intervention} onChange={(v) => update('type_intervention', v)} options={interventionTypes} /><Select label="Périmètre" value={form.target_mode || modes[0]?.value || ''} onChange={(v) => update('target_mode', v)} options={modes} />{form.target_mode?.startsWith('detail:') ? <Select label="Cible précise" value={form.target_detail || detailOptions[0]?.value || ''} onChange={(v) => update('target_detail', v)} options={detailOptions} /> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]"><b>{target.target_count || 0}</b> / {target.total_count || 0}<br />{target.target_summary}</div>}<Input label="Vaccin / soin / produit" value={form.nom || ''} onChange={(v) => update('nom', v)} /><Select label="Stock utilisé" value={form.stock_id || ''} onChange={(v) => update('stock_id', v)} options={[{ value: '', label: 'Aucun' }, ...healthStocks.map((s) => ({ value: s.id, label: `${s.produit} · ${fmtNumber(s.quantite)} ${s.unite || ''}` }))]} /><Input label="Quantité utilisée" type="number" value={form.quantite_utilisee || ''} onChange={(v) => update('quantite_utilisee', v)} /><Input label="Coût" type="number" value={form.cout || ''} onChange={(v) => update('cout', v)} /><Input label="Date" type="date" value={form.date || today()} onChange={(v) => update('date', v)} /><Input label="Prochain suivi" type="date" value={form.prochaine_action || ''} onChange={(v) => update('prochaine_action', v)} /><Select label="Vétérinaire" value={form.vet_mode || ''} onChange={(v) => update('vet_mode', v)} options={[{ value: '', label: 'Non renseigné' }, ...vets.map((v) => ({ value: v.id, label: v.nom || v.id })), { value: '__new__', label: '+ Nouveau véto' }]} />{form.vet_mode === '__new__' ? <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-3 rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><Input label="Nom véto" value={newVet.nom} onChange={(v) => setNewVet((p) => ({ ...p, nom: v }))} /><Input label="Téléphone" value={newVet.tel} onChange={(v) => setNewVet((p) => ({ ...p, tel: v }))} /><Input label="Spécialité" value={newVet.specialite} onChange={(v) => setNewVet((p) => ({ ...p, specialite: v }))} /></div> : null}<Input label="Notes" value={form.notes || ''} onChange={(v) => update('notes', v)} className="md:col-span-2" /><Input label="Preuve / ordonnance URL" value={form.preuve_url || ''} onChange={(v) => update('preuve_url', v)} /></div><div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"><b>Cible :</b> {target.target_summary} · {target.module_lie || '—'} · {target.related_id || '—'}</div><div className="flex justify-end"><Btn icon={ShieldCheck} onClick={submit}>Valider</Btn></div></div>;
+  return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Santé & Biosécurité</p><h3 className="font-black text-[#2f2415]">Nouvelle intervention</h3></div><div className="grid grid-cols-1 md:grid-cols-3 gap-3"><Select label="Type" value={form.type_intervention} onChange={(v) => update('type_intervention', v)} options={interventionTypes} /><Select label="Périmètre" value={form.target_mode || modes[0]?.value || ''} onChange={(v) => update('target_mode', v)} options={modes} />{form.target_mode?.startsWith('detail:') ? <Select label="Cible précise" value={form.target_detail || detailOptions[0]?.value || ''} onChange={(v) => update('target_detail', v)} options={detailOptions} /> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]"><b>{target.target_count || 0}</b> / {target.total_count || 0}<br />{target.target_summary}</div>}<Input label="Vaccin / soin / produit" value={form.nom || ''} onChange={(v) => update('nom', v)} /><Select label="Source produit" value={form.product_source || 'stock'} onChange={(v) => update('product_source', v)} options={productSources} />{form.product_source === 'stock' ? <Select label="Stock utilisé" value={form.stock_id || ''} onChange={(v) => update('stock_id', v)} options={[{ value: '', label: 'Choisir un stock' }, ...healthStocks.map((s) => ({ value: s.id, label: `${s.produit} · ${fmtNumber(s.quantite)} ${plural(s.unite)} disponibles` }))]} /> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]">Aucune sortie stock</div>}<Input label="Quantité utilisée" type="number" value={form.quantite_utilisee || ''} onChange={(v) => update('quantite_utilisee', v)} />{stockInsufficient ? <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">Stock insuffisant : {fmtNumber(availableQty)} disponible(s)</div> : <Input label="Coût" type="number" value={form.cout || ''} onChange={(v) => update('cout', v)} />}<Input label="Date" type="date" value={form.date || today()} onChange={(v) => update('date', v)} /><Input label="Prochain suivi" type="date" value={form.prochaine_action || ''} onChange={(v) => update('prochaine_action', v)} /><Select label="Vétérinaire" value={form.vet_mode || ''} onChange={(v) => update('vet_mode', v)} options={[{ value: '', label: 'Non renseigné' }, ...vets.map((v) => ({ value: v.id, label: v.nom || v.id })), { value: '__new__', label: '+ Nouveau véto' }]} />{form.vet_mode === '__new__' ? <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-3 rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><Input label="Nom véto" value={newVet.nom} onChange={(v) => setNewVet((p) => ({ ...p, nom: v }))} /><Input label="Téléphone" value={newVet.tel} onChange={(v) => setNewVet((p) => ({ ...p, tel: v }))} /><Input label="Spécialité" value={newVet.specialite} onChange={(v) => setNewVet((p) => ({ ...p, specialite: v }))} /></div> : null}<Input label="Notes" value={form.notes || ''} onChange={(v) => update('notes', v)} className="md:col-span-2" /><Input label="Preuve / ordonnance URL" value={form.preuve_url || ''} onChange={(v) => update('preuve_url', v)} /></div><div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"><b>Cible :</b> {target.target_summary} · {target.module_lie || '—'} · {target.related_id || '—'}</div><div className="flex justify-end"><Btn icon={ShieldCheck} onClick={submit}>Valider</Btn></div></div>;
 }
 
 function Select({ label, value, onChange, options = [] }) {
