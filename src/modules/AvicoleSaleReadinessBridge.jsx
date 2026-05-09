@@ -3,33 +3,36 @@ import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
+import { avicoleActiveCount, avicoleHasActiveBirds } from '../utils/avicoleMetrics';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const today = () => new Date().toISOString().slice(0, 10);
 const now = () => new Date().toISOString();
-const terminalStatuses = ['vendu_totalement', 'vendu', 'cloture', 'clôturé', 'termine', 'terminé', 'archive', 'supprime', 'supprimé', 'perdu'];
+const clean = (value) => String(value || '').trim();
 const idOf = (lot = {}) => String(lot.id || '').trim();
 const lotName = (lot = {}) => lot.name || lot.nom || lot.id || 'Lot avicole';
-const initialCount = (lot = {}) => toNumber(lot.initial_count ?? lot.effectif_initial ?? lot.effectif_depart ?? lot.nombre_initial);
-const activeCount = (lot = {}) => Math.max(0, initialCount(lot) - toNumber(lot.mortality ?? lot.morts) - toNumber(lot.voles ?? lot.volés) - toNumber(lot.vendus) - toNumber(lot.reformes ?? lot.réformés) - toNumber(lot.autres_sorties ?? lot.sorties));
+const activeCount = avicoleActiveCount;
+const targetWeight = (lot = {}) => toNumber(lot.poids_objectif_vente ?? lot.objectif_poids_moyen ?? lot.target_weight ?? 1.5) || 1.5;
+const latestWeight = (lot = {}) => toNumber(lot.poids_moyen_actuel ?? lot.last_weight_avg ?? lot.weight_avg ?? lot.average_weight);
 const ageDays = (lot = {}) => {
   const start = lot.date_debut || lot.entry_date || lot.date_entree;
   if (!start) return 0;
   return Math.max(0, Math.floor((Date.now() - new Date(start).getTime()) / 86400000));
 };
 const saleConfirmed = (lot = {}) => Boolean(lot.pret_vente_confirme || lot.ready_for_sale || lot.sale_ready || lot.pret_a_la_vente || ['pret_a_la_vente', 'pret_a_vendre', 'pret_a_vendre_reforme', 'a_reformer'].includes(String(lot.status || lot.statut || '').toLowerCase()));
-const isActiveLot = (lot = {}) => idOf(lot) && activeCount(lot) > 0 && !terminalStatuses.includes(String(lot.status || lot.statut || '').toLowerCase());
+const isActiveLot = (lot = {}) => idOf(lot) && avicoleHasActiveBirds(lot);
 const opportunityKey = (lot = {}) => `avicole:${idOf(lot)}`;
 
 function readiness(lot = {}) {
   if (!isActiveLot(lot)) return { ready: false, label: 'Indisponible', reason: 'Aucun effectif actif' };
   if (saleConfirmed(lot)) return { ready: true, confirmed: true, label: 'Prêt confirmé', reason: 'Confirmation enregistrée' };
   const age = ageDays(lot);
-  const weight = toNumber(lot.weight_avg ?? lot.average_weight);
-  if (lot.type === 'Chair' && age >= 30 && weight >= 1.5) return { ready: true, label: 'Prêt recommandé', reason: `${age} jours · ${weight.toFixed(2)} kg` };
-  if (lot.type === 'Chair' && age >= 30) return { ready: true, label: 'À confirmer', reason: `${age} jours · poids à vérifier` };
+  const weight = latestWeight(lot);
+  const goal = targetWeight(lot);
+  if (lot.type === 'Chair' && weight >= goal) return { ready: true, label: 'Prêt recommandé', reason: `${weight.toFixed(2)} kg / objectif ${goal.toFixed(2)} kg` };
+  if (lot.type === 'Chair' && age >= 30) return { ready: true, label: 'À confirmer', reason: `${age} jours · ${weight > 0 ? `${weight.toFixed(2)} kg` : 'poids à vérifier'} / objectif ${goal.toFixed(2)} kg` };
   if (age >= 540 || String(lot.status || '').includes('reformer')) return { ready: true, label: 'Réforme possible', reason: `${age} jours` };
-  return { ready: false, label: 'Non prêt', reason: `${age} jours` };
+  return { ready: false, label: 'Non prêt', reason: weight > 0 ? `${weight.toFixed(2)} kg / objectif ${goal.toFixed(2)} kg` : `${age} jours` };
 }
 
 function existingOpportunityFor(lot, opportunities = []) {
@@ -43,7 +46,7 @@ export default function AvicoleSaleReadinessBridge({ rows = [], opportunities = 
   const candidates = useMemo(() => arr(rows)
     .filter(isActiveLot)
     .map((lot) => ({ lot, state: readiness(lot), existing: existingOpportunityFor(lot, opportunities) }))
-    .filter(({ state, existing, lot }) => state.ready && (!state.confirmed || !existing || String(existing.status || existing.statut || '').toLowerCase() !== 'ouverte'))
+    .filter(({ state, existing }) => state.ready && (!state.confirmed || !existing || String(existing.status || existing.statut || '').toLowerCase() !== 'ouverte'))
     .slice(0, 6), [rows, opportunities]);
 
   const confirmReady = async (lot, state) => {
@@ -61,6 +64,8 @@ export default function AvicoleSaleReadinessBridge({ rows = [], opportunities = 
         ready_for_sale: true,
         sale_ready: true,
         sale_ready_confirmed_at: lot.sale_ready_confirmed_at || now(),
+        poids_objectif_vente: targetWeight(lot),
+        poids_moyen_actuel: latestWeight(lot),
       };
       await onUpdate?.(id, patch);
       const payload = {
@@ -78,7 +83,7 @@ export default function AvicoleSaleReadinessBridge({ rows = [], opportunities = 
         status: 'ouverte',
         statut: 'ouverte',
         priority: state.confirmed ? 'haute' : 'moyenne',
-        notes: state.reason || state.label,
+        notes: `${state.reason || state.label} · poids actuel ${latestWeight(lot).toFixed(2)} kg · objectif ${targetWeight(lot).toFixed(2)} kg`,
         created_from: 'avicole',
         updated_at: now(),
       };
@@ -102,7 +107,7 @@ export default function AvicoleSaleReadinessBridge({ rows = [], opportunities = 
         <div>
           <p className="text-xs uppercase tracking-widest text-[#8a7456]">Vente avicole</p>
           <h3 className="font-black text-[#2f2415]">Lots prêts à vendre ou à confirmer</h3>
-          <p className="text-sm text-[#8a7456] mt-1">La confirmation met à jour le lot et crée l’opportunité visible dans Ventes.</p>
+          <p className="text-sm text-[#8a7456] mt-1">Objectif poids par défaut : 1,50 kg. La confirmation crée l’opportunité visible dans Ventes.</p>
         </div>
         <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]"><Tag size={14} className="inline" /> {candidates.length} lot(s)</div>
       </div>
