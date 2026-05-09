@@ -105,6 +105,63 @@ Client paie le solde
 - [ ] les relances WhatsApp ne doivent pas être proposées pour un client soldé ;
 - [ ] créer un test e2e client : dette initiale → paiement complet → statut relance disparaît.
 
+### 5. Cultures → récolte / stock / vente / opportunité à auditer comme les animaux et l’avicole
+
+**Observation à surveiller :** les cultures doivent suivre la même logique de cohérence que les animaux/lots. Si une culture, parcelle ou campagne est marquée comme récoltée, vendable ou prête à vendre, l’état doit persister et déclencher les bons liens métier. Le simple affichage d’un pont cultures ne suffit pas.
+
+**Résultat attendu :** une culture prête à récolter, récoltée ou vendable doit mettre à jour la fiche culture/campagne, créer ou mettre à jour le stock récolte, et rendre la source disponible côté Ventes si elle est réellement vendable.
+
+**Modules impactés :** Cultures, Stock, Ventes, Opportunités de vente, Finances, Clients, Traçabilité, Alertes, Rapports, Impact Business.
+
+**Workflow attendu — récolte :**
+
+```txt
+Culture / parcelle / campagne récoltée
+→ fiche culture/campagne mise à jour
+→ quantité récoltée persistée
+→ stock récolte créé ou mis à jour
+→ rendement calculé
+→ trace/business_event créé
+→ alerte si rendement faible ou perte
+```
+
+**Workflow attendu — culture vendable :**
+
+```txt
+Récolte confirmée vendable
+→ stock récolte disponible
+→ opportunité de vente créée ou mise à jour
+→ source visible dans Ventes
+→ vente possible uniquement si quantité disponible > 0
+→ pas de doublon si confirmation répétée
+```
+
+**Workflow attendu — vente récolte :**
+
+```txt
+Vente récolte
+→ commande vente créée
+→ paiement/facture selon workflow vente
+→ finance entrée
+→ client mis à jour
+→ stock récolte décrémenté
+→ trace/business_event créé
+→ alerte créance si paiement partiel
+```
+
+**À vérifier/corriger :**
+
+- [ ] le statut récolté/vendable d’une culture persiste après refresh et retour fiche ;
+- [ ] pas de conflit de champs entre `statut`, `statut_culture`, `statut_recolte`, `pret_vente`, `vendable`, `ready_for_sale` ou équivalent ;
+- [ ] une récolte crée/met à jour un stock avec `source_module = cultures` et `source_id` cohérent ;
+- [ ] le module Ventes lit bien les récoltes/stock cultures vendables ;
+- [ ] une culture sans quantité disponible ne doit pas être proposée comme source active de vente ;
+- [ ] la vente d’une récolte décrémente le bon stock ou la bonne quantité vendable ;
+- [ ] les coûts intrants sortis du stock alimentent la campagne/parcelle ;
+- [ ] les marges culture/rapport/impact business se basent sur les ventes et coûts réels ;
+- [ ] créer un test e2e : culture récoltée → stock récolte visible → source vente disponible ;
+- [ ] créer un test e2e : vente récolte → stock décrémenté → finance/client/trace mis à jour.
+
 ---
 
 ## Principe
@@ -283,12 +340,14 @@ Lot malade / mortalité élevée / baisse ponte
 ```txt
 Intrant utilisé
 → sortie stock
-→ coût campagne/parcelle
+→ coût culture/campagne
+→ coût parcelle si applicable
 → trace
 
 Récolte
 → stock récolte
 → rendement
+→ opportunité de vente si vendable
 → trace
 
 Vente récolte
@@ -405,7 +464,9 @@ But : ouvrir les actions métiers, formulaires, modales, champs liés.
 - alerte vers tâche ;
 - double clic / refresh / revalidation anti-doublon ;
 - prêt à la vente animal/lot → opportunité visible dans Ventes ;
-- client à relancer → paiement complet → relance disparaît.
+- client à relancer → paiement complet → relance disparaît ;
+- culture récoltée → stock récolte → source de vente visible ;
+- vente récolte → stock décrémenté → finance/client/trace mis à jour.
 
 ---
 
