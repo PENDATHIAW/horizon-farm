@@ -19,6 +19,7 @@ import SectionHeader from '../components/SectionHeader';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { buildFinanceSummary } from '../utils/financeSummary';
 import { calculateCultureMetrics, calculateLotMetrics, calculateStockMetrics } from '../utils/businessCalculations';
+import { deriveSalesOpportunities } from '../utils/salesOpportunityDerivation';
 import DashboardOperationsBridge from './DashboardOperationsBridge.jsx';
 
 export default function Dashboard({
@@ -44,6 +45,7 @@ export default function Dashboard({
 }) {
   const [refreshing, setRefreshing] = useState(false);
   const finance = buildFinanceSummary({ transactions, salesOrders, payments });
+  const unifiedOpportunities = deriveSalesOpportunities({ opportunities, lots: lotsData, animaux, cultures, stocks });
 
   const malades = animaux.filter((a) => a.health_status === 'malade').length;
   const vaccinsRetard = vaccins.filter((v) => v.statut === 'retard').length;
@@ -52,7 +54,7 @@ export default function Dashboard({
   const lotMetrics = (lot) => calculateLotMetrics({ lot, feedingLogs: alimentationLogs, productionLogs });
   const productionOeufsJour = lotsData.reduce((sum, lot) => sum + lotMetrics(lot).eggMetrics.todayEggs, 0);
   const tasksOpen = taches.filter((t) => !['termine', 'terminé', 'annule', 'annulé', 'done'].includes(String(t.status || t.statut || '').toLowerCase())).length;
-  const opportunitiesOpen = opportunities.filter((o) => !['convertie', 'fermee', 'fermée', 'annulee', 'annulée'].includes(String(o.status || o.statut || '').toLowerCase())).length;
+  const opportunitiesOpen = unifiedOpportunities.length;
   const equipmentIssues = equipements.filter((e) => ['panne', 'maintenance', 'hors_service'].includes(String(e.status || e.statut || '').toLowerCase())).length;
   const alertesCount = malades + vaccinsRetard + stocksCritiques + culturesRisque + tasksOpen + opportunitiesOpen + equipmentIssues + (finance.cashDisponible < 0 ? 1 : 0) + (finance.totalCreances > 0 ? 1 : 0);
 
@@ -121,7 +123,7 @@ export default function Dashboard({
         </div>
       </div>
 
-      <DashboardOperationsBridge opportunities={opportunities} taches={taches} alertes={alertes} equipements={equipements} businessEvents={businessEvents} onNavigate={onNavigate} />
+      <DashboardOperationsBridge opportunities={opportunities} lots={lotsData} animaux={animaux} cultures={cultures} stocks={stocks} taches={taches} alertes={alertes} equipements={equipements} businessEvents={businessEvents} onNavigate={onNavigate} />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5">
