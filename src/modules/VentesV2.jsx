@@ -1,8 +1,8 @@
 import { CheckCircle2, CreditCard, FileText, Receipt, RefreshCw, Users } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { fmtCurrency, toNumber } from '../utils/format';
 import { commitSaleWorkflow, prepareSaleWorkflow, useSuggestion } from '../services/workflowService';
+import { fmtCurrency, toNumber } from '../utils/format';
 import Ventes from './Ventes.jsx';
 
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -26,6 +26,15 @@ async function secureSale(order, props, setPreview) {
   setPreview(preview);
 }
 
+async function updateSourceAsset(activity, id, patch, props) {
+  if (!id) return null;
+  if (activity === 'animaux') return props.onUpdateAnimal?.(id, patch);
+  if (activity === 'cultures') return props.onUpdateCulture?.(id, patch);
+  if (activity === 'stock') return props.onUpdateStock?.(id, patch);
+  if (String(activity || '').startsWith('avicole')) return props.onUpdateLot?.(id, patch);
+  return null;
+}
+
 async function commitPreview(preview, props, setPreview) {
   try {
     const result = await commitSaleWorkflow(preview, {
@@ -34,6 +43,7 @@ async function commitPreview(preview, props, setPreview) {
       onCreateFinanceTransaction: props.onCreateFinanceTransaction,
       onUpdateOrder: props.onUpdate,
       onUpdateClient: props.onUpdateClient,
+      onUpdateSourceAsset: (activity, id, patch) => updateSourceAsset(activity, id, patch, props),
       onCreateDocument: props.onCreateDocument,
       onCreateBusinessEvent: props.onCreateBusinessEvent,
       onCreateAlert: props.onCreateAlert,
@@ -49,10 +59,12 @@ async function commitPreview(preview, props, setPreview) {
 function SalesPreviewModal({ preview, setPreview, props }) {
   if (!preview) return null;
   const amount = preview.fields.amount;
-  const paidField = preview.fields.paid;
+  const paidField = preview.fields.payment_to_record || preview.fields.paid;
+  const remainingField = preview.fields.remaining_after_payment;
   const activity = preview.fields.activity;
-  const overridePaid = (value) => setPreview((p) => ({ ...p, fields: { ...p.fields, paid: { ...p.fields.paid, final_value: toNumber(value), manual_override: true } } }));
-  const resetPaid = () => setPreview((p) => useSuggestion(p, 'fields.paid'));
+  const category = preview.fields.category;
+  const overridePaid = (value) => setPreview((p) => ({ ...p, fields: { ...p.fields, payment_to_record: { ...p.fields.payment_to_record, final_value: toNumber(value), manual_override: true, manual_override_at: new Date().toISOString() } } }));
+  const resetPaid = () => setPreview((p) => useSuggestion(p, 'fields.payment_to_record'));
   return (
     <div className="fixed inset-0 z-[70] bg-black/40 p-4 flex items-center justify-center">
       <div className="w-full max-w-2xl rounded-2xl bg-[#fffdf8] border border-[#d6c3a0] shadow-2xl overflow-hidden">
@@ -62,9 +74,13 @@ function SalesPreviewModal({ preview, setPreview, props }) {
         </div>
         <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Info title="Montant auto" value={fmtCurrency(amount.auto_value)} badge={amount.manual_override ? 'Modifié' : 'Auto'} />
-            <div className="rounded-xl border border-[#eadcc2] bg-white p-3"><span className={`text-xs border rounded-full px-2 py-0.5 ${badgeClass(paidField.manual_override ? 'Modifié' : 'Auto')}`}>{paidField.manual_override ? 'Modifié' : 'Auto'}</span><p className="text-xs text-[#8a7456] mt-2">Montant encaissé final</p><input className="mt-1 w-full rounded-lg border border-[#d6c3a0] px-2 py-1 font-bold" type="number" value={paidField.final_value} onChange={(e) => overridePaid(e.target.value)} /><button className="mt-2 text-xs font-bold text-emerald-700" type="button" onClick={resetPaid}><RefreshCw size={12} className="inline" /> Utiliser la suggestion</button></div>
-            <Info title="Activité" value={activity.final_value} badge={activity.manual_override ? 'Modifié' : 'Auto'} />
+            <Info title="Montant vente" value={fmtCurrency(amount.auto_value)} badge={amount.manual_override ? 'Modifié' : 'Auto'} />
+            <div className="rounded-xl border border-[#eadcc2] bg-white p-3"><span className={`text-xs border rounded-full px-2 py-0.5 ${badgeClass(paidField.manual_override ? 'Modifié' : 'Auto')}`}>{paidField.manual_override ? 'Modifié' : 'Auto'}</span><p className="text-xs text-[#8a7456] mt-2">Montant encaissé maintenant</p><input className="mt-1 w-full rounded-lg border border-[#d6c3a0] px-2 py-1 font-bold" type="number" value={paidField.final_value} onChange={(e) => overridePaid(e.target.value)} /><button className="mt-2 text-xs font-bold text-emerald-700" type="button" onClick={resetPaid}><RefreshCw size={12} className="inline" /> Utiliser la suggestion</button></div>
+            <Info title="Reste après validation" value={fmtCurrency(remainingField?.auto_value || 0)} badge={remainingField?.manual_override ? 'Modifié' : 'Auto'} />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Info title="Activité finance" value={activity.final_value} badge={activity.manual_override ? 'Modifié' : 'Auto'} />
+            <Info title="Catégorie finance" value={category?.final_value || 'Ventes'} badge={category?.manual_override ? 'Modifié' : 'Auto'} />
           </div>
           <div className="rounded-xl border border-[#eadcc2] bg-white p-3"><p className="font-bold text-[#2f2415] mb-2">Actions ERP générées</p><div className="grid grid-cols-1 md:grid-cols-2 gap-2">{preview.actions.map((a) => <div key={a.id} className="text-sm text-[#7d6a4a]"><CheckCircle2 size={13} className="inline text-emerald-600" /> {a.label}</div>)}</div></div>
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700"><b>1 saisie utilisateur</b> = {preview.workflow_meta.actions_erp} actions ERP · <b>{preview.workflow_meta.saisies_evitees} saisies évitées</b></div>
