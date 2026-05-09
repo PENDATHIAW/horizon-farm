@@ -7,19 +7,32 @@ import { makeId } from '../utils/ids';
 const arr = (value) => Array.isArray(value) ? value : [];
 const today = () => new Date().toISOString().slice(0, 10);
 const now = () => new Date().toISOString();
-const lotName = (lot = {}) => lot.name || lot.nom || lot.id || 'Lot avicole';
+const asObject = (value) => value && typeof value === 'object' ? value : {};
+const lotId = (lot = {}) => String(lot?.id || '').trim();
+const lotName = (lot = {}) => lot.name || lot.nom || lotId(lot) || 'Lot avicole';
 const totalCount = (lot = {}) => toNumber(lot.current_count ?? lot.effectif_actuel ?? lot.effectif ?? lot.initial_count ?? lot.nombre ?? lot.quantite);
 const deadCount = (lot = {}) => toNumber(lot.mortality ?? lot.morts ?? lot.dead_count ?? lot.pertes);
 const sickCount = (lot = {}) => toNumber(lot.malades ?? lot.sick_count ?? lot.malade_count);
 const soldCount = (lot = {}) => toNumber(lot.vendus ?? lot.sold ?? lot.sorties ?? 0);
 const activeCount = (lot = {}) => Math.max(0, totalCount(lot) - deadCount(lot) - soldCount(lot));
-const healthScore = (lot = {}) => toNumber(lot.scoresSante ?? lot.score_sante ?? lot.health_score ?? 100);
+const healthScore = (lot = {}) => {
+  const raw = lot.scoresSante ?? lot.score_sante ?? lot.health_score;
+  return raw === undefined || raw === null || raw === '' ? 100 : toNumber(raw);
+};
 const eggs = (log = {}) => toNumber(log.oeufs_produits ?? log.eggs ?? log.quantity);
 const broken = (log = {}) => toNumber(log.oeufs_casses ?? log.broken ?? log.casses);
+const isValidLot = (lot = {}) => Boolean(lotId(lot));
+const isActiveLot = (lot = {}) => {
+  const status = String(lot.status || lot.statut || '').toLowerCase();
+  return isValidLot(lot) && !['vendu', 'termine', 'terminé', 'perdu', 'archive', 'archivé'].includes(status);
+};
 
 function logsForLot(lot, productionLogs = []) {
+  const id = lotId(lot);
+  if (!id) return [];
   return arr(productionLogs)
-    .filter((log) => String(log.lot_id || log.related_id || '') === String(lot.id || ''))
+    .map(asObject)
+    .filter((log) => String(log.lot_id || log.related_id || '').trim() === id)
     .sort((a, b) => String(b.date || b.created_at || '').localeCompare(String(a.date || a.created_at || '')));
 }
 
@@ -27,18 +40,19 @@ function eggDropForLot(lot, productionLogs = []) {
   const logs = logsForLot(lot, productionLogs).slice(0, 4);
   if (logs.length < 2) return { detected: false, last: 0, previous: 0, rate: 0 };
   const last = Math.max(0, eggs(logs[0]) - broken(logs[0]));
-  const previousAvg = logs.slice(1).reduce((sum, log) => sum + Math.max(0, eggs(log) - broken(log)), 0) / (logs.length - 1);
+  const previousAvg = logs.slice(1).reduce((sum, log) => sum + Math.max(0, eggs(log) - broken(log)), 0) / Math.max(1, logs.length - 1);
   const rate = previousAvg > 0 ? ((previousAvg - last) / previousAvg) * 100 : 0;
   return { detected: rate >= 20, last, previous: previousAvg, rate };
 }
 
 function riskForLot(lot, productionLogs = []) {
-  const active = activeCount(lot);
-  const dead = deadCount(lot);
-  const sick = sickCount(lot);
+  const safeLot = asObject(lot);
+  const active = activeCount(safeLot);
+  const dead = deadCount(safeLot);
+  const sick = sickCount(safeLot);
   const mortalityRate = active + dead > 0 ? (dead / (active + dead)) * 100 : 0;
-  const eggDrop = eggDropForLot(lot, productionLogs);
-  const score = healthScore(lot);
+  const eggDrop = eggDropForLot(safeLot, productionLogs);
+  const score = healthScore(safeLot);
   const reasons = [];
   if (sick > 0) reasons.push(`${fmtNumber(sick)} malade(s)`);
   if (dead > 0) reasons.push(`${fmtNumber(dead)} mort(s)`);
@@ -54,26 +68,28 @@ export default function AvicoleHealthBridge({ rows = [], productionLogs = [], al
   const alertesCrud = useCrudModule('alertes_center');
   const tachesCrud = useCrudModule('taches');
   const eventsCrud = useCrudModule('business_events');
-  const lots = arr(rows).filter((lot) => !['vendu', 'termine', 'terminé', 'perdu'].includes(String(lot.status || lot.statut || '').toLowerCase()));
+  const lots = arr(rows).map(asObject).filter(isActiveLot);
   const riskyLots = lots.map((lot) => ({ lot, risk: riskForLot(lot, productionLogs) })).filter((item) => item.risk.risky).slice(0, 6);
   const totalActive = lots.reduce((sum, lot) => sum + activeCount(lot), 0);
   const totalSick = lots.reduce((sum, lot) => sum + sickCount(lot), 0);
   const totalDead = lots.reduce((sum, lot) => sum + deadCount(lot), 0);
-  const eggToday = arr(productionLogs).filter((log) => String(log.date || '').slice(0, 10) === today()).reduce((sum, log) => sum + Math.max(0, eggs(log) - broken(log)), 0);
-  const alimentationCount = arr(alimentationLogs).filter((log) => String(log.module_lie || log.cible_type || '').toLowerCase().includes('avicole') || String(log.lot_id || '').trim()).length;
+  const eggToday = arr(productionLogs).map(asObject).filter((log) => String(log.date || '').slice(0, 10) === today()).reduce((sum, log) => sum + Math.max(0, eggs(log) - broken(log)), 0);
+  const alimentationCount = arr(alimentationLogs).map(asObject).filter((log) => String(log.module_lie || log.cible_type || '').toLowerCase().includes('avicole') || String(log.lot_id || '').trim()).length;
 
   const createBiosecurityFollowUp = async (lot, risk) => {
+    const id = lotId(lot);
+    if (!id) return toast.error('Lot avicole invalide');
     try {
       const healthId = makeId('SAN');
       const taskId = makeId('TSK');
-      const reason = risk.reasons.join(' · ') || 'Lot à contrôler';
+      const reason = arr(risk.reasons).join(' · ') || 'Lot à contrôler';
       const sick = risk.sick || 1;
       await santeCrud.create?.({
         id: healthId,
         nom: `Suivi avicole ${lotName(lot)}`,
         animal: `${lotName(lot)} · ${sick} malade(s) sur ${risk.active || totalCount(lot) || '?'}`,
         module_lie: 'avicole',
-        related_id: lot.id,
+        related_id: id,
         target_scope: risk.sick > 0 ? 'lot_avicole_malade' : 'lot_avicole_risque',
         target_count: risk.sick || risk.active || totalCount(lot),
         total_count: risk.active || totalCount(lot),
@@ -82,7 +98,7 @@ export default function AvicoleHealthBridge({ rows = [], productionLogs = [], al
         statut: 'a_faire',
         type_intervention: risk.high ? 'biosecurite' : 'preventif',
         nature_intervention: risk.high ? 'biosécurité' : 'preventif',
-        biosafety_required: risk.high,
+        biosafety_required: Boolean(risk.high),
         notes: reason,
         source_module: 'avicole',
       });
@@ -90,13 +106,13 @@ export default function AvicoleHealthBridge({ rows = [], productionLogs = [], al
         id: taskId,
         title: `Contrôle avicole — ${lotName(lot)}`,
         module_lie: 'avicole',
-        related_id: lot.id,
+        related_id: id,
         due_date: today(),
         priority: risk.high ? 'haute' : 'moyenne',
         status: 'a_faire',
         checklist: risk.high ? 'Isoler; Contrôler eau/aliment; Désinfecter; Vérifier mortalité; Documenter' : 'Contrôler lot; Vérifier alimentation; Surveiller ponte',
         source_module: 'avicole',
-        source_record_id: lot.id,
+        source_record_id: id,
         linked_health_id: healthId,
       });
       await alertesCrud.create?.({
@@ -105,7 +121,7 @@ export default function AvicoleHealthBridge({ rows = [], productionLogs = [], al
         message: reason,
         module_source: 'avicole',
         entity_type: 'lot_avicole',
-        entity_id: lot.id,
+        entity_id: id,
         severity: risk.high ? 'warning' : 'info',
         status: 'nouvelle',
         action_recommandee: risk.high ? 'Appliquer un contrôle santé et biosécurité.' : 'Surveiller le lot et compléter le suivi.',
@@ -115,7 +131,7 @@ export default function AvicoleHealthBridge({ rows = [], productionLogs = [], al
         event_type: risk.high ? 'biosécurité_avicole' : 'suivi_avicole',
         module_source: 'avicole',
         entity_type: 'lot_avicole',
-        entity_id: lot.id,
+        entity_id: id,
         title: `Suivi avicole ${lotName(lot)}`,
         description: reason,
         event_date: today(),
@@ -124,7 +140,7 @@ export default function AvicoleHealthBridge({ rows = [], productionLogs = [], al
         linked_health_id: healthId,
         saisies_evitees: 5,
       });
-      await onUpdate?.(lot.id, {
+      await onUpdate?.(id, {
         health_status: risk.high ? 'a_surveiller' : (lot.health_status || 'surveillance'),
         statut_sanitaire: risk.high ? 'a_surveiller' : (lot.statut_sanitaire || 'surveillance'),
         last_health_followup_id: healthId,
@@ -133,7 +149,7 @@ export default function AvicoleHealthBridge({ rows = [], productionLogs = [], al
       await Promise.allSettled([santeCrud.refresh?.(), tachesCrud.refresh?.(), alertesCrud.refresh?.(), eventsCrud.refresh?.(), onRefresh?.()]);
       toast.success('Suivi avicole créé');
     } catch (error) {
-      toast.error(error.message || 'Suivi avicole impossible');
+      toast.error('Suivi avicole impossible');
     }
   };
 
@@ -152,10 +168,12 @@ export default function AvicoleHealthBridge({ rows = [], productionLogs = [], al
           <Box icon={ShieldCheck} label="Lots risque" value={riskyLots.length} />
         </div>
       </div>
-      {riskyLots.length ? (
+      {!lots.length ? (
+        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]"><CheckCircle2 size={14} className="inline" /> Aucun lot avicole actif disponible.</div>
+      ) : riskyLots.length ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
           {riskyLots.map(({ lot, risk }) => (
-            <div key={lot.id} className="rounded-xl border border-amber-200 bg-amber-50/60 p-3">
+            <div key={lotId(lot)} className="rounded-xl border border-amber-200 bg-amber-50/60 p-3">
               <p className="font-bold text-[#2f2415]"><AlertTriangle size={14} className="inline text-amber-600" /> {lotName(lot)}</p>
               <p className="text-xs text-[#8a7456] mt-1">{risk.reasons.join(' · ')}</p>
               <p className="text-xs text-[#8a7456] mt-1">{fmtNumber(risk.active)} actifs · ponte récente {fmtNumber(risk.eggDrop.last || 0)}</p>
