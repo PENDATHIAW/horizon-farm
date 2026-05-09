@@ -2,17 +2,25 @@ import { createSupabaseCrudService } from './baseSupabaseService';
 import { syncPaymentToFinance, syncSalesOrderToFinance } from './financeSyncService';
 
 const rawSalesOrdersService = createSupabaseCrudService('sales_orders');
+const rawPaymentsService = createSupabaseCrudService('payments');
+
+const stripWorkflowFlags = (payload = {}) => {
+  const { skip_finance_sync: skipFinanceSync, ...dbPayload } = payload || {};
+  return { dbPayload, skipFinanceSync: Boolean(skipFinanceSync) };
+};
 
 export const salesOrdersService = {
   ...rawSalesOrdersService,
-  async create(payload) {
-    const order = await rawSalesOrdersService.create(payload);
-    await syncSalesOrderToFinance(order || payload);
+  async create(payload = {}) {
+    const { dbPayload, skipFinanceSync } = stripWorkflowFlags(payload);
+    const order = await rawSalesOrdersService.create(dbPayload);
+    if (!skipFinanceSync) await syncSalesOrderToFinance(order || dbPayload);
     return order;
   },
-  async update(id, payload) {
-    const order = await rawSalesOrdersService.update(id, payload);
-    await syncSalesOrderToFinance(order || { ...payload, id });
+  async update(id, payload = {}) {
+    const { dbPayload, skipFinanceSync } = stripWorkflowFlags(payload);
+    const order = await rawSalesOrdersService.update(id, dbPayload);
+    if (!skipFinanceSync) await syncSalesOrderToFinance(order || { ...dbPayload, id });
     return order;
   },
 };
@@ -21,18 +29,18 @@ export const salesOrderItemsService = createSupabaseCrudService('sales_order_ite
 export const deliveriesService = createSupabaseCrudService('deliveries');
 export const invoicesService = createSupabaseCrudService('invoices');
 
-const rawPaymentsService = createSupabaseCrudService('payments');
-
 export const paymentsService = {
   ...rawPaymentsService,
-  async create(payload) {
-    const payment = await rawPaymentsService.create(payload);
-    await syncPaymentToFinance(payment || payload);
+  async create(payload = {}) {
+    const { dbPayload, skipFinanceSync } = stripWorkflowFlags(payload);
+    const payment = await rawPaymentsService.create(dbPayload);
+    if (!skipFinanceSync) await syncPaymentToFinance(payment || dbPayload);
     return payment;
   },
-  async update(id, payload) {
-    const payment = await rawPaymentsService.update(id, payload);
-    await syncPaymentToFinance(payment || { ...payload, id });
+  async update(id, payload = {}) {
+    const { dbPayload, skipFinanceSync } = stripWorkflowFlags(payload);
+    const payment = await rawPaymentsService.update(id, dbPayload);
+    if (!skipFinanceSync) await syncPaymentToFinance(payment || { ...dbPayload, id });
     return payment;
   },
 };
