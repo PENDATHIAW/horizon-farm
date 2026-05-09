@@ -16,6 +16,7 @@ import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
 import { calculateCultureMetrics } from '../utils/businessCalculations';
 import CulturesWorkflowBridge from './CulturesWorkflowBridge.jsx';
+import CulturesSaleOpportunityBridge from './CulturesSaleOpportunityBridge.jsx';
 
 const tabs = ['Vue d’ensemble', 'Cultures', 'Parcelles', 'Campagnes', 'Performance'];
 const today = () => new Date().toISOString().slice(0, 10);
@@ -79,7 +80,7 @@ function MiniChart({ rows }) {
   return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5"><p className="font-black text-[#2f2415] mb-3">Marge par culture</p><div className="space-y-2">{top.map((row) => <div key={row.id} className="grid grid-cols-[130px_1fr_110px] gap-2 items-center text-sm"><span className="truncate text-[#7d6a4a]">{row.nom || row.type || row.id}</span><div className="h-3 rounded-full bg-[#eadcc2] overflow-hidden"><div className="h-full bg-[#c9a96a]" style={{ width: `${Math.min(100, Math.abs(marginOf(row)) / max * 100)}%` }} /></div><b className={marginOf(row) >= 0 ? 'text-emerald-600 text-right' : 'text-red-500 text-right'}>{fmtCurrency(marginOf(row))}</b></div>)}</div></div>;
 }
 
-export default function CulturesV3({ rows = [], loading, onCreate, onUpdate, onDelete, onRefresh }) {
+export default function CulturesV3({ rows = [], opportunities = [], loading, onCreate, onUpdate, onDelete, onRefresh, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateBusinessEvent, onRefreshBusinessEvents }) {
   const [tab, setTab] = useState('Vue d’ensemble');
   const [selected, setSelected] = useState(null);
   const [modal, setModal] = useState(null);
@@ -141,6 +142,7 @@ export default function CulturesV3({ rows = [], loading, onCreate, onUpdate, onD
   return <div className="space-y-6">
     <SectionHeader title="Cultures, Parcelles & Campagnes" sub="Pilotage végétal connecté: parcelles, campagnes, coûts, récoltes, marge et risques" actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter culture</Btn></>} />
     <CulturesWorkflowBridge rows={rows} onUpdate={onUpdate} onRefresh={onRefresh} />
+    <CulturesSaleOpportunityBridge rows={rows} opportunities={opportunities} onUpdate={onUpdate} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} />
     <div className="flex flex-wrap gap-2">{tabs.map((item) => <button type="button" key={item} onClick={() => setTab(item)} className={`rounded-xl border px-4 py-2 text-sm font-semibold ${tab === item ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}>{item}</button>)}</div>
     <div className="grid grid-cols-2 lg:grid-cols-6 gap-4"><KpiCard icon={Sprout} label="Cultures" value={rows.length} /><KpiCard icon={Leaf} label="Surface" value={`${fmtNumber(analytics.totalSurface)} m²`} /><KpiCard icon={TrendingUp} label="Revenu" value={fmtCurrency(analytics.totalRevenue)} /><KpiCard icon={TrendingUp} label="Marge" value={fmtCurrency(analytics.totalMargin)} /><KpiCard icon={AlertTriangle} label="Risques" value={analytics.risks} /><KpiCard icon={Calendar} label="Récoltes proches" value={analytics.harvestSoon} /></div>
     {tab === 'Vue d’ensemble' ? <div className="grid grid-cols-1 xl:grid-cols-3 gap-4"><div className="xl:col-span-2"><MiniChart rows={rows} /></div><div className="rounded-2xl border border-[#d6c3a0] bg-white p-5"><p className="font-black text-[#2f2415] mb-2">Connexions cultures</p><div className="space-y-2 text-sm text-[#7d6a4a]"><p><CheckCircle2 size={14} className="inline text-emerald-600" /> Intrants et coûts viennent du Stock/Finances.</p><p><CheckCircle2 size={14} className="inline text-emerald-600" /> Récolte peut alimenter Stock/Ventes.</p><p><CheckCircle2 size={14} className="inline text-emerald-600" /> Pertes et risques alimentent Alertes/Traçabilité.</p></div></div></div> : null}
