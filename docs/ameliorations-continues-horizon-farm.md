@@ -195,6 +195,7 @@ StockFlowPanel.jsx
 Fournisseurs.jsx
 Clients.jsx
 CulturesWorkflowBridge.jsx
+SanteV6.jsx
 ```
 
 Objectif final : ces composants doivent surtout appeler des workflows centralisés.
@@ -220,6 +221,8 @@ stock_receipt:stock:STK-12:fournisseur:debt
 animal_health:animaux:ANI-44:tache:controle
 culture_harvest:cultures:CUL-12:stock:create
 culture_risk:cultures:CUL-12:alert:create
+health_intervention:sante:SAN-123:stock:decrement
+health_intervention:sante:SAN-123:business_event:create
 ```
 
 À vérifier :
@@ -231,7 +234,8 @@ culture_risk:cultures:CUL-12:alert:create
 - pas de double alerte ;
 - pas de double tâche ;
 - pas de double business event ;
-- pas de double stock récolte pour une même culture/récolte.
+- pas de double stock récolte pour une même culture/récolte ;
+- pas de double intervention Santé sur double clic.
 
 ---
 
@@ -332,14 +336,16 @@ Objectif : un soin ou événement sanitaire doit alimenter santé, stock, financ
 
 À vérifier :
 
-- [ ] source produit claire ;
-- [ ] décrément stock seulement si stock interne ;
-- [ ] blocage si quantité utilisée > disponible ;
-- [ ] cas biosécurité bien séparés du curatif/préventif ;
-- [ ] maladie/mortalité peut déclencher biosécurité ;
-- [À revoir] ne pas proposer animaux/lots si aucune entité valide n’existe ;
-- [À revoir] après changement de périmètre, réinitialiser proprement la cible précise et les IDs liés ;
-- [À revoir] vérifier que `module_lie`, `related_id`, `target_count` et `target_summary` sont toujours cohérents.
+- [À tester] source produit claire ;
+- [À tester] décrément stock seulement si stock interne ;
+- [À tester] blocage si quantité utilisée > disponible ;
+- [À tester] cas biosécurité bien séparés du curatif/préventif ;
+- [À tester] maladie/mortalité peut déclencher biosécurité ;
+- [À tester] ne pas proposer animaux/lots si aucune entité valide n’existe ;
+- [À tester] après changement de périmètre, réinitialiser proprement la cible précise et les IDs liés ;
+- [À tester] vérifier que `module_lie`, `related_id`, `target_count` et `target_summary` sont toujours cohérents ;
+- [À tester] bouton Valider désactivé pendant enregistrement pour limiter le double clic ;
+- [À revoir] centraliser le workflow santé dans `workflowService` avec preview et `dedupe_key`.
 
 ### 6. Animaux
 
@@ -363,7 +369,7 @@ Objectif : lots connectés à santé, biosécurité, ponte, mortalité, tâches 
 - [ ] baisse ponte détectée ;
 - [ ] créer suivi → santé + tâche + alerte + trace + lot mis à jour ;
 - [ ] mortalité élevée déclenche biosécurité ;
-- [À revoir] ne pas proposer suivi lot si aucun lot actif valide n’existe ;
+- [À tester] ne pas proposer suivi lot si aucun lot actif valide n’existe ;
 - [À revoir] empêcher double création de suivi pour le même lot/risque.
 
 ### 8. Cultures / Parcelles / Campagnes / Récoltes
@@ -562,8 +568,9 @@ Objectif : rendre les workflows fiables même avec réseau instable.
 - [À faire] Simuler ou créer `workflow_runs` pour mesurer les automatisations et alimenter Impact Business.
 - [À revoir] Les prompts navigateur utilisés temporairement doivent être remplacés par des modales UX propres.
 - [À faire] Ajouter un contrôle qualité fonctionnel avant tout statut `[Traité]` : entités valides, champs dépendants, absence d’erreur visible, interconnexion réellement vérifiable.
-- [À revoir] Les listes déroulantes module/cible doivent être désactivées ou masquées si aucune entité valide n’existe derrière.
+- [À tester] Les listes Santé & Biosécurité filtrent maintenant les périmètres et cibles selon les entités valides.
 - [À revoir] Tous les messages d’erreur techniques doivent être convertis en messages utilisateur métier.
+- [À revoir] Santé & Biosécurité doit encore migrer vers une preview centralisée avant validation complète.
 
 ---
 
@@ -590,6 +597,8 @@ Déjà observé :
 [À faire] Ajouter le workflow `Utiliser intrant` : sortie stock intrant → coût culture/campagne → tâche/trace si besoin.
 
 [Traité] Ajout d’une règle de qualité fonctionnelle : un bloc n’est pas terminé parce qu’il s’affiche, il doit être cohérent, testable, interconnecté, sans message technique visible, sans doublon et vérifiable dans les modules liés.
+
+[À tester] Stabilisation Santé & Biosécurité : les listes périmètre/cible ne proposent plus d’entités invalides, les champs dépendants sont réinitialisés, les IDs liés sont enrichis à la création, le bouton Valider est protégé pendant l’enregistrement, et les messages utilisateur sont plus métier.
 
 ---
 
