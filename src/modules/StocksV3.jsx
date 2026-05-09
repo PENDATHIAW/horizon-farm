@@ -17,6 +17,8 @@ import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId, makeId } from '../utils/ids';
 import StockFlowPanel from './StockFlowPanel.jsx';
+import StockReorderTasksBridge from './StockReorderTasksBridge.jsx';
+import StockSalesOpportunityBridge from './StockSalesOpportunityBridge.jsx';
 import StockStatusPanel from './StockStatusPanel.jsx';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -140,6 +142,8 @@ export default function StocksV3({
   animaux = [],
   lots = [],
   fournisseurs = [],
+  opportunities = [],
+  taches = [],
   loading,
   onCreate,
   onUpdate,
@@ -151,6 +155,14 @@ export default function StocksV3({
   onRefreshAlimentation,
   onCreateFinanceTransaction,
   onRefreshFinances,
+  onCreateOpportunity,
+  onUpdateOpportunity,
+  onRefreshOpportunities,
+  onCreateTask,
+  onUpdateTask,
+  onRefreshTasks,
+  onCreateAlert,
+  onRefreshAlertes,
   ...rest
 }) {
   const [selected, setSelected] = useState(null);
@@ -176,8 +188,8 @@ export default function StocksV3({
   const createStockAlertIfNeeded = async (row, nextQty) => {
     const threshold = toNumber(row.seuil);
     if (!threshold || nextQty > threshold) return;
-    await alertesCrud.create?.({ id: makeId('ALT'), title: `Stock critique: ${row.produit}`, message: `${row.produit} est sous le seuil (${nextQty} ${row.unite || ''})`, module_source: 'stock', entity_type: 'stock', entity_id: row.id, severity: 'warning', status: 'nouvelle', action_recommandee: 'Préparer une commande fournisseur ou ajuster le seuil.' });
-    await alertesCrud.refresh?.();
+    await (onCreateAlert || alertesCrud.create)?.({ id: makeId('ALT'), title: `Stock critique: ${row.produit}`, message: `${row.produit} est sous le seuil (${nextQty} ${row.unite || ''})`, module_source: 'stock', entity_type: 'stock', entity_id: row.id, severity: 'warning', status: 'nouvelle', action_recommandee: 'Préparer une commande fournisseur ou ajuster le seuil.' });
+    await (onRefreshAlertes || alertesCrud.refresh)?.();
   };
 
   const submitCreate = async (payload) => {
@@ -359,6 +371,8 @@ export default function StocksV3({
   return <div className="space-y-6">
     <StockStatusPanel rows={rows} onUpdate={onUpdate} onCreateBusinessEvent={rest.onCreateBusinessEvent || businessEventsCrud.create} onRefresh={onRefresh} />
     <StockFlowPanel rows={rows} onUpdate={onUpdate} onCreateBusinessEvent={rest.onCreateBusinessEvent || businessEventsCrud.create} onCreateFinanceTransaction={onCreateFinanceTransaction} onRefreshFinances={onRefreshFinances} />
+    <StockReorderTasksBridge rows={rows} taches={taches} fournisseurs={fournisseurs} onCreateTask={onCreateTask} onUpdateTask={onUpdateTask} onRefreshTasks={onRefreshTasks} onCreateAlert={onCreateAlert || alertesCrud.create} onRefreshAlertes={onRefreshAlertes || alertesCrud.refresh} onCreateBusinessEvent={rest.onCreateBusinessEvent || businessEventsCrud.create} onRefreshBusinessEvents={rest.onRefreshBusinessEvents || businessEventsCrud.refresh} />
+    <StockSalesOpportunityBridge rows={rows} opportunities={opportunities} onUpdate={onUpdate} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onCreateBusinessEvent={rest.onCreateBusinessEvent || businessEventsCrud.create} onRefreshBusinessEvents={rest.onRefreshBusinessEvents || businessEventsCrud.refresh} />
 
     <SectionHeader title="Inventaire connecté" sub="Stock réel: achats, livraisons, consommations, pertes, retours et coûts liés aux activités" actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Plus} small onClick={() => { setSelected(null); setModal('create'); }}>Créer / réceptionner stock</Btn><Btn icon={Package} variant="outline" small onClick={() => { setSelectedAlim(null); setModal('createAlim'); }}>Utiliser aliment</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Rapport</Btn></>} />
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4"><KpiCard icon={Package} label="Valeur totale stock" value={fmtCurrency(valeurTotale)} /><KpiCard icon={AlertTriangle} label="Produits critiques" value={critiques.length} /><KpiCard icon={CheckCircle} label="Produits OK" value={rows.length - critiques.length} /></div>
