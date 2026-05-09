@@ -5,12 +5,16 @@ export const USER_PASSWORD = process.env.E2E_PASSWORD;
 
 export const BAD_UI_TEXTS = [
   'undefined',
+  'null',
   'NaN',
   '[object Object]',
   'Cannot read properties',
   'TypeError',
   'ReferenceError',
   'SupabaseError',
+  'PostgrestError',
+  'Uh oh',
+  'stack trace',
   'TODO',
   'WIP',
   'debug',
