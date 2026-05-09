@@ -27,8 +27,10 @@ const paymentAmount = (row = {}) => Number(row.montant_paye ?? row.montant ?? ro
 const paymentOrderId = (row = {}) => row.order_id || row.sale_id || row.source_record_id || row.related_id;
 const clientPhone = (client = {}) => client.whatsapp || client.tel || client.phone || '';
 const clientName = (client = {}) => client.nom || client.name || client.id || 'Client';
+const clientReceivableKey = (client = {}) => `client_receivable:${client.id}`;
 const isCancelled = (row = {}) => ['annule', 'annulé', 'cancelled'].includes(String(row.statut || row.status || row.statut_commande || '').toLowerCase());
 const validPayment = (payment = {}) => !['annule', 'annulé', 'cancelled', 'rejete', 'rejeté'].includes(String(payment.statut || payment.status || 'paye').toLowerCase());
+const isClosed = (row = {}) => ['termine', 'terminé', 'closed', 'done', 'annule', 'annulé', 'inactive', 'resolu', 'résolu'].includes(String(row.status || row.statut || '').toLowerCase());
 
 function buildClientSalesSummary(client, salesOrders = [], payments = []) {
   const orders = arr(salesOrders).filter((order) => String(order.client_id || '') === String(client.id || '') && !isCancelled(order));
@@ -146,7 +148,7 @@ export default function Clients({ rows = [], loading, salesOrders = [], payments
   };
 
   const logWhatsApp = async (client, message, reason = 'relance_client') => {
-    await whatsappLogsCrud.create?.({ id: makeId('WALOG'), client_id: client.id, recipient: clientPhone(client), message, status: 'prepare', provider: 'whatsapp', reason, sent_at: new Date().toISOString() });
+    await whatsappLogsCrud.create?.({ id: makeId('WALOG'), client_id: client.id, recipient: clientPhone(client), message, status: 'prepare', provider: 'whatsapp', reason, sent_at: new Date().toISOString(), dedupe_key: `${clientReceivableKey(client)}:${reason}:${today()}` });
     await whatsappLogsCrud.refresh?.();
   };
 
@@ -157,14 +159,24 @@ export default function Clients({ rows = [], loading, salesOrders = [], payments
     window.open(toWhatsappLink(clientPhone(client), message), '_blank', 'noopener,noreferrer');
   };
 
+  const relanceAlreadyOpen = (client) => {
+    const key = clientReceivableKey(client);
+    const hasAlert = arr(alertesCrud.rows).some((alert) => !isClosed(alert) && (alert.alert_dedupe_key === key || (alert.module_source === 'clients' && alert.entity_id === client.id)));
+    const hasTask = arr(tachesCrud.rows).some((task) => !isClosed(task) && (task.task_dedupe_key === key || task.action_key === key || (task.source_module === 'clients' && task.related_id === client.id)));
+    return hasAlert || hasTask;
+  };
+
   const relanceCreance = async (client) => {
     const summary = salesSummaryFor(client);
     if (summary.resteAPayer <= 0) return toast.success('Aucune créance à relancer');
+    if (relanceAlreadyOpen(client)) return toast.success('Relance déjà en suivi pour ce client');
     const message = messageFor(client);
+    const key = clientReceivableKey(client);
     try {
       await logWhatsApp(client, message, 'relance_creance');
-      await alertesCrud.create?.({ id: makeId('ALT'), title: `Créance client: ${clientName(client)}`, message: `${fmtCurrency(summary.resteAPayer)} à encaisser`, module_source: 'clients', entity_type: 'client', entity_id: client.id, severity: 'warning', status: 'nouvelle', action_recommandee: 'Relancer le client et enregistrer le paiement.' });
-      await tachesCrud.create?.({ id: makeId('TSK'), title: `Relancer ${clientName(client)}`, module_lie: 'clients', related_id: client.id, due_date: today(), priority: 'haute', status: 'a_faire', source_module: 'clients', notes: message });
+      const taskId = makeId('TSK');
+      await alertesCrud.create?.({ id: makeId('ALT'), title: `Créance client: ${clientName(client)}`, message: `${fmtCurrency(summary.resteAPayer)} à encaisser`, module_source: 'clients', entity_type: 'client', entity_id: client.id, severity: 'warning', status: 'nouvelle', action_recommandee: 'Relancer le client et enregistrer le paiement.', alert_dedupe_key: key, linked_task_id: taskId });
+      await tachesCrud.create?.({ id: taskId, title: `Relancer ${clientName(client)}`, module_lie: 'clients', related_id: client.id, due_date: today(), priority: 'haute', status: 'a_faire', source_module: 'clients', task_dedupe_key: key, action_key: key, notes: message });
       await Promise.allSettled([alertesCrud.refresh?.(), tachesCrud.refresh?.()]);
       window.open(toWhatsappLink(clientPhone(client), message), '_blank', 'noopener,noreferrer');
       toast.success('Relance préparée');
