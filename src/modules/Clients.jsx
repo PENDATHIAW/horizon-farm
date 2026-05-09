@@ -27,30 +27,42 @@ const paymentAmount = (row = {}) => Number(row.montant_paye ?? row.montant ?? ro
 const paymentOrderId = (row = {}) => row.order_id || row.sale_id || row.source_record_id || row.related_id;
 const clientPhone = (client = {}) => client.whatsapp || client.tel || client.phone || '';
 const clientName = (client = {}) => client.nom || client.name || client.id || 'Client';
+const isCancelled = (row = {}) => ['annule', 'annulé', 'cancelled'].includes(String(row.statut || row.status || row.statut_commande || '').toLowerCase());
+const validPayment = (payment = {}) => !['annule', 'annulé', 'cancelled', 'rejete', 'rejeté'].includes(String(payment.statut || payment.status || 'paye').toLowerCase());
 
 function buildClientSalesSummary(client, salesOrders = [], payments = []) {
-  const orders = arr(salesOrders).filter((order) => String(order.client_id || '') === String(client.id || ''));
+  const orders = arr(salesOrders).filter((order) => String(order.client_id || '') === String(client.id || '') && !isCancelled(order));
   const orderIds = new Set(orders.map((order) => String(order.id)));
-  const clientPayments = arr(payments).filter((payment) => orderIds.has(String(paymentOrderId(payment) || '')) || String(payment.client_id || '') === String(client.id || ''));
+  const clientPayments = arr(payments)
+    .filter(validPayment)
+    .filter((payment) => orderIds.has(String(paymentOrderId(payment) || '')) || String(payment.client_id || '') === String(client.id || ''));
   const paidByOrder = clientPayments.reduce((acc, payment) => {
     const id = String(paymentOrderId(payment) || 'direct');
     acc[id] = (acc[id] || 0) + paymentAmount(payment);
     return acc;
   }, {});
+  const directClientPayments = clientPayments
+    .filter((payment) => !paymentOrderId(payment))
+    .reduce((sum, payment) => sum + paymentAmount(payment), 0);
+  let directRemainder = directClientPayments;
   const enrichedOrders = orders.map((order) => {
     const total = amountOf(order);
-    const paid = Math.max(paidOf(order), paidByOrder[String(order.id)] || 0);
-    const remaining = Math.max(0, Number(order.reste_a_payer ?? total - paid));
-    const paymentStatus = order.statut_paiement || (total > 0 && paid >= total ? 'paye' : paid > 0 ? 'partiel' : 'non_paye');
+    const paidRecorded = paidOf(order);
+    const paidLinked = paidByOrder[String(order.id)] || 0;
+    const paidFromDirect = Math.min(Math.max(0, total - Math.max(paidRecorded, paidLinked)), directRemainder);
+    directRemainder -= paidFromDirect;
+    const paid = Math.min(total, Math.max(paidRecorded, paidLinked) + paidFromDirect);
+    const remaining = Math.max(0, total - paid);
+    const paymentStatus = total > 0 && remaining <= 0 ? 'paye' : paid > 0 ? 'partiel' : 'non_paye';
     return { ...order, total, paid, remaining, paymentStatus };
   });
   const totalAchete = enrichedOrders.reduce((sum, order) => sum + order.total, 0);
-  const totalPaye = enrichedOrders.reduce((sum, order) => sum + order.paid, 0);
+  const totalPaye = Math.min(totalAchete, enrichedOrders.reduce((sum, order) => sum + order.paid, 0));
   const resteAPayer = enrichedOrders.reduce((sum, order) => sum + order.remaining, 0);
   const openOrders = enrichedOrders.filter((order) => order.remaining > 0 && String(order.statut_commande || '') !== 'annule');
   const lastOrder = [...enrichedOrders].sort((a, b) => String(b.date || b.created_at || '').localeCompare(String(a.date || a.created_at || '')))[0];
   const averageBasket = enrichedOrders.length ? totalAchete / enrichedOrders.length : 0;
-  const status = resteAPayer > 0 ? 'a_relancer' : totalAchete > 0 ? 'actif' : (client.statut || 'prospect');
+  const status = resteAPayer > 0 ? 'a_relancer' : totalAchete > 0 ? 'actif' : (client.statut === 'a_relancer' ? 'prospect' : (client.statut || 'prospect'));
   return { orders: enrichedOrders, openOrders, clientPayments, totalAchete, totalPaye, resteAPayer, averageBasket, derniereCommandeVente: lastOrder?.date || lastOrder?.created_at || null, status };
 }
 
@@ -73,7 +85,7 @@ export default function Clients({ rows = [], loading, salesOrders = [], payments
       ...base,
       total: summary.totalAchete || base.total,
       averageBasketEstimate: summary.averageBasket || base.averageBasketEstimate,
-      smartStatus: summary.status === 'a_relancer' ? 'a_relancer' : base.smartStatus,
+      smartStatus: summary.resteAPayer > 0 ? 'a_relancer' : summary.totalAchete > 0 ? 'actif' : (base.smartStatus === 'a_relancer' ? 'prospect' : base.smartStatus),
       loyaltyScore: Math.max(base.loyaltyScore || 0, summary.totalAchete > 0 ? Math.min(100, 50 + summary.orders.length * 8) : 0),
     };
   };
@@ -88,7 +100,7 @@ export default function Clients({ rows = [], loading, salesOrders = [], payments
     return rows.filter((client) => {
       const summary = salesSummaryFor(client);
       const smartStatus = metricsFor(client).smartStatus;
-      const statusOk = statusFilter === 'tous' || (client.statut || smartStatus || 'actif') === statusFilter || smartStatus === statusFilter || summary.status === statusFilter;
+      const statusOk = statusFilter === 'tous' || (statusFilter === 'a_relancer' ? summary.resteAPayer > 0 : ((client.statut || smartStatus || 'actif') === statusFilter || smartStatus === statusFilter || summary.status === statusFilter));
       const searchOk = !query || [client.nom, client.tel, client.whatsapp, client.email, client.type, client.prefs].some((value) => String(value || '').toLowerCase().includes(query));
       return statusOk && searchOk;
     });
