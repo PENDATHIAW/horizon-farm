@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import useCrudModule from '../hooks/useCrudModule';
 import { fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
+import { avicoleActiveCount, avicoleDeadCount, avicoleHasActiveBirds, avicoleSickCount } from '../utils/avicoleMetrics';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const today = () => new Date().toISOString().slice(0, 10);
@@ -10,11 +11,9 @@ const now = () => new Date().toISOString();
 const asObject = (value) => value && typeof value === 'object' ? value : {};
 const lotId = (lot = {}) => String(lot?.id || '').trim();
 const lotName = (lot = {}) => lot.name || lot.nom || lotId(lot) || 'Lot avicole';
-const totalCount = (lot = {}) => toNumber(lot.current_count ?? lot.effectif_actuel ?? lot.effectif ?? lot.initial_count ?? lot.nombre ?? lot.quantite);
-const deadCount = (lot = {}) => toNumber(lot.mortality ?? lot.morts ?? lot.dead_count ?? lot.pertes);
-const sickCount = (lot = {}) => toNumber(lot.malades ?? lot.sick_count ?? lot.malade_count);
-const soldCount = (lot = {}) => toNumber(lot.vendus ?? lot.sold ?? lot.sorties ?? 0);
-const activeCount = (lot = {}) => Math.max(0, totalCount(lot) - deadCount(lot) - soldCount(lot));
+const activeCount = avicoleActiveCount;
+const deadCount = avicoleDeadCount;
+const sickCount = avicoleSickCount;
 const healthScore = (lot = {}) => {
   const raw = lot.scoresSante ?? lot.score_sante ?? lot.health_score;
   return raw === undefined || raw === null || raw === '' ? 100 : toNumber(raw);
@@ -22,10 +21,7 @@ const healthScore = (lot = {}) => {
 const eggs = (log = {}) => toNumber(log.oeufs_produits ?? log.eggs ?? log.quantity);
 const broken = (log = {}) => toNumber(log.oeufs_casses ?? log.broken ?? log.casses);
 const isValidLot = (lot = {}) => Boolean(lotId(lot));
-const isActiveLot = (lot = {}) => {
-  const status = String(lot.status || lot.statut || '').toLowerCase();
-  return isValidLot(lot) && !['vendu', 'termine', 'terminé', 'perdu', 'archive', 'archivé'].includes(status);
-};
+const isActiveLot = (lot = {}) => isValidLot(lot) && avicoleHasActiveBirds(lot);
 
 function logsForLot(lot, productionLogs = []) {
   const id = lotId(lot);
@@ -87,12 +83,12 @@ export default function AvicoleHealthBridge({ rows = [], productionLogs = [], al
       await santeCrud.create?.({
         id: healthId,
         nom: `Suivi avicole ${lotName(lot)}`,
-        animal: `${lotName(lot)} · ${sick} malade(s) sur ${risk.active || totalCount(lot) || '?'}`,
+        animal: `${lotName(lot)} · ${sick} malade(s) sur ${risk.active || activeCount(lot) || '?'}`,
         module_lie: 'avicole',
         related_id: id,
         target_scope: risk.sick > 0 ? 'lot_avicole_malade' : 'lot_avicole_risque',
-        target_count: risk.sick || risk.active || totalCount(lot),
-        total_count: risk.active || totalCount(lot),
+        target_count: risk.sick || risk.active || activeCount(lot),
+        total_count: risk.active || activeCount(lot),
         target_summary: `${lotName(lot)} · ${reason}`,
         prevue: today(),
         statut: 'a_faire',
