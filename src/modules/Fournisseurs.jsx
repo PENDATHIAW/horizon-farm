@@ -16,6 +16,7 @@ import DeleteModal from '../modals/DeleteModal';
 import DetailsModal from '../modals/DetailsModal';
 import { calculateSupplierMetrics } from '../utils/businessCalculations';
 import { searchGeoPlaces } from '../services/geoSearchService';
+import FournisseursStockBridge from './FournisseursStockBridge.jsx';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const today = () => new Date().toISOString().slice(0, 10);
@@ -49,7 +50,7 @@ function buildSupplierSummary(supplier, stockRows = [], financeRows = [], docume
   return { stock, finances, docs, achatsStock, paiements, dettesDeclarees, dettes: dettesDeclarees, livraisons, derniersProduits };
 }
 
-export default function Fournisseurs({ rows = [], loading, onCreate, onUpdate, onDelete, onRefresh }) {
+export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loading, onCreate, onUpdate, onDelete, onRefresh, onUpdateStock, onRefreshStock, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, onCreateBusinessEvent, onRefreshBusinessEvents }) {
   const [selected, setSelected] = useState(null);
   const [modal, setModal] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -62,16 +63,18 @@ export default function Fournisseurs({ rows = [], loading, onCreate, onUpdate, o
   const alertesCrud = useCrudModule('alertes_center');
   const eventsCrud = useCrudModule('business_events');
   const whatsappLogsCrud = useCrudModule('whatsapp_logs');
+  const stockRows = stocks.length ? stocks : stockCrud.rows;
+  const taskRows = tasks.length ? tasks : tachesCrud.rows;
 
-  const summaryFor = (supplier) => buildSupplierSummary(supplier, stockCrud.rows, financesCrud.rows, documentsCrud.rows);
+  const summaryFor = (supplier) => buildSupplierSummary(supplier, stockRows, financesCrud.rows, documentsCrud.rows);
   const metricsFor = (supplier) => {
     const metrics = calculateSupplierMetrics(supplier);
     const summary = summaryFor(supplier);
     return { ...metrics, dettes: summary.dettes, livraisons: summary.livraisons };
   };
-  const totalDettes = useMemo(() => rows.reduce((sum, supplier) => sum + summaryFor(supplier).dettes, 0), [rows, stockCrud.rows, financesCrud.rows]);
-  const totalAchats = useMemo(() => rows.reduce((sum, supplier) => sum + summaryFor(supplier).achatsStock, 0), [rows, stockCrud.rows]);
-  const fournisseursDette = useMemo(() => rows.filter((supplier) => summaryFor(supplier).dettes > 0), [rows, stockCrud.rows, financesCrud.rows]);
+  const totalDettes = useMemo(() => rows.reduce((sum, supplier) => sum + summaryFor(supplier).dettes, 0), [rows, stockRows, financesCrud.rows]);
+  const totalAchats = useMemo(() => rows.reduce((sum, supplier) => sum + summaryFor(supplier).achatsStock, 0), [rows, stockRows]);
+  const fournisseursDette = useMemo(() => rows.filter((supplier) => summaryFor(supplier).dettes > 0), [rows, stockRows, financesCrud.rows]);
   const noteMoyenne = useMemo(() => {
     if (!rows.length) return '0.0';
     return (rows.reduce((sum, supplier) => sum + calculateSupplierMetrics(supplier).note, 0) / rows.length).toFixed(1);
@@ -120,10 +123,10 @@ export default function Fournisseurs({ rows = [], loading, onCreate, onUpdate, o
   const prepareOrder = async (supplier) => {
     try {
       const taskId = makeId('TSK');
-      await tachesCrud.create?.({ id: taskId, title: `Commande fournisseur — ${supplierName(supplier)}`, module_lie: 'fournisseurs', related_id: supplier.id, due_date: today(), priority: 'moyenne', status: 'a_faire', checklist: 'Vérifier besoin stock; demander disponibilité; confirmer prix; enregistrer réception', source_module: 'fournisseurs' });
-      await eventsCrud.create?.({ id: makeId('EVT'), event_type: 'commande_fournisseur_preparee', module_source: 'fournisseurs', entity_type: 'fournisseur', entity_id: supplier.id, title: 'Commande fournisseur préparée', description: supplierName(supplier), event_date: today(), severity: 'info', linked_task_id: taskId });
+      await (onCreateTask || tachesCrud.create)?.({ id: taskId, title: `Commande fournisseur — ${supplierName(supplier)}`, module_lie: 'fournisseurs', related_id: supplier.id, due_date: today(), priority: 'moyenne', status: 'a_faire', checklist: 'Vérifier besoin stock; demander disponibilité; confirmer prix; enregistrer réception', source_module: 'fournisseurs' });
+      await (onCreateBusinessEvent || eventsCrud.create)?.({ id: makeId('EVT'), event_type: 'commande_fournisseur_preparee', module_source: 'fournisseurs', entity_type: 'fournisseur', entity_id: supplier.id, title: 'Commande fournisseur préparée', description: supplierName(supplier), event_date: today(), severity: 'info', linked_task_id: taskId });
       await onUpdate?.(supplier.id, { livraisons: Number(supplier.livraisons || 0) + 1, derniere_commande: today(), last_order_task_id: taskId });
-      await Promise.allSettled([tachesCrud.refresh?.(), eventsCrud.refresh?.(), onRefresh?.()]);
+      await Promise.allSettled([(onRefreshTasks || tachesCrud.refresh)?.(), (onRefreshBusinessEvents || eventsCrud.refresh)?.(), onRefresh?.()]);
       const message = await logWhatsApp(supplier, 'commande_fournisseur');
       window.open(toWhatsappLink(supplierPhone(supplier), message), '_blank', 'noopener,noreferrer');
       toast.success('Commande fournisseur préparée');
@@ -141,9 +144,9 @@ export default function Fournisseurs({ rows = [], loading, onCreate, onUpdate, o
       const docId = makeId('DOC');
       await financesCrud.create?.({ id: trxId, type: 'sortie', libelle: `Paiement fournisseur ${supplierName(supplier)}`, montant: summary.dettes, date: today(), categorie: 'Fournisseurs', module_lie: 'fournisseurs', related_id: supplier.id, fournisseur_id: supplier.id, statut: 'paye', source_module: 'fournisseurs', source_record_id: supplier.id });
       await documentsCrud.create?.({ id: docId, title: `Paiement fournisseur ${supplierName(supplier)}`, document_category: 'reçu', module_source: 'fournisseurs', entity_type: 'fournisseur', entity_id: supplier.id, related_id: supplier.id, transaction_id: trxId });
-      await eventsCrud.create?.({ id: makeId('EVT'), event_type: 'paiement_fournisseur', module_source: 'fournisseurs', entity_type: 'fournisseur', entity_id: supplier.id, title: 'Paiement fournisseur', description: `${supplierName(supplier)} — ${fmtCurrency(summary.dettes)}`, amount: summary.dettes, event_date: today(), severity: 'info', linked_transaction_id: trxId, linked_document_id: docId });
+      await (onCreateBusinessEvent || eventsCrud.create)?.({ id: makeId('EVT'), event_type: 'paiement_fournisseur', module_source: 'fournisseurs', entity_type: 'fournisseur', entity_id: supplier.id, title: 'Paiement fournisseur', description: `${supplierName(supplier)} — ${fmtCurrency(summary.dettes)}`, amount: summary.dettes, event_date: today(), severity: 'info', linked_transaction_id: trxId, linked_document_id: docId });
       await onUpdate?.(supplier.id, { dettes: 0, dernier_paiement: today(), last_payment_id: trxId });
-      await Promise.allSettled([financesCrud.refresh?.(), documentsCrud.refresh?.(), eventsCrud.refresh?.(), onRefresh?.()]);
+      await Promise.allSettled([financesCrud.refresh?.(), documentsCrud.refresh?.(), (onRefreshBusinessEvents || eventsCrud.refresh)?.(), onRefresh?.()]);
       toast.success('Paiement fournisseur enregistré');
     } catch (error) {
       toast.error(error.message || 'Paiement fournisseur impossible');
@@ -156,9 +159,9 @@ export default function Fournisseurs({ rows = [], loading, onCreate, onUpdate, o
     const summary = summaryFor(supplier);
     if (summary.dettes <= 0) return toast.success('Aucune dette à suivre');
     try {
-      await alertesCrud.create?.({ id: makeId('ALT'), title: `Dette fournisseur: ${supplierName(supplier)}`, message: `${fmtCurrency(summary.dettes)} à régler`, module_source: 'fournisseurs', entity_type: 'fournisseur', entity_id: supplier.id, severity: 'warning', status: 'nouvelle', action_recommandee: 'Vérifier facture fournisseur et planifier paiement.' });
-      await tachesCrud.create?.({ id: makeId('TSK'), title: `Planifier paiement ${supplierName(supplier)}`, module_lie: 'fournisseurs', related_id: supplier.id, due_date: today(), priority: 'haute', status: 'a_faire', source_module: 'fournisseurs' });
-      await Promise.allSettled([alertesCrud.refresh?.(), tachesCrud.refresh?.()]);
+      await (onCreateAlert || alertesCrud.create)?.({ id: makeId('ALT'), title: `Dette fournisseur: ${supplierName(supplier)}`, message: `${fmtCurrency(summary.dettes)} à régler`, module_source: 'fournisseurs', entity_type: 'fournisseur', entity_id: supplier.id, severity: 'warning', status: 'nouvelle', action_recommandee: 'Vérifier facture fournisseur et planifier paiement.' });
+      await (onCreateTask || tachesCrud.create)?.({ id: makeId('TSK'), title: `Planifier paiement ${supplierName(supplier)}`, module_lie: 'fournisseurs', related_id: supplier.id, due_date: today(), priority: 'haute', status: 'a_faire', source_module: 'fournisseurs' });
+      await Promise.allSettled([(onRefreshAlertes || alertesCrud.refresh)?.(), (onRefreshTasks || tachesCrud.refresh)?.()]);
       toast.success('Suivi dette créé');
     } catch (error) {
       toast.error(error.message || 'Suivi dette impossible');
@@ -192,6 +195,8 @@ export default function Fournisseurs({ rows = [], loading, onCreate, onUpdate, o
   return (
     <div className="space-y-6">
       <SectionHeader title="Fournisseurs" sub="Approvisionnement, dettes et paiements" actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={MapPin} variant="outline" small onClick={searchRealSuppliers}>{geoLoading ? 'Recherche...' : 'Recherche réelle'}</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Nouveau fournisseur</Btn></>} />
+
+      <FournisseursStockBridge suppliers={rows} stocks={stockRows} tasks={taskRows} onUpdateStock={onUpdateStock || stockCrud.update} onRefreshStock={onRefreshStock || stockCrud.refresh} onCreateTask={onCreateTask || tachesCrud.create} onRefreshTasks={onRefreshTasks || tachesCrud.refresh} onCreateAlert={onCreateAlert || alertesCrud.create} onRefreshAlertes={onRefreshAlertes || alertesCrud.refresh} onCreateBusinessEvent={onCreateBusinessEvent || eventsCrud.create} onRefreshBusinessEvents={onRefreshBusinessEvents || eventsCrud.refresh} onUpdateSupplier={onUpdate} onRefreshSuppliers={onRefresh} />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <KpiCard icon={Truck} label="Fournisseurs" value={rows.length} color="bg-sky-500/20 text-sky-400" />
