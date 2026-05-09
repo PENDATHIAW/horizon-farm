@@ -121,9 +121,9 @@ async function createSupplierDebt(row, amount, props) {
   });
 }
 
-async function receiveCritical(row, props) {
+async function receiveCritical(row, props, quantityFromCaller = null) {
   const metrics = stockMetrics(row);
-  const qty = askQty(row, 'Réception stock', metrics.suggestedOrderQty || toNumber(row.seuil) || 1);
+  const qty = quantityFromCaller || askQty(row, 'Réception stock', metrics.suggestedOrderQty || toNumber(row.seuil) || 1);
   if (!qty) return;
   const amount = qty * unitPrice(row);
   const mode = askReceiptMode(row, amount);
@@ -167,7 +167,7 @@ export default function StockFlowPanel(props) {
     const title = type === 'entree' ? 'Réception stock' : type === 'sortie' ? 'Utilisation / sortie stock' : 'Déclarer une perte';
     const qty = askQty(row, title, 1);
     if (!qty) return;
-    if (type === 'entree') receiveCritical(row, connectedProps);
+    if (type === 'entree') receiveCritical(row, connectedProps, qty);
     else stockMove({ row, type, qty, props: connectedProps });
   };
 
