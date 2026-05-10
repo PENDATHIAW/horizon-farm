@@ -3,6 +3,7 @@ import AvicoleEvolution from './AvicoleEvolution.jsx';
 import AvicoleHealthBridge from './AvicoleHealthBridge.jsx';
 import AvicoleJournalsBridge from './AvicoleJournalsBridge.jsx';
 import AvicoleSaleReadinessBridge from './AvicoleSaleReadinessBridge.jsx';
+import DirectChargesBridge from './DirectChargesBridge.jsx';
 
 export default function AvicoleV10(props) {
   return (
@@ -27,6 +28,17 @@ export default function AvicoleV10(props) {
         onRefreshBusinessEvents={props.onRefreshBusinessEvents}
       />
       <AvicoleBase {...props} />
+      <DirectChargesBridge
+        title="Autres charges directes avicoles"
+        subtitle="Ajoute les frais exceptionnels liés à un lot : emballage, découpe, traitement spécial, main-d’œuvre ponctuelle, etc."
+        targetType="avicole"
+        targets={props.rows || []}
+        businessEvents={props.businessEvents || []}
+        onCreateBusinessEvent={props.onCreateBusinessEvent}
+        onUpdateBusinessEvent={props.onUpdateBusinessEvent}
+        onDeleteBusinessEvent={props.onDeleteBusinessEvent}
+        onRefreshBusinessEvents={props.onRefreshBusinessEvents}
+      />
       <AvicoleJournalsBridge
         rows={props.rows || []}
         productionLogs={props.productionLogs || []}
@@ -46,6 +58,7 @@ export default function AvicoleV10(props) {
         rows={props.rows || []}
         productionLogs={props.productionLogs || []}
         alimentationLogs={props.alimentationLogs || []}
+        businessEvents={props.businessEvents || []}
         opportunities={props.opportunities || []}
         onNavigate={props.onNavigate}
       />
