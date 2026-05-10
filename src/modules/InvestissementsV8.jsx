@@ -1,4 +1,5 @@
 import InvestissementsV7 from './InvestissementsV7.jsx';
+import InvestissementsEvolution from './InvestissementsEvolution.jsx';
 import toast from 'react-hot-toast';
 import { CheckCircle2, Link2 } from 'lucide-react';
 import { toNumber } from '../utils/format';
@@ -148,5 +149,11 @@ function OperationalAssetsBridge(props) {
 }
 
 export default function InvestissementsV8(props) {
-  return <div className="space-y-6"><InvestissementsV7 {...props} /><OperationalAssetsBridge {...props} /></div>;
+  return (
+    <div className="space-y-6">
+      <InvestissementsV7 {...props} />
+      <OperationalAssetsBridge {...props} />
+      <InvestissementsEvolution {...props} />
+    </div>
+  );
 }
