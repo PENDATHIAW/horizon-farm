@@ -8,9 +8,7 @@ const normalizeText = (value = '') =>
     .trim();
 
 const includesAny = (text, words) => words.some((word) => text.includes(normalizeText(word)));
-
 const formatCurrency = (value = 0) => `${Number(value || 0).toLocaleString('fr-FR')} FCFA`;
-
 const asRows = (dataMap, key) => (Array.isArray(dataMap?.[key]) ? dataMap[key] : []);
 
 const getNumber = (row, keys = []) => {
@@ -22,16 +20,20 @@ const getNumber = (row, keys = []) => {
 };
 
 const sumBy = (rows, keys) => rows.reduce((sum, row) => sum + getNumber(row, keys), 0);
-
-const labelOf = (row = {}) =>
-  row.name || row.nom || row.title || row.libelle || row.produit || row.animal || row.reference || row.id || 'élément ERP';
-
+const labelOf = (row = {}) => row.name || row.nom || row.title || row.libelle || row.produit || row.animal || row.reference || row.id || 'élément ERP';
 const statusOf = (row = {}) => normalizeText(row.status || row.statut || row.etat || row.priority || row.severity || '');
-
 const hasStatus = (row, statuses) => includesAny(statusOf(row), statuses);
+const moneyKeys = ['montant', 'amount', 'total', 'total_ttc', 'valeur', 'cout', 'prix_total', 'paid_amount', 'montant_paye'];
 
 const findCriticalStocks = (dataMap = {}) =>
   asRows(dataMap, 'stock').filter((row) => Number(row.quantite || 0) <= Number(row.seuil || 0));
+
+const stockValue = (dataMap = {}) =>
+  asRows(dataMap, 'stock').reduce((sum, row) => {
+    const qty = Number(row.quantite || row.quantity || 0);
+    const unit = Number(row.prix_unitaire || row.unit_price || row.cout_unitaire || row.price || 0);
+    return sum + qty * unit;
+  }, 0);
 
 const findHealthItems = (dataMap = {}) => [
   ...asRows(dataMap, 'sante').filter((row) => hasStatus(row, ['retard', 'urgent', 'critique', 'a faire'])),
@@ -40,28 +42,19 @@ const findHealthItems = (dataMap = {}) => [
 ];
 
 const findCriticalAlerts = (dataMap = {}) =>
-  asRows(dataMap, 'alertes_center').filter((row) =>
-    hasStatus(row, ['nouvelle', 'critique', 'haute', 'urgent', 'ouverte', 'open'])
-  );
+  asRows(dataMap, 'alertes_center').filter((row) => hasStatus(row, ['nouvelle', 'critique', 'haute', 'urgent', 'ouverte', 'open']));
 
 const findLateTasks = (dataMap = {}) =>
-  asRows(dataMap, 'taches').filter((row) => hasStatus(row, ['retard', 'critique', 'urgent', 'a faire']));
+  asRows(dataMap, 'taches').filter((row) => hasStatus(row, ['retard', 'critique', 'urgent', 'a faire']) || normalizeText(row.priority).includes('critique'));
 
 const findReceivables = (dataMap = {}) => {
-  const payments = asRows(dataMap, 'payments').filter((row) =>
-    hasStatus(row, ['impaye', 'partiel', 'retard', 'en attente', 'pending', 'unpaid'])
-  );
-  const invoices = asRows(dataMap, 'invoices').filter((row) =>
-    hasStatus(row, ['impaye', 'partiel', 'retard', 'en attente', 'pending', 'unpaid'])
-  );
-  const finances = asRows(dataMap, 'finances').filter((row) =>
-    hasStatus(row, ['impaye', 'partiel', 'retard']) || normalizeText(row.type).includes('creance')
-  );
-  const salesOrders = asRows(dataMap, 'sales_orders').filter((row) =>
-    hasStatus(row, ['impaye', 'partiel', 'retard', 'livre', 'facture']) && !hasStatus(row, ['paye', 'paid'])
-  );
+  const rows = [
+    ...asRows(dataMap, 'payments').filter((row) => hasStatus(row, ['impaye', 'partiel', 'retard', 'en attente', 'pending', 'unpaid'])),
+    ...asRows(dataMap, 'invoices').filter((row) => hasStatus(row, ['impaye', 'partiel', 'retard', 'en attente', 'pending', 'unpaid'])),
+    ...asRows(dataMap, 'finances').filter((row) => hasStatus(row, ['impaye', 'partiel', 'retard']) || normalizeText(row.type).includes('creance')),
+    ...asRows(dataMap, 'sales_orders').filter((row) => hasStatus(row, ['impaye', 'partiel', 'retard', 'livre', 'facture']) && !hasStatus(row, ['paye', 'paid'])),
+  ];
 
-  const rows = [...payments, ...invoices, ...finances, ...salesOrders];
   const amount = rows.reduce((sum, row) => {
     const paid = getNumber(row, ['montant_paye', 'paid_amount', 'amount_paid']);
     const total = getNumber(row, ['reste_a_payer', 'remaining_amount', 'balance', 'montant_restant', 'total_ttc', 'total', 'montant', 'amount']);
@@ -73,21 +66,21 @@ const findReceivables = (dataMap = {}) => {
 
 const moduleCatalog = {
   dashboard: { label: 'Tableau de bord', aliases: ['dashboard', 'tableau de bord', 'accueil'] },
-  impact_business: { label: 'Impact & Valeur ERP', aliases: ['impact', 'valeur', 'centre de decisions', 'decision', 'priorites', 'arbitrage'] },
+  impact_business: { label: 'Impact & Valeur ERP', aliases: ['impact', 'valeur', 'centre de decisions', 'decision', 'decisions', 'priorites', 'arbitrage'] },
   stock: { label: 'Stock', aliases: ['stock', 'stocks', 'rupture', 'inventaire', 'intrant', 'aliment'] },
   clients: { label: 'Clients & WhatsApp', aliases: ['client', 'clients', 'whatsapp', 'relance client'] },
-  ventes: { label: 'Ventes', aliases: ['vente', 'ventes', 'commande', 'livraison', 'facture', 'paiement'] },
-  finances: { label: 'Finances', aliases: ['finance', 'finances', 'cash', 'caisse', 'recette', 'depense', 'benefice', 'marge', 'creance'] },
+  ventes: { label: 'Ventes', aliases: ['vente', 'ventes', 'commande', 'commandes', 'livraison', 'facture', 'paiement'] },
+  finances: { label: 'Finances', aliases: ['finance', 'finances', 'cash', 'caisse', 'recette', 'depense', 'benefice', 'marge', 'creance', 'solde'] },
   comptabilite: { label: 'Comptabilité', aliases: ['comptabilite', 'compta', 'journal', 'bilan'] },
   avicole: { label: 'Avicole', aliases: ['avicole', 'poulet', 'poulets', 'pondeuse', 'pondeuses', 'oeuf', 'oeufs', 'lot'] },
   animaux: { label: 'Animaux', aliases: ['animaux', 'animal', 'bovin', 'mouton', 'chevre', 'betail'] },
   sante: { label: 'Santé & Vaccins', aliases: ['sante', 'vaccin', 'vaccins', 'maladie', 'soin', 'veterinaire'] },
   cultures: { label: 'Cultures', aliases: ['culture', 'cultures', 'maraichage', 'recolte', 'tomate', 'champ'] },
-  investissements: { label: 'Investissements', aliases: ['investissement', 'business plan', 'financement', 'financeur', 'banque'] },
+  investissements: { label: 'Investissements', aliases: ['investissement', 'investissements', 'business plan', 'financement', 'financeur', 'banque'] },
   fournisseurs: { label: 'Fournisseurs', aliases: ['fournisseur', 'fournisseurs', 'dette fournisseur', 'achat'] },
   tracabilite: { label: 'Traçabilité', aliases: ['tracabilite', 'trace', 'historique', 'mouvement'] },
-  alertes: { label: 'Centre Alertes', aliases: ['alerte', 'alertes', 'risque', 'critique'] },
-  documents: { label: 'Documents', aliases: ['document', 'documents', 'facture', 'recu', 'preuve'] },
+  alertes: { label: 'Centre Alertes', aliases: ['alerte', 'alertes', 'risque', 'risques', 'critique'] },
+  documents: { label: 'Documents', aliases: ['document', 'documents', 'facture', 'recu', 'preuve', 'justificatif'] },
   taches: { label: 'Tâches', aliases: ['tache', 'taches', 'action', 'actions', 'retard'] },
   rapports: { label: 'Rapports', aliases: ['rapport', 'rapports', 'export', 'pdf'] },
   equipements: { label: 'Équipements', aliases: ['equipement', 'equipements', 'machine', 'maintenance', 'panne'] },
@@ -117,32 +110,12 @@ const dataKeysByModule = {
   smartfarm: ['sensor_devices', 'camera_devices'],
 };
 
-const detectModule = (command) =>
-  Object.entries(moduleCatalog).find(([, config]) => includesAny(command, config.aliases))?.[0] || null;
+const detectModule = (command) => Object.entries(moduleCatalog).find(([, config]) => includesAny(command, config.aliases))?.[0] || null;
 
-const summarizeModule = (moduleKey, dataMap = {}) => {
-  const label = moduleCatalog[moduleKey]?.label || moduleKey;
-  const keys = dataKeysByModule[moduleKey] || [moduleKey];
-  const rows = keys.flatMap((key) => asRows(dataMap, key).map((row) => ({ ...row, __dataKey: key })));
-
-  if (!rows.length) {
-    return {
-      moduleKey,
-      answer: `${label} : aucune donnée enregistrée pour le moment. Tu peux ouvrir ce module pour ajouter ou vérifier les informations.`,
-    };
-  }
-
-  const risky = rows.filter((row) => hasStatus(row, ['retard', 'critique', 'urgent', 'impaye', 'partiel', 'malade', 'panne', 'rupture']));
-  const totalAmount = sumBy(rows, ['montant', 'amount', 'total', 'total_ttc', 'valeur', 'cout', 'prix_total']);
-  const examples = rows.slice(0, 3).map(labelOf).join(', ');
-
-  const parts = [`${label} : ${rows.length} élément(s) enregistré(s)`];
-  if (totalAmount > 0) parts.push(`montant suivi ${formatCurrency(totalAmount)}`);
-  if (risky.length > 0) parts.push(`${risky.length} point(s) à surveiller`);
-  if (examples) parts.push(`exemples : ${examples}`);
-
-  return { moduleKey, answer: `${parts.join('. ')}.` };
-};
+const answerHelp = () => ({
+  moduleKey: null,
+  answer: 'Je peux résumer les priorités du jour, stocks critiques, créances, ventes, finances, santé, alertes, tâches, documents, fournisseurs, avicole, cultures, investissements, ou ouvrir le module concerné. Exemple : “quelles sont les priorités du jour ?”.',
+});
 
 const answerPriorities = (dataMap = {}) => {
   const criticalStocks = findCriticalStocks(dataMap);
@@ -150,20 +123,60 @@ const answerPriorities = (dataMap = {}) => {
   const healthItems = findHealthItems(dataMap);
   const alerts = findCriticalAlerts(dataMap);
   const tasks = findLateTasks(dataMap);
-
   const actions = [];
   if (criticalStocks.length) actions.push(`sécuriser ${criticalStocks.length} stock(s) critique(s)`);
   if (receivables.amount > 0 || receivables.rows.length) actions.push(`relancer ${formatCurrency(receivables.amount)} de créances`);
   if (healthItems.length) actions.push(`contrôler ${healthItems.length} point(s) santé`);
   if (alerts.length) actions.push(`traiter ${alerts.length} alerte(s)`);
   if (tasks.length) actions.push(`terminer ${tasks.length} tâche(s) urgente(s)`);
+  return { moduleKey: 'impact_business', answer: actions.length ? `Priorités du jour : ${actions.join(', ')}.` : 'Aucune urgence majeure détectée aujourd’hui. Le Centre de décisions reste à jour.' };
+};
 
-  return {
-    moduleKey: 'impact_business',
-    answer: actions.length
-      ? `Priorités du jour : ${actions.join(', ')}.`
-      : 'Aucune urgence majeure détectée aujourd’hui. Le Centre de décisions reste à jour.',
-  };
+const answerRisks = (dataMap = {}) => {
+  const parts = [
+    `${findCriticalStocks(dataMap).length} stock(s) critique(s)`,
+    `${findHealthItems(dataMap).length} point(s) santé`,
+    `${findReceivables(dataMap).rows.length} créance(s) ou paiement(s) à suivre`,
+    `${findCriticalAlerts(dataMap).length} alerte(s)`,
+    `${findLateTasks(dataMap).length} tâche(s) urgente(s)`,
+  ];
+  return { moduleKey: 'impact_business', answer: `Risques ERP détectés : ${parts.join(', ')}.` };
+};
+
+const answerFinance = (dataMap = {}) => {
+  const finances = asRows(dataMap, 'finances');
+  const recettes = finances.filter((row) => normalizeText(row.type).includes('entree') || normalizeText(row.categorie).includes('recette'));
+  const depenses = finances.filter((row) => normalizeText(row.type).includes('sortie') || normalizeText(row.categorie).includes('depense'));
+  const recettesAmount = sumBy(recettes, moneyKeys);
+  const depensesAmount = sumBy(depenses, moneyKeys);
+  const receivables = findReceivables(dataMap);
+  return { moduleKey: 'finances', answer: `Finances : recettes ${formatCurrency(recettesAmount)}, dépenses ${formatCurrency(depensesAmount)}, solde estimé ${formatCurrency(recettesAmount - depensesAmount)}, créances à suivre ${formatCurrency(receivables.amount)}.` };
+};
+
+const answerSales = (dataMap = {}) => {
+  const orders = asRows(dataMap, 'sales_orders');
+  const invoices = asRows(dataMap, 'invoices');
+  const payments = asRows(dataMap, 'payments');
+  const deliveries = asRows(dataMap, 'deliveries');
+  const salesAmount = sumBy(orders, ['total_ttc', 'total', 'montant', 'amount']) + sumBy(invoices, ['total_ttc', 'total', 'montant', 'amount']);
+  const paidAmount = sumBy(payments.filter((row) => hasStatus(row, ['paye', 'paid', 'encaisse']) || normalizeText(row.type).includes('paiement')), moneyKeys);
+  const receivables = findReceivables(dataMap);
+  return { moduleKey: 'ventes', answer: `Ventes : ${orders.length} commande(s), ${invoices.length} facture(s), ${deliveries.length} livraison(s), ${formatCurrency(salesAmount)} de ventes suivies, ${formatCurrency(paidAmount)} encaissé, ${formatCurrency(receivables.amount)} à relancer.` };
+};
+
+const answerClients = (dataMap = {}) => {
+  const clients = asRows(dataMap, 'clients');
+  const top = [...clients].sort((a, b) => getNumber(b, ['totalAchats', 'total_achats', 'total', 'montant']) - getNumber(a, ['totalAchats', 'total_achats', 'total', 'montant']))[0];
+  const receivables = findReceivables(dataMap);
+  return { moduleKey: 'clients', answer: top ? `Clients : ${clients.length} client(s) enregistré(s). Client principal : ${labelOf(top)}. Créances à relancer : ${formatCurrency(receivables.amount)}.` : `Clients : ${clients.length} client(s) enregistré(s). Créances à relancer : ${formatCurrency(receivables.amount)}.` };
+};
+
+const answerAvicole = (dataMap = {}) => {
+  const lots = asRows(dataMap, 'avicole');
+  const production = asRows(dataMap, 'production_oeufs_logs');
+  const risks = lots.filter((lot) => Number(lot.mortality || 0) > Number(lot.initial_count || 0) * 0.04 || Number(lot.scoresSante || lot.score_sante || 100) < 88);
+  const eggs = sumBy(production, ['quantite', 'quantity', 'oeufs', 'total_oeufs']);
+  return { moduleKey: 'avicole', answer: `Avicole : ${lots.length} lot(s), ${risks.length} lot(s) à surveiller, production œufs suivie ${eggs || production.length} ${eggs ? 'œuf(s)' : 'entrée(s)'}.` };
 };
 
 const answerErpValue = (dataMap = {}) => {
@@ -171,37 +184,52 @@ const answerErpValue = (dataMap = {}) => {
     ...asRows(dataMap, 'payments').filter((row) => hasStatus(row, ['paye', 'paid', 'encaisse'])),
     ...asRows(dataMap, 'finances').filter((row) => normalizeText(row.type).includes('entree')),
   ];
-  const encaissementsAmount = sumBy(encaissements, ['montant', 'amount', 'total', 'paid_amount']);
-  const receivables = findReceivables(dataMap);
-  const stockValue = asRows(dataMap, 'stock').reduce((sum, row) => {
-    const qty = Number(row.quantite || row.quantity || 0);
-    const unit = Number(row.prix_unitaire || row.unit_price || row.cout_unitaire || row.price || 0);
-    return sum + qty * unit;
-  }, 0);
   const actions = asRows(dataMap, 'audit_logs').length + asRows(dataMap, 'business_events').length + asRows(dataMap, 'tracabilite').length + asRows(dataMap, 'taches').length;
   const risks = findCriticalStocks(dataMap).length + findHealthItems(dataMap).length + findCriticalAlerts(dataMap).length;
+  const documents = asRows(dataMap, 'documents').length;
+  return { moduleKey: 'impact_business', answer: `Grâce à l’ERP : ${formatCurrency(sumBy(encaissements, moneyKeys))} d’encaissements suivis, ${formatCurrency(findReceivables(dataMap).amount)} de créances identifiées, ${formatCurrency(stockValue(dataMap))} de stock valorisé, ${actions} action(s) tracée(s), ${documents} document(s) conservé(s) et ${risks} risque(s) détecté(s).` };
+};
 
-  return {
-    moduleKey: 'impact_business',
-    answer: `Grâce à l’ERP : ${formatCurrency(encaissementsAmount)} d’encaissements suivis, ${formatCurrency(receivables.amount)} de créances identifiées, ${formatCurrency(stockValue)} de stock valorisé, ${actions} action(s) tracée(s) et ${risks} risque(s) détecté(s).`,
-  };
+const answerGlobal = (dataMap = {}) => {
+  const priorities = answerPriorities(dataMap).answer.replace('Priorités du jour : ', '').replace('Aucune urgence majeure détectée aujourd’hui. ', '');
+  const stockCount = asRows(dataMap, 'stock').length;
+  const clientsCount = asRows(dataMap, 'clients').length;
+  const salesCount = asRows(dataMap, 'sales_orders').length;
+  const healthCount = findHealthItems(dataMap).length;
+  return { moduleKey: 'dashboard', answer: `Vue globale : ${stockCount} stock(s), ${clientsCount} client(s), ${salesCount} commande(s), ${healthCount} point(s) santé à surveiller. ${priorities}` };
+};
+
+const summarizeModule = (moduleKey, dataMap = {}) => {
+  if (moduleKey === 'ventes') return answerSales(dataMap);
+  if (moduleKey === 'finances') return answerFinance(dataMap);
+  if (moduleKey === 'clients') return answerClients(dataMap);
+  if (moduleKey === 'avicole') return answerAvicole(dataMap);
+  if (moduleKey === 'impact_business') return answerGlobal(dataMap);
+  const label = moduleCatalog[moduleKey]?.label || moduleKey;
+  const keys = dataKeysByModule[moduleKey] || [moduleKey];
+  const rows = keys.flatMap((key) => asRows(dataMap, key).map((row) => ({ ...row, __dataKey: key })));
+  if (!rows.length) return { moduleKey, answer: `${label} : aucune donnée enregistrée pour le moment. Tu peux ouvrir ce module pour ajouter ou vérifier les informations.` };
+  const risky = rows.filter((row) => hasStatus(row, ['retard', 'critique', 'urgent', 'impaye', 'partiel', 'malade', 'panne', 'rupture']));
+  const totalAmount = sumBy(rows, moneyKeys);
+  const examples = rows.slice(0, 3).map(labelOf).join(', ');
+  const parts = [`${label} : ${rows.length} élément(s) enregistré(s)`];
+  if (totalAmount > 0) parts.push(`montant suivi ${formatCurrency(totalAmount)}`);
+  if (risky.length > 0) parts.push(`${risky.length} point(s) à surveiller`);
+  if (examples) parts.push(`exemples : ${examples}`);
+  return { moduleKey, answer: `${parts.join('. ')}.` };
 };
 
 const answerSearch = (command, dataMap = {}) => {
-  const words = command.split(' ').filter((word) => word.length > 2 && !['dans', 'avec', 'pour', 'des', 'les', 'une', 'mon', 'mes', 'qui', 'quoi'].includes(word));
+  const stopWords = ['dans', 'avec', 'pour', 'des', 'les', 'une', 'mon', 'mes', 'qui', 'quoi', 'donne', 'voir'];
+  const words = command.split(' ').filter((word) => word.length > 2 && !stopWords.includes(word));
   const matches = Object.entries(dataMap).flatMap(([key, rows]) => {
     if (!Array.isArray(rows)) return [];
     return rows
-      .filter((row) => {
-        const haystack = normalizeText(Object.values(row || {}).join(' '));
-        return words.some((word) => haystack.includes(word));
-      })
+      .filter((row) => words.some((word) => normalizeText(Object.values(row || {}).join(' ')).includes(word)))
       .slice(0, 3)
       .map((row) => ({ key, row }));
   });
-
   if (!matches.length) return null;
-
   const firstModule = matches[0].key === 'sales_orders' ? 'ventes' : matches[0].key;
   const list = matches.slice(0, 5).map(({ key, row }) => `${labelOf(row)} (${key})`).join(', ');
   return { moduleKey: moduleCatalog[firstModule] ? firstModule : null, answer: `J’ai trouvé ${matches.length} résultat(s) ERP : ${list}.` };
@@ -210,76 +238,45 @@ const answerSearch = (command, dataMap = {}) => {
 export const interpretVoiceCommand = (rawCommand = '', dataMap = {}) => {
   const command = normalizeText(rawCommand);
   if (!command) return { moduleKey: null, answer: 'Pose une question ERP : priorités, stocks, créances, santé, ventes, finances ou alertes.' };
+  if (['bjr', 'bonjour', 'bonsoir', 'salut', 'hello', 'hi', 'coucou', 'yo'].includes(command)) return { moduleKey: null, answer: 'Bonjour, en quoi puis-je vous aider ?' };
+  if (includesAny(command, ['merci', 'thanks'])) return { moduleKey: null, answer: 'Avec plaisir. Je reste disponible pour les priorités, les ventes, les stocks, la santé ou les finances.' };
+  if (includesAny(command, ['au revoir', 'bye', 'a plus'])) return { moduleKey: null, answer: 'À bientôt. Bon suivi de la ferme.' };
+  if (includesAny(command, ['aide', 'que peux tu faire', 'comment tu peux m aider', 'quoi demander'])) return answerHelp();
+  if (includesAny(command, ['resume', 'resume global', 'situation globale', 'point global', 'vue globale', 'etat general'])) return answerGlobal(dataMap);
+  if (includesAny(command, ['priorite', 'priorites', 'priorites du jour', 'quoi faire', 'urgence', 'aujourd hui', 'aujourdhui'])) return answerPriorities(dataMap);
+  if (includesAny(command, ['risque', 'risques', 'points a surveiller'])) return answerRisks(dataMap);
+  if (includesAny(command, ['grace a l erp', 'ce que erp a permis', 'ce que l erp a permis', 'valeur erp', 'impact erp', 'apporte par erp'])) return answerErpValue(dataMap);
 
-  if (['bjr', 'bonjour', 'bonsoir', 'salut', 'hello', 'hi', 'coucou', 'yo'].includes(command)) {
-    return {
-      moduleKey: null,
-      answer: 'Bonjour, en quoi puis-je vous aider ?',
-    };
-  }
-
-  if (includesAny(command, ['priorite', 'priorites', 'priorites du jour', 'quoi faire', 'urgence', 'aujourd hui', 'aujourdhui'])) {
-    return answerPriorities(dataMap);
-  }
-
-  if (includesAny(command, ['grace a l erp', 'ce que erp a permis', 'ce que l erp a permis', 'valeur erp', 'impact erp', 'apporte par erp'])) {
-    return answerErpValue(dataMap);
-  }
-
-  if (includesAny(command, ['stock critique', 'stocks critiques', 'rupture', 'seuil stock'])) {
+  if (includesAny(command, ['stock critique', 'stocks critiques', 'rupture', 'seuil stock', 'stock valorise'])) {
     const rows = findCriticalStocks(dataMap);
     const examples = rows.slice(0, 3).map(labelOf).join(', ');
-    return {
-      moduleKey: 'stock',
-      answer: rows.length ? `${rows.length} stock(s) critique(s) détecté(s) : ${examples}.` : 'Aucun stock critique détecté.',
-    };
+    const value = stockValue(dataMap);
+    return { moduleKey: 'stock', answer: rows.length ? `${rows.length} stock(s) critique(s) détecté(s) : ${examples}. Stock valorisé : ${formatCurrency(value)}.` : `Aucun stock critique détecté. Stock valorisé : ${formatCurrency(value)}.` };
   }
 
   if (includesAny(command, ['creance', 'creances', 'reste a encaisser', 'impaye', 'relancer client', 'clients a relancer'])) {
     const receivables = findReceivables(dataMap);
-    return {
-      moduleKey: 'clients',
-      answer: receivables.rows.length || receivables.amount > 0
-        ? `${formatCurrency(receivables.amount)} de créances à suivre sur ${receivables.rows.length} élément(s).`
-        : 'Aucune créance urgente détectée.',
-    };
+    return { moduleKey: 'clients', answer: receivables.rows.length || receivables.amount > 0 ? `${formatCurrency(receivables.amount)} de créances à suivre sur ${receivables.rows.length} élément(s).` : 'Aucune créance urgente détectée.' };
   }
 
   if (includesAny(command, ['sante', 'vaccin retard', 'vaccins retard', 'vaccination retard', 'malade', 'soin'])) {
     const rows = findHealthItems(dataMap);
     const examples = rows.slice(0, 3).map(labelOf).join(', ');
-    return {
-      moduleKey: 'sante',
-      answer: rows.length ? `${rows.length} point(s) santé à surveiller : ${examples}.` : 'Aucun point santé urgent détecté.',
-    };
+    return { moduleKey: 'sante', answer: rows.length ? `${rows.length} point(s) santé à surveiller : ${examples}.` : 'Aucun point santé urgent détecté.' };
   }
 
   if (includesAny(command, ['alerte', 'alertes', 'critique'])) {
     const rows = findCriticalAlerts(dataMap);
     const examples = rows.slice(0, 3).map(labelOf).join(', ');
-    return {
-      moduleKey: 'alertes',
-      answer: rows.length ? `${rows.length} alerte(s) à traiter : ${examples}.` : 'Aucune alerte critique ouverte.',
-    };
+    return { moduleKey: 'alertes', answer: rows.length ? `${rows.length} alerte(s) à traiter : ${examples}.` : 'Aucune alerte critique ouverte.' };
   }
 
-  if (includesAny(command, ['benefice', 'finance', 'depense', 'recette', 'cash', 'marge'])) {
-    const finances = asRows(dataMap, 'finances');
-    const recettes = finances.filter((row) => normalizeText(row.type).includes('entree') || normalizeText(row.categorie).includes('recette'));
-    const depenses = finances.filter((row) => normalizeText(row.type).includes('sortie') || normalizeText(row.categorie).includes('depense'));
-    const recettesAmount = sumBy(recettes, ['montant', 'amount', 'total']);
-    const depensesAmount = sumBy(depenses, ['montant', 'amount', 'total']);
-    return { moduleKey: 'finances', answer: `Finances : recettes ${formatCurrency(recettesAmount)}, dépenses ${formatCurrency(depensesAmount)}, solde estimé ${formatCurrency(recettesAmount - depensesAmount)}.` };
-  }
+  if (includesAny(command, ['vente', 'ventes', 'commande', 'commandes', 'livraison', 'facture', 'paiement'])) return answerSales(dataMap);
+  if (includesAny(command, ['benefice', 'finance', 'depense', 'recette', 'cash', 'marge', 'solde'])) return answerFinance(dataMap);
 
   const moduleKey = detectModule(command);
   if (moduleKey) return summarizeModule(moduleKey, dataMap);
-
   const searchAnswer = answerSearch(command, dataMap);
   if (searchAnswer) return searchAnswer;
-
-  return {
-    moduleKey: null,
-    answer: "Je n’ai pas trouvé de réponse sûre dans l’ERP. Essaie : priorités du jour, stocks critiques, créances, santé, ventes, finances, alertes, ou le nom d’un module.",
-  };
+  return { moduleKey: null, answer: "Je n’ai pas trouvé de réponse sûre dans l’ERP. Essaie : priorités du jour, résumé global, stocks critiques, créances, santé, ventes, finances, risques, documents, tâches ou le nom d’un module." };
 };
