@@ -6,19 +6,29 @@ import useVoiceRecognition from '../hooks/useVoiceRecognition';
 import { interpretVoiceCommand } from '../services/voiceCommands';
 import { searchERP } from '../services/globalSearchService';
 
-const quickQuestions = [
-  'Priorités du jour',
-  'Stocks critiques',
-  'Créances à relancer',
-  'Situation santé',
-  'Situation des ventes',
-  'Ce que l’ERP a permis de faire',
+const quickQuestionGroups = [
+  {
+    title: 'Décider maintenant',
+    items: ['Priorités du jour', 'Quels sont les risques ?', 'Que dois-je traiter maintenant ?', 'Que dois-je renforcer ?'],
+  },
+  {
+    title: 'Argent & ventes',
+    items: ['Quel est mon CA ?', 'Combien j’ai encaissé ?', 'Créances à relancer', 'Quelle est ma marge ?'],
+  },
+  {
+    title: 'Terrain & opérations',
+    items: ['Stocks critiques', 'Situation santé', 'Situation avicole', 'Tâches en retard'],
+  },
+  {
+    title: 'Valeur ERP',
+    items: ['Ce que l’ERP a permis de faire', 'Données utiles pour la banque', 'Situation globale'],
+  },
 ];
 
 export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState([
-    { role: 'assistant', text: 'Assistant ERP prêt. Je peux vous aider sur les priorités, les stocks, les clients, les ventes, la santé, les finances, les alertes ou la valeur apportée par l’ERP.' },
+    { role: 'assistant', text: 'Assistant ERP prêt. Je peux aider à décider quoi faire, suivre le chiffre d’affaires, les encaissements, les stocks, les ventes, la santé, les alertes et la valeur créée par l’ERP.' },
   ]);
   const speech = useSpeechSynthesis();
 
@@ -50,21 +60,21 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
   if (!open) return null;
 
   return (
-    <aside className="fixed right-3 bottom-3 md:right-4 md:bottom-4 z-50 w-[min(440px,calc(100vw-1.5rem))] bg-[#ffffff]/95 backdrop-blur border border-[#d6c3a0] rounded-2xl shadow-2xl overflow-hidden">
+    <aside className="fixed right-3 bottom-3 md:right-4 md:bottom-4 z-50 w-[min(460px,calc(100vw-1.5rem))] bg-[#ffffff]/95 backdrop-blur border border-[#d6c3a0] rounded-2xl shadow-2xl overflow-hidden">
       <div className="px-4 py-3 border-b border-[#d6c3a0] flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
           <Bot size={18} />
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-bold text-[#2f2415]">Assistant ERP</p>
-          <p className="text-xs text-[#8a7456] truncate">Recherche, alertes et actions guidées</p>
+          <p className="text-xs text-[#8a7456] truncate">Décisions, chiffres, alertes et actions guidées</p>
         </div>
         <button type="button" onClick={onClose} className="p-2 text-[#8a7456] hover:text-[#2f2415]">
           <X size={16} />
         </button>
       </div>
 
-      <div className="max-h-[55vh] md:max-h-80 overflow-y-auto p-4 space-y-3">
+      <div className="max-h-[62vh] md:max-h-[28rem] overflow-y-auto p-4 space-y-3">
         {messages.map((message, index) => (
           <div
             key={`${message.role}-${index}`}
@@ -77,16 +87,23 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
         ))}
 
         {messages.length <= 1 ? (
-          <div className="flex flex-wrap gap-2">
-            {quickQuestions.map((question) => (
-              <button
-                key={question}
-                type="button"
-                onClick={() => handleAsk(question, { inputMode: 'text' })}
-                className="rounded-full border border-[#d6c3a0] bg-[#fffdf8] px-3 py-1.5 text-xs font-semibold text-[#7d6a4a] hover:border-emerald-500 hover:text-emerald-600 transition-colors"
-              >
-                {question}
-              </button>
+          <div className="space-y-3">
+            {quickQuestionGroups.map((group) => (
+              <div key={group.title}>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[#b39b78] mb-1.5">{group.title}</p>
+                <div className="flex flex-wrap gap-2">
+                  {group.items.map((question) => (
+                    <button
+                      key={question}
+                      type="button"
+                      onClick={() => handleAsk(question, { inputMode: 'text' })}
+                      className="rounded-full border border-[#d6c3a0] bg-[#fffdf8] px-3 py-1.5 text-xs font-semibold text-[#7d6a4a] hover:border-emerald-500 hover:text-emerald-600 transition-colors"
+                    >
+                      {question}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         ) : null}
