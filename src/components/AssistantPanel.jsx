@@ -1,10 +1,12 @@
-import { Bot, Mic, RotateCcw, Send, X } from 'lucide-react';
+import { Bot, Mic, RotateCcw, Send, Sparkles, X } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import useSpeechSynthesis from '../hooks/useSpeechSynthesis';
 import useVoiceRecognition from '../hooks/useVoiceRecognition';
 import { interpretVoiceCommand } from '../services/voiceCommands';
 import { searchERP } from '../services/globalSearchService';
+
+const ASSISTANT_VERSION = 'ERP Décision v3';
 
 const initialAssistantMessage = 'Assistant ERP prêt. Je peux aider à décider quoi faire, suivre le chiffre d’affaires, les encaissements, les marges, les dépenses, les stocks, les ventes, la santé, les alertes, la bancabilité et la valeur créée par l’ERP.';
 
@@ -76,7 +78,12 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
           <Bot size={18} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-[#2f2415]">Assistant ERP</p>
+          <div className="flex items-center gap-2 min-w-0">
+            <p className="font-bold text-[#2f2415] truncate">Assistant ERP</p>
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-500/20">
+              <Sparkles size={10} /> {ASSISTANT_VERSION}
+            </span>
+          </div>
           <p className="text-xs text-[#8a7456] truncate">Décisions, chiffres, alertes et actions guidées</p>
         </div>
         {hasConversation ? (
