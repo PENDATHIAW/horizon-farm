@@ -1,5 +1,5 @@
 import { Bot, Mic, Send, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import useSpeechSynthesis from '../hooks/useSpeechSynthesis';
 import useVoiceRecognition from '../hooks/useVoiceRecognition';
@@ -9,28 +9,34 @@ import { searchERP } from '../services/globalSearchService';
 export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState([
-    { role: 'assistant', text: 'Assistant ERP pret. Pose une question sur les alertes, les stocks, les clients ou les finances.' },
+    { role: 'assistant', text: 'Assistant ERP prêt. Pose une question sur les alertes, les stocks, les clients, les ventes, la santé, les finances ou les priorités du jour.' },
   ]);
   const speech = useSpeechSynthesis();
+
+  const handleAsk = useCallback(
+    (forcedQuery, options = {}) => {
+      const text = (forcedQuery ?? query).trim();
+      if (!text) return;
+
+      const inputMode = options.inputMode || 'text';
+      const response = interpretVoiceCommand(text, dataMap);
+      setMessages((prev) => [...prev, { role: 'user', text }, { role: 'assistant', text: response.answer }]);
+      setQuery('');
+
+      if (response.moduleKey) onNavigate?.(response.moduleKey);
+      if (inputMode === 'voice') speech.speak(response.answer);
+    },
+    [dataMap, onNavigate, query, speech]
+  );
+
   const voice = useVoiceRecognition({
     onResult: (text) => {
       setQuery(text);
-      handleAsk(text);
+      handleAsk(text, { inputMode: 'voice' });
     },
   });
 
   const results = useMemo(() => searchERP(dataMap, query).slice(0, 5), [dataMap, query]);
-
-  const handleAsk = (forcedQuery) => {
-    const text = (forcedQuery ?? query).trim();
-    if (!text) return;
-
-    const response = interpretVoiceCommand(text, dataMap);
-    setMessages((prev) => [...prev, { role: 'user', text }, { role: 'assistant', text: response.answer }]);
-    setQuery('');
-    if (response.moduleKey) onNavigate?.(response.moduleKey);
-    speech.speak(response.answer);
-  };
 
   if (!open) return null;
 
@@ -42,7 +48,7 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
         </div>
         <div className="flex-1">
           <p className="font-bold text-[#2f2415]">Assistant ERP</p>
-          <p className="text-xs text-[#8a7456]">Recherche, alertes et actions guidees</p>
+          <p className="text-xs text-[#8a7456]">Recherche, alertes et actions guidées</p>
         </div>
         <button type="button" onClick={onClose} className="p-2 text-[#8a7456] hover:text-[#2f2415]">
           <X size={16} />
@@ -86,15 +92,15 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === 'Enter') handleAsk();
+            if (event.key === 'Enter') handleAsk(undefined, { inputMode: 'text' });
           }}
           className="flex-1 bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm text-[#2f2415] outline-none focus:border-emerald-500"
-          placeholder={voice.listening ? voice.transcript || 'Ecoute...' : 'Question ERP...'}
+          placeholder={voice.listening ? voice.transcript || 'Écoute...' : 'Question ERP...'}
         />
-        <button type="button" onClick={voice.listening ? voice.stop : voice.start} className={`p-2 rounded-lg border ${voice.listening ? 'border-emerald-500 text-emerald-400 animate-pulse' : 'border-[#d6c3a0] text-[#8a7456]'}`}>
+        <button type="button" onClick={voice.listening ? voice.stop : voice.start} className={`p-2 rounded-lg border ${voice.listening ? 'border-emerald-500 text-emerald-400 animate-pulse' : 'border-[#d6c3a0] text-[#8a7456]'}`} title={voice.listening ? 'Arrêter le micro' : 'Parler à l’assistant'}>
           <Mic size={16} />
         </button>
-        <button type="button" onClick={() => handleAsk()} className="p-2 rounded-lg bg-emerald-500 text-black">
+        <button type="button" onClick={() => handleAsk(undefined, { inputMode: 'text' })} className="p-2 rounded-lg bg-emerald-500 text-black" title="Envoyer la question">
           <Send size={16} />
         </button>
       </div>
