@@ -17,6 +17,7 @@ import DetailsModal from '../modals/DetailsModal';
 import { calculateSupplierMetrics } from '../utils/businessCalculations';
 import { searchGeoPlaces } from '../services/geoSearchService';
 import FournisseursStockBridge from './FournisseursStockBridge.jsx';
+import FournisseursEvolution from './FournisseursEvolution.jsx';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const today = () => new Date().toISOString().slice(0, 10);
@@ -52,7 +53,7 @@ function buildSupplierSummary(supplier, stockRows = [], financeRows = [], docume
   return { stock, finances, docs, achatsStock, paiements, dettesDeclarees, dettes: dettesDeclarees, livraisons, derniersProduits };
 }
 
-export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loading, onCreate, onUpdate, onDelete, onRefresh, onUpdateStock, onRefreshStock, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, onCreateBusinessEvent, onRefreshBusinessEvents }) {
+export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loading, onCreate, onUpdate, onDelete, onRefresh, onUpdateStock, onRefreshStock, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, onCreateBusinessEvent, onRefreshBusinessEvents, onNavigate }) {
   const [selected, setSelected] = useState(null);
   const [modal, setModal] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -211,6 +212,8 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loadi
         <KpiCard icon={AlertTriangle} label="Dettes" value={fmtCurrency(totalDettes)} color={totalDettes > 0 ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'} />
         <KpiCard icon={Award} label="Note moyenne" value={`${noteMoyenne}/5`} color="bg-amber-500/20 text-amber-400" />
       </div>
+
+      <FournisseursEvolution rows={rows} stocks={stockRows} finances={financesCrud.rows} onNavigate={onNavigate} />
 
       {fournisseursDette.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4"><p className="font-bold text-amber-800 mb-2">Dettes fournisseurs à suivre</p><div className="grid grid-cols-1 md:grid-cols-2 gap-2">{fournisseursDette.slice(0, 4).map((supplier) => <button key={supplier.id} type="button" onClick={() => createDebtAlert(supplier)} className="rounded-xl border border-amber-200 bg-white px-3 py-2 text-left text-sm text-amber-700"><b>{supplierName(supplier)}</b> · {fmtCurrency(summaryFor(supplier).dettes)}</button>)}</div></div> : null}
 
