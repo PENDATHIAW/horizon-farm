@@ -9,6 +9,7 @@ export default function VentesV3(props) {
         rows={props.rows || []}
         payments={props.paymentsList || props.payments || []}
         opportunities={props.opportunities || []}
+        onNavigate={props.onNavigate}
       />
     </div>
   );
