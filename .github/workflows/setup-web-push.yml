@@ -12,10 +12,13 @@ on:
 permissions:
   contents: write
 
+env:
+  WEB_PUSH_LOCK_COMMIT: "chore: update lockfile for web push"
+
 jobs:
   update-lockfile:
     name: Install web-push and update lockfile
-    if: ${{ !contains(github.event.head_commit.message, 'chore: update lockfile for web push') }}
+    if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, 'chore: update lockfile for web push')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
@@ -29,8 +32,8 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install web-push
-        run: npm install web-push@^3.6.7
+      - name: Install web-push and update lockfile
+        run: npm install web-push@^3.6.7 --save
 
       - name: Commit package lock updates
         uses: stefanzweifel/git-auto-commit-action@v5
@@ -43,9 +46,20 @@ jobs:
     name: Generate VAPID keys
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/interconnexions-modules-riches-v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
       - name: Generate keys
         run: |
-          npm exec --yes web-push generate-vapid-keys > vapid-keys.txt
+          npx --yes web-push generate-vapid-keys > vapid-keys.txt
           echo "## VAPID keys" >> $GITHUB_STEP_SUMMARY
           echo "Copie ces valeurs dans Vercel. La clé privée ne doit jamais être mise dans le code." >> $GITHUB_STEP_SUMMARY
           echo '```txt' >> $GITHUB_STEP_SUMMARY
