@@ -35,7 +35,7 @@ import LoginPage from './pages/LoginPage';
 const MODULES = {
   dashboard: lazy(() => import('./modules/Dashboard')),
   animaux: lazy(() => import('./modules/Animaux')),
-  avicole: lazy(() => import('./modules/AvicoleV8')),
+  avicole: lazy(() => import('./modules/AvicoleV9')),
   sante: lazy(() => import('./modules/SanteV5')),
   finances: lazy(() => import('./modules/FinancesV11')),
   comptabilite: lazy(() => import('./modules/ComptabiliteV4')),
