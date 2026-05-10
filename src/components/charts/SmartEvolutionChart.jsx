@@ -112,7 +112,13 @@ export default function SmartEvolutionChart({
       subtitle,
       period: periodLabel,
       labels: filtered.months,
-      series: filtered.series.map((item) => ({ name: item.name, unit: item.unit || '', values: item.data || [] })),
+      series: filtered.series.map((item) => ({
+        name: item.name,
+        unit: item.unit || '',
+        type: item.type || 'bar',
+        axis: item.axis || 'left',
+        values: item.data || [],
+      })),
       extra: reportPayload,
     });
   };
