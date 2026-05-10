@@ -1,5 +1,5 @@
 import { AlertTriangle, Bell, CheckCircle, ExternalLink, MessageCircle, Plus, RefreshCw, Search, Settings, X, Zap } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import ActionIconButton from '../components/ActionIconButton';
 import Btn from '../components/Btn';
@@ -7,7 +7,7 @@ import KpiCard from '../components/KpiCard';
 import SectionHeader from '../components/SectionHeader';
 import CreateModal from '../modals/CreateModal';
 import DeleteModal from '../modals/DeleteModal';
-import { openWhatsAppApp } from '../utils/contactActions';
+import { normalizePhone, openWhatsAppApp } from '../utils/contactActions';
 import { fmtCurrency } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
 import { getResponsibleOptions, resolveResponsibleLabel } from '../utils/rhDirectory';
@@ -32,6 +32,7 @@ const ALERTE_FIELDS = [
   { key: 'responsable', label: 'Destinataire / responsable', type: 'select', options: getResponsibleOptions({ moduleKey: '' }) },
   { key: 'action_recommandee', label: 'Action recommandee', type: 'text', fullWidth: true },
 ];
+
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value) => String(value || '').trim();
 const lower = (value) => clean(value).toLowerCase();
@@ -44,6 +45,15 @@ function saveConfig(config) { window.localStorage.setItem(ALERT_CONFIG_KEY, JSON
 function shouldAutoNotify(alert = {}, config = {}) { return Boolean(config.autoWhatsApp) && AUTO_SEND_SEVERITIES.includes(lower(alert.severity)) && !alert.whatsapp_sent_at; }
 function recipientLabel(recipient, config) { if (recipient === 'OWNER') return `${config.ownerName || 'Propriétaire'} · WhatsApp propriétaire`; return resolveResponsibleLabel(recipient); }
 function messageFor(alert = {}, recipient = '', config = {}) { return `[Horizon Farm] ${String(alert.severity || 'info').toUpperCase()}\n${alert.title || 'Alerte'}\n${alert.message || ''}\nAction: ${alert.action_recommandee || 'Vérifier dans Horizon Farm'}\nModule: ${alert.module_source || '-'}\nRéf: ${alert.entity_id || '-'}\nDestinataire: ${recipientLabel(recipient, config) || 'équipe concernée'}`; }
+function resolveWhatsAppRecipient(rawRecipient, config = {}, forceOwner = false) {
+  const ownerPhone = normalizePhone(config.ownerWhatsapp);
+  const recipient = forceOwner ? 'OWNER' : (rawRecipient || config.defaultRecipient || 'OWNER');
+  const directPhone = normalizePhone(recipient);
+  if (recipient === 'OWNER') return { recipient: 'OWNER', phone: ownerPhone, usedFallback: false };
+  if (directPhone) return { recipient, phone: directPhone, usedFallback: false };
+  if (ownerPhone) return { recipient: 'OWNER', phone: ownerPhone, usedFallback: true, originalRecipient: recipient };
+  return { recipient, phone: '', usedFallback: false };
+}
 
 export default function AlertesCenter({ alertes = [], transactions = [], animaux = [], lots = [], stocks = [], cultures = [], sensorDevices = [], loading, onCreate, onUpdate, onDelete, onRefresh, onSendWhatsApp, onNavigate }) {
   const [severityFilter, setSeverityFilter] = useState('tous');
@@ -55,6 +65,7 @@ export default function AlertesCenter({ alertes = [], transactions = [], animaux
   const [saving, setSaving] = useState(false);
   const [sendingId, setSendingId] = useState('');
   const [config, setConfig] = useState(loadConfig);
+  const readyToastKeyRef = useRef('');
   const responsibleOptions = useMemo(() => [{ value: 'OWNER', label: `${config.ownerName || 'Propriétaire'} · WhatsApp propriétaire` }, ...getResponsibleOptions({ moduleKey: '' })], [config.ownerName]);
 
   const autoAlerts = useMemo(() => {
@@ -74,13 +85,15 @@ export default function AlertesCenter({ alertes = [], transactions = [], animaux
   const modules = useMemo(() => [...new Set(allAlerts.map((a) => a.module_source).filter(Boolean))], [allAlerts]);
   const nouvellesCount = allAlerts.filter((a) => a.status === 'nouvelle').length;
   const critiquesCount = allAlerts.filter((a) => ['critique', 'urgence'].includes(a.severity)).length;
-  const warningCount = allAlerts.filter((a) => a.severity === 'warning').length;
   const autoNotifyCount = allAlerts.filter((a) => shouldAutoNotify(a, config)).length;
 
   useEffect(() => {
     if (!config.autoWhatsApp || !config.ownerWhatsapp || !autoNotifyCount) return;
+    const key = allAlerts.filter((a) => shouldAutoNotify(a, config)).map((a) => a.id || alertKey(a)).join('|');
+    if (!key || readyToastKeyRef.current === key) return;
+    readyToastKeyRef.current = key;
     const urgent = allAlerts.find((a) => shouldAutoNotify(a, config));
-    if (urgent) toast(`Alerte urgente prête pour WhatsApp: ${urgent.title}`);
+    toast(`WhatsApp prêt pour ${autoNotifyCount} alerte(s), dont : ${urgent?.title || 'alerte urgente'}`);
   }, [autoNotifyCount, config.autoWhatsApp, config.ownerWhatsapp, allAlerts, config]);
 
   const submitCreate = async (payload) => { try { setSaving(true); await onCreate({ ...payload, responsable_label: recipientLabel(payload.responsable, config), status: 'nouvelle', alert_dedupe_key: alertKey(payload) }); toast.success('Alerte créée'); setModal(null); } catch { toast.error('Création alerte impossible'); } finally { setSaving(false); } };
@@ -92,24 +105,29 @@ export default function AlertesCenter({ alertes = [], transactions = [], animaux
     if (sendingId === alerte.id) return;
     try {
       setSendingId(alerte.id);
-      const recipient = forceOwner ? 'OWNER' : (alerte.responsable || config.defaultRecipient || 'OWNER');
-      const ownerPhone = recipient === 'OWNER' ? config.ownerWhatsapp : '';
-      const recipientValue = ownerPhone || recipient;
-      const message = messageFor(alerte, recipient, config);
-      await onSendWhatsApp?.({ ...alerte, message, responsable: recipient, responsable_label: recipientLabel(recipient, config), recipient_phone: ownerPhone }, recipientValue);
-      await openWhatsAppApp({ phone: recipientValue, message, fallbackWeb: false });
-      if (alerte.isAuto) await persistAutoIfNeeded(alerte, { whatsapp_sent_at: new Date().toISOString(), status: alerte.status || 'nouvelle', responsable: recipient, responsable_label: recipientLabel(recipient, config) });
-      else await onUpdate?.(alerte.id, { whatsapp_sent_at: new Date().toISOString(), responsable: recipient, responsable_label: recipientLabel(recipient, config), recipient_phone: ownerPhone });
-      toast.success('WhatsApp ouvert avec message préparé');
-    } catch { toast.error('Message impossible'); } finally { setSendingId(''); }
+      const resolved = resolveWhatsAppRecipient(alerte.responsable, config, forceOwner);
+      if (!resolved.phone) {
+        toast.error('Aucun numéro WhatsApp configuré. Ajoute ton numéro propriétaire dans Configuration alertes.');
+        return;
+      }
+      const message = messageFor(alerte, resolved.recipient, config);
+      await openWhatsAppApp({ phone: resolved.phone, message, fallbackWeb: false });
+      await onSendWhatsApp?.({ ...alerte, message, responsable: resolved.recipient, responsable_label: recipientLabel(resolved.recipient, config), recipient_phone: resolved.phone, original_recipient: resolved.originalRecipient }, resolved.phone);
+      const patch = { whatsapp_sent_at: new Date().toISOString(), responsable: resolved.recipient, responsable_label: recipientLabel(resolved.recipient, config), recipient_phone: resolved.phone };
+      if (alerte.isAuto) await persistAutoIfNeeded(alerte, { ...patch, status: alerte.status || 'nouvelle' });
+      else await onUpdate?.(alerte.id, patch);
+      if (resolved.usedFallback) toast.success(`Envoyé vers ton numéro propriétaire au lieu de ${recipientLabel(resolved.originalRecipient, config)}`);
+    } catch (error) {
+      if (error?.code !== 'WHATSAPP_PHONE_INVALID') toast.error('Message WhatsApp impossible');
+    } finally { setSendingId(''); }
   };
-  const sendAllUrgent = async () => { const urgent = allAlerts.filter((a) => shouldAutoNotify(a, config)); if (!config.ownerWhatsapp) return toast.error('Configure d’abord ton numéro WhatsApp'); for (const alert of urgent.slice(0, 5)) await handleSendWhatsApp(alert, true); };
+  const sendAllUrgent = async () => { const urgent = allAlerts.filter((a) => shouldAutoNotify(a, config)); if (!normalizePhone(config.ownerWhatsapp)) return toast.error('Configure d’abord ton numéro WhatsApp propriétaire'); for (const alert of urgent.slice(0, 5)) await handleSendWhatsApp(alert, true); };
   const handleDelete = async () => { if (!selected) return; try { setSaving(true); await onDelete(selected.id); toast.success('Supprimée'); setModal(null); } catch { toast.error('Suppression impossible'); } finally { setSaving(false); } };
   const saveAlertConfig = () => { saveConfig(config); setModal(null); toast.success('Configuration alertes sauvegardée'); };
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-2.5 flex flex-wrap items-center gap-2 text-sm text-amber-700 font-medium"><span>ℹ️</span><span>WhatsApp est préparé et journalisé avant envoi réel. Le bouton WhatsApp tente d’ouvrir l’application, pas WhatsApp Web. Pour un envoi automatique sans clic, il faudra brancher l’API WhatsApp.</span>{autoNotifyCount > 0 ? <button type="button" onClick={sendAllUrgent} className="ml-auto rounded-lg bg-amber-600 px-3 py-1 text-white text-xs">Préparer {autoNotifyCount} urgence(s)</button> : null}</div>
+      <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-2.5 flex flex-wrap items-center gap-2 text-sm text-amber-700 font-medium"><span>ℹ️</span><span>WhatsApp est préparé et journalisé avant envoi réel. Les équipes sans numéro utilisent ton WhatsApp propriétaire si configuré.</span>{autoNotifyCount > 0 ? <button type="button" onClick={sendAllUrgent} className="ml-auto rounded-lg bg-amber-600 px-3 py-1 text-white text-xs">Préparer {autoNotifyCount} urgence(s)</button> : null}</div>
       <SectionHeader title="Centre d'Alertes" sub="Alertes automatiques, actions terrain, notifications équipe" actions={<><Btn icon={Settings} variant="outline" small onClick={() => setModal('config')}>Configuration</Btn><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Nouvelle alerte</Btn></>} />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4"><KpiCard icon={Bell} label="Total alertes" value={allAlerts.length} color="bg-sky-500/20 text-sky-400" /><KpiCard icon={Bell} label="Nouvelles" value={nouvellesCount} color={nouvellesCount > 0 ? 'bg-amber-500/20 text-amber-500' : 'bg-gray-100 text-gray-400'} /><KpiCard icon={AlertTriangle} label="Critiques / urgences" value={critiquesCount} color={critiquesCount > 0 ? 'bg-red-500/20 text-red-500' : 'bg-gray-100 text-gray-400'} /><KpiCard icon={Zap} label="WhatsApp à préparer" value={autoNotifyCount} color={autoNotifyCount > 0 ? 'bg-red-500/20 text-red-500' : 'bg-gray-100 text-gray-400'} /></div>
       <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4 space-y-3"><div className="flex gap-3 items-center"><div className="relative flex-1"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8a7456]" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher..." className="w-full pl-8 pr-3 py-2 text-sm border border-[#d6c3a0] rounded-xl bg-[#fffdf8] text-[#2f2415] focus:outline-none focus:border-[#c9a96a]" /></div></div><Filter label="Gravité" values={['tous', 'info', 'warning', 'critique', 'urgence']} active={severityFilter} setActive={setSeverityFilter} /><Filter label="Statut" values={['tous', 'nouvelle', 'lue', 'traitee']} active={statusFilter} setActive={setStatusFilter} />{modules.length > 0 ? <Filter label="Module" values={['tous', ...modules]} active={moduleFilter} setActive={setModuleFilter} /> : null}</div>
@@ -118,7 +136,7 @@ export default function AlertesCenter({ alertes = [], transactions = [], animaux
       <div className="space-y-3">{filtered.map((alerte) => (<div key={alerte.id} className={`bg-white border border-[#d6c3a0] rounded-2xl p-4 flex gap-4 border-l-4 ${SEVERITY_BORDER[alerte.severity] || 'border-l-sky-400'}`}><div className="shrink-0 text-2xl mt-0.5">{SEVERITY_EMOJI[alerte.severity] || 'ℹ️'}</div><div className="flex-1 min-w-0"><div className="flex items-start gap-2 flex-wrap mb-1"><button type="button" onClick={() => openLinkedModule(alerte)} className="font-bold text-[#2f2415] flex-1 min-w-0 text-left hover:text-emerald-700"><ExternalLink size={14} className="inline" /> {alerte.title || 'Alerte'}</button>{alerte.module_source && <span className={`text-xs px-2 py-0.5 rounded-full font-semibold shrink-0 ${MODULE_BADGE[alerte.module_source] || 'bg-gray-100 text-gray-600'}`}>{alerte.module_source}</span>}{alerte.isAuto && <span className="text-xs px-2 py-0.5 rounded-full bg-[#eadcc2] text-[#7d6a4a] shrink-0">Auto</span>}<span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${alerte.status === 'traitee' ? 'bg-emerald-100 text-emerald-700' : alerte.status === 'lue' ? 'bg-gray-100 text-gray-600' : 'bg-amber-100 text-amber-700'}`}>{alerte.status || 'nouvelle'}</span></div>{alerte.message && <p className="text-sm text-[#7d6a4a] mb-1">{alerte.message}</p>}{alerte.action_recommandee && <p className="text-xs text-emerald-700 font-semibold">→ Action : {alerte.action_recommandee}</p>}<div className="flex items-center gap-3 mt-1.5 flex-wrap">{alerte.entity_id && <span className="text-xs text-[#8a7456]">Ref: {alerte.entity_id}</span>}{alerte.amount != null && <span className="text-xs font-bold text-[#2f2415]">{fmtCurrency(alerte.amount)}</span>}<span className="text-xs text-[#8a7456]">Resp: {recipientLabel(alerte.responsable || config.defaultRecipient, config)}</span>{alerte.whatsapp_sent_at && <span className="text-xs text-emerald-700">WhatsApp préparé</span>}{alerte.created_at && <span className="text-xs text-[#8a7456]">{new Date(alerte.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>}</div></div><div className="flex flex-col gap-1.5 shrink-0 items-end"><button type="button" onClick={() => openLinkedModule(alerte)} className="text-xs px-2.5 py-1 rounded-lg border border-[#d6c3a0] text-[#7d6a4a] hover:bg-[#f0e8d8] transition-colors whitespace-nowrap">Voir action</button>{(alerte.status || 'nouvelle') === 'nouvelle' && <button type="button" onClick={() => handleMarkRead(alerte)} className="text-xs px-2.5 py-1 rounded-lg border border-[#d6c3a0] text-[#7d6a4a] hover:bg-[#f0e8d8] transition-colors whitespace-nowrap">Marquer lu</button>}{(alerte.status || 'nouvelle') !== 'traitee' && <button type="button" onClick={() => handleTraiter(alerte)} className="text-xs px-2.5 py-1 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50 transition-colors whitespace-nowrap">✓ Traiter</button>}<button type="button" disabled={sendingId === alerte.id} onClick={() => handleSendWhatsApp(alerte)} className="text-xs px-2.5 py-1 rounded-lg border border-sky-300 text-sky-700 hover:bg-sky-50 transition-colors whitespace-nowrap disabled:opacity-60"><MessageCircle size={12} className="inline" /> {sendingId === alerte.id ? 'Préparation...' : 'WhatsApp'}</button>{!alerte.isAuto ? <ActionIconButton icon={X} color="red" title="Supprimer" onClick={() => { setSelected(alerte); setModal('delete'); }} /> : null}</div></div>))}</div>
       <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={ALERTE_FIELDS} initialValues={{ id: generateSequentialId('alertes', alertes), severity: 'info', status: 'nouvelle', responsable: config.defaultRecipient }} autoId={() => generateSequentialId('alertes', alertes)} loading={saving} title="Nouvelle alerte manuelle" submitLabel="Créer" />
       <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={handleDelete} itemLabel={selected?.title || ''} loading={saving} />
-      {modal === 'config' ? <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-2xl border border-[#d6c3a0] p-5 w-full max-w-lg space-y-4"><div className="flex items-center justify-between"><h3 className="font-black text-[#2f2415]">Configuration alertes</h3><button type="button" onClick={() => setModal(null)}><X size={18} /></button></div><label className="block text-sm"><span className="text-[#8a7456]">Nom propriétaire</span><input className="mt-1 w-full rounded-lg border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2" value={config.ownerName} onChange={(e) => setConfig((prev) => ({ ...prev, ownerName: e.target.value }))} /></label><label className="block text-sm"><span className="text-[#8a7456]">WhatsApp propriétaire</span><input className="mt-1 w-full rounded-lg border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2" placeholder="Ex: 221785890153" value={config.ownerWhatsapp} onChange={(e) => setConfig((prev) => ({ ...prev, ownerWhatsapp: e.target.value }))} /></label><label className="flex items-center gap-2 text-sm text-[#2f2415]"><input type="checkbox" checked={config.autoWhatsApp} onChange={(e) => setConfig((prev) => ({ ...prev, autoWhatsApp: e.target.checked }))} /> Préparer automatiquement WhatsApp pour critiques/urgences</label><label className="flex items-center gap-2 text-sm text-[#2f2415]"><input type="checkbox" checked={config.notifyOwnerOnUrgency} onChange={(e) => setConfig((prev) => ({ ...prev, notifyOwnerOnUrgency: e.target.checked }))} /> Toujours me notifier sur urgence/critique</label><label className="block text-sm"><span className="text-[#8a7456]">Destinataire par défaut</span><select className="mt-1 w-full rounded-lg border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2" value={config.defaultRecipient} onChange={(e) => setConfig((prev) => ({ ...prev, defaultRecipient: e.target.value }))}>{responsibleOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><p className="text-xs text-[#8a7456]">Règle recommandée : info = journaliser, warning = afficher + option WhatsApp, critique/urgence = préparer automatiquement le message propriétaire et/ou équipe concernée.</p><Btn onClick={saveAlertConfig}>Sauvegarder</Btn></div></div> : null}
+      {modal === 'config' ? <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-2xl border border-[#d6c3a0] p-5 w-full max-w-lg space-y-4"><div className="flex items-center justify-between"><h3 className="font-black text-[#2f2415]">Configuration alertes</h3><button type="button" onClick={() => setModal(null)}><X size={18} /></button></div><label className="block text-sm"><span className="text-[#8a7456]">Nom propriétaire</span><input className="mt-1 w-full rounded-lg border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2" value={config.ownerName} onChange={(e) => setConfig((prev) => ({ ...prev, ownerName: e.target.value }))} /></label><label className="block text-sm"><span className="text-[#8a7456]">WhatsApp propriétaire</span><input className="mt-1 w-full rounded-lg border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2" placeholder="Ex: 221785890153" value={config.ownerWhatsapp} onChange={(e) => setConfig((prev) => ({ ...prev, ownerWhatsapp: e.target.value }))} /></label><label className="flex items-center gap-2 text-sm text-[#2f2415]"><input type="checkbox" checked={config.autoWhatsApp} onChange={(e) => setConfig((prev) => ({ ...prev, autoWhatsApp: e.target.checked }))} /> Préparer automatiquement WhatsApp pour critiques/urgences</label><label className="flex items-center gap-2 text-sm text-[#2f2415]"><input type="checkbox" checked={config.notifyOwnerOnUrgency} onChange={(e) => setConfig((prev) => ({ ...prev, notifyOwnerOnUrgency: e.target.checked }))} /> Toujours me notifier sur urgence/critique</label><label className="block text-sm"><span className="text-[#8a7456]">Destinataire par défaut</span><select className="mt-1 w-full rounded-lg border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2" value={config.defaultRecipient} onChange={(e) => setConfig((prev) => ({ ...prev, defaultRecipient: e.target.value }))}>{responsibleOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><p className="text-xs text-[#8a7456]">Règle recommandée : info = journaliser, warning = afficher + option WhatsApp, critique/urgence = notification appareil + WhatsApp manuel vers propriétaire ou équipe numérotée.</p><Btn onClick={saveAlertConfig}>Sauvegarder</Btn></div></div> : null}
     </div>
   );
 }
