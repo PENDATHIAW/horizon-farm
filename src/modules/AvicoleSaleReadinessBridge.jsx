@@ -4,11 +4,11 @@ import toast from 'react-hot-toast';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { avicoleActiveCount, avicoleHasActiveBirds } from '../utils/avicoleMetrics';
+import { findSaleOpportunity, isSaleReady, saleOpportunityKey, saleReadyPatch } from '../utils/saleReadiness';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const today = () => new Date().toISOString().slice(0, 10);
 const now = () => new Date().toISOString();
-const clean = (value) => String(value || '').trim();
 const idOf = (lot = {}) => String(lot.id || '').trim();
 const lotName = (lot = {}) => lot.name || lot.nom || lot.id || 'Lot avicole';
 const activeCount = avicoleActiveCount;
@@ -19,13 +19,12 @@ const ageDays = (lot = {}) => {
   if (!start) return 0;
   return Math.max(0, Math.floor((Date.now() - new Date(start).getTime()) / 86400000));
 };
-const saleConfirmed = (lot = {}) => Boolean(lot.pret_vente_confirme || lot.ready_for_sale || lot.sale_ready || lot.pret_a_la_vente || ['pret_a_la_vente', 'pret_a_vendre', 'pret_a_vendre_reforme', 'a_reformer'].includes(String(lot.status || lot.statut || '').toLowerCase()));
 const isActiveLot = (lot = {}) => idOf(lot) && avicoleHasActiveBirds(lot);
-const opportunityKey = (lot = {}) => `avicole:${idOf(lot)}`;
+const opportunityKey = (lot = {}) => saleOpportunityKey('avicole', idOf(lot));
 
 function readiness(lot = {}) {
   if (!isActiveLot(lot)) return { ready: false, label: 'Indisponible', reason: 'Aucun effectif actif' };
-  if (saleConfirmed(lot)) return { ready: true, confirmed: true, label: 'Prêt confirmé', reason: 'Confirmation enregistrée' };
+  if (isSaleReady(lot)) return { ready: true, confirmed: true, label: 'Prêt confirmé', reason: 'Confirmation enregistrée' };
   const age = ageDays(lot);
   const weight = latestWeight(lot);
   const goal = targetWeight(lot);
@@ -36,9 +35,7 @@ function readiness(lot = {}) {
 }
 
 function existingOpportunityFor(lot, opportunities = []) {
-  const id = idOf(lot);
-  return arr(opportunities).find((opp) => String(opp.opportunity_key || '') === opportunityKey(lot))
-    || arr(opportunities).find((opp) => String(opp.source_module || '') === 'avicole' && String(opp.source_id || opp.related_id || '') === id);
+  return findSaleOpportunity({ sourceModule: 'avicole', id: idOf(lot), opportunities });
 }
 
 export default function AvicoleSaleReadinessBridge({ rows = [], opportunities = [], onUpdate, onRefresh, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateBusinessEvent, onRefreshBusinessEvents }) {
@@ -56,17 +53,10 @@ export default function AvicoleSaleReadinessBridge({ rows = [], opportunities = 
       setSavingId(id);
       const qty = activeCount(lot);
       const unitPrice = toNumber(lot.prix_vente_prevu || lot.prix_vente_estime || lot.sale_price || lot.prix_unitaire_vente);
-      const patch = {
-        status: 'pret_a_la_vente',
-        statut: 'pret_a_la_vente',
-        pret_vente_confirme: true,
-        pret_a_la_vente: true,
-        ready_for_sale: true,
-        sale_ready: true,
-        sale_ready_confirmed_at: lot.sale_ready_confirmed_at || now(),
+      const patch = saleReadyPatch(lot, {
         poids_objectif_vente: targetWeight(lot),
         poids_moyen_actuel: latestWeight(lot),
-      };
+      });
       await onUpdate?.(id, patch);
       const payload = {
         opportunity_key: opportunityKey(lot),
