@@ -16,19 +16,22 @@ create index if not exists idx_push_subscriptions_active on public.push_subscrip
 
 alter table public.push_subscriptions enable row level security;
 
-create policy if not exists "push_subscriptions_select_authenticated"
+drop policy if exists "push_subscriptions_select_authenticated" on public.push_subscriptions;
+create policy "push_subscriptions_select_authenticated"
   on public.push_subscriptions
   for select
   to authenticated
   using (true);
 
-create policy if not exists "push_subscriptions_insert_authenticated"
+drop policy if exists "push_subscriptions_insert_authenticated" on public.push_subscriptions;
+create policy "push_subscriptions_insert_authenticated"
   on public.push_subscriptions
   for insert
   to authenticated
   with check (true);
 
-create policy if not exists "push_subscriptions_update_authenticated"
+drop policy if exists "push_subscriptions_update_authenticated" on public.push_subscriptions;
+create policy "push_subscriptions_update_authenticated"
   on public.push_subscriptions
   for update
   to authenticated
