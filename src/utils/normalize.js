@@ -23,6 +23,20 @@ const EXPLICIT_DATE_KEYS = new Set([
   'last_visit',
   'next_visit',
 ]);
+const SALE_READY_VALUES = new Set(['true', 'oui', 'yes', '1', 'pret', 'prêt', 'prete', 'prête', 'pret_a_la_vente', 'pret_a_vendre', 'pret_a_vendre_reforme', 'a_reformer', 'confirme', 'confirmé']);
+const saleReadyValue = (value) => value === true || SALE_READY_VALUES.has(String(value || '').trim().toLowerCase());
+const isSaleReadyRecord = (record = {}) => Boolean(
+  saleReadyValue(record.pret_vente_confirme) ||
+  saleReadyValue(record.pret_a_la_vente) ||
+  saleReadyValue(record.ready_for_sale) ||
+  saleReadyValue(record.sale_ready) ||
+  saleReadyValue(record.vendable) ||
+  saleReadyValue(record.pret_vente) ||
+  saleReadyValue(record.sale_readiness_status) ||
+  saleReadyValue(record.status) ||
+  saleReadyValue(record.statut)
+);
+const saleReadyDate = (record = {}) => record.date_pret_vente_confirme || String(record.sale_ready_confirmed_at || record.ready_for_sale_at || '').slice(0, 10) || '';
 const isBusinessDateKey = (key = '') => {
   const normalized = String(key || '').toLowerCase();
   return DATE_KEY_RE.test(normalized) || EXPLICIT_DATE_KEYS.has(normalized);
@@ -65,56 +79,67 @@ export const normalizePayloadBeforeSave = (payload = {}, options = {}) => {
   );
 };
 
-export const normalizeLot = (lot = {}) => ({
-  ...lot,
-  productionJour: toNumber(lot.productionJour ?? lot.productionjour ?? lot.production_jour),
-  revenuEstime: toNumber(lot.revenuEstime ?? lot.revenu_estime),
-  mortality: toNumber(lot.mortality ?? lot.mortalite),
-  initial_count: toNumber(lot.initial_count),
-  scoresSante: toNumber(lot.scoresSante ?? lot.scores_sante),
-  weight_avg: toNumber(lot.weight_avg),
-  marge: toNumber(lot.marge),
-  malades: toNumber(lot.malades),
-  vols: toNumber(lot.vols),
-  vendus: toNumber(lot.vendus),
-  reformes: toNumber(lot.reformes),
-  sorties: toNumber(lot.sorties),
-  current_count: toNumber(lot.initial_count) > 0
-    ? Math.max(
-        0,
-        toNumber(lot.initial_count) -
-          toNumber(lot.mortality ?? lot.mortalite) -
-          toNumber(lot.vols) -
-          toNumber(lot.vendus) -
-          toNumber(lot.reformes) -
-          toNumber(lot.sorties)
-      )
-    : toNumber(lot.current_count),
-  oeufs_casses: toNumber(lot.oeufs_casses),
-  taux_ponte: toNumber(lot.taux_ponte),
-  frais_sante: toNumber(lot.frais_sante ?? lot.sante),
-  health_status: lot.health_status || 'sain',
-  status: lot.status || 'actif',
-  autres_frais: toNumber(lot.autres_frais),
-  prix_vente_prevu: toNumber(lot.prix_vente_prevu),
-  prix_vente_reel: toNumber(lot.prix_vente_reel),
-  cout_poussins: toNumber(lot.cout_poussins),
-  poids_objectif: toNumber(lot.poids_objectif),
-  effectif_vendable: toNumber(lot.effectif_vendable),
-  sale_readiness_score: toNumber(lot.sale_readiness_score),
-  sale_readiness_status: lot.sale_readiness_status || 'non_pret',
-  pret_vente_recommande: Boolean(lot.pret_vente_recommande),
-  pret_vente_confirme: Boolean(lot.pret_vente_confirme),
-  date_pret_vente_recommande: lot.date_pret_vente_recommande || '',
-  date_pret_vente_confirme: lot.date_pret_vente_confirme || '',
-  raison_pret_vente: lot.raison_pret_vente || '',
-  date_debut: lot.date_debut || '',
-  date_fin_prevue: lot.date_fin_prevue || '',
-  date_fin_reelle: lot.date_fin_reelle || '',
-  duree_cycle_valeur: toNumber(lot.duree_cycle_valeur),
-  duree_cycle_unite: lot.duree_cycle_unite || '',
-  age_lot_jours: toNumber(lot.age_lot_jours),
-});
+export const normalizeLot = (lot = {}) => {
+  const saleReady = isSaleReadyRecord(lot);
+  const normalizedStatus = ['sain', 'malade'].includes(lot.status) ? 'actif' : (lot.status || lot.statut || 'actif');
+  const finalStatus = saleReady && !['vendu', 'perdu', 'archive', 'archivé'].includes(String(normalizedStatus).toLowerCase()) ? 'pret_a_la_vente' : normalizedStatus;
+  return {
+    ...lot,
+    productionJour: toNumber(lot.productionJour ?? lot.productionjour ?? lot.production_jour),
+    revenuEstime: toNumber(lot.revenuEstime ?? lot.revenu_estime),
+    mortality: toNumber(lot.mortality ?? lot.mortalite),
+    initial_count: toNumber(lot.initial_count),
+    scoresSante: toNumber(lot.scoresSante ?? lot.scores_sante),
+    weight_avg: toNumber(lot.weight_avg),
+    marge: toNumber(lot.marge),
+    malades: toNumber(lot.malades),
+    vols: toNumber(lot.vols),
+    vendus: toNumber(lot.vendus),
+    reformes: toNumber(lot.reformes),
+    sorties: toNumber(lot.sorties),
+    current_count: toNumber(lot.initial_count) > 0
+      ? Math.max(
+          0,
+          toNumber(lot.initial_count) -
+            toNumber(lot.mortality ?? lot.mortalite) -
+            toNumber(lot.vols) -
+            toNumber(lot.vendus) -
+            toNumber(lot.reformes) -
+            toNumber(lot.sorties)
+        )
+      : toNumber(lot.current_count),
+    oeufs_casses: toNumber(lot.oeufs_casses),
+    taux_ponte: toNumber(lot.taux_ponte),
+    frais_sante: toNumber(lot.frais_sante ?? lot.sante),
+    health_status: lot.health_status || 'sain',
+    status: finalStatus,
+    statut: finalStatus,
+    autres_frais: toNumber(lot.autres_frais),
+    prix_vente_prevu: toNumber(lot.prix_vente_prevu),
+    prix_vente_reel: toNumber(lot.prix_vente_reel),
+    cout_poussins: toNumber(lot.cout_poussins),
+    poids_objectif: toNumber(lot.poids_objectif),
+    effectif_vendable: toNumber(lot.effectif_vendable),
+    sale_readiness_score: toNumber(lot.sale_readiness_score),
+    sale_readiness_status: saleReady ? 'confirme' : (lot.sale_readiness_status || 'non_pret'),
+    pret_vente_recommande: Boolean(lot.pret_vente_recommande),
+    pret_vente_confirme: saleReady,
+    pret_a_la_vente: saleReady,
+    ready_for_sale: saleReady,
+    sale_ready: saleReady,
+    vendable: saleReady,
+    date_pret_vente_recommande: lot.date_pret_vente_recommande || '',
+    date_pret_vente_confirme: saleReadyDate(lot),
+    sale_ready_confirmed_at: lot.sale_ready_confirmed_at || lot.ready_for_sale_at || '',
+    raison_pret_vente: lot.raison_pret_vente || (saleReady ? 'Confirmation enregistrée' : ''),
+    date_debut: lot.date_debut || '',
+    date_fin_prevue: lot.date_fin_prevue || '',
+    date_fin_reelle: lot.date_fin_reelle || '',
+    duree_cycle_valeur: toNumber(lot.duree_cycle_valeur),
+    duree_cycle_unite: lot.duree_cycle_unite || '',
+    age_lot_jours: toNumber(lot.age_lot_jours),
+  };
+};
 
 export const normalizeLots = (rows = []) => rows.map(normalizeLot);
 
@@ -174,69 +199,80 @@ export const normalizeClient = (client = {}) => ({
   statut: client.statut || 'actif',
 });
 
-export const normalizeAnimal = (animal = {}) => ({
-  ...animal,
-  tag: animal.tag || animal.id,
-  health_status: animal.health_status || (['sain', 'malade'].includes(animal.status) ? animal.status : 'sain'),
-  status: ['sain', 'malade'].includes(animal.status) ? 'actif' : (animal.status || 'actif'),
-  frais_sante: toNumber(animal.frais_sante ?? animal.sante),
-  autres_frais: toNumber(animal.autres_frais),
-  prix_vente_reel: toNumber(animal.prix_vente_reel ?? animal.sale_price),
-  mode_acquisition: animal.mode_acquisition || 'achat',
-  date_naissance: animal.date_naissance || animal.naissance || '',
-  date_entree_ferme: animal.date_entree_ferme || animal.date_achat || '',
-  mere_id: animal.mere_id || '',
-  pere_id: animal.pere_id || '',
-  portee_id: animal.portee_id || '',
-  notes_reproduction: animal.notes_reproduction || '',
-  en_gestation: Boolean(animal.en_gestation),
-  date_debut_gestation: animal.date_debut_gestation || '',
-  date_prevue_mise_bas: animal.date_prevue_mise_bas || '',
-  male_reproducteur_id: animal.male_reproducteur_id || '',
-  statut_reproduction: animal.statut_reproduction || (animal.sexe === 'F' ? 'inconnu' : 'non_reproductrice'),
-  fournisseur_vendeur: animal.fournisseur_vendeur || '',
-  fournisseur_id: animal.fournisseur_id || '',
-  provenance: animal.provenance || '',
-  poids_objectif: toNumber(animal.poids_objectif),
-  sale_readiness_score: toNumber(animal.sale_readiness_score),
-  sale_readiness_status: animal.sale_readiness_status || 'non_pret',
-  pret_vente_recommande: Boolean(animal.pret_vente_recommande),
-  pret_vente_confirme: Boolean(animal.pret_vente_confirme),
-  date_pret_vente_recommande: animal.date_pret_vente_recommande || '',
-  date_pret_vente_confirme: animal.date_pret_vente_confirme || '',
-  raison_pret_vente: animal.raison_pret_vente || '',
-  traitements_notes: animal.traitements_notes || '',
-  ras_veterinaire: animal.ras_veterinaire || '',
-  date_vente: animal.date_vente || '',
-  client_id: animal.client_id || '',
-  moyen_paiement: animal.moyen_paiement || '',
-  commentaire_vente: animal.commentaire_vente || '',
-  date_deces: animal.date_deces || '',
-  cause_deces: animal.cause_deces || '',
-  valeur_perte_estimee: toNumber(animal.valeur_perte_estimee),
-  commentaire_deces: animal.commentaire_deces || '',
-  date_vol_detecte: animal.date_vol_detecte || '',
-  lieu_vol: animal.lieu_vol || '',
-  commentaire_vol: animal.commentaire_vol || '',
-  date_reforme: animal.date_reforme || '',
-  motif_reforme: animal.motif_reforme || '',
-  valeur_residuelle: toNumber(animal.valeur_residuelle),
-  commentaire_reforme: animal.commentaire_reforme || '',
-  date_detection_maladie: animal.date_detection_maladie || '',
-  symptomes: animal.symptomes || '',
-  traitement_prevu: animal.traitement_prevu || '',
-  veterinaire_id: animal.veterinaire_id || '',
-  cout_traitement_estime: toNumber(animal.cout_traitement_estime),
-  date_debut_traitement: animal.date_debut_traitement || '',
-  date_fin_traitement_prevue: animal.date_fin_traitement_prevue || '',
-  traitement_en_cours: animal.traitement_en_cours || '',
-  cout_traitement: toNumber(animal.cout_traitement),
-  raison_surveillance: animal.raison_surveillance || '',
-  date_prochaine_verification: animal.date_prochaine_verification || '',
-  photo_url: animal.photo_url || animal.photoUrl || '',
-  race: animal.race || '',
-  qr_url: animal.qr_url || `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(animal.id || animal.tag || '')}`,
-});
+export const normalizeAnimal = (animal = {}) => {
+  const saleReady = isSaleReadyRecord(animal);
+  const normalizedStatus = ['sain', 'malade'].includes(animal.status) ? 'actif' : (animal.status || 'actif');
+  const finalStatus = saleReady && normalizedStatus !== 'vendu' ? 'pret_a_la_vente' : normalizedStatus;
+  return {
+    ...animal,
+    tag: animal.tag || animal.id,
+    health_status: animal.health_status || (['sain', 'malade'].includes(animal.status) ? animal.status : 'sain'),
+    status: finalStatus,
+    statut: animal.statut || finalStatus,
+    frais_sante: toNumber(animal.frais_sante ?? animal.sante),
+    autres_frais: toNumber(animal.autres_frais),
+    prix_vente_reel: toNumber(animal.prix_vente_reel ?? animal.sale_price),
+    mode_acquisition: animal.mode_acquisition || 'achat',
+    date_naissance: animal.date_naissance || animal.naissance || '',
+    date_entree_ferme: animal.date_entree_ferme || animal.date_achat || '',
+    mere_id: animal.mere_id || '',
+    pere_id: animal.pere_id || '',
+    portee_id: animal.portee_id || '',
+    notes_reproduction: animal.notes_reproduction || '',
+    en_gestation: Boolean(animal.en_gestation),
+    date_debut_gestation: animal.date_debut_gestation || '',
+    date_prevue_mise_bas: animal.date_prevue_mise_bas || '',
+    male_reproducteur_id: animal.male_reproducteur_id || '',
+    statut_reproduction: animal.statut_reproduction || (animal.sexe === 'F' ? 'inconnu' : 'non_reproductrice'),
+    fournisseur_vendeur: animal.fournisseur_vendeur || '',
+    fournisseur_id: animal.fournisseur_id || '',
+    provenance: animal.provenance || '',
+    poids_objectif: toNumber(animal.poids_objectif),
+    sale_readiness_score: toNumber(animal.sale_readiness_score),
+    sale_readiness_status: saleReady ? 'confirme' : (animal.sale_readiness_status || 'non_pret'),
+    pret_vente_recommande: Boolean(animal.pret_vente_recommande),
+    pret_vente_confirme: saleReady,
+    pret_a_la_vente: saleReady,
+    ready_for_sale: saleReady,
+    sale_ready: saleReady,
+    vendable: saleReady,
+    date_pret_vente_recommande: animal.date_pret_vente_recommande || '',
+    date_pret_vente_confirme: saleReadyDate(animal),
+    sale_ready_confirmed_at: animal.sale_ready_confirmed_at || animal.ready_for_sale_at || '',
+    raison_pret_vente: animal.raison_pret_vente || (saleReady ? 'Confirmation enregistrée' : ''),
+    traitements_notes: animal.traitements_notes || '',
+    ras_veterinaire: animal.ras_veterinaire || '',
+    date_vente: animal.date_vente || '',
+    client_id: animal.client_id || '',
+    moyen_paiement: animal.moyen_paiement || '',
+    commentaire_vente: animal.commentaire_vente || '',
+    date_deces: animal.date_deces || '',
+    cause_deces: animal.cause_deces || '',
+    valeur_perte_estimee: toNumber(animal.valeur_perte_estimee),
+    commentaire_deces: animal.commentaire_deces || '',
+    date_vol_detecte: animal.date_vol_detecte || '',
+    lieu_vol: animal.lieu_vol || '',
+    commentaire_vol: animal.commentaire_vol || '',
+    date_reforme: animal.date_reforme || '',
+    motif_reforme: animal.motif_reforme || '',
+    valeur_residuelle: toNumber(animal.valeur_residuelle),
+    commentaire_reforme: animal.commentaire_reforme || '',
+    date_detection_maladie: animal.date_detection_maladie || '',
+    symptomes: animal.symptomes || '',
+    traitement_prevu: animal.traitement_prevu || '',
+    veterinaire_id: animal.veterinaire_id || '',
+    cout_traitement_estime: toNumber(animal.cout_traitement_estime),
+    date_debut_traitement: animal.date_debut_traitement || '',
+    date_fin_traitement_prevue: animal.date_fin_traitement_prevue || '',
+    traitement_en_cours: animal.traitement_en_cours || '',
+    cout_traitement: toNumber(animal.cout_traitement),
+    raison_surveillance: animal.raison_surveillance || '',
+    date_prochaine_verification: animal.date_prochaine_verification || '',
+    photo_url: animal.photo_url || animal.photoUrl || '',
+    race: animal.race || '',
+    qr_url: animal.qr_url || `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(animal.id || animal.tag || '')}`,
+  };
+};
 
 export const normalizeTransaction = (transaction = {}) => ({
   ...transaction,
@@ -302,6 +338,3 @@ export const normalizeByModule = (moduleKey, rows) => {
   if (moduleKey === 'veterinaires') return rows.map(normalizeVeterinaire);
   return rows;
 };
-
-
-
