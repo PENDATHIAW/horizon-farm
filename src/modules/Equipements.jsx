@@ -4,6 +4,7 @@ import { MODULE_FORM_FIELDS } from '../utils/constants';
 import { fmtCurrency } from '../utils/format';
 import EquipementsMaintenanceBridge from './EquipementsMaintenanceBridge.jsx';
 import EquipementsQuickActionsBridge from './EquipementsQuickActionsBridge.jsx';
+import EquipementsEvolution from './EquipementsEvolution.jsx';
 
 export default function Equipements(props) {
   const rows = props.rows || [];
@@ -57,6 +58,7 @@ export default function Equipements(props) {
           { icon: Fuel, label: 'Carburant', value: fmtCurrency(fuel), color: 'bg-emerald-500/20 text-emerald-500' },
         ]}
       />
+      <EquipementsEvolution rows={rows} tasks={props.tasks || []} onNavigate={props.onNavigate} />
     </div>
   );
 }
