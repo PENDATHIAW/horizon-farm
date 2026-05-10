@@ -1,4 +1,4 @@
-import { Bot, Mic, Send, X } from 'lucide-react';
+import { Bot, Mic, RotateCcw, Send, X } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import useSpeechSynthesis from '../hooks/useSpeechSynthesis';
@@ -6,31 +6,40 @@ import useVoiceRecognition from '../hooks/useVoiceRecognition';
 import { interpretVoiceCommand } from '../services/voiceCommands';
 import { searchERP } from '../services/globalSearchService';
 
+const initialAssistantMessage = 'Assistant ERP prêt. Je peux aider à décider quoi faire, suivre le chiffre d’affaires, les encaissements, les marges, les dépenses, les stocks, les ventes, la santé, les alertes, la bancabilité et la valeur créée par l’ERP.';
+
 const quickQuestionGroups = [
   {
     title: 'Décider maintenant',
-    items: ['Priorités du jour', 'Quels sont les risques ?', 'Que dois-je traiter maintenant ?', 'Que dois-je renforcer ?'],
+    items: ['Priorités du jour', 'Que dois-je traiter maintenant ?', 'Quels sont les risques ?', 'Que dois-je renforcer ?', 'Que dois-je réduire ?'],
   },
   {
-    title: 'Argent & ventes',
-    items: ['Quel est mon CA ?', 'Combien j’ai encaissé ?', 'Créances à relancer', 'Quelle est ma marge ?'],
+    title: 'Argent & rentabilité',
+    items: ['Quel est mon CA ?', 'Combien j’ai encaissé ?', 'Quelle est ma marge ?', 'Quelles sont mes dépenses ?', 'Créances à relancer'],
   },
   {
     title: 'Terrain & opérations',
-    items: ['Stocks critiques', 'Situation santé', 'Situation avicole', 'Tâches en retard'],
+    items: ['Stocks critiques', 'Situation santé', 'Situation avicole', 'Situation cultures', 'Tâches en retard'],
   },
   {
-    title: 'Valeur ERP',
-    items: ['Ce que l’ERP a permis de faire', 'Données utiles pour la banque', 'Situation globale'],
+    title: 'Suivi & preuves',
+    items: ['Situation documents', 'Qu’est-ce qui est tracé ?', 'Situation fournisseurs', 'Situation équipements', 'Situation Smart Farm'],
+  },
+  {
+    title: 'Valeur & croissance',
+    items: ['Ce que l’ERP a permis de faire', 'Données utiles pour la banque', 'Suis-je bancable ?', 'Situation globale'],
   },
 ];
 
 export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
   const [query, setQuery] = useState('');
-  const [messages, setMessages] = useState([
-    { role: 'assistant', text: 'Assistant ERP prêt. Je peux aider à décider quoi faire, suivre le chiffre d’affaires, les encaissements, les stocks, les ventes, la santé, les alertes et la valeur créée par l’ERP.' },
-  ]);
+  const [messages, setMessages] = useState([{ role: 'assistant', text: initialAssistantMessage }]);
   const speech = useSpeechSynthesis();
+
+  const resetConversation = useCallback(() => {
+    setMessages([{ role: 'assistant', text: initialAssistantMessage }]);
+    setQuery('');
+  }, []);
 
   const handleAsk = useCallback(
     (forcedQuery, options = {}) => {
@@ -56,11 +65,12 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
   });
 
   const results = useMemo(() => searchERP(dataMap, query).slice(0, 5), [dataMap, query]);
+  const hasConversation = messages.length > 1;
 
   if (!open) return null;
 
   return (
-    <aside className="fixed right-3 bottom-3 md:right-4 md:bottom-4 z-50 w-[min(460px,calc(100vw-1.5rem))] bg-[#ffffff]/95 backdrop-blur border border-[#d6c3a0] rounded-2xl shadow-2xl overflow-hidden">
+    <aside className="fixed right-3 bottom-3 md:right-4 md:bottom-4 z-50 w-[min(480px,calc(100vw-1.5rem))] bg-[#ffffff]/95 backdrop-blur border border-[#d6c3a0] rounded-2xl shadow-2xl overflow-hidden">
       <div className="px-4 py-3 border-b border-[#d6c3a0] flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
           <Bot size={18} />
@@ -69,12 +79,17 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
           <p className="font-bold text-[#2f2415]">Assistant ERP</p>
           <p className="text-xs text-[#8a7456] truncate">Décisions, chiffres, alertes et actions guidées</p>
         </div>
+        {hasConversation ? (
+          <button type="button" onClick={resetConversation} className="p-2 text-[#8a7456] hover:text-emerald-600" title="Nouvelle conversation">
+            <RotateCcw size={16} />
+          </button>
+        ) : null}
         <button type="button" onClick={onClose} className="p-2 text-[#8a7456] hover:text-[#2f2415]">
           <X size={16} />
         </button>
       </div>
 
-      <div className="max-h-[62vh] md:max-h-[28rem] overflow-y-auto p-4 space-y-3">
+      <div className="max-h-[64vh] md:max-h-[30rem] overflow-y-auto p-4 space-y-3">
         {messages.map((message, index) => (
           <div
             key={`${message.role}-${index}`}
@@ -86,7 +101,7 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
           </div>
         ))}
 
-        {messages.length <= 1 ? (
+        {!hasConversation ? (
           <div className="space-y-3">
             {quickQuestionGroups.map((group) => (
               <div key={group.title}>
@@ -110,6 +125,7 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
 
         {results.length > 0 ? (
           <div className="space-y-2">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-[#b39b78]">Résultats ERP liés</p>
             {results.map((result) => (
               <button
                 key={`${result.moduleKey}-${result.id}`}
