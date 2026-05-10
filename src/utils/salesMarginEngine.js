@@ -7,11 +7,22 @@ const lower = (value) => clean(value).toLowerCase();
 const qtyOf = (row = {}) => Math.max(1, toNumber(row.quantity ?? row.quantite ?? row.qty ?? 1));
 const totalOf = (row = {}) => toNumber(row.montant_total ?? row.total ?? row.amount ?? row.total_amount ?? row.montant_estime ?? row.estimated_amount ?? row.valeur_estimee ?? row.ca_potentiel ?? 0);
 const sourceModuleOf = (row = {}) => lower(row.source_module || row.created_from || row.module_source || row.source_type || row.module_lie);
-const sourceIdOf = (row = {}) => clean(row.source_id || row.related_id || row.entity_id || row.source_record_id || row.asset_id || row.lot_id || row.animal_id);
+const sourceIdOf = (row = {}) => clean(row.source_id || row.related_id || row.entity_id || row.source_record_id || row.asset_id || row.lot_id || row.animal_id || row.culture_id);
 const unitPriceStock = (row = {}) => toNumber(row.cout_unitaire_calcule ?? row.cout_revient_unitaire ?? row.prixUnit ?? row.prixunit ?? row.prix_unitaire ?? row.unit_price ?? row.cost_unit ?? row.cout_unitaire);
 
 function findById(rows, id) {
   return arr(rows).find((row) => clean(row.id) === clean(id) || clean(row.tag) === clean(id));
+}
+
+function cultureTotalCost(culture = {}) {
+  return toNumber(culture.cout_total_reel ?? culture.cout_total ?? culture.budget_prevu)
+    || toNumber(culture.cout_semences) + toNumber(culture.cout_engrais) + toNumber(culture.cout_eau) + toNumber(culture.cout_main_oeuvre) + toNumber(culture.cout_traitement);
+}
+
+function cultureUnitCost(culture = {}) {
+  const totalCost = cultureTotalCost(culture);
+  const harvested = toNumber(culture.quantite_recoltee ?? culture.production_reelle ?? culture.quantite_disponible ?? culture.quantite_prevue);
+  return harvested > 0 ? totalCost / harvested : 0;
 }
 
 function marginResult({ saleAmount = 0, directCost = 0, costSource = 'cout_indisponible', sourceLabel = '' }) {
@@ -44,13 +55,7 @@ export function calculateSalesMargin(input = {}, context = {}) {
   if (sourceModule.includes('animal')) {
     const animal = findById(context.animaux, sourceId);
     if (animal) {
-      const cost = calculateAnimalCost({
-        animal,
-        alimentationLogs: context.alimentationLogs,
-        vaccins: context.vaccins,
-        slaughterEvents: context.businessEvents,
-        directCharges: context.businessEvents,
-      });
+      const cost = calculateAnimalCost({ animal, alimentationLogs: context.alimentationLogs, vaccins: context.vaccins, slaughterEvents: context.businessEvents, directCharges: context.businessEvents });
       const byKg = unit.includes('kg') && cost.costPerKg > 0;
       const directCost = byKg ? cost.costPerKg * quantity : cost.totalCost;
       return marginResult({ saleAmount, directCost, costSource: cost.feedCostSource === 'reel' ? 'cout_animal_reel' : 'cout_animal_estime', sourceLabel: animal.name || animal.tag || animal.id });
@@ -60,18 +65,22 @@ export function calculateSalesMargin(input = {}, context = {}) {
   if (sourceModule.includes('avicole') || sourceModule.includes('lot')) {
     const lot = findById(context.lots, sourceId);
     if (lot) {
-      const cost = calculateAvicoleLotCost({
-        lot,
-        alimentationLogs: context.alimentationLogs,
-        productionLogs: context.productionLogs,
-        slaughterEvents: context.businessEvents,
-        directCharges: context.businessEvents,
-      });
+      const cost = calculateAvicoleLotCost({ lot, alimentationLogs: context.alimentationLogs, productionLogs: context.productionLogs, slaughterEvents: context.businessEvents, directCharges: context.businessEvents });
       let directCost = cost.totalCost;
       if (unit.includes('kg') && cost.costPerKg > 0) directCost = cost.costPerKg * quantity;
       else if ((product.includes('oeuf') || product.includes('œuf')) && cost.costPerEgg > 0) directCost = cost.costPerEgg * quantity;
       else if (cost.costPerLiveSubject > 0) directCost = cost.costPerLiveSubject * quantity;
       return marginResult({ saleAmount, directCost, costSource: cost.feedCostSource === 'reel' ? 'cout_lot_reel' : 'cout_lot_estime', sourceLabel: lot.name || lot.id });
+    }
+  }
+
+  if (sourceModule.includes('culture') || sourceModule.includes('recolte') || sourceModule.includes('récolte')) {
+    const culture = findById(context.cultures, sourceId);
+    if (culture) {
+      const unitCost = cultureUnitCost(culture);
+      const totalCost = cultureTotalCost(culture);
+      const directCost = unitCost > 0 ? unitCost * quantity : totalCost;
+      return marginResult({ saleAmount, directCost, costSource: unitCost > 0 ? 'cout_culture_unitaire' : 'cout_culture_total', sourceLabel: culture.nom || culture.type || culture.id });
     }
   }
 
@@ -89,18 +98,7 @@ export function calculateSalesMargin(input = {}, context = {}) {
 
 export function enrichWithSalesMargin(input = {}, context = {}) {
   const margin = calculateSalesMargin(input, context);
-  return {
-    ...input,
-    cout_revient: margin.cout_revient,
-    cout_direct: margin.cout_direct,
-    cout_source: margin.cout_source,
-    marge_directe: margin.marge_directe,
-    marge_montant: margin.marge_montant,
-    marge: margin.marge,
-    taux_marge_directe: margin.taux_marge_directe,
-    marge_taux: margin.marge_taux,
-    marge_calculee_at: new Date().toISOString(),
-  };
+  return { ...input, cout_revient: margin.cout_revient, cout_direct: margin.cout_direct, cout_source: margin.cout_source, marge_directe: margin.marge_directe, marge_montant: margin.marge_montant, marge: margin.marge, taux_marge_directe: margin.taux_marge_directe, marge_taux: margin.marge_taux, marge_calculee_at: new Date().toISOString() };
 }
 
 export function summarizeSalesMargins(rows = [], context = {}) {
