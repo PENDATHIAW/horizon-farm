@@ -1,20 +1,26 @@
-import { BarChart3, Bird, ShoppingBag, TrendingUp } from 'lucide-react';
-import { Bar, BarChart, CartesianGrid, LabelList, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { fmtNumber, toNumber } from '../utils/format';
+import { Bird, ShoppingBag, TrendingUp } from 'lucide-react';
+import SmartEvolutionChart from '../components/charts/SmartEvolutionChart.jsx';
+import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { filterLotsByActivity } from '../utils/avicoleActivity';
 import { avicoleActiveCount, avicoleDeadCount, avicoleSickCount } from '../utils/avicoleMetrics';
 
 const arr = (value) => Array.isArray(value) ? value : [];
+const lower = (value) => String(value || '').trim().toLowerCase();
 const eggs = (log = {}) => toNumber(log.oeufs_produits ?? log.eggs ?? log.quantity ?? log.quantite);
 const broken = (log = {}) => toNumber(log.oeufs_casses ?? log.broken ?? log.casses ?? log.pertes);
 const activeCount = avicoleActiveCount;
 const deadCount = avicoleDeadCount;
 const sickCount = avicoleSickCount;
 const avgWeight = (lot = {}) => toNumber(lot.poids_moyen_actuel ?? lot.last_weight_avg ?? lot.weight_avg ?? lot.average_weight ?? lot.current_weight ?? lot.poids_moyen ?? lot.weight);
+const lotInitial = (lot = {}) => toNumber(lot.initial_count ?? lot.effectif_initial ?? lot.quantite_initiale ?? activeCount(lot) + deadCount(lot));
 const readyForSale = (lot = {}) => {
-  const status = String(lot.status || lot.statut || '').toLowerCase();
+  const status = lower(lot.status || lot.statut);
   return ['pret_a_la_vente', 'pret_a_vendre_reforme', 'pret_vente', 'ready'].includes(status) || Boolean(lot.pret_vente_recommande || lot.pret_vente_confirme);
 };
+const logQty = (log = {}) => toNumber(log.quantite ?? log.quantity ?? log.qty ?? log.amount);
+const logCost = (log = {}) => toNumber(log.cout_total ?? log.total_cost ?? log.montant ?? log.amount ?? log.cost ?? 0);
+const logDate = (row = {}) => row.date || row.created_at || row.updated_at;
+const oppAmount = (opp = {}) => toNumber(opp.montant_estime ?? opp.estimated_amount ?? opp.valeur_estimee ?? opp.amount ?? opp.total ?? opp.ca_potentiel ?? 0);
 
 function asDate(value) {
   const parsed = new Date(value);
@@ -33,25 +39,81 @@ function monthLabel(key) {
   return `${month}/${String(year).slice(-2)}`;
 }
 
-function ChartCard({ title, subtitle, children }) {
-  return <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4"><div className="mb-3"><p className="font-black text-[#2f2415] flex items-center gap-2"><BarChart3 size={16} />{title}</p><p className="text-xs text-[#8a7456] mt-1">{subtitle}</p></div><div className="h-72">{children}</div></div>;
+function ensure(map, key) {
+  if (!map.has(key)) map.set(key, {
+    key,
+    mois: monthLabel(key),
+    charges_aliments: 0,
+    charges_soins: 0,
+    ca: 0,
+    marge: 0,
+    poids_moyen: 0,
+    taux_mortalite: 0,
+    effectif: 0,
+    morts: 0,
+    malades: 0,
+    prets: 0,
+    oeufs: 0,
+    vendables: 0,
+    casses: 0,
+    taux_ponte: 0,
+    taux_casse: 0,
+    pondeuses: 0,
+    dates: new Set(),
+  });
+  return map.get(key);
 }
 
 function SmallMetric({ label, value, hint, danger = false }) {
   return <div className={`border rounded-xl p-3 ${danger ? 'bg-red-50 border-red-200' : 'bg-[#fffdf8] border-[#d6c3a0]'}`}><p className="text-xs text-[#8a7456]">{label}</p><p className={`text-xl font-black mt-1 ${danger ? 'text-red-600' : 'text-[#2f2415]'}`}>{value}</p>{hint ? <p className="text-[11px] text-[#8a7456] mt-1">{hint}</p> : null}</div>;
 }
 
-function NumberLabel({ x, y, value }) {
-  if (!value) return null;
-  return <text x={x} y={y - 6} textAnchor="middle" fontSize={11} fill="#2f2415">{fmtNumber(value)}</text>;
+function Header({ title, subtitle, priority, onNavigate }) {
+  return <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4"><div className="flex items-start justify-between gap-3"><div className="flex items-start gap-3"><div className="w-10 h-10 rounded-xl bg-[#fff3d8] text-[#9a6b12] flex items-center justify-center"><Bird size={18} /></div><div><p className="font-black text-[#2f2415]">{title}</p><p className="text-xs text-[#8a7456] mt-1">{subtitle}</p></div></div>{priority ? <button type="button" onClick={() => onNavigate?.(priority.module)} className="hidden md:inline-flex items-center gap-2 rounded-xl bg-[#c9a96a] px-3 py-2 text-sm font-bold text-white hover:bg-[#b6975f]"><ShoppingBag size={15} />{priority.label}</button> : null}</div></div>;
 }
 
-function WeightLabel({ x, y, value }) {
-  if (!value) return null;
-  return <text x={x} y={y - 6} textAnchor="middle" fontSize={11} fill="#2f2415">{Number(value || 0).toFixed(2)}</text>;
+function buildChairMonthly({ rows = [], alimentationLogs = [], opportunities = [] }) {
+  const chair = filterLotsByActivity(rows, 'Chair');
+  const chairIds = new Set(chair.map((lot) => String(lot.id)));
+  const map = new Map();
+  const fallbackKey = monthKey(new Date());
+
+  chair.forEach((lot) => {
+    const key = monthKey(lot.updated_at || lot.created_at || fallbackKey);
+    const bucket = ensure(map, key);
+    bucket.effectif += activeCount(lot);
+    bucket.morts += deadCount(lot);
+    bucket.malades += sickCount(lot);
+    bucket.prets += readyForSale(lot) ? 1 : 0;
+    bucket.poids_total = toNumber(bucket.poids_total) + avgWeight(lot);
+    bucket.poids_count = toNumber(bucket.poids_count) + (avgWeight(lot) > 0 ? 1 : 0);
+    const base = Math.max(1, lotInitial(lot));
+    bucket.taux_mortalite = ((bucket.morts / base) * 100);
+  });
+
+  arr(alimentationLogs).forEach((log) => {
+    if (log.lot_id && chairIds.size && !chairIds.has(String(log.lot_id))) return;
+    const bucket = ensure(map, monthKey(logDate(log)));
+    const cost = logCost(log) || logQty(log) * toNumber(log.prix_unitaire ?? log.unit_price ?? 0);
+    bucket.charges_aliments += cost;
+  });
+
+  arr(opportunities).forEach((opp) => {
+    const source = lower(`${opp.source_module || ''} ${opp.type || ''} ${opp.produit || ''} ${opp.title || ''}`);
+    const lotId = String(opp.lot_id || opp.source_id || opp.entity_id || '');
+    const looksChair = source.includes('chair') || (lotId && chairIds.has(lotId));
+    if (!looksChair) return;
+    ensure(map, monthKey(opp.created_at || opp.updated_at || opp.date)).ca += oppAmount(opp);
+  });
+
+  return [...map.values()].sort((a, b) => a.key.localeCompare(b.key)).map((row) => {
+    const poids = row.poids_count ? row.poids_total / row.poids_count : 0;
+    const marge = row.ca - row.charges_aliments - row.charges_soins;
+    return { ...row, poids_moyen: Number(poids.toFixed(2)), marge: Number(marge.toFixed(0)), taux_marge: row.ca > 0 ? Number(((marge / row.ca) * 100).toFixed(1)) : 0, taux_mortalite: Number(row.taux_mortalite.toFixed(1)) };
+  });
 }
 
-function buildPonte({ rows = [], productionLogs = [] }) {
+function buildPonteMonthly({ rows = [], productionLogs = [], alimentationLogs = [], opportunities = [] }) {
   const pondeuses = filterLotsByActivity(rows, 'Pondeuse');
   const pondeuseIds = new Set(pondeuses.map((lot) => String(lot.id)));
   const activePondeuses = pondeuses.reduce((sum, lot) => sum + activeCount(lot), 0);
@@ -62,92 +124,145 @@ function buildPonte({ rows = [], productionLogs = [] }) {
     const produced = eggs(log);
     const casse = broken(log);
     if (produced <= 0 && casse <= 0) return;
-    const key = monthKey(log.date || log.created_at || log.updated_at);
-    if (!map.has(key)) map.set(key, { key, mois: monthLabel(key), oeufs: 0, casses: 0, vendables: 0, dates: new Set() });
-    const bucket = map.get(key);
+    const bucket = ensure(map, monthKey(logDate(log)));
     bucket.oeufs += produced;
     bucket.casses += casse;
     bucket.vendables += Math.max(0, produced - casse);
+    bucket.pondeuses = activePondeuses;
     if (log.date) bucket.dates.add(String(log.date));
   });
 
-  const monthly = [...map.values()].sort((a, b) => a.key.localeCompare(b.key)).map((item) => {
-    const days = Math.max(1, item.dates.size || 1);
-    const rate = activePondeuses > 0 ? (item.oeufs / (activePondeuses * days)) * 100 : 0;
-    return { ...item, jours: days, taux_ponte: Number(rate.toFixed(1)) };
+  arr(alimentationLogs).forEach((log) => {
+    if (log.lot_id && pondeuseIds.size && !pondeuseIds.has(String(log.lot_id))) return;
+    const bucket = ensure(map, monthKey(logDate(log)));
+    const cost = logCost(log) || logQty(log) * toNumber(log.prix_unitaire ?? log.unit_price ?? 0);
+    bucket.charges_aliments += cost;
   });
 
-  return { pondeuses, activePondeuses, monthly };
+  arr(opportunities).forEach((opp) => {
+    const source = lower(`${opp.source_module || ''} ${opp.type || ''} ${opp.produit || ''} ${opp.title || ''}`);
+    if (!source.includes('oeuf') && !source.includes('œuf') && !source.includes('ponte')) return;
+    ensure(map, monthKey(opp.created_at || opp.updated_at || opp.date)).ca += oppAmount(opp);
+  });
+
+  return [...map.values()].sort((a, b) => a.key.localeCompare(b.key)).map((row) => {
+    const days = Math.max(1, row.dates?.size || 1);
+    const tauxPonte = activePondeuses > 0 ? (row.oeufs / (activePondeuses * days)) * 100 : 0;
+    const tauxCasse = row.oeufs > 0 ? (row.casses / row.oeufs) * 100 : 0;
+    const marge = row.ca - row.charges_aliments - row.charges_soins;
+    return { ...row, pondeuses: activePondeuses, taux_ponte: Number(tauxPonte.toFixed(1)), taux_casse: Number(tauxCasse.toFixed(1)), marge: Number(marge.toFixed(0)), taux_marge: row.ca > 0 ? Number(((marge / row.ca) * 100).toFixed(1)) : 0 };
+  });
 }
 
-function buildChair(rows = []) {
-  return filterLotsByActivity(rows, 'Chair').map((lot) => ({
-    id: lot.id,
-    lot: lot.name || lot.nom || lot.id,
-    actifs: activeCount(lot),
-    morts: deadCount(lot),
-    malades: sickCount(lot),
-    poids: avgWeight(lot),
-    pret: readyForSale(lot) ? 1 : 0,
-  })).filter((row) => row.actifs > 0 || row.morts > 0 || row.malades > 0 || row.poids > 0).slice(0, 8);
-}
+function values(rows, key) { return rows.map((row) => toNumber(row[key])); }
+function labels(rows) { return rows.map((row) => row.mois); }
 
-export default function AvicoleEvolution({ rows = [], productionLogs = [], onNavigate }) {
-  const ponte = buildPonte({ rows, productionLogs });
-  const chairLots = buildChair(rows);
-  const totalEggs = ponte.monthly.reduce((sum, row) => sum + row.oeufs, 0);
-  const totalBroken = ponte.monthly.reduce((sum, row) => sum + row.casses, 0);
-  const totalSellable = ponte.monthly.reduce((sum, row) => sum + row.vendables, 0);
-  const chairActive = chairLots.reduce((sum, row) => sum + row.actifs, 0);
-  const chairDead = chairLots.reduce((sum, row) => sum + row.morts, 0);
-  const chairSick = chairLots.reduce((sum, row) => sum + row.malades, 0);
-  const readyLots = chairLots.filter((row) => row.pret).length;
-  const priority = chairSick > 0 || chairDead > 0 ? { module: 'sante', label: 'Traiter santé avicole' } : readyLots > 0 ? { module: 'ventes', label: 'Confirmer les ventes chair' } : { module: 'avicole', label: 'Mettre à jour les pesées / pontes' };
-  const interpretation = chairSick > 0 || chairDead > 0
-    ? `${fmtNumber(chairDead)} mort(s) et ${fmtNumber(chairSick)} malade(s) à surveiller sur les lots chair.`
-    : readyLots > 0
-      ? `${fmtNumber(readyLots)} lot(s) chair semblent prêts à convertir en vente.`
-      : totalEggs > 0
-        ? `Ponte suivie : ${fmtNumber(totalSellable)} œufs vendables sur ${fmtNumber(totalEggs)} ramassés.`
-        : 'Aucune tendance forte : compléter les pontes, pesées et sorties pour enrichir l’évolution.';
+export default function AvicoleEvolution({ rows = [], productionLogs = [], alimentationLogs = [], opportunities = [], onNavigate }) {
+  const chair = buildChairMonthly({ rows, alimentationLogs, opportunities });
+  const ponte = buildPonteMonthly({ rows, productionLogs, alimentationLogs, opportunities });
+  const lastChair = chair[chair.length - 1] || {};
+  const lastPonte = ponte[ponte.length - 1] || {};
+  const readyLots = chair.reduce((sum, row) => sum + row.prets, 0);
+  const sickOrDead = chair.reduce((sum, row) => sum + row.malades + row.morts, 0);
+  const totalEggs = ponte.reduce((sum, row) => sum + row.oeufs, 0);
+  const totalSellable = ponte.reduce((sum, row) => sum + row.vendables, 0);
+  const priority = sickOrDead > 0 ? { module: 'sante', label: 'Traiter santé avicole' } : readyLots > 0 ? { module: 'ventes', label: 'Confirmer les ventes chair' } : { module: 'avicole', label: 'Mettre à jour pontes et pesées' };
 
-  return <div className="space-y-4">
-    <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4">
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div className="flex items-start gap-3"><div className="w-10 h-10 rounded-xl bg-[#fff3d8] text-[#9a6b12] flex items-center justify-center"><Bird size={18} /></div><div><p className="font-black text-[#2f2415]">Évolution Avicole</p><p className="text-xs text-[#8a7456] mt-1">Lecture séparée ponte et chair : production, pertes, effectif, mortalité, poids et lots prêts.</p></div></div>
-        <button type="button" onClick={() => onNavigate?.(priority.module)} className="hidden md:inline-flex items-center gap-2 rounded-xl bg-[#c9a96a] px-3 py-2 text-sm font-bold text-white hover:bg-[#b6975f]"><ShoppingBag size={15} />{priority.label}</button>
+  return <div className="space-y-5">
+    <Header title="Évolution Avicole interactive" subtitle="Deux lectures séparées : Chair et Ponte, avec légende cliquable, zoom période et détails au survol." priority={priority} onNavigate={onNavigate} />
+
+    <section className="space-y-4">
+      <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4">
+        <p className="font-black text-[#2f2415]">Évolution Chair</p>
+        <p className="text-xs text-[#8a7456] mt-1">Poulets de chair : coûts, ventes, marge, poids moyen, mortalité et préparation à la vente.</p>
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mt-4">
+          <SmallMetric label="Effectif chair" value={fmtNumber(lastChair.effectif || 0)} hint="dernier mois" />
+          <SmallMetric label="Poids moyen" value={`${Number(lastChair.poids_moyen || 0).toFixed(2)} kg`} hint="dernier mois" />
+          <SmallMetric label="Mortalité" value={`${Number(lastChair.taux_mortalite || 0).toFixed(1)}%`} hint={`${fmtNumber(lastChair.morts || 0)} morts`} danger={(lastChair.taux_mortalite || 0) > 0} />
+          <SmallMetric label="Malades" value={fmtNumber(lastChair.malades || 0)} hint="à traiter" danger={(lastChair.malades || 0) > 0} />
+          <SmallMetric label="Lots prêts" value={fmtNumber(readyLots)} hint="vente/réforme" />
+          <SmallMetric label="Marge chair" value={fmtCurrency(chair.reduce((sum, row) => sum + row.marge, 0))} hint="estimée" />
+        </div>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-        <SmallMetric label="Pondeuses actives" value={fmtNumber(ponte.activePondeuses)} hint="lots pondeuses" />
-        <SmallMetric label="Œufs ramassés" value={fmtNumber(totalEggs)} hint="données réelles" />
-        <SmallMetric label="Œufs vendables" value={fmtNumber(totalSellable)} hint={`${fmtNumber(totalBroken)} pertes`} />
-        <SmallMetric label="Chair active" value={fmtNumber(chairActive)} hint="effectif vivant" />
-        <SmallMetric label="Mortalité chair" value={fmtNumber(chairDead)} hint={`${fmtNumber(chairSick)} malade(s)`} danger={chairDead > 0 || chairSick > 0} />
-        <SmallMetric label="Lots prêts" value={fmtNumber(readyLots)} hint="vente/réforme" />
+
+      <SmartEvolutionChart
+        title="Chair — économie mensuelle"
+        subtitle="Barres : charges, CA, marge. Courbes : poids moyen et mortalité. Clique sur la légende pour isoler une série."
+        months={labels(chair)}
+        leftUnit="FCFA"
+        rightUnit="kg"
+        series={[
+          { name: 'Charges aliments', type: 'bar', unit: 'FCFA', data: values(chair, 'charges_aliments') },
+          { name: 'Charges soins', type: 'bar', unit: 'FCFA', data: values(chair, 'charges_soins') },
+          { name: 'CA ventes chair', type: 'bar', unit: 'FCFA', data: values(chair, 'ca') },
+          { name: 'Marge chair', type: 'bar', unit: 'FCFA', data: values(chair, 'marge') },
+          { name: 'Poids moyen', type: 'line', axis: 'right', unit: 'kg', data: values(chair, 'poids_moyen') },
+        ]}
+      />
+
+      <SmartEvolutionChart
+        title="Chair — performance opérationnelle"
+        subtitle="Effectif, morts, malades, lots prêts et taux de mortalité. Les labels sont anti-chevauchement."
+        months={labels(chair)}
+        leftUnit=""
+        rightUnit="%"
+        series={[
+          { name: 'Effectif vivant', type: 'bar', data: values(chair, 'effectif') },
+          { name: 'Morts', type: 'bar', data: values(chair, 'morts') },
+          { name: 'Malades', type: 'bar', data: values(chair, 'malades') },
+          { name: 'Lots prêts', type: 'bar', data: values(chair, 'prets') },
+          { name: 'Taux mortalité', type: 'line', axis: 'right', unit: '%', data: values(chair, 'taux_mortalite') },
+        ]}
+      />
+    </section>
+
+    <section className="space-y-4">
+      <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4">
+        <p className="font-black text-[#2f2415]">Évolution Ponte</p>
+        <p className="text-xs text-[#8a7456] mt-1">Pondeuses : coûts, CA œufs, marge, production, vendables, taux de ponte et taux de casse.</p>
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mt-4">
+          <SmallMetric label="Pondeuses" value={fmtNumber(lastPonte.pondeuses || 0)} hint="actives" />
+          <SmallMetric label="Œufs produits" value={fmtNumber(totalEggs)} hint="cumul" />
+          <SmallMetric label="Œufs vendables" value={fmtNumber(totalSellable)} hint="cumul" />
+          <SmallMetric label="Taux ponte" value={`${Number(lastPonte.taux_ponte || 0).toFixed(1)}%`} hint="dernier mois" />
+          <SmallMetric label="Taux casse" value={`${Number(lastPonte.taux_casse || 0).toFixed(1)}%`} hint="dernier mois" danger={(lastPonte.taux_casse || 0) > 5} />
+          <SmallMetric label="Marge ponte" value={fmtCurrency(ponte.reduce((sum, row) => sum + row.marge, 0))} hint="estimée" />
+        </div>
       </div>
-    </div>
 
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-      <ChartCard title="Ponte — œufs, casses et vendables" subtitle="Grand graphique principal : évolution mensuelle de la ponte.">
-        {ponte.monthly.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={ponte.monthly} margin={{ top: 24, right: 16, left: 8, bottom: 8 }}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="mois" /><YAxis /><Tooltip /><Legend /><Bar dataKey="oeufs" name="Œufs ramassés"><LabelList content={<NumberLabel />} /></Bar><Bar dataKey="vendables" name="Œufs vendables"><LabelList content={<NumberLabel />} /></Bar><Bar dataKey="casses" name="Casses / pertes"><LabelList content={<NumberLabel />} /></Bar></BarChart></ResponsiveContainer> : <p className="text-sm text-[#8a7456]">Aucune donnée de ponte datée disponible.</p>}
-      </ChartCard>
+      <SmartEvolutionChart
+        title="Ponte — économie mensuelle"
+        subtitle="Barres : charges, CA œufs, marge. Courbes : taux de ponte et taux de casse."
+        months={labels(ponte)}
+        leftUnit="FCFA"
+        rightUnit="%"
+        series={[
+          { name: 'Charges aliments ponte', type: 'bar', unit: 'FCFA', data: values(ponte, 'charges_aliments') },
+          { name: 'Charges soins ponte', type: 'bar', unit: 'FCFA', data: values(ponte, 'charges_soins') },
+          { name: 'CA œufs', type: 'bar', unit: 'FCFA', data: values(ponte, 'ca') },
+          { name: 'Marge ponte', type: 'bar', unit: 'FCFA', data: values(ponte, 'marge') },
+          { name: 'Taux ponte', type: 'line', axis: 'right', unit: '%', data: values(ponte, 'taux_ponte') },
+          { name: 'Taux casse', type: 'line', axis: 'right', unit: '%', data: values(ponte, 'taux_casse') },
+        ]}
+      />
 
-      <ChartCard title="Chair — effectif et mortalité par lot" subtitle="Permet de voir quels lots de chair concentrent les pertes.">
-        {chairLots.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={chairLots} margin={{ top: 24, right: 16, left: 8, bottom: 8 }}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="lot" /><YAxis /><Tooltip /><Legend /><Bar dataKey="actifs" name="Actifs"><LabelList content={<NumberLabel />} /></Bar><Bar dataKey="morts" name="Morts"><LabelList content={<NumberLabel />} /></Bar><Bar dataKey="malades" name="Malades"><LabelList content={<NumberLabel />} /></Bar></BarChart></ResponsiveContainer> : <p className="text-sm text-[#8a7456]">Aucun lot de chair actif ou exploitable.</p>}
-      </ChartCard>
-    </div>
+      <SmartEvolutionChart
+        title="Ponte — production mensuelle"
+        subtitle="Œufs produits, vendables, casses et effectif pondeuses."
+        months={labels(ponte)}
+        leftUnit=""
+        rightUnit="%"
+        series={[
+          { name: 'Œufs produits', type: 'bar', data: values(ponte, 'oeufs') },
+          { name: 'Œufs vendables', type: 'bar', data: values(ponte, 'vendables') },
+          { name: 'Casses', type: 'bar', data: values(ponte, 'casses') },
+          { name: 'Pondeuses actives', type: 'line', data: values(ponte, 'pondeuses') },
+          { name: 'Taux ponte', type: 'line', axis: 'right', unit: '%', data: values(ponte, 'taux_ponte') },
+        ]}
+      />
+    </section>
 
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-      <ChartCard title="Ponte — taux estimé" subtitle="Œufs ramassés / pondeuses actives / jours de relevé.">
-        {ponte.monthly.length ? <ResponsiveContainer width="100%" height="100%"><LineChart data={ponte.monthly} margin={{ top: 24, right: 16, left: 8, bottom: 8 }}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="mois" /><YAxis tickFormatter={(v) => `${v}%`} /><Tooltip formatter={(value) => `${value}%`} /><Legend /><Line type="monotone" dataKey="taux_ponte" name="Taux de ponte estimé" strokeWidth={3}><LabelList dataKey="taux_ponte" position="top" formatter={(value) => `${value}%`} /></Line></LineChart></ResponsiveContainer> : <p className="text-sm text-[#8a7456]">Aucun taux de ponte calculable.</p>}
-      </ChartCard>
-
-      <ChartCard title="Chair — poids moyen par lot" subtitle="À utiliser avec l’objectif 1,5 kg pour confirmer les lots prêts à vendre.">
-        {chairLots.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={chairLots} margin={{ top: 24, right: 16, left: 8, bottom: 8 }}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="lot" /><YAxis /><Tooltip formatter={(value) => `${Number(value || 0).toFixed(2)} kg`} /><Legend /><Bar dataKey="poids" name="Poids moyen kg"><LabelList content={<WeightLabel />} /></Bar></BarChart></ResponsiveContainer> : <p className="text-sm text-[#8a7456]">Aucun poids moyen exploitable pour les lots de chair.</p>}
-      </ChartCard>
-    </div>
-
-    <div className="bg-[#fffdf8] border border-[#d6c3a0] rounded-2xl p-4 text-sm text-[#7d6a4a] flex items-start gap-3"><TrendingUp size={18} className="text-[#9a6b12] mt-0.5" /><div><b className="text-[#2f2415]">Interprétation :</b> {interpretation}</div></div>
-    <div className={`${chairSick || chairDead ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'} border rounded-2xl p-4 text-sm flex items-start justify-between gap-3`}><div className="flex items-start gap-2"><ShoppingBag size={18} className="mt-0.5" /><div><b>Action recommandée :</b> {priority.label}.</div></div><button type="button" onClick={() => onNavigate?.(priority.module)} className="shrink-0 rounded-xl bg-white/70 border border-current/10 px-3 py-1.5 text-xs font-bold">Ouvrir</button></div>
+    <div className="bg-[#fffdf8] border border-[#d6c3a0] rounded-2xl p-4 text-sm text-[#7d6a4a] flex items-start gap-3"><TrendingUp size={18} className="text-[#9a6b12] mt-0.5" /><div><b className="text-[#2f2415]">Interprétation :</b> {sickOrDead > 0 ? `${fmtNumber(sickOrDead)} point(s) santé/mortalité à traiter.` : readyLots > 0 ? `${fmtNumber(readyLots)} lot(s) chair à convertir en ventes.` : 'Compléter les coûts et ventes liées pour affiner les marges.'}</div></div>
+    <div className={`${sickOrDead ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'} border rounded-2xl p-4 text-sm flex items-start justify-between gap-3`}><div className="flex items-start gap-2"><ShoppingBag size={18} className="mt-0.5" /><div><b>Action recommandée :</b> {priority.label}.</div></div><button type="button" onClick={() => onNavigate?.(priority.module)} className="shrink-0 rounded-xl bg-white/70 border border-current/10 px-3 py-1.5 text-xs font-bold">Ouvrir</button></div>
   </div>;
 }
