@@ -1,4 +1,4 @@
-self.addEventListener('push', (event) => {
+async function resolvePushPayload(event) {
   let payload = {};
   try {
     payload = event.data ? event.data.json() : {};
@@ -6,27 +6,54 @@ self.addEventListener('push', (event) => {
     payload = { title: 'Alerte Horizon Farm', body: event.data ? event.data.text() : '' };
   }
 
-  const title = payload.title || 'Alerte Horizon Farm';
-  const options = {
-    body: payload.body || 'Une alerte nécessite votre attention.',
-    icon: payload.icon || '/favicon.ico',
-    badge: payload.badge || '/favicon.ico',
-    tag: payload.tag || payload.alert_id || 'horizon-farm-alert',
-    renotify: Boolean(payload.renotify),
-    requireInteraction: Boolean(payload.requireInteraction),
-    data: {
-      url: payload.url || '/',
-      module: payload.module || 'alertes',
-      alert_id: payload.alert_id || '',
-      entity_id: payload.entity_id || '',
-    },
-    actions: [
-      { action: 'open', title: 'Ouvrir Horizon Farm' },
-      { action: 'close', title: 'Fermer' },
-    ],
-  };
+  if (payload.title && payload.body) return payload;
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  try {
+    const response = await fetch('/api/push/latest-alert', { cache: 'no-store' });
+    if (response.ok) {
+      const latest = await response.json();
+      if (latest?.ok && latest.title && latest.body) return latest;
+    }
+  } catch {
+    // Fallback ci-dessous.
+  }
+
+  return {
+    title: payload.title || '🚨 Alerte Horizon Farm',
+    body: payload.body || 'Une alerte nécessite votre attention.\nAction : ouvrir Horizon Farm.',
+    module: payload.module || 'alertes',
+    url: payload.url || '/?module=alertes',
+    tag: payload.tag || 'horizon-farm-alert',
+    requireInteraction: true,
+  };
+}
+
+self.addEventListener('push', (event) => {
+  event.waitUntil((async () => {
+    const payload = await resolvePushPayload(event);
+    const title = payload.title || '🚨 Alerte Horizon Farm';
+    const options = {
+      body: payload.body || 'Une alerte nécessite votre attention.\nAction : ouvrir Horizon Farm.',
+      icon: payload.icon || '/favicon.ico',
+      badge: payload.badge || '/favicon.ico',
+      tag: payload.tag || payload.alert_id || 'horizon-farm-alert',
+      renotify: Boolean(payload.renotify),
+      requireInteraction: payload.requireInteraction !== false,
+      data: {
+        url: payload.url || `/?module=${payload.module || 'alertes'}`,
+        module: payload.module || 'alertes',
+        alert_id: payload.alert_id || '',
+        entity_id: payload.entity_id || '',
+        severity: payload.severity || 'critique',
+      },
+      actions: [
+        { action: 'open', title: 'Ouvrir' },
+        { action: 'close', title: 'Fermer' },
+      ],
+    };
+
+    await self.registration.showNotification(title, options);
+  })());
 });
 
 self.addEventListener('notificationclick', (event) => {
