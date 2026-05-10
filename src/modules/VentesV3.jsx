@@ -1,4 +1,3 @@
-import SalesEvolution from './SalesEvolution.jsx';
 import SalesMarginsBridge from './SalesMarginsBridge.jsx';
 import VentesV2 from './VentesV2.jsx';
 
@@ -18,12 +17,6 @@ export default function VentesV3(props) {
         businessEvents={props.businessEvents || []}
         onUpdate={props.onUpdate}
         onRefresh={props.onRefresh}
-      />
-      <SalesEvolution
-        rows={props.rows || []}
-        payments={props.paymentsList || props.payments || []}
-        opportunities={props.opportunities || []}
-        onNavigate={props.onNavigate}
       />
     </div>
   );
