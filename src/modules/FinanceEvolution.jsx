@@ -96,7 +96,7 @@ function buildMonthly({ rows = [], salesOrders = [], payments = [] }) {
 function labels(rows) { return rows.map((row) => row.mois); }
 function values(rows, key) { return rows.map((row) => toNumber(row[key])); }
 
-export default function FinanceEvolution({ rows = [], salesOrders = [], payments = [] }) {
+export default function FinanceEvolution({ rows = [], salesOrders = [], payments = [], onNavigate }) {
   const monthly = buildMonthly({ rows, salesOrders, payments });
   const totalCash = monthly.reduce((sum, row) => sum + row.cash, 0);
   const totalOut = monthly.reduce((sum, row) => sum + row.sorties, 0);
@@ -106,6 +106,8 @@ export default function FinanceEvolution({ rows = [], salesOrders = [], payments
   const recoveryRate = totalCash + receivables > 0 ? Number(((totalCash / (totalCash + receivables)) * 100).toFixed(1)) : 0;
   const last = monthly[monthly.length - 1];
   const interpretation = !monthly.length ? 'Aucune donnée financière datée exploitable.' : last?.marge >= 0 ? `Dernier mois positif : marge cash ${fmtCurrency(last.marge)}.` : `Dernier mois à surveiller : marge cash ${fmtCurrency(last?.marge || 0)}.`;
+  const priority = receivables > 0 ? { module: 'clients', label: 'Relancer les créances', icon: AlertTriangle } : totalMargin < 0 ? { module: 'finances', label: 'Analyser les dépenses', icon: AlertTriangle } : { module: 'documents', label: 'Rattacher les justificatifs', icon: Receipt };
+  const PriorityIcon = priority.icon;
 
   return <div className="space-y-5">
     <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4">
@@ -127,6 +129,6 @@ export default function FinanceEvolution({ rows = [], salesOrders = [], payments
     <SmartEvolutionChart title="Finances — structure des charges" subtitle="Identifier rapidement ce qui pèse le plus : alimentation, santé, stock/fournisseurs, investissements, équipements." months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[{ name: 'Alimentation', type: 'bar', unit: 'FCFA', data: values(monthly, 'alimentation') }, { name: 'Santé', type: 'bar', unit: 'FCFA', data: values(monthly, 'sante') }, { name: 'Stock / fournisseurs', type: 'bar', unit: 'FCFA', data: values(monthly, 'stock') }, { name: 'Investissements', type: 'bar', unit: 'FCFA', data: values(monthly, 'investissement') }, { name: 'Équipements', type: 'bar', unit: 'FCFA', data: values(monthly, 'equipement') }, { name: 'Autres charges', type: 'bar', unit: 'FCFA', data: values(monthly, 'autres_charges') }]} />
 
     <div className="bg-[#fffdf8] border border-[#d6c3a0] rounded-2xl p-4 text-sm text-[#7d6a4a] flex items-start gap-3"><TrendingUp size={18} className="text-[#9a6b12] mt-0.5" /><div><b className="text-[#2f2415]">Interprétation :</b> {interpretation}</div></div>
-    {(receivables > 0 || totalMargin < 0) ? <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800 flex items-start gap-2"><AlertTriangle size={18} className="mt-0.5" /><div><b>Action recommandée :</b> relancer les créances et vérifier les postes de dépenses qui pèsent sur la marge cash.</div></div> : <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-sm text-emerald-800 flex items-start gap-2"><Receipt size={18} className="mt-0.5" /><div><b>Action recommandée :</b> maintenir le suivi des encaissements et rattacher les justificatifs aux transactions.</div></div>}
+    <div className={`${receivables > 0 || totalMargin < 0 ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'} border rounded-2xl p-4 text-sm flex items-start justify-between gap-3`}><div className="flex items-start gap-2"><PriorityIcon size={18} className="mt-0.5" /><div><b>Action recommandée :</b> {priority.label}.</div></div><button type="button" onClick={() => onNavigate?.(priority.module)} className="shrink-0 rounded-xl bg-white/70 border border-current/10 px-3 py-1.5 text-xs font-bold">Ouvrir</button></div>
   </div>;
 }
