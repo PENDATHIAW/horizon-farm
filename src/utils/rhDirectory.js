@@ -1,5 +1,28 @@
 export const RH_STORAGE_KEY = 'horizon_farm_rh_directory_v1';
 
+export const RH_MODULES = [
+  { key: 'dashboard', label: 'Dashboard' },
+  { key: 'avicole', label: 'Avicole' },
+  { key: 'animaux', label: 'Animaux' },
+  { key: 'sante', label: 'Santé & Biosécurité' },
+  { key: 'cultures', label: 'Cultures' },
+  { key: 'stock', label: 'Stock' },
+  { key: 'ventes', label: 'Ventes' },
+  { key: 'clients', label: 'Clients & WhatsApp' },
+  { key: 'fournisseurs', label: 'Fournisseurs' },
+  { key: 'finances', label: 'Finances' },
+  { key: 'comptabilite', label: 'Comptabilité' },
+  { key: 'investissements', label: 'Investissements' },
+  { key: 'documents', label: 'Documents' },
+  { key: 'taches', label: 'Tâches' },
+  { key: 'rh', label: 'RH & Équipe' },
+  { key: 'rapports', label: 'Rapports' },
+  { key: 'equipements', label: 'Équipements' },
+  { key: 'smartfarm', label: 'Smart Farm' },
+  { key: 'audit_logs', label: 'Audit Logs' },
+  { key: 'sync', label: 'Sync Offline' },
+];
+
 export const RH_ROLES = [
   'Propriétaire',
   'Chef de projet',
@@ -15,7 +38,26 @@ export const RH_ROLES = [
   'Ramasseur œufs',
   'Chauffeur livraison',
   'Prestataire externe',
+  'Nouveau rôle',
 ];
+
+export const RH_FUNCTIONS_BY_ROLE = {
+  'Propriétaire': ['Propriétaire exploitante', 'Directrice générale', 'Fondatrice', 'Investisseuse principale'],
+  'Chef de projet': ['Chef de projet ERP', 'Chef de projet ferme', 'Pilote performance', 'Coordinatrice opérations'],
+  'Admin principal': ['Administrateur principal', 'Super admin ERP', 'Référent données'],
+  'Responsable ferme': ['Responsable exploitation', 'Chef de ferme', 'Coordinateur terrain'],
+  'Responsable avicole': ['Chef avicole', 'Responsable ponte', 'Responsable chair', 'Référent biosécurité avicole'],
+  'Responsable cultures': ['Chef cultures', 'Responsable parcelles', 'Référent intrants', 'Responsable récoltes'],
+  'Responsable stock': ['Magasinier principal', 'Responsable stock', 'Responsable achats/réceptions'],
+  'Commercial': ['Commercial terrain', 'Responsable clients', 'Chargé ventes & WhatsApp', 'Livreur-commercial'],
+  'Comptable': ['Comptable', 'Caissier', 'Assistant finance', 'Contrôleur dépenses'],
+  'Vétérinaire': ['Vétérinaire référent', 'Technicien santé animale', 'Conseiller biosécurité'],
+  'Ouvrier ferme': ['Ouvrier polyvalent', 'Agent alimentation', 'Agent nettoyage', 'Agent surveillance'],
+  'Ramasseur œufs': ['Ramasseur œufs', 'Contrôleur ponte', 'Agent tri œufs'],
+  'Chauffeur livraison': ['Chauffeur livraison', 'Livreur', 'Coursier ferme'],
+  'Prestataire externe': ['Prestataire maintenance', 'Consultant', 'Technicien externe', 'Journalier'],
+  'Nouveau rôle': ['Nouvelle fonction'],
+};
 
 export const RH_TEAMS = [
   { id: 'TEAM-FERME', name: 'Équipe ferme', type: 'operationnelle', modules: ['avicole', 'animaux', 'stock', 'cultures'] },
@@ -31,18 +73,23 @@ export const RH_DEFAULT_PEOPLE = [
     id: 'RH-PENDA',
     nom: 'Penda Thiaw',
     role: 'Propriétaire',
-    fonction: 'Chef de projet',
+    fonction: 'Propriétaire exploitante',
     access_level: 'admin_principal',
     statut: 'actif',
     equipe_id: 'TEAM-FERME',
-    modules: ['dashboard', 'avicole', 'animaux', 'cultures', 'stock', 'ventes', 'clients', 'finances', 'rapports'],
+    modules: ['dashboard', 'avicole', 'animaux', 'cultures', 'stock', 'ventes', 'clients', 'finances', 'comptabilite', 'rh', 'rapports'],
     phone: '',
     whatsapp: '',
     email: '',
     date_entree: new Date().toISOString().slice(0, 10),
+    remuneration: 'Propriétaire: rémunération variable selon trésorerie + prime résultat',
     notes: 'Compte propriétaire et pilotage du chantier Horizon Farm.',
   },
 ];
+
+export function getRoleFunctions(role) {
+  return RH_FUNCTIONS_BY_ROLE[role] || RH_FUNCTIONS_BY_ROLE['Nouveau rôle'];
+}
 
 export function getRhDirectory() {
   if (typeof window === 'undefined') return { people: RH_DEFAULT_PEOPLE, teams: RH_TEAMS };
