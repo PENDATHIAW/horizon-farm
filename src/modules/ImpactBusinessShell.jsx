@@ -21,21 +21,19 @@ export default function ImpactBusinessShell(props) {
 
   return (
     <div className="space-y-6">
-      <SectionHeader
-        title="Impact & Valeur ERP"
-        sub="Voir ce que l’ERP permet de maîtriser, décider et prouver dans la ferme."
-      />
+      {tab === 'domaines' ? (
+        <SectionHeader
+          title="Impact & Valeur ERP"
+          sub="Voir ce que l’ERP permet de maîtriser, décider et prouver dans la ferme."
+        />
+      ) : null}
+
       <div className="flex flex-wrap gap-2">
         <TabButton active={tab === 'pilotage'} onClick={() => setTab('pilotage')}>Pilotage stratégique</TabButton>
         <TabButton active={tab === 'domaines'} onClick={() => setTab('domaines')}>Domaines maîtrisés</TabButton>
       </div>
 
-      {tab === 'pilotage' ? (
-        <div className="impact-strategic-embedded">
-          <style>{`.impact-strategic-embedded > div > div:first-child { display: none; }`}</style>
-          <ImpactBusinessStrategicV5 {...props} embedded />
-        </div>
-      ) : null}
+      {tab === 'pilotage' ? <ImpactBusinessStrategicV5 {...props} embedded /> : null}
       {tab === 'domaines' ? (
         <div className="space-y-5">
           <ImpactDomainDeepSignals {...props} />
