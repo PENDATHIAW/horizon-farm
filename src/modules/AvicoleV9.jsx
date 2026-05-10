@@ -1,6 +1,7 @@
-import { AlertTriangle, Bird, Edit, HeartPulse, Package, Receipt, Scale, Trash2, X } from 'lucide-react';
-import { useState } from 'react';
+import { AlertTriangle, BarChart3, Bird, Edit, HeartPulse, Package, Receipt, Scale, Trash2, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { Bar, BarChart, CartesianGrid, LabelList, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import AvicoleBase from './AvicoleBase.jsx';
 import AvicoleHealthBridge from './AvicoleHealthBridge.jsx';
 import AvicoleSaleReadinessBridge from './AvicoleSaleReadinessBridge.jsx';
@@ -14,6 +15,8 @@ const broken = (log = {}) => toNumber(log.oeufs_casses ?? log.broken ?? log.cass
 const losses = avicoleDeadCount;
 const sick = avicoleSickCount;
 const activeCount = avicoleActiveCount;
+const avgWeight = (lot = {}) => toNumber(lot.current_weight ?? lot.poids_moyen_actuel ?? lot.poids_moyen ?? lot.weight ?? lot.poids ?? lot.last_weight);
+const readyForSale = (lot = {}) => ['pret_a_la_vente', 'pret_a_vendre_reforme', 'pret_vente', 'ready'].includes(String(lot.status || lot.statut || '').toLowerCase()) || Boolean(lot.pret_vente_recommande);
 
 function openModule(moduleKey) {
   if (!moduleKey || typeof document === 'undefined') return;
@@ -168,6 +171,129 @@ function LastEggEntries({ logs = [], lots = [], onUpdateProduction, onDeleteProd
   );
 }
 
+function toDate(value) {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function monthKey(value) {
+  const date = toDate(value);
+  if (!date) return 'Sans date';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function monthLabel(key) {
+  if (key === 'Sans date') return key;
+  const [year, month] = key.split('-');
+  return `${month}/${String(year).slice(-2)}`;
+}
+
+function ChartCard({ title, subtitle, children }) {
+  return <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4"><div className="mb-3"><p className="font-black text-[#2f2415] flex items-center gap-2"><BarChart3 size={16} />{title}</p><p className="text-xs text-[#8a7456] mt-1">{subtitle}</p></div><div className="h-72">{children}</div></div>;
+}
+
+function SmallMetric({ label, value, hint }) {
+  return <div className="bg-[#fffdf8] border border-[#d6c3a0] rounded-xl p-3"><p className="text-xs text-[#8a7456]">{label}</p><p className="text-xl font-black text-[#2f2415] mt-1">{value}</p>{hint ? <p className="text-[11px] text-[#8a7456] mt-1">{hint}</p> : null}</div>;
+}
+
+function NumberLabel({ x, y, value }) {
+  if (!value) return null;
+  return <text x={x} y={y - 6} textAnchor="middle" fontSize={11} fill="#2f2415">{fmtNumber(value)}</text>;
+}
+
+function WeightLabel({ x, y, value }) {
+  if (!value) return null;
+  return <text x={x} y={y - 6} textAnchor="middle" fontSize={11} fill="#2f2415">{Number(value).toFixed(2)}</text>;
+}
+
+function AvicoleEvolution({ rows = [], productionLogs = [] }) {
+  const data = useMemo(() => {
+    const pondeuses = filterLotsByActivity(rows, 'Pondeuse');
+    const chair = filterLotsByActivity(rows, 'Chair');
+    const pondeuseIds = new Set(pondeuses.map((lot) => String(lot.id)));
+    const activePondeuses = pondeuses.reduce((sum, lot) => sum + activeCount(lot), 0);
+    const ponteMap = new Map();
+    safeArray(productionLogs).forEach((log) => {
+      if (log.lot_id && pondeuseIds.size && !pondeuseIds.has(String(log.lot_id))) return;
+      const produced = eggs(log);
+      const casse = broken(log);
+      if (produced <= 0 && casse <= 0) return;
+      const key = monthKey(log.date || log.created_at || log.updated_at);
+      if (!ponteMap.has(key)) ponteMap.set(key, { key, mois: monthLabel(key), oeufs: 0, casses: 0, vendables: 0, dates: new Set() });
+      const bucket = ponteMap.get(key);
+      bucket.oeufs += produced;
+      bucket.casses += casse;
+      bucket.vendables += Math.max(0, produced - casse);
+      if (log.date) bucket.dates.add(String(log.date));
+    });
+    const ponte = [...ponteMap.values()]
+      .sort((a, b) => a.key.localeCompare(b.key))
+      .map((item) => {
+        const days = Math.max(1, item.dates.size || 1);
+        const pondRate = activePondeuses > 0 ? (item.oeufs / (activePondeuses * days)) * 100 : 0;
+        return { ...item, jours: days, taux_ponte: Number(pondRate.toFixed(1)) };
+      });
+    const chairLots = chair.map((lot) => ({
+      id: lot.id,
+      lot: lot.name || lot.nom || lot.id,
+      actifs: activeCount(lot),
+      morts: losses(lot),
+      malades: sick(lot),
+      poids: avgWeight(lot),
+      pret: readyForSale(lot) ? 1 : 0,
+    })).filter((lot) => lot.actifs > 0 || lot.morts > 0 || lot.poids > 0).slice(0, 8);
+    const totalEggs = ponte.reduce((sum, row) => sum + row.oeufs, 0);
+    const totalBroken = ponte.reduce((sum, row) => sum + row.casses, 0);
+    const totalSellable = ponte.reduce((sum, row) => sum + row.vendables, 0);
+    const totalChairActive = chair.reduce((sum, lot) => sum + activeCount(lot), 0);
+    const totalChairDead = chair.reduce((sum, lot) => sum + losses(lot), 0);
+    const avgChairWeight = chair.length ? chair.reduce((sum, lot) => sum + avgWeight(lot), 0) / Math.max(1, chair.filter((lot) => avgWeight(lot) > 0).length || chair.length) : 0;
+    return { pondeuses, chair, ponte, chairLots, totalEggs, totalBroken, totalSellable, totalChairActive, totalChairDead, avgChairWeight, activePondeuses, readyChairLots: chair.filter(readyForSale).length };
+  }, [rows, productionLogs]);
+
+  const hasPonte = data.ponte.length > 0;
+  const hasChair = data.chairLots.length > 0;
+  return (
+    <div className="space-y-4">
+      <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-[#fff3d8] text-[#9a6b12] flex items-center justify-center"><BarChart3 size={18} /></div>
+          <div>
+            <p className="font-black text-[#2f2415]">Évolution avicole</p>
+            <p className="text-xs text-[#8a7456] mt-1">Lecture séparée ponte et chair : production, pertes, effectif, mortalité, poids et lots prêts.</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+          <SmallMetric label="Pondeuses actives" value={fmtNumber(data.activePondeuses)} hint="lots pondeuses" />
+          <SmallMetric label="Œufs ramassés" value={fmtNumber(data.totalEggs)} hint="données réelles" />
+          <SmallMetric label="Œufs vendables" value={fmtNumber(data.totalSellable)} hint="œufs - casses" />
+          <SmallMetric label="Chair active" value={fmtNumber(data.totalChairActive)} hint="effectif vivant" />
+          <SmallMetric label="Mortalité chair" value={fmtNumber(data.totalChairDead)} hint="morts déclarés" />
+          <SmallMetric label="Lots prêts" value={fmtNumber(data.readyChairLots)} hint="vente/reforme" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <ChartCard title="Ponte — œufs, casses et vendables" subtitle="Évolution mensuelle avec étiquettes visibles. Les lignes à zéro sont ignorées.">
+          {hasPonte ? <ResponsiveContainer width="100%" height="100%"><BarChart data={data.ponte} margin={{ top: 24, right: 16, left: 8, bottom: 8 }}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="mois" /><YAxis /><Tooltip /><Legend /><Bar dataKey="oeufs" name="Œufs ramassés"><LabelList content={<NumberLabel />} /></Bar><Bar dataKey="vendables" name="Œufs vendables"><LabelList content={<NumberLabel />} /></Bar><Bar dataKey="casses" name="Casses / pertes"><LabelList content={<NumberLabel />} /></Bar></BarChart></ResponsiveContainer> : <p className="text-sm text-[#8a7456]">Aucune donnée de ponte datée disponible.</p>}
+        </ChartCard>
+
+        <ChartCard title="Ponte — taux estimé" subtitle="Œufs ramassés / pondeuses actives / jours de relevé. Sert à voir la tendance, pas à remplacer l’analyse terrain.">
+          {hasPonte ? <ResponsiveContainer width="100%" height="100%"><LineChart data={data.ponte} margin={{ top: 24, right: 16, left: 8, bottom: 8 }}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="mois" /><YAxis tickFormatter={(v) => `${v}%`} /><Tooltip formatter={(value) => `${value}%`} /><Legend /><Line type="monotone" dataKey="taux_ponte" name="Taux de ponte estimé" strokeWidth={3}><LabelList dataKey="taux_ponte" position="top" formatter={(value) => `${value}%`} /></Line></LineChart></ResponsiveContainer> : <p className="text-sm text-[#8a7456]">Aucun taux de ponte calculable.</p>}
+        </ChartCard>
+
+        <ChartCard title="Chair — effectif et mortalité par lot" subtitle="Permet de voir quels lots de chair concentrent les pertes.">
+          {hasChair ? <ResponsiveContainer width="100%" height="100%"><BarChart data={data.chairLots} margin={{ top: 24, right: 16, left: 8, bottom: 8 }}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="lot" /><YAxis /><Tooltip /><Legend /><Bar dataKey="actifs" name="Actifs"><LabelList content={<NumberLabel />} /></Bar><Bar dataKey="morts" name="Morts"><LabelList content={<NumberLabel />} /></Bar><Bar dataKey="malades" name="Malades"><LabelList content={<NumberLabel />} /></Bar></BarChart></ResponsiveContainer> : <p className="text-sm text-[#8a7456]">Aucun lot de chair actif ou exploitable.</p>}
+        </ChartCard>
+
+        <ChartCard title="Chair — poids moyen par lot" subtitle="À utiliser avec l’objectif 1,5 kg pour confirmer les lots prêts à vendre.">
+          {hasChair ? <ResponsiveContainer width="100%" height="100%"><BarChart data={data.chairLots} margin={{ top: 24, right: 16, left: 8, bottom: 8 }}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="lot" /><YAxis /><Tooltip formatter={(value) => `${Number(value || 0).toFixed(2)} kg`} /><Legend /><Bar dataKey="poids" name="Poids moyen kg"><LabelList content={<WeightLabel />} /></Bar></BarChart></ResponsiveContainer> : <p className="text-sm text-[#8a7456]">Aucun poids moyen exploitable pour les lots de chair.</p>}
+        </ChartCard>
+      </div>
+    </div>
+  );
+}
+
 export default function AvicoleV9(props) {
   return (
     <div className="space-y-6 avicole-mobile-final">
@@ -177,6 +303,7 @@ export default function AvicoleV9(props) {
       <HealthAndLinks rows={props.rows || []} />
       <LastEggEntries logs={props.productionLogs || []} lots={props.rows || []} onUpdateProduction={props.onUpdateProduction} onDeleteProduction={props.onDeleteProduction} onRefreshProduction={props.onRefreshProduction} />
       <AvicoleBase {...props} />
+      <AvicoleEvolution rows={props.rows || []} productionLogs={props.productionLogs || []} />
     </div>
   );
 }
