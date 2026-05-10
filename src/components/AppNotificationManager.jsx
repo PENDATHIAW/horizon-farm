@@ -25,6 +25,22 @@ function moduleFor(alert = {}) {
   return 'alertes';
 }
 
+function applyNavigationTarget(detail = {}, onNavigate) {
+  const params = new URLSearchParams(window.location.search || '');
+  const targetModule = detail.module || detail.module_source || params.get('module');
+  const action = detail.action || params.get('action');
+  const focus = detail.focus || params.get('focus');
+  const alertId = detail.alert_id || params.get('alert_id');
+  const entityId = detail.entity_id || params.get('entity_id');
+  if (!targetModule) return false;
+  onNavigate?.(targetModule);
+  window.dispatchEvent(new CustomEvent('horizon-farm-action-target', { detail: { module: targetModule, action, focus, alert_id: alertId, entity_id: entityId } }));
+  if (action || focus || alertId || entityId) {
+    toast.success(`Ouverture action ${targetModule}`);
+  }
+  return true;
+}
+
 function buildDerivedAlerts(dataMap = {}) {
   const result = [];
   arr(dataMap.animaux).filter((animal) => lower(animal.health_status) === 'malade').forEach((animal) => result.push({ id: `notify-animal-malade-${animal.id}`, title: `Animal malade: ${animal.name || animal.nom || animal.id}`, message: 'Un animal est signalé malade. Vérifier immédiatement le suivi santé.', module_source: 'animaux', entity_type: 'animal', entity_id: animal.id, severity: 'critique', status: 'nouvelle', action_recommandee: 'Ouvrir Animaux / Santé et traiter le cas.' }));
@@ -45,9 +61,10 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
   const pushStatus = pushSetupStatus();
 
   useEffect(() => {
+    applyNavigationTarget({}, onNavigate);
     const handler = (event) => {
       const alert = event.detail || event.data?.payload || {};
-      onNavigate?.(moduleFor(alert));
+      if (!applyNavigationTarget(alert, onNavigate)) onNavigate?.(moduleFor(alert));
     };
     const messageHandler = (event) => {
       if (event.data?.type === 'HORIZON_FARM_OPEN_ALERT') handler(event);
