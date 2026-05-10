@@ -22,11 +22,13 @@ const arr = (value) => Array.isArray(value) ? value : [];
 const today = () => new Date().toISOString().slice(0, 10);
 const now = () => new Date().toISOString();
 const supplierName = (supplier = {}) => supplier.nom || supplier.name || supplier.id || 'Fournisseur';
-const supplierPhone = (supplier = {}) => supplier.whatsapp || supplier.tel || supplier.phone || '';
+const supplierPhone = (supplier = {}) => String(supplier.whatsapp || supplier.tel || supplier.phone || '').trim();
+const hasPhone = (supplier = {}) => Boolean(supplierPhone(supplier));
 const money = (value) => Number(value || 0);
 const stockSupplierId = (row = {}) => row.fournisseur_id || row.supplier_id || row.fournisseur || row.supplier || '';
 const financeSupplierId = (row = {}) => row.fournisseur_id || row.supplier_id || row.related_id || '';
 const isSupplierLinked = (value, supplier) => String(value || '').toLowerCase() === String(supplier.id || '').toLowerCase() || String(value || '').toLowerCase() === supplierName(supplier).toLowerCase();
+const supplierInitialValues = (rows) => ({ id: generateSequentialId('fournisseurs', rows), note: 4, dettes: 0, livraisons: 0, source: 'manuel', verified: false, favorite: false, categorie: 'Approvisionnement' });
 
 const SourceBadge = ({ source }) => (
   <span className={`text-[10px] px-2 py-1 rounded-full border ${source === 'demo' ? 'bg-amber-500/10 border-amber-500/30 text-amber-600' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600'}`}>
@@ -81,21 +83,21 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loadi
   }, [rows]);
 
   const submitCreate = async (payload) => {
-    try { setSaving(true); await onCreate(payload); toast.success('Fournisseur ajouté'); setModal(null); }
+    try { setSaving(true); await onCreate({ ...supplierInitialValues(rows), ...payload }); await onRefresh?.(); toast.success('Fournisseur ajouté'); setModal(null); }
     catch (error) { toast.error(error.message || 'Erreur création fournisseur'); }
     finally { setSaving(false); }
   };
 
   const submitEdit = async (payload) => {
     if (!selected) return;
-    try { setSaving(true); await onUpdate(selected.id, payload); toast.success('Fournisseur modifié'); setModal(null); }
+    try { setSaving(true); await onUpdate(selected.id, payload); await onRefresh?.(); toast.success('Fournisseur modifié'); setModal(null); }
     catch (error) { toast.error(error.message || 'Erreur modification fournisseur'); }
     finally { setSaving(false); }
   };
 
   const submitDelete = async () => {
     if (!selected) return;
-    try { setSaving(true); await onDelete(selected.id); toast.success('Fournisseur supprimé'); setModal(null); }
+    try { setSaving(true); await onDelete(selected.id); await onRefresh?.(); toast.success('Fournisseur supprimé'); setModal(null); }
     catch (error) { toast.error(error.message || 'Erreur suppression fournisseur'); }
     finally { setSaving(false); }
   };
@@ -114,9 +116,10 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loadi
   };
 
   const openWhatsApp = async (supplier) => {
+    if (!hasPhone(supplier)) return toast.error('Numéro WhatsApp ou téléphone manquant');
     let message = messageFor(supplier);
     try { message = await logWhatsApp(supplier, summaryFor(supplier).dettes > 0 ? 'suivi_dette_fournisseur' : 'commande_fournisseur'); }
-    catch (error) { console.warn(error.message); }
+    catch { toast.error('Journal WhatsApp non enregistré, ouverture du message'); }
     window.open(toWhatsappLink(supplierPhone(supplier), message), '_blank', 'noopener,noreferrer');
   };
 
@@ -127,8 +130,12 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loadi
       await (onCreateBusinessEvent || eventsCrud.create)?.({ id: makeId('EVT'), event_type: 'commande_fournisseur_preparee', module_source: 'fournisseurs', entity_type: 'fournisseur', entity_id: supplier.id, title: 'Commande fournisseur préparée', description: supplierName(supplier), event_date: today(), severity: 'info', linked_task_id: taskId });
       await onUpdate?.(supplier.id, { livraisons: Number(supplier.livraisons || 0) + 1, derniere_commande: today(), last_order_task_id: taskId });
       await Promise.allSettled([(onRefreshTasks || tachesCrud.refresh)?.(), (onRefreshBusinessEvents || eventsCrud.refresh)?.(), onRefresh?.()]);
-      const message = await logWhatsApp(supplier, 'commande_fournisseur');
-      window.open(toWhatsappLink(supplierPhone(supplier), message), '_blank', 'noopener,noreferrer');
+      if (hasPhone(supplier)) {
+        const message = await logWhatsApp(supplier, 'commande_fournisseur');
+        window.open(toWhatsappLink(supplierPhone(supplier), message), '_blank', 'noopener,noreferrer');
+      } else {
+        toast.success('Commande préparée. Numéro fournisseur manquant pour WhatsApp.');
+      }
       toast.success('Commande fournisseur préparée');
     } catch (error) {
       toast.error(error.message || 'Préparation commande impossible');
@@ -218,16 +225,16 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loadi
           const evaluation = { Prix: Math.max(35, metrics.reliabilityScore - 8), Qualité: Math.min(100, metrics.note * 20), Délai: Math.min(100, 45 + summary.livraisons * 2), Dispo: Math.max(30, metrics.reliabilityScore - (summary.dettes > 0 ? 12 : 0)), Fiable: metrics.reliabilityScore };
           return <div key={supplier.id} className={`bg-[#ffffff] border rounded-2xl p-5 hover:border-[#b6975f] transition-all ${summary.dettes > 0 ? 'border-amber-500/30' : 'border-[#d6c3a0]'}`}>
             <div className="flex items-start justify-between mb-4"><div><p className="font-bold text-[#2f2415]">{supplier.nom}</p><p className="text-xs text-[#8a7456]">{supplier.categorie} - Contact: {supplier.contact}</p></div><div className="flex items-center gap-2 text-amber-400"><SourceBadge source={supplier.source} /><Star size={12} fill="currentColor" /><span className="text-sm font-semibold">{metrics.reliabilityScore.toFixed(0)}%</span></div></div>
-            <div className="space-y-2 mb-4 text-sm text-[#7d6a4a]"><div>{supplier.tel}</div><div>{supplier.whatsapp}</div><div>{supplier.email}</div></div>
+            <div className="space-y-2 mb-4 text-sm text-[#7d6a4a]"><div>{supplier.tel || 'Téléphone non renseigné'}</div><div>{supplier.whatsapp || 'WhatsApp non renseigné'}</div><div>{supplier.email || 'Email non renseigné'}</div></div>
             <div className="grid grid-cols-2 gap-3 mb-4"><CardMetric label="Livraisons" value={`${summary.livraisons} commandes`} /><CardMetric label="Dettes" value={summary.dettes > 0 ? fmtCurrency(summary.dettes) : 'Aucune'} alert={summary.dettes > 0} /><CardMetric label="Achats stock" value={fmtCurrency(summary.achatsStock)} /><CardMetric label="Documents" value={summary.docs.length} /><div className="bg-[#fffdf8] rounded-lg p-2.5 col-span-2"><div className="text-xs text-[#8a7456]">Derniers produits</div><div className="text-[#2f2415] font-semibold text-sm">{summary.derniersProduits || '-'}</div></div></div>
             <div className="mb-4"><p className="text-xs text-[#8a7456] mb-2">Évaluation</p><div className="grid grid-cols-5 gap-1">{Object.entries(evaluation).map(([crit, score]) => <div key={crit} className="text-center"><div className="text-xs text-[#8a7456] mb-1">{crit}</div><div className="h-1.5 bg-[#fffdf8] rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, Math.max(0, score))}%` }} /></div></div>)}</div></div>
-            <div className="flex gap-2 flex-wrap"><Btn variant="outline" small icon={Upload} onClick={() => prepareOrder(supplier)}>Commander</Btn><Btn variant="whatsapp" small icon={MessageCircle} onClick={() => openWhatsApp(supplier)}>WhatsApp</Btn>{summary.dettes > 0 ? <Btn variant="amber" small icon={DollarSign} onClick={() => paySupplierDebt(supplier)}>Payer</Btn> : <Btn variant="outline" small icon={CheckCircle} onClick={() => toast.success('Aucune dette')}>Soldé</Btn>}<ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected(supplier); setModal('details'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(supplier); setModal('edit'); }} /><ActionIconButton icon={AlertTriangle} title="Supprimer" color="red" onClick={() => { setSelected(supplier); setModal('delete'); }} /></div>
+            <div className="flex gap-2 flex-wrap"><Btn variant="outline" small icon={Upload} onClick={() => prepareOrder(supplier)}>Commander</Btn><Btn variant={hasPhone(supplier) ? 'whatsapp' : 'outline'} small icon={MessageCircle} onClick={() => openWhatsApp(supplier)}>{hasPhone(supplier) ? 'WhatsApp' : 'Numéro manquant'}</Btn>{summary.dettes > 0 ? <Btn variant="amber" small icon={DollarSign} onClick={() => paySupplierDebt(supplier)}>Payer</Btn> : <Btn variant="outline" small icon={CheckCircle} onClick={() => toast.success('Aucune dette')}>Soldé</Btn>}<ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected(supplier); setModal('details'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(supplier); setModal('edit'); }} /><ActionIconButton icon={AlertTriangle} title="Supprimer" color="red" onClick={() => { setSelected(supplier); setModal('delete'); }} /></div>
           </div>;
         })}
       </div>
 
       <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, ...metricsFor(selected), ...summaryFor(selected) } : selected} title="Fiche fournisseur" />
-      <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={MODULE_FORM_FIELDS.fournisseurs} initialValues={{ id: generateSequentialId('fournisseurs', rows), note: 4 }} autoId={() => generateSequentialId('fournisseurs', rows)} uploadFolder="fournisseurs" loading={saving} title="Ajouter fournisseur" submitLabel="Ajouter" />
+      <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={MODULE_FORM_FIELDS.fournisseurs} initialValues={supplierInitialValues(rows)} autoId={() => generateSequentialId('fournisseurs', rows)} uploadFolder="fournisseurs" loading={saving} title="Ajouter fournisseur" submitLabel="Ajouter" />
       <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={MODULE_FORM_FIELDS.fournisseurs} initialValues={selected || {}} loading={saving} title="Modifier fournisseur" submitLabel="Enregistrer" />
       <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected ? `${selected.nom}` : ''} loading={saving} />
     </div>
