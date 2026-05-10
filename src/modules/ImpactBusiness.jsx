@@ -10,7 +10,11 @@ export default function ImpactBusiness(props) {
   const equipementsCrud = useCrudModule('equipements');
   const investissementsCrud = useCrudModule('investissements');
   const businessPlansCrud = useCrudModule('business_plans');
+  const bpInvestmentLinesCrud = useCrudModule('bp_investment_lines');
+  const bpRecurringCostsCrud = useCrudModule('bp_recurring_costs');
+  const bpRevenueProjectionsCrud = useCrudModule('bp_revenue_projections');
   const bpFundingSourcesCrud = useCrudModule('bp_funding_sources');
+  const bpLinksCrud = useCrudModule('bp_links');
   const bpRisksCrud = useCrudModule('bp_risks');
   const salesOrderItemsCrud = useCrudModule('sales_order_items');
   const deliveriesCrud = useCrudModule('deliveries');
@@ -20,6 +24,9 @@ export default function ImpactBusiness(props) {
   const cameraDevicesCrud = useCrudModule('camera_devices');
   const auditLogsCrud = useCrudModule('audit_logs');
   const rapportsCrud = useCrudModule('rapports');
+  const veterinairesCrud = useCrudModule('veterinaires');
+  const alimentationLogsCrud = useCrudModule('alimentation_logs');
+  const productionOeufsLogsCrud = useCrudModule('production_oeufs_logs');
 
   const mergedProps = {
     ...props,
@@ -29,7 +36,11 @@ export default function ImpactBusiness(props) {
     equipements: fallbackRows(props.equipements, equipementsCrud),
     investissements: fallbackRows(props.investissements, investissementsCrud),
     businessPlans: fallbackRows(props.businessPlans, businessPlansCrud),
+    bpInvestmentLines: fallbackRows(props.bpInvestmentLines, bpInvestmentLinesCrud),
+    bpRecurringCosts: fallbackRows(props.bpRecurringCosts, bpRecurringCostsCrud),
+    bpRevenueProjections: fallbackRows(props.bpRevenueProjections, bpRevenueProjectionsCrud),
     bpFundingSources: fallbackRows(props.bpFundingSources, bpFundingSourcesCrud),
+    bpLinks: fallbackRows(props.bpLinks, bpLinksCrud),
     bpRisks: fallbackRows(props.bpRisks, bpRisksCrud),
     orderItems: fallbackRows(props.orderItems, salesOrderItemsCrud),
     salesOrderItems: fallbackRows(props.salesOrderItems, salesOrderItemsCrud),
@@ -47,6 +58,10 @@ export default function ImpactBusiness(props) {
     audit_logs: fallbackRows(props.audit_logs, auditLogsCrud),
     rapports: fallbackRows(props.rapports, rapportsCrud),
     reports: fallbackRows(props.reports, rapportsCrud),
+    veterinaires: fallbackRows(props.veterinaires, veterinairesCrud),
+    vets: fallbackRows(props.vets, veterinairesCrud),
+    alimentationLogs: fallbackRows(props.alimentationLogs, alimentationLogsCrud),
+    productionLogs: props.productionLogs?.length ? props.productionLogs : productionOeufsLogsCrud.rows,
   };
 
   return <ImpactBusinessShell {...mergedProps} />;
