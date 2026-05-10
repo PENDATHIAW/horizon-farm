@@ -44,7 +44,7 @@ function loadConfig() { try { return { ...defaultConfig, ...JSON.parse(window.lo
 function saveConfig(config) { window.localStorage.setItem(ALERT_CONFIG_KEY, JSON.stringify(config)); return config; }
 function shouldAutoNotify(alert = {}, config = {}) { return Boolean(config.autoWhatsApp) && AUTO_SEND_SEVERITIES.includes(lower(alert.severity)) && !alert.whatsapp_sent_at; }
 function recipientLabel(recipient, config) { if (recipient === 'OWNER') return `${config.ownerName || 'Propriétaire'} · WhatsApp propriétaire`; return resolveResponsibleLabel(recipient); }
-function messageFor(alert = {}, recipient = '', config = {}) { return `[Horizon Farm] ${String(alert.severity || 'info').toUpperCase()}\n${alert.title || 'Alerte'}\n${alert.message || ''}\nAction: ${alert.action_recommandee || 'Vérifier dans Horizon Farm'}\nModule: ${alert.module_source || '-'}\nRéf: ${alert.entity_id || '-'}\nDestinataire: ${recipientLabel(recipient, config) || 'équipe concernée'}`; }
+function messageFor(alert = {}) { return `[Horizon Farm] ${String(alert.severity || 'info').toUpperCase()}\n${alert.title || 'Alerte'}\n${alert.message || ''}\nAction: ${alert.action_recommandee || 'Vérifier dans Horizon Farm'}\nModule: ${alert.module_source || '-'}\nRéf: ${alert.entity_id || '-'}`; }
 function resolveWhatsAppRecipient(rawRecipient, config = {}, forceOwner = false) {
   const ownerPhone = normalizePhone(config.ownerWhatsapp);
   const recipient = forceOwner ? 'OWNER' : (rawRecipient || config.defaultRecipient || 'OWNER');
@@ -110,13 +110,13 @@ export default function AlertesCenter({ alertes = [], transactions = [], animaux
         toast.error('Aucun numéro WhatsApp configuré. Ajoute ton numéro propriétaire dans Configuration alertes.');
         return;
       }
-      const message = messageFor(alerte, resolved.recipient, config);
+      const message = messageFor(alerte);
       await openWhatsAppApp({ phone: resolved.phone, message, fallbackWeb: false });
       await onSendWhatsApp?.({ ...alerte, message, responsable: resolved.recipient, responsable_label: recipientLabel(resolved.recipient, config), recipient_phone: resolved.phone, original_recipient: resolved.originalRecipient }, resolved.phone);
       const patch = { whatsapp_sent_at: new Date().toISOString(), responsable: resolved.recipient, responsable_label: recipientLabel(resolved.recipient, config), recipient_phone: resolved.phone };
       if (alerte.isAuto) await persistAutoIfNeeded(alerte, { ...patch, status: alerte.status || 'nouvelle' });
       else await onUpdate?.(alerte.id, patch);
-      if (resolved.usedFallback) toast.success(`Envoyé vers ton numéro propriétaire au lieu de ${recipientLabel(resolved.originalRecipient, config)}`);
+      if (resolved.usedFallback) toast.success(`Message préparé sur ton WhatsApp propriétaire`);
     } catch (error) {
       if (error?.code !== 'WHATSAPP_PHONE_INVALID') toast.error('Message WhatsApp impossible');
     } finally { setSendingId(''); }
