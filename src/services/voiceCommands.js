@@ -211,6 +211,13 @@ export const interpretVoiceCommand = (rawCommand = '', dataMap = {}) => {
   const command = normalizeText(rawCommand);
   if (!command) return { moduleKey: null, answer: 'Pose une question ERP : priorités, stocks, créances, santé, ventes, finances ou alertes.' };
 
+  if (['bjr', 'bonjour', 'bonsoir', 'salut', 'hello', 'hi', 'coucou', 'yo'].includes(command)) {
+    return {
+      moduleKey: null,
+      answer: 'Bonjour, en quoi puis-je vous aider ?',
+    };
+  }
+
   if (includesAny(command, ['priorite', 'priorites', 'priorites du jour', 'quoi faire', 'urgence', 'aujourd hui', 'aujourdhui'])) {
     return answerPriorities(dataMap);
   }
