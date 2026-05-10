@@ -2,6 +2,12 @@ name: Setup Web Push
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feature/interconnexions-modules-riches-v2
+    paths:
+      - package.json
+      - .github/workflows/setup-web-push.yml
 
 permissions:
   contents: write
@@ -9,6 +15,7 @@ permissions:
 jobs:
   update-lockfile:
     name: Install web-push and update lockfile
+    if: ${{ !contains(github.event.head_commit.message, 'chore: update lockfile for web push') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
@@ -40,7 +47,7 @@ jobs:
         run: |
           npm exec --yes web-push generate-vapid-keys > vapid-keys.txt
           echo "## VAPID keys" >> $GITHUB_STEP_SUMMARY
-          echo "Copie ces valeurs dans Vercel puis supprime/ignore ce run si tu veux éviter de garder la clé privée dans l'historique GitHub Actions." >> $GITHUB_STEP_SUMMARY
+          echo "Copie ces valeurs dans Vercel. La clé privée ne doit jamais être mise dans le code." >> $GITHUB_STEP_SUMMARY
           echo '```txt' >> $GITHUB_STEP_SUMMARY
           cat vapid-keys.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
