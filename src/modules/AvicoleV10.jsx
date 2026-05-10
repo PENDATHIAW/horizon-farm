@@ -1,4 +1,5 @@
 import AvicoleBase from './AvicoleBase.jsx';
+import AvicoleEvolution from './AvicoleEvolution.jsx';
 import AvicoleHealthBridge from './AvicoleHealthBridge.jsx';
 import AvicoleJournalsBridge from './AvicoleJournalsBridge.jsx';
 import AvicoleSaleReadinessBridge from './AvicoleSaleReadinessBridge.jsx';
@@ -52,6 +53,14 @@ export default function AvicoleV10(props) {
         onUpdateBusinessEvent={props.onUpdateBusinessEvent}
         onDeleteBusinessEvent={props.onDeleteBusinessEvent}
         onRefreshBusinessEvents={props.onRefreshBusinessEvents}
+      />
+      <AvicoleEvolution
+        rows={props.rows || []}
+        productionLogs={props.productionLogs || []}
+        alimentationLogs={props.alimentationLogs || []}
+        businessEvents={props.businessEvents || []}
+        opportunities={props.opportunities || []}
+        onNavigate={props.onNavigate}
       />
     </div>
   );
