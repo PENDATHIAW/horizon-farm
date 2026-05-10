@@ -1,6 +1,5 @@
 import useCrudModule from '../hooks/useCrudModule';
-import ImpactFarmValueBridge from './ImpactFarmValueBridge.jsx';
-import ImpactBusinessStrategicV5 from './ImpactBusinessStrategicV5.jsx';
+import ImpactBusinessShell from './ImpactBusinessShell.jsx';
 
 export default function ImpactBusiness(props) {
   const culturesCrud = useCrudModule('cultures');
@@ -16,10 +15,5 @@ export default function ImpactBusiness(props) {
     equipements: props.equipements?.length ? props.equipements : equipementsCrud.rows,
   };
 
-  return (
-    <div className="space-y-6">
-      <ImpactFarmValueBridge {...mergedProps} />
-      <ImpactBusinessStrategicV5 {...mergedProps} />
-    </div>
-  );
+  return <ImpactBusinessShell {...mergedProps} />;
 }
