@@ -40,28 +40,7 @@ function monthLabel(key) {
 }
 
 function ensure(map, key) {
-  if (!map.has(key)) map.set(key, {
-    key,
-    mois: monthLabel(key),
-    charges_aliments: 0,
-    charges_soins: 0,
-    ca_ventes: 0,
-    marge: 0,
-    taux_marge: 0,
-    poids_total: 0,
-    poids_count: 0,
-    poids_moyen: 0,
-    croissance_total: 0,
-    croissance_count: 0,
-    croissance_moyenne: 0,
-    effectif: 0,
-    malades: 0,
-    pertes: 0,
-    prets: 0,
-    vendus: 0,
-    reproduction: 0,
-    taux_mortalite: 0,
-  });
+  if (!map.has(key)) map.set(key, { key, mois: monthLabel(key), charges_aliments: 0, charges_soins: 0, ca_ventes: 0, marge: 0, taux_marge: 0, poids_total: 0, poids_count: 0, poids_moyen: 0, croissance_total: 0, croissance_count: 0, croissance_moyenne: 0, effectif: 0, malades: 0, pertes: 0, prets: 0, vendus: 0, reproduction: 0, taux_mortalite: 0 });
   return map.get(key);
 }
 
@@ -100,8 +79,7 @@ function buildMonthly({ rows = [], alimentationLogs = [], vaccins = [], opportun
   });
 
   arr(alimentationLogs).forEach((log) => {
-    const key = monthKey(logDate(log));
-    const bucket = ensure(map, key);
+    const bucket = ensure(map, monthKey(logDate(log)));
     const cost = logCost(log) || logQty(log) * toNumber(log.prix_unitaire ?? log.unit_price ?? 0);
     bucket.charges_aliments += cost;
   });
@@ -125,14 +103,7 @@ function buildMonthly({ rows = [], alimentationLogs = [], vaccins = [], opportun
     const croissance = row.croissance_count ? row.croissance_total / row.croissance_count : 0;
     const marge = row.ca_ventes - row.charges_aliments - row.charges_soins;
     const base = Math.max(1, row.effectif + row.pertes);
-    return {
-      ...row,
-      poids_moyen: Number(poids.toFixed(2)),
-      croissance_moyenne: Number(croissance.toFixed(2)),
-      marge: Number(marge.toFixed(0)),
-      taux_marge: row.ca_ventes > 0 ? Number(((marge / row.ca_ventes) * 100).toFixed(1)) : 0,
-      taux_mortalite: Number(((row.pertes / base) * 100).toFixed(1)),
-    };
+    return { ...row, poids_moyen: Number(poids.toFixed(2)), croissance_moyenne: Number(croissance.toFixed(2)), marge: Number(marge.toFixed(0)), taux_marge: row.ca_ventes > 0 ? Number(((marge / row.ca_ventes) * 100).toFixed(1)) : 0, taux_mortalite: Number(((row.pertes / base) * 100).toFixed(1)) };
   });
 }
 
@@ -153,6 +124,7 @@ export default function AnimauxEvolution({ rows = [], alimentationLogs = [], vac
   const potentialCA = animals.filter(isReady).reduce((sum, animal) => sum + animalSaleValue(animal), 0);
   const totalMargin = monthly.reduce((sum, row) => sum + row.marge, 0);
   const priority = sick > 0 ? { module: 'sante', label: 'Traiter le suivi santé', icon: HeartPulse } : ready > 0 ? { module: 'ventes', label: 'Convertir les animaux prêts', icon: ShoppingBag } : slowGrowth > 0 ? { module: 'animaux', label: 'Vérifier les croissances lentes', icon: Scale } : { module: 'animaux', label: 'Mettre à jour les pesées', icon: Scale };
+  const PriorityIcon = priority.icon;
   const interpretation = sick > 0 ? `${fmtNumber(sick)} animal(aux) nécessitent un suivi santé.` : ready > 0 ? `${fmtNumber(ready)} animal(aux) sont prêts ou presque prêts à vendre.` : slowGrowth > 0 ? `${fmtNumber(slowGrowth)} animal(aux) ont une croissance à surveiller.` : 'Cheptel stable : maintenir les pesées et le suivi sanitaire.';
 
   return <div className="space-y-5">
@@ -169,39 +141,11 @@ export default function AnimauxEvolution({ rows = [], alimentationLogs = [], vac
       </div>
     </div>
 
-    <SmartEvolutionChart
-      title="Animaux — économie mensuelle"
-      subtitle="Barres : charges, CA, marge. Courbes : poids moyen et taux de marge. La légende est cliquable."
-      months={labels(monthly)}
-      leftUnit="FCFA"
-      rightUnit="kg"
-      series={[
-        { name: 'Charges aliments', type: 'bar', unit: 'FCFA', data: values(monthly, 'charges_aliments') },
-        { name: 'Charges soins', type: 'bar', unit: 'FCFA', data: values(monthly, 'charges_soins') },
-        { name: 'CA ventes', type: 'bar', unit: 'FCFA', data: values(monthly, 'ca_ventes') },
-        { name: 'Marge', type: 'bar', unit: 'FCFA', data: values(monthly, 'marge') },
-        { name: 'Poids moyen', type: 'line', axis: 'right', unit: 'kg', data: values(monthly, 'poids_moyen') },
-      ]}
-    />
+    <SmartEvolutionChart title="Animaux — économie mensuelle" subtitle="Barres : charges, CA, marge. Courbes : poids moyen et taux de marge. La légende est cliquable." months={labels(monthly)} leftUnit="FCFA" rightUnit="kg" series={[{ name: 'Charges aliments', type: 'bar', unit: 'FCFA', data: values(monthly, 'charges_aliments') }, { name: 'Charges soins', type: 'bar', unit: 'FCFA', data: values(monthly, 'charges_soins') }, { name: 'CA ventes', type: 'bar', unit: 'FCFA', data: values(monthly, 'ca_ventes') }, { name: 'Marge', type: 'bar', unit: 'FCFA', data: values(monthly, 'marge') }, { name: 'Poids moyen', type: 'line', axis: 'right', unit: 'kg', data: values(monthly, 'poids_moyen') }, { name: 'Taux marge', type: 'line', axis: 'right', unit: '%', data: values(monthly, 'taux_marge') }]} />
 
-    <SmartEvolutionChart
-      title="Animaux — performance opérationnelle mensuelle"
-      subtitle="Effectif, animaux prêts, malades, pertes, croissance et mortalité. Zoom disponible en bas du graphe."
-      months={labels(monthly)}
-      leftUnit=""
-      rightUnit="%"
-      series={[
-        { name: 'Effectif actif', type: 'bar', data: values(monthly, 'effectif') },
-        { name: 'Prêts vente', type: 'bar', data: values(monthly, 'prets') },
-        { name: 'Malades', type: 'bar', data: values(monthly, 'malades') },
-        { name: 'Pertes', type: 'bar', data: values(monthly, 'pertes') },
-        { name: 'Reproduction', type: 'bar', data: values(monthly, 'reproduction') },
-        { name: 'Croissance moyenne', type: 'line', axis: 'right', unit: 'kg', data: values(monthly, 'croissance_moyenne') },
-        { name: 'Taux mortalité', type: 'line', axis: 'right', unit: '%', data: values(monthly, 'taux_mortalite') },
-      ]}
-    />
+    <SmartEvolutionChart title="Animaux — performance opérationnelle mensuelle" subtitle="Effectif, animaux prêts, malades, pertes, croissance et mortalité. Zoom disponible en bas du graphe." months={labels(monthly)} leftUnit="" rightUnit="%" series={[{ name: 'Effectif actif', type: 'bar', data: values(monthly, 'effectif') }, { name: 'Prêts vente', type: 'bar', data: values(monthly, 'prets') }, { name: 'Malades', type: 'bar', data: values(monthly, 'malades') }, { name: 'Pertes', type: 'bar', data: values(monthly, 'pertes') }, { name: 'Reproduction', type: 'bar', data: values(monthly, 'reproduction') }, { name: 'Croissance moyenne', type: 'line', axis: 'right', unit: 'kg', data: values(monthly, 'croissance_moyenne') }, { name: 'Taux mortalité', type: 'line', axis: 'right', unit: '%', data: values(monthly, 'taux_mortalite') }]} />
 
     <div className="bg-[#fffdf8] border border-[#d6c3a0] rounded-2xl p-4 text-sm text-[#7d6a4a] flex items-start gap-3"><TrendingUp size={18} className="text-[#9a6b12] mt-0.5" /><div><b className="text-[#2f2415]">Interprétation :</b> {interpretation}</div></div>
-    <div className={`${sick || losses || slowGrowth ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'} border rounded-2xl p-4 text-sm flex items-start justify-between gap-3`}><div className="flex items-start gap-2"><priority.icon size={18} className="mt-0.5" /><div><b>Action recommandée :</b> {priority.label}.</div></div><button type="button" onClick={() => onNavigate?.(priority.module)} className="shrink-0 rounded-xl bg-white/70 border border-current/10 px-3 py-1.5 text-xs font-bold">Ouvrir</button></div>
+    <div className={`${sick || losses || slowGrowth ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'} border rounded-2xl p-4 text-sm flex items-start justify-between gap-3`}><div className="flex items-start gap-2"><PriorityIcon size={18} className="mt-0.5" /><div><b>Action recommandée :</b> {priority.label}.</div></div><button type="button" onClick={() => onNavigate?.(priority.module)} className="shrink-0 rounded-xl bg-white/70 border border-current/10 px-3 py-1.5 text-xs font-bold">Ouvrir</button></div>
   </div>;
 }
