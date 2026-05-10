@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import GenericCrudModule from '../components/GenericCrudModule';
 import { MODULE_FORM_FIELDS } from '../utils/constants';
 import RapportsAutoBridge from './RapportsAutoBridge.jsx';
+import RapportsProjectPresentationBridge from './RapportsProjectPresentationBridge.jsx';
 
 export default function Rapports(props) {
   const rows = props.rows || [];
@@ -13,6 +14,13 @@ export default function Rapports(props) {
 
   return (
     <div className="space-y-6">
+      <RapportsProjectPresentationBridge
+        data={props.data || {}}
+        onCreateDocument={props.onCreateDocument}
+        onRefreshDocuments={props.onRefreshDocuments}
+        onCreateBusinessEvent={props.onCreateBusinessEvent}
+        onRefreshBusinessEvents={props.onRefreshBusinessEvents}
+      />
       <RapportsAutoBridge
         rows={rows}
         data={props.data || {}}
