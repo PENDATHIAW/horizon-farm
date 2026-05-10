@@ -1,6 +1,7 @@
 import { BarChart2, FileText, MessageCircle, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
 import GenericCrudModule from '../components/GenericCrudModule';
+import ModuleTimeline from '../components/ModuleTimeline';
 import { MODULE_FORM_FIELDS } from '../utils/constants';
 import RapportsAutoBridge from './RapportsAutoBridge.jsx';
 import RapportsModuleExportsBridge from './RapportsModuleExportsBridge.jsx';
@@ -12,6 +13,13 @@ export default function Rapports(props) {
     await props.onRefresh?.();
     toast.success('Rapports actualisés');
   };
+  const timelineRows = rows.map((row) => ({
+    ...row,
+    title: row.title || row.report_type || row.id,
+    description: `${row.report_type || 'rapport'} · ${row.period || 'période non renseignée'} · ${row.channel || 'PDF'}`,
+    created_at: row.created_at || row.updated_at || row.date || row.period,
+    status: row.status || row.statut || row.channel,
+  }));
 
   return (
     <div className="space-y-6">
@@ -34,6 +42,14 @@ export default function Rapports(props) {
         onRefreshBusinessEvents={props.onRefreshBusinessEvents}
       />
       <RapportsModuleExportsBridge />
+      <ModuleTimeline
+        title="Timeline rapports"
+        subtitle="Rapports générés, programmés, envoyés et exports disponibles."
+        rows={timelineRows}
+        onRefresh={onRefresh}
+        onNavigate={() => props.onNavigate?.('rapports')}
+        navigateLabel="Ouvrir rapports"
+      />
       <GenericCrudModule
         {...props}
         onRefresh={onRefresh}
