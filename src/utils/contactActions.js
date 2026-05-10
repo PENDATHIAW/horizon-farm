@@ -34,8 +34,10 @@ export async function copyContactMessage(message = '') {
 export async function openWhatsAppApp({ phone, message, fallbackWeb = false } = {}) {
   const normalized = normalizePhone(phone);
   if (!normalized) {
-    toast.error('Numéro WhatsApp manquant ou invalide');
-    return false;
+    const error = new Error('Numéro WhatsApp manquant ou invalide');
+    error.code = 'WHATSAPP_PHONE_INVALID';
+    toast.error(error.message);
+    throw error;
   }
   await copyContactMessage(message);
   window.location.href = buildWhatsAppAppUrl(normalized, message);
