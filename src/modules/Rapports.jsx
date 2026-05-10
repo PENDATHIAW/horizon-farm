@@ -3,7 +3,6 @@ import toast from 'react-hot-toast';
 import GenericCrudModule from '../components/GenericCrudModule';
 import ModuleTimeline from '../components/ModuleTimeline';
 import { MODULE_FORM_FIELDS } from '../utils/constants';
-import ConsolidatedFinanceStrip from './ConsolidatedFinanceStrip.jsx';
 import RapportsAutoBridge from './RapportsAutoBridge.jsx';
 import RapportsModuleExportsBridge from './RapportsModuleExportsBridge.jsx';
 import RapportsProjectPresentationBridge from './RapportsProjectPresentationBridge.jsx';
@@ -24,15 +23,6 @@ export default function Rapports(props) {
 
   return (
     <div className="space-y-6">
-      <ConsolidatedFinanceStrip
-        title="Rapports — base consolidée à exporter"
-        rows={props.transactions || props.finances || []}
-        salesOrders={props.salesOrders || props.ventes || []}
-        payments={props.payments || []}
-        fournisseurs={props.fournisseurs || []}
-        stocks={props.stocks || props.stock || []}
-        compact
-      />
       <RapportsProjectPresentationBridge
         data={props.data || {}}
         onCreateDocument={props.onCreateDocument}
