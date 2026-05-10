@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import SectionHeader from '../components/SectionHeader';
+import ImpactDomainDeepSignals from './ImpactDomainDeepSignals.jsx';
 import ImpactFarmValueBridgeV5 from './ImpactFarmValueBridgeV5.jsx';
 import ImpactBusinessStrategicV5 from './ImpactBusinessStrategicV5.jsx';
 
@@ -35,7 +36,12 @@ export default function ImpactBusinessShell(props) {
           <ImpactBusinessStrategicV5 {...props} embedded />
         </div>
       ) : null}
-      {tab === 'domaines' ? <ImpactFarmValueBridgeV5 {...props} /> : null}
+      {tab === 'domaines' ? (
+        <div className="space-y-5">
+          <ImpactDomainDeepSignals {...props} />
+          <ImpactFarmValueBridgeV5 {...props} />
+        </div>
+      ) : null}
     </div>
   );
 }
