@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import GenericCrudModule from '../components/GenericCrudModule';
 import { MODULE_FORM_FIELDS } from '../utils/constants';
 import RapportsAutoBridge from './RapportsAutoBridge.jsx';
+import RapportsModuleExportsBridge from './RapportsModuleExportsBridge.jsx';
 import RapportsProjectPresentationBridge from './RapportsProjectPresentationBridge.jsx';
 
 export default function Rapports(props) {
@@ -32,6 +33,7 @@ export default function Rapports(props) {
         onCreateBusinessEvent={props.onCreateBusinessEvent}
         onRefreshBusinessEvents={props.onRefreshBusinessEvents}
       />
+      <RapportsModuleExportsBridge />
       <GenericCrudModule
         {...props}
         onRefresh={onRefresh}
