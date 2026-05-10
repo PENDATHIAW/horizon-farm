@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import SectionHeader from '../components/SectionHeader';
-import ImpactFarmValueBridge from './ImpactFarmValueBridge.jsx';
+import ImpactFarmValueBridgeV2 from './ImpactFarmValueBridgeV2.jsx';
 import ImpactBusinessStrategicV5 from './ImpactBusinessStrategicV5.jsx';
 
 function TabButton({ active, children, onClick }) {
@@ -30,7 +30,7 @@ export default function ImpactBusinessShell(props) {
       </div>
 
       {tab === 'pilotage' ? <ImpactBusinessStrategicV5 {...props} embedded /> : null}
-      {tab === 'domaines' ? <ImpactFarmValueBridge {...props} /> : null}
+      {tab === 'domaines' ? <ImpactFarmValueBridgeV2 {...props} /> : null}
     </div>
   );
 }
