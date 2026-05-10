@@ -50,16 +50,55 @@ function sourceLabel(opp = {}) {
   return source;
 }
 
+function marginNeedsSync(opp = {}, margin = {}) {
+  if (opp.is_derived) return false;
+  if (Math.abs(toNumber(opp.cout_revient) - toNumber(margin.cout_revient)) > 1) return true;
+  if (Math.abs(toNumber(opp.marge_directe ?? opp.marge_montant ?? opp.marge) - toNumber(margin.marge_directe)) > 1) return true;
+  if (clean(opp.cout_source) !== clean(margin.cout_source)) return true;
+  return false;
+}
+
 export default function SalesOpportunitiesBridge({
   opportunities = [], rows = [], clients = [], lots = [], animaux = [], cultures = [], stocks = [], alimentationLogs = [], productionLogs = [], vaccins = [], businessEvents = [],
   onCreate, onRefresh, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateBusinessEvent, onRefreshBusinessEvents,
 }) {
   const [savingId, setSavingId] = useState('');
+  const [syncingMargins, setSyncingMargins] = useState(false);
   const marginContext = { lots, animaux, cultures, stocks, alimentationLogs, productionLogs, vaccins, businessEvents };
   const active = useMemo(() => deriveSalesOpportunities({ opportunities, lots, animaux, cultures, stocks })
     .filter(isOpenSalesOpportunity)
     .map((opp) => ({ opp, order: arr(rows).find((order) => orderLinkedToOpportunity(order, opp)) }))
     .slice(0, 12), [opportunities, lots, animaux, cultures, stocks, rows]);
+
+  const syncableMargins = active
+    .map(({ opp }) => ({ opp, margin: calculateSalesMargin({ ...opp, montant_total: salesOpportunityAmount(opp) }, marginContext) }))
+    .filter(({ opp, margin }) => marginNeedsSync(opp, margin));
+
+  const syncOpportunityMargins = async () => {
+    if (!syncableMargins.length) return toast.success('Marges opportunités déjà à jour');
+    try {
+      setSyncingMargins(true);
+      for (const { opp, margin } of syncableMargins) {
+        await onUpdateOpportunity?.(opp.id, {
+          cout_revient: margin.cout_revient,
+          cout_direct: margin.cout_direct,
+          cout_source: margin.cout_source,
+          marge_directe: margin.marge_directe,
+          marge_montant: margin.marge_montant,
+          marge: margin.marge,
+          taux_marge_directe: margin.taux_marge_directe,
+          marge_taux: margin.marge_taux,
+          marge_calculee_at: new Date().toISOString(),
+        });
+      }
+      await onRefreshOpportunities?.();
+      toast.success(`${syncableMargins.length} marge(s) opportunité synchronisée(s)`);
+    } catch (error) {
+      toast.error(error.message || 'Synchronisation des marges opportunités impossible');
+    } finally {
+      setSyncingMargins(false);
+    }
+  };
 
   const persistDerivedOpportunity = async (opp) => {
     if (!opp.is_derived) return opp;
@@ -116,7 +155,7 @@ export default function SalesOpportunitiesBridge({
         created_from: 'sales_opportunity',
         created_at: now(),
       });
-      await onUpdateOpportunity?.(opp.id, { status: 'convertie', statut: 'convertie', converted_order_id: orderId, converted_at: now(), cout_revient: margin.cout_revient, marge_directe: margin.marge_directe, marge_taux: margin.marge_taux, cout_source: margin.cout_source });
+      await onUpdateOpportunity?.(opp.id, { status: 'convertie', statut: 'convertie', converted_order_id: orderId, converted_at: now(), cout_revient: margin.cout_revient, cout_direct: margin.cout_direct, marge_directe: margin.marge_directe, marge_montant: margin.marge_montant, marge_taux: margin.marge_taux, cout_source: margin.cout_source });
       await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'opportunite_convertie_commande', module_source: 'ventes', entity_type: 'sales_opportunity', entity_id: opp.id, title: `Commande créée depuis ${labelOf(opp)}`, description: `${sourceLabel(opp)} · ${fmtCurrency(total)} · marge directe ${fmtCurrency(margin.marge_directe)}`, event_date: today(), severity: 'info', linked_order_id: orderId, saisies_evitees: 4 });
       await Promise.allSettled([onRefresh?.(), onRefreshOpportunities?.(), onRefreshBusinessEvents?.()]);
       toast.success('Commande créée depuis l’opportunité avec marge directe');
@@ -137,7 +176,12 @@ export default function SalesOpportunitiesBridge({
           <h3 className="font-black text-[#2f2415]">Sources prêtes à vendre</h3>
           <p className="text-sm text-[#8a7456] mt-1">Animaux, lots avicoles, cultures ou stocks confirmés peuvent devenir une commande sans ressaisie.</p>
         </div>
-        <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]"><Tag size={14} className="inline" /> {active.length} opportunité(s)</div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" disabled={syncingMargins} onClick={syncOpportunityMargins} className="rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm font-bold text-[#2f2415] disabled:opacity-60">
+            {syncingMargins ? <RefreshCw size={14} className="inline animate-spin" /> : <RefreshCw size={14} className="inline" />} Recalculer marges
+          </button>
+          <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]"><Tag size={14} className="inline" /> {active.length} opportunité(s)</div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">
@@ -162,6 +206,7 @@ export default function SalesOpportunitiesBridge({
           );
         })}
       </div>
+      {syncableMargins.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{syncableMargins.length} opportunité(s) ont une marge à synchroniser.</div> : null}
     </div>
   );
 }
