@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import useCrudModule from '../hooks/useCrudModule';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
+import { buildStockLossBusinessEvent, buildStockLossFinanceTransaction } from '../utils/stockLossImpact';
 
 function today() { return new Date().toISOString().slice(0, 10); }
 function now() { return new Date().toISOString(); }
@@ -62,18 +63,26 @@ async function stockMove({ row, type, qty, props, extra = {} }) {
     source_record_id: row.id,
     ...extra,
   });
-  await props.onCreateBusinessEvent?.({
-    id: makeId('EVT'),
-    event_type: type === 'perte' ? 'perte_stock' : 'mouvement_stock',
-    module_source: 'stock',
-    entity_type: 'stock',
-    entity_id: row.id,
-    title: `Stock: ${label}`,
-    description: `${row.produit || row.id}: ${current} -> ${nextQty} ${row.unite || ''}`,
-    severity: type === 'perte' ? 'warning' : 'info',
-    event_date: today(),
-  });
-  toast.success(`Stock mis à jour: ${label}`);
+
+  if (type === 'perte') {
+    const finance = buildStockLossFinanceTransaction(row, qty);
+    if (finance) await props.onCreateFinanceTransaction?.(finance);
+    await props.onCreateBusinessEvent?.(buildStockLossBusinessEvent(row, qty));
+    await props.onRefreshFinances?.();
+  } else {
+    await props.onCreateBusinessEvent?.({
+      id: makeId('EVT'),
+      event_type: 'mouvement_stock',
+      module_source: 'stock',
+      entity_type: 'stock',
+      entity_id: row.id,
+      title: `Stock: ${label}`,
+      description: `${row.produit || row.id}: ${current} -> ${nextQty} ${row.unite || ''}`,
+      severity: 'info',
+      event_date: today(),
+    });
+  }
+  toast.success(type === 'perte' ? 'Perte stock enregistrée et passée en charge' : `Stock mis à jour: ${label}`);
 }
 
 async function createReceiptDocument(row, qty, amount, mode, props) {
@@ -167,6 +176,7 @@ export default function StockFlowPanel(props) {
     const title = type === 'entree' ? 'Réception stock' : type === 'sortie' ? 'Utilisation / sortie stock' : 'Déclarer une perte';
     const qty = askQty(row, title, 1);
     if (!qty) return;
+    if (type !== 'entree' && qty > toNumber(row.quantite)) return toast.error(`Stock insuffisant : ${fmtNumber(row.quantite)} ${row.unite || ''} disponible(s)`);
     if (type === 'entree') receiveCritical(row, connectedProps, qty);
     else stockMove({ row, type, qty, props: connectedProps });
   };
