@@ -6,10 +6,19 @@ import useVoiceRecognition from '../hooks/useVoiceRecognition';
 import { interpretVoiceCommand } from '../services/voiceCommands';
 import { searchERP } from '../services/globalSearchService';
 
+const quickQuestions = [
+  'Priorités du jour',
+  'Stocks critiques',
+  'Créances à relancer',
+  'Situation santé',
+  'Situation des ventes',
+  'Ce que l’ERP a permis de faire',
+];
+
 export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState([
-    { role: 'assistant', text: 'Assistant ERP prêt. Pose une question sur les alertes, les stocks, les clients, les ventes, la santé, les finances ou les priorités du jour.' },
+    { role: 'assistant', text: 'Assistant ERP prêt. Je peux vous aider sur les priorités, les stocks, les clients, les ventes, la santé, les finances, les alertes ou la valeur apportée par l’ERP.' },
   ]);
   const speech = useSpeechSynthesis();
 
@@ -41,31 +50,46 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
   if (!open) return null;
 
   return (
-    <aside className="fixed right-4 bottom-4 z-50 w-[min(420px,calc(100vw-2rem))] bg-[#ffffff]/95 backdrop-blur border border-[#d6c3a0] rounded-2xl shadow-2xl overflow-hidden">
+    <aside className="fixed right-3 bottom-3 md:right-4 md:bottom-4 z-50 w-[min(440px,calc(100vw-1.5rem))] bg-[#ffffff]/95 backdrop-blur border border-[#d6c3a0] rounded-2xl shadow-2xl overflow-hidden">
       <div className="px-4 py-3 border-b border-[#d6c3a0] flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
           <Bot size={18} />
         </div>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <p className="font-bold text-[#2f2415]">Assistant ERP</p>
-          <p className="text-xs text-[#8a7456]">Recherche, alertes et actions guidées</p>
+          <p className="text-xs text-[#8a7456] truncate">Recherche, alertes et actions guidées</p>
         </div>
         <button type="button" onClick={onClose} className="p-2 text-[#8a7456] hover:text-[#2f2415]">
           <X size={16} />
         </button>
       </div>
 
-      <div className="max-h-72 overflow-y-auto p-4 space-y-3">
+      <div className="max-h-[55vh] md:max-h-80 overflow-y-auto p-4 space-y-3">
         {messages.map((message, index) => (
           <div
             key={`${message.role}-${index}`}
-            className={`rounded-xl px-3 py-2 text-sm ${
+            className={`rounded-xl px-3 py-2 text-sm leading-relaxed ${
               message.role === 'assistant' ? 'bg-[#fffdf8] text-[#7d6a4a]' : 'bg-emerald-500/10 text-emerald-600'
             }`}
           >
             {message.text}
           </div>
         ))}
+
+        {messages.length <= 1 ? (
+          <div className="flex flex-wrap gap-2">
+            {quickQuestions.map((question) => (
+              <button
+                key={question}
+                type="button"
+                onClick={() => handleAsk(question, { inputMode: 'text' })}
+                className="rounded-full border border-[#d6c3a0] bg-[#fffdf8] px-3 py-1.5 text-xs font-semibold text-[#7d6a4a] hover:border-emerald-500 hover:text-emerald-600 transition-colors"
+              >
+                {question}
+              </button>
+            ))}
+          </div>
+        ) : null}
 
         {results.length > 0 ? (
           <div className="space-y-2">
@@ -94,7 +118,7 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
           onKeyDown={(event) => {
             if (event.key === 'Enter') handleAsk(undefined, { inputMode: 'text' });
           }}
-          className="flex-1 bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm text-[#2f2415] outline-none focus:border-emerald-500"
+          className="flex-1 min-w-0 bg-[#fffdf8] border border-[#d6c3a0] rounded-lg px-3 py-2 text-sm text-[#2f2415] outline-none focus:border-emerald-500"
           placeholder={voice.listening ? voice.transcript || 'Écoute...' : 'Question ERP...'}
         />
         <button type="button" onClick={voice.listening ? voice.stop : voice.start} className={`p-2 rounded-lg border ${voice.listening ? 'border-emerald-500 text-emerald-400 animate-pulse' : 'border-[#d6c3a0] text-[#8a7456]'}`} title={voice.listening ? 'Arrêter le micro' : 'Parler à l’assistant'}>
