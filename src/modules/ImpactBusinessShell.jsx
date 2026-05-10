@@ -29,7 +29,12 @@ export default function ImpactBusinessShell(props) {
         <TabButton active={tab === 'domaines'} onClick={() => setTab('domaines')}>Domaines maîtrisés</TabButton>
       </div>
 
-      {tab === 'pilotage' ? <ImpactBusinessStrategicV5 {...props} embedded /> : null}
+      {tab === 'pilotage' ? (
+        <div className="impact-strategic-embedded">
+          <style>{`.impact-strategic-embedded > div > div:first-child { display: none; }`}</style>
+          <ImpactBusinessStrategicV5 {...props} embedded />
+        </div>
+      ) : null}
       {tab === 'domaines' ? <ImpactFarmValueBridgeV4 {...props} /> : null}
     </div>
   );
