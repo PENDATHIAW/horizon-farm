@@ -5,7 +5,11 @@ export default function StocksV4(props) {
   return (
     <div className="space-y-6">
       <StocksV3 {...props} />
-      <StockEvolution rows={props.rows || []} alimentationLogs={props.alimentationLogs || []} />
+      <StockEvolution
+        rows={props.rows || []}
+        alimentationLogs={props.alimentationLogs || []}
+        onNavigate={props.onNavigate}
+      />
     </div>
   );
 }
