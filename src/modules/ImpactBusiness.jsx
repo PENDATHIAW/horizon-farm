@@ -1,5 +1,5 @@
-import ImpactBusinessStrategicV3 from './ImpactBusinessStrategicV3.jsx';
+import ImpactBusinessStrategicV4 from './ImpactBusinessStrategicV4.jsx';
 
 export default function ImpactBusiness(props) {
-  return <ImpactBusinessStrategicV3 {...props} />;
+  return <ImpactBusinessStrategicV4 {...props} />;
 }
