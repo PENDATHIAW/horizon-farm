@@ -1,4 +1,5 @@
-import { AlertTriangle, Bird, Edit, HeartPulse, Package, Receipt, Scale, Trash2 } from 'lucide-react';
+import { AlertTriangle, Bird, Edit, HeartPulse, Package, Receipt, Scale, Trash2, X } from 'lucide-react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 import AvicoleBase from './AvicoleBase.jsx';
 import AvicoleHealthBridge from './AvicoleHealthBridge.jsx';
@@ -74,57 +75,82 @@ function HealthAndLinks({ rows = [] }) {
   );
 }
 
-async function editEggLog(log, handlers) {
-  if (!log?.id || !handlers.onUpdateProduction) return toast.error('Modification relevé indisponible');
-  const currentEggs = eggs(log);
-  const currentBroken = broken(log);
-  const eggInput = window.prompt('Œufs produits ?', String(currentEggs));
-  if (eggInput === null) return;
-  const nextEggs = toNumber(eggInput);
-  if (nextEggs <= 0) return toast.error('Saisir un nombre d’œufs supérieur à 0');
-  const brokenInput = window.prompt('Œufs cassés ?', String(currentBroken));
-  if (brokenInput === null) return;
-  const nextBroken = Math.max(0, toNumber(brokenInput));
-  if (nextBroken > nextEggs) return toast.error('Les casses ne peuvent pas dépasser les œufs produits');
-  try {
-    await handlers.onUpdateProduction(log.id, {
-      ...log,
-      oeufs_produits: nextEggs,
-      oeufs_casses: nextBroken,
-      oeufs_vendables: Math.max(0, nextEggs - nextBroken),
-    });
-    await handlers.onRefreshProduction?.();
-    toast.success('Relevé œufs modifié');
-  } catch (error) {
-    toast.error(error.message || 'Modification relevé impossible');
-  }
-}
-
-async function deleteEggLog(log, handlers) {
-  if (!log?.id || !handlers.onDeleteProduction) return toast.error('Suppression relevé indisponible');
-  if (!window.confirm('Supprimer ce relevé œufs ?')) return;
-  try {
-    await handlers.onDeleteProduction(log.id);
-    await handlers.onRefreshProduction?.();
-    toast.success('Relevé œufs supprimé');
-  } catch (error) {
-    toast.error(error.message || 'Suppression relevé impossible');
-  }
+function EggLogEditModal({ log, lotName, onClose, onSave, saving }) {
+  const [form, setForm] = useState(() => ({
+    oeufs_produits: eggs(log),
+    oeufs_casses: broken(log),
+    notes: log?.notes || '',
+  }));
+  if (!log) return null;
+  const produced = toNumber(form.oeufs_produits);
+  const brokenCount = Math.max(0, toNumber(form.oeufs_casses));
+  const sellable = Math.max(0, produced - brokenCount);
+  const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const submit = () => {
+    if (produced <= 0) return toast.error('Saisir un nombre d’œufs supérieur à 0');
+    if (brokenCount > produced) return toast.error('Les casses ne peuvent pas dépasser les œufs ramassés');
+    onSave({ ...log, oeufs_produits: produced, oeufs_casses: brokenCount, oeufs_vendables: sellable, notes: form.notes });
+  };
+  return (
+    <div className="fixed inset-0 z-[80] bg-black/40 p-4 flex items-center justify-center">
+      <div className="w-full max-w-lg rounded-2xl bg-[#fffdf8] border border-[#d6c3a0] shadow-2xl overflow-hidden">
+        <div className="p-5 border-b border-[#eadcc2] flex items-start justify-between gap-3">
+          <div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Ramassage œufs</p><h3 className="text-xl font-black text-[#2f2415]">Modifier le relevé</h3><p className="text-sm text-[#8a7456] mt-1">{log.date} · {lotName}</p></div>
+          <button type="button" onClick={onClose} className="text-[#8a7456]"><X size={18} /></button>
+        </div>
+        <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <label className="space-y-1"><span className="text-xs text-[#8a7456]">Œufs ramassés</span><input type="number" className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.oeufs_produits} onChange={(e) => set('oeufs_produits', e.target.value)} /></label>
+          <label className="space-y-1"><span className="text-xs text-[#8a7456]">Œufs cassés / abîmés</span><input type="number" className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.oeufs_casses} onChange={(e) => set('oeufs_casses', e.target.value)} /></label>
+          <div className="md:col-span-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">Œufs vendables calculés : <b>{fmtNumber(sellable)}</b></div>
+          <label className="space-y-1 md:col-span-2"><span className="text-xs text-[#8a7456]">Notes</span><textarea rows={3} className="w-full rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-sm" value={form.notes} onChange={(e) => set('notes', e.target.value)} /></label>
+        </div>
+        <div className="p-4 border-t border-[#eadcc2] flex justify-end gap-2"><button type="button" className="px-4 py-2 rounded-xl border border-[#d6c3a0]" onClick={onClose}>Annuler</button><button type="button" disabled={saving} className="px-4 py-2 rounded-xl bg-[#c9a96a] text-white font-bold disabled:opacity-60" onClick={submit}>{saving ? 'Enregistrement...' : 'Enregistrer'}</button></div>
+      </div>
+    </div>
+  );
 }
 
 function LastEggEntries({ logs = [], lots = [], onUpdateProduction, onDeleteProduction, onRefreshProduction }) {
+  const [editing, setEditing] = useState(null);
+  const [saving, setSaving] = useState(false);
   const lotById = new Map(lots.map((lot) => [lot.id, lot]));
   const rows = safeArray(logs)
     .filter((log) => eggs(log) > 0 || broken(log) > 0)
     .slice()
     .sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.id || '').localeCompare(String(a.id || '')))
     .slice(0, 6);
+  const lotNameFor = (log = {}) => log.lot_name || lotById.get(log.lot_id)?.name || log.lot_id || 'Lot';
+  const saveEdit = async (nextLog) => {
+    if (!nextLog?.id || !onUpdateProduction) return toast.error('Modification relevé indisponible');
+    try {
+      setSaving(true);
+      await onUpdateProduction(nextLog.id, nextLog);
+      await onRefreshProduction?.();
+      toast.success('Relevé œufs modifié');
+      setEditing(null);
+    } catch (error) {
+      toast.error(error.message || 'Modification relevé impossible');
+    } finally {
+      setSaving(false);
+    }
+  };
+  const deleteLog = async (log) => {
+    if (!log?.id || !onDeleteProduction) return toast.error('Suppression relevé indisponible');
+    if (!window.confirm('Supprimer ce relevé œufs ?')) return;
+    try {
+      await onDeleteProduction(log.id);
+      await onRefreshProduction?.();
+      toast.success('Relevé œufs supprimé');
+    } catch (error) {
+      toast.error(error.message || 'Suppression relevé impossible');
+    }
+  };
   if (!rows.length) {
     return <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4 text-sm text-[#8a7456]"><b className="text-[#2f2415]">Derniers relevés œufs</b><br />Aucun relevé œufs utile. Les anciennes lignes à 0 sont ignorées.</div>;
   }
-  const handlers = { onUpdateProduction, onDeleteProduction, onRefreshProduction };
   return (
     <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4">
+      <EggLogEditModal log={editing} lotName={lotNameFor(editing)} onClose={() => setEditing(null)} onSave={saveEdit} saving={saving} />
       <div className="flex items-start gap-3 mb-3">
         <div className="w-10 h-10 rounded-xl bg-[#fff3d8] text-[#9a6b12] flex items-center justify-center"><Bird size={18} /></div>
         <div>
@@ -135,7 +161,7 @@ function LastEggEntries({ logs = [], lots = [], onUpdateProduction, onDeleteProd
       <div className="overflow-x-auto border border-[#d6c3a0] rounded-xl">
         <table className="w-full min-w-[680px] text-sm">
           <thead><tr className="bg-[#fffdf8] border-b border-[#d6c3a0]"><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Date</th><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Lot</th><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Œufs</th><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Casses</th><th className="text-left px-3 py-2 text-xs text-[#8a7456]">Vendables</th><th className="text-right px-3 py-2 text-xs text-[#8a7456]">Actions</th></tr></thead>
-          <tbody>{rows.map((log) => { const lot = lotById.get(log.lot_id); return <tr key={log.id || `${log.date}-${log.lot_id}-${eggs(log)}`} className="border-b border-[#d6c3a0]/50"><td className="px-3 py-2 text-[#2f2415]">{log.date}</td><td className="px-3 py-2 text-[#2f2415] font-semibold">{log.lot_name || lot?.name || log.lot_id}</td><td className="px-3 py-2 text-[#2f2415]">{fmtNumber(eggs(log))}</td><td className="px-3 py-2 text-[#2f2415]">{fmtNumber(broken(log))}</td><td className="px-3 py-2 text-emerald-600 font-semibold">{fmtNumber(Math.max(0, eggs(log) - broken(log)))}</td><td className="px-3 py-2 text-right"><button type="button" className="inline-flex mr-2 text-[#8a7456] hover:text-[#2f2415]" title="Modifier" onClick={() => editEggLog(log, handlers)}><Edit size={16} /></button><button type="button" className="inline-flex text-red-600 hover:text-red-800" title="Supprimer" onClick={() => deleteEggLog(log, handlers)}><Trash2 size={16} /></button></td></tr>; })}</tbody>
+          <tbody>{rows.map((log) => <tr key={log.id || `${log.date}-${log.lot_id}-${eggs(log)}`} className="border-b border-[#d6c3a0]/50"><td className="px-3 py-2 text-[#2f2415]">{log.date}</td><td className="px-3 py-2 text-[#2f2415] font-semibold">{lotNameFor(log)}</td><td className="px-3 py-2 text-[#2f2415]">{fmtNumber(eggs(log))}</td><td className="px-3 py-2 text-[#2f2415]">{fmtNumber(broken(log))}</td><td className="px-3 py-2 text-emerald-600 font-semibold">{fmtNumber(Math.max(0, eggs(log) - broken(log)))}</td><td className="px-3 py-2 text-right"><button type="button" className="inline-flex mr-2 text-[#8a7456] hover:text-[#2f2415]" title="Modifier" onClick={() => setEditing(log)}><Edit size={16} /></button><button type="button" className="inline-flex text-red-600 hover:text-red-800" title="Supprimer" onClick={() => deleteLog(log)}><Trash2 size={16} /></button></td></tr>)}</tbody>
         </table>
       </div>
     </div>
