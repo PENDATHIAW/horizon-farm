@@ -7,6 +7,7 @@ import KpiCard from '../components/KpiCard';
 import SectionHeader from '../components/SectionHeader';
 import CreateModal from '../modals/CreateModal';
 import DeleteModal from '../modals/DeleteModal';
+import { openWhatsAppApp } from '../utils/contactActions';
 import { fmtCurrency } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
 import { getResponsibleOptions, resolveResponsibleLabel } from '../utils/rhDirectory';
@@ -87,14 +88,28 @@ export default function AlertesCenter({ alertes = [], transactions = [], animaux
   const handleMarkRead = async (alerte) => { try { await persistAutoIfNeeded(alerte, { status: 'lue' }); await onRefresh?.(); toast.success('Marquée comme lue'); } catch { toast.error('Mise à jour impossible'); } };
   const handleTraiter = async (alerte) => { try { await persistAutoIfNeeded(alerte, { status: 'traitee', treated_at: new Date().toISOString() }); await onRefresh?.(); toast.success('Alerte traitée'); } catch { toast.error('Traitement impossible'); } };
   const openLinkedModule = (alerte) => { const target = moduleFor(alerte); if (onNavigate) { onNavigate(target); toast.success(`Ouverture ${target}`); } else toast('Navigation module non disponible ici'); };
-  const handleSendWhatsApp = async (alerte, forceOwner = false) => { if (sendingId === alerte.id) return; try { setSendingId(alerte.id); const recipient = forceOwner ? 'OWNER' : (alerte.responsable || config.defaultRecipient || 'OWNER'); const ownerPhone = recipient === 'OWNER' ? config.ownerWhatsapp : ''; const recipientValue = ownerPhone || recipient; await onSendWhatsApp?.({ ...alerte, message: messageFor(alerte, recipient, config), responsable: recipient, responsable_label: recipientLabel(recipient, config), recipient_phone: ownerPhone }, recipientValue); if (alerte.isAuto) await persistAutoIfNeeded(alerte, { whatsapp_sent_at: new Date().toISOString(), status: alerte.status || 'nouvelle', responsable: recipient, responsable_label: recipientLabel(recipient, config) }); else await onUpdate?.(alerte.id, { whatsapp_sent_at: new Date().toISOString(), responsable: recipient, responsable_label: recipientLabel(recipient, config), recipient_phone: ownerPhone }); toast.success('Message WhatsApp préparé'); } catch { toast.error('Message impossible'); } finally { setSendingId(''); } };
+  const handleSendWhatsApp = async (alerte, forceOwner = false) => {
+    if (sendingId === alerte.id) return;
+    try {
+      setSendingId(alerte.id);
+      const recipient = forceOwner ? 'OWNER' : (alerte.responsable || config.defaultRecipient || 'OWNER');
+      const ownerPhone = recipient === 'OWNER' ? config.ownerWhatsapp : '';
+      const recipientValue = ownerPhone || recipient;
+      const message = messageFor(alerte, recipient, config);
+      await onSendWhatsApp?.({ ...alerte, message, responsable: recipient, responsable_label: recipientLabel(recipient, config), recipient_phone: ownerPhone }, recipientValue);
+      await openWhatsAppApp({ phone: recipientValue, message, fallbackWeb: false });
+      if (alerte.isAuto) await persistAutoIfNeeded(alerte, { whatsapp_sent_at: new Date().toISOString(), status: alerte.status || 'nouvelle', responsable: recipient, responsable_label: recipientLabel(recipient, config) });
+      else await onUpdate?.(alerte.id, { whatsapp_sent_at: new Date().toISOString(), responsable: recipient, responsable_label: recipientLabel(recipient, config), recipient_phone: ownerPhone });
+      toast.success('WhatsApp ouvert avec message préparé');
+    } catch { toast.error('Message impossible'); } finally { setSendingId(''); }
+  };
   const sendAllUrgent = async () => { const urgent = allAlerts.filter((a) => shouldAutoNotify(a, config)); if (!config.ownerWhatsapp) return toast.error('Configure d’abord ton numéro WhatsApp'); for (const alert of urgent.slice(0, 5)) await handleSendWhatsApp(alert, true); };
   const handleDelete = async () => { if (!selected) return; try { setSaving(true); await onDelete(selected.id); toast.success('Supprimée'); setModal(null); } catch { toast.error('Suppression impossible'); } finally { setSaving(false); } };
   const saveAlertConfig = () => { saveConfig(config); setModal(null); toast.success('Configuration alertes sauvegardée'); };
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-2.5 flex flex-wrap items-center gap-2 text-sm text-amber-700 font-medium"><span>ℹ️</span><span>WhatsApp est préparé et journalisé avant envoi réel. Pour un envoi automatique sans clic, il faudra brancher l’API WhatsApp.</span>{autoNotifyCount > 0 ? <button type="button" onClick={sendAllUrgent} className="ml-auto rounded-lg bg-amber-600 px-3 py-1 text-white text-xs">Préparer {autoNotifyCount} urgence(s)</button> : null}</div>
+      <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-2.5 flex flex-wrap items-center gap-2 text-sm text-amber-700 font-medium"><span>ℹ️</span><span>WhatsApp est préparé et journalisé avant envoi réel. Le bouton WhatsApp tente d’ouvrir l’application, pas WhatsApp Web. Pour un envoi automatique sans clic, il faudra brancher l’API WhatsApp.</span>{autoNotifyCount > 0 ? <button type="button" onClick={sendAllUrgent} className="ml-auto rounded-lg bg-amber-600 px-3 py-1 text-white text-xs">Préparer {autoNotifyCount} urgence(s)</button> : null}</div>
       <SectionHeader title="Centre d'Alertes" sub="Alertes automatiques, actions terrain, notifications équipe" actions={<><Btn icon={Settings} variant="outline" small onClick={() => setModal('config')}>Configuration</Btn><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Nouvelle alerte</Btn></>} />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4"><KpiCard icon={Bell} label="Total alertes" value={allAlerts.length} color="bg-sky-500/20 text-sky-400" /><KpiCard icon={Bell} label="Nouvelles" value={nouvellesCount} color={nouvellesCount > 0 ? 'bg-amber-500/20 text-amber-500' : 'bg-gray-100 text-gray-400'} /><KpiCard icon={AlertTriangle} label="Critiques / urgences" value={critiquesCount} color={critiquesCount > 0 ? 'bg-red-500/20 text-red-500' : 'bg-gray-100 text-gray-400'} /><KpiCard icon={Zap} label="WhatsApp à préparer" value={autoNotifyCount} color={autoNotifyCount > 0 ? 'bg-red-500/20 text-red-500' : 'bg-gray-100 text-gray-400'} /></div>
       <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4 space-y-3"><div className="flex gap-3 items-center"><div className="relative flex-1"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8a7456]" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher..." className="w-full pl-8 pr-3 py-2 text-sm border border-[#d6c3a0] rounded-xl bg-[#fffdf8] text-[#2f2415] focus:outline-none focus:border-[#c9a96a]" /></div></div><Filter label="Gravité" values={['tous', 'info', 'warning', 'critique', 'urgence']} active={severityFilter} setActive={setSeverityFilter} /><Filter label="Statut" values={['tous', 'nouvelle', 'lue', 'traitee']} active={statusFilter} setActive={setStatusFilter} />{modules.length > 0 ? <Filter label="Module" values={['tous', ...modules]} active={moduleFilter} setActive={setModuleFilter} /> : null}</div>
