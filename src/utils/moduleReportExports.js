@@ -49,6 +49,10 @@ function seriesValue(item, index) {
   return safeNumber(item.values?.[index] ?? item.data?.[index] ?? 0);
 }
 
+function isBar(item = {}) {
+  return String(item.type || 'bar').toLowerCase() !== 'line';
+}
+
 function drawEvolutionChart(doc, { labels = [], series = [] }) {
   const cleanLabels = Array.isArray(labels) ? labels : [];
   const cleanSeries = Array.isArray(series) ? series.filter((item) => Array.isArray(item.values || item.data)) : [];
@@ -57,15 +61,22 @@ function drawEvolutionChart(doc, { labels = [], series = [] }) {
   const x = 40;
   const y = 132;
   const w = 760;
-  const h = 210;
-  const plotX = x + 48;
-  const plotY = y + 22;
-  const plotW = w - 78;
-  const plotH = h - 70;
+  const h = 220;
+  const plotX = x + 50;
+  const plotY = y + 24;
+  const plotW = w - 86;
+  const plotH = h - 76;
   const allValues = cleanSeries.flatMap((item) => cleanLabels.map((_, index) => seriesValue(item, index)));
   const maxValue = Math.max(1, ...allValues);
   const minValue = Math.min(0, ...allValues);
   const span = Math.max(1, maxValue - minValue);
+  const palette = [[47, 36, 21], [0, 122, 90], [184, 73, 0], [154, 107, 18], [170, 20, 40], [70, 92, 140]];
+  const labelCount = Math.max(1, cleanLabels.length);
+  const pointCount = Math.max(1, cleanLabels.length - 1);
+  const barSeries = cleanSeries.slice(0, 6).filter(isBar);
+  const lineSeries = cleanSeries.slice(0, 6).filter((item) => !isBar(item));
+  const groupWidth = plotW / labelCount;
+  const barWidth = Math.max(5, Math.min(20, (groupWidth * 0.72) / Math.max(1, barSeries.length)));
 
   doc.setDrawColor(234, 220, 194);
   doc.setFillColor(255, 253, 248);
@@ -88,28 +99,35 @@ function drawEvolutionChart(doc, { labels = [], series = [] }) {
     doc.text(Math.round(value).toLocaleString('fr-FR'), x + 10, yy + 2);
   }
 
-  const palette = [
-    [47, 36, 21],
-    [0, 122, 90],
-    [184, 73, 0],
-    [154, 107, 18],
-    [170, 20, 40],
-    [70, 92, 140],
-  ];
-  const count = Math.max(1, cleanLabels.length - 1);
-
-  cleanSeries.slice(0, 6).forEach((item, seriesIndex) => {
-    const color = palette[seriesIndex % palette.length];
+  barSeries.forEach((item, barIndex) => {
+    const originalIndex = cleanSeries.indexOf(item);
+    const color = palette[originalIndex % palette.length];
     doc.setDrawColor(...color);
     doc.setFillColor(...color);
-    doc.setLineWidth(1.4);
+    cleanLabels.forEach((_, index) => {
+      const value = seriesValue(item, index);
+      const xCenter = plotX + groupWidth * index + groupWidth / 2;
+      const baseY = plotY + plotH;
+      const topY = plotY + plotH - ((value - minValue) / span) * plotH;
+      const left = xCenter - (barSeries.length * barWidth) / 2 + barIndex * barWidth;
+      const height = Math.max(0, baseY - topY);
+      if (height > 0) doc.roundedRect(left, topY, barWidth * 0.82, height, 2, 2, 'F');
+    });
+  });
+
+  lineSeries.forEach((item) => {
+    const originalIndex = cleanSeries.indexOf(item);
+    const color = palette[originalIndex % palette.length];
+    doc.setDrawColor(...color);
+    doc.setFillColor(...color);
+    doc.setLineWidth(1.5);
     let prev = null;
     cleanLabels.forEach((_, index) => {
       const value = seriesValue(item, index);
-      const px = plotX + (plotW * index) / count;
+      const px = cleanLabels.length === 1 ? plotX + plotW / 2 : plotX + (plotW * index) / pointCount;
       const py = plotY + plotH - ((value - minValue) / span) * plotH;
       if (prev) doc.line(prev.x, prev.y, px, py);
-      doc.circle(px, py, 2.2, 'F');
+      doc.circle(px, py, 2.3, 'F');
       prev = { x: px, y: py };
     });
   });
@@ -119,7 +137,7 @@ function drawEvolutionChart(doc, { labels = [], series = [] }) {
   doc.setTextColor(125, 106, 74);
   cleanLabels.forEach((label, index) => {
     if (index % labelStep !== 0 && index !== cleanLabels.length - 1) return;
-    const px = plotX + (plotW * index) / count;
+    const px = cleanLabels.length === 1 ? plotX + plotW / 2 : plotX + (plotW * index) / pointCount;
     doc.text(shortLabel(label), px, plotY + plotH + 16, { align: 'center' });
   });
 
@@ -129,10 +147,15 @@ function drawEvolutionChart(doc, { labels = [], series = [] }) {
   cleanSeries.slice(0, 6).forEach((item, index) => {
     const color = palette[index % palette.length];
     doc.setFillColor(...color);
-    doc.roundedRect(legendX, legendY - 7, 10, 6, 2, 2, 'F');
+    doc.setDrawColor(...color);
+    if (isBar(item)) doc.roundedRect(legendX, legendY - 7, 10, 6, 2, 2, 'F');
+    else {
+      doc.line(legendX, legendY - 4, legendX + 10, legendY - 4);
+      doc.circle(legendX + 5, legendY - 4, 2, 'F');
+    }
     doc.setTextColor(47, 36, 21);
     doc.text(shortLabel(item.name || `Série ${index + 1}`, 18), legendX + 14, legendY - 2);
-    legendX += 100;
+    legendX += 106;
   });
 
   doc.setLineWidth(0.2);
@@ -156,14 +179,11 @@ export function buildModuleReportPdf({ module = 'Module', title = 'Rapport', per
 
   const tableStartY = drawEvolutionChart(doc, { labels, series });
   const head = [['Période', ...series.map((item) => item.name)]];
-  const body = labels.map((label, index) => [
-    label,
-    ...series.map((item) => {
-      const value = seriesValue(item, index);
-      const unit = item.unit ? ` ${item.unit}` : '';
-      return `${Number(value || 0).toLocaleString('fr-FR')}${unit}`;
-    }),
-  ]);
+  const body = labels.map((label, index) => [label, ...series.map((item) => {
+    const value = seriesValue(item, index);
+    const unit = item.unit ? ` ${item.unit}` : '';
+    return `${Number(value || 0).toLocaleString('fr-FR')}${unit}`;
+  })]);
 
   autoTable(doc, {
     startY: tableStartY,
@@ -194,11 +214,5 @@ export function buildModuleReportPdf({ module = 'Module', title = 'Rapport', per
 export function exportModuleReportPdf(payload) {
   const { doc, filename } = buildModuleReportPdf(payload);
   doc.save(filename);
-  return saveModuleReportExport({
-    module: payload.module,
-    title: payload.title,
-    period: payload.period,
-    filename,
-    summary: payload.subtitle,
-  });
+  return saveModuleReportExport({ module: payload.module, title: payload.title, period: payload.period, filename, summary: payload.subtitle });
 }
