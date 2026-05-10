@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import useCrudModule from '../hooks/useCrudModule';
 import { commitSaleWorkflow, prepareSaleWorkflow, useSuggestion } from '../services/workflowService';
+import { buildSaleAssetPatch, cleanPatchForWrite } from '../services/saleAssetPatchService';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { enrichSalesOrderStatus, isOpenForPayment, normalizeOrderStatus, normalizePaymentStatus, paidForOrder, remainingForOrder } from '../utils/salesStatuses';
@@ -47,12 +48,24 @@ async function secureSale(order, props, setPreview) {
   setPreview(preview);
 }
 
-async function updateSourceAsset(activity, id, patch, props) {
+function findAsset(activity, id, props) {
+  const key = String(activity || '').toLowerCase();
+  if (key === 'animaux' || key.includes('animal')) return arr(props.animaux).find((row) => String(row.id) === String(id) || String(row.tag) === String(id));
+  if (key.includes('avicole') || key.includes('lot')) return arr(props.lots).find((row) => String(row.id) === String(id));
+  if (key === 'cultures' || key.includes('culture')) return arr(props.cultures).find((row) => String(row.id) === String(id));
+  if (key === 'stock' || key.includes('stock')) return arr(props.stocks).find((row) => String(row.id) === String(id));
+  return null;
+}
+
+async function updateSourceAsset(activity, id, patch, props, order = {}) {
   if (!id) return null;
-  if (activity === 'animaux') return props.onUpdateAnimal?.(id, patch);
-  if (activity === 'cultures') return props.onUpdateCulture?.(id, patch);
-  if (activity === 'stock') return props.onUpdateStock?.(id, patch);
-  if (String(activity || '').startsWith('avicole')) return props.onUpdateLot?.(id, patch);
+  const baseAsset = findAsset(activity, id, props) || {};
+  const typedPatch = buildSaleAssetPatch({ ...baseAsset, ...order, source_id: id }, activity);
+  const finalPatch = cleanPatchForWrite({ ...(patch || {}), ...(typedPatch || {}) });
+  if (activity === 'animaux') return props.onUpdateAnimal?.(id, finalPatch);
+  if (activity === 'cultures') return props.onUpdateCulture?.(id, finalPatch);
+  if (activity === 'stock') return props.onUpdateStock?.(id, finalPatch);
+  if (String(activity || '').startsWith('avicole')) return props.onUpdateLot?.(id, finalPatch);
   return null;
 }
 
@@ -72,7 +85,7 @@ async function commitPreview(preview, props, setPreview) {
       onCreateFinanceTransaction: props.onCreateFinanceTransaction,
       onUpdateOrder: props.onUpdate,
       onUpdateClient: props.onUpdateClient,
-      onUpdateSourceAsset: (activity, id, patch) => updateSourceAsset(activity, id, patch, props),
+      onUpdateSourceAsset: (activity, id, patch) => updateSourceAsset(activity, id, patch, props, preview.source_order),
       onCreateDocument: props.onCreateDocument,
       onCreateBusinessEvent: props.onCreateBusinessEvent,
       onCreateAlert: props.onCreateAlert,
