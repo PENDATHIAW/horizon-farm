@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { deriveSalesOpportunities, isOpenSalesOpportunity, salesOpportunityAmount, salesOpportunityKey } from '../utils/salesOpportunityDerivation';
+import { calculateSalesMargin, enrichWithSalesMargin } from '../utils/salesMarginEngine';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const today = () => new Date().toISOString().slice(0, 10);
@@ -50,10 +51,11 @@ function sourceLabel(opp = {}) {
 }
 
 export default function SalesOpportunitiesBridge({
-  opportunities = [], rows = [], clients = [], lots = [], animaux = [], cultures = [], stocks = [],
+  opportunities = [], rows = [], clients = [], lots = [], animaux = [], cultures = [], stocks = [], alimentationLogs = [], productionLogs = [], vaccins = [], businessEvents = [],
   onCreate, onRefresh, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateBusinessEvent, onRefreshBusinessEvents,
 }) {
   const [savingId, setSavingId] = useState('');
+  const marginContext = { lots, animaux, cultures, stocks, alimentationLogs, productionLogs, vaccins, businessEvents };
   const active = useMemo(() => deriveSalesOpportunities({ opportunities, lots, animaux, cultures, stocks })
     .filter(isOpenSalesOpportunity)
     .map((opp) => ({ opp, order: arr(rows).find((order) => orderLinkedToOpportunity(order, opp)) }))
@@ -61,7 +63,8 @@ export default function SalesOpportunitiesBridge({
 
   const persistDerivedOpportunity = async (opp) => {
     if (!opp.is_derived) return opp;
-    const payload = { ...opp, id: makeId('OPP'), is_derived: false, created_at: now(), updated_at: now() };
+    const enriched = enrichWithSalesMargin(opp, marginContext);
+    const payload = { ...enriched, id: makeId('OPP'), is_derived: false, created_at: now(), updated_at: now() };
     await onCreateOpportunity?.(payload);
     return payload;
   };
@@ -78,6 +81,7 @@ export default function SalesOpportunitiesBridge({
       const total = Math.max(0, salesOpportunityAmount(opp) || quantity * unitPrice);
       const sourceModule = clean(opp.source_module || opp.created_from || opp.module_source || 'opportunites');
       const sourceId = clean(opp.source_id || opp.related_id || opp.entity_id || opp.id);
+      const margin = calculateSalesMargin({ ...opp, quantity, unit_price: unitPrice, montant_total: total, source_module: sourceModule, source_id: sourceId }, marginContext);
       const orderId = makeId('CMD');
       await onCreate?.({
         id: orderId,
@@ -96,6 +100,14 @@ export default function SalesOpportunitiesBridge({
         unit_price: unitPrice,
         montant_total: total,
         total,
+        cout_revient: margin.cout_revient,
+        cout_direct: margin.cout_direct,
+        cout_source: margin.cout_source,
+        marge_directe: margin.marge_directe,
+        marge_montant: margin.marge_montant,
+        marge: margin.marge,
+        taux_marge_directe: margin.taux_marge_directe,
+        marge_taux: margin.marge_taux,
         montant_paye: 0,
         reste_a_payer: total,
         statut_commande: 'enregistree',
@@ -104,10 +116,10 @@ export default function SalesOpportunitiesBridge({
         created_from: 'sales_opportunity',
         created_at: now(),
       });
-      await onUpdateOpportunity?.(opp.id, { status: 'convertie', statut: 'convertie', converted_order_id: orderId, converted_at: now() });
-      await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'opportunite_convertie_commande', module_source: 'ventes', entity_type: 'sales_opportunity', entity_id: opp.id, title: `Commande créée depuis ${labelOf(opp)}`, description: `${sourceLabel(opp)} · ${fmtCurrency(total)}`, event_date: today(), severity: 'info', linked_order_id: orderId, saisies_evitees: 4 });
+      await onUpdateOpportunity?.(opp.id, { status: 'convertie', statut: 'convertie', converted_order_id: orderId, converted_at: now(), cout_revient: margin.cout_revient, marge_directe: margin.marge_directe, marge_taux: margin.marge_taux, cout_source: margin.cout_source });
+      await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'opportunite_convertie_commande', module_source: 'ventes', entity_type: 'sales_opportunity', entity_id: opp.id, title: `Commande créée depuis ${labelOf(opp)}`, description: `${sourceLabel(opp)} · ${fmtCurrency(total)} · marge directe ${fmtCurrency(margin.marge_directe)}`, event_date: today(), severity: 'info', linked_order_id: orderId, saisies_evitees: 4 });
       await Promise.allSettled([onRefresh?.(), onRefreshOpportunities?.(), onRefreshBusinessEvents?.()]);
-      toast.success('Commande créée depuis l’opportunité');
+      toast.success('Commande créée depuis l’opportunité avec marge directe');
     } catch {
       toast.error('Conversion opportunité impossible');
     } finally {
@@ -131,12 +143,15 @@ export default function SalesOpportunitiesBridge({
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">
         {active.map(({ opp, order }) => {
           const total = salesOpportunityAmount(opp);
+          const margin = calculateSalesMargin({ ...opp, montant_total: total }, marginContext);
           const client = arr(clients).find((c) => clean(c.id) === clean(opp.client_id));
           return (
             <div key={opp.id || salesOpportunityKey(opp)} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
               <p className="font-bold text-[#2f2415]"><ShoppingCart size={14} className="inline" /> {labelOf(opp)}</p>
               <p className="text-xs text-[#8a7456] mt-1">{sourceLabel(opp)} · {fmtNumber(quantityOf(opp))} {opp.unit || opp.unite || ''}{opp.is_derived ? ' · détectée' : ''}</p>
               <p className="text-xs text-[#8a7456] mt-1">Valeur estimée : <b>{fmtCurrency(total)}</b></p>
+              <p className="text-xs text-[#8a7456] mt-1">Marge directe : <b className={margin.cout_revient > 0 ? 'text-emerald-700' : 'text-amber-700'}>{fmtCurrency(margin.marge_directe)}</b> · {margin.marge_taux}%</p>
+              <p className="text-[11px] text-[#8a7456] mt-1">Coût : {margin.cout_revient > 0 ? fmtCurrency(margin.cout_revient) : 'à compléter'} · {margin.cout_source}</p>
               <p className="text-xs text-[#8a7456] mt-1">Client : {client?.nom || client?.name || opp.client_id || 'à renseigner'}</p>
               {order ? <p className="mt-3 text-sm font-bold text-emerald-700"><CheckCircle2 size={14} className="inline" /> Commande {order.id}</p> : (
                 <button type="button" disabled={savingId === opp.id} className="mt-3 text-sm font-bold text-emerald-700 disabled:opacity-60" onClick={() => convertToOrder(opp)}>
