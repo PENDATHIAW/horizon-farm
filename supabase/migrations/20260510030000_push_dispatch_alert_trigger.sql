@@ -8,6 +8,10 @@ create table if not exists public.system_settings (
   updated_at timestamptz default now()
 );
 
+alter table public.system_settings add column if not exists is_secret boolean default false;
+alter table public.system_settings add column if not exists created_at timestamptz default now();
+alter table public.system_settings add column if not exists updated_at timestamptz default now();
+
 alter table public.system_settings enable row level security;
 
 drop policy if exists "system_settings_select_authenticated" on public.system_settings;
@@ -36,11 +40,17 @@ returns trigger as $$
 declare
   app_url text;
   cron_secret text;
+  payload jsonb;
   alert_severity text;
   alert_status text;
+  alert_module text;
+  alert_entity_id text;
 begin
-  alert_severity := lower(coalesce(new.severity, new.gravite, ''));
-  alert_status := lower(coalesce(new.status, new.statut, 'nouvelle'));
+  payload := to_jsonb(new);
+  alert_severity := lower(coalesce(payload->>'severity', payload->>'gravite', ''));
+  alert_status := lower(coalesce(payload->>'status', payload->>'statut', 'nouvelle'));
+  alert_module := coalesce(payload->>'module_source', payload->>'module', 'alertes');
+  alert_entity_id := coalesce(payload->>'entity_id', payload->>'related_id', payload->>'id', '');
 
   if alert_severity not in ('urgence', 'critique') then
     return new;
@@ -65,10 +75,10 @@ begin
     ),
     body := jsonb_build_object(
       'source', 'supabase_alert_trigger',
-      'alert_id', new.id,
+      'alert_id', payload->>'id',
       'severity', alert_severity,
-      'module', coalesce(new.module_source, new.module, 'alertes'),
-      'entity_id', coalesce(new.entity_id, new.related_id, '')
+      'module', alert_module,
+      'entity_id', alert_entity_id
     )
   );
 
@@ -80,6 +90,6 @@ $$ language plpgsql security definer;
 
 drop trigger if exists trg_dispatch_push_on_critical_alert on public.alertes_center;
 create trigger trg_dispatch_push_on_critical_alert
-  after insert or update of severity, gravite, status, statut on public.alertes_center
+  after insert or update on public.alertes_center
   for each row
   execute function public.dispatch_push_on_critical_alert();
