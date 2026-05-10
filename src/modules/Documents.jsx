@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import ActionIconButton from '../components/ActionIconButton';
 import Btn from '../components/Btn';
 import KpiCard from '../components/KpiCard';
+import ModuleTimeline from '../components/ModuleTimeline';
 import SectionHeader from '../components/SectionHeader';
 import CreateModal from '../modals/CreateModal';
 import DeleteModal from '../modals/DeleteModal';
@@ -12,167 +13,37 @@ import { documentFields, normalizeDocumentPayload } from '../utils/documentForms
 import { generateSequentialId } from '../utils/ids';
 
 const CATEGORIES = ['facture', 'recu', 'ordonnance', 'certificat', 'contrat', 'bon_livraison', 'photo', 'rapport', 'presentation_projet', 'autre'];
+const CAT_ICONS = { facture: FileText, recu: Receipt, ordonnance: Syringe, certificat: Award, contrat: FileCheck, bon_livraison: Package, photo: Image, rapport: BarChart2, presentation_projet: FileCheck, autre: File };
+const CAT_COLORS = { facture: 'bg-sky-100 text-sky-700 border-sky-200', recu: 'bg-emerald-100 text-emerald-700 border-emerald-200', ordonnance: 'bg-red-100 text-red-700 border-red-200', certificat: 'bg-purple-100 text-purple-700 border-purple-200', contrat: 'bg-amber-100 text-amber-700 border-amber-200', bon_livraison: 'bg-orange-100 text-orange-700 border-orange-200', photo: 'bg-pink-100 text-pink-700 border-pink-200', rapport: 'bg-indigo-100 text-indigo-700 border-indigo-200', presentation_projet: 'bg-[#c9a96a]/20 text-[#8a5d0b] border-[#c9a96a]/40', autre: 'bg-gray-100 text-gray-600 border-gray-200' };
 
-const CAT_ICONS = {
-  facture: FileText, recu: Receipt, ordonnance: Syringe, certificat: Award,
-  contrat: FileCheck, bon_livraison: Package, photo: Image, rapport: BarChart2, presentation_projet: FileCheck, autre: File,
-};
+function getEntityName(entityId, entityType, animaux, lots, cultures, clients, fournisseurs, stocks = [], transactions = []) { if (!entityId) return null; const id = String(entityId); if (entityType === 'animal') return animaux.find((a) => String(a.id) === id)?.name || id; if (entityType === 'lot_avicole') return lots.find((l) => String(l.id) === id)?.name || id; if (entityType === 'culture') return cultures.find((c) => String(c.id) === id)?.nom || id; if (entityType === 'client') return clients.find((c) => String(c.id) === id)?.nom || id; if (entityType === 'fournisseur') return fournisseurs.find((f) => String(f.id) === id)?.nom || id; if (entityType === 'stock') return stocks.find((s) => String(s.id) === id)?.produit || id; if (entityType === 'transaction') return transactions.find((t) => String(t.id) === id)?.libelle || id; return id; }
 
-const CAT_COLORS = {
-  facture: 'bg-sky-100 text-sky-700 border-sky-200',
-  recu: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  ordonnance: 'bg-red-100 text-red-700 border-red-200',
-  certificat: 'bg-purple-100 text-purple-700 border-purple-200',
-  contrat: 'bg-amber-100 text-amber-700 border-amber-200',
-  bon_livraison: 'bg-orange-100 text-orange-700 border-orange-200',
-  photo: 'bg-pink-100 text-pink-700 border-pink-200',
-  rapport: 'bg-indigo-100 text-indigo-700 border-indigo-200',
-  presentation_projet: 'bg-[#c9a96a]/20 text-[#8a5d0b] border-[#c9a96a]/40',
-  autre: 'bg-gray-100 text-gray-600 border-gray-200',
-};
-
-function getEntityName(entityId, entityType, animaux, lots, cultures, clients, fournisseurs, stocks = [], transactions = []) {
-  if (!entityId) return null;
-  const id = String(entityId);
-  if (entityType === 'animal') return animaux.find((a) => String(a.id) === id)?.name || id;
-  if (entityType === 'lot_avicole') return lots.find((l) => String(l.id) === id)?.name || id;
-  if (entityType === 'culture') return cultures.find((c) => String(c.id) === id)?.nom || id;
-  if (entityType === 'client') return clients.find((c) => String(c.id) === id)?.nom || id;
-  if (entityType === 'fournisseur') return fournisseurs.find((f) => String(f.id) === id)?.nom || id;
-  if (entityType === 'stock') return stocks.find((s) => String(s.id) === id)?.produit || id;
-  if (entityType === 'transaction') return transactions.find((t) => String(t.id) === id)?.libelle || id;
-  return id;
-}
-
-export default function Documents({
-  rows = [],
-  animaux = [],
-  lots = [],
-  cultures = [],
-  clients = [],
-  fournisseurs = [],
-  transactions = [],
-  finances = [],
-  stocks = [],
-  loading,
-  onCreate,
-  onUpdate,
-  onDelete,
-  onRefresh,
-}) {
+export default function Documents({ rows = [], animaux = [], lots = [], cultures = [], clients = [], fournisseurs = [], transactions = [], finances = [], stocks = [], loading, onCreate, onUpdate, onDelete, onRefresh, onNavigate }) {
   const [catFilter, setCatFilter] = useState('tous');
   const [moduleFilter, setModuleFilter] = useState('tous');
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(null);
   const [modal, setModal] = useState(null);
   const [saving, setSaving] = useState(false);
-
   const formContext = useMemo(() => ({ animaux, lots, cultures, clients, fournisseurs, transactions, finances, stocks }), [animaux, lots, cultures, clients, fournisseurs, transactions, finances, stocks]);
   const fields = useMemo(() => documentFields(formContext), [formContext]);
   const txRows = transactions.length ? transactions : finances;
   const uniqueModules = useMemo(() => [...new Set(rows.map((r) => r.module_source).filter(Boolean))], [rows]);
-
-  const filtered = useMemo(() => rows.filter((doc) => {
-    if (catFilter !== 'tous' && doc.document_category !== catFilter) return false;
-    if (moduleFilter !== 'tous' && doc.module_source !== moduleFilter) return false;
-    if (query) {
-      const q = query.toLowerCase();
-      const hit = (doc.title || '').toLowerCase().includes(q)
-        || (doc.notes || '').toLowerCase().includes(q)
-        || (doc.entity_id || '').toLowerCase().includes(q)
-        || (doc.related_id || '').toLowerCase().includes(q);
-      if (!hit) return false;
-    }
-    return true;
-  }), [rows, catFilter, moduleFilter, query]);
-
-  const catCounts = useMemo(() => {
-    const counts = {};
-    CATEGORIES.forEach((c) => { counts[c] = rows.filter((r) => r.document_category === c).length; });
-    return counts;
-  }, [rows]);
-
-  const submitCreate = async (payload) => {
-    try {
-      setSaving(true);
-      await onCreate(normalizeDocumentPayload(payload, formContext));
-      await onRefresh?.();
-      toast.success('Document ajouté');
-      setModal(null);
-    } catch (err) {
-      toast.error(err.message || 'Création document impossible');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const submitEdit = async (payload) => {
-    if (!selected) return;
-    try {
-      setSaving(true);
-      await onUpdate(selected.id, normalizeDocumentPayload(payload, formContext));
-      await onRefresh?.();
-      toast.success('Document modifié');
-      setModal(null);
-    } catch (err) {
-      toast.error(err.message || 'Modification document impossible');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const submitDelete = async () => {
-    if (!selected) return;
-    try {
-      setSaving(true);
-      await onDelete(selected.id);
-      await onRefresh?.();
-      toast.success('Document supprimé');
-      setModal(null);
-    } catch (err) {
-      toast.error(err.message || 'Suppression document impossible');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <SectionHeader
-        title="Documents"
-        sub="Factures, ordonnances, certificats, contrats, photos, rapports"
-        actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter document</Btn></>}
-      />
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard icon={FileText} label="Total documents" value={rows.length} color="bg-sky-500/20 text-sky-400" />
-        <KpiCard icon={Receipt} label="Factures & reçus" value={(catCounts.facture || 0) + (catCounts.recu || 0)} color="bg-emerald-500/20 text-emerald-400" />
-        <KpiCard icon={Syringe} label="Ordonnances" value={catCounts.ordonnance || 0} color="bg-red-500/20 text-red-400" />
-        <KpiCard icon={Image} label="Photos" value={catCounts.photo || 0} color="bg-pink-500/20 text-pink-400" />
-      </div>
-
-      <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4 space-y-3">
-        <div className="relative"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8a7456]" /><input type="text" placeholder="Rechercher titre, notes, ID entité..." value={query} onChange={(e) => setQuery(e.target.value)} className="w-full pl-8 pr-4 py-2 rounded-xl border border-[#d6c3a0] text-sm bg-[#fffdf8] focus:outline-none focus:border-[#b6975f]" /></div>
-        <div className="flex flex-wrap gap-2"><span className="text-xs text-[#8a7456] self-center font-medium">Catégorie :</span>{['tous', ...CATEGORIES].map((cat) => <button key={cat} type="button" onClick={() => setCatFilter(cat)} className={`px-3 py-1 rounded-full text-xs font-medium capitalize transition-all ${catFilter === cat ? 'bg-[#2f2415] text-white' : 'bg-white border border-[#d6c3a0] text-[#7d6a4a] hover:border-[#b6975f]'}`}>{cat === 'tous' ? 'Toutes' : cat.replace('_', ' ')}{cat !== 'tous' && catCounts[cat] > 0 ? ` (${catCounts[cat]})` : ''}</button>)}</div>
-        {uniqueModules.length > 0 && <div className="flex flex-wrap gap-2"><span className="text-xs text-[#8a7456] self-center font-medium">Module :</span>{['tous', ...uniqueModules].map((m) => <button key={m} type="button" onClick={() => setModuleFilter(m)} className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${moduleFilter === m ? 'bg-[#2f2415] text-white' : 'bg-white border border-[#d6c3a0] text-[#7d6a4a] hover:border-[#b6975f]'}`}>{m === 'tous' ? 'Tous' : m}</button>)}</div>}
-      </div>
-
-      {loading && <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-36 rounded-2xl bg-[#d6c3a0]/40 animate-pulse" />)}</div>}
-      {!loading && rows.length === 0 && <div className="rounded-2xl border border-dashed border-[#d6c3a0] bg-white p-12 text-center"><FileText size={40} className="mx-auto text-[#d6c3a0] mb-3" /><p className="font-semibold text-[#2f2415] mb-1">Aucun document</p><p className="text-sm text-[#8a7456] mb-4">Ajoutez factures, ordonnances, contrats, photos et rapports.</p><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter un document</Btn></div>}
-      {!loading && rows.length > 0 && filtered.length === 0 && <div className="rounded-2xl border border-[#d6c3a0] bg-white p-8 text-center text-[#8a7456]">Aucun document correspondant aux filtres.</div>}
-
-      {!loading && filtered.length > 0 && <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">{filtered.map((doc) => {
-        const cat = doc.document_category || 'autre';
-        const CatIcon = CAT_ICONS[cat] || File;
-        const catColor = CAT_COLORS[cat] || CAT_COLORS.autre;
-        const entityName = getEntityName(doc.entity_id || doc.related_id, doc.entity_type, animaux, lots, cultures, clients, fournisseurs, stocks, txRows);
-        const dateStr = doc.created_at ? new Date(doc.created_at).toLocaleDateString('fr-FR') : '—';
-        return <div key={doc.id} className="bg-white border border-[#d6c3a0] rounded-2xl p-4 hover:border-[#b6975f] hover:shadow-sm transition-all flex flex-col"><div className="flex items-start gap-3 mb-3"><div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${catColor}`}><CatIcon size={18} /></div><div className="flex-1 min-w-0"><p className="font-semibold text-[#2f2415] truncate">{doc.title}</p><span className={`text-xs px-2 py-0.5 rounded-full border capitalize ${catColor}`}>{cat.replace('_', ' ')}</span></div></div>{(doc.module_source || entityName) && <div className="text-xs text-[#8a7456] mb-2">{doc.module_source && <span className="font-medium">{doc.module_source}</span>}{entityName && <span> — {entityName}</span>}</div>}{doc.notes && <p className="text-xs text-[#7d6a4a] line-clamp-2 mb-2 flex-1">{doc.notes}</p>}<div className="flex items-center justify-between mt-auto pt-3 border-t border-[#f0e8d8]"><span className="text-xs text-[#8a7456]">{dateStr}</span><div className="flex items-center gap-1">{doc.file_url ? <a href={doc.file_url} target="_blank" rel="noopener noreferrer"><button type="button" title="Ouvrir" className="w-7 h-7 flex items-center justify-center rounded-lg bg-sky-500/20 text-sky-600 hover:bg-sky-500/30 transition-colors"><ExternalLink size={12} /></button></a> : null}<ActionIconButton icon={Edit} color="amber" title="Modifier" onClick={() => { setSelected(doc); setModal('edit'); }} /><ActionIconButton icon={Trash2} color="red" title="Supprimer" onClick={() => { setSelected(doc); setModal('delete'); }} /></div></div></div>;
-      })}</div>}
-
-      <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={fields} initialValues={{ id: generateSequentialId('documents', rows), document_category: 'autre', module_source: 'autre' }} autoId={() => generateSequentialId('documents', rows)} uploadFolder="documents" loading={saving} title="Ajouter un document" submitLabel="Ajouter" />
-      <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={fields} initialValues={selected || {}} uploadFolder="documents" loading={saving} title="Modifier le document" submitLabel="Enregistrer" />
-      <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected?.title || ''} loading={saving} />
-    </div>
-  );
+  const filtered = useMemo(() => rows.filter((doc) => { if (catFilter !== 'tous' && doc.document_category !== catFilter) return false; if (moduleFilter !== 'tous' && doc.module_source !== moduleFilter) return false; if (query) { const q = query.toLowerCase(); const hit = (doc.title || '').toLowerCase().includes(q) || (doc.notes || '').toLowerCase().includes(q) || (doc.entity_id || '').toLowerCase().includes(q) || (doc.related_id || '').toLowerCase().includes(q); if (!hit) return false; } return true; }), [rows, catFilter, moduleFilter, query]);
+  const catCounts = useMemo(() => { const counts = {}; CATEGORIES.forEach((c) => { counts[c] = rows.filter((r) => r.document_category === c).length; }); return counts; }, [rows]);
+  const submitCreate = async (payload) => { try { setSaving(true); await onCreate(normalizeDocumentPayload(payload, formContext)); await onRefresh?.(); toast.success('Document ajouté'); setModal(null); } catch (err) { toast.error(err.message || 'Création document impossible'); } finally { setSaving(false); } };
+  const submitEdit = async (payload) => { if (!selected) return; try { setSaving(true); await onUpdate(selected.id, normalizeDocumentPayload(payload, formContext)); await onRefresh?.(); toast.success('Document modifié'); setModal(null); } catch (err) { toast.error(err.message || 'Modification document impossible'); } finally { setSaving(false); } };
+  const submitDelete = async () => { if (!selected) return; try { setSaving(true); await onDelete(selected.id); await onRefresh?.(); toast.success('Document supprimé'); setModal(null); } catch (err) { toast.error(err.message || 'Suppression document impossible'); } finally { setSaving(false); } };
+  return <div className="space-y-6"><SectionHeader title="Documents" sub="Factures, ordonnances, certificats, contrats, photos, rapports" actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter document</Btn></>} />
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3"><KpiCard icon={FileText} label="Total documents" value={rows.length} color="bg-sky-500/20 text-sky-400" /><KpiCard icon={Receipt} label="Factures & reçus" value={(catCounts.facture || 0) + (catCounts.recu || 0)} color="bg-emerald-500/20 text-emerald-400" /><KpiCard icon={Syringe} label="Ordonnances" value={catCounts.ordonnance || 0} color="bg-red-500/20 text-red-400" /><KpiCard icon={Image} label="Photos" value={catCounts.photo || 0} color="bg-pink-500/20 text-pink-400" /></div>
+    <ModuleTimeline title="Timeline documents" subtitle="Derniers justificatifs, preuves et pièces ajoutées." rows={rows.map((doc) => ({ ...doc, status: doc.document_category, description: `${doc.module_source || 'document'} · ${doc.notes || 'preuve enregistrée'}` }))} onRefresh={onRefresh} onNavigate={() => onNavigate?.('documents')} />
+    <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4 space-y-3"><div className="relative"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8a7456]" /><input type="text" placeholder="Rechercher titre, notes, ID entité..." value={query} onChange={(e) => setQuery(e.target.value)} className="w-full pl-8 pr-4 py-2 rounded-xl border border-[#d6c3a0] text-sm bg-[#fffdf8] focus:outline-none focus:border-[#b6975f]" /></div><div className="flex flex-wrap gap-2"><span className="text-xs text-[#8a7456] self-center font-medium">Catégorie :</span>{['tous', ...CATEGORIES].map((cat) => <button key={cat} type="button" onClick={() => setCatFilter(cat)} className={`px-3 py-1 rounded-full text-xs font-medium capitalize transition-all ${catFilter === cat ? 'bg-[#2f2415] text-white' : 'bg-white border border-[#d6c3a0] text-[#7d6a4a] hover:border-[#b6975f]'}`}>{cat === 'tous' ? 'Toutes' : cat.replace('_', ' ')}{cat !== 'tous' && catCounts[cat] > 0 ? ` (${catCounts[cat]})` : ''}</button>)}</div>{uniqueModules.length > 0 && <div className="flex flex-wrap gap-2"><span className="text-xs text-[#8a7456] self-center font-medium">Module :</span>{['tous', ...uniqueModules].map((m) => <button key={m} type="button" onClick={() => setModuleFilter(m)} className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${moduleFilter === m ? 'bg-[#2f2415] text-white' : 'bg-white border border-[#d6c3a0] text-[#7d6a4a] hover:border-[#b6975f]'}`}>{m === 'tous' ? 'Tous' : m}</button>)}</div>}</div>
+    {loading && <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-36 rounded-2xl bg-[#d6c3a0]/40 animate-pulse" />)}</div>}
+    {!loading && rows.length === 0 && <div className="rounded-2xl border border-dashed border-[#d6c3a0] bg-white p-12 text-center"><FileText size={40} className="mx-auto text-[#d6c3a0] mb-3" /><p className="font-semibold text-[#2f2415] mb-1">Aucun document</p><p className="text-sm text-[#8a7456] mb-4">Ajoutez factures, ordonnances, contrats, photos et rapports.</p><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter un document</Btn></div>}
+    {!loading && rows.length > 0 && filtered.length === 0 && <div className="rounded-2xl border border-[#d6c3a0] bg-white p-8 text-center text-[#8a7456]">Aucun document correspondant aux filtres.</div>}
+    {!loading && filtered.length > 0 && <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">{filtered.map((doc) => { const cat = doc.document_category || 'autre'; const CatIcon = CAT_ICONS[cat] || File; const catColor = CAT_COLORS[cat] || CAT_COLORS.autre; const entityName = getEntityName(doc.entity_id || doc.related_id, doc.entity_type, animaux, lots, cultures, clients, fournisseurs, stocks, txRows); const dateStr = doc.created_at ? new Date(doc.created_at).toLocaleDateString('fr-FR') : '—'; return <div key={doc.id} className="bg-white border border-[#d6c3a0] rounded-2xl p-4 hover:border-[#b6975f] hover:shadow-sm transition-all flex flex-col"><div className="flex items-start gap-3 mb-3"><div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${catColor}`}><CatIcon size={18} /></div><div className="flex-1 min-w-0"><p className="font-semibold text-[#2f2415] truncate">{doc.title}</p><span className={`text-xs px-2 py-0.5 rounded-full border capitalize ${catColor}`}>{cat.replace('_', ' ')}</span></div></div>{(doc.module_source || entityName) && <div className="text-xs text-[#8a7456] mb-2">{doc.module_source && <span className="font-medium">{doc.module_source}</span>}{entityName && <span> — {entityName}</span>}</div>}{doc.notes && <p className="text-xs text-[#7d6a4a] line-clamp-2 mb-2 flex-1">{doc.notes}</p>}<div className="flex items-center justify-between mt-auto pt-3 border-t border-[#f0e8d8]"><span className="text-xs text-[#8a7456]">{dateStr}</span><div className="flex items-center gap-1">{doc.file_url ? <a href={doc.file_url} target="_blank" rel="noopener noreferrer"><button type="button" title="Ouvrir" className="w-7 h-7 flex items-center justify-center rounded-lg bg-sky-500/20 text-sky-600 hover:bg-sky-500/30 transition-colors"><ExternalLink size={12} /></button></a> : null}<ActionIconButton icon={Edit} color="amber" title="Modifier" onClick={() => { setSelected(doc); setModal('edit'); }} /><ActionIconButton icon={Trash2} color="red" title="Supprimer" onClick={() => { setSelected(doc); setModal('delete'); }} /></div></div></div>; })}</div>}
+    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={fields} initialValues={{ id: generateSequentialId('documents', rows), document_category: 'autre', module_source: 'autre' }} autoId={() => generateSequentialId('documents', rows)} uploadFolder="documents" loading={saving} title="Ajouter un document" submitLabel="Ajouter" />
+    <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={fields} initialValues={selected || {}} uploadFolder="documents" loading={saving} title="Modifier le document" submitLabel="Enregistrer" />
+    <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected?.title || ''} loading={saving} />
+  </div>;
 }
