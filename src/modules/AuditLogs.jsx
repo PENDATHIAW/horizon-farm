@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, GitBranch, History, Lock, MonitorSmartphone, UserCheck } from 'lucide-react';
 import GenericCrudModule from '../components/GenericCrudModule';
 import KpiCard from '../components/KpiCard';
+import ModuleTimeline from '../components/ModuleTimeline';
 import useCrudModule from '../hooks/useCrudModule';
 import { MODULE_FORM_FIELDS } from '../utils/constants';
 
@@ -28,10 +29,7 @@ function RecentTrace({ auditRows = [], eventRows = [] }) {
   return (
     <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Traçabilité</p>
-          <h3 className="font-black text-[#2f2415]">Dernières actions ERP</h3>
-        </div>
+        <div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Traçabilité</p><h3 className="font-black text-[#2f2415]">Dernières actions ERP</h3></div>
         <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]"><GitBranch size={14} className="inline" /> {combined.length} action(s)</div>
       </div>
       {combined.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">{combined.map((row) => <div key={row.id || row._key} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="font-bold text-[#2f2415] truncate"><CheckCircle2 size={14} className="inline text-emerald-600" /> {row.title || row.action || row.event_type || 'Action'}</p><p className="text-xs text-[#8a7456] mt-1 truncate">{row.module || row.module_source || 'ERP'} · {row.actor || row.entity_type || ''}</p><p className="text-xs text-[#8a7456] mt-1">{row._date || 'date non renseignée'}</p></div>)}</div> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]">Aucune action récente.</div>}
@@ -51,6 +49,7 @@ export default function AuditLogs(props) {
   const eventRows = eventsCrud.rows || [];
   const uniqueKeys = new Set(rows.map(keyOf)).size;
   const sensitiveCount = rows.filter((r) => sensitiveActions.includes(String(r.action || '').toLowerCase())).length;
+  const timelineRows = [...arr(rows), ...arr(eventRows)].map((row) => ({ ...row, title: row.title || row.action || row.event_type || 'Action ERP', description: `${row.module || row.module_source || 'ERP'} · ${row.actor || row.entity_type || ''}`, status: row.severity || row.status || row.action }));
 
   return (
     <div className="space-y-6">
@@ -61,22 +60,13 @@ export default function AuditLogs(props) {
         <KpiCard icon={Lock} label="Sensibles" value={sensitiveCount} color="bg-red-500/20 text-red-500" />
       </div>
 
+      <ModuleTimeline title="Timeline audit & traçabilité" subtitle="Journal chronologique des actions ERP, événements métier et opérations sensibles." rows={timelineRows} onRefresh={eventsCrud.refresh} onNavigate={() => props.onNavigate?.('audit_logs')} navigateLabel="Ouvrir audit" />
       <RecentTrace auditRows={rows} eventRows={eventRows} />
       <ModuleActivity rows={rows} events={eventRows} />
 
       {uniqueKeys < rows.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700"><AlertTriangle size={16} className="inline" /> Certaines actions semblent répétées. À vérifier avant validation finale.</div> : null}
 
-      <GenericCrudModule
-        {...props}
-        moduleKey="audit_logs"
-        title="Audit Logs & Sécurité"
-        sub="Actions, utilisateurs, appareils et contrôles sensibles"
-        fields={MODULE_FORM_FIELDS.audit_logs}
-        columns={['id', 'actor', 'action', 'module', 'record_id', 'device', 'created_at']}
-        readOnly
-        exportTitle="Audit logs Horizon Farm"
-        kpis={[]}
-      />
+      <GenericCrudModule {...props} moduleKey="audit_logs" title="Audit Logs & Sécurité" sub="Actions, utilisateurs, appareils et contrôles sensibles" fields={MODULE_FORM_FIELDS.audit_logs} columns={['id', 'actor', 'action', 'module', 'record_id', 'device', 'created_at']} readOnly exportTitle="Audit logs Horizon Farm" kpis={[]} />
     </div>
   );
 }
