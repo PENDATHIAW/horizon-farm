@@ -7,6 +7,9 @@ const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase();
 const activeAlert = (alert = {}) => !['traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée', 'done'].includes(lower(alert.status || alert.statut));
 const criticalSeverity = (alert = {}) => ['critique', 'urgence'].includes(lower(alert.severity || alert.gravite));
+const isIOSDevice = () => /iphone|ipad|ipod/i.test(window.navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandaloneApp = () => window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone === true;
+const IOS_INSTALL_HELP = 'Sur iPhone, ajoute Horizon Farm a l ecran d accueil depuis Safari, puis ouvre l app depuis cette icone pour activer les notifications.';
 
 function moduleFor(alert = {}) {
   const source = lower(alert.module_source || alert.module || alert.entity_type);
@@ -34,6 +37,7 @@ function buildDerivedAlerts(dataMap = {}) {
 export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
   const [busy, setBusy] = useState(false);
   const [hidden, setHidden] = useState(false);
+  const iosNeedsInstall = isIOSDevice() && !isStandaloneApp();
   const alerts = useMemo(() => {
     const persisted = arr(dataMap.alertes_center).filter(activeAlert).filter(criticalSeverity);
     return [...persisted, ...buildDerivedAlerts(dataMap)].filter((alert) => shouldNotifyAlert(alert));
@@ -57,7 +61,7 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
   }, [onNavigate]);
 
   useEffect(() => {
-    if (!alerts.length) return;
+    if (!alerts.length || iosNeedsInstall) return;
     const run = async () => {
       const permission = notificationPermission();
       if (permission === 'default') {
@@ -68,9 +72,13 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
       await notifyAlerts(alerts);
     };
     run();
-  }, [alerts]);
+  }, [alerts, iosNeedsInstall]);
 
   const enableLocal = async () => {
+    if (iosNeedsInstall) {
+      toast.error(IOS_INSTALL_HELP);
+      return;
+    }
     const permission = await requestNotificationPermission();
     if (permission === 'granted') {
       toast.success('Notifications appareil activées pour Horizon Farm');
@@ -78,15 +86,16 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
     } else if (permission === 'denied') {
       toast.error('Notifications bloquées. Autorise-les dans les réglages du navigateur/appareil.');
     } else {
-      toast('Notifications non disponibles sur cet appareil.');
+      toast.error('Notifications non disponibles ici. Essaie depuis un navigateur compatible ou installe Horizon Farm comme app.');
     }
   };
 
   const enableAdvanced = async () => {
     try {
       setBusy(true);
-      if (!pushStatus.supported) throw new Error('Push non supporté sur cet appareil');
-      if (!pushStatus.ready) throw new Error('Clé VAPID publique manquante');
+      if (iosNeedsInstall) throw new Error(IOS_INSTALL_HELP);
+      if (!pushStatus.supported) throw new Error('Push non supporté ici. Ouvre Horizon Farm comme application installée ou depuis un navigateur compatible.');
+      if (!pushStatus.ready) throw new Error('Clé VAPID publique manquante côté Vercel.');
       await subscribeDeviceToPush({ userId: 'owner', label: 'Appareil propriétaire Horizon Farm', channels: ['urgence', 'critique'] });
       await sendTestPush({ title: 'Horizon Farm — test push', body: 'Ton appareil est abonné aux alertes critiques et urgences.', severity: 'critique', module: 'alertes' });
       toast.success('Notifications avancées activées et test envoyé');
@@ -102,13 +111,14 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
   return (
     <div className="fixed bottom-4 right-4 z-40 max-w-sm rounded-2xl bg-[#2f2415] text-white shadow-xl border border-[#c9a96a] p-3 space-y-2">
       <p className="text-sm font-black">Alertes Horizon Farm</p>
-      <p className="text-xs text-[#f4e6c8]">Active les notifications appareil. Le mode avancé permet l’abonnement push serveur quand les clés VAPID sont configurées.</p>
+      <p className="text-xs text-[#f4e6c8]">{iosNeedsInstall ? 'Sur iPhone, installe Horizon Farm sur l ecran d accueil puis ouvre l app depuis son icone pour activer les notifications.' : 'Active les notifications appareil. Le mode avancé permet l’abonnement push serveur quand les clés VAPID sont configurées.'}</p>
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={enableLocal} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-white/15">Activer local</button>
         <button type="button" disabled={busy} onClick={enableAdvanced} className="rounded-full bg-[#c9a96a] px-3 py-1.5 text-xs font-bold text-[#2f2415] disabled:opacity-60">{busy ? 'Activation...' : 'Activer avancé'}</button>
         <button type="button" onClick={() => setHidden(true)} className="rounded-full border border-white/20 px-3 py-1.5 text-xs font-bold">Plus tard</button>
       </div>
-      {!pushStatus.ready ? <p className="text-[11px] text-amber-200">Pack avancé prêt côté code, mais VITE_VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY doivent être configurées sur Vercel.</p> : null}
+      {iosNeedsInstall ? <p className="text-[11px] text-amber-200">Etapes : Safari, bouton Partager, Ajouter a l ecran d accueil, puis ouvrir Horizon Farm depuis l icone créée.</p> : null}
+      {!iosNeedsInstall && !pushStatus.ready ? <p className="text-[11px] text-amber-200">Pack avancé prêt côté code, mais VITE_VAPID_PUBLIC_KEY doit être configurée sur Vercel.</p> : null}
     </div>
   );
 }
