@@ -52,7 +52,7 @@ const resolveOptions = (field, form) => {
 };
 const noChoiceLabel = (field) => field.emptyLabel || `Aucune donnée disponible pour ${String(field.label || 'ce champ').toLowerCase()}`;
 
-export default function EditModal({ open, onClose, onSubmit, fields = [], initialValues = {}, title = 'Modifier', submitLabel = 'Enregistrer', loading, autoId, uploadFolder, deriveValues }) {
+export default function EditModal({ open, onClose, onSubmit, fields = [], initialValues = {}, title = 'Modifier', submitLabel = 'Enregistrer', loading, autoId, uploadFolder, deriveValues, showSectionDescriptions = false }) {
   const [form, setForm] = useState({});
   const [error, setError] = useState('');
 
@@ -117,11 +117,11 @@ export default function EditModal({ open, onClose, onSubmit, fields = [], initia
             return field.type === 'section' ? (
               <div key={field.key || field.label} className="md:col-span-2 pt-2">
                 <div className="rounded-xl bg-[#2f2415] text-[#f8f5ef] px-4 py-2 text-sm font-bold">{field.label}</div>
-                {field.description ? <p className="text-xs text-[#8a7456] mt-1">{field.description}</p> : null}
+                {showSectionDescriptions && field.description ? <p className="text-xs text-[#8a7456] mt-1">{field.description}</p> : null}
               </div>
             ) : (
               <label key={field.key} className={field.fullWidth ? 'space-y-1 md:col-span-2' : 'space-y-1'}>
-                <span className="text-xs text-[#8a7456]">{field.label}</span>
+                <span className="text-xs text-[#8a7456]">{field.label}{field.required ? ' *' : ''}</span>
                 {field.type === 'select' ? (
                   <div className="space-y-1">
                     <select disabled={selectDisabled} value={form[field.key] ?? ''} onChange={(e) => handleChange(field.key, e.target.value, field)} className={`w-full border rounded-lg px-3 py-2 text-sm text-[#2f2415] ${selectDisabled ? 'bg-[#f4ebdb] border-[#d6c3a0] text-[#8a7456]' : 'bg-[#fffdf8] border-[#d6c3a0]'}`}>
