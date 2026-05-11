@@ -7,13 +7,29 @@ const lower = (value) => clean(value).toLowerCase();
 const qtyOf = (row = {}) => Math.max(1, toNumber(row.quantity ?? row.quantite ?? row.qty ?? 1));
 const saleTotalOf = (row = {}) => toNumber(row.montant_total ?? row.total ?? row.total_amount ?? row.chiffre_affaires ?? row.valeur_vente ?? row.montant_estime ?? row.estimated_amount ?? row.valeur_estimee ?? row.ca_potentiel ?? 0);
 const paidOf = (row = {}) => toNumber(row.montant_paye ?? row.paid_amount ?? row.amount_paid ?? row.paye ?? 0);
+const paymentAmount = (row = {}) => toNumber(row.montant_paye ?? row.montant ?? row.amount ?? row.paid_amount ?? 0);
+const paymentOrderId = (row = {}) => clean(row.order_id || row.sale_id || row.source_record_id || row.related_id || row.commande_id);
 const sourceModuleOf = (row = {}) => lower(row.source_module || row.created_from || row.module_source || row.source_type || row.module_lie);
 const sourceIdOf = (row = {}) => clean(row.source_id || row.related_id || row.entity_id || row.source_record_id || row.asset_id || row.lot_id || row.animal_id || row.culture_id);
 const unitPriceStock = (row = {}) => toNumber(row.cout_unitaire_calcule ?? row.cout_revient_unitaire ?? row.prixUnit ?? row.prixunit ?? row.prix_achat ?? row.purchase_price ?? row.cout_achat ?? row.prix_unitaire ?? row.unit_price ?? row.cost_unit ?? row.cout_unitaire);
 const cancelled = (row = {}) => ['annule', 'annulé', 'cancelled'].includes(lower(row.statut || row.status || row.statut_commande));
+const paymentCancelled = (row = {}) => ['annule', 'annulé', 'cancelled', 'rejete', 'rejeté'].includes(lower(row.statut || row.status));
 
 function findById(rows, id) {
   return arr(rows).find((row) => clean(row.id) === clean(id) || clean(row.tag) === clean(id));
+}
+
+function paidFromLinkedPayments(order = {}, payments = []) {
+  const id = clean(order.id);
+  if (!id) return 0;
+  return arr(payments).filter((payment) => !paymentCancelled(payment) && paymentOrderId(payment) === id).reduce((sum, payment) => sum + paymentAmount(payment), 0);
+}
+
+function effectivePaidAmount(order = {}, saleAmount = 0, context = {}) {
+  const fromOrder = paidOf(order);
+  const fromPayments = paidFromLinkedPayments(order, context.payments || context.paymentsList || []);
+  const raw = Math.max(fromOrder, fromPayments);
+  return saleAmount > 0 ? Math.min(saleAmount, raw) : raw;
 }
 
 function cultureTotalCost(culture = {}) {
@@ -29,7 +45,7 @@ function cultureUnitCost(culture = {}) {
 
 function marginResult({ saleAmount = 0, paidAmount = 0, directCost = 0, costSource = 'cout_indisponible', sourceLabel = '' }) {
   const sale = toNumber(saleAmount);
-  const paid = Math.min(sale, Math.max(0, toNumber(paidAmount)));
+  const paid = Math.min(sale || Number.MAX_SAFE_INTEGER, Math.max(0, toNumber(paidAmount)));
   const cost = toNumber(directCost);
   const margin = sale - cost;
   const cashMargin = paid - cost;
@@ -54,7 +70,7 @@ export function calculateSalesMargin(input = {}, context = {}) {
   const quantity = qtyOf(input);
   const unitPrice = toNumber(input.unit_price ?? input.prix_unitaire ?? input.prix_vente ?? input.price);
   const saleAmount = cancelled(input) ? 0 : (saleTotalOf(input) || quantity * unitPrice);
-  const paidAmount = paidOf(input);
+  const paidAmount = effectivePaidAmount(input, saleAmount, context);
   const sourceModule = sourceModuleOf(input);
   const sourceId = sourceIdOf(input);
   const unit = lower(input.unit || input.unite || input.unité || '');
