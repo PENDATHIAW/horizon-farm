@@ -4,18 +4,40 @@ import ImpactFarmValueBridgeV5 from './ImpactFarmValueBridgeV5.jsx';
 import ImpactBusinessStrategicV5 from './ImpactBusinessStrategicV5.jsx';
 
 const arr = (value) => Array.isArray(value) ? value : [];
-const riskHealth = ['malade', 'sous_traitement', 'critique', 'urgence', 'traitement'];
+const riskHealth = ['malade', 'sous_traitement', 'sous traitement', 'critique', 'urgence', 'traitement', 'a_traiter', 'à traiter', 'maladie'];
+const goodHealth = ['sain', 'saine', 'ok', 'bonne', 'bon', 'normal'];
 const lower = (value) => String(value || '').trim().toLowerCase();
 
+function pickHealthStatus(animal = {}) {
+  const candidates = [
+    animal.health_status,
+    animal.statut_sante,
+    animal.sante_status,
+    animal.etat_sante,
+    animal.impact_health_status,
+    animal.health,
+  ].map(lower).filter(Boolean);
+  const risk = candidates.find((value) => riskHealth.some((term) => value.includes(term)));
+  if (risk) return risk;
+  const good = candidates.find((value) => goodHealth.some((term) => value.includes(term)));
+  if (good) return good;
+  return candidates[0] || '';
+}
+
 function normalizeAnimalHealthForImpact(animal = {}) {
-  const health = lower(animal.health_status || animal.statut_sante || animal.sante_status || animal.etat_sante);
+  const health = pickHealthStatus(animal);
   const isRisk = riskHealth.some((term) => health.includes(term));
-  if (!isRisk) return animal;
+  const isSold = ['vendu', 'vendue', 'abattu', 'abattue', 'mort', 'morte'].includes(lower(animal.status || animal.statut));
+  if (!health) return animal;
   return {
     ...animal,
-    status: animal.status === 'vendu' ? animal.status : health,
-    statut: animal.statut === 'vendu' ? animal.statut : health,
+    health_status: health,
+    statut_sante: health,
+    sante_status: health,
+    etat_sante: health,
     impact_health_status: health,
+    status: isRisk && !isSold ? health : animal.status,
+    statut: isRisk && !isSold ? health : animal.statut,
   };
 }
 
