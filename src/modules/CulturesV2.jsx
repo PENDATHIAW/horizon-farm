@@ -1,10 +1,12 @@
-import { BarChart3, Calendar, Leaf, Map, Sprout, TrendingUp } from 'lucide-react';
+import { Calendar, Leaf, Map, Sprout, TrendingUp } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import DataTable from '../components/DataTable';
 import KpiCard from '../components/KpiCard';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { calculateCultureMetrics } from '../utils/businessCalculations';
 import Cultures from './Cultures.jsx';
+import CultureCostOverview from './CultureCostOverview.jsx';
+import DirectChargesBridge from './DirectChargesBridge.jsx';
 
 const tabs = ['Vue d’ensemble', 'Cultures', 'Parcelles', 'Campagnes', 'Performance'];
 const parcelKey = (row = {}) => row.parcelle_code || row.parcelle_nom || row.parcelle || 'Parcelle non renseignée';
@@ -66,9 +68,9 @@ export default function CulturesV2(props) {
     <div className="space-y-6">
       <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Cultures, Parcelles & Campagnes</p>
-          <h2 className="text-2xl font-black text-[#2f2415]">Pilotage végétal connecté</h2>
-          <p className="text-sm text-[#8a7456] mt-1">Les vues Parcelles et Campagnes sont construites à partir des cultures existantes, sans créer un module séparé.</p>
+          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Cultures, parcelles & campagnes</p>
+          <h2 className="text-2xl font-black text-[#2f2415]">Pilotage végétal</h2>
+          <p className="text-sm text-[#8a7456] mt-1">Suivi des cultures, parcelles, campagnes, coûts réels et rentabilité.</p>
         </div>
         <div className="flex flex-wrap gap-2">{tabs.map((item) => <button type="button" key={item} onClick={() => setTab(item)} className={`rounded-xl border px-4 py-2 text-sm font-semibold ${tab === item ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}>{item}</button>)}</div>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
@@ -79,12 +81,11 @@ export default function CulturesV2(props) {
           <KpiCard icon={TrendingUp} label="Marge/m²" value={fmtCurrency(totalSurface ? totalMargin / totalSurface : 0)} />
         </div>
       </div>
-      {tab === 'Vue d’ensemble' && <Cultures {...props} />}
+      {tab === 'Vue d’ensemble' && <><Cultures {...props} /><CultureCostOverview rows={rows} businessEvents={props.businessEvents || []} /><DirectChargesBridge title="Charges directes cultures" subtitle="Ajoute les frais liés à une culture précise : semences complémentaires, engrais, irrigation, carburant, main-d’œuvre, transport ou traitement." targetType="cultures" targets={rows} businessEvents={props.businessEvents || []} onCreateBusinessEvent={props.onCreateBusinessEvent} onUpdateBusinessEvent={props.onUpdateBusinessEvent} onDeleteBusinessEvent={props.onDeleteBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} /></>}
       {tab === 'Cultures' && <Cultures {...props} />}
       {tab === 'Parcelles' && <DataTable title="Parcelles dérivées des cultures" rows={parcelles} columns={aggregateColumns} loading={props.loading} initialSortKey="nom" />}
       {tab === 'Campagnes' && <DataTable title="Campagnes dérivées des cultures" rows={campagnes} columns={aggregateColumns} loading={props.loading} initialSortKey="nom" />}
       {tab === 'Performance' && <DataTable title="Performance cultures" rows={rows} columns={performanceColumns} loading={props.loading} initialSortKey="nom" />}
-      {tab !== 'Performance' && tab !== 'Parcelles' && tab !== 'Campagnes' ? null : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]"><BarChart3 size={14} className="inline" /> Les dépenses culture doivent rester dans Finances, les récoltes alimentent Ventes, les pertes créent Alertes/Traçabilité via AppContext.</div>}
     </div>
   );
 }
