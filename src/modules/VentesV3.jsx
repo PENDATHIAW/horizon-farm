@@ -3,11 +3,13 @@ import SalesMarginsBridge from './SalesMarginsBridge.jsx';
 import VentesV2 from './VentesV2.jsx';
 
 export default function VentesV3(props) {
+  const payments = props.paymentsList || props.payments || [];
   return (
     <div className="space-y-6">
       <VentesV2 {...props} />
       <SalesMarginsBridge
         rows={props.rows || []}
+        payments={payments}
         lots={props.lots || []}
         animaux={props.animaux || []}
         cultures={props.cultures || []}
@@ -21,7 +23,7 @@ export default function VentesV3(props) {
       />
       <SalesEvolution
         rows={props.rows || []}
-        payments={props.payments || []}
+        payments={payments}
         onNavigate={props.onNavigate}
       />
     </div>
