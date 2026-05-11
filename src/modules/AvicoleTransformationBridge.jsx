@@ -28,8 +28,9 @@ export default function AvicoleTransformationBridge({ rows = [], alimentationLog
   const weight = toNumber(form.poids_total_viande);
   const subjects = toNumber(form.sujets_abattus);
   const extra = fees(form);
-  const preview = selectedLot ? calculateAvicoleLotCost({ lot: selectedLot, alimentationLogs, productionLogs, directCharges: [...arr(businessEvents), { ...form, target_id: selectedLot.id, lot_id: selectedLot.id, target_type: 'avicole', type_evenement: 'charge_directe abattage_avicole', montant: extra }], healthEvents: businessEvents, slaughterEvents: businessEvents }) : null;
-  const unitKg = weight > 0 && preview ? (preview.totalCost / Math.max(1, avicoleActiveCount(selectedLot)) * subjects + extra) / weight : 0;
+  const baseCost = selectedLot ? calculateAvicoleLotCost({ lot: selectedLot, alimentationLogs, productionLogs, directCharges: businessEvents, healthEvents: businessEvents, slaughterEvents: businessEvents }) : null;
+  const activeCount = selectedLot ? Math.max(1, avicoleActiveCount(selectedLot)) : 1;
+  const unitKg = weight > 0 && baseCost ? ((baseCost.totalCost / activeCount) * subjects + extra) / weight : 0;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -38,13 +39,15 @@ export default function AvicoleTransformationBridge({ rows = [], alimentationLog
     if (weight <= 0) return toast.error('Saisir le poids total viande');
     if (subjects > avicoleActiveCount(selectedLot)) return toast.error('Sujets abattus supérieurs à l’effectif actif');
     const id = makeId('ABATAV');
-    const event = { ...form, id, lot_id: selectedLot.id, related_id: selectedLot.id, target_id: selectedLot.id, target_type: 'avicole', type_evenement: 'abattage_avicole charge_directe', event_type: 'abattage_avicole', source_module: 'avicole_abattage', module_lie: 'avicole', title: `Abattage avicole: ${lotLabel(selectedLot)}`, message: `${subjects} sujet(s), ${weight.toFixed(2)} kg`, montant: extra, cout: extra, cout_total: extra, event_date: form.date || today(), date: form.date || today() };
+    const event = { ...form, id, lot_id: selectedLot.id, related_id: selectedLot.id, target_id: selectedLot.id, target_type: 'avicole', type_evenement: 'abattage_avicole charge_directe', event_type: 'abattage_avicole', source_module: 'avicole_abattage', module_lie: 'avicole', title: `Abattage avicole: ${lotLabel(selectedLot)}`, message: `${subjects} sujet(s), ${weight.toFixed(2)} kg`, montant: extra, cout: extra, cout_total: extra, cout_revient_viande_kg: Number(unitKg.toFixed(2)), event_date: form.date || today(), date: form.date || today() };
     await onCreateBusinessEvent?.(event);
-    const produit = `Viande poulet ${lotLabel(selectedLot)}`;
-    await stockCrud.create?.({ id: makeId('STKCHICK'), produit, categorie: 'produit_fini_viande_avicole', activite_liee: 'avicole', quantite: Number(weight.toFixed(2)), unite: 'kg', prixUnit: Number(unitKg.toFixed(2)), prixunit: Number(unitKg.toFixed(2)), prix_unitaire: Number(unitKg.toFixed(2)), cout_revient_unitaire: Number(unitKg.toFixed(2)), cout_unitaire_calcule: Number(unitKg.toFixed(2)), statut: form.destination === 'vente_directe' ? 'reserve' : 'ok', stock_status: form.destination === 'vente_directe' ? 'reserve' : 'ok', source_module: 'avicole', source_record_id: selectedLot.id, linked_event_id: id, origine_label: lotLabel(selectedLot), last_movement_type: 'entree_abattage_avicole', last_movement_qty: Number(weight.toFixed(2)), last_movement_at: new Date().toISOString(), notes: `Viande issue abattage lot · coût ${Number(unitKg.toFixed(2))}/kg` });
+    if (form.destination !== 'perte') {
+      const produit = `Viande poulet ${lotLabel(selectedLot)}`;
+      await stockCrud.create?.({ id: makeId('STKCHICK'), produit, categorie: 'produit_fini_viande_avicole', activite_liee: 'avicole', quantite: Number(weight.toFixed(2)), unite: 'kg', prixUnit: Number(unitKg.toFixed(2)), prixunit: Number(unitKg.toFixed(2)), prix_unitaire: Number(unitKg.toFixed(2)), cout_revient_unitaire: Number(unitKg.toFixed(2)), cout_unitaire_calcule: Number(unitKg.toFixed(2)), statut: form.destination === 'vente_directe' ? 'reserve' : 'ok', stock_status: form.destination === 'vente_directe' ? 'reserve' : 'ok', source_module: 'avicole', source_record_id: selectedLot.id, linked_event_id: id, origine_label: lotLabel(selectedLot), last_movement_type: 'entree_abattage_avicole', last_movement_qty: Number(weight.toFixed(2)), last_movement_at: new Date().toISOString(), notes: `Viande issue abattage lot · coût ${Number(unitKg.toFixed(2))}/kg` });
+    }
     await onUpdate?.(selectedLot.id, { vendus: toNumber(selectedLot.vendus) + subjects, sujets_abattus: toNumber(selectedLot.sujets_abattus) + subjects, last_slaughter_date: form.date || today(), cout_revient_viande_kg: Number(unitKg.toFixed(2)) });
     await Promise.allSettled([stockCrud.refresh?.(), onRefresh?.(), onRefreshBusinessEvents?.()]);
-    toast.success('Abattage avicole enregistré, stock viande créé');
+    toast.success(form.destination === 'perte' ? 'Abattage/perte enregistré sans stock viande' : 'Abattage avicole enregistré, stock viande créé');
     setForm(initial);
   };
 
