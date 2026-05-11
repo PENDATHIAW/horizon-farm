@@ -1,5 +1,4 @@
 import { toNumber } from './format';
-import { filterLotsByActivity } from './avicoleActivity';
 import { avicoleActiveCount, avicoleDeadCount } from './avicoleMetrics';
 
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -9,7 +8,6 @@ const logCost = (log = {}) => toNumber(log.cout_total ?? log.total_cost ?? log.m
 const logUnitPrice = (log = {}) => toNumber(log.prix_unitaire ?? log.unit_price ?? log.price ?? 0);
 const animalIdOfLog = (log = {}) => log.animal_id || log.entity_id || log.related_id || log.source_record_id;
 const lotIdOfLog = (log = {}) => log.lot_id || log.entity_id || log.related_id || log.source_record_id;
-const cultureIdOfLog = (log = {}) => log.culture_id || log.entity_id || log.related_id || log.source_record_id;
 const purchaseCost = (row = {}) => toNumber(row.purchase_cost ?? row.prix_achat ?? row.cout_achat ?? row.cout_total ?? row.cost);
 const animalWeight = (row = {}) => toNumber(row.poids ?? row.weight ?? row.current_weight ?? row.last_weight ?? row.poids_actuel ?? row.poids_carcasse);
 const slaughterWeight = (row = {}) => toNumber(row.poids_carcasse ?? row.poids_viande ?? row.poids_total_abattage ?? row.total_weight ?? row.poids_total);
@@ -168,7 +166,7 @@ export function calculateAvicoleLotCost({ lot, alimentationLogs = [], production
   const sellableSubjects = Math.max(1, producedSubjects);
   const slaughterKg = arr(slaughterEvents).filter((event) => String(lotIdOfLog(event) || '') === String(id)).reduce((sum, event) => sum + slaughterWeight(event), 0);
   const sellableEggs = arr(productionLogs).filter((log) => String(lotIdOfLog(log) || '') === String(id)).reduce((sum, log) => sum + Math.max(0, toNumber(log.oeufs_produits ?? log.eggs ?? log.quantite) - toNumber(log.oeufs_casses ?? log.broken ?? log.pertes)), 0);
-  return { lotId: id, type: estimated.key, purchaseCost: purchase, realFeedCost, estimatedFeedCost: estimated.estimatedFeedCost, feedCostUsed, feedCostSource: realFeedCost > 0 ? 'reel' : 'estime', healthCost, healthCostDetails: health.details, otherDirectCost, totalCost, initialSubjects: initial, deadSubjects: dead, soldSubjects: sold, liveSubjects, producedSubjects, sellableSubjects, costPerInitialSubject: initial > 0 ? totalCost / initial : 0, costPerProducedSubject: producedSubjects > 0 ? totalCost / producedSubjects : 0, costPerLiveSubject: sellableSubjects > 0 ? totalCost / sellableSubjects : 0, slaughterKg, costPerKg: slaughterKg > 0 ? totalCost / slaughterKg : 0, sellableEggs, costPerEgg: sellableEggs > 0 ? totalCost / sellableEggs : 0, feedKgEstimated: estimated.totalKg };
+  return { lotId: id, type: estimated.key, purchaseCost: purchase, realFeedCost, estimatedFeedCost: estimated.estimatedFeedCost, feedCostUsed, feedCostSource: realFeedCost > 0 ? 'reel' : 'estime', healthCost, healthCostDetails: health.details, otherDirectCost, totalCost, initialSubjects: initial, deadSubjects: dead, soldSubjects: sold, liveSubjects: live, producedSubjects, sellableSubjects, costPerInitialSubject: initial > 0 ? totalCost / initial : 0, costPerProducedSubject: producedSubjects > 0 ? totalCost / producedSubjects : 0, costPerLiveSubject: sellableSubjects > 0 ? totalCost / sellableSubjects : 0, slaughterKg, costPerKg: slaughterKg > 0 ? totalCost / slaughterKg : 0, sellableEggs, costPerEgg: sellableEggs > 0 ? totalCost / sellableEggs : 0, feedKgEstimated: estimated.totalKg };
 }
 
 export function calculateCultureHealthCost({ culture, healthEvents = [], directCharges = [] }) {
