@@ -16,6 +16,10 @@ const chargeAmount = (row = {}) => toNumber(row.montant ?? row.amount ?? row.cou
 const chargeTargetId = (row = {}) => row.target_id || row.related_id || row.entity_id || row.source_record_id || row.animal_id || row.lot_id;
 const soldCount = (row = {}) => toNumber(row.vendus ?? row.sold_count ?? row.sujets_vendus ?? row.quantity_sold ?? row.quantite_vendue);
 
+export const DEFAULT_BROILER_CRATE_SIZE = 50;
+export const DEFAULT_BROILER_CRATE_PRICE = 32000;
+export const DEFAULT_BROILER_CHICK_UNIT_COST = DEFAULT_BROILER_CRATE_PRICE / DEFAULT_BROILER_CRATE_SIZE;
+
 export const FEEDING_DEFAULTS = {
   bovin: { dailyKg: 4.5, days: 90, label: 'Bovin', minDailyKg: 3, maxDailyKg: 6 },
   ovin: { dailyKg: 0.75, days: 90, label: 'Ovin', minDailyKg: 0.5, maxDailyKg: 1 },
@@ -82,6 +86,17 @@ export function lotTypeKey(lot = {}) {
   return 'chair';
 }
 
+export function deriveBroilerPurchaseCost(lot = {}) {
+  const key = lotTypeKey(lot);
+  if (key !== 'chair') return 0;
+  const subjects = toNumber(lot.initial_count ?? lot.effectif_initial ?? lot.quantite_initiale);
+  if (subjects <= 0) return 0;
+  const crateSize = toNumber(lot.poussins_par_caisse ?? lot.sujets_par_caisse ?? lot.crate_size) || DEFAULT_BROILER_CRATE_SIZE;
+  const cratePrice = toNumber(lot.prix_caisse_poussins ?? lot.cout_caisse_poussins ?? lot.crate_price) || DEFAULT_BROILER_CRATE_PRICE;
+  const unitCost = toNumber(lot.prix_unitaire_sujet ?? lot.unit_cost ?? lot.cout_unitaire_poussin) || (cratePrice / crateSize);
+  return subjects * unitCost;
+}
+
 export function estimateLotFeedCost({ lot, pricePerKg = 0 }) {
   const key = lotTypeKey(lot);
   const rule = FEEDING_DEFAULTS[key] || FEEDING_DEFAULTS.chair;
@@ -96,7 +111,8 @@ export function calculateAvicoleLotCost({ lot, alimentationLogs = [], production
   const logs = arr(alimentationLogs).filter((log) => String(lotIdOfLog(log) || '') === String(id));
   const realFeedCost = logs.reduce((sum, log) => sum + feedCostFromLog(log), 0);
   const estimated = estimateLotFeedCost({ lot, pricePerKg: defaultPricePerKg });
-  const purchase = purchaseCost(lot) || toNumber(lot.prix_unitaire_sujet ?? lot.unit_cost) * toNumber(lot.initial_count ?? lot.effectif_initial);
+  const explicitPurchase = purchaseCost(lot) || toNumber(lot.prix_unitaire_sujet ?? lot.unit_cost) * toNumber(lot.initial_count ?? lot.effectif_initial);
+  const purchase = explicitPurchase || deriveBroilerPurchaseCost(lot);
   const feedCostUsed = realFeedCost > 0 ? realFeedCost : estimated.estimatedFeedCost;
   const otherDirectCost = directExtraChargeTotal({ charges: directCharges, targetId: id, targetType: 'avicole' });
   const totalCost = purchase + feedCostUsed + otherDirectCost;
