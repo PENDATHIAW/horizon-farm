@@ -43,34 +43,36 @@ export default function CultureHarvestStockBridge({ rows = [], businessEvents = 
     if (!culture) return toast.error('Choisir une culture');
     if (qty <= 0) return toast.error('Saisir une quantité récoltée');
     const id = makeId('RECOLTE');
-    const event = { ...form, id, culture_id: culture.id, related_id: culture.id, target_id: culture.id, target_type: 'cultures', type_evenement: 'recolte_culture charge_directe', event_type: 'recolte_culture', source_module: 'cultures_recolte', module_lie: 'cultures', title: `Récolte: ${label(culture)}`, message: `${fmtNumber(qty)} ${form.unite || 'kg'} · frais ${fmtCurrency(extra)}`, montant: extra, cout: extra, cout_total: extra, event_date: form.date || today(), date: form.date || today() };
+    const event = { ...form, id, culture_id: culture.id, related_id: culture.id, target_id: culture.id, target_type: 'cultures', type_evenement: 'recolte_culture charge_directe', event_type: 'recolte_culture', source_module: 'cultures_recolte', module_lie: 'cultures', title: `Récolte: ${label(culture)}`, message: `${fmtNumber(qty)} ${form.unite || 'kg'} · frais ${fmtCurrency(extra)}`, montant: extra, cout: extra, cout_total: extra, cout_revient_unitaire_recolte: Number(unitCost.toFixed(2)), event_date: form.date || today(), date: form.date || today() };
     await onCreateBusinessEvent?.(event);
-    await stockCrud.create?.({
-      id: makeId('STKREC'),
-      produit: `Récolte ${label(culture)}`,
-      categorie: 'produit_recolte',
-      activite_liee: 'cultures',
-      quantite: Number(qty.toFixed(2)),
-      unite: form.unite || 'kg',
-      prixUnit: Number(unitCost.toFixed(2)),
-      prixunit: Number(unitCost.toFixed(2)),
-      prix_unitaire: Number(unitCost.toFixed(2)),
-      cout_revient_unitaire: Number(unitCost.toFixed(2)),
-      cout_unitaire_calcule: Number(unitCost.toFixed(2)),
-      statut: form.destination === 'vente_directe' ? 'reserve' : 'ok',
-      stock_status: form.destination === 'vente_directe' ? 'reserve' : 'ok',
-      source_module: 'cultures',
-      source_record_id: culture.id,
-      linked_event_id: id,
-      origine_label: label(culture),
-      last_movement_type: 'entree_recolte_culture',
-      last_movement_qty: Number(qty.toFixed(2)),
-      last_movement_at: new Date().toISOString(),
-      notes: `Stock issu de récolte · coût ${Number(unitCost.toFixed(2))}/${form.unite || 'kg'}`,
-    });
-    await onUpdate?.(culture.id, { quantite_recoltee: toNumber(culture.quantite_recoltee) + qty, production_reelle: toNumber(culture.production_reelle) + qty, date_derniere_recolte: form.date || today(), cout_recolte: toNumber(culture.cout_recolte) + extra, cout_revient_unitaire_recolte: Number(unitCost.toFixed(2)), statut: form.destination === 'vente_directe' ? culture.statut : 'recolte' });
+    if (form.destination !== 'perte') {
+      await stockCrud.create?.({
+        id: makeId('STKREC'),
+        produit: `Récolte ${label(culture)}`,
+        categorie: 'produit_recolte',
+        activite_liee: 'cultures',
+        quantite: Number(qty.toFixed(2)),
+        unite: form.unite || 'kg',
+        prixUnit: Number(unitCost.toFixed(2)),
+        prixunit: Number(unitCost.toFixed(2)),
+        prix_unitaire: Number(unitCost.toFixed(2)),
+        cout_revient_unitaire: Number(unitCost.toFixed(2)),
+        cout_unitaire_calcule: Number(unitCost.toFixed(2)),
+        statut: form.destination === 'vente_directe' ? 'reserve' : 'ok',
+        stock_status: form.destination === 'vente_directe' ? 'reserve' : 'ok',
+        source_module: 'cultures',
+        source_record_id: culture.id,
+        linked_event_id: id,
+        origine_label: label(culture),
+        last_movement_type: 'entree_recolte_culture',
+        last_movement_qty: Number(qty.toFixed(2)),
+        last_movement_at: new Date().toISOString(),
+        notes: `Stock issu de récolte · coût ${Number(unitCost.toFixed(2))}/${form.unite || 'kg'}`,
+      });
+    }
+    await onUpdate?.(culture.id, { quantite_recoltee: form.destination === 'perte' ? toNumber(culture.quantite_recoltee) : toNumber(culture.quantite_recoltee) + qty, production_reelle: form.destination === 'perte' ? toNumber(culture.production_reelle) : toNumber(culture.production_reelle) + qty, pertes_recolte: form.destination === 'perte' ? toNumber(culture.pertes_recolte) + qty : toNumber(culture.pertes_recolte), date_derniere_recolte: form.date || today(), cout_recolte: toNumber(culture.cout_recolte) + extra, cout_revient_unitaire_recolte: Number(unitCost.toFixed(2)), statut: form.destination === 'perte' ? culture.statut : form.destination === 'vente_directe' ? culture.statut : 'recolte' });
     await Promise.allSettled([stockCrud.refresh?.(), onRefresh?.(), onRefreshBusinessEvents?.()]);
-    toast.success('Récolte enregistrée, stock créé avec coût de revient');
+    toast.success(form.destination === 'perte' ? 'Récolte perdue enregistrée sans stock' : 'Récolte enregistrée, stock créé avec coût de revient');
     setForm(initial);
   };
 
