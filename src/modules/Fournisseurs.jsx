@@ -15,6 +15,7 @@ import EditModal from '../modals/EditModal';
 import DeleteModal from '../modals/DeleteModal';
 import DetailsModal from '../modals/DetailsModal';
 import { calculateSupplierMetrics } from '../utils/businessCalculations';
+import { calculateSupplierSettlement } from '../utils/supplierSettlement';
 import { searchGeoPlaces } from '../services/geoSearchService';
 import FournisseursStockBridge from './FournisseursStockBridge.jsx';
 import FournisseursEvolution from './FournisseursEvolution.jsx';
@@ -25,10 +26,6 @@ const now = () => new Date().toISOString();
 const supplierName = (supplier = {}) => supplier.nom || supplier.name || supplier.id || 'Fournisseur';
 const supplierPhone = (supplier = {}) => String(supplier.whatsapp || supplier.tel || supplier.phone || '').trim();
 const hasPhone = (supplier = {}) => Boolean(supplierPhone(supplier));
-const money = (value) => Number(value || 0);
-const stockSupplierId = (row = {}) => row.fournisseur_id || row.supplier_id || row.fournisseur || row.supplier || '';
-const financeSupplierId = (row = {}) => row.fournisseur_id || row.supplier_id || row.related_id || '';
-const isSupplierLinked = (value, supplier) => String(value || '').toLowerCase() === String(supplier.id || '').toLowerCase() || String(value || '').toLowerCase() === supplierName(supplier).toLowerCase();
 const supplierInitialValues = (rows) => ({ id: generateSequentialId('fournisseurs', rows), note: 4, dettes: 0, livraisons: 0, source: 'manuel', verified: false, favorite: false, categorie: 'Approvisionnement' });
 
 const SourceBadge = ({ source }) => (
@@ -42,15 +39,7 @@ function CardMetric({ label, value, alert = false }) {
 }
 
 function buildSupplierSummary(supplier, stockRows = [], financeRows = [], documents = []) {
-  const stock = arr(stockRows).filter((row) => isSupplierLinked(stockSupplierId(row), supplier));
-  const finances = arr(financeRows).filter((row) => isSupplierLinked(financeSupplierId(row), supplier) || String(row.module_lie || '').includes('fournisseur'));
-  const docs = arr(documents).filter((doc) => isSupplierLinked(doc.fournisseur_id || doc.supplier_id || doc.entity_id || doc.related_id, supplier));
-  const achatsStock = stock.reduce((sum, row) => sum + (money(row.quantite) * money(row.prixunit ?? row.prixUnit ?? row.prix_unitaire)), 0);
-  const paiements = finances.filter((row) => row.type === 'sortie' || row.categorie === 'Fournisseurs').reduce((sum, row) => sum + money(row.montant), 0);
-  const dettesDeclarees = money(supplier.dettes);
-  const livraisons = money(supplier.livraisons) || stock.length;
-  const derniersProduits = stock.slice(-3).map((row) => row.produit || row.nom || row.id).filter(Boolean).join(', ');
-  return { stock, finances, docs, achatsStock, paiements, dettesDeclarees, dettes: dettesDeclarees, livraisons, derniersProduits };
+  return calculateSupplierSettlement(supplier, { stocks: stockRows, transactions: financeRows, documents });
 }
 
 export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loading, onCreate, onUpdate, onDelete, onRefresh, onUpdateStock, onRefreshStock, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, onCreateBusinessEvent, onRefreshBusinessEvents, onNavigate }) {
