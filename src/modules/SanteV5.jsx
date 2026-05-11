@@ -1,11 +1,10 @@
 import { AlertTriangle, CheckCircle2, Package, Syringe } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
-import { makeId } from '../utils/ids';
+import { commitHealthWorkflow, prepareHealthWorkflow } from '../services/workflowService';
 import SanteV4 from './SanteV4.jsx';
 
 const arr = (value) => Array.isArray(value) ? value : [];
-const today = () => new Date().toISOString().slice(0, 10);
 const isHealthStock = (s = {}) => `${s.categorie || ''} ${s.produit || ''}`.toLowerCase().match(/vaccin|médicament|medicament|soin|vermifuge|antibiotique/);
 const dueSoon = (v = {}) => {
   if (!v.prevue) return false;
@@ -14,15 +13,31 @@ const dueSoon = (v = {}) => {
 };
 const late = (v = {}) => String(v.statut || '').toLowerCase() === 'retard' || (v.prevue && !v.effectuee && new Date(v.prevue) < new Date());
 
+const findStock = (stocks, id) => arr(stocks).find((stock) => String(stock.id) === String(id));
+
 async function markDone(v, props) {
-  const cost = toNumber(v.cout);
   try {
-    await props.onUpdate?.(v.id, { statut: 'fait', effectuee: v.effectuee || today(), closed_at: new Date().toISOString() });
-    if (cost > 0) {
-      await props.onCreateFinanceTransaction?.({ id: makeId('TRX'), type: 'sortie', libelle: `Soin/Vaccin ${v.nom || v.id}`, montant: cost, date: today(), categorie: 'Sante', module_lie: 'sante', related_id: v.id, statut: 'paye', source_module: 'sante', source_record_id: v.id });
-      await props.onRefreshFinances?.();
-    }
-    toast.success('Soin validé et relié aux finances');
+    const preview = prepareHealthWorkflow(v, {
+      transactions: props.transactions,
+      tasks: props.taches || props.tasks,
+      events: props.businessEvents,
+    });
+
+    await commitHealthWorkflow(preview, {
+      onUpdateHealth: props.onUpdate,
+      onCreateFinanceTransaction: props.onCreateFinanceTransaction,
+      onCreateTask: props.onCreateTask,
+      onCreateBusinessEvent: props.onCreateBusinessEvent,
+      onUpdateStockMovement: async (movement) => {
+        const stock = findStock(props.stocks, movement.stock_id);
+        if (!stock || !props.onUpdateStock) return;
+        const nextQty = Math.max(0, toNumber(stock.quantite) - toNumber(movement.qty));
+        await props.onUpdateStock(stock.id, { quantite: nextQty, derniere_sortie: new Date().toISOString().slice(0, 10), source_module: 'sante', source_record_id: v.id });
+      },
+    });
+
+    await (props.onRefreshWorkflow || props.onRefresh)?.();
+    toast.success(`Soin validé · ${preview.workflow_meta?.saisies_evitees || 0} saisies évitées`);
   } catch (error) {
     toast.error(error.message || 'Validation santé impossible');
   }
@@ -41,11 +56,11 @@ function HealthBridge(props) {
         <div>
           <p className="text-xs uppercase tracking-widest text-[#8a7456]">Priorité 5 · Santé connectée</p>
           <h3 className="font-black text-[#2f2415]">Soins, vaccins, stock santé, alertes et finances</h3>
-          <p className="text-sm text-[#8a7456] mt-1">Un soin validé peut créer une dépense Finance. Les stocks santé critiques restent visibles ici.</p>
+          <p className="text-sm text-[#8a7456] mt-1">Un soin validé peut créer une dépense Finance, une tâche de suivi, un événement métier et une sortie de stock santé.</p>
         </div>
         <div className="grid grid-cols-3 gap-2 text-sm"><Mini icon={Syringe} label="À suivre" value={alerts.length} /><Mini icon={Package} label="Stock santé" value={healthStocks.length} /><Mini icon={AlertTriangle} label="Ruptures" value={rupture} /></div>
       </div>
-      {alerts.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">{alerts.map((v) => <div key={v.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="font-bold text-[#2f2415]">{v.nom || v.id}</p><p className="text-xs text-[#8a7456] mt-1">Prévu: {v.prevue || '—'} · coût: {fmtCurrency(v.cout)}</p><button type="button" className="mt-3 text-sm font-bold text-emerald-700" onClick={() => markDone(v, props)}><CheckCircle2 size={14} className="inline" /> Valider fait</button></div>)}</div> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]"><CheckCircle2 size={14} className="inline" /> Aucun soin urgent.</div>}
+      {alerts.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">{alerts.map((v) => <div key={v.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="font-bold text-[#2f2415]">{v.nom || v.id}</p><p className="text-xs text-[#8a7456] mt-1">Prévu: {v.prevue || '—'} · coût: {fmtCurrency(v.cout)}</p><button type="button" className="mt-3 text-sm font-bold text-emerald-700" onClick={() => markDone(v, props)}><CheckCircle2 size={14} className="inline" /> Valider workflow</button></div>)}</div> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]"><CheckCircle2 size={14} className="inline" /> Aucun soin urgent.</div>}
       {healthStocks.length ? <p className="text-xs text-[#8a7456]">Stocks santé suivis: {healthStocks.slice(0, 5).map((s) => `${s.produit} (${fmtNumber(s.quantite)} ${s.unite || ''})`).join(' · ')}</p> : null}
       <p className="text-xs text-[#8a7456]">Coût santé total renseigné: {fmtCurrency(costs)}</p>
     </div>
