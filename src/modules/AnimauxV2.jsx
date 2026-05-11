@@ -3,12 +3,20 @@ import AnimalCostOverview from './AnimalCostOverview.jsx';
 import AnimalSlaughterStockBridge from './AnimalSlaughterStockBridge.jsx';
 import AnimauxEvolution from './AnimauxEvolution.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
+import GrowthPerformanceOverview from './GrowthPerformanceOverview.jsx';
 
 export default function AnimauxV2(props) {
   return (
     <div className="space-y-6">
       <Animaux {...props} />
       <AnimalCostOverview
+        rows={props.rows || []}
+        alimentationLogs={props.alimentationLogs || []}
+        vaccins={props.vaccins || []}
+        businessEvents={props.businessEvents || []}
+      />
+      <GrowthPerformanceOverview
+        mode="animaux"
         rows={props.rows || []}
         alimentationLogs={props.alimentationLogs || []}
         vaccins={props.vaccins || []}
