@@ -1,7 +1,4 @@
 import {
-  AlertTriangle,
-  Beef,
-  Bird,
   CloudRain,
   Droplets,
   Heart,
@@ -18,12 +15,11 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import Btn from '../components/Btn';
 import SectionHeader from '../components/SectionHeader';
-import { fmtCurrency, fmtNumber } from '../utils/format';
+import { fmtCurrency } from '../utils/format';
 import { buildFinanceSummary } from '../utils/financeSummary';
-import { calculateCultureMetrics, calculateLotMetrics, calculateStockMetrics } from '../utils/businessCalculations';
+import { calculateCultureMetrics, calculateStockMetrics } from '../utils/businessCalculations';
 
 export default function Dashboard({
-  lotsData = [],
   animaux = [],
   vaccins = [],
   stocks = [],
@@ -32,8 +28,6 @@ export default function Dashboard({
   salesOrders = [],
   payments = [],
   transactions = [],
-  alimentationLogs = [],
-  productionLogs = [],
   meteo,
   onNavigate,
   onRefresh,
@@ -45,8 +39,6 @@ export default function Dashboard({
   const vaccinsRetard = vaccins.filter((v) => v.statut === 'retard').length;
   const stocksCritiques = stocks.filter((s) => calculateStockMetrics(s).critical).length;
   const culturesRisque = cultures.filter((c) => calculateCultureMetrics(c).healthScore < 80 || c.statut === 'perdu').length;
-  const lotMetrics = (lot) => calculateLotMetrics({ lot, feedingLogs: alimentationLogs, productionLogs });
-  const productionOeufsJour = lotsData.reduce((sum, lot) => sum + lotMetrics(lot).eggMetrics.todayEggs, 0);
   const alertesCount = malades + vaccinsRetard + stocksCritiques + culturesRisque + (finance.cashDisponible < 0 ? 1 : 0) + (finance.totalCreances > 0 ? 1 : 0);
 
   const topAlerts = [
@@ -71,45 +63,9 @@ export default function Dashboard({
     }
   };
 
-  const quickActions = [
-    { label: 'Finances', module: 'finances' },
-    { label: 'Vente', module: 'ventes' },
-    { label: 'Stock', module: 'stock' },
-    { label: 'Clients', module: 'clients' },
-  ];
-
-  const mainCards = [
-    { label: 'Cash', value: fmtCurrency(finance.cashDisponible), module: 'finances', tone: finance.cashDisponible >= 0 ? 'text-emerald-300' : 'text-red-300' },
-    { label: 'Benefice', value: fmtCurrency(finance.benefice), module: 'finances', tone: finance.benefice >= 0 ? 'text-emerald-300' : 'text-red-300' },
-    { label: 'CA', value: fmtCurrency(finance.totalRecettes), module: 'finances', tone: 'text-emerald-300' },
-    { label: 'Creances', value: fmtCurrency(finance.totalCreances), module: 'clients', tone: finance.totalCreances > 0 ? 'text-amber-300' : 'text-emerald-300' },
-    { label: 'Alertes', value: alertesCount, module: 'alertes', tone: alertesCount > 0 ? 'text-amber-300' : 'text-emerald-300' },
-    { label: 'Oeufs/jour', value: fmtNumber(productionOeufsJour), module: 'avicole', tone: 'text-sky-300' },
-  ];
-
   return (
     <div className="space-y-4">
       <SectionHeader title="Dashboard" sub="Vue dirigeant: chiffres, alertes et priorites" actions={<Btn icon={RefreshCw} variant="outline" small onClick={handleRefresh} disabled={refreshing}>{refreshing ? 'Actualisation...' : 'Actualiser'}</Btn>} />
-
-      <div className="bg-[#2f2415] text-white border border-[#c9a96a]/40 rounded-3xl p-5 shadow-xl">
-        <div className="flex flex-col gap-4 mb-5">
-          <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-[#c9a96a] font-bold">Dashboard dirigeant</p>
-            <h2 className="text-xl font-black mt-1">Essentiel de l'exploitation</h2>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {quickActions.map((action) => <button key={action.module} type="button" onClick={() => onNavigate?.(action.module)} className="text-xs rounded-full bg-white/10 hover:bg-white/15 border border-white/10 px-3 py-1.5 text-[#f4e6c8]">{action.label}</button>)}
-          </div>
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-          {mainCards.map((item) => (
-            <button key={item.label} type="button" onClick={() => onNavigate?.(item.module)} className="text-left rounded-2xl bg-white/10 border border-white/10 p-3 hover:bg-white/15 transition-colors">
-              <p className="text-[11px] text-[#f4e6c8]/70">{item.label}</p>
-              <p className={`text-lg font-black mt-1 ${item.tone}`}>{item.value}</p>
-            </button>
-          ))}
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5">
