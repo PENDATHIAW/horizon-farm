@@ -1,9 +1,7 @@
-import { AlertTriangle, CalendarClock, CheckCircle2, ListChecks, Users } from 'lucide-react';
+import { AlertTriangle, CalendarClock, CheckCircle2, ListChecks } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import Btn from '../components/Btn';
 import { generateSequentialId, makeId } from '../utils/ids';
-import RHEquipe from './RHEquipe.jsx';
 import Taches from './Taches.jsx';
 
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -59,7 +57,7 @@ function TasksBridge(props) {
   return (
     <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        <div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Tâches & alertes</p><h3 className="font-black text-[#2f2415]">Transformer les alertes en actions terrain</h3><p className="text-sm text-[#8a7456] mt-1">Les responsables viennent du référentiel RH & Équipe.</p></div>
+        <div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Tâches & alertes</p><h3 className="font-black text-[#2f2415]">Transformer les alertes en actions terrain</h3></div>
         <div className="grid grid-cols-3 gap-2 text-sm"><Mini icon={ListChecks} label="Tâches" value={tasks.length} /><Mini icon={CalendarClock} label="En retard" value={late.length} /><Mini icon={AlertTriangle} label="Alertes libres" value={openAlerts.length} /></div>
       </div>
       {openAlerts.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">{openAlerts.map((alert) => <div key={alert.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="font-bold text-[#2f2415]">{alert.title || alert.message || alert.id}</p><p className="text-xs text-[#8a7456] mt-1">{alert.module_source || alert.module || 'alerte'} · {alert.severity || 'info'}</p><button type="button" disabled={savingId === alert.id} className="mt-3 text-sm font-bold text-emerald-700 disabled:opacity-60" onClick={() => createTaskFromAlert(alert, props, setSavingId)}><CheckCircle2 size={14} className="inline" /> {savingId === alert.id ? 'Création...' : 'Créer tâche'}</button></div>)}</div> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]"><CheckCircle2 size={14} className="inline" /> Aucune alerte sans tâche.</div>}
@@ -70,12 +68,5 @@ function TasksBridge(props) {
 function Mini({ icon: Icon, label, value }) { return <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2 min-w-[100px]"><Icon size={14} className="text-[#9a6b12]" /><b className="block text-[#2f2415]">{value}</b><span className="text-xs text-[#8a7456]">{label}</span></div>; }
 
 export default function TachesV2(props) {
-  const [view, setView] = useState('taches');
-  return <div className="space-y-6">
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-3 flex flex-wrap gap-2">
-      <Btn icon={ListChecks} small variant={view === 'taches' ? 'primary' : 'outline'} onClick={() => setView('taches')}>Tâches terrain</Btn>
-      <Btn icon={Users} small variant={view === 'rh' ? 'primary' : 'outline'} onClick={() => setView('rh')}>RH & Équipe</Btn>
-    </div>
-    {view === 'rh' ? <RHEquipe onRefresh={props.onRefresh} /> : <><TasksBridge {...props} /><Taches {...props} /></>}
-  </div>;
+  return <div className="space-y-6"><TasksBridge {...props} /><Taches {...props} /></div>;
 }
