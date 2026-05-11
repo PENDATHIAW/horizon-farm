@@ -10,13 +10,25 @@ const paidOf = (row = {}) => toNumber(row.montant_paye ?? row.paid_amount ?? row
 const paymentAmount = (row = {}) => toNumber(row.montant_paye ?? row.montant ?? row.amount ?? row.paid_amount ?? 0);
 const paymentOrderId = (row = {}) => clean(row.order_id || row.sale_id || row.source_record_id || row.related_id || row.commande_id);
 const sourceModuleOf = (row = {}) => lower(row.source_module || row.created_from || row.module_source || row.source_type || row.module_lie);
-const sourceIdOf = (row = {}) => clean(row.source_id || row.related_id || row.entity_id || row.source_record_id || row.asset_id || row.lot_id || row.animal_id || row.culture_id);
+const sourceIdOf = (row = {}) => clean(row.source_id || row.related_id || row.entity_id || row.source_record_id || row.asset_id || row.stock_id || row.lot_id || row.animal_id || row.culture_id);
 const unitPriceStock = (row = {}) => toNumber(row.cout_unitaire_calcule ?? row.cout_revient_unitaire ?? row.prixUnit ?? row.prixunit ?? row.prix_achat ?? row.purchase_price ?? row.cout_achat ?? row.prix_unitaire ?? row.unit_price ?? row.cost_unit ?? row.cout_unitaire);
 const cancelled = (row = {}) => ['annule', 'annulé', 'cancelled'].includes(lower(row.statut || row.status || row.statut_commande));
 const paymentCancelled = (row = {}) => ['annule', 'annulé', 'cancelled', 'rejete', 'rejeté'].includes(lower(row.statut || row.status));
 
 function findById(rows, id) {
   return arr(rows).find((row) => clean(row.id) === clean(id) || clean(row.tag) === clean(id));
+}
+
+function findStockForSale(input = {}, stocks = []) {
+  const ids = [input.stock_id, input.source_id, input.source_record_id, input.related_id, input.entity_id, input.asset_id].map(clean).filter(Boolean);
+  const product = lower(`${input.product_name || input.produit || input.title || input.nom || ''}`);
+  const exact = arr(stocks).find((stock) => ids.includes(clean(stock.id)) || ids.includes(clean(stock.source_record_id)) || ids.includes(clean(stock.origine_id)));
+  if (exact) return exact;
+  if (!product) return null;
+  return arr(stocks).find((stock) => {
+    const stockName = lower(stock.produit || stock.name || stock.nom);
+    return stockName && (stockName === product || stockName.includes(product) || product.includes(stockName));
+  }) || null;
 }
 
 function paidFromLinkedPayments(order = {}, payments = []) {
@@ -49,21 +61,7 @@ function marginResult({ saleAmount = 0, paidAmount = 0, directCost = 0, costSour
   const cost = toNumber(directCost);
   const margin = sale - cost;
   const cashMargin = paid - cost;
-  return {
-    chiffre_affaires: sale,
-    montant_encaisse: paid,
-    cout_revient: cost,
-    cout_direct: cost,
-    cout_source: costSource,
-    marge_directe: margin,
-    marge_montant: margin,
-    marge: margin,
-    marge_cash: cashMargin,
-    taux_marge_directe: sale > 0 ? Number(((margin / sale) * 100).toFixed(1)) : 0,
-    marge_taux: sale > 0 ? Number(((margin / sale) * 100).toFixed(1)) : 0,
-    taux_marge_cash: paid > 0 ? Number(((cashMargin / paid) * 100).toFixed(1)) : 0,
-    source_label: sourceLabel,
-  };
+  return { chiffre_affaires: sale, montant_encaisse: paid, cout_revient: cost, cout_direct: cost, cout_source: costSource, marge_directe: margin, marge_montant: margin, marge: margin, marge_cash: cashMargin, taux_marge_directe: sale > 0 ? Number(((margin / sale) * 100).toFixed(1)) : 0, marge_taux: sale > 0 ? Number(((margin / sale) * 100).toFixed(1)) : 0, taux_marge_cash: paid > 0 ? Number(((cashMargin / paid) * 100).toFixed(1)) : 0, source_label: sourceLabel };
 }
 
 export function calculateSalesMargin(input = {}, context = {}) {
@@ -76,10 +74,18 @@ export function calculateSalesMargin(input = {}, context = {}) {
   const unit = lower(input.unit || input.unite || input.unité || '');
   const product = lower(`${input.product_name || input.produit || input.title || input.nom || ''}`);
 
+  const stock = findStockForSale(input, context.stocks || []);
+  const stockUnitCost = stock ? unitPriceStock(stock) : 0;
+  const isFinishedProduct = stock && ['produit_fini', 'produit_recolte', 'viande', 'recolte', 'récolte'].some((term) => lower(`${stock.categorie || ''} ${stock.activite_liee || ''} ${stock.produit || ''}`).includes(term));
+  if ((sourceModule.includes('stock') || isFinishedProduct) && stock) {
+    const directCost = stockUnitCost * quantity;
+    return marginResult({ saleAmount, paidAmount, directCost, costSource: directCost > 0 ? 'cout_stock_produit_fini' : 'cout_stock_indisponible', sourceLabel: stock.produit || stock.id });
+  }
+
   if (sourceModule.includes('animal')) {
     const animal = findById(context.animaux, sourceId);
     if (animal) {
-      const cost = calculateAnimalCost({ animal, alimentationLogs: context.alimentationLogs, vaccins: context.vaccins, slaughterEvents: context.businessEvents, directCharges: context.businessEvents });
+      const cost = calculateAnimalCost({ animal, alimentationLogs: context.alimentationLogs, vaccins: context.vaccins, healthEvents: context.businessEvents, slaughterEvents: context.businessEvents, directCharges: context.businessEvents });
       const byKg = unit.includes('kg') && cost.costPerKg > 0;
       const directCost = byKg ? cost.costPerKg * quantity : cost.totalCost;
       return marginResult({ saleAmount, paidAmount, directCost, costSource: cost.feedCostSource === 'reel' ? 'cout_animal_reel' : 'cout_animal_estime', sourceLabel: animal.name || animal.tag || animal.id });
@@ -89,7 +95,7 @@ export function calculateSalesMargin(input = {}, context = {}) {
   if (sourceModule.includes('avicole') || sourceModule.includes('lot')) {
     const lot = findById(context.lots, sourceId);
     if (lot) {
-      const cost = calculateAvicoleLotCost({ lot, alimentationLogs: context.alimentationLogs, productionLogs: context.productionLogs, slaughterEvents: context.businessEvents, directCharges: context.businessEvents });
+      const cost = calculateAvicoleLotCost({ lot, alimentationLogs: context.alimentationLogs, productionLogs: context.productionLogs, healthEvents: context.businessEvents, slaughterEvents: context.businessEvents, directCharges: context.businessEvents });
       let directCost = cost.totalCost;
       if (unit.includes('kg') && cost.costPerKg > 0) directCost = cost.costPerKg * quantity;
       else if ((product.includes('oeuf') || product.includes('œuf')) && cost.costPerEgg > 0) directCost = cost.costPerEgg * quantity;
@@ -106,14 +112,6 @@ export function calculateSalesMargin(input = {}, context = {}) {
       const totalCost = cultureTotalCost(culture);
       const directCost = unitCost > 0 ? unitCost * quantity : totalCost;
       return marginResult({ saleAmount, paidAmount, directCost, costSource: unitCost > 0 ? 'cout_culture_unitaire' : 'cout_culture_total', sourceLabel: culture.nom || culture.type || culture.id });
-    }
-  }
-
-  if (sourceModule.includes('stock')) {
-    const stock = findById(context.stocks, sourceId);
-    if (stock) {
-      const directCost = unitPriceStock(stock) * quantity;
-      return marginResult({ saleAmount, paidAmount, directCost, costSource: directCost > 0 ? 'cout_stock' : 'cout_stock_indisponible', sourceLabel: stock.produit || stock.id });
     }
   }
 
