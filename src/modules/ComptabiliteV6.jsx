@@ -20,11 +20,11 @@ export default function ComptabiliteV6(props) {
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-widest text-[#8a7456] font-bold">Contrôle comptable consolidé</p>
-            <h3 className="text-xl font-black text-[#2f2415]">Même base que Dashboard & Finances</h3>
-            <p className="text-sm text-[#8a7456] mt-1">Commandes, paiements et transactions sont rapprochés avant contrôle comptable.</p>
+            <p className="text-xs uppercase tracking-widest text-[#8a7456] font-bold">Contrôle comptable</p>
+            <h3 className="text-xl font-black text-[#2f2415]">Ventes, encaissements et charges</h3>
+            <p className="text-sm text-[#8a7456] mt-1">Vue de contrôle des montants facturés, encaissés, à suivre et engagés.</p>
           </div>
-          {finance.warnings?.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {finance.warnings.length} point(s) à vérifier</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">Base consolidée cohérente</div>}
+          {finance.warnings?.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {finance.warnings.length} point(s) à vérifier</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">Données cohérentes</div>}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
           <KpiCard icon={TrendingUp} label="CA consolidé" value={fmtCurrency(finance.caConsolide)} sub="commandes non annulées" color="bg-emerald-500/20 text-emerald-500" />
