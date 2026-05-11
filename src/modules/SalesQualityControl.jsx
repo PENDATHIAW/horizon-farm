@@ -1,4 +1,5 @@
-import { AlertTriangle, CheckCircle2, Link2, PackageSearch, TrendingDown } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Link2, PackageSearch, ReceiptText, TrendingDown } from 'lucide-react';
+import { analyzeSalesIntegrity } from '../services/salesIntegrityService';
 import { calculateSalesMargin } from '../utils/salesMarginEngine';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { enrichSalesOrderStatus, remainingForOrder } from '../utils/salesStatuses';
@@ -29,13 +30,17 @@ function Issue({ icon: Icon, title, value, hint, danger = false }) {
   </div>;
 }
 
-export default function SalesQualityControl({ rows = [], stocks = [], animaux = [], lots = [], cultures = [], paymentsList = [], payments = [], alimentationLogs = [], vaccins = [], businessEvents = [], productionLogs = [] }) {
+export default function SalesQualityControl({ rows = [], stocks = [], animaux = [], lots = [], cultures = [], paymentsList = [], payments = [], transactions = [], finances = [], invoices = [], alimentationLogs = [], vaccins = [], businessEvents = [], productionLogs = [] }) {
   const paymentRows = arr(paymentsList || payments);
+  const transactionRows = arr(transactions || finances);
+  const integrity = analyzeSalesIntegrity({ orders: rows, payments: paymentRows, transactions: transactionRows, invoices });
+  const integrityByOrder = new Map(integrity.map((item) => [String(item.order?.id || ''), item]));
   const context = { stocks, animaux, lots, cultures, payments: paymentRows, paymentsList: paymentRows, alimentationLogs, vaccins, businessEvents, productionLogs };
   const enriched = arr(rows).filter((row) => !isCancelled(row)).map((order) => {
     const status = enrichSalesOrderStatus(order, paymentRows);
     const margin = calculateSalesMargin(order, context);
     const stock = findStock(order, stocks);
+    const audit = integrityByOrder.get(String(order.id || '')) || {};
     const issues = [];
     const sid = sourceId(order);
     const stype = sourceType(order);
@@ -45,32 +50,38 @@ export default function SalesQualityControl({ rows = [], stocks = [], animaux = 
     if (stock && stockCost(stock) <= 0) issues.push('Coût stock manquant');
     if (margin.cout_revient <= 0 && margin.chiffre_affaires > 0) issues.push('Coût de revient nul');
     if (margin.marge_directe < 0) issues.push('Marge négative');
+    if (audit.duplicatePayments?.length) issues.push('Paiement doublon');
+    if (audit.missingFinance?.length) issues.push('Paiement sans finance');
+    if (audit.overpaid) issues.push('Sur-encaissement');
+    if (audit.soldButRelance) issues.push('Soldé mais relancé');
     const remaining = remainingForOrder(status, paymentRows);
     if (remaining > 0) issues.push('Reste à encaisser');
-    return { order, status, margin, stock, issues, remaining };
+    return { order, status, margin, stock, issues, remaining, audit };
   });
 
   const sourceMissing = enriched.filter((item) => item.issues.includes('Source non liée')).length;
   const costMissing = enriched.filter((item) => item.issues.includes('Coût de revient nul') || item.issues.includes('Coût stock manquant')).length;
   const stockRisk = enriched.filter((item) => item.issues.includes('Stock introuvable') || item.issues.includes('Quantité vendue supérieure au stock')).length;
+  const duplicateRisk = enriched.filter((item) => item.issues.includes('Paiement doublon') || item.issues.includes('Paiement sans finance') || item.issues.includes('Sur-encaissement')).length;
   const negativeMargin = enriched.filter((item) => item.margin.marge_directe < 0).length;
-  const risky = enriched.filter((item) => item.issues.length).slice(0, 8);
+  const risky = enriched.filter((item) => item.issues.length).slice(0, 10);
   const totalMargin = enriched.reduce((sum, item) => sum + toNumber(item.margin.marge_directe), 0);
   const totalCost = enriched.reduce((sum, item) => sum + toNumber(item.margin.cout_revient), 0);
 
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
       <div>
-        <p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><PackageSearch size={20} /> Contrôle ventes, stock & marge</p>
-        <p className="mt-1 text-sm text-[#8a7456]">Vérifie les ventes mal liées, les coûts manquants, les ruptures et les marges à risque.</p>
+        <p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><PackageSearch size={20} /> Contrôle ventes, stock, paiement & marge</p>
+        <p className="mt-1 text-sm text-[#8a7456]">Vérifie les ventes mal liées, coûts manquants, paiements doublons, finance manquante et marges à risque.</p>
       </div>
       <div className={`${risky.length ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'} rounded-2xl border px-4 py-3 text-sm font-bold`}>{risky.length ? `${risky.length} vente(s) à vérifier` : 'Ventes cohérentes'}</div>
     </div>
 
-    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
       <Issue icon={Link2} title="Sources non liées" value={sourceMissing} danger={sourceMissing > 0} />
       <Issue icon={PackageSearch} title="Risques stock" value={stockRisk} danger={stockRisk > 0} />
       <Issue icon={AlertTriangle} title="Coûts manquants" value={costMissing} danger={costMissing > 0} />
+      <Issue icon={ReceiptText} title="Paiements à corriger" value={duplicateRisk} danger={duplicateRisk > 0} />
       <Issue icon={TrendingDown} title="Marges négatives" value={negativeMargin} danger={negativeMargin > 0} />
       <Issue icon={CheckCircle2} title="Marge suivie" value={fmtCurrency(totalMargin)} hint={`coût ${fmtCurrency(totalCost)}`} danger={totalMargin < 0} />
     </div>
