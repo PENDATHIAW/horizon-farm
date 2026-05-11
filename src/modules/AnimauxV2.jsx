@@ -1,4 +1,5 @@
 import Animaux from './Animaux.jsx';
+import AnimalCostOverview from './AnimalCostOverview.jsx';
 import AnimalSlaughterStockBridge from './AnimalSlaughterStockBridge.jsx';
 import AnimauxEvolution from './AnimauxEvolution.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
@@ -7,6 +8,12 @@ export default function AnimauxV2(props) {
   return (
     <div className="space-y-6">
       <Animaux {...props} />
+      <AnimalCostOverview
+        rows={props.rows || []}
+        alimentationLogs={props.alimentationLogs || []}
+        vaccins={props.vaccins || []}
+        businessEvents={props.businessEvents || []}
+      />
       <AnimalSlaughterStockBridge
         rows={props.rows || []}
         businessEvents={props.businessEvents || []}
