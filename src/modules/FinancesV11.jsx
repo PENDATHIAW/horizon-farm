@@ -1,4 +1,4 @@
-import { AlertTriangle, BookOpen, CreditCard, Landmark, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
+import { AlertTriangle, CreditCard, Landmark, TrendingDown, TrendingUp } from 'lucide-react';
 import { useMemo } from 'react';
 import KpiCard from '../components/KpiCard';
 import { fmtCurrency } from '../utils/format';
@@ -20,20 +20,18 @@ export default function FinancesV11(props) {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-widest text-[#8a7456] font-bold">Synthèse financière</p>
-            <h3 className="text-xl font-black text-[#2f2415]">Encaissements, créances et marge</h3>
-            <p className="text-sm text-[#8a7456] mt-1">Lecture nette des ventes, paiements, charges et montants à suivre.</p>
+            <h3 className="text-xl font-black text-[#2f2415]">Cash, créances et marge</h3>
+            <p className="text-sm text-[#8a7456] mt-1">Les indicateurs essentiels pour piloter les entrées, sorties et montants à suivre.</p>
           </div>
           {finance.warnings?.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {finance.warnings.length} point(s) à vérifier</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">Données cohérentes</div>}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
-          <KpiCard icon={TrendingUp} label="CA consolidé" value={fmtCurrency(finance.caConsolide)} sub="commandes non annulées" color="bg-emerald-500/20 text-emerald-500" />
-          <KpiCard icon={CreditCard} label="Cash encaissé" value={fmtCurrency(finance.cashEncaisse)} sub="paiements rapprochés" color="bg-sky-500/20 text-sky-500" />
-          <KpiCard icon={Landmark} label="Créances" value={fmtCurrency(finance.creancesReelles)} sub="reste client réel" color="bg-amber-500/20 text-amber-500" />
-          <KpiCard icon={TrendingDown} label="Charges engagées" value={fmtCurrency(finance.chargesEngagees)} sub="transactions sorties" color="bg-red-500/20 text-red-500" />
-          <KpiCard icon={Wallet} label="Cash net" value={fmtCurrency(finance.cashNet)} sub="encaissements - charges payées" color={finance.cashNet >= 0 ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'} />
-          <KpiCard icon={BookOpen} label="Marge réelle" value={fmtCurrency(finance.margeReelle)} sub={`CA - charges · ${finance.marginRate}%`} color={finance.margeReelle >= 0 ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <KpiCard icon={CreditCard} label="Cash encaissé" value={fmtCurrency(finance.cashEncaisse)} sub={`CA ${fmtCurrency(finance.caConsolide)}`} color="bg-sky-500/20 text-sky-500" />
+          <KpiCard icon={Landmark} label="À encaisser" value={fmtCurrency(finance.creancesReelles)} sub="créances clients" color="bg-amber-500/20 text-amber-500" />
+          <KpiCard icon={TrendingDown} label="Charges" value={fmtCurrency(finance.chargesEngagees)} sub="sorties engagées" color="bg-red-500/20 text-red-500" />
+          <KpiCard icon={TrendingUp} label="Marge" value={fmtCurrency(finance.margeReelle)} sub={`${finance.marginRate}%`} color={finance.margeReelle >= 0 ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'} />
         </div>
-        {finance.warnings?.length ? <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{finance.warnings.map((warning) => <div key={warning} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{warning}</div>)}</div> : null}
+        {finance.warnings?.length ? <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{finance.warnings.slice(0, 4).map((warning) => <div key={warning} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{warning}</div>)}</div> : null}
       </section>
       <FinancesV10 {...props} />
     </div>
