@@ -114,6 +114,7 @@ export default function StocksV4(props) {
         rows={props.rows || []}
         animaux={props.animaux || []}
         lots={props.lots || []}
+        alimentationLogs={props.alimentationLogs || []}
         onOpenUseFood={applyFeedingPlan}
       />
       <StockEvolution
