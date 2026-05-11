@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import ImpactDomainDeepSignals from './ImpactDomainDeepSignals.jsx';
 import ImpactFarmValueBridgeV5 from './ImpactFarmValueBridgeV5.jsx';
 import ImpactBusinessStrategicV5 from './ImpactBusinessStrategicV5.jsx';
 
@@ -63,12 +62,7 @@ export default function ImpactBusinessShell(props) {
         <TabButton active={tab === 'domaines'} onClick={() => setTab('domaines')}>Domaines maîtrisés</TabButton>
       </div>
       {tab === 'pilotage' ? <ImpactBusinessStrategicV5 {...impactProps} embedded /> : null}
-      {tab === 'domaines' ? (
-        <div className="space-y-5">
-          <ImpactDomainDeepSignals {...impactProps} />
-          <ImpactFarmValueBridgeV5 {...impactProps} />
-        </div>
-      ) : null}
+      {tab === 'domaines' ? <ImpactFarmValueBridgeV5 {...impactProps} /> : null}
     </div>
   );
 }
