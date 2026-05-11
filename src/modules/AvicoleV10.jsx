@@ -4,6 +4,7 @@ import AvicoleHealthBridge from './AvicoleHealthBridge.jsx';
 import AvicoleJournalsBridge from './AvicoleJournalsBridge.jsx';
 import AvicoleSaleReadinessBridge from './AvicoleSaleReadinessBridge.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
+import GrowthPerformanceOverview from './GrowthPerformanceOverview.jsx';
 
 export default function AvicoleV10(props) {
   return (
@@ -21,6 +22,13 @@ export default function AvicoleV10(props) {
         onRefreshBusinessEvents={props.onRefreshBusinessEvents}
       />
       <AvicoleBase {...props} />
+      <GrowthPerformanceOverview
+        mode="avicole"
+        rows={props.rows || []}
+        alimentationLogs={props.alimentationLogs || []}
+        productionLogs={props.productionLogs || []}
+        businessEvents={props.businessEvents || []}
+      />
       <AvicoleHealthBridge
         rows={props.rows || []}
         productionLogs={props.productionLogs || []}
