@@ -6,7 +6,8 @@ import { commitSaleWorkflow, prepareSaleWorkflow, useSuggestion } from '../servi
 import { buildSaleAssetPatch, cleanPatchForWrite } from '../services/saleAssetPatchService';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
-import { enrichSalesOrderStatus, isOpenForPayment, normalizeOrderStatus, normalizePaymentStatus, paidForOrder, remainingForOrder } from '../utils/salesStatuses';
+import { enrichSalesOrderStatus, isOpenForPayment, paidForOrder, remainingForOrder } from '../utils/salesStatuses';
+import { getFinanceActivityFromSale, getFinanceCategoryFromSale } from '../services/financeSyncService';
 import SalesOpportunitiesBridge from './SalesOpportunitiesBridge.jsx';
 import Ventes from './Ventes.jsx';
 
@@ -122,11 +123,13 @@ function PaymentCapturePanel(props) {
       setSaving(true);
       const nextPaid = paidForOrder(selectedOrder, payments) + amount;
       const paymentId = makeId('PAY');
+      const transactionId = makeId('TRX');
       const paymentStatus = nextPaid >= total(selectedOrder) ? 'paye' : 'partiel';
       await props.onCreatePayment?.({ id: paymentId, order_id: selectedOrder.id, sale_id: selectedOrder.id, source_record_id: selectedOrder.id, client_id: selectedOrder.client_id, invoice_id: selectedOrder.invoice_id || '', date_paiement: form.date_paiement || today(), date: form.date_paiement || today(), montant_paye: amount, montant: amount, amount, moyen_paiement: form.moyen_paiement, mode_paiement: form.moyen_paiement, statut: 'paye', notes: form.notes || `Paiement commande ${selectedOrder.id}` });
-      await props.onUpdate?.(selectedOrder.id, { montant_paye: Math.min(total(selectedOrder), nextPaid), reste_a_payer: Math.max(0, total(selectedOrder) - nextPaid), statut_paiement: paymentStatus, payment_status: paymentStatus, statut_commande: 'confirme', order_status: 'confirme', moyen_paiement: form.moyen_paiement, last_payment_id: paymentId, last_payment_date: form.date_paiement || today() });
+      await props.onCreateFinanceTransaction?.({ id: transactionId, type: 'entree', libelle: `Encaissement ${selectedOrder.product_name || selectedOrder.libelle || selectedOrder.id}`, montant: amount, date: form.date_paiement || today(), categorie: getFinanceCategoryFromSale(selectedOrder), module_lie: 'ventes', related_id: selectedOrder.id, activite: getFinanceActivityFromSale(selectedOrder), client_id: selectedOrder.client_id || '', statut: 'paye', source_module: 'ventes', source_record_id: selectedOrder.id, source_type: selectedOrder.source_type || selectedOrder.type_vente || selectedOrder.product_type, source_id: selectedOrder.source_id || selectedOrder.product_id || selectedOrder.entity_id, invoice_id: selectedOrder.invoice_id || '', payment_id: paymentId, moyen_paiement: form.moyen_paiement, notes: form.notes || `Encaissement rapide commande ${selectedOrder.id}` });
+      await props.onUpdate?.(selectedOrder.id, { montant_paye: Math.min(total(selectedOrder), nextPaid), reste_a_payer: Math.max(0, total(selectedOrder) - nextPaid), statut_paiement: paymentStatus, payment_status: paymentStatus, statut_commande: 'confirme', order_status: 'confirme', moyen_paiement: form.moyen_paiement, last_payment_id: paymentId, last_payment_date: form.date_paiement || today(), last_transaction_id: transactionId });
       await refreshRelated(props);
-      toast.success('Paiement enregistré et commande mise à jour');
+      toast.success('Paiement enregistré en Finance et commande mise à jour');
       setForm({ order_id: '', montant: '', moyen_paiement: 'wave', date_paiement: today(), notes: '' });
     } catch (error) {
       toast.error(error.message || 'Paiement impossible');
@@ -171,6 +174,6 @@ export default function VentesV2(props) {
   const invoicesCrud = useCrudModule('invoices');
   const paymentsCrud = useCrudModule('payments');
   const payments = props.paymentsList || props.payments || paymentsCrud.rows;
-  const mergedProps = { ...props, rows: arr(props.rows).map((order) => enrichSalesOrderStatus(order, payments)), paymentsList: payments, documents: props.documents || documentsCrud.rows, alertes: props.alertes || alertesCrud.rows, onCreateDocument: props.onCreateDocument || documentsCrud.create, onRefreshDocuments: props.onRefreshDocuments || documentsCrud.refresh, onCreateAlert: props.onCreateAlert || alertesCrud.create, onRefreshAlertes: props.onRefreshAlertes || alertesCrud.refresh, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onRefreshInvoices: props.onRefreshInvoices || invoicesCrud.refresh, onRefreshPayments: props.onRefreshPayments || paymentsCrud.refresh };
+  const mergedProps = { ...props, rows: arr(props.rows).map((order) => enrichSalesOrderStatus(order, payments)), paymentsList: payments, documents: props.documents || documentsCrud.rows, alertes: props.alertes || alertesCrud.rows, onCreateDocument: props.onCreateDocument || documentsCrud.create, onRefreshDocuments: props.onRefreshDocuments || documentsCrud.refresh, onCreateAlert: props.onCreateAlert || alertesCrud.create, onRefreshAlertes: props.onRefreshAlertes || alertesCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onRefreshInvoices: props.onRefreshInvoices || invoicesCrud.refresh, onRefreshPayments: props.onRefreshPayments || paymentsCrud.refresh };
   return <div className="space-y-6"><SalesOpportunitiesBridge {...mergedProps} /><SalesBridge {...mergedProps} /><PaymentCapturePanel {...mergedProps} /><Ventes {...mergedProps} /></div>;
 }
