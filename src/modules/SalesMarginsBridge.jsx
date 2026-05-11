@@ -28,7 +28,7 @@ function needsUpdate(current = {}, enriched = {}) {
 }
 
 export default function SalesMarginsBridge({
-  rows = [],
+  rows = [], payments = [],
   lots = [],
   animaux = [],
   cultures = [],
@@ -48,6 +48,7 @@ export default function SalesMarginsBridge({
   const productionCrud = useCrudModule('production_oeufs_logs');
   const vaccinsCrud = useCrudModule('sante');
   const eventsCrud = useCrudModule('business_events');
+  const paymentsCrud = useCrudModule('payments');
 
   const [syncing, setSyncing] = useState(false);
   const context = {
@@ -59,8 +60,9 @@ export default function SalesMarginsBridge({
     productionLogs: effective(productionLogs, productionCrud.rows),
     vaccins: effective(vaccins, vaccinsCrud.rows),
     businessEvents: effective(businessEvents, eventsCrud.rows),
+    payments: effective(payments, paymentsCrud.rows),
   };
-  const summary = useMemo(() => summarizeSalesMargins(rows, context), [rows, context.lots, context.animaux, context.cultures, context.stocks, context.alimentationLogs, context.productionLogs, context.vaccins, context.businessEvents]);
+  const summary = useMemo(() => summarizeSalesMargins(rows, context), [rows, context.lots, context.animaux, context.cultures, context.stocks, context.alimentationLogs, context.productionLogs, context.vaccins, context.businessEvents, context.payments]);
   const enrichedRows = summary.details;
   const missingCost = enrichedRows.filter((row) => totalOf(row) > 0 && costOf(row) <= 0).length;
   const negativeMargins = enrichedRows.filter((row) => marginOf(row) < 0).length;
@@ -86,8 +88,8 @@ export default function SalesMarginsBridge({
   if (!arr(rows).length) return null;
 
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
-    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Calculator size={20} /> Marges directes des commandes</p><p className="mt-1 text-sm text-[#8a7456]">La marge vente compare le montant vendu au coût direct. La marge cash indique l’effet de l’encaissement partiel.</p></div><button type="button" disabled={syncing} onClick={syncMargins} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">{syncing ? <RefreshCw size={15} className="animate-spin" /> : <CheckCircle2 size={15} />} Recalculer les marges</button></div>
-    <div className="grid grid-cols-2 lg:grid-cols-6 gap-3"><Mini label="Ventes" value={fmtCurrency(summary.ca)} hint={`${fmtNumber(enrichedRows.length)} commande(s)`} /><Mini label="Encaissé" value={fmtCurrency(summary.encaisse)} hint="cash reçu" /><Mini label="Coût direct" value={fmtCurrency(summary.directCost)} hint="coût de revient" danger={missingCost > 0} /><Mini label="Marge vente" value={fmtCurrency(summary.margin)} hint={`${summary.marginRate}%`} danger={summary.margin < 0} /><Mini label="Marge cash" value={fmtCurrency(summary.cashMargin)} hint={`${summary.cashMarginRate}%`} danger={summary.cashMargin < 0} /><Mini label="À compléter" value={fmtNumber(missingCost)} hint="coût indisponible" danger={missingCost > 0} /></div>
+    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Calculator size={20} /> Marges directes des commandes</p><p className="mt-1 text-sm text-[#8a7456]">Marge vente = vente - coût. Marge cash = encaissements réels - coût.</p></div><button type="button" disabled={syncing} onClick={syncMargins} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-bold text-white disabled:opacity-60">{syncing ? <RefreshCw size={15} className="animate-spin" /> : <CheckCircle2 size={15} />} Recalculer les marges</button></div>
+    <div className="grid grid-cols-2 lg:grid-cols-6 gap-3"><Mini label="Ventes" value={fmtCurrency(summary.ca)} hint={`${fmtNumber(enrichedRows.length)} commande(s)`} /><Mini label="Encaissé" value={fmtCurrency(summary.encaisse)} hint="paiements liés" /><Mini label="Coût direct" value={fmtCurrency(summary.directCost)} hint="coût de revient" danger={missingCost > 0} /><Mini label="Marge vente" value={fmtCurrency(summary.margin)} hint={`${summary.marginRate}%`} danger={summary.margin < 0} /><Mini label="Marge cash" value={fmtCurrency(summary.cashMargin)} hint={`${summary.cashMarginRate}%`} danger={summary.cashMargin < 0} /><Mini label="À compléter" value={fmtNumber(missingCost)} hint="coût indisponible" danger={missingCost > 0} /></div>
     <div className="overflow-x-auto"><table className="min-w-full text-sm"><thead><tr className="border-b border-[#eadcc2] text-left text-xs uppercase text-[#8a7456]"><th className="py-2 pr-4">Commande</th><th className="py-2 pr-4">Produit</th><th className="py-2 pr-4">Vente</th><th className="py-2 pr-4">Encaissé</th><th className="py-2 pr-4">Coût</th><th className="py-2 pr-4">Marge vente</th><th className="py-2 pr-4">Marge cash</th><th className="py-2 pr-4">Source coût</th></tr></thead><tbody>{enrichedRows.slice(0, 8).map((row) => <tr key={row.id} className="border-b border-[#f0e5d0]"><td className="py-3 pr-4 font-bold text-[#2f2415]">{row.id}</td><td className="py-3 pr-4">{row.product_name || row.produit || row.libelle || '—'}</td><td className="py-3 pr-4">{fmtCurrency(totalOf(row))}</td><td className="py-3 pr-4">{fmtCurrency(paidOf(row))}</td><td className="py-3 pr-4">{costOf(row) > 0 ? fmtCurrency(costOf(row)) : <span className="font-bold text-amber-700">à compléter</span>}</td><td className={`py-3 pr-4 font-bold ${marginOf(row) < 0 ? 'text-red-600' : 'text-emerald-700'}`}>{marginOf(row) < 0 ? <TrendingDown size={13} className="inline" /> : <TrendingUp size={13} className="inline" />} {fmtCurrency(marginOf(row))}</td><td className={`py-3 pr-4 font-bold ${cashMarginOf(row) < 0 && paidOf(row) > 0 ? 'text-red-600' : 'text-[#2f2415]'}`}>{fmtCurrency(cashMarginOf(row))}</td><td className="py-3 pr-4 text-[#8a7456]">{row.cout_source || '—'}</td></tr>)}</tbody></table></div>
     {toSync.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{toSync.length} commande(s) ont une marge à synchroniser avec le nouveau moteur.</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">Les marges calculées sont alignées avec les commandes visibles.</div>}
     {negativeMargins || negativeCashMargins ? <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{negativeMargins} marge(s) vente négative(s), {negativeCashMargins} marge(s) cash négative(s). Vérifier prix, coûts et encaissements.</div> : null}
