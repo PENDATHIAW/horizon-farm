@@ -24,6 +24,8 @@ export default function AnimauxV2(props) {
       />
       <AnimalSlaughterStockBridge
         rows={props.rows || []}
+        alimentationLogs={props.alimentationLogs || []}
+        vaccins={props.vaccins || []}
         businessEvents={props.businessEvents || []}
         onUpdate={props.onUpdate}
         onRefresh={props.onRefresh}
