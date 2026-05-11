@@ -7,6 +7,7 @@ import { calculateCultureMetrics } from '../utils/businessCalculations';
 import Cultures from './Cultures.jsx';
 import CultureCostOverview from './CultureCostOverview.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
+import GrowthPerformanceOverview from './GrowthPerformanceOverview.jsx';
 
 const tabs = ['Vue d’ensemble', 'Cultures', 'Parcelles', 'Campagnes', 'Performance'];
 const parcelKey = (row = {}) => row.parcelle_code || row.parcelle_nom || row.parcelle || 'Parcelle non renseignée';
@@ -82,7 +83,7 @@ export default function CulturesV2(props) {
           <KpiCard icon={TrendingUp} label="Marge/m²" value={fmtCurrency(totalSurface ? totalMargin / totalSurface : 0)} />
         </div>
       </div>
-      {tab === 'Vue d’ensemble' && <><Cultures {...props} /><CultureCostOverview rows={rows} businessEvents={props.businessEvents || []} healthEvents={healthEvents} /><DirectChargesBridge title="Charges directes cultures" subtitle="Ajoute les frais liés à une culture précise : semences complémentaires, engrais, irrigation, carburant, main-d’œuvre, transport ou traitement." targetType="cultures" targets={rows} businessEvents={props.businessEvents || []} onCreateBusinessEvent={props.onCreateBusinessEvent} onUpdateBusinessEvent={props.onUpdateBusinessEvent} onDeleteBusinessEvent={props.onDeleteBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} /></>}
+      {tab === 'Vue d’ensemble' && <><Cultures {...props} /><CultureCostOverview rows={rows} businessEvents={props.businessEvents || []} healthEvents={healthEvents} /><GrowthPerformanceOverview mode="cultures" rows={rows} businessEvents={props.businessEvents || []} /><DirectChargesBridge title="Charges directes cultures" subtitle="Ajoute les frais liés à une culture précise : semences complémentaires, engrais, irrigation, carburant, main-d’œuvre, transport ou traitement." targetType="cultures" targets={rows} businessEvents={props.businessEvents || []} onCreateBusinessEvent={props.onCreateBusinessEvent} onUpdateBusinessEvent={props.onUpdateBusinessEvent} onDeleteBusinessEvent={props.onDeleteBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} /></>}
       {tab === 'Cultures' && <Cultures {...props} />}
       {tab === 'Parcelles' && <DataTable title="Parcelles dérivées des cultures" rows={parcelles} columns={aggregateColumns} loading={props.loading} initialSortKey="nom" />}
       {tab === 'Campagnes' && <DataTable title="Campagnes dérivées des cultures" rows={campagnes} columns={aggregateColumns} loading={props.loading} initialSortKey="nom" />}
