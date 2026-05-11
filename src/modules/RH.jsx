@@ -1,5 +1,5 @@
-import RHUnified from './RHUnified.jsx';
+import RHPeopleTeams from './RHPeopleTeams.jsx';
 
 export default function RH(props) {
-  return <RHUnified {...props} />;
+  return <RHPeopleTeams {...props} />;
 }
