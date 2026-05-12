@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { ANIMAL_SPECIES_TABS, countAnimalsBySpecies, filterAnimalsBySpecies, restoreSpeciesOnAnimalPayload } from '../utils/animalSpecies';
 import AnimalCostOverview from './AnimalCostOverview.jsx';
@@ -7,8 +8,25 @@ import AnimauxSpeciesFocused from './AnimauxSpeciesFocused.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
 import GrowthPerformanceOverview from './GrowthPerformanceOverview.jsx';
 
+function AdvancedSection({ title, description, open, onToggle, children }) {
+  return (
+    <section className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm overflow-hidden">
+      <button type="button" onClick={onToggle} className="w-full flex items-center justify-between gap-3 p-5 text-left">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Analyse avancée</p>
+          <h3 className="text-lg font-black text-[#2f2415]">{title}</h3>
+          <p className="mt-1 text-sm text-[#8a7456]">{description}</p>
+        </div>
+        {open ? <ChevronDown className="text-[#8a7456]" /> : <ChevronRight className="text-[#8a7456]" />}
+      </button>
+      {open ? <div className="border-t border-[#eadcc2] p-5 space-y-6 bg-[#fffdf8]/40">{children}</div> : null}
+    </section>
+  );
+}
+
 export default function AnimauxV2(props) {
   const [species, setSpecies] = useState('Bovin');
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const counts = useMemo(() => countAnimalsBySpecies(props.rows || []), [props.rows]);
   const speciesRows = useMemo(() => filterAnimalsBySpecies(props.rows || [], species), [props.rows, species]);
   const wrapCreate = async (payload) => props.onCreate?.(restoreSpeciesOnAnimalPayload(payload, species));
@@ -41,48 +59,56 @@ export default function AnimauxV2(props) {
         onCreate={wrapCreate}
         onUpdate={wrapUpdate}
       />
-      <AnimalCostOverview
-        rows={speciesRows}
-        alimentationLogs={props.alimentationLogs || []}
-        vaccins={props.vaccins || []}
-        businessEvents={props.businessEvents || []}
-      />
-      <GrowthPerformanceOverview
-        mode="animaux"
-        rows={speciesRows}
-        alimentationLogs={props.alimentationLogs || []}
-        vaccins={props.vaccins || []}
-        businessEvents={props.businessEvents || []}
-      />
-      <AnimalSlaughterStockBridge
-        rows={speciesRows}
-        alimentationLogs={props.alimentationLogs || []}
-        vaccins={props.vaccins || []}
-        businessEvents={props.businessEvents || []}
-        onUpdate={props.onUpdate}
-        onRefresh={props.onRefresh}
-        onCreateBusinessEvent={props.onCreateBusinessEvent}
-        onRefreshBusinessEvents={props.onRefreshBusinessEvents}
-      />
-      <DirectChargesBridge
-        title={`Autres charges directes ${species.toLowerCase()}s`}
-        subtitle="Ajoute les frais exceptionnels liés à un animal précis : transport, traitement spécial, abattage, emballage, etc."
-        targetType="animaux"
-        targets={speciesRows}
-        businessEvents={props.businessEvents || []}
-        onCreateBusinessEvent={props.onCreateBusinessEvent}
-        onUpdateBusinessEvent={props.onUpdateBusinessEvent}
-        onDeleteBusinessEvent={props.onDeleteBusinessEvent}
-        onRefreshBusinessEvents={props.onRefreshBusinessEvents}
-      />
-      <AnimauxEvolution
-        rows={speciesRows}
-        alimentationLogs={props.alimentationLogs || []}
-        vaccins={props.vaccins || []}
-        businessEvents={props.businessEvents || []}
-        opportunities={props.opportunities || []}
-        onNavigate={props.onNavigate}
-      />
+
+      <AdvancedSection
+        title={`${species}s : coûts, croissance, charges, abattage et évolution`}
+        description="Les analyses détaillées sont regroupées ici pour éviter les doublons dans la lecture principale. Les graphes d’évolution sont conservés."
+        open={showAdvanced}
+        onToggle={() => setShowAdvanced((value) => !value)}
+      >
+        <AnimalCostOverview
+          rows={speciesRows}
+          alimentationLogs={props.alimentationLogs || []}
+          vaccins={props.vaccins || []}
+          businessEvents={props.businessEvents || []}
+        />
+        <GrowthPerformanceOverview
+          mode="animaux"
+          rows={speciesRows}
+          alimentationLogs={props.alimentationLogs || []}
+          vaccins={props.vaccins || []}
+          businessEvents={props.businessEvents || []}
+        />
+        <AnimalSlaughterStockBridge
+          rows={speciesRows}
+          alimentationLogs={props.alimentationLogs || []}
+          vaccins={props.vaccins || []}
+          businessEvents={props.businessEvents || []}
+          onUpdate={props.onUpdate}
+          onRefresh={props.onRefresh}
+          onCreateBusinessEvent={props.onCreateBusinessEvent}
+          onRefreshBusinessEvents={props.onRefreshBusinessEvents}
+        />
+        <DirectChargesBridge
+          title={`Autres charges directes ${species.toLowerCase()}s`}
+          subtitle="Ajoute les frais exceptionnels liés à un animal précis : transport, traitement spécial, abattage, emballage, etc."
+          targetType="animaux"
+          targets={speciesRows}
+          businessEvents={props.businessEvents || []}
+          onCreateBusinessEvent={props.onCreateBusinessEvent}
+          onUpdateBusinessEvent={props.onUpdateBusinessEvent}
+          onDeleteBusinessEvent={props.onDeleteBusinessEvent}
+          onRefreshBusinessEvents={props.onRefreshBusinessEvents}
+        />
+        <AnimauxEvolution
+          rows={speciesRows}
+          alimentationLogs={props.alimentationLogs || []}
+          vaccins={props.vaccins || []}
+          businessEvents={props.businessEvents || []}
+          opportunities={props.opportunities || []}
+          onNavigate={props.onNavigate}
+        />
+      </AdvancedSection>
     </div>
   );
 }
