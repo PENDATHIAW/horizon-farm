@@ -9,6 +9,7 @@ import AvicoleSaleReadinessBridge from './AvicoleSaleReadinessBridge.jsx';
 import AvicoleTransformationBridge from './AvicoleTransformationBridge.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
 import GrowthPerformanceOverview from './GrowthPerformanceOverview.jsx';
+import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
 
 function AdvancedSection({ open, onToggle, children }) {
   return (
@@ -16,7 +17,7 @@ function AdvancedSection({ open, onToggle, children }) {
       <button type="button" onClick={onToggle} className="w-full flex items-center justify-between gap-3 p-5 text-left">
         <div>
           <p className="text-xs uppercase tracking-widest text-[#8a7456]">Analyse avancée</p>
-          <h3 className="text-lg font-black text-[#2f2415]">Volailles : marges, ventes, croissance, santé, journaux, charges et évolution</h3>
+          <h3 className="text-lg font-black text-[#2f2415]">Volailles : historique, marges, ventes, croissance, santé, journaux, charges et évolution</h3>
           <p className="mt-1 text-sm text-[#8a7456]">Les analyses détaillées sont regroupées ici pour garder le module principal lisible. Les graphes d’évolution sont conservés.</p>
         </div>
         {open ? <ChevronDown className="text-[#8a7456]" /> : <ChevronRight className="text-[#8a7456]" />}
@@ -33,6 +34,13 @@ export default function AvicoleV10(props) {
       <style>{`@media (max-width: 640px){.avicole-mobile-final .rounded-2xl{border-radius:18px}.avicole-mobile-final table{font-size:12px}.avicole-mobile-final th,.avicole-mobile-final td{padding-left:10px!important;padding-right:10px!important}.avicole-mobile-final .text-2xl{font-size:1.35rem}.avicole-mobile-final .grid{gap:.75rem}.avicole-mobile-final .overflow-x-auto{max-width:100vw}}`}</style>
       <AvicoleBase {...props} />
       <AdvancedSection open={showAdvanced} onToggle={() => setShowAdvanced((value) => !value)}>
+        <LifecycleHistoryPanel
+          mode="avicole"
+          rows={props.rows || []}
+          salesOrders={props.salesOrders || []}
+          deliveries={props.deliveriesList || props.deliveries || []}
+          businessEvents={props.businessEvents || []}
+        />
         <ActivityOperatingMarginPanel
           mode="avicole"
           rows={props.rows || []}
