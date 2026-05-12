@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, FileText, Receipt } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection.jsx';
 import { transactionHasProof } from '../utils/accountingProof';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
@@ -59,4 +60,17 @@ function DocumentsBridge(props) {
 }
 function Mini({ icon: Icon, label, value }) { return <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2 min-w-[100px]"><Icon size={14} className="text-[#9a6b12]" /><b className="block text-[#2f2415]">{value}</b><span className="text-xs text-[#8a7456]">{label}</span></div>; }
 
-export default function DocumentsV2(props) { return <div className="space-y-6"><DocumentsBridge {...props} /><Documents {...props} /></div>; }
+export default function DocumentsV2(props) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  return <div className="space-y-6">
+    <Documents {...props} />
+    <CollapsibleAdvancedSection
+      title="Documents : justificatifs et transactions à compléter"
+      description="La bibliothèque reste simple. Les contrôles de pièces sont rangés ici."
+      open={showAdvanced}
+      onToggle={() => setShowAdvanced((value) => !value)}
+    >
+      <DocumentsBridge {...props} />
+    </CollapsibleAdvancedSection>
+  </div>;
+}
