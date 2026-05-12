@@ -1,6 +1,5 @@
-import { AlertTriangle, CheckCircle2, FileText, Receipt, ShieldCheck } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection.jsx';
+import { AlertTriangle, BarChart3, CheckCircle2, FileText, Receipt, ShieldCheck, TrendingUp } from 'lucide-react';
+import { useMemo } from 'react';
 import { fmtCurrency } from '../utils/format';
 import { consolidateFinance } from '../utils/financeConsolidationEngine';
 import ComptabiliteV5 from './ComptabiliteV5.jsx';
@@ -12,6 +11,18 @@ const isOut = (row = {}) => String(row.type || '').toLowerCase() === 'sortie';
 const isIn = (row = {}) => ['entree', 'entrée'].includes(String(row.type || '').toLowerCase());
 const isMissingDoc = (row = {}) => !row.document_id && !row.linked_document_id && !row.piece_jointe && !row.file_url;
 
+function ModuleSection({ icon: Icon, title, subtitle, children }) {
+  return (
+    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+      <div>
+        <p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>
+        {subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 function ControlCard({ icon: Icon, label, value, hint, danger = false }) {
   return <div className={`rounded-2xl border p-4 ${danger ? 'border-amber-200 bg-amber-50' : 'border-[#eadcc2] bg-[#fffdf8]'}`}>
     <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-[#8a7456]"><Icon size={14} /> {label}</div>
@@ -21,7 +32,6 @@ function ControlCard({ icon: Icon, label, value, hint, danger = false }) {
 }
 
 export default function ComptabiliteV6(props) {
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const transactions = arr(props.transactions || props.finances);
   const finance = useMemo(() => consolidateFinance({
     transactions,
@@ -42,13 +52,19 @@ export default function ComptabiliteV6(props) {
   }, [transactions, finance.warnings]);
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+    <div className="space-y-6 compta-mobile-structured">
+      <style>{`@media (max-width: 640px){.compta-mobile-structured .rounded-2xl{border-radius:18px}.compta-mobile-structured table{font-size:12px}.compta-mobile-structured th,.compta-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.compta-mobile-structured .text-2xl{font-size:1.35rem}.compta-mobile-structured .grid{gap:.75rem}.compta-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
+
+      <ModuleSection
+        icon={ShieldCheck}
+        title="Contrôle comptable"
+        subtitle="Écritures, pièces justificatives, créances et points à vérifier."
+      >
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-widest text-[#8a7456] font-bold">Contrôle comptable</p>
+            <p className="text-xs uppercase tracking-widest text-[#8a7456] font-bold">Contrôle rapide</p>
             <h3 className="text-xl font-black text-[#2f2415]">Écritures, pièces et rapprochements</h3>
-            <p className="text-sm text-[#8a7456] mt-1">Contrôle rapide des mouvements, justificatifs et points à vérifier.</p>
+            <p className="text-sm text-[#8a7456] mt-1">Contrôle des mouvements, justificatifs et anomalies avant analyse du résultat.</p>
           </div>
           {accounting.warnings.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {accounting.warnings.length} contrôle(s) à traiter</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 size={15} className="inline" /> Contrôles à jour</div>}
         </div>
@@ -59,22 +75,36 @@ export default function ComptabiliteV6(props) {
           <ControlCard icon={AlertTriangle} label="Points à vérifier" value={accounting.warnings.length} hint="doublons, orphelins, pièces" danger={accounting.warnings.length > 0} />
         </div>
         {accounting.warnings.length ? <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{accounting.warnings.slice(0, 4).map((warning) => <div key={warning} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{warning}</div>)}</div> : null}
-      </section>
-      <ProfitabilityStatement
-        transactions={transactions}
-        salesOrders={props.salesOrders || []}
-        payments={props.payments || []}
-        animaux={props.animaux || []}
-        lots={props.lots || []}
-        cultures={props.cultures || []}
-        stocks={props.stocks || []}
-      />
-      <ComptabiliteV5 {...props} />
-      <CollapsibleAdvancedSection
-        title="Comptabilité : évolution et lecture historique"
-        description="Les graphes restent disponibles ici, sans alourdir les écritures et les contrôles quotidiens."
-        open={showAdvanced}
-        onToggle={() => setShowAdvanced((value) => !value)}
+      </ModuleSection>
+
+      <ModuleSection
+        icon={TrendingUp}
+        title="Compte d’exploitation réel"
+        subtitle="CA, charges directes, structure, investissements, prélèvements et cash restant."
+      >
+        <ProfitabilityStatement
+          transactions={transactions}
+          salesOrders={props.salesOrders || []}
+          payments={props.payments || []}
+          animaux={props.animaux || []}
+          lots={props.lots || []}
+          cultures={props.cultures || []}
+          stocks={props.stocks || []}
+        />
+      </ModuleSection>
+
+      <ModuleSection
+        icon={Receipt}
+        title="Écritures comptables"
+        subtitle="Vue détaillée des mouvements comptables et financiers."
+      >
+        <ComptabiliteV5 {...props} />
+      </ModuleSection>
+
+      <ModuleSection
+        icon={BarChart3}
+        title="Évolution comptable"
+        subtitle="Graphes historiques des charges, revenus, paiements et résultat."
       >
         <ComptabiliteEvolution
           transactions={props.transactions || []}
@@ -83,7 +113,7 @@ export default function ComptabiliteV6(props) {
           payments={props.payments || []}
           onNavigate={props.onNavigate}
         />
-      </CollapsibleAdvancedSection>
+      </ModuleSection>
     </div>
   );
 }
