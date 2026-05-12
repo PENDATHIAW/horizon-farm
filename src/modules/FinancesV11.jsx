@@ -4,6 +4,7 @@ import KpiCard from '../components/KpiCard';
 import { fmtCurrency } from '../utils/format';
 import { consolidateFinance } from '../utils/financeConsolidationEngine';
 import FinancesV10 from './FinancesV10.jsx';
+import OwnerSalaryRecommendationPanel from './OwnerSalaryRecommendationPanel.jsx';
 import ProfitabilityStatement from './ProfitabilityStatement.jsx';
 
 export default function FinancesV11(props) {
@@ -34,6 +35,19 @@ export default function FinancesV11(props) {
         </div>
         {finance.warnings?.length ? <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{finance.warnings.slice(0, 4).map((warning) => <div key={warning} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{warning}</div>)}</div> : null}
       </section>
+      <OwnerSalaryRecommendationPanel
+        transactions={props.rows || []}
+        salesOrders={props.salesOrders || []}
+        payments={props.payments || []}
+        animaux={props.animaux || []}
+        lots={props.lots || []}
+        cultures={props.cultures || []}
+        stocks={props.stocks || []}
+        onCreateFinanceTransaction={props.onCreate}
+        onRefreshFinances={props.onRefresh}
+        onCreateBusinessEvent={props.onCreateBusinessEvent}
+        onRefreshBusinessEvents={props.onRefreshBusinessEvents}
+      />
       <ProfitabilityStatement
         transactions={props.rows || []}
         salesOrders={props.salesOrders || []}
