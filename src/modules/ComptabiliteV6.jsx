@@ -5,10 +5,11 @@ import { fmtCurrency } from '../utils/format';
 import { consolidateFinance } from '../utils/financeConsolidationEngine';
 import ComptabiliteV5 from './ComptabiliteV5.jsx';
 import ComptabiliteEvolution from './ComptabiliteEvolution.jsx';
+import ProfitabilityStatement from './ProfitabilityStatement.jsx';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const isOut = (row = {}) => String(row.type || '').toLowerCase() === 'sortie';
-const isIn = (row = {}) => String(row.type || '').toLowerCase() === 'entree';
+const isIn = (row = {}) => ['entree', 'entrée'].includes(String(row.type || '').toLowerCase());
 const isMissingDoc = (row = {}) => !row.document_id && !row.linked_document_id && !row.piece_jointe && !row.file_url;
 
 function ControlCard({ icon: Icon, label, value, hint, danger = false }) {
@@ -59,6 +60,11 @@ export default function ComptabiliteV6(props) {
         </div>
         {accounting.warnings.length ? <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{accounting.warnings.slice(0, 4).map((warning) => <div key={warning} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{warning}</div>)}</div> : null}
       </section>
+      <ProfitabilityStatement
+        transactions={transactions}
+        salesOrders={props.salesOrders || []}
+        payments={props.payments || []}
+      />
       <ComptabiliteV5 {...props} />
       <CollapsibleAdvancedSection
         title="Comptabilité : évolution et lecture historique"
