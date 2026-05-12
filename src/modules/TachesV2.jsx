@@ -1,7 +1,6 @@
-import { AlertTriangle, CalendarClock, CheckCircle2, ListChecks } from 'lucide-react';
+import { AlertTriangle, CalendarClock, CheckCircle2, ListChecks, ShieldCheck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection.jsx';
 import { generateSequentialId, makeId } from '../utils/ids';
 import Taches from './Taches.jsx';
 import TaskAlertQualityControl from './TaskAlertQualityControl.jsx';
@@ -14,6 +13,10 @@ const isLate = (task = {}) => task.status === 'retard' || (task.due_date && !isD
 const alertKey = (alert = {}) => `${alert.module_source || alert.module || 'alertes'}:${alert.entity_type || 'alerte'}:${alert.entity_id || alert.id}:${alert.action_recommandee || alert.title || alert.message || 'action'}`;
 const taskKey = (task = {}) => task.alert_dedupe_key || `${task.module_lie || task.source_module || 'alertes'}:${task.entity_type || 'alerte'}:${task.related_id || task.source_record_id || task.id}:${task.action_key || task.title || 'action'}`;
 const hasOpenTaskForAlert = (tasks = [], alert = {}) => arr(tasks).some((task) => !isDone(task) && (String(task.source_record_id || '') === String(alert.id || '') || taskKey(task) === alertKey(alert)));
+
+function ModuleSection({ icon: Icon, title, subtitle, children }) {
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
+}
 
 async function createTaskFromAlert(alert, props, setSavingId) {
   if (!alert?.id) return toast.error('Alerte invalide');
@@ -70,17 +73,19 @@ function TasksBridge(props) {
 function Mini({ icon: Icon, label, value }) { return <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2 min-w-[100px]"><Icon size={14} className="text-[#9a6b12]" /><b className="block text-[#2f2415]">{value}</b><span className="text-xs text-[#8a7456]">{label}</span></div>; }
 
 export default function TachesV2(props) {
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  return <div className="space-y-6">
-    <Taches {...props} />
-    <CollapsibleAdvancedSection
-      title="Tâches : alertes, retards et cohérence"
-      description="La liste de tâches reste prioritaire. Les automatisations et contrôles sont disponibles ici."
-      open={showAdvanced}
-      onToggle={() => setShowAdvanced((value) => !value)}
-    >
+  return <div className="space-y-6 taches-mobile-structured">
+    <style>{`@media (max-width: 640px){.taches-mobile-structured .rounded-2xl{border-radius:18px}.taches-mobile-structured table{font-size:12px}.taches-mobile-structured th,.taches-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.taches-mobile-structured .text-2xl{font-size:1.35rem}.taches-mobile-structured .grid{gap:.75rem}.taches-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
+
+    <ModuleSection icon={ListChecks} title="Liste des tâches" subtitle="Tâches terrain, priorités, échéances et suivi quotidien.">
+      <Taches {...props} />
+    </ModuleSection>
+
+    <ModuleSection icon={AlertTriangle} title="Alertes transformées en actions" subtitle="Créer automatiquement des tâches depuis les alertes sans doublon.">
       <TasksBridge {...props} />
+    </ModuleSection>
+
+    <ModuleSection icon={ShieldCheck} title="Cohérence tâches / alertes" subtitle="Contrôle des alertes déjà prises en charge, retards et actions orphelines.">
       <TaskAlertQualityControl tasks={props.rows || []} alerts={props.alertes || []} />
-    </CollapsibleAdvancedSection>
+    </ModuleSection>
   </div>;
 }
