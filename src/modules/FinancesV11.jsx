@@ -38,6 +38,10 @@ export default function FinancesV11(props) {
         transactions={props.rows || []}
         salesOrders={props.salesOrders || []}
         payments={props.payments || []}
+        animaux={props.animaux || []}
+        lots={props.lots || []}
+        cultures={props.cultures || []}
+        stocks={props.stocks || []}
         compact
       />
       <FinancesV10 {...props} />
