@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
-import { ANIMAL_SPECIES_TABS, countAnimalsBySpecies, filterAnimalsBySpecies, normalizeRowsForInnerAnimalTabs, restoreSpeciesOnAnimalPayload } from '../utils/animalSpecies';
-import Animaux from './Animaux.jsx';
+import { ANIMAL_SPECIES_TABS, countAnimalsBySpecies, filterAnimalsBySpecies, restoreSpeciesOnAnimalPayload } from '../utils/animalSpecies';
 import AnimalCostOverview from './AnimalCostOverview.jsx';
 import AnimalSlaughterStockBridge from './AnimalSlaughterStockBridge.jsx';
 import AnimauxEvolution from './AnimauxEvolution.jsx';
+import AnimauxSpeciesFocused from './AnimauxSpeciesFocused.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
 import GrowthPerformanceOverview from './GrowthPerformanceOverview.jsx';
 
@@ -11,7 +11,6 @@ export default function AnimauxV2(props) {
   const [species, setSpecies] = useState('Bovin');
   const counts = useMemo(() => countAnimalsBySpecies(props.rows || []), [props.rows]);
   const speciesRows = useMemo(() => filterAnimalsBySpecies(props.rows || [], species), [props.rows, species]);
-  const innerRows = useMemo(() => normalizeRowsForInnerAnimalTabs(speciesRows, species), [speciesRows, species]);
   const wrapCreate = async (payload) => props.onCreate?.(restoreSpeciesOnAnimalPayload(payload, species));
   const wrapUpdate = async (id, payload) => props.onUpdate?.(id, restoreSpeciesOnAnimalPayload(payload, species));
 
@@ -35,7 +34,13 @@ export default function AnimauxV2(props) {
         </div>
       </div>
 
-      <Animaux {...props} rows={innerRows} onCreate={wrapCreate} onUpdate={wrapUpdate} />
+      <AnimauxSpeciesFocused
+        {...props}
+        species={species}
+        rows={speciesRows}
+        onCreate={wrapCreate}
+        onUpdate={wrapUpdate}
+      />
       <AnimalCostOverview
         rows={speciesRows}
         alimentationLogs={props.alimentationLogs || []}
