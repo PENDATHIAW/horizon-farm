@@ -1,12 +1,11 @@
-import { useCallback, useState } from 'react';
-import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection.jsx';
+import { BarChart3, Package, Utensils } from 'lucide-react';
+import { useCallback } from 'react';
 import { toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import StocksV3 from './StocksV3.jsx';
 import StockEvolution from './StockEvolution.jsx';
 import StockFeedingCostPlanner from './StockFeedingCostPlanner.jsx';
 
-const unitPrice = (row = {}) => toNumber(row.prixUnit ?? row.prixunit ?? row.prix_unitaire ?? row.unit_price ?? row.prix_achat);
 const lower = (value) => String(value || '').toLowerCase();
 const today = () => new Date().toISOString().slice(0, 10);
 const stockKg = (row = {}) => lower(row.unite).includes('sac') ? toNumber(row.quantite) * toNumber(row.poids_sac_kg || row.sac_kg || 50) : toNumber(row.quantite);
@@ -19,32 +18,40 @@ const nextStockQtyAfterKg = (row = {}, kg = 0) => {
 };
 const targetLabel = (target = {}) => target.name || target.nom || target.tag || target.id;
 
+function ModuleSection({ icon: Icon, title, subtitle, children }) {
+  return (
+    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+      <div>
+        <p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>
+        {subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 export default function StocksV4(props) {
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const updateWithLossFinance = useCallback(async (id, patch = {}) => {
+  const updateWithLossHistory = useCallback(async (id, patch = {}) => {
     await props.onUpdate?.(id, patch);
     if (patch.last_movement_type !== 'perte') return;
     const row = (props.rows || []).find((item) => String(item.id) === String(id));
     const qty = toNumber(patch.last_movement_qty);
-    const amount = qty * unitPrice(row);
-    if (!row || qty <= 0 || amount <= 0) return;
-    const alreadyLinked = patch.last_loss_finance_id || patch.loss_finance_recorded;
-    if (alreadyLinked) return;
-    await props.onCreateFinanceTransaction?.({
-      id: makeId('TRX'),
-      type: 'sortie',
-      libelle: `Perte stock ${row.produit || row.name || row.id}`,
-      montant: amount,
-      date: today(),
-      categorie: 'Perte stock',
-      module_lie: 'stock',
-      related_id: id,
-      source_module: 'stock',
-      source_record_id: id,
-      statut: 'paye',
-      notes: `${qty} ${row.unite || ''} perdu(s)`,
+    if (!row || qty <= 0) return;
+    await props.onCreateBusinessEvent?.({
+      id: makeId('EVT'),
+      event_type: 'perte_stock_quantite',
+      module_source: 'stock',
+      entity_type: 'stock',
+      entity_id: id,
+      title: `Perte stock ${row.produit || row.name || row.id}`,
+      description: `${qty} ${row.unite || ''} retiré(s) du stock. Suivi en quantité uniquement, sans écriture Finance automatique.`,
+      event_date: today(),
+      severity: 'warning',
+      quantity: qty,
+      linked_stock_id: id,
+      saisies_evitees: 1,
     });
-    await props.onRefreshFinances?.();
+    await props.onRefreshBusinessEvents?.();
   }, [props]);
 
   const applyFeedingPlan = useCallback(async (plan = {}) => {
@@ -110,13 +117,21 @@ export default function StocksV4(props) {
   }, [props]);
 
   return (
-    <div className="space-y-6">
-      <StocksV3 {...props} onUpdate={updateWithLossFinance} />
-      <CollapsibleAdvancedSection
-        title="Stock : alimentation, coûts et évolution"
-        description="Le planificateur d’alimentation et les graphes sont regroupés ici pour garder le stock lisible au quotidien."
-        open={showAdvanced}
-        onToggle={() => setShowAdvanced((value) => !value)}
+    <div className="space-y-6 stock-mobile-structured">
+      <style>{`@media (max-width: 640px){.stock-mobile-structured .rounded-2xl{border-radius:18px}.stock-mobile-structured table{font-size:12px}.stock-mobile-structured th,.stock-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.stock-mobile-structured .text-2xl{font-size:1.35rem}.stock-mobile-structured .grid{gap:.75rem}.stock-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
+
+      <ModuleSection
+        icon={Package}
+        title="Stock courant"
+        subtitle="Produits, quantités, seuils, mouvements et pertes suivies en quantité uniquement."
+      >
+        <StocksV3 {...props} onUpdate={updateWithLossHistory} />
+      </ModuleSection>
+
+      <ModuleSection
+        icon={Utensils}
+        title="Alimentation appliquée aux sujets"
+        subtitle="Calculer et appliquer une ration à un lot ou à un animal. Cette sortie alimente les coûts directs sans double saisie."
       >
         <StockFeedingCostPlanner
           rows={props.rows || []}
@@ -125,12 +140,19 @@ export default function StocksV4(props) {
           alimentationLogs={props.alimentationLogs || []}
           onOpenUseFood={applyFeedingPlan}
         />
+      </ModuleSection>
+
+      <ModuleSection
+        icon={BarChart3}
+        title="Évolution stock"
+        subtitle="Graphes et lecture historique des mouvements, consommations et alertes."
+      >
         <StockEvolution
           rows={props.rows || []}
           alimentationLogs={props.alimentationLogs || []}
           onNavigate={props.onNavigate}
         />
-      </CollapsibleAdvancedSection>
+      </ModuleSection>
     </div>
   );
 }
