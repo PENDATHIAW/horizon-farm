@@ -3,6 +3,7 @@ import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection
 import ActivityOperatingMarginPanel from './ActivityOperatingMarginPanel.jsx';
 import CulturesV3 from './CulturesV3.jsx';
 import CulturesEvolution from './CulturesEvolution.jsx';
+import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
 
 export default function CulturesV4(props) {
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -10,11 +11,18 @@ export default function CulturesV4(props) {
     <div className="space-y-6">
       <CulturesV3 {...props} />
       <CollapsibleAdvancedSection
-        title="Cultures : marges, évolution, rendement et valeur"
-        description="Les marges nettes et graphes d’évolution sont conservés ici pour garder la saisie des cultures simple."
+        title="Cultures : historique, marges, évolution, rendement et valeur"
+        description="L’historique de récolte/sortie, les marges nettes et graphes d’évolution sont conservés ici pour garder la saisie des cultures simple."
         open={showAdvanced}
         onToggle={() => setShowAdvanced((value) => !value)}
       >
+        <LifecycleHistoryPanel
+          mode="cultures"
+          rows={props.rows || []}
+          salesOrders={props.salesOrders || []}
+          deliveries={props.deliveriesList || props.deliveries || []}
+          businessEvents={props.businessEvents || []}
+        />
         <ActivityOperatingMarginPanel
           mode="cultures"
           rows={props.rows || []}
