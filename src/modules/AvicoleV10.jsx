@@ -1,39 +1,41 @@
-import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
-import ActivityOperatingMarginPanel from './ActivityOperatingMarginPanel.jsx';
+import { BarChart3, ClipboardList, HeartPulse, PackageCheck, Scissors } from 'lucide-react';
 import AvicoleBase from './AvicoleBase.jsx';
 import AvicoleEvolution from './AvicoleEvolution.jsx';
-import AvicoleHealthBridge from './AvicoleHealthBridge.jsx';
 import AvicoleJournalsBridge from './AvicoleJournalsBridge.jsx';
-import AvicoleSaleReadinessBridge from './AvicoleSaleReadinessBridge.jsx';
 import AvicoleTransformationBridge from './AvicoleTransformationBridge.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
-import GrowthPerformanceOverview from './GrowthPerformanceOverview.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
 
-function AdvancedSection({ open, onToggle, children }) {
+function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm overflow-hidden">
-      <button type="button" onClick={onToggle} className="w-full flex items-center justify-between gap-3 p-5 text-left">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Analyse avancée</p>
-          <h3 className="text-lg font-black text-[#2f2415]">Volailles : historique, marges, ventes, croissance, santé, journaux, charges et évolution</h3>
-          <p className="mt-1 text-sm text-[#8a7456]">Les analyses détaillées sont regroupées ici pour garder le module principal lisible. Les graphes d’évolution sont conservés.</p>
-        </div>
-        {open ? <ChevronDown className="text-[#8a7456]" /> : <ChevronRight className="text-[#8a7456]" />}
-      </button>
-      {open ? <div className="border-t border-[#eadcc2] p-5 space-y-6 bg-[#fffdf8]/40">{children}</div> : null}
+    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+      <div>
+        <p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>
+        {subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}
+      </div>
+      {children}
     </section>
   );
 }
 
 export default function AvicoleV10(props) {
-  const [showAdvanced, setShowAdvanced] = useState(false);
   return (
     <div className="space-y-6 avicole-mobile-final">
       <style>{`@media (max-width: 640px){.avicole-mobile-final .rounded-2xl{border-radius:18px}.avicole-mobile-final table{font-size:12px}.avicole-mobile-final th,.avicole-mobile-final td{padding-left:10px!important;padding-right:10px!important}.avicole-mobile-final .text-2xl{font-size:1.35rem}.avicole-mobile-final .grid{gap:.75rem}.avicole-mobile-final .overflow-x-auto{max-width:100vw}}`}</style>
-      <AvicoleBase {...props} />
-      <AdvancedSection open={showAdvanced} onToggle={() => setShowAdvanced((value) => !value)}>
+
+      <ModuleSection
+        icon={PackageCheck}
+        title="Vue opérationnelle avicole"
+        subtitle="Lots, effectifs, ponte, coûts directs essentiels et actions de gestion courante."
+      >
+        <AvicoleBase {...props} />
+      </ModuleSection>
+
+      <ModuleSection
+        icon={ClipboardList}
+        title="Cycle et historique"
+        subtitle="Lecture simple des entrées, sorties, clôtures, ventes et événements importants."
+      >
         <LifecycleHistoryPanel
           mode="avicole"
           rows={props.rows || []}
@@ -41,49 +43,13 @@ export default function AvicoleV10(props) {
           deliveries={props.deliveriesList || props.deliveries || []}
           businessEvents={props.businessEvents || []}
         />
-        <ActivityOperatingMarginPanel
-          mode="avicole"
-          rows={props.rows || []}
-          transactions={props.transactions || []}
-          alimentationLogs={props.alimentationLogs || []}
-          productionLogs={props.productionLogs || []}
-          businessEvents={props.businessEvents || []}
-        />
-        <AvicoleSaleReadinessBridge
-          rows={props.rows || []}
-          opportunities={props.opportunities || []}
-          onUpdate={props.onUpdate}
-          onRefresh={props.onRefresh}
-          onCreateOpportunity={props.onCreateOpportunity}
-          onUpdateOpportunity={props.onUpdateOpportunity}
-          onRefreshOpportunities={props.onRefreshOpportunities}
-          onCreateBusinessEvent={props.onCreateBusinessEvent}
-          onRefreshBusinessEvents={props.onRefreshBusinessEvents}
-        />
-        <GrowthPerformanceOverview
-          mode="avicole"
-          rows={props.rows || []}
-          alimentationLogs={props.alimentationLogs || []}
-          productionLogs={props.productionLogs || []}
-          businessEvents={props.businessEvents || []}
-        />
-        <AvicoleTransformationBridge
-          rows={props.rows || []}
-          alimentationLogs={props.alimentationLogs || []}
-          productionLogs={props.productionLogs || []}
-          businessEvents={props.businessEvents || []}
-          onUpdate={props.onUpdate}
-          onRefresh={props.onRefresh}
-          onCreateBusinessEvent={props.onCreateBusinessEvent}
-          onRefreshBusinessEvents={props.onRefreshBusinessEvents}
-        />
-        <AvicoleHealthBridge
-          rows={props.rows || []}
-          productionLogs={props.productionLogs || []}
-          alimentationLogs={props.alimentationLogs || []}
-          onUpdate={props.onUpdate}
-          onRefresh={props.onRefresh}
-        />
+      </ModuleSection>
+
+      <ModuleSection
+        icon={HeartPulse}
+        title="Journaux et charges directes"
+        subtitle="Ponte, mortalité, alimentation, frais ponctuels et événements liés aux lots."
+      >
         <AvicoleJournalsBridge
           rows={props.rows || []}
           productionLogs={props.productionLogs || []}
@@ -101,7 +67,7 @@ export default function AvicoleV10(props) {
         />
         <DirectChargesBridge
           title="Charges directes avicoles"
-          subtitle="Frais exceptionnels liés à un lot : emballage, découpe, traitement spécial ou main-d’œuvre ponctuelle."
+          subtitle="Frais exceptionnels liés à un lot : transport, emballage, découpe, traitement spécial ou main-d’œuvre ponctuelle."
           targetType="avicole"
           targets={props.rows || []}
           businessEvents={props.businessEvents || []}
@@ -110,6 +76,30 @@ export default function AvicoleV10(props) {
           onDeleteBusinessEvent={props.onDeleteBusinessEvent}
           onRefreshBusinessEvents={props.onRefreshBusinessEvents}
         />
+      </ModuleSection>
+
+      <ModuleSection
+        icon={Scissors}
+        title="Abattage, transformation et stock"
+        subtitle="Sortie des sujets, poids, transformation et création éventuelle de stock vendable."
+      >
+        <AvicoleTransformationBridge
+          rows={props.rows || []}
+          alimentationLogs={props.alimentationLogs || []}
+          productionLogs={props.productionLogs || []}
+          businessEvents={props.businessEvents || []}
+          onUpdate={props.onUpdate}
+          onRefresh={props.onRefresh}
+          onCreateBusinessEvent={props.onCreateBusinessEvent}
+          onRefreshBusinessEvents={props.onRefreshBusinessEvents}
+        />
+      </ModuleSection>
+
+      <ModuleSection
+        icon={BarChart3}
+        title="Évolution avicole"
+        subtitle="Graphes conservés : chair, ponte, coûts, ventes, production et mortalité."
+      >
         <AvicoleEvolution
           rows={props.rows || []}
           productionLogs={props.productionLogs || []}
@@ -118,7 +108,7 @@ export default function AvicoleV10(props) {
           opportunities={props.opportunities || []}
           onNavigate={props.onNavigate}
         />
-      </AdvancedSection>
+      </ModuleSection>
     </div>
   );
 }
