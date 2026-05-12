@@ -13,11 +13,13 @@ export const PROFIT_BUCKETS = {
   cultures: 'Charges directes cultures',
   stock_non_affecte: 'Stock / alimentation non affecté',
   sante_non_affectee: 'Santé non affectée',
+  remuneration_proprietaire: 'Rémunération propriétaire',
   rh: 'Charges RH',
   exploitation: 'Charges exploitation',
   equipements: 'Équipements / maintenance',
   fournisseurs_achats: 'Fournisseurs / achats généraux',
   investissements: 'Investissements',
+  prelevements_proprietaire: 'Prélèvements propriétaire',
   autres_charges: 'Autres charges',
 };
 
@@ -34,6 +36,8 @@ export function classifyProfitCharge(row = {}) {
   const linkedActivity = activityFromLink(row);
   if (linkedActivity) return linkedActivity;
   const text = fullText(row);
+  if (/salaire.*(propri[eé]taire|dirigeant|fondatrice|g[eé]rante|penda)|r[eé]mun[eé]ration.*(propri[eé]taire|dirigeant|fondatrice|g[eé]rante|penda)|salaire penda|paie penda/.test(text)) return 'remuneration_proprietaire';
+  if (/pr[eé]l[eè]vement|retrait perso|personnel|avance associ[eé]|compte exploitant|voyage personnel|d[eé]pense perso/.test(text)) return 'prelevements_proprietaire';
   if (/rh|salaire|paie|rémun|remun/.test(text)) return 'rh';
   if (/animal|bovin|ovin|caprin|cheptel/.test(text)) return 'animaux';
   if (/avicole|volaille|poulet|poussin|pondeuse|chair|lot/.test(text)) return 'avicole';
@@ -65,12 +69,15 @@ export function computeGlobalProfitability({ transactions = [], salesOrders = []
 
   const directActivityCharges = buckets.animaux + buckets.avicole + buckets.cultures;
   const unallocatedOperationalCharges = buckets.stock_non_affecte + buckets.sante_non_affectee;
-  const structureCharges = buckets.rh + buckets.exploitation + buckets.equipements + buckets.fournisseurs_achats + buckets.autres_charges;
+  const ownerSalary = buckets.remuneration_proprietaire;
+  const ownerWithdrawals = buckets.prelevements_proprietaire;
+  const structureCharges = ownerSalary + buckets.rh + buckets.exploitation + buckets.equipements + buckets.fournisseurs_achats + buckets.autres_charges;
   const investments = buckets.investissements;
   const chargesBeforeInvestments = directActivityCharges + unallocatedOperationalCharges + structureCharges;
   const grossActivityMargin = caTotal - directActivityCharges;
   const operatingResult = caTotal - chargesBeforeInvestments;
   const cashResultAfterInvestments = encaisse - chargesBeforeInvestments - investments;
+  const availableCashAfterWithdrawals = cashResultAfterInvestments - ownerWithdrawals;
 
   return {
     caTotal,
@@ -81,10 +88,13 @@ export function computeGlobalProfitability({ transactions = [], salesOrders = []
     unallocatedOperationalCharges,
     structureCharges,
     investments,
+    ownerSalary,
+    ownerWithdrawals,
     chargesBeforeInvestments,
     grossActivityMargin,
     operatingResult,
     cashResultAfterInvestments,
+    availableCashAfterWithdrawals,
     operatingMarginPct: caTotal > 0 ? (operatingResult / caTotal) * 100 : 0,
   };
 }
