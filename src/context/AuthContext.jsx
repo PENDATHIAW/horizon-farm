@@ -10,10 +10,10 @@ const LOGIN_ALIASES = {
 
 export const ROLE_PERMISSIONS = {
   admin: ['*'],
-  manager: ['dashboard', 'animaux', 'avicole', 'sante', 'finances', 'comptabilite', 'investissements', 'stock', 'clients', 'ventes', 'fournisseurs', 'tracabilite', 'sync', 'cultures', 'documents', 'taches', 'rapports', 'equipements', 'smartfarm', 'audit_logs'],
-  employe: ['dashboard', 'animaux', 'avicole', 'stock', 'cultures', 'documents', 'taches', 'equipements', 'sync'],
-  veterinaire: ['dashboard', 'animaux', 'avicole', 'sante', 'tracabilite'],
-  comptable: ['dashboard', 'finances', 'comptabilite', 'investissements', 'clients', 'ventes', 'fournisseurs', 'documents', 'rapports', 'audit_logs'],
+  manager: ['dashboard', 'assistant_erp', 'animaux', 'avicole', 'sante', 'finances', 'comptabilite', 'investissements', 'stock', 'clients', 'ventes', 'fournisseurs', 'tracabilite', 'sync', 'cultures', 'documents', 'taches', 'rapports', 'equipements', 'smartfarm', 'audit_logs'],
+  employe: ['dashboard', 'assistant_erp', 'animaux', 'avicole', 'stock', 'cultures', 'documents', 'taches', 'equipements', 'sync'],
+  veterinaire: ['dashboard', 'assistant_erp', 'animaux', 'avicole', 'sante', 'tracabilite'],
+  comptable: ['dashboard', 'assistant_erp', 'finances', 'comptabilite', 'investissements', 'clients', 'ventes', 'fournisseurs', 'documents', 'rapports', 'audit_logs'],
 };
 
 const resolveLogin = (login) => {
