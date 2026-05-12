@@ -1,8 +1,10 @@
 import { AlertTriangle, CheckCircle2, History, PackageCheck } from 'lucide-react';
+import useCrudModule from '../hooks/useCrudModule';
 import { buildLifecycleHistory } from '../services/lifecycleHistoryService';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 
 const arr = (value) => Array.isArray(value) ? value : [];
+const effective = (provided, fallback) => arr(provided).length ? provided : fallback;
 const labelOf = (row = {}) => row.name || row.nom || row.tag || row.type || row.id || 'Sujet';
 const typeLabel = (type = '') => ({
   entrée_initiale: 'Entrée initiale',
@@ -23,7 +25,11 @@ function Mini({ icon: Icon, label, value, danger = false }) {
 }
 
 export default function LifecycleHistoryPanel({ mode = 'avicole', rows = [], salesOrders = [], deliveries = [], businessEvents = [] }) {
-  const histories = arr(rows).map((target) => ({ target, history: buildLifecycleHistory({ mode, target, salesOrders, deliveries, businessEvents }) }));
+  const salesCrud = useCrudModule('sales_orders');
+  const deliveriesCrud = useCrudModule('deliveries');
+  const sales = effective(salesOrders, salesCrud.rows);
+  const deliveryRows = effective(deliveries, deliveriesCrud.rows);
+  const histories = arr(rows).map((target) => ({ target, history: buildLifecycleHistory({ mode, target, salesOrders: sales, deliveries: deliveryRows, businessEvents }) }));
   const totalInitial = histories.reduce((sum, item) => sum + item.history.initial, 0);
   const totalActive = histories.reduce((sum, item) => sum + item.history.active, 0);
   const totalExited = histories.reduce((sum, item) => sum + item.history.exited, 0);
