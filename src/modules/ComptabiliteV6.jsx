@@ -64,6 +64,10 @@ export default function ComptabiliteV6(props) {
         transactions={transactions}
         salesOrders={props.salesOrders || []}
         payments={props.payments || []}
+        animaux={props.animaux || []}
+        lots={props.lots || []}
+        cultures={props.cultures || []}
+        stocks={props.stocks || []}
       />
       <ComptabiliteV5 {...props} />
       <CollapsibleAdvancedSection
