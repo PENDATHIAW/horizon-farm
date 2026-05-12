@@ -7,6 +7,7 @@ import AnimauxEvolution from './AnimauxEvolution.jsx';
 import AnimauxSpeciesFocused from './AnimauxSpeciesFocused.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
 import GrowthPerformanceOverview from './GrowthPerformanceOverview.jsx';
+import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
 
 function AdvancedSection({ title, description, open, onToggle, children }) {
   return (
@@ -61,11 +62,18 @@ export default function AnimauxV2(props) {
       />
 
       <AdvancedSection
-        title={`${species}s : coûts, croissance, charges, abattage et évolution`}
+        title={`${species}s : historique, coûts, croissance, charges, abattage et évolution`}
         description="Les analyses détaillées sont regroupées ici pour éviter les doublons dans la lecture principale. Les graphes d’évolution sont conservés."
         open={showAdvanced}
         onToggle={() => setShowAdvanced((value) => !value)}
       >
+        <LifecycleHistoryPanel
+          mode="animaux"
+          rows={speciesRows}
+          salesOrders={props.salesOrders || []}
+          deliveries={props.deliveriesList || props.deliveries || []}
+          businessEvents={props.businessEvents || []}
+        />
         <AnimalCostOverview
           rows={speciesRows}
           alimentationLogs={props.alimentationLogs || []}
