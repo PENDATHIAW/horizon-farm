@@ -1,20 +1,37 @@
-import { useState } from 'react';
-import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection.jsx';
-import ActivityOperatingMarginPanel from './ActivityOperatingMarginPanel.jsx';
+import { BarChart3, ClipboardList, Sprout } from 'lucide-react';
 import CulturesV3 from './CulturesV3.jsx';
 import CulturesEvolution from './CulturesEvolution.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
 
-export default function CulturesV4(props) {
-  const [showAdvanced, setShowAdvanced] = useState(false);
+function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return (
-    <div className="space-y-6">
-      <CulturesV3 {...props} />
-      <CollapsibleAdvancedSection
-        title="Cultures : historique, marges, évolution, rendement et valeur"
-        description="L’historique de récolte/sortie, les marges nettes et graphes d’évolution sont conservés ici pour garder la saisie des cultures simple."
-        open={showAdvanced}
-        onToggle={() => setShowAdvanced((value) => !value)}
+    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+      <div>
+        <p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>
+        {subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+export default function CulturesV4(props) {
+  return (
+    <div className="space-y-6 cultures-mobile-structured">
+      <style>{`@media (max-width: 640px){.cultures-mobile-structured .rounded-2xl{border-radius:18px}.cultures-mobile-structured table{font-size:12px}.cultures-mobile-structured th,.cultures-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.cultures-mobile-structured .text-2xl{font-size:1.35rem}.cultures-mobile-structured .grid{gap:.75rem}.cultures-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
+
+      <ModuleSection
+        icon={Sprout}
+        title="Gestion des cultures"
+        subtitle="Parcelles, cycles, intrants, suivi, récoltes et actions quotidiennes."
+      >
+        <CulturesV3 {...props} />
+      </ModuleSection>
+
+      <ModuleSection
+        icon={ClipboardList}
+        title="Cycle et historique cultures"
+        subtitle="Entrées, sorties, ventes, pertes, récoltes et événements importants."
       >
         <LifecycleHistoryPanel
           mode="cultures"
@@ -23,17 +40,18 @@ export default function CulturesV4(props) {
           deliveries={props.deliveriesList || props.deliveries || []}
           businessEvents={props.businessEvents || []}
         />
-        <ActivityOperatingMarginPanel
-          mode="cultures"
-          rows={props.rows || []}
-          transactions={props.transactions || []}
-          businessEvents={props.businessEvents || []}
-        />
+      </ModuleSection>
+
+      <ModuleSection
+        icon={BarChart3}
+        title="Évolution cultures"
+        subtitle="Graphes conservés : rendement, coûts, récoltes, ventes, pertes et valeur."
+      >
         <CulturesEvolution
           rows={props.rows || []}
           onNavigate={props.onNavigate}
         />
-      </CollapsibleAdvancedSection>
+      </ModuleSection>
     </div>
   );
 }
