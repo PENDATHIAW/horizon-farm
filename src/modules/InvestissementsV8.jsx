@@ -1,10 +1,12 @@
+import { useState } from 'react';
+import toast from 'react-hot-toast';
+import { CheckCircle2, Link2 } from 'lucide-react';
+import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection.jsx';
+import { toNumber } from '../utils/format';
+import { makeId } from '../utils/ids';
 import InvestissementsV7 from './InvestissementsV7.jsx';
 import InvestissementsEvolution from './InvestissementsEvolution.jsx';
 import InvestmentQualityControl from './InvestmentQualityControl.jsx';
-import toast from 'react-hot-toast';
-import { CheckCircle2, Link2 } from 'lucide-react';
-import { toNumber } from '../utils/format';
-import { makeId } from '../utils/ids';
 
 const clean = (v = '') => String(v)
   .replace(/\s+\d+\s*(mois|semaines?|jours?)\b/gi, '')
@@ -80,21 +82,29 @@ function OperationalAssetsBridge(props) {
 }
 
 export default function InvestissementsV8(props) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
   return (
     <div className="space-y-6">
       <InvestissementsV7 {...props} />
-      <InvestmentQualityControl
-        rows={props.rows || []}
-        businessPlans={props.businessPlans || []}
-        bpInvestmentLines={props.bpInvestmentLines || []}
-        bpFundingSources={props.bpFundingSources || []}
-        transactions={props.transactions || []}
-        lots={props.lots || []}
-        animaux={props.animaux || []}
-        cultures={props.cultures || []}
-      />
-      <OperationalAssetsBridge {...props} />
-      <InvestissementsEvolution {...props} />
+      <CollapsibleAdvancedSection
+        title="Investissements : contrôle, actifs métier et évolution"
+        description="Les contrôles et l’automatisation BP restent disponibles ici, sans alourdir la lecture principale des projets."
+        open={showAdvanced}
+        onToggle={() => setShowAdvanced((value) => !value)}
+      >
+        <InvestmentQualityControl
+          rows={props.rows || []}
+          businessPlans={props.businessPlans || []}
+          bpInvestmentLines={props.bpInvestmentLines || []}
+          bpFundingSources={props.bpFundingSources || []}
+          transactions={props.transactions || []}
+          lots={props.lots || []}
+          animaux={props.animaux || []}
+          cultures={props.cultures || []}
+        />
+        <OperationalAssetsBridge {...props} />
+        <InvestissementsEvolution {...props} />
+      </CollapsibleAdvancedSection>
     </div>
   );
 }
