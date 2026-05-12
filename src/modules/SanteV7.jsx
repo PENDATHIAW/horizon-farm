@@ -1,9 +1,12 @@
+import { useState } from 'react';
+import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection.jsx';
 import useCrudModule from '../hooks/useCrudModule';
 import HealthQualityControl from './HealthQualityControl.jsx';
 import SanteV6 from './SanteV6.jsx';
 import SanteEvolution from './SanteEvolution.jsx';
 
 export default function SanteV7(props) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const animauxCrud = useCrudModule('animaux');
   const avicoleCrud = useCrudModule('avicole');
   const onUpdateAnimal = props.onUpdateAnimal || animauxCrud.update;
@@ -14,23 +17,30 @@ export default function SanteV7(props) {
   return (
     <div className="space-y-6">
       <SanteV6 {...props} />
-      <HealthQualityControl
-        rows={props.rows || []}
-        stocks={props.stocks || []}
-        transactions={props.transactions || []}
-        animaux={props.animaux || animauxCrud.rows || []}
-        lots={props.lots || avicoleCrud.rows || []}
-        onUpdate={props.onUpdate}
-        onUpdateAnimal={onUpdateAnimal}
-        onUpdateLot={onUpdateLot}
-        onRefresh={props.onRefresh}
-        onRefreshAnimals={onRefreshAnimals}
-        onRefreshLots={onRefreshLots}
-      />
-      <SanteEvolution
-        rows={props.rows || []}
-        onNavigate={props.onNavigate}
-      />
+      <CollapsibleAdvancedSection
+        title="Santé : contrôle, stock, coûts et évolution"
+        description="Les contrôles qualité et les graphes restent disponibles sans alourdir la saisie des soins."
+        open={showAdvanced}
+        onToggle={() => setShowAdvanced((value) => !value)}
+      >
+        <HealthQualityControl
+          rows={props.rows || []}
+          stocks={props.stocks || []}
+          transactions={props.transactions || []}
+          animaux={props.animaux || animauxCrud.rows || []}
+          lots={props.lots || avicoleCrud.rows || []}
+          onUpdate={props.onUpdate}
+          onUpdateAnimal={onUpdateAnimal}
+          onUpdateLot={onUpdateLot}
+          onRefresh={props.onRefresh}
+          onRefreshAnimals={onRefreshAnimals}
+          onRefreshLots={onRefreshLots}
+        />
+        <SanteEvolution
+          rows={props.rows || []}
+          onNavigate={props.onNavigate}
+        />
+      </CollapsibleAdvancedSection>
     </div>
   );
 }
