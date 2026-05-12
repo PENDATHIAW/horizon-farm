@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, FileText, Receipt, ShieldCheck } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection.jsx';
 import { fmtCurrency } from '../utils/format';
 import { consolidateFinance } from '../utils/financeConsolidationEngine';
 import ComptabiliteV5 from './ComptabiliteV5.jsx';
@@ -19,6 +20,7 @@ function ControlCard({ icon: Icon, label, value, hint, danger = false }) {
 }
 
 export default function ComptabiliteV6(props) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const transactions = arr(props.transactions || props.finances);
   const finance = useMemo(() => consolidateFinance({
     transactions,
@@ -58,13 +60,20 @@ export default function ComptabiliteV6(props) {
         {accounting.warnings.length ? <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{accounting.warnings.slice(0, 4).map((warning) => <div key={warning} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{warning}</div>)}</div> : null}
       </section>
       <ComptabiliteV5 {...props} />
-      <ComptabiliteEvolution
-        transactions={props.transactions || []}
-        finances={props.finances || []}
-        salesOrders={props.salesOrders || []}
-        payments={props.payments || []}
-        onNavigate={props.onNavigate}
-      />
+      <CollapsibleAdvancedSection
+        title="Comptabilité : évolution et lecture historique"
+        description="Les graphes restent disponibles ici, sans alourdir les écritures et les contrôles quotidiens."
+        open={showAdvanced}
+        onToggle={() => setShowAdvanced((value) => !value)}
+      >
+        <ComptabiliteEvolution
+          transactions={props.transactions || []}
+          finances={props.finances || []}
+          salesOrders={props.salesOrders || []}
+          payments={props.payments || []}
+          onNavigate={props.onNavigate}
+        />
+      </CollapsibleAdvancedSection>
     </div>
   );
 }
