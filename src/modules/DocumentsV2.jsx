@@ -1,13 +1,16 @@
-import { AlertTriangle, CheckCircle2, FileText, Receipt } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, FileText, Receipt, ShieldCheck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection.jsx';
 import { transactionHasProof } from '../utils/accountingProof';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
 import Documents from './Documents.jsx';
 
 const arr = (value) => Array.isArray(value) ? value : [];
+
+function ModuleSection({ icon: Icon, title, subtitle, children }) {
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
+}
 
 async function createDocFromTransaction(tx, props, setSavingId) {
   if (!tx?.id) return toast.error('Transaction invalide');
@@ -61,16 +64,15 @@ function DocumentsBridge(props) {
 function Mini({ icon: Icon, label, value }) { return <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2 min-w-[100px]"><Icon size={14} className="text-[#9a6b12]" /><b className="block text-[#2f2415]">{value}</b><span className="text-xs text-[#8a7456]">{label}</span></div>; }
 
 export default function DocumentsV2(props) {
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  return <div className="space-y-6">
-    <Documents {...props} />
-    <CollapsibleAdvancedSection
-      title="Documents : justificatifs et transactions à compléter"
-      description="La bibliothèque reste simple. Les contrôles de pièces sont rangés ici."
-      open={showAdvanced}
-      onToggle={() => setShowAdvanced((value) => !value)}
-    >
+  return <div className="space-y-6 documents-mobile-structured">
+    <style>{`@media (max-width: 640px){.documents-mobile-structured .rounded-2xl{border-radius:18px}.documents-mobile-structured table{font-size:12px}.documents-mobile-structured th,.documents-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.documents-mobile-structured .text-2xl{font-size:1.35rem}.documents-mobile-structured .grid{gap:.75rem}.documents-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
+
+    <ModuleSection icon={FileText} title="Bibliothèque documentaire" subtitle="Documents, pièces, preuves, reçus, factures et fichiers liés aux modules.">
+      <Documents {...props} />
+    </ModuleSection>
+
+    <ModuleSection icon={ShieldCheck} title="Justificatifs et transactions à compléter" subtitle="Contrôle des écritures Finance/Comptabilité qui n’ont pas encore de preuve liée.">
       <DocumentsBridge {...props} />
-    </CollapsibleAdvancedSection>
+    </ModuleSection>
   </div>;
 }
