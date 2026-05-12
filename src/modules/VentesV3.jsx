@@ -19,6 +19,7 @@ export default function VentesV3(props) {
         <SalesMarginsBridge
           rows={props.rows || []}
           payments={payments}
+          transactions={props.transactions || []}
           lots={props.lots || []}
           animaux={props.animaux || []}
           cultures={props.cultures || []}
