@@ -1,9 +1,11 @@
 import { Beef, History, Wallet } from 'lucide-react';
+import useCrudModule from '../hooks/useCrudModule';
 import { allocateOverheadToEntities, applyOperatingMargin } from '../services/operatingMarginService';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { calculateAnimalCost } from '../utils/costEngine';
 
 const arr = (value) => Array.isArray(value) ? value : [];
+const effective = (provided, fallback) => arr(provided).length ? provided : fallback;
 const animalLabel = (row = {}) => row.name || row.tag || row.id || 'Animal';
 const logAnimalId = (row = {}) => String(row.animal_id || row.cible_id || row.related_id || row.entity_id || row.source_record_id || '');
 const logCost = (row = {}) => toNumber(row.montant_total ?? row.cout_total ?? row.amount ?? row.montant);
@@ -19,8 +21,10 @@ function CostCard({ label, value, hint, danger = false }) {
 }
 
 export default function AnimalCostOverview({ rows = [], alimentationLogs = [], vaccins = [], businessEvents = [], transactions = [] }) {
+  const financesCrud = useCrudModule('finances');
+  const financeTransactions = effective(transactions, financesCrud.rows);
   const activeRows = arr(rows).filter((animal) => animal?.id && !['vendu', 'mort', 'vole', 'abattu', 'abattue'].includes(String(animal.status || '').toLowerCase()));
-  const overhead = allocateOverheadToEntities({ module: 'animaux', entities: activeRows, transactions });
+  const overhead = allocateOverheadToEntities({ module: 'animaux', entities: activeRows, transactions: financeTransactions });
   const details = activeRows.map((animal) => {
     const cost = calculateAnimalCost({ animal, alimentationLogs, vaccins, directCharges: businessEvents, slaughterEvents: businessEvents });
     const margin = applyOperatingMargin({ directRevenue: animalRevenue(animal), directCosts: cost.totalCost, rhCost: overhead.perEntity.rhCost, operatingCost: overhead.perEntity.operatingCost });
