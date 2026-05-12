@@ -1,4 +1,6 @@
 import { AlertTriangle, Fuel, Settings, Wrench } from 'lucide-react';
+import { useState } from 'react';
+import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection.jsx';
 import GenericCrudModule from '../components/GenericCrudModule';
 import { MODULE_FORM_FIELDS } from '../utils/constants';
 import { fmtCurrency } from '../utils/format';
@@ -7,40 +9,11 @@ import EquipementsQuickActionsBridge from './EquipementsQuickActionsBridge.jsx';
 import EquipementsEvolution from './EquipementsEvolution.jsx';
 
 export default function Equipements(props) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const rows = props.rows || [];
   const fuel = rows.reduce((sum, row) => sum + Number(row.fuel_cost || 0), 0);
   return (
     <div className="space-y-6">
-      <EquipementsQuickActionsBridge
-        rows={rows}
-        onUpdate={props.onUpdate}
-        onRefresh={props.onRefresh}
-        onCreateTask={props.onCreateTask}
-        onRefreshTasks={props.onRefreshTasks}
-        onCreateAlert={props.onCreateAlert}
-        onRefreshAlertes={props.onRefreshAlertes}
-        onCreateFinanceTransaction={props.onCreateFinanceTransaction}
-        onRefreshFinances={props.onRefreshFinances}
-        onCreateBusinessEvent={props.onCreateBusinessEvent}
-        onRefreshBusinessEvents={props.onRefreshBusinessEvents}
-      />
-      <EquipementsMaintenanceBridge
-        rows={rows}
-        tasks={props.tasks || []}
-        onUpdate={props.onUpdate}
-        onRefresh={props.onRefresh}
-        onCreateTask={props.onCreateTask}
-        onUpdateTask={props.onUpdateTask}
-        onRefreshTasks={props.onRefreshTasks}
-        onCreateAlert={props.onCreateAlert}
-        onRefreshAlertes={props.onRefreshAlertes}
-        onCreateFinanceTransaction={props.onCreateFinanceTransaction}
-        onRefreshFinances={props.onRefreshFinances}
-        onCreateDocument={props.onCreateDocument}
-        onRefreshDocuments={props.onRefreshDocuments}
-        onCreateBusinessEvent={props.onCreateBusinessEvent}
-        onRefreshBusinessEvents={props.onRefreshBusinessEvents}
-      />
       <GenericCrudModule
         {...props}
         moduleKey="equipements"
@@ -58,7 +31,44 @@ export default function Equipements(props) {
           { icon: Fuel, label: 'Carburant', value: fmtCurrency(fuel), color: 'bg-emerald-500/20 text-emerald-500' },
         ]}
       />
-      <EquipementsEvolution rows={rows} tasks={props.tasks || []} onNavigate={props.onNavigate} />
+      <CollapsibleAdvancedSection
+        title="Équipements : actions rapides, maintenance et évolution"
+        description="Les actions techniques restent disponibles ici sans alourdir la liste des équipements."
+        open={showAdvanced}
+        onToggle={() => setShowAdvanced((value) => !value)}
+      >
+        <EquipementsQuickActionsBridge
+          rows={rows}
+          onUpdate={props.onUpdate}
+          onRefresh={props.onRefresh}
+          onCreateTask={props.onCreateTask}
+          onRefreshTasks={props.onRefreshTasks}
+          onCreateAlert={props.onCreateAlert}
+          onRefreshAlertes={props.onRefreshAlertes}
+          onCreateFinanceTransaction={props.onCreateFinanceTransaction}
+          onRefreshFinances={props.onRefreshFinances}
+          onCreateBusinessEvent={props.onCreateBusinessEvent}
+          onRefreshBusinessEvents={props.onRefreshBusinessEvents}
+        />
+        <EquipementsMaintenanceBridge
+          rows={rows}
+          tasks={props.tasks || []}
+          onUpdate={props.onUpdate}
+          onRefresh={props.onRefresh}
+          onCreateTask={props.onCreateTask}
+          onUpdateTask={props.onUpdateTask}
+          onRefreshTasks={props.onRefreshTasks}
+          onCreateAlert={props.onCreateAlert}
+          onRefreshAlertes={props.onRefreshAlertes}
+          onCreateFinanceTransaction={props.onCreateFinanceTransaction}
+          onRefreshFinances={props.onRefreshFinances}
+          onCreateDocument={props.onCreateDocument}
+          onRefreshDocuments={props.onRefreshDocuments}
+          onCreateBusinessEvent={props.onCreateBusinessEvent}
+          onRefreshBusinessEvents={props.onRefreshBusinessEvents}
+        />
+        <EquipementsEvolution rows={rows} tasks={props.tasks || []} onNavigate={props.onNavigate} />
+      </CollapsibleAdvancedSection>
     </div>
   );
 }
