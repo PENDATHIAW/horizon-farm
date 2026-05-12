@@ -22,6 +22,13 @@ const logQty = (log = {}) => toNumber(log.quantite ?? log.quantity ?? log.qty ??
 const logCost = (log = {}) => toNumber(log.cout_total ?? log.total_cost ?? log.montant ?? log.amount ?? log.cost ?? 0);
 const logDate = (row = {}) => row.date || row.created_at || row.updated_at;
 const oppAmount = (opp = {}) => toNumber(opp.montant_estime ?? opp.estimated_amount ?? opp.valeur_estimee ?? opp.amount ?? opp.total ?? opp.ca_potentiel ?? 0);
+const linkedLotId = (row = {}) => String(row.lot_id || row.cible_id || row.target_id || row.entity_id || row.source_id || row.related_id || '').trim();
+const linkedToExistingLot = (row = {}, lotIds = new Set()) => {
+  if (!lotIds.size) return false;
+  const id = linkedLotId(row);
+  if (!id) return false;
+  return lotIds.has(id);
+};
 
 function asDate(value) {
   const parsed = new Date(value);
@@ -70,6 +77,7 @@ function Header({ title, subtitle, priority, onNavigate }) {
 function buildChairMonthly({ rows = [], alimentationLogs = [], opportunities = [] }) {
   const chair = filterLotsByActivity(rows, 'Chair');
   const chairIds = new Set(chair.map((lot) => String(lot.id)));
+  if (!chairIds.size) return [];
   const map = new Map();
   const fallbackKey = monthKey(new Date());
   chair.forEach((lot) => {
@@ -85,16 +93,16 @@ function buildChairMonthly({ rows = [], alimentationLogs = [], opportunities = [
     bucket.taux_mortalite = ((bucket.morts / base) * 100);
   });
   arr(alimentationLogs).forEach((log) => {
-    if (log.lot_id && chairIds.size && !chairIds.has(String(log.lot_id))) return;
+    if (!linkedToExistingLot(log, chairIds)) return;
     const bucket = ensure(map, monthKey(logDate(log)));
     const cost = logCost(log) || logQty(log) * toNumber(log.prix_unitaire ?? log.unit_price ?? 0);
     bucket.charges_aliments += cost;
   });
   arr(opportunities).forEach((opp) => {
     const source = lower(`${opp.source_module || ''} ${opp.type || ''} ${opp.produit || ''} ${opp.title || ''}`);
-    const lotId = String(opp.lot_id || opp.source_id || opp.entity_id || '');
+    const lotId = linkedLotId(opp);
     const looksChair = source.includes('chair') || (lotId && chairIds.has(lotId));
-    if (!looksChair) return;
+    if (!looksChair || (lotId && !chairIds.has(lotId))) return;
     ensure(map, monthKey(opp.created_at || opp.updated_at || opp.date)).ca += oppAmount(opp);
   });
   return [...map.values()].sort((a, b) => a.key.localeCompare(b.key)).map((row) => {
@@ -106,10 +114,11 @@ function buildChairMonthly({ rows = [], alimentationLogs = [], opportunities = [
 function buildPonteMonthly({ rows = [], productionLogs = [], alimentationLogs = [], opportunities = [] }) {
   const pondeuses = filterLotsByActivity(rows, 'Pondeuse');
   const pondeuseIds = new Set(pondeuses.map((lot) => String(lot.id)));
+  if (!pondeuseIds.size) return [];
   const activePondeuses = pondeuses.reduce((sum, lot) => sum + activeCount(lot), 0);
   const map = new Map();
   arr(productionLogs).forEach((log) => {
-    if (log.lot_id && pondeuseIds.size && !pondeuseIds.has(String(log.lot_id))) return;
+    if (!linkedToExistingLot(log, pondeuseIds)) return;
     const produced = eggs(log);
     const casse = broken(log);
     if (produced <= 0 && casse <= 0) return;
@@ -121,14 +130,16 @@ function buildPonteMonthly({ rows = [], productionLogs = [], alimentationLogs = 
     if (log.date) bucket.dates.add(String(log.date));
   });
   arr(alimentationLogs).forEach((log) => {
-    if (log.lot_id && pondeuseIds.size && !pondeuseIds.has(String(log.lot_id))) return;
+    if (!linkedToExistingLot(log, pondeuseIds)) return;
     const bucket = ensure(map, monthKey(logDate(log)));
     const cost = logCost(log) || logQty(log) * toNumber(log.prix_unitaire ?? log.unit_price ?? 0);
     bucket.charges_aliments += cost;
   });
   arr(opportunities).forEach((opp) => {
+    const lotId = linkedLotId(opp);
+    if (lotId && !pondeuseIds.has(lotId)) return;
     const source = lower(`${opp.source_module || ''} ${opp.type || ''} ${opp.produit || ''} ${opp.title || ''}`);
-    if (!source.includes('oeuf') && !source.includes('œuf') && !source.includes('ponte')) return;
+    if (!lotId && !source.includes('oeuf') && !source.includes('œuf') && !source.includes('ponte')) return;
     ensure(map, monthKey(opp.created_at || opp.updated_at || opp.date)).ca += oppAmount(opp);
   });
   return [...map.values()].sort((a, b) => a.key.localeCompare(b.key)).map((row) => {
@@ -145,21 +156,32 @@ function average(list, key) {
   const valuesList = arr(list).map((row) => toNumber(row[key])).filter((value) => value > 0);
   return valuesList.length ? valuesList.reduce((sum, value) => sum + value, 0) / valuesList.length : 0;
 }
+function EmptyState() {
+  return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Aucun lot avicole actif dans cette vue. Les anciens logs orphelins ne sont plus repris dans les coûts, œufs, CA ou graphes.</div>;
+}
 
 export default function AvicoleEvolution({ rows = [], productionLogs = [], alimentationLogs = [], opportunities = [], businessEvents = [], onNavigate }) {
-  const costs = summarizeAvicoleCosts({ rows, alimentationLogs, productionLogs, slaughterEvents: businessEvents });
+  const activeRows = arr(rows).filter((row) => row?.id);
+  const activeLotIds = new Set(activeRows.map((row) => String(row.id)));
+  const linkedAlimentationLogs = arr(alimentationLogs).filter((log) => linkedToExistingLot(log, activeLotIds));
+  const linkedProductionLogs = arr(productionLogs).filter((log) => linkedToExistingLot(log, activeLotIds));
+  const linkedBusinessEvents = arr(businessEvents).filter((event) => {
+    const id = linkedLotId(event);
+    return id && activeLotIds.has(id);
+  });
+  const costs = activeRows.length ? summarizeAvicoleCosts({ rows: activeRows, alimentationLogs: linkedAlimentationLogs, productionLogs: linkedProductionLogs, slaughterEvents: linkedBusinessEvents }) : { details: [], realFeedCost: 0, estimatedFeedCost: 0 };
   const chairCosts = costs.details.filter((item) => item.type === 'chair');
   const ponteCosts = costs.details.filter((item) => item.type === 'ponte');
   const realCostLots = costs.details.filter((item) => item.realFeedCost > 0).length;
-  const chair = buildChairMonthly({ rows, alimentationLogs, opportunities });
-  const ponte = buildPonteMonthly({ rows, productionLogs, alimentationLogs, opportunities });
+  const chair = buildChairMonthly({ rows: activeRows, alimentationLogs: linkedAlimentationLogs, opportunities });
+  const ponte = buildPonteMonthly({ rows: activeRows, productionLogs: linkedProductionLogs, alimentationLogs: linkedAlimentationLogs, opportunities });
   const lastChair = chair[chair.length - 1] || {};
   const lastPonte = ponte[ponte.length - 1] || {};
   const readyLots = chair.reduce((sum, row) => sum + row.prets, 0);
   const sickOrDead = chair.reduce((sum, row) => sum + row.malades + row.morts, 0);
   const totalEggs = ponte.reduce((sum, row) => sum + row.oeufs, 0);
   const totalSellable = ponte.reduce((sum, row) => sum + row.vendables, 0);
-  const priority = sickOrDead > 0 ? { module: 'sante', label: 'Traiter santé avicole' } : readyLots > 0 ? { module: 'ventes', label: 'Confirmer les ventes chair' } : { module: 'avicole', label: 'Mettre à jour pontes et pesées' };
+  const priority = !activeRows.length ? null : sickOrDead > 0 ? { module: 'sante', label: 'Traiter santé avicole' } : readyLots > 0 ? { module: 'ventes', label: 'Confirmer les ventes chair' } : { module: 'avicole', label: 'Mettre à jour pontes et pesées' };
   const avgChairCostLive = average(chairCosts, 'costPerLiveSubject');
   const avgChairCostKg = average(chairCosts, 'costPerKg');
   const avgPonteCostEgg = average(ponteCosts, 'costPerEgg');
@@ -167,6 +189,7 @@ export default function AvicoleEvolution({ rows = [], productionLogs = [], alime
 
   return <div className="space-y-5">
     <Header title="Évolution Avicole interactive" subtitle="Deux lectures séparées : Chair et Ponte, avec coûts par sujet, par kg viande et par œuf vendable." priority={priority} onNavigate={onNavigate} />
+    {!activeRows.length ? <EmptyState /> : null}
     <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4"><div className="grid grid-cols-2 lg:grid-cols-6 gap-3"><SmallMetric label="Coût moyen sujet chair" value={fmtCurrency(avgChairCostLive)} hint="coût / sujet vivant" /><SmallMetric label="Coût / kg poulet" value={fmtCurrency(avgChairCostKg)} hint="si abattage enregistré" /><SmallMetric label="Coût / œuf vendable" value={fmtCurrency(avgPonteCostEgg)} hint="ponte" /><SmallMetric label="Aliment réel" value={fmtCurrency(costs.realFeedCost)} hint={`${fmtNumber(realCostLots)}/${fmtNumber(costs.details.length)} lots`} /><SmallMetric label="Aliment estimé" value={fmtCurrency(costs.estimatedFeedCost)} hint="si pas de sortie réelle" /><SmallMetric label="Impact mortalité" value={fmtCurrency(Math.max(0, mortalityImpact))} hint="sur coût/sujet chair" danger={mortalityImpact > 0} /></div></div>
 
     <section className="space-y-4">
@@ -203,7 +226,7 @@ export default function AvicoleEvolution({ rows = [], productionLogs = [], alime
       <SmartEvolutionChart title="Ponte — production mensuelle" subtitle="Œufs produits, vendables, casses et effectif pondeuses." months={labels(ponte)} leftUnit="" rightUnit="%" series={[{ name: 'Œufs produits', type: 'bar', data: values(ponte, 'oeufs') }, { name: 'Œufs vendables', type: 'bar', data: values(ponte, 'vendables') }, { name: 'Casses', type: 'bar', data: values(ponte, 'casses') }, { name: 'Pondeuses actives', type: 'line', data: values(ponte, 'pondeuses') }, { name: 'Taux ponte', type: 'line', axis: 'right', unit: '%', data: values(ponte, 'taux_ponte') }]} />
     </section>
 
-    <div className="bg-[#fffdf8] border border-[#d6c3a0] rounded-2xl p-4 text-sm text-[#7d6a4a] flex items-start gap-3"><TrendingUp size={18} className="text-[#9a6b12] mt-0.5" /><div><b className="text-[#2f2415]">Interprétation :</b> {realCostLots < costs.details.length ? `Coût réel disponible pour ${fmtNumber(realCostLots)}/${fmtNumber(costs.details.length)} lot(s), estimation utilisée pour les autres.` : sickOrDead > 0 ? `${fmtNumber(sickOrDead)} point(s) santé/mortalité à traiter.` : readyLots > 0 ? `${fmtNumber(readyLots)} lot(s) chair à convertir en ventes.` : 'Compléter les coûts et ventes liées pour affiner les marges.'}</div></div>
-    <div className={`${sickOrDead ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'} border rounded-2xl p-4 text-sm flex items-start justify-between gap-3`}><div className="flex items-start gap-2"><ShoppingBag size={18} className="mt-0.5" /><div><b>Action recommandée :</b> {priority.label}.</div></div><button type="button" onClick={() => onNavigate?.(priority.module)} className="shrink-0 rounded-xl bg-white/70 border border-current/10 px-3 py-1.5 text-xs font-bold">Ouvrir</button></div>
+    <div className="bg-[#fffdf8] border border-[#d6c3a0] rounded-2xl p-4 text-sm text-[#7d6a4a] flex items-start gap-3"><TrendingUp size={18} className="text-[#9a6b12] mt-0.5" /><div><b className="text-[#2f2415]">Interprétation :</b> {!activeRows.length ? 'Aucun lot actif. Les anciens logs restent archivés mais ne sont pas repris dans cette vue.' : realCostLots < costs.details.length ? `Coût réel disponible pour ${fmtNumber(realCostLots)}/${fmtNumber(costs.details.length)} lot(s), estimation utilisée pour les autres.` : sickOrDead > 0 ? `${fmtNumber(sickOrDead)} point(s) santé/mortalité à traiter.` : readyLots > 0 ? `${fmtNumber(readyLots)} lot(s) chair à convertir en ventes.` : 'Compléter les coûts et ventes liées pour affiner les marges.'}</div></div>
+    {priority ? <div className={`${sickOrDead ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'} border rounded-2xl p-4 text-sm flex items-start justify-between gap-3`}><div className="flex items-start gap-2"><ShoppingBag size={18} className="mt-0.5" /><div><b>Action recommandée :</b> {priority.label}.</div></div><button type="button" onClick={() => onNavigate?.(priority.module)} className="shrink-0 rounded-xl bg-white/70 border border-current/10 px-3 py-1.5 text-xs font-bold">Ouvrir</button></div> : null}
   </div>;
 }
