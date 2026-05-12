@@ -79,6 +79,7 @@ export default function LifecycleHistoryPanel({ mode = 'avicole', rows = [], sal
           <div>
             <p className="font-black text-[#2f2415]">{labelOf(target)}</p>
             <p className="text-xs text-[#8a7456]">Initial {fmtNumber(history.initial)} · sorties {fmtNumber(history.exited)} · actif {fmtNumber(history.active)} · reste théorique {fmtNumber(history.theoreticalRemaining)}</p>
+            {history.mismatch || history.needsClosure ? <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">{history.recommendation}</p> : null}
           </div>
           <div className="flex flex-wrap gap-2">
             {history.needsClosure ? <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700">À clôturer</span> : null}
