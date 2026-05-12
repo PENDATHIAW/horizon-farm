@@ -1,4 +1,5 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
+import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection.jsx';
 import { toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import StocksV3 from './StocksV3.jsx';
@@ -19,6 +20,7 @@ const nextStockQtyAfterKg = (row = {}, kg = 0) => {
 const targetLabel = (target = {}) => target.name || target.nom || target.tag || target.id;
 
 export default function StocksV4(props) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const updateWithLossFinance = useCallback(async (id, patch = {}) => {
     await props.onUpdate?.(id, patch);
     if (patch.last_movement_type !== 'perte') return;
@@ -110,18 +112,25 @@ export default function StocksV4(props) {
   return (
     <div className="space-y-6">
       <StocksV3 {...props} onUpdate={updateWithLossFinance} />
-      <StockFeedingCostPlanner
-        rows={props.rows || []}
-        animaux={props.animaux || []}
-        lots={props.lots || []}
-        alimentationLogs={props.alimentationLogs || []}
-        onOpenUseFood={applyFeedingPlan}
-      />
-      <StockEvolution
-        rows={props.rows || []}
-        alimentationLogs={props.alimentationLogs || []}
-        onNavigate={props.onNavigate}
-      />
+      <CollapsibleAdvancedSection
+        title="Stock : alimentation, coûts et évolution"
+        description="Le planificateur d’alimentation et les graphes sont regroupés ici pour garder le stock lisible au quotidien."
+        open={showAdvanced}
+        onToggle={() => setShowAdvanced((value) => !value)}
+      >
+        <StockFeedingCostPlanner
+          rows={props.rows || []}
+          animaux={props.animaux || []}
+          lots={props.lots || []}
+          alimentationLogs={props.alimentationLogs || []}
+          onOpenUseFood={applyFeedingPlan}
+        />
+        <StockEvolution
+          rows={props.rows || []}
+          alimentationLogs={props.alimentationLogs || []}
+          onNavigate={props.onNavigate}
+        />
+      </CollapsibleAdvancedSection>
     </div>
   );
 }
