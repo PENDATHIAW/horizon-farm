@@ -1,6 +1,7 @@
 import { AlertTriangle, CalendarClock, CheckCircle2, ListChecks } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection.jsx';
 import { generateSequentialId, makeId } from '../utils/ids';
 import Taches from './Taches.jsx';
 import TaskAlertQualityControl from './TaskAlertQualityControl.jsx';
@@ -69,5 +70,17 @@ function TasksBridge(props) {
 function Mini({ icon: Icon, label, value }) { return <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2 min-w-[100px]"><Icon size={14} className="text-[#9a6b12]" /><b className="block text-[#2f2415]">{value}</b><span className="text-xs text-[#8a7456]">{label}</span></div>; }
 
 export default function TachesV2(props) {
-  return <div className="space-y-6"><TasksBridge {...props} /><TaskAlertQualityControl tasks={props.rows || []} alerts={props.alertes || []} /><Taches {...props} /></div>;
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  return <div className="space-y-6">
+    <Taches {...props} />
+    <CollapsibleAdvancedSection
+      title="Tâches : alertes, retards et cohérence"
+      description="La liste de tâches reste prioritaire. Les automatisations et contrôles sont disponibles ici."
+      open={showAdvanced}
+      onToggle={() => setShowAdvanced((value) => !value)}
+    >
+      <TasksBridge {...props} />
+      <TaskAlertQualityControl tasks={props.rows || []} alerts={props.alertes || []} />
+    </CollapsibleAdvancedSection>
+  </div>;
 }
