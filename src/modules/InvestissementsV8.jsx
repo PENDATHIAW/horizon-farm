@@ -1,7 +1,5 @@
-import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { CheckCircle2, Link2 } from 'lucide-react';
-import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection.jsx';
+import { BarChart3, CheckCircle2, Link2, ShieldCheck, TrendingUp } from 'lucide-react';
 import { toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import InvestissementsV7 from './InvestissementsV7.jsx';
@@ -22,6 +20,10 @@ function isAnimal(line = {}) { const d = clean(line.designation).toLowerCase(); 
 function isCulture(line = {}) { const d = clean(line.designation).toLowerCase(); return d.includes('culture') || d.includes('poivron') || d.includes('maraichage') || d.includes('maraîchage') || d.includes('champ') || d.includes('irrigation'); }
 function assetType(line = {}) { if (isAvicole(line)) return 'avicole'; if (isAnimal(line)) return 'animal'; if (isCulture(line)) return 'culture'; return ''; }
 function linkPatch(module, id) { return { asset_module: module, asset_id: id, asset_created_at: new Date().toISOString(), source_module: 'investissements', source_record_id: id }; }
+
+function ModuleSection({ icon: Icon, title, subtitle, children }) {
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
+}
 
 async function createOperationalAsset(line, props) {
   const type = assetType(line);
@@ -82,16 +84,15 @@ function OperationalAssetsBridge(props) {
 }
 
 export default function InvestissementsV8(props) {
-  const [showAdvanced, setShowAdvanced] = useState(false);
   return (
-    <div className="space-y-6">
-      <InvestissementsV7 {...props} />
-      <CollapsibleAdvancedSection
-        title="Investissements : contrôle, actifs métier et évolution"
-        description="Les contrôles et l’automatisation BP restent disponibles ici, sans alourdir la lecture principale des projets."
-        open={showAdvanced}
-        onToggle={() => setShowAdvanced((value) => !value)}
-      >
+    <div className="space-y-6 investissements-mobile-structured">
+      <style>{`@media (max-width: 640px){.investissements-mobile-structured .rounded-2xl{border-radius:18px}.investissements-mobile-structured table{font-size:12px}.investissements-mobile-structured th,.investissements-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.investissements-mobile-structured .text-2xl{font-size:1.35rem}.investissements-mobile-structured .grid{gap:.75rem}.investissements-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
+
+      <ModuleSection icon={TrendingUp} title="Portefeuille investissements & business plans" subtitle="Projets, lignes BP, financement, paiements et suivi des investissements.">
+        <InvestissementsV7 {...props} />
+      </ModuleSection>
+
+      <ModuleSection icon={ShieldCheck} title="Contrôle qualité investissement" subtitle="Cohérence BP, financements, lignes effectives, liens métiers et risques.">
         <InvestmentQualityControl
           rows={props.rows || []}
           businessPlans={props.businessPlans || []}
@@ -102,9 +103,15 @@ export default function InvestissementsV8(props) {
           animaux={props.animaux || []}
           cultures={props.cultures || []}
         />
+      </ModuleSection>
+
+      <ModuleSection icon={Link2} title="Actifs métier créés depuis BP" subtitle="Transformation des dépenses effectives en lots avicoles, animaux ou cultures exploitables.">
         <OperationalAssetsBridge {...props} />
+      </ModuleSection>
+
+      <ModuleSection icon={BarChart3} title="Évolution investissements" subtitle="Graphes des investissements, financements, CAPEX, risques et valeur créée.">
         <InvestissementsEvolution {...props} />
-      </CollapsibleAdvancedSection>
+      </ModuleSection>
     </div>
   );
 }
