@@ -30,6 +30,7 @@ function activityFromLink(row = {}) {
 }
 
 export function classifyProfitCharge(row = {}) {
+  if (row.profit_bucket && PROFIT_BUCKETS[row.profit_bucket]) return row.profit_bucket;
   const linkedActivity = activityFromLink(row);
   if (linkedActivity) return linkedActivity;
   const text = fullText(row);
