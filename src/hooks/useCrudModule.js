@@ -2,6 +2,41 @@
 import { useAppData } from '../context/AppContext';
 import { DEMO_CORE_DATA, withDemoRows } from '../utils/demoCoreData';
 
+const tombstoneKey = (moduleKey) => `horizon_farm_deleted_ids:${moduleKey}`;
+
+function readDeletedIds(moduleKey) {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = window.localStorage.getItem(tombstoneKey(moduleKey));
+    const list = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(list) ? list.map(String) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function rememberDeletedId(moduleKey, id) {
+  if (typeof window === 'undefined' || !id) return;
+  const deleted = readDeletedIds(moduleKey);
+  deleted.add(String(id));
+  window.localStorage.setItem(tombstoneKey(moduleKey), JSON.stringify([...deleted]));
+}
+
+function forgetDeletedId(moduleKey, id) {
+  if (typeof window === 'undefined' || !id) return;
+  const deleted = readDeletedIds(moduleKey);
+  if (!deleted.has(String(id))) return;
+  deleted.delete(String(id));
+  window.localStorage.setItem(tombstoneKey(moduleKey), JSON.stringify([...deleted]));
+}
+
+function filterDeletedRows(moduleKey, rows) {
+  const current = Array.isArray(rows) ? rows : [];
+  const deleted = readDeletedIds(moduleKey);
+  if (!deleted.size) return current;
+  return current.filter((row) => !deleted.has(String(row.id)));
+}
+
 function demoModeEnabled() {
   if (typeof window === 'undefined') return false;
   const params = new URLSearchParams(window.location.search || '');
@@ -17,10 +52,9 @@ function demoModeEnabled() {
 }
 
 function mergeDemoRows(moduleKey, rows) {
-  const current = Array.isArray(rows) ? rows : [];
-  if (!current.length) return withDemoRows(moduleKey, current);
+  const current = filterDeletedRows(moduleKey, Array.isArray(rows) ? rows : []);
   if (!demoModeEnabled()) return current;
-  const demo = DEMO_CORE_DATA[moduleKey] || [];
+  const demo = filterDeletedRows(moduleKey, DEMO_CORE_DATA[moduleKey] || []);
   const ids = new Set(current.map((row) => String(row.id)));
   return [...current, ...demo.filter((row) => !ids.has(String(row.id)))];
 }
@@ -38,7 +72,7 @@ export default function useCrudModule(moduleKey) {
 
   return useMemo(
     () => {
-      const rawRows = dataMap[moduleKey] || [];
+      const rawRows = filterDeletedRows(moduleKey, dataMap[moduleKey] || []);
       const rows = mergeDemoRows(moduleKey, rawRows);
       return {
         rows,
@@ -46,9 +80,15 @@ export default function useCrudModule(moduleKey) {
         usingDemoRows: rows !== rawRows,
         loading: Boolean(loadingMap[moduleKey]),
         error: errorMap[moduleKey] || null,
-        create: (payload) => createRecord(moduleKey, payload),
+        create: async (payload) => {
+          if (payload?.id) forgetDeletedId(moduleKey, payload.id);
+          return createRecord(moduleKey, payload);
+        },
         update: (id, payload) => updateRecord(moduleKey, id, payload),
-        remove: (id) => deleteRecord(moduleKey, id),
+        remove: async (id) => {
+          rememberDeletedId(moduleKey, id);
+          return deleteRecord(moduleKey, id);
+        },
         refresh: () => refreshModule(moduleKey),
       };
     },
