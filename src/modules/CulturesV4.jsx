@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection.jsx';
+import ActivityOperatingMarginPanel from './ActivityOperatingMarginPanel.jsx';
 import CulturesV3 from './CulturesV3.jsx';
 import CulturesEvolution from './CulturesEvolution.jsx';
 
@@ -9,11 +10,17 @@ export default function CulturesV4(props) {
     <div className="space-y-6">
       <CulturesV3 {...props} />
       <CollapsibleAdvancedSection
-        title="Cultures : évolution, rendement et valeur"
-        description="Les graphes d’évolution sont conservés ici pour garder la saisie des cultures simple."
+        title="Cultures : marges, évolution, rendement et valeur"
+        description="Les marges nettes et graphes d’évolution sont conservés ici pour garder la saisie des cultures simple."
         open={showAdvanced}
         onToggle={() => setShowAdvanced((value) => !value)}
       >
+        <ActivityOperatingMarginPanel
+          mode="cultures"
+          rows={props.rows || []}
+          transactions={props.transactions || []}
+          businessEvents={props.businessEvents || []}
+        />
         <CulturesEvolution
           rows={props.rows || []}
           onNavigate={props.onNavigate}
