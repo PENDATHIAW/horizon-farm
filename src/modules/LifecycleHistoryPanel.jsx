@@ -27,9 +27,24 @@ function Mini({ icon: Icon, label, value, danger = false }) {
 export default function LifecycleHistoryPanel({ mode = 'avicole', rows = [], salesOrders = [], deliveries = [], businessEvents = [] }) {
   const salesCrud = useCrudModule('sales_orders');
   const deliveriesCrud = useCrudModule('deliveries');
-  const sales = effective(salesOrders, salesCrud.rows);
-  const deliveryRows = effective(deliveries, deliveriesCrud.rows);
-  const histories = arr(rows).map((target) => ({ target, history: buildLifecycleHistory({ mode, target, salesOrders: sales, deliveries: deliveryRows, businessEvents }) }));
+  const targets = arr(rows).filter((row) => row?.id);
+  const targetIds = new Set(targets.map((row) => String(row.id)));
+  const sales = effective(salesOrders, salesCrud.rows).filter((sale) => {
+    if (!targetIds.size) return false;
+    const linked = String(sale.lot_id || sale.animal_id || sale.culture_id || sale.source_id || sale.entity_id || sale.related_id || '');
+    return !linked || targetIds.has(linked);
+  });
+  const deliveryRows = effective(deliveries, deliveriesCrud.rows).filter((delivery) => {
+    if (!targetIds.size) return false;
+    const linked = String(delivery.lot_id || delivery.animal_id || delivery.culture_id || delivery.source_id || delivery.entity_id || delivery.related_id || '');
+    return !linked || targetIds.has(linked);
+  });
+  const linkedEvents = arr(businessEvents).filter((event) => {
+    if (!targetIds.size) return false;
+    const linked = String(event.entity_id || event.lot_id || event.animal_id || event.culture_id || event.source_record_id || event.related_id || '');
+    return !linked || targetIds.has(linked);
+  });
+  const histories = targets.map((target) => ({ target, history: buildLifecycleHistory({ mode, target, salesOrders: sales, deliveries: deliveryRows, businessEvents: linkedEvents }) }));
   const totalInitial = histories.reduce((sum, item) => sum + item.history.initial, 0);
   const totalActive = histories.reduce((sum, item) => sum + item.history.active, 0);
   const totalExited = histories.reduce((sum, item) => sum + item.history.exited, 0);
@@ -55,6 +70,8 @@ export default function LifecycleHistoryPanel({ mode = 'avicole', rows = [], sal
       <Mini icon={AlertTriangle} label="À clôturer" value={toClose} danger={toClose > 0} />
       <Mini icon={AlertTriangle} label="Écarts historique" value={mismatch} danger={mismatch > 0} />
     </div>
+
+    {!histories.length ? <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Aucune cible active dans ce module. Les anciens logs orphelins ne sont pas repris dans les calculs.</div> : null}
 
     <div className="space-y-3">
       {histories.slice(0, 8).map(({ target, history }) => <div key={target.id} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] overflow-hidden">
