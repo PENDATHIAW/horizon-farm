@@ -1,43 +1,41 @@
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { BarChart3, Beef, ClipboardList, PackageCheck, Scissors } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { ANIMAL_SPECIES_TABS, countAnimalsBySpecies, filterAnimalsBySpecies, restoreSpeciesOnAnimalPayload } from '../utils/animalSpecies';
-import AnimalCostOverview from './AnimalCostOverview.jsx';
 import AnimalSlaughterStockBridge from './AnimalSlaughterStockBridge.jsx';
 import AnimauxEvolution from './AnimauxEvolution.jsx';
 import AnimauxSpeciesFocused from './AnimauxSpeciesFocused.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
-import GrowthPerformanceOverview from './GrowthPerformanceOverview.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
 
-function AdvancedSection({ title, description, open, onToggle, children }) {
+function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm overflow-hidden">
-      <button type="button" onClick={onToggle} className="w-full flex items-center justify-between gap-3 p-5 text-left">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Analyse avancée</p>
-          <h3 className="text-lg font-black text-[#2f2415]">{title}</h3>
-          <p className="mt-1 text-sm text-[#8a7456]">{description}</p>
-        </div>
-        {open ? <ChevronDown className="text-[#8a7456]" /> : <ChevronRight className="text-[#8a7456]" />}
-      </button>
-      {open ? <div className="border-t border-[#eadcc2] p-5 space-y-6 bg-[#fffdf8]/40">{children}</div> : null}
+    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+      <div>
+        <p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>
+        {subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}
+      </div>
+      {children}
     </section>
   );
 }
 
 export default function AnimauxV2(props) {
   const [species, setSpecies] = useState('Bovin');
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const counts = useMemo(() => countAnimalsBySpecies(props.rows || []), [props.rows]);
   const speciesRows = useMemo(() => filterAnimalsBySpecies(props.rows || [], species), [props.rows, species]);
   const wrapCreate = async (payload) => props.onCreate?.(restoreSpeciesOnAnimalPayload(payload, species));
   const wrapUpdate = async (id, payload) => props.onUpdate?.(id, restoreSpeciesOnAnimalPayload(payload, species));
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
-        <p className="text-xs uppercase tracking-widest text-[#8a7456]">Filtre cheptel</p>
-        <div className="mt-3 grid grid-cols-3 gap-2">
+    <div className="space-y-6 animaux-mobile-structured">
+      <style>{`@media (max-width: 640px){.animaux-mobile-structured .rounded-2xl{border-radius:18px}.animaux-mobile-structured table{font-size:12px}.animaux-mobile-structured th,.animaux-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.animaux-mobile-structured .text-2xl{font-size:1.35rem}.animaux-mobile-structured .grid{gap:.75rem}.animaux-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
+
+      <ModuleSection
+        icon={Beef}
+        title="Cheptel par espèce"
+        subtitle="Choisir une espèce puis gérer uniquement les animaux concernés."
+      >
+        <div className="grid grid-cols-3 gap-2">
           {ANIMAL_SPECIES_TABS.map((tab) => (
             <button
               key={tab}
@@ -51,21 +49,26 @@ export default function AnimauxV2(props) {
             </button>
           ))}
         </div>
-      </div>
+      </ModuleSection>
 
-      <AnimauxSpeciesFocused
-        {...props}
-        species={species}
-        rows={speciesRows}
-        onCreate={wrapCreate}
-        onUpdate={wrapUpdate}
-      />
+      <ModuleSection
+        icon={PackageCheck}
+        title={`${species}s : gestion opérationnelle`}
+        subtitle="Fiches animaux, statuts, santé, disponibilité et actions utiles au quotidien."
+      >
+        <AnimauxSpeciesFocused
+          {...props}
+          species={species}
+          rows={speciesRows}
+          onCreate={wrapCreate}
+          onUpdate={wrapUpdate}
+        />
+      </ModuleSection>
 
-      <AdvancedSection
-        title={`${species}s : historique, coûts, croissance, charges, abattage et évolution`}
-        description="Les analyses détaillées sont regroupées ici pour éviter les doublons dans la lecture principale. Les graphes d’évolution sont conservés."
-        open={showAdvanced}
-        onToggle={() => setShowAdvanced((value) => !value)}
+      <ModuleSection
+        icon={ClipboardList}
+        title={`${species}s : cycle et historique`}
+        subtitle="Historique des entrées, sorties, ventes, pertes, clôtures et événements importants."
       >
         <LifecycleHistoryPanel
           mode="animaux"
@@ -74,19 +77,31 @@ export default function AnimauxV2(props) {
           deliveries={props.deliveriesList || props.deliveries || []}
           businessEvents={props.businessEvents || []}
         />
-        <AnimalCostOverview
-          rows={speciesRows}
-          alimentationLogs={props.alimentationLogs || []}
-          vaccins={props.vaccins || []}
+      </ModuleSection>
+
+      <ModuleSection
+        icon={PackageCheck}
+        title={`${species}s : charges directes ponctuelles`}
+        subtitle="Transport, traitement spécial, abattage, emballage ou frais directement liés à un animal précis."
+      >
+        <DirectChargesBridge
+          title={`Autres charges directes ${species.toLowerCase()}s`}
+          subtitle="Ces charges alimentent le coût direct animal, sans RH ni exploitation."
+          targetType="animaux"
+          targets={speciesRows}
           businessEvents={props.businessEvents || []}
+          onCreateBusinessEvent={props.onCreateBusinessEvent}
+          onUpdateBusinessEvent={props.onUpdateBusinessEvent}
+          onDeleteBusinessEvent={props.onDeleteBusinessEvent}
+          onRefreshBusinessEvents={props.onRefreshBusinessEvents}
         />
-        <GrowthPerformanceOverview
-          mode="animaux"
-          rows={speciesRows}
-          alimentationLogs={props.alimentationLogs || []}
-          vaccins={props.vaccins || []}
-          businessEvents={props.businessEvents || []}
-        />
+      </ModuleSection>
+
+      <ModuleSection
+        icon={Scissors}
+        title={`${species}s : abattage, transformation et stock`}
+        subtitle="Sortie de l’animal, transformation éventuelle et création de stock vendable."
+      >
         <AnimalSlaughterStockBridge
           rows={speciesRows}
           alimentationLogs={props.alimentationLogs || []}
@@ -97,17 +112,13 @@ export default function AnimauxV2(props) {
           onCreateBusinessEvent={props.onCreateBusinessEvent}
           onRefreshBusinessEvents={props.onRefreshBusinessEvents}
         />
-        <DirectChargesBridge
-          title={`Autres charges directes ${species.toLowerCase()}s`}
-          subtitle="Ajoute les frais exceptionnels liés à un animal précis : transport, traitement spécial, abattage, emballage, etc."
-          targetType="animaux"
-          targets={speciesRows}
-          businessEvents={props.businessEvents || []}
-          onCreateBusinessEvent={props.onCreateBusinessEvent}
-          onUpdateBusinessEvent={props.onUpdateBusinessEvent}
-          onDeleteBusinessEvent={props.onDeleteBusinessEvent}
-          onRefreshBusinessEvents={props.onRefreshBusinessEvents}
-        />
+      </ModuleSection>
+
+      <ModuleSection
+        icon={BarChart3}
+        title={`${species}s : évolution`}
+        subtitle="Graphes conservés : charges, ventes, marge, poids, croissance, mortalité et coût par animal."
+      >
         <AnimauxEvolution
           rows={speciesRows}
           alimentationLogs={props.alimentationLogs || []}
@@ -116,7 +127,7 @@ export default function AnimauxV2(props) {
           opportunities={props.opportunities || []}
           onNavigate={props.onNavigate}
         />
-      </AdvancedSection>
+      </ModuleSection>
     </div>
   );
 }
