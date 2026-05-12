@@ -34,7 +34,7 @@ import LoginPage from './pages/LoginPage';
 
 const MODULES = {
   dashboard: lazy(() => import('./modules/DashboardV2')),
-  assistant_erp: lazy(() => import('./modules/AssistantERP')),
+  assistant_erp: lazy(() => import('./modules/AssistantERPV2')),
   animaux: lazy(() => import('./modules/AnimauxV2')),
   avicole: lazy(() => import('./modules/AvicoleV10')),
   sante: lazy(() => import('./modules/SanteV7')),
