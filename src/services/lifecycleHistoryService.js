@@ -5,6 +5,7 @@ const clean = (value) => String(value || '').trim();
 const lower = (value) => clean(value).toLowerCase();
 const dateOf = (row = {}) => row.date || row.event_date || row.created_at || row.updated_at || row.date_livraison || row.delivery_date || row.date_commande || '';
 const amountOf = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?? row.montant_total ?? row.chiffre_affaires);
+const isClosedStatus = (target = {}) => /cl[oô]tur|clos|termin|vendu|livr|abattu|transform|perdu|mort|r[eé]colt|archive|archiv/.test(lower(`${target.status || ''} ${target.statut || ''} ${target.phase || ''} ${target.stade || ''}`));
 
 export function activeCountOf(target = {}, mode = 'avicole') {
   if (mode === 'cultures') return toNumber(target.quantite_disponible ?? target.quantite_recoltee ?? target.production_reelle ?? target.surface_exploitable ?? target.surface);
@@ -75,6 +76,9 @@ export function buildLifecycleHistory({ mode = 'avicole', target = {}, salesOrde
 
   const exited = withRemaining.filter((event) => event.delta < 0).reduce((sum, event) => sum + Math.abs(toNumber(event.delta)), 0);
   const theoreticalRemaining = Math.max(0, initial - exited + withRemaining.filter((event) => event.delta > 0 && event.type !== 'entrée_initiale').reduce((sum, event) => sum + event.delta, 0));
+  const closed = isClosedStatus(target);
+  const zeroActiveUnexplained = initial > 0 && active <= 0 && theoreticalRemaining > 0 && !closed;
+  const mismatch = Math.abs(theoreticalRemaining - active) > 0.001;
   return {
     initial,
     active,
@@ -82,7 +86,9 @@ export function buildLifecycleHistory({ mode = 'avicole', target = {}, salesOrde
     theoreticalRemaining,
     events: withRemaining,
     hasHistory: withRemaining.length > 1,
-    needsClosure: active <= 0 && !/cl[oô]tur|clos|termin|vendu|livr|abattu|transform|perdu|mort|r[eé]colt/.test(lower(`${target.status || ''} ${target.statut || ''} ${target.phase || ''} ${target.stade || ''}`)),
-    mismatch: Math.abs(theoreticalRemaining - active) > 0.001,
+    needsClosure: active <= 0 && !closed,
+    mismatch,
+    zeroActiveUnexplained,
+    recommendation: zeroActiveUnexplained ? 'Effectif à 0 sans sortie historique. Clôturer le lot ou enregistrer la sortie réelle: vente, perte, abattage ou ajustement.' : mismatch ? 'Écart entre historique et effectif actuel. Vérifier sorties, ventes, pertes ou ajustements.' : 'Historique cohérent.',
   };
 }
