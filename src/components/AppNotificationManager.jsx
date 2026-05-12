@@ -10,6 +10,21 @@ const criticalSeverity = (alert = {}) => ['critique', 'urgence'].includes(lower(
 const isIOSDevice = () => /iphone|ipad|ipod/i.test(window.navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const isStandaloneApp = () => window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone === true;
 const IOS_INSTALL_HELP = 'Sur iPhone, ajoute Horizon Farm a l ecran d accueil depuis Safari, puis ouvre l app depuis cette icone pour activer les notifications.';
+const NOTIFICATION_PROMPT_SEEN_KEY = 'horizon-farm-notification-prompt-seen';
+const NOTIFICATION_BANNER_HIDDEN_KEY = 'horizon-farm-notification-banner-hidden';
+
+function wasPromptSeen() {
+  try { return sessionStorage.getItem(NOTIFICATION_PROMPT_SEEN_KEY) === 'true' || localStorage.getItem(NOTIFICATION_BANNER_HIDDEN_KEY) === 'true'; } catch { return true; }
+}
+function markPromptSeen() {
+  try { sessionStorage.setItem(NOTIFICATION_PROMPT_SEEN_KEY, 'true'); } catch { /* noop */ }
+}
+function wasBannerHidden() {
+  try { return localStorage.getItem(NOTIFICATION_BANNER_HIDDEN_KEY) === 'true'; } catch { return false; }
+}
+function hideBannerForever() {
+  try { localStorage.setItem(NOTIFICATION_BANNER_HIDDEN_KEY, 'true'); sessionStorage.setItem(NOTIFICATION_PROMPT_SEEN_KEY, 'true'); } catch { /* noop */ }
+}
 
 function moduleFor(alert = {}) {
   const source = lower(alert.module_source || alert.module || alert.entity_type);
@@ -52,7 +67,7 @@ function buildDerivedAlerts(dataMap = {}) {
 
 export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
   const [busy, setBusy] = useState(false);
-  const [hidden, setHidden] = useState(false);
+  const [hidden, setHidden] = useState(() => wasBannerHidden());
   const iosNeedsInstall = isIOSDevice() && !isStandaloneApp();
   const alerts = useMemo(() => {
     const persisted = arr(dataMap.alertes_center).filter(activeAlert).filter(criticalSeverity);
@@ -82,7 +97,10 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
     const run = async () => {
       const permission = notificationPermission();
       if (permission === 'default') {
-        toast('Active les notifications Horizon Farm pour recevoir les urgences sans ouvrir le module Alertes.');
+        if (!wasPromptSeen()) {
+          toast('Active les notifications Horizon Farm pour recevoir les urgences sans ouvrir le module Alertes.');
+          markPromptSeen();
+        }
         return;
       }
       if (permission === 'denied' || permission === 'unsupported') return;
@@ -116,12 +134,18 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
       await subscribeDeviceToPush({ userId: 'owner', label: 'Appareil propriétaire Horizon Farm', channels: ['urgence', 'critique'] });
       await sendTestPush({ title: 'Horizon Farm — test push', body: 'Ton appareil est abonné aux alertes critiques et urgences.', severity: 'critique', module: 'alertes' });
       toast.success('Notifications avancées activées et test envoyé');
+      hideBannerForever();
       setHidden(true);
     } catch (error) {
       toast.error(error.message || 'Activation push avancée impossible');
     } finally {
       setBusy(false);
     }
+  };
+
+  const dismiss = () => {
+    hideBannerForever();
+    setHidden(true);
   };
 
   if (hidden || notificationPermission() === 'granted') return null;
@@ -132,7 +156,7 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={enableLocal} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-white/15">Activer local</button>
         <button type="button" disabled={busy} onClick={enableAdvanced} className="rounded-full bg-[#c9a96a] px-3 py-1.5 text-xs font-bold text-[#2f2415] disabled:opacity-60">{busy ? 'Activation...' : 'Activer avancé'}</button>
-        <button type="button" onClick={() => setHidden(true)} className="rounded-full border border-white/20 px-3 py-1.5 text-xs font-bold">Plus tard</button>
+        <button type="button" onClick={dismiss} className="rounded-full border border-white/20 px-3 py-1.5 text-xs font-bold">Plus tard</button>
       </div>
       {iosNeedsInstall ? <p className="text-[11px] text-amber-200">Etapes : Safari, bouton Partager, Ajouter a l ecran d accueil, puis ouvrir Horizon Farm depuis l icone créée.</p> : null}
       {!iosNeedsInstall && !pushStatus.ready ? <p className="text-[11px] text-amber-200">Pack avancé prêt côté code, mais VITE_VAPID_PUBLIC_KEY doit être configurée sur Vercel.</p> : null}
