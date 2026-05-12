@@ -3,7 +3,7 @@ import { autoEnrichCharges, auditChargeAssignment } from '../services/chargeAssi
 import { computeGlobalProfitability, PROFIT_BUCKETS } from '../services/globalProfitabilityService';
 import { fmtCurrency } from '../utils/format';
 
-const bucketOrder = ['animaux', 'avicole', 'cultures', 'stock_non_affecte', 'sante_non_affectee', 'rh', 'exploitation', 'equipements', 'fournisseurs_achats', 'autres_charges', 'investissements'];
+const bucketOrder = ['animaux', 'avicole', 'cultures', 'stock_non_affecte', 'sante_non_affectee', 'remuneration_proprietaire', 'rh', 'exploitation', 'equipements', 'fournisseurs_achats', 'autres_charges', 'investissements', 'prelevements_proprietaire'];
 
 function Line({ label, value, strong = false, danger = false, muted = false }) {
   return <div className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 ${strong ? 'border-[#2f2415] bg-[#2f2415] text-white' : danger ? 'border-amber-200 bg-amber-50 text-amber-900' : muted ? 'border-[#eadcc2] bg-[#fffdf8] text-[#8a7456]' : 'border-[#eadcc2] bg-white text-[#2f2415]'}`}>
@@ -39,14 +39,20 @@ export default function ProfitabilityStatement({ transactions = [], salesOrders 
         <Line label="Charges directes activités" value={`- ${fmtCurrency(profit.directActivityCharges)}`} />
         <Line label="Marge brute activités" value={fmtCurrency(profit.grossActivityMargin)} strong={profit.grossActivityMargin >= 0} danger={profit.grossActivityMargin < 0} />
         <Line label="Charges non affectées automatiquement" value={`- ${fmtCurrency(profit.unallocatedOperationalCharges)}`} danger={profit.unallocatedOperationalCharges > 0} />
-        <Line label="Charges de structure" value={`- ${fmtCurrency(profit.structureCharges)}`} />
+        <Line label="Charges de structure, salaire inclus" value={`- ${fmtCurrency(profit.structureCharges)}`} />
         <Line label="Résultat opérationnel" value={fmtCurrency(profit.operatingResult)} strong />
         <Line label="Investissements" value={`- ${fmtCurrency(profit.investments)}`} muted />
-        <Line label="Solde trésorerie après investissements" value={fmtCurrency(profit.cashResultAfterInvestments)} danger={profit.cashResultAfterInvestments < 0} />
+        <Line label="Solde après investissements" value={fmtCurrency(profit.cashResultAfterInvestments)} danger={profit.cashResultAfterInvestments < 0} />
+        <Line label="Prélèvements propriétaire" value={`- ${fmtCurrency(profit.ownerWithdrawals)}`} muted />
+        <Line label="Cash disponible après prélèvements" value={fmtCurrency(profit.availableCashAfterWithdrawals)} strong danger={profit.availableCashAfterWithdrawals < 0} />
       </div>
       <div className="space-y-2">
         {bucketOrder.map((key) => <Line key={key} label={PROFIT_BUCKETS[key]} value={fmtCurrency(profit.buckets[key])} danger={['stock_non_affecte', 'sante_non_affectee'].includes(key) && profit.buckets[key] > 0} muted={profit.buckets[key] === 0} />)}
       </div>
+    </div>
+
+    <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]">
+      Rémunération propriétaire = charge de structure qui impacte le résultat. Prélèvement propriétaire = sortie de cash personnelle qui n’impacte pas le résultat opérationnel.
     </div>
 
     {unresolvedCount || unallocatedCount ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 flex gap-2"><AlertTriangle size={16} className="shrink-0 mt-0.5" /> {quality.summary.auto || 0} charge(s) auto-classée(s). {unresolvedCount} charge(s) restent peu fiables, {unallocatedCount} charge(s) alimentation/santé restent non affectées automatiquement.</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 flex gap-2"><CheckCircle2 size={16} className="shrink-0 mt-0.5" /> Toutes les charges détectées ont été auto-classées avec une fiabilité suffisante. Le risque de double comptage est limité.</div>}
