@@ -198,7 +198,7 @@ export default function Finances({
     <div className="space-y-6">
       <SectionHeader
         title="Pilotage Financier"
-        sub="Rentabilite - tresorerie - cashflow - decisions dirigeant"
+        sub="Tresorerie - flux - marges - rentabilite par activite"
         actions={
           <>
             <Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn>
@@ -209,45 +209,35 @@ export default function Finances({
       />
 
       <div className="grid grid-cols-2 xl:grid-cols-6 gap-4">
-        <KpiCard icon={TrendingUp} label="Chiffre d'affaires" value={fmtCurrency(totalRec)} color="bg-emerald-500/20 text-emerald-400" trend={8} />
-        <KpiCard icon={TrendingDown} label="Depenses totales" value={fmtCurrency(totalDep)} color="bg-red-500/20 text-red-400" trend={-3} />
-        <KpiCard icon={Wallet} label="Benefice net" value={fmtCurrency(benefice)} color="bg-sky-500/20 text-sky-400" trend={12} />
+        <KpiCard icon={TrendingUp} label="Flux entrants encaisses" value={fmtCurrency(totalRec)} color="bg-emerald-500/20 text-emerald-400" trend={8} />
+        <KpiCard icon={TrendingDown} label="Flux sortants" value={fmtCurrency(totalDep)} color="bg-red-500/20 text-red-400" trend={-3} />
+        <KpiCard icon={Wallet} label="Resultat cash" value={fmtCurrency(benefice)} color="bg-sky-500/20 text-sky-400" trend={12} />
         <KpiCard icon={CreditCard} label="Cash disponible" value={fmtCurrency(cashDisponible)} color="bg-purple-500/20 text-purple-400" />
-        <KpiCard icon={Landmark} label="Creances clients" value={fmtCurrency(totalCreances)} color="bg-amber-500/20 text-amber-500" />
-        <KpiCard icon={BarChart2} label="Marge globale" value={fmtPercent(totalRec ? (benefice / totalRec) * 100 : 0)} color="bg-emerald-500/20 text-emerald-500" />
+        <KpiCard icon={Landmark} label="Creances ouvertes" value={fmtCurrency(totalCreances)} color="bg-amber-500/20 text-amber-500" />
+        <KpiCard icon={BarChart2} label="Taux marge cash" value={fmtPercent(totalRec ? (benefice / totalRec) * 100 : 0)} color="bg-emerald-500/20 text-emerald-500" />
       </div>
 
-      <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div>
-            <p className="font-semibold text-[#2f2415]">Suivi ventes, encaissements et creances</p>
-            <p className="text-xs text-[#8a7456]">Les ventes non payees restent des creances et ne gonflent pas le cash encaisse.</p>
-          </div>
-          <div className="flex gap-2 text-xs text-[#8a7456]">
-            <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-emerald-600">{ventesPayees} payees</span>
-            <span className="rounded-full bg-amber-500/10 px-3 py-1 text-amber-600">{paiementsPartiels} partielles</span>
-            <span className="rounded-full bg-sky-500/10 px-3 py-1 text-sky-600">{payments.length} paiements</span>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5">
+          <p className="font-semibold text-[#2f2415]">Commandes encaissees</p>
+          <p className="mt-2 text-2xl font-black text-emerald-600">{ventesPayees}</p>
+          <p className="text-xs text-[#8a7456]">Le detail operationnel reste dans Ventes.</p>
         </div>
-        {receivables.length === 0 ? (
-          <p className="text-sm text-[#8a7456]">Aucune creance client ouverte.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {receivables.slice(0, 6).map((order) => (
-              <div key={order.id} className="rounded-xl bg-[#fffdf8] border border-[#e7d9be] p-3">
-                <p className="text-sm font-semibold text-[#2f2415]">CMD-{String(order.id).slice(-6)}</p>
-                <p className="text-xs text-[#8a7456]">Client: {order.client_id || 'Non renseigne'}</p>
-                <p className="text-xs text-[#8a7456]">Paye {fmtCurrency(order.montant_paye || 0)} / Total {fmtCurrency(order.montant_total || 0)}</p>
-                <p className="mt-1 text-sm font-bold text-red-500">Reste {fmtCurrency(order.reste_a_payer || 0)}</p>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5">
+          <p className="font-semibold text-[#2f2415]">Paiements partiels</p>
+          <p className="mt-2 text-2xl font-black text-amber-600">{paiementsPartiels}</p>
+          <p className="text-xs text-[#8a7456]">A surveiller pour le cash previsionnel.</p>
+        </div>
+        <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5">
+          <p className="font-semibold text-[#2f2415]">Creances ouvertes</p>
+          <p className="mt-2 text-2xl font-black text-[#2f2415]">{fmtCurrency(totalCreances)}</p>
+          <p className="text-xs text-[#8a7456]">Relances et commandes detaillees dans Ventes / Comptabilite.</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div className="xl:col-span-2 bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5">
-          <p className="font-semibold text-[#2f2415] mb-4">Evolution semaine / mois</p>
+          <p className="font-semibold text-[#2f2415] mb-4">Evolution des flux</p>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={weeklyData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e7d9be" />
@@ -298,7 +288,7 @@ export default function Finances({
         </div>
 
         <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5">
-          <p className="font-semibold text-[#2f2415] mb-4">Alertes intelligentes</p>
+          <p className="font-semibold text-[#2f2415] mb-4">Alertes financieres</p>
           <div className="space-y-2">
             {alerts.length ? alerts.slice(0, 6).map((alert) => (
               <div key={alert.id} className={`rounded-xl border p-3 ${alert.level === 'danger' ? 'bg-red-500/10 border-red-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
@@ -326,9 +316,9 @@ export default function Finances({
 
         <div className="lg:col-span-2 bg-[#ffffff] border border-[#d6c3a0] rounded-2xl overflow-hidden">
           <div className="px-5 py-4 border-b border-[#d6c3a0] flex flex-wrap gap-3 items-center justify-between">
-            <p className="font-semibold text-[#2f2415]">Transactions pilotees</p>
+            <p className="font-semibold text-[#2f2415]">Transactions financieres</p>
             <div className="flex gap-2 flex-wrap">
-              {['tous', 'entree', 'sortie'].map((filter) => <FilterButton key={filter} active={typeFilter === filter} onClick={() => setTypeFilter(filter)}>{filter === 'entree' ? 'Recettes' : filter === 'sortie' ? 'Depenses' : 'Toutes'}</FilterButton>)}
+              {['tous', 'entree', 'sortie'].map((filter) => <FilterButton key={filter} active={typeFilter === filter} onClick={() => setTypeFilter(filter)}>{filter === 'entree' ? 'Entrees' : filter === 'sortie' ? 'Sorties' : 'Toutes'}</FilterButton>)}
               {['tous', 'paye', 'partiel', 'impaye', 'annule'].map((filter) => <FilterButton key={filter} active={statusFilter === filter} onClick={() => setStatusFilter(filter)}>{filter}</FilterButton>)}
               {['tous', ...PAYMENT_METHODS].map((filter) => <FilterButton key={filter} active={paymentFilter === filter} onClick={() => setPaymentFilter(filter)}>{filter}</FilterButton>)}
               {businessPlans.length > 0 && [{ id: 'tous', nom: 'Tous les BP' }, ...businessPlans].map((bp) => <FilterButton key={bp.id} active={bpFilter === bp.id} onClick={() => setBpFilter(bp.id)}>{bp.nom}</FilterButton>)}
