@@ -1,41 +1,7 @@
-﻿import { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useAppData } from '../context/AppContext';
-import { DEMO_CORE_DATA, withDemoRows } from '../utils/demoCoreData';
-
-const tombstoneKey = (moduleKey) => `horizon_farm_deleted_ids:${moduleKey}`;
-
-function readDeletedIds(moduleKey) {
-  if (typeof window === 'undefined') return new Set();
-  try {
-    const raw = window.localStorage.getItem(tombstoneKey(moduleKey));
-    const list = raw ? JSON.parse(raw) : [];
-    return new Set(Array.isArray(list) ? list.map(String) : []);
-  } catch {
-    return new Set();
-  }
-}
-
-function rememberDeletedId(moduleKey, id) {
-  if (typeof window === 'undefined' || !id) return;
-  const deleted = readDeletedIds(moduleKey);
-  deleted.add(String(id));
-  window.localStorage.setItem(tombstoneKey(moduleKey), JSON.stringify([...deleted]));
-}
-
-function forgetDeletedId(moduleKey, id) {
-  if (typeof window === 'undefined' || !id) return;
-  const deleted = readDeletedIds(moduleKey);
-  if (!deleted.has(String(id))) return;
-  deleted.delete(String(id));
-  window.localStorage.setItem(tombstoneKey(moduleKey), JSON.stringify([...deleted]));
-}
-
-function filterDeletedRows(moduleKey, rows) {
-  const current = Array.isArray(rows) ? rows : [];
-  const deleted = readDeletedIds(moduleKey);
-  if (!deleted.size) return current;
-  return current.filter((row) => !deleted.has(String(row.id)));
-}
+import { DEMO_CORE_DATA } from '../utils/demoCoreData';
+import { filterDeletedRows, forgetDeletedId, rememberDeletedId } from '../utils/deletedRecords';
 
 function demoModeEnabled() {
   if (typeof window === 'undefined') return false;
@@ -95,5 +61,3 @@ export default function useCrudModule(moduleKey) {
     [moduleKey, dataMap, loadingMap, errorMap, createRecord, updateRecord, deleteRecord, refreshModule]
   );
 }
-
-
