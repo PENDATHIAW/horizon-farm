@@ -45,6 +45,7 @@ export const ROLE_PERMISSIONS = {
     'assistant_erp',
     'animaux',
     'avicole',
+    'sante',
     'stock',
     'cultures',
     'documents',
@@ -69,6 +70,7 @@ export const ROLE_PERMISSIONS = {
   comptable: [
     'dashboard',
     'assistant_erp',
+    'sante',
     'finances',
     'comptabilite',
     'investissements',
