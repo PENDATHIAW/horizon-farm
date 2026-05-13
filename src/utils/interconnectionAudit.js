@@ -1,3 +1,5 @@
+import { getInterconnectionFlow, summarizeMatrixCoverage } from './interconnectionMatrix';
+
 const arr = (value) => Array.isArray(value) ? value : [];
 const idSet = (rows = []) => new Set(arr(rows).filter((row) => row?.id).map((row) => String(row.id)));
 const clean = (value) => String(value || '').trim();
@@ -34,7 +36,8 @@ function existsInKnownTargets(id, module, sets) {
 }
 
 function pushIssue(issues, issue) {
-  issues.push({ severity: 'warning', ...issue });
+  const nextIssue = { severity: 'warning', ...issue };
+  issues.push({ ...nextIssue, flow: nextIssue.flow || getInterconnectionFlow(nextIssue) });
 }
 
 function auditSalesWorkflow(dataMap, issues) {
@@ -42,33 +45,34 @@ function auditSalesWorkflow(dataMap, issues) {
   const payments = arr(dataMap.payments).filter((payment) => !isCancelled(payment));
   const invoices = arr(dataMap.invoices).filter((invoice) => !isCancelled(invoice));
   const transactions = arr(dataMap.finances);
+  const clientsById = new Set(arr(dataMap.clients).filter((client) => client?.id).map((client) => String(client.id)));
   const ordersById = new Map(orders.filter((order) => order?.id).map((order) => [String(order.id), order]));
 
   payments.forEach((payment) => {
     const orderId = saleIdOf(payment);
     if (!orderId) {
-      pushIssue(issues, { severity: 'critical', module: 'payments', row_id: payment.id, message: 'Paiement sans commande liée.' });
+      pushIssue(issues, { severity: 'critical', module: 'payments', row_id: payment.id, flow: 'sales_finance', message: 'Paiement sans commande liée.' });
       return;
     }
     if (!ordersById.has(orderId)) {
-      pushIssue(issues, { severity: 'critical', module: 'payments', row_id: payment.id, linked_id: orderId, message: `Paiement lié à une commande introuvable (${orderId}).` });
+      pushIssue(issues, { severity: 'critical', module: 'payments', row_id: payment.id, linked_id: orderId, flow: 'sales_finance', message: `Paiement lié à une commande introuvable (${orderId}).` });
       return;
     }
     const amount = paymentAmount(payment);
     const hasFinance = transactions.some((trx) => isFinanceSaleCash(trx) && ((payment.id && financePaymentId(trx) === clean(payment.id)) || (financeSaleId(trx) === orderId && Math.abs(financeAmount(trx) - amount) < 1)));
     if (!hasFinance && amount > 0) {
-      pushIssue(issues, { severity: 'critical', module: 'payments', row_id: payment.id, linked_id: orderId, message: `Paiement ${payment.id || ''} sans transaction Finance correspondante.` });
+      pushIssue(issues, { severity: 'critical', module: 'payments', row_id: payment.id, linked_id: orderId, flow: 'sales_finance', message: `Paiement ${payment.id || ''} sans transaction Finance correspondante.` });
     }
   });
 
   invoices.forEach((invoice) => {
     const orderId = saleIdOf(invoice);
     if (!orderId) {
-      pushIssue(issues, { module: 'invoices', row_id: invoice.id, message: 'Facture sans commande liée.' });
+      pushIssue(issues, { module: 'invoices', row_id: invoice.id, flow: 'sales_finance', message: 'Facture sans commande liée.' });
       return;
     }
     if (!ordersById.has(orderId)) {
-      pushIssue(issues, { severity: 'critical', module: 'invoices', row_id: invoice.id, linked_id: orderId, message: `Facture liée à une commande introuvable (${orderId}).` });
+      pushIssue(issues, { severity: 'critical', module: 'invoices', row_id: invoice.id, linked_id: orderId, flow: 'sales_finance', message: `Facture liée à une commande introuvable (${orderId}).` });
     }
   });
 
@@ -82,21 +86,25 @@ function auditSalesWorkflow(dataMap, issues) {
     const paymentStatus = lower(order.statut_paiement || order.payment_status);
     const invoiceStatus = lower(order.statut_facture || order.invoice_status);
     const hasInvoice = invoices.some((invoice) => saleIdOf(invoice) === orderId);
+    const clientId = clean(order.client_id || order.customer_id);
 
+    if (clientId && !clientsById.has(clientId)) {
+      pushIssue(issues, { severity: 'critical', module: 'sales_orders', row_id: order.id, linked_id: clientId, flow: 'sales_finance', message: `Commande liée à un client introuvable (${clientId}).` });
+    }
     if (total > 0 && paid > total + 1) {
-      pushIssue(issues, { severity: 'critical', module: 'sales_orders', row_id: order.id, message: `Commande surpayée : payé ${paid}, total ${total}.` });
+      pushIssue(issues, { severity: 'critical', module: 'sales_orders', row_id: order.id, flow: 'sales_finance', message: `Commande surpayée : payé ${paid}, total ${total}.` });
     }
     if (total > 0 && storedRemaining > 0 && Math.abs(storedRemaining - expectedRemaining) > 1) {
-      pushIssue(issues, { module: 'sales_orders', row_id: order.id, message: `Reste à payer incohérent : enregistré ${storedRemaining}, attendu ${expectedRemaining}.` });
+      pushIssue(issues, { module: 'sales_orders', row_id: order.id, flow: 'sales_finance', message: `Reste à payer incohérent : enregistré ${storedRemaining}, attendu ${expectedRemaining}.` });
     }
     if (expectedRemaining <= 0 && ['non_paye', 'non payé', 'partiel'].includes(paymentStatus)) {
-      pushIssue(issues, { module: 'sales_orders', row_id: order.id, message: 'Commande soldée mais statut paiement non soldé.' });
+      pushIssue(issues, { module: 'sales_orders', row_id: order.id, flow: 'sales_finance', message: 'Commande soldée mais statut paiement non soldé.' });
     }
     if (expectedRemaining > 0 && paymentStatus === 'paye') {
-      pushIssue(issues, { severity: 'critical', module: 'sales_orders', row_id: order.id, message: 'Commande marquée payée alors qu’un reste à payer existe.' });
+      pushIssue(issues, { severity: 'critical', module: 'sales_orders', row_id: order.id, flow: 'sales_finance', message: 'Commande marquée payée alors qu’un reste à payer existe.' });
     }
     if (invoiceStatus === 'emise' && !hasInvoice) {
-      pushIssue(issues, { module: 'sales_orders', row_id: order.id, message: 'Commande marquée facturée mais aucune facture liée détectée.' });
+      pushIssue(issues, { module: 'sales_orders', row_id: order.id, flow: 'sales_finance', message: 'Commande marquée facturée mais aucune facture liée détectée.' });
     }
   });
 }
@@ -110,7 +118,7 @@ function auditOpportunities(dataMap, issues) {
   arr(dataMap.sales_orders).forEach((order) => {
     const sourceId = clean(order.source_id || order.product_id || order.entity_id || order.related_id);
     if (sourceId && openSourceIds.has(sourceId)) {
-      pushIssue(issues, { module: 'sales_opportunities', row_id: sourceId, linked_id: order.id, message: `Source ${sourceId} déjà en commande mais opportunité encore ouverte.` });
+      pushIssue(issues, { module: 'sales_opportunities', row_id: sourceId, linked_id: order.id, flow: 'sales_stock_sources', message: `Source ${sourceId} déjà en commande mais opportunité encore ouverte.` });
     }
   });
 }
@@ -122,13 +130,62 @@ function auditHealthAndStock(dataMap, issues) {
     const source = lower(row.source_produit || row.product_source || row.source_stock || row.source);
     const qty = toNumber(row.quantite_utilisee ?? row.quantity_used ?? row.quantite ?? row.qty);
     if ((source.includes('stock') || stockId) && !stockId) {
-      pushIssue(issues, { module: 'sante', row_id: row.id, message: 'Soin indiqué avec stock interne mais sans stock_id.' });
+      pushIssue(issues, { module: 'sante', row_id: row.id, flow: 'health_stock_finance', message: 'Soin indiqué avec stock interne mais sans stock_id.' });
     }
     if (stockId && !stockById.has(stockId)) {
-      pushIssue(issues, { severity: 'critical', module: 'sante', row_id: row.id, linked_id: stockId, message: `Soin lié à un stock introuvable (${stockId}).` });
+      pushIssue(issues, { severity: 'critical', module: 'sante', row_id: row.id, linked_id: stockId, flow: 'health_stock_finance', message: `Soin lié à un stock introuvable (${stockId}).` });
     }
     if (stockId && stockById.has(stockId) && qty > toNumber(stockById.get(stockId).quantite ?? stockById.get(stockId).quantity)) {
-      pushIssue(issues, { severity: 'critical', module: 'sante', row_id: row.id, linked_id: stockId, message: 'Quantité santé utilisée supérieure au stock disponible.' });
+      pushIssue(issues, { severity: 'critical', module: 'sante', row_id: row.id, linked_id: stockId, flow: 'health_stock_finance', message: 'Quantité santé utilisée supérieure au stock disponible.' });
+    }
+  });
+}
+
+function auditStockSupply(dataMap, issues) {
+  const tasks = arr(dataMap.taches);
+  const alerts = arr(dataMap.alertes_center);
+  arr(dataMap.stock).forEach((stock) => {
+    const qty = toNumber(stock.quantite || stock.quantity);
+    const threshold = toNumber(stock.seuil || stock.threshold);
+    if (threshold > 0 && qty <= threshold) {
+      const stockId = clean(stock.id);
+      const hasAction = [...tasks, ...alerts].some((row) => clean(row.entity_id || row.related_id || row.stock_id || row.cible_id) === stockId || lower(`${row.title || ''} ${row.message || ''}`).includes(lower(stock.produit || stock.nom || stockId)));
+      if (!hasAction) {
+        pushIssue(issues, { module: 'stock', row_id: stock.id, flow: 'stock_supply_finance', message: 'Stock critique sans tâche ni alerte de réapprovisionnement détectée.' });
+      }
+    }
+  });
+}
+
+function auditAlertsTasks(dataMap, issues) {
+  const tasks = arr(dataMap.taches);
+  arr(dataMap.alertes_center).forEach((alert) => {
+    const severity = lower(alert.severity || alert.gravite);
+    if (['critique', 'urgence'].includes(severity)) {
+      const alertId = clean(alert.id);
+      const target = clean(alert.entity_id || alert.related_id || alert.cible_id);
+      const hasTask = tasks.some((task) => clean(task.alert_id || task.related_id || task.entity_id) === alertId || (target && clean(task.entity_id || task.related_id || task.cible_id) === target));
+      if (!hasTask && !lower(alert.status || alert.statut).includes('traitee')) {
+        pushIssue(issues, { module: 'alertes_center', row_id: alert.id, linked_id: target, flow: 'alerts_tasks_actions', message: 'Alerte critique active sans tâche/action liée détectée.' });
+      }
+    }
+  });
+}
+
+function auditDocuments(dataMap, issues) {
+  const knownIds = new Set([
+    ...arr(dataMap.animaux).map((row) => clean(row.id)),
+    ...arr(dataMap.avicole).map((row) => clean(row.id)),
+    ...arr(dataMap.cultures).map((row) => clean(row.id)),
+    ...arr(dataMap.clients).map((row) => clean(row.id)),
+    ...arr(dataMap.fournisseurs).map((row) => clean(row.id)),
+    ...arr(dataMap.finances).map((row) => clean(row.id)),
+    ...arr(dataMap.sales_orders).map((row) => clean(row.id)),
+  ].filter(Boolean));
+  arr(dataMap.documents).forEach((document) => {
+    const target = clean(document.entity_id || document.related_id || document.target_id || document.order_id || document.transaction_id);
+    if (target && !knownIds.has(target)) {
+      pushIssue(issues, { module: 'documents', row_id: document.id, linked_id: target, flow: 'documents_traceability', message: `Document lié à une cible introuvable (${target}).` });
     }
   });
 }
@@ -182,16 +239,22 @@ export function auditErpInterconnections(dataMap = {}) {
     duplicatePayments.set(key, (duplicatePayments.get(key) || 0) + 1);
   });
   duplicatePayments.forEach((count, key) => {
-    if (count > 1) pushIssue(issues, { severity: 'critical', module: 'payments', row_id: key, message: `Paiement potentiellement doublonné (${count} fois).` });
+    if (count > 1) pushIssue(issues, { severity: 'critical', module: 'payments', row_id: key, flow: 'sales_finance', message: `Paiement potentiellement doublonné (${count} fois).` });
   });
 
   auditSalesWorkflow(dataMap, issues);
   auditOpportunities(dataMap, issues);
   auditHealthAndStock(dataMap, issues);
+  auditStockSupply(dataMap, issues);
+  auditAlertsTasks(dataMap, issues);
+  auditDocuments(dataMap, issues);
+
+  const flows = summarizeMatrixCoverage(dataMap, issues);
 
   return {
     ok: issues.length === 0,
     issues,
+    flows,
     issueCount: issues.length,
     criticalCount: issues.filter((issue) => issue.severity === 'critical').length,
     warningCount: issues.filter((issue) => issue.severity !== 'critical').length,
