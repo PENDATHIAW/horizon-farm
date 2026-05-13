@@ -7,7 +7,6 @@ import { fmtCurrency } from '../utils/format';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase();
-const openStatuses = ['nouvelle', 'ouvert', 'ouverte', 'a_faire', 'à faire', 'retard', 'en_cours', 'urgent'];
 const closedStatuses = ['termine', 'terminé', 'done', 'traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée', 'annule', 'annulé'];
 const amount = (row = {}) => Number(row.montant_total ?? row.total ?? row.amount ?? row.montant ?? 0) || 0;
 const paid = (row = {}) => Number(row.montant_paye ?? row.paid_amount ?? row.amount_paid ?? 0) || 0;
@@ -63,26 +62,26 @@ function TodayFocus({ props, simple, onToggleExpert }) {
     const docsMissing = arr(props.transactions).filter((trx) => !documents.some((doc) => String(doc.related_id || doc.transaction_id || doc.entity_id || '') === String(trx.id || ''))).slice(0, 99);
     const orphanPayments = payments.filter((payment) => payment.order_id && !salesOrders.some((order) => String(order.id) === String(payment.order_id))).length;
     return [
-      unpaidOrders.length ? { icon: CreditCard, title: 'Encaisser les commandes ouvertes', detail: `${unpaidOrders.length} commande(s), ${fmtCurrency(receivable)} à récupérer`, moduleKey: 'ventes', tone: 'red' } : null,
-      openAlerts.length ? { icon: AlertTriangle, title: 'Traiter les alertes actives', detail: `${openAlerts.length} alerte(s) visible(s) dans le Centre Alertes`, moduleKey: 'alertes', tone: 'red' } : null,
-      stockCritical.length ? { icon: Package, title: 'Réapprovisionner le stock critique', detail: `${stockCritical.length} produit(s) sous seuil`, moduleKey: 'stock', tone: 'amber' } : null,
-      healthLate.length ? { icon: Stethoscope, title: 'Rattraper les soins/vaccins', detail: `${healthLate.length} action(s) santé en retard ou à faire`, moduleKey: 'sante', tone: 'amber' } : null,
-      openTasks.length ? { icon: CheckCircle2, title: 'Fermer les tâches ouvertes', detail: `${openTasks.length} tâche(s) à planifier ou terminer`, moduleKey: 'taches', tone: 'amber' } : null,
-      docsMissing.length ? { icon: FileText, title: 'Compléter les justificatifs', detail: `${docsMissing.length} transaction(s) potentiellement sans preuve`, moduleKey: 'documents', tone: 'neutral' } : null,
-      orphanPayments ? { icon: TrendingUp, title: 'Vérifier les paiements orphelins', detail: `${orphanPayments} paiement(s) lié(s) à une commande absente`, moduleKey: 'sync_activity', tone: 'amber' } : null,
+      unpaidOrders.length ? { icon: CreditCard, title: 'Encaisser les ventes en attente', detail: `${unpaidOrders.length} vente(s), ${fmtCurrency(receivable)} à récupérer`, moduleKey: 'ventes', tone: 'red' } : null,
+      openAlerts.length ? { icon: AlertTriangle, title: 'Traiter les alertes', detail: `${openAlerts.length} alerte(s) à regarder`, moduleKey: 'alertes', tone: 'red' } : null,
+      stockCritical.length ? { icon: Package, title: 'Revoir le stock faible', detail: `${stockCritical.length} produit(s) sous le seuil`, moduleKey: 'stock', tone: 'amber' } : null,
+      healthLate.length ? { icon: Stethoscope, title: 'Rattraper les soins/vaccins', detail: `${healthLate.length} soin(s) ou vaccin(s) à faire`, moduleKey: 'sante', tone: 'amber' } : null,
+      openTasks.length ? { icon: CheckCircle2, title: 'Terminer les tâches ouvertes', detail: `${openTasks.length} tâche(s) à suivre`, moduleKey: 'taches', tone: 'amber' } : null,
+      docsMissing.length ? { icon: FileText, title: 'Ajouter les justificatifs', detail: `${docsMissing.length} justificatif(s) à compléter`, moduleKey: 'documents', tone: 'neutral' } : null,
+      orphanPayments ? { icon: TrendingUp, title: 'Vérifier les ventes supprimées', detail: `${orphanPayments} ancien(s) paiement(s) à contrôler`, moduleKey: 'sync_activity', tone: 'amber' } : null,
     ].filter(Boolean).slice(0, simple ? 4 : 6);
-  }, [props]);
+  }, [props, simple]);
 
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div>
         <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Aujourd’hui</p>
         <h2 className="mt-1 text-xl font-black text-[#2f2415]">Ce qu’il faut faire en premier</h2>
-        <p className="mt-1 text-sm text-[#8a7456]">Priorités calculées depuis les modules ERP actifs.</p>
+        <p className="mt-1 text-sm text-[#8a7456]">Voici les actions importantes à regarder aujourd’hui.</p>
       </div>
-      <button type="button" onClick={onToggleExpert} className="rounded-full border border-[#d6c3a0] bg-[#fffdf8] px-3 py-1.5 text-xs font-black text-[#2f2415]"><Settings2 size={13} className="inline" /> {simple ? 'Voir mode expert' : 'Mode simple'}</button>
+      <button type="button" onClick={onToggleExpert} className="rounded-full border border-[#d6c3a0] bg-[#fffdf8] px-3 py-1.5 text-xs font-black text-[#2f2415]"><Settings2 size={13} className="inline" /> {simple ? 'Voir plus de détails' : 'Vue simple'}</button>
     </div>
-    {actions.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">{actions.map((action) => <TodayAction key={`${action.moduleKey}-${action.title}`} {...action} onNavigate={props.onNavigate} />)}</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><CheckCircle2 size={16} className="inline" /> Rien de critique détecté. Continue le suivi des ventes, du stock et des preuves.</div>}
+    {actions.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">{actions.map((action) => <TodayAction key={`${action.moduleKey}-${action.title}`} {...action} onNavigate={props.onNavigate} />)}</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><CheckCircle2 size={16} className="inline" /> Rien d’urgent pour le moment. Continue simplement ton suivi habituel.</div>}
   </section>;
 }
 
@@ -98,6 +97,6 @@ export default function DashboardV2(props) {
   return <div className="space-y-6">
     <TodayFocus props={props} simple={simple} onToggleExpert={toggleExpert} />
     <Dashboard {...props} />
-    {!simple ? <DashboardEvolution salesOrders={props.salesOrders || []} payments={props.payments || []} transactions={props.transactions || []} productionLogs={props.productionLogs || []} stocks={props.stocks || []} taches={props.taches || []} alertes={props.alertes || []} onNavigate={props.onNavigate} /> : <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Mode simple actif : les graphiques avancés du Dashboard sont masqués. Active le mode expert dans Paramètres pour les afficher.</div>}
+    {!simple ? <DashboardEvolution salesOrders={props.salesOrders || []} payments={props.payments || []} transactions={props.transactions || []} productionLogs={props.productionLogs || []} stocks={props.stocks || []} taches={props.taches || []} alertes={props.alertes || []} onNavigate={props.onNavigate} /> : <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Vue simple activée. Pour afficher les graphiques détaillés, clique sur “Voir plus de détails”.</div>}
   </div>;
 }
