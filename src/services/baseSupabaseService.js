@@ -129,12 +129,71 @@ const runMutationWithSchemaRetry = async ({ table, action, payload, id, idField 
   return nextPayload;
 };
 
+const isSoftDeleted = (row = {}) => Boolean(row.is_deleted || row.deleted_at || row.deletedAt);
+
+const filterSoftDeletedRows = (rows = []) => Array.isArray(rows) ? rows.filter((row) => !isSoftDeleted(row)) : [];
+
+const currentUserId = async () => {
+  try {
+    const { data } = await supabase.auth.getUser();
+    return data?.user?.id || data?.user?.email || 'system';
+  } catch {
+    return 'system';
+  }
+};
+
+const writeDeletedRecord = async ({ table, id, idField }) => {
+  try {
+    const actor = await currentUserId();
+    await supabase.from('deleted_records').upsert({
+      id: `${table}:${id}`,
+      module_key: table,
+      table_name: table,
+      record_id: String(id),
+      id_field: idField,
+      deleted_by: actor,
+      deleted_at: new Date().toISOString(),
+    }, { onConflict: 'id' });
+  } catch (error) {
+    const message = String(error?.message || '').toLowerCase();
+    if (!message.includes('deleted_records') && !message.includes('schema cache') && !message.includes('does not exist')) {
+      console.warn('Deleted record journal non enregistre', error.message || error);
+    }
+  }
+};
+
+const trySoftDelete = async ({ table, id, idField }) => {
+  const actor = await currentUserId();
+  const payload = {
+    is_deleted: true,
+    deleted_at: new Date().toISOString(),
+    deleted_by: actor,
+  };
+  let nextPayload = payload;
+  const removedColumns = [];
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    if (Object.keys(nextPayload).length === 0) return false;
+    const { error } = await supabase.from(table).update(nextPayload).eq(idField, id);
+    if (!error) {
+      await writeDeletedRecord({ table, id, idField });
+      return true;
+    }
+    const missingColumn = getMissingSchemaColumn(error);
+    if (!missingColumn || removedColumns.includes(missingColumn)) return false;
+    removedColumns.push(missingColumn);
+    nextPayload = withoutColumn(nextPayload, missingColumn);
+  }
+
+  return false;
+};
+
 export const createSupabaseCrudService = (table, idField = 'id') => ({
   async getAll() {
     if (!table) return [];
     const { data, error } = await supabase.from(table).select('*');
     if (error) throw error;
-    return data || [];
+    return filterSoftDeletedRows(data || []);
   },
 
   async create(payload) {
@@ -149,6 +208,9 @@ export const createSupabaseCrudService = (table, idField = 'id') => ({
 
   async remove(id) {
     if (!table) return true;
+    const softDeleted = await trySoftDelete({ table, id, idField });
+    if (softDeleted) return true;
+    await writeDeletedRecord({ table, id, idField });
     const { error } = await supabase.from(table).delete().eq(idField, id);
     if (error) throw error;
     return true;
