@@ -1,6 +1,28 @@
 import { toNumber } from './format';
 
-export const AVICOLE_TERMINAL_STATUSES = ['vendu_totalement', 'vendu', 'mort', 'perdu_mortalite', 'perdu_vol', 'abattu', 'transforme', 'transformé', 'termine', 'terminé', 'archive', 'supprime', 'supprimé'];
+export const AVICOLE_TERMINAL_STATUSES = [
+  'vendu_totalement',
+  'vendu',
+  'mort',
+  'perdu_mortalite',
+  'perdu_vol',
+  'abattu',
+  'transforme',
+  'transformé',
+  'termine',
+  'terminé',
+  'cloture',
+  'cloturé',
+  'clôture',
+  'clôturé',
+  'ferme',
+  'fermé',
+  'closed',
+  'archive',
+  'archivé',
+  'supprime',
+  'supprimé',
+];
 
 export const firstNumber = (...values) => {
   for (const value of values) {
@@ -13,7 +35,7 @@ export const avicoleInitialCount = (lot = {}) => firstNumber(lot.initial_count, 
 export const avicoleDeadCount = (lot = {}) => firstNumber(lot.mortality, lot.morts, lot.deaths, lot.pertes_mortalite, lot.pertes);
 export const avicoleStolenCount = (lot = {}) => firstNumber(lot.vols, lot.voles, lot.volés, lot.stolen);
 export const avicoleSoldCount = (lot = {}) => firstNumber(lot.vendus, lot.sold_count, lot.sold);
-export const avicoleSlaughteredCount = (lot = {}) => firstNumber(lot.abattus, lot.slaughtered, lot.transformes, lot.transformés);
+export const avicoleSlaughteredCount = (lot = {}) => firstNumber(lot.abattus, lot.slaughtered, lot.transformes, lot.transformés, lot.sujets_abattus);
 export const avicoleReformedCount = (lot = {}) => firstNumber(lot.reformes, lot.réformés, lot.reformed);
 export const avicoleOtherExitCount = (lot = {}) => firstNumber(lot.autres_sorties, lot.sorties_autres, lot.sorties, lot.other_exits);
 export const avicoleSickCount = (lot = {}) => firstNumber(lot.malades, lot.sick_count, lot.sick, lot.malade_count);
@@ -29,9 +51,11 @@ export const avicoleActiveCount = (lot = {}) => Math.max(
   - avicoleOtherExitCount(lot),
 );
 
-export const avicoleIsTerminalStatus = (status) => AVICOLE_TERMINAL_STATUSES.includes(String(status || '').toLowerCase());
+export const avicoleIsTerminalStatus = (status) => AVICOLE_TERMINAL_STATUSES.includes(String(status || '').toLowerCase().trim());
 
 export function avicoleExitReason(lot = {}) {
+  const explicit = String(lot.status || lot.statut || '').toLowerCase().trim();
+  if (avicoleIsTerminalStatus(explicit) && avicoleActiveCount(lot) > 0) return explicit;
   const current = avicoleActiveCount(lot);
   if (current > 0) return avicoleSoldCount(lot) > 0 ? 'vendu_partiellement' : 'actif';
   const sold = avicoleSoldCount(lot);
@@ -46,15 +70,16 @@ export function avicoleExitReason(lot = {}) {
   if (dead > 0 && dead >= Math.max(stolen, sold, slaughtered, reformed, other)) return 'perdu_mortalite';
   if (reformed > 0) return 'reforme';
   if (other > 0) return 'sorti_autre';
+  if (avicoleIsTerminalStatus(explicit)) return explicit;
   return 'sortie_non_renseignee';
 }
 
 export const avicoleHasActiveBirds = (lot = {}) => avicoleActiveCount(lot) > 0 && !avicoleIsTerminalStatus(lot.status || lot.statut);
 
 export function avicoleStatusFor(lot = {}) {
-  const explicit = String(lot.status || lot.statut || '').toLowerCase();
+  const explicit = String(lot.status || lot.statut || '').toLowerCase().trim();
+  if (avicoleIsTerminalStatus(explicit)) return explicit;
   if (avicoleActiveCount(lot) <= 0) return avicoleExitReason(lot);
-  if (avicoleIsTerminalStatus(explicit)) return avicoleExitReason(lot);
   if (avicoleSoldCount(lot) > 0) return 'vendu_partiellement';
   return lot.status || lot.statut || 'actif';
 }
