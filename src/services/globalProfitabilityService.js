@@ -17,7 +17,7 @@ export const PROFIT_BUCKETS = {
   rh: 'Charges RH',
   exploitation: 'Charges exploitation',
   equipements: 'Équipements / maintenance',
-  fournisseurs_achats: 'Fournisseurs / achats généraux',
+  fournisseurs_achats: 'Achats généraux non affectés',
   investissements: 'Investissements',
   prelevements_proprietaire: 'Prélèvements propriétaire',
   autres_charges: 'Autres charges',
@@ -31,6 +31,17 @@ function activityFromLink(row = {}) {
   return '';
 }
 
+function supplierGeneralPurchase(text = '') {
+  const isSupplier = /fournisseur|achat|approvisionnement|dette fournisseur/.test(text);
+  if (!isSupplier) return false;
+  const isStockOrFeed = /stock|aliment|alimentation|provende|maïs|mais|son|fourrage|foin|granul[eé]|céréale|cereale|intrant stock|mati[eè]re premi[eè]re/.test(text);
+  const isHealth = /sant|vaccin|m[eé]dicament|medicament|veto|véto|soin|traitement|bios[eé]curit/.test(text);
+  const isEquipment = /equip|mat[eé]riel|materiel|maintenance|machine|pompe|groupe|incubateur|v[eé]hicule|carburant/.test(text);
+  const isActivity = /animal|bovin|ovin|caprin|cheptel|avicole|volaille|poulet|poussin|pondeuse|chair|culture|maraichage|maraîchage|semence|r[eé]colte|parcelle/.test(text);
+  const isInvestment = /invest|business plan|bp|immobilisation|construction|bâtiment|batiment/.test(text);
+  return !isStockOrFeed && !isHealth && !isEquipment && !isActivity && !isInvestment;
+}
+
 export function classifyProfitCharge(row = {}) {
   if (row.profit_bucket && PROFIT_BUCKETS[row.profit_bucket]) return row.profit_bucket;
   const linkedActivity = activityFromLink(row);
@@ -42,12 +53,12 @@ export function classifyProfitCharge(row = {}) {
   if (/animal|bovin|ovin|caprin|cheptel/.test(text)) return 'animaux';
   if (/avicole|volaille|poulet|poussin|pondeuse|chair|lot/.test(text)) return 'avicole';
   if (/culture|maraichage|maraîchage|semence|intrant|récolte|recolte|parcelle/.test(text)) return 'cultures';
-  if (/stock|aliment|provende|maïs|mais|son|fourrage|perte stock/.test(text)) return 'stock_non_affecte';
-  if (/sant|vaccin|veto|véto|soin|traitement|biosécurité|biosecurite/.test(text)) return 'sante_non_affectee';
-  if (/equip|matériel|materiel|maintenance|carburant|machine|pompe|groupe/.test(text)) return 'equipements';
-  if (/fournisseur|achat|approvisionnement|dette fournisseur/.test(text)) return 'fournisseurs_achats';
+  if (/stock|aliment|alimentation|provende|maïs|mais|son|fourrage|foin|granul[eé]|céréale|cereale|perte stock/.test(text)) return 'stock_non_affecte';
+  if (/sant|vaccin|m[eé]dicament|medicament|veto|véto|soin|traitement|biosécurité|biosecurite/.test(text)) return 'sante_non_affectee';
+  if (/equip|matériel|materiel|maintenance|carburant|machine|pompe|groupe|incubateur|v[eé]hicule/.test(text)) return 'equipements';
   if (/invest|business plan|bp|immobilisation|construction|bâtiment|batiment/.test(text)) return 'investissements';
   if (/loyer|electric|électric|eau|internet|transport|admin|assurance|impot|impôt|taxe|frais généraux|frais generaux|exploitation/.test(text)) return 'exploitation';
+  if (supplierGeneralPurchase(text)) return 'fournisseurs_achats';
   return 'autres_charges';
 }
 
