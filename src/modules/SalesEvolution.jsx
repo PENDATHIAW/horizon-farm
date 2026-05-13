@@ -10,9 +10,11 @@ const cost = (row = {}) => toNumber(row.cout_total ?? row.total_cost ?? row.cost
 const rowDate = (row = {}) => row.date_commande || row.order_date || row.date || row.created_at || row.updated_at;
 const paymentDate = (row = {}) => row.date_paiement || row.payment_date || row.date || row.created_at || row.updated_at;
 const paymentAmount = (row = {}) => toNumber(row.montant_paye ?? row.montant ?? row.amount ?? row.total ?? 0);
+const paymentOrderId = (row = {}) => String(row.order_id || row.sale_id || row.commande_id || row.related_id || row.source_record_id || '').trim();
 const status = (row = {}) => lower(row.statut_commande || row.order_status || row.statut || row.status || row.statut_paiement || row.payment_status);
 const isOpen = (row = {}) => !['annule', 'annulé', 'cancelled', 'paye', 'payé', 'paid', 'solde', 'soldé'].includes(status(row));
 const isConvertedOpportunity = (row = {}) => ['gagnee', 'gagnée', 'converted', 'convertie', 'commande'].includes(lower(row.status || row.statut));
+const isCancelledPayment = (row = {}) => ['annule', 'annulé', 'annulee', 'cancelled', 'supprime', 'supprimé', 'deleted'].includes(lower(row.statut || row.status));
 
 function asDate(value) {
   const parsed = new Date(value);
@@ -40,15 +42,25 @@ function SmallMetric({ label, value, hint, danger = false }) {
   return <div className={`border rounded-xl p-3 ${danger ? 'bg-red-50 border-red-200' : 'bg-[#fffdf8] border-[#d6c3a0]'}`}><p className="text-xs text-[#8a7456]">{label}</p><p className={`text-xl font-black mt-1 ${danger ? 'text-red-600' : 'text-[#2f2415]'}`}>{value}</p>{hint ? <p className="text-[11px] text-[#8a7456] mt-1">{hint}</p> : null}</div>;
 }
 
+function activeLinkedPayments(rows = [], payments = []) {
+  const orderIds = new Set(arr(rows).map((row) => String(row.id || '').trim()).filter(Boolean));
+  return arr(payments).filter((payment) => {
+    if (isCancelledPayment(payment)) return false;
+    const linkedOrderId = paymentOrderId(payment);
+    return Boolean(linkedOrderId && orderIds.has(linkedOrderId));
+  });
+}
+
 function buildMonthly({ rows = [], payments = [], opportunities = [] }) {
   const map = new Map();
+  const linkedPayments = activeLinkedPayments(rows, payments);
 
   arr(rows).forEach((order) => {
     const key = monthKey(rowDate(order));
     const bucket = ensure(map, key);
     const total = amount(order);
-    const paid = paidForOrder(order, payments);
-    const remaining = remainingForOrder(order, payments);
+    const paid = paidForOrder(order, linkedPayments);
+    const remaining = remainingForOrder(order, linkedPayments);
     bucket.commandes += total;
     bucket.encaisses += paid;
     bucket.impayes += remaining;
@@ -59,10 +71,9 @@ function buildMonthly({ rows = [], payments = [], opportunities = [] }) {
     if (order.delivery_id || order.livraison_id || lower(order.statut_livraison).includes('livre') || lower(order.statut_livraison).includes('livré')) bucket.livraisons += 1;
   });
 
-  arr(payments).forEach((payment) => {
+  linkedPayments.forEach((payment) => {
     const key = monthKey(paymentDate(payment));
     const bucket = ensure(map, key);
-    bucket.encaisses += paymentAmount(payment);
     bucket.paiements += 1;
   });
 
@@ -80,15 +91,17 @@ function labels(rows) { return rows.map((row) => row.mois); }
 function values(rows, key) { return rows.map((row) => toNumber(row[key])); }
 
 export default function SalesEvolution({ rows = [], payments = [], opportunities = [], onNavigate }) {
-  const monthly = buildMonthly({ rows, payments, opportunities });
+  const linkedPayments = activeLinkedPayments(rows, payments);
+  const monthly = buildMonthly({ rows, payments: linkedPayments, opportunities });
   const totalOrders = arr(rows).reduce((sum, row) => sum + amount(row), 0);
-  const totalPaid = arr(rows).reduce((sum, row) => sum + paidForOrder(row, payments), 0) + arr(payments).reduce((sum, row) => sum + paymentAmount(row), 0);
-  const totalRemaining = arr(rows).reduce((sum, row) => sum + remainingForOrder(row, payments), 0);
+  const totalPaid = arr(rows).reduce((sum, row) => sum + paidForOrder(row, linkedPayments), 0);
+  const totalRemaining = arr(rows).reduce((sum, row) => sum + remainingForOrder(row, linkedPayments), 0);
   const totalMargin = monthly.reduce((sum, row) => sum + row.marge, 0);
-  const openOrders = arr(rows).filter((row) => remainingForOrder(row, payments) > 0 || isOpen(row));
+  const openOrders = arr(rows).filter((row) => remainingForOrder(row, linkedPayments) > 0 || isOpen(row));
   const openOpportunities = arr(opportunities).filter((opp) => !['gagnee', 'gagnée', 'perdue', 'annulee', 'annulée', 'closed'].includes(lower(opp.status || opp.statut))).length;
   const conversionRate = arr(rows).length + openOpportunities > 0 ? (arr(rows).length / (arr(rows).length + openOpportunities)) * 100 : 0;
   const recoveryRate = totalOrders > 0 ? Number(((totalPaid / totalOrders) * 100).toFixed(1)) : 0;
+  const orphanPayments = arr(payments).filter((payment) => !isCancelledPayment(payment) && paymentOrderId(payment) && !linkedPayments.includes(payment)).length;
   const last = monthly[monthly.length - 1];
   const interpretation = !monthly.length ? 'Aucune vente datée exploitable pour le moment.' : last.impayes > 0 ? `Dernier mois : ${fmtCurrency(last.impayes)} reste à encaisser.` : 'Dernier mois : ventes suivies et aucun impayé détecté sur la période.';
   const priority = totalRemaining > 0 ? { module: 'clients', label: 'Relancer les paiements', icon: AlertTriangle } : openOpportunities > 0 ? { module: 'ventes', label: 'Convertir les opportunités', icon: TrendingUp } : { module: 'ventes', label: 'Préparer les prochaines ventes', icon: CreditCard };
@@ -100,6 +113,7 @@ export default function SalesEvolution({ rows = [], payments = [], opportunities
         <div className="w-10 h-10 rounded-xl bg-[#e8f7ef] text-emerald-600 flex items-center justify-center"><Receipt size={18} /></div>
         <div><p className="font-black text-[#2f2415]">Évolution Ventes interactive</p><p className="text-xs text-[#8a7456] mt-1">Commandes, encaissements, impayés, marge, taux paiement et activité commerciale.</p></div>
       </div>
+      {orphanPayments ? <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800"><AlertTriangle size={14} className="inline" /> {orphanPayments} paiement(s) orphelin(s) ignoré(s) car la commande liée n’existe plus. Ils ne sont plus comptés dans les graphiques ventes.</div> : null}
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
         <SmallMetric label="CA commandé" value={fmtCurrency(totalOrders)} hint={`${fmtNumber(arr(rows).length)} commande(s)`} />
         <SmallMetric label="Encaissé" value={fmtCurrency(totalPaid)} hint={`${recoveryRate}% paiement`} />
