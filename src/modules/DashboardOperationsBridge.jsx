@@ -4,10 +4,14 @@ import { deriveSalesOpportunities, salesOpportunityAmount } from '../utils/sales
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value) => String(value || '').trim().toLowerCase();
-const doneStatuses = ['termine', 'terminé', 'done', 'closed', 'annule', 'annulé', 'convertie'];
+const doneStatuses = ['termine', 'terminé', 'done', 'closed', 'annule', 'annulé', 'convertie', 'traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée', 'archive', 'archivée', 'supprime', 'supprimé'];
 
 function isTaskOpen(row = {}) {
   const status = clean(row.status || row.statut || 'a_faire');
+  return !doneStatuses.includes(status);
+}
+function isAlertOpen(row = {}) {
+  const status = clean(row.status || row.statut || 'nouvelle');
   return !doneStatuses.includes(status);
 }
 function equipmentRisk(row = {}) {
@@ -17,10 +21,7 @@ function equipmentRisk(row = {}) {
 export default function DashboardOperationsBridge({ opportunities = [], lots = [], animaux = [], cultures = [], stocks = [], taches = [], alertes = [], equipements = [], businessEvents = [], onNavigate }) {
   const openOpportunities = deriveSalesOpportunities({ opportunities, lots, animaux, cultures, stocks });
   const openTasks = arr(taches).filter(isTaskOpen);
-  const openAlerts = arr(alertes).filter((row) => {
-    const status = clean(row.status || row.statut || 'nouvelle');
-    return !doneStatuses.includes(status) || status === 'nouvelle';
-  });
+  const openAlerts = arr(alertes).filter(isAlertOpen);
   const equipmentAlerts = arr(equipements).filter(equipmentRisk);
   const recentEvents = arr(businessEvents).slice().sort((a, b) => String(b.created_at || b.event_date || '').localeCompare(String(a.created_at || a.event_date || ''))).slice(0, 5);
   const opportunityValue = openOpportunities.reduce((sum, row) => sum + salesOpportunityAmount(row), 0);
