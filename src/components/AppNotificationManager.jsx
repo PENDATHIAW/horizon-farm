@@ -34,6 +34,24 @@ function moduleFor(alert = {}) {
   return 'alertes';
 }
 
+function alertKey(alert = {}) {
+  return `${alert.module_source || alert.module || 'autre'}:${alert.entity_type || 'entite'}:${alert.entity_id || alert.id}:${alert.action_recommandee || alert.title || alert.message || 'action'}`;
+}
+
+function equivalentAlert(a = {}, b = {}) {
+  if (String(a.id || '') && String(a.id || '') === String(b.id || '')) return true;
+  if (a.alert_dedupe_key && a.alert_dedupe_key === alertKey(b)) return true;
+  return String(a.module_source || a.module || '') === String(b.module_source || b.module || '')
+    && String(a.entity_type || '') === String(b.entity_type || '')
+    && String(a.entity_id || '') === String(b.entity_id || '')
+    && String(a.action_recommandee || a.title || a.message || '') === String(b.action_recommandee || b.title || b.message || '');
+}
+
+function wasHandledOrDeleted(alert = {}, persistedAlerts = []) {
+  if (isDeletedRecord('alertes_center', alert)) return true;
+  return arr(persistedAlerts).some((persisted) => equivalentAlert(persisted, alert) && !activeAlert(persisted));
+}
+
 function applyNavigationTarget(detail = {}, onNavigate) {
   const params = new URLSearchParams(window.location.search || '');
   const targetModule = detail.module || detail.module_source || params.get('module');
@@ -49,12 +67,13 @@ function applyNavigationTarget(detail = {}, onNavigate) {
 }
 
 function buildDerivedAlerts(dataMap = {}) {
+  const persistedAlerts = arr(dataMap.alertes_center);
   const result = [];
-  arr(dataMap.animaux).filter((animal) => lower(animal.health_status) === 'malade').forEach((animal) => result.push({ id: `notify-animal-malade-${animal.id}`, title: `Animal malade: ${animal.name || animal.nom || animal.id}`, message: 'Un animal est signalé malade.', module_source: 'animaux', entity_type: 'animal', entity_id: animal.id, severity: 'critique', status: 'nouvelle' }));
-  arr(dataMap.avicole).filter((lot) => Number(lot.initial_count || 0) > 0 && Number(lot.mortality || lot.morts || 0) > Number(lot.initial_count || 0) * 0.04).forEach((lot) => result.push({ id: `notify-lot-mortalite-${lot.id}`, title: `Mortalité élevée: ${lot.name || lot.nom || lot.id}`, message: 'Un lot avicole dépasse le seuil critique de mortalité.', module_source: 'avicole', entity_type: 'lot_avicole', entity_id: lot.id, severity: 'critique', status: 'nouvelle' }));
-  arr(dataMap.stock).filter((stock) => Number(stock.seuil || 0) > 0 && Number(stock.quantite || 0) <= 0).forEach((stock) => result.push({ id: `notify-stock-zero-${stock.id}`, title: `Rupture stock: ${stock.nom || stock.produit || stock.id}`, message: 'Un produit est à zéro.', module_source: 'stock', entity_type: 'stock', entity_id: stock.id, severity: 'urgence', status: 'nouvelle' }));
-  arr(dataMap.cultures).filter((culture) => lower(culture.statut) === 'perdu').forEach((culture) => result.push({ id: `notify-culture-perdue-${culture.id}`, title: `Culture perdue: ${culture.nom || culture.name || culture.id}`, message: 'Une culture a été marquée comme perdue.', module_source: 'cultures', entity_type: 'culture', entity_id: culture.id, severity: 'critique', status: 'nouvelle' }));
-  return result;
+  arr(dataMap.animaux).filter((animal) => lower(animal.health_status) === 'malade').forEach((animal) => result.push({ id: `notify-animal-malade-${animal.id}`, title: `Animal malade: ${animal.name || animal.nom || animal.id}`, message: 'Un animal est signalé malade.', module_source: 'animaux', entity_type: 'animal', entity_id: animal.id, severity: 'critique', status: 'nouvelle', action_recommandee: 'Consulter vétérinaire immédiatement' }));
+  arr(dataMap.avicole).filter((lot) => Number(lot.initial_count || 0) > 0 && Number(lot.mortality || lot.morts || 0) > Number(lot.initial_count || 0) * 0.04).forEach((lot) => result.push({ id: `notify-lot-mortalite-${lot.id}`, title: `Mortalité élevée: ${lot.name || lot.nom || lot.id}`, message: 'Un lot avicole dépasse le seuil critique de mortalité.', module_source: 'avicole', entity_type: 'lot_avicole', entity_id: lot.id, severity: 'critique', status: 'nouvelle', action_recommandee: 'Appliquer contrôle santé et biosécurité' }));
+  arr(dataMap.stock).filter((stock) => Number(stock.seuil || 0) > 0 && Number(stock.quantite || 0) <= 0).forEach((stock) => result.push({ id: `notify-stock-zero-${stock.id}`, title: `Rupture stock: ${stock.nom || stock.produit || stock.id}`, message: 'Un produit est à zéro.', module_source: 'stock', entity_type: 'stock', entity_id: stock.id, severity: 'urgence', status: 'nouvelle', action_recommandee: 'Commander réapprovisionnement' }));
+  arr(dataMap.cultures).filter((culture) => lower(culture.statut) === 'perdu').forEach((culture) => result.push({ id: `notify-culture-perdue-${culture.id}`, title: `Culture perdue: ${culture.nom || culture.name || culture.id}`, message: 'Une culture a été marquée comme perdue.', module_source: 'cultures', entity_type: 'culture', entity_id: culture.id, severity: 'critique', status: 'nouvelle', action_recommandee: 'Analyser cause et planifier nouvelle culture' }));
+  return result.filter((alert) => !wasHandledOrDeleted(alert, persistedAlerts));
 }
 
 export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
@@ -62,10 +81,8 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
   const [hidden, setHidden] = useState(() => wasBannerHidden());
   const iosNeedsInstall = isIOSDevice() && !isStandaloneApp();
   const alerts = useMemo(() => {
-    const persisted = arr(dataMap.alertes_center).filter(activeAlert).filter(criticalSeverity);
-    return [...persisted, ...buildDerivedAlerts(dataMap)]
-      .filter((alert) => !isDeletedRecord('alertes_center', alert))
-      .filter((alert) => shouldNotifyAlert(alert));
+    const persisted = arr(dataMap.alertes_center).filter((alert) => !isDeletedRecord('alertes_center', alert)).filter(activeAlert).filter(criticalSeverity);
+    return [...persisted, ...buildDerivedAlerts(dataMap)].filter((alert) => shouldNotifyAlert(alert));
   }, [dataMap]);
   const pushStatus = pushSetupStatus();
 
