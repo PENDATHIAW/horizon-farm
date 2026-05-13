@@ -47,7 +47,8 @@ const MODULES = {
   fournisseurs: lazy(() => import('./modules/Fournisseurs')),
   tracabilite: lazy(() => import('./modules/Tracabilite')),
   alertes: lazy(() => import('./modules/AlertesCenter')),
-  sync: lazy(() => import('./modules/Sync')),
+  sync: lazy(() => import('./modules/SyncActivityCenter')),
+  sync_activity: lazy(() => import('./modules/SyncActivityCenter')),
   cultures: lazy(() => import('./modules/CulturesV4')),
   smartfarm: lazy(() => import('./modules/SmartFarm')),
   ventes: lazy(() => import('./modules/VentesV3')),
@@ -56,7 +57,7 @@ const MODULES = {
   rh: lazy(() => import('./modules/RH')),
   rapports: lazy(() => import('./modules/Rapports')),
   equipements: lazy(() => import('./modules/Equipements')),
-  audit_logs: lazy(() => import('./modules/AuditLogs')),
+  audit_logs: lazy(() => import('./modules/SyncActivityCenter')),
   gestion_systeme: lazy(() => import('./modules/GestionSysteme')),
 };
 
@@ -126,7 +127,7 @@ export default function App() {
   };
 
   const navItems = useMemo(() => [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }, { id: 'assistant_erp', label: 'Assistant ERP', icon: Radio }, { id: 'animaux', label: 'Animaux', icon: Beef }, { id: 'avicole', label: 'Avicole', icon: Bird }, { id: 'sante', label: 'Sante & Vaccins', icon: Syringe, hasAlert: vaccinsRetard > 0 }, { id: 'finances', label: 'Finances', icon: DollarSign }, { id: 'comptabilite', label: 'Comptabilite', icon: BookOpen }, { id: 'investissements', label: 'Investissements', icon: TrendingUp }, { id: 'impact_business', label: 'Impact & Valeur ERP', icon: TrendingUp, hasAlert: vaccinsRetard > 0 || stocksCritiques > 0 || animauxMalades > 0 || lotsAlerte > 0 }, { id: 'stock', label: 'Stock', icon: Package, hasAlert: stocksCritiques > 0 }, { id: 'clients', label: 'Clients & WhatsApp', icon: Users }, { id: 'ventes', label: 'Ventes', icon: Receipt }, { id: 'fournisseurs', label: 'Fournisseurs', icon: Truck }, { id: 'tracabilite', label: 'Tracabilite', icon: GitBranch }, { id: 'alertes', label: 'Centre Alertes', icon: History, hasAlert: (dataMap.alertes_center || []).filter((a) => a.status === 'nouvelle').length > 0 }, { id: 'cultures', label: 'Cultures', icon: Sprout, hasAlert: culturesRisque > 0 }, { id: 'documents', label: 'Documents', icon: FileText }, { id: 'taches', label: 'Taches', icon: ListChecks }, { id: 'rh', label: 'RH & Équipe', icon: Users }, { id: 'rapports', label: 'Rapports', icon: FileText }, { id: 'equipements', label: 'Equipements', icon: Wrench }, { id: 'smartfarm', label: 'Smart Farm', icon: Radio }, { id: 'audit_logs', label: 'Audit Logs', icon: History }, { id: 'gestion_systeme', label: 'Gestion du système', icon: Wrench }, { id: 'sync', label: 'Sync Offline', icon: Wifi, hasAlert: !online },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }, { id: 'assistant_erp', label: 'Assistant ERP', icon: Radio }, { id: 'animaux', label: 'Animaux', icon: Beef }, { id: 'avicole', label: 'Avicole', icon: Bird }, { id: 'sante', label: 'Sante & Vaccins', icon: Syringe, hasAlert: vaccinsRetard > 0 }, { id: 'finances', label: 'Finances', icon: DollarSign }, { id: 'comptabilite', label: 'Comptabilite', icon: BookOpen }, { id: 'investissements', label: 'Investissements', icon: TrendingUp }, { id: 'impact_business', label: 'Impact & Valeur ERP', icon: TrendingUp, hasAlert: vaccinsRetard > 0 || stocksCritiques > 0 || animauxMalades > 0 || lotsAlerte > 0 }, { id: 'stock', label: 'Stock', icon: Package, hasAlert: stocksCritiques > 0 }, { id: 'clients', label: 'Clients & WhatsApp', icon: Users }, { id: 'ventes', label: 'Ventes', icon: Receipt }, { id: 'fournisseurs', label: 'Fournisseurs', icon: Truck }, { id: 'tracabilite', label: 'Tracabilite', icon: GitBranch }, { id: 'alertes', label: 'Centre Alertes', icon: History, hasAlert: (dataMap.alertes_center || []).filter((a) => a.status === 'nouvelle').length > 0 }, { id: 'cultures', label: 'Cultures', icon: Sprout, hasAlert: culturesRisque > 0 }, { id: 'documents', label: 'Documents', icon: FileText }, { id: 'taches', label: 'Taches', icon: ListChecks }, { id: 'rh', label: 'RH & Équipe', icon: Users }, { id: 'rapports', label: 'Rapports', icon: FileText }, { id: 'equipements', label: 'Equipements', icon: Wrench }, { id: 'smartfarm', label: 'Smart Farm', icon: Radio }, { id: 'sync_activity', label: 'Activité & Sync ERP', icon: Wifi, hasAlert: !online }, { id: 'gestion_systeme', label: 'Gestion du système', icon: Wrench },
   ].filter((item) => ['rh', 'assistant_erp'].includes(item.id) || canAccess(item.id)), [vaccinsRetard, stocksCritiques, culturesRisque, online, canAccess, dataMap.alertes_center, animauxMalades, lotsAlerte]);
 
   const reportData = { animaux: animauxCrud.rows, lots: avicoleCrud.rows, sante: santeCrud.rows, stocks: stockCrud.rows, cultures: culturesCrud.rows, salesOrders: salesOrdersCrud.rows, payments: paymentsCrud.rows, transactions: financesCrud.rows, clients: clientsCrud.rows, fournisseurs: fournisseursCrud.rows, taches: tachesCrud.rows, alertes: alertesCenterCrud.rows, equipements: equipementsCrud.rows };
@@ -153,13 +154,14 @@ export default function App() {
     rh: { onRefresh: refreshAll, onCreateFinanceTransaction: financesCrud.create, onRefreshFinances: financesCrud.refresh, onCreateBusinessEvent: businessEventsCrud.create, onRefreshBusinessEvents: businessEventsCrud.refresh },
     rapports: { rows: rapportsCrud.rows, data: reportData, loading: rapportsCrud.loading, onCreate: rapportsCrud.create, onUpdate: rapportsCrud.update, onDelete: rapportsCrud.remove, onRefresh: rapportsCrud.refresh, onCreateDocument: documentsCrud.create, onRefreshDocuments: documentsCrud.refresh, onCreateBusinessEvent: businessEventsCrud.create, onRefreshBusinessEvents: businessEventsCrud.refresh },
     equipements: { rows: equipementsCrud.rows, tasks: tachesCrud.rows, loading: equipementsCrud.loading, onCreate: equipementsCrud.create, onUpdate: equipementsCrud.update, onDelete: equipementsCrud.remove, onRefresh: equipementsCrud.refresh, onCreateTask: tachesCrud.create, onUpdateTask: tachesCrud.update, onRefreshTasks: tachesCrud.refresh, onCreateAlert: alertesCenterCrud.create, onRefreshAlertes: alertesCenterCrud.refresh, onCreateFinanceTransaction: financesCrud.create, onRefreshFinances: financesCrud.refresh, onCreateDocument: documentsCrud.create, onRefreshDocuments: documentsCrud.refresh, onCreateBusinessEvent: businessEventsCrud.create, onRefreshBusinessEvents: businessEventsCrud.refresh },
-    audit_logs: { rows: auditLogsCrud.rows, loading: auditLogsCrud.loading, onCreate: auditLogsCrud.create, onUpdate: auditLogsCrud.update, onDelete: auditLogsCrud.remove, onRefresh: auditLogsCrud.refresh },
+    audit_logs: { onRefreshAll: refreshAll, onFlushOffline: flushOfflineQueue, online, lastOnlineAt, dataMap, auditLogs: auditLogsCrud.rows, auditLoading: auditLogsCrud.loading, onRefreshAuditLogs: auditLogsCrud.refresh, onNavigate: setActive },
     smartfarm: { meteo: liveMeteo, online, sensors: sensorDevicesCrud.rows, cameras: cameraDevicesCrud.rows, tasks: tachesCrud.rows, sensorLoading: sensorDevicesCrud.loading, cameraLoading: cameraDevicesCrud.loading, onCreateSensor: sensorDevicesCrud.create, onUpdateSensor: sensorDevicesCrud.update, onDeleteSensor: sensorDevicesCrud.remove, onRefreshSensors: sensorDevicesCrud.refresh, onCreateCamera: cameraDevicesCrud.create, onUpdateCamera: cameraDevicesCrud.update, onDeleteCamera: cameraDevicesCrud.remove, onRefreshCameras: cameraDevicesCrud.refresh, onCreateTask: tachesCrud.create, onRefreshTasks: tachesCrud.refresh, onCreateAlert: alertesCenterCrud.create, onRefreshAlertes: alertesCenterCrud.refresh, onCreateBusinessEvent: businessEventsCrud.create, onRefreshBusinessEvents: businessEventsCrud.refresh },
     gestion_systeme: {},
-    sync: { onRefreshAll: refreshAll, onFlushOffline: flushOfflineQueue, online, lastOnlineAt, dataMap },
+    sync: { onRefreshAll: refreshAll, onFlushOffline: flushOfflineQueue, online, lastOnlineAt, dataMap, auditLogs: auditLogsCrud.rows, auditLoading: auditLogsCrud.loading, onRefreshAuditLogs: auditLogsCrud.refresh, onNavigate: setActive },
+    sync_activity: { onRefreshAll: refreshAll, onFlushOffline: flushOfflineQueue, online, lastOnlineAt, dataMap, auditLogs: auditLogsCrud.rows, auditLoading: auditLogsCrud.loading, onRefreshAuditLogs: auditLogsCrud.refresh, onNavigate: setActive },
   };
 
-  const Module = MODULES[active];
+  const Module = MODULES[active] || MODULES.dashboard;
 
   if (authLoading) return <div className="min-h-screen bg-[#f8f5ef] text-[#2f2415] flex items-center justify-center"><div className="text-center"><div className="mx-auto mb-4 w-12 h-12 rounded-xl bg-[#c9a96a] animate-pulse" /><p className="text-sm font-semibold text-[#8a7456]">Chargement Horizon Farm...</p></div></div>;
   if (!user) return <LoginPage />;
