@@ -62,7 +62,7 @@ export default function SyncActivityCenter(props) {
     <style>{`@media (max-width: 640px){.sync-activity-mobile .rounded-2xl{border-radius:18px}.sync-activity-mobile table{font-size:12px}.sync-activity-mobile th,.sync-activity-mobile td{padding-left:10px!important;padding-right:10px!important}.sync-activity-mobile .text-2xl{font-size:1.35rem}.sync-activity-mobile .grid{gap:.75rem}.sync-activity-mobile .overflow-x-auto{max-width:100vw}}`}</style>
     <InterconnectionAudit dataMap={props.dataMap} />
     <ModuleSection icon={Wifi} title="Synchronisation & offline" subtitle="File locale, backup, synchronisation, conflits et données disponibles hors ligne.">
-      <Sync {...props} />
+      <Sync {...props} embedded />
     </ModuleSection>
     <ModuleSection icon={History} title="Activité, audit et sécurité" subtitle="Actions utilisateurs, événements métier, traces sensibles et journal système.">
       <AuditLogs rows={props.auditLogs || []} loading={props.auditLoading} onRefresh={props.onRefreshAuditLogs} onNavigate={props.onNavigate} />
