@@ -38,8 +38,10 @@ export default function useCrudModule(moduleKey) {
 
   return useMemo(
     () => {
-      const rawRows = filterDeletedRows(moduleKey, dataMap[moduleKey] || []);
+      const sourceRows = Array.isArray(dataMap[moduleKey]) ? dataMap[moduleKey] : [];
+      const rawRows = filterDeletedRows(moduleKey, sourceRows);
       const rows = mergeDemoRows(moduleKey, rawRows);
+      const findExistingRow = (id) => [...sourceRows, ...rows].find((row) => String(row?.id) === String(id));
       return {
         rows,
         rawRows,
@@ -53,7 +55,7 @@ export default function useCrudModule(moduleKey) {
         },
         update: (id, payload) => updateRecord(moduleKey, id, payload),
         remove: async (id) => {
-          rememberDeletedId(moduleKey, id);
+          rememberDeletedId(moduleKey, id, findExistingRow(id));
           return deleteRecord(moduleKey, id);
         },
         refresh: () => refreshModule(moduleKey),
