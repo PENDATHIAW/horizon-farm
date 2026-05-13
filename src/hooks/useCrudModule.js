@@ -47,8 +47,9 @@ export default function useCrudModule(moduleKey) {
         loading: Boolean(loadingMap[moduleKey]),
         error: errorMap[moduleKey] || null,
         create: async (payload) => {
-          if (payload?.id) forgetDeletedId(moduleKey, payload.id);
-          return createRecord(moduleKey, payload);
+          if (payload?.__restoreDeleted && payload?.id) forgetDeletedId(moduleKey, payload.id);
+          const { __restoreDeleted, ...safePayload } = payload || {};
+          return createRecord(moduleKey, safePayload);
         },
         update: (id, payload) => updateRecord(moduleKey, id, payload),
         remove: async (id) => {
