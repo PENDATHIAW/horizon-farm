@@ -20,7 +20,7 @@ export default function LoginPage() {
     try {
       if (mode === 'signup') {
         await signUp({ login, password, fullName, role: 'visiteur' });
-        toast.success('Compte créé avec le rôle visiteur. Tu pourras te connecter après validation email si Supabase le demande.');
+        toast.success('Compte créé avec succès.');
         setMode('login');
       } else {
         await signIn({ login, password });
@@ -28,7 +28,7 @@ export default function LoginPage() {
       }
     } catch (error) {
       const message = error.message?.toLowerCase().includes('invalid login credentials')
-        ? 'Login ou mot de passe incorrect. Vérifie aussi que le user existe dans Supabase Auth.'
+        ? 'Identifiants incorrects.'
         : error.message || 'Action impossible';
       toast.error(message);
     } finally {
@@ -39,9 +39,9 @@ export default function LoginPage() {
   const handleResetPassword = async () => {
     try {
       await resetPassword(login);
-      toast.success('Lien de réinitialisation envoyé si le compte existe');
+      toast.success('Lien envoyé si le compte existe.');
     } catch (error) {
-      toast.error(error.message || 'Reset impossible');
+      toast.error(error.message || 'Réinitialisation impossible');
     }
   };
 
@@ -59,8 +59,6 @@ export default function LoginPage() {
             <button type="button" onClick={() => setMode('login')} className={`rounded-lg py-2 text-sm font-bold ${mode === 'login' ? 'bg-[#2f2415] text-white' : 'text-[#8a7456]'}`}>Connexion</button>
             <button type="button" onClick={() => setMode('signup')} className={`rounded-lg py-2 text-sm font-bold ${mode === 'signup' ? 'bg-[#2f2415] text-white' : 'text-[#8a7456]'}`}>Créer son compte</button>
           </div>
-
-          {mode === 'signup' ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">Le compte créé aura automatiquement le rôle <b>visiteur</b>. Il ne voit aucune donnée sensible tant qu’un admin ne modifie pas ses droits dans Gestion du système.</div> : null}
 
           {mode === 'signup' ? <div>
             <label className="block text-xs font-semibold uppercase tracking-widest text-[#9a7a43] mb-2">Nom complet</label>
@@ -89,12 +87,12 @@ export default function LoginPage() {
 
           <div className="flex items-center justify-between gap-3">
             <label className="flex items-center gap-2 text-xs text-[#8a7456]"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} className="accent-[#c9a96a]" />Rester connecté</label>
-            {mode === 'login' ? <button type="button" onClick={handleResetPassword} className="text-xs text-[#9a7a43] hover:text-[#2f2415] flex items-center gap-1"><RotateCcw size={12} />Reset mot de passe</button> : null}
+            {mode === 'login' ? <button type="button" onClick={handleResetPassword} className="text-xs text-[#9a7a43] hover:text-[#2f2415] flex items-center gap-1"><RotateCcw size={12} />Mot de passe oublié</button> : null}
           </div>
 
           <button type="submit" disabled={loading} className="w-full bg-[#c9a96a] hover:bg-[#b89452] disabled:opacity-60 text-[#2f2415] font-bold rounded-lg py-3 flex items-center justify-center gap-2 transition-all">
             {mode === 'signup' ? <UserPlus size={16} /> : <LogIn size={16} />}
-            {loading ? 'Traitement...' : mode === 'signup' ? 'Créer son compte visiteur' : 'Se connecter'}
+            {loading ? 'Traitement...' : mode === 'signup' ? 'Créer mon compte' : 'Se connecter'}
           </button>
         </form>
       </section>
