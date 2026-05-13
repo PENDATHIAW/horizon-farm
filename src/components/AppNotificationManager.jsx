@@ -9,21 +9,14 @@ const activeAlert = (alert = {}) => !['traitee', 'traitée', 'resolue', 'résolu
 const criticalSeverity = (alert = {}) => ['critique', 'urgence'].includes(lower(alert.severity || alert.gravite));
 const isIOSDevice = () => /iphone|ipad|ipod/i.test(window.navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const isStandaloneApp = () => window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone === true;
-const IOS_INSTALL_HELP = 'Sur iPhone, ajoute Horizon Farm a l ecran d accueil depuis Safari, puis ouvre l app depuis cette icone pour activer les notifications.';
-const NOTIFICATION_PROMPT_SEEN_KEY = 'horizon-farm-notification-prompt-seen';
+const IOS_INSTALL_HELP = 'Sur iPhone, ajoute Horizon Farm à l’écran d’accueil depuis Safari, puis ouvre l’app depuis cette icône.';
 const NOTIFICATION_BANNER_HIDDEN_KEY = 'horizon-farm-notification-banner-hidden';
 
-function wasPromptSeen() {
-  try { return sessionStorage.getItem(NOTIFICATION_PROMPT_SEEN_KEY) === 'true' || localStorage.getItem(NOTIFICATION_BANNER_HIDDEN_KEY) === 'true'; } catch { return true; }
-}
-function markPromptSeen() {
-  try { sessionStorage.setItem(NOTIFICATION_PROMPT_SEEN_KEY, 'true'); } catch { /* noop */ }
-}
 function wasBannerHidden() {
   try { return localStorage.getItem(NOTIFICATION_BANNER_HIDDEN_KEY) === 'true'; } catch { return false; }
 }
 function hideBannerForever() {
-  try { localStorage.setItem(NOTIFICATION_BANNER_HIDDEN_KEY, 'true'); sessionStorage.setItem(NOTIFICATION_PROMPT_SEEN_KEY, 'true'); } catch { /* noop */ }
+  try { localStorage.setItem(NOTIFICATION_BANNER_HIDDEN_KEY, 'true'); } catch { /* noop */ }
 }
 
 function moduleFor(alert = {}) {
@@ -50,18 +43,16 @@ function applyNavigationTarget(detail = {}, onNavigate) {
   if (!targetModule) return false;
   onNavigate?.(targetModule);
   window.dispatchEvent(new CustomEvent('horizon-farm-action-target', { detail: { module: targetModule, action, focus, alert_id: alertId, entity_id: entityId } }));
-  if (action || focus || alertId || entityId) {
-    toast.success(`Ouverture action ${targetModule}`);
-  }
+  if (action || focus || alertId || entityId) toast.success(`Ouverture ${targetModule}`);
   return true;
 }
 
 function buildDerivedAlerts(dataMap = {}) {
   const result = [];
-  arr(dataMap.animaux).filter((animal) => lower(animal.health_status) === 'malade').forEach((animal) => result.push({ id: `notify-animal-malade-${animal.id}`, title: `Animal malade: ${animal.name || animal.nom || animal.id}`, message: 'Un animal est signalé malade. Vérifier immédiatement le suivi santé.', module_source: 'animaux', entity_type: 'animal', entity_id: animal.id, severity: 'critique', status: 'nouvelle', action_recommandee: 'Ouvrir Animaux / Santé et traiter le cas.' }));
-  arr(dataMap.avicole).filter((lot) => Number(lot.initial_count || 0) > 0 && Number(lot.mortality || lot.morts || 0) > Number(lot.initial_count || 0) * 0.04).forEach((lot) => result.push({ id: `notify-lot-mortalite-${lot.id}`, title: `Mortalité élevée: ${lot.name || lot.nom || lot.id}`, message: 'Un lot avicole dépasse le seuil critique de mortalité.', module_source: 'avicole', entity_type: 'lot_avicole', entity_id: lot.id, severity: 'critique', status: 'nouvelle', action_recommandee: 'Contrôle santé et biosécurité à faire.' }));
-  arr(dataMap.stock).filter((stock) => Number(stock.seuil || 0) > 0 && Number(stock.quantite || 0) <= 0).forEach((stock) => result.push({ id: `notify-stock-zero-${stock.id}`, title: `Rupture stock: ${stock.nom || stock.produit || stock.id}`, message: 'Un produit est à zéro alors qu’il a un seuil de sécurité.', module_source: 'stock', entity_type: 'stock', entity_id: stock.id, severity: 'urgence', status: 'nouvelle', action_recommandee: 'Réapprovisionner ou trouver une alternative.' }));
-  arr(dataMap.cultures).filter((culture) => lower(culture.statut) === 'perdu').forEach((culture) => result.push({ id: `notify-culture-perdue-${culture.id}`, title: `Culture perdue: ${culture.nom || culture.name || culture.id}`, message: 'Une culture a été marquée comme perdue.', module_source: 'cultures', entity_type: 'culture', entity_id: culture.id, severity: 'critique', status: 'nouvelle', action_recommandee: 'Analyser la cause et planifier l’action corrective.' }));
+  arr(dataMap.animaux).filter((animal) => lower(animal.health_status) === 'malade').forEach((animal) => result.push({ id: `notify-animal-malade-${animal.id}`, title: `Animal malade: ${animal.name || animal.nom || animal.id}`, message: 'Un animal est signalé malade.', module_source: 'animaux', entity_type: 'animal', entity_id: animal.id, severity: 'critique', status: 'nouvelle' }));
+  arr(dataMap.avicole).filter((lot) => Number(lot.initial_count || 0) > 0 && Number(lot.mortality || lot.morts || 0) > Number(lot.initial_count || 0) * 0.04).forEach((lot) => result.push({ id: `notify-lot-mortalite-${lot.id}`, title: `Mortalité élevée: ${lot.name || lot.nom || lot.id}`, message: 'Un lot avicole dépasse le seuil critique de mortalité.', module_source: 'avicole', entity_type: 'lot_avicole', entity_id: lot.id, severity: 'critique', status: 'nouvelle' }));
+  arr(dataMap.stock).filter((stock) => Number(stock.seuil || 0) > 0 && Number(stock.quantite || 0) <= 0).forEach((stock) => result.push({ id: `notify-stock-zero-${stock.id}`, title: `Rupture stock: ${stock.nom || stock.produit || stock.id}`, message: 'Un produit est à zéro.', module_source: 'stock', entity_type: 'stock', entity_id: stock.id, severity: 'urgence', status: 'nouvelle' }));
+  arr(dataMap.cultures).filter((culture) => lower(culture.statut) === 'perdu').forEach((culture) => result.push({ id: `notify-culture-perdue-${culture.id}`, title: `Culture perdue: ${culture.nom || culture.name || culture.id}`, message: 'Une culture a été marquée comme perdue.', module_source: 'cultures', entity_type: 'culture', entity_id: culture.id, severity: 'critique', status: 'nouvelle' }));
   return result;
 }
 
@@ -96,15 +87,7 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
     if (!alerts.length || iosNeedsInstall) return;
     const run = async () => {
       const permission = notificationPermission();
-      if (permission === 'default') {
-        if (!wasPromptSeen()) {
-          toast('Active les notifications Horizon Farm pour recevoir les urgences sans ouvrir le module Alertes.');
-          markPromptSeen();
-        }
-        return;
-      }
-      if (permission === 'denied' || permission === 'unsupported') return;
-      await notifyAlerts(alerts);
+      if (permission === 'granted') await notifyAlerts(alerts);
     };
     run();
   }, [alerts, iosNeedsInstall]);
@@ -116,12 +99,14 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
     }
     const permission = await requestNotificationPermission();
     if (permission === 'granted') {
-      toast.success('Notifications appareil activées pour Horizon Farm');
+      toast.success('Notifications activées');
       await notifyAlerts(alerts.slice(0, 3));
+      hideBannerForever();
+      setHidden(true);
     } else if (permission === 'denied') {
-      toast.error('Notifications bloquées. Autorise-les dans les réglages du navigateur/appareil.');
+      toast.error('Notifications bloquées par le navigateur.');
     } else {
-      toast.error('Notifications non disponibles ici. Essaie depuis un navigateur compatible ou installe Horizon Farm comme app.');
+      toast.error('Notifications non disponibles ici.');
     }
   };
 
@@ -129,15 +114,15 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
     try {
       setBusy(true);
       if (iosNeedsInstall) throw new Error(IOS_INSTALL_HELP);
-      if (!pushStatus.supported) throw new Error('Push non supporté ici. Ouvre Horizon Farm comme application installée ou depuis un navigateur compatible.');
-      if (!pushStatus.ready) throw new Error('Clé VAPID publique manquante côté Vercel.');
-      await subscribeDeviceToPush({ userId: 'owner', label: 'Appareil propriétaire Horizon Farm', channels: ['urgence', 'critique'] });
-      await sendTestPush({ title: 'Horizon Farm — test push', body: 'Ton appareil est abonné aux alertes critiques et urgences.', severity: 'critique', module: 'alertes' });
-      toast.success('Notifications avancées activées et test envoyé');
+      if (!pushStatus.supported) throw new Error('Push non supporté ici.');
+      if (!pushStatus.ready) throw new Error('Configuration push manquante.');
+      await subscribeDeviceToPush({ userId: 'owner', label: 'Appareil Horizon Farm', channels: ['urgence', 'critique'] });
+      await sendTestPush({ title: 'Horizon Farm', body: 'Notification test envoyée.', severity: 'critique', module: 'alertes' });
+      toast.success('Notifications avancées activées');
       hideBannerForever();
       setHidden(true);
     } catch (error) {
-      toast.error(error.message || 'Activation push avancée impossible');
+      toast.error(error.message || 'Activation impossible');
     } finally {
       setBusy(false);
     }
@@ -151,15 +136,14 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
   if (hidden || notificationPermission() === 'granted') return null;
   return (
     <div className="fixed bottom-4 right-4 z-40 max-w-sm rounded-2xl bg-[#2f2415] text-white shadow-xl border border-[#c9a96a] p-3 space-y-2">
-      <p className="text-sm font-black">Alertes Horizon Farm</p>
-      <p className="text-xs text-[#f4e6c8]">{iosNeedsInstall ? 'Sur iPhone, installe Horizon Farm sur l ecran d accueil puis ouvre l app depuis son icone pour activer les notifications.' : 'Active les notifications appareil. Le mode avancé permet l’abonnement push serveur quand les clés VAPID sont configurées.'}</p>
+      <p className="text-sm font-black">Notifications</p>
+      <p className="text-xs text-[#f4e6c8]">Recevoir les alertes critiques sur cet appareil.</p>
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={enableLocal} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-white/15">Activer local</button>
-        <button type="button" disabled={busy} onClick={enableAdvanced} className="rounded-full bg-[#c9a96a] px-3 py-1.5 text-xs font-bold text-[#2f2415] disabled:opacity-60">{busy ? 'Activation...' : 'Activer avancé'}</button>
+        <button type="button" onClick={enableLocal} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-white/15">Activer</button>
+        <button type="button" disabled={busy} onClick={enableAdvanced} className="rounded-full bg-[#c9a96a] px-3 py-1.5 text-xs font-bold text-[#2f2415] disabled:opacity-60">{busy ? 'Activation...' : 'Mode avancé'}</button>
         <button type="button" onClick={dismiss} className="rounded-full border border-white/20 px-3 py-1.5 text-xs font-bold">Plus tard</button>
       </div>
-      {iosNeedsInstall ? <p className="text-[11px] text-amber-200">Etapes : Safari, bouton Partager, Ajouter a l ecran d accueil, puis ouvrir Horizon Farm depuis l icone créée.</p> : null}
-      {!iosNeedsInstall && !pushStatus.ready ? <p className="text-[11px] text-amber-200">Pack avancé prêt côté code, mais VITE_VAPID_PUBLIC_KEY doit être configurée sur Vercel.</p> : null}
+      {iosNeedsInstall ? <p className="text-[11px] text-amber-200">Sur iPhone : Safari → Partager → Ajouter à l’écran d’accueil.</p> : null}
     </div>
   );
 }
