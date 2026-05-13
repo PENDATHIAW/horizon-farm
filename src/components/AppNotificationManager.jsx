@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { notifyAlerts, notificationPermission, requestNotificationPermission, shouldNotifyAlert } from '../utils/appNotifications';
+import { isDeletedRecord } from '../utils/deletedRecords';
 import { pushSetupStatus, sendTestPush, subscribeDeviceToPush } from '../utils/pushSubscriptions';
 
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -62,7 +63,9 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
   const iosNeedsInstall = isIOSDevice() && !isStandaloneApp();
   const alerts = useMemo(() => {
     const persisted = arr(dataMap.alertes_center).filter(activeAlert).filter(criticalSeverity);
-    return [...persisted, ...buildDerivedAlerts(dataMap)].filter((alert) => shouldNotifyAlert(alert));
+    return [...persisted, ...buildDerivedAlerts(dataMap)]
+      .filter((alert) => !isDeletedRecord('alertes_center', alert))
+      .filter((alert) => shouldNotifyAlert(alert));
   }, [dataMap]);
   const pushStatus = pushSetupStatus();
 
