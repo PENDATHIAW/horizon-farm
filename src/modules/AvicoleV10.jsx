@@ -1,4 +1,4 @@
-import { BarChart3, ClipboardList, HeartPulse, PackageCheck, Scissors } from 'lucide-react';
+import { BarChart3, ClipboardList, Egg, PackageCheck, Scissors } from 'lucide-react';
 import AvicoleBase from './AvicoleBase.jsx';
 import AvicoleEvolution from './AvicoleEvolution.jsx';
 import AvicoleJournalsBridge from './AvicoleJournalsBridge.jsx';
@@ -46,9 +46,9 @@ export default function AvicoleV10(props) {
       </ModuleSection>
 
       <ModuleSection
-        icon={HeartPulse}
-        title="Journaux et charges directes"
-        subtitle="Ponte, mortalité, alimentation, frais ponctuels et événements liés aux lots."
+        icon={Egg}
+        title="Ponte, œufs et charges directes"
+        subtitle="Ramassage des œufs, stock d’œufs vendables, frais ponctuels et événements liés aux lots."
       >
         <AvicoleJournalsBridge
           rows={props.rows || []}
@@ -67,7 +67,7 @@ export default function AvicoleV10(props) {
         />
         <DirectChargesBridge
           title="Charges directes avicoles"
-          subtitle="Frais exceptionnels liés à un lot : transport, emballage, découpe, traitement spécial ou main-d’œuvre ponctuelle."
+          subtitle="Frais exceptionnels liés à un lot : transport, emballage, traitement spécial ou main-d’œuvre ponctuelle."
           targetType="avicole"
           targets={props.rows || []}
           businessEvents={props.businessEvents || []}
@@ -81,7 +81,7 @@ export default function AvicoleV10(props) {
       <ModuleSection
         icon={Scissors}
         title="Abattage, transformation et stock"
-        subtitle="Sortie des sujets, poids, transformation et création éventuelle de stock vendable."
+        subtitle="Sortie des sujets chair, poids, transformation et création éventuelle de stock viande vendable."
       >
         <AvicoleTransformationBridge
           rows={props.rows || []}
