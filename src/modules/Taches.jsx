@@ -10,8 +10,8 @@ export default function Taches(props) {
       <GenericCrudModule
         {...props}
         moduleKey="taches"
-        title="Workflow & Tâches"
-        sub="Tâches quotidiennes, rappels, routines et checklists terrain"
+        title="Tâches terrain"
+        sub="Actions quotidiennes, rappels, routines et suivi de l’équipe"
         fields={taskFields()}
         columns={['id', 'title', 'module_lie', 'assigned_to', 'due_date', 'priority', 'status']}
         initialValues={taskInitialValues(rows)}
@@ -23,7 +23,7 @@ export default function Taches(props) {
           { icon: ListChecks, label: 'Tâches', value: rows.length, color: 'bg-sky-500/20 text-sky-400' },
           { icon: Clock, label: 'À faire', value: rows.filter((r) => r.status === 'a_faire').length, color: 'bg-amber-500/20 text-amber-500' },
           { icon: CheckCircle, label: 'Terminées', value: rows.filter((r) => r.status === 'termine').length, color: 'bg-emerald-500/20 text-emerald-500' },
-          { icon: AlertTriangle, label: 'Critiques', value: rows.filter((r) => r.priority === 'critique' || r.status === 'retard').length, color: 'bg-red-500/20 text-red-500' },
+          { icon: AlertTriangle, label: 'Urgentes', value: rows.filter((r) => r.priority === 'critique' || r.status === 'retard').length, color: 'bg-red-500/20 text-red-500' },
         ]}
       />
       <TachesEvolution rows={rows} onNavigate={props.onNavigate} />
