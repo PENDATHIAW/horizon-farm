@@ -25,7 +25,7 @@ class SafeHealthBlock extends Component {
 
   render() {
     if (this.state.hasError) {
-      return <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"><AlertTriangle size={16} className="inline" /> Cette partie n’a pas pu s’afficher. Les autres parties du module restent disponibles.</div>;
+      return <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"><AlertTriangle size={16} className="inline" /> Cette partie demande une mise à jour. Tu peux continuer à utiliser les autres informations santé.</div>;
     }
     return this.props.children;
   }
