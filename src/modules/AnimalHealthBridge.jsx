@@ -38,7 +38,7 @@ export default function AnimalHealthBridge({ rows = [], alimentationLogs = [], v
       const growth = buildGrowthSummary(animal);
       const healthId = makeId('SAN');
       const taskId = makeId('TSK');
-      const reason = isAtRisk(animal) ? `Statut santé: ${animal.health_status || 'à vérifier'}` : `Croissance: ${growth.label}`;
+      const reason = isAtRisk(animal) ? `Santé : ${animal.health_status || 'à vérifier'}` : `Croissance : ${growth.label}`;
       await santeCrud.create?.({
         id: healthId,
         nom: `Suivi ${animalName(animal)}`,
@@ -77,7 +77,7 @@ export default function AnimalHealthBridge({ rows = [], alimentationLogs = [], v
         entity_id: animal.id,
         severity: isAtRisk(animal) ? 'warning' : 'info',
         status: 'nouvelle',
-        action_recommandee: 'Contrôler l’animal et compléter le module Santé & Biosécurité.',
+        action_recommandee: 'Contrôler l’animal et compléter Santé & Vaccins.',
       });
       await eventsCrud.create?.({
         id: makeId('EVT'),
@@ -105,8 +105,9 @@ export default function AnimalHealthBridge({ rows = [], alimentationLogs = [], v
     <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Animaux connectés</p>
-          <h3 className="font-black text-[#2f2415]">Santé, alimentation et suivi</h3>
+          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Suivi animal</p>
+          <h3 className="font-black text-[#2f2415]">Santé, alimentation et alertes</h3>
+          <p className="mt-1 text-sm text-[#8a7456]">Repère les animaux à contrôler et crée directement le suivi santé, la tâche et l’alerte.</p>
         </div>
         <div className="grid grid-cols-3 gap-2 text-sm">
           <Box icon={HeartPulse} label="À suivre" value={atRisk.length} />
