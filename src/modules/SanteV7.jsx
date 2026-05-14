@@ -1,5 +1,5 @@
 import { Component } from 'react';
-import { AlertTriangle, BarChart3, HeartPulse, ShieldCheck } from 'lucide-react';
+import { BarChart3, HeartPulse, ShieldCheck } from 'lucide-react';
 import useCrudModule from '../hooks/useCrudModule';
 import HealthQualityControl from './HealthQualityControl.jsx';
 import SanteV6 from './SanteV6.jsx';
@@ -24,9 +24,7 @@ class SafeHealthBlock extends Component {
   }
 
   render() {
-    if (this.state.hasError) {
-      return <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"><AlertTriangle size={16} className="inline" /> Cette partie demande une mise à jour. Tu peux continuer à utiliser les autres informations santé.</div>;
-    }
+    if (this.state.hasError) return null;
     return this.props.children;
   }
 }
