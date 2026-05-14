@@ -5,6 +5,7 @@ import { deriveSalesOpportunities, salesOpportunityAmount } from '../utils/sales
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value) => String(value || '').trim().toLowerCase();
 const doneStatuses = ['termine', 'terminé', 'done', 'closed', 'annule', 'annulé', 'convertie', 'traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée', 'archive', 'archivée', 'supprime', 'supprimé'];
+const MODULE_LABELS = { animaux: 'Animaux', avicole: 'Avicole', cultures: 'Cultures', finances: 'Finances', stocks: 'Stock', stock: 'Stock', ventes: 'Ventes', sante: 'Santé', documents: 'Documents', taches: 'Tâches', alertes: 'Alertes', rapports: 'Rapports', autre: 'Autre' };
 
 function isTaskOpen(row = {}) {
   const status = clean(row.status || row.statut || 'a_faire');
@@ -17,6 +18,7 @@ function isAlertOpen(row = {}) {
 function equipmentRisk(row = {}) {
   return ['panne', 'maintenance', 'hors_service', 'a_reparer'].includes(clean(row.status || row.statut));
 }
+const moduleLabel = (key) => MODULE_LABELS[key] || String(key || '').replace(/_/g, ' ') || 'Ferme';
 
 export default function DashboardOperationsBridge({ opportunities = [], lots = [], animaux = [], cultures = [], stocks = [], taches = [], alertes = [], equipements = [], businessEvents = [], onNavigate }) {
   const openOpportunities = deriveSalesOpportunities({ opportunities, lots, animaux, cultures, stocks });
@@ -30,24 +32,24 @@ export default function DashboardOperationsBridge({ opportunities = [], lots = [
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <QuickCard icon={Receipt} label="Opportunités" value={openOpportunities.length} detail={fmtCurrency(opportunityValue)} module="ventes" onNavigate={onNavigate} tone="emerald" />
-        <QuickCard icon={ListChecks} label="Tâches ouvertes" value={openTasks.length} detail={`${criticalTasks} prioritaires`} module="taches" onNavigate={onNavigate} tone={criticalTasks ? 'amber' : 'neutral'} />
+        <QuickCard icon={Receipt} label="Ventes possibles" value={openOpportunities.length} detail={fmtCurrency(opportunityValue)} module="ventes" onNavigate={onNavigate} tone="emerald" />
+        <QuickCard icon={ListChecks} label="Tâches ouvertes" value={openTasks.length} detail={`${criticalTasks} prioritaire(s)`} module="taches" onNavigate={onNavigate} tone={criticalTasks ? 'amber' : 'neutral'} />
         <QuickCard icon={AlertTriangle} label="Alertes" value={openAlerts.length} detail="à traiter" module="alertes" onNavigate={onNavigate} tone={openAlerts.length ? 'red' : 'emerald'} />
-        <QuickCard icon={Wrench} label="Maintenance" value={equipmentAlerts.length} detail="équipements" module="equipements" onNavigate={onNavigate} tone={equipmentAlerts.length ? 'amber' : 'emerald'} />
-        <QuickCard icon={TrendingUp} label="Actions tracées" value={recentEvents.length} detail="récentes" module="tracabilite" onNavigate={onNavigate} tone="neutral" />
+        <QuickCard icon={Wrench} label="Maintenance" value={equipmentAlerts.length} detail="équipement(s)" module="equipements" onNavigate={onNavigate} tone={equipmentAlerts.length ? 'amber' : 'emerald'} />
+        <QuickCard icon={TrendingUp} label="Mémoire ferme" value={recentEvents.length} detail="faits récents" module="tracabilite" onNavigate={onNavigate} tone="neutral" />
       </div>
 
       {recentEvents.length ? (
         <div className="bg-white border border-[#d6c3a0] rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
-            <p className="font-semibold text-[#2f2415]">Dernières actions ERP</p>
-            <button type="button" onClick={() => onNavigate?.('tracabilite')} className="text-xs font-bold text-[#9a6b12]">Voir trace</button>
+            <p className="font-semibold text-[#2f2415]">Derniers faits importants</p>
+            <button type="button" onClick={() => onNavigate?.('tracabilite')} className="text-xs font-bold text-[#9a6b12]">Voir l’historique</button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-2">
             {recentEvents.map((event) => (
               <button key={event.id || `${event.title}-${event.event_date}`} type="button" onClick={() => onNavigate?.('tracabilite')} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-left">
-                <p className="text-sm font-bold text-[#2f2415] truncate"><CheckCircle2 size={13} className="inline text-emerald-600" /> {event.title || event.event_type || 'Action'}</p>
-                <p className="text-xs text-[#8a7456] mt-1 truncate">{event.module_source || event.entity_type || 'ERP'} · {event.event_date || ''}</p>
+                <p className="text-sm font-bold text-[#2f2415] truncate"><CheckCircle2 size={13} className="inline text-emerald-600" /> {event.title || event.event_type || 'Fait important'}</p>
+                <p className="text-xs text-[#8a7456] mt-1 truncate">{moduleLabel(event.module_source || event.entity_type)} · {event.event_date || ''}</p>
               </button>
             ))}
           </div>
