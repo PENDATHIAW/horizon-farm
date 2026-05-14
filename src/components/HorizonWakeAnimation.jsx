@@ -1,4 +1,4 @@
-import { Bot, Mic, Sun } from 'lucide-react';
+import { Bot, Mic, Sparkles, Sun } from 'lucide-react';
 
 export default function HorizonWakeAnimation({ state = 'idle', onWake }) {
   const active = state !== 'idle';
@@ -7,83 +7,227 @@ export default function HorizonWakeAnimation({ state = 'idle', onWake }) {
     <>
       <style>{`
         @media (prefers-reduced-motion: reduce) {
-          .horizon-lightning,
-          .horizon-sun,
-          .horizon-glow { animation: none !important; }
+          .horizon-wake-scene * { animation: none !important; }
         }
-        .horizon-lightning {
-          position: fixed;
-          left: 50%;
-          bottom: 2rem;
-          width: 9px;
-          height: 9px;
-          border-radius: 999px;
-          background: #f6c453;
-          box-shadow: 0 0 16px rgba(246,196,83,.95), 0 0 36px rgba(34,197,94,.38);
-          z-index: 70;
-          pointer-events: none;
-          opacity: 0;
-          animation: horizonCircuit 2.05s ease-in-out forwards;
-        }
-        .horizon-lightning::after {
-          content: '';
-          position: absolute;
-          width: 80px;
-          height: 3px;
-          border-radius: 999px;
-          background: linear-gradient(90deg, transparent, #f6c453, #22c55e, transparent);
-          transform: translate(-72px, 3px) rotate(-16deg);
-          filter: blur(.2px);
-        }
-        .horizon-glow {
+
+        .horizon-wake-scene {
           position: fixed;
           inset: 0;
-          z-index: 60;
+          z-index: 70;
           pointer-events: none;
-          opacity: 0;
-          background: radial-gradient(circle at 50% 100%, rgba(246,196,83,.18), transparent 28%), radial-gradient(circle at 90% 90%, rgba(34,197,94,.12), transparent 25%);
-          animation: horizonGlow 2.2s ease-in-out forwards;
+          overflow: hidden;
         }
-        .horizon-sun {
-          position: fixed;
-          right: 1rem;
-          bottom: 1rem;
-          width: 86px;
-          height: 86px;
+
+        .horizon-sky {
+          position: absolute;
+          inset: 0;
+          opacity: 0;
+          background:
+            radial-gradient(circle at 50% 28%, rgba(246,196,83,.36), transparent 24%),
+            linear-gradient(180deg, rgba(34,197,94,.07), transparent 42%, rgba(138,90,43,.08));
+          animation: horizonSky 6.8s ease-in-out forwards;
+        }
+
+        .horizon-line {
+          position: absolute;
+          left: 8vw;
+          right: 8vw;
+          top: 38vh;
+          height: 2px;
+          opacity: 0;
+          background: linear-gradient(90deg, transparent, rgba(34,197,94,.45), rgba(246,196,83,.95), rgba(34,197,94,.45), transparent);
+          box-shadow: 0 0 22px rgba(246,196,83,.55), 0 0 55px rgba(34,197,94,.28);
+          animation: horizonLine 6.8s ease-in-out forwards;
+        }
+
+        .horizon-earth {
+          position: absolute;
+          left: 50%;
+          bottom: -70px;
+          width: min(82vw, 840px);
+          height: 220px;
+          transform: translateX(-50%);
+          border-radius: 50% 50% 0 0;
+          opacity: 0;
+          background: radial-gradient(circle at 50% 0%, rgba(246,196,83,.5), rgba(34,197,94,.24) 30%, rgba(138,90,43,.18) 56%, transparent 72%);
+          filter: blur(1px);
+          animation: horizonEarth 6.8s ease-in-out forwards;
+        }
+
+        .horizon-seed {
+          position: absolute;
+          left: 50%;
+          bottom: 2.1rem;
+          width: 18px;
+          height: 18px;
           border-radius: 999px;
-          z-index: 71;
-          pointer-events: none;
+          background: #f6c453;
+          box-shadow: 0 0 22px rgba(246,196,83,.95), 0 0 62px rgba(34,197,94,.42);
           opacity: 0;
-          background: radial-gradient(circle, rgba(255,255,255,.96) 0 24%, rgba(246,196,83,.86) 25% 48%, rgba(34,197,94,.22) 49% 68%, transparent 69%);
-          box-shadow: 0 0 28px rgba(246,196,83,.7), 0 0 70px rgba(34,197,94,.28);
-          animation: horizonSun 2.45s ease-in-out forwards;
+          animation: horizonSeedRise 6.8s cubic-bezier(.2,.8,.2,1) forwards;
         }
-        @keyframes horizonCircuit {
-          0% { opacity: 0; left: 50%; bottom: 1.25rem; transform: scale(.7); }
-          10% { opacity: 1; left: 50%; bottom: 1.25rem; transform: scale(1); }
-          28% { left: 1.25rem; bottom: 1.25rem; }
-          46% { left: 1.25rem; bottom: calc(100vh - 1.25rem); }
-          64% { left: calc(100vw - 1.25rem); bottom: calc(100vh - 1.25rem); }
-          82% { left: calc(100vw - 1.25rem); bottom: 1.25rem; opacity: 1; }
-          100% { left: calc(100vw - 3.5rem); bottom: 3.5rem; opacity: 0; transform: scale(1.8); }
+
+        .horizon-beam {
+          position: absolute;
+          left: 50%;
+          bottom: 2.6rem;
+          width: 6px;
+          height: 0;
+          border-radius: 999px;
+          transform: translateX(-50%);
+          opacity: 0;
+          background: linear-gradient(0deg, rgba(246,196,83,.96), rgba(255,255,255,.92), rgba(34,197,94,.38), transparent);
+          box-shadow: 0 0 22px rgba(246,196,83,.7), 0 0 70px rgba(34,197,94,.26);
+          animation: horizonBeam 6.8s ease-in-out forwards;
         }
-        @keyframes horizonGlow {
-          0%, 100% { opacity: 0; }
-          28%, 76% { opacity: 1; }
+
+        .horizon-orbit {
+          position: absolute;
+          left: 50%;
+          top: 38vh;
+          width: 260px;
+          height: 260px;
+          margin-left: -130px;
+          margin-top: -130px;
+          border-radius: 999px;
+          border: 1px solid rgba(246,196,83,.18);
+          opacity: 0;
+          animation: horizonOrbit 6.8s ease-in-out forwards;
         }
-        @keyframes horizonSun {
-          0%, 72% { opacity: 0; transform: scale(.35); }
-          86% { opacity: 1; transform: scale(1.08); }
-          100% { opacity: .9; transform: scale(1); }
+
+        .horizon-orbit::before,
+        .horizon-orbit::after {
+          content: '';
+          position: absolute;
+          width: 8px;
+          height: 8px;
+          border-radius: 999px;
+          background: #22c55e;
+          box-shadow: 0 0 18px rgba(34,197,94,.8);
         }
+        .horizon-orbit::before { left: 18px; top: 60px; }
+        .horizon-orbit::after { right: 28px; bottom: 42px; background: #f6c453; box-shadow: 0 0 18px rgba(246,196,83,.8); }
+
+        .horizon-main-sun {
+          position: absolute;
+          left: 50%;
+          top: 38vh;
+          width: 154px;
+          height: 154px;
+          margin-left: -77px;
+          margin-top: -77px;
+          border-radius: 999px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #2f2415;
+          opacity: 0;
+          background:
+            radial-gradient(circle, white 0 16%, rgba(246,196,83,1) 17% 42%, rgba(255,232,151,.62) 43% 58%, rgba(34,197,94,.18) 59% 72%, transparent 73%);
+          box-shadow: 0 0 42px rgba(246,196,83,.86), 0 0 110px rgba(246,196,83,.48), 0 0 190px rgba(34,197,94,.24);
+          animation: horizonSunRise 6.8s ease-in-out forwards;
+        }
+
+        .horizon-main-sun::before,
+        .horizon-main-sun::after {
+          content: '';
+          position: absolute;
+          inset: -22px;
+          border-radius: 999px;
+          border: 2px solid rgba(246,196,83,.34);
+          animation: horizonListeningRing 1.8s ease-in-out infinite;
+        }
+        .horizon-main-sun::after {
+          inset: -42px;
+          border-color: rgba(34,197,94,.18);
+          animation-delay: .3s;
+        }
+
+        .horizon-caption {
+          position: absolute;
+          left: 50%;
+          top: calc(38vh + 98px);
+          transform: translateX(-50%);
+          border: 1px solid rgba(246,196,83,.42);
+          background: rgba(47,36,21,.86);
+          color: #fff8dc;
+          backdrop-filter: blur(14px);
+          border-radius: 999px;
+          padding: .72rem 1.1rem;
+          font-weight: 900;
+          letter-spacing: .015em;
+          box-shadow: 0 20px 70px rgba(47,36,21,.28);
+          opacity: 0;
+          white-space: nowrap;
+          animation: horizonCaption 6.8s ease-in-out forwards;
+        }
+
+        .horizon-listening-badge {
+          position: absolute;
+          left: 50%;
+          top: calc(38vh + 145px);
+          transform: translateX(-50%);
+          display: flex;
+          align-items: center;
+          gap: .5rem;
+          border: 1px solid rgba(34,197,94,.32);
+          background: rgba(236,253,245,.92);
+          color: #047857;
+          border-radius: 999px;
+          padding: .55rem .9rem;
+          font-size: .78rem;
+          font-weight: 900;
+          opacity: 0;
+          box-shadow: 0 18px 60px rgba(34,197,94,.16);
+          animation: horizonListeningBadge 6.8s ease-in-out forwards;
+        }
+
+        .horizon-particle {
+          position: absolute;
+          width: 8px;
+          height: 8px;
+          border-radius: 999px;
+          opacity: 0;
+          background: #f6c453;
+          box-shadow: 0 0 18px rgba(246,196,83,.9);
+          animation: horizonParticle 6.8s ease-in-out forwards;
+        }
+        .horizon-particle.p1 { left: 30%; top: 50%; animation-delay: .8s; }
+        .horizon-particle.p2 { left: 19%; top: 32%; animation-delay: 1.3s; background: #22c55e; }
+        .horizon-particle.p3 { right: 22%; top: 30%; animation-delay: 2s; }
+        .horizon-particle.p4 { right: 31%; top: 52%; animation-delay: 2.5s; background: #22c55e; }
+        .horizon-particle.p5 { left: 50%; top: 22%; animation-delay: 3.1s; }
+
+        @keyframes horizonSky { 0%,100% { opacity: 0; } 12%,92% { opacity: 1; } }
+        @keyframes horizonLine { 0%,16% { opacity: 0; transform: scaleX(.05); } 30%,100% { opacity: 1; transform: scaleX(1); } }
+        @keyframes horizonEarth { 0% { opacity: 0; transform: translateX(-50%) translateY(60px) scale(.82); } 14%,88% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } 100% { opacity: 0; transform: translateX(-50%) translateY(18px) scale(1.08); } }
+        @keyframes horizonSeedRise { 0% { opacity: 0; left: 50%; bottom: 2.1rem; transform: scale(.4); } 12% { opacity: 1; transform: scale(1); } 52% { left: 50%; bottom: 62vh; transform: scale(1.25); } 72% { opacity: 0; left: 50%; bottom: 62vh; transform: scale(3); } 100% { opacity: 0; } }
+        @keyframes horizonBeam { 0%,10% { opacity: 0; height: 0; } 18%,54% { opacity: 1; height: calc(62vh - 2rem); } 75%,100% { opacity: 0; height: calc(62vh - 2rem); } }
+        @keyframes horizonOrbit { 0%,46% { opacity: 0; transform: scale(.5) rotate(-20deg); } 66%,100% { opacity: .95; transform: scale(1) rotate(12deg); } }
+        @keyframes horizonSunRise { 0%,48% { opacity: 0; transform: scale(.2) translateY(22px); } 64% { opacity: 1; transform: scale(1.1) translateY(0); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes horizonCaption { 0%,20% { opacity: 0; transform: translateX(-50%) translateY(12px); } 34%,78% { opacity: 1; transform: translateX(-50%) translateY(0); } 100% { opacity: 0; transform: translateX(-50%) translateY(-8px); } }
+        @keyframes horizonListeningBadge { 0%,62% { opacity: 0; transform: translateX(-50%) translateY(8px); } 74%,100% { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        @keyframes horizonParticle { 0%,100% { opacity: 0; transform: translateY(22px) scale(.6); } 36%,78% { opacity: .95; transform: translateY(-14px) scale(1); } }
+        @keyframes horizonListeningRing { 0%,100% { opacity: .34; transform: scale(.95); } 50% { opacity: .92; transform: scale(1.08); } }
       `}</style>
 
       {active ? (
-        <>
-          <div className="horizon-glow" />
-          <div className="horizon-lightning" />
-          <div className="horizon-sun flex items-center justify-center text-[#2f2415]"><Sun size={26} /></div>
-        </>
+        <div className="horizon-wake-scene">
+          <div className="horizon-sky" />
+          <div className="horizon-earth" />
+          <div className="horizon-line" />
+          <div className="horizon-beam" />
+          <div className="horizon-seed" />
+          <div className="horizon-particle p1" />
+          <div className="horizon-particle p2" />
+          <div className="horizon-particle p3" />
+          <div className="horizon-particle p4" />
+          <div className="horizon-particle p5" />
+          <div className="horizon-orbit" />
+          <div className="horizon-main-sun"><Sun size={48} /></div>
+          <div className="horizon-caption">🌱 De la terre à l’horizon…</div>
+          <div className="horizon-listening-badge"><Mic size={14} /> Horizon écoute</div>
+        </div>
       ) : null}
 
       <button
@@ -97,9 +241,9 @@ export default function HorizonWakeAnimation({ state = 'idle', onWake }) {
           <span className="w-9 h-9 rounded-full bg-[#f6c453] text-[#2f2415] flex items-center justify-center shadow-lg"><Bot size={18} /></span>
           <span className="hidden sm:block text-left leading-tight">
             <span className="block text-xs font-black">Hey Horizon</span>
-            <span className="block text-[10px] text-[#f8e8b6]">Je t'écoute</span>
+            <span className="block text-[10px] text-[#f8e8b6]">Mode soleil</span>
           </span>
-          <Mic size={15} className="text-[#f8e8b6]" />
+          <Sparkles size={15} className="text-[#f8e8b6]" />
         </span>
       </button>
     </>
