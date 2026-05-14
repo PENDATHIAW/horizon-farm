@@ -47,7 +47,7 @@ export default function ComptabiliteV6(props) {
     const cashOut = transactions.filter(isOut).length;
     const missingDocs = transactions.filter(isMissingDoc).length;
     const warnings = [...(finance.warnings || [])];
-    if (missingDocs) warnings.push(`${missingDocs} écriture(s) sans pièce liée`);
+    if (missingDocs) warnings.push(`${missingDocs} mouvement(s) sans justificatif lié`);
     return { entries, cashIn, cashOut, missingDocs, warnings };
   }, [transactions, finance.warnings]);
 
@@ -58,29 +58,29 @@ export default function ComptabiliteV6(props) {
       <ModuleSection
         icon={ShieldCheck}
         title="Contrôle comptable"
-        subtitle="Écritures, pièces justificatives, créances et points à vérifier."
+        subtitle="Mouvements d’argent, justificatifs, restes à encaisser et points à vérifier."
       >
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-widest text-[#8a7456] font-bold">Contrôle rapide</p>
-            <h3 className="text-xl font-black text-[#2f2415]">Écritures, pièces et rapprochements</h3>
-            <p className="text-sm text-[#8a7456] mt-1">Contrôle des mouvements, justificatifs et anomalies avant analyse du résultat.</p>
+            <h3 className="text-xl font-black text-[#2f2415]">Argent, justificatifs et vérifications</h3>
+            <p className="text-sm text-[#8a7456] mt-1">On vérifie les mouvements, les preuves et les anomalies avant de lire le résultat.</p>
           </div>
-          {accounting.warnings.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {accounting.warnings.length} contrôle(s) à traiter</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 size={15} className="inline" /> Contrôles à jour</div>}
+          {accounting.warnings.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {accounting.warnings.length} point(s) à traiter</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 size={15} className="inline" /> Tout semble à jour</div>}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <ControlCard icon={Receipt} label="Écritures" value={accounting.entries} hint={`${accounting.cashIn} entrée(s), ${accounting.cashOut} sortie(s)`} />
-          <ControlCard icon={FileText} label="Pièces manquantes" value={accounting.missingDocs} hint="factures, reçus, justificatifs" danger={accounting.missingDocs > 0} />
-          <ControlCard icon={ShieldCheck} label="Créances suivies" value={fmtCurrency(finance.creancesReelles)} hint="reste client à contrôler" danger={finance.creancesReelles > 0} />
-          <ControlCard icon={AlertTriangle} label="Points à vérifier" value={accounting.warnings.length} hint="doublons, orphelins, pièces" danger={accounting.warnings.length > 0} />
+          <ControlCard icon={Receipt} label="Mouvements" value={accounting.entries} hint={`${accounting.cashIn} entrée(s), ${accounting.cashOut} sortie(s)`} />
+          <ControlCard icon={FileText} label="Justificatifs manquants" value={accounting.missingDocs} hint="factures, reçus, photos ou preuves" danger={accounting.missingDocs > 0} />
+          <ControlCard icon={ShieldCheck} label="Reste à encaisser" value={fmtCurrency(finance.creancesReelles)} hint="montant client à suivre" danger={finance.creancesReelles > 0} />
+          <ControlCard icon={AlertTriangle} label="Points à vérifier" value={accounting.warnings.length} hint="doublons, montants, preuves" danger={accounting.warnings.length > 0} />
         </div>
         {accounting.warnings.length ? <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{accounting.warnings.slice(0, 4).map((warning) => <div key={warning} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{warning}</div>)}</div> : null}
       </ModuleSection>
 
       <ModuleSection
         icon={TrendingUp}
-        title="Compte d’exploitation réel"
-        subtitle="CA, charges directes, structure, investissements, prélèvements et cash restant."
+        title="Résultat de la ferme"
+        subtitle="Ventes, charges, investissements, prélèvements et cash restant."
       >
         <ProfitabilityStatement
           transactions={transactions}
@@ -95,8 +95,8 @@ export default function ComptabiliteV6(props) {
 
       <ModuleSection
         icon={Receipt}
-        title="Écritures comptables"
-        subtitle="Vue détaillée des mouvements comptables et financiers."
+        title="Mouvements comptables"
+        subtitle="Détail des mouvements d’argent et des écritures à préparer ou valider."
       >
         <ComptabiliteV5 {...props} />
       </ModuleSection>
@@ -104,7 +104,7 @@ export default function ComptabiliteV6(props) {
       <ModuleSection
         icon={BarChart3}
         title="Évolution comptable"
-        subtitle="Graphes historiques des charges, revenus, paiements et résultat."
+        subtitle="Historique des charges, revenus, paiements et résultat."
       >
         <ComptabiliteEvolution
           transactions={props.transactions || []}
