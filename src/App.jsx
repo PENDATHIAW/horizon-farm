@@ -35,6 +35,7 @@ import LoginPage from './pages/LoginPage';
 const MODULES = {
   dashboard: lazy(() => import('./modules/DashboardV2')),
   assistant_erp: lazy(() => import('./modules/AssistantERPV2')),
+  centre_ia: lazy(() => import('./modules/CentreIA')),
   animaux: lazy(() => import('./modules/AnimauxV2')),
   avicole: lazy(() => import('./modules/AvicoleV10')),
   sante: lazy(() => import('./modules/SanteV7')),
@@ -129,6 +130,7 @@ export default function App() {
   const navItems = useMemo(() => [
     { id: 'dashboard', label: 'Accueil', icon: LayoutDashboard },
     { id: 'assistant_erp', label: 'Assistant ERP', icon: Radio },
+    { id: 'centre_ia', label: 'Centre IA', icon: TrendingUp, hasAlert: stocksCritiques > 0 || lotsAlerte > 0 || financesAlerte > 0 },
     { id: 'animaux', label: 'Animaux', icon: Beef },
     { id: 'avicole', label: 'Avicole', icon: Bird },
     { id: 'sante', label: 'Santé & Vaccins', icon: Syringe, hasAlert: vaccinsRetard > 0 },
@@ -151,7 +153,7 @@ export default function App() {
     { id: 'smartfarm', label: 'Smart Farm', icon: Radio },
     { id: 'sync_activity', label: 'Activité & Sync ERP', icon: Wifi, hasAlert: !online },
     { id: 'gestion_systeme', label: 'Gestion du système', icon: Wrench },
-  ], [vaccinsRetard, stocksCritiques, culturesRisque, online, dataMap.alertes_center, animauxMalades, lotsAlerte]);
+  ], [vaccinsRetard, stocksCritiques, culturesRisque, online, dataMap.alertes_center, animauxMalades, lotsAlerte, financesAlerte]);
 
   const reportData = { animaux: animauxCrud.rows, lots: avicoleCrud.rows, sante: santeCrud.rows, stocks: stockCrud.rows, cultures: culturesCrud.rows, salesOrders: salesOrdersCrud.rows, payments: paymentsCrud.rows, transactions: financesCrud.rows, clients: clientsCrud.rows, fournisseurs: fournisseursCrud.rows, taches: tachesCrud.rows, alertes: alertesCenterCrud.rows, equipements: equipementsCrud.rows };
 
@@ -160,6 +162,7 @@ export default function App() {
   const moduleProps = {
     dashboard: { lotsData: avicoleCrud.rows, animaux: animauxCrud.rows, vaccins: santeCrud.rows, stocks: stockCrud.rows, clients: clientsCrud.rows, cultures: culturesCrud.rows, salesOrders: salesOrdersCrud.rows, payments: paymentsCrud.rows, transactions: financesCrud.rows, alimentationLogs: alimentationLogsCrud.rows, productionLogs: productionOeufsLogsCrud.rows, opportunities: salesOpportunitiesCrud.rows, taches: tachesCrud.rows, alertes: alertesCenterCrud.rows, equipements: equipementsCrud.rows, businessEvents: businessEventsCrud.rows, meteo: liveMeteo, onNavigate: setActive, onRefresh: refreshAll },
     assistant_erp: { dataMap, onNavigate: setActive },
+    centre_ia: { lots: avicoleCrud.rows, productionLogs: productionOeufsLogsCrud.rows, alimentationLogs: alimentationLogsCrud.rows, stocks: stockCrud.rows, marketPrices: dataMap.market_prices || [], marketCalendarEvents: dataMap.market_calendar_events || [], salesOrders: salesOrdersCrud.rows, payments: paymentsCrud.rows, transactions: financesCrud.rows, smartfarmEvents: dataMap.smartfarm_events || [], sensors: sensorDevicesCrud.rows, cameras: cameraDevicesCrud.rows, meteo: liveMeteo, onNavigate: setActive },
     animaux: { rows: animauxCrud.rows, alimentationLogs: alimentationLogsCrud.rows, vaccins: santeCrud.rows, opportunities: salesOpportunitiesCrud.rows, loading: animauxCrud.loading, onCreate: animauxCrud.create, onUpdate: animauxCrud.update, onDelete: animauxCrud.remove, onRefresh: animauxCrud.refresh, onCreateOpportunity: salesOpportunitiesCrud.create, onUpdateOpportunity: salesOpportunitiesCrud.update, onRefreshOpportunities: salesOpportunitiesCrud.refresh, onCreateBusinessEvent: businessEventsCrud.create, onRefreshBusinessEvents: businessEventsCrud.refresh, onNavigate: setActive },
     avicole: { rows: avicoleCrud.rows, transactions: financesCrud.rows, alimentationLogs: alimentationLogsCrud.rows, productionLogs: productionOeufsLogsCrud.rows, loading: avicoleCrud.loading || productionOeufsLogsCrud.loading, onCreate: avicoleCrud.create, onUpdate: avicoleCrud.update, onDelete: avicoleCrud.remove, onRefresh: avicoleCrud.refresh, onCreateProduction: productionOeufsLogsCrud.create, onUpdateProduction: productionOeufsLogsCrud.update, onDeleteProduction: productionOeufsLogsCrud.remove, onRefreshProduction: productionOeufsLogsCrud.refresh, opportunities: salesOpportunitiesCrud.rows, onCreateOpportunity: salesOpportunitiesCrud.create, onUpdateOpportunity: salesOpportunitiesCrud.update, onRefreshOpportunities: salesOpportunitiesCrud.refresh, onCreateBusinessEvent: businessEventsCrud.create, onRefreshBusinessEvents: businessEventsCrud.refresh, onNavigate: setActive },
     sante: { rows: santeCrud.rows, vets: veterinairesCrud.rows, loading: santeCrud.loading, vetsLoading: veterinairesCrud.loading, onCreate: santeCrud.create, onUpdate: santeCrud.update, onDelete: santeCrud.remove, onRefresh: santeCrud.refresh, onCreateVet: veterinairesCrud.create, onUpdateVet: veterinairesCrud.update, onDeleteVet: veterinairesCrud.remove, onRefreshVets: veterinairesCrud.refresh, animaux: animauxCrud.rows, lots: avicoleCrud.rows, stocks: stockCrud.rows, transactions: financesCrud.rows, onCreateFinanceTransaction: financesCrud.create, onRefreshFinances: financesCrud.refresh, onNavigate: setActive },
