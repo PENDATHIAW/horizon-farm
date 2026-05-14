@@ -33,7 +33,7 @@ export default function AnimauxV2(props) {
       <ModuleSection
         icon={Beef}
         title="Cheptel par espèce"
-        subtitle="Choisir une espèce puis gérer uniquement les animaux concernés."
+        subtitle="Choisir une espèce pour voir uniquement les animaux concernés."
       >
         <div className="grid grid-cols-3 gap-2">
           {ANIMAL_SPECIES_TABS.map((tab) => (
@@ -53,8 +53,8 @@ export default function AnimauxV2(props) {
 
       <ModuleSection
         icon={PackageCheck}
-        title={`${species}s : gestion opérationnelle`}
-        subtitle="Fiches animaux, statuts, santé, disponibilité et actions utiles au quotidien."
+        title={`${species}s : suivi quotidien`}
+        subtitle="Fiches animaux, santé, disponibilité, poids, coûts et actions utiles."
       >
         <AnimauxSpeciesFocused
           {...props}
@@ -68,7 +68,7 @@ export default function AnimauxV2(props) {
       <ModuleSection
         icon={ClipboardList}
         title={`${species}s : cycle et historique`}
-        subtitle="Historique des entrées, sorties, ventes, pertes, clôtures et événements importants."
+        subtitle="Entrées, sorties, ventes, pertes, clôtures et événements importants."
       >
         <LifecycleHistoryPanel
           mode="animaux"
@@ -81,12 +81,12 @@ export default function AnimauxV2(props) {
 
       <ModuleSection
         icon={PackageCheck}
-        title={`${species}s : charges directes ponctuelles`}
-        subtitle="Transport, traitement spécial, abattage, emballage ou frais directement liés à un animal précis."
+        title={`${species}s : frais liés à un animal`}
+        subtitle="Transport, traitement spécial, emballage, main-d’œuvre ponctuelle ou autre frais directement rattaché à un animal."
       >
         <DirectChargesBridge
-          title={`Autres charges directes ${species.toLowerCase()}s`}
-          subtitle="Ces charges alimentent le coût direct animal, sans RH ni exploitation."
+          title={`Frais directs ${species.toLowerCase()}s`}
+          subtitle="Ces frais améliorent le calcul du coût réel par animal."
           targetType="animaux"
           targets={speciesRows}
           businessEvents={props.businessEvents || []}
@@ -117,7 +117,7 @@ export default function AnimauxV2(props) {
       <ModuleSection
         icon={BarChart3}
         title={`${species}s : évolution`}
-        subtitle="Graphes conservés : charges, ventes, marge, poids, croissance, mortalité et coût par animal."
+        subtitle="Poids, croissance, alimentation, santé, ventes, marge et coût par animal."
       >
         <AnimauxEvolution
           rows={speciesRows}
