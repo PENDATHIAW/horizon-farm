@@ -32,8 +32,6 @@ import AppLayout from './layouts/AppLayout';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 
-const ALWAYS_VISIBLE_MODULES = ['dashboard', 'assistant_erp', 'sante', 'rh'];
-
 const MODULES = {
   dashboard: lazy(() => import('./modules/DashboardV2')),
   assistant_erp: lazy(() => import('./modules/AssistantERPV2')),
@@ -68,7 +66,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [assistantOpen, setAssistantOpen] = useState(false);
 
-  const { user, loading: authLoading, signOut, canAccess } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const { dataMap, refreshModule, flushOfflineQueue } = useAppData();
   const { online, lastOnlineAt } = useOnlineStatus();
   const { weather: liveMeteo, loading: weatherLoading, source: weatherSource } = useLiveWeather();
@@ -129,8 +127,31 @@ export default function App() {
   };
 
   const navItems = useMemo(() => [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }, { id: 'assistant_erp', label: 'Assistant ERP', icon: Radio }, { id: 'animaux', label: 'Animaux', icon: Beef }, { id: 'avicole', label: 'Avicole', icon: Bird }, { id: 'sante', label: 'Santé & Vaccins', icon: Syringe, hasAlert: vaccinsRetard > 0 }, { id: 'finances', label: 'Finances', icon: DollarSign }, { id: 'comptabilite', label: 'Comptabilité', icon: BookOpen }, { id: 'investissements', label: 'Investissements', icon: TrendingUp }, { id: 'impact_business', label: 'Impact & Valeur', icon: TrendingUp, hasAlert: vaccinsRetard > 0 || stocksCritiques > 0 || animauxMalades > 0 || lotsAlerte > 0 }, { id: 'stock', label: 'Stock', icon: Package, hasAlert: stocksCritiques > 0 }, { id: 'clients', label: 'Clients & WhatsApp', icon: Users }, { id: 'ventes', label: 'Ventes', icon: Receipt }, { id: 'fournisseurs', label: 'Fournisseurs', icon: Truck }, { id: 'tracabilite', label: 'Traçabilité', icon: GitBranch }, { id: 'alertes', label: 'Centre Alertes', icon: History, hasAlert: (dataMap.alertes_center || []).filter((a) => a.status === 'nouvelle').length > 0 }, { id: 'cultures', label: 'Cultures', icon: Sprout, hasAlert: culturesRisque > 0 }, { id: 'documents', label: 'Documents', icon: FileText }, { id: 'taches', label: 'Tâches', icon: ListChecks }, { id: 'rh', label: 'RH & Équipe', icon: Users }, { id: 'rapports', label: 'Rapports', icon: FileText }, { id: 'equipements', label: 'Équipements', icon: Wrench }, { id: 'smartfarm', label: 'Smart Farm', icon: Radio }, { id: 'sync_activity', label: 'Vérifications & Sync', icon: Wifi, hasAlert: !online }, { id: 'gestion_systeme', label: 'Gestion du système', icon: Wrench },
-  ].filter((item) => ALWAYS_VISIBLE_MODULES.includes(item.id) || canAccess(item.id)), [vaccinsRetard, stocksCritiques, culturesRisque, online, canAccess, dataMap.alertes_center, animauxMalades, lotsAlerte]);
+    { id: 'dashboard', label: 'Accueil', icon: LayoutDashboard },
+    { id: 'assistant_erp', label: 'Assistant ERP', icon: Radio },
+    { id: 'animaux', label: 'Animaux', icon: Beef },
+    { id: 'avicole', label: 'Avicole', icon: Bird },
+    { id: 'sante', label: 'Santé & Vaccins', icon: Syringe, hasAlert: vaccinsRetard > 0 },
+    { id: 'finances', label: 'Finances', icon: DollarSign },
+    { id: 'comptabilite', label: 'Comptabilité', icon: BookOpen },
+    { id: 'investissements', label: 'Investissements', icon: TrendingUp },
+    { id: 'impact_business', label: 'Impact & Valeur', icon: TrendingUp, hasAlert: vaccinsRetard > 0 || stocksCritiques > 0 || animauxMalades > 0 || lotsAlerte > 0 },
+    { id: 'stock', label: 'Stock', icon: Package, hasAlert: stocksCritiques > 0 },
+    { id: 'clients', label: 'Clients', icon: Users },
+    { id: 'ventes', label: 'Ventes', icon: Receipt },
+    { id: 'fournisseurs', label: 'Fournisseurs', icon: Truck },
+    { id: 'tracabilite', label: 'Traçabilité', icon: GitBranch },
+    { id: 'alertes', label: 'Alertes', icon: History, hasAlert: (dataMap.alertes_center || []).filter((a) => a.status === 'nouvelle').length > 0 },
+    { id: 'cultures', label: 'Cultures', icon: Sprout, hasAlert: culturesRisque > 0 },
+    { id: 'documents', label: 'Documents', icon: FileText },
+    { id: 'taches', label: 'Tâches', icon: ListChecks },
+    { id: 'rh', label: 'RH & Équipe', icon: Users },
+    { id: 'rapports', label: 'Rapports', icon: FileText },
+    { id: 'equipements', label: 'Équipements', icon: Wrench },
+    { id: 'smartfarm', label: 'Smart Farm', icon: Radio },
+    { id: 'sync_activity', label: 'Activité & Sync ERP', icon: Wifi, hasAlert: !online },
+    { id: 'gestion_systeme', label: 'Gestion du système', icon: Wrench },
+  ], [vaccinsRetard, stocksCritiques, culturesRisque, online, dataMap.alertes_center, animauxMalades, lotsAlerte]);
 
   const reportData = { animaux: animauxCrud.rows, lots: avicoleCrud.rows, sante: santeCrud.rows, stocks: stockCrud.rows, cultures: culturesCrud.rows, salesOrders: salesOrdersCrud.rows, payments: paymentsCrud.rows, transactions: financesCrud.rows, clients: clientsCrud.rows, fournisseurs: fournisseursCrud.rows, taches: tachesCrud.rows, alertes: alertesCenterCrud.rows, equipements: equipementsCrud.rows };
 
