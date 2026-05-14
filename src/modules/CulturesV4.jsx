@@ -1,7 +1,6 @@
-import { BarChart3, ClipboardList, ShieldCheck, Sprout } from 'lucide-react';
+import { BarChart3, ClipboardList, Sprout } from 'lucide-react';
 import CulturesV3 from './CulturesV3.jsx';
 import CulturesEvolution from './CulturesEvolution.jsx';
-import CulturesReadinessBridge from './CulturesReadinessBridge.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
@@ -10,8 +9,7 @@ function ModuleSection({ icon: Icon, title, subtitle, children }) {
 
 export default function CulturesV4(props) {
   return <div className="space-y-6 cultures-mobile-structured"><style>{`@media (max-width: 640px){.cultures-mobile-structured .rounded-2xl{border-radius:18px}.cultures-mobile-structured table{font-size:12px}.cultures-mobile-structured th,.cultures-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.cultures-mobile-structured .text-2xl{font-size:1.35rem}.cultures-mobile-structured .grid{gap:.75rem}.cultures-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
-    <ModuleSection icon={Sprout} title="Gestion des cultures" subtitle="Parcelles, cycles, intrants, suivi, récoltes et actions quotidiennes."><CulturesV3 {...props} /></ModuleSection>
-    <ModuleSection icon={ShieldCheck} title="Cultures prêtes à défendre" subtitle="Vérifier intrants, eau, main-d’œuvre, coûts, récolte et résultat par parcelle."><CulturesReadinessBridge rows={props.rows || []} transactions={props.transactions || []} salesOrders={props.salesOrders || []} /></ModuleSection>
+    <ModuleSection icon={Sprout} title="Gestion des cultures" subtitle="Parcelles, campagnes, coûts, récoltes, marge et risques."><CulturesV3 {...props} /></ModuleSection>
     <ModuleSection icon={ClipboardList} title="Cycle et historique cultures" subtitle="Entrées, sorties, ventes, pertes, récoltes et événements importants."><LifecycleHistoryPanel mode="cultures" rows={props.rows || []} salesOrders={props.salesOrders || []} deliveries={props.deliveriesList || props.deliveries || []} businessEvents={props.businessEvents || []} /></ModuleSection>
     <ModuleSection icon={BarChart3} title="Évolution cultures" subtitle="Rendement, coûts, récoltes, ventes, pertes et valeur."><CulturesEvolution rows={props.rows || []} onNavigate={props.onNavigate} /></ModuleSection>
   </div>;
