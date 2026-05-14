@@ -4,12 +4,10 @@ import { computeGlobalProfitability, PROFIT_BUCKETS } from '../services/globalPr
 import { fmtCurrency } from '../utils/format';
 
 const bucketOrder = ['animaux', 'avicole', 'cultures', 'stock_non_affecte', 'sante_non_affectee', 'remuneration_proprietaire', 'rh', 'exploitation', 'equipements', 'fournisseurs_achats', 'autres_charges', 'investissements', 'prelevements_proprietaire'];
+const simpleBucketLabel = (key) => ({ stock_non_affecte: 'Stock à rattacher', sante_non_affectee: 'Santé à rattacher', remuneration_proprietaire: 'Rémunération propriétaire', fournisseurs_achats: 'Achats fournisseurs', autres_charges: 'Autres charges', prelevements_proprietaire: 'Prélèvements propriétaire' }[key] || PROFIT_BUCKETS[key] || key);
 
 function Line({ label, value, strong = false, danger = false, muted = false }) {
-  return <div className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 ${strong ? 'border-[#2f2415] bg-[#2f2415] text-white' : danger ? 'border-amber-200 bg-amber-50 text-amber-900' : muted ? 'border-[#eadcc2] bg-[#fffdf8] text-[#8a7456]' : 'border-[#eadcc2] bg-white text-[#2f2415]'}`}>
-    <span className={strong ? 'font-black' : 'font-bold'}>{label}</span>
-    <span className={strong ? 'font-black' : 'font-bold'}>{value}</span>
-  </div>;
+  return <div className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 ${strong ? 'border-[#2f2415] bg-[#2f2415] text-white' : danger ? 'border-amber-200 bg-amber-50 text-amber-900' : muted ? 'border-[#eadcc2] bg-[#fffdf8] text-[#8a7456]' : 'border-[#eadcc2] bg-white text-[#2f2415]'}`}><span className={strong ? 'font-black' : 'font-bold'}>{label}</span><span className={strong ? 'font-black' : 'font-bold'}>{value}</span></div>;
 }
 
 export default function ProfitabilityStatement({ transactions = [], salesOrders = [], payments = [], animaux = [], lots = [], cultures = [], stocks = [], compact = false }) {
@@ -18,43 +16,11 @@ export default function ProfitabilityStatement({ transactions = [], salesOrders 
   const profit = computeGlobalProfitability({ transactions: enrichedTransactions, salesOrders, payments });
   const unresolvedCount = quality.summary.unresolved || 0;
   const unallocatedCount = (profit.rowsByBucket.stock_non_affecte?.length || 0) + (profit.rowsByBucket.sante_non_affectee?.length || 0);
-  const title = compact ? 'Rentabilité réelle' : 'Compte d’exploitation réel';
+  const title = compact ? 'Rentabilité réelle' : 'Résultat de la ferme';
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
-    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-      <div>
-        <p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Calculator size={20} /> {title}</p>
-        <p className="mt-1 text-sm text-[#8a7456]">Auto-affectation des charges : l’ERP classe automatiquement les sorties avant calcul, sans double comptage.</p>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <div className={`${quality.reliability >= 80 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'} rounded-2xl border px-4 py-3 text-sm font-black`}>Fiabilité {quality.reliability}%</div>
-        <div className={`${profit.operatingResult >= 0 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'} rounded-2xl border px-4 py-3 text-sm font-black`}>
-          {profit.operatingResult >= 0 ? <TrendingUp size={15} className="inline" /> : <TrendingDown size={15} className="inline" />} Résultat {fmtCurrency(profit.operatingResult)}
-        </div>
-      </div>
-    </div>
-
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Line label="Chiffre d’affaires total" value={fmtCurrency(profit.caTotal)} strong />
-        <Line label="Charges directes activités" value={`- ${fmtCurrency(profit.directActivityCharges)}`} />
-        <Line label="Marge brute activités" value={fmtCurrency(profit.grossActivityMargin)} strong={profit.grossActivityMargin >= 0} danger={profit.grossActivityMargin < 0} />
-        <Line label="Charges non affectées automatiquement" value={`- ${fmtCurrency(profit.unallocatedOperationalCharges)}`} danger={profit.unallocatedOperationalCharges > 0} />
-        <Line label="Charges de structure, salaire inclus" value={`- ${fmtCurrency(profit.structureCharges)}`} />
-        <Line label="Résultat opérationnel" value={fmtCurrency(profit.operatingResult)} strong />
-        <Line label="Investissements" value={`- ${fmtCurrency(profit.investments)}`} muted />
-        <Line label="Solde après investissements" value={fmtCurrency(profit.cashResultAfterInvestments)} danger={profit.cashResultAfterInvestments < 0} />
-        <Line label="Prélèvements propriétaire" value={`- ${fmtCurrency(profit.ownerWithdrawals)}`} muted />
-        <Line label="Cash disponible après prélèvements" value={fmtCurrency(profit.availableCashAfterWithdrawals)} strong danger={profit.availableCashAfterWithdrawals < 0} />
-      </div>
-      <div className="space-y-2">
-        {bucketOrder.map((key) => <Line key={key} label={PROFIT_BUCKETS[key]} value={fmtCurrency(profit.buckets[key])} danger={['stock_non_affecte', 'sante_non_affectee'].includes(key) && profit.buckets[key] > 0} muted={profit.buckets[key] === 0} />)}
-      </div>
-    </div>
-
-    <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]">
-      Rémunération propriétaire = charge de structure qui impacte le résultat. Prélèvement propriétaire = sortie de cash personnelle qui n’impacte pas le résultat opérationnel.
-    </div>
-
-    {unresolvedCount || unallocatedCount ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 flex gap-2"><AlertTriangle size={16} className="shrink-0 mt-0.5" /> {quality.summary.auto || 0} charge(s) auto-classée(s). {unresolvedCount} charge(s) restent peu fiables, {unallocatedCount} charge(s) alimentation/santé restent non affectées automatiquement.</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 flex gap-2"><CheckCircle2 size={16} className="shrink-0 mt-0.5" /> Toutes les charges détectées ont été auto-classées avec une fiabilité suffisante. Le risque de double comptage est limité.</div>}
+    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Calculator size={20} /> {title}</p><p className="mt-1 text-sm text-[#8a7456]">Les charges sont regroupées par activité pour calculer le résultat sans les compter deux fois.</p></div><div className="flex flex-wrap gap-2"><div className={`${quality.reliability >= 80 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'} rounded-2xl border px-4 py-3 text-sm font-black`}>Clarté {quality.reliability}%</div><div className={`${profit.operatingResult >= 0 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'} rounded-2xl border px-4 py-3 text-sm font-black`}>{profit.operatingResult >= 0 ? <TrendingUp size={15} className="inline" /> : <TrendingDown size={15} className="inline" />} Résultat {fmtCurrency(profit.operatingResult)}</div></div></div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4"><div className="space-y-2"><Line label="Chiffre d’affaires total" value={fmtCurrency(profit.caTotal)} strong /><Line label="Charges liées aux activités" value={`- ${fmtCurrency(profit.directActivityCharges)}`} /><Line label="Marge brute activités" value={fmtCurrency(profit.grossActivityMargin)} strong={profit.grossActivityMargin >= 0} danger={profit.grossActivityMargin < 0} /><Line label="Charges à rattacher" value={`- ${fmtCurrency(profit.unallocatedOperationalCharges)}`} danger={profit.unallocatedOperationalCharges > 0} /><Line label="Charges de structure, salaire inclus" value={`- ${fmtCurrency(profit.structureCharges)}`} /><Line label="Résultat d’exploitation" value={fmtCurrency(profit.operatingResult)} strong /><Line label="Investissements" value={`- ${fmtCurrency(profit.investments)}`} muted /><Line label="Solde après investissements" value={fmtCurrency(profit.cashResultAfterInvestments)} danger={profit.cashResultAfterInvestments < 0} /><Line label="Prélèvements propriétaire" value={`- ${fmtCurrency(profit.ownerWithdrawals)}`} muted /><Line label="Cash disponible après prélèvements" value={fmtCurrency(profit.availableCashAfterWithdrawals)} strong danger={profit.availableCashAfterWithdrawals < 0} /></div><div className="space-y-2">{bucketOrder.map((key) => <Line key={key} label={simpleBucketLabel(key)} value={fmtCurrency(profit.buckets[key])} danger={['stock_non_affecte', 'sante_non_affectee'].includes(key) && profit.buckets[key] > 0} muted={profit.buckets[key] === 0} />)}</div></div>
+    <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]">La rémunération propriétaire est une charge de la ferme. Un prélèvement personnel est une sortie d’argent qui n’est pas comptée dans le résultat d’exploitation.</div>
+    {unresolvedCount || unallocatedCount ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 flex gap-2"><AlertTriangle size={16} className="shrink-0 mt-0.5" /> {quality.summary.auto || 0} charge(s) ont été rangée(s). {unresolvedCount} charge(s) restent à vérifier, {unallocatedCount} charge(s) alimentation/santé doivent encore être mieux rattachées.</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 flex gap-2"><CheckCircle2 size={16} className="shrink-0 mt-0.5" /> Les charges sont bien rangées. Le risque de compter deux fois une même dépense est limité.</div>}
   </section>;
 }
