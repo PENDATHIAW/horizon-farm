@@ -50,30 +50,17 @@ function auditSalesWorkflow(dataMap, issues) {
 
   payments.forEach((payment) => {
     const orderId = saleIdOf(payment);
-    if (!orderId) {
-      pushIssue(issues, { severity: 'critical', module: 'payments', row_id: payment.id, flow: 'sales_finance', message: 'Paiement sans commande liée.' });
-      return;
-    }
-    if (!ordersById.has(orderId)) {
-      pushIssue(issues, { severity: 'critical', module: 'payments', row_id: payment.id, linked_id: orderId, flow: 'sales_finance', message: `Paiement lié à une commande introuvable (${orderId}).` });
-      return;
-    }
+    if (!orderId) { pushIssue(issues, { severity: 'critical', module: 'payments', row_id: payment.id, flow: 'sales_finance', message: 'Un paiement n’est lié à aucune vente.' }); return; }
+    if (!ordersById.has(orderId)) { pushIssue(issues, { severity: 'critical', module: 'payments', row_id: payment.id, linked_id: orderId, flow: 'sales_finance', message: 'Un paiement est lié à une vente qui n’existe plus.' }); return; }
     const amount = paymentAmount(payment);
     const hasFinance = transactions.some((trx) => isFinanceSaleCash(trx) && ((payment.id && financePaymentId(trx) === clean(payment.id)) || (financeSaleId(trx) === orderId && Math.abs(financeAmount(trx) - amount) < 1)));
-    if (!hasFinance && amount > 0) {
-      pushIssue(issues, { severity: 'critical', module: 'payments', row_id: payment.id, linked_id: orderId, flow: 'sales_finance', message: `Paiement ${payment.id || ''} sans transaction Finance correspondante.` });
-    }
+    if (!hasFinance && amount > 0) pushIssue(issues, { severity: 'critical', module: 'payments', row_id: payment.id, linked_id: orderId, flow: 'sales_finance', message: 'Un encaissement de vente n’apparaît pas encore dans les finances.' });
   });
 
   invoices.forEach((invoice) => {
     const orderId = saleIdOf(invoice);
-    if (!orderId) {
-      pushIssue(issues, { module: 'invoices', row_id: invoice.id, flow: 'sales_finance', message: 'Facture sans commande liée.' });
-      return;
-    }
-    if (!ordersById.has(orderId)) {
-      pushIssue(issues, { severity: 'critical', module: 'invoices', row_id: invoice.id, linked_id: orderId, flow: 'sales_finance', message: `Facture liée à une commande introuvable (${orderId}).` });
-    }
+    if (!orderId) { pushIssue(issues, { module: 'invoices', row_id: invoice.id, flow: 'sales_finance', message: 'Une facture n’est liée à aucune vente.' }); return; }
+    if (!ordersById.has(orderId)) pushIssue(issues, { severity: 'critical', module: 'invoices', row_id: invoice.id, linked_id: orderId, flow: 'sales_finance', message: 'Une facture est liée à une vente qui n’existe plus.' });
   });
 
   orders.forEach((order) => {
@@ -87,40 +74,18 @@ function auditSalesWorkflow(dataMap, issues) {
     const invoiceStatus = lower(order.statut_facture || order.invoice_status);
     const hasInvoice = invoices.some((invoice) => saleIdOf(invoice) === orderId);
     const clientId = clean(order.client_id || order.customer_id);
-
-    if (clientId && !clientsById.has(clientId)) {
-      pushIssue(issues, { severity: 'critical', module: 'sales_orders', row_id: order.id, linked_id: clientId, flow: 'sales_finance', message: `Commande liée à un client introuvable (${clientId}).` });
-    }
-    if (total > 0 && paid > total + 1) {
-      pushIssue(issues, { severity: 'critical', module: 'sales_orders', row_id: order.id, flow: 'sales_finance', message: `Commande surpayée : payé ${paid}, total ${total}.` });
-    }
-    if (total > 0 && storedRemaining > 0 && Math.abs(storedRemaining - expectedRemaining) > 1) {
-      pushIssue(issues, { module: 'sales_orders', row_id: order.id, flow: 'sales_finance', message: `Reste à payer incohérent : enregistré ${storedRemaining}, attendu ${expectedRemaining}.` });
-    }
-    if (expectedRemaining <= 0 && ['non_paye', 'non payé', 'partiel'].includes(paymentStatus)) {
-      pushIssue(issues, { module: 'sales_orders', row_id: order.id, flow: 'sales_finance', message: 'Commande soldée mais statut paiement non soldé.' });
-    }
-    if (expectedRemaining > 0 && paymentStatus === 'paye') {
-      pushIssue(issues, { severity: 'critical', module: 'sales_orders', row_id: order.id, flow: 'sales_finance', message: 'Commande marquée payée alors qu’un reste à payer existe.' });
-    }
-    if (invoiceStatus === 'emise' && !hasInvoice) {
-      pushIssue(issues, { module: 'sales_orders', row_id: order.id, flow: 'sales_finance', message: 'Commande marquée facturée mais aucune facture liée détectée.' });
-    }
+    if (clientId && !clientsById.has(clientId)) pushIssue(issues, { severity: 'critical', module: 'sales_orders', row_id: order.id, linked_id: clientId, flow: 'sales_finance', message: 'Une vente est liée à un client qui n’existe plus.' });
+    if (total > 0 && paid > total + 1) pushIssue(issues, { severity: 'critical', module: 'sales_orders', row_id: order.id, flow: 'sales_finance', message: 'Une vente semble avoir reçu plus d’argent que son montant total.' });
+    if (total > 0 && storedRemaining > 0 && Math.abs(storedRemaining - expectedRemaining) > 1) pushIssue(issues, { module: 'sales_orders', row_id: order.id, flow: 'sales_finance', message: 'Le reste à payer d’une vente ne correspond pas aux paiements enregistrés.' });
+    if (expectedRemaining <= 0 && ['non_paye', 'non payé', 'partiel'].includes(paymentStatus)) pushIssue(issues, { module: 'sales_orders', row_id: order.id, flow: 'sales_finance', message: 'Une vente est soldée mais encore affichée comme non payée ou partielle.' });
+    if (expectedRemaining > 0 && paymentStatus === 'paye') pushIssue(issues, { severity: 'critical', module: 'sales_orders', row_id: order.id, flow: 'sales_finance', message: 'Une vente est marquée payée alors qu’il reste un montant à encaisser.' });
+    if (invoiceStatus === 'emise' && !hasInvoice) pushIssue(issues, { module: 'sales_orders', row_id: order.id, flow: 'sales_finance', message: 'Une vente est marquée facturée mais la facture n’est pas visible.' });
   });
 }
 
 function auditOpportunities(dataMap, issues) {
-  const openSourceIds = new Set(arr(dataMap.sales_opportunities)
-    .filter((opp) => !['convertie', 'converti', 'vendue', 'vendu', 'fermee', 'fermée', 'annulee', 'annulée'].includes(lower(opp.status || opp.statut)))
-    .map((opp) => clean(opp.source_id || opp.related_id || opp.entity_id))
-    .filter(Boolean));
-
-  arr(dataMap.sales_orders).forEach((order) => {
-    const sourceId = clean(order.source_id || order.product_id || order.entity_id || order.related_id);
-    if (sourceId && openSourceIds.has(sourceId)) {
-      pushIssue(issues, { module: 'sales_opportunities', row_id: sourceId, linked_id: order.id, flow: 'sales_stock_sources', message: `Source ${sourceId} déjà en commande mais opportunité encore ouverte.` });
-    }
-  });
+  const openSourceIds = new Set(arr(dataMap.sales_opportunities).filter((opp) => !['convertie', 'converti', 'vendue', 'vendu', 'fermee', 'fermée', 'annulee', 'annulée'].includes(lower(opp.status || opp.statut))).map((opp) => clean(opp.source_id || opp.related_id || opp.entity_id)).filter(Boolean));
+  arr(dataMap.sales_orders).forEach((order) => { const sourceId = clean(order.source_id || order.product_id || order.entity_id || order.related_id); if (sourceId && openSourceIds.has(sourceId)) pushIssue(issues, { module: 'sales_opportunities', row_id: sourceId, linked_id: order.id, flow: 'sales_stock_sources', message: 'Une opportunité déjà vendue est encore ouverte.' }); });
 }
 
 function auditHealthAndStock(dataMap, issues) {
@@ -129,15 +94,9 @@ function auditHealthAndStock(dataMap, issues) {
     const stockId = clean(row.stock_id || row.produit_stock_id || row.product_stock_id || row.source_stock_id);
     const source = lower(row.source_produit || row.product_source || row.source_stock || row.source);
     const qty = toNumber(row.quantite_utilisee ?? row.quantity_used ?? row.quantite ?? row.qty);
-    if ((source.includes('stock') || stockId) && !stockId) {
-      pushIssue(issues, { module: 'sante', row_id: row.id, flow: 'health_stock_finance', message: 'Soin indiqué avec stock interne mais sans stock_id.' });
-    }
-    if (stockId && !stockById.has(stockId)) {
-      pushIssue(issues, { severity: 'critical', module: 'sante', row_id: row.id, linked_id: stockId, flow: 'health_stock_finance', message: `Soin lié à un stock introuvable (${stockId}).` });
-    }
-    if (stockId && stockById.has(stockId) && qty > toNumber(stockById.get(stockId).quantite ?? stockById.get(stockId).quantity)) {
-      pushIssue(issues, { severity: 'critical', module: 'sante', row_id: row.id, linked_id: stockId, flow: 'health_stock_finance', message: 'Quantité santé utilisée supérieure au stock disponible.' });
-    }
+    if ((source.includes('stock') || stockId) && !stockId) pushIssue(issues, { module: 'sante', row_id: row.id, flow: 'health_stock_finance', message: 'Un soin utilise un produit du stock, mais le produit n’est pas précisé.' });
+    if (stockId && !stockById.has(stockId)) pushIssue(issues, { severity: 'critical', module: 'sante', row_id: row.id, linked_id: stockId, flow: 'health_stock_finance', message: 'Un soin est lié à un produit de stock qui n’existe plus.' });
+    if (stockId && stockById.has(stockId) && qty > toNumber(stockById.get(stockId).quantite ?? stockById.get(stockId).quantity)) pushIssue(issues, { severity: 'critical', module: 'sante', row_id: row.id, linked_id: stockId, flow: 'health_stock_finance', message: 'La quantité utilisée pour un soin dépasse le stock disponible.' });
   });
 }
 
@@ -150,9 +109,7 @@ function auditStockSupply(dataMap, issues) {
     if (threshold > 0 && qty <= threshold) {
       const stockId = clean(stock.id);
       const hasAction = [...tasks, ...alerts].some((row) => clean(row.entity_id || row.related_id || row.stock_id || row.cible_id) === stockId || lower(`${row.title || ''} ${row.message || ''}`).includes(lower(stock.produit || stock.nom || stockId)));
-      if (!hasAction) {
-        pushIssue(issues, { module: 'stock', row_id: stock.id, flow: 'stock_supply_finance', message: 'Stock critique sans tâche ni alerte de réapprovisionnement détectée.' });
-      }
+      if (!hasAction) pushIssue(issues, { module: 'stock', row_id: stock.id, flow: 'stock_supply_finance', message: 'Un produit est sous le seuil, mais aucune action n’est encore prévue.' });
     }
   });
 }
@@ -165,104 +122,31 @@ function auditAlertsTasks(dataMap, issues) {
       const alertId = clean(alert.id);
       const target = clean(alert.entity_id || alert.related_id || alert.cible_id);
       const hasTask = tasks.some((task) => clean(task.alert_id || task.related_id || task.entity_id) === alertId || (target && clean(task.entity_id || task.related_id || task.cible_id) === target));
-      if (!hasTask && !lower(alert.status || alert.statut).includes('traitee')) {
-        pushIssue(issues, { module: 'alertes_center', row_id: alert.id, linked_id: target, flow: 'alerts_tasks_actions', message: 'Alerte critique active sans tâche/action liée détectée.' });
-      }
+      if (!hasTask && !lower(alert.status || alert.statut).includes('traitee')) pushIssue(issues, { module: 'alertes_center', row_id: alert.id, linked_id: target, flow: 'alerts_tasks_actions', message: 'Une alerte urgente n’a pas encore d’action associée.' });
     }
   });
 }
 
 function auditDocuments(dataMap, issues) {
-  const knownIds = new Set([
-    ...arr(dataMap.animaux).map((row) => clean(row.id)),
-    ...arr(dataMap.avicole).map((row) => clean(row.id)),
-    ...arr(dataMap.cultures).map((row) => clean(row.id)),
-    ...arr(dataMap.clients).map((row) => clean(row.id)),
-    ...arr(dataMap.fournisseurs).map((row) => clean(row.id)),
-    ...arr(dataMap.finances).map((row) => clean(row.id)),
-    ...arr(dataMap.sales_orders).map((row) => clean(row.id)),
-  ].filter(Boolean));
-  arr(dataMap.documents).forEach((document) => {
-    const target = clean(document.entity_id || document.related_id || document.target_id || document.order_id || document.transaction_id);
-    if (target && !knownIds.has(target)) {
-      pushIssue(issues, { module: 'documents', row_id: document.id, linked_id: target, flow: 'documents_traceability', message: `Document lié à une cible introuvable (${target}).` });
-    }
-  });
+  const knownIds = new Set([...arr(dataMap.animaux).map((row) => clean(row.id)), ...arr(dataMap.avicole).map((row) => clean(row.id)), ...arr(dataMap.cultures).map((row) => clean(row.id)), ...arr(dataMap.clients).map((row) => clean(row.id)), ...arr(dataMap.fournisseurs).map((row) => clean(row.id)), ...arr(dataMap.finances).map((row) => clean(row.id)), ...arr(dataMap.sales_orders).map((row) => clean(row.id))].filter(Boolean));
+  arr(dataMap.documents).forEach((document) => { const target = clean(document.entity_id || document.related_id || document.target_id || document.order_id || document.transaction_id); if (target && !knownIds.has(target)) pushIssue(issues, { module: 'documents', row_id: document.id, linked_id: target, flow: 'documents_traceability', message: 'Un document est lié à un élément qui n’existe plus.' }); });
 }
 
 export function auditErpInterconnections(dataMap = {}) {
-  const sets = {
-    animaux: idSet(dataMap.animaux),
-    avicole: idSet(dataMap.avicole),
-    stock: idSet(dataMap.stock),
-    cultures: idSet(dataMap.cultures),
-    sales_orders: idSet(dataMap.sales_orders),
-    finances: idSet(dataMap.finances),
-    alertes_center: idSet(dataMap.alertes_center),
-    taches: idSet(dataMap.taches),
-    sante: idSet(dataMap.sante),
-    documents: idSet(dataMap.documents),
-  };
-
+  const sets = { animaux: idSet(dataMap.animaux), avicole: idSet(dataMap.avicole), stock: idSet(dataMap.stock), cultures: idSet(dataMap.cultures), sales_orders: idSet(dataMap.sales_orders), finances: idSet(dataMap.finances), alertes_center: idSet(dataMap.alertes_center), taches: idSet(dataMap.taches), sante: idSet(dataMap.sante), documents: idSet(dataMap.documents) };
   const issues = [];
-  const checkRows = (moduleKey, rows) => {
-    arr(rows).forEach((row) => {
-      const id = linkId(row);
-      const module = moduleOf(row);
-      if (!id) return;
-      if (!existsInKnownTargets(id, module, sets)) {
-        pushIssue(issues, {
-          module: moduleKey,
-          row_id: row.id,
-          linked_id: id,
-          linked_module: module || 'inconnu',
-          message: `${moduleKey} contient une référence vers ${id}, mais la cible active n'existe plus.`,
-        });
-      }
-    });
-  };
-
-  checkRows('sante', dataMap.sante);
-  checkRows('alertes_center', dataMap.alertes_center);
-  checkRows('taches', dataMap.taches);
-  checkRows('documents', dataMap.documents);
-  checkRows('business_events', dataMap.business_events);
-  checkRows('alimentation_logs', dataMap.alimentation_logs);
-  checkRows('production_oeufs_logs', dataMap.production_oeufs_logs);
-  checkRows('sales_orders', dataMap.sales_orders);
-  checkRows('payments', dataMap.payments);
-  checkRows('invoices', dataMap.invoices);
-
+  const checkRows = (moduleKey, rows) => { arr(rows).forEach((row) => { const id = linkId(row); const module = moduleOf(row); if (!id) return; if (!existsInKnownTargets(id, module, sets)) pushIssue(issues, { module: moduleKey, row_id: row.id, linked_id: id, linked_module: module || 'inconnu', message: 'Un élément est lié à une donnée qui n’existe plus.' }); }); };
+  checkRows('sante', dataMap.sante); checkRows('alertes_center', dataMap.alertes_center); checkRows('taches', dataMap.taches); checkRows('documents', dataMap.documents); checkRows('business_events', dataMap.business_events); checkRows('alimentation_logs', dataMap.alimentation_logs); checkRows('production_oeufs_logs', dataMap.production_oeufs_logs); checkRows('sales_orders', dataMap.sales_orders); checkRows('payments', dataMap.payments); checkRows('invoices', dataMap.invoices);
   const duplicatePayments = new Map();
-  arr(dataMap.payments).filter((payment) => !isCancelled(payment)).forEach((payment) => {
-    const key = `${saleIdOf(payment)}:${paymentAmount(payment)}:${clean(payment.date_paiement || payment.date)}`;
-    duplicatePayments.set(key, (duplicatePayments.get(key) || 0) + 1);
-  });
-  duplicatePayments.forEach((count, key) => {
-    if (count > 1) pushIssue(issues, { severity: 'critical', module: 'payments', row_id: key, flow: 'sales_finance', message: `Paiement potentiellement doublonné (${count} fois).` });
-  });
-
-  auditSalesWorkflow(dataMap, issues);
-  auditOpportunities(dataMap, issues);
-  auditHealthAndStock(dataMap, issues);
-  auditStockSupply(dataMap, issues);
-  auditAlertsTasks(dataMap, issues);
-  auditDocuments(dataMap, issues);
-
+  arr(dataMap.payments).filter((payment) => !isCancelled(payment)).forEach((payment) => { const key = `${saleIdOf(payment)}:${paymentAmount(payment)}:${clean(payment.date_paiement || payment.date)}`; duplicatePayments.set(key, (duplicatePayments.get(key) || 0) + 1); });
+  duplicatePayments.forEach((count, key) => { if (count > 1) pushIssue(issues, { severity: 'critical', module: 'payments', row_id: key, flow: 'sales_finance', message: `Un paiement semble être enregistré plusieurs fois (${count} fois).` }); });
+  auditSalesWorkflow(dataMap, issues); auditOpportunities(dataMap, issues); auditHealthAndStock(dataMap, issues); auditStockSupply(dataMap, issues); auditAlertsTasks(dataMap, issues); auditDocuments(dataMap, issues);
   const flows = summarizeMatrixCoverage(dataMap, issues);
-
-  return {
-    ok: issues.length === 0,
-    issues,
-    flows,
-    issueCount: issues.length,
-    criticalCount: issues.filter((issue) => issue.severity === 'critical').length,
-    warningCount: issues.filter((issue) => issue.severity !== 'critical').length,
-  };
+  return { ok: issues.length === 0, issues, flows, issueCount: issues.length, criticalCount: issues.filter((issue) => issue.severity === 'critical').length, warningCount: issues.filter((issue) => issue.severity !== 'critical').length };
 }
 
 export function summarizeInterconnectionAudit(dataMap = {}) {
   const audit = auditErpInterconnections(dataMap);
-  if (audit.ok) return 'Interconnexions cohérentes : aucune référence orpheline ou incohérence métier détectée.';
-  return `${audit.issueCount} point(s) à vérifier : ${audit.criticalCount} critique(s), ${audit.warningCount} avertissement(s).`;
+  if (audit.ok) return 'Tout semble cohérent pour le moment.';
+  return `${audit.issueCount} point(s) à vérifier, dont ${audit.criticalCount} urgent(s).`;
 }
