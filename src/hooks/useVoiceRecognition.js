@@ -5,8 +5,15 @@ const SpeechRecognition =
     ? window.SpeechRecognition || window.webkitSpeechRecognition || null
     : null;
 
-export default function useVoiceRecognition({ lang = 'fr-FR', onResult } = {}) {
+export default function useVoiceRecognition({
+  lang = 'fr-FR',
+  onResult,
+  onInterim,
+  continuous = false,
+  autoRestart = false,
+} = {}) {
   const recognitionRef = useRef(null);
+  const shouldRestartRef = useRef(false);
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState('');
@@ -14,6 +21,7 @@ export default function useVoiceRecognition({ lang = 'fr-FR', onResult } = {}) {
   const supported = Boolean(SpeechRecognition);
 
   const stop = useCallback(() => {
+    shouldRestartRef.current = false;
     recognitionRef.current?.stop();
     setListening(false);
   }, []);
@@ -24,10 +32,17 @@ export default function useVoiceRecognition({ lang = 'fr-FR', onResult } = {}) {
       return;
     }
 
+    try {
+      recognitionRef.current?.stop();
+    } catch {
+      // Ignore stale recognition instance errors.
+    }
+
     const recognition = new SpeechRecognition();
     recognition.lang = lang;
     recognition.interimResults = true;
-    recognition.continuous = false;
+    recognition.continuous = continuous;
+    shouldRestartRef.current = Boolean(autoRestart || continuous);
 
     recognition.onstart = () => {
       setError('');
@@ -36,10 +51,24 @@ export default function useVoiceRecognition({ lang = 'fr-FR', onResult } = {}) {
 
     recognition.onerror = (event) => {
       setError(event.error || 'Erreur microphone');
+      if (['not-allowed', 'service-not-allowed', 'audio-capture'].includes(event.error)) {
+        shouldRestartRef.current = false;
+      }
       setListening(false);
     };
 
-    recognition.onend = () => setListening(false);
+    recognition.onend = () => {
+      setListening(false);
+      if (shouldRestartRef.current) {
+        window.setTimeout(() => {
+          try {
+            recognitionRef.current?.start();
+          } catch {
+            // Browser may refuse rapid restart; next user action can restart.
+          }
+        }, 450);
+      }
+    };
 
     recognition.onresult = (event) => {
       const text = Array.from(event.results)
@@ -47,6 +76,7 @@ export default function useVoiceRecognition({ lang = 'fr-FR', onResult } = {}) {
         .join(' ')
         .trim();
       setTranscript(text);
+      onInterim?.(text);
 
       const finalText = Array.from(event.results)
         .filter((result) => result.isFinal)
@@ -58,8 +88,13 @@ export default function useVoiceRecognition({ lang = 'fr-FR', onResult } = {}) {
     };
 
     recognitionRef.current = recognition;
-    recognition.start();
-  }, [lang, onResult]);
+    try {
+      recognition.start();
+    } catch (startError) {
+      setError(startError?.message || 'Impossible de demarrer le micro');
+      setListening(false);
+    }
+  }, [lang, onResult, onInterim, continuous, autoRestart]);
 
   return useMemo(
     () => ({ supported, listening, transcript, error, start, stop, setTranscript }),
