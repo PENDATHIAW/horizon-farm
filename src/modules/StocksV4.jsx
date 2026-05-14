@@ -44,7 +44,7 @@ export default function StocksV4(props) {
       entity_type: 'stock',
       entity_id: id,
       title: `Perte stock ${row.produit || row.name || row.id}`,
-      description: `${qty} ${row.unite || ''} retiré(s) du stock. Suivi en quantité uniquement, sans écriture Finance automatique.`,
+      description: `${qty} ${row.unite || ''} retiré(s) du stock. Suivi en quantité uniquement, sans dépense automatique.`,
       event_date: today(),
       severity: 'warning',
       quantity: qty,
@@ -59,8 +59,8 @@ export default function StocksV4(props) {
     const target = plan.target;
     const totalKg = toNumber(plan.totalKg);
     const totalCost = toNumber(plan.totalCost);
-    if (!stock?.id) throw new Error('Stock aliment manquant');
-    if (!target?.id) throw new Error('Lot ou animal manquant');
+    if (!stock?.id) throw new Error('Choisis d’abord l’aliment à utiliser');
+    if (!target?.id) throw new Error('Choisis le lot ou l’animal concerné');
     if (totalKg <= 0) throw new Error('Quantité alimentation invalide');
     const availableKg = stockKg(stock);
     if (availableKg < totalKg) throw new Error('Stock aliment insuffisant pour appliquer ce plan');
@@ -123,15 +123,15 @@ export default function StocksV4(props) {
       <ModuleSection
         icon={Package}
         title="Stock courant"
-        subtitle="Produits, quantités, seuils, mouvements et pertes suivies en quantité uniquement."
+        subtitle="Produits, quantités, seuils, entrées, sorties et pertes suivies."
       >
         <StocksV3 {...props} onUpdate={updateWithLossHistory} />
       </ModuleSection>
 
       <ModuleSection
         icon={Utensils}
-        title="Alimentation appliquée aux sujets"
-        subtitle="Calculer et appliquer une ration à un lot ou à un animal. Cette sortie alimente les coûts directs sans double saisie."
+        title="Alimentation des animaux et lots"
+        subtitle="Calculer une ration, retirer le stock utilisé et suivre le coût sans double saisie."
       >
         <StockFeedingCostPlanner
           rows={props.rows || []}
@@ -145,7 +145,7 @@ export default function StocksV4(props) {
       <ModuleSection
         icon={BarChart3}
         title="Évolution stock"
-        subtitle="Graphes et lecture historique des mouvements, consommations et alertes."
+        subtitle="Graphes et historique des entrées, sorties, consommations et alertes."
       >
         <StockEvolution
           rows={props.rows || []}
