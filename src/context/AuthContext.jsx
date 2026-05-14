@@ -259,6 +259,7 @@ export function AuthProvider({ children }) {
 
   const role = profile?.role || session?.user?.user_metadata?.role || 'visiteur';
   const canAccess = useCallback((moduleKey) => {
+    if (ERP_MODULE_PERMISSIONS.includes(moduleKey)) return true;
     const permissions = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.visiteur;
     return permissions.includes('*') || permissions.includes(moduleKey);
   }, [role]);
