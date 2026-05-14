@@ -52,7 +52,7 @@ const extractSupplierName = (raw = '') => {
 
   for (const pattern of patterns) {
     const match = text.match(pattern);
-    if (match?.[1]) return match[1].replace(/\b(le paiement|paiement|date|a la date|à la date)\b.*$/i, '').trim();
+    if (match?.[1]) return match[1].replace(/\b(le paiement|paiement|date|a la date|à la date|c est|c’est)\b.*$/i, '').trim();
   }
   return '';
 };
@@ -91,6 +91,13 @@ const extractPaymentStatus = (raw = '') => {
   return 'unknown';
 };
 
+const extractPaymentAmount = (raw = '') => {
+  const text = normalize(raw);
+  const match = text.match(/(\d+(?:[.,]\d+)?)\s*(?:fcfa|francs?|f\s*cfa|xof)/);
+  if (!match) return null;
+  return Number(match[1].replace(',', '.'));
+};
+
 const detectIntent = (raw = '') => {
   const text = normalize(raw);
   if (includesAny(text, ['enregistre un achat', 'enregistrer un achat', 'achat de', 'j ai achete', 'j ai acheté', 'ajoute un achat', 'saisie achat'])) return 'purchase_stock';
@@ -114,66 +121,158 @@ const findExistingStockProduct = (productName = '', dataMap = {}) => {
   return stocks.find((stock) => normalize(`${stock.produit || ''} ${stock.nom || ''} ${stock.name || ''} ${stock.categorie || ''}`).includes(needle)) || null;
 };
 
-const buildPurchaseStockDraft = (rawInput = '', dataMap = {}) => {
+const buildSupplierDraft = (supplierName = '', dataMap = {}) => {
+  const supplier = findExistingSupplier(supplierName, dataMap);
+  if (supplier || !supplierName) return null;
+
+  return {
+    form_type: 'supplier_creation',
+    primary_module: 'fournisseurs',
+    status: 'awaiting_validation',
+    title: 'Nouveau fournisseur à compléter',
+    subtitle: `Le fournisseur ${supplierName} n’existe pas encore dans la base. Complète ou corrige avant validation.`,
+    draft_fields: {
+      name: supplierName,
+      type: 'aliment',
+      phone: '',
+      address: '',
+      contact_person: '',
+      notes: 'Créé depuis Horizon Assistant',
+    },
+    missing_fields: ['phone', 'address'],
+    proposed_actions: [
+      { module: 'fournisseurs', action: 'create_supplier', label: 'Créer le fournisseur' },
+    ],
+  };
+};
+
+const computeMissingFields = (fields = {}) => {
+  const missingFields = [];
+  if (!fields.product_name) missingFields.push('product_name');
+  if (!fields.quantity) missingFields.push('quantity');
+  if (!fields.unit) missingFields.push('unit');
+  if (!fields.supplier_name) missingFields.push('supplier_name');
+  if (!fields.date) missingFields.push('date');
+  if (!fields.payment_status || fields.payment_status === 'unknown') missingFields.push('payment_status');
+  return missingFields;
+};
+
+const buildPurchaseResponse = ({ rawInput = '', fields = {}, dataMap = {}, history = [] }) => {
+  const supplier = findExistingSupplier(fields.supplier_name, dataMap);
+  const stockProduct = findExistingStockProduct(fields.product_name, dataMap);
+  const totalWeightKg = fields.quantity && fields.unit_weight_kg ? fields.quantity * fields.unit_weight_kg : null;
+  const mergedFields = {
+    ...fields,
+    product_id: stockProduct?.id || fields.product_id || null,
+    supplier_id: supplier?.id || fields.supplier_id || null,
+    total_weight_kg: totalWeightKg,
+    notes: rawInput,
+  };
+
+  const missingFields = computeMissingFields(mergedFields);
+  const warnings = [];
+  if (!supplier && mergedFields.supplier_name) warnings.push(`Fournisseur non trouvé: ${mergedFields.supplier_name}. Horizon proposera le formulaire fournisseur avant validation finale.`);
+  if (!stockProduct && mergedFields.product_name) warnings.push(`Produit stock non trouvé exactement: ${mergedFields.product_name}. Il pourra être créé ou rattaché avant validation.`);
+
+  const next_required_form = !supplier && mergedFields.supplier_name ? buildSupplierDraft(mergedFields.supplier_name, dataMap) : null;
+  const status = missingFields.length ? 'draft_incomplete' : next_required_form ? 'requires_related_form' : 'awaiting_validation';
+
+  return {
+    status,
+    intent: 'purchase_stock',
+    confidence: missingFields.length ? 0.7 : 0.9,
+    raw_input: rawInput,
+    history,
+    primary_module: 'stock',
+    form_type: 'stock_purchase',
+    requires_validation: true,
+    missing_fields: missingFields,
+    warnings,
+    draft_fields: mergedFields,
+    next_required_form,
+    impacted_modules: ['stock', 'finances', 'fournisseurs', 'tracabilite', 'centre_ia'],
+    proposed_actions: [
+      { module: 'stock', action: 'create_or_update_stock_entry', label: 'Entrée stock aliment' },
+      { module: 'finances', action: mergedFields.payment_status === 'paid' ? 'create_paid_expense' : 'prepare_supplier_debt', label: mergedFields.payment_status === 'paid' ? 'Dépense payée' : 'Dette fournisseur / paiement à suivre' },
+      { module: 'fournisseurs', action: supplier ? 'link_supplier_history' : 'prepare_supplier_creation', label: supplier ? 'Historique fournisseur' : 'Création/rattachement fournisseur' },
+      { module: 'tracabilite', action: 'create_business_event', label: 'Journalisation traçabilité' },
+      { module: 'centre_ia', action: 'refresh_ai_context', label: 'Mise à jour contexte IA' },
+    ],
+    ui: {
+      title: missingFields.length ? 'Brouillon achat à compléter' : 'Achat stock à valider',
+      subtitle: missingFields.length
+        ? 'Horizon a préparé un brouillon. Complète les champs manquants par la voix ou à l’écrit.'
+        : 'Horizon a préparé les champs. Vérifie, modifie si besoin, puis valide pour exécuter.',
+      validation_label: 'Valider l’enregistrement',
+      cancel_label: 'Annuler',
+      edit_label: 'Modifier',
+      missing_label: missingFields.length ? `Champs à renseigner: ${missingFields.join(', ')}` : '',
+    },
+  };
+};
+
+const extractPurchaseFields = (rawInput = '', dataMap = {}) => {
   const { quantity, unit } = extractQuantity(rawInput);
   const productName = extractProductName(rawInput);
   const supplierName = extractSupplierName(rawInput);
   const paymentStatus = extractPaymentStatus(rawInput);
   const date = toISODate(rawInput);
   const unitWeightKg = extractUnitWeightKg(rawInput);
-  const supplier = findExistingSupplier(supplierName, dataMap);
-  const stockProduct = findExistingStockProduct(productName, dataMap);
-  const totalWeightKg = quantity && unitWeightKg ? quantity * unitWeightKg : null;
-
-  const missingFields = [];
-  if (!productName) missingFields.push('product_name');
-  if (!quantity) missingFields.push('quantity');
-  if (!unit) missingFields.push('unit');
-  if (!supplierName) missingFields.push('supplier_name');
-  if (!date) missingFields.push('date');
-
-  const warnings = [];
-  if (!supplier && supplierName) warnings.push(`Fournisseur non trouvé exactement: ${supplierName}. Il pourra être créé ou corrigé avant validation.`);
-  if (!stockProduct && productName) warnings.push(`Produit stock non trouvé exactement: ${productName}. Il pourra être créé ou rattaché avant validation.`);
-  if (paymentStatus === 'unknown') warnings.push('Statut de paiement non certain. Vérifier avant validation.');
+  const paymentAmount = extractPaymentAmount(rawInput);
 
   return {
-    status: 'awaiting_validation',
-    intent: 'purchase_stock',
-    confidence: missingFields.length ? 0.68 : 0.88,
-    raw_input: rawInput,
-    primary_module: 'stock',
-    form_type: 'stock_purchase',
-    requires_validation: true,
-    missing_fields: missingFields,
-    warnings,
-    draft_fields: {
-      product_name: productName,
-      product_id: stockProduct?.id || null,
-      quantity,
-      unit,
-      unit_weight_kg: unitWeightKg,
-      total_weight_kg: totalWeightKg,
-      supplier_name: supplierName,
-      supplier_id: supplier?.id || null,
-      payment_status: paymentStatus,
-      date,
-      notes: rawInput,
-    },
-    impacted_modules: ['stock', 'finances', 'fournisseurs', 'tracabilite', 'centre_ia'],
-    proposed_actions: [
-      { module: 'stock', action: 'create_or_update_stock_entry', label: 'Entrée stock aliment' },
-      { module: 'finances', action: paymentStatus === 'paid' ? 'create_paid_expense' : 'prepare_supplier_debt', label: paymentStatus === 'paid' ? 'Dépense payée' : 'Dette fournisseur / paiement à suivre' },
-      { module: 'fournisseurs', action: supplier ? 'link_supplier_history' : 'prepare_supplier_creation', label: supplier ? 'Historique fournisseur' : 'Création/rattachement fournisseur' },
-      { module: 'tracabilite', action: 'create_business_event', label: 'Journalisation traçabilité' },
-      { module: 'centre_ia', action: 'refresh_ai_context', label: 'Mise à jour contexte IA' },
-    ],
-    ui: {
-      title: 'Achat stock à valider',
-      subtitle: 'Horizon a préparé les champs. Vérifie, modifie si besoin, puis valide pour exécuter.',
-      validation_label: 'Valider l’enregistrement',
-      cancel_label: 'Annuler',
-      edit_label: 'Modifier',
+    product_name: productName,
+    quantity,
+    unit,
+    unit_weight_kg: unitWeightKg,
+    supplier_name: supplierName,
+    payment_status: paymentStatus,
+    date,
+    payment_amount: paymentAmount,
+  };
+};
+
+const mergeDefinedFields = (base = {}, patch = {}) => {
+  const next = { ...base };
+  Object.entries(patch).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== '' && value !== 'unknown') next[key] = value;
+  });
+  return next;
+};
+
+const buildPurchaseStockDraft = (rawInput = '', dataMap = {}) => {
+  const fields = extractPurchaseFields(rawInput, dataMap);
+  return buildPurchaseResponse({ rawInput, fields, dataMap, history: [{ role: 'user', content: rawInput }] });
+};
+
+export const updateHorizonDraft = (currentDraft = null, rawInput = '', dataMap = {}) => {
+  if (!currentDraft || currentDraft.intent !== 'purchase_stock') return interpretHorizonCommand(rawInput, dataMap);
+
+  const extractedFields = extractPurchaseFields(rawInput, dataMap);
+  const mergedFields = mergeDefinedFields(currentDraft.draft_fields || {}, extractedFields);
+  const history = [...(currentDraft.history || []), { role: 'user', content: rawInput }];
+
+  return buildPurchaseResponse({ rawInput, fields: mergedFields, dataMap, history });
+};
+
+export const completeRelatedFormDraft = (currentDraft = null, relatedFormPatch = {}, dataMap = {}) => {
+  if (!currentDraft?.next_required_form) return currentDraft;
+
+  const nextForm = {
+    ...currentDraft.next_required_form,
+    draft_fields: mergeDefinedFields(currentDraft.next_required_form.draft_fields || {}, relatedFormPatch),
+  };
+
+  const missing = [];
+  if (!nextForm.draft_fields.phone) missing.push('phone');
+  if (!nextForm.draft_fields.address) missing.push('address');
+
+  return {
+    ...currentDraft,
+    status: missing.length ? 'requires_related_form' : 'awaiting_validation',
+    next_required_form: {
+      ...nextForm,
+      missing_fields: missing,
     },
   };
 };
