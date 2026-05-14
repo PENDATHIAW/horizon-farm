@@ -1,3 +1,5 @@
+import { buildPondeusesIntelligence } from './aiPondeusesService';
+
 const normalizeText = (value = '') =>
   String(value)
     .toLowerCase()
@@ -10,6 +12,7 @@ const normalizeText = (value = '') =>
 const includesAny = (text, words) => words.some((word) => text.includes(normalizeText(word)));
 const exactAny = (text, words) => words.some((word) => text === normalizeText(word));
 const formatCurrency = (value = 0) => `${Number(value || 0).toLocaleString('fr-FR')} FCFA`;
+const formatNumber = (value = 0, digits = 0) => Number(value || 0).toLocaleString('fr-FR', { maximumFractionDigits: digits });
 const asRows = (dataMap, key) => (Array.isArray(dataMap?.[key]) ? dataMap[key] : []);
 
 const getNumber = (row, keys = []) => {
@@ -147,7 +150,7 @@ const detectModule = (command) => Object.entries(moduleCatalog).find(([, config]
 
 const answerHelp = () => ({
   moduleKey: null,
-  answer: 'Je peux répondre sur le chiffre d’affaires, les encaissements, la marge, les dépenses, les priorités, les risques, les stocks, les créances, les ventes, les finances, la santé, les alertes, les tâches, les documents, les fournisseurs, l’avicole, les cultures, les investissements, ou ouvrir un module. Exemple : “que dois-je traiter maintenant ?”.',
+  answer: 'Je peux répondre sur le chiffre d’affaires, les encaissements, la marge, les dépenses, les priorités, les risques, les stocks, les créances, les ventes, les finances, la santé, les alertes, les tâches, les documents, les fournisseurs, l’avicole, les pondeuses, les cultures, les investissements, ou ouvrir un module. Exemple : “quel prix conseiller pour la tablette ?”.',
 });
 
 const answerPriorities = (dataMap = {}) => {
@@ -209,6 +212,27 @@ const answerClients = (dataMap = {}) => {
   const top = [...clients].sort((a, b) => getNumber(b, ['totalAchats', 'total_achats', 'total', 'montant']) - getNumber(a, ['totalAchats', 'total_achats', 'total', 'montant']))[0];
   const receivables = findReceivables(dataMap);
   return { moduleKey: 'clients', answer: top ? `Clients : ${clients.length} client(s) enregistré(s). Client principal : ${labelOf(top)}. Créances à relancer : ${formatCurrency(receivables.amount)}.` : `Clients : ${clients.length} client(s) enregistré(s). Créances à relancer : ${formatCurrency(receivables.amount)}.` };
+};
+
+const answerPondeuses = (dataMap = {}) => {
+  const intelligence = buildPondeusesIntelligence({
+    lots: asRows(dataMap, 'avicole'),
+    productionLogs: asRows(dataMap, 'production_oeufs_logs'),
+    alimentationLogs: asRows(dataMap, 'alimentation_logs'),
+    stocks: asRows(dataMap, 'stock'),
+    marketPrices: asRows(dataMap, 'market_prices'),
+    meteo: dataMap?.meteo || null,
+  });
+
+  const { totals, recommendations, lots } = intelligence;
+  const topRisk = recommendations.find((rec) => ['haute', 'critique'].includes(rec.priority));
+  const bestLot = [...lots].sort((a, b) => b.estimated_margin_per_tablet - a.estimated_margin_per_tablet)[0];
+  const priceHint = bestLot?.suggested_tablet_price ? `Prix tablette conseillé indicatif : ${formatCurrency(Math.round(bestLot.suggested_tablet_price))}.` : 'Prix tablette conseillé non disponible faute de données marché/coûts suffisantes.';
+
+  return {
+    moduleKey: 'avicole',
+    answer: `IA Pondeuses : ${totals.lots} lot(s), ${formatNumber(totals.sellable_eggs)} œufs vendables, ${formatNumber(totals.tablets, 1)} tablette(s), coût estimé ${formatCurrency(Math.round(totals.cost_per_tablet))}/tablette. ${priceHint} ${topRisk ? `Point prioritaire : ${topRisk.summary}` : 'Aucun point critique IA détecté sur les pondeuses.'}`,
+  };
 };
 
 const answerAvicole = (dataMap = {}) => {
@@ -370,11 +394,12 @@ const answerSearch = (command, dataMap = {}) => {
 
 export const interpretVoiceCommand = (rawCommand = '', dataMap = {}) => {
   const command = normalizeText(rawCommand);
-  if (!command) return { moduleKey: null, answer: 'Pose une question ERP : chiffre d’affaires, marge, priorités, stocks, créances, santé, ventes, finances ou alertes.' };
+  if (!command) return { moduleKey: null, answer: 'Pose une question ERP : chiffre d’affaires, marge, priorités, stocks, créances, santé, ventes, finances, pondeuses ou alertes.' };
   if (['bjr', 'bonjour', 'bonsoir', 'salut', 'hello', 'hi', 'coucou', 'yo'].includes(command)) return { moduleKey: null, answer: 'Bonjour, en quoi puis-je vous aider ?' };
-  if (includesAny(command, ['merci', 'thanks'])) return { moduleKey: null, answer: 'Avec plaisir. Je reste disponible pour les priorités, le chiffre d’affaires, la marge, les ventes, les stocks, la santé ou les finances.' };
+  if (includesAny(command, ['merci', 'thanks'])) return { moduleKey: null, answer: 'Avec plaisir. Je reste disponible pour les priorités, le chiffre d’affaires, la marge, les ventes, les stocks, la santé, les finances ou les pondeuses.' };
   if (includesAny(command, ['au revoir', 'bye', 'a plus'])) return { moduleKey: null, answer: 'À bientôt. Bon suivi de la ferme.' };
   if (includesAny(command, ['aide', 'que peux tu faire', 'comment tu peux m aider', 'quoi demander'])) return answerHelp();
+  if (includesAny(command, ['pondeuse', 'pondeuses', 'tablette', 'tablettes', 'cout oeuf', 'cout des oeufs', 'cout par oeuf', 'cout par tablette', 'prix tablette', 'prix des oeufs', 'rentabilite pondeuse', 'rentabilite pondeuses', 'baisse ponte', 'taux de ponte'])) return answerPondeuses(dataMap);
   if (includesAny(command, ['resume', 'resume global', 'situation globale', 'point global', 'vue globale', 'etat general'])) return answerGlobal(dataMap);
   if (includesAny(command, ['priorite', 'priorites', 'priorites du jour', 'quoi faire', 'urgence', 'aujourd hui', 'aujourdhui', 'traiter maintenant'])) return answerPriorities(dataMap);
   if (includesAny(command, ['risque', 'risques', 'points a surveiller'])) return answerRisks(dataMap);
@@ -417,5 +442,5 @@ export const interpretVoiceCommand = (rawCommand = '', dataMap = {}) => {
   if (moduleKey) return summarizeModule(moduleKey, dataMap);
   const searchAnswer = answerSearch(command, dataMap);
   if (searchAnswer) return searchAnswer;
-  return { moduleKey: null, answer: "Je n’ai pas trouvé de réponse sûre dans l’ERP. Essaie : chiffre d’affaires, CA, marge, dépenses, encaissements, priorités du jour, résumé global, stocks critiques, créances, santé, ventes, finances, risques, documents, tâches, banque, ou le nom d’un module." };
+  return { moduleKey: null, answer: "Je n’ai pas trouvé de réponse sûre dans l’ERP. Essaie : chiffre d’affaires, CA, marge, dépenses, encaissements, priorités du jour, résumé global, pondeuses, prix tablette, stocks critiques, créances, santé, ventes, finances, risques, documents, tâches, banque, ou le nom d’un module." };
 };
