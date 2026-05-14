@@ -8,7 +8,7 @@ import SectionHeader from '../components/SectionHeader';
 import Badge from '../components/Badge';
 import ActionIconButton from '../components/ActionIconButton';
 import { fmtCurrency, fmtPercent } from '../utils/format';
-import { exportToCsv, exportToExcel } from '../utils/export';
+import { exportToCsv, exportToExcel, exportBusinessPlanToExcel } from '../utils/export';
 import CreateModal from '../modals/CreateModal';
 import EditModal from '../modals/EditModal';
 import DeleteModal from '../modals/DeleteModal';
@@ -43,6 +43,8 @@ const ACTIVITY_EMOJIS = {
   culture_maraichere: '🍅', culture_cereale: '🌾', culture_arboricole: '🌳',
   infrastructure: '🏗️', equipement: '🔧', autre: '📦',
 };
+const isHorizonPlan = (plan = {}) => String(plan.nom || plan.name || plan.title || '').toLowerCase().includes('horizon farm');
+const activeExportPlan = (plans = [], selectedPlan = null) => selectedPlan || plans.find(isHorizonPlan) || plans[0];
 
 export default function Investissements({
   rows = [],
@@ -134,7 +136,7 @@ export default function Investissements({
     try {
       setSaving(true);
       await onCreate(payload);
-      toast.success('Investissement ajoute');
+      toast.success('Investissement ajouté');
       setModal(null);
     } catch (err) { toast.error(err.message || 'Erreur'); } finally { setSaving(false); }
   };
@@ -144,7 +146,7 @@ export default function Investissements({
     try {
       setSaving(true);
       await onUpdate(selected.id, payload);
-      toast.success('Investissement modifie');
+      toast.success('Investissement modifié');
       setModal(null);
     } catch (err) { toast.error(err.message || 'Erreur'); } finally { setSaving(false); }
   };
@@ -154,14 +156,14 @@ export default function Investissements({
     try {
       setSaving(true);
       await onDelete(selected.id);
-      toast.success('Investissement supprime');
+      toast.success('Investissement supprimé');
       setModal(null);
     } catch (err) { toast.error(err.message || 'Erreur'); } finally { setSaving(false); }
   };
 
   const promoteFields = useMemo(() => [
     { key: 'nom', label: 'Nom du Business Plan', type: 'text', required: true },
-    { key: 'activity_type', label: 'Type activite', type: 'select', options: Object.entries(ACTIVITY_LABELS).map(([value, label]) => ({ value, label })) },
+    { key: 'activity_type', label: 'Type activité', type: 'select', options: Object.entries(ACTIVITY_LABELS).map(([value, label]) => ({ value, label })) },
     { key: 'statut', label: 'Statut initial', type: 'select', options: ['planifie', 'en_cours', 'actif', 'suspendu', 'termine'] },
   ], []);
 
@@ -179,7 +181,7 @@ export default function Investissements({
         localisation: '',
       });
       await onUpdate(selected.id, { business_plan_id: newId });
-      toast.success(`Business Plan "${payload.nom}" cree`);
+      toast.success(`Business Plan "${payload.nom}" créé`);
       setModal(null);
     } catch (err) { toast.error(err.message || 'Erreur promotion'); } finally { setSaving(false); }
   };
@@ -191,7 +193,7 @@ export default function Investissements({
       setSaving(true);
       const updated = await onUpdateBusinessPlan(selectedPlan.id, payload);
       setSelectedPlan(updated || { ...selectedPlan, ...payload });
-      toast.success('Business Plan modifie');
+      toast.success('Business Plan modifié');
       setModal(null);
     } catch (err) { toast.error(err.message || 'Erreur'); } finally { setSaving(false); }
   };
@@ -203,7 +205,7 @@ export default function Investissements({
       await onDeleteBusinessPlan(selectedPlan.id);
       setSelectedPlan(null);
       setView('grid');
-      toast.success('Business Plan supprime');
+      toast.success('Business Plan supprimé');
       setModal(null);
     } catch (err) { toast.error(err.message || 'Erreur'); } finally { setSaving(false); }
   };
@@ -219,22 +221,30 @@ export default function Investissements({
         ...(planMetrics.costs || []).map((c) => onCreateBpRecurringCost({ ...c, id: makeId('BPCOST'), business_plan_id: newId })),
         ...(planMetrics.projections || []).map((p) => onCreateBpRevenueProjection({ ...p, id: makeId('BPREV'), business_plan_id: newId })),
       ]);
-      toast.success(`BP "${plan.nom}" duplique`);
+      toast.success(`BP "${plan.nom}" dupliqué`);
     } catch (err) { toast.error(err.message || 'Erreur duplication'); } finally { setSaving(false); }
   };
 
   const doExports = () => {
     if (tab === 'business') {
-      const enriched = businessPlans.map((p) => ({ ...p, ...bpMetricsFor(p) }));
-      exportToCsv({ rows: enriched, fileName: 'business-plans.csv' });
-      exportToExcel({ rows: enriched, fileName: 'business-plans.xlsx', sheetName: 'Business Plans' });
-      toast.success('Exports Business Plans generes');
+      const planToExport = activeExportPlan(businessPlans, view === 'detail' ? selectedPlan : null);
+      if (!planToExport) return toast.error('Aucun Business Plan à exporter');
+      exportBusinessPlanToExcel({
+        plan: planToExport,
+        lines: bpInvestmentLines,
+        costs: bpRecurringCosts,
+        projections: bpRevenueProjections,
+        fundings: bpFundingSources,
+        risks: bpRisks,
+        metrics: bpMetricsFor(planToExport),
+      });
+      toast.success(`Business Plan ${planToExport.nom || ''} exporté en Excel`);
       return;
     }
     const enriched = rows.map((inv) => ({ ...inv, ...metricsFor(inv) }));
     exportToCsv({ rows: enriched, fileName: 'investissements.csv' });
     exportToExcel({ rows: enriched, fileName: 'investissements.xlsx', sheetName: 'Investissements' });
-    toast.success('Exports investissements generes');
+    toast.success('Exports investissements générés');
   };
 
   // ---- Grid BP cards ----
@@ -242,9 +252,9 @@ export default function Investissements({
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <KpiCard icon={Layers} label="Business Plans" value={businessPlans.length} color="bg-sky-500/20 text-sky-400" />
-        <KpiCard icon={Wallet} label="Investissement prevu" value={fmtCurrency(bpTotals.investment)} color="bg-red-500/20 text-red-400" />
-        <KpiCard icon={TrendingUp} label="CA projete total" value={fmtCurrency(bpTotals.revenue)} color="bg-emerald-500/20 text-emerald-400" />
-        <KpiCard icon={Target} label="Marge projetee totale" value={fmtCurrency(bpTotals.margin)} color={bpTotals.margin >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'} />
+        <KpiCard icon={Wallet} label="Investissement prévu" value={fmtCurrency(bpTotals.investment)} color="bg-red-500/20 text-red-400" />
+        <KpiCard icon={TrendingUp} label="CA projeté total" value={fmtCurrency(bpTotals.revenue)} color="bg-emerald-500/20 text-emerald-400" />
+        <KpiCard icon={Target} label="Marge projetée totale" value={fmtCurrency(bpTotals.margin)} color={bpTotals.margin >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'} />
       </div>
 
       {loading && <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 text-sm text-[#8a7456]">Chargement...</div>}
@@ -252,8 +262,8 @@ export default function Investissements({
       {!bpRanking.length && !loading ? (
         <div className="rounded-2xl border border-dashed border-[#d6c3a0] bg-white p-10 text-center text-[#8a7456]">
           <p className="text-base font-semibold mb-2">Aucun Business Plan</p>
-          <p className="text-sm mb-4">Cree ton premier BP pondeuses, chair, bovins, ovins ou cultures</p>
-          <Btn icon={Plus} onClick={() => setWizardOpen(true)}>Creer un Business Plan</Btn>
+          <p className="text-sm mb-4">Crée ton premier BP pondeuses, chair, bovins, ovins ou cultures</p>
+          <Btn icon={Plus} onClick={() => setWizardOpen(true)}>Créer un Business Plan</Btn>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -284,13 +294,13 @@ export default function Investissements({
                 {/* Metrics grid */}
                 <div className="grid grid-cols-2 gap-2 flex-1">
                   <SmallMetric label="Investi" value={fmtCurrency(m.investissementInitial)} />
-                  <SmallMetric label="ROI prevu" value={fmtPercent(m.roiPrevu)} tone={m.roiPrevu >= 20 ? 'good' : m.roiPrevu >= 0 ? 'warn' : 'bad'} />
-                  <SmallMetric label="Marge prevue" value={fmtCurrency(m.margeProjetee)} tone={m.margeProjetee >= 0 ? 'good' : 'bad'} />
+                  <SmallMetric label="ROI prévu" value={fmtPercent(m.roiPrevu)} tone={m.roiPrevu >= 20 ? 'good' : m.roiPrevu >= 0 ? 'warn' : 'bad'} />
+                  <SmallMetric label="Marge prévue" value={fmtCurrency(m.margeProjetee)} tone={m.margeProjetee >= 0 ? 'good' : 'bad'} />
                   <SmallMetric label="Payback" value={m.paybackMois ? `Mois ${m.paybackMois}` : '—'} />
                   {hasReal && (
                     <>
-                      <SmallMetric label="CA reel" value={fmtCurrency(m.vsReal.caReel)} tone="good" />
-                      <SmallMetric label="Marge reelle" value={fmtCurrency(m.vsReal.margeReelle)} tone={m.vsReal.margeReelle >= 0 ? 'good' : 'bad'} />
+                      <SmallMetric label="CA réel" value={fmtCurrency(m.vsReal.caReel)} tone="good" />
+                      <SmallMetric label="Marge réelle" value={fmtCurrency(m.vsReal.margeReelle)} tone={m.vsReal.margeReelle >= 0 ? 'good' : 'bad'} />
                     </>
                   )}
                 </div>
@@ -328,7 +338,7 @@ export default function Investissements({
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiCard icon={Wallet} label="Total investi" value={fmtCurrency(totalInvesti)} color="bg-red-500/20 text-red-400" />
-        <KpiCard icon={TrendingUp} label="Gains generes" value={fmtCurrency(totalGain)} color="bg-emerald-500/20 text-emerald-400" />
+        <KpiCard icon={TrendingUp} label="Gains générés" value={fmtCurrency(totalGain)} color="bg-emerald-500/20 text-emerald-400" />
         <KpiCard icon={BarChart2} label="ROI moyen" value={`${roiMoyen}%`} color="bg-sky-500/20 text-sky-400" />
       </div>
 
@@ -362,7 +372,7 @@ export default function Investissements({
                 </div>
               </div>
               <div className="flex gap-2 flex-wrap">
-                <ActionIconButton icon={Eye} title="Details" color="sky" onClick={() => { setSelected(inv); setModal('details'); }} />
+                <ActionIconButton icon={Eye} title="Détails" color="sky" onClick={() => { setSelected(inv); setModal('details'); }} />
                 <ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(inv); setModal('edit'); }} />
                 {!inv.business_plan_id && <ActionIconButton icon={ArrowUpRight} title="Promouvoir en Business Plan" color="emerald" onClick={() => { setSelected(inv); setModal('promote'); }} />}
                 <ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(inv); setModal('delete'); }} />
@@ -374,7 +384,7 @@ export default function Investissements({
 
       {ranking.length > 0 && (
         <div className="bg-white border border-[#d6c3a0] rounded-2xl p-5">
-          <p className="font-semibold text-[#2f2415] mb-4">Classement par rentabilite</p>
+          <p className="font-semibold text-[#2f2415] mb-4">Classement par rentabilité</p>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={ranking.map((inv) => ({ ...inv, roi: metricsFor(inv).roi }))} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#d6c3a0" horizontal={false} />
@@ -393,11 +403,11 @@ export default function Investissements({
     <div className="space-y-6">
       <SectionHeader
         title="Business Plans & Investissements"
-        sub="BP multi-activites — investissements simples — ROI — prevu vs reel"
+        sub="BP multi-activités — investissements simples — ROI — prévu vs réel"
         actions={
           <>
-            <Btn icon={RefreshCw} variant="outline" small onClick={async () => { await onRefresh?.(); await onRefreshBusinessPlans?.(); toast.success('Actualise'); }}>Refresh</Btn>
-            <Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn>
+            <Btn icon={RefreshCw} variant="outline" small onClick={async () => { await onRefresh?.(); await onRefreshBusinessPlans?.(); toast.success('Actualisé'); }}>Actualiser</Btn>
+            <Btn icon={Download} variant="outline" small onClick={doExports}>{tab === 'business' ? 'Exporter le BP' : 'Exporter'}</Btn>
             {tab === 'business'
               ? <Btn icon={Plus} small onClick={() => setWizardOpen(true)}>Nouveau Business Plan</Btn>
               : <Btn icon={Plus} small onClick={() => setModal('create')}>Nouvel investissement</Btn>}
@@ -485,9 +495,9 @@ export default function Investissements({
         initialValues={{ nom: selected?.libelle || '', activity_type: 'autre', statut: 'planifie' }}
         loading={saving}
         title="Promouvoir en Business Plan"
-        submitLabel="Creer le BP"
+        submitLabel="Créer le BP"
       />
-      <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, ...metricsFor(selected) } : selected} title="Detail investissement" />
+      <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, ...metricsFor(selected) } : selected} title="Détail investissement" />
       <CreateModal
         open={modal === 'create'}
         onClose={() => setModal(null)}
