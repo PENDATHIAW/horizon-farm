@@ -12,6 +12,16 @@ const MODULES = [
 ];
 const ACTIONS = ['voir', 'créer', 'modifier', 'supprimer', 'exporter', 'valider', 'payer', 'clôturer', 'voir_marges'];
 const ROLE_LABELS = { admin: 'Super Admin', manager: 'Gestionnaire', employe: 'Employé terrain', veterinaire: 'Vétérinaire', comptable: 'Comptable', visiteur: 'Visiteur' };
+const ROLE_HELP = {
+  admin: 'Accès complet : gestion, données, finances, rôles et remise à zéro.',
+  manager: 'Pilote l’ensemble de la ferme et suit les décisions importantes.',
+  employe: 'Suit le terrain : animaux, lots, stock, cultures, tâches et alertes.',
+  veterinaire: 'Suit la santé, les vaccins, les documents et les actions sanitaires.',
+  comptable: 'Suit les ventes, paiements, finances, rapports et justificatifs.',
+  visiteur: 'Accès de démonstration limité à l’accueil et à l’assistant.',
+};
+const ACTION_LABELS = { voir: 'voir', créer: 'créer', modifier: 'modifier', supprimer: 'supprimer', exporter: 'exporter', valider: 'valider', payer: 'payer', clôturer: 'clôturer', voir_marges: 'voir les marges' };
+const TABLE_LABELS = Object.fromEntries(ERP_RESET_TABLES.map((table) => [table.key, table.label]));
 const DEFAULT_USERS = [
   { id: 'USR-PENDA', nom: 'penda', email: 'penda@horizonfarm.app', role: 'admin', statut: 'actif', equipe: 'Direction', modules: ['*'], actions: ['*'], notes: 'Compte propriétaire protégé' },
   { id: 'USR-VISITEUR', nom: 'Visiteur test', email: 'visiteur@horizonfarm.app', role: 'visiteur', statut: 'pending', equipe: 'Test', modules: ROLE_PERMISSIONS.visiteur || [], actions: ['voir'], notes: 'Accès limité : dashboard + assistant seulement' },
@@ -23,6 +33,9 @@ const has = (list = [], key) => list.includes('*') || list.includes(key);
 const roleModules = (role) => ROLE_PERMISSIONS[role]?.includes('*') ? MODULES.map(([key]) => key) : (ROLE_PERMISSIONS[role] || []);
 const roleActions = (role) => role === 'admin' ? ['*'] : role === 'visiteur' ? ['voir'] : role === 'comptable' ? ['voir', 'créer', 'modifier', 'exporter', 'payer'] : role === 'manager' ? ['voir', 'créer', 'modifier', 'exporter', 'valider'] : ['voir'];
 const newUser = () => ({ id: makeId('USR'), nom: '', email: '', role: 'visiteur', statut: 'pending', equipe: '', modules: ROLE_PERMISSIONS.visiteur || [], actions: ['voir'], notes: 'Créé depuis Gestion système' });
+const moduleLabel = (key) => MODULES.find(([moduleKey]) => moduleKey === key)?.[1] || key;
+const actionLabel = (key) => ACTION_LABELS[key] || String(key || '').replace('_', ' ');
+const tableLabel = (key) => TABLE_LABELS[key] || key;
 
 function Field({ label, value, onChange, type = 'text' }) { return <label className="block text-sm"><span className="text-[#8a7456]">{label}</span><input type={type} value={value || ''} onChange={(e) => onChange(e.target.value)} className="mt-1 w-full rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2" /></label>; }
 function TogglePill({ active, children, onClick }) { return <button type="button" onClick={onClick} className={`rounded-full border px-3 py-1 text-xs font-bold ${active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-[#eadcc2] bg-white text-[#8a7456]'}`}>{children}</button>; }
@@ -68,8 +81,6 @@ export default function GestionSysteme() {
   const wipeData = async ({ exportFirst }) => {
     const confirmText = exportFirst ? 'Exporter tout le contenu puis effacer toutes les données ? Les comptes et accès seront conservés.' : 'Effacer toutes les données sans export ? Les comptes et accès seront conservés.';
     if (!window.confirm(confirmText)) return;
-    const secondConfirm = window.prompt('Pour confirmer, écris EFFACER en majuscules.');
-    if (secondConfirm !== 'EFFACER') return toast.error('Action annulée');
     try {
       setWipeBusy(true);
       setWipeProgress(exportFirst ? 'Export en préparation...' : 'Effacement en préparation...');
@@ -77,7 +88,7 @@ export default function GestionSysteme() {
         await exportErpDataToExcel();
         toast.success('Export Excel généré');
       }
-      const results = await clearAllErpData({ onProgress: (result) => setWipeProgress(`${result.cleared ? 'Effacé' : 'À revoir'} : ${result.tableKey}`) });
+      const results = await clearAllErpData({ onProgress: (result) => setWipeProgress(`${result.cleared ? 'Effacé' : 'À revoir'} : ${tableLabel(result.tableKey)}`) });
       clearLocalTombstones();
       clearLocalErpCache();
       const errors = results.filter((result) => !result.cleared);
@@ -93,17 +104,21 @@ export default function GestionSysteme() {
   };
 
   return <div className="space-y-6">
-    <SectionHeader title="Gestion du système" sub="Utilisateurs, visiteurs, rôles et accès" actions={<><Btn variant="outline" small onClick={() => setShowMatrix((v) => !v)}>{showMatrix ? 'Masquer matrice' : 'Voir matrice'}</Btn><Btn icon={Plus} small onClick={() => setSelected(newUser())}>Créer utilisateur</Btn></>} />
+    <SectionHeader title="Gestion du système" sub="Utilisateurs, visiteurs, rôles et accès" actions={<><Btn variant="outline" small onClick={() => setShowMatrix((v) => !v)}>{showMatrix ? 'Masquer' : 'Qui voit quoi ?'}</Btn><Btn icon={Plus} small onClick={() => setSelected(newUser())}>Créer utilisateur</Btn></>} />
 
     <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
       <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
         <div>
           <p className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700"><ShieldCheck size={14} /> Accès protégés</p>
-          <h2 className="mt-3 text-2xl font-black text-[#2f2415]">Accès, visibilité et habilitations</h2>
+          <h2 className="mt-3 text-2xl font-black text-[#2f2415]">Accès, visibilité et responsabilités</h2>
           <p className="mt-1 text-sm text-[#8a7456]">Utilisateur connecté : {user?.email || '—'} · rôle actuel : {ROLE_LABELS[role] || role}</p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 min-w-full lg:min-w-[560px]"><Mini icon={Users} label="Utilisateurs" value={stats.total} /><Mini icon={CheckCircle2} label="Actifs" value={stats.actifs} /><Mini icon={Shield} label="Admins" value={stats.admins} danger={stats.admins > 3} /><Mini icon={LockKeyhole} label="Visiteurs" value={stats.visiteurs} /></div>
       </div>
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {Object.entries(ROLE_LABELS).filter(([key]) => key !== 'admin').slice(0, 3).map(([key, label]) => <div key={key} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="font-black text-[#2f2415]">{label}</p><p className="mt-1 text-xs text-[#8a7456]">{ROLE_HELP[key]}</p></div>)}
     </div>
 
     <div className="rounded-3xl border border-red-200 bg-red-50 p-5 shadow-sm space-y-3">
@@ -118,13 +133,13 @@ export default function GestionSysteme() {
     <div className="flex flex-wrap gap-2">{['tous', ...Object.keys(ROLE_LABELS)].map((r) => <TogglePill key={r} active={filterRole === r} onClick={() => setFilterRole(r)}>{r === 'tous' ? 'Tous' : ROLE_LABELS[r]}</TogglePill>)}</div>
 
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-      <div className="xl:col-span-2 rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-3"><h3 className="font-black text-[#2f2415]">Utilisateurs & visiteurs</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-3">{visibleUsers.map((u) => <div key={u.id} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-[#2f2415]">{u.nom}</p><p className="text-xs text-[#8a7456]">{u.email}</p><p className="mt-1 text-xs font-bold text-[#8a7456]">{ROLE_LABELS[u.role] || u.role} · {u.statut}</p></div><div className="flex gap-2"><button type="button" onClick={() => setSelected(u)} title="Modifier"><Edit size={16} /></button><button type="button" onClick={() => remove(u)} title="Retirer" className="text-red-600"><Trash2 size={16} /></button></div></div><div className="mt-3 flex flex-wrap gap-1">{has(u.modules, '*') ? <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">Tous modules</span> : (u.modules || []).slice(0, 6).map((m) => <span key={m} className="rounded-full bg-white border border-[#eadcc2] px-2 py-1 text-xs text-[#8a7456]">{MODULES.find(([key]) => key === m)?.[1] || m}</span>)}{!has(u.modules, '*') && (u.modules || []).length > 6 ? <span className="text-xs text-[#8a7456]">+{u.modules.length - 6}</span> : null}</div></div>)}</div></div>
+      <div className="xl:col-span-2 rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-3"><h3 className="font-black text-[#2f2415]">Utilisateurs & visiteurs</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-3">{visibleUsers.map((u) => <div key={u.id} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-[#2f2415]">{u.nom}</p><p className="text-xs text-[#8a7456]">{u.email}</p><p className="mt-1 text-xs font-bold text-[#8a7456]">{ROLE_LABELS[u.role] || u.role} · {u.statut}</p></div><div className="flex gap-2"><button type="button" onClick={() => setSelected(u)} title="Modifier"><Edit size={16} /></button><button type="button" onClick={() => remove(u)} title="Retirer" className="text-red-600"><Trash2 size={16} /></button></div></div><div className="mt-3 flex flex-wrap gap-1">{has(u.modules, '*') ? <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">Tous les espaces</span> : (u.modules || []).slice(0, 6).map((m) => <span key={m} className="rounded-full bg-white border border-[#eadcc2] px-2 py-1 text-xs text-[#8a7456]">{moduleLabel(m)}</span>)}{!has(u.modules, '*') && (u.modules || []).length > 6 ? <span className="text-xs text-[#8a7456]">+{u.modules.length - 6}</span> : null}</div></div>)}</div></div>
 
       <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-3">
-        {selected ? <><h3 className="font-black text-[#2f2415]">{users.some((u) => u.id === selected.id) ? 'Modifier accès' : 'Créer / inviter'}</h3><Field label="Nom" value={selected.nom} onChange={(v) => setS('nom', v)} /><Field label="Email" value={selected.email} onChange={(v) => setS('email', v)} /><Field label="Équipe / périmètre" value={selected.equipe} onChange={(v) => setS('equipe', v)} /><label className="block text-sm"><span className="text-[#8a7456]">Rôle</span><select value={selected.role} onChange={(e) => applyRole(e.target.value)} className="mt-1 w-full rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2">{Object.entries(ROLE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label className="block text-sm"><span className="text-[#8a7456]">Statut</span><select value={selected.statut} onChange={(e) => setS('statut', e.target.value)} className="mt-1 w-full rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2"><option value="active">Actif</option><option value="pending">En attente</option><option value="suspended">Suspendu</option><option value="disabled">Désactivé</option></select></label><div><p className="text-sm font-bold text-[#2f2415] mb-2">Modules visibles</p><div className="max-h-48 overflow-auto rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 grid grid-cols-1 gap-2">{MODULES.map(([key, label]) => <label key={key} className="flex items-center justify-between gap-2 text-sm"><span>{label}</span><input type="checkbox" checked={has(selected.modules, key)} disabled={has(selected.modules, '*')} onChange={() => toggleModule(key)} /></label>)}</div></div><div><p className="text-sm font-bold text-[#2f2415] mb-2">Actions autorisées</p><div className="flex flex-wrap gap-2">{ACTIONS.map((a) => <TogglePill key={a} active={has(selected.actions, a)} onClick={() => toggleAction(a)}>{a.replace('_', ' ')}</TogglePill>)}</div></div><Field label="Notes" value={selected.notes} onChange={(v) => setS('notes', v)} /><div className="flex gap-2"><Btn icon={Save} onClick={save}>Enregistrer</Btn><Btn variant="outline" onClick={() => setSelected(null)}>Fermer</Btn></div></> : <div className="text-sm text-[#8a7456]"><UserCog size={22} className="mb-3" /><p className="font-bold text-[#2f2415]">Sélectionne un utilisateur</p><p>Un visiteur peut se créer seul depuis la page de connexion. Tu peux ensuite modifier son rôle et ses accès ici.</p></div>}
+        {selected ? <><h3 className="font-black text-[#2f2415]">{users.some((u) => u.id === selected.id) ? 'Modifier accès' : 'Créer / inviter'}</h3><Field label="Nom" value={selected.nom} onChange={(v) => setS('nom', v)} /><Field label="Email" value={selected.email} onChange={(v) => setS('email', v)} /><Field label="Équipe / périmètre" value={selected.equipe} onChange={(v) => setS('equipe', v)} /><label className="block text-sm"><span className="text-[#8a7456]">Rôle</span><select value={selected.role} onChange={(e) => applyRole(e.target.value)} className="mt-1 w-full rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2">{Object.entries(ROLE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select><p className="mt-1 text-xs text-[#8a7456]">{ROLE_HELP[selected.role]}</p></label><label className="block text-sm"><span className="text-[#8a7456]">Statut</span><select value={selected.statut} onChange={(e) => setS('statut', e.target.value)} className="mt-1 w-full rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2"><option value="active">Actif</option><option value="pending">En attente</option><option value="suspended">Suspendu</option><option value="disabled">Désactivé</option></select></label><div><p className="text-sm font-bold text-[#2f2415] mb-2">Espaces visibles</p><div className="max-h-48 overflow-auto rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 grid grid-cols-1 gap-2">{MODULES.map(([key, label]) => <label key={key} className="flex items-center justify-between gap-2 text-sm"><span>{label}</span><input type="checkbox" checked={has(selected.modules, key)} disabled={has(selected.modules, '*')} onChange={() => toggleModule(key)} /></label>)}</div></div><div><p className="text-sm font-bold text-[#2f2415] mb-2">Actions autorisées</p><div className="flex flex-wrap gap-2">{ACTIONS.map((a) => <TogglePill key={a} active={has(selected.actions, a)} onClick={() => toggleAction(a)}>{actionLabel(a)}</TogglePill>)}</div></div><Field label="Notes" value={selected.notes} onChange={(v) => setS('notes', v)} /><div className="flex gap-2"><Btn icon={Save} onClick={save}>Enregistrer</Btn><Btn variant="outline" onClick={() => setSelected(null)}>Fermer</Btn></div></> : <div className="text-sm text-[#8a7456]"><UserCog size={22} className="mb-3" /><p className="font-bold text-[#2f2415]">Sélectionne un utilisateur</p><p>Un visiteur peut se créer seul depuis la page de connexion. Tu peux ensuite modifier son rôle et ses accès ici.</p></div>}
       </div>
     </div>
 
-    {showMatrix ? <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><h3 className="font-black text-[#2f2415]">Matrice rôles / modules</h3><div className="overflow-x-auto"><table className="min-w-full text-sm"><thead><tr className="border-b border-[#eadcc2] bg-[#fffdf8] text-left text-xs uppercase text-[#8a7456]"><th className="py-2 px-3">Module</th>{Object.entries(ROLE_LABELS).map(([key, label]) => <th key={key} className="py-2 px-3">{label}</th>)}</tr></thead><tbody>{MODULES.map(([key, label]) => <tr key={key} className="border-b border-[#f0e5d0]"><td className="py-2 px-3 font-bold text-[#2f2415]">{label}</td>{Object.keys(ROLE_LABELS).map((roleKey) => <td key={roleKey} className="py-2 px-3">{has(ROLE_PERMISSIONS[roleKey] || [], key) ? <Eye size={16} className="text-emerald-600" /> : <EyeOff size={16} className="text-[#c0aa84]" />}</td>)}</tr>)}</tbody></table></div></div> : null}
+    {showMatrix ? <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><h3 className="font-black text-[#2f2415]">Qui voit quoi ?</h3><div className="overflow-x-auto"><table className="min-w-full text-sm"><thead><tr className="border-b border-[#eadcc2] bg-[#fffdf8] text-left text-xs uppercase text-[#8a7456]"><th className="py-2 px-3">Espace</th>{Object.entries(ROLE_LABELS).map(([key, label]) => <th key={key} className="py-2 px-3">{label}</th>)}</tr></thead><tbody>{MODULES.map(([key, label]) => <tr key={key} className="border-b border-[#f0e5d0]"><td className="py-2 px-3 font-bold text-[#2f2415]">{label}</td>{Object.keys(ROLE_LABELS).map((roleKey) => <td key={roleKey} className="py-2 px-3">{has(ROLE_PERMISSIONS[roleKey] || [], key) ? <Eye size={16} className="text-emerald-600" /> : <EyeOff size={16} className="text-[#c0aa84]" />}</td>)}</tr>)}</tbody></table></div></div> : null}
   </div>;
 }
