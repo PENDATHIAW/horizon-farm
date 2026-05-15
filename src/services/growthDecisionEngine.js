@@ -20,6 +20,12 @@ export const activityLabels = {
 export const monthlyWeights = [0.07, 0.07, 0.08, 0.08, 0.08, 0.09, 0.08, 0.08, 0.08, 0.08, 0.1, 0.11];
 export const defaultAnnualMix = { oeufs: 0.32, poulets_chair: 0.22, bovins: 0.12, ovins: 0.09, caprins: 0.05, cultures: 0.15, stock: 0.05 };
 
+function dateOnly(date) { return new Date(date.getFullYear(), date.getMonth(), date.getDate()); }
+function iso(date) { return date.toISOString().slice(0, 10); }
+function addDays(date, days) { const next = new Date(date); next.setDate(next.getDate() + Number(days || 0)); return next; }
+function daysBetween(a, b) { return Math.ceil((dateOnly(b).getTime() - dateOnly(a).getTime()) / 86400000); }
+function makeDate(year, month, day) { return new Date(year, month - 1, day); }
+
 function classifyAnimalSpeciesFromText(raw = '') {
   if (raw.includes('bovin') || raw.includes('boeuf') || raw.includes('vache') || raw.includes('taureau') || raw.includes('veau')) return 'bovins';
   if (raw.includes('ovin') || raw.includes('mouton') || raw.includes('belier') || raw.includes('brebis')) return 'ovins';
@@ -46,16 +52,103 @@ export function buildCommercialCalendar(date = new Date()) {
     { month: 2, label: 'Février', focus: ['oeufs', 'poulets_chair'], note: 'Préparer périodes alimentaires fortes selon calendrier annuel.' },
     { month: 3, label: 'Mars', focus: ['oeufs', 'poulets_chair'], note: 'Demande alimentaire possible, surveiller cash et créances.' },
     { month: 4, label: 'Avril', focus: ['oeufs', 'cultures'], note: 'Relance et préparation investissements longs.' },
-    { month: 5, label: 'Mai', focus: ['cultures', 'bovins', 'ovins', 'caprins'], note: 'Préparer cultures, animaux et besoins en eau/intrants.' },
-    { month: 6, label: 'Juin', focus: ['bovins', 'ovins', 'caprins'], note: 'Fenêtre possible forte sur animaux selon calendrier.' },
-    { month: 7, label: 'Juillet', focus: ['cultures', 'oeufs'], note: 'Suivi cultures, santé et alimentation.' },
-    { month: 8, label: 'Août', focus: ['cultures'], note: 'Suivi cultures, stockage, préparation ventes futures.' },
-    { month: 9, label: 'Septembre', focus: ['oeufs', 'poulets_chair'], note: 'Reprise commerce, préparation fin d’année.' },
-    { month: 10, label: 'Octobre', focus: ['poulets_chair', 'oeufs'], note: 'Précommandes et mise en place cycles courts.' },
+    { month: 5, label: 'Mai', focus: ['cultures', 'bovins', 'ovins', 'caprins'], note: 'Contrôler les deadlines et préparer les prochaines fenêtres, pas seulement l’événement proche.' },
+    { month: 6, label: 'Juin', focus: ['bovins', 'ovins', 'caprins'], note: 'Fenêtres animales possibles uniquement si les mises en place ont été faites à temps.' },
+    { month: 7, label: 'Juillet', focus: ['cultures', 'oeufs'], note: 'Suivi cultures, santé, alimentation et prochaines opportunités.' },
+    { month: 8, label: 'Août', focus: ['cultures', 'bovins', 'ovins', 'caprins'], note: 'Préparer fenêtres religieuses/locales et commerce de rentrée.' },
+    { month: 9, label: 'Septembre', focus: ['oeufs', 'poulets_chair', 'bovins', 'ovins', 'caprins'], note: 'Fenêtres Gamou/Magal à confirmer, reprise commerce, préparation fin d’année.' },
+    { month: 10, label: 'Octobre', focus: ['poulets_chair', 'oeufs'], note: 'Précommandes et mise en place cycles courts pour fin d’année.' },
     { month: 11, label: 'Novembre', focus: ['poulets_chair', 'oeufs'], note: 'Préparer fin d’année, sécuriser clients cash.' },
-    { month: 12, label: 'Décembre', focus: ['poulets_chair', 'oeufs', 'bovins', 'ovins', 'caprins'], note: 'Fin d’année, commandes groupées, forte attention livraison.' },
+    { month: 12, label: 'Décembre', focus: ['poulets_chair', 'oeufs', 'bovins', 'ovins', 'caprins'], note: 'Fin d’année : commandes groupées, restauration, familles, livraisons.' },
   ];
   return { current: rows.find((row) => row.month === month), next: [1, 2, 3, 4, 5, 6].map((offset) => rows[(month - 1 + offset) % 12]), year: rows };
+}
+
+function defaultEventsForYear(year) {
+  return [
+    { id: `tabaski-${year}`, label: 'Tabaski', date: makeDate(year, 5, 27), activities: ['ovins', 'bovins', 'caprins'], note: 'Date indicative à remplacer par le calendrier officiel/local.' },
+    { id: `gamou-${year}`, label: 'Gamou', date: makeDate(year, 9, 5), activities: ['ovins', 'bovins', 'caprins', 'poulets_chair', 'oeufs'], note: 'Fenêtre indicative : à confirmer dans le calendrier local.' },
+    { id: `magal-${year}`, label: 'Magal', date: makeDate(year, 8, 20), activities: ['ovins', 'bovins', 'caprins', 'poulets_chair', 'oeufs'], note: 'Fenêtre indicative : à confirmer dans le calendrier local.' },
+    { id: `fin-annee-${year}`, label: 'Fin d’année', date: makeDate(year, 12, 24), activities: ['poulets_chair', 'oeufs', 'bovins', 'ovins', 'caprins'], note: 'Commandes groupées, restauration, familles, livraison.' },
+    { id: `ramadan-${year}`, label: 'Ramadan', date: makeDate(year, 2, 17), activities: ['poulets_chair', 'oeufs'], note: 'Date indicative : à confirmer chaque année.' },
+    { id: `korite-${year}`, label: 'Korité', date: makeDate(year, 3, 20), activities: ['poulets_chair', 'oeufs'], note: 'Date indicative : à confirmer chaque année.' },
+  ];
+}
+
+export function buildMarketEvents(referenceDate = new Date(), dataMap = {}) {
+  const customEvents = arr(dataMap.market_calendar_events || dataMap.marketCalendarEvents).map((event) => ({
+    id: event.id || event.code || event.nom,
+    label: event.label || event.nom || event.title,
+    date: new Date(event.date || event.target_date || event.date_cible),
+    activities: arr(event.activities || event.activites || event.focus),
+    note: event.note || event.description || '',
+    source: 'custom',
+  })).filter((event) => event.label && !Number.isNaN(event.date.getTime()));
+
+  const year = referenceDate.getFullYear();
+  const defaults = [year, year + 1, year + 2].flatMap(defaultEventsForYear).map((event) => ({ ...event, source: 'default' }));
+  const minDate = addDays(referenceDate, -15);
+  const maxDate = addDays(referenceDate, 540);
+  return [...customEvents, ...defaults]
+    .filter((event) => event.date >= minDate && event.date <= maxDate)
+    .sort((a, b) => a.date - b.date);
+}
+
+function buildTimingWindow({ activity, event, leadTime, referenceDate }) {
+  const targetDate = event.date;
+  const latestStart = addDays(targetDate, -leadTime);
+  const earliestStart = addDays(latestStart, -Math.max(14, Math.round(leadTime * 0.35)));
+  const remainingDays = daysBetween(referenceDate, targetDate);
+  const daysBeforeDeadline = daysBetween(referenceDate, latestStart);
+  let status = 'in_time';
+  let label = 'Dans les temps';
+  let shouldRecommendInvestment = true;
+  if (daysBeforeDeadline < 0) {
+    status = 'too_late';
+    label = 'Trop tard pour cette fenêtre';
+    shouldRecommendInvestment = false;
+  } else if (daysBeforeDeadline <= 7) {
+    status = 'urgent_deadline';
+    label = 'Deadline très proche';
+  } else if (daysBeforeDeadline <= 21) {
+    status = 'prepare_now';
+    label = 'À préparer maintenant';
+  }
+
+  const fallbackByActivity = {
+    poulets_chair: 'Pour la fenêtre ratée, vendre uniquement stock existant ou précommandes déjà sécurisées. Replanifier le prochain cycle sur la prochaine fenêtre viable.',
+    ovins: 'Pour cette fenêtre, ne pas acheter tardivement. Préparer la prochaine fenêtre avec 90 jours minimum, précommandes et capacité alimentaire.',
+    bovins: 'Pour cette fenêtre, arbitrer uniquement les animaux déjà disponibles. Préparer la prochaine fenêtre avec cash, poids cible et précommandes.',
+    caprins: 'Pour cette fenêtre, éviter l’achat tardif. Préparer la prochaine fenêtre avec clients, alimentation et marge estimée.',
+    oeufs: 'Optimiser la ponte existante pour la fenêtre proche. Nouvelle capacité seulement pour une fenêtre plus lointaine.',
+    cultures: 'Ne pas lancer pour une récolte trop proche. Choisir une culture/cycle compatible avec la prochaine fenêtre.',
+  };
+
+  return {
+    activity,
+    eventId: event.id,
+    eventLabel: event.label,
+    eventNote: event.note || '',
+    targetDate: iso(targetDate),
+    earliestStart: iso(earliestStart),
+    latestStart: iso(latestStart),
+    leadTime,
+    remainingDays,
+    daysBeforeDeadline,
+    status,
+    statusLabel: label,
+    shouldRecommendInvestment,
+    tooLateReason: shouldRecommendInvestment ? '' : `La fenêtre ${event.label} est trop proche : ${remainingDays} jour(s) restants pour ${leadTime} jour(s) nécessaires.`,
+    fallback: fallbackByActivity[activity] || 'Chercher une alternative court terme ou viser la prochaine fenêtre.',
+  };
+}
+
+function selectRollingWindow(activity, events, leadTime, referenceDate) {
+  const activityEvents = events.filter((event) => arr(event.activities).includes(activity));
+  const windows = activityEvents.map((event) => buildTimingWindow({ activity, event, leadTime, referenceDate }));
+  const missed = windows.find((window) => window.status === 'too_late');
+  const viable = windows.find((window) => window.status !== 'too_late');
+  return viable || missed || null;
 }
 
 export function estimateLeadTimes(dataMap = {}) {
@@ -112,12 +205,7 @@ export function buildGoalPerformance(dataMap = {}, options = {}) {
       activities.caprins.realized += split;
     }
   });
-  const animalGlobal = {
-    activity: 'animaux',
-    label: activityLabels.animaux,
-    target: activities.bovins.target + activities.ovins.target + activities.caprins.target,
-    realized: activities.bovins.realized + activities.ovins.realized + activities.caprins.realized,
-  };
+  const animalGlobal = { activity: 'animaux', label: activityLabels.animaux, target: activities.bovins.target + activities.ovins.target + activities.caprins.target, realized: activities.bovins.realized + activities.ovins.realized + activities.caprins.realized };
   animalGlobal.attainment = animalGlobal.target ? Math.round((animalGlobal.realized / animalGlobal.target) * 100) : 0;
   animalGlobal.remaining = Math.max(0, animalGlobal.target - animalGlobal.realized);
 
@@ -131,20 +219,83 @@ export function buildGoalPerformance(dataMap = {}, options = {}) {
   };
 }
 
+function buildRecommendation({ activity, title, priority, recommendation, timingWindow, capacity }) {
+  if (!timingWindow) return null;
+  const timing = `${timingWindow.statusLabel} · cible ${timingWindow.eventLabel} (${timingWindow.targetDate}) · mise en place ${timingWindow.earliestStart} → ${timingWindow.latestStart}`;
+  const finalRecommendation = timingWindow.shouldRecommendInvestment
+    ? recommendation
+    : `${timingWindow.tooLateReason} ${timingWindow.fallback}`;
+  return {
+    id: `${activity}-${timingWindow.eventId}`,
+    title,
+    activity,
+    priority: timingWindow.shouldRecommendInvestment ? priority : 'basse',
+    timing,
+    recommendation: finalRecommendation,
+    event_label: timingWindow.eventLabel,
+    event_note: timingWindow.eventNote,
+    target_date: timingWindow.targetDate,
+    earliest_start: timingWindow.earliestStart,
+    latest_start: timingWindow.latestStart,
+    lead_time_days: timingWindow.leadTime,
+    timing_status: timingWindow.status,
+    timing_status_label: timingWindow.statusLabel,
+    should_recommend_investment: timingWindow.shouldRecommendInvestment,
+    capacity,
+  };
+}
+
 export function buildDecisionCenterPlan(dataMap = {}, options = {}) {
-  const calendar = buildCommercialCalendar(options.date || new Date());
+  const referenceDate = options.date || new Date();
+  const calendar = buildCommercialCalendar(referenceDate);
   const leadTimes = estimateLeadTimes(dataMap);
   const capacity = buildProductionCapacity(dataMap);
   const goals = buildGoalPerformance(dataMap, options);
-  const futureFocus = new Set(calendar.next.flatMap((m) => m.focus));
+  const events = buildMarketEvents(referenceDate, dataMap);
   const recommendations = [];
-  if (futureFocus.has('oeufs')) recommendations.push({ id: 'pondeuses', title: capacity.tabletsDay ? 'Comparer demande œufs et capacité pondeuses' : 'Construire capacité pondeuses', activity: 'oeufs', priority: capacity.layingRate < 68 ? 'haute' : 'moyenne', timing: `${leadTimes.oeufs} jours avant période cible`, recommendation: capacity.layingRate < 68 ? 'Optimiser alimentation, santé et taux de ponte avant achat massif.' : 'Préparer un business plan d’extension seulement si la demande dépasse durablement la capacité.' });
-  if (futureFocus.has('poulets_chair')) recommendations.push({ id: 'chair', title: 'Poulets de chair pour cycle court', activity: 'poulets_chair', priority: goals.global.attainment < 80 ? 'haute' : 'moyenne', timing: `${leadTimes.poulets_chair} jours avant vente cible`, recommendation: 'Dimensionner selon cash, bâtiment, aliment, mortalité et clients précommandés.' });
-  ['bovins', 'ovins', 'caprins'].forEach((activity) => {
-    if (futureFocus.has(activity)) recommendations.push({ id: `ruminants-${activity}`, title: `${activityLabels[activity]} : investissement selon événement et cash`, activity, priority: 'moyenne', timing: `${leadTimes[activity]} jours avant vente cible`, recommendation: 'Ne pas immobiliser du cash sans précommandes, marge estimée, objectif de poids et capacité alimentaire.' });
+
+  const addForActivity = (activity, config) => {
+    const timingWindow = selectRollingWindow(activity, events, leadTimes[activity], referenceDate);
+    const recommendation = buildRecommendation({ activity, timingWindow, ...config });
+    if (recommendation) recommendations.push(recommendation);
+  };
+
+  addForActivity('oeufs', {
+    title: capacity.tabletsDay ? 'Comparer demande œufs et capacité pondeuses' : 'Construire capacité pondeuses',
+    priority: capacity.layingRate < 68 ? 'haute' : 'moyenne',
+    recommendation: capacity.layingRate < 68 ? 'Optimiser alimentation, santé et taux de ponte avant achat massif.' : 'Préparer un business plan d’extension seulement si la demande dépasse durablement la capacité.',
+    capacity,
   });
-  if (futureFocus.has('cultures')) recommendations.push({ id: 'cultures', title: 'Cultures adaptées à Thiès/Médina Fall', activity: 'cultures', priority: 'moyenne', timing: `${leadTimes.cultures} jours avant récolte cible`, recommendation: 'Valider sol, eau, intrants, cycle et débouchés avant tomate, poivron, pomme de terre ou autre culture.' });
-  return { calendar, leadTimes, capacity, goals, recommendations, top_activity: goals.activities[0], late_activities: goals.activities.filter((a) => a.attainment < 70), executive_summary: goals.global.attainment >= 100 ? 'Objectif mensuel en avance : sécuriser cash et préparer croissance.' : `Objectif mensuel à ${goals.global.attainment}% : rattrapage et investissements pilotés nécessaires.` };
+
+  addForActivity('poulets_chair', {
+    title: 'Poulets de chair pour cycle court',
+    priority: goals.global.attainment < 80 ? 'haute' : 'moyenne',
+    recommendation: 'Dimensionner selon cash, bâtiment, aliment, mortalité et clients précommandés.',
+  });
+
+  ['bovins', 'ovins', 'caprins'].forEach((activity) => addForActivity(activity, {
+    title: `${activityLabels[activity]} : investissement selon fenêtre commerciale`,
+    priority: 'moyenne',
+    recommendation: 'Ne pas immobiliser du cash sans précommandes, marge estimée, objectif de poids et capacité alimentaire.',
+  }));
+
+  addForActivity('cultures', {
+    title: 'Cultures adaptées à Thiès/Médina Fall',
+    priority: 'moyenne',
+    recommendation: 'Valider sol, eau, intrants, cycle et débouchés avant tomate, poivron, pomme de terre ou autre culture.',
+  });
+
+  return {
+    calendar,
+    events,
+    leadTimes,
+    capacity,
+    goals,
+    recommendations,
+    top_activity: goals.activities[0],
+    late_activities: goals.activities.filter((a) => a.attainment < 70),
+    executive_summary: goals.global.attainment >= 100 ? 'Objectif mensuel en avance : sécuriser cash et préparer croissance.' : `Objectif mensuel à ${goals.global.attainment}% : rattrapage et investissements pilotés nécessaires.`,
+  };
 }
 
 export default buildDecisionCenterPlan;
