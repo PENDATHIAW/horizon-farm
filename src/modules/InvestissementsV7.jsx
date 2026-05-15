@@ -126,6 +126,37 @@ async function createOrUpdateHorizonFarmPlan(props) {
   }
 }
 
+function HorizonFarmPreview({ props }) {
+  const investmentTotal = HORIZON_FARM_INVESTMENT_LINES.reduce((sum, line) => sum + line.quantite * line.prix_unitaire, 0);
+  const monthlyTotal = HORIZON_FARM_MONTHLY_COSTS.reduce((sum, line) => sum + toNumber(line.montant_mensuel), 0);
+  return (
+    <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+      <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Business plan intégré</p>
+          <h2 className="text-2xl font-black text-[#2f2415] mt-1">Business Plan Horizon Farm</h2>
+          <p className="text-sm text-[#7d6a4a] mt-1">Préchargé avec 4 000 pondeuses à 900 FCFA, 200 poulets de chair, 10 bovins, 5 ovins et 5 caprins. Clique pour l’injecter dans Investissements puis modifier/supprimer/confirmer les lignes.</p>
+        </div>
+        <button type="button" onClick={() => createOrUpdateHorizonFarmPlan(props)} className="rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white hover:bg-[#3d2f1d]">Créer Business Plan Horizon Farm</button>
+      </div>
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        <Card label="Investissement préchargé" value={fmtCurrency(investmentTotal)} />
+        <Card label="Charges mensuelles" value={fmtCurrency(monthlyTotal)} />
+        <Card label="Lignes investissement" value={HORIZON_FARM_INVESTMENT_LINES.length} />
+        <Card label="Projections" value={`${HORIZON_FARM_REVENUE_PROJECTIONS.length} mois`} />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-2">
+        {HORIZON_FARM_INVESTMENT_LINES.slice(0, 10).map((line) => (
+          <div key={line.designation} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
+            <p className="text-xs font-black text-[#2f2415]">{clean(line.designation)}</p>
+            <p className="text-[11px] text-[#8a7456] mt-1">{line.quantite} {line.unite} · {fmtCurrency(line.quantite * line.prix_unitaire)}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function AmortizationModal({ open, onClose, rows, metrics }) {
   if (!open) return null;
   return <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-2xl border border-[#d6c3a0] w-full max-w-5xl max-h-[85vh] overflow-hidden flex flex-col"><div className="p-4 border-b border-[#eadcc2] flex justify-between items-start gap-3"><div><h3 className="font-black text-xl text-[#2f2415]">Plan d’amortissement</h3><p className="text-sm text-[#8a7456]">Le solde part de l’investissement prévu, puis se réduit avec la marge mensuelle.</p></div><button type="button" onClick={onClose} className="p-2 rounded-xl hover:bg-[#fff3d8]"><X size={18} /></button></div>{metrics.missingForecast ? <div className="p-5 text-sm text-[#7d6a4a]">Les prévisions de CA et/ou charges ne sont pas encore renseignées. Tant que les projections restent à 0, l’amortissement restera à 0% et le solde restera négatif.</div> : null}<div className="overflow-auto p-4"><table className="w-full text-sm min-w-[760px]"><thead><tr className="bg-[#fffdf8] text-left text-xs uppercase text-[#8a7456]"><th className="px-3 py-2">Mois</th><th className="px-3 py-2">CA prévu</th><th className="px-3 py-2">Charges</th><th className="px-3 py-2">Marge</th><th className="px-3 py-2">Solde investissement</th><th className="px-3 py-2">Amorti</th></tr></thead><tbody>{rows.map((r) => <tr key={r.mois} className="border-t border-[#eadcc2]"><td className="px-3 py-2 font-bold">M{r.mois}</td><td className="px-3 py-2">{fmtCurrency(r.ca)}</td><td className="px-3 py-2">{fmtCurrency(r.charges)}</td><td className={`px-3 py-2 font-bold ${r.marge >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{fmtCurrency(r.marge)}</td><td className={`px-3 py-2 font-bold ${r.cumul >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{fmtCurrency(r.cumul)}</td><td className="px-3 py-2">{r.pct.toFixed(0)}%</td></tr>)}</tbody></table></div></div></div>;
@@ -133,7 +164,7 @@ function AmortizationModal({ open, onClose, rows, metrics }) {
 
 function Summary({ plan, metrics, props }) {
   const [modal, setModal] = useState(false);
-  if (!plan) return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5"><h2 className="font-black text-xl text-[#2f2415]">Investissements</h2><p className="text-sm text-[#8a7456]">Crée un Business Plan pour piloter rentabilité et amortissement.</p><button type="button" onClick={() => createOrUpdateHorizonFarmPlan(props)} className="mt-4 rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white">Créer Business Plan Horizon Farm</button></div>;
+  if (!plan) return <HorizonFarmPreview props={props} />;
   return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4"><div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Résumé du Business Plan</p><h2 className="text-2xl font-black text-[#2f2415] mt-1">{plan.nom}</h2><p className="text-sm text-[#7d6a4a] mt-1">Décider: combien investir, combien encaisser, quand récupérer l’argent.</p></div><div className="flex flex-wrap gap-2"><Btn icon={Plus} onClick={() => createOrUpdateHorizonFarmPlan(props)}>Créer / mettre à jour BP Horizon Farm</Btn><Btn icon={BarChart2} onClick={() => setModal(true)}>Plan d’amortissement</Btn>{['finances','comptabilite','ventes','stock','avicole','animaux','cultures','documents'].map((x) => <Btn key={x} small variant="outline" onClick={() => nav(x)}>{x[0].toUpperCase() + x.slice(1)}</Btn>)}</div></div><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3"><Card label="Investissement prévu" value={fmtCurrency(metrics.investment)} /><Card label="Investi effectif" value={fmtCurrency(metrics.effective)} sub={`Reste: ${fmtCurrency(metrics.remaining)}`} /><Card label="Charges du cycle" value={fmtCurrency(metrics.cycleCharges)} sub={`Mensuel: ${fmtCurrency(metrics.monthly)}`} /><Card label="CA prévu fin cycle" value={fmtCurrency(metrics.revenue)} /><Card label="Gain/perte fin cycle" value={fmtCurrency(metrics.net)} tone={metrics.net >= 0 ? 'good' : 'bad'} /><Card label="ROI" value={metrics.missingForecast ? 'À compléter' : fmtPercent(metrics.roi)} tone={metrics.roi >= 0 && !metrics.missingForecast ? 'good' : 'bad'} /><Card label="Payback" value={metrics.payback ? `Mois ${metrics.payback}` : 'Non atteint'} /><Card label="Décision" value={`${metrics.verdict} · ${metrics.score}%`} tone={metrics.score >= 75 ? 'good' : metrics.score >= 50 ? 'warn' : 'bad'} /></div><AmortizationModal open={modal} onClose={() => setModal(false)} rows={metrics.rows} metrics={metrics} /></div>;
 }
 
