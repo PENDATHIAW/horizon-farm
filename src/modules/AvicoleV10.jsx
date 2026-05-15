@@ -1,4 +1,5 @@
 import { BarChart3, ClipboardList, Egg, PackageCheck, Scissors } from 'lucide-react';
+import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard.jsx';
 import AvicoleBase from './AvicoleBase.jsx';
 import AvicoleEvolution from './AvicoleEvolution.jsx';
 import AvicoleJournalsBridge from './AvicoleJournalsBridge.jsx';
@@ -19,9 +20,23 @@ function ModuleSection({ icon: Icon, title, subtitle, children }) {
 }
 
 export default function AvicoleV10(props) {
+  const dataMap = {
+    sales_orders: props.salesOrders || [],
+    payments: props.payments || [],
+    finances: props.transactions || [],
+    avicole: props.rows || [],
+    production_oeufs_logs: props.productionLogs || [],
+    alimentation_logs: props.alimentationLogs || [],
+  };
+
   return (
     <div className="space-y-6 avicole-mobile-final">
       <style>{`@media (max-width: 640px){.avicole-mobile-final .rounded-2xl{border-radius:18px}.avicole-mobile-final table{font-size:12px}.avicole-mobile-final th,.avicole-mobile-final td{padding-left:10px!important;padding-right:10px!important}.avicole-mobile-final .text-2xl{font-size:1.35rem}.avicole-mobile-final .grid{gap:.75rem}.avicole-mobile-final .overflow-x-auto{max-width:100vw}}`}</style>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <ObjectivePerformanceCard dataMap={dataMap} activity="oeufs" title="Objectif & Performance œufs" onNavigate={props.onNavigate} />
+        <ObjectivePerformanceCard dataMap={dataMap} activity="poulets_chair" title="Objectif & Performance chair" onNavigate={props.onNavigate} />
+      </div>
 
       <ModuleSection
         icon={PackageCheck}
