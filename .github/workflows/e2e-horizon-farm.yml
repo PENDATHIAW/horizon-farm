@@ -7,6 +7,10 @@ on:
         description: 'URL de preview Horizon Farm a tester'
         required: true
         default: 'https://horizon-farm-71b9kgzyd-pendathiaws-projects.vercel.app'
+      test_ref:
+        description: 'Branche ou ref contenant les tests Playwright'
+        required: true
+        default: 'feature/interconnexions-modules-riches-v2'
 
 jobs:
   e2e:
@@ -15,8 +19,10 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - name: Checkout
+      - name: Checkout selected ref
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.test_ref }}
 
       - name: Setup Node
         uses: actions/setup-node@v4

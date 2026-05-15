@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:report": "playwright show-report playwright-report"
+    "test:e2e:report": "playwright show-report playwright-report",
+    "check": "npm run lint && npm run build && npm run test:e2e"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.3",
