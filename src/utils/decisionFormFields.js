@@ -11,7 +11,18 @@ function insertAfter(fields, anchorKey, additions) {
 }
 
 export function enrichAnimalFieldsForDecision(fields = []) {
-  let next = insertAfter(fields, 'poids', [
+  let next = insertAfter(fields, 'id', [
+    { key: 'section_identification_physique', label: 'Identification physique & QR', type: 'section' },
+    { key: 'boucle_numero', label: 'N° boucle terrain (ex: BOV001)', type: 'text' },
+    { key: 'qr_code', label: 'Code QR / identifiant scan', type: 'text' },
+    { key: 'photo_url', label: 'Photo principale animal', type: 'text' },
+    { key: 'photo_gauche_url', label: 'Photo profil gauche', type: 'text' },
+    { key: 'photo_droite_url', label: 'Photo profil droit', type: 'text' },
+    { key: 'signes_distinctifs', label: 'Signes distinctifs', type: 'textarea' },
+    { key: 'emplacement_actuel', label: 'Emplacement actuel', type: 'text' },
+  ]);
+
+  next = insertAfter(next, 'poids', [
     { key: 'section_pesee_ia', label: 'Pesée & suivi IA', type: 'section' },
     { key: 'poids_entree', label: 'Poids à l’entrée (kg)', type: 'number' },
     { key: 'date_poids_entree', label: 'Date poids entrée', type: 'date' },
