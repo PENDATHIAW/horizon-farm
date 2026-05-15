@@ -94,4 +94,123 @@ export function actionTypeLabel(type) {
   }[type] || 'Action';
 }
 
+export function actionTargetModule(type) {
+  return {
+    business_plan: 'investissements',
+    sales_opportunity: 'ventes',
+    alert: 'alertes',
+    task: 'taches',
+    stock_check: 'stock',
+    animal_check: 'animaux',
+    culture_check: 'cultures',
+  }[type] || 'dashboard';
+}
+
+export function buildDraftFromDecisionAction(action = {}, item = {}) {
+  const base = {
+    id: makeId('DRAFT'),
+    source_module: 'centre_decisionnel',
+    source_recommendation_id: item.id,
+    source_action_id: action.id,
+    activity: item.activity,
+    priority: action.priority,
+    title: action.label,
+    status: 'brouillon',
+    created_at: new Date().toISOString(),
+  };
+
+  if (action.type === 'business_plan') {
+    return {
+      ...base,
+      target_module: 'investissements',
+      draft_type: 'business_plan',
+      nom: `BP brouillon - ${item.title || item.activity}`,
+      activite: item.activity,
+      date_cible: item.target_date,
+      deadline_mise_en_place: item.latest_start,
+      investissement_estime: item.gap_revenue,
+      quantite_cible: item.gap_units,
+      justification: item.recommendation,
+    };
+  }
+
+  if (action.type === 'sales_opportunity') {
+    return {
+      ...base,
+      target_module: 'ventes',
+      draft_type: 'sales_opportunity',
+      titre: `Précommande ${item.activity}`,
+      client_hint: action.payload?.client_hint || '',
+      quantite_cible: action.payload?.quantity_target || item.gap_units,
+      montant_cible: action.payload?.revenue_target || item.gap_revenue,
+      date_cible: item.target_date,
+      probabilite: 45,
+      statut: 'prospection',
+    };
+  }
+
+  if (action.type === 'alert') {
+    return {
+      ...base,
+      target_module: 'alertes',
+      draft_type: 'alert',
+      title: action.payload?.title || action.label,
+      due_date: action.payload?.due_date || item.latest_start,
+      severity: action.priority === 'haute' ? 'haute' : 'moyenne',
+      message: `Deadline à surveiller pour ${item.activity}. Fenêtre cible : ${item.event_label || item.target_date || 'à confirmer'}.`,
+    };
+  }
+
+  if (action.type === 'task') {
+    return {
+      ...base,
+      target_module: 'taches',
+      draft_type: 'task',
+      title: action.payload?.title || action.label,
+      due_date: item.latest_start || item.target_date,
+      priority: action.priority === 'haute' ? 'critique' : 'haute',
+      status: 'a_faire',
+      description: `Action recommandée par le Centre décisionnel pour ${item.activity}.`,
+    };
+  }
+
+  if (action.type === 'stock_check') {
+    return {
+      ...base,
+      target_module: 'stock',
+      draft_type: 'stock_check',
+      title: action.label,
+      items: action.payload?.items || [],
+      due_date: item.latest_start || item.target_date,
+      description: 'Vérifier disponibilité stock avant engagement commercial ou mise en place.',
+    };
+  }
+
+  if (action.type === 'animal_check') {
+    return {
+      ...base,
+      target_module: 'animaux',
+      draft_type: 'animal_check',
+      title: action.label,
+      date_cible: item.target_date,
+      deadline: item.latest_start,
+      description: 'Vérifier poids, santé, alimentation et vendabilité des animaux.',
+    };
+  }
+
+  if (action.type === 'culture_check') {
+    return {
+      ...base,
+      target_module: 'cultures',
+      draft_type: 'culture_check',
+      title: action.label,
+      date_cible: item.target_date,
+      deadline: item.latest_start,
+      description: 'Vérifier sol, eau, intrants, cycle cultural et débouchés avant lancement.',
+    };
+  }
+
+  return { ...base, target_module: actionTargetModule(action.type), draft_type: action.type || 'action' };
+}
+
 export default buildDecisionActions;
