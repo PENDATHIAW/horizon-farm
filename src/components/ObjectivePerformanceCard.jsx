@@ -6,7 +6,10 @@ const activityFallback = {
   global: 'Global ferme',
   oeufs: 'Œufs / Pondeuses',
   poulets_chair: 'Poulets de chair',
-  animaux: 'Bovins / Ovins / Caprins',
+  animaux: 'Animaux global',
+  bovins: 'Bovins',
+  ovins: 'Ovins',
+  caprins: 'Caprins',
   cultures: 'Cultures',
   stock: 'Stock / Produits',
 };
@@ -15,6 +18,7 @@ export default function ObjectivePerformanceCard({
   dataMap = {},
   activity = 'global',
   title = 'Objectif & Performance',
+  compact = false,
   onNavigate,
 }) {
   const performance = buildGoalPerformance(dataMap);
@@ -33,6 +37,26 @@ export default function ObjectivePerformanceCard({
   const attainment = row.attainment ?? 0;
   const remaining = row.remaining ?? Math.max(0, target - realized);
   const tone = attainment >= 90 ? 'emerald' : attainment >= 60 ? 'amber' : 'red';
+
+  if (compact) {
+    return (
+      <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm min-w-0">
+        <p className="text-[11px] uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2">
+          <Target size={13} /> {title}
+        </p>
+        <h3 className="text-base font-black text-[#2f2415] mt-1 truncate">{row.label || activityFallback[activity] || activity}</h3>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Mini label="Objectif" value={fmtCurrency(target)} />
+          <Mini label="Réalisé" value={fmtCurrency(realized)} />
+          <Mini label="Taux" value={`${attainment}%`} tone={tone} />
+          <Mini label="Reste" value={fmtCurrency(remaining)} tone={remaining > 0 ? 'amber' : 'emerald'} />
+        </div>
+        <button type="button" onClick={() => onNavigate?.('centre_ia')} className="mt-3 w-full rounded-xl bg-[#2f2415] px-3 py-2 text-[11px] font-black text-white hover:bg-[#3d2f1d]">
+          Voir Centre décisionnel
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
@@ -81,9 +105,9 @@ function Mini({ label, value, tone = 'neutral' }) {
   }[tone] || 'text-[#2f2415]';
 
   return (
-    <div className="rounded-2xl bg-[#fffdf8] border border-[#eadcc2] p-3">
-      <p className="text-[11px] text-[#8a7456]">{label}</p>
-      <p className={`text-base font-black mt-1 ${toneClass}`}>{value}</p>
+    <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] p-2 min-w-0">
+      <p className="text-[10px] text-[#8a7456] truncate">{label}</p>
+      <p className={`text-sm font-black mt-1 break-words ${toneClass}`}>{value}</p>
     </div>
   );
 }
