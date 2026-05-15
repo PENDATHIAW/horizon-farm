@@ -1,6 +1,6 @@
-import { Bot, Mic, Sparkles, Sun } from 'lucide-react';
+import { Mic, Sun } from 'lucide-react';
 
-export default function HorizonWakeAnimation({ state = 'idle', onWake, terrainMode = false }) {
+export default function HorizonWakeAnimation({ state = 'idle' }) {
   const active = state !== 'idle';
 
   return (
@@ -8,6 +8,11 @@ export default function HorizonWakeAnimation({ state = 'idle', onWake, terrainMo
       <style>{`
         @media (prefers-reduced-motion: reduce) {
           .horizon-wake-scene * { animation: none !important; }
+        }
+
+        /* Le bouton vocal terrain ne doit plus masquer les écrans métier. */
+        button[class*="bottom-20"][class*="z-[66]"] {
+          display: none !important;
         }
 
         .horizon-wake-scene {
@@ -165,23 +170,6 @@ export default function HorizonWakeAnimation({ state = 'idle', onWake, terrainMo
           <div className="horizon-listening"><Mic size={13} /> J’écoute</div>
         </div>
       ) : null}
-
-      <button
-        type="button"
-        onClick={onWake}
-        className="fixed right-4 bottom-4 z-[65] group rounded-full border border-[#f6c453]/70 bg-[#2f2415] text-white shadow-2xl hover:scale-105 transition-transform"
-        title="Hey Horizon"
-      >
-        <span className="absolute inset-0 rounded-full bg-[#f6c453]/20 blur-xl group-hover:bg-[#f6c453]/35" />
-        <span className="relative flex items-center gap-2 px-4 py-3">
-          <span className="w-9 h-9 rounded-full bg-[#f6c453] text-[#2f2415] flex items-center justify-center shadow-lg"><Bot size={18} /></span>
-          <span className="hidden sm:block text-left leading-tight">
-            <span className="block text-xs font-black">Hey Horizon</span>
-            <span className="block text-[10px] text-[#f8e8b6]">{terrainMode ? 'Terrain ON' : 'Activer'}</span>
-          </span>
-          <Sparkles size={15} className="text-[#f8e8b6]" />
-        </span>
-      </button>
     </>
   );
 }
