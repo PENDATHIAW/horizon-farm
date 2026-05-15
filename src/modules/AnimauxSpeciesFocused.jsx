@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle, Download, Edit, Eye, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Download, Edit, Eye, Plus, QrCode, RefreshCw, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Btn from '../components/Btn';
@@ -28,11 +28,23 @@ const salePrice = (row = {}) => toNumber(row.sale_price ?? row.prix_vente_reel ?
 const weightOf = (row = {}) => toNumber(row.poids_actuel ?? row.poids ?? row.weight);
 const entryWeightOf = (row = {}) => toNumber(row.poids_entree ?? row.weight_entry ?? row.poids_initial);
 const targetWeightOf = (row = {}) => toNumber(row.poids_objectif ?? row.target_weight ?? row.objectif_poids);
+const physicalIdOf = (row = {}) => row.boucle_numero || row.qr_code || row.tag || row.id;
+const qrOf = (row = {}) => row.qr_code || row.boucle_numero || row.tag || row.id;
 
 function ageInFarmDays(row = {}) {
   const start = row.date_entree_ferme || row.date_achat || row.created_at;
   if (!start) return 0;
   return Math.max(0, Math.floor((Date.now() - new Date(start).getTime()) / 86400000));
+}
+
+function defaultPhysicalCode(species, rows = []) {
+  const prefix = species === 'Bovin' ? 'BOV' : species === 'Ovin' ? 'OVI' : species === 'Caprin' ? 'CAP' : 'ANI';
+  const max = rows.reduce((acc, row) => {
+    const raw = String(row.boucle_numero || row.qr_code || row.tag || row.id || '');
+    const match = raw.match(new RegExp(`^${prefix}(\\d+)`, 'i'));
+    return match ? Math.max(acc, Number(match[1])) : acc;
+  }, 0);
+  return `${prefix}${String(max + 1).padStart(3, '0')}`;
 }
 
 export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], alimentationLogs = [], vaccins = [], loading, onCreate, onUpdate, onDelete, onRefresh }) {
@@ -63,11 +75,14 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
   }, [normalizedRows, alimentationLogs, vaccins]);
 
   const initialValues = useMemo(() => {
+    const physicalCode = defaultPhysicalCode(species, normalizedRows);
     const id = generateSequentialId('animaux', normalizedRows, { type: species });
     const date = today();
     return applyAnimalDecisionDefaults({
       id,
-      tag: id,
+      tag: physicalCode,
+      boucle_numero: physicalCode,
+      qr_code: physicalCode,
       type: species,
       espece: species,
       status: 'actif',
@@ -82,23 +97,29 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
     });
   }, [normalizedRows, species]);
 
-  const prepare = (payload = {}, existing = {}) => ({
-    ...applyAnimalDecisionDefaults(payload, existing),
-    type: species,
-    espece: species,
-    categorie: species,
-    health_status: payload.health_status || payload.sante || existing.health_status || 'sain',
-    status: payload.status || payload.statut || existing.status || 'actif',
-  });
+  const prepare = (payload = {}, existing = {}) => {
+    const physicalCode = payload.boucle_numero || payload.qr_code || existing.boucle_numero || existing.qr_code || defaultPhysicalCode(species, normalizedRows);
+    return {
+      ...applyAnimalDecisionDefaults(payload, existing),
+      tag: physicalCode,
+      boucle_numero: physicalCode,
+      qr_code: payload.qr_code || physicalCode,
+      type: species,
+      espece: species,
+      categorie: species,
+      health_status: payload.health_status || payload.sante || existing.health_status || 'sain',
+      status: payload.status || payload.statut || existing.status || 'actif',
+    };
+  };
 
   const submitCreate = async (payload) => {
-    try { setSaving(true); await onCreate?.(prepare(payload)); await onRefresh?.(); toast.success(`${species} ajouté · objectifs Horizon proposés`); setModal(null); }
+    try { setSaving(true); await onCreate?.(prepare(payload)); await onRefresh?.(); toast.success(`${species} ajouté · boucle/QR et objectifs Horizon proposés`); setModal(null); }
     catch (error) { toast.error(error.message || 'Création impossible'); }
     finally { setSaving(false); }
   };
   const submitEdit = async (payload) => {
     if (!selected) return;
-    try { setSaving(true); await onUpdate?.(selected.id, prepare(payload, selected)); await onRefresh?.(); toast.success(`${species} modifié · objectifs recalculés`); setModal(null); }
+    try { setSaving(true); await onUpdate?.(selected.id, prepare(payload, selected)); await onRefresh?.(); toast.success(`${species} modifié · fiche scan mise à jour`); setModal(null); }
     catch (error) { toast.error(error.message || 'Modification impossible'); }
     finally { setSaving(false); }
   };
@@ -117,9 +138,11 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
   };
 
   const columns = [
-    { key: 'id', label: 'ID', sortable: true, render: (row) => <span className="font-mono text-emerald-700 text-xs">{row.tag || row.id}</span> },
-    { key: 'name', label: 'Nom', sortable: true, render: (row) => <span className="font-bold text-[#2f2415]">{row.name || row.nom || row.id}</span> },
+    { key: 'id', label: 'Boucle / QR', sortable: true, render: (row) => <div className="flex items-center gap-2"><QrCode size={14} className="text-emerald-700" /><div><span className="font-mono text-emerald-700 text-xs font-black">{physicalIdOf(row)}</span><p className="text-[10px] text-[#8a7456]">scan: {qrOf(row)}</p></div></div> },
+    { key: 'photo', label: 'Photo', render: (row) => row.photo_url ? <img src={row.photo_url} alt={physicalIdOf(row)} className="h-10 w-10 rounded-xl object-cover border border-[#eadcc2]" /> : <span className="text-xs text-[#8a7456]">Photo à ajouter</span> },
+    { key: 'name', label: 'Nom', sortable: true, render: (row) => <span className="font-bold text-[#2f2415]">{row.name || row.nom || physicalIdOf(row)}</span> },
     { key: 'type', label: 'Espèce', render: () => species },
+    { key: 'signes_distinctifs', label: 'Signes', render: (row) => <span className="text-xs text-[#7d6a4a]">{row.signes_distinctifs || row.emplacement_actuel || '—'}</span> },
     { key: 'poids', label: 'Poids', render: (row) => `${weightOf(row) || 0} kg` },
     { key: 'progression', label: 'Entrée → objectif', render: (row) => `${entryWeightOf(row) || 0} → ${targetWeightOf(row) || 'Horizon'} kg` },
     { key: 'next_weighing', label: 'Pesée Horizon', render: (row) => {
@@ -134,7 +157,7 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
   ];
 
   return <div className="space-y-6">
-    <SectionHeader title={`Gestion des ${speciesPlural(species)}`} sub={`${speciesPlural(species)} uniquement : croissance, santé, alimentation et rentabilité`} actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Actualiser</Btn><Btn icon={Download} variant="outline" small onClick={exportRows}>Exporter</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter {species}</Btn></>} />
+    <SectionHeader title={`Gestion des ${speciesPlural(species)}`} sub={`${speciesPlural(species)} uniquement : boucle terrain, QR, photo, croissance, santé, alimentation et rentabilité`} actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Actualiser</Btn><Btn icon={Download} variant="outline" small onClick={exportRows}>Exporter</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter {species}</Btn></>} />
 
     <AnimalHealthBridge rows={normalizedRows} alimentationLogs={alimentationLogs} vaccins={vaccins} onUpdate={onUpdate} onRefresh={onRefresh} />
 
@@ -158,7 +181,7 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
       {['tous', 'sain', 'malade', 'blesse', 'sous_traitement', 'a_surveiller'].map((status) => <button key={status} type="button" onClick={() => setHealthFilter(status)} className={`px-3 py-2 rounded-lg text-sm capitalize ${healthFilter === status ? 'bg-sky-500 text-black font-semibold' : 'bg-white border border-[#d6c3a0] text-[#8a7456]'}`}>{status.replaceAll('_', ' ')}</button>)}
     </div>
 
-    <DataTable title={`Liste ${speciesPlural(species)}`} rows={filtered} columns={columns} loading={loading} initialSortKey="id" searchPlaceholder={`Recherche ${speciesPlural(species).toLowerCase()}...`} />
+    <DataTable title={`Liste ${speciesPlural(species)}`} rows={filtered} columns={columns} loading={loading} initialSortKey="id" searchPlaceholder={`Recherche boucle, QR ou ${speciesPlural(species).toLowerCase()}...`} />
 
     <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, horizon_decision: buildAnimalDecisionProfile(selected) } : selected} title={`Détail ${species}`} />
     <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={formFields} initialValues={initialValues} loading={saving} title={`Ajouter ${species}`} submitLabel="Ajouter" />
