@@ -1,6 +1,7 @@
 import { AlertTriangle, BarChart3, CreditCard, Landmark, ListChecks, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
 import { useMemo } from 'react';
 import KpiCard from '../components/KpiCard';
+import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard.jsx';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { consolidateFinance } from '../utils/financeConsolidationEngine';
 import FinancesV10 from './FinancesV10.jsx';
@@ -62,9 +63,21 @@ export default function FinancesV11(props) {
     stocks: props.stocks || [],
   }), [props.rows, props.salesOrders, props.payments, props.fournisseurs, props.stocks]);
 
+  const dataMap = {
+    sales_orders: props.salesOrders || [],
+    payments: props.payments || [],
+    finances: props.rows || [],
+    animaux: props.animaux || [],
+    avicole: props.lots || [],
+    cultures: props.cultures || [],
+    stock: props.stocks || [],
+  };
+
   return (
     <div className="space-y-6 finances-mobile-structured">
       <style>{`@media (max-width: 640px){.finances-mobile-structured .rounded-2xl{border-radius:18px}.finances-mobile-structured table{font-size:12px}.finances-mobile-structured th,.finances-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.finances-mobile-structured .text-2xl{font-size:1.35rem}.finances-mobile-structured .grid{gap:.75rem}.finances-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
+
+      <ObjectivePerformanceCard dataMap={dataMap} activity="global" title="Objectif & Performance financière" onNavigate={props.onNavigate} />
 
       <ModuleSection
         icon={CreditCard}
