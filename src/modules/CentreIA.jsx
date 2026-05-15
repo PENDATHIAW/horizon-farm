@@ -8,6 +8,7 @@ import { buildHorizonAutomations } from '../services/horizonAutomationEngine';
 import { buildHorizonProactiveInsights } from '../services/horizonProactiveService';
 import { buildDraftFromProactiveInsight } from '../services/proactiveActionDrafts';
 import { fmtCurrency, fmtNumber } from '../utils/format';
+import DecisionHistoryPanel from './DecisionHistoryPanel.jsx';
 
 const priorityClass = {
   critique: 'border-red-300 bg-red-50 text-red-700',
@@ -45,13 +46,7 @@ function buildCommercialSnapshot({ salesOrders = [], payments = [], transactions
     .filter((trx) => String(trx.type || '').toLowerCase() === 'sortie')
     .reduce((sum, trx) => sum + money(trx.montant), 0);
 
-  return {
-    ca,
-    encaisse,
-    depenses,
-    creances: Math.max(0, ca - encaisse),
-    marge: ca - depenses,
-  };
+  return { ca, encaisse, depenses, creances: Math.max(0, ca - encaisse), marge: ca - depenses };
 }
 
 export default function CentreIA({
@@ -68,10 +63,12 @@ export default function CentreIA({
   sensors = [],
   cameras = [],
   meteo = null,
+  dataMap = {},
   onNavigate,
 }) {
   const centreDataMap = useMemo(
     () => ({
+      ...dataMap,
       lots,
       avicole: lots,
       productionLogs,
@@ -91,7 +88,7 @@ export default function CentreIA({
       market_calendar_events: marketCalendarEvents,
       meteo,
     }),
-    [lots, productionLogs, alimentationLogs, stocks, salesOrders, payments, transactions, sensors, cameras, marketPrices, marketCalendarEvents, meteo]
+    [dataMap, lots, productionLogs, alimentationLogs, stocks, salesOrders, payments, transactions, sensors, cameras, marketPrices, marketCalendarEvents, meteo]
   );
 
   const openDraft = (draft, sourceLabel = 'Centre décisionnel') => {
@@ -104,22 +101,21 @@ export default function CentreIA({
   };
 
   const insights = useMemo(
-    () =>
-      buildStrategicInsights({
-        avicoleLots: lots,
-        productionLogs,
-        alimentationLogs,
-        stocks,
-        marketPrices,
-        marketCalendarEvents,
-        salesOrders,
-        payments,
-        finances: transactions,
-        smartfarmEvents,
-        sensors,
-        cameras,
-        meteo,
-      }),
+    () => buildStrategicInsights({
+      avicoleLots: lots,
+      productionLogs,
+      alimentationLogs,
+      stocks,
+      marketPrices,
+      marketCalendarEvents,
+      salesOrders,
+      payments,
+      finances: transactions,
+      smartfarmEvents,
+      sensors,
+      cameras,
+      meteo,
+    }),
     [lots, productionLogs, alimentationLogs, stocks, marketPrices, marketCalendarEvents, salesOrders, payments, transactions, smartfarmEvents, sensors, cameras, meteo]
   );
 
@@ -129,7 +125,6 @@ export default function CentreIA({
   const growth = useMemo(() => buildDecisionCenterPlan(centreDataMap), [centreDataMap]);
 
   const score = Math.round(insights.strategic_score || 0);
-  const proactiveScore = Math.round(proactive.proactive_score || 0);
   const feedDays = insights.forecasts.feed.autonomy_days;
   const projectedTablets = insights.forecasts.eggs.projected_tablets;
   const projectedCash = insights.forecasts.cash.projected_cash_balance;
@@ -139,7 +134,7 @@ export default function CentreIA({
     <div className="space-y-6">
       <SectionHeader
         title="Centre décisionnel"
-        sub="Cerveau de pilotage Horizon Farm — objectifs, ventes, cash, investissements, calendrier, risques et recommandations"
+        sub="Cerveau de pilotage Horizon Farm — objectifs, ventes, cash, investissements, calendrier, risques, historique et rentabilité réelle"
         actions={
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => onNavigate?.('ventes')} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-semibold text-[#7d6a4a] hover:border-emerald-500 hover:text-emerald-600">Voir Ventes</button>
@@ -205,11 +200,13 @@ export default function CentreIA({
               <p className="text-sm font-black mt-1">{item.title}</p>
               <p className="text-[11px] text-white/70 mt-1">{item.timing}</p>
               <p className="text-xs text-white/80 mt-3 line-clamp-4">{item.recommendation}</p>
-              <button type="button" onClick={() => onNavigate?.('investissements')} className="mt-3 w-full rounded-xl bg-[#f6c453] px-2 py-1.5 text-[10px] font-black text-[#2f2415] hover:bg-[#ffe08a]">Préparer business plan</button>
+              <button type="button" onClick={() => onNavigate?.('investissements')} className="mt-3 w-full rounded-xl bg-[#f6c453] px-2 py-1.5 text-[10px] font-black text-[#2f2415] hover:bg-[#ffe08a]">Accéder au business plan brouillon</button>
             </div>
           ))}
         </div>
       </div>
+
+      <DecisionHistoryPanel dataMap={centreDataMap} onNavigate={onNavigate} />
 
       <div className="bg-white border border-[#d6c3a0] rounded-3xl p-5 space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
