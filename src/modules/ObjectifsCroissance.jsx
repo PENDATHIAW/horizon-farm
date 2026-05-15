@@ -1,43 +1,21 @@
-import { CalendarDays, Package, Target, TrendingUp, Truck, Users, WalletCards } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { ArrowRight, CalendarDays, Package, Target, TrendingUp, Truck, Users, WalletCards } from 'lucide-react';
 import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard';
 import SectionHeader from '../components/SectionHeader';
-import { generateDecisionBusinessPlan } from '../services/decisionBusinessPlanGenerator';
 import { buildDecisionCenterPlan } from '../services/growthDecisionEngine';
 import { buildRelationshipStockScores } from '../services/relationshipStockScoringEngine';
 import { fmtCurrency } from '../utils/format';
 import ObjectiveDecisionSummary from './ObjectiveDecisionSummary.jsx';
 
-export default function ObjectifsCroissance({ dataMap = {}, onNavigate, onCreateBusinessPlan, onRefreshBusinessPlans }) {
+export default function ObjectifsCroissance({ dataMap = {}, onNavigate }) {
   const plan = buildDecisionCenterPlan(dataMap);
   const scores = buildRelationshipStockScores(dataMap);
   const goal = plan.goals.global;
-
-  const createBusinessPlan = async (recommendation) => {
-    const businessPlan = generateDecisionBusinessPlan(recommendation, {
-      cashAvailable: Math.max(0, goal.encaisse - goal.depenses),
-      suggestedInvestment: Math.max(0, goal.encaisse - goal.depenses) * 0.35,
-    });
-
-    try {
-      if (onCreateBusinessPlan) {
-        await onCreateBusinessPlan(businessPlan);
-        await onRefreshBusinessPlans?.();
-        toast.success('Business plan décisionnel créé');
-      } else {
-        toast('Brouillon business plan préparé. Ouvre Investissements pour le compléter.');
-      }
-      onNavigate?.('investissements');
-    } catch (error) {
-      toast.error(error.message || 'Création du business plan impossible');
-    }
-  };
 
   return (
     <div className="space-y-6">
       <SectionHeader
         title="Objectifs & Croissance"
-        sub="Objectifs CA, suivi mensuel, stratégie commerciale, investissements pilotés et trajectoire de croissance."
+        sub="Objectifs CA, suivi mensuel, effort commercial et trajectoire de croissance. Les décisions détaillées restent dans le Centre décisionnel."
         actions={
           <button type="button" onClick={() => onNavigate?.('centre_ia')} className="rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white hover:bg-[#3d2f1d]">
             Voir Centre décisionnel
@@ -58,7 +36,7 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate, onCreate
         <div>
           <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Objectifs par activité</p>
           <h3 className="text-xl font-black text-[#2f2415] mt-1">Où concentrer l’effort commercial ?</h3>
-          <p className="text-sm text-[#8a7456] mt-1">Le Centre décisionnel compare les activités pour savoir quoi pousser, quoi optimiser et où investir.</p>
+          <p className="text-sm text-[#8a7456] mt-1">Cette vue reste synthétique : objectif, réalisé, taux et reste à vendre. Les recommandations complètes sont dans le Centre décisionnel.</p>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
           {plan.goals.activities.map((activity) => (
@@ -99,25 +77,15 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate, onCreate
         </div>
       </div>
 
-      <div className="rounded-3xl border border-[#d6c3a0] bg-[#2f2415] text-white p-5 space-y-4">
+      <div className="rounded-3xl border border-[#d6c3a0] bg-[#2f2415] text-white p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-widest text-[#f8e8b6] font-black">Investissements pilotés</p>
-          <h3 className="text-xl font-black mt-1">Quand investir, comment investir, sur quoi investir</h3>
-          <p className="text-sm text-[#f8e8b6]/80 mt-1">Horizon distingue vente immédiate, optimisation de capacité, investissement futur et compensation court terme.</p>
+          <h3 className="text-xl font-black mt-1">Les décisions détaillées sont dans le Centre décisionnel</h3>
+          <p className="text-sm text-[#f8e8b6]/80 mt-1">Objectifs & Croissance montre le cap. Le Centre décisionnel explique quand investir, sur quoi investir, qui cibler, quelle deadline respecter et quel BP ouvrir.</p>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
-          {plan.recommendations.map((item) => (
-            <div key={item.id} className="rounded-2xl bg-white/10 border border-white/10 p-4">
-              <span className="text-[10px] uppercase tracking-wider text-[#f8e8b6] font-black">{item.priority}</span>
-              <p className="text-sm font-black mt-1">{item.title}</p>
-              <p className="text-[11px] text-white/70 mt-1">{item.timing}</p>
-              <p className="text-xs text-white/80 mt-3">{item.recommendation}</p>
-              <button type="button" onClick={() => createBusinessPlan(item)} className="mt-3 w-full rounded-xl bg-[#f6c453] px-2 py-1.5 text-[10px] font-black text-[#2f2415] hover:bg-[#ffe08a]">
-                Créer business plan
-              </button>
-            </div>
-          ))}
-        </div>
+        <button type="button" onClick={() => onNavigate?.('centre_ia')} className="rounded-xl bg-[#f6c453] px-4 py-2 text-sm font-black text-[#2f2415] hover:bg-[#ffe08a] flex items-center justify-center gap-2">
+          Ouvrir les recommandations <ArrowRight size={15} />
+        </button>
       </div>
     </div>
   );
