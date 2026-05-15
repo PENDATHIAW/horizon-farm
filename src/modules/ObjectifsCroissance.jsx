@@ -1,13 +1,15 @@
-import { CalendarDays, Target, TrendingUp, WalletCards } from 'lucide-react';
+import { CalendarDays, Package, Target, TrendingUp, Truck, Users, WalletCards } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard';
 import SectionHeader from '../components/SectionHeader';
 import { generateDecisionBusinessPlan } from '../services/decisionBusinessPlanGenerator';
 import { buildDecisionCenterPlan } from '../services/growthDecisionEngine';
+import { buildRelationshipStockScores } from '../services/relationshipStockScoringEngine';
 import { fmtCurrency } from '../utils/format';
 
 export default function ObjectifsCroissance({ dataMap = {}, onNavigate, onCreateBusinessPlan, onRefreshBusinessPlans }) {
   const plan = buildDecisionCenterPlan(dataMap);
+  const scores = buildRelationshipStockScores(dataMap);
   const goal = plan.goals.global;
 
   const createBusinessPlan = async (recommendation) => {
@@ -36,11 +38,7 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate, onCreate
         title="Objectifs & Croissance"
         sub="Objectifs CA, suivi mensuel, stratégie commerciale, investissements pilotés et trajectoire de croissance."
         actions={
-          <button
-            type="button"
-            onClick={() => onNavigate?.('centre_ia')}
-            className="rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white hover:bg-[#3d2f1d]"
-          >
+          <button type="button" onClick={() => onNavigate?.('centre_ia')} className="rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white hover:bg-[#3d2f1d]">
             Voir Centre décisionnel
           </button>
         }
@@ -59,11 +57,8 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate, onCreate
         <div>
           <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Objectifs par activité</p>
           <h3 className="text-xl font-black text-[#2f2415] mt-1">Où concentrer l’effort commercial ?</h3>
-          <p className="text-sm text-[#8a7456] mt-1">
-            Le Centre décisionnel compare les activités pour savoir quoi pousser, quoi optimiser et où investir.
-          </p>
+          <p className="text-sm text-[#8a7456] mt-1">Le Centre décisionnel compare les activités pour savoir quoi pousser, quoi optimiser et où investir.</p>
         </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
           {plan.goals.activities.map((activity) => (
             <div key={activity.activity} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
@@ -77,15 +72,36 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate, onCreate
         </div>
       </div>
 
+      <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Fidélisation, fournisseurs & stock</p>
+          <h3 className="text-xl font-black text-[#2f2415] mt-1">Vendre encore, sécuriser l’approvisionnement, éviter les ruptures</h3>
+          <p className="text-sm text-[#8a7456] mt-1">Horizon score les clients, fournisseurs et stocks pour guider les relances et les décisions commerciales.</p>
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
+          <ScoreList icon={Users} title="Clients à fidéliser" items={scores.bestClients} empty="Aucun client fidèle identifié pour le moment." onOpen={() => onNavigate?.('clients')} />
+          <ScoreList icon={Users} title="Clients à relancer" items={scores.clientsToRecover} empty="Aucune créance client prioritaire." onOpen={() => onNavigate?.('clients')} danger />
+          <ScoreList icon={Truck} title="Fournisseurs à risque" items={scores.supplierRisks} empty="Aucun fournisseur risqué identifié." onOpen={() => onNavigate?.('fournisseurs')} danger />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+          {scores.stockRisks.slice(0, 4).map((item) => (
+            <div key={item.id || item.name} className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <Package size={16} className="text-amber-700" />
+              <p className="mt-2 font-black text-[#2f2415]">{item.name}</p>
+              <p className="text-xs text-amber-800">Score {item.score}/100 · valeur {fmtCurrency(item.value)}</p>
+              <p className="mt-2 text-xs text-[#7d6a4a]">{item.action}</p>
+            </div>
+          ))}
+          {!scores.stockRisks.length ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">Aucun risque stock prioritaire.</div> : null}
+        </div>
+      </div>
+
       <div className="rounded-3xl border border-[#d6c3a0] bg-[#2f2415] text-white p-5 space-y-4">
         <div>
           <p className="text-xs uppercase tracking-widest text-[#f8e8b6] font-black">Investissements pilotés</p>
           <h3 className="text-xl font-black mt-1">Quand investir, comment investir, sur quoi investir</h3>
-          <p className="text-sm text-[#f8e8b6]/80 mt-1">
-            Horizon distingue vente immédiate, optimisation de capacité, investissement futur et compensation court terme.
-          </p>
+          <p className="text-sm text-[#f8e8b6]/80 mt-1">Horizon distingue vente immédiate, optimisation de capacité, investissement futur et compensation court terme.</p>
         </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
           {plan.recommendations.map((item) => (
             <div key={item.id} className="rounded-2xl bg-white/10 border border-white/10 p-4">
@@ -93,11 +109,7 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate, onCreate
               <p className="text-sm font-black mt-1">{item.title}</p>
               <p className="text-[11px] text-white/70 mt-1">{item.timing}</p>
               <p className="text-xs text-white/80 mt-3">{item.recommendation}</p>
-              <button
-                type="button"
-                onClick={() => createBusinessPlan(item)}
-                className="mt-3 w-full rounded-xl bg-[#f6c453] px-2 py-1.5 text-[10px] font-black text-[#2f2415] hover:bg-[#ffe08a]"
-              >
+              <button type="button" onClick={() => createBusinessPlan(item)} className="mt-3 w-full rounded-xl bg-[#f6c453] px-2 py-1.5 text-[10px] font-black text-[#2f2415] hover:bg-[#ffe08a]">
                 Créer business plan
               </button>
             </div>
@@ -109,12 +121,25 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate, onCreate
 }
 
 function Kpi({ icon: Icon, label, value, sub }) {
+  return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4"><Icon size={18} className="text-[#c9a96a]" /><p className="text-xs text-[#8a7456] mt-3">{label}</p><p className="text-lg font-black text-[#2f2415] mt-1">{value}</p><p className="text-xs text-[#8a7456] mt-1">{sub}</p></div>;
+}
+
+function ScoreList({ icon: Icon, title, items, empty, onOpen, danger = false }) {
   return (
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4">
-      <Icon size={18} className="text-[#c9a96a]" />
-      <p className="text-xs text-[#8a7456] mt-3">{label}</p>
-      <p className="text-lg font-black text-[#2f2415] mt-1">{value}</p>
-      <p className="text-xs text-[#8a7456] mt-1">{sub}</p>
+    <div className={`rounded-2xl border p-4 ${danger ? 'border-amber-200 bg-amber-50' : 'border-[#eadcc2] bg-[#fffdf8]'}`}>
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-black text-[#2f2415] flex items-center gap-2"><Icon size={16} /> {title}</p>
+        <button type="button" onClick={onOpen} className="text-[11px] font-black text-[#9a6b12]">Ouvrir</button>
+      </div>
+      <div className="mt-3 space-y-2">
+        {items.slice(0, 4).map((item) => (
+          <div key={item.id || item.name} className="rounded-xl bg-white/70 border border-white/60 p-3">
+            <div className="flex justify-between gap-2"><b className="text-sm text-[#2f2415]">{item.name}</b><span className="text-xs font-black text-[#9a6b12]">{item.score}/100</span></div>
+            <p className="mt-1 text-xs text-[#7d6a4a]">{item.action}</p>
+          </div>
+        ))}
+        {!items.length ? <p className="text-sm text-[#8a7456]">{empty}</p> : null}
+      </div>
     </div>
   );
 }
