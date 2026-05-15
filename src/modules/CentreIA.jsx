@@ -1,8 +1,9 @@
-import { AlertTriangle, BrainCircuit, CheckCircle, LineChart, ShieldAlert, Sparkles, TrendingUp } from 'lucide-react';
+import { AlertTriangle, BrainCircuit, CheckCircle, LineChart, ShieldAlert, Sparkles, TrendingUp, Zap } from 'lucide-react';
 import { useMemo } from 'react';
 import KpiCard from '../components/KpiCard';
 import SectionHeader from '../components/SectionHeader';
 import { buildStrategicInsights } from '../services/aiStrategyService';
+import { buildHorizonProactiveInsights } from '../services/horizonProactiveService';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 
 const priorityClass = {
@@ -56,7 +57,21 @@ export default function CentreIA({
     meteo,
   }), [lots, productionLogs, alimentationLogs, stocks, marketPrices, marketCalendarEvents, salesOrders, payments, transactions, smartfarmEvents, sensors, cameras, meteo]);
 
+  const proactive = useMemo(() => buildHorizonProactiveInsights({
+    lots,
+    productionLogs,
+    alimentationLogs,
+    stocks,
+    salesOrders,
+    payments,
+    transactions,
+    sensors,
+    cameras,
+    meteo,
+  }), [lots, productionLogs, alimentationLogs, stocks, salesOrders, payments, transactions, sensors, cameras, meteo]);
+
   const score = Math.round(insights.strategic_score || 0);
+  const proactiveScore = Math.round(proactive.proactive_score || 0);
   const criticalDecisions = insights.decisions.filter((d) => ['critique', 'haute'].includes(d.priority)).length;
   const feedDays = insights.forecasts.feed.autonomy_days;
   const projectedTablets = insights.forecasts.eggs.projected_tablets;
@@ -76,11 +91,37 @@ export default function CentreIA({
         }
       />
 
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
         <KpiCard icon={BrainCircuit} label="Score IA exploitation" value={`${score}/100`} sub={score >= 75 ? 'Situation favorable' : score >= 50 ? 'Pilotage a renforcer' : 'Risque eleve'} color={score >= 75 ? 'bg-emerald-500/20 text-emerald-500' : score >= 50 ? 'bg-amber-500/20 text-amber-500' : 'bg-red-500/20 text-red-500'} />
+        <KpiCard icon={Zap} label="Score proactif" value={`${proactiveScore}/100`} sub={`${proactive.urgent_count} urgence(s), ${proactive.high_count} haute(s)`} color={proactiveScore >= 75 ? 'bg-emerald-500/20 text-emerald-500' : proactiveScore >= 50 ? 'bg-amber-500/20 text-amber-500' : 'bg-red-500/20 text-red-500'} />
         <KpiCard icon={Sparkles} label="Decisions prioritaires" value={criticalDecisions} sub="Critiques ou hautes" color="bg-purple-500/20 text-purple-500" />
         <KpiCard icon={LineChart} label="Tablettes projetees" value={fmtNumber(projectedTablets || 0)} sub="Projection 30 jours" color="bg-yellow-500/20 text-yellow-600" />
         <KpiCard icon={TrendingUp} label="Cash previsionnel" value={fmtCurrency(projectedCash || 0)} sub="Projection 30 jours" color={projectedCash >= 0 ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'} />
+      </div>
+
+      <div className="bg-[#2f2415] text-white rounded-3xl p-5 border border-[#d6c3a0] shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-black text-[#f8e8b6] flex items-center gap-2"><Zap size={16} /> Horizon Proactif</p>
+            <h3 className="text-xl font-black mt-1">{proactive.executive_summary}</h3>
+            <p className="text-sm text-[#f8e8b6]/80 mt-1">Horizon surveille les modules et remonte les actions prioritaires avant que les problèmes deviennent coûteux.</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2 min-w-[260px]">
+            <div className="rounded-2xl bg-white/10 border border-white/10 p-3 text-center"><p className="text-2xl font-black">{proactive.urgent_count}</p><p className="text-[11px] text-[#f8e8b6]">Urgences</p></div>
+            <div className="rounded-2xl bg-white/10 border border-white/10 p-3 text-center"><p className="text-2xl font-black">{proactive.high_count}</p><p className="text-[11px] text-[#f8e8b6]">Priorités</p></div>
+            <div className="rounded-2xl bg-white/10 border border-white/10 p-3 text-center"><p className="text-2xl font-black">{proactive.total_count}</p><p className="text-[11px] text-[#f8e8b6]">Points IA</p></div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 mt-4">
+          {proactive.next_actions.slice(0, 5).map((item, index) => (
+            <button key={`${item.module}-${index}`} type="button" onClick={() => onNavigate?.(item.module)} className="text-left rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 p-3 transition-colors">
+              <span className="text-[10px] uppercase tracking-wider text-[#f8e8b6] font-black">{item.severity}</span>
+              <p className="text-sm font-bold mt-1 line-clamp-2">{item.title}</p>
+              <p className="text-[11px] text-white/70 mt-1 line-clamp-2">{item.action}</p>
+            </button>
+          ))}
+          {!proactive.next_actions.length ? <div className="lg:col-span-5 rounded-2xl bg-white/10 border border-white/10 p-3 text-sm text-[#f8e8b6]">Aucune action proactive urgente pour le moment.</div> : null}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
@@ -118,21 +159,21 @@ export default function CentreIA({
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-red-50 border border-red-200 p-3">
                 <p className="text-xs text-red-700 font-semibold">Urgences</p>
-                <p className="text-2xl font-black text-red-700">{insights.anomalies.urgence_count}</p>
+                <p className="text-2xl font-black text-red-700">{Math.max(insights.anomalies.urgence_count, proactive.urgent_count)}</p>
               </div>
               <div className="rounded-xl bg-orange-50 border border-orange-200 p-3">
                 <p className="text-xs text-orange-700 font-semibold">Critiques</p>
-                <p className="text-2xl font-black text-orange-700">{insights.anomalies.critique_count}</p>
+                <p className="text-2xl font-black text-orange-700">{Math.max(insights.anomalies.critique_count, proactive.high_count)}</p>
               </div>
             </div>
             <div className="mt-4 space-y-2">
-              {insights.anomalies.anomalies.slice(0, 5).map((a) => (
-                <div key={a.id} className="rounded-xl bg-[#fffdf8] border border-[#d6c3a0] p-3 text-sm">
+              {proactive.insights.slice(0, 5).map((a) => (
+                <button key={a.id} type="button" onClick={() => onNavigate?.(a.module)} className="w-full text-left rounded-xl bg-[#fffdf8] border border-[#d6c3a0] p-3 text-sm hover:border-emerald-500 transition-colors">
                   <p className="font-semibold text-[#2f2415]">{a.title}</p>
-                  <p className="text-xs text-[#8a7456]">{a.summary}</p>
-                </div>
+                  <p className="text-xs text-[#8a7456]">{a.message}</p>
+                </button>
               ))}
-              {!insights.anomalies.anomalies.length ? (
+              {!proactive.insights.length ? (
                 <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-700 flex gap-2"><CheckCircle size={16} /> Aucune anomalie IA majeure détectée.</div>
               ) : null}
             </div>
@@ -141,18 +182,9 @@ export default function CentreIA({
           <div className="bg-white border border-[#d6c3a0] rounded-2xl p-5">
             <p className="font-bold text-[#2f2415] flex items-center gap-2"><AlertTriangle size={18} className="text-amber-500" /> Prévisions clés</p>
             <div className="mt-4 space-y-3 text-sm text-[#7d6a4a]">
-              <div className="rounded-xl bg-[#fffdf8] border border-[#d6c3a0] p-3">
-                <p className="font-semibold text-[#2f2415]">Autonomie aliment</p>
-                <p>{feedDays === null ? 'Données insuffisantes' : `${Math.round(feedDays)} jour(s)`}</p>
-              </div>
-              <div className="rounded-xl bg-[#fffdf8] border border-[#d6c3a0] p-3">
-                <p className="font-semibold text-[#2f2415]">Production vendable estimée</p>
-                <p>{fmtNumber(insights.forecasts.eggs.projected_sellable_eggs || 0)} œufs / 30 jours</p>
-              </div>
-              <div className="rounded-xl bg-[#fffdf8] border border-[#d6c3a0] p-3">
-                <p className="font-semibold text-[#2f2415]">Coût tablette pondeuses</p>
-                <p>{fmtCurrency(insights.pondeuses.totals.cost_per_tablet || 0)}</p>
-              </div>
+              <div className="rounded-xl bg-[#fffdf8] border border-[#d6c3a0] p-3"><p className="font-semibold text-[#2f2415]">Autonomie aliment</p><p>{feedDays === null ? 'Données insuffisantes' : `${Math.round(feedDays)} jour(s)`}</p></div>
+              <div className="rounded-xl bg-[#fffdf8] border border-[#d6c3a0] p-3"><p className="font-semibold text-[#2f2415]">Production vendable estimée</p><p>{fmtNumber(insights.forecasts.eggs.projected_sellable_eggs || 0)} œufs / 30 jours</p></div>
+              <div className="rounded-xl bg-[#fffdf8] border border-[#d6c3a0] p-3"><p className="font-semibold text-[#2f2415]">Coût tablette pondeuses</p><p>{fmtCurrency(insights.pondeuses.totals.cost_per_tablet || 0)}</p></div>
             </div>
           </div>
         </div>
