@@ -6,6 +6,7 @@ import { generateDecisionBusinessPlan } from '../services/decisionBusinessPlanGe
 import { buildDecisionCenterPlan } from '../services/growthDecisionEngine';
 import { buildRelationshipStockScores } from '../services/relationshipStockScoringEngine';
 import { fmtCurrency } from '../utils/format';
+import ObjectiveDecisionSummary from './ObjectiveDecisionSummary.jsx';
 
 export default function ObjectifsCroissance({ dataMap = {}, onNavigate, onCreateBusinessPlan, onRefreshBusinessPlans }) {
   const plan = buildDecisionCenterPlan(dataMap);
@@ -72,6 +73,8 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate, onCreate
         </div>
       </div>
 
+      <ObjectiveDecisionSummary plan={plan} onNavigate={onNavigate} />
+
       <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-4">
         <div>
           <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Fidélisation, fournisseurs & stock</p>
@@ -121,7 +124,7 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate, onCreate
 }
 
 function Kpi({ icon: Icon, label, value, sub }) {
-  return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4"><Icon size={18} className="text-[#c9a96a]" /><p className="text-xs text-[#8a7456] mt-3">{label}</p><p className="text-lg font-black text-[#2f2415] mt-1">{value}</p><p className="text-xs text-[#8a7456] mt-1">{sub}</p></div>;
+  return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4"><Icon size={18} className="text-[#c9a96a] /><p className="text-xs text-[#8a7456] mt-3">{label}</p><p className="text-lg font-black text-[#2f2415] mt-1">{value}</p><p className="text-xs text-[#8a7456] mt-1">{sub}</p></div>;
 }
 
 function ScoreList({ icon: Icon, title, items, empty, onOpen, danger = false }) {
