@@ -10,8 +10,9 @@ import CreateModal from '../modals/CreateModal';
 import EditModal from '../modals/EditModal';
 import DeleteModal from '../modals/DeleteModal';
 import DetailsModal from '../modals/DetailsModal';
+import { applyAnimalDecisionDefaults, buildAnimalDecisionProfile } from '../services/animalDecisionEngine';
 import { MODULE_FORM_FIELDS } from '../utils/constants';
-import { addDays, enrichAnimalFieldsForDecision } from '../utils/decisionFormFields';
+import { enrichAnimalFieldsForDecision } from '../utils/decisionFormFields';
 import { generateSequentialId } from '../utils/ids';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
@@ -32,33 +33,6 @@ function ageInFarmDays(row = {}) {
   const start = row.date_entree_ferme || row.date_achat || row.created_at;
   if (!start) return 0;
   return Math.max(0, Math.floor((Date.now() - new Date(start).getTime()) / 86400000));
-}
-
-function prepareDecisionFields(payload = {}, existing = {}) {
-  const base = { ...existing, ...payload };
-  const frequency = toNumber(base.frequence_pesee_jours) || 15;
-  const lastWeighing = base.date_derniere_pesee || base.date_poids_entree || base.date_entree_ferme || base.date_achat || today();
-  const currentWeight = toNumber(base.poids_actuel ?? base.poids ?? base.weight);
-  const entryWeight = toNumber(base.poids_entree ?? base.weight_entry ?? base.poids_initial ?? currentWeight);
-  const targetWeight = toNumber(base.poids_objectif ?? base.target_weight ?? base.objectif_poids);
-  const stayDays = ageInFarmDays(base);
-  const targetDelay = toNumber(base.delai_cible_vente_jours) || 90;
-
-  return {
-    ...payload,
-    poids_entree: entryWeight,
-    weight_entry: entryWeight,
-    poids_actuel: currentWeight,
-    poids: currentWeight,
-    weight: currentWeight,
-    frequence_pesee_jours: frequency,
-    date_derniere_pesee: lastWeighing,
-    date_prochaine_pesee_recommandee: base.date_prochaine_pesee_recommandee || addDays(lastWeighing, frequency),
-    poids_objectif: targetWeight,
-    target_weight: targetWeight,
-    delai_cible_vente_jours: targetDelay,
-    alerte_cash_immobilise_view: stayDays > targetDelay && statusOf(base) !== 'vendu' ? `Alerte: ${stayDays} jours en ferme, objectif ${targetDelay} jours` : 'OK',
-  };
 }
 
 export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], alimentationLogs = [], vaccins = [], loading, onCreate, onUpdate, onDelete, onRefresh }) {
@@ -91,19 +65,40 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
   const initialValues = useMemo(() => {
     const id = generateSequentialId('animaux', normalizedRows, { type: species });
     const date = today();
-    return { id, tag: id, type: species, espece: species, status: 'actif', health_status: 'sain', mode_acquisition: 'achat', date_achat: date, date_entree_ferme: date, date_poids_entree: date, date_derniere_pesee: date, frequence_pesee_jours: 15, date_prochaine_pesee_recommandee: addDays(date, 15), delai_cible_vente_jours: 90, sexe: 'F', sale_price: 0 };
+    return applyAnimalDecisionDefaults({
+      id,
+      tag: id,
+      type: species,
+      espece: species,
+      status: 'actif',
+      health_status: 'sain',
+      mode_acquisition: 'achat',
+      date_achat: date,
+      date_entree_ferme: date,
+      date_poids_entree: date,
+      date_derniere_pesee: date,
+      sexe: 'F',
+      sale_price: 0,
+    });
   }, [normalizedRows, species]);
 
-  const prepare = (payload = {}, existing = {}) => ({ ...prepareDecisionFields(payload, existing), type: species, espece: species, categorie: species, health_status: payload.health_status || payload.sante || 'sain', status: payload.status || payload.statut || 'actif' });
+  const prepare = (payload = {}, existing = {}) => ({
+    ...applyAnimalDecisionDefaults(payload, existing),
+    type: species,
+    espece: species,
+    categorie: species,
+    health_status: payload.health_status || payload.sante || existing.health_status || 'sain',
+    status: payload.status || payload.statut || existing.status || 'actif',
+  });
 
   const submitCreate = async (payload) => {
-    try { setSaving(true); await onCreate?.(prepare(payload)); await onRefresh?.(); toast.success(`${species} ajouté`); setModal(null); }
+    try { setSaving(true); await onCreate?.(prepare(payload)); await onRefresh?.(); toast.success(`${species} ajouté · objectifs Horizon proposés`); setModal(null); }
     catch (error) { toast.error(error.message || 'Création impossible'); }
     finally { setSaving(false); }
   };
   const submitEdit = async (payload) => {
     if (!selected) return;
-    try { setSaving(true); await onUpdate?.(selected.id, prepare(payload, selected)); await onRefresh?.(); toast.success(`${species} modifié`); setModal(null); }
+    try { setSaving(true); await onUpdate?.(selected.id, prepare(payload, selected)); await onRefresh?.(); toast.success(`${species} modifié · objectifs recalculés`); setModal(null); }
     catch (error) { toast.error(error.message || 'Modification impossible'); }
     finally { setSaving(false); }
   };
@@ -126,8 +121,12 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
     { key: 'name', label: 'Nom', sortable: true, render: (row) => <span className="font-bold text-[#2f2415]">{row.name || row.nom || row.id}</span> },
     { key: 'type', label: 'Espèce', render: () => species },
     { key: 'poids', label: 'Poids', render: (row) => `${weightOf(row) || 0} kg` },
-    { key: 'progression', label: 'Entrée → objectif', render: (row) => `${entryWeightOf(row) || 0} → ${targetWeightOf(row) || '—'} kg` },
-    { key: 'next_weighing', label: 'Prochaine pesée', render: (row) => row.date_prochaine_pesee_recommandee || '—' },
+    { key: 'progression', label: 'Entrée → objectif', render: (row) => `${entryWeightOf(row) || 0} → ${targetWeightOf(row) || 'Horizon'} kg` },
+    { key: 'next_weighing', label: 'Pesée Horizon', render: (row) => {
+      const profile = buildAnimalDecisionProfile(row);
+      return <div><p className="font-bold text-[#2f2415]">{profile.nextWeighingDate || '—'}</p><p className="text-xs text-[#8a7456]">attendu {profile.expectedWeight || 0} kg</p></div>;
+    } },
+    { key: 'decision', label: 'Décision IA', render: (row) => <span className="text-xs font-bold text-[#7d6a4a]">{buildAnimalDecisionProfile(row).decision}</span> },
     { key: 'health_status', label: 'Santé', render: (row) => healthOf(row) },
     { key: 'status', label: 'Statut', render: (row) => statusOf(row) },
     { key: 'cost', label: 'Coût achat', render: (row) => fmtCurrency(purchaseCost(row)) },
@@ -161,7 +160,7 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
 
     <DataTable title={`Liste ${speciesPlural(species)}`} rows={filtered} columns={columns} loading={loading} initialSortKey="id" searchPlaceholder={`Recherche ${speciesPlural(species).toLowerCase()}...`} />
 
-    <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected} title={`Détail ${species}`} />
+    <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, horizon_decision: buildAnimalDecisionProfile(selected) } : selected} title={`Détail ${species}`} />
     <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={formFields} initialValues={initialValues} loading={saving} title={`Ajouter ${species}`} submitLabel="Ajouter" />
     <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={formFields} initialValues={selected || {}} loading={saving} title={`Modifier ${species}`} submitLabel="Enregistrer" />
     <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected ? selected.name || selected.nom || selected.id : ''} loading={saving} />
