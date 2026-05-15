@@ -37,14 +37,18 @@ export default function AnimauxV2(props) {
     <div className="space-y-6 animaux-mobile-structured">
       <style>{`@media (max-width: 640px){.animaux-mobile-structured .rounded-2xl{border-radius:18px}.animaux-mobile-structured table{font-size:12px}.animaux-mobile-structured th,.animaux-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.animaux-mobile-structured .text-2xl{font-size:1.35rem}.animaux-mobile-structured .grid{gap:.75rem}.animaux-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
 
-      <ObjectivePerformanceCard dataMap={dataMap} activity="animaux" title="Objectif & Performance animaux" onNavigate={props.onNavigate} />
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <ObjectivePerformanceCard dataMap={dataMap} activity="bovins" title="Objectif Bovins" compact onNavigate={props.onNavigate} />
+        <ObjectivePerformanceCard dataMap={dataMap} activity="ovins" title="Objectif Ovins" compact onNavigate={props.onNavigate} />
+        <ObjectivePerformanceCard dataMap={dataMap} activity="caprins" title="Objectif Caprins" compact onNavigate={props.onNavigate} />
+      </div>
 
       <ModuleSection
         icon={Beef}
         title="Cheptel par espèce"
         subtitle="Choisir une espèce pour voir uniquement les animaux concernés."
       >
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {ANIMAL_SPECIES_TABS.map((tab) => (
             <button
               key={tab}
