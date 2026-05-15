@@ -1,7 +1,6 @@
 const arr = (value) => (Array.isArray(value) ? value : []);
 const num = (value = 0) => Number(value || 0);
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-const monthOf = (row = {}) => String(row.date || row.created_at || row.date_commande || row.date_paiement || '').slice(0, 7);
 const amount = (row = {}) => num(row.montant_total ?? row.total_ttc ?? row.total ?? row.amount ?? row.montant ?? row.prix_total);
 
 export const decisionStatuses = {
@@ -48,6 +47,8 @@ export function buildDecisionRecord(recommendation = {}, context = {}) {
     profitability_status: 'not_evaluable_yet',
     non_profitability_reason: '',
     decision_reason: recommendation.recommendation || recommendation.why_now || '',
+    bp_tracking_status: 'not_required_yet',
+    bp_tracking_alert: '',
     changed_by_user: false,
     last_reviewed_at: '',
     created_at: date,
@@ -61,25 +62,74 @@ function relatedToDecision(row = {}, decision = {}) {
   return keys.some((key) => key && raw.includes(key));
 }
 
+function findLinkedBusinessPlan(decision = {}, dataMap = {}) {
+  const plans = arr(dataMap.business_plans || dataMap.businessPlans);
+  return plans.find((bp) => {
+    const bpId = String(bp.id || '');
+    const sourceReco = String(bp.source_recommendation_id || bp.recommendation_id || '');
+    return Boolean(
+      (decision.business_plan_id && bpId === String(decision.business_plan_id)) ||
+      (decision.recommendation_id && sourceReco === String(decision.recommendation_id)) ||
+      (decision.id && sourceReco === String(decision.id))
+    );
+  });
+}
+
+function isExecutedLike(decision = {}) {
+  return ['executed', 'monitoring', 'profitable', 'not_profitable'].includes(decision.status) || num(decision.actual_investment) > 0 || num(decision.actual_revenue) > 0;
+}
+
+function buildBpTracking(decision = {}, dataMap = {}) {
+  const linkedPlan = findLinkedBusinessPlan(decision, dataMap);
+  const executed = isExecutedLike(decision);
+  if (!executed) {
+    return {
+      linkedPlan,
+      bp_tracking_status: linkedPlan ? 'draft_available' : 'not_required_yet',
+      bp_tracking_alert: linkedPlan ? 'BP brouillon disponible pour étude.' : '',
+    };
+  }
+  if (!linkedPlan) {
+    return {
+      linkedPlan: null,
+      bp_tracking_status: 'missing_bp',
+      bp_tracking_alert: 'Alerte : décision exécutée sans business plan lié. Rentabilité réelle non traçable correctement.',
+    };
+  }
+  return {
+    linkedPlan,
+    bp_tracking_status: 'linked_bp',
+    bp_tracking_alert: 'BP lié : rentabilité traçable via Investissements, dépenses, ventes et paiements associés.',
+  };
+}
+
 export function evaluateDecisionProfitability(decision = {}, dataMap = {}) {
-  const transactions = arr(dataMap.finances || dataMap.transactions).filter((row) => relatedToDecision(row, decision));
-  const sales = arr(dataMap.sales_orders || dataMap.salesOrders).filter((row) => relatedToDecision(row, decision));
-  const payments = arr(dataMap.payments).filter((row) => relatedToDecision(row, decision));
-  const bpLines = arr(dataMap.bp_investment_lines || dataMap.bpInvestmentLines).filter((row) => relatedToDecision(row, decision));
+  const tracking = buildBpTracking(decision, dataMap);
+  const normalizedDecision = {
+    ...decision,
+    business_plan_id: decision.business_plan_id || tracking.linkedPlan?.id || '',
+  };
+  const transactions = arr(dataMap.finances || dataMap.transactions).filter((row) => relatedToDecision(row, normalizedDecision));
+  const sales = arr(dataMap.sales_orders || dataMap.salesOrders).filter((row) => relatedToDecision(row, normalizedDecision));
+  const payments = arr(dataMap.payments).filter((row) => relatedToDecision(row, normalizedDecision));
+  const bpLines = arr(dataMap.bp_investment_lines || dataMap.bpInvestmentLines).filter((row) => relatedToDecision(row, normalizedDecision));
   const investmentFromLines = bpLines.reduce((sum, row) => sum + num(row.total ?? num(row.quantite) * num(row.prix_unitaire)), 0);
   const expenses = transactions.filter((row) => ['sortie', 'depense', 'dépense', 'charge', 'achat'].some((x) => norm(row.type || row.categorie).includes(x))).reduce((sum, row) => sum + amount(row), 0);
   const revenueSales = sales.reduce((sum, row) => sum + amount(row), 0);
   const revenuePayments = payments.reduce((sum, row) => sum + amount(row), 0);
-  const actualInvestment = Math.max(investmentFromLines, expenses, num(decision.actual_investment));
-  const actualRevenue = Math.max(revenueSales, revenuePayments, num(decision.actual_revenue));
+  const actualInvestment = Math.max(investmentFromLines, expenses, num(normalizedDecision.actual_investment));
+  const actualRevenue = Math.max(revenueSales, revenuePayments, num(normalizedDecision.actual_revenue));
   const actualMargin = actualRevenue - actualInvestment;
   const roi = actualInvestment > 0 ? Math.round((actualMargin / actualInvestment) * 100) : null;
-  const hasExecution = ['executed', 'monitoring', 'profitable', 'not_profitable'].includes(decision.status) || actualInvestment > 0 || actualRevenue > 0;
+  const hasExecution = isExecutedLike({ ...normalizedDecision, actual_investment: actualInvestment, actual_revenue: actualRevenue });
 
   let profitabilityStatus = 'not_evaluable_yet';
   let reason = '';
   if (!hasExecution) {
     reason = 'Recommandation non exécutée : rentabilité réelle non mesurable.';
+  } else if (tracking.bp_tracking_status === 'missing_bp') {
+    profitabilityStatus = 'monitoring';
+    reason = 'Décision exécutée mais BP absent : rattacher ou créer le business plan avant de juger la rentabilité.';
   } else if (actualInvestment > 0 && actualRevenue === 0) {
     profitabilityStatus = 'monitoring';
     reason = 'Investissement engagé, revenus pas encore constatés ou pas encore reliés.';
@@ -92,14 +142,16 @@ export function evaluateDecisionProfitability(decision = {}, dataMap = {}) {
   }
 
   return {
-    ...decision,
+    ...normalizedDecision,
     actual_investment: actualInvestment,
     actual_revenue: actualRevenue,
     actual_margin: actualMargin,
     roi_percent: roi,
     profitability_status: profitabilityStatus,
-    non_profitability_reason: profitabilityStatus === 'not_profitable' ? reason : decision.non_profitability_reason || '',
+    non_profitability_reason: profitabilityStatus === 'not_profitable' ? reason : normalizedDecision.non_profitability_reason || '',
     profitability_explanation: reason,
+    bp_tracking_status: tracking.bp_tracking_status,
+    bp_tracking_alert: tracking.bp_tracking_alert,
   };
 }
 
@@ -113,19 +165,22 @@ export function buildDecisionHistory(dataMap = {}) {
     return map;
   }, new Map());
   const decisions = Array.from(merged.values()).map((row) => evaluateDecisionProfitability(row, dataMap)).sort((a, b) => new Date(b.recommendation_date || b.created_at || 0) - new Date(a.recommendation_date || a.created_at || 0));
-  const executed = decisions.filter((d) => ['executed', 'monitoring', 'profitable', 'not_profitable'].includes(d.status) || d.actual_investment > 0 || d.actual_revenue > 0);
+  const executed = decisions.filter((d) => isExecutedLike(d));
   const profitable = decisions.filter((d) => d.profitability_status === 'profitable');
   const notProfitable = decisions.filter((d) => d.profitability_status === 'not_profitable');
+  const missingBp = decisions.filter((d) => d.bp_tracking_status === 'missing_bp');
   const incrementalRevenue = decisions.reduce((sum, d) => sum + num(d.actual_revenue), 0);
   const totalRevenue = arr(dataMap.sales_orders || dataMap.salesOrders).reduce((sum, row) => sum + amount(row), 0);
   const contributionRate = totalRevenue > 0 ? Math.round((incrementalRevenue / totalRevenue) * 100) : 0;
   return {
     decisions,
+    alerts: { missingBp },
     totals: {
       recommended: decisions.length,
       executed: executed.length,
       profitable: profitable.length,
       notProfitable: notProfitable.length,
+      missingBp: missingBp.length,
       incrementalRevenue,
       totalRevenue,
       contributionRate,
@@ -135,6 +190,7 @@ export function buildDecisionHistory(dataMap = {}) {
 }
 
 export function explainDecisionNonProfitability(decision = {}) {
+  if (decision.bp_tracking_status === 'missing_bp') return decision.bp_tracking_alert || 'BP manquant : rentabilité non traçable.';
   if (decision.profitability_status !== 'not_profitable') return decision.profitability_explanation || 'Rentabilité non négative ou pas encore évaluable.';
   const reasons = [];
   if (num(decision.actual_investment) > num(decision.expected_investment) && num(decision.expected_investment) > 0) reasons.push('investissement réel supérieur au budget prévu');
