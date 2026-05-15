@@ -7,6 +7,38 @@ const amount = (row = {}) => num(row.montant_total ?? row.total ?? row.amount ??
 const status = (row = {}) => normalize(row.status || row.statut || row.statut_paiement || row.payment_status);
 const isOpenTask = (row = {}) => !['termine', 'terminee', 'done', 'annule', 'annulee'].some((term) => status(row).includes(term));
 
+const NAV_MODULES = [
+  { key: 'dashboard', label: 'Accueil', words: ['accueil', 'dashboard', 'tableau de bord', 'vue globale'] },
+  { key: 'assistant_erp', label: 'Assistant ERP', words: ['assistant erp', 'assistant'] },
+  { key: 'centre_ia', label: 'Centre IA', words: ['centre ia', 'ia', 'intelligence artificielle', 'cerveau'] },
+  { key: 'ventes', label: 'Ventes', words: ['vente', 'ventes', 'commande', 'commandes', 'facture client'] },
+  { key: 'finances', label: 'Finances', words: ['finance', 'finances', 'caisse', 'tresorerie', 'trésorerie', 'argent'] },
+  { key: 'stock', label: 'Stock', words: ['stock', 'stocks', 'aliment', 'aliments', 'intrants'] },
+  { key: 'avicole', label: 'Avicole', words: ['avicole', 'pondeuse', 'pondeuses', 'poulet', 'poulets', 'oeufs', 'œufs', 'lot', 'lots'] },
+  { key: 'animaux', label: 'Animaux', words: ['animaux', 'animal', 'bovin', 'ovins', 'caprins', 'vache', 'mouton', 'chevre', 'chèvre'] },
+  { key: 'sante', label: 'Santé', words: ['sante', 'santé', 'vaccin', 'vaccins', 'soin', 'soins', 'veterinaire', 'vétérinaire'] },
+  { key: 'cultures', label: 'Cultures', words: ['culture', 'cultures', 'maraichage', 'maraîchage', 'parcelle', 'recolte', 'récolte'] },
+  { key: 'clients', label: 'Clients', words: ['client', 'clients'] },
+  { key: 'fournisseurs', label: 'Fournisseurs', words: ['fournisseur', 'fournisseurs'] },
+  { key: 'documents', label: 'Documents', words: ['document', 'documents', 'justificatif', 'preuve'] },
+  { key: 'taches', label: 'Tâches', words: ['tache', 'tâche', 'taches', 'tâches', 'planning'] },
+  { key: 'alertes', label: 'Alertes', words: ['alerte', 'alertes', 'notification', 'notifications'] },
+  { key: 'smartfarm', label: 'Smart Farm', words: ['smart farm', 'capteur', 'capteurs', 'camera', 'caméra', 'iot'] },
+  { key: 'equipements', label: 'Équipements', words: ['equipement', 'équipement', 'materiel', 'matériel', 'maintenance'] },
+  { key: 'rapports', label: 'Rapports', words: ['rapport', 'rapports', 'bilan', 'export'] },
+  { key: 'rh', label: 'RH', words: ['rh', 'equipe', 'équipe', 'employe', 'employé', 'personnel'] },
+  { key: 'sync_activity', label: 'Activité & Sync ERP', words: ['sync', 'synchronisation', 'audit', 'activité', 'activite'] },
+  { key: 'gestion_systeme', label: 'Gestion du système', words: ['gestion systeme', 'gestion système', 'parametres', 'paramètres', 'permissions'] },
+];
+
+function detectNavigation(command = '') {
+  const isNavigation = includesAny(command, ['ouvre', 'ouvrir', 'montre', 'montres', 'affiche', 'va dans', 'vas dans', 'emmene moi', 'emmène moi', 'amene moi', 'amène moi', 'module']);
+  if (!isNavigation) return null;
+  const found = NAV_MODULES.find((module) => includesAny(command, module.words));
+  if (!found) return null;
+  return { moduleKey: found.key, answer: `J’ouvre le module ${found.label}.` };
+}
+
 const VOCABULARY = {
   greeting: ['bjr', 'bonjour', 'bonsoir', 'salut', 'hello', 'coucou', 'yo', 'salam', 'salaam', 'as salam', 'allo'],
   thanks: ['merci', 'thanks', 'super merci', 'ok merci', 'c est bon merci'],
@@ -20,8 +52,8 @@ const VOCABULARY = {
   sales: ['vente', 'ventes', 'commande', 'commandes', 'facture', 'factures', 'livraison', 'livraisons', 'client a payer', 'encaissement vente'],
   salesCharts: ['graphique vente', 'graphiques ventes', 'courbe vente', 'evolution vente', 'vente dans le graphique', 'vente enregistree', 'vente restante'],
   finance: ['finance', 'finances', 'argent', 'cash', 'caisse', 'tresorerie', 'depense', 'depenses', 'charge', 'charges'],
-  ca: ['chiffre d affaires', 'chiffre affaire', 'ca', 'combien j ai vendu', 'montant des ventes', 'total des ventes', 'recette vente'],
-  paid: ['encaisse', 'encaissement', 'argent recu', 'argent reçu', 'revenus encaisses', 'paiement recu', 'paiement reçu', 'cash recu'],
+  ca: ['chiffre d affaires', 'chiffre affaire', 'ca', 'c a', 'chiffre daffaires', 'combien j ai vendu', 'montant des ventes', 'total des ventes', 'recette vente', 'ca actuel', 'mon ca'],
+  paid: ['encaisse', 'encaissement', 'argent recu', 'argent reçu', 'revenus encaisses', 'paiement recu', 'paiement reçu', 'cash recu', 'combien j ai encaisse', 'combien j ai encaissé'],
   margin: ['marge', 'benefice', 'bénéfice', 'rentabilite', 'rentabilité', 'resultat', 'profit', 'gain'],
   global: ['situation globale', 'resume global', 'résumé global', 'etat global', 'où en est la ferme', 'ou en est la ferme', 'etat de la ferme', 'point global'],
   bankable: ['bancable', 'bancabilite', 'bancabilité', 'financeur', 'banque', 'credit', 'crédit', 'pret bancaire', 'prêt bancaire', 'dossier financement'],
@@ -86,76 +118,56 @@ function globalStats(dataMap = {}) {
   const soinsRetard = sante.filter((row) => ['retard', 'a faire', 'a_faire', 'en retard'].some((term) => status(row).includes(term))).length;
   const tachesOuvertes = taches.filter(isOpenTask).length;
   const alertesCritiques = alertes.filter((row) => ['critique', 'urgence'].some((term) => normalize(row.severity || row.gravite).includes(term))).length;
-  const lotsClos = avicole.filter((row) => ['cloture', 'cloture', 'ferme', 'archive', 'termine', 'vendu'].some((term) => status(row).includes(term))).length;
+  const lotsClos = avicole.filter((row) => ['cloture', 'ferme', 'archive', 'termine', 'vendu'].some((term) => status(row).includes(term))).length;
   return { ...f, stocks, animaux, avicole, sante, clients, cultures, fournisseurs, documents, taches, alertes, stockCritique, soinsRetard, tachesOuvertes, alertesCritiques, lotsClos };
 }
 
 function greetingAnswer() {
-  return { moduleKey: null, answer: 'Bonjour 😊 Je suis là. Tu peux me parler naturellement : “supprime ce lot”, “pourquoi une vente reste dans le graphique”, “ouvre santé”, “quelles alertes sont urgentes”, ou “donne-moi la priorité du jour”.' };
+  return { moduleKey: null, answer: 'Bonjour 😊 Je suis là. Tu peux me dire : “ouvre ventes”, “quel est mon CA”, “combien j’ai encaissé”, “montre stock”, ou “quelle est la priorité du jour”.' };
 }
 
 function unknownAnswer(command) {
-  return { moduleKey: null, answer: `Je n’ai pas encore bien compris “${command}”. Essaie avec des mots métier simples : ventes, stock, alertes, santé, lot chair, suppression, créances, documents, tâches, paramètres ou interconnexions.` };
+  return { moduleKey: null, answer: `Je n’ai pas encore bien compris “${command}”. Essaie par exemple : “ouvre ventes”, “quel est mon CA”, “combien j’ai encaissé”, “montre stock”, “ouvre avicole”, ou “situation globale”.` };
 }
 
 export const interpretVoiceCommand = (rawCommand = '', dataMap = {}) => {
   const command = normalize(rawCommand).trim();
+  const navigation = detectNavigation(command);
+  if (navigation) return navigation;
   const s = globalStats(dataMap);
 
   if (VOCABULARY.greeting.includes(command) || includesAny(command, ['bonjour assistant', 'salut assistant', 'bjr assistant'])) return greetingAnswer();
   if (hasIntent(command, 'thanks')) return { moduleKey: null, answer: 'Avec plaisir 😊 On continue quand tu veux. Je peux aussi te sortir une priorité du jour, ouvrir un module ou expliquer une incohérence.' };
-  if (hasIntent(command, 'help')) return { moduleKey: null, answer: 'Je peux t’aider à piloter la ferme sans fouiller partout : CA, encaissements, créances, marge, stock critique, ventes, clients, santé, avicole, cultures, fournisseurs, tâches, documents, paramètres, suppressions et interconnexions. Tu peux parler simplement, par exemple : “pourquoi cette vente revient ?”, “ouvre santé”, “supprime le lot à historiser” ou “qu’est-ce qui est urgent ?”.' };
+  if (hasIntent(command, 'help')) return { moduleKey: null, answer: 'Je peux ouvrir les modules et répondre aux questions clés : CA, encaissements, créances, marge, stock critique, ventes, clients, santé, avicole, cultures, fournisseurs, tâches, documents et interconnexions.' };
 
-  if (hasIntent(command, 'settings')) return { moduleKey: null, answer: 'Les paramètres sont dans l’icône engrenage en haut à droite. Tu peux y gérer le mode démo, les préférences d’affichage, les notifications, les caches locaux, la gestion système et l’audit sync.' };
-  if (hasIntent(command, 'sync')) return { moduleKey: 'sync_activity', answer: 'J’ouvre Activité & Sync ERP. C’est là que tu peux vérifier les interconnexions, les incohérences, l’offline, les logs et les points à corriger.' };
-  if (hasIntent(command, 'access')) return { moduleKey: 'gestion_systeme', answer: 'Si un module n’est pas accessible, il faut vérifier les permissions dans Gestion du système. Je t’y emmène pour contrôler le rôle et les accès.' };
-  if (hasIntent(command, 'slow')) return { moduleKey: 'sync_activity', answer: 'Pour les lenteurs, regarde d’abord le module concerné et la quantité de données. Je te conseille de noter : ouverture lente, scroll lent, sauvegarde lente ou graphique lent. L’audit Sync peut aider à repérer les modules lourds.' };
-
-  if (hasIntent(command, 'delete') && hasIntent(command, 'lotClosed')) return { moduleKey: 'avicole', answer: `Pour supprimer un lot sorti ou clôturé, va dans Avicole puis dans la section “Lots sortis / à historiser”. Tu y trouveras Voir, Modifier et Supprimer. Actuellement, je détecte ${s.lotsClos} lot(s) clôturé(s) ou sorti(s).` };
-  if (hasIntent(command, 'delete') && hasIntent(command, 'alerts')) return { moduleKey: 'alertes', answer: 'Pour supprimer une alerte, ouvre Centre Alertes. Si elle revient après suppression, c’est souvent une alerte automatique dérivée d’un stock, lot, animal ou tâche encore actif. Il faut traiter la cause ou marquer l’alerte comme traitée.' };
-  if (hasIntent(command, 'delete') && hasIntent(command, 'restoreIssue')) return { moduleKey: 'sync_activity', answer: 'Si une donnée supprimée revient, vérifie deux choses : le mode démo doit être désactivé dans Paramètres, et la migration soft delete doit être appliquée côté Supabase. J’ouvre Activité & Sync ERP pour vérifier les incohérences.' };
-  if (hasIntent(command, 'salesCharts') || (hasIntent(command, 'sales') && hasIntent(command, 'restoreIssue'))) return { moduleKey: 'ventes', answer: `Si une vente reste dans les graphiques après suppression, la cause habituelle est un paiement ou une transaction finance orpheline. Les graphiques ignorent maintenant les paiements sans commande active. Je vois ${s.orphanPayments} paiement(s) potentiellement orphelin(s).` };
+  if (hasIntent(command, 'settings')) return { moduleKey: 'gestion_systeme', answer: 'J’ouvre Gestion du système pour les paramètres, permissions et préférences.' };
+  if (hasIntent(command, 'sync')) return { moduleKey: 'sync_activity', answer: 'J’ouvre Activité & Sync ERP pour les interconnexions, incohérences et logs.' };
+  if (hasIntent(command, 'access')) return { moduleKey: 'gestion_systeme', answer: 'Si un module n’est pas accessible, il faut vérifier les permissions dans Gestion du système.' };
+  if (hasIntent(command, 'slow')) return { moduleKey: 'sync_activity', answer: 'Pour les lenteurs, je t’emmène vers Activité & Sync ERP pour repérer les modules lourds ou erreurs.' };
 
   if (hasIntent(command, 'ca')) {
-    const relance = s.creances > 0 ? ` Il reste quand même ${money(s.creances)} à relancer.` : ' Rien de majeur à relancer côté créances.';
-    return { moduleKey: 'ventes', answer: `Pour l’instant, ton chiffre d’affaires suivi est de ${money(s.ca)}. Sur ce montant, ${money(s.encaisse)} est encaissé.${relance} La base vient de ${s.orders.length} commande(s), ${s.invoices.length} facture(s) et ${s.deliveries.length} livraison(s).` };
+    const relance = s.creances > 0 ? ` Il reste ${money(s.creances)} à relancer.` : ' Rien de majeur à relancer côté créances.';
+    return { moduleKey: 'ventes', answer: `Ton chiffre d’affaires suivi est de ${money(s.ca)}. Le montant encaissé est de ${money(s.encaisse)}.${relance}` };
   }
-  if (hasIntent(command, 'paid')) return { moduleKey: 'finances', answer: `Tu as ${money(s.encaisse)} encaissés. Les créances restantes sont à ${money(s.creances)} et les dépenses enregistrées sont à ${money(s.depenses)}. Donc côté cash, le résultat estimé est de ${money(s.benefice)}.` };
-  if (hasIntent(command, 'margin')) {
-    const warning = s.coutDirect <= 0 ? ' Attention, les coûts directs semblent encore incomplets : la marge peut donc être trop optimiste.' : '';
-    return { moduleKey: 'finances', answer: `La marge directe suivie est de ${money(s.margeDirecte)}. Les coûts directs connus sont à ${money(s.coutDirect)} et le bénéfice cash estimé après dépenses enregistrées est de ${money(s.benefice)}.${warning}` };
-  }
-  if (hasIntent(command, 'global') || hasIntent(command, 'dashboard')) return { moduleKey: 'dashboard', answer: `Globalement, on a ${money(s.ca)} de CA, ${money(s.encaisse)} encaissés, ${money(s.creances)} à récupérer et ${money(s.margeDirecte)} de marge directe suivie. Ce que je surveillerais en premier : ${s.stockCritique} stock(s) critique(s), ${s.soinsRetard} soin(s) en retard, ${s.tachesOuvertes} tâche(s) ouverte(s) et ${s.alertesCritiques} alerte(s) critique(s).` };
-  if (hasIntent(command, 'bankable')) {
-    const score = [s.ca > 0, s.encaisse > 0, s.documents.length > 0, s.creances <= s.ca * 0.4, s.stockCritique === 0, s.margeDirecte >= 0].filter(Boolean).length;
-    const label = score >= 5 ? 'le dossier commence à être solide' : score >= 3 ? 'il y a une base, mais il faut la renforcer' : 'le dossier est encore fragile';
-    return { moduleKey: 'impact_business', answer: `Pour la bancabilité, ${label}. Les points qui aident : CA ${money(s.ca)}, encaissements ${money(s.encaisse)}, ${s.documents.length} document(s), créances ${money(s.creances)} et marge directe ${money(s.margeDirecte)}. Ce que je renforcerais : preuves, régularité des encaissements, baisse des créances et coûts mieux justifiés.` };
-  }
-  if (hasIntent(command, 'priority')) {
-    const actions = [];
-    if (s.creances > 0) actions.push(`relancer ${money(s.creances)} de créances`);
-    if (s.stockCritique > 0) actions.push(`corriger ${s.stockCritique} stock(s) critique(s)`);
-    if (s.soinsRetard > 0) actions.push(`traiter ${s.soinsRetard} soin(s) en retard`);
-    if (s.tachesOuvertes > 0) actions.push(`fermer ou planifier ${s.tachesOuvertes} tâche(s)`);
-    if (!actions.length) actions.push('continuer le suivi, mettre à jour les ventes et compléter les coûts manquants');
-    return { moduleKey: 'dashboard', answer: `Je commencerais par ça : ${actions.join(', ')}. L’objectif est simple : protéger le cash, éviter les ruptures et fiabiliser la marge.` };
-  }
-  if (hasIntent(command, 'stock')) {
-    const value = s.stocks.reduce((sum, row) => sum + num(row.valeur_stock ?? row.stock_value ?? row.cout_total ?? row.total_value), 0);
-    return { moduleKey: 'stock', answer: `Côté stock, je vois ${s.stockCritique} produit(s) critique(s). La valeur stock renseignée est de ${money(value)}. Je compléterais les unités/prix manquants puis je lancerais les réapprovisionnements sous seuil.` };
-  }
-  if (hasIntent(command, 'clients')) return { moduleKey: 'clients', answer: `Tu as ${s.clients.length} client(s) suivis. Le point sensible, c’est ${money(s.creances)} à relancer. Je prioriserais les clients avec reste à payer et bon historique d’achat.` };
-  if (hasIntent(command, 'sales')) return { moduleKey: 'ventes', answer: `Côté ventes, on a ${s.orders.length} commande(s), ${s.invoices.length} facture(s) et ${s.deliveries.length} livraison(s). Le CA suivi est de ${money(s.ca)} et les créances sont à ${money(s.creances)}. Le plus utile est de vérifier les commandes non payées ou non livrées.` };
-  if (hasIntent(command, 'avicole')) return { moduleKey: 'avicole', answer: `Pour l’avicole, je vois ${s.avicole.length} lot(s) suivis, dont ${s.lotsClos} clôturé(s) ou sorti(s). Il faut garder deux lectures séparées : chair pour poids, mortalité, abattage et ventes ; ponte pour œufs, casse, taux de ponte et coût par œuf.` };
-  if (hasIntent(command, 'health')) return { moduleKey: 'sante', answer: `Côté santé, ${s.sante.length} action(s) sont suivies, dont ${s.soinsRetard} en retard. Je traiterais d’abord les retards, puis je sécuriserais les produits santé et les preuves.` };
-  if (hasIntent(command, 'cultures')) return { moduleKey: 'cultures', answer: `Côté cultures, ${s.cultures.length} campagne(s) ou parcelle(s) sont suivies. Les points clés sont les coûts, les intrants, les récoltes, les pertes et les débouchés.` };
-  if (hasIntent(command, 'suppliers')) return { moduleKey: 'fournisseurs', answer: `Tu as ${s.fournisseurs.length} fournisseur(s) suivis. Je regarderais surtout la fiabilité, les prix, le transport, les délais et le lien avec les stocks achetés.` };
-  if (hasIntent(command, 'documents')) return { moduleKey: 'documents', answer: `Il y a ${s.documents.length} document(s) suivis. Plus tu rattaches les preuves aux ventes, dépenses, santé et investissements, plus ton dossier devient solide et défendable.` };
-  if (hasIntent(command, 'tasks')) return { moduleKey: 'taches', answer: `Tu as ${s.taches.length} tâche(s), dont ${s.tachesOuvertes} encore ouvertes. Je transformerais les alertes importantes en tâches claires, puis je fermerais les tâches sensibles une par une.` };
-  if (hasIntent(command, 'equipment')) return { moduleKey: 'equipements', answer: 'J’ouvre Équipements. Tu peux suivre le matériel, les pannes, les maintenances, les dépenses associées, les documents et les tâches terrain.' };
-  if (hasIntent(command, 'smartfarm')) return { moduleKey: 'smartfarm', answer: 'J’ouvre Smart Farm. Tu peux suivre capteurs, caméras, météo terrain, sécurité, alertes et tâches de maintenance.' };
-  if (hasIntent(command, 'hr')) return { moduleKey: 'rh', answer: 'J’ouvre RH & Équipe. Tu peux suivre l’équipe, les responsabilités, les coûts RH et les actions liées.' };
-  if (hasIntent(command, 'reports')) return { moduleKey: 'rapports', answer: 'J’ouvre Rapports. Tu peux générer ou consulter des bilans, exports, documents de suivi et synthèses ERP.' };
+  if (hasIntent(command, 'paid')) return { moduleKey: 'finances', answer: `Tu as ${money(s.encaisse)} encaissés. Les créances restantes sont à ${money(s.creances)} et les dépenses enregistrées sont à ${money(s.depenses)}.` };
+  if (hasIntent(command, 'margin')) return { moduleKey: 'finances', answer: `La marge directe suivie est de ${money(s.margeDirecte)}. Les coûts directs connus sont à ${money(s.coutDirect)} et le résultat cash estimé est de ${money(s.benefice)}.` };
+  if (hasIntent(command, 'global') || hasIntent(command, 'dashboard')) return { moduleKey: 'dashboard', answer: `Situation globale : CA ${money(s.ca)}, encaissé ${money(s.encaisse)}, créances ${money(s.creances)}, marge directe ${money(s.margeDirecte)}. Points à surveiller : ${s.stockCritique} stock(s) critique(s), ${s.soinsRetard} soin(s) en retard, ${s.tachesOuvertes} tâche(s) ouverte(s).` };
+  if (hasIntent(command, 'bankable')) return { moduleKey: 'impact_business', answer: `Pour la bancabilité : CA ${money(s.ca)}, encaissements ${money(s.encaisse)}, documents ${s.documents.length}, créances ${money(s.creances)}, marge ${money(s.margeDirecte)}. Il faut renforcer les preuves, les encaissements et la traçabilité.` };
+  if (hasIntent(command, 'priority')) return { moduleKey: 'dashboard', answer: `Priorité : protéger le cash, éviter les ruptures et traiter les alertes. Je surveille surtout ${money(s.creances)} de créances, ${s.stockCritique} stock(s) critique(s), ${s.soinsRetard} soin(s) en retard.` };
+
+  if (hasIntent(command, 'stock')) return { moduleKey: 'stock', answer: `J’ouvre Stock. Je vois ${s.stockCritique} produit(s) critique(s).` };
+  if (hasIntent(command, 'clients')) return { moduleKey: 'clients', answer: `J’ouvre Clients. Tu as ${s.clients.length} client(s) suivis et ${money(s.creances)} à relancer.` };
+  if (hasIntent(command, 'sales')) return { moduleKey: 'ventes', answer: `J’ouvre Ventes. Tu as ${s.orders.length} commande(s), un CA de ${money(s.ca)} et ${money(s.creances)} de créances.` };
+  if (hasIntent(command, 'avicole')) return { moduleKey: 'avicole', answer: `J’ouvre Avicole. Tu as ${s.avicole.length} lot(s) suivis.` };
+  if (hasIntent(command, 'health')) return { moduleKey: 'sante', answer: `J’ouvre Santé. ${s.soinsRetard} soin(s) ou vaccin(s) semblent en retard.` };
+  if (hasIntent(command, 'cultures')) return { moduleKey: 'cultures', answer: `J’ouvre Cultures. Tu as ${s.cultures.length} culture(s) ou campagne(s) suivie(s).` };
+  if (hasIntent(command, 'suppliers')) return { moduleKey: 'fournisseurs', answer: `J’ouvre Fournisseurs. Tu as ${s.fournisseurs.length} fournisseur(s) suivis.` };
+  if (hasIntent(command, 'documents')) return { moduleKey: 'documents', answer: `J’ouvre Documents. Tu as ${s.documents.length} document(s) suivis.` };
+  if (hasIntent(command, 'tasks')) return { moduleKey: 'taches', answer: `J’ouvre Tâches. Tu as ${s.tachesOuvertes} tâche(s) ouverte(s).` };
+  if (hasIntent(command, 'equipment')) return { moduleKey: 'equipements', answer: 'J’ouvre Équipements.' };
+  if (hasIntent(command, 'smartfarm')) return { moduleKey: 'smartfarm', answer: 'J’ouvre Smart Farm.' };
+  if (hasIntent(command, 'hr')) return { moduleKey: 'rh', answer: 'J’ouvre RH & Équipe.' };
+  if (hasIntent(command, 'reports')) return { moduleKey: 'rapports', answer: 'J’ouvre Rapports.' };
 
   return unknownAnswer(rawCommand);
 };
