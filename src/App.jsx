@@ -36,6 +36,7 @@ const MODULES = {
   dashboard: lazy(() => import('./modules/DashboardV2')),
   assistant_erp: lazy(() => import('./modules/AssistantERPV2')),
   centre_ia: lazy(() => import('./modules/CentreIA')),
+  objectifs_croissance: lazy(() => import('./modules/ObjectifsCroissance')),
   animaux: lazy(() => import('./modules/AnimauxV2')),
   avicole: lazy(() => import('./modules/AvicoleV10')),
   sante: lazy(() => import('./modules/SanteV7')),
@@ -192,15 +193,47 @@ export default function App() {
     ]);
   };
 
+  const decisionDataMap = {
+    animaux: animauxCrud.rows,
+    avicole: avicoleCrud.rows,
+    lots: avicoleCrud.rows,
+    cultures: culturesCrud.rows,
+    stock: stockCrud.rows,
+    stocks: stockCrud.rows,
+    clients: clientsCrud.rows,
+    fournisseurs: fournisseursCrud.rows,
+    investissements: investissementsCrud.rows,
+    business_plans: businessPlansCrud.rows,
+    sales_orders: salesOrdersCrud.rows,
+    salesOrders: salesOrdersCrud.rows,
+    payments: paymentsCrud.rows,
+    finances: financesCrud.rows,
+    transactions: financesCrud.rows,
+    production_oeufs_logs: productionOeufsLogsCrud.rows,
+    productionLogs: productionOeufsLogsCrud.rows,
+    alimentation_logs: alimentationLogsCrud.rows,
+    alimentationLogs: alimentationLogsCrud.rows,
+    market_prices: dataMap.market_prices || [],
+    market_calendar_events: dataMap.market_calendar_events || [],
+    smartfarm_events: dataMap.smartfarm_events || [],
+    meteo: liveMeteo,
+  };
+
   const navItems = useMemo(
     () => [
       { id: 'dashboard', label: 'Accueil', icon: LayoutDashboard },
       { id: 'assistant_erp', label: 'Assistant ERP', icon: Radio },
       {
         id: 'centre_ia',
-        label: 'Centre IA',
+        label: 'Centre décisionnel',
         icon: TrendingUp,
-        hasAlert: stocksCritiques > 0 || lotsAlerte > 0 || financesAlerte > 0,
+        hasAlert: stocksCritiques > 0 || lotsAlerte > 0 || financesAlerte > 0 || culturesRisque > 0,
+      },
+      {
+        id: 'objectifs_croissance',
+        label: 'Objectifs & Croissance',
+        icon: TrendingUp,
+        hasAlert: financesAlerte > 0 || lotsAlerte > 0 || culturesRisque > 0,
       },
       { id: 'animaux', label: 'Animaux', icon: Beef },
       { id: 'avicole', label: 'Avicole', icon: Bird },
@@ -327,6 +360,11 @@ export default function App() {
       sensors: sensorDevicesCrud.rows,
       cameras: cameraDevicesCrud.rows,
       meteo: liveMeteo,
+      dataMap: decisionDataMap,
+      onNavigate: setActive,
+    },
+    objectifs_croissance: {
+      dataMap: decisionDataMap,
       onNavigate: setActive,
     },
     animaux: {
