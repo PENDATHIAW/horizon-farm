@@ -1,3 +1,5 @@
+import { buildFarmSupplyCoverage, buildMonthlyDemandForecast, findDemandCoverageForActivity } from './farmDemandCoverageEngine';
+
 const arr = (value) => (Array.isArray(value) ? value : []);
 const num = (value = 0) => Number(value || 0);
 const normalize = (value = '') => String(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s_-]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -89,9 +91,7 @@ export function buildMarketEvents(referenceDate = new Date(), dataMap = {}) {
   const defaults = [year, year + 1, year + 2].flatMap(defaultEventsForYear).map((event) => ({ ...event, source: 'default' }));
   const minDate = addDays(referenceDate, -15);
   const maxDate = addDays(referenceDate, 540);
-  return [...customEvents, ...defaults]
-    .filter((event) => event.date >= minDate && event.date <= maxDate)
-    .sort((a, b) => a.date - b.date);
+  return [...customEvents, ...defaults].filter((event) => event.date >= minDate && event.date <= maxDate).sort((a, b) => a.date - b.date);
 }
 
 function buildTimingWindow({ activity, event, leadTime, referenceDate }) {
@@ -114,40 +114,14 @@ function buildTimingWindow({ activity, event, leadTime, referenceDate }) {
     status = 'prepare_now';
     label = 'À préparer maintenant';
   }
-
-  const fallbackByActivity = {
-    poulets_chair: 'Pour la fenêtre ratée, vendre uniquement stock existant ou précommandes déjà sécurisées. Replanifier le prochain cycle sur la prochaine fenêtre viable.',
-    ovins: 'Pour cette fenêtre, ne pas acheter tardivement. Préparer la prochaine fenêtre avec 90 jours minimum, précommandes et capacité alimentaire.',
-    bovins: 'Pour cette fenêtre, arbitrer uniquement les animaux déjà disponibles. Préparer la prochaine fenêtre avec cash, poids cible et précommandes.',
-    caprins: 'Pour cette fenêtre, éviter l’achat tardif. Préparer la prochaine fenêtre avec clients, alimentation et marge estimée.',
-    oeufs: 'Optimiser la ponte existante pour la fenêtre proche. Nouvelle capacité seulement pour une fenêtre plus lointaine.',
-    cultures: 'Ne pas lancer pour une récolte trop proche. Choisir une culture/cycle compatible avec la prochaine fenêtre.',
-  };
-
-  return {
-    activity,
-    eventId: event.id,
-    eventLabel: event.label,
-    eventNote: event.note || '',
-    targetDate: iso(targetDate),
-    earliestStart: iso(earliestStart),
-    latestStart: iso(latestStart),
-    leadTime,
-    remainingDays,
-    daysBeforeDeadline,
-    status,
-    statusLabel: label,
-    shouldRecommendInvestment,
-    tooLateReason: shouldRecommendInvestment ? '' : `La fenêtre ${event.label} est trop proche : ${remainingDays} jour(s) restants pour ${leadTime} jour(s) nécessaires.`,
-    fallback: fallbackByActivity[activity] || 'Chercher une alternative court terme ou viser la prochaine fenêtre.',
-  };
+  return { activity, eventId: event.id, eventLabel: event.label, eventNote: event.note || '', targetDate: iso(targetDate), earliestStart: iso(earliestStart), latestStart: iso(latestStart), leadTime, remainingDays, daysBeforeDeadline, status, statusLabel: label, shouldRecommendInvestment, tooLateReason: shouldRecommendInvestment ? '' : `La fenêtre ${event.label} est trop proche : ${remainingDays} jour(s) restants pour ${leadTime} jour(s) nécessaires.` };
 }
 
 function selectRollingWindow(activity, events, leadTime, referenceDate) {
   const activityEvents = events.filter((event) => arr(event.activities).includes(activity));
   const windows = activityEvents.map((event) => buildTimingWindow({ activity, event, leadTime, referenceDate }));
-  const missed = windows.find((window) => window.status === 'too_late');
   const viable = windows.find((window) => window.status !== 'too_late');
+  const missed = windows.find((window) => window.status === 'too_late');
   return viable || missed || null;
 }
 
@@ -156,19 +130,8 @@ export function estimateLeadTimes(dataMap = {}) {
   const lots = arr(dataMap.avicole || dataMap.lots);
   const animaux = arr(dataMap.animaux);
   const cultures = arr(dataMap.cultures);
-  const speciesDays = (species) => animaux
-    .filter((a) => normalize(`${a.type || ''} ${a.espece || ''} ${a.categorie || ''}`).includes(species))
-    .map((a) => num(a.days_to_sale || a.duree_garde_jours || a.age_vente_jours || a.delai_cible_vente_jours))
-    .filter((v) => v > 0);
-  return {
-    oeufs: avg(lots.map((l) => num(l.days_to_lay || l.age_debut_ponte_jours || l.delai_ponte_jours)).filter((v) => v > 0), 150),
-    poulets_chair: avg(lots.map((l) => num(l.cycle_days || l.duree_cycle || l.age_vente_jours)).filter((v) => v > 0 && v < 120), 42),
-    animaux: avg(animaux.map((a) => num(a.days_to_sale || a.duree_garde_jours || a.age_vente_jours || a.delai_cible_vente_jours)).filter((v) => v > 0), 90),
-    bovins: avg(speciesDays('bovin'), 90),
-    ovins: avg(speciesDays('ovin'), 90),
-    caprins: avg(speciesDays('caprin'), 90),
-    cultures: avg(cultures.map((c) => num(c.cycle_days || c.duree_cycle || c.jours_avant_recolte)).filter((v) => v > 0), 90),
-  };
+  const speciesDays = (species) => animaux.filter((a) => normalize(`${a.type || ''} ${a.espece || ''} ${a.categorie || ''}`).includes(species)).map((a) => num(a.days_to_sale || a.duree_garde_jours || a.age_vente_jours || a.delai_cible_vente_jours)).filter((v) => v > 0);
+  return { oeufs: avg(lots.map((l) => num(l.days_to_lay || l.age_debut_ponte_jours || l.delai_ponte_jours)).filter((v) => v > 0), 150), poulets_chair: avg(lots.map((l) => num(l.cycle_days || l.duree_cycle || l.age_vente_jours)).filter((v) => v > 0 && v < 120), 42), animaux: avg(animaux.map((a) => num(a.days_to_sale || a.duree_garde_jours || a.age_vente_jours || a.delai_cible_vente_jours)).filter((v) => v > 0), 90), bovins: avg(speciesDays('bovin'), 90), ovins: avg(speciesDays('ovin'), 90), caprins: avg(speciesDays('caprin'), 90), cultures: avg(cultures.map((c) => num(c.cycle_days || c.duree_cycle || c.jours_avant_recolte)).filter((v) => v > 0), 90) };
 }
 
 export function buildProductionCapacity(dataMap = {}) {
@@ -208,28 +171,37 @@ export function buildGoalPerformance(dataMap = {}, options = {}) {
   const animalGlobal = { activity: 'animaux', label: activityLabels.animaux, target: activities.bovins.target + activities.ovins.target + activities.caprins.target, realized: activities.bovins.realized + activities.ovins.realized + activities.caprins.realized };
   animalGlobal.attainment = animalGlobal.target ? Math.round((animalGlobal.realized / animalGlobal.target) * 100) : 0;
   animalGlobal.remaining = Math.max(0, animalGlobal.target - animalGlobal.realized);
-
   const realized = Object.values(activities).reduce((sum, row) => sum + row.realized, 0);
   const encaisse = Math.max(payments.reduce((sum, row) => sum + paid(row), 0), finances.filter((f) => normalize(f.type).includes('entree')).reduce((sum, row) => sum + amount(row), 0));
   const depenses = finances.filter((f) => normalize(f.type).includes('sortie')).reduce((sum, row) => sum + amount(row), 0);
-  return {
-    global: { activity: 'global', label: activityLabels.global, annualTarget, monthTarget, weekTarget: monthTarget / 4.33, realized, encaisse, depenses, marge: realized - depenses, attainment: monthTarget ? Math.round((realized / monthTarget) * 100) : 0, remaining: Math.max(0, monthTarget - realized), cashRate: realized ? Math.round((encaisse / realized) * 100) : 0 },
-    activities: [...Object.values(activities), animalGlobal].map((row) => ({ ...row, attainment: row.target ? Math.round((row.realized / row.target) * 100) : 0, remaining: Math.max(0, row.target - row.realized) })).sort((a, b) => b.realized - a.realized),
-    currentMonth,
-  };
+  return { global: { activity: 'global', label: activityLabels.global, annualTarget, monthTarget, weekTarget: monthTarget / 4.33, realized, encaisse, depenses, marge: realized - depenses, attainment: monthTarget ? Math.round((realized / monthTarget) * 100) : 0, remaining: Math.max(0, monthTarget - realized), cashRate: realized ? Math.round((encaisse / realized) * 100) : 0 }, activities: [...Object.values(activities), animalGlobal].map((row) => ({ ...row, attainment: row.target ? Math.round((row.realized / row.target) * 100) : 0, remaining: Math.max(0, row.target - row.realized) })).sort((a, b) => b.realized - a.realized), currentMonth };
 }
 
-function buildRecommendation({ activity, title, priority, recommendation, timingWindow, capacity }) {
+function buildCoverageDecision(activity, coverageRow, timingWindow) {
+  if (!coverageRow) return { action: 'Données demande/capacité insuffisantes.', priorityModifier: 0 };
+  if (coverageRow.coverageStatus === 'couvert') return { action: `Demande ${coverageRow.demandLevel} mais capacité couverte à ${coverageRow.coverageRate}%. Priorité : vendre, sécuriser clients et éviter surinvestissement.`, priorityModifier: -1 };
+  if (!timingWindow?.shouldRecommendInvestment) return { action: `${timingWindow.tooLateReason} Capacité actuelle couvre ${coverageRow.coverageRate}% seulement, mais il faut viser la prochaine fenêtre viable.`, priorityModifier: 0 };
+  if (coverageRow.demandLevel === 'forte' && coverageRow.coverageStatus === 'insuffisant') return { action: `Demande forte et capacité insuffisante : écart ${coverageRow.gapUnits} unité(s), environ ${coverageRow.gapRevenue.toLocaleString('fr-FR')} FCFA à couvrir. Investissement ou précommandes à étudier.`, priorityModifier: 1 };
+  if (coverageRow.coverageStatus === 'partiel') return { action: `Capacité partielle (${coverageRow.coverageRate}%). Compléter par précommandes, stock existant ou investissement limité.`, priorityModifier: 0 };
+  return { action: `Capacité insuffisante (${coverageRow.coverageRate}%). Écart estimé ${coverageRow.gapUnits} unité(s).`, priorityModifier: 0 };
+}
+
+function priorityWithCoverage(base, modifier) {
+  const order = ['basse', 'moyenne', 'haute'];
+  const idx = Math.max(0, Math.min(order.length - 1, order.indexOf(base) + modifier));
+  return order[idx] || base;
+}
+
+function buildRecommendation({ activity, title, priority, recommendation, timingWindow, coverageRow, capacity }) {
   if (!timingWindow) return null;
+  const coverageDecision = buildCoverageDecision(activity, coverageRow, timingWindow);
   const timing = `${timingWindow.statusLabel} · cible ${timingWindow.eventLabel} (${timingWindow.targetDate}) · mise en place ${timingWindow.earliestStart} → ${timingWindow.latestStart}`;
-  const finalRecommendation = timingWindow.shouldRecommendInvestment
-    ? recommendation
-    : `${timingWindow.tooLateReason} ${timingWindow.fallback}`;
+  const finalRecommendation = `${recommendation} ${coverageDecision.action}`;
   return {
     id: `${activity}-${timingWindow.eventId}`,
     title,
     activity,
-    priority: timingWindow.shouldRecommendInvestment ? priority : 'basse',
+    priority: priorityWithCoverage(timingWindow.shouldRecommendInvestment ? priority : 'basse', coverageDecision.priorityModifier),
     timing,
     recommendation: finalRecommendation,
     event_label: timingWindow.eventLabel,
@@ -240,7 +212,17 @@ function buildRecommendation({ activity, title, priority, recommendation, timing
     lead_time_days: timingWindow.leadTime,
     timing_status: timingWindow.status,
     timing_status_label: timingWindow.statusLabel,
-    should_recommend_investment: timingWindow.shouldRecommendInvestment,
+    should_recommend_investment: timingWindow.shouldRecommendInvestment && coverageRow?.coverageStatus !== 'couvert',
+    demand_level: coverageRow?.demandLevel || 'inconnue',
+    demand_index: coverageRow?.demandIndex || 0,
+    demand_units: coverageRow?.estimatedUnits || 0,
+    demand_revenue: coverageRow?.revenueTarget || 0,
+    available_units: coverageRow?.availableUnits || 0,
+    available_revenue: coverageRow?.availableRevenue || 0,
+    coverage_rate: coverageRow?.coverageRate || 0,
+    coverage_status: coverageRow?.coverageStatus || 'inconnu',
+    gap_units: coverageRow?.gapUnits || 0,
+    gap_revenue: coverageRow?.gapRevenue || 0,
     capacity,
   };
 }
@@ -252,50 +234,23 @@ export function buildDecisionCenterPlan(dataMap = {}, options = {}) {
   const capacity = buildProductionCapacity(dataMap);
   const goals = buildGoalPerformance(dataMap, options);
   const events = buildMarketEvents(referenceDate, dataMap);
+  const demandForecast = buildMonthlyDemandForecast(dataMap, events, { date: referenceDate, annualTarget: goals.global.annualTarget, months: 12 });
+  const coverage = buildFarmSupplyCoverage(dataMap, demandForecast);
   const recommendations = [];
 
   const addForActivity = (activity, config) => {
     const timingWindow = selectRollingWindow(activity, events, leadTimes[activity], referenceDate);
-    const recommendation = buildRecommendation({ activity, timingWindow, ...config });
+    const coverageRow = findDemandCoverageForActivity(coverage, activity, timingWindow?.targetDate);
+    const recommendation = buildRecommendation({ activity, timingWindow, coverageRow, ...config });
     if (recommendation) recommendations.push(recommendation);
   };
 
-  addForActivity('oeufs', {
-    title: capacity.tabletsDay ? 'Comparer demande œufs et capacité pondeuses' : 'Construire capacité pondeuses',
-    priority: capacity.layingRate < 68 ? 'haute' : 'moyenne',
-    recommendation: capacity.layingRate < 68 ? 'Optimiser alimentation, santé et taux de ponte avant achat massif.' : 'Préparer un business plan d’extension seulement si la demande dépasse durablement la capacité.',
-    capacity,
-  });
+  addForActivity('oeufs', { title: capacity.tabletsDay ? 'Comparer demande œufs et capacité pondeuses' : 'Construire capacité pondeuses', priority: capacity.layingRate < 68 ? 'haute' : 'moyenne', recommendation: capacity.layingRate < 68 ? 'Optimiser alimentation, santé et taux de ponte avant achat massif.' : 'Préparer un business plan d’extension seulement si la demande dépasse durablement la capacité.', capacity });
+  addForActivity('poulets_chair', { title: 'Poulets de chair pour cycle court', priority: goals.global.attainment < 80 ? 'haute' : 'moyenne', recommendation: 'Dimensionner selon cash, bâtiment, aliment, mortalité et clients précommandés.' });
+  ['bovins', 'ovins', 'caprins'].forEach((activity) => addForActivity(activity, { title: `${activityLabels[activity]} : investissement selon fenêtre commerciale`, priority: 'moyenne', recommendation: 'Ne pas immobiliser du cash sans précommandes, marge estimée, objectif de poids et capacité alimentaire.' }));
+  addForActivity('cultures', { title: 'Cultures adaptées à Thiès/Médina Fall', priority: 'moyenne', recommendation: 'Valider sol, eau, intrants, cycle et débouchés avant tomate, poivron, pomme de terre ou autre culture.' });
 
-  addForActivity('poulets_chair', {
-    title: 'Poulets de chair pour cycle court',
-    priority: goals.global.attainment < 80 ? 'haute' : 'moyenne',
-    recommendation: 'Dimensionner selon cash, bâtiment, aliment, mortalité et clients précommandés.',
-  });
-
-  ['bovins', 'ovins', 'caprins'].forEach((activity) => addForActivity(activity, {
-    title: `${activityLabels[activity]} : investissement selon fenêtre commerciale`,
-    priority: 'moyenne',
-    recommendation: 'Ne pas immobiliser du cash sans précommandes, marge estimée, objectif de poids et capacité alimentaire.',
-  }));
-
-  addForActivity('cultures', {
-    title: 'Cultures adaptées à Thiès/Médina Fall',
-    priority: 'moyenne',
-    recommendation: 'Valider sol, eau, intrants, cycle et débouchés avant tomate, poivron, pomme de terre ou autre culture.',
-  });
-
-  return {
-    calendar,
-    events,
-    leadTimes,
-    capacity,
-    goals,
-    recommendations,
-    top_activity: goals.activities[0],
-    late_activities: goals.activities.filter((a) => a.attainment < 70),
-    executive_summary: goals.global.attainment >= 100 ? 'Objectif mensuel en avance : sécuriser cash et préparer croissance.' : `Objectif mensuel à ${goals.global.attainment}% : rattrapage et investissements pilotés nécessaires.`,
-  };
+  return { calendar, events, demandForecast, coverage, leadTimes, capacity, goals, recommendations, top_activity: goals.activities[0], late_activities: goals.activities.filter((a) => a.attainment < 70), executive_summary: goals.global.attainment >= 100 ? 'Objectif mensuel en avance : sécuriser cash et préparer croissance.' : `Objectif mensuel à ${goals.global.attainment}% : rattrapage et investissements pilotés nécessaires.` };
 }
 
 export default buildDecisionCenterPlan;
