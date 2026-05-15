@@ -9,19 +9,31 @@ export const activityLabels = {
   global: 'Global ferme',
   oeufs: 'Œufs / Pondeuses',
   poulets_chair: 'Poulets de chair',
-  animaux: 'Bovins / Ovins / Caprins',
+  animaux: 'Animaux global',
+  bovins: 'Bovins',
+  ovins: 'Ovins',
+  caprins: 'Caprins',
   cultures: 'Cultures',
   stock: 'Stock / Produits',
 };
 
 export const monthlyWeights = [0.07, 0.07, 0.08, 0.08, 0.08, 0.09, 0.08, 0.08, 0.08, 0.08, 0.1, 0.11];
-export const defaultAnnualMix = { oeufs: 0.32, poulets_chair: 0.22, animaux: 0.26, cultures: 0.15, stock: 0.05 };
+export const defaultAnnualMix = { oeufs: 0.32, poulets_chair: 0.22, bovins: 0.12, ovins: 0.09, caprins: 0.05, cultures: 0.15, stock: 0.05 };
+
+function classifyAnimalSpeciesFromText(raw = '') {
+  if (raw.includes('bovin') || raw.includes('boeuf') || raw.includes('vache') || raw.includes('taureau') || raw.includes('veau')) return 'bovins';
+  if (raw.includes('ovin') || raw.includes('mouton') || raw.includes('belier') || raw.includes('brebis')) return 'ovins';
+  if (raw.includes('caprin') || raw.includes('chevre') || raw.includes('bouc')) return 'caprins';
+  return '';
+}
 
 export function classifySaleActivity(order = {}) {
-  const raw = normalize(`${order.activite || ''} ${order.source_type || ''} ${order.type_vente || ''} ${order.product_type || ''} ${order.product_name || ''} ${order.libelle || ''}`);
+  const raw = normalize(`${order.activite || ''} ${order.source_type || ''} ${order.type_vente || ''} ${order.product_type || ''} ${order.product_name || ''} ${order.libelle || ''} ${order.espece || ''} ${order.type_animal || ''}`);
   if (raw.includes('oeuf') || raw.includes('tablette') || raw.includes('pondeuse')) return 'oeufs';
   if (raw.includes('chair') || raw.includes('poulet')) return 'poulets_chair';
-  if (raw.includes('bovin') || raw.includes('ovin') || raw.includes('caprin') || raw.includes('animal') || raw.includes('mouton') || raw.includes('chevre')) return 'animaux';
+  const species = classifyAnimalSpeciesFromText(raw);
+  if (species) return species;
+  if (raw.includes('animal')) return 'animaux';
   if (raw.includes('culture') || raw.includes('tomate') || raw.includes('pomme') || raw.includes('poivron') || raw.includes('recolte')) return 'cultures';
   if (raw.includes('stock') || raw.includes('produit')) return 'stock';
   return 'stock';
@@ -34,14 +46,14 @@ export function buildCommercialCalendar(date = new Date()) {
     { month: 2, label: 'Février', focus: ['oeufs', 'poulets_chair'], note: 'Préparer périodes alimentaires fortes selon calendrier annuel.' },
     { month: 3, label: 'Mars', focus: ['oeufs', 'poulets_chair'], note: 'Demande alimentaire possible, surveiller cash et créances.' },
     { month: 4, label: 'Avril', focus: ['oeufs', 'cultures'], note: 'Relance et préparation investissements longs.' },
-    { month: 5, label: 'Mai', focus: ['cultures', 'animaux'], note: 'Préparer cultures, animaux et besoins en eau/intrants.' },
-    { month: 6, label: 'Juin', focus: ['animaux'], note: 'Fenêtre possible forte sur animaux selon calendrier.' },
+    { month: 5, label: 'Mai', focus: ['cultures', 'bovins', 'ovins', 'caprins'], note: 'Préparer cultures, animaux et besoins en eau/intrants.' },
+    { month: 6, label: 'Juin', focus: ['bovins', 'ovins', 'caprins'], note: 'Fenêtre possible forte sur animaux selon calendrier.' },
     { month: 7, label: 'Juillet', focus: ['cultures', 'oeufs'], note: 'Suivi cultures, santé et alimentation.' },
     { month: 8, label: 'Août', focus: ['cultures'], note: 'Suivi cultures, stockage, préparation ventes futures.' },
     { month: 9, label: 'Septembre', focus: ['oeufs', 'poulets_chair'], note: 'Reprise commerce, préparation fin d’année.' },
     { month: 10, label: 'Octobre', focus: ['poulets_chair', 'oeufs'], note: 'Précommandes et mise en place cycles courts.' },
     { month: 11, label: 'Novembre', focus: ['poulets_chair', 'oeufs'], note: 'Préparer fin d’année, sécuriser clients cash.' },
-    { month: 12, label: 'Décembre', focus: ['poulets_chair', 'oeufs', 'animaux'], note: 'Fin d’année, commandes groupées, forte attention livraison.' },
+    { month: 12, label: 'Décembre', focus: ['poulets_chair', 'oeufs', 'bovins', 'ovins', 'caprins'], note: 'Fin d’année, commandes groupées, forte attention livraison.' },
   ];
   return { current: rows.find((row) => row.month === month), next: [1, 2, 3, 4, 5, 6].map((offset) => rows[(month - 1 + offset) % 12]), year: rows };
 }
@@ -51,10 +63,17 @@ export function estimateLeadTimes(dataMap = {}) {
   const lots = arr(dataMap.avicole || dataMap.lots);
   const animaux = arr(dataMap.animaux);
   const cultures = arr(dataMap.cultures);
+  const speciesDays = (species) => animaux
+    .filter((a) => normalize(`${a.type || ''} ${a.espece || ''} ${a.categorie || ''}`).includes(species))
+    .map((a) => num(a.days_to_sale || a.duree_garde_jours || a.age_vente_jours || a.delai_cible_vente_jours))
+    .filter((v) => v > 0);
   return {
     oeufs: avg(lots.map((l) => num(l.days_to_lay || l.age_debut_ponte_jours || l.delai_ponte_jours)).filter((v) => v > 0), 150),
     poulets_chair: avg(lots.map((l) => num(l.cycle_days || l.duree_cycle || l.age_vente_jours)).filter((v) => v > 0 && v < 120), 42),
-    animaux: avg(animaux.map((a) => num(a.days_to_sale || a.duree_garde_jours || a.age_vente_jours)).filter((v) => v > 0), 90),
+    animaux: avg(animaux.map((a) => num(a.days_to_sale || a.duree_garde_jours || a.age_vente_jours || a.delai_cible_vente_jours)).filter((v) => v > 0), 90),
+    bovins: avg(speciesDays('bovin'), 90),
+    ovins: avg(speciesDays('ovin'), 90),
+    caprins: avg(speciesDays('caprin'), 90),
     cultures: avg(cultures.map((c) => num(c.cycle_days || c.duree_cycle || c.jours_avant_recolte)).filter((v) => v > 0), 90),
   };
 }
@@ -83,13 +102,31 @@ export function buildGoalPerformance(dataMap = {}, options = {}) {
   const payments = arr(dataMap.payments).filter((row) => monthOf(row) === currentMonth);
   const finances = arr(dataMap.finances || dataMap.transactions).filter((row) => monthOf(row) === currentMonth);
   const activities = Object.keys(defaultAnnualMix).reduce((acc, key) => ({ ...acc, [key]: { activity: key, label: activityLabels[key], target: monthTarget * defaultAnnualMix[key], realized: 0 } }), {});
-  sales.forEach((order) => { activities[classifySaleActivity(order)].realized += amount(order); });
+  sales.forEach((order) => {
+    const key = classifySaleActivity(order);
+    if (activities[key]) activities[key].realized += amount(order);
+    else if (key === 'animaux') {
+      const split = amount(order) / 3;
+      activities.bovins.realized += split;
+      activities.ovins.realized += split;
+      activities.caprins.realized += split;
+    }
+  });
+  const animalGlobal = {
+    activity: 'animaux',
+    label: activityLabels.animaux,
+    target: activities.bovins.target + activities.ovins.target + activities.caprins.target,
+    realized: activities.bovins.realized + activities.ovins.realized + activities.caprins.realized,
+  };
+  animalGlobal.attainment = animalGlobal.target ? Math.round((animalGlobal.realized / animalGlobal.target) * 100) : 0;
+  animalGlobal.remaining = Math.max(0, animalGlobal.target - animalGlobal.realized);
+
   const realized = Object.values(activities).reduce((sum, row) => sum + row.realized, 0);
   const encaisse = Math.max(payments.reduce((sum, row) => sum + paid(row), 0), finances.filter((f) => normalize(f.type).includes('entree')).reduce((sum, row) => sum + amount(row), 0));
   const depenses = finances.filter((f) => normalize(f.type).includes('sortie')).reduce((sum, row) => sum + amount(row), 0);
   return {
     global: { activity: 'global', label: activityLabels.global, annualTarget, monthTarget, weekTarget: monthTarget / 4.33, realized, encaisse, depenses, marge: realized - depenses, attainment: monthTarget ? Math.round((realized / monthTarget) * 100) : 0, remaining: Math.max(0, monthTarget - realized), cashRate: realized ? Math.round((encaisse / realized) * 100) : 0 },
-    activities: Object.values(activities).map((row) => ({ ...row, attainment: row.target ? Math.round((row.realized / row.target) * 100) : 0, remaining: Math.max(0, row.target - row.realized) })).sort((a, b) => b.realized - a.realized),
+    activities: [...Object.values(activities), animalGlobal].map((row) => ({ ...row, attainment: row.target ? Math.round((row.realized / row.target) * 100) : 0, remaining: Math.max(0, row.target - row.realized) })).sort((a, b) => b.realized - a.realized),
     currentMonth,
   };
 }
@@ -103,7 +140,9 @@ export function buildDecisionCenterPlan(dataMap = {}, options = {}) {
   const recommendations = [];
   if (futureFocus.has('oeufs')) recommendations.push({ id: 'pondeuses', title: capacity.tabletsDay ? 'Comparer demande œufs et capacité pondeuses' : 'Construire capacité pondeuses', activity: 'oeufs', priority: capacity.layingRate < 68 ? 'haute' : 'moyenne', timing: `${leadTimes.oeufs} jours avant période cible`, recommendation: capacity.layingRate < 68 ? 'Optimiser alimentation, santé et taux de ponte avant achat massif.' : 'Préparer un business plan d’extension seulement si la demande dépasse durablement la capacité.' });
   if (futureFocus.has('poulets_chair')) recommendations.push({ id: 'chair', title: 'Poulets de chair pour cycle court', activity: 'poulets_chair', priority: goals.global.attainment < 80 ? 'haute' : 'moyenne', timing: `${leadTimes.poulets_chair} jours avant vente cible`, recommendation: 'Dimensionner selon cash, bâtiment, aliment, mortalité et clients précommandés.' });
-  if (futureFocus.has('animaux')) recommendations.push({ id: 'ruminants', title: 'Bovins/ovins/caprins selon événement et cash', activity: 'animaux', priority: 'moyenne', timing: `${leadTimes.animaux} jours avant vente cible`, recommendation: 'Ne pas immobiliser du cash sans précommandes, marge estimée et capacité alimentaire.' });
+  ['bovins', 'ovins', 'caprins'].forEach((activity) => {
+    if (futureFocus.has(activity)) recommendations.push({ id: `ruminants-${activity}`, title: `${activityLabels[activity]} : investissement selon événement et cash`, activity, priority: 'moyenne', timing: `${leadTimes[activity]} jours avant vente cible`, recommendation: 'Ne pas immobiliser du cash sans précommandes, marge estimée, objectif de poids et capacité alimentaire.' });
+  });
   if (futureFocus.has('cultures')) recommendations.push({ id: 'cultures', title: 'Cultures adaptées à Thiès/Médina Fall', activity: 'cultures', priority: 'moyenne', timing: `${leadTimes.cultures} jours avant récolte cible`, recommendation: 'Valider sol, eau, intrants, cycle et débouchés avant tomate, poivron, pomme de terre ou autre culture.' });
   return { calendar, leadTimes, capacity, goals, recommendations, top_activity: goals.activities[0], late_activities: goals.activities.filter((a) => a.attainment < 70), executive_summary: goals.global.attainment >= 100 ? 'Objectif mensuel en avance : sécuriser cash et préparer croissance.' : `Objectif mensuel à ${goals.global.attainment}% : rattrapage et investissements pilotés nécessaires.` };
 }
