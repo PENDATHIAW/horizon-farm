@@ -124,7 +124,7 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate, onCreate
 }
 
 function Kpi({ icon: Icon, label, value, sub }) {
-  return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4"><Icon size={18} className="text-[#c9a96a] /><p className="text-xs text-[#8a7456] mt-3">{label}</p><p className="text-lg font-black text-[#2f2415] mt-1">{value}</p><p className="text-xs text-[#8a7456] mt-1">{sub}</p></div>;
+  return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4"><Icon size={18} className="text-[#c9a96a]" /><p className="text-xs text-[#8a7456] mt-3">{label}</p><p className="text-lg font-black text-[#2f2415] mt-1">{value}</p><p className="text-xs text-[#8a7456] mt-1">{sub}</p></div>;
 }
 
 function ScoreList({ icon: Icon, title, items, empty, onOpen, danger = false }) {
