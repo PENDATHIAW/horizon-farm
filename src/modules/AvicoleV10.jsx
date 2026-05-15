@@ -31,11 +31,21 @@ export default function AvicoleV10(props) {
 
   return (
     <div className="space-y-6 avicole-mobile-final">
-      <style>{`@media (max-width: 640px){.avicole-mobile-final .rounded-2xl{border-radius:18px}.avicole-mobile-final table{font-size:12px}.avicole-mobile-final th,.avicole-mobile-final td{padding-left:10px!important;padding-right:10px!important}.avicole-mobile-final .text-2xl{font-size:1.35rem}.avicole-mobile-final .grid{gap:.75rem}.avicole-mobile-final .overflow-x-auto{max-width:100vw}}`}</style>
+      <style>{`
+        .avicole-mobile-final .objective-card-grid { align-items: stretch; }
+        @media (max-width: 640px){
+          .avicole-mobile-final .rounded-2xl{border-radius:18px}
+          .avicole-mobile-final table{font-size:12px}
+          .avicole-mobile-final th,.avicole-mobile-final td{padding-left:10px!important;padding-right:10px!important}
+          .avicole-mobile-final .text-2xl{font-size:1.35rem}
+          .avicole-mobile-final .grid{gap:.75rem}
+          .avicole-mobile-final .overflow-x-auto{max-width:100vw}
+        }
+      `}</style>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <ObjectivePerformanceCard dataMap={dataMap} activity="oeufs" title="Objectif & Performance œufs" onNavigate={props.onNavigate} />
-        <ObjectivePerformanceCard dataMap={dataMap} activity="poulets_chair" title="Objectif & Performance chair" onNavigate={props.onNavigate} />
+      <div className="objective-card-grid grid grid-cols-1 2xl:grid-cols-2 gap-4">
+        <ObjectivePerformanceCard dataMap={dataMap} activity="oeufs" title="Objectif œufs / pondeuses" compact onNavigate={props.onNavigate} />
+        <ObjectivePerformanceCard dataMap={dataMap} activity="poulets_chair" title="Objectif poulets de chair" compact onNavigate={props.onNavigate} />
       </div>
 
       <ModuleSection
