@@ -11,6 +11,7 @@ import CreateModal from '../modals/CreateModal';
 import DeleteModal from '../modals/DeleteModal';
 import EditModal from '../modals/EditModal';
 import { MODULE_FORM_FIELDS } from '../utils/constants';
+import { addDays, addMonths, enrichAvicoleFieldsForDecision } from '../utils/decisionFormFields';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
@@ -48,7 +49,7 @@ const hasActiveBirds = avicoleHasActiveBirds;
 const statusFor = avicoleStatusFor;
 const entryWeight = (lot = {}) => toNumber(lot.poids_moyen_entree ?? lot.weight_entry);
 const latestWeight = (lot = {}) => toNumber(lot.poids_moyen_actuel ?? lot.last_weight_avg ?? lot.weight_avg ?? lot.average_weight);
-const targetWeight = (lot = {}) => toNumber(lot.poids_objectif_vente ?? lot.objectif_poids_moyen ?? lot.target_weight ?? DEFAULT_SALE_TARGET_WEIGHT) || DEFAULT_SALE_TARGET_WEIGHT;
+const targetWeight = (lot = {}) => toNumber(lot.poids_objectif_vente ?? lot.objectif_poids_moyen ?? lot.target_weight ?? lot.poids_objectif ?? DEFAULT_SALE_TARGET_WEIGHT) || DEFAULT_SALE_TARGET_WEIGHT;
 const purchaseTotalOf = (lot = {}) => toNumber(lot.cout_total_achat ?? lot.cout_achat_bande ?? lot.purchase_cost ?? lot.cout_poussins ?? lot.cout_achat);
 const purchaseUnitOf = (lot = {}) => toNumber(lot.prix_unitaire_sujet ?? lot.unit_cost ?? lot.cout_unitaire_poussin);
 
@@ -58,17 +59,12 @@ function ageDays(lot = {}) {
   return Math.max(0, Math.floor((Date.now() - new Date(start).getTime()) / 86400000));
 }
 
+function ageMonths(lot = {}) {
+  return Math.floor(ageDays(lot) / 30.44);
+}
+
 function exitReasonLabel(lot = {}) {
-  const map = {
-    vendu: 'Vendu',
-    vendu_partiellement: 'Vendu partiellement',
-    perdu_mortalite: 'Perdu · mortalité',
-    perdu_vol: 'Perdu · vol',
-    abattu: 'Abattu / transformé',
-    reforme: 'Réformé',
-    sorti_autre: 'Sorti autre',
-    sortie_non_renseignee: 'Sortie à renseigner',
-  };
+  const map = { vendu: 'Vendu', vendu_partiellement: 'Vendu partiellement', perdu_mortalite: 'Perdu · mortalité', perdu_vol: 'Perdu · vol', abattu: 'Abattu / transformé', reforme: 'Réformé', sorti_autre: 'Sorti autre', sortie_non_renseignee: 'Sortie à renseigner' };
   return map[avicoleExitReason(lot)] || map[statusFor(lot)] || statusFor(lot);
 }
 
@@ -76,8 +72,9 @@ function phaseFor(lot = {}) {
   if (!hasActiveBirds(lot)) return exitReasonLabel(lot);
   if (lot.phase && lot.phase !== 'Clôturé' && lot.phase !== 'Cloture') return lot.phase;
   const age = ageDays(lot);
-  if (lot.type === 'Chair') return age >= 30 ? 'Finition / vente possible' : 'Croissance';
-  if (age >= 540) return 'Fin de ponte / réforme';
+  if (lot.type === 'Chair') return age >= 35 && latestWeight(lot) >= targetWeight(lot) ? 'Finition / vente possible' : 'Croissance';
+  if (ageMonths(lot) >= 18) return 'Fin de ponte / réforme';
+  if (ageMonths(lot) >= 17) return 'Baisse ponte';
   if (age >= 150) return 'En ponte';
   return 'Croissance';
 }
@@ -89,10 +86,13 @@ function readinessLabel(lot = {}) {
   const weight = latestWeight(lot);
   const goal = targetWeight(lot);
   if (lot.type === 'Chair') {
-    if (weight >= goal) return 'Prêt recommandé';
-    if (age >= 30) return 'À surveiller poids';
+    if (age >= 35 && weight >= goal) return 'Vente recommandée';
+    if (weight >= goal) return 'Poids atteint';
+    if (age >= 35) return 'À surveiller poids';
     return 'Non prêt';
   }
+  if (ageMonths(lot) >= 18) return 'Réforme recommandée';
+  if (ageMonths(lot) >= 17) return 'Préparer réforme progressive';
   if (age >= 540 || ['a_reformer', 'pret_a_vendre_reforme'].includes(lot.status)) return 'Réforme possible';
   return 'Non prêt';
 }
@@ -123,13 +123,14 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
   const totalEffectif = lots.reduce((sum, lot) => sum + activeCount(lot), 0);
   const morts = lots.reduce((sum, lot) => sum + deadCount(lot), 0);
   const malades = lots.reduce((sum, lot) => sum + sickCount(lot), 0);
-  const prets = lots.filter((lot) => readinessLabel(lot).toLowerCase().includes('prêt') || readinessLabel(lot).toLowerCase().includes('réforme')).length;
+  const prets = lots.filter((lot) => readinessLabel(lot).toLowerCase().includes('vente') || readinessLabel(lot).toLowerCase().includes('réforme')).length;
+  const aReformer = lots.filter((lot) => lot.type === 'Pondeuse' && ageMonths(lot) >= 17).length;
   const coutAlim = lots.reduce((sum, lot) => sum + calculateLotMetrics({ lot, feedingLogs: alimentationLogs, productionLogs }).feedingCost, 0);
   const coutAchat = lots.reduce((sum, lot) => sum + purchaseTotalOf(lot), 0);
   const responsibleOptions = useMemo(() => getResponsibleOptions({ moduleKey: 'avicole' }), []);
 
   const avicoleFields = useMemo(() => {
-    const base = MODULE_FORM_FIELDS.avicole || [];
+    const base = enrichAvicoleFieldsForDecision(MODULE_FORM_FIELDS.avicole || []);
     const purchaseFields = [
       { key: 'section_achat_bande', label: 'Achat de la bande', type: 'section', description: 'Saisir le coût total réel si connu. Le prix unitaire est calculé avec l’effectif initial.' },
       { key: 'cout_total_achat', label: 'Coût total achat bande', type: 'number' },
@@ -138,17 +139,9 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
       { key: 'prix_caisse_poussins', label: 'Prix caisse poussins', type: 'number' },
       { key: 'fournisseur_poussins', label: 'Fournisseur poussins', type: 'text' },
     ];
-    const weighingFields = [
-      { key: 'poids_moyen_entree', label: 'Poids moyen entrée / première pesée (kg)', type: 'number' },
-      { key: 'date_pesee_entree', label: 'Date pesée entrée', type: 'date' },
-      { key: 'poids_objectif_vente', label: 'Objectif poids vente (kg)', type: 'number' },
-      { key: 'poids_moyen_actuel', label: 'Poids moyen actuel / dernière pesée (kg)', type: 'number' },
-      { key: 'date_derniere_pesee', label: 'Date dernière pesée', type: 'date' },
-    ];
     return base.flatMap((field) => {
       if (field.key === 'initial_count') return [field, ...purchaseFields];
       if (field.key === 'phase') return [{ ...field, type: 'select', options: phaseOptions }];
-      if (field.key === 'weight_avg') return weighingFields;
       return [field];
     });
   }, []);
@@ -168,7 +161,8 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
   const initialLot = useMemo(() => {
     const type = tab === 'Chair' ? 'Chair' : 'Pondeuse';
     const id = generateSequentialId('avicole', rows, { type });
-    return { id, name: `${id} ${type}`, type, status: 'actif', health_status: 'sain', phase: type === 'Chair' ? 'Croissance' : 'Production', date_debut: today(), entry_date: today(), initial_count: 0, mortality: 0, malades: 0, cout_total_achat: 0, prix_unitaire_sujet: DEFAULT_CHICK_CRATE_PRICE / DEFAULT_CHICK_CRATE_SIZE, poussins_par_caisse: DEFAULT_CHICK_CRATE_SIZE, prix_caisse_poussins: DEFAULT_CHICK_CRATE_PRICE, poids_moyen_entree: 0, poids_objectif_vente: DEFAULT_SALE_TARGET_WEIGHT, poids_moyen_actuel: 0, date_pesee_entree: today(), date_derniere_pesee: today(), duree_cycle_unite: type === 'Chair' ? 'jours' : 'mois', duree_cycle_valeur: type === 'Chair' ? 45 : 18 };
+    const start = today();
+    return { id, name: `${id} ${type}`, type, status: 'actif', health_status: 'sain', phase: type === 'Chair' ? 'Croissance' : 'Production', date_debut: start, entry_date: start, initial_count: 0, mortality: 0, malades: 0, cout_total_achat: 0, prix_unitaire_sujet: DEFAULT_CHICK_CRATE_PRICE / DEFAULT_CHICK_CRATE_SIZE, poussins_par_caisse: DEFAULT_CHICK_CRATE_SIZE, prix_caisse_poussins: DEFAULT_CHICK_CRATE_PRICE, poids_moyen_entree: 0, poids_objectif_vente: DEFAULT_SALE_TARGET_WEIGHT, poids_moyen_actuel: 0, date_pesee_entree: start, date_derniere_pesee: start, frequence_pesee_jours: type === 'Chair' ? 7 : 30, date_prochaine_pesee_recommandee: addDays(start, type === 'Chair' ? 7 : 30), duree_cycle_unite: type === 'Chair' ? 'jours' : 'mois', duree_cycle_valeur: type === 'Chair' ? 45 : 18, age_reforme_recommandee_mois: 17, age_reforme_cible_mois: 18, date_debut_reforme_recommandee: type === 'Pondeuse' ? addMonths(start, 17) : '', date_reforme_cible: type === 'Pondeuse' ? addMonths(start, 18) : '' };
   }, [rows, tab]);
 
   const initialEggEntry = useMemo(() => ({ id: `PROD-${Date.now()}`, lot_id: pondeusesDisponibles[0]?.id || '', date: today(), heure_ramassage: '', oeufs_produits: '', oeufs_casses: 0, responsable: responsibleOptions[0]?.value || 'TEAM-AVICOLE', notes: '' }), [pondeusesDisponibles, responsibleOptions]);
@@ -186,6 +180,10 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
     const nextTargetWeight = targetWeight({ ...existing, ...payload, poids_objectif_vente: payload.poids_objectif_vente || existing.poids_objectif_vente || DEFAULT_SALE_TARGET_WEIGHT });
     const entryDate = existing.date_pesee_entree || payload.date_pesee_entree || payload.date_debut || payload.entry_date || today();
     const currentDate = payload.date_derniere_pesee || existing.date_derniere_pesee || (nextCurrentWeight > 0 ? today() : '');
+    const weighingFrequency = toNumber(payload.frequence_pesee_jours ?? existing.frequence_pesee_jours) || (payload.type === 'Chair' || existing.type === 'Chair' ? 7 : 30);
+    const start = payload.date_debut || payload.entry_date || existing.date_debut || existing.entry_date || today();
+    const reformStartMonth = toNumber(payload.age_reforme_recommandee_mois ?? existing.age_reforme_recommandee_mois) || 17;
+    const reformTargetMonth = toNumber(payload.age_reforme_cible_mois ?? existing.age_reforme_cible_mois) || 18;
     const nextBase = { ...base, current_count: current, effectif_actuel: current };
     return {
       ...payload,
@@ -205,6 +203,7 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
       weight_entry: nextEntryWeight,
       poids_moyen_entree: nextEntryWeight,
       poids_objectif_vente: nextTargetWeight,
+      poids_objectif: nextTargetWeight,
       objectif_poids_moyen: nextTargetWeight,
       target_weight: nextTargetWeight,
       weight_avg: nextCurrentWeight,
@@ -213,10 +212,16 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
       poids_moyen_actuel: nextCurrentWeight,
       date_pesee_entree: entryDate,
       date_derniere_pesee: currentDate,
+      frequence_pesee_jours: weighingFrequency,
+      date_prochaine_pesee_recommandee: payload.date_prochaine_pesee_recommandee || addDays(currentDate || today(), weighingFrequency),
+      age_reforme_recommandee_mois: reformStartMonth,
+      age_reforme_cible_mois: reformTargetMonth,
+      date_debut_reforme_recommandee: payload.date_debut_reforme_recommandee || addMonths(start, reformStartMonth),
+      date_reforme_cible: payload.date_reforme_cible || addMonths(start, reformTargetMonth),
       status: current <= 0 ? avicoleExitReason(nextBase) : statusFor(nextBase),
-      phase: current <= 0 ? exitReasonLabel(nextBase) : (payload.phase || phaseFor({ ...payload, current_count: current, poids_moyen_actuel: nextCurrentWeight, poids_objectif_vente: nextTargetWeight })),
-      date_debut: payload.date_debut || payload.entry_date || today(),
-      entry_date: payload.entry_date || payload.date_debut || today(),
+      phase: current <= 0 ? exitReasonLabel(nextBase) : (payload.phase || phaseFor({ ...payload, current_count: current, poids_moyen_actuel: nextCurrentWeight, poids_objectif_vente: nextTargetWeight, date_debut: start })),
+      date_debut: start,
+      entry_date: payload.entry_date || payload.date_debut || existing.entry_date || existing.date_debut || today(),
     };
   };
 
@@ -243,7 +248,7 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
   const exportRows = () => {
     const fileName = `avicole-${tab.toLowerCase()}`;
     const exportableRows = filteredByActivity.map((lot) => ({ ...lot, effectif_actuel_calcule: activeCount(lot), cout_achat_calcule: purchaseTotalOf(lot), cout_unitaire_calcule: purchaseUnitOf(lot), poids_moyen_actuel_calcule: latestWeight(lot), poids_objectif_vente_calcule: targetWeight(lot), statut_calcule: statusFor(lot), decision_vente_calculee: readinessLabel(lot) }));
-    exportToCsv({ rows: exportableRows, columns: ['id', 'name', 'type', 'phase', 'initial_count', 'effectif_actuel_calcule', 'cout_achat_calcule', 'cout_unitaire_calcule', 'mortality', 'vols', 'vendus', 'abattus', 'reformes', 'autres_sorties', 'malades', 'poids_moyen_entree', 'poids_moyen_actuel_calcule', 'poids_objectif_vente_calcule', 'date_derniere_pesee', 'statut_calcule'], fileName: `${fileName}.csv` });
+    exportToCsv({ rows: exportableRows, columns: ['id', 'name', 'type', 'phase', 'initial_count', 'effectif_actuel_calcule', 'cout_achat_calcule', 'cout_unitaire_calcule', 'mortality', 'vols', 'vendus', 'abattus', 'reformes', 'autres_sorties', 'malades', 'poids_moyen_entree', 'poids_moyen_actuel_calcule', 'poids_objectif_vente_calcule', 'date_derniere_pesee', 'date_prochaine_pesee_recommandee', 'date_debut_reforme_recommandee', 'date_reforme_cible', 'statut_calcule'], fileName: `${fileName}.csv` });
     exportToExcel({ rows: exportableRows, fileName: `${fileName}.xlsx`, sheetName: 'Avicole' });
     exportToPdf({ rows: exportableRows, columns: ['id', 'name', 'type', 'initial_count', 'effectif_actuel_calcule', 'cout_achat_calcule', 'cout_unitaire_calcule', 'poids_moyen_actuel_calcule', 'poids_objectif_vente_calcule', 'statut_calcule'], fileName: `${fileName}.pdf`, title: 'Lots avicoles' });
     toast.success('Exports générés');
@@ -253,26 +258,24 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
     { key: 'name', label: 'Lot', sortable: true, render: (lot) => <div><p className="font-black text-[#2f2415]">{lot.name || lot.id}</p><p className="text-xs text-[#8a7456]">{lot.id}</p></div> },
     { key: 'type', label: 'Type', render: (lot) => lot.type },
     { key: 'phase', label: 'Phase', render: (lot) => phaseFor(lot) },
-    { key: 'age', label: 'Âge', render: (lot) => `${ageDays(lot)} j` },
+    { key: 'age', label: 'Âge', render: (lot) => lot.type === 'Pondeuse' ? `${ageMonths(lot)} mois` : `${ageDays(lot)} j` },
     { key: 'effectif', label: 'Effectif', render: (lot) => <span className="font-bold">{fmtNumber(activeCount(lot))}</span> },
     { key: 'achat', label: 'Achat sujets', render: (lot) => <div><b>{fmtCurrency(purchaseTotalOf(lot))}</b><p className="text-xs text-[#8a7456]">{fmtCurrency(purchaseUnitOf(lot))}/sujet</p></div> },
     { key: 'morts', label: 'Morts / malades', render: (lot) => `${fmtNumber(deadCount(lot))} / ${fmtNumber(sickCount(lot))}` },
     { key: 'weight_avg', label: 'Poids / objectif', render: (lot) => latestWeight(lot) > 0 ? `${latestWeight(lot).toFixed(2)} / ${targetWeight(lot).toFixed(2)} kg` : `— / ${targetWeight(lot).toFixed(2)} kg` },
-    { key: 'readiness', label: 'Décision vente', render: (lot) => readinessLabel(lot) },
-    { key: 'status', label: 'Statut', render: (lot) => <Badge status={statusFor(lot)} /> },
-    { key: 'actions', label: 'Actions', render: (lot) => <div className="flex gap-1"><ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected(lot); setModal('view'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(lot); setModal('edit'); }} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(lot); setModal('delete'); }} /></div> },
+    { key: 'next_weighing', label: 'Prochaine pesée', render: (lot) => lot.date_prochaine_pesee_recommandee || '—' },
+    { key: 'readiness', label: 'Décision', render: (lot) => <Badge color={readinessLabel(lot).includes('recommandée') || readinessLabel(lot).includes('Vente') ? 'red' : readinessLabel(lot).includes('surveiller') || readinessLabel(lot).includes('Préparer') ? 'amber' : 'gray'}>{readinessLabel(lot)}</Badge> },
+    { key: 'actions', label: 'Actions', render: (lot) => <div className="flex gap-1"><ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected(lot); setModal('details'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(lot); setModal('edit'); }} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(lot); setModal('delete'); }} /></div> },
   ];
 
   return <div className="space-y-6">
-    <SectionHeader title="Avicole" sub="Lots actifs de chair et pondeuses, santé, production et décision de vente" actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Actualiser</Btn><Btn icon={Download} variant="outline" small onClick={exportRows}>Exporter</Btn><Btn icon={Plus} variant="outline" small onClick={() => setModal('eggs')}>Ramassage œufs</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter lot</Btn></>} />
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">{tabs.map((item) => <button type="button" key={item} onClick={() => setTab(item)} className={`rounded-2xl border px-4 py-3 text-left ${tab === item ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}><p className="text-xs uppercase tracking-wide">Vue</p><p className="font-black">{item}</p></button>)}</div>
-    <div className="grid grid-cols-2 xl:grid-cols-7 gap-4"><KpiCard label="Effectif actif" value={fmtNumber(totalEffectif)} /><KpiCard label="Lots actifs" value={lots.length} /><KpiCard label="Sortis / à historiser" value={inactiveLots.length} /><KpiCard label="Prêts / réforme" value={prets} /><KpiCard label="Morts" value={fmtNumber(morts)} /><KpiCard label="Achat sujets" value={fmtCurrency(coutAchat)} /><KpiCard label="Coût alim." value={fmtCurrency(coutAlim)} /></div>
-    <DataTable title="Lots avicoles actifs" rows={lots} columns={columns} loading={loading} initialSortKey="id" searchPlaceholder="Rechercher lot..." emptyMessage="Aucun lot actif disponible. Les sorties sont visibles dans l’historique." />
-    {inactiveLots.length ? <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4 space-y-3"><div className="text-sm text-[#8a7456]"><strong className="text-[#2f2415]">Lots sortis / à historiser :</strong> {inactiveLots.length}. Ces lots sont exclus des ventes actives, soins, alimentation et production, mais restent visibles ici pour consultation, correction ou suppression définitive.</div><DataTable title="Lots sortis / à historiser" rows={inactiveLots} columns={columns} loading={loading} initialSortKey="id" searchPlaceholder="Rechercher lot sorti..." emptyMessage="Aucun lot sorti à historiser." /></div> : null}
-    {selected && modal === 'view' ? <div className="bg-white border border-[#d6c3a0] rounded-2xl p-5"><div className="flex justify-between gap-3"><div><p className="text-xs uppercase text-[#8a7456]">Fiche lot</p><h3 className="text-xl font-black text-[#2f2415]">{selected.name || selected.id}</h3><p className="text-sm text-[#8a7456] mt-1">{selected.type} · {phaseFor(selected)} · {readinessLabel(selected)} · effectif {fmtNumber(activeCount(selected))} · achat {fmtCurrency(purchaseTotalOf(selected))} · {fmtCurrency(purchaseUnitOf(selected))}/sujet · entrée {entryWeight(selected) > 0 ? `${entryWeight(selected).toFixed(2)} kg` : 'non renseignée'} · actuel {latestWeight(selected) > 0 ? `${latestWeight(selected).toFixed(2)} kg` : 'non renseigné'} · objectif {targetWeight(selected).toFixed(2)} kg</p></div><Btn variant="outline" onClick={() => setModal(null)}>Fermer</Btn></div></div> : null}
-    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={avicoleFields} initialValues={initialLot} autoId={(values) => generateSequentialId('avicole', rows, values)} loading={saving} title="Ajouter lot avicole" submitLabel="Ajouter" />
-    <CreateModal open={modal === 'eggs'} onClose={() => setModal(null)} onSubmit={submitEggEntry} fields={eggFields} initialValues={initialEggEntry} loading={saving} title="Nouveau ramassage œufs" submitLabel="Enregistrer" />
-    <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={avicoleFields} initialValues={selected ? { ...selected, current_count: activeCount(selected), effectif_actuel: activeCount(selected), status: statusFor(selected), phase: phaseFor(selected), cout_total_achat: purchaseTotalOf(selected), prix_unitaire_sujet: purchaseUnitOf(selected), poussins_par_caisse: selected.poussins_par_caisse || DEFAULT_CHICK_CRATE_SIZE, prix_caisse_poussins: selected.prix_caisse_poussins || DEFAULT_CHICK_CRATE_PRICE, poids_moyen_entree: entryWeight(selected), poids_objectif_vente: targetWeight(selected), poids_moyen_actuel: latestWeight(selected), date_pesee_entree: selected.date_pesee_entree || selected.date_debut || selected.entry_date || today(), date_derniere_pesee: selected.date_derniere_pesee || today() } : {}} loading={saving} title="Modifier lot avicole" submitLabel="Enregistrer" />
-    <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={confirmDelete} itemLabel={selected ? `${selected.name || selected.id}` : ''} loading={saving} />
+    <SectionHeader title="Gestion avicole" sub="Lots, effectifs, poids, ponte, réformes, ventes et décisions IA" actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Actualiser</Btn><Btn icon={Download} variant="outline" small onClick={exportRows}>Exporter</Btn><Btn icon={Plus} small onClick={() => setModal('eggs')} disabled={!pondeusesDisponibles.length}>Ramassage œufs</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter lot</Btn></>} />
+    <div className="grid grid-cols-2 lg:grid-cols-6 gap-4"><KpiCard icon={Plus} label="Effectif actif" value={fmtNumber(totalEffectif)} color="bg-emerald-500/20 text-emerald-500" /><KpiCard icon={Plus} label="Morts" value={fmtNumber(morts)} color="bg-red-500/20 text-red-500" /><KpiCard icon={Plus} label="Malades" value={fmtNumber(malades)} color="bg-amber-500/20 text-amber-500" /><KpiCard icon={Plus} label="À vendre/réformer" value={prets} color="bg-sky-500/20 text-sky-500" /><KpiCard icon={Plus} label="Réforme 17+ mois" value={aReformer} color="bg-red-500/20 text-red-500" /><KpiCard icon={Plus} label="Coût alim." value={fmtCurrency(coutAlim)} color="bg-purple-500/20 text-purple-500" /></div>
+    <div className="flex flex-wrap gap-2">{tabs.map((item) => <button key={item} type="button" onClick={() => setTab(item)} className={`rounded-xl px-4 py-2 text-sm font-semibold border ${tab === item ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}>{item}</button>)}<span className="ml-auto text-xs text-[#8a7456]">Lots clôturés: {inactiveLots.length} · Achat actif: {fmtCurrency(coutAchat)}</span></div>
+    <DataTable title="Lots avicoles" rows={filteredByActivity} columns={columns} loading={loading} initialSortKey="date_debut" searchPlaceholder="Rechercher un lot..." />
+    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={avicoleFields} initialValues={initialLot} loading={saving} title="Ajouter lot avicole" submitLabel="Ajouter" />
+    <CreateModal open={modal === 'eggs'} onClose={() => setModal(null)} onSubmit={submitEggEntry} fields={eggFields} initialValues={initialEggEntry} loading={saving} title="Ramassage œufs" submitLabel="Enregistrer" />
+    <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={avicoleFields} initialValues={selected || {}} loading={saving} title="Modifier lot" submitLabel="Enregistrer" />
+    <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={confirmDelete} itemLabel={selected?.name || selected?.id || ''} loading={saving} />
   </div>;
 }
