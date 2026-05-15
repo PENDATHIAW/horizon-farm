@@ -1,5 +1,5 @@
 import { CalendarDays, CheckSquare, HelpCircle, Target, Users, Zap } from 'lucide-react';
-import { buildDecisionActions, actionTypeLabel } from '../services/decisionActionEngine';
+import { actionTargetModule, actionTypeLabel, buildDecisionActions, buildDraftFromDecisionAction } from '../services/decisionActionEngine';
 import { getYearRoundMarkets } from '../services/horizonCommercialCalendar';
 import { buildCommercialTargets } from '../services/smartCommercialTargetingEngine';
 import { fmtCurrency, fmtNumber } from '../utils/format';
@@ -34,6 +34,12 @@ export default function DecisionRecommendationCard({ item, dataMap = {}, onNavig
   const targeting = buildCommercialTargets(dataMap, item.activity);
   const targets = targeting.targets || [];
   const concreteActions = buildDecisionActions(item, targets[0]);
+
+  const openActionDraft = (action) => {
+    const draft = buildDraftFromDecisionAction(action, item);
+    window.dispatchEvent(new CustomEvent('horizon-open-draft', { detail: { draft, sourceLabel: 'Centre décisionnel' } }));
+    onNavigate?.(draft.target_module || actionTargetModule(action.type));
+  };
 
   return (
     <div className="rounded-2xl bg-white/10 border border-white/10 p-4 flex flex-col gap-3 min-w-0">
@@ -90,13 +96,13 @@ export default function DecisionRecommendationCard({ item, dataMap = {}, onNavig
         <p className="font-black text-[#f8e8b6] flex items-center gap-1"><CheckSquare size={13} /> Actions concrètes proposées</p>
         <div className="mt-2 space-y-1">
           {concreteActions.map((action) => (
-            <div key={action.id} className="rounded-lg bg-black/15 px-2 py-1">
+            <button key={action.id} type="button" onClick={() => openActionDraft(action)} className="w-full rounded-lg bg-black/15 px-2 py-1 text-left hover:bg-white/10 transition">
               <div className="flex items-center justify-between gap-2">
                 <b className="truncate">{action.label}</b>
                 <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px]">{actionTypeLabel(action.type)}</span>
               </div>
-              <p className="text-[10px] text-white/55">Priorité {action.priority}</p>
-            </div>
+              <p className="text-[10px] text-white/55">Priorité {action.priority} · ouvrir brouillon</p>
+            </button>
           ))}
         </div>
       </div>
