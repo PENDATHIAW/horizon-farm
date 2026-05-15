@@ -18,11 +18,32 @@ const templates = {
     risks: ['mortalité', 'prix aliment', 'vente tardive', 'capacité bâtiment', 'précommandes insuffisantes'],
   },
   animaux: {
-    title: 'Business plan bovins / ovins / caprins',
-    leadTimeDays: 120,
+    title: 'Business plan animaux',
+    leadTimeDays: 90,
     costLabel: 'achat sujets, alimentation, santé, transport, garde',
     revenueLabel: 'animaux vendus',
     risks: ['cash immobilisé', 'prix achat élevé', 'maladie', 'vente hors période forte', 'transport'],
+  },
+  bovins: {
+    title: 'Business plan bovins',
+    leadTimeDays: 90,
+    costLabel: 'achat bovins, alimentation, santé, garde, transport',
+    revenueLabel: 'bovins vendus',
+    risks: ['cash immobilisé', 'durée de garde', 'alimentation', 'prix de vente', 'précommandes insuffisantes'],
+  },
+  ovins: {
+    title: 'Business plan ovins',
+    leadTimeDays: 90,
+    costLabel: 'achat ovins, alimentation, santé, garde, transport',
+    revenueLabel: 'ovins vendus',
+    risks: ['cash immobilisé', 'poids objectif non atteint', 'vente hors période forte', 'santé', 'précommandes insuffisantes'],
+  },
+  caprins: {
+    title: 'Business plan caprins',
+    leadTimeDays: 90,
+    costLabel: 'achat caprins, alimentation, santé, garde, transport',
+    revenueLabel: 'caprins vendus',
+    risks: ['cash immobilisé', 'croissance insuffisante', 'marché limité', 'santé', 'précommandes insuffisantes'],
   },
   cultures: {
     title: 'Business plan culture test',
@@ -35,7 +56,7 @@ const templates = {
 
 export function generateDecisionBusinessPlan(recommendation = {}, context = {}) {
   const activity = recommendation.activity || 'poulets_chair';
-  const template = templates[activity] || templates.poulets_chair;
+  const template = templates[activity] || templates.animaux;
   const cashAvailable = num(context.cashAvailable);
   const suggestedInvestment = num(context.suggestedInvestment || cashAvailable * 0.35 || 0);
   const expectedRevenue = suggestedInvestment > 0 ? suggestedInvestment * 1.35 : 0;
@@ -43,8 +64,11 @@ export function generateDecisionBusinessPlan(recommendation = {}, context = {}) 
   const breakEven = suggestedInvestment;
 
   return {
+    id: `BP-HORIZON-${Date.now()}`,
     title: recommendation.businessPlanTitle || template.title,
+    nom: recommendation.businessPlanTitle || template.title,
     activity,
+    activite: activity,
     source_recommendation_id: recommendation.id,
     decision: recommendation.title || 'Investissement à étudier',
     why_now: recommendation.recommendation || 'Recommandation générée par le Centre décisionnel.',
@@ -53,9 +77,16 @@ export function generateDecisionBusinessPlan(recommendation = {}, context = {}) 
     expected_revenue: expectedRevenue,
     expected_margin: expectedMargin,
     break_even_amount: breakEven,
+    montant_investissement: suggestedInvestment,
+    ca_attendu: expectedRevenue,
+    marge_attendue: expectedMargin,
+    seuil_rentabilite: breakEven,
+    statut: 'brouillon_decisionnel',
+    source_module: 'centre_decisionnel',
     cost_structure: template.costLabel,
     revenue_driver: template.revenueLabel,
     risks: template.risks,
+    risques: template.risks.join(', '),
     success_conditions: [
       'cash disponible ou précommandes sécurisées',
       'capacité opérationnelle confirmée',
@@ -64,6 +95,27 @@ export function generateDecisionBusinessPlan(recommendation = {}, context = {}) 
       'suivi sanitaire et pertes maîtrisés',
     ],
     summary: `${template.title} · investissement indicatif ${fmtCurrency(suggestedInvestment)} · CA attendu ${fmtCurrency(expectedRevenue)} · marge estimée ${fmtCurrency(expectedMargin)}.`,
+    resume: `${template.title} · investissement indicatif ${fmtCurrency(suggestedInvestment)} · CA attendu ${fmtCurrency(expectedRevenue)} · marge estimée ${fmtCurrency(expectedMargin)}.`,
+    notes: buildBusinessPlanDraftText({
+      title: recommendation.businessPlanTitle || template.title,
+      decision: recommendation.title || 'Investissement à étudier',
+      why_now: recommendation.recommendation || 'Recommandation générée par le Centre décisionnel.',
+      lead_time_days: recommendation.horizon_days || template.leadTimeDays,
+      investment_needed: suggestedInvestment,
+      expected_revenue: expectedRevenue,
+      expected_margin: expectedMargin,
+      break_even_amount: breakEven,
+      cost_structure: template.costLabel,
+      revenue_driver: template.revenueLabel,
+      risks: template.risks,
+      success_conditions: [
+        'cash disponible ou précommandes sécurisées',
+        'capacité opérationnelle confirmée',
+        'stock/aliment/intrants disponibles',
+        'clients ou canaux de vente identifiés',
+        'suivi sanitaire et pertes maîtrisés',
+      ],
+    }),
   };
 }
 
