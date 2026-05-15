@@ -3,7 +3,8 @@ const QUEUE_KEY = 'horizon_farm_offline_queue';
 export const readOfflineQueue = () => {
   if (typeof localStorage === 'undefined') return [];
   try {
-    return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+    const parsed = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
   } catch {
     return [];
   }
@@ -11,7 +12,7 @@ export const readOfflineQueue = () => {
 
 export const saveOfflineQueue = (items = []) => {
   if (typeof localStorage === 'undefined') return;
-  localStorage.setItem(QUEUE_KEY, JSON.stringify(items));
+  localStorage.setItem(QUEUE_KEY, JSON.stringify(Array.isArray(items) ? items.filter(Boolean) : []));
 };
 
 export const enqueueOfflineMutation = ({ moduleKey, action, id, payload }) => {
@@ -24,6 +25,7 @@ export const enqueueOfflineMutation = ({ moduleKey, action, id, payload }) => {
     payload,
     status: 'pending',
     createdAt: new Date().toISOString(),
+    created_at: new Date().toISOString(),
     device: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : 'unknown',
   };
   saveOfflineQueue([...queue, item]);

@@ -64,9 +64,22 @@ export const generateSequentialId = (moduleKey, rows = [], values = {}) => {
   return `${prefix}${String(next).padStart(3, '0')}`;
 };
 
-export const sanitizePhone = (value = '') => String(value).replace(/[^\d]/g, '');
+export const sanitizePhone = (value = '') => {
+  const digits = String(value).replace(/[^\d]/g, '');
+  if (digits.length === 9 && digits.startsWith('7')) return `221${digits}`;
+  if (digits.length === 8) return `221${digits}`;
+  return digits;
+};
 
-export const toWhatsappLink = (phone = '', message = '') => {
+export const toWhatsappAppLink = (phone = '', message = '') => {
+  const clean = sanitizePhone(phone);
+  const text = message ? `&text=${encodeURIComponent(message)}` : '';
+  return clean ? `whatsapp://send?phone=${clean}${text}` : `whatsapp://send?text=${encodeURIComponent(message || '')}`;
+};
+
+export const toWhatsappWebLink = (phone = '', message = '') => {
   const clean = sanitizePhone(phone);
   return `https://wa.me/${clean}${message ? `?text=${encodeURIComponent(message)}` : ''}`;
 };
+
+export const toWhatsappLink = (phone = '', message = '') => toWhatsappAppLink(phone, message);

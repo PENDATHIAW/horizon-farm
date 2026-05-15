@@ -15,7 +15,7 @@ import EditModal from '../modals/EditModal';
 import DeleteModal from '../modals/DeleteModal';
 import AnimalDetailsModal from '../components/AnimalDetailsModal';
 import { MODULE_FORM_FIELDS } from '../utils/constants';
-import { generateSequentialId, toWhatsappLink } from '../utils/ids';
+import { generateSequentialId, makeId, toWhatsappLink } from '../utils/ids';
 import { DEFAULT_PHONE } from '../utils/location';
 import { isActiveAnimalForFeeding } from '../utils/alimentation';
 import { buildGrowthSummary } from '../utils/animalGrowth';
@@ -23,8 +23,11 @@ import { getAnimalSaleReadiness, calculateAnimalSalePricing } from '../utils/ani
 import { calculateAnimalMetrics } from '../utils/businessCalculations';
 import { enrichAnimalLifecycle, getReproductionAlerts } from '../utils/animalLifecycle';
 import { mergeAnimalSeeds } from '../utils/mergeAnimalSeeds';
+import AnimalHealthBridge from './AnimalHealthBridge.jsx';
 
 const activityTabs = ['Bovin', 'Ovin', 'Caprin'];
+const today = () => new Date().toISOString().slice(0, 10);
+const now = () => new Date().toISOString();
 
 const growthFormFields = [
   { key: 'section_growth', label: 'Croissance & engraissement', type: 'section', description: 'Suivi du poids, de l objectif de vente et de la rentabilite.' },
@@ -66,15 +69,17 @@ const insertGrowthFields = (fields) => {
   return [...sanitizedFields.slice(0, venteIndex), ...growthFormFields, ...sanitizedFields.slice(venteIndex)];
 };
 
+const saleConfirmed = (animal = {}) => Boolean(animal.pret_vente_confirme || animal.ready_for_sale || animal.sale_ready || animal.pret_a_la_vente || animal.status === 'pret_a_la_vente');
+const saleOpportunityKey = (animal = {}) => `animal:${animal.id}`;
 const opportunityBadge = (animal, metrics) => {
   const readiness = getAnimalSaleReadiness({ animal, metrics });
-  if (animal.pret_vente_confirme) return <Badge status="pret_confirme" />;
-  if (readiness.recommended || animal.pret_vente_recommande || animal.status === 'pret_a_la_vente') return <Badge status="recommande_pret" />;
+  if (saleConfirmed(animal)) return <Badge status="pret_confirme" />;
+  if (readiness.recommended || animal.pret_vente_recommande) return <Badge status="recommande_pret" />;
   if (readiness.targetProgress >= 90) return <span className="text-xs font-semibold text-amber-500">Presque pret ({readiness.targetProgress}%)</span>;
   return <span className="text-xs text-[#b39b78]">Engraissement {readiness.targetProgress ? `${readiness.targetProgress}%` : ''}</span>;
 };
 
-export default function Animaux({ rows = [], alimentationLogs = [], vaccins = [], loading, onCreate, onUpdate, onDelete, onRefresh }) {
+export default function Animaux({ rows = [], alimentationLogs = [], vaccins = [], opportunities = [], loading, onCreate, onUpdate, onDelete, onRefresh, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateBusinessEvent, onRefreshBusinessEvents }) {
   const [activityType, setActivityType] = useState('Bovin');
   const [statusFilter, setStatusFilter] = useState('tous');
   const [healthFilter, setHealthFilter] = useState('tous');
@@ -90,8 +95,8 @@ export default function Animaux({ rows = [], alimentationLogs = [], vaccins = []
   const healthStatuses = ['tous', 'sain', 'malade', 'blesse', 'sous_traitement', 'a_surveiller'];
   const initialAnimal = useMemo(() => {
     const id = generateSequentialId('animaux', testRows, { type: activityType });
-    const today = new Date().toISOString().slice(0, 10);
-    return { id, tag: id, type: activityType, status: 'actif', health_status: 'sain', mode_acquisition: 'achat', date_achat: today, date_entree_ferme: today, date_poids_entree: today, date_derniere_pesee: today, sexe: 'F', en_gestation: false, statut_reproduction: 'inconnu', marge_cible_pct: 25, sale_price: 0 };
+    const date = today();
+    return { id, tag: id, type: activityType, status: 'actif', health_status: 'sain', mode_acquisition: 'achat', date_achat: date, date_entree_ferme: date, date_poids_entree: date, date_derniere_pesee: date, sexe: 'F', en_gestation: false, statut_reproduction: 'inconnu', marge_cible_pct: 25, sale_price: 0 };
   }, [testRows, activityType]);
 
   const metricsFor = (animal) => calculateAnimalMetrics({ animal, animals: testRows, feedingLogs: alimentationLogs, vaccins });
@@ -102,7 +107,7 @@ export default function Animaux({ rows = [], alimentationLogs = [], vaccins = []
   const activitySummary = useMemo(() => {
     const active = activityRows.filter((a) => isActiveAnimalForFeeding(a));
     const sold = activityRows.filter((a) => a.status === 'vendu');
-    const ready = activityRows.filter((a) => a.status === 'pret_a_la_vente' || a.pret_vente_recommande || readinessFor(a).recommended);
+    const ready = activityRows.filter((a) => saleConfirmed(a) || a.pret_vente_recommande || readinessFor(a).recommended);
     const almostReady = activityRows.filter((a) => readinessFor(a).targetProgress >= 90 && !ready.includes(a));
     const sick = activityRows.filter((a) => ['malade', 'sous_traitement', 'blesse'].includes(a.health_status));
     const losses = activityRows.filter((a) => ['mort', 'vole'].includes(a.status));
@@ -124,36 +129,50 @@ export default function Animaux({ rows = [], alimentationLogs = [], vaccins = []
     const dateEntree = isBirthMode ? dateNaissance : payload.date_entree_ferme || payload.date_achat || '';
     const currentWeight = Number(payload.poids || 0);
     const entryWeight = Number(payload.poids_entree || currentWeight || 0);
-    const entryDate = payload.date_poids_entree || dateEntree || payload.date_achat || new Date().toISOString().slice(0, 10);
-    const lastWeightDate = payload.date_derniere_pesee || new Date().toISOString().slice(0, 10);
+    const entryDate = payload.date_poids_entree || dateEntree || payload.date_achat || today();
+    const lastWeightDate = payload.date_derniere_pesee || today();
     const history = parseWeightHistoryText(payload.poids_history_text, currentWeight, lastWeightDate);
     if (entryWeight > 0 && entryDate && !history.some((item) => item.date === entryDate && Number(item.poids) === entryWeight)) history.unshift({ date: entryDate, poids: entryWeight, note: 'Poids entree ferme' });
+    const confirmed = saleConfirmed(payload);
     const basePayload = { ...payload, type: payload.type || activityType, purchase_cost: isBirthMode ? 0 : Number(payload.purchase_cost || 0), date_achat: mode === 'achat' ? payload.date_achat || '' : '', date_entree_ferme: dateEntree, naissance: dateNaissance, poids_entree: entryWeight || null, date_poids_entree: entryDate, date_derniere_pesee: lastWeightDate, poids_history: history, ras_veterinaire: payload.ras_veterinaire || (payload.health_status === 'sain' ? 'Consultation effectuee, RAS selon le veterinaire' : ''), sante: payload.frais_sante ?? payload.sante ?? 0, sale_price: payload.prix_vente_reel ?? payload.sale_price ?? 0, statut_reproduction: payload.sexe === 'F' ? (payload.en_gestation ? 'en_gestation' : payload.statut_reproduction || 'inconnu') : payload.statut_reproduction || 'non_reproductrice' };
     const metrics = metricsFor(basePayload);
     const readiness = getAnimalSaleReadiness({ animal: basePayload, metrics });
     const pricing = calculateAnimalSalePricing({ animal: basePayload, metrics });
+    const shouldBeReady = confirmed || readiness.recommended || Boolean(payload.pret_vente_recommande);
     const { poids_history_text, ...cleanPayload } = basePayload;
-    return { ...cleanPayload, prix_vente_estime_auto: Math.round(pricing.recommendedSalePrice || 0), prix_minimum_acceptable: Math.round(pricing.minimumAcceptablePrice || 0), marge_prevue: Math.round(pricing.expectedMargin || 0), sale_readiness_score: readiness.targetProgress, sale_readiness_status: readiness.status, pret_vente_recommande: readiness.recommended || Boolean(payload.pret_vente_recommande), raison_pret_vente: readiness.reason, status: readiness.recommended && (payload.status || 'actif') === 'actif' ? 'pret_a_la_vente' : payload.status || 'actif' };
+    return { ...cleanPayload, prix_vente_estime_auto: Math.round(pricing.recommendedSalePrice || 0), prix_minimum_acceptable: Math.round(pricing.minimumAcceptablePrice || 0), marge_prevue: Math.round(pricing.expectedMargin || 0), sale_readiness_score: readiness.targetProgress, sale_readiness_status: confirmed ? 'confirme' : readiness.status, pret_vente_recommande: readiness.recommended || Boolean(payload.pret_vente_recommande), pret_vente_confirme: confirmed, pret_a_la_vente: confirmed, ready_for_sale: confirmed, sale_ready: confirmed, sale_ready_confirmed_at: confirmed ? (payload.sale_ready_confirmed_at || now()) : '', raison_pret_vente: confirmed ? 'Confirmé manuellement' : readiness.reason, status: shouldBeReady && (payload.status || 'actif') !== 'vendu' ? 'pret_a_la_vente' : payload.status || 'actif' };
+  };
+
+  const findExistingOpportunity = (animal) => opportunities.find((opp) => String(opp.source_module || '') === 'animaux' && String(opp.source_id || opp.related_id || '') === String(animal.id)) || opportunities.find((opp) => opp.opportunity_key === saleOpportunityKey(animal));
+  const syncSaleOpportunity = async (animal) => {
+    if (!saleConfirmed(animal) || !animal.id || !onCreateOpportunity) return;
+    const pricing = pricingFor(animal);
+    const payload = { opportunity_key: saleOpportunityKey(animal), source_module: 'animaux', source_type: 'animal', source_id: animal.id, related_id: animal.id, title: `Animal prêt à vendre: ${animal.name || animal.tag || animal.id}`, product_name: `${animal.name || animal.tag || animal.id} · ${animal.type || 'Animal'}`, quantity: 1, unit: 'tete', unit_price: Math.round(pricing.recommendedSalePrice || animal.prix_vente_estime_auto || animal.prix_vente_estime || animal.sale_price || 0), estimated_amount: Math.round(pricing.recommendedSalePrice || animal.prix_vente_estime_auto || animal.prix_vente_estime || animal.sale_price || 0), status: animal.status === 'vendu' ? 'fermee' : 'ouverte', statut: animal.status === 'vendu' ? 'fermee' : 'ouverte', priority: 'moyenne', notes: animal.raison_pret_vente || 'Prêt à la vente confirmé', created_from: 'animaux', updated_at: now() };
+    const existing = findExistingOpportunity(animal);
+    if (existing?.id && onUpdateOpportunity) await onUpdateOpportunity(existing.id, payload);
+    else await onCreateOpportunity({ id: makeId('OPP'), ...payload, created_at: now() });
+    await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: existing?.id ? 'opportunite_vente_mise_a_jour' : 'opportunite_vente_creee', module_source: 'animaux', entity_type: 'animal', entity_id: animal.id, title: `Opportunité vente ${animal.name || animal.id}`, description: payload.product_name, event_date: today(), severity: 'info', saisies_evitees: 2 });
+    await Promise.allSettled([onRefreshOpportunities?.(), onRefreshBusinessEvents?.()]);
   };
 
   const motherOptions = useMemo(() => testRows.filter((animal) => animal.sexe === 'F').map((animal) => ({ value: animal.id, label: `${animal.id} - ${animal.name || 'Femelle'}` })), [testRows]);
   const fatherOptions = useMemo(() => testRows.filter((animal) => animal.sexe === 'M').map((animal) => ({ value: animal.id, label: `${animal.id} - ${animal.name || 'Male'}` })), [testRows]);
   const animalFormFields = useMemo(() => insertGrowthFields(MODULE_FORM_FIELDS.animaux).map((field) => { if (field.key === 'mere_id') return { ...field, options: motherOptions }; if (field.key === 'pere_id' || field.key === 'male_reproducteur_id') return { ...field, options: fatherOptions }; return field; }), [motherOptions, fatherOptions]);
   const buildModalValues = (animal = {}) => {
-    const data = { ...animal, type: animal.type || activityType, date_naissance: animal.date_naissance || animal.naissance || '', poids_history_text: stringifyWeightHistory(animal) };
+    const data = { ...animal, type: animal.type || activityType, date_naissance: animal.date_naissance || animal.naissance || '', poids_history_text: stringifyWeightHistory(animal), pret_vente_confirme: saleConfirmed(animal), pret_a_la_vente: saleConfirmed(animal), ready_for_sale: saleConfirmed(animal), sale_ready: saleConfirmed(animal) };
     const healthCost = Number(data.frais_sante ?? data.sante ?? 0);
     const metrics = animal.id ? metricsFor(data) : { feedingCost: 0, healthCost, totalCost: Number(data.purchase_cost || 0) + healthCost + Number(data.autres_frais || 0), margin: null };
     const growth = buildGrowthSummary(data);
     const pricing = calculateAnimalSalePricing({ animal: data, metrics });
     const readiness = getAnimalSaleReadiness({ animal: data, metrics });
-    return { ...data, alimentation_calculee_view: fmtCurrency(metrics.feedingCost), frais_sante_view: fmtCurrency(metrics.healthCost), cout_total_calcule_view: fmtCurrency(metrics.totalCost), marge_calculee_view: metrics.margin === null ? 'En cours' : fmtCurrency(metrics.margin), sale_readiness_score: readiness.targetProgress ? `${readiness.targetProgress}% - ${readiness.status}` : growth.history.length >= 2 ? `${growth.label} - ${growth.averageDailyGain.toFixed(2)} kg/jour` : 'Ajouter pesees', prix_vente_estime: data.prix_vente_estime || Math.round(pricing.recommendedSalePrice || 0), prix_minimum_acceptable: data.prix_minimum_acceptable || Math.round(pricing.minimumAcceptablePrice || 0) };
+    return { ...data, alimentation_calculee_view: fmtCurrency(metrics.feedingCost), frais_sante_view: fmtCurrency(metrics.healthCost), cout_total_calcule_view: fmtCurrency(metrics.totalCost), marge_calculee_view: metrics.margin === null ? 'En cours' : fmtCurrency(metrics.margin), sale_readiness_score: readiness.targetProgress ? `${readiness.targetProgress}% - ${saleConfirmed(data) ? 'confirme' : readiness.status}` : growth.history.length >= 2 ? `${growth.label} - ${growth.averageDailyGain.toFixed(2)} kg/jour` : 'Ajouter pesees', prix_vente_estime: data.prix_vente_estime || Math.round(pricing.recommendedSalePrice || 0), prix_minimum_acceptable: data.prix_minimum_acceptable || Math.round(pricing.minimumAcceptablePrice || 0) };
   };
 
   const filtered = useMemo(() => activityRows.filter((a) => {
     const passStatus = statusFilter === 'tous' || (a.status || 'actif') === statusFilter;
     const passHealth = healthFilter === 'tous' || (a.health_status || 'sain') === healthFilter;
     const passQuick = quickFilter === 'tous'
-      || (quickFilter === 'prets' && (a.status === 'pret_a_la_vente' || a.pret_vente_recommande || readinessFor(a).recommended))
+      || (quickFilter === 'prets' && (saleConfirmed(a) || a.pret_vente_recommande || readinessFor(a).recommended))
       || (quickFilter === 'pertes' && ['mort', 'vole'].includes(a.status))
       || (quickFilter === 'actifs' && isActiveAnimalForFeeding(a))
       || (quickFilter === 'vendus' && a.status === 'vendu')
@@ -168,8 +187,8 @@ export default function Animaux({ rows = [], alimentationLogs = [], vaccins = []
   const referencePricing = referenceAnimal ? calculateAnimalSalePricing({ animal: referenceAnimal, metrics: referenceMetrics }) : null;
   const referenceReadiness = referenceAnimal ? getAnimalSaleReadiness({ animal: referenceAnimal, metrics: referenceMetrics }) : null;
   const openWhatsApp = (animal) => { const url = toWhatsappLink(DEFAULT_PHONE, `Rapport animal ${animal.name} (${animal.id})`); window.open(url, '_blank', 'noopener,noreferrer'); };
-  const submitCreate = async (payload) => { try { setSaving(true); await onCreate(preparePayload(payload)); toast.success('Animal ajoute avec succes'); setModal(null); } catch (error) { toast.error(error.message || 'Erreur creation'); } finally { setSaving(false); } };
-  const submitEdit = async (payload) => { if (!selected) return; try { setSaving(true); await onUpdate(selected.id, preparePayload(payload)); toast.success('Animal modifie avec succes'); setModal(null); } catch (error) { toast.error(error.message || 'Erreur modification'); } finally { setSaving(false); } };
+  const submitCreate = async (payload) => { try { setSaving(true); const prepared = preparePayload(payload); await onCreate(prepared); await syncSaleOpportunity(prepared); await onRefresh?.(); toast.success('Animal ajoute avec succes'); setModal(null); } catch (error) { toast.error(error.message || 'Erreur creation'); } finally { setSaving(false); } };
+  const submitEdit = async (payload) => { if (!selected) return; try { setSaving(true); const prepared = preparePayload(payload); await onUpdate(selected.id, prepared); await syncSaleOpportunity({ ...prepared, id: selected.id }); await onRefresh?.(); toast.success('Animal modifie avec succes'); setModal(null); } catch (error) { toast.error(error.message || 'Erreur modification'); } finally { setSaving(false); } };
   const confirmDelete = async () => { if (!selected) return; try { setSaving(true); await onDelete(selected.id); toast.success('Animal supprime'); setModal(null); } catch (error) { toast.error(error.message || 'Erreur suppression'); } finally { setSaving(false); } };
   const exportRows = () => { exportToCsv({ rows: filtered, columns: ['id', 'tag', 'name', 'type', 'sexe', 'poids', 'poids_objectif', 'prix_vente_estime_auto', 'prix_minimum_acceptable', 'sale_readiness_status', 'status'], fileName: `animaux-${activityType}.csv` }); exportToExcel({ rows: filtered, fileName: `animaux-${activityType}.xlsx`, sheetName: activityType }); exportToPdf({ rows: filtered, columns: ['id', 'tag', 'name', 'type', 'sexe', 'poids', 'status'], fileName: `animaux-${activityType}.pdf`, title: `Liste ${activityType}` }); toast.success('Exports CSV/Excel/PDF generes'); };
   const applyQuickFilter = (kind) => { setQuickFilter(kind); setStatusFilter('tous'); setHealthFilter('tous'); };
@@ -188,13 +207,14 @@ export default function Animaux({ rows = [], alimentationLogs = [], vaccins = []
   ];
 
   return <div className="space-y-6"><SectionHeader title="Gestion des Animaux" sub="Bovins - Ovins - Caprins: croissance, sante et rentabilite" actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Actualiser</Btn><Btn icon={Download} variant="outline" small onClick={exportRows}>Exporter</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter {activityType}</Btn></>} />
+    <AnimalHealthBridge rows={activityRows} alimentationLogs={alimentationLogs} vaccins={vaccins} onUpdate={onUpdate} onRefresh={onRefresh} />
     <div className="grid grid-cols-3 gap-2">{activityTabs.map((tab) => <button key={tab} type="button" onClick={() => { setActivityType(tab); setStatusFilter('tous'); setHealthFilter('tous'); setQuickFilter('tous'); }} className={`rounded-2xl border px-4 py-3 text-left transition-all ${activityType === tab ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}><p className="text-xs uppercase tracking-wide">Activite</p><p className="font-black">{tab}s</p><p className="text-xs opacity-75">{testRows.filter((a) => a.type === tab).length} animaux</p></button>)}</div>
     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4"><button onClick={() => applyQuickFilter('actifs')}><KpiCard icon={CheckCircle} label="Actifs" value={activitySummary.active.length} color="bg-emerald-500/20 text-emerald-400" /></button><button onClick={() => applyQuickFilter('prets')}><KpiCard icon={Tag} label="Prets vente" value={activitySummary.ready.length} color="bg-amber-500/20 text-amber-400" /></button><button onClick={() => applyQuickFilter('malades')}><KpiCard icon={AlertTriangle} label="Malades" value={activitySummary.sick.length} color="bg-red-500/20 text-red-400" /></button><button onClick={() => applyQuickFilter('vendus')}><KpiCard icon={Tag} label="Vendus" value={activitySummary.sold.length} color="bg-sky-500/20 text-sky-400" /></button><button onClick={() => applyQuickFilter('pertes')}><KpiCard icon={XCircle} label="Pertes" value={activitySummary.losses.length} color="bg-zinc-700/30 text-zinc-300" /></button></div>
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4"><MiniMetric label="Investi total" value={fmtCurrency(activitySummary.invested)} /><MiniMetric label="CA potentiel" value={fmtCurrency(activitySummary.potentialCA)} /><MiniMetric label="Marge prevue" value={fmtCurrency(activitySummary.expectedMargin)} /><MiniMetric label="Prix plancher total" value={fmtCurrency(activitySummary.floorCA)} /><MiniMetric label="Poids moyen" value={`${activitySummary.avgWeight.toFixed(1)} kg`} /><MiniMetric label="Gain moyen/jour" value={`${activitySummary.avgDailyGain.toFixed(2)} kg/j`} /><MiniMetric label="Presque prets" value={activitySummary.almostReady.length} /><MiniMetric label="Croissance faible" value={activitySummary.slowGrowth.length} danger={activitySummary.slowGrowth.length > 0} /></div>
     {reproductionAlerts.length ? <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4"><p className="text-amber-500 font-semibold mb-3 flex items-center gap-2"><AlertTriangle size={16} />Alertes reproduction {activityType}</p><div className="grid grid-cols-1 md:grid-cols-2 gap-2">{reproductionAlerts.slice(0, 4).map((alert) => <div key={alert.id} className={`rounded-xl border p-3 text-sm ${alert.severity === 'danger' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-amber-500/10 border-amber-500/20 text-[#7d6a4a]'}`}><p className="font-semibold">{alert.title}</p><p className="text-xs mt-1">{alert.message}</p></div>)}</div></div> : null}
     <div className="flex flex-wrap gap-3"><VoiceSearch value={localSearch} onChange={setLocalSearch} placeholder={`Rechercher ${activityType.toLowerCase()}...`} /><div className="flex flex-wrap gap-2">{statuses.map((s) => <button key={s} type="button" onClick={() => { setStatusFilter(s); setQuickFilter('tous'); }} className={`px-3 py-2 rounded-lg text-sm capitalize transition-all ${statusFilter === s && quickFilter === 'tous' ? 'bg-emerald-500 text-black font-semibold' : 'bg-[#ffffff] border border-[#d6c3a0] text-[#8a7456] hover:border-emerald-500'}`}>{s.replaceAll('_', ' ')}</button>)}</div><div className="flex flex-wrap gap-2">{healthStatuses.map((s) => <button key={s} type="button" onClick={() => { setHealthFilter(s); setQuickFilter('tous'); }} className={`px-3 py-2 rounded-lg text-sm capitalize transition-all ${healthFilter === s && quickFilter === 'tous' ? 'bg-sky-500 text-black font-semibold' : 'bg-[#ffffff] border border-[#d6c3a0] text-[#8a7456] hover:border-sky-500'}`}>{s.replace('_', ' ')}</button>)}</div></div>
     <DataTable title={`Liste ${activityType}s`} rows={filtered} columns={columns} loading={loading} initialSortKey="id" searchPlaceholder="Recherche table..." />
-    {referenceAnimal ? <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5"><p className="font-semibold text-[#2f2415] mb-4">Decision rapide - {referenceAnimal.id} {referenceAnimal.name}</p><div className="grid grid-cols-2 md:grid-cols-4 gap-4">{[{ label: 'Cout total', value: fmtCurrency(referenceMetrics?.totalCost || 0) }, { label: 'Prix recommande', value: fmtCurrency(referencePricing?.recommendedSalePrice || 0) }, { label: 'Prix plancher', value: fmtCurrency(referencePricing?.minimumAcceptablePrice || 0) }, { label: 'Marge prevue', value: fmtCurrency(referencePricing?.expectedMargin || 0) }, { label: 'Objectif poids', value: `${referenceAnimal.poids || 0} / ${referenceAnimal.poids_objectif || '-'} kg` }, { label: 'Maturite vente', value: referenceReadiness?.status || 'non_pret' }, { label: 'Croissance', value: buildGrowthSummary(referenceAnimal).label }, { label: 'Gain moyen', value: `${buildGrowthSummary(referenceAnimal).averageDailyGain.toFixed(2)} kg/jour` }].map((c) => <div key={c.label} className="bg-[#fffdf8] rounded-xl p-3 border border-[#d6c3a0]"><div className="text-xs text-[#8a7456] mb-1">{c.label}</div><div className="text-[#2f2415] font-semibold">{c.value}</div></div>)}</div></div> : null}
+    {referenceAnimal ? <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5"><p className="font-semibold text-[#2f2415] mb-4">Decision rapide - {referenceAnimal.id} {referenceAnimal.name}</p><div className="grid grid-cols-2 md:grid-cols-4 gap-4">{[{ label: 'Cout total', value: fmtCurrency(referenceMetrics?.totalCost || 0) }, { label: 'Prix recommande', value: fmtCurrency(referencePricing?.recommendedSalePrice || 0) }, { label: 'Prix plancher', value: fmtCurrency(referencePricing?.minimumAcceptablePrice || 0) }, { label: 'Marge prevue', value: fmtCurrency(referencePricing?.expectedMargin || 0) }, { label: 'Objectif poids', value: `${referenceAnimal.poids || 0} / ${referenceAnimal.poids_objectif || '-'} kg` }, { label: 'Maturite vente', value: saleConfirmed(referenceAnimal) ? 'confirme' : referenceReadiness?.status || 'non_pret' }, { label: 'Croissance', value: buildGrowthSummary(referenceAnimal).label }, { label: 'Gain moyen', value: `${buildGrowthSummary(referenceAnimal).averageDailyGain.toFixed(2)} kg/jour` }].map((c) => <div key={c.label} className="bg-[#fffdf8] rounded-xl p-3 border border-[#d6c3a0]"><div className="text-xs text-[#8a7456] mb-1">{c.label}</div><div className="text-[#2f2415] font-semibold">{c.value}</div></div>)}</div></div> : null}
     <AnimalDetailsModal open={modal === 'details'} onClose={() => setModal(null)} animal={selected} metrics={selected ? metricsFor(selected) : {}} animals={testRows} vaccins={vaccins} lifecycle={selected ? lifecycleFor(selected) : null} onOpenTrace={() => toast.success('Ouvre le module Tracabilite pour cette fiche')} onAddDocument={() => toast.success('Ajout document disponible depuis le module Documents')} />
     <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={animalFormFields} initialValues={buildModalValues(initialAnimal)} autoId={(values) => generateSequentialId('animaux', testRows, values)} uploadFolder="animaux" loading={saving} title={`Ajouter ${activityType}`} submitLabel="Ajouter" />
     <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={animalFormFields} initialValues={selected ? buildModalValues(selected) : {}} uploadFolder="animaux" loading={saving} title="Modifier animal" submitLabel="Enregistrer" />

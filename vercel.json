@@ -1,5 +1,1 @@
-{
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
-  ]
-}
+{"rewrites":[{"source":"/(.*)","destination":"/"}],"crons":[{"path":"/api/push/dispatch-alerts","schedule":"0 7 * * *"}]}

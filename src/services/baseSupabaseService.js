@@ -25,10 +25,31 @@ const GENERATED_COLUMNS = {
   business_plans: ['apport_total'],
 };
 
+const today = () => new Date().toISOString().slice(0, 10);
+const amountOf = (...values) => values.map((value) => Number(value || 0)).find((value) => value > 0) || 0;
+
+const enrichWorkflowPayload = (payload = {}, table = '') => {
+  if (table !== 'payments') return payload;
+  const paymentDate = payload.date_paiement || payload.date || payload.paid_at || today();
+  const amount = amountOf(payload.montant_paye, payload.montant, payload.amount, payload.paid_amount);
+  return {
+    ...payload,
+    date_paiement: paymentDate,
+    date: payload.date || paymentDate,
+    montant_paye: amount || payload.montant_paye || 0,
+    montant: payload.montant ?? amount,
+    amount: payload.amount ?? amount,
+    mode_paiement: payload.mode_paiement || payload.moyen_paiement || payload.paiement || payload.payment_method || 'Cash',
+    moyen_paiement: payload.moyen_paiement || payload.mode_paiement || payload.paiement || payload.payment_method || 'Cash',
+    statut: payload.statut || 'paye',
+  };
+};
+
 const toDbPayload = (payload = {}, table = '') => {
   const generated = GENERATED_COLUMNS[table] || [];
+  const enriched = enrichWorkflowPayload(payload, table);
   const mapped = Object.fromEntries(
-    Object.entries(payload)
+    Object.entries(enriched)
       .filter(([key]) => !generated.includes(dbKeyMap[key] || key))
       .map(([key, value]) => [dbKeyMap[key] || key, value])
   );
@@ -41,20 +62,61 @@ const getMissingSchemaColumn = (error) => {
   return match?.[1] || null;
 };
 
+const isDuplicateKeyError = (error) => {
+  const message = String(error?.message || '').toLowerCase();
+  return error?.code === '23505' || message.includes('duplicate key value violates unique constraint');
+};
+
+const isSingleObjectCoercionError = (error) => {
+  const message = String(error?.message || '').toLowerCase();
+  return error?.code === 'PGRST116' || message.includes('cannot coerce the result to a single json object') || message.includes('json object requested');
+};
+
 const withoutColumn = (payload, column) =>
   Object.fromEntries(Object.entries(payload).filter(([key]) => (dbKeyMap[key] || key) !== column));
+
+const firstRow = (data, fallback = null) => Array.isArray(data) ? (data[0] || fallback) : (data || fallback);
+
+const selectExistingByPrimaryKey = async ({ table, id, idField, fallback }) => {
+  if (!id) return fallback;
+  const { data, error } = await supabase.from(table).select('*').eq(idField, id).limit(1);
+  if (error) return fallback;
+  return firstRow(data, fallback);
+};
+
+const updateExistingByPrimaryKey = async ({ table, payload, idField }) => {
+  const id = payload?.[idField];
+  if (!id) return payload;
+  const { data, error } = await supabase.from(table).update(payload).eq(idField, id).select('*').limit(1);
+  if (error) {
+    if (isSingleObjectCoercionError(error)) return selectExistingByPrimaryKey({ table, id, idField, fallback: payload });
+    throw error;
+  }
+  return firstRow(data, payload);
+};
+
+const executeMutation = async ({ table, action, payload, id, idField }) => {
+  if (action === 'insert') {
+    return supabase.from(table).insert(payload).select('*').limit(1);
+  }
+  return supabase.from(table).update(payload).eq(idField, id).select('*').limit(1);
+};
 
 const runMutationWithSchemaRetry = async ({ table, action, payload, id, idField }) => {
   let nextPayload = toDbPayload(payload, table);
   const removedColumns = [];
 
-  for (let attempt = 0; attempt < 12; attempt += 1) {
-    const query = action === 'insert'
-      ? supabase.from(table).insert(nextPayload).select('*').single()
-      : supabase.from(table).update(nextPayload).eq(idField, id).select('*').single();
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const { data, error } = await executeMutation({ table, action, payload: nextPayload, id, idField });
+    if (!error) return firstRow(data, nextPayload);
 
-    const { data, error } = await query;
-    if (!error) return data;
+    if (isSingleObjectCoercionError(error)) {
+      return selectExistingByPrimaryKey({ table, id: id || nextPayload?.[idField], idField, fallback: nextPayload });
+    }
+
+    if (action === 'insert' && isDuplicateKeyError(error) && nextPayload?.[idField]) {
+      return updateExistingByPrimaryKey({ table, payload: nextPayload, idField });
+    }
 
     const missingColumn = getMissingSchemaColumn(error);
     if (!missingColumn || removedColumns.includes(missingColumn)) throw error;
@@ -63,7 +125,67 @@ const runMutationWithSchemaRetry = async ({ table, action, payload, id, idField 
     nextPayload = withoutColumn(nextPayload, missingColumn);
   }
 
-  throw new Error(`Schema Supabase incomplet pour ${table}. Colonnes ignorees: ${removedColumns.join(', ')}`);
+  console.warn(`Schema Supabase incomplet pour ${table}. Colonnes ignorees: ${removedColumns.join(', ')}`);
+  return nextPayload;
+};
+
+const isSoftDeleted = (row = {}) => Boolean(row.is_deleted || row.deleted_at || row.deletedAt);
+
+const filterSoftDeletedRows = (rows = []) => Array.isArray(rows) ? rows.filter((row) => !isSoftDeleted(row)) : [];
+
+const currentUserId = async () => {
+  try {
+    const { data } = await supabase.auth.getUser();
+    return data?.user?.id || data?.user?.email || 'system';
+  } catch {
+    return 'system';
+  }
+};
+
+const writeDeletedRecord = async ({ table, id, idField }) => {
+  try {
+    const actor = await currentUserId();
+    await supabase.from('deleted_records').upsert({
+      id: `${table}:${id}`,
+      module_key: table,
+      table_name: table,
+      record_id: String(id),
+      id_field: idField,
+      deleted_by: actor,
+      deleted_at: new Date().toISOString(),
+    }, { onConflict: 'id' });
+  } catch (error) {
+    const message = String(error?.message || '').toLowerCase();
+    if (!message.includes('deleted_records') && !message.includes('schema cache') && !message.includes('does not exist')) {
+      console.warn('Deleted record journal non enregistre', error.message || error);
+    }
+  }
+};
+
+const trySoftDelete = async ({ table, id, idField }) => {
+  const actor = await currentUserId();
+  const payload = {
+    is_deleted: true,
+    deleted_at: new Date().toISOString(),
+    deleted_by: actor,
+  };
+  let nextPayload = payload;
+  const removedColumns = [];
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    if (Object.keys(nextPayload).length === 0) return false;
+    const { error } = await supabase.from(table).update(nextPayload).eq(idField, id);
+    if (!error) {
+      await writeDeletedRecord({ table, id, idField });
+      return true;
+    }
+    const missingColumn = getMissingSchemaColumn(error);
+    if (!missingColumn || removedColumns.includes(missingColumn)) return false;
+    removedColumns.push(missingColumn);
+    nextPayload = withoutColumn(nextPayload, missingColumn);
+  }
+
+  return false;
 };
 
 export const createSupabaseCrudService = (table, idField = 'id') => ({
@@ -71,7 +193,7 @@ export const createSupabaseCrudService = (table, idField = 'id') => ({
     if (!table) return [];
     const { data, error } = await supabase.from(table).select('*');
     if (error) throw error;
-    return data || [];
+    return filterSoftDeletedRows(data || []);
   },
 
   async create(payload) {
@@ -86,6 +208,9 @@ export const createSupabaseCrudService = (table, idField = 'id') => ({
 
   async remove(id) {
     if (!table) return true;
+    const softDeleted = await trySoftDelete({ table, id, idField });
+    if (softDeleted) return true;
+    await writeDeletedRecord({ table, id, idField });
     const { error } = await supabase.from(table).delete().eq(idField, id);
     if (error) throw error;
     return true;

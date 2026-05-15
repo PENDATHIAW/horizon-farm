@@ -1,4 +1,4 @@
-﻿import { AlertTriangle, Archive, BarChart2, BookOpen, CheckCircle, CreditCard, Download, FileText, Landmark, Layers, Plus, RefreshCw, Scale, Wallet } from 'lucide-react';
+﻿import { AlertTriangle, Archive, BarChart2, BookOpen, CheckCircle, Download, FileText, Landmark, Layers, Plus, RefreshCw, Scale, Wallet } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Btn from '../components/Btn';
@@ -103,6 +103,10 @@ export default function Comptabilite({ transactions = [], clients = [], fourniss
     [transactions]
   );
 
+  const validatedEntries = useMemo(() => data.entries.filter((entry) => entry.status === 'valide').length, [data.entries]);
+  const draftEntries = useMemo(() => data.entries.filter((entry) => entry.status !== 'valide').length, [data.entries]);
+  const missingDocuments = useMemo(() => transactions.filter((transaction) => Number(transaction.montant || 0) > 0 && !transaction.justificatif_url && !transaction.document_id).length, [transactions]);
+
   const generateDrafts = async () => {
     if (!draftableTransactions.length) {
       toast.success('Toutes les transactions ont deja une ecriture');
@@ -187,7 +191,7 @@ export default function Comptabilite({ transactions = [], clients = [], fourniss
     <div className="space-y-6">
       <SectionHeader
         title="Comptabilite guidee"
-        sub="SYSCOHADA-lite - journaux, dettes, creances, budgets et rapports simples"
+        sub="Ecritures, pieces, dettes, creances, budgets, clotures et rapports"
         actions={
           <>
             <Btn icon={RefreshCw} variant="outline" small onClick={load} disabled={loading}>Refresh</Btn>
@@ -198,10 +202,14 @@ export default function Comptabilite({ transactions = [], clients = [], fourniss
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard icon={Wallet} label="Tresorerie" value={fmtCurrency(reports.bilan.tresorerie)} sub="cash + banque + mobile money" color="bg-emerald-500/20 text-emerald-400" />
-        <KpiCard icon={BarChart2} label="Resultat net" value={fmtCurrency(reports.result.net)} sub="revenus - charges" color="bg-sky-500/20 text-sky-400" />
-        <KpiCard icon={AlertTriangle} label="Dettes fournisseurs" value={fmtCurrency(reports.bilan.dettes)} sub={`${dettes.length} operation(s) a suivre`} color="bg-red-500/20 text-red-400" />
-        <KpiCard icon={CreditCard} label="Creances clients" value={fmtCurrency(reports.bilan.creances)} sub={`${creances.length} client(s) debiteur(s)`} color="bg-amber-500/20 text-amber-500" />
+        <KpiCard icon={BookOpen} label="Transactions a comptabiliser" value={draftableTransactions.length} sub="a transformer en ecritures" color="bg-amber-500/20 text-amber-500" />
+        <KpiCard icon={CheckCircle} label="Ecritures validees" value={validatedEntries} sub={`${draftEntries} brouillon(s) restant(s)`} color="bg-emerald-500/20 text-emerald-500" />
+        <KpiCard icon={AlertTriangle} label="Pieces manquantes" value={missingDocuments} sub="justificatifs a archiver" color="bg-red-500/20 text-red-400" />
+        <KpiCard icon={Archive} label="Clotures" value={data.closures.length} sub="periodes suivies" color="bg-sky-500/20 text-sky-400" />
+      </div>
+
+      <div className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4 text-sm text-[#7d6a4a]">
+        <b className="text-[#2f2415]">Lecture du module :</b> la tresorerie et le pilotage business restent dans Finances. Ici, on suit surtout les ecritures, pieces, dettes, creances, budgets, clotures et rapports comptables.
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">
@@ -222,25 +230,22 @@ export default function Comptabilite({ transactions = [], clients = [], fourniss
           <div className="lg:col-span-2 bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5">
             <p className="font-bold text-[#2f2415] mb-2">Mode simple pour non-comptable</p>
             <p className="text-sm text-[#7d6a4a] leading-6">
-              Tu saisis une recette, une depense, une dette ou un paiement dans Finances. Horizon Farm propose automatiquement les comptes SYSCOHADA-lite,
-              cree une ecriture brouillon, puis tu peux la valider ici. Les mots compliques sont traduits en notions metier: argent encaisse,
-              fournisseur a payer, client doit de l'argent, depense validee.
+              Les recettes, depenses, dettes et paiements sont saisis dans Finances ou les modules metiers. Ici, Horizon Farm propose automatiquement les comptes SYSCOHADA-lite,
+              cree les ecritures brouillon, puis tu peux les valider et archiver les justificatifs. Ce module ne refait pas le dashboard financier : il securise les pieces et l'historique comptable.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-              <div className="bg-[#fffdf8] rounded-xl border border-[#e7d9be] p-3"><p className="text-xs text-[#8a7456]">1. Saisie</p><p className="font-semibold text-[#2f2415]">Recette / Depense</p></div>
+              <div className="bg-[#fffdf8] rounded-xl border border-[#e7d9be] p-3"><p className="text-xs text-[#8a7456]">1. Source</p><p className="font-semibold text-[#2f2415]">Transaction metier</p></div>
               <div className="bg-[#fffdf8] rounded-xl border border-[#e7d9be] p-3"><p className="text-xs text-[#8a7456]">2. Brouillon</p><p className="font-semibold text-[#2f2415]">Ecriture proposee</p></div>
-              <div className="bg-[#fffdf8] rounded-xl border border-[#e7d9be] p-3"><p className="text-xs text-[#8a7456]">3. Rapport</p><p className="font-semibold text-[#2f2415]">Balance / Resultat</p></div>
+              <div className="bg-[#fffdf8] rounded-xl border border-[#e7d9be] p-3"><p className="text-xs text-[#8a7456]">3. Validation</p><p className="font-semibold text-[#2f2415]">Balance / rapport</p></div>
             </div>
           </div>
           <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5">
-            <p className="font-bold text-[#2f2415] mb-3">Alertes comptables</p>
+            <p className="font-bold text-[#2f2415] mb-3">Priorites comptables</p>
             <div className="space-y-2">
-              {alerts.length ? alerts.slice(0, 5).map((alert) => (
-                <div key={alert.id} className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3">
-                  <p className="text-sm font-semibold text-[#2f2415]">{alert.title}</p>
-                  <p className="text-xs text-[#8a7456]">{alert.message}</p>
-                </div>
-              )) : <p className="text-sm text-[#8a7456]">Aucune alerte critique.</p>}
+              {draftableTransactions.length ? <Priority label="Transactions sans ecriture" value={draftableTransactions.length} /> : null}
+              {missingDocuments ? <Priority label="Justificatifs manquants" value={missingDocuments} danger /> : null}
+              {alerts.length ? alerts.slice(0, 3).map((alert) => <Priority key={alert.id} label={alert.title} value={alert.message} />) : null}
+              {!draftableTransactions.length && !missingDocuments && !alerts.length ? <p className="text-sm text-[#8a7456]">Aucune priorite comptable critique.</p> : null}
             </div>
           </div>
         </div>
@@ -331,6 +336,10 @@ export default function Comptabilite({ transactions = [], clients = [], fourniss
       <CreateModal open={modal === 'document'} onClose={() => setModal(null)} onSubmit={submitDocument} fields={documentFields} initialValues={modalDefaults.document} uploadFolder="comptabilite" loading={saving} title="Archiver justificatif" submitLabel="Archiver" />
     </div>
   );
+}
+
+function Priority({ label, value, danger = false }) {
+  return <div className={`rounded-xl border p-3 ${danger ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'}`}><p className="text-sm font-semibold text-[#2f2415]">{label}</p><p className={`text-xs ${danger ? 'text-red-600' : 'text-amber-700'}`}>{value}</p></div>;
 }
 
 function SimpleTable({ title, rows = [], columns = [], moneyColumns = [] }) {
