@@ -4,6 +4,7 @@ import KpiCard from '../components/KpiCard';
 import SectionHeader from '../components/SectionHeader';
 import { buildStrategicInsights } from '../services/aiStrategyService';
 import { buildHorizonProactiveInsights } from '../services/horizonProactiveService';
+import { buildDraftFromProactiveInsight } from '../services/proactiveActionDrafts';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 
 const priorityClass = {
@@ -41,6 +42,16 @@ export default function CentreIA({
   meteo = null,
   onNavigate,
 }) {
+  const centreDataMap = useMemo(() => ({ lots, avicole: lots, productionLogs, alimentationLogs, stock: stocks, stocks, salesOrders, sales_orders: salesOrders, payments, transactions, finances: transactions, sensors, cameras, meteo }), [lots, productionLogs, alimentationLogs, stocks, salesOrders, payments, transactions, sensors, cameras, meteo]);
+
+  const openDraftFromInsight = (insight) => {
+    const draft = buildDraftFromProactiveInsight(insight, centreDataMap);
+    if (!draft) return;
+    window.dispatchEvent(new CustomEvent('horizon-open-draft', {
+      detail: { draft, sourceLabel: 'Centre IA Proactif' },
+    }));
+  };
+
   const insights = useMemo(() => buildStrategicInsights({
     avicoleLots: lots,
     productionLogs,
@@ -57,18 +68,7 @@ export default function CentreIA({
     meteo,
   }), [lots, productionLogs, alimentationLogs, stocks, marketPrices, marketCalendarEvents, salesOrders, payments, transactions, smartfarmEvents, sensors, cameras, meteo]);
 
-  const proactive = useMemo(() => buildHorizonProactiveInsights({
-    lots,
-    productionLogs,
-    alimentationLogs,
-    stocks,
-    salesOrders,
-    payments,
-    transactions,
-    sensors,
-    cameras,
-    meteo,
-  }), [lots, productionLogs, alimentationLogs, stocks, salesOrders, payments, transactions, sensors, cameras, meteo]);
+  const proactive = useMemo(() => buildHorizonProactiveInsights(centreDataMap), [centreDataMap]);
 
   const score = Math.round(insights.strategic_score || 0);
   const proactiveScore = Math.round(proactive.proactive_score || 0);
@@ -113,14 +113,18 @@ export default function CentreIA({
           </div>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 mt-4">
-          {proactive.next_actions.slice(0, 5).map((item, index) => (
-            <button key={`${item.module}-${index}`} type="button" onClick={() => onNavigate?.(item.module)} className="text-left rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 p-3 transition-colors">
+          {proactive.insights.slice(0, 5).map((item, index) => (
+            <div key={`${item.id}-${index}`} className="text-left rounded-2xl bg-white/10 border border-white/10 p-3">
               <span className="text-[10px] uppercase tracking-wider text-[#f8e8b6] font-black">{item.severity}</span>
               <p className="text-sm font-bold mt-1 line-clamp-2">{item.title}</p>
               <p className="text-[11px] text-white/70 mt-1 line-clamp-2">{item.action}</p>
-            </button>
+              <div className="flex gap-2 mt-3">
+                <button type="button" onClick={() => onNavigate?.(item.module)} className="flex-1 rounded-xl bg-white/10 px-2 py-1.5 text-[10px] font-black text-white hover:bg-white/20">Voir</button>
+                <button type="button" onClick={() => openDraftFromInsight(item)} className="flex-1 rounded-xl bg-[#f6c453] px-2 py-1.5 text-[10px] font-black text-[#2f2415] hover:bg-[#ffe08a]">Préparer</button>
+              </div>
+            </div>
           ))}
-          {!proactive.next_actions.length ? <div className="lg:col-span-5 rounded-2xl bg-white/10 border border-white/10 p-3 text-sm text-[#f8e8b6]">Aucune action proactive urgente pour le moment.</div> : null}
+          {!proactive.insights.length ? <div className="lg:col-span-5 rounded-2xl bg-white/10 border border-white/10 p-3 text-sm text-[#f8e8b6]">Aucune action proactive urgente pour le moment.</div> : null}
         </div>
       </div>
 
@@ -157,25 +161,20 @@ export default function CentreIA({
           <div className="bg-white border border-[#d6c3a0] rounded-2xl p-5">
             <p className="font-bold text-[#2f2415] flex items-center gap-2"><ShieldAlert size={18} className="text-red-500" /> Risques IA</p>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-red-50 border border-red-200 p-3">
-                <p className="text-xs text-red-700 font-semibold">Urgences</p>
-                <p className="text-2xl font-black text-red-700">{Math.max(insights.anomalies.urgence_count, proactive.urgent_count)}</p>
-              </div>
-              <div className="rounded-xl bg-orange-50 border border-orange-200 p-3">
-                <p className="text-xs text-orange-700 font-semibold">Critiques</p>
-                <p className="text-2xl font-black text-orange-700">{Math.max(insights.anomalies.critique_count, proactive.high_count)}</p>
-              </div>
+              <div className="rounded-xl bg-red-50 border border-red-200 p-3"><p className="text-xs text-red-700 font-semibold">Urgences</p><p className="text-2xl font-black text-red-700">{Math.max(insights.anomalies.urgence_count, proactive.urgent_count)}</p></div>
+              <div className="rounded-xl bg-orange-50 border border-orange-200 p-3"><p className="text-xs text-orange-700 font-semibold">Critiques</p><p className="text-2xl font-black text-orange-700">{Math.max(insights.anomalies.critique_count, proactive.high_count)}</p></div>
             </div>
             <div className="mt-4 space-y-2">
               {proactive.insights.slice(0, 5).map((a) => (
-                <button key={a.id} type="button" onClick={() => onNavigate?.(a.module)} className="w-full text-left rounded-xl bg-[#fffdf8] border border-[#d6c3a0] p-3 text-sm hover:border-emerald-500 transition-colors">
-                  <p className="font-semibold text-[#2f2415]">{a.title}</p>
-                  <p className="text-xs text-[#8a7456]">{a.message}</p>
-                </button>
+                <div key={a.id} className="rounded-xl bg-[#fffdf8] border border-[#d6c3a0] p-3 text-sm">
+                  <button type="button" onClick={() => onNavigate?.(a.module)} className="w-full text-left">
+                    <p className="font-semibold text-[#2f2415]">{a.title}</p>
+                    <p className="text-xs text-[#8a7456]">{a.message}</p>
+                  </button>
+                  <button type="button" onClick={() => openDraftFromInsight(a)} className="mt-2 rounded-xl bg-emerald-50 px-3 py-1.5 text-[11px] font-black text-emerald-700 hover:bg-emerald-100">Préparer une action Horizon</button>
+                </div>
               ))}
-              {!proactive.insights.length ? (
-                <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-700 flex gap-2"><CheckCircle size={16} /> Aucune anomalie IA majeure détectée.</div>
-              ) : null}
+              {!proactive.insights.length ? <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-700 flex gap-2"><CheckCircle size={16} /> Aucune anomalie IA majeure détectée.</div> : null}
             </div>
           </div>
 
