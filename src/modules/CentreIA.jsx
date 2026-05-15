@@ -8,7 +8,9 @@ import { buildHorizonAutomations } from '../services/horizonAutomationEngine';
 import { buildHorizonProactiveInsights } from '../services/horizonProactiveService';
 import { buildDraftFromProactiveInsight } from '../services/proactiveActionDrafts';
 import { fmtCurrency, fmtNumber } from '../utils/format';
+import AnnualCommercialCalendarPanel from './AnnualCommercialCalendarPanel.jsx';
 import DecisionHistoryPanel from './DecisionHistoryPanel.jsx';
+import DecisionRecommendationCard from './DecisionRecommendationCard.jsx';
 
 const priorityClass = {
   critique: 'border-red-300 bg-red-50 text-red-700',
@@ -157,7 +159,7 @@ export default function CentreIA({
           <div>
             <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Objectifs & croissance</p>
             <h3 className="text-xl font-black text-[#2f2415] mt-1">{growth.executive_summary}</h3>
-            <p className="text-sm text-[#8a7456] mt-1">Mois suivi : {growth.goals.currentMonth}. Le moteur compare CA, encaissement, capacité, lead time et calendrier à venir.</p>
+            <p className="text-sm text-[#8a7456] mt-1">Mois suivi : {growth.goals.currentMonth}. Le moteur compare CA, encaissement, capacité, lead time, calendrier et couverture de demande.</p>
           </div>
           <div className="rounded-2xl bg-[#fffdf8] border border-[#eadcc2] px-4 py-3 min-w-[240px]">
             <p className="text-xs text-[#8a7456]">Focus actuel</p>
@@ -183,7 +185,7 @@ export default function CentreIA({
           <div>
             <p className="text-sm font-black text-[#f8e8b6] flex items-center gap-2"><Zap size={16} /> Recommandations investissement & vente</p>
             <h3 className="text-xl font-black mt-1">Investir au bon moment, vendre au bon moment</h3>
-            <p className="text-sm text-[#f8e8b6]/80 mt-1">Le Centre décisionnel distingue capacité actuelle, optimisation, investissement futur et compensation court terme.</p>
+            <p className="text-sm text-[#f8e8b6]/80 mt-1">Chaque carte explique la période cible, la demande, la capacité actuelle, l’écart à couvrir et les actions commerciales.</p>
           </div>
           <div className="grid grid-cols-4 gap-2 min-w-[320px]">
             <MiniDark label="Pondeuses" value={`${growth.leadTimes.oeufs}j`} />
@@ -193,19 +195,14 @@ export default function CentreIA({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
           {growth.recommendations.map((item) => (
-            <div key={item.id} className="rounded-2xl bg-white/10 border border-white/10 p-4">
-              <span className="text-[10px] uppercase tracking-wider text-[#f8e8b6] font-black">{item.priority}</span>
-              <p className="text-sm font-black mt-1">{item.title}</p>
-              <p className="text-[11px] text-white/70 mt-1">{item.timing}</p>
-              <p className="text-xs text-white/80 mt-3 line-clamp-4">{item.recommendation}</p>
-              <button type="button" onClick={() => onNavigate?.('investissements')} className="mt-3 w-full rounded-xl bg-[#f6c453] px-2 py-1.5 text-[10px] font-black text-[#2f2415] hover:bg-[#ffe08a]">Accéder au business plan brouillon</button>
-            </div>
+            <DecisionRecommendationCard key={item.id} item={item} onNavigate={onNavigate} />
           ))}
         </div>
       </div>
 
+      <AnnualCommercialCalendarPanel />
       <DecisionHistoryPanel dataMap={centreDataMap} onNavigate={onNavigate} />
 
       <div className="bg-white border border-[#d6c3a0] rounded-3xl p-5 space-y-4">
