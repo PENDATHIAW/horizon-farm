@@ -6,6 +6,7 @@ const amount = (row = {}) => num(row.montant_total ?? row.total_ttc ?? row.total
 export const decisionStatuses = {
   recommended: 'Recommandée',
   draft_created: 'BP brouillon créé',
+  action_draft_opened: 'Action brouillon ouverte',
   accepted: 'Retenue',
   modified: 'Modifiée',
   rejected: 'Refusée',
@@ -37,8 +38,11 @@ export function buildDecisionRecord(recommendation = {}, context = {}) {
     status: recommendation.status || 'recommended',
     status_label: decisionStatuses[recommendation.status || 'recommended'],
     business_plan_id: recommendation.business_plan_id || '',
+    target_module: recommendation.target_module || '',
+    target_date: recommendation.target_date || '',
+    deadline: recommendation.deadline || '',
     expected_investment: num(recommendation.expected_investment ?? recommendation.investment_needed),
-    expected_revenue: num(recommendation.expected_revenue ?? recommendation.ca_attendu),
+    expected_revenue: num(recommendation.expected_revenue ?? recommendation.ca_attendu ?? recommendation.gap_revenue),
     expected_margin: num(recommendation.expected_margin ?? recommendation.marge_attendue),
     actual_investment: 0,
     actual_revenue: 0,
@@ -46,7 +50,8 @@ export function buildDecisionRecord(recommendation = {}, context = {}) {
     roi_percent: null,
     profitability_status: 'not_evaluable_yet',
     non_profitability_reason: '',
-    decision_reason: recommendation.recommendation || recommendation.why_now || '',
+    decision_reason: recommendation.recommendation || recommendation.why_now || recommendation.decision_reason || '',
+    expected_impact: recommendation.expected_impact || recommendation.recommendation || '',
     bp_tracking_status: 'not_required_yet',
     bp_tracking_alert: '',
     changed_by_user: false,
@@ -57,7 +62,7 @@ export function buildDecisionRecord(recommendation = {}, context = {}) {
 }
 
 function relatedToDecision(row = {}, decision = {}) {
-  const raw = norm(`${row.business_plan_id || ''} ${row.source_recommendation_id || ''} ${row.recommendation_id || ''} ${row.activity || ''} ${row.activite || ''} ${row.source_module || ''} ${row.libelle || ''} ${row.title || ''} ${row.nom || ''}`);
+  const raw = norm(`${row.business_plan_id || ''} ${row.source_recommendation_id || ''} ${row.recommendation_id || ''} ${row.activity || ''} ${row.activite || ''} ${row.source_module || ''} ${row.libelle || ''} ${row.title || ''} ${row.nom || ''} ${row.decision_trace?.recommendation_id || ''}`);
   const keys = [decision.business_plan_id, decision.id, decision.recommendation_id, decision.activity].filter(Boolean).map(norm);
   return keys.some((key) => key && raw.includes(key));
 }
@@ -66,7 +71,7 @@ function findLinkedBusinessPlan(decision = {}, dataMap = {}) {
   const plans = arr(dataMap.business_plans || dataMap.businessPlans);
   return plans.find((bp) => {
     const bpId = String(bp.id || '');
-    const sourceReco = String(bp.source_recommendation_id || bp.recommendation_id || '');
+    const sourceReco = String(bp.source_recommendation_id || bp.recommendation_id || bp.decision_trace?.recommendation_id || '');
     return Boolean(
       (decision.business_plan_id && bpId === String(decision.business_plan_id)) ||
       (decision.recommendation_id && sourceReco === String(decision.recommendation_id)) ||
@@ -155,11 +160,38 @@ export function evaluateDecisionProfitability(decision = {}, dataMap = {}) {
   };
 }
 
+function buildRecordFromDecisionTrace(row = {}, existing = []) {
+  const trace = row.decision_trace || {};
+  if (!trace.recommendation_id) return null;
+  return buildDecisionRecord({
+    id: trace.recommendation_id,
+    recommendation_id: trace.recommendation_id,
+    title: trace.recommendation_title || row.title || row.nom || 'Action Centre décisionnel',
+    activity: trace.activity || row.activity,
+    status: 'action_draft_opened',
+    target_module: trace.target_module || row.target_module,
+    target_date: trace.target_date,
+    deadline: trace.deadline,
+    gap_revenue: trace.gap_revenue,
+    decision_reason: trace.decision_reason,
+    expected_impact: trace.expected_impact,
+    recommendation_date: trace.opened_at || row.created_at,
+  }, { existingDecisions: existing });
+}
+
 export function buildDecisionHistory(dataMap = {}) {
   const stored = arr(dataMap.decision_history || dataMap.decisionHistory || dataMap.business_events).filter((row) => norm(`${row.source_module || ''} ${row.type_evenement || ''} ${row.event_type || ''}`).includes('centre_decisionnel') || String(row.id || row.recommendation_id || '').startsWith('RECO-'));
-  const bpDrafts = arr(dataMap.business_plans || dataMap.businessPlans).filter((bp) => norm(bp.source_module).includes('centre_decisionnel') || bp.source_recommendation_id);
-  const generatedFromBp = bpDrafts.map((bp) => buildDecisionRecord({ id: bp.source_recommendation_id, title: bp.nom || bp.title, activity: bp.activite || bp.activity, status: bp.statut === 'refuse' ? 'rejected' : bp.statut === 'confirme' || bp.statut === 'confirmé' ? 'accepted' : 'draft_created', business_plan_id: bp.id, expected_investment: bp.montant_investissement || bp.investment_needed, expected_revenue: bp.ca_attendu || bp.expected_revenue, expected_margin: bp.marge_attendue || bp.expected_margin, recommendation_date: bp.created_at }, { existingDecisions: stored }));
-  const merged = [...stored, ...generatedFromBp].reduce((map, row) => {
+  const bpDrafts = arr(dataMap.business_plans || dataMap.businessPlans).filter((bp) => norm(bp.source_module).includes('centre_decisionnel') || bp.source_recommendation_id || bp.decision_trace?.recommendation_id);
+  const traceSources = [
+    ...arr(dataMap.business_plans || dataMap.businessPlans),
+    ...arr(dataMap.sales_opportunities || dataMap.salesOpportunities),
+    ...arr(dataMap.alertes_center || dataMap.alertes),
+    ...arr(dataMap.taches || dataMap.tasks),
+    ...arr(dataMap.documents),
+  ].filter((row) => row?.decision_trace?.recommendation_id);
+  const generatedFromTrace = traceSources.map((row) => buildRecordFromDecisionTrace(row, stored)).filter(Boolean);
+  const generatedFromBp = bpDrafts.map((bp) => buildDecisionRecord({ id: bp.source_recommendation_id || bp.decision_trace?.recommendation_id, title: bp.nom || bp.title, activity: bp.activite || bp.activity || bp.decision_trace?.activity, status: bp.statut === 'refuse' ? 'rejected' : bp.statut === 'confirme' || bp.statut === 'confirmé' ? 'accepted' : 'draft_created', business_plan_id: bp.id, expected_investment: bp.montant_investissement || bp.investment_needed || bp.investissement_estime, expected_revenue: bp.ca_attendu || bp.expected_revenue || bp.decision_trace?.gap_revenue, expected_margin: bp.marge_attendue || bp.expected_margin, recommendation_date: bp.created_at || bp.decision_trace?.opened_at }, { existingDecisions: stored }));
+  const merged = [...stored, ...generatedFromTrace, ...generatedFromBp].reduce((map, row) => {
     const key = row.recommendation_id || row.id || row.business_plan_id;
     if (!map.has(key)) map.set(key, row);
     return map;
