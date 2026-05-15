@@ -1,5 +1,6 @@
 import { CalendarDays, CheckSquare, HelpCircle, Target, Users, Zap } from 'lucide-react';
 import { getYearRoundMarkets } from '../services/horizonCommercialCalendar';
+import { buildCommercialTargets } from '../services/smartCommercialTargetingEngine';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 
 const num = (value = 0) => Number(value || 0);
@@ -26,22 +27,25 @@ function statusText(item = {}) {
   return 'Sécuriser clients, cash, aliments/intrants et exécution terrain.';
 }
 
-function recommendedActions(item = {}) {
+function recommendedActions(item = {}, targets = []) {
   const actions = [];
   if (item.should_recommend_investment) actions.push('Créer / compléter le BP brouillon');
   if (num(item.gap_units) > 0) actions.push('Sécuriser précommandes avant achat');
+  if (targets.length) actions.push(`Relancer ${targets[0].name}`);
   if (item.activity === 'poulets_chair') actions.push('Vérifier bâtiment, aliment et date J45');
   if (['bovins', 'ovins', 'caprins'].includes(item.activity)) actions.push('Contacter bouchers, foirails, Touba/Berndé');
   if (item.activity === 'oeufs') actions.push('Cibler pâtisseries, boutiques et consommateurs directs');
   if (item.activity === 'cultures') actions.push('Valider sol, eau, cycle et débouchés');
   if (!actions.length) actions.push('Créer une tâche de suivi commercial');
-  return actions.slice(0, 4);
+  return [...new Set(actions)].slice(0, 4);
 }
 
-export default function DecisionRecommendationCard({ item, onNavigate }) {
+export default function DecisionRecommendationCard({ item, dataMap = {}, onNavigate }) {
   const score = scoreOpportunity(item);
   const markets = getYearRoundMarkets(item.activity);
-  const actions = recommendedActions(item);
+  const targeting = buildCommercialTargets(dataMap, item.activity);
+  const targets = targeting.targets || [];
+  const actions = recommendedActions(item, targets);
 
   return (
     <div className="rounded-2xl bg-white/10 border border-white/10 p-4 flex flex-col gap-3 min-w-0">
@@ -80,6 +84,19 @@ export default function DecisionRecommendationCard({ item, onNavigate }) {
           <p className="mt-1">{markets.slice(0, 5).join(' · ')}</p>
         </div>
       ) : null}
+
+      <div className="rounded-xl bg-white/10 border border-white/10 p-3 text-[11px] text-white/80">
+        <p className="font-black text-[#f8e8b6] flex items-center gap-1"><Target size={13} /> Qui cibler maintenant ?</p>
+        <p className="mt-1 text-white/60">{targeting.recommendation}</p>
+        <div className="mt-2 space-y-1">
+          {targets.slice(0, 3).map((target) => (
+            <div key={target.id || target.name} className="rounded-lg bg-black/15 px-2 py-1">
+              <div className="flex justify-between gap-2"><b className="truncate">{target.name}</b><span>{target.score}/100</span></div>
+              <p className="text-[10px] text-white/55 truncate">{target.type} · {target.action}</p>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="rounded-xl bg-white/10 border border-white/10 p-3 text-[11px] text-white/80">
         <p className="font-black text-[#f8e8b6] flex items-center gap-1"><CheckSquare size={13} /> Actions recommandées</p>
