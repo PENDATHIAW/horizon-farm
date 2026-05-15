@@ -1,12 +1,34 @@
 import { CalendarDays, Target, TrendingUp, WalletCards } from 'lucide-react';
+import toast from 'react-hot-toast';
 import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard';
 import SectionHeader from '../components/SectionHeader';
+import { generateDecisionBusinessPlan } from '../services/decisionBusinessPlanGenerator';
 import { buildDecisionCenterPlan } from '../services/growthDecisionEngine';
 import { fmtCurrency } from '../utils/format';
 
-export default function ObjectifsCroissance({ dataMap = {}, onNavigate }) {
+export default function ObjectifsCroissance({ dataMap = {}, onNavigate, onCreateBusinessPlan, onRefreshBusinessPlans }) {
   const plan = buildDecisionCenterPlan(dataMap);
   const goal = plan.goals.global;
+
+  const createBusinessPlan = async (recommendation) => {
+    const businessPlan = generateDecisionBusinessPlan(recommendation, {
+      cashAvailable: Math.max(0, goal.encaisse - goal.depenses),
+      suggestedInvestment: Math.max(0, goal.encaisse - goal.depenses) * 0.35,
+    });
+
+    try {
+      if (onCreateBusinessPlan) {
+        await onCreateBusinessPlan(businessPlan);
+        await onRefreshBusinessPlans?.();
+        toast.success('Business plan décisionnel créé');
+      } else {
+        toast('Brouillon business plan préparé. Ouvre Investissements pour le compléter.');
+      }
+      onNavigate?.('investissements');
+    } catch (error) {
+      toast.error(error.message || 'Création du business plan impossible');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -73,10 +95,10 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate }) {
               <p className="text-xs text-white/80 mt-3">{item.recommendation}</p>
               <button
                 type="button"
-                onClick={() => onNavigate?.('investissements')}
+                onClick={() => createBusinessPlan(item)}
                 className="mt-3 w-full rounded-xl bg-[#f6c453] px-2 py-1.5 text-[10px] font-black text-[#2f2415] hover:bg-[#ffe08a]"
               >
-                Préparer business plan
+                Créer business plan
               </button>
             </div>
           ))}
