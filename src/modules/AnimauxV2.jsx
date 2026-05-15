@@ -1,5 +1,6 @@
 import { BarChart3, Beef, ClipboardList, PackageCheck, Scissors } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard.jsx';
 import { ANIMAL_SPECIES_TABS, countAnimalsBySpecies, filterAnimalsBySpecies, restoreSpeciesOnAnimalPayload } from '../utils/animalSpecies';
 import AnimalSlaughterStockBridge from './AnimalSlaughterStockBridge.jsx';
 import AnimauxEvolution from './AnimauxEvolution.jsx';
@@ -25,10 +26,18 @@ export default function AnimauxV2(props) {
   const speciesRows = useMemo(() => filterAnimalsBySpecies(props.rows || [], species), [props.rows, species]);
   const wrapCreate = async (payload) => props.onCreate?.(restoreSpeciesOnAnimalPayload(payload, species));
   const wrapUpdate = async (id, payload) => props.onUpdate?.(id, restoreSpeciesOnAnimalPayload(payload, species));
+  const dataMap = {
+    sales_orders: props.salesOrders || [],
+    payments: props.payments || [],
+    finances: props.transactions || [],
+    animaux: props.rows || [],
+  };
 
   return (
     <div className="space-y-6 animaux-mobile-structured">
       <style>{`@media (max-width: 640px){.animaux-mobile-structured .rounded-2xl{border-radius:18px}.animaux-mobile-structured table{font-size:12px}.animaux-mobile-structured th,.animaux-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.animaux-mobile-structured .text-2xl{font-size:1.35rem}.animaux-mobile-structured .grid{gap:.75rem}.animaux-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
+
+      <ObjectivePerformanceCard dataMap={dataMap} activity="animaux" title="Objectif & Performance animaux" onNavigate={props.onNavigate} />
 
       <ModuleSection
         icon={Beef}
