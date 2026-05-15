@@ -197,7 +197,7 @@ export default function CentreIA({
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
           {growth.recommendations.map((item) => (
-            <DecisionRecommendationCard key={item.id} item={item} onNavigate={onNavigate} />
+            <DecisionRecommendationCard key={item.id} item={item} dataMap={centreDataMap} onNavigate={onNavigate} />
           ))}
         </div>
       </div>
