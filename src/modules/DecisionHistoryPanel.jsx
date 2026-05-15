@@ -5,6 +5,7 @@ import { fmtCurrency } from '../utils/format';
 const statusTone = {
   recommended: 'bg-sky-50 border-sky-200 text-sky-700',
   draft_created: 'bg-purple-50 border-purple-200 text-purple-700',
+  action_draft_opened: 'bg-indigo-50 border-indigo-200 text-indigo-700',
   accepted: 'bg-emerald-50 border-emerald-200 text-emerald-700',
   modified: 'bg-amber-50 border-amber-200 text-amber-700',
   rejected: 'bg-red-50 border-red-200 text-red-700',
@@ -26,6 +27,15 @@ function Mini({ icon: Icon, label, value, tone = 'neutral' }) {
   return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 min-w-0"><Icon size={16} className={cls} /><p className={`mt-2 text-xl font-black ${cls} break-words`}>{value}</p><p className="text-xs text-[#8a7456]">{label}</p></div>;
 }
 
+function TraceSummary({ decision }) {
+  const parts = [];
+  if (decision.target_module) parts.push(`Module: ${decision.target_module}`);
+  if (decision.target_date) parts.push(`Cible: ${String(decision.target_date).slice(0, 10)}`);
+  if (decision.deadline) parts.push(`Deadline: ${String(decision.deadline).slice(0, 10)}`);
+  if (decision.expected_impact) parts.push(decision.expected_impact);
+  return <div className="text-xs text-[#8a7456] mt-1 space-y-1"><p>BP: {decision.business_plan_id || '—'}</p>{parts.length ? <p className="max-w-[280px] line-clamp-2">{parts.join(' · ')}</p> : null}</div>;
+}
+
 export default function DecisionHistoryPanel({ dataMap = {}, onNavigate }) {
   const history = buildDecisionHistory(dataMap);
   const totals = history.totals;
@@ -37,7 +47,7 @@ export default function DecisionHistoryPanel({ dataMap = {}, onNavigate }) {
         <div>
           <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><Clock3 size={15} /> Historique des décisions</p>
           <h3 className="text-xl font-black text-[#2f2415] mt-1">Recommandations suivies jusqu’à la rentabilité réelle</h3>
-          <p className="text-sm text-[#8a7456] mt-1">Une recommandation n’est pas jugée rentable au départ. Horizon suit le brouillon, l’exécution, les dépenses, le CA réel, puis le bilan.</p>
+          <p className="text-sm text-[#8a7456] mt-1">Une recommandation n’est pas jugée rentable au départ. Horizon suit les actions ouvertes, le brouillon, l’exécution, les dépenses, le CA réel, puis le bilan.</p>
         </div>
         <button type="button" onClick={() => onNavigate?.('impact_business')} className="rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white hover:bg-[#3d2f1d]">Voir Impact & Valeur ERP</button>
       </div>
@@ -51,14 +61,16 @@ export default function DecisionHistoryPanel({ dataMap = {}, onNavigate }) {
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-[#eadcc2]">
-        <table className="w-full min-w-[980px] text-sm">
+        <table className="w-full min-w-[1120px] text-sm">
           <thead>
             <tr className="bg-[#fffdf8] text-left text-xs uppercase text-[#8a7456]">
               <th className="px-3 py-2">ID</th>
-              <th className="px-3 py-2">Recommandation</th>
+              <th className="px-3 py-2">Recommandation / trace</th>
               <th className="px-3 py-2">Activité</th>
               <th className="px-3 py-2">Date</th>
               <th className="px-3 py-2">Statut</th>
+              <th className="px-3 py-2">Module cible</th>
+              <th className="px-3 py-2">Deadline</th>
               <th className="px-3 py-2">Investi réel</th>
               <th className="px-3 py-2">CA réel</th>
               <th className="px-3 py-2">ROI</th>
@@ -70,19 +82,21 @@ export default function DecisionHistoryPanel({ dataMap = {}, onNavigate }) {
             {latest.map((decision) => (
               <tr key={decision.id || decision.recommendation_id} className="border-t border-[#eadcc2] align-top">
                 <td className="px-3 py-3 font-mono text-xs text-emerald-700">{decision.recommendation_id || decision.id}</td>
-                <td className="px-3 py-3"><b className="text-[#2f2415]">{decision.title}</b><p className="text-xs text-[#8a7456] mt-1">BP: {decision.business_plan_id || '—'}</p></td>
+                <td className="px-3 py-3"><b className="text-[#2f2415]">{decision.title}</b><TraceSummary decision={decision} /></td>
                 <td className="px-3 py-3 text-[#7d6a4a]">{decision.activity || 'global'}</td>
                 <td className="px-3 py-3 text-[#7d6a4a]">{String(decision.recommendation_date || decision.created_at || '').slice(0, 10) || '—'}</td>
                 <td className="px-3 py-3"><span className={`rounded-full border px-2 py-0.5 text-[11px] font-black ${statusTone[decision.status] || statusTone.recommended}`}>{decisionStatuses[decision.status] || decision.status || 'Recommandée'}</span></td>
+                <td className="px-3 py-3 text-xs font-bold text-[#2f2415]">{decision.target_module || '—'}</td>
+                <td className="px-3 py-3 text-xs text-[#7d6a4a]">{String(decision.deadline || '').slice(0, 10) || '—'}</td>
                 <td className="px-3 py-3 font-bold text-[#2f2415]">{fmtCurrency(decision.actual_investment)}</td>
                 <td className="px-3 py-3 font-bold text-[#2f2415]">{fmtCurrency(decision.actual_revenue)}</td>
                 <td className="px-3 py-3 font-bold text-[#2f2415]">{decision.roi_percent === null || decision.roi_percent === undefined ? '—' : `${decision.roi_percent}%`}</td>
                 <td className="px-3 py-3"><ProfitBadge status={decision.profitability_status} /></td>
-                <td className="px-3 py-3 text-xs text-[#7d6a4a] max-w-[260px]">{decision.profitability_status === 'not_profitable' ? explainDecisionNonProfitability(decision) : decision.profitability_explanation || '—'}</td>
+                <td className="px-3 py-3 text-xs text-[#7d6a4a] max-w-[260px]">{decision.profitability_status === 'not_profitable' ? explainDecisionNonProfitability(decision) : decision.profitability_explanation || decision.decision_reason || '—'}</td>
               </tr>
             ))}
             {!latest.length ? (
-              <tr><td className="px-3 py-5 text-sm text-[#8a7456]" colSpan={10}>Aucune recommandation historisée pour le moment. Les prochaines recommandations liées à un business plan apparaîtront ici.</td></tr>
+              <tr><td className="px-3 py-5 text-sm text-[#8a7456]" colSpan={12}>Aucune recommandation historisée pour le moment. Les prochaines recommandations liées à un business plan ou à une action ouverte apparaîtront ici.</td></tr>
             ) : null}
           </tbody>
         </table>
