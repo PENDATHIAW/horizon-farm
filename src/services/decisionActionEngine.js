@@ -106,16 +106,44 @@ export function actionTargetModule(type) {
   }[type] || 'dashboard';
 }
 
+function buildDecisionTrace(action = {}, item = {}) {
+  return {
+    recommendation_id: item.id,
+    action_id: action.id,
+    source_module: 'centre_decisionnel',
+    source_status: 'draft_opened',
+    activity: item.activity,
+    recommendation_title: item.title,
+    action_label: action.label,
+    action_type: action.type,
+    target_module: actionTargetModule(action.type),
+    target_date: item.target_date,
+    deadline: item.latest_start,
+    demand_level: item.demand_level,
+    coverage_rate: item.coverage_rate,
+    coverage_status: item.coverage_status,
+    gap_units: item.gap_units,
+    gap_revenue: item.gap_revenue,
+    expected_impact: item.recommendation,
+    decision_reason: `Demande ${item.demand_level || 'inconnue'}, couverture ${item.coverage_rate || 0}%, fenêtre ${item.event_label || item.target_date || 'à confirmer'}.`,
+    opened_at: new Date().toISOString(),
+  };
+}
+
 export function buildDraftFromDecisionAction(action = {}, item = {}) {
+  const decisionTrace = buildDecisionTrace(action, item);
   const base = {
     id: makeId('DRAFT'),
     source_module: 'centre_decisionnel',
     source_recommendation_id: item.id,
     source_action_id: action.id,
+    recommendation_id: item.id,
+    decision_trace: decisionTrace,
     activity: item.activity,
     priority: action.priority,
     title: action.label,
     status: 'brouillon',
+    statut: 'brouillon',
     created_at: new Date().toISOString(),
   };
 
@@ -131,6 +159,7 @@ export function buildDraftFromDecisionAction(action = {}, item = {}) {
       investissement_estime: item.gap_revenue,
       quantite_cible: item.gap_units,
       justification: item.recommendation,
+      source_recommendation_status: 'bp_draft_opened',
     };
   }
 
@@ -146,6 +175,7 @@ export function buildDraftFromDecisionAction(action = {}, item = {}) {
       date_cible: item.target_date,
       probabilite: 45,
       statut: 'prospection',
+      source_recommendation_status: 'sales_opportunity_draft_opened',
     };
   }
 
@@ -158,6 +188,7 @@ export function buildDraftFromDecisionAction(action = {}, item = {}) {
       due_date: action.payload?.due_date || item.latest_start,
       severity: action.priority === 'haute' ? 'haute' : 'moyenne',
       message: `Deadline à surveiller pour ${item.activity}. Fenêtre cible : ${item.event_label || item.target_date || 'à confirmer'}.`,
+      source_recommendation_status: 'alert_draft_opened',
     };
   }
 
@@ -170,7 +201,9 @@ export function buildDraftFromDecisionAction(action = {}, item = {}) {
       due_date: item.latest_start || item.target_date,
       priority: action.priority === 'haute' ? 'critique' : 'haute',
       status: 'a_faire',
+      statut: 'a_faire',
       description: `Action recommandée par le Centre décisionnel pour ${item.activity}.`,
+      source_recommendation_status: 'task_draft_opened',
     };
   }
 
@@ -183,6 +216,7 @@ export function buildDraftFromDecisionAction(action = {}, item = {}) {
       items: action.payload?.items || [],
       due_date: item.latest_start || item.target_date,
       description: 'Vérifier disponibilité stock avant engagement commercial ou mise en place.',
+      source_recommendation_status: 'stock_check_draft_opened',
     };
   }
 
@@ -195,6 +229,7 @@ export function buildDraftFromDecisionAction(action = {}, item = {}) {
       date_cible: item.target_date,
       deadline: item.latest_start,
       description: 'Vérifier poids, santé, alimentation et vendabilité des animaux.',
+      source_recommendation_status: 'animal_check_draft_opened',
     };
   }
 
@@ -207,6 +242,7 @@ export function buildDraftFromDecisionAction(action = {}, item = {}) {
       date_cible: item.target_date,
       deadline: item.latest_start,
       description: 'Vérifier sol, eau, intrants, cycle cultural et débouchés avant lancement.',
+      source_recommendation_status: 'culture_check_draft_opened',
     };
   }
 
