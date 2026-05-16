@@ -145,6 +145,7 @@ export default function FinancesV11(props) {
           lots={props.lots || []}
           cultures={props.cultures || []}
           stocks={props.stocks || []}
+          businessEvents={props.businessEvents || []}
           compact
         />
       </ModuleSection>
