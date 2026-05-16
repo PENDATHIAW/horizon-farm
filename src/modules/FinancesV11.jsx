@@ -108,11 +108,21 @@ export default function FinancesV11(props) {
       </ModuleSection>
 
       <ModuleSection
-        icon={BarChart3}
-        title="Évolution financière"
-        subtitle="Graphes des entrées, sorties et résultat sur les derniers mois."
+        icon={TrendingUp}
+        title="Résultat réel ferme"
+        subtitle="CA, charges directes, charges de structure, investissements, prélèvements et cash disponible."
       >
-        <FinanceEvolutionPanel transactions={props.rows || []} salesOrders={props.salesOrders || []} payments={props.payments || []} />
+        <ProfitabilityStatement
+          transactions={props.rows || []}
+          salesOrders={props.salesOrders || []}
+          payments={props.payments || []}
+          animaux={props.animaux || []}
+          lots={props.lots || []}
+          cultures={props.cultures || []}
+          stocks={props.stocks || []}
+          businessEvents={businessEvents}
+          compact
+        />
       </ModuleSection>
 
       <ModuleSection
@@ -136,29 +146,19 @@ export default function FinancesV11(props) {
       </ModuleSection>
 
       <ModuleSection
-        icon={TrendingUp}
-        title="Résultat réel ferme"
-        subtitle="CA, charges directes, charges de structure, investissements, prélèvements et cash disponible."
-      >
-        <ProfitabilityStatement
-          transactions={props.rows || []}
-          salesOrders={props.salesOrders || []}
-          payments={props.payments || []}
-          animaux={props.animaux || []}
-          lots={props.lots || []}
-          cultures={props.cultures || []}
-          stocks={props.stocks || []}
-          businessEvents={businessEvents}
-          compact
-        />
-      </ModuleSection>
-
-      <ModuleSection
         icon={ListChecks}
         title="Écritures financières"
         subtitle="Liste détaillée des entrées, sorties, paiements, justificatifs et opérations."
       >
         <FinancesV10 {...props} />
+      </ModuleSection>
+
+      <ModuleSection
+        icon={BarChart3}
+        title="Évolution financière"
+        subtitle="Graphes des entrées, sorties et résultat sur les derniers mois."
+      >
+        <FinanceEvolutionPanel transactions={props.rows || []} salesOrders={props.salesOrders || []} payments={props.payments || []} />
       </ModuleSection>
     </div>
   );
