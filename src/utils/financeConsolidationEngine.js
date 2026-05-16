@@ -13,9 +13,15 @@ const isOut = (row = {}) => clean(row.type) === 'sortie';
 const isPaid = (row = {}) => !['impaye', 'partiel', 'en_retard', 'annule', 'annulee'].includes(clean(row.statut || row.status || 'paye'));
 const isReceivableTx = (row = {}) => isIn(row) && ['impaye', 'partiel', 'en_retard'].includes(clean(row.statut || row.status));
 const isSalesLikeTx = (tx = {}) => ['vente', 'ventes', 'client', 'clients'].some((key) => clean(`${tx.categorie || ''} ${tx.module_lie || ''} ${tx.source_module || ''} ${tx.libelle || ''}`).includes(key));
+const isLossEvent = (event = {}) => ['perte_animal', 'perte_avicole', 'perte_culturale'].includes(clean(event.type_evenement || event.event_type)) || clean(`${event.title || ''} ${event.description || ''}`).includes('perte');
+const eventAmount = (event = {}) => toNumber(event.montant ?? event.amount ?? event.valeur_perte_estimee ?? event.total ?? 0);
 
 function keyForTransaction(tx = {}) {
   return [tx.source_module || tx.module_lie || 'finance', tx.source_record_id || tx.related_id || tx.order_id || tx.sale_id || tx.payment_id || tx.invoice_id || tx.id].map((v) => String(v || '').trim()).join(':');
+}
+
+function keyForLossEvent(event = {}) {
+  return [event.module || event.source_type || 'perte', event.source_id || event.source_record_id || event.related_id || event.id].map((v) => String(v || '').trim()).join(':');
 }
 
 export function paymentsForOrder(order = {}, payments = []) {
@@ -45,10 +51,19 @@ export function calculateClientSettlement(client = {}, orders = [], payments = [
   return { clientId: client.id, orders: details, total, paid, remaining, openOrders: details.filter((item) => item.remaining > 0), status: remaining > 0 ? 'a_relancer' : total > 0 ? 'actif' : (client.statut || 'prospect') };
 }
 
-export function consolidateFinance({ transactions = [], salesOrders = [], payments = [], fournisseurs = [], stocks = [] } = {}) {
+export function consolidateFinance({ transactions = [], salesOrders = [], payments = [], fournisseurs = [], stocks = [], businessEvents = [] } = {}) {
   const orders = arr(salesOrders).filter((order) => !isCancelled(order));
   const txRows = arr(transactions).filter((tx) => Math.abs(amountOf(tx)) > 0 && !isCancelled(tx));
   const paymentRows = arr(payments).filter((payment) => paymentAmount(payment) > 0 && !isCancelled(payment));
+  const lossEvents = arr(businessEvents).filter((event) => isLossEvent(event) && eventAmount(event) > 0 && !isCancelled(event));
+  const lossEventMap = new Map();
+  lossEvents.forEach((event) => {
+    const key = keyForLossEvent(event);
+    const existing = lossEventMap.get(key);
+    if (!existing || eventAmount(event) >= eventAmount(existing)) lossEventMap.set(key, event);
+  });
+  const uniqueLossEvents = Array.from(lossEventMap.values());
+  const lossCharges = uniqueLossEvents.reduce((sum, event) => sum + eventAmount(event), 0);
   const orderSettlements = orders.map((order) => ({ order, ...calculateOrderSettlement(order, paymentRows) }));
   const caFacture = orderSettlements.reduce((sum, item) => sum + item.total, 0);
   const cashOrders = orderSettlements.reduce((sum, item) => sum + item.paid, 0);
@@ -74,7 +89,7 @@ export function consolidateFinance({ transactions = [], salesOrders = [], paymen
   const cashEncaisse = caFacture > 0 ? Math.min(caFacture, salesCashRaw) : salesCashRaw;
   const creancesReelles = Math.max(0, caFacture - cashEncaisse, creancesCommandes);
   const caConsolide = caFacture;
-  const chargesEngagees = txExpenses;
+  const chargesEngagees = txExpenses + lossCharges;
   const chargesPayees = paidExpenses;
   const cashNet = cashEncaisse + otherCashIn + orphanPaymentsTotal - chargesPayees;
   const margeReelle = caConsolide - chargesEngagees;
@@ -82,5 +97,6 @@ export function consolidateFinance({ transactions = [], salesOrders = [], paymen
   if (orphanPayments.length) warnings.push(`${orphanPayments.length} paiement(s) non rattache(s) a une commande`);
   if (overpaidOrders > 0) warnings.push(`${overpaidOrders} FCFA d'encaissement dépasse le montant de commandes liées`);
   if (txReceivables > 0 && creancesCommandes > 0) warnings.push('Creances presentes dans commandes et transactions: anti-doublon applique');
-  return { caFacture, caConsolide, cashEncaisse, otherCashIn, orphanPaymentsTotal, creancesReelles, chargesEngagees, chargesPayees, dettesFournisseurs: supplierDebt, stockValue, cashNet, margeReelle, marginRate: caConsolide > 0 ? Number(((margeReelle / caConsolide) * 100).toFixed(1)) : 0, orderSettlements, uniqueTransactions, orphanPayments, warnings };
+  if (lossCharges > 0) warnings.push(`${lossCharges} FCFA de pertes consignées intégrées aux charges non cash`);
+  return { caFacture, caConsolide, cashEncaisse, otherCashIn, orphanPaymentsTotal, creancesReelles, chargesEngagees, chargesPayees, lossCharges, dettesFournisseurs: supplierDebt, stockValue, cashNet, margeReelle, marginRate: caConsolide > 0 ? Number(((margeReelle / caConsolide) * 100).toFixed(1)) : 0, orderSettlements, uniqueTransactions, uniqueLossEvents, orphanPayments, warnings };
 }
