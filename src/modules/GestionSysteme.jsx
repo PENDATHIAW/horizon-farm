@@ -40,6 +40,7 @@ const tableLabel = (key) => TABLE_LABELS[key] || key;
 function Field({ label, value, onChange, type = 'text' }) { return <label className="block text-sm"><span className="text-[#8a7456]">{label}</span><input type={type} value={value || ''} onChange={(e) => onChange(e.target.value)} className="mt-1 w-full rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2" /></label>; }
 function TogglePill({ active, children, onClick }) { return <button type="button" onClick={onClick} className={`rounded-full border px-3 py-1 text-xs font-bold ${active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-[#eadcc2] bg-white text-[#8a7456]'}`}>{children}</button>; }
 function Mini({ icon: Icon, label, value, danger = false }) { return <div className={`rounded-2xl border p-4 ${danger ? 'border-red-200 bg-red-50' : 'border-[#eadcc2] bg-[#fffdf8]'}`}><p className="flex items-center gap-2 text-xs uppercase tracking-wide text-[#8a7456]"><Icon size={14} /> {label}</p><p className={`mt-2 text-xl font-black ${danger ? 'text-red-600' : 'text-[#2f2415]'}`}>{value}</p></div>; }
+function DangerResetSection({ wipeBusy, wipeProgress, onWipe }) { return <div className="rounded-3xl border border-red-200 bg-red-50 p-5 shadow-sm space-y-3"><div><p className="text-lg font-black text-red-700">Effacer les données</p><p className="mt-1 text-sm text-red-700/80">Zone sensible placée en bas volontairement. Cette action vide les données de travail de la ferme, mais ne supprime pas les comptes, les accès ni la structure de l’application.</p></div><div className="grid grid-cols-1 md:grid-cols-2 gap-3"><button type="button" disabled={wipeBusy} onClick={() => onWipe({ exportFirst: true })} className="rounded-2xl border border-red-200 bg-white p-4 text-left font-black text-red-700 disabled:opacity-50"><Download size={17} className="inline" /> Exporter et effacer les données</button><button type="button" disabled={wipeBusy} onClick={() => onWipe({ exportFirst: false })} className="rounded-2xl border border-red-300 bg-red-600 p-4 text-left font-black text-white disabled:opacity-50"><Trash2 size={17} className="inline" /> Effacer les données seulement</button></div><p className="text-xs text-red-700/80">L’export Excel contient un onglet par espace : ventes, paiements, santé, stock, documents, animaux, avicole, cultures, rapports, historique, etc.</p>{wipeProgress ? <p className="rounded-xl bg-white/70 p-3 text-xs font-bold text-red-700">{wipeProgress}</p> : null}</div>; }
 
 export default function GestionSysteme() {
   const { user, role, inviteUser, updateProfileRole } = useAuth();
@@ -121,13 +122,6 @@ export default function GestionSysteme() {
       {Object.entries(ROLE_LABELS).filter(([key]) => key !== 'admin').slice(0, 3).map(([key, label]) => <div key={key} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="font-black text-[#2f2415]">{label}</p><p className="mt-1 text-xs text-[#8a7456]">{ROLE_HELP[key]}</p></div>)}
     </div>
 
-    <div className="rounded-3xl border border-red-200 bg-red-50 p-5 shadow-sm space-y-3">
-      <div><p className="text-lg font-black text-red-700">Effacer les données</p><p className="mt-1 text-sm text-red-700/80">Cette action vide les données de travail de la ferme, mais ne supprime pas les comptes, les accès ni la structure de l’application.</p></div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3"><button type="button" disabled={wipeBusy} onClick={() => wipeData({ exportFirst: true })} className="rounded-2xl border border-red-200 bg-white p-4 text-left font-black text-red-700 disabled:opacity-50"><Download size={17} className="inline" /> Exporter et effacer les données</button><button type="button" disabled={wipeBusy} onClick={() => wipeData({ exportFirst: false })} className="rounded-2xl border border-red-300 bg-red-600 p-4 text-left font-black text-white disabled:opacity-50"><Trash2 size={17} className="inline" /> Effacer les données seulement</button></div>
-      <p className="text-xs text-red-700/80">L’export Excel contient un onglet par espace : ventes, paiements, santé, stock, documents, animaux, avicole, cultures, rapports, historique, etc.</p>
-      {wipeProgress ? <p className="rounded-xl bg-white/70 p-3 text-xs font-bold text-red-700">{wipeProgress}</p> : null}
-    </div>
-
     <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><b>Rôle visiteur :</b> accès volontairement limité à Dashboard + Assistant ERP. Il sert aux tests, avis, démonstrations et bêta utilisateurs sans exposer Finances, Stock, RH, Comptabilité ou données sensibles.</div>
 
     <div className="flex flex-wrap gap-2">{['tous', ...Object.keys(ROLE_LABELS)].map((r) => <TogglePill key={r} active={filterRole === r} onClick={() => setFilterRole(r)}>{r === 'tous' ? 'Tous' : ROLE_LABELS[r]}</TogglePill>)}</div>
@@ -141,5 +135,7 @@ export default function GestionSysteme() {
     </div>
 
     {showMatrix ? <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><h3 className="font-black text-[#2f2415]">Qui voit quoi ?</h3><div className="overflow-x-auto"><table className="min-w-full text-sm"><thead><tr className="border-b border-[#eadcc2] bg-[#fffdf8] text-left text-xs uppercase text-[#8a7456]"><th className="py-2 px-3">Espace</th>{Object.entries(ROLE_LABELS).map(([key, label]) => <th key={key} className="py-2 px-3">{label}</th>)}</tr></thead><tbody>{MODULES.map(([key, label]) => <tr key={key} className="border-b border-[#f0e5d0]"><td className="py-2 px-3 font-bold text-[#2f2415]">{label}</td>{Object.keys(ROLE_LABELS).map((roleKey) => <td key={roleKey} className="py-2 px-3">{has(ROLE_PERMISSIONS[roleKey] || [], key) ? <Eye size={16} className="text-emerald-600" /> : <EyeOff size={16} className="text-[#c0aa84]" />}</td>)}</tr>)}</tbody></table></div></div> : null}
+
+    <DangerResetSection wipeBusy={wipeBusy} wipeProgress={wipeProgress} onWipe={wipeData} />
   </div>;
 }
