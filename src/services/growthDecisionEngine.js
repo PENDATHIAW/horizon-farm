@@ -1,4 +1,5 @@
 import { buildFarmSupplyCoverage, buildMonthlyDemandForecast, findDemandCoverageForActivity } from './farmDemandCoverageEngine';
+import { buildTechnicalFarmingAlerts } from './technicalFarmingRules';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const num = (value = 0) => Number(value || 0);
@@ -227,6 +228,63 @@ function buildRecommendation({ activity, title, priority, recommendation, timing
   };
 }
 
+function priorityFromSeverity(severity = '') {
+  const value = normalize(severity);
+  if (value.includes('critique') || value.includes('urgence')) return 'haute';
+  if (value.includes('warning')) return 'moyenne';
+  return 'basse';
+}
+
+function activityFromTechnicalAlert(alert = {}) {
+  const text = normalize(`${alert.module_source || ''} ${alert.entity_type || ''} ${alert.title || ''} ${alert.message || ''}`);
+  if (text.includes('pondeuse') || text.includes('oeuf')) return 'oeufs';
+  if (text.includes('chair') || text.includes('poulet')) return 'poulets_chair';
+  if (text.includes('bovin')) return 'bovins';
+  if (text.includes('ovin')) return 'ovins';
+  if (text.includes('caprin')) return 'caprins';
+  if (text.includes('animal')) return 'animaux';
+  if (text.includes('stock')) return 'stock';
+  if (text.includes('culture')) return 'cultures';
+  return 'global';
+}
+
+function buildTechnicalRecommendation(alert = {}) {
+  const priority = priorityFromSeverity(alert.severity);
+  return {
+    id: `tech-${alert.id}`,
+    title: alert.title || 'Règle technique terrain à traiter',
+    activity: activityFromTechnicalAlert(alert),
+    priority,
+    timing: priority === 'haute' ? 'Action terrain prioritaire' : 'Action terrain à planifier',
+    recommendation: alert.action_recommandee || alert.message || 'Vérifier la conduite terrain et corriger l’écart détecté.',
+    event_label: 'Conduite technique',
+    event_note: alert.message || '',
+    target_date: iso(new Date()),
+    earliest_start: iso(new Date()),
+    latest_start: iso(new Date()),
+    lead_time_days: 0,
+    timing_status: priority === 'haute' ? 'urgent_deadline' : 'prepare_now',
+    timing_status_label: priority === 'haute' ? 'À traiter rapidement' : 'À planifier',
+    should_recommend_investment: false,
+    demand_level: 'technique',
+    demand_index: 0,
+    demand_units: 0,
+    demand_revenue: 0,
+    available_units: 0,
+    available_revenue: 0,
+    coverage_rate: 0,
+    coverage_status: 'conduite_terrain',
+    gap_units: 0,
+    gap_revenue: 0,
+    capacity: null,
+    source_alert_id: alert.id,
+    source_module: alert.module_source,
+    entity_type: alert.entity_type,
+    entity_id: alert.entity_id,
+    technical_rule: true,
+  };
+}
+
 export function buildDecisionCenterPlan(dataMap = {}, options = {}) {
   const referenceDate = options.date || new Date();
   const calendar = buildCommercialCalendar(referenceDate);
@@ -250,7 +308,14 @@ export function buildDecisionCenterPlan(dataMap = {}, options = {}) {
   ['bovins', 'ovins', 'caprins'].forEach((activity) => addForActivity(activity, { title: `${activityLabels[activity]} : investissement selon fenêtre commerciale`, priority: 'moyenne', recommendation: 'Ne pas immobiliser du cash sans précommandes, marge estimée, objectif de poids et capacité alimentaire.' }));
   addForActivity('cultures', { title: 'Cultures adaptées à Thiès/Médina Fall', priority: 'moyenne', recommendation: 'Valider sol, eau, intrants, cycle et débouchés avant tomate, poivron, pomme de terre ou autre culture.' });
 
-  return { calendar, events, demandForecast, coverage, leadTimes, capacity, goals, recommendations, top_activity: goals.activities[0], late_activities: goals.activities.filter((a) => a.attainment < 70), executive_summary: goals.global.attainment >= 100 ? 'Objectif mensuel en avance : sécuriser cash et préparer croissance.' : `Objectif mensuel à ${goals.global.attainment}% : rattrapage et investissements pilotés nécessaires.` };
+  const technicalAlerts = buildTechnicalFarmingAlerts({ lots: arr(dataMap.avicole || dataMap.lots), animaux: arr(dataMap.animaux), stocks: arr(dataMap.stock || dataMap.stocks), sante: arr(dataMap.sante || dataMap.vaccins), businessEvents: arr(dataMap.business_events || dataMap.businessEvents), sensorDevices: arr(dataMap.sensor_devices || dataMap.sensorDevices || dataMap.sensors) });
+  const technicalRecommendations = technicalAlerts.map(buildTechnicalRecommendation);
+  recommendations.unshift(...technicalRecommendations);
+  const criticalTechnical = technicalRecommendations.filter((item) => item.priority === 'haute').length;
+  const summaryBase = goals.global.attainment >= 100 ? 'Objectif mensuel en avance : sécuriser cash et préparer croissance.' : `Objectif mensuel à ${goals.global.attainment}% : rattrapage et investissements pilotés nécessaires.`;
+  const technicalSummary = criticalTechnical ? ` ${criticalTechnical} écart(s) technique(s) critique(s) à corriger.` : technicalRecommendations.length ? ` ${technicalRecommendations.length} point(s) de conduite technique à suivre.` : '';
+
+  return { calendar, events, demandForecast, coverage, leadTimes, capacity, goals, recommendations, technical_alerts: technicalAlerts, technical_recommendations: technicalRecommendations, top_activity: goals.activities[0], late_activities: goals.activities.filter((a) => a.attainment < 70), executive_summary: `${summaryBase}${technicalSummary}` };
 }
 
 export default buildDecisionCenterPlan;
