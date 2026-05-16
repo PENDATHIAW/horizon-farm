@@ -10,7 +10,7 @@ import { buildDraftFromProactiveInsight } from '../services/proactiveActionDraft
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import AnnualCommercialCalendarPanel from './AnnualCommercialCalendarPanel.jsx';
 import DecisionHistoryPanel from './DecisionHistoryPanel.jsx';
-import DecisionRecommendationCard from './DecisionRecommendationCard.jsx';
+import DecisionRecommendationCardCompact from './DecisionRecommendationCardCompact.jsx';
 
 const priorityClass = {
   critique: 'border-red-300 bg-red-50 text-red-700',
@@ -183,9 +183,9 @@ export default function CentreIA({
       <div className="bg-[#2f2415] text-white rounded-3xl p-5 border border-[#d6c3a0] shadow-sm space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-black text-[#f8e8b6] flex items-center gap-2"><Zap size={16} /> Recommandations investissement & vente</p>
-            <h3 className="text-xl font-black mt-1">Investir au bon moment, vendre au bon moment</h3>
-            <p className="text-sm text-[#f8e8b6]/80 mt-1">Chaque carte explique la période cible, la demande, la capacité actuelle, l’écart à couvrir et les actions commerciales.</p>
+            <p className="text-sm font-black text-[#f8e8b6] flex items-center gap-2"><Zap size={16} /> Recommandations investissement, vente & terrain</p>
+            <h3 className="text-xl font-black mt-1">Décider vite sans noyer l’éleveur</h3>
+            <p className="text-sm text-[#f8e8b6]/80 mt-1">Les cartes sont compactes par défaut. Ouvre seulement les détails utiles : période, demande, capacité, ciblage et actions.</p>
           </div>
           <div className="grid grid-cols-4 gap-2 min-w-[320px]">
             <MiniDark label="Pondeuses" value={`${growth.leadTimes.oeufs}j`} />
@@ -197,7 +197,7 @@ export default function CentreIA({
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
           {growth.recommendations.map((item) => (
-            <DecisionRecommendationCard key={item.id} item={item} dataMap={centreDataMap} onNavigate={onNavigate} />
+            <DecisionRecommendationCardCompact key={item.id} item={item} dataMap={centreDataMap} onNavigate={onNavigate} />
           ))}
         </div>
       </div>
@@ -258,23 +258,18 @@ export default function CentreIA({
               <div className="rounded-xl bg-orange-50 border border-orange-200 p-3"><p className="text-xs text-orange-700 font-semibold">Critiques</p><p className="text-2xl font-black text-orange-700">{Math.max(insights.anomalies.critique_count, proactive.high_count)}</p></div>
             </div>
             <div className="mt-4 space-y-2">
-              {proactive.insights.slice(0, 5).map((a) => (
-                <div key={a.id} className="rounded-xl bg-[#fffdf8] border border-[#d6c3a0] p-3 text-sm">
-                  <button type="button" onClick={() => onNavigate?.(a.module)} className="w-full text-left"><p className="font-semibold text-[#2f2415]">{a.title}</p><p className="text-xs text-[#8a7456]">{a.message}</p></button>
-                  <button type="button" onClick={() => openDraftFromInsight(a)} className="mt-2 rounded-xl bg-emerald-50 px-3 py-1.5 text-[11px] font-black text-emerald-700 hover:bg-emerald-100">Préparer une action Horizon</button>
+              {proactive.insights.slice(0, 4).map((insight) => (
+                <div key={insight.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
+                  <p className="font-bold text-[#2f2415] text-sm">{insight.title}</p>
+                  <p className="text-xs text-[#8a7456] mt-1">{insight.recommendation}</p>
+                  <button type="button" onClick={() => openDraftFromInsight(insight)} className="mt-2 rounded-lg bg-[#2f2415] px-2 py-1 text-xs font-bold text-white">Ouvrir action</button>
                 </div>
               ))}
-              {!proactive.insights.length ? <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-700 flex gap-2"><CheckCircle size={16} /> Aucune anomalie majeure détectée.</div> : null}
             </div>
           </div>
-
           <div className="bg-white border border-[#d6c3a0] rounded-2xl p-5">
             <p className="font-bold text-[#2f2415] flex items-center gap-2"><AlertTriangle size={18} className="text-amber-500" /> Prévisions clés</p>
-            <div className="mt-4 space-y-3 text-sm text-[#7d6a4a]">
-              <div className="rounded-xl bg-[#fffdf8] border border-[#d6c3a0] p-3"><p className="font-semibold text-[#2f2415]">Autonomie aliment</p><p>{feedDays === null ? 'Données insuffisantes' : `${Math.round(feedDays)} jour(s)`}</p></div>
-              <div className="rounded-xl bg-[#fffdf8] border border-[#d6c3a0] p-3"><p className="font-semibold text-[#2f2415]">Production vendable estimée</p><p>{fmtNumber(insights.forecasts.eggs.projected_sellable_eggs || 0)} œufs / 30 jours</p></div>
-              <div className="rounded-xl bg-[#fffdf8] border border-[#d6c3a0] p-3"><p className="font-semibold text-[#2f2415]">Cash prévisionnel</p><p>{fmtCurrency(projectedCash || 0)} · tablettes projetées {fmtNumber(projectedTablets || 0)}</p></div>
-            </div>
+            <div className="mt-4 space-y-3 text-sm text-[#7d6a4a]"><p>Autonomie aliment : <b>{feedDays} jours</b></p><p>Œufs projetés : <b>{fmtNumber(projectedTablets)} tablettes</b></p><p>Cash projeté : <b>{fmtCurrency(projectedCash)}</b></p></div>
           </div>
         </div>
       </div>
@@ -283,5 +278,5 @@ export default function CentreIA({
 }
 
 function MiniDark({ label, value }) {
-  return <div className="rounded-2xl bg-white/10 border border-white/10 p-3 text-center"><p className="text-lg font-black">{value}</p><p className="text-[10px] text-[#f8e8b6]">{label}</p></div>;
+  return <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2 text-center"><p className="text-[10px] text-[#f8e8b6]/70">{label}</p><p className="font-black">{value}</p></div>;
 }
