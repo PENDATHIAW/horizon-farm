@@ -3,6 +3,7 @@ import { buildDecisionCenterPlan } from '../services/growthDecisionEngine';
 import { buildAnimalDecisionProfile } from '../services/animalDecisionEngine';
 import { buildAvicoleLotDecision } from '../services/avicoleDecisionEngine';
 import { buildCultureDecisionProfile } from '../services/cultureDecisionEngine';
+import { buildOpportunityAttributionMetrics } from '../services/salesAttributionService';
 import { fmtCurrency } from '../utils/format';
 
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -68,24 +69,29 @@ function buildDecisionExecutionImpact(dataMap = {}, plan = { recommendations: []
   const events = arr(dataMap.business_events || dataMap.businessEvents);
   const investments = arr(dataMap.investissements);
   const businessPlans = arr(dataMap.business_plans || dataMap.businessPlans);
+  const attribution = buildOpportunityAttributionMetrics({ opportunities, orders, payments });
 
   const generatedRecommendations = arr(plan.recommendations).length + opportunities.length;
   const convertedOpportunities = opportunities.filter(isConverted);
   const decisionEvents = events.filter(isDecisionEvent);
-  const salesFromDecision = orders.filter((order) => {
+  const salesFromDecision = attribution.linkedOrders.length ? attribution.linkedOrders : orders.filter((order) => {
     const text = norm(`${order.source_module || ''} ${order.source_type || ''} ${order.recommendation_id || ''} ${order.opportunity_id || ''} ${order.notes || ''}`);
     return text.includes('centre') || text.includes('decision') || text.includes('opportunite') || text.includes('horizon');
   });
-  const paidTotal = payments.reduce((sum, payment) => sum + amountOf(payment), 0);
-  const linkedSalesValue = salesFromDecision.reduce((sum, order) => sum + amountOf(order), 0);
+  const paidTotal = attribution.attributableCash || payments.reduce((sum, payment) => sum + amountOf(payment), 0);
+  const linkedSalesValue = attribution.attributableRevenue || salesFromDecision.reduce((sum, order) => sum + amountOf(order), 0);
   const convertedValue = convertedOpportunities.reduce((sum, opp) => sum + amountOf(opp), 0);
   const plannedInvestments = investments.filter((row) => norm(`${row.business_plan_id || ''} ${row.libelle || ''} ${row.nom || ''}`).includes('bp') || row.business_plan_id).length;
   const horizonBusinessPlans = businessPlans.filter((bp) => norm(`${bp.nom || ''} ${bp.title || ''}`).includes('horizon'));
-  const executedCount = convertedOpportunities.length + salesFromDecision.length + decisionEvents.filter((event) => norm(event.event_type).includes('convert') || norm(event.event_type).includes('vente') || norm(event.event_type).includes('paiement') || norm(event.event_type).includes('invest')).length;
+  const executedCount = Math.max(
+    attribution.convertedOpportunities || 0,
+    convertedOpportunities.length + salesFromDecision.length + decisionEvents.filter((event) => norm(event.event_type).includes('convert') || norm(event.event_type).includes('vente') || norm(event.event_type).includes('paiement') || norm(event.event_type).includes('invest')).length,
+  );
   const executionRate = generatedRecommendations > 0 ? Math.round((executedCount / generatedRecommendations) * 100) : 0;
 
   const historyRows = [
     ...opportunities.map((opp) => ({ id: opp.id, title: opp.title || opp.nom || 'Opportunité vente', origin: opp.decision_origin || opp.source_type || 'Opportunités vente', status: isConverted(opp) ? 'exécuté' : 'à suivre', value: amountOf(opp) })),
+    ...salesFromDecision.map((order) => ({ id: order.id, title: order.source_label || `Commande ${order.id}`, origin: order.decision_origin || 'Vente liée opportunité', status: 'exécuté', value: amountOf(order) })),
     ...decisionEvents.map((event) => ({ id: event.id, title: event.title || event.event_type || 'Événement décisionnel', origin: event.module_source || 'Événement ERP', status: ['vente', 'paiement', 'investissement', 'convert'].some((term) => norm(event.event_type).includes(term)) ? 'exécuté' : 'mémorisé', value: amountOf(event) })),
   ].sort((a, b) => (b.value || 0) - (a.value || 0));
 
@@ -93,12 +99,13 @@ function buildDecisionExecutionImpact(dataMap = {}, plan = { recommendations: []
     generatedRecommendations ? `${generatedRecommendations} recommandation(s) ou opportunité(s) sont visibles pour alimenter l’historique.` : 'Le Centre décisionnel doit encore générer des recommandations exploitables.',
     executedCount ? `${executedCount} action(s) semblent exécutées ou mémorisées.` : 'Aucune exécution clairement reliée à une recommandation pour le moment.',
     linkedSalesValue || convertedValue ? `Valeur commerciale attribuable à suivre : ${fmtCurrency(linkedSalesValue + convertedValue)}.` : 'Les ventes doivent être liées à une opportunité/recommandation pour mesurer la valeur réelle.',
+    attribution.attributableRevenue ? `Attribution opportunité → commande détectée : ${fmtCurrency(attribution.attributableRevenue)} de CA lié.` : 'L’attribution automatique relie les commandes aux opportunités via source_id/source_type quand opportunity_id manque.',
     plannedInvestments || horizonBusinessPlans.length ? 'Les BP/investissements liés permettent de suivre rentabilité prévue vs réelle.' : 'Créer ou lier les BP aux recommandations exécutées pour suivre la rentabilité finale.',
   ];
 
   return {
     generatedRecommendations,
-    convertedOpportunities: convertedOpportunities.length,
+    convertedOpportunities: Math.max(convertedOpportunities.length, attribution.convertedOpportunities || 0),
     executedCount,
     executionRate,
     linkedSalesValue,
@@ -192,7 +199,7 @@ export default function ImpactDecisionBridge(props) {
         <ImpactMini icon={CheckCircle2} label="Exécutées" value={executionImpact.executedCount} detail={`${executionImpact.executionRate}% de taux d’exécution estimé`} tone={executionImpact.executedCount ? 'good' : 'warning'} />
         <ImpactMini icon={TrendingUp} label="Valeur attribuable" value={fmtCurrency(executionImpact.linkedSalesValue + executionImpact.convertedValue)} detail="ventes/opportunités reliées" tone={(executionImpact.linkedSalesValue + executionImpact.convertedValue) > 0 ? 'good' : 'warning'} />
         <ImpactMini icon={Target} label="BP liés" value={executionImpact.plannedInvestments + executionImpact.horizonBusinessPlans} detail="investissements / BP à suivre" tone={executionImpact.plannedInvestments || executionImpact.horizonBusinessPlans ? 'good' : 'warning'} />
-        <ImpactMini icon={Zap} label="Cash encaissé" value={fmtCurrency(executionImpact.paidTotal)} detail="paiements ERP visibles" tone={executionImpact.paidTotal > 0 ? 'good' : 'warning'} />
+        <ImpactMini icon={Zap} label="Cash encaissé" value={fmtCurrency(executionImpact.paidTotal)} detail="paiements liés aux ventes/opportunités" tone={executionImpact.paidTotal > 0 ? 'good' : 'warning'} />
       </div>
 
       <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
