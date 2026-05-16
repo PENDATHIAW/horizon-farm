@@ -8,6 +8,12 @@ import AnimauxSpeciesFocused from './AnimauxSpeciesFocused.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
 
+const toNumber = (value = 0) => Number(value || 0);
+const today = () => new Date().toISOString().slice(0, 10);
+const statusOf = (row = {}) => String(row.status || row.statut || '').toLowerCase();
+const isDead = (row = {}) => statusOf(row) === 'mort';
+const lossValueOf = (row = {}) => toNumber(row.valeur_perte_estimee ?? row.purchase_cost ?? row.cout_achat ?? row.prix_achat);
+
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return (
     <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
@@ -24,8 +30,50 @@ export default function AnimauxV2(props) {
   const [species, setSpecies] = useState('Bovin');
   const counts = useMemo(() => countAnimalsBySpecies(props.rows || []), [props.rows]);
   const speciesRows = useMemo(() => filterAnimalsBySpecies(props.rows || [], species), [props.rows, species]);
-  const wrapCreate = async (payload) => props.onCreate?.(restoreSpeciesOnAnimalPayload(payload, species));
-  const wrapUpdate = async (id, payload) => props.onUpdate?.(id, restoreSpeciesOnAnimalPayload(payload, species));
+
+  const createLossEvent = async (before = {}, after = {}, source = 'modification animal') => {
+    const becameDead = !isDead(before) && isDead(after);
+    const valueIncreased = lossValueOf(after) > lossValueOf(before) && isDead(after);
+    if (!becameDead && !valueIncreased) return;
+    try {
+      await props.onCreateBusinessEvent?.({
+        id: `EVT-ANI-${Date.now()}`,
+        module: 'animaux',
+        source_type: 'animal',
+        source_id: after.id,
+        title: `Perte animal · ${after.name || after.nom || after.boucle_numero || after.id}`,
+        description: [
+          `Source: ${source}`,
+          `Espèce: ${after.type || after.espece || species}`,
+          `Statut: ${before.status || before.statut || 'actif'} → ${after.status || after.statut || 'mort'}`,
+          `Date décès: ${after.date_deces || today()}`,
+          `Cause: ${after.cause_deces || 'non renseignée'}`,
+          `Valeur estimée: ${lossValueOf(after)}`,
+        ].join('\n'),
+        severity: 'critique',
+        status: 'nouveau',
+        date: after.date_deces || today(),
+        type_evenement: 'perte_animal',
+        montant: lossValueOf(after),
+      });
+      await props.onRefreshBusinessEvents?.();
+    } catch (error) {
+      console.warn('Perte animal non consignée en événement', error);
+    }
+  };
+
+  const wrapCreate = async (payload) => {
+    const restored = restoreSpeciesOnAnimalPayload(payload, species);
+    await props.onCreate?.(restored);
+    await createLossEvent({}, restored, 'création animal');
+  };
+  const wrapUpdate = async (id, payload) => {
+    const before = (props.rows || []).find((row) => String(row.id) === String(id)) || {};
+    const restored = restoreSpeciesOnAnimalPayload(payload, species);
+    const after = { ...before, ...restored, id };
+    await props.onUpdate?.(id, restored);
+    await createLossEvent(before, after, 'modification fiche animal');
+  };
   const dataMap = {
     sales_orders: props.salesOrders || [],
     payments: props.payments || [],
