@@ -12,6 +12,8 @@ import DirectChargesBridge from './DirectChargesBridge.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
 
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const num = (value = 0) => Number(value || 0);
+const today = () => new Date().toISOString().slice(0, 10);
 const lotText = (lot = {}) => norm(`${lot.type || ''} ${lot.type_lot || ''} ${lot.production_type || ''} ${lot.activity_type || ''} ${lot.categorie || ''} ${lot.name || ''} ${lot.nom || ''}`);
 const isPondeuse = (lot = {}) => { const text = lotText(lot); return text.includes('pondeuse') || text.includes('ponte') || text.includes('oeuf') || text.includes('œuf'); };
 const isChair = (lot = {}) => { const text = lotText(lot); return text.includes('chair') || text.includes('broiler'); };
@@ -20,6 +22,11 @@ const filterByActivity = (rows = [], activity) => {
   if (activity === 'chair') return rows.filter(isChair);
   return rows;
 };
+const mortalityOf = (lot = {}) => num(lot.mortality);
+const initialOf = (lot = {}) => num(lot.initial_count ?? lot.effectif_initial);
+const mortalityRateOf = (lot = {}) => initialOf(lot) > 0 ? Math.round((mortalityOf(lot) / initialOf(lot)) * 100) : 0;
+const lossValueOf = (lot = {}) => num(lot.valeur_perte_estimee ?? lot.perte_estimee ?? lot.pertes_mortalite_estimees);
+const isLossClosedLot = (lot = {}) => ['perdu', 'perdu_mortalite', 'cloture_perte'].includes(norm(lot.status || lot.statut || '')) || (avicoleActiveCount(lot) <= 0 && initialOf(lot) > 0);
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
@@ -53,7 +60,53 @@ export default function AvicoleV10(props) {
   const chair = useMemo(() => rows.filter(isChair), [rows]);
   const scopedRows = useMemo(() => filterByActivity(rows, activity), [rows, activity]);
   const scopedProductionLogs = useMemo(() => productionLogs.filter((log) => activity !== 'chair' || chair.some((lot) => String(lot.id) === String(log.lot_id || log.related_id))), [productionLogs, activity, chair]);
-  const scopedProps = { ...props, activity, lockActivity: true, rows: scopedRows, productionLogs: scopedProductionLogs, opportunities: (props.opportunities || []).filter((op) => activity === 'pondeuse' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('oeuf') || norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('pondeuse') : activity === 'chair' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('chair') : true) };
+
+  const createMortalityEvent = async (before = {}, after = {}, source = 'modification lot avicole') => {
+    const mortalityIncreased = mortalityOf(after) > mortalityOf(before);
+    const valueIncreased = lossValueOf(after) > lossValueOf(before);
+    const becameClosed = !isLossClosedLot(before) && isLossClosedLot(after);
+    if (!mortalityIncreased && !valueIncreased && !becameClosed) return;
+    const delta = Math.max(0, mortalityOf(after) - mortalityOf(before));
+    try {
+      await props.onCreateBusinessEvent?.({
+        id: `EVT-AVI-${Date.now()}`,
+        module: 'avicole',
+        source_type: 'lot_avicole',
+        source_id: after.id,
+        title: `Pertes lot avicole · ${after.name || after.nom || after.id}`,
+        description: [
+          `Source: ${source}`,
+          `Type: ${after.type || after.categorie || activity}`,
+          `Morts: ${mortalityOf(before)} → ${mortalityOf(after)}${delta ? ` (+${delta})` : ''}`,
+          `Taux morts: ${mortalityRateOf(after)}%`,
+          `Effectif actif: ${avicoleActiveCount(after)}`,
+          `Valeur estimée: ${lossValueOf(before)} → ${lossValueOf(after)}`,
+        ].join('\n'),
+        severity: isLossClosedLot(after) || mortalityRateOf(after) >= 5 ? 'critique' : 'warning',
+        status: 'nouveau',
+        date: today(),
+        type_evenement: 'perte_avicole',
+        montant: Math.max(0, lossValueOf(after) - lossValueOf(before)) || lossValueOf(after),
+      });
+      await props.onRefreshBusinessEvents?.();
+    } catch (error) {
+      console.warn('Perte avicole non consignée en événement', error);
+    }
+  };
+
+  const wrappedCreate = async (payload) => {
+    await props.onCreate?.(payload);
+    await createMortalityEvent({}, payload, 'création lot avicole');
+  };
+
+  const wrappedUpdate = async (id, payload) => {
+    const before = (props.rows || []).find((lot) => String(lot.id) === String(id)) || {};
+    const after = { ...before, ...payload, id };
+    await props.onUpdate?.(id, payload);
+    await createMortalityEvent(before, after, 'modification fiche lot');
+  };
+
+  const scopedProps = { ...props, activity, lockActivity: true, rows: scopedRows, productionLogs: scopedProductionLogs, onCreate: wrappedCreate, onUpdate: wrappedUpdate, opportunities: (props.opportunities || []).filter((op) => activity === 'pondeuse' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('oeuf') || norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('pondeuse') : activity === 'chair' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('chair') : true) };
   const dataMap = { sales_orders: props.salesOrders || [], payments: props.payments || [], finances: props.transactions || [], avicole: scopedRows, production_oeufs_logs: scopedProductionLogs, alimentation_logs: props.alimentationLogs || [] };
   const selectedLabel = activity === 'pondeuse' ? 'Pondeuses' : 'Poulets de chair';
 
