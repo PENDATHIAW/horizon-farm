@@ -85,16 +85,10 @@ export default function AnimauxV2(props) {
     <div className="space-y-6 animaux-mobile-structured">
       <style>{`@media (max-width: 640px){.animaux-mobile-structured .rounded-2xl{border-radius:18px}.animaux-mobile-structured table{font-size:12px}.animaux-mobile-structured th,.animaux-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.animaux-mobile-structured .text-2xl{font-size:1.35rem}.animaux-mobile-structured .grid{gap:.75rem}.animaux-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <ObjectivePerformanceCard dataMap={dataMap} activity="bovins" title="Objectif Bovins" compact onNavigate={props.onNavigate} />
-        <ObjectivePerformanceCard dataMap={dataMap} activity="ovins" title="Objectif Ovins" compact onNavigate={props.onNavigate} />
-        <ObjectivePerformanceCard dataMap={dataMap} activity="caprins" title="Objectif Caprins" compact onNavigate={props.onNavigate} />
-      </div>
-
       <ModuleSection
         icon={Beef}
         title="Cheptel par espèce"
-        subtitle="Choisir une espèce pour voir uniquement les animaux concernés."
+        subtitle="Choisir d’abord l’espèce à piloter pour ne voir que les données utiles."
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {ANIMAL_SPECIES_TABS.map((tab) => (
@@ -112,6 +106,12 @@ export default function AnimauxV2(props) {
         </div>
       </ModuleSection>
 
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <ObjectivePerformanceCard dataMap={dataMap} activity="bovins" title="Objectif Bovins" compact onNavigate={props.onNavigate} />
+        <ObjectivePerformanceCard dataMap={dataMap} activity="ovins" title="Objectif Ovins" compact onNavigate={props.onNavigate} />
+        <ObjectivePerformanceCard dataMap={dataMap} activity="caprins" title="Objectif Caprins" compact onNavigate={props.onNavigate} />
+      </div>
+
       <ModuleSection
         icon={PackageCheck}
         title={`${species}s : suivi quotidien`}
@@ -127,16 +127,19 @@ export default function AnimauxV2(props) {
       </ModuleSection>
 
       <ModuleSection
-        icon={ClipboardList}
-        title={`${species}s : cycle et historique`}
-        subtitle="Entrées, sorties, ventes, pertes, clôtures et événements importants."
+        icon={Scissors}
+        title={`${species}s : abattage, transformation et stock`}
+        subtitle="Sortie de l’animal, transformation éventuelle et création de stock vendable."
       >
-        <LifecycleHistoryPanel
-          mode="animaux"
+        <AnimalSlaughterStockBridge
           rows={speciesRows}
-          salesOrders={props.salesOrders || []}
-          deliveries={props.deliveriesList || props.deliveries || []}
+          alimentationLogs={props.alimentationLogs || []}
+          vaccins={props.vaccins || []}
           businessEvents={props.businessEvents || []}
+          onUpdate={props.onUpdate}
+          onRefresh={props.onRefresh}
+          onCreateBusinessEvent={props.onCreateBusinessEvent}
+          onRefreshBusinessEvents={props.onRefreshBusinessEvents}
         />
       </ModuleSection>
 
@@ -159,19 +162,16 @@ export default function AnimauxV2(props) {
       </ModuleSection>
 
       <ModuleSection
-        icon={Scissors}
-        title={`${species}s : abattage, transformation et stock`}
-        subtitle="Sortie de l’animal, transformation éventuelle et création de stock vendable."
+        icon={ClipboardList}
+        title={`${species}s : cycle et historique`}
+        subtitle="Entrées, sorties, ventes, pertes, clôtures et événements importants."
       >
-        <AnimalSlaughterStockBridge
+        <LifecycleHistoryPanel
+          mode="animaux"
           rows={speciesRows}
-          alimentationLogs={props.alimentationLogs || []}
-          vaccins={props.vaccins || []}
+          salesOrders={props.salesOrders || []}
+          deliveries={props.deliveriesList || props.deliveries || []}
           businessEvents={props.businessEvents || []}
-          onUpdate={props.onUpdate}
-          onRefresh={props.onRefresh}
-          onCreateBusinessEvent={props.onCreateBusinessEvent}
-          onRefreshBusinessEvents={props.onRefreshBusinessEvents}
         />
       </ModuleSection>
 
