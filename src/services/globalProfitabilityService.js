@@ -4,8 +4,9 @@ const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').toLowerCase();
 const amount = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?? row.montant_total ?? row.chiffre_affaires);
 const total = (row = {}) => toNumber(row.montant_total ?? row.total ?? row.chiffre_affaires ?? row.amount);
-const linkedText = (row = {}) => lower(`${row.module_lie || ''} ${row.source_module || ''} ${row.entity_type || ''} ${row.target_type || ''} ${row.type_cible || ''} ${row.related_type || ''}`);
-const fullText = (row = {}) => lower(`${row.categorie || ''} ${row.category || ''} ${row.module_lie || ''} ${row.source_module || ''} ${row.entity_type || ''} ${row.target_type || ''} ${row.type_cible || ''} ${row.libelle || ''} ${row.description || ''} ${row.notes || ''}`);
+const linkedText = (row = {}) => lower(`${row.module_lie || ''} ${row.source_module || ''} ${row.entity_type || ''} ${row.target_type || ''} ${row.type_cible || ''} ${row.related_type || ''} ${row.module || ''} ${row.source_type || ''}`);
+const fullText = (row = {}) => lower(`${row.categorie || ''} ${row.category || ''} ${row.module_lie || ''} ${row.source_module || ''} ${row.entity_type || ''} ${row.target_type || ''} ${row.type_cible || ''} ${row.module || ''} ${row.source_type || ''} ${row.type_evenement || ''} ${row.event_type || ''} ${row.libelle || ''} ${row.title || ''} ${row.description || ''} ${row.notes || ''}`);
+const isLossEvent = (row = {}) => ['perte_animal', 'perte_avicole', 'perte_culturale'].includes(lower(row.type_evenement || row.event_type)) || lower(`${row.title || ''} ${row.description || ''}`).includes('perte');
 
 export const PROFIT_BUCKETS = {
   animaux: 'Charges directes animaux',
@@ -29,6 +30,14 @@ function activityFromLink(row = {}) {
   if (/avicole|volaille|poulet|poussin|pondeuse|chair|lot_avicole|lot/.test(text)) return 'avicole';
   if (/culture|cultures|maraichage|maraîchage|parcelle/.test(text)) return 'cultures';
   return '';
+}
+
+function lossBucket(row = {}) {
+  const type = lower(row.type_evenement || row.event_type);
+  if (type === 'perte_animal') return 'animaux';
+  if (type === 'perte_avicole') return 'avicole';
+  if (type === 'perte_culturale') return 'cultures';
+  return activityFromLink(row) || classifyProfitCharge(row);
 }
 
 function supplierGeneralPurchase(text = '') {
@@ -62,7 +71,7 @@ export function classifyProfitCharge(row = {}) {
   return 'autres_charges';
 }
 
-export function computeGlobalProfitability({ transactions = [], salesOrders = [], payments = [] } = {}) {
+export function computeGlobalProfitability({ transactions = [], salesOrders = [], payments = [], businessEvents = [] } = {}) {
   const salesCa = arr(salesOrders).reduce((sum, sale) => sum + total(sale), 0);
   const financeIn = arr(transactions).filter((tx) => ['entree', 'entrée'].includes(lower(tx.type))).reduce((sum, tx) => sum + amount(tx), 0);
   const paidIn = arr(payments).reduce((sum, payment) => sum + amount(payment), 0);
@@ -78,6 +87,14 @@ export function computeGlobalProfitability({ transactions = [], salesOrders = []
     rowsByBucket[bucket].push(tx);
   });
 
+  const lossEvents = arr(businessEvents).filter((event) => isLossEvent(event) && amount(event) > 0);
+  lossEvents.forEach((event) => {
+    const bucket = lossBucket(event);
+    const value = amount(event);
+    buckets[bucket] += value;
+    rowsByBucket[bucket].push({ ...event, type: 'sortie', categorie: 'perte_non_cash', profit_bucket: bucket });
+  });
+
   const directActivityCharges = buckets.animaux + buckets.avicole + buckets.cultures;
   const unallocatedOperationalCharges = buckets.stock_non_affecte + buckets.sante_non_affectee;
   const ownerSalary = buckets.remuneration_proprietaire;
@@ -89,6 +106,7 @@ export function computeGlobalProfitability({ transactions = [], salesOrders = []
   const operatingResult = caTotal - chargesBeforeInvestments;
   const cashResultAfterInvestments = encaisse - chargesBeforeInvestments - investments;
   const availableCashAfterWithdrawals = cashResultAfterInvestments - ownerWithdrawals;
+  const lossCharges = lossEvents.reduce((sum, event) => sum + amount(event), 0);
 
   return {
     caTotal,
@@ -101,6 +119,7 @@ export function computeGlobalProfitability({ transactions = [], salesOrders = []
     investments,
     ownerSalary,
     ownerWithdrawals,
+    lossCharges,
     chargesBeforeInvestments,
     grossActivityMargin,
     operatingResult,
