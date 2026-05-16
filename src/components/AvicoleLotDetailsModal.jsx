@@ -6,7 +6,8 @@ import { fmtCurrency, fmtNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { calculateLotMetrics } from '../utils/businessCalculations';
 import { buildAvicoleLotDecision } from '../services/avicoleDecisionEngine';
-import { buildPondeuseProductionProfile, projectGrowth, saleOpportunityGuard } from '../services/growthProjectionService';
+import { computeAvicoleLivingTarget } from '../services/avicoleLivingTargets';
+import { buildPondeuseProductionProfile, saleOpportunityGuard } from '../services/growthProjectionService';
 import { PondeuseProductionPanel, SaleOpportunityGuardPanel, WeightProjectionPanel } from './GrowthProjectionPanel';
 
 const Field = ({ label, value, children }) => (
@@ -30,8 +31,20 @@ const deadCount = (lot = {}) => Number(lot.mortality ?? lot.morts ?? lot.deces ?
 const sickCount = (lot = {}) => Number(lot.malades ?? lot.sick_count ?? 0) || 0;
 const isPondeuse = (lot = {}) => String(lot.type || '').toLowerCase().includes('pondeuse');
 const existingOpportunityFor = (lot = {}, opportunities = []) => opportunities.find((opp) => String(opp.source_id || opp.entity_id || opp.related_id || '') === String(lot.id) && !['converti', 'converted', 'annule', 'annulé', 'ignore', 'ignoré', 'perdu', 'cloture', 'clôturé'].some((status) => String(opp.status || opp.statut || '').toLowerCase().includes(status)));
-const latestWeight = (lot = {}) => Number(lot.poids_moyen_actuel ?? lot.last_weight_avg ?? lot.weight_avg ?? lot.average_weight ?? 0) || 0;
-const targetWeight = (lot = {}) => Number(lot.poids_objectif_vente ?? lot.target_weight ?? lot.objectif_poids_moyen ?? 0) || 0;
+
+function livingAsProjection(living) {
+  return {
+    status: living.status,
+    label: living.status?.replaceAll('_', ' ') || 'Suivi en cours',
+    currentWeight: living.currentWeight || 0,
+    targetWeight: living.livingTarget || living.defaultTargetWeight || 0,
+    projectedWeight: living.projectedWeight || 0,
+    targetDays: living.targetDays || 45,
+    gainPerDay: living.adaptiveGainPerDay || living.realGainPerDay || 0,
+    action: living.action,
+    history: living.history || [],
+  };
+}
 
 export default function AvicoleLotDetailsModal({
   open,
@@ -55,8 +68,8 @@ export default function AvicoleLotDetailsModal({
   const decision = buildAvicoleLotDecision(lot, productionLogs);
   const metrics = calculateLotMetrics({ lot, feedingLogs: alimentationLogs, productionLogs });
   const guard = saleOpportunityGuard(lot, 'lot_avicole', opportunities);
-  const targetDays = Number(lot.duree_cycle_valeur || 45) || 45;
-  const growthProjection = projectGrowth(lot, { targetDays, targetWeight: Number(lot.poids_objectif_vente || lot.target_weight || 1.5) || 1.5 });
+  const livingTarget = computeAvicoleLivingTarget(lot, productionLogs);
+  const growthProjection = livingAsProjection(livingTarget);
   const ponteProfile = buildPondeuseProductionProfile(lot, productionLogs);
   const active = activeCount(lot);
   const existingOpportunity = existingOpportunityFor(lot, opportunities);
@@ -83,7 +96,7 @@ export default function AvicoleLotDetailsModal({
       status: 'ouverte',
       statut: 'ouverte',
       priority: decision.priority || 'moyenne',
-      notes: `${decision.decision || 'Opportunité confirmée'} · ${layer ? ponteProfile.action : growthProjection.action}`,
+      notes: `${decision.decision || 'Opportunité confirmée'} · ${livingTarget.action}`,
       created_from: 'avicole_lot_details',
       updated_at: new Date().toISOString(),
     };
@@ -112,7 +125,7 @@ export default function AvicoleLotDetailsModal({
           <p className="text-xs uppercase tracking-[0.2em] text-[#c9a96a]">{layer ? 'Lot pondeuses' : 'Lot poulets de chair'}</p>
           <h2 className="mt-1 text-2xl font-black">{lot.name || lot.id}</h2>
           <p className="mt-1 text-sm text-[#f4e6c8]">{lot.type || 'Type non renseigné'} · {active} sujet(s) actif(s)</p>
-          <div className="mt-3 flex flex-wrap gap-2"><Badge status={lot.status || 'actif'} /><Badge status={lot.health_status || 'sain'} /><span className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-xs text-[#f4e6c8]">{decision.decision}</span></div>
+          <div className="mt-3 flex flex-wrap gap-2"><Badge status={lot.status || 'actif'} /><Badge status={lot.health_status || 'sain'} /><span className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-xs text-[#f4e6c8]">{livingTarget.status?.replaceAll('_', ' ') || decision.decision}</span></div>
         </div>
 
         <Section title="Situation du lot" note="Lecture opérationnelle. Les coûts et alertes sont calculés depuis les journaux liés, pas saisis ici.">
@@ -127,21 +140,29 @@ export default function AvicoleLotDetailsModal({
         {layer ? (
           <>
             <PondeuseProductionPanel profile={ponteProfile} />
-            <Section title="Lecture pondeuses" note="Ponte, ramassage et casses proviennent du journal de production œufs.">
-              <Field label="Taux de ponte récent" value={`${ponteProfile.layingRate || 0}%`} />
-              <Field label="Dernier ramassage" value={ponteProfile.last ? `${fmtNumber(ponteProfile.last.eggs)} œufs` : 'Aucun ramassage'} />
-              <Field label="Œufs / jour calculés" value={ponteProfile.last ? fmtNumber(ponteProfile.last.dailyEggs) : '-'} />
-              <Field label="Action IA" value={ponteProfile.action} />
+            <Section title="Objectif ponte vivant" note="Objectif calculé selon âge du lot, effectif actif, historique des ramassages, casses et baisse éventuelle de ponte.">
+              <Field label="Objectif initial" value={`${livingTarget.objectiveInitial || 0}%`} />
+              <Field label="Objectif âge" value={`${livingTarget.ageExpectedPct || 0}%`} />
+              <Field label="Objectif vivant" value={`${livingTarget.livingObjectivePct || 0}%`} />
+              <Field label="Taux réel récent" value={`${livingTarget.realLayingPct || 0}%`} />
+              <Field label="Œufs attendus / jour" value={fmtNumber(livingTarget.expectedEggsDay || 0)} />
+              <Field label="Œufs réels / jour" value={fmtNumber(livingTarget.recentDailyEggs || 0)} />
+              <Field label="Écart / jour" value={`${livingTarget.gapEggsDay >= 0 ? '+' : ''}${fmtNumber(livingTarget.gapEggsDay || 0)} œufs`} />
+              <Field label="Action IA" value={livingTarget.action} />
             </Section>
           </>
         ) : (
           <>
-            <WeightProjectionPanel title="Projection poids moyen & vente" projection={growthProjection} />
-            <Section title="Lecture poulets de chair" note="Le poids moyen et la projection sont suivis depuis les pesées du lot.">
-              <Field label="Poids moyen actuel" value={latestWeight(lot) ? `${latestWeight(lot)} kg` : 'À renseigner via suivi'} />
-              <Field label="Poids objectif vente" value={targetWeight(lot) ? `${targetWeight(lot)} kg` : 'Objectif automatique / à confirmer'} />
-              <Field label="Projection vente" value={growthProjection.label} />
-              <Field label="Action IA" value={growthProjection.action} />
+            <WeightProjectionPanel title="Objectif poids vivant & vente" projection={growthProjection} />
+            <Section title="Objectif poids vivant chair" note="L’objectif se recalcule après chaque pesée selon le gain moyen réel du lot.">
+              <Field label="Poids moyen actuel" value={livingTarget.currentWeight ? `${livingTarget.currentWeight} kg` : 'À renseigner via suivi'} />
+              <Field label="Objectif initial" value={`${livingTarget.defaultTargetWeight || 0} kg`} />
+              <Field label="Objectif vivant" value={`${livingTarget.livingTarget || 0} kg`} />
+              <Field label="Projection J45" value={`${livingTarget.projectedWeight || 0} kg`} />
+              <Field label="Gain réel / jour" value={`${livingTarget.realGainPerDay || 0} kg/j`} />
+              <Field label="Prochaine pesée" value={livingTarget.nextWeighingDate || '-'} />
+              <Field label="Statut" value={livingTarget.status?.replaceAll('_', ' ') || '-'} />
+              <Field label="Action IA" value={livingTarget.action} />
             </Section>
           </>
         )}
@@ -155,8 +176,8 @@ export default function AvicoleLotDetailsModal({
         <Section title="Décision IA" note="Décision affichée, à valider par l’utilisateur avant création d’opportunité.">
           <Field label="Décision" value={decision.decision} />
           <Field label="Priorité" value={decision.priority || '-'} />
-          <Field label="Prochaine action" value={decision.nextWeighingDate || decision.reformStart || '-'} />
-          <Field label="Poids / ponte attendu" value={decision.expectedWeight ? `${decision.expectedWeight} kg` : decision.expectedEggsDay ? `${fmtNumber(decision.expectedEggsDay)} œufs/j` : '-'} />
+          <Field label="Prochaine action" value={decision.nextWeighingDate || decision.reformStart || livingTarget.nextWeighingDate || '-'} />
+          <Field label="Poids / ponte attendu" value={decision.expectedWeight ? `${decision.expectedWeight} kg` : decision.expectedEggsDay ? `${fmtNumber(decision.expectedEggsDay)} œufs/j` : livingTarget.expectedEggsDay ? `${fmtNumber(livingTarget.expectedEggsDay)} œufs/j` : '-'} />
         </Section>
 
         <Section title="Coûts & performance calculés" note="Alimentation calculée depuis les logs alimentation. Production calculée depuis les journaux. Les coûts santé ne sont pas saisis dans le lot.">
