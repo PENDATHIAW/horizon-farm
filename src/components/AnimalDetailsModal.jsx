@@ -5,6 +5,8 @@ import Btn from './Btn';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { buildGrowthSummary } from '../utils/animalGrowth';
 import { acquisitionLabel, calculateAge, getAnimalBirthDate, getParentLabel, reproductionStatusLabel } from '../utils/animalLifecycle';
+import { projectGrowth, saleOpportunityGuard } from '../services/growthProjectionService';
+import { SaleOpportunityGuardPanel, WeightProjectionPanel } from './GrowthProjectionPanel';
 
 const Section = ({ title, children }) => (
   <section className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4">
@@ -27,7 +29,7 @@ const BuyerField = ({ label, value, children }) => (
   </div>
 );
 
-export default function AnimalDetailsModal({ open, onClose, animal, metrics, animals = [], vaccins = [], onOpenTrace, onAddDocument }) {
+export default function AnimalDetailsModal({ open, onClose, animal, metrics, animals = [], vaccins = [], opportunities = [], onOpenTrace, onAddDocument }) {
   const [view, setView] = useState('interne');
 
   if (!animal) {
@@ -40,6 +42,8 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
 
   const age = calculateAge(getAnimalBirthDate(animal));
   const growth = buildGrowthSummary(animal);
+  const projection = projectGrowth(animal, { targetDays: Number(animal.delai_cible_jours || 90) || 90 });
+  const opportunityGuard = saleOpportunityGuard(animal, 'animal', opportunities);
   const relatedVaccins = vaccins.filter((vaccin) => String(vaccin.animal || '').includes(animal.id) || String(vaccin.animal || '').includes(animal.tag));
   const sold = animal.status === 'vendu';
   const lossStatus = ['mort', 'vole', 'reforme'].includes(animal.status);
@@ -91,6 +95,8 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
               <BuyerField label="Derniere pesee" value={growth.last ? `${growth.last.poids} kg le ${growth.last.date}` : 'Non renseignee'} />
             </Section>
 
+            <WeightProjectionPanel title="Projection poids acheteur" projection={projection} />
+
             <Section title="Sante & garanties publiques">
               <BuyerField label="Vaccins / soins" value={relatedVaccins.length ? relatedVaccins.map((v) => `${v.nom} (${v.statut})`).join(', ') : 'Aucun vaccin renseigne'} />
               <BuyerField label="Score sanitaire" value={`${metrics.healthScore?.toFixed?.(0) || 0}%`} />
@@ -117,6 +123,9 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
               <Field label="Cout alimentation / kg gagne" value={growth.gain > 0 ? fmtCurrency((metrics.feedingCost || 0) / growth.gain) : 'Non calculable'} />
               <Field label="Recommandation" value={growth.recommendation} />
             </Section>
+
+            <WeightProjectionPanel title="Projection croissance & vente" projection={projection} />
+            <SaleOpportunityGuardPanel guard={opportunityGuard} />
 
             <Section title="Origine / Acquisition">
               <Field label="Mode acquisition" value={acquisitionLabel(animal.mode_acquisition || 'achat')} />
