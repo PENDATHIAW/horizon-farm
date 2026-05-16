@@ -22,7 +22,6 @@ import { filterLotsByActivity } from '../utils/avicoleActivity';
 import { avicoleActiveCount, avicoleDeadCount, avicoleExitReason, avicoleHasActiveBirds, avicoleSickCount, avicoleStatusFor } from '../utils/avicoleMetrics';
 import { getResponsibleOptions, resolveResponsibleLabel } from '../utils/rhDirectory';
 
-const tabs = ['Pondeuse', 'Chair'];
 const DEFAULT_SALE_TARGET_WEIGHT = 1.5;
 const DEFAULT_CHICK_CRATE_SIZE = 50;
 const DEFAULT_CHICK_CRATE_PRICE = 32000;
@@ -63,7 +62,7 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (lockActivity) setTab(activityToTab(activity));
+    setTab(activityToTab(activity));
   }, [activity, lockActivity]);
 
   const filteredByActivity = useMemo(() => filterLotsByActivity(rows, tab), [rows, tab]);
@@ -177,7 +176,6 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
   ];
 
   return <div className="space-y-6"><SectionHeader title="Gestion avicole" sub={`${tab === 'Pondeuse' ? 'Pondeuses' : 'Poulets de chair'} uniquement`} actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Actualiser</Btn><Btn icon={Download} variant="outline" small onClick={exportRows}>Exporter</Btn>{tab === 'Pondeuse' ? <Btn icon={Plus} small onClick={() => setModal('eggs')} disabled={!pondeusesDisponibles.length}>Ramassage œufs</Btn> : null}<Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter {tab === 'Pondeuse' ? 'lot pondeuses' : 'lot chair'}</Btn></>} />
-    {!lockActivity ? <div className="grid grid-cols-2 gap-2">{tabs.map((item) => <button key={item} type="button" onClick={() => setTab(item)} className={`rounded-2xl border px-4 py-3 text-left transition-all ${tab === item ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}><p className="text-xs uppercase tracking-wide">Activité</p><p className="font-black">{item === 'Pondeuse' ? 'Pondeuses' : 'Poulets de chair'}</p><p className="text-xs opacity-75">{filterLotsByActivity(rows, item).length} lot(s)</p></button>)}</div> : null}
     <div className="grid grid-cols-2 lg:grid-cols-6 gap-4"><KpiCard icon={Plus} label="Effectif actif" value={fmtNumber(totalEffectif)} color="bg-emerald-500/20 text-emerald-500" /><KpiCard icon={Plus} label="Morts" value={fmtNumber(morts)} color="bg-red-500/20 text-red-500" /><KpiCard icon={Plus} label="Malades" value={fmtNumber(malades)} color="bg-amber-500/20 text-amber-500" /><KpiCard icon={Plus} label="Actions IA" value={actionsIa} color="bg-sky-500/20 text-sky-500" /><KpiCard icon={Plus} label="Réforme 17+ mois" value={tab === 'Pondeuse' ? aReformer : '—'} color="bg-red-500/20 text-red-500" /><KpiCard icon={Plus} label="Coût alim." value={fmtCurrency(coutAlim)} color="bg-purple-500/20 text-purple-500" /></div>
     <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-xs text-[#8a7456]">Lots clôturés: {inactiveLots.length} · Achat actif: {fmtCurrency(coutAchat)} · La création reste simple ; le suivi complet se fait via Modifier.</div>
     <DataTable title={tab === 'Pondeuse' ? 'Lots pondeuses' : 'Lots poulets de chair'} rows={filteredByActivity} columns={columns} loading={loading} initialSortKey="date_debut" searchPlaceholder="Rechercher un lot..." />
