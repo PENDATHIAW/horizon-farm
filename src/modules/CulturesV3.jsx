@@ -94,10 +94,19 @@ function aggregate(rows, keyFn) {
 }
 function supportRows(rows, type) { return rows.filter((row) => recordType(row) === type); }
 
-function MiniChart({ rows }) {
-  const top = rows.slice(0, 8);
-  const max = Math.max(1, ...top.map((row) => Math.abs(marginOf(row))));
-  return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5"><p className="font-black text-[#2f2415] mb-3">Marge par culture</p><div className="space-y-2">{top.map((row) => <div key={row.id} className="grid grid-cols-[130px_1fr_110px] gap-2 items-center text-sm"><span className="truncate text-[#7d6a4a]">{row.nom || row.type || row.id}</span><div className="h-3 rounded-full bg-[#eadcc2] overflow-hidden"><div className="h-full bg-[#c9a96a]" style={{ width: `${Math.min(100, Math.abs(marginOf(row)) / max * 100)}%` }} /></div><b className={marginOf(row) >= 0 ? 'text-emerald-600 text-right' : 'text-red-500 text-right'}>{fmtCurrency(marginOf(row))}</b></div>)}</div></div>;
+function OperationalSummary({ analytics = {}, realRows = [] }) {
+  const risky = realRows.filter((row) => healthOf(row) < 80 || row.statut === 'perdu' || buildCultureDecisionProfile(row).priority === 'haute').slice(0, 4);
+  const ready = realRows.filter((row) => toNumber(row.quantite_disponible ?? row.quantite_recoltee) > 0).slice(0, 4);
+  const harvestSoon = realRows.filter((row) => row.date_recolte_prevue && (new Date(row.date_recolte_prevue) - new Date()) / 86400000 <= 14 && (new Date(row.date_recolte_prevue) - new Date()) / 86400000 >= 0).slice(0, 4);
+  return <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+    <SummaryCard title="Actions prioritaires" rows={risky} empty="Aucune culture critique" render={(row) => `${row.nom || row.type || row.id} · ${buildCultureDecisionProfile(row).decision}`} tone="warning" />
+    <SummaryCard title="Récoltes disponibles" rows={ready} empty="Aucune récolte disponible" render={(row) => `${row.nom || row.type || row.id} · ${fmtNumber(toNumber(row.quantite_disponible ?? row.quantite_recoltee))} ${row.unite_recolte || 'kg'}`} tone="good" />
+    <SummaryCard title="Récoltes proches" rows={harvestSoon} empty="Aucune récolte proche" render={(row) => `${row.nom || row.type || row.id} · ${row.date_recolte_prevue}`} tone="neutral" />
+  </div>;
+}
+function SummaryCard({ title, rows = [], empty, render, tone = 'neutral' }) {
+  const cls = tone === 'warning' ? 'border-amber-200 bg-amber-50 text-amber-800' : tone === 'good' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-[#eadcc2] bg-[#fffdf8] text-[#7d6a4a]';
+  return <div className={`rounded-2xl border p-4 ${cls}`}><p className="font-black text-[#2f2415]">{title}</p><div className="mt-3 space-y-2 text-sm">{rows.length ? rows.map((row) => <div key={row.id} className="rounded-xl bg-white/60 px-3 py-2">{render(row)}</div>) : <div className="rounded-xl bg-white/60 px-3 py-2">{empty}</div>}</div></div>;
 }
 
 export default function CulturesV3({ rows = [], opportunities = [], loading, onCreate, onUpdate, onDelete, onRefresh, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateBusinessEvent, onRefreshBusinessEvents }) {
@@ -153,10 +162,7 @@ export default function CulturesV3({ rows = [], opportunities = [], loading, onC
     { key: 'rendement', label: 'Rendement', render: (row) => `${fmtNumber(toNumber(row.rendement_reel ?? row.quantite_recoltee))} / ${fmtNumber(toNumber(row.rendement_attendu ?? row.quantite_prevue))} ${row.unite_recolte || 'kg'}` },
     { key: 'revenu', label: 'Revenu', sortable: true, render: (row) => fmtCurrency(revenueOf(row)) },
     { key: 'marge', label: 'Marge', sortable: true, render: (row) => <span className={marginOf(row) >= 0 ? 'text-emerald-600 font-bold' : 'text-red-500 font-bold'}>{fmtCurrency(marginOf(row))}</span> },
-    { key: 'decision_ia', label: 'Décision IA', render: (row) => {
-      const decision = buildCultureDecisionProfile(row);
-      return <Badge color={decision.priority === 'haute' ? 'red' : 'amber'}>{decision.decision}</Badge>;
-    } },
+    { key: 'decision_ia', label: 'Décision IA', render: (row) => { const decision = buildCultureDecisionProfile(row); return <Badge color={decision.priority === 'haute' ? 'red' : 'amber'}>{decision.decision}</Badge>; } },
     { key: 'statut', label: 'Statut', render: (row) => <Badge status={row.statut || 'planifiee'} /> },
     { key: 'actions', label: 'Actions', render: (row) => <div className="flex gap-1"><ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected({ ...row, horizon_decision: buildCultureDecisionProfile(row) }); setModal('details'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(row); setModal('edit'); }} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(row); setModal('delete'); }} /></div> },
   ];
@@ -178,7 +184,7 @@ export default function CulturesV3({ rows = [], opportunities = [], loading, onC
     <div className="flex flex-wrap gap-2">{tabs.map((item) => <button type="button" key={item} onClick={() => setTab(item)} className={`rounded-xl border px-4 py-2 text-sm font-semibold ${tab === item ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}>{item}</button>)}</div>
     <CulturesTabActionsBridge tab={tab} rows={rows} opportunities={opportunities} onCreate={onCreate} onUpdate={onUpdate} onDelete={onDelete} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} />
     <div className="grid grid-cols-2 lg:grid-cols-6 gap-4"><KpiCard icon={Sprout} label="Cultures" value={realRows.length} /><KpiCard icon={Leaf} label="Surface" value={`${fmtNumber(analytics.totalSurface)} m²`} /><KpiCard icon={TrendingUp} label="Revenu" value={fmtCurrency(analytics.totalRevenue)} /><KpiCard icon={TrendingUp} label="Marge" value={fmtCurrency(analytics.totalMargin)} /><KpiCard icon={AlertTriangle} label="Risques IA" value={analytics.risks} /><KpiCard icon={Calendar} label="Récoltes prêtes" value={analytics.readyForSale} /></div>
-    {tab === 'Vue d’ensemble' ? <div className="grid grid-cols-1 xl:grid-cols-3 gap-4"><div className="xl:col-span-2"><MiniChart rows={realRows} /></div><div className="rounded-2xl border border-[#d6c3a0] bg-white p-5"><p className="font-black text-[#2f2415] mb-3">Suivi opérationnel</p><div className="grid grid-cols-1 gap-2 text-sm"><div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] p-3"><CheckCircle2 size={14} className="inline text-emerald-600" /> Récoltes disponibles : <b>{analytics.readyForSale}</b></div><div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] p-3"><CheckCircle2 size={14} className="inline text-emerald-600" /> Récoltes proches : <b>{analytics.harvestSoon}</b></div><div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] p-3"><CheckCircle2 size={14} className="inline text-emerald-600" /> Cultures à risque IA : <b>{analytics.risks}</b></div></div></div></div> : null}
+    {tab === 'Vue d’ensemble' ? <OperationalSummary analytics={analytics} realRows={realRows} /> : null}
     {['Vue d’ensemble', 'Cultures'].includes(tab) ? <DataTable title="Cultures" rows={realRows} columns={cultureColumns} loading={loading} initialSortKey="nom" searchPlaceholder="Rechercher culture, parcelle, campagne..." /> : null}
     {tab === 'Performance' ? <DataTable title="Performance cultures" rows={performanceRows} columns={cultureColumns} loading={loading} initialSortKey="nom" searchPlaceholder="Rechercher performance..." /> : null}
     {tab === 'Parcelles' ? <DataTable title="Parcelles" rows={parcelles} columns={aggregateColumns} loading={loading} initialSortKey="nom" /> : null}
