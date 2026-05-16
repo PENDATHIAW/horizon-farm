@@ -96,7 +96,7 @@ export default function Animaux({ rows = [], alimentationLogs = [], vaccins = []
   const initialAnimal = useMemo(() => {
     const id = generateSequentialId('animaux', testRows, { type: activityType });
     const date = today();
-    return { id, tag: id, type: activityType, status: 'actif', health_status: 'sain', mode_acquisition: 'achat', date_achat: date, date_entree_ferme: date, date_poids_entree: date, date_derniere_pesee: date, sexe: 'F', en_gestation: false, statut_reproduction: 'inconnu', marge_cible_pct: 25, sale_price: 0 };
+    return { id, tag: id, type: activityType, status: 'actif', health_status: 'sain', mode_acquisition: 'achat', date_achat: date, date_entree_ferme: date, date_poids_entree: date, sexe: 'F', en_gestation: false, statut_reproduction: 'inconnu', purchase_cost: 0, sale_price: 0 };
   }, [testRows, activityType]);
 
   const metricsFor = (animal) => calculateAnimalMetrics({ animal, animals: testRows, feedingLogs: alimentationLogs, vaccins });
@@ -127,14 +127,14 @@ export default function Animaux({ rows = [], alimentationLogs = [], vaccins = []
     const isBirthMode = ['naissance_ferme', 'reproduction_interne'].includes(mode);
     const dateNaissance = payload.date_naissance || payload.naissance || '';
     const dateEntree = isBirthMode ? dateNaissance : payload.date_entree_ferme || payload.date_achat || '';
-    const currentWeight = Number(payload.poids || 0);
-    const entryWeight = Number(payload.poids_entree || currentWeight || 0);
+    const entryWeight = Number(payload.poids_entree || payload.poids || 0);
+    const currentWeight = Number(payload.poids || entryWeight || 0);
     const entryDate = payload.date_poids_entree || dateEntree || payload.date_achat || today();
-    const lastWeightDate = payload.date_derniere_pesee || today();
+    const lastWeightDate = payload.date_derniere_pesee || entryDate || today();
     const history = parseWeightHistoryText(payload.poids_history_text, currentWeight, lastWeightDate);
     if (entryWeight > 0 && entryDate && !history.some((item) => item.date === entryDate && Number(item.poids) === entryWeight)) history.unshift({ date: entryDate, poids: entryWeight, note: 'Poids entree ferme' });
     const confirmed = saleConfirmed(payload);
-    const basePayload = { ...payload, type: payload.type || activityType, purchase_cost: isBirthMode ? 0 : Number(payload.purchase_cost || 0), date_achat: mode === 'achat' ? payload.date_achat || '' : '', date_entree_ferme: dateEntree, naissance: dateNaissance, poids_entree: entryWeight || null, date_poids_entree: entryDate, date_derniere_pesee: lastWeightDate, poids_history: history, ras_veterinaire: payload.ras_veterinaire || (payload.health_status === 'sain' ? 'Consultation effectuee, RAS selon le veterinaire' : ''), sante: payload.frais_sante ?? payload.sante ?? 0, sale_price: payload.prix_vente_reel ?? payload.sale_price ?? 0, statut_reproduction: payload.sexe === 'F' ? (payload.en_gestation ? 'en_gestation' : payload.statut_reproduction || 'inconnu') : payload.statut_reproduction || 'non_reproductrice' };
+    const basePayload = { ...payload, type: payload.type || activityType, poids: currentWeight || null, purchase_cost: isBirthMode ? 0 : Number(payload.purchase_cost || 0), date_achat: mode === 'achat' ? payload.date_achat || '' : '', date_entree_ferme: dateEntree, naissance: dateNaissance, poids_entree: entryWeight || null, date_poids_entree: entryDate, date_derniere_pesee: lastWeightDate, poids_history: history, sante: payload.frais_sante ?? payload.sante ?? 0, sale_price: payload.prix_vente_reel ?? payload.sale_price ?? 0, statut_reproduction: payload.sexe === 'F' ? (payload.en_gestation ? 'en_gestation' : payload.statut_reproduction || 'inconnu') : payload.statut_reproduction || 'non_reproductrice' };
     const metrics = metricsFor(basePayload);
     const readiness = getAnimalSaleReadiness({ animal: basePayload, metrics });
     const pricing = calculateAnimalSalePricing({ animal: basePayload, metrics });
@@ -158,6 +158,33 @@ export default function Animaux({ rows = [], alimentationLogs = [], vaccins = []
   const motherOptions = useMemo(() => testRows.filter((animal) => animal.sexe === 'F').map((animal) => ({ value: animal.id, label: `${animal.id} - ${animal.name || 'Femelle'}` })), [testRows]);
   const fatherOptions = useMemo(() => testRows.filter((animal) => animal.sexe === 'M').map((animal) => ({ value: animal.id, label: `${animal.id} - ${animal.name || 'Male'}` })), [testRows]);
   const animalFormFields = useMemo(() => insertGrowthFields(MODULE_FORM_FIELDS.animaux).map((field) => { if (field.key === 'mere_id') return { ...field, options: motherOptions }; if (field.key === 'pere_id' || field.key === 'male_reproducteur_id') return { ...field, options: fatherOptions }; return field; }), [motherOptions, fatherOptions]);
+  const animalCreateFields = useMemo(() => [
+    { key: 'section_identite', label: 'Entrée animal', type: 'section', description: 'Saisie courte : uniquement les informations nécessaires quand l’animal arrive dans la ferme.' },
+    { key: 'id', label: 'ID animal', type: 'text', required: true },
+    { key: 'tag', label: 'Boucle / QR code', type: 'text' },
+    { key: 'name', label: 'Nom / repère', type: 'text' },
+    { key: 'type', label: 'Espèce', type: 'select', required: true, options: activityTabs.map((value) => ({ value, label: value })) },
+    { key: 'sexe', label: 'Sexe', type: 'select', required: true, options: [{ value: 'F', label: 'Femelle' }, { value: 'M', label: 'Mâle' }] },
+    { key: 'race', label: 'Race / souche', type: 'text' },
+    { key: 'section_entree', label: 'Origine & entrée ferme', type: 'section', description: 'Achat, naissance ferme ou reproduction interne.' },
+    { key: 'mode_acquisition', label: 'Mode d’acquisition', type: 'select', required: true, options: [{ value: 'achat', label: 'Achat' }, { value: 'naissance_ferme', label: 'Naissance ferme' }, { value: 'reproduction_interne', label: 'Reproduction interne' }, { value: 'don', label: 'Don / autre' }] },
+    { key: 'date_achat', label: 'Date achat', type: 'date' },
+    { key: 'date_entree_ferme', label: 'Date entrée ferme', type: 'date', required: true },
+    { key: 'fournisseur_vendeur', label: 'Fournisseur / vendeur', type: 'text' },
+    { key: 'business_plan_id', label: 'Business plan lié ou investissement ponctuel', type: 'text', placeholder: 'Ex: BP Horizon Farm ou investissement ponctuel' },
+    { key: 'section_poids', label: 'Poids & achat', type: 'section', description: 'Le poids d’entrée devient le poids actuel initial. Les prochaines pesées seront ajoutées dans la fiche.' },
+    { key: 'poids_entree', label: 'Poids entrée ferme (kg)', type: 'number' },
+    { key: 'date_poids_entree', label: 'Date pesée entrée', type: 'date' },
+    { key: 'purchase_cost', label: 'Prix d’achat', type: 'number' },
+    { key: 'section_sante', label: 'État initial', type: 'section', description: 'Les frais de santé, soins et traitements seront suivis dans Santé / fiche animal.' },
+    { key: 'health_status', label: 'État sanitaire initial', type: 'select', options: [{ value: 'sain', label: 'Sain' }, { value: 'a_surveiller', label: 'À surveiller' }, { value: 'malade', label: 'Malade' }, { value: 'blesse', label: 'Blessé' }] },
+    { key: 'section_repro', label: 'Reproduction si concerné', type: 'section', description: 'À renseigner seulement si l’information est connue à l’entrée.' },
+    { key: 'en_gestation', label: 'Femelle en gestation ?', type: 'checkbox' },
+    { key: 'date_debut_gestation', label: 'Début gestation', type: 'date' },
+    { key: 'date_prevue_mise_bas', label: 'Mise bas prévue', type: 'date' },
+    { key: 'notes', label: 'Notes d’entrée', type: 'textarea', rows: 3, fullWidth: true },
+  ], []);
+
   const buildModalValues = (animal = {}) => {
     const data = { ...animal, type: animal.type || activityType, date_naissance: animal.date_naissance || animal.naissance || '', poids_history_text: stringifyWeightHistory(animal), pret_vente_confirme: saleConfirmed(animal), pret_a_la_vente: saleConfirmed(animal), ready_for_sale: saleConfirmed(animal), sale_ready: saleConfirmed(animal) };
     const healthCost = Number(data.frais_sante ?? data.sante ?? 0);
@@ -215,8 +242,8 @@ export default function Animaux({ rows = [], alimentationLogs = [], vaccins = []
     <div className="flex flex-wrap gap-3"><VoiceSearch value={localSearch} onChange={setLocalSearch} placeholder={`Rechercher ${activityType.toLowerCase()}...`} /><div className="flex flex-wrap gap-2">{statuses.map((s) => <button key={s} type="button" onClick={() => { setStatusFilter(s); setQuickFilter('tous'); }} className={`px-3 py-2 rounded-lg text-sm capitalize transition-all ${statusFilter === s && quickFilter === 'tous' ? 'bg-emerald-500 text-black font-semibold' : 'bg-[#ffffff] border border-[#d6c3a0] text-[#8a7456] hover:border-emerald-500'}`}>{s.replaceAll('_', ' ')}</button>)}</div><div className="flex flex-wrap gap-2">{healthStatuses.map((s) => <button key={s} type="button" onClick={() => { setHealthFilter(s); setQuickFilter('tous'); }} className={`px-3 py-2 rounded-lg text-sm capitalize transition-all ${healthFilter === s && quickFilter === 'tous' ? 'bg-sky-500 text-black font-semibold' : 'bg-[#ffffff] border border-[#d6c3a0] text-[#8a7456] hover:border-sky-500'}`}>{s.replace('_', ' ')}</button>)}</div></div>
     <DataTable title={`Liste ${activityType}s`} rows={filtered} columns={columns} loading={loading} initialSortKey="id" searchPlaceholder="Recherche table..." />
     {referenceAnimal ? <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5"><p className="font-semibold text-[#2f2415] mb-4">Decision rapide - {referenceAnimal.id} {referenceAnimal.name}</p><div className="grid grid-cols-2 md:grid-cols-4 gap-4">{[{ label: 'Cout total', value: fmtCurrency(referenceMetrics?.totalCost || 0) }, { label: 'Prix recommande', value: fmtCurrency(referencePricing?.recommendedSalePrice || 0) }, { label: 'Prix plancher', value: fmtCurrency(referencePricing?.minimumAcceptablePrice || 0) }, { label: 'Marge prevue', value: fmtCurrency(referencePricing?.expectedMargin || 0) }, { label: 'Objectif poids', value: `${referenceAnimal.poids || 0} / ${referenceAnimal.poids_objectif || '-'} kg` }, { label: 'Maturite vente', value: saleConfirmed(referenceAnimal) ? 'confirme' : referenceReadiness?.status || 'non_pret' }, { label: 'Croissance', value: buildGrowthSummary(referenceAnimal).label }, { label: 'Gain moyen', value: `${buildGrowthSummary(referenceAnimal).averageDailyGain.toFixed(2)} kg/jour` }].map((c) => <div key={c.label} className="bg-[#fffdf8] rounded-xl p-3 border border-[#d6c3a0]"><div className="text-xs text-[#8a7456] mb-1">{c.label}</div><div className="text-[#2f2415] font-semibold">{c.value}</div></div>)}</div></div> : null}
-    <AnimalDetailsModal open={modal === 'details'} onClose={() => setModal(null)} animal={selected} metrics={selected ? metricsFor(selected) : {}} animals={testRows} vaccins={vaccins} lifecycle={selected ? lifecycleFor(selected) : null} onOpenTrace={() => toast.success('Ouvre le module Tracabilite pour cette fiche')} onAddDocument={() => toast.success('Ajout document disponible depuis le module Documents')} />
-    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={animalFormFields} initialValues={buildModalValues(initialAnimal)} autoId={(values) => generateSequentialId('animaux', testRows, values)} uploadFolder="animaux" loading={saving} title={`Ajouter ${activityType}`} submitLabel="Ajouter" />
+    <AnimalDetailsModal open={modal === 'details'} onClose={() => setModal(null)} animal={selected} metrics={selected ? metricsFor(selected) : {}} animals={testRows} vaccins={vaccins} opportunities={opportunities} lifecycle={selected ? lifecycleFor(selected) : null} onOpenTrace={() => toast.success('Ouvre le module Tracabilite pour cette fiche')} onAddDocument={() => toast.success('Ajout document disponible depuis le module Documents')} />
+    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={animalCreateFields} initialValues={buildModalValues(initialAnimal)} autoId={(values) => generateSequentialId('animaux', testRows, values)} uploadFolder="animaux" loading={saving} title={`Ajouter ${activityType}`} submitLabel="Ajouter" />
     <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={animalFormFields} initialValues={selected ? buildModalValues(selected) : {}} uploadFolder="animaux" loading={saving} title="Modifier animal" submitLabel="Enregistrer" />
     <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={confirmDelete} itemLabel={selected ? `${selected.name} (${selected.id})` : ''} loading={saving} />
   </div>;
