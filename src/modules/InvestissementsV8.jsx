@@ -88,11 +88,7 @@ export default function InvestissementsV8(props) {
     <div className="space-y-6 investissements-mobile-structured">
       <style>{`@media (max-width: 640px){.investissements-mobile-structured .rounded-2xl{border-radius:18px}.investissements-mobile-structured table{font-size:12px}.investissements-mobile-structured th,.investissements-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.investissements-mobile-structured .text-2xl{font-size:1.35rem}.investissements-mobile-structured .grid{gap:.75rem}.investissements-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
 
-      <ModuleSection icon={TrendingUp} title="Portefeuille investissements & business plans" subtitle="Projets, lignes BP, financement, paiements et suivi des investissements.">
-        <InvestissementsV7 {...props} />
-      </ModuleSection>
-
-      <ModuleSection icon={ShieldCheck} title="Contrôle qualité investissement" subtitle="Cohérence BP, financements, lignes effectives, liens métiers et risques.">
+      <ModuleSection icon={ShieldCheck} title="Contrôle qualité investissement" subtitle="Cohérence BP, financements, lignes effectives, liens métiers et risques à traiter avant les détails.">
         <InvestmentQualityControl
           rows={props.rows || []}
           businessPlans={props.businessPlans || []}
@@ -107,6 +103,10 @@ export default function InvestissementsV8(props) {
 
       <ModuleSection icon={Link2} title="Actifs métier créés depuis BP" subtitle="Transformation des dépenses effectives en lots avicoles, animaux ou cultures exploitables.">
         <OperationalAssetsBridge {...props} />
+      </ModuleSection>
+
+      <ModuleSection icon={TrendingUp} title="Portefeuille investissements & business plans" subtitle="Projets, lignes BP, financement, paiements et suivi détaillé des investissements.">
+        <InvestissementsV7 {...props} />
       </ModuleSection>
 
       <ModuleSection icon={BarChart3} title="Évolution investissements" subtitle="Graphes des investissements, financements, CAPEX, risques et valeur créée.">
