@@ -47,6 +47,30 @@ function defaultPhysicalCode(species, rows = []) {
   return `${prefix}${String(max + 1).padStart(3, '0')}`;
 }
 
+function buildCreateFields(species) {
+  return [
+    { key: 'section_identification', label: 'Identification', type: 'section', description: 'Saisie courte : l’ERP préremplit le reste dans la fiche.' },
+    { key: 'id', label: 'ID', type: 'text', required: true },
+    { key: 'boucle_numero', label: `N° boucle terrain (${species === 'Bovin' ? 'BOV001' : species === 'Ovin' ? 'OVI001' : 'CAP001'})`, type: 'text', required: true },
+    { key: 'qr_code', label: 'Code QR / identifiant scan', type: 'text' },
+    { key: 'name', label: 'Nom / repère', type: 'text' },
+    { key: 'sexe', label: 'Sexe', type: 'select', required: true, options: [{ value: 'F', label: 'Femelle' }, { value: 'M', label: 'Mâle' }] },
+    { key: 'race', label: 'Race si connue', type: 'text' },
+
+    { key: 'section_entree', label: 'Entrée ferme', type: 'section' },
+    { key: 'mode_acquisition', label: 'Mode acquisition', type: 'select', required: true, options: [{ value: 'achat', label: 'Achat' }, { value: 'naissance_ferme', label: 'Naissance ferme' }, { value: 'don', label: 'Don / autre' }] },
+    { key: 'date_entree_ferme', label: 'Date entrée ferme', type: 'date', required: true },
+    { key: 'date_achat', label: 'Date achat si achat', type: 'date' },
+    { key: 'fournisseur_vendeur', label: 'Fournisseur / vendeur', type: 'text' },
+
+    { key: 'section_poids_achat', label: 'Poids & achat', type: 'section', description: 'Le poids entrée devient le poids actuel initial. La prochaine pesée est calculée automatiquement.' },
+    { key: 'poids_entree', label: 'Poids entrée ferme (kg)', type: 'number' },
+    { key: 'purchase_cost', label: 'Prix achat', type: 'number' },
+    { key: 'health_status', label: 'État sanitaire initial', type: 'select', options: [{ value: 'sain', label: 'Sain' }, { value: 'a_surveiller', label: 'À surveiller' }, { value: 'malade', label: 'Malade' }, { value: 'blesse', label: 'Blessé' }] },
+    { key: 'notes', label: 'Notes d’entrée', type: 'textarea', rows: 3, fullWidth: true },
+  ];
+}
+
 export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], alimentationLogs = [], vaccins = [], loading, onCreate, onUpdate, onDelete, onRefresh }) {
   const [selected, setSelected] = useState(null);
   const [modal, setModal] = useState(null);
@@ -55,6 +79,7 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
   const [healthFilter, setHealthFilter] = useState('tous');
 
   const formFields = useMemo(() => enrichAnimalFieldsForDecision(MODULE_FORM_FIELDS.animaux || []), []);
+  const createFields = useMemo(() => buildCreateFields(species), [species]);
   const normalizedRows = useMemo(() => rows.map((row) => ({ ...row, type: species, espece: species })), [rows, species]);
   const filtered = useMemo(() => normalizedRows.filter((row) => {
     const statusOk = statusFilter === 'tous' || statusOf(row) === statusFilter;
@@ -76,7 +101,7 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
 
   const initialValues = useMemo(() => {
     const physicalCode = defaultPhysicalCode(species, normalizedRows);
-    const id = generateSequentialId('animaux', normalizedRows, { type: species });
+    const id = physicalCode || generateSequentialId('animaux', normalizedRows, { type: species });
     const date = today();
     return applyAnimalDecisionDefaults({
       id,
@@ -92,15 +117,23 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
       date_entree_ferme: date,
       date_poids_entree: date,
       date_derniere_pesee: date,
+      frequence_pesee_jours: 15,
       sexe: 'F',
+      poids_entree: 0,
+      poids: 0,
+      poids_actuel: 0,
       sale_price: 0,
     });
   }, [normalizedRows, species]);
 
   const prepare = (payload = {}, existing = {}) => {
     const physicalCode = payload.boucle_numero || payload.qr_code || existing.boucle_numero || existing.qr_code || defaultPhysicalCode(species, normalizedRows);
-    return {
-      ...applyAnimalDecisionDefaults(payload, existing),
+    const entryDate = payload.date_entree_ferme || payload.date_achat || existing.date_entree_ferme || today();
+    const entryWeight = toNumber(payload.poids_entree ?? payload.poids ?? existing.poids_entree);
+    const prepared = applyAnimalDecisionDefaults({
+      ...existing,
+      ...payload,
+      id: payload.id || existing.id || physicalCode,
       tag: physicalCode,
       boucle_numero: physicalCode,
       qr_code: payload.qr_code || physicalCode,
@@ -109,11 +142,20 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
       categorie: species,
       health_status: payload.health_status || payload.sante || existing.health_status || 'sain',
       status: payload.status || payload.statut || existing.status || 'actif',
-    };
+      date_entree_ferme: entryDate,
+      date_poids_entree: payload.date_poids_entree || existing.date_poids_entree || entryDate,
+      date_derniere_pesee: payload.date_derniere_pesee || existing.date_derniere_pesee || entryDate,
+      frequence_pesee_jours: payload.frequence_pesee_jours || existing.frequence_pesee_jours || 15,
+      poids_entree: entryWeight,
+      poids: toNumber(payload.poids ?? payload.poids_actuel ?? entryWeight),
+      poids_actuel: toNumber(payload.poids_actuel ?? payload.poids ?? entryWeight),
+      purchase_cost: toNumber(payload.purchase_cost ?? payload.prix_achat ?? existing.purchase_cost),
+    }, existing);
+    return prepared;
   };
 
   const submitCreate = async (payload) => {
-    try { setSaving(true); await onCreate?.(prepare(payload)); await onRefresh?.(); toast.success(`${species} ajouté · boucle/QR et objectifs Horizon proposés`); setModal(null); }
+    try { setSaving(true); await onCreate?.(prepare(payload)); await onRefresh?.(); toast.success(`${species} ajouté · boucle/QR et suivi Horizon préremplis`); setModal(null); }
     catch (error) { toast.error(error.message || 'Création impossible'); }
     finally { setSaving(false); }
   };
@@ -184,7 +226,7 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
     <DataTable title={`Liste ${speciesPlural(species)}`} rows={filtered} columns={columns} loading={loading} initialSortKey="id" searchPlaceholder={`Recherche boucle, QR ou ${speciesPlural(species).toLowerCase()}...`} />
 
     <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, horizon_decision: buildAnimalDecisionProfile(selected) } : selected} title={`Détail ${species}`} />
-    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={formFields} initialValues={initialValues} loading={saving} title={`Ajouter ${species}`} submitLabel="Ajouter" />
+    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={createFields} initialValues={initialValues} loading={saving} title={`Ajouter ${species}`} submitLabel="Ajouter" />
     <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={formFields} initialValues={selected || {}} loading={saving} title={`Modifier ${species}`} submitLabel="Enregistrer" />
     <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected ? selected.name || selected.nom || selected.id : ''} loading={saving} />
   </div>;
