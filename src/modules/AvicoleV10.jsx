@@ -53,7 +53,7 @@ export default function AvicoleV10(props) {
   const chair = useMemo(() => rows.filter(isChair), [rows]);
   const scopedRows = useMemo(() => filterByActivity(rows, activity), [rows, activity]);
   const scopedProductionLogs = useMemo(() => productionLogs.filter((log) => activity !== 'chair' || chair.some((lot) => String(lot.id) === String(log.lot_id || log.related_id))), [productionLogs, activity, chair]);
-  const scopedProps = { ...props, rows: scopedRows, productionLogs: scopedProductionLogs, opportunities: (props.opportunities || []).filter((op) => activity === 'pondeuse' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('oeuf') || norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('pondeuse') : activity === 'chair' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('chair') : true) };
+  const scopedProps = { ...props, activity, lockActivity: true, rows: scopedRows, productionLogs: scopedProductionLogs, opportunities: (props.opportunities || []).filter((op) => activity === 'pondeuse' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('oeuf') || norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('pondeuse') : activity === 'chair' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('chair') : true) };
   const dataMap = { sales_orders: props.salesOrders || [], payments: props.payments || [], finances: props.transactions || [], avicole: scopedRows, production_oeufs_logs: scopedProductionLogs, alimentation_logs: props.alimentationLogs || [] };
   const selectedLabel = activity === 'pondeuse' ? 'Pondeuses' : 'Poulets de chair';
 
