@@ -82,23 +82,23 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
   const responsibleOptions = useMemo(() => getResponsibleOptions({ moduleKey: 'avicole' }), []);
 
   const createFields = useMemo(() => [
-    { key: 'section_initiale', label: tab === 'Pondeuse' ? 'Création lot pondeuses' : 'Création lot poulets de chair', type: 'section', description: 'Saisie initiale simple. Le suivi détaillé se fait ensuite via Modifier.' },
+    { key: 'section_initiale', label: tab === 'Pondeuse' ? 'Entrée lot pondeuses' : 'Entrée lot poulets de chair', type: 'section', description: 'Saisie courte. Les champs de suivi, santé, alimentation, ponte, réforme et projections sont préremplis puis suivis dans la fiche.' },
     { key: 'id', label: 'Identifiant lot', type: 'text', required: true },
     { key: 'name', label: 'Nom du lot', type: 'text', required: true },
     { key: 'type', label: 'Type', type: 'select', required: true, options: [{ value: 'Pondeuse', label: 'Pondeuse' }, { value: 'Chair', label: 'Poulet de chair' }] },
     { key: 'date_debut', label: 'Date d’entrée / démarrage', type: 'date', required: true },
     { key: 'initial_count', label: 'Effectif initial', type: 'number', required: true },
+    { key: 'section_achat', label: 'Achat / fournisseur', type: 'section', description: 'Coût d’achat seulement. Alimentation et santé seront calculées depuis les journaux liés.' },
     { key: 'cout_total_achat', label: 'Coût total achat bande', type: 'number' },
     { key: 'prix_unitaire_sujet', label: 'Prix unitaire sujet', type: 'number' },
     { key: 'fournisseur_poussins', label: 'Fournisseur', type: 'text' },
     ...(tab === 'Chair' ? [
-      { key: 'poids_moyen_entree', label: 'Poids moyen entrée (kg)', type: 'number' },
-      { key: 'poids_objectif_vente', label: 'Poids objectif vente (kg)', type: 'number' },
+      { key: 'section_chair', label: 'Démarrage chair', type: 'section', description: 'Le poids objectif vente est prérempli et ajustable dans le suivi.' },
+      { key: 'poids_moyen_entree', label: 'Poids moyen entrée si connu (kg)', type: 'number' },
     ] : [
-      { key: 'age_entree_jours', label: 'Âge entrée estimé (jours)', type: 'number' },
-      { key: 'objectif_ponte_pct', label: 'Objectif ponte (%)', type: 'number' },
+      { key: 'section_pondeuse', label: 'Démarrage pondeuses', type: 'section', description: 'Objectif ponte, réforme et suivi œufs sont préremplis automatiquement.' },
+      { key: 'age_entree_jours', label: 'Âge entrée estimé si connu (jours)', type: 'number' },
     ]),
-    { key: 'health_status', label: 'État sanitaire initial', type: 'select', options: [{ value: 'sain', label: 'Sain' }, { value: 'a_surveiller', label: 'À surveiller' }, { value: 'malade', label: 'Malade' }] },
     { key: 'notes', label: 'Notes initiales', type: 'textarea', rows: 3, fullWidth: true },
   ], [tab]);
 
@@ -157,7 +157,7 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
     return applyAvicoleDecisionDefaults(prepared, existing, productionLogs);
   };
 
-  const submitCreate = async (payload) => { try { setSaving(true); await onCreate?.(prepareLot(payload)); toast.success('Lot avicole ajouté'); setModal(null); } catch (e) { toast.error(e.message || 'Création impossible'); } finally { setSaving(false); } };
+  const submitCreate = async (payload) => { try { setSaving(true); await onCreate?.(prepareLot(payload)); toast.success('Lot avicole ajouté avec suivi prérempli'); setModal(null); } catch (e) { toast.error(e.message || 'Création impossible'); } finally { setSaving(false); } };
   const submitEdit = async (payload) => { if (!selected) return; try { setSaving(true); await onUpdate?.(selected.id, prepareLot(payload, selected)); toast.success('Lot mis à jour'); setModal(null); await onRefresh?.(); } catch (e) { toast.error(e.message || 'Modification impossible'); } finally { setSaving(false); } };
   const confirmDelete = async () => { if (!selected) return; try { setSaving(true); await onDelete?.(selected.id); toast.success('Lot supprimé'); setModal(null); await onRefresh?.(); } catch (e) { toast.error(e.message || 'Suppression impossible'); } finally { setSaving(false); } };
   const submitEggEntry = async (payload) => { const lot = pondeusesDisponibles.find((item) => item.id === payload.lot_id); if (!lot) return toast.error('Choisir un lot pondeuse actif'); const eggCount = toNumber(payload.oeufs_produits); const brokenCount = Math.max(0, toNumber(payload.oeufs_casses)); if (eggCount <= 0) return toast.error('Saisir un nombre d’œufs supérieur à 0'); if (brokenCount > eggCount) return toast.error('Les casses ne peuvent pas dépasser les œufs ramassés'); try { setSaving(true); await onCreateProduction?.({ ...payload, id: payload.id || `PROD-${Date.now()}`, lot_id: lot.id, lot_name: lot.name || lot.id, date: payload.date || today(), oeufs_produits: eggCount, oeufs_casses: brokenCount, oeufs_vendables: Math.max(0, eggCount - brokenCount), responsable_label: resolveResponsibleLabel(payload.responsable), module_lie: 'avicole', related_id: lot.id, source_module: 'avicole', type_evenement: 'ramassage_oeufs' }); await onRefreshProduction?.(); toast.success('Ramassage œufs enregistré'); setModal(null); } catch (e) { toast.error(e.message || 'Ajout ramassage impossible'); } finally { setSaving(false); } };
