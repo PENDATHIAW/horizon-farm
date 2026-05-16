@@ -2,6 +2,7 @@ import { Download, Edit, Eye, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ActionIconButton from '../components/ActionIconButton';
+import AvicoleLotDetailsModal from '../components/AvicoleLotDetailsModal';
 import Badge from '../components/Badge';
 import Btn from '../components/Btn';
 import DataTable from '../components/DataTable';
@@ -55,7 +56,7 @@ function phaseFor(lot = {}) { if (!hasActiveBirds(lot)) return exitReasonLabel(l
 function decisionColor(decision = {}) { if (decision.priority === 'haute') return 'red'; if (decision.priority === 'moyenne') return 'amber'; return 'gray'; }
 function computePurchaseFields(payload = {}, existing = {}) { const initial = Math.max(0, toNumber(payload.initial_count ?? payload.effectif_initial ?? existing.initial_count ?? existing.effectif_initial)); const crateSize = toNumber(payload.poussins_par_caisse ?? existing.poussins_par_caisse) || DEFAULT_CHICK_CRATE_SIZE; const cratePrice = toNumber(payload.prix_caisse_poussins ?? payload.cout_caisse_poussins ?? existing.prix_caisse_poussins ?? existing.cout_caisse_poussins) || DEFAULT_CHICK_CRATE_PRICE; const totalInput = toNumber(payload.cout_total_achat ?? payload.cout_achat_bande ?? payload.purchase_cost ?? payload.cout_poussins ?? payload.cout_achat); const unitInput = toNumber(payload.prix_unitaire_sujet ?? payload.unit_cost ?? payload.cout_unitaire_poussin); const defaultUnit = crateSize > 0 ? cratePrice / crateSize : DEFAULT_CHICK_CRATE_PRICE / DEFAULT_CHICK_CRATE_SIZE; const unit = totalInput > 0 && initial > 0 ? totalInput / initial : unitInput > 0 ? unitInput : defaultUnit; const total = totalInput > 0 ? totalInput : initial > 0 ? unit * initial : 0; return { initial, crateSize, cratePrice, unit: Number(unit.toFixed(2)), total: Number(total.toFixed(0)) }; }
 
-export default function AvicoleBase({ rows = [], alimentationLogs = [], productionLogs = [], loading, onCreate, onUpdate, onDelete, onRefresh, onCreateProduction, onRefreshProduction, activity = 'pondeuse', lockActivity = false }) {
+export default function AvicoleBase({ rows = [], alimentationLogs = [], productionLogs = [], opportunities = [], loading, onCreate, onUpdate, onDelete, onRefresh, onCreateProduction, onRefreshProduction, activity = 'pondeuse', lockActivity = false }) {
   const [tab, setTab] = useState(activityToTab(activity));
   const [modal, setModal] = useState(null);
   const [selected, setSelected] = useState(null);
@@ -184,5 +185,6 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
     <CreateModal open={modal === 'eggs'} onClose={() => setModal(null)} onSubmit={submitEggEntry} fields={eggFields} initialValues={initialEggEntry} loading={saving} title="Ramassage œufs" submitLabel="Enregistrer" />
     <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={editFields} initialValues={selected || {}} loading={saving} title="Modifier / suivre le lot" submitLabel="Enregistrer" />
     <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={confirmDelete} itemLabel={selected?.name || selected?.id || ''} loading={saving} />
+    <AvicoleLotDetailsModal open={modal === 'details'} onClose={() => setModal(null)} lot={selected} productionLogs={productionLogs} alimentationLogs={alimentationLogs} opportunities={opportunities} />
   </div>;
 }
