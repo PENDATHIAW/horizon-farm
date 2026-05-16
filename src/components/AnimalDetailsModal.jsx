@@ -29,6 +29,11 @@ const BuyerField = ({ label, value, children }) => (
   </div>
 );
 
+const healthEventsSummary = (items = []) => {
+  if (!items.length) return 'Aucun soin/vaccin rattaché depuis le module Santé';
+  return items.map((item) => `${item.nom || item.type || 'Intervention'} (${item.statut || item.status || 'suivi'})`).join(', ');
+};
+
 export default function AnimalDetailsModal({ open, onClose, animal, metrics, animals = [], vaccins = [], opportunities = [], onOpenTrace, onAddDocument }) {
   const [view, setView] = useState('interne');
 
@@ -98,7 +103,7 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
             <WeightProjectionPanel title="Projection poids acheteur" projection={projection} />
 
             <Section title="Sante & garanties publiques">
-              <BuyerField label="Vaccins / soins" value={relatedVaccins.length ? relatedVaccins.map((v) => `${v.nom} (${v.statut})`).join(', ') : 'Aucun vaccin renseigne'} />
+              <BuyerField label="Suivi Santé lié" value={healthEventsSummary(relatedVaccins)} />
               <BuyerField label="Score sanitaire" value={`${metrics.healthScore?.toFixed?.(0) || 0}%`} />
               <BuyerField label="Origine" value={acquisitionLabel(animal.mode_acquisition || 'achat')} />
               <BuyerField label="Traçabilite" value="Identifiant et QR code disponibles pour verification" />
@@ -138,13 +143,11 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
               <Field label="Portee" value={animal.portee_id || '-'} />
             </Section>
 
-            <Section title="Sante">
-              <Field label="Frais sante / soins" value={fmtCurrency(metrics.healthCost)} />
-              <Field label="Traitements" value={animal.traitements_notes || animal.traitement_en_cours || 'Aucun traitement renseigne'} />
-              <Field label="Vaccins lies" value={relatedVaccins.length ? relatedVaccins.map((v) => `${v.nom} (${v.statut})`).join(', ') : 'Aucun vaccin lie'} />
-              <Field label="Score sanitaire" value={`${metrics.healthScore.toFixed(0)}%`} />
-              <Field label="Prochaine verification" value={animal.date_prochaine_verification || animal.next_action_date || '-'} />
-              <Field label="RAS veterinaire" value={animal.ras_veterinaire || 'Non applique'} />
+            <Section title="Sante — lecture depuis module Santé">
+              <Field label="Frais santé / soins calculés" value={fmtCurrency(metrics.healthCost)} />
+              <Field label="Suivi Santé lié" value={healthEventsSummary(relatedVaccins)} />
+              <Field label="Score sanitaire calculé" value={`${metrics.healthScore.toFixed(0)}%`} />
+              <Field label="Source des données" value="Module Santé, vaccins, soins, vétérinaire et événements liés" />
             </Section>
 
             {animal.sexe === 'F' ? (
