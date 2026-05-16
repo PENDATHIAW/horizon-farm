@@ -34,17 +34,35 @@ function targetWeight(lot = {}) {
   return num(lot.poids_objectif_vente ?? lot.objectif_poids_moyen ?? lot.target_weight ?? lot.poids_objectif) || 1.5;
 }
 
+function mortalityRateOf(lot = {}) {
+  const initial = num(lot.initial_count ?? lot.effectif_initial);
+  return initial > 0 ? Math.round((num(lot.mortality) / initial) * 100) : 0;
+}
+
+function isLotClosedByLoss(lot = {}) {
+  const status = norm(lot.status || lot.statut || '');
+  return ['perdu', 'perdu_mortalite', 'cloture_perte'].includes(status) || (activeCount(lot) <= 0 && num(lot.initial_count ?? lot.effectif_initial) > 0);
+}
+
 export function buildBroilerLotDecision(lot = {}) {
   const living = computeChairLivingTarget(lot);
   const health = norm(lot.health_status || lot.sante || 'sain');
-  const mortality = num(lot.mortality);
-  const initial = num(lot.initial_count ?? lot.effectif_initial);
-  const mortalityRate = initial > 0 ? Math.round((mortality / initial) * 100) : 0;
+  const mortalityRate = mortalityRateOf(lot);
+  const closedByLoss = isLotClosedByLoss(lot);
   const sickOrRisk = health.includes('malade') || health.includes('critique') || health.includes('surveiller') || mortalityRate >= 5;
 
   let decision = living.action || 'Continuer croissance et suivre alimentation.';
   let priority = ['pret_vente', 'retard_croissance', 'pesee_due'].includes(living.status) ? 'haute' : 'moyenne';
-  if (sickOrRisk) {
+  if (closedByLoss) {
+    decision = 'Lot clôturé en perte : arrêter les charges actives, conserver l’historique et analyser la cause avant relance.';
+    priority = 'haute';
+  } else if (mortalityRate >= 5) {
+    decision = 'Morts élevés dans le lot : contrôler santé, eau, alimentation et reporter la vente recommandée.';
+    priority = 'haute';
+  } else if (mortalityRate >= 3) {
+    decision = 'Morts à surveiller : vérifier conditions du lot avant décision commerciale.';
+    priority = 'moyenne';
+  } else if (sickOrRisk) {
     decision = 'Lot à risque : contrôler santé, mortalité et alimentation.';
     priority = 'haute';
   }
@@ -64,8 +82,8 @@ export function buildBroilerLotDecision(lot = {}) {
     mortalityRate,
     realGainPerDay: living.realGainPerDay,
     adaptiveGainPerDay: living.adaptiveGainPerDay,
-    status: living.status,
-    progress: living.progress,
+    status: closedByLoss ? 'cloture_perte' : living.status,
+    progress: closedByLoss ? 0 : living.progress,
     decision,
     priority,
   };
@@ -76,8 +94,21 @@ export function buildLayerLotDecision(lot = {}, productionLogs = []) {
   const start = lot.date_debut || lot.entry_date || today();
   const reformStart = lot.date_debut_reforme_recommandee || addMonths(start, living.reformStartMonths || 17);
   const reformTarget = lot.date_reforme_cible || addMonths(start, living.reformTargetMonths || 18);
+  const mortalityRate = mortalityRateOf(lot);
+  const closedByLoss = isLotClosedByLoss(lot);
 
   let priority = ['baisse_ponte', 'ramassage_manquant', 'casses_elevees', 'preparer_reforme', 'reforme_cible'].includes(living.status) ? 'haute' : 'moyenne';
+  let decision = living.action;
+  if (closedByLoss) {
+    decision = 'Lot pondeuses clôturé en perte : arrêter les charges actives, conserver l’historique et analyser la cause avant nouvelle bande.';
+    priority = 'haute';
+  } else if (mortalityRate >= 5) {
+    decision = 'Morts élevés dans les pondeuses : vérifier santé, eau, aliment et impact sur objectif ponte vivant.';
+    priority = 'haute';
+  } else if (mortalityRate >= 3) {
+    decision = 'Morts à surveiller dans le lot pondeuses : contrôler rapidement les conditions du bâtiment.';
+    priority = 'moyenne';
+  }
 
   return {
     type: 'pondeuse',
@@ -92,8 +123,9 @@ export function buildLayerLotDecision(lot = {}, productionLogs = []) {
     gapEggsDay: living.gapEggsDay || 0,
     reformStart,
     reformTarget,
-    status: living.status,
-    decision: living.action,
+    mortalityRate,
+    status: closedByLoss ? 'cloture_perte' : living.status,
+    decision,
     priority,
   };
 }
