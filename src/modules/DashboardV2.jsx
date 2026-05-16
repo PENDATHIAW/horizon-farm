@@ -145,8 +145,8 @@ export default function DashboardV2(props) {
   };
 
   return <div className="space-y-6">
-    <MonthlyObjectiveStatus props={props} />
     <TodayFocus props={props} simple={simple} onToggleExpert={toggleExpert} />
+    <MonthlyObjectiveStatus props={props} />
     <Dashboard {...props} />
     {!simple ? <DashboardEvolution salesOrders={props.salesOrders || []} payments={props.payments || []} transactions={props.transactions || []} productionLogs={props.productionLogs || []} stocks={props.stocks || []} taches={props.taches || []} alertes={props.alertes || []} onNavigate={props.onNavigate} /> : <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Vue simple activée. Pour afficher les graphiques détaillés, clique sur “Voir plus de détails”.</div>}
   </div>;
