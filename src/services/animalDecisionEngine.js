@@ -18,6 +18,10 @@ function speciesProfile(species = '') {
   return { targetDelay: 90, normalFrequency: 21, closeFrequency: 14, sickFrequency: 10, dailyGain: 0.1, defaultTargetGain: 9 };
 }
 
+function isDeadAnimal(animal = {}) {
+  return norm(animal.status || animal.statut || '').includes('mort');
+}
+
 export function buildAnimalDecisionProfile(animal = {}) {
   const profile = speciesProfile(animal.type || animal.espece || animal.categorie);
   const health = norm(animal.health_status || animal.sante || 'sain');
@@ -30,6 +34,27 @@ export function buildAnimalDecisionProfile(animal = {}) {
   const manualTarget = num(animal.poids_objectif ?? animal.target_weight ?? animal.objectif_poids);
   const targetWeight = manualTarget || Number((entryWeight + profile.defaultTargetGain).toFixed(2));
   const progress = targetWeight > entryWeight ? Math.max(0, Math.min(1, (currentWeight - entryWeight) / (targetWeight - entryWeight))) : 0;
+
+  if (isDeadAnimal(animal)) {
+    return {
+      entryWeight,
+      currentWeight,
+      targetWeight,
+      entryDate,
+      lastWeighingDate,
+      nextWeighingDate: '',
+      expectedWeight: currentWeight,
+      frequency: 0,
+      reason: 'Animal mort : suivi actif, vente, pesée et alimentation arrêtés. Conserver la fiche pour traçabilité et perte.',
+      decision: 'Historisé comme perte animal.',
+      ageDays,
+      targetDelay,
+      progressPercent: Math.round(progress * 100),
+      closed: true,
+      lossValue: num(animal.valeur_perte_estimee ?? animal.purchase_cost ?? animal.cout_achat ?? animal.prix_achat),
+    };
+  }
+
   const isSick = ['malade', 'blesse', 'blesse', 'sous_traitement', 'a_surveiller'].some((status) => health.includes(status));
   const closeToSale = progress >= 0.8 || ageDays >= Math.max(0, targetDelay - 20);
   const frequency = isSick ? profile.sickFrequency : closeToSale ? profile.closeFrequency : profile.normalFrequency;
@@ -61,12 +86,14 @@ export function buildAnimalDecisionProfile(animal = {}) {
     ageDays,
     targetDelay,
     progressPercent: Math.round(progress * 100),
+    closed: false,
   };
 }
 
 export function applyAnimalDecisionDefaults(payload = {}, existing = {}) {
   const base = { ...existing, ...payload };
   const profile = buildAnimalDecisionProfile(base);
+  const dead = isDeadAnimal(base);
   return {
     ...payload,
     poids_entree: profile.entryWeight,
@@ -83,6 +110,10 @@ export function applyAnimalDecisionDefaults(payload = {}, existing = {}) {
     raison_pesee_recommandee: profile.reason,
     decision_apres_pesee_view: profile.decision,
     delai_cible_vente_jours: profile.targetDelay,
-    alerte_cash_immobilise_view: profile.ageDays > profile.targetDelay ? `Alerte: ${profile.ageDays} jours en ferme, objectif ${profile.targetDelay} jours` : 'OK',
+    pret_vente_recommande: dead ? false : payload.pret_vente_recommande,
+    pret_vente_confirme: dead ? false : payload.pret_vente_confirme,
+    sale_readiness_status: dead ? 'non_pret' : payload.sale_readiness_status,
+    valeur_perte_estimee: dead ? num(payload.valeur_perte_estimee ?? existing.valeur_perte_estimee ?? profile.lossValue) : payload.valeur_perte_estimee,
+    alerte_cash_immobilise_view: dead ? 'Clôturé en perte' : profile.ageDays > profile.targetDelay ? `Alerte: ${profile.ageDays} jours en ferme, objectif ${profile.targetDelay} jours` : 'OK',
   };
 }
