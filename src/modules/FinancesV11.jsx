@@ -2,6 +2,7 @@ import { AlertTriangle, BarChart3, CreditCard, Landmark, ListChecks, TrendingDow
 import { useMemo } from 'react';
 import KpiCard from '../components/KpiCard';
 import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard.jsx';
+import useCrudModule from '../hooks/useCrudModule';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { consolidateFinance } from '../utils/financeConsolidationEngine';
 import FinancesV10 from './FinancesV10.jsx';
@@ -55,14 +56,16 @@ function FinanceEvolutionPanel({ transactions = [], salesOrders = [], payments =
 }
 
 export default function FinancesV11(props) {
+  const businessEventsCrud = useCrudModule('business_events');
+  const businessEvents = props.businessEvents?.length ? props.businessEvents : businessEventsCrud.rows;
   const finance = useMemo(() => consolidateFinance({
     transactions: props.rows || [],
     salesOrders: props.salesOrders || [],
     payments: props.payments || [],
     fournisseurs: props.fournisseurs || [],
     stocks: props.stocks || [],
-    businessEvents: props.businessEvents || [],
-  }), [props.rows, props.salesOrders, props.payments, props.fournisseurs, props.stocks, props.businessEvents]);
+    businessEvents,
+  }), [props.rows, props.salesOrders, props.payments, props.fournisseurs, props.stocks, businessEvents]);
 
   const dataMap = {
     sales_orders: props.salesOrders || [],
@@ -72,7 +75,7 @@ export default function FinancesV11(props) {
     avicole: props.lots || [],
     cultures: props.cultures || [],
     stock: props.stocks || [],
-    business_events: props.businessEvents || [],
+    business_events: businessEvents,
   };
 
   return (
@@ -145,7 +148,7 @@ export default function FinancesV11(props) {
           lots={props.lots || []}
           cultures={props.cultures || []}
           stocks={props.stocks || []}
-          businessEvents={props.businessEvents || []}
+          businessEvents={businessEvents}
           compact
         />
       </ModuleSection>
