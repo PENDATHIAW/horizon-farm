@@ -11,7 +11,8 @@ const high = (value = '') => String(value || '').toLowerCase().includes('haute')
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const amountOf = (row = {}) => Number(row.montant_total ?? row.total ?? row.amount ?? row.montant ?? row.total_amount ?? row.estimated_value ?? 0) || 0;
 const isConverted = (row = {}) => ['converti', 'converted', 'confirme', 'confirmé', 'execute', 'exécuté', 'vendu'].some((status) => norm(row.status || row.statut || row.decision_status).includes(status));
-const isDecisionEvent = (row = {}) => ['opportunite', 'recommandation', 'decision', 'vente', 'investissement', 'paiement'].some((term) => norm(`${row.event_type || ''} ${row.module_source || ''} ${row.title || ''} ${row.description || ''}`).includes(term));
+const isDecisionEvent = (row = {}) => ['opportunite', 'recommandation', 'decision', 'vente', 'investissement', 'paiement', 'perte'].some((term) => norm(`${row.event_type || ''} ${row.type_evenement || ''} ${row.module_source || ''} ${row.title || ''} ${row.description || ''}`).includes(term));
+const isLossEvent = (row = {}) => ['perte_animal', 'perte_avicole', 'perte_culturale'].includes(norm(row.type_evenement || row.event_type)) || norm(`${row.title || ''} ${row.description || ''}`).includes('perte');
 
 function ImpactMini({ icon: Icon, label, value, detail, tone = 'neutral' }) {
   const cls = tone === 'good'
@@ -51,7 +52,7 @@ function DecisionHistoryTable({ rows = [] }) {
               <td className="px-3 py-2 font-mono text-xs text-[#8a7456]">{row.id}</td>
               <td className="px-3 py-2 font-bold text-[#2f2415]">{row.title}</td>
               <td className="px-3 py-2 text-[#7d6a4a]">{row.origin}</td>
-              <td className="px-3 py-2"><span className={`rounded-full border px-2 py-0.5 text-xs font-black ${row.status === 'exécuté' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : row.status === 'à suivre' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-[#eadcc2] bg-[#fffdf8] text-[#7d6a4a]'}`}>{row.status}</span></td>
+              <td className="px-3 py-2"><span className={`rounded-full border px-2 py-0.5 text-xs font-black ${row.status === 'exécuté' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : row.status === 'à suivre' ? 'border-amber-200 bg-amber-50 text-amber-700' : row.status === 'perte' ? 'border-red-200 bg-red-50 text-red-700' : 'border-[#eadcc2] bg-[#fffdf8] text-[#7d6a4a]'}`}>{row.status}</span></td>
               <td className="px-3 py-2 text-right font-black text-[#2f2415]">{fmtCurrency(row.value)}</td>
             </tr>
           ))}
@@ -74,6 +75,9 @@ function buildDecisionExecutionImpact(dataMap = {}, plan = { recommendations: []
   const generatedRecommendations = arr(plan.recommendations).length + opportunities.length;
   const convertedOpportunities = opportunities.filter(isConverted);
   const decisionEvents = events.filter(isDecisionEvent);
+  const lossEvents = events.filter(isLossEvent);
+  const lossValue = lossEvents.reduce((sum, event) => sum + amountOf(event), 0);
+  const criticalLosses = lossEvents.filter((event) => norm(event.severity || event.priorite || event.priority).includes('critique')).length;
   const salesFromDecision = attribution.linkedOrders.length ? attribution.linkedOrders : orders.filter((order) => {
     const text = norm(`${order.source_module || ''} ${order.source_type || ''} ${order.recommendation_id || ''} ${order.opportunity_id || ''} ${order.notes || ''}`);
     return text.includes('centre') || text.includes('decision') || text.includes('opportunite') || text.includes('horizon');
@@ -92,13 +96,14 @@ function buildDecisionExecutionImpact(dataMap = {}, plan = { recommendations: []
   const historyRows = [
     ...opportunities.map((opp) => ({ id: opp.id, title: opp.title || opp.nom || 'Opportunité vente', origin: opp.decision_origin || opp.source_type || 'Opportunités vente', status: isConverted(opp) ? 'exécuté' : 'à suivre', value: amountOf(opp) })),
     ...salesFromDecision.map((order) => ({ id: order.id, title: order.source_label || `Commande ${order.id}`, origin: order.decision_origin || 'Vente liée opportunité', status: 'exécuté', value: amountOf(order) })),
-    ...decisionEvents.map((event) => ({ id: event.id, title: event.title || event.event_type || 'Événement décisionnel', origin: event.module_source || 'Événement ERP', status: ['vente', 'paiement', 'investissement', 'convert'].some((term) => norm(event.event_type).includes(term)) ? 'exécuté' : 'mémorisé', value: amountOf(event) })),
+    ...decisionEvents.map((event) => ({ id: event.id, title: event.title || event.event_type || event.type_evenement || 'Événement décisionnel', origin: event.module_source || event.module || 'Événement ERP', status: isLossEvent(event) ? 'perte' : ['vente', 'paiement', 'investissement', 'convert'].some((term) => norm(event.event_type).includes(term)) ? 'exécuté' : 'mémorisé', value: amountOf(event) })),
   ].sort((a, b) => (b.value || 0) - (a.value || 0));
 
   const learningNotes = [
     generatedRecommendations ? `${generatedRecommendations} recommandation(s) ou opportunité(s) sont visibles pour alimenter l’historique.` : 'Le Centre décisionnel doit encore générer des recommandations exploitables.',
     executedCount ? `${executedCount} action(s) semblent exécutées ou mémorisées.` : 'Aucune exécution clairement reliée à une recommandation pour le moment.',
     linkedSalesValue || convertedValue ? `Valeur commerciale attribuable à suivre : ${fmtCurrency(linkedSalesValue + convertedValue)}.` : 'Les ventes doivent être liées à une opportunité/recommandation pour mesurer la valeur réelle.',
+    lossEvents.length ? `${lossEvents.length} perte(s) consignées automatiquement pour ${fmtCurrency(lossValue)}.` : 'Les pertes seront visibles ici dès qu’un décès, un lot touché ou un sinistre culture sera consigné.',
     attribution.attributableRevenue ? `Attribution opportunité → commande détectée : ${fmtCurrency(attribution.attributableRevenue)} de CA lié.` : 'L’attribution automatique relie les commandes aux opportunités via source_id/source_type quand opportunity_id manque.',
     plannedInvestments || horizonBusinessPlans.length ? 'Les BP/investissements liés permettent de suivre rentabilité prévue vs réelle.' : 'Créer ou lier les BP aux recommandations exécutées pour suivre la rentabilité finale.',
   ];
@@ -113,6 +118,9 @@ function buildDecisionExecutionImpact(dataMap = {}, plan = { recommendations: []
     paidTotal,
     plannedInvestments,
     horizonBusinessPlans: horizonBusinessPlans.length,
+    lossEvents: lossEvents.length,
+    lossValue,
+    criticalLosses,
     historyRows,
     learningNotes,
   };
@@ -157,7 +165,7 @@ export default function ImpactDecisionBridge(props) {
   const weighingActions = animalProfiles.filter((item) => item.nextWeighingDate).length;
   const avicoleHigh = avicoleProfiles.filter((item) => high(item.priority)).length;
   const cultureHigh = cultureProfiles.filter((item) => high(item.priority)).length;
-  const totalDecisionSignals = plan.recommendations.length + animalCashRisk + avicoleHigh + cultureHigh;
+  const totalDecisionSignals = plan.recommendations.length + animalCashRisk + avicoleHigh + cultureHigh + executionImpact.criticalLosses;
   const goal = plan.goals.global;
 
   const proofs = [
@@ -166,6 +174,7 @@ export default function ImpactDecisionBridge(props) {
     animalCashRisk ? `${animalCashRisk} animal(aux) dépassent le délai cible : cash immobilisé à arbitrer.` : null,
     avicoleHigh ? `${avicoleHigh} lot(s) avicoles demandent une décision : vente, ponte, santé ou réforme.` : null,
     cultureHigh ? `${cultureHigh} culture(s) nécessitent une décision : sol, eau, rendement ou vente.` : null,
+    executionImpact.lossEvents ? `${executionImpact.lossEvents} perte(s) automatiquement consignées : ${fmtCurrency(executionImpact.lossValue)}.` : null,
     executionImpact.executedCount ? `${executionImpact.executedCount} décision(s) semblent exécutées ou mémorisées dans l’ERP.` : null,
   ].filter(Boolean);
 
@@ -189,8 +198,8 @@ export default function ImpactDecisionBridge(props) {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
         <ImpactMini icon={Target} label="Objectif CA" value={`${goal.attainment}%`} detail={`${fmtCurrency(goal.realized)} réalisés / ${fmtCurrency(goal.monthTarget)}`} tone={goal.attainment >= 90 ? 'good' : 'warning'} />
         <ImpactMini icon={TrendingUp} label="Reste à vendre" value={fmtCurrency(goal.remaining)} detail={`Objectif hebdo ${fmtCurrency(goal.weekTarget)}`} tone={goal.remaining > 0 ? 'warning' : 'good'} />
-        <ImpactMini icon={Zap} label="Signaux IA" value={totalDecisionSignals} detail="recommandations + risques terrain" tone={totalDecisionSignals ? 'warning' : 'good'} />
-        <ImpactMini icon={AlertTriangle} label="Cash immobilisé" value={animalCashRisk} detail="animaux au-delà du délai cible" tone={animalCashRisk ? 'danger' : 'good'} />
+        <ImpactMini icon={Zap} label="Signaux IA" value={totalDecisionSignals} detail="recommandations + risques + pertes" tone={totalDecisionSignals ? 'warning' : 'good'} />
+        <ImpactMini icon={AlertTriangle} label="Pertes consignées" value={executionImpact.lossEvents} detail={fmtCurrency(executionImpact.lossValue)} tone={executionImpact.lossEvents ? 'danger' : 'good'} />
         <ImpactMini icon={CheckCircle2} label="Pesées pilotées" value={weighingActions} detail="dates et poids attendus proposés" tone="neutral" />
       </div>
 
@@ -217,7 +226,7 @@ export default function ImpactDecisionBridge(props) {
           </ul>
         </div>
         <div>
-          <p className="mb-2 font-black text-[#2f2415]">Historique décisions / opportunités</p>
+          <p className="mb-2 font-black text-[#2f2415]">Historique décisions / opportunités / pertes</p>
           <DecisionHistoryTable rows={executionImpact.historyRows} />
         </div>
       </div>
