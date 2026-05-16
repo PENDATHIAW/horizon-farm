@@ -86,6 +86,8 @@ const dbKeyMap = { productionJour: 'productionjour', revenuEstime: 'revenu_estim
 const GENERATED_COLUMNS = { bp_investment_lines: ['total'], bp_revenue_projections: ['ca_estime', 'marge_estimee'], business_plans: ['apport_total'] };
 const today = () => new Date().toISOString().slice(0, 10);
 const amountOf = (...values) => values.map((value) => Number(value || 0)).find((value) => value > 0) || 0;
+const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const closedOpportunity = (row = {}) => ['converti', 'converted', 'annule', 'annulee', 'ignor', 'perdu', 'cloture', 'clôturé'].some((status) => norm(row.status || row.statut).includes(status));
 const enrichWorkflowPayload = (payload = {}, table = '') => {
   if (table !== 'payments') return payload;
   const paymentDate = payload.date_paiement || payload.date || payload.paid_at || today();
@@ -125,6 +127,43 @@ const runMutationWithSchemaRetry = async ({ table, action, payload, id, idField 
 const isSoftDeleted = (row = {}) => Boolean(row.is_deleted || row.deleted_at || row.deletedAt);
 const filterSoftDeletedRows = (rows = []) => Array.isArray(rows) ? rows.filter((row) => !isSoftDeleted(row)) : [];
 const currentUserId = async () => { try { const { data } = await supabase.auth.getUser(); return data?.user?.id || data?.user?.email || 'system'; } catch { return 'system'; } };
+const findMatchingOpportunity = async (payload = {}) => {
+  const sourceId = payload.source_id || payload.entity_id || payload.related_id;
+  if (payload.opportunity_id || !sourceId) return null;
+  try {
+    const { data, error } = await supabase.from('sales_opportunities').select('*').eq('source_id', sourceId).limit(10);
+    if (error) return null;
+    const sourceType = norm(payload.source_type || payload.type_vente || '');
+    return (data || []).find((opp) => {
+      const oppType = norm(opp.source_type || opp.type_source || opp.type || '');
+      return !closedOpportunity(opp) && (!sourceType || !oppType || sourceType.includes(oppType) || oppType.includes(sourceType));
+    }) || null;
+  } catch { return null; }
+};
+const safePatchOpportunitySchema = async (opportunityId, patch = {}) => {
+  if (!opportunityId) return;
+  let nextPatch = patch;
+  const removed = [];
+  for (let i = 0; i < 12; i += 1) {
+    if (Object.keys(nextPatch).length === 0) return;
+    const { error } = await supabase.from('sales_opportunities').update(nextPatch).eq('id', opportunityId);
+    if (!error) return;
+    const missing = getMissingSchemaColumn(error);
+    if (!missing || removed.includes(missing)) return;
+    removed.push(missing);
+    nextPatch = withoutColumn(nextPatch, missing);
+  }
+};
+const linkSalesOrderToOpportunity = async (createdOrder = {}, originalPayload = {}) => {
+  if (!createdOrder?.id) return createdOrder;
+  try {
+    const match = originalPayload.opportunity_id ? { id: originalPayload.opportunity_id } : await findMatchingOpportunity({ ...originalPayload, ...createdOrder });
+    if (!match?.id) return createdOrder;
+    await safePatchOpportunitySchema(match.id, { status: 'converti', statut: 'converti', converted_sale_id: createdOrder.id, converted_at: new Date().toISOString() });
+    await supabase.from('business_events').insert({ id: `EVT-${createdOrder.id}-${match.id}`.slice(0, 80), event_type: 'opportunite_convertie', module_source: 'ventes', entity_type: 'opportunite_vente', entity_id: match.id, title: `Opportunité convertie en commande ${createdOrder.id}`, description: createdOrder.source_label || originalPayload.source_label || 'Opportunité convertie en vente.', amount: Number(createdOrder.montant_total || originalPayload.montant_total || 0), event_date: new Date().toISOString(), linked_sale_id: createdOrder.id, severity: 'info' }).catch(() => {});
+    return { ...createdOrder, opportunity_id: createdOrder.opportunity_id || match.id, decision_origin: createdOrder.decision_origin || originalPayload.decision_origin || 'opportunite_vente', attributable_to_decision_center: true };
+  } catch { return createdOrder; }
+};
 const writeDeletedRecord = async ({ table, id, idField }) => {
   writeRealDeletedId(table, id);
   try { const actor = await currentUserId(); await supabase.from('deleted_records').upsert({ id: `${table}:${id}`, module_key: table, table_name: table, record_id: String(id), id_field: idField, deleted_by: actor, deleted_at: new Date().toISOString() }, { onConflict: 'id' }); }
@@ -149,7 +188,13 @@ const trySoftDelete = async ({ table, id, idField }) => {
 
 export const createSupabaseCrudService = (table, idField = 'id') => ({
   async getAll() { if (!table) return []; if (isSimulatedDataModeEnabled()) return getSimulatedTableRows(table, idField); const { data, error } = await supabase.from(table).select('*'); if (error) throw error; return filterRealDeletedRows(table, filterSoftDeletedRows(data || []), idField); },
-  async create(payload) { if (!table) return payload; if (isSimulatedDataModeEnabled()) return createSimulatedRow(table, payload, idField); return runMutationWithSchemaRetry({ table, action: 'insert', payload, idField }); },
+  async create(payload) {
+    if (!table) return payload;
+    if (isSimulatedDataModeEnabled()) return createSimulatedRow(table, payload, idField);
+    const created = await runMutationWithSchemaRetry({ table, action: 'insert', payload, idField });
+    if (table === 'sales_orders') return linkSalesOrderToOpportunity(created, payload);
+    return created;
+  },
   async update(id, payload) { if (!table) return payload; if (isSimulatedDataModeEnabled()) return updateSimulatedRow(table, id, payload, idField); return runMutationWithSchemaRetry({ table, action: 'update', payload, id, idField }); },
   async remove(id) { if (!table) return true; if (isSimulatedDataModeEnabled()) return removeSimulatedRow(table, id, idField); await writeDeletedRecord({ table, id, idField }); const softDeleted = await trySoftDelete({ table, id, idField }); if (softDeleted) return true; const { error } = await supabase.from(table).delete().eq(idField, id); if (error) throw error; return true; },
 });
