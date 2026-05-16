@@ -13,6 +13,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const statusOf = (row = {}) => String(row.status || row.statut || '').toLowerCase();
 const isDead = (row = {}) => statusOf(row) === 'mort';
 const lossValueOf = (row = {}) => toNumber(row.valeur_perte_estimee ?? row.purchase_cost ?? row.cout_achat ?? row.prix_achat);
+const speciesActivityMap = { Bovin: 'bovins', Ovin: 'ovins', Caprin: 'caprins' };
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return (
@@ -80,6 +81,7 @@ export default function AnimauxV2(props) {
     finances: props.transactions || [],
     animaux: props.rows || [],
   };
+  const selectedActivity = speciesActivityMap[species] || 'bovins';
 
   return (
     <div className="space-y-6 animaux-mobile-structured">
@@ -106,11 +108,7 @@ export default function AnimauxV2(props) {
         </div>
       </ModuleSection>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <ObjectivePerformanceCard dataMap={dataMap} activity="bovins" title="Objectif Bovins" compact onNavigate={props.onNavigate} />
-        <ObjectivePerformanceCard dataMap={dataMap} activity="ovins" title="Objectif Ovins" compact onNavigate={props.onNavigate} />
-        <ObjectivePerformanceCard dataMap={dataMap} activity="caprins" title="Objectif Caprins" compact onNavigate={props.onNavigate} />
-      </div>
+      <ObjectivePerformanceCard dataMap={dataMap} activity={selectedActivity} title={`Objectif ${species}s`} compact onNavigate={props.onNavigate} />
 
       <ModuleSection
         icon={PackageCheck}
