@@ -28,6 +28,9 @@ export function buildCultureDecisionProfile(culture = {}) {
   const surface = num(culture.surface_exploitable ?? culture.surface);
   const expectedYield = num(culture.rendement_attendu ?? culture.quantite_prevue);
   const realYield = num(culture.rendement_reel ?? culture.quantite_recoltee);
+  const lossQty = num(culture.pertes ?? culture.quantite_perdue ?? culture.quantite_sinistree);
+  const lossValue = num(culture.valeur_perte_estimee ?? culture.perte_estimee ?? culture.montant_sinistre);
+  const status = norm(culture.statut || '');
   const water = norm(culture.eau_disponible || culture.disponibilite_eau || '');
   const soil = norm(culture.type_sol || culture.sol || '');
   const startDate = culture.date_semis || culture.date_debut_campagne || culture.date_plantation;
@@ -40,7 +43,15 @@ export function buildCultureDecisionProfile(culture = {}) {
 
   let priority = 'moyenne';
   let decision = 'Valider sol, eau, cycle et débouché avant investissement fort.';
-  if (!hasSoil || !hasWater) {
+  if (['perdu', 'sinistre'].includes(status)) {
+    priority = status === 'perdu' ? 'haute' : 'moyenne';
+    decision = status === 'perdu'
+      ? 'Culture clôturée en perte : arrêter les charges, historiser le sinistre et analyser la cause avant relance.'
+      : 'Perte culturale déclarée : sécuriser les actions correctives et recalculer la quantité vendable.';
+  } else if (lossQty > 0 || lossValue > 0) {
+    priority = 'haute';
+    decision = 'Perte culturale à suivre : vérifier eau, ravageurs, maladie et ajuster la prévision de vente.';
+  } else if (!hasSoil || !hasWater) {
     priority = 'haute';
     decision = 'Décision incomplète : renseigner type de sol et eau disponible avant recommandation forte.';
   } else if (!soilOk || !waterOk) {
@@ -64,6 +75,8 @@ export function buildCultureDecisionProfile(culture = {}) {
     surface,
     expectedYield,
     realYield,
+    lossQty,
+    lossValue,
     yieldGap,
     harvestDate,
     soilOk,
@@ -83,6 +96,8 @@ export function applyCultureDecisionDefaults(payload = {}, existing = {}) {
     date_recolte_prevue: payload.date_recolte_prevue || profile.harvestDate,
     rendement_attendu: num(payload.rendement_attendu ?? payload.quantite_prevue) || profile.expectedYield,
     quantite_prevue: num(payload.quantite_prevue ?? payload.rendement_attendu) || profile.expectedYield,
+    pertes: num(payload.pertes ?? payload.quantite_perdue) || profile.lossQty,
+    valeur_perte_estimee: num(payload.valeur_perte_estimee ?? payload.perte_estimee) || profile.lossValue,
     decision_ia_culture: profile.decision,
     priorite_ia_culture: profile.priority,
     besoin_eau_reference: profile.waterNeed,
