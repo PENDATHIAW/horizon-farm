@@ -17,6 +17,30 @@ function action(label, type, priority, payload = {}) {
 export function buildDecisionActions(item = {}, target = null) {
   const actions = [];
 
+  if (item.technical_rule) {
+    actions.push(action('Créer une tâche terrain', 'technical_task', item.priority === 'haute' ? 'haute' : 'moyenne', {
+      title: item.title,
+      description: item.recommendation,
+      source_alert_id: item.source_alert_id,
+      source_module: item.source_module,
+      entity_type: item.entity_type,
+      entity_id: item.entity_id,
+    }));
+    actions.push(action('Ouvrir le centre d’alertes', 'technical_alert', item.priority === 'haute' ? 'haute' : 'moyenne', {
+      title: item.title,
+      message: item.event_note || item.recommendation,
+      source_alert_id: item.source_alert_id,
+      source_module: item.source_module,
+      entity_type: item.entity_type,
+      entity_id: item.entity_id,
+    }));
+    if (['oeufs', 'poulets_chair'].includes(item.activity)) actions.push(action('Ouvrir Avicole', 'technical_module', 'moyenne', { target_module: 'avicole' }));
+    else if (['bovins', 'ovins', 'caprins', 'animaux'].includes(item.activity)) actions.push(action('Ouvrir Animaux / Santé', 'technical_module', 'moyenne', { target_module: item.source_module === 'sante' ? 'sante' : 'animaux' }));
+    else if (item.activity === 'stock') actions.push(action('Ouvrir Stock', 'technical_module', 'moyenne', { target_module: 'stock' }));
+    else if (item.activity === 'cultures') actions.push(action('Ouvrir Cultures', 'technical_module', 'moyenne', { target_module: 'cultures' }));
+    return actions.slice(0, 4);
+  }
+
   if (item.should_recommend_investment) {
     actions.push(action('Créer / ouvrir le BP brouillon', 'business_plan', 'haute', {
       activity: item.activity,
@@ -91,10 +115,13 @@ export function actionTypeLabel(type) {
     stock_check: 'Stock',
     animal_check: 'Animaux',
     culture_check: 'Cultures',
+    technical_task: 'Tâche terrain',
+    technical_alert: 'Alerte terrain',
+    technical_module: 'Module',
   }[type] || 'Action';
 }
 
-export function actionTargetModule(type) {
+export function actionTargetModule(type, payload = {}) {
   return {
     business_plan: 'investissements',
     sales_opportunity: 'ventes',
@@ -103,6 +130,9 @@ export function actionTargetModule(type) {
     stock_check: 'stock',
     animal_check: 'animaux',
     culture_check: 'cultures',
+    technical_task: 'taches',
+    technical_alert: 'alertes',
+    technical_module: payload.target_module || 'alertes',
   }[type] || 'dashboard';
 }
 
@@ -116,7 +146,7 @@ function buildDecisionTrace(action = {}, item = {}) {
     recommendation_title: item.title,
     action_label: action.label,
     action_type: action.type,
-    target_module: actionTargetModule(action.type),
+    target_module: actionTargetModule(action.type, action.payload),
     target_date: item.target_date,
     deadline: item.latest_start,
     demand_level: item.demand_level,
@@ -125,7 +155,7 @@ function buildDecisionTrace(action = {}, item = {}) {
     gap_units: item.gap_units,
     gap_revenue: item.gap_revenue,
     expected_impact: item.recommendation,
-    decision_reason: `Demande ${item.demand_level || 'inconnue'}, couverture ${item.coverage_rate || 0}%, fenêtre ${item.event_label || item.target_date || 'à confirmer'}.`,
+    decision_reason: item.technical_rule ? `Règle technique terrain: ${item.event_note || item.recommendation || item.title}.` : `Demande ${item.demand_level || 'inconnue'}, couverture ${item.coverage_rate || 0}%, fenêtre ${item.event_label || item.target_date || 'à confirmer'}.`,
     opened_at: new Date().toISOString(),
   };
 }
@@ -207,6 +237,57 @@ export function buildDraftFromDecisionAction(action = {}, item = {}) {
     };
   }
 
+  if (action.type === 'technical_task') {
+    return {
+      ...base,
+      target_module: 'taches',
+      draft_type: 'task',
+      title: action.payload?.title || item.title || action.label,
+      due_date: item.latest_start || item.target_date,
+      priority: action.priority === 'haute' ? 'critique' : 'haute',
+      status: 'a_faire',
+      statut: 'a_faire',
+      module_lie: action.payload?.source_module || item.source_module || item.activity,
+      entity_type: action.payload?.entity_type || item.entity_type,
+      related_id: action.payload?.entity_id || item.entity_id,
+      source_record_id: action.payload?.source_alert_id || item.source_alert_id,
+      alert_dedupe_key: `${action.payload?.source_module || item.source_module || 'technique'}:${action.payload?.entity_type || item.entity_type || 'entite'}:${action.payload?.entity_id || item.entity_id || item.id}:${item.recommendation || item.title}`,
+      description: action.payload?.description || item.recommendation || 'Action terrain recommandée par le Centre décisionnel.',
+      source_recommendation_status: 'technical_task_draft_opened',
+    };
+  }
+
+  if (action.type === 'technical_alert') {
+    return {
+      ...base,
+      target_module: 'alertes',
+      draft_type: 'alert',
+      title: action.payload?.title || item.title || action.label,
+      due_date: item.latest_start || item.target_date,
+      severity: action.priority === 'haute' ? 'critique' : 'warning',
+      status: 'nouvelle',
+      statut: 'nouvelle',
+      module_source: action.payload?.source_module || item.source_module || item.activity,
+      entity_type: action.payload?.entity_type || item.entity_type,
+      entity_id: action.payload?.entity_id || item.entity_id,
+      alert_dedupe_key: `${action.payload?.source_module || item.source_module || 'technique'}:${action.payload?.entity_type || item.entity_type || 'entite'}:${action.payload?.entity_id || item.entity_id || item.id}:${item.recommendation || item.title}`,
+      message: action.payload?.message || item.event_note || item.recommendation,
+      action_recommandee: item.recommendation,
+      source_recommendation_status: 'technical_alert_draft_opened',
+    };
+  }
+
+  if (action.type === 'technical_module') {
+    return {
+      ...base,
+      target_module: action.payload?.target_module || actionTargetModule(action.type, action.payload),
+      draft_type: 'module_navigation',
+      title: item.title || action.label,
+      description: item.recommendation,
+      source_recommendation_status: 'technical_module_opened',
+    };
+  }
+
   if (action.type === 'stock_check') {
     return {
       ...base,
@@ -246,7 +327,7 @@ export function buildDraftFromDecisionAction(action = {}, item = {}) {
     };
   }
 
-  return { ...base, target_module: actionTargetModule(action.type), draft_type: action.type || 'action' };
+  return { ...base, target_module: actionTargetModule(action.type, action.payload), draft_type: action.type || 'action' };
 }
 
 export default buildDecisionActions;
