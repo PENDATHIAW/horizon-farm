@@ -12,6 +12,7 @@ const tableModuleMap = {
 
 const simulatedStorageKey = (table) => `horizon_simulated_rows:${table}`;
 const simulatedDeletedKey = (table) => `horizon_simulated_deleted:${table}`;
+const realDeletedKey = (table) => `horizon_real_deleted:${table}`;
 const safeJson = (key, fallback) => {
   if (typeof localStorage === 'undefined') return fallback;
   try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); } catch { return fallback; }
@@ -20,6 +21,23 @@ const readSimulatedRows = (table) => safeJson(simulatedStorageKey(table), []);
 const writeSimulatedRows = (table, rows = []) => { if (typeof localStorage === 'undefined') return rows; localStorage.setItem(simulatedStorageKey(table), JSON.stringify(rows)); return rows; };
 const readDeletedIds = (table) => new Set(safeJson(simulatedDeletedKey(table), []).map(String));
 const writeDeletedIds = (table, ids) => { if (typeof localStorage === 'undefined') return ids; localStorage.setItem(simulatedDeletedKey(table), JSON.stringify(Array.from(ids).map(String))); return ids; };
+const readRealDeletedIds = (table) => new Set(safeJson(realDeletedKey(table), []).map(String));
+const writeRealDeletedId = (table, id) => { if (typeof localStorage === 'undefined' || !id) return; const ids = readRealDeletedIds(table); ids.add(String(id)); localStorage.setItem(realDeletedKey(table), JSON.stringify(Array.from(ids))); };
+const readServerDeletedIds = async (table) => {
+  try {
+    const { data, error } = await supabase.from('deleted_records').select('record_id').or(`table_name.eq.${table},module_key.eq.${table}`);
+    if (error) return new Set();
+    return new Set((data || []).map((row) => String(row.record_id)).filter(Boolean));
+  } catch { return new Set(); }
+};
+const filterRealDeletedRows = async (table, rows = [], idField = 'id') => {
+  const localIds = readRealDeletedIds(table);
+  const serverIds = await readServerDeletedIds(table);
+  return (Array.isArray(rows) ? rows : []).filter((row) => {
+    const id = String(row?.[idField] ?? row?.id ?? '');
+    return id && !localIds.has(id) && !serverIds.has(id);
+  });
+};
 const mergeById = (rows = [], updates = [], idField = 'id') => {
   const map = new Map(rows.map((row) => [String(row?.[idField] ?? row?.id), row]));
   updates.forEach((row) => map.set(String(row?.[idField] ?? row?.id), row));
@@ -108,6 +126,7 @@ const isSoftDeleted = (row = {}) => Boolean(row.is_deleted || row.deleted_at || 
 const filterSoftDeletedRows = (rows = []) => Array.isArray(rows) ? rows.filter((row) => !isSoftDeleted(row)) : [];
 const currentUserId = async () => { try { const { data } = await supabase.auth.getUser(); return data?.user?.id || data?.user?.email || 'system'; } catch { return 'system'; } };
 const writeDeletedRecord = async ({ table, id, idField }) => {
+  writeRealDeletedId(table, id);
   try { const actor = await currentUserId(); await supabase.from('deleted_records').upsert({ id: `${table}:${id}`, module_key: table, table_name: table, record_id: String(id), id_field: idField, deleted_by: actor, deleted_at: new Date().toISOString() }, { onConflict: 'id' }); }
   catch (error) { const message = String(error?.message || '').toLowerCase(); if (!message.includes('deleted_records') && !message.includes('schema cache') && !message.includes('does not exist')) console.warn('Deleted record journal non enregistre', error.message || error); }
 };
@@ -129,8 +148,8 @@ const trySoftDelete = async ({ table, id, idField }) => {
 };
 
 export const createSupabaseCrudService = (table, idField = 'id') => ({
-  async getAll() { if (!table) return []; if (isSimulatedDataModeEnabled()) return getSimulatedTableRows(table, idField); const { data, error } = await supabase.from(table).select('*'); if (error) throw error; return filterSoftDeletedRows(data || []); },
+  async getAll() { if (!table) return []; if (isSimulatedDataModeEnabled()) return getSimulatedTableRows(table, idField); const { data, error } = await supabase.from(table).select('*'); if (error) throw error; return filterRealDeletedRows(table, filterSoftDeletedRows(data || []), idField); },
   async create(payload) { if (!table) return payload; if (isSimulatedDataModeEnabled()) return createSimulatedRow(table, payload, idField); return runMutationWithSchemaRetry({ table, action: 'insert', payload, idField }); },
   async update(id, payload) { if (!table) return payload; if (isSimulatedDataModeEnabled()) return updateSimulatedRow(table, id, payload, idField); return runMutationWithSchemaRetry({ table, action: 'update', payload, id, idField }); },
-  async remove(id) { if (!table) return true; if (isSimulatedDataModeEnabled()) return removeSimulatedRow(table, id, idField); const softDeleted = await trySoftDelete({ table, id, idField }); if (softDeleted) return true; await writeDeletedRecord({ table, id, idField }); const { error } = await supabase.from(table).delete().eq(idField, id); if (error) throw error; return true; },
+  async remove(id) { if (!table) return true; if (isSimulatedDataModeEnabled()) return removeSimulatedRow(table, id, idField); await writeDeletedRecord({ table, id, idField }); const softDeleted = await trySoftDelete({ table, id, idField }); if (softDeleted) return true; const { error } = await supabase.from(table).delete().eq(idField, id); if (error) throw error; return true; },
 });
