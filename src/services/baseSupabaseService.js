@@ -1,5 +1,99 @@
 import { supabase } from '../lib/supabase';
-import { normalizePayloadBeforeSave } from '../utils/normalize';
+import { moduleSeedMap } from '../utils/mockData';
+import { normalizeByModule, normalizePayloadBeforeSave } from '../utils/normalize';
+import { isSimulatedDataModeEnabled } from '../utils/uiPreferences';
+
+const clonedModuleSeedMap = JSON.parse(JSON.stringify(moduleSeedMap || {}));
+Object.keys(moduleSeedMap || {}).forEach((key) => { moduleSeedMap[key] = []; });
+
+const tableModuleMap = {
+  animals: 'animaux',
+  lots: 'avicole',
+  vaccins: 'sante',
+  veterinaires: 'veterinaires',
+  finances: 'finances',
+  investments: 'investissements',
+  business_plans: 'business_plans',
+  bp_investment_lines: 'bp_investment_lines',
+  bp_recurring_costs: 'bp_recurring_costs',
+  bp_revenue_projections: 'bp_revenue_projections',
+  bp_funding_sources: 'bp_funding_sources',
+  bp_links: 'bp_links',
+  bp_risks: 'bp_risks',
+  price_catalog: 'price_catalog',
+  bp_versions: 'bp_versions',
+  bp_lines_history: 'bp_lines_history',
+  stocks: 'stock',
+  stock: 'stock',
+  clients: 'clients',
+  fournisseurs: 'fournisseurs',
+  tracabilite: 'tracabilite',
+  cultures: 'cultures',
+  ventes: 'ventes',
+  documents: 'documents',
+  taches: 'taches',
+  rapports: 'rapports',
+  equipements: 'equipements',
+  audit_logs: 'audit_logs',
+  alimentation_logs: 'alimentation_logs',
+  production_oeufs_logs: 'production_oeufs_logs',
+  sensor_devices: 'sensor_devices',
+  camera_devices: 'camera_devices',
+  business_events: 'business_events',
+  alertes_center: 'alertes_center',
+  whatsapp_templates: 'whatsapp_templates',
+  whatsapp_logs: 'whatsapp_logs',
+  sales_orders: 'sales_orders',
+  sales_order_items: 'sales_order_items',
+  deliveries: 'deliveries',
+  invoices: 'invoices',
+  payments: 'payments',
+  sales_opportunities: 'sales_opportunities',
+};
+
+const simulatedStorageKey = (table) => `horizon_simulated_rows:${table}`;
+const readSimulatedRows = (table) => {
+  if (typeof localStorage === 'undefined') return [];
+  try { return JSON.parse(localStorage.getItem(simulatedStorageKey(table)) || '[]'); } catch { return []; }
+};
+const writeSimulatedRows = (table, rows = []) => {
+  if (typeof localStorage === 'undefined') return rows;
+  localStorage.setItem(simulatedStorageKey(table), JSON.stringify(rows));
+  return rows;
+};
+const mergeById = (rows = [], updates = [], idField = 'id') => {
+  const map = new Map(rows.map((row) => [String(row?.[idField] ?? row?.id), row]));
+  updates.forEach((row) => map.set(String(row?.[idField] ?? row?.id), row));
+  return Array.from(map.values()).filter((row) => !row?.__deleted);
+};
+const getSimulatedTableRows = (table, idField = 'id') => {
+  const moduleKey = tableModuleMap[table] || table;
+  const baseRows = JSON.parse(JSON.stringify(clonedModuleSeedMap[moduleKey] || []));
+  const localRows = readSimulatedRows(table);
+  return normalizeByModule(moduleKey, mergeById(baseRows, localRows, idField));
+};
+const createSimulatedRow = (table, payload = {}, idField = 'id') => {
+  const moduleKey = tableModuleMap[table] || table;
+  const rows = getSimulatedTableRows(table, idField);
+  const record = normalizeByModule(moduleKey, [{ ...payload, [idField]: payload?.[idField] || payload?.id || `${table}-${Date.now()}` }])[0];
+  const next = mergeById(rows, [record], idField);
+  writeSimulatedRows(table, next);
+  return record;
+};
+const updateSimulatedRow = (table, id, payload = {}, idField = 'id') => {
+  const moduleKey = tableModuleMap[table] || table;
+  const rows = getSimulatedTableRows(table, idField);
+  const previous = rows.find((row) => String(row?.[idField]) === String(id)) || {};
+  const record = normalizeByModule(moduleKey, [{ ...previous, ...payload, [idField]: id }])[0];
+  const next = mergeById(rows, [record], idField);
+  writeSimulatedRows(table, next);
+  return record;
+};
+const removeSimulatedRow = (table, id, idField = 'id') => {
+  const rows = getSimulatedTableRows(table, idField);
+  writeSimulatedRows(table, rows.filter((row) => String(row?.[idField]) !== String(id)));
+  return true;
+};
 
 const dbKeyMap = {
   productionJour: 'productionjour',
@@ -191,6 +285,7 @@ const trySoftDelete = async ({ table, id, idField }) => {
 export const createSupabaseCrudService = (table, idField = 'id') => ({
   async getAll() {
     if (!table) return [];
+    if (isSimulatedDataModeEnabled()) return getSimulatedTableRows(table, idField);
     const { data, error } = await supabase.from(table).select('*');
     if (error) throw error;
     return filterSoftDeletedRows(data || []);
@@ -198,16 +293,19 @@ export const createSupabaseCrudService = (table, idField = 'id') => ({
 
   async create(payload) {
     if (!table) return payload;
+    if (isSimulatedDataModeEnabled()) return createSimulatedRow(table, payload, idField);
     return runMutationWithSchemaRetry({ table, action: 'insert', payload, idField });
   },
 
   async update(id, payload) {
     if (!table) return payload;
+    if (isSimulatedDataModeEnabled()) return updateSimulatedRow(table, id, payload, idField);
     return runMutationWithSchemaRetry({ table, action: 'update', payload, id, idField });
   },
 
   async remove(id) {
     if (!table) return true;
+    if (isSimulatedDataModeEnabled()) return removeSimulatedRow(table, id, idField);
     const softDeleted = await trySoftDelete({ table, id, idField });
     if (softDeleted) return true;
     await writeDeletedRecord({ table, id, idField });
