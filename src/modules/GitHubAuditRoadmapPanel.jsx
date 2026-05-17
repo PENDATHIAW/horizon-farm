@@ -2,6 +2,7 @@ import { FileJson, Github, RefreshCw } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { auditManifest, auditRequiredDataKeys } from '../audit/auditManifest';
+import { buildAuditCoverageStats, buildAuditInspectionBacklog, buildAuditInspectionCoverage } from '../audit/auditInspectionCoverage';
 import { getDeepAuditFocus } from '../audit/deepAuditChecklist';
 import { normalizeAuditFinding, sortAuditFindings } from '../audit/auditRoadmapSchema';
 import useCrudModule from '../hooks/useCrudModule';
@@ -31,8 +32,6 @@ function buildFindings(data) {
   const opportunities = arr(data.sales_opportunities);
   const animals = arr(data.animaux);
   const health = arr(data.sante);
-  const lots = arr(data.avicole);
-  const cultures = arr(data.cultures);
 
   const paymentsWithoutFinance = payments.filter((payment) => {
     const paymentId = String(payment.id || '');
@@ -46,12 +45,9 @@ function buildFindings(data) {
   });
   if (paymentsWithoutFinance.length) addFinding(findings, {
     module: 'Ventes', zone: 'Paiements', element: `${paymentsWithoutFinance.length} paiement(s)`, type: 'workflow', severity: 'bloquant', status: 'detecte',
-    title: 'Paiements sans transaction Finance liée',
-    detail: `${paymentsWithoutFinance.length} paiement(s) existent sans écriture Finance retrouvée.`,
-    probable_cause: 'Paiement créé par un chemin qui ne passe pas par le workflow vente complet ou ancienne donnée non synchronisée.',
-    expected_fix: 'Centraliser paiement → création Finance automatique sans doublon.',
-    business_impact: 'CA, trésorerie, comptabilité, objectifs et accueil peuvent être faux.',
-    linked_modules: ['Ventes', 'Finances', 'Comptabilité', 'Objectifs', 'Accueil'],
+    title: 'Paiements sans transaction Finance liée', detail: `${paymentsWithoutFinance.length} paiement(s) existent sans écriture Finance retrouvée.`,
+    probable_cause: 'Paiement créé par un chemin qui ne passe pas par le workflow vente complet ou ancienne donnée non synchronisée.', expected_fix: 'Centraliser paiement → création Finance automatique sans doublon.',
+    business_impact: 'CA, trésorerie, comptabilité, objectifs et accueil peuvent être faux.', linked_modules: ['Ventes', 'Finances', 'Comptabilité', 'Objectifs', 'Accueil'],
     source_path: 'src/modules/VentesV2.jsx', source_component: 'PaymentCapturePanel / commitSaleWorkflow', correction_lot: 'Lot 1 · Fiabilité financière et CA',
     retest_steps: ['Créer un paiement', 'Vérifier la transaction dans Finances', 'Vérifier Comptabilité/Objectifs/Accueil'],
   });
@@ -64,8 +60,7 @@ function buildFindings(data) {
   if (invoicesWithoutDocument.length) addFinding(findings, {
     module: 'Documents', zone: 'Factures', element: `${invoicesWithoutDocument.length} facture(s)`, type: 'document', severity: 'critique', status: 'detecte',
     title: 'Factures sans document associé', detail: `${invoicesWithoutDocument.length} facture(s) ne sont pas retrouvables comme document.`,
-    probable_cause: 'Création facture non suivie par création Document ou liens invoice_id/order_id incomplets.',
-    expected_fix: 'Facture créée → Document facture créé automatiquement.',
+    probable_cause: 'Création facture non suivie par création Document ou liens invoice_id/order_id incomplets.', expected_fix: 'Facture créée → Document facture créé automatiquement.',
     business_impact: 'Traçabilité et preuve commerciale incomplètes.', linked_modules: ['Ventes', 'Documents', 'Comptabilité', 'Clients'],
     source_path: 'src/services/workflowService.js', source_component: 'commitSaleWorkflow', correction_lot: 'Lot 1 · Fiabilité financière et CA',
     retest_steps: ['Créer une facture', 'Ouvrir Documents', 'Vérifier document facture lié'],
@@ -138,12 +133,29 @@ function buildMarkdown(roadmap) {
     `- Générée le : ${roadmap.generated_at}`,
     `- Modules audités : ${roadmap.modules_audited}`,
     `- Anomalies détectées : ${roadmap.findings_count}`,
+    `- Points de contrôle : ${roadmap.coverage_stats?.control_points || 0}`,
+    `- Éléments à inspecter : ${roadmap.coverage_stats?.total_inspection_items || 0}`,
+    `- Formulaires : ${roadmap.coverage_stats?.forms || 0}`,
+    `- Cartes/KPI : ${roadmap.coverage_stats?.cards || 0}`,
+    `- Tableaux : ${roadmap.coverage_stats?.tables || 0}`,
+    `- Graphiques : ${roadmap.coverage_stats?.charts || 0}`,
+    `- Workflows : ${roadmap.coverage_stats?.workflows || 0}`,
     '',
     '## Synthèse par priorité',
     '',
   ];
 
   roadmap.priority_summary.forEach((item) => lines.push(`- P${item.priority} · ${item.title} : ${item.count} anomalie(s)`));
+  lines.push('', '## Couverture inspection par module', '');
+  arr(roadmap.inspection_coverage).forEach((module) => {
+    lines.push(`### ${module.module}`);
+    lines.push(`- Route : ${module.route || '—'}`);
+    lines.push(`- Dimensions : ${arr(module.dimensions).map((dimension) => dimension.title).join(', ') || '—'}`);
+    lines.push(`- Cartes : ${module.counts?.cards || 0}, Tableaux : ${module.counts?.tables || 0}, Graphiques : ${module.counts?.charts || 0}, Formulaires : ${module.counts?.forms || 0}, Workflows : ${module.counts?.workflows || 0}, Simplification : ${module.counts?.simplification || 0}`);
+    arr(module.inspection_items).slice(0, 12).forEach((item) => lines.push(`  - [${item.type}] ${item.element} · ${item.expected}`));
+    if (arr(module.inspection_items).length > 12) lines.push(`  - ... ${arr(module.inspection_items).length - 12} autre(s) élément(s) à inspecter`);
+    lines.push('');
+  });
   lines.push('', '## Anomalies détaillées', '');
   roadmap.findings.forEach((finding, index) => {
     lines.push(`### ${index + 1}. [${finding.severity}] ${finding.module} · ${finding.title}`);
@@ -180,6 +192,8 @@ export default function GitHubAuditRoadmapPanel() {
   const data = Object.fromEntries(keys.map((key) => [key, arr(crud[key]?.rows)]));
   const modulesAudited = auditManifest.length;
   const findings = useMemo(() => buildFindings(data), [JSON.stringify(data)]);
+  const inspectionCoverage = useMemo(() => buildAuditInspectionCoverage(), []);
+  const coverageStats = useMemo(() => buildAuditCoverageStats(inspectionCoverage), [inspectionCoverage]);
 
   const generate = async () => {
     if (busy) return;
@@ -189,6 +203,9 @@ export default function GitHubAuditRoadmapPanel() {
       const generatedAt = new Date().toISOString();
       const latestData = Object.fromEntries(keys.map((key) => [key, arr(crud[key]?.rows)]));
       const latestFindings = buildFindings(latestData);
+      const latestCoverage = buildAuditInspectionCoverage();
+      const latestCoverageStats = buildAuditCoverageStats(latestCoverage);
+      const inspectionBacklog = buildAuditInspectionBacklog(latestCoverage);
       const prioritySummary = [1, 2, 3, 4, 5, 6].map((priority) => ({
         priority,
         title: priority === 1 ? 'Fiabilité financière et chiffre d’affaires'
@@ -203,7 +220,10 @@ export default function GitHubAuditRoadmapPanel() {
         generated_at: generatedAt,
         modules_audited: modulesAudited,
         findings_count: latestFindings.length,
+        coverage_stats: latestCoverageStats,
         audit_scope: auditManifest.map((manifest) => ({ module: manifest.module, route: manifest.route, deep_focus: getDeepAuditFocus(manifest.module).map((item) => item.title) })),
+        inspection_coverage: latestCoverage,
+        inspection_backlog: inspectionBacklog,
         priority_summary: prioritySummary,
         findings: latestFindings,
       };
@@ -231,14 +251,17 @@ export default function GitHubAuditRoadmapPanel() {
       </button>
     </div>
 
-    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-      <Mini label="Modules audités" value={modulesAudited} />
-      <Mini label="Anomalies estimées" value={findings.length} danger={findings.length > 0} />
-      <Mini label="Sortie GitHub" value="JSON + MD" />
+    <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+      <Mini label="Modules" value={modulesAudited} />
+      <Mini label="Anomalies" value={findings.length} danger={findings.length > 0} />
+      <Mini label="Formulaires" value={coverageStats.forms} />
+      <Mini label="Cartes/KPI" value={coverageStats.cards} />
+      <Mini label="Tableaux" value={coverageStats.tables} />
+      <Mini label="Graphiques" value={coverageStats.charts} />
     </div>
 
     {lastResult ? <div className={`rounded-2xl border p-4 text-sm ${lastResult.ok === false ? 'border-red-200 bg-red-50 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
-      {lastResult.ok === false ? <><b>Erreur :</b> {lastResult.error}</> : <><b>Fichier généré :</b> {lastResult.modulesAudited} module(s) audité(s), {lastResult.findingsCount} anomalie(s). Chemins : docs/audit-results/current/audit-roadmap.json et .md.</>}
+      {lastResult.ok === false ? <><b>Erreur :</b> {lastResult.error}</> : <><b>Fichier généré :</b> {lastResult.modulesAudited} module(s) audité(s), {lastResult.findingsCount} anomalie(s), {coverageStats.total_inspection_items} élément(s) à inspecter. Chemins : docs/audit-results/current/audit-roadmap.json et .md.</>}
     </div> : null}
   </section>;
 }
