@@ -14,7 +14,7 @@ function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
 }
 
-function SalesPrioritySummary({ orders = [], payments = [], deliveries = [], invoices = [], onNavigate }) {
+function SalesPrioritySummary({ orders = [], payments = [], deliveries = [], invoices = [] }) {
   const enriched = arr(orders).map((order) => enrichSalesOrderStatus(order, payments));
   const unpaid = enriched.filter((order) => remainingForOrder(order, payments) > 0).sort((a, b) => remainingForOrder(b, payments) - remainingForOrder(a, payments));
   const unpaidTotal = unpaid.reduce((sum, order) => sum + remainingForOrder(order, payments), 0);
@@ -36,7 +36,6 @@ function SalesPrioritySummary({ orders = [], payments = [], deliveries = [], inv
       <PriorityList title="Livrer / clôturer" rows={notDelivered.slice(0, 4)} empty="Aucune livraison bloquante" render={(order) => `${order.product_name || order.libelle || order.id} · ${order.order_status_label || order.statut || 'à suivre'}`} tone="neutral" />
       <PriorityList title="Facturer" rows={invoiceMissing.slice(0, 4)} empty="Aucune facture manquante" render={(order) => `${order.product_name || order.libelle || order.id} · ${fmtCurrency(amount(order))}`} tone="danger" />
     </div>
-    <div className="flex justify-end"><button type="button" onClick={() => onNavigate?.('ventes')} className="rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white hover:bg-[#3d2f1d]">Voir le workflow ventes</button></div>
   </div>;
 }
 function PriorityList({ title, rows = [], empty, render, tone = 'neutral' }) {
@@ -60,8 +59,8 @@ export default function VentesV3(props) {
   };
 
   return <div className="space-y-6 ventes-mobile-structured"><style>{`@media (max-width: 640px){.ventes-mobile-structured .rounded-2xl{border-radius:18px}.ventes-mobile-structured table{font-size:12px}.ventes-mobile-structured th,.ventes-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.ventes-mobile-structured .text-2xl{font-size:1.35rem}.ventes-mobile-structured .grid{gap:.75rem}.ventes-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
+    <ModuleSection icon={AlertTriangle} title="Priorités commerciales" subtitle="Encaissements, livraisons et factures à traiter avant les détails."><SalesPrioritySummary orders={props.rows || []} payments={payments} deliveries={props.deliveriesList || props.deliveries || []} invoices={props.invoicesList || props.invoices || []} /></ModuleSection>
     <ObjectivePerformanceCard dataMap={dataMap} activity="global" title="Objectif & Performance commerciale" onNavigate={props.onNavigate} />
-    <ModuleSection icon={AlertTriangle} title="Priorités commerciales" subtitle="Encaissements, livraisons et factures à traiter avant les détails."><SalesPrioritySummary orders={props.rows || []} payments={payments} deliveries={props.deliveriesList || props.deliveries || []} invoices={props.invoicesList || props.invoices || []} onNavigate={props.onNavigate} /></ModuleSection>
     <ModuleSection icon={Receipt} title="Commandes, clients et paiements" subtitle="Créer les ventes, suivre les paiements, factures, livraisons et statuts sans double encaissement."><VentesV2 {...props} /></ModuleSection>
     <ModuleSection icon={ShieldCheck} title="Marges et contrôle des ventes" subtitle="Vérifier le coût, l’encaissement, le reste à payer et le statut de chaque vente."><SalesMarginsBridge rows={props.rows || []} payments={payments} transactions={props.transactions || []} lots={props.lots || []} animaux={props.animaux || []} cultures={props.cultures || []} stocks={props.stocks || []} alimentationLogs={props.alimentationLogs || []} productionLogs={props.productionLogs || []} vaccins={props.vaccins || []} businessEvents={props.businessEvents || []} onUpdate={props.onUpdate} onRefresh={props.onRefresh} /></ModuleSection>
     <ModuleSection icon={BarChart3} title="Évolution des ventes" subtitle="Graphes des commandes, encaissements, impayés et performance commerciale."><SalesEvolution rows={props.rows || []} payments={payments} onNavigate={props.onNavigate} /></ModuleSection>
