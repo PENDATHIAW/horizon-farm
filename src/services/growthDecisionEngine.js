@@ -30,22 +30,50 @@ function daysBetween(a, b) { return Math.ceil((dateOnly(b).getTime() - dateOnly(
 function makeDate(year, month, day) { return new Date(year, month - 1, day); }
 
 function classifyAnimalSpeciesFromText(raw = '') {
-  if (raw.includes('bovin') || raw.includes('boeuf') || raw.includes('vache') || raw.includes('taureau') || raw.includes('veau')) return 'bovins';
-  if (raw.includes('ovin') || raw.includes('mouton') || raw.includes('belier') || raw.includes('brebis')) return 'ovins';
-  if (raw.includes('caprin') || raw.includes('chevre') || raw.includes('bouc')) return 'caprins';
+  if (raw.includes('bovin') || raw.includes('boeuf') || raw.includes('vache') || raw.includes('taureau') || raw.includes('veau') || raw.includes('bov')) return 'bovins';
+  if (raw.includes('ovin') || raw.includes('mouton') || raw.includes('belier') || raw.includes('brebis') || raw.includes(' ov')) return 'ovins';
+  if (raw.includes('caprin') || raw.includes('chevre') || raw.includes('bouc') || raw.includes('cap')) return 'caprins';
   return '';
 }
 
-export function classifySaleActivity(order = {}) {
-  const raw = normalize(`${order.activite || ''} ${order.source_type || ''} ${order.type_vente || ''} ${order.product_type || ''} ${order.product_name || ''} ${order.libelle || ''} ${order.espece || ''} ${order.type_animal || ''}`);
-  if (raw.includes('oeuf') || raw.includes('tablette') || raw.includes('pondeuse')) return 'oeufs';
+function findAnimalSpeciesById(sourceId = '', dataMap = {}) {
+  if (!sourceId) return '';
+  const clean = normalize(sourceId);
+  const direct = classifyAnimalSpeciesFromText(clean);
+  if (direct) return direct;
+  const animal = arr(dataMap.animaux).find((row) => String(row.id) === String(sourceId) || String(row.tag) === String(sourceId));
+  if (!animal) return '';
+  return classifyAnimalSpeciesFromText(normalize(`${animal.type || ''} ${animal.espece || ''} ${animal.name || ''} ${animal.id || ''} ${animal.tag || ''}`));
+}
+
+export function classifySaleActivity(order = {}, dataMap = {}) {
+  const raw = normalize(`${order.activite || ''} ${order.source_type || ''} ${order.type_vente || ''} ${order.product_type || ''} ${order.product_name || ''} ${order.libelle || ''} ${order.espece || ''} ${order.type_animal || ''} ${order.source_id || ''} ${order.related_id || ''}`);
+  if (raw.includes('oeuf') || raw.includes('tablette') || raw.includes('plateau') || raw.includes('pondeuse')) return 'oeufs';
   if (raw.includes('chair') || raw.includes('poulet')) return 'poulets_chair';
-  const species = classifyAnimalSpeciesFromText(raw);
+  const species = classifyAnimalSpeciesFromText(raw) || findAnimalSpeciesById(order.source_id || order.related_id || order.product_id || order.entity_id, dataMap);
   if (species) return species;
   if (raw.includes('animal')) return 'animaux';
-  if (raw.includes('culture') || raw.includes('tomate') || raw.includes('pomme') || raw.includes('poivron') || raw.includes('recolte')) return 'cultures';
+  if (raw.includes('culture') || raw.includes('tomate') || raw.includes('pomme') || raw.includes('poivron') || raw.includes('recolte') || raw.includes('laitue') || raw.includes('piment')) return 'cultures';
   if (raw.includes('stock') || raw.includes('produit')) return 'stock';
   return 'stock';
+}
+
+function buildFinanceRevenueOrders(dataMap = {}, currentMonth = '') {
+  return arr(dataMap.finances || dataMap.transactions)
+    .filter((row) => monthOf(row) === currentMonth)
+    .filter((row) => normalize(row.type).includes('entree'))
+    .map((row) => ({
+      ...row,
+      montant_total: amount(row),
+      product_name: row.libelle || row.description || row.categorie,
+      source_type: row.source_type || row.module_lie || row.activite,
+      source_id: row.source_id || row.related_id,
+    }));
+}
+
+function mergeRevenueRows(sales = [], financeRevenue = []) {
+  const seen = new Set(sales.map((row) => String(row.id || row.related_id || row.source_record_id || '')));
+  return [...sales, ...financeRevenue.filter((row) => !seen.has(String(row.related_id || row.source_record_id || row.id || '')))];
 }
 
 export function buildCommercialCalendar(date = new Date()) {
@@ -144,7 +172,7 @@ export function buildProductionCapacity(dataMap = {}) {
     if ((!label.includes('pondeuse') && !label.includes('oeuf')) || ['vendu', 'perdu', 'termine'].includes(status)) return sum;
     return sum + num(lot.current_count ?? lot.effectif_actuel ?? lot.count ?? lot.initial_count);
   }, 0);
-  const recentEggs = logs.slice(-14).reduce((sum, row) => sum + num(row.quantite || row.eggs || row.total_oeufs || row.oeufs), 0);
+  const recentEggs = logs.slice(-14).reduce((sum, row) => sum + num(row.quantite || row.eggs || row.total_oeufs || row.oeufs_produits || row.oeufs), 0);
   const avgEggsDay = logs.length ? recentEggs / Math.min(14, logs.length) : 0;
   const eggsDay = avgEggsDay || activeLayers * 0.72;
   return { activeLayers, eggsDay, tabletsDay: eggsDay / 30, layingRate: activeLayers ? Math.round((eggsDay / activeLayers) * 100) : 0 };
@@ -158,9 +186,10 @@ export function buildGoalPerformance(dataMap = {}, options = {}) {
   const sales = arr(dataMap.sales_orders || dataMap.salesOrders).filter((row) => monthOf(row) === currentMonth);
   const payments = arr(dataMap.payments).filter((row) => monthOf(row) === currentMonth);
   const finances = arr(dataMap.finances || dataMap.transactions).filter((row) => monthOf(row) === currentMonth);
+  const revenueRows = mergeRevenueRows(sales, buildFinanceRevenueOrders(dataMap, currentMonth));
   const activities = Object.keys(defaultAnnualMix).reduce((acc, key) => ({ ...acc, [key]: { activity: key, label: activityLabels[key], target: monthTarget * defaultAnnualMix[key], realized: 0 } }), {});
-  sales.forEach((order) => {
-    const key = classifySaleActivity(order);
+  revenueRows.forEach((order) => {
+    const key = classifySaleActivity(order, dataMap);
     if (activities[key]) activities[key].realized += amount(order);
     else if (key === 'animaux') {
       const split = amount(order) / 3;
