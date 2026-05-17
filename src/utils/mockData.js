@@ -1,6 +1,45 @@
 import { buildWeatherAnalysis } from './weather';
 import { horizonFarmSimulationSeed } from './horizonFarmSimulationSeed';
 
+const readableCategory = (value = '') => {
+  const key = String(value || '').toLowerCase();
+  if (key.includes('pondeuse')) return 'Pondeuses';
+  if (key.includes('chair')) return 'Poulets de chair';
+  if (key.includes('bovin')) return 'Bovins';
+  if (key.includes('ovin')) return 'Ovins';
+  if (key.includes('caprin')) return 'Caprins';
+  if (key.includes('infrastructure')) return 'Infrastructure';
+  if (key.includes('equip')) return 'Équipement';
+  if (key.includes('stock')) return 'Stock initial';
+  if (key.includes('sante')) return 'Santé';
+  if (key.includes('tresorerie')) return 'Trésorerie';
+  return value || 'Autre';
+};
+
+const normalizeBpInvestmentLines = (rows = []) => rows.map((row) => ({
+  ...row,
+  designation: row.designation || row.libelle || row.label || row.nom || 'Dépense BP',
+  libelle: row.libelle || row.designation || row.label || row.nom || 'Dépense BP',
+  categorie: row.categorie || readableCategory(row.category || row.activity),
+  category: row.category || row.activity || row.categorie || 'autre',
+  quantite: Number(row.quantite || row.qte || row.quantity || 1),
+  unite: row.unite || row.unit || 'lot',
+  prix_unitaire: Number(row.prix_unitaire || row.prix || row.unit_price || row.montant || row.total || 0),
+  montant: Number(row.montant || row.total || 0),
+  total: Number(row.total || row.montant || 0),
+  statut: row.statut || row.status || 'prévu',
+  preuve: row.preuve || row.justificatif || '',
+}));
+
+const normalizeBpRecurringCosts = (rows = []) => rows.map((row) => ({
+  ...row,
+  designation: row.designation || row.libelle || row.label || 'Charge BP',
+  categorie: row.categorie || readableCategory(row.activity || row.category),
+  montant_mensuel: Number(row.montant_mensuel || row.montant || row.total || 0),
+  montant: Number(row.montant || row.montant_mensuel || row.total || 0),
+  periodicite: row.periodicite || 'mensuelle',
+}));
+
 export const financeData = [
   { mois: 'M+1', recettes: 0, depenses: 6905000 },
   { mois: 'M+2', recettes: 0, depenses: 6100000 },
@@ -32,6 +71,9 @@ export const alimentationLogsSeed = horizonFarmSimulationSeed.alimentation_logs 
 export const productionOeufsLogsSeed = horizonFarmSimulationSeed.production_oeufs_logs || [];
 export const sensorDevicesSeed = horizonFarmSimulationSeed.sensor_devices || [];
 export const cameraDevicesSeed = horizonFarmSimulationSeed.camera_devices || [];
+
+const bpInvestmentLinesSeed = normalizeBpInvestmentLines(horizonFarmSimulationSeed.bp_investment_lines || []);
+const bpRecurringCostsSeed = normalizeBpRecurringCosts(horizonFarmSimulationSeed.bp_recurring_costs || []);
 
 export const meteoData = buildWeatherAnalysis({
   temp: 31,
@@ -81,8 +123,8 @@ export const moduleSeedMap = {
   sensor_devices: sensorDevicesSeed,
   camera_devices: cameraDevicesSeed,
   business_plans: horizonFarmSimulationSeed.business_plans || [],
-  bp_investment_lines: horizonFarmSimulationSeed.bp_investment_lines || [],
-  bp_recurring_costs: horizonFarmSimulationSeed.bp_recurring_costs || [],
+  bp_investment_lines: bpInvestmentLinesSeed,
+  bp_recurring_costs: bpRecurringCostsSeed,
   bp_revenue_projections: horizonFarmSimulationSeed.bp_revenue_projections || [],
   bp_funding_sources: horizonFarmSimulationSeed.bp_funding_sources || [],
   bp_links: horizonFarmSimulationSeed.bp_links || [],
