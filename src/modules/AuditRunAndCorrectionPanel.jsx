@@ -13,6 +13,8 @@ const n = (v) => Number(v || 0);
 const norm = (v = '') => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const money = (v) => fmtCurrency(Math.round(n(v)));
 const amount = (row = {}) => n(row.montant_total ?? row.total ?? row.amount ?? row.montant ?? row.revenu_reel ?? row.revenu_estime);
+const statusOf = (row = {}) => norm(row.status || row.statut || row.etat || '');
+const titleOf = (row = {}, fallback = 'Élément') => row.nom || row.name || row.libelle || row.title || row.titre || row.id || fallback;
 const isAnimalSale = (row = {}) => /animal|bovin|ovin|caprin|bov|cap|ovin/.test(norm(`${row.source_type || ''} ${row.product_name || ''} ${row.libelle || ''} ${row.source_id || ''}`));
 const isAvicoleSale = (row = {}) => /avicole|poulet|chair|oeuf|pondeuse|lot/.test(norm(`${row.source_type || ''} ${row.product_name || ''} ${row.libelle || ''}`));
 const isCultureSale = (row = {}) => /culture|recolte|tomate|piment|laitue|oignon/.test(norm(`${row.source_type || ''} ${row.product_name || ''} ${row.libelle || ''}`));
@@ -20,34 +22,72 @@ const costAnimal = (a = {}) => n(a.purchase_cost || a.prix_achat || a.cout_achat
 const costLot = (l = {}) => n(l.cout_poussins || l.purchase_cost) + n(l.cout_aliment || l.alimentation) + n(l.frais_sante || l.cout_sante) + n(l.autres_frais || l.frais_directs);
 const costCulture = (c = {}) => n(c.cout_semences) + n(c.cout_engrais) + n(c.cout_eau || c.cout_irrigation) + n(c.cout_main_oeuvre || c.cout_mo) + n(c.cout_traitement || c.cout_traitements) + n(c.autres_frais || c.frais_directs);
 
+function alertableRisks(data) {
+  const risks = [];
+  arr(data.stock).forEach((s) => { if (n(s.quantite) <= n(s.seuil) && n(s.seuil) > 0) risks.push({ module: 'Stock', title: `Stock critique · ${titleOf(s, 'stock')}`, message: `Quantité ${n(s.quantite)} inférieure ou égale au seuil ${n(s.seuil)}.`, severity: 'critique', source_id: s.id }); });
+  arr(data.sante).forEach((s) => { if (/retard|urgent|urgence|critique/.test(statusOf(s)) || norm(s.urgence || s.niveau_risque).includes('haut')) risks.push({ module: 'Santé', title: `Santé à traiter · ${titleOf(s, 'intervention')}`, message: s.notes || s.observation || 'Intervention santé signalée comme urgente ou en retard.', severity: 'critique', source_id: s.id }); });
+  arr(data.animaux).forEach((a) => { if (/malade|risque|a surveiller|surveiller/.test(norm(a.health_status || a.sante || a.statut_sante))) risks.push({ module: 'Animaux', title: `Animal à surveiller · ${titleOf(a, 'animal')}`, message: 'Statut santé animal nécessitant une action terrain.', severity: 'haute', source_id: a.id }); });
+  arr(data.avicole).forEach((l) => { if (n(l.mortality || l.mortalite) > n(l.initial_count || l.effectif_initial || 0) * 0.04 || n(l.scoresSante || l.score_sante || 100) < 88) risks.push({ module: 'Avicole', title: `Lot avicole à risque · ${titleOf(l, 'lot')}`, message: 'Mortalité ou score santé du lot à surveiller.', severity: 'haute', source_id: l.id }); });
+  arr(data.cultures).forEach((c) => { if (n(c.score_sante || 100) < 80 || /perdu|risque|maladie/.test(statusOf(c))) risks.push({ module: 'Cultures', title: `Culture à risque · ${titleOf(c, 'culture')}`, message: 'Score santé ou statut culture à surveiller.', severity: 'haute', source_id: c.id }); });
+  arr(data.finances).forEach((f) => { if (/impaye|impayé|partiel|retard/.test(statusOf(f))) risks.push({ module: 'Finances', title: `Flux financier à suivre · ${titleOf(f, 'transaction')}`, message: 'Paiement ou transaction en retard, partiel ou impayé.', severity: 'moyenne', source_id: f.id }); });
+  arr(data.taches).forEach((t) => { if (/retard|critique/.test(statusOf(t) || norm(t.priority || t.priorite))) risks.push({ module: 'Tâches', title: `Tâche critique · ${titleOf(t, 'tâche')}`, message: 'Tâche en retard ou critique.', severity: 'moyenne', source_id: t.id }); });
+  return risks;
+}
+
+async function createAutomaticAlertsIfNeeded(data, createAlert, refreshAlertes) {
+  const risks = alertableRisks(data);
+  if (!risks.length || arr(data.alertes_center).length || !createAlert) return 0;
+  const selected = risks.slice(0, 8);
+  for (const risk of selected) {
+    await createAlert({
+      id: makeId('ALERT-AUTO'),
+      titre: risk.title,
+      title: risk.title,
+      message: risk.message,
+      module: risk.module,
+      module_lie: risk.module,
+      source_id: risk.source_id,
+      severity: risk.severity,
+      priorite: risk.severity,
+      status: 'nouvelle',
+      statut: 'nouvelle',
+      type: 'alerte_automatique_audit',
+      action_recommandee: 'Vérifier le module concerné et créer une tâche terrain si nécessaire.',
+      created_at: new Date().toISOString(),
+    });
+  }
+  await refreshAlertes?.();
+  return selected.length;
+}
+
 function detectIssues(data) {
   const issues = [];
   const add = (lot, module, title, detail, priority = 'haute') => issues.push({ lot, module, title, detail, priority });
-  const animalSales = data.sales_orders.filter(isAnimalSale).reduce((s, row) => s + amount(row), 0);
-  const avicoleSales = data.sales_orders.filter(isAvicoleSale).reduce((s, row) => s + amount(row), 0);
-  const cultureSales = data.sales_orders.filter(isCultureSale).reduce((s, row) => s + amount(row), 0);
-  const animalMissingCosts = data.animaux.filter((a) => costAnimal(a) <= 0).length;
-  const lotMissingCosts = data.avicole.filter((l) => costLot(l) <= 0).length;
-  const cultureMissingCosts = data.cultures.filter((c) => costCulture(c) <= 0).length;
-  const paymentsWithoutFinance = data.payments.filter((p) => !data.finances.some((f) => String(f.payment_id || f.related_id || f.order_id || '') === String(p.id || p.order_id || p.sale_id || ''))).length;
-  const invoicesWithoutDocs = data.invoices.filter((inv) => !data.documents.some((d) => String(d.invoice_id || d.related_id || d.entity_id || '') === String(inv.id || inv.order_id || ''))).length;
+  const animalSales = arr(data.sales_orders).filter(isAnimalSale).reduce((s, row) => s + amount(row), 0);
+  const avicoleSales = arr(data.sales_orders).filter(isAvicoleSale).reduce((s, row) => s + amount(row), 0);
+  const cultureSales = arr(data.sales_orders).filter(isCultureSale).reduce((s, row) => s + amount(row), 0);
+  const animalMissingCosts = arr(data.animaux).filter((a) => costAnimal(a) <= 0).length;
+  const lotMissingCosts = arr(data.avicole).filter((l) => costLot(l) <= 0).length;
+  const cultureMissingCosts = arr(data.cultures).filter((c) => costCulture(c) <= 0).length;
+  const paymentsWithoutFinance = arr(data.payments).filter((p) => !arr(data.finances).some((f) => String(f.payment_id || f.related_id || f.order_id || '') === String(p.id || p.order_id || p.sale_id || ''))).length;
+  const invoicesWithoutDocs = arr(data.invoices).filter((inv) => !arr(data.documents).some((d) => String(d.invoice_id || d.related_id || d.entity_id || '') === String(inv.id || inv.order_id || ''))).length;
+  const risks = alertableRisks(data);
 
-  if (data.sales_orders.some(isAnimalSale) && animalSales <= 0) add('Lot 1 · Bloquants revenus', 'Animaux', 'CA animaux non reconnu', 'Des ventes animaux existent mais le CA n’est pas attribué correctement.');
-  if (data.sales_orders.some(isAvicoleSale) && avicoleSales <= 0) add('Lot 1 · Bloquants revenus', 'Avicole', 'CA avicole non reconnu', 'Des ventes avicoles existent mais le CA n’est pas attribué correctement.');
-  if (data.sales_orders.some(isCultureSale) && cultureSales <= 0) add('Lot 1 · Bloquants revenus', 'Cultures', 'CA cultures non reconnu', 'Des ventes cultures existent mais le CA n’est pas attribué correctement.');
+  if (arr(data.sales_orders).some(isAnimalSale) && animalSales <= 0) add('Lot 1 · Bloquants revenus', 'Animaux', 'CA animaux non reconnu', 'Des ventes animaux existent mais le CA n’est pas attribué correctement.');
+  if (arr(data.sales_orders).some(isAvicoleSale) && avicoleSales <= 0) add('Lot 1 · Bloquants revenus', 'Avicole', 'CA avicole non reconnu', 'Des ventes avicoles existent mais le CA n’est pas attribué correctement.');
+  if (arr(data.sales_orders).some(isCultureSale) && cultureSales <= 0) add('Lot 1 · Bloquants revenus', 'Cultures', 'CA cultures non reconnu', 'Des ventes cultures existent mais le CA n’est pas attribué correctement.');
   if (paymentsWithoutFinance) add('Lot 1 · Bloquants revenus', 'Ventes', 'Paiements sans finance', `${paymentsWithoutFinance} paiement(s) ne créent pas de transaction finance.`);
   if (invoicesWithoutDocs) add('Lot 1 · Bloquants revenus', 'Documents', 'Factures sans document', `${invoicesWithoutDocs} facture(s) sans document associé.`);
   if (animalMissingCosts) add('Lot 2 · Coûts et marges métier', 'Animaux', 'Coûts animaux incomplets', `${animalMissingCosts} animal(aux) sans coût total exploitable.`);
   if (lotMissingCosts) add('Lot 2 · Coûts et marges métier', 'Avicole', 'Coûts lots incomplets', `${lotMissingCosts} lot(s) sans coût poussin/aliment/santé complet.`);
   if (cultureMissingCosts) add('Lot 2 · Coûts et marges métier', 'Cultures', 'Coûts cultures incomplets', `${cultureMissingCosts} culture(s) sans semences/engrais/eau/main-d’œuvre/traitements.`);
-  const healthFormIssues = data.sante.filter((s) => !s.type_intervention && !s.intervention_type && !s.type).length;
-  const healthUrlProofs = data.sante.filter((s) => /^https?:/.test(String(s.preuve || s.ordonnance || s.ordonnance_url || ''))).length;
+  const healthFormIssues = arr(data.sante).filter((s) => !s.type_intervention && !s.intervention_type && !s.type).length;
+  const healthUrlProofs = arr(data.sante).filter((s) => /^https?:/.test(String(s.preuve || s.ordonnance || s.ordonnance_url || ''))).length;
   if (healthFormIssues) add('Lot 3 · Formulaires et UX', 'Santé', 'Formulaire santé non adaptatif', `${healthFormIssues} intervention(s) sans type clair.`);
   if (healthUrlProofs) add('Lot 3 · Formulaires et UX', 'Santé', 'Preuves encore en URL', `${healthUrlProofs} preuve(s)/ordonnance(s) en URL au lieu d’upload.`);
-  if (!data.taches.length) add('Lot 4 · Automatisations terrain', 'Tâches', 'Tâches automatiques insuffisantes', 'Aucune tâche générée pour pesée, vaccination, récolte ou relance.', 'moyenne');
-  if (!data.alertes_center.length) add('Lot 4 · Automatisations terrain', 'Alertes', 'Alertes automatiques insuffisantes', 'Aucune alerte générée par les règles métier.', 'moyenne');
-  if (data.business_plans.length && !data.bp_revenue_projections.length) add('Lot 5 · Investissements et financeur', 'Investissements', 'BP sans CA prévisionnel', 'Le business plan ne contient pas de projection de CA exploitable.', 'moyenne');
-
+  if (!arr(data.taches).length && risks.length) add('Lot 4 · Automatisations terrain', 'Tâches', 'Tâches automatiques insuffisantes', `${risks.length} risque(s) détecté(s), mais aucune tâche terrain générée.`, 'moyenne');
+  if (!arr(data.alertes_center).length && risks.length) add('Lot 4 · Automatisations terrain', 'Alertes', 'Alertes automatiques insuffisantes', `${risks.length} risque(s) détecté(s), mais aucune alerte générée.`, 'moyenne');
+  if (arr(data.business_plans).length && !arr(data.bp_revenue_projections).length) add('Lot 5 · Investissements et financeur', 'Investissements', 'BP sans CA prévisionnel', 'Le business plan ne contient pas de projection de CA exploitable.', 'moyenne');
   return { issues, animalSales, avicoleSales, cultureSales };
 }
 
@@ -61,7 +101,7 @@ function buildCorrectionText(lot, items) {
 }
 
 function LotCard({ lot, items, onRequestCorrection, busy }) {
-  return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-[#2f2415]">{lot}</p><p className="text-xs text-[#8a7456] mt-1">{items.length} correction(s) proposées</p></div><span className="rounded-full bg-white border border-[#eadcc2] px-2 py-1 text-xs font-black text-[#8a7456]">lot contrôlé</span></div><div className="mt-3 space-y-2">{items.map((item) => <div key={`${item.module}-${item.title}`} className="rounded-xl bg-white border border-[#eadcc2] p-3 text-sm"><p className="font-black text-[#2f2415]">{item.module} · {item.title}</p><p className="text-[#8a7456] mt-1">{item.detail}</p></div>)}</div><div className="mt-4 flex flex-wrap gap-2"><Btn icon={Wrench} small onClick={() => onRequestCorrection(lot, items)} disabled={busy}>Demander correction du lot</Btn><Btn icon={FileText} variant="outline" small onClick={() => onRequestCorrection(lot, items, true)} disabled={busy}>Préparer plan seulement</Btn></div><p className="mt-2 text-xs text-[#8a7456]">Ce bouton crée une demande de correction traçable dans Rapports/Documents/Tâches. La correction doit ensuite être faite lot par lot, puis ré-auditée.</p></div>;
+  return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-[#2f2415]">{lot}</p><p className="text-xs text-[#8a7456] mt-1">{items.length} correction(s) proposées</p></div><span className="rounded-full bg-white border border-[#eadcc2] px-2 py-1 text-xs font-black text-[#8a7456]">lot contrôlé</span></div><div className="mt-3 space-y-2">{items.map((item) => <div key={`${item.module}-${item.title}`} className="rounded-xl bg-white border border-[#eadcc2] p-3 text-sm"><p className="font-black text-[#2f2415]">{item.module} · {item.title}</p><p className="text-[#8a7456] mt-1">{item.detail}</p></div>)}</div><div className="mt-4 flex flex-wrap gap-2"><Btn icon={Wrench} small onClick={() => onRequestCorrection(lot, items)} disabled={busy}>Créer demande de correction</Btn><Btn icon={FileText} variant="outline" small onClick={() => onRequestCorrection(lot, items, true)} disabled={busy}>Préparer plan seulement</Btn></div><p className="mt-2 text-xs text-[#8a7456]">Ce bouton crée une demande traçable. Le score change seulement après correction appliquée + nouvel audit.</p></div>;
 }
 
 export default function AuditRunAndCorrectionPanel() {
@@ -70,6 +110,7 @@ export default function AuditRunAndCorrectionPanel() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [lastSnapshot, setLastSnapshot] = useState(null);
+  const [lastInfo, setLastInfo] = useState('');
   const keys = Array.from(new Set([...auditRequiredDataKeys, 'sales_orders', 'payments', 'invoices', 'documents', 'sales_opportunities', 'business_plans', 'bp_revenue_projections', 'alertes_center', 'taches', 'rapports']));
   const crud = Object.fromEntries(keys.map((key) => [key, useCrudModule(key)]));
   const rapports = useCrudModule('rapports');
@@ -102,6 +143,7 @@ export default function AuditRunAndCorrectionPanel() {
       await documents.create?.({ id: makeId('DOC-FIX'), titre: title, title, type: planOnly ? 'plan_correction' : 'demande_correction', module_lie: 'assistant_erp', related_id: id, contenu: content, statut: 'genere', created_at: new Date().toISOString() });
       await taches.create?.({ id: makeId('TASK-FIX'), titre: title, title, module_lie: 'assistant_erp', priorite: 'haute', statut: planOnly ? 'planifie' : 'a_faire', description: content, date_echeance: new Date().toISOString().slice(0, 10), created_at: new Date().toISOString() });
       await Promise.allSettled([rapports.refresh?.(), documents.refresh?.(), taches.refresh?.()]);
+      setLastInfo(planOnly ? 'Plan créé. Il ne modifie pas le score tant que la correction n’est pas appliquée.' : 'Demande créée. Le score changera après correction appliquée puis nouvel audit.');
       toast.success(planOnly ? 'Plan de correction créé' : 'Demande de correction créée');
     } catch (error) {
       toast.error(error.message || 'Demande de correction impossible');
@@ -114,6 +156,10 @@ export default function AuditRunAndCorrectionPanel() {
     setRunning(true);
     setElapsed(0);
     setCurrentIndex(0);
+    setLastInfo('');
+    await refreshAll();
+    const createdAlerts = await createAutomaticAlertsIfNeeded(Object.fromEntries(keys.map((key) => [key, arr(crud[key]?.rows)])), crud.alertes_center?.create, crud.alertes_center?.refresh);
+    if (createdAlerts) setLastInfo(`${createdAlerts} alerte(s) automatique(s) créée(s) avant le rapport.`);
     await refreshAll();
     const started = Date.now();
     for (let i = 0; i < MODULES.length; i += 1) { setCurrentIndex(i); setElapsed(Math.max(1, Math.round((Date.now() - started) / 1000))); await new Promise((resolve) => setTimeout(resolve, 120)); }
@@ -126,6 +172,6 @@ export default function AuditRunAndCorrectionPanel() {
     setElapsed(seconds);
     toast.success('Audit terminé : rapport créé dans Rapports et Documents');
   };
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-5"><div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4"><div><p className="inline-flex items-center gap-2 rounded-full border border-[#eadcc2] bg-[#fffdf8] px-3 py-1 text-xs font-black text-[#8a7456]"><GitBranch size={14} /> Agent audit & corrections par lots</p><h2 className="mt-3 text-2xl font-black text-[#2f2415]">Lancer un audit complet et préparer les corrections</h2><p className="mt-1 text-sm text-[#8a7456]">L’Assistant ERP utilise maintenant un référentiel central module par module : données, affichage, formulaires, parcours humain, résultat attendu et lots de correction.</p></div><Btn icon={Play} onClick={runFullAudit} disabled={running}>{running ? 'Audit en cours...' : 'Lancer audit complet'}</Btn></div><div className="grid grid-cols-2 lg:grid-cols-5 gap-3"><Mini icon={Clock} label="Progression" value={`${progress}%`} /><Mini icon={FileText} label="Module testé" value={running ? MODULES[currentIndex] : (lastSnapshot ? 'Terminé' : 'En attente')} /><Mini icon={Clock} label="Temps" value={`${elapsed}s`} /><Mini icon={ShieldAlert} label="Corrections" value={(lastSnapshot || liveSnapshot).issues.length} danger={(lastSnapshot || liveSnapshot).issues.length > 0} /><Mini icon={CheckCircle2} label="Score" value={`${(lastSnapshot || liveSnapshot).score}%`} /></div><div className="h-2 rounded-full bg-[#eadcc2] overflow-hidden"><div className="h-full rounded-full bg-[#2f2415] transition-all" style={{ width: `${progress}%` }} /></div><div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"><b>Correction autonome contrôlée :</b> clique sur “Demander correction du lot”. L’assistant crée une demande traçable, puis les corrections doivent être appliquées lot par lot avec build + ré-audit après chaque lot.</div><div className="grid grid-cols-1 xl:grid-cols-2 gap-3">{Object.keys(lots).length ? Object.entries(lots).map(([lot, items]) => <LotCard key={lot} lot={lot} items={items} onRequestCorrection={requestCorrection} busy={correctionBusy} />) : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 font-bold">Aucun lot prioritaire détecté pour l’instant.</div>}</div></section>;
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-5"><div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4"><div><p className="inline-flex items-center gap-2 rounded-full border border-[#eadcc2] bg-[#fffdf8] px-3 py-1 text-xs font-black text-[#8a7456]"><GitBranch size={14} /> Agent audit & corrections par lots</p><h2 className="mt-3 text-2xl font-black text-[#2f2415]">Lancer un audit complet et préparer les corrections</h2><p className="mt-1 text-sm text-[#8a7456]">L’audit détecte les vrais risques métier. S’il n’y a pas de risque, l’absence d’alerte n’est plus considérée comme une anomalie.</p></div><Btn icon={Play} onClick={runFullAudit} disabled={running}>{running ? 'Audit en cours...' : 'Lancer audit complet'}</Btn></div><div className="grid grid-cols-2 lg:grid-cols-5 gap-3"><Mini icon={Clock} label="Progression" value={`${progress}%`} /><Mini icon={FileText} label="Module testé" value={running ? MODULES[currentIndex] : (lastSnapshot ? 'Terminé' : 'En attente')} /><Mini icon={Clock} label="Temps" value={`${elapsed}s`} /><Mini icon={ShieldAlert} label="Corrections" value={(lastSnapshot || liveSnapshot).issues.length} danger={(lastSnapshot || liveSnapshot).issues.length > 0} /><Mini icon={CheckCircle2} label="Score" value={`${(lastSnapshot || liveSnapshot).score}%`} /></div><div className="h-2 rounded-full bg-[#eadcc2] overflow-hidden"><div className="h-full rounded-full bg-[#2f2415] transition-all" style={{ width: `${progress}%` }} /></div>{lastInfo ? <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-800"><b>Statut :</b> {lastInfo}</div> : null}<div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"><b>Correction autonome contrôlée :</b> “Créer demande de correction” crée une trace. Le score change uniquement quand la correction est réellement appliquée puis qu’un nouvel audit est lancé.</div><div className="grid grid-cols-1 xl:grid-cols-2 gap-3">{Object.keys(lots).length ? Object.entries(lots).map(([lot, items]) => <LotCard key={lot} lot={lot} items={items} onRequestCorrection={requestCorrection} busy={correctionBusy} />) : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 font-bold">Aucun lot prioritaire détecté pour l’instant.</div>}</div></section>;
 }
 function Mini({ icon: Icon, label, value, danger = false }) { return <div className={`rounded-2xl border p-4 ${danger ? 'border-red-200 bg-red-50' : 'border-[#eadcc2] bg-[#fffdf8]'}`}><p className="flex items-center gap-2 text-xs uppercase tracking-wide text-[#8a7456]"><Icon size={14} /> {label}</p><p className={`mt-2 text-lg font-black ${danger ? 'text-red-600' : 'text-[#2f2415]'}`}>{value}</p></div>; }
