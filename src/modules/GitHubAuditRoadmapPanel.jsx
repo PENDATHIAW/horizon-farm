@@ -1,4 +1,4 @@
-import { FileJson, Github, RefreshCw } from 'lucide-react';
+import { FileJson, GitBranch, RefreshCw } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { auditManifest, auditRequiredDataKeys } from '../audit/auditManifest';
@@ -242,7 +242,7 @@ export default function GitHubAuditRoadmapPanel() {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
     <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
       <div>
-        <p className="inline-flex items-center gap-2 rounded-full border border-[#eadcc2] bg-[#fffdf8] px-3 py-1 text-xs font-black text-[#8a7456]"><Github size={14} /> Audit vers GitHub</p>
+        <p className="inline-flex items-center gap-2 rounded-full border border-[#eadcc2] bg-[#fffdf8] px-3 py-1 text-xs font-black text-[#8a7456]"><GitBranch size={14} /> Audit vers GitHub</p>
         <h2 className="mt-3 text-2xl font-black text-[#2f2415]">Générer la feuille de route d’audit</h2>
         <p className="mt-1 text-sm text-[#8a7456]">Un clic génère les fichiers GitHub que je pourrai relire pour corriger par priorité. Aucune correction directe n’est appliquée depuis l’ERP.</p>
       </div>
