@@ -19,9 +19,13 @@ function ListBlock({ title, items = [] }) {
 export default function ModuleAuditChecklistPanel() {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-5">
     <div>
-      <p className="inline-flex items-center gap-2 rounded-full border border-[#eadcc2] bg-[#fffdf8] px-3 py-1 text-xs font-black text-[#8a7456]"><ClipboardCheck size={14} /> Référentiel d’audit renforcé</p>
-      <h2 className="mt-3 text-2xl font-black text-[#2f2415]">Ce que l’Assistant ERP doit auditer module par module</h2>
-      <p className="mt-1 text-sm text-[#8a7456]">Chaque module a maintenant une grille claire : ouvrir, vérifier, comparer et détecter. Ce référentiel doit guider le parcours humain et l’audit automatique.</p>
+      <p className="inline-flex items-center gap-2 rounded-full border border-[#eadcc2] bg-[#fffdf8] px-3 py-1 text-xs font-black text-[#8a7456]"><ClipboardCheck size={14} /> Grille de contrôle audit · pas un résultat</p>
+      <h2 className="mt-3 text-2xl font-black text-[#2f2415]">Ce que l’Assistant ERP doit vérifier module par module</h2>
+      <p className="mt-1 text-sm text-[#8a7456]">Cette section est un référentiel de contrôle : elle liste ce qu’il faut ouvrir, vérifier et comparer. Les vraies anomalies détectées sont dans “Audit automatique” et dans la feuille de route GitHub.</p>
+    </div>
+
+    <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-800">
+      Important : les lignes “anomalies à détecter” ci-dessous ne veulent pas dire que l’anomalie existe. Elles indiquent ce que l’audit doit rechercher pendant le parcours humain et automatique.
     </div>
 
     <div className="grid grid-cols-1 gap-4">
@@ -29,7 +33,7 @@ export default function ModuleAuditChecklistPanel() {
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
           <div>
             <h3 className="text-lg font-black text-[#2f2415] flex items-center gap-2"><SearchCheck size={18} /> {item.module}</h3>
-            <p className="mt-1 text-sm text-[#8a7456]">Audit détaillé attendu pour ce module.</p>
+            <p className="mt-1 text-sm text-[#8a7456]">Grille de contrôle attendue pour ce module, pas résultat d’audit.</p>
           </div>
           <span className={`rounded-full border px-3 py-1 text-xs font-black ${badgeClass(item.priority)}`}>Priorité {item.priority}</span>
         </div>
@@ -37,7 +41,7 @@ export default function ModuleAuditChecklistPanel() {
           <ListBlock title="À ouvrir / tester" items={item.open} />
           <ListBlock title="À vérifier" items={item.verify} />
           <ListBlock title="À comparer avec" items={item.compare} />
-          <ListBlock title="Anomalies à détecter" items={item.anomalies} />
+          <ListBlock title="Anomalies à rechercher" items={item.anomalies} />
         </div>
       </article>)}
     </div>
