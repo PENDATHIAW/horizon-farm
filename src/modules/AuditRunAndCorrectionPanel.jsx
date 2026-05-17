@@ -39,22 +39,7 @@ async function createAutomaticAlertsIfNeeded(data, createAlert, refreshAlertes) 
   if (!risks.length || arr(data.alertes_center).length || !createAlert) return 0;
   const selected = risks.slice(0, 8);
   for (const risk of selected) {
-    await createAlert({
-      id: makeId('ALERT-AUTO'),
-      titre: risk.title,
-      title: risk.title,
-      message: risk.message,
-      module: risk.module,
-      module_lie: risk.module,
-      source_id: risk.source_id,
-      severity: risk.severity,
-      priorite: risk.severity,
-      status: 'nouvelle',
-      statut: 'nouvelle',
-      type: 'alerte_automatique_audit',
-      action_recommandee: 'Vérifier le module concerné et créer une tâche terrain si nécessaire.',
-      created_at: new Date().toISOString(),
-    });
+    await createAlert({ id: makeId('ALERT-AUTO'), titre: risk.title, title: risk.title, message: risk.message, module: risk.module, module_lie: risk.module, source_id: risk.source_id, severity: risk.severity, priorite: risk.severity, status: 'nouvelle', statut: 'nouvelle', type: 'alerte_automatique_audit', action_recommandee: 'Vérifier le module concerné et créer une tâche terrain si nécessaire.', created_at: new Date().toISOString() });
   }
   await refreshAlertes?.();
   return selected.length;
@@ -72,7 +57,6 @@ function detectIssues(data) {
   const paymentsWithoutFinance = arr(data.payments).filter((p) => !arr(data.finances).some((f) => String(f.payment_id || f.related_id || f.order_id || '') === String(p.id || p.order_id || p.sale_id || ''))).length;
   const invoicesWithoutDocs = arr(data.invoices).filter((inv) => !arr(data.documents).some((d) => String(d.invoice_id || d.related_id || d.entity_id || '') === String(inv.id || inv.order_id || ''))).length;
   const risks = alertableRisks(data);
-
   if (arr(data.sales_orders).some(isAnimalSale) && animalSales <= 0) add('Lot 1 · Bloquants revenus', 'Animaux', 'CA animaux non reconnu', 'Des ventes animaux existent mais le CA n’est pas attribué correctement.');
   if (arr(data.sales_orders).some(isAvicoleSale) && avicoleSales <= 0) add('Lot 1 · Bloquants revenus', 'Avicole', 'CA avicole non reconnu', 'Des ventes avicoles existent mais le CA n’est pas attribué correctement.');
   if (arr(data.sales_orders).some(isCultureSale) && cultureSales <= 0) add('Lot 1 · Bloquants revenus', 'Cultures', 'CA cultures non reconnu', 'Des ventes cultures existent mais le CA n’est pas attribué correctement.');
@@ -97,11 +81,11 @@ function buildReportText(snapshot, progressSeconds) {
   return [`Audit ERP Horizon Farm`, `Date: ${new Date().toLocaleString()}`, `Durée simulée: ${progressSeconds}s`, `Score: ${snapshot.score}%`, `CA testé: ${money(snapshot.animalSales + snapshot.avicoleSales + snapshot.cultureSales)}`, '', '## Référentiel utilisé', manifestSummary, '', ...Object.entries(byLot).flatMap(([lot, items]) => [`## ${lot}`, ...items.map((i) => `- [${i.module}] ${i.title}: ${i.detail}`), '']), snapshot.issues.length ? '' : 'Aucune anomalie prioritaire détectée automatiquement.', 'Plan recommandé: corriger lot par lot, relancer audit après chaque lot, puis demander un retest utilisateur.'].join('\n');
 }
 function buildCorrectionText(lot, items) {
-  return [`Demande de correction contrôlée`, `Lot: ${lot}`, `Date: ${new Date().toLocaleString()}`, '', 'Corrections demandées:', ...items.map((i) => `- [${i.module}] ${i.title}: ${i.detail}`), '', 'Méthode obligatoire:', '- Corriger uniquement ce lot', '- Lancer un build', '- Relancer l’audit', '- Comparer avant/après', '- Demander retest utilisateur'].join('\n');
+  return [`Historique correction contrôlée`, `Lot: ${lot}`, `Date: ${new Date().toLocaleString()}`, '', 'Corrections à appliquer:', ...items.map((i) => `- [${i.module}] ${i.title}: ${i.detail}`), '', 'Règle:', '- Ne pas créer de documents/tâches inutiles', '- Corriger uniquement ce lot', '- Build Vercel', '- Ré-audit', '- Comparer avant/après'].join('\n');
 }
 
 function LotCard({ lot, items, onRequestCorrection, busy }) {
-  return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-[#2f2415]">{lot}</p><p className="text-xs text-[#8a7456] mt-1">{items.length} correction(s) proposées</p></div><span className="rounded-full bg-white border border-[#eadcc2] px-2 py-1 text-xs font-black text-[#8a7456]">lot contrôlé</span></div><div className="mt-3 space-y-2">{items.map((item) => <div key={`${item.module}-${item.title}`} className="rounded-xl bg-white border border-[#eadcc2] p-3 text-sm"><p className="font-black text-[#2f2415]">{item.module} · {item.title}</p><p className="text-[#8a7456] mt-1">{item.detail}</p></div>)}</div><div className="mt-4 flex flex-wrap gap-2"><Btn icon={Wrench} small onClick={() => onRequestCorrection(lot, items)} disabled={busy}>Créer demande de correction</Btn><Btn icon={FileText} variant="outline" small onClick={() => onRequestCorrection(lot, items, true)} disabled={busy}>Préparer plan seulement</Btn></div><p className="mt-2 text-xs text-[#8a7456]">Ce bouton crée une demande traçable. Le score change seulement après correction appliquée + nouvel audit.</p></div>;
+  return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-[#2f2415]">{lot}</p><p className="text-xs text-[#8a7456] mt-1">{items.length} correction(s) proposées</p></div><span className="rounded-full bg-white border border-[#eadcc2] px-2 py-1 text-xs font-black text-[#8a7456]">lot contrôlé</span></div><div className="mt-3 space-y-2">{items.map((item) => <div key={`${item.module}-${item.title}`} className="rounded-xl bg-white border border-[#eadcc2] p-3 text-sm"><p className="font-black text-[#2f2415]">{item.module} · {item.title}</p><p className="text-[#8a7456] mt-1">{item.detail}</p></div>)}</div><div className="mt-4 flex flex-wrap gap-2"><Btn icon={Wrench} small onClick={() => onRequestCorrection(lot, items, false)} disabled={busy}>Marquer lot à corriger</Btn><Btn icon={FileText} variant="outline" small onClick={() => onRequestCorrection(lot, items, true)} disabled={busy}>Enregistrer historique</Btn></div><p className="mt-2 text-xs text-[#8a7456]">Ces boutons ne créent plus automatiquement Documents/Tâches. Ils gardent seulement une trace utile dans Rapports si tu le demandes.</p></div>;
 }
 
 export default function AuditRunAndCorrectionPanel() {
@@ -114,49 +98,30 @@ export default function AuditRunAndCorrectionPanel() {
   const keys = Array.from(new Set([...auditRequiredDataKeys, 'sales_orders', 'payments', 'invoices', 'documents', 'sales_opportunities', 'business_plans', 'bp_revenue_projections', 'alertes_center', 'taches', 'rapports']));
   const crud = Object.fromEntries(keys.map((key) => [key, useCrudModule(key)]));
   const rapports = useCrudModule('rapports');
-  const documents = useCrudModule('documents');
-  const taches = useCrudModule('taches');
   const data = Object.fromEntries(keys.map((key) => [key, arr(crud[key]?.rows)]));
-  const liveSnapshot = useMemo(() => {
-    const detected = detectIssues(data);
-    const score = Math.max(0, Math.round(((MODULES.length - Math.min(MODULES.length, detected.issues.length)) / MODULES.length) * 100));
-    return { ...detected, score };
-  }, [JSON.stringify(data)]);
+  const liveSnapshot = useMemo(() => { const detected = detectIssues(data); const score = Math.max(0, Math.round(((MODULES.length - Math.min(MODULES.length, detected.issues.length)) / MODULES.length) * 100)); return { ...detected, score }; }, [JSON.stringify(data)]);
   const lots = (lastSnapshot || liveSnapshot).issues.reduce((acc, item) => ({ ...acc, [item.lot]: [...(acc[item.lot] || []), item] }), {});
   const progress = running ? Math.round(((currentIndex + 1) / MODULES.length) * 100) : (lastSnapshot ? 100 : 0);
   const refreshAll = async () => Promise.allSettled(keys.map((key) => crud[key]?.refresh?.()));
-  const createAuditReport = async (snapshot, seconds) => {
-    const id = makeId('RPT-AUDIT');
-    const title = `Audit ERP Horizon Farm - ${new Date().toLocaleDateString()}`;
-    const content = buildReportText(snapshot, seconds);
-    await rapports.create?.({ id, titre: title, title, type: 'audit_erp', statut: 'disponible', score: snapshot.score, contenu: content, resume: `${snapshot.issues.length} anomalie(s), score ${snapshot.score}%`, created_at: new Date().toISOString() });
-    await documents.create?.({ id: makeId('DOC-AUDIT'), titre: title, title, type: 'rapport_audit_erp', module_lie: 'assistant_erp', related_id: id, contenu: content, statut: 'genere', created_at: new Date().toISOString() });
-    await Promise.allSettled([rapports.refresh?.(), documents.refresh?.()]);
-  };
-  const requestCorrection = async (lot, items, planOnly = false) => {
+  const createAuditReport = async (snapshot, seconds) => { const id = makeId('RPT-AUDIT'); const title = `Audit ERP Horizon Farm - ${new Date().toLocaleDateString()}`; const content = buildReportText(snapshot, seconds); await rapports.create?.({ id, titre: title, title, type: 'audit_erp', statut: 'disponible', score: snapshot.score, contenu: content, resume: `${snapshot.issues.length} anomalie(s), score ${snapshot.score}%`, created_at: new Date().toISOString() }); await rapports.refresh?.(); };
+  const requestCorrection = async (lot, items, saveHistory = false) => {
     try {
       setCorrectionBusy(true);
-      const id = makeId('FIX-LOT');
-      const title = `${planOnly ? 'Plan' : 'Demande'} correction - ${lot}`;
-      const content = buildCorrectionText(lot, items);
-      await rapports.create?.({ id, titre: title, title, type: planOnly ? 'plan_correction_audit' : 'demande_correction_audit', statut: planOnly ? 'planifie' : 'a_corriger', contenu: content, resume: `${items.length} correction(s) dans ${lot}`, lot, created_at: new Date().toISOString() });
-      await documents.create?.({ id: makeId('DOC-FIX'), titre: title, title, type: planOnly ? 'plan_correction' : 'demande_correction', module_lie: 'assistant_erp', related_id: id, contenu: content, statut: 'genere', created_at: new Date().toISOString() });
-      await taches.create?.({ id: makeId('TASK-FIX'), titre: title, title, module_lie: 'assistant_erp', priorite: 'haute', statut: planOnly ? 'planifie' : 'a_faire', description: content, date_echeance: new Date().toISOString().slice(0, 10), created_at: new Date().toISOString() });
-      await Promise.allSettled([rapports.refresh?.(), documents.refresh?.(), taches.refresh?.()]);
-      setLastInfo(planOnly ? 'Plan créé. Il ne modifie pas le score tant que la correction n’est pas appliquée.' : 'Demande créée. Le score changera après correction appliquée puis nouvel audit.');
-      toast.success(planOnly ? 'Plan de correction créé' : 'Demande de correction créée');
-    } catch (error) {
-      toast.error(error.message || 'Demande de correction impossible');
-    } finally {
-      setCorrectionBusy(false);
-    }
+      if (saveHistory) {
+        const id = makeId('FIX-LOT'); const title = `Historique correction - ${lot}`; const content = buildCorrectionText(lot, items);
+        await rapports.create?.({ id, titre: title, title, type: 'historique_correction_audit', statut: 'a_corriger', contenu: content, resume: `${items.length} correction(s) dans ${lot}`, lot, created_at: new Date().toISOString() });
+        await rapports.refresh?.();
+        setLastInfo('Historique enregistré dans Rapports. Aucun Document/Tâche inutile créé.');
+        toast.success('Historique enregistré');
+      } else {
+        setLastInfo(`Lot sélectionné : ${lot}. Correction à appliquer côté code, puis build Vercel, puis ré-audit. Aucun Document/Tâche créé.`);
+        toast.success('Lot marqué à corriger');
+      }
+    } catch (error) { toast.error(error.message || 'Action impossible'); } finally { setCorrectionBusy(false); }
   };
   const runFullAudit = async () => {
     if (running) return;
-    setRunning(true);
-    setElapsed(0);
-    setCurrentIndex(0);
-    setLastInfo('');
+    setRunning(true); setElapsed(0); setCurrentIndex(0); setLastInfo('');
     await refreshAll();
     const createdAlerts = await createAutomaticAlertsIfNeeded(Object.fromEntries(keys.map((key) => [key, arr(crud[key]?.rows)])), crud.alertes_center?.create, crud.alertes_center?.refresh);
     if (createdAlerts) setLastInfo(`${createdAlerts} alerte(s) automatique(s) créée(s) avant le rapport.`);
@@ -166,12 +131,8 @@ export default function AuditRunAndCorrectionPanel() {
     const seconds = Math.max(1, Math.round((Date.now() - started) / 1000));
     const detected = detectIssues(Object.fromEntries(keys.map((key) => [key, arr(crud[key]?.rows)])));
     const snapshot = { ...detected, score: Math.max(0, Math.round(((MODULES.length - Math.min(MODULES.length, detected.issues.length)) / MODULES.length) * 100)) };
-    setLastSnapshot(snapshot);
-    await createAuditReport(snapshot, seconds);
-    setRunning(false);
-    setElapsed(seconds);
-    toast.success('Audit terminé : rapport créé dans Rapports et Documents');
+    setLastSnapshot(snapshot); await createAuditReport(snapshot, seconds); setRunning(false); setElapsed(seconds); toast.success('Audit terminé : historique créé dans Rapports');
   };
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-5"><div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4"><div><p className="inline-flex items-center gap-2 rounded-full border border-[#eadcc2] bg-[#fffdf8] px-3 py-1 text-xs font-black text-[#8a7456]"><GitBranch size={14} /> Agent audit & corrections par lots</p><h2 className="mt-3 text-2xl font-black text-[#2f2415]">Lancer un audit complet et préparer les corrections</h2><p className="mt-1 text-sm text-[#8a7456]">L’audit détecte les vrais risques métier. S’il n’y a pas de risque, l’absence d’alerte n’est plus considérée comme une anomalie.</p></div><Btn icon={Play} onClick={runFullAudit} disabled={running}>{running ? 'Audit en cours...' : 'Lancer audit complet'}</Btn></div><div className="grid grid-cols-2 lg:grid-cols-5 gap-3"><Mini icon={Clock} label="Progression" value={`${progress}%`} /><Mini icon={FileText} label="Module testé" value={running ? MODULES[currentIndex] : (lastSnapshot ? 'Terminé' : 'En attente')} /><Mini icon={Clock} label="Temps" value={`${elapsed}s`} /><Mini icon={ShieldAlert} label="Corrections" value={(lastSnapshot || liveSnapshot).issues.length} danger={(lastSnapshot || liveSnapshot).issues.length > 0} /><Mini icon={CheckCircle2} label="Score" value={`${(lastSnapshot || liveSnapshot).score}%`} /></div><div className="h-2 rounded-full bg-[#eadcc2] overflow-hidden"><div className="h-full rounded-full bg-[#2f2415] transition-all" style={{ width: `${progress}%` }} /></div>{lastInfo ? <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-800"><b>Statut :</b> {lastInfo}</div> : null}<div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"><b>Correction autonome contrôlée :</b> “Créer demande de correction” crée une trace. Le score change uniquement quand la correction est réellement appliquée puis qu’un nouvel audit est lancé.</div><div className="grid grid-cols-1 xl:grid-cols-2 gap-3">{Object.keys(lots).length ? Object.entries(lots).map(([lot, items]) => <LotCard key={lot} lot={lot} items={items} onRequestCorrection={requestCorrection} busy={correctionBusy} />) : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 font-bold">Aucun lot prioritaire détecté pour l’instant.</div>}</div></section>;
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-5"><div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4"><div><p className="inline-flex items-center gap-2 rounded-full border border-[#eadcc2] bg-[#fffdf8] px-3 py-1 text-xs font-black text-[#8a7456]"><GitBranch size={14} /> Agent audit & corrections par lots</p><h2 className="mt-3 text-2xl font-black text-[#2f2415]">Lancer un audit complet et préparer les corrections</h2><p className="mt-1 text-sm text-[#8a7456]">L’audit détecte les vrais risques métier. Les traces sont limitées à Rapports, et seulement quand c’est utile.</p></div><Btn icon={Play} onClick={runFullAudit} disabled={running}>{running ? 'Audit en cours...' : 'Lancer audit complet'}</Btn></div><div className="grid grid-cols-2 lg:grid-cols-5 gap-3"><Mini icon={Clock} label="Progression" value={`${progress}%`} /><Mini icon={FileText} label="Module testé" value={running ? MODULES[currentIndex] : (lastSnapshot ? 'Terminé' : 'En attente')} /><Mini icon={Clock} label="Temps" value={`${elapsed}s`} /><Mini icon={ShieldAlert} label="Corrections" value={(lastSnapshot || liveSnapshot).issues.length} danger={(lastSnapshot || liveSnapshot).issues.length > 0} /><Mini icon={CheckCircle2} label="Score" value={`${(lastSnapshot || liveSnapshot).score}%`} /></div><div className="h-2 rounded-full bg-[#eadcc2] overflow-hidden"><div className="h-full rounded-full bg-[#2f2415] transition-all" style={{ width: `${progress}%` }} /></div>{lastInfo ? <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-800"><b>Statut :</b> {lastInfo}</div> : null}<div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"><b>Important :</b> l’ERP web ne peut pas encore modifier GitHub seul. Pour une vraie correction autonome, il faudra connecter un agent sécurisé GitHub/Vercel. En attendant, le lot est corrigé côté code puis tu retestes après build vert.</div><div className="grid grid-cols-1 xl:grid-cols-2 gap-3">{Object.keys(lots).length ? Object.entries(lots).map(([lot, items]) => <LotCard key={lot} lot={lot} items={items} onRequestCorrection={requestCorrection} busy={correctionBusy} />) : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 font-bold">Aucun lot prioritaire détecté pour l’instant.</div>}</div></section>;
 }
 function Mini({ icon: Icon, label, value, danger = false }) { return <div className={`rounded-2xl border p-4 ${danger ? 'border-red-200 bg-red-50' : 'border-[#eadcc2] bg-[#fffdf8]'}`}><p className="flex items-center gap-2 text-xs uppercase tracking-wide text-[#8a7456]"><Icon size={14} /> {label}</p><p className={`mt-2 text-lg font-black ${danger ? 'text-red-600' : 'text-[#2f2415]'}`}>{value}</p></div>; }
