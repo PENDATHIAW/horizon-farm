@@ -3,10 +3,11 @@ import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Btn from '../components/Btn';
 import useCrudModule from '../hooks/useCrudModule';
+import { auditManifest, auditModuleNames, auditRequiredDataKeys } from '../audit/auditManifest';
 import { fmtCurrency } from '../utils/format';
 import { makeId } from '../utils/ids';
 
-const MODULES = ['Accueil', 'Centre décisionnel', 'Objectifs', 'Animaux', 'Avicole', 'Cultures', 'Santé', 'Ventes', 'Finances', 'Comptabilité', 'Investissements', 'Impact Business', 'Stock', 'Clients', 'Fournisseurs', 'Traçabilité', 'Alertes', 'Documents', 'Tâches', 'RH', 'Rapports', 'Équipements', 'Smart Farm', 'Sync', 'Gestion système'];
+const MODULES = auditModuleNames;
 const arr = (v) => Array.isArray(v) ? v : [];
 const n = (v) => Number(v || 0);
 const norm = (v = '') => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -55,12 +56,16 @@ function detectIssues(data) {
 
 function buildReportText(snapshot, progressSeconds) {
   const byLot = snapshot.issues.reduce((acc, item) => ({ ...acc, [item.lot]: [...(acc[item.lot] || []), item] }), {});
+  const manifestSummary = auditManifest.map((item) => `- ${item.module}: ${item.purpose}`).join('\n');
   return [
     `Audit ERP Horizon Farm`,
     `Date: ${new Date().toLocaleString()}`,
     `Durée simulée: ${progressSeconds}s`,
     `Score: ${snapshot.score}%`,
     `CA testé: ${money(snapshot.animalSales + snapshot.avicoleSales + snapshot.cultureSales)}`,
+    '',
+    '## Référentiel utilisé',
+    manifestSummary,
     '',
     ...Object.entries(byLot).flatMap(([lot, items]) => [`## ${lot}`, ...items.map((i) => `- [${i.module}] ${i.title}: ${i.detail}`), '']),
     snapshot.issues.length ? '' : 'Aucune anomalie prioritaire détectée automatiquement.',
@@ -77,7 +82,7 @@ export default function AuditRunAndCorrectionPanel() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [lastSnapshot, setLastSnapshot] = useState(null);
-  const keys = ['animaux','avicole','cultures','sante','finances','sales_orders','payments','invoices','documents','sales_opportunities','business_plans','bp_revenue_projections','stock','clients','fournisseurs','tracabilite','alertes_center','taches','rapports','equipements'];
+  const keys = Array.from(new Set([...auditRequiredDataKeys, 'sales_orders', 'payments', 'invoices', 'documents', 'sales_opportunities', 'business_plans', 'bp_revenue_projections', 'alertes_center', 'taches', 'rapports']));
   const crud = Object.fromEntries(keys.map((key) => [key, useCrudModule(key)]));
   const rapports = useCrudModule('rapports');
   const documents = useCrudModule('documents');
@@ -110,7 +115,6 @@ export default function AuditRunAndCorrectionPanel() {
     for (let i = 0; i < MODULES.length; i += 1) {
       setCurrentIndex(i);
       setElapsed(Math.max(1, Math.round((Date.now() - started) / 1000)));
-      // Simulation courte du parcours module par module. L’audit réel lit les données du module.
       await new Promise((resolve) => setTimeout(resolve, 120));
     }
     const seconds = Math.max(1, Math.round((Date.now() - started) / 1000));
@@ -124,7 +128,7 @@ export default function AuditRunAndCorrectionPanel() {
   };
 
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-5">
-    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4"><div><p className="inline-flex items-center gap-2 rounded-full border border-[#eadcc2] bg-[#fffdf8] px-3 py-1 text-xs font-black text-[#8a7456]"><GitBranch size={14} /> Agent audit & corrections par lots</p><h2 className="mt-3 text-2xl font-black text-[#2f2415]">Lancer un audit complet et préparer les corrections</h2><p className="mt-1 text-sm text-[#8a7456]">L’Assistant ERP parcourt les modules, génère un rapport dans Rapports/Documents, puis classe les corrections en lots pour éviter les grosses régressions.</p></div><Btn icon={Play} onClick={runFullAudit} disabled={running}>{running ? 'Audit en cours...' : 'Lancer audit complet'}</Btn></div>
+    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4"><div><p className="inline-flex items-center gap-2 rounded-full border border-[#eadcc2] bg-[#fffdf8] px-3 py-1 text-xs font-black text-[#8a7456]"><GitBranch size={14} /> Agent audit & corrections par lots</p><h2 className="mt-3 text-2xl font-black text-[#2f2415]">Lancer un audit complet et préparer les corrections</h2><p className="mt-1 text-sm text-[#8a7456]">L’Assistant ERP utilise maintenant un référentiel central module par module : données, affichage, formulaires, parcours humain, résultat attendu et lots de correction.</p></div><Btn icon={Play} onClick={runFullAudit} disabled={running}>{running ? 'Audit en cours...' : 'Lancer audit complet'}</Btn></div>
     <div className="grid grid-cols-2 lg:grid-cols-5 gap-3"><Mini icon={Clock} label="Progression" value={`${progress}%`} /><Mini icon={FileText} label="Module testé" value={running ? MODULES[currentIndex] : (lastSnapshot ? 'Terminé' : 'En attente')} /><Mini icon={Clock} label="Temps" value={`${elapsed}s`} /><Mini icon={ShieldAlert} label="Corrections" value={(lastSnapshot || liveSnapshot).issues.length} danger={(lastSnapshot || liveSnapshot).issues.length > 0} /><Mini icon={CheckCircle2} label="Score" value={`${(lastSnapshot || liveSnapshot).score}%`} /></div>
     <div className="h-2 rounded-full bg-[#eadcc2] overflow-hidden"><div className="h-full rounded-full bg-[#2f2415] transition-all" style={{ width: `${progress}%` }} /></div>
     <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"><b>Correction autonome contrôlée :</b> l’assistant prépare les lots ici. Les corrections de code doivent être appliquées lot par lot, avec build + ré-audit après chaque lot. Pas de correction globale en une seule fois.</div>
