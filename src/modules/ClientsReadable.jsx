@@ -4,8 +4,7 @@ import ClientsEvolution from './ClientsEvolution.jsx';
 export default function ClientsReadable(props) {
   return (
     <div className="clients-readable-order space-y-6">
-      <style>{`.clients-readable-order .clients-core-order > div > :nth-child(4){display:none!important}`}</style>
-      <div className="clients-core-order"><Clients {...props} /></div>
+      <Clients {...props} hideEvolution />
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
         <div>
           <p className="flex items-center gap-2 text-lg font-black text-[#2f2415]">Évolution clients</p>
