@@ -136,11 +136,11 @@ export default function CentreIA({
     <div className="space-y-6">
       <SectionHeader
         title="Centre décisionnel"
-        sub="Cerveau de pilotage Horizon Farm — objectifs, ventes, cash, investissements, calendrier, risques, historique et rentabilité réelle"
+        sub="Décisions concrètes à exécuter : ventes, investissement, terrain, risques, calendrier, automatisations et historique. Le suivi pur des objectifs reste dans Objectifs & Croissance."
         actions={
           <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => onNavigate?.('objectifs_croissance')} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-semibold text-[#7d6a4a] hover:border-emerald-500 hover:text-emerald-600">Voir Objectifs</button>
             <button type="button" onClick={() => onNavigate?.('ventes')} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-semibold text-[#7d6a4a] hover:border-emerald-500 hover:text-emerald-600">Voir Ventes</button>
-            <button type="button" onClick={() => onNavigate?.('clients')} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-semibold text-[#7d6a4a] hover:border-emerald-500 hover:text-emerald-600">Voir Clients</button>
             <button type="button" onClick={() => onNavigate?.('investissements')} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-semibold text-[#7d6a4a] hover:border-emerald-500 hover:text-emerald-600">Voir Investissements</button>
           </div>
         }
@@ -148,36 +148,10 @@ export default function CentreIA({
 
       <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
         <KpiCard icon={BrainCircuit} label="Score décisionnel" value={`${score}/100`} sub={score >= 75 ? 'Situation favorable' : score >= 50 ? 'Pilotage à renforcer' : 'Risque élevé'} color={score >= 75 ? 'bg-emerald-500/20 text-emerald-500' : score >= 50 ? 'bg-amber-500/20 text-amber-500' : 'bg-red-500/20 text-red-500'} />
-        <KpiCard icon={TrendingUp} label="Objectif CA mois" value={fmtCurrency(goal.monthTarget)} sub={`Réalisé ${fmtCurrency(goal.realized)} · ${goal.attainment}%`} color={goal.attainment >= 90 ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'} />
-        <KpiCard icon={Zap} label="Reste à vendre" value={fmtCurrency(goal.remaining)} sub={`Objectif hebdo ${fmtCurrency(goal.weekTarget)}`} color={goal.remaining > 0 ? 'bg-amber-500/20 text-amber-500' : 'bg-emerald-500/20 text-emerald-500'} />
-        <KpiCard icon={LineChart} label="Créances" value={fmtCurrency(commercial.creances)} sub={`Encaissement ${goal.cashRate}%`} color={commercial.creances > 0 ? 'bg-amber-500/20 text-amber-500' : 'bg-emerald-500/20 text-emerald-500'} />
-        <KpiCard icon={Sparkles} label="Investissements" value={growth.recommendations.length} sub="Recommandations pilotées" color="bg-purple-500/20 text-purple-500" />
-      </div>
-
-      <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Objectifs & croissance</p>
-            <h3 className="text-xl font-black text-[#2f2415] mt-1">{growth.executive_summary}</h3>
-            <p className="text-sm text-[#8a7456] mt-1">Mois suivi : {growth.goals.currentMonth}. Le moteur compare CA, encaissement, capacité, lead time, calendrier et couverture de demande.</p>
-          </div>
-          <div className="rounded-2xl bg-[#fffdf8] border border-[#eadcc2] px-4 py-3 min-w-[240px]">
-            <p className="text-xs text-[#8a7456]">Focus actuel</p>
-            <p className="font-black text-[#2f2415]">{growth.calendar.current?.label}</p>
-            <p className="text-xs text-[#8a7456] mt-1">{growth.calendar.current?.note}</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
-          {growth.goals.activities.map((activity) => (
-            <div key={activity.activity} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-              <p className="text-xs font-black text-[#8a7456]">{activity.label}</p>
-              <p className="text-lg font-black text-[#2f2415] mt-1">{activity.attainment}%</p>
-              <p className="text-[11px] text-[#8a7456]">Réalisé {fmtCurrency(activity.realized)}</p>
-              <p className="text-[11px] text-[#8a7456]">Reste {fmtCurrency(activity.remaining)}</p>
-            </div>
-          ))}
-        </div>
+        <KpiCard icon={Sparkles} label="Décisions à lire" value={growth.recommendations.length + insights.decisions.length} sub="Recommandations et actions" color="bg-purple-500/20 text-purple-500" />
+        <KpiCard icon={LineChart} label="Créances" value={fmtCurrency(commercial.creances)} sub="Cash à sécuriser" color={commercial.creances > 0 ? 'bg-amber-500/20 text-amber-500' : 'bg-emerald-500/20 text-emerald-500'} />
+        <KpiCard icon={ShieldAlert} label="Risques" value={Math.max(insights.anomalies.urgence_count, proactive.urgent_count) + Math.max(insights.anomalies.critique_count, proactive.high_count)} sub="Urgents + critiques" color="bg-red-500/20 text-red-500" />
+        <KpiCard icon={TrendingUp} label="Cap mensuel" value={`${goal.attainment}%`} sub="Voir objectifs détaillés" color={goal.attainment >= 90 ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'} onClick={() => onNavigate?.('objectifs_croissance')} />
       </div>
 
       <div className="bg-[#2f2415] text-white rounded-3xl p-5 border border-[#d6c3a0] shadow-sm space-y-4">
@@ -185,7 +159,7 @@ export default function CentreIA({
           <div>
             <p className="text-sm font-black text-[#f8e8b6] flex items-center gap-2"><Zap size={16} /> Recommandations investissement, vente & terrain</p>
             <h3 className="text-xl font-black mt-1">Décider vite sans noyer l’éleveur</h3>
-            <p className="text-sm text-[#f8e8b6]/80 mt-1">Les cartes sont compactes par défaut. Ouvre seulement les détails utiles : période, demande, capacité, ciblage et actions.</p>
+            <p className="text-sm text-[#f8e8b6]/80 mt-1">Ici, on ne répète pas toute la page Objectifs. On garde uniquement les décisions à exécuter : période, demande, capacité, ciblage et actions.</p>
           </div>
           <div className="grid grid-cols-4 gap-2 min-w-[320px]">
             <MiniDark label="Pondeuses" value={`${growth.leadTimes.oeufs}j`} />
@@ -229,8 +203,8 @@ export default function CentreIA({
         <div className="xl:col-span-2 bg-white border border-[#d6c3a0] rounded-2xl p-5 space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="font-bold text-[#2f2415] flex items-center gap-2"><BrainCircuit size={18} className="text-emerald-500" /> Décisions & recommandations</p>
-              <p className="text-xs text-[#8a7456]">Recommandations transversales générées à partir des modules sources.</p>
+              <p className="font-bold text-[#2f2415] flex items-center gap-2"><BrainCircuit size={18} className="text-emerald-500" /> Décisions transversales</p>
+              <p className="text-xs text-[#8a7456]">Recommandations qui ne sont pas de simples objectifs : stock, santé, cash, vente, risques et terrain.</p>
             </div>
             <span className="text-xs font-semibold text-[#8a7456]">{insights.decisions.length} décision(s)</span>
           </div>
