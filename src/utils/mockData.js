@@ -1,474 +1,71 @@
 import { buildWeatherAnalysis } from './weather';
+import { horizonFarmSimulationSeed } from './horizonFarmSimulationSeed';
 
 export const financeData = [
-  { mois: 'Jan', recettes: 1850000, depenses: 920000 },
-  { mois: 'Fev', recettes: 2100000, depenses: 1050000 },
-  { mois: 'Mar', recettes: 1950000, depenses: 980000 },
-  { mois: 'Avr', recettes: 2400000, depenses: 1100000 },
-  { mois: 'Mai', recettes: 2650000, depenses: 1200000 },
-  { mois: 'Jun', recettes: 2300000, depenses: 1150000 },
+  { mois: 'M+1', recettes: 0, depenses: 6905000 },
+  { mois: 'M+2', recettes: 0, depenses: 6100000 },
+  { mois: 'M+3', recettes: 737200, depenses: 1160000 },
+  { mois: 'M+4', recettes: 736750, depenses: 1050000 },
+  { mois: 'M+5', recettes: 405000, depenses: 1045000 },
+  { mois: 'M+6', recettes: 1919000, depenses: 1540000 },
+  { mois: 'M+7', recettes: 864000, depenses: 1020000 },
 ];
 
-export const animauxSeed = [
-  {
-    id: 'BOV001',
-    name: 'Kanda',
-    type: 'Bovin',
-    sexe: 'M',
-    poids: 285,
-    purchase_cost: 180000,
-    alimentation: 45000,
-    sante: 12000,
-    health_status: 'sain',
-    sale_price: 0,
-    status: 'mort',
-    naissance: '2022-03-15',
-    date_naissance: '2022-03-15',
-    date_achat: '2022-05-01',
-    date_entree_ferme: '2022-05-01',
-    mode_acquisition: 'achat',
-    fournisseur_vendeur: 'Eleveur Kone',
-    statut_reproduction: 'non_reproductrice',
-    tag: 'BOV001',
-  },
-  {
-    id: 'BOV002',
-    name: 'Sala',
-    type: 'Bovin',
-    sexe: 'F',
-    poids: 210,
-    purchase_cost: 145000,
-    alimentation: 38000,
-    sante: 8000,
-    health_status: 'malade',
-    sale_price: 0,
-    status: 'actif',
-    naissance: '2021-08-20',
-    date_naissance: '2021-08-20',
-    date_entree_ferme: '2021-08-20',
-    mode_acquisition: 'naissance_ferme',
-    mere_id: '',
-    pere_id: '',
-    en_gestation: true,
-    date_debut_gestation: '2026-01-20',
-    date_prevue_mise_bas: '2026-05-15',
-    male_reproducteur_id: 'BOV003',
-    statut_reproduction: 'mise_bas_proche',
-    tag: 'BOV002',
-  },
-  {
-    id: 'OV001',
-    name: 'Binta',
-    type: 'Ovin',
-    sexe: 'F',
-    poids: 48,
-    purchase_cost: 35000,
-    alimentation: 12000,
-    sante: 3000,
-    health_status: 'sain',
-    sale_price: 65000,
-    status: 'vendu',
-    naissance: '2022-11-01',
-    date_naissance: '2022-11-01',
-    date_entree_ferme: '2022-11-01',
-    mode_acquisition: 'reproduction_interne',
-    statut_reproduction: 'a_reposer',
-    tag: 'OV001',
-  },
-  {
-    id: 'CAP001',
-    name: 'Soko',
-    type: 'Caprin',
-    sexe: 'M',
-    poids: 38,
-    purchase_cost: 28000,
-    alimentation: 9000,
-    sante: 2500,
-    health_status: 'sain',
-    sale_price: 0,
-    status: 'actif',
-    naissance: '2023-01-10',
-    date_naissance: '2023-01-10',
-    date_achat: '2023-02-01',
-    date_entree_ferme: '2023-02-01',
-    mode_acquisition: 'achat',
-    fournisseur_vendeur: 'Marche betail Thies',
-    statut_reproduction: 'non_reproductrice',
-    tag: 'CAP001',
-  },
-  {
-    id: 'BOV003',
-    name: 'Lamine',
-    type: 'Bovin',
-    sexe: 'M',
-    poids: 320,
-    purchase_cost: 200000,
-    alimentation: 52000,
-    sante: 15000,
-    health_status: 'sain',
-    sale_price: 310000,
-    status: 'vendu',
-    naissance: '2021-05-05',
-    date_naissance: '2021-05-05',
-    date_achat: '2021-05-05',
-    date_entree_ferme: '2021-05-05',
-    mode_acquisition: 'achat',
-    fournisseur_vendeur: 'Eleveur Kone',
-    statut_reproduction: 'non_reproductrice',
-    tag: 'BOV003',
-  },
-  {
-    id: 'OV002',
-    name: 'Mariama',
-    type: 'Ovin',
-    sexe: 'F',
-    poids: 52,
-    purchase_cost: 38000,
-    alimentation: 13500,
-    sante: 4000,
-    health_status: 'sain',
-    sale_price: 0,
-    status: 'actif',
-    naissance: '2022-09-15',
-    date_naissance: '2022-09-15',
-    date_entree_ferme: '2022-09-15',
-    mode_acquisition: 'naissance_ferme',
-    en_gestation: false,
-    statut_reproduction: 'disponible',
-    tag: 'OV002',
-  },
-];
-
-export const lotsSeed = [
-  {
-    id: 'LOTPO001',
-    name: 'LOTPO001 Pondeuses',
-    type: 'Pondeuse',
-    phase: 'Production',
-    initial_count: 500,
-    current_count: 468,
-    mortality: 18,
-    malades: 3,
-    vols: 2,
-    vendus: 10,
-    reformes: 1,
-    sorties: 1,
-    frais_sante: 45000,
-    health_status: 'sain',
-    status: 'en_ponte',
-    autres_frais: 25000,
-    date_debut: '2025-04-01',
-    date_fin_prevue: '2026-04-01',
-    oeufs_casses: 12,
-    taux_ponte: 84,
-    productionJour: 398,
-    weight_avg: 1.8,
-    ic: 2.1,
-    revenuEstime: 2650000,
-    marge: 820000,
-    scoresSante: 91,
-  },
-  {
-    id: 'LOTCH001',
-    name: 'LOTCH001 Chair',
-    type: 'Chair',
-    phase: 'Croissance',
-    initial_count: 600,
-    current_count: 571,
-    mortality: 20,
-    malades: 5,
-    vols: 1,
-    vendus: 8,
-    reformes: 0,
-    sorties: 0,
-    frais_sante: 38000,
-    health_status: 'a_surveiller',
-    status: 'en_croissance',
-    autres_frais: 20000,
-    cout_poussins: 180000,
-    prix_vente_prevu: 3500,
-    prix_vente_reel: 0,
-    date_debut: '2025-06-01',
-    date_fin_prevue: '2025-08-15',
-    oeufs_casses: 0,
-    taux_ponte: 0,
-    productionJour: 0,
-    weight_avg: 1.95,
-    ic: 1.9,
-    revenuEstime: 1980000,
-    marge: 540000,
-    scoresSante: 87,
-  },
-  {
-    id: 'LOTPO002',
-    name: 'LOTPO002 Pondeuses',
-    type: 'Pondeuse',
-    phase: 'Production',
-    initial_count: 400,
-    current_count: 383,
-    mortality: 12,
-    malades: 2,
-    vols: 0,
-    vendus: 5,
-    reformes: 0,
-    sorties: 0,
-    frais_sante: 32000,
-    health_status: 'sain',
-    status: 'en_ponte',
-    autres_frais: 18000,
-    date_debut: '2025-03-18',
-    date_fin_prevue: '2026-03-18',
-    oeufs_casses: 7,
-    taux_ponte: 82,
-    productionJour: 420,
-    weight_avg: 1.75,
-    ic: 2.0,
-    revenuEstime: 2300000,
-    marge: 700000,
-    scoresSante: 93,
-  },
-];
-
-export const vaccinsSeed = [
-  { id: 'V-001', nom: 'Newcastle', animal: 'Poulets LOTPO001', prevue: '2025-07-01', effectuee: '2025-06-28', vet: 'Dr. Kone', statut: 'fait' },
-  { id: 'V-002', nom: 'Fievre aphteuse', animal: 'BOV001, BOV002', prevue: '2025-07-10', effectuee: null, vet: 'Dr. Diallo', statut: 'a_faire' },
-  { id: 'V-003', nom: 'Brucellose', animal: 'OV001, OV002', prevue: '2025-06-20', effectuee: null, vet: 'Dr. Kone', statut: 'retard' },
-  { id: 'V-004', nom: 'Marek', animal: 'Poulets LOTCH001', prevue: '2025-07-15', effectuee: null, vet: 'Dr. Traore', statut: 'a_faire' },
-  { id: 'V-005', nom: 'Pasteurellose', animal: 'CAP001', prevue: '2025-07-08', effectuee: null, vet: 'Dr. Diallo', statut: 'a_faire' },
-];
-
-export const vetsSeed = [
-  { id: 'VET01', nom: 'Dr. Kone Mamadou', specialite: 'Aviculture', tel: '+221 77 111 22 33', whatsapp: '+221 77 111 22 33', email: 'kone@horizonfarm.sn', gps: '14.6928,-17.4467', adresse: 'Dakar Plateau, Senegal', note: 4.8, source: 'demo' },
-  { id: 'VET02', nom: 'Dr. Diallo Ibrahima', specialite: 'Bovin/Ovin', tel: '+221 76 444 55 66', whatsapp: '+221 76 444 55 66', email: 'diallo@horizonfarm.sn', gps: '14.7886,-16.9246', adresse: 'Thies, Senegal', note: 4.6, source: 'demo' },
-  { id: 'VET03', nom: 'Dr. Traore Aminata', specialite: 'General', tel: '+221 70 777 88 99', whatsapp: '+221 70 777 88 99', email: 'traore@horizonfarm.sn', gps: '14.4215,-16.9655', adresse: 'Mbour, Senegal', note: 4.7, source: 'demo' },
-];
-
-export const transactionsSeed = [
-  { id: 'T-001', type: 'entree', libelle: 'Vente poulets LOTCH001 partiel', montant: 485000, date: '2025-07-02', categorie: 'Vente animaux', module_lie: 'avicole', related_id: 'LOTCH001', client_id: 'C-001', fournisseur_id: '', paiement: 'Wave', statut: 'paye', treasury_account_id: 'TRES-WAVE', justif: true },
-  { id: 'T-002', type: 'sortie', libelle: 'Aliment avicole - 2T', montant: 120000, date: '2025-07-01', categorie: 'Alimentation', module_lie: 'stock', related_id: 'S-001', client_id: '', fournisseur_id: 'F-001', paiement: 'Cash', statut: 'paye', treasury_account_id: 'TRES-CAISSE', justif: false },
-  { id: 'T-003', type: 'entree', libelle: 'Vente oeufs semaine 26', montant: 210000, date: '2025-06-30', categorie: 'Vente oeufs', module_lie: 'avicole', related_id: 'LOTPO001', client_id: 'C-002', fournisseur_id: '', paiement: 'Orange Money', statut: 'paye', treasury_account_id: 'TRES-OM', justif: true },
-  { id: 'T-004', type: 'sortie', libelle: 'Salaire agents (x3)', montant: 225000, date: '2025-06-30', categorie: 'Salaires', module_lie: 'finances', related_id: '', client_id: '', fournisseur_id: '', paiement: 'Wave', statut: 'paye', treasury_account_id: 'TRES-WAVE', justif: true },
-  { id: 'T-005', type: 'sortie', libelle: 'Vaccin Newcastle + frais vet', montant: 45000, date: '2025-06-28', categorie: 'Sante', module_lie: 'sante', related_id: 'V-001', client_id: '', fournisseur_id: 'F-002', paiement: 'Cash', statut: 'partiel', treasury_account_id: 'TRES-CAISSE', justif: false },
-  { id: 'T-006', type: 'entree', libelle: 'Vente bovin BOV003 - Lamine', montant: 310000, date: '2025-06-25', categorie: 'Vente animaux', module_lie: 'animaux', related_id: 'BOV003', client_id: 'C-003', fournisseur_id: '', paiement: 'Orange Money', statut: 'impaye', treasury_account_id: 'TRES-OM', justif: true },
-];
-
-export const investissementsSeed = [
-  { id: 'INV-001', type: 'Infrastructure', libelle: 'Construction poulailler C', montant: 2500000, roi: 28, objectif: 'Augmenter capacite avicole', statut: 'actif', gain: 700000 },
-  { id: 'INV-002', type: 'Equipement', libelle: 'Abreuvoir automatique x10', montant: 350000, roi: 45, objectif: 'Reduire main doeuvre', statut: 'termine', gain: 157500 },
-  { id: 'INV-003', type: 'Cheptel', libelle: 'Achat 200 pondeuses', montant: 1600000, roi: 32, objectif: 'Augmenter production oeufs', statut: 'actif', gain: 512000 },
-  { id: 'INV-004', type: 'Technologie', libelle: 'Capteurs temperature IoT', montant: 180000, roi: 20, objectif: 'Monitoring temps reel', statut: 'pause', gain: 36000 },
-];
-
-export const stocksSeed = [
-  { id: 'S-001', produit: 'Aliment pondeuse', quantite: 850, unite: 'kg', seuil: 500, prixUnit: 65, categorie: 'Aliment avicole' },
-  { id: 'S-002', produit: 'Aliment chair', quantite: 420, unite: 'kg', seuil: 600, prixUnit: 60, categorie: 'Aliment avicole' },
-  { id: 'S-003', produit: 'Aliment bovin', quantite: 1200, unite: 'kg', seuil: 800, prixUnit: 55, categorie: 'Aliment betail' },
-  { id: 'S-004', produit: 'Vaccin Newcastle', quantite: 8, unite: 'doses', seuil: 10, prixUnit: 2500, categorie: 'Vaccins' },
-  { id: 'S-005', produit: 'Antibiotique Tylo', quantite: 5, unite: 'flacon', seuil: 3, prixUnit: 8500, categorie: 'Medicaments' },
-  { id: 'S-006', produit: 'Desinfectant 5L', quantite: 12, unite: 'bidon', seuil: 5, prixUnit: 4200, categorie: 'Equipements' },
-  { id: 'S-007', produit: 'Aliment ovin', quantite: 380, unite: 'kg', seuil: 400, prixUnit: 50, categorie: 'Aliment betail' },
-];
-
-export const clientsSeed = [
-  { id: 'C-001', nom: 'Kouyate Distribution', tel: '+221 77 223 34 44', whatsapp: '+221 77 223 34 44', email: 'commandes@kouyate.sn', adresse: 'Dakar, Senegal', gps: '14.7167,-17.4677', type: 'Grossiste', statut: 'VIP', score: 4.8, totalAchats: 2850000, derniereCommande: '2025-07-01', prefs: 'Poulets vivants' },
-  { id: 'C-002', nom: 'Marche Sandaga Stand 12', tel: '+221 76 555 66 77', whatsapp: '+221 76 555 66 77', email: 'sandaga12@horizonfarm.sn', adresse: 'Marche Sandaga, Dakar, Senegal', gps: '14.6708,-17.4353', type: 'Detailant', statut: 'actif', score: 4.2, totalAchats: 680000, derniereCommande: '2025-06-28', prefs: 'Oeufs plateau' },
-  { id: 'C-003', nom: 'Coop. Agro Thies', tel: '+221 70 888 99 00', whatsapp: '+221 70 888 99 00', email: 'coopagrothies@horizonfarm.sn', adresse: 'Thies, Senegal', gps: '14.7886,-16.9246', type: 'Cooperative', statut: 'VIP', score: 4.9, totalAchats: 4200000, derniereCommande: '2025-07-02', prefs: 'Bovins, Ovins' },
-  { id: 'C-004', nom: 'Famille Sarr Roger', tel: '+221 77 334 45 55', whatsapp: '+221 77 334 45 55', email: 'famillesarr@horizonfarm.sn', adresse: 'Mbour, Senegal', gps: '14.4215,-16.9655', type: 'Particulier', statut: 'a_relancer', score: 3.8, totalAchats: 145000, derniereCommande: '2025-06-15', prefs: 'Caprins' },
-];
-
-export const fournisseursSeed = [
-  { id: 'F-001', nom: 'AgroAlim Senegal', tel: '+221 33 821 22 33', whatsapp: '+221 77 111 22 33', email: 'contact@agroalim.sn', categorie: 'Aliment', statut: 'fiable', contact: 'M. Bamba', note: 4.5, dettes: 0, livraisons: 24, source: 'demo' },
-  { id: 'F-002', nom: 'Pharmavet Dakar', tel: '+221 33 844 55 66', whatsapp: '+221 76 444 55 66', email: 'pharmavet@horizonfarm.sn', categorie: 'Vaccins/Medicaments', statut: 'fiable', contact: 'Dr. Coulibaly', note: 4.8, dettes: 45000, livraisons: 18, source: 'demo' },
-  { id: 'F-003', nom: 'Transport Rapide Senegal', tel: '+221 33 877 88 99', whatsapp: '+221 70 777 88 99', email: 'transport@rapide.sn', categorie: 'Transport', statut: 'actif', contact: 'Mme. Gnangui', note: 3.9, dettes: 0, livraisons: 35, source: 'demo' },
-  { id: 'F-004', nom: 'MatAgri Senegal', tel: '+221 33 800 11 22', whatsapp: '+221 77 000 11 22', email: 'matagri@senegal.sn', categorie: 'Materiel', statut: 'a_risque', contact: 'M. Toure', note: 4.2, dettes: 120000, livraisons: 8, source: 'demo' },
-];
-
-export const tracabiliteSeed = [
-  {
-    id: 'TR-001',
-    animal: 'BOV003 - Lamine',
-    type: 'Bovin',
-    etapes: [
-      { etape: 'Acquisition', date: '2021-05-05', detail: 'Achat 200 000 FCFA - Eleveur Kone', ok: true },
-      { etape: 'Alimentation', date: '2021-05-06', detail: 'Regime aliment bovin 8kg/jour', ok: true },
-      { etape: 'Croissance', date: '2022-01-15', detail: 'Poids: 185kg -> 280kg (+95kg en 8 mois)', ok: true },
-      { etape: 'Soins', date: '2022-06-10', detail: 'Vaccination fievre aphteuse - Dr. Diallo', ok: true },
-      { etape: 'Vente', date: '2025-06-25', detail: 'Vendu 310 000 FCFA - Coop. Agro Thies', ok: true },
-      { etape: 'Rentabilite', date: '2025-06-25', detail: 'Marge nette: +43 000 FCFA (ROI: 21%)', ok: true },
-    ],
-    margeFinale: 43000,
-    roi: 21,
-  },
-];
+export const animauxSeed = horizonFarmSimulationSeed.animaux || [];
+export const lotsSeed = horizonFarmSimulationSeed.avicole || [];
+export const vaccinsSeed = horizonFarmSimulationSeed.sante || [];
+export const vetsSeed = horizonFarmSimulationSeed.veterinaires || [];
+export const transactionsSeed = horizonFarmSimulationSeed.finances || [];
+export const investissementsSeed = horizonFarmSimulationSeed.investissements || [];
+export const stocksSeed = horizonFarmSimulationSeed.stock || [];
+export const clientsSeed = horizonFarmSimulationSeed.clients || [];
+export const fournisseursSeed = horizonFarmSimulationSeed.fournisseurs || [];
+export const tracabiliteSeed = horizonFarmSimulationSeed.tracabilite || [];
+export const culturesSeed = horizonFarmSimulationSeed.cultures || [];
+export const ventesSeed = horizonFarmSimulationSeed.sales_orders || [];
+export const documentsSeed = horizonFarmSimulationSeed.documents || [];
+export const tachesSeed = horizonFarmSimulationSeed.taches || [];
+export const rapportsSeed = horizonFarmSimulationSeed.rapports || [];
+export const equipementsSeed = horizonFarmSimulationSeed.equipements || [];
+export const auditLogsSeed = horizonFarmSimulationSeed.audit_logs || [];
+export const alimentationLogsSeed = horizonFarmSimulationSeed.alimentation_logs || [];
+export const productionOeufsLogsSeed = horizonFarmSimulationSeed.production_oeufs_logs || [];
+export const sensorDevicesSeed = horizonFarmSimulationSeed.sensor_devices || [];
+export const cameraDevicesSeed = horizonFarmSimulationSeed.camera_devices || [];
 
 export const meteoData = buildWeatherAnalysis({
-  temp: 22,
-  apparentTemp: 22,
-  humidite: 62,
+  temp: 31,
+  apparentTemp: 35,
+  humidite: 72,
   precipitation: 0,
   rain: 0,
   showers: 0,
-  precipitationProbability: 10,
+  precipitationProbability: 12,
   weatherCode: 1,
-  cloudCover: 22,
-  windSpeed: 12,
+  cloudCover: 28,
+  windSpeed: 14,
   windDirection: 280,
   isDay: true,
   sunrise: '06:45',
   sunset: '19:28',
   latitude: 14.7167,
   longitude: -17.4677,
-  locationLabel: 'Dakar / Senegal par defaut',
+  locationLabel: 'Horizon Farm — Simulation financeur',
   updatedAt: new Date().toISOString(),
 });
 
-export const culturesSeed = [
-  {
-    id: 'CULT001',
-    nom: 'Laitues Batavia',
-    type: 'Laitue',
-    variete: 'Batavia verte',
-    parcelle: 'Zone A',
-    surface: 350,
-    date_semis: '2025-06-01',
-    date_repiquage: '2025-06-14',
-    date_recolte_prevue: '2025-07-18',
-    date_recolte_reelle: '',
-    quantite_prevue: 1200,
-    quantite_recoltee: 0,
-    pertes: 35,
-    cout_semences: 45000,
-    cout_engrais: 65000,
-    cout_eau: 30000,
-    cout_main_oeuvre: 85000,
-    cout_traitement: 25000,
-    revenu_estime: 780000,
-    revenu_reel: 0,
-    statut: 'croissance',
-    score_sante: 89,
-    historique: 'Semis OK; arrosage quotidien; controle ravageurs hebdomadaire',
-  },
-  {
-    id: 'CULT002',
-    nom: 'Tomates Roma',
-    type: 'Tomate',
-    variete: 'Roma VF',
-    parcelle: 'Zone B',
-    surface: 520,
-    date_semis: '2025-05-20',
-    date_repiquage: '2025-06-08',
-    date_recolte_prevue: '2025-08-10',
-    date_recolte_reelle: '',
-    quantite_prevue: 2100,
-    quantite_recoltee: 0,
-    pertes: 120,
-    cout_semences: 70000,
-    cout_engrais: 115000,
-    cout_eau: 52000,
-    cout_main_oeuvre: 145000,
-    cout_traitement: 43000,
-    revenu_estime: 1680000,
-    revenu_reel: 0,
-    statut: 'floraison',
-    score_sante: 76,
-    historique: 'Floraison active; surveiller humidite; traitement preventif recommande',
-  },
-  {
-    id: 'CULT003',
-    nom: 'Piments Safi',
-    type: 'Piment',
-    variete: 'Safi rouge',
-    parcelle: 'Zone C',
-    surface: 260,
-    date_semis: '2025-04-15',
-    date_repiquage: '2025-05-02',
-    date_recolte_prevue: '2025-07-12',
-    date_recolte_reelle: '2025-07-14',
-    quantite_prevue: 650,
-    quantite_recoltee: 610,
-    pertes: 40,
-    cout_semences: 38000,
-    cout_engrais: 58000,
-    cout_eau: 26000,
-    cout_main_oeuvre: 72000,
-    cout_traitement: 18000,
-    revenu_estime: 715000,
-    revenu_reel: 671000,
-    statut: 'termine',
-    score_sante: 92,
-    historique: 'Recolte terminee; rendement satisfaisant; rotation recommandee',
-  },
-];
-
-export const ventesSeed = [
-  { id: 'VEN01', date: '2025-07-03', client_id: 'C-001', type: 'commande', produit: 'Poulets vivants LOTCH001', quantite: 120, montant: 480000, statut: 'confirme', paiement: 'Wave', livraison_date: '2025-07-05', notes: 'Livraison grossiste prioritaire' },
-  { id: 'VEN02', date: '2025-07-04', client_id: 'C-002', type: 'facture', produit: 'Oeufs plateau', quantite: 45, montant: 135000, statut: 'paye', paiement: 'Orange Money', livraison_date: '2025-07-04', notes: 'Paiement confirme' },
-];
-
-export const documentsSeed = [
-  { id: 'DOC01', title: 'Facture aliment avicole', document_type: 'facture', module_lie: 'stock', related_id: 'S-001', file_url: '', status: 'actif', tags: 'aliment,fournisseur' },
-  { id: 'DOC02', title: 'Ordonnance Dr. Kone', document_type: 'ordonnance', module_lie: 'sante', related_id: 'V-001', file_url: '', status: 'actif', tags: 'sante,vaccin' },
-  { id: 'DOC03', title: 'Certificat sanitaire bovin', document_type: 'certificat', module_lie: 'animaux', related_id: 'BOV003', file_url: '', status: 'archive', tags: 'animal,vente' },
-];
-
-export const tachesSeed = [
-  { id: 'TSK01', title: 'Nourrir lot LOTPO001', module_lie: 'avicole', assigned_to: 'Equipe ferme', due_date: '2025-07-05', priority: 'haute', status: 'a_faire', checklist: 'Verifier eau; distribuer aliment; noter mortalite' },
-  { id: 'TSK02', title: 'Vacciner BOV002', module_lie: 'sante', assigned_to: 'Dr. Diallo', due_date: '2025-07-06', priority: 'critique', status: 'en_cours', checklist: 'Confirmer rendez-vous; preparer carnet sanitaire' },
-  { id: 'TSK03', title: 'Recolte laitues Zone A', module_lie: 'cultures', assigned_to: 'Equipe maraichage', due_date: '2025-07-08', priority: 'normale', status: 'a_faire', checklist: 'Caisses; tri; livraison client' },
-];
-
-export const rapportsSeed = [
-  { id: 'RPT01', title: 'Rapport hebdo production', report_type: 'hebdo_whatsapp', period: '2025-W27', status: 'programme', channel: 'WhatsApp', file_url: '', summary: 'Production oeufs, mortalite, stocks critiques' },
-  { id: 'RPT02', title: 'Rapport mensuel rentabilite', report_type: 'mensuel_pdf', period: '2025-07', status: 'genere', channel: 'PDF', file_url: '', summary: 'Marge par activite et tresorerie' },
-];
-
-export const equipementsSeed = [
-  { id: 'EQP01', name: 'Pompe forage principale', type: 'pompe', status: 'operationnel', purchase_date: '2024-11-10', purchase_cost: 450000, maintenance_due: '2025-08-01', fuel_cost: 0, notes: 'Controle pression hebdomadaire' },
-  { id: 'EQP02', name: 'Groupe electrogene 8KVA', type: 'groupe_electrogene', status: 'maintenance', purchase_date: '2023-09-15', purchase_cost: 850000, maintenance_due: '2025-07-12', fuel_cost: 65000, notes: 'Vidange prevue' },
-  { id: 'EQP03', name: 'Vehicule livraison', type: 'vehicule', status: 'operationnel', purchase_date: '2022-05-20', purchase_cost: 3500000, maintenance_due: '2025-07-20', fuel_cost: 120000, notes: 'Suivi carburant mensuel' },
-];
-
-export const auditLogsSeed = [
-  { id: 'LOG01', actor: 'Penda', action: 'creation', module: 'avicole', record_id: 'LOTPO001', device: 'iPhone', created_at: '2025-07-03 15:42' },
-  { id: 'LOG02', actor: 'Penda', action: 'modification', module: 'stock', record_id: 'S-002', device: 'Windows', created_at: '2025-07-04 08:20' },
-  { id: 'LOG03', actor: 'Penda', action: 'connexion', module: 'auth', record_id: 'session', device: 'Mac', created_at: '2025-07-04 09:10' },
-];
-
-export const alimentationLogsSeed = [
-  { id: 'ALIM001', date: '2025-07-01', categorie: 'bovin', type_cible: 'categorie_animale', cible_id: '', quantite: 900, unite: 'kg', montant_total: 70000, duree_jours: 30, fournisseur_id: 'F-001', notes: 'Aliment bovin mensuel' },
-  { id: 'ALIM002', date: '2025-07-01', categorie: 'ovin', type_cible: 'categorie_animale', cible_id: '', quantite: 380, unite: 'kg', montant_total: 42000, duree_jours: 30, fournisseur_id: 'F-001', notes: 'Ration ovins' },
-  { id: 'ALIM003', date: '2025-07-02', categorie: 'pondeuse', type_cible: 'lot_avicole', cible_id: 'LOTPO001', quantite: 1200, unite: 'kg', montant_total: 120000, duree_jours: 14, fournisseur_id: 'F-001', notes: 'Aliment pondeuses lot principal' },
-  { id: 'ALIM004', date: '2025-07-03', categorie: 'poulet_chair', type_cible: 'lot_avicole', cible_id: 'LOTCH001', quantite: 900, unite: 'kg', montant_total: 98000, duree_jours: 10, fournisseur_id: 'F-001', notes: 'Aliment chair croissance' },
-];
-
-export const productionOeufsLogsSeed = [
-  { id: 'PROD001', lot_id: 'LOTPO001', date: '2026-05-05', oeufs_produits: 398, oeufs_casses: 12, taux_ponte: 0, notes: 'Production normale' },
-  { id: 'PROD002', lot_id: 'LOTPO001', date: '2026-05-06', oeufs_produits: 412, oeufs_casses: 9, taux_ponte: 0, notes: 'Hausse legere' },
-  { id: 'PROD003', lot_id: 'LOTPO001', date: '2026-05-07', oeufs_produits: 405, oeufs_casses: 8, taux_ponte: 0, notes: 'Journal du jour' },
-  { id: 'PROD004', lot_id: 'LOTPO002', date: '2026-05-05', oeufs_produits: 318, oeufs_casses: 7, taux_ponte: 0, notes: 'Lot secondaire' },
-  { id: 'PROD005', lot_id: 'LOTPO002', date: '2026-05-06', oeufs_produits: 326, oeufs_casses: 6, taux_ponte: 0, notes: 'Production stable' },
-  { id: 'PROD006', lot_id: 'LOTPO002', date: '2026-05-07', oeufs_produits: 322, oeufs_casses: 5, taux_ponte: 0, notes: 'Journal du jour' },
-];
-
-export const sensorDevicesSeed = [
-  { id: 'SENS001', name: 'Capteur meteo simulation', type: 'temperature', zone: 'Station ferme', location: 'Dakar, Senegal', status: 'simulation', battery_level: 100 },
-  { id: 'SENS002', name: 'Humidite poulailler A', type: 'humidite', zone: 'Poulailler', location: 'Batiment pondeuses', status: 'simulation', battery_level: 88 },
-  { id: 'SENS003', name: 'Niveau reservoir', type: 'eau', zone: 'Reservoir eau', location: 'Forage principal', status: 'simulation', battery_level: 76 },
-];
-
-export const cameraDevicesSeed = [
-  { id: 'CAM001', name: 'Camera entree principale', zone: 'Entree principale', type: 'simulation', stream_url: '', snapshot_url: '', status: 'simulation' },
-  { id: 'CAM002', name: 'Camera poulailler', zone: 'Batiment pondeuses', type: 'simulation', stream_url: '', snapshot_url: '', status: 'simulation' },
-];
-
 export const moduleSeedMap = {
+  ...horizonFarmSimulationSeed,
+  dashboard: horizonFarmSimulationSeed.dashboard || [],
   animaux: animauxSeed,
   avicole: lotsSeed,
+  lots: lotsSeed,
   sante: vaccinsSeed,
   veterinaires: vetsSeed,
   finances: transactionsSeed,
   investissements: investissementsSeed,
   stock: stocksSeed,
+  stocks: stocksSeed,
   clients: clientsSeed,
   fournisseurs: fournisseursSeed,
   tracabilite: tracabiliteSeed,
@@ -483,6 +80,24 @@ export const moduleSeedMap = {
   production_oeufs_logs: productionOeufsLogsSeed,
   sensor_devices: sensorDevicesSeed,
   camera_devices: cameraDevicesSeed,
+  business_plans: horizonFarmSimulationSeed.business_plans || [],
+  bp_investment_lines: horizonFarmSimulationSeed.bp_investment_lines || [],
+  bp_recurring_costs: horizonFarmSimulationSeed.bp_recurring_costs || [],
+  bp_revenue_projections: horizonFarmSimulationSeed.bp_revenue_projections || [],
+  bp_funding_sources: horizonFarmSimulationSeed.bp_funding_sources || [],
+  bp_links: horizonFarmSimulationSeed.bp_links || [],
+  bp_risks: horizonFarmSimulationSeed.bp_risks || [],
+  sales_orders: horizonFarmSimulationSeed.sales_orders || [],
+  sales_order_items: horizonFarmSimulationSeed.sales_order_items || [],
+  deliveries: horizonFarmSimulationSeed.deliveries || [],
+  invoices: horizonFarmSimulationSeed.invoices || [],
+  payments: horizonFarmSimulationSeed.payments || [],
+  sales_opportunities: horizonFarmSimulationSeed.sales_opportunities || [],
+  business_events: horizonFarmSimulationSeed.business_events || [],
+  alertes_center: horizonFarmSimulationSeed.alertes_center || [],
+  whatsapp_templates: horizonFarmSimulationSeed.whatsapp_templates || [],
+  whatsapp_logs: horizonFarmSimulationSeed.whatsapp_logs || [],
+  price_catalog: horizonFarmSimulationSeed.price_catalog || [],
+  bp_versions: horizonFarmSimulationSeed.bp_versions || [],
+  bp_lines_history: horizonFarmSimulationSeed.bp_lines_history || [],
 };
-
-
