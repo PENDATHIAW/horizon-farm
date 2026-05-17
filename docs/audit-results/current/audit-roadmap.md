@@ -1,6 +1,6 @@
 # Feuille de route audit ERP Horizon Farm
 
-- Générée le : 2026-05-17T22:05:18.348Z
+- Générée le : 2026-05-17T22:27:39.944Z
 - Modules audités : 25
 - Anomalies détectées : 15
 - Points de contrôle : 1897
