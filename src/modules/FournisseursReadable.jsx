@@ -4,8 +4,7 @@ import FournisseursEvolution from './FournisseursEvolution.jsx';
 export default function FournisseursReadable(props) {
   return (
     <div className="fournisseurs-readable-order space-y-6">
-      <style>{`.fournisseurs-readable-order .fournisseurs-core-order > div > :nth-child(5){display:none!important}`}</style>
-      <div className="fournisseurs-core-order"><Fournisseurs {...props} /></div>
+      <Fournisseurs {...props} hideEvolution />
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
         <div>
           <p className="flex items-center gap-2 text-lg font-black text-[#2f2415]">Évolution fournisseurs</p>
