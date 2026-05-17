@@ -4,6 +4,7 @@ import AuditPackageLauncherPanel from './AuditPackageLauncherPanel.jsx';
 import AuditRunAndCorrectionPanel from './AuditRunAndCorrectionPanel.jsx';
 import ErpAgentConnectorPanel from './ErpAgentConnectorPanel.jsx';
 import ErpAuditPanel from './ErpAuditPanel.jsx';
+import ModuleAuditChecklistPanel from './ModuleAuditChecklistPanel.jsx';
 
 export default function AssistantERPV2(props) {
   return (
@@ -12,6 +13,7 @@ export default function AssistantERPV2(props) {
       <ErpAgentConnectorPanel />
       <AuditPackageLauncherPanel />
       <AuditRunAndCorrectionPanel />
+      <ModuleAuditChecklistPanel />
       <ErpAuditPanel />
       <AssistantERP {...props} />
     </div>
