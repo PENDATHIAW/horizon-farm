@@ -3,6 +3,9 @@ import { moduleSeedMap } from '../utils/mockData';
 import { normalizeByModule, normalizePayloadBeforeSave } from '../utils/normalize';
 import { isSimulatedDataModeEnabled } from '../utils/uiPreferences';
 
+const SIMULATION_SEED_VERSION = 'horizon-farm-bp-financeur-m7-v3';
+const SIMULATION_VERSION_KEY = 'horizon_simulated_seed_version';
+
 const clonedModuleSeedMap = JSON.parse(JSON.stringify(moduleSeedMap || {}));
 Object.keys(moduleSeedMap || {}).forEach((key) => { moduleSeedMap[key] = []; });
 
@@ -13,6 +16,23 @@ const tableModuleMap = {
 const simulatedStorageKey = (table) => `horizon_simulated_rows:${table}`;
 const simulatedDeletedKey = (table) => `horizon_simulated_deleted:${table}`;
 const realDeletedKey = (table) => `horizon_real_deleted:${table}`;
+
+const resetSimulatedLocalStateIfNeeded = () => {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    const currentVersion = localStorage.getItem(SIMULATION_VERSION_KEY);
+    if (currentVersion === SIMULATION_SEED_VERSION) return;
+    const tables = new Set([...Object.keys(tableModuleMap), ...Object.values(tableModuleMap)]);
+    tables.forEach((table) => {
+      localStorage.removeItem(simulatedStorageKey(table));
+      localStorage.removeItem(simulatedDeletedKey(table));
+    });
+    localStorage.setItem(SIMULATION_VERSION_KEY, SIMULATION_SEED_VERSION);
+  } catch {
+    // Local storage may be blocked. In that case, keep serving seed rows directly.
+  }
+};
+
 const safeJson = (key, fallback) => {
   if (typeof localStorage === 'undefined') return fallback;
   try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); } catch { return fallback; }
@@ -44,6 +64,7 @@ const mergeById = (rows = [], updates = [], idField = 'id') => {
   return Array.from(map.values()).filter((row) => !row?.__deleted);
 };
 const getSimulatedTableRows = (table, idField = 'id') => {
+  resetSimulatedLocalStateIfNeeded();
   const moduleKey = tableModuleMap[table] || table;
   const deletedIds = readDeletedIds(table);
   const baseRows = JSON.parse(JSON.stringify(clonedModuleSeedMap[moduleKey] || [])).filter((row) => !deletedIds.has(String(row?.[idField] ?? row?.id)));
@@ -51,6 +72,7 @@ const getSimulatedTableRows = (table, idField = 'id') => {
   return normalizeByModule(moduleKey, mergeById(baseRows, localRows, idField));
 };
 const createSimulatedRow = (table, payload = {}, idField = 'id') => {
+  resetSimulatedLocalStateIfNeeded();
   const moduleKey = tableModuleMap[table] || table;
   const rows = getSimulatedTableRows(table, idField);
   const record = normalizeByModule(moduleKey, [{ ...payload, [idField]: payload?.[idField] || payload?.id || `${table}-${Date.now()}` }])[0];
@@ -62,6 +84,7 @@ const createSimulatedRow = (table, payload = {}, idField = 'id') => {
   return record;
 };
 const updateSimulatedRow = (table, id, payload = {}, idField = 'id') => {
+  resetSimulatedLocalStateIfNeeded();
   const moduleKey = tableModuleMap[table] || table;
   const rows = getSimulatedTableRows(table, idField);
   const previous = rows.find((row) => String(row?.[idField]) === String(id)) || {};
@@ -74,6 +97,7 @@ const updateSimulatedRow = (table, id, payload = {}, idField = 'id') => {
   return record;
 };
 const removeSimulatedRow = (table, id, idField = 'id') => {
+  resetSimulatedLocalStateIfNeeded();
   const deletedIds = readDeletedIds(table);
   deletedIds.add(String(id));
   writeDeletedIds(table, deletedIds);
