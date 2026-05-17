@@ -1,3 +1,5 @@
+import { horizonFarmSimulationSeed } from './horizonFarmSimulationSeed';
+
 export const RH_STORAGE_KEY = 'horizon_farm_rh_directory_v1';
 
 export const RH_MODULES = [
@@ -33,13 +35,58 @@ export const RH_TEAMS = [
   { id: 'TEAM-MAINTENANCE', name: 'Équipe maintenance', type: 'technique', modules: ['equipements', 'smartfarm'] },
 ];
 
+const teamByAffectation = (affectation = '') => {
+  const key = String(affectation).toLowerCase();
+  if (key.includes('avicole')) return 'TEAM-AVICOLE';
+  if (key.includes('culture')) return 'TEAM-CULTURES';
+  if (key.includes('vente') || key.includes('commercial')) return 'TEAM-COMMERCIAL';
+  if (key.includes('stock')) return 'TEAM-STOCK';
+  return 'TEAM-FERME';
+};
+
+const roleByAffectation = (affectation = '', poste = '') => {
+  const text = `${affectation} ${poste}`.toLowerCase();
+  if (text.includes('avicole')) return 'Responsable avicole';
+  if (text.includes('culture')) return 'Responsable cultures';
+  if (text.includes('stock')) return 'Responsable stock';
+  if (text.includes('vente') || text.includes('commercial')) return 'Commercial';
+  return 'Responsable ferme';
+};
+
+const modulesByAffectation = (affectation = '') => {
+  const key = String(affectation).toLowerCase();
+  if (key.includes('avicole')) return ['avicole', 'sante', 'stock', 'taches'];
+  if (key.includes('animaux')) return ['animaux', 'sante', 'stock', 'taches'];
+  if (key.includes('culture')) return ['cultures', 'stock', 'taches'];
+  if (key.includes('vente')) return ['ventes', 'clients', 'documents'];
+  return ['dashboard', 'avicole', 'animaux', 'cultures', 'stock', 'taches'];
+};
+
+const simulationPeople = (horizonFarmSimulationSeed.rh || []).map((person) => ({
+  id: person.id,
+  nom: person.nom,
+  role: roleByAffectation(person.affectation, person.poste),
+  fonction: person.poste || roleByAffectation(person.affectation, person.poste),
+  access_level: 'responsable',
+  statut: person.statut || 'actif',
+  equipe_id: teamByAffectation(person.affectation),
+  modules: modulesByAffectation(person.affectation),
+  phone: person.tel || '',
+  whatsapp: person.whatsapp || person.tel || '',
+  email: person.email || '',
+  date_entree: new Date(Date.now() - 180 * 86400000).toISOString().slice(0, 10),
+  salaire_mensuel: Number(person.salaire || person.salaire_mensuel || 0),
+  prime_mensuelle: 0,
+  avance_mois: 0,
+  remuneration: `Simulation BP Horizon Farm — ${person.affectation || 'global'}`,
+  notes: 'Personne injectée par le scénario financeur Horizon Farm.',
+}));
+
 export const RH_DEFAULT_PEOPLE = [
   { id: 'RH-PENDA', nom: 'Penda Thiaw', role: 'Propriétaire', fonction: 'Propriétaire exploitante', access_level: 'admin_principal', statut: 'actif', equipe_id: 'TEAM-FERME', modules: ['dashboard', 'avicole', 'animaux', 'cultures', 'stock', 'ventes', 'clients', 'finances', 'comptabilite', 'rh', 'rapports'], phone: '', whatsapp: '', email: '', date_entree: new Date().toISOString().slice(0, 10), salaire_mensuel: 0, prime_mensuelle: 0, avance_mois: 0, remuneration: 'Propriétaire: rémunération variable selon trésorerie + prime résultat', notes: 'Compte propriétaire et pilotage du chantier Horizon Farm.' },
-  { id: 'RH-DEMO-AVIC', nom: 'Aminata Diop', role: 'Responsable avicole', fonction: 'Responsable chair', access_level: 'responsable', statut: 'actif', equipe_id: 'TEAM-AVICOLE', modules: ['avicole', 'sante', 'stock', 'taches'], phone: '+221771110001', whatsapp: '+221771110001', email: 'aminata.demo@horizonfarm.app', date_entree: '2026-04-01', salaire_mensuel: 120000, prime_mensuelle: 15000, avance_mois: 30000, remuneration: 'Salaire fixe + prime biosécurité/production', notes: 'Donnée RH fictive pour afficher les rémunérations.' },
-  { id: 'RH-DEMO-CULT', nom: 'Moussa Fall', role: 'Responsable cultures', fonction: 'Responsable récoltes', access_level: 'responsable', statut: 'actif', equipe_id: 'TEAM-CULTURES', modules: ['cultures', 'stock', 'taches'], phone: '+221771110002', whatsapp: '+221771110002', email: 'moussa.demo@horizonfarm.app', date_entree: '2026-04-05', salaire_mensuel: 95000, prime_mensuelle: 10000, avance_mois: 0, remuneration: 'Salaire fixe + prime récolte', notes: 'Donnée RH fictive.' },
-  { id: 'RH-DEMO-STOCK', nom: 'Fatou Ndiaye', role: 'Responsable stock', fonction: 'Magasinier principal', access_level: 'responsable', statut: 'actif', equipe_id: 'TEAM-STOCK', modules: ['stock', 'fournisseurs', 'documents'], phone: '+221771110003', whatsapp: '+221771110003', email: 'fatou.demo@horizonfarm.app', date_entree: '2026-04-10', salaire_mensuel: 85000, prime_mensuelle: 5000, avance_mois: 20000, remuneration: 'Salaire fixe + prime inventaire', notes: 'Donnée RH fictive.' },
+  ...simulationPeople,
   { id: 'RH-DEMO-COMM', nom: 'Ibrahima Sarr', role: 'Commercial', fonction: 'Chargé ventes & WhatsApp', access_level: 'employe', statut: 'actif', equipe_id: 'TEAM-COMMERCIAL', modules: ['ventes', 'clients', 'documents'], phone: '+221771110004', whatsapp: '+221771110004', email: 'ibrahima.demo@horizonfarm.app', date_entree: '2026-04-12', salaire_mensuel: 70000, prime_mensuelle: 20000, avance_mois: 10000, remuneration: 'Fixe + prime encaissement/relance', notes: 'Donnée RH fictive.' },
-];
+].filter((person, index, self) => person.id && self.findIndex((p) => p.id === person.id) === index);
 
 export function getRoleFunctions(role) { return RH_FUNCTIONS_BY_ROLE[role] || RH_FUNCTIONS_BY_ROLE['Nouveau rôle']; }
 
