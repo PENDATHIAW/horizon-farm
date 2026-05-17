@@ -25,7 +25,7 @@ import {
 import SalesDeliveryControl from './SalesDeliveryControl.jsx';
 import SalesOpportunitiesBridge from './SalesOpportunitiesBridge.jsx';
 import SalesQualityControl from './SalesQualityControl.jsx';
-import Ventes from './Ventes.jsx';
+import VentesTerrain from './VentesTerrain.jsx';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const today = () => new Date().toISOString().slice(0, 10);
@@ -211,7 +211,6 @@ async function commitPreview(preview, props, setPreview) {
 
     await commitSaleWorkflow(preview, {
       onCreateInvoice: props.onCreateInvoice,
-
       onCreatePayment: existingPayment
         ? undefined
         : async (record) =>
@@ -222,7 +221,6 @@ async function commitPreview(preview, props, setPreview) {
               montant_paye: paymentValue,
               amount: paymentValue,
             }),
-
       onCreateFinanceTransaction: existingFinance
         ? undefined
         : async (record) =>
@@ -231,7 +229,6 @@ async function commitPreview(preview, props, setPreview) {
               payment_id: paymentId,
               montant: paymentValue,
             }),
-
       onUpdateOrder: async (id, patch) =>
         props.onUpdate?.(
           id,
@@ -254,12 +251,9 @@ async function commitPreview(preview, props, setPreview) {
             patch
           )
         ),
-
       onUpdateClient: props.onUpdateClient,
-
       onUpdateSourceAsset: (activity, id, patch) =>
         updateSourceAsset(activity, id, patch, props, order),
-
       onCreateDocument: props.onCreateDocument,
       onCreateBusinessEvent: props.onCreateBusinessEvent,
       onCreateAlert: props.onCreateAlert,
@@ -776,9 +770,7 @@ function Mini({ icon: Icon, label, value }) {
   return (
     <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2 min-w-[110px]">
       <Icon size={14} className="text-[#9a6b12]" />
-
       <b className="block text-[#2f2415]">{value}</b>
-
       <span className="text-xs text-[#8a7456]">{label}</span>
     </div>
   );
@@ -822,6 +814,7 @@ export default function VentesV2(props) {
     onCreatePayment: props.onCreatePayment || paymentsCrud.create,
     onRefreshPayments: props.onRefreshPayments || paymentsCrud.refresh,
 
+    onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create,
     onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh,
   };
 
@@ -832,7 +825,7 @@ export default function VentesV2(props) {
       <SalesDeliveryControl {...mergedProps} />
       <SalesBridge {...mergedProps} />
       <PaymentCapturePanel {...mergedProps} />
-      <Ventes {...mergedProps} />
+      <VentesTerrain {...mergedProps} />
     </div>
   );
 }
