@@ -1,15 +1,15 @@
 {
-  "generated_at": "2026-05-17T23:22:06.924Z",
+  "generated_at": "2026-05-17T23:22:48.952Z",
   "modules_audited": 25,
-  "findings_count": 0,
+  "findings_count": 4,
   "legacy_reconciliation": {
-    "payments_finance_created": 0,
+    "payments_finance_created": 5,
     "invoices_documents_created": 0,
-    "opportunities_closed": 0,
-    "sold_animals_linked": 0,
+    "opportunities_closed": 1,
+    "sold_animals_linked": 2,
     "skipped": 0,
     "errors": [],
-    "total_fixed": 0
+    "total_fixed": 8
   },
   "coverage_stats": {
     "modules": 25,
@@ -10021,22 +10021,22 @@
     {
       "priority": 1,
       "title": "Fiabilité financière et chiffre d’affaires",
-      "count": 0
+      "count": 1
     },
     {
       "priority": 2,
       "title": "Workflows métier interconnectés",
-      "count": 0
+      "count": 2
     },
     {
       "priority": 3,
       "title": "Règles terrain critiques",
-      "count": 0
+      "count": 1
     },
     {
       "priority": 4,
       "title": "Formulaires et champs",
-      "count": 0
+      "count": 1
     },
     {
       "priority": 5,
@@ -10049,6 +10049,112 @@
       "count": 0
     }
   ],
-  "findings": [],
+  "findings": [
+    {
+      "id": "AUD-1779060168950-aaf4e7",
+      "module": "Ventes",
+      "zone": "Paiements",
+      "element": "5 paiement(s)",
+      "type": "workflow",
+      "severity": "bloquant",
+      "severity_rank": 1,
+      "status": "detecte",
+      "title": "Paiements sans transaction Finance liée",
+      "detail": "5 paiement(s) existent sans écriture Finance retrouvée.",
+      "probable_cause": "Paiement créé avant la mise en place du workflow finance ou par un chemin incomplet.",
+      "expected_fix": "Réconcilier les anciennes lignes puis garder paiement → finance automatique.",
+      "business_impact": "CA, trésorerie, comptabilité, objectifs et accueil peuvent être faux.",
+      "linked_modules": [
+        "Ventes",
+        "Finances",
+        "Comptabilité",
+        "Objectifs",
+        "Accueil"
+      ],
+      "source_path": "",
+      "source_component": "",
+      "correction_lot": "Lot 1 · Fiabilité financière et CA",
+      "retest_steps": [],
+      "detected_at": "2026-05-17T23:22:48.950Z"
+    },
+    {
+      "id": "AUD-1779060168950-fefb44",
+      "module": "Animaux",
+      "zone": "Fiche animal vendu",
+      "element": "3 animal(aux)",
+      "type": "workflow",
+      "severity": "critique",
+      "severity_rank": 2,
+      "status": "detecte",
+      "title": "Animaux vendus sans commande liée",
+      "detail": "3 animal(aux) sont vendus sans lien commande/vente visible.",
+      "probable_cause": "Ancien statut vendu sans lien de commande ou commande impossible à retrouver.",
+      "expected_fix": "Relier à la commande existante si détectable, sinon marquer comme donnée à compléter.",
+      "business_impact": "Marge, historique, traçabilité et CA animaux peuvent être faux.",
+      "linked_modules": [
+        "Animaux",
+        "Ventes",
+        "Finances",
+        "Traçabilité",
+        "Objectifs"
+      ],
+      "source_path": "",
+      "source_component": "",
+      "correction_lot": "Lot 2 · Workflows métier interconnectés",
+      "retest_steps": [],
+      "detected_at": "2026-05-17T23:22:48.950Z"
+    },
+    {
+      "id": "AUD-1779060168950-457941",
+      "module": "Ventes",
+      "zone": "Opportunités",
+      "element": "1 opportunité(s)",
+      "type": "workflow",
+      "severity": "critique",
+      "severity_rank": 2,
+      "status": "detecte",
+      "title": "Opportunités converties mais encore ouvertes",
+      "detail": "1 opportunité(s) ont une commande liée mais restent ouvertes.",
+      "probable_cause": "Ancienne commande créée sans fermer l’opportunité.",
+      "expected_fix": "Réconcilier en statut convertie puis garder fermeture automatique.",
+      "business_impact": "Risque de doublons commerciaux et de recommandations inutiles.",
+      "linked_modules": [
+        "Ventes",
+        "Centre décisionnel",
+        "Traçabilité"
+      ],
+      "source_path": "",
+      "source_component": "",
+      "correction_lot": "Lot 2 · Workflows métier interconnectés",
+      "retest_steps": [],
+      "detected_at": "2026-05-17T23:22:48.950Z"
+    },
+    {
+      "id": "AUD-1779060168950-13ea44",
+      "module": "Impact Business",
+      "zone": "Interventions santé",
+      "element": "3 impact(s)",
+      "type": "champ",
+      "severity": "majeur",
+      "severity_rank": 3,
+      "status": "detecte",
+      "title": "Impact ferme non structuré",
+      "detail": "3 intervention(s) santé ont un impact non structuré.",
+      "probable_cause": "Impact Business encore traité comme champ libre.",
+      "expected_fix": "Catégorie + niveau + montant + action recommandée + commentaire libre optionnel.",
+      "business_impact": "Impossible de filtrer, calculer ou prioriser correctement l’impact ferme.",
+      "linked_modules": [
+        "Santé",
+        "Impact Business",
+        "Finances",
+        "Centre décisionnel"
+      ],
+      "source_path": "",
+      "source_component": "",
+      "correction_lot": "Lot 4 · Formulaires et champs",
+      "retest_steps": [],
+      "detected_at": "2026-05-17T23:22:48.950Z"
+    }
+  ],
   "source": "Assistant ERP · audit roadmap GitHub"
 }
