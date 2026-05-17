@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-17T21:49:05.417Z",
+  "generated_at": "2026-05-17T22:05:18.348Z",
   "modules_audited": 25,
   "findings_count": 15,
   "coverage_stats": {
@@ -10042,7 +10042,7 @@
   ],
   "findings": [
     {
-      "id": "AUD-1779054545417-8b7fe3",
+      "id": "AUD-1779055518348-fbef0e",
       "module": "Ventes",
       "zone": "Paiements",
       "element": "5 paiement(s)",
@@ -10070,10 +10070,10 @@
         "Vérifier la transaction dans Finances",
         "Vérifier Comptabilité/Objectifs/Accueil"
       ],
-      "detected_at": "2026-05-17T21:49:05.417Z"
+      "detected_at": "2026-05-17T22:05:18.348Z"
     },
     {
-      "id": "AUD-1779054545417-a21339",
+      "id": "AUD-1779055518349-b433db",
       "module": "Animaux",
       "zone": "Fiche animal vendu",
       "element": "5 animal(aux)",
@@ -10101,10 +10101,10 @@
         "Vérifier lien commande",
         "Vérifier verrouillage fiche animal"
       ],
-      "detected_at": "2026-05-17T21:49:05.417Z"
+      "detected_at": "2026-05-17T22:05:18.349Z"
     },
     {
-      "id": "AUD-1779054545417-488e3d",
+      "id": "AUD-1779055518349-9fb707",
       "module": "Comptabilité",
       "zone": "Données module",
       "element": "finances",
@@ -10124,10 +10124,10 @@
       "source_component": "",
       "correction_lot": "Lot 5 · UI/données/audit",
       "retest_steps": [],
-      "detected_at": "2026-05-17T21:49:05.417Z"
+      "detected_at": "2026-05-17T22:05:18.349Z"
     },
     {
-      "id": "AUD-1779054545417-7e15da",
+      "id": "AUD-1779055518349-c72cb8",
       "module": "Finances",
       "zone": "Données module",
       "element": "finances",
@@ -10147,10 +10147,10 @@
       "source_component": "",
       "correction_lot": "Lot 5 · UI/données/audit",
       "retest_steps": [],
-      "detected_at": "2026-05-17T21:49:05.417Z"
+      "detected_at": "2026-05-17T22:05:18.349Z"
     },
     {
-      "id": "AUD-1779054545417-7389f5",
+      "id": "AUD-1779055518348-3c6a8e",
       "module": "Ventes",
       "zone": "Opportunités",
       "element": "1 opportunité(s)",
@@ -10176,10 +10176,10 @@
         "Vérifier qu’elle disparaît des opportunités actives",
         "Vérifier converted_order_id"
       ],
-      "detected_at": "2026-05-17T21:49:05.417Z"
+      "detected_at": "2026-05-17T22:05:18.348Z"
     },
     {
-      "id": "AUD-1779054545417-4d7727",
+      "id": "AUD-1779055518349-7d2a12",
       "module": "Documents",
       "zone": "Données module",
       "element": "rapports",
@@ -10199,10 +10199,10 @@
       "source_component": "",
       "correction_lot": "Lot 5 · UI/données/audit",
       "retest_steps": [],
-      "detected_at": "2026-05-17T21:49:05.417Z"
+      "detected_at": "2026-05-17T22:05:18.349Z"
     },
     {
-      "id": "AUD-1779054545417-c9e7a2",
+      "id": "AUD-1779055518349-9d3c35",
       "module": "Équipements",
       "zone": "Données module",
       "element": "equipements",
@@ -10222,10 +10222,10 @@
       "source_component": "",
       "correction_lot": "Lot 5 · UI/données/audit",
       "retest_steps": [],
-      "detected_at": "2026-05-17T21:49:05.417Z"
+      "detected_at": "2026-05-17T22:05:18.349Z"
     },
     {
-      "id": "AUD-1779054545417-051857",
+      "id": "AUD-1779055518349-09b5eb",
       "module": "Équipements",
       "zone": "Données module",
       "element": "taches",
@@ -10245,10 +10245,10 @@
       "source_component": "",
       "correction_lot": "Lot 5 · UI/données/audit",
       "retest_steps": [],
-      "detected_at": "2026-05-17T21:49:05.417Z"
+      "detected_at": "2026-05-17T22:05:18.349Z"
     },
     {
-      "id": "AUD-1779054545417-9c72d1",
+      "id": "AUD-1779055518349-23599e",
       "module": "Fournisseurs",
       "zone": "Données module",
       "element": "taches",
@@ -10268,10 +10268,10 @@
       "source_component": "",
       "correction_lot": "Lot 5 · UI/données/audit",
       "retest_steps": [],
-      "detected_at": "2026-05-17T21:49:05.417Z"
+      "detected_at": "2026-05-17T22:05:18.349Z"
     },
     {
-      "id": "AUD-1779054545417-900d5f",
+      "id": "AUD-1779055518349-46f1cb",
       "module": "Rapports",
       "zone": "Données module",
       "element": "rapports",
@@ -10291,10 +10291,10 @@
       "source_component": "",
       "correction_lot": "Lot 5 · UI/données/audit",
       "retest_steps": [],
-      "detected_at": "2026-05-17T21:49:05.417Z"
+      "detected_at": "2026-05-17T22:05:18.349Z"
     },
     {
-      "id": "AUD-1779054545417-0f97af",
+      "id": "AUD-1779055518349-123231",
       "module": "RH",
       "zone": "Données module",
       "element": "taches",
@@ -10314,10 +10314,10 @@
       "source_component": "",
       "correction_lot": "Lot 5 · UI/données/audit",
       "retest_steps": [],
-      "detected_at": "2026-05-17T21:49:05.417Z"
+      "detected_at": "2026-05-17T22:05:18.349Z"
     },
     {
-      "id": "AUD-1779054545417-ceb345",
+      "id": "AUD-1779055518349-1dbe35",
       "module": "Smart Farm",
       "zone": "Données module",
       "element": "sensor_devices",
@@ -10337,10 +10337,10 @@
       "source_component": "",
       "correction_lot": "Lot 5 · UI/données/audit",
       "retest_steps": [],
-      "detected_at": "2026-05-17T21:49:05.417Z"
+      "detected_at": "2026-05-17T22:05:18.349Z"
     },
     {
-      "id": "AUD-1779054545417-a10832",
+      "id": "AUD-1779055518349-debc65",
       "module": "Smart Farm",
       "zone": "Données module",
       "element": "camera_devices",
@@ -10360,10 +10360,10 @@
       "source_component": "",
       "correction_lot": "Lot 5 · UI/données/audit",
       "retest_steps": [],
-      "detected_at": "2026-05-17T21:49:05.417Z"
+      "detected_at": "2026-05-17T22:05:18.349Z"
     },
     {
-      "id": "AUD-1779054545417-ce6c15",
+      "id": "AUD-1779055518349-9f2ec5",
       "module": "Sync",
       "zone": "Données module",
       "element": "audit_logs",
@@ -10383,10 +10383,10 @@
       "source_component": "",
       "correction_lot": "Lot 5 · UI/données/audit",
       "retest_steps": [],
-      "detected_at": "2026-05-17T21:49:05.417Z"
+      "detected_at": "2026-05-17T22:05:18.349Z"
     },
     {
-      "id": "AUD-1779054545417-db2079",
+      "id": "AUD-1779055518349-229ec7",
       "module": "Tâches",
       "zone": "Données module",
       "element": "taches",
@@ -10406,7 +10406,7 @@
       "source_component": "",
       "correction_lot": "Lot 5 · UI/données/audit",
       "retest_steps": [],
-      "detected_at": "2026-05-17T21:49:05.417Z"
+      "detected_at": "2026-05-17T22:05:18.349Z"
     }
   ],
   "source": "Assistant ERP · audit roadmap GitHub"
