@@ -3,7 +3,7 @@ import { moduleSeedMap } from '../utils/mockData';
 import { normalizeByModule, normalizePayloadBeforeSave } from '../utils/normalize';
 import { isSimulatedDataModeEnabled } from '../utils/uiPreferences';
 
-const SIMULATION_SEED_VERSION = 'horizon-farm-bp-financeur-m7-v3';
+const SIMULATION_SEED_VERSION = 'horizon-farm-bp-financeur-m7-v4';
 const SIMULATION_VERSION_KEY = 'horizon_simulated_seed_version';
 
 const clonedModuleSeedMap = JSON.parse(JSON.stringify(moduleSeedMap || {}));
