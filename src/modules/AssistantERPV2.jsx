@@ -5,6 +5,7 @@ import AuditPackageLauncherPanel from './AuditPackageLauncherPanel.jsx';
 import AuditRunAndCorrectionPanel from './AuditRunAndCorrectionPanel.jsx';
 import ErpAgentConnectorPanel from './ErpAgentConnectorPanel.jsx';
 import ErpAuditPanel from './ErpAuditPanel.jsx';
+import HumanUiAuditPanel from './HumanUiAuditPanel.jsx';
 import ModuleAuditChecklistPanel from './ModuleAuditChecklistPanel.jsx';
 
 export default function AssistantERPV2(props) {
@@ -15,6 +16,7 @@ export default function AssistantERPV2(props) {
       <AuditPackageLauncherPanel />
       <AuditRunAndCorrectionPanel />
       <AuditCoverageMatrixPanel dataMap={props?.dataMap || {}} />
+      <HumanUiAuditPanel />
       <ModuleAuditChecklistPanel />
       <ErpAuditPanel />
       <AssistantERP {...props} />
