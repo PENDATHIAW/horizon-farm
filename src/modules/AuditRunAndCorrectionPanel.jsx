@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, FileText, GitBranch, Play, ShieldAlert, Wrench } from 'lucide-react';
+import { CheckCircle2, Clock, FileText, GitBranch, KeyRound, Play, ShieldAlert, Wrench } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Btn from '../components/Btn';
@@ -21,6 +21,13 @@ const isCultureSale = (row = {}) => /culture|recolte|tomate|piment|laitue|oignon
 const costAnimal = (a = {}) => n(a.purchase_cost || a.prix_achat || a.cout_achat) + n(a.alimentation || a.cout_alimentation) + n(a.sante || a.cout_sante) + n(a.autres_frais || a.frais_directs);
 const costLot = (l = {}) => n(l.cout_poussins || l.purchase_cost) + n(l.cout_aliment || l.alimentation) + n(l.frais_sante || l.cout_sante) + n(l.autres_frais || l.frais_directs);
 const costCulture = (c = {}) => n(c.cout_semences) + n(c.cout_engrais) + n(c.cout_eau || c.cout_irrigation) + n(c.cout_main_oeuvre || c.cout_mo) + n(c.cout_traitement || c.cout_traitements) + n(c.autres_frais || c.frais_directs);
+
+async function postAgent(payload) {
+  const response = await fetch('/api/erp-agent/apply-correction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data?.error || `Erreur agent ${response.status}`);
+  return data;
+}
 
 function alertableRisks(data) {
   const risks = [];
@@ -84,13 +91,15 @@ function buildCorrectionText(lot, items) {
   return [`Historique correction contrôlée`, `Lot: ${lot}`, `Date: ${new Date().toLocaleString()}`, '', 'Corrections à appliquer:', ...items.map((i) => `- [${i.module}] ${i.title}: ${i.detail}`), '', 'Règle:', '- Ne pas créer de documents/tâches inutiles', '- Corriger uniquement ce lot', '- Build Vercel', '- Ré-audit', '- Comparer avant/après'].join('\n');
 }
 
-function LotCard({ lot, items, onRequestCorrection, busy }) {
-  return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-[#2f2415]">{lot}</p><p className="text-xs text-[#8a7456] mt-1">{items.length} correction(s) proposées</p></div><span className="rounded-full bg-white border border-[#eadcc2] px-2 py-1 text-xs font-black text-[#8a7456]">lot contrôlé</span></div><div className="mt-3 space-y-2">{items.map((item) => <div key={`${item.module}-${item.title}`} className="rounded-xl bg-white border border-[#eadcc2] p-3 text-sm"><p className="font-black text-[#2f2415]">{item.module} · {item.title}</p><p className="text-[#8a7456] mt-1">{item.detail}</p></div>)}</div><div className="mt-4 flex flex-wrap gap-2"><Btn icon={Wrench} small onClick={() => onRequestCorrection(lot, items, false)} disabled={busy}>Marquer lot à corriger</Btn><Btn icon={FileText} variant="outline" small onClick={() => onRequestCorrection(lot, items, true)} disabled={busy}>Enregistrer historique</Btn></div><p className="mt-2 text-xs text-[#8a7456]">Ces boutons ne créent plus automatiquement Documents/Tâches. Ils gardent seulement une trace utile dans Rapports si tu le demandes.</p></div>;
+function LotCard({ lot, items, onRequestCorrection, onDryRunAgent, busy, agentBusy, agentReady }) {
+  return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-[#2f2415]">{lot}</p><p className="text-xs text-[#8a7456] mt-1">{items.length} correction(s) proposées</p></div><span className="rounded-full bg-white border border-[#eadcc2] px-2 py-1 text-xs font-black text-[#8a7456]">lot contrôlé</span></div><div className="mt-3 space-y-2">{items.map((item) => <div key={`${item.module}-${item.title}`} className="rounded-xl bg-white border border-[#eadcc2] p-3 text-sm"><p className="font-black text-[#2f2415]">{item.module} · {item.title}</p><p className="text-[#8a7456] mt-1">{item.detail}</p></div>)}</div><div className="mt-4 flex flex-wrap gap-2"><Btn icon={Wrench} small onClick={() => onRequestCorrection(lot, items, false)} disabled={busy}>Marquer lot à corriger</Btn><Btn icon={KeyRound} variant="outline" small onClick={() => onDryRunAgent(lot)} disabled={agentBusy || !agentReady}>{agentReady ? 'Tester agent sur ce lot' : 'Code agent requis'}</Btn><Btn icon={FileText} variant="outline" small onClick={() => onRequestCorrection(lot, items, true)} disabled={busy}>Enregistrer historique</Btn></div><p className="mt-2 text-xs text-[#8a7456]">Le test agent vérifie GitHub/Vercel sans modifier de fichier. L’application réelle sera activée quand un paquet de correction sera disponible pour ce lot.</p></div>;
 }
 
 export default function AuditRunAndCorrectionPanel() {
   const [running, setRunning] = useState(false);
   const [correctionBusy, setCorrectionBusy] = useState(false);
+  const [agentBusy, setAgentBusy] = useState(false);
+  const [approvalCode, setApprovalCode] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [lastSnapshot, setLastSnapshot] = useState(null);
@@ -111,13 +120,18 @@ export default function AuditRunAndCorrectionPanel() {
         const id = makeId('FIX-LOT'); const title = `Historique correction - ${lot}`; const content = buildCorrectionText(lot, items);
         await rapports.create?.({ id, titre: title, title, type: 'historique_correction_audit', statut: 'a_corriger', contenu: content, resume: `${items.length} correction(s) dans ${lot}`, lot, created_at: new Date().toISOString() });
         await rapports.refresh?.();
-        setLastInfo('Historique enregistré dans Rapports. Aucun Document/Tâche inutile créé.');
-        toast.success('Historique enregistré');
-      } else {
-        setLastInfo(`Lot sélectionné : ${lot}. Correction à appliquer côté code, puis build Vercel, puis ré-audit. Aucun Document/Tâche créé.`);
-        toast.success('Lot marqué à corriger');
-      }
+        setLastInfo('Historique enregistré dans Rapports. Aucun Document/Tâche inutile créé.'); toast.success('Historique enregistré');
+      } else { setLastInfo(`Lot sélectionné : ${lot}. Tu peux maintenant tester l’agent avec ton code d’approbation. Aucun Document/Tâche créé.`); toast.success('Lot marqué à corriger'); }
     } catch (error) { toast.error(error.message || 'Action impossible'); } finally { setCorrectionBusy(false); }
+  };
+  const dryRunAgent = async (lot) => {
+    if (!approvalCode.trim()) return toast.error('Entre le code approbation agent');
+    try {
+      setAgentBusy(true);
+      const data = await postAgent({ approvalCode, dryRun: true, lot, message: `ERP agent dry-run - ${lot}` });
+      setLastInfo(data?.ok ? `Agent prêt pour ${lot}. Dry-run OK. Prochaine étape : paquet de correction contrôlé.` : 'Dry-run agent non validé.');
+      toast.success('Dry-run agent OK');
+    } catch (error) { setLastInfo(`Agent non prêt : ${error.message}`); toast.error(error.message || 'Dry-run agent impossible'); } finally { setAgentBusy(false); }
   };
   const runFullAudit = async () => {
     if (running) return;
@@ -133,6 +147,6 @@ export default function AuditRunAndCorrectionPanel() {
     const snapshot = { ...detected, score: Math.max(0, Math.round(((MODULES.length - Math.min(MODULES.length, detected.issues.length)) / MODULES.length) * 100)) };
     setLastSnapshot(snapshot); await createAuditReport(snapshot, seconds); setRunning(false); setElapsed(seconds); toast.success('Audit terminé : historique créé dans Rapports');
   };
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-5"><div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4"><div><p className="inline-flex items-center gap-2 rounded-full border border-[#eadcc2] bg-[#fffdf8] px-3 py-1 text-xs font-black text-[#8a7456]"><GitBranch size={14} /> Agent audit & corrections par lots</p><h2 className="mt-3 text-2xl font-black text-[#2f2415]">Lancer un audit complet et préparer les corrections</h2><p className="mt-1 text-sm text-[#8a7456]">L’audit détecte les vrais risques métier. Les traces sont limitées à Rapports, et seulement quand c’est utile.</p></div><Btn icon={Play} onClick={runFullAudit} disabled={running}>{running ? 'Audit en cours...' : 'Lancer audit complet'}</Btn></div><div className="grid grid-cols-2 lg:grid-cols-5 gap-3"><Mini icon={Clock} label="Progression" value={`${progress}%`} /><Mini icon={FileText} label="Module testé" value={running ? MODULES[currentIndex] : (lastSnapshot ? 'Terminé' : 'En attente')} /><Mini icon={Clock} label="Temps" value={`${elapsed}s`} /><Mini icon={ShieldAlert} label="Corrections" value={(lastSnapshot || liveSnapshot).issues.length} danger={(lastSnapshot || liveSnapshot).issues.length > 0} /><Mini icon={CheckCircle2} label="Score" value={`${(lastSnapshot || liveSnapshot).score}%`} /></div><div className="h-2 rounded-full bg-[#eadcc2] overflow-hidden"><div className="h-full rounded-full bg-[#2f2415] transition-all" style={{ width: `${progress}%` }} /></div>{lastInfo ? <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-800"><b>Statut :</b> {lastInfo}</div> : null}<div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"><b>Important :</b> l’ERP web ne peut pas encore modifier GitHub seul. Pour une vraie correction autonome, il faudra connecter un agent sécurisé GitHub/Vercel. En attendant, le lot est corrigé côté code puis tu retestes après build vert.</div><div className="grid grid-cols-1 xl:grid-cols-2 gap-3">{Object.keys(lots).length ? Object.entries(lots).map(([lot, items]) => <LotCard key={lot} lot={lot} items={items} onRequestCorrection={requestCorrection} busy={correctionBusy} />) : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 font-bold">Aucun lot prioritaire détecté pour l’instant.</div>}</div></section>;
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-5"><div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4"><div><p className="inline-flex items-center gap-2 rounded-full border border-[#eadcc2] bg-[#fffdf8] px-3 py-1 text-xs font-black text-[#8a7456]"><GitBranch size={14} /> Agent audit & corrections par lots</p><h2 className="mt-3 text-2xl font-black text-[#2f2415]">Lancer un audit complet et préparer les corrections</h2><p className="mt-1 text-sm text-[#8a7456]">L’audit détecte les vrais risques métier. Les corrections sécurisées passent par ton code d’approbation.</p></div><Btn icon={Play} onClick={runFullAudit} disabled={running}>{running ? 'Audit en cours...' : 'Lancer audit complet'}</Btn></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><label className="block text-sm"><span className="font-bold text-[#2f2415]">Code approbation agent</span><input type="password" value={approvalCode} onChange={(e) => setApprovalCode(e.target.value)} placeholder="ERP_AGENT_APPROVAL_SECRET" className="mt-1 w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2" /></label><p className="mt-2 text-xs text-[#8a7456]">Ce code sert seulement à autoriser l’agent sécurisé. Il n’est pas enregistré dans l’ERP.</p></div><div className="grid grid-cols-2 lg:grid-cols-5 gap-3"><Mini icon={Clock} label="Progression" value={`${progress}%`} /><Mini icon={FileText} label="Module testé" value={running ? MODULES[currentIndex] : (lastSnapshot ? 'Terminé' : 'En attente')} /><Mini icon={Clock} label="Temps" value={`${elapsed}s`} /><Mini icon={ShieldAlert} label="Corrections" value={(lastSnapshot || liveSnapshot).issues.length} danger={(lastSnapshot || liveSnapshot).issues.length > 0} /><Mini icon={CheckCircle2} label="Score" value={`${(lastSnapshot || liveSnapshot).score}%`} /></div><div className="h-2 rounded-full bg-[#eadcc2] overflow-hidden"><div className="h-full rounded-full bg-[#2f2415] transition-all" style={{ width: `${progress}%` }} /></div>{lastInfo ? <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-800"><b>Statut :</b> {lastInfo}</div> : null}<div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"><b>Important :</b> le bouton “Tester agent sur ce lot” ne modifie rien. Il vérifie que l’agent peut appliquer une correction sécurisée. L’application réelle sera activée avec un paquet de correction contrôlé.</div><div className="grid grid-cols-1 xl:grid-cols-2 gap-3">{Object.keys(lots).length ? Object.entries(lots).map(([lot, items]) => <LotCard key={lot} lot={lot} items={items} onRequestCorrection={requestCorrection} onDryRunAgent={dryRunAgent} busy={correctionBusy} agentBusy={agentBusy} agentReady={Boolean(approvalCode.trim())} />) : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 font-bold">Aucun lot prioritaire détecté pour l’instant.</div>}</div></section>;
 }
 function Mini({ icon: Icon, label, value, danger = false }) { return <div className={`rounded-2xl border p-4 ${danger ? 'border-red-200 bg-red-50' : 'border-[#eadcc2] bg-[#fffdf8]'}`}><p className="flex items-center gap-2 text-xs uppercase tracking-wide text-[#8a7456]"><Icon size={14} /> {label}</p><p className={`mt-2 text-lg font-black ${danger ? 'text-red-600' : 'text-[#2f2415]'}`}>{value}</p></div>; }
