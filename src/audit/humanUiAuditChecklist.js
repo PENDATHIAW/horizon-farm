@@ -1,0 +1,73 @@
+export const humanUiAuditRules = [
+  {
+    id: 'navigation_complete',
+    title: 'Navigation complète haut-bas',
+    severity: 'critique',
+    rule: 'Dans chaque module, le testeur doit parcourir l’écran de haut en bas, sans ignorer carte, onglet, tableau, bouton, lien, section ou graphique.',
+    checks: ['Tous les onglets visibles', 'Scroll jusqu’en bas', 'Sections repliables', 'Fiches de détail', 'Boutons principaux et secondaires', 'Liens vers autres modules', 'États vide/rempli/erreur/chargement'],
+    anomalies: ['Zone non parcourue', 'Section non testée', 'Lien cassé', 'Action invisible', 'État vide non expliqué'],
+  },
+  {
+    id: 'buttons_actions',
+    title: 'Boutons et actions',
+    severity: 'critique',
+    rule: 'Chaque bouton doit avoir un effet clair, cohérent, visible et non bloquant. Aucun bouton ne doit tourner sans retour utilisateur.',
+    checks: ['Ajouter', 'Modifier', 'Supprimer', 'Enregistrer', 'Annuler', 'Voir détail', 'Créer tâche', 'Créer alerte', 'Générer document', 'Appliquer correction', 'Rafraîchir', 'Exporter'],
+    anomalies: ['Spinner infini', 'Action réalisée mais formulaire bloqué', 'Bouton visible alors que l’action est interdite', 'Bouton sans confirmation', 'Objet vendu encore modifiable', 'Action qui crée des doublons'],
+  },
+  {
+    id: 'tabs_context',
+    title: 'Onglets et contexte métier',
+    severity: 'critique',
+    rule: 'Le contenu affiché dans un onglet doit correspondre au métier de cet onglet. Un onglet pondeuses ne doit pas afficher des courbes poulets de chair.',
+    checks: ['Titre onglet vs cartes', 'Titre onglet vs graphiques', 'Titre onglet vs KPI', 'Unités, dates, poids, quantités, statuts'],
+    anomalies: ['Graphique chair dans onglet pondeuses', 'KPI animaux dans cultures', 'Libellé incohérent', 'Donnée simulée affichée comme réelle', 'Bloc dupliqué sans valeur'],
+  },
+  {
+    id: 'charts_graphs',
+    title: 'Graphiques, courbes et KPI visuels',
+    severity: 'critique',
+    rule: 'Chaque graphique doit avoir un titre, une source de données, une unité, une cohérence métier et une valeur compréhensible.',
+    checks: ['Titre', 'Module et onglet', 'Données utilisées', 'Unité', 'Courbe vide ou non', 'Période', 'Type métier', 'Légende', 'Valeurs aberrantes'],
+    anomalies: ['Graphique vide sans explication', 'Graphique au mauvais endroit', 'Courbe incohérente avec activité', 'Axe sans unité', 'Libellé technique', 'Données non synchronisées avec tableau'],
+  },
+  {
+    id: 'forms_adaptive_fields',
+    title: 'Formulaires adaptatifs',
+    severity: 'critique',
+    rule: 'Les champs d’un formulaire doivent s’adapter au type d’action métier choisi. Les champs de vaccination, soin, déparasitage, visite vétérinaire et ordonnance ne doivent pas être identiques.',
+    checks: ['Changer type intervention', 'Observer champs affichés', 'Champs obligatoires', 'Enregistrement', 'Upload preuve/ordonnance', 'Impact ferme structuré', 'Urgence prédéfinie'],
+    anomalies: ['Même formulaire pour tous les types', 'Preuve uniquement en URL', 'Impact ferme en champ libre uniquement', 'Urgence non prédéfinie', 'Coût non envoyé aux finances', 'Document non créé'],
+  },
+  {
+    id: 'cards_tables_readability',
+    title: 'Cartes, tableaux et lisibilité',
+    severity: 'haute',
+    rule: 'Les cartes et tableaux doivent être lisibles, orientés métier, sans codes techniques inutiles ni valeurs incompréhensibles.',
+    checks: ['Libellés compréhensibles', 'Colonnes utiles', 'Valeurs métier visibles', 'Filtres', 'Tri/recherche', 'Actions par ligne', 'États vides'],
+    anomalies: ['Entrée Horizon incompréhensible', 'Poids sans contexte', 'Valeurs importantes absentes', 'Tableau trop technique', 'Carte redondante', 'KPI sans source'],
+  },
+  {
+    id: 'cross_module_consistency',
+    title: 'Cohérence inter-modules',
+    severity: 'critique',
+    rule: 'Une action métier doit être cohérente dans tous les modules liés : vente, finance, document, traçabilité, objectifs, décisionnel.',
+    checks: ['Commande', 'Paiement Finances', 'Facture Documents', 'Trace Traçabilité', 'CA Objectifs', 'Recommandations Centre décisionnel'],
+    anomalies: ['Commande sans finance', 'Facture sans document', 'Vente sans objectif réalisé', 'Opportunité non clôturée', 'Action décisionnelle déjà faite', 'CA non ventilé'],
+  },
+  {
+    id: 'correction_then_improvement',
+    title: 'Correction puis amélioration',
+    severity: 'critique',
+    rule: 'L’assistant doit séparer les anomalies bloquantes à corriger des améliorations UX ou métier à proposer ensuite.',
+    checks: ['Classer correction obligatoire', 'Classer amélioration recommandée', 'Expliquer pourquoi', 'Proposer module cible', 'Éviter correction globale dangereuse', 'Appliquer lot par lot'],
+    anomalies: ['Mélange correction/amélioration', 'Correction trop large', 'Amélioration avant correction bloquante', 'Pas de retest après correction'],
+  },
+];
+
+export const humanUiAuditStepsByModule = {
+  'Santé & Vaccins': ['Ouvrir Ajouter intervention', 'Tester Vaccination, Soin, Déparasitage, Visite vétérinaire, Ordonnance', 'Vérifier que les champs changent selon le type', 'Vérifier preuve/ordonnance en upload fichier ou photo', 'Vérifier impact ferme structuré : type, niveau, montant, action', 'Vérifier urgence prédéfinie : faible, moyenne, haute, critique', 'Vérifier création finance/document/traçabilité si pertinent'],
+  Avicole: ['Ouvrir onglet poulets de chair', 'Ouvrir onglet pondeuses', 'Comparer les graphiques de chaque onglet', 'Vérifier que pondeuses affiche ponte, œufs, alimentation, mortalité, rentabilité pondeuses', 'Vérifier que chair affiche poids, âge, mortalité, coût, prêt à vendre', 'Détecter tout graphique chair affiché dans pondeuses', 'Tester vente partielle et opportunités'],
+  Animaux: ['Ouvrir liste puis fiche animal', 'Scroller toute la fiche', 'Vérifier coûts achat/alimentation/santé/total', 'Vérifier courbe de croissance', 'Vérifier historique pesées tous les 15 jours', 'Tester nouvelle pesée', 'Vérifier verrouillage animal vendu'],
+  Ventes: ['Ouvrir opportunité', 'Créer commande', 'Tester facture émise/non émise', 'Tester paiement total/partiel', 'Tester livraison/récupération', 'Vérifier frais livraison si livré', 'Vérifier fermeture opportunité et absence spinner infini'],
+};
