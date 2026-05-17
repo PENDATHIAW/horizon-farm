@@ -1,7 +1,16 @@
 {
-  "generated_at": "2026-05-17T22:27:39.944Z",
+  "generated_at": "2026-05-17T23:22:06.924Z",
   "modules_audited": 25,
-  "findings_count": 15,
+  "findings_count": 0,
+  "legacy_reconciliation": {
+    "payments_finance_created": 0,
+    "invoices_documents_created": 0,
+    "opportunities_closed": 0,
+    "sold_animals_linked": 0,
+    "skipped": 0,
+    "errors": [],
+    "total_fixed": 0
+  },
   "coverage_stats": {
     "modules": 25,
     "dimensions": 212,
@@ -10012,17 +10021,17 @@
     {
       "priority": 1,
       "title": "Fiabilité financière et chiffre d’affaires",
-      "count": 1
+      "count": 0
     },
     {
       "priority": 2,
       "title": "Workflows métier interconnectés",
-      "count": 4
+      "count": 0
     },
     {
       "priority": 3,
       "title": "Règles terrain critiques",
-      "count": 10
+      "count": 0
     },
     {
       "priority": 4,
@@ -10032,7 +10041,7 @@
     {
       "priority": 5,
       "title": "UI, tableaux, cartes et graphes",
-      "count": 12
+      "count": 0
     },
     {
       "priority": 6,
@@ -10040,374 +10049,6 @@
       "count": 0
     }
   ],
-  "findings": [
-    {
-      "id": "AUD-1779056859944-4d9998",
-      "module": "Ventes",
-      "zone": "Paiements",
-      "element": "5 paiement(s)",
-      "type": "workflow",
-      "severity": "bloquant",
-      "severity_rank": 1,
-      "status": "detecte",
-      "title": "Paiements sans transaction Finance liée",
-      "detail": "5 paiement(s) existent sans écriture Finance retrouvée.",
-      "probable_cause": "Paiement créé par un chemin qui ne passe pas par le workflow vente complet ou ancienne donnée non synchronisée.",
-      "expected_fix": "Centraliser paiement → création Finance automatique sans doublon.",
-      "business_impact": "CA, trésorerie, comptabilité, objectifs et accueil peuvent être faux.",
-      "linked_modules": [
-        "Ventes",
-        "Finances",
-        "Comptabilité",
-        "Objectifs",
-        "Accueil"
-      ],
-      "source_path": "src/modules/VentesV2.jsx",
-      "source_component": "PaymentCapturePanel / commitSaleWorkflow",
-      "correction_lot": "Lot 1 · Fiabilité financière et CA",
-      "retest_steps": [
-        "Créer un paiement",
-        "Vérifier la transaction dans Finances",
-        "Vérifier Comptabilité/Objectifs/Accueil"
-      ],
-      "detected_at": "2026-05-17T22:27:39.944Z"
-    },
-    {
-      "id": "AUD-1779056859944-3a32bd",
-      "module": "Animaux",
-      "zone": "Fiche animal vendu",
-      "element": "5 animal(aux)",
-      "type": "workflow",
-      "severity": "critique",
-      "severity_rank": 2,
-      "status": "detecte",
-      "title": "Animaux vendus sans commande liée",
-      "detail": "5 animal(aux) sont vendus sans lien commande/vente visible.",
-      "probable_cause": "Statut animal modifié sans passer par la vente ou lien vente non sauvegardé.",
-      "expected_fix": "Animal vendu → commande/paiement/finance liés + animal verrouillé.",
-      "business_impact": "Marge, historique, traçabilité et CA animaux peuvent être faux.",
-      "linked_modules": [
-        "Animaux",
-        "Ventes",
-        "Finances",
-        "Traçabilité",
-        "Objectifs"
-      ],
-      "source_path": "src/services/saleAssetPatchService.js",
-      "source_component": "buildSaleAssetPatch",
-      "correction_lot": "Lot 2 · Workflows métier interconnectés",
-      "retest_steps": [
-        "Vendre un animal",
-        "Vérifier lien commande",
-        "Vérifier verrouillage fiche animal"
-      ],
-      "detected_at": "2026-05-17T22:27:39.944Z"
-    },
-    {
-      "id": "AUD-1779056859944-613963",
-      "module": "Comptabilité",
-      "zone": "Données module",
-      "element": "finances",
-      "type": "donnee",
-      "severity": "critique",
-      "severity_rank": 2,
-      "status": "detecte",
-      "title": "Données finances absentes",
-      "detail": "Le référentiel demande finances pour auditer Comptabilité, mais aucune ligne n’est chargée.",
-      "probable_cause": "Module non alimenté, clé de données incorrecte ou données simulées/réelles absentes.",
-      "expected_fix": "Vérifier alimentation du module et cohérence données simulées/réelles.",
-      "business_impact": "Audit incomplet ou lecture métier partielle.",
-      "linked_modules": [
-        "Comptabilité"
-      ],
-      "source_path": "",
-      "source_component": "",
-      "correction_lot": "Lot 5 · UI/données/audit",
-      "retest_steps": [],
-      "detected_at": "2026-05-17T22:27:39.944Z"
-    },
-    {
-      "id": "AUD-1779056859944-c0498b",
-      "module": "Finances",
-      "zone": "Données module",
-      "element": "finances",
-      "type": "donnee",
-      "severity": "critique",
-      "severity_rank": 2,
-      "status": "detecte",
-      "title": "Données finances absentes",
-      "detail": "Le référentiel demande finances pour auditer Finances, mais aucune ligne n’est chargée.",
-      "probable_cause": "Module non alimenté, clé de données incorrecte ou données simulées/réelles absentes.",
-      "expected_fix": "Vérifier alimentation du module et cohérence données simulées/réelles.",
-      "business_impact": "Audit incomplet ou lecture métier partielle.",
-      "linked_modules": [
-        "Finances"
-      ],
-      "source_path": "",
-      "source_component": "",
-      "correction_lot": "Lot 5 · UI/données/audit",
-      "retest_steps": [],
-      "detected_at": "2026-05-17T22:27:39.944Z"
-    },
-    {
-      "id": "AUD-1779056859944-596c35",
-      "module": "Ventes",
-      "zone": "Opportunités",
-      "element": "1 opportunité(s)",
-      "type": "workflow",
-      "severity": "critique",
-      "severity_rank": 2,
-      "status": "detecte",
-      "title": "Opportunités converties mais encore ouvertes",
-      "detail": "1 opportunité(s) ont une commande liée mais restent ouvertes.",
-      "probable_cause": "Commande créée sans fermer l’opportunité ou ancienne donnée non migrée.",
-      "expected_fix": "Commande depuis opportunité → opportunité automatiquement convertie/fermée.",
-      "business_impact": "Le centre décisionnel peut proposer des actions déjà faites et créer des doublons.",
-      "linked_modules": [
-        "Ventes",
-        "Centre décisionnel",
-        "Traçabilité"
-      ],
-      "source_path": "src/modules/SalesOpportunitiesBridge.jsx",
-      "source_component": "createOrderFromOpportunity",
-      "correction_lot": "Lot 2 · Workflows métier interconnectés",
-      "retest_steps": [
-        "Convertir une opportunité",
-        "Vérifier qu’elle disparaît des opportunités actives",
-        "Vérifier converted_order_id"
-      ],
-      "detected_at": "2026-05-17T22:27:39.944Z"
-    },
-    {
-      "id": "AUD-1779056859944-5e2cfc",
-      "module": "Documents",
-      "zone": "Données module",
-      "element": "rapports",
-      "type": "donnee",
-      "severity": "majeur",
-      "severity_rank": 3,
-      "status": "detecte",
-      "title": "Données rapports absentes",
-      "detail": "Le référentiel demande rapports pour auditer Documents, mais aucune ligne n’est chargée.",
-      "probable_cause": "Module non alimenté, clé de données incorrecte ou données simulées/réelles absentes.",
-      "expected_fix": "Vérifier alimentation du module et cohérence données simulées/réelles.",
-      "business_impact": "Audit incomplet ou lecture métier partielle.",
-      "linked_modules": [
-        "Documents"
-      ],
-      "source_path": "",
-      "source_component": "",
-      "correction_lot": "Lot 5 · UI/données/audit",
-      "retest_steps": [],
-      "detected_at": "2026-05-17T22:27:39.944Z"
-    },
-    {
-      "id": "AUD-1779056859944-c03d46",
-      "module": "Équipements",
-      "zone": "Données module",
-      "element": "equipements",
-      "type": "donnee",
-      "severity": "majeur",
-      "severity_rank": 3,
-      "status": "detecte",
-      "title": "Données equipements absentes",
-      "detail": "Le référentiel demande equipements pour auditer Équipements, mais aucune ligne n’est chargée.",
-      "probable_cause": "Module non alimenté, clé de données incorrecte ou données simulées/réelles absentes.",
-      "expected_fix": "Vérifier alimentation du module et cohérence données simulées/réelles.",
-      "business_impact": "Audit incomplet ou lecture métier partielle.",
-      "linked_modules": [
-        "Équipements"
-      ],
-      "source_path": "",
-      "source_component": "",
-      "correction_lot": "Lot 5 · UI/données/audit",
-      "retest_steps": [],
-      "detected_at": "2026-05-17T22:27:39.944Z"
-    },
-    {
-      "id": "AUD-1779056859944-fbd7f8",
-      "module": "Équipements",
-      "zone": "Données module",
-      "element": "taches",
-      "type": "donnee",
-      "severity": "majeur",
-      "severity_rank": 3,
-      "status": "detecte",
-      "title": "Données taches absentes",
-      "detail": "Le référentiel demande taches pour auditer Équipements, mais aucune ligne n’est chargée.",
-      "probable_cause": "Module non alimenté, clé de données incorrecte ou données simulées/réelles absentes.",
-      "expected_fix": "Vérifier alimentation du module et cohérence données simulées/réelles.",
-      "business_impact": "Audit incomplet ou lecture métier partielle.",
-      "linked_modules": [
-        "Équipements"
-      ],
-      "source_path": "",
-      "source_component": "",
-      "correction_lot": "Lot 5 · UI/données/audit",
-      "retest_steps": [],
-      "detected_at": "2026-05-17T22:27:39.944Z"
-    },
-    {
-      "id": "AUD-1779056859944-160798",
-      "module": "Fournisseurs",
-      "zone": "Données module",
-      "element": "taches",
-      "type": "donnee",
-      "severity": "majeur",
-      "severity_rank": 3,
-      "status": "detecte",
-      "title": "Données taches absentes",
-      "detail": "Le référentiel demande taches pour auditer Fournisseurs, mais aucune ligne n’est chargée.",
-      "probable_cause": "Module non alimenté, clé de données incorrecte ou données simulées/réelles absentes.",
-      "expected_fix": "Vérifier alimentation du module et cohérence données simulées/réelles.",
-      "business_impact": "Audit incomplet ou lecture métier partielle.",
-      "linked_modules": [
-        "Fournisseurs"
-      ],
-      "source_path": "",
-      "source_component": "",
-      "correction_lot": "Lot 5 · UI/données/audit",
-      "retest_steps": [],
-      "detected_at": "2026-05-17T22:27:39.944Z"
-    },
-    {
-      "id": "AUD-1779056859944-7f0990",
-      "module": "Rapports",
-      "zone": "Données module",
-      "element": "rapports",
-      "type": "donnee",
-      "severity": "majeur",
-      "severity_rank": 3,
-      "status": "detecte",
-      "title": "Données rapports absentes",
-      "detail": "Le référentiel demande rapports pour auditer Rapports, mais aucune ligne n’est chargée.",
-      "probable_cause": "Module non alimenté, clé de données incorrecte ou données simulées/réelles absentes.",
-      "expected_fix": "Vérifier alimentation du module et cohérence données simulées/réelles.",
-      "business_impact": "Audit incomplet ou lecture métier partielle.",
-      "linked_modules": [
-        "Rapports"
-      ],
-      "source_path": "",
-      "source_component": "",
-      "correction_lot": "Lot 5 · UI/données/audit",
-      "retest_steps": [],
-      "detected_at": "2026-05-17T22:27:39.944Z"
-    },
-    {
-      "id": "AUD-1779056859944-37bc68",
-      "module": "RH",
-      "zone": "Données module",
-      "element": "taches",
-      "type": "donnee",
-      "severity": "majeur",
-      "severity_rank": 3,
-      "status": "detecte",
-      "title": "Données taches absentes",
-      "detail": "Le référentiel demande taches pour auditer RH, mais aucune ligne n’est chargée.",
-      "probable_cause": "Module non alimenté, clé de données incorrecte ou données simulées/réelles absentes.",
-      "expected_fix": "Vérifier alimentation du module et cohérence données simulées/réelles.",
-      "business_impact": "Audit incomplet ou lecture métier partielle.",
-      "linked_modules": [
-        "RH"
-      ],
-      "source_path": "",
-      "source_component": "",
-      "correction_lot": "Lot 5 · UI/données/audit",
-      "retest_steps": [],
-      "detected_at": "2026-05-17T22:27:39.944Z"
-    },
-    {
-      "id": "AUD-1779056859944-6b54a6",
-      "module": "Smart Farm",
-      "zone": "Données module",
-      "element": "sensor_devices",
-      "type": "donnee",
-      "severity": "majeur",
-      "severity_rank": 3,
-      "status": "detecte",
-      "title": "Données sensor_devices absentes",
-      "detail": "Le référentiel demande sensor_devices pour auditer Smart Farm, mais aucune ligne n’est chargée.",
-      "probable_cause": "Module non alimenté, clé de données incorrecte ou données simulées/réelles absentes.",
-      "expected_fix": "Vérifier alimentation du module et cohérence données simulées/réelles.",
-      "business_impact": "Audit incomplet ou lecture métier partielle.",
-      "linked_modules": [
-        "Smart Farm"
-      ],
-      "source_path": "",
-      "source_component": "",
-      "correction_lot": "Lot 5 · UI/données/audit",
-      "retest_steps": [],
-      "detected_at": "2026-05-17T22:27:39.944Z"
-    },
-    {
-      "id": "AUD-1779056859944-d35637",
-      "module": "Smart Farm",
-      "zone": "Données module",
-      "element": "camera_devices",
-      "type": "donnee",
-      "severity": "majeur",
-      "severity_rank": 3,
-      "status": "detecte",
-      "title": "Données camera_devices absentes",
-      "detail": "Le référentiel demande camera_devices pour auditer Smart Farm, mais aucune ligne n’est chargée.",
-      "probable_cause": "Module non alimenté, clé de données incorrecte ou données simulées/réelles absentes.",
-      "expected_fix": "Vérifier alimentation du module et cohérence données simulées/réelles.",
-      "business_impact": "Audit incomplet ou lecture métier partielle.",
-      "linked_modules": [
-        "Smart Farm"
-      ],
-      "source_path": "",
-      "source_component": "",
-      "correction_lot": "Lot 5 · UI/données/audit",
-      "retest_steps": [],
-      "detected_at": "2026-05-17T22:27:39.944Z"
-    },
-    {
-      "id": "AUD-1779056859944-cf97e6",
-      "module": "Sync",
-      "zone": "Données module",
-      "element": "audit_logs",
-      "type": "donnee",
-      "severity": "majeur",
-      "severity_rank": 3,
-      "status": "detecte",
-      "title": "Données audit_logs absentes",
-      "detail": "Le référentiel demande audit_logs pour auditer Sync, mais aucune ligne n’est chargée.",
-      "probable_cause": "Module non alimenté, clé de données incorrecte ou données simulées/réelles absentes.",
-      "expected_fix": "Vérifier alimentation du module et cohérence données simulées/réelles.",
-      "business_impact": "Audit incomplet ou lecture métier partielle.",
-      "linked_modules": [
-        "Sync"
-      ],
-      "source_path": "",
-      "source_component": "",
-      "correction_lot": "Lot 5 · UI/données/audit",
-      "retest_steps": [],
-      "detected_at": "2026-05-17T22:27:39.944Z"
-    },
-    {
-      "id": "AUD-1779056859944-9c7f2c",
-      "module": "Tâches",
-      "zone": "Données module",
-      "element": "taches",
-      "type": "donnee",
-      "severity": "majeur",
-      "severity_rank": 3,
-      "status": "detecte",
-      "title": "Données taches absentes",
-      "detail": "Le référentiel demande taches pour auditer Tâches, mais aucune ligne n’est chargée.",
-      "probable_cause": "Module non alimenté, clé de données incorrecte ou données simulées/réelles absentes.",
-      "expected_fix": "Vérifier alimentation du module et cohérence données simulées/réelles.",
-      "business_impact": "Audit incomplet ou lecture métier partielle.",
-      "linked_modules": [
-        "Tâches"
-      ],
-      "source_path": "",
-      "source_component": "",
-      "correction_lot": "Lot 5 · UI/données/audit",
-      "retest_steps": [],
-      "detected_at": "2026-05-17T22:27:39.944Z"
-    }
-  ],
+  "findings": [],
   "source": "Assistant ERP · audit roadmap GitHub"
 }
