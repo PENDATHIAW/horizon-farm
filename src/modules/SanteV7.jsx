@@ -2,7 +2,7 @@ import { Component } from 'react';
 import { BarChart3, HeartPulse, ShieldCheck } from 'lucide-react';
 import useCrudModule from '../hooks/useCrudModule';
 import HealthQualityControl from './HealthQualityControl.jsx';
-import SanteSmartInterventions from './SanteSmartInterventions.jsx';
+import SanteSmartInterventions from './SanteV6.jsx';
 import SanteEvolution from './SanteEvolution.jsx';
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
