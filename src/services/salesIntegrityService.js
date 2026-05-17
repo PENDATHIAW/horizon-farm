@@ -11,7 +11,10 @@ const isCancelledPayment = (row = {}) => ['annule', 'annulé', 'annulee', 'cance
 const financePaymentId = (row = {}) => clean(row.payment_id || row.paiement_id || row.source_payment_id);
 const financeOrderId = (row = {}) => clean(row.related_id || row.source_record_id || row.order_id || row.sale_id || row.commande_id);
 const financeAmount = (row = {}) => toNumber(row.montant ?? row.amount);
-const financeIsSaleCash = (row = {}) => lower(`${row.type || ''} ${row.module_lie || ''} ${row.source_module || ''}`).includes('entree') || lower(`${row.type || ''} ${row.module_lie || ''} ${row.source_module || ''}`).includes('vente');
+const financeIsSaleCash = (row = {}) => {
+  const text = lower(`${row.type || ''} ${row.module_lie || ''} ${row.source_module || ''} ${row.categorie || ''} ${row.libelle || ''}`);
+  return text.includes('entree') || text.includes('entrée') || text.includes('vente') || text.includes('encaissement') || text.includes('creance') || text.includes('créance');
+};
 
 export function findExistingPayment({ orderId, amount, payments = [], paymentId = '' }) {
   const targetOrder = clean(orderId);
@@ -48,22 +51,7 @@ export function buildCoherentOrderPatch(order = {}, payments = [], extraPatch = 
   const orderStatus = normalizeOrderStatus({ ...order, montant_paye: paid }, payments);
   const deliveryStatus = normalizeDeliveryStatus(order);
   const invoiceStatus = normalizeInvoiceStatus(order);
-  return {
-    ...extraPatch,
-    montant_paye: paid,
-    reste_a_payer: remaining,
-    statut_paiement: paymentStatus,
-    payment_status: paymentStatus,
-    statut_commande: orderStatus,
-    order_status: orderStatus,
-    statut_livraison: deliveryStatus,
-    delivery_status: deliveryStatus,
-    statut_facture: invoiceStatus,
-    invoice_status: invoiceStatus,
-    relance_active: remaining > 0,
-    statut_relance: remaining > 0 ? (order.statut_relance || 'a_relancer') : 'solde',
-    creance: remaining,
-  };
+  return { ...extraPatch, montant_paye: paid, reste_a_payer: remaining, statut_paiement: paymentStatus, payment_status: paymentStatus, statut_commande: orderStatus, order_status: orderStatus, statut_livraison: deliveryStatus, delivery_status: deliveryStatus, statut_facture: invoiceStatus, invoice_status: invoiceStatus, relance_active: remaining > 0, statut_relance: remaining > 0 ? (order.statut_relance || 'a_relancer') : 'solde', creance: remaining };
 }
 
 export function analyzeSalesIntegrity({ orders = [], payments = [], transactions = [], invoices = [] }) {
