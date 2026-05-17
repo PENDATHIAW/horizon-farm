@@ -79,16 +79,35 @@ export default async function handler(req, res) {
   const token = env('GITHUB_TOKEN');
   const approvalSecret = env('ERP_AGENT_APPROVAL_SECRET');
   const deployHookUrl = env('VERCEL_DEPLOY_HOOK_URL');
-
-  if (!token || !approvalSecret) {
-    return json(res, 503, { ok: false, status: 'not_configured', error: 'Agent non configuré : GITHUB_TOKEN et ERP_AGENT_APPROVAL_SECRET sont obligatoires.' });
-  }
+  const configured = Boolean(token && approvalSecret);
 
   try {
     const body = await readBody(req);
-    const { approvalCode, lot, files = [], message, dryRun = false } = body;
+    const { approvalCode, lot, files = [], message, dryRun = false, mode = 'apply' } = body;
 
+    if (mode === 'status') {
+      return json(res, 200, {
+        ok: configured,
+        status: configured ? 'configured' : 'not_configured',
+        owner,
+        repo,
+        branch,
+        deployHookConfigured: Boolean(deployHookUrl),
+        required: ['GITHUB_TOKEN', 'ERP_AGENT_APPROVAL_SECRET'],
+        optional: ['GITHUB_OWNER', 'GITHUB_REPO', 'GITHUB_BRANCH', 'VERCEL_DEPLOY_HOOK_URL'],
+      });
+    }
+
+    if (!configured) {
+      return json(res, 503, { ok: false, status: 'not_configured', error: 'Agent non configuré : GITHUB_TOKEN et ERP_AGENT_APPROVAL_SECRET sont obligatoires.' });
+    }
     if (!approvalCode || approvalCode !== approvalSecret) return json(res, 401, { ok: false, error: 'Code approbation invalide' });
+
+    const commitMessage = message || `ERP agent correction - ${lot || 'lot contrôlé'}`;
+    if (dryRun && (!Array.isArray(files) || files.length === 0)) {
+      return json(res, 200, { ok: true, dryRun: true, status: 'ready', owner, repo, branch, deployHookConfigured: Boolean(deployHookUrl), message: commitMessage });
+    }
+
     if (!Array.isArray(files) || files.length === 0) return json(res, 400, { ok: false, error: 'Aucun fichier à corriger fourni par l’agent.' });
     if (files.length > 12) return json(res, 400, { ok: false, error: 'Trop de fichiers dans un seul lot. Corriger en plus petits lots.' });
 
@@ -97,7 +116,6 @@ export default async function handler(req, res) {
       if (typeof file.content !== 'string') return json(res, 400, { ok: false, error: `Contenu invalide : ${file.path}` });
     }
 
-    const commitMessage = message || `ERP agent correction - ${lot || 'lot contrôlé'}`;
     if (dryRun) return json(res, 200, { ok: true, dryRun: true, owner, repo, branch, files: files.map((f) => f.path), message: commitMessage });
 
     const results = [];
