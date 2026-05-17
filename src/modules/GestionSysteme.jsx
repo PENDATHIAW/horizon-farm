@@ -6,6 +6,7 @@ import SectionHeader from '../components/SectionHeader';
 import { ROLE_PERMISSIONS, useAuth } from '../context/AuthContext';
 import { clearAllErpData, clearLocalErpCache, clearLocalTombstones, ERP_RESET_TABLES, exportErpDataToExcel } from '../services/systemDataResetService';
 import { makeId } from '../utils/ids';
+import ErpAuditPanel from './ErpAuditPanel.jsx';
 
 const MODULES = [
   ['dashboard', 'Dashboard'], ['assistant_erp', 'Assistant ERP'], ['animaux', 'Animaux'], ['avicole', 'Avicole'], ['sante', 'Santé & Vaccins'], ['finances', 'Finances'], ['comptabilite', 'Comptabilité'], ['investissements', 'Investissements'], ['impact_business', 'Impact & Valeur ERP'], ['stock', 'Stock'], ['clients', 'Clients'], ['ventes', 'Ventes'], ['fournisseurs', 'Fournisseurs'], ['tracabilite', 'Traçabilité'], ['alertes', 'Centre Alertes'], ['cultures', 'Cultures'], ['documents', 'Documents'], ['taches', 'Tâches'], ['rh', 'RH & Équipe'], ['rapports', 'Rapports'], ['equipements', 'Équipements'], ['smartfarm', 'Smart Farm'], ['audit_logs', 'Historique'], ['sync', 'Sauvegarde'], ['sync_activity', 'Vérifications & Sync'], ['gestion_systeme', 'Gestion du système'],
@@ -105,7 +106,9 @@ export default function GestionSysteme() {
   };
 
   return <div className="space-y-6">
-    <SectionHeader title="Gestion du système" sub="Utilisateurs, visiteurs, rôles et accès" actions={<><Btn variant="outline" small onClick={() => setShowMatrix((v) => !v)}>{showMatrix ? 'Masquer' : 'Qui voit quoi ?'}</Btn><Btn icon={Plus} small onClick={() => setSelected(newUser())}>Créer utilisateur</Btn></>} />
+    <SectionHeader title="Gestion du système" sub="Utilisateurs, visiteurs, rôles, accès et audit qualité ERP" actions={<><Btn variant="outline" small onClick={() => setShowMatrix((v) => !v)}>{showMatrix ? 'Masquer' : 'Qui voit quoi ?'}</Btn><Btn icon={Plus} small onClick={() => setSelected(newUser())}>Créer utilisateur</Btn></>} />
+
+    <ErpAuditPanel />
 
     <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
       <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
