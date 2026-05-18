@@ -5,7 +5,9 @@ import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const effective = (provided, fallback) => arr(provided).length ? provided : fallback;
-const labelOf = (row = {}) => row.name || row.nom || row.tag || row.type || row.id || 'Sujet';
+const labelOf = (row = {}) => row.name || row.nom || row.tag || row.boucle_numero || row.type || row.id || 'Sujet';
+const clean = (value) => String(value || '').trim().toLowerCase();
+const physicalIdOf = (row = {}) => row.boucle_numero || row.qr_code || row.tag || row.id;
 const typeLabel = (type = '') => ({
   entrée_initiale: 'Entrée initiale',
   vente: 'Vente',
@@ -16,6 +18,22 @@ const typeLabel = (type = '') => ({
   récolte: 'Récolte',
   événement: 'Événement',
 }[type] || type);
+
+function linkedValue(row = {}) {
+  return String(row.lot_id || row.animal_id || row.culture_id || row.source_id || row.source_record_id || row.entity_id || row.related_id || row.target_id || row.cible_id || '');
+}
+
+function hasTargetLink(row = {}, targets = []) {
+  if (!targets.length) return false;
+  const linked = linkedValue(row);
+  if (linked && targets.some((target) => String(target.id) === linked || String(physicalIdOf(target)) === linked)) return true;
+  const text = clean(`${row.libelle || ''} ${row.title || ''} ${row.description || ''} ${row.notes || ''} ${row.product_name || ''} ${row.nom || ''}`);
+  return targets.some((target) => {
+    const id = clean(target.id);
+    const code = clean(physicalIdOf(target));
+    return Boolean(id && text.includes(id)) || Boolean(code && text.includes(code));
+  });
+}
 
 function Mini({ icon: Icon, label, value, danger = false }) {
   return <div className={`rounded-2xl border p-4 ${danger ? 'border-red-200 bg-red-50' : 'border-[#eadcc2] bg-[#fffdf8]'}`}>
@@ -28,22 +46,9 @@ export default function LifecycleHistoryPanel({ mode = 'avicole', rows = [], sal
   const salesCrud = useCrudModule('sales_orders');
   const deliveriesCrud = useCrudModule('deliveries');
   const targets = arr(rows).filter((row) => row?.id);
-  const targetIds = new Set(targets.map((row) => String(row.id)));
-  const sales = effective(salesOrders, salesCrud.rows).filter((sale) => {
-    if (!targetIds.size) return false;
-    const linked = String(sale.lot_id || sale.animal_id || sale.culture_id || sale.source_id || sale.entity_id || sale.related_id || '');
-    return !linked || targetIds.has(linked);
-  });
-  const deliveryRows = effective(deliveries, deliveriesCrud.rows).filter((delivery) => {
-    if (!targetIds.size) return false;
-    const linked = String(delivery.lot_id || delivery.animal_id || delivery.culture_id || delivery.source_id || delivery.entity_id || delivery.related_id || '');
-    return !linked || targetIds.has(linked);
-  });
-  const linkedEvents = arr(businessEvents).filter((event) => {
-    if (!targetIds.size) return false;
-    const linked = String(event.entity_id || event.lot_id || event.animal_id || event.culture_id || event.source_record_id || event.related_id || '');
-    return !linked || targetIds.has(linked);
-  });
+  const sales = effective(salesOrders, salesCrud.rows).filter((sale) => hasTargetLink(sale, targets));
+  const deliveryRows = effective(deliveries, deliveriesCrud.rows).filter((delivery) => hasTargetLink(delivery, targets));
+  const linkedEvents = arr(businessEvents).filter((event) => hasTargetLink(event, targets));
   const histories = targets.map((target) => ({ target, history: buildLifecycleHistory({ mode, target, salesOrders: sales, deliveries: deliveryRows, businessEvents: linkedEvents }) }));
   const totalInitial = histories.reduce((sum, item) => sum + item.history.initial, 0);
   const totalActive = histories.reduce((sum, item) => sum + item.history.active, 0);
