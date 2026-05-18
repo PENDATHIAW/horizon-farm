@@ -2,19 +2,20 @@ import { toNumber } from './format';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value) => String(value || '').trim().toLowerCase();
-const amountOf = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?? row.montant_total ?? row.total_amount ?? 0);
+const amountOf = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?? row.montant_total ?? row.total_amount ?? row.cout ?? row.coût ?? row.cost ?? 0);
 const orderAmount = (order = {}) => toNumber(order.montant_total ?? order.total ?? order.amount ?? order.total_amount ?? 0);
 const orderPaidField = (order = {}) => toNumber(order.montant_paye ?? order.paid_amount ?? order.amount_paid ?? 0);
 const paymentAmount = (payment = {}) => toNumber(payment.montant_paye ?? payment.montant ?? payment.amount ?? payment.paid_amount ?? 0);
 const paymentOrderId = (payment = {}) => payment.order_id || payment.sale_id || payment.source_record_id || payment.related_id;
 const isCancelled = (row = {}) => ['annule', 'annulee', 'cancelled', 'rejete'].includes(clean(row.statut || row.status || row.statut_commande));
-const isIn = (row = {}) => clean(row.type) === 'entree';
-const isOut = (row = {}) => clean(row.type) === 'sortie';
+const isIn = (row = {}) => ['entree', 'entrée', 'income', 'in'].includes(clean(row.type));
+const isOut = (row = {}) => ['sortie', 'expense', 'out', 'charge', 'depense', 'dépense'].includes(clean(row.type));
 const isPaid = (row = {}) => !['impaye', 'partiel', 'en_retard', 'annule', 'annulee'].includes(clean(row.statut || row.status || 'paye'));
 const isReceivableTx = (row = {}) => isIn(row) && ['impaye', 'partiel', 'en_retard'].includes(clean(row.statut || row.status));
 const isSalesLikeTx = (tx = {}) => ['vente', 'ventes', 'client', 'clients'].some((key) => clean(`${tx.categorie || ''} ${tx.module_lie || ''} ${tx.source_module || ''} ${tx.libelle || ''}`).includes(key));
 const isLossEvent = (event = {}) => ['perte_animal', 'perte_avicole', 'perte_culturale'].includes(clean(event.type_evenement || event.event_type)) || clean(`${event.title || ''} ${event.description || ''}`).includes('perte');
 const eventAmount = (event = {}) => toNumber(event.montant ?? event.amount ?? event.valeur_perte_estimee ?? event.total ?? 0);
+const firstPositive = (...values) => values.map((value) => toNumber(value)).find((value) => value > 0) || 0;
 
 function keyForTransaction(tx = {}) {
   return [tx.source_module || tx.module_lie || 'finance', tx.source_record_id || tx.related_id || tx.order_id || tx.sale_id || tx.payment_id || tx.invoice_id || tx.id].map((v) => String(v || '').trim()).join(':');
@@ -23,8 +24,6 @@ function keyForTransaction(tx = {}) {
 function keyForLossEvent(event = {}) {
   return [event.module || event.source_type || 'perte', event.source_id || event.source_record_id || event.related_id || event.id].map((v) => String(v || '').trim()).join(':');
 }
-
-const firstPositive = (...values) => values.map((value) => toNumber(value)).find((value) => value > 0) || 0;
 
 function animalCosts(animal = {}) {
   const achat = firstPositive(animal.purchase_cost, animal.prix_achat, animal.cout_achat, animal.cost_purchase);
@@ -60,7 +59,31 @@ function cultureCosts(culture = {}) {
   return { semences, engrais, eau, mainOeuvre, traitements, pertes, autres, total };
 }
 
-function deriveBusinessCharges({ animaux = [], lots = [], cultures = [], stocks = [], fournisseurs = [], businessEvents = [] } = {}) {
+function healthCost(row = {}) {
+  return firstPositive(row.cout, row.coût, row.montant, row.amount, row.cout_sante, row.health_cost, row.vet_cost, row.prix, row.price);
+}
+
+function investmentCost(row = {}) {
+  return firstPositive(row.montant, row.amount, row.total, row.cout, row.coût, row.budget, row.cost, row.prix, row.price);
+}
+
+function equipmentCost(row = {}) {
+  const repair = firstPositive(row.cout_reparation, row.repair_cost, row.maintenance_cost, row.cout_maintenance);
+  const purchase = firstPositive(row.prix_achat, row.purchase_cost, row.cout_achat, row.cost_purchase);
+  return repair + purchase;
+}
+
+function stockValueOf(item = {}) {
+  return firstPositive(
+    item.valeur,
+    item.valeur_stock,
+    item.value,
+    item.total,
+    toNumber(item.quantite ?? item.quantity) * toNumber(item.prix_unitaire ?? item.prixUnit ?? item.prixunit ?? item.unit_price),
+  );
+}
+
+function deriveBusinessCharges({ animaux = [], lots = [], cultures = [], stocks = [], fournisseurs = [], sante = [], alimentationLogs = [], investissements = [], equipements = [], businessEvents = [] } = {}) {
   const animalBreakdown = arr(animaux).map(animalCosts);
   const lotBreakdown = arr(lots).map(lotCosts);
   const cultureBreakdown = arr(cultures).map(cultureCosts);
@@ -70,26 +93,35 @@ function deriveBusinessCharges({ animaux = [], lots = [], cultures = [], stocks 
   const cultureTotal = cultureBreakdown.reduce((sum, item) => sum + item.total, 0);
 
   const stockPurchases = arr(stocks).reduce((sum, item) => {
-    const value = firstPositive(item.valeur, item.valeur_stock, item.value, toNumber(item.quantite ?? item.quantity) * toNumber(item.prix_unitaire ?? item.prixUnit ?? item.prixunit ?? item.unit_price));
-    const isPurchaseOrInput = ['aliment', 'alimentation', 'intrant', 'engrais', 'semence', 'produit', 'achat', 'stock'].some((word) => clean(`${item.categorie || ''} ${item.category || ''} ${item.type || ''} ${item.produit || ''}`).includes(word));
+    const value = stockValueOf(item);
+    const isPurchaseOrInput = ['aliment', 'alimentation', 'intrant', 'engrais', 'semence', 'produit', 'achat', 'stock'].some((word) => clean(`${item.categorie || ''} ${item.category || ''} ${item.type || ''} ${item.produit || ''} ${item.nom || ''}`).includes(word));
     return sum + (isPurchaseOrInput ? value : 0);
   }, 0);
 
+  const healthTotal = arr(sante).reduce((sum, row) => sum + healthCost(row), 0);
+  const alimentationTotal = arr(alimentationLogs).reduce((sum, row) => sum + firstPositive(row.cout, row.coût, row.montant, row.amount, row.total, row.cout_total), 0);
+  const investmentTotal = arr(investissements).reduce((sum, row) => sum + investmentCost(row), 0);
+  const equipmentTotal = arr(equipements).reduce((sum, row) => sum + equipmentCost(row), 0);
   const supplierDebt = arr(fournisseurs).reduce((sum, supplier) => sum + firstPositive(supplier.dettes, supplier.dette, supplier.solde_du, supplier.montant_du), 0);
   const eventCharges = arr(businessEvents).reduce((sum, event) => {
     const kind = clean(`${event.type_evenement || ''} ${event.event_type || ''} ${event.title || ''} ${event.description || ''}`);
-    const looksLikeCost = ['charge', 'cout', 'coût', 'depense', 'dépense', 'perte', 'maintenance', 'sante', 'santé', 'aliment'].some((word) => kind.includes(word));
+    const looksLikeCost = ['charge', 'cout', 'coût', 'depense', 'dépense', 'perte', 'maintenance', 'sante', 'santé', 'aliment', 'investissement'].some((word) => kind.includes(word));
     return sum + (looksLikeCost ? eventAmount(event) : 0);
   }, 0);
 
+  const total = animalTotal + lotTotal + cultureTotal + stockPurchases + healthTotal + alimentationTotal + investmentTotal + equipmentTotal + supplierDebt + eventCharges;
   return {
     animaux: animalTotal,
     avicole: lotTotal,
     cultures: cultureTotal,
     stockAchats: stockPurchases,
+    sante: healthTotal,
+    alimentation: alimentationTotal,
+    investissements: investmentTotal,
+    equipements: equipmentTotal,
     dettesFournisseurs: supplierDebt,
     evenements: eventCharges,
-    total: animalTotal + lotTotal + cultureTotal + stockPurchases + supplierDebt + eventCharges,
+    total,
     details: {
       animaux: animalBreakdown,
       avicole: lotBreakdown,
@@ -125,12 +157,12 @@ export function calculateClientSettlement(client = {}, orders = [], payments = [
   return { clientId: client.id, orders: details, total, paid, remaining, openOrders: details.filter((item) => item.remaining > 0), status: remaining > 0 ? 'a_relancer' : total > 0 ? 'actif' : (client.statut || 'prospect') };
 }
 
-export function consolidateFinance({ transactions = [], salesOrders = [], payments = [], fournisseurs = [], stocks = [], animaux = [], lots = [], cultures = [], businessEvents = [] } = {}) {
+export function consolidateFinance({ transactions = [], salesOrders = [], payments = [], fournisseurs = [], stocks = [], animaux = [], lots = [], cultures = [], sante = [], alimentationLogs = [], investissements = [], equipements = [], businessEvents = [] } = {}) {
   const orders = arr(salesOrders).filter((order) => !isCancelled(order));
   const txRows = arr(transactions).filter((tx) => Math.abs(amountOf(tx)) > 0 && !isCancelled(tx));
   const paymentRows = arr(payments).filter((payment) => paymentAmount(payment) > 0 && !isCancelled(payment));
   const lossEvents = arr(businessEvents).filter((event) => isLossEvent(event) && eventAmount(event) > 0 && !isCancelled(event));
-  const derivedCharges = deriveBusinessCharges({ animaux, lots, cultures, stocks, fournisseurs, businessEvents });
+  const derivedCharges = deriveBusinessCharges({ animaux, lots, cultures, stocks, fournisseurs, sante, alimentationLogs, investissements, equipements, businessEvents });
   const lossEventMap = new Map();
   lossEvents.forEach((event) => {
     const key = keyForLossEvent(event);
@@ -174,8 +206,8 @@ export function consolidateFinance({ transactions = [], salesOrders = [], paymen
   if (overpaidOrders > 0) warnings.push(`${overpaidOrders} FCFA d'encaissement dépasse le montant de commandes liées`);
   if (txReceivables > 0 && creancesCommandes > 0) warnings.push('Creances presentes dans commandes et transactions: anti-doublon applique');
   if (lossCharges > 0) warnings.push(`${lossCharges} FCFA de pertes consignées intégrées aux charges non cash`);
-  if (txExpenses <= 0 && derivedCharges.total > 0) warnings.push('Charges Finance absentes: charges métier estimées depuis animaux, avicole, cultures, stock, fournisseurs ou événements');
-  if (derivedCharges.total <= 0 && (arr(animaux).length || arr(lots).length || arr(cultures).length || arr(stocks).length)) warnings.push('Charges métier à zéro malgré activités présentes: vérifier coûts achat, alimentation, santé, cultures, stock');
+  if (txExpenses <= 0 && derivedCharges.total > 0) warnings.push('Charges Finance absentes: charges métier estimées depuis animaux, avicole, cultures, santé, alimentation, stock, fournisseurs, investissements ou équipements');
+  if (derivedCharges.total <= 0 && (arr(animaux).length || arr(lots).length || arr(cultures).length || arr(stocks).length || arr(sante).length || arr(alimentationLogs).length || arr(investissements).length || arr(equipements).length)) warnings.push('Charges métier à zéro malgré activités présentes: vérifier coûts achat, alimentation, santé, cultures, stock, investissements et équipements');
   return {
     caFacture,
     caConsolide,
