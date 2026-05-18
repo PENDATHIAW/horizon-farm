@@ -3,7 +3,7 @@ const dayMs = 86400000;
 
 const CHAIR_DEFAULTS = {
   targetDays: 45,
-  weighingFrequencyDays: 7,
+  weighingFrequencyDays: 15,
   targetWeight: 1.5,
   gainTarget: 0.035,
   gainMin: 0.025,
@@ -99,8 +99,8 @@ export function computeChairLivingTarget(lot = {}) {
     if (status === 'poids_a_renseigner') return 'Renseigner le poids moyen entrée ou une pesée du lot.';
     if (status === 'pret_vente') return 'Confirmer l’opportunité de vente si le prix et les clients sont disponibles.';
     if (status === 'retard_croissance') return 'Vérifier aliment, eau, température, ventilation, densité et état sanitaire.';
-    if (status === 'pesee_due') return 'Pesée hebdomadaire à faire pour recalculer la projection.';
-    return 'Croissance conforme : maintenir ration, eau, ambiance et suivi hebdomadaire.';
+    if (status === 'pesee_due') return 'Pesée à faire pour recalculer la projection.';
+    return 'Croissance conforme : maintenir ration, eau, ambiance et suivi tous les 15 jours.';
   })();
   return { type: 'chair', targetDays, frequency, currentAge, currentWeight, defaultTargetWeight, livingTarget, projectedWeight, realGainPerDay: Number(realGainPerDay.toFixed(3)), adaptiveGainPerDay: Number(adaptiveGain.toFixed(3)), nextWeighingDate, weighingDue, progress, status, action, history };
 }
