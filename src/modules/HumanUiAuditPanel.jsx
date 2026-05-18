@@ -3,6 +3,7 @@ import { humanUiAuditRules, humanUiAuditStepsByModule } from '../audit/humanUiAu
 import { formSimulationScenarios } from '../audit/formSimulationScenarios';
 import { auditImprovementRules } from '../audit/auditImprovementRules';
 import { humanAiTesterMasterPrompt } from '../audit/humanAiTesterMasterPrompt';
+import { activeHorizonFarmAuditRules } from '../audit/activeHorizonFarmAuditRules';
 
 const severityClass = (severity = '') => {
   if (severity === 'critique') return 'border-red-200 bg-red-50 text-red-700';
@@ -58,6 +59,18 @@ export default function HumanUiAuditPanel() {
       <ul className="mt-3 space-y-1 text-xs text-emerald-800">
         {promptLines.map((line) => <li key={line} className="font-semibold">{line}</li>)}
       </ul>
+    </div>
+
+    <div className="rounded-3xl border border-blue-200 bg-blue-50 p-4">
+      <h3 className="font-black text-blue-900 flex items-center gap-2"><Sparkles size={18} /> Règles actives Horizon Farm</h3>
+      <p className="mt-1 text-sm text-blue-800">Ces règles passent avant les anciennes consignes si elles se contredisent.</p>
+      <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-3">
+        {activeHorizonFarmAuditRules.map((rule) => <div key={rule.id} className="rounded-2xl border border-blue-200 bg-white p-4">
+          <p className="font-black text-[#2f2415]">{rule.title}</p>
+          <p className="mt-2 text-sm text-[#8a7456]">{rule.rule}</p>
+          <MiniList title="Améliorations" items={rule.improvements || []} />
+        </div>)}
+      </div>
     </div>
 
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
