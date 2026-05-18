@@ -124,7 +124,7 @@ function costBreakdown(row = {}, ctx = {}) {
   const autres = toNumber(row.autres_frais ?? row.frais_directs ?? row.other_costs ?? row.direct_costs);
   const linkedEvents = arr(businessEvents).filter((e) => matchAnimal(e, row));
   const estimatedSale = salePrice(row) || toNumber(row.prix_vente_estime);
-  const saleEvents = linkedEvents.filter((e) => isSaleLikeEvent(e) || (isLocked(row) && estimatedSale > 0 && Math.abs(amount(e) - estimatedSale) < 1));
+  const saleEvents = linkedEvents.filter((e) => isSaleLikeEvent(e) || (estimatedSale > 0 && Math.abs(amount(e) - estimatedSale) < 1));
   const chargeEvents = linkedEvents.filter((e) => !saleEvents.includes(e) && isChargeLikeEvent(e));
   const evenements = chargeEvents.reduce((s, e) => s + amount(e), 0);
   const totalDirect = toNumber(row.cout_total ?? row.total_cost ?? row.cost_total);
@@ -137,7 +137,7 @@ function costBreakdown(row = {}, ctx = {}) {
   const warnings = [];
   if (isLocked(row) && sales.orders.length === 0) warnings.push('Animal marqué vendu sans commande de vente liée.');
   if (isLocked(row) && sales.orders.length > 0 && sales.paid <= 0) warnings.push('Animal vendu avec commande liée mais aucun paiement rattaché.');
-  if (saleEvents.length && !sales.orders.length) warnings.push('Événement de vente détecté sans commande : vérifier la traçabilité Vente.');
+  if (saleEvents.length && !sales.orders.length) warnings.push('Événement de vente/valorisation détecté sans commande : vérifier la traçabilité Vente.');
   if (totalDirect > 0 && Math.abs(totalDirect - totalCalc) > 1) warnings.push('Ancien coût total incohérent ignoré : recalcul depuis les charges détaillées.');
   return { achat, alimentation, sante, autres, evenements, total, sale, saleSource, paid: sales.paid, remaining: sales.orders.length ? sales.remaining : 0, salesCount: sales.orders.length, marge: sale - total, warnings };
 }
