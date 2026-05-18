@@ -11,6 +11,8 @@ import AvicoleTransformationBridge from './AvicoleTransformationBridge.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
 
+const EGGS_PER_TABLET = 30;
+const DEFAULT_EGG_TABLET_PRICE = 2250;
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const num = (value = 0) => Number(value || 0);
 const today = () => new Date().toISOString().slice(0, 10);
@@ -27,6 +29,49 @@ const initialOf = (lot = {}) => num(lot.initial_count ?? lot.effectif_initial);
 const mortalityRateOf = (lot = {}) => initialOf(lot) > 0 ? Math.round((mortalityOf(lot) / initialOf(lot)) * 100) : 0;
 const lossValueOf = (lot = {}) => num(lot.valeur_perte_estimee ?? lot.perte_estimee ?? lot.pertes_mortalite_estimees);
 const isLossClosedLot = (lot = {}) => ['perdu', 'perdu_mortalite', 'cloture_perte'].includes(norm(lot.status || lot.statut || '')) || (avicoleActiveCount(lot) <= 0 && initialOf(lot) > 0);
+const monthKey = (value = new Date()) => {
+  const date = value instanceof Date ? value : new Date(value || Date.now());
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+};
+const logMonth = (row = {}) => String(row.date || row.created_at || row.updated_at || '').slice(0, 7);
+const eggProduced = (row = {}) => num(row.oeufs_produits ?? row.eggs ?? row.total_oeufs ?? row.quantite ?? row.quantity);
+const eggBroken = (row = {}) => num(row.oeufs_casses ?? row.broken ?? row.casses ?? row.pertes);
+const tabletPriceForLots = (lots = []) => {
+  const configured = lots.map((lot) => num(lot.prix_tablette_oeufs ?? lot.prix_tablette ?? lot.prix_vente_tablette ?? lot.egg_tablet_price)).find((value) => value > 0);
+  return configured || DEFAULT_EGG_TABLET_PRICE;
+};
+const buildEggObjectiveRows = ({ lots = [], productionLogs = [], currentMonth = monthKey(new Date()) }) => {
+  const lotIds = new Set(lots.map((lot) => String(lot.id || '')).filter(Boolean));
+  const monthLogs = productionLogs.filter((log) => {
+    const lotId = String(log.lot_id || log.related_id || log.source_record_id || log.entity_id || '');
+    return lotIds.has(lotId) && logMonth(log) === currentMonth;
+  });
+  const sellableEggs = monthLogs.reduce((sum, log) => sum + Math.max(0, eggProduced(log) - eggBroken(log)), 0);
+  const tablets = Math.floor(sellableEggs / EGGS_PER_TABLET);
+  const remainingEggs = sellableEggs % EGGS_PER_TABLET;
+  const unitPrice = tabletPriceForLots(lots);
+  const estimatedAmount = tablets * unitPrice;
+  if (estimatedAmount <= 0) return [];
+  return [{
+    id: `OBJ-OEUFS-${currentMonth}`,
+    date: `${currentMonth}-15`,
+    created_at: `${currentMonth}-15T00:00:00.000Z`,
+    source_module: 'avicole',
+    source_type: 'oeufs_tablettes_estimees',
+    activite: 'oeufs',
+    product_name: `Tablettes d’œufs estimées (${fmtNumber(tablets)} tablette(s) + ${fmtNumber(remainingEggs)} œuf(s))`,
+    libelle: 'Valorisation mensuelle tablettes œufs pondeuses',
+    montant_total: estimatedAmount,
+    total: estimatedAmount,
+    amount: estimatedAmount,
+    tablettes: tablets,
+    oeufs_vendables: sellableEggs,
+    oeufs_restants: remainingEggs,
+    prix_unitaire_tablette: unitPrice,
+    statut: 'estime',
+  }];
+};
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
@@ -64,6 +109,9 @@ export default function AvicoleV10(props) {
   const chair = useMemo(() => rows.filter(isChair), [rows]);
   const scopedRows = useMemo(() => filterByActivity(rows, activity), [rows, activity]);
   const scopedProductionLogs = useMemo(() => productionLogs.filter((log) => activity !== 'chair' || chair.some((lot) => String(lot.id) === String(log.lot_id || log.related_id))), [productionLogs, activity, chair]);
+  const currentMonth = monthKey(new Date());
+  const eggObjectiveRows = useMemo(() => buildEggObjectiveRows({ lots: pondeuses, productionLogs, currentMonth }), [pondeuses, productionLogs, currentMonth]);
+  const objectiveSalesOrders = useMemo(() => activity === 'pondeuse' ? [...salesOrders, ...eggObjectiveRows] : salesOrders, [activity, salesOrders, eggObjectiveRows]);
 
   const createMortalityEvent = async (before = {}, after = {}, source = 'modification lot avicole') => {
     const mortalityIncreased = mortalityOf(after) > mortalityOf(before);
@@ -95,7 +143,7 @@ export default function AvicoleV10(props) {
   const wrappedUpdate = async (id, payload) => { const before = (props.rows || []).find((lot) => String(lot.id) === String(id)) || {}; const after = { ...before, ...payload, id }; await props.onUpdate?.(id, payload); await createMortalityEvent(before, after, 'modification fiche lot'); };
 
   const scopedProps = { ...props, activity, lockActivity: true, rows: scopedRows, productionLogs: scopedProductionLogs, salesOrders, payments, transactions, businessEvents, onCreate: wrappedCreate, onUpdate: wrappedUpdate, opportunities: (props.opportunities || []).filter((op) => activity === 'pondeuse' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('oeuf') || norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('pondeuse') : activity === 'chair' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('chair') : true) };
-  const dataMap = { sales_orders: salesOrders, payments, finances: transactions, avicole: scopedRows, production_oeufs_logs: scopedProductionLogs, alimentation_logs: props.alimentationLogs || [], business_events: businessEvents };
+  const dataMap = { sales_orders: objectiveSalesOrders, payments, finances: transactions, avicole: scopedRows, production_oeufs_logs: scopedProductionLogs, alimentation_logs: props.alimentationLogs || [], business_events: businessEvents };
   const selectedLabel = activity === 'pondeuse' ? 'Pondeuses' : 'Poulets de chair';
 
   return <div className="space-y-6 avicole-mobile-final">
