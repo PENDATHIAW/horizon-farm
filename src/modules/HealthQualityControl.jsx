@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, HeartPulse, PackageSearch, ReceiptText, Stethoscope } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, HeartPulse, PackageSearch, ReceiptText, ShieldCheck, Stethoscope, TrendingUp } from 'lucide-react';
 import { analyzeHealthIntegrity, buildTargetHealthPatch } from '../services/healthIntegrityService';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 
@@ -8,6 +8,21 @@ const targetModule = (row = {}) => String(row.module_lie || row.target_type || r
 const label = (row = {}) => row.nom || row.type_intervention || row.title || row.id || 'Intervention';
 const activeIds = (rows = []) => new Set(arr(rows).filter((row) => row?.id).map((row) => String(row.id)));
 const isCollectiveTarget = (id = '') => ['ALL_ANIMAUX', 'ANIMAUX_MALADES', 'ALL_AVICOLE_LOTS', 'AVICOLE_MALADES'].includes(String(id));
+const impactCode = (row = {}) => String(row.impact_business_code || '').trim();
+const IMPACT_LABELS = {
+  aucun_impact: 'Aucun impact business immédiat',
+  perte_evitee: 'Perte évitée / mortalité réduite',
+  risque_mortalite: 'Risque mortalité à surveiller',
+  croissance_protegee: 'Croissance / prise de poids protégée',
+  ponte_protegee: 'Ponte / production œufs protégée',
+  vente_reportee: 'Vente reportée ou bloquée',
+  cout_sante_direct: 'Coût santé direct à imputer',
+  stock_sante_consomme: 'Stock santé consommé',
+  'biosécurité_renforcee': 'Biosécurité renforcée',
+  alerte_finance_objectifs: 'Impact à suivre en Finance / Objectifs',
+};
+const impactLabel = (row = {}) => row.impact_business_label || IMPACT_LABELS[impactCode(row)] || 'Non qualifié';
+const impactPriority = (row = {}) => ['risque_mortalite', 'vente_reportee', 'alerte_finance_objectifs'].includes(impactCode(row));
 const issueLabel = (issue = '') => ({
   'Finance manquante': 'Coût non retrouvé dans les finances',
   'Module cible manquant': 'Animal ou lot introuvable',
@@ -31,15 +46,18 @@ const isHealthRowStillLinked = (row = {}, animalIds = new Set(), lotIds = new Se
   if (module.includes('avicole') || module.includes('lot')) return lotIds.has(id);
   return true;
 };
-
-function Card({ icon: Icon, label, value, hint, danger = false }) {
-  return <div className={`rounded-2xl border p-4 ${danger ? 'border-red-200 bg-red-50' : 'border-[#eadcc2] bg-[#fffdf8]'}`}>
-    <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-[#8a7456]"><Icon size={14} /> {label}</p>
-    <p className={`mt-2 text-xl font-black ${danger ? 'text-red-600' : 'text-[#2f2415]'}`}>{value}</p>
-    {hint ? <p className="mt-1 text-xs text-[#8a7456]">{hint}</p> : null}
-  </div>;
+function topImpacts(rows = []) {
+  const map = new Map();
+  arr(rows).forEach((row) => {
+    const name = impactLabel(row);
+    if (!name || name === 'Non qualifié') return;
+    map.set(name, (map.get(name) || 0) + 1);
+  });
+  return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4);
 }
-
+function Card({ icon: Icon, label, value, hint, danger = false }) {
+  return <div className={`rounded-2xl border p-4 ${danger ? 'border-red-200 bg-red-50' : 'border-[#eadcc2] bg-[#fffdf8]'}`}><p className="flex items-center gap-2 text-xs uppercase tracking-wide text-[#8a7456]"><Icon size={14} /> {label}</p><p className={`mt-2 text-xl font-black ${danger ? 'text-red-600' : 'text-[#2f2415]'}`}>{value}</p>{hint ? <p className="mt-1 text-xs text-[#8a7456]">{hint}</p> : null}</div>;
+}
 export default function HealthQualityControl({ rows = [], stocks = [], transactions = [], animaux = [], lots = [], onUpdate, onUpdateAnimal, onUpdateLot, onRefresh, onRefreshAnimals, onRefreshLots }) {
   const animalIds = activeIds(animaux);
   const lotIds = activeIds(lots);
@@ -50,7 +68,9 @@ export default function HealthQualityControl({ rows = [], stocks = [], transacti
   const targetMissing = audit.details.filter((item) => item.issues.includes('Module cible manquant') || item.issues.includes('Cible collective / non détaillée')).length;
   const late = audit.details.filter((item) => item.issues.includes('Intervention en retard')).length;
   const duplicates = audit.details.filter((item) => item.issues.includes('Doublon potentiel')).length;
-
+  const impacts = topImpacts(linkedRows);
+  const missingImpact = linkedRows.filter((row) => !impactCode(row) && !row.impact_business_label).length;
+  const priorityImpacts = linkedRows.filter(impactPriority).length;
   const fixTargetStatus = async (item) => {
     const row = item.row;
     const patch = buildTargetHealthPatch(row);
@@ -61,32 +81,11 @@ export default function HealthQualityControl({ rows = [], stocks = [], transacti
     else if ((module.includes('avicole') || module.includes('lot')) && lotIds.has(id)) await onUpdateLot?.(id, patch);
     await Promise.allSettled([onRefresh?.(), onRefreshAnimals?.(), onRefreshLots?.()]);
   };
-
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
-    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-      <div>
-        <p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Stethoscope size={20} /> Contrôle santé</p>
-        <p className="mt-1 text-sm text-[#8a7456]">Vérifie les soins, vaccins, coûts, produits utilisés et animaux ou lots concernés.</p>
-      </div>
-      <div className={`${audit.issueCount ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'} rounded-2xl border px-4 py-3 text-sm font-bold`}>{audit.issueCount ? `${audit.issueCount} point(s) à regarder` : 'Santé bien suivie'}</div>
-    </div>
-
-    <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-      <Card icon={HeartPulse} label="Coût santé" value={fmtCurrency(audit.totalCost)} />
-      <Card icon={ReceiptText} label="Coûts à compléter" value={financeMissing} danger={financeMissing > 0} />
-      <Card icon={PackageSearch} label="Stock santé faible" value={audit.stockRisks.length} danger={audit.stockRisks.length > 0} />
-      <Card icon={AlertTriangle} label="Retards" value={late} danger={late > 0} />
-      <Card icon={AlertTriangle} label="Doublons possibles" value={duplicates} danger={duplicates > 0} />
-      <Card icon={Stethoscope} label="Cible à préciser" value={targetMissing} danger={targetMissing > 0} />
-    </div>
-
+    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Stethoscope size={20} /> Contrôle santé</p><p className="mt-1 text-sm text-[#8a7456]">Vérifie les soins, vaccins, coûts, produits utilisés, impacts business et animaux ou lots concernés.</p></div><div className={`${audit.issueCount || priorityImpacts ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'} rounded-2xl border px-4 py-3 text-sm font-bold`}>{audit.issueCount ? `${audit.issueCount} point(s) à regarder` : priorityImpacts ? `${priorityImpacts} impact(s) business à suivre` : 'Santé bien suivie'}</div></div>
+    <div className="grid grid-cols-2 lg:grid-cols-8 gap-3"><Card icon={HeartPulse} label="Coût santé" value={fmtCurrency(audit.totalCost)} /><Card icon={ReceiptText} label="Coûts à compléter" value={financeMissing} danger={financeMissing > 0} /><Card icon={PackageSearch} label="Stock santé faible" value={audit.stockRisks.length} danger={audit.stockRisks.length > 0} /><Card icon={AlertTriangle} label="Retards" value={late} danger={late > 0} /><Card icon={AlertTriangle} label="Doublons possibles" value={duplicates} danger={duplicates > 0} /><Card icon={Stethoscope} label="Cible à préciser" value={targetMissing} danger={targetMissing > 0} /><Card icon={TrendingUp} label="Impacts à suivre" value={priorityImpacts} danger={priorityImpacts > 0} /><Card icon={ShieldCheck} label="Impact non qualifié" value={missingImpact} danger={missingImpact > 0} /></div>
+    {impacts.length ? <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a]"><b className="text-[#2f2415]">Impacts business dominants :</b> {impacts.map(([name, count]) => `${name} (${fmtNumber(count)})`).join(' · ')}</div> : null}
     {audit.stockRisks.length ? <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"><b>Stock santé faible :</b> {audit.stockRisks.map((s) => `${s.produit || s.nom || s.id} (${fmtNumber(s.quantite)} ${s.unite || ''})`).join(' · ')}</div> : null}
-
-    {risky.length ? <div className="overflow-x-auto rounded-2xl border border-[#eadcc2]">
-      <table className="min-w-full text-sm">
-        <thead><tr className="border-b border-[#eadcc2] bg-[#fffdf8] text-left text-xs uppercase text-[#8a7456]"><th className="py-2 px-3">Intervention</th><th className="py-2 px-3">Concerné</th><th className="py-2 px-3">Date</th><th className="py-2 px-3">Coût</th><th className="py-2 px-3">À regarder</th><th className="py-2 px-3">Action</th></tr></thead>
-        <tbody>{risky.map((item) => <tr key={item.row.id} className="border-b border-[#f0e5d0]"><td className="py-3 px-3 font-bold text-[#2f2415]">{label(item.row)}</td><td className="py-3 px-3">{readableTarget(item.row)}<p className="text-xs text-[#8a7456]">{targetId(item.row) || 'à préciser'}</p></td><td className="py-3 px-3">{item.row.effectuee || item.row.prevue || item.row.date || '—'}</td><td className="py-3 px-3 font-bold">{fmtCurrency(item.cost)}</td><td className="py-3 px-3"><div className="flex flex-wrap gap-1">{item.issues.map((issue) => <span key={issue} className="rounded-full bg-amber-50 px-2 py-1 text-xs font-bold text-amber-700">{issueLabel(issue)}</span>)}</div></td><td className="py-3 px-3">{item.issues.includes('Cible encore malade') ? <button type="button" onClick={() => fixTargetStatus(item)} className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-bold text-white"><CheckCircle2 size={14} className="inline" /> Mettre sous surveillance</button> : '—'}</td></tr>)}</tbody>
-      </table>
-    </div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 size={16} className="inline" /> Rien d’urgent à corriger sur les soins et vaccins suivis.</div>}
+    {risky.length ? <div className="overflow-x-auto rounded-2xl border border-[#eadcc2]"><table className="min-w-full text-sm"><thead><tr className="border-b border-[#eadcc2] bg-[#fffdf8] text-left text-xs uppercase text-[#8a7456]"><th className="py-2 px-3">Intervention</th><th className="py-2 px-3">Concerné</th><th className="py-2 px-3">Date</th><th className="py-2 px-3">Coût</th><th className="py-2 px-3">Impact</th><th className="py-2 px-3">À regarder</th><th className="py-2 px-3">Action</th></tr></thead><tbody>{risky.map((item) => <tr key={item.row.id} className="border-b border-[#f0e5d0]"><td className="py-3 px-3 font-bold text-[#2f2415]">{label(item.row)}</td><td className="py-3 px-3">{readableTarget(item.row)}<p className="text-xs text-[#8a7456]">{targetId(item.row) || 'à préciser'}</p></td><td className="py-3 px-3">{item.row.effectuee || item.row.prevue || item.row.date || '—'}</td><td className="py-3 px-3 font-bold">{fmtCurrency(item.cost)}</td><td className="py-3 px-3"><span className={`rounded-full px-2 py-1 text-xs font-bold ${impactPriority(item.row) ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>{impactLabel(item.row)}</span></td><td className="py-3 px-3"><div className="flex flex-wrap gap-1">{item.issues.map((issue) => <span key={issue} className="rounded-full bg-amber-50 px-2 py-1 text-xs font-bold text-amber-700">{issueLabel(issue)}</span>)}</div></td><td className="py-3 px-3">{item.issues.includes('Cible encore malade') ? <button type="button" onClick={() => fixTargetStatus(item)} className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-bold text-white"><CheckCircle2 size={14} className="inline" /> Mettre sous surveillance</button> : '—'}</td></tr>)}</tbody></table></div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 size={16} className="inline" /> Rien d’urgent à corriger sur les soins et vaccins suivis.</div>}
   </section>;
 }
