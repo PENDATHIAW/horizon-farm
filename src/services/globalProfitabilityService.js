@@ -2,11 +2,12 @@ import { toNumber } from '../utils/format';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').toLowerCase();
-const amount = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?? row.montant_total ?? row.chiffre_affaires);
+const amount = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?? row.montant_total ?? row.chiffre_affaires ?? row.cout ?? row.coût ?? row.cost);
 const total = (row = {}) => toNumber(row.montant_total ?? row.total ?? row.chiffre_affaires ?? row.amount);
 const linkedText = (row = {}) => lower(`${row.module_lie || ''} ${row.source_module || ''} ${row.entity_type || ''} ${row.target_type || ''} ${row.type_cible || ''} ${row.related_type || ''} ${row.module || ''} ${row.source_type || ''}`);
 const fullText = (row = {}) => lower(`${row.categorie || ''} ${row.category || ''} ${row.module_lie || ''} ${row.source_module || ''} ${row.entity_type || ''} ${row.target_type || ''} ${row.type_cible || ''} ${row.module || ''} ${row.source_type || ''} ${row.type_evenement || ''} ${row.event_type || ''} ${row.libelle || ''} ${row.title || ''} ${row.description || ''} ${row.notes || ''}`);
 const isLossEvent = (row = {}) => ['perte_animal', 'perte_avicole', 'perte_culturale'].includes(lower(row.type_evenement || row.event_type)) || lower(`${row.title || ''} ${row.description || ''}`).includes('perte');
+const firstPositive = (...values) => values.map((value) => toNumber(value)).find((value) => value > 0) || 0;
 
 export const PROFIT_BUCKETS = {
   animaux: 'Charges directes animaux',
@@ -71,7 +72,83 @@ export function classifyProfitCharge(row = {}) {
   return 'autres_charges';
 }
 
-export function computeGlobalProfitability({ transactions = [], salesOrders = [], payments = [], businessEvents = [] } = {}) {
+function addBucket({ buckets, rowsByBucket }, bucket, value, row) {
+  const amountValue = toNumber(value);
+  if (!bucket || !PROFIT_BUCKETS[bucket] || amountValue <= 0) return;
+  buckets[bucket] += amountValue;
+  rowsByBucket[bucket].push(row || { montant: amountValue, type: 'sortie', profit_bucket: bucket });
+}
+
+function animalDerivedCost(row = {}) {
+  const achat = firstPositive(row.purchase_cost, row.prix_achat, row.cout_achat, row.cost_purchase);
+  const alimentation = firstPositive(row.alimentation, row.cout_alimentation, row.feed_cost, row.cout_nourriture);
+  const sante = firstPositive(row.sante, row.cout_sante, row.health_cost, row.vet_cost);
+  const autres = firstPositive(row.autres_frais, row.frais_directs, row.other_costs, row.direct_costs);
+  const totalDirect = firstPositive(row.cout_total, row.total_cost, row.cost_total);
+  const calc = achat + alimentation + sante + autres;
+  return totalDirect > 0 ? Math.max(totalDirect, calc) : calc;
+}
+
+function lotDerivedCost(row = {}) {
+  const poussins = firstPositive(row.cout_poussins, row.purchase_cost, row.cout_achat, row.cost_purchase);
+  const aliment = firstPositive(row.cout_aliment, row.alimentation, row.cout_alimentation, row.feed_cost);
+  const sante = firstPositive(row.frais_sante, row.cout_sante, row.sante, row.health_cost);
+  const pertes = firstPositive(row.cout_pertes, row.pertes_valeur, row.loss_cost);
+  const autres = firstPositive(row.autres_frais, row.frais_directs, row.other_costs);
+  const totalDirect = firstPositive(row.cout_total, row.total_cost, row.cost_total);
+  const calc = poussins + aliment + sante + pertes + autres;
+  return totalDirect > 0 ? Math.max(totalDirect, calc) : calc;
+}
+
+function cultureDerivedCost(row = {}) {
+  const semences = firstPositive(row.cout_semences, row.semences_cost, row.seed_cost);
+  const engrais = firstPositive(row.cout_engrais, row.engrais_cost, row.fertilizer_cost);
+  const eau = firstPositive(row.cout_eau, row.cout_irrigation, row.water_cost, row.irrigation_cost);
+  const mainOeuvre = firstPositive(row.cout_main_oeuvre, row.cout_mo, row.labor_cost);
+  const traitements = firstPositive(row.cout_traitement, row.cout_traitements, row.treatment_cost);
+  const pertes = firstPositive(row.cout_pertes, row.pertes_valeur, row.loss_cost);
+  const autres = firstPositive(row.autres_frais, row.frais_directs, row.other_costs);
+  const totalDirect = firstPositive(row.cout_total, row.total_cost, row.cost_total);
+  const calc = semences + engrais + eau + mainOeuvre + traitements + pertes + autres;
+  return totalDirect > 0 ? Math.max(totalDirect, calc) : calc;
+}
+
+function stockDerivedCost(row = {}) {
+  return firstPositive(row.valeur, row.valeur_stock, row.value, row.total, toNumber(row.quantite ?? row.quantity) * toNumber(row.prix_unitaire ?? row.prixUnit ?? row.prixunit ?? row.unit_price));
+}
+
+function healthDerivedCost(row = {}) {
+  return firstPositive(row.cout, row.coût, row.montant, row.amount, row.cout_sante, row.health_cost, row.vet_cost, row.prix, row.price);
+}
+
+function investmentDerivedCost(row = {}) {
+  return firstPositive(row.montant, row.amount, row.total, row.cout, row.coût, row.budget, row.cost, row.prix, row.price);
+}
+
+function equipmentDerivedCost(row = {}) {
+  return firstPositive(row.cout_reparation, row.repair_cost, row.maintenance_cost, row.cout_maintenance) + firstPositive(row.prix_achat, row.purchase_cost, row.cout_achat, row.cost_purchase);
+}
+
+function addDerivedBusinessCharges(context, { animaux = [], lots = [], cultures = [], stocks = [], sante = [], alimentationLogs = [], fournisseurs = [], investissements = [], equipements = [], businessEvents = [] } = {}) {
+  arr(animaux).forEach((row) => addBucket(context, 'animaux', animalDerivedCost(row), { ...row, type: 'sortie', profit_bucket: 'animaux', source_module: 'animaux', generated: true }));
+  arr(lots).forEach((row) => addBucket(context, 'avicole', lotDerivedCost(row), { ...row, type: 'sortie', profit_bucket: 'avicole', source_module: 'avicole', generated: true }));
+  arr(cultures).forEach((row) => addBucket(context, 'cultures', cultureDerivedCost(row), { ...row, type: 'sortie', profit_bucket: 'cultures', source_module: 'cultures', generated: true }));
+  arr(stocks).forEach((row) => addBucket(context, 'stock_non_affecte', stockDerivedCost(row), { ...row, type: 'sortie', profit_bucket: 'stock_non_affecte', source_module: 'stock', generated: true }));
+  arr(sante).forEach((row) => addBucket(context, activityFromLink(row) || 'sante_non_affectee', healthDerivedCost(row), { ...row, type: 'sortie', profit_bucket: activityFromLink(row) || 'sante_non_affectee', source_module: 'sante', generated: true }));
+  arr(alimentationLogs).forEach((row) => addBucket(context, activityFromLink(row) || 'stock_non_affecte', firstPositive(row.cout, row.coût, row.montant, row.amount, row.total, row.cout_total), { ...row, type: 'sortie', profit_bucket: activityFromLink(row) || 'stock_non_affecte', source_module: 'alimentation_logs', generated: true }));
+  arr(fournisseurs).forEach((row) => addBucket(context, 'fournisseurs_achats', firstPositive(row.dettes, row.dette, row.solde_du, row.montant_du), { ...row, type: 'sortie', profit_bucket: 'fournisseurs_achats', source_module: 'fournisseurs', generated: true }));
+  arr(investissements).forEach((row) => addBucket(context, 'investissements', investmentDerivedCost(row), { ...row, type: 'sortie', profit_bucket: 'investissements', source_module: 'investissements', generated: true }));
+  arr(equipements).forEach((row) => addBucket(context, 'equipements', equipmentDerivedCost(row), { ...row, type: 'sortie', profit_bucket: 'equipements', source_module: 'equipements', generated: true }));
+
+  arr(businessEvents).forEach((event) => {
+    if (isLossEvent(event)) return;
+    const text = fullText(event);
+    const looksLikeCharge = /charge|cout|coût|depense|dépense|maintenance|sante|santé|aliment|investissement|achat|fournisseur/.test(text);
+    if (looksLikeCharge) addBucket(context, classifyProfitCharge(event), amount(event), { ...event, type: 'sortie', generated: true });
+  });
+}
+
+export function computeGlobalProfitability({ transactions = [], salesOrders = [], payments = [], businessEvents = [], animaux = [], lots = [], cultures = [], stocks = [], sante = [], alimentationLogs = [], fournisseurs = [], investissements = [], equipements = [] } = {}) {
   const salesCa = arr(salesOrders).reduce((sum, sale) => sum + total(sale), 0);
   const financeIn = arr(transactions).filter((tx) => ['entree', 'entrée'].includes(lower(tx.type))).reduce((sum, tx) => sum + amount(tx), 0);
   const paidIn = arr(payments).reduce((sum, payment) => sum + amount(payment), 0);
@@ -79,20 +156,18 @@ export function computeGlobalProfitability({ transactions = [], salesOrders = []
   const encaisse = Math.max(financeIn, paidIn);
   const buckets = Object.fromEntries(Object.keys(PROFIT_BUCKETS).map((key) => [key, 0]));
   const rowsByBucket = Object.fromEntries(Object.keys(PROFIT_BUCKETS).map((key) => [key, []]));
+  const context = { buckets, rowsByBucket };
 
   arr(transactions).filter((tx) => lower(tx.type) === 'sortie').forEach((tx) => {
-    const bucket = classifyProfitCharge(tx);
-    const value = amount(tx);
-    buckets[bucket] += value;
-    rowsByBucket[bucket].push(tx);
+    addBucket(context, classifyProfitCharge(tx), amount(tx), tx);
   });
+
+  addDerivedBusinessCharges(context, { animaux, lots, cultures, stocks, sante, alimentationLogs, fournisseurs, investissements, equipements, businessEvents });
 
   const lossEvents = arr(businessEvents).filter((event) => isLossEvent(event) && amount(event) > 0);
   lossEvents.forEach((event) => {
     const bucket = lossBucket(event);
-    const value = amount(event);
-    buckets[bucket] += value;
-    rowsByBucket[bucket].push({ ...event, type: 'sortie', categorie: 'perte_non_cash', profit_bucket: bucket });
+    addBucket(context, bucket, amount(event), { ...event, type: 'sortie', categorie: 'perte_non_cash', profit_bucket: bucket });
   });
 
   const directActivityCharges = buckets.animaux + buckets.avicole + buckets.cultures;
