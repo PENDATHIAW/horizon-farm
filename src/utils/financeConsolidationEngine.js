@@ -24,6 +24,80 @@ function keyForLossEvent(event = {}) {
   return [event.module || event.source_type || 'perte', event.source_id || event.source_record_id || event.related_id || event.id].map((v) => String(v || '').trim()).join(':');
 }
 
+const firstPositive = (...values) => values.map((value) => toNumber(value)).find((value) => value > 0) || 0;
+
+function animalCosts(animal = {}) {
+  const achat = firstPositive(animal.purchase_cost, animal.prix_achat, animal.cout_achat, animal.cost_purchase);
+  const alimentation = firstPositive(animal.alimentation, animal.cout_alimentation, animal.feed_cost, animal.cout_nourriture);
+  const sante = firstPositive(animal.sante, animal.cout_sante, animal.health_cost, animal.vet_cost);
+  const autres = firstPositive(animal.autres_frais, animal.frais_directs, animal.other_costs, animal.direct_costs);
+  const totalDirect = firstPositive(animal.cout_total, animal.total_cost, animal.cost_total);
+  const total = totalDirect > 0 ? Math.max(totalDirect, achat + alimentation + sante + autres) : achat + alimentation + sante + autres;
+  return { achat, alimentation, sante, autres, total };
+}
+
+function lotCosts(lot = {}) {
+  const poussins = firstPositive(lot.cout_poussins, lot.purchase_cost, lot.cout_achat, lot.cost_purchase);
+  const aliment = firstPositive(lot.cout_aliment, lot.alimentation, lot.cout_alimentation, lot.feed_cost);
+  const sante = firstPositive(lot.frais_sante, lot.cout_sante, lot.sante, lot.health_cost);
+  const pertes = firstPositive(lot.cout_pertes, lot.pertes_valeur, lot.loss_cost);
+  const autres = firstPositive(lot.autres_frais, lot.frais_directs, lot.other_costs);
+  const totalDirect = firstPositive(lot.cout_total, lot.total_cost, lot.cost_total);
+  const total = totalDirect > 0 ? Math.max(totalDirect, poussins + aliment + sante + pertes + autres) : poussins + aliment + sante + pertes + autres;
+  return { poussins, aliment, sante, pertes, autres, total };
+}
+
+function cultureCosts(culture = {}) {
+  const semences = firstPositive(culture.cout_semences, culture.semences_cost, culture.seed_cost);
+  const engrais = firstPositive(culture.cout_engrais, culture.engrais_cost, culture.fertilizer_cost);
+  const eau = firstPositive(culture.cout_eau, culture.cout_irrigation, culture.water_cost, culture.irrigation_cost);
+  const mainOeuvre = firstPositive(culture.cout_main_oeuvre, culture.cout_mo, culture.labor_cost);
+  const traitements = firstPositive(culture.cout_traitement, culture.cout_traitements, culture.treatment_cost);
+  const pertes = firstPositive(culture.cout_pertes, culture.pertes_valeur, culture.loss_cost);
+  const autres = firstPositive(culture.autres_frais, culture.frais_directs, culture.other_costs);
+  const totalDirect = firstPositive(culture.cout_total, culture.total_cost, culture.cost_total);
+  const total = totalDirect > 0 ? Math.max(totalDirect, semences + engrais + eau + mainOeuvre + traitements + pertes + autres) : semences + engrais + eau + mainOeuvre + traitements + pertes + autres;
+  return { semences, engrais, eau, mainOeuvre, traitements, pertes, autres, total };
+}
+
+function deriveBusinessCharges({ animaux = [], lots = [], cultures = [], stocks = [], fournisseurs = [], businessEvents = [] } = {}) {
+  const animalBreakdown = arr(animaux).map(animalCosts);
+  const lotBreakdown = arr(lots).map(lotCosts);
+  const cultureBreakdown = arr(cultures).map(cultureCosts);
+
+  const animalTotal = animalBreakdown.reduce((sum, item) => sum + item.total, 0);
+  const lotTotal = lotBreakdown.reduce((sum, item) => sum + item.total, 0);
+  const cultureTotal = cultureBreakdown.reduce((sum, item) => sum + item.total, 0);
+
+  const stockPurchases = arr(stocks).reduce((sum, item) => {
+    const value = firstPositive(item.valeur, item.valeur_stock, item.value, toNumber(item.quantite ?? item.quantity) * toNumber(item.prix_unitaire ?? item.prixUnit ?? item.prixunit ?? item.unit_price));
+    const isPurchaseOrInput = ['aliment', 'alimentation', 'intrant', 'engrais', 'semence', 'produit', 'achat', 'stock'].some((word) => clean(`${item.categorie || ''} ${item.category || ''} ${item.type || ''} ${item.produit || ''}`).includes(word));
+    return sum + (isPurchaseOrInput ? value : 0);
+  }, 0);
+
+  const supplierDebt = arr(fournisseurs).reduce((sum, supplier) => sum + firstPositive(supplier.dettes, supplier.dette, supplier.solde_du, supplier.montant_du), 0);
+  const eventCharges = arr(businessEvents).reduce((sum, event) => {
+    const kind = clean(`${event.type_evenement || ''} ${event.event_type || ''} ${event.title || ''} ${event.description || ''}`);
+    const looksLikeCost = ['charge', 'cout', 'coût', 'depense', 'dépense', 'perte', 'maintenance', 'sante', 'santé', 'aliment'].some((word) => kind.includes(word));
+    return sum + (looksLikeCost ? eventAmount(event) : 0);
+  }, 0);
+
+  return {
+    animaux: animalTotal,
+    avicole: lotTotal,
+    cultures: cultureTotal,
+    stockAchats: stockPurchases,
+    dettesFournisseurs: supplierDebt,
+    evenements: eventCharges,
+    total: animalTotal + lotTotal + cultureTotal + stockPurchases + supplierDebt + eventCharges,
+    details: {
+      animaux: animalBreakdown,
+      avicole: lotBreakdown,
+      cultures: cultureBreakdown,
+    },
+  };
+}
+
 export function paymentsForOrder(order = {}, payments = []) {
   const orderId = String(order.id || '');
   return arr(payments).filter((payment) => !isCancelled(payment) && String(paymentOrderId(payment) || '') === orderId);
@@ -51,11 +125,12 @@ export function calculateClientSettlement(client = {}, orders = [], payments = [
   return { clientId: client.id, orders: details, total, paid, remaining, openOrders: details.filter((item) => item.remaining > 0), status: remaining > 0 ? 'a_relancer' : total > 0 ? 'actif' : (client.statut || 'prospect') };
 }
 
-export function consolidateFinance({ transactions = [], salesOrders = [], payments = [], fournisseurs = [], stocks = [], businessEvents = [] } = {}) {
+export function consolidateFinance({ transactions = [], salesOrders = [], payments = [], fournisseurs = [], stocks = [], animaux = [], lots = [], cultures = [], businessEvents = [] } = {}) {
   const orders = arr(salesOrders).filter((order) => !isCancelled(order));
   const txRows = arr(transactions).filter((tx) => Math.abs(amountOf(tx)) > 0 && !isCancelled(tx));
   const paymentRows = arr(payments).filter((payment) => paymentAmount(payment) > 0 && !isCancelled(payment));
   const lossEvents = arr(businessEvents).filter((event) => isLossEvent(event) && eventAmount(event) > 0 && !isCancelled(event));
+  const derivedCharges = deriveBusinessCharges({ animaux, lots, cultures, stocks, fournisseurs, businessEvents });
   const lossEventMap = new Map();
   lossEvents.forEach((event) => {
     const key = keyForLossEvent(event);
@@ -81,7 +156,7 @@ export function consolidateFinance({ transactions = [], salesOrders = [], paymen
   const txReceivables = uniqueTransactions.filter(isReceivableTx).reduce((sum, tx) => sum + amountOf(tx), 0);
   const txExpenses = uniqueTransactions.filter(isOut).reduce((sum, tx) => sum + amountOf(tx), 0);
   const paidExpenses = uniqueTransactions.filter((tx) => isOut(tx) && isPaid(tx)).reduce((sum, tx) => sum + amountOf(tx), 0);
-  const supplierDebt = arr(fournisseurs).reduce((sum, supplier) => sum + toNumber(supplier.dettes), 0);
+  const supplierDebt = arr(fournisseurs).reduce((sum, supplier) => sum + toNumber(supplier.dettes ?? supplier.dette ?? supplier.solde_du ?? supplier.montant_du), 0);
   const stockValue = arr(stocks).reduce((sum, item) => sum + toNumber(item.quantite ?? item.quantity) * toNumber(item.prix_unitaire ?? item.prixUnit ?? item.prixunit ?? item.unit_price), 0);
   const orphanPayments = paymentRows.filter((payment) => !paymentOrderId(payment));
   const orphanPaymentsTotal = orphanPayments.reduce((sum, payment) => sum + paymentAmount(payment), 0);
@@ -89,8 +164,9 @@ export function consolidateFinance({ transactions = [], salesOrders = [], paymen
   const cashEncaisse = caFacture > 0 ? Math.min(caFacture, salesCashRaw) : salesCashRaw;
   const creancesReelles = Math.max(0, caFacture - cashEncaisse, creancesCommandes);
   const caConsolide = caFacture;
-  const chargesEngagees = txExpenses + lossCharges;
-  const chargesPayees = paidExpenses;
+  const chargesMetier = Math.max(txExpenses, derivedCharges.total);
+  const chargesEngagees = chargesMetier + lossCharges;
+  const chargesPayees = paidExpenses > 0 ? paidExpenses : Math.max(0, Math.min(chargesMetier, derivedCharges.total));
   const cashNet = cashEncaisse + otherCashIn + orphanPaymentsTotal - chargesPayees;
   const margeReelle = caConsolide - chargesEngagees;
   const warnings = [];
@@ -98,5 +174,30 @@ export function consolidateFinance({ transactions = [], salesOrders = [], paymen
   if (overpaidOrders > 0) warnings.push(`${overpaidOrders} FCFA d'encaissement dépasse le montant de commandes liées`);
   if (txReceivables > 0 && creancesCommandes > 0) warnings.push('Creances presentes dans commandes et transactions: anti-doublon applique');
   if (lossCharges > 0) warnings.push(`${lossCharges} FCFA de pertes consignées intégrées aux charges non cash`);
-  return { caFacture, caConsolide, cashEncaisse, otherCashIn, orphanPaymentsTotal, creancesReelles, chargesEngagees, chargesPayees, lossCharges, dettesFournisseurs: supplierDebt, stockValue, cashNet, margeReelle, marginRate: caConsolide > 0 ? Number(((margeReelle / caConsolide) * 100).toFixed(1)) : 0, orderSettlements, uniqueTransactions, uniqueLossEvents, orphanPayments, warnings };
+  if (txExpenses <= 0 && derivedCharges.total > 0) warnings.push('Charges Finance absentes: charges métier estimées depuis animaux, avicole, cultures, stock, fournisseurs ou événements');
+  if (derivedCharges.total <= 0 && (arr(animaux).length || arr(lots).length || arr(cultures).length || arr(stocks).length)) warnings.push('Charges métier à zéro malgré activités présentes: vérifier coûts achat, alimentation, santé, cultures, stock');
+  return {
+    caFacture,
+    caConsolide,
+    cashEncaisse,
+    otherCashIn,
+    orphanPaymentsTotal,
+    creancesReelles,
+    chargesEngagees,
+    chargesPayees,
+    chargesMetier,
+    chargesDerivees: derivedCharges.total,
+    chargesDeriveesDetail: derivedCharges,
+    lossCharges,
+    dettesFournisseurs: supplierDebt,
+    stockValue,
+    cashNet,
+    margeReelle,
+    marginRate: caConsolide > 0 ? Number(((margeReelle / caConsolide) * 100).toFixed(1)) : 0,
+    orderSettlements,
+    uniqueTransactions,
+    uniqueLossEvents,
+    orphanPayments,
+    warnings,
+  };
 }
