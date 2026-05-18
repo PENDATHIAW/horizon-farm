@@ -4,6 +4,7 @@ import { formSimulationScenarios } from '../audit/formSimulationScenarios';
 import { auditImprovementRules } from '../audit/auditImprovementRules';
 import { humanAiTesterMasterPrompt } from '../audit/humanAiTesterMasterPrompt';
 import { activeHorizonFarmAuditRules } from '../audit/activeHorizonFarmAuditRules';
+import { interconnectionAuditRules } from '../audit/interconnectionAuditRules';
 
 const severityClass = (severity = '') => {
   if (severity === 'critique') return 'border-red-200 bg-red-50 text-red-700';
@@ -70,6 +71,27 @@ export default function HumanUiAuditPanel() {
           <p className="mt-2 text-sm text-[#8a7456]">{rule.rule}</p>
           <MiniList title="Améliorations" items={rule.improvements || []} />
         </div>)}
+      </div>
+    </div>
+
+    <div className="rounded-3xl border border-red-200 bg-red-50 p-4">
+      <h3 className="font-black text-red-800 flex items-center gap-2"><Sparkles size={18} /> Vérifications interconnexions métier</h3>
+      <p className="mt-1 text-sm text-red-700">Ces règles contrôlent que les charges, coûts, ventes, documents, traces et fiches métier remontent au bon endroit.</p>
+      <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-3">
+        {interconnectionAuditRules.map((rule) => <article key={rule.id} className="rounded-2xl border border-red-200 bg-white p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="font-black text-[#2f2415]">{rule.module} · {rule.title}</p>
+              <p className="mt-2 text-sm text-[#8a7456]">{rule.rule}</p>
+            </div>
+            <span className={`rounded-full border px-2 py-1 text-xs font-black ${severityClass(rule.severity)}`}>{rule.severity}</span>
+          </div>
+          <div className="mt-3 grid grid-cols-1 gap-2">
+            <MiniList title="À vérifier" items={rule.verify || []} />
+            <MiniList title="Anomalies ciblées" items={rule.anomalies || []} />
+            <MiniList title="Améliorations" items={rule.improvements || []} />
+          </div>
+        </article>)}
       </div>
     </div>
 
