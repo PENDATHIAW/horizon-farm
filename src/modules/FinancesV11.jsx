@@ -13,7 +13,7 @@ const arr = (value) => Array.isArray(value) ? value : [];
 const amount = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?? row.montant_total ?? 0);
 const rowDate = (row = {}) => row.date || row.created_at || row.paid_at || row.date_paiement || new Date().toISOString();
 const isIn = (row = {}) => ['entree', 'entrée', 'income', 'in'].includes(String(row.type || '').toLowerCase());
-const isOut = (row = {}) => ['sortie', 'expense', 'out'].includes(String(row.type || '').toLowerCase());
+const isOut = (row = {}) => ['sortie', 'expense', 'out', 'charge', 'depense', 'dépense'].includes(String(row.type || '').toLowerCase());
 function monthKey(value) { return String(value || new Date().toISOString()).slice(0, 7); }
 function monthLabel(key) { const [, month] = String(key || '').split('-'); return ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'][Number(month || 1) - 1] || key; }
 function lastMonths(count = 6) { const base = new Date(); return Array.from({ length: count }).map((_, index) => { const d = new Date(base.getFullYear(), base.getMonth() - (count - 1 - index), 1); return d.toISOString().slice(0, 7); }); }
@@ -55,6 +55,37 @@ function FinanceEvolutionPanel({ transactions = [], salesOrders = [], payments =
   </div>;
 }
 
+function DerivedChargesPanel({ finance }) {
+  const detail = finance?.chargesDeriveesDetail || {};
+  const rows = [
+    ['Animaux', detail.animaux],
+    ['Avicole', detail.avicole],
+    ['Cultures', detail.cultures],
+    ['Santé', detail.sante],
+    ['Alimentation', detail.alimentation],
+    ['Stock / achats', detail.stockAchats],
+    ['Fournisseurs', detail.dettesFournisseurs],
+    ['Investissements', detail.investissements],
+    ['Équipements', detail.equipements],
+    ['Événements métier', detail.evenements],
+  ];
+  return <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+    <div className="flex items-start justify-between gap-3">
+      <div>
+        <p className="font-black text-red-800">Détail des charges consolidées</p>
+        <p className="text-sm text-red-700">Ces montants sont consolidés depuis les autres modules même si aucune écriture Finance manuelle n’existe encore.</p>
+      </div>
+      <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-red-700">{fmtCurrency(finance?.chargesDerivees || 0)}</span>
+    </div>
+    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-2">
+      {rows.map(([label, value]) => <div key={label} className="rounded-xl border border-red-100 bg-white p-3">
+        <p className="text-xs font-bold text-[#8a7456]">{label}</p>
+        <p className="mt-1 font-black text-[#2f2415]">{fmtCurrency(value || 0)}</p>
+      </div>)}
+    </div>
+  </div>;
+}
+
 export default function FinancesV11(props) {
   const businessEventsCrud = useCrudModule('business_events');
   const businessEvents = props.businessEvents?.length ? props.businessEvents : businessEventsCrud.rows;
@@ -64,8 +95,15 @@ export default function FinancesV11(props) {
     payments: props.payments || [],
     fournisseurs: props.fournisseurs || [],
     stocks: props.stocks || [],
+    animaux: props.animaux || [],
+    lots: props.lots || [],
+    cultures: props.cultures || [],
+    sante: props.sante || [],
+    alimentationLogs: props.alimentationLogs || [],
+    investissements: props.investissements || [],
+    equipements: props.equipements || [],
     businessEvents,
-  }), [props.rows, props.salesOrders, props.payments, props.fournisseurs, props.stocks, businessEvents]);
+  }), [props.rows, props.salesOrders, props.payments, props.fournisseurs, props.stocks, props.animaux, props.lots, props.cultures, props.sante, props.alimentationLogs, props.investissements, props.equipements, businessEvents]);
 
   const dataMap = {
     sales_orders: props.salesOrders || [],
@@ -75,6 +113,9 @@ export default function FinancesV11(props) {
     avicole: props.lots || [],
     cultures: props.cultures || [],
     stock: props.stocks || [],
+    sante: props.sante || [],
+    investissements: props.investissements || [],
+    equipements: props.equipements || [],
     business_events: businessEvents,
   };
 
@@ -100,11 +141,12 @@ export default function FinancesV11(props) {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
           <KpiCard icon={CreditCard} label="Cash encaissé" value={fmtCurrency(finance.cashEncaisse)} sub={`CA ${fmtCurrency(finance.caConsolide)}`} color="bg-sky-500/20 text-sky-500" />
           <KpiCard icon={Landmark} label="À encaisser" value={fmtCurrency(finance.creancesReelles)} sub="montants clients" color="bg-amber-500/20 text-amber-500" />
-          <KpiCard icon={TrendingDown} label="Charges" value={fmtCurrency(finance.chargesEngagees)} sub="sorties + pertes" color="bg-red-500/20 text-red-500" />
+          <KpiCard icon={TrendingDown} label="Charges" value={fmtCurrency(finance.chargesEngagees)} sub={`dérivées ${fmtCurrency(finance.chargesDerivees || 0)}`} color="bg-red-500/20 text-red-500" />
           <KpiCard icon={AlertTriangle} label="Pertes" value={fmtCurrency(finance.lossCharges || 0)} sub="non-cash intégrées" color="bg-red-500/20 text-red-500" />
           <KpiCard icon={TrendingUp} label="Marge" value={fmtCurrency(finance.margeReelle)} sub={`${finance.marginRate}%`} color={finance.margeReelle >= 0 ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'} />
         </div>
-        {finance.warnings?.length ? <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{finance.warnings.slice(0, 4).map((warning) => <div key={warning} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{warning}</div>)}</div> : null}
+        <DerivedChargesPanel finance={finance} />
+        {finance.warnings?.length ? <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{finance.warnings.slice(0, 6).map((warning) => <div key={warning} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{warning}</div>)}</div> : null}
       </ModuleSection>
 
       <ModuleSection
