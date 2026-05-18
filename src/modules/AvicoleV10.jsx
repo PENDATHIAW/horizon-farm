@@ -11,8 +11,6 @@ import AvicoleTransformationBridge from './AvicoleTransformationBridge.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
 
-const EGGS_PER_TABLET = 30;
-const DEFAULT_EGG_TABLET_PRICE = 2250;
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const num = (value = 0) => Number(value || 0);
 const today = () => new Date().toISOString().slice(0, 10);
@@ -24,77 +22,18 @@ const filterByActivity = (rows = [], activity) => {
   if (activity === 'chair') return rows.filter(isChair);
   return rows;
 };
-const mortalityOf = (lot = {}) => num(lot.mortality);
+const mortalityOf = (lot = {}) => num(lot.mortality ?? lot.morts ?? lot.dead_count);
 const initialOf = (lot = {}) => num(lot.initial_count ?? lot.effectif_initial);
 const mortalityRateOf = (lot = {}) => initialOf(lot) > 0 ? Math.round((mortalityOf(lot) / initialOf(lot)) * 100) : 0;
 const lossValueOf = (lot = {}) => num(lot.valeur_perte_estimee ?? lot.perte_estimee ?? lot.pertes_mortalite_estimees);
 const isLossClosedLot = (lot = {}) => ['perdu', 'perdu_mortalite', 'cloture_perte'].includes(norm(lot.status || lot.statut || '')) || (avicoleActiveCount(lot) <= 0 && initialOf(lot) > 0);
-const monthKey = (value = new Date()) => {
-  const date = value instanceof Date ? value : new Date(value || Date.now());
-  if (Number.isNaN(date.getTime())) return '';
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-};
-const logMonth = (row = {}) => String(row.date || row.created_at || row.updated_at || row.date_commande || row.date_paiement || '').slice(0, 7);
-const eggProduced = (row = {}) => num(row.oeufs_produits ?? row.eggs ?? row.total_oeufs ?? row.quantite ?? row.quantity);
-const eggBroken = (row = {}) => num(row.oeufs_casses ?? row.broken ?? row.casses ?? row.pertes);
-const money = (row = {}) => num(row.montant_total ?? row.total_ttc ?? row.total ?? row.amount ?? row.montant ?? row.prix_total ?? row.montant_paye ?? 0);
-const tabletPriceForLots = (lots = []) => {
-  const configured = lots.map((lot) => num(lot.prix_tablette_oeufs ?? lot.prix_tablette ?? lot.prix_vente_tablette ?? lot.egg_tablet_price)).find((value) => value > 0);
-  return configured || DEFAULT_EGG_TABLET_PRICE;
-};
-const isEggRevenueText = (row = {}) => {
-  const text = norm(`${row.activite || ''} ${row.source_module || ''} ${row.source_type || ''} ${row.type_vente || ''} ${row.product_type || ''} ${row.product_name || ''} ${row.produit || ''} ${row.libelle || ''} ${row.description || ''} ${row.title || ''} ${row.notes || ''}`);
-  return text.includes('oeuf') || text.includes('œuf') || text.includes('tablette') || text.includes('plateau') || text.includes('pondeuse') || text.includes('ponte');
-};
-const isFinanceIncome = (row = {}) => {
-  const text = norm(`${row.type || ''} ${row.nature || ''} ${row.category || ''} ${row.categorie || ''} ${row.libelle || ''} ${row.description || ''}`);
-  return text.includes('entree') || text.includes('entrée') || text.includes('revenu') || text.includes('encaisse') || text.includes('recette') || text.includes('vente');
-};
-const hasRealEggRevenue = ({ salesOrders = [], transactions = [], currentMonth = monthKey(new Date()) }) => {
-  const sales = salesOrders.some((row) => logMonth(row) === currentMonth && money(row) > 0 && isEggRevenueText(row));
-  const finance = transactions.some((row) => logMonth(row) === currentMonth && money(row) > 0 && isFinanceIncome(row) && isEggRevenueText(row));
-  return sales || finance;
-};
-const buildEggObjectiveRows = ({ lots = [], productionLogs = [], currentMonth = monthKey(new Date()) }) => {
-  const lotIds = new Set(lots.map((lot) => String(lot.id || '').trim()).filter(Boolean));
-  const monthLogs = productionLogs.filter((log) => {
-    const lotId = String(log.lot_id || log.related_id || log.source_record_id || log.entity_id || '').trim();
-    return lotIds.has(lotId) && logMonth(log) === currentMonth;
-  });
-  const sellableEggs = monthLogs.reduce((sum, log) => sum + Math.max(0, eggProduced(log) - eggBroken(log)), 0);
-  const tablets = Math.floor(sellableEggs / EGGS_PER_TABLET);
-  const remainingEggs = sellableEggs % EGGS_PER_TABLET;
-  const unitPrice = tabletPriceForLots(lots);
-  const estimatedAmount = tablets * unitPrice;
-  if (estimatedAmount <= 0) return [];
-  return [{
-    id: `OBJ-OEUFS-${currentMonth}`,
-    date: `${currentMonth}-15`,
-    created_at: `${currentMonth}-15T00:00:00.000Z`,
-    source_module: 'avicole',
-    source_type: 'oeufs_tablettes_estimees',
-    activite: 'oeufs',
-    product_name: `Tablettes d’œufs estimées (${fmtNumber(tablets)} tablette(s) + ${fmtNumber(remainingEggs)} œuf(s))`,
-    libelle: 'Valorisation mensuelle tablettes œufs pondeuses',
-    montant_total: estimatedAmount,
-    total: estimatedAmount,
-    amount: estimatedAmount,
-    tablettes: tablets,
-    oeufs_vendables: sellableEggs,
-    oeufs_restants: remainingEggs,
-    prix_unitaire_tablette: unitPrice,
-    statut: 'estime',
-  }];
-};
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
 }
-
 function Mini({ label, value, active = false }) {
   return <div className={`rounded-xl border p-3 ${active ? 'border-white/15 bg-white/10' : 'border-[#eadcc2] bg-[#fffdf8]'}`}><p className={`text-[10px] ${active ? 'text-white/60' : 'text-[#8a7456]'}`}>{label}</p><p className={`mt-1 font-black ${active ? 'text-white' : 'text-[#2f2415]'}`}>{value}</p></div>;
 }
-
 function ActivityEntryCard({ icon: Icon, active, title, subtitle, rows = [], productionLogs = [], action, onClick }) {
   const activeRows = rows.filter(avicoleHasActiveBirds);
   const historicalRows = rows.length - activeRows.length;
@@ -126,10 +65,6 @@ export default function AvicoleV10(props) {
   const activeScopedRows = useMemo(() => scopedRows.filter(avicoleHasActiveBirds), [scopedRows]);
   const historicalScopedRows = useMemo(() => scopedRows.filter((lot) => !avicoleHasActiveBirds(lot)), [scopedRows]);
   const scopedProductionLogs = useMemo(() => productionLogs.filter((log) => activity !== 'chair' || chair.some((lot) => String(lot.id) === String(log.lot_id || log.related_id))), [productionLogs, activity, chair]);
-  const currentMonth = monthKey(new Date());
-  const realEggRevenueExists = useMemo(() => hasRealEggRevenue({ salesOrders, transactions, currentMonth }), [salesOrders, transactions, currentMonth]);
-  const eggObjectiveRows = useMemo(() => realEggRevenueExists ? [] : buildEggObjectiveRows({ lots: pondeuses, productionLogs, currentMonth }), [realEggRevenueExists, pondeuses, productionLogs, currentMonth]);
-  const objectiveSalesOrders = useMemo(() => activity === 'pondeuse' && !realEggRevenueExists ? [...salesOrders, ...eggObjectiveRows] : salesOrders, [activity, realEggRevenueExists, salesOrders, eggObjectiveRows]);
 
   const createMortalityEvent = async (before = {}, after = {}, source = 'modification lot avicole') => {
     const mortalityIncreased = mortalityOf(after) > mortalityOf(before);
@@ -138,32 +73,17 @@ export default function AvicoleV10(props) {
     if (!mortalityIncreased && !valueIncreased && !becameClosed) return;
     const delta = Math.max(0, mortalityOf(after) - mortalityOf(before));
     try {
-      await props.onCreateBusinessEvent?.({
-        id: `EVT-AVI-${Date.now()}`,
-        module: 'avicole',
-        source_type: 'lot_avicole',
-        source_id: after.id,
-        title: `Pertes lot avicole · ${after.name || after.nom || after.id}`,
-        description: [`Source: ${source}`, `Type: ${after.type || after.categorie || activity}`, `Morts: ${mortalityOf(before)} → ${mortalityOf(after)}${delta ? ` (+${delta})` : ''}`, `Taux morts: ${mortalityRateOf(after)}%`, `Effectif actif: ${avicoleActiveCount(after)}`, `Valeur estimée: ${lossValueOf(before)} → ${lossValueOf(after)}`].join('\n'),
-        severity: isLossClosedLot(after) || mortalityRateOf(after) >= 5 ? 'critique' : 'warning',
-        status: 'nouveau',
-        date: today(),
-        type_evenement: 'perte_avicole',
-        montant: Math.max(0, lossValueOf(after) - lossValueOf(before)) || lossValueOf(after),
-      });
+      await props.onCreateBusinessEvent?.({ id: `EVT-AVI-${Date.now()}`, module: 'avicole', source_type: 'lot_avicole', source_id: after.id, title: `Pertes lot avicole · ${after.name || after.nom || after.id}`, description: [`Source: ${source}`, `Type: ${after.type || after.categorie || activity}`, `Morts: ${mortalityOf(before)} → ${mortalityOf(after)}${delta ? ` (+${delta})` : ''}`, `Taux morts: ${mortalityRateOf(after)}%`, `Effectif actif: ${avicoleActiveCount(after)}`, `Valeur estimée: ${lossValueOf(before)} → ${lossValueOf(after)}`].join('\n'), severity: isLossClosedLot(after) || mortalityRateOf(after) >= 5 ? 'critique' : 'warning', status: 'nouveau', date: today(), type_evenement: 'perte_avicole', montant: Math.max(0, lossValueOf(after) - lossValueOf(before)) || lossValueOf(after) });
       await props.onRefreshBusinessEvents?.();
-    } catch (error) {
-      console.warn('Perte avicole non consignée en événement', error);
-    }
+    } catch (error) { console.warn('Perte avicole non consignée en événement', error); }
   };
 
   const wrappedCreate = async (payload) => { await props.onCreate?.(payload); await createMortalityEvent({}, payload, 'création lot avicole'); };
   const wrappedUpdate = async (id, payload) => { const before = (props.rows || []).find((lot) => String(lot.id) === String(id)) || {}; const after = { ...before, ...payload, id }; await props.onUpdate?.(id, payload); await createMortalityEvent(before, after, 'modification fiche lot'); };
-
   const scopedOpportunities = (props.opportunities || []).filter((op) => activity === 'pondeuse' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('oeuf') || norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('pondeuse') : activity === 'chair' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('chair') : true);
   const operationalProps = { ...props, activity, lockActivity: true, rows: activeScopedRows, productionLogs: scopedProductionLogs, salesOrders, payments, transactions, businessEvents, onCreate: wrappedCreate, onUpdate: wrappedUpdate, opportunities: scopedOpportunities };
   const historyProps = { ...props, activity, lockActivity: true, rows: scopedRows, productionLogs: scopedProductionLogs, salesOrders, payments, transactions, businessEvents, onCreate: wrappedCreate, onUpdate: wrappedUpdate, opportunities: scopedOpportunities };
-  const dataMap = { sales_orders: objectiveSalesOrders, payments, finances: transactions, avicole: activeScopedRows, production_oeufs_logs: scopedProductionLogs, alimentation_logs: props.alimentationLogs || [], business_events: businessEvents };
+  const dataMap = { sales_orders: salesOrders, payments, finances: transactions, avicole: activeScopedRows, production_oeufs_logs: scopedProductionLogs, alimentation_logs: props.alimentationLogs || [], business_events: businessEvents };
   const selectedLabel = activity === 'pondeuse' ? 'Pondeuses' : 'Poulets de chair';
 
   return <div className="space-y-6 avicole-mobile-final">
@@ -188,6 +108,6 @@ export default function AvicoleV10(props) {
     {activity === 'pondeuse' ? <ModuleSection icon={Egg} title="Ponte, œufs et charges directes" subtitle="Ramassage, stock d’œufs vendables et frais ponctuels liés aux pondeuses actives."><AvicoleJournalsBridge {...operationalProps} rows={activeScopedRows} productionLogs={scopedProductionLogs} businessEvents={businessEvents} /><DirectChargesBridge title="Charges directes pondeuses" subtitle="Frais liés aux lots pondeuses actifs." targetType="avicole" targets={activeScopedRows} businessEvents={businessEvents} onCreateBusinessEvent={props.onCreateBusinessEvent} onUpdateBusinessEvent={props.onUpdateBusinessEvent} onDeleteBusinessEvent={props.onDeleteBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} /></ModuleSection> : null}
     {activity === 'chair' ? <ModuleSection icon={Scissors} title="Abattage, transformation et stock" subtitle="Sortie des sujets chair actifs, poids, transformation et stock viande vendable."><AvicoleTransformationBridge {...operationalProps} rows={activeScopedRows} alimentationLogs={props.alimentationLogs || []} productionLogs={scopedProductionLogs} businessEvents={businessEvents} /></ModuleSection> : null}
     <ModuleSection icon={ClipboardList} title={`Cycle et historique · ${selectedLabel}`} subtitle="Entrées, sorties, clôtures, ventes, effectifs à zéro et événements importants."><LifecycleHistoryPanel mode="avicole" rows={scopedRows} salesOrders={salesOrders} deliveries={props.deliveriesList || props.deliveries || []} businessEvents={businessEvents} /></ModuleSection>
-    <ModuleSection icon={BarChart3} title={`Évolution avicole · ${selectedLabel}`} subtitle={activity === 'pondeuse' ? 'Évolution ponte, coûts, production et mortalité, historique inclus.' : 'Évolution poids, coûts, ventes et mortalité, historique inclus.'}><AvicoleEvolution rows={scopedRows} productionLogs={scopedProductionLogs} alimentationLogs={props.alimentationLogs || []} businessEvents={businessEvents} salesOrders={salesOrders} payments={payments} transactions={transactions} opportunities={historyProps.opportunities || []} onNavigate={props.onNavigate} /></ModuleSection>
+    <ModuleSection icon={BarChart3} title={`Évolution avicole · ${selectedLabel}`} subtitle={activity === 'pondeuse' ? 'Lecture unique : ponte, tablettes, coûts réels, ventes, mortalité et marge.' : 'Lecture unique : poids, coûts réels, ventes, mortalité et marge.'}><AvicoleEvolution rows={scopedRows} productionLogs={scopedProductionLogs} alimentationLogs={props.alimentationLogs || []} businessEvents={businessEvents} salesOrders={salesOrders} payments={payments} transactions={transactions} opportunities={historyProps.opportunities || []} onNavigate={props.onNavigate} /></ModuleSection>
   </div>;
 }
