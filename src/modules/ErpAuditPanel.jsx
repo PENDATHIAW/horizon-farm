@@ -14,6 +14,7 @@ const monthOf = (row = {}) => String(row.date || row.date_commande || row.date_p
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 const amount = (row = {}) => n(row.montant_total ?? row.total ?? row.amount ?? row.montant ?? row.revenu_reel ?? row.revenu_estime);
 const paid = (row = {}) => n(row.montant_paye ?? row.amount ?? row.montant ?? row.paid_amount);
+const saleCost = (row = {}) => n(row.cout_revient ?? row.cout_direct ?? row.cout_total ?? row.cost_total ?? row.total_cost ?? row.purchase_cost ?? row.cout_achat ?? row.prix_achat);
 const orderIdOf = (row = {}) => String(row.order_id || row.sale_id || row.source_record_id || row.related_id || row.commande_id || '');
 const sourceIdOf = (row = {}) => String(row.source_id || row.related_id || row.entity_id || row.product_id || row.animal_id || '');
 const isAnimalSale = (row = {}) => /animal|bovin|ovin|caprin|bov|ov-|cap/.test(clean(`${row.source_type || ''} ${row.product_name || ''} ${row.source_id || ''} ${row.libelle || ''}`));
@@ -82,6 +83,8 @@ function buildAudit(data) {
   const animalCostsMissing = arr(data.animaux).filter((a) => costAnimal(a) <= 0).length;
   const lotsCostsMissing = arr(data.avicole).filter((l) => costLot(l) <= 0).length;
   const cultureCostsMissing = arr(data.cultures).filter((c) => costCulture(c) <= 0).length;
+  const salesWithoutCost = arr(data.sales_orders).filter((order) => amount(order) > 0 && saleCost(order) <= 0).length;
+  const salesImpossibleMargin = arr(data.sales_orders).filter((order) => amount(order) > 0 && saleCost(order) > amount(order) * 3).length;
   const soldAnimals = arr(data.animaux).filter((a) => clean(a.status || a.statut) === 'vendu');
   const soldAnimalsNoSale = soldAnimals.filter((animal) => !arr(data.sales_orders).some((order) => orderLinkedToAnimal(order, animal))).length;
   const animalWeighingGaps = arr(data.animaux).filter((a) => {
@@ -94,17 +97,20 @@ function buildAudit(data) {
 
   if (!arr(data.animaux).length) issues.push(issue('Animaux', 'bloquant', 'Aucun animal chargé', 'Le module Animaux ne peut pas être testé.', 'Vérifier données simulées / réelles.'));
   if (animalRevenue <= 0 && arr(data.sales_orders).some(isAnimalSale)) issues.push(issue('Objectifs', 'bloquant', 'CA animaux non reconnu', 'Des ventes animaux existent, mais le CA du mois n’est pas correctement attribué.', 'Corriger mapping sales_orders / finances / Objectifs.'));
-  if (animalCostsMissing) issues.push(issue('Animaux', 'a_corriger', 'Coûts animaux incomplets', `${animalCostsMissing} animal(aux) sans coût total exploitable.`, 'Afficher et renseigner achat + alimentation + santé + frais directs.'));
-  if (soldAnimalsNoSale) issues.push(issue('Animaux', 'a_corriger', 'Animaux vendus sans commande liée', `${soldAnimalsNoSale} animal(aux) vendu(s) sans commande détectée.`, 'Relier animal vendu → vente → paiement → comptabilité.'));
+  if (animalCostsMissing) issues.push(issue('Animaux', 'bloquant', 'Coûts animaux incomplets', `${animalCostsMissing} animal(aux) sans coût total exploitable.`, 'Renseigner achat + alimentation + santé + frais directs. Sans coût, la marge est invalide.'));
+  if (soldAnimalsNoSale) issues.push(issue('Animaux', 'bloquant', 'Animaux vendus sans commande liée', `${soldAnimalsNoSale} animal(aux) vendu(s) sans commande détectée.`, 'Relier animal vendu → vente → paiement → comptabilité.'));
   if (animalWeighingGaps) issues.push(issue('Animaux', 'a_corriger', 'Pesées non rigoureuses', `${animalWeighingGaps} animal(aux) ont un suivi poids absent ou supérieur à 15/20 jours.`, 'Créer pesée tous les 15 jours + tâche avant échéance.'));
 
   if (!arr(data.avicole).length) issues.push(issue('Avicole', 'bloquant', 'Aucun lot avicole chargé', 'Impossible de tester lots, chair, ponte et ventes.', 'Vérifier seed / chargement.'));
   if (avicoleRevenue <= 0 && arr(data.sales_orders).some(isAvicoleSale)) issues.push(issue('Objectifs', 'bloquant', 'CA avicole non reconnu', 'Des ventes avicoles existent, mais le réalisé peut rester à zéro.', 'Corriger attribution ventes œufs / chair.'));
-  if (lotsCostsMissing) issues.push(issue('Avicole', 'a_corriger', 'Coûts lots incomplets', `${lotsCostsMissing} lot(s) sans coût poussin/aliment/santé exploitable.`, 'Aligner coût lot et marge dans Avicole, Finances, Comptabilité.'));
+  if (lotsCostsMissing) issues.push(issue('Avicole', 'bloquant', 'Coûts lots incomplets', `${lotsCostsMissing} lot(s) sans coût poussin/aliment/santé exploitable.`, 'Aligner coût lot et marge dans Avicole, Finances, Comptabilité.'));
 
   if (!arr(data.cultures).length) issues.push(issue('Cultures', 'bloquant', 'Aucune culture chargée', 'Impossible de tester récoltes et ventes agricoles.', 'Vérifier données simulées.'));
   if (cultureRevenue <= 0 && arr(data.sales_orders).some(isCultureSale)) issues.push(issue('Objectifs', 'bloquant', 'CA cultures non reconnu', 'Des ventes cultures existent, mais le réalisé peut rester à zéro.', 'Corriger mapping culture → ventes → objectifs.'));
-  if (cultureCostsMissing) issues.push(issue('Cultures', 'a_corriger', 'Coûts cultures incomplets', `${cultureCostsMissing} culture(s) sans coûts détaillés exploitables.`, 'Renseigner semences, engrais, eau, main-d’œuvre, traitements, autres frais.'));
+  if (cultureCostsMissing) issues.push(issue('Cultures', 'bloquant', 'Coûts cultures incomplets', `${cultureCostsMissing} culture(s) sans coûts détaillés exploitables.`, 'Renseigner semences, engrais, eau, main-d’œuvre, traitements, autres frais.'));
+
+  if (salesWithoutCost) issues.push(issue('Ventes', 'bloquant', 'Coûts de vente absents', `${salesWithoutCost} commande(s) ont un prix de vente mais aucun coût direct exploitable.`, 'Relier chaque vente à son coût animal, lot avicole, culture ou stock. Sans coût, la marge doit rester invalide.'));
+  if (salesImpossibleMargin) issues.push(issue('Ventes', 'bloquant', 'Coûts de vente incohérents', `${salesImpossibleMargin} commande(s) ont un coût très supérieur au prix de vente.`, 'Vérifier unité, quantité, source du coût et calcul de marge.'));
 
   arr(data.sante).forEach((s) => {
     if (!s.type_intervention && !s.type && !s.intervention_type) issues.push(issue('Santé', 'a_corriger', 'Type intervention manquant', `Intervention ${s.id || s.nom || ''} sans type clair.`, 'Formulaire adaptatif obligatoire.'));
