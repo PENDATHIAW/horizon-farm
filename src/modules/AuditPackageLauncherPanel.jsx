@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import Btn from '../components/Btn';
 
 const PACKAGES = [
+  ['Lot 0 · Interconnexions globales', 'lot0_interconnexions_globales_v1'],
   ['Lot 1 · Bloquants revenus', 'lot1_bloquants_revenus_v1'],
   ['Lot 2 · Coûts et marges métier', 'lot2_couts_marges_metier_v1'],
   ['Lot 3 · Formulaires et UX', 'lot3_formulaires_ux_v1'],
