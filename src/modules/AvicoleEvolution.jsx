@@ -163,6 +163,10 @@ function EmptyState() {
 export default function AvicoleEvolution({ rows = [], productionLogs = [], alimentationLogs = [], opportunities = [], businessEvents = [], onNavigate }) {
   const activeRows = arr(rows).filter((row) => row?.id);
   const activeLotIds = new Set(activeRows.map((row) => String(row.id)));
+  const chairRows = filterLotsByActivity(activeRows, 'Chair');
+  const ponteRows = filterLotsByActivity(activeRows, 'Pondeuse');
+  const showChair = chairRows.length > 0;
+  const showPonte = ponteRows.length > 0;
   const linkedAlimentationLogs = arr(alimentationLogs).filter((log) => linkedToExistingLot(log, activeLotIds));
   const linkedProductionLogs = arr(productionLogs).filter((log) => linkedToExistingLot(log, activeLotIds));
   const linkedBusinessEvents = arr(businessEvents).filter((event) => {
@@ -173,26 +177,26 @@ export default function AvicoleEvolution({ rows = [], productionLogs = [], alime
   const chairCosts = costs.details.filter((item) => item.type === 'chair');
   const ponteCosts = costs.details.filter((item) => item.type === 'ponte');
   const realCostLots = costs.details.filter((item) => item.realFeedCost > 0).length;
-  const chair = buildChairMonthly({ rows: activeRows, alimentationLogs: linkedAlimentationLogs, opportunities });
-  const ponte = buildPonteMonthly({ rows: activeRows, productionLogs: linkedProductionLogs, alimentationLogs: linkedAlimentationLogs, opportunities });
+  const chair = showChair ? buildChairMonthly({ rows: activeRows, alimentationLogs: linkedAlimentationLogs, opportunities }) : [];
+  const ponte = showPonte ? buildPonteMonthly({ rows: activeRows, productionLogs: linkedProductionLogs, alimentationLogs: linkedAlimentationLogs, opportunities }) : [];
   const lastChair = chair[chair.length - 1] || {};
   const lastPonte = ponte[ponte.length - 1] || {};
   const readyLots = chair.reduce((sum, row) => sum + row.prets, 0);
-  const sickOrDead = chair.reduce((sum, row) => sum + row.malades + row.morts, 0);
+  const healthIssues = activeRows.reduce((sum, lot) => sum + deadCount(lot) + sickCount(lot), 0);
   const totalEggs = ponte.reduce((sum, row) => sum + row.oeufs, 0);
   const totalSellable = ponte.reduce((sum, row) => sum + row.vendables, 0);
-  const priority = !activeRows.length ? null : sickOrDead > 0 ? { module: 'sante', label: 'Traiter santé avicole' } : readyLots > 0 ? { module: 'ventes', label: 'Confirmer les ventes chair' } : { module: 'avicole', label: 'Mettre à jour pontes et pesées' };
+  const priority = !activeRows.length ? null : healthIssues > 0 ? { module: 'sante', label: 'Traiter santé avicole' } : readyLots > 0 ? { module: 'ventes', label: 'Confirmer les ventes chair' } : { module: 'avicole', label: showPonte ? 'Mettre à jour pontes' : 'Mettre à jour pesées chair' };
   const avgChairCostLive = average(chairCosts, 'costPerLiveSubject');
   const avgChairCostKg = average(chairCosts, 'costPerKg');
   const avgPonteCostEgg = average(ponteCosts, 'costPerEgg');
   const mortalityImpact = average(chairCosts, 'costPerLiveSubject') - average(chairCosts, 'costPerInitialSubject');
 
   return <div className="space-y-5">
-    <Header title="Évolution Avicole interactive" subtitle="Deux lectures séparées : Chair et Ponte, avec coûts par sujet, par kg viande et par œuf vendable." priority={priority} onNavigate={onNavigate} />
+    <Header title={showPonte && !showChair ? 'Évolution Pondeuses interactive' : showChair && !showPonte ? 'Évolution Chair interactive' : 'Évolution Avicole interactive'} subtitle={showPonte && !showChair ? 'Lecture pondeuses uniquement : coûts, ponte, œufs vendables, casse et marge.' : showChair && !showPonte ? 'Lecture poulets de chair uniquement : coûts, ventes, marge, poids et mortalité.' : 'Deux lectures séparées : Chair et Ponte.'} priority={priority} onNavigate={onNavigate} />
     {!activeRows.length ? <EmptyState /> : null}
-    <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4"><div className="grid grid-cols-2 lg:grid-cols-6 gap-3"><SmallMetric label="Coût moyen sujet chair" value={fmtCurrency(avgChairCostLive)} hint="coût / sujet vivant" /><SmallMetric label="Coût / kg poulet" value={fmtCurrency(avgChairCostKg)} hint="si abattage enregistré" /><SmallMetric label="Coût / œuf vendable" value={fmtCurrency(avgPonteCostEgg)} hint="ponte" /><SmallMetric label="Aliment réel" value={fmtCurrency(costs.realFeedCost)} hint={`${fmtNumber(realCostLots)}/${fmtNumber(costs.details.length)} lots`} /><SmallMetric label="Aliment estimé" value={fmtCurrency(costs.estimatedFeedCost)} hint="si pas de sortie réelle" /><SmallMetric label="Impact mortalité" value={fmtCurrency(Math.max(0, mortalityImpact))} hint="sur coût/sujet chair" danger={mortalityImpact > 0} /></div></div>
+    <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4"><div className="grid grid-cols-2 lg:grid-cols-6 gap-3">{showChair ? <><SmallMetric label="Coût moyen sujet chair" value={fmtCurrency(avgChairCostLive)} hint="coût / sujet vivant" /><SmallMetric label="Coût / kg poulet" value={fmtCurrency(avgChairCostKg)} hint="si abattage enregistré" /><SmallMetric label="Impact mortalité" value={fmtCurrency(Math.max(0, mortalityImpact))} hint="sur coût/sujet chair" danger={mortalityImpact > 0} /></> : null}{showPonte ? <SmallMetric label="Coût / œuf vendable" value={fmtCurrency(avgPonteCostEgg)} hint="ponte" /> : null}<SmallMetric label="Aliment réel" value={fmtCurrency(costs.realFeedCost)} hint={`${fmtNumber(realCostLots)}/${fmtNumber(costs.details.length)} lots`} /><SmallMetric label="Aliment estimé" value={fmtCurrency(costs.estimatedFeedCost)} hint="si pas de sortie réelle" /></div></div>
 
-    <section className="space-y-4">
+    {showChair ? <section className="space-y-4">
       <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4">
         <p className="font-black text-[#2f2415]">Évolution Chair</p>
         <p className="text-xs text-[#8a7456] mt-1">Poulets de chair : coûts, ventes, marge, poids moyen, mortalité et coût par sujet.</p>
@@ -207,9 +211,9 @@ export default function AvicoleEvolution({ rows = [], productionLogs = [], alime
       </div>
       <SmartEvolutionChart title="Chair — économie mensuelle" subtitle="Barres : charges, CA, marge. Courbes : poids moyen et mortalité. Clique sur la légende pour isoler une série." months={labels(chair)} leftUnit="FCFA" rightUnit="kg" series={[{ name: 'Charges aliments', type: 'bar', unit: 'FCFA', data: values(chair, 'charges_aliments') }, { name: 'Charges soins', type: 'bar', unit: 'FCFA', data: values(chair, 'charges_soins') }, { name: 'CA ventes chair', type: 'bar', unit: 'FCFA', data: values(chair, 'ca') }, { name: 'Marge chair', type: 'bar', unit: 'FCFA', data: values(chair, 'marge') }, { name: 'Poids moyen', type: 'line', axis: 'right', unit: 'kg', data: values(chair, 'poids_moyen') }]} />
       <SmartEvolutionChart title="Chair — performance opérationnelle" subtitle="Effectif, morts, malades, lots prêts et taux de mortalité. Les labels sont anti-chevauchement." months={labels(chair)} leftUnit="" rightUnit="%" series={[{ name: 'Effectif vivant', type: 'bar', data: values(chair, 'effectif') }, { name: 'Morts', type: 'bar', data: values(chair, 'morts') }, { name: 'Malades', type: 'bar', data: values(chair, 'malades') }, { name: 'Lots prêts', type: 'bar', data: values(chair, 'prets') }, { name: 'Taux mortalité', type: 'line', axis: 'right', unit: '%', data: values(chair, 'taux_mortalite') }]} />
-    </section>
+    </section> : null}
 
-    <section className="space-y-4">
+    {showPonte ? <section className="space-y-4">
       <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4">
         <p className="font-black text-[#2f2415]">Évolution Ponte</p>
         <p className="text-xs text-[#8a7456] mt-1">Pondeuses : coûts, CA œufs, marge, production, vendables, taux de ponte et coût par œuf.</p>
@@ -224,9 +228,9 @@ export default function AvicoleEvolution({ rows = [], productionLogs = [], alime
       </div>
       <SmartEvolutionChart title="Ponte — économie mensuelle" subtitle="Barres : charges, CA œufs, marge. Courbes : taux de ponte et taux de casse." months={labels(ponte)} leftUnit="FCFA" rightUnit="%" series={[{ name: 'Charges aliments ponte', type: 'bar', unit: 'FCFA', data: values(ponte, 'charges_aliments') }, { name: 'Charges soins ponte', type: 'bar', unit: 'FCFA', data: values(ponte, 'charges_soins') }, { name: 'CA œufs', type: 'bar', unit: 'FCFA', data: values(ponte, 'ca') }, { name: 'Marge ponte', type: 'bar', unit: 'FCFA', data: values(ponte, 'marge') }, { name: 'Taux ponte', type: 'line', axis: 'right', unit: '%', data: values(ponte, 'taux_ponte') }, { name: 'Taux casse', type: 'line', axis: 'right', unit: '%', data: values(ponte, 'taux_casse') }]} />
       <SmartEvolutionChart title="Ponte — production mensuelle" subtitle="Œufs produits, vendables, casses et effectif pondeuses." months={labels(ponte)} leftUnit="" rightUnit="%" series={[{ name: 'Œufs produits', type: 'bar', data: values(ponte, 'oeufs') }, { name: 'Œufs vendables', type: 'bar', data: values(ponte, 'vendables') }, { name: 'Casses', type: 'bar', data: values(ponte, 'casses') }, { name: 'Pondeuses actives', type: 'line', data: values(ponte, 'pondeuses') }, { name: 'Taux ponte', type: 'line', axis: 'right', unit: '%', data: values(ponte, 'taux_ponte') }]} />
-    </section>
+    </section> : null}
 
-    <div className="bg-[#fffdf8] border border-[#d6c3a0] rounded-2xl p-4 text-sm text-[#7d6a4a] flex items-start gap-3"><TrendingUp size={18} className="text-[#9a6b12] mt-0.5" /><div><b className="text-[#2f2415]">Interprétation :</b> {!activeRows.length ? 'Aucun lot actif. Les anciens logs restent archivés mais ne sont pas repris dans cette vue.' : realCostLots < costs.details.length ? `Coût réel disponible pour ${fmtNumber(realCostLots)}/${fmtNumber(costs.details.length)} lot(s), estimation utilisée pour les autres.` : sickOrDead > 0 ? `${fmtNumber(sickOrDead)} point(s) santé/mortalité à traiter.` : readyLots > 0 ? `${fmtNumber(readyLots)} lot(s) chair à convertir en ventes.` : 'Compléter les coûts et ventes liées pour affiner les marges.'}</div></div>
-    {priority ? <div className={`${sickOrDead ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'} border rounded-2xl p-4 text-sm flex items-start justify-between gap-3`}><div className="flex items-start gap-2"><ShoppingBag size={18} className="mt-0.5" /><div><b>Action recommandée :</b> {priority.label}.</div></div><button type="button" onClick={() => onNavigate?.(priority.module)} className="shrink-0 rounded-xl bg-white/70 border border-current/10 px-3 py-1.5 text-xs font-bold">Ouvrir</button></div> : null}
+    <div className="bg-[#fffdf8] border border-[#d6c3a0] rounded-2xl p-4 text-sm text-[#7d6a4a] flex items-start gap-3"><TrendingUp size={18} className="text-[#9a6b12] mt-0.5" /><div><b className="text-[#2f2415]">Interprétation :</b> {!activeRows.length ? 'Aucun lot actif. Les anciens logs restent archivés mais ne sont pas repris dans cette vue.' : realCostLots < costs.details.length ? `Coût réel disponible pour ${fmtNumber(realCostLots)}/${fmtNumber(costs.details.length)} lot(s), estimation utilisée pour les autres.` : healthIssues > 0 ? `${fmtNumber(healthIssues)} point(s) santé/mortalité à traiter.` : showChair && readyLots > 0 ? `${fmtNumber(readyLots)} lot(s) chair à convertir en ventes.` : showPonte ? 'Vue pondeuses cohérente : suivre ponte, casses, aliment et marge œufs.' : 'Compléter les coûts et ventes liées pour affiner les marges.'}</div></div>
+    {priority ? <div className={`${healthIssues ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'} border rounded-2xl p-4 text-sm flex items-start justify-between gap-3`}><div className="flex items-start gap-2"><ShoppingBag size={18} className="mt-0.5" /><div><b>Action recommandée :</b> {priority.label}.</div></div><button type="button" onClick={() => onNavigate?.(priority.module)} className="shrink-0 rounded-xl bg-white/70 border border-current/10 px-3 py-1.5 text-xs font-bold">Ouvrir</button></div> : null}
   </div>;
 }
