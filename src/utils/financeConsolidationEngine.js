@@ -67,12 +67,6 @@ function investmentCost(row = {}) {
   return firstPositive(row.montant, row.amount, row.total, row.cout, row.coût, row.budget, row.cost, row.prix, row.price);
 }
 
-function equipmentCost(row = {}) {
-  const repair = firstPositive(row.cout_reparation, row.repair_cost, row.maintenance_cost, row.cout_maintenance);
-  const purchase = firstPositive(row.prix_achat, row.purchase_cost, row.cout_achat, row.cost_purchase);
-  return repair + purchase;
-}
-
 function stockValueOf(item = {}) {
   return firstPositive(
     item.valeur,
@@ -83,51 +77,30 @@ function stockValueOf(item = {}) {
   );
 }
 
-function deriveBusinessCharges({ animaux = [], lots = [], cultures = [], stocks = [], fournisseurs = [], sante = [], alimentationLogs = [], investissements = [], equipements = [], businessEvents = [] } = {}) {
+function deriveBusinessCharges({ animaux = [], lots = [], cultures = [], stocks = [], fournisseurs = [], sante = [], alimentationLogs = [], investissements = [], businessEvents = [] } = {}) {
   const animalBreakdown = arr(animaux).map(animalCosts);
   const lotBreakdown = arr(lots).map(lotCosts);
   const cultureBreakdown = arr(cultures).map(cultureCosts);
-
   const animalTotal = animalBreakdown.reduce((sum, item) => sum + item.total, 0);
   const lotTotal = lotBreakdown.reduce((sum, item) => sum + item.total, 0);
   const cultureTotal = cultureBreakdown.reduce((sum, item) => sum + item.total, 0);
-
   const stockPurchases = arr(stocks).reduce((sum, item) => {
     const value = stockValueOf(item);
     const isPurchaseOrInput = ['aliment', 'alimentation', 'intrant', 'engrais', 'semence', 'produit', 'achat', 'stock'].some((word) => clean(`${item.categorie || ''} ${item.category || ''} ${item.type || ''} ${item.produit || ''} ${item.nom || ''}`).includes(word));
     return sum + (isPurchaseOrInput ? value : 0);
   }, 0);
-
   const healthTotal = arr(sante).reduce((sum, row) => sum + healthCost(row), 0);
   const alimentationTotal = arr(alimentationLogs).reduce((sum, row) => sum + firstPositive(row.cout, row.coût, row.montant, row.amount, row.total, row.cout_total), 0);
   const investmentTotal = arr(investissements).reduce((sum, row) => sum + investmentCost(row), 0);
-  const equipmentTotal = arr(equipements).reduce((sum, row) => sum + equipmentCost(row), 0);
   const supplierDebt = arr(fournisseurs).reduce((sum, supplier) => sum + firstPositive(supplier.dettes, supplier.dette, supplier.solde_du, supplier.montant_du), 0);
   const eventCharges = arr(businessEvents).reduce((sum, event) => {
+    if (isLossEvent(event)) return sum;
     const kind = clean(`${event.type_evenement || ''} ${event.event_type || ''} ${event.title || ''} ${event.description || ''}`);
-    const looksLikeCost = ['charge', 'cout', 'coût', 'depense', 'dépense', 'perte', 'maintenance', 'sante', 'santé', 'aliment', 'investissement'].some((word) => kind.includes(word));
+    const looksLikeCost = ['charge', 'cout', 'coût', 'depense', 'dépense', 'maintenance', 'sante', 'santé', 'aliment', 'investissement'].some((word) => kind.includes(word));
     return sum + (looksLikeCost ? eventAmount(event) : 0);
   }, 0);
-
-  const total = animalTotal + lotTotal + cultureTotal + stockPurchases + healthTotal + alimentationTotal + investmentTotal + equipmentTotal + supplierDebt + eventCharges;
-  return {
-    animaux: animalTotal,
-    avicole: lotTotal,
-    cultures: cultureTotal,
-    stockAchats: stockPurchases,
-    sante: healthTotal,
-    alimentation: alimentationTotal,
-    investissements: investmentTotal,
-    equipements: equipmentTotal,
-    dettesFournisseurs: supplierDebt,
-    evenements: eventCharges,
-    total,
-    details: {
-      animaux: animalBreakdown,
-      avicole: lotBreakdown,
-      cultures: cultureBreakdown,
-    },
-  };
+  const total = animalTotal + lotTotal + cultureTotal + stockPurchases + healthTotal + alimentationTotal + investmentTotal + supplierDebt + eventCharges;
+  return { animaux: animalTotal, avicole: lotTotal, cultures: cultureTotal, stockAchats: stockPurchases, sante: healthTotal, alimentation: alimentationTotal, investissements: investmentTotal, dettesFournisseurs: supplierDebt, evenements: eventCharges, total, details: { animaux: animalBreakdown, avicole: lotBreakdown, cultures: cultureBreakdown } };
 }
 
 export function paymentsForOrder(order = {}, payments = []) {
@@ -157,12 +130,12 @@ export function calculateClientSettlement(client = {}, orders = [], payments = [
   return { clientId: client.id, orders: details, total, paid, remaining, openOrders: details.filter((item) => item.remaining > 0), status: remaining > 0 ? 'a_relancer' : total > 0 ? 'actif' : (client.statut || 'prospect') };
 }
 
-export function consolidateFinance({ transactions = [], salesOrders = [], payments = [], fournisseurs = [], stocks = [], animaux = [], lots = [], cultures = [], sante = [], alimentationLogs = [], investissements = [], equipements = [], businessEvents = [] } = {}) {
+export function consolidateFinance({ transactions = [], salesOrders = [], payments = [], fournisseurs = [], stocks = [], animaux = [], lots = [], cultures = [], sante = [], alimentationLogs = [], investissements = [], businessEvents = [] } = {}) {
   const orders = arr(salesOrders).filter((order) => !isCancelled(order));
   const txRows = arr(transactions).filter((tx) => Math.abs(amountOf(tx)) > 0 && !isCancelled(tx));
   const paymentRows = arr(payments).filter((payment) => paymentAmount(payment) > 0 && !isCancelled(payment));
   const lossEvents = arr(businessEvents).filter((event) => isLossEvent(event) && eventAmount(event) > 0 && !isCancelled(event));
-  const derivedCharges = deriveBusinessCharges({ animaux, lots, cultures, stocks, fournisseurs, sante, alimentationLogs, investissements, equipements, businessEvents });
+  const derivedCharges = deriveBusinessCharges({ animaux, lots, cultures, stocks, fournisseurs, sante, alimentationLogs, investissements, businessEvents });
   const lossEventMap = new Map();
   lossEvents.forEach((event) => {
     const key = keyForLossEvent(event);
@@ -206,8 +179,8 @@ export function consolidateFinance({ transactions = [], salesOrders = [], paymen
   if (overpaidOrders > 0) warnings.push(`${overpaidOrders} FCFA d'encaissement dépasse le montant de commandes liées`);
   if (txReceivables > 0 && creancesCommandes > 0) warnings.push('Creances presentes dans commandes et transactions: anti-doublon applique');
   if (lossCharges > 0) warnings.push(`${lossCharges} FCFA de pertes consignées intégrées aux charges non cash`);
-  if (txExpenses <= 0 && derivedCharges.total > 0) warnings.push('Charges Finance absentes: charges métier estimées depuis animaux, avicole, cultures, santé, alimentation, stock, fournisseurs, investissements ou équipements');
-  if (derivedCharges.total <= 0 && (arr(animaux).length || arr(lots).length || arr(cultures).length || arr(stocks).length || arr(sante).length || arr(alimentationLogs).length || arr(investissements).length || arr(equipements).length)) warnings.push('Charges métier à zéro malgré activités présentes: vérifier coûts achat, alimentation, santé, cultures, stock, investissements et équipements');
+  if (txExpenses <= 0 && derivedCharges.total > 0) warnings.push('Charges Finance absentes: charges métier estimées depuis animaux, avicole, cultures, santé, alimentation, stock, fournisseurs ou investissements');
+  if (derivedCharges.total <= 0 && (arr(animaux).length || arr(lots).length || arr(cultures).length || arr(stocks).length || arr(sante).length || arr(alimentationLogs).length || arr(investissements).length)) warnings.push('Charges métier à zéro malgré activités présentes: vérifier coûts achat, alimentation, santé, cultures, stock et investissements');
   return {
     caFacture,
     caConsolide,
