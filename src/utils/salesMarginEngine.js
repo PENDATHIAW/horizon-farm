@@ -55,13 +55,47 @@ function cultureUnitCost(culture = {}) {
   return harvested > 0 ? totalCost / harvested : 0;
 }
 
+function reliabilityFromCost({ sale = 0, cost = 0, costSource = '', sourceLabel = '' }) {
+  const missingCost = sale > 0 && cost <= 0;
+  const impossibleCost = sale > 0 && cost > sale * 3;
+  const unavailable = costSource.includes('indisponible') || missingCost;
+  const status = unavailable ? 'cout_absent' : impossibleCost ? 'cout_a_verifier' : 'fiable';
+  const warning = unavailable
+    ? 'Coût non renseigné : marge non fiable. Renseigner le coût avant décision.'
+    : impossibleCost
+      ? 'Coût très supérieur au prix de vente : vérifier unité, quantité ou source de coût.'
+      : '';
+  return { margin_reliable: status === 'fiable', margin_status: status, margin_warning: warning, cout_a_completer: unavailable, cout_a_verifier: impossibleCost, source_label: sourceLabel };
+}
+
 function marginResult({ saleAmount = 0, paidAmount = 0, directCost = 0, costSource = 'cout_indisponible', sourceLabel = '' }) {
-  const sale = toNumber(saleAmount);
+  const sale = Math.max(0, toNumber(saleAmount));
   const paid = Math.min(sale || Number.MAX_SAFE_INTEGER, Math.max(0, toNumber(paidAmount)));
-  const cost = toNumber(directCost);
-  const margin = sale - cost;
-  const cashMargin = paid - cost;
-  return { chiffre_affaires: sale, montant_encaisse: paid, cout_revient: cost, cout_direct: cost, cout_source: costSource, marge_directe: margin, marge_montant: margin, marge: margin, marge_cash: cashMargin, taux_marge_directe: sale > 0 ? Number(((margin / sale) * 100).toFixed(1)) : 0, marge_taux: sale > 0 ? Number(((margin / sale) * 100).toFixed(1)) : 0, taux_marge_cash: paid > 0 ? Number(((cashMargin / paid) * 100).toFixed(1)) : 0, source_label: sourceLabel };
+  const cost = Math.max(0, toNumber(directCost));
+  const reliability = reliabilityFromCost({ sale, cost, costSource, sourceLabel });
+
+  // Règle métier : si le coût manque, ne pas afficher une fausse marge positive.
+  // La marge reste calculable techniquement, mais elle est marquée non fiable et à compléter.
+  const margin = reliability.cout_a_completer ? 0 : sale - cost;
+  const cashMargin = reliability.cout_a_completer ? 0 : paid - cost;
+  const marginRate = reliability.cout_a_completer || sale <= 0 ? 0 : Number(((margin / sale) * 100).toFixed(1));
+  const cashMarginRate = reliability.cout_a_completer || paid <= 0 ? 0 : Number(((cashMargin / paid) * 100).toFixed(1));
+
+  return {
+    chiffre_affaires: sale,
+    montant_encaisse: paid,
+    cout_revient: cost,
+    cout_direct: cost,
+    cout_source: costSource,
+    marge_directe: margin,
+    marge_montant: margin,
+    marge: margin,
+    marge_cash: cashMargin,
+    taux_marge_directe: marginRate,
+    marge_taux: marginRate,
+    taux_marge_cash: cashMarginRate,
+    ...reliability,
+  };
 }
 
 export function calculateSalesMargin(input = {}, context = {}) {
@@ -88,7 +122,7 @@ export function calculateSalesMargin(input = {}, context = {}) {
       const cost = calculateAnimalCost({ animal, alimentationLogs: context.alimentationLogs, vaccins: context.vaccins, healthEvents: context.businessEvents, slaughterEvents: context.businessEvents, directCharges: context.businessEvents });
       const byKg = unit.includes('kg') && cost.costPerKg > 0;
       const directCost = byKg ? cost.costPerKg * quantity : cost.totalCost;
-      return marginResult({ saleAmount, paidAmount, directCost, costSource: cost.feedCostSource === 'reel' ? 'cout_animal_reel' : 'cout_animal_estime', sourceLabel: animal.name || animal.tag || animal.id });
+      return marginResult({ saleAmount, paidAmount, directCost, costSource: directCost > 0 ? (cost.feedCostSource === 'reel' ? 'cout_animal_reel' : 'cout_animal_estime') : 'cout_animal_indisponible', sourceLabel: animal.name || animal.tag || animal.id });
     }
   }
 
@@ -101,7 +135,7 @@ export function calculateSalesMargin(input = {}, context = {}) {
       else if ((product.includes('oeuf') || product.includes('œuf')) && cost.costPerEgg > 0) directCost = cost.costPerEgg * quantity;
       else if (cost.costPerProducedSubject > 0) directCost = cost.costPerProducedSubject * quantity;
       else if (cost.costPerLiveSubject > 0) directCost = cost.costPerLiveSubject * quantity;
-      return marginResult({ saleAmount, paidAmount, directCost, costSource: cost.feedCostSource === 'reel' ? 'cout_lot_reel' : 'cout_lot_estime', sourceLabel: lot.name || lot.id });
+      return marginResult({ saleAmount, paidAmount, directCost, costSource: directCost > 0 ? (cost.feedCostSource === 'reel' ? 'cout_lot_reel' : 'cout_lot_estime') : 'cout_lot_indisponible', sourceLabel: lot.name || lot.id });
     }
   }
 
@@ -111,7 +145,7 @@ export function calculateSalesMargin(input = {}, context = {}) {
       const unitCost = cultureUnitCost(culture);
       const totalCost = cultureTotalCost(culture);
       const directCost = unitCost > 0 ? unitCost * quantity : totalCost;
-      return marginResult({ saleAmount, paidAmount, directCost, costSource: unitCost > 0 ? 'cout_culture_unitaire' : 'cout_culture_total', sourceLabel: culture.nom || culture.type || culture.id });
+      return marginResult({ saleAmount, paidAmount, directCost, costSource: directCost > 0 ? (unitCost > 0 ? 'cout_culture_unitaire' : 'cout_culture_total') : 'cout_culture_indisponible', sourceLabel: culture.nom || culture.type || culture.id });
     }
   }
 
@@ -121,7 +155,27 @@ export function calculateSalesMargin(input = {}, context = {}) {
 
 export function enrichWithSalesMargin(input = {}, context = {}) {
   const margin = calculateSalesMargin(input, context);
-  return { ...input, chiffre_affaires: margin.chiffre_affaires, montant_encaisse: margin.montant_encaisse, cout_revient: margin.cout_revient, cout_direct: margin.cout_direct, cout_source: margin.cout_source, marge_directe: margin.marge_directe, marge_montant: margin.marge_montant, marge: margin.marge, marge_cash: margin.marge_cash, taux_marge_directe: margin.taux_marge_directe, marge_taux: margin.marge_taux, taux_marge_cash: margin.taux_marge_cash, marge_calculee_at: new Date().toISOString() };
+  return {
+    ...input,
+    chiffre_affaires: margin.chiffre_affaires,
+    montant_encaisse: margin.montant_encaisse,
+    cout_revient: margin.cout_revient,
+    cout_direct: margin.cout_direct,
+    cout_source: margin.cout_source,
+    cout_a_completer: margin.cout_a_completer,
+    cout_a_verifier: margin.cout_a_verifier,
+    margin_reliable: margin.margin_reliable,
+    margin_status: margin.margin_status,
+    margin_warning: margin.margin_warning,
+    marge_directe: margin.marge_directe,
+    marge_montant: margin.marge_montant,
+    marge: margin.marge,
+    marge_cash: margin.marge_cash,
+    taux_marge_directe: margin.taux_marge_directe,
+    marge_taux: margin.marge_taux,
+    taux_marge_cash: margin.taux_marge_cash,
+    marge_calculee_at: new Date().toISOString(),
+  };
 }
 
 export function summarizeSalesMargins(rows = [], context = {}) {
@@ -129,7 +183,10 @@ export function summarizeSalesMargins(rows = [], context = {}) {
   const ca = details.reduce((sum, row) => sum + toNumber(row.chiffre_affaires), 0);
   const encaisse = details.reduce((sum, row) => sum + toNumber(row.montant_encaisse), 0);
   const directCost = details.reduce((sum, row) => sum + toNumber(row.cout_revient), 0);
-  const margin = ca - directCost;
-  const cashMargin = encaisse - directCost;
-  return { details, ca, encaisse, directCost, margin, cashMargin, marginRate: ca > 0 ? Number(((margin / ca) * 100).toFixed(1)) : 0, cashMarginRate: encaisse > 0 ? Number(((cashMargin / encaisse) * 100).toFixed(1)) : 0 };
+  const reliableDetails = details.filter((row) => row.margin_reliable !== false);
+  const margin = reliableDetails.reduce((sum, row) => sum + toNumber(row.marge_directe), 0);
+  const cashMargin = reliableDetails.reduce((sum, row) => sum + toNumber(row.marge_cash), 0);
+  const missingCost = details.filter((row) => row.cout_a_completer).length;
+  const costToVerify = details.filter((row) => row.cout_a_verifier).length;
+  return { details, ca, encaisse, directCost, margin, cashMargin, missingCost, costToVerify, marginRate: ca > 0 ? Number(((margin / ca) * 100).toFixed(1)) : 0, cashMarginRate: encaisse > 0 ? Number(((cashMargin / encaisse) * 100).toFixed(1)) : 0 };
 }
