@@ -32,6 +32,10 @@ function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
 }
 
+function Mini({ label, value, active = false }) {
+  return <div className={`rounded-xl border p-3 ${active ? 'border-white/15 bg-white/10' : 'border-[#eadcc2] bg-[#fffdf8]'}`}><p className={`text-[10px] ${active ? 'text-white/60' : 'text-[#8a7456]'}`}>{label}</p><p className={`mt-1 font-black ${active ? 'text-white' : 'text-[#2f2415]'}`}>{value}</p></div>;
+}
+
 function ActivityEntryCard({ icon: Icon, active, title, subtitle, rows = [], productionLogs = [], action, onClick }) {
   const activeRows = rows.filter(avicoleHasActiveBirds);
   const effectif = activeRows.reduce((sum, lot) => sum + avicoleActiveCount(lot), 0);
@@ -48,14 +52,14 @@ function ActivityEntryCard({ icon: Icon, active, title, subtitle, rows = [], pro
   </button>;
 }
 
-function Mini({ label, value, active = false }) {
-  return <div className={`rounded-xl border p-3 ${active ? 'border-white/15 bg-white/10' : 'border-[#eadcc2] bg-[#fffdf8]'}`}><p className={`text-[10px] ${active ? 'text-white/60' : 'text-[#8a7456]'}`}>{label}</p><p className={`mt-1 font-black ${active ? 'text-white' : 'text-[#2f2415]'}`}>{value}</p></div>;
-}
-
 export default function AvicoleV10(props) {
   const [activity, setActivity] = useState('pondeuse');
   const rows = props.rows || [];
   const productionLogs = props.productionLogs || [];
+  const salesOrders = props.salesOrders || [];
+  const payments = props.payments || [];
+  const transactions = props.transactions || [];
+  const businessEvents = props.businessEvents || [];
   const pondeuses = useMemo(() => rows.filter(isPondeuse), [rows]);
   const chair = useMemo(() => rows.filter(isChair), [rows]);
   const scopedRows = useMemo(() => filterByActivity(rows, activity), [rows, activity]);
@@ -74,14 +78,7 @@ export default function AvicoleV10(props) {
         source_type: 'lot_avicole',
         source_id: after.id,
         title: `Pertes lot avicole · ${after.name || after.nom || after.id}`,
-        description: [
-          `Source: ${source}`,
-          `Type: ${after.type || after.categorie || activity}`,
-          `Morts: ${mortalityOf(before)} → ${mortalityOf(after)}${delta ? ` (+${delta})` : ''}`,
-          `Taux morts: ${mortalityRateOf(after)}%`,
-          `Effectif actif: ${avicoleActiveCount(after)}`,
-          `Valeur estimée: ${lossValueOf(before)} → ${lossValueOf(after)}`,
-        ].join('\n'),
+        description: [`Source: ${source}`, `Type: ${after.type || after.categorie || activity}`, `Morts: ${mortalityOf(before)} → ${mortalityOf(after)}${delta ? ` (+${delta})` : ''}`, `Taux morts: ${mortalityRateOf(after)}%`, `Effectif actif: ${avicoleActiveCount(after)}`, `Valeur estimée: ${lossValueOf(before)} → ${lossValueOf(after)}`].join('\n'),
         severity: isLossClosedLot(after) || mortalityRateOf(after) >= 5 ? 'critique' : 'warning',
         status: 'nouveau',
         date: today(),
@@ -94,20 +91,11 @@ export default function AvicoleV10(props) {
     }
   };
 
-  const wrappedCreate = async (payload) => {
-    await props.onCreate?.(payload);
-    await createMortalityEvent({}, payload, 'création lot avicole');
-  };
+  const wrappedCreate = async (payload) => { await props.onCreate?.(payload); await createMortalityEvent({}, payload, 'création lot avicole'); };
+  const wrappedUpdate = async (id, payload) => { const before = (props.rows || []).find((lot) => String(lot.id) === String(id)) || {}; const after = { ...before, ...payload, id }; await props.onUpdate?.(id, payload); await createMortalityEvent(before, after, 'modification fiche lot'); };
 
-  const wrappedUpdate = async (id, payload) => {
-    const before = (props.rows || []).find((lot) => String(lot.id) === String(id)) || {};
-    const after = { ...before, ...payload, id };
-    await props.onUpdate?.(id, payload);
-    await createMortalityEvent(before, after, 'modification fiche lot');
-  };
-
-  const scopedProps = { ...props, activity, lockActivity: true, rows: scopedRows, productionLogs: scopedProductionLogs, onCreate: wrappedCreate, onUpdate: wrappedUpdate, opportunities: (props.opportunities || []).filter((op) => activity === 'pondeuse' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('oeuf') || norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('pondeuse') : activity === 'chair' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('chair') : true) };
-  const dataMap = { sales_orders: props.salesOrders || [], payments: props.payments || [], finances: props.transactions || [], avicole: scopedRows, production_oeufs_logs: scopedProductionLogs, alimentation_logs: props.alimentationLogs || [] };
+  const scopedProps = { ...props, activity, lockActivity: true, rows: scopedRows, productionLogs: scopedProductionLogs, salesOrders, payments, transactions, businessEvents, onCreate: wrappedCreate, onUpdate: wrappedUpdate, opportunities: (props.opportunities || []).filter((op) => activity === 'pondeuse' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('oeuf') || norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('pondeuse') : activity === 'chair' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('chair') : true) };
+  const dataMap = { sales_orders: salesOrders, payments, finances: transactions, avicole: scopedRows, production_oeufs_logs: scopedProductionLogs, alimentation_logs: props.alimentationLogs || [], business_events: businessEvents };
   const selectedLabel = activity === 'pondeuse' ? 'Pondeuses' : 'Poulets de chair';
 
   return <div className="space-y-6 avicole-mobile-final">
@@ -129,9 +117,9 @@ export default function AvicoleV10(props) {
     </div>
 
     <ModuleSection icon={PackageCheck} title={`Vue opérationnelle · ${selectedLabel}`} subtitle={activity === 'pondeuse' ? 'Lots pondeuses, ponte, coûts et actions courantes.' : 'Lots chair, poids moyen, cycle, coûts et vente.'}><AvicoleBase {...scopedProps} /></ModuleSection>
-    {activity === 'pondeuse' ? <ModuleSection icon={Egg} title="Ponte, œufs et charges directes" subtitle="Ramassage, stock d’œufs vendables et frais ponctuels liés aux pondeuses."><AvicoleJournalsBridge {...scopedProps} rows={scopedRows} productionLogs={scopedProductionLogs} businessEvents={props.businessEvents || []} /><DirectChargesBridge title="Charges directes pondeuses" subtitle="Frais liés aux lots pondeuses." targetType="avicole" targets={scopedRows} businessEvents={props.businessEvents || []} onCreateBusinessEvent={props.onCreateBusinessEvent} onUpdateBusinessEvent={props.onUpdateBusinessEvent} onDeleteBusinessEvent={props.onDeleteBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} /></ModuleSection> : null}
-    {activity === 'chair' ? <ModuleSection icon={Scissors} title="Abattage, transformation et stock" subtitle="Sortie des sujets chair, poids, transformation et stock viande vendable."><AvicoleTransformationBridge {...scopedProps} rows={scopedRows} alimentationLogs={props.alimentationLogs || []} productionLogs={scopedProductionLogs} businessEvents={props.businessEvents || []} /></ModuleSection> : null}
-    <ModuleSection icon={ClipboardList} title={`Cycle et historique · ${selectedLabel}`} subtitle="Entrées, sorties, clôtures, ventes et événements importants."><LifecycleHistoryPanel mode="avicole" rows={scopedRows} salesOrders={props.salesOrders || []} deliveries={props.deliveriesList || props.deliveries || []} businessEvents={props.businessEvents || []} /></ModuleSection>
-    <ModuleSection icon={BarChart3} title={`Évolution avicole · ${selectedLabel}`} subtitle={activity === 'pondeuse' ? 'Évolution ponte, coûts, production et mortalité.' : 'Évolution poids, coûts, ventes et mortalité.'}><AvicoleEvolution rows={scopedRows} productionLogs={scopedProductionLogs} alimentationLogs={props.alimentationLogs || []} businessEvents={props.businessEvents || []} opportunities={scopedProps.opportunities || []} onNavigate={props.onNavigate} /></ModuleSection>
+    {activity === 'pondeuse' ? <ModuleSection icon={Egg} title="Ponte, œufs et charges directes" subtitle="Ramassage, stock d’œufs vendables et frais ponctuels liés aux pondeuses."><AvicoleJournalsBridge {...scopedProps} rows={scopedRows} productionLogs={scopedProductionLogs} businessEvents={businessEvents} /><DirectChargesBridge title="Charges directes pondeuses" subtitle="Frais liés aux lots pondeuses." targetType="avicole" targets={scopedRows} businessEvents={businessEvents} onCreateBusinessEvent={props.onCreateBusinessEvent} onUpdateBusinessEvent={props.onUpdateBusinessEvent} onDeleteBusinessEvent={props.onDeleteBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} /></ModuleSection> : null}
+    {activity === 'chair' ? <ModuleSection icon={Scissors} title="Abattage, transformation et stock" subtitle="Sortie des sujets chair, poids, transformation et stock viande vendable."><AvicoleTransformationBridge {...scopedProps} rows={scopedRows} alimentationLogs={props.alimentationLogs || []} productionLogs={scopedProductionLogs} businessEvents={businessEvents} /></ModuleSection> : null}
+    <ModuleSection icon={ClipboardList} title={`Cycle et historique · ${selectedLabel}`} subtitle="Entrées, sorties, clôtures, ventes et événements importants."><LifecycleHistoryPanel mode="avicole" rows={scopedRows} salesOrders={salesOrders} deliveries={props.deliveriesList || props.deliveries || []} businessEvents={businessEvents} /></ModuleSection>
+    <ModuleSection icon={BarChart3} title={`Évolution avicole · ${selectedLabel}`} subtitle={activity === 'pondeuse' ? 'Évolution ponte, coûts, production et mortalité.' : 'Évolution poids, coûts, ventes et mortalité.'}><AvicoleEvolution rows={scopedRows} productionLogs={scopedProductionLogs} alimentationLogs={props.alimentationLogs || []} businessEvents={businessEvents} salesOrders={salesOrders} payments={payments} transactions={transactions} opportunities={scopedProps.opportunities || []} onNavigate={props.onNavigate} /></ModuleSection>
   </div>;
 }
