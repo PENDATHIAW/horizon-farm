@@ -5,6 +5,7 @@ import { filterLotsByActivity } from '../utils/avicoleActivity';
 import { avicoleActiveCount, avicoleDeadCount, avicoleSickCount } from '../utils/avicoleMetrics';
 import { summarizeAvicoleCosts } from '../utils/costEngine';
 
+const EGGS_PER_TABLET = 30;
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase();
 const eggs = (log = {}) => toNumber(log.oeufs_produits ?? log.eggs ?? log.quantity ?? log.quantite);
@@ -14,9 +15,20 @@ const deadCount = avicoleDeadCount;
 const sickCount = avicoleSickCount;
 const avgWeight = (lot = {}) => toNumber(lot.poids_moyen_actuel ?? lot.last_weight_avg ?? lot.weight_avg ?? lot.average_weight ?? lot.current_weight ?? lot.poids_moyen ?? lot.weight);
 const lotInitial = (lot = {}) => toNumber(lot.initial_count ?? lot.effectif_initial ?? lot.quantite_initiale ?? activeCount(lot) + deadCount(lot));
+const soldOrExitedCount = (lot = {}) => toNumber(lot.vendus ?? lot.sold_count ?? lot.sorties ?? lot.abattus ?? lot.reformes ?? 0);
+const followedChairCount = (lot = {}) => {
+  const active = activeCount(lot);
+  if (active > 0) return active;
+  const sold = soldOrExitedCount(lot);
+  if (sold > 0) return sold;
+  const initial = lotInitial(lot);
+  return initial > 0 ? Math.max(0, initial - deadCount(lot)) : 0;
+};
+const tabletsFromEggs = (value = 0) => ({ tablets: Math.floor(Math.max(0, toNumber(value)) / EGGS_PER_TABLET), remaining: Math.max(0, toNumber(value)) % EGGS_PER_TABLET });
+const eggLabel = (value = 0) => { const tablet = tabletsFromEggs(value); return `${fmtNumber(value)} œufs · ${fmtNumber(tablet.tablets)} tablette(s) + ${fmtNumber(tablet.remaining)} œuf(s)`; };
 const readyForSale = (lot = {}) => {
-  const status = lower(lot.status || lot.statut);
-  return ['pret_a_la_vente', 'pret_a_vendre_reforme', 'pret_vente', 'ready'].includes(status) || Boolean(lot.pret_vente_recommande || lot.pret_vente_confirme);
+  const status = lower(lot.status || lot.statut || lot.phase);
+  return ['pret_a_la_vente', 'pret_a_vendre_reforme', 'pret_vente', 'ready', 'vendu', 'vendu_partiellement'].some((word) => status.includes(word)) || Boolean(lot.pret_vente_recommande || lot.pret_vente_confirme);
 };
 const logQty = (log = {}) => toNumber(log.quantite ?? log.quantity ?? log.qty ?? log.amount);
 const logCost = (log = {}) => toNumber(log.cout_total ?? log.total_cost ?? log.montant ?? log.amount ?? log.cost ?? 0);
@@ -39,6 +51,13 @@ function orderMatchesActivity(order = {}, lotIds = new Set(), keywords = []) {
   const text = lower(`${order.type || ''} ${order.produit || ''} ${order.product_name || ''} ${order.title || ''} ${order.description || ''} ${order.notes || ''}`);
   return keywords.some((keyword) => text.includes(keyword));
 }
+function lotEstimatedSale(lot = {}) {
+  const direct = toNumber(lot.prix_vente_reel ?? lot.sale_price_real ?? lot.montant_vente ?? lot.revenu_reel ?? lot.prix_vente_estime ?? lot.estimated_sale_price ?? lot.valeur_vente_estimee ?? lot.sale_value_estimated);
+  if (direct > 0) return direct;
+  const unit = toNumber(lot.prix_unitaire_vente ?? lot.unit_sale_price ?? lot.prix_vente_sujet ?? 0);
+  const qty = followedChairCount(lot);
+  return unit > 0 && qty > 0 ? unit * qty : 0;
+}
 function asDate(value) {
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
@@ -54,8 +73,11 @@ function monthLabel(key) {
   return `${month}/${String(year).slice(-2)}`;
 }
 function ensure(map, key) {
-  if (!map.has(key)) map.set(key, { key, mois: monthLabel(key), charges_aliments: 0, charges_soins: 0, ca: 0, encaisse: 0, marge: 0, poids_moyen: 0, taux_mortalite: 0, effectif: 0, morts: 0, malades: 0, prets: 0, oeufs: 0, vendables: 0, casses: 0, taux_ponte: 0, taux_casse: 0, pondeuses: 0, dates: new Set(), sales_real: 0, sales_estimated: 0 });
+  if (!map.has(key)) map.set(key, { key, mois: monthLabel(key), charges_aliments: 0, charges_soins: 0, ca: 0, encaisse: 0, marge: 0, poids_moyen: 0, taux_mortalite: 0, effectif: 0, morts: 0, malades: 0, prets: 0, oeufs: 0, vendables: 0, casses: 0, tablettes: 0, reliquat_oeufs: 0, taux_ponte: 0, taux_casse: 0, pondeuses: 0, dates: new Set(), sales_real: 0, sales_estimated: 0, estimated_lot_ca: 0 });
   return map.get(key);
+}
+function meaningfulLast(rows = [], keys = []) {
+  return [...rows].reverse().find((row) => keys.some((key) => toNumber(row[key]) > 0)) || rows[rows.length - 1] || {};
 }
 function SmallMetric({ label, value, hint, danger = false }) {
   return <div className={`border rounded-xl p-3 ${danger ? 'bg-red-50 border-red-200' : 'bg-[#fffdf8] border-[#d6c3a0]'}`}><p className="text-xs text-[#8a7456]">{label}</p><p className={`text-xl font-black mt-1 ${danger ? 'text-red-600' : 'text-[#2f2415]'}`}>{value}</p>{hint ? <p className="text-[11px] text-[#8a7456] mt-1">{hint}</p> : null}</div>;
@@ -87,12 +109,14 @@ function buildChairMonthly({ rows = [], alimentationLogs = [], opportunities = [
   const map = new Map();
   const fallbackKey = monthKey(new Date());
   chair.forEach((lot) => {
-    const key = monthKey(lot.updated_at || lot.created_at || fallbackKey);
+    const key = monthKey(lot.date_sortie || lot.sale_date || lot.date_vente || lot.updated_at || lot.created_at || fallbackKey);
     const bucket = ensure(map, key);
-    bucket.effectif += activeCount(lot);
+    const effective = followedChairCount(lot);
+    bucket.effectif += effective;
     bucket.morts += deadCount(lot);
     bucket.malades += sickCount(lot);
     bucket.prets += readyForSale(lot) ? 1 : 0;
+    bucket.estimated_lot_ca += lotEstimatedSale(lot);
     bucket.poids_total = toNumber(bucket.poids_total) + avgWeight(lot);
     bucket.poids_count = toNumber(bucket.poids_count) + (avgWeight(lot) > 0 ? 1 : 0);
     const base = Math.max(1, lotInitial(lot));
@@ -105,15 +129,26 @@ function buildChairMonthly({ rows = [], alimentationLogs = [], opportunities = [
     bucket.charges_aliments += cost;
   });
   const realSales = addRealSalesToMonthly({ map, salesOrders, payments, lotIds: chairIds, keywords: ['chair', 'poulet', 'broiler'] });
+  let estimatedFromOpportunities = 0;
   if (!realSales) arr(opportunities).forEach((opp) => {
     const source = lower(`${opp.source_module || ''} ${opp.type || ''} ${opp.produit || ''} ${opp.title || ''}`);
     const lotId = linkedLotId(opp);
     const looksChair = source.includes('chair') || (lotId && chairIds.has(lotId));
     if (!looksChair || (lotId && !chairIds.has(lotId))) return;
+    const amount = oppAmount(opp);
     const bucket = ensure(map, monthKey(opp.created_at || opp.updated_at || opp.date));
-    bucket.ca += oppAmount(opp);
-    bucket.sales_estimated += oppAmount(opp);
+    bucket.ca += amount;
+    bucket.sales_estimated += amount;
+    estimatedFromOpportunities += amount;
   });
+  if (!realSales && estimatedFromOpportunities <= 0) {
+    map.forEach((bucket) => {
+      if (bucket.estimated_lot_ca > 0) {
+        bucket.ca += bucket.estimated_lot_ca;
+        bucket.sales_estimated += bucket.estimated_lot_ca;
+      }
+    });
+  }
   return [...map.values()].sort((a, b) => a.key.localeCompare(b.key)).map((row) => {
     const poids = row.poids_count ? row.poids_total / row.poids_count : 0;
     const marge = row.ca - row.charges_aliments - row.charges_soins;
@@ -131,10 +166,13 @@ function buildPonteMonthly({ rows = [], productionLogs = [], alimentationLogs = 
     const produced = eggs(log);
     const casse = broken(log);
     if (produced <= 0 && casse <= 0) return;
+    const sellable = Math.max(0, produced - casse);
+    const tablet = tabletsFromEggs(sellable);
     const bucket = ensure(map, monthKey(logDate(log)));
     bucket.oeufs += produced;
     bucket.casses += casse;
-    bucket.vendables += Math.max(0, produced - casse);
+    bucket.vendables += sellable;
+    bucket.tablettes += tablet.tablets;
     bucket.pondeuses = activePondeuses;
     if (log.date) bucket.dates.add(String(log.date));
   });
@@ -144,12 +182,12 @@ function buildPonteMonthly({ rows = [], productionLogs = [], alimentationLogs = 
     const cost = logCost(log) || logQty(log) * toNumber(log.prix_unitaire ?? log.unit_price ?? 0);
     bucket.charges_aliments += cost;
   });
-  const realSales = addRealSalesToMonthly({ map, salesOrders, payments, lotIds: pondeuseIds, keywords: ['oeuf', 'œuf', 'ponte', 'pondeuse'] });
+  const realSales = addRealSalesToMonthly({ map, salesOrders, payments, lotIds: pondeuseIds, keywords: ['oeuf', 'œuf', 'ponte', 'pondeuse', 'tablette'] });
   if (!realSales) arr(opportunities).forEach((opp) => {
     const lotId = linkedLotId(opp);
     if (lotId && !pondeuseIds.has(lotId)) return;
     const source = lower(`${opp.source_module || ''} ${opp.type || ''} ${opp.produit || ''} ${opp.title || ''}`);
-    if (!lotId && !source.includes('oeuf') && !source.includes('œuf') && !source.includes('ponte')) return;
+    if (!lotId && !source.includes('oeuf') && !source.includes('œuf') && !source.includes('ponte') && !source.includes('tablette')) return;
     const bucket = ensure(map, monthKey(opp.created_at || opp.updated_at || opp.date));
     bucket.ca += oppAmount(opp);
     bucket.sales_estimated += oppAmount(opp);
@@ -159,7 +197,8 @@ function buildPonteMonthly({ rows = [], productionLogs = [], alimentationLogs = 
     const tauxPonte = activePondeuses > 0 ? (row.oeufs / (activePondeuses * days)) * 100 : 0;
     const tauxCasse = row.oeufs > 0 ? (row.casses / row.oeufs) * 100 : 0;
     const marge = row.ca - row.charges_aliments - row.charges_soins;
-    return { ...row, pondeuses: activePondeuses, taux_ponte: Number(tauxPonte.toFixed(1)), taux_casse: Number(tauxCasse.toFixed(1)), marge: Number(marge.toFixed(0)), taux_marge: row.ca > 0 ? Number(((marge / row.ca) * 100).toFixed(1)) : 0 };
+    const tablet = tabletsFromEggs(row.vendables);
+    return { ...row, tablettes: row.tablettes || tablet.tablets, reliquat_oeufs: tablet.remaining, pondeuses: activePondeuses, taux_ponte: Number(tauxPonte.toFixed(1)), taux_casse: Number(tauxCasse.toFixed(1)), marge: Number(marge.toFixed(0)), taux_marge: row.ca > 0 ? Number(((marge / row.ca) * 100).toFixed(1)) : 0 };
   });
 }
 function values(rows, key) { return rows.map((row) => toNumber(row[key])); }
@@ -191,12 +230,14 @@ export default function AvicoleEvolution({ rows = [], productionLogs = [], alime
   const realCostLots = costs.details.filter((item) => item.realFeedCost > 0).length;
   const chair = showChair ? buildChairMonthly({ rows: activeRows, alimentationLogs: linkedAlimentationLogs, opportunities, salesOrders, payments }) : [];
   const ponte = showPonte ? buildPonteMonthly({ rows: activeRows, productionLogs: linkedProductionLogs, alimentationLogs: linkedAlimentationLogs, opportunities, salesOrders, payments }) : [];
-  const lastChair = chair[chair.length - 1] || {};
-  const lastPonte = ponte[ponte.length - 1] || {};
+  const lastChair = meaningfulLast(chair, ['effectif', 'ca', 'poids_moyen', 'morts', 'prets']);
+  const lastPonte = meaningfulLast(ponte, ['pondeuses', 'oeufs', 'vendables', 'tablettes']);
   const readyLots = chair.reduce((sum, row) => sum + row.prets, 0);
   const healthIssues = activeRows.reduce((sum, lot) => sum + deadCount(lot) + sickCount(lot), 0);
   const totalEggs = ponte.reduce((sum, row) => sum + row.oeufs, 0);
   const totalSellable = ponte.reduce((sum, row) => sum + row.vendables, 0);
+  const totalTablets = tabletsFromEggs(totalSellable).tablets;
+  const totalRemainingEggs = tabletsFromEggs(totalSellable).remaining;
   const totalSalesReal = [...chair, ...ponte].reduce((sum, row) => sum + toNumber(row.sales_real), 0);
   const totalSalesEstimated = [...chair, ...ponte].reduce((sum, row) => sum + toNumber(row.sales_estimated), 0);
   const totalEncaisse = [...chair, ...ponte].reduce((sum, row) => sum + toNumber(row.encaisse), 0);
@@ -207,31 +248,31 @@ export default function AvicoleEvolution({ rows = [], productionLogs = [], alime
   const mortalityImpact = average(chairCosts, 'costPerLiveSubject') - average(chairCosts, 'costPerInitialSubject');
 
   return <div className="space-y-5">
-    <Header title={showPonte && !showChair ? 'Évolution Pondeuses interactive' : showChair && !showPonte ? 'Évolution Chair interactive' : 'Évolution Avicole interactive'} subtitle={showPonte && !showChair ? 'Lecture pondeuses uniquement : coûts, ponte, œufs vendables, casse et marge.' : showChair && !showPonte ? 'Lecture poulets de chair uniquement : coûts, ventes, marge, poids et mortalité.' : 'Deux lectures séparées : Chair et Ponte.'} priority={priority} onNavigate={onNavigate} />
+    <Header title={showPonte && !showChair ? 'Évolution Pondeuses interactive' : showChair && !showPonte ? 'Évolution Chair interactive' : 'Évolution Avicole interactive'} subtitle={showPonte && !showChair ? 'Lecture pondeuses uniquement : coûts, ponte, tablettes vendables, casse et marge.' : showChair && !showPonte ? 'Lecture poulets de chair uniquement : coûts, ventes, marge, poids et mortalité.' : 'Deux lectures séparées : Chair et Ponte.'} priority={priority} onNavigate={onNavigate} />
     {!activeRows.length ? <EmptyState /> : null}
-    <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4"><div className="grid grid-cols-2 lg:grid-cols-6 gap-3">{showChair ? <><SmallMetric label="Coût moyen sujet chair" value={fmtCurrency(avgChairCostLive)} hint="coût / sujet vivant" /><SmallMetric label="Coût / kg poulet" value={fmtCurrency(avgChairCostKg)} hint="si abattage enregistré" /><SmallMetric label="Impact mortalité" value={fmtCurrency(Math.max(0, mortalityImpact))} hint="sur coût/sujet chair" danger={mortalityImpact > 0} /></> : null}{showPonte ? <SmallMetric label="Coût / œuf vendable" value={fmtCurrency(avgPonteCostEgg)} hint="ponte" /> : null}<SmallMetric label="Aliment réel" value={fmtCurrency(costs.realFeedCost)} hint={`${fmtNumber(realCostLots)}/${fmtNumber(costs.details.length)} lots`} /><SmallMetric label="Aliment estimé" value={fmtCurrency(costs.estimatedFeedCost)} hint="si pas de sortie réelle" /><SmallMetric label="CA réel" value={fmtCurrency(totalSalesReal)} hint={totalSalesReal ? 'commandes liées' : 'non lié'} /><SmallMetric label="Encaissé" value={fmtCurrency(totalEncaisse)} hint={totalSalesEstimated ? `estimé: ${fmtCurrency(totalSalesEstimated)}` : 'paiements liés'} /></div></div>
+    <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4"><div className="grid grid-cols-2 lg:grid-cols-6 gap-3">{showChair ? <><SmallMetric label="Coût moyen sujet chair" value={fmtCurrency(avgChairCostLive)} hint="coût / sujet suivi" /><SmallMetric label="Coût / kg poulet" value={fmtCurrency(avgChairCostKg)} hint={avgChairCostKg > 0 ? 'abattage enregistré' : 'à calculer après abattage'} /><SmallMetric label="Impact mortalité" value={fmtCurrency(Math.max(0, mortalityImpact))} hint="sur coût/sujet chair" danger={mortalityImpact > 0} /></> : null}{showPonte ? <SmallMetric label="Coût / œuf vendable" value={fmtCurrency(avgPonteCostEgg)} hint="ponte" /> : null}<SmallMetric label="Aliment réel" value={fmtCurrency(costs.realFeedCost)} hint={`${fmtNumber(realCostLots)}/${fmtNumber(costs.details.length)} lots`} /><SmallMetric label="Aliment estimé" value={fmtCurrency(costs.estimatedFeedCost)} hint="si pas de sortie réelle" /><SmallMetric label="CA réel" value={fmtCurrency(totalSalesReal)} hint={totalSalesReal ? 'commandes liées' : totalSalesEstimated ? 'estimation utilisée' : 'non lié'} /><SmallMetric label="Encaissé" value={fmtCurrency(totalEncaisse)} hint={totalSalesEstimated ? `estimé: ${fmtCurrency(totalSalesEstimated)}` : 'paiements liés'} /></div></div>
 
     {showChair ? <section className="space-y-4">
       <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4">
         <p className="font-black text-[#2f2415]">Évolution Chair</p>
-        <p className="text-xs text-[#8a7456] mt-1">Poulets de chair : coûts, ventes réelles ou estimées, marge, poids moyen, mortalité et coût par sujet.</p>
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mt-4"><SmallMetric label="Effectif chair" value={fmtNumber(lastChair.effectif || 0)} hint="dernier mois" /><SmallMetric label="Poids moyen" value={`${Number(lastChair.poids_moyen || 0).toFixed(2)} kg`} hint="dernier mois" /><SmallMetric label="Mortalité" value={`${Number(lastChair.taux_mortalite || 0).toFixed(1)}%`} hint={`${fmtNumber(lastChair.morts || 0)} morts`} danger={(lastChair.taux_mortalite || 0) > 0} /><SmallMetric label="Coût sujet" value={fmtCurrency(avgChairCostLive)} hint="vivant/vendable" /><SmallMetric label="Lots prêts" value={fmtNumber(readyLots)} hint="vente/réforme" /><SmallMetric label="Marge chair" value={fmtCurrency(chair.reduce((sum, row) => sum + row.marge, 0))} hint={chair.some((row) => row.sales_real > 0) ? 'réelle' : 'estimée'} /></div>
+        <p className="text-xs text-[#8a7456] mt-1">Poulets de chair : coûts, ventes réelles ou estimées, marge, poids moyen, mortalité et coût par sujet. Les lots vendus restent repris dans l’historique.</p>
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mt-4"><SmallMetric label="Effectif chair" value={fmtNumber(lastChair.effectif || 0)} hint="dernier mois renseigné" /><SmallMetric label="Poids moyen" value={`${Number(lastChair.poids_moyen || 0).toFixed(2)} kg`} hint="dernier mois renseigné" /><SmallMetric label="Mortalité" value={`${Number(lastChair.taux_mortalite || 0).toFixed(1)}%`} hint={`${fmtNumber(lastChair.morts || 0)} morts`} danger={(lastChair.taux_mortalite || 0) > 0} /><SmallMetric label="Coût sujet" value={fmtCurrency(avgChairCostLive)} hint="vivant/vendable" /><SmallMetric label="Lots prêts/vendus" value={fmtNumber(readyLots)} hint="vente/réforme" /><SmallMetric label="Marge chair" value={fmtCurrency(chair.reduce((sum, row) => sum + row.marge, 0))} hint={chair.some((row) => row.sales_real > 0) ? 'réelle' : 'estimée'} /></div>
       </div>
       <SmartEvolutionChart title="Chair — économie mensuelle" subtitle="Barres : charges, CA, encaissé, marge. Courbe : poids moyen." months={labels(chair)} leftUnit="FCFA" rightUnit="kg" series={[{ name: 'Charges aliments', type: 'bar', unit: 'FCFA', data: values(chair, 'charges_aliments') }, { name: 'CA ventes chair', type: 'bar', unit: 'FCFA', data: values(chair, 'ca') }, { name: 'Encaissé', type: 'bar', unit: 'FCFA', data: values(chair, 'encaisse') }, { name: 'Marge chair', type: 'bar', unit: 'FCFA', data: values(chair, 'marge') }, { name: 'Poids moyen', type: 'line', axis: 'right', unit: 'kg', data: values(chair, 'poids_moyen') }]} />
-      <SmartEvolutionChart title="Chair — performance opérationnelle" subtitle="Effectif, morts, malades, lots prêts et taux de mortalité." months={labels(chair)} leftUnit="" rightUnit="%" series={[{ name: 'Effectif vivant', type: 'bar', data: values(chair, 'effectif') }, { name: 'Morts', type: 'bar', data: values(chair, 'morts') }, { name: 'Malades', type: 'bar', data: values(chair, 'malades') }, { name: 'Lots prêts', type: 'bar', data: values(chair, 'prets') }, { name: 'Taux mortalité', type: 'line', axis: 'right', unit: '%', data: values(chair, 'taux_mortalite') }]} />
+      <SmartEvolutionChart title="Chair — performance opérationnelle" subtitle="Effectif suivi, morts, malades, lots prêts/vendus et taux de mortalité." months={labels(chair)} leftUnit="" rightUnit="%" series={[{ name: 'Effectif suivi', type: 'bar', data: values(chair, 'effectif') }, { name: 'Morts', type: 'bar', data: values(chair, 'morts') }, { name: 'Malades', type: 'bar', data: values(chair, 'malades') }, { name: 'Lots prêts/vendus', type: 'bar', data: values(chair, 'prets') }, { name: 'Taux mortalité', type: 'line', axis: 'right', unit: '%', data: values(chair, 'taux_mortalite') }]} />
     </section> : null}
 
     {showPonte ? <section className="space-y-4">
       <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4">
         <p className="font-black text-[#2f2415]">Évolution Ponte</p>
-        <p className="text-xs text-[#8a7456] mt-1">Pondeuses : coûts, CA œufs, encaissé, marge, production, vendables, taux de ponte et coût par œuf.</p>
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mt-4"><SmallMetric label="Pondeuses" value={fmtNumber(lastPonte.pondeuses || 0)} hint="actives" /><SmallMetric label="Œufs produits" value={fmtNumber(totalEggs)} hint="cumul" /><SmallMetric label="Œufs vendables" value={fmtNumber(totalSellable)} hint="cumul" /><SmallMetric label="Coût / œuf" value={fmtCurrency(avgPonteCostEgg)} hint="œuf vendable" /><SmallMetric label="Taux casse" value={`${Number(lastPonte.taux_casse || 0).toFixed(1)}%`} hint="dernier mois" danger={(lastPonte.taux_casse || 0) > 5} /><SmallMetric label="Marge ponte" value={fmtCurrency(ponte.reduce((sum, row) => sum + row.marge, 0))} hint={ponte.some((row) => row.sales_real > 0) ? 'réelle' : 'estimée'} /></div>
+        <p className="text-xs text-[#8a7456] mt-1">Pondeuses : coûts, CA tablettes d’œufs, encaissé, marge, production, vendables, taux de ponte et coût par œuf.</p>
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mt-4"><SmallMetric label="Pondeuses" value={fmtNumber(lastPonte.pondeuses || 0)} hint="actives" /><SmallMetric label="Œufs produits" value={fmtNumber(totalEggs)} hint={`${fmtNumber(tabletsFromEggs(totalEggs).tablets)} tablette(s) + ${fmtNumber(tabletsFromEggs(totalEggs).remaining)} œuf(s)`} /><SmallMetric label="Œufs vendables" value={fmtNumber(totalSellable)} hint={`${fmtNumber(totalTablets)} tablette(s) + ${fmtNumber(totalRemainingEggs)} œuf(s)`} /><SmallMetric label="Coût / œuf" value={fmtCurrency(avgPonteCostEgg)} hint="œuf vendable" /><SmallMetric label="Taux casse" value={`${Number(lastPonte.taux_casse || 0).toFixed(1)}%`} hint="dernier mois" danger={(lastPonte.taux_casse || 0) > 5} /><SmallMetric label="Marge ponte" value={fmtCurrency(ponte.reduce((sum, row) => sum + row.marge, 0))} hint={ponte.some((row) => row.sales_real > 0) ? 'réelle' : 'estimée'} /></div>
       </div>
-      <SmartEvolutionChart title="Ponte — économie mensuelle" subtitle="Barres : charges, CA œufs, encaissé, marge. Courbes : taux de ponte et casse." months={labels(ponte)} leftUnit="FCFA" rightUnit="%" series={[{ name: 'Charges aliments ponte', type: 'bar', unit: 'FCFA', data: values(ponte, 'charges_aliments') }, { name: 'CA œufs', type: 'bar', unit: 'FCFA', data: values(ponte, 'ca') }, { name: 'Encaissé', type: 'bar', unit: 'FCFA', data: values(ponte, 'encaisse') }, { name: 'Marge ponte', type: 'bar', unit: 'FCFA', data: values(ponte, 'marge') }, { name: 'Taux ponte', type: 'line', axis: 'right', unit: '%', data: values(ponte, 'taux_ponte') }, { name: 'Taux casse', type: 'line', axis: 'right', unit: '%', data: values(ponte, 'taux_casse') }]} />
-      <SmartEvolutionChart title="Ponte — production mensuelle" subtitle="Œufs produits, vendables, casses et effectif pondeuses." months={labels(ponte)} leftUnit="" rightUnit="%" series={[{ name: 'Œufs produits', type: 'bar', data: values(ponte, 'oeufs') }, { name: 'Œufs vendables', type: 'bar', data: values(ponte, 'vendables') }, { name: 'Casses', type: 'bar', data: values(ponte, 'casses') }, { name: 'Pondeuses actives', type: 'line', data: values(ponte, 'pondeuses') }, { name: 'Taux ponte', type: 'line', axis: 'right', unit: '%', data: values(ponte, 'taux_ponte') }]} />
+      <SmartEvolutionChart title="Ponte — économie mensuelle" subtitle="Barres : charges, CA tablettes, encaissé, marge. Courbes : taux de ponte et casse." months={labels(ponte)} leftUnit="FCFA" rightUnit="%" series={[{ name: 'Charges aliments ponte', type: 'bar', unit: 'FCFA', data: values(ponte, 'charges_aliments') }, { name: 'CA tablettes', type: 'bar', unit: 'FCFA', data: values(ponte, 'ca') }, { name: 'Encaissé', type: 'bar', unit: 'FCFA', data: values(ponte, 'encaisse') }, { name: 'Marge ponte', type: 'bar', unit: 'FCFA', data: values(ponte, 'marge') }, { name: 'Taux ponte', type: 'line', axis: 'right', unit: '%', data: values(ponte, 'taux_ponte') }, { name: 'Taux casse', type: 'line', axis: 'right', unit: '%', data: values(ponte, 'taux_casse') }]} />
+      <SmartEvolutionChart title="Ponte — production mensuelle" subtitle="Œufs produits, vendables, tablettes, casses et effectif pondeuses." months={labels(ponte)} leftUnit="" rightUnit="%" series={[{ name: 'Œufs produits', type: 'bar', data: values(ponte, 'oeufs') }, { name: 'Œufs vendables', type: 'bar', data: values(ponte, 'vendables') }, { name: 'Tablettes vendables', type: 'bar', data: values(ponte, 'tablettes') }, { name: 'Casses', type: 'bar', data: values(ponte, 'casses') }, { name: 'Pondeuses actives', type: 'line', data: values(ponte, 'pondeuses') }, { name: 'Taux ponte', type: 'line', axis: 'right', unit: '%', data: values(ponte, 'taux_ponte') }]} />
     </section> : null}
 
-    <div className="bg-[#fffdf8] border border-[#d6c3a0] rounded-2xl p-4 text-sm text-[#7d6a4a] flex items-start gap-3"><TrendingUp size={18} className="text-[#9a6b12] mt-0.5" /><div><b className="text-[#2f2415]">Interprétation :</b> {!activeRows.length ? 'Aucun lot actif. Les anciens logs restent archivés mais ne sont pas repris dans cette vue.' : totalSalesReal > 0 ? 'Les graphes utilisent les commandes et paiements réellement liés aux lots avicoles.' : totalSalesEstimated > 0 ? 'Aucune vente réelle liée : les graphes utilisent encore les opportunités estimées.' : realCostLots < costs.details.length ? `Coût réel disponible pour ${fmtNumber(realCostLots)}/${fmtNumber(costs.details.length)} lot(s), estimation utilisée pour les autres.` : healthIssues > 0 ? `${fmtNumber(healthIssues)} point(s) santé/mortalité à traiter.` : showChair && readyLots > 0 ? `${fmtNumber(readyLots)} lot(s) chair à convertir en ventes.` : showPonte ? 'Vue pondeuses cohérente : suivre ponte, casses, aliment et marge œufs.' : 'Compléter les coûts et ventes liées pour affiner les marges.'}</div></div>
+    <div className="bg-[#fffdf8] border border-[#d6c3a0] rounded-2xl p-4 text-sm text-[#7d6a4a] flex items-start gap-3"><TrendingUp size={18} className="text-[#9a6b12] mt-0.5" /><div><b className="text-[#2f2415]">Interprétation :</b> {!activeRows.length ? 'Aucun lot actif. Les anciens logs restent archivés mais ne sont pas repris dans les coûts, œufs, CA ou graphes.' : totalSalesReal > 0 ? 'Les graphes utilisent les commandes et paiements réellement liés aux lots avicoles.' : totalSalesEstimated > 0 ? 'Aucune vente réelle liée : les graphes utilisent encore les opportunités ou estimations de lot.' : realCostLots < costs.details.length ? `Coût réel disponible pour ${fmtNumber(realCostLots)}/${fmtNumber(costs.details.length)} lot(s), estimation utilisée pour les autres.` : healthIssues > 0 ? `${fmtNumber(healthIssues)} point(s) santé/mortalité à traiter.` : showChair && readyLots > 0 ? `${fmtNumber(readyLots)} lot(s) chair à convertir en ventes.` : showPonte ? `Vue pondeuses cohérente : suivre ponte, casses, aliment, tablettes (${fmtNumber(totalTablets)} complètes) et marge.` : 'Compléter les coûts et ventes liées pour affiner les marges.'}</div></div>
     {priority ? <div className={`${healthIssues ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'} border rounded-2xl p-4 text-sm flex items-start justify-between gap-3`}><div className="flex items-start gap-2"><ShoppingBag size={18} className="mt-0.5" /><div><b>Action recommandée :</b> {priority.label}.</div></div><button type="button" onClick={() => onNavigate?.(priority.module)} className="shrink-0 rounded-xl bg-white/70 border border-current/10 px-3 py-1.5 text-xs font-bold">Ouvrir</button></div> : null}
   </div>;
 }
