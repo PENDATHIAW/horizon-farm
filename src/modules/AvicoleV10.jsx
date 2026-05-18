@@ -34,17 +34,31 @@ const monthKey = (value = new Date()) => {
   if (Number.isNaN(date.getTime())) return '';
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 };
-const logMonth = (row = {}) => String(row.date || row.created_at || row.updated_at || '').slice(0, 7);
+const logMonth = (row = {}) => String(row.date || row.created_at || row.updated_at || row.date_commande || row.date_paiement || '').slice(0, 7);
 const eggProduced = (row = {}) => num(row.oeufs_produits ?? row.eggs ?? row.total_oeufs ?? row.quantite ?? row.quantity);
 const eggBroken = (row = {}) => num(row.oeufs_casses ?? row.broken ?? row.casses ?? row.pertes);
+const money = (row = {}) => num(row.montant_total ?? row.total_ttc ?? row.total ?? row.amount ?? row.montant ?? row.prix_total ?? row.montant_paye ?? 0);
 const tabletPriceForLots = (lots = []) => {
   const configured = lots.map((lot) => num(lot.prix_tablette_oeufs ?? lot.prix_tablette ?? lot.prix_vente_tablette ?? lot.egg_tablet_price)).find((value) => value > 0);
   return configured || DEFAULT_EGG_TABLET_PRICE;
 };
+const isEggRevenueText = (row = {}) => {
+  const text = norm(`${row.activite || ''} ${row.source_module || ''} ${row.source_type || ''} ${row.type_vente || ''} ${row.product_type || ''} ${row.product_name || ''} ${row.produit || ''} ${row.libelle || ''} ${row.description || ''} ${row.title || ''} ${row.notes || ''}`);
+  return text.includes('oeuf') || text.includes('œuf') || text.includes('tablette') || text.includes('plateau') || text.includes('pondeuse') || text.includes('ponte');
+};
+const isFinanceIncome = (row = {}) => {
+  const text = norm(`${row.type || ''} ${row.nature || ''} ${row.category || ''} ${row.categorie || ''} ${row.libelle || ''} ${row.description || ''}`);
+  return text.includes('entree') || text.includes('entrée') || text.includes('revenu') || text.includes('encaisse') || text.includes('recette') || text.includes('vente');
+};
+const hasRealEggRevenue = ({ salesOrders = [], transactions = [], currentMonth = monthKey(new Date()) }) => {
+  const sales = salesOrders.some((row) => logMonth(row) === currentMonth && money(row) > 0 && isEggRevenueText(row));
+  const finance = transactions.some((row) => logMonth(row) === currentMonth && money(row) > 0 && isFinanceIncome(row) && isEggRevenueText(row));
+  return sales || finance;
+};
 const buildEggObjectiveRows = ({ lots = [], productionLogs = [], currentMonth = monthKey(new Date()) }) => {
-  const lotIds = new Set(lots.map((lot) => String(lot.id || '')).filter(Boolean));
+  const lotIds = new Set(lots.map((lot) => String(lot.id || '').trim()).filter(Boolean));
   const monthLogs = productionLogs.filter((log) => {
-    const lotId = String(log.lot_id || log.related_id || log.source_record_id || log.entity_id || '');
+    const lotId = String(log.lot_id || log.related_id || log.source_record_id || log.entity_id || '').trim();
     return lotIds.has(lotId) && logMonth(log) === currentMonth;
   });
   const sellableEggs = monthLogs.reduce((sum, log) => sum + Math.max(0, eggProduced(log) - eggBroken(log)), 0);
@@ -110,8 +124,9 @@ export default function AvicoleV10(props) {
   const scopedRows = useMemo(() => filterByActivity(rows, activity), [rows, activity]);
   const scopedProductionLogs = useMemo(() => productionLogs.filter((log) => activity !== 'chair' || chair.some((lot) => String(lot.id) === String(log.lot_id || log.related_id))), [productionLogs, activity, chair]);
   const currentMonth = monthKey(new Date());
-  const eggObjectiveRows = useMemo(() => buildEggObjectiveRows({ lots: pondeuses, productionLogs, currentMonth }), [pondeuses, productionLogs, currentMonth]);
-  const objectiveSalesOrders = useMemo(() => activity === 'pondeuse' ? [...salesOrders, ...eggObjectiveRows] : salesOrders, [activity, salesOrders, eggObjectiveRows]);
+  const realEggRevenueExists = useMemo(() => hasRealEggRevenue({ salesOrders, transactions, currentMonth }), [salesOrders, transactions, currentMonth]);
+  const eggObjectiveRows = useMemo(() => realEggRevenueExists ? [] : buildEggObjectiveRows({ lots: pondeuses, productionLogs, currentMonth }), [realEggRevenueExists, pondeuses, productionLogs, currentMonth]);
+  const objectiveSalesOrders = useMemo(() => activity === 'pondeuse' && !realEggRevenueExists ? [...salesOrders, ...eggObjectiveRows] : salesOrders, [activity, realEggRevenueExists, salesOrders, eggObjectiveRows]);
 
   const createMortalityEvent = async (before = {}, after = {}, source = 'modification lot avicole') => {
     const mortalityIncreased = mortalityOf(after) > mortalityOf(before);
