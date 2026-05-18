@@ -1,6 +1,7 @@
 import { getCalculatedAnimalFeedingCost, getLotFeedingCategory } from './alimentation';
 import { toNumber } from './format';
 
+const EGGS_PER_TABLET = 30;
 const clamp = (value, min = 0, max = 100) => Math.min(max, Math.max(min, Number(value || 0)));
 const clean = (value) => String(value || '').trim().toLowerCase();
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -11,6 +12,7 @@ const money = (row = {}) => toNumber(row.montant_total ?? row.total_cost ?? row.
 const linkedId = (row = {}) => String(row.lot_id || row.cible_id || row.target_id || row.entity_id || row.source_id || row.source_record_id || row.related_id || '').trim();
 const purchaseCostOfLot = (lot = {}) => toNumber(lot.cout_total_achat ?? lot.cout_achat_bande ?? lot.purchase_cost ?? lot.cout_poussins ?? lot.cout_achat ?? 0);
 const saleUnitOfLot = (lot = {}) => toNumber(lot.prix_unitaire_vente ?? lot.unit_sale_price ?? lot.prix_vente_sujet ?? 0);
+const tabletsFromEggs = (eggs = 0) => ({ tablets: Math.floor(Math.max(0, toNumber(eggs)) / EGGS_PER_TABLET), remainingEggs: Math.max(0, toNumber(eggs)) % EGGS_PER_TABLET });
 const saleEstimateOfLot = (lot = {}, current = 0) => {
   const direct = toNumber(lot.prix_vente_estime ?? lot.estimated_sale_price ?? lot.valeur_vente_estimee ?? lot.sale_value_estimated ?? lot.revenuEstime ?? lot.revenu_estime ?? 0);
   if (direct > 0) return direct;
@@ -68,7 +70,11 @@ export const calculateEggProductionMetrics = ({ lot = {}, productionLogs = [] })
       const eggsProduced = toNumber(log.oeufs_produits ?? log.eggs ?? log.quantity ?? log.quantite);
       const brokenEggs = toNumber(log.oeufs_casses ?? log.broken ?? log.casses ?? log.pertes);
       const sellableEggs = Math.max(0, eggsProduced - brokenEggs);
-      return { ...log, _time: log.date ? new Date(log.date).getTime() : 0, eggsProduced, brokenEggs, sellableEggs, trays: Math.floor(sellableEggs / 30), layingRate: currentCount > 0 ? (eggsProduced / currentCount) * 100 : toNumber(log.taux_ponte) };
+      const fromStored = toNumber(log.tablettes_vendables ?? log.tablettes ?? log.plateaux);
+      const converted = tabletsFromEggs(sellableEggs);
+      const tablets = fromStored > 0 ? fromStored : converted.tablets;
+      const remainingEggs = toNumber(log.oeufs_restants ?? log.oeufs_reliquat) || converted.remainingEggs;
+      return { ...log, _time: log.date ? new Date(log.date).getTime() : 0, eggsProduced, brokenEggs, sellableEggs, tablets, tablettes: tablets, remainingEggs, oeufs_restants: remainingEggs, trays: tablets, layingRate: currentCount > 0 ? (eggsProduced / currentCount) * 100 : toNumber(log.taux_ponte) };
     })
     .sort((a, b) => a._time - b._time);
   const today = todayKey();
@@ -80,7 +86,12 @@ export const calculateEggProductionMetrics = ({ lot = {}, productionLogs = [] })
   const todayEggs = sum(todayLogs, 'eggsProduced') || toNumber(lot.productionJour ?? lot.productionjour);
   const todayBroken = sum(todayLogs, 'brokenEggs') || toNumber(lot.oeufs_casses);
   const todaySellable = Math.max(0, todayEggs - todayBroken);
-  return { logs: lotLogs, todayEggs, todayBroken, todaySellable, todayTrays: Math.floor(todaySellable / 30), todayLayingRate: currentCount > 0 ? (todayEggs / currentCount) * 100 : toNumber(lot.taux_ponte), avg7Eggs: avg(since7, 'eggsProduced'), avg30Eggs: avg(since30, 'eggsProduced'), avg7LayingRate: avg(since7, 'layingRate'), avg30LayingRate: avg(since30, 'layingRate'), totalBroken: sum(lotLogs, 'brokenEggs'), totalSellable: sum(lotLogs, 'sellableEggs'), totalTrays: sum(lotLogs, 'trays') };
+  const todayTablet = tabletsFromEggs(todaySellable);
+  const totalSellable = sum(lotLogs, 'sellableEggs');
+  const totalTablet = tabletsFromEggs(totalSellable);
+  const totalTablets = sum(lotLogs, 'tablets') || totalTablet.tablets;
+  const totalRemainingEggs = totalTablet.remainingEggs;
+  return { logs: lotLogs, todayEggs, todayBroken, todaySellable, todayTrays: todayTablet.tablets, todayTablets: todayTablet.tablets, todayRemainingEggs: todayTablet.remainingEggs, todayLayingRate: currentCount > 0 ? (todayEggs / currentCount) * 100 : toNumber(lot.taux_ponte), avg7Eggs: avg(since7, 'eggsProduced'), avg30Eggs: avg(since30, 'eggsProduced'), avg7LayingRate: avg(since7, 'layingRate'), avg30LayingRate: avg(since30, 'layingRate'), totalBroken: sum(lotLogs, 'brokenEggs'), totalSellable, totalTrays: totalTablets, totalTablets, totalRemainingEggs, eggsPerTablet: EGGS_PER_TABLET };
 };
 
 export const enrichProductionEggLogs = ({ logs = [], lots = [] }) => logs.map((log) => {
@@ -89,7 +100,8 @@ export const enrichProductionEggLogs = ({ logs = [], lots = [] }) => logs.map((l
   const eggsProduced = toNumber(log.oeufs_produits ?? log.eggs ?? log.quantity ?? log.quantite);
   const brokenEggs = toNumber(log.oeufs_casses ?? log.broken ?? log.casses ?? log.pertes);
   const sellableEggs = Math.max(0, eggsProduced - brokenEggs);
-  return { ...log, lot_name: lot.name || log.lot_id, lot_type: lot.type || '', effectif_actuel: currentCount, oeufs_vendables: sellableEggs, plateaux: Math.floor(sellableEggs / 30), taux_ponte_calcule: currentCount > 0 ? (eggsProduced / currentCount) * 100 : toNumber(log.taux_ponte) };
+  const converted = tabletsFromEggs(sellableEggs);
+  return { ...log, lot_name: lot.name || log.lot_id, lot_type: lot.type || '', effectif_actuel: currentCount, oeufs_vendables: sellableEggs, tablettes: converted.tablets, tablettes_vendables: converted.tablets, plateaux: converted.tablets, oeufs_restants: converted.remainingEggs, oeufs_reliquat: converted.remainingEggs, oeufs_par_tablette: EGGS_PER_TABLET, unite_vente: 'tablette', taux_ponte_calcule: currentCount > 0 ? (eggsProduced / currentCount) * 100 : toNumber(log.taux_ponte) };
 });
 
 export const calculateLotMetrics = ({ lot = {}, feedingLogs = [], productionLogs = [] } = {}) => {
