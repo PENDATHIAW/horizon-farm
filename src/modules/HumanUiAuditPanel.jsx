@@ -5,6 +5,7 @@ import { auditImprovementRules } from '../audit/auditImprovementRules';
 import { humanAiTesterMasterPrompt } from '../audit/humanAiTesterMasterPrompt';
 import { activeHorizonFarmAuditRules } from '../audit/activeHorizonFarmAuditRules';
 import { interconnectionAuditRules } from '../audit/interconnectionAuditRules';
+import { globalInterconnectionMatrix } from '../audit/globalInterconnectionMatrix';
 
 const severityClass = (severity = '') => {
   if (severity === 'critique') return 'border-red-200 bg-red-50 text-red-700';
@@ -90,6 +91,21 @@ export default function HumanUiAuditPanel() {
             <MiniList title="À vérifier" items={rule.verify || []} />
             <MiniList title="Anomalies ciblées" items={rule.anomalies || []} />
             <MiniList title="Améliorations" items={rule.improvements || []} />
+          </div>
+        </article>)}
+      </div>
+    </div>
+
+    <div className="rounded-3xl border border-purple-200 bg-purple-50 p-4">
+      <h3 className="font-black text-purple-900 flex items-center gap-2"><Sparkles size={18} /> Matrice globale toutes interconnexions</h3>
+      <p className="mt-1 text-sm text-purple-800">Chaque module doit être contrôlé avec ses modules cibles, ses données attendues et ses anomalies possibles.</p>
+      <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-3">
+        {globalInterconnectionMatrix.map((item) => <article key={item.source} className="rounded-2xl border border-purple-200 bg-white p-4">
+          <p className="font-black text-[#2f2415]">{item.source}</p>
+          <p className="mt-2 text-xs font-bold text-purple-700">Vers : {item.targets.join(' · ')}</p>
+          <div className="mt-3 grid grid-cols-1 gap-2">
+            <MiniList title="Doit montrer" items={item.mustShow || []} />
+            <MiniList title="Anomalies possibles" items={item.anomalies || []} />
           </div>
         </article>)}
       </div>
