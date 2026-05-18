@@ -27,181 +27,33 @@ function buildFinanceEvolution(transactions = [], salesOrders = [], payments = [
     return { key, label: monthLabel(key), entrees, sorties, resultat: entrees - sorties };
   });
 }
-
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
-  return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
-      <div>
-        <p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>
-        {subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}
-      </div>
-      {children}
-    </section>
-  );
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
 }
-
 function EvolutionBar({ label, value, max, hint, danger = false }) {
   const pct = max > 0 ? Math.max(3, Math.min(100, Math.abs(value) / max * 100)) : 0;
   return <div className="space-y-1"><div className="flex items-center justify-between text-xs"><span className="font-bold text-[#2f2415]">{label}</span><span className={danger ? 'text-red-600' : 'text-[#8a7456]'}>{hint}</span></div><div className="h-3 rounded-full bg-[#f2eadb] overflow-hidden"><div className={`h-full rounded-full ${danger ? 'bg-red-400' : 'bg-[#c9a96a]'}`} style={{ width: `${pct}%` }} /></div></div>;
 }
-
 function FinanceEvolutionPanel({ transactions = [], salesOrders = [], payments = [] }) {
   const rows = useMemo(() => buildFinanceEvolution(transactions, salesOrders, payments), [transactions, salesOrders, payments]);
   const max = Math.max(...rows.flatMap((row) => [row.entrees, row.sorties, Math.abs(row.resultat)]), 0);
-  return <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4 space-y-3"><p className="font-black text-[#2f2415]">Entrées</p>{rows.map((row) => <EvolutionBar key={`in-${row.key}`} label={row.label} value={row.entrees} max={max} hint={fmtCurrency(row.entrees)} />)}</div>
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4 space-y-3"><p className="font-black text-[#2f2415]">Sorties</p>{rows.map((row) => <EvolutionBar key={`out-${row.key}`} label={row.label} value={row.sorties} max={max} hint={fmtCurrency(row.sorties)} danger={row.sorties > row.entrees} />)}</div>
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4 space-y-3"><p className="font-black text-[#2f2415]">Résultat</p>{rows.map((row) => <EvolutionBar key={`net-${row.key}`} label={row.label} value={row.resultat} max={max} hint={fmtCurrency(row.resultat)} danger={row.resultat < 0} />)}</div>
-  </div>;
+  return <div className="grid grid-cols-1 xl:grid-cols-3 gap-4"><div className="rounded-2xl border border-[#d6c3a0] bg-white p-4 space-y-3"><p className="font-black text-[#2f2415]">Entrées</p>{rows.map((row) => <EvolutionBar key={`in-${row.key}`} label={row.label} value={row.entrees} max={max} hint={fmtCurrency(row.entrees)} />)}</div><div className="rounded-2xl border border-[#d6c3a0] bg-white p-4 space-y-3"><p className="font-black text-[#2f2415]">Sorties</p>{rows.map((row) => <EvolutionBar key={`out-${row.key}`} label={row.label} value={row.sorties} max={max} hint={fmtCurrency(row.sorties)} danger={row.sorties > row.entrees} />)}</div><div className="rounded-2xl border border-[#d6c3a0] bg-white p-4 space-y-3"><p className="font-black text-[#2f2415]">Résultat</p>{rows.map((row) => <EvolutionBar key={`net-${row.key}`} label={row.label} value={row.resultat} max={max} hint={fmtCurrency(row.resultat)} danger={row.resultat < 0} />)}</div></div>;
 }
-
 function DerivedChargesPanel({ finance }) {
   const detail = finance?.chargesDeriveesDetail || {};
-  const rows = [
-    ['Animaux', detail.animaux],
-    ['Avicole', detail.avicole],
-    ['Cultures', detail.cultures],
-    ['Santé', detail.sante],
-    ['Alimentation', detail.alimentation],
-    ['Stock / achats', detail.stockAchats],
-    ['Fournisseurs', detail.dettesFournisseurs],
-    ['Investissements', detail.investissements],
-    ['Équipements', detail.equipements],
-    ['Événements métier', detail.evenements],
-  ];
-  return <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
-    <div className="flex items-start justify-between gap-3">
-      <div>
-        <p className="font-black text-red-800">Détail des charges consolidées</p>
-        <p className="text-sm text-red-700">Ces montants sont consolidés depuis les autres modules même si aucune écriture Finance manuelle n’existe encore.</p>
-      </div>
-      <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-red-700">{fmtCurrency(finance?.chargesDerivees || 0)}</span>
-    </div>
-    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-2">
-      {rows.map(([label, value]) => <div key={label} className="rounded-xl border border-red-100 bg-white p-3">
-        <p className="text-xs font-bold text-[#8a7456]">{label}</p>
-        <p className="mt-1 font-black text-[#2f2415]">{fmtCurrency(value || 0)}</p>
-      </div>)}
-    </div>
-  </div>;
+  const rows = [['Animaux', detail.animaux], ['Avicole', detail.avicole], ['Cultures', detail.cultures], ['Santé', detail.sante], ['Alimentation', detail.alimentation], ['Stock / achats', detail.stockAchats], ['Fournisseurs', detail.dettesFournisseurs], ['Investissements', detail.investissements], ['Équipements', detail.equipements], ['Événements métier', detail.evenements]];
+  return <div className="rounded-2xl border border-red-200 bg-red-50 p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-red-800">Détail des charges consolidées</p><p className="text-sm text-red-700">Ces montants sont consolidés depuis les autres modules même si aucune écriture Finance manuelle n’existe encore.</p></div><span className="rounded-full bg-white px-3 py-1 text-xs font-black text-red-700">{fmtCurrency(finance?.chargesDerivees || 0)}</span></div><div className="mt-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-2">{rows.map(([label, value]) => <div key={label} className="rounded-xl border border-red-100 bg-white p-3"><p className="text-xs font-bold text-[#8a7456]">{label}</p><p className="mt-1 font-black text-[#2f2415]">{fmtCurrency(value || 0)}</p></div>)}</div></div>;
 }
-
 export default function FinancesV11(props) {
   const businessEventsCrud = useCrudModule('business_events');
+  const santeCrud = useCrudModule('sante');
+  const alimentationCrud = useCrudModule('alimentation_logs');
+  const equipementsCrud = useCrudModule('equipements');
   const businessEvents = props.businessEvents?.length ? props.businessEvents : businessEventsCrud.rows;
-  const finance = useMemo(() => consolidateFinance({
-    transactions: props.rows || [],
-    salesOrders: props.salesOrders || [],
-    payments: props.payments || [],
-    fournisseurs: props.fournisseurs || [],
-    stocks: props.stocks || [],
-    animaux: props.animaux || [],
-    lots: props.lots || [],
-    cultures: props.cultures || [],
-    sante: props.sante || [],
-    alimentationLogs: props.alimentationLogs || [],
-    investissements: props.investissements || [],
-    equipements: props.equipements || [],
-    businessEvents,
-  }), [props.rows, props.salesOrders, props.payments, props.fournisseurs, props.stocks, props.animaux, props.lots, props.cultures, props.sante, props.alimentationLogs, props.investissements, props.equipements, businessEvents]);
-
-  const dataMap = {
-    sales_orders: props.salesOrders || [],
-    payments: props.payments || [],
-    finances: props.rows || [],
-    animaux: props.animaux || [],
-    avicole: props.lots || [],
-    cultures: props.cultures || [],
-    stock: props.stocks || [],
-    sante: props.sante || [],
-    investissements: props.investissements || [],
-    equipements: props.equipements || [],
-    business_events: businessEvents,
-  };
-
-  return (
-    <div className="space-y-6 finances-mobile-structured">
-      <style>{`@media (max-width: 640px){.finances-mobile-structured .rounded-2xl{border-radius:18px}.finances-mobile-structured table{font-size:12px}.finances-mobile-structured th,.finances-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.finances-mobile-structured .text-2xl{font-size:1.35rem}.finances-mobile-structured .grid{gap:.75rem}.finances-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
-
-      <ObjectivePerformanceCard dataMap={dataMap} activity="global" title="Objectif & Performance financière" onNavigate={props.onNavigate} />
-
-      <ModuleSection
-        icon={CreditCard}
-        title="Trésorerie et alertes financières"
-        subtitle="Cash encaissé, créances, charges engagées, pertes non-cash et points à vérifier."
-      >
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-widest text-[#8a7456] font-bold">Synthèse financière</p>
-            <h3 className="text-xl font-black text-[#2f2415]">Cash, créances, pertes et marge</h3>
-            <p className="text-sm text-[#8a7456] mt-1">Les indicateurs essentiels pour piloter les entrées, sorties, pertes et montants à suivre.</p>
-          </div>
-          {finance.warnings?.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {finance.warnings.length} point(s) à vérifier</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">Données cohérentes</div>}
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
-          <KpiCard icon={CreditCard} label="Cash encaissé" value={fmtCurrency(finance.cashEncaisse)} sub={`CA ${fmtCurrency(finance.caConsolide)}`} color="bg-sky-500/20 text-sky-500" />
-          <KpiCard icon={Landmark} label="À encaisser" value={fmtCurrency(finance.creancesReelles)} sub="montants clients" color="bg-amber-500/20 text-amber-500" />
-          <KpiCard icon={TrendingDown} label="Charges" value={fmtCurrency(finance.chargesEngagees)} sub={`dérivées ${fmtCurrency(finance.chargesDerivees || 0)}`} color="bg-red-500/20 text-red-500" />
-          <KpiCard icon={AlertTriangle} label="Pertes" value={fmtCurrency(finance.lossCharges || 0)} sub="non-cash intégrées" color="bg-red-500/20 text-red-500" />
-          <KpiCard icon={TrendingUp} label="Marge" value={fmtCurrency(finance.margeReelle)} sub={`${finance.marginRate}%`} color={finance.margeReelle >= 0 ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'} />
-        </div>
-        <DerivedChargesPanel finance={finance} />
-        {finance.warnings?.length ? <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{finance.warnings.slice(0, 6).map((warning) => <div key={warning} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{warning}</div>)}</div> : null}
-      </ModuleSection>
-
-      <ModuleSection
-        icon={TrendingUp}
-        title="Résultat réel ferme"
-        subtitle="CA, charges directes, charges de structure, investissements, prélèvements et cash disponible."
-      >
-        <ProfitabilityStatement
-          transactions={props.rows || []}
-          salesOrders={props.salesOrders || []}
-          payments={props.payments || []}
-          animaux={props.animaux || []}
-          lots={props.lots || []}
-          cultures={props.cultures || []}
-          stocks={props.stocks || []}
-          businessEvents={businessEvents}
-          compact
-        />
-      </ModuleSection>
-
-      <ModuleSection
-        icon={Wallet}
-        title="Rémunération propriétaire"
-        subtitle="Salaire recommandé selon résultat, cash disponible et réserve de sécurité."
-      >
-        <OwnerSalaryRecommendationPanel
-          transactions={props.rows || []}
-          salesOrders={props.salesOrders || []}
-          payments={props.payments || []}
-          animaux={props.animaux || []}
-          lots={props.lots || []}
-          cultures={props.cultures || []}
-          stocks={props.stocks || []}
-          onCreateFinanceTransaction={props.onCreate}
-          onRefreshFinances={props.onRefresh}
-          onCreateBusinessEvent={props.onCreateBusinessEvent}
-          onRefreshBusinessEvents={props.onRefreshBusinessEvents}
-        />
-      </ModuleSection>
-
-      <ModuleSection
-        icon={ListChecks}
-        title="Écritures financières"
-        subtitle="Liste détaillée des entrées, sorties, paiements, justificatifs et opérations."
-      >
-        <FinancesV10 {...props} />
-      </ModuleSection>
-
-      <ModuleSection
-        icon={BarChart3}
-        title="Évolution financière"
-        subtitle="Graphes des entrées, sorties et résultat sur les derniers mois."
-      >
-        <FinanceEvolutionPanel transactions={props.rows || []} salesOrders={props.salesOrders || []} payments={props.payments || []} />
-      </ModuleSection>
-    </div>
-  );
+  const sante = props.sante?.length ? props.sante : santeCrud.rows;
+  const alimentationLogs = props.alimentationLogs?.length ? props.alimentationLogs : alimentationCrud.rows;
+  const equipements = props.equipements?.length ? props.equipements : equipementsCrud.rows;
+  const finance = useMemo(() => consolidateFinance({ transactions: props.rows || [], salesOrders: props.salesOrders || [], payments: props.payments || [], fournisseurs: props.fournisseurs || [], stocks: props.stocks || [], animaux: props.animaux || [], lots: props.lots || [], cultures: props.cultures || [], sante, alimentationLogs, investissements: props.investissements || [], equipements, businessEvents }), [props.rows, props.salesOrders, props.payments, props.fournisseurs, props.stocks, props.animaux, props.lots, props.cultures, sante, alimentationLogs, props.investissements, equipements, businessEvents]);
+  const dataMap = { sales_orders: props.salesOrders || [], payments: props.payments || [], finances: props.rows || [], animaux: props.animaux || [], avicole: props.lots || [], cultures: props.cultures || [], stock: props.stocks || [], sante, investissements: props.investissements || [], equipements, business_events: businessEvents };
+  return <div className="space-y-6 finances-mobile-structured"><style>{`@media (max-width: 640px){.finances-mobile-structured .rounded-2xl{border-radius:18px}.finances-mobile-structured table{font-size:12px}.finances-mobile-structured th,.finances-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.finances-mobile-structured .text-2xl{font-size:1.35rem}.finances-mobile-structured .grid{gap:.75rem}.finances-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style><ObjectivePerformanceCard dataMap={dataMap} activity="global" title="Objectif & Performance financière" onNavigate={props.onNavigate} /><ModuleSection icon={CreditCard} title="Trésorerie et alertes financières" subtitle="Cash encaissé, créances, charges engagées, pertes non-cash et points à vérifier."><div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-[#8a7456] font-bold">Synthèse financière</p><h3 className="text-xl font-black text-[#2f2415]">Cash, créances, pertes et marge</h3><p className="text-sm text-[#8a7456] mt-1">Les indicateurs essentiels pour piloter les entrées, sorties, pertes et montants à suivre.</p></div>{finance.warnings?.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {finance.warnings.length} point(s) à vérifier</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">Données cohérentes</div>}</div><div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4"><KpiCard icon={CreditCard} label="Cash encaissé" value={fmtCurrency(finance.cashEncaisse)} sub={`CA ${fmtCurrency(finance.caConsolide)}`} color="bg-sky-500/20 text-sky-500" /><KpiCard icon={Landmark} label="À encaisser" value={fmtCurrency(finance.creancesReelles)} sub="montants clients" color="bg-amber-500/20 text-amber-500" /><KpiCard icon={TrendingDown} label="Charges" value={fmtCurrency(finance.chargesEngagees)} sub={`dérivées ${fmtCurrency(finance.chargesDerivees || 0)}`} color="bg-red-500/20 text-red-500" /><KpiCard icon={AlertTriangle} label="Pertes" value={fmtCurrency(finance.lossCharges || 0)} sub="non-cash intégrées" color="bg-red-500/20 text-red-500" /><KpiCard icon={TrendingUp} label="Marge" value={fmtCurrency(finance.margeReelle)} sub={`${finance.marginRate}%`} color={finance.margeReelle >= 0 ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'} /></div><DerivedChargesPanel finance={finance} />{finance.warnings?.length ? <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{finance.warnings.slice(0, 6).map((warning) => <div key={warning} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{warning}</div>)}</div> : null}</ModuleSection><ModuleSection icon={TrendingUp} title="Résultat réel ferme" subtitle="CA, charges directes, charges de structure, investissements, prélèvements et cash disponible."><ProfitabilityStatement transactions={props.rows || []} salesOrders={props.salesOrders || []} payments={props.payments || []} animaux={props.animaux || []} lots={props.lots || []} cultures={props.cultures || []} stocks={props.stocks || []} sante={sante} alimentationLogs={alimentationLogs} fournisseurs={props.fournisseurs || []} investissements={props.investissements || []} equipements={equipements} businessEvents={businessEvents} compact /></ModuleSection><ModuleSection icon={Wallet} title="Rémunération propriétaire" subtitle="Salaire recommandé selon résultat, cash disponible et réserve de sécurité."><OwnerSalaryRecommendationPanel transactions={props.rows || []} salesOrders={props.salesOrders || []} payments={props.payments || []} animaux={props.animaux || []} lots={props.lots || []} cultures={props.cultures || []} stocks={props.stocks || []} onCreateFinanceTransaction={props.onCreate} onRefreshFinances={props.onRefresh} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} /></ModuleSection><ModuleSection icon={ListChecks} title="Écritures financières" subtitle="Liste détaillée des entrées, sorties, paiements, justificatifs et opérations."><FinancesV10 {...props} /></ModuleSection><ModuleSection icon={BarChart3} title="Évolution financière" subtitle="Graphes des entrées, sorties et résultat sur les derniers mois."><FinanceEvolutionPanel transactions={props.rows || []} salesOrders={props.salesOrders || []} payments={props.payments || []} /></ModuleSection></div>;
 }
