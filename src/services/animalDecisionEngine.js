@@ -18,8 +18,42 @@ function speciesProfile(species = '') {
   return { targetDelay: 90, normalFrequency: 21, closeFrequency: 14, sickFrequency: 10, dailyGain: 0.1, defaultTargetGain: 9 };
 }
 
-function isDeadAnimal(animal = {}) {
-  return norm(animal.status || animal.statut || '').includes('mort');
+function animalStatus(animal = {}) {
+  return norm(animal.status || animal.statut || animal.sale_readiness_status || '');
+}
+
+function isClosedAnimal(animal = {}) {
+  const status = animalStatus(animal);
+  return ['vendu', 'mort', 'vole', 'volé', 'perdu', 'abattu', 'cloture', 'clôture', 'sorti'].some((word) => status.includes(norm(word)));
+}
+
+function closedAnimalTexts(animal = {}) {
+  const status = animalStatus(animal);
+  if (status.includes('vendu')) return {
+    reason: 'Animal vendu : suivi actif, pesée et alimentation arrêtés. Conserver la fiche pour traçabilité commerciale.',
+    decision: 'Animal vendu : fiche verrouillée, vérifier commande, paiement et marge.',
+    readiness: 'vendu',
+  };
+  if (status.includes('mort') || status.includes('perdu')) return {
+    reason: 'Animal clôturé en perte : suivi actif, vente, pesée et alimentation arrêtés. Conserver la fiche pour traçabilité et analyse.',
+    decision: 'Historisé comme perte animal.',
+    readiness: 'non_pret',
+  };
+  if (status.includes('vole') || status.includes('volé')) return {
+    reason: 'Animal volé : suivi actif et pesées arrêtés. Conserver la fiche pour traçabilité et déclaration.',
+    decision: 'Historisé comme sortie anormale.',
+    readiness: 'non_pret',
+  };
+  if (status.includes('abattu')) return {
+    reason: 'Animal abattu/transformé : suivi de croissance arrêté. Suivre le stock viande et les ventes.',
+    decision: 'Suivre stock, ventes, paiements et marge après abattage.',
+    readiness: 'sorti',
+  };
+  return {
+    reason: 'Animal clôturé/sorti : suivi actif et rappels de pesée arrêtés. Conserver l’historique.',
+    decision: 'Fiche clôturée : aucune nouvelle pesée à planifier.',
+    readiness: 'sorti',
+  };
 }
 
 export function buildAnimalDecisionProfile(animal = {}) {
@@ -35,7 +69,8 @@ export function buildAnimalDecisionProfile(animal = {}) {
   const targetWeight = manualTarget || Number((entryWeight + profile.defaultTargetGain).toFixed(2));
   const progress = targetWeight > entryWeight ? Math.max(0, Math.min(1, (currentWeight - entryWeight) / (targetWeight - entryWeight))) : 0;
 
-  if (isDeadAnimal(animal)) {
+  if (isClosedAnimal(animal)) {
+    const closed = closedAnimalTexts(animal);
     return {
       entryWeight,
       currentWeight,
@@ -43,14 +78,15 @@ export function buildAnimalDecisionProfile(animal = {}) {
       entryDate,
       lastWeighingDate,
       nextWeighingDate: '',
-      expectedWeight: currentWeight,
+      expectedWeight: '',
       frequency: 0,
-      reason: 'Animal mort : suivi actif, vente, pesée et alimentation arrêtés. Conserver la fiche pour traçabilité et perte.',
-      decision: 'Historisé comme perte animal.',
+      reason: closed.reason,
+      decision: closed.decision,
       ageDays,
       targetDelay,
       progressPercent: Math.round(progress * 100),
       closed: true,
+      readiness: closed.readiness,
       lossValue: num(animal.valeur_perte_estimee ?? animal.purchase_cost ?? animal.cout_achat ?? animal.prix_achat),
     };
   }
@@ -93,7 +129,9 @@ export function buildAnimalDecisionProfile(animal = {}) {
 export function applyAnimalDecisionDefaults(payload = {}, existing = {}) {
   const base = { ...existing, ...payload };
   const profile = buildAnimalDecisionProfile(base);
-  const dead = isDeadAnimal(base);
+  const closed = profile.closed;
+  const status = animalStatus(base);
+  const lossClosed = status.includes('mort') || status.includes('perdu') || status.includes('vole') || status.includes('volé');
   return {
     ...payload,
     poids_entree: profile.entryWeight,
@@ -106,14 +144,17 @@ export function applyAnimalDecisionDefaults(payload = {}, existing = {}) {
     frequence_pesee_jours: profile.frequency,
     date_derniere_pesee: profile.lastWeighingDate,
     date_prochaine_pesee_recommandee: profile.nextWeighingDate,
+    prochaine_pesee: profile.nextWeighingDate,
+    rappel_pesee: profile.nextWeighingDate ? addDays(profile.nextWeighingDate, -1) : '',
+    date_rappel_pesee: profile.nextWeighingDate ? addDays(profile.nextWeighingDate, -1) : '',
     poids_attendu_prochaine_pesee: profile.expectedWeight,
     raison_pesee_recommandee: profile.reason,
     decision_apres_pesee_view: profile.decision,
     delai_cible_vente_jours: profile.targetDelay,
-    pret_vente_recommande: dead ? false : payload.pret_vente_recommande,
-    pret_vente_confirme: dead ? false : payload.pret_vente_confirme,
-    sale_readiness_status: dead ? 'non_pret' : payload.sale_readiness_status,
-    valeur_perte_estimee: dead ? num(payload.valeur_perte_estimee ?? existing.valeur_perte_estimee ?? profile.lossValue) : payload.valeur_perte_estimee,
-    alerte_cash_immobilise_view: dead ? 'Clôturé en perte' : profile.ageDays > profile.targetDelay ? `Alerte: ${profile.ageDays} jours en ferme, objectif ${profile.targetDelay} jours` : 'OK',
+    pret_vente_recommande: closed ? false : payload.pret_vente_recommande,
+    pret_vente_confirme: closed ? false : payload.pret_vente_confirme,
+    sale_readiness_status: closed ? profile.readiness : payload.sale_readiness_status,
+    valeur_perte_estimee: lossClosed ? num(payload.valeur_perte_estimee ?? existing.valeur_perte_estimee ?? profile.lossValue) : payload.valeur_perte_estimee,
+    alerte_cash_immobilise_view: closed ? 'Suivi clôturé' : profile.ageDays > profile.targetDelay ? `Alerte: ${profile.ageDays} jours en ferme, objectif ${profile.targetDelay} jours` : 'OK',
   };
 }
