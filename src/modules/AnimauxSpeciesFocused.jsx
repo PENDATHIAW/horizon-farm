@@ -67,12 +67,12 @@ function matchAnimal(item = {}, animal = {}) {
   return Boolean(code && text.includes(clean(code))) || Boolean(id && text.includes(clean(id)));
 }
 function isSaleLikeEvent(event = {}) {
-  const text = clean(`${event.type_evenement || ''} ${event.event_type || ''} ${event.title || ''} ${event.description || ''} ${event.libelle || ''} ${event.category || ''} ${event.categorie || ''}`);
+  const text = clean(`${event.type_evenement || ''} ${event.event_type || ''} ${event.title || ''} ${event.description || ''} ${event.libelle || ''} ${event.category || ''} ${event.categorie || ''} ${event.nature || ''}`);
   return /(vente|vendu|sale|sold|paiement|payment|encaisse|encaiss|revenu|produit|commande|client|chiffre d|ca\b)/.test(text);
 }
 function isChargeLikeEvent(event = {}) {
   if (isSaleLikeEvent(event)) return false;
-  const text = clean(`${event.type_evenement || ''} ${event.event_type || ''} ${event.title || ''} ${event.description || ''} ${event.libelle || ''} ${event.category || ''} ${event.categorie || ''}`);
+  const text = clean(`${event.type_evenement || ''} ${event.event_type || ''} ${event.title || ''} ${event.description || ''} ${event.libelle || ''} ${event.category || ''} ${event.categorie || ''} ${event.nature || ''}`);
   return /(charge|cout|coût|depense|dépense|frais|transport|traitement|soin|sante|santé|aliment|alimentation|perte|mort|maintenance|main.?d.?oeuvre)/.test(text);
 }
 function parseHistory(raw) {
@@ -123,14 +123,14 @@ function costBreakdown(row = {}, ctx = {}) {
   const sante = toNumber(row.sante ?? row.cout_sante ?? row.health_cost ?? row.vet_cost) + arr(vaccins).filter((x) => matchAnimal(x, row)).reduce((s, x) => s + amount(x), 0);
   const autres = toNumber(row.autres_frais ?? row.frais_directs ?? row.other_costs ?? row.direct_costs);
   const linkedEvents = arr(businessEvents).filter((e) => matchAnimal(e, row));
-  const chargeEvents = linkedEvents.filter(isChargeLikeEvent);
-  const saleEvents = linkedEvents.filter(isSaleLikeEvent);
+  const estimatedSale = salePrice(row) || toNumber(row.prix_vente_estime);
+  const saleEvents = linkedEvents.filter((e) => isSaleLikeEvent(e) || (isLocked(row) && estimatedSale > 0 && Math.abs(amount(e) - estimatedSale) < 1));
+  const chargeEvents = linkedEvents.filter((e) => !saleEvents.includes(e) && isChargeLikeEvent(e));
   const evenements = chargeEvents.reduce((s, e) => s + amount(e), 0);
   const totalDirect = toNumber(row.cout_total ?? row.total_cost ?? row.cost_total);
   const totalCalc = achat + alimentation + sante + autres + evenements;
-  const total = totalDirect > 0 ? Math.max(totalDirect, totalCalc) : totalCalc;
+  const total = totalCalc > 0 ? totalCalc : totalDirect;
   const sales = linkedSales(row, salesOrders, payments);
-  const estimatedSale = salePrice(row) || toNumber(row.prix_vente_estime);
   const eventSale = saleEvents.reduce((s, e) => s + amount(e), 0);
   const sale = sales.total || estimatedSale || eventSale;
   const saleSource = sales.total > 0 ? 'commande liée' : estimatedSale > 0 ? 'prix estimé fiche' : eventSale > 0 ? 'événement vente' : 'non renseignée';
@@ -138,6 +138,7 @@ function costBreakdown(row = {}, ctx = {}) {
   if (isLocked(row) && sales.orders.length === 0) warnings.push('Animal marqué vendu sans commande de vente liée.');
   if (isLocked(row) && sales.orders.length > 0 && sales.paid <= 0) warnings.push('Animal vendu avec commande liée mais aucun paiement rattaché.');
   if (saleEvents.length && !sales.orders.length) warnings.push('Événement de vente détecté sans commande : vérifier la traçabilité Vente.');
+  if (totalDirect > 0 && Math.abs(totalDirect - totalCalc) > 1) warnings.push('Ancien coût total incohérent ignoré : recalcul depuis les charges détaillées.');
   return { achat, alimentation, sante, autres, evenements, total, sale, saleSource, paid: sales.paid, remaining: sales.orders.length ? sales.remaining : 0, salesCount: sales.orders.length, marge: sale - total, warnings };
 }
 function statusBadge(status) {
