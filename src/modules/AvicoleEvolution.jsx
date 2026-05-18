@@ -36,8 +36,9 @@ const logDate = (row = {}) => row.date || row.created_at || row.updated_at;
 const oppAmount = (opp = {}) => toNumber(opp.montant_estime ?? opp.estimated_amount ?? opp.valeur_estimee ?? opp.amount ?? opp.total ?? opp.ca_potentiel ?? 0);
 const orderAmount = (order = {}) => toNumber(order.montant_total ?? order.total ?? order.amount ?? order.total_amount ?? order.ca ?? order.ca_total ?? 0);
 const paymentAmount = (payment = {}) => toNumber(payment.montant_paye ?? payment.montant ?? payment.amount ?? payment.paid_amount ?? 0);
+const transactionAmount = (tx = {}) => toNumber(tx.montant ?? tx.amount ?? tx.total ?? tx.montant_total ?? tx.total_amount ?? tx.credit ?? tx.credit_amount ?? 0);
 const paymentOrderId = (payment = {}) => String(payment.order_id || payment.sale_id || payment.source_record_id || payment.related_id || '').trim();
-const linkedLotId = (row = {}) => String(row.lot_id || row.cible_id || row.target_id || row.entity_id || row.source_id || row.source_record_id || row.related_id || '').trim();
+const linkedLotId = (row = {}) => String(row.lot_id || row.cible_id || row.target_id || row.entity_id || row.source_id || row.source_record_id || row.related_id || row.product_id || row.article_id || '').trim();
 const isCancelled = (row = {}) => ['annule', 'annulee', 'annulé', 'cancelled'].includes(lower(row.statut || row.status || row.statut_commande));
 const linkedToExistingLot = (row = {}, lotIds = new Set()) => {
   if (!lotIds.size) return false;
@@ -45,11 +46,27 @@ const linkedToExistingLot = (row = {}, lotIds = new Set()) => {
   if (!id) return false;
   return lotIds.has(id);
 };
+function rowText(row = {}) {
+  return lower(`${row.module || ''} ${row.source_module || ''} ${row.activity || ''} ${row.activite || ''} ${row.type || ''} ${row.nature || ''} ${row.category || ''} ${row.categorie || ''} ${row.produit || ''} ${row.product_name || ''} ${row.product_type || ''} ${row.title || ''} ${row.libelle || ''} ${row.description || ''} ${row.notes || ''}`);
+}
+function isIncome(row = {}) {
+  const text = rowText(row);
+  if (/(sortie|charge|depense|dépense|frais|cout|coût|debit|débit|expense|achat|aliment|soin|vaccin|maintenance)/.test(text)) return false;
+  return /(entree|entrée|revenu|recette|vente|encaisse|encaissement|client|credit|crédit|income|revenue|sale|ca\b)/.test(text);
+}
+function matchesKeywords(row = {}, keywords = []) {
+  const text = rowText(row);
+  return keywords.some((keyword) => text.includes(keyword));
+}
 function orderMatchesActivity(order = {}, lotIds = new Set(), keywords = []) {
   const lotId = linkedLotId(order);
   if (lotId) return lotIds.has(lotId);
-  const text = lower(`${order.type || ''} ${order.produit || ''} ${order.product_name || ''} ${order.title || ''} ${order.description || ''} ${order.notes || ''}`);
-  return keywords.some((keyword) => text.includes(keyword));
+  return matchesKeywords(order, keywords);
+}
+function financeMatchesActivity(tx = {}, lotIds = new Set(), keywords = []) {
+  const lotId = linkedLotId(tx);
+  if (lotId) return lotIds.has(lotId);
+  return matchesKeywords(tx, keywords) || rowText(tx).includes('avicole');
 }
 function lotEstimatedSale(lot = {}) {
   const direct = toNumber(lot.prix_vente_reel ?? lot.sale_price_real ?? lot.montant_vente ?? lot.revenu_reel ?? lot.prix_vente_estime ?? lot.estimated_sale_price ?? lot.valeur_vente_estimee ?? lot.sale_value_estimated);
@@ -85,24 +102,39 @@ function SmallMetric({ label, value, hint, danger = false }) {
 function Header({ title, subtitle, priority, onNavigate }) {
   return <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4"><div className="flex items-start justify-between gap-3"><div className="flex items-start gap-3"><div className="w-10 h-10 rounded-xl bg-[#fff3d8] text-[#9a6b12] flex items-center justify-center"><Bird size={18} /></div><div><p className="font-black text-[#2f2415]">{title}</p><p className="text-xs text-[#8a7456] mt-1">{subtitle}</p></div></div>{priority ? <button type="button" onClick={() => onNavigate?.(priority.module)} className="hidden md:inline-flex items-center gap-2 rounded-xl bg-[#c9a96a] px-3 py-2 text-sm font-bold text-white hover:bg-[#b6975f]"><ShoppingBag size={15} />{priority.label}</button> : null}</div></div>;
 }
-function addRealSalesToMonthly({ map, salesOrders = [], payments = [], lotIds = new Set(), keywords = [] }) {
+function addRealSalesToMonthly({ map, salesOrders = [], payments = [], transactions = [], lotIds = new Set(), keywords = [] }) {
   const realOrders = arr(salesOrders).filter((order) => !isCancelled(order) && orderMatchesActivity(order, lotIds, keywords));
   const orderIds = new Set(realOrders.map((order) => String(order.id || '')).filter(Boolean));
   realOrders.forEach((order) => {
-    const bucket = ensure(map, monthKey(order.date || order.created_at || order.updated_at));
-    bucket.ca += orderAmount(order);
-    bucket.sales_real += orderAmount(order);
+    const amount = orderAmount(order);
+    const bucket = ensure(map, monthKey(order.date || order.date_commande || order.created_at || order.updated_at));
+    bucket.ca += amount;
+    bucket.sales_real += amount;
   });
   arr(payments).forEach((payment) => {
     const orderId = paymentOrderId(payment);
     const lotLinked = linkedToExistingLot(payment, lotIds);
-    if (!orderIds.has(orderId) && !lotLinked) return;
+    const textLinked = matchesKeywords(payment, keywords) || rowText(payment).includes('avicole');
+    if (!orderIds.has(orderId) && !lotLinked && !textLinked) return;
     const bucket = ensure(map, monthKey(payment.date || payment.created_at || payment.paid_at || payment.date_paiement));
     bucket.encaisse += paymentAmount(payment);
   });
-  return realOrders.length;
+  let financeIncomeCount = 0;
+  if (!realOrders.length) {
+    arr(transactions).forEach((tx) => {
+      if (!isIncome(tx) || !financeMatchesActivity(tx, lotIds, keywords)) return;
+      const amount = transactionAmount(tx);
+      if (amount <= 0) return;
+      const bucket = ensure(map, monthKey(tx.date || tx.created_at || tx.updated_at || tx.date_operation || tx.date_paiement));
+      bucket.ca += amount;
+      bucket.encaisse += amount;
+      bucket.sales_real += amount;
+      financeIncomeCount += 1;
+    });
+  }
+  return realOrders.length + financeIncomeCount;
 }
-function buildChairMonthly({ rows = [], alimentationLogs = [], opportunities = [], salesOrders = [], payments = [] }) {
+function buildChairMonthly({ rows = [], alimentationLogs = [], opportunities = [], salesOrders = [], payments = [], transactions = [] }) {
   const chair = filterLotsByActivity(rows, 'Chair');
   const chairIds = new Set(chair.map((lot) => String(lot.id)));
   if (!chairIds.size) return [];
@@ -128,12 +160,12 @@ function buildChairMonthly({ rows = [], alimentationLogs = [], opportunities = [
     const cost = logCost(log) || logQty(log) * toNumber(log.prix_unitaire ?? log.unit_price ?? 0);
     bucket.charges_aliments += cost;
   });
-  const realSales = addRealSalesToMonthly({ map, salesOrders, payments, lotIds: chairIds, keywords: ['chair', 'poulet', 'broiler'] });
+  const realSales = addRealSalesToMonthly({ map, salesOrders, payments, transactions, lotIds: chairIds, keywords: ['chair', 'poulet', 'broiler', 'avicole'] });
   let estimatedFromOpportunities = 0;
   if (!realSales) arr(opportunities).forEach((opp) => {
     const source = lower(`${opp.source_module || ''} ${opp.type || ''} ${opp.produit || ''} ${opp.title || ''}`);
     const lotId = linkedLotId(opp);
-    const looksChair = source.includes('chair') || (lotId && chairIds.has(lotId));
+    const looksChair = source.includes('chair') || source.includes('poulet') || (lotId && chairIds.has(lotId));
     if (!looksChair || (lotId && !chairIds.has(lotId))) return;
     const amount = oppAmount(opp);
     const bucket = ensure(map, monthKey(opp.created_at || opp.updated_at || opp.date));
@@ -155,7 +187,7 @@ function buildChairMonthly({ rows = [], alimentationLogs = [], opportunities = [
     return { ...row, poids_moyen: Number(poids.toFixed(2)), marge: Number(marge.toFixed(0)), taux_marge: row.ca > 0 ? Number(((marge / row.ca) * 100).toFixed(1)) : 0, taux_mortalite: Number(row.taux_mortalite.toFixed(1)) };
   });
 }
-function buildPonteMonthly({ rows = [], productionLogs = [], alimentationLogs = [], opportunities = [], salesOrders = [], payments = [] }) {
+function buildPonteMonthly({ rows = [], productionLogs = [], alimentationLogs = [], opportunities = [], salesOrders = [], payments = [], transactions = [] }) {
   const pondeuses = filterLotsByActivity(rows, 'Pondeuse');
   const pondeuseIds = new Set(pondeuses.map((lot) => String(lot.id)));
   if (!pondeuseIds.size) return [];
@@ -182,12 +214,12 @@ function buildPonteMonthly({ rows = [], productionLogs = [], alimentationLogs = 
     const cost = logCost(log) || logQty(log) * toNumber(log.prix_unitaire ?? log.unit_price ?? 0);
     bucket.charges_aliments += cost;
   });
-  const realSales = addRealSalesToMonthly({ map, salesOrders, payments, lotIds: pondeuseIds, keywords: ['oeuf', 'œuf', 'ponte', 'pondeuse', 'tablette'] });
+  const realSales = addRealSalesToMonthly({ map, salesOrders, payments, transactions, lotIds: pondeuseIds, keywords: ['oeuf', 'œuf', 'ponte', 'pondeuse', 'tablette', 'plateau', 'avicole'] });
   if (!realSales) arr(opportunities).forEach((opp) => {
     const lotId = linkedLotId(opp);
     if (lotId && !pondeuseIds.has(lotId)) return;
     const source = lower(`${opp.source_module || ''} ${opp.type || ''} ${opp.produit || ''} ${opp.title || ''}`);
-    if (!lotId && !source.includes('oeuf') && !source.includes('œuf') && !source.includes('ponte') && !source.includes('tablette')) return;
+    if (!lotId && !source.includes('oeuf') && !source.includes('œuf') && !source.includes('ponte') && !source.includes('tablette') && !source.includes('plateau')) return;
     const bucket = ensure(map, monthKey(opp.created_at || opp.updated_at || opp.date));
     bucket.ca += oppAmount(opp);
     bucket.sales_estimated += oppAmount(opp);
@@ -211,7 +243,7 @@ function EmptyState() {
   return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Aucun lot avicole actif dans cette vue. Les anciens logs orphelins ne sont plus repris dans les coûts, œufs, CA ou graphes.</div>;
 }
 
-export default function AvicoleEvolution({ rows = [], productionLogs = [], alimentationLogs = [], opportunities = [], businessEvents = [], salesOrders = [], payments = [], onNavigate }) {
+export default function AvicoleEvolution({ rows = [], productionLogs = [], alimentationLogs = [], opportunities = [], businessEvents = [], salesOrders = [], payments = [], transactions = [], onNavigate }) {
   const activeRows = arr(rows).filter((row) => row?.id);
   const activeLotIds = new Set(activeRows.map((row) => String(row.id)));
   const chairRows = filterLotsByActivity(activeRows, 'Chair');
@@ -228,8 +260,8 @@ export default function AvicoleEvolution({ rows = [], productionLogs = [], alime
   const chairCosts = costs.details.filter((item) => item.type === 'chair');
   const ponteCosts = costs.details.filter((item) => item.type === 'ponte');
   const realCostLots = costs.details.filter((item) => item.realFeedCost > 0).length;
-  const chair = showChair ? buildChairMonthly({ rows: activeRows, alimentationLogs: linkedAlimentationLogs, opportunities, salesOrders, payments }) : [];
-  const ponte = showPonte ? buildPonteMonthly({ rows: activeRows, productionLogs: linkedProductionLogs, alimentationLogs: linkedAlimentationLogs, opportunities, salesOrders, payments }) : [];
+  const chair = showChair ? buildChairMonthly({ rows: activeRows, alimentationLogs: linkedAlimentationLogs, opportunities, salesOrders, payments, transactions }) : [];
+  const ponte = showPonte ? buildPonteMonthly({ rows: activeRows, productionLogs: linkedProductionLogs, alimentationLogs: linkedAlimentationLogs, opportunities, salesOrders, payments, transactions }) : [];
   const lastChair = meaningfulLast(chair, ['effectif', 'ca', 'poids_moyen', 'morts', 'prets']);
   const lastPonte = meaningfulLast(ponte, ['pondeuses', 'oeufs', 'vendables', 'tablettes']);
   const readyLots = chair.reduce((sum, row) => sum + row.prets, 0);
@@ -250,7 +282,7 @@ export default function AvicoleEvolution({ rows = [], productionLogs = [], alime
   return <div className="space-y-5">
     <Header title={showPonte && !showChair ? 'Évolution Pondeuses interactive' : showChair && !showPonte ? 'Évolution Chair interactive' : 'Évolution Avicole interactive'} subtitle={showPonte && !showChair ? 'Lecture pondeuses uniquement : coûts, ponte, tablettes vendables, casse et marge.' : showChair && !showPonte ? 'Lecture poulets de chair uniquement : coûts, ventes, marge, poids et mortalité.' : 'Deux lectures séparées : Chair et Ponte.'} priority={priority} onNavigate={onNavigate} />
     {!activeRows.length ? <EmptyState /> : null}
-    <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4"><div className="grid grid-cols-2 lg:grid-cols-6 gap-3">{showChair ? <><SmallMetric label="Coût moyen sujet chair" value={fmtCurrency(avgChairCostLive)} hint="coût / sujet suivi" /><SmallMetric label="Coût / kg poulet" value={fmtCurrency(avgChairCostKg)} hint={avgChairCostKg > 0 ? 'abattage enregistré' : 'à calculer après abattage'} /><SmallMetric label="Impact mortalité" value={fmtCurrency(Math.max(0, mortalityImpact))} hint="sur coût/sujet chair" danger={mortalityImpact > 0} /></> : null}{showPonte ? <SmallMetric label="Coût / œuf vendable" value={fmtCurrency(avgPonteCostEgg)} hint="ponte" /> : null}<SmallMetric label="Aliment réel" value={fmtCurrency(costs.realFeedCost)} hint={`${fmtNumber(realCostLots)}/${fmtNumber(costs.details.length)} lots`} /><SmallMetric label="Aliment estimé" value={fmtCurrency(costs.estimatedFeedCost)} hint="si pas de sortie réelle" /><SmallMetric label="CA réel" value={fmtCurrency(totalSalesReal)} hint={totalSalesReal ? 'commandes liées' : totalSalesEstimated ? 'estimation utilisée' : 'non lié'} /><SmallMetric label="Encaissé" value={fmtCurrency(totalEncaisse)} hint={totalSalesEstimated ? `estimé: ${fmtCurrency(totalSalesEstimated)}` : 'paiements liés'} /></div></div>
+    <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4"><div className="grid grid-cols-2 lg:grid-cols-6 gap-3">{showChair ? <><SmallMetric label="Coût moyen sujet chair" value={fmtCurrency(avgChairCostLive)} hint="coût / sujet suivi" /><SmallMetric label="Coût / kg poulet" value={fmtCurrency(avgChairCostKg)} hint={avgChairCostKg > 0 ? 'abattage enregistré' : 'à calculer après abattage'} /><SmallMetric label="Impact mortalité" value={fmtCurrency(Math.max(0, mortalityImpact))} hint="sur coût/sujet chair" danger={mortalityImpact > 0} /></> : null}{showPonte ? <SmallMetric label="Coût / œuf vendable" value={fmtCurrency(avgPonteCostEgg)} hint="ponte" /> : null}<SmallMetric label="Aliment réel" value={fmtCurrency(costs.realFeedCost)} hint={`${fmtNumber(realCostLots)}/${fmtNumber(costs.details.length)} lots`} /><SmallMetric label="Aliment estimé" value={fmtCurrency(costs.estimatedFeedCost)} hint="si pas de sortie réelle" /><SmallMetric label="CA réel" value={fmtCurrency(totalSalesReal)} hint={totalSalesReal ? 'ventes/finances liées' : totalSalesEstimated ? 'estimation utilisée' : 'non lié'} /><SmallMetric label="Encaissé" value={fmtCurrency(totalEncaisse)} hint={totalSalesReal ? 'paiements/finances liés' : totalSalesEstimated ? `estimé: ${fmtCurrency(totalSalesEstimated)}` : 'paiements liés'} /></div></div>
 
     {showChair ? <section className="space-y-4">
       <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4">
@@ -272,7 +304,7 @@ export default function AvicoleEvolution({ rows = [], productionLogs = [], alime
       <SmartEvolutionChart title="Ponte — production mensuelle" subtitle="Œufs produits, vendables, tablettes, casses et effectif pondeuses." months={labels(ponte)} leftUnit="" rightUnit="%" series={[{ name: 'Œufs produits', type: 'bar', data: values(ponte, 'oeufs') }, { name: 'Œufs vendables', type: 'bar', data: values(ponte, 'vendables') }, { name: 'Tablettes vendables', type: 'bar', data: values(ponte, 'tablettes') }, { name: 'Casses', type: 'bar', data: values(ponte, 'casses') }, { name: 'Pondeuses actives', type: 'line', data: values(ponte, 'pondeuses') }, { name: 'Taux ponte', type: 'line', axis: 'right', unit: '%', data: values(ponte, 'taux_ponte') }]} />
     </section> : null}
 
-    <div className="bg-[#fffdf8] border border-[#d6c3a0] rounded-2xl p-4 text-sm text-[#7d6a4a] flex items-start gap-3"><TrendingUp size={18} className="text-[#9a6b12] mt-0.5" /><div><b className="text-[#2f2415]">Interprétation :</b> {!activeRows.length ? 'Aucun lot actif. Les anciens logs restent archivés mais ne sont pas repris dans les coûts, œufs, CA ou graphes.' : totalSalesReal > 0 ? 'Les graphes utilisent les commandes et paiements réellement liés aux lots avicoles.' : totalSalesEstimated > 0 ? 'Aucune vente réelle liée : les graphes utilisent encore les opportunités ou estimations de lot.' : realCostLots < costs.details.length ? `Coût réel disponible pour ${fmtNumber(realCostLots)}/${fmtNumber(costs.details.length)} lot(s), estimation utilisée pour les autres.` : healthIssues > 0 ? `${fmtNumber(healthIssues)} point(s) santé/mortalité à traiter.` : showChair && readyLots > 0 ? `${fmtNumber(readyLots)} lot(s) chair à convertir en ventes.` : showPonte ? `Vue pondeuses cohérente : suivre ponte, casses, aliment, tablettes (${fmtNumber(totalTablets)} complètes) et marge.` : 'Compléter les coûts et ventes liées pour affiner les marges.'}</div></div>
+    <div className="bg-[#fffdf8] border border-[#d6c3a0] rounded-2xl p-4 text-sm text-[#7d6a4a] flex items-start gap-3"><TrendingUp size={18} className="text-[#9a6b12] mt-0.5" /><div><b className="text-[#2f2415]">Interprétation :</b> {!activeRows.length ? 'Aucun lot actif. Les anciens logs restent archivés mais ne sont pas repris dans les coûts, œufs, CA ou graphes.' : totalSalesReal > 0 ? 'Les graphes utilisent les commandes, paiements ou revenus Finance réellement liés aux lots avicoles.' : totalSalesEstimated > 0 ? 'Aucune vente réelle liée : les graphes utilisent encore les opportunités ou estimations de lot.' : realCostLots < costs.details.length ? `Coût réel disponible pour ${fmtNumber(realCostLots)}/${fmtNumber(costs.details.length)} lot(s), estimation utilisée pour les autres.` : healthIssues > 0 ? `${fmtNumber(healthIssues)} point(s) santé/mortalité à traiter.` : showChair && readyLots > 0 ? `${fmtNumber(readyLots)} lot(s) chair à convertir en ventes.` : showPonte ? `Vue pondeuses cohérente : suivre ponte, casses, aliment, tablettes (${fmtNumber(totalTablets)} complètes) et marge.` : 'Compléter les coûts et ventes liées pour affiner les marges.'}</div></div>
     {priority ? <div className={`${healthIssues ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'} border rounded-2xl p-4 text-sm flex items-start justify-between gap-3`}><div className="flex items-start gap-2"><ShoppingBag size={18} className="mt-0.5" /><div><b>Action recommandée :</b> {priority.label}.</div></div><button type="button" onClick={() => onNavigate?.(priority.module)} className="shrink-0 rounded-xl bg-white/70 border border-current/10 px-3 py-1.5 text-xs font-bold">Ouvrir</button></div> : null}
   </div>;
 }
