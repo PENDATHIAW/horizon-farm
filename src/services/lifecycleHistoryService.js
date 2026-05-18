@@ -6,31 +6,38 @@ const lower = (value) => clean(value).toLowerCase();
 const dateOf = (row = {}) => row.date || row.event_date || row.created_at || row.updated_at || row.date_livraison || row.delivery_date || row.date_commande || '';
 const amountOf = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?? row.montant_total ?? row.chiffre_affaires);
 const isClosedStatus = (target = {}) => /cl[oô]tur|clos|termin|vendu|livr|abattu|transform|perdu|mort|r[eé]colt|archive|archiv/.test(lower(`${target.status || ''} ${target.statut || ''} ${target.phase || ''} ${target.stade || ''}`));
+const physicalIdOf = (target = {}) => target.boucle_numero || target.qr_code || target.tag || target.id;
 
 export function activeCountOf(target = {}, mode = 'avicole') {
   if (mode === 'cultures') return toNumber(target.quantite_disponible ?? target.quantite_recoltee ?? target.production_reelle ?? target.surface_exploitable ?? target.surface);
-  return toNumber(target.current_count ?? target.effectif_actuel ?? target.actifs ?? target.nombre_actuel ?? target.quantity_active ?? target.count ?? (mode === 'animaux' ? 1 : 0));
+  if (mode === 'animaux') return isClosedStatus(target) ? 0 : 1;
+  return toNumber(target.current_count ?? target.effectif_actuel ?? target.actifs ?? target.nombre_actuel ?? target.quantity_active ?? target.count ?? 0);
 }
 
 export function initialCountOf(target = {}, mode = 'avicole') {
   if (mode === 'cultures') return toNumber(target.quantite_prevue ?? target.production_prevue ?? target.surface ?? target.surface_exploitable);
+  if (mode === 'animaux') return 1;
   return toNumber(target.initial_count ?? target.effectif_initial ?? target.nombre_initial ?? target.quantity_initial ?? target.count_initial ?? activeCountOf(target, mode));
 }
 
 function targetMatches(row = {}, target = {}, mode = 'avicole') {
   const id = clean(target.id);
-  if (!id) return false;
+  const code = clean(physicalIdOf(target));
+  if (!id && !code) return false;
   const keys = [
     row.lot_id, row.animal_id, row.culture_id, row.target_id, row.cible_id, row.entity_id, row.related_id, row.source_record_id,
-    row.asset_id, row.bp_line_id, row.product_id, row.produit_id,
+    row.asset_id, row.bp_line_id, row.product_id, row.produit_id, row.boucle_numero, row.qr_code, row.tag,
   ].map(clean);
-  if (keys.includes(id)) return true;
-  const text = lower(`${row.product_name || ''} ${row.produit || ''} ${row.libelle || ''} ${row.description || ''} ${row.notes || ''}`);
-  return text.includes(lower(target.name || target.nom || target.tag || target.id));
+  if ((id && keys.includes(id)) || (code && keys.includes(code))) return true;
+  const text = lower(`${row.product_name || ''} ${row.produit || ''} ${row.libelle || ''} ${row.description || ''} ${row.notes || ''} ${row.title || ''} ${row.nom || ''}`);
+  const name = lower(target.name || target.nom || target.tag || target.id);
+  return Boolean(name && text.includes(name)) || Boolean(id && text.includes(lower(id))) || Boolean(code && text.includes(lower(code)));
 }
 
-function quantityOf(row = {}) {
-  return toNumber(row.quantite ?? row.quantity ?? row.qty ?? row.nombre ?? row.effectif ?? row.items_count ?? row.delivered_qty ?? row.quantite_livree);
+function quantityOf(row = {}, mode = 'avicole') {
+  const qty = toNumber(row.quantite ?? row.quantity ?? row.qty ?? row.nombre ?? row.effectif ?? row.items_count ?? row.delivered_qty ?? row.quantite_livree);
+  if (mode === 'animaux') return qty || 1;
+  return qty;
 }
 
 export function buildLifecycleHistory({ mode = 'avicole', target = {}, salesOrders = [], deliveries = [], businessEvents = [], alimentationLogs = [], healthLogs = [], productionLogs = [] } = {}) {
@@ -38,28 +45,28 @@ export function buildLifecycleHistory({ mode = 'avicole', target = {}, salesOrde
   const active = activeCountOf(target, mode);
   const events = [];
   if (initial > 0) {
-    events.push({ id: `${target.id}-initial`, date: target.date_entree || target.entry_date || target.date_debut || target.date_semis || target.created_at || '', type: 'entrée_initiale', label: mode === 'cultures' ? 'Démarrage culture' : 'Entrée initiale', delta: initial, remaining: initial, amount: toNumber(target.purchase_cost ?? target.cout_achat_total ?? target.budget_prevu), source: 'module', status: 'validé' });
+    events.push({ id: `${target.id}-initial`, date: target.date_entree || target.date_entree_ferme || target.entry_date || target.date_debut || target.date_semis || target.created_at || '', type: 'entrée_initiale', label: mode === 'cultures' ? 'Démarrage culture' : 'Entrée initiale', delta: initial, remaining: initial, amount: toNumber(target.purchase_cost ?? target.cout_achat_total ?? target.cout_achat ?? target.prix_achat ?? target.budget_prevu), source: 'module', status: 'validé' });
   }
 
   arr(salesOrders).filter((row) => targetMatches(row, target, mode)).forEach((row) => {
-    const qty = quantityOf(row) || quantityOf(row.item) || 0;
+    const qty = quantityOf(row, mode) || quantityOf(row.item, mode) || 0;
     if (!qty) return;
     events.push({ id: row.id, date: dateOf(row), type: 'vente', label: `Vente ${row.client_nom || row.client_name || row.client_id || ''}`.trim(), delta: -qty, amount: amountOf(row), source: 'ventes', status: row.statut_commande || row.status || 'vente' });
   });
 
   arr(deliveries).filter((row) => targetMatches(row, target, mode)).forEach((row) => {
-    const qty = quantityOf(row);
+    const qty = quantityOf(row, mode);
     if (!qty) return;
     events.push({ id: row.id, date: dateOf(row), type: 'livraison', label: 'Livraison', delta: -qty, amount: amountOf(row), source: 'livraisons', status: row.status || row.statut || 'livrée' });
   });
 
   arr(businessEvents).filter((row) => targetMatches(row, target, mode)).forEach((row) => {
-    const text = lower(`${row.event_type || ''} ${row.title || ''} ${row.description || ''}`);
-    const qty = quantityOf(row) || toNumber(row.delta_effectif ?? row.effectif_delta ?? row.quantity_delta);
+    const text = lower(`${row.event_type || ''} ${row.type_evenement || ''} ${row.title || ''} ${row.description || ''}`);
+    const qty = quantityOf(row, mode) || toNumber(row.delta_effectif ?? row.effectif_delta ?? row.quantity_delta);
     let type = 'événement';
     let delta = 0;
     if (/mortal|mort|perte|lost/.test(text)) { type = 'perte'; delta = -Math.abs(qty || 1); }
-    else if (/abatt|transform/.test(text)) { type = 'abattage_transformation'; delta = -Math.abs(qty || 0); }
+    else if (/abatt|transform/.test(text)) { type = 'abattage_transformation'; delta = -Math.abs(qty || (mode === 'animaux' ? 1 : 0)); }
     else if (/ajust/.test(text)) { type = 'ajustement'; delta = toNumber(row.delta_effectif ?? row.effectif_delta ?? row.quantity_delta ?? qty); }
     else if (/recolt|récolt/.test(text)) { type = 'récolte'; delta = -Math.abs(qty || 0); }
     if (!delta && !['événement'].includes(type)) return;
