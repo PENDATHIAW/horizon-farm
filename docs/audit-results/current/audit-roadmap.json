@@ -1,15 +1,15 @@
 {
-  "generated_at": "2026-05-18T00:05:32.518Z",
+  "generated_at": "2026-05-18T05:59:03.765Z",
   "modules_audited": 25,
-  "findings_count": 3,
+  "findings_count": 5,
   "legacy_reconciliation": {
-    "payments_finance_created": 0,
+    "payments_finance_created": 4,
     "invoices_documents_created": 0,
-    "opportunities_closed": 0,
-    "sold_animals_linked": 0,
+    "opportunities_closed": 1,
+    "sold_animals_linked": 2,
     "skipped": 0,
     "errors": [],
-    "total_fixed": 0
+    "total_fixed": 7
   },
   "coverage_stats": {
     "modules": 25,
@@ -8438,7 +8438,7 @@
       "type": "graphe",
       "element": "Graphiques présents dans le module",
       "status": "a_inspecter",
-      "expected": "Contrôler titre, source, unité, p��riode, légende, cohérence métier et contexte."
+      "expected": "Contrôler titre, source, unité, période, légende, cohérence métier et contexte."
     },
     {
       "id": "INSPECT-INVESTISSEMENTS-FORMULAIRE-FORMULAIRES-DU-MODULE",
@@ -10021,12 +10021,12 @@
     {
       "priority": 1,
       "title": "Fiabilité financière et chiffre d’affaires",
-      "count": 1
+      "count": 2
     },
     {
       "priority": 2,
       "title": "Workflows métier interconnectés",
-      "count": 1
+      "count": 2
     },
     {
       "priority": 3,
@@ -10051,7 +10051,7 @@
   ],
   "findings": [
     {
-      "id": "AUD-1779062732518-1c3d45",
+      "id": "AUD-1779083943764-b7c0aa",
       "module": "Comptabilité",
       "zone": "Charges",
       "element": "Charges exploitation",
@@ -10076,10 +10076,37 @@
       "source_component": "",
       "correction_lot": "Lot 1 · Fiabilité financière et CA",
       "retest_steps": [],
-      "detected_at": "2026-05-18T00:05:32.518Z"
+      "detected_at": "2026-05-18T05:59:03.764Z"
     },
     {
-      "id": "AUD-1779062732518-325d4e",
+      "id": "AUD-1779083943764-14e779",
+      "module": "Ventes",
+      "zone": "Paiements",
+      "element": "4 paiement(s)",
+      "type": "workflow",
+      "severity": "bloquant",
+      "severity_rank": 1,
+      "status": "detecte",
+      "title": "Paiements sans transaction Finance liée",
+      "detail": "4 paiement(s) existent sans écriture Finance retrouvée.",
+      "probable_cause": "Paiement créé avant la mise en place du workflow finance ou par un chemin incomplet.",
+      "expected_fix": "Réconcilier les anciennes lignes puis garder paiement → finance automatique.",
+      "business_impact": "CA, trésorerie, comptabilité, objectifs et accueil peuvent être faux.",
+      "linked_modules": [
+        "Ventes",
+        "Finances",
+        "Comptabilité",
+        "Objectifs",
+        "Accueil"
+      ],
+      "source_path": "",
+      "source_component": "",
+      "correction_lot": "Lot 1 · Fiabilité financière et CA",
+      "retest_steps": [],
+      "detected_at": "2026-05-18T05:59:03.764Z"
+    },
+    {
+      "id": "AUD-1779083943764-36d7b7",
       "module": "Animaux",
       "zone": "Fiche animal vendu",
       "element": "3 animal(aux)",
@@ -10103,10 +10130,35 @@
       "source_component": "",
       "correction_lot": "Lot 2 · Workflows métier interconnectés",
       "retest_steps": [],
-      "detected_at": "2026-05-18T00:05:32.518Z"
+      "detected_at": "2026-05-18T05:59:03.764Z"
     },
     {
-      "id": "AUD-1779062732518-820461",
+      "id": "AUD-1779083943764-9f1a63",
+      "module": "Ventes",
+      "zone": "Opportunités",
+      "element": "1 opportunité(s)",
+      "type": "workflow",
+      "severity": "critique",
+      "severity_rank": 2,
+      "status": "detecte",
+      "title": "Opportunités converties mais encore ouvertes",
+      "detail": "1 opportunité(s) ont une commande liée mais restent ouvertes.",
+      "probable_cause": "Ancienne commande créée sans fermer l’opportunité.",
+      "expected_fix": "Réconcilier en statut convertie puis garder fermeture automatique.",
+      "business_impact": "Risque de doublons commerciaux et de recommandations inutiles.",
+      "linked_modules": [
+        "Ventes",
+        "Centre décisionnel",
+        "Traçabilité"
+      ],
+      "source_path": "",
+      "source_component": "",
+      "correction_lot": "Lot 2 · Workflows métier interconnectés",
+      "retest_steps": [],
+      "detected_at": "2026-05-18T05:59:03.764Z"
+    },
+    {
+      "id": "AUD-1779083943764-d5b60d",
       "module": "Impact Business",
       "zone": "Interventions santé",
       "element": "3 impact(s)",
@@ -10129,7 +10181,7 @@
       "source_component": "",
       "correction_lot": "Lot 4 · Formulaires et champs",
       "retest_steps": [],
-      "detected_at": "2026-05-18T00:05:32.518Z"
+      "detected_at": "2026-05-18T05:59:03.764Z"
     }
   ],
   "source": "Assistant ERP · audit roadmap GitHub"
