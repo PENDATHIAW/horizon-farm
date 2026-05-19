@@ -177,6 +177,13 @@ export const calculateLotSaleReadiness = (lot = {}, metrics = calculateLotMetric
   const age = calculateLotAgeDays(lot);
   const expectedEnd = calculateLotEndDate(lot);
   const current = metrics.currentCount ?? calculateLotCurrentCount(lot);
+  const soldCount = toNumber(lot.vendus ?? lot.sold_count ?? lot.sold);
+  const initial = toNumber(lot.initial_count ?? lot.effectif_initial);
+  const statusText = clean(`${lot.status || ''} ${lot.statut || ''} ${lot.phase || ''}`);
+  const isFullySold = isBroilerLot(lot) && current <= 0 && (soldCount > 0 || statusText.includes('vendu'));
+  if (isFullySold) {
+    return { score: 100, status: 'vendu_cloture', recommended: false, sold: true, closed: true, reason: 'Lot de chair vendu ou clôturé : aucun rappel de vente/pesée à déclencher.', missing: [], ageDays: age, expectedEndDate: expectedEnd };
+  }
   const weightOk = !toNumber(lot.poids_objectif) || toNumber(lot.weight_avg ?? lot.poids_moyen_actuel) >= toNumber(lot.poids_objectif);
   const healthOk = ['sain', 'a_surveiller'].includes(lot.health_status || 'sain');
   const mortalityOk = toNumber(metrics.mortalityRate) < 5;
