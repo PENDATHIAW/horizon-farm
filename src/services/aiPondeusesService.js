@@ -1,19 +1,15 @@
+import { avicoleActiveCount } from '../utils/avicoleMetrics';
 import { toNumber } from '../utils/format';
 
 const TABLET_SIZE = 30;
-
 const asRows = (rows) => (Array.isArray(rows) ? rows : []);
 
 const normalizeText = (value = '') =>
-  String(value)
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim();
+  String(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 
 const isLayerLot = (lot = {}) => {
   const type = normalizeText(`${lot.type || ''} ${lot.category || ''} ${lot.categorie || ''} ${lot.name || ''}`);
-  return type.includes('pondeuse') || type.includes('layer');
+  return type.includes('pondeuse') || type.includes('layer') || type.includes('ponte');
 };
 
 const dateOf = (row = {}, keys = ['date', 'created_at', 'event_date']) => {
@@ -36,49 +32,14 @@ const valueByKeys = (row = {}, keys = []) => {
   return 0;
 };
 
-const productionQty = (row = {}) =>
-  valueByKeys(row, ['oeufs_produits', 'oeufs', 'quantite', 'quantity', 'total_oeufs', 'production']);
+const productionQty = (row = {}) => valueByKeys(row, ['oeufs_produits', 'oeufs', 'quantite', 'quantity', 'total_oeufs', 'production']);
+const brokenEggsQty = (row = {}) => valueByKeys(row, ['oeufs_casses', 'casses', 'broken_eggs', 'pertes']);
+const feedCost = (row = {}) => valueByKeys(row, ['montant_total', 'cout_total', 'total', 'amount', 'montant', 'prix_total', 'cost']);
+const feedQty = (row = {}) => valueByKeys(row, ['quantite', 'quantity', 'qty']);
+const rowsForLot = (rows, lotId) => asRows(rows).filter((row) => row.lot_id === lotId || row.cible_id === lotId || row.entity_id === lotId);
+const latestMarketPrice = (marketPrices = [], category) => asRows(marketPrices).filter((row) => normalizeText(row.product_category) === normalizeText(category)).sort((a, b) => (dateOf(b, ['observed_at', 'created_at'])?.getTime() || 0) - (dateOf(a, ['observed_at', 'created_at'])?.getTime() || 0))[0] || null;
 
-const brokenEggsQty = (row = {}) =>
-  valueByKeys(row, ['oeufs_casses', 'casses', 'broken_eggs', 'pertes']);
-
-const feedCost = (row = {}) =>
-  valueByKeys(row, ['montant_total', 'cout_total', 'total', 'amount', 'montant', 'prix_total', 'cost']);
-
-const feedQty = (row = {}) =>
-  valueByKeys(row, ['quantite', 'quantity', 'qty']);
-
-const lotCurrentCount = (lot = {}) => {
-  const explicit = valueByKeys(lot, ['current_count', 'effectif_actuel', 'count']);
-  if (explicit > 0) return explicit;
-
-  const initial = valueByKeys(lot, ['initial_count', 'effectif_initial', 'quantity']);
-  const exits =
-    valueByKeys(lot, ['mortality', 'morts']) +
-    valueByKeys(lot, ['vols', 'stolen']) +
-    valueByKeys(lot, ['vendus', 'sold']) +
-    valueByKeys(lot, ['reformes', 'reformed']) +
-    valueByKeys(lot, ['sorties', 'exits']);
-
-  return Math.max(initial - exits, 0);
-};
-
-const rowsForLot = (rows, lotId) =>
-  asRows(rows).filter((row) => row.lot_id === lotId || row.cible_id === lotId || row.entity_id === lotId);
-
-const latestMarketPrice = (marketPrices = [], category) =>
-  asRows(marketPrices)
-    .filter((row) => normalizeText(row.product_category) === normalizeText(category))
-    .sort((a, b) => (dateOf(b, ['observed_at', 'created_at'])?.getTime() || 0) - (dateOf(a, ['observed_at', 'created_at'])?.getTime() || 0))[0] || null;
-
-export const buildPondeusesIntelligence = ({
-  lots = [],
-  productionLogs = [],
-  alimentationLogs = [],
-  stocks = [],
-  marketPrices = [],
-  meteo = null,
-} = {}) => {
+export const buildPondeusesIntelligence = ({ lots = [], productionLogs = [], alimentationLogs = [], stocks = [], marketPrices = [], meteo = null } = {}) => {
   const layerLots = asRows(lots).filter(isLayerLot);
   const eggMarketPrice = latestMarketPrice(marketPrices, 'oeufs');
   const feedMarketPrice = latestMarketPrice(marketPrices, 'aliment_pondeuse');
@@ -97,15 +58,13 @@ export const buildPondeusesIntelligence = ({
     const tablets = sellableEggs / TABLET_SIZE;
     const totalFeedCost = feeding.reduce((sum, row) => sum + feedCost(row), 0);
     const totalFeedQty = feeding.reduce((sum, row) => sum + feedQty(row), 0);
-    const currentCount = lotCurrentCount(lot);
+    const currentCount = avicoleActiveCount(lot);
     const firstProductionDate = productions.map((row) => dateOf(row)).filter(Boolean).sort((a, b) => a - b)[0];
     const days = daysBetween(firstProductionDate) || Math.max(productions.length, 1);
-    const layingRate = currentCount > 0 && days > 0 ? (producedEggs / (currentCount * days)) * 100 : 0;
+    const layingRate = currentCount > 0 && days > 0 && producedEggs > 0 ? (producedEggs / (currentCount * days)) * 100 : 0;
     const costPerEgg = sellableEggs > 0 ? totalFeedCost / sellableEggs : 0;
     const costPerTablet = costPerEgg * TABLET_SIZE;
-    const suggestedTabletPrice = eggMarketPrice?.price
-      ? Math.max(toNumber(eggMarketPrice.price), costPerTablet * 1.25)
-      : costPerTablet * 1.3;
+    const suggestedTabletPrice = eggMarketPrice?.price ? Math.max(toNumber(eggMarketPrice.price), costPerTablet * 1.25) : costPerTablet * 1.3;
     const estimatedMarginPerTablet = suggestedTabletPrice - costPerTablet;
 
     const alerts = [];
@@ -135,73 +94,22 @@ export const buildPondeusesIntelligence = ({
     };
   });
 
-  const totals = analyses.reduce((acc, row) => ({
-    lots: acc.lots + 1,
-    current_count: acc.current_count + row.current_count,
-    produced_eggs: acc.produced_eggs + row.produced_eggs,
-    sellable_eggs: acc.sellable_eggs + row.sellable_eggs,
-    total_feed_cost: acc.total_feed_cost + row.total_feed_cost,
-    tablets: acc.tablets + row.tablets,
-  }), { lots: 0, current_count: 0, produced_eggs: 0, sellable_eggs: 0, total_feed_cost: 0, tablets: 0 });
-
+  const totals = analyses.reduce((acc, row) => ({ lots: acc.lots + 1, current_count: acc.current_count + row.current_count, produced_eggs: acc.produced_eggs + row.produced_eggs, sellable_eggs: acc.sellable_eggs + row.sellable_eggs, total_feed_cost: acc.total_feed_cost + row.total_feed_cost, tablets: acc.tablets + row.tablets }), { lots: 0, current_count: 0, produced_eggs: 0, sellable_eggs: 0, total_feed_cost: 0, tablets: 0 });
   const globalCostPerEgg = totals.sellable_eggs > 0 ? totals.total_feed_cost / totals.sellable_eggs : 0;
   const globalCostPerTablet = globalCostPerEgg * TABLET_SIZE;
-
   const recommendations = [];
 
   analyses.forEach((analysis) => {
-    if (analysis.alerts.length) {
-      recommendations.push({
-        type: 'production',
-        module_target: 'avicole',
-        entity_type: 'lot_avicole',
-        entity_id: analysis.lot_id,
-        priority: analysis.alerts.some((alert) => alert.includes('Chaleur') || alert.includes('faible')) ? 'haute' : 'moyenne',
-        title: `Surveiller ${analysis.lot_name}`,
-        summary: analysis.alerts.join(' '),
-        action_recommandee: 'Verifier eau, temperature, alimentation, sante et conditions de ponte.',
-        confidence_score: 70,
-      });
-    }
+    if (analysis.alerts.length) recommendations.push({ type: 'production', module_target: 'avicole', entity_type: 'lot_avicole', entity_id: analysis.lot_id, priority: analysis.alerts.some((alert) => alert.includes('Chaleur') || alert.includes('faible')) ? 'haute' : 'moyenne', title: `Surveiller ${analysis.lot_name}`, summary: analysis.alerts.join(' '), action_recommandee: 'Verifier eau, temperature, alimentation, sante et conditions de ponte.', confidence_score: 70 });
   });
 
-  if (feedMarketPrice?.price) {
-    recommendations.push({
-      type: 'achat',
-      module_target: 'stock',
-      priority: 'moyenne',
-      title: 'Prix aliment pondeuse observe',
-      summary: `Dernier prix observe: ${feedMarketPrice.price} FCFA par ${feedMarketPrice.unit || 'unite'}.`,
-      action_recommandee: 'Comparer avec les derniers achats internes avant commande.',
-      confidence_score: feedMarketPrice.confidence_level === 'confirme' ? 85 : 55,
-    });
-  }
-
+  if (feedMarketPrice?.price) recommendations.push({ type: 'achat', module_target: 'stock', priority: 'moyenne', title: 'Prix aliment pondeuse observe', summary: `Dernier prix observe: ${feedMarketPrice.price} FCFA par ${feedMarketPrice.unit || 'unite'}.`, action_recommandee: 'Comparer avec les derniers achats internes avant commande.', confidence_score: feedMarketPrice.confidence_level === 'confirme' ? 85 : 55 });
   if (eggMarketPrice?.price && globalCostPerTablet > 0) {
     const margin = toNumber(eggMarketPrice.price) - globalCostPerTablet;
-    recommendations.push({
-      type: 'prix',
-      module_target: 'ventes',
-      priority: margin < 0 ? 'critique' : 'moyenne',
-      title: 'Prix tablette a verifier',
-      summary: `Prix marche observe ${eggMarketPrice.price} FCFA, cout estime ${Math.round(globalCostPerTablet)} FCFA/tablette.`,
-      action_recommandee: margin < 0 ? 'Ne pas vendre sous le cout estime. Revoir prix ou cout aliment.' : 'Utiliser ce prix comme base de negociation.',
-      confidence_score: eggMarketPrice.confidence_level === 'confirme' ? 80 : 50,
-    });
+    recommendations.push({ type: 'prix', module_target: 'ventes', priority: margin < 0 ? 'critique' : 'moyenne', title: 'Prix tablette a verifier', summary: `Prix marche observe ${eggMarketPrice.price} FCFA, cout calcule ${Math.round(globalCostPerTablet)} FCFA/tablette.`, action_recommandee: margin < 0 ? 'Ne pas vendre sous le cout calcule. Revoir prix ou cout aliment.' : 'Utiliser ce prix comme base de negociation.', confidence_score: eggMarketPrice.confidence_level === 'confirme' ? 80 : 50 });
   }
 
-  return {
-    generated_at: new Date().toISOString(),
-    scope: 'pondeuses',
-    tablet_size: TABLET_SIZE,
-    lots: analyses,
-    totals: {
-      ...totals,
-      cost_per_egg: globalCostPerEgg,
-      cost_per_tablet: globalCostPerTablet,
-    },
-    recommendations,
-  };
+  return { generated_at: new Date().toISOString(), scope: 'pondeuses', tablet_size: TABLET_SIZE, lots: analyses, totals: { ...totals, cost_per_egg: globalCostPerEgg, cost_per_tablet: globalCostPerTablet }, recommendations };
 };
 
 export default buildPondeusesIntelligence;
