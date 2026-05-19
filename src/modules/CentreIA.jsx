@@ -1,5 +1,6 @@
 import { AlertTriangle, BrainCircuit, CheckCircle, LineChart, ShieldAlert, Sparkles, TrendingUp, Zap } from 'lucide-react';
 import { useMemo } from 'react';
+import Btn from '../components/Btn';
 import KpiCard from '../components/KpiCard';
 import SectionHeader from '../components/SectionHeader';
 import { buildStrategicInsights } from '../services/aiStrategyService';
@@ -35,6 +36,7 @@ const arr = (value) => (Array.isArray(value) ? value : []);
 const money = (value) => Number(value || 0);
 const orderAmount = (order = {}) => money(order.montant_total ?? order.total_ttc ?? order.total ?? order.amount);
 const paymentAmount = (payment = {}) => money(payment.montant_paye ?? payment.montant ?? payment.amount ?? payment.paid_amount);
+const plural = (count, one, many) => `${count} ${count > 1 ? many : one}`;
 
 function buildCommercialSnapshot({ salesOrders = [], payments = [], transactions = [] }) {
   const ca = arr(salesOrders).reduce((sum, order) => sum + orderAmount(order), 0);
@@ -49,6 +51,10 @@ function buildCommercialSnapshot({ salesOrders = [], payments = [], transactions
     .reduce((sum, trx) => sum + money(trx.montant), 0);
 
   return { ca, encaisse, depenses, creances: Math.max(0, ca - encaisse), marge: ca - depenses };
+}
+
+function safeSkeleton() {
+  return <div className="space-y-4" aria-label="Chargement du centre décisionnel"><div className="h-28 rounded-3xl border border-[#eadcc2] bg-[#fffdf8] animate-pulse" /><div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">{Array.from({ length: 5 }).map((_, index) => <div key={index} className="h-28 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] animate-pulse" />)}</div></div>;
 }
 
 export default function CentreIA({
@@ -126,11 +132,14 @@ export default function CentreIA({
   const commercial = useMemo(() => buildCommercialSnapshot({ salesOrders, payments, transactions }), [salesOrders, payments, transactions]);
   const growth = useMemo(() => buildDecisionCenterPlan(centreDataMap), [centreDataMap]);
 
+  if (!insights || !growth) return safeSkeleton();
+
   const score = Math.round(insights.strategic_score || 0);
-  const feedDays = insights.forecasts.feed.autonomy_days;
-  const projectedTablets = insights.forecasts.eggs.projected_tablets;
-  const projectedCash = insights.forecasts.cash.projected_cash_balance;
-  const goal = growth.goals.global;
+  const feedDays = insights.forecasts?.feed?.autonomy_days ?? 0;
+  const projectedTablets = insights.forecasts?.eggs?.projected_tablets ?? 0;
+  const projectedCash = insights.forecasts?.cash?.projected_cash_balance ?? 0;
+  const goal = growth.goals?.global || { attainment: 0 };
+  const riskCount = Math.max(insights.anomalies?.urgence_count || 0, proactive.urgent_count || 0) + Math.max(insights.anomalies?.critique_count || 0, proactive.high_count || 0);
 
   return (
     <div className="space-y-6">
@@ -139,40 +148,41 @@ export default function CentreIA({
         sub="Décisions concrètes à exécuter : ventes, investissement, terrain, risques, calendrier, automatisations et historique. Le suivi pur des objectifs reste dans Objectifs & Croissance."
         actions={
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => onNavigate?.('objectifs_croissance')} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-semibold text-[#7d6a4a] hover:border-emerald-500 hover:text-emerald-600">Voir Objectifs</button>
-            <button type="button" onClick={() => onNavigate?.('ventes')} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-semibold text-[#7d6a4a] hover:border-emerald-500 hover:text-emerald-600">Voir Ventes</button>
-            <button type="button" onClick={() => onNavigate?.('investissements')} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-semibold text-[#7d6a4a] hover:border-emerald-500 hover:text-emerald-600">Voir Investissements</button>
+            <Btn variant="outline" small onClick={() => onNavigate?.('objectifs_croissance')}>Voir Objectifs</Btn>
+            <Btn variant="outline" small onClick={() => onNavigate?.('ventes')}>Voir Ventes</Btn>
+            <Btn variant="outline" small onClick={() => onNavigate?.('investissements')}>Voir Investissements</Btn>
           </div>
         }
       />
 
-      <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <KpiCard icon={BrainCircuit} label="Score décisionnel" value={`${score}/100`} sub={score >= 75 ? 'Situation favorable' : score >= 50 ? 'Pilotage à renforcer' : 'Risque élevé'} color={score >= 75 ? 'bg-emerald-500/20 text-emerald-500' : score >= 50 ? 'bg-amber-500/20 text-amber-500' : 'bg-red-500/20 text-red-500'} />
-        <KpiCard icon={Sparkles} label="Décisions à lire" value={growth.recommendations.length + insights.decisions.length} sub="Recommandations et actions" color="bg-purple-500/20 text-purple-500" />
-        <KpiCard icon={LineChart} label="Créances" value={fmtCurrency(commercial.creances)} sub="Cash à sécuriser" color={commercial.creances > 0 ? 'bg-amber-500/20 text-amber-500' : 'bg-emerald-500/20 text-emerald-500'} />
-        <KpiCard icon={ShieldAlert} label="Risques" value={Math.max(insights.anomalies.urgence_count, proactive.urgent_count) + Math.max(insights.anomalies.critique_count, proactive.high_count)} sub="Urgents + critiques" color="bg-red-500/20 text-red-500" />
-        <KpiCard icon={TrendingUp} label="Cap mensuel" value={`${goal.attainment}%`} sub="Voir objectifs détaillés" color={goal.attainment >= 90 ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'} onClick={() => onNavigate?.('objectifs_croissance')} />
+        <KpiCard icon={Sparkles} label="Actions proposées" value={(growth.recommendations?.length || 0) + (insights.decisions?.length || 0)} sub="À lire et valider" color="bg-purple-500/20 text-purple-500" />
+        <KpiCard icon={LineChart} label="Créances" value={fmtCurrency(commercial.creances)} sub="Encaissement à sécuriser" color={commercial.creances > 0 ? 'bg-amber-500/20 text-amber-500' : 'bg-emerald-500/20 text-emerald-500'} />
+        <KpiCard icon={ShieldAlert} label="Risques" value={riskCount} sub="Urgents + critiques" color={riskCount > 0 ? 'bg-red-500/20 text-red-500' : 'bg-emerald-500/20 text-emerald-500'} />
+        <KpiCard icon={TrendingUp} label="Objectif mensuel" value={`${goal.attainment ?? 0}%`} sub="Voir objectifs détaillés" color={(goal.attainment ?? 0) >= 90 ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'} onClick={() => onNavigate?.('objectifs_croissance')} />
       </div>
 
       <div className="bg-[#2f2415] text-white rounded-3xl p-5 border border-[#d6c3a0] shadow-sm space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <p className="text-sm font-black text-[#f8e8b6] flex items-center gap-2"><Zap size={16} /> Recommandations investissement, vente & terrain</p>
-            <h3 className="text-xl font-black mt-1">Décider vite sans noyer l’éleveur</h3>
-            <p className="text-sm text-[#f8e8b6]/80 mt-1">Ici, on ne répète pas toute la page Objectifs. On garde uniquement les décisions à exécuter : période, demande, capacité, ciblage et actions.</p>
+            <h3 className="text-xl font-black mt-1">Décider vite sans noyer l’utilisatrice</h3>
+            <p className="text-sm text-[#f8e8b6]/85 mt-1">Ici, on ne répète pas toute la page Objectifs. On garde uniquement les décisions à exécuter : période, demande, capacité, ciblage et actions.</p>
           </div>
-          <div className="grid grid-cols-4 gap-2 min-w-[320px]">
-            <MiniDark label="Pondeuses" value={`${growth.leadTimes.oeufs}j`} />
-            <MiniDark label="Chair" value={`${growth.leadTimes.poulets_chair}j`} />
-            <MiniDark label="Animaux" value={`${growth.leadTimes.animaux}j`} />
-            <MiniDark label="Cultures" value={`${growth.leadTimes.cultures}j`} />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full lg:w-auto">
+            <MiniDark label="Pondeuses" value={`${growth.leadTimes?.oeufs ?? 0}j`} />
+            <MiniDark label="Chair" value={`${growth.leadTimes?.poulets_chair ?? 0}j`} />
+            <MiniDark label="Animaux" value={`${growth.leadTimes?.animaux ?? 0}j`} />
+            <MiniDark label="Cultures" value={`${growth.leadTimes?.cultures ?? 0}j`} />
           </div>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
-          {growth.recommendations.map((item) => (
+          {arr(growth.recommendations).map((item) => (
             <DecisionRecommendationCardCompact key={item.id} item={item} dataMap={centreDataMap} onNavigate={onNavigate} />
           ))}
+          {!arr(growth.recommendations).length ? <div className="col-span-full rounded-2xl border border-white/15 bg-white/10 p-4 text-sm text-white/85">Aucune recommandation prioritaire pour le moment.</div> : null}
         </div>
       </div>
 
@@ -183,19 +193,19 @@ export default function CentreIA({
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div>
             <p className="font-black text-[#2f2415] flex items-center gap-2"><Sparkles size={18} className="text-purple-500" /> Automatisations Horizon</p>
-            <p className="text-xs text-[#8a7456]">Brouillons semi-autonomes préparés par les règles IA. Rien n’est exécuté sans validation.</p>
+            <p className="text-xs text-[#8a7456]">Brouillons préparés par les règles IA. Rien n’est exécuté sans validation.</p>
           </div>
-          <span className="rounded-full bg-purple-50 border border-purple-200 px-3 py-1 text-xs font-black text-purple-700">{automations.total} proposition(s)</span>
+          <span className="rounded-full bg-purple-50 border border-purple-200 px-3 py-1 text-xs font-black text-purple-700">{plural(automations.total || 0, 'proposition', 'propositions')}</span>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
-          {automations.automations.map((automation) => (
+          {arr(automations.automations).map((automation) => (
             <div key={automation.id} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
               <p className="font-black text-[#2f2415] text-sm line-clamp-2">{automation.title}</p>
               <p className="text-xs text-[#8a7456] mt-1 line-clamp-2">{automation.recommendation}</p>
-              <button type="button" onClick={() => openDraft(automation.draft, 'Horizon Automation')} className="mt-3 w-full rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white hover:bg-[#3d2f1d]">Ouvrir le brouillon</button>
+              <Btn onClick={() => openDraft(automation.draft, 'Horizon Automation')} className="mt-3 w-full" small>Ouvrir le brouillon</Btn>
             </div>
           ))}
-          {!automations.automations.length ? <div className="lg:col-span-4 rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-700 flex gap-2"><CheckCircle size={16} /> Aucune automatisation à valider pour le moment.</div> : null}
+          {!arr(automations.automations).length ? <div className="col-span-full rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-700 flex gap-2"><CheckCircle size={16} /> Aucune automatisation à valider pour le moment.</div> : null}
         </div>
       </div>
 
@@ -204,23 +214,24 @@ export default function CentreIA({
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="font-bold text-[#2f2415] flex items-center gap-2"><BrainCircuit size={18} className="text-emerald-500" /> Décisions transversales</p>
-              <p className="text-xs text-[#8a7456]">Recommandations qui ne sont pas de simples objectifs : stock, santé, cash, vente, risques et terrain.</p>
+              <p className="text-xs text-[#8a7456]">Recommandations : stock, santé, trésorerie, vente, risques et terrain.</p>
             </div>
-            <span className="text-xs font-semibold text-[#8a7456]">{insights.decisions.length} décision(s)</span>
+            <span className="text-xs font-semibold text-[#8a7456]">{plural(arr(insights.decisions).length, 'décision', 'décisions')}</span>
           </div>
           <div className="space-y-3">
-            {insights.decisions.slice(0, 8).map((decision) => (
+            {arr(insights.decisions).slice(0, 8).map((decision) => (
               <div key={decision.id} className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4">
                 <div className="flex flex-wrap gap-2 items-center mb-2">
-                  <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold uppercase ${priorityClass[decision.priority] || priorityClass.moyenne}`}>{decision.priority}</span>
-                  <span className="rounded-full bg-[#2f2415]/5 px-2 py-0.5 text-[11px] font-semibold text-[#7d6a4a]">{axisLabel[decision.axis] || decision.axis}</span>
-                  <span className="text-[11px] text-[#8a7456]">Confiance {Math.round(decision.confidence_score || 0)}%</span>
+                  <span className={`rounded-full border px-2 py-0.5 text-xs font-bold uppercase ${priorityClass[decision.priority] || priorityClass.moyenne}`}>{decision.priority}</span>
+                  <span className="rounded-full bg-[#2f2415]/5 px-2 py-0.5 text-xs font-semibold text-[#7d6a4a]">{axisLabel[decision.axis] || decision.axis}</span>
+                  <span className="text-xs text-[#8a7456]">Fiabilité {Math.round(decision.confidence_score || 0)}%</span>
                 </div>
                 <p className="font-bold text-[#2f2415]">{decision.title}</p>
                 <p className="text-sm text-[#7d6a4a] mt-1">{decision.summary}</p>
                 <div className="mt-3 rounded-xl bg-white border border-[#eadcc2] p-3 text-sm text-[#2f2415]"><strong>Action recommandée :</strong> {decision.recommendation}{decision.expected_impact ? <p className="text-xs text-[#8a7456] mt-1">Impact attendu : {decision.expected_impact}</p> : null}</div>
               </div>
             ))}
+            {!arr(insights.decisions).length ? <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Aucune décision transversale à traiter.</div> : null}
           </div>
         </div>
 
@@ -228,22 +239,22 @@ export default function CentreIA({
           <div className="bg-white border border-[#d6c3a0] rounded-2xl p-5">
             <p className="font-bold text-[#2f2415] flex items-center gap-2"><ShieldAlert size={18} className="text-red-500" /> Risques décisionnels</p>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-red-50 border border-red-200 p-3"><p className="text-xs text-red-700 font-semibold">Urgences</p><p className="text-2xl font-black text-red-700">{Math.max(insights.anomalies.urgence_count, proactive.urgent_count)}</p></div>
-              <div className="rounded-xl bg-orange-50 border border-orange-200 p-3"><p className="text-xs text-orange-700 font-semibold">Critiques</p><p className="text-2xl font-black text-orange-700">{Math.max(insights.anomalies.critique_count, proactive.high_count)}</p></div>
+              <div className={`${Math.max(insights.anomalies?.urgence_count || 0, proactive.urgent_count || 0) > 0 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'} rounded-xl border p-3`}><p className="text-xs font-semibold">Urgences</p><p className="text-2xl font-black">{Math.max(insights.anomalies?.urgence_count || 0, proactive.urgent_count || 0)}</p></div>
+              <div className={`${Math.max(insights.anomalies?.critique_count || 0, proactive.high_count || 0) > 0 ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'} rounded-xl border p-3`}><p className="text-xs font-semibold">Critiques</p><p className="text-2xl font-black">{Math.max(insights.anomalies?.critique_count || 0, proactive.high_count || 0)}</p></div>
             </div>
             <div className="mt-4 space-y-2">
-              {proactive.insights.slice(0, 4).map((insight) => (
+              {arr(proactive.insights).slice(0, 4).map((insight) => (
                 <div key={insight.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
                   <p className="font-bold text-[#2f2415] text-sm">{insight.title}</p>
                   <p className="text-xs text-[#8a7456] mt-1">{insight.recommendation}</p>
-                  <button type="button" onClick={() => openDraftFromInsight(insight)} className="mt-2 rounded-lg bg-[#2f2415] px-2 py-1 text-xs font-bold text-white">Ouvrir action</button>
+                  <Btn small onClick={() => openDraftFromInsight(insight)} className="mt-2">Ouvrir action</Btn>
                 </div>
               ))}
             </div>
           </div>
           <div className="bg-white border border-[#d6c3a0] rounded-2xl p-5">
             <p className="font-bold text-[#2f2415] flex items-center gap-2"><AlertTriangle size={18} className="text-amber-500" /> Prévisions clés</p>
-            <div className="mt-4 space-y-3 text-sm text-[#7d6a4a]"><p>Autonomie aliment : <b>{feedDays} jours</b></p><p>Œufs projetés : <b>{fmtNumber(projectedTablets)} tablettes</b></p><p>Cash projeté : <b>{fmtCurrency(projectedCash)}</b></p></div>
+            <div className="mt-4 space-y-3 text-sm text-[#7d6a4a]"><p>Autonomie aliment : <b>{feedDays} jours</b></p><p>Œufs projetés : <b>{fmtNumber(projectedTablets)} tablettes</b></p><p>Trésorerie projetée : <b>{fmtCurrency(projectedCash)}</b></p></div>
           </div>
         </div>
       </div>
@@ -252,5 +263,5 @@ export default function CentreIA({
 }
 
 function MiniDark({ label, value }) {
-  return <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2 text-center"><p className="text-[10px] text-[#f8e8b6]/70">{label}</p><p className="font-black">{value}</p></div>;
+  return <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2 text-center"><p className="text-xs text-[#f8e8b6]/85">{label}</p><p className="font-black">{value}</p></div>;
 }
