@@ -14,15 +14,8 @@ export const extractBearerToken = (req) => {
 export const createUserScopedSupabase = (accessToken) => {
   if (!canExecuteWithUserAuth() || !accessToken) return null;
   return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-    global: {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
+    auth: { autoRefreshToken: false, persistSession: false },
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
   });
 };
 
@@ -32,6 +25,7 @@ const safeTables = new Set([
   'fournisseurs',
   'clients',
   'sales_orders',
+  'sales_opportunities',
   'animaux',
   'avicole',
   'cultures',
@@ -39,6 +33,13 @@ const safeTables = new Set([
   'taches',
   'business_events',
   'alertes_center',
+  'business_plans',
+  'bp_investment_lines',
+  'bp_recurring_costs',
+  'bp_revenue_projections',
+  'bp_funding_sources',
+  'bp_links',
+  'bp_risks',
 ]);
 
 const safeInsertActions = new Set([
@@ -48,11 +49,21 @@ const safeInsertActions = new Set([
   'create_supplier',
   'create_client',
   'create_sales_order',
+  'create_sales_opportunity',
   'create_animal',
   'create_poultry_lot',
   'create_finance_transaction',
   'create_task',
+  'create_technical_task',
   'create_business_event',
+  'create_alert',
+  'create_business_plan',
+  'create_bp_investment_line',
+  'create_bp_recurring_cost',
+  'create_bp_revenue_projection',
+  'create_bp_funding_source',
+  'create_bp_link',
+  'create_bp_risk',
 ]);
 
 const shouldInsert = (action) => {
@@ -78,14 +89,8 @@ export async function executeAssistantActions(req, actions = [], context = {}) {
     return {
       executed: false,
       mode: 'dry_run',
-      reason: token
-        ? 'Configuration Supabase API absente. Aucune écriture réelle effectuée.'
-        : 'Token utilisateur absent. Aucune écriture réelle effectuée.',
-      results: actions.map((action) => ({
-        ...action,
-        executed: false,
-        status: shouldInsert(action) ? 'ready_for_user_scoped_insert' : 'skipped',
-      })),
+      reason: token ? 'Configuration Supabase API absente. Aucune écriture réelle effectuée.' : 'Token utilisateur absent. Aucune écriture réelle effectuée.',
+      results: actions.map((action) => ({ ...action, executed: false, status: shouldInsert(action) ? 'ready_for_user_scoped_insert' : 'skipped' })),
     };
   }
 
@@ -93,49 +98,23 @@ export async function executeAssistantActions(req, actions = [], context = {}) {
 
   for (const action of actions) {
     if (!shouldInsert(action)) {
-      results.push({
-        ...action,
-        executed: false,
-        status: action.requires_additional_validation ? 'requires_additional_validation' : 'skipped',
-      });
+      results.push({ ...action, executed: false, status: action.requires_additional_validation ? 'requires_additional_validation' : 'skipped' });
       continue;
     }
 
     const payload = decoratePayload(action.payload || {}, context);
-    const { data, error } = await supabase
-      .from(action.table)
-      .insert(payload)
-      .select()
-      .single();
+    const { data, error } = await supabase.from(action.table).insert(payload).select().single();
 
     if (error) {
-      results.push({
-        ...action,
-        executed: false,
-        status: 'error',
-        error: error.message,
-        payload,
-      });
+      results.push({ ...action, executed: false, status: 'error', error: error.message, payload });
       continue;
     }
 
-    results.push({
-      ...action,
-      executed: true,
-      status: 'inserted',
-      record: data,
-      payload,
-    });
+    results.push({ ...action, executed: true, status: 'inserted', record: data, payload });
   }
 
   const hasError = results.some((result) => result.status === 'error');
   const insertedCount = results.filter((result) => result.executed).length;
 
-  return {
-    executed: insertedCount > 0 && !hasError,
-    mode: 'user_scoped_supabase',
-    inserted_count: insertedCount,
-    has_error: hasError,
-    results,
-  };
+  return { executed: insertedCount > 0 && !hasError, mode: 'user_scoped_supabase', inserted_count: insertedCount, has_error: hasError, results };
 }
