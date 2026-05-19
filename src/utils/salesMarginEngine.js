@@ -17,6 +17,8 @@ const paymentCancelled = (row = {}) => ['annule', 'annulé', 'cancelled', 'rejet
 const rowText = (row = {}) => lower(`${row.product_name || ''} ${row.produit || ''} ${row.title || ''} ${row.nom || ''} ${row.libelle || ''} ${row.description || ''} ${row.notes || ''} ${row.source_module || ''} ${row.module_lie || ''} ${row.type || ''} ${row.categorie || ''}`);
 function findById(rows, id) { return arr(rows).find((row) => clean(row.id) === clean(id) || clean(row.tag) === clean(id) || clean(row.boucle_numero) === clean(id)); }
 function findByText(rows = [], text = '') { const t = lower(text); if (!t) return null; return arr(rows).find((row) => { const name = lower(`${row.name || ''} ${row.nom || ''} ${row.tag || ''} ${row.boucle_numero || ''} ${row.id || ''}`); return name && (t.includes(name) || name.includes(t)); }) || null; }
+function isLayerLot(lot = {}) { const text = lower(`${lot.type || ''} ${lot.type_lot || ''} ${lot.production_type || ''} ${lot.activity_type || ''} ${lot.categorie || ''} ${lot.name || ''} ${lot.nom || ''}`); return text.includes('pondeuse') || text.includes('ponte') || text.includes('oeuf') || text.includes('œuf'); }
+function isBroilerLot(lot = {}) { const text = lower(`${lot.type || ''} ${lot.type_lot || ''} ${lot.production_type || ''} ${lot.activity_type || ''} ${lot.categorie || ''} ${lot.name || ''} ${lot.nom || ''}`); return text.includes('chair') || text.includes('broiler') || text.includes('poulet'); }
 function findStockForSale(input = {}, stocks = []) {
   const ids = [input.stock_id, input.source_id, input.source_record_id, input.related_id, input.entity_id, input.asset_id, input.product_id, input.article_id].map(clean).filter(Boolean);
   const product = lower(`${input.product_name || input.produit || input.title || input.nom || ''}`);
@@ -31,29 +33,13 @@ function cultureTotalCost(culture = {}) { return toNumber(culture.cout_total_ree
 function cultureUnitCost(culture = {}) { const totalCost = cultureTotalCost(culture); const harvested = toNumber(culture.quantite_recoltee ?? culture.production_reelle ?? culture.quantite_disponible ?? culture.quantite_prevue); return harvested > 0 ? totalCost / harvested : 0; }
 function hasRealAnimalCost(cost = {}) { return cost.costComplete === true && toNumber(cost.totalCost) > 0; }
 function hasRealLotCost(cost = {}) { return toNumber(cost.purchaseCost) > 0 && (toNumber(cost.realFeedCost) > 0 || toNumber(cost.healthCost) > 0 || toNumber(cost.otherDirectCost) > 0 || toNumber(cost.costPerEgg) > 0 || toNumber(cost.costPerSellableSubject) > 0); }
-function reliabilityFromCost({ sale = 0, cost = 0, costSource = '', sourceLabel = '' }) {
-  const missingCost = sale > 0 && cost <= 0;
-  const impossibleCost = sale > 0 && cost > sale * 3;
-  const unavailable = costSource.includes('indisponible') || missingCost;
-  const status = unavailable ? 'cout_absent' : impossibleCost ? 'cout_a_verifier' : 'fiable';
-  const warning = unavailable ? 'Coût direct réel absent : marge non fiable. Renseigner ou lier le coût source avant décision.' : impossibleCost ? 'Coût très supérieur au prix de vente : vérifier unité, quantité ou source de coût.' : '';
-  return { margin_reliable: status === 'fiable', margin_status: status, margin_warning: warning, cout_a_completer: unavailable, cout_a_verifier: impossibleCost, source_label: sourceLabel };
-}
-function marginResult({ saleAmount = 0, paidAmount = 0, directCost = 0, costSource = 'cout_indisponible', sourceLabel = '' }) {
-  const sale = Math.max(0, toNumber(saleAmount));
-  const paid = Math.min(sale || Number.MAX_SAFE_INTEGER, Math.max(0, toNumber(paidAmount)));
-  const cost = Math.max(0, toNumber(directCost));
-  const reliability = reliabilityFromCost({ sale, cost, costSource, sourceLabel });
-  const margin = reliability.cout_a_completer ? 0 : sale - cost;
-  const cashMargin = reliability.cout_a_completer ? 0 : paid - cost;
-  const marginRate = reliability.cout_a_completer || sale <= 0 ? 0 : Number(((margin / sale) * 100).toFixed(1));
-  const cashMarginRate = reliability.cout_a_completer || paid <= 0 ? 0 : Number(((cashMargin / paid) * 100).toFixed(1));
-  return { chiffre_affaires: sale, montant_encaisse: paid, cout_revient: cost, cout_direct: cost, cout_source: costSource, marge_directe: margin, marge_montant: margin, marge: margin, marge_cash: cashMargin, taux_marge_directe: marginRate, marge_taux: marginRate, taux_marge_cash: cashMarginRate, ...reliability };
-}
-function resolveAvicoleLot(input = {}, context = {}, sourceId = '') { return findById(context.lots, sourceId) || findByText(context.lots, rowText(input)); }
+function reliabilityFromCost({ sale = 0, cost = 0, costSource = '', sourceLabel = '' }) { const missingCost = sale > 0 && cost <= 0; const impossibleCost = sale > 0 && cost > sale * 3; const unavailable = costSource.includes('indisponible') || missingCost; const status = unavailable ? 'cout_absent' : impossibleCost ? 'cout_a_verifier' : 'fiable'; const warning = unavailable ? 'Coût direct réel absent : marge non fiable. Renseigner ou lier le coût source avant décision.' : impossibleCost ? 'Coût très supérieur au prix de vente : vérifier unité, quantité ou source de coût.' : ''; return { margin_reliable: status === 'fiable', margin_status: status, margin_warning: warning, cout_a_completer: unavailable, cout_a_verifier: impossibleCost, source_label: sourceLabel }; }
+function marginResult({ saleAmount = 0, paidAmount = 0, directCost = 0, costSource = 'cout_indisponible', sourceLabel = '' }) { const sale = Math.max(0, toNumber(saleAmount)); const paid = Math.min(sale || Number.MAX_SAFE_INTEGER, Math.max(0, toNumber(paidAmount))); const cost = Math.max(0, toNumber(directCost)); const reliability = reliabilityFromCost({ sale, cost, costSource, sourceLabel }); const margin = reliability.cout_a_completer ? 0 : sale - cost; const cashMargin = reliability.cout_a_completer ? 0 : paid - cost; const marginRate = reliability.cout_a_completer || sale <= 0 ? 0 : Number(((margin / sale) * 100).toFixed(1)); const cashMarginRate = reliability.cout_a_completer || paid <= 0 ? 0 : Number(((cashMargin / paid) * 100).toFixed(1)); return { chiffre_affaires: sale, montant_encaisse: paid, cout_revient: cost, cout_direct: cost, cout_source: costSource, marge_directe: margin, marge_montant: margin, marge: margin, marge_cash: cashMargin, taux_marge_directe: marginRate, marge_taux: marginRate, taux_marge_cash: cashMarginRate, ...reliability }; }
+function resolveAvicoleLot(input = {}, context = {}, sourceId = '', product = '') { const byId = findById(context.lots, sourceId); if (byId) return byId; const byText = findByText(context.lots, rowText(input)); if (byText) return byText; if (productLooksLikeEgg(product)) return arr(context.lots).find(isLayerLot) || null; if (productLooksLikeBroiler(product)) return arr(context.lots).find(isBroilerLot) || null; return null; }
 function resolveAnimal(input = {}, context = {}, sourceId = '') { return findById(context.animaux, sourceId) || findByText(context.animaux, rowText(input)); }
-function productLooksLikeEgg(product = '') { return product.includes('oeuf') || product.includes('œuf') || product.includes('tablette') || product.includes('plateau'); }
+function productLooksLikeEgg(product = '') { return product.includes('oeuf') || product.includes('œuf') || product.includes('tablette') || product.includes('plateau') || product.includes('alvéole') || product.includes('alveole'); }
 function productLooksLikeBroiler(product = '') { return product.includes('poulet') || product.includes('chair') || product.includes('broiler'); }
+function fallbackEggCostFromLayers({ quantity = 0, context = {}, input = {}, paidAmount = 0, saleAmount = 0 }) { const lots = arr(context.lots).filter(isLayerLot); for (const lot of lots) { const cost = calculateAvicoleLotCost({ lot, alimentationLogs: context.alimentationLogs, productionLogs: context.productionLogs, healthEvents: context.businessEvents, slaughterEvents: context.businessEvents, directCharges: context.businessEvents, defaultPricePerKg: 0 }); if (hasRealLotCost(cost) && cost.costPerEgg > 0) { const q = Math.max(1, quantity); const unit = lower(input.unit || input.unite || input.unité || ''); const product = rowText(input); const eggQty = product.includes('tablette') || product.includes('plateau') || unit.includes('tablette') || unit.includes('plateau') ? q * 30 : q; return marginResult({ saleAmount, paidAmount, directCost: cost.costPerEgg * eggQty, costSource: 'cout_oeufs_pondeuses_reel', sourceLabel: lot.name || lot.nom || lot.id }); } } return null; }
 export function calculateSalesMargin(input = {}, context = {}) {
   const quantity = qtyOf(input);
   const unitPrice = toNumber(input.unit_price ?? input.prix_unitaire ?? input.prix_vente ?? input.price);
@@ -63,75 +49,17 @@ export function calculateSalesMargin(input = {}, context = {}) {
   const sourceId = sourceIdOf(input);
   const unit = lower(input.unit || input.unite || input.unité || '');
   const product = lower(`${input.product_name || input.produit || input.title || input.nom || ''}`);
-
   const stock = findStockForSale(input, context.stocks || []);
   const stockUnitCost = stock ? unitPriceStock(stock) : 0;
   const isFinishedProduct = stock && ['produit_fini', 'produit_recolte', 'viande', 'recolte', 'récolte', 'oeufs', 'œufs', 'tablette', 'plateau'].some((term) => lower(`${stock.categorie || ''} ${stock.activite_liee || ''} ${stock.produit || ''}`).includes(lower(term)));
-  if ((sourceModule.includes('stock') || isFinishedProduct) && stock) {
-    const directCost = stockUnitCost * quantity;
-    return marginResult({ saleAmount, paidAmount, directCost, costSource: directCost > 0 ? 'cout_stock_reel' : 'cout_stock_indisponible', sourceLabel: stock.produit || stock.id });
-  }
-
+  if ((sourceModule.includes('stock') || isFinishedProduct) && stock) return marginResult({ saleAmount, paidAmount, directCost: stockUnitCost * quantity, costSource: stockUnitCost > 0 ? 'cout_stock_reel' : 'cout_stock_indisponible', sourceLabel: stock.produit || stock.id });
   const looksAnimal = sourceModule.includes('animal') || product.includes('bovin') || product.includes('ovin') || product.includes('caprin') || product.includes('animal') || product.includes('mouton') || product.includes('chevre') || product.includes('chèvre');
-  if (looksAnimal) {
-    const animal = resolveAnimal(input, context, sourceId);
-    if (animal) {
-      const cost = calculateAnimalCost({ animal, alimentationLogs: context.alimentationLogs, vaccins: context.vaccins, healthEvents: context.businessEvents, slaughterEvents: context.businessEvents, directCharges: context.businessEvents, defaultPricePerKg: 0 });
-      const real = hasRealAnimalCost(cost);
-      const byKg = unit.includes('kg') && cost.costPerKg > 0 && real;
-      const directCost = !real ? 0 : byKg ? cost.costPerKg * quantity : cost.totalCost;
-      return marginResult({ saleAmount, paidAmount, directCost, costSource: directCost > 0 ? 'cout_embouche_reel' : 'cout_embouche_indisponible', sourceLabel: animal.name || animal.nom || animal.tag || animal.boucle_numero || animal.id });
-    }
-  }
-
+  if (looksAnimal) { const animal = resolveAnimal(input, context, sourceId); if (animal) { const cost = calculateAnimalCost({ animal, alimentationLogs: context.alimentationLogs, vaccins: context.vaccins, healthEvents: context.businessEvents, slaughterEvents: context.businessEvents, directCharges: context.businessEvents, defaultPricePerKg: 0 }); const real = hasRealAnimalCost(cost); const byKg = unit.includes('kg') && cost.costPerKg > 0 && real; const directCost = !real ? 0 : byKg ? cost.costPerKg * quantity : cost.totalCost; return marginResult({ saleAmount, paidAmount, directCost, costSource: directCost > 0 ? 'cout_embouche_reel' : 'cout_embouche_indisponible', sourceLabel: animal.name || animal.nom || animal.tag || animal.boucle_numero || animal.id }); } }
   const looksAvicole = sourceModule.includes('avicole') || sourceModule.includes('lot') || productLooksLikeEgg(product) || productLooksLikeBroiler(product) || product.includes('pondeuse');
-  if (looksAvicole) {
-    const lot = resolveAvicoleLot(input, context, sourceId);
-    if (lot) {
-      const cost = calculateAvicoleLotCost({ lot, alimentationLogs: context.alimentationLogs, productionLogs: context.productionLogs, healthEvents: context.businessEvents, slaughterEvents: context.businessEvents, directCharges: context.businessEvents, defaultPricePerKg: 0 });
-      const real = hasRealLotCost(cost);
-      let directCost = 0;
-      if (real) {
-        const isTablet = product.includes('tablette') || product.includes('plateau');
-        const eggQty = isTablet ? quantity * 30 : quantity;
-        if (unit.includes('kg') && cost.costPerKg > 0) directCost = cost.costPerKg * quantity;
-        else if (productLooksLikeEgg(product) && cost.costPerEgg > 0) directCost = cost.costPerEgg * eggQty;
-        else if (productLooksLikeBroiler(product) && cost.costPerSellableSubject > 0) directCost = cost.costPerSellableSubject * quantity;
-        else if (cost.costPerProducedSubject > 0) directCost = cost.costPerProducedSubject * quantity;
-        else if (cost.costPerLiveSubject > 0) directCost = cost.costPerLiveSubject * quantity;
-        else directCost = cost.totalCost;
-      }
-      return marginResult({ saleAmount, paidAmount, directCost, costSource: directCost > 0 ? 'cout_lot_reel' : 'cout_lot_indisponible', sourceLabel: lot.name || lot.nom || lot.id });
-    }
-  }
-
-  if (sourceModule.includes('culture') || sourceModule.includes('recolte') || sourceModule.includes('récolte')) {
-    const culture = findById(context.cultures, sourceId) || findByText(context.cultures, rowText(input));
-    if (culture) {
-      const unitCost = cultureUnitCost(culture);
-      const totalCost = cultureTotalCost(culture);
-      const directCost = unitCost > 0 ? unitCost * quantity : totalCost;
-      return marginResult({ saleAmount, paidAmount, directCost, costSource: directCost > 0 ? (unitCost > 0 ? 'cout_culture_unitaire_reel' : 'cout_culture_total_reel') : 'cout_culture_indisponible', sourceLabel: culture.nom || culture.type || culture.id });
-    }
-  }
-
+  if (looksAvicole) { const lot = resolveAvicoleLot(input, context, sourceId, product); if (lot) { const cost = calculateAvicoleLotCost({ lot, alimentationLogs: context.alimentationLogs, productionLogs: context.productionLogs, healthEvents: context.businessEvents, slaughterEvents: context.businessEvents, directCharges: context.businessEvents, defaultPricePerKg: 0 }); const real = hasRealLotCost(cost); let directCost = 0; if (real) { const isTablet = product.includes('tablette') || product.includes('plateau') || unit.includes('tablette') || unit.includes('plateau'); const eggQty = isTablet ? quantity * 30 : quantity; if (unit.includes('kg') && cost.costPerKg > 0) directCost = cost.costPerKg * quantity; else if (productLooksLikeEgg(product) && cost.costPerEgg > 0) directCost = cost.costPerEgg * eggQty; else if (productLooksLikeBroiler(product) && cost.costPerSellableSubject > 0) directCost = cost.costPerSellableSubject * quantity; else if (cost.costPerProducedSubject > 0) directCost = cost.costPerProducedSubject * quantity; else if (cost.costPerLiveSubject > 0) directCost = cost.costPerLiveSubject * quantity; else directCost = cost.totalCost; } const result = marginResult({ saleAmount, paidAmount, directCost, costSource: directCost > 0 ? 'cout_lot_reel' : 'cout_lot_indisponible', sourceLabel: lot.name || lot.nom || lot.id }); if (result.cout_a_completer && productLooksLikeEgg(product)) return fallbackEggCostFromLayers({ quantity, context, input, paidAmount, saleAmount }) || result; return result; } if (productLooksLikeEgg(product)) return fallbackEggCostFromLayers({ quantity, context, input, paidAmount, saleAmount }) || marginResult({ saleAmount, paidAmount, directCost: 0, costSource: 'cout_oeufs_indisponible', sourceLabel: input.product_name || input.produit || input.id }); }
+  if (sourceModule.includes('culture') || sourceModule.includes('recolte') || sourceModule.includes('récolte')) { const culture = findById(context.cultures, sourceId) || findByText(context.cultures, rowText(input)); if (culture) { const unitCost = cultureUnitCost(culture); const totalCost = cultureTotalCost(culture); const directCost = unitCost > 0 ? unitCost * quantity : totalCost; return marginResult({ saleAmount, paidAmount, directCost, costSource: directCost > 0 ? (unitCost > 0 ? 'cout_culture_unitaire_reel' : 'cout_culture_total_reel') : 'cout_culture_indisponible', sourceLabel: culture.nom || culture.type || culture.id }); } }
   const explicitCost = toNumber(input.cout_revient ?? input.cout_direct ?? input.cout_total ?? input.cost_total ?? input.total_cost ?? input.purchase_cost);
   return marginResult({ saleAmount, paidAmount, directCost: explicitCost, costSource: explicitCost > 0 ? 'cout_saisi' : 'cout_indisponible', sourceLabel: input.product_name || input.produit || input.title || input.id });
 }
-
-export function enrichWithSalesMargin(input = {}, context = {}) {
-  const margin = calculateSalesMargin(input, context);
-  return { ...input, chiffre_affaires: margin.chiffre_affaires, montant_encaisse: margin.montant_encaisse, cout_revient: margin.cout_revient, cout_direct: margin.cout_direct, cout_source: margin.cout_source, cout_a_completer: margin.cout_a_completer, cout_a_verifier: margin.cout_a_verifier, margin_reliable: margin.margin_reliable, margin_status: margin.margin_status, margin_warning: margin.margin_warning, marge_directe: margin.marge_directe, marge_montant: margin.marge_montant, marge: margin.marge, marge_cash: margin.marge_cash, taux_marge_directe: margin.taux_marge_directe, marge_taux: margin.marge_taux, taux_marge_cash: margin.taux_marge_cash, marge_calculee_at: new Date().toISOString() };
-}
-export function summarizeSalesMargins(rows = [], context = {}) {
-  const details = arr(rows).filter((row) => !cancelled(row)).map((row) => enrichWithSalesMargin(row, context));
-  const ca = details.reduce((sum, row) => sum + toNumber(row.chiffre_affaires), 0);
-  const encaisse = details.reduce((sum, row) => sum + toNumber(row.montant_encaisse), 0);
-  const directCost = details.reduce((sum, row) => sum + toNumber(row.cout_revient), 0);
-  const reliableDetails = details.filter((row) => row.margin_reliable !== false);
-  const margin = reliableDetails.reduce((sum, row) => sum + toNumber(row.marge_directe), 0);
-  const cashMargin = reliableDetails.reduce((sum, row) => sum + toNumber(row.marge_cash), 0);
-  const missingCost = details.filter((row) => row.cout_a_completer).length;
-  const costToVerify = details.filter((row) => row.cout_a_verifier).length;
-  return { details, ca, encaisse, directCost, margin, cashMargin, missingCost, costToVerify, marginRate: ca > 0 ? Number(((margin / ca) * 100).toFixed(1)) : 0, cashMarginRate: encaisse > 0 ? Number(((cashMargin / encaisse) * 100).toFixed(1)) : 0 };
-}
+export function enrichWithSalesMargin(input = {}, context = {}) { const margin = calculateSalesMargin(input, context); return { ...input, chiffre_affaires: margin.chiffre_affaires, montant_encaisse: margin.montant_encaisse, cout_revient: margin.cout_revient, cout_direct: margin.cout_direct, cout_source: margin.cout_source, cout_a_completer: margin.cout_a_completer, cout_a_verifier: margin.cout_a_verifier, margin_reliable: margin.margin_reliable, margin_status: margin.margin_status, margin_warning: margin.margin_warning, marge_directe: margin.marge_directe, marge_montant: margin.marge_montant, marge: margin.marge, marge_cash: margin.marge_cash, taux_marge_directe: margin.taux_marge_directe, marge_taux: margin.marge_taux, taux_marge_cash: margin.taux_marge_cash, marge_calculee_at: new Date().toISOString() }; }
+export function summarizeSalesMargins(rows = [], context = {}) { const details = arr(rows).filter((row) => !cancelled(row)).map((row) => enrichWithSalesMargin(row, context)); const ca = details.reduce((sum, row) => sum + toNumber(row.chiffre_affaires), 0); const encaisse = details.reduce((sum, row) => sum + toNumber(row.montant_encaisse), 0); const directCost = details.reduce((sum, row) => sum + toNumber(row.cout_revient), 0); const reliableDetails = details.filter((row) => row.margin_reliable !== false); const margin = reliableDetails.reduce((sum, row) => sum + toNumber(row.marge_directe), 0); const cashMargin = reliableDetails.reduce((sum, row) => sum + toNumber(row.marge_cash), 0); const missingCost = details.filter((row) => row.cout_a_completer).length; const costToVerify = details.filter((row) => row.cout_a_verifier).length; return { details, ca, encaisse, directCost, margin, cashMargin, missingCost, costToVerify, marginRate: ca > 0 ? Number(((margin / ca) * 100).toFixed(1)) : 0, cashMarginRate: encaisse > 0 ? Number(((cashMargin / encaisse) * 100).toFixed(1)) : 0 }; }
