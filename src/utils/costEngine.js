@@ -10,6 +10,7 @@ const animalIdOfLog = (log = {}) => log.animal_id || log.entity_id || log.relate
 const lotIdOfLog = (log = {}) => log.lot_id || log.entity_id || log.related_id || log.source_record_id;
 const purchaseCost = (row = {}) => toNumber(row.purchase_cost ?? row.prix_achat ?? row.cout_achat ?? row.cout_total_achat ?? row.cout_sujets ?? row.achat_sujets ?? row.cost_purchase ?? row.cout_total ?? row.cost);
 const animalWeight = (row = {}) => toNumber(row.poids ?? row.weight ?? row.current_weight ?? row.last_weight ?? row.poids_actuel ?? row.poids_carcasse);
+const animalEntryWeight = (row = {}) => toNumber(row.poids_entree ?? row.entry_weight ?? row.initial_weight ?? row.poids_initial ?? row.weight_entry);
 const slaughterWeight = (row = {}) => toNumber(row.poids_carcasse ?? row.poids_viande ?? row.poids_total_abattage ?? row.total_weight ?? row.poids_total);
 const chargeAmount = (row = {}) => toNumber(row.montant ?? row.amount ?? row.cout ?? row.cost ?? row.cout_total ?? row.total_cost ?? row.total ?? 0);
 const chargeTargetId = (row = {}) => row.target_id || row.related_id || row.entity_id || row.source_record_id || row.animal_id || row.lot_id || row.culture_id || row.cible_id;
@@ -22,6 +23,11 @@ const unitPriceFromHealth = (row = {}) => toNumber(row.prix_unitaire ?? row.unit
 const lotLevelFeedCost = (row = {}) => toNumber(row.cout_alimentation ?? row.feed_cost ?? row.real_feed_cost ?? row.cout_aliment ?? row.cout_alim ?? row.aliment_reel ?? row.alimentation_reelle ?? row.feed_total_cost ?? row.cout_total_aliment ?? row.cout_total_alimentation);
 const lotLevelHealthCost = (row = {}) => toNumber(row.cout_sante ?? row.cout_santé ?? row.health_cost ?? row.soins_cost ?? row.cout_soins ?? row.cout_vaccins ?? row.vaccin_cost ?? row.cout_prophylaxie ?? row.prophylaxis_cost);
 const lotLevelOtherCost = (row = {}) => toNumber(row.autres_charges ?? row.autres_frais ?? row.other_cost ?? row.other_direct_cost ?? row.cout_autres ?? row.cout_emballage ?? row.cout_transport ?? row.cout_maintenance ?? row.cout_chauffage ?? row.heating_cost ?? row.cout_litiere ?? row.litter_cost ?? row.cout_eau ?? row.water_cost ?? row.cout_electricite ?? row.electricity_cost ?? row.cout_nettoyage ?? row.cleaning_cost);
+const animalLevelFeedCost = (row = {}) => toNumber(row.cout_alimentation ?? row.alimentation ?? row.feed_cost ?? row.cout_nourriture ?? row.cout_aliment ?? row.real_feed_cost ?? row.aliment_reel);
+const animalLevelHealthCost = (row = {}) => toNumber(row.cout_sante ?? row.cout_santé ?? row.sante ?? row.health_cost ?? row.vet_cost ?? row.cout_vaccins ?? row.cout_deparasitage ?? row.cout_déparasitage ?? row.cout_vitamines);
+const animalLevelOtherCost = (row = {}) => toNumber(row.autres_frais ?? row.frais_directs ?? row.other_costs ?? row.direct_costs ?? row.charges_fixes ?? row.cout_charges_fixes ?? row.cout_eau ?? row.water_cost ?? row.cout_main_oeuvre ?? row.main_oeuvre_cost ?? row.labor_cost ?? row.cout_transport ?? row.transport_cost ?? row.cout_entree_transport ?? row.cout_sortie_transport);
+const animalEntryDate = (row = {}) => row.date_entree_ferme || row.date_achat || row.entry_date || row.created_at;
+const animalCurrentDate = (row = {}) => row.date_pesee || row.last_weighing_date || row.updated_at || new Date().toISOString().slice(0, 10);
 
 export const DEFAULT_BROILER_CRATE_SIZE = 50;
 export const DEFAULT_BROILER_CRATE_PRICE = 32000;
@@ -39,10 +45,22 @@ export function feedCostFromLog(log = {}) {
   return logCost(log) || logQty(log) * logUnitPrice(log);
 }
 
+function daysBetween(start, end) {
+  const a = new Date(start || 0);
+  const b = new Date(end || new Date());
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return 0;
+  return Math.max(1, Math.round((b - a) / 86400000));
+}
+
+function animalTargetDays(animal = {}) {
+  const key = animalSpeciesKey(animal);
+  return toNumber(animal.duree_embouche_jours ?? animal.duree_engraissement_jours ?? animal.target_days ?? animal.jours_cible ?? FEEDING_DEFAULTS[key]?.days) || 90;
+}
+
 export function isHealthCostEvent(row = {}) {
   const text = lower(`${row.type_intervention || ''} ${row.type_evenement || ''} ${row.event_type || ''} ${row.type || ''} ${row.categorie || ''} ${row.category || ''} ${row.title || ''} ${row.libelle || ''} ${row.nom || ''} ${row.product_name || ''}`);
   const source = targetText(row);
-  return source.includes('sante') || source.includes('santé') || text.includes('sante') || text.includes('santé') || text.includes('vaccin') || text.includes('vitamine') || text.includes('soin') || text.includes('traitement') || text.includes('curatif') || text.includes('préventif') || text.includes('preventif') || text.includes('prophylax') || text.includes('urgence') || text.includes('biosécurité') || text.includes('biosecurite') || text.includes('désinfection') || text.includes('desinfection') || text.includes('nettoyage') || text.includes('vétérinaire') || text.includes('veterinaire') || text.includes('maladie') || text.includes('phyto') || text.includes('phytosanitaire');
+  return source.includes('sante') || source.includes('santé') || text.includes('sante') || text.includes('santé') || text.includes('vaccin') || text.includes('vitamine') || text.includes('soin') || text.includes('traitement') || text.includes('curatif') || text.includes('préventif') || text.includes('preventif') || text.includes('deparas') || text.includes('déparas') || text.includes('prophylax') || text.includes('urgence') || text.includes('biosécurité') || text.includes('biosecurite') || text.includes('désinfection') || text.includes('desinfection') || text.includes('nettoyage') || text.includes('vétérinaire') || text.includes('veterinaire') || text.includes('maladie') || text.includes('phyto') || text.includes('phytosanitaire');
 }
 
 export function targetIdForType(row = {}, targetType = '') {
@@ -77,7 +95,7 @@ export function calculateHealthCostForTarget({ events = [], targetId, targetType
 
 export function isDirectExtraCharge(row = {}) {
   const text = lower(`${row.type_evenement || ''} ${row.event_type || ''} ${row.type || ''} ${row.categorie || ''} ${row.category || ''} ${row.title || ''} ${row.libelle || ''} ${row.description || ''}`);
-  return text.includes('charge_directe') || text.includes('autre_charge') || text.includes('extra_charge') || text.includes('charge impr') || text.includes('charge_imprevue') || text.includes('frais_direct') || text.includes('chauffage') || text.includes('gaz') || text.includes('charbon') || text.includes('litiere') || text.includes('litière') || text.includes('copeaux') || text.includes('eau') || text.includes('electricite') || text.includes('électricité') || text.includes('transport') || text.includes('nettoyage') || text.includes('desinfection') || text.includes('désinfection') || text.includes('emballage') || text.includes('maintenance');
+  return text.includes('charge_directe') || text.includes('autre_charge') || text.includes('extra_charge') || text.includes('charge impr') || text.includes('charge_imprevue') || text.includes('frais_direct') || text.includes('chauffage') || text.includes('gaz') || text.includes('charbon') || text.includes('litiere') || text.includes('litière') || text.includes('copeaux') || text.includes('eau') || text.includes('electricite') || text.includes('électricité') || text.includes('transport') || text.includes('main oeuvre') || text.includes('main_oeuvre') || text.includes('main-d') || text.includes('nettoyage') || text.includes('desinfection') || text.includes('désinfection') || text.includes('emballage') || text.includes('maintenance');
 }
 
 export function directExtraChargeTotal({ charges = [], targetId, targetType = '' }) {
@@ -111,17 +129,25 @@ export function estimateAnimalFeedCost({ animal, daysOverride, pricePerKg = 0 })
 export function calculateAnimalCost({ animal, alimentationLogs = [], vaccins = [], slaughterEvents = [], directCharges = [], healthEvents = [], defaultPricePerKg = 0 }) {
   const id = animal?.id;
   const logs = arr(alimentationLogs).filter((log) => String(animalIdOfLog(log) || '') === String(id));
-  const realFeedCost = logs.reduce((sum, log) => sum + feedCostFromLog(log), 0);
+  const realFeedCost = Math.max(logs.reduce((sum, log) => sum + feedCostFromLog(log), 0), animalLevelFeedCost(animal));
   const estimated = estimateAnimalFeedCost({ animal, pricePerKg: defaultPricePerKg });
   const health = calculateHealthCostForTarget({ events: [...arr(vaccins), ...arr(healthEvents), ...arr(directCharges)], targetId: id, targetType: 'animaux' });
-  const healthCost = health.total;
-  const otherDirectCost = directExtraChargeTotal({ charges: directCharges, targetId: id, targetType: 'animaux' });
+  const healthCost = Math.max(health.total, animalLevelHealthCost(animal));
+  const otherDirectCost = Math.max(directExtraChargeTotal({ charges: directCharges, targetId: id, targetType: 'animaux' }), animalLevelOtherCost(animal));
   const baseCost = purchaseCost(animal);
-  const feedCostUsed = realFeedCost > 0 ? realFeedCost : estimated.estimatedFeedCost;
+  const feedCostUsed = realFeedCost;
   const totalCost = baseCost + feedCostUsed + healthCost + otherDirectCost;
   const event = arr(slaughterEvents).find((row) => String(animalIdOfLog(row) || '') === String(id));
   const kg = slaughterWeight(event) || animalWeight(animal);
-  return { animalId: id, baseCost, realFeedCost, estimatedFeedCost: estimated.estimatedFeedCost, feedCostUsed, feedCostSource: realFeedCost > 0 ? 'reel' : 'estime', healthCost, healthCostDetails: health.details, otherDirectCost, totalCost, kg, costPerKg: kg > 0 ? totalCost / kg : 0, costPerDay: estimated.days > 0 ? totalCost / estimated.days : 0, feedKgEstimated: estimated.totalKg };
+  const entryKg = animalEntryWeight(animal);
+  const targetDays = animalTargetDays(animal);
+  const elapsedDays = toNumber(animal.days_in_farm ?? animal.jours_embouche ?? animal.jours_presence) || daysBetween(animalEntryDate(animal), animalCurrentDate(animal));
+  const gmq = entryKg > 0 && kg > 0 && elapsedDays > 0 ? (kg - entryKg) / elapsedDays : 0;
+  const projectedExitWeight = entryKg > 0 && gmq > 0 ? entryKg + gmq * targetDays : toNumber(animal.poids_sortie_projete ?? animal.projected_exit_weight ?? animal.poids_cible ?? 0);
+  const salePrice = toNumber(animal.prix_vente_reel ?? animal.sale_price ?? animal.prix_vente ?? animal.montant_vente ?? 0);
+  const margin = salePrice > 0 ? salePrice - totalCost : 0;
+  const costComplete = baseCost > 0 && totalCost > baseCost;
+  return { animalId: id, baseCost, realFeedCost, estimatedFeedCost: estimated.estimatedFeedCost, feedCostUsed, feedCostSource: realFeedCost > 0 ? 'reel' : 'absent', healthCost, healthCostDetails: health.details, otherDirectCost, totalCost, costComplete, costMissing: !costComplete, kg, entryKg, targetDays, elapsedDays, gmq, projectedExitWeight, salePrice, margin, costPerKg: kg > 0 ? totalCost / kg : 0, costPerDay: elapsedDays > 0 ? totalCost / elapsedDays : 0, feedKgEstimated: estimated.totalKg };
 }
 
 export function lotTypeKey(lot = {}) {
@@ -199,7 +225,8 @@ export function summarizeAnimalCosts({ rows = [], alimentationLogs = [], vaccins
   const estimatedFeedCost = details.reduce((sum, item) => sum + item.estimatedFeedCost, 0);
   const healthCost = details.reduce((sum, item) => sum + item.healthCost, 0);
   const otherDirectCost = details.reduce((sum, item) => sum + item.otherDirectCost, 0);
-  return { details, totalCost, realFeedCost, estimatedFeedCost, healthCost, otherDirectCost, averageCost: details.length ? totalCost / details.length : 0 };
+  const completeDetails = details.filter((item) => item.costComplete);
+  return { details, totalCost, realFeedCost, estimatedFeedCost, healthCost, otherDirectCost, completeCount: completeDetails.length, missingCount: details.length - completeDetails.length, averageCost: completeDetails.length ? completeDetails.reduce((sum, item) => sum + item.totalCost, 0) / completeDetails.length : 0, averageGMQ: details.filter((item) => item.gmq > 0).length ? details.filter((item) => item.gmq > 0).reduce((sum, item) => sum + item.gmq, 0) / details.filter((item) => item.gmq > 0).length : 0 };
 }
 
 export function summarizeAvicoleCosts({ rows = [], alimentationLogs = [], productionLogs = [], slaughterEvents = [], directCharges = [], healthEvents = [], defaultPricePerKg = 0 }) {
