@@ -47,3 +47,14 @@ export function buildGrowthRecommendations(dataMap = {}, options = {}) {
   const technical = buildTechnicalFarmingAlerts(dataMap).map(buildTechnicalRecommendation);
   return [...recommendations, ...technical].sort((a, b) => ({ haute: 3, moyenne: 2, basse: 1 }[b.priority] - { haute: 3, moyenne: 2, basse: 1 }[a.priority]));
 }
+
+export function buildDecisionCenterPlan(dataMap = {}, options = {}) {
+  const goals = buildGoalPerformance(dataMap, options);
+  const recommendations = buildGrowthRecommendations(dataMap, options);
+  const leadTimes = estimateLeadTimes(dataMap);
+  const capacity = buildProductionCapacity(dataMap);
+  const calendar = buildCommercialCalendar(options.date || new Date());
+  return { goals, recommendations, leadTimes, capacity, calendar, generated_at: new Date().toISOString() };
+}
+
+export default buildDecisionCenterPlan;
