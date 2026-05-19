@@ -4,38 +4,68 @@ import { paidForOrder, remainingForOrder, normalizePaymentStatus, normalizeOrder
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value) => String(value || '').trim();
 const lower = (value) => clean(value).toLowerCase();
+const day = (value) => String(value || '').slice(0, 10);
 const orderTotal = (row = {}) => toNumber(row.montant_total ?? row.total ?? row.amount ?? row.total_amount ?? row.montant);
 const paymentAmount = (row = {}) => toNumber(row.montant_paye ?? row.montant ?? row.amount ?? row.paid_amount);
 const paymentOrderId = (row = {}) => clean(row.order_id || row.sale_id || row.source_record_id || row.related_id || row.commande_id);
+const paymentDate = (row = {}) => day(row.date_paiement || row.payment_date || row.date || row.created_at);
+const paymentMethod = (row = {}) => lower(row.moyen_paiement || row.mode_paiement || row.payment_method || row.method);
 const isCancelledPayment = (row = {}) => ['annule', 'annulé', 'annulee', 'cancelled', 'rejete', 'rejeté'].includes(lower(row.statut || row.status));
 const financePaymentId = (row = {}) => clean(row.payment_id || row.paiement_id || row.source_payment_id);
 const financeOrderId = (row = {}) => clean(row.related_id || row.source_record_id || row.order_id || row.sale_id || row.commande_id);
 const financeAmount = (row = {}) => toNumber(row.montant ?? row.amount);
+const financeDate = (row = {}) => day(row.date || row.date_paiement || row.created_at);
+const financeMethod = (row = {}) => lower(row.moyen_paiement || row.mode_paiement || row.payment_method || row.method);
 const financeIsSaleCash = (row = {}) => {
   const text = lower(`${row.type || ''} ${row.module_lie || ''} ${row.source_module || ''} ${row.categorie || ''} ${row.libelle || ''}`);
   return text.includes('entree') || text.includes('entrée') || text.includes('vente') || text.includes('encaissement') || text.includes('creance') || text.includes('créance');
 };
 
-export function findExistingPayment({ orderId, amount, payments = [], paymentId = '' }) {
+function sameAmount(a, b) { return Math.abs(toNumber(a) - toNumber(b)) < 1; }
+function samePaymentFingerprint(a = {}, b = {}) {
+  if (clean(a.id) && clean(b.id) && clean(a.id) === clean(b.id)) return true;
+  if (paymentOrderId(a) !== paymentOrderId(b)) return false;
+  if (!sameAmount(paymentAmount(a), paymentAmount(b))) return false;
+  const aDate = paymentDate(a);
+  const bDate = paymentDate(b);
+  const aMethod = paymentMethod(a);
+  const bMethod = paymentMethod(b);
+  if (!aDate || !bDate || aDate !== bDate) return false;
+  if (aMethod && bMethod && aMethod !== bMethod) return false;
+  return true;
+}
+
+export function findExistingPayment({ orderId, amount, payments = [], paymentId = '', date = '', method = '' }) {
   const targetOrder = clean(orderId);
   const targetAmount = toNumber(amount);
+  const targetDate = day(date);
+  const targetMethod = lower(method);
   return arr(payments).find((payment) => {
     if (isCancelledPayment(payment)) return false;
     if (paymentId && clean(payment.id) === clean(paymentId)) return true;
     if (paymentOrderId(payment) !== targetOrder) return false;
-    return Math.abs(paymentAmount(payment) - targetAmount) < 1;
+    if (!sameAmount(paymentAmount(payment), targetAmount)) return false;
+    if (!targetDate) return false;
+    if (paymentDate(payment) !== targetDate) return false;
+    if (targetMethod && paymentMethod(payment) && paymentMethod(payment) !== targetMethod) return false;
+    return true;
   }) || null;
 }
 
-export function findExistingFinanceForPayment({ orderId, paymentId, amount, transactions = [] }) {
+export function findExistingFinanceForPayment({ orderId, paymentId, amount, transactions = [], date = '', method = '' }) {
   const targetPayment = clean(paymentId);
   const targetOrder = clean(orderId);
   const targetAmount = toNumber(amount);
+  const targetDate = day(date);
+  const targetMethod = lower(method);
   return arr(transactions).find((trx) => {
     if (!financeIsSaleCash(trx)) return false;
     if (targetPayment && financePaymentId(trx) === targetPayment) return true;
-    if (targetOrder && financeOrderId(trx) === targetOrder && Math.abs(financeAmount(trx) - targetAmount) < 1) return true;
-    return false;
+    if (!targetOrder || financeOrderId(trx) !== targetOrder) return false;
+    if (!sameAmount(financeAmount(trx), targetAmount)) return false;
+    if (targetDate && financeDate(trx) && financeDate(trx) !== targetDate) return false;
+    if (targetMethod && financeMethod(trx) && financeMethod(trx) !== targetMethod) return false;
+    return Boolean(targetDate || targetMethod);
   }) || null;
 }
 
@@ -60,8 +90,8 @@ export function analyzeSalesIntegrity({ orders = [], payments = [], transactions
     const orderPayments = arr(payments).filter((payment) => paymentOrderId(payment) === id && !isCancelledPayment(payment));
     const paid = orderPayments.reduce((sum, payment) => sum + paymentAmount(payment), 0);
     const total = orderTotal(order);
-    const financeForPayments = orderPayments.map((payment) => ({ payment, finance: findExistingFinanceForPayment({ orderId: id, paymentId: payment.id, amount: paymentAmount(payment), transactions }) }));
-    const duplicatePayments = orderPayments.filter((payment, index) => orderPayments.findIndex((candidate) => Math.abs(paymentAmount(candidate) - paymentAmount(payment)) < 1 && String(candidate.date_paiement || candidate.date || '').slice(0, 10) === String(payment.date_paiement || payment.date || '').slice(0, 10)) !== index);
+    const financeForPayments = orderPayments.map((payment) => ({ payment, finance: findExistingFinanceForPayment({ orderId: id, paymentId: payment.id, amount: paymentAmount(payment), date: paymentDate(payment), method: paymentMethod(payment), transactions }) }));
+    const duplicatePayments = orderPayments.filter((payment, index) => orderPayments.findIndex((candidate) => samePaymentFingerprint(candidate, payment)) !== index);
     const missingFinance = financeForPayments.filter((item) => !item.finance);
     const overpaid = total > 0 && paid > total + 1;
     const soldButRelance = remainingForOrder(order, payments) <= 0 && ['a_relancer', 'relance', 'en_relance'].includes(lower(order.statut_relance || order.relance_status || order.status_relance));
