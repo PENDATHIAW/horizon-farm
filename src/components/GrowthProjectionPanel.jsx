@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, LineChart, Target } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Info, LineChart, Target } from 'lucide-react';
 import { fmtNumber } from '../utils/format';
 
 function toneClasses(status = '') {
@@ -8,12 +8,12 @@ function toneClasses(status = '') {
 }
 
 function Mini({ label, value }) {
-  return <div className="rounded-xl border border-[#eadcc2] bg-white p-3"><p className="text-[11px] uppercase tracking-wide text-[#8a7456]">{label}</p><p className="mt-1 text-sm font-black text-[#2f2415]">{value}</p></div>;
+  return <div className="rounded-xl border border-[#eadcc2] bg-white p-3 min-w-0"><p className="text-xs uppercase tracking-wide text-[#8a7456]">{label}</p><p className="mt-1 text-sm font-black text-[#2f2415] break-words">{value}</p></div>;
 }
 
 function Sparkline({ points = [], valueKey = 'weight' }) {
   const usable = points.filter((item) => Number(item?.[valueKey] || 0) > 0);
-  if (usable.length < 2) return <div className="rounded-xl border border-dashed border-[#d6c3a0] bg-white p-4 text-sm text-[#8a7456]">Ajouter au moins deux pesées pour afficher une vraie courbe.</div>;
+  if (usable.length < 2) return <div className="rounded-xl border border-dashed border-[#d6c3a0] bg-white p-4 text-sm text-[#8a7456] flex items-start gap-2"><Info size={16} className="mt-0.5 text-sky-600" aria-hidden="true" /> Ajouter au moins deux mesures pour afficher une vraie courbe.</div>;
   const values = usable.map((item) => Number(item[valueKey] || 0));
   const min = Math.min(...values);
   const max = Math.max(...values);
@@ -23,14 +23,14 @@ function Sparkline({ points = [], valueKey = 'weight' }) {
     const y = 100 - ((Number(item[valueKey] || 0) - min) / spread) * 80 - 10;
     return `${x},${y}`;
   }).join(' ');
-  return <div className="rounded-xl border border-[#eadcc2] bg-white p-3"><svg viewBox="0 0 100 100" className="h-32 w-full" preserveAspectRatio="none"><polyline fill="none" stroke="currentColor" strokeWidth="3" points={coords} /></svg><div className="mt-2 flex justify-between text-[11px] text-[#8a7456]"><span>{usable[0]?.date || usable[0]?.start}</span><span>{usable[usable.length - 1]?.date || usable[usable.length - 1]?.end}</span></div></div>;
+  return <div className="rounded-xl border border-[#eadcc2] bg-white p-3"><svg viewBox="0 0 100 100" className="h-32 w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Courbe d’évolution"><polyline fill="none" stroke="currentColor" strokeWidth="3" points={coords} /></svg><div className="mt-2 flex justify-between gap-2 text-xs text-[#8a7456]"><span className="truncate">{usable[0]?.date || usable[0]?.start}</span><span className="truncate text-right">{usable[usable.length - 1]?.date || usable[usable.length - 1]?.end}</span></div></div>;
 }
 
 export function WeightProjectionPanel({ title = 'Projection croissance', projection }) {
-  if (!projection) return null;
+  if (!projection) return <section className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Aucune projection de croissance disponible pour le moment.</section>;
   const Icon = projection.status === 'pret_vente' || projection.status === 'conforme' ? CheckCircle2 : AlertTriangle;
   return <section className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4 space-y-3">
-    <div className="flex items-start gap-3"><div className={`rounded-xl border p-2 ${toneClasses(projection.status)}`}><Icon size={18} /></div><div><h3 className="text-sm font-black text-[#2f2415]">{title}</h3><p className="mt-1 text-xs text-[#8a7456]">Projection basée sur l’historique des pesées. Elle sert à agir avant la date cible, pas à attendre l’échec.</p></div></div>
+    <div className="flex items-start gap-3"><div className={`rounded-xl border p-2 ${toneClasses(projection.status)}`}><Icon size={18} aria-hidden="true" /></div><div><h3 className="text-sm font-black text-[#2f2415]">{title}</h3><p className="mt-1 text-xs text-[#8a7456]">Projection basée sur les pesées déjà saisies. Elle aide à agir avant la date cible.</p></div></div>
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3"><Mini label="Poids actuel" value={`${fmtNumber(projection.currentWeight)} kg`} /><Mini label="Objectif" value={`${fmtNumber(projection.targetWeight)} kg`} /><Mini label={`Projection J${projection.targetDays}`} value={`${fmtNumber(projection.projectedWeight)} kg`} /><Mini label="Gain moyen / jour" value={`${projection.gainPerDay} kg/j`} /></div>
     <div className={`rounded-xl border p-3 text-sm ${toneClasses(projection.status)}`}><b>{projection.label}</b> · {projection.action}</div>
     <Sparkline points={projection.history} />
@@ -38,9 +38,9 @@ export function WeightProjectionPanel({ title = 'Projection croissance', project
 }
 
 export function PondeuseProductionPanel({ profile }) {
-  if (!profile) return null;
+  if (!profile) return <section className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Aucune donnée de ponte disponible pour le moment.</section>;
   return <section className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4 space-y-3">
-    <div className="flex items-start gap-3"><div className={`rounded-xl border p-2 ${toneClasses(profile.status)}`}><LineChart size={18} /></div><div><h3 className="text-sm font-black text-[#2f2415]">Ponte & ramassage</h3><p className="mt-1 text-xs text-[#8a7456]">Lecture des ramassages : les jours manquants ne sont pas inventés, ils sont signalés.</p></div></div>
+    <div className="flex items-start gap-3"><div className={`rounded-xl border p-2 ${toneClasses(profile.status)}`}><LineChart size={18} aria-hidden="true" /></div><div><h3 className="text-sm font-black text-[#2f2415]">Ponte & ramassage</h3><p className="mt-1 text-xs text-[#8a7456]">Lecture des ramassages : les jours manquants ne sont pas inventés, ils sont signalés.</p></div></div>
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3"><Mini label="Effectif actif" value={fmtNumber(profile.activeCount)} /><Mini label="Taux ponte récent" value={`${profile.layingRate}%`} /><Mini label="Dernier ramassage" value={profile.last ? `${fmtNumber(profile.last.eggs)} œufs` : '—'} /><Mini label="Œufs / jour" value={profile.last ? fmtNumber(profile.last.dailyEggs) : '—'} /></div>
     {profile.missingCollectionAlert ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><b>Ramassage à vérifier :</b> {profile.missingCollectionAlert}</div> : null}
     <div className={`rounded-xl border p-3 text-sm ${toneClasses(profile.status)}`}><b>{profile.status === 'bon' ? 'Ponte correcte' : profile.status === 'a_surveiller' ? 'Ponte à surveiller' : 'Alerte ponte'}</b> · {profile.action}</div>
@@ -50,5 +50,5 @@ export function PondeuseProductionPanel({ profile }) {
 
 export function SaleOpportunityGuardPanel({ guard }) {
   if (!guard) return null;
-  return <div className={`rounded-xl border p-3 text-sm ${guard.exists ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}><Target size={15} className="inline mr-1" />{guard.message}</div>;
+  return <div className={`rounded-xl border p-3 text-sm ${guard.exists ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}><Target size={15} className="inline mr-1" aria-hidden="true" />{guard.message}</div>;
 }
