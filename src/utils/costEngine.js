@@ -8,7 +8,7 @@ const logCost = (log = {}) => toNumber(log.cout_total ?? log.total_cost ?? log.m
 const logUnitPrice = (log = {}) => toNumber(log.prix_unitaire ?? log.unit_price ?? log.price ?? 0);
 const animalIdOfLog = (log = {}) => log.animal_id || log.entity_id || log.related_id || log.source_record_id;
 const lotIdOfLog = (log = {}) => log.lot_id || log.entity_id || log.related_id || log.source_record_id;
-const purchaseCost = (row = {}) => toNumber(row.purchase_cost ?? row.prix_achat ?? row.cout_achat ?? row.cout_total ?? row.cost);
+const purchaseCost = (row = {}) => toNumber(row.purchase_cost ?? row.prix_achat ?? row.cout_achat ?? row.cout_total_achat ?? row.cout_sujets ?? row.achat_sujets ?? row.cost_purchase ?? row.cout_total ?? row.cost);
 const animalWeight = (row = {}) => toNumber(row.poids ?? row.weight ?? row.current_weight ?? row.last_weight ?? row.poids_actuel ?? row.poids_carcasse);
 const slaughterWeight = (row = {}) => toNumber(row.poids_carcasse ?? row.poids_viande ?? row.poids_total_abattage ?? row.total_weight ?? row.poids_total);
 const chargeAmount = (row = {}) => toNumber(row.montant ?? row.amount ?? row.cout ?? row.cost ?? row.cout_total ?? row.total_cost ?? row.total ?? 0);
@@ -18,6 +18,9 @@ const targetText = (row = {}) => lower(`${row.target_type || ''} ${row.type_cibl
 const amountFromHealth = (row = {}) => toNumber(row.montant ?? row.amount ?? row.cout ?? row.cost ?? row.cout_total ?? row.total_cost ?? row.total ?? row.prix ?? row.prix_total ?? row.montant_total ?? 0);
 const qtyFromHealth = (row = {}) => toNumber(row.quantite_stock ?? row.stock_qty ?? row.quantite ?? row.quantity ?? row.qty ?? row.nombre ?? 0);
 const unitPriceFromHealth = (row = {}) => toNumber(row.prix_unitaire ?? row.unit_price ?? row.prixUnit ?? row.prixunit ?? row.price ?? 0);
+const lotLevelFeedCost = (row = {}) => toNumber(row.cout_alimentation ?? row.feed_cost ?? row.real_feed_cost ?? row.cout_aliment ?? row.cout_alim ?? row.aliment_reel ?? row.alimentation_reelle ?? row.feed_total_cost ?? row.cout_total_aliment ?? row.cout_total_alimentation);
+const lotLevelHealthCost = (row = {}) => toNumber(row.cout_sante ?? row.cout_santé ?? row.health_cost ?? row.soins_cost ?? row.cout_soins ?? row.cout_vaccins ?? row.vaccin_cost);
+const lotLevelOtherCost = (row = {}) => toNumber(row.autres_charges ?? row.autres_frais ?? row.other_cost ?? row.other_direct_cost ?? row.cout_autres ?? row.cout_emballage ?? row.cout_transport ?? row.cout_maintenance);
 
 export const DEFAULT_BROILER_CRATE_SIZE = 50;
 export const DEFAULT_BROILER_CRATE_PRICE = 32000;
@@ -149,14 +152,14 @@ export function estimateLotFeedCost({ lot, pricePerKg = 0 }) {
 export function calculateAvicoleLotCost({ lot, alimentationLogs = [], productionLogs = [], slaughterEvents = [], directCharges = [], healthEvents = [], defaultPricePerKg = 0 }) {
   const id = lot?.id;
   const logs = arr(alimentationLogs).filter((log) => String(lotIdOfLog(log) || '') === String(id));
-  const realFeedCost = logs.reduce((sum, log) => sum + feedCostFromLog(log), 0);
+  const realFeedCost = Math.max(logs.reduce((sum, log) => sum + feedCostFromLog(log), 0), lotLevelFeedCost(lot));
   const estimated = estimateLotFeedCost({ lot, pricePerKg: defaultPricePerKg });
-  const explicitPurchase = purchaseCost(lot) || toNumber(lot.prix_unitaire_sujet ?? lot.unit_cost) * toNumber(lot.initial_count ?? lot.effectif_initial);
+  const explicitPurchase = purchaseCost(lot) || toNumber(lot.prix_unitaire_sujet ?? lot.unit_cost ?? lot.cout_unitaire_sujet) * toNumber(lot.initial_count ?? lot.effectif_initial ?? lot.quantite_initiale);
   const purchase = explicitPurchase || deriveBroilerPurchaseCost(lot);
   const feedCostUsed = realFeedCost > 0 ? realFeedCost : estimated.estimatedFeedCost;
   const health = calculateHealthCostForTarget({ events: [...arr(healthEvents), ...arr(directCharges)], targetId: id, targetType: 'avicole' });
-  const healthCost = health.total;
-  const otherDirectCost = directExtraChargeTotal({ charges: directCharges, targetId: id, targetType: 'avicole' });
+  const healthCost = Math.max(health.total, lotLevelHealthCost(lot));
+  const otherDirectCost = Math.max(directExtraChargeTotal({ charges: directCharges, targetId: id, targetType: 'avicole' }), lotLevelOtherCost(lot));
   const totalCost = purchase + feedCostUsed + healthCost + otherDirectCost;
   const live = avicoleActiveCount(lot);
   const dead = avicoleDeadCount(lot);
@@ -165,7 +168,7 @@ export function calculateAvicoleLotCost({ lot, alimentationLogs = [], production
   const producedSubjects = Math.max(1, Math.min(initial, live + sold || initial - dead));
   const sellableSubjects = Math.max(1, producedSubjects);
   const slaughterKg = arr(slaughterEvents).filter((event) => String(lotIdOfLog(event) || '') === String(id)).reduce((sum, event) => sum + slaughterWeight(event), 0);
-  const sellableEggs = arr(productionLogs).filter((log) => String(lotIdOfLog(log) || '') === String(id)).reduce((sum, log) => sum + Math.max(0, toNumber(log.oeufs_produits ?? log.eggs ?? log.quantite) - toNumber(log.oeufs_casses ?? log.broken ?? log.pertes)), 0);
+  const sellableEggs = arr(productionLogs).filter((log) => String(lotIdOfLog(log) || '') === String(id) || (!lotIdOfLog(log) && lotTypeKey(lot) === 'ponte')).reduce((sum, log) => sum + Math.max(0, toNumber(log.oeufs_produits ?? log.eggs ?? log.quantite) - toNumber(log.oeufs_casses ?? log.broken ?? log.pertes)), 0);
   return { lotId: id, type: estimated.key, purchaseCost: purchase, realFeedCost, estimatedFeedCost: estimated.estimatedFeedCost, feedCostUsed, feedCostSource: realFeedCost > 0 ? 'reel' : 'estime', healthCost, healthCostDetails: health.details, otherDirectCost, totalCost, initialSubjects: initial, deadSubjects: dead, soldSubjects: sold, liveSubjects: live, producedSubjects, sellableSubjects, costPerInitialSubject: initial > 0 ? totalCost / initial : 0, costPerProducedSubject: producedSubjects > 0 ? totalCost / producedSubjects : 0, costPerLiveSubject: sellableSubjects > 0 ? totalCost / sellableSubjects : 0, slaughterKg, costPerKg: slaughterKg > 0 ? totalCost / slaughterKg : 0, sellableEggs, costPerEgg: sellableEggs > 0 ? totalCost / sellableEggs : 0, feedKgEstimated: estimated.totalKg };
 }
 
