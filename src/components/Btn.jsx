@@ -7,7 +7,7 @@ export default function Btn({ children, variant = 'primary', onClick, icon: Icon
     whatsapp: 'bg-[#25D366]/10 border border-[#25D366]/25 text-[#168a3d] hover:bg-[#25D366]/20',
   }[variant] || '';
 
-  const compact = small ? 'min-h-[36px] px-3 py-1.5 text-xs rounded-xl' : 'min-h-[44px] px-4 py-2.5 text-sm rounded-2xl';
+  const compact = small ? 'min-h-[44px] px-3 py-2 text-xs rounded-xl' : 'min-h-[44px] px-4 py-2.5 text-sm rounded-2xl';
 
   return (
     <button
