@@ -28,6 +28,13 @@ const isLinkedToLot = (row = {}, lot = {}, category = '') => {
   const text = clean(`${row.libelle || ''} ${row.title || ''} ${row.description || ''} ${row.notes || ''} ${row.product_name || ''}`);
   return Boolean(id && text.includes(clean(id)));
 };
+const feedKgOfLog = (log = {}) => {
+  const qty = toNumber(log.quantite ?? log.quantity ?? log.qty ?? log.amount);
+  const unit = clean(log.unite ?? log.unit);
+  if (unit.includes('sac')) return qty * (toNumber(log.poids_sac_kg ?? log.sac_kg ?? log.kg_par_sac) || 50);
+  if (unit.includes('g') && !unit.includes('kg')) return qty / 1000;
+  return qty;
+};
 const dateOnly = (value) => (value ? new Date(value).toISOString().slice(0, 10) : '');
 const addDaysToDate = (value, days) => { if (!value) return ''; const date = new Date(value); date.setDate(date.getDate() + Number(days || 0)); return dateOnly(date); };
 const addMonthsToDate = (value, months) => { if (!value) return ''; const date = new Date(value); date.setMonth(date.getMonth() + Number(months || 0)); return dateOnly(date); };
@@ -121,6 +128,7 @@ export const calculateLotMetrics = ({ lot = {}, feedingLogs = [], productionLogs
   const category = getLotFeedingCategory(lot);
   const lotFeedingLogs = feedingLogs.filter((log) => isLinkedToLot(log, lot, category));
   const feedingCost = lotFeedingLogs.reduce((sum, log) => sum + money(log), 0);
+  const feedKg = lotFeedingLogs.reduce((sum, log) => sum + feedKgOfLog(log), 0);
   const coveredDays = lotFeedingLogs.reduce((sum, log) => sum + toNumber(log.duree_jours ?? log.days), 0);
   const eggMetrics = calculateEggProductionMetrics({ lot, productionLogs });
   const productionJour = isLayerLot(lot) ? eggMetrics.todayEggs : toNumber(lot.productionJour ?? lot.productionjour);
@@ -139,7 +147,12 @@ export const calculateLotMetrics = ({ lot = {}, feedingLogs = [], productionLogs
   const costPerHeadPerDay = current > 0 && coveredDays > 0 ? feedingCost / current / coveredDays : 0;
   const totalCostPerHead = current > 0 ? totalCosts / current : 0;
   const marginPerHead = current > 0 ? estimatedMargin / current : 0;
-  return { currentCount: current, losses, feedingCost, healthCost, otherCosts, chickCost, totalCosts, totalCost: totalCosts, survivalRate, mortalityRate, morbidityRate, theftRate, layingRate, scoreSante, estimatedMargin, marginEstimated: estimatedMargin, marginReal: realSalePrice > 0 ? grossRevenue - totalCosts : 0, grossRevenue, costPerHead, costPerHeadPerDay, totalCostPerHead, marginPerHead, productionPerHead: current > 0 ? productionJour / current : 0, eggMetrics, isLayer: isLayerLot(lot), isBroiler: isBroilerLot(lot), linkedFeedingLogs: lotFeedingLogs };
+  const entryWeightKg = toNumber(lot.poids_moyen_entree ?? lot.weight_entry ?? lot.initial_weight);
+  const currentWeightKg = toNumber(lot.poids_moyen_actuel ?? lot.last_weight_avg ?? lot.weight_avg ?? lot.average_weight);
+  const weightGainPerHeadKg = isBroilerLot(lot) ? Math.max(0, currentWeightKg - entryWeightKg) : 0;
+  const totalLiveWeightGainKg = weightGainPerHeadKg * Math.max(0, current);
+  const feedConversionIndex = isBroilerLot(lot) && totalLiveWeightGainKg > 0 ? feedKg / totalLiveWeightGainKg : 0;
+  return { currentCount: current, losses, feedingCost, feedKg, feedConversionIndex, indiceConsommation: feedConversionIndex, weightGainPerHeadKg, totalLiveWeightGainKg, healthCost, otherCosts, chickCost, totalCosts, totalCost: totalCosts, survivalRate, mortalityRate, morbidityRate, theftRate, layingRate, scoreSante, estimatedMargin, marginEstimated: estimatedMargin, marginReal: realSalePrice > 0 ? grossRevenue - totalCosts : 0, grossRevenue, costPerHead, costPerHeadPerDay, totalCostPerHead, marginPerHead, productionPerHead: current > 0 ? productionJour / current : 0, eggMetrics, isLayer: isLayerLot(lot), isBroiler: isBroilerLot(lot), linkedFeedingLogs: lotFeedingLogs };
 };
 
 export const suggestLotPhase = (lot = {}, metrics = calculateLotMetrics({ lot })) => {
@@ -196,6 +209,7 @@ export const buildLotAlerts = (lot = {}, metrics = calculateLotMetrics({ lot }))
   if (metrics.theftRate >= 2) alerts.push({ severity: 'warning', message: 'Vols élevés: vérifier clôtures, accès et caméras.' });
   if (metrics.morbidityRate >= 3) alerts.push({ severity: 'warning', message: 'Malades élevés: renforcer observation sanitaire et hygiène.' });
   if (metrics.isLayer && metrics.layingRate > 0 && metrics.layingRate < 65) alerts.push({ severity: 'warning', message: 'Production œufs faible: contrôler stress, eau, alimentation et lumière.' });
+  if (metrics.isBroiler && metrics.feedConversionIndex > 0 && metrics.feedConversionIndex > 2.2) alerts.push({ severity: 'warning', message: `Indice de consommation élevé (${metrics.feedConversionIndex.toFixed(2)}): vérifier qualité aliment, santé, densité et température.` });
   if (metrics.estimatedMargin < 0) alerts.push({ severity: 'critique', message: 'Marge négative: revoir coûts, prix de vente ou calendrier.' });
   return alerts;
 };
