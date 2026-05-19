@@ -16,7 +16,7 @@ const cancelled = (row = {}) => ['annule', 'annulé', 'cancelled'].includes(lowe
 const paymentCancelled = (row = {}) => ['annule', 'annulé', 'cancelled', 'rejete', 'rejeté'].includes(lower(row.statut || row.status));
 const rowText = (row = {}) => lower(`${row.product_name || ''} ${row.produit || ''} ${row.title || ''} ${row.nom || ''} ${row.libelle || ''} ${row.description || ''} ${row.notes || ''} ${row.source_module || ''} ${row.module_lie || ''} ${row.type || ''} ${row.categorie || ''}`);
 function findById(rows, id) { return arr(rows).find((row) => clean(row.id) === clean(id) || clean(row.tag) === clean(id) || clean(row.boucle_numero) === clean(id)); }
-function findByText(rows = [], text = '') { const t = lower(text); if (!t) return null; return arr(rows).find((row) => { const name = lower(`${row.name || ''} ${row.nom || ''} ${row.tag || ''} ${row.id || ''}`); return name && (t.includes(name) || name.includes(t)); }) || null; }
+function findByText(rows = [], text = '') { const t = lower(text); if (!t) return null; return arr(rows).find((row) => { const name = lower(`${row.name || ''} ${row.nom || ''} ${row.tag || ''} ${row.boucle_numero || ''} ${row.id || ''}`); return name && (t.includes(name) || name.includes(t)); }) || null; }
 function findStockForSale(input = {}, stocks = []) {
   const ids = [input.stock_id, input.source_id, input.source_record_id, input.related_id, input.entity_id, input.asset_id, input.product_id, input.article_id].map(clean).filter(Boolean);
   const product = lower(`${input.product_name || input.produit || input.title || input.nom || ''}`);
@@ -29,8 +29,8 @@ function paidFromLinkedPayments(order = {}, payments = []) { const id = clean(or
 function effectivePaidAmount(order = {}, saleAmount = 0, context = {}) { const raw = Math.max(paidOf(order), paidFromLinkedPayments(order, context.payments || context.paymentsList || [])); return saleAmount > 0 ? Math.min(saleAmount, raw) : raw; }
 function cultureTotalCost(culture = {}) { return toNumber(culture.cout_total_reel ?? culture.cout_total ?? culture.budget_prevu) || toNumber(culture.cout_semences) + toNumber(culture.cout_engrais) + toNumber(culture.cout_eau) + toNumber(culture.cout_main_oeuvre) + toNumber(culture.cout_traitement); }
 function cultureUnitCost(culture = {}) { const totalCost = cultureTotalCost(culture); const harvested = toNumber(culture.quantite_recoltee ?? culture.production_reelle ?? culture.quantite_disponible ?? culture.quantite_prevue); return harvested > 0 ? totalCost / harvested : 0; }
-function hasRealAnimalCost(cost = {}) { return toNumber(cost.purchaseCost) + toNumber(cost.realFeedCost) + toNumber(cost.healthCost) + toNumber(cost.otherDirectCost) + toNumber(cost.slaughterCost) > 0; }
-function hasRealLotCost(cost = {}) { return toNumber(cost.purchaseCost) + toNumber(cost.realFeedCost) + toNumber(cost.healthCost) + toNumber(cost.otherDirectCost) + toNumber(cost.slaughterCost) > 0; }
+function hasRealAnimalCost(cost = {}) { return cost.costComplete === true && toNumber(cost.totalCost) > 0; }
+function hasRealLotCost(cost = {}) { return toNumber(cost.purchaseCost) > 0 && (toNumber(cost.realFeedCost) > 0 || toNumber(cost.healthCost) > 0 || toNumber(cost.otherDirectCost) > 0 || toNumber(cost.costPerEgg) > 0 || toNumber(cost.costPerSellableSubject) > 0); }
 function reliabilityFromCost({ sale = 0, cost = 0, costSource = '', sourceLabel = '' }) {
   const missingCost = sale > 0 && cost <= 0;
   const impossibleCost = sale > 0 && cost > sale * 3;
@@ -50,12 +50,10 @@ function marginResult({ saleAmount = 0, paidAmount = 0, directCost = 0, costSour
   const cashMarginRate = reliability.cout_a_completer || paid <= 0 ? 0 : Number(((cashMargin / paid) * 100).toFixed(1));
   return { chiffre_affaires: sale, montant_encaisse: paid, cout_revient: cost, cout_direct: cost, cout_source: costSource, marge_directe: margin, marge_montant: margin, marge: margin, marge_cash: cashMargin, taux_marge_directe: marginRate, marge_taux: marginRate, taux_marge_cash: cashMarginRate, ...reliability };
 }
-function resolveAvicoleLot(input = {}, context = {}, sourceId = '') {
-  return findById(context.lots, sourceId) || findByText(context.lots, rowText(input));
-}
-function resolveAnimal(input = {}, context = {}, sourceId = '') {
-  return findById(context.animaux, sourceId) || findByText(context.animaux, rowText(input));
-}
+function resolveAvicoleLot(input = {}, context = {}, sourceId = '') { return findById(context.lots, sourceId) || findByText(context.lots, rowText(input)); }
+function resolveAnimal(input = {}, context = {}, sourceId = '') { return findById(context.animaux, sourceId) || findByText(context.animaux, rowText(input)); }
+function productLooksLikeEgg(product = '') { return product.includes('oeuf') || product.includes('œuf') || product.includes('tablette') || product.includes('plateau'); }
+function productLooksLikeBroiler(product = '') { return product.includes('poulet') || product.includes('chair') || product.includes('broiler'); }
 export function calculateSalesMargin(input = {}, context = {}) {
   const quantity = qtyOf(input);
   const unitPrice = toNumber(input.unit_price ?? input.prix_unitaire ?? input.prix_vente ?? input.price);
@@ -74,19 +72,19 @@ export function calculateSalesMargin(input = {}, context = {}) {
     return marginResult({ saleAmount, paidAmount, directCost, costSource: directCost > 0 ? 'cout_stock_reel' : 'cout_stock_indisponible', sourceLabel: stock.produit || stock.id });
   }
 
-  const looksAnimal = sourceModule.includes('animal') || product.includes('bovin') || product.includes('ovin') || product.includes('caprin') || product.includes('animal');
+  const looksAnimal = sourceModule.includes('animal') || product.includes('bovin') || product.includes('ovin') || product.includes('caprin') || product.includes('animal') || product.includes('mouton') || product.includes('chevre') || product.includes('chèvre');
   if (looksAnimal) {
     const animal = resolveAnimal(input, context, sourceId);
     if (animal) {
-      const cost = calculateAnimalCost({ animal, alimentationLogs: context.alimentationLogs, vaccins: context.vaccins, healthEvents: context.businessEvents, slaughterEvents: context.businessEvents, directCharges: context.businessEvents, defaultPricePerDay: 0 });
+      const cost = calculateAnimalCost({ animal, alimentationLogs: context.alimentationLogs, vaccins: context.vaccins, healthEvents: context.businessEvents, slaughterEvents: context.businessEvents, directCharges: context.businessEvents, defaultPricePerKg: 0 });
       const real = hasRealAnimalCost(cost);
       const byKg = unit.includes('kg') && cost.costPerKg > 0 && real;
       const directCost = !real ? 0 : byKg ? cost.costPerKg * quantity : cost.totalCost;
-      return marginResult({ saleAmount, paidAmount, directCost, costSource: directCost > 0 ? 'cout_animal_reel' : 'cout_animal_indisponible', sourceLabel: animal.name || animal.tag || animal.id });
+      return marginResult({ saleAmount, paidAmount, directCost, costSource: directCost > 0 ? 'cout_embouche_reel' : 'cout_embouche_indisponible', sourceLabel: animal.name || animal.nom || animal.tag || animal.boucle_numero || animal.id });
     }
   }
 
-  const looksAvicole = sourceModule.includes('avicole') || sourceModule.includes('lot') || product.includes('oeuf') || product.includes('œuf') || product.includes('tablette') || product.includes('plateau') || product.includes('poulet') || product.includes('chair') || product.includes('pondeuse');
+  const looksAvicole = sourceModule.includes('avicole') || sourceModule.includes('lot') || productLooksLikeEgg(product) || productLooksLikeBroiler(product) || product.includes('pondeuse');
   if (looksAvicole) {
     const lot = resolveAvicoleLot(input, context, sourceId);
     if (lot) {
@@ -97,7 +95,8 @@ export function calculateSalesMargin(input = {}, context = {}) {
         const isTablet = product.includes('tablette') || product.includes('plateau');
         const eggQty = isTablet ? quantity * 30 : quantity;
         if (unit.includes('kg') && cost.costPerKg > 0) directCost = cost.costPerKg * quantity;
-        else if ((product.includes('oeuf') || product.includes('œuf') || isTablet) && cost.costPerEgg > 0) directCost = cost.costPerEgg * eggQty;
+        else if (productLooksLikeEgg(product) && cost.costPerEgg > 0) directCost = cost.costPerEgg * eggQty;
+        else if (productLooksLikeBroiler(product) && cost.costPerSellableSubject > 0) directCost = cost.costPerSellableSubject * quantity;
         else if (cost.costPerProducedSubject > 0) directCost = cost.costPerProducedSubject * quantity;
         else if (cost.costPerLiveSubject > 0) directCost = cost.costPerLiveSubject * quantity;
         else directCost = cost.totalCost;
