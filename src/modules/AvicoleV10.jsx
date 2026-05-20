@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { BarChart3, Bird, ClipboardList, Drumstick, Egg, Info, PackageCheck, Scissors } from 'lucide-react';
+import MiniMetricCard from '../components/MiniMetricCard.jsx';
 import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard.jsx';
 import { buildAvicoleLotDecision } from '../services/avicoleDecisionEngine';
 import { fmtNumber } from '../utils/format';
@@ -34,9 +35,6 @@ function ModuleSection({ icon: Icon, title, subtitle, children }) {
 function LayerHelpBanner() {
   return <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><p className="flex items-center gap-2 font-black text-amber-900"><Info size={17} aria-hidden="true" /> Où saisir les œufs ?</p><p className="mt-2 leading-relaxed">La fiche du lot sert au suivi du lot : effectif, santé, mortalité, réforme et statut. La production d’œufs se saisit dans <b>Ramassage œufs / Journal de ponte</b>. Les tablettes sont calculées automatiquement sur la base de <b>30 œufs = 1 tablette</b>.</p></div>;
 }
-function Mini({ label, value, active = false }) {
-  return <div className={`rounded-xl border p-3 ${active ? 'border-white/15 bg-white/10' : 'border-[#eadcc2] bg-[#fffdf8]'}`}><p className={`text-[10px] ${active ? 'text-white/60' : 'text-[#8a7456]'}`}>{label}</p><p className={`mt-1 font-black ${active ? 'text-white' : 'text-[#2f2415]'}`}>{value}</p></div>;
-}
 function ActivityEntryCard({ icon: Icon, active, title, subtitle, rows = [], productionLogs = [], action, onClick }) {
   const activeRows = rows.filter(avicoleHasActiveBirds);
   const historicalRows = rows.length - activeRows.length;
@@ -49,7 +47,7 @@ function ActivityEntryCard({ icon: Icon, active, title, subtitle, rows = [], pro
       <div className="flex items-start gap-3 min-w-0"><div className={`rounded-2xl p-3 ${active ? 'bg-white/15 text-[#ffd86b]' : 'bg-[#fff3d8] text-[#9a6b12]'}`}><Icon size={22} aria-hidden="true" /></div><div className="min-w-0"><p className={`text-xl font-black break-words ${active ? 'text-white' : 'text-[#2f2415]'}`}>{title}</p><p className={`mt-1 text-sm leading-relaxed ${active ? 'text-white/75' : 'text-[#8a7456]'}`}>{subtitle}</p></div></div>
       <span className={`w-fit rounded-full px-3 py-1 text-xs font-black ${active ? 'bg-[#ffd86b] text-[#2f2415]' : 'bg-[#2f2415] text-white'}`}>{action}</span>
     </div>
-    <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-2"><Mini active={active} label="Lots actifs" value={activeRows.length} /><Mini active={active} label="Historique" value={historicalRows} /><Mini active={active} label="Effectif" value={fmtNumber(effectif)} /><Mini active={active} label="Signal IA" value={`${averageSignal}%`} /></div>
+    <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-2"><MiniMetricCard tone={active ? 'dark' : 'light'} label="Lots actifs" value={activeRows.length} /><MiniMetricCard tone={active ? 'dark' : 'light'} label="Historique" value={historicalRows} /><MiniMetricCard tone={active ? 'dark' : 'light'} label="Effectif" value={fmtNumber(effectif)} /><MiniMetricCard tone={active ? 'dark' : 'light'} label="Signal IA" value={`${averageSignal}%`} /></div>
     <div className={`mt-3 rounded-xl border p-3 text-xs leading-relaxed ${active ? 'border-white/15 bg-white/10 text-white/80' : urgent ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>{urgent ? `${urgent} action(s) IA prioritaire(s) à vérifier.` : 'Aucune urgence IA prioritaire sur cette activité.'}</div>
   </button>;
 }
