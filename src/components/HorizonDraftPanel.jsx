@@ -29,6 +29,7 @@ const moduleLabel = (module = '') => ({
   alertes: 'Alertes',
   taches: 'Tâches',
   documents: 'Documents',
+  investissements: 'Investissements',
 }[module] || module);
 
 const valueLabel = (value) => {
@@ -40,6 +41,9 @@ const valueLabel = (value) => {
   return String(value);
 };
 
+const draftTargetModule = (draft = {}) =>
+  draft.primary_module || draft.target_module || (draft.impacted_modules || [])[0] || 'dashboard';
+
 export default function HorizonDraftPanel({ draft, onChangeField, onValidate, onCancel, onOpenModule }) {
   if (!draft || !draft.intent || draft.status === 'unsupported') return null;
 
@@ -47,6 +51,7 @@ export default function HorizonDraftPanel({ draft, onChangeField, onValidate, on
   const missing = draft.missing_fields || [];
   const warnings = draft.warnings || [];
   const hasBlockingMissing = missing.length > 0;
+  const editModule = draftTargetModule(draft);
 
   return (
     <div className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-4 space-y-4 shadow-sm">
@@ -115,7 +120,7 @@ export default function HorizonDraftPanel({ draft, onChangeField, onValidate, on
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <button type="button" onClick={onCancel} className="rounded-2xl border border-[#d6c3a0] bg-white px-3 py-2 text-xs font-black text-[#8a7456] hover:bg-[#fff8e8]"><X size={14} className="inline" /> Annuler</button>
-        <button type="button" className="rounded-2xl border border-[#d6c3a0] bg-white px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#fff8e8]"><Edit3 size={14} className="inline" /> Modifier</button>
+        <button type="button" onClick={() => onOpenModule?.(editModule)} className="rounded-2xl border border-[#d6c3a0] bg-white px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#fff8e8]"><Edit3 size={14} className="inline" /> Modifier dans {moduleLabel(editModule)}</button>
         <button type="button" disabled={hasBlockingMissing} onClick={onValidate} className="rounded-2xl bg-emerald-500 px-3 py-2 text-xs font-black text-white disabled:opacity-45 disabled:cursor-not-allowed"><CheckCircle size={14} className="inline" /> Valider</button>
       </div>
     </div>

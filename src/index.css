@@ -15,6 +15,8 @@
   --hf-hero: #2f2415;
   --hf-density-scale: 1;
   --hf-radius-scale: 1;
+  --hf-shadow-soft: 0 12px 30px rgba(47, 36, 21, .06);
+  --hf-shadow-hover: 0 18px 42px rgba(47, 36, 21, .10);
 }
 
 html[data-horizon-theme='dark'] {
@@ -30,6 +32,8 @@ html[data-horizon-theme='dark'] {
   --hf-accent: #d3ad66;
   --hf-accent-strong: #f0c879;
   --hf-hero: #0d0b08;
+  --hf-shadow-soft: 0 16px 36px rgba(0, 0, 0, .18);
+  --hf-shadow-hover: 0 20px 48px rgba(0, 0, 0, .28);
 }
 
 html[data-horizon-theme='light'] {
@@ -50,6 +54,8 @@ html[data-horizon-theme='light'] {
     --hf-accent: #d3ad66;
     --hf-accent-strong: #f0c879;
     --hf-hero: #0d0b08;
+    --hf-shadow-soft: 0 16px 36px rgba(0, 0, 0, .18);
+    --hf-shadow-hover: 0 20px 48px rgba(0, 0, 0, .28);
   }
 }
 
@@ -67,8 +73,19 @@ body,
 
 body {
   margin: 0;
-  background: var(--hf-bg);
+  background:
+    radial-gradient(circle at top left, rgba(201, 169, 106, .16), transparent 34rem),
+    linear-gradient(180deg, var(--hf-bg), #f5efe3 100%);
   color: var(--hf-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+html[data-horizon-theme='dark'] body,
+html[data-horizon-theme='system'] body {
+  background:
+    radial-gradient(circle at top left, rgba(211, 173, 102, .10), transparent 34rem),
+    linear-gradient(180deg, var(--hf-bg), #0f0d09 100%);
 }
 
 * {
@@ -88,15 +105,65 @@ body .text-\[\#8a7456\],
 body .text-\[\#7d6a4a\],
 body .text-\[\#b39b78\] { color: var(--hf-muted) !important; }
 body .text-\[\#9a6b12\] { color: var(--hf-accent-strong) !important; }
-body .border-\[\#d6c3a0\] { border-color: var(--hf-border) !important; }
+body .border-\[\#d6c3a0\] { border-color: color-mix(in srgb, var(--hf-border) 72%, transparent) !important; }
 body .border-\[\#e7d9be\],
 body .border-\[\#eadcc2\],
-body .border-\[\#d6c3a0\]\/60 { border-color: var(--hf-border-soft) !important; }
+body .border-\[\#d6c3a0\]\/60 { border-color: color-mix(in srgb, var(--hf-border-soft) 72%, transparent) !important; }
 body .hover\:bg-\[\#e7d9be\]:hover,
 body .hover\:bg-\[\#f8f0df\]:hover,
 body .hover\:bg-\[\#fffdf8\]:hover { background-color: var(--hf-soft) !important; }
 body .hover\:border-\[\#c9a96a\]:hover,
 body .hover\:border-\[\#b6975f\]:hover { border-color: var(--hf-accent) !important; }
+
+/* Horizon Farm premium polish */
+body .rounded-3xl.border,
+body .rounded-2xl.border {
+  box-shadow: var(--hf-shadow-soft);
+}
+
+body .rounded-3xl.border:hover,
+body .rounded-2xl.border:hover {
+  box-shadow: var(--hf-shadow-hover);
+  transition: box-shadow .18s ease, border-color .18s ease, transform .18s ease;
+}
+
+body button,
+body a,
+body input,
+body select,
+body textarea {
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+body button:active {
+  transform: translateY(1px);
+}
+
+body table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+body thead tr {
+  background: color-mix(in srgb, var(--hf-surface) 88%, white) !important;
+}
+
+body tbody tr:hover {
+  background: color-mix(in srgb, var(--hf-surface) 80%, white) !important;
+}
+
+body input,
+body select,
+body textarea {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
+}
+
+body input:focus,
+body select:focus,
+body textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--hf-accent) 24%, transparent);
+}
 
 html[data-horizon-theme='dark'] input,
 html[data-horizon-theme='dark'] select,

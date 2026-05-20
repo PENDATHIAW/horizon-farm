@@ -10,6 +10,7 @@ const amountOf = (sale = {}) => toNumber(sale.montant_total ?? sale.total ?? sal
 const unitPriceOf = (sale = {}) => toNumber(sale.prix_unitaire ?? sale.unit_price ?? sale.price ?? sale.prix_vente) || (quantitySoldOf(sale) > 0 ? amountOf(sale) / quantitySoldOf(sale) : 0);
 const stockQtyOf = (row = {}) => toNumber(row.quantite ?? row.quantity ?? row.qty ?? row.quantite_disponible ?? row.stock_quantity ?? row.quantite_stock ?? row.current_count ?? row.quantite_initiale_stock);
 const costUnitOf = (row = {}) => toNumber(row.cout_revient_unitaire ?? row.cout_unitaire_calcule ?? row.prixUnit ?? row.prixunit ?? row.prix_unitaire ?? row.unit_price ?? row.cost_unit ?? row.cout_unitaire);
+const saleIdOf = (sale = {}) => sale.id || sale.order_id || sale.sale_id || sale.source_record_id || sale.related_id;
 
 function stockPatch(sale, quantitySold) {
   const current = stockQtyOf(sale);
@@ -25,7 +26,9 @@ function stockPatch(sale, quantitySold) {
     last_movement_label: 'Vente produit stock',
     last_movement_qty: quantitySold,
     last_movement_at: now(),
-    last_sale_id: sale.id,
+    last_sale_id: saleIdOf(sale),
+    sale_order_id: saleIdOf(sale),
+    commande_id: saleIdOf(sale),
     last_sale_amount: amountOf(sale),
     cout_revient_unitaire: unitCost || undefined,
     cout_unitaire_calcule: unitCost || undefined,
@@ -34,19 +37,32 @@ function stockPatch(sale, quantitySold) {
 }
 
 function animalPatch(sale) {
+  const orderId = saleIdOf(sale);
   return {
     id: sourceIdOf(sale),
     status: 'vendu',
     statut: 'vendu',
+    locked: true,
+    verrouille: true,
+    locked_reason: 'Animal vendu via commande commerciale',
+    locked_at: now(),
     prix_vente_reel: amountOf(sale),
     sale_price: amountOf(sale),
-    date_vente: sale.date || today(),
+    prix_vente: amountOf(sale),
+    date_vente: sale.date || sale.date_commande || today(),
+    sold_at: sale.date || sale.date_commande || today(),
     client_id: sale.client_id || '',
     moyen_paiement: sale.moyen_paiement || sale.mode_paiement || '',
-    commentaire_vente: `Vente liée à la commande ${sale.id}`,
-    linked_sale_id: sale.id,
-    last_sale_id: sale.id,
+    commentaire_vente: `Vente liée à la commande ${orderId}`,
+    sale_order_id: orderId,
+    commande_id: orderId,
+    vente_id: orderId,
+    linked_sale_id: orderId,
+    last_sale_id: orderId,
+    linked_transaction_id: sale.transaction_id || sale.last_transaction_id || '',
+    linked_payment_id: sale.payment_id || sale.last_payment_id || '',
     source_module: 'ventes',
+    updated_from_sale_at: now(),
   };
 }
 
@@ -54,6 +70,7 @@ function lotPatch(sale, quantitySold) {
   const currentSold = toNumber(sale.vendus ?? sale.sold_count ?? 0);
   const currentCount = toNumber(sale.current_count ?? sale.effectif_actuel ?? 0);
   const nextCurrent = currentCount > 0 ? Math.max(0, currentCount - quantitySold) : undefined;
+  const orderId = saleIdOf(sale);
   return {
     id: sourceIdOf(sale),
     vendus: currentSold + quantitySold,
@@ -65,24 +82,31 @@ function lotPatch(sale, quantitySold) {
     montant_vente_total_reel: amountOf(sale),
     date_fin_reelle: nextCurrent === 0 ? (sale.date || today()) : undefined,
     client_id: sale.client_id || '',
-    linked_sale_id: sale.id,
-    last_sale_id: sale.id,
+    sale_order_id: orderId,
+    commande_id: orderId,
+    linked_sale_id: orderId,
+    last_sale_id: orderId,
     source_module: 'ventes',
+    updated_from_sale_at: now(),
   };
 }
 
 function culturePatch(sale, quantitySold) {
   const available = toNumber(sale.quantite_disponible ?? sale.stock_quantity ?? sale.quantite_stock ?? 0);
   const previousRevenue = toNumber(sale.revenu_reel ?? sale.revenu_total_reel ?? 0);
+  const orderId = saleIdOf(sale);
   return {
     id: sourceIdOf(sale),
     quantite_disponible: available > 0 ? Math.max(0, available - quantitySold) : undefined,
     revenu_reel: previousRevenue + amountOf(sale),
     last_sale_qty: quantitySold,
     last_sale_amount: amountOf(sale),
-    last_sale_id: sale.id,
+    sale_order_id: orderId,
+    commande_id: orderId,
+    last_sale_id: orderId,
     client_id: sale.client_id || '',
     source_module: 'ventes',
+    updated_from_sale_at: now(),
   };
 }
 

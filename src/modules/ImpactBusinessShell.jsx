@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, CreditCard, FileText, HeartPulse, Package, ShieldCheck, Sprout, TrendingUp, Users } from 'lucide-react';
 import { fmtCurrency } from '../utils/format';
+import ImpactDecisionBridge from './ImpactDecisionBridge.jsx';
+import ImpactCommercialValue from './ImpactCommercialValue.jsx';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase();
@@ -82,7 +84,7 @@ function computeImpactStats(props = {}) {
   return { salesOrders, payments, stocks, sante, documents, taches, alertes, rapports, auditLogs, businessEvents, animaux, lots, cultures, transactions, ventesAvecMontant, ventesAvecReste, paiementsEnregistres, ca, paidTotal, receivable, expenses, cashNet, stockValue, stocksValorises, stockCritical, healthLate, healthWithCost, openTasks, closedTasks, openAlerts, closedAlerts, traces, proofTotal, cultureCostRows, cultureCostDepth, moneyScore, proofScore, traceScore, riskScore, bankScore };
 }
 
-function OverviewTab({ stats }) {
+function OverviewTab({ stats, props }) {
   const priorities = [
     stats.receivable > 0 ? `Récupérer ${fmtCurrency(stats.receivable)} encore à encaisser sur ${stats.ventesAvecReste} vente(s).` : null,
     stats.stockCritical > 0 ? `Revoir ${stats.stockCritical} produit(s) sous le seuil.` : null,
@@ -98,6 +100,8 @@ function OverviewTab({ stats }) {
     `${stats.closedTasks + stats.closedAlerts} action(s) ou alerte(s) ont été clôturées après suivi.`,
   ];
   return <div className="space-y-4">
+    <ImpactDecisionBridge {...props} />
+    <ImpactCommercialValue {...props} />
     <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5"><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Valeur concrète</p><h2 className="mt-1 text-xl font-black text-[#2f2415]">Ce que l’ERP a permis de maîtriser</h2><p className="mt-1 text-sm text-[#8a7456]">On ne parle pas seulement de modules : on voit ce qui est suivi, prouvé, récupérable et maîtrisé.</p></div>
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3"><StatCard icon={CreditCard} title="Argent maîtrisé" value={fmtCurrency(stats.paidTotal)} detail={`${fmtCurrency(stats.receivable)} reste à récupérer`} tone={stats.receivable > 0 ? 'warning' : 'good'} /><StatCard icon={TrendingUp} title="Cash net visible" value={fmtCurrency(stats.cashNet)} detail="encaissements moins dépenses enregistrées" tone={stats.cashNet >= 0 ? 'good' : 'danger'} /><StatCard icon={Package} title="Stock valorisé" value={fmtCurrency(stats.stockValue)} detail={`${stats.stockCritical} produit(s) sous le seuil`} tone={stats.stockCritical ? 'warning' : 'good'} /><StatCard icon={FileText} title="Preuves disponibles" value={stats.proofTotal} detail="documents et rapports classés" tone={stats.proofTotal ? 'good' : 'warning'} /></div>
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3"><ValueProofCard icon={CreditCard} title="Ventes et cash" value={`${stats.ventesAvecMontant} vente(s)`} before="les ventes pouvaient rester dans la mémoire ou des notes séparées." after={`${fmtCurrency(stats.ca)} suivis, ${fmtCurrency(stats.paidTotal)} encaissés, ${fmtCurrency(stats.receivable)} à récupérer.`} status={stats.receivable > 0 ? 'warning' : 'good'} /><ValueProofCard icon={HeartPulse} title="Santé suivie" value={`${stats.sante.length} action(s)`} before="un soin ou vaccin pouvait être oublié après le passage terrain." after={`${stats.healthLate} retard(s) visibles et ${stats.healthWithCost} action(s) avec coût renseigné.`} status={stats.healthLate > 0 ? 'warning' : 'good'} /><ValueProofCard icon={ShieldCheck} title="Mémoire de la ferme" value={`${stats.traces} fait(s)`} before="les décisions et incidents pouvaient disparaître avec le temps." after="les faits importants restent consultables et défendables." status={stats.traces ? 'good' : 'warning'} /></div>
@@ -120,5 +124,5 @@ function DomainsTab({ stats }) {
 export default function ImpactBusinessShell(props) {
   const [tab, setTab] = useState('overview');
   const stats = useMemo(() => computeImpactStats(props), [props]);
-  return <div className="space-y-6"><div className="flex flex-wrap gap-2"><TabButton active={tab === 'overview'} onClick={() => setTab('overview')}>Valeur concrète</TabButton><TabButton active={tab === 'partner'} onClick={() => setTab('partner')}>Dossier banque / partenaire</TabButton><TabButton active={tab === 'domains'} onClick={() => setTab('domains')}>À mieux maîtriser</TabButton></div>{tab === 'overview' ? <OverviewTab stats={stats} /> : null}{tab === 'partner' ? <PartnerTab stats={stats} /> : null}{tab === 'domains' ? <DomainsTab stats={stats} /> : null}</div>;
+  return <div className="space-y-6"><div className="flex flex-wrap gap-2"><TabButton active={tab === 'overview'} onClick={() => setTab('overview')}>Valeur concrète</TabButton><TabButton active={tab === 'partner'} onClick={() => setTab('partner')}>Dossier banque / partenaire</TabButton><TabButton active={tab === 'domains'} onClick={() => setTab('domains')}>À mieux maîtriser</TabButton></div>{tab === 'overview' ? <OverviewTab stats={stats} props={props} /> : null}{tab === 'partner' ? <PartnerTab stats={stats} /> : null}{tab === 'domains' ? <DomainsTab stats={stats} /> : null}</div>;
 }

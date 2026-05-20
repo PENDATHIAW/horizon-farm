@@ -1,4 +1,4 @@
-import { AlertTriangle, Award, DollarSign, MapPin, MessageCircle, Plus, RefreshCw, Star, Truck, Upload, Download, Edit, Eye, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Award, DollarSign, MapPin, MessageCircle, Plus, RefreshCw, Star, Truck, Upload, Download, Edit, Eye, CheckCircle, ShieldAlert } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Btn from '../components/Btn';
@@ -17,6 +17,7 @@ import DetailsModal from '../modals/DetailsModal';
 import { calculateSupplierMetrics } from '../utils/businessCalculations';
 import { calculateSupplierSettlement } from '../utils/supplierSettlement';
 import { searchGeoPlaces } from '../services/geoSearchService';
+import { buildSupplierDecisionProfile, buildSupplierDecisionSummary } from '../services/supplierDecisionEngine';
 import FournisseursStockBridge from './FournisseursStockBridge.jsx';
 import FournisseursEvolution from './FournisseursEvolution.jsx';
 
@@ -34,6 +35,11 @@ const SourceBadge = ({ source }) => (
   </span>
 );
 
+function SupplierSegmentBadge({ segment }) {
+  const cls = segment === 'Stratégique' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : segment === 'Critique / risque élevé' ? 'bg-red-50 border-red-200 text-red-700' : segment === 'Dette à suivre' ? 'bg-amber-50 border-amber-200 text-amber-700' : segment === 'Fiable' ? 'bg-sky-50 border-sky-200 text-sky-700' : 'bg-[#fffdf8] border-[#eadcc2] text-[#7d6a4a]';
+  return <span className={`rounded-full border px-2 py-0.5 text-[11px] font-black ${cls}`}>{segment}</span>;
+}
+
 function CardMetric({ label, value, alert = false }) {
   return <div className={`rounded-lg p-2.5 ${alert ? 'bg-amber-500/10' : 'bg-[#fffdf8]'}`}><div className={`text-xs ${alert ? 'text-amber-600' : 'text-[#8a7456]'}`}>{label}</div><div className={`font-semibold text-sm ${alert ? 'text-amber-600' : 'text-[#2f2415]'}`}>{value}</div></div>;
 }
@@ -42,7 +48,41 @@ function buildSupplierSummary(supplier, stockRows = [], financeRows = [], docume
   return calculateSupplierSettlement(supplier, { stocks: stockRows, transactions: financeRows, documents });
 }
 
-export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loading, onCreate, onUpdate, onDelete, onRefresh, onUpdateStock, onRefreshStock, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, onCreateBusinessEvent, onRefreshBusinessEvents, onNavigate }) {
+function SupplierDecisionPanel({ summary }) {
+  return (
+    <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-4">
+      <div>
+        <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><ShieldAlert size={15} /> Risque & dépendance fournisseurs</p>
+        <h3 className="text-xl font-black text-[#2f2415] mt-1">Sécuriser les fournisseurs qui conditionnent la production</h3>
+        <p className="text-sm text-[#8a7456] mt-1">Horizon distingue fournisseurs stratégiques, fiables, à risque, avec dettes ou contacts incomplets.</p>
+      </div>
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        <Small label="Stratégiques" value={summary.strategic.length} />
+        <Small label="À risque" value={summary.risks.length} />
+        <Small label="Dettes" value={summary.debts.length} />
+        <Small label="Contacts incomplets" value={summary.missingContacts.length} />
+      </div>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
+        {summary.profiles.slice().sort((a, b) => b.riskScore - a.riskScore).slice(0, 6).map((profile) => (
+          <div key={profile.id} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div><p className="font-black text-[#2f2415]">{profile.name}</p><p className="text-xs text-[#8a7456]">{profile.category}</p></div>
+              <SupplierSegmentBadge segment={profile.segment} />
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <CardMetric label="Risque" value={`${profile.riskScore}%`} alert={profile.riskScore >= 60} />
+              <CardMetric label="Dépendance" value={`${profile.dependencyScore}%`} alert={profile.dependencyScore >= 70} />
+              <CardMetric label="Fiabilité" value={`${profile.reliabilityScore}%`} />
+            </div>
+            <p className="mt-3 text-xs text-[#7d6a4a]">{profile.action}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loading, onCreate, onUpdate, onDelete, onRefresh, onUpdateStock, onRefreshStock, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, onCreateBusinessEvent, onRefreshBusinessEvents, onNavigate, hideEvolution = false }) {
   const [selected, setSelected] = useState(null);
   const [modal, setModal] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -57,12 +97,15 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loadi
   const whatsappLogsCrud = useCrudModule('whatsapp_logs');
   const stockRows = stocks.length ? stocks : stockCrud.rows;
   const taskRows = tasks.length ? tasks : tachesCrud.rows;
+  const supplierDecisionSummary = useMemo(() => buildSupplierDecisionSummary(rows, { stocks: stockRows, finances: financesCrud.rows }), [rows, stockRows, financesCrud.rows]);
 
   const summaryFor = (supplier) => buildSupplierSummary(supplier, stockRows, financesCrud.rows, documentsCrud.rows);
+  const profileFor = (supplier) => buildSupplierDecisionProfile(supplier, { stocks: stockRows, finances: financesCrud.rows });
   const metricsFor = (supplier) => {
     const metrics = calculateSupplierMetrics(supplier);
     const summary = summaryFor(supplier);
-    return { ...metrics, dettes: summary.dettes, livraisons: summary.livraisons };
+    const profile = profileFor(supplier);
+    return { ...metrics, dettes: summary.dettes, livraisons: summary.livraisons, ...profile };
   };
   const totalDettes = useMemo(() => rows.reduce((sum, supplier) => sum + summaryFor(supplier).dettes, 0), [rows, stockRows, financesCrud.rows]);
   const totalAchats = useMemo(() => rows.reduce((sum, supplier) => sum + summaryFor(supplier).achatsStock, 0), [rows, stockRows]);
@@ -191,7 +234,7 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loadi
 
   return (
     <div className="space-y-6">
-      <SectionHeader title="Fournisseurs" sub="Approvisionnement, dettes et paiements" actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={MapPin} variant="outline" small onClick={searchRealSuppliers}>{geoLoading ? 'Recherche...' : 'Recherche réelle'}</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Nouveau fournisseur</Btn></>} />
+      <SectionHeader title="Fournisseurs" sub="Approvisionnement, dettes, risques, dépendance et fiabilité" actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={MapPin} variant="outline" small onClick={searchRealSuppliers}>{geoLoading ? 'Recherche...' : 'Recherche réelle'}</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Nouveau fournisseur</Btn></>} />
 
       <FournisseursStockBridge suppliers={rows} stocks={stockRows} tasks={taskRows} onUpdateStock={onUpdateStock || stockCrud.update} onRefreshStock={onRefreshStock || stockCrud.refresh} onCreateTask={onCreateTask || tachesCrud.create} onRefreshTasks={onRefreshTasks || tachesCrud.refresh} onCreateAlert={onCreateAlert || alertesCrud.create} onRefreshAlertes={onRefreshAlertes || alertesCrud.refresh} onCreateBusinessEvent={onCreateBusinessEvent || eventsCrud.create} onRefreshBusinessEvents={onRefreshBusinessEvents || eventsCrud.refresh} onUpdateSupplier={onUpdate} onRefreshSuppliers={onRefresh} />
 
@@ -202,7 +245,8 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loadi
         <KpiCard icon={Award} label="Note moyenne" value={`${noteMoyenne}/5`} color="bg-amber-500/20 text-amber-400" />
       </div>
 
-      <FournisseursEvolution rows={rows} stocks={stockRows} finances={financesCrud.rows} onNavigate={onNavigate} />
+      <SupplierDecisionPanel summary={supplierDecisionSummary} />
+      {!hideEvolution ? <FournisseursEvolution rows={rows} stocks={stockRows} finances={financesCrud.rows} onNavigate={onNavigate} /> : null}
 
       {fournisseursDette.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4"><p className="font-bold text-amber-800 mb-2">Dettes fournisseurs à suivre</p><div className="grid grid-cols-1 md:grid-cols-2 gap-2">{fournisseursDette.slice(0, 4).map((supplier) => <button key={supplier.id} type="button" onClick={() => createDebtAlert(supplier)} className="rounded-xl border border-amber-200 bg-white px-3 py-2 text-left text-sm text-amber-700"><b>{supplierName(supplier)}</b> · {fmtCurrency(summaryFor(supplier).dettes)}</button>)}</div></div> : null}
 
@@ -214,21 +258,25 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loadi
         {loading ? Array.from({ length: 4 }).map((_, i) => <div key={i} className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5"><div className="h-20 bg-[#d6c3a0]/60 animate-pulse rounded" /></div>) : rows.map((supplier) => {
           const metrics = metricsFor(supplier);
           const summary = summaryFor(supplier);
+          const profile = profileFor(supplier);
           const evaluation = { Prix: Math.max(35, metrics.reliabilityScore - 8), Qualité: Math.min(100, metrics.note * 20), Délai: Math.min(100, 45 + summary.livraisons * 2), Dispo: Math.max(30, metrics.reliabilityScore - (summary.dettes > 0 ? 12 : 0)), Fiable: metrics.reliabilityScore };
-          return <div key={supplier.id} className={`bg-[#ffffff] border rounded-2xl p-5 hover:border-[#b6975f] transition-all ${summary.dettes > 0 ? 'border-amber-500/30' : 'border-[#d6c3a0]'}`}>
-            <div className="flex items-start justify-between mb-4"><div><p className="font-bold text-[#2f2415]">{supplier.nom}</p><p className="text-xs text-[#8a7456]">{supplier.categorie} - Contact: {supplier.contact}</p></div><div className="flex items-center gap-2 text-amber-400"><SourceBadge source={supplier.source} /><Star size={12} fill="currentColor" /><span className="text-sm font-semibold">{metrics.reliabilityScore.toFixed(0)}%</span></div></div>
+          return <div key={supplier.id} className={`bg-[#ffffff] border rounded-2xl p-5 hover:border-[#b6975f] transition-all ${summary.dettes > 0 || profile.riskScore >= 60 ? 'border-amber-500/30' : 'border-[#d6c3a0]'}`}>
+            <div className="flex items-start justify-between mb-4 gap-2"><div><p className="font-bold text-[#2f2415]">{supplier.nom}</p><p className="text-xs text-[#8a7456]">{profile.category} - Contact: {supplier.contact}</p></div><div className="flex flex-col items-end gap-2"><SupplierSegmentBadge segment={profile.segment} /><div className="flex items-center gap-2 text-amber-400"><SourceBadge source={supplier.source} /><Star size={12} fill="currentColor" /><span className="text-sm font-semibold">{metrics.reliabilityScore.toFixed(0)}%</span></div></div></div>
             <div className="space-y-2 mb-4 text-sm text-[#7d6a4a]"><div>{supplier.tel || 'Téléphone non renseigné'}</div><div>{supplier.whatsapp || 'WhatsApp non renseigné'}</div><div>{supplier.email || 'Email non renseigné'}</div></div>
-            <div className="grid grid-cols-2 gap-3 mb-4"><CardMetric label="Livraisons" value={`${summary.livraisons} commandes`} /><CardMetric label="Dettes" value={summary.dettes > 0 ? fmtCurrency(summary.dettes) : 'Aucune'} alert={summary.dettes > 0} /><CardMetric label="Achats stock" value={fmtCurrency(summary.achatsStock)} /><CardMetric label="Documents" value={summary.docs.length} /><div className="bg-[#fffdf8] rounded-lg p-2.5 col-span-2"><div className="text-xs text-[#8a7456]">Derniers produits</div><div className="text-[#2f2415] font-semibold text-sm">{summary.derniersProduits || '-'}</div></div></div>
+            <div className="grid grid-cols-2 gap-3 mb-4"><CardMetric label="Livraisons" value={`${summary.livraisons} commandes`} /><CardMetric label="Dettes" value={summary.dettes > 0 ? fmtCurrency(summary.dettes) : 'Aucune'} alert={summary.dettes > 0} /><CardMetric label="Risque" value={`${profile.riskScore}%`} alert={profile.riskScore >= 60} /><CardMetric label="Dépendance" value={`${profile.dependencyScore}%`} alert={profile.dependencyScore >= 70} /><CardMetric label="Achats stock" value={fmtCurrency(summary.achatsStock)} /><CardMetric label="Documents" value={summary.docs.length} /></div>
+            <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] p-3 mb-4"><p className="text-xs font-black text-[#2f2415]">Action recommandée</p><p className="text-xs text-[#7d6a4a] mt-1">{profile.action}</p></div>
             <div className="mb-4"><p className="text-xs text-[#8a7456] mb-2">Évaluation</p><div className="grid grid-cols-5 gap-1">{Object.entries(evaluation).map(([crit, score]) => <div key={crit} className="text-center"><div className="text-xs text-[#8a7456] mb-1">{crit}</div><div className="h-1.5 bg-[#fffdf8] rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, Math.max(0, score))}%` }} /></div></div>)}</div></div>
             <div className="flex gap-2 flex-wrap"><Btn variant="outline" small icon={Upload} onClick={() => prepareOrder(supplier)}>Commander</Btn><Btn variant={hasPhone(supplier) ? 'whatsapp' : 'outline'} small icon={MessageCircle} onClick={() => openWhatsApp(supplier)}>{hasPhone(supplier) ? 'WhatsApp' : 'Numéro manquant'}</Btn>{summary.dettes > 0 ? <Btn variant="amber" small icon={DollarSign} onClick={() => paySupplierDebt(supplier)}>Payer</Btn> : <Btn variant="outline" small icon={CheckCircle} onClick={() => toast.success('Aucune dette')}>Soldé</Btn>}<ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected(supplier); setModal('details'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(supplier); setModal('edit'); }} /><ActionIconButton icon={AlertTriangle} title="Supprimer" color="red" onClick={() => { setSelected(supplier); setModal('delete'); }} /></div>
           </div>;
         })}
       </div>
 
-      <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, ...metricsFor(selected), ...summaryFor(selected) } : selected} title="Fiche fournisseur" />
+      <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, ...metricsFor(selected), ...summaryFor(selected), ...profileFor(selected) } : selected} title="Fiche fournisseur" />
       <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={MODULE_FORM_FIELDS.fournisseurs} initialValues={supplierInitialValues(rows)} autoId={() => generateSequentialId('fournisseurs', rows)} uploadFolder="fournisseurs" loading={saving} title="Ajouter fournisseur" submitLabel="Ajouter" />
       <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={MODULE_FORM_FIELDS.fournisseurs} initialValues={selected || {}} loading={saving} title="Modifier fournisseur" submitLabel="Enregistrer" />
       <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected ? `${selected.nom}` : ''} loading={saving} />
     </div>
   );
 }
+
+function Small({ label, value }) { return <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="text-xs text-[#8a7456]">{label}</p><p className="font-black text-[#2f2415]">{value}</p></div>; }

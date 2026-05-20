@@ -1,5 +1,6 @@
 export const UI_SETTINGS_KEY = 'horizon_farm_ui_settings';
-export const DEMO_MODE_KEY = 'horizon_farm_show_demo_data';
+export const SIMULATED_DATA_MODE_KEY = 'horizon_farm_show_simulated_data';
+export const DEMO_MODE_KEY = 'horizon_farm_show_demo_data'; // legacy compatibility
 
 export const DEFAULT_UI_SETTINGS = {
   density: 'comfortable',
@@ -25,24 +26,40 @@ export function writeUiSettings(settings = {}) {
   window.localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify({ ...DEFAULT_UI_SETTINGS, ...settings }));
 }
 
-export function isDemoModeEnabled() {
+export function isSimulatedDataModeEnabled() {
   if (typeof window === 'undefined') return false;
   const params = new URLSearchParams(window.location.search || '');
-  if (params.get('demo') === '1') {
+  if (params.get('simulated') === '1' || params.get('demo') === '1') {
+    window.localStorage.setItem(SIMULATED_DATA_MODE_KEY, '1');
     window.localStorage.setItem(DEMO_MODE_KEY, '1');
     return true;
   }
-  if (params.get('demo') === '0') {
+  if (params.get('simulated') === '0' || params.get('demo') === '0') {
+    window.localStorage.removeItem(SIMULATED_DATA_MODE_KEY);
     window.localStorage.removeItem(DEMO_MODE_KEY);
     return false;
   }
-  return window.localStorage.getItem(DEMO_MODE_KEY) === '1';
+  return window.localStorage.getItem(SIMULATED_DATA_MODE_KEY) === '1' || window.localStorage.getItem(DEMO_MODE_KEY) === '1';
+}
+
+export function setSimulatedDataMode(enabled) {
+  if (typeof window === 'undefined') return;
+  if (enabled) {
+    window.localStorage.setItem(SIMULATED_DATA_MODE_KEY, '1');
+    window.localStorage.setItem(DEMO_MODE_KEY, '1');
+  } else {
+    window.localStorage.removeItem(SIMULATED_DATA_MODE_KEY);
+    window.localStorage.removeItem(DEMO_MODE_KEY);
+  }
+  window.dispatchEvent(new CustomEvent('horizon-farm-data-mode-changed', { detail: { simulated: Boolean(enabled) } }));
+}
+
+export function isDemoModeEnabled() {
+  return isSimulatedDataModeEnabled();
 }
 
 export function setDemoMode(enabled) {
-  if (typeof window === 'undefined') return;
-  if (enabled) window.localStorage.setItem(DEMO_MODE_KEY, '1');
-  else window.localStorage.removeItem(DEMO_MODE_KEY);
+  setSimulatedDataMode(enabled);
 }
 
 export function applyUiSettingsToDocument(settings = readUiSettings()) {

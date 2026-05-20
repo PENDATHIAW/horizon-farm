@@ -11,6 +11,7 @@ import CreateModal from '../modals/CreateModal';
 import DeleteModal from '../modals/DeleteModal';
 import DetailsModal from '../modals/DetailsModal';
 import EditModal from '../modals/EditModal';
+import { applyCultureDecisionDefaults, buildCultureDecisionProfile } from '../services/cultureDecisionEngine';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
@@ -35,14 +36,23 @@ const CULTURE_FIELDS = [
   { key: 'section_identification', label: 'Identification culture', type: 'section' },
   { key: 'id', label: 'ID', type: 'text', required: true },
   { key: 'nom', label: 'Nom culture', type: 'text', required: true },
-  { key: 'type', label: 'Type culture', type: 'select', options: ['Poivrons', 'Tomates', 'Oignons', 'Piments', 'Aubergines', 'Maraîchage', 'Céréales', 'Autre'] },
+  { key: 'type', label: 'Type culture', type: 'select', options: ['Poivrons', 'Tomates', 'Oignons', 'Piments', 'Aubergines', 'Pomme de terre', 'Maraîchage', 'Céréales', 'Autre'] },
   { key: 'parcelle', label: 'Parcelle', type: 'text' },
   { key: 'campagne', label: 'Campagne / saison', type: 'text' },
+  { key: 'section_ia_terrain', label: 'Terrain & décision IA', type: 'section' },
+  { key: 'localisation', label: 'Localisation', type: 'text' },
+  { key: 'type_sol', label: 'Type de sol', type: 'text' },
+  { key: 'eau_disponible', label: 'Eau disponible', type: 'select', options: ['bonne', 'moyenne', 'faible', 'insuffisante', 'à confirmer'] },
+  { key: 'besoin_eau_reference', label: 'Besoin eau référence Horizon', type: 'readonly' },
+  { key: 'sol_reference', label: 'Sol préféré référence Horizon', type: 'readonly' },
+  { key: 'risque_reference', label: 'Risque référence Horizon', type: 'readonly' },
+  { key: 'decision_ia_culture', label: 'Décision IA culture', type: 'readonly', fullWidth: true },
   { key: 'section_surface', label: 'Surface & calendrier', type: 'section' },
   { key: 'surface', label: 'Surface', type: 'number' },
   { key: 'unite_surface', label: 'Unité surface', type: 'select', options: ['m²', 'ha'] },
   { key: 'date_debut_campagne', label: 'Début campagne', type: 'date' },
   { key: 'date_semis', label: 'Date semis / plantation', type: 'date' },
+  { key: 'cycle_days', label: 'Cycle estimé Horizon (jours)', type: 'number' },
   { key: 'date_recolte_prevue', label: 'Récolte prévue', type: 'date' },
   { key: 'section_budget', label: 'Budget, production et valeur', type: 'section' },
   { key: 'budget_prevu', label: 'Budget prévu', type: 'number' },
@@ -51,11 +61,14 @@ const CULTURE_FIELDS = [
   { key: 'cout_eau', label: 'Coût eau / irrigation', type: 'number' },
   { key: 'cout_main_oeuvre', label: 'Coût main d’œuvre', type: 'number' },
   { key: 'cout_traitement', label: 'Coût traitements', type: 'number' },
+  { key: 'rendement_attendu', label: 'Rendement attendu Horizon', type: 'number' },
+  { key: 'rendement_reel', label: 'Rendement réel', type: 'number' },
   { key: 'quantite_prevue', label: 'Quantité prévue', type: 'number' },
   { key: 'quantite_recoltee', label: 'Quantité récoltée', type: 'number' },
   { key: 'quantite_disponible', label: 'Quantité disponible', type: 'number' },
   { key: 'unite_recolte', label: 'Unité récolte', type: 'text' },
   { key: 'prix_vente_unitaire', label: 'Prix vente unitaire', type: 'number' },
+  { key: 'marche_cible', label: 'Marché / débouché cible', type: 'text' },
   { key: 'revenu_estime', label: 'Revenu estimé', type: 'number' },
   { key: 'revenu_reel', label: 'Revenu réel', type: 'number' },
   { key: 'pertes', label: 'Pertes', type: 'number' },
@@ -79,15 +92,21 @@ function aggregate(rows, keyFn) {
   });
   return Array.from(map.values());
 }
+function supportRows(rows, type) { return rows.filter((row) => recordType(row) === type); }
 
-function supportRows(rows, type) {
-  return rows.filter((row) => recordType(row) === type);
+function OperationalSummary({ analytics = {}, realRows = [] }) {
+  const risky = realRows.filter((row) => healthOf(row) < 80 || row.statut === 'perdu' || buildCultureDecisionProfile(row).priority === 'haute').slice(0, 4);
+  const ready = realRows.filter((row) => toNumber(row.quantite_disponible ?? row.quantite_recoltee) > 0).slice(0, 4);
+  const harvestSoon = realRows.filter((row) => row.date_recolte_prevue && (new Date(row.date_recolte_prevue) - new Date()) / 86400000 <= 14 && (new Date(row.date_recolte_prevue) - new Date()) / 86400000 >= 0).slice(0, 4);
+  return <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+    <SummaryCard title="Actions prioritaires" rows={risky} empty="Aucune culture critique" render={(row) => `${row.nom || row.type || row.id} · ${buildCultureDecisionProfile(row).decision}`} tone="warning" />
+    <SummaryCard title="Récoltes disponibles" rows={ready} empty="Aucune récolte disponible" render={(row) => `${row.nom || row.type || row.id} · ${fmtNumber(toNumber(row.quantite_disponible ?? row.quantite_recoltee))} ${row.unite_recolte || 'kg'}`} tone="good" />
+    <SummaryCard title="Récoltes proches" rows={harvestSoon} empty="Aucune récolte proche" render={(row) => `${row.nom || row.type || row.id} · ${row.date_recolte_prevue}`} tone="neutral" />
+  </div>;
 }
-
-function MiniChart({ rows }) {
-  const top = rows.slice(0, 8);
-  const max = Math.max(1, ...top.map((row) => Math.abs(marginOf(row))));
-  return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5"><p className="font-black text-[#2f2415] mb-3">Marge par culture</p><div className="space-y-2">{top.map((row) => <div key={row.id} className="grid grid-cols-[130px_1fr_110px] gap-2 items-center text-sm"><span className="truncate text-[#7d6a4a]">{row.nom || row.type || row.id}</span><div className="h-3 rounded-full bg-[#eadcc2] overflow-hidden"><div className="h-full bg-[#c9a96a]" style={{ width: `${Math.min(100, Math.abs(marginOf(row)) / max * 100)}%` }} /></div><b className={marginOf(row) >= 0 ? 'text-emerald-600 text-right' : 'text-red-500 text-right'}>{fmtCurrency(marginOf(row))}</b></div>)}</div></div>;
+function SummaryCard({ title, rows = [], empty, render, tone = 'neutral' }) {
+  const cls = tone === 'warning' ? 'border-amber-200 bg-amber-50 text-amber-800' : tone === 'good' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-[#eadcc2] bg-[#fffdf8] text-[#7d6a4a]';
+  return <div className={`rounded-2xl border p-4 ${cls}`}><p className="font-black text-[#2f2415]">{title}</p><div className="mt-3 space-y-2 text-sm">{rows.length ? rows.map((row) => <div key={row.id} className="rounded-xl bg-white/60 px-3 py-2">{render(row)}</div>) : <div className="rounded-xl bg-white/60 px-3 py-2">{empty}</div>}</div></div>;
 }
 
 export default function CulturesV3({ rows = [], opportunities = [], loading, onCreate, onUpdate, onDelete, onRefresh, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateBusinessEvent, onRefreshBusinessEvents }) {
@@ -108,25 +127,25 @@ export default function CulturesV3({ rows = [], opportunities = [], loading, onC
     const totalCost = realRows.reduce((sum, row) => sum + costOf(row), 0);
     const totalRevenue = realRows.reduce((sum, row) => sum + revenueOf(row), 0);
     const totalMargin = realRows.reduce((sum, row) => sum + marginOf(row), 0);
-    const risks = realRows.filter((row) => healthOf(row) < 80 || row.statut === 'perdu').length;
+    const risks = realRows.filter((row) => healthOf(row) < 80 || row.statut === 'perdu' || buildCultureDecisionProfile(row).priority === 'haute').length;
     const harvestSoon = realRows.filter((row) => row.date_recolte_prevue && (new Date(row.date_recolte_prevue) - new Date()) / 86400000 <= 14 && (new Date(row.date_recolte_prevue) - new Date()) / 86400000 >= 0).length;
     const readyForSale = realRows.filter((row) => toNumber(row.quantite_disponible ?? row.quantite_recoltee) > 0).length;
     return { totalSurface, totalCost, totalRevenue, totalMargin, risks, harvestSoon, readyForSale };
   }, [realRows]);
 
   const submitCreate = async (payload) => {
-    try { setSaving(true); await onCreate?.({ ...payload, record_type: 'culture' }); toast.success('Culture ajoutée'); setModal(null); } catch (error) { toast.error(error.message || 'Création impossible'); } finally { setSaving(false); }
+    try { setSaving(true); await onCreate?.({ ...applyCultureDecisionDefaults(payload), record_type: 'culture' }); toast.success('Culture ajoutée · décision Horizon proposée'); setModal(null); } catch (error) { toast.error(error.message || 'Création impossible'); } finally { setSaving(false); }
   };
   const submitEdit = async (payload) => {
     if (!selected) return;
-    try { setSaving(true); await onUpdate?.(selected.id, payload); toast.success('Fiche modifiée'); setModal(null); } catch (error) { toast.error(error.message || 'Modification impossible'); } finally { setSaving(false); }
+    try { setSaving(true); await onUpdate?.(selected.id, applyCultureDecisionDefaults(payload, selected)); toast.success('Fiche modifiée · décision recalculée'); setModal(null); } catch (error) { toast.error(error.message || 'Modification impossible'); } finally { setSaving(false); }
   };
   const submitDelete = async () => {
     if (!selected) return;
     try { setSaving(true); await onDelete?.(selected.id); toast.success('Fiche supprimée'); setModal(null); } catch (error) { toast.error(error.message || 'Suppression impossible'); } finally { setSaving(false); }
   };
   const doExports = () => {
-    const enriched = rows.map((row) => ({ ...row, cout_total_calcule: costOf(row), revenu_calcule: revenueOf(row), marge_calculee: marginOf(row), score_sante_calcule: healthOf(row) }));
+    const enriched = rows.map((row) => ({ ...row, cout_total_calcule: costOf(row), revenu_calcule: revenueOf(row), marge_calculee: marginOf(row), score_sante_calcule: healthOf(row), decision_ia_calculee: buildCultureDecisionProfile(row).decision }));
     exportToCsv({ rows: enriched, fileName: 'cultures.csv' });
     exportToExcel({ rows: enriched, fileName: 'cultures.xlsx', sheetName: 'Cultures' });
     exportToPdf({ rows: enriched, title: 'Cultures', fileName: 'cultures.pdf' });
@@ -136,15 +155,16 @@ export default function CulturesV3({ rows = [], opportunities = [], loading, onC
   const cultureColumns = [
     { key: 'nom', label: 'Culture', sortable: true, render: (row) => <span className="font-black text-[#2f2415]">{row.nom || row.type || row.id}</span> },
     { key: 'parcelle', label: 'Parcelle', sortable: true, render: parcelKey },
+    { key: 'terrain', label: 'Sol / eau', render: (row) => <div><b>{row.type_sol || 'sol ?'}</b><p className="text-xs text-[#8a7456]">eau {row.eau_disponible || '?'}</p></div> },
     { key: 'campagne', label: 'Campagne', sortable: true, render: campaignKey },
     { key: 'surface', label: 'Surface', sortable: true, render: (row) => `${fmtNumber(surfaceOf(row))} ${row.unite_surface || 'm²'}` },
-    { key: 'cout', label: 'Coût auto', sortable: true, render: (row) => fmtCurrency(costOf(row)) },
+    { key: 'recolte_prevue', label: 'Récolte prévue', render: (row) => row.date_recolte_prevue || '—' },
+    { key: 'rendement', label: 'Rendement', render: (row) => `${fmtNumber(toNumber(row.rendement_reel ?? row.quantite_recoltee))} / ${fmtNumber(toNumber(row.rendement_attendu ?? row.quantite_prevue))} ${row.unite_recolte || 'kg'}` },
     { key: 'revenu', label: 'Revenu', sortable: true, render: (row) => fmtCurrency(revenueOf(row)) },
-    { key: 'recolte', label: 'Récolte dispo.', render: (row) => `${fmtNumber(toNumber(row.quantite_disponible ?? row.quantite_recoltee))} ${row.unite_recolte || row.unite_production || 'kg'}` },
     { key: 'marge', label: 'Marge', sortable: true, render: (row) => <span className={marginOf(row) >= 0 ? 'text-emerald-600 font-bold' : 'text-red-500 font-bold'}>{fmtCurrency(marginOf(row))}</span> },
-    { key: 'sante', label: 'Santé auto', render: (row) => `${healthOf(row).toFixed(0)}%` },
+    { key: 'decision_ia', label: 'Décision IA', render: (row) => { const decision = buildCultureDecisionProfile(row); return <Badge color={decision.priority === 'haute' ? 'red' : 'amber'}>{decision.decision}</Badge>; } },
     { key: 'statut', label: 'Statut', render: (row) => <Badge status={row.statut || 'planifiee'} /> },
-    { key: 'actions', label: 'Actions', render: (row) => <div className="flex gap-1"><ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected(row); setModal('details'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(row); setModal('edit'); }} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(row); setModal('delete'); }} /></div> },
+    { key: 'actions', label: 'Actions', render: (row) => <div className="flex gap-1"><ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected({ ...row, horizon_decision: buildCultureDecisionProfile(row) }); setModal('details'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(row); setModal('edit'); }} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(row); setModal('delete'); }} /></div> },
   ];
   const aggregateColumns = [
     { key: 'nom', label: 'Nom', sortable: true, render: (row) => <span className="font-black text-[#2f2415]">{row.nom}</span> },
@@ -158,19 +178,19 @@ export default function CulturesV3({ rows = [], opportunities = [], loading, onC
   ];
 
   return <div className="space-y-6">
-    <SectionHeader title="Cultures, Parcelles & Campagnes" sub="Parcelles, campagnes, coûts, récoltes, marge et risques" actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter culture</Btn></>} />
+    <SectionHeader title="Cultures, Parcelles & Campagnes" sub="Sol, eau, rendement, récoltes, marge et décisions IA" actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter culture</Btn></>} />
     <CulturesWorkflowBridge rows={realRows} onUpdate={onUpdate} onRefresh={onRefresh} />
     <CulturesSaleOpportunityBridge rows={realRows} opportunities={opportunities} onUpdate={onUpdate} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} />
     <div className="flex flex-wrap gap-2">{tabs.map((item) => <button type="button" key={item} onClick={() => setTab(item)} className={`rounded-xl border px-4 py-2 text-sm font-semibold ${tab === item ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}>{item}</button>)}</div>
     <CulturesTabActionsBridge tab={tab} rows={rows} opportunities={opportunities} onCreate={onCreate} onUpdate={onUpdate} onDelete={onDelete} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} />
-    <div className="grid grid-cols-2 lg:grid-cols-6 gap-4"><KpiCard icon={Sprout} label="Cultures" value={realRows.length} /><KpiCard icon={Leaf} label="Surface" value={`${fmtNumber(analytics.totalSurface)} m²`} /><KpiCard icon={TrendingUp} label="Revenu" value={fmtCurrency(analytics.totalRevenue)} /><KpiCard icon={TrendingUp} label="Marge" value={fmtCurrency(analytics.totalMargin)} /><KpiCard icon={AlertTriangle} label="Risques" value={analytics.risks} /><KpiCard icon={Calendar} label="Récoltes prêtes" value={analytics.readyForSale} /></div>
-    {tab === 'Vue d’ensemble' ? <div className="grid grid-cols-1 xl:grid-cols-3 gap-4"><div className="xl:col-span-2"><MiniChart rows={realRows} /></div><div className="rounded-2xl border border-[#d6c3a0] bg-white p-5"><p className="font-black text-[#2f2415] mb-3">Suivi opérationnel</p><div className="grid grid-cols-1 gap-2 text-sm"><div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] p-3"><CheckCircle2 size={14} className="inline text-emerald-600" /> Récoltes disponibles : <b>{analytics.readyForSale}</b></div><div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] p-3"><CheckCircle2 size={14} className="inline text-emerald-600" /> Récoltes proches : <b>{analytics.harvestSoon}</b></div><div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] p-3"><CheckCircle2 size={14} className="inline text-emerald-600" /> Cultures à risque : <b>{analytics.risks}</b></div></div></div></div> : null}
+    <div className="grid grid-cols-2 lg:grid-cols-6 gap-4"><KpiCard icon={Sprout} label="Cultures" value={realRows.length} /><KpiCard icon={Leaf} label="Surface" value={`${fmtNumber(analytics.totalSurface)} m²`} /><KpiCard icon={TrendingUp} label="Revenu" value={fmtCurrency(analytics.totalRevenue)} /><KpiCard icon={TrendingUp} label="Marge" value={fmtCurrency(analytics.totalMargin)} /><KpiCard icon={AlertTriangle} label="Risques IA" value={analytics.risks} /><KpiCard icon={Calendar} label="Récoltes prêtes" value={analytics.readyForSale} /></div>
+    {tab === 'Vue d’ensemble' ? <OperationalSummary analytics={analytics} realRows={realRows} /> : null}
     {['Vue d’ensemble', 'Cultures'].includes(tab) ? <DataTable title="Cultures" rows={realRows} columns={cultureColumns} loading={loading} initialSortKey="nom" searchPlaceholder="Rechercher culture, parcelle, campagne..." /> : null}
     {tab === 'Performance' ? <DataTable title="Performance cultures" rows={performanceRows} columns={cultureColumns} loading={loading} initialSortKey="nom" searchPlaceholder="Rechercher performance..." /> : null}
     {tab === 'Parcelles' ? <DataTable title="Parcelles" rows={parcelles} columns={aggregateColumns} loading={loading} initialSortKey="nom" /> : null}
     {tab === 'Campagnes' ? <DataTable title="Campagnes" rows={campagnes} columns={aggregateColumns} loading={loading} initialSortKey="nom" /> : null}
-    <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, cout_total_calcule: costOf(selected), revenu_calcule: revenueOf(selected), marge_calculee: marginOf(selected), score_sante_calcule: healthOf(selected) } : selected} title="Fiche culture" />
-    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={CULTURE_FIELDS} initialValues={{ id: generateSequentialId('cultures', rows), record_type: 'culture', statut: 'planifiee', date_debut_campagne: today(), unite_surface: 'm²', unite_recolte: 'kg' }} autoId={() => generateSequentialId('cultures', rows)} loading={saving} title="Ajouter culture" submitLabel="Ajouter" />
+    <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, cout_total_calcule: costOf(selected), revenu_calcule: revenueOf(selected), marge_calculee: marginOf(selected), score_sante_calcule: healthOf(selected), horizon_decision: selected.horizon_decision || buildCultureDecisionProfile(selected) } : selected} title="Fiche culture" />
+    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={CULTURE_FIELDS} initialValues={applyCultureDecisionDefaults({ id: generateSequentialId('cultures', rows), record_type: 'culture', statut: 'planifiee', localisation: 'Thiès / Médina Fall', date_debut_campagne: today(), unite_surface: 'm²', unite_recolte: 'kg' })} autoId={() => generateSequentialId('cultures', rows)} loading={saving} title="Ajouter culture" submitLabel="Ajouter" />
     <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={CULTURE_FIELDS} initialValues={selected || {}} loading={saving} title="Modifier fiche" submitLabel="Enregistrer" />
     <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected?.nom || selected?.id || ''} loading={saving} />
   </div>;

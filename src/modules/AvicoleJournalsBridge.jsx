@@ -7,6 +7,7 @@ import { makeId } from '../utils/ids';
 import { filterLotsByActivity } from '../utils/avicoleActivity';
 import { avicoleActiveCount } from '../utils/avicoleMetrics';
 
+const EGGS_PER_TABLET = 30;
 const arr = (value) => Array.isArray(value) ? value : [];
 const today = () => new Date().toISOString().slice(0, 10);
 const eventType = (row = {}) => String(row.type_evenement || row.event_type || row.type || '').toLowerCase();
@@ -14,6 +15,8 @@ const isEggLog = (row = {}) => eventType(row).includes('ramassage') || eventType
 const eggCount = (row = {}) => toNumber(row.oeufs_produits ?? row.eggs ?? row.quantity ?? row.quantite);
 const brokenEggs = (row = {}) => toNumber(row.oeufs_casses ?? row.broken ?? row.casses ?? row.pertes);
 const sellableEggs = (row = {}) => Math.max(0, eggCount(row) - brokenEggs(row));
+const tabletsFromEggs = (value = 0) => ({ tablettes: Math.floor(Math.max(0, toNumber(value)) / EGGS_PER_TABLET), oeufs_restants: Math.max(0, toNumber(value)) % EGGS_PER_TABLET });
+const tabletLabel = (value = 0) => { const converted = tabletsFromEggs(value); return `${fmtNumber(converted.tablettes)} tablette(s) + ${fmtNumber(converted.oeufs_restants)} œuf(s)`; };
 const activeCount = avicoleActiveCount;
 const eventLotId = (row = {}) => String(row.lot_id || row.related_id || row.source_record_id || row.entity_id || row.cible_id || row.target_id || '').trim();
 const linkedToLot = (row = {}, lotIds = new Set()) => {
@@ -31,7 +34,7 @@ function finishedProductKey({ produit, sourceRecordId, categorie }) {
   return `${String(produit || '').trim().toLowerCase()}::${String(sourceRecordId || '').trim()}::${String(categorie || '').trim()}`;
 }
 
-async function upsertFinishedStock({ stockCrud, produit, categorie, activiteLiee = 'avicole', unite, quantityDelta, sourceRecordId, sourceLabel, movementType, eventId, date, status = 'ok' }) {
+async function upsertFinishedStock({ stockCrud, produit, categorie, activiteLiee = 'avicole', unite, quantityDelta, sourceRecordId, sourceLabel, movementType, eventId, date, status = 'ok', notes }) {
   const delta = toNumber(quantityDelta);
   if (!delta) return null;
   const rows = arr(stockCrud.rows);
@@ -50,6 +53,7 @@ async function upsertFinishedStock({ stockCrud, produit, categorie, activiteLiee
       source_module: 'avicole',
       source_record_id: sourceRecordId,
       linked_event_id: eventId,
+      notes: notes || existing.notes,
     });
     await stockCrud.refresh?.();
     return existing.id;
@@ -76,7 +80,7 @@ async function upsertFinishedStock({ stockCrud, produit, categorie, activiteLiee
     last_movement_type: movementType,
     last_movement_qty: delta,
     last_movement_at: new Date().toISOString(),
-    notes: `Produit fini généré automatiquement depuis ${sourceLabel || 'Avicole'}`,
+    notes: notes || `Produit fini généré automatiquement depuis ${sourceLabel || 'Avicole'}`,
   });
   await stockCrud.refresh?.();
   return id;
@@ -93,19 +97,21 @@ function EggJournal({ rows, productionLogs, stockCrud, onCreateProduction, onUpd
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const syncEggStock = async ({ log, previousLog }) => {
-    const delta = sellableEggs(log) - sellableEggs(previousLog || {});
-    if (!delta) return;
+    const deltaEggs = sellableEggs(log) - sellableEggs(previousLog || {});
+    if (!deltaEggs) return;
+    const converted = tabletsFromEggs(Math.abs(deltaEggs));
     await upsertFinishedStock({
       stockCrud,
-      produit: 'Œufs vendables',
+      produit: 'Tablettes d’œufs vendables',
       categorie: 'produit_fini_oeufs',
-      unite: 'unité',
-      quantityDelta: delta,
+      unite: 'œuf',
+      quantityDelta: deltaEggs,
       sourceRecordId: log.lot_id || previousLog?.lot_id,
       sourceLabel: `Lot pondeuse ${log.lot_name || log.lot_id || previousLog?.lot_name || previousLog?.lot_id}`,
-      movementType: delta > 0 ? 'entree_production_oeufs' : 'correction_ramassage_oeufs',
+      movementType: deltaEggs > 0 ? 'entree_production_tablettes_oeufs' : 'correction_ramassage_tablettes_oeufs',
       eventId: log.id || previousLog?.id,
       date: log.date || previousLog?.date,
+      notes: `${fmtNumber(Math.abs(deltaEggs))} œufs = ${fmtNumber(converted.tablettes)} tablette(s) + ${fmtNumber(converted.oeufs_restants)} œuf(s) · 1 tablette = ${EGGS_PER_TABLET} œufs`,
     });
   };
 
@@ -116,17 +122,19 @@ function EggJournal({ rows, productionLogs, stockCrud, onCreateProduction, onUpd
     const produced = eggCount(form); const broken = brokenEggs(form);
     if (produced <= 0) return toast.error('Nombre d’œufs obligatoire');
     if (broken > produced) return toast.error('Les œufs cassés ne peuvent pas dépasser le total');
-    const payload = { ...form, id: form.id || `PROD-${Date.now()}`, lot_id: lot.id, lot_name: lot.name || lot.id, date: form.date || today(), oeufs_produits: produced, oeufs_casses: broken, oeufs_vendables: Math.max(0, produced - broken), type_evenement: 'ramassage_oeufs', source_module: 'avicole', related_id: lot.id };
+    const sellable = Math.max(0, produced - broken);
+    const converted = tabletsFromEggs(sellable);
+    const payload = { ...form, id: form.id || `PROD-${Date.now()}`, lot_id: lot.id, lot_name: lot.name || lot.id, date: form.date || today(), oeufs_produits: produced, oeufs_casses: broken, oeufs_vendables: sellable, tablettes: converted.tablettes, tablettes_vendables: converted.tablettes, plateaux: converted.tablettes, oeufs_restants: converted.oeufs_restants, oeufs_reliquat: converted.oeufs_restants, oeufs_par_tablette: EGGS_PER_TABLET, unite_vente: 'tablette', type_evenement: 'ramassage_oeufs', source_module: 'avicole', related_id: lot.id };
     if (editing) await onUpdateProduction?.(editing.id, payload); else await onCreateProduction?.(payload);
     await syncEggStock({ log: payload, previousLog: editing });
     await onRefreshProduction?.();
-    toast.success(editing ? 'Ramassage modifié et stock corrigé' : 'Ramassage enregistré et stock œufs mis à jour');
+    toast.success(editing ? `Ramassage modifié · ${tabletLabel(sellable)}` : `Ramassage enregistré · ${tabletLabel(sellable)}`);
     setEditing(null); setForm(initial);
   };
   const startEdit = (log) => { setEditing(log); setForm({ ...log, lot_id: eventLotId(log), date: log.date || today(), oeufs_produits: eggCount(log), oeufs_casses: brokenEggs(log) }); };
-  const remove = async (log) => { await onDeleteProduction?.(log.id); await syncEggStock({ log: {}, previousLog: log }); await onRefreshProduction?.(); toast.success('Ramassage supprimé et stock corrigé'); };
+  const remove = async (log) => { await onDeleteProduction?.(log.id); await syncEggStock({ log: {}, previousLog: log }); await onRefreshProduction?.(); toast.success(`Ramassage supprimé · stock corrigé (${tabletLabel(sellableEggs(log))})`); };
 
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Egg size={20} /> Journal de ramassage des œufs</p><p className="mt-1 text-sm text-[#8a7456]">Visible uniquement pour les lots pondeuses actifs. Chaque ramassage alimente automatiquement le stock “Œufs vendables”.</p></div><ActionButton icon={RefreshCw} onClick={onRefreshProduction}>Actualiser</ActionButton></div><form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-7 gap-2 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3"><Field label="Lot pondeuse"><Select value={form.lot_id || ''} onChange={(e) => update('lot_id', e.target.value)}><option value="">Choisir</option>{pondeuses.map((lot) => <option key={lot.id} value={lot.id}>{lot.name || lot.id}</option>)}</Select></Field><Field label="Date"><Input type="date" value={form.date || ''} onChange={(e) => update('date', e.target.value)} /></Field><Field label="Heure"><Input value={form.heure_ramassage || ''} onChange={(e) => update('heure_ramassage', e.target.value)} placeholder="ex: 08:30" /></Field><Field label="Œufs ramassés"><Input type="number" min="0" value={form.oeufs_produits || ''} onChange={(e) => update('oeufs_produits', e.target.value)} /></Field><Field label="Cassés"><Input type="number" min="0" value={form.oeufs_casses || 0} onChange={(e) => update('oeufs_casses', e.target.value)} /></Field><Field label="Vendables"><Input readOnly value={Math.max(0, eggCount(form) - brokenEggs(form))} /></Field><div className="flex items-end gap-2"><ActionButton type="submit" icon={editing ? Save : Plus}>{editing ? 'Modifier' : 'Ajouter'}</ActionButton>{editing ? <ActionButton icon={X} onClick={() => { setEditing(null); setForm(initial); }}>Annuler</ActionButton> : null}</div></form><div className="overflow-x-auto"><table className="min-w-full text-sm"><thead><tr className="text-left text-xs uppercase text-[#8a7456] border-b border-[#eadcc2]"><th className="py-2 pr-4">Date</th><th className="py-2 pr-4">Lot</th><th className="py-2 pr-4">Œufs</th><th className="py-2 pr-4">Cassés</th><th className="py-2 pr-4">Stock ajouté</th><th className="py-2 pr-4">Responsable</th><th className="py-2 pr-4">Actions</th></tr></thead><tbody>{logs.map((log) => <tr key={log.id} className="border-b border-[#f0e5d0]"><td className="py-3 pr-4">{log.date || '—'}</td><td className="py-3 pr-4 font-bold">{log.lot_name || eventLotId(log)}</td><td className="py-3 pr-4">{fmtNumber(eggCount(log))}</td><td className="py-3 pr-4">{fmtNumber(brokenEggs(log))}</td><td className="py-3 pr-4 font-bold text-emerald-700">+{fmtNumber(sellableEggs(log))} œufs</td><td className="py-3 pr-4">{log.responsable_label || log.responsable || '—'}</td><td className="py-3 pr-4"><div className="flex gap-1"><ActionButton icon={Edit} onClick={() => startEdit(log)}>Modifier</ActionButton>{onDeleteProduction ? <ActionButton icon={Trash2} danger onClick={() => remove(log)}>Supprimer</ActionButton> : null}</div></td></tr>)}{!logs.length ? <tr><td colSpan="7" className="py-4 text-center text-[#8a7456]">Aucun ramassage enregistré pour les lots pondeuses actifs.</td></tr> : null}</tbody></table></div></section>;
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Egg size={20} /> Journal de ramassage des œufs</p><p className="mt-1 text-sm text-[#8a7456]">Visible uniquement pour les lots pondeuses actifs. Chaque ramassage alimente le stock en tablettes : 1 tablette = 30 œufs.</p></div><ActionButton icon={RefreshCw} onClick={onRefreshProduction}>Actualiser</ActionButton></div><form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-7 gap-2 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3"><Field label="Lot pondeuse"><Select value={form.lot_id || ''} onChange={(e) => update('lot_id', e.target.value)}><option value="">Choisir</option>{pondeuses.map((lot) => <option key={lot.id} value={lot.id}>{lot.name || lot.id}</option>)}</Select></Field><Field label="Date"><Input type="date" value={form.date || ''} onChange={(e) => update('date', e.target.value)} /></Field><Field label="Heure"><Input value={form.heure_ramassage || ''} onChange={(e) => update('heure_ramassage', e.target.value)} placeholder="ex: 08:30" /></Field><Field label="Œufs ramassés"><Input type="number" min="0" value={form.oeufs_produits || ''} onChange={(e) => update('oeufs_produits', e.target.value)} /></Field><Field label="Cassés"><Input type="number" min="0" value={form.oeufs_casses || 0} onChange={(e) => update('oeufs_casses', e.target.value)} /></Field><Field label="Vendables"><Input readOnly value={`${fmtNumber(sellableEggs(form))} œufs · ${tabletLabel(sellableEggs(form))}`} /></Field><div className="flex items-end gap-2"><ActionButton type="submit" icon={editing ? Save : Plus}>{editing ? 'Modifier' : 'Ajouter'}</ActionButton>{editing ? <ActionButton icon={X} onClick={() => { setEditing(null); setForm(initial); }}>Annuler</ActionButton> : null}</div></form><div className="overflow-x-auto"><table className="min-w-full text-sm"><thead><tr className="text-left text-xs uppercase text-[#8a7456] border-b border-[#eadcc2]"><th className="py-2 pr-4">Date</th><th className="py-2 pr-4">Lot</th><th className="py-2 pr-4">Œufs</th><th className="py-2 pr-4">Cassés</th><th className="py-2 pr-4">Stock ajouté</th><th className="py-2 pr-4">Responsable</th><th className="py-2 pr-4">Actions</th></tr></thead><tbody>{logs.map((log) => { const sellable = sellableEggs(log); return <tr key={log.id} className="border-b border-[#f0e5d0]"><td className="py-3 pr-4">{log.date || '—'}</td><td className="py-3 pr-4 font-bold">{log.lot_name || eventLotId(log)}</td><td className="py-3 pr-4"><b>{fmtNumber(eggCount(log))}</b><p className="text-[11px] text-[#8a7456]">{tabletLabel(eggCount(log))}</p></td><td className="py-3 pr-4">{fmtNumber(brokenEggs(log))}</td><td className="py-3 pr-4 font-bold text-emerald-700"><b>+{fmtNumber(sellable)} œufs</b><p className="text-[11px] text-emerald-700">{tabletLabel(sellable)}</p></td><td className="py-3 pr-4">{log.responsable_label || log.responsable || '—'}</td><td className="py-3 pr-4"><div className="flex gap-1"><ActionButton icon={Edit} onClick={() => startEdit(log)}>Modifier</ActionButton>{onDeleteProduction ? <ActionButton icon={Trash2} danger onClick={() => remove(log)}>Supprimer</ActionButton> : null}</div></td></tr>; })}{!logs.length ? <tr><td colSpan="7" className="py-4 text-center text-[#8a7456]">Aucun ramassage enregistré pour les lots pondeuses actifs.</td></tr> : null}</tbody></table></div></section>;
 }
 
 export default function AvicoleJournalsBridge(props) {

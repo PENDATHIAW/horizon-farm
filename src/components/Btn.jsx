@@ -1,22 +1,25 @@
-﻿export default function Btn({ children, variant = 'primary', onClick, icon: Icon, small, type = 'button', disabled }) {
+export default function Btn({ children, variant = 'primary', onClick, icon: Icon, small, type = 'button', disabled, ariaLabel, title, className = '' }) {
   const cls = {
-    primary: 'bg-[#c9a96a] hover:bg-[#b89354] text-[#2f2415] font-semibold border border-[#b89354]',
-    outline: 'border border-[#b6975f] text-[#7a6240] hover:bg-[#f3e9d5]',
-    danger: 'bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20',
-    amber: 'bg-amber-500/15 border border-amber-500/30 text-amber-600 hover:bg-amber-500/25',
-    whatsapp: 'bg-[#25D366]/10 border border-[#25D366]/30 text-[#1EA952] hover:bg-[#25D366]/20',
-  }[variant];
+    primary: 'bg-[#2f2415] hover:bg-[#3d2f1d] text-white border border-[#2f2415] shadow-sm shadow-[#2f2415]/10',
+    outline: 'bg-white/70 border border-[#d6c3a0] text-[#7a6240] hover:bg-[#fffdf8] hover:border-[#c9a96a]',
+    danger: 'bg-red-50 border border-red-200 text-red-600 hover:bg-red-100',
+    amber: 'bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100',
+    whatsapp: 'bg-[#25D366]/10 border border-[#25D366]/25 text-[#168a3d] hover:bg-[#25D366]/20',
+  }[variant] || '';
+
+  const compact = small ? 'min-h-[44px] px-3 py-2 text-xs rounded-xl' : 'min-h-[44px] px-4 py-2.5 text-sm rounded-2xl';
 
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`flex items-center gap-2 px-3 ${small ? 'py-1.5 text-xs' : 'py-2 text-sm'} rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${cls}`}
+      aria-label={ariaLabel || (typeof children === 'string' ? children : undefined)}
+      title={title}
+      className={`inline-flex items-center justify-center gap-2 ${compact} font-black transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#c9a96a]/30 ${cls} ${className}`}
     >
-      {Icon ? <Icon size={small ? 12 : 14} /> : null}
+      {Icon ? <Icon size={small ? 13 : 16} aria-hidden="true" /> : null}
       {children}
     </button>
   );
 }
-

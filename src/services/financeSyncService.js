@@ -30,6 +30,7 @@ export const normalizeFinancePaymentMethod = (method) => {
 
 const amountOf = (...values) => values.map((value) => Number(value || 0)).find((value) => value > 0) || 0;
 const textOf = (...values) => values.map((value) => String(value || '').trim()).find(Boolean) || '';
+const clean = (value) => String(value || '').trim();
 
 const normalizeSourceType = (row = {}) => String(
   row.source_type
@@ -76,7 +77,7 @@ const findExistingTransaction = async (id, relatedId, paymentId) => {
     const rows = await financesService.getAll();
     return rows.find((tx) => String(tx.id) === String(id))
       || rows.find((tx) => paymentId && String(tx.payment_id || tx.source_payment_id || '') === String(paymentId))
-      || rows.find((tx) => relatedId && String(tx.related_id || tx.source_record_id || '') === String(relatedId) && String(tx.module_lie || tx.source_module || '') === 'ventes')
+      || rows.find((tx) => relatedId && String(tx.order_id || tx.sale_id || tx.related_id || tx.source_record_id || '') === String(relatedId) && String(tx.module_lie || tx.source_module || '') === 'ventes')
       || null;
   } catch (error) {
     console.warn('Verification doublon finance impossible', error.message);
@@ -90,6 +91,8 @@ const upsertFinanceEntry = async ({
   montant,
   date,
   related_id,
+  order_id,
+  sale_id,
   client_id,
   paiement,
   statut,
@@ -106,31 +109,39 @@ const upsertFinanceEntry = async ({
   const amount = Number(montant || 0);
   if (!amount || amount <= 0) return null;
 
+  const linkedOrderId = clean(order_id || sale_id || related_id || '');
+
   const payload = {
     id,
     type: 'entree',
     libelle,
     montant: amount,
+    amount,
     date: date || new Date().toISOString().slice(0, 10),
     categorie: categorie || 'Ventes',
     module_lie: 'ventes',
-    related_id: related_id || null,
+    related_id: linkedOrderId || null,
+    order_id: linkedOrderId || null,
+    sale_id: linkedOrderId || null,
     client_id: client_id || null,
     paiement: normalizeFinancePaymentMethod(paiement),
+    moyen_paiement: normalizeFinancePaymentMethod(paiement),
     statut: statut || 'paye',
     activite: activite || 'ventes',
     source_module,
-    source_record_id: related_id || source_id || null,
+    source_record_id: linkedOrderId || source_id || null,
     source_type: source_type || null,
     source_id: source_id || null,
     payment_id: payment_id || null,
+    source_payment_id: payment_id || null,
     invoice_id: invoice_id || null,
     business_plan_id: business_plan_id || null,
     investment_id: investment_id || null,
+    synced_from_sales_at: new Date().toISOString(),
   };
 
   try {
-    const existing = await findExistingTransaction(id, related_id, payment_id);
+    const existing = await findExistingTransaction(id, linkedOrderId, payment_id);
     if (existing?.id) return await financesService.update(existing.id, payload);
     return await financesService.create(payload);
   } catch (error) {
@@ -141,12 +152,15 @@ const upsertFinanceEntry = async ({
 
 export const syncPaymentToFinance = async (payment = {}) => {
   const activity = getFinanceActivityFromSale(payment);
+  const orderId = payment.order_id || payment.sale_id || payment.source_record_id || payment.related_id || '';
   return upsertFinanceEntry({
     id: `TRX-PAY-${payment.id || makeId('TRX')}`,
-    libelle: `Paiement vente ${payment.order_id || payment.sale_id || payment.id || ''}`.trim(),
+    libelle: `Paiement vente ${orderId || payment.id || ''}`.trim(),
     montant: amountOf(payment.montant, payment.amount, payment.montant_paye, payment.paid_amount),
-    date: payment.date || payment.paid_at,
-    related_id: payment.order_id || payment.sale_id || payment.source_record_id || payment.id,
+    date: payment.date_paiement || payment.date || payment.paid_at,
+    related_id: orderId || payment.id,
+    order_id: orderId,
+    sale_id: orderId,
     client_id: payment.client_id,
     paiement: payment.moyen_paiement || payment.paiement || payment.payment_method,
     statut: payment.statut === 'annule' ? 'annule' : 'paye',
@@ -178,6 +192,8 @@ export const syncSalesOrderToFinance = async (order = {}) => {
     montant: paid,
     date: order.date || order.date_commande,
     related_id: order.id,
+    order_id: order.id,
+    sale_id: order.id,
     client_id: order.client_id,
     paiement: order.moyen_paiement || order.paiement || order.payment_method,
     statut: total > 0 && paid < total ? 'partiel' : 'paye',

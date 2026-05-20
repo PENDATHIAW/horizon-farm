@@ -19,7 +19,7 @@ function isAvicole(line = {}) { const d = clean(line.designation).toLowerCase();
 function isAnimal(line = {}) { const d = clean(line.designation).toLowerCase(); return d.includes('bovin') || d.includes('bœuf') || d.includes('boeuf') || d.includes('mouton') || d.includes('chèvre') || d.includes('chevre'); }
 function isCulture(line = {}) { const d = clean(line.designation).toLowerCase(); return d.includes('culture') || d.includes('poivron') || d.includes('maraichage') || d.includes('maraîchage') || d.includes('champ') || d.includes('irrigation'); }
 function assetType(line = {}) { if (isAvicole(line)) return 'avicole'; if (isAnimal(line)) return 'animal'; if (isCulture(line)) return 'culture'; return ''; }
-function linkPatch(module, id) { return { asset_module: module, asset_id: id, asset_created_at: new Date().toISOString(), source_module: 'investissements', source_record_id: id }; }
+function linkPatch(line = {}, module, id) { return { asset_module: module, asset_id: id, asset_created_at: new Date().toISOString(), asset_status: 'cree', statut: 'lie_metier', status: 'lie_metier', executed_at: new Date().toISOString(), source_module: 'investissements', source_record_id: line.id }; }
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
@@ -32,12 +32,13 @@ async function createOperationalAsset(line, props) {
   const unitCost = toNumber(line.prix_unitaire);
   if (!type) return toast.error('Cette ligne ne correspond pas encore à un actif métier automatique.');
   if (line.asset_created_at || line.asset_id) return toast.error('Actif métier déjà créé pour cette ligne.');
+  if (!props.onUpdateBpInvestmentLine) return toast.error('Lien BP indisponible : impossible de verrouiller cette ligne.');
 
   if (type === 'avicole') {
     const lotType = label.toLowerCase().includes('chair') || label.toLowerCase().includes('poulet') ? 'Chair' : 'Pondeuse';
     const id = makeId(lotType === 'Chair' ? 'LOTCH' : 'LOTP');
     await props.onCreateLot?.({ id, name: `${id} ${lotType}`, type: lotType, activity: lotType, status: 'actif', health_status: 'sain', initial_count: qty, current_count: qty, mortality: 0, malades: 0, entry_date: today(), date_entree: today(), date_debut: today(), age_days: 0, average_weight: 0, purchase_cost: unitCost * qty, source: 'business_plan', source_module: 'investissements', source_record_id: line.id, business_plan_id: line.business_plan_id, bp_line_id: line.id, linked_transaction_id: line.transaction_id || null, preuve_url: line.preuve_url || '' });
-    await props.onUpdateBpInvestmentLine?.(line.id, linkPatch('avicole', id));
+    await props.onUpdateBpInvestmentLine?.(line.id, linkPatch(line, 'avicole', id));
     await props.onRefreshLots?.();
   }
 
@@ -51,7 +52,7 @@ async function createOperationalAsset(line, props) {
       createdIds.push(id);
       await props.onCreateAnimal?.({ id, tag: id, name: `${animalType} BP ${i + 1}`, type: animalType, status: 'actif', health_status: 'sain', mode_acquisition: 'achat', date_achat: today(), date_entree_ferme: today(), purchase_cost: unitCost, source: 'business_plan', source_module: 'investissements', source_record_id: line.id, business_plan_id: line.business_plan_id, bp_line_id: line.id, linked_transaction_id: line.transaction_id || null, preuve_url: line.preuve_url || '' });
     }
-    await props.onUpdateBpInvestmentLine?.(line.id, linkPatch('animaux', createdIds.join(',')));
+    await props.onUpdateBpInvestmentLine?.(line.id, linkPatch(line, 'animaux', createdIds.join(',')));
     await props.onRefreshAnimals?.();
   }
 
@@ -59,17 +60,18 @@ async function createOperationalAsset(line, props) {
     const id = makeId('CULT');
     const isPoivron = label.toLowerCase().includes('poivron');
     await props.onCreateCulture?.({ id, nom: isPoivron ? 'Poivrons' : label || 'Culture BP', type: isPoivron ? 'Poivrons' : label || 'Culture', parcelle: 'À préciser', parcelle_code: 'À préciser', campagne: `BP ${line.business_plan_id || ''}`.trim(), statut: 'planifiee', date_debut_campagne: today(), date_semis: today(), surface: toNumber(line.quantite) || 0, surface_exploitable: toNumber(line.quantite) || 0, unite_surface: line.unite || 'ha', budget_prevu: toNumber(line.total), cout_total_reel: 0, revenu_reel: 0, source: 'business_plan', source_module: 'investissements', source_record_id: line.id, business_plan_id: line.business_plan_id, investment_id: line.id, bp_line_id: line.id, linked_transaction_id: line.transaction_id || null, preuve_url: line.preuve_url || '' });
-    await props.onUpdateBpInvestmentLine?.(line.id, linkPatch('cultures', id));
+    await props.onUpdateBpInvestmentLine?.(line.id, linkPatch(line, 'cultures', id));
     await props.onRefreshCultures?.();
   }
+  await props.onRefreshBpInvestmentLines?.();
   await props.onRefreshBusinessPlans?.();
-  toast.success('Actif métier créé et lié au BP');
+  toast.success('Actif métier créé et ligne BP verrouillée');
 }
 
 function OperationalAssetsBridge(props) {
   const plan = (props.businessPlans || []).find((bp) => String(bp.nom || '').toLowerCase().includes('horizon farm')) || (props.businessPlans || [])[0];
   const lines = plan ? (props.bpInvestmentLines || []).filter((line) => line.business_plan_id === plan.id) : [];
-  const eligible = lines.filter((line) => st(line) === 'effectif' && !line.asset_created_at && assetType(line));
+  const eligible = lines.filter((line) => st(line) === 'effectif' && !line.asset_created_at && !line.asset_id && assetType(line));
   const linked = lines.filter((line) => line.asset_created_at || line.asset_id);
   if (!plan) return null;
   return (
@@ -88,11 +90,7 @@ export default function InvestissementsV8(props) {
     <div className="space-y-6 investissements-mobile-structured">
       <style>{`@media (max-width: 640px){.investissements-mobile-structured .rounded-2xl{border-radius:18px}.investissements-mobile-structured table{font-size:12px}.investissements-mobile-structured th,.investissements-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.investissements-mobile-structured .text-2xl{font-size:1.35rem}.investissements-mobile-structured .grid{gap:.75rem}.investissements-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
 
-      <ModuleSection icon={TrendingUp} title="Portefeuille investissements & business plans" subtitle="Projets, lignes BP, financement, paiements et suivi des investissements.">
-        <InvestissementsV7 {...props} />
-      </ModuleSection>
-
-      <ModuleSection icon={ShieldCheck} title="Contrôle qualité investissement" subtitle="Cohérence BP, financements, lignes effectives, liens métiers et risques.">
+      <ModuleSection icon={ShieldCheck} title="Contrôle qualité investissement" subtitle="Cohérence BP, financements, lignes effectives, liens métiers et risques à traiter avant les détails.">
         <InvestmentQualityControl
           rows={props.rows || []}
           businessPlans={props.businessPlans || []}
@@ -107,6 +105,10 @@ export default function InvestissementsV8(props) {
 
       <ModuleSection icon={Link2} title="Actifs métier créés depuis BP" subtitle="Transformation des dépenses effectives en lots avicoles, animaux ou cultures exploitables.">
         <OperationalAssetsBridge {...props} />
+      </ModuleSection>
+
+      <ModuleSection icon={TrendingUp} title="Portefeuille investissements & business plans" subtitle="Projets, lignes BP, financement, paiements et suivi détaillé des investissements.">
+        <InvestissementsV7 {...props} />
       </ModuleSection>
 
       <ModuleSection icon={BarChart3} title="Évolution investissements" subtitle="Graphes des investissements, financements, CAPEX, risques et valeur créée.">

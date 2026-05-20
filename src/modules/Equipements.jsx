@@ -17,6 +17,22 @@ export default function Equipements(props) {
     <div className="space-y-6 equipements-mobile-structured">
       <style>{`@media (max-width: 640px){.equipements-mobile-structured .rounded-2xl{border-radius:18px}.equipements-mobile-structured table{font-size:12px}.equipements-mobile-structured th,.equipements-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.equipements-mobile-structured .text-2xl{font-size:1.35rem}.equipements-mobile-structured .grid{gap:.75rem}.equipements-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
 
+      <ModuleSection icon={Zap} title="Actions rapides équipements" subtitle="Panne, carburant, maintenance urgente, alertes et écritures liées.">
+        <EquipementsQuickActionsBridge
+          rows={rows}
+          onUpdate={props.onUpdate}
+          onRefresh={props.onRefresh}
+          onCreateTask={props.onCreateTask}
+          onRefreshTasks={props.onRefreshTasks}
+          onCreateAlert={props.onCreateAlert}
+          onRefreshAlertes={props.onRefreshAlertes}
+          onCreateFinanceTransaction={props.onCreateFinanceTransaction}
+          onRefreshFinances={props.onRefreshFinances}
+          onCreateBusinessEvent={props.onCreateBusinessEvent}
+          onRefreshBusinessEvents={props.onRefreshBusinessEvents}
+        />
+      </ModuleSection>
+
       <ModuleSection icon={Settings} title="Parc matériel" subtitle="Machines, incubateurs, pompes, groupes, véhicules et équipements de production.">
         <GenericCrudModule
           {...props}
@@ -34,22 +50,6 @@ export default function Equipements(props) {
             { icon: AlertTriangle, label: 'Pannes', value: rows.filter((r) => r.status === 'panne').length, color: 'bg-red-500/20 text-red-500' },
             { icon: Fuel, label: 'Carburant', value: fmtCurrency(fuel), color: 'bg-emerald-500/20 text-emerald-500' },
           ]}
-        />
-      </ModuleSection>
-
-      <ModuleSection icon={Zap} title="Actions rapides équipements" subtitle="Panne, carburant, maintenance urgente, alertes et écritures liées.">
-        <EquipementsQuickActionsBridge
-          rows={rows}
-          onUpdate={props.onUpdate}
-          onRefresh={props.onRefresh}
-          onCreateTask={props.onCreateTask}
-          onRefreshTasks={props.onRefreshTasks}
-          onCreateAlert={props.onCreateAlert}
-          onRefreshAlertes={props.onRefreshAlertes}
-          onCreateFinanceTransaction={props.onCreateFinanceTransaction}
-          onRefreshFinances={props.onRefreshFinances}
-          onCreateBusinessEvent={props.onCreateBusinessEvent}
-          onRefreshBusinessEvents={props.onRefreshBusinessEvents}
         />
       </ModuleSection>
 
