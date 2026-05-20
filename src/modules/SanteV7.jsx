@@ -1,30 +1,51 @@
 import { Component } from 'react';
-import { BarChart3, HeartPulse, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, BarChart3, HeartPulse, RefreshCw, ShieldCheck } from 'lucide-react';
 import useCrudModule from '../hooks/useCrudModule';
 import HealthQualityControl from './HealthQualityControl.jsx';
 import SanteSmartInterventions from './SanteV6.jsx';
 import SanteEvolution from './SanteEvolution.jsx';
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} aria-hidden="true" /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
+}
+
+function HealthBlockError({ title, message, onRetry }) {
+  return (
+    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2 font-black"><AlertTriangle size={17} aria-hidden="true" /> Bloc santé indisponible</p>
+          <p className="mt-1 text-sm leading-relaxed">La section <b>{title}</b> n’a pas pu être chargée. Les autres parties du module restent utilisables.</p>
+          {message ? <p className="mt-2 rounded-xl border border-amber-200 bg-white/70 px-3 py-2 text-xs text-amber-800">Détail technique : {message}</p> : null}
+        </div>
+        <button type="button" onClick={onRetry} className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-amber-300 bg-white px-4 py-2 text-sm font-black text-amber-800 hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-500/25">
+          <RefreshCw size={15} aria-hidden="true" /> Réessayer
+        </button>
+      </div>
+    </div>
+  );
 }
 
 class SafeHealthBlock extends Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, message: '' };
   }
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error) {
+    return { hasError: true, message: error?.message || '' };
   }
 
   componentDidCatch(error) {
     console.warn(`Bloc santé indisponible: ${this.props.title}`, error?.message || error);
   }
 
+  retry = () => this.setState({ hasError: false, message: '' });
+
   render() {
-    if (this.state.hasError) return null;
+    if (this.state.hasError) {
+      return <HealthBlockError title={this.props.title} message={this.state.message} onRetry={this.retry} />;
+    }
     return this.props.children;
   }
 }
