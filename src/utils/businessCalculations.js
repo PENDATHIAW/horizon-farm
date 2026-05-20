@@ -1,4 +1,5 @@
 import { getCalculatedAnimalFeedingCost, getLotFeedingCategory } from './alimentation';
+import { validateAnimalPayload } from './animalValidation';
 import { toNumber } from './format';
 
 const EGGS_PER_TABLET = 30;
@@ -74,8 +75,8 @@ export const calculateEggProductionMetrics = ({ lot = {}, productionLogs = [] })
   const lotLogs = productionLogs
     .filter((log) => log.lot_id === lot.id || linkedId(log) === String(lot.id))
     .map((log) => {
-      const eggsProduced = toNumber(log.oeufs_produits ?? log.eggs ?? log.quantity ?? log.quantite);
-      const brokenEggs = toNumber(log.oeufs_casses ?? log.broken ?? log.casses ?? log.pertes);
+      const eggsProduced = Math.max(0, toNumber(log.oeufs_produits ?? log.eggs ?? log.quantity ?? log.quantite));
+      const brokenEggs = Math.min(eggsProduced, Math.max(0, toNumber(log.oeufs_casses ?? log.broken ?? log.casses ?? log.pertes)));
       const sellableEggs = Math.max(0, eggsProduced - brokenEggs);
       const fromStored = toNumber(log.tablettes_vendables ?? log.tablettes ?? log.plateaux);
       const converted = tabletsFromEggs(sellableEggs);
@@ -90,8 +91,8 @@ export const calculateEggProductionMetrics = ({ lot = {}, productionLogs = [] })
   const since30 = lotLogs.filter((log) => log._time >= daysAgo(30));
   const sum = (items, key) => items.reduce((total, item) => total + toNumber(item[key]), 0);
   const avg = (items, key) => (items.length ? sum(items, key) / items.length : 0);
-  const todayEggs = sum(todayLogs, 'eggsProduced') || toNumber(lot.productionJour ?? lot.productionjour);
-  const todayBroken = sum(todayLogs, 'brokenEggs') || toNumber(lot.oeufs_casses);
+  const todayEggs = sum(todayLogs, 'eggsProduced') || Math.max(0, toNumber(lot.productionJour ?? lot.productionjour));
+  const todayBroken = Math.min(todayEggs, sum(todayLogs, 'brokenEggs') || Math.max(0, toNumber(lot.oeufs_casses)));
   const todaySellable = Math.max(0, todayEggs - todayBroken);
   const todayTablet = tabletsFromEggs(todaySellable);
   const totalSellable = sum(lotLogs, 'sellableEggs');
@@ -104,34 +105,34 @@ export const calculateEggProductionMetrics = ({ lot = {}, productionLogs = [] })
 export const enrichProductionEggLogs = ({ logs = [], lots = [] }) => logs.map((log) => {
   const lot = lots.find((item) => item.id === log.lot_id) || {};
   const currentCount = calculateLotCurrentCount(lot) || toNumber(lot.current_count);
-  const eggsProduced = toNumber(log.oeufs_produits ?? log.eggs ?? log.quantity ?? log.quantite);
-  const brokenEggs = toNumber(log.oeufs_casses ?? log.broken ?? log.casses ?? log.pertes);
+  const eggsProduced = Math.max(0, toNumber(log.oeufs_produits ?? log.eggs ?? log.quantity ?? log.quantite));
+  const brokenEggs = Math.min(eggsProduced, Math.max(0, toNumber(log.oeufs_casses ?? log.broken ?? log.casses ?? log.pertes)));
   const sellableEggs = Math.max(0, eggsProduced - brokenEggs);
   const converted = tabletsFromEggs(sellableEggs);
   return { ...log, lot_name: lot.name || log.lot_id, lot_type: lot.type || '', effectif_actuel: currentCount, oeufs_vendables: sellableEggs, tablettes: converted.tablets, tablettes_vendables: converted.tablets, plateaux: converted.tablets, oeufs_restants: converted.remainingEggs, oeufs_reliquat: converted.remainingEggs, oeufs_par_tablette: EGGS_PER_TABLET, unite_vente: 'tablette', taux_ponte_calcule: currentCount > 0 ? (eggsProduced / currentCount) * 100 : toNumber(log.taux_ponte) };
 });
 
 export const calculateLotMetrics = ({ lot = {}, feedingLogs = [], productionLogs = [] } = {}) => {
-  const initial = toNumber(lot.initial_count ?? lot.effectif_initial);
+  const initial = Math.max(0, toNumber(lot.initial_count ?? lot.effectif_initial));
   const current = calculateLotCurrentCount(lot);
-  const mortality = toNumber(lot.mortality);
-  const malades = toNumber(lot.malades);
-  const vols = toNumber(lot.vols);
-  const vendus = toNumber(lot.vendus);
-  const reformes = toNumber(lot.reformes);
-  const sorties = toNumber(lot.sorties);
-  const healthCost = toNumber(lot.frais_sante ?? lot.sante ?? lot.cout_sante ?? lot.health_cost);
-  const otherCosts = toNumber(lot.autres_frais ?? lot.frais_directs ?? lot.other_costs);
-  const chickCost = purchaseCostOfLot(lot);
-  const expectedSalePrice = toNumber(lot.prix_vente_prevu ?? lot.prix_vente_estime ?? lot.estimated_sale_price);
-  const realSalePrice = toNumber(lot.prix_vente_reel ?? lot.sale_price);
+  const mortality = Math.max(0, toNumber(lot.mortality));
+  const malades = Math.max(0, toNumber(lot.malades));
+  const vols = Math.max(0, toNumber(lot.vols));
+  const vendus = Math.max(0, toNumber(lot.vendus));
+  const reformes = Math.max(0, toNumber(lot.reformes));
+  const sorties = Math.max(0, toNumber(lot.sorties));
+  const healthCost = Math.max(0, toNumber(lot.frais_sante ?? lot.sante ?? lot.cout_sante ?? lot.health_cost));
+  const otherCosts = Math.max(0, toNumber(lot.autres_frais ?? lot.frais_directs ?? lot.other_costs));
+  const chickCost = Math.max(0, purchaseCostOfLot(lot));
+  const expectedSalePrice = Math.max(0, toNumber(lot.prix_vente_prevu ?? lot.prix_vente_estime ?? lot.estimated_sale_price));
+  const realSalePrice = Math.max(0, toNumber(lot.prix_vente_reel ?? lot.sale_price));
   const category = getLotFeedingCategory(lot);
   const lotFeedingLogs = feedingLogs.filter((log) => isLinkedToLot(log, lot, category));
   const feedingCost = lotFeedingLogs.reduce((sum, log) => sum + money(log), 0);
   const feedKg = lotFeedingLogs.reduce((sum, log) => sum + feedKgOfLog(log), 0);
-  const coveredDays = lotFeedingLogs.reduce((sum, log) => sum + toNumber(log.duree_jours ?? log.days), 0);
+  const coveredDays = lotFeedingLogs.reduce((sum, log) => sum + Math.max(0, toNumber(log.duree_jours ?? log.days)), 0);
   const eggMetrics = calculateEggProductionMetrics({ lot, productionLogs });
-  const productionJour = isLayerLot(lot) ? eggMetrics.todayEggs : toNumber(lot.productionJour ?? lot.productionjour);
+  const productionJour = isLayerLot(lot) ? eggMetrics.todayEggs : Math.max(0, toNumber(lot.productionJour ?? lot.productionjour));
   const losses = mortality + vols + vendus + reformes + sorties;
   const survivalRate = initial > 0 ? (current / initial) * 100 : 0;
   const mortalityRate = initial > 0 ? (mortality / initial) * 100 : 0;
@@ -147,8 +148,8 @@ export const calculateLotMetrics = ({ lot = {}, feedingLogs = [], productionLogs
   const costPerHeadPerDay = current > 0 && coveredDays > 0 ? feedingCost / current / coveredDays : 0;
   const totalCostPerHead = current > 0 ? totalCosts / current : 0;
   const marginPerHead = current > 0 ? estimatedMargin / current : 0;
-  const entryWeightKg = toNumber(lot.poids_moyen_entree ?? lot.weight_entry ?? lot.initial_weight);
-  const currentWeightKg = toNumber(lot.poids_moyen_actuel ?? lot.last_weight_avg ?? lot.weight_avg ?? lot.average_weight);
+  const entryWeightKg = Math.max(0, toNumber(lot.poids_moyen_entree ?? lot.weight_entry ?? lot.initial_weight));
+  const currentWeightKg = Math.max(0, toNumber(lot.poids_moyen_actuel ?? lot.last_weight_avg ?? lot.weight_avg ?? lot.average_weight));
   const weightGainPerHeadKg = isBroilerLot(lot) ? Math.max(0, currentWeightKg - entryWeightKg) : 0;
   const totalLiveWeightGainKg = weightGainPerHeadKg * Math.max(0, current);
   const feedConversionIndex = isBroilerLot(lot) && totalLiveWeightGainKg > 0 ? feedKg / totalLiveWeightGainKg : 0;
@@ -178,7 +179,6 @@ export const calculateLotSaleReadiness = (lot = {}, metrics = calculateLotMetric
   const expectedEnd = calculateLotEndDate(lot);
   const current = metrics.currentCount ?? calculateLotCurrentCount(lot);
   const soldCount = toNumber(lot.vendus ?? lot.sold_count ?? lot.sold);
-  const initial = toNumber(lot.initial_count ?? lot.effectif_initial);
   const statusText = clean(`${lot.status || ''} ${lot.statut || ''} ${lot.phase || ''}`);
   const isFullySold = isBroilerLot(lot) && current <= 0 && (soldCount > 0 || statusText.includes('vendu'));
   if (isFullySold) {
@@ -195,17 +195,18 @@ export const calculateLotSaleReadiness = (lot = {}, metrics = calculateLotMetric
 };
 
 export const calculateAnimalMetrics = ({ animal = {}, animals = [], feedingLogs = [], vaccins = [] } = {}) => {
+  const validation = validateAnimalPayload(animal);
   const feedingCost = getCalculatedAnimalFeedingCost({ animal, feedingLogs, animals });
-  const healthCost = toNumber(animal.frais_sante ?? animal.sante);
-  const otherCosts = toNumber(animal.autres_frais);
-  const purchaseCost = toNumber(animal.purchase_cost ?? animal.prix_achat ?? animal.cout_achat);
-  const salePrice = toNumber(animal.prix_vente_reel ?? animal.sale_price ?? animal.prix_vente);
+  const healthCost = Math.max(0, toNumber(animal.frais_sante ?? animal.sante));
+  const otherCosts = Math.max(0, toNumber(animal.autres_frais));
+  const purchaseCost = Math.max(0, toNumber(animal.purchase_cost ?? animal.prix_achat ?? animal.cout_achat));
+  const salePrice = Math.max(0, toNumber(animal.prix_vente_reel ?? animal.sale_price ?? animal.prix_vente ?? animal.prix_vente_estime));
   const totalCost = purchaseCost + feedingCost + healthCost + otherCosts;
   const margin = salePrice > 0 ? salePrice - totalCost : null;
   const relatedVaccins = vaccins.filter((vaccin) => String(vaccin.animal || '').includes(animal.id) || String(vaccin.animal || '').includes(animal.tag));
   const overdueVaccines = relatedVaccins.filter((vaccin) => vaccin.statut === 'retard').length;
-  const healthScore = clamp(toNumber(animal.score_sante) || (healthBaseScore[animal.health_status || animal.status] || 80) - overdueVaccines * 12);
-  return { feedingCost, healthCost, otherCosts, purchaseCost, salePrice, totalCost, margin, marginRate: salePrice > 0 && totalCost > 0 ? (margin / totalCost) * 100 : 0, healthScore, overdueVaccines, relatedVaccins };
+  const healthScore = clamp(toNumber(animal.score_sante) || (healthBaseScore[animal.health_status || animal.status] || 80) - overdueVaccines * 12 - validation.errors.length * 15 - validation.warnings.length * 5);
+  return { feedingCost, healthCost, otherCosts, purchaseCost, salePrice, totalCost, margin, marginRate: salePrice > 0 && totalCost > 0 ? (margin / totalCost) * 100 : 0, healthScore, overdueVaccines, relatedVaccins, validation, validationErrors: validation.errors, validationWarnings: validation.warnings };
 };
 
 export const buildLotAlerts = (lot = {}, metrics = calculateLotMetrics({ lot })) => {
