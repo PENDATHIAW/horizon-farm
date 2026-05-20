@@ -11,6 +11,37 @@ const normalize = (value = '') => String(value).toLowerCase().normalize('NFD').r
 const isRisky = (value) => dangerStatuses.some((status) => normalize(value).includes(status));
 const isMobileViewport = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
 
+const NAV_GROUPS = [
+  { key: 'pilotage', label: 'Pilotage', ids: ['dashboard', 'centre_ia', 'objectifs_croissance', 'impact_business', 'rapports', 'analytics'] },
+  { key: 'production', label: 'Production', ids: ['animaux', 'avicole', 'cultures', 'sante', 'equipements', 'smartfarm'] },
+  { key: 'commerce', label: 'Commerce', ids: ['ventes', 'clients', 'fournisseurs', 'commandes', 'livraisons'] },
+  { key: 'finance', label: 'Finance', ids: ['finances', 'comptabilite', 'investissements', 'business_plans', 'objectifs_financiers'] },
+  { key: 'ressources', label: 'Ressources', ids: ['stock', 'documents', 'taches', 'alertes', 'tracabilite'] },
+  { key: 'administration', label: 'Administration', ids: ['settings', 'parametres', 'sync', 'utilisateurs', 'systeme'] },
+];
+
+function getNavGroupKey(item = {}) {
+  const text = normalize(`${item.id || ''} ${item.label || ''}`);
+  const explicit = NAV_GROUPS.find((group) => group.ids.some((id) => text.includes(normalize(id))));
+  if (explicit) return explicit.key;
+  if (text.includes('animal') || text.includes('avicole') || text.includes('culture') || text.includes('sante') || text.includes('sant')) return 'production';
+  if (text.includes('vente') || text.includes('client') || text.includes('fournisseur') || text.includes('commande')) return 'commerce';
+  if (text.includes('finance') || text.includes('compta') || text.includes('invest')) return 'finance';
+  if (text.includes('stock') || text.includes('document') || text.includes('tache') || text.includes('alerte') || text.includes('trace')) return 'ressources';
+  if (text.includes('objectif') || text.includes('decision') || text.includes('ia') || text.includes('dashboard') || text.includes('accueil')) return 'pilotage';
+  return 'autres';
+}
+
+function buildNavGroups(navItems = []) {
+  const map = new Map([...NAV_GROUPS.map((group) => [group.key, { ...group, items: [] }]), ['autres', { key: 'autres', label: 'Autres', ids: [], items: [] }]]);
+  navItems.forEach((item) => {
+    const key = getNavGroupKey(item);
+    const group = map.get(key) || map.get('autres');
+    group.items.push(item);
+  });
+  return [...map.values()].filter((group) => group.items.length);
+}
+
 export default function AppLayout({
   navItems,
   active,
@@ -88,6 +119,7 @@ export default function AppLayout({
 
   const activeLabel = navItems.find((item) => item.id === active)?.label || 'Horizon Farm';
   const mobileNavItems = navItems.filter((item) => ['dashboard', 'impact_business', 'stock', 'ventes'].includes(item.id)).slice(0, 4);
+  const groupedNavItems = useMemo(() => buildNavGroups(navItems), [navItems]);
 
   const navigate = (moduleKey) => {
     setActive(moduleKey);
@@ -103,6 +135,15 @@ export default function AppLayout({
     setSettingsOpen(false);
   };
 
+  const renderNavItem = (item) => {
+    const isActive = active === item.id;
+    return <button key={item.id} type="button" onClick={() => navigate(item.id)} title={!sidebarOpen ? item.label : undefined} aria-label={item.label} className={`w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-xl transition-all group relative ${isActive ? 'bg-[#c9a96a] text-[#2f2415]' : 'text-[#8a7456] hover:bg-[#e7d9be] hover:text-[#2f2415]'}`}>
+      <item.icon size={19} className="shrink-0" aria-hidden="true" />
+      {sidebarOpen ? <span className="text-sm font-medium truncate">{item.label}</span> : null}
+      {item.hasAlert ? <span className={`w-2 h-2 rounded-full bg-red-500 shrink-0 ${sidebarOpen ? 'ml-auto' : 'absolute top-1 right-1'}`} /> : null}
+    </button>;
+  };
+
   return (
     <div className="h-screen bg-[#f8f5ef] text-[#2f2415] overflow-hidden" style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif" }}>
       {sidebarOpen ? <button type="button" aria-label="Fermer le menu" onClick={() => setSidebarOpen(false)} className="fixed inset-0 z-30 bg-black/30 md:hidden" /> : null}
@@ -112,15 +153,11 @@ export default function AppLayout({
             <BrandLogo variant={sidebarOpen ? 'sidebar' : 'compact'} showText={sidebarOpen} />
             <button type="button" aria-label={sidebarOpen ? 'Réduire le menu' : 'Ouvrir le menu'} onClick={() => setSidebarOpen(!sidebarOpen)} className="ml-auto min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-xl text-[#b39b78] hover:text-[#2f2415] hover:bg-[#fff8e8] transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#c9a96a]/30">{sidebarOpen ? <X size={16} aria-hidden="true" /> : <Menu size={16} aria-hidden="true" />}</button>
           </div>
-          <nav className="flex-1 py-4 overflow-y-auto space-y-1 px-2">
-            {navItems.map((item) => {
-              const isActive = active === item.id;
-              return <button key={item.id} type="button" onClick={() => navigate(item.id)} className={`w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-xl transition-all group relative ${isActive ? 'bg-[#c9a96a] text-[#2f2415]' : 'text-[#8a7456] hover:bg-[#e7d9be] hover:text-[#2f2415]'}`}>
-                <item.icon size={19} className="shrink-0" aria-hidden="true" />
-                {sidebarOpen ? <span className="text-sm font-medium truncate">{item.label}</span> : null}
-                {item.hasAlert ? <span className={`w-2 h-2 rounded-full bg-red-500 shrink-0 ${sidebarOpen ? 'ml-auto' : 'absolute top-1 right-1'}`} /> : null}
-              </button>;
-            })}
+          <nav className="flex-1 py-4 overflow-y-auto space-y-4 px-2" aria-label="Navigation principale">
+            {groupedNavItems.map((group) => <div key={group.key} className="space-y-1">
+              {sidebarOpen ? <p className="px-3 pt-1 pb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#b39b78]">{group.label}</p> : <div className="mx-2 my-2 border-t border-[#eadcc2]" aria-hidden="true" />}
+              {group.items.map(renderNavItem)}
+            </div>)}
           </nav>
           <div className="p-3 border-t border-[#e7d9be] space-y-2">
             <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${online ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>{online ? <Wifi size={14} className="text-emerald-500 shrink-0" aria-hidden="true" /> : <WifiOff size={14} className="text-red-500 shrink-0" aria-hidden="true" />}{sidebarOpen ? <span className={`text-xs font-medium ${online ? 'text-emerald-600' : 'text-red-500'}`}>{online ? 'Connecté' : 'Hors ligne'}</span> : null}</div>
