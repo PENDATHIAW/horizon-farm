@@ -21,6 +21,45 @@ const sortRows = (rows, key, direction) => {
   });
 };
 
+const cellValue = (row, col) => col.render ? col.render(row) : String(row?.[col.key] ?? '-');
+const plainValue = (row, col) => String(row?.[col.key] ?? '').trim();
+
+function MobileRowCard({ row, columns }) {
+  const visibleColumns = columns.filter((col) => col.mobileHidden !== true);
+  const titleColumn = visibleColumns.find((col) => col.mobileTitle) || visibleColumns[0];
+  const metaColumns = visibleColumns.filter((col) => col.key !== titleColumn?.key).slice(0, 5);
+  const actionColumns = columns.filter((col) => col.isAction || col.key === 'actions' || col.key === 'action');
+  const bodyColumns = metaColumns.filter((col) => !actionColumns.includes(col));
+
+  return (
+    <article className="rounded-2xl border border-[#eadcc2] bg-white p-4 shadow-sm space-y-3">
+      <div>
+        <p className="text-[11px] font-black uppercase tracking-wide text-[#8a7456]">{titleColumn?.label || 'Élément'}</p>
+        <div className="mt-1 text-base font-black text-[#2f2415] break-words">
+          {titleColumn ? cellValue(row, titleColumn) : row?.id || 'Élément'}
+        </div>
+      </div>
+
+      {bodyColumns.length ? (
+        <dl className="grid grid-cols-1 gap-2">
+          {bodyColumns.map((col) => (
+            <div key={col.key} className="rounded-xl bg-[#fffdf8] border border-[#eadcc2]/70 px-3 py-2">
+              <dt className="text-[11px] font-bold uppercase tracking-wide text-[#8a7456]">{col.label}</dt>
+              <dd className="mt-0.5 text-sm font-bold text-[#2f2415] break-words">{cellValue(row, col)}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+
+      {actionColumns.length ? (
+        <div className="flex flex-wrap items-center gap-2 border-t border-[#eadcc2] pt-3">
+          {actionColumns.map((col) => <div key={col.key}>{cellValue(row, col)}</div>)}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
 export default function DataTable({
   title,
   rows = [],
@@ -30,6 +69,7 @@ export default function DataTable({
   initialSortKey = '',
   pageSize = 8,
   rightActions,
+  emptyMessage = 'Aucune donnée disponible.',
 }) {
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState(initialSortKey);
@@ -81,7 +121,25 @@ export default function DataTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="block lg:hidden p-4 space-y-3 bg-[#fffdf8]/40">
+        {loading
+          ? Array.from({ length: 4 }).map((_, index) => (
+              <div key={`mobile-skeleton-${index}`} className="rounded-2xl border border-[#eadcc2] bg-white p-4 space-y-3">
+                <div className="h-4 w-2/3 rounded-full bg-[#d6c3a0]/45 animate-pulse" />
+                <div className="h-3 w-full rounded-full bg-[#d6c3a0]/35 animate-pulse" />
+                <div className="h-3 w-1/2 rounded-full bg-[#d6c3a0]/35 animate-pulse" />
+              </div>
+            ))
+          : null}
+        {!loading && paged.length === 0 ? (
+          <div className="rounded-2xl border border-[#eadcc2] bg-white px-4 py-10 text-center text-sm text-[#8a7456]">
+            {emptyMessage}
+          </div>
+        ) : null}
+        {!loading && paged.length > 0 ? paged.map((row, index) => <MobileRowCard key={row.id ?? index} row={row} columns={columns} />) : null}
+      </div>
+
+      <div className="hidden lg:block overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[#eadcc2]">
@@ -113,7 +171,7 @@ export default function DataTable({
             {!loading && paged.length === 0 ? (
               <tr>
                 <td className="px-5 py-12 text-center text-sm text-[#8a7456]" colSpan={columns.length}>
-                  Aucune donnée disponible.
+                  {emptyMessage}
                 </td>
               </tr>
             ) : null}
@@ -123,7 +181,7 @@ export default function DataTable({
                   <tr key={row.id ?? index} className={`border-b border-[#eadcc2]/60 transition-colors hover:bg-[#fffdf8] ${index % 2 === 0 ? 'bg-white/40' : 'bg-[#fffdf8]/35'}`}>
                     {columns.map((col) => (
                       <td key={col.key} className="px-5 py-4 text-[#7d6a4a] align-top">
-                        {col.render ? col.render(row) : String(row?.[col.key] ?? '-')}
+                        {cellValue(row, col)}
                       </td>
                     ))}
                   </tr>
