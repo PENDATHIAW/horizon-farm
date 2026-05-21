@@ -12,22 +12,24 @@ const isRisky = (value) => dangerStatuses.some((status) => normalize(value).incl
 const isMobileViewport = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
 
 const NAV_GROUPS = [
-  { key: 'pilotage', label: 'Pilotage', ids: ['dashboard', 'centre_ia', 'objectifs_croissance', 'impact_business', 'rapports', 'analytics'] },
+  { key: 'pilotage', label: 'Pilotage', ids: ['dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance', 'impact_business', 'rapports', 'analytics'] },
   { key: 'production', label: 'Production', ids: ['animaux', 'avicole', 'cultures', 'sante', 'equipements', 'smartfarm'] },
   { key: 'commerce', label: 'Commerce', ids: ['ventes', 'clients', 'fournisseurs', 'commandes', 'livraisons'] },
   { key: 'finance', label: 'Finance', ids: ['finances', 'comptabilite', 'investissements', 'business_plans', 'objectifs_financiers'] },
-  { key: 'ressources', label: 'Ressources', ids: ['stock', 'documents', 'taches', 'alertes', 'tracabilite'] },
-  { key: 'administration', label: 'Administration', ids: ['settings', 'parametres', 'sync', 'utilisateurs', 'systeme'] },
+  { key: 'ressources', label: 'Ressources', ids: ['stock', 'documents', 'taches', 'alertes', 'tracabilite', 'rh'] },
+  { key: 'administration', label: 'Administration', ids: ['settings', 'parametres', 'sync', 'sync_activity', 'audit_logs', 'gestion_systeme', 'utilisateurs', 'systeme'] },
 ];
 
 function getNavGroupKey(item = {}) {
   const text = normalize(`${item.id || ''} ${item.label || ''}`);
   const explicit = NAV_GROUPS.find((group) => group.ids.some((id) => text.includes(normalize(id))));
   if (explicit) return explicit.key;
-  if (text.includes('animal') || text.includes('avicole') || text.includes('culture') || text.includes('sante') || text.includes('sant')) return 'production';
+  if (text.includes('assistant')) return 'pilotage';
+  if (text.includes('animal') || text.includes('avicole') || text.includes('culture') || text.includes('sante') || text.includes('sant') || text.includes('smart farm')) return 'production';
   if (text.includes('vente') || text.includes('client') || text.includes('fournisseur') || text.includes('commande')) return 'commerce';
   if (text.includes('finance') || text.includes('compta') || text.includes('invest')) return 'finance';
-  if (text.includes('stock') || text.includes('document') || text.includes('tache') || text.includes('alerte') || text.includes('trace')) return 'ressources';
+  if (text.includes('stock') || text.includes('document') || text.includes('tache') || text.includes('alerte') || text.includes('trace') || text === 'rh' || text.includes('equipe')) return 'ressources';
+  if (text.includes('sync') || text.includes('audit') || text.includes('systeme') || text.includes('parametre') || text.includes('utilisateur')) return 'administration';
   if (text.includes('objectif') || text.includes('decision') || text.includes('ia') || text.includes('dashboard') || text.includes('accueil')) return 'pilotage';
   return 'autres';
 }
