@@ -22,7 +22,6 @@ const sortRows = (rows, key, direction) => {
 };
 
 const cellValue = (row, col) => col.render ? col.render(row) : String(row?.[col.key] ?? '-');
-const plainValue = (row, col) => String(row?.[col.key] ?? '').trim();
 
 function MobileRowCard({ row, columns }) {
   const visibleColumns = columns.filter((col) => col.mobileHidden !== true);
