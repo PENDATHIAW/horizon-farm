@@ -1,7 +1,7 @@
 import { AlertTriangle, BarChart3, CheckCircle2, DollarSign, PiggyBank, TrendingUp, WalletCards } from 'lucide-react';
 import MiniMetricCard from '../components/MiniMetricCard.jsx';
 import { buildFinancialPlanVsActual, defaultFinancialPlan } from '../services/financialPlanService';
-import { fmtCurrency, fmtNumber } from '../utils/format';
+import { fmtCurrency } from '../utils/format';
 
 const toneFromGap = (gap, inverse = false) => {
   const value = Number(gap || 0);
@@ -10,6 +10,24 @@ const toneFromGap = (gap, inverse = false) => {
   return good ? 'success' : 'danger';
 };
 const statusLabel = (attainment = 0) => Number(attainment || 0) >= 100 ? 'Atteint' : Number(attainment || 0) >= 80 ? 'À suivre' : 'Retard';
+const safeModel = (model = {}) => ({
+  ...model,
+  currentMonthTarget: model.currentMonthTarget || { revenueTarget: 0, costTarget: 0, marginTarget: 0 },
+  revenueByActivity: Array.isArray(model.revenueByActivity) ? model.revenueByActivity : [],
+  annualTarget: Number(model.annualTarget || 0),
+  annualActual: Number(model.annualActual || 0),
+  annualAttainment: Number(model.annualAttainment || 0),
+  actualRevenue: Number(model.actualRevenue || 0),
+  actualCash: Number(model.actualCash || 0),
+  actualCosts: Number(model.actualCosts || 0),
+  actualMargin: Number(model.actualMargin || 0),
+  revenueGap: Number(model.revenueGap || 0),
+  costGap: Number(model.costGap || 0),
+  marginGap: Number(model.marginGap || 0),
+  revenueAttainment: Number(model.revenueAttainment || 0),
+  cashRate: Number(model.cashRate || 0),
+  monthCode: model.monthCode || '—',
+});
 
 function StatusPill({ children, tone = 'info' }) {
   const cls = {
@@ -22,7 +40,7 @@ function StatusPill({ children, tone = 'info' }) {
 }
 
 export default function FinancialPlanPanel({ dataMap = {}, salesOrders = [], payments = [], transactions = [], animaux = [], lots = [], stocks = [], alimentationLogs = [], productionLogs = [], year, month, onNavigate }) {
-  const model = buildFinancialPlanVsActual({ ...dataMap, salesOrders, sales_orders: salesOrders, payments, transactions, finances: transactions, animaux, avicole: lots, lots, stock: stocks, stocks, alimentationLogs, alimentation_logs: alimentationLogs, productionLogs, production_oeufs_logs: productionLogs }, defaultFinancialPlan, { year, month });
+  const model = safeModel(buildFinancialPlanVsActual({ ...dataMap, salesOrders, sales_orders: salesOrders, payments, transactions, finances: transactions, animaux, avicole: lots, lots, stock: stocks, stocks, alimentationLogs, alimentation_logs: alimentationLogs, productionLogs, production_oeufs_logs: productionLogs }, defaultFinancialPlan, { year, month }));
   const critical = [
     model.revenueAttainment < 80 ? `CA mensuel à ${model.revenueAttainment}% du prévu.` : null,
     model.cashRate < 80 && model.actualRevenue > 0 ? `Encaissement à ${model.cashRate}% du CA réel.` : null,
@@ -59,10 +77,10 @@ export default function FinancialPlanPanel({ dataMap = {}, salesOrders = [], pay
         <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="text-left text-[11px] uppercase tracking-wide text-[#8a7456]"><th className="px-4 py-3">Activité</th><th className="px-4 py-3">Prévu mois</th><th className="px-4 py-3">Réel mois</th><th className="px-4 py-3">Écart</th><th className="px-4 py-3">Atteinte</th><th className="px-4 py-3">Statut</th></tr></thead>
-            <tbody>{model.revenueByActivity.map((line) => <tr key={line.activity} className="border-t border-[#eadcc2]"><td className="px-4 py-3 font-black text-[#2f2415]">{line.label}</td><td className="px-4 py-3">{fmtCurrency(line.target)}</td><td className="px-4 py-3">{fmtCurrency(line.actual)}</td><td className={`px-4 py-3 font-bold ${line.gap >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{fmtCurrency(line.gap)}</td><td className="px-4 py-3">{line.attainment}%</td><td className="px-4 py-3"><StatusPill tone={line.attainment >= 100 ? 'success' : line.attainment >= 80 ? 'warning' : 'danger'}>{statusLabel(line.attainment)}</StatusPill></td></tr>)}</tbody>
+            <tbody>{model.revenueByActivity.map((line) => <tr key={line.activity} className="border-t border-[#eadcc2]"><td className="px-4 py-3 font-black text-[#2f2415]">{line.label}</td><td className="px-4 py-3">{fmtCurrency(line.target)}</td><td className="px-4 py-3">{fmtCurrency(line.actual)}</td><td className={`px-4 py-3 font-bold ${Number(line.gap || 0) >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{fmtCurrency(line.gap)}</td><td className="px-4 py-3">{line.attainment}%</td><td className="px-4 py-3"><StatusPill tone={line.attainment >= 100 ? 'success' : line.attainment >= 80 ? 'warning' : 'danger'}>{statusLabel(line.attainment)}</StatusPill></td></tr>)}</tbody>
           </table>
         </div>
-        <div className="lg:hidden p-3 space-y-2">{model.revenueByActivity.map((line) => <div key={line.activity} className="rounded-xl border border-[#eadcc2] bg-white p-3"><div className="flex items-start justify-between gap-2"><div><p className="font-black text-[#2f2415]">{line.label}</p><p className="text-xs text-[#8a7456]">Prévu {fmtCurrency(line.target)} · Réel {fmtCurrency(line.actual)}</p></div><StatusPill tone={line.attainment >= 100 ? 'success' : line.attainment >= 80 ? 'warning' : 'danger'}>{line.attainment}%</StatusPill></div><p className={`mt-2 text-sm font-black ${line.gap >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>Écart : {fmtCurrency(line.gap)}</p></div>)}</div>
+        <div className="lg:hidden p-3 space-y-2">{model.revenueByActivity.map((line) => <div key={line.activity} className="rounded-xl border border-[#eadcc2] bg-white p-3"><div className="flex items-start justify-between gap-2"><div><p className="font-black text-[#2f2415]">{line.label}</p><p className="text-xs text-[#8a7456]">Prévu {fmtCurrency(line.target)} · Réel {fmtCurrency(line.actual)}</p></div><StatusPill tone={line.attainment >= 100 ? 'success' : line.attainment >= 80 ? 'warning' : 'danger'}>{line.attainment}%</StatusPill></div><p className={`mt-2 text-sm font-black ${Number(line.gap || 0) >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>Écart : {fmtCurrency(line.gap)}</p></div>)}</div>
       </div>
 
       <div className="rounded-2xl border border-[#eadcc2] bg-white p-4">
