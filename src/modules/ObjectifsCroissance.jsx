@@ -1,6 +1,5 @@
-import { AlertTriangle, CalendarDays, Target, TrendingUp, WalletCards } from 'lucide-react';
+import { AlertTriangle, Target, TrendingUp, WalletCards } from 'lucide-react';
 import Btn from '../components/Btn';
-import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard';
 import SectionHeader from '../components/SectionHeader';
 import { buildDecisionCenterPlan } from '../services/growthDecisionEngine';
 import { fmtCurrency } from '../utils/format';
@@ -24,15 +23,6 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate }) {
       <GrowthPrioritySummary goal={goal} lateActivities={lateActivities} onNavigate={onNavigate} />
 
       <FinancialPlanLightPanel dataMap={dataMap} onNavigate={onNavigate} />
-
-      <ObjectivePerformanceCard dataMap={dataMap} activity="global" title="Performance globale" onNavigate={onNavigate} />
-
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-        <Kpi icon={Target} label="Objectif annuel" value={fmtCurrency(goal.annualTarget)} sub="Plan financier" />
-        <Kpi icon={CalendarDays} label="Objectif mensuel" value={fmtCurrency(goal.monthTarget)} sub={plan.goals?.currentMonth || 'Mois en cours'} />
-        <Kpi icon={TrendingUp} label="CA réalisé" value={fmtCurrency(goal.realized)} sub={`${goal.attainment ?? 0}% atteint`} />
-        <Kpi icon={WalletCards} label="Encaissement" value={fmtCurrency(goal.encaisse)} sub={`${goal.cashRate ?? 0}% du CA`} />
-      </div>
 
       <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-4">
         <div>
@@ -97,8 +87,4 @@ function GrowthPrioritySummary({ goal, lateActivities, onNavigate }) {
 
 function Mini({ icon: Icon, label, value, danger = false }) {
   return <div className={`rounded-xl border px-3 py-2 ${danger ? 'border-amber-200 bg-amber-50' : 'border-[#eadcc2] bg-[#fffdf8]'}`}><Icon size={14} className={danger ? 'text-amber-700' : 'text-[#9a6b12]'} /><b className="block text-[#2f2415]">{value}</b><span className="text-xs text-[#8a7456]">{label}</span></div>;
-}
-
-function Kpi({ icon: Icon, label, value, sub }) {
-  return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4"><Icon size={18} className="text-[#c9a96a]" /><p className="text-xs text-[#8a7456] mt-3">{label}</p><p className="text-lg font-black text-[#2f2415] mt-1">{value}</p><p className="text-xs text-[#8a7456] mt-1">{sub}</p></div>;
 }
