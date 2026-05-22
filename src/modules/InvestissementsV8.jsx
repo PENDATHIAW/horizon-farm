@@ -1,8 +1,9 @@
 import { Component, useState } from 'react';
 import toast from 'react-hot-toast';
-import { AlertTriangle, BarChart3, CheckCircle2, ChevronDown, Link2, RefreshCw, ShieldCheck, TrendingUp } from 'lucide-react';
+import { AlertTriangle, BarChart3, Beef, CheckCircle2, ChevronDown, Drumstick, Egg, Link2, RefreshCw, ShieldCheck, TrendingUp } from 'lucide-react';
 import { toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
+import { HORIZON_FARM_OPERATIONAL_CYCLES } from '../services/horizonFarmBusinessPlanSeed';
 import InvestissementsV7 from './InvestissementsV7.jsx';
 import InvestissementsEvolution from './InvestissementsEvolution.jsx';
 import InvestmentQualityControl from './InvestmentQualityControl.jsx';
@@ -39,6 +40,28 @@ class SafeBlock extends Component {
   retry = () => this.setState({ hasError: false, message: '' });
   render() { if (this.state.hasError) return <BlockFallback title={this.props.title} message={this.state.message} onRetry={this.retry} />; return this.props.children; }
 }
+
+function OperatingAssumptionsPanel() {
+  const { pondeuses, chair, bovins } = HORIZON_FARM_OPERATIONAL_CYCLES || {};
+  return <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
+    <article className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-2">
+      <p className="flex items-center gap-2 font-black text-[#2f2415]"><Egg size={17} className="text-[#9a6b12]" /> Pondeuses</p>
+      <p className="text-sm text-[#7d6a4a] leading-relaxed">{pondeuses?.principe}</p>
+      <div className="grid grid-cols-2 gap-2 text-xs"><Mini label="Démarrage" value={`${pondeuses?.demarrage || 3000} sujets`} /><Mini label="Prix poussin" value={`${pondeuses?.prix_unitaire_poussin || 900} FCFA`} /><Mini label="CA œufs" value="36,63 M" /><Mini label="2e bande" value="Selon réel" /></div>
+    </article>
+    <article className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-2">
+      <p className="flex items-center gap-2 font-black text-[#2f2415]"><Drumstick size={17} className="text-[#9a6b12]" /> Poulets de chair</p>
+      <p className="text-sm text-[#7d6a4a] leading-relaxed">Bandes de 500 : achat, vente vers J+40, puis roulement avec nouvelle bande 15 jours après.</p>
+      <div className="grid grid-cols-2 gap-2 text-xs"><Mini label="Bande" value={`${chair?.demarrage_prudent || 500}`} /><Mini label="Cycle" value={`${chair?.cycle_jours || 40} jours`} /><Mini label="Poussins/mois" value={`${chair?.poussins_mois || 1600}`} /><Mini label="Coût poussins/mois" value="1 024 000" /></div>
+    </article>
+    <article className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-2">
+      <p className="flex items-center gap-2 font-black text-[#2f2415]"><Beef size={17} className="text-[#9a6b12]" /> Bovins</p>
+      <p className="text-sm text-[#7d6a4a] leading-relaxed">M1/M2/M3 : acheter 5. M4 vend M1, M5 vend M2, M6 vend M3, puis vente/rachat mensuel.</p>
+      <div className="grid grid-cols-2 gap-2 text-xs"><Mini label="Achat mensuel" value={`${bovins?.achat_mensuel_apres_pipeline || 5}`} /><Mini label="Cycle" value={`${bovins?.cycle_jours || 90} jours`} /><Mini label="Prix achat" value="300 000" /><Mini label="Prix vente" value="700 000" /></div>
+    </article>
+  </div>;
+}
+function Mini({ label, value }) { return <div className="rounded-xl border border-[#eadcc2] bg-white p-2"><p className="text-[#8a7456]">{label}</p><p className="font-black text-[#2f2415]">{value}</p></div>; }
 
 async function createOperationalAsset(line, props) {
   const type = assetType(line);
@@ -104,6 +127,10 @@ export default function InvestissementsV8(props) {
   return (
     <div className="space-y-6 investissements-mobile-structured">
       <style>{`@media (max-width: 640px){.investissements-mobile-structured .rounded-2xl{border-radius:18px}.investissements-mobile-structured table{font-size:12px}.investissements-mobile-structured th,.investissements-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.investissements-mobile-structured .text-2xl{font-size:1.35rem}.investissements-mobile-structured .grid{gap:.75rem}.investissements-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
+
+      <ModuleSection icon={TrendingUp} title="Hypothèses opérationnelles du BP" subtitle="Les cycles validés sont visibles ici, mais leur exécution se fait dans Centre décisionnel, Avicole et Animaux.">
+        <SafeBlock title="Hypothèses opérationnelles du BP"><OperatingAssumptionsPanel /></SafeBlock>
+      </ModuleSection>
 
       <ModuleSection icon={ShieldCheck} title="Contrôle qualité investissement" subtitle="Cohérence BP, financements, lignes effectives, liens métiers et risques à traiter avant les détails.">
         <SafeBlock title="Contrôle qualité investissement">
