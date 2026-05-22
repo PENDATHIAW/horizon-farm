@@ -13,6 +13,9 @@ const activityFallback = {
   caprins: 'Caprins',
   cultures: 'Cultures',
   stock: 'Stock / produits',
+  fumier_pondeuses: 'Fumier pondeuses',
+  fumier_chair: 'Fumier chair',
+  fumier_bovins: 'Fumier bœufs',
 };
 
 export default function ObjectivePerformanceCard({ dataMap = {}, activity = 'global', title = 'Objectif & Performance', compact = false, onNavigate }) {
