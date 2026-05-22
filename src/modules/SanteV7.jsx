@@ -1,5 +1,5 @@
-import { Component } from 'react';
-import { AlertTriangle, BarChart3, HeartPulse, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Component, useState } from 'react';
+import { AlertTriangle, BarChart3, ChevronDown, HeartPulse, RefreshCw, ShieldCheck } from 'lucide-react';
 import useCrudModule from '../hooks/useCrudModule';
 import HealthQualityControl from './HealthQualityControl.jsx';
 import SanteSmartInterventions from './SanteV6.jsx';
@@ -7,6 +7,10 @@ import SanteEvolution from './SanteEvolution.jsx';
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} aria-hidden="true" /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
+}
+function CollapsibleSection({ icon: Icon, title, subtitle, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm overflow-hidden"><button type="button" onClick={() => setOpen((value) => !value)} className="flex min-h-[64px] w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-[#fffdf8]"><span><span className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} aria-hidden="true" /> {title}</span>{subtitle ? <span className="mt-1 block text-sm text-[#8a7456]">{subtitle}</span> : null}</span><ChevronDown size={20} className={`shrink-0 text-[#8a7456] transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" /></button>{open ? <div className="border-t border-[#eadcc2] p-5">{children}</div> : null}</section>;
 }
 
 function HealthBlockError({ title, message, onRetry }) {
@@ -101,8 +105,8 @@ export default function SanteV7(props) {
       <SafeHealthBlock title="Contrôle santé"><HealthQualityControl rows={props.rows || []} stocks={stocks} transactions={transactions} animaux={animaux} lots={lots} onUpdate={props.onUpdate} onUpdateAnimal={onUpdateAnimal} onUpdateLot={onUpdateLot} onRefresh={props.onRefresh} onRefreshAnimals={onRefreshAnimals} onRefreshLots={onRefreshLots} /></SafeHealthBlock>
     </ModuleSection>
 
-    <ModuleSection icon={BarChart3} title="Évolution santé" subtitle="Suivre les retards, soins réalisés, coûts et tendances santé.">
+    <CollapsibleSection icon={BarChart3} title="Évolution santé" subtitle="Suivre les retards, soins réalisés, coûts et tendances santé." defaultOpen={false}>
       <SafeHealthBlock title="Évolution santé"><SanteEvolution rows={props.rows || []} transactions={transactions} onNavigate={props.onNavigate} /></SafeHealthBlock>
-    </ModuleSection>
+    </CollapsibleSection>
   </div>;
 }
