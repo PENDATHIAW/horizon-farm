@@ -1,4 +1,4 @@
-import { BarChart3, Beef, ClipboardList, PackageCheck, Scissors } from 'lucide-react';
+import { BarChart3, Beef, ChevronDown, ClipboardList, PackageCheck, Scissors } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard.jsx';
 import useCrudModule from '../hooks/useCrudModule';
@@ -24,6 +24,10 @@ const isOperationalAnimal = (row = {}) => !isClosedAnimal(row);
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
+}
+function CollapsibleSection({ icon: Icon, title, subtitle, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm overflow-hidden"><button type="button" onClick={() => setOpen((value) => !value)} className="flex min-h-[64px] w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-[#fffdf8]"><span><span className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</span>{subtitle ? <span className="mt-1 block text-sm text-[#8a7456]">{subtitle}</span> : null}</span><ChevronDown size={20} className={`shrink-0 text-[#8a7456] transition-transform ${open ? 'rotate-180' : ''}`} /></button>{open ? <div className="border-t border-[#eadcc2] p-5">{children}</div> : null}</section>;
 }
 
 export default function AnimauxV2(props) {
@@ -80,7 +84,7 @@ export default function AnimauxV2(props) {
     <ModuleSection icon={PackageCheck} title={`${species}s : suivi quotidien`} subtitle={`Animaux actifs uniquement · ${historicalSpeciesRows.length} animal(aux) en historique.`}><AnimauxSpeciesFocused {...props} {...commonWorkflowProps} species={species} rows={activeSpeciesRows} onCreate={wrapCreate} onUpdate={wrapUpdate} /></ModuleSection>
     <ModuleSection icon={Scissors} title={`${species}s : abattage, transformation et stock`} subtitle="Sortie de l’animal actif, transformation éventuelle et création de stock vendable."><AnimalSlaughterStockBridge rows={activeSpeciesRows} alimentationLogs={props.alimentationLogs || []} vaccins={props.vaccins || []} businessEvents={businessEvents} onUpdate={props.onUpdate} onRefresh={props.onRefresh} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} /></ModuleSection>
     <ModuleSection icon={PackageCheck} title={`${species}s : frais liés à un animal`} subtitle="Frais directement rattachés aux animaux actifs."><DirectChargesBridge title={`Frais directs ${species.toLowerCase()}s`} subtitle="Ces frais améliorent le calcul du coût réel par animal actif." targetType="animaux" targets={activeSpeciesRows} businessEvents={businessEvents} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onUpdateBusinessEvent={props.onUpdateBusinessEvent || businessEventsCrud.update} onDeleteBusinessEvent={props.onDeleteBusinessEvent || businessEventsCrud.remove} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} /></ModuleSection>
-    <ModuleSection icon={ClipboardList} title={`${species}s : cycle et historique`} subtitle="Entrées, sorties, ventes, pertes, clôtures et événements importants."><LifecycleHistoryPanel mode="animaux" rows={speciesRows} salesOrders={salesOrders} deliveries={deliveries} businessEvents={businessEvents} /></ModuleSection>
-    <ModuleSection icon={BarChart3} title={`${species}s : évolution`} subtitle="Poids, croissance, alimentation, santé, ventes, marge et coût par animal, historique inclus."><AnimauxEvolution rows={speciesRows} alimentationLogs={props.alimentationLogs || []} vaccins={props.vaccins || []} businessEvents={businessEvents} opportunities={opportunities} salesOrders={salesOrders} payments={payments} transactions={transactions} onNavigate={props.onNavigate} /></ModuleSection>
+    <CollapsibleSection icon={ClipboardList} title={`${species}s : cycle et historique`} subtitle="Entrées, sorties, ventes, pertes, clôtures et événements importants." defaultOpen={false}><LifecycleHistoryPanel mode="animaux" rows={speciesRows} salesOrders={salesOrders} deliveries={deliveries} businessEvents={businessEvents} /></CollapsibleSection>
+    <CollapsibleSection icon={BarChart3} title={`${species}s : évolution`} subtitle="Poids, croissance, alimentation, santé, ventes, marge et coût par animal, historique inclus." defaultOpen={false}><AnimauxEvolution rows={speciesRows} alimentationLogs={props.alimentationLogs || []} vaccins={props.vaccins || []} businessEvents={businessEvents} opportunities={opportunities} salesOrders={salesOrders} payments={payments} transactions={transactions} onNavigate={props.onNavigate} /></CollapsibleSection>
   </div>;
 }
