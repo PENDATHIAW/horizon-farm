@@ -1,5 +1,5 @@
-import { BarChart3, Package, Utensils } from 'lucide-react';
-import { useCallback } from 'react';
+import { BarChart3, ChevronDown, Package, Utensils } from 'lucide-react';
+import { useCallback, useState } from 'react';
 import { toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import StocksV3 from './StocksV3.jsx';
@@ -30,6 +30,10 @@ const activityForFeeding = (targetType = '', target = {}) => {
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
+}
+function CollapsibleSection({ icon: Icon, title, subtitle, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm overflow-hidden"><button type="button" onClick={() => setOpen((value) => !value)} className="flex min-h-[64px] w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-[#fffdf8]"><span><span className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</span>{subtitle ? <span className="mt-1 block text-sm text-[#8a7456]">{subtitle}</span> : null}</span><ChevronDown size={20} className={`shrink-0 text-[#8a7456] transition-transform ${open ? 'rotate-180' : ''}`} /></button>{open ? <div className="border-t border-[#eadcc2] p-5">{children}</div> : null}</section>;
 }
 
 export default function StocksV4(props) {
@@ -67,5 +71,5 @@ export default function StocksV4(props) {
     await Promise.allSettled([props.onRefresh?.(), props.onRefreshAlimentation?.(), props.onRefreshBusinessEvents?.(), props.onRefreshFinances?.()]);
   }, [props]);
 
-  return <div className="space-y-6 stock-mobile-structured"><style>{`@media (max-width: 640px){.stock-mobile-structured .rounded-2xl{border-radius:18px}.stock-mobile-structured table{font-size:12px}.stock-mobile-structured th,.stock-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.stock-mobile-structured .text-2xl{font-size:1.35rem}.stock-mobile-structured .grid{gap:.75rem}.stock-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style><ModuleSection icon={Package} title="Stock courant" subtitle="Produits, quantités, seuils, entrées, sorties et pertes suivies."><StocksV3 {...props} onUpdate={updateWithLossHistory} /></ModuleSection><ModuleSection icon={Utensils} title="Alimentation des animaux et lots" subtitle="Calculer une ration, retirer le stock utilisé et suivre le coût sans double saisie."><StockFeedingCostPlanner rows={props.rows || []} animaux={props.animaux || []} lots={props.lots || []} alimentationLogs={props.alimentationLogs || []} onOpenUseFood={applyFeedingPlan} /></ModuleSection><ModuleSection icon={BarChart3} title="Évolution stock" subtitle="Graphes et historique des entrées, sorties, consommations et alertes."><StockEvolution rows={props.rows || []} alimentationLogs={props.alimentationLogs || []} onNavigate={props.onNavigate} /></ModuleSection></div>;
+  return <div className="space-y-6 stock-mobile-structured"><style>{`@media (max-width: 640px){.stock-mobile-structured .rounded-2xl{border-radius:18px}.stock-mobile-structured table{font-size:12px}.stock-mobile-structured th,.stock-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.stock-mobile-structured .text-2xl{font-size:1.35rem}.stock-mobile-structured .grid{gap:.75rem}.stock-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style><ModuleSection icon={Package} title="Stock courant" subtitle="Produits, quantités, seuils, entrées, sorties et pertes suivies."><StocksV3 {...props} onUpdate={updateWithLossHistory} /></ModuleSection><ModuleSection icon={Utensils} title="Alimentation des animaux et lots" subtitle="Calculer une ration, retirer le stock utilisé et suivre le coût sans double saisie."><StockFeedingCostPlanner rows={props.rows || []} animaux={props.animaux || []} lots={props.lots || []} alimentationLogs={props.alimentationLogs || []} onOpenUseFood={applyFeedingPlan} /></ModuleSection><CollapsibleSection icon={BarChart3} title="Évolution stock" subtitle="Graphes et historique des entrées, sorties, consommations et alertes." defaultOpen={false}><StockEvolution rows={props.rows || []} alimentationLogs={props.alimentationLogs || []} onNavigate={props.onNavigate} /></CollapsibleSection></div>;
 }
