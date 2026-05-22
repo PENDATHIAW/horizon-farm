@@ -11,9 +11,12 @@ const amount = (row = {}) => num(row.montant_total ?? row.total_ttc ?? row.total
 const paid = (row = {}) => num(row.montant_paye ?? row.paid_amount ?? row.amount_paid ?? row.montant ?? row.amount);
 const safeRun = (fn, fallback) => { try { return fn(); } catch (error) { console.warn('growthDecisionEngine fallback', error?.message || error); return fallback; } };
 
-export const activityLabels = { global: 'Global ferme', oeufs: 'Œufs / Pondeuses', poulets_chair: 'Poulets de chair', animaux: 'Animaux global', bovins: 'Bovins', ovins: 'Ovins', caprins: 'Caprins', cultures: 'Cultures', stock: 'Stock / Produits' };
-export const monthlyWeights = [0.07, 0.07, 0.08, 0.08, 0.08, 0.09, 0.08, 0.08, 0.08, 0.08, 0.1, 0.11];
-export const defaultAnnualMix = { oeufs: 0.32, poulets_chair: 0.22, bovins: 0.12, ovins: 0.09, caprins: 0.05, cultures: 0.15, stock: 0.05 };
+export const activityLabels = { global: 'Global ferme', oeufs: 'Œufs / Pondeuses', poulets_chair: 'Poulets de chair', animaux: 'Animaux global', bovins: 'Bovins', ovins: 'Ovins', caprins: 'Caprins', cultures: 'Cultures', stock: 'Stock / Produits', fumier_pondeuses: 'Fumier pondeuses', fumier_chair: 'Fumier chair', fumier_bovins: 'Fumier bœufs' };
+export const annualRevenueTarget = 121820000;
+export const monthlyRevenueTargets = [215000, 2730000, 6215000, 6230000, 9705000, 12690000, 13995000, 14010000, 13995000, 14010000, 13995000, 14030000];
+export const monthlyWeights = monthlyRevenueTargets.map((value) => value / annualRevenueTarget);
+export const activityAnnualTargets = { oeufs: 36630000, poulets_chair: 47520000, bovins: 35000000, fumier_pondeuses: 1800000, fumier_chair: 600000, fumier_bovins: 270000 };
+export const defaultAnnualMix = Object.fromEntries(Object.entries(activityAnnualTargets).map(([key, value]) => [key, value / annualRevenueTarget]));
 
 function dateOnly(date) { const d = safeDate(date); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
 function iso(date) { return safeDate(date).toISOString().slice(0, 10); }
@@ -28,6 +31,9 @@ export function classifySaleActivity(order = {}, dataMap = {}) {
     const raw = normalize(`${order.activite || ''} ${order.source_type || ''} ${order.type_vente || ''} ${order.product_type || ''} ${order.product_name || ''} ${order.libelle || ''} ${order.espece || ''} ${order.type_animal || ''} ${order.source_id || ''} ${order.related_id || ''}`);
     if (raw.includes('oeuf') || raw.includes('tablette') || raw.includes('plateau') || raw.includes('pondeuse')) return 'oeufs';
     if (raw.includes('chair') || raw.includes('poulet')) return 'poulets_chair';
+    if (raw.includes('fumier') && (raw.includes('pondeuse') || raw.includes('oeuf'))) return 'fumier_pondeuses';
+    if (raw.includes('fumier') && (raw.includes('chair') || raw.includes('poulet'))) return 'fumier_chair';
+    if (raw.includes('fumier') && (raw.includes('bovin') || raw.includes('boeuf'))) return 'fumier_bovins';
     const species = classifyAnimalSpeciesFromText(raw) || findAnimalSpeciesById(order.source_id || order.related_id || order.product_id || order.entity_id, dataMap);
     if (species) return species;
     if (raw.includes('animal')) return 'animaux';
@@ -37,10 +43,7 @@ export function classifySaleActivity(order = {}, dataMap = {}) {
 }
 
 function buildFinanceRevenueOrders(dataMap = {}, currentMonth = '') {
-  return arr(dataMap.finances || dataMap.transactions)
-    .filter((row) => monthOf(row) === currentMonth)
-    .filter((row) => normalize(row.type).includes('entree'))
-    .map((row) => ({ ...row, montant_total: amount(row), product_name: row.libelle || row.description || row.categorie, source_type: row.source_type || row.module_lie || row.activite, source_id: row.source_id || row.related_id }));
+  return arr(dataMap.finances || dataMap.transactions).filter((row) => monthOf(row) === currentMonth).filter((row) => normalize(row.type).includes('entree')).map((row) => ({ ...row, montant_total: amount(row), product_name: row.libelle || row.description || row.categorie, source_type: row.source_type || row.module_lie || row.activite, source_id: row.source_id || row.related_id }));
 }
 function mergeRevenueRows(sales = [], financeRevenue = []) { const seen = new Set(sales.map((row) => String(row.id || row.related_id || row.source_record_id || ''))); return [...sales, ...financeRevenue.filter((row) => !seen.has(String(row.related_id || row.source_record_id || row.id || '')))]; }
 
@@ -48,18 +51,18 @@ export function buildCommercialCalendar(date = new Date()) {
   return safeRun(() => {
     const d = safeDate(date); const month = d.getMonth() + 1;
     const rows = [
-      { month: 1, label: 'Janvier', focus: ['poulets_chair', 'oeufs'], note: 'Reprise, bilan cash, cycles courts.' },
-      { month: 2, label: 'Février', focus: ['oeufs', 'poulets_chair'], note: 'Préparer périodes alimentaires fortes selon calendrier annuel.' },
-      { month: 3, label: 'Mars', focus: ['oeufs', 'poulets_chair'], note: 'Demande alimentaire possible, surveiller cash et créances.' },
-      { month: 4, label: 'Avril', focus: ['oeufs', 'cultures'], note: 'Relance et préparation investissements longs.' },
-      { month: 5, label: 'Mai', focus: ['cultures', 'bovins', 'ovins', 'caprins'], note: 'Contrôler les deadlines et préparer les prochaines fenêtres.' },
-      { month: 6, label: 'Juin', focus: ['bovins', 'ovins', 'caprins'], note: 'Fenêtres animales possibles si les mises en place sont faites à temps.' },
-      { month: 7, label: 'Juillet', focus: ['cultures', 'oeufs'], note: 'Suivi cultures, santé, alimentation et opportunités.' },
-      { month: 8, label: 'Août', focus: ['cultures', 'bovins', 'ovins', 'caprins'], note: 'Préparer fenêtres religieuses/locales et rentrée.' },
-      { month: 9, label: 'Septembre', focus: ['oeufs', 'poulets_chair', 'bovins', 'ovins', 'caprins'], note: 'Fenêtres Gamou/Magal à confirmer, reprise commerce.' },
-      { month: 10, label: 'Octobre', focus: ['poulets_chair', 'oeufs'], note: 'Précommandes et cycles courts pour fin d’année.' },
-      { month: 11, label: 'Novembre', focus: ['poulets_chair', 'oeufs'], note: 'Préparer fin d’année, sécuriser clients cash.' },
-      { month: 12, label: 'Décembre', focus: ['poulets_chair', 'oeufs', 'bovins', 'ovins', 'caprins'], note: 'Fin d’année : commandes groupées et livraisons.' },
+      { month: 1, label: 'Janvier', focus: ['fumier_pondeuses', 'fumier_chair', 'fumier_bovins'], note: 'Mois faible : sécuriser stock, trésorerie et préparation cycles.' },
+      { month: 2, label: 'Février', focus: ['poulets_chair', 'fumier'], note: 'Démarrage revenus chair selon le prévisionnel.' },
+      { month: 3, label: 'Mars', focus: ['poulets_chair', 'bovins'], note: 'Premiers revenus bovins prévus, vérifier marge/cash.' },
+      { month: 4, label: 'Avril', focus: ['poulets_chair', 'bovins'], note: 'Maintenir cycles chair et embouche.' },
+      { month: 5, label: 'Mai', focus: ['oeufs', 'poulets_chair', 'bovins'], note: 'Démarrage CA œufs : surveiller ponte et ventes tablettes.' },
+      { month: 6, label: 'Juin', focus: ['oeufs', 'poulets_chair', 'bovins'], note: 'Montée en régime œufs et chair.' },
+      { month: 7, label: 'Juillet', focus: ['oeufs', 'poulets_chair', 'bovins'], note: 'Rythme cible élevé : tenir approvisionnement et encaissement.' },
+      { month: 8, label: 'Août', focus: ['oeufs', 'poulets_chair', 'bovins'], note: 'CA mensuel cible ~14M : priorité ventes et cash.' },
+      { month: 9, label: 'Septembre', focus: ['oeufs', 'poulets_chair', 'bovins'], note: 'Maintenir disponibilité œufs et ventes chair.' },
+      { month: 10, label: 'Octobre', focus: ['oeufs', 'poulets_chair', 'bovins'], note: 'Préparer la fin d’année sans rupture.' },
+      { month: 11, label: 'Novembre', focus: ['oeufs', 'poulets_chair', 'bovins'], note: 'Sécuriser clients récurrents et créances.' },
+      { month: 12, label: 'Décembre', focus: ['oeufs', 'poulets_chair', 'bovins'], note: 'Fin d’année : tenir le pic prévu et encaisser.' },
     ];
     return { current: rows.find((row) => row.month === month) || rows[0], next: [1, 2, 3, 4, 5, 6].map((offset) => rows[(month - 1 + offset) % 12]), year: rows };
   }, { current: null, next: [], year: [] });
@@ -100,19 +103,19 @@ export function buildProductionCapacity(dataMap = {}) {
 
 export function buildGoalPerformance(dataMap = {}, options = {}) {
   return safeRun(() => {
-    const date = safeDate(options.date || new Date()); const annualTarget = num(options.annualTarget || dataMap?.growth_settings?.annual_ca_target || 120000000); const monthTarget = annualTarget * (monthlyWeights[date.getMonth()] || 1 / 12); const currentMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const date = safeDate(options.date || new Date()); const annualTarget = num(options.annualTarget || dataMap?.growth_settings?.annual_ca_target || annualRevenueTarget); const monthTarget = num(dataMap?.growth_settings?.monthly_targets?.[date.getMonth()] || monthlyRevenueTargets[date.getMonth()] || annualTarget / 12); const currentMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     const sales = arr(dataMap.sales_orders || dataMap.salesOrders).filter((row) => monthOf(row) === currentMonth); const payments = arr(dataMap.payments).filter((row) => monthOf(row) === currentMonth); const finances = arr(dataMap.finances || dataMap.transactions).filter((row) => monthOf(row) === currentMonth); const revenueRows = mergeRevenueRows(sales, buildFinanceRevenueOrders(dataMap, currentMonth));
-    const activities = Object.keys(defaultAnnualMix).reduce((acc, key) => ({ ...acc, [key]: { activity: key, label: activityLabels[key], target: monthTarget * defaultAnnualMix[key], realized: 0 } }), {});
+    const activities = Object.entries(activityAnnualTargets).reduce((acc, [key, target]) => ({ ...acc, [key]: { activity: key, label: activityLabels[key], target: monthTarget * (target / annualRevenueTarget), realized: 0 } }), {});
     let genericAnimalsRealized = 0;
     revenueRows.forEach((order) => { const key = classifySaleActivity(order, dataMap); if (activities[key]) activities[key].realized += amount(order); else if (key === 'animaux') genericAnimalsRealized += amount(order); });
-    const animalGlobal = { activity: 'animaux', label: activityLabels.animaux, target: activities.bovins.target + activities.ovins.target + activities.caprins.target, realized: activities.bovins.realized + activities.ovins.realized + activities.caprins.realized + genericAnimalsRealized };
+    const animalGlobal = { activity: 'animaux', label: activityLabels.animaux, target: activities.bovins.target, realized: activities.bovins.realized + genericAnimalsRealized };
     animalGlobal.attainment = animalGlobal.target ? Math.round((animalGlobal.realized / animalGlobal.target) * 100) : 0; animalGlobal.remaining = Math.max(0, animalGlobal.target - animalGlobal.realized);
     const realized = Object.values(activities).reduce((sum, row) => sum + row.realized, 0) + genericAnimalsRealized; const paymentCash = payments.reduce((sum, row) => sum + paid(row), 0); const financeCash = finances.filter((f) => normalize(f.type).includes('entree')).reduce((sum, row) => sum + amount(row), 0); const encaisse = Math.min(realized, Math.max(paymentCash, financeCash)); const depenses = finances.filter((f) => normalize(f.type).includes('sortie')).reduce((sum, row) => sum + amount(row), 0);
-    return { global: { activity: 'global', label: activityLabels.global, annualTarget, monthTarget, weekTarget: monthTarget / 4.33, realized, encaisse, depenses, marge: realized - depenses, attainment: monthTarget ? Math.round((realized / monthTarget) * 100) : 0, remaining: Math.max(0, monthTarget - realized), cashRate: realized ? Math.min(100, Math.round((encaisse / realized) * 100)) : 0 }, activities: [...Object.values(activities), animalGlobal].map((row) => ({ ...row, attainment: row.target ? Math.round((row.realized / row.target) * 100) : 0, remaining: Math.max(0, row.target - row.realized) })).sort((a, b) => b.realized - a.realized), currentMonth };
+    return { global: { activity: 'global', label: activityLabels.global, annualTarget, monthTarget, weekTarget: monthTarget / 4.33, realized, encaisse, depenses, marge: realized - depenses, attainment: monthTarget ? Math.round((realized / monthTarget) * 100) : 0, remaining: Math.max(0, monthTarget - realized), cashRate: realized ? Math.min(100, Math.round((encaisse / realized) * 100)) : 0 }, activities: [...Object.values(activities), animalGlobal].map((row) => ({ ...row, attainment: row.target ? Math.round((row.realized / row.target) * 100) : 0, remaining: Math.max(0, row.target - row.realized) })).sort((a, b) => b.target - a.target), currentMonth };
   }, fallbackGoals(options));
 }
 
-function fallbackGoals(options = {}) { const date = safeDate(options.date || new Date()); const annualTarget = num(options.annualTarget || 120000000); const monthTarget = annualTarget * (monthlyWeights[date.getMonth()] || 1 / 12); const activities = Object.keys(defaultAnnualMix).map((key) => ({ activity: key, label: activityLabels[key], target: monthTarget * defaultAnnualMix[key], realized: 0, attainment: 0, remaining: monthTarget * defaultAnnualMix[key] })); return { global: { activity: 'global', label: activityLabels.global, annualTarget, monthTarget, weekTarget: monthTarget / 4.33, realized: 0, encaisse: 0, depenses: 0, marge: 0, attainment: 0, remaining: monthTarget, cashRate: 0 }, activities, currentMonth: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}` }; }
+function fallbackGoals(options = {}) { const date = safeDate(options.date || new Date()); const annualTarget = num(options.annualTarget || annualRevenueTarget); const monthTarget = monthlyRevenueTargets[date.getMonth()] || annualTarget / 12; const activities = Object.entries(activityAnnualTargets).map(([key, target]) => ({ activity: key, label: activityLabels[key], target: monthTarget * (target / annualRevenueTarget), realized: 0, attainment: 0, remaining: monthTarget * (target / annualRevenueTarget) })); return { global: { activity: 'global', label: activityLabels.global, annualTarget, monthTarget, weekTarget: monthTarget / 4.33, realized: 0, encaisse: 0, depenses: 0, marge: 0, attainment: 0, remaining: monthTarget, cashRate: 0 }, activities, currentMonth: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}` }; }
 
 function buildCoverageDecision(activity, coverageRow, timingWindow) { if (!coverageRow) return { action: 'Données demande/capacité insuffisantes.', priorityModifier: 0 }; if (coverageRow.coverageStatus === 'couvert') return { action: `Demande ${coverageRow.demandLevel} mais capacité couverte à ${coverageRow.coverageRate}%. Priorité : vendre, sécuriser clients et éviter surinvestissement.`, priorityModifier: -1 }; if (!timingWindow?.shouldRecommendInvestment) return { action: `${timingWindow.tooLateReason} Capacité actuelle couvre ${coverageRow.coverageRate}% seulement, mais il faut viser la prochaine fenêtre viable.`, priorityModifier: 0 }; if (coverageRow.demandLevel === 'forte' && coverageRow.coverageStatus === 'insuffisant') return { action: `Demande forte et capacité insuffisante : écart ${coverageRow.gapUnits} unité(s), environ ${Number(coverageRow.gapRevenue || 0).toLocaleString('fr-FR')} FCFA à couvrir.`, priorityModifier: 1 }; if (coverageRow.coverageStatus === 'partiel') return { action: `Capacité partielle (${coverageRow.coverageRate}%). Compléter par précommandes, stock existant ou investissement limité.`, priorityModifier: 0 }; return { action: `Capacité insuffisante (${coverageRow.coverageRate}%). Écart estimé ${coverageRow.gapUnits} unité(s).`, priorityModifier: 0 }; }
 function priorityWithCoverage(base, modifier) { const order = ['basse', 'moyenne', 'haute']; const idx = Math.max(0, Math.min(order.length - 1, order.indexOf(base) + modifier)); return order[idx] || base; }
@@ -126,7 +129,7 @@ export function buildGrowthRecommendations(dataMap = {}, options = {}) {
     const referenceDate = safeDate(options.date || new Date()); const leadTimes = estimateLeadTimes(dataMap); const capacity = buildProductionCapacity(dataMap); const marketEvents = buildMarketEvents(referenceDate, dataMap);
     safeRun(() => buildMonthlyDemandForecast(dataMap, { date: referenceDate }), null);
     const farmSupply = safeRun(() => buildFarmSupplyCoverage(dataMap, { date: referenceDate }), null);
-    const baseActivities = ['oeufs', 'poulets_chair', 'bovins', 'ovins', 'caprins', 'cultures'];
+    const baseActivities = ['oeufs', 'poulets_chair', 'bovins'];
     const recommendations = baseActivities.map((activity) => { const timingWindow = selectRollingWindow(activity, marketEvents, leadTimes[activity] || leadTimes.animaux || 90, referenceDate); const coverageRow = farmSupply ? findDemandCoverageForActivity(farmSupply, activity) : null; return buildRecommendation({ activity, title: `Cap ${activityLabels[activity]}`, priority: activity === 'oeufs' || activity === 'poulets_chair' ? 'moyenne' : 'haute', recommendation: activity === 'oeufs' ? `Capacité estimée : ${Math.round(capacity.tabletsDay || 0)} tablette(s)/jour${capacity.layingRateKnown ? `, taux de ponte ${capacity.layingRate}%` : ', taux de ponte non calculable faute de logs'}.` : `Lead time estimé ${leadTimes[activity] || leadTimes.animaux} jours.`, timingWindow, coverageRow, capacity }); }).filter(Boolean);
     const technical = safeRun(() => buildTechnicalFarmingAlerts(dataMap).map(buildTechnicalRecommendation), []);
     return [...recommendations, ...technical].sort((a, b) => ({ haute: 3, moyenne: 2, basse: 1 }[b.priority] - { haute: 3, moyenne: 2, basse: 1 }[a.priority]));
