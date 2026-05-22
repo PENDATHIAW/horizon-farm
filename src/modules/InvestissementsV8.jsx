@@ -1,5 +1,6 @@
+import { Component, useState } from 'react';
 import toast from 'react-hot-toast';
-import { BarChart3, CheckCircle2, Link2, ShieldCheck, TrendingUp } from 'lucide-react';
+import { AlertTriangle, BarChart3, CheckCircle2, ChevronDown, Link2, RefreshCw, ShieldCheck, TrendingUp } from 'lucide-react';
 import { toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import InvestissementsV7 from './InvestissementsV7.jsx';
@@ -23,6 +24,20 @@ function linkPatch(line = {}, module, id) { return { asset_module: module, asset
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
+}
+function CollapsibleSection({ icon: Icon, title, subtitle, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm overflow-hidden"><button type="button" onClick={() => setOpen((value) => !value)} className="flex min-h-[64px] w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-[#fffdf8]"><span><span className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</span>{subtitle ? <span className="mt-1 block text-sm text-[#8a7456]">{subtitle}</span> : null}</span><ChevronDown size={20} className={`shrink-0 text-[#8a7456] transition-transform ${open ? 'rotate-180' : ''}`} /></button>{open ? <div className="border-t border-[#eadcc2] p-5">{children}</div> : null}</section>;
+}
+function BlockFallback({ title, message, onRetry }) {
+  return <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="flex items-center gap-2 font-black"><AlertTriangle size={17} /> Bloc indisponible</p><p className="mt-1 text-sm">La section <b>{title}</b> n’a pas pu être chargée. Le reste du module Investissements reste utilisable.</p>{message ? <p className="mt-2 rounded-xl border border-amber-200 bg-white/70 px-3 py-2 text-xs">Détail : {message}</p> : null}</div><button type="button" onClick={onRetry} className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-amber-300 bg-white px-4 py-2 text-sm font-black text-amber-800 hover:bg-amber-100"><RefreshCw size={15} /> Réessayer</button></div></div>;
+}
+class SafeBlock extends Component {
+  constructor(props) { super(props); this.state = { hasError: false, message: '' }; }
+  static getDerivedStateFromError(error) { return { hasError: true, message: error?.message || '' }; }
+  componentDidCatch(error) { console.warn(`Bloc investissements indisponible: ${this.props.title}`, error?.message || error); }
+  retry = () => this.setState({ hasError: false, message: '' });
+  render() { if (this.state.hasError) return <BlockFallback title={this.props.title} message={this.state.message} onRetry={this.retry} />; return this.props.children; }
 }
 
 async function createOperationalAsset(line, props) {
@@ -73,7 +88,7 @@ function OperationalAssetsBridge(props) {
   const lines = plan ? (props.bpInvestmentLines || []).filter((line) => line.business_plan_id === plan.id) : [];
   const eligible = lines.filter((line) => st(line) === 'effectif' && !line.asset_created_at && !line.asset_id && assetType(line));
   const linked = lines.filter((line) => line.asset_created_at || line.asset_id);
-  if (!plan) return null;
+  if (!plan) return <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]">Aucun business plan actif pour le moment.</div>;
   return (
     <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-3">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
@@ -91,29 +106,31 @@ export default function InvestissementsV8(props) {
       <style>{`@media (max-width: 640px){.investissements-mobile-structured .rounded-2xl{border-radius:18px}.investissements-mobile-structured table{font-size:12px}.investissements-mobile-structured th,.investissements-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.investissements-mobile-structured .text-2xl{font-size:1.35rem}.investissements-mobile-structured .grid{gap:.75rem}.investissements-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
 
       <ModuleSection icon={ShieldCheck} title="Contrôle qualité investissement" subtitle="Cohérence BP, financements, lignes effectives, liens métiers et risques à traiter avant les détails.">
-        <InvestmentQualityControl
-          rows={props.rows || []}
-          businessPlans={props.businessPlans || []}
-          bpInvestmentLines={props.bpInvestmentLines || []}
-          bpFundingSources={props.bpFundingSources || []}
-          transactions={props.transactions || []}
-          lots={props.lots || []}
-          animaux={props.animaux || []}
-          cultures={props.cultures || []}
-        />
+        <SafeBlock title="Contrôle qualité investissement">
+          <InvestmentQualityControl
+            rows={props.rows || []}
+            businessPlans={props.businessPlans || []}
+            bpInvestmentLines={props.bpInvestmentLines || []}
+            bpFundingSources={props.bpFundingSources || []}
+            transactions={props.transactions || []}
+            lots={props.lots || []}
+            animaux={props.animaux || []}
+            cultures={props.cultures || []}
+          />
+        </SafeBlock>
       </ModuleSection>
 
       <ModuleSection icon={Link2} title="Actifs métier créés depuis BP" subtitle="Transformation des dépenses effectives en lots avicoles, animaux ou cultures exploitables.">
-        <OperationalAssetsBridge {...props} />
+        <SafeBlock title="Actifs métier créés depuis BP"><OperationalAssetsBridge {...props} /></SafeBlock>
       </ModuleSection>
 
-      <ModuleSection icon={TrendingUp} title="Portefeuille investissements & business plans" subtitle="Projets, lignes BP, financement, paiements et suivi détaillé des investissements.">
-        <InvestissementsV7 {...props} />
-      </ModuleSection>
+      <CollapsibleSection icon={TrendingUp} title="Portefeuille investissements & business plans" subtitle="Projets, lignes BP, financement, paiements et suivi détaillé des investissements." defaultOpen={false}>
+        <SafeBlock title="Portefeuille investissements & business plans"><InvestissementsV7 {...props} /></SafeBlock>
+      </CollapsibleSection>
 
-      <ModuleSection icon={BarChart3} title="Évolution investissements" subtitle="Graphes des investissements, financements, CAPEX, risques et valeur créée.">
-        <InvestissementsEvolution {...props} />
-      </ModuleSection>
+      <CollapsibleSection icon={BarChart3} title="Évolution investissements" subtitle="Graphes des investissements, financements, CAPEX, risques et valeur créée." defaultOpen={false}>
+        <SafeBlock title="Évolution investissements"><InvestissementsEvolution {...props} /></SafeBlock>
+      </CollapsibleSection>
     </div>
   );
 }
