@@ -4,6 +4,7 @@ import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard';
 import SectionHeader from '../components/SectionHeader';
 import { buildDecisionCenterPlan } from '../services/growthDecisionEngine';
 import { fmtCurrency } from '../utils/format';
+import FinancialPlanLightPanel from './FinancialPlanLightPanel.jsx';
 
 export default function ObjectifsCroissance({ dataMap = {}, onNavigate }) {
   const plan = buildDecisionCenterPlan(dataMap);
@@ -16,16 +17,18 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate }) {
     <div className="space-y-6">
       <SectionHeader
         title="Objectifs & Croissance"
-        sub="Suivre le cap commercial : objectif mensuel, chiffre d’affaires réalisé, encaissement, reste à vendre et activités à pousser. Les décisions détaillées sont réservées au Centre décisionnel."
+        sub="Objectifs issus du plan financier Horizon Farm : annuel, mensuel, activité par activité, avec le réalisé et le reste à vendre."
         actions={<Btn onClick={() => onNavigate?.('centre_ia')}>Décisions & recommandations</Btn>}
       />
 
       <GrowthPrioritySummary goal={goal} lateActivities={lateActivities} onNavigate={onNavigate} />
 
+      <FinancialPlanLightPanel dataMap={dataMap} onNavigate={onNavigate} />
+
       <ObjectivePerformanceCard dataMap={dataMap} activity="global" title="Performance globale" onNavigate={onNavigate} />
 
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-        <Kpi icon={Target} label="Objectif annuel" value={fmtCurrency(goal.annualTarget)} sub="Cap annuel" />
+        <Kpi icon={Target} label="Objectif annuel" value={fmtCurrency(goal.annualTarget)} sub="Plan financier" />
         <Kpi icon={CalendarDays} label="Objectif mensuel" value={fmtCurrency(goal.monthTarget)} sub={plan.goals?.currentMonth || 'Mois en cours'} />
         <Kpi icon={TrendingUp} label="CA réalisé" value={fmtCurrency(goal.realized)} sub={`${goal.attainment ?? 0}% atteint`} />
         <Kpi icon={WalletCards} label="Encaissement" value={fmtCurrency(goal.encaisse)} sub={`${goal.cashRate ?? 0}% du CA`} />
@@ -35,7 +38,7 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate }) {
         <div>
           <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Objectifs par activité</p>
           <h3 className="text-xl font-black text-[#2f2415] mt-1">Quelle activité pousse ou retarde la croissance ?</h3>
-          <p className="text-sm text-[#8a7456] mt-1">Cette page reste volontairement centrée sur les chiffres d’objectif. Les actions terrain, investissements, fournisseurs et recommandations sont dans le Centre décisionnel.</p>
+          <p className="text-sm text-[#8a7456] mt-1">Les objectifs viennent du fichier financier : œufs, poulets de chair, bœufs et fumier.</p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
           {(plan.goals?.activities || []).map((activity) => (
@@ -53,7 +56,7 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate }) {
 
       <div className="rounded-3xl border border-[#eadcc2] bg-[#fffdf8] p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">À ne pas mélanger</p>
+          <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Lecture simple</p>
           <h3 className="font-black text-[#2f2415]">Objectifs ici, décisions dans le Centre décisionnel</h3>
           <p className="text-sm text-[#8a7456] mt-1">Pour savoir quoi faire concrètement — investir, relancer, acheter, vendre ou sécuriser une échéance — ouvre le Centre décisionnel.</p>
         </div>
