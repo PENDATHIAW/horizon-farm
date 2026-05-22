@@ -5,24 +5,19 @@ export const HORIZON_FARM_BP_ID = 'BP-HORIZON-FARM';
 export const HORIZON_FARM_BP_NAME = 'Business Plan Horizon Farm';
 
 export const HORIZON_FARM_INVESTMENT_LINES = [
-  { designation: 'Bande pondeuses à dimensionner selon ponte réelle', categorie: 'cheptel_pondeuses', quantite: 0, unite: 'sujets', prix_unitaire: 0 },
-  { designation: 'Achat poussins chair - démarrage prudent 500 sujets', categorie: 'cheptel_chair', quantite: 500, unite: 'sujets', prix_unitaire: 350 },
-  { designation: 'Achat bovins - démarrage prudent 5 têtes', categorie: 'cheptel_bovins', quantite: 5, unite: 'têtes', prix_unitaire: 250000 },
-  { designation: 'Ovins / moutons - option non prioritaire', categorie: 'cheptel_ovins_option', quantite: 0, unite: 'têtes', prix_unitaire: 0 },
-  { designation: 'Caprins / chèvres - option non prioritaire', categorie: 'cheptel_caprins_option', quantite: 0, unite: 'têtes', prix_unitaire: 0 },
-  { designation: 'Matériel avicole - abreuvoirs 5L', categorie: 'materiel_avicole', quantite: 1, unite: 'lot', prix_unitaire: 250000 },
-  { designation: 'Matériel avicole - abreuvoirs 10L', categorie: 'materiel_avicole', quantite: 1, unite: 'lot', prix_unitaire: 500000 },
-  { designation: 'Matériel avicole - plateaux démarrage', categorie: 'materiel_avicole', quantite: 1, unite: 'lot', prix_unitaire: 250000 },
-  { designation: 'Matériel avicole - mangeoires trémie', categorie: 'materiel_avicole', quantite: 1, unite: 'lot', prix_unitaire: 300000 },
-  { designation: 'Matériel chair - radiants', categorie: 'materiel_chair', quantite: 1, unite: 'lot', prix_unitaire: 240000 },
-  { designation: 'Bâches', categorie: 'materiel_avicole', quantite: 1, unite: 'lot', prix_unitaire: 48000 },
-  { designation: 'Équipement équipe - bottes', categorie: 'epi', quantite: 1, unite: 'lot', prix_unitaire: 50000 },
-  { designation: 'Équipement équipe - combinaisons', categorie: 'epi', quantite: 1, unite: 'lot', prix_unitaire: 50000 },
-  { designation: 'Matériel bovins - lassos', categorie: 'materiel_bovins', quantite: 1, unite: 'lot', prix_unitaire: 16000 },
-  { designation: 'Matériel avicole - mangeoires petits', categorie: 'materiel_avicole', quantite: 1, unite: 'lot', prix_unitaire: 80000 },
-  { designation: 'Papeterie / administratif', categorie: 'administratif', quantite: 1, unite: 'lot', prix_unitaire: 35000 },
-  { designation: 'Matériel bovins - abreuvoir', categorie: 'materiel_bovins', quantite: 1, unite: 'lot', prix_unitaire: 25000 },
-  { designation: 'Effectif pondeuses et stock matières - à répartir selon décision', categorie: 'cheptel_stock_pondeuses', quantite: 1, unite: 'forfait', prix_unitaire: 19960000 },
+  { designation: 'Abreuvoir 5L', categorie: 'petit_materiel_avicole', quantite: 100, unite: 'unités', prix_unitaire: 2500 },
+  { designation: 'Abreuvoir 10L', categorie: 'petit_materiel_avicole', quantite: 100, unite: 'unités', prix_unitaire: 5000 },
+  { designation: 'Plateaux démarrage', categorie: 'petit_materiel_avicole', quantite: 100, unite: 'unités', prix_unitaire: 2500 },
+  { designation: 'Mangeoires trémie', categorie: 'petit_materiel_avicole', quantite: 100, unite: 'unités', prix_unitaire: 3000 },
+  { designation: 'Radiants', categorie: 'materiel_chair', quantite: 4, unite: 'unités', prix_unitaire: 60000 },
+  { designation: 'Bâches', categorie: 'petit_materiel_avicole', quantite: 120, unite: 'unités', prix_unitaire: 400 },
+  { designation: 'Bottes', categorie: 'epi', quantite: 5, unite: 'paires', prix_unitaire: 10000 },
+  { designation: 'Combinaisons', categorie: 'epi', quantite: 5, unite: 'unités', prix_unitaire: 10000 },
+  { designation: 'Lassos', categorie: 'materiel_bovins', quantite: 2, unite: 'unités', prix_unitaire: 8000 },
+  { designation: 'Mangeoires petits', categorie: 'petit_materiel_avicole', quantite: 100, unite: 'unités', prix_unitaire: 800 },
+  { designation: 'Papier', categorie: 'administratif', quantite: 50, unite: 'unités', prix_unitaire: 700 },
+  { designation: 'Abreuvoir bovins', categorie: 'materiel_bovins', quantite: 5, unite: 'unités', prix_unitaire: 5000 },
+  { designation: 'Effectif poules pondeuses & stock de matières et produits', categorie: 'cheptel_stock_pondeuses', quantite: 1, unite: 'forfait', prix_unitaire: 19960000 },
   { designation: 'Trésorerie de départ', categorie: 'tresorerie_depart', quantite: 1, unite: 'forfait', prix_unitaire: 4260000 },
 ];
 
@@ -45,15 +40,40 @@ export const HORIZON_FARM_MONTHLY_COSTS = [
   { designation: 'Rémunération dirigeante', categorie: 'remuneration_dirigeant', montant_mensuel: 600000 },
 ];
 
+export const HORIZON_FARM_OPERATIONAL_CYCLES = {
+  pondeuses: {
+    objectif: 'Œufs toute l’année',
+    principe: 'La bande pondeuse est dimensionnée par le Centre décisionnel selon l’objectif œufs, le taux de ponte réel et le besoin de continuité annuelle.',
+    objectif_ca_annuel: 36630000,
+    quantite_annuelle_tablettes: 16650,
+    prix_tablette: 2200,
+  },
+  chair: {
+    objectif: 'Atteindre progressivement un rythme de ventes régulier',
+    demarrage_prudent: 500,
+    cible_operationnelle: '500 poulets vendables tous les 15 jours lorsque le pipeline est stabilisé',
+    objectif_ca_annuel: 47520000,
+    quantite_annuelle: 19008,
+    prix_unitaire: 2500,
+  },
+  bovins: {
+    objectif: 'Embouche progressive',
+    demarrage_prudent: 5,
+    objectif_ca_annuel: 35000000,
+    quantite_annuelle: 50,
+    prix_unitaire: 700000,
+  },
+};
+
 const monthlyRevenueTargets = [215000, 2730000, 6215000, 6230000, 9705000, 12690000, 13995000, 14010000, 13995000, 14010000, 13995000, 14030000];
-const monthlyCostTargets = Array.from({ length: 12 }).map(() => HORIZON_FARM_MONTHLY_COSTS.reduce((sum, row) => sum + Number(row.montant_mensuel || 0), 0));
+const monthlyCostTarget = HORIZON_FARM_MONTHLY_COSTS.reduce((sum, row) => sum + Number(row.montant_mensuel || 0), 0);
 
 export const HORIZON_FARM_REVENUE_PROJECTIONS = monthlyRevenueTargets.map((ca, index) => ({
   mois_index: index + 1,
   ca_estime: ca,
-  charges_estimees: monthlyCostTargets[index] || 0,
+  charges_estimees: monthlyCostTarget,
   notes: index === 0
-    ? 'Mois de démarrage : trésorerie, fumier et préparation des cycles.'
+    ? 'Mois de démarrage : fumier, trésorerie et préparation des cycles.'
     : index < 4
       ? 'Montée progressive : chair et bœufs avant plein régime œufs.'
       : 'Projection issue du plan financier Horizon Farm : œufs, chair, bœufs et fumier.',
@@ -66,13 +86,16 @@ export function buildHorizonFarmBusinessPlan() {
     title: HORIZON_FARM_BP_NAME,
     statut: 'brouillon_actif',
     source_module: 'investissements',
-    source_document: 'Plan financier prévisionnel Horizon Farm',
+    source_document: 'Plan-financier-previsionnel HORIZON FARM(4).xlsx',
     activite: 'ferme_mixte',
-    description: 'Business plan Horizon Farm aligné avec le plan financier : 500 poulets de chair au démarrage, 5 bovins au démarrage, ovins/caprins non prioritaires, et bande pondeuse à dimensionner selon objectif œufs, taux de ponte réel et continuité annuelle.',
+    description: 'Business plan Horizon Farm issu du fichier financier officiel : besoins de démarrage 26 064 000 FCFA, financement 26 064 000 FCFA, objectif CA année 1 de 121 820 000 FCFA. Les cycles opérationnels sont pilotés séparément : chair avec démarrage prudent à 500, bovins avec démarrage à 5, et pondeuses dimensionnées selon le taux de ponte réel pour garantir des œufs toute l’année.',
     besoin_demarrage_total: 26064000,
     financement_total: 26064000,
     tresorerie_depart: 4260000,
     objectif_ca_annuel: 121820000,
+    charges_variables_annuelles: 80512000,
+    charges_fixes_annuelles: 6000000,
+    salaires_remuneration_annuels: 11040000,
     duree_cycle_mois: 12,
     created_at: now(),
   };
