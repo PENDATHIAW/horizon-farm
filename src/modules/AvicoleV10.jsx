@@ -94,7 +94,7 @@ export default function AvicoleV10(props) {
       <h2 className="mt-1 text-2xl font-black text-[#2f2415]">Choisis l’activité à piloter</h2>
       <p className="mt-1 text-sm text-[#8a7456]">Le choix ci-dessous pilote tout le module : objectifs, fiches, ponte, abattage, historique et évolution.</p>
       <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <ActivityEntryCard active={activity === 'pondeuse'} icon={Egg} title="Pondeuses" subtitle="Ponte, tablettes d’œufs, baisse de ponte et réforme progressive dès 17 mois." rows={pondeuses} productionLogs={productionLogs} action="Voir pondeuses" onClick={() => setActivity('pondeuse')} />
+        <ActivityEntryCard active={activity === 'pondeuse'} icon={Egg} title="Pondeuses" subtitle="Ponte, tablettes d’œufs, baisse de ponte et réforme progressive selon le taux de ponte réel." rows={pondeuses} productionLogs={productionLogs} action="Voir pondeuses" onClick={() => setActivity('pondeuse')} />
         <ActivityEntryCard active={activity === 'chair'} icon={Drumstick} title="Poulets de chair" subtitle="Poids moyen, cycle court, vente dès 35-45 jours si objectif atteint." rows={chair} productionLogs={productionLogs} action="Voir chair" onClick={() => setActivity('chair')} />
       </div>
     </div>
