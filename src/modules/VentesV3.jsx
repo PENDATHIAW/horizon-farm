@@ -3,6 +3,7 @@ import { useState } from 'react';
 import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard.jsx';
 import { fmtCurrency } from '../utils/format';
 import { enrichSalesOrderStatus, remainingForOrder } from '../utils/salesStatuses';
+import FinancialPlanLightPanel from './FinancialPlanLightPanel.jsx';
 import SalesEvolution from './SalesEvolution.jsx';
 import SalesMarginsBridge from './SalesMarginsBridge.jsx';
 import VentesV2 from './VentesV2.jsx';
@@ -48,8 +49,10 @@ export default function VentesV3(props) {
   const payments = props.paymentsList || props.payments || [];
   const dataMap = {
     sales_orders: props.rows || [],
+    salesOrders: props.rows || [],
     payments,
     finances: props.transactions || [],
+    transactions: props.transactions || [],
     avicole: props.lots || [],
     animaux: props.animaux || [],
     cultures: props.cultures || [],
@@ -57,6 +60,7 @@ export default function VentesV3(props) {
   };
 
   return <div className="space-y-5 ventes-mobile-structured"><style>{`@media (max-width: 640px){.ventes-mobile-structured .rounded-2xl{border-radius:18px}.ventes-mobile-structured table{font-size:12px}.ventes-mobile-structured th,.ventes-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.ventes-mobile-structured .text-2xl{font-size:1.35rem}.ventes-mobile-structured .grid{gap:.75rem}.ventes-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
+    <FinancialPlanLightPanel dataMap={dataMap} salesOrders={props.rows || []} payments={payments} transactions={props.transactions || []} onNavigate={props.onNavigate} />
     <ModuleSection icon={Receipt} title="Synthèse commerciale" subtitle="L’essentiel : objectif, CA, encaissements, livraisons et factures à traiter.">
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4"><ObjectivePerformanceCard dataMap={dataMap} activity="global" title="Objectif & performance" compact onNavigate={props.onNavigate} /><SalesPrioritySummary orders={props.rows || []} payments={payments} deliveries={props.deliveriesList || props.deliveries || []} invoices={props.invoicesList || props.invoices || []} /></div>
     </ModuleSection>
