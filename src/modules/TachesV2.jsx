@@ -1,4 +1,4 @@
-import { AlertTriangle, CalendarClock, CheckCircle2, ListChecks, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, CalendarClock, CheckCircle2, ChevronDown, ListChecks, ShieldCheck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { generateSequentialId, makeId } from '../utils/ids';
@@ -19,6 +19,10 @@ const hasOpenTaskForAlert = (tasks = [], alert = {}) => arr(tasks).some((task) =
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
+}
+function CollapsibleSection({ icon: Icon, title, subtitle, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm overflow-hidden"><button type="button" onClick={() => setOpen((value) => !value)} className="flex min-h-[64px] w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-[#fffdf8]"><span><span className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</span>{subtitle ? <span className="mt-1 block text-sm text-[#8a7456]">{subtitle}</span> : null}</span><ChevronDown size={20} className={`shrink-0 text-[#8a7456] transition-transform ${open ? 'rotate-180' : ''}`} /></button>{open ? <div className="border-t border-[#eadcc2] p-5">{children}</div> : null}</section>;
 }
 
 async function createTaskFromAlert(alert, props, setSavingId) {
@@ -91,8 +95,8 @@ export default function TachesV2(props) {
       <Taches {...props} />
     </ModuleSection>
 
-    <ModuleSection icon={ShieldCheck} title="Cohérence tâches / alertes" subtitle="Contrôle des alertes déjà prises en charge, retards et actions orphelines.">
+    <CollapsibleSection icon={ShieldCheck} title="Cohérence tâches / alertes" subtitle="Contrôle des alertes déjà prises en charge, retards et actions orphelines." defaultOpen={false}>
       <TaskAlertQualityControl tasks={props.rows || []} alerts={props.alertes || []} />
-    </ModuleSection>
+    </CollapsibleSection>
   </div>;
 }
