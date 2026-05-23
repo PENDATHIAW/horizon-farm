@@ -1,3 +1,5 @@
+import { HORIZON_FARM_OFFICIAL_BP } from './horizonFarmOfficialBusinessPlan';
+
 const arr = (value) => (Array.isArray(value) ? value : []);
 const num = (value = 0) => Number(value || 0) || 0;
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s_-]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -5,63 +7,70 @@ const monthKey = (value) => String(value || '').slice(0, 7);
 const currentYear = () => new Date().getFullYear();
 
 export const FINANCIAL_PLAN_ID = 'HORIZON-FARM-PREVISIONNEL-5-ANS';
-export const monthlyRevenueTargets = [215000, 2730000, 6215000, 6230000, 9705000, 12690000, 13995000, 14010000, 13995000, 14010000, 13995000, 14030000];
+export const monthlyRevenueTargets = HORIZON_FARM_OFFICIAL_BP.revenue.monthly.map((row) => row.total);
+
+const monthlyArray = (activity) => HORIZON_FARM_OFFICIAL_BP.revenue.monthly.map((row) => Number(row[activity] || 0));
+const monthlyQtyFromRevenue = (activity, unitPrice) => monthlyArray(activity).map((amount) => unitPrice > 0 ? Math.round(amount / unitPrice) : 0);
+const officialActivity = (activity) => HORIZON_FARM_OFFICIAL_BP.revenue.byActivity.find((row) => row.activity === activity) || {};
+const activityKeyMap = { oeufs: 'oeufs', poulets_chair: 'chair', bovins: 'bovins', fumier_pondeuses: 'fumierPondeuses', fumier_chair: 'fumierChair', fumier_bovins: 'fumierBovins' };
+const activityLabelFallback = { oeufs: 'Tablettes 30 œufs', poulets_chair: 'Poulets de chair', bovins: 'Bœufs / embouche', fumier_pondeuses: 'Fumier pondeuses', fumier_chair: 'Fumier chair', fumier_bovins: 'Fumier bœufs' };
+const mapActivityName = (category = '') => {
+  if (category.includes('pondeuses') || category.includes('oeufs')) return 'pondeuses';
+  if (category.includes('chair') || category.includes('poussins')) return 'chair';
+  if (category.includes('bovins') || category.includes('boeufs')) return 'bovins';
+  return 'global';
+};
 
 export const defaultFinancialPlan = {
   id: FINANCIAL_PLAN_ID,
   name: 'Horizon Farm — Plan financier prévisionnel 5 ans',
-  sourceWorkbook: 'Plan-financier-previsionnel HORIZON FARM',
+  sourceWorkbook: HORIZON_FARM_OFFICIAL_BP.sourceDocument,
   year: currentYear(),
-  annualRevenueTarget: 121820000,
-  startingNeedsTotal: 26064000,
-  fundingTotal: 26064000,
-  workingCashStart: 4260000,
-  revenueLines: [
-    { activity: 'oeufs', label: 'Tablettes 30 œufs', annualRevenue: 36630000, unit: 'tablette', annualQty: 16650, unitPrice: 2200, monthlyQty: [0, 0, 0, 0, 450, 1800, 2400, 2400, 2400, 2400, 2400, 2400], monthly: [0, 0, 0, 0, 990000, 3960000, 5280000, 5280000, 5280000, 5280000, 5280000, 5280000] },
-    { activity: 'poulets_chair', label: 'Poulets de chair', annualRevenue: 47520000, unit: 'poulet', annualQty: 19008, unitPrice: 2500, monthlyQty: [0, 1000, 1000, 1000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 2008], monthly: [0, 2500000, 2500000, 2500000, 5000000, 5000000, 5000000, 5000000, 5000000, 5000000, 5000000, 5020000] },
-    { activity: 'bovins', label: 'Bœufs / embouche', annualRevenue: 35000000, unit: 'bœuf', annualQty: 50, unitPrice: 700000, monthlyQty: [0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5], monthly: [0, 0, 3500000, 3500000, 3500000, 3500000, 3500000, 3500000, 3500000, 3500000, 3500000, 3500000] },
-    { activity: 'fumier_pondeuses', label: 'Fumier pondeuses', annualRevenue: 1800000, unit: 'lot', unitPrice: 1500, monthlyQty: [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100], monthly: [150000, 150000, 150000, 150000, 150000, 150000, 150000, 150000, 150000, 150000, 150000, 150000] },
-    { activity: 'fumier_chair', label: 'Fumier chair', annualRevenue: 600000, unit: 'lot', unitPrice: 1000, monthlyQty: [50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50], monthly: [50000, 50000, 50000, 50000, 50000, 50000, 50000, 50000, 50000, 50000, 50000, 50000] },
-    { activity: 'fumier_bovins', label: 'Fumier bœufs', annualRevenue: 270000, unit: 'lot', unitPrice: 500, monthlyQty: [30, 60, 30, 60, 30, 60, 30, 60, 30, 60, 30, 60], monthly: [15000, 30000, 15000, 30000, 15000, 30000, 15000, 30000, 15000, 30000, 15000, 30000] },
-  ],
-  variableCostLines: [
-    { activity: 'global', category: 'sante', label: 'Vaccins / prophylaxie', monthlyBudget: 40000, annualBudget: 480000 },
-    { activity: 'pondeuses', category: 'alimentation', label: 'Aliments pondeuses', monthlyBudget: 3240000, annualBudget: 38880000 },
-    { activity: 'chair', category: 'alimentation', label: 'Aliments chair', monthlyBudget: 1620000, annualBudget: 19440000 },
-    { activity: 'bovins', category: 'alimentation', label: 'Aliments bœufs', monthlyBudget: 200000, annualBudget: 2400000 },
-    { activity: 'pondeuses', category: 'emballage', label: 'Emballages œufs 30', monthlyBudget: 56000, annualBudget: 672000 },
-    { activity: 'bovins', category: 'achat_animaux', label: 'Achat bœufs', monthlyBudget: 1250000, annualBudget: 15000000 },
-    { activity: 'chair', category: 'poussins', label: 'Cartons poussins chair', monthlyBudget: 85333.33, annualBudget: 1024000 },
-    { activity: 'chair', category: 'gaz', label: 'Gaz', monthlyBudget: 18000, annualBudget: 216000 },
-    { activity: 'chair', category: 'litiere', label: 'Litière', monthlyBudget: 200000, annualBudget: 2400000 },
-  ],
-  fixedCostLines: [
-    { activity: 'global', category: 'entretien', label: 'Nettoyage & entretien des locaux', monthlyBudget: 10000, annualBudget: 120000 },
-    { activity: 'pondeuses', category: 'loyer', label: 'Loyer pondeuses', monthlyBudget: 150000, annualBudget: 1800000 },
-    { activity: 'chair', category: 'loyer', label: 'Loyer chair', monthlyBudget: 150000, annualBudget: 1800000 },
-    { activity: 'bovins', category: 'loyer', label: 'Loyer bœufs', monthlyBudget: 150000, annualBudget: 1800000 },
-    { activity: 'global', category: 'provisions', label: 'Provisions besoins divers', monthlyBudget: 40000, annualBudget: 480000 },
-  ],
-  salaryLines: [
-    { activity: 'global', category: 'salaires', label: 'Salaires employés', monthlyBudget: 320000, annualBudget: 3840000 },
-    { activity: 'global', category: 'remuneration_dirigeant', label: 'Rémunération dirigeante', monthlyBudget: 600000, annualBudget: 7200000 },
-  ],
-  investmentLines: [
-    { activity: 'avicole', category: 'materiel', label: 'Abreuvoirs 5L', budget: 250000 },
-    { activity: 'avicole', category: 'materiel', label: 'Abreuvoirs 10L', budget: 500000 },
-    { activity: 'avicole', category: 'materiel', label: 'Plateaux démarrage', budget: 250000 },
-    { activity: 'avicole', category: 'materiel', label: 'Mangeoires trémie', budget: 300000 },
-    { activity: 'chair', category: 'materiel', label: 'Radiants', budget: 240000 },
-    { activity: 'avicole', category: 'materiel', label: 'Bâches', budget: 48000 },
-    { activity: 'global', category: 'epi', label: 'Bottes', budget: 50000 },
-    { activity: 'global', category: 'epi', label: 'Combinaisons', budget: 50000 },
-    { activity: 'bovins', category: 'materiel', label: 'Lassos', budget: 16000 },
-    { activity: 'avicole', category: 'materiel', label: 'Mangeoires petits', budget: 80000 },
-    { activity: 'administratif', category: 'papeterie', label: 'Papier', budget: 35000 },
-    { activity: 'bovins', category: 'materiel', label: 'Abreuvoir bovins', budget: 25000 },
-    { activity: 'pondeuses', category: 'cheptel_stock', label: 'Effectif poules pondeuses & stock de matières', budget: 19960000 },
-    { activity: 'global', category: 'tresorerie_depart', label: 'Trésorerie de départ', budget: 4260000 },
-  ],
+  annualRevenueTarget: HORIZON_FARM_OFFICIAL_BP.revenue.annualTotal,
+  startingNeedsTotal: HORIZON_FARM_OFFICIAL_BP.startupNeeds.officialTotal,
+  fundingTotal: HORIZON_FARM_OFFICIAL_BP.funding.officialTotal,
+  workingCashStart: HORIZON_FARM_OFFICIAL_BP.startupNeeds.lines.find((line) => line.category === 'tresorerie_depart')?.total || 0,
+  revenueLines: HORIZON_FARM_OFFICIAL_BP.revenue.byActivity.map((row) => {
+    const key = activityKeyMap[row.activity] || row.activity;
+    return {
+      activity: row.activity,
+      label: row.label || activityLabelFallback[row.activity] || row.activity,
+      annualRevenue: row.annual,
+      unit: row.activity === 'oeufs' ? 'tablette' : row.activity === 'bovins' ? 'bœuf' : row.activity.includes('fumier') ? 'lot' : 'unité',
+      annualQty: row.quantity,
+      unitPrice: row.unitPrice,
+      monthlyQty: monthlyQtyFromRevenue(key, row.unitPrice),
+      monthly: monthlyArray(key),
+    };
+  }),
+  variableCostLines: HORIZON_FARM_OFFICIAL_BP.variableCosts.lines.map((line) => ({
+    activity: mapActivityName(line.category),
+    category: line.category,
+    label: line.designation,
+    monthlyBudget: line.monthly,
+    annualBudget: line.annual,
+    corrected: Boolean(line.corrected),
+  })),
+  fixedCostLines: HORIZON_FARM_OFFICIAL_BP.fixedCosts.lines.map((line) => ({
+    activity: mapActivityName(line.category),
+    category: line.category,
+    label: line.designation,
+    monthlyBudget: line.monthly,
+    annualBudget: line.annual,
+  })),
+  salaryLines: HORIZON_FARM_OFFICIAL_BP.payroll.lines.map((line) => ({
+    activity: line.designation.toLowerCase().includes('bovin') ? 'bovins' : line.designation.toLowerCase().includes('aviculture') ? 'avicole' : 'global',
+    category: 'salaires',
+    label: line.designation,
+    monthlyBudget: line.annual / 12,
+    annualBudget: line.annual,
+  })),
+  investmentLines: HORIZON_FARM_OFFICIAL_BP.startupNeeds.lines.map((line) => ({
+    activity: mapActivityName(line.category),
+    category: line.category,
+    label: line.designation,
+    budget: line.total,
+  })),
 };
 
 export function detectRevenueActivity(row = {}, dataMap = {}) {
@@ -128,7 +137,7 @@ export function buildFinancialPlanVsActual(dataMap = {}, plan = defaultFinancial
   });
 
   const actualRevenue = revenueByActivity.reduce((sum, row) => sum + row.actual, 0);
-  const actualCash = Math.max(
+  const actualCashRaw = Math.max(
     payments.filter((payment) => monthKey(payment.date || payment.date_paiement || payment.created_at) === monthCode).reduce((sum, payment) => sum + num(payment.montant_paye ?? payment.montant ?? payment.amount), 0),
     transactions.filter((trx) => monthKey(trx.date || trx.created_at) === monthCode && norm(trx.type).includes('entree')).reduce((sum, trx) => sum + expenseAmount(trx), 0)
   );
@@ -142,8 +151,9 @@ export function buildFinancialPlanVsActual(dataMap = {}, plan = defaultFinancial
 
   const annualTarget = plan.revenueLines.reduce((sum, line) => sum + num(line.annualRevenue), 0);
   const annualActual = salesOrders.filter((order) => String(order.date || order.date_commande || order.created_at || '').startsWith(String(year))).reduce((sum, order) => sum + revenueAmount(order), 0);
+  const actualCash = actualRevenue > 0 ? Math.min(actualRevenue, actualCashRaw) : actualCashRaw;
 
-  return { plan, year, month, monthCode, monthTargets, currentMonthTarget, revenueByActivity, costsByBucket, actualRevenue, actualCash: Math.min(actualRevenue || actualCash, actualCash), actualCosts, actualMargin: actualRevenue - actualCosts, revenueGap: actualRevenue - currentMonthTarget.revenueTarget, costGap: actualCosts - currentMonthTarget.costTarget, marginGap: (actualRevenue - actualCosts) - currentMonthTarget.marginTarget, revenueAttainment: currentMonthTarget.revenueTarget > 0 ? Math.round((actualRevenue / currentMonthTarget.revenueTarget) * 100) : 0, cashRate: actualRevenue > 0 ? Math.min(100, Math.round((actualCash / actualRevenue) * 100)) : 0, annualTarget, annualActual, annualAttainment: annualTarget > 0 ? Math.round((annualActual / annualTarget) * 100) : 0 };
+  return { plan, year, month, monthCode, monthTargets, currentMonthTarget, revenueByActivity, costsByBucket, actualRevenue, actualCash, actualCosts, actualMargin: actualRevenue - actualCosts, revenueGap: actualRevenue - currentMonthTarget.revenueTarget, costGap: actualCosts - currentMonthTarget.costTarget, marginGap: (actualRevenue - actualCosts) - currentMonthTarget.marginTarget, revenueAttainment: currentMonthTarget.revenueTarget > 0 ? Math.round((actualRevenue / currentMonthTarget.revenueTarget) * 100) : 0, cashRate: actualRevenue > 0 ? Math.min(100, Math.round((actualCash / actualRevenue) * 100)) : 0, annualTarget, annualActual, annualAttainment: annualTarget > 0 ? Math.round((annualActual / annualTarget) * 100) : 0 };
 }
 
 export default buildFinancialPlanVsActual;
