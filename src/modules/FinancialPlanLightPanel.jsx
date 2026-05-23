@@ -5,6 +5,7 @@ import { buildFinancialPlanVsActual, defaultFinancialPlan } from '../services/fi
 import { fmtCurrency } from '../utils/format';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
+const last = (value) => { const rows = arr(value); return rows[rows.length - 1] || null; };
 
 export default function FinancialPlanLightPanel({ dataMap = {}, salesOrders = [], payments = [], transactions = [], onNavigate }) {
   const model = buildFinancialPlanVsActual({
@@ -19,8 +20,7 @@ export default function FinancialPlanLightPanel({ dataMap = {}, salesOrders = []
   const target = model.currentMonthTarget || { revenueTarget: 0, costTarget: 0, marginTarget: 0 };
   const lines = arr(model.revenueByActivity).slice(0, 6);
   const official = HORIZON_FARM_OFFICIAL_BP;
-  const finalCash = official.forecast.monthlyCashYear1.at(-1)?.cumulativeCash || 0;
-  const monthlyCost = [...official.variableCosts.lines, ...official.fixedCosts.lines].reduce((sum, row) => sum + Number(row.monthly || 0), 0) + official.payroll.annualTotal / 12;
+  const finalCash = last(official.forecast.monthlyCashYear1)?.cumulativeCash || 0;
 
   return (
     <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
