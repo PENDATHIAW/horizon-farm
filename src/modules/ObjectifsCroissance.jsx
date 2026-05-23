@@ -1,6 +1,7 @@
-import { AlertTriangle, Target, TrendingUp, WalletCards } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Target, TrendingUp, WalletCards } from 'lucide-react';
 import Btn from '../components/Btn';
 import SectionHeader from '../components/SectionHeader';
+import { HORIZON_FARM_OFFICIAL_BP } from '../services/horizonFarmOfficialBusinessPlan';
 import { buildDecisionCenterPlan } from '../services/growthDecisionEngine';
 import { fmtCurrency } from '../utils/format';
 import FinancialPlanLightPanel from './FinancialPlanLightPanel.jsx';
@@ -21,6 +22,8 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate }) {
       />
 
       <GrowthPrioritySummary goal={goal} lateActivities={lateActivities} onNavigate={onNavigate} />
+
+      <OfficialMonthlyGoalsPanel onNavigate={onNavigate} />
 
       <FinancialPlanLightPanel dataMap={dataMap} onNavigate={onNavigate} />
 
@@ -54,6 +57,33 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate }) {
       </div>
     </div>
   );
+}
+
+function OfficialMonthlyGoalsPanel({ onNavigate }) {
+  const months = HORIZON_FARM_OFFICIAL_BP.revenue.monthly || [];
+  const warnings = HORIZON_FARM_OFFICIAL_BP.integrationWarnings || [];
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3">
+      <div>
+        <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><CalendarDays size={15} /> Objectifs mensuels officiels</p>
+        <h3 className="text-xl font-black text-[#2f2415] mt-1">Prévision du fichier BP, mois par mois</h3>
+        <p className="text-sm text-[#8a7456] mt-1">Ces montants viennent de la source unique BP officiel. Les alertes jaunes rappellent les points à réconcilier avec la stratégie validée.</p>
+      </div>
+      <Btn small variant="outline" onClick={() => onNavigate?.('investissements')}>Voir BP</Btn>
+    </div>
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
+      {months.map((row) => <div key={row.month} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3">
+        <p className="text-xs font-black text-[#8a7456]">M{row.month}</p>
+        <p className="font-black text-[#2f2415]">{fmtCurrency(row.total)}</p>
+        <p className="text-[11px] text-[#8a7456] mt-1">Œufs {fmtCurrency(row.oeufs)}</p>
+        <p className="text-[11px] text-[#8a7456]">Chair {fmtCurrency(row.chair)}</p>
+        <p className="text-[11px] text-[#8a7456]">Bovins {fmtCurrency(row.bovins)}</p>
+      </div>)}
+    </div>
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-2">
+      {warnings.slice(0, 3).map((warning) => <div key={warning} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={14} className="inline" /> {warning}</div>)}
+    </div>
+  </section>;
 }
 
 function GrowthPrioritySummary({ goal, lateActivities, onNavigate }) {
