@@ -15,6 +15,13 @@ const clean = (v = '') => String(v)
   .replace(/\s{2,}/g, ' ')
   .trim();
 const st = (r = {}) => String(r.statut ?? r.status ?? '').toLowerCase();
+const fmtFcfa = (value) => Number(value || 0).toLocaleString('fr-FR');
+const fmtCompactFcfa = (value) => {
+  const amount = Number(value || 0);
+  if (!amount) return '0 FCFA';
+  if (amount >= 1000000) return `${(amount / 1000000).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} M FCFA`;
+  return `${fmtFcfa(amount)} FCFA`;
+};
 
 function today() { return new Date().toISOString().slice(0, 10); }
 function isAvicole(line = {}) { const d = clean(line.designation).toLowerCase(); return d.includes('poussin') || d.includes('poulet') || d.includes('pondeuse') || d.includes('chair'); }
@@ -47,17 +54,17 @@ function OperatingAssumptionsPanel() {
     <article className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-2">
       <p className="flex items-center gap-2 font-black text-[#2f2415]"><Egg size={17} className="text-[#9a6b12]" /> Pondeuses</p>
       <p className="text-sm text-[#7d6a4a] leading-relaxed">{pondeuses?.principe}</p>
-      <div className="grid grid-cols-2 gap-2 text-xs"><Mini label="Démarrage" value={`${pondeuses?.demarrage || 3000} sujets`} /><Mini label="Prix poussin" value={`${pondeuses?.prix_unitaire_poussin || 900} FCFA`} /><Mini label="CA œufs" value="36,63 M" /><Mini label="2e bande" value="Selon réel" /></div>
+      <div className="grid grid-cols-2 gap-2 text-xs"><Mini label="Démarrage" value={`${fmtFcfa(pondeuses?.demarrage)} sujets`} /><Mini label="Prix poussin" value={`${fmtFcfa(pondeuses?.prix_unitaire_poussin)} FCFA`} /><Mini label="CA œufs" value={fmtCompactFcfa(pondeuses?.objectif_ca_annuel)} /><Mini label="2e bande" value="Selon réel" /></div>
     </article>
     <article className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-2">
       <p className="flex items-center gap-2 font-black text-[#2f2415]"><Drumstick size={17} className="text-[#9a6b12]" /> Poulets de chair</p>
-      <p className="text-sm text-[#7d6a4a] leading-relaxed">Bandes de 500 : achat, vente vers J+40, puis roulement avec nouvelle bande 15 jours après.</p>
-      <div className="grid grid-cols-2 gap-2 text-xs"><Mini label="Bande" value={`${chair?.demarrage_prudent || 500}`} /><Mini label="Cycle" value={`${chair?.cycle_jours || 40} jours`} /><Mini label="Poussins/mois" value={`${chair?.poussins_mois || 1600}`} /><Mini label="Coût poussins/mois" value="1 024 000" /></div>
+      <p className="text-sm text-[#7d6a4a] leading-relaxed">Bandes de {fmtFcfa(chair?.demarrage_prudent)} : achat, vente vers J+{fmtFcfa(chair?.cycle_jours)}, puis roulement avec nouvelle bande {fmtFcfa(chair?.cadence_apres_demarrage_jours)} jours après.</p>
+      <div className="grid grid-cols-2 gap-2 text-xs"><Mini label="Bande" value={fmtFcfa(chair?.demarrage_prudent)} /><Mini label="Cycle" value={`${fmtFcfa(chair?.cycle_jours)} jours`} /><Mini label="Poussins/mois" value={fmtFcfa(chair?.poussins_mois)} /><Mini label="Coût poussins/mois" value={fmtFcfa(chair?.cout_poussins_mensuel)} /></div>
     </article>
     <article className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-2">
       <p className="flex items-center gap-2 font-black text-[#2f2415]"><Beef size={17} className="text-[#9a6b12]" /> Bovins</p>
-      <p className="text-sm text-[#7d6a4a] leading-relaxed">M1/M2/M3 : acheter 5. M4 vend M1, M5 vend M2, M6 vend M3, puis vente/rachat mensuel.</p>
-      <div className="grid grid-cols-2 gap-2 text-xs"><Mini label="Achat mensuel" value={`${bovins?.achat_mensuel_apres_pipeline || 5}`} /><Mini label="Cycle" value={`${bovins?.cycle_jours || 90} jours`} /><Mini label="Prix achat" value="300 000" /><Mini label="Prix vente" value="700 000" /></div>
+      <p className="text-sm text-[#7d6a4a] leading-relaxed">M1/M2/M3 : acheter {fmtFcfa(bovins?.demarrage_m1)}. M4 vend M1, M5 vend M2, M6 vend M3, puis vente/rachat mensuel.</p>
+      <div className="grid grid-cols-2 gap-2 text-xs"><Mini label="Achat mensuel" value={fmtFcfa(bovins?.achat_mensuel_apres_pipeline)} /><Mini label="Cycle" value={`${fmtFcfa(bovins?.cycle_jours)} jours`} /><Mini label="Prix achat" value={fmtFcfa(bovins?.prix_achat_unitaire)} /><Mini label="Prix vente" value={fmtFcfa(bovins?.prix_vente_unitaire)} /></div>
     </article>
   </div>;
 }
