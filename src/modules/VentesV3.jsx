@@ -5,6 +5,7 @@ import { enrichSalesOrderStatus, remainingForOrder } from '../utils/salesStatuse
 import FinancialPlanLightPanel from './FinancialPlanLightPanel.jsx';
 import SalesEvolution from './SalesEvolution.jsx';
 import SalesMarginsBridge from './SalesMarginsBridge.jsx';
+import SalesWorkflowHealth from './SalesWorkflowHealth.jsx';
 import VentesV2 from './VentesV2.jsx';
 
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -60,6 +61,7 @@ export default function VentesV3(props) {
 
   return <div className="space-y-5 ventes-mobile-structured"><style>{`@media (max-width: 640px){.ventes-mobile-structured .rounded-2xl{border-radius:18px}.ventes-mobile-structured table{font-size:12px}.ventes-mobile-structured th,.ventes-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.ventes-mobile-structured .text-2xl{font-size:1.35rem}.ventes-mobile-structured .grid{gap:.75rem}.ventes-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
     <FinancialPlanLightPanel dataMap={dataMap} salesOrders={props.rows || []} payments={payments} transactions={props.transactions || []} onNavigate={props.onNavigate} />
+    <SalesWorkflowHealth orders={props.rows || []} payments={payments} transactions={props.transactions || []} invoices={props.invoicesList || props.invoices || []} deliveries={props.deliveriesList || props.deliveries || []} stocks={props.stocks || []} lots={props.lots || []} animaux={props.animaux || []} cultures={props.cultures || []} onNavigate={props.onNavigate} />
     <ModuleSection icon={Receipt} title="Actions commerciales" subtitle="L’essentiel à traiter : encaisser, livrer, clôturer et facturer.">
       <SalesPrioritySummary orders={props.rows || []} payments={payments} deliveries={props.deliveriesList || props.deliveries || []} invoices={props.invoicesList || props.invoices || []} />
     </ModuleSection>
