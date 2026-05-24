@@ -5,6 +5,7 @@ import useCrudModule from '../hooks/useCrudModule';
 import useLiveWeather from '../hooks/useLiveWeather';
 import { fmtNumber } from '../utils/format';
 import { calculateCultureMetricsWithLoss } from '../utils/lossAdjustedMetrics';
+import CultureOperationalHealthPanel from './CultureOperationalHealthPanel.jsx';
 import CulturesV3 from './CulturesV3.jsx';
 import CulturesEvolution from './CulturesEvolution.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
@@ -149,6 +150,7 @@ export default function CulturesV4(props) {
   };
 
   return <div className="space-y-6 cultures-mobile-structured"><style>{`@media (max-width: 640px){.cultures-mobile-structured .rounded-2xl{border-radius:18px}.cultures-mobile-structured table{font-size:12px}.cultures-mobile-structured th,.cultures-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.cultures-mobile-structured .text-2xl{font-size:1.35rem}.cultures-mobile-structured .grid{gap:.75rem}.cultures-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
+    <CultureOperationalHealthPanel rows={adjustedRows} salesOrders={props.salesOrders || []} onNavigate={props.onNavigate} />
     <ObjectivePerformanceCard dataMap={dataMap} activity="cultures" title="Objectif & Performance cultures" onNavigate={props.onNavigate} />
     <ModuleSection icon={Package} title="Intrants & météo" subtitle="Relie les cultures au stock disponible, aux seuils d’intrants et au contexte météo."><CultureInputsWeatherPanel stocks={stocks} meteo={meteo} weatherLoading={liveWeatherLoading} onNavigate={props.onNavigate} /></ModuleSection>
     <ModuleSection icon={Sprout} title="Gestion des cultures" subtitle="Parcelles, campagnes, coûts, récoltes, marge et risques."><CulturesV3 {...adjustedProps} onCreate={wrappedCreate} onUpdate={wrappedUpdate} /></ModuleSection>
