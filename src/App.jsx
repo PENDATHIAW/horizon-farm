@@ -5,7 +5,7 @@ import AssistantPanel from './components/AssistantPanel';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useAuth } from './context/AuthContext';
 import { useAppData } from './context/AppContext';
-import useCrudModule from './hooks/useCrudModule';
+import useCrudModules from './hooks/useCrudModules';
 import useLiveWeather from './hooks/useLiveWeather';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import AppLayout from './layouts/AppLayout';
@@ -29,7 +29,7 @@ export default function App() {
   const { dataMap, refreshModule, flushOfflineQueue } = useAppData();
   const { online, lastOnlineAt } = useOnlineStatus();
   const { weather: liveMeteo, loading: weatherLoading, source: weatherSource } = useLiveWeather();
-  const c = Object.fromEntries(CRUD_KEYS.map((key) => [key, useCrudModule(key)]));
+  const c = useCrudModules();
   const base = (key) => ({ rows: rows(c[key]), loading: c[key]?.loading, onCreate: c[key]?.create, onUpdate: c[key]?.update, onDelete: c[key]?.remove, onRefresh: c[key]?.refresh });
 
   const vaccinsRetard = rows(c.sante).filter((v) => v.statut === 'retard').length;
