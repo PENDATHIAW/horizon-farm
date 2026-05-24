@@ -3,12 +3,12 @@ import { toNumber } from '../utils/format';
 const now = () => new Date().toISOString();
 const today = () => new Date().toISOString().slice(0, 10);
 const clean = (value) => String(value || '').trim().toLowerCase();
-const quantitySoldOf = (sale = {}) => Math.max(1, toNumber(sale.quantite ?? sale.quantity ?? sale.qty ?? 1));
+const quantitySoldOf = (sale = {}) => Math.max(1, toNumber(sale.quantity_sold ?? sale.quantite_vendue ?? sale.sale_quantity ?? sale.order_quantity ?? sale.quantite_commandee ?? sale.quantite ?? sale.quantity ?? sale.qty ?? 1));
 const sourceIdOf = (sale = {}) => sale.source_id || sale.product_id || sale.entity_id || sale.asset_id || sale.stock_id || sale.lot_id || sale.animal_id || sale.culture_id;
 const sourceTypeOf = (sale = {}) => clean(sale.source_type || sale.type_vente || sale.product_type || sale.source_module || sale.module_lie);
 const amountOf = (sale = {}) => toNumber(sale.montant_total ?? sale.total ?? sale.amount ?? sale.total_amount ?? sale.montant);
 const unitPriceOf = (sale = {}) => toNumber(sale.prix_unitaire ?? sale.unit_price ?? sale.price ?? sale.prix_vente) || (quantitySoldOf(sale) > 0 ? amountOf(sale) / quantitySoldOf(sale) : 0);
-const stockQtyOf = (row = {}) => toNumber(row.quantite ?? row.quantity ?? row.qty ?? row.quantite_disponible ?? row.stock_quantity ?? row.quantite_stock ?? row.current_count ?? row.quantite_initiale_stock);
+const stockQtyOf = (row = {}) => toNumber(row.stock_quantity_before_sale ?? row.asset_quantity ?? row.quantite_disponible ?? row.stock_quantity ?? row.quantite_stock ?? row.current_count ?? row.effectif_actuel ?? row.quantite_initiale_stock ?? row.quantite ?? row.quantity ?? row.qty);
 const costUnitOf = (row = {}) => toNumber(row.cout_revient_unitaire ?? row.cout_unitaire_calcule ?? row.prixUnit ?? row.prixunit ?? row.prix_unitaire ?? row.unit_price ?? row.cost_unit ?? row.cout_unitaire);
 const saleIdOf = (sale = {}) => sale.id || sale.order_id || sale.sale_id || sale.source_record_id || sale.related_id;
 
@@ -68,7 +68,7 @@ function animalPatch(sale) {
 
 function lotPatch(sale, quantitySold) {
   const currentSold = toNumber(sale.vendus ?? sale.sold_count ?? 0);
-  const currentCount = toNumber(sale.current_count ?? sale.effectif_actuel ?? 0);
+  const currentCount = toNumber(sale.stock_quantity_before_sale ?? sale.asset_quantity ?? sale.current_count ?? sale.effectif_actuel ?? 0);
   const nextCurrent = currentCount > 0 ? Math.max(0, currentCount - quantitySold) : undefined;
   const orderId = saleIdOf(sale);
   return {
@@ -92,7 +92,7 @@ function lotPatch(sale, quantitySold) {
 }
 
 function culturePatch(sale, quantitySold) {
-  const available = toNumber(sale.quantite_disponible ?? sale.stock_quantity ?? sale.quantite_stock ?? 0);
+  const available = toNumber(sale.stock_quantity_before_sale ?? sale.asset_quantity ?? sale.quantite_disponible ?? sale.stock_quantity ?? sale.quantite_stock ?? 0);
   const previousRevenue = toNumber(sale.revenu_reel ?? sale.revenu_total_reel ?? 0);
   const orderId = saleIdOf(sale);
   return {
