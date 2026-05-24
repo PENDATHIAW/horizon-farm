@@ -29,12 +29,12 @@ L’ERP doit parler métier ferme, pas technique. Les interconnexions normales d
 | 14 | Impact & Valeur ERP : onglet Dossier Banque/Partenaire à relier au générateur. | Corrigé / vérifié statiquement | `ImpactBusiness.jsx` réutilise `FinancingDossierGenerator`. |
 | 15 | Objectifs annuels/mensuels par activité : chair, pondeuses, bovins. | Corrigé / à affiner avec données réelles | `ActivityCycleGoalsPanel.jsx` ajouté : objectifs mensuels par cycles réels + BP. |
 | 16 | Équipements contient RH, équipements, dépenses, preuves : garder seulement équipements. | Corrigé / vérifié statiquement | `EquipementsV2` charge uniquement `Equipements`. `Equipements.jsx` contient actions rapides équipements, parc matériel, maintenance et évolution équipements. |
-| 17 | Ventes : BP/objectifs trop en haut ; créer/modifier/suivre vente doit être en haut. | Corrigé / vérifié statiquement | Ventes routé vers `VentesV5` puis `VentesTerrainV2`. |
+| 17 | Ventes : BP/objectifs trop en haut ; créer/modifier/suivre vente doit être en haut. | Corrigé / vérifié statiquement | Ventes routé vers `VentesV5` puis `VentesTerrainV3`. Ajout du panneau `SalesFollowUpPanel` pour suivre encaissement et livraison en haut du module. |
 | 18 | Ventes : supprimer “Contrôle comptable Paiements ↔ Finances” et tout bouton synchroniser/lier. | Corrigé / vérifié | Recherche globale sans résultat sur les libellés techniques. |
-| 19 | Interconnexion vente → finances/comptabilité doit être automatique. | Corrigé côté flux vente terrain / vérifié callbacks | `VentesTerrainV2` crée paiement, transaction finance, facture, document, impact source. `App.jsx` transmet les callbacks nécessaires. Comptabilité reste à renforcer côté écritures formelles si modèle comptable détaillé requis. |
+| 19 | Interconnexion vente → finances/comptabilité doit être automatique. | Corrigé côté flux vente terrain / vérifié callbacks | `VentesTerrainV3` crée paiement, transaction finance, facture, document, impact source. `SalesFollowUpPanel` permet encaisser un solde et clôturer une livraison. `App.jsx` transmet les callbacks nécessaires. Comptabilité enrichie avec aperçu débit/crédit automatique. |
 | 20 | Objectif mensuel global/par activité : pas linéaire, dépend de l’investissement et de la capacité réelle. | Corrigé conceptuellement | Objectifs par cycles réels : chair J+40, bovins J+90, pondeuses actives/taux ponte. |
 | 21 | Investissements : concrétiser un investissement doit exister. | Corrigé / vérifié statiquement | `InvestissementsV8` ajoute “Concrétiser un investissement” : création lot/animal/culture depuis dépense BP effective. |
-| 22 | Comptabilité : écritures automatiques ou manuelles ? Maximum d’automatisation. | Corrigé en UX / partiel en logique | `AutomaticAccountingPanel` clarifie que les écritures suivent les actions métier ; manuel réservé aux régularisations. À renforcer si écritures débit/crédit détaillées nécessaires. |
+| 22 | Comptabilité : écritures automatiques ou manuelles ? Maximum d’automatisation. | Corrigé en UX / logique renforcée | `AutomaticAccountingPanel` clarifie que les écritures suivent les actions métier ; `AccountingAutoEntriesPreview` affiche débit/crédit simplifié généré automatiquement. Manuel réservé aux régularisations. |
 | 23 | Tâches / Alertes : enrichir santé, biosécurité, alimentation, ramassage œufs, ventes, maintenance. | Corrigé | `FarmRoutineTasksPanel` ajouté dans Tâches et Alertes. |
 | 24 | Assistant ERP : enlever section “Corriger depuis l’interface, sans terminal” et reprendre module. | Corrigé | `AssistantERPV2` simplifié, `AssistantERPInsights` nettoyé. |
 | 25 | Gestion système : ramener “effacer les données” avec deux options. | Corrigé | `SystemDataResetPanel` ajouté : suppression sans rapport / rapport puis suppression. |
@@ -46,17 +46,20 @@ L’ERP doit parler métier ferme, pas technique. Les interconnexions normales d
 
 - Recherche globale effectuée sur les libellés supprimés : aucun résultat.
 - Recherche globale sur “Synchroniser BP”, “Synchroniser”, “Contrôle comptable”, “Paiements ↔ Finances”, “sans finance”, “actifs non liés” : aucun résultat.
-- Ventes routé : `VentesV3` → `VentesV5` → `SalesAutoTasksBridge` + `VentesV4` → `VentesTerrainV2`.
+- Ventes routé : `VentesV3` → `VentesV5` → `SalesAutoTasksBridge` + `VentesV4` → `VentesTerrainV3`.
+- `VentesTerrainV3` corrige les impacts source : stock, lot avicole, animal, culture, vente à livrer plus tard.
+- `SalesFollowUpPanel` ajoute le suivi des ventes récentes avec actions métier : encaisser et marquer livrée.
 - `App.jsx` transmet les callbacks ventes : paiement, facture, livraison, finance, document, stock, lot, animal, culture, événement métier.
 - Rapports et Impact utilisent le même générateur financeur.
 - Accueil utilise un bloc fusionné “Pilotage ferme · objectif du mois”.
 - Équipements est recentré sur actions rapides équipements, parc matériel, maintenance et évolution.
+- Comptabilité contient un aperçu automatique débit/crédit simplifié.
 
 ## Points à surveiller dans la prochaine passe
 
 1. Vérifier build/lint localement : `npm run lint` et `npm run build`.
 2. Tester visuellement Ventes : création vente payée, partielle, crédit, source stock, lot, animal et culture.
-3. Tester visuellement Investissements : concrétiser une ligne BP effective vers lot/animal/culture.
-4. Tester visuellement suppression système : avec rapport et sans rapport, en confirmant que BP/tables restent protégés.
-5. Renforcer si besoin la comptabilité en écritures débit/crédit détaillées.
+3. Tester visuellement les actions rapides ventes : encaisser un solde et marquer une vente livrée.
+4. Tester visuellement Investissements : concrétiser une ligne BP effective vers lot/animal/culture.
+5. Tester visuellement suppression système : avec rapport et sans rapport, en confirmant que BP/tables restent protégés.
 6. Continuer la passe structure module par module sur les modules non revérifiés visuellement.
