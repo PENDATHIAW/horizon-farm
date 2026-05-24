@@ -1,5 +1,6 @@
 import { ChevronDown, CreditCard, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
+import SalesFollowUpPanel from './SalesFollowUpPanel.jsx';
 import SalesWorkflowHealth from './SalesWorkflowHealth.jsx';
 import VentesTerrainV3 from './VentesTerrainV3.jsx';
 
@@ -16,6 +17,7 @@ export default function VentesV4(props) {
   const payments = props.paymentsList || props.payments || [];
   return <div className="space-y-5 ventes-mobile-structured">
     <Section icon={CreditCard} title="Vendre & encaisser" subtitle="Créer une vente complète : client explicite, produit, quantité, paiement, livraison et facture. L’ERP met à jour automatiquement finance, comptabilité, stock et historique client."><VentesTerrainV3 {...props} /></Section>
+    <SalesFollowUpPanel {...props} paymentsList={payments} />
     <AdminFold><SalesWorkflowHealth orders={props.rows || []} payments={payments} transactions={props.transactions || []} invoices={props.invoicesList || props.invoices || []} deliveries={props.deliveriesList || props.deliveries || []} stocks={props.stocks || []} lots={props.lots || []} animaux={props.animaux || []} cultures={props.cultures || []} onNavigate={props.onNavigate} /></AdminFold>
   </div>;
 }
