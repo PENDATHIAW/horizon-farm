@@ -1,13 +1,16 @@
 import ActionTraceHealth from './ActionTraceHealth.jsx';
+import AlertTaskBridgePanel from './AlertTaskBridgePanel.jsx';
 import AlertesCenterTechnical from './AlertesCenterTechnical.jsx';
-import FarmRoutineTasksPanel from './FarmRoutineTasksPanel.jsx';
 
 export default function AlertesCenterV2(props) {
   return <div className="space-y-6">
-    <FarmRoutineTasksPanel
+    <AlertTaskBridgePanel
+      alertes={props.alertes || []}
       tasks={props.tasks || []}
       onCreateTask={props.onCreateTask}
       onRefreshTasks={props.onRefreshTasks}
+      onUpdateAlert={props.onUpdate}
+      onRefreshAlertes={props.onRefresh}
       onNavigate={props.onNavigate}
     />
     <ActionTraceHealth
