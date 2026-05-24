@@ -1,7 +1,7 @@
 import { ChevronDown, CreditCard, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import SalesWorkflowHealth from './SalesWorkflowHealth.jsx';
-import VentesTerrainV2 from './VentesTerrainV2.jsx';
+import VentesTerrainV3 from './VentesTerrainV3.jsx';
 
 function Section({ icon: Icon, title, subtitle, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
@@ -15,7 +15,7 @@ function AdminFold({ children }) {
 export default function VentesV4(props) {
   const payments = props.paymentsList || props.payments || [];
   return <div className="space-y-5 ventes-mobile-structured">
-    <Section icon={CreditCard} title="Vendre & encaisser" subtitle="Créer une vente complète : client explicite, produit, quantité, paiement, livraison et facture. L’ERP met à jour automatiquement finance, comptabilité, stock et historique client."><VentesTerrainV2 {...props} /></Section>
+    <Section icon={CreditCard} title="Vendre & encaisser" subtitle="Créer une vente complète : client explicite, produit, quantité, paiement, livraison et facture. L’ERP met à jour automatiquement finance, comptabilité, stock et historique client."><VentesTerrainV3 {...props} /></Section>
     <AdminFold><SalesWorkflowHealth orders={props.rows || []} payments={payments} transactions={props.transactions || []} invoices={props.invoicesList || props.invoices || []} deliveries={props.deliveriesList || props.deliveries || []} stocks={props.stocks || []} lots={props.lots || []} animaux={props.animaux || []} cultures={props.cultures || []} onNavigate={props.onNavigate} /></AdminFold>
   </div>;
 }
