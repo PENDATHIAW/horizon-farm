@@ -1,6 +1,7 @@
 import { Component, useState } from 'react';
 import { AlertTriangle, BarChart3, ChevronDown, HeartPulse, RefreshCw, ShieldCheck } from 'lucide-react';
 import useCrudModule from '../hooks/useCrudModule';
+import HealthOperationalPanel from './HealthOperationalPanel.jsx';
 import HealthQualityControl from './HealthQualityControl.jsx';
 import SanteSmartInterventions from './SanteV6.jsx';
 import SanteEvolution from './SanteEvolution.jsx';
@@ -96,6 +97,8 @@ export default function SanteV7(props) {
 
   return <div className="space-y-6 sante-mobile-structured">
     <style>{`@media (max-width: 640px){.sante-mobile-structured .rounded-2xl{border-radius:18px}.sante-mobile-structured table{font-size:12px}.sante-mobile-structured th,.sante-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.sante-mobile-structured .text-2xl{font-size:1.35rem}.sante-mobile-structured .grid{gap:.75rem}.sante-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
+
+    <HealthOperationalPanel rows={props.rows || []} stocks={stocks} transactions={transactions} animaux={animaux} lots={lots} onNavigate={props.onNavigate} />
 
     <ModuleSection icon={HeartPulse} title="Soins et vaccins" subtitle="Créer et suivre les soins, vaccins, visites vétérinaires et actions de prévention. La fiche s’adapte au type d’intervention choisi.">
       <SafeHealthBlock title="Soins et vaccins"><SanteSmartInterventions {...props} {...healthInterconnectionProps} /></SafeHealthBlock>
