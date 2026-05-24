@@ -7,6 +7,9 @@ import {
 
 const now = () => new Date().toISOString();
 const makeId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`;
+const activity = (key) => HORIZON_FARM_OFFICIAL_BP.revenue.byActivity.find((row) => row.activity === key) || {};
+const variableCost = (category) => HORIZON_FARM_OFFICIAL_BP.variableCosts.lines.find((row) => row.category === category) || {};
+const startupLine = (category) => HORIZON_FARM_OFFICIAL_BP.startupNeeds.lines.find((row) => row.category === category) || {};
 
 export const HORIZON_FARM_BP_ID = 'BP-HORIZON-FARM';
 export const HORIZON_FARM_BP_NAME = 'Business Plan Horizon Farm';
@@ -15,16 +18,24 @@ export const HORIZON_FARM_INVESTMENT_LINES = getOfficialStartupInvestmentLines()
 export const HORIZON_FARM_MONTHLY_COSTS = getOfficialMonthlyCosts();
 export const HORIZON_FARM_REVENUE_PROJECTIONS = getOfficialMonthlyRevenueProjections();
 
+const oeufsRevenue = activity('oeufs');
+const chairRevenue = activity('poulets_chair');
+const bovinsRevenue = activity('bovins');
+const poussinsChairCost = variableCost('poussins_chair');
+const achatBovinsCost = variableCost('achat_bovins');
+const pondeusesStartup = startupLine('cheptel_pondeuses');
+const tresorerieStartup = startupLine('tresorerie_depart');
+
 export const HORIZON_FARM_OPERATIONAL_CYCLES = {
   pondeuses: {
     objectif: 'Œufs toute l’année',
     demarrage: HORIZON_FARM_OFFICIAL_BP.operatingStrategy.pondeuses.initialBand,
-    prix_unitaire_poussin: 900,
-    investissement_pondeuses: 2700000,
+    prix_unitaire_poussin: pondeusesStartup.unitPrice,
+    investissement_pondeuses: pondeusesStartup.total,
     principe: HORIZON_FARM_OFFICIAL_BP.operatingStrategy.pondeuses.nextBandPolicy,
-    objectif_ca_annuel: HORIZON_FARM_OFFICIAL_BP.revenue.byActivity.find((row) => row.activity === 'oeufs')?.annual || 36630000,
-    quantite_annuelle_tablettes: HORIZON_FARM_OFFICIAL_BP.revenue.byActivity.find((row) => row.activity === 'oeufs')?.quantity || 16650,
-    prix_tablette: HORIZON_FARM_OFFICIAL_BP.revenue.byActivity.find((row) => row.activity === 'oeufs')?.unitPrice || 2200,
+    objectif_ca_annuel: oeufsRevenue.annual,
+    quantite_annuelle_tablettes: oeufsRevenue.quantity,
+    prix_tablette: oeufsRevenue.unitPrice,
   },
   chair: {
     objectif: 'Installer progressivement un roulement de bandes de 500',
@@ -35,12 +46,12 @@ export const HORIZON_FARM_OPERATIONAL_CYCLES = {
     cartons_par_mois: HORIZON_FARM_OFFICIAL_BP.operatingStrategy.chair.cartonsPerMonth,
     poussins_par_carton: HORIZON_FARM_OFFICIAL_BP.operatingStrategy.chair.chicksPerCarton,
     poussins_mois: HORIZON_FARM_OFFICIAL_BP.operatingStrategy.chair.chicksPerMonth,
-    prix_carton: 32000,
-    cout_poussins_mensuel: HORIZON_FARM_OFFICIAL_BP.variableCosts.lines.find((row) => row.category === 'poussins_chair')?.monthly || 1024000,
-    cout_poussins_annuel: HORIZON_FARM_OFFICIAL_BP.variableCosts.lines.find((row) => row.category === 'poussins_chair')?.annual || 12288000,
-    objectif_ca_annuel: HORIZON_FARM_OFFICIAL_BP.revenue.byActivity.find((row) => row.activity === 'poulets_chair')?.annual || 47520000,
-    quantite_annuelle: HORIZON_FARM_OFFICIAL_BP.revenue.byActivity.find((row) => row.activity === 'poulets_chair')?.quantity || 19008,
-    prix_unitaire: HORIZON_FARM_OFFICIAL_BP.revenue.byActivity.find((row) => row.activity === 'poulets_chair')?.unitPrice || 2500,
+    prix_carton: poussinsChairCost.unitPrice,
+    cout_poussins_mensuel: poussinsChairCost.monthly,
+    cout_poussins_annuel: poussinsChairCost.annual,
+    objectif_ca_annuel: chairRevenue.annual,
+    quantite_annuelle: chairRevenue.quantity,
+    prix_unitaire: chairRevenue.unitPrice,
   },
   bovins: {
     objectif: 'Pipeline d’embouche de 5 bovins par mois',
@@ -49,13 +60,13 @@ export const HORIZON_FARM_OPERATIONAL_CYCLES = {
     achat_m3: HORIZON_FARM_OFFICIAL_BP.operatingStrategy.bovins.purchaseM3,
     cycle_jours: HORIZON_FARM_OFFICIAL_BP.operatingStrategy.bovins.cycleDays,
     sequence: HORIZON_FARM_OFFICIAL_BP.operatingStrategy.bovins.sequence,
-    achat_mensuel_apres_pipeline: 5,
-    vente_mensuelle_apres_pipeline: 5,
-    prix_achat_unitaire: HORIZON_FARM_OFFICIAL_BP.variableCosts.lines.find((row) => row.category === 'achat_bovins')?.unitPrice || 300000,
-    prix_vente_unitaire: HORIZON_FARM_OFFICIAL_BP.revenue.byActivity.find((row) => row.activity === 'bovins')?.unitPrice || 700000,
-    cout_achat_annuel: HORIZON_FARM_OFFICIAL_BP.variableCosts.lines.find((row) => row.category === 'achat_bovins')?.annual || 15000000,
-    objectif_ca_annuel: HORIZON_FARM_OFFICIAL_BP.revenue.byActivity.find((row) => row.activity === 'bovins')?.annual || 35000000,
-    quantite_annuelle: HORIZON_FARM_OFFICIAL_BP.revenue.byActivity.find((row) => row.activity === 'bovins')?.quantity || 50,
+    achat_mensuel_apres_pipeline: HORIZON_FARM_OFFICIAL_BP.operatingStrategy.bovins.starterM1,
+    vente_mensuelle_apres_pipeline: HORIZON_FARM_OFFICIAL_BP.operatingStrategy.bovins.starterM1,
+    prix_achat_unitaire: achatBovinsCost.unitPrice,
+    prix_vente_unitaire: bovinsRevenue.unitPrice,
+    cout_achat_annuel: achatBovinsCost.annual,
+    objectif_ca_annuel: bovinsRevenue.annual,
+    quantite_annuelle: bovinsRevenue.quantity,
   },
 };
 
@@ -72,7 +83,7 @@ export function buildHorizonFarmBusinessPlan() {
     identite_projet: HORIZON_FARM_OFFICIAL_BP.identity,
     besoin_demarrage_total: HORIZON_FARM_OFFICIAL_BP.startupNeeds.officialTotal,
     financement_total: HORIZON_FARM_OFFICIAL_BP.funding.officialTotal,
-    tresorerie_depart: 4260000,
+    tresorerie_depart: tresorerieStartup.total,
     objectif_ca_annuel: HORIZON_FARM_OFFICIAL_BP.revenue.annualTotal,
     charges_variables_annuelles: HORIZON_FARM_OFFICIAL_BP.variableCosts.correctedAnnualTotal,
     charges_variables_fichier_annuelles: HORIZON_FARM_OFFICIAL_BP.variableCosts.workbookAnnualTotal,
