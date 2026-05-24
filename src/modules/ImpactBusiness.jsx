@@ -1,6 +1,7 @@
-import { AlertTriangle, CreditCard, HeartPulse, Package, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, CreditCard, FileText, HeartPulse, Package, ShieldCheck } from 'lucide-react';
 import useCrudModule from '../hooks/useCrudModule';
 import { fmtCurrency } from '../utils/format';
+import FinancingDossierGenerator from './FinancingDossierGenerator.jsx';
 import ImpactBusinessShell from './ImpactBusinessShell.jsx';
 
 const fallbackRows = (provided, crud) => provided?.length ? provided : crud.rows;
@@ -29,6 +30,9 @@ function priorityStats(props = {}) {
 
 function Mini({ icon: Icon, label, value, danger = false }) {
   return <div className={`rounded-xl border px-3 py-2 min-w-[105px] ${danger ? 'border-amber-200 bg-amber-50' : 'border-[#eadcc2] bg-[#fffdf8]'}`}><Icon size={14} className={danger ? 'text-amber-700' : 'text-[#9a6b12]'} /><b className="block text-[#2f2415]">{value}</b><span className="text-xs text-[#8a7456]">{label}</span></div>;
+}
+function ModuleSection({ icon: Icon, title, subtitle, children }) {
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
 }
 
 function BusinessImpactPriority({ data }) {
@@ -119,5 +123,20 @@ export default function ImpactBusiness(props) {
     productionLogs: props.productionLogs?.length ? props.productionLogs : productionOeufsLogsCrud.rows,
   };
 
-  return <div className="space-y-6"><BusinessImpactPriority data={priorityStats(mergedProps)} /><ImpactBusinessShell {...mergedProps} /></div>;
+  const dossierData = {
+    ...mergedProps,
+    salesOrders: mergedProps.salesOrders || mergedProps.sales_orders || [],
+    payments: mergedProps.payments || [],
+    transactions: mergedProps.transactions || mergedProps.finances || [],
+    stocks: mergedProps.stocks || mergedProps.stock || [],
+    lots: mergedProps.lots || mergedProps.avicole || [],
+  };
+
+  return <div className="space-y-6">
+    <BusinessImpactPriority data={priorityStats(mergedProps)} />
+    <ModuleSection icon={FileText} title="Dossier Banque / Partenaire" subtitle="Même générateur que Rapports : choix du BP, choix du financeur et PDF adapté.">
+      <FinancingDossierGenerator data={dossierData} onCreateDocument={props.onCreateDocument} onRefreshDocuments={props.onRefreshDocuments} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} />
+    </ModuleSection>
+    <ImpactBusinessShell {...mergedProps} />
+  </div>;
 }
