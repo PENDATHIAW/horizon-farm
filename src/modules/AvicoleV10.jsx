@@ -6,6 +6,7 @@ import { buildAvicoleLotDecision } from '../services/avicoleDecisionEngine';
 import { fmtNumber } from '../utils/format';
 import { avicoleActiveCount, avicoleHasActiveBirds } from '../utils/avicoleMetrics';
 import AvicoleBase from './AvicoleBase.jsx';
+import AvicoleCycleHealthPanel from './AvicoleCycleHealthPanel.jsx';
 import AvicoleEvolution from './AvicoleEvolution.jsx';
 import AvicoleJournalsBridge from './AvicoleJournalsBridge.jsx';
 import AvicoleProductionAlimentationSummary from './AvicoleProductionAlimentationSummary.jsx';
@@ -100,9 +101,11 @@ export default function AvicoleV10(props) {
       <p className="mt-1 text-sm text-[#8a7456]">Le choix ci-dessous pilote tout le module : objectifs, fiches, ponte, abattage, historique et évolution.</p>
       <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
         <ActivityEntryCard active={activity === 'pondeuse'} icon={Egg} title="Pondeuses" subtitle="Ponte, tablettes d’œufs, baisse de ponte et réforme progressive selon le taux de ponte réel." rows={pondeuses} productionLogs={productionLogs} action="Voir pondeuses" onClick={() => setActivity('pondeuse')} />
-        <ActivityEntryCard active={activity === 'chair'} icon={Drumstick} title="Poulets de chair" subtitle="Poids moyen, cycle court, vente dès 35-45 jours si objectif atteint." rows={chair} productionLogs={productionLogs} action="Voir chair" onClick={() => setActivity('chair')} />
+        <ActivityEntryCard active={activity === 'chair'} icon={Drumstick} title="Poulets de chair" subtitle="Poids moyen, cycle court, vente dès 40 jours si objectif atteint." rows={chair} productionLogs={productionLogs} action="Voir chair" onClick={() => setActivity('chair')} />
       </div>
     </div>
+
+    <AvicoleCycleHealthPanel rows={rows} productionLogs={productionLogs} alimentationLogs={props.alimentationLogs || []} onNavigate={props.onNavigate} />
 
     <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4"><p className="text-xs uppercase tracking-[0.2em] text-[#9a6b12] font-black">Vue active</p><p className="mt-1 text-xl font-black text-[#2f2415]">{selectedLabel}</p><p className="mt-1 text-sm text-[#8a7456]">La vue opérationnelle affiche uniquement les lots avec effectif actif. Les lots à 0 sont conservés dans Cycle et historique.</p></div>
 
