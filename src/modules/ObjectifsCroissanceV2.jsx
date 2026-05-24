@@ -1,3 +1,4 @@
+import ActivityCycleGoalsPanel from './ActivityCycleGoalsPanel.jsx';
 import BpKpiHealth from './BpKpiHealth.jsx';
 import ObjectifsCroissance from './ObjectifsCroissance.jsx';
 
@@ -11,6 +12,7 @@ export default function ObjectifsCroissanceV2(props) {
       investments={dataMap.investissements || []}
       onNavigate={props.onNavigate}
     />
+    <ActivityCycleGoalsPanel dataMap={dataMap} onNavigate={props.onNavigate} />
     <ObjectifsCroissance {...props} />
   </div>;
 }
