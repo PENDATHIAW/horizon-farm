@@ -1,5 +1,6 @@
 import InternalResourcesHealth from './InternalResourcesHealth.jsx';
 import GestionSysteme from './GestionSysteme.jsx';
+import SystemDataResetPanel from './SystemDataResetPanel.jsx';
 
 export default function GestionSystemeV2(props) {
   return <div className="space-y-6">
@@ -11,5 +12,6 @@ export default function GestionSystemeV2(props) {
       onNavigate={props.onNavigate}
     />
     <GestionSysteme {...props} />
+    <SystemDataResetPanel />
   </div>;
 }
