@@ -2,7 +2,7 @@ import { AlertTriangle, Bot, CheckCircle2, ClipboardList, FileWarning, GitBranch
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import useCrudModule from '../hooks/useCrudModule';
-import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
+import { fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -46,10 +46,8 @@ function PriorityRow({ item, onNavigate, onCreateTask, busy }) {
 
 function buildAssistantPriorities(dataMap = {}) {
   const sales = arr(dataMap.sales_orders || dataMap.ventes);
-  const payments = arr(dataMap.payments);
   const transactions = arr(dataMap.finances);
   const stock = arr(dataMap.stock);
-  const health = arr(dataMap.sante);
   const animals = arr(dataMap.animaux);
   const lots = arr(dataMap.avicole);
   const cultures = arr(dataMap.cultures);
@@ -84,7 +82,7 @@ function buildAssistantPriorities(dataMap = {}) {
   if (clientNoContact.length) priorities.push({ module: 'clients', level: 'warning', badge: 'Contact', title: `${clientNoContact.length} client(s) sans contact`, description: 'Compléter téléphone/WhatsApp pour relances et suivi commercial.' });
   if (equipmentIssues.length) priorities.push({ module: 'equipements', level: 'warning', badge: 'Matériel', title: `${equipmentIssues.length} équipement(s) en panne/maintenance`, description: 'Créer une tâche de maintenance et enregistrer les coûts éventuels.' });
   if (!priorities.length && openTasks.length) priorities.push({ module: 'taches', level: 'info', badge: 'Suivi', title: `${openTasks.length} tâche(s) ouverte(s)`, description: 'Suivre les actions terrain restantes et clôturer ce qui est terminé.' });
-  return { priorities, unpaidSales, criticalStock, sickAnimals, riskyLots, txWithoutProof, openAlerts, openTasks };
+  return { priorities, unpaidSales, criticalStock, riskyLots, openTasks };
 }
 
 export default function AssistantERPInsights({ dataMap = {}, onNavigate }) {
@@ -100,21 +98,10 @@ export default function AssistantERPInsights({ dataMap = {}, onNavigate }) {
     try {
       setBusy(true);
       const id = makeId('TSK');
-      await tasksCrud.create?.({
-        id,
-        title: item.title,
-        module_lie: item.module,
-        source_module: 'assistant_erp',
-        source_record_id: item.module,
-        due_date: today(),
-        priority: item.level === 'critical' ? 'critique' : 'haute',
-        status: 'a_faire',
-        notes: item.description,
-        created_from: 'assistant_erp',
-      });
+      await tasksCrud.create?.({ id, title: item.title, module_lie: item.module, source_module: 'assistant_erp', source_record_id: item.module, due_date: today(), priority: item.level === 'critical' ? 'critique' : 'haute', status: 'a_faire', notes: item.description, created_from: 'assistant_erp' });
       await businessEventsCrud.create?.({ id: makeId('EVT'), event_type: 'assistant_priority_task', module_source: 'assistant_erp', entity_type: 'task', entity_id: id, title: `Tâche créée depuis Assistant ERP — ${item.title}`, description: item.description, event_date: today(), severity: item.level === 'critical' ? 'critical' : 'warning', linked_task_id: id, saisies_evitees: 2 });
       await Promise.allSettled([tasksCrud.refresh?.(), businessEventsCrud.refresh?.()]);
-      toast.success('Tâche créée depuis la priorité Assistant ERP');
+      toast.success('Tâche créée depuis Assistant ERP');
     } catch (error) {
       toast.error(error.message || 'Création de tâche impossible');
     } finally {
@@ -125,15 +112,15 @@ export default function AssistantERPInsights({ dataMap = {}, onNavigate }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-5">
     <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
       <div>
-        <p className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700"><Bot size={14} /> Copilote décisionnel</p>
-        <h2 className="mt-3 text-2xl font-black text-[#2f2415]">Assistant ERP enrichi</h2>
-        <p className="mt-1 text-sm text-[#8a7456]">Lecture globale des modules, priorités terrain, incohérences et prochaines actions pour saisir moins et piloter plus vite.</p>
+        <p className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700"><Bot size={14} /> Assistant ERP</p>
+        <h2 className="mt-3 text-2xl font-black text-[#2f2415]">Priorités de gestion</h2>
+        <p className="mt-1 text-sm text-[#8a7456]">Suivi des urgences terrain, ventes, stocks, preuves et actions à traiter.</p>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 min-w-full xl:min-w-[560px]">
-        <Card icon={ShieldCheck} label="Score cohérence" value={`${qualityScore}%`} hint="selon urgences détectées" danger={qualityScore < 75} />
+        <Card icon={ShieldCheck} label="Cohérence" value={`${qualityScore}%`} hint="selon urgences" danger={qualityScore < 75} />
         <Card icon={GitBranch} label="Données lues" value={fmtNumber(totalRows)} hint="tous modules" />
-        <Card icon={Wand2} label="Saisies évitées" value={fmtNumber(avoided)} hint="événements métier" />
-        <Card icon={AlertTriangle} label="Priorités" value={analysis.priorities.length} hint="actions recommandées" danger={analysis.priorities.length > 0} />
+        <Card icon={Wand2} label="Actions évitées" value={fmtNumber(avoided)} hint="via automatisations" />
+        <Card icon={AlertTriangle} label="Priorités" value={analysis.priorities.length} hint="à traiter" danger={analysis.priorities.length > 0} />
       </div>
     </div>
 
@@ -147,14 +134,14 @@ export default function AssistantERPInsights({ dataMap = {}, onNavigate }) {
     <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="flex items-center gap-2 font-black text-[#2f2415]"><Lightbulb size={18} /> Prochaines meilleures actions</p>
-          <p className="text-sm text-[#8a7456]">L’assistant classe ce qui bloque la cohérence ou la rentabilité de l’ERP.</p>
+          <p className="flex items-center gap-2 font-black text-[#2f2415]"><Lightbulb size={18} /> Actions recommandées</p>
+          <p className="text-sm text-[#8a7456]">À traiter en priorité pour garder l’exploitation à jour.</p>
         </div>
         {analysis.priorities.length ? <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-800">{analysis.priorities.length} action(s)</span> : <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800"><CheckCircle2 size={13} className="inline" /> Rien de critique</span>}
       </div>
       <div className="space-y-2">
         {analysis.priorities.slice(0, 8).map((item) => <PriorityRow key={`${item.module}-${item.title}`} item={item} onNavigate={onNavigate} onCreateTask={createTask} busy={busy} />)}
-        {!analysis.priorities.length ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">Aucune priorité critique détectée. Tu peux utiliser la commande guidée ci-dessous pour créer ou modifier les fiches plus vite.</div> : null}
+        {!analysis.priorities.length ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">Aucune priorité critique détectée.</div> : null}
       </div>
     </div>
   </section>;
