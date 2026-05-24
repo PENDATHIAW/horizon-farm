@@ -8,6 +8,7 @@ import { avicoleActiveCount, avicoleHasActiveBirds } from '../utils/avicoleMetri
 import AvicoleBase from './AvicoleBase.jsx';
 import AvicoleEvolution from './AvicoleEvolution.jsx';
 import AvicoleJournalsBridge from './AvicoleJournalsBridge.jsx';
+import AvicoleProductionAlimentationSummary from './AvicoleProductionAlimentationSummary.jsx';
 import AvicoleTransformationBridge from './AvicoleTransformationBridge.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
@@ -111,6 +112,7 @@ export default function AvicoleV10(props) {
       {activity === 'pondeuse' ? <ObjectivePerformanceCard dataMap={dataMap} activity="oeufs" title="Objectif œufs / pondeuses" compact onNavigate={props.onNavigate} /> : <ObjectivePerformanceCard dataMap={dataMap} activity="poulets_chair" title="Objectif poulets de chair" compact onNavigate={props.onNavigate} />}
     </div>
 
+    <ModuleSection icon={PackageCheck} title={`Production & alimentation · ${selectedLabel}`} subtitle="Synthèse courte des œufs, aliments consommés, coûts et alertes de saisie pour les lots actifs."><AvicoleProductionAlimentationSummary rows={activeScopedRows} productionLogs={scopedProductionLogs} alimentationLogs={props.alimentationLogs || []} activity={activity} onNavigate={props.onNavigate} /></ModuleSection>
     <ModuleSection icon={PackageCheck} title={`Vue opérationnelle · ${selectedLabel}`} subtitle={activity === 'pondeuse' ? `Lots pondeuses actifs uniquement · ${historicalScopedRows.length} lot(s) en historique.` : `Lots chair actifs uniquement · ${historicalScopedRows.length} lot(s) en historique.`}><AvicoleBase {...operationalProps} /></ModuleSection>
     {activity === 'pondeuse' ? <ModuleSection icon={Egg} title="Ponte, œufs et charges directes" subtitle="Ramassage, stock d’œufs vendables et frais ponctuels liés aux pondeuses actives."><AvicoleJournalsBridge {...operationalProps} rows={activeScopedRows} productionLogs={scopedProductionLogs} businessEvents={businessEvents} /><DirectChargesBridge title="Charges directes pondeuses" subtitle="Frais liés aux lots pondeuses actifs." targetType="avicole" targets={activeScopedRows} businessEvents={businessEvents} onCreateBusinessEvent={props.onCreateBusinessEvent} onUpdateBusinessEvent={props.onUpdateBusinessEvent} onDeleteBusinessEvent={props.onDeleteBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} /></ModuleSection> : null}
     {activity === 'chair' ? <ModuleSection icon={Scissors} title="Abattage, transformation et stock" subtitle="Sortie des sujets chair actifs, poids, transformation et stock viande vendable."><AvicoleTransformationBridge {...operationalProps} rows={activeScopedRows} alimentationLogs={props.alimentationLogs || []} productionLogs={scopedProductionLogs} businessEvents={businessEvents} /></ModuleSection> : null}
