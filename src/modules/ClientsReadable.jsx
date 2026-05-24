@@ -1,3 +1,4 @@
+import ClientSalesHealthPanel from './ClientSalesHealthPanel.jsx';
 import Clients from './Clients.jsx';
 import ClientsEvolution from './ClientsEvolution.jsx';
 import TradeDocumentsHealth from './TradeDocumentsHealth.jsx';
@@ -5,6 +6,12 @@ import TradeDocumentsHealth from './TradeDocumentsHealth.jsx';
 export default function ClientsReadable(props) {
   return (
     <div className="clients-readable-order space-y-6">
+      <ClientSalesHealthPanel
+        rows={props.rows || []}
+        salesOrders={props.salesOrders || []}
+        payments={props.payments || []}
+        onNavigate={props.onNavigate}
+      />
       <TradeDocumentsHealth
         mode="clients"
         rows={props.rows || []}
