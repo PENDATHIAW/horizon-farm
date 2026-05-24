@@ -1,10 +1,18 @@
 import Fournisseurs from './Fournisseurs.jsx';
 import FournisseursEvolution from './FournisseursEvolution.jsx';
+import SupplierHealthPanel from './SupplierHealthPanel.jsx';
 import TradeDocumentsHealth from './TradeDocumentsHealth.jsx';
 
 export default function FournisseursReadable(props) {
   return (
     <div className="fournisseurs-readable-order space-y-6">
+      <SupplierHealthPanel
+        rows={props.rows || []}
+        stocks={props.stocks || []}
+        finances={props.finances || props.transactions || []}
+        documents={props.documents || []}
+        onNavigate={props.onNavigate}
+      />
       <TradeDocumentsHealth
         mode="fournisseurs"
         rows={props.rows || []}
