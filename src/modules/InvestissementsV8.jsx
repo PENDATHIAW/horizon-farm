@@ -4,7 +4,7 @@ import { AlertTriangle, BarChart3, Beef, CheckCircle2, ChevronDown, Drumstick, E
 import { toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { HORIZON_FARM_OPERATIONAL_CYCLES } from '../services/horizonFarmBusinessPlanSeed';
-import InvestissementsV7 from './InvestissementsV7.jsx';
+import BaseInvestissements from './Investissements.jsx';
 import InvestissementsEvolution from './InvestissementsEvolution.jsx';
 import InvestmentQualityControl from './InvestmentQualityControl.jsx';
 
@@ -51,21 +51,9 @@ class SafeBlock extends Component {
 function OperatingAssumptionsPanel() {
   const { pondeuses, chair, bovins } = HORIZON_FARM_OPERATIONAL_CYCLES || {};
   return <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
-    <article className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-2">
-      <p className="flex items-center gap-2 font-black text-[#2f2415]"><Egg size={17} className="text-[#9a6b12]" /> Pondeuses</p>
-      <p className="text-sm text-[#7d6a4a] leading-relaxed">{pondeuses?.principe}</p>
-      <div className="grid grid-cols-2 gap-2 text-xs"><Mini label="Démarrage" value={`${fmtFcfa(pondeuses?.demarrage)} sujets`} /><Mini label="Prix poussin" value={`${fmtFcfa(pondeuses?.prix_unitaire_poussin)} FCFA`} /><Mini label="CA œufs" value={fmtCompactFcfa(pondeuses?.objectif_ca_annuel)} /><Mini label="2e bande" value="Selon réel" /></div>
-    </article>
-    <article className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-2">
-      <p className="flex items-center gap-2 font-black text-[#2f2415]"><Drumstick size={17} className="text-[#9a6b12]" /> Poulets de chair</p>
-      <p className="text-sm text-[#7d6a4a] leading-relaxed">Bandes de {fmtFcfa(chair?.demarrage_prudent)} : achat, vente vers J+{fmtFcfa(chair?.cycle_jours)}, puis roulement avec nouvelle bande {fmtFcfa(chair?.cadence_apres_demarrage_jours)} jours après.</p>
-      <div className="grid grid-cols-2 gap-2 text-xs"><Mini label="Bande" value={fmtFcfa(chair?.demarrage_prudent)} /><Mini label="Cycle" value={`${fmtFcfa(chair?.cycle_jours)} jours`} /><Mini label="Poussins/mois" value={fmtFcfa(chair?.poussins_mois)} /><Mini label="Coût poussins/mois" value={fmtFcfa(chair?.cout_poussins_mensuel)} /></div>
-    </article>
-    <article className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-2">
-      <p className="flex items-center gap-2 font-black text-[#2f2415]"><Beef size={17} className="text-[#9a6b12]" /> Bovins</p>
-      <p className="text-sm text-[#7d6a4a] leading-relaxed">M1/M2/M3 : acheter {fmtFcfa(bovins?.demarrage_m1)}. M4 vend M1, M5 vend M2, M6 vend M3, puis vente/rachat mensuel.</p>
-      <div className="grid grid-cols-2 gap-2 text-xs"><Mini label="Achat mensuel" value={fmtFcfa(bovins?.achat_mensuel_apres_pipeline)} /><Mini label="Cycle" value={`${fmtFcfa(bovins?.cycle_jours)} jours`} /><Mini label="Prix achat" value={fmtFcfa(bovins?.prix_achat_unitaire)} /><Mini label="Prix vente" value={fmtFcfa(bovins?.prix_vente_unitaire)} /></div>
-    </article>
+    <article className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-2"><p className="flex items-center gap-2 font-black text-[#2f2415]"><Egg size={17} className="text-[#9a6b12]" /> Pondeuses</p><p className="text-sm text-[#7d6a4a] leading-relaxed">{pondeuses?.principe}</p><div className="grid grid-cols-2 gap-2 text-xs"><Mini label="Démarrage" value={`${fmtFcfa(pondeuses?.demarrage)} sujets`} /><Mini label="Prix poussin" value={`${fmtFcfa(pondeuses?.prix_unitaire_poussin)} FCFA`} /><Mini label="CA œufs" value={fmtCompactFcfa(pondeuses?.objectif_ca_annuel)} /><Mini label="2e bande" value="Selon réel" /></div></article>
+    <article className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-2"><p className="flex items-center gap-2 font-black text-[#2f2415]"><Drumstick size={17} className="text-[#9a6b12]" /> Poulets de chair</p><p className="text-sm text-[#7d6a4a] leading-relaxed">Bandes de {fmtFcfa(chair?.demarrage_prudent)} : achat, vente à J+{fmtFcfa(chair?.cycle_jours)}, puis roulement.</p><div className="grid grid-cols-2 gap-2 text-xs"><Mini label="Bande" value={fmtFcfa(chair?.demarrage_prudent)} /><Mini label="Cycle" value={`${fmtFcfa(chair?.cycle_jours)} jours`} /><Mini label="Poussins/mois" value={fmtFcfa(chair?.poussins_mois)} /><Mini label="Coût mensuel" value={fmtFcfa(chair?.cout_poussins_mensuel)} /></div></article>
+    <article className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-2"><p className="flex items-center gap-2 font-black text-[#2f2415]"><Beef size={17} className="text-[#9a6b12]" /> Bovins</p><p className="text-sm text-[#7d6a4a] leading-relaxed">M1/M2/M3 : acheter {fmtFcfa(bovins?.demarrage_m1)}. M4 vend M1, M5 vend M2, M6 vend M3, puis vente/rachat mensuel.</p><div className="grid grid-cols-2 gap-2 text-xs"><Mini label="Achat mensuel" value={fmtFcfa(bovins?.achat_mensuel_apres_pipeline)} /><Mini label="Cycle" value={`${fmtFcfa(bovins?.cycle_jours)} jours`} /><Mini label="Prix achat" value={fmtFcfa(bovins?.prix_achat_unitaire)} /><Mini label="Prix vente" value={fmtFcfa(bovins?.prix_vente_unitaire)} /></div></article>
   </div>;
 }
 function Mini({ label, value }) { return <div className="rounded-xl border border-[#eadcc2] bg-white p-2"><p className="text-[#8a7456]">{label}</p><p className="font-black text-[#2f2415]">{value}</p></div>; }
@@ -78,39 +66,12 @@ async function createOperationalAsset(line, props) {
   if (!type) return toast.error('Cette ligne ne correspond pas encore à un actif métier automatique.');
   if (line.asset_created_at || line.asset_id) return toast.error('Actif métier déjà créé pour cette ligne.');
   if (!props.onUpdateBpInvestmentLine) return toast.error('Lien BP indisponible : impossible de verrouiller cette ligne.');
-
-  if (type === 'avicole') {
-    const lotType = label.toLowerCase().includes('chair') || label.toLowerCase().includes('poulet') ? 'Chair' : 'Pondeuse';
-    const id = makeId(lotType === 'Chair' ? 'LOTCH' : 'LOTP');
-    await props.onCreateLot?.({ id, name: `${id} ${lotType}`, type: lotType, activity: lotType, status: 'actif', health_status: 'sain', initial_count: qty, current_count: qty, mortality: 0, malades: 0, entry_date: today(), date_entree: today(), date_debut: today(), age_days: 0, average_weight: 0, purchase_cost: unitCost * qty, source: 'business_plan', source_module: 'investissements', source_record_id: line.id, business_plan_id: line.business_plan_id, bp_line_id: line.id, linked_transaction_id: line.transaction_id || null, preuve_url: line.preuve_url || '' });
-    await props.onUpdateBpInvestmentLine?.(line.id, linkPatch(line, 'avicole', id));
-    await props.onRefreshLots?.();
-  }
-
-  if (type === 'animal') {
-    const lower = label.toLowerCase();
-    const animalType = lower.includes('mouton') ? 'Ovin' : lower.includes('chèvre') || lower.includes('chevre') ? 'Caprin' : 'Bovin';
-    const prefix = animalType === 'Bovin' ? 'BOV' : animalType === 'Ovin' ? 'OVI' : 'CAP';
-    const createdIds = [];
-    for (let i = 0; i < qty; i += 1) {
-      const id = makeId(prefix);
-      createdIds.push(id);
-      await props.onCreateAnimal?.({ id, tag: id, name: `${animalType} BP ${i + 1}`, type: animalType, status: 'actif', health_status: 'sain', mode_acquisition: 'achat', date_achat: today(), date_entree_ferme: today(), purchase_cost: unitCost, source: 'business_plan', source_module: 'investissements', source_record_id: line.id, business_plan_id: line.business_plan_id, bp_line_id: line.id, linked_transaction_id: line.transaction_id || null, preuve_url: line.preuve_url || '' });
-    }
-    await props.onUpdateBpInvestmentLine?.(line.id, linkPatch(line, 'animaux', createdIds.join(',')));
-    await props.onRefreshAnimals?.();
-  }
-
-  if (type === 'culture') {
-    const id = makeId('CULT');
-    const isPoivron = label.toLowerCase().includes('poivron');
-    await props.onCreateCulture?.({ id, nom: isPoivron ? 'Poivrons' : label || 'Culture BP', type: isPoivron ? 'Poivrons' : label || 'Culture', parcelle: 'À préciser', parcelle_code: 'À préciser', campagne: `BP ${line.business_plan_id || ''}`.trim(), statut: 'planifiee', date_debut_campagne: today(), date_semis: today(), surface: toNumber(line.quantite) || 0, surface_exploitable: toNumber(line.quantite) || 0, unite_surface: line.unite || 'ha', budget_prevu: toNumber(line.total), cout_total_reel: 0, revenu_reel: 0, source: 'business_plan', source_module: 'investissements', source_record_id: line.id, business_plan_id: line.business_plan_id, investment_id: line.id, bp_line_id: line.id, linked_transaction_id: line.transaction_id || null, preuve_url: line.preuve_url || '' });
-    await props.onUpdateBpInvestmentLine?.(line.id, linkPatch(line, 'cultures', id));
-    await props.onRefreshCultures?.();
-  }
+  if (type === 'avicole') { const lotType = label.toLowerCase().includes('chair') || label.toLowerCase().includes('poulet') ? 'Chair' : 'Pondeuse'; const id = makeId(lotType === 'Chair' ? 'LOTCH' : 'LOTP'); await props.onCreateLot?.({ id, name: `${id} ${lotType}`, type: lotType, activity: lotType, status: 'actif', health_status: 'sain', initial_count: qty, current_count: qty, mortality: 0, malades: 0, entry_date: today(), date_entree: today(), date_debut: today(), age_days: 0, average_weight: 0, purchase_cost: unitCost * qty, source: 'business_plan', source_module: 'investissements', source_record_id: line.id, business_plan_id: line.business_plan_id, bp_line_id: line.id, linked_transaction_id: line.transaction_id || null, preuve_url: line.preuve_url || '' }); await props.onUpdateBpInvestmentLine?.(line.id, linkPatch(line, 'avicole', id)); await props.onRefreshLots?.(); }
+  if (type === 'animal') { const lower = label.toLowerCase(); const animalType = lower.includes('mouton') ? 'Ovin' : lower.includes('chèvre') || lower.includes('chevre') ? 'Caprin' : 'Bovin'; const prefix = animalType === 'Bovin' ? 'BOV' : animalType === 'Ovin' ? 'OVI' : 'CAP'; const createdIds = []; for (let i = 0; i < qty; i += 1) { const id = makeId(prefix); createdIds.push(id); await props.onCreateAnimal?.({ id, tag: id, name: `${animalType} BP ${i + 1}`, type: animalType, status: 'actif', health_status: 'sain', mode_acquisition: 'achat', date_achat: today(), date_entree_ferme: today(), purchase_cost: unitCost, source: 'business_plan', source_module: 'investissements', source_record_id: line.id, business_plan_id: line.business_plan_id, bp_line_id: line.id, linked_transaction_id: line.transaction_id || null, preuve_url: line.preuve_url || '' }); } await props.onUpdateBpInvestmentLine?.(line.id, linkPatch(line, 'animaux', createdIds.join(','))); await props.onRefreshAnimals?.(); }
+  if (type === 'culture') { const id = makeId('CULT'); const isPoivron = label.toLowerCase().includes('poivron'); await props.onCreateCulture?.({ id, nom: isPoivron ? 'Poivrons' : label || 'Culture BP', type: isPoivron ? 'Poivrons' : label || 'Culture', parcelle: 'À préciser', parcelle_code: 'À préciser', campagne: `BP ${line.business_plan_id || ''}`.trim(), statut: 'planifiee', date_debut_campagne: today(), date_semis: today(), surface: toNumber(line.quantite) || 0, surface_exploitable: toNumber(line.quantite) || 0, unite_surface: line.unite || 'ha', budget_prevu: toNumber(line.total), cout_total_reel: 0, revenu_reel: 0, source: 'business_plan', source_module: 'investissements', source_record_id: line.id, business_plan_id: line.business_plan_id, investment_id: line.id, bp_line_id: line.id, linked_transaction_id: line.transaction_id || null, preuve_url: line.preuve_url || '' }); await props.onUpdateBpInvestmentLine?.(line.id, linkPatch(line, 'cultures', id)); await props.onRefreshCultures?.(); }
   await props.onRefreshBpInvestmentLines?.();
   await props.onRefreshBusinessPlans?.();
-  toast.success('Actif métier créé et ligne BP verrouillée');
+  toast.success('Investissement concrétisé : actif métier créé');
 }
 
 function OperationalAssetsBridge(props) {
@@ -119,52 +80,16 @@ function OperationalAssetsBridge(props) {
   const eligible = lines.filter((line) => st(line) === 'effectif' && !line.asset_created_at && !line.asset_id && assetType(line));
   const linked = lines.filter((line) => line.asset_created_at || line.asset_id);
   if (!plan) return <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]">Aucun business plan actif pour le moment.</div>;
-  return (
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        <div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Actifs métier liés</p><h3 className="font-black text-[#2f2415]">Transformer les dépenses effectives en lots, animaux ou cultures</h3><p className="text-sm text-[#8a7456] mt-1">Après paiement, crée l’actif opérationnel pour que Avicole, Animaux ou Cultures se mette à jour.</p></div>
-        <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2 text-sm"><b>{linked.length}</b> ligne(s) déjà liée(s)</div>
-      </div>
-      {eligible.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">{eligible.map((line) => <button type="button" key={line.id} onClick={() => createOperationalAsset(line, props)} className="text-left rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 hover:border-[#b6975f]"><p className="font-bold text-[#2f2415]"><Link2 size={14} className="inline" /> {clean(line.designation)}</p><p className="text-xs text-[#8a7456] mt-1">Créer dans {assetType(line) === 'animal' ? 'Animaux' : assetType(line) === 'avicole' ? 'Avicole' : 'Cultures'} · quantité {line.quantite}</p></button>)}</div> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]"><CheckCircle2 size={14} className="inline" /> Aucune ligne effective en attente de création métier.</div>}
-    </div>
-  );
+  return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-3"><div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Concrétisation des investissements</p><h3 className="font-black text-[#2f2415]">Transformer une dépense payée en actif exploitable</h3><p className="text-sm text-[#8a7456] mt-1">Quand une ligne BP est payée, l’ERP crée automatiquement le lot, l’animal ou la culture reliée.</p></div><div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2 text-sm"><b>{linked.length}</b> ligne(s) déjà concrétisée(s)</div></div>{eligible.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">{eligible.map((line) => <button type="button" key={line.id} onClick={() => createOperationalAsset(line, props)} className="text-left rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 hover:border-[#b6975f]"><p className="font-bold text-[#2f2415]"><Link2 size={14} className="inline" /> Concrétiser : {clean(line.designation)}</p><p className="text-xs text-[#8a7456] mt-1">Création dans {assetType(line) === 'animal' ? 'Animaux' : assetType(line) === 'avicole' ? 'Avicole' : 'Cultures'} · quantité {line.quantite}</p></button>)}</div> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]"><CheckCircle2 size={14} className="inline" /> Aucune dépense effective en attente de concrétisation.</div>}</div>;
 }
 
 export default function InvestissementsV8(props) {
-  return (
-    <div className="space-y-6 investissements-mobile-structured">
-      <style>{`@media (max-width: 640px){.investissements-mobile-structured .rounded-2xl{border-radius:18px}.investissements-mobile-structured table{font-size:12px}.investissements-mobile-structured th,.investissements-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.investissements-mobile-structured .text-2xl{font-size:1.35rem}.investissements-mobile-structured .grid{gap:.75rem}.investissements-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
-
-      <ModuleSection icon={TrendingUp} title="Hypothèses opérationnelles du BP" subtitle="Les cycles validés sont visibles ici, mais leur exécution se fait dans Centre décisionnel, Avicole et Animaux.">
-        <SafeBlock title="Hypothèses opérationnelles du BP"><OperatingAssumptionsPanel /></SafeBlock>
-      </ModuleSection>
-
-      <ModuleSection icon={ShieldCheck} title="Contrôle qualité investissement" subtitle="Cohérence BP, financements, lignes effectives, liens métiers et risques à traiter avant les détails.">
-        <SafeBlock title="Contrôle qualité investissement">
-          <InvestmentQualityControl
-            rows={props.rows || []}
-            businessPlans={props.businessPlans || []}
-            bpInvestmentLines={props.bpInvestmentLines || []}
-            bpFundingSources={props.bpFundingSources || []}
-            transactions={props.transactions || []}
-            lots={props.lots || []}
-            animaux={props.animaux || []}
-            cultures={props.cultures || []}
-          />
-        </SafeBlock>
-      </ModuleSection>
-
-      <ModuleSection icon={Link2} title="Actifs métier créés depuis BP" subtitle="Transformation des dépenses effectives en lots avicoles, animaux ou cultures exploitables.">
-        <SafeBlock title="Actifs métier créés depuis BP"><OperationalAssetsBridge {...props} /></SafeBlock>
-      </ModuleSection>
-
-      <CollapsibleSection icon={TrendingUp} title="Portefeuille investissements & business plans" subtitle="Projets, lignes BP, financement, paiements et suivi détaillé des investissements." defaultOpen={false}>
-        <SafeBlock title="Portefeuille investissements & business plans"><InvestissementsV7 {...props} /></SafeBlock>
-      </CollapsibleSection>
-
-      <CollapsibleSection icon={BarChart3} title="Évolution investissements" subtitle="Graphes des investissements, financements, CAPEX, risques et valeur créée." defaultOpen={false}>
-        <SafeBlock title="Évolution investissements"><InvestissementsEvolution {...props} /></SafeBlock>
-      </CollapsibleSection>
-    </div>
-  );
+  return <div className="space-y-6 investissements-mobile-structured">
+    <style>{`@media (max-width: 640px){.investissements-mobile-structured .rounded-2xl{border-radius:18px}.investissements-mobile-structured table{font-size:12px}.investissements-mobile-structured th,.investissements-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.investissements-mobile-structured .text-2xl{font-size:1.35rem}.investissements-mobile-structured .grid{gap:.75rem}.investissements-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
+    <ModuleSection icon={Link2} title="Concrétiser un investissement" subtitle="Une dépense payée doit créer l’actif métier relié : lot avicole, animal ou culture."><SafeBlock title="Concrétiser un investissement"><OperationalAssetsBridge {...props} /></SafeBlock></ModuleSection>
+    <ModuleSection icon={TrendingUp} title="Hypothèses opérationnelles du BP" subtitle="Cycles de production utilisés pour piloter les investissements."><SafeBlock title="Hypothèses opérationnelles du BP"><OperatingAssumptionsPanel /></SafeBlock></ModuleSection>
+    <ModuleSection icon={ShieldCheck} title="Contrôle qualité investissement" subtitle="Cohérence BP, financements, lignes effectives, liens métiers et risques."><SafeBlock title="Contrôle qualité investissement"><InvestmentQualityControl rows={props.rows || []} businessPlans={props.businessPlans || []} bpInvestmentLines={props.bpInvestmentLines || []} bpFundingSources={props.bpFundingSources || []} transactions={props.transactions || []} lots={props.lots || []} animaux={props.animaux || []} cultures={props.cultures || []} /></SafeBlock></ModuleSection>
+    <CollapsibleSection icon={TrendingUp} title="Portefeuille investissements & business plans" subtitle="Fiches d’investissement, suivi des lignes et documents associés." defaultOpen={false}><SafeBlock title="Portefeuille investissements & business plans"><BaseInvestissements {...props} /></SafeBlock></CollapsibleSection>
+    <CollapsibleSection icon={BarChart3} title="Évolution investissements" subtitle="Graphes des investissements, financements, CAPEX, risques et valeur créée." defaultOpen={false}><SafeBlock title="Évolution investissements"><InvestissementsEvolution {...props} /></SafeBlock></CollapsibleSection>
+  </div>;
 }
