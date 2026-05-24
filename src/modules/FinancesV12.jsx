@@ -1,10 +1,18 @@
 import useCrudModule from '../hooks/useCrudModule';
+import BpKpiHealth from './BpKpiHealth.jsx';
 import FinanceAccountingHealth from './FinanceAccountingHealth.jsx';
 import FinancesV11 from './FinancesV11.jsx';
 
 export default function FinancesV12(props) {
   const documentsCrud = useCrudModule('documents');
   return <div className="space-y-6">
+    <BpKpiHealth
+      salesOrders={props.salesOrders || []}
+      payments={props.payments || []}
+      transactions={props.rows || props.transactions || []}
+      investments={props.investissements || []}
+      onNavigate={props.onNavigate}
+    />
     <FinanceAccountingHealth
       transactions={props.rows || props.transactions || []}
       salesOrders={props.salesOrders || []}
