@@ -1,9 +1,17 @@
 import Fournisseurs from './Fournisseurs.jsx';
 import FournisseursEvolution from './FournisseursEvolution.jsx';
+import TradeDocumentsHealth from './TradeDocumentsHealth.jsx';
 
 export default function FournisseursReadable(props) {
   return (
     <div className="fournisseurs-readable-order space-y-6">
+      <TradeDocumentsHealth
+        mode="fournisseurs"
+        rows={props.rows || []}
+        stocks={props.stocks || []}
+        finances={props.finances || props.transactions || []}
+        onNavigate={props.onNavigate}
+      />
       <Fournisseurs {...props} hideEvolution />
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
         <div>
