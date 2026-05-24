@@ -1,5 +1,5 @@
-import VentesTerrainV2 from './VentesTerrainV2.jsx';
+import VentesV5 from './VentesV5.jsx';
 
 export default function VentesV3(props) {
-  return VentesTerrainV2(props);
+  return VentesV5(props);
 }
