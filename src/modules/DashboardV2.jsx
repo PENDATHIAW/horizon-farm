@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, CreditCard, FileText, Package, Settings2, Stethoscope, Target, TrendingUp } from 'lucide-react';
-import Dashboard from './Dashboard.jsx';
 import DashboardEvolution from './DashboardEvolution.jsx';
 import { readUiSettings } from '../utils/uiPreferences';
 import { fmtCurrency } from '../utils/format';
@@ -32,7 +31,7 @@ function Mini({ label, value, tone = 'neutral' }) {
   return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">{label}</p><p className={`mt-1 text-lg font-black ${cls}`}>{value}</p></div>;
 }
 
-function MonthlyObjectiveStatus({ props }) {
+function UnifiedPilotageStatus({ props }) {
   const plan = useMemo(() => buildDecisionCenterPlan({
     animaux: props.animaux || [],
     avicole: props.lotsData || props.lots || [],
@@ -48,29 +47,37 @@ function MonthlyObjectiveStatus({ props }) {
     meteo: props.meteo || {},
   }), [props]);
   const goal = plan.goals.global;
+  const salesOrders = arr(props.salesOrders);
+  const payments = arr(props.payments);
+  const transactions = arr(props.transactions);
+  const cashIn = Math.max(payments.reduce((sum, row) => sum + paid(row), 0), transactions.filter((row) => lower(row.type) === 'entree' || lower(row.type) === 'entrée').reduce((sum, row) => sum + Number(row.montant || row.amount || 0), 0));
+  const cashOut = transactions.filter((row) => ['sortie', 'depense', 'dépense'].includes(lower(row.type))).reduce((sum, row) => sum + Number(row.montant || row.amount || 0), 0);
+  const receivable = salesOrders.reduce((sum, order) => sum + remaining(order), 0);
   const remainingAmount = Math.max(0, goal.monthTarget - goal.realized);
   const tone = goal.attainment >= 90 ? 'good' : goal.attainment >= 50 ? 'warn' : 'bad';
   const activitiesBehind = plan.goals.activities.filter((item) => item.attainment < 50 && item.target > 0).slice(0, 3);
   const message = goal.attainment >= 90
-    ? 'Le mois est bien engagé. Continuer à sécuriser les ventes et les encaissements.'
+    ? 'Le mois est bien engagé. Continuer à sécuriser les ventes, le cash et les routines terrain.'
     : goal.realized > 0
-      ? 'Le mois avance, mais il reste du CA à aller chercher. Le Centre décisionnel indique quoi vendre et à qui vendre.'
-      : 'Aucun CA réalisé visible ce mois-ci. Priorité : vérifier ventes, précommandes et opportunités immédiates.';
+      ? 'Le mois avance, mais il reste du CA et du cash à aller chercher.'
+      : 'Aucun CA réalisé visible ce mois-ci. Priorité : ventes, encaissements et opportunités immédiates.';
 
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
       <div>
-        <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black flex items-center gap-2"><Target size={15} /> Objectif du mois</p>
+        <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black flex items-center gap-2"><Target size={15} /> Pilotage ferme · objectif du mois</p>
         <h2 className="mt-1 text-2xl font-black text-[#2f2415]">Situation actuelle · {plan.goals.currentMonth}</h2>
         <p className="mt-1 text-sm text-[#8a7456]">{message}</p>
       </div>
       <button type="button" onClick={() => props.onNavigate?.('centre_ia')} className="rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white hover:bg-[#3d2f1d]">Voir Centre décisionnel</button>
     </div>
-    <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 xl:grid-cols-6 gap-3">
       <Mini label="Objectif mensuel" value={fmtCurrency(goal.monthTarget)} />
       <Mini label="CA réalisé" value={fmtCurrency(goal.realized)} />
       <Mini label="Taux d’atteinte" value={`${goal.attainment}%`} tone={tone} />
       <Mini label="Reste à vendre" value={fmtCurrency(remainingAmount)} tone={remainingAmount > 0 ? 'warn' : 'good'} />
+      <Mini label="Cash net" value={fmtCurrency(cashIn - cashOut)} tone={cashIn - cashOut >= 0 ? 'good' : 'bad'} />
+      <Mini label="À encaisser" value={fmtCurrency(receivable)} tone={receivable > 0 ? 'warn' : 'good'} />
     </div>
     {activitiesBehind.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"><b>Activités à pousser :</b> {activitiesBehind.map((item) => `${item.label} (${item.attainment}%)`).join(' · ')}</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">Aucune activité prioritaire en retard critique selon les objectifs actuels.</div>}
   </section>;
@@ -146,8 +153,7 @@ export default function DashboardV2(props) {
 
   return <div className="space-y-6">
     <TodayFocus props={props} simple={simple} onToggleExpert={toggleExpert} />
-    <MonthlyObjectiveStatus props={props} />
-    <Dashboard {...props} />
+    <UnifiedPilotageStatus props={props} />
     {!simple ? <DashboardEvolution salesOrders={props.salesOrders || []} payments={props.payments || []} transactions={props.transactions || []} productionLogs={props.productionLogs || []} stocks={props.stocks || []} taches={props.taches || []} alertes={props.alertes || []} onNavigate={props.onNavigate} /> : <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Vue simple activée. Pour afficher les graphiques détaillés, clique sur “Voir plus de détails”.</div>}
   </div>;
 }
