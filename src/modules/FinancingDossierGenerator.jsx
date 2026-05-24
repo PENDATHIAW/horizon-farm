@@ -44,14 +44,21 @@ function buildSummary({ data, plan, lines, costs, projections, fundings, risks, 
 function buildDraft(summary) {
   const f = financeurInfo(summary.financeur, summary.customFinanceur);
   const derBlock = summary.financeur === 'DER' ? '\n\nPoints DER/FJ à valoriser : emplois directs, emplois femmes/jeunes, formalisation, sécurité alimentaire, impact local, formation, suivi trimestriel, transparence des dépenses et capacité de remboursement.' : '';
+  const monthlyRepayment = Math.round(summary.investment / 36);
   return {
     executive: `Horizon Farm est une ferme intégrée portée par Penda THIAW. Le projet combine production d’œufs, poulets de chair, embouche bovine, cultures et commercialisation structurée. Le financement demandé vise les actifs productifs, les infrastructures, les équipements, les intrants et le fonds de roulement. Le dossier est préparé pour ${f.label}. ${f.angle}.${derBlock}`,
     owner: 'Porteuse : Penda THIAW. Ajouter ici la mini-bio, le parcours, l’expérience terrain, le rôle dans le projet, les formations, le statut juridique et les éléments de légitimité pour le financeur.',
     request: `Montant structuré du BP : ${money(summary.investment)}. Nature du financement à préciser : prêt, subvention, garantie ou mixte. Durée, différé et plan de remboursement à adapter selon le financeur.`,
+    repayment: `Hypothèse de remboursement à discuter : différé possible de 3 à 6 mois selon le financeur, puis remboursement progressif sur 24 à 36 mois. À titre indicatif, sur 36 mois, l’effort moyen serait d’environ ${money(monthlyRepayment)} par mois hors intérêts. Le remboursement doit rester aligné sur les cycles : œufs réguliers, chair autour de J+40, bovins autour de J+90 et ventes cultures selon récoltes.`,
+    site: 'Localisation et site : préciser le village/quartier, commune, département/région, accessibilité, disponibilité en eau, électricité/solaire, sécurité, surface disponible, statut foncier ou autorisation d’usage, distance des marchés et conditions d’extension.',
+    jobs: 'Emplois et organisation : préciser les emplois directs prévus, le rôle de la porteuse, l’aide ferme, les profils ponctuels, la part femmes/jeunes, les salaires prévus, la formation terrain, les responsabilités quotidiennes et le contrôle via tâches ERP.',
     market: 'Marché visé : ménages, revendeurs, restaurants, boutiques, marchés locaux, partenaires et clients réguliers. Ajouter les clients identifiés, lettres d’intention, commandes possibles et canaux de vente.',
     operations: 'Organisation opérationnelle : chair vendue autour de J+40, bovins vendus autour de J+90, pondeuses suivies selon taux de ponte réel. L’ERP suit ventes, stock, alimentation, santé, tâches, alertes, finances et justificatifs.',
+    gantt: 'Calendrier 12 mois : M1 installation, achats prioritaires et démarrage pondeuses/chair/bovins ; M2-M3 montée en charge et prospection clients ; M4 premières ventes bovins selon lots ; M5-M6 stabilisation encaissements et reporting ; M7-M12 optimisation des cycles, renouvellement, maintenance, consolidation clients et suivi financeur.',
     financials: `Prévisionnel : CA annuel BP ${money(summary.annualRevenue)}, charges mensuelles estimées ${money(summary.monthlyCosts)}, financement déjà identifié ${money(summary.funding)}. Pour un projet nouveau, présenter le prévisionnel, les hypothèses, le besoin en fonds de roulement et la capacité de remboursement plutôt que des états historiques inexistants.`,
+    swot: 'SWOT — Forces : projet intégré, plusieurs sources de revenus, ERP de suivi, cycles connus. Faiblesses : besoin initial important, dépendance aliments/santé, besoin de formalisation. Opportunités : demande locale œufs/volaille/viande, accompagnement financeurs, emplois locaux. Menaces : maladies, hausse prix aliments, impayés, aléas climatiques ou rupture fournisseurs.',
     impact: 'Impact attendu : création d’emplois, revenus agricoles locaux, sécurité alimentaire, formalisation, achats auprès de fournisseurs locaux, formation des personnes impliquées, suivi transparent grâce à l’ERP.',
+    reporting: `Reporting au financeur : tableau trimestriel avec ventes, encaissements, dépenses, justificatifs, stocks, mortalité, ponte, alimentation, tâches réalisées, alertes traitées, photos et commentaires. Ce reporting peut être extrait depuis l’ERP pour ${f.label}.`,
     risk: `${f.proof} Risques suivis : santé animale, rupture d’aliment, impayés clients, panne équipement, sous-chiffrage de devis. Réponses : biosécurité, seuils stock, relances, maintenance, devis et reporting.`,
     attachments: 'Pièces à joindre : devis/proformas, justificatif du site, pièce d’identité, documents administratifs, photos du site, captures ERP, prévisions financières, lettres de soutien, preuves de ventes ou clients si disponibles.',
   };
@@ -76,21 +83,27 @@ function exportPdf(summary, draft) {
   y = section(doc, '1. Résumé exécutif', draft.executive, y);
   y = section(doc, '2. Porteuse du projet', draft.owner, y);
   y = section(doc, '3. Demande de financement', draft.request, y);
-  y = section(doc, '4. Marché et débouchés', draft.market, y);
-  y = section(doc, '5. Organisation opérationnelle', draft.operations, y);
+  y = section(doc, '4. Plan de remboursement', draft.repayment, y);
+  y = section(doc, '5. Localisation et site', draft.site, y);
+  y = section(doc, '6. Emplois et organisation', draft.jobs, y);
+  y = section(doc, '7. Marché et débouchés', draft.market, y);
+  y = section(doc, '8. Organisation opérationnelle', draft.operations, y);
+  y = section(doc, '9. Calendrier 12 mois', draft.gantt, y);
   if (y > 210) { doc.addPage(); y = 24; }
   autoTable(doc, { startY: y, head: [['Poste', 'Catégorie', 'Quantité', 'Prix', 'Montant']], body: investmentRows(summary), theme: 'grid', headStyles: { fillColor: [47, 36, 21], textColor: 255 }, styles: { fontSize: 7.2, cellPadding: 2, overflow: 'linebreak' } });
   y = doc.lastAutoTable.finalY + 8;
-  y = section(doc, '6. Prévisions financières', draft.financials, y);
-  y = section(doc, '7. Impact et valeur ajoutée', draft.impact, y);
-  y = section(doc, '8. Risques et réponses', draft.risk, y);
-  y = section(doc, '9. Pièces à joindre', draft.attachments, y);
+  y = section(doc, '10. Prévisions financières', draft.financials, y);
+  y = section(doc, '11. SWOT', draft.swot, y);
+  y = section(doc, '12. Impact et valeur ajoutée', draft.impact, y);
+  y = section(doc, '13. Reporting financeur', draft.reporting, y);
+  y = section(doc, '14. Risques et réponses', draft.risk, y);
+  y = section(doc, '15. Pièces à joindre', draft.attachments, y);
   const pages = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pages; i += 1) { doc.setPage(i); doc.setFontSize(8); doc.setTextColor(125, 106, 74); doc.text(`Horizon Farm · dossier financement · ${i}/${pages}`, 105, 288, { align: 'center' }); }
   doc.save(`dossier-financement-${f.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-horizon-farm-${today()}.pdf`);
 }
 function DraftModal({ draft, setDraft, onClose, onExport, saving }) {
-  const labels = { executive: 'Résumé exécutif', owner: 'Porteuse du projet', request: 'Demande de financement', market: 'Marché et débouchés', operations: 'Organisation opérationnelle', financials: 'Prévisions financières', impact: 'Impact et valeur ajoutée', risk: 'Risques et réponses', attachments: 'Pièces à joindre' };
+  const labels = { executive: 'Résumé exécutif', owner: 'Porteuse du projet', request: 'Demande de financement', repayment: 'Plan de remboursement', site: 'Localisation et site', jobs: 'Emplois et organisation', market: 'Marché et débouchés', operations: 'Organisation opérationnelle', gantt: 'Calendrier 12 mois', financials: 'Prévisions financières', swot: 'SWOT', impact: 'Impact et valeur ajoutée', reporting: 'Reporting financeur', risk: 'Risques et réponses', attachments: 'Pièces à joindre' };
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3"><div className="w-full max-w-5xl max-h-[94vh] overflow-y-auto rounded-3xl border border-[#eadcc2] bg-white shadow-2xl"><div className="sticky top-0 z-10 flex items-start justify-between border-b border-[#eadcc2] bg-white p-5"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Brouillon modifiable</p><h2 className="text-xl font-black text-[#2f2415]">Relire et adapter avant export PDF</h2><p className="text-sm text-[#8a7456]">Tu peux modifier chaque section avant de générer le dossier.</p></div><button type="button" onClick={onClose} aria-label="Fermer"><X size={20} /></button></div><div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-5">{Object.entries(labels).map(([key, label]) => <label key={key} className="space-y-1"><span className="text-xs font-black text-[#8a7456]">{label}</span><textarea rows={key === 'executive' ? 7 : 5} value={draft[key] || ''} onChange={(e) => setDraft((prev) => ({ ...prev, [key]: e.target.value }))} className="w-full rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm leading-relaxed" /></label>)}</div><div className="sticky bottom-0 flex justify-end gap-2 border-t border-[#eadcc2] bg-white p-4"><button type="button" onClick={onClose} className="rounded-xl border border-[#eadcc2] px-4 py-2 text-sm font-bold text-[#8a7456]">Annuler</button><button type="button" disabled={saving} onClick={onExport} className="rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60"><Download size={15} className="inline" /> Exporter PDF</button></div></div></div>;
 }
 
