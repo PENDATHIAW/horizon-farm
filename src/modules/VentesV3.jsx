@@ -1,4 +1,4 @@
-import { AlertTriangle, BarChart3, CheckCircle2, ChevronDown, CreditCard, Receipt, ShieldCheck, Truck } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronDown, CreditCard, Receipt, ShieldCheck, Truck } from 'lucide-react';
 import { useState } from 'react';
 import { fmtCurrency } from '../utils/format';
 import { enrichSalesOrderStatus, remainingForOrder } from '../utils/salesStatuses';
