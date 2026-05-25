@@ -35,6 +35,16 @@ const lossValueOf = (lot = {}) => num(lot.valeur_perte_estimee ?? lot.perte_esti
 const isLossClosedLot = (lot = {}) => ['perdu', 'perdu_mortalite', 'cloture_perte'].includes(norm(lot.status || lot.statut || '')) || (avicoleActiveCount(lot) <= 0 && initialOf(lot) > 0);
 const draftActionToActivity = (draft = {}) => draft.form_type === 'egg_production' || norm(draft.raw_input).includes('pondeuse') || norm(draft.raw_input).includes('oeuf') || norm(draft.raw_input).includes('tablette') ? 'pondeuse' : 'chair';
 const draftActionLabel = (formType = '') => formType === 'egg_production' ? 'Ramassage œufs' : formType === 'poultry_mortality' ? 'Mortalité rapide' : 'Clôture / réforme';
+const statusOf = (row = {}) => norm(row.status || row.statut || '');
+const isReadyForSale = (lot = {}) => {
+  const status = statusOf(lot);
+  const decision = buildAvicoleLotDecision(lot, []);
+  const progress = Number(decision?.progress || 0);
+  return Boolean(lot.pret_vente_confirme || lot.ready_for_sale || lot.sale_ready || lot.ready_to_sell || lot.pret_a_la_vente || lot.pret_vente_recommande || status === 'pret_a_la_vente' || status === 'pret_vente' || status === 'pret a vendre' || (isChair(lot) && progress >= 100));
+};
+const estimatedAmount = (lot = {}) => num(lot.prix_vente_reel ?? lot.sale_price ?? lot.prix_vente ?? lot.prix_vente_estime ?? lot.valeur_estimee ?? lot.valeur_marche);
+const opportunityDedupeKey = (lot = {}) => `avicole-sale:${lot.id || lot.lot_id || ''}`;
+const eggsOpportunityKey = (lot = {}, date = today()) => `avicole-eggs:${lot.id || lot.lot_id || ''}:${date}`;
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} aria-hidden="true" /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
@@ -59,7 +69,7 @@ function ActivityEntryCard({ icon: Icon, active, title, subtitle, rows = [], pro
     <div className={`mt-3 rounded-xl border p-3 text-xs leading-relaxed ${active ? 'border-white/15 bg-white/10 text-white/80' : urgent ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>{urgent ? `${urgent} action(s) IA prioritaire(s) à vérifier.` : 'Aucune urgence IA prioritaire sur cette activité.'}</div>
   </button>;
 }
-function HeyHorizonAvicoleCard({ draft, rows, onUpdate, onCreateProduction, onRefreshProduction, onCreateBusinessEvent, onRefresh, onRefreshBusinessEvents, onClose }) {
+function HeyHorizonAvicoleCard({ draft, rows, onUpdate, onCreateProduction, onRefreshProduction, onCreateBusinessEvent, onRefresh, onRefreshBusinessEvents, onClose, onCreateEggOpportunity }) {
   const fields = draft?.draft_fields || {};
   const formType = draft?.form_type;
   const [lotId, setLotId] = useState(fields.lot_id || rows[0]?.id || '');
@@ -78,6 +88,7 @@ function HeyHorizonAvicoleCard({ draft, rows, onUpdate, onCreateProduction, onRe
       if (formType === 'egg_production') {
         const eggs = num(quantity);
         await onCreateProduction?.({ id: makeId('PONTE'), lot_id: lot.id, related_id: lot.id, date, oeufs: eggs, eggs_count: eggs, tablettes: Math.floor(eggs / 30), broken_eggs: 0, source_module: 'hey_horizon', source_record_id: lot.id, notes: note });
+        await onCreateEggOpportunity?.(lot, eggs, date, note || draft?.raw_input || '');
         await onRefreshProduction?.();
       } else if (formType === 'poultry_mortality') {
         const newMortality = mortalityOf(lot) + num(quantity);
@@ -96,7 +107,7 @@ function HeyHorizonAvicoleCard({ draft, rows, onUpdate, onCreateProduction, onRe
   return <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm space-y-4">
     <div className="flex items-start justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-emerald-700 font-black flex items-center gap-2"><CheckCircle2 size={15} /> Fiche préparée par Hey Horizon</p><h3 className="mt-1 text-xl font-black text-[#2f2415]">{actionLabel}</h3><p className="mt-1 text-sm text-emerald-800">Complète si besoin, puis valide. Le lot, le journal ou l’historique sont mis à jour.</p></div><button type="button" onClick={onClose} className="rounded-full border border-emerald-200 bg-white p-2 text-emerald-700"><X size={16} /></button></div>
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3"><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Lot</span><select value={lotId} onChange={(e) => setLotId(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm">{rows.map((item) => <option key={item.id} value={item.id}>{labelOf(item)} · {item.id} · {fmtNumber(currentOf(item))} actif(s)</option>)}</select></label><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">{formType === 'egg_production' ? 'Œufs' : 'Quantité'}</span><input type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Date</span><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label><label className="space-y-1 md:col-span-3"><span className="text-xs font-bold text-emerald-800">Note</span><input value={note} onChange={(e) => setNote(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label></div>
-    <div className="rounded-xl border border-emerald-200 bg-white p-3 text-sm text-emerald-800">{formType === 'egg_production' ? <>Tablettes calculées : <b>{Math.floor(num(quantity) / 30)}</b></> : <>Effectif après action : <b>{fmtNumber(nextCount)}</b></>}</div>
+    <div className="rounded-xl border border-emerald-200 bg-white p-3 text-sm text-emerald-800">{formType === 'egg_production' ? <>Tablettes calculées : <b>{Math.floor(num(quantity) / 30)}</b> · opportunité œufs créée pour Ventes</> : <>Effectif après action : <b>{fmtNumber(nextCount)}</b></>}</div>
     <div className="flex justify-end"><button type="button" onClick={submit} disabled={saving} className="rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60">{saving ? 'Validation...' : 'Valider action avicole'}</button></div>
   </section>;
 }
@@ -110,6 +121,7 @@ export default function AvicoleV10(props) {
   const payments = props.payments || [];
   const transactions = props.transactions || [];
   const businessEvents = props.businessEvents || [];
+  const opportunities = props.opportunities || [];
   const pondeuses = useMemo(() => rows.filter(isPondeuse), [rows]);
   const chair = useMemo(() => rows.filter(isChair), [rows]);
   const scopedRows = useMemo(() => filterByActivity(rows, activity), [rows, activity]);
@@ -130,6 +142,33 @@ export default function AvicoleV10(props) {
     return () => window.removeEventListener('horizon-open-form', handler);
   }, []);
 
+  const createOrReactivateLotOpportunity = async (lot = {}, source = 'lot prêt à vendre') => {
+    if (!lot?.id || !isReadyForSale(lot) || !avicoleHasActiveBirds(lot)) return;
+    const dedupeKey = opportunityDedupeKey(lot);
+    const existing = opportunities.find((opp) => String(opp.opportunity_key || opp.dedupe_key || opp.source_record_id || opp.source_id || '') === dedupeKey || (String(opp.source_module || opp.created_from || '').includes('avicole') && String(opp.source_id || opp.entity_id || opp.lot_id || '') === String(lot.id)));
+    const qty = currentOf(lot);
+    const amount = estimatedAmount(lot);
+    const productName = isChair(lot) ? `Poulets de chair · ${labelOf(lot)}` : `Lot pondeuses · ${labelOf(lot)}`;
+    const payload = { opportunity_key: dedupeKey, dedupe_key: dedupeKey, title: `Vente ${productName}`, libelle: `Vente ${productName}`, source_module: 'avicole', created_from: 'avicole', source_type: isChair(lot) ? 'poulets_chair' : 'lot_pondeuses', entity_type: 'lot_avicole', source_id: lot.id, entity_id: lot.id, lot_id: lot.id, product_name: productName, produit: productName, quantity: qty, quantite: qty, unite: 'tête', unit: 'tête', montant_estime: amount, estimated_amount: amount, valeur_estimee: amount, status: 'ouverte', statut: 'ouverte', priority: 'haute', date: today(), notes: `${source} · effectif disponible ${qty}` };
+    if (existing?.id) await props.onUpdateOpportunity?.(existing.id, { ...payload, status: 'ouverte', statut: 'ouverte', updated_at: new Date().toISOString() });
+    else await props.onCreateOpportunity?.({ id: makeId('OPP'), ...payload });
+    await props.onRefreshOpportunities?.();
+    await props.onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'opportunite_vente_avicole', module_source: 'avicole', entity_type: 'lot_avicole', entity_id: lot.id, title: `Opportunité vente créée · ${labelOf(lot)}`, description: `${productName} prêt à vendre. Opportunité disponible dans Ventes.`, event_date: today(), severity: 'info', amount, linked_opportunity_key: dedupeKey, saisies_evitees: 1 });
+    await props.onRefreshBusinessEvents?.();
+  };
+  const createOrReactivateEggOpportunity = async (lot = {}, eggs = 0, date = today(), note = '') => {
+    if (!lot?.id || num(eggs) <= 0) return;
+    const tablettes = Math.floor(num(eggs) / 30);
+    if (tablettes <= 0) return;
+    const dedupeKey = eggsOpportunityKey(lot, date);
+    const existing = opportunities.find((opp) => String(opp.opportunity_key || opp.dedupe_key || '') === dedupeKey);
+    const productName = `Œufs · ${labelOf(lot)}`;
+    const payload = { opportunity_key: dedupeKey, dedupe_key: dedupeKey, title: `Vente ${tablettes} tablette(s) d’œufs`, libelle: `Vente ${tablettes} tablette(s) d’œufs`, source_module: 'avicole', created_from: 'avicole', source_type: 'oeufs', entity_type: 'lot_avicole', source_id: lot.id, entity_id: lot.id, lot_id: lot.id, product_name: productName, produit: productName, quantity: tablettes, quantite: tablettes, unite: 'tablette', unit: 'tablette', eggs_count: num(eggs), oeufs: num(eggs), status: 'ouverte', statut: 'ouverte', priority: 'normale', date, notes: note || `Ramassage ${eggs} œufs` };
+    if (existing?.id) await props.onUpdateOpportunity?.(existing.id, { ...payload, status: 'ouverte', statut: 'ouverte', updated_at: new Date().toISOString() });
+    else await props.onCreateOpportunity?.({ id: makeId('OPP'), ...payload });
+    await props.onRefreshOpportunities?.();
+  };
+
   const createMortalityEvent = async (before = {}, after = {}, source = 'modification lot avicole') => {
     const mortalityIncreased = mortalityOf(after) > mortalityOf(before);
     const valueIncreased = lossValueOf(after) > lossValueOf(before);
@@ -142,9 +181,9 @@ export default function AvicoleV10(props) {
     } catch (error) { console.warn('Perte avicole non consignée en événement', error); }
   };
 
-  const wrappedCreate = async (payload) => { await props.onCreate?.(payload); await createMortalityEvent({}, payload, 'création lot avicole'); };
-  const wrappedUpdate = async (id, payload) => { const before = (props.rows || []).find((lot) => String(lot.id) === String(id)) || {}; const after = { ...before, ...payload, id }; await props.onUpdate?.(id, payload); await createMortalityEvent(before, after, 'modification fiche lot'); };
-  const scopedOpportunities = (props.opportunities || []).filter((op) => activity === 'pondeuse' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('oeuf') || norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('pondeuse') : activity === 'chair' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('chair') : true);
+  const wrappedCreate = async (payload) => { await props.onCreate?.(payload); await createMortalityEvent({}, payload, 'création lot avicole'); await createOrReactivateLotOpportunity(payload, 'création lot prêt à vendre'); };
+  const wrappedUpdate = async (id, payload) => { const before = (props.rows || []).find((lot) => String(lot.id) === String(id)) || {}; const after = { ...before, ...payload, id }; await props.onUpdate?.(id, payload); await createMortalityEvent(before, after, 'modification fiche lot'); if (!isReadyForSale(before) && isReadyForSale(after)) await createOrReactivateLotOpportunity(after, 'lot marqué prêt à vendre'); };
+  const scopedOpportunities = opportunities.filter((op) => activity === 'pondeuse' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('oeuf') || norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('pondeuse') : activity === 'chair' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('chair') : true);
   const operationalProps = { ...props, activity, lockActivity: true, rows: activeScopedRows, productionLogs: scopedProductionLogs, salesOrders, payments, transactions, businessEvents, onCreate: wrappedCreate, onUpdate: wrappedUpdate, opportunities: scopedOpportunities };
   const historyProps = { ...props, activity, lockActivity: true, rows: scopedRows, productionLogs: scopedProductionLogs, salesOrders, payments, transactions, businessEvents, onCreate: wrappedCreate, onUpdate: wrappedUpdate, opportunities: scopedOpportunities };
   const dataMap = { sales_orders: salesOrders, payments, finances: transactions, avicole: activeScopedRows, production_oeufs_logs: scopedProductionLogs, alimentation_logs: props.alimentationLogs || [], business_events: businessEvents };
@@ -152,7 +191,7 @@ export default function AvicoleV10(props) {
 
   return <div className="space-y-6 avicole-mobile-final">
     <style>{`.avicole-mobile-final .objective-card-grid{align-items:stretch}@media(max-width:640px){.avicole-mobile-final .rounded-2xl{border-radius:18px}.avicole-mobile-final table{font-size:12px}.avicole-mobile-final th,.avicole-mobile-final td{padding-left:10px!important;padding-right:10px!important}.avicole-mobile-final .text-2xl{font-size:1.35rem}.avicole-mobile-final .grid{gap:.75rem}.avicole-mobile-final .overflow-x-auto{max-width:100vw}}`}</style>
-    {horizonDraft ? <div id="hey-horizon-avicole-card"><HeyHorizonAvicoleCard draft={horizonDraft} rows={activeScopedRows} onUpdate={wrappedUpdate} onCreateProduction={props.onCreateProduction} onRefreshProduction={props.onRefreshProduction} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onClose={() => setHorizonDraft(null)} /></div> : null}
+    {horizonDraft ? <div id="hey-horizon-avicole-card"><HeyHorizonAvicoleCard draft={horizonDraft} rows={activeScopedRows} onUpdate={wrappedUpdate} onCreateProduction={props.onCreateProduction} onRefreshProduction={props.onRefreshProduction} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onClose={() => setHorizonDraft(null)} onCreateEggOpportunity={createOrReactivateEggOpportunity} /></div> : null}
     <div className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm">
       <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><Bird size={15} aria-hidden="true" /> Séparation avicole</p>
       <h2 className="mt-1 text-2xl font-black text-[#2f2415]">Choisis l’activité à piloter</h2>
