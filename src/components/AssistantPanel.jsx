@@ -17,7 +17,7 @@ const hasWakeWord = (value = '') => { const text = normalize(value); return text
 const stripWakeWord = (value = '') => normalize(value).replace(/\b(hey|he|eh|e)\s+horizon\b/g, '').replace(/\bhorizon\b/g, '').trim();
 const isWeakDraft = (draft = {}, text = '') => {
   const cleaned = normalize(text);
-  if (!draft || draft.status === 'unsupported') return true;
+  if (!draft || draft.status === 'unsupported' || draft.status === 'wake_only') return true;
   if (draft.primary_module !== 'ventes') return false;
   return !/(vend|vente|vends|client|paiement|paye|payé|commande|livr|facture|poulet|chair|oeuf|œuf|tablette)/.test(cleaned);
 };
@@ -37,7 +37,7 @@ const REFRESH_KEYS_BY_MODULE = {
 const buildRefreshKeys = (result = {}, draft = {}) => { const modules = new Set([...(result.impacted_modules || []), draft.primary_module, 'dashboard', 'centre_ia', 'alertes', 'tracabilite'].filter(Boolean)); const keys = new Set(); modules.forEach((module) => (REFRESH_KEYS_BY_MODULE[module] || [module]).forEach((key) => keys.add(key))); return [...keys]; };
 
 function DraftSummary({ draft }) {
-  if (!draft || draft.status === 'unsupported') return null;
+  if (!draft || draft.status === 'unsupported' || draft.status === 'wake_only') return null;
   const fields = draft.draft_fields || {};
   const missing = draft.missing_fields || [];
   const impacted = (draft.impacted_modules || []).map(moduleLabel).filter(Boolean);
@@ -47,7 +47,7 @@ function DraftSummary({ draft }) {
     <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
       <span><b>Action :</b> {action}</span>
       <span><b>Module :</b> {moduleLabel(draft.primary_module)}</span>
-      {fields.entity_id || fields.target_id || fields.source_id ? <span><b>Cible :</b> {fields.entity_id || fields.target_id || fields.source_id}</span> : null}
+      {fields.entity_id || fields.target_id || fields.source_id || fields.animal_id ? <span><b>Cible :</b> {fields.entity_id || fields.target_id || fields.source_id || fields.animal_id}</span> : null}
       {fields.date || fields.event_date ? <span><b>Date :</b> {fields.date || fields.event_date}</span> : null}
       {impacted.length ? <span className="sm:col-span-2"><b>Impacts :</b> {impacted.join(', ')}</span> : null}
     </div>
@@ -68,10 +68,10 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
   const lastHeardRef = useRef('');
   const speech = useSpeechSynthesis();
   const { refreshModule } = useAppData();
-  const voice = useVoiceRecognition({ continuous: terrainMode, autoRestart: terrainMode, onInterim: (text) => { if (!text) return; if (hasWakeWord(text) && wakeState === 'idle') wakeHorizon(); if (terrainMode && wakeState === 'idle') setWakeState('listening'); setLocalOpen(true); setQuery(stripWakeWord(text) || text); scheduleSilenceProcessing(text); }, onResult: (text) => { if (!text) return; if (hasWakeWord(text) && wakeState === 'idle') wakeHorizon(); setLocalOpen(true); scheduleSilenceProcessing(text); } });
+  const voice = useVoiceRecognition({ continuous: terrainMode, autoRestart: terrainMode, onInterim: (text) => { if (!text) return; if (hasWakeWord(text) && wakeState === 'idle') wakeHorizon(); if (terrainMode && wakeState === 'idle') setWakeState('listening'); setLocalOpen(true); const withoutWake = stripWakeWord(text); setQuery(withoutWake || text); scheduleSilenceProcessing(withoutWake || text); }, onResult: (text) => { if (!text) return; if (hasWakeWord(text) && wakeState === 'idle') wakeHorizon(); setLocalOpen(true); scheduleSilenceProcessing(stripWakeWord(text) || text); } });
 
   const wakeHorizon = () => { setWakeState('wake_detected'); window.setTimeout(() => setWakeState('circuit'), 120); window.setTimeout(() => setWakeState('sun'), 1450); window.setTimeout(() => { setWakeState('idle'); setLocalOpen(true); }, 3000); };
-  const buildAssistantTextFromDraft = (nextDraft) => { if (!nextDraft || nextDraft.status === 'unsupported') return null; const missing = nextDraft.missing_fields || []; const impacted = (nextDraft.impacted_modules || []).map(moduleLabel).join(', '); if (missing.length) return `J’ai compris l’action. Il reste ${missing.length} champ(s) à compléter. Modules concernés : ${impacted || moduleLabel(nextDraft.primary_module)}.`; if (nextDraft.next_required_form) return `J’ai compris, mais un formulaire lié est requis : ${nextDraft.next_required_form.title}.`; return `Action prête à valider. Modules concernés : ${impacted || moduleLabel(nextDraft.primary_module)}.`; };
+  const buildAssistantTextFromDraft = (nextDraft) => { if (!nextDraft || nextDraft.status === 'unsupported' || nextDraft.status === 'wake_only') return null; const missing = nextDraft.missing_fields || []; const impacted = (nextDraft.impacted_modules || []).map(moduleLabel).join(', '); if (nextDraft.form_type === 'health_action') return missing.length ? `J’ai compris : fiche santé à préparer. Il manque ${missing.join(', ')}.` : `J’ai compris : fiche ${nextDraft.draft_fields?.action_type || 'santé'} pour ${nextDraft.draft_fields?.target_id || nextDraft.draft_fields?.animal_id}. Vérifie puis valide.`; if (missing.length) return `J’ai compris l’action. Il reste ${missing.length} champ(s) à compléter. Modules concernés : ${impacted || moduleLabel(nextDraft.primary_module)}.`; if (nextDraft.next_required_form) return `J’ai compris, mais un formulaire lié est requis : ${nextDraft.next_required_form.title}.`; return `Action prête à valider. Modules concernés : ${impacted || moduleLabel(nextDraft.primary_module)}.`; };
   const refreshImpactedModules = async (result, validatedDraft) => { const keys = buildRefreshKeys(result, validatedDraft); if (!keys.length) return; await Promise.allSettled(keys.map((key) => refreshModule(key))); toast.success(`Modules rafraîchis : ${keys.slice(0, 4).join(', ')}${keys.length > 4 ? '…' : ''}`); };
   const validateDraft = async () => {
     if (!draft || isValidating) return;
@@ -97,14 +97,23 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
   const resetConversation = () => { speech.stop(); setDraft(null); lastHeardRef.current = ''; setMessages([{ role: 'assistant', text: 'Nouvelle demande ouverte. Clique Parler, écris une action ou choisis un raccourci.' }]); setQuery(''); };
   const loadExternalDraft = (nextDraft, sourceLabel = 'Centre IA') => { if (!nextDraft) return; setDraft(nextDraft); setLocalOpen(true); setWakeState('idle'); const text = `${sourceLabel} a préparé une action. Vérifie, complète si besoin, puis valide.`; setMessages((prev) => [...prev, { role: 'assistant', text }]); speech.speak(text); };
   const processCommand = (rawText, { fromSilence = false } = {}) => {
-    const cleaned = stripWakeWord(rawText || '').trim();
-    if (!cleaned) return;
-    const control = parseConversationControl(cleaned);
+    const cleaned = stripWakeWord(rawText || '').trim() || normalize(rawText || '').trim();
+    const rawNormalized = normalize(rawText || '').trim();
+    if (!cleaned) {
+      setLocalOpen(true);
+      const text = 'Je suis prêt. Dis-moi maintenant l’action à faire : vaccin, vente, stock, œufs, tâche…';
+      setMessages((prev) => [...prev, { role: 'assistant', text }]);
+      speech.speak(text);
+      return;
+    }
+    const control = parseConversationControl(cleaned || rawNormalized);
+    if (control === 'wake') { const text = 'Je suis prêt. Quelle action veux-tu faire ?'; setMessages((prev) => [...prev, { role: 'assistant', text }]); speech.speak(text); setQuery(''); return; }
     if (control === 'validate') { validateDraft(); setQuery(''); return; }
     if (control === 'cancel') { cancelDraft(); return; }
     if (control === 'reset') { resetConversation(); return; }
     setIsThinking(true); window.setTimeout(() => setIsThinking(false), 700);
     const nextDraft = draft ? updateHorizonDraft(draft, cleaned, dataMap) : interpretHorizonCommand(cleaned, dataMap);
+    if (nextDraft?.status === 'wake_only') { const text = 'Je suis prêt. Quelle action veux-tu faire ?'; setMessages((prev) => [...prev, { role: 'assistant', text }]); speech.speak(text); setQuery(''); return; }
     const weak = isWeakDraft(nextDraft, cleaned);
     const draftText = weak ? null : buildAssistantTextFromDraft(nextDraft);
     const fallback = interpretVoiceCommand(cleaned, dataMap);
@@ -115,7 +124,7 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
     setQuery('');
     if (fromSilence && terrainMode && voice.supported && !voice.listening) window.setTimeout(() => voice.start(), 900);
   };
-  const scheduleSilenceProcessing = (text) => { const cleaned = stripWakeWord(text || '').trim(); if (!cleaned || cleaned === lastHeardRef.current) return; lastHeardRef.current = cleaned; window.clearTimeout(silenceTimerRef.current); silenceTimerRef.current = window.setTimeout(() => processCommand(cleaned, { fromSilence: true }), 1400); };
+  const scheduleSilenceProcessing = (text) => { const cleaned = stripWakeWord(text || '').trim() || normalize(text || '').trim(); if (!cleaned || cleaned === lastHeardRef.current) return; lastHeardRef.current = cleaned; window.clearTimeout(silenceTimerRef.current); silenceTimerRef.current = window.setTimeout(() => processCommand(cleaned, { fromSilence: true }), 1400); };
 
   useEffect(() => { if (!terrainMode) { voice.stop(); return; } if (!voice.listening) voice.start(); }, [terrainMode]);
   useEffect(() => () => window.clearTimeout(silenceTimerRef.current), []);
