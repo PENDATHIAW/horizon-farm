@@ -17,7 +17,7 @@ export default function Equipements(props) {
     <div className="space-y-6 equipements-mobile-structured">
       <style>{`@media (max-width: 640px){.equipements-mobile-structured .rounded-2xl{border-radius:18px}.equipements-mobile-structured table{font-size:12px}.equipements-mobile-structured th,.equipements-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.equipements-mobile-structured .text-2xl{font-size:1.35rem}.equipements-mobile-structured .grid{gap:.75rem}.equipements-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
 
-      <ModuleSection icon={Zap} title="Actions rapides équipements" subtitle="Panne, carburant, maintenance urgente, alertes et écritures liées.">
+      <ModuleSection icon={Zap} title="Actions terrain équipements" subtitle="Déclarer une panne, programmer une maintenance ou saisir le carburant d’un matériel.">
         <EquipementsQuickActionsBridge
           rows={rows}
           onUpdate={props.onUpdate}
@@ -37,15 +37,15 @@ export default function Equipements(props) {
         <GenericCrudModule
           {...props}
           moduleKey="equipements"
-          title="Materiel & Equipements"
-          sub="Machines - incubateurs - pompes - groupes - vehicules - maintenance"
+          title="Matériel & Équipements"
+          sub="Machines · incubateurs · pompes · groupes · véhicules · disponibilité"
           fields={MODULE_FORM_FIELDS.equipements}
           columns={['id', 'name', 'type', 'status', 'purchase_cost', 'maintenance_due', 'fuel_cost']}
           initialValues={{ status: 'operationnel', type: 'machine', purchase_cost: 0, maintenance_cost: 0, fuel_cost: 0 }}
-          addLabel="Ajouter equipement"
-          exportTitle="Equipements Horizon Farm"
+          addLabel="Ajouter équipement"
+          exportTitle="Équipements Horizon Farm"
           kpis={[
-            { icon: Settings, label: 'Equipements', value: rows.length, color: 'bg-sky-500/20 text-sky-400' },
+            { icon: Settings, label: 'Équipements', value: rows.length, color: 'bg-sky-500/20 text-sky-400' },
             { icon: Wrench, label: 'Maintenance', value: rows.filter((r) => r.status === 'maintenance').length, color: 'bg-amber-500/20 text-amber-500' },
             { icon: AlertTriangle, label: 'Pannes', value: rows.filter((r) => r.status === 'panne').length, color: 'bg-red-500/20 text-red-500' },
             { icon: Fuel, label: 'Carburant', value: fmtCurrency(fuel), color: 'bg-emerald-500/20 text-emerald-500' },
@@ -53,7 +53,7 @@ export default function Equipements(props) {
         />
       </ModuleSection>
 
-      <ModuleSection icon={Wrench} title="Maintenance équipements" subtitle="Planning, coûts, tâches, documents et suivi des interventions.">
+      <ModuleSection icon={Wrench} title="Maintenance du matériel" subtitle="Suivre les interventions, les pannes, les dates de contrôle et la remise en service.">
         <EquipementsMaintenanceBridge
           rows={rows}
           tasks={props.tasks || []}
@@ -73,7 +73,7 @@ export default function Equipements(props) {
         />
       </ModuleSection>
 
-      <ModuleSection icon={BarChart3} title="Évolution équipements" subtitle="Graphes des pannes, maintenances, carburant, coûts et disponibilité.">
+      <ModuleSection icon={BarChart3} title="Évolution du matériel" subtitle="Disponibilité, pannes, maintenances, carburant et coût réel par équipement.">
         <EquipementsEvolution rows={rows} tasks={props.tasks || []} onNavigate={props.onNavigate} />
       </ModuleSection>
     </div>
