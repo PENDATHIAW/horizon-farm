@@ -1,4 +1,4 @@
-import { Bot, CheckCircle2, Ear, Mic, RefreshCw, Send, Sparkles, Sun, Volume2, VolumeX, X } from 'lucide-react';
+import { Bot, CheckCircle2, Ear, Mic, RefreshCw, Send, Sun, Volume2, VolumeX, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import HorizonDraftPanel from './HorizonDraftPanel';
@@ -63,27 +63,15 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
   const [draft, setDraft] = useState(null);
   const [isThinking, setIsThinking] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
-  const [messages, setMessages] = useState([{ role: 'assistant', text: 'Hey Horizon est prêt. Dis ou écris une action simple : vente, vaccin, œufs, stock, tâche, dépense…' }]);
+  const [messages, setMessages] = useState([{ role: 'assistant', text: 'Hey Horizon est prêt. Clique Parler ou écris une action simple : vente, vaccin, œufs, stock, tâche, dépense…' }]);
   const silenceTimerRef = useRef(null);
   const lastHeardRef = useRef('');
   const speech = useSpeechSynthesis();
   const { refreshModule } = useAppData();
   const voice = useVoiceRecognition({ continuous: terrainMode, autoRestart: terrainMode, onInterim: (text) => { if (!text) return; if (hasWakeWord(text) && wakeState === 'idle') wakeHorizon(); if (terrainMode && wakeState === 'idle') setWakeState('listening'); setLocalOpen(true); setQuery(stripWakeWord(text) || text); scheduleSilenceProcessing(text); }, onResult: (text) => { if (!text) return; if (hasWakeWord(text) && wakeState === 'idle') wakeHorizon(); setLocalOpen(true); scheduleSilenceProcessing(text); } });
 
-  const wakeHorizon = () => {
-    setWakeState('wake_detected');
-    window.setTimeout(() => setWakeState('circuit'), 120);
-    window.setTimeout(() => setWakeState('sun'), 1450);
-    window.setTimeout(() => { setWakeState('idle'); setLocalOpen(true); }, 3000);
-  };
-  const buildAssistantTextFromDraft = (nextDraft) => {
-    if (!nextDraft || nextDraft.status === 'unsupported') return null;
-    const missing = nextDraft.missing_fields || [];
-    const impacted = (nextDraft.impacted_modules || []).map(moduleLabel).join(', ');
-    if (missing.length) return `J’ai compris l’action. Il reste ${missing.length} champ(s) à compléter. Modules concernés : ${impacted || moduleLabel(nextDraft.primary_module)}.`;
-    if (nextDraft.next_required_form) return `J’ai compris, mais un formulaire lié est requis : ${nextDraft.next_required_form.title}.`;
-    return `Action prête à valider. Modules concernés : ${impacted || moduleLabel(nextDraft.primary_module)}.`;
-  };
+  const wakeHorizon = () => { setWakeState('wake_detected'); window.setTimeout(() => setWakeState('circuit'), 120); window.setTimeout(() => setWakeState('sun'), 1450); window.setTimeout(() => { setWakeState('idle'); setLocalOpen(true); }, 3000); };
+  const buildAssistantTextFromDraft = (nextDraft) => { if (!nextDraft || nextDraft.status === 'unsupported') return null; const missing = nextDraft.missing_fields || []; const impacted = (nextDraft.impacted_modules || []).map(moduleLabel).join(', '); if (missing.length) return `J’ai compris l’action. Il reste ${missing.length} champ(s) à compléter. Modules concernés : ${impacted || moduleLabel(nextDraft.primary_module)}.`; if (nextDraft.next_required_form) return `J’ai compris, mais un formulaire lié est requis : ${nextDraft.next_required_form.title}.`; return `Action prête à valider. Modules concernés : ${impacted || moduleLabel(nextDraft.primary_module)}.`; };
   const refreshImpactedModules = async (result, validatedDraft) => { const keys = buildRefreshKeys(result, validatedDraft); if (!keys.length) return; await Promise.allSettled(keys.map((key) => refreshModule(key))); toast.success(`Modules rafraîchis : ${keys.slice(0, 4).join(', ')}${keys.length > 4 ? '…' : ''}`); };
   const validateDraft = async () => {
     if (!draft || isValidating) return;
@@ -106,7 +94,7 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
     finally { setIsValidating(false); }
   };
   const cancelDraft = (reason = 'Action annulée.') => { setDraft(null); setQuery(''); lastHeardRef.current = ''; setMessages((prev) => [...prev, { role: 'assistant', text: reason }]); speech.speak(reason); };
-  const resetConversation = () => { speech.stop(); setDraft(null); lastHeardRef.current = ''; setMessages([{ role: 'assistant', text: 'Nouvelle demande ouverte. Dis une action simple ou choisis un raccourci.' }]); setQuery(''); };
+  const resetConversation = () => { speech.stop(); setDraft(null); lastHeardRef.current = ''; setMessages([{ role: 'assistant', text: 'Nouvelle demande ouverte. Clique Parler, écris une action ou choisis un raccourci.' }]); setQuery(''); };
   const loadExternalDraft = (nextDraft, sourceLabel = 'Centre IA') => { if (!nextDraft) return; setDraft(nextDraft); setLocalOpen(true); setWakeState('idle'); const text = `${sourceLabel} a préparé une action. Vérifie, complète si besoin, puis valide.`; setMessages((prev) => [...prev, { role: 'assistant', text }]); speech.speak(text); };
   const processCommand = (rawText, { fromSilence = false } = {}) => {
     const cleaned = stripWakeWord(rawText || '').trim();
@@ -135,10 +123,7 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
 
   const results = useMemo(() => searchERP(dataMap, query).slice(0, 4), [dataMap, query]);
   const panelOpen = open || localOpen;
-  const toggleTerrainMode = () => {
-    if (!voice.supported) { toast.error('Reconnaissance vocale non supportée ici'); setLocalOpen(true); setMessages((prev) => [...prev, { role: 'assistant', text: voice.hint || 'Utilise le champ texte : la reconnaissance vocale n’est pas disponible dans ce navigateur.' }]); return; }
-    setTerrainMode((prev) => { const next = !prev; if (next) { setLocalOpen(true); setWakeState('idle'); toast.success('Micro Horizon activé. Parle puis marque une pause.'); window.setTimeout(() => voice.start(), 250); } else { voice.stop(); toast('Micro Horizon désactivé.'); } return next; });
-  };
+  const toggleTerrainMode = () => { if (!voice.supported) { toast.error('Reconnaissance vocale non supportée ici'); setLocalOpen(true); setMessages((prev) => [...prev, { role: 'assistant', text: voice.hint || 'Utilise le champ texte : la reconnaissance vocale n’est pas disponible dans ce navigateur.' }]); return; } setTerrainMode((prev) => { const next = !prev; if (next) { setLocalOpen(true); setWakeState('idle'); toast.success('Micro Horizon activé. Parle puis marque une pause.'); window.setTimeout(() => voice.start(), 250); } else { voice.stop(); toast('Micro Horizon désactivé.'); } return next; }); };
   const toggleVoiceReplies = () => { if (!speech.supported) return toast.error('Réponse vocale non disponible ici'); if (speech.enabled) { speech.disable(); toast.success('Réponses vocales désactivées'); return; } speech.enable(); speech.test(); toast.success('Réponses vocales activées'); };
   const updateDraftField = (key, value) => setDraft((current) => current ? { ...current, draft_fields: { ...(current.draft_fields || {}), [key]: value }, missing_fields: (current.missing_fields || []).filter((field) => field !== key) } : current);
   const closePanel = () => { speech.stop(); setLocalOpen(false); setWakeState('idle'); onClose?.(); };
@@ -149,12 +134,12 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
     {panelOpen ? <aside className="fixed right-4 top-[72px] z-50 w-[min(470px,calc(100vw-2rem))] max-h-[calc(100vh-90px)] bg-white/96 backdrop-blur border border-[#d6c3a0] rounded-3xl shadow-2xl overflow-hidden max-md:top-auto max-md:bottom-[92px] max-md:right-3 max-md:left-3 max-md:w-auto max-md:max-h-[calc(100vh-170px)]">
       <div className="px-4 py-3 border-b border-[#d6c3a0] flex items-center gap-3 bg-[#fffdf8]">
         <div className="w-11 h-11 rounded-full bg-amber-100 text-[#9a6b12] flex items-center justify-center border border-amber-200 shadow-inner"><Sun size={22} /></div>
-        <div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap"><p className="font-black text-[#2f2415]">Hey Horizon</p><span className="rounded-full bg-[#2f2415] px-2 py-0.5 text-[10px] font-black text-white">Assistant global</span>{voice.listening ? <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700"><Ear size={10} className="inline" /> écoute</span> : null}</div><p className="text-xs text-[#8a7456]">Parle ou écris une action. Horizon choisit le bon module.</p></div>
+        <div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap"><p className="font-black text-[#2f2415]">Hey Horizon</p><span className="rounded-full bg-[#2f2415] px-2 py-0.5 text-[10px] font-black text-white">Assistant global</span>{voice.listening ? <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700"><Ear size={10} className="inline" /> écoute</span> : null}</div><p className="text-xs text-[#8a7456]">Clique Parler ou écris une action. Horizon choisit le bon module.</p></div>
         <button type="button" onClick={resetConversation} className="p-2 text-[#8a7456] hover:text-[#2f2415]" title="Nouvelle demande"><RefreshCw size={16} /></button>
         <button type="button" onClick={closePanel} className="p-2 text-[#8a7456] hover:text-[#2f2415]" title="Fermer"><X size={16} /></button>
       </div>
       <div className="p-3 border-b border-[#eadcc2] bg-white space-y-3">
-        <div className="flex gap-2"><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') processCommand(query); }} className="flex-1 bg-white border border-[#d6c3a0] rounded-xl px-3 py-3 text-sm text-[#2f2415] outline-none focus:border-emerald-500" placeholder={voice.listening ? voice.transcript || 'J’écoute...' : 'Ex : J’ai vacciné BOV002, vendu 10 poulets, ramassé 12 tablettes…'} /><button type="button" onClick={voice.listening ? voice.stop : voice.start} className={`min-w-[44px] rounded-xl border ${voice.listening ? 'border-emerald-500 text-emerald-500 animate-pulse' : 'border-[#d6c3a0] text-[#8a7456]'}`} title="Micro"><Mic size={17} className="mx-auto" /></button><button type="button" onClick={() => processCommand(query)} className="min-w-[44px] rounded-xl bg-emerald-600 text-white" title="Envoyer"><Send size={17} className="mx-auto" /></button></div>
+        <div className="grid grid-cols-[1fr_auto_auto] gap-2 max-sm:grid-cols-1"><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') processCommand(query); }} className="bg-white border border-[#d6c3a0] rounded-xl px-3 py-3 text-sm text-[#2f2415] outline-none focus:border-emerald-500" placeholder={voice.listening ? voice.transcript || 'J’écoute...' : 'Ex : J’ai vacciné BOV002, vendu 10 poulets…'} /><button type="button" onClick={voice.listening ? voice.stop : voice.start} className={`min-h-[46px] rounded-xl border px-3 text-sm font-black ${voice.listening ? 'border-emerald-500 bg-emerald-50 text-emerald-700 animate-pulse' : 'border-[#d6c3a0] bg-[#fffdf8] text-[#7d6a4a]'}`} title={voice.listening ? 'Arrêter le micro' : 'Parler à Horizon'}><Mic size={16} className="inline mr-1" /> {voice.listening ? 'Stop' : 'Parler'}</button><button type="button" onClick={() => processCommand(query)} className="min-h-[46px] rounded-xl bg-emerald-600 px-3 text-sm font-black text-white" title="Envoyer"><Send size={16} className="inline mr-1" /> Envoyer</button></div>
         <div className="flex flex-wrap gap-2">{QUICK_ACTIONS.map((item) => <button key={item.label} type="button" onClick={() => quickAction(item)} className="rounded-full border border-[#eadcc2] bg-[#fffdf8] px-3 py-1.5 text-xs font-black text-[#7d6a4a] hover:border-[#c9a96a]">{item.label}</button>)}</div>
         <div className="flex items-center justify-between gap-2 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-xs"><div><b className="text-[#2f2415]">Micro continu</b><p className="text-[#8a7456]">Optionnel : Horizon traite après une pause.</p></div><button type="button" onClick={toggleTerrainMode} className={`rounded-xl border px-3 py-1.5 font-black ${terrainMode ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-[#d6c3a0] bg-white text-[#8a7456]'}`}>{terrainMode ? 'ON' : 'OFF'}</button><button type="button" onClick={toggleVoiceReplies} className={`rounded-xl border px-3 py-1.5 font-black ${speech.enabled ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-[#d6c3a0] bg-white text-[#8a7456]'}`}>{speech.enabled ? <Volume2 size={14} className="inline" /> : <VolumeX size={14} className="inline" />}</button></div>
         {terrainMode ? <div className={`rounded-xl border px-3 py-2 text-[11px] font-bold ${voice.listening ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>🎤 {voice.listening ? 'J’écoute. Parle puis marque une pause.' : `Micro non actif : ${voice.error || voice.hint || 'autorisation à vérifier.'}`}</div> : null}
