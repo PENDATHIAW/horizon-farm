@@ -1,4 +1,5 @@
 import FinanceAccountingHealth from './FinanceAccountingHealth.jsx';
+import FinancingFinancialStatementGuide from './FinancingFinancialStatementGuide.jsx';
 import Rapports from './Rapports.jsx';
 
 export default function RapportsV2(props) {
@@ -13,6 +14,7 @@ export default function RapportsV2(props) {
       fournisseurs={data.fournisseurs || []}
       onNavigate={props.onNavigate}
     />
+    <FinancingFinancialStatementGuide data={data} onNavigate={props.onNavigate} />
     <Rapports {...props} />
   </div>;
 }
