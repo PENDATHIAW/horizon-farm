@@ -1,0 +1,37 @@
+name: Horizon Farm - Audit métier simulé
+
+on:
+  push:
+    branches:
+      - feature/objectifs-croissance-centre-decisionnel
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  simulated-business-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run simulated business workflow audit
+        run: npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line
