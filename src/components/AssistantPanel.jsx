@@ -15,6 +15,13 @@ const moduleLabel = (key = '') => ({ dashboard: 'Accueil', ventes: 'Ventes', fin
 const normalize = (value = '') => String(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 const hasWakeWord = (value = '') => { const text = normalize(value); return text.includes('hey horizon') || text.includes('he horizon') || text.includes('horizon'); };
 const stripWakeWord = (value = '') => normalize(value).replace(/\b(hey|he|eh|e)\s+horizon\b/g, '').replace(/\bhorizon\b/g, '').trim();
+const AUTO_OPEN_FORM_TYPES = new Set(['health_action', 'animal_creation', 'animal_weighing', 'animal_loss', 'sale_record', 'egg_production', 'poultry_mortality', 'poultry_close', 'stock_purchase', 'stock_movement', 'task_creation', 'finance_entry', 'equipment_action', 'financing_file']);
+const shouldAutoOpenForm = (draft = {}) => draft?.primary_module && draft?.form_type && AUTO_OPEN_FORM_TYPES.has(draft.form_type) && draft.status !== 'draft_incomplete';
+const openHorizonForm = (draft = {}, onNavigate) => {
+  if (!draft?.primary_module) return;
+  onNavigate?.(draft.primary_module);
+  window.setTimeout(() => window.dispatchEvent(new CustomEvent('horizon-open-form', { detail: { module: draft.primary_module, draft } })), 220);
+};
 const isWeakDraft = (draft = {}, text = '') => {
   const cleaned = normalize(text);
   if (!draft || draft.status === 'unsupported' || draft.status === 'wake_only') return true;
@@ -71,10 +78,15 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
   const voice = useVoiceRecognition({ continuous: terrainMode, autoRestart: terrainMode, onInterim: (text) => { if (!text) return; if (hasWakeWord(text) && wakeState === 'idle') wakeHorizon(); if (terrainMode && wakeState === 'idle') setWakeState('listening'); setLocalOpen(true); const withoutWake = stripWakeWord(text); setQuery(withoutWake || text); scheduleSilenceProcessing(withoutWake || text); }, onResult: (text) => { if (!text) return; if (hasWakeWord(text) && wakeState === 'idle') wakeHorizon(); setLocalOpen(true); scheduleSilenceProcessing(stripWakeWord(text) || text); } });
 
   const wakeHorizon = () => { setWakeState('wake_detected'); window.setTimeout(() => setWakeState('circuit'), 120); window.setTimeout(() => setWakeState('sun'), 1450); window.setTimeout(() => { setWakeState('idle'); setLocalOpen(true); }, 3000); };
-  const buildAssistantTextFromDraft = (nextDraft) => { if (!nextDraft || nextDraft.status === 'unsupported' || nextDraft.status === 'wake_only') return null; const missing = nextDraft.missing_fields || []; const impacted = (nextDraft.impacted_modules || []).map(moduleLabel).join(', '); if (nextDraft.form_type === 'health_action') return missing.length ? `J’ai compris : fiche santé à préparer. Il manque ${missing.join(', ')}.` : `J’ai compris : fiche ${nextDraft.draft_fields?.action_type || 'santé'} pour ${nextDraft.draft_fields?.target_id || nextDraft.draft_fields?.animal_id}. Vérifie puis valide.`; if (missing.length) return `J’ai compris l’action. Il reste ${missing.length} champ(s) à compléter. Modules concernés : ${impacted || moduleLabel(nextDraft.primary_module)}.`; if (nextDraft.next_required_form) return `J’ai compris, mais un formulaire lié est requis : ${nextDraft.next_required_form.title}.`; return `Action prête à valider. Modules concernés : ${impacted || moduleLabel(nextDraft.primary_module)}.`; };
+  const buildAssistantTextFromDraft = (nextDraft) => { if (!nextDraft || nextDraft.status === 'unsupported' || nextDraft.status === 'wake_only') return null; const missing = nextDraft.missing_fields || []; const impacted = (nextDraft.impacted_modules || []).map(moduleLabel).join(', '); if (nextDraft.form_type === 'health_action') return missing.length ? `J’ai compris : fiche santé à préparer. Il manque ${missing.join(', ')}.` : `J’ai compris : fiche ${nextDraft.draft_fields?.action_type || 'santé'} pour ${nextDraft.draft_fields?.target_id || nextDraft.draft_fields?.animal_id}. J’ouvre la fiche préremplie.`; if (missing.length) return `J’ai compris l’action. Il reste ${missing.length} champ(s) à compléter. Modules concernés : ${impacted || moduleLabel(nextDraft.primary_module)}.`; if (nextDraft.next_required_form) return `J’ai compris, mais un formulaire lié est requis : ${nextDraft.next_required_form.title}.`; return `Action prête. J’ouvre la fiche préremplie dans ${moduleLabel(nextDraft.primary_module)}.`; };
   const refreshImpactedModules = async (result, validatedDraft) => { const keys = buildRefreshKeys(result, validatedDraft); if (!keys.length) return; await Promise.allSettled(keys.map((key) => refreshModule(key))); toast.success(`Modules rafraîchis : ${keys.slice(0, 4).join(', ')}${keys.length > 4 ? '…' : ''}`); };
   const validateDraft = async () => {
     if (!draft || isValidating) return;
+    if (shouldAutoOpenForm(draft)) {
+      openHorizonForm(draft, onNavigate);
+      toast.success('Fiche préremplie ouverte pour validation');
+      return;
+    }
     setIsValidating(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -95,7 +107,7 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
   };
   const cancelDraft = (reason = 'Action annulée.') => { setDraft(null); setQuery(''); lastHeardRef.current = ''; setMessages((prev) => [...prev, { role: 'assistant', text: reason }]); speech.speak(reason); };
   const resetConversation = () => { speech.stop(); setDraft(null); lastHeardRef.current = ''; setMessages([{ role: 'assistant', text: 'Nouvelle demande ouverte. Clique Parler, écris une action ou choisis un raccourci.' }]); setQuery(''); };
-  const loadExternalDraft = (nextDraft, sourceLabel = 'Centre IA') => { if (!nextDraft) return; setDraft(nextDraft); setLocalOpen(true); setWakeState('idle'); const text = `${sourceLabel} a préparé une action. Vérifie, complète si besoin, puis valide.`; setMessages((prev) => [...prev, { role: 'assistant', text }]); speech.speak(text); };
+  const loadExternalDraft = (nextDraft, sourceLabel = 'Centre IA') => { if (!nextDraft) return; setDraft(nextDraft); setLocalOpen(true); setWakeState('idle'); const text = `${sourceLabel} a préparé une action. Vérifie, complète si besoin, puis valide.`; setMessages((prev) => [...prev, { role: 'assistant', text }]); speech.speak(text); if (shouldAutoOpenForm(nextDraft)) openHorizonForm(nextDraft, onNavigate); };
   const processCommand = (rawText, { fromSilence = false } = {}) => {
     const cleaned = stripWakeWord(rawText || '').trim() || normalize(rawText || '').trim();
     const rawNormalized = normalize(rawText || '').trim();
@@ -119,7 +131,12 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
     const fallback = interpretVoiceCommand(cleaned, dataMap);
     const assistantText = draftText || fallback.answer || 'Je n’ai pas assez compris. Choisis une action rapide ou précise : vente, vaccin, stock, œufs, tâche, dépense.';
     setMessages((prev) => [...prev, { role: 'user', text: cleaned }, { role: 'assistant', text: assistantText }]);
-    if (draftText) { setDraft(nextDraft); if (nextDraft.primary_module) onNavigate?.(nextDraft.primary_module); speech.speak(draftText); }
+    if (draftText) {
+      setDraft(nextDraft);
+      if (shouldAutoOpenForm(nextDraft)) openHorizonForm(nextDraft, onNavigate);
+      else if (nextDraft.primary_module) onNavigate?.(nextDraft.primary_module);
+      speech.speak(draftText);
+    }
     else { setDraft(null); if (fallback.moduleKey && fallback.moduleKey !== 'ventes') onNavigate?.(fallback.moduleKey); speech.speak(assistantText); }
     setQuery('');
     if (fromSilence && terrainMode && voice.supported && !voice.listening) window.setTimeout(() => voice.start(), 900);
