@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react';
-import { BarChart3, Bird, ChevronDown, ClipboardList, Drumstick, Egg, Info, PackageCheck, Scissors } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, BarChart3, Bird, CheckCircle2, ChevronDown, ClipboardList, Drumstick, Egg, Info, PackageCheck, Scissors, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 import MiniMetricCard from '../components/MiniMetricCard.jsx';
 import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard.jsx';
 import { buildAvicoleLotDecision } from '../services/avicoleDecisionEngine';
 import { fmtNumber } from '../utils/format';
+import { makeId } from '../utils/ids';
 import { avicoleActiveCount, avicoleHasActiveBirds } from '../utils/avicoleMetrics';
 import AvicoleBase from './AvicoleBase.jsx';
 import AvicoleCycleHealthPanel from './AvicoleCycleHealthPanel.jsx';
@@ -19,6 +21,8 @@ const today = () => new Date().toISOString().slice(0, 10);
 const lotText = (lot = {}) => norm(`${lot.type || ''} ${lot.type_lot || ''} ${lot.production_type || ''} ${lot.activity_type || ''} ${lot.categorie || ''} ${lot.name || ''} ${lot.nom || ''}`);
 const isPondeuse = (lot = {}) => { const text = lotText(lot); return text.includes('pondeuse') || text.includes('ponte') || text.includes('oeuf') || text.includes('œuf'); };
 const isChair = (lot = {}) => { const text = lotText(lot); return text.includes('chair') || text.includes('broiler'); };
+const labelOf = (lot = {}) => lot.name || lot.nom || lot.id || 'Lot avicole';
+const currentOf = (lot = {}) => avicoleActiveCount(lot);
 const filterByActivity = (rows = [], activity) => {
   if (activity === 'pondeuse') return rows.filter(isPondeuse);
   if (activity === 'chair') return rows.filter(isChair);
@@ -29,6 +33,8 @@ const initialOf = (lot = {}) => num(lot.initial_count ?? lot.effectif_initial);
 const mortalityRateOf = (lot = {}) => initialOf(lot) > 0 ? Math.round((mortalityOf(lot) / initialOf(lot)) * 100) : 0;
 const lossValueOf = (lot = {}) => num(lot.valeur_perte_estimee ?? lot.perte_estimee ?? lot.pertes_mortalite_estimees);
 const isLossClosedLot = (lot = {}) => ['perdu', 'perdu_mortalite', 'cloture_perte'].includes(norm(lot.status || lot.statut || '')) || (avicoleActiveCount(lot) <= 0 && initialOf(lot) > 0);
+const draftActionToActivity = (draft = {}) => draft.form_type === 'egg_production' || norm(draft.raw_input).includes('pondeuse') || norm(draft.raw_input).includes('oeuf') || norm(draft.raw_input).includes('tablette') ? 'pondeuse' : 'chair';
+const draftActionLabel = (formType = '') => formType === 'egg_production' ? 'Ramassage œufs' : formType === 'poultry_mortality' ? 'Mortalité rapide' : 'Clôture / réforme';
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} aria-hidden="true" /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
@@ -53,9 +59,51 @@ function ActivityEntryCard({ icon: Icon, active, title, subtitle, rows = [], pro
     <div className={`mt-3 rounded-xl border p-3 text-xs leading-relaxed ${active ? 'border-white/15 bg-white/10 text-white/80' : urgent ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>{urgent ? `${urgent} action(s) IA prioritaire(s) à vérifier.` : 'Aucune urgence IA prioritaire sur cette activité.'}</div>
   </button>;
 }
+function HeyHorizonAvicoleCard({ draft, rows, onUpdate, onCreateProduction, onRefreshProduction, onCreateBusinessEvent, onRefresh, onRefreshBusinessEvents, onClose }) {
+  const fields = draft?.draft_fields || {};
+  const formType = draft?.form_type;
+  const [lotId, setLotId] = useState(fields.lot_id || rows[0]?.id || '');
+  const [quantity, setQuantity] = useState(fields.eggs_count || fields.quantity || '');
+  const [date, setDate] = useState(fields.date || today());
+  const [note, setNote] = useState(fields.notes || draft?.raw_input || '');
+  const [saving, setSaving] = useState(false);
+  const lot = rows.find((item) => String(item.id) === String(lotId)) || rows[0] || {};
+  const actionLabel = draftActionLabel(formType);
+  const nextCount = formType === 'poultry_mortality' || formType === 'poultry_close' ? Math.max(0, currentOf(lot) - num(quantity)) : currentOf(lot);
+  const submit = async () => {
+    if (!lot?.id) return toast.error('Lot obligatoire');
+    if (formType !== 'poultry_close' && num(quantity) <= 0) return toast.error('Quantité obligatoire');
+    try {
+      setSaving(true);
+      if (formType === 'egg_production') {
+        const eggs = num(quantity);
+        await onCreateProduction?.({ id: makeId('PONTE'), lot_id: lot.id, related_id: lot.id, date, oeufs: eggs, eggs_count: eggs, tablettes: Math.floor(eggs / 30), broken_eggs: 0, source_module: 'hey_horizon', source_record_id: lot.id, notes: note });
+        await onRefreshProduction?.();
+      } else if (formType === 'poultry_mortality') {
+        const newMortality = mortalityOf(lot) + num(quantity);
+        await onUpdate?.(lot.id, { mortality: newMortality, morts: newMortality, current_count: nextCount, effectif_actuel: nextCount, status: nextCount === 0 ? 'perdu_mortalite' : (lot.status || lot.statut || 'actif'), statut: nextCount === 0 ? 'perdu_mortalite' : (lot.statut || lot.status || 'actif'), last_event_date: date, last_health_note: note });
+      } else if (formType === 'poultry_close') {
+        const qty = num(quantity) || currentOf(lot);
+        const next = Math.max(0, currentOf(lot) - qty);
+        await onUpdate?.(lot.id, { current_count: next, effectif_actuel: next, vendus: num(lot.vendus) + qty, sold_count: num(lot.sold_count) + qty, status: next === 0 ? (fields.action_type === 'reforme' ? 'reforme' : 'vendu') : 'sortie_partielle', statut: next === 0 ? (fields.action_type === 'reforme' ? 'reforme' : 'vendu') : 'sortie_partielle', date_sortie: date, notes_sortie: note });
+      }
+      await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: formType, module_source: 'avicole', entity_type: 'lot_avicole', entity_id: lot.id, source_id: lot.id, title: `${actionLabel} · ${labelOf(lot)}`, description: note || draft?.raw_input || '', event_date: date, severity: formType === 'poultry_mortality' ? 'warning' : 'info' });
+      await Promise.allSettled([onRefresh?.(), onRefreshBusinessEvents?.()]);
+      toast.success(`${actionLabel} enregistré depuis Hey Horizon`);
+      onClose?.();
+    } catch (error) { toast.error(error.message || 'Action avicole impossible'); } finally { setSaving(false); }
+  };
+  return <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm space-y-4">
+    <div className="flex items-start justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-emerald-700 font-black flex items-center gap-2"><CheckCircle2 size={15} /> Fiche préparée par Hey Horizon</p><h3 className="mt-1 text-xl font-black text-[#2f2415]">{actionLabel}</h3><p className="mt-1 text-sm text-emerald-800">Complète si besoin, puis valide. Le lot, le journal ou l’historique sont mis à jour.</p></div><button type="button" onClick={onClose} className="rounded-full border border-emerald-200 bg-white p-2 text-emerald-700"><X size={16} /></button></div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3"><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Lot</span><select value={lotId} onChange={(e) => setLotId(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm">{rows.map((item) => <option key={item.id} value={item.id}>{labelOf(item)} · {item.id} · {fmtNumber(currentOf(item))} actif(s)</option>)}</select></label><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">{formType === 'egg_production' ? 'Œufs' : 'Quantité'}</span><input type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Date</span><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label><label className="space-y-1 md:col-span-3"><span className="text-xs font-bold text-emerald-800">Note</span><input value={note} onChange={(e) => setNote(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label></div>
+    <div className="rounded-xl border border-emerald-200 bg-white p-3 text-sm text-emerald-800">{formType === 'egg_production' ? <>Tablettes calculées : <b>{Math.floor(num(quantity) / 30)}</b></> : <>Effectif après action : <b>{fmtNumber(nextCount)}</b></>}</div>
+    <div className="flex justify-end"><button type="button" onClick={submit} disabled={saving} className="rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60">{saving ? 'Validation...' : 'Valider action avicole'}</button></div>
+  </section>;
+}
 
 export default function AvicoleV10(props) {
   const [activity, setActivity] = useState('pondeuse');
+  const [horizonDraft, setHorizonDraft] = useState(null);
   const rows = props.rows || [];
   const productionLogs = props.productionLogs || [];
   const salesOrders = props.salesOrders || [];
@@ -68,6 +116,19 @@ export default function AvicoleV10(props) {
   const activeScopedRows = useMemo(() => scopedRows.filter(avicoleHasActiveBirds), [scopedRows]);
   const historicalScopedRows = useMemo(() => scopedRows.filter((lot) => !avicoleHasActiveBirds(lot)), [scopedRows]);
   const scopedProductionLogs = useMemo(() => productionLogs.filter((log) => activity !== 'chair' || chair.some((lot) => String(lot.id) === String(log.lot_id || log.related_id))), [productionLogs, activity, chair]);
+
+  useEffect(() => {
+    const handler = (event) => {
+      const draft = event.detail?.draft;
+      if (event.detail?.module === 'avicole' && ['egg_production', 'poultry_mortality', 'poultry_close'].includes(draft?.form_type)) {
+        setActivity(draftActionToActivity(draft));
+        setHorizonDraft(draft);
+        window.setTimeout(() => document.getElementById('hey-horizon-avicole-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+      }
+    };
+    window.addEventListener('horizon-open-form', handler);
+    return () => window.removeEventListener('horizon-open-form', handler);
+  }, []);
 
   const createMortalityEvent = async (before = {}, after = {}, source = 'modification lot avicole') => {
     const mortalityIncreased = mortalityOf(after) > mortalityOf(before);
@@ -91,6 +152,7 @@ export default function AvicoleV10(props) {
 
   return <div className="space-y-6 avicole-mobile-final">
     <style>{`.avicole-mobile-final .objective-card-grid{align-items:stretch}@media(max-width:640px){.avicole-mobile-final .rounded-2xl{border-radius:18px}.avicole-mobile-final table{font-size:12px}.avicole-mobile-final th,.avicole-mobile-final td{padding-left:10px!important;padding-right:10px!important}.avicole-mobile-final .text-2xl{font-size:1.35rem}.avicole-mobile-final .grid{gap:.75rem}.avicole-mobile-final .overflow-x-auto{max-width:100vw}}`}</style>
+    {horizonDraft ? <div id="hey-horizon-avicole-card"><HeyHorizonAvicoleCard draft={horizonDraft} rows={activeScopedRows} onUpdate={wrappedUpdate} onCreateProduction={props.onCreateProduction} onRefreshProduction={props.onRefreshProduction} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onClose={() => setHorizonDraft(null)} /></div> : null}
     <div className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm">
       <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><Bird size={15} aria-hidden="true" /> Séparation avicole</p>
       <h2 className="mt-1 text-2xl font-black text-[#2f2415]">Choisis l’activité à piloter</h2>
