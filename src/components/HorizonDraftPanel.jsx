@@ -1,13 +1,13 @@
 import { AlertTriangle, CheckCircle, Edit3, Layers, X } from 'lucide-react';
 
 const labels = {
-  product_name: 'Produit', quantity: 'Quantité', unit: 'Unité', unit_weight_kg: 'Poids unitaire kg', total_weight_kg: 'Poids total kg', supplier_name: 'Fournisseur', supplier_id: 'ID fournisseur', payment_status: 'Paiement', payment_amount: 'Montant payé', date: 'Date', notes: 'Notes',
-  target_id: 'Cible', animal_id: 'Animal / lot', action_type: 'Action santé', soin_type: 'Type de soin', product_label: 'Produit / intervention', next_due_date: 'Prochain rappel', cost: 'Coût', vet_name: 'Vétérinaire',
+  product_name: 'Produit', quantity: 'Quantité', unit: 'Unité', unit_weight_kg: 'Poids unitaire kg', total_weight_kg: 'Poids total kg', supplier_name: 'Fournisseur', supplier_id: 'ID fournisseur', payment_status: 'Paiement', payment_amount: 'Montant payé', date: 'Date', notes: 'Notes', source_id: 'Source', client_name: 'Client',
+  target_id: 'Cible', animal_id: 'Animal / lot', action_type: 'Action santé', soin_type: 'Type de soin', product_label: 'Produit / intervention', next_due_date: 'Prochain rappel', cost: 'Coût', vet_name: 'Vétérinaire', weight_kg: 'Poids kg', status: 'Statut',
 };
 const moduleLabel = (module = '') => ({ stock: 'Stock', finances: 'Finances', fournisseurs: 'Fournisseurs', tracabilite: 'Traçabilité', centre_ia: 'Centre IA', ventes: 'Ventes', clients: 'Clients', avicole: 'Avicole', animaux: 'Animaux', sante: 'Santé', cultures: 'Cultures', alertes: 'Alertes', taches: 'Tâches', documents: 'Documents', investissements: 'Investissements' }[module] || module);
 const valueLabel = (value) => { if (value === null || value === undefined || value === '') return 'À renseigner'; if (value === 'paid') return 'Payé'; if (value === 'credit') return 'À crédit'; if (value === 'partial') return 'Partiel'; if (value === 'unknown') return 'À confirmer'; return String(value); };
 const draftTargetModule = (draft = {}) => draft.primary_module || draft.target_module || (draft.impacted_modules || [])[0] || 'dashboard';
-const formTitle = (draft = {}) => draft.form_type === 'health_action' ? `Ouvrir fiche ${draft.draft_fields?.action_type === 'deparasitage' ? 'déparasitage' : draft.draft_fields?.action_type === 'soin' ? 'soin' : 'vaccination'}` : `Modifier dans ${moduleLabel(draftTargetModule(draft))}`;
+const formTitle = (draft = {}) => draft.form_type === 'health_action' ? `Ouvrir fiche ${draft.draft_fields?.action_type === 'deparasitage' ? 'déparasitage' : draft.draft_fields?.action_type === 'soin' ? 'soin' : 'vaccination'}` : draft.form_type === 'sale_record' ? 'Ouvrir vente guidée' : draft.form_type?.startsWith('animal_') ? 'Ouvrir fiche animal' : `Modifier dans ${moduleLabel(draftTargetModule(draft))}`;
 
 export default function HorizonDraftPanel({ draft, onChangeField, onValidate, onCancel, onOpenModule }) {
   if (!draft || !draft.intent || draft.status === 'unsupported' || draft.status === 'wake_only') return null;
@@ -18,7 +18,7 @@ export default function HorizonDraftPanel({ draft, onChangeField, onValidate, on
   const editModule = draftTargetModule(draft);
   const openForm = () => {
     onOpenModule?.(editModule);
-    window.dispatchEvent(new CustomEvent('horizon-open-form', { detail: { module: editModule, draft } }));
+    window.setTimeout(() => window.dispatchEvent(new CustomEvent('horizon-open-form', { detail: { module: editModule, draft } })), 180);
   };
 
   return <div className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-4 space-y-4 shadow-sm">
