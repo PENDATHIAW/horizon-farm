@@ -65,9 +65,8 @@ export function taskFields() {
   return [
     { key: 'id', label: 'ID', type: 'text', required: true },
     { key: 'module_lie', label: 'Module lié', type: 'select', options: RH_MODULES.map((module) => ({ value: module.key, label: module.label })) },
-    { key: 'title_template', label: 'Titre prédéfini', type: 'select', options: TASK_TITLE_TEMPLATES.map(({ value, label }) => ({ value, label })), emptyLabel: 'Choisir un titre métier' },
+    { key: 'title_template', label: 'Modèle de tâche', type: 'select', options: TASK_TITLE_TEMPLATES.map(({ value, label }) => ({ value, label })), emptyLabel: 'Choisir un modèle ou tâche libre' },
     { key: 'title', label: 'Titre libre ou ajusté', type: 'text', required: true },
-    { key: 'checklist_template', label: 'Checklist prédéfinie', type: 'select', options: TASK_TITLE_TEMPLATES.filter((item) => item.value !== 'libre').map(({ value, label }) => ({ value, label })), emptyLabel: 'Choisir une checklist' },
     { key: 'assigned_to', label: 'Responsable', type: 'select', options: assignees, emptyLabel: 'Aucun responsable RH actif' },
     { key: 'due_date', label: 'Échéance', type: 'date' },
     { key: 'due_time', label: 'Heure', type: 'time' },
@@ -80,19 +79,18 @@ export function taskFields() {
     { key: 'priority', label: 'Priorité', type: 'select', options: TASK_PRIORITIES },
     { key: 'status', label: 'Statut', type: 'select', options: TASK_STATUSES },
     { key: 'related_id', label: 'ID fiche liée', type: 'text' },
-    { key: 'checklist', label: 'Checklist', type: 'textarea', fullWidth: true, rows: 5 },
+    { key: 'checklist', label: 'Checklist automatique ou ajustée', type: 'textarea', fullWidth: true, rows: 5 },
     { key: 'notes', label: 'Notes', type: 'textarea', fullWidth: true, rows: 3 },
   ];
 }
 
 export function taskInitialValues(rows = []) {
-  return { status: 'a_faire', priority: 'normale', due_date: today(), due_time: '08:00', frequency: 'ponctuelle', title_template: '', checklist_template: '' };
+  return { status: 'a_faire', priority: 'normale', due_date: today(), due_time: '08:00', frequency: 'ponctuelle', title_template: '' };
 }
 
 export function normalizeTaskPayload(payload = {}) {
   const template = titleTemplate(payload.title_template);
-  const selectedChecklistKey = payload.checklist_template || payload.title_template;
-  const checklist = clean(payload.checklist) || checklistText(selectedChecklistKey);
+  const checklist = clean(payload.checklist) || checklistText(payload.title_template);
   const title = clean(payload.title) || template?.title || 'Nouvelle tâche';
   return {
     ...payload,
