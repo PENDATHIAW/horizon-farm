@@ -16,7 +16,7 @@ function buildHealth({ transactions = [], salesOrders = [], payments = [], docum
   const docs = arr(documents);
   const ca = arr(salesOrders).reduce((sum, row) => sum + orderAmount(row), 0);
   const cashPayments = arr(payments).reduce((sum, row) => sum + paymentAmount(row), 0);
-  const cashInTx = txs.filter(isIn).reduce((sum, row) => sum + amount(row), 0);
+  const cashInTx = txs.filter((row) => isIn(row) && !isOpen(row)).reduce((sum, row) => sum + amount(row), 0);
   const cashIn = Math.max(cashPayments, cashInTx);
   const charges = txs.filter(isOut).reduce((sum, row) => sum + amount(row), 0);
   const dettesTx = txs.filter((row) => isOut(row) && isOpen(row)).reduce((sum, row) => sum + amount(row), 0);
