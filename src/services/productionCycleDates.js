@@ -13,6 +13,7 @@ export function getEntryDate(row = {}) {
 
 export function isChairLot(row = {}) {
   const value = text(row);
+  if (isLayerLot(row)) return false;
   return value.includes('chair') || value.includes('poulet');
 }
 
