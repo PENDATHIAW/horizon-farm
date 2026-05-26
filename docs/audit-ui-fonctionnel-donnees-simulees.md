@@ -6,7 +6,7 @@ Branche auditée : `feature/objectifs-croissance-centre-decisionnel`
 
 - Ce qui marche : la branche expose les versions métier demandées, avec `SanteV8`, `CulturesV5`, `InvestissementsV9`, `StocksV5` et la chaîne ventes `VentesV3 -> VentesV5 -> VentesV6 -> VentesV4`. Les tests métier simulés valident les cas animaux prêts à vendre, avicole, récoltes, ventes soldées, clients payés et santé en retard.
 - Ce qui a été corrigé : opportunités animaux/avicole, récoltes cultures synchronisées stock/ventes, ventes soldées protégées, créances clients recalculées, retards santé liés aux tâches/alertes, déduplication alertes, mouvements stock tracés, routage des versions métier, stabilisation UI/tests.
-- Ce qui reste bloquant : le push GitHub depuis cette session est bloqué par authentification HTTPS (`could not read Username`). Le smoke E2E exige des variables `E2E_LOGIN/E2E_PASSWORD`; relancé avec les identifiants de test existants.
+- Ce qui reste bloquant : le push GitHub depuis cette session est bloqué par authentification HTTPS (`could not read Username`). Les commits sont prêts localement sur la bonne branche, mais le remote HTTPS demande une authentification non disponible dans cette session.
 - Risques majeurs avant données réelles : certains modules restent très riches mais doivent être reliés à une vraie politique d’écriture Supabase, permissions serveur, validation documents et traçabilité exhaustive des actions sensibles.
 
 ## Modules audités
@@ -46,7 +46,7 @@ Branche auditée : `feature/objectifs-croissance-centre-decisionnel`
 - `npm install --no-audit --no-fund` : réussi avant synchronisation ; après reprise, `npm`/`npx` n’étaient plus disponibles dans le `PATH` Codex. Les bindings natifs optionnels macOS manquants ont été restaurés pour exécuter build/tests avec le binaire Node local.
 - `npm run build` : équivalent exécuté avec `node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
-- `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : passé avant synchronisation ; relancé après sync avec `E2E_LOGIN=penda`.
+- `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
 - `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : réussi, `6 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -59,6 +59,9 @@ Branche auditée : `feature/objectifs-croissance-centre-decisionnel`
 - `5cd14ad fix: aligner versions modules metier`
 - `9886d57 chore: synchroniser package lock`
 - `f09a24f Merge branch 'feature/objectifs-croissance-centre-decisionnel' of https://github.com/PENDATHIAW/horizon-farm into feature/objectifs-croissance-centre-decisionnel`
+- `f23281a docs: ajouter audit ui fonctionnel simule`
+
+Push GitHub : tenté deux fois avec `git push origin feature/objectifs-croissance-centre-decisionnel`, bloqué par `fatal: could not read Username for 'https://github.com': Device not configured`.
 
 ## 10 problèmes restants les plus urgents
 
