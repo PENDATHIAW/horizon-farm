@@ -723,7 +723,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Résultat observé : garde existante incomplète ; le test connecté réel a ensuite révélé `business event` dans Alertes, `à synchroniser` dans Activité & Sync ERP et `Supabase/RBAC` dans Gestion système.
 - Correction faite : `DetailsModal` filtre maintenant les fonctions et les chaînes internes ; `helpers.js` ajoute la liste complète des termes interdits au contrôle UI ; Alertes traduit les sources internes en “Historique métier” ; Activité & Sync parle d’actions “à envoyer” et de “journal d’activité” ; Gestion système parle de droits côté serveur sans citer l’outil technique.
 - Test ajouté : `tests/e2e/no-technical-jargon.spec.js`.
-- Commit : `5507c4f fix: renforcer liens metier anti donnees orphelines`, complété par la correction connectée de cette session.
+- Commit : `5507c4f fix: renforcer liens metier anti donnees orphelines`, complété par `34231a4 fix: nettoyer jargon modules connectes`.
 - Reste à faire : exécuter en continu avec un compte E2E stable à chaque release.
 
 ## Commits créés
