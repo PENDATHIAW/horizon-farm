@@ -234,6 +234,24 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Commit poussé : `470bc0f fix: completer parcours cultures terrain`, `afab3f6 test: couvrir parcours cultures terrain`.
 - Reste à faire : valider en navigateur connecté que le mode données simulées affiche bien des intrants cultures dans le sélecteur et tester une vente de récolte de bout en bout avec stock réel.
 
+## Module : Investissements
+
+- Sections testées : BP Horizon Farm, Actions terrain, Prévu vs réel, Budget d’investissement, Charges récurrentes, Amortissements, Revenus, Contrôle qualité.
+- Sections supprimées/fusionnées : aucun retour aux anciens blocs empilés ; la section Actions terrain est ajoutée comme point d’entrée utile et court.
+- Boutons testés : Restaurer le BP, onglets, Marquer une dépense réalisée, Créer l’actif métier, Voir finances/Objectifs, contrôle qualité.
+- Boutons corrigés : une ligne réalisée crée maintenant une sortie Finance, une preuve/facture et une trace ; la création d’actif est bloquée si un actif existe déjà.
+- Formulaires testés : restauration BP, action paiement réel de ligne, génération preuve/facture, création actif avicole/animal/culture/équipement/stock selon libellé.
+- Champs présents : poste, catégorie, quantité, prix unitaire, total prévu, montant réel, statut, financement, durée/amortissement, revenus/charges, preuve.
+- Champs ajoutés : onglet Actions terrain avec lignes réalisables, statut `effectif`, `montant_reel`, transaction finance liée, preuve liée, actif métier lié.
+- Actions testées : pompe irrigation payée 350 000 FCFA, preuve investissement manquante, poussins pondeuses transformés en lot avicole, anti-doublon actif.
+- Conséquences métier vérifiées : investissement réalisé -> Finance + Documents + événement ; actif créé -> module métier + ligne BP verrouillée ; montant important -> preuve manquante à contrôler ; double clic -> pas de second actif.
+- Interconnexions vérifiées : Investissements vers Finances, Documents, Avicole, Animaux, Cultures, Équipements, Stock, Business events, Comptabilité via preuves.
+- Bugs trouvés : V9 affichait le BP mais le parcours terrain “payer puis créer actif” était trop discret/non actif dans la version considérée ; les preuves et sorties finance n’étaient pas garanties depuis l’action BP.
+- Corrections faites : ajout de `investmentWorkflows`, onglet Actions terrain dans `InvestissementsV9`, callbacks App vers Documents/Équipements/Stock/Business events, tests de paiement et création actif.
+- Tests ajoutés : investissement réalisé crée sortie finance/preuve/trace, investissement payé crée actif métier une seule fois.
+- Commit poussé : `dfde19a fix: completer parcours investissements terrain`, `4e36fa1 test: couvrir parcours investissements terrain`.
+- Reste à faire : valider sur données Supabase réelles la création équipement/stock depuis BP, et ajouter une confirmation forte avant paiement si plusieurs utilisateurs travaillent en parallèle.
+
 ## Module : Avicole
 
 - Sections testées : séparation Pondeuses/Poulets de chair, Pilotage avicole, Vue active, Où saisir les œufs, Objectif œufs/pondeuses, Lots actifs, Gestion avicole, Journal de ponte et charges, Journal de ramassage des œufs, Charges directes pondeuses, Cycle et historique, Évolution détaillée.
@@ -271,6 +289,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Tâches liées aux alertes fragiles | la création/clôture de tâche depuis alerte avait des clés différentes et les checklists pouvaient être génériques | workflow tâche centralisé, checklist nettoyée, clôture alerte liée et trace métier | `src/modules/TachesV2.jsx`, `src/modules/TachesV3.jsx`, `src/utils/taskForms.js`, `src/utils/taskWorkflows.js` | `cb5589e` | `alerte crée une tâche liée sans doublon de checklist`, `tâche terminée clôture alerte liée et trace action`, `checklist tâche ne duplique pas le titre ni les étapes génériques` | une alerte produit une seule tâche utile, et la fin de tâche ferme l’alerte source |
 | Alertes doublonnées ou mal reliées aux tâches | le pont Alertes ne réutilisait pas toutes les clés source/déduplication des tâches | déduplication d’alertes par source et création tâche via `taskWorkflows` | `src/modules/AlertTaskBridgePanel.jsx`, `src/modules/AlertesCenter.jsx`, `src/utils/alertWorkflows.js`, `src/utils/constants.js` | `732eac7` | `alertes même source sont dédupliquées en gardant l’ouverte récente`, `alerte ignorée est considérée fermée` | une alerte source reste unique et actionnable, les fermées/ignorées sortent du flux ouvert |
 | Cultures sans sortie intrant/perte intégrée | la récolte créait déjà des liens, mais intrants, pertes et météo n’avaient pas de workflow central testable | ajout de `cultureWorkflows`, actions Utiliser intrant et Déclarer perte, trace métier et tests simulés | `src/modules/CulturesV3.jsx`, `src/modules/CulturesV5.jsx`, `src/modules/CulturesTabActionsBridge.jsx`, `src/utils/cultureWorkflows.js` | `470bc0f` | `intrant culture décrémente le stock et augmente le coût culture`, `perte culture réduit le disponible et crée une trace de valeur`, `risque météo culture propose une tâche et une alerte liées` | récolte/intrant/perte/météo provoquent stock, coût, opportunité, tâche/alerte ou trace selon le cas |
+| Investissement payé sans actif réel visible | le BP V9 était lisible mais le passage paiement -> finance/preuve -> actif métier n’était pas assez actionnable | ajout d’un onglet Actions terrain et d’un workflow investissement réalisé/actif lié | `src/modules/InvestissementsV9.jsx`, `src/utils/investmentWorkflows.js`, `src/App.jsx` | `dfde19a` | `investissement réalisé crée sortie finance, preuve et trace BP`, `investissement payé crée un actif métier une seule fois` | une ligne BP payée crée sortie Finance, preuve/facture, trace puis actif métier sans doublon |
 
 ## Module : Animaux
 
@@ -332,7 +351,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Avicole, Animaux, Finances, Comptabilité, `40 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Avicole, Animaux, Finances, Comptabilité, `42 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -392,6 +411,9 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `5a2c0ed test: couvrir parcours alertes terrain`
 - `470bc0f fix: completer parcours cultures terrain`
 - `afab3f6 test: couvrir parcours cultures terrain`
+- `50cc781 docs: documenter corrections terrain cultures`
+- `dfde19a fix: completer parcours investissements terrain`
+- `4e36fa1 test: couvrir parcours investissements terrain`
 
 Push GitHub : les commits jusqu'à `ce0a66a` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
