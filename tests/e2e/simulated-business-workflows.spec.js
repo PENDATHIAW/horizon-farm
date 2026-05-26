@@ -17,6 +17,7 @@ import { buildTaskFromAlert, completeTaskWorkflow, normalizeTaskChecklist } from
 import { normalizeTaskPayload } from '../../src/utils/taskForms.js';
 import { dedupeAlertsBySource, isAlertResolved } from '../../src/utils/alertWorkflows.js';
 import { buildCultureHarvestWorkflow, buildCultureInputUsageWorkflow, buildCultureLossWorkflow, buildCultureWeatherRiskFollowUp } from '../../src/utils/cultureWorkflows.js';
+import { buildInvestmentAssetWorkflow, buildInvestmentRealizationWorkflow } from '../../src/utils/investmentWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -509,5 +510,35 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(workflow.task).toMatchObject({ module_lie: 'cultures', related_id: 'CULT-METEO-001', priority: 'critique', status: 'a_faire' });
     expect(workflow.alert).toMatchObject({ module_source: 'cultures', entity_id: 'CULT-METEO-001', severity: 'critique', status: 'nouvelle' });
     expect(workflow.task.task_dedupe_key).toBe(workflow.alert.alert_dedupe_key);
+  });
+
+  test('investissement réalisé crée sortie finance, preuve et trace BP', () => {
+    const workflow = buildInvestmentRealizationWorkflow({
+      id: 'BPLI-POMPE-001',
+      designation: 'Pompe irrigation solaire',
+      total: 350000,
+      business_plan_id: 'BP-HORIZON-FARM',
+    }, { date: today() });
+    expect(workflow.financeTransaction).toMatchObject({ type: 'sortie', module_lie: 'investissements', source_record_id: 'BPLI-POMPE-001', montant: 350000, cash_effect: true });
+    expect(workflow.proofDocument).toMatchObject({ module_source: 'investissements', entity_id: 'BPLI-POMPE-001', status: 'manquant', verification_status: 'preuve_manquante' });
+    expect(workflow.linePatch).toMatchObject({ statut: 'effectif', montant_reel: 350000 });
+    expect(workflow.event).toMatchObject({ event_type: 'investissement_realise', amount: 350000 });
+  });
+
+  test('investissement payé crée un actif métier une seule fois', () => {
+    const workflow = buildInvestmentAssetWorkflow({
+      id: 'BPLI-POUSSINS-001',
+      designation: 'Poussins pondeuses',
+      quantite: 100,
+      prix_unitaire: 900,
+      business_plan_id: 'BP-HORIZON-FARM',
+      linked_finance_transaction_id: 'TRX-INV-001',
+      statut: 'effectif',
+    }, { date: today() });
+    expect(workflow.module).toBe('avicole');
+    expect(workflow.payloads).toHaveLength(1);
+    expect(workflow.payloads[0]).toMatchObject({ type: 'Pondeuse', initial_count: 100, current_count: 100, source_module: 'investissements' });
+    expect(workflow.linePatch).toMatchObject({ asset_module: 'avicole', asset_status: 'cree', statut: 'lie_metier' });
+    expect(buildInvestmentAssetWorkflow({ ...workflow.linePatch, id: 'BPLI-POUSSINS-001', designation: 'Poussins pondeuses' })).toBeNull();
   });
 });
