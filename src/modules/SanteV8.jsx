@@ -1,38 +1,87 @@
 import useCrudModule from '../hooks/useCrudModule';
 import { makeId } from '../utils/ids';
-import { buildHealthFollowUp, healthKey, healthTarget, healthTitle, isHealthDone, isHealthOverdue } from '../utils/healthWorkflows';
+import { toNumber } from '../utils/format';
 import SanteV7 from './SanteV7.jsx';
 
+const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 const today = () => new Date().toISOString().slice(0, 10);
+const isOverdue = (row = {}) => ['retard', 'en_retard', 'a_faire_retard', 'overdue'].includes(norm(row.statut || row.status || row.etat));
+const isDone = (row = {}) => ['fait', 'termine', 'terminé', 'realise', 'réalisé', 'administre', 'administré', 'ok'].includes(norm(row.statut || row.status || row.etat));
+const healthKey = (row = {}) => `health-action:${row.id || row.source_record_id || row.animal_id || row.lot_id || row.target_id || row.nom || row.name}`;
+const titleOf = (row = {}) => row.nom || row.name || row.title || row.type_soin || row.type || row.vaccin || row.id || 'Soin santé';
+const targetOf = (row = {}) => row.animal_id || row.lot_id || row.target_id || row.related_id || row.entity_id || row.sujet || 'cible non renseignée';
+const costOf = (row = {}) => toNumber(row.cout ?? row.montant ?? row.amount ?? row.cout_total ?? row.total_cost ?? row.montant_total);
+const interventionFamily = (row = {}) => /biosecurit|desinfection|nettoyage/.test(norm(row.type_intervention || row.nom || row.type || '')) ? 'Biosecurite' : 'Sante';
 
 export default function SanteV8(props) {
   const tasksCrud = useCrudModule('taches');
   const alertsCrud = useCrudModule('alertes_center');
   const eventsCrud = useCrudModule('business_events');
+  const financesCrud = useCrudModule('transactions');
   const tasks = props.tasks || tasksCrud.rows || [];
   const alertes = props.alertes || alertsCrud.rows || [];
+  const transactions = props.transactions || financesCrud.rows || [];
 
   const createOrReactivateFollowUp = async (row = {}, source = 'santé') => {
-    if (!row?.id || !isHealthOverdue(row)) return;
-    const followUp = buildHealthFollowUp(row, source);
-    if (!followUp) return;
-    const key = followUp.key;
+    if (!row?.id || !isOverdue(row)) return;
+    const key = healthKey(row);
     const taskExisting = tasks.find((task) => String(task.task_dedupe_key || task.action_key || task.source_record_id || '') === key);
     const alertExisting = alertes.find((alert) => String(alert.alert_dedupe_key || alert.dedupe_key || alert.source_record_id || '') === key);
-    const taskPayload = followUp.task;
+    const title = `Soin en retard · ${titleOf(row)}`;
+    const description = `Cible: ${targetOf(row)} · Source: ${source}`;
+
+    const taskPayload = {
+      task_dedupe_key: key,
+      action_key: key,
+      title,
+      module_lie: 'sante',
+      source_module: 'sante',
+      source_record_id: key,
+      related_id: row.id,
+      due_date: row.date_prevue || row.date_rappel || row.date || today(),
+      priority: 'haute',
+      status: 'a_faire',
+      checklist: 'Vérifier la cible;Préparer le produit;Réaliser le soin;Mettre à jour la fiche santé',
+      notes: description,
+    };
     if (taskExisting?.id) await (props.onUpdateTask || tasksCrud.update)?.(taskExisting.id, { ...taskPayload, status: 'a_faire' });
-    else await (props.onCreateTask || tasksCrud.create)?.(taskPayload);
+    else await (props.onCreateTask || tasksCrud.create)?.({ id: makeId('TSK'), ...taskPayload });
 
-    const alertPayload = { ...followUp.alert, linked_task_id: taskExisting?.id || followUp.task.id };
+    const alertPayload = {
+      alert_dedupe_key: key,
+      dedupe_key: key,
+      title,
+      message: description,
+      module_source: 'sante',
+      entity_type: 'health_action',
+      entity_id: row.id,
+      severity: 'haute',
+      status: 'nouvelle',
+      action_recommandee: 'Planifier et réaliser le soin, puis marquer la fiche comme faite.',
+      source_record_id: key,
+    };
     if (alertExisting?.id) await (props.onUpdateAlert || alertsCrud.update)?.(alertExisting.id, { ...alertPayload, status: 'nouvelle' });
-    else await (props.onCreateAlert || alertsCrud.create)?.(alertPayload);
+    else await (props.onCreateAlert || alertsCrud.create)?.({ id: makeId('ALT'), ...alertPayload });
 
-    await (props.onCreateBusinessEvent || eventsCrud.create)?.({ ...followUp.event, linked_task_id: taskExisting?.id || followUp.task.id });
+    await (props.onCreateBusinessEvent || eventsCrud.create)?.({
+      id: makeId('EVT'),
+      event_type: 'sante_retard_detecte',
+      module_source: 'sante',
+      entity_type: 'health_action',
+      entity_id: row.id,
+      title,
+      description,
+      event_date: today(),
+      severity: 'warning',
+      linked_task_key: key,
+      linked_alert_key: key,
+      saisies_evitees: 2,
+    });
     await Promise.allSettled([props.onRefreshTasks?.(), tasksCrud.refresh?.(), props.onRefreshAlertes?.(), alertsCrud.refresh?.(), props.onRefreshBusinessEvents?.(), eventsCrud.refresh?.()]);
   };
 
   const closeFollowUp = async (row = {}) => {
-    if (!row?.id || !isHealthDone(row)) return;
+    if (!row?.id || !isDone(row)) return;
     const key = healthKey(row);
     const linkedTasks = tasks.filter((task) => String(task.task_dedupe_key || task.action_key || task.source_record_id || '') === key);
     const linkedAlerts = alertes.filter((alert) => String(alert.alert_dedupe_key || alert.dedupe_key || alert.source_record_id || '') === key);
@@ -45,8 +94,8 @@ export default function SanteV8(props) {
         module_source: 'sante',
         entity_type: 'health_action',
         entity_id: row.id,
-        title: `Soin réalisé · ${healthTitle(row)}`,
-        description: `Tâches/alertes santé clôturées pour ${healthTarget(row)}.`,
+        title: `Soin réalisé · ${titleOf(row)}`,
+        description: `Tâches/alertes santé clôturées pour ${targetOf(row)}.`,
         event_date: today(),
         severity: 'info',
       });
@@ -54,10 +103,96 @@ export default function SanteV8(props) {
     await Promise.allSettled([props.onRefreshTasks?.(), tasksCrud.refresh?.(), props.onRefreshAlertes?.(), alertsCrud.refresh?.(), props.onRefreshBusinessEvents?.(), eventsCrud.refresh?.()]);
   };
 
+  // === CORRECTIF BUG "Coût non retrouvé dans les finances" ===
+  // Crée la transaction Finance manquante quand un soin passe à "fait" avec un coût > 0
+  // et qu'aucune transaction liée n'existe encore. Empêche les doublons via
+  // linked_finance_transaction_id et un fallback de recherche par source_record_id.
+  const ensureHealthFinance = async (before = {}, after = {}) => {
+    if (!after?.id) return;
+    if (!isDone(after)) return;
+    const cost = costOf(after);
+    if (cost <= 0) return;
+
+    // Si une transaction est déjà liée, ne rien faire (anti-doublon)
+    if (after.linked_finance_transaction_id) return;
+
+    // Fallback : chercher une transaction existante portant le même source_record_id
+    const existing = transactions.find((trx) => {
+      const trxSourceId = String(trx?.source_record_id || trx?.related_id || '');
+      return trxSourceId && trxSourceId === String(after.id);
+    });
+    if (existing?.id) {
+      // Transaction existe déjà : on relie juste le soin, sans recréer
+      if (!after.linked_finance_transaction_id) {
+        await props.onUpdate?.(after.id, { linked_finance_transaction_id: existing.id });
+      }
+      return;
+    }
+
+    // Cas terrain : déclenche à la transition pas-fait → fait OU si déjà fait sans finance (backfill)
+    const wasDone = isDone(before);
+    const becomingDone = !wasDone && isDone(after);
+    const isOrphanDone = wasDone && isDone(after); // soin fait depuis longtemps mais sans finance
+    if (!becomingDone && !isOrphanDone) return;
+
+    const trxId = makeId('TRX');
+    const familyLabel = interventionFamily(after);
+    await (props.onCreateFinanceTransaction || financesCrud.create)?.({
+      id: trxId,
+      type: 'sortie',
+      libelle: `${familyLabel === 'Biosecurite' ? 'Biosécurité' : 'Soin'} · ${titleOf(after)}`,
+      montant: cost,
+      amount: cost,
+      montant_total: cost,
+      date: after.effectuee || after.date || today(),
+      categorie: familyLabel,
+      module_lie: 'sante',
+      source_module: 'sante',
+      source_record_id: after.id,
+      related_id: after.id,
+      sante_id: after.id,
+      target_module: after.module_lie || after.target_type || '',
+      target_id: after.related_id || after.target_id || after.animal_id || after.lot_id || '',
+      statut: 'paye',
+      transaction_origin: 'auto_sante',
+      notes: `Écriture finance créée automatiquement depuis la fiche santé ${after.id}.`,
+    });
+
+    // Relie le soin à la transaction pour éviter toute recréation future
+    await props.onUpdate?.(after.id, {
+      linked_finance_transaction_id: trxId,
+      finance_synced_at: new Date().toISOString(),
+    });
+
+    await (props.onCreateBusinessEvent || eventsCrud.create)?.({
+      id: makeId('EVT'),
+      event_type: 'sante_cout_synchronise',
+      module_source: 'sante',
+      entity_type: 'health_action',
+      entity_id: after.id,
+      title: `Coût santé enregistré · ${titleOf(after)}`,
+      description: `Sortie finance ${cost} FCFA reliée au soin ${after.id}.`,
+      event_date: today(),
+      severity: 'info',
+      amount: cost,
+      linked_finance_transaction_id: trxId,
+      saisies_evitees: 1,
+    });
+
+    await Promise.allSettled([
+      props.onRefreshFinances?.(),
+      financesCrud.refresh?.(),
+      props.onRefreshBusinessEvents?.(),
+      eventsCrud.refresh?.(),
+      props.onRefresh?.(),
+    ]);
+  };
+
   const onCreate = async (payload = {}) => {
     await props.onCreate?.(payload);
     await createOrReactivateFollowUp(payload, 'création soin');
     await closeFollowUp(payload);
+    await ensureHealthFinance({}, payload);
   };
 
   const onUpdate = async (id, payload = {}) => {
@@ -66,7 +201,8 @@ export default function SanteV8(props) {
     await props.onUpdate?.(id, payload);
     await createOrReactivateFollowUp(after, 'modification soin');
     await closeFollowUp(after);
+    await ensureHealthFinance(before, after);
   };
 
-  return <SanteV7 {...props} tasks={tasks} alertes={alertes} onCreate={onCreate} onUpdate={onUpdate} onCreateTask={props.onCreateTask || tasksCrud.create} onUpdateTask={props.onUpdateTask || tasksCrud.update} onRefreshTasks={props.onRefreshTasks || tasksCrud.refresh} onCreateAlert={props.onCreateAlert || alertsCrud.create} onUpdateAlert={props.onUpdateAlert || alertsCrud.update} onRefreshAlertes={props.onRefreshAlertes || alertsCrud.refresh} onCreateBusinessEvent={props.onCreateBusinessEvent || eventsCrud.create} onRefreshBusinessEvents={props.onRefreshBusinessEvents || eventsCrud.refresh} />;
+  return <SanteV7 {...props} tasks={tasks} alertes={alertes} transactions={transactions} onCreate={onCreate} onUpdate={onUpdate} onCreateTask={props.onCreateTask || tasksCrud.create} onUpdateTask={props.onUpdateTask || tasksCrud.update} onRefreshTasks={props.onRefreshTasks || tasksCrud.refresh} onCreateAlert={props.onCreateAlert || alertsCrud.create} onUpdateAlert={props.onUpdateAlert || alertsCrud.update} onRefreshAlertes={props.onRefreshAlertes || alertsCrud.refresh} onCreateFinanceTransaction={props.onCreateFinanceTransaction || financesCrud.create} onRefreshFinances={props.onRefreshFinances || financesCrud.refresh} onCreateBusinessEvent={props.onCreateBusinessEvent || eventsCrud.create} onRefreshBusinessEvents={props.onRefreshBusinessEvents || eventsCrud.refresh} />;
 }
