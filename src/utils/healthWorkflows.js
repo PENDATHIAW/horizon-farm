@@ -83,6 +83,8 @@ export function buildHealthCostTransaction(row = {}) {
     related_id: row.id,
     sante_id: row.id,
     statut: 'paye',
+    status: 'paye',
+    cash_effect: true,
     source_module: 'sante',
     source_record_id: row.id,
     notes: `Coût santé lié à ${healthTarget(row)}`,

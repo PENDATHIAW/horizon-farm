@@ -36,7 +36,7 @@ export function buildSaleSourcePatch({ sourceType, sourceRow = {}, quantity = 0,
     return {
       module: 'lot_avicole',
       id: sourceRow.id,
-      patch: { ...common, current_count: next, effectif_actuel: next, vendus: toNumber(sourceRow.vendus) + qty, sold_count: toNumber(sourceRow.sold_count) + qty, status: next === 0 ? 'vendu' : 'vendu_partiellement', sale_kind },
+      patch: { ...common, current_count: next, effectif_actuel: next, vendus: toNumber(sourceRow.vendus) + qty, sold_count: toNumber(sourceRow.sold_count) + qty, status: next === 0 ? 'vendu' : 'vendu_partiellement', sale_kind: saleKind },
     };
   }
   if (sourceType === 'animal') {

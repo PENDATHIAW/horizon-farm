@@ -79,7 +79,15 @@ const isEmpty = (value) =>
   value === null ||
   value === undefined ||
   value === '' ||
+  typeof value === 'function' ||
   (Array.isArray(value) && value.length === 0);
+
+const isUserVisibleValue = (value) => {
+  if (isEmpty(value)) return false;
+  if (typeof value === 'object') return false;
+  const text = String(value);
+  return !/undefined|null|NaN|\[object Object\]|source_record_id|source_id|entity_id|module_source|dedupe|workflow|payload|handler|callback|CRUD|debug/i.test(text);
+};
 
 const labelFor = (key) => LABELS[key] || titleize(key);
 
@@ -123,7 +131,7 @@ export default function DetailsModal({ open, onClose, title, data }) {
     if (!data) return { visibleEntries: [], systemEntries: [] };
 
     const entries = Object.entries(data)
-      .filter(([key, value]) => !HIDDEN_KEYS.has(key) && typeof value !== 'object' && !isEmpty(value));
+      .filter(([key, value]) => !HIDDEN_KEYS.has(key) && isUserVisibleValue(value));
 
     return {
       visibleEntries: entries.filter(([key]) => !SYSTEM_KEYS.has(key)).map(([key, value]) => ({ key, value })),
