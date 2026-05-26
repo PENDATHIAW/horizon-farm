@@ -306,6 +306,24 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Commit poussé : `e96356a fix: completer parcours equipements terrain`.
 - Reste à faire : valider en données simulées UI que les équipements Smart Farm hors service créent bien un suivi Équipements, et tester upload réel de la facture réparation.
 
+## Module : RH & Équipe
+
+- Sections testées : Santé ressources internes, Priorités RH, Rémunérations et avances, Coûts et rémunérations, Répertoire RH, Équipes et responsabilités.
+- Sections supprimées/fusionnées : aucune suppression ; les priorités paie restent en haut et le répertoire conserve la gestion fine.
+- Boutons testés : Ajouter RH, Nouvelle équipe, Payer, Absence, Assigner tâche, Modifier, Supprimer, Enregistrer, Actualiser.
+- Boutons corrigés : Payer crée maintenant systématiquement Finance + preuve salaire à joindre + trace ; Absence crée un suivi et une tâche ; Assigner tâche crée une tâche visible côté Tâches.
+- Formulaires testés : ajout/modification RH, rôle, équipe, modules, salaire, prime, avance, équipe, affectation module.
+- Champs présents : nom, rôle, fonction, équipe, téléphone, WhatsApp, salaire mensuel, prime, avance, statut, modules, date entrée.
+- Champs ajoutés : preuve salaire `preuve_manquante`, dernier paiement, transaction/document liés, dernière absence, raison absence, tâche RH assignée.
+- Actions testées : paiement salaire net 85 000 FCFA, reçu salaire manquant, absence marché, tâche “Arroser parcelle tomates” assignée à une personne.
+- Conséquences métier vérifiées : salaire payé -> Finance + Documents + Business events + avance remise à zéro ; absence -> tâche + trace ; tâche assignée -> Tâches + trace ; coûts RH restent ventilés par module.
+- Interconnexions vérifiées : RH vers Finances, Documents, Tâches, Business events, Impact/Comptabilité via coûts et preuves.
+- Bugs trouvés : deux chemins de paie existaient et l’un ne créait pas toujours la preuve salaire ; absence et assignation étaient visibles comme besoins métier mais pas actionnables depuis la fiche RH.
+- Corrections faites : ajout de `rhWorkflows`, unification paie, document salaire manquant, actions Absence et Assigner tâche dans le répertoire, callbacks Tâches dans App.
+- Tests ajoutés : salaire RH payé crée finance/preuve/trace, absence RH crée suivi terrain et tâche assignée, tâche RH assignée reste visible dans le module métier.
+- Commit poussé : `0d9ff24 fix: completer parcours rh terrain`.
+- Reste à faire : vérifier en UI connectée que la source RH en localStorage est bien synchronisée avec les futures tables Supabase RH si elles sont ajoutées.
+
 ## Module : Avicole
 
 - Sections testées : séparation Pondeuses/Poulets de chair, Pilotage avicole, Vue active, Où saisir les œufs, Objectif œufs/pondeuses, Lots actifs, Gestion avicole, Journal de ponte et charges, Journal de ramassage des œufs, Charges directes pondeuses, Cycle et historique, Évolution détaillée.
@@ -347,6 +365,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Rapport généré écrasant le brouillon | la génération utilisait surtout le résumé automatique et ne créait pas d’action terrain pour un rapport programmé | workflow rapport qui conserve le brouillon et bouton Programmer tâche | `src/modules/RapportsAutoBridge.jsx`, `src/modules/Rapports.jsx`, `src/utils/reportWorkflows.js`, `src/App.jsx` | `26f4eb2` | `rapport généré conserve le brouillon modifié dans le document`, `rapport programmé crée une tâche de préparation claire` | un brouillon relu reste dans le document, un rapport programmé crée une tâche exploitable |
 | Impact seulement informatif | les priorités, preuves manquantes et risques étaient visibles mais ne créaient pas toujours d’action terrain | workflow Impact pour tâche, preuve, alerte et trace ; boutons actionnables depuis les cartes | `src/modules/ImpactBusiness.jsx`, `src/utils/impactWorkflows.js`, `src/App.jsx` | `6171e39` | `indicateur impact faible crée une tâche actionnable`, `preuve manquante impact crée document, tâche et trace`, `risque impact fort crée alerte et tâche liées` | Impact crée une action réelle et garde Rapports comme module d’export/dossier |
 | Réparation équipement incomplète | la panne créait un suivi mais la remise en service simple ne garantissait pas clôture tâche/alerte, finance et preuve | workflow réparation avec équipement opérationnel, tâche terminée, alerte résolue, sortie finance et document preuve manquante | `src/modules/EquipementsQuickActionsBridge.jsx`, `src/modules/Equipements.jsx`, `src/utils/equipmentWorkflows.js` | `e96356a` | `panne équipement crée tâche, alerte et trace liées`, `réparation équipement clôture tâche/alerte et crée finance/document` | une pompe réparée revient opérationnelle et laisse preuve/facture à joindre |
+| Paie RH sans preuve selon le chemin | la carte prioritaire créait une preuve mais le répertoire RH pouvait payer surtout Finance/trace | workflow RH unique pour salaire, preuve manquante, trace et mise à jour personne ; actions absence/tâche ajoutées | `src/modules/RH.jsx`, `src/modules/RHPeopleTeams.jsx`, `src/utils/rhWorkflows.js`, `src/App.jsx` | `0d9ff24` | `salaire RH payé crée finance, preuve salaire et trace`, `absence RH crée suivi terrain et tâche assignée`, `tâche RH assignée reste visible dans le module métier` | RH devient un centre d’action : paie, absence et tâche ont des conséquences visibles |
 
 ## Module : Animaux
 
@@ -408,7 +427,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, Avicole, Animaux, Finances, Comptabilité, `49 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Avicole, Animaux, Finances, Comptabilité, `52 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -478,8 +497,10 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `6171e39 fix: completer parcours impact valeur terrain`
 - `add2de1 docs: documenter corrections terrain impact valeur`
 - `e96356a fix: completer parcours equipements terrain`
+- `f26affc docs: documenter corrections terrain equipements`
+- `0d9ff24 fix: completer parcours rh terrain`
 
-Push GitHub : les commits jusqu'à `e96356a` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
+Push GitHub : les commits jusqu'à `0d9ff24` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
 ## 10 problèmes restants les plus urgents
 
