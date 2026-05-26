@@ -29,6 +29,7 @@ import { buildObjectiveActionTask, buildObjectiveStatus } from '../../src/utils/
 import { buildSensitiveActionTrace, buildTraceCoverage, normalizeTraceEvent, routeForTrace } from '../../src/utils/traceabilityWorkflows.js';
 import { auditErpInterconnections } from '../../src/utils/interconnectionAudit.js';
 import { buildSyncRepairTask, routeForSyncIssue, syncIssueActionLabel } from '../../src/utils/syncAuditWorkflows.js';
+import { buildSystemAuditEvent, canPerformSystemAction, isLastActiveAdmin, roleCanAccess, validateSystemResetConfirmation } from '../../src/utils/systemAccessWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -771,5 +772,25 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(routeForSyncIssue(orphanPayment)).toBe('ventes');
     expect(syncIssueActionLabel(missingDocument)).toBe('Créer preuve / facture');
     expect(buildSyncRepairTask(staleOpportunity, { date: today() })).toMatchObject({ module_lie: 'ventes', source_module: 'sync_activity', status: 'a_faire' });
+  });
+
+  test('Gestion système protège les actions admin et trace les changements', () => {
+    const users = [
+      { id: 'USR-ADMIN', role: 'admin', statut: 'actif' },
+      { id: 'USR-VISITEUR', role: 'visiteur', statut: 'pending' },
+    ];
+    expect(roleCanAccess('visiteur', 'dashboard')).toBeTruthy();
+    expect(roleCanAccess('visiteur', 'finances')).toBeFalsy();
+    expect(canPerformSystemAction('visiteur', 'modifier')).toBeFalsy();
+    expect(canPerformSystemAction('admin', 'supprimer')).toBeTruthy();
+    expect(isLastActiveAdmin(users[0], users)).toBeTruthy();
+    expect(validateSystemResetConfirmation('EFFACER')).toBeTruthy();
+    expect(validateSystemResetConfirmation('effacer')).toBeFalsy();
+    expect(buildSystemAuditEvent('system_user_deleted', { id: 'USR-VISITEUR', nom: 'Visiteur', role: 'visiteur' }, { actorEmail: 'admin@horizon.test', createdAt: '2026-01-01T00:00:00.000Z' })).toMatchObject({
+      module_source: 'gestion_systeme',
+      entity_id: 'USR-VISITEUR',
+      actor_email: 'admin@horizon.test',
+      title: 'Utilisateur retiré',
+    });
   });
 });

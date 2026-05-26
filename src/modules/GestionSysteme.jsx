@@ -6,6 +6,7 @@ import SectionHeader from '../components/SectionHeader';
 import { ROLE_PERMISSIONS, useAuth } from '../context/AuthContext';
 import useCrudModule from '../hooks/useCrudModule';
 import { makeId } from '../utils/ids';
+import { buildSystemAuditEvent, canPerformSystemAction, isLastActiveAdmin } from '../utils/systemAccessWorkflows';
 
 const MODULES = [
   ['dashboard', 'Dashboard'], ['assistant_erp', 'Assistant ERP'], ['centre_ia', 'Centre décisionnel'], ['objectifs_croissance', 'Objectifs & Croissance'], ['animaux', 'Animaux'], ['avicole', 'Avicole'], ['sante', 'Santé & Vaccins'], ['finances', 'Finances'], ['comptabilite', 'Comptabilité'], ['investissements', 'Investissements'], ['impact_business', 'Impact & Valeur ERP'], ['stock', 'Stock'], ['clients', 'Clients'], ['ventes', 'Ventes'], ['fournisseurs', 'Fournisseurs'], ['tracabilite', 'Traçabilité'], ['alertes', 'Centre Alertes'], ['cultures', 'Cultures'], ['documents', 'Documents'], ['taches', 'Tâches'], ['rh', 'RH & Équipe'], ['rapports', 'Rapports'], ['equipements', 'Équipements'], ['smartfarm', 'Smart Farm'], ['audit_logs', 'Historique'], ['sync_activity', 'Activité & Sync ERP'], ['gestion_systeme', 'Gestion du système'],
@@ -50,20 +51,11 @@ export default function GestionSysteme() {
   const visibleUsers = useMemo(() => users.filter((u) => filterRole === 'tous' || u.role === filterRole), [users, filterRole]);
   const stats = useMemo(() => ({ total: users.length, actifs: users.filter((u) => ['actif', 'active'].includes(String(u.statut || '').toLowerCase())).length, admins: users.filter((u) => u.role === 'admin').length, visiteurs: users.filter((u) => u.role === 'visiteur').length }), [users]);
   const persist = (next) => setUsers(saveUsers(next));
-  const canManageSystem = role === 'admin';
+  const canManageSystem = canPerformSystemAction(role, 'modifier');
   const traceSystemAction = async (action, target = {}, extra = {}) => {
     const payload = {
+      ...buildSystemAuditEvent(action, target, { actorEmail: user?.email || '' }),
       id: makeId('AUD'),
-      action,
-      module: 'gestion_systeme',
-      module_source: 'gestion_systeme',
-      entity_type: 'utilisateur',
-      entity_id: target.id,
-      title: action === 'system_user_deleted' ? 'Utilisateur retiré' : 'Accès utilisateur modifié',
-      description: `${target.nom || target.email || target.id || 'Utilisateur'} · rôle ${target.role || 'non renseigné'}`,
-      actor_email: user?.email || '',
-      created_at: new Date().toISOString(),
-      severity: ['admin', 'suspended', 'disabled'].includes(String(target.role || target.statut || '').toLowerCase()) ? 'warning' : 'info',
       ...extra,
     };
     await Promise.allSettled([
@@ -94,7 +86,8 @@ export default function GestionSysteme() {
   };
   const remove = async (target) => {
     if (!canManageSystem) return toast.error('Seul un Super Admin peut retirer un accès');
-    if (target.id === 'USR-PENDA' || target.role === 'admin' && users.filter((u) => u.role === 'admin' && ['actif', 'active'].includes(String(u.statut || '').toLowerCase())).length <= 1) return toast.error('Impossible de retirer le dernier Super Admin');
+    if (target.id === 'USR-PENDA' || isLastActiveAdmin(target, users)) return toast.error('Impossible de retirer le dernier Super Admin');
+    if (!window.confirm(`Retirer l'accès de ${target.nom || target.email || target.id} ? Cette action sera tracée.`)) return;
     persist(users.filter((u) => u.id !== target.id));
     await traceSystemAction('system_user_deleted', target);
     toast.success('Utilisateur retiré');
