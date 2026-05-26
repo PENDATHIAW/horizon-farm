@@ -360,6 +360,24 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Commit poussé : `06e2035 fix: completer assistant erp terrain`.
 - Reste à faire : ajouter des handlers visuels dédiés côté Cultures/Documents pour afficher directement une carte préremplie comme Santé/Avicole/Animaux.
 
+## Module : Centre décisionnel
+
+- Sections testées : KPI santé décisionnelle, objectifs, créances, alertes, décisions prioritaires, opportunités de vente, cycles de production, alertes importantes, brouillons à valider.
+- Sections supprimées/fusionnées : aucune suppression ; le centre reste volontairement court avec trois actions prioritaires.
+- Boutons testés : Plan financier, Objectifs, Ventes, Voir détails et actions, Créer tâche, Business plan/Ouvrir action, Voir alertes, Ouvrir action, Ouvrir brouillon.
+- Boutons corrigés : chaque recommandation prioritaire peut maintenant créer une tâche terrain sourcée et une trace métier.
+- Formulaires testés : brouillon Horizon depuis recommandation, tâche créée depuis recommandation, action alertes importantes.
+- Champs présents : titre, module/source, priorité, recommandation, score, couverture/écart, modules impactés.
+- Champs ajoutés : clé de déduplication tâche `decision:module:id`, source module/source record, checklist de vérification, trace `decision_action_task_created`.
+- Actions testées : recommandation stock `STK-ALIM-001`, création tâche, trace business event, ouverture du module source.
+- Conséquences métier vérifiées : recommandation -> Tâches + Business events ; le module source reste ouvrable ; le brouillon reste soumis à validation humaine.
+- Interconnexions vérifiées : Centre décisionnel vers Tâches, Business events, Objectifs, Ventes, Stock, Alertes, Assistant Hey Horizon.
+- Bugs trouvés : les recommandations étaient utiles mais encore trop “lecture/brouillon”, sans bouton direct pour transformer une décision en action à faire.
+- Corrections faites : ajout de `decisionCenterWorkflows`, bouton Créer tâche dans les cartes, callbacks App vers Tâches/Business events.
+- Tests ajoutés : Centre décisionnel transforme une recommandation sourcée en tâche actionnable.
+- Commit poussé : `89d0e75 fix: completer centre decisionnel terrain`.
+- Reste à faire : ajouter une persistance “ignorer cette recommandation” si l’utilisateur veut masquer une décision pour la journée.
+
 ## Module : Avicole
 
 - Sections testées : séparation Pondeuses/Poulets de chair, Pilotage avicole, Vue active, Où saisir les œufs, Objectif œufs/pondeuses, Lots actifs, Gestion avicole, Journal de ponte et charges, Journal de ramassage des œufs, Charges directes pondeuses, Cycle et historique, Évolution détaillée.
@@ -404,6 +422,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Paie RH sans preuve selon le chemin | la carte prioritaire créait une preuve mais le répertoire RH pouvait payer surtout Finance/trace | workflow RH unique pour salaire, preuve manquante, trace et mise à jour personne ; actions absence/tâche ajoutées | `src/modules/RH.jsx`, `src/modules/RHPeopleTeams.jsx`, `src/utils/rhWorkflows.js`, `src/App.jsx` | `0d9ff24` | `salaire RH payé crée finance, preuve salaire et trace`, `absence RH crée suivi terrain et tâche assignée`, `tâche RH assignée reste visible dans le module métier` | RH devient un centre d’action : paie, absence et tâche ont des conséquences visibles |
 | Smart Farm sans conséquence à l’enregistrement critique | les signaux existaient mais un appareil ajouté/modifié critique ne déclenchait pas toujours immédiatement tâche/alerte/trace | workflow Smart Farm pour capteur/caméra critique, badges source simulation/réel, seuils de mesure dans le formulaire | `src/modules/SmartFarm.jsx`, `src/utils/constants.js`, `src/utils/smartFarmWorkflows.js` | `d41cbd1` | `capteur Smart Farm critique crée tâche, alerte et trace`, `Smart Farm distingue données simulées et données réelles`, `caméra Smart Farm hors ligne crée une action terrain` | un capteur ou une caméra critique ouvre une action terrain sans ambiguïté simulation/réel |
 | Hey Horizon trop générique sur certaines phrases terrain | l’interpréteur ne distinguait pas récolte, facture fournisseur, ouverture de fiche animal et stocks critiques | nouvelles intentions dédiées et auto-ouverture de brouillons validables | `src/services/aiIntentEngine.js`, `src/components/AssistantPanel.jsx`, `src/components/HorizonDraftPanel.jsx`, `src/modules/AnimauxV2.jsx` | `06e2035` | `Hey Horizon prépare les intentions terrain sans confondre les modules` | l’assistant prépare le bon module/formulaire au lieu de seulement chercher ou naviguer |
+| Centre décisionnel sans passage direct à l’action | les recommandations ouvraient surtout un brouillon ou un module, mais ne créaient pas une tâche terrain immédiatement exploitable | ajout d’un workflow décision -> tâche + trace et bouton Créer tâche sur les cartes prioritaires | `src/modules/CentreIA.jsx`, `src/modules/DecisionRecommendationCardCompact.jsx`, `src/utils/decisionCenterWorkflows.js`, `src/App.jsx` | `89d0e75` | `Centre décisionnel transforme une recommandation sourcée en tâche actionnable` | une recommandation stock/santé/production devient une tâche sourcée et traçable |
 
 ## Module : Animaux
 
@@ -465,7 +484,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Smart Farm, Assistant ERP, Avicole, Animaux, Finances, Comptabilité, `56 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Smart Farm, Assistant ERP, Centre décisionnel, Avicole, Animaux, Finances, Comptabilité, `57 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -541,6 +560,8 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `d41cbd1 fix: completer parcours smart farm terrain`
 - `b478563 docs: documenter corrections terrain smart farm`
 - `06e2035 fix: completer assistant erp terrain`
+- `97a3451 docs: documenter corrections terrain assistant erp`
+- `89d0e75 fix: completer centre decisionnel terrain`
 
 Push GitHub : les commits jusqu'à `0d9ff24` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
