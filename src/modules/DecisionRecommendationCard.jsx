@@ -48,6 +48,22 @@ function defaultTechnicalTarget(item = {}) {
   if (item.activity === 'cultures') return 'cultures';
   return item.source_module || 'alertes';
 }
+const MODULE_LABELS = {
+  sante: 'Santé',
+  animaux: 'Animaux',
+  avicole: 'Avicole',
+  stock: 'Stock',
+  stocks: 'Stock',
+  cultures: 'Cultures',
+  finances: 'Finances',
+  documents: 'Documents',
+  alertes: 'Alertes',
+  taches: 'Tâches',
+  equipements: 'Équipements',
+  smartfarm: 'Smart Farm',
+};
+const readableModule = (value = '') => MODULE_LABELS[String(value || '').trim().toLowerCase()] || value || 'Terrain';
+const readableEntity = (value = '') => String(value || '').replace(/_/g, ' ') || 'Fiche liée';
 
 export default function DecisionRecommendationCard({ item, dataMap = {}, onNavigate }) {
   const score = scoreOpportunity(item);
@@ -89,7 +105,7 @@ export default function DecisionRecommendationCard({ item, dataMap = {}, onNavig
         <p>{item.timing}</p>
         {item.technical_rule ? (
           <>
-            <p>Module : <b>{item.source_module || item.activity || 'terrain'}</b> · Entité : <b>{item.entity_type || '—'}</b></p>
+            <p>Espace : <b>{readableModule(item.source_module || item.activity)}</b> · Fiche : <b>{readableEntity(item.entity_type)}</b></p>
             <p>Priorité : <b>{item.priority || 'moyenne'}</b></p>
           </>
         ) : (
@@ -106,8 +122,8 @@ export default function DecisionRecommendationCard({ item, dataMap = {}, onNavig
         <div className="grid grid-cols-2 gap-2">
           <Mini label={item.technical_rule ? 'Échéance' : 'Date cible'} value={item.target_date || '—'} />
           <Mini label="Date limite" value={item.latest_start || '—'} />
-          <Mini label={item.technical_rule ? 'Origine' : 'Disponible'} value={item.technical_rule ? (item.source_module || 'terrain') : fmtNumber(item.available_units || 0)} />
-          <Mini label={item.technical_rule ? 'Entité' : 'Demandé'} value={item.technical_rule ? (item.entity_id || '—') : fmtNumber(item.demand_units || 0)} />
+          <Mini label={item.technical_rule ? 'Espace' : 'Disponible'} value={item.technical_rule ? readableModule(item.source_module || 'terrain') : fmtNumber(item.available_units || 0)} />
+          <Mini label={item.technical_rule ? 'Fiche' : 'Demandé'} value={item.technical_rule ? (item.entity_id || 'à préciser') : fmtNumber(item.demand_units || 0)} />
         </div>
       </div>
 

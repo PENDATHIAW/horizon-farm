@@ -5,7 +5,7 @@ import { computeFinanceCash } from '../../src/utils/financeCash.js';
 import { normalizeLot, normalizeProductionOeufsLog } from '../../src/utils/normalize.js';
 import { applyStockMovement, buildStockCriticalFollowUp } from '../../src/utils/stockWorkflows.js';
 import { avicoleActiveCount, avicoleSickCount } from '../../src/utils/avicoleMetrics.js';
-import { buildHealthCostTransaction, buildHealthFollowUp, buildHealthProofDocument } from '../../src/utils/healthWorkflows.js';
+import { buildHealthCostTransaction, buildHealthFollowUp, buildHealthMissingProofDocument, buildHealthProofDocument } from '../../src/utils/healthWorkflows.js';
 import { buildClientReminderFollowUp, buildClientSalesSummary, canDeleteClient, normalizeClientFromSales } from '../../src/utils/clientWorkflows.js';
 import { buildSaleSourcePatch, capSalePayment } from '../../src/utils/salesWorkflows.js';
 import { buildSupplierDebtFollowUp, buildSupplierPaymentWorkflow, buildSupplierReceptionWorkflow } from '../../src/utils/supplierWorkflows.js';
@@ -315,8 +315,11 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
   test('coût santé crée une dépense finance non doublonnée', () => {
     const first = buildHealthCostTransaction({ id: 'SAN-COUT-001', nom: 'Traitement respiratoire', cout: 12500, target_summary: 'BOV002' });
     const second = buildHealthCostTransaction({ id: 'SAN-COUT-001', nom: 'Traitement respiratoire', cout: 12500, linked_finance_transaction_id: first.id });
-    expect(first).toMatchObject({ type: 'sortie', module_lie: 'sante', source_record_id: 'SAN-COUT-001', montant: 12500 });
+    const missingProof = buildHealthMissingProofDocument({ id: 'SAN-COUT-001', nom: 'Traitement respiratoire', cout: 12500 }, first);
+    expect(first).toMatchObject({ type: 'sortie', module_lie: 'sante', source_record_id: 'SAN-COUT-001', sante_id: 'SAN-COUT-001', montant: 12500, amount: 12500 });
     expect(second).toBeNull();
+    expect(missingProof).toMatchObject({ module_source: 'sante', related_id: 'SAN-COUT-001', transaction_id: first.id, status: 'manquant', verification_status: 'a_joindre' });
+    expect(transactionHasProof(first, [missingProof])).toBe(false);
   });
 
   test('preuve santé devient un document fourni à vérifier', () => {
@@ -815,5 +818,40 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(actions.map((action) => `${action.title} ${action.detail}`).join(' ')).not.toMatch(/undefined|null|NaN|\[object Object\]/i);
     expect(sanitizeDashboardMetric(Number.NaN, '0')).toBe('0');
     expect(sanitizeDashboardMetric('[object Object]', 'Non renseigné')).toBe('Non renseigné');
+  });
+
+  test('interface masque les libellés techniques et garde les messages terrain', () => {
+    const userFacingFiles = [
+      'src/modules/SanteV8.jsx',
+      'src/modules/HealthQualityControl.jsx',
+      'src/modules/SanteEvolution.jsx',
+      'src/modules/SanteV6.jsx',
+      'src/modules/SanteV7.jsx',
+      'src/modules/SanteV5.jsx',
+      'src/modules/SanteV3.jsx',
+      'src/modules/SanteV2.jsx',
+      'src/modules/StocksV3.jsx',
+      'src/modules/StocksV4.jsx',
+      'src/components/AssistantPanel.jsx',
+      'src/modules/SalesWorkflowRepairPanel.jsx',
+      'src/modules/DecisionRecommendationCard.jsx',
+      'src/modules/LifecycleHistoryPanel.jsx',
+    ];
+    const visibleText = userFacingFiles.map((file) => readFileSync(file, 'utf8')).join('\n');
+    expect(visibleText).not.toMatch(/Co[uû]t non retrouv[ée] dans les finances/i);
+    expect(visibleText).not.toMatch(/Aucun impact business immédiat/i);
+    expect(visibleText).not.toMatch(/Impact business \/ observation/i);
+    expect(visibleText).not.toMatch(/Détail technique/i);
+    expect(visibleText).not.toMatch(/logs orphelins/i);
+    expect(visibleText).not.toMatch(/Réparer le workflow ventes/i);
+    expect(visibleText).not.toMatch(/Créer le workflow achat\/finance/i);
+    expect(visibleText).toContain('Dépense santé à enregistrer');
+    expect(visibleText).toContain('Conséquence terrain');
+    expect(visibleText).toContain('Préparer aussi la dépense et la preuve/facture');
+
+    const detailsModal = readFileSync('src/modals/DetailsModal.jsx', 'utf8');
+    expect(detailsModal).toContain("'source_record_id'");
+    expect(detailsModal).toContain('Informations de suivi');
+    expect(detailsModal).toContain('Non renseigné');
   });
 });

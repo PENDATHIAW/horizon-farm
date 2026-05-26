@@ -10,6 +10,27 @@ const HIDDEN_KEYS = new Set([
   'raw',
   'metadata',
   'provider_response',
+  'source_record_id',
+  'source_id',
+  'source_module',
+  'module_source',
+  'entity_id',
+  'entity_type',
+  'related_id',
+  'target_id',
+  'task_dedupe_key',
+  'alert_dedupe_key',
+  'dedupe_key',
+  'action_key',
+  'workflow_id',
+  'workflow_type',
+  'workflow_meta',
+  'transaction_origin',
+  'linked_finance_transaction_id',
+  'linked_document_id',
+  'linked_task_id',
+  'linked_alert_id',
+  'finance_synced_at',
 ]);
 
 const SYSTEM_KEYS = new Set(['id', 'external_id', 'created_at', 'updated_at', 'source']);
@@ -18,27 +39,27 @@ const LABELS = {
   id: 'ID',
   nom: 'Nom',
   name: 'Nom',
-  libelle: 'Libelle',
+  libelle: 'Libellé',
   title: 'Titre',
   type: 'Type',
   status: 'Statut',
   statut: 'Statut',
-  health_status: 'Etat de sante',
-  frais_sante: 'Frais sante / soins',
+  health_status: 'État de santé',
+  frais_sante: 'Frais santé / soins',
   purchase_cost: 'Prix achat',
   sale_price: 'Prix vente',
-  prix_vente_reel: 'Prix vente reel',
+  prix_vente_reel: 'Prix vente réel',
   montant: 'Montant',
   montant_total: 'Montant total',
   montant_mensuel: 'Montant mensuel',
   gain: 'Gain',
   roi: 'ROI',
   date: 'Date',
-  created_at: 'Cree le',
-  updated_at: 'Mis a jour le',
-  source: 'Source',
-  external_id: 'ID source externe',
-  verified: 'Verifie',
+  created_at: 'Créé le',
+  updated_at: 'Mis à jour le',
+  source: 'Origine',
+  external_id: 'Référence externe',
+  verified: 'Vérifié',
   favorite: 'Favori',
   distance_km: 'Distance',
   latitude: 'Latitude',
@@ -47,9 +68,9 @@ const LABELS = {
   objectif: 'Objectif',
   description: 'Description',
   business_plan_id: 'Business plan',
-  activity_type: 'Activite',
-  cout_total: 'Cout total',
-  totalCost: 'Cout total',
+  activity_type: 'Activité',
+  cout_total: 'Coût total',
+  totalCost: 'Coût total',
   marge: 'Marge',
   margin: 'Marge',
 };
@@ -75,7 +96,8 @@ const formatValue = (key, value) => {
   }
   if (isMoneyKey(key) && value !== '' && value !== null && value !== undefined) return fmtCurrency(value);
   if (typeof value === 'number') return fmtNumber(value);
-  return String(value ?? '-');
+  const text = String(value ?? '-');
+  return /undefined|null|NaN|\[object Object\]/i.test(text) ? 'Non renseigné' : text;
 };
 
 const Field = ({ item }) => {
@@ -112,7 +134,7 @@ export default function DetailsModal({ open, onClose, title, data }) {
   return (
     <BaseModal open={open} onClose={onClose} title={title || 'Details'}>
       {!data ? (
-        <p className="text-[#8a7456]">Aucune donnee.</p>
+        <p className="text-[#8a7456]">Aucune donnée.</p>
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -123,7 +145,7 @@ export default function DetailsModal({ open, onClose, title, data }) {
 
           {systemEntries.length ? (
             <details className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4">
-              <summary className="cursor-pointer text-sm font-bold text-[#2f2415]">Informations systeme</summary>
+              <summary className="cursor-pointer text-sm font-bold text-[#2f2415]">Informations de suivi</summary>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                 {systemEntries.map((item) => <Field key={item.key} item={item} />)}
               </div>

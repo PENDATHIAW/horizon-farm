@@ -85,7 +85,7 @@ export default function LifecycleHistoryPanel({ mode = 'avicole', rows = [], sal
       <Mini icon={AlertTriangle} label="À qualifier" value={toQualify} danger={toQualify > 0} />
     </div>
 
-    {!histories.length ? <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Aucune cible active dans ce module. Les anciens logs orphelins ne sont pas repris dans les calculs.</div> : null}
+    {!histories.length ? <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Aucune fiche active dans ce module. Les anciens mouvements sans fiche liée ne sont pas repris dans les calculs.</div> : null}
 
     <div className="space-y-3">
       {histories.slice(0, 8).map(({ target, history }, index) => {

@@ -36,7 +36,7 @@ function ensureSanteImpactFields() {
   add('cout', [
     { key: 'medicament', label: 'Medicament / produit utilise', type: 'text' },
     { key: 'quantite_utilisee', label: 'Quantite utilisee', type: 'number' },
-    { key: 'impact_business_note', label: 'Impact business / observation', type: 'text', fullWidth: true },
+    { key: 'impact_business_note', label: 'Conséquence terrain / observation', type: 'text', fullWidth: true },
   ]);
 }
 

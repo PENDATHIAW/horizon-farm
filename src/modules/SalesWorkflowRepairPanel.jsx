@@ -199,7 +199,7 @@ export default function SalesWorkflowRepairPanel(props) {
 
       toast.success('Workflow ventes réparé et synchronisé');
     } catch (error) {
-      toast.error(error.message || 'Correction workflow ventes impossible');
+      toast.error(error.message || 'Correction du parcours ventes impossible');
     } finally {
       setSaving(false);
     }
@@ -209,7 +209,7 @@ export default function SalesWorkflowRepairPanel(props) {
     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
       <div>
         <p className="inline-flex items-center gap-2 rounded-full border border-[#eadcc2] bg-[#fffdf8] px-3 py-1 text-xs font-black text-[#8a7456]"><ShieldCheck size={14} /> Correction contrôlée</p>
-        <h3 className="mt-3 text-xl font-black text-[#2f2415]">Réparer le workflow ventes</h3>
+        <h3 className="mt-3 text-xl font-black text-[#2f2415]">Réparer le parcours ventes</h3>
         <p className="mt-1 text-sm text-[#8a7456]">Corrige les liens manquants entre ventes, paiements, finances, factures, documents, opportunités et animaux vendus.</p>
       </div>
       <button type="button" disabled={saving || !totalActions} onClick={repair} className="rounded-xl bg-[#2f2415] px-4 py-3 text-sm font-black text-white disabled:opacity-50">

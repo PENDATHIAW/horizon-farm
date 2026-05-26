@@ -1,6 +1,8 @@
 import useCrudModule from '../hooks/useCrudModule';
 import { makeId } from '../utils/ids';
 import { toNumber } from '../utils/format';
+import { transactionHasProof } from '../utils/accountingProof';
+import { buildHealthMissingProofDocument } from '../utils/healthWorkflows';
 import SanteV7 from './SanteV7.jsx';
 
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -17,10 +19,12 @@ export default function SanteV8(props) {
   const tasksCrud = useCrudModule('taches');
   const alertsCrud = useCrudModule('alertes_center');
   const eventsCrud = useCrudModule('business_events');
-  const financesCrud = useCrudModule('transactions');
+  const financesCrud = useCrudModule('finances');
+  const documentsCrud = useCrudModule('documents');
   const tasks = props.tasks || tasksCrud.rows || [];
   const alertes = props.alertes || alertsCrud.rows || [];
   const transactions = props.transactions || financesCrud.rows || [];
+  const documents = props.documents || documentsCrud.rows || [];
 
   const createOrReactivateFollowUp = async (row = {}, source = 'santé') => {
     if (!row?.id || !isOverdue(row)) return;
@@ -103,10 +107,6 @@ export default function SanteV8(props) {
     await Promise.allSettled([props.onRefreshTasks?.(), tasksCrud.refresh?.(), props.onRefreshAlertes?.(), alertsCrud.refresh?.(), props.onRefreshBusinessEvents?.(), eventsCrud.refresh?.()]);
   };
 
-  // === CORRECTIF BUG "Coût non retrouvé dans les finances" ===
-  // Crée la transaction Finance manquante quand un soin passe à "fait" avec un coût > 0
-  // et qu'aucune transaction liée n'existe encore. Empêche les doublons via
-  // linked_finance_transaction_id et un fallback de recherche par source_record_id.
   const ensureHealthFinance = async (before = {}, after = {}) => {
     if (!after?.id) return;
     if (!isDone(after)) return;
@@ -122,18 +122,18 @@ export default function SanteV8(props) {
       return trxSourceId && trxSourceId === String(after.id);
     });
     if (existing?.id) {
-      // Transaction existe déjà : on relie juste le soin, sans recréer
       if (!after.linked_finance_transaction_id) {
         await props.onUpdate?.(after.id, { linked_finance_transaction_id: existing.id });
+      }
+      if (!transactionHasProof(existing, documents)) {
+        const missingProof = buildHealthMissingProofDocument(after, existing);
+        if (missingProof) await (props.onCreateDocument || documentsCrud.create)?.(missingProof);
       }
       return;
     }
 
-    // Cas terrain : déclenche à la transition pas-fait → fait OU si déjà fait sans finance (backfill)
     const wasDone = isDone(before);
-    const becomingDone = !wasDone && isDone(after);
-    const isOrphanDone = wasDone && isDone(after); // soin fait depuis longtemps mais sans finance
-    if (!becomingDone && !isOrphanDone) return;
+    if (!(!wasDone && isDone(after)) && !(wasDone && isDone(after))) return;
 
     const trxId = makeId('TRX');
     const familyLabel = interventionFamily(after);
@@ -155,14 +155,16 @@ export default function SanteV8(props) {
       target_id: after.related_id || after.target_id || after.animal_id || after.lot_id || '',
       statut: 'paye',
       transaction_origin: 'auto_sante',
-      notes: `Écriture finance créée automatiquement depuis la fiche santé ${after.id}.`,
+      notes: `Dépense créée depuis Santé pour éviter une double saisie.`,
     });
 
-    // Relie le soin à la transaction pour éviter toute recréation future
     await props.onUpdate?.(after.id, {
       linked_finance_transaction_id: trxId,
       finance_synced_at: new Date().toISOString(),
     });
+
+    const missingProof = buildHealthMissingProofDocument(after, { id: trxId, montant: cost, source_record_id: after.id });
+    if (missingProof) await (props.onCreateDocument || documentsCrud.create)?.(missingProof);
 
     await (props.onCreateBusinessEvent || eventsCrud.create)?.({
       id: makeId('EVT'),
@@ -171,7 +173,7 @@ export default function SanteV8(props) {
       entity_type: 'health_action',
       entity_id: after.id,
       title: `Coût santé enregistré · ${titleOf(after)}`,
-      description: `Sortie finance ${cost} FCFA reliée au soin ${after.id}.`,
+      description: `La dépense santé de ${cost} FCFA est visible dans Finances et à vérifier dans Comptabilité avec sa preuve/facture.`,
       event_date: today(),
       severity: 'info',
       amount: cost,
@@ -182,6 +184,8 @@ export default function SanteV8(props) {
     await Promise.allSettled([
       props.onRefreshFinances?.(),
       financesCrud.refresh?.(),
+      props.onRefreshDocuments?.(),
+      documentsCrud.refresh?.(),
       props.onRefreshBusinessEvents?.(),
       eventsCrud.refresh?.(),
       props.onRefresh?.(),
@@ -204,5 +208,5 @@ export default function SanteV8(props) {
     await ensureHealthFinance(before, after);
   };
 
-  return <SanteV7 {...props} tasks={tasks} alertes={alertes} transactions={transactions} onCreate={onCreate} onUpdate={onUpdate} onCreateTask={props.onCreateTask || tasksCrud.create} onUpdateTask={props.onUpdateTask || tasksCrud.update} onRefreshTasks={props.onRefreshTasks || tasksCrud.refresh} onCreateAlert={props.onCreateAlert || alertsCrud.create} onUpdateAlert={props.onUpdateAlert || alertsCrud.update} onRefreshAlertes={props.onRefreshAlertes || alertsCrud.refresh} onCreateFinanceTransaction={props.onCreateFinanceTransaction || financesCrud.create} onRefreshFinances={props.onRefreshFinances || financesCrud.refresh} onCreateBusinessEvent={props.onCreateBusinessEvent || eventsCrud.create} onRefreshBusinessEvents={props.onRefreshBusinessEvents || eventsCrud.refresh} />;
+  return <SanteV7 {...props} tasks={tasks} alertes={alertes} transactions={transactions} documents={documents} onCreate={onCreate} onUpdate={onUpdate} onCreateTask={props.onCreateTask || tasksCrud.create} onUpdateTask={props.onUpdateTask || tasksCrud.update} onRefreshTasks={props.onRefreshTasks || tasksCrud.refresh} onCreateAlert={props.onCreateAlert || alertsCrud.create} onUpdateAlert={props.onUpdateAlert || alertsCrud.update} onRefreshAlertes={props.onRefreshAlertes || alertsCrud.refresh} onCreateFinanceTransaction={props.onCreateFinanceTransaction || financesCrud.create} onRefreshFinances={props.onRefreshFinances || financesCrud.refresh} onCreateDocument={props.onCreateDocument || documentsCrud.create} onRefreshDocuments={props.onRefreshDocuments || documentsCrud.refresh} onCreateBusinessEvent={props.onCreateBusinessEvent || eventsCrud.create} onRefreshBusinessEvents={props.onRefreshBusinessEvents || eventsCrud.refresh} />;
 }

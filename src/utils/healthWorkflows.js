@@ -69,15 +69,19 @@ export function buildHealthFollowUp(row = {}, source = 'santé') {
 export function buildHealthCostTransaction(row = {}) {
   const amount = toNumber(row.cout ?? row.montant ?? row.amount);
   if (amount <= 0 || row.linked_finance_transaction_id) return null;
+  const id = makeId('TRX');
   return {
-    id: makeId('TRX'),
+    id,
     type: 'sortie',
     libelle: `Soin ${healthTitle(row)}`,
     montant: amount,
+    amount,
+    montant_total: amount,
     date: row.effectuee || row.date || today(),
     categorie: 'Sante',
     module_lie: 'sante',
     related_id: row.id,
+    sante_id: row.id,
     statut: 'paye',
     source_module: 'sante',
     source_record_id: row.id,
@@ -102,5 +106,29 @@ export function buildHealthProofDocument(row = {}) {
     status: 'fourni',
     verification_status: 'a_verifier',
     storage_mode: row.preuve_photo_data ? 'photo_upload' : 'lien',
+  };
+}
+
+export function buildHealthMissingProofDocument(row = {}, transaction = {}) {
+  const amount = toNumber(transaction.montant ?? transaction.amount ?? row.cout ?? row.montant ?? row.amount);
+  if (amount <= 0) return null;
+  const transactionId = transaction.id || row.linked_finance_transaction_id || '';
+  return {
+    id: makeId('DOC'),
+    title: `Preuve / facture à ajouter · ${healthTitle(row)}`,
+    document_category: 'facture',
+    module_source: 'sante',
+    entity_type: 'sante',
+    entity_id: row.id,
+    related_id: row.id,
+    transaction_id: transactionId,
+    finance_id: transactionId,
+    source_record_id: row.id,
+    montant: amount,
+    amount,
+    status: 'manquant',
+    statut: 'manquant',
+    verification_status: 'a_joindre',
+    notes: `Ajouter la preuve ou la facture liée à cette dépense santé de ${amount} FCFA.`,
   };
 }

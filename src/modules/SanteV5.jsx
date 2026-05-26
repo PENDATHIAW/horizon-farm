@@ -133,7 +133,7 @@ function HealthBridge(props) {
                 className="mt-3 text-sm font-bold text-emerald-700"
                 onClick={() => markDone(item, props)}
               >
-                <CheckCircle2 size={14} className="inline" /> Valider workflow
+                <CheckCircle2 size={14} className="inline" /> Valider l'action
               </button>
             </div>
           ))}

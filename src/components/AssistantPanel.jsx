@@ -53,7 +53,7 @@ function DraftSummary({ draft }) {
     <p className="flex items-center gap-2 font-black"><CheckCircle2 size={15} /> Ce que Horizon a compris</p>
     <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
       <span><b>Action :</b> {action}</span>
-      <span><b>Module :</b> {moduleLabel(draft.primary_module)}</span>
+      <span><b>Espace :</b> {moduleLabel(draft.primary_module)}</span>
       {fields.entity_id || fields.target_id || fields.source_id || fields.animal_id ? <span><b>Cible :</b> {fields.entity_id || fields.target_id || fields.source_id || fields.animal_id}</span> : null}
       {fields.date || fields.event_date ? <span><b>Date :</b> {fields.date || fields.event_date}</span> : null}
       {impacted.length ? <span className="sm:col-span-2"><b>Impacts :</b> {impacted.join(', ')}</span> : null}

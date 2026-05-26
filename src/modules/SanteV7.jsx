@@ -21,7 +21,7 @@ function HealthBlockError({ title, message, onRetry }) {
         <div>
           <p className="flex items-center gap-2 font-black"><AlertTriangle size={17} aria-hidden="true" /> Bloc santé indisponible</p>
           <p className="mt-1 text-sm leading-relaxed">La section <b>{title}</b> n’a pas pu être chargée. Les autres parties du module restent utilisables.</p>
-          {message ? <p className="mt-2 rounded-xl border border-amber-200 bg-white/70 px-3 py-2 text-xs text-amber-800">Détail technique : {message}</p> : null}
+          {message ? <p className="mt-2 rounded-xl border border-amber-200 bg-white/70 px-3 py-2 text-xs text-amber-800">Message utile pour le support : {message}</p> : null}
         </div>
         <button type="button" onClick={onRetry} className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-amber-300 bg-white px-4 py-2 text-sm font-black text-amber-800 hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-500/25">
           <RefreshCw size={15} aria-hidden="true" /> Réessayer
@@ -105,7 +105,7 @@ export default function SanteV7(props) {
     </ModuleSection>
 
     <ModuleSection icon={ShieldCheck} title="Contrôle santé" subtitle="Voir les soins en retard, les produits utilisés et les points à vérifier.">
-      <SafeHealthBlock title="Contrôle santé"><HealthQualityControl rows={props.rows || []} stocks={stocks} transactions={transactions} animaux={animaux} lots={lots} onUpdate={props.onUpdate} onUpdateAnimal={onUpdateAnimal} onUpdateLot={onUpdateLot} onRefresh={props.onRefresh} onRefreshAnimals={onRefreshAnimals} onRefreshLots={onRefreshLots} /></SafeHealthBlock>
+      <SafeHealthBlock title="Contrôle santé"><HealthQualityControl rows={props.rows || []} stocks={stocks} transactions={transactions} animaux={animaux} lots={lots} onUpdate={props.onUpdate} onUpdateAnimal={onUpdateAnimal} onUpdateLot={onUpdateLot} onRefresh={props.onRefresh} onRefreshAnimals={onRefreshAnimals} onRefreshLots={onRefreshLots} onCreateFinanceTransaction={healthInterconnectionProps.onCreateFinanceTransaction} onRefreshFinances={healthInterconnectionProps.onRefreshFinances} onCreateDocument={healthInterconnectionProps.onCreateDocument} onRefreshDocuments={healthInterconnectionProps.onRefreshDocuments} /></SafeHealthBlock>
     </ModuleSection>
 
     <CollapsibleSection icon={BarChart3} title="Évolution santé" subtitle="Suivre les retards, soins réalisés, coûts et tendances santé." defaultOpen={false}>
