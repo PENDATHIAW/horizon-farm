@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { buildCalculatedCycleDates } from '../../src/services/productionCycleDates.js';
+import { normalizeLot, normalizeProductionOeufsLog } from '../../src/utils/normalize.js';
+import { avicoleActiveCount, avicoleSickCount } from '../../src/utils/avicoleMetrics.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -136,5 +139,46 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(overdue.alert).toMatchObject({ alert_dedupe_key: 'health-action:VAC001', status: 'nouvelle' });
     expect(done.task.status).toBe('termine');
     expect(done.alert.status).toBe('resolue');
+  });
+
+  test('ramassage œufs normalisé ne bloque pas et calcule les tablettes', () => {
+    const log = normalizeProductionOeufsLog({
+      id: 'PONTE-TERRAIN-001',
+      lot_id: 'LOT-PONDEUSE-001',
+      date: '2026-05-26',
+      oeufs_produits: 300,
+      oeufs_casses: 0,
+      type_evenement: 'ramassage_oeufs',
+    });
+    expect(log).toMatchObject({ lot_id: 'LOT-PONDEUSE-001', oeufs_produits: 300, oeufs_vendables: 300, plateaux: 10 });
+    expect(Math.floor(log.oeufs_vendables / 30)).toBe(10);
+  });
+
+  test('effectif actuel avicole exclut morts/vendus/sorties mais pas malades', () => {
+    const lot = normalizeLot({
+      id: 'LOT-EFFECTIF-001',
+      type: 'Pondeuse',
+      initial_count: 100,
+      mortality: 5,
+      vendus: 10,
+      sorties: 0,
+      malades: 3,
+      current_count: 100,
+    });
+    expect(avicoleActiveCount(lot)).toBe(85);
+    expect(lot.current_count).toBe(85);
+    expect(lot.effectif_actuel).toBe(85);
+    expect(avicoleSickCount(lot)).toBe(3);
+  });
+
+  test('cycles avicoles ne dupliquent pas les lots et ne classent pas les pondeuses en chair', () => {
+    const cycles = buildCalculatedCycleDates({
+      lots: [
+        { id: 'LOT-CHAIR-001', type: 'Chair', name: 'Lot chair test', date_debut: '2026-05-01', initial_count: 100 },
+        { id: 'LOT-PONDEUSE-001', type: 'Pondeuse', name: 'Lot pondeuses test', date_debut: '2026-05-01', initial_count: 100 },
+      ],
+    });
+    expect(cycles.chairSales.map((row) => row.id)).toEqual(['LOT-CHAIR-001']);
+    expect(cycles.layerReform.map((row) => row.id)).toEqual(['LOT-PONDEUSE-001']);
   });
 });
