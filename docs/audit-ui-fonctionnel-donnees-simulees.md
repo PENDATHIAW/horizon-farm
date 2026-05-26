@@ -640,6 +640,92 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Résultat observé : les essais réels ont écrit des lignes `TEST JURY` sur les premiers modules ; le parcours complet reste volontairement opt-in car il pollue les données et dépend de la latence Supabase. En exécution standard, le fichier est découvert et marque `12 skipped`.
 - Reste à faire : lancer ce test avec `E2E_REAL_SUBMISSIONS=1` quand une passe destructive complète est explicitement souhaitée, puis nettoyer les lignes `TEST JURY` si besoin.
 
+## Recette complète anti-données orphelines par module
+
+### Modules : Santé / Finances / Comptabilité / Documents
+
+- Flux testé : soin réalisé avec coût de 15 000 FCFA, dépense Finance, ligne Comptabilité et preuve/facture manquante.
+- Donnée saisie : `SAN-JURY-001`, cible `BOV002`, coût `15 000 FCFA`.
+- Modules impactés : Santé, Finances, Comptabilité, Documents.
+- Résultat attendu : le même montant apparaît une seule fois dans Finance, Comptabilité le contrôle, Documents prépare la preuve/facture, aucun message “coût non retrouvé”.
+- Résultat observé : la logique créait bien la dépense mais ne marquait pas explicitement l’effet caisse.
+- Correction faite : la dépense Santé générée porte maintenant `cash_effect: true` et `status: paye`, ce qui évite les ambiguïtés entre dépense réelle et dette.
+- Test ajouté : `tests/e2e/no-orphan-business-data.spec.js`, cas “soin coûté”.
+- Commit : `5507c4f fix: renforcer liens metier anti donnees orphelines`.
+- Reste à faire : aucun blocage logique simulé.
+
+### Modules : Ventes / Animaux / Avicole / Stock / Cultures / Clients
+
+- Flux testé : vente animal, vente lot avicole, vente tablettes d’œufs, vente récolte.
+- Donnée saisie : animal `BOV-JURY-001`, lot `LOT-JURY-001`, stock `STK-OEUFS-JURY`, culture `CUL-TOMATE-JURY`.
+- Modules impactés : Ventes, Animaux, Avicole, Stock, Cultures, Clients, Finances, Documents, Traçabilité.
+- Résultat attendu : vente animal sort l’animal actif, vente lot décrémente l’effectif, vente œufs décrémente les tablettes, vente culture décrémente le disponible.
+- Résultat observé : le flux vente lot avicole contenait une variable mal nommée qui pouvait bloquer le calcul source.
+- Correction faite : `buildSaleSourcePatch` utilise désormais `saleKind` correctement pour renseigner le type de vente sans erreur.
+- Test ajouté : `tests/e2e/no-orphan-business-data.spec.js`, cas “ventes: chaque source met à jour son module”.
+- Commit : `5507c4f fix: renforcer liens metier anti donnees orphelines`.
+- Reste à faire : aucun blocage logique simulé.
+
+### Modules : Avicole / Santé / Alertes
+
+- Flux testé : lot initial 100, morts 5, vendus 10, malades 3.
+- Donnée saisie : `LOT-EFF-JURY`.
+- Modules impactés : Avicole, Santé, Alertes.
+- Résultat attendu : effectif actuel calculé à 85 ; les 3 malades restent dans le lot mais visibles comme sujets à surveiller.
+- Résultat observé : règle conforme après corrections précédentes.
+- Correction faite : test de non-régression ajouté pour empêcher le double retrait des malades.
+- Test ajouté : `tests/e2e/no-orphan-business-data.spec.js`, cas “avicole: morts et vendus sortent de l’effectif”.
+- Commit : `5507c4f fix: renforcer liens metier anti donnees orphelines`.
+- Reste à faire : aucun blocage logique simulé.
+
+### Modules : Stock / Cultures / Documents / Tâches / Alertes
+
+- Flux testé : stock critique, réapprovisionnement, récolte culture, sortie intrant, perte culture, preuve manquante.
+- Donnée saisie : stock `STK-ALIM-JURY`, culture `CUL-JURY-001`, document `DOC-JURY-001`.
+- Modules impactés : Stock, Cultures, Documents, Tâches, Alertes, Traçabilité.
+- Résultat attendu : stock critique crée tâche/alerte ; réapprovisionnement supprime le besoin de réalerte ; récolte crée stock + opportunité ; intrant décrémente stock ; perte réduit le disponible ; preuve manquante crée tâche.
+- Résultat observé : logique conforme après corrections précédentes.
+- Correction faite : test de verrouillage ajouté pour empêcher le retour des alertes ouvertes après stock réapprovisionné.
+- Test ajouté : `tests/e2e/no-orphan-business-data.spec.js`, cas “stock, cultures et documents ferment les boucles métier”.
+- Commit : `5507c4f fix: renforcer liens metier anti donnees orphelines`.
+- Reste à faire : aucun blocage logique simulé.
+
+### Modules : Fournisseurs / Équipements / RH / Investissements
+
+- Flux testé : réception fournisseur, paiement fournisseur, panne, réparation, salaire RH, investissement réalisé et transformation en actif.
+- Donnée saisie : fournisseur `FOU-JURY`, équipement `EQP-JURY`, employée `EMP-JURY`, ligne BP `BPLI-JURY`.
+- Modules impactés : Fournisseurs, Stock, Finances, Documents, Équipements, Tâches, Alertes, RH, Investissements.
+- Résultat attendu : réception augmente stock sans compter comme cash dépensé ; paiement fournisseur solde la dette ; réparation ferme tâche/alerte et crée finance/document ; salaire crée finance/document ; investissement crée finance/preuve/actif sans doublon.
+- Résultat observé : logique conforme après corrections précédentes.
+- Correction faite : test de non-régression transversal ajouté.
+- Test ajouté : `tests/e2e/no-orphan-business-data.spec.js`, cas “fournisseur, équipement, RH et investissement”.
+- Commit : `5507c4f fix: renforcer liens metier anti donnees orphelines`.
+- Reste à faire : aucun blocage logique simulé.
+
+### Modules : Alertes / Tâches / Dashboard / Traçabilité
+
+- Flux testé : alerte stock transformée en tâche puis terminée.
+- Donnée saisie : alerte `ALT-JURY-001`.
+- Modules impactés : Alertes, Tâches, Dashboard, Traçabilité.
+- Résultat attendu : une seule tâche liée, alerte rattachée, clôture de tâche met l’alerte en traitée, historique garde les deux liens.
+- Résultat observé : logique conforme.
+- Correction faite : test de lien unique ajouté.
+- Test ajouté : `tests/e2e/no-orphan-business-data.spec.js`, cas “alerte transformée en tâche”.
+- Commit : `5507c4f fix: renforcer liens metier anti donnees orphelines`.
+- Reste à faire : aucun blocage logique simulé.
+
+### Interface sans jargon technique
+
+- Flux testé : parcours de tous les modules principaux en navigateur avec garde anti-jargon renforcée.
+- Donnée saisie : données simulées déjà présentes et navigation utilisateur.
+- Modules impactés : les 26 modules de l’ERP.
+- Résultat attendu : aucun texte interne visible à l’utilisateur final, notamment identifiants de source, termes de synchronisation, erreurs techniques et valeurs vides brutes.
+- Résultat observé : garde existante incomplète.
+- Correction faite : `DetailsModal` filtre maintenant les fonctions et les chaînes internes ; `helpers.js` ajoute la liste complète des termes interdits au contrôle UI.
+- Test ajouté : `tests/e2e/no-technical-jargon.spec.js`.
+- Commit : `5507c4f fix: renforcer liens metier anti donnees orphelines`.
+- Reste à faire : exécuter en continu avec un compte E2E stable à chaque release.
+
 ## Commits créés
 
 - `18e6d78 test: stabiliser le parcours ui simule`
