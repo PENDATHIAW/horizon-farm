@@ -66,7 +66,7 @@ export default function AuditLogs(props) {
 
       {uniqueKeys < rows.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700"><AlertTriangle size={16} className="inline" /> Certaines actions semblent répétées. À vérifier avant validation finale.</div> : null}
 
-      <GenericCrudModule {...props} moduleKey="audit_logs" title="Audit Logs & Sécurité" sub="Actions, utilisateurs, appareils et contrôles sensibles" fields={MODULE_FORM_FIELDS.audit_logs} columns={['id', 'actor', 'action', 'module', 'record_id', 'device', 'created_at']} readOnly exportTitle="Audit logs Horizon Farm" kpis={[]} />
+      <GenericCrudModule {...props} moduleKey="audit_logs" title="Journal activité & sécurité" sub="Actions, utilisateurs, appareils et contrôles sensibles" fields={MODULE_FORM_FIELDS.audit_logs} columns={['id', 'actor', 'action', 'module', 'record_id', 'device', 'created_at']} readOnly exportTitle="Journal activite Horizon Farm" kpis={[]} />
     </div>
   );
 }

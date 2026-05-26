@@ -27,6 +27,8 @@ import { interpretHorizonCommand } from '../../src/services/aiIntentEngine.js';
 import { buildDecisionRecommendationTask } from '../../src/utils/decisionCenterWorkflows.js';
 import { buildObjectiveActionTask, buildObjectiveStatus } from '../../src/utils/objectivesWorkflows.js';
 import { buildSensitiveActionTrace, buildTraceCoverage, normalizeTraceEvent, routeForTrace } from '../../src/utils/traceabilityWorkflows.js';
+import { auditErpInterconnections } from '../../src/utils/interconnectionAudit.js';
+import { buildSyncRepairTask, routeForSyncIssue, syncIssueActionLabel } from '../../src/utils/syncAuditWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -741,5 +743,33 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(adminTrace).toMatchObject({ module_source: 'gestion_systeme', entity_id: 'USR-001', has_source: true });
     expect(coverage.sensitive.length).toBe(4);
     expect(coverage.sensitiveMissing.map((event) => event.id)).toContain('EVT-ORPHAN');
+  });
+
+  test('Activité & Sync détecte les incohérences et propose une action terrain', () => {
+    const dataMap = {
+      sales_orders: [{ id: 'CMD-001', client_id: 'CLI-001', montant_total: 50000, statut_paiement: 'non_paye' }],
+      clients: [{ id: 'CLI-001', nom: 'Boutique Dakar' }],
+      payments: [{ id: 'PAY-ORPHELIN', montant: 12000 }],
+      invoices: [],
+      finances: [],
+      documents: [{ id: 'DOC-LOST', module_source: 'ventes', entity_id: 'CMD-INCONNUE', title: 'Facture introuvable' }],
+      sales_opportunities: [{ id: 'OPP-001', source_id: 'STK-TOMATE-001', statut: 'ouverte' }],
+      stock: [],
+      taches: [],
+      alertes_center: [],
+      sante: [],
+      business_events: [],
+    };
+    dataMap.sales_orders.push({ id: 'CMD-002', source_id: 'STK-TOMATE-001', montant_total: 15000 });
+    const audit = auditErpInterconnections(dataMap);
+    const orphanPayment = audit.issues.find((issue) => issue.module === 'payments' && issue.row_id === 'PAY-ORPHELIN');
+    const missingDocument = audit.issues.find((issue) => issue.module === 'documents' && issue.row_id === 'DOC-LOST');
+    const staleOpportunity = audit.issues.find((issue) => issue.module === 'sales_opportunities');
+    expect(orphanPayment).toBeTruthy();
+    expect(missingDocument).toBeTruthy();
+    expect(staleOpportunity).toBeTruthy();
+    expect(routeForSyncIssue(orphanPayment)).toBe('ventes');
+    expect(syncIssueActionLabel(missingDocument)).toBe('Créer preuve / facture');
+    expect(buildSyncRepairTask(staleOpportunity, { date: today() })).toMatchObject({ module_lie: 'ventes', source_module: 'sync_activity', status: 'a_faire' });
   });
 });
