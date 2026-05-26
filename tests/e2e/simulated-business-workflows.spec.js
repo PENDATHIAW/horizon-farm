@@ -16,6 +16,7 @@ import { normalizeDocumentPayload } from '../../src/utils/documentForms.js';
 import { buildTaskFromAlert, completeTaskWorkflow, normalizeTaskChecklist } from '../../src/utils/taskWorkflows.js';
 import { normalizeTaskPayload } from '../../src/utils/taskForms.js';
 import { dedupeAlertsBySource, isAlertResolved } from '../../src/utils/alertWorkflows.js';
+import { buildCultureHarvestWorkflow, buildCultureInputUsageWorkflow, buildCultureLossWorkflow, buildCultureWeatherRiskFollowUp } from '../../src/utils/cultureWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -126,9 +127,10 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
 
   test('récolte culture devient stock vendable et opportunité vente', () => {
     const culture = { id: 'CULT-TOMATE-001', nom: 'Tomates serre 1', quantite_recoltee: 120, unite_recolte: 'kg', prix_vente_estime: 900 };
-    const result = cultureHarvestSync(culture);
+    const result = buildCultureHarvestWorkflow({ after: culture, date: today() });
     expect(result.stock).toMatchObject({ stock_key: 'culture-stock:CULT-TOMATE-001', source_module: 'cultures', quantite: 120, unite: 'kg' });
     expect(result.opportunity).toMatchObject({ opportunity_key: 'culture-sale:CULT-TOMATE-001', source_type: 'recolte_culture', quantity: 120, statut: 'ouverte' });
+    expect(result.event).toMatchObject({ event_type: 'recolte_culture_disponible', entity_id: 'CULT-TOMATE-001' });
   });
 
   test('vente soldée bloque les encaissements supplémentaires', () => {
@@ -476,5 +478,36 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
 
   test('alerte ignorée est considérée fermée', () => {
     expect(isAlertResolved({ status: 'ignoree' })).toBe(true);
+  });
+
+  test('intrant culture décrémente le stock et augmente le coût culture', () => {
+    const workflow = buildCultureInputUsageWorkflow({
+      culture: { id: 'CULT-INTRANT-001', nom: 'Tomates bloc A', cout_total_reel: 50000 },
+      stock: { id: 'STK-ENGRAIS-001', produit: 'Engrais maraîchage', quantite: 40, seuil: 10, unite: 'kg', prix_unitaire: 900 },
+      qty: 12,
+      motif: 'Fertilisation après arrosage',
+      date: today(),
+    });
+    expect(workflow.stockPatch).toMatchObject({ quantite: 28, last_movement_type: 'sortie_intrant_culture', last_movement_qty: 12 });
+    expect(workflow.culturePatch).toMatchObject({ cout_total_reel: 60800, cout_intrants: 10800, derniere_sortie_intrant_stock_id: 'STK-ENGRAIS-001' });
+    expect(workflow.event).toMatchObject({ event_type: 'intrant_culture_utilise', module_source: 'cultures', linked_stock_id: 'STK-ENGRAIS-001', amount: 10800 });
+  });
+
+  test('perte culture réduit le disponible et crée une trace de valeur', () => {
+    const workflow = buildCultureLossWorkflow({
+      culture: { id: 'CULT-PERTE-001', nom: 'Oignons parcelle 2', quantite_disponible: 80, unite_recolte: 'kg', prix_vente_unitaire: 700, statut: 'recolte' },
+      qty: 25,
+      reason: 'Dégâts chaleur',
+      date: today(),
+    });
+    expect(workflow.culturePatch).toMatchObject({ quantite_disponible: 55, pertes: 25, quantite_perdue: 25, valeur_perte_estimee: 17500, statut: 'recolte' });
+    expect(workflow.event).toMatchObject({ event_type: 'perte_culturale', entity_id: 'CULT-PERTE-001', severity: 'warning', amount: 17500 });
+  });
+
+  test('risque météo culture propose une tâche et une alerte liées', () => {
+    const workflow = buildCultureWeatherRiskFollowUp({ culture: { id: 'CULT-METEO-001', nom: 'Piments serre' }, reason: 'Fort risque de chaleur sur serre', severity: 'critique', date: today() });
+    expect(workflow.task).toMatchObject({ module_lie: 'cultures', related_id: 'CULT-METEO-001', priority: 'critique', status: 'a_faire' });
+    expect(workflow.alert).toMatchObject({ module_source: 'cultures', entity_id: 'CULT-METEO-001', severity: 'critique', status: 'nouvelle' });
+    expect(workflow.task.task_dedupe_key).toBe(workflow.alert.alert_dedupe_key);
   });
 });
