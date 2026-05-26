@@ -4,8 +4,12 @@ import { buildTaskFromAlert, hasOpenTaskForAlert } from '../utils/taskWorkflows'
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value = '') => String(value || '').toLowerCase();
+const MODULE_LABELS = { animaux: 'Animaux', avicole: 'Avicole', cultures: 'Cultures', stock: 'Stock', finances: 'Finances', clients: 'Clients', fournisseurs: 'Fournisseurs', smartfarm: 'Smart Farm', equipements: 'Équipements', sante: 'Santé', ventes: 'Ventes', documents: 'Documents', taches: 'Tâches', business_events: 'Historique métier', audit_logs: 'Journal activité', alertes_center: 'Alertes', alertes: 'Alertes' };
 const open = (row = {}) => !['traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée', 'closed', 'done'].includes(lower(row.status || row.statut));
-const moduleOf = (alert = {}) => alert.module_source || alert.module || alert.module_lie || 'alertes';
+const moduleOf = (alert = {}) => {
+  const key = lower(alert.module_source || alert.module || alert.module_lie || 'alertes');
+  return MODULE_LABELS[key] || key.replace(/_/g, ' ') || 'Alertes';
+};
 const titleOf = (alert = {}) => alert.title || alert.titre || alert.message || 'Alerte à traiter';
 
 export default function AlertTaskBridgePanel({ alertes = [], tasks = [], onCreateTask, onRefreshTasks, onUpdateAlert, onRefreshAlertes, onNavigate }) {

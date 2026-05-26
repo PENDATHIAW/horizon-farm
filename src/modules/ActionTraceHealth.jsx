@@ -3,10 +3,12 @@ import Btn from '../components/Btn';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value = '') => String(value || '').toLowerCase();
+const MODULE_LABELS = { animaux: 'Animaux', avicole: 'Avicole', cultures: 'Cultures', stock: 'Stock', finances: 'Finances', clients: 'Clients', fournisseurs: 'Fournisseurs', smartfarm: 'Smart Farm', equipements: 'Équipements', sante: 'Santé', ventes: 'Ventes', documents: 'Documents', taches: 'Tâches', business_events: 'Historique métier', audit_logs: 'Journal activité', alertes_center: 'Alertes', alertes: 'Alertes', autre: 'Autre' };
 const isTaskClosed = (row = {}) => ['termine', 'terminé', 'done', 'closed', 'annule', 'annulé'].includes(clean(row.status || row.statut));
 const isAlertClosed = (row = {}) => ['traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée', 'done', 'closed'].includes(clean(row.status || row.statut));
 const isCritical = (row = {}) => ['critique', 'critical', 'urgence', 'haute'].includes(clean(row.severity || row.gravite || row.priority || row.priorite));
-const moduleOf = (row = {}) => row.module_source || row.source_module || row.module_lie || row.module || 'autre';
+const moduleKeyOf = (row = {}) => clean(row.module_source || row.source_module || row.module_lie || row.module || 'autre');
+const moduleOf = (row = {}) => MODULE_LABELS[moduleKeyOf(row)] || moduleKeyOf(row).replace(/_/g, ' ') || 'Autre';
 const rowTitle = (row = {}) => row.title || row.titre || row.message || row.event_type || row.id || 'Action';
 const rowDate = (row = {}) => row.due_date || row.date || row.event_date || row.created_at || row.updated_at || '';
 
