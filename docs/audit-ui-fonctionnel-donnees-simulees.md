@@ -90,6 +90,24 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Commit poussé : `ebb2db1 fix: completer parcours stock terrain`, `391ea1a test: couvrir parcours stock terrain`.
 - Reste à faire : tester dans l’UI connectée une réception fournisseur avec facture réelle et vérifier la fermeture automatique des alertes stock après réapprovisionnement complet.
 
+## Module : Santé & Vaccins
+
+- Sections testées : Pilotage sanitaire, Soins et vaccins, Nouvelle intervention sanitaire, Historique unifié, Contrôle santé, Évolution santé.
+- Sections supprimées/fusionnées : aucune suppression ; la logique de suivi retard/réalisation a été extraite pour éviter les règles dupliquées entre SanteV8 et les tests.
+- Boutons testés : Valider intervention, Valider fait, Ajouter vétérinaire, Recherche réelle, Carte, WhatsApp, Voir, Modifier, Supprimer, Réessayer bloc santé.
+- Boutons corrigés : Valider fait évite de recréer une dépense finance si un lien finance existe déjà ; Valider intervention crée des tâches futures reliées à la fiche santé ; l’utilisation de stock santé sous seuil déclenche aussi tâche/alerte/trace.
+- Formulaires testés : vaccination, traitement curatif, déparasitage, visite vétérinaire, biosécurité, urgence sanitaire, preuve photo/ordonnance, nouveau vétérinaire.
+- Champs présents : type intervention, cible animal/lot/groupe, produit, médicament, dose, dosage, voie, stock utilisé, quantité, coût, date prévue/effectuée, statut, statut santé après, périodicité, prochaine échéance, vétérinaire, impact business, preuve, notes.
+- Champs ajoutés : pas de nouveau champ visible majeur ; les tâches/proofs générés reçoivent maintenant `source_record_id`, `task_dedupe_key`, `status` et `verification_status` pour rester exploitables dans Tâches/Documents.
+- Actions testées : soin en retard, soin réalisé, coût santé, preuve ordonnance, consommation stock santé, rappel futur.
+- Conséquences métier vérifiées : soin en retard -> tâche + alerte + trace ; soin réalisé -> tâches/alertes liées clôturées ; coût santé -> sortie finance non doublonnée ; preuve santé -> document fourni à vérifier ; stock santé sous seuil après soin -> tâche + alerte + trace Stock ; prochaine échéance -> tâche liée.
+- Interconnexions vérifiées : Santé vers Tâches, Alertes, Finances, Documents, Stock, Animaux, Avicole, Traçabilité/business events.
+- Bugs trouvés : les règles retard/réalisation étaient locales à SanteV8 donc difficiles à tester ; les tâches futures de rappel pouvaient être peu liées à la fiche source ; une preuve santé était créée sans statut documentaire clair ; un stock santé consommé sous seuil créait surtout une alerte mais pas toujours une tâche.
+- Corrections faites : ajout de `healthWorkflows`, génération testable des tâches/alertes santé, coût santé dédupliqué par `linked_finance_transaction_id`, documents santé marqués `fourni` et `a_verifier`, suivi critique du stock santé après consommation.
+- Tests ajoutés : soin en retard crée tâche/alerte liées, coût santé crée dépense non doublonnée, preuve santé devient document fourni à vérifier.
+- Commit poussé : `9a60e9c fix: completer parcours sante terrain`, `737b770 test: couvrir parcours sante terrain`.
+- Reste à faire : tester en navigateur connecté l’upload photo réel et la clôture automatique d’une alerte santé déjà existante dans Supabase.
+
 ## Module : Avicole
 
 - Sections testées : séparation Pondeuses/Poulets de chair, Pilotage avicole, Vue active, Où saisir les œufs, Objectif œufs/pondeuses, Lots actifs, Gestion avicole, Journal de ponte et charges, Journal de ramassage des œufs, Charges directes pondeuses, Cycle et historique, Évolution détaillée.
@@ -118,6 +136,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Œufs du jour à zéro malgré des logs | le tableau de pilotage ne lisait pas `oeufs_produits` | compteur d’œufs unifié sur tous les alias de production | `src/modules/AvicoleCycleHealthPanel.jsx` | `1163fb7` | couvert par le test ramassage œufs | le pilotage compte les œufs produits du jour |
 | Stock critique sans tâche immédiate | la création tâche/alerte dépendait surtout du bouton manuel de réapprovisionnement | suivi critique automatique après création, modification et mouvement stock | `src/modules/StocksV3.jsx`, `src/utils/stockWorkflows.js` | `ebb2db1` | `stock critique crée une alerte, une tâche et une trace liées` | un stock sous seuil crée une tâche, une alerte et une trace dédupliquées |
 | Perte stock sans impact valeur clair | la perte était surtout un événement quantité | perte reliée à une sortie finance si prix unitaire disponible et trace enrichie en montant | `src/modules/StocksV3.jsx`, `src/utils/stockWorkflows.js` | `ebb2db1` | `perte stock crée une trace avec impact valeur` | une casse/perte affiche quantité, valeur perdue et lien finance |
+| Suivi santé partiellement orphelin | tâches futures, preuve et coût santé n’avaient pas toujours des clés source vérifiables | utilitaire santé commun, tâches/proofs sourcés, coût finance dédupliqué | `src/modules/SanteV6.jsx`, `src/modules/SanteV8.jsx`, `src/utils/healthWorkflows.js` | `9a60e9c` | `santé crée une tâche et une alerte liées pour un soin en retard`, `coût santé crée une dépense finance non doublonnée`, `preuve santé devient un document fourni à vérifier` | un soin retard/fait/coût/preuve reste relié à Santé, Tâches, Alertes, Finance et Documents |
 
 ## Module : Animaux
 
@@ -179,7 +198,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Avicole, Animaux, Finances, Comptabilité, `16 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Avicole, Animaux, Finances, Comptabilité, `19 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -215,6 +234,9 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `ce0a66a test: couvrir vocabulaire comptabilite`
 - `ebb2db1 fix: completer parcours stock terrain`
 - `391ea1a test: couvrir parcours stock terrain`
+- `5af5397 docs: documenter corrections terrain stock`
+- `9a60e9c fix: completer parcours sante terrain`
+- `737b770 test: couvrir parcours sante terrain`
 
 Push GitHub : les commits jusqu'à `ce0a66a` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
