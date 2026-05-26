@@ -30,6 +30,7 @@ import { buildSensitiveActionTrace, buildTraceCoverage, normalizeTraceEvent, rou
 import { auditErpInterconnections } from '../../src/utils/interconnectionAudit.js';
 import { buildSyncRepairTask, routeForSyncIssue, syncIssueActionLabel } from '../../src/utils/syncAuditWorkflows.js';
 import { buildSystemAuditEvent, canPerformSystemAction, isLastActiveAdmin, roleCanAccess, validateSystemResetConfirmation } from '../../src/utils/systemAccessWorkflows.js';
+import { buildDashboardTodayActions, sanitizeDashboardMetric } from '../../src/utils/dashboardWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -792,5 +793,27 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
       actor_email: 'admin@horizon.test',
       title: 'Utilisateur retiré',
     });
+  });
+
+  test('Dashboard priorise les urgences terrain et ouvre les bons modules', () => {
+    const actions = buildDashboardTodayActions({
+      salesOrders: [{ id: 'CMD-DASH-001', montant_total: 90000, montant_paye: 25000 }],
+      payments: [],
+      stocks: [{ id: 'STK-DASH-001', nom: 'Aliment pondeuses', quantite: 4, seuil: 10 }],
+      sante: [{ id: 'SAN-DASH-001', statut: 'en retard' }],
+      alertes: [{ id: 'AL-DASH-001', status: 'nouvelle' }],
+      taches: [{ id: 'TASK-DASH-001', status: 'a_faire' }],
+      transactions: [{ id: 'FIN-DASH-001', montant: 150000, type: 'sortie' }],
+      documents: [],
+      sensorDevices: [{ id: 'CAP-DASH-001', status: 'hors_service' }],
+      cameraDevices: [],
+      meteo: { risque: 'élevé' },
+    });
+    expect(actions.map((action) => action.moduleKey)).toEqual(expect.arrayContaining(['ventes', 'alertes', 'stock', 'sante', 'smartfarm', 'taches', 'documents']));
+    expect(actions[0]).toMatchObject({ moduleKey: 'ventes', category: 'Argent' });
+    expect(actions.find((action) => action.moduleKey === 'documents')?.title).toContain('preuves');
+    expect(actions.map((action) => `${action.title} ${action.detail}`).join(' ')).not.toMatch(/undefined|null|NaN|\[object Object\]/i);
+    expect(sanitizeDashboardMetric(Number.NaN, '0')).toBe('0');
+    expect(sanitizeDashboardMetric('[object Object]', 'Non renseigné')).toBe('Non renseigné');
   });
 });

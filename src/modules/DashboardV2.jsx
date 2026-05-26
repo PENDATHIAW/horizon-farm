@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, CreditCard, FileText, Package, Settings2, Stethoscope, Target, TrendingUp } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CloudSun, CreditCard, FileText, Package, Settings2, Stethoscope, Target, TrendingUp } from 'lucide-react';
 import DashboardEvolution from './DashboardEvolution.jsx';
 import { readUiSettings } from '../utils/uiPreferences';
 import { fmtCurrency } from '../utils/format';
 import { buildDecisionCenterPlan } from '../services/growthDecisionEngine';
-import { isOpenForPayment, remainingForOrder } from '../utils/salesStatuses';
+import { remainingForOrder } from '../utils/salesStatuses';
+import { buildDashboardTodayActions, sanitizeDashboardMetric } from '../utils/dashboardWorkflows';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase();
-const closedStatuses = ['termine', 'terminé', 'done', 'traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée', 'annule', 'annulé'];
-const amount = (row = {}) => Number(row.montant_total ?? row.total ?? row.amount ?? row.montant ?? 0) || 0;
 const paid = (row = {}) => Number(row.montant_paye ?? row.paid_amount ?? row.amount_paid ?? 0) || 0;
 const remaining = (row = {}, payments = []) => Math.max(0, remainingForOrder(row, payments));
 
@@ -51,24 +50,16 @@ function UnifiedPilotageStatus({ props }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black flex items-center gap-2"><Target size={15} /> Pilotage ferme · objectif du mois</p><h2 className="mt-1 text-2xl font-black text-[#2f2415]">Situation actuelle · {plan.goals.currentMonth}</h2><p className="mt-1 text-sm text-[#8a7456]">{message}</p></div><button type="button" onClick={() => props.onNavigate?.('centre_ia')} className="rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white hover:bg-[#3d2f1d]">Voir Centre décisionnel</button></div><div className="grid grid-cols-2 xl:grid-cols-6 gap-3"><Mini label="Objectif mensuel" value={fmtCurrency(goal.monthTarget)} /><Mini label="CA réalisé" value={fmtCurrency(goal.realized)} /><Mini label="Taux d’atteinte" value={`${goal.attainment}%`} tone={tone} /><Mini label="Reste à vendre" value={fmtCurrency(remainingAmount)} tone={remainingAmount > 0 ? 'warn' : 'good'} /><Mini label="Cash net" value={fmtCurrency(cashIn - cashOut)} tone={cashIn - cashOut >= 0 ? 'good' : 'bad'} /><Mini label="À encaisser" value={fmtCurrency(receivable)} tone={receivable > 0 ? 'warn' : 'good'} /></div>{activitiesBehind.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"><b>Activités à pousser :</b> {activitiesBehind.map((item) => `${item.label} (${item.attainment}%)`).join(' · ')}</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">Aucune activité prioritaire en retard critique selon les objectifs actuels.</div>}</section>;
 }
 
-function TodayAction({ icon: Icon, title, detail, moduleKey, tone = 'amber', onNavigate }) {
+const actionIcons = { money: CreditCard, alert: AlertTriangle, stock: Package, health: Stethoscope, smart: CloudSun, task: CheckCircle2, document: FileText, sync: TrendingUp };
+
+function TodayAction({ iconKey, category, title, detail, moduleKey, tone = 'amber', onNavigate }) {
+  const Icon = actionIcons[iconKey] || AlertTriangle;
   const tones = { red: 'border-red-200 bg-red-50 text-red-700', amber: 'border-amber-200 bg-amber-50 text-amber-800', emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700', neutral: 'border-[#eadcc2] bg-[#fffdf8] text-[#8a7456]' };
-  return <button type="button" onClick={() => onNavigate?.(moduleKey)} className={`rounded-2xl border p-4 text-left transition hover:shadow-sm ${tones[tone] || tones.neutral}`}><div className="flex items-start gap-3"><div className="rounded-xl bg-white/70 p-2"><Icon size={17} /></div><div className="min-w-0"><p className="font-black text-[#2f2415]">{title}</p><p className="mt-1 text-xs opacity-80">{detail}</p></div></div></button>;
+  return <button type="button" onClick={() => onNavigate?.(moduleKey)} className={`rounded-2xl border p-4 text-left transition hover:shadow-sm ${tones[tone] || tones.neutral}`}><div className="flex items-start gap-3"><div className="rounded-xl bg-white/70 p-2"><Icon size={17} /></div><div className="min-w-0"><span className="rounded-full bg-white/75 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide opacity-80">{category}</span><p className="mt-2 font-black text-[#2f2415]">{sanitizeDashboardMetric(title, 'Action à vérifier')}</p><p className="mt-1 text-xs opacity-80">{sanitizeDashboardMetric(detail, 'Détail non renseigné')}</p></div></div></button>;
 }
 
 function TodayFocus({ props, simple, onToggleExpert }) {
-  const actions = useMemo(() => {
-    const salesOrders = arr(props.salesOrders); const stocks = arr(props.stocks); const sante = arr(props.vaccins); const alertes = arr(props.alertes); const taches = arr(props.taches); const documents = arr(props.documents); const payments = arr(props.payments);
-    const unpaidOrders = salesOrders.filter((order) => isOpenForPayment(order, payments));
-    const receivable = unpaidOrders.reduce((sum, order) => sum + remaining(order, payments), 0);
-    const stockCritical = stocks.filter((stock) => Number(stock.seuil || 0) > 0 && Number(stock.quantite || 0) <= Number(stock.seuil || 0));
-    const healthLate = sante.filter((row) => ['retard', 'a faire', 'a_faire', 'en retard'].some((term) => lower(row.statut || row.status).includes(term)));
-    const openAlerts = alertes.filter((alert) => !closedStatuses.includes(lower(alert.status || alert.statut || 'nouvelle')));
-    const openTasks = taches.filter((task) => !closedStatuses.includes(lower(task.status || task.statut || 'a_faire')));
-    const docsMissing = arr(props.transactions).filter((trx) => !documents.some((doc) => String(doc.related_id || doc.transaction_id || doc.entity_id || '') === String(trx.id || ''))).slice(0, 99);
-    const orphanPayments = payments.filter((payment) => payment.order_id && !salesOrders.some((order) => String(order.id) === String(payment.order_id))).length;
-    return [unpaidOrders.length ? { icon: CreditCard, title: 'Encaisser les ventes en attente', detail: `${unpaidOrders.length} vente(s), ${fmtCurrency(receivable)} à récupérer`, moduleKey: 'ventes', tone: 'red' } : null, openAlerts.length ? { icon: AlertTriangle, title: 'Traiter les alertes', detail: `${openAlerts.length} alerte(s) à regarder`, moduleKey: 'alertes', tone: 'red' } : null, stockCritical.length ? { icon: Package, title: 'Revoir le stock faible', detail: `${stockCritical.length} produit(s) sous le seuil`, moduleKey: 'stock', tone: 'amber' } : null, healthLate.length ? { icon: Stethoscope, title: 'Rattraper les soins/vaccins', detail: `${healthLate.length} soin(s) ou vaccin(s) à faire`, moduleKey: 'sante', tone: 'amber' } : null, openTasks.length ? { icon: CheckCircle2, title: 'Terminer les tâches ouvertes', detail: `${openTasks.length} tâche(s) à suivre`, moduleKey: 'taches', tone: 'amber' } : null, docsMissing.length ? { icon: FileText, title: 'Ajouter les justificatifs', detail: `${docsMissing.length} justificatif(s) à compléter`, moduleKey: 'documents', tone: 'neutral' } : null, orphanPayments ? { icon: TrendingUp, title: 'Vérifier les ventes supprimées', detail: `${orphanPayments} ancien(s) paiement(s) à contrôler`, moduleKey: 'sync_activity', tone: 'amber' } : null].filter(Boolean).slice(0, simple ? 4 : 6);
-  }, [props, simple]);
+  const actions = useMemo(() => buildDashboardTodayActions(props).slice(0, simple ? 4 : 6), [props, simple]);
 
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Aujourd’hui</p><h2 className="mt-1 text-xl font-black text-[#2f2415]">Ce qu’il faut faire en premier</h2><p className="mt-1 text-sm text-[#8a7456]">Voici les actions importantes à regarder aujourd’hui.</p></div><button type="button" onClick={onToggleExpert} className="rounded-full border border-[#d6c3a0] bg-[#fffdf8] px-3 py-1.5 text-xs font-black text-[#2f2415]"><Settings2 size={13} className="inline" /> {simple ? 'Voir plus de détails' : 'Vue simple'}</button></div>{actions.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">{actions.map((action) => <TodayAction key={`${action.moduleKey}-${action.title}`} {...action} onNavigate={props.onNavigate} />)}</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><CheckCircle2 size={16} className="inline" /> Rien d’urgent pour le moment. Continue simplement ton suivi habituel.</div>}</section>;
 }
