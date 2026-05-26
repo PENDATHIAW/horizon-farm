@@ -3,6 +3,7 @@ import { readFileSync } from 'fs';
 import { buildCalculatedCycleDates } from '../../src/services/productionCycleDates.js';
 import { computeFinanceCash } from '../../src/utils/financeCash.js';
 import { normalizeLot, normalizeProductionOeufsLog } from '../../src/utils/normalize.js';
+import { applyStockMovement, buildStockCriticalFollowUp } from '../../src/utils/stockWorkflows.js';
 import { avicoleActiveCount, avicoleSickCount } from '../../src/utils/avicoleMetrics.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
@@ -232,5 +233,42 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     ].join('\n');
     ['Preuves manquantes', 'Reste à encaisser', 'Reste à payer', 'Vérification caisse/banque', 'Lignes comptables'].forEach((label) => expect(compta).toContain(label));
     ['Créances suivies', 'Dettes a regulariser', 'Justificatifs manquants'].forEach((label) => expect(compta).not.toContain(label));
+  });
+
+  test('stock critique crée une alerte, une tâche et une trace liées', () => {
+    const stock = { id: 'STK-ALIM-001', produit: 'Aliment pondeuses', quantite: 4, seuil: 10, stock_max: 30, unite: 'kg', prixUnit: 250 };
+    const followUp = buildStockCriticalFollowUp(stock);
+    expect(followUp.task).toMatchObject({ module_lie: 'stock', source_module: 'stock', source_record_id: 'STK-ALIM-001', status: 'a_faire' });
+    expect(followUp.alert).toMatchObject({ module_source: 'stock', entity_id: 'STK-ALIM-001', status: 'nouvelle' });
+    expect(followUp.event).toMatchObject({ event_type: 'stock_critique_detecte', module_source: 'stock', entity_id: 'STK-ALIM-001' });
+    expect(followUp.task.task_dedupe_key).toBe(followUp.alert.alert_dedupe_key);
+  });
+
+  test('entrée fournisseur augmente le stock et la sortie alimentation le décrémente', () => {
+    const stock = { id: 'STK-MAIS-001', produit: 'Maïs concassé', quantite: 12, seuil: 5, unite: 'kg', prixUnit: 180 };
+    const reception = applyStockMovement(stock, { type: 'entree', qty: 20, motif: 'Réception fournisseur' });
+    expect(reception.stock.quantite).toBe(32);
+    expect(reception.event).toMatchObject({ event_type: 'reception_stock', entity_id: 'STK-MAIS-001', quantity: 20 });
+    const sortie = applyStockMovement(reception.stock, { type: 'sortie', qty: 7, motif: 'Alimentation lot pondeuses' });
+    expect(sortie.stock.quantite).toBe(25);
+    expect(sortie.event).toMatchObject({ event_type: 'sortie_stock', quantity: 7 });
+  });
+
+  test('perte stock crée une trace avec impact valeur', () => {
+    const stock = { id: 'STK-OEUFS-001', produit: 'Tablettes œufs', quantite: 15, seuil: 4, unite: 'tablette', prixUnit: 2500 };
+    const loss = applyStockMovement(stock, { type: 'perte', qty: 2, motif: 'Casse transport' });
+    expect(loss.stock.quantite).toBe(13);
+    expect(loss.event).toMatchObject({ event_type: 'perte_stock', entity_id: 'STK-OEUFS-001', severity: 'warning', amount: 5000 });
+  });
+
+  test('stock n’affiche pas de valeurs techniques dans les libellés terrain', () => {
+    const source = [
+      readFileSync('src/modules/StocksV3.jsx', 'utf8'),
+      readFileSync('src/modules/StocksV4.jsx', 'utf8'),
+      readFileSync('src/modules/StockOperationalHealthPanel.jsx', 'utf8'),
+      readFileSync('src/modules/StockReorderTasksBridge.jsx', 'utf8'),
+    ].join('\n');
+    ['undefined', '[object Object]', 'NaN'].forEach((technicalText) => expect(source).not.toContain(`>${technicalText}<`));
+    ['Créer / réceptionner stock', 'Utiliser aliment', 'Perte', 'Source liée', 'Preuve / facture'].forEach((label) => expect(source).toContain(label));
   });
 });
