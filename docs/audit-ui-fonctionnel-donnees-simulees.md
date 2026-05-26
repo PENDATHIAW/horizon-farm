@@ -324,6 +324,24 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Commit poussé : `0d9ff24 fix: completer parcours rh terrain`.
 - Reste à faire : vérifier en UI connectée que la source RH en localStorage est bien synchronisée avec les futures tables Supabase RH si elles sont ajoutées.
 
+## Module : Smart Farm
+
+- Sections testées : Couverture par zone, Conseiller équipement, Signaux et sécurité terrain, Capteurs configurés, Caméras configurées, mesures détaillées, zones et timeline.
+- Sections supprimées/fusionnées : aucune suppression ; les signaux terrain restent visibles en haut et les détails techniques restent repliés.
+- Boutons testés : Synchroniser, Ajouter capteur, Ajouter caméra, Voir, Modifier, Supprimer, Créer action depuis signal.
+- Boutons corrigés : Ajouter/Modifier capteur ou caméra crée maintenant automatiquement une tâche, une alerte et une trace si l’appareil est critique.
+- Formulaires testés : ajout/modification capteur, ajout/modification caméra, détail capteur/caméra.
+- Champs présents : nom, type, zone, localisation, statut, batterie, flux caméra, snapshot.
+- Champs ajoutés : source simulation/réel, module lié, dernière mesure, seuil minimum, seuil maximum, notes terrain.
+- Actions testées : capteur humidité serre à 92 avec seuil 85, caméra entrée hors ligne, capteur simulé, capteur réel.
+- Conséquences métier vérifiées : capteur critique -> tâche + alerte + trace ; caméra hors ligne -> tâche + alerte ; badge simulation/réel visible ; les données simulées restent clairement marquées.
+- Interconnexions vérifiées : Smart Farm vers Tâches, Alertes, Business events, Équipements/Cultures/Avicole/Stock par module lié.
+- Bugs trouvés : les formulaires capteur/caméra étaient actionnables mais ne distinguaient pas assez simulation/réel et ne créaient pas toujours une conséquence métier au moment de l’enregistrement critique.
+- Corrections faites : ajout de `smartFarmWorkflows`, champs seuil/source/module lié, badges lisibles, création automatique de suivi pour capteur/caméra critique.
+- Tests ajoutés : capteur Smart Farm critique crée tâche/alerte/trace, Smart Farm distingue données simulées et données réelles, caméra hors ligne crée action terrain.
+- Commit poussé : `d41cbd1 fix: completer parcours smart farm terrain`.
+- Reste à faire : valider dans l’UI avec le bouton Paramètres -> données simulées que les seuils réels des capteurs terrain futurs correspondent aux unités installées.
+
 ## Module : Avicole
 
 - Sections testées : séparation Pondeuses/Poulets de chair, Pilotage avicole, Vue active, Où saisir les œufs, Objectif œufs/pondeuses, Lots actifs, Gestion avicole, Journal de ponte et charges, Journal de ramassage des œufs, Charges directes pondeuses, Cycle et historique, Évolution détaillée.
@@ -366,6 +384,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Impact seulement informatif | les priorités, preuves manquantes et risques étaient visibles mais ne créaient pas toujours d’action terrain | workflow Impact pour tâche, preuve, alerte et trace ; boutons actionnables depuis les cartes | `src/modules/ImpactBusiness.jsx`, `src/utils/impactWorkflows.js`, `src/App.jsx` | `6171e39` | `indicateur impact faible crée une tâche actionnable`, `preuve manquante impact crée document, tâche et trace`, `risque impact fort crée alerte et tâche liées` | Impact crée une action réelle et garde Rapports comme module d’export/dossier |
 | Réparation équipement incomplète | la panne créait un suivi mais la remise en service simple ne garantissait pas clôture tâche/alerte, finance et preuve | workflow réparation avec équipement opérationnel, tâche terminée, alerte résolue, sortie finance et document preuve manquante | `src/modules/EquipementsQuickActionsBridge.jsx`, `src/modules/Equipements.jsx`, `src/utils/equipmentWorkflows.js` | `e96356a` | `panne équipement crée tâche, alerte et trace liées`, `réparation équipement clôture tâche/alerte et crée finance/document` | une pompe réparée revient opérationnelle et laisse preuve/facture à joindre |
 | Paie RH sans preuve selon le chemin | la carte prioritaire créait une preuve mais le répertoire RH pouvait payer surtout Finance/trace | workflow RH unique pour salaire, preuve manquante, trace et mise à jour personne ; actions absence/tâche ajoutées | `src/modules/RH.jsx`, `src/modules/RHPeopleTeams.jsx`, `src/utils/rhWorkflows.js`, `src/App.jsx` | `0d9ff24` | `salaire RH payé crée finance, preuve salaire et trace`, `absence RH crée suivi terrain et tâche assignée`, `tâche RH assignée reste visible dans le module métier` | RH devient un centre d’action : paie, absence et tâche ont des conséquences visibles |
+| Smart Farm sans conséquence à l’enregistrement critique | les signaux existaient mais un appareil ajouté/modifié critique ne déclenchait pas toujours immédiatement tâche/alerte/trace | workflow Smart Farm pour capteur/caméra critique, badges source simulation/réel, seuils de mesure dans le formulaire | `src/modules/SmartFarm.jsx`, `src/utils/constants.js`, `src/utils/smartFarmWorkflows.js` | `d41cbd1` | `capteur Smart Farm critique crée tâche, alerte et trace`, `Smart Farm distingue données simulées et données réelles`, `caméra Smart Farm hors ligne crée une action terrain` | un capteur ou une caméra critique ouvre une action terrain sans ambiguïté simulation/réel |
 
 ## Module : Animaux
 
@@ -427,7 +446,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Avicole, Animaux, Finances, Comptabilité, `52 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Smart Farm, Avicole, Animaux, Finances, Comptabilité, `55 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -499,6 +518,8 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `e96356a fix: completer parcours equipements terrain`
 - `f26affc docs: documenter corrections terrain equipements`
 - `0d9ff24 fix: completer parcours rh terrain`
+- `52eff55 docs: documenter corrections terrain rh`
+- `d41cbd1 fix: completer parcours smart farm terrain`
 
 Push GitHub : les commits jusqu'à `0d9ff24` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
@@ -513,6 +534,6 @@ Push GitHub : les commits jusqu'à `0d9ff24` sont poussés sur `origin/feature/o
 | P1 | Traçabilité | actions admin/suppression pas toutes tracées | services CRUD | créer événement métier systématique |
 | P2 | Fournisseurs | réception reliée, mais WhatsApp/facture réelle à valider | `FournisseursReadable.jsx` | distinguer message simulé, facture jointe et réception confirmée |
 | P1 | Tâches | clôture auto partielle | `TachesV3.jsx`, `AlertesCenterV2.jsx` | relier chaque tâche à source résoluble |
-| P2 | Smart Farm | simulation/réel parfois ambigu | `SmartFarm.jsx` | badge source et seuil par capteur |
+| P2 | Smart Farm | seuils à calibrer avec les vrais appareils terrain | `SmartFarm.jsx` | valider les unités et seuils réels par type de capteur |
 | P2 | Rapports | PDF à revalider sur brouillon modifié | `RapportsV2.jsx` | test export avec contenu modifié |
 | P2 | Assistant ERP | préremplissage fiche encore limité | `AssistantERPV2.jsx`, `AssistantPanel.jsx` | router intention -> formulaire prérempli avec confirmation |
