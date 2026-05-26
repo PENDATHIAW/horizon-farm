@@ -17,6 +17,8 @@ import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId, makeId } from '../utils/ids';
 import { alimentationFields as buildAlimentationFields, normalizeAlimentationPayload } from '../utils/stockForms';
+import { buildStockLossFinanceTransaction } from '../utils/stockLossImpact';
+import { applyStockMovement, buildStockCriticalFollowUp, hasOpenStockReorderTask } from '../utils/stockWorkflows';
 import StockFlowPanel from './StockFlowPanel.jsx';
 import StockReorderTasksBridge from './StockReorderTasksBridge.jsx';
 import StockSalesOpportunityBridge from './StockSalesOpportunityBridge.jsx';
@@ -64,6 +66,8 @@ function stockFields(fournisseurs = []) {
     { key: 'date_reception_prevue', label: 'Réception prévue', type: 'date' },
     { key: 'date_derniere_reception', label: 'Dernière réception', type: 'date' },
     { key: 'emplacement', label: 'Emplacement', type: 'text' },
+    { key: 'last_movement_label', label: 'Motif dernier mouvement', type: 'text' },
+    { key: 'source_record_id', label: 'Source liée', type: 'text' },
     { key: 'preuve_url', label: 'Preuve / facture', type: 'text' },
     { key: 'notes', label: 'Notes', type: 'text', fullWidth: true },
   ];
@@ -106,16 +110,24 @@ export default function StocksV3({ rows = [], alimentationLogs = [], animaux = [
   const stockFormFields = useMemo(() => stockFields(fournisseurs), [fournisseurs]);
   const alimFormFields = useMemo(() => buildAlimentationFields({ stocks: rows, animaux, lots, isFood }), [rows, animaux, lots]);
   const normalizeStock = (payload) => ({ ...payload, stock_status: payload.statut || payload.stock_status || (toNumber(payload.quantite) <= 0 ? 'epuise' : 'ok'), statut: payload.statut || payload.stock_status || (toNumber(payload.quantite) <= 0 ? 'epuise' : 'ok'), source_module: payload.source_module || 'stock' });
-  const createStockAlertIfNeeded = async (row, nextQty) => { const threshold = toNumber(row.seuil); if (!threshold || nextQty > threshold) return; await (onCreateAlert || alertesCrud.create)?.({ id: makeId('ALT'), title: `Stock critique: ${row.produit}`, message: `${row.produit} est sous le seuil (${nextQty} ${row.unite || ''})`, module_source: 'stock', entity_type: 'stock', entity_id: row.id, severity: 'warning', status: 'nouvelle', action_recommandee: 'Préparer une commande fournisseur ou ajuster le seuil.' }); await (onRefreshAlertes || alertesCrud.refresh)?.(); };
-  const submitCreate = async (payload) => { try { setSaving(true); await onCreate?.(normalizeStock(payload)); toast.success('Stock créé / réceptionné'); setModal(null); } catch (error) { toast.error(error.message || 'Erreur création stock'); } finally { setSaving(false); } };
-  const submitEdit = async (payload) => { if (!selected) return; try { setSaving(true); await onUpdate?.(selected.id, normalizeStock(payload)); toast.success('Stock modifié'); setModal(null); } catch (error) { toast.error(error.message || 'Erreur modification stock'); } finally { setSaving(false); } };
+  const createStockFollowUpIfNeeded = async (row, nextQty) => {
+    const followUp = buildStockCriticalFollowUp({ ...row, quantite: nextQty }, nextQty);
+    if (!followUp || hasOpenStockReorderTask(row, taches)) return;
+    await onCreateTask?.(followUp.task);
+    await (onCreateAlert || alertesCrud.create)?.({ ...followUp.alert, linked_task_id: followUp.task.id });
+    await (rest.onCreateBusinessEvent || businessEventsCrud.create)?.({ ...followUp.event, linked_task_id: followUp.task.id });
+    await Promise.allSettled([onRefreshTasks?.(), onRefreshAlertes?.(), businessEventsCrud.refresh?.()]);
+  };
+  const submitCreate = async (payload) => { try { setSaving(true); const normalized = normalizeStock(payload); await onCreate?.(normalized); await createStockFollowUpIfNeeded(normalized, toNumber(normalized.quantite)); toast.success('Stock créé / réceptionné'); setModal(null); } catch (error) { toast.error(error.message || 'Erreur création stock'); } finally { setSaving(false); } };
+  const submitEdit = async (payload) => { if (!selected) return; try { setSaving(true); const normalized = normalizeStock(payload); await onUpdate?.(selected.id, normalized); await createStockFollowUpIfNeeded({ ...selected, ...normalized }, toNumber(normalized.quantite)); toast.success('Stock modifié'); setModal(null); } catch (error) { toast.error(error.message || 'Erreur modification stock'); } finally { setSaving(false); } };
   const submitDelete = async () => { if (!selected) return; try { setSaving(true); await onDelete?.(selected.id); toast.success('Stock supprimé'); setModal(null); } catch (error) { toast.error(error.message || 'Erreur suppression stock'); } finally { setSaving(false); } };
   const moveStock = async (row, type, qty, motif = '') => {
     const current = toNumber(row.quantite);
     if (type !== 'entree' && qty > current) throw new Error(`Stock insuffisant : ${fmtNumber(current)} ${row.unite || ''} disponible(s)`);
-    const next = type === 'entree' ? current + qty : Math.max(0, current - qty);
-    await onUpdate?.(row.id, { quantite: next, statut: next <= 0 ? 'epuise' : (row.statut || row.stock_status || 'ok'), stock_status: next <= 0 ? 'epuise' : (row.stock_status || row.statut || 'ok'), last_movement_type: type, last_movement_label: motif, last_movement_qty: qty, last_movement_at: new Date().toISOString() });
-    if (type !== 'entree') await createStockAlertIfNeeded(row, next);
+    const { stock } = applyStockMovement(row, { type, qty, motif });
+    const next = stock.quantite;
+    await onUpdate?.(row.id, { quantite: next, statut: stock.statut, stock_status: stock.stock_status, last_movement_type: type, last_movement_label: motif, last_movement_qty: qty, last_movement_at: new Date().toISOString() });
+    await createStockFollowUpIfNeeded(row, next);
     return next;
   };
   const openMovement = (row, type) => setMovement({ row, type, defaultQty: type === 'entree' ? (stockMetrics(row).suggestedOrderQty || 1) : 1 });
@@ -152,8 +164,10 @@ export default function StocksV3({ rows = [], alimentationLogs = [], animaux = [
         }
       } else if (type === 'perte') {
         await moveStock(row, 'perte', qty, motif);
-        await (rest.onCreateBusinessEvent || businessEventsCrud.create)?.({ id: makeId('EVT'), event_type: 'perte_stock', module_source: 'stock', entity_type: 'stock', entity_id: row.id, title: `Perte stock ${row.produit}`, description: `${qty} ${row.unite || ''} · ${motif}`, event_date: today(), severity: 'warning' });
-        await businessEventsCrud.refresh?.();
+        const lossTransaction = buildStockLossFinanceTransaction(row, qty);
+        if (lossTransaction) await onCreateFinanceTransaction?.(lossTransaction);
+        await (rest.onCreateBusinessEvent || businessEventsCrud.create)?.({ id: makeId('EVT'), event_type: 'perte_stock', module_source: 'stock', entity_type: 'stock', entity_id: row.id, title: `Perte stock ${row.produit}`, description: `${qty} ${row.unite || ''} · ${motif}`, event_date: today(), severity: 'warning', amount: lossTransaction?.montant || qty * unitPrice(row), linked_finance_transaction_id: lossTransaction?.id || '' });
+        await Promise.allSettled([businessEventsCrud.refresh?.(), onRefreshFinances?.()]);
         toast.success('Perte stock enregistrée et tracée');
       }
       setMovement(null);
