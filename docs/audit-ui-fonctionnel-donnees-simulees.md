@@ -607,10 +607,10 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Sections testées : navigation principale et pages des 26 modules en mode données simulées.
 - Boutons testés : navigation modules, actions principales visibles, paramètres de données simulées déjà actifs.
 - Formulaires testés : formulaires visibles détectés dans Avicole et Santé après navigation ; les tests métier couvrent les formulaires complets Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact, Équipements, RH, Smart Farm, Assistant, Centre décisionnel, Objectifs, Traçabilité, Sync, Gestion système et Dashboard.
-- Bugs trouvés : quelques libellés techniques restaient dans les fichiers UI actifs ou anciens (`workflow`, “Impact business / observation”, “Réparer le workflow ventes”, “Écriture finance créée…”).
-- Corrections faites : remplacement par “parcours”, “action”, “Conséquence terrain”, “Dépense alimentation créée depuis Stock”, “Espace” au lieu de “Module” dans l’assistant.
+- Bugs trouvés : quelques libellés techniques restaient dans les fichiers UI actifs ou anciens (`workflow`, “Impact business / observation”, “Réparer le workflow ventes”, “Écriture finance créée…”) ; les modules Documents/tiers/Impact utilisaient encore “justificatif” là où le reste de l’ERP parle “preuve / facture”.
+- Corrections faites : remplacement par “parcours”, “action”, “Conséquence terrain”, “Dépense alimentation créée depuis Stock”, “Espace” au lieu de “Module” dans l’assistant ; harmonisation Documents, clients/fournisseurs, Impact et Paramètres vers “preuves / factures”.
 - Tests ajoutés : garde anti-jargon dans `tests/e2e/simulated-business-workflows.spec.js`.
-- Commit poussé : `7f2e188 fix: harmoniser sante finances comptabilite terrain`.
+- Commits poussés : `7f2e188 fix: harmoniser sante finances comptabilite terrain`, `26bbbf8 fix: simplifier preuves factures documents`.
 - Reste à faire : poursuivre le même mode jury avec saisie réelle navigateur module par module quand un compte Supabase de test stable et isolé est disponible pour éviter de polluer les données de production.
 
 ## Commits créés
@@ -698,6 +698,8 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `a07ce5d docs: documenter corrections terrain gestion systeme`
 - `f75fa52 fix: completer dashboard terrain`
 - `7f2e188 fix: harmoniser sante finances comptabilite terrain`
+- `17f510a docs: documenter audit jury sante finance`
+- `26bbbf8 fix: simplifier preuves factures documents`
 
 Push GitHub : les commits jusqu'à `f75fa52` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
