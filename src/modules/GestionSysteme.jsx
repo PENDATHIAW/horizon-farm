@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import Btn from '../components/Btn';
 import SectionHeader from '../components/SectionHeader';
 import { ROLE_PERMISSIONS, useAuth } from '../context/AuthContext';
+import useCrudModule from '../hooks/useCrudModule';
 import { makeId } from '../utils/ids';
 
 const MODULES = [
@@ -40,6 +41,8 @@ function Mini({ icon: Icon, label, value, danger = false }) { return <div classN
 
 export default function GestionSysteme() {
   const { user, role, inviteUser, updateProfileRole } = useAuth();
+  const auditLogsCrud = useCrudModule('audit_logs');
+  const businessEventsCrud = useCrudModule('business_events');
   const [users, setUsers] = useState(loadUsers);
   const [selected, setSelected] = useState(null);
   const [filterRole, setFilterRole] = useState('tous');
@@ -47,11 +50,33 @@ export default function GestionSysteme() {
   const visibleUsers = useMemo(() => users.filter((u) => filterRole === 'tous' || u.role === filterRole), [users, filterRole]);
   const stats = useMemo(() => ({ total: users.length, actifs: users.filter((u) => ['actif', 'active'].includes(String(u.statut || '').toLowerCase())).length, admins: users.filter((u) => u.role === 'admin').length, visiteurs: users.filter((u) => u.role === 'visiteur').length }), [users]);
   const persist = (next) => setUsers(saveUsers(next));
+  const canManageSystem = role === 'admin';
+  const traceSystemAction = async (action, target = {}, extra = {}) => {
+    const payload = {
+      id: makeId('AUD'),
+      action,
+      module: 'gestion_systeme',
+      module_source: 'gestion_systeme',
+      entity_type: 'utilisateur',
+      entity_id: target.id,
+      title: action === 'system_user_deleted' ? 'Utilisateur retiré' : 'Accès utilisateur modifié',
+      description: `${target.nom || target.email || target.id || 'Utilisateur'} · rôle ${target.role || 'non renseigné'}`,
+      actor_email: user?.email || '',
+      created_at: new Date().toISOString(),
+      severity: ['admin', 'suspended', 'disabled'].includes(String(target.role || target.statut || '').toLowerCase()) ? 'warning' : 'info',
+      ...extra,
+    };
+    await Promise.allSettled([
+      auditLogsCrud.create?.(payload),
+      businessEventsCrud.create?.({ ...payload, id: makeId('EVT'), event_type: action, event_date: new Date().toISOString().slice(0, 10) }),
+    ]);
+  };
   const setS = (key, value) => setSelected((prev) => ({ ...prev, [key]: value }));
   const toggleModule = (key) => setSelected((prev) => { const list = prev.modules || []; return { ...prev, modules: list.includes(key) ? list.filter((x) => x !== key) : [...list, key] }; });
   const toggleAction = (key) => setSelected((prev) => { const list = prev.actions || []; return { ...prev, actions: list.includes(key) ? list.filter((x) => x !== key) : [...list, key] }; });
   const applyRole = (nextRole) => setSelected((prev) => ({ ...prev, role: nextRole, modules: roleModules(nextRole), actions: roleActions(nextRole), statut: nextRole === 'visiteur' ? 'pending' : (prev.statut || 'active') }));
   const save = async () => {
+    if (!canManageSystem) return toast.error('Seul un Super Admin peut modifier les accès');
     if (!selected?.nom?.trim()) return toast.error('Nom obligatoire');
     if (!selected?.email?.trim()) return toast.error('Email obligatoire');
     const exists = users.some((u) => u.id === selected.id);
@@ -63,20 +88,24 @@ export default function GestionSysteme() {
       toast.error(error.message || 'Profil non mis à jour');
     }
     persist(exists ? users.map((u) => u.id === selected.id ? payload : u) : [...users, { ...payload, created_at: new Date().toISOString() }]);
+    await traceSystemAction(exists ? 'system_user_updated' : 'system_user_created', payload, { previous_role: users.find((u) => u.id === selected.id)?.role || '' });
     setSelected(null);
     toast.success(exists ? 'Utilisateur mis à jour' : 'Utilisateur créé / invité');
   };
-  const remove = (target) => {
+  const remove = async (target) => {
+    if (!canManageSystem) return toast.error('Seul un Super Admin peut retirer un accès');
     if (target.id === 'USR-PENDA' || target.role === 'admin' && users.filter((u) => u.role === 'admin' && ['actif', 'active'].includes(String(u.statut || '').toLowerCase())).length <= 1) return toast.error('Impossible de retirer le dernier Super Admin');
     persist(users.filter((u) => u.id !== target.id));
+    await traceSystemAction('system_user_deleted', target);
     toast.success('Utilisateur retiré');
   };
 
   return <div className="space-y-6">
-    <SectionHeader title="Gestion du système" sub="Utilisateurs, visiteurs, rôles et accès" actions={<><Btn variant="outline" small onClick={() => setShowMatrix((v) => !v)}>{showMatrix ? 'Masquer' : 'Qui voit quoi ?'}</Btn><Btn icon={Plus} small onClick={() => setSelected(newUser())}>Créer utilisateur</Btn></>} />
+    <SectionHeader title="Gestion du système" sub="Utilisateurs, visiteurs, rôles et accès" actions={<><Btn variant="outline" small onClick={() => setShowMatrix((v) => !v)}>{showMatrix ? 'Masquer' : 'Qui voit quoi ?'}</Btn><Btn icon={Plus} small disabled={!canManageSystem} onClick={() => setSelected(newUser())}>Créer utilisateur</Btn></>} />
     <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4"><div><p className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700"><ShieldCheck size={14} /> Accès protégés</p><h2 className="mt-3 text-2xl font-black text-[#2f2415]">Accès, visibilité et responsabilités</h2><p className="mt-1 text-sm text-[#8a7456]">Utilisateur connecté : {user?.email || '—'} · rôle actuel : {ROLE_LABELS[role] || role}</p></div><div className="grid grid-cols-2 md:grid-cols-4 gap-2 min-w-full lg:min-w-[560px]"><Mini icon={Users} label="Utilisateurs" value={stats.total} /><Mini icon={CheckCircle2} label="Actifs" value={stats.actifs} /><Mini icon={Shield} label="Admins" value={stats.admins} danger={stats.admins > 3} /><Mini icon={LockKeyhole} label="Visiteurs" value={stats.visiteurs} /></div></div></div>
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">{Object.entries(ROLE_LABELS).filter(([key]) => key !== 'admin').slice(0, 3).map(([key, label]) => <div key={key} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="font-black text-[#2f2415]">{label}</p><p className="mt-1 text-xs text-[#8a7456]">{ROLE_HELP[key]}</p></div>)}</div>
     <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><b>Rôle visiteur :</b> accès volontairement limité à Dashboard + Assistant ERP. Il sert aux tests, avis, démonstrations et bêta utilisateurs sans exposer Finances, Stock, RH, Comptabilité ou données sensibles.</div>
+    {!canManageSystem ? <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"><b>Lecture seule :</b> ton rôle actuel permet de consulter la configuration, mais pas de créer, modifier ou retirer des accès.</div> : null}
     <div className="flex flex-wrap gap-2">{['tous', ...Object.keys(ROLE_LABELS)].map((r) => <TogglePill key={r} active={filterRole === r} onClick={() => setFilterRole(r)}>{r === 'tous' ? 'Tous' : ROLE_LABELS[r]}</TogglePill>)}</div>
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-4"><div className="xl:col-span-2 rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-3"><h3 className="font-black text-[#2f2415]">Utilisateurs & visiteurs</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-3">{visibleUsers.map((u) => <div key={u.id} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-black text-[#2f2415]">{u.nom}</p><p className="text-xs text-[#8a7456]">{u.email}</p><p className="mt-1 text-xs font-bold text-[#8a7456]">{ROLE_LABELS[u.role] || u.role} · {u.statut}</p></div><div className="flex gap-2"><button type="button" onClick={() => setSelected(u)} title="Modifier"><Edit size={16} /></button><button type="button" onClick={() => remove(u)} title="Retirer" className="text-red-600"><Trash2 size={16} /></button></div></div><div className="mt-3 flex flex-wrap gap-1">{has(u.modules, '*') ? <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">Tous les espaces</span> : (u.modules || []).slice(0, 6).map((m) => <span key={m} className="rounded-full bg-white border border-[#eadcc2] px-2 py-1 text-xs text-[#8a7456]">{moduleLabel(m)}</span>)}{!has(u.modules, '*') && (u.modules || []).length > 6 ? <span className="text-xs text-[#8a7456]">+{u.modules.length - 6}</span> : null}</div></div>)}</div></div><div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-3">{selected ? <><h3 className="font-black text-[#2f2415]">{users.some((u) => u.id === selected.id) ? 'Modifier accès' : 'Créer / inviter'}</h3><Field label="Nom" value={selected.nom} onChange={(v) => setS('nom', v)} /><Field label="Email" value={selected.email} onChange={(v) => setS('email', v)} /><Field label="Équipe / périmètre" value={selected.equipe} onChange={(v) => setS('equipe', v)} /><label className="block text-sm"><span className="text-[#8a7456]">Rôle</span><select value={selected.role} onChange={(e) => applyRole(e.target.value)} className="mt-1 w-full rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2">{Object.entries(ROLE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select><p className="mt-1 text-xs text-[#8a7456]">{ROLE_HELP[selected.role]}</p></label><label className="block text-sm"><span className="text-[#8a7456]">Statut</span><select value={selected.statut} onChange={(e) => setS('statut', e.target.value)} className="mt-1 w-full rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2"><option value="active">Actif</option><option value="pending">En attente</option><option value="suspended">Suspendu</option><option value="disabled">Désactivé</option></select></label><div><p className="text-sm font-bold text-[#2f2415] mb-2">Espaces visibles</p><div className="max-h-48 overflow-auto rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 grid grid-cols-1 gap-2">{MODULES.map(([key, label]) => <label key={key} className="flex items-center justify-between gap-2 text-sm"><span>{label}</span><input type="checkbox" checked={has(selected.modules, key)} disabled={has(selected.modules, '*')} onChange={() => toggleModule(key)} /></label>)}</div></div><div><p className="text-sm font-bold text-[#2f2415] mb-2">Actions autorisées</p><div className="flex flex-wrap gap-2">{ACTIONS.map((a) => <TogglePill key={a} active={has(selected.actions, a)} onClick={() => toggleAction(a)}>{actionLabel(a)}</TogglePill>)}</div></div><Field label="Notes" value={selected.notes} onChange={(v) => setS('notes', v)} /><div className="flex gap-2"><Btn icon={Save} onClick={save}>Enregistrer</Btn><Btn variant="outline" onClick={() => setSelected(null)}>Fermer</Btn></div></> : <div className="text-sm text-[#8a7456]"><UserCog size={22} className="mb-3" /><p className="font-bold text-[#2f2415]">Sélectionne un utilisateur</p><p>Un visiteur peut se créer seul depuis la page de connexion. Tu peux ensuite modifier son rôle et ses accès ici.</p></div>}</div></div>
     {showMatrix ? <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><h3 className="font-black text-[#2f2415]">Qui voit quoi ?</h3><div className="overflow-x-auto"><table className="min-w-full text-sm"><thead><tr className="border-b border-[#eadcc2] bg-[#fffdf8] text-left text-xs uppercase text-[#8a7456]"><th className="py-2 px-3">Espace</th>{Object.entries(ROLE_LABELS).map(([key, label]) => <th key={key} className="py-2 px-3">{label}</th>)}</tr></thead><tbody>{MODULES.map(([key, label]) => <tr key={key} className="border-b border-[#f0e5d0]"><td className="py-2 px-3 font-bold text-[#2f2415]">{label}</td>{Object.keys(ROLE_LABELS).map((roleKey) => <td key={roleKey} className="py-2 px-3">{has(ROLE_PERMISSIONS[roleKey] || [], key) ? <Eye size={16} className="text-emerald-600" /> : <EyeOff size={16} className="text-[#c0aa84]" />}</td>)}</tr>)}</tbody></table></div></div> : null}

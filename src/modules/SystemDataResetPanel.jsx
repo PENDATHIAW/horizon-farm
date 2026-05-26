@@ -1,4 +1,5 @@
 import { Download, FileSpreadsheet, Trash2, ShieldAlert } from 'lucide-react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 
 const RESETTABLE_STORAGE_PREFIXES = ['horizon-', 'horizon_'];
@@ -59,8 +60,9 @@ function downloadSnapshotReports(snapshot) {
   downloadFile(`export-complet-avant-effacement-horizon-farm-${today()}.xls`, buildExcelHtml(snapshot), 'application/vnd.ms-excel;charset=utf-8');
   downloadFile(`sauvegarde-technique-avant-effacement-horizon-farm-${today()}.json`, JSON.stringify(snapshot, null, 2), 'application/json;charset=utf-8');
 }
-function clearData({ withReport = false } = {}) {
+function clearData({ withReport = false, confirmation = '' } = {}) {
   const snapshot = collectSnapshot();
+  if (confirmation !== 'EFFACER') return toast.error('Tape EFFACER pour confirmer cette action sensible');
   const ok = window.confirm(`${snapshot.rows.length} jeu(x) de données de travail seront effacés. Les BP, tables, schémas et migrations restent protégés. Continuer ?`);
   if (!ok) return;
   if (withReport) downloadSnapshotReports(snapshot);
@@ -70,7 +72,9 @@ function clearData({ withReport = false } = {}) {
 }
 
 export default function SystemDataResetPanel() {
+  const [confirmation, setConfirmation] = useState('');
   const snapshot = typeof window !== 'undefined' ? collectSnapshot() : { rows: [], protectedRows: [] };
+  const confirmed = confirmation === 'EFFACER';
   return <section className="rounded-3xl border border-red-200 bg-red-50 p-5 shadow-sm space-y-4">
     <div>
       <p className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-black text-red-700"><ShieldAlert size={14} /> Zone sensible</p>
@@ -78,9 +82,10 @@ export default function SystemDataResetPanel() {
       <p className="mt-1 text-sm text-red-800">Supprime uniquement les données locales de travail. Les Business Plans, structures de tables, schémas et migrations sont exclus.</p>
     </div>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <button type="button" onClick={() => clearData({ withReport: false })} className="rounded-2xl border border-red-200 bg-white p-4 text-left hover:border-red-400"><Trash2 size={18} className="text-red-600" /><b className="block mt-2 text-[#2f2415]">Supprimer sans rapport</b><span className="text-sm text-red-700">Efface les données de travail après confirmation, sans créer d’export.</span></button>
-      <button type="button" onClick={() => clearData({ withReport: true })} className="rounded-2xl border border-red-200 bg-white p-4 text-left hover:border-red-400"><Download size={18} className="text-red-600" /><b className="block mt-2 text-[#2f2415]">Créer un rapport puis supprimer</b><span className="text-sm text-red-700">Télécharge un rapport lisible, un export Excel et une sauvegarde JSON avant suppression.</span></button>
+      <button type="button" disabled={!confirmed} onClick={() => clearData({ withReport: false, confirmation })} className="rounded-2xl border border-red-200 bg-white p-4 text-left hover:border-red-400 disabled:cursor-not-allowed disabled:opacity-50"><Trash2 size={18} className="text-red-600" /><b className="block mt-2 text-[#2f2415]">Supprimer sans rapport</b><span className="text-sm text-red-700">Efface les données de travail après confirmation, sans créer d’export.</span></button>
+      <button type="button" disabled={!confirmed} onClick={() => clearData({ withReport: true, confirmation })} className="rounded-2xl border border-red-200 bg-white p-4 text-left hover:border-red-400 disabled:cursor-not-allowed disabled:opacity-50"><Download size={18} className="text-red-600" /><b className="block mt-2 text-[#2f2415]">Créer un rapport puis supprimer</b><span className="text-sm text-red-700">Télécharge un rapport lisible, un export Excel et une sauvegarde JSON avant suppression.</span></button>
     </div>
+    <label className="block rounded-2xl border border-red-200 bg-white p-3 text-sm text-red-800"><span className="font-black">Confirmation obligatoire</span><input value={confirmation} onChange={(event) => setConfirmation(event.target.value)} placeholder="EFFACER" className="mt-2 w-full rounded-xl border border-red-200 px-3 py-2 text-[#2f2415]" /></label>
     <div className="rounded-2xl border border-red-200 bg-white p-3 text-sm text-red-800"><b>Effaçables :</b> {snapshot.rows.length}. <b>Protégés :</b> {snapshot.protectedRows.length}. BP, lignes BP, structures de tables, schémas et migrations sont exclus.</div>
     <div className="rounded-2xl border border-red-200 bg-white p-3 text-sm text-red-800 flex items-start gap-2"><FileSpreadsheet size={16} className="mt-0.5" /><span>Le fichier Excel est généré au format HTML compatible Excel pour éviter d’ajouter une dépendance lourde. Le JSON reste la sauvegarde technique complète.</span></div>
   </section>;
