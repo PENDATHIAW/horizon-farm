@@ -18,6 +18,7 @@ import { normalizeTaskPayload } from '../../src/utils/taskForms.js';
 import { dedupeAlertsBySource, isAlertResolved } from '../../src/utils/alertWorkflows.js';
 import { buildCultureHarvestWorkflow, buildCultureInputUsageWorkflow, buildCultureLossWorkflow, buildCultureWeatherRiskFollowUp } from '../../src/utils/cultureWorkflows.js';
 import { buildInvestmentAssetWorkflow, buildInvestmentRealizationWorkflow } from '../../src/utils/investmentWorkflows.js';
+import { buildReportGenerationWorkflow, buildReportScheduleTask } from '../../src/utils/reportWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -540,5 +541,24 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(workflow.payloads[0]).toMatchObject({ type: 'Pondeuse', initial_count: 100, current_count: 100, source_module: 'investissements' });
     expect(workflow.linePatch).toMatchObject({ asset_module: 'avicole', asset_status: 'cree', statut: 'lie_metier' });
     expect(buildInvestmentAssetWorkflow({ ...workflow.linePatch, id: 'BPLI-POUSSINS-001', designation: 'Poussins pondeuses' })).toBeNull();
+  });
+
+  test('rapport généré conserve le brouillon modifié dans le document', () => {
+    const workflow = buildReportGenerationWorkflow({
+      existing: { id: 'RPT-MENSUEL-001', draft_content: 'Brouillon terrain modifié par Penda' },
+      type: 'mensuel_erp',
+      period: '2026-05',
+      content: { summary: 'Résumé automatique', sales: 150000, paid: 120000, receivables: 30000, recommendations: ['Relancer clients'] },
+      date: today(),
+    });
+    expect(workflow.reportPayload).toMatchObject({ id: 'RPT-MENSUEL-001', status: 'genere', draft_content: 'Brouillon terrain modifié par Penda' });
+    expect(workflow.document).toMatchObject({ module_source: 'rapports', entity_id: 'RPT-MENSUEL-001', content: 'Brouillon terrain modifié par Penda' });
+    expect(workflow.event.event_type).toBe('rapport_mis_a_jour');
+  });
+
+  test('rapport programmé crée une tâche de préparation claire', () => {
+    const task = buildReportScheduleTask({ report: { id: 'RPT-PROG-001', title: 'Rapport mensuel mai' }, type: 'mensuel_erp', period: '2026-05', dueDate: today() });
+    expect(task).toMatchObject({ module_lie: 'rapports', source_module: 'rapports', source_record_id: 'RPT-PROG-001', status: 'a_faire' });
+    expect(task.checklist).toContain('Générer PDF');
   });
 });
