@@ -126,6 +126,24 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Commit poussé : `4dade40 fix: completer parcours ventes terrain`, `bc31433 test: couvrir parcours ventes terrain`.
 - Reste à faire : tester en navigateur connecté la vente lot avicole/tablettes et la vente culture avec données Supabase réelles pour confirmer toutes les colonnes disponibles.
 
+## Module : Clients
+
+- Sections testées : Santé commerciale clients, preuves commerciales, Clients & Fidélisation, Segmentation & fidélisation, Évolution clients, Automatisations WhatsApp, fiches clients.
+- Sections supprimées/fusionnées : aucune suppression ; le calcul client a été centralisé pour éviter des statuts différents selon les sections.
+- Boutons testés : Nouveau client, Modifier, Fiche, Relancer, WhatsApp, Appeler, Itinéraire, Exporter, filtres segment, supprimer.
+- Boutons corrigés : Relancer crée maintenant tâche + alerte + trace métier liées ; Supprimer bloque un client qui a déjà des ventes ; Fiche lit un résumé complet sans planter sur les paiements.
+- Formulaires testés : ajout client, modification client, fiche détail client, relance client.
+- Champs présents : nom, téléphone, WhatsApp, email, adresse, type, statut, préférences, historique achats, notes.
+- Champs ajoutés : type client, contact principal, conditions paiement, plafond crédit, délai paiement ; résumé fiche avec paiements client et dernière commande.
+- Actions testées : client payé, client crédit, relance, suppression liée à une vente, ouverture fiche avec paiement.
+- Conséquences métier vérifiées : vente crédit -> client à relancer ; paiement complet -> client à jour ; relance -> WhatsApp préparé + tâche + alerte + trace ; client lié à des ventes -> suppression bloquée pour garder l’historique.
+- Interconnexions vérifiées : Clients vers Ventes, Paiements, Finances, Documents commerciaux, Tâches, Alertes, Traçabilité/business events.
+- Bugs trouvés : calcul client pas toujours rattaché aux ventes par libellé client ; relance sans trace métier ; suppression possible d’un client avec historique vente ; formulaire client trop pauvre pour le crédit terrain ; fiche détail fragile si le résumé ne contenait pas paiements/dernière commande.
+- Corrections faites : ajout de `clientWorkflows`, statut calculé depuis ventes/paiements, relance sourcée et dédupliquée, suppression protégée, champs paiement/crédit ajoutés, résumé fiche stabilisé.
+- Tests ajoutés : client crédit/payant, fiche avec paiements et dernière commande, relance tâche/alerte/trace, suppression liée bloquée.
+- Commit poussé : `5dc1292 fix: completer parcours clients terrain`, `33e8dfe test: couvrir parcours clients terrain`, `4621b58 fix: stabiliser fiche client terrain`.
+- Reste à faire : tester en navigateur connecté la fermeture automatique d’une relance quand le paiement est saisi depuis Ventes/Finances.
+
 ## Module : Avicole
 
 - Sections testées : séparation Pondeuses/Poulets de chair, Pilotage avicole, Vue active, Où saisir les œufs, Objectif œufs/pondeuses, Lots actifs, Gestion avicole, Journal de ponte et charges, Journal de ramassage des œufs, Charges directes pondeuses, Cycle et historique, Évolution détaillée.
@@ -157,6 +175,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Suivi santé partiellement orphelin | tâches futures, preuve et coût santé n’avaient pas toujours des clés source vérifiables | utilitaire santé commun, tâches/proofs sourcés, coût finance dédupliqué | `src/modules/SanteV6.jsx`, `src/modules/SanteV8.jsx`, `src/utils/healthWorkflows.js` | `9a60e9c` | `santé crée une tâche et une alerte liées pour un soin en retard`, `coût santé crée une dépense finance non doublonnée`, `preuve santé devient un document fourni à vérifier` | un soin retard/fait/coût/preuve reste relié à Santé, Tâches, Alertes, Finance et Documents |
 | Encaissement vente trop élevé côté Finance | le paiement était plafonné, mais la ligne finance utilisait encore le montant saisi brut | plafonnement appliqué avant création paiement et finance | `src/modules/VentesV4.jsx`, `src/utils/salesWorkflows.js` | `4dade40` | `vente plafonne un encaissement trop élevé au reste à payer` | une vente avec 40 000 FCFA restants ne peut créer que 40 000 FCFA d’encaissement |
 | Facture ou source vendue incomplète depuis action rapide | les factures rapides ne créaient pas toujours de document et Hey Horizon ne décrémentait pas la source vendue | document facture créé et patch source appliqué pour stock/animal/lot/culture | `src/modules/VentesV4.jsx`, `src/utils/salesWorkflows.js` | `4dade40` | `vente stock décrémente la source vendue`, `vente animal sort l’animal des actifs` | facture visible dans Documents, source vendue mise à jour |
+| Statut client obsolète ou suppression dangereuse | les ventes pouvaient être reliées par libellé et la suppression ne vérifiait pas l’historique | calcul client centralisé, suppression bloquée si vente liée, relance tracée, fiche stabilisée | `src/modules/Clients.jsx`, `src/modules/ClientsV2.jsx`, `src/utils/clientWorkflows.js` | `5dc1292`, `4621b58` | `client crédit passe à relancer et client payé reste à jour`, `fiche client conserve paiements et dernière commande lisibles`, `relance client crée tâche, alerte et trace liées`, `suppression client liée à une vente est bloquée` | un client payé est à jour, un client crédit est à relancer, l’historique vente est protégé |
 
 ## Module : Animaux
 
@@ -218,7 +237,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Avicole, Animaux, Finances, Comptabilité, `22 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Avicole, Animaux, Finances, Comptabilité, `26 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -260,6 +279,10 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `700f727 docs: documenter corrections terrain sante`
 - `4dade40 fix: completer parcours ventes terrain`
 - `bc31433 test: couvrir parcours ventes terrain`
+- `ab30ef3 docs: documenter corrections terrain ventes`
+- `5dc1292 fix: completer parcours clients terrain`
+- `33e8dfe test: couvrir parcours clients terrain`
+- `4621b58 fix: stabiliser fiche client terrain`
 
 Push GitHub : les commits jusqu'à `ce0a66a` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
