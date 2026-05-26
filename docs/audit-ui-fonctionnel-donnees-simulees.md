@@ -21,7 +21,7 @@ Branche auditée : `feature/objectifs-croissance-centre-decisionnel`
 | Avicole | `AvicoleV10` | lots chair/pondeuses, œufs, mortalité, malades, vendus/sortis | lots, ponte, alimentation, opportunités, cycles | ramassage œufs débloqué, tablettes calculées, effectif actuel recalculé, cycles dédupliqués | `4941b16`, `4cd10ae`, `e51b139`, `1163fb7`, `5369273` | décrément stock aliment réel à auditer | P1 |
 | Santé & Vaccins | `SanteV8` | soins en retard/réalisés | soin, report, statut, coût | retards synchronisés tâches/alertes, boucle useEffect corrigée | `0d73a27`, `55dbb08`, `7489b16` | documents de preuve à systématiser | P1 |
 | Finances | `FinancesV12` | argent reçu, argent dépensé, reste à encaisser, reste à payer | ligne finance, dépense, paiement, preuve/facture | libellés terrain simplifiés, cash sans reste à encaisser, paiements liés pris en compte | `286e618`, `d9ae417`, `aeca008`, `8795c17` | rapprochement caisse/banque réel à ajouter | P2 |
-| Comptabilité | `ComptabiliteV7` | écritures, justificatifs | contrôle, preuve, export | module audité en smoke | `18e6d78` | verrouillage clôture réel | P2 |
+| Comptabilité | `ComptabiliteV7` | lignes comptables, preuves/factures, reste à encaisser/payer | contrôle, preuve, export, vérification caisse/banque | vocabulaire terrain simplifié et rôle séparé de Finances | `18e6d78`, `9812ad2`, `ce0a66a` | verrouillage clôture réel | P2 |
 | Investissements | `InvestissementsV9` | BP Horizon Farm, charges, revenus | onglets BP, amortissements, contrôle | routage V9 et BP visible | `f06aea4`, `e956a37` | transformation actif à sécuriser | P1 |
 | Impact & Valeur | `ImpactBusiness` | production, revenus, preuves | dossier financeur, liens rapports | séparation avec Rapports vérifiée | `18e6d78` | score financeur à sourcer davantage | P2 |
 | Stock | `StocksV5` via `StocksV4` | intrants, œufs, récoltes, seuils | mouvements, réception, perte | mouvements tracés sur variation quantité | `2931a85`, `65960b6` | unités multi-produits à normaliser | P1 |
@@ -135,13 +135,31 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Commit poussé : `aeca008 fix: simplifier finances et calcul cash`, `8795c17 test: couvrir cash finance terrain`.
 - Reste à faire : ajouter un vrai écran de vérification caisse/banque et tester la preuve/facture avec upload réel.
 
+## Module : Comptabilité
+
+- Sections testées : Lignes comptables automatiques, Lecture simplifiée des lignes comptables, Contrôle argent et preuves, Contrôle comptable, Lecture comptable simplifiée, Lignes comptables, Évolution comptable.
+- Sections supprimées/fusionnées : aucune suppression ; le rôle du module est clarifié pour éviter le doublon avec Finances.
+- Boutons testés : Ventes, Finances, Documents, Ouvrir documents, Ouvrir comptabilité, Ouvrir finances.
+- Boutons corrigés : les boutons restent de navigation métier ; aucun bouton décoratif ajouté.
+- Formulaires testés : module principalement de contrôle ; les saisies manuelles restent dans les lignes finance/ComptabiliteV5 existantes.
+- Champs présents : source, argent/reste, vente/dépense, montant, sens métier, preuves/factures, reste à encaisser, reste à payer, vérification caisse/banque.
+- Champs ajoutés : aucun champ structurel ; libellés simplifiés pour preuve/facture et vérification caisse/banque.
+- Actions testées : contrôle de ligne sans preuve, vente partiellement payée, reste à payer fournisseur, navigation vers Documents/Finances/Ventes.
+- Conséquences métier vérifiées : Comptabilité ne recompte pas le cash opérationnel ; elle signale les preuves manquantes, le reste à encaisser, le reste à payer et les vérifications à faire.
+- Interconnexions vérifiées : Finances, Ventes, Paiements, Documents, Fournisseurs.
+- Bugs trouvés : vocabulaire trop comptable visible (`écriture`, `débit/crédit`, `créances`, `dettes`, `justificatifs`) sans traduction terrain ; confusion possible avec le pilotage Finances.
+- Corrections faites : remplacement par lignes comptables, argent/reste, vente/dépense, preuve/facture, reste à encaisser, reste à payer, vérification caisse/banque ; messages de rôle clarifiés.
+- Tests ajoutés : `comptabilité reste centrée sur preuves et contrôle sans jargon inutile`.
+- Commit poussé : `9812ad2 fix: simplifier comptabilite terrain`, `ce0a66a test: couvrir vocabulaire comptabilite`.
+- Reste à faire : implémenter une clôture de période réelle avec verrouillage et export comptable signé.
+
 ## Tests
 
 - `npm install --no-audit --no-fund` : réussi avant synchronisation ; après reprise, `npm`/`npx` n’étaient plus disponibles dans le `PATH` Codex. Les bindings natifs optionnels macOS manquants ont été restaurés pour exécuter build/tests avec le binaire Node local.
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Avicole/Animaux/Finances, `11 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Avicole/Animaux/Finances/Comptabilité, `12 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -172,8 +190,11 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `21d14bd docs: documenter corrections terrain animaux`
 - `aeca008 fix: simplifier finances et calcul cash`
 - `8795c17 test: couvrir cash finance terrain`
+- `d5ee20a docs: documenter corrections terrain finances`
+- `9812ad2 fix: simplifier comptabilite terrain`
+- `ce0a66a test: couvrir vocabulaire comptabilite`
 
-Push GitHub : les commits jusqu'à `8795c17` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
+Push GitHub : les commits jusqu'à `ce0a66a` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
 ## 10 problèmes restants les plus urgents
 
