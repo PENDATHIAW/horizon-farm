@@ -6,6 +6,7 @@ import { normalizeLot, normalizeProductionOeufsLog } from '../../src/utils/norma
 import { applyStockMovement, buildStockCriticalFollowUp } from '../../src/utils/stockWorkflows.js';
 import { avicoleActiveCount, avicoleSickCount } from '../../src/utils/avicoleMetrics.js';
 import { buildHealthCostTransaction, buildHealthFollowUp, buildHealthProofDocument } from '../../src/utils/healthWorkflows.js';
+import { buildSaleSourcePatch, capSalePayment } from '../../src/utils/salesWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -302,5 +303,40 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
       preuve_file_name: 'ordonnance.jpg',
     });
     expect(document).toMatchObject({ module_source: 'sante', entity_id: 'SAN-PREUVE-001', document_category: 'ordonnance', status: 'fourni', verification_status: 'a_verifier' });
+  });
+
+  test('vente plafonne un encaissement trop élevé au reste à payer', () => {
+    const sale = { id: 'CMD-OVERPAY-001', montant_total: 100000, montant_paye: 60000 };
+    expect(capSalePayment(sale, [], 80000)).toBe(40000);
+    expect(capSalePayment({ ...sale, montant_paye: 100000 }, [], 10000)).toBe(0);
+  });
+
+  test('vente stock décrémente la source vendue', () => {
+    const patch = buildSaleSourcePatch({
+      sourceType: 'stock',
+      sourceRow: { id: 'STK-TOMATE-001', produit: 'Tomates récoltées', quantite: 100, vendus: 10 },
+      quantity: 25,
+      total: 25000,
+      date: '2026-05-26',
+      orderId: 'CMD-STOCK-001',
+      clientId: 'CLI-001',
+    });
+    expect(patch).toMatchObject({ module: 'stock', id: 'STK-TOMATE-001' });
+    expect(patch.patch.quantite).toBe(75);
+    expect(patch.patch.vendus).toBe(35);
+  });
+
+  test('vente animal sort l’animal des actifs', () => {
+    const patch = buildSaleSourcePatch({
+      sourceType: 'animal',
+      sourceRow: { id: 'BOV002', statut: 'actif' },
+      quantity: 1,
+      total: 450000,
+      date: '2026-05-26',
+      orderId: 'CMD-ANIMAL-001',
+    });
+    expect(patch).toMatchObject({ module: 'animal', id: 'BOV002' });
+    expect(patch.patch.statut).toBe('vendu');
+    expect(patch.patch.prix_vente_reel).toBe(450000);
   });
 });
