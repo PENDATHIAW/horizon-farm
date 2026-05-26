@@ -28,6 +28,7 @@ const supplierName = (supplier = {}) => supplier.nom || supplier.name || supplie
 const supplierPhone = (supplier = {}) => String(supplier.whatsapp || supplier.tel || supplier.phone || '').trim();
 const hasPhone = (supplier = {}) => Boolean(supplierPhone(supplier));
 const supplierInitialValues = (rows) => ({ id: generateSequentialId('fournisseurs', rows), note: 4, dettes: 0, livraisons: 0, source: 'manuel', verified: false, favorite: false, categorie: 'Approvisionnement' });
+const isOpenSupplierDebt = (tx = {}) => String(tx.type || '').toLowerCase() === 'sortie' && ['impaye', 'partiel', 'en_attente', 'a_payer', 'à payer'].includes(String(tx.statut || tx.status || '').toLowerCase());
 
 const SourceBadge = ({ source }) => (
   <span className={`text-[10px] px-2 py-1 rounded-full border ${source === 'demo' ? 'bg-amber-500/10 border-amber-500/30 text-amber-600' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600'}`}>
@@ -185,6 +186,7 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loadi
       await financesCrud.create?.({ id: trxId, type: 'sortie', libelle: `Paiement fournisseur ${supplierName(supplier)}`, montant: summary.dettes, date: today(), categorie: 'Fournisseurs', module_lie: 'fournisseurs', related_id: supplier.id, fournisseur_id: supplier.id, statut: 'paye', source_module: 'fournisseurs', source_record_id: supplier.id });
       await documentsCrud.create?.({ id: docId, title: `Paiement fournisseur ${supplierName(supplier)}`, document_category: 'reçu', module_source: 'fournisseurs', entity_type: 'fournisseur', entity_id: supplier.id, related_id: supplier.id, transaction_id: trxId });
       await (onCreateBusinessEvent || eventsCrud.create)?.({ id: makeId('EVT'), event_type: 'paiement_fournisseur', module_source: 'fournisseurs', entity_type: 'fournisseur', entity_id: supplier.id, title: 'Paiement fournisseur', description: `${supplierName(supplier)} — ${fmtCurrency(summary.dettes)}`, amount: summary.dettes, event_date: today(), severity: 'info', linked_transaction_id: trxId, linked_document_id: docId });
+      await Promise.allSettled(summary.finances.filter(isOpenSupplierDebt).map((tx) => financesCrud.update?.(tx.id, { statut: 'paye', status: 'paye', paid_at: today(), settlement_transaction_id: trxId })));
       await onUpdate?.(supplier.id, { dettes: 0, dernier_paiement: today(), last_payment_id: trxId });
       await Promise.allSettled([financesCrud.refresh?.(), documentsCrud.refresh?.(), (onRefreshBusinessEvents || eventsCrud.refresh)?.(), onRefresh?.()]);
       toast.success('Paiement fournisseur enregistré');

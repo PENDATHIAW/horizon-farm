@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, Package, Truck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import useCrudModule from '../hooks/useCrudModule';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 
@@ -19,6 +20,7 @@ const reorderQty = (row = {}) => maxOf(row) > 0 ? Math.max(0, maxOf(row) - quant
 const isCritical = (row = {}) => thresholdOf(row) > 0 && quantityOf(row) <= thresholdOf(row);
 const taskKey = (supplier, row) => `supplier_order:${clean(supplier.id)}:${clean(row.id)}`;
 const isDone = (task = {}) => ['termine', 'terminé', 'annule', 'annulé', 'done', 'closed'].includes(clean(task.status || task.statut).toLowerCase());
+const supplierDebt = (supplier = {}) => toNumber(supplier.dettes ?? supplier.dette ?? supplier.solde_du ?? supplier.reste_a_payer);
 
 function linkedSupplier(stock, suppliers = []) {
   const id = supplierIdOfStock(stock);
@@ -32,6 +34,9 @@ function existingTaskFor(supplier, stock, tasks = []) {
 
 export default function FournisseursStockBridge({ suppliers = [], stocks = [], tasks = [], onUpdateStock, onRefreshStock, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, onCreateBusinessEvent, onRefreshBusinessEvents, onUpdateSupplier, onRefreshSuppliers }) {
   const [savingKey, setSavingKey] = useState('');
+  const financesCrud = useCrudModule('finances');
+  const documentsCrud = useCrudModule('documents');
+  const tasksCrud = useCrudModule('taches');
   const candidates = useMemo(() => arr(stocks)
     .filter(isCritical)
     .map((stock) => ({ stock, supplier: linkedSupplier(stock, suppliers) }))
@@ -85,6 +90,86 @@ export default function FournisseursStockBridge({ suppliers = [], stocks = [], t
     }
   };
 
+  const receiveStock = async (supplier, stock) => {
+    const key = taskKey(supplier, stock);
+    const qty = reorderQty(stock);
+    const amount = qty * unitPriceOf(stock);
+    const task = existingTaskFor(supplier, stock, tasks);
+    if (qty <= 0) return toast.error('Quantité à réceptionner non calculée');
+    try {
+      setSavingKey(`receive:${key}`);
+      const financeId = makeId('TRX');
+      const docId = makeId('DOC');
+      await onUpdateStock?.(stock.id, {
+        quantite: quantityOf(stock) + qty,
+        quantity: quantityOf(stock) + qty,
+        statut: 'recu',
+        stock_status: 'recu',
+        fournisseur_id: supplier.id,
+        supplier_id: supplier.id,
+        derniere_reception: today(),
+        last_receipt_qty: qty,
+        last_receipt_amount: amount,
+        source_module: 'fournisseurs',
+        source_record_id: supplier.id,
+      });
+      await financesCrud.create?.({
+        id: financeId,
+        type: 'sortie',
+        libelle: `Réception fournisseur ${supplierName(supplier)} — ${productName(stock)}`,
+        montant: amount,
+        date: today(),
+        categorie: 'Fournisseurs',
+        module_lie: 'fournisseurs',
+        related_id: supplier.id,
+        fournisseur_id: supplier.id,
+        stock_id: stock.id,
+        statut: 'impaye',
+        source_module: 'fournisseurs',
+        source_record_id: supplier.id,
+        notes: `Réception stock ${fmtNumber(qty)} ${stock.unite || ''}. Paiement fournisseur à planifier.`,
+      });
+      await documentsCrud.create?.({
+        id: docId,
+        title: `Facture fournisseur à joindre — ${supplierName(supplier)}`,
+        document_category: 'facture',
+        module_source: 'fournisseurs',
+        entity_type: 'fournisseur',
+        entity_id: supplier.id,
+        related_id: supplier.id,
+        transaction_id: financeId,
+        finance_id: financeId,
+        stock_id: stock.id,
+        statut: 'manquant',
+        status: 'manquant',
+        notes: `Joindre la facture pour la réception ${productName(stock)} · ${fmtCurrency(amount)}.`,
+      });
+      if (task?.id) await tasksCrud.update?.(task.id, { status: 'termine', statut: 'termine', completed_at: now() });
+      await onUpdateSupplier?.(supplier.id, { dettes: supplierDebt(supplier) + amount, derniere_reception: today(), last_receipt_finance_id: financeId });
+      await onCreateBusinessEvent?.({
+        id: makeId('EVT'),
+        event_type: 'reception_fournisseur_stock',
+        module_source: 'fournisseurs',
+        entity_type: 'fournisseur',
+        entity_id: supplier.id,
+        related_stock_id: stock.id,
+        title: `Réception stock fournisseur`,
+        description: `${supplierName(supplier)} · ${productName(stock)} · ${fmtNumber(qty)} ${stock.unite || ''} · ${fmtCurrency(amount)}`,
+        amount,
+        event_date: today(),
+        severity: 'info',
+        linked_transaction_id: financeId,
+        linked_document_id: docId,
+      });
+      await Promise.allSettled([onRefreshStock?.(), financesCrud.refresh?.(), documentsCrud.refresh?.(), tasksCrud.refresh?.(), onRefreshBusinessEvents?.(), onRefreshSuppliers?.()]);
+      toast.success('Réception enregistrée : stock augmenté, dette et preuve à joindre créées');
+    } catch {
+      toast.error('Réception fournisseur impossible');
+    } finally {
+      setSavingKey('');
+    }
+  };
+
   if (!candidates.length) return null;
   return (
     <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
@@ -106,7 +191,10 @@ export default function FournisseursStockBridge({ suppliers = [], stocks = [], t
               <p className="text-xs text-[#8a7456] mt-1"><Package size={13} className="inline" /> {productName(stock)}</p>
               <p className="text-xs text-[#8a7456] mt-1">Stock: {fmtNumber(quantityOf(stock))} / seuil {fmtNumber(thresholdOf(stock))}</p>
               <p className="text-xs text-[#8a7456] mt-1">À commander: <b>{fmtNumber(qty)} {stock.unite || ''}</b> · {fmtCurrency(qty * unitPriceOf(stock))}</p>
-              {task ? <p className="mt-3 text-xs font-bold text-emerald-700"><CheckCircle2 size={13} className="inline" /> Déjà en suivi</p> : <button type="button" disabled={savingKey === key} className="mt-3 text-sm font-bold text-emerald-700 disabled:opacity-60" onClick={() => createOrderTask(supplier, stock)}><CheckCircle2 size={14} className="inline" /> {savingKey === key ? 'Préparation...' : 'Préparer commande'}</button>}
+              <div className="mt-3 flex flex-wrap gap-2">
+                {task ? <p className="text-xs font-bold text-emerald-700"><CheckCircle2 size={13} className="inline" /> Déjà en suivi</p> : <button type="button" disabled={savingKey === key} className="text-sm font-bold text-emerald-700 disabled:opacity-60" onClick={() => createOrderTask(supplier, stock)}><CheckCircle2 size={14} className="inline" /> {savingKey === key ? 'Préparation...' : 'Préparer commande'}</button>}
+                <button type="button" disabled={savingKey === `receive:${key}`} className="text-sm font-bold text-[#2f2415] disabled:opacity-60" onClick={() => receiveStock(supplier, stock)}><Package size={14} className="inline" /> {savingKey === `receive:${key}` ? 'Réception...' : 'Réceptionner'}</button>
+              </div>
             </div>
           );
         })}
