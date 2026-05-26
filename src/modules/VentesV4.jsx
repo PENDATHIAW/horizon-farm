@@ -12,7 +12,7 @@ const num = (value = 0) => Number(value || 0) || 0;
 const label = (row = {}) => row.name || row.nom || row.produit || row.culture || row.product_name || row.client_label || row.id || 'Produit';
 const payStatus = (sale = {}) => sale.statut_paiement || sale.payment_status || sale.status_paiement || (num(sale.reste_a_payer) > 0 ? 'non_paye' : 'paye');
 const deliveryStatus = (sale = {}) => sale.statut_livraison || sale.delivery_status || sale.status_livraison || 'a_livrer';
-const totalOf = (sale = {}) => num(sale.montant_total || sale.total || sale.amount || (num(sale.quantity) * num(sale.unit_price)));
+const totalOf = (sale = {}) => num(sale.montant_total || sale.total || sale.amount || sale.total_amount || (num(sale.quantity || sale.quantite) * num(sale.unit_price || sale.prix_unitaire)));
 const paidOf = (sale = {}, payments = []) => num(sale.montant_paye || sale.paid_amount) || payments.filter((p) => String(p.order_id || p.sale_id || p.source_record_id) === String(sale.id)).reduce((sum, p) => sum + num(p.montant || p.amount || p.montant_paye), 0);
 const remainingOf = (sale = {}, payments = []) => Math.max(0, totalOf(sale) - paidOf(sale, payments));
 const isClosed = (sale = {}, payments = []) => ['cloture', 'clôture', 'annule', 'annulé'].includes(String(sale.statut_commande || sale.status || '').toLowerCase()) || (remainingOf(sale, payments) <= 0 && ['livre', 'livré', 'recupere', 'récupéré'].includes(String(deliveryStatus(sale)).toLowerCase()));

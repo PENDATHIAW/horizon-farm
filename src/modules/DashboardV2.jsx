@@ -4,13 +4,14 @@ import DashboardEvolution from './DashboardEvolution.jsx';
 import { readUiSettings } from '../utils/uiPreferences';
 import { fmtCurrency } from '../utils/format';
 import { buildDecisionCenterPlan } from '../services/growthDecisionEngine';
+import { isOpenForPayment, remainingForOrder } from '../utils/salesStatuses';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase();
 const closedStatuses = ['termine', 'terminé', 'done', 'traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée', 'annule', 'annulé'];
 const amount = (row = {}) => Number(row.montant_total ?? row.total ?? row.amount ?? row.montant ?? 0) || 0;
 const paid = (row = {}) => Number(row.montant_paye ?? row.paid_amount ?? row.amount_paid ?? 0) || 0;
-const remaining = (row = {}) => Math.max(0, Number(row.reste_a_payer ?? row.remaining_amount ?? row.amount_due ?? (amount(row) - paid(row)) ?? 0) || 0);
+const remaining = (row = {}, payments = []) => Math.max(0, remainingForOrder(row, payments));
 
 function useUiSettings() {
   const [settings, setSettings] = useState(readUiSettings);
@@ -41,7 +42,7 @@ function UnifiedPilotageStatus({ props }) {
   const transactions = arr(props.transactions);
   const cashIn = Math.max(payments.reduce((sum, row) => sum + paid(row), 0), transactions.filter((row) => lower(row.type) === 'entree' || lower(row.type) === 'entrée').reduce((sum, row) => sum + Number(row.montant || row.amount || 0), 0));
   const cashOut = transactions.filter((row) => ['sortie', 'depense', 'dépense'].includes(lower(row.type))).reduce((sum, row) => sum + Number(row.montant || row.amount || 0), 0);
-  const receivable = salesOrders.reduce((sum, order) => sum + remaining(order), 0);
+  const receivable = salesOrders.reduce((sum, order) => sum + remaining(order, payments), 0);
   const remainingAmount = Math.max(0, goal.monthTarget - goal.realized);
   const tone = goal.attainment >= 90 ? 'good' : goal.attainment >= 50 ? 'warn' : 'bad';
   const activitiesBehind = plan.goals.activities.filter((item) => item.attainment < 50 && item.target > 0).slice(0, 3);
@@ -58,8 +59,8 @@ function TodayAction({ icon: Icon, title, detail, moduleKey, tone = 'amber', onN
 function TodayFocus({ props, simple, onToggleExpert }) {
   const actions = useMemo(() => {
     const salesOrders = arr(props.salesOrders); const stocks = arr(props.stocks); const sante = arr(props.vaccins); const alertes = arr(props.alertes); const taches = arr(props.taches); const documents = arr(props.documents); const payments = arr(props.payments);
-    const unpaidOrders = salesOrders.filter((order) => remaining(order) > 0 || ['non_paye', 'non payé', 'partiel'].includes(lower(order.statut_paiement || order.payment_status)));
-    const receivable = unpaidOrders.reduce((sum, order) => sum + remaining(order), 0);
+    const unpaidOrders = salesOrders.filter((order) => isOpenForPayment(order, payments));
+    const receivable = unpaidOrders.reduce((sum, order) => sum + remaining(order, payments), 0);
     const stockCritical = stocks.filter((stock) => Number(stock.seuil || 0) > 0 && Number(stock.quantite || 0) <= Number(stock.seuil || 0));
     const healthLate = sante.filter((row) => ['retard', 'a faire', 'a_faire', 'en retard'].some((term) => lower(row.statut || row.status).includes(term)));
     const openAlerts = alertes.filter((alert) => !closedStatuses.includes(lower(alert.status || alert.statut || 'nouvelle')));
