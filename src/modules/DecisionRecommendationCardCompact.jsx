@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { CalendarDays, CheckSquare, ChevronDown, Target, Zap } from 'lucide-react';
 import Btn from '../components/Btn';
 import { actionTargetModule, actionTypeLabel, buildDecisionActions, buildDraftFromDecisionAction } from '../services/decisionActionEngine';
 import { buildCommercialTargets } from '../services/smartCommercialTargetingEngine';
 import { fmtCurrency, fmtNumber } from '../utils/format';
+import { buildDecisionRecommendationTask } from '../utils/decisionCenterWorkflows';
 
 const n = (value = 0) => Number(value || 0);
 
@@ -43,8 +45,9 @@ function targetModule(item = {}) {
   return item.source_module || 'alertes';
 }
 
-export default function DecisionRecommendationCardCompact({ item, dataMap = {}, onNavigate }) {
+export default function DecisionRecommendationCardCompact({ item, dataMap = {}, onNavigate, onCreateTask, onRefreshTasks, onCreateBusinessEvent, onRefreshBusinessEvents }) {
   const [open, setOpen] = useState(false);
+  const [creatingTask, setCreatingTask] = useState(false);
   const score = scoreOf(item);
   const targeting = item.technical_rule ? { targets: [], recommendation: 'Créer une tâche, ouvrir l’alerte ou corriger dans le module concerné.' } : buildCommercialTargets(dataMap, item.activity);
   const actions = buildDecisionActions(item, targeting.targets?.[0]);
@@ -61,6 +64,21 @@ export default function DecisionRecommendationCardCompact({ item, dataMap = {}, 
       return onNavigate?.(targetModule(item));
     }
     return onNavigate?.('investissements');
+  };
+  const createTask = async () => {
+    const workflow = buildDecisionRecommendationTask(item);
+    if (!workflow) return toast.error('Recommandation incomplète');
+    try {
+      setCreatingTask(true);
+      await onCreateTask?.(workflow.task);
+      await onCreateBusinessEvent?.(workflow.event);
+      await Promise.allSettled([onRefreshTasks?.(), onRefreshBusinessEvents?.()]);
+      toast.success('Tâche créée depuis le Centre décisionnel');
+    } catch (error) {
+      toast.error(error.message || 'Création de tâche impossible');
+    } finally {
+      setCreatingTask(false);
+    }
   };
 
   return <div className="rounded-2xl bg-white/10 border border-white/10 p-4 flex flex-col gap-3 min-w-0">
@@ -85,7 +103,10 @@ export default function DecisionRecommendationCardCompact({ item, dataMap = {}, 
       <p className="text-xs text-white/85">{item.recommendation}</p>
     </div> : null}
 
-    <Btn onClick={main} className="mt-auto w-full bg-[#f6c453] border-[#f6c453] text-[#2f2415] hover:bg-[#ffe08a]" icon={Zap}>{item.technical_rule ? 'Créer une action terrain' : 'Accéder au business plan brouillon'}</Btn>
+    <div className="mt-auto grid grid-cols-1 gap-2">
+      <Btn onClick={createTask} disabled={creatingTask} className="w-full bg-white/95 border-white text-[#2f2415] hover:bg-white" icon={CheckSquare}>{creatingTask ? 'Création...' : 'Créer tâche'}</Btn>
+      <Btn onClick={main} className="w-full bg-[#f6c453] border-[#f6c453] text-[#2f2415] hover:bg-[#ffe08a]" icon={Zap}>{item.technical_rule ? 'Ouvrir action' : 'Business plan'}</Btn>
+    </div>
   </div>;
 }
 

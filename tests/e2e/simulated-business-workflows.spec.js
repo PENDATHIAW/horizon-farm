@@ -24,6 +24,7 @@ import { buildRhAbsenceFollowUp, buildRhAssignedTask, buildRhSalaryWorkflow } fr
 import { buildReportGenerationWorkflow, buildReportScheduleTask } from '../../src/utils/reportWorkflows.js';
 import { buildSmartFarmDeviceFollowUp, isSmartFarmDeviceCritical, smartDeviceSource } from '../../src/utils/smartFarmWorkflows.js';
 import { interpretHorizonCommand } from '../../src/services/aiIntentEngine.js';
+import { buildDecisionRecommendationTask } from '../../src/utils/decisionCenterWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -695,5 +696,19 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(interpretHorizonCommand('Ajouter facture fournisseur aliments')).toMatchObject({ primary_module: 'documents', form_type: 'supplier_invoice', draft_fields: { module_source: 'fournisseurs' } });
     expect(interpretHorizonCommand('Ouvre fiche BOV002')).toMatchObject({ primary_module: 'animaux', form_type: 'entity_lookup', draft_fields: { target_id: 'BOV002' } });
     expect(interpretHorizonCommand('Montre les stocks critiques')).toMatchObject({ primary_module: 'stock', form_type: 'stock_critical_lookup', draft_fields: { filter: 'stocks_critiques' } });
+  });
+
+  test('Centre décisionnel transforme une recommandation sourcée en tâche actionnable', () => {
+    const workflow = buildDecisionRecommendationTask({
+      id: 'RECO-STOCK-001',
+      title: 'Réapprovisionner aliment pondeuses',
+      activity: 'stock',
+      source_module: 'stock',
+      source_id: 'STK-ALIM-001',
+      priority: 'haute',
+      recommendation: 'Commander 5 sacs avant rupture.',
+    }, { date: today() });
+    expect(workflow.task).toMatchObject({ module_lie: 'stock', source_module: 'centre_ia', source_record_id: 'STK-ALIM-001', status: 'a_faire', priority: 'haute' });
+    expect(workflow.event).toMatchObject({ event_type: 'decision_action_task_created', module_source: 'centre_ia', source_module: 'stock', source_record_id: 'STK-ALIM-001', linked_task_id: workflow.task.id });
   });
 });
