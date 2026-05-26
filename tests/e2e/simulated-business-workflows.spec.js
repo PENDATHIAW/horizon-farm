@@ -18,6 +18,7 @@ import { normalizeTaskPayload } from '../../src/utils/taskForms.js';
 import { dedupeAlertsBySource, isAlertResolved } from '../../src/utils/alertWorkflows.js';
 import { buildCultureHarvestWorkflow, buildCultureInputUsageWorkflow, buildCultureLossWorkflow, buildCultureWeatherRiskFollowUp } from '../../src/utils/cultureWorkflows.js';
 import { buildInvestmentAssetWorkflow, buildInvestmentRealizationWorkflow } from '../../src/utils/investmentWorkflows.js';
+import { buildImpactImprovementTask, buildImpactMissingProofWorkflow, buildImpactRiskFollowUp } from '../../src/utils/impactWorkflows.js';
 import { buildReportGenerationWorkflow, buildReportScheduleTask } from '../../src/utils/reportWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
@@ -560,5 +561,45 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     const task = buildReportScheduleTask({ report: { id: 'RPT-PROG-001', title: 'Rapport mensuel mai' }, type: 'mensuel_erp', period: '2026-05', dueDate: today() });
     expect(task).toMatchObject({ module_lie: 'rapports', source_module: 'rapports', source_record_id: 'RPT-PROG-001', status: 'a_faire' });
     expect(task.checklist).toContain('Générer PDF');
+  });
+
+  test('indicateur impact faible crée une tâche actionnable', () => {
+    const task = buildImpactImprovementTask({
+      indicator: 'Stocks sous seuil',
+      module: 'stock',
+      entityId: 'STK-CRIT-001',
+      reason: 'Stock aliment sous seuil dans Impact & Valeur',
+      priority: 'haute',
+      date: today(),
+    });
+    expect(task).toMatchObject({ module_lie: 'stock', source_module: 'impact_business', source_record_id: 'STK-CRIT-001', priority: 'haute', status: 'a_faire' });
+    expect(task.checklist).toContain('Vérifier la donnée source');
+  });
+
+  test('preuve manquante impact crée document, tâche et trace', () => {
+    const workflow = buildImpactMissingProofWorkflow({
+      module: 'ventes',
+      entityId: 'CMD-IMPACT-001',
+      title: 'Facture vente tomates',
+      amount: 150000,
+      reason: 'Preuve demandée pour dossier financeur',
+      date: today(),
+    });
+    expect(workflow.document).toMatchObject({ module_source: 'ventes', entity_id: 'CMD-IMPACT-001', status: 'manquant', verification_status: 'preuve_manquante' });
+    expect(workflow.task).toMatchObject({ module_lie: 'documents', source_module: 'impact_business', priority: 'haute', status: 'a_faire' });
+    expect(workflow.event).toMatchObject({ event_type: 'preuve_impact_demandee', linked_document_id: workflow.document.id, linked_task_id: workflow.task.id });
+  });
+
+  test('risque impact fort crée alerte et tâche liées', () => {
+    const workflow = buildImpactRiskFollowUp({
+      riskTitle: 'Soins en retard',
+      module: 'sante',
+      entityId: 'SAN-RETARD-IMPACT',
+      severity: 'critique',
+      date: today(),
+    });
+    expect(workflow.task).toMatchObject({ module_lie: 'sante', source_module: 'impact_business', related_id: 'SAN-RETARD-IMPACT', priority: 'critique' });
+    expect(workflow.alert).toMatchObject({ module_source: 'sante', entity_id: 'SAN-RETARD-IMPACT', severity: 'critique', status: 'nouvelle', linked_task_id: workflow.task.id });
+    expect(workflow.event).toMatchObject({ event_type: 'risque_impact_signale', linked_task_id: workflow.task.id, linked_alert_id: workflow.alert.id });
   });
 });
