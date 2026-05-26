@@ -425,6 +425,25 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Centre décisionnel sans passage direct à l’action | les recommandations ouvraient surtout un brouillon ou un module, mais ne créaient pas une tâche terrain immédiatement exploitable | ajout d’un workflow décision -> tâche + trace et bouton Créer tâche sur les cartes prioritaires | `src/modules/CentreIA.jsx`, `src/modules/DecisionRecommendationCardCompact.jsx`, `src/utils/decisionCenterWorkflows.js`, `src/App.jsx` | `89d0e75` | `Centre décisionnel transforme une recommandation sourcée en tâche actionnable` | une recommandation stock/santé/production devient une tâche sourcée et traçable |
 | Objectifs sans plan d’action direct | les écarts objectif/réel étaient lisibles mais restaient trop statiques et ne créaient pas d’action terrain liée au module source | ajout du panneau Plans d’action objectifs, statut atteint/en retard/en cours, création tâche + trace métier et KPI BP alimentés depuis `dataMap` | `src/modules/ObjectifsCroissanceV2.jsx`, `src/utils/objectivesWorkflows.js`, `src/App.jsx` | `a8969b7` | `Objectifs & Croissance marque atteint et crée une action si objectif en retard` | un objectif en retard crée une tâche sourcée vers Avicole/Animaux/Cultures/Stock/Finances ; un objectif atteint est affiché comme tel |
 | Traçabilité sans contrôle de source | certains faits avaient un module ou un titre mais pas toujours une source ouvrable, et l’export n’était pas assez direct | normalisation des faits, panneau qualité des traces, badge source à compléter, export CSV et routage source fiable | `src/modules/Tracabilite.jsx`, `src/modules/TracabiliteV2.jsx`, `src/utils/traceabilityWorkflows.js` | `48fed4c` | `Traçabilité source les actions sensibles et ouvre le bon module` | vente, paiement, soin, récolte et action admin sont identifiables ; les faits orphelins sont signalés |
+| Activité & Sync trop technique | les anomalies étaient détectées mais les libellés/actions restaient parfois trop “audit” et l’ouverture source n’était pas directe | libellés terrain, route source, tâche de correction standardisée, preuve/facture au lieu de justificatif, journal renommé | `src/modules/SyncActivityCenter.jsx`, `src/modules/AuditLogs.jsx`, `src/utils/syncAuditWorkflows.js` | `4250fda` | `Activité & Sync détecte les incohérences et propose une action terrain` | paiement orphelin, document lié cassé et opportunité obsolète deviennent des actions compréhensibles |
+
+## Module : Activité & Sync ERP / Audit logs
+
+- Sections testées : Actions & traçabilité, Vérifications importantes, Synchronisation, Activité récente, Journal activité & sécurité, actions en attente, contrôle offline.
+- Sections supprimées/fusionnées : aucune suppression ; libellés simplifiés pour éviter une lecture trop technique.
+- Boutons testés : Synchroniser, Backup, Vider file offline, Simuler hors ligne, Actualiser, Mettre à jour la vente, Fermer l’opportunité, Créer preuve/facture, Créer une tâche, Créer une alerte, Ouvrir source, Masquer, Réafficher.
+- Boutons corrigés : Ouvrir source ajouté sur chaque anomalie ; les actions “justificatif/tâche/alerte” ont été renommées en actions terrain.
+- Formulaires testés : création indirecte de preuve/facture, tâche, alerte et trace de réparation depuis anomalie.
+- Champs présents : sujet, espace, élément, lien, détail, priorité, source, action corrective, statut sync, file offline.
+- Champs ajoutés : route source, titre lisible d’anomalie, action terrain standardisée, `action_key` de tâche Sync.
+- Actions testées : paiement sans vente liée, document lié à une fiche introuvable, opportunité déjà vendue encore ouverte, création tâche corrective.
+- Conséquences métier vérifiées : anomalie -> action corrective possible ou tâche/alerte/preuve ; action -> événement métier `audit_interconnexion_repare`; source ouvrable.
+- Interconnexions vérifiées : Ventes, Paiements, Documents, Opportunités, Finance, Stock, Tâches, Alertes, Traçabilité, Audit logs.
+- Bugs trouvés : libellés trop techniques, “Créer justificatif” moins clair que preuve/facture, pas de bouton direct pour ouvrir la source, action corrective tâche non standardisée.
+- Corrections faites : ajout de `syncAuditWorkflows`, libellés lisibles, routage source, tâche corrective, titre Journal activité & sécurité.
+- Tests ajoutés : `Activité & Sync détecte les incohérences et propose une action terrain`.
+- Commit poussé : `4250fda fix: completer sync audit terrain`.
+- Reste à faire : ajouter des réparations atomiques serveur pour corriger plusieurs lignes liées en une seule transaction Supabase.
 
 ## Module : Traçabilité
 
@@ -522,7 +541,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Smart Farm, Assistant ERP, Centre décisionnel, Objectifs & Croissance, Traçabilité, Avicole, Animaux, Finances, Comptabilité, `59 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Smart Farm, Assistant ERP, Centre décisionnel, Objectifs & Croissance, Traçabilité, Activité & Sync ERP/Audit logs, Avicole, Animaux, Finances, Comptabilité, `60 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -604,6 +623,8 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `a8969b7 fix: completer objectifs croissance terrain`
 - `39a5c43 docs: documenter corrections terrain objectifs croissance`
 - `48fed4c fix: completer tracabilite terrain`
+- `12efe77 docs: documenter corrections terrain tracabilite`
+- `4250fda fix: completer sync audit terrain`
 
 Push GitHub : les commits jusqu'à `0d9ff24` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
