@@ -99,8 +99,9 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `cc5d061 docs: actualiser corrections metier finance fournisseurs`
 - `0b68c15 fix: securiser actions gestion systeme`
 - `344e480 fix: relier equipements et rh aux traces metier`
+- `7acde88 test: couvrir parcours humain erp complet`
 
-Push GitHub : les commits jusqu'à `344e480` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
+Push GitHub : les commits jusqu'à `7acde88` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
 ## 10 problèmes restants les plus urgents
 
