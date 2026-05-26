@@ -5,6 +5,7 @@ import { computeFinanceCash } from '../../src/utils/financeCash.js';
 import { normalizeLot, normalizeProductionOeufsLog } from '../../src/utils/normalize.js';
 import { applyStockMovement, buildStockCriticalFollowUp } from '../../src/utils/stockWorkflows.js';
 import { avicoleActiveCount, avicoleSickCount } from '../../src/utils/avicoleMetrics.js';
+import { buildHealthCostTransaction, buildHealthFollowUp, buildHealthProofDocument } from '../../src/utils/healthWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -270,5 +271,36 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     ].join('\n');
     ['undefined', '[object Object]', 'NaN'].forEach((technicalText) => expect(source).not.toContain(`>${technicalText}<`));
     ['Créer / réceptionner stock', 'Utiliser aliment', 'Perte', 'Source liée', 'Preuve / facture'].forEach((label) => expect(source).toContain(label));
+  });
+
+  test('santé crée une tâche et une alerte liées pour un soin en retard', () => {
+    const followUp = buildHealthFollowUp({
+      id: 'SAN-RETARD-001',
+      nom: 'Vaccin rappel bovin',
+      statut: 'retard',
+      related_id: 'BOV002',
+      prevue: '2026-05-20',
+    }, 'test terrain');
+    expect(followUp.task).toMatchObject({ module_lie: 'sante', source_module: 'sante', related_id: 'SAN-RETARD-001', status: 'a_faire' });
+    expect(followUp.alert).toMatchObject({ module_source: 'sante', entity_id: 'SAN-RETARD-001', status: 'nouvelle' });
+    expect(followUp.task.task_dedupe_key).toBe(followUp.alert.alert_dedupe_key);
+  });
+
+  test('coût santé crée une dépense finance non doublonnée', () => {
+    const first = buildHealthCostTransaction({ id: 'SAN-COUT-001', nom: 'Traitement respiratoire', cout: 12500, target_summary: 'BOV002' });
+    const second = buildHealthCostTransaction({ id: 'SAN-COUT-001', nom: 'Traitement respiratoire', cout: 12500, linked_finance_transaction_id: first.id });
+    expect(first).toMatchObject({ type: 'sortie', module_lie: 'sante', source_record_id: 'SAN-COUT-001', montant: 12500 });
+    expect(second).toBeNull();
+  });
+
+  test('preuve santé devient un document fourni à vérifier', () => {
+    const document = buildHealthProofDocument({
+      id: 'SAN-PREUVE-001',
+      nom: 'Ordonnance véto',
+      preuve_type: 'ordonnance_photo',
+      preuve_photo_data: 'data:image/jpeg;base64,abc',
+      preuve_file_name: 'ordonnance.jpg',
+    });
+    expect(document).toMatchObject({ module_source: 'sante', entity_id: 'SAN-PREUVE-001', document_category: 'ordonnance', status: 'fourni', verification_status: 'a_verifier' });
   });
 });
