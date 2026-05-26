@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { fmtCurrency } from '../utils/format';
 import { makeId } from '../utils/ids';
+import { buildSaleSourcePatch, capSalePayment } from '../utils/salesWorkflows';
 import SalesFollowUpPanel from './SalesFollowUpPanel.jsx';
 import SalesWorkflowHealth from './SalesWorkflowHealth.jsx';
 import VentesTerrainV3 from './VentesTerrainV3.jsx';
@@ -31,6 +32,13 @@ const findSource = (draft = {}, props = {}) => {
   }
   if (product.includes('poulet') || product.includes('oeuf') || product.includes('œuf') || product.includes('tablette')) return { type: 'lot_avicole', row: null, name: fields.product_name || 'Produit avicole', unit: product.includes('tablette') || product.includes('oeuf') || product.includes('œuf') ? 'tablette' : 'tête', qty: num(fields.quantity || 1) };
   return { type: 'autre', row: null, name: fields.product_name || sourceId || 'Produit à préciser', unit: fields.unit || 'unité', qty: num(fields.quantity || 1) };
+};
+const applySaleSourcePatch = async (props = {}, patch) => {
+  if (!patch?.id) return;
+  if (patch.module === 'stock') await props.onUpdateStock?.(patch.id, patch.patch);
+  if (patch.module === 'lot_avicole') await props.onUpdateLot?.(patch.id, patch.patch);
+  if (patch.module === 'animal') await props.onUpdateAnimal?.(patch.id, patch.patch);
+  if (patch.module === 'culture') await props.onUpdateCulture?.(patch.id, patch.patch);
 };
 
 function Section({ icon: Icon, title, subtitle, children }) {
@@ -66,8 +74,10 @@ function HorizonSaleCard({ draft, props, onClose }) {
       const paymentId = paid > 0 ? makeId('PAY') : '';
       await props.onCreate?.({ id: orderId, date, client_label: clientName, client_type: clientName === 'Client de passage' ? 'passage' : 'client', product_name: productName, quantity: num(quantity), unit, unite: unit, unit_price: num(unitPrice), montant_total: total, montant_paye: paid, reste_a_payer: remaining, statut_paiement: paymentStatus, statut_livraison: delivery, statut_commande: remaining <= 0 && delivery !== 'a_livrer' ? 'livre' : 'ouvert', facture_emise: true, invoice_id: invoiceId, source_type: source.type, source_module: source.type === 'lot_avicole' ? 'avicole' : source.type, source_id: source.row?.id || fields.source_id || '', notes: draft.raw_input, created_from: 'hey_horizon' });
       await props.onCreateItem?.({ id: makeId('CMDI'), order_id: orderId, source_type: source.type, source_id: source.row?.id || fields.source_id || '', product_name: productName, quantity: num(quantity), unit, unit_price: num(unitPrice), total });
+      await applySaleSourcePatch(props, buildSaleSourcePatch({ sourceType: source.type, sourceRow: source.row, quantity: num(quantity), total, date, orderId, clientId: '', saleKind: source.type }));
       await props.onCreateDelivery?.({ id: makeId('LIV'), order_id: orderId, date_livraison: date, statut: delivery, status: delivery, destinataire: clientName });
       await props.onCreateInvoice?.({ id: invoiceId, order_id: orderId, numero_facture: `FAC-${orderId.slice(-6)}`, date_facture: date, montant_total: total, statut: 'emise' });
+      await props.onCreateDocument?.({ id: makeId('DOC'), title: `Facture FAC-${orderId.slice(-6)}`, document_category: 'facture', module_source: 'ventes', entity_type: 'commande', entity_id: orderId, related_id: orderId, invoice_id: invoiceId, status: 'emise', amount: total });
       if (paid > 0) {
         await props.onCreatePayment?.({ id: paymentId, order_id: orderId, sale_id: orderId, source_record_id: orderId, date_paiement: date, montant: paid, montant_paye: paid, amount: paid, moyen_paiement: 'especes', statut: 'paye', created_from: 'hey_horizon' });
         await props.onCreateFinanceTransaction?.({ id: makeId('TRX'), type: 'entree', libelle: `Encaissement ${orderId} - ${clientName}`, montant: paid, date, categorie: 'Vente', module_lie: 'ventes', related_id: orderId, source_module: 'ventes', source_record_id: orderId, payment_id: paymentId, transaction_origin: 'automatique' });
@@ -96,10 +106,18 @@ function SaleActionModal({ sale, payments, props, onClose }) {
       setSaving(true);
       if (mode === 'edit') await props.onUpdate?.(sale.id, { client_label: client, product_name: product, quantity: num(quantity), unit_price: num(unitPrice), montant_total: total, reste_a_payer: Math.max(0, total - paidOf(sale, payments)) });
       if (mode === 'pay') {
+        const cappedAmount = capSalePayment(sale, payments, amount);
+        if (cappedAmount <= 0) {
+          toast.success('Vente déjà soldée : aucun encaissement à ajouter.');
+          await props.onUpdate?.(sale.id, { reste_a_payer: 0, statut_paiement: 'paye', payment_status: 'paye' });
+          await props.onRefresh?.();
+          onClose?.();
+          return;
+        }
         const payId = makeId('PAY');
-        await props.onCreatePayment?.({ id: payId, order_id: sale.id, sale_id: sale.id, source_record_id: sale.id, date_paiement: today(), montant: num(amount), amount: num(amount), moyen_paiement: 'especes', statut: 'paye' });
-        await props.onCreateFinanceTransaction?.({ id: makeId('TRX'), type: 'entree', libelle: `Encaissement ${sale.id} - ${client}`, montant: num(amount), date: today(), categorie: 'Vente', module_lie: 'ventes', related_id: sale.id, source_module: 'ventes', source_record_id: sale.id, payment_id: payId, transaction_origin: 'automatique' });
-        const newPaid = paidOf(sale, payments) + num(amount);
+        await props.onCreatePayment?.({ id: payId, order_id: sale.id, sale_id: sale.id, source_record_id: sale.id, date_paiement: today(), montant: cappedAmount, amount: cappedAmount, moyen_paiement: 'especes', statut: 'paye' });
+        await props.onCreateFinanceTransaction?.({ id: makeId('TRX'), type: 'entree', libelle: `Encaissement ${sale.id} - ${client}`, montant: cappedAmount, date: today(), categorie: 'Vente', module_lie: 'ventes', related_id: sale.id, source_module: 'ventes', source_record_id: sale.id, payment_id: payId, transaction_origin: 'automatique' });
+        const newPaid = paidOf(sale, payments) + cappedAmount;
         await props.onUpdate?.(sale.id, { montant_paye: newPaid, reste_a_payer: Math.max(0, totalOf(sale) - newPaid), statut_paiement: Math.max(0, totalOf(sale) - newPaid) <= 0 ? 'paye' : 'partiel' });
       }
       if (mode === 'deliver') {
@@ -109,6 +127,7 @@ function SaleActionModal({ sale, payments, props, onClose }) {
       if (mode === 'invoice') {
         const invId = sale.invoice_id || makeId('FAC');
         await props.onCreateInvoice?.({ id: invId, order_id: sale.id, numero_facture: `FAC-${sale.id.slice(-6)}`, date_facture: today(), montant_total: totalOf(sale), statut: 'emise' });
+        await props.onCreateDocument?.({ id: makeId('DOC'), title: `Facture FAC-${sale.id.slice(-6)}`, document_category: 'facture', module_source: 'ventes', entity_type: 'commande', entity_id: sale.id, related_id: sale.id, invoice_id: invId, status: 'emise', amount: totalOf(sale) });
         await props.onUpdate?.(sale.id, { facture_emise: true, invoice_id: invId });
       }
       if (mode === 'close') await props.onUpdate?.(sale.id, { statut_commande: 'cloture', closed_at: new Date().toISOString() });
