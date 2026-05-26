@@ -270,6 +270,24 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Commit poussé : `26f4eb2 fix: completer parcours rapports terrain`, `eb7bc31 test: couvrir parcours rapports terrain`.
 - Reste à faire : vérifier visuellement le PDF généré dans le navigateur et couvrir l’export PDF réel avec Playwright si l’environnement de téléchargement est disponible.
 
+## Module : Impact & Valeur
+
+- Sections testées : Impact à traiter maintenant, Préparation financeur, Valeur concrète, Dossier banque/partenaire, Domaines à renforcer, liens Rapports.
+- Sections supprimées/fusionnées : aucune suppression ; Impact reste centré sur décision/valeur et délègue la production PDF à Rapports.
+- Boutons testés : Créer tâche relance, Créer tâche stock, Créer tâche santé, Ouvrir source, Créer preuve à compléter, Générer le dossier dans Rapports, onglets Valeur concrète/Dossier banque/À mieux maîtriser.
+- Boutons corrigés : les priorités Impact créent maintenant des tâches exploitables ; les risques forts créent aussi alerte + trace ; les preuves manquantes créent document + tâche + événement.
+- Formulaires testés : création d’action impact depuis indicateur faible, création preuve financeur manquante, navigation vers source, navigation vers Rapports.
+- Champs présents : indicateur, module source, source liée, priorité, statut, raison, preuve/facture, montant si disponible, score financeur, origine des chiffres.
+- Champs ajoutés : clés `impact-action`, `impact-proof`, `impact-risk`, document `preuve_impact`, statut `preuve_manquante`, tâche source `impact_business`, trace métier liée.
+- Actions testées : stock sous seuil transformé en tâche, preuve facture vente manquante transformée en document/tâche, risque santé critique transformé en tâche/alerte/trace.
+- Conséquences métier vérifiées : indicateur faible -> tâche ; preuve manquante -> Documents + Tâches + Business events ; risque fort -> Alertes + Tâches + Business events ; dossier financeur -> Rapports.
+- Interconnexions vérifiées : Impact vers Stock, Santé, Clients, Alertes, Tâches, Documents, Rapports, Business events.
+- Bugs trouvés : Impact indiquait les priorités et le score financeur mais restait parfois au niveau constat, sans action terrain créée ; la preuve manquante pouvait être seulement informative.
+- Corrections faites : ajout de `impactWorkflows`, boutons actionnables dans `ImpactBusiness`, callbacks App vers Tâches/Documents/Alertes/Business events, tests simulés.
+- Tests ajoutés : indicateur impact faible crée une tâche actionnable, preuve manquante impact crée document/tâche/trace, risque impact fort crée alerte et tâche liées.
+- Commit poussé : `6171e39 fix: completer parcours impact valeur terrain`.
+- Reste à faire : valider en navigateur connecté le clic de chaque action avec le mode données simulées activé depuis Paramètres et vérifier l’absence de doublons si l’utilisateur clique deux fois très vite.
+
 ## Module : Avicole
 
 - Sections testées : séparation Pondeuses/Poulets de chair, Pilotage avicole, Vue active, Où saisir les œufs, Objectif œufs/pondeuses, Lots actifs, Gestion avicole, Journal de ponte et charges, Journal de ramassage des œufs, Charges directes pondeuses, Cycle et historique, Évolution détaillée.
@@ -309,6 +327,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Cultures sans sortie intrant/perte intégrée | la récolte créait déjà des liens, mais intrants, pertes et météo n’avaient pas de workflow central testable | ajout de `cultureWorkflows`, actions Utiliser intrant et Déclarer perte, trace métier et tests simulés | `src/modules/CulturesV3.jsx`, `src/modules/CulturesV5.jsx`, `src/modules/CulturesTabActionsBridge.jsx`, `src/utils/cultureWorkflows.js` | `470bc0f` | `intrant culture décrémente le stock et augmente le coût culture`, `perte culture réduit le disponible et crée une trace de valeur`, `risque météo culture propose une tâche et une alerte liées` | récolte/intrant/perte/météo provoquent stock, coût, opportunité, tâche/alerte ou trace selon le cas |
 | Investissement payé sans actif réel visible | le BP V9 était lisible mais le passage paiement -> finance/preuve -> actif métier n’était pas assez actionnable | ajout d’un onglet Actions terrain et d’un workflow investissement réalisé/actif lié | `src/modules/InvestissementsV9.jsx`, `src/utils/investmentWorkflows.js`, `src/App.jsx` | `dfde19a` | `investissement réalisé crée sortie finance, preuve et trace BP`, `investissement payé crée un actif métier une seule fois` | une ligne BP payée crée sortie Finance, preuve/facture, trace puis actif métier sans doublon |
 | Rapport généré écrasant le brouillon | la génération utilisait surtout le résumé automatique et ne créait pas d’action terrain pour un rapport programmé | workflow rapport qui conserve le brouillon et bouton Programmer tâche | `src/modules/RapportsAutoBridge.jsx`, `src/modules/Rapports.jsx`, `src/utils/reportWorkflows.js`, `src/App.jsx` | `26f4eb2` | `rapport généré conserve le brouillon modifié dans le document`, `rapport programmé crée une tâche de préparation claire` | un brouillon relu reste dans le document, un rapport programmé crée une tâche exploitable |
+| Impact seulement informatif | les priorités, preuves manquantes et risques étaient visibles mais ne créaient pas toujours d’action terrain | workflow Impact pour tâche, preuve, alerte et trace ; boutons actionnables depuis les cartes | `src/modules/ImpactBusiness.jsx`, `src/utils/impactWorkflows.js`, `src/App.jsx` | `6171e39` | `indicateur impact faible crée une tâche actionnable`, `preuve manquante impact crée document, tâche et trace`, `risque impact fort crée alerte et tâche liées` | Impact crée une action réelle et garde Rapports comme module d’export/dossier |
 
 ## Module : Animaux
 
@@ -370,7 +389,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Avicole, Animaux, Finances, Comptabilité, `44 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Avicole, Animaux, Finances, Comptabilité, `47 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -436,8 +455,10 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `cd101bd docs: documenter corrections terrain investissements`
 - `26f4eb2 fix: completer parcours rapports terrain`
 - `eb7bc31 test: couvrir parcours rapports terrain`
+- `df9e416 docs: documenter corrections terrain rapports`
+- `6171e39 fix: completer parcours impact valeur terrain`
 
-Push GitHub : les commits jusqu'à `ce0a66a` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
+Push GitHub : les commits jusqu'à `6171e39` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
 ## 10 problèmes restants les plus urgents
 
