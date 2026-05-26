@@ -264,20 +264,20 @@ export const MODULE_FORM_FIELDS = {
   ],
   finances: [
     { key: 'id', label: 'ID', type: 'text', required: true },
-    { key: 'type', label: 'Type', type: 'select', options: ['entree', 'sortie'] },
-    { key: 'libelle', label: 'Libelle', type: 'text', required: true },
+    { key: 'type', label: 'Type', type: 'select', options: [{ value: 'entree', label: 'Argent reçu' }, { value: 'sortie', label: 'Argent dépensé' }] },
+    { key: 'libelle', label: 'Libellé simple', type: 'text', required: true },
     { key: 'montant', label: 'Montant', type: 'number', required: true },
     { key: 'date', label: 'Date', type: 'date' },
     { key: 'categorie', label: 'Categorie', type: 'select', options: ['Vente animaux', 'Vente oeufs', 'Vente cultures', 'Alimentation', 'Sante', 'Salaires', 'Transport', 'Energie', 'Investissements', 'Stocks', 'Autre'] },
     { key: 'module_lie', label: 'Module lie', type: 'select', options: ['animaux', 'avicole', 'cultures', 'stock', 'clients', 'fournisseurs', 'investissements', 'autre'] },
-    { key: 'related_id', label: 'ID element lie', type: 'text' },
-    { key: 'client_id', label: 'Client lie', type: 'text' },
-    { key: 'fournisseur_id', label: 'Fournisseur lie', type: 'text' },
+    { key: 'related_id', label: 'Fiche liée', type: 'text' },
+    { key: 'client_id', label: 'Client lié', type: 'text' },
+    { key: 'fournisseur_id', label: 'Fournisseur lié', type: 'text' },
     { key: 'paiement', label: 'Moyen paiement', type: 'select', options: ['Cash', 'Banque', 'Wave', 'Orange Money', 'Free Money', 'Carte bancaire'] },
     { key: 'statut', label: 'Statut paiement', type: 'select', options: ['paye', 'partiel', 'impaye', 'annule'] },
-    { key: 'justificatif_url', label: 'Justificatif', type: 'image' },
-    { key: 'treasury_account_id', label: 'Compte tresorerie', type: 'text' },
-    { key: 'business_plan_id', label: 'Business Plan lie', type: 'text' },
+    { key: 'justificatif_url', label: 'Preuve / facture', type: 'image' },
+    { key: 'treasury_account_id', label: 'Caisse / banque', type: 'text' },
+    { key: 'business_plan_id', label: 'Business Plan lié', type: 'text' },
   ],
   investissements: [
     { key: 'id', label: 'ID', type: 'text', required: true },
@@ -691,5 +691,4 @@ export const MODULE_FORM_FIELDS = {
     { key: 'status', label: 'Statut', type: 'select', options: ['a_traiter', 'en_discussion', 'reserve', 'converti', 'ignore'] },
   ],
 };
-
 

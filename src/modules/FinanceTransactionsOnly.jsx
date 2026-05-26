@@ -84,7 +84,7 @@ export default function FinanceTransactionsOnly({ rows = [], loading, onCreate, 
   const columns = [
     { key: 'date', label: 'Date', sortable: true },
     { key: 'libelle', label: 'Libellé', sortable: true, render: (row) => <span className="font-semibold text-[#2f2415]">{row.libelle || row.label || '-'}</span> },
-    { key: 'type', label: 'Type', sortable: true, render: (row) => <span className={`inline-flex items-center gap-1 font-semibold ${isIn(row) ? 'text-emerald-600' : 'text-red-500'}`}>{isIn(row) ? <ArrowUp size={12} /> : <ArrowDown size={12} />}{isIn(row) ? 'produit' : 'charge'}</span> },
+    { key: 'type', label: 'Type', sortable: true, render: (row) => <span className={`inline-flex items-center gap-1 font-semibold ${isIn(row) ? 'text-emerald-600' : 'text-red-500'}`}>{isIn(row) ? <ArrowUp size={12} /> : <ArrowDown size={12} />}{isIn(row) ? 'argent reçu' : 'argent dépensé'}</span> },
     { key: 'categorie', label: 'Activité', sortable: true, render: (row) => activityLabels[detectActivity(row)] || '-' },
     { key: 'module_lie', label: 'Module lié', sortable: true, render: (row) => row.module_lie || row.source_module || '-' },
     { key: 'montant', label: 'Montant', sortable: true, render: (row) => <span className={`font-black ${isIn(row) ? 'text-emerald-600' : 'text-red-500'}`}>{isIn(row) ? '+' : '-'}{fmtCurrency(amount(row))}</span> },
@@ -96,19 +96,19 @@ export default function FinanceTransactionsOnly({ rows = [], loading, onCreate, 
   return <div className="space-y-4">
     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
       <div>
-        <p className="font-black text-[#2f2415]">Écritures financières</p>
-        <p className="text-sm text-[#8a7456]">Table des transactions manuelles uniquement. Les charges consolidées sont affichées dans la section officielle au-dessus.</p>
+        <p className="font-black text-[#2f2415]">Lignes finance manuelles</p>
+        <p className="text-sm text-[#8a7456]">Table des saisies manuelles uniquement. Les dépenses et coûts suivis sont affichés dans la synthèse au-dessus.</p>
       </div>
       <div className="flex flex-wrap gap-2">
         <Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Actualiser</Btn>
-        <Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter produit/charge</Btn>
+        <Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter argent reçu/dépensé</Btn>
         <Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn>
       </div>
     </div>
-    <DataTable title="Transactions financières" rows={validRows} columns={columns} loading={loading} initialSortKey="date" searchPlaceholder="Rechercher transaction, catégorie, activité..." />
-    <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected} title="Détail transaction" />
-    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={(payload) => save(() => onCreate?.({ ...payload, statut: payload.statut || 'paye' }), 'Transaction ajoutée')} fields={financeFormFields} initialValues={{ id: generateSequentialId('finances', rows), type: 'entree', date: today(), statut: 'paye', paiement: 'Wave' }} autoId={() => generateSequentialId('finances', rows)} uploadFolder="finances" loading={saving} title="Ajouter produit / charge" submitLabel="Ajouter" />
-    <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={(payload) => selected && save(() => onUpdate?.(selected.id, payload), 'Transaction modifiée')} fields={financeFormFields} initialValues={selected || {}} uploadFolder="finances" loading={saving} title="Modifier transaction" submitLabel="Enregistrer" />
-    <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={() => selected && save(() => onDelete?.(selected.id), 'Transaction supprimée')} itemLabel={selected ? `${selected.libelle || selected.id}` : ''} loading={saving} />
+    <DataTable title="Lignes finance" rows={validRows} columns={columns} loading={loading} initialSortKey="date" searchPlaceholder="Rechercher libellé, catégorie, activité..." />
+    <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected} title="Détail ligne finance" />
+    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={(payload) => save(() => onCreate?.({ ...payload, statut: payload.statut || 'paye' }), 'Ligne finance ajoutée')} fields={financeFormFields} initialValues={{ id: generateSequentialId('finances', rows), type: 'entree', date: today(), statut: 'paye', paiement: 'Wave' }} autoId={() => generateSequentialId('finances', rows)} uploadFolder="finances" loading={saving} title="Ajouter argent reçu / dépensé" submitLabel="Ajouter" />
+    <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={(payload) => selected && save(() => onUpdate?.(selected.id, payload), 'Ligne finance modifiée')} fields={financeFormFields} initialValues={selected || {}} uploadFolder="finances" loading={saving} title="Modifier ligne finance" submitLabel="Enregistrer" />
+    <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={() => selected && save(() => onDelete?.(selected.id), 'Ligne finance supprimée')} itemLabel={selected ? `${selected.libelle || selected.id}` : ''} loading={saving} />
   </div>;
 }
