@@ -1,7 +1,8 @@
-import { AlertTriangle, BarChart3, CheckCircle2, Coins, FileSpreadsheet, RefreshCw, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, BarChart3, CheckCircle2, Coins, FileSpreadsheet, Link2, RefreshCw, ShieldCheck, Wallet } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { fmtCurrency, toNumber } from '../utils/format';
+import { buildInvestmentAssetWorkflow, buildInvestmentRealizationWorkflow, investmentAmount, investmentAssetKind, investmentLabel } from '../utils/investmentWorkflows';
 import { HORIZON_FARM_OFFICIAL_BP } from '../services/horizonFarmOfficialBusinessPlan';
 import { HORIZON_FARM_BP_ID, HORIZON_FARM_BP_NAME, HORIZON_FARM_INVESTMENT_LINES, HORIZON_FARM_MONTHLY_COSTS, HORIZON_FARM_REVENUE_PROJECTIONS, buildHorizonFarmBpLine, buildHorizonFarmBusinessPlan, buildHorizonFarmMonthlyCost, buildHorizonFarmProjection } from '../services/horizonFarmBusinessPlanSeed';
 import FinancialPlanPanel from './FinancialPlanPanel.jsx';
@@ -40,6 +41,74 @@ async function syncBp(props) {
   } catch (e) { toast.error(e.message || 'Synchronisation impossible'); }
 }
 
+async function realizeInvestment(line, props) {
+  const workflow = buildInvestmentRealizationWorkflow(line);
+  if (!workflow) return toast.error('Montant investissement invalide');
+  if (line.linked_finance_transaction_id || line.realization_key) return toast.error('Cette ligne est déjà réalisée.');
+  try {
+    await props.onCreateFinanceTransaction?.(workflow.financeTransaction);
+    await props.onCreateDocument?.(workflow.proofDocument);
+    await props.onUpdateBpInvestmentLine?.(line.id, workflow.linePatch);
+    await props.onCreateBusinessEvent?.(workflow.event);
+    await Promise.allSettled([props.onRefreshFinances?.(), props.onRefreshDocuments?.(), props.onRefreshBpInvestmentLines?.(), props.onRefreshBusinessEvents?.()]);
+    toast.success('Investissement payé, finance et preuve préparées');
+  } catch (error) {
+    toast.error(error.message || 'Paiement investissement impossible');
+  }
+}
+
+async function createAssetFromInvestment(line, props) {
+  const workflow = buildInvestmentAssetWorkflow(line);
+  if (!workflow) return toast.error(line.asset_id ? 'Actif déjà créé pour cette ligne.' : 'Cette ligne ne correspond pas encore à un actif automatique.');
+  const createByModule = {
+    avicole: props.onCreateLot,
+    animal: props.onCreateAnimal,
+    culture: props.onCreateCulture,
+    equipements: props.onCreateEquipement,
+    stock: props.onCreateStock,
+  };
+  const refreshByModule = {
+    avicole: props.onRefreshLots,
+    animal: props.onRefreshAnimals,
+    culture: props.onRefreshCultures,
+    equipements: props.onRefreshEquipements,
+    stock: props.onRefreshStock,
+  };
+  const creator = createByModule[workflow.module];
+  if (!creator) return toast.error(`Création ${workflow.module} non disponible dans ce module.`);
+  try {
+    for (const payload of workflow.payloads) await creator(payload);
+    await props.onUpdateBpInvestmentLine?.(line.id, workflow.linePatch);
+    await props.onCreateBusinessEvent?.(workflow.event);
+    await Promise.allSettled([refreshByModule[workflow.module]?.(), props.onRefreshBpInvestmentLines?.(), props.onRefreshBusinessEvents?.()]);
+    toast.success('Actif métier créé et relié au BP');
+  } catch (error) {
+    toast.error(error.message || 'Création actif impossible');
+  }
+}
+
+function InvestmentTerrainActions({ lines = [], props }) {
+  const actionable = lines.filter((line) => line.id && !String(line.id).startsWith('off-'));
+  const officialOnly = !actionable.length;
+  const realisable = actionable.filter((line) => !line.linked_finance_transaction_id && !line.realization_key && investmentAmount(line) > 0);
+  const assetReady = actionable.filter((line) => (line.linked_finance_transaction_id || low(line.statut || line.status).includes('effectif')) && !line.asset_id && !line.asset_created_at && investmentAssetKind(line));
+  return <Section icon={Wallet} title="Actions terrain investissement" subtitle="Transformer le BP en argent dépensé, preuve à joindre et actif exploitable.">
+    {officialOnly ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><AlertTriangle size={16} className="inline" /> Les lignes visibles viennent encore de la source officielle. Clique d’abord sur <b>Restaurer le BP</b> pour les rendre modifiables et actionnables.</div> : null}
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+        <p className="font-black text-[#2f2415]">Marquer une dépense réalisée</p>
+        <p className="mt-1 text-sm text-[#8a7456]">Crée une sortie Finance, une preuve/facture à joindre si nécessaire, puis verrouille la ligne BP comme réalisée.</p>
+        <div className="mt-3 space-y-2">{realisable.slice(0, 8).map((line) => <button type="button" key={line.id} onClick={() => realizeInvestment(line, props)} className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-left text-sm hover:border-[#9a6b12]"><b className="text-[#2f2415]">{investmentLabel(line)}</b><span className="ml-2 text-[#8a7456]">{money(investmentAmount(line))}</span></button>)}{!realisable.length ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Aucune ligne non réalisée avec montant exploitable.</p> : null}</div>
+      </div>
+      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+        <p className="font-black text-[#2f2415]">Créer l’actif métier</p>
+        <p className="mt-1 text-sm text-[#8a7456]">Après paiement, crée le lot, l’animal, la culture, l’équipement ou le stock lié. Le double clic est bloqué par l’actif déjà relié.</p>
+        <div className="mt-3 space-y-2">{assetReady.slice(0, 8).map((line) => <button type="button" key={line.id} onClick={() => createAssetFromInvestment(line, props)} className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-left text-sm hover:border-[#9a6b12]"><Link2 size={14} className="inline text-[#9a6b12]" /> <b className="text-[#2f2415]">{investmentLabel(line)}</b><span className="ml-2 text-[#8a7456]">vers {investmentAssetKind(line)}</span></button>)}{!assetReady.length ? <p className="rounded-xl border border-[#eadcc2] bg-white px-3 py-2 text-sm text-[#8a7456]">Aucun actif en attente. Réalise une ligne éligible ou vérifie qu’elle n’est pas déjà liée.</p> : null}</div>
+      </div>
+    </div>
+  </Section>;
+}
+
 export default function InvestissementsV9(props) {
   const [tab, setTab] = useState('bp');
   const plan = useMemo(() => arr(props.businessPlans).find(isBp) || null, [props.businessPlans]);
@@ -52,7 +121,7 @@ export default function InvestissementsV9(props) {
   const annualRevenue = projections.reduce((s, r) => s + revenue(r), 0) || HORIZON_FARM_OFFICIAL_BP.revenue.annualTotal;
   let balance = -invest;
   const amort = projections.slice().sort((a, b) => toNumber(a.mois_index) - toNumber(b.mois_index)).map((r, i) => { const marge = revenue(r) - charges(r); balance += marge; return { ...r, mois: r.mois_index || i + 1, marge, balance, pct: Math.max(0, Math.min(100, ((invest + balance) / Math.max(1, invest)) * 100)) }; });
-  const tabs = [['bp','BP Horizon Farm'], ['plan','Prévu vs réel'], ['budget','Investissements'], ['charges','Charges'], ['amort','Amortissements'], ['revenus','Revenus'], ['controle','Contrôle']];
+  const tabs = [['bp','BP Horizon Farm'], ['actions','Actions terrain'], ['plan','Prévu vs réel'], ['budget','Investissements'], ['charges','Charges'], ['amort','Amortissements'], ['revenus','Revenus'], ['controle','Contrôle']];
 
-  return <div className="space-y-5 investissements-mobile-structured"><div className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm space-y-4"><div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4"><div><p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Investissements & Business Plan</p><h2 className="mt-1 text-2xl font-black text-[#2f2415]">{plan?.nom || HORIZON_FARM_BP_NAME}</h2><p className="mt-1 text-sm text-[#8a7456]">Module restructuré : un BP central, puis budget, charges, amortissement, revenus et suivi réel. Les anciens blocs doublons ne sont plus empilés ici.</p></div><button type="button" onClick={() => syncBp(props)} className="rounded-2xl bg-[#2f2415] px-4 py-3 text-sm font-black text-white"><RefreshCw size={16} className="inline" /> Restaurer le BP</button></div><div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3"><Kpi label="Investissement prévu" value={money(invest)} /><Kpi label="Charges mensuelles" value={money(monthCosts)} /><Kpi label="CA prévu année 1" value={money(annualRevenue)} /><Kpi label="CAF A1" value={money(HORIZON_FARM_OFFICIAL_BP.forecast.cashFlowCapacityByYear?.[0])} tone="good" /></div>{!plan ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><AlertTriangle size={16} className="inline" /> Le BP Horizon Farm n’est pas chargé dans la base. Clique <b>Restaurer le BP</b> pour recréer les onglets : investissements, charges, projections et amortissements.</div> : null}</div><div className="flex flex-wrap gap-2 rounded-3xl border border-[#d6c3a0] bg-white p-3">{tabs.map(([k, label]) => <button key={k} type="button" onClick={() => setTab(k)} className={`rounded-2xl px-4 py-2 text-sm font-black ${tab === k ? 'bg-[#2f2415] text-white' : 'bg-[#fffdf8] text-[#7d6a4a] border border-[#eadcc2]'}`}>{label}</button>)}</div>{tab === 'bp' ? <Section icon={FileSpreadsheet} title="BP Horizon Farm" subtitle="Le fichier financier est représenté ici sous forme d’onglets ERP clairs."><div className="grid grid-cols-1 md:grid-cols-3 gap-3"><Kpi label="Onglet investissements" value={`${lines.length} lignes`} /><Kpi label="Onglet charges" value={`${costs.length} charges`} /><Kpi label="Onglet projections" value={`${projections.length} mois`} /></div><div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><CheckCircle2 size={16} className="inline" /> Le BP retrouvé dans les documents s’appelait “Plan-financier-previsionnel HORIZON FARM(4).xlsx”. L’ERP utilise sa version structurée officielle pour remplir ces onglets.</div></Section> : null}{tab === 'plan' ? <FinancialPlanPanel {...props} /> : null}{tab === 'budget' ? <Section icon={FileSpreadsheet} title="Budget d’investissement" subtitle="Dépenses ponctuelles : cheptel, bâtiments, équipements, infrastructures, stock initial, fonds de roulement."><Table rows={lines} columns={[{ label:'Poste', key:'designation' }, { label:'Catégorie', key:'categorie' }, { label:'Quantité', render:(r)=>`${r.quantite || ''} ${r.unite || ''}` }, { label:'Prix unitaire', render:(r)=>money(r.prix_unitaire) }, { label:'Total', render:(r)=>money(totalLine(r)) }, { label:'Statut', key:'statut' }]} /></Section> : null}{tab === 'charges' ? <Section icon={Coins} title="Charges récurrentes" subtitle="Charges mensuelles du BP : aliments, salaires, santé, énergie, transport, maintenance, administration."><Table rows={costs} columns={[{ label:'Charge', key:'designation' }, { label:'Catégorie', key:'categorie' }, { label:'Mensuel', render:(r)=>money(monthly(r)) }, { label:'Fréquence', key:'frequence' }]} /></Section> : null}{tab === 'amort' ? <Section icon={BarChart3} title="Amortissements" subtitle="Solde d’investissement récupéré progressivement avec la marge prévisionnelle."><Table rows={amort} columns={[{ label:'Mois', render:(r)=>`M${r.mois}` }, { label:'CA', render:(r)=>money(revenue(r)) }, { label:'Charges', render:(r)=>money(charges(r)) }, { label:'Marge', render:(r)=>money(r.marge) }, { label:'Solde', render:(r)=>money(r.balance) }, { label:'Amorti', render:(r)=>`${Number(r.pct || 0).toFixed(0)}%` }]} /></Section> : null}{tab === 'revenus' ? <Section icon={BarChart3} title="Prévisions de revenus" subtitle="CA, charges et marge mensuelle issus du BP."><Table rows={projections} columns={[{ label:'Mois', key:'mois_index' }, { label:'CA estimé', render:(r)=>money(revenue(r)) }, { label:'Charges', render:(r)=>money(charges(r)) }, { label:'Marge', render:(r)=>money(revenue(r)-charges(r)) }, { label:'Notes', key:'notes' }]} /></Section> : null}{tab === 'controle' ? <Section icon={ShieldCheck} title="Contrôle qualité" subtitle="Cohérence BP, lignes, financement, transactions et actifs métier."><InvestmentQualityControl rows={props.rows || []} businessPlans={props.businessPlans || []} bpInvestmentLines={props.bpInvestmentLines || []} bpFundingSources={props.bpFundingSources || []} transactions={props.transactions || []} lots={props.lots || []} animaux={props.animaux || []} cultures={props.cultures || []} /></Section> : null}</div>;
+  return <div className="space-y-5 investissements-mobile-structured"><div className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm space-y-4"><div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4"><div><p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Investissements & Business Plan</p><h2 className="mt-1 text-2xl font-black text-[#2f2415]">{plan?.nom || HORIZON_FARM_BP_NAME}</h2><p className="mt-1 text-sm text-[#8a7456]">Module restructuré : un BP central, puis actions terrain, budget, charges, amortissement, revenus et suivi réel. Une dépense réalisée doit créer une sortie Finance, une preuve et un actif métier si applicable.</p></div><button type="button" onClick={() => syncBp(props)} className="rounded-2xl bg-[#2f2415] px-4 py-3 text-sm font-black text-white"><RefreshCw size={16} className="inline" /> Restaurer le BP</button></div><div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3"><Kpi label="Investissement prévu" value={money(invest)} /><Kpi label="Charges mensuelles" value={money(monthCosts)} /><Kpi label="CA prévu année 1" value={money(annualRevenue)} /><Kpi label="CAF A1" value={money(HORIZON_FARM_OFFICIAL_BP.forecast.cashFlowCapacityByYear?.[0])} tone="good" /></div>{!plan ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><AlertTriangle size={16} className="inline" /> Le BP Horizon Farm n’est pas chargé dans la base. Clique <b>Restaurer le BP</b> pour recréer les onglets : investissements, charges, projections et amortissements.</div> : null}</div><div className="flex flex-wrap gap-2 rounded-3xl border border-[#d6c3a0] bg-white p-3">{tabs.map(([k, label]) => <button key={k} type="button" onClick={() => setTab(k)} className={`rounded-2xl px-4 py-2 text-sm font-black ${tab === k ? 'bg-[#2f2415] text-white' : 'bg-[#fffdf8] text-[#7d6a4a] border border-[#eadcc2]'}`}>{label}</button>)}</div>{tab === 'bp' ? <Section icon={FileSpreadsheet} title="BP Horizon Farm" subtitle="Le fichier financier est représenté ici sous forme d’onglets ERP clairs."><div className="grid grid-cols-1 md:grid-cols-3 gap-3"><Kpi label="Onglet investissements" value={`${lines.length} lignes`} /><Kpi label="Onglet charges" value={`${costs.length} charges`} /><Kpi label="Onglet projections" value={`${projections.length} mois`} /></div><div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><CheckCircle2 size={16} className="inline" /> Le BP retrouvé dans les documents s’appelait “Plan-financier-previsionnel HORIZON FARM(4).xlsx”. L’ERP utilise sa version structurée officielle pour remplir ces onglets.</div></Section> : null}{tab === 'actions' ? <InvestmentTerrainActions lines={lines} props={props} /> : null}{tab === 'plan' ? <FinancialPlanPanel {...props} /> : null}{tab === 'budget' ? <Section icon={FileSpreadsheet} title="Budget d’investissement" subtitle="Dépenses ponctuelles : cheptel, bâtiments, équipements, infrastructures, stock initial, fonds de roulement."><Table rows={lines} columns={[{ label:'Poste', key:'designation' }, { label:'Catégorie', key:'categorie' }, { label:'Quantité', render:(r)=>`${r.quantite || ''} ${r.unite || ''}` }, { label:'Prix unitaire', render:(r)=>money(r.prix_unitaire) }, { label:'Total', render:(r)=>money(totalLine(r)) }, { label:'Réel', render:(r)=>money(r.montant_reel) }, { label:'Statut', key:'statut' }]} /></Section> : null}{tab === 'charges' ? <Section icon={Coins} title="Charges récurrentes" subtitle="Charges mensuelles du BP : aliments, salaires, santé, énergie, transport, maintenance, administration."><Table rows={costs} columns={[{ label:'Charge', key:'designation' }, { label:'Catégorie', key:'categorie' }, { label:'Mensuel', render:(r)=>money(monthly(r)) }, { label:'Fréquence', key:'frequence' }]} /></Section> : null}{tab === 'amort' ? <Section icon={BarChart3} title="Amortissements" subtitle="Solde d’investissement récupéré progressivement avec la marge prévisionnelle."><Table rows={amort} columns={[{ label:'Mois', render:(r)=>`M${r.mois}` }, { label:'CA', render:(r)=>money(revenue(r)) }, { label:'Charges', render:(r)=>money(charges(r)) }, { label:'Marge', render:(r)=>money(r.marge) }, { label:'Solde', render:(r)=>money(r.balance) }, { label:'Amorti', render:(r)=>`${Number(r.pct || 0).toFixed(0)}%` }]} /></Section> : null}{tab === 'revenus' ? <Section icon={BarChart3} title="Prévisions de revenus" subtitle="CA, charges et marge mensuelle issus du BP."><Table rows={projections} columns={[{ label:'Mois', key:'mois_index' }, { label:'CA estimé', render:(r)=>money(revenue(r)) }, { label:'Charges', render:(r)=>money(charges(r)) }, { label:'Marge', render:(r)=>money(revenue(r)-charges(r)) }, { label:'Notes', key:'notes' }]} /></Section> : null}{tab === 'controle' ? <Section icon={ShieldCheck} title="Contrôle qualité" subtitle="Cohérence BP, lignes, financement, transactions et actifs métier."><InvestmentQualityControl rows={props.rows || []} businessPlans={props.businessPlans || []} bpInvestmentLines={props.bpInvestmentLines || []} bpFundingSources={props.bpFundingSources || []} transactions={props.transactions || []} lots={props.lots || []} animaux={props.animaux || []} cultures={props.cultures || []} /></Section> : null}</div>;
 }
