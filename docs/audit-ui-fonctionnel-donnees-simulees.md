@@ -581,6 +581,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
 - `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Smart Farm, Assistant ERP, Centre décisionnel, Objectifs & Croissance, Traçabilité, Activité & Sync ERP/Audit logs, Gestion système, Dashboard, Avicole, Animaux, Finances, Comptabilité, puis garde anti-jargon et rapprochement Santé/Finances/Comptabilité, `63 passed`.
+- Vérification navigateur ciblée Cultures en mode `Données simulées · Simple` : ouverture du module Cultures après connexion, aucune alerte React de clé dupliquée `HF-CULT-002` ; seul un échec réseau météo externe non bloquant a été observé.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -612,6 +613,18 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Tests ajoutés : garde anti-jargon dans `tests/e2e/simulated-business-workflows.spec.js`.
 - Commits poussés : `7f2e188 fix: harmoniser sante finances comptabilite terrain`, `26bbbf8 fix: simplifier preuves factures documents`.
 - Reste à faire : poursuivre le même mode jury avec saisie réelle navigateur module par module quand un compte Supabase de test stable et isolé est disponible pour éviter de polluer les données de production.
+
+### Module : Cultures
+
+- Sections testées : Pilotage cultures, tableau cultures, objectif & performance, intrants & météo, données simulées.
+- Boutons testés : navigation Cultures, liens Intrants stock, Ventes et Météo depuis la culture simulée.
+- Formulaires testés : flux récolte/intrant/perte déjà couverts par les tests métier simulés ; contrôle navigateur ciblé effectué sur l’affichage après activation des données simulées.
+- Bugs trouvés : en mode simulé, la même culture `HF-CULT-002` pouvait être injectée deux fois dans les panneaux de priorité, provoquant l’avertissement React “Encountered two children with the same key”.
+- Corrections faites : déduplication des cultures par identifiant dans `CulturesV4` avant enrichissement métier, puis déduplication des lignes prioritaires dans `CultureOperationalHealthPanel`.
+- Conséquences métier vérifiées : la culture reste affichée une seule fois, les quantités/coûts/pertes gardent leurs valeurs consolidées, et les liens Stock/Ventes/Météo restent disponibles.
+- Tests ajoutés : build + `simulated-business-workflows.spec.js` relancés ; vérification navigateur ciblée Cultures en mode `Données simulées · Simple`.
+- Commit poussé : `8faf3da fix: dedupliquer affichage cultures simulees`.
+- Reste à faire : ignorer ou mocker la météo externe dans les tests navigateur pour supprimer le bruit réseau non métier.
 
 ## Commits créés
 
