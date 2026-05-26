@@ -288,6 +288,24 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Commit poussé : `6171e39 fix: completer parcours impact valeur terrain`.
 - Reste à faire : valider en navigateur connecté le clic de chaque action avec le mode données simulées activé depuis Paramètres et vérifier l’absence de doublons si l’utilisateur clique deux fois très vite.
 
+## Module : Équipements
+
+- Sections testées : Actions terrain équipements, Parc matériel, Maintenance du matériel, Évolution du matériel, fiche préparée Hey Horizon.
+- Sections supprimées/fusionnées : aucune suppression ; les actions rapides restent courtes et la réparation complète a été ajoutée sans retirer panne/maintenance/carburant.
+- Boutons testés : Ajouter équipement, Déclarer panne, Programmer maintenance, Marquer réparé, Saisir carburant, Préparer maintenance, Clôturer, Voir, Modifier, Supprimer.
+- Boutons corrigés : Marquer réparé clôture maintenant la tâche et l’alerte liées, remet l’équipement opérationnel, crée la sortie Finance et demande la preuve/facture.
+- Formulaires testés : ajout équipement, modification équipement, panne, maintenance, réparation, carburant, action Hey Horizon.
+- Champs présents : nom, type/catégorie, statut, date achat, valeur/coût achat, maintenance prévue, coût maintenance/réparation, carburant, notes.
+- Champs ajoutés : coût réparation dans l’action rapide, preuve réparation manquante, statut `operationnel` après réparation, `last_repair_done_at`, lien tâche/alerte/finance/document.
+- Actions testées : pompe irrigation en panne, tâche/alerte critique, réparation 45 000 FCFA, facture réparation à joindre, équipement remis en service.
+- Conséquences métier vérifiées : panne -> tâche + alerte + trace ; réparation -> tâche clôturée + alerte résolue + finance sortie + document preuve manquante + trace ; carburant -> finance + coût équipement ; maintenance -> finance si coût.
+- Interconnexions vérifiées : Équipements vers Tâches, Alertes, Finances, Documents, Business events, Smart Farm via capteurs hors service à traiter ensuite.
+- Bugs trouvés : la déclaration de panne était bien actionnable, mais la réparation complète était trop dépendante de la section maintenance et ne garantissait pas preuve/finance/clôture depuis une action simple.
+- Corrections faites : ajout de `equipmentWorkflows`, bouton Marquer réparé dans les actions rapides, passage des tâches/alertes/documents aux actions rapides, tests panne/réparation.
+- Tests ajoutés : panne équipement crée tâche/alerte/trace, réparation équipement clôture tâche/alerte et crée finance/document.
+- Commit poussé : `e96356a fix: completer parcours equipements terrain`.
+- Reste à faire : valider en données simulées UI que les équipements Smart Farm hors service créent bien un suivi Équipements, et tester upload réel de la facture réparation.
+
 ## Module : Avicole
 
 - Sections testées : séparation Pondeuses/Poulets de chair, Pilotage avicole, Vue active, Où saisir les œufs, Objectif œufs/pondeuses, Lots actifs, Gestion avicole, Journal de ponte et charges, Journal de ramassage des œufs, Charges directes pondeuses, Cycle et historique, Évolution détaillée.
@@ -328,6 +346,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Investissement payé sans actif réel visible | le BP V9 était lisible mais le passage paiement -> finance/preuve -> actif métier n’était pas assez actionnable | ajout d’un onglet Actions terrain et d’un workflow investissement réalisé/actif lié | `src/modules/InvestissementsV9.jsx`, `src/utils/investmentWorkflows.js`, `src/App.jsx` | `dfde19a` | `investissement réalisé crée sortie finance, preuve et trace BP`, `investissement payé crée un actif métier une seule fois` | une ligne BP payée crée sortie Finance, preuve/facture, trace puis actif métier sans doublon |
 | Rapport généré écrasant le brouillon | la génération utilisait surtout le résumé automatique et ne créait pas d’action terrain pour un rapport programmé | workflow rapport qui conserve le brouillon et bouton Programmer tâche | `src/modules/RapportsAutoBridge.jsx`, `src/modules/Rapports.jsx`, `src/utils/reportWorkflows.js`, `src/App.jsx` | `26f4eb2` | `rapport généré conserve le brouillon modifié dans le document`, `rapport programmé crée une tâche de préparation claire` | un brouillon relu reste dans le document, un rapport programmé crée une tâche exploitable |
 | Impact seulement informatif | les priorités, preuves manquantes et risques étaient visibles mais ne créaient pas toujours d’action terrain | workflow Impact pour tâche, preuve, alerte et trace ; boutons actionnables depuis les cartes | `src/modules/ImpactBusiness.jsx`, `src/utils/impactWorkflows.js`, `src/App.jsx` | `6171e39` | `indicateur impact faible crée une tâche actionnable`, `preuve manquante impact crée document, tâche et trace`, `risque impact fort crée alerte et tâche liées` | Impact crée une action réelle et garde Rapports comme module d’export/dossier |
+| Réparation équipement incomplète | la panne créait un suivi mais la remise en service simple ne garantissait pas clôture tâche/alerte, finance et preuve | workflow réparation avec équipement opérationnel, tâche terminée, alerte résolue, sortie finance et document preuve manquante | `src/modules/EquipementsQuickActionsBridge.jsx`, `src/modules/Equipements.jsx`, `src/utils/equipmentWorkflows.js` | `e96356a` | `panne équipement crée tâche, alerte et trace liées`, `réparation équipement clôture tâche/alerte et crée finance/document` | une pompe réparée revient opérationnelle et laisse preuve/facture à joindre |
 
 ## Module : Animaux
 
@@ -389,7 +408,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Avicole, Animaux, Finances, Comptabilité, `47 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, Avicole, Animaux, Finances, Comptabilité, `49 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -457,8 +476,10 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `eb7bc31 test: couvrir parcours rapports terrain`
 - `df9e416 docs: documenter corrections terrain rapports`
 - `6171e39 fix: completer parcours impact valeur terrain`
+- `add2de1 docs: documenter corrections terrain impact valeur`
+- `e96356a fix: completer parcours equipements terrain`
 
-Push GitHub : les commits jusqu'à `6171e39` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
+Push GitHub : les commits jusqu'à `e96356a` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
 ## 10 problèmes restants les plus urgents
 
