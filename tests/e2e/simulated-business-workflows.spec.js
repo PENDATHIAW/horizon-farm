@@ -6,7 +6,7 @@ import { normalizeLot, normalizeProductionOeufsLog } from '../../src/utils/norma
 import { applyStockMovement, buildStockCriticalFollowUp } from '../../src/utils/stockWorkflows.js';
 import { avicoleActiveCount, avicoleSickCount } from '../../src/utils/avicoleMetrics.js';
 import { buildHealthCostTransaction, buildHealthFollowUp, buildHealthProofDocument } from '../../src/utils/healthWorkflows.js';
-import { buildClientReminderFollowUp, canDeleteClient, normalizeClientFromSales } from '../../src/utils/clientWorkflows.js';
+import { buildClientReminderFollowUp, buildClientSalesSummary, canDeleteClient, normalizeClientFromSales } from '../../src/utils/clientWorkflows.js';
 import { buildSaleSourcePatch, capSalePayment } from '../../src/utils/salesWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
@@ -347,6 +347,20 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     const paid = normalizeClientFromSales(client, [{ id: 'CMD-CLI-002', client_id: 'CLI-TERRAIN-001', montant_total: 90000, montant_paye: 90000 }], []);
     expect(credit).toMatchObject({ statut: 'a_relancer', creance_reelle: 50000, relance_requise: true });
     expect(paid).toMatchObject({ statut: 'a_jour', creance_reelle: 0, relance_requise: false });
+  });
+
+  test('fiche client conserve paiements et dernière commande lisibles', () => {
+    const client = { id: 'CLI-FICHE-001', nom: 'Cantine Horizon' };
+    const summary = buildClientSalesSummary(
+      client,
+      [
+        { id: 'CMD-FICHE-001', client_id: 'CLI-FICHE-001', montant_total: 25000, date: '2026-05-20' },
+        { id: 'CMD-FICHE-002', client_label: 'Cantine Horizon', montant_total: 30000, date: '2026-05-22' },
+      ],
+      [{ id: 'PAY-FICHE-001', order_id: 'CMD-FICHE-001', montant: 25000 }],
+    );
+    expect(summary.clientPayments).toHaveLength(1);
+    expect(summary.derniereCommandeVente).toBe('2026-05-22');
   });
 
   test('relance client crée tâche, alerte et trace liées', () => {

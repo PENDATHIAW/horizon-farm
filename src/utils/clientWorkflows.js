@@ -11,6 +11,7 @@ export const clientReceivableKey = (client = {}) => `client_receivable:${client.
 export const saleTotal = (sale = {}) => toNumber(sale.montant_total || sale.total || sale.total_amount || sale.amount || (toNumber(sale.quantity || sale.quantite) * toNumber(sale.unit_price || sale.prix_unitaire)));
 export const paymentValue = (payment = {}) => toNumber(payment.montant || payment.amount || payment.montant_paye || payment.paid_amount);
 export const paymentOrderId = (payment = {}) => String(payment.order_id || payment.sale_id || payment.source_record_id || payment.related_id || payment.commande_id || '');
+const paymentClientId = (payment = {}) => lower(payment.client_id || payment.customer_id || payment.client || payment.client_label || payment.client_name);
 
 function clientKeys(client = {}) {
   return [client.id, client.name, client.nom, client.client_label, client.phone, client.telephone, client.tel, client.whatsapp]
@@ -39,6 +40,12 @@ export function paidForSale(sale = {}, payments = []) {
 
 export function buildClientSalesSummary(client = {}, salesOrders = [], payments = []) {
   const orders = arr(salesOrders).filter((order) => saleBelongsToClient(order, client) && !['annule', 'annulé', 'cancelled'].includes(lower(order.statut || order.status || order.statut_commande)));
+  const orderIds = new Set(orders.map((order) => String(order.id)).filter(Boolean));
+  const clientIds = clientKeys(client);
+  const clientPayments = arr(payments).filter((payment) => {
+    const orderId = paymentOrderId(payment);
+    return (orderId && orderIds.has(orderId)) || clientIds.includes(paymentClientId(payment));
+  });
   const enrichedOrders = orders.map((order) => {
     const total = saleTotal(order);
     const paid = Math.min(total, paidForSale(order, payments));
@@ -51,10 +58,16 @@ export function buildClientSalesSummary(client = {}, salesOrders = [], payments 
   return {
     orders: enrichedOrders,
     openOrders: enrichedOrders.filter((order) => order.remaining > 0),
+    clientPayments,
     totalAchete,
     totalPaye,
     resteAPayer,
     averageBasket: enrichedOrders.length ? totalAchete / enrichedOrders.length : 0,
+    derniereCommandeVente: enrichedOrders
+      .map((order) => order.date || order.created_at || order.order_date || order.sale_date)
+      .filter(Boolean)
+      .sort()
+      .at(-1) || null,
     status: resteAPayer > 0 ? 'a_relancer' : totalAchete > 0 ? 'a_jour' : (client.statut || 'prospect'),
   };
 }
