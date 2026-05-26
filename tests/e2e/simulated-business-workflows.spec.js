@@ -22,6 +22,7 @@ import { buildImpactImprovementTask, buildImpactMissingProofWorkflow, buildImpac
 import { buildEquipmentBreakdownFollowUp, buildEquipmentRepairWorkflow } from '../../src/utils/equipmentWorkflows.js';
 import { buildRhAbsenceFollowUp, buildRhAssignedTask, buildRhSalaryWorkflow } from '../../src/utils/rhWorkflows.js';
 import { buildReportGenerationWorkflow, buildReportScheduleTask } from '../../src/utils/reportWorkflows.js';
+import { buildSmartFarmDeviceFollowUp, isSmartFarmDeviceCritical, smartDeviceSource } from '../../src/utils/smartFarmWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -656,5 +657,32 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     const workflow = buildRhAssignedTask({ person: { id: 'RH-CULT-001', nom: 'Mamadou Culture' }, module: 'cultures', title: 'Arroser parcelle tomates', dueDate: today() });
     expect(workflow.task).toMatchObject({ module_lie: 'cultures', source_module: 'rh', assigned_to: 'RH-CULT-001', status: 'a_faire' });
     expect(workflow.event).toMatchObject({ event_type: 'tache_rh_assignee', linked_task_id: workflow.task.id });
+  });
+
+  test('capteur Smart Farm critique crée tâche, alerte et trace', () => {
+    const workflow = buildSmartFarmDeviceFollowUp({
+      device: { id: 'SENS-SERRE-001', name: 'Humidité serre tomate', status: 'online', source_type: 'reel', value: 92, seuil_max: 85, zone: 'Serre tomates' },
+      kind: 'capteur',
+      date: today(),
+    });
+    expect(isSmartFarmDeviceCritical({ value: 92, seuil_max: 85 })).toBe(true);
+    expect(workflow.task).toMatchObject({ module_lie: 'smartfarm', source_record_id: 'SENS-SERRE-001', status: 'a_faire' });
+    expect(workflow.alert).toMatchObject({ module_source: 'smartfarm', entity_type: 'capteur', entity_id: 'SENS-SERRE-001', status: 'nouvelle', linked_task_id: workflow.task.id });
+    expect(workflow.event).toMatchObject({ event_type: 'smartfarm_signal_critique', source_type: 'reel', linked_alert_id: workflow.alert.id });
+  });
+
+  test('Smart Farm distingue données simulées et données réelles', () => {
+    expect(smartDeviceSource({ id: 'SIM-SENS-01', status: 'simulation' })).toBe('simulation');
+    expect(smartDeviceSource({ id: 'SENS-REAL-01', status: 'online', source_type: 'reel' })).toBe('reel');
+  });
+
+  test('caméra Smart Farm hors ligne crée une action terrain', () => {
+    const workflow = buildSmartFarmDeviceFollowUp({
+      device: { id: 'CAM-ENTREE-001', name: 'Caméra entrée', status: 'offline', source_type: 'reel', zone: 'Entrée principale' },
+      kind: 'camera',
+      date: today(),
+    });
+    expect(workflow.task).toMatchObject({ module_lie: 'smartfarm', related_id: 'CAM-ENTREE-001', priority: 'haute' });
+    expect(workflow.alert).toMatchObject({ module_source: 'smartfarm', entity_type: 'camera', entity_id: 'CAM-ENTREE-001' });
   });
 });
