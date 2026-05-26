@@ -108,6 +108,24 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Commit poussé : `9a60e9c fix: completer parcours sante terrain`, `737b770 test: couvrir parcours sante terrain`.
 - Reste à faire : tester en navigateur connecté l’upload photo réel et la clôture automatique d’une alerte santé déjà existante dans Supabase.
 
+## Module : Ventes
+
+- Sections testées : Caisse ventes, Vente préparée Hey Horizon, Nouvelle vente guidée, Ventes à traiter, Suivi des ventes, Contrôle qualité ventes.
+- Sections supprimées/fusionnées : aucune suppression ; la chaîne active `VentesV3 -> VentesV5 -> VentesV6 -> VentesV4` est conservée.
+- Boutons testés : Nouvelle vente, Créer vente + facture, Modifier, Traiter, Encaisser, Livrer, Facture, Clôturer, Livrée, Valider, Continuer, Retour.
+- Boutons corrigés : Encaisser plafonne maintenant le montant réellement reçu au reste à payer avant de créer paiement et finance ; Facture crée aussi un document ; Hey Horizon applique les impacts source.
+- Formulaires testés : vente guidée produit/client/paiement/livraison/facture, vente Hey Horizon, action vente modifier/encaisser/livrer/facturer/clôturer.
+- Champs présents : client, produit/source, quantité, unité, prix unitaire, total, montant reçu, reste à payer, statut paiement, statut livraison, facture, source vendue, notes.
+- Champs ajoutés : aucun champ visible majeur ; ajout d’un utilitaire métier `salesWorkflows` pour rendre testables les règles de paiement et d’impact source.
+- Actions testées : vente stock, vente animal, encaissement trop élevé, facture/document, source vendue depuis Hey Horizon.
+- Conséquences métier vérifiées : vente payée -> paiement + finance ; encaissement trop élevé -> bloqué/plafonné au reste ; facture -> invoice + document ; vente stock -> quantité décrémentée ; vente animal -> animal vendu/sorti actif ; vente lot/culture restent couverts par la même fonction d’impact source.
+- Interconnexions vérifiées : Ventes vers Finances, Paiements, Documents, Stock, Animaux, Lots avicoles, Cultures, Traçabilité/business events.
+- Bugs trouvés : la modale d’encaissement plafonnait le paiement via VentesV6 mais créait encore une ligne finance avec le montant saisi brut ; la facture d’action rapide ne créait pas toujours le document ; la vente Hey Horizon ne décrémentait pas clairement la source vendue.
+- Corrections faites : `capSalePayment` appliqué avant paiement/finance, création document facture dans action rapide et Hey Horizon, `buildSaleSourcePatch` appliqué aux ventes Hey Horizon pour stock/animal/lot/culture.
+- Tests ajoutés : vente plafonne un encaissement trop élevé, vente stock décrémente la source vendue, vente animal sort l’animal des actifs.
+- Commit poussé : `4dade40 fix: completer parcours ventes terrain`, `bc31433 test: couvrir parcours ventes terrain`.
+- Reste à faire : tester en navigateur connecté la vente lot avicole/tablettes et la vente culture avec données Supabase réelles pour confirmer toutes les colonnes disponibles.
+
 ## Module : Avicole
 
 - Sections testées : séparation Pondeuses/Poulets de chair, Pilotage avicole, Vue active, Où saisir les œufs, Objectif œufs/pondeuses, Lots actifs, Gestion avicole, Journal de ponte et charges, Journal de ramassage des œufs, Charges directes pondeuses, Cycle et historique, Évolution détaillée.
@@ -137,6 +155,8 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Stock critique sans tâche immédiate | la création tâche/alerte dépendait surtout du bouton manuel de réapprovisionnement | suivi critique automatique après création, modification et mouvement stock | `src/modules/StocksV3.jsx`, `src/utils/stockWorkflows.js` | `ebb2db1` | `stock critique crée une alerte, une tâche et une trace liées` | un stock sous seuil crée une tâche, une alerte et une trace dédupliquées |
 | Perte stock sans impact valeur clair | la perte était surtout un événement quantité | perte reliée à une sortie finance si prix unitaire disponible et trace enrichie en montant | `src/modules/StocksV3.jsx`, `src/utils/stockWorkflows.js` | `ebb2db1` | `perte stock crée une trace avec impact valeur` | une casse/perte affiche quantité, valeur perdue et lien finance |
 | Suivi santé partiellement orphelin | tâches futures, preuve et coût santé n’avaient pas toujours des clés source vérifiables | utilitaire santé commun, tâches/proofs sourcés, coût finance dédupliqué | `src/modules/SanteV6.jsx`, `src/modules/SanteV8.jsx`, `src/utils/healthWorkflows.js` | `9a60e9c` | `santé crée une tâche et une alerte liées pour un soin en retard`, `coût santé crée une dépense finance non doublonnée`, `preuve santé devient un document fourni à vérifier` | un soin retard/fait/coût/preuve reste relié à Santé, Tâches, Alertes, Finance et Documents |
+| Encaissement vente trop élevé côté Finance | le paiement était plafonné, mais la ligne finance utilisait encore le montant saisi brut | plafonnement appliqué avant création paiement et finance | `src/modules/VentesV4.jsx`, `src/utils/salesWorkflows.js` | `4dade40` | `vente plafonne un encaissement trop élevé au reste à payer` | une vente avec 40 000 FCFA restants ne peut créer que 40 000 FCFA d’encaissement |
+| Facture ou source vendue incomplète depuis action rapide | les factures rapides ne créaient pas toujours de document et Hey Horizon ne décrémentait pas la source vendue | document facture créé et patch source appliqué pour stock/animal/lot/culture | `src/modules/VentesV4.jsx`, `src/utils/salesWorkflows.js` | `4dade40` | `vente stock décrémente la source vendue`, `vente animal sort l’animal des actifs` | facture visible dans Documents, source vendue mise à jour |
 
 ## Module : Animaux
 
@@ -198,7 +218,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Avicole, Animaux, Finances, Comptabilité, `19 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Avicole, Animaux, Finances, Comptabilité, `22 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -237,6 +257,9 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `5af5397 docs: documenter corrections terrain stock`
 - `9a60e9c fix: completer parcours sante terrain`
 - `737b770 test: couvrir parcours sante terrain`
+- `700f727 docs: documenter corrections terrain sante`
+- `4dade40 fix: completer parcours ventes terrain`
+- `bc31433 test: couvrir parcours ventes terrain`
 
 Push GitHub : les commits jusqu'à `ce0a66a` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
