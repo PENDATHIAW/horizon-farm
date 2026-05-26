@@ -198,6 +198,24 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Commit poussé : `cb5589e fix: completer parcours taches terrain`, `c4a8016 test: couvrir parcours taches terrain`.
 - Reste à faire : valider dans le navigateur connecté l’assignation à un employé RH réel et la fermeture automatique d’une tâche quand la source métier est résolue hors module Tâches.
 
+## Module : Alertes
+
+- Sections testées : Alertes à transformer en tâches, Actions & traçabilité, Centre d’alertes, filtres urgence/statut/espace, configuration WhatsApp.
+- Sections supprimées/fusionnées : aucune suppression ; le pont alerte -> tâche réutilise maintenant les règles Tâches pour éviter les doublons.
+- Boutons testés : Nouvelle alerte, Créer tâche, Marquer lu, Traiter, WhatsApp, Voir action, Supprimer, Actualiser, Configuration.
+- Boutons corrigés : Créer tâche depuis alerte utilise une clé de déduplication source ; Traiter/terminer respecte les statuts fermés ; WhatsApp reste une préparation simulée/journalisée.
+- Formulaires testés : nouvelle alerte, alerte avec cible module/entité, création tâche demandée, configuration destinataire WhatsApp.
+- Champs présents : titre, message, module concerné, cible, gravité, statut, action recommandée, responsable, créer tâche.
+- Champs ajoutés : pas de champ visible majeur ; ajout utilitaire `alertWorkflows` pour déduplication, statut fermé et conservation de l’alerte ouverte récente.
+- Actions testées : alerte stock transformée en tâche, alerte ignorée/fermée, doublon même source, WhatsApp simulé, ouverture module source.
+- Conséquences métier vérifiées : même source -> une seule alerte active ; alerte -> tâche liée sans checklist générique ; alerte ignorée/résolue -> sortie du flux ouvert ; WhatsApp -> préparation sous contrôle humain.
+- Interconnexions vérifiées : Alertes vers Tâches, Dashboard, Stock, Santé, Fournisseurs, Documents, Smart Farm, Traçabilité/business events.
+- Bugs trouvés : le panneau alerte->tâche vérifiait surtout `source_record_id`/`alert_id` et pouvait ignorer les clés de déduplication ; les modules disponibles dans l’ancien schéma d’alerte étaient incomplets ; statut ignoré non couvert dans les règles testables.
+- Corrections faites : ajout de `alertWorkflows`, pont alerte/tâche aligné avec `taskWorkflows`, modules alerte enrichis, tests de déduplication et statut ignoré.
+- Tests ajoutés : alertes même source dédupliquées en gardant l’ouverte récente, alerte ignorée considérée fermée.
+- Commit poussé : `732eac7 fix: completer parcours alertes terrain`, `5a2c0ed test: couvrir parcours alertes terrain`.
+- Reste à faire : tester en navigateur connecté la préparation WhatsApp avec un vrai numéro propriétaire configuré.
+
 ## Module : Avicole
 
 - Sections testées : séparation Pondeuses/Poulets de chair, Pilotage avicole, Vue active, Où saisir les œufs, Objectif œufs/pondeuses, Lots actifs, Gestion avicole, Journal de ponte et charges, Journal de ramassage des œufs, Charges directes pondeuses, Cycle et historique, Évolution détaillée.
@@ -233,6 +251,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Paiement fournisseur double compté | la réception fournisseur pouvait être transformée en sortie payée puis le paiement réel ajoutait une nouvelle sortie cash | réception enregistrée comme dette sans effet caisse, paiement séparé comme sortie cash, dette soldée par lien règlement | `src/modules/Fournisseurs.jsx`, `src/modules/FournisseursStockBridge.jsx`, `src/utils/supplierSettlement.js`, `src/utils/supplierWorkflows.js` | `b38ae48` | `réception fournisseur crée stock, dette et facture manquante`, `paiement fournisseur solde la dette sans double compter la réception`, `retard paiement fournisseur crée tâche et alerte liées` | stock augmente, dette existe, paiement solde sans double dépense, facture/preuve reste visible |
 | Document manquant compté comme preuve | la preuve comptable vérifiait surtout le lien et le titre/catégorie, pas toujours le statut de vérification | statuts `manquant`/`preuve_manquante` exclus des preuves valides, fiche preuve crée tâche/alerte | `src/modules/DocumentsV2.jsx`, `src/utils/accountingProof.js`, `src/utils/documentForms.js`, `src/utils/documentWorkflows.js` | `5abb335` | `document manquant ne compte pas comme preuve valide`, `dépense importante sans preuve crée tâche et alerte document`, `document lié conserve module source et statut preuve lisible` | une dépense reste à compléter tant que le fichier/preuve n’est pas fourni |
 | Tâches liées aux alertes fragiles | la création/clôture de tâche depuis alerte avait des clés différentes et les checklists pouvaient être génériques | workflow tâche centralisé, checklist nettoyée, clôture alerte liée et trace métier | `src/modules/TachesV2.jsx`, `src/modules/TachesV3.jsx`, `src/utils/taskForms.js`, `src/utils/taskWorkflows.js` | `cb5589e` | `alerte crée une tâche liée sans doublon de checklist`, `tâche terminée clôture alerte liée et trace action`, `checklist tâche ne duplique pas le titre ni les étapes génériques` | une alerte produit une seule tâche utile, et la fin de tâche ferme l’alerte source |
+| Alertes doublonnées ou mal reliées aux tâches | le pont Alertes ne réutilisait pas toutes les clés source/déduplication des tâches | déduplication d’alertes par source et création tâche via `taskWorkflows` | `src/modules/AlertTaskBridgePanel.jsx`, `src/modules/AlertesCenter.jsx`, `src/utils/alertWorkflows.js`, `src/utils/constants.js` | `732eac7` | `alertes même source sont dédupliquées en gardant l’ouverte récente`, `alerte ignorée est considérée fermée` | une alerte source reste unique et actionnable, les fermées/ignorées sortent du flux ouvert |
 
 ## Module : Animaux
 
@@ -294,7 +313,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Avicole, Animaux, Finances, Comptabilité, `35 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Avicole, Animaux, Finances, Comptabilité, `37 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -349,6 +368,9 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `18c6c58 docs: documenter corrections terrain documents`
 - `cb5589e fix: completer parcours taches terrain`
 - `c4a8016 test: couvrir parcours taches terrain`
+- `4811c32 docs: documenter corrections terrain taches`
+- `732eac7 fix: completer parcours alertes terrain`
+- `5a2c0ed test: couvrir parcours alertes terrain`
 
 Push GitHub : les commits jusqu'à `ce0a66a` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
