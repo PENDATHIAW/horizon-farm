@@ -216,6 +216,24 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Commit poussé : `732eac7 fix: completer parcours alertes terrain`, `5a2c0ed test: couvrir parcours alertes terrain`.
 - Reste à faire : tester en navigateur connecté la préparation WhatsApp avec un vrai numéro propriétaire configuré.
 
+## Module : Cultures
+
+- Sections testées : Pilotage cultures, Intrants & météo, Gestion des cultures, Actions par onglet, Cultures, Parcelles, Campagnes, Performance, Cycle et historique, Évolution cultures.
+- Sections supprimées/fusionnées : aucune suppression ; les règles récolte/stock/opportunité sont centralisées dans `cultureWorkflows` pour éviter les doublons métier.
+- Boutons testés : Nouvelle culture, Ajouter récolte, Utiliser intrant, Déclarer perte, Confirmer vendable, Ouvrir stock, Ouvrir Smart Farm, Voir, Modifier, Supprimer, Exporter, Actualiser.
+- Boutons corrigés : Utiliser intrant décrémente maintenant le stock source ; Déclarer perte réduit le disponible et trace la valeur perdue ; Ajouter récolte crée stock et opportunité sans doublonner.
+- Formulaires testés : nouvelle culture, modification culture, récolte, sortie intrant, perte/sinistre, parcelle, campagne, performance.
+- Champs présents : culture, parcelle, campagne, surface, semis, récolte prévue, quantité récoltée, quantité disponible, unité, prix unitaire, coûts, statut, météo/risque, notes.
+- Champs ajoutés : formulaires action terrain pour intrant stock, quantité utilisée, motif/date ; perte avec quantité, valeur unitaire, cause/date.
+- Actions testées : récolte tomate 120 kg, intrant engrais 12 kg, perte oignons 25 kg, risque météo critique, confirmation opportunité vendable.
+- Conséquences métier vérifiées : récolte -> stock + opportunité + trace ; intrant -> stock décrémenté + coût culture + trace ; perte -> disponible réduit + valeur perdue + trace ; risque météo -> tâche + alerte liées.
+- Interconnexions vérifiées : Cultures vers Stock, Opportunités/Ventes, Smart Farm météo, Tâches, Alertes, Documents/événements métier, Finances via coût de culture.
+- Bugs trouvés : les actions intrant/perte étaient trop dispersées ou absentes du flux principal ; le helper de récolte était enfermé dans le composant et difficile à tester ; météo/risque n’avait pas de règle métier testable.
+- Corrections faites : ajout de `cultureWorkflows`, branchement du parcours récolte existant sur helper testable, ajout des actions Utiliser intrant et Déclarer perte dans l’UI, propagation stock/culture/trace.
+- Tests ajoutés : récolte crée stock/opportunité/trace, intrant décrémente stock et coût culture, perte réduit disponible et trace valeur, risque météo crée tâche/alerte.
+- Commit poussé : `470bc0f fix: completer parcours cultures terrain`, `afab3f6 test: couvrir parcours cultures terrain`.
+- Reste à faire : valider en navigateur connecté que le mode données simulées affiche bien des intrants cultures dans le sélecteur et tester une vente de récolte de bout en bout avec stock réel.
+
 ## Module : Avicole
 
 - Sections testées : séparation Pondeuses/Poulets de chair, Pilotage avicole, Vue active, Où saisir les œufs, Objectif œufs/pondeuses, Lots actifs, Gestion avicole, Journal de ponte et charges, Journal de ramassage des œufs, Charges directes pondeuses, Cycle et historique, Évolution détaillée.
@@ -252,6 +270,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Document manquant compté comme preuve | la preuve comptable vérifiait surtout le lien et le titre/catégorie, pas toujours le statut de vérification | statuts `manquant`/`preuve_manquante` exclus des preuves valides, fiche preuve crée tâche/alerte | `src/modules/DocumentsV2.jsx`, `src/utils/accountingProof.js`, `src/utils/documentForms.js`, `src/utils/documentWorkflows.js` | `5abb335` | `document manquant ne compte pas comme preuve valide`, `dépense importante sans preuve crée tâche et alerte document`, `document lié conserve module source et statut preuve lisible` | une dépense reste à compléter tant que le fichier/preuve n’est pas fourni |
 | Tâches liées aux alertes fragiles | la création/clôture de tâche depuis alerte avait des clés différentes et les checklists pouvaient être génériques | workflow tâche centralisé, checklist nettoyée, clôture alerte liée et trace métier | `src/modules/TachesV2.jsx`, `src/modules/TachesV3.jsx`, `src/utils/taskForms.js`, `src/utils/taskWorkflows.js` | `cb5589e` | `alerte crée une tâche liée sans doublon de checklist`, `tâche terminée clôture alerte liée et trace action`, `checklist tâche ne duplique pas le titre ni les étapes génériques` | une alerte produit une seule tâche utile, et la fin de tâche ferme l’alerte source |
 | Alertes doublonnées ou mal reliées aux tâches | le pont Alertes ne réutilisait pas toutes les clés source/déduplication des tâches | déduplication d’alertes par source et création tâche via `taskWorkflows` | `src/modules/AlertTaskBridgePanel.jsx`, `src/modules/AlertesCenter.jsx`, `src/utils/alertWorkflows.js`, `src/utils/constants.js` | `732eac7` | `alertes même source sont dédupliquées en gardant l’ouverte récente`, `alerte ignorée est considérée fermée` | une alerte source reste unique et actionnable, les fermées/ignorées sortent du flux ouvert |
+| Cultures sans sortie intrant/perte intégrée | la récolte créait déjà des liens, mais intrants, pertes et météo n’avaient pas de workflow central testable | ajout de `cultureWorkflows`, actions Utiliser intrant et Déclarer perte, trace métier et tests simulés | `src/modules/CulturesV3.jsx`, `src/modules/CulturesV5.jsx`, `src/modules/CulturesTabActionsBridge.jsx`, `src/utils/cultureWorkflows.js` | `470bc0f` | `intrant culture décrémente le stock et augmente le coût culture`, `perte culture réduit le disponible et crée une trace de valeur`, `risque météo culture propose une tâche et une alerte liées` | récolte/intrant/perte/météo provoquent stock, coût, opportunité, tâche/alerte ou trace selon le cas |
 
 ## Module : Animaux
 
@@ -313,7 +332,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Avicole, Animaux, Finances, Comptabilité, `37 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Avicole, Animaux, Finances, Comptabilité, `40 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -371,6 +390,8 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `4811c32 docs: documenter corrections terrain taches`
 - `732eac7 fix: completer parcours alertes terrain`
 - `5a2c0ed test: couvrir parcours alertes terrain`
+- `470bc0f fix: completer parcours cultures terrain`
+- `afab3f6 test: couvrir parcours cultures terrain`
 
 Push GitHub : les commits jusqu'à `ce0a66a` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
