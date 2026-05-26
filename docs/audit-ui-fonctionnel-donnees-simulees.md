@@ -252,6 +252,24 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Commit poussé : `dfde19a fix: completer parcours investissements terrain`, `4e36fa1 test: couvrir parcours investissements terrain`.
 - Reste à faire : valider sur données Supabase réelles la création équipement/stock depuis BP, et ajouter une confirmation forte avant paiement si plusieurs utilisateurs travaillent en parallèle.
 
+## Module : Rapports
+
+- Sections testées : dossier financeur, rapports automatiques, exports par module, programmation, historique, guide états financiers.
+- Sections supprimées/fusionnées : aucune suppression ; Rapports reste centré sur production/export et ne reprend pas les tableaux Impact.
+- Boutons testés : Générer hebdo, Générer mensuel, Programmer tâche, Exporter PDF, Excel, CSV, Générer dossier PDF, Programmer rapport, Actualiser.
+- Boutons corrigés : génération de rapport conserve le brouillon modifié ; programmation crée une tâche de préparation ; document rapport reprend le contenu final.
+- Formulaires testés : fiche rapport programmée, dossier financeur Hey Horizon, options financeur/BP/montant, rapport hebdo/mensuel automatique.
+- Champs présents : titre, type rapport, période, canal, statut, résumé, recommandations, modules inclus via données, destinataire/financeur dans dossier.
+- Champs ajoutés : `draft_content` conservé dans le rapport et le document ; tâche de préparation avec checklist Vérifier chiffres/Relire/Générer PDF/Joindre.
+- Actions testées : rapport mensuel existant avec brouillon modifié, génération document, création tâche de programmation.
+- Conséquences métier vérifiées : rapport généré -> document + événement ; brouillon modifié -> contenu document ; rapport programmé -> tâche à faire ; dossier financeur -> document + trace.
+- Interconnexions vérifiées : Rapports vers Documents, Tâches, Business events, Finances, Ventes, Stock, Santé, Cultures, Investissements et Impact via données.
+- Bugs trouvés : le contenu automatique pouvait remplacer un brouillon modifié lors de la génération ; “programmer” ne créait pas d’action terrain exploitable.
+- Corrections faites : ajout de `reportWorkflows`, génération rapport via workflow, conservation du brouillon, bouton Programmer tâche et callbacks Tâches dans App.
+- Tests ajoutés : rapport généré conserve le brouillon modifié dans le document, rapport programmé crée une tâche de préparation claire.
+- Commit poussé : `26f4eb2 fix: completer parcours rapports terrain`, `eb7bc31 test: couvrir parcours rapports terrain`.
+- Reste à faire : vérifier visuellement le PDF généré dans le navigateur et couvrir l’export PDF réel avec Playwright si l’environnement de téléchargement est disponible.
+
 ## Module : Avicole
 
 - Sections testées : séparation Pondeuses/Poulets de chair, Pilotage avicole, Vue active, Où saisir les œufs, Objectif œufs/pondeuses, Lots actifs, Gestion avicole, Journal de ponte et charges, Journal de ramassage des œufs, Charges directes pondeuses, Cycle et historique, Évolution détaillée.
@@ -290,6 +308,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Alertes doublonnées ou mal reliées aux tâches | le pont Alertes ne réutilisait pas toutes les clés source/déduplication des tâches | déduplication d’alertes par source et création tâche via `taskWorkflows` | `src/modules/AlertTaskBridgePanel.jsx`, `src/modules/AlertesCenter.jsx`, `src/utils/alertWorkflows.js`, `src/utils/constants.js` | `732eac7` | `alertes même source sont dédupliquées en gardant l’ouverte récente`, `alerte ignorée est considérée fermée` | une alerte source reste unique et actionnable, les fermées/ignorées sortent du flux ouvert |
 | Cultures sans sortie intrant/perte intégrée | la récolte créait déjà des liens, mais intrants, pertes et météo n’avaient pas de workflow central testable | ajout de `cultureWorkflows`, actions Utiliser intrant et Déclarer perte, trace métier et tests simulés | `src/modules/CulturesV3.jsx`, `src/modules/CulturesV5.jsx`, `src/modules/CulturesTabActionsBridge.jsx`, `src/utils/cultureWorkflows.js` | `470bc0f` | `intrant culture décrémente le stock et augmente le coût culture`, `perte culture réduit le disponible et crée une trace de valeur`, `risque météo culture propose une tâche et une alerte liées` | récolte/intrant/perte/météo provoquent stock, coût, opportunité, tâche/alerte ou trace selon le cas |
 | Investissement payé sans actif réel visible | le BP V9 était lisible mais le passage paiement -> finance/preuve -> actif métier n’était pas assez actionnable | ajout d’un onglet Actions terrain et d’un workflow investissement réalisé/actif lié | `src/modules/InvestissementsV9.jsx`, `src/utils/investmentWorkflows.js`, `src/App.jsx` | `dfde19a` | `investissement réalisé crée sortie finance, preuve et trace BP`, `investissement payé crée un actif métier une seule fois` | une ligne BP payée crée sortie Finance, preuve/facture, trace puis actif métier sans doublon |
+| Rapport généré écrasant le brouillon | la génération utilisait surtout le résumé automatique et ne créait pas d’action terrain pour un rapport programmé | workflow rapport qui conserve le brouillon et bouton Programmer tâche | `src/modules/RapportsAutoBridge.jsx`, `src/modules/Rapports.jsx`, `src/utils/reportWorkflows.js`, `src/App.jsx` | `26f4eb2` | `rapport généré conserve le brouillon modifié dans le document`, `rapport programmé crée une tâche de préparation claire` | un brouillon relu reste dans le document, un rapport programmé crée une tâche exploitable |
 
 ## Module : Animaux
 
@@ -351,7 +370,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Avicole, Animaux, Finances, Comptabilité, `42 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Avicole, Animaux, Finances, Comptabilité, `44 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -414,6 +433,9 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `50cc781 docs: documenter corrections terrain cultures`
 - `dfde19a fix: completer parcours investissements terrain`
 - `4e36fa1 test: couvrir parcours investissements terrain`
+- `cd101bd docs: documenter corrections terrain investissements`
+- `26f4eb2 fix: completer parcours rapports terrain`
+- `eb7bc31 test: couvrir parcours rapports terrain`
 
 Push GitHub : les commits jusqu'à `ce0a66a` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
