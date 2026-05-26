@@ -1,14 +1,9 @@
 import useCrudModule from '../hooks/useCrudModule';
 import { makeId } from '../utils/ids';
+import { buildHealthFollowUp, healthKey, healthTarget, healthTitle, isHealthDone, isHealthOverdue } from '../utils/healthWorkflows';
 import SanteV7 from './SanteV7.jsx';
 
-const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 const today = () => new Date().toISOString().slice(0, 10);
-const isOverdue = (row = {}) => ['retard', 'en_retard', 'a_faire_retard', 'overdue'].includes(norm(row.statut || row.status || row.etat));
-const isDone = (row = {}) => ['fait', 'termine', 'terminé', 'realise', 'réalisé', 'administre', 'administré', 'ok'].includes(norm(row.statut || row.status || row.etat));
-const healthKey = (row = {}) => `health-action:${row.id || row.source_record_id || row.animal_id || row.lot_id || row.target_id || row.nom || row.name}`;
-const titleOf = (row = {}) => row.nom || row.name || row.title || row.type_soin || row.type || row.vaccin || row.id || 'Soin santé';
-const targetOf = (row = {}) => row.animal_id || row.lot_id || row.target_id || row.related_id || row.entity_id || row.sujet || 'cible non renseignée';
 
 export default function SanteV8(props) {
   const tasksCrud = useCrudModule('taches');
@@ -18,65 +13,26 @@ export default function SanteV8(props) {
   const alertes = props.alertes || alertsCrud.rows || [];
 
   const createOrReactivateFollowUp = async (row = {}, source = 'santé') => {
-    if (!row?.id || !isOverdue(row)) return;
-    const key = healthKey(row);
+    if (!row?.id || !isHealthOverdue(row)) return;
+    const followUp = buildHealthFollowUp(row, source);
+    if (!followUp) return;
+    const key = followUp.key;
     const taskExisting = tasks.find((task) => String(task.task_dedupe_key || task.action_key || task.source_record_id || '') === key);
     const alertExisting = alertes.find((alert) => String(alert.alert_dedupe_key || alert.dedupe_key || alert.source_record_id || '') === key);
-    const title = `Soin en retard · ${titleOf(row)}`;
-    const description = `Cible: ${targetOf(row)} · Source: ${source}`;
-
-    const taskPayload = {
-      task_dedupe_key: key,
-      action_key: key,
-      title,
-      module_lie: 'sante',
-      source_module: 'sante',
-      source_record_id: key,
-      related_id: row.id,
-      due_date: row.date_prevue || row.date_rappel || row.date || today(),
-      priority: 'haute',
-      status: 'a_faire',
-      checklist: 'Vérifier la cible;Préparer le produit;Réaliser le soin;Mettre à jour la fiche santé',
-      notes: description,
-    };
+    const taskPayload = followUp.task;
     if (taskExisting?.id) await (props.onUpdateTask || tasksCrud.update)?.(taskExisting.id, { ...taskPayload, status: 'a_faire' });
-    else await (props.onCreateTask || tasksCrud.create)?.({ id: makeId('TSK'), ...taskPayload });
+    else await (props.onCreateTask || tasksCrud.create)?.(taskPayload);
 
-    const alertPayload = {
-      alert_dedupe_key: key,
-      dedupe_key: key,
-      title,
-      message: description,
-      module_source: 'sante',
-      entity_type: 'health_action',
-      entity_id: row.id,
-      severity: 'haute',
-      status: 'nouvelle',
-      action_recommandee: 'Planifier et réaliser le soin, puis marquer la fiche comme faite.',
-      source_record_id: key,
-    };
+    const alertPayload = { ...followUp.alert, linked_task_id: taskExisting?.id || followUp.task.id };
     if (alertExisting?.id) await (props.onUpdateAlert || alertsCrud.update)?.(alertExisting.id, { ...alertPayload, status: 'nouvelle' });
-    else await (props.onCreateAlert || alertsCrud.create)?.({ id: makeId('ALT'), ...alertPayload });
+    else await (props.onCreateAlert || alertsCrud.create)?.(alertPayload);
 
-    await (props.onCreateBusinessEvent || eventsCrud.create)?.({
-      id: makeId('EVT'),
-      event_type: 'sante_retard_detecte',
-      module_source: 'sante',
-      entity_type: 'health_action',
-      entity_id: row.id,
-      title,
-      description,
-      event_date: today(),
-      severity: 'warning',
-      linked_task_key: key,
-      linked_alert_key: key,
-      saisies_evitees: 2,
-    });
+    await (props.onCreateBusinessEvent || eventsCrud.create)?.({ ...followUp.event, linked_task_id: taskExisting?.id || followUp.task.id });
     await Promise.allSettled([props.onRefreshTasks?.(), tasksCrud.refresh?.(), props.onRefreshAlertes?.(), alertsCrud.refresh?.(), props.onRefreshBusinessEvents?.(), eventsCrud.refresh?.()]);
   };
 
   const closeFollowUp = async (row = {}) => {
-    if (!row?.id || !isDone(row)) return;
+    if (!row?.id || !isHealthDone(row)) return;
     const key = healthKey(row);
     const linkedTasks = tasks.filter((task) => String(task.task_dedupe_key || task.action_key || task.source_record_id || '') === key);
     const linkedAlerts = alertes.filter((alert) => String(alert.alert_dedupe_key || alert.dedupe_key || alert.source_record_id || '') === key);
@@ -89,8 +45,8 @@ export default function SanteV8(props) {
         module_source: 'sante',
         entity_type: 'health_action',
         entity_id: row.id,
-        title: `Soin réalisé · ${titleOf(row)}`,
-        description: `Tâches/alertes santé clôturées pour ${targetOf(row)}.`,
+        title: `Soin réalisé · ${healthTitle(row)}`,
+        description: `Tâches/alertes santé clôturées pour ${healthTarget(row)}.`,
         event_date: today(),
         severity: 'info',
       });
