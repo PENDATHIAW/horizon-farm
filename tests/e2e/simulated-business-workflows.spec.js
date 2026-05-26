@@ -10,6 +10,9 @@ import { buildClientReminderFollowUp, buildClientSalesSummary, canDeleteClient, 
 import { buildSaleSourcePatch, capSalePayment } from '../../src/utils/salesWorkflows.js';
 import { buildSupplierDebtFollowUp, buildSupplierPaymentWorkflow, buildSupplierReceptionWorkflow } from '../../src/utils/supplierWorkflows.js';
 import { calculateSupplierSettlement } from '../../src/utils/supplierSettlement.js';
+import { transactionHasProof } from '../../src/utils/accountingProof.js';
+import { buildDocumentProofFollowUp } from '../../src/utils/documentWorkflows.js';
+import { normalizeDocumentPayload } from '../../src/utils/documentForms.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -411,5 +414,29 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(followUp.task).toMatchObject({ module_lie: 'fournisseurs', related_id: 'FOU-RETARD-001', status: 'a_faire' });
     expect(followUp.alert).toMatchObject({ module_source: 'fournisseurs', entity_id: 'FOU-RETARD-001', status: 'nouvelle' });
     expect(followUp.task.task_dedupe_key).toBe(followUp.alert.alert_dedupe_key);
+  });
+
+  test('document manquant ne compte pas comme preuve valide', () => {
+    const tx = { id: 'TRX-DOC-001', montant: 175000, type: 'sortie' };
+    const missingDoc = { id: 'DOC-MISS-001', transaction_id: 'TRX-DOC-001', title: 'Facture à joindre', status: 'fourni', verification_status: 'preuve_manquante' };
+    const validDoc = { id: 'DOC-OK-001', transaction_id: 'TRX-DOC-001', title: 'Facture fournisseur', status: 'fourni', file_url: 'simulation://facture.pdf' };
+    expect(transactionHasProof(tx, [missingDoc])).toBe(false);
+    expect(transactionHasProof(tx, [validDoc])).toBe(true);
+  });
+
+  test('dépense importante sans preuve crée tâche et alerte document', () => {
+    const document = { id: 'DOC-TASK-001', title: 'Facture pompe à joindre', transaction_id: 'TRX-POMPE-001', status: 'manquant', montant: 240000 };
+    const followUp = buildDocumentProofFollowUp({ document, transaction: { id: 'TRX-POMPE-001', montant: 240000 }, date: today() });
+    expect(followUp.task).toMatchObject({ module_lie: 'documents', related_id: 'DOC-TASK-001', priority: 'haute', status: 'a_faire' });
+    expect(followUp.alert).toMatchObject({ module_source: 'documents', entity_id: 'DOC-TASK-001', severity: 'warning', status: 'nouvelle' });
+    expect(followUp.task.task_dedupe_key).toBe(followUp.alert.alert_dedupe_key);
+  });
+
+  test('document lié conserve module source et statut preuve lisible', () => {
+    const payload = normalizeDocumentPayload(
+      { id: 'DOC-LINK-001', title: 'Ordonnance BOV002', module_source: 'animaux', entity_id: 'BOV002', document_category: 'ordonnance' },
+      { animaux: [{ id: 'BOV002', nom: 'Taureau BOV002' }] },
+    );
+    expect(payload).toMatchObject({ entity_type: 'animal', related_id: 'BOV002', status: 'manquant', verification_status: 'preuve_manquante' });
   });
 });
