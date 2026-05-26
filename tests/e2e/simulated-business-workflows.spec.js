@@ -26,6 +26,7 @@ import { buildSmartFarmDeviceFollowUp, isSmartFarmDeviceCritical, smartDeviceSou
 import { interpretHorizonCommand } from '../../src/services/aiIntentEngine.js';
 import { buildDecisionRecommendationTask } from '../../src/utils/decisionCenterWorkflows.js';
 import { buildObjectiveActionTask, buildObjectiveStatus } from '../../src/utils/objectivesWorkflows.js';
+import { buildSensitiveActionTrace, buildTraceCoverage, normalizeTraceEvent, routeForTrace } from '../../src/utils/traceabilityWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -725,5 +726,20 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(workflow.status).toMatchObject({ key: 'en_retard', priority: 'haute' });
     expect(workflow.task).toMatchObject({ module_lie: 'avicole', source_module: 'objectifs_croissance', source_record_id: 'poulets_chair', status: 'a_faire' });
     expect(workflow.event).toMatchObject({ event_type: 'objectif_plan_action', module_source: 'objectifs_croissance', source_module: 'avicole', linked_task_id: workflow.task.id });
+  });
+
+  test('Traçabilité source les actions sensibles et ouvre le bon module', () => {
+    const saleTrace = normalizeTraceEvent({ id: 'EVT-SALE-001', event_type: 'vente_complete', module_source: 'sales_orders', linked_sale_id: 'CMD-001', title: 'Vente tomate' });
+    const adminTrace = buildSensitiveActionTrace({ action: 'system_user_deleted', module: 'gestion_systeme', entityId: 'USR-001', title: 'Utilisateur supprimé', date: today() });
+    const coverage = buildTraceCoverage([
+      saleTrace,
+      normalizeTraceEvent({ id: 'EVT-SOIN-001', event_type: 'soin_realise', module_source: 'sante', entity_id: 'BOV002', title: 'Vaccin BOV002' }),
+      normalizeTraceEvent({ id: 'EVT-ORPHAN', event_type: 'paiement', title: 'Paiement sans source' }),
+      adminTrace,
+    ]);
+    expect(routeForTrace(saleTrace)).toBe('ventes');
+    expect(adminTrace).toMatchObject({ module_source: 'gestion_systeme', entity_id: 'USR-001', has_source: true });
+    expect(coverage.sensitive.length).toBe(4);
+    expect(coverage.sensitiveMissing.map((event) => event.id)).toContain('EVT-ORPHAN');
   });
 });
