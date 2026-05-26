@@ -18,7 +18,7 @@ Branche auditée : `feature/objectifs-croissance-centre-decisionnel`
 | Centre décisionnel | `CentreIA` | stock, santé, finances, production | recommandations, preuves, ouverture source | smoke et audit métier | `18e6d78` | éviter doublons avec Alertes | P2 |
 | Objectifs & Croissance | `ObjectifsCroissanceV2` | objectifs production/finance | objectifs, plans, liens source | routage vérifié | `18e6d78` | actions automatiques à compléter | P2 |
 | Animaux | `AnimauxV2` | animaux actifs, vendus, prêts | espèces, fiche, prêt à vendre | opportunité unique animal prêt | `d381dee` | sortie mort/perte à tracer partout | P1 |
-| Avicole | `AvicoleV10` | lots chair/pondeuses, œufs, mortalité | lots, ponte, alimentation, opportunités | clés stables et opportunités vente | `4941b16`, `4cd10ae` | décrément stock aliment réel à auditer | P1 |
+| Avicole | `AvicoleV10` | lots chair/pondeuses, œufs, mortalité, malades, vendus/sortis | lots, ponte, alimentation, opportunités, cycles | ramassage œufs débloqué, tablettes calculées, effectif actuel recalculé, cycles dédupliqués | `4941b16`, `4cd10ae`, `e51b139`, `1163fb7`, `5369273` | décrément stock aliment réel à auditer | P1 |
 | Santé & Vaccins | `SanteV8` | soins en retard/réalisés | soin, report, statut, coût | retards synchronisés tâches/alertes, boucle useEffect corrigée | `0d73a27`, `55dbb08`, `7489b16` | documents de preuve à systématiser | P1 |
 | Finances | `FinancesV12` | entrées, sorties, créances | écriture, dépense, paiement | build/smoke, finance reliée ventes, créances exclues du cash encaissé | `286e618`, `d9ae417` | rapprochement bancaire réel à ajouter | P2 |
 | Comptabilité | `ComptabiliteV7` | écritures, justificatifs | contrôle, preuve, export | module audité en smoke | `18e6d78` | verrouillage clôture réel | P2 |
@@ -72,13 +72,40 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | RH | salaire payé | équipe, paie | `EMP-AWA` | paie crée sortie finance et document salaire à joindre | `344e480` | validation paie réelle |
 | Sync / Audit logs | vérification orphelins, traces | anomalies, logs | ventes, documents, traces | test détecte ventes sans client et documents orphelins | `18e6d78` | actions correctives automatiques |
 
+## Module : Avicole
+
+- Sections testées : séparation Pondeuses/Poulets de chair, Pilotage avicole, Vue active, Où saisir les œufs, Objectif œufs/pondeuses, Lots actifs, Gestion avicole, Journal de ponte et charges, Journal de ramassage des œufs, Charges directes pondeuses, Cycle et historique, Évolution détaillée.
+- Sections supprimées/fusionnées : aucune suppression ; les doublons métier du tableau cycles ont été corrigés par déduplication des lignes calculées.
+- Boutons testés : Pondeuses, Poulets de chair, Stock alimentation, Ventes, Santé, Voir Centre décisionnel, Actualiser, Exporter, Ramassage œufs, Ajouter lot pondeuses, Voir, Modifier, Supprimer.
+- Boutons corrigés : le flux Ramassage œufs ne bloque plus si la synchronisation stock/opportunité échoue après l’enregistrement de la ponte ; les boutons Stock/Ventes/Santé gardent une navigation métier claire.
+- Formulaires testés : saisie de ramassage d’œufs, journal de ponte, lots pondeuses, actions lot Voir/Modifier, suivi cycles.
+- Champs présents : lot, date, œufs produits, œufs cassés, œufs vendables, tablettes/plateaux, effectif initial, morts, malades, vendus/sortis, effectif actuel, statut, coût/charges, alimentation.
+- Champs ajoutés : payload complet côté ramassage œufs avec `oeufs_produits`, `oeufs_vendables`, `tablettes`, `plateaux`, `oeufs_par_tablette`, `type_evenement`; affichage fiche lot enrichi avec effectif initial, morts, malades à surveiller, vendus/sortis, effectif calculé et effectif enregistré si différent.
+- Actions testées : ramassage de 300 œufs, calcul 30 œufs = 1 tablette, recalcul effectif lot initial 100 / morts 5 / vendus 10 / malades 3, contrôle des cycles chair/pondeuses.
+- Conséquences métier vérifiées : la production d’œufs reste enregistrée même si une synchronisation secondaire échoue ; les tablettes sont calculées sur les œufs vendables ; les malades restent dans l’effectif et apparaissent comme à surveiller ; les morts/vendus/sortis sortent de l’effectif actuel ; les pondeuses ne sont plus classées dans les ventes chair.
+- Interconnexions vérifiées : Avicole vers Stock œufs/tablettes, opportunités de vente, Santé, Ventes, Centre décisionnel ; la synchronisation secondaire est non bloquante pour ne pas perdre la saisie terrain.
+- Bugs trouvés : blocage apparent du ramassage d’œufs quand la synchro stock/opportunité échouait après création, effectif actuel dépendant de champs contradictoires, malades risquant d’être retirés de l’effectif, pondeuses classées comme poulets chair dans les cycles, doublons LOTCH dans les cycles, œufs du jour non comptés quand la donnée venait de `oeufs_produits`.
+- Corrections faites : normalisation des logs ponte, payload compatible Supabase/production_oeufs_logs, synchro stock/opportunité non bloquante, règle unique `effectif actuel = effectif initial - morts - vendus - pertes/sorties`, affichage d’alerte si effectif enregistré différent du calculé, classification cycle chair après exclusion des pondeuses, déduplication des cycles, comptage œufs depuis `oeufs_produits`.
+- Tests ajoutés : `ramassage œufs normalisé ne bloque pas et calcule les tablettes`, `effectif actuel avicole exclut morts/vendus/sorties mais pas malades`, `cycles avicoles ne dupliquent pas les lots et ne classent pas les pondeuses en chair`.
+- Commit poussé : `e51b139 fix: corriger blocage ramassage oeufs`, `1163fb7 fix: recalculer cycles avicoles`, `5369273 test: couvrir incoherences terrain avicole`.
+- Reste à faire : revalider en données Supabase réelles que la sortie stock aliment est décrémentée automatiquement à chaque alimentation et ajouter un test navigateur complet si l’environnement de login de test est disponible.
+
+## Corrections terrain après test manuel utilisateur
+
+| Bug observé | Cause trouvée | Correction faite | Fichiers modifiés | Commit | Test ajouté | Résultat attendu |
+|---|---|---|---|---|---|---|
+| Ramassage d’œufs bloqué | l’écriture de production pouvait réussir mais la synchronisation stock/opportunité secondaire faisait échouer le parcours utilisateur | payload de ponte complété et synchronisation secondaire rendue non bloquante | `src/modules/AvicoleV10.jsx`, `src/modules/AvicoleJournalsBridge.jsx`, `src/utils/normalize.js` | `e51b139` | `ramassage œufs normalisé ne bloque pas et calcule les tablettes` | 300 œufs saisis créent 10 tablettes sans bloquer |
+| Effectif actuel incohérent | plusieurs champs concurrents (`current_count`, `effectif_actuel`, `mortality`, `vendus`, `sorties`) étaient utilisés sans règle unique | règle unique de calcul et affichage de l’écart enregistré/calculé | `src/utils/avicoleMetrics.js`, `src/utils/normalize.js`, `src/modules/AvicoleBase.jsx`, `src/components/AvicoleLotDetailsModal.jsx` | `e51b139` | `effectif actuel avicole exclut morts/vendus/sorties mais pas malades` | initial 100 - morts 5 - vendus 10 = 85 ; 3 malades restent à surveiller |
+| Cycles avicoles dupliqués ou mal classés | les pondeuses pouvaient être détectées comme chair si le libellé contenait poulet, et les retards apparaissaient deux fois | exclusion des pondeuses avant classification chair et déduplication des cycles affichés | `src/services/productionCycleDates.js`, `src/modules/AvicoleCycleHealthPanel.jsx` | `1163fb7` | `cycles avicoles ne dupliquent pas les lots et ne classent pas les pondeuses en chair` | les lots pondeuses restent dans réforme/ponte, les lots chair dans vente chair |
+| Œufs du jour à zéro malgré des logs | le tableau de pilotage ne lisait pas `oeufs_produits` | compteur d’œufs unifié sur tous les alias de production | `src/modules/AvicoleCycleHealthPanel.jsx` | `1163fb7` | couvert par le test ramassage œufs | le pilotage compte les œufs produits du jour |
+
 ## Tests
 
 - `npm install --no-audit --no-fund` : réussi avant synchronisation ; après reprise, `npm`/`npx` n’étaient plus disponibles dans le `PATH` Codex. Les bindings natifs optionnels macOS manquants ont été restaurés pour exécuter build/tests avec le binaire Node local.
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi, `6 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Avicole, `9 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -100,8 +127,11 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `0b68c15 fix: securiser actions gestion systeme`
 - `344e480 fix: relier equipements et rh aux traces metier`
 - `7acde88 test: couvrir parcours humain erp complet`
+- `e51b139 fix: corriger blocage ramassage oeufs`
+- `1163fb7 fix: recalculer cycles avicoles`
+- `5369273 test: couvrir incoherences terrain avicole`
 
-Push GitHub : les commits jusqu'à `7acde88` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
+Push GitHub : les commits jusqu'à `5369273` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
 ## 10 problèmes restants les plus urgents
 
