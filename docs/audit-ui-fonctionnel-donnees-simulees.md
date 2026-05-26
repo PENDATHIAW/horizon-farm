@@ -17,7 +17,7 @@ Branche auditée : `feature/objectifs-croissance-centre-decisionnel`
 | Assistant ERP | `AssistantERPV2` | commandes simulées, brouillons | ouverture Hey Horizon, orientation modules | smoke sans texte technique | `18e6d78` | préremplissage fiche encore à renforcer | P2 |
 | Centre décisionnel | `CentreIA` | stock, santé, finances, production | recommandations, preuves, ouverture source | smoke et audit métier | `18e6d78` | éviter doublons avec Alertes | P2 |
 | Objectifs & Croissance | `ObjectifsCroissanceV2` | objectifs production/finance | objectifs, plans, liens source | routage vérifié | `18e6d78` | actions automatiques à compléter | P2 |
-| Animaux | `AnimauxV2` | animaux actifs, vendus, prêts | espèces, fiche, prêt à vendre | opportunité unique animal prêt | `d381dee` | sortie mort/perte à tracer partout | P1 |
+| Animaux | `AnimauxV2` | animaux actifs, vendus, prêts, malades, historisés | espèces, fiche, formulaires ajout/modification, prêt à vendre | fiche animal complète, champs terrain ajoutés, historique de vie lisible | `d381dee`, `a6d23b4`, `ecb8048` | sortie mort/perte à tracer partout sur données réelles | P1 |
 | Avicole | `AvicoleV10` | lots chair/pondeuses, œufs, mortalité, malades, vendus/sortis | lots, ponte, alimentation, opportunités, cycles | ramassage œufs débloqué, tablettes calculées, effectif actuel recalculé, cycles dédupliqués | `4941b16`, `4cd10ae`, `e51b139`, `1163fb7`, `5369273` | décrément stock aliment réel à auditer | P1 |
 | Santé & Vaccins | `SanteV8` | soins en retard/réalisés | soin, report, statut, coût | retards synchronisés tâches/alertes, boucle useEffect corrigée | `0d73a27`, `55dbb08`, `7489b16` | documents de preuve à systématiser | P1 |
 | Finances | `FinancesV12` | entrées, sorties, créances | écriture, dépense, paiement | build/smoke, finance reliée ventes, créances exclues du cash encaissé | `286e618`, `d9ae417` | rapprochement bancaire réel à ajouter | P2 |
@@ -99,13 +99,31 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Cycles avicoles dupliqués ou mal classés | les pondeuses pouvaient être détectées comme chair si le libellé contenait poulet, et les retards apparaissaient deux fois | exclusion des pondeuses avant classification chair et déduplication des cycles affichés | `src/services/productionCycleDates.js`, `src/modules/AvicoleCycleHealthPanel.jsx` | `1163fb7` | `cycles avicoles ne dupliquent pas les lots et ne classent pas les pondeuses en chair` | les lots pondeuses restent dans réforme/ponte, les lots chair dans vente chair |
 | Œufs du jour à zéro malgré des logs | le tableau de pilotage ne lisait pas `oeufs_produits` | compteur d’œufs unifié sur tous les alias de production | `src/modules/AvicoleCycleHealthPanel.jsx` | `1163fb7` | couvert par le test ramassage œufs | le pilotage compte les œufs produits du jour |
 
+## Module : Animaux
+
+- Sections testées : Cheptel par espèce, Pilotage santé/cycle animal, Vue active, Objectif espèce, Suivi quotidien, Abattage/transformation/stock, Frais liés à un animal, Cycle et historique, Évolution.
+- Sections supprimées/fusionnées : aucune suppression ; la fiche détail a été restructurée pour éviter de disperser identité, poids, coûts, documents et historique dans plusieurs zones peu lisibles.
+- Boutons testés : Bovin/Ovin/Caprin, Actualiser, Exporter, Ajouter animal, filtres Actifs/Prêts vente/Pesées en retard/Vendus/À surveiller, Voir, Modifier, Supprimer.
+- Boutons corrigés : Voir ouvre maintenant une fiche réellement complète ; Modifier permet de saisir les champs terrain principaux manquants.
+- Formulaires testés : Ajouter animal, Modifier animal, détail fiche, historique pesées, photo/document, statut présence/vente, santé, localisation.
+- Champs présents : ID animal, N° boucle, QR/scan, nom/repère, espèce, sexe, date entrée, poids entrée, poids actuel, poids cible, dernière pesée, prix achat, prix vente estimé, santé, statut, notes.
+- Champs ajoutés : race, date naissance/âge, origine/vendeur, localisation/enclos, photo animal, documents/preuves, notes terrain visibles, documents sérialisés en `documents` et `pieces_jointes`.
+- Actions testées : création animal complet, modification fiche, ajout pesée, affichage coûts, statut prêt à vendre, animal verrouillé vendu/mort/perdu, consultation historique.
+- Conséquences métier vérifiées : animal prêt à vendre garde l’opportunité vente existante sans doublon ; animal vendu/mort/perdu/sorti n’est plus dans les actifs mais reste dans historique ; soins, alimentation, ventes, paiements et événements liés sont regroupés dans l’historique de vie.
+- Interconnexions vérifiées : Animaux vers Santé, Alimentation/Stock, Ventes, Paiements, Finances, Documents, Traçabilité/Centre décisionnel via événements métier.
+- Bugs trouvés : fiche détail insuffisante pour comprendre toute la vie de l’animal, champs race/naissance/origine/localisation/documents absents des formulaires, valeurs manquantes pouvant rester peu explicites, historique de vie limité aux pesées.
+- Corrections faites : ajout de libellés “Non renseigné”, identité complète dans la fiche, coûts avec achat/alimentation/soins/coût cumulé/valeur estimée, documents/photos visibles, historique de vie fusionnant pesées, santé, alimentation, ventes et événements métier.
+- Tests ajoutés : `fiche animal complète affiche les champs terrain importants`.
+- Commit poussé : `a6d23b4 fix: completer fiches animaux`, `ecb8048 test: couvrir fiche animal complete`.
+- Reste à faire : tester dans le navigateur connecté la saisie photo réelle Supabase Storage et étendre la traçabilité automatique des sorties mort/perte/vol sur tous les chemins de formulaire.
+
 ## Tests
 
 - `npm install --no-audit --no-fund` : réussi avant synchronisation ; après reprise, `npm`/`npx` n’étaient plus disponibles dans le `PATH` Codex. Les bindings natifs optionnels macOS manquants ont été restaurés pour exécuter build/tests avec le binaire Node local.
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Avicole, `9 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Avicole/Animaux, `10 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -130,8 +148,11 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `e51b139 fix: corriger blocage ramassage oeufs`
 - `1163fb7 fix: recalculer cycles avicoles`
 - `5369273 test: couvrir incoherences terrain avicole`
+- `47c2266 docs: documenter corrections terrain avicole`
+- `a6d23b4 fix: completer fiches animaux`
+- `ecb8048 test: couvrir fiche animal complete`
 
-Push GitHub : les commits jusqu'à `5369273` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
+Push GitHub : les commits jusqu'à `ecb8048` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
 ## 10 problèmes restants les plus urgents
 
