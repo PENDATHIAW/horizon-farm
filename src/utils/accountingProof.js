@@ -1,12 +1,14 @@
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value) => String(value || '').trim();
 const lower = (value) => clean(value).toLowerCase();
-const pendingProofStatuses = ['manquant', 'a_joindre', 'à joindre', 'a_completer', 'à compléter', 'missing', 'pending'];
+const pendingProofStatuses = ['manquant', 'a_joindre', 'à joindre', 'a_completer', 'à compléter', 'missing', 'pending', 'preuve_manquante'];
 
 export function documentIsUsableProof(document = {}) {
   if (document.file_url || document.url || document.storage_path || document.justificatif_url || document.proof_url || document.preuve_url) return true;
   const status = lower(document.statut || document.status || document.etat);
+  const verificationStatus = lower(document.verification_status || document.proof_status);
   if (pendingProofStatuses.includes(status)) return false;
+  if (pendingProofStatuses.includes(verificationStatus)) return false;
   return Boolean(clean(document.title || document.nom || document.name || document.document_category || document.category || document.type));
 }
 
