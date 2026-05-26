@@ -88,9 +88,9 @@ export default function LifecycleHistoryPanel({ mode = 'avicole', rows = [], sal
     {!histories.length ? <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Aucune cible active dans ce module. Les anciens logs orphelins ne sont pas repris dans les calculs.</div> : null}
 
     <div className="space-y-3">
-      {histories.slice(0, 8).map(({ target, history }) => {
+      {histories.slice(0, 8).map(({ target, history }, index) => {
         const needsQualify = hasReconciliation(history);
-        return <div key={target.id} className={`rounded-2xl border overflow-hidden ${needsQualify ? 'border-amber-200 bg-amber-50/40' : 'border-[#eadcc2] bg-[#fffdf8]'}`}>
+        return <div key={`${target.id || 'cycle'}-${index}`} className={`rounded-2xl border overflow-hidden ${needsQualify ? 'border-amber-200 bg-amber-50/40' : 'border-[#eadcc2] bg-[#fffdf8]'}`}>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-4 border-b border-[#eadcc2]">
             <div>
               <p className="font-black text-[#2f2415]">{labelOf(target)}</p>

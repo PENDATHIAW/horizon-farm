@@ -54,7 +54,7 @@ export default function AvicoleTransformationBridge({ rows = [], alimentationLog
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
     <div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Drumstick size={20} /> Abattage / transformation avicole</p><p className="mt-1 text-sm text-[#8a7456]">Transforme un lot de chair en stock viande avec coût/kg réel.</p></div>
     <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-6 xl:grid-cols-11 gap-2 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-      <Field label="Lot chair"><Select value={form.lot_id || ''} onChange={(e) => update('lot_id', e.target.value)}><option value="">Choisir</option>{lots.map((lot) => <option key={lot.id} value={lot.id}>{lotLabel(lot)} · {fmtNumber(avicoleActiveCount(lot))} actifs</option>)}</Select></Field>
+      <Field label="Lot chair"><Select value={form.lot_id || ''} onChange={(e) => update('lot_id', e.target.value)}><option value="">Choisir</option>{lots.map((lot, index) => <option key={`${lot.id || 'lot'}-${index}`} value={lot.id}>{lotLabel(lot)} · {fmtNumber(avicoleActiveCount(lot))} actifs</option>)}</Select></Field>
       <Field label="Date"><Input type="date" value={form.date || ''} onChange={(e) => update('date', e.target.value)} /></Field>
       <Field label="Sujets abattus"><Input type="number" min="0" value={form.sujets_abattus || ''} onChange={(e) => update('sujets_abattus', e.target.value)} /></Field>
       <Field label="Poids viande kg"><Input type="number" step="0.01" min="0" value={form.poids_total_viande || ''} onChange={(e) => update('poids_total_viande', e.target.value)} /></Field>

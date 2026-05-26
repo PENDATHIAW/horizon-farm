@@ -28,6 +28,7 @@ const filterByActivity = (rows = [], activity) => {
   if (activity === 'chair') return rows.filter(isChair);
   return rows;
 };
+const uniqueRowsById = (rows = []) => Array.from(new Map(rows.map((row, index) => [String(row?.id || row?.name || row?.nom || index), row])).values());
 const mortalityOf = (lot = {}) => num(lot.mortality ?? lot.morts ?? lot.dead_count);
 const initialOf = (lot = {}) => num(lot.initial_count ?? lot.effectif_initial);
 const mortalityRateOf = (lot = {}) => initialOf(lot) > 0 ? Math.round((mortalityOf(lot) / initialOf(lot)) * 100) : 0;
@@ -104,7 +105,7 @@ function HeyHorizonAvicoleCard({ draft, rows, onUpdate, onCreateProduction, onRe
 export default function AvicoleV10(props) {
   const [activity, setActivity] = useState('pondeuse');
   const [horizonDraft, setHorizonDraft] = useState(null);
-  const rows = props.rows || [];
+  const rows = uniqueRowsById(props.rows || []);
   const productionLogs = props.productionLogs || [];
   const salesOrders = props.salesOrders || [];
   const payments = props.payments || [];
