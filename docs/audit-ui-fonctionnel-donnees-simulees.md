@@ -20,7 +20,7 @@ Branche auditée : `feature/objectifs-croissance-centre-decisionnel`
 | Animaux | `AnimauxV2` | animaux actifs, vendus, prêts, malades, historisés | espèces, fiche, formulaires ajout/modification, prêt à vendre | fiche animal complète, champs terrain ajoutés, historique de vie lisible | `d381dee`, `a6d23b4`, `ecb8048` | sortie mort/perte à tracer partout sur données réelles | P1 |
 | Avicole | `AvicoleV10` | lots chair/pondeuses, œufs, mortalité, malades, vendus/sortis | lots, ponte, alimentation, opportunités, cycles | ramassage œufs débloqué, tablettes calculées, effectif actuel recalculé, cycles dédupliqués | `4941b16`, `4cd10ae`, `e51b139`, `1163fb7`, `5369273` | décrément stock aliment réel à auditer | P1 |
 | Santé & Vaccins | `SanteV8` | soins en retard/réalisés | soin, report, statut, coût | retards synchronisés tâches/alertes, boucle useEffect corrigée | `0d73a27`, `55dbb08`, `7489b16` | documents de preuve à systématiser | P1 |
-| Finances | `FinancesV12` | entrées, sorties, créances | écriture, dépense, paiement | build/smoke, finance reliée ventes, créances exclues du cash encaissé | `286e618`, `d9ae417` | rapprochement bancaire réel à ajouter | P2 |
+| Finances | `FinancesV12` | argent reçu, argent dépensé, reste à encaisser, reste à payer | ligne finance, dépense, paiement, preuve/facture | libellés terrain simplifiés, cash sans reste à encaisser, paiements liés pris en compte | `286e618`, `d9ae417`, `aeca008`, `8795c17` | rapprochement caisse/banque réel à ajouter | P2 |
 | Comptabilité | `ComptabiliteV7` | écritures, justificatifs | contrôle, preuve, export | module audité en smoke | `18e6d78` | verrouillage clôture réel | P2 |
 | Investissements | `InvestissementsV9` | BP Horizon Farm, charges, revenus | onglets BP, amortissements, contrôle | routage V9 et BP visible | `f06aea4`, `e956a37` | transformation actif à sécuriser | P1 |
 | Impact & Valeur | `ImpactBusiness` | production, revenus, preuves | dossier financeur, liens rapports | séparation avec Rapports vérifiée | `18e6d78` | score financeur à sourcer davantage | P2 |
@@ -117,13 +117,31 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Commit poussé : `a6d23b4 fix: completer fiches animaux`, `ecb8048 test: couvrir fiche animal complete`.
 - Reste à faire : tester dans le navigateur connecté la saisie photo réelle Supabase Storage et étendre la traçabilité automatique des sorties mort/perte/vol sur tous les chemins de formulaire.
 
+## Module : Finances
+
+- Sections testées : Trésorerie, BP KPI, Contrôle argent et preuves, Argent/dépenses/rentabilité, Rémunération propriétaire, Lignes finance manuelles, Évolution financière.
+- Sections supprimées/fusionnées : aucune suppression ; les libellés comptables ont été simplifiés pour éviter la confusion avec Comptabilité.
+- Boutons testés : Actualiser, Exporter, Ajouter argent reçu/dépensé, Voir, Modifier, Supprimer, Ouvrir documents, Ouvrir comptabilité, Ouvrir finances.
+- Boutons corrigés : Ajouter produit/charge devient Ajouter argent reçu/dépensé ; Créer l’écriture devient Enregistrer la ligne finance.
+- Formulaires testés : Hey Horizon finance, ajout ligne finance, modification ligne finance, preuve/facture, catégorie, module lié, caisse/banque.
+- Champs présents : type, montant, date, libellé simple, statut paiement, catégorie, module lié, fiche liée, client, fournisseur, moyen paiement, preuve/facture, caisse/banque.
+- Champs ajoutés : aucun champ structurel nouveau ; les champs existants ont été renommés côté UI pour être compréhensibles sans vocabulaire comptable.
+- Actions testées : vente de 100 000 FCFA avec paiement lié de 40 000 FCFA, dépense fournisseur ouverte de 15 000 FCFA, vérification argent reçu/reste à encaisser/reste à payer.
+- Conséquences métier vérifiées : le reste à encaisser ne s’ajoute pas à l’argent reçu ; les paiements liés à une vente diminuent le reste à encaisser même si la commande ne recopie pas encore `montant_paye` ; les lignes sans preuve/facture restent signalées.
+- Interconnexions vérifiées : Ventes/Paiements vers Finances, Fournisseurs vers reste à payer, Documents vers preuve/facture, Comptabilité vers contrôle.
+- Bugs trouvés : termes trop techniques visibles (`écriture`, `créance`, `dette`, `justificatif`), reste à encaisser potentiellement trop haut quand un paiement lié existe seulement dans `payments`, message cash trop comptable.
+- Corrections faites : création de `computeFinanceCash`, prise en compte des paiements liés par commande, libellés remplacés par Argent reçu/Argent dépensé/Reste à encaisser/Reste à payer/Preuve-facture/Caisse-banque, messages d’alerte simplifiés.
+- Tests ajoutés : `finance ne compte pas le reste à encaisser comme argent reçu`.
+- Commit poussé : `aeca008 fix: simplifier finances et calcul cash`, `8795c17 test: couvrir cash finance terrain`.
+- Reste à faire : ajouter un vrai écran de vérification caisse/banque et tester la preuve/facture avec upload réel.
+
 ## Tests
 
 - `npm install --no-audit --no-fund` : réussi avant synchronisation ; après reprise, `npm`/`npx` n’étaient plus disponibles dans le `PATH` Codex. Les bindings natifs optionnels macOS manquants ont été restaurés pour exécuter build/tests avec le binaire Node local.
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Avicole/Animaux, `10 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Avicole/Animaux/Finances, `11 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -151,8 +169,11 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `47c2266 docs: documenter corrections terrain avicole`
 - `a6d23b4 fix: completer fiches animaux`
 - `ecb8048 test: couvrir fiche animal complete`
+- `21d14bd docs: documenter corrections terrain animaux`
+- `aeca008 fix: simplifier finances et calcul cash`
+- `8795c17 test: couvrir cash finance terrain`
 
-Push GitHub : les commits jusqu'à `ecb8048` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
+Push GitHub : les commits jusqu'à `8795c17` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
 ## 10 problèmes restants les plus urgents
 
