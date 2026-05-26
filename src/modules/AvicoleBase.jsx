@@ -19,7 +19,7 @@ import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
 import { calculateLotMetrics } from '../utils/businessCalculations';
 import { filterLotsByActivity } from '../utils/avicoleActivity';
-import { avicoleActiveCount, avicoleDeadCount, avicoleExitReason, avicoleHasActiveBirds, avicoleSickCount, avicoleStatusFor } from '../utils/avicoleMetrics';
+import { avicoleActiveCount, avicoleCalculatedActiveCount, avicoleDeadCount, avicoleExitReason, avicoleHasActiveBirds, avicoleHasCountMismatch, avicoleInitialCount, avicoleOtherExitCount, avicoleRegisteredActiveCount, avicoleSickCount, avicoleSoldCount, avicoleStatusFor } from '../utils/avicoleMetrics';
 import { getResponsibleOptions, resolveResponsibleLabel } from '../utils/rhDirectory';
 
 const EGGS_PER_TABLET = 30;
@@ -43,6 +43,11 @@ const phaseOptions = [
 const activeCount = avicoleActiveCount;
 const deadCount = avicoleDeadCount;
 const sickCount = avicoleSickCount;
+const initialCount = avicoleInitialCount;
+const soldCount = avicoleSoldCount;
+const exitCount = avicoleOtherExitCount;
+const registeredCount = avicoleRegisteredActiveCount;
+const calculatedCount = avicoleCalculatedActiveCount;
 const hasActiveBirds = avicoleHasActiveBirds;
 const statusFor = avicoleStatusFor;
 const entryWeight = (lot = {}) => toNumber(lot.poids_moyen_entree ?? lot.weight_entry);
@@ -176,7 +181,7 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
     { key: 'name', label: 'Lot', sortable: true, render: (lot) => <div><p className="font-black text-[#2f2415]">{lot.name || lot.id}</p><p className="text-xs text-[#8a7456]">{lot.id}</p></div> },
     { key: 'phase', label: 'Phase', render: (lot) => phaseFor(lot) },
     { key: 'age', label: 'Âge', render: (lot) => lot.type === 'Pondeuse' ? `${ageMonths(lot)} mois` : `${ageDays(lot)} j` },
-    { key: 'effectif', label: 'Effectif', render: (lot) => <span className="font-bold">{fmtNumber(activeCount(lot))}</span> },
+    { key: 'effectif', label: 'Effectif', render: (lot) => <div><span className="font-bold">{fmtNumber(activeCount(lot))}</span><p className="text-[11px] text-[#8a7456]">Initial {fmtNumber(initialCount(lot))} - morts {fmtNumber(deadCount(lot))} - vendus/sortis {fmtNumber(soldCount(lot) + exitCount(lot))}</p>{sickCount(lot) > 0 ? <p className="text-[11px] font-bold text-amber-700">{fmtNumber(sickCount(lot))} à surveiller, encore dans l’effectif</p> : null}{avicoleHasCountMismatch(lot) ? <p className="text-[11px] font-bold text-red-700">Enregistré {fmtNumber(registeredCount(lot))}, recalculé {fmtNumber(calculatedCount(lot))}</p> : null}</div> },
     { key: 'achat', label: 'Achat sujets', render: (lot) => <div><b>{fmtCurrency(purchaseTotalOf(lot))}</b><p className="text-xs text-[#8a7456]">{fmtCurrency(purchaseUnitOf(lot))}/sujet</p></div> },
     { key: 'morts', label: 'Morts / malades', render: (lot) => `${fmtNumber(deadCount(lot))} / ${fmtNumber(sickCount(lot))}` },
     { key: 'weight_avg', label: tab === 'Pondeuse' ? 'Ponte / tablettes' : 'Poids', render: (lot) => { const decision = buildAvicoleLotDecision(lot, productionLogs); if (decision.type === 'pondeuse') { const metrics = calculateLotMetrics({ lot, feedingLogs: alimentationLogs, productionLogs }); return <div><b>{decision.layingRate}% ponte</b><p className="text-xs text-[#8a7456]">{fmtNumber(metrics.eggMetrics?.totalTablets || 0)} tablette(s) · {fmtNumber(metrics.eggMetrics?.totalRemainingEggs || 0)} œuf(s)</p><p className="text-xs text-[#8a7456]">{fmtNumber(decision.avgEggsDay)} / {fmtNumber(decision.expectedEggsDay)} œufs/j</p></div>; } return latestWeight(lot) > 0 ? `${latestWeight(lot).toFixed(2)} / ${targetWeight(lot).toFixed(2)} kg` : `— / ${targetWeight(lot).toFixed(2)} kg`; } },
@@ -187,7 +192,7 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
 
   return <div className="space-y-6"><SectionHeader title="Gestion avicole" sub={`${tab === 'Pondeuse' ? 'Pondeuses' : 'Poulets de chair'} uniquement`} actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Actualiser</Btn><Btn icon={Download} variant="outline" small onClick={exportRows}>Exporter</Btn>{tab === 'Pondeuse' ? <Btn icon={Plus} small onClick={() => setModal('eggs')} disabled={!pondeusesDisponibles.length}>Ramassage œufs</Btn> : null}<Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter {tab === 'Pondeuse' ? 'lot pondeuses' : 'lot chair'}</Btn></>} />
     <div className="grid grid-cols-2 lg:grid-cols-6 gap-4"><KpiCard icon={Plus} label="Effectif actif" value={fmtNumber(totalEffectif)} color="bg-emerald-500/20 text-emerald-500" /><KpiCard icon={Plus} label="Morts" value={fmtNumber(morts)} color="bg-red-500/20 text-red-500" /><KpiCard icon={Plus} label="Malades" value={fmtNumber(malades)} color="bg-amber-500/20 text-amber-500" /><KpiCard icon={Plus} label="Actions IA" value={actionsIa} color="bg-sky-500/20 text-sky-500" /><KpiCard icon={Plus} label={tab === 'Pondeuse' ? 'Réforme 17+ mois' : chairKpiLabel} value={tab === 'Pondeuse' ? aReformer : chairKpiValue} color={tab === 'Pondeuse' ? 'bg-red-500/20 text-red-500' : 'bg-emerald-500/20 text-emerald-500'} /><KpiCard icon={Plus} label="Coût alim." value={fmtCurrency(coutAlim)} color="bg-purple-500/20 text-purple-500" /></div>
-    <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-xs text-[#8a7456]">Lots clôturés: {inactiveLots.length} · Achat actif: {fmtCurrency(coutAchat)} · Pondeuses suivies par œufs/tablettes, pas par pesées. Chair: pesées tous les 15 jours avec rappel J-1.</div>
+    <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-xs text-[#8a7456]">Lots clôturés: {inactiveLots.length} · Achat actif: {fmtCurrency(coutAchat)} · Règle effectif: initial - morts - vendus - pertes/sorties. Les malades restent dans l’effectif et sont affichés comme à surveiller.</div>
     <DataTable title={tab === 'Pondeuse' ? 'Lots pondeuses' : 'Lots poulets de chair'} rows={filteredByActivity} columns={columns} loading={loading} initialSortKey="date_debut" searchPlaceholder="Rechercher un lot..." />
     <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={createFields} initialValues={initialLot} loading={saving} title={tab === 'Pondeuse' ? 'Ajouter lot pondeuses' : 'Ajouter lot poulets de chair'} submitLabel="Ajouter" />
     <CreateModal open={modal === 'eggs'} onClose={() => setModal(null)} onSubmit={submitEggEntry} fields={eggFields} initialValues={initialEggEntry} loading={saving} title="Ramassage œufs" submitLabel="Enregistrer" />

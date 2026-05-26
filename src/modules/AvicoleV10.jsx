@@ -88,9 +88,10 @@ function HeyHorizonAvicoleCard({ draft, rows, onUpdate, onCreateProduction, onRe
       setSaving(true);
       if (formType === 'egg_production') {
         const eggs = num(quantity);
-        await onCreateProduction?.({ id: makeId('PONTE'), lot_id: lot.id, related_id: lot.id, date, oeufs: eggs, eggs_count: eggs, tablettes: Math.floor(eggs / 30), broken_eggs: 0, source_module: 'hey_horizon', source_record_id: lot.id, notes: note });
-        await onCreateEggOpportunity?.(lot, eggs, date, note || draft?.raw_input || '');
-        await onRefreshProduction?.();
+        const tablettes = Math.floor(eggs / 30);
+        await onCreateProduction?.({ id: makeId('PONTE'), lot_id: lot.id, related_id: lot.id, date, oeufs_produits: eggs, oeufs_casses: 0, oeufs_vendables: eggs, oeufs: eggs, eggs_count: eggs, tablettes, tablettes_vendables: tablettes, plateaux: tablettes, oeufs_restants: eggs % 30, oeufs_reliquat: eggs % 30, oeufs_par_tablette: 30, unite_vente: 'tablette', type_evenement: 'ramassage_oeufs', source_module: 'hey_horizon', source_record_id: lot.id, notes: note });
+        try { await onCreateEggOpportunity?.(lot, eggs, date, note || draft?.raw_input || ''); } catch (error) { console.warn('Opportunité œufs non créée', error); toast.error('Ramassage enregistré, opportunité œufs à vérifier'); }
+        try { await onRefreshProduction?.(); } catch (error) { console.warn('Rafraîchissement production impossible', error); }
       } else if (formType === 'poultry_mortality') {
         const newMortality = mortalityOf(lot) + num(quantity);
         await onUpdate?.(lot.id, { mortality: newMortality, morts: newMortality, current_count: nextCount, effectif_actuel: nextCount, status: nextCount === 0 ? 'perdu_mortalite' : (lot.status || lot.statut || 'actif'), statut: nextCount === 0 ? 'perdu_mortalite' : (lot.statut || lot.status || 'actif'), last_event_date: date, last_health_note: note });
