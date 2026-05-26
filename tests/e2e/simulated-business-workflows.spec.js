@@ -223,4 +223,14 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     ].forEach((label) => expect(source).toContain(label));
     expect(source).toContain('Non renseigné');
   });
+
+  test('comptabilité reste centrée sur preuves et contrôle sans jargon inutile', () => {
+    const compta = [
+      readFileSync('src/modules/ComptabiliteV6.jsx', 'utf8'),
+      readFileSync('src/modules/AutomaticAccountingPanel.jsx', 'utf8'),
+      readFileSync('src/modules/AccountingAutoEntriesPreview.jsx', 'utf8'),
+    ].join('\n');
+    ['Preuves manquantes', 'Reste à encaisser', 'Reste à payer', 'Vérification caisse/banque', 'Lignes comptables'].forEach((label) => expect(compta).toContain(label));
+    ['Créances suivies', 'Dettes a regulariser', 'Justificatifs manquants'].forEach((label) => expect(compta).not.toContain(label));
+  });
 });
