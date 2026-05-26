@@ -426,6 +426,25 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Objectifs sans plan d’action direct | les écarts objectif/réel étaient lisibles mais restaient trop statiques et ne créaient pas d’action terrain liée au module source | ajout du panneau Plans d’action objectifs, statut atteint/en retard/en cours, création tâche + trace métier et KPI BP alimentés depuis `dataMap` | `src/modules/ObjectifsCroissanceV2.jsx`, `src/utils/objectivesWorkflows.js`, `src/App.jsx` | `a8969b7` | `Objectifs & Croissance marque atteint et crée une action si objectif en retard` | un objectif en retard crée une tâche sourcée vers Avicole/Animaux/Cultures/Stock/Finances ; un objectif atteint est affiché comme tel |
 | Traçabilité sans contrôle de source | certains faits avaient un module ou un titre mais pas toujours une source ouvrable, et l’export n’était pas assez direct | normalisation des faits, panneau qualité des traces, badge source à compléter, export CSV et routage source fiable | `src/modules/Tracabilite.jsx`, `src/modules/TracabiliteV2.jsx`, `src/utils/traceabilityWorkflows.js` | `48fed4c` | `Traçabilité source les actions sensibles et ouvre le bon module` | vente, paiement, soin, récolte et action admin sont identifiables ; les faits orphelins sont signalés |
 | Activité & Sync trop technique | les anomalies étaient détectées mais les libellés/actions restaient parfois trop “audit” et l’ouverture source n’était pas directe | libellés terrain, route source, tâche de correction standardisée, preuve/facture au lieu de justificatif, journal renommé | `src/modules/SyncActivityCenter.jsx`, `src/modules/AuditLogs.jsx`, `src/utils/syncAuditWorkflows.js` | `4250fda` | `Activité & Sync détecte les incohérences et propose une action terrain` | paiement orphelin, document lié cassé et opportunité obsolète deviennent des actions compréhensibles |
+| Gestion système avec actions sensibles trop faciles | le retrait utilisateur n’avait pas de confirmation explicite et la zone d’effacement local n’était pas reliée au rôle admin | confirmation retrait, blocage reset hors admin, bannière RBAC/Supabase, utilitaire de permissions/audit testable | `src/modules/GestionSysteme.jsx`, `src/modules/GestionSystemeV2.jsx`, `src/modules/SystemDataResetPanel.jsx`, `src/utils/systemAccessWorkflows.js` | `f8caa6c` | `Gestion système protège les actions admin et trace les changements` | un visiteur reste en lecture seule, un admin trace ses actions, le reset exige Super Admin + EFFACER |
+
+## Module : Gestion système
+
+- Sections testées : Sécurité des accès, Ressources internes, Utilisateurs & visiteurs, Qui voit quoi, formulaire accès, Zone sensible effacement local.
+- Sections supprimées/fusionnées : aucune suppression ; ajout d’une bannière RBAC pour éviter la fausse sécurité locale.
+- Boutons testés : Qui voit quoi, Créer utilisateur, Modifier, Retirer, Enregistrer, Fermer, Supprimer sans rapport, Créer rapport puis supprimer.
+- Boutons corrigés : Retirer exige maintenant confirmation explicite ; effacement local est bloqué si le rôle n’est pas Super Admin.
+- Formulaires testés : créer/inviter utilisateur, modifier rôle, statut, espaces visibles, actions autorisées, notes, confirmation `EFFACER`.
+- Champs présents : nom, email, équipe/périmètre, rôle, statut, espaces visibles, actions autorisées, notes, confirmation action sensible.
+- Champs ajoutés : aucun champ persistant nouveau ; ajout de validation/lecture seule et événement d’audit standardisé.
+- Actions testées : rôle visiteur, rôle admin, retrait utilisateur, protection dernier admin, confirmation reset, trace audit admin.
+- Conséquences métier vérifiées : action admin -> audit log + événement métier ; rôle non-admin -> lecture seule ; reset -> confirmation forte ; dernier admin protégé.
+- Interconnexions vérifiées : AuthContext/Supabase profiles, Audit logs, Business events, Gestion système, Sync/Traçabilité.
+- Bugs trouvés : reset local accessible sans condition de rôle, retrait utilisateur sans confirmation, utilitaire de permissions trop dépendant du contexte React/Supabase.
+- Corrections faites : ajout `systemAccessWorkflows`, confirmation retrait, `canManageSystem` transmis au reset, bannière RBAC/Supabase, utilitaire autonome pour tests.
+- Tests ajoutés : `Gestion système protège les actions admin et trace les changements`.
+- Commit poussé : `f8caa6c fix: completer gestion systeme terrain`.
+- Reste à faire : vérifier et documenter les politiques RLS Supabase en production ; l’UI guide les droits mais ne remplace pas la sécurité serveur.
 
 ## Module : Activité & Sync ERP / Audit logs
 
@@ -541,7 +560,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Smart Farm, Assistant ERP, Centre décisionnel, Objectifs & Croissance, Traçabilité, Activité & Sync ERP/Audit logs, Avicole, Animaux, Finances, Comptabilité, `60 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Smart Farm, Assistant ERP, Centre décisionnel, Objectifs & Croissance, Traçabilité, Activité & Sync ERP/Audit logs, Gestion système, Avicole, Animaux, Finances, Comptabilité, `61 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -625,6 +644,8 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `48fed4c fix: completer tracabilite terrain`
 - `12efe77 docs: documenter corrections terrain tracabilite`
 - `4250fda fix: completer sync audit terrain`
+- `c89f0d9 docs: documenter corrections terrain sync audit`
+- `f8caa6c fix: completer gestion systeme terrain`
 
 Push GitHub : les commits jusqu'à `0d9ff24` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
