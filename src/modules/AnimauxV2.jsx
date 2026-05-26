@@ -28,6 +28,12 @@ const labelOf = (row = {}) => row.name || row.nom || row.boucle_numero || row.ta
 const targetFrom = (draft = {}) => draft.draft_fields?.target_id || draft.draft_fields?.animal_id || '';
 const findAnimal = (id = '', rows = []) => rows.find((row) => [row.id, row.boucle_numero, row.qr_code, row.tag].map((v) => String(v || '').toUpperCase()).includes(String(id || '').toUpperCase())) || null;
 const speciesFromType = (type = '') => String(type || '').toLowerCase().includes('ovin') ? 'Ovin' : String(type || '').toLowerCase().includes('caprin') ? 'Caprin' : 'Bovin';
+const isReadyForSale = (row = {}) => {
+  const status = statusOf(row);
+  return Boolean(row.pret_vente_confirme || row.ready_for_sale || row.sale_ready || row.pret_a_la_vente || row.ready_to_sell || row.pret_vente_recommande || status === 'pret_a_la_vente' || status === 'pret_vente' || status === 'pret a vendre');
+};
+const estimatedSaleAmount = (row = {}) => toNumber(row.prix_vente_reel ?? row.sale_price ?? row.prix_vente ?? row.prix_vente_estime_auto ?? row.prix_vente_estime ?? row.valeur_estimee ?? row.valeur_marche);
+const opportunityDedupeKey = (row = {}) => `animal-sale:${row.id || row.boucle_numero || row.tag || ''}`;
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
@@ -119,6 +125,45 @@ export default function AnimauxV2(props) {
   const activeSpeciesRows = useMemo(() => speciesRows.filter(isOperationalAnimal), [speciesRows]);
   const historicalSpeciesRows = useMemo(() => speciesRows.filter((row) => !isOperationalAnimal(row)), [speciesRows]);
 
+  const createOrReactivateSaleOpportunity = async (animal = {}, source = 'prêt à vendre') => {
+    if (!animal?.id || !isReadyForSale(animal) || isClosedAnimal(animal)) return;
+    const dedupeKey = opportunityDedupeKey(animal);
+    const existing = opportunities.find((opp) => String(opp.opportunity_key || opp.dedupe_key || opp.source_record_id || opp.source_id || '') === dedupeKey || (String(opp.source_module || opp.created_from || '').includes('animaux') && String(opp.source_id || opp.entity_id || opp.animal_id || '') === String(animal.id)));
+    const amount = estimatedSaleAmount(animal);
+    const payload = {
+      opportunity_key: dedupeKey,
+      dedupe_key: dedupeKey,
+      title: `Vente ${labelOf(animal)}`,
+      libelle: `Vente ${labelOf(animal)}`,
+      source_module: 'animaux',
+      created_from: 'animaux',
+      source_type: 'animal',
+      entity_type: 'animal',
+      source_id: animal.id,
+      entity_id: animal.id,
+      animal_id: animal.id,
+      product_name: labelOf(animal),
+      produit: labelOf(animal),
+      quantity: 1,
+      quantite: 1,
+      unite: 'tête',
+      unit: 'tête',
+      montant_estime: amount,
+      estimated_amount: amount,
+      valeur_estimee: amount,
+      status: 'ouverte',
+      statut: 'ouverte',
+      priority: amount > 0 ? 'haute' : 'normale',
+      date: today(),
+      notes: `${source} · ${animal.type || animal.espece || species}`,
+    };
+    if (existing?.id) await (props.onUpdateOpportunity || opportunitiesCrud.update)?.(existing.id, { ...payload, status: 'ouverte', statut: 'ouverte', updated_at: new Date().toISOString() });
+    else await (props.onCreateOpportunity || opportunitiesCrud.create)?.({ id: makeId('OPP'), ...payload });
+    await (props.onRefreshOpportunities || opportunitiesCrud.refresh)?.();
+    await (props.onCreateBusinessEvent || businessEventsCrud.create)?.({ id: makeId('EVT'), event_type: 'opportunite_vente_animal', module_source: 'animaux', entity_type: 'animal', entity_id: animal.id, title: `Opportunité vente créée · ${labelOf(animal)}`, description: `Animal prêt à vendre. Opportunité disponible dans Ventes. Montant estimé: ${amount || 0}`, event_date: today(), severity: 'info', amount, linked_opportunity_key: dedupeKey, saisies_evitees: 1 });
+    await (props.onRefreshBusinessEvents || businessEventsCrud.refresh)?.();
+  };
+
   const createLossEvent = async (before = {}, after = {}, source = 'modification animal') => {
     const becameDead = !isDead(before) && isDead(after);
     const valueIncreased = lossValueOf(after) > lossValueOf(before) && isDead(after);
@@ -133,6 +178,7 @@ export default function AnimauxV2(props) {
     const restored = restoreSpeciesOnAnimalPayload(payload, species);
     await props.onCreate?.(restored);
     await createLossEvent({}, restored, 'création animal');
+    await createOrReactivateSaleOpportunity(restored, 'création animal prêt à vendre');
   };
   const wrapUpdate = async (id, payload) => {
     const before = (props.rows || []).find((row) => String(row.id) === String(id)) || {};
@@ -140,6 +186,7 @@ export default function AnimauxV2(props) {
     const after = { ...before, ...restored, id };
     await props.onUpdate?.(id, restored);
     await createLossEvent(before, after, 'modification fiche animal');
+    if (!isReadyForSale(before) && isReadyForSale(after)) await createOrReactivateSaleOpportunity(after, 'animal marqué prêt à vendre');
   };
   const dataMap = { sales_orders: salesOrders, salesOrders, payments, finances: transactions, transactions, animaux: activeSpeciesRows };
   const selectedActivity = speciesActivityMap[species] || 'bovins';
