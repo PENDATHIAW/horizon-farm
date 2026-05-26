@@ -15,7 +15,7 @@ const moduleLabel = (key = '') => ({ dashboard: 'Accueil', ventes: 'Ventes', fin
 const normalize = (value = '') => String(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 const hasWakeWord = (value = '') => { const text = normalize(value); return text.includes('hey horizon') || text.includes('he horizon') || text.includes('horizon'); };
 const stripWakeWord = (value = '') => normalize(value).replace(/\b(hey|he|eh|e)\s+horizon\b/g, '').replace(/\bhorizon\b/g, '').trim();
-const AUTO_OPEN_FORM_TYPES = new Set(['health_action', 'animal_creation', 'animal_weighing', 'animal_loss', 'sale_record', 'egg_production', 'poultry_mortality', 'poultry_close', 'stock_purchase', 'stock_movement', 'task_creation', 'finance_entry', 'equipment_action', 'financing_file']);
+const AUTO_OPEN_FORM_TYPES = new Set(['health_action', 'animal_creation', 'animal_weighing', 'animal_loss', 'entity_lookup', 'sale_record', 'egg_production', 'poultry_mortality', 'poultry_close', 'stock_purchase', 'stock_movement', 'stock_critical_lookup', 'task_creation', 'finance_entry', 'equipment_action', 'financing_file', 'culture_harvest', 'supplier_invoice']);
 const shouldAutoOpenForm = (draft = {}) => draft?.primary_module && draft?.form_type && AUTO_OPEN_FORM_TYPES.has(draft.form_type) && draft.status !== 'draft_incomplete';
 const openHorizonForm = (draft = {}, onNavigate) => {
   if (!draft?.primary_module) return;

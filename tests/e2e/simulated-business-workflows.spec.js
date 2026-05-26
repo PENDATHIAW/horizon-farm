@@ -23,6 +23,7 @@ import { buildEquipmentBreakdownFollowUp, buildEquipmentRepairWorkflow } from '.
 import { buildRhAbsenceFollowUp, buildRhAssignedTask, buildRhSalaryWorkflow } from '../../src/utils/rhWorkflows.js';
 import { buildReportGenerationWorkflow, buildReportScheduleTask } from '../../src/utils/reportWorkflows.js';
 import { buildSmartFarmDeviceFollowUp, isSmartFarmDeviceCritical, smartDeviceSource } from '../../src/utils/smartFarmWorkflows.js';
+import { interpretHorizonCommand } from '../../src/services/aiIntentEngine.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -684,5 +685,15 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     });
     expect(workflow.task).toMatchObject({ module_lie: 'smartfarm', related_id: 'CAM-ENTREE-001', priority: 'haute' });
     expect(workflow.alert).toMatchObject({ module_source: 'smartfarm', entity_type: 'camera', entity_id: 'CAM-ENTREE-001' });
+  });
+
+  test('Hey Horizon prépare les intentions terrain sans confondre les modules', () => {
+    expect(interpretHorizonCommand('Créer une fiche de vaccination pour BOV002')).toMatchObject({ primary_module: 'sante', form_type: 'health_action', draft_fields: { target_id: 'BOV002' } });
+    expect(interpretHorizonCommand('J’ai ramassé 300 œufs')).toMatchObject({ primary_module: 'avicole', form_type: 'egg_production', draft_fields: { eggs_count: 300, tablettes: 10 } });
+    expect(interpretHorizonCommand('J’ai récolté 100 kg tomate')).toMatchObject({ primary_module: 'cultures', form_type: 'culture_harvest', draft_fields: { culture_name: 'tomate', quantity: 100, unit: 'kg' } });
+    expect(interpretHorizonCommand('Déclarer panne pompe irrigation')).toMatchObject({ primary_module: 'equipements', form_type: 'equipment_action', draft_fields: { action_type: 'panne' } });
+    expect(interpretHorizonCommand('Ajouter facture fournisseur aliments')).toMatchObject({ primary_module: 'documents', form_type: 'supplier_invoice', draft_fields: { module_source: 'fournisseurs' } });
+    expect(interpretHorizonCommand('Ouvre fiche BOV002')).toMatchObject({ primary_module: 'animaux', form_type: 'entity_lookup', draft_fields: { target_id: 'BOV002' } });
+    expect(interpretHorizonCommand('Montre les stocks critiques')).toMatchObject({ primary_module: 'stock', form_type: 'stock_critical_lookup', draft_fields: { filter: 'stocks_critiques' } });
   });
 });

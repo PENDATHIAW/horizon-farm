@@ -109,6 +109,14 @@ export default function AnimauxV2(props) {
   useEffect(() => {
     const handler = (event) => {
       const draft = event.detail?.draft;
+      if (event.detail?.module === 'animaux' && draft?.form_type === 'entity_lookup') {
+        const target = targetFrom(draft);
+        const animal = findAnimal(target, props.rows || []);
+        if (animal) setSpecies(speciesFromType(animal.espece || animal.type || species));
+        toast.success(animal ? `Fiche ${target} trouvée dans Animaux` : `Recherche ${target} ouverte dans Animaux`);
+        window.setTimeout(() => document.getElementById('animaux-module-root')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+        return;
+      }
       if (event.detail?.module === 'animaux' && ['animal_weighing', 'animal_loss', 'animal_creation'].includes(draft?.form_type)) {
         setHorizonDraft(draft);
         const wanted = draft?.draft_fields?.type ? speciesFromType(draft.draft_fields.type) : species;
@@ -118,7 +126,7 @@ export default function AnimauxV2(props) {
     };
     window.addEventListener('horizon-open-form', handler);
     return () => window.removeEventListener('horizon-open-form', handler);
-  }, [species]);
+  }, [species, props.rows]);
 
   const counts = useMemo(() => countAnimalsBySpecies(props.rows || []), [props.rows]);
   const speciesRows = useMemo(() => filterAnimalsBySpecies(props.rows || [], species), [props.rows, species]);
@@ -192,7 +200,7 @@ export default function AnimauxV2(props) {
   const selectedActivity = speciesActivityMap[species] || 'bovins';
   const commonWorkflowProps = { salesOrders, payments, transactions, deliveriesList: deliveries, deliveries, businessEvents, opportunities, onCreateBusinessEvent: props.onCreateBusinessEvent || businessEventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || businessEventsCrud.refresh, onUpdateBusinessEvent: props.onUpdateBusinessEvent || businessEventsCrud.update, onDeleteBusinessEvent: props.onDeleteBusinessEvent || businessEventsCrud.remove, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh };
 
-  return <div className="space-y-6 animaux-mobile-structured"><style>{`@media (max-width: 640px){.animaux-mobile-structured .rounded-2xl{border-radius:18px}.animaux-mobile-structured table{font-size:12px}.animaux-mobile-structured th,.animaux-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.animaux-mobile-structured .text-2xl{font-size:1.35rem}.animaux-mobile-structured .grid{gap:.75rem}.animaux-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
+  return <div id="animaux-module-root" className="space-y-6 animaux-mobile-structured"><style>{`@media (max-width: 640px){.animaux-mobile-structured .rounded-2xl{border-radius:18px}.animaux-mobile-structured table{font-size:12px}.animaux-mobile-structured th,.animaux-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.animaux-mobile-structured .text-2xl{font-size:1.35rem}.animaux-mobile-structured .grid{gap:.75rem}.animaux-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
     {horizonDraft ? <div id="hey-horizon-animal-card"><HeyHorizonAnimalCard draft={horizonDraft} rows={props.rows || []} species={species} onCreate={wrapCreate} onUpdate={wrapUpdate} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} onClose={() => setHorizonDraft(null)} /></div> : null}
     <ModuleSection icon={Beef} title="Cheptel par espèce" subtitle="Choisir d’abord l’espèce à piloter pour ne voir que les données utiles."><div className="grid grid-cols-1 md:grid-cols-3 gap-3">{ANIMAL_SPECIES_TABS.map((tab) => <button key={tab} type="button" onClick={() => setSpecies(tab)} className={`rounded-2xl border px-4 py-3 text-left transition-all ${species === tab ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}><p className="text-xs uppercase tracking-wide">Espèce</p><p className="font-black">{tab}s</p><p className="text-xs opacity-75">{counts[tab] || 0} animaux · {filterAnimalsBySpecies(props.rows || [], tab).filter(isOperationalAnimal).length} actifs</p></button>)}</div></ModuleSection>
     <AnimalCycleHealthPanel rows={props.rows || []} alimentationLogs={props.alimentationLogs || []} vaccins={props.vaccins || []} salesOrders={salesOrders} onNavigate={props.onNavigate} />
