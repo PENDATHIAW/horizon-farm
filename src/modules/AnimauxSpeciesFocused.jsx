@@ -33,6 +33,41 @@ const targetWeightOf = (r = {}) => toNumber(r.poids_cible ?? r.poids_objectif ??
 const purchaseCost = (r = {}) => toNumber(r.purchase_cost ?? r.cout_achat ?? r.prix_achat ?? r.cost_purchase);
 const salePrice = (r = {}) => toNumber(r.sale_price ?? r.prix_vente_reel ?? r.prix_vente ?? r.prix_vente_estime);
 const speciesPlural = (s = 'Bovin') => `${s}s`;
+const fallbackText = (value, fallback = 'Non renseigné') => {
+  const text = String(value ?? '').trim();
+  return text && !['undefined', 'null', 'nan', '[object object]'].includes(text.toLowerCase()) ? text : fallback;
+};
+const dateLabel = (value) => fallbackText(value, 'Non renseignée');
+const ageLabel = (row = {}) => {
+  const birth = row.date_naissance || row.birth_date;
+  const rawAge = row.age || row.age_label;
+  if (rawAge) return fallbackText(rawAge);
+  if (!birth) return 'Non renseigné';
+  const date = new Date(birth);
+  if (Number.isNaN(date.getTime())) return 'Non renseigné';
+  const months = Math.max(0, Math.floor((Date.now() - date.getTime()) / 2629800000));
+  if (months < 1) return 'Moins d’un mois';
+  if (months < 24) return `${months} mois`;
+  return `${Math.floor(months / 12)} an(s) ${months % 12 ? `${months % 12} mois` : ''}`.trim();
+};
+const animalOrigin = (row = {}) => fallbackText(row.origine || row.fournisseur_vendeur || row.source || row.mode_acquisition);
+const locationOf = (row = {}) => fallbackText(row.localisation || row.emplacement || row.parc || row.enclos);
+function parseDocuments(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.map((item) => typeof item === 'string' ? { title: item, url: item } : item).filter(Boolean);
+  if (typeof raw === 'string') {
+    try { return parseDocuments(JSON.parse(raw)); } catch {
+      return raw.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => ({ title: line, url: line }));
+    }
+  }
+  return [];
+}
+const animalDocuments = (row = {}) => [
+  ...parseDocuments(row.documents || row.docs || row.pieces_jointes),
+  ...(row.photo_url || row.photo ? [{ title: 'Photo animal', url: row.photo_url || row.photo, type: 'photo' }] : []),
+].filter((item) => item?.title || item?.url);
+const eventDate = (event = {}) => fallbackText(event.event_date || event.date || event.created_at, '');
+const eventTitle = (event = {}) => fallbackText(event.title || event.libelle || event.description || event.type_evenement || event.event_type, 'Événement animal');
 
 function suggestedTargetWeight(species = 'Bovin', entryWeight = 0) {
   const start = toNumber(entryWeight);
@@ -152,20 +187,198 @@ function statusBadge(status) {
   const label = { vendu: 'Vendu', pret: 'Prêt vente', presque: 'Presque prêt', retard: 'En retard', normal: 'Normal' }[status] || status;
   return <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-black ${map[status] || map.normal}`}>{label}</span>;
 }
-function buildCreateFields() { return [{ key: 'id', label: 'ID animal', type: 'text', required: true }, { key: 'boucle_numero', label: 'N° boucle terrain', type: 'text', required: true }, { key: 'qr_code', label: 'Code QR / scan', type: 'text' }, { key: 'name', label: 'Nom / repère', type: 'text', required: true }, { key: 'sexe', label: 'Sexe', type: 'select', required: true, options: [{ value: 'F', label: 'Femelle' }, { value: 'M', label: 'Mâle' }] }, { key: 'mode_acquisition', label: 'Mode acquisition', type: 'select', required: true, options: [{ value: 'achat', label: 'Achat' }, { value: 'naissance_ferme', label: 'Naissance ferme' }, { value: 'don', label: 'Don / autre' }] }, { key: 'date_entree_ferme', label: 'Date entrée ferme', type: 'date', required: true }, { key: 'date_achat', label: 'Date achat', type: 'date' }, { key: 'poids_entree', label: 'Poids entrée ferme (kg)', type: 'number', required: true }, { key: 'poids', label: 'Poids actuel / 1ère pesée (kg)', type: 'number', required: true }, { key: 'date_derniere_pesee', label: 'Date dernière pesée', type: 'date', required: true }, { key: 'poids_cible', label: 'Poids cible vente proposé (kg, ajustable)', type: 'number', required: true }, { key: 'purchase_cost', label: 'Prix achat / valeur entrée', type: 'number', required: true }, { key: 'prix_vente_estime', label: 'Prix vente estimé', type: 'number' }, { key: 'health_status', label: 'Santé', type: 'select', required: true, options: [{ value: 'sain', label: 'Sain' }, { value: 'a_surveiller', label: 'À surveiller' }, { value: 'malade', label: 'Malade' }] }, { key: 'notes', label: 'Notes', type: 'textarea', rows: 3, fullWidth: true }]; }
-const editFields = [{ key: 'section_growth', label: 'Suivi croissance', type: 'section', description: 'Une nouvelle pesée recalcule automatiquement la prochaine pesée à J+15 et le rappel à J-1.' }, { key: 'poids', label: 'Poids actuel / dernière pesée (kg)', type: 'number', required: true }, { key: 'date_derniere_pesee', label: 'Date dernière pesée', type: 'date', required: true }, { key: 'poids_cible', label: 'Poids cible vente (kg)', type: 'number', required: true }, { key: 'poids_history_text', label: 'Historique pesées', type: 'textarea', rows: 5, fullWidth: true }, { key: 'section_costs', label: 'Valeurs économiques', type: 'section' }, { key: 'purchase_cost', label: 'Prix achat / valeur entrée', type: 'number', required: true }, { key: 'prix_vente_estime', label: 'Prix vente estimé', type: 'number' }, { key: 'section_status', label: 'Statut', type: 'section' }, { key: 'status', label: 'Statut vente / présence', type: 'select', options: [{ value: 'actif', label: 'Actif' }, { value: 'pret_a_la_vente', label: 'Prêt à vendre' }, { value: 'vendu', label: 'Vendu' }, { value: 'mort', label: 'Mort' }, { value: 'vole', label: 'Volé' }] }, { key: 'health_status', label: 'Santé', type: 'select', options: [{ value: 'sain', label: 'Sain' }, { value: 'a_surveiller', label: 'À surveiller' }, { value: 'malade', label: 'Malade' }, { value: 'sous_traitement', label: 'Sous traitement' }] }, { key: 'notes', label: 'Notes', type: 'textarea', rows: 3, fullWidth: true }];
+function buildCreateFields() { return [
+  { key: 'id', label: 'ID animal', type: 'text', required: true },
+  { key: 'boucle_numero', label: 'N° boucle terrain', type: 'text', required: true },
+  { key: 'qr_code', label: 'Code QR / scan', type: 'text' },
+  { key: 'name', label: 'Nom / repère', type: 'text', required: true },
+  { key: 'race', label: 'Race', type: 'text' },
+  { key: 'sexe', label: 'Sexe', type: 'select', required: true, options: [{ value: 'F', label: 'Femelle' }, { value: 'M', label: 'Mâle' }] },
+  { key: 'date_naissance', label: 'Date naissance', type: 'date' },
+  { key: 'mode_acquisition', label: 'Mode acquisition', type: 'select', required: true, options: [{ value: 'achat', label: 'Achat' }, { value: 'naissance_ferme', label: 'Naissance ferme' }, { value: 'don', label: 'Don / autre' }] },
+  { key: 'origine', label: 'Origine / vendeur', type: 'text' },
+  { key: 'localisation', label: 'Localisation / enclos', type: 'text' },
+  { key: 'date_entree_ferme', label: 'Date entrée ferme', type: 'date', required: true },
+  { key: 'date_achat', label: 'Date achat', type: 'date' },
+  { key: 'poids_entree', label: 'Poids entrée ferme (kg)', type: 'number', required: true },
+  { key: 'poids', label: 'Poids actuel / 1ère pesée (kg)', type: 'number', required: true },
+  { key: 'date_derniere_pesee', label: 'Date dernière pesée', type: 'date', required: true },
+  { key: 'poids_cible', label: 'Poids cible vente proposé (kg, ajustable)', type: 'number', required: true },
+  { key: 'purchase_cost', label: 'Prix achat / valeur entrée', type: 'number', required: true },
+  { key: 'prix_vente_estime', label: 'Prix vente estimé', type: 'number' },
+  { key: 'health_status', label: 'Santé', type: 'select', required: true, options: [{ value: 'sain', label: 'Sain' }, { value: 'a_surveiller', label: 'À surveiller' }, { value: 'malade', label: 'Malade' }] },
+  { key: 'photo_url', label: 'Photo animal', type: 'image', fullWidth: true },
+  { key: 'documents_text', label: 'Documents / preuves (un lien ou nom par ligne)', type: 'textarea', rows: 3, fullWidth: true },
+  { key: 'notes', label: 'Notes terrain', type: 'textarea', rows: 3, fullWidth: true },
+]; }
+const editFields = [
+  { key: 'section_identity', label: 'Identité terrain', type: 'section' },
+  { key: 'boucle_numero', label: 'N° boucle terrain', type: 'text', required: true },
+  { key: 'name', label: 'Nom / repère', type: 'text', required: true },
+  { key: 'race', label: 'Race', type: 'text' },
+  { key: 'sexe', label: 'Sexe', type: 'select', options: [{ value: 'F', label: 'Femelle' }, { value: 'M', label: 'Mâle' }] },
+  { key: 'date_naissance', label: 'Date naissance', type: 'date' },
+  { key: 'origine', label: 'Origine / vendeur', type: 'text' },
+  { key: 'localisation', label: 'Localisation / enclos', type: 'text' },
+  { key: 'section_growth', label: 'Suivi croissance', type: 'section', description: 'Une nouvelle pesée recalcule automatiquement la prochaine pesée à J+15 et le rappel à J-1.' },
+  { key: 'poids_entree', label: 'Poids entrée ferme (kg)', type: 'number' },
+  { key: 'poids', label: 'Poids actuel / dernière pesée (kg)', type: 'number', required: true },
+  { key: 'date_derniere_pesee', label: 'Date dernière pesée', type: 'date', required: true },
+  { key: 'poids_cible', label: 'Poids cible vente (kg)', type: 'number', required: true },
+  { key: 'poids_history_text', label: 'Historique pesées', type: 'textarea', rows: 5, fullWidth: true },
+  { key: 'section_costs', label: 'Valeurs économiques', type: 'section' },
+  { key: 'purchase_cost', label: 'Prix achat / valeur entrée', type: 'number', required: true },
+  { key: 'prix_vente_estime', label: 'Prix vente estimé', type: 'number' },
+  { key: 'section_status', label: 'Statut et preuves', type: 'section' },
+  { key: 'status', label: 'Statut vente / présence', type: 'select', options: [{ value: 'actif', label: 'Actif' }, { value: 'pret_a_la_vente', label: 'Prêt à vendre' }, { value: 'vendu', label: 'Vendu' }, { value: 'mort', label: 'Mort' }, { value: 'perdu', label: 'Perdu' }, { value: 'vole', label: 'Volé' }, { value: 'sorti', label: 'Sorti' }] },
+  { key: 'health_status', label: 'Santé', type: 'select', options: [{ value: 'sain', label: 'Sain' }, { value: 'a_surveiller', label: 'À surveiller' }, { value: 'malade', label: 'Malade' }, { value: 'sous_traitement', label: 'Sous traitement' }] },
+  { key: 'photo_url', label: 'Photo animal', type: 'image', fullWidth: true },
+  { key: 'documents_text', label: 'Documents / preuves (un lien ou nom par ligne)', type: 'textarea', rows: 3, fullWidth: true },
+  { key: 'notes', label: 'Notes terrain', type: 'textarea', rows: 3, fullWidth: true },
+];
 function MiniMetric({ label, value, danger = false }) { return <div className={`rounded-2xl border p-4 ${danger ? 'border-red-200 bg-red-50' : 'border-[#eadcc2] bg-white'}`}><p className="text-xs uppercase tracking-wide text-[#8a7456]">{label}</p><p className={`mt-2 text-xl font-black ${danger ? 'text-red-600' : 'text-[#2f2415]'}`}>{value}</p></div>; }
 function ProgressBar({ value }) { const pct = Math.max(0, Math.min(100, Number(value || 0))); return <div className="min-w-[120px]"><div className="h-2 rounded-full bg-[#eadcc2] overflow-hidden"><div className="h-full rounded-full bg-[#2f2415]" style={{ width: `${pct}%` }} /></div><p className="mt-1 text-xs font-bold text-[#2f2415]">{Math.round(value || 0)}%</p></div>; }
 function WeightCurve({ history = [], target = 0 }) { const points = history.filter((p) => p.poids > 0); if (points.length < 2) return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-6 text-center text-sm text-[#8a7456]">Ajoute au moins deux pesées pour afficher une courbe fiable.</div>; const values = points.map((p) => p.poids).concat(target ? [target] : []); const min = Math.min(...values) * 0.96; const max = Math.max(...values) * 1.04; const w = 640; const h = 220; const pad = 32; const x = (i) => pad + (i * (w - pad * 2)) / Math.max(1, points.length - 1); const y = (v) => h - pad - ((v - min) / Math.max(1, max - min)) * (h - pad * 2); const d = points.map((p, i) => `${i ? 'L' : 'M'} ${x(i)} ${y(p.poids)}`).join(' '); const targetY = target ? y(target) : null; return <div className="rounded-2xl border border-[#eadcc2] bg-white p-4"><p className="font-black text-[#2f2415] flex items-center gap-2 mb-3"><LineChart size={16} /> Courbe d’évolution du poids</p><svg viewBox={`0 0 ${w} ${h}`} className="w-full h-56"><line x1={pad} y1={h - pad} x2={w - pad} y2={h - pad} stroke="#eadcc2" /><line x1={pad} y1={pad} x2={pad} y2={h - pad} stroke="#eadcc2" />{targetY ? <line x1={pad} y1={targetY} x2={w - pad} y2={targetY} stroke="#c9a96a" strokeDasharray="6 6" /> : null}<path d={d} fill="none" stroke="#2f2415" strokeWidth="4" strokeLinecap="round" />{points.map((p, i) => <g key={`${p.date}-${i}`}><circle cx={x(i)} cy={y(p.poids)} r="5" fill="#2f2415" /><text x={x(i)} y={y(p.poids) - 10} textAnchor="middle" fontSize="12" fill="#2f2415">{p.poids}kg</text><text x={x(i)} y={h - 10} textAnchor="middle" fontSize="11" fill="#8a7456">{String(p.date).slice(5)}</text></g>)}</svg></div>; }
-function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vaccins = [], businessEvents = [], salesOrders = [], payments = [], transactions = [] }) { if (!animal) return null; const g = growthInfo(animal); const costs = costBreakdown(animal, { alimentationLogs, vaccins, businessEvents, salesOrders, payments, transactions }); const saleLabel = costs.salesCount > 0 ? 'Vente liée' : costs.sale > 0 ? 'Vente estimée' : 'Vente'; return <BaseModal open={open} onClose={onClose} title={`Fiche ${animal.type || animal.espece || 'animal'} - ${physicalIdOf(animal)}`} size="5xl"><div className="space-y-5"><div className="rounded-3xl bg-[#2f2415] text-white p-5"><p className="text-xs uppercase tracking-widest text-[#c9a96a]">{animal.type || animal.espece} · {animal.sexe === 'M' ? 'Mâle' : 'Femelle'} · {isLocked(animal) ? 'Fiche verrouillée' : 'Actif'}</p><h2 className="text-2xl font-black mt-1">{animal.name || animal.nom || physicalIdOf(animal)}</h2><div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">{[['Poids actuel', `${fmtNumber(g.current)} kg`], ['Objectif', g.target ? `${fmtNumber(g.target)} kg` : 'À renseigner'], ['Progression', `${g.progress}%`], ['Prochaine pesée', g.nextWeighing || '—'], ['Rappel J-1', g.reminderDate || '—']].map(([label, value]) => <div key={label} className="rounded-2xl bg-white/10 border border-white/10 p-3"><p className="text-xs text-[#f4e6c8]">{label}</p><p className="font-black text-white mt-1">{value}</p></div>)}</div></div><div className="grid grid-cols-1 lg:grid-cols-3 gap-4"><div className="lg:col-span-2"><WeightCurve history={g.history} target={g.target} /></div><div className="space-y-3"><MiniMetric label="Gain total" value={g.gain ? `${g.gain.toFixed(1)} kg` : 'À compléter'} /><MiniMetric label="Gain moyen / jour" value={g.gainDay ? `${g.gainDay.toFixed(2)} kg/j` : 'À compléter'} /><MiniMetric label="Santé" value={healthOf(animal)} /><MiniMetric label="Décision" value={g.decision} danger={g.weighingStatus === 'retard'} /></div></div><div className="rounded-2xl border border-red-200 bg-red-50 p-4"><p className="font-black text-red-800 mb-1">Coût réel animal et marge</p><p className="text-sm text-red-700 mb-3">Achat, alimentation, santé, frais directs, Finance, événements de charge et ventes liées à cette fiche.</p>{costs.warnings.length ? <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {costs.warnings.join(' ')}</div> : null}<div className="grid grid-cols-2 lg:grid-cols-4 gap-2">{[['Achat', costs.achat], ['Alimentation', costs.alimentation], ['Santé', costs.sante], ['Autres frais', costs.autres], ['Événements de charge', costs.evenements], ['Finance liée', costs.finance], ['Coût total', costs.total], [saleLabel, costs.sale], ['Marge', costs.marge], ['Payé', costs.paid], ['Reste à encaisser', costs.remaining], ['Commandes liées', costs.salesCount], ['Coût/kg', g.current > 0 ? costs.total / g.current : 0]].map(([label, value]) => <div key={label} className="rounded-xl bg-white border border-red-100 p-3"><p className="text-xs text-[#8a7456]">{label}</p><p className={`font-black mt-1 ${label === 'Marge' && value < 0 ? 'text-red-600' : 'text-[#2f2415]'}`}>{label === 'Commandes liées' ? fmtNumber(value || 0) : fmtCurrency(value || 0)}</p>{label === saleLabel ? <p className="mt-1 text-[11px] text-[#8a7456]">{costs.saleSource}</p> : null}</div>)}</div></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="font-black text-[#2f2415] mb-2">Historique des pesées</p><div className="grid grid-cols-1 md:grid-cols-3 gap-2">{g.history.map((p, i) => <div key={`${p.date}-${i}`} className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2"><p className="text-xs text-[#8a7456]">{p.date}</p><p className="font-black text-[#2f2415]">{p.poids} kg</p><p className="text-xs text-[#8a7456]">{p.note || 'Pesée'}</p></div>)}</div>{!g.history.length ? <p className="text-sm text-amber-700">Aucune pesée fiable enregistrée.</p> : null}</div></div></BaseModal>; }
+export function buildAnimalDetailAuditModel({ animal = {}, alimentationLogs = [], vaccins = [], businessEvents = [], salesOrders = [], payments = [], transactions = [] } = {}) {
+  const g = growthInfo(animal);
+  const costs = costBreakdown(animal, { alimentationLogs, vaccins, businessEvents, salesOrders, payments, transactions });
+  const docs = animalDocuments(animal);
+  const linkedHealth = arr(vaccins).filter((item) => matchAnimal(item, animal));
+  const linkedFeed = arr(alimentationLogs).filter((item) => matchAnimal(item, animal));
+  const linkedEvents = arr(businessEvents).filter((item) => matchAnimal(item, animal));
+  const sales = linkedSales(animal, salesOrders, payments);
+  const identityRows = [
+    ['Identifiant / boucle', physicalIdOf(animal)],
+    ['Nom / repère', animal.name || animal.nom],
+    ['Espèce', animal.type || animal.espece],
+    ['Sexe', animal.sexe === 'M' ? 'Mâle' : animal.sexe === 'F' ? 'Femelle' : animal.sexe],
+    ['Race', animal.race],
+    ['Âge', ageLabel(animal)],
+    ['Date naissance', dateLabel(animal.date_naissance || animal.birth_date)],
+    ['Date entrée', dateLabel(animal.date_entree_ferme || animal.date_achat)],
+    ['Origine', animalOrigin(animal)],
+    ['Statut actuel', statusOf(animal)],
+    ['État de santé', healthOf(animal)],
+    ['Localisation', locationOf(animal)],
+  ];
+  const historyRows = [
+    ...g.history.map((item) => ({ date: item.date, title: `Pesée ${fmtNumber(item.poids)} kg`, detail: item.note || 'Pesée terrain' })),
+    ...linkedHealth.map((item) => ({ date: eventDate(item) || item.date_prevue || item.date_realisation, title: `Santé · ${fallbackText(item.type_soin || item.type_intervention || item.nom, 'Soin')}`, detail: fallbackText(item.produit || item.notes || item.status, 'Suivi santé') })),
+    ...linkedFeed.map((item) => ({ date: eventDate(item), title: `Alimentation · ${fmtNumber(toNumber(item.quantite ?? item.quantity))} ${item.unite || 'kg'}`, detail: fallbackText(item.produit || item.notes, 'Sortie alimentation') })),
+    ...sales.orders.map((item) => ({ date: eventDate(item), title: `Vente · ${fmtCurrency(orderAmount(item))}`, detail: fallbackText(item.client_name || item.client || item.status, 'Commande vente') })),
+    ...linkedEvents.map((item) => ({ date: eventDate(item), title: eventTitle(item), detail: fallbackText(item.description || item.notes || item.status, 'Événement métier') })),
+  ].filter((item) => item.title).sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).slice(0, 12);
+  return { g, costs, docs, sales, identityRows, historyRows };
+}
+function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vaccins = [], businessEvents = [], salesOrders = [], payments = [], transactions = [] }) {
+  if (!animal) return null;
+  const g = growthInfo(animal);
+  const costs = costBreakdown(animal, { alimentationLogs, vaccins, businessEvents, salesOrders, payments, transactions });
+  const docs = animalDocuments(animal);
+  const linkedHealth = arr(vaccins).filter((item) => matchAnimal(item, animal));
+  const linkedFeed = arr(alimentationLogs).filter((item) => matchAnimal(item, animal));
+  const linkedEvents = arr(businessEvents).filter((item) => matchAnimal(item, animal));
+  const sales = linkedSales(animal, salesOrders, payments);
+  const saleLabel = costs.salesCount > 0 ? 'Vente liée' : costs.sale > 0 ? 'Vente estimée' : 'Vente';
+  const identityRows = [
+    ['Identifiant / boucle', physicalIdOf(animal)],
+    ['Nom / repère', animal.name || animal.nom],
+    ['Espèce', animal.type || animal.espece],
+    ['Sexe', animal.sexe === 'M' ? 'Mâle' : animal.sexe === 'F' ? 'Femelle' : animal.sexe],
+    ['Race', animal.race],
+    ['Âge', ageLabel(animal)],
+    ['Date naissance', dateLabel(animal.date_naissance || animal.birth_date)],
+    ['Date entrée', dateLabel(animal.date_entree_ferme || animal.date_achat)],
+    ['Origine', animalOrigin(animal)],
+    ['Statut actuel', statusOf(animal)],
+    ['État de santé', healthOf(animal)],
+    ['Localisation', locationOf(animal)],
+  ];
+  const historyRows = [
+    ...g.history.map((item) => ({ date: item.date, title: `Pesée ${fmtNumber(item.poids)} kg`, detail: item.note || 'Pesée terrain' })),
+    ...linkedHealth.map((item) => ({ date: eventDate(item) || item.date_prevue || item.date_realisation, title: `Santé · ${fallbackText(item.type_soin || item.type_intervention || item.nom, 'Soin')}`, detail: fallbackText(item.produit || item.notes || item.status, 'Suivi santé') })),
+    ...linkedFeed.map((item) => ({ date: eventDate(item), title: `Alimentation · ${fmtNumber(toNumber(item.quantite ?? item.quantity))} ${item.unite || 'kg'}`, detail: fallbackText(item.produit || item.notes, 'Sortie alimentation') })),
+    ...sales.orders.map((item) => ({ date: eventDate(item), title: `Vente · ${fmtCurrency(orderAmount(item))}`, detail: fallbackText(item.client_name || item.client || item.status, 'Commande vente') })),
+    ...linkedEvents.map((item) => ({ date: eventDate(item), title: eventTitle(item), detail: fallbackText(item.description || item.notes || item.status, 'Événement métier') })),
+  ].filter((item) => item.title).sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).slice(0, 12);
+  return <BaseModal open={open} onClose={onClose} title={`Fiche ${animal.type || animal.espece || 'animal'} - ${physicalIdOf(animal)}`} size="5xl"><div className="space-y-5">
+    <div className="rounded-3xl bg-[#2f2415] text-white p-5">
+      <p className="text-xs uppercase tracking-widest text-[#c9a96a]">{fallbackText(animal.type || animal.espece, 'Espèce non renseignée')} · {fallbackText(animal.sexe === 'M' ? 'Mâle' : animal.sexe === 'F' ? 'Femelle' : animal.sexe)} · {isLocked(animal) ? 'Fiche verrouillée' : 'Actif'}</p>
+      <h2 className="text-2xl font-black mt-1">{fallbackText(animal.name || animal.nom || physicalIdOf(animal))}</h2>
+      <p className="mt-1 text-sm text-[#f4e6c8]">{locationOf(animal)} · {animalOrigin(animal)}</p>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">{[['Poids entrée', entryWeightOf(animal) ? `${fmtNumber(entryWeightOf(animal))} kg` : 'Non renseigné'], ['Poids actuel', g.current ? `${fmtNumber(g.current)} kg` : 'Non renseigné'], ['Objectif', g.target ? `${fmtNumber(g.target)} kg` : 'À renseigner'], ['Progression', `${g.progress}%`], ['Prêt à vendre', g.status === 'pret' ? 'Oui' : 'Non']].map(([label, value]) => <div key={label} className="rounded-2xl bg-white/10 border border-white/10 p-3"><p className="text-xs text-[#f4e6c8]">{label}</p><p className="font-black text-white mt-1">{value}</p></div>)}</div>
+    </div>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="lg:col-span-2 rounded-2xl border border-[#eadcc2] bg-white p-4">
+        <p className="font-black text-[#2f2415] mb-3">Identité complète</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{identityRows.map(([label, value]) => <div key={label} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="text-xs text-[#8a7456]">{label}</p><p className="font-black text-[#2f2415] mt-1">{fallbackText(value)}</p></div>)}</div>
+      </div>
+      <div className="space-y-3">
+        <MiniMetric label="Dernière pesée" value={dateLabel(g.lastDate)} />
+        <MiniMetric label="Prochaine pesée" value={g.nextWeighing || 'Non planifiée'} danger={g.weighingStatus === 'retard'} />
+        <MiniMetric label="Gain total" value={g.gain ? `${g.gain.toFixed(1)} kg` : 'À compléter'} />
+        <MiniMetric label="Décision" value={g.decision} danger={g.weighingStatus === 'retard'} />
+      </div>
+    </div>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4"><div className="lg:col-span-2"><WeightCurve history={g.history} target={g.target} /></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="font-black text-[#2f2415] mb-2">Notes terrain</p><p className="text-sm text-[#7d6a4a] whitespace-pre-wrap">{fallbackText(animal.notes || animal.note || animal.commentaire)}</p></div></div>
+    <div className="rounded-2xl border border-red-200 bg-red-50 p-4"><p className="font-black text-red-800 mb-1">Coût réel animal et marge</p><p className="text-sm text-red-700 mb-3">Achat, alimentation, santé, frais directs, Finance, événements de charge et ventes liées à cette fiche.</p>{costs.warnings.length ? <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {costs.warnings.join(' ')}</div> : null}<div className="grid grid-cols-2 lg:grid-cols-4 gap-2">{[['Prix achat', costs.achat], ['Alimentation/coût lié', costs.alimentation], ['Soins/vaccins liés', costs.sante], ['Autres frais', costs.autres], ['Événements de charge', costs.evenements], ['Finance liée', costs.finance], ['Coût cumulé', costs.total], [saleLabel, costs.sale], ['Valeur estimée', salePrice(animal) || costs.sale], ['Marge', costs.marge], ['Payé', costs.paid], ['Reste à encaisser', costs.remaining], ['Commandes liées', costs.salesCount], ['Coût/kg', g.current > 0 ? costs.total / g.current : 0]].map(([label, value]) => <div key={label} className="rounded-xl bg-white border border-red-100 p-3"><p className="text-xs text-[#8a7456]">{label}</p><p className={`font-black mt-1 ${label === 'Marge' && value < 0 ? 'text-red-600' : 'text-[#2f2415]'}`}>{label === 'Commandes liées' ? fmtNumber(value || 0) : fmtCurrency(value || 0)}</p>{label === saleLabel ? <p className="mt-1 text-[11px] text-[#8a7456]">{costs.saleSource}</p> : null}</div>)}</div></div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="font-black text-[#2f2415] mb-2">Documents / photos</p>{docs.length ? <div className="space-y-2">{docs.map((doc, index) => <div key={`${doc.url || doc.title}-${index}`} className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2"><p className="text-sm font-black text-[#2f2415]">{fallbackText(doc.title || doc.nom || doc.type, 'Document animal')}</p><p className="text-xs text-[#8a7456] break-all">{fallbackText(doc.url || doc.file_url || doc.lien, 'Lien non renseigné')}</p></div>)}</div> : <p className="text-sm text-amber-700">Aucun document ou photo renseigné.</p>}</div>
+      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="font-black text-[#2f2415] mb-2">Historique de vie</p><div className="space-y-2">{historyRows.map((item, index) => <div key={`${item.date || 'date'}-${item.title}-${index}`} className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2"><p className="text-xs text-[#8a7456]">{dateLabel(item.date)}</p><p className="font-black text-[#2f2415]">{item.title}</p><p className="text-xs text-[#8a7456]">{item.detail}</p></div>)}</div>{!historyRows.length ? <p className="text-sm text-amber-700">Aucun événement lié visible.</p> : null}</div>
+    </div>
+  </div></BaseModal>;
+}
 export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], alimentationLogs = [], vaccins = [], businessEvents = [], salesOrders = [], payments = [], transactions = [], loading, onCreate, onUpdate, onDelete, onRefresh }) {
   const [selected, setSelected] = useState(null); const [modal, setModal] = useState(null); const [saving, setSaving] = useState(false); const [filter, setFilter] = useState('tous');
   const createFields = useMemo(() => buildCreateFields(species), [species]); const deriveCreateValues = useMemo(() => deriveCreateValuesForSpecies(species), [species]);
   const normalizedRows = useMemo(() => arr(rows).map((row) => ({ ...row, type: row.type || species, espece: row.espece || species })), [rows, species]);
   const filtered = useMemo(() => normalizedRows.filter((row) => { const g = growthInfo(row); if (filter === 'tous') return true; if (filter === 'actifs') return isActiveAnimalForFeeding(row); if (filter === 'prets') return g.status === 'pret'; if (filter === 'retard') return g.status === 'retard' || g.weighingStatus === 'retard'; if (filter === 'vendus') return clean(statusOf(row)) === 'vendu'; if (filter === 'surveillance') return ['malade', 'sous_traitement', 'blesse', 'blessé', 'a_surveiller'].includes(clean(healthOf(row))); return true; }), [normalizedRows, filter]);
   const summary = useMemo(() => { const active = normalizedRows.filter((row) => isActiveAnimalForFeeding(row)); const ready = normalizedRows.filter((row) => growthInfo(row).status === 'pret'); const late = normalizedRows.filter((row) => growthInfo(row).weighingStatus === 'retard'); const sold = normalizedRows.filter((row) => clean(statusOf(row)) === 'vendu'); const sick = normalizedRows.filter((row) => ['malade', 'sous_traitement', 'blesse', 'blessé', 'a_surveiller'].includes(clean(healthOf(row)))); const costRows = normalizedRows.map((row) => costBreakdown(row, { alimentationLogs, vaccins, businessEvents, salesOrders, payments, transactions })); const invested = costRows.reduce((sum, item) => sum + item.total, 0); const revenue = costRows.reduce((sum, item) => sum + item.sale, 0); const avgWeight = active.length ? active.reduce((sum, row) => sum + weightOf(row), 0) / Math.max(1, active.filter((row) => weightOf(row) > 0).length) : 0; return { active, ready, late, sold, sick, invested, revenue, margin: revenue - invested, avgWeight }; }, [normalizedRows, alimentationLogs, vaccins, businessEvents, salesOrders, payments, transactions]);
-  const initialValues = useMemo(() => { const physicalCode = defaultPhysicalCode(species, normalizedRows); const date = today(); return applyAnimalDecisionDefaults({ id: physicalCode || generateSequentialId('animaux', normalizedRows, { type: species }), tag: physicalCode, boucle_numero: physicalCode, qr_code: physicalCode, type: species, espece: species, status: 'actif', health_status: 'sain', mode_acquisition: 'achat', date_achat: date, date_entree_ferme: date, date_poids_entree: date, date_derniere_pesee: date, sexe: 'F', poids_entree: 0, poids: 0, poids_cible: 0, purchase_cost: 0 }); }, [normalizedRows, species]);
-  const prepare = (payload = {}, existing = {}) => { const physicalCode = payload.boucle_numero || payload.qr_code || existing.boucle_numero || existing.qr_code || defaultPhysicalCode(species, normalizedRows); const entryDate = payload.date_entree_ferme || payload.date_achat || existing.date_entree_ferme || today(); const textHistory = payload.poids_history_text; const current = toNumber(payload.poids ?? payload.poids_actuel ?? existing.poids ?? existing.poids_actuel ?? payload.poids_entree); const entryWeight = toNumber(payload.poids_entree ?? existing.poids_entree ?? payload.poids); const targetWeight = toNumber(payload.poids_cible ?? existing.poids_cible) || suggestedTargetWeight(species, entryWeight); const history = textHistory ? parseHistory(textHistory) : parseHistory(existing.poids_history); const lastWeighing = payload.date_derniere_pesee || existing.date_derniere_pesee || entryDate; if (current > 0 && lastWeighing && !history.some((h) => h.date === lastWeighing && Math.round(h.poids * 10) === Math.round(current * 10))) history.push({ date: lastWeighing, poids: current, note: existing.id ? 'Nouvelle pesée' : 'Première pesée' }); const nextWeighing = ['vendu', 'mort', 'vole', 'volé'].includes(clean(payload.status || payload.statut || existing.status || existing.statut)) ? '' : addDays(lastWeighing, 15); return applyAnimalDecisionDefaults({ ...existing, ...payload, id: payload.id || existing.id || physicalCode, tag: physicalCode, boucle_numero: physicalCode, qr_code: payload.qr_code || physicalCode, type: species, espece: species, categorie: species, health_status: payload.health_status || payload.sante || existing.health_status || 'sain', status: payload.status || payload.statut || existing.status || 'actif', date_entree_ferme: entryDate, date_poids_entree: payload.date_poids_entree || existing.date_poids_entree || entryDate, date_derniere_pesee: lastWeighing, prochaine_pesee: nextWeighing, rappel_pesee: nextWeighing ? addDays(nextWeighing, -1) : '', poids_entree: entryWeight, poids: current, poids_actuel: current, poids_cible: targetWeight, poids_history: history, purchase_cost: toNumber(payload.purchase_cost ?? payload.prix_achat ?? existing.purchase_cost), prix_vente_estime: toNumber(payload.prix_vente_estime ?? existing.prix_vente_estime) }, existing); };
+  const initialValues = useMemo(() => { const physicalCode = defaultPhysicalCode(species, normalizedRows); const date = today(); return applyAnimalDecisionDefaults({ id: physicalCode || generateSequentialId('animaux', normalizedRows, { type: species }), tag: physicalCode, boucle_numero: physicalCode, qr_code: physicalCode, type: species, espece: species, status: 'actif', health_status: 'sain', mode_acquisition: 'achat', origine: '', localisation: '', race: '', date_achat: date, date_entree_ferme: date, date_poids_entree: date, date_derniere_pesee: date, sexe: 'F', poids_entree: 0, poids: 0, poids_cible: 0, purchase_cost: 0, documents_text: '', photo_url: '' }); }, [normalizedRows, species]);
+  const prepare = (payload = {}, existing = {}) => {
+    const physicalCode = payload.boucle_numero || payload.qr_code || existing.boucle_numero || existing.qr_code || defaultPhysicalCode(species, normalizedRows);
+    const entryDate = payload.date_entree_ferme || payload.date_achat || existing.date_entree_ferme || today();
+    const textHistory = payload.poids_history_text;
+    const documentsText = payload.documents_text;
+    const current = toNumber(payload.poids ?? payload.poids_actuel ?? existing.poids ?? existing.poids_actuel ?? payload.poids_entree);
+    const entryWeight = toNumber(payload.poids_entree ?? existing.poids_entree ?? payload.poids);
+    const targetWeight = toNumber(payload.poids_cible ?? existing.poids_cible) || suggestedTargetWeight(species, entryWeight);
+    const history = textHistory ? parseHistory(textHistory) : parseHistory(existing.poids_history);
+    const documents = documentsText ? parseDocuments(documentsText) : parseDocuments(existing.documents || existing.docs || existing.pieces_jointes);
+    const lastWeighing = payload.date_derniere_pesee || existing.date_derniere_pesee || entryDate;
+    if (current > 0 && lastWeighing && !history.some((h) => h.date === lastWeighing && Math.round(h.poids * 10) === Math.round(current * 10))) history.push({ date: lastWeighing, poids: current, note: existing.id ? 'Nouvelle pesée' : 'Première pesée' });
+    const nextWeighing = ['vendu', 'mort', 'perdu', 'vole', 'volé', 'sorti'].includes(clean(payload.status || payload.statut || existing.status || existing.statut)) ? '' : addDays(lastWeighing, 15);
+    return applyAnimalDecisionDefaults({
+      ...existing,
+      ...payload,
+      id: payload.id || existing.id || physicalCode,
+      tag: physicalCode,
+      boucle_numero: physicalCode,
+      qr_code: payload.qr_code || physicalCode,
+      type: species,
+      espece: species,
+      categorie: species,
+      race: payload.race || existing.race || '',
+      origine: payload.origine || existing.origine || existing.fournisseur_vendeur || payload.mode_acquisition || existing.mode_acquisition || '',
+      localisation: payload.localisation || existing.localisation || existing.emplacement || '',
+      health_status: payload.health_status || payload.sante || existing.health_status || 'sain',
+      status: payload.status || payload.statut || existing.status || 'actif',
+      date_entree_ferme: entryDate,
+      date_poids_entree: payload.date_poids_entree || existing.date_poids_entree || entryDate,
+      date_derniere_pesee: lastWeighing,
+      prochaine_pesee: nextWeighing,
+      rappel_pesee: nextWeighing ? addDays(nextWeighing, -1) : '',
+      poids_entree: entryWeight,
+      poids: current,
+      poids_actuel: current,
+      poids_cible: targetWeight,
+      poids_history: history,
+      documents,
+      pieces_jointes: documents,
+      purchase_cost: toNumber(payload.purchase_cost ?? payload.prix_achat ?? existing.purchase_cost),
+      prix_vente_estime: toNumber(payload.prix_vente_estime ?? existing.prix_vente_estime),
+    }, existing);
+  };
   const submitCreate = async (payload) => { try { setSaving(true); await onCreate?.(prepare(payload)); await onRefresh?.(); toast.success(`${species} ajouté`); setModal(null); } catch (error) { toast.error(error.message || 'Création impossible'); } finally { setSaving(false); } };
   const submitEdit = async (payload) => { if (!selected) return; if (isLocked(selected)) return toast.error('Fiche verrouillée : animal vendu/perdu/mort'); try { setSaving(true); await onUpdate?.(selected.id, prepare(payload, selected)); await onRefresh?.(); toast.success(`${species} modifié`); setModal(null); } catch (error) { toast.error(error.message || 'Modification impossible'); } finally { setSaving(false); } };
   const submitDelete = async () => { if (!selected) return; try { setSaving(true); await onDelete?.(selected.id); await onRefresh?.(); toast.success(`${species} supprimé`); setModal(null); } catch (error) { toast.error(error.message || 'Suppression impossible'); } finally { setSaving(false); } };
