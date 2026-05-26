@@ -13,6 +13,8 @@ import { calculateSupplierSettlement } from '../../src/utils/supplierSettlement.
 import { transactionHasProof } from '../../src/utils/accountingProof.js';
 import { buildDocumentProofFollowUp } from '../../src/utils/documentWorkflows.js';
 import { normalizeDocumentPayload } from '../../src/utils/documentForms.js';
+import { buildTaskFromAlert, completeTaskWorkflow, normalizeTaskChecklist } from '../../src/utils/taskWorkflows.js';
+import { normalizeTaskPayload } from '../../src/utils/taskForms.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -438,5 +440,26 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
       { animaux: [{ id: 'BOV002', nom: 'Taureau BOV002' }] },
     );
     expect(payload).toMatchObject({ entity_type: 'animal', related_id: 'BOV002', status: 'manquant', verification_status: 'preuve_manquante' });
+  });
+
+  test('alerte crée une tâche liée sans doublon de checklist', () => {
+    const alert = { id: 'ALT-TASK-001', title: 'Stock aliment critique', message: 'Commander aliment', module_source: 'stock', entity_type: 'stock', entity_id: 'STK-ALIM-001', severity: 'critique', action_recommandee: 'Commander aliment' };
+    const workflow = buildTaskFromAlert(alert, [], today());
+    expect(workflow.task).toMatchObject({ module_lie: 'stock', source_module: 'alertes', source_record_id: 'ALT-TASK-001', priority: 'critique', status: 'a_faire' });
+    expect(workflow.alertPatch).toMatchObject({ linked_task_id: workflow.task.id, status: 'lue' });
+    expect(workflow.task.checklist).not.toContain('Stock aliment critique');
+  });
+
+  test('tâche terminée clôture alerte liée et trace action', () => {
+    const workflow = completeTaskWorkflow({ id: 'TSK-DONE-001', title: 'Planifier paiement', source_module: 'alertes', source_record_id: 'ALT-DONE-001', module_lie: 'fournisseurs', related_id: 'FOU-001' }, today(), '2026-01-01T08:00:00.000Z');
+    expect(workflow.taskPatch).toMatchObject({ status: 'termine', statut: 'termine' });
+    expect(workflow.alertPatch).toMatchObject({ id: 'ALT-DONE-001', patch: { status: 'traitee', completed_task_id: 'TSK-DONE-001' } });
+    expect(workflow.event).toMatchObject({ event_type: 'tache_terminee', linked_task_id: 'TSK-DONE-001', linked_alert_id: 'ALT-DONE-001' });
+  });
+
+  test('checklist tâche ne duplique pas le titre ni les étapes génériques', () => {
+    expect(normalizeTaskChecklist('Réparer pompe; À faire; Vérifier; Tester après réparation', 'Réparer pompe')).toEqual(['Tester après réparation']);
+    const payload = normalizeTaskPayload({ title: 'Réparer pompe', checklist: 'Réparer pompe\nVérifier\nCommander pièce', module_lie: 'equipements' });
+    expect(payload.checklist).toBe('Commander pièce');
   });
 });
