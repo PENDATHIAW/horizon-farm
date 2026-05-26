@@ -8,6 +8,8 @@ import { avicoleActiveCount, avicoleSickCount } from '../../src/utils/avicoleMet
 import { buildHealthCostTransaction, buildHealthFollowUp, buildHealthProofDocument } from '../../src/utils/healthWorkflows.js';
 import { buildClientReminderFollowUp, buildClientSalesSummary, canDeleteClient, normalizeClientFromSales } from '../../src/utils/clientWorkflows.js';
 import { buildSaleSourcePatch, capSalePayment } from '../../src/utils/salesWorkflows.js';
+import { buildSupplierDebtFollowUp, buildSupplierPaymentWorkflow, buildSupplierReceptionWorkflow } from '../../src/utils/supplierWorkflows.js';
+import { calculateSupplierSettlement } from '../../src/utils/supplierSettlement.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -376,5 +378,38 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     const client = { id: 'CLI-BLOCK-001', nom: 'Client historique' };
     expect(canDeleteClient(client, [{ id: 'CMD-BLOCK-001', client_id: 'CLI-BLOCK-001', montant_total: 10000 }])).toBe(false);
     expect(canDeleteClient(client, [])).toBe(true);
+  });
+
+  test('réception fournisseur crée stock, dette et facture manquante', () => {
+    const supplier = { id: 'FOU-ALIMENT-001', nom: 'Aliments Diop', dettes: 0 };
+    const stock = { id: 'STK-ALIMENT-001', produit: 'Aliment pondeuses', quantite: 4, prix_unitaire: 12500 };
+    const workflow = buildSupplierReceptionWorkflow({ supplier, stock, qty: 8, unitPrice: 12500, date: today() });
+    expect(workflow.stockPatch.quantite).toBe(12);
+    expect(workflow.debtTransaction).toMatchObject({ type: 'sortie', statut: 'a_payer', cash_effect: false, is_supplier_accrual: true, montant: 100000 });
+    expect(workflow.missingInvoiceDocument).toMatchObject({ module_source: 'fournisseurs', status: 'manquant', verification_status: 'preuve_manquante' });
+    expect(workflow.supplierPatch.dettes).toBe(100000);
+  });
+
+  test('paiement fournisseur solde la dette sans double compter la réception', () => {
+    const supplier = { id: 'FOU-PAIE-001', nom: 'Fournisseur suivi', dettes: 100000 };
+    const openDebt = { id: 'TRX-DETTE-001', type: 'sortie', statut: 'a_payer', montant: 100000, cash_effect: false, is_supplier_accrual: true, fournisseur_id: supplier.id };
+    const payment = buildSupplierPaymentWorkflow({ supplier, debtAmount: 100000, openDebtTransactions: [openDebt], date: today() });
+    const settledDebt = { ...openDebt, ...payment.debtTransactionPatches[0].patch };
+    const settlement = calculateSupplierSettlement(
+      { ...supplier, ...payment.supplierPatch },
+      { transactions: [settledDebt, payment.paymentTransaction], stocks: [], documents: [payment.paymentProofDocument] },
+    );
+    expect(payment.paymentTransaction).toMatchObject({ type: 'sortie', cash_effect: true, payment_for: 'supplier_debt', montant: 100000 });
+    expect(payment.paymentProofDocument.status).toBe('manquant');
+    expect(settlement.dettes).toBe(0);
+    expect(settlement.paiements).toBe(100000);
+  });
+
+  test('retard paiement fournisseur crée tâche et alerte liées', () => {
+    const supplier = { id: 'FOU-RETARD-001', nom: 'Semences Ndiaye' };
+    const followUp = buildSupplierDebtFollowUp(supplier, 45000, today());
+    expect(followUp.task).toMatchObject({ module_lie: 'fournisseurs', related_id: 'FOU-RETARD-001', status: 'a_faire' });
+    expect(followUp.alert).toMatchObject({ module_source: 'fournisseurs', entity_id: 'FOU-RETARD-001', status: 'nouvelle' });
+    expect(followUp.task.task_dedupe_key).toBe(followUp.alert.alert_dedupe_key);
   });
 });
