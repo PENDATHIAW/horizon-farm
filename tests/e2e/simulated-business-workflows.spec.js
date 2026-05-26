@@ -15,6 +15,7 @@ import { buildDocumentProofFollowUp } from '../../src/utils/documentWorkflows.js
 import { normalizeDocumentPayload } from '../../src/utils/documentForms.js';
 import { buildTaskFromAlert, completeTaskWorkflow, normalizeTaskChecklist } from '../../src/utils/taskWorkflows.js';
 import { normalizeTaskPayload } from '../../src/utils/taskForms.js';
+import { dedupeAlertsBySource, isAlertResolved } from '../../src/utils/alertWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -461,5 +462,19 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(normalizeTaskChecklist('Réparer pompe; À faire; Vérifier; Tester après réparation', 'Réparer pompe')).toEqual(['Tester après réparation']);
     const payload = normalizeTaskPayload({ title: 'Réparer pompe', checklist: 'Réparer pompe\nVérifier\nCommander pièce', module_lie: 'equipements' });
     expect(payload.checklist).toBe('Commander pièce');
+  });
+
+  test('alertes même source sont dédupliquées en gardant l’ouverte récente', () => {
+    const alerts = dedupeAlertsBySource([
+      { id: 'ALT-OLD', module_source: 'stock', entity_type: 'stock', entity_id: 'STK-1', action_recommandee: 'Commander', status: 'resolue', updated_at: '2026-01-01T08:00:00Z' },
+      { id: 'ALT-NEW', module_source: 'stock', entity_type: 'stock', entity_id: 'STK-1', action_recommandee: 'Commander', status: 'nouvelle', updated_at: '2026-01-02T08:00:00Z' },
+    ]);
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].id).toBe('ALT-NEW');
+    expect(isAlertResolved(alerts[0])).toBe(false);
+  });
+
+  test('alerte ignorée est considérée fermée', () => {
+    expect(isAlertResolved({ status: 'ignoree' })).toBe(true);
   });
 });
