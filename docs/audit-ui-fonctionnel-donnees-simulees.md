@@ -424,6 +424,25 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Hey Horizon trop générique sur certaines phrases terrain | l’interpréteur ne distinguait pas récolte, facture fournisseur, ouverture de fiche animal et stocks critiques | nouvelles intentions dédiées et auto-ouverture de brouillons validables | `src/services/aiIntentEngine.js`, `src/components/AssistantPanel.jsx`, `src/components/HorizonDraftPanel.jsx`, `src/modules/AnimauxV2.jsx` | `06e2035` | `Hey Horizon prépare les intentions terrain sans confondre les modules` | l’assistant prépare le bon module/formulaire au lieu de seulement chercher ou naviguer |
 | Centre décisionnel sans passage direct à l’action | les recommandations ouvraient surtout un brouillon ou un module, mais ne créaient pas une tâche terrain immédiatement exploitable | ajout d’un workflow décision -> tâche + trace et bouton Créer tâche sur les cartes prioritaires | `src/modules/CentreIA.jsx`, `src/modules/DecisionRecommendationCardCompact.jsx`, `src/utils/decisionCenterWorkflows.js`, `src/App.jsx` | `89d0e75` | `Centre décisionnel transforme une recommandation sourcée en tâche actionnable` | une recommandation stock/santé/production devient une tâche sourcée et traçable |
 | Objectifs sans plan d’action direct | les écarts objectif/réel étaient lisibles mais restaient trop statiques et ne créaient pas d’action terrain liée au module source | ajout du panneau Plans d’action objectifs, statut atteint/en retard/en cours, création tâche + trace métier et KPI BP alimentés depuis `dataMap` | `src/modules/ObjectifsCroissanceV2.jsx`, `src/utils/objectivesWorkflows.js`, `src/App.jsx` | `a8969b7` | `Objectifs & Croissance marque atteint et crée une action si objectif en retard` | un objectif en retard crée une tâche sourcée vers Avicole/Animaux/Cultures/Stock/Finances ; un objectif atteint est affiché comme tel |
+| Traçabilité sans contrôle de source | certains faits avaient un module ou un titre mais pas toujours une source ouvrable, et l’export n’était pas assez direct | normalisation des faits, panneau qualité des traces, badge source à compléter, export CSV et routage source fiable | `src/modules/Tracabilite.jsx`, `src/modules/TracabiliteV2.jsx`, `src/utils/traceabilityWorkflows.js` | `48fed4c` | `Traçabilité source les actions sensibles et ouvre le bon module` | vente, paiement, soin, récolte et action admin sont identifiables ; les faits orphelins sont signalés |
+
+## Module : Traçabilité
+
+- Sections testées : Actions & traçabilité, Qualité des traces, Faits critiques récents, filtres par élément/importance/espace, liste des faits, anciennes données détectées, ajout manuel.
+- Sections supprimées/fusionnées : aucune suppression ; ajout d’une section qualité pour éviter de noyer l’utilisateur dans des faits impossibles à exploiter.
+- Boutons testés : Actualiser, Exporter, Ajouter un fait, Ouvrir source, Voir document, Voir paiement, Voir vente, Ouvrir tâches, Ouvrir alertes, Ouvrir sync.
+- Boutons corrigés : Ouvrir source utilise maintenant une table de routage métier (`sales_orders` -> Ventes, `stocks` -> Stock, `gestion_systeme` -> Gestion système) ; Exporter génère un CSV filtré.
+- Formulaires testés : Ajouter un fait important.
+- Champs présents : référence, type de fait, espace concerné, élément concerné, référence élément, titre, description, montant, date, importance.
+- Champs ajoutés : source normalisée, badge source à compléter, route source, indicateur `has_source`.
+- Actions testées : trace de vente, soin, paiement orphelin, action admin sensible, export des faits filtrés, ouverture source.
+- Conséquences métier vérifiées : les actions sensibles sont comptées, les traces sans source sont signalées, les traces sourcées peuvent revenir au module source.
+- Interconnexions vérifiées : Ventes, Finances, Santé, Documents, Tâches, Alertes, Stock, Cultures, Gestion système, Sync.
+- Bugs trouvés : faits sans source non visibles comme problème, action `system_user_deleted` non classée sensible, export absent de l’en-tête.
+- Corrections faites : ajout de `traceabilityWorkflows`, panneau qualité, source normalisée dans la liste, export CSV, test action sensible.
+- Tests ajoutés : `Traçabilité source les actions sensibles et ouvre le bon module`.
+- Commit poussé : `48fed4c fix: completer tracabilite terrain`.
+- Reste à faire : brancher systématiquement `business_events` dans tous les services CRUD de suppression pour que les actions admin soient tracées côté serveur, pas seulement côté UI.
 
 ## Module : Objectifs & Croissance
 
@@ -503,7 +522,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Smart Farm, Assistant ERP, Centre décisionnel, Objectifs & Croissance, Avicole, Animaux, Finances, Comptabilité, `58 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Smart Farm, Assistant ERP, Centre décisionnel, Objectifs & Croissance, Traçabilité, Avicole, Animaux, Finances, Comptabilité, `59 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -583,6 +602,8 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `89d0e75 fix: completer centre decisionnel terrain`
 - `8885072 docs: documenter corrections terrain centre decisionnel`
 - `a8969b7 fix: completer objectifs croissance terrain`
+- `39a5c43 docs: documenter corrections terrain objectifs croissance`
+- `48fed4c fix: completer tracabilite terrain`
 
 Push GitHub : les commits jusqu'à `0d9ff24` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
