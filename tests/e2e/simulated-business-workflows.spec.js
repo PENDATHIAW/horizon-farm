@@ -832,6 +832,10 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
       'src/modules/SanteV2.jsx',
       'src/modules/StocksV3.jsx',
       'src/modules/StocksV4.jsx',
+      'src/modules/DocumentsV2.jsx',
+      'src/modules/TradeDocumentsHealth.jsx',
+      'src/modules/ImpactBusinessShell.jsx',
+      'src/components/SettingsPanel.jsx',
       'src/components/AssistantPanel.jsx',
       'src/modules/SalesWorkflowRepairPanel.jsx',
       'src/modules/DecisionRecommendationCard.jsx',
@@ -845,9 +849,13 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(visibleText).not.toMatch(/logs orphelins/i);
     expect(visibleText).not.toMatch(/Réparer le workflow ventes/i);
     expect(visibleText).not.toMatch(/Créer le workflow achat\/finance/i);
+    expect(visibleText).not.toMatch(/Justificatifs à compléter/i);
+    expect(visibleText).not.toMatch(/Compléter justificatif/i);
+    expect(visibleText).not.toMatch(/Justificatifs et preuves/i);
     expect(visibleText).toContain('Dépense santé à enregistrer');
     expect(visibleText).toContain('Conséquence terrain');
     expect(visibleText).toContain('Préparer aussi la dépense et la preuve/facture');
+    expect(visibleText).toContain('Preuves / factures à compléter');
 
     const detailsModal = readFileSync('src/modals/DetailsModal.jsx', 'utf8');
     expect(detailsModal).toContain("'source_record_id'");

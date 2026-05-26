@@ -17,13 +17,13 @@ function ModuleSection({ icon: Icon, title, subtitle, children }) {
 
 async function createDocFromTransaction(tx, props, setSavingId) {
   if (!tx?.id) return toast.error('Ligne introuvable');
-  if (transactionHasProof(tx, props.rows || [])) return toast.success('Justificatif déjà ajouté');
-  if ((props.rows || []).some((doc) => documentLinkedToTransaction(doc, tx))) return toast.success('Fiche justificatif déjà ouverte');
+  if (transactionHasProof(tx, props.rows || [])) return toast.success('Preuve / facture déjà ajoutée');
+  if ((props.rows || []).some((doc) => documentLinkedToTransaction(doc, tx))) return toast.success('Fiche preuve / facture déjà ouverte');
   try {
     setSavingId(tx.id);
     const doc = {
       id: generateSequentialId('documents', props.rows || []),
-      title: `Justificatif ${tx.libelle || tx.id}`,
+      title: `Preuve / facture ${tx.libelle || tx.id}`,
       document_category: tx.type === 'entree' ? 'recu' : 'facture',
       module_source: 'finances',
       entity_type: 'transaction',
@@ -71,7 +71,7 @@ function Mini({ icon: Icon, label, value }) { return <div className="rounded-xl 
 export default function DocumentsV2(props) {
   return <div className="space-y-6 documents-mobile-structured"><style>{`@media (max-width: 640px){.documents-mobile-structured .rounded-2xl{border-radius:18px}.documents-mobile-structured table{font-size:12px}.documents-mobile-structured th,.documents-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.documents-mobile-structured .text-2xl{font-size:1.35rem}.documents-mobile-structured .grid{gap:.75rem}.documents-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
     <DocumentControlPanel rows={props.rows || []} transactions={props.transactions || props.finances || []} salesOrders={props.salesOrders || []} invoices={props.invoices || []} businessPlans={props.businessPlans || []} investissements={props.investissements || []} onNavigate={props.onNavigate} />
-    <ModuleSection icon={ShieldCheck} title="Justificatifs à compléter" subtitle="Montants qui n’ont pas encore de preuve liée."><DocumentsBridge {...props} /></ModuleSection>
+    <ModuleSection icon={ShieldCheck} title="Preuves / factures à compléter" subtitle="Montants qui n’ont pas encore de preuve liée."><DocumentsBridge {...props} /></ModuleSection>
     <ModuleSection icon={FileText} title="Bibliothèque documentaire" subtitle="Documents, pièces, preuves, reçus, factures et fichiers liés à la ferme."><Documents {...props} /></ModuleSection>
   </div>;
 }

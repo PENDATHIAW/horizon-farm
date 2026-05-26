@@ -21,7 +21,7 @@ function clientSummary(client, orders = [], payments = [], docs = [], finances =
   const paid = Math.min(ca, clientPayments.reduce((sum, payment) => sum + paidOf(payment), 0) || clientOrders.reduce((sum, order) => sum + paidOf(order), 0));
   const receivable = Math.max(0, ca - paid);
   const proofMissing = arr(finances).filter((tx) => financeLinkedTo(tx, client.id) && amountOf(tx) > 0 && !transactionHasProof(tx, docs)).length;
-  return { owner: client, total: ca, paid, balance: receivable, docs: docs.filter((doc) => docLinkedTo(doc, client.id)).length, proofMissing, action: receivable > 0 ? 'Relancer paiement' : proofMissing > 0 ? 'Compléter justificatif' : 'OK' };
+  return { owner: client, total: ca, paid, balance: receivable, docs: docs.filter((doc) => docLinkedTo(doc, client.id)).length, proofMissing, action: receivable > 0 ? 'Relancer paiement' : proofMissing > 0 ? 'Compléter preuve / facture' : 'OK' };
 }
 
 function supplierSummary(supplier, docs = [], finances = [], stocks = []) {
@@ -29,7 +29,7 @@ function supplierSummary(supplier, docs = [], finances = [], stocks = []) {
   const purchases = arr(stocks).filter((stock) => String(stock.fournisseur_id || stock.supplier_id || stock.related_id || '') === String(supplier.id || ''));
   const debt = Number(supplier.dettes || 0) || txs.filter((tx) => String(tx.statut || tx.status || '').toLowerCase() !== 'paye' && String(tx.type || '').toLowerCase() === 'sortie').reduce((sum, tx) => sum + amountOf(tx), 0);
   const proofMissing = txs.filter((tx) => amountOf(tx) > 0 && !transactionHasProof(tx, docs)).length;
-  return { owner: supplier, total: purchases.reduce((sum, row) => sum + amountOf(row), 0), paid: Math.max(0, amountOf(supplier) - debt), balance: debt, docs: docs.filter((doc) => docLinkedTo(doc, supplier.id)).length, proofMissing, action: debt > 0 ? 'Planifier paiement' : proofMissing > 0 ? 'Compléter justificatif' : 'OK' };
+  return { owner: supplier, total: purchases.reduce((sum, row) => sum + amountOf(row), 0), paid: Math.max(0, amountOf(supplier) - debt), balance: debt, docs: docs.filter((doc) => docLinkedTo(doc, supplier.id)).length, proofMissing, action: debt > 0 ? 'Planifier paiement' : proofMissing > 0 ? 'Compléter preuve / facture' : 'OK' };
 }
 
 function Mini({ icon: Icon, label, value, danger = false }) {
@@ -47,7 +47,7 @@ export default function TradeDocumentsHealth({ mode = 'clients', rows = [], sale
   const withMissingProof = summaries.filter((item) => item.proofMissing > 0).sort((a, b) => b.proofMissing - a.proofMissing);
   const totalBalance = withBalance.reduce((sum, item) => sum + item.balance, 0);
   const missingProofCount = withMissingProof.reduce((sum, item) => sum + item.proofMissing, 0);
-  const title = mode === 'fournisseurs' ? 'Suivi fournisseurs & justificatifs' : 'Suivi clients & justificatifs';
+  const title = mode === 'fournisseurs' ? 'Suivi fournisseurs & preuves/factures' : 'Suivi clients & preuves/factures';
   const OwnerIcon = mode === 'fournisseurs' ? Truck : Users;
 
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
@@ -55,7 +55,7 @@ export default function TradeDocumentsHealth({ mode = 'clients', rows = [], sale
       <div>
         <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><FileText size={15} /> {title}</p>
         <h3 className="text-xl font-black text-[#2f2415] mt-1">Argent à suivre et pièces à compléter</h3>
-        <p className="text-sm text-[#8a7456] mt-1">Vue courte pour repérer les soldes ouverts et les justificatifs manquants avant les tableaux détaillés.</p>
+        <p className="text-sm text-[#8a7456] mt-1">Vue courte pour repérer les soldes ouverts et les preuves/factures manquantes avant les tableaux détaillés.</p>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm min-w-[320px]">
         <Mini icon={OwnerIcon} label="Tiers" value={rows.length} />
@@ -74,10 +74,10 @@ export default function TradeDocumentsHealth({ mode = 'clients', rows = [], sale
         </div>
       </div>
       <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <p className="font-black text-[#2f2415]">Justificatifs à compléter</p>
+        <p className="font-black text-[#2f2415]">Preuves / factures à compléter</p>
         <div className="mt-3 space-y-2 text-sm">
           {withMissingProof.slice(0, 4).map((item) => <div key={item.owner.id || ownerName(item.owner)} className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2"><b className="text-[#2f2415]">{ownerName(item.owner)}</b><p className="text-xs text-[#8a7456]">{item.proofMissing} pièce(s) manquante(s)</p></div>)}
-          {!withMissingProof.length ? <div className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2 text-[#8a7456]">Aucun justificatif manquant détecté pour ces tiers.</div> : null}
+          {!withMissingProof.length ? <div className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2 text-[#8a7456]">Aucune preuve/facture manquante détectée pour ces tiers.</div> : null}
         </div>
       </div>
     </div>
