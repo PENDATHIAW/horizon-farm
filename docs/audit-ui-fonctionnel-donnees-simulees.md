@@ -342,6 +342,24 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Commit poussé : `d41cbd1 fix: completer parcours smart farm terrain`.
 - Reste à faire : valider dans l’UI avec le bouton Paramètres -> données simulées que les seuils réels des capteurs terrain futurs correspondent aux unités installées.
 
+## Module : Assistant ERP / Hey Horizon
+
+- Sections testées : centre d’aide Hey Horizon, règles produit, exemples de commandes, panneau flottant, brouillon Horizon, champs modifiables, boutons Parler/Envoyer/Valider/Ouvrir formulaire.
+- Sections supprimées/fusionnées : aucune suppression ; le module reste une aide simple, l’action réelle reste dans le panneau global Hey Horizon.
+- Boutons testés : Ouvrir Hey Horizon, Parler, Envoyer, Valider, Annuler, Ouvrir fiche/formulaire, actions rapides Vente/Soin/Œufs/Stock/Tâche/Rapport.
+- Boutons corrigés : validation et ouverture automatique acceptent maintenant récolte culture, facture fournisseur, fiche animal et stocks critiques.
+- Formulaires testés : brouillon santé, ramassage œufs, récolte culture, panne équipement, facture fournisseur, recherche fiche animal, stocks critiques.
+- Champs présents : module, cible, date, quantité, unité, fournisseur, culture, filtre, impacts, notes.
+- Champs ajoutés : intention `culture_harvest`, `supplier_invoice`, `entity_lookup`, `stock_critical_lookup`, libellés simples dans le brouillon.
+- Actions testées : “Créer une fiche de vaccination pour BOV002”, “J’ai ramassé 300 œufs”, “J’ai récolté 100 kg tomate”, “Déclarer panne pompe irrigation”, “Ajouter facture fournisseur aliments”, “Ouvre fiche BOV002”, “Montre les stocks critiques”.
+- Conséquences métier vérifiées : chaque intention ouvre le bon module, prépare un brouillon validable et affiche les modules impactés avant action sensible.
+- Interconnexions vérifiées : Assistant vers Santé, Avicole, Cultures, Équipements, Documents/Fournisseurs, Animaux, Stock, Tâches, Alertes, Traçabilité.
+- Bugs trouvés : certaines commandes terrain étaient renvoyées vers une recherche générique ou un module trop large, notamment récolte culture, facture fournisseur, fiche animal et stocks critiques.
+- Corrections faites : enrichissement de `aiIntentEngine`, auto-ouverture des nouveaux types de formulaire, libellés de brouillon, pont de recherche fiche animal dans Animaux.
+- Tests ajoutés : Hey Horizon prépare les intentions terrain sans confondre les modules.
+- Commit poussé : `06e2035 fix: completer assistant erp terrain`.
+- Reste à faire : ajouter des handlers visuels dédiés côté Cultures/Documents pour afficher directement une carte préremplie comme Santé/Avicole/Animaux.
+
 ## Module : Avicole
 
 - Sections testées : séparation Pondeuses/Poulets de chair, Pilotage avicole, Vue active, Où saisir les œufs, Objectif œufs/pondeuses, Lots actifs, Gestion avicole, Journal de ponte et charges, Journal de ramassage des œufs, Charges directes pondeuses, Cycle et historique, Évolution détaillée.
@@ -385,6 +403,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Réparation équipement incomplète | la panne créait un suivi mais la remise en service simple ne garantissait pas clôture tâche/alerte, finance et preuve | workflow réparation avec équipement opérationnel, tâche terminée, alerte résolue, sortie finance et document preuve manquante | `src/modules/EquipementsQuickActionsBridge.jsx`, `src/modules/Equipements.jsx`, `src/utils/equipmentWorkflows.js` | `e96356a` | `panne équipement crée tâche, alerte et trace liées`, `réparation équipement clôture tâche/alerte et crée finance/document` | une pompe réparée revient opérationnelle et laisse preuve/facture à joindre |
 | Paie RH sans preuve selon le chemin | la carte prioritaire créait une preuve mais le répertoire RH pouvait payer surtout Finance/trace | workflow RH unique pour salaire, preuve manquante, trace et mise à jour personne ; actions absence/tâche ajoutées | `src/modules/RH.jsx`, `src/modules/RHPeopleTeams.jsx`, `src/utils/rhWorkflows.js`, `src/App.jsx` | `0d9ff24` | `salaire RH payé crée finance, preuve salaire et trace`, `absence RH crée suivi terrain et tâche assignée`, `tâche RH assignée reste visible dans le module métier` | RH devient un centre d’action : paie, absence et tâche ont des conséquences visibles |
 | Smart Farm sans conséquence à l’enregistrement critique | les signaux existaient mais un appareil ajouté/modifié critique ne déclenchait pas toujours immédiatement tâche/alerte/trace | workflow Smart Farm pour capteur/caméra critique, badges source simulation/réel, seuils de mesure dans le formulaire | `src/modules/SmartFarm.jsx`, `src/utils/constants.js`, `src/utils/smartFarmWorkflows.js` | `d41cbd1` | `capteur Smart Farm critique crée tâche, alerte et trace`, `Smart Farm distingue données simulées et données réelles`, `caméra Smart Farm hors ligne crée une action terrain` | un capteur ou une caméra critique ouvre une action terrain sans ambiguïté simulation/réel |
+| Hey Horizon trop générique sur certaines phrases terrain | l’interpréteur ne distinguait pas récolte, facture fournisseur, ouverture de fiche animal et stocks critiques | nouvelles intentions dédiées et auto-ouverture de brouillons validables | `src/services/aiIntentEngine.js`, `src/components/AssistantPanel.jsx`, `src/components/HorizonDraftPanel.jsx`, `src/modules/AnimauxV2.jsx` | `06e2035` | `Hey Horizon prépare les intentions terrain sans confondre les modules` | l’assistant prépare le bon module/formulaire au lieu de seulement chercher ou naviguer |
 
 ## Module : Animaux
 
@@ -446,7 +465,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Smart Farm, Avicole, Animaux, Finances, Comptabilité, `55 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Smart Farm, Assistant ERP, Avicole, Animaux, Finances, Comptabilité, `56 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -520,6 +539,8 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `0d9ff24 fix: completer parcours rh terrain`
 - `52eff55 docs: documenter corrections terrain rh`
 - `d41cbd1 fix: completer parcours smart farm terrain`
+- `b478563 docs: documenter corrections terrain smart farm`
+- `06e2035 fix: completer assistant erp terrain`
 
 Push GitHub : les commits jusqu'à `0d9ff24` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
@@ -536,4 +557,4 @@ Push GitHub : les commits jusqu'à `0d9ff24` sont poussés sur `origin/feature/o
 | P1 | Tâches | clôture auto partielle | `TachesV3.jsx`, `AlertesCenterV2.jsx` | relier chaque tâche à source résoluble |
 | P2 | Smart Farm | seuils à calibrer avec les vrais appareils terrain | `SmartFarm.jsx` | valider les unités et seuils réels par type de capteur |
 | P2 | Rapports | PDF à revalider sur brouillon modifié | `RapportsV2.jsx` | test export avec contenu modifié |
-| P2 | Assistant ERP | préremplissage fiche encore limité | `AssistantERPV2.jsx`, `AssistantPanel.jsx` | router intention -> formulaire prérempli avec confirmation |
+| P2 | Assistant ERP | handlers visuels pas encore dédiés pour Cultures/Documents | `CulturesV5.jsx`, `DocumentsV2.jsx`, `AssistantPanel.jsx` | afficher une carte préremplie spécifique après intention récolte/facture |
