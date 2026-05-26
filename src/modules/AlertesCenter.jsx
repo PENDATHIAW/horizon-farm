@@ -12,6 +12,7 @@ import { normalizePhone, openWhatsAppApp } from '../utils/contactActions';
 import { fmtCurrency } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
 import { getResponsibleOptions, resolveResponsibleLabel } from '../utils/rhDirectory';
+import { buildTaskFromAlert } from '../utils/taskWorkflows';
 
 const ALERT_CONFIG_KEY = 'horizon_farm_alert_config_v1';
 const SEVERITY_ORDER = { urgence: 0, critique: 1, warning: 2, info: 3 };
@@ -99,7 +100,8 @@ export default function AlertesCenter({ alertes = [], transactions = [], animaux
 
   const createTaskFromAlert = async (alert) => {
     if (!onCreateTask || alert.task_intent !== 'a_creer') return;
-    await onCreateTask({ id: `TSK-AL-${Date.now()}`, title: taskTitleFromAlert(alert), module_lie: alert.module_source || 'alertes', source_module: 'alertes', source_record_id: alert.id, alert_id: alert.id, entity_type: alert.entity_type || '', related_id: alert.entity_id || '', priority: alert.severity === 'urgence' ? 'critique' : alert.severity === 'critique' ? 'haute' : 'moyenne', status: 'a_faire', due_date: today(), assigned_to: alert.responsable || '', notes: alert.action_recommandee || alert.message || '', checklist: checklistForAlert(alert), created_from: 'alerte_creation' });
+    const workflow = buildTaskFromAlert({ ...alert, checklist: checklistForAlert(alert), title: taskTitleFromAlert(alert) }, [], today());
+    await onCreateTask({ ...workflow.task, alert_id: alert.id, assigned_to: alert.responsable || workflow.task.assigned_to, created_from: 'alerte_creation' });
     await onRefreshTasks?.();
   };
   const submitCreate = async (payload) => { try { setSaving(true); const normalized = normalizeAlertPayload(payload, formContext); const alertPayload = { ...normalized, responsable_label: recipientLabel(normalized.responsable, config), status: 'nouvelle', alert_dedupe_key: alertKey(normalized), created_at: new Date().toISOString() }; await onCreate(alertPayload); await createTaskFromAlert(alertPayload); await onRefresh?.(); toast.success(normalized.task_intent === 'a_creer' ? 'Alerte et tâche créées' : 'Alerte créée'); setModal(null); } catch { toast.error('Création alerte impossible'); } finally { setSaving(false); } };

@@ -1,36 +1,21 @@
 import { AlertTriangle, CheckCircle2, ClipboardList } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { makeId } from '../utils/ids';
+import { buildTaskFromAlert, hasOpenTaskForAlert } from '../utils/taskWorkflows';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value = '') => String(value || '').toLowerCase();
 const open = (row = {}) => !['traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée', 'closed', 'done'].includes(lower(row.status || row.statut));
-const hasTask = (tasks = [], alert = {}) => arr(tasks).some((task) => String(task.source_record_id || task.alert_id || '') === String(alert.id || ''));
 const moduleOf = (alert = {}) => alert.module_source || alert.module || alert.module_lie || 'alertes';
 const titleOf = (alert = {}) => alert.title || alert.titre || alert.message || 'Alerte à traiter';
 
 export default function AlertTaskBridgePanel({ alertes = [], tasks = [], onCreateTask, onRefreshTasks, onUpdateAlert, onRefreshAlertes, onNavigate }) {
   const openAlerts = arr(alertes).filter(open);
-  const withoutTask = openAlerts.filter((alert) => !hasTask(tasks, alert));
+  const withoutTask = openAlerts.filter((alert) => !hasOpenTaskForAlert(tasks, alert));
   const createTask = async (alert) => {
     try {
-      await onCreateTask?.({
-        id: makeId('TSK'),
-        title: titleOf(alert),
-        module_lie: moduleOf(alert),
-        source_module: 'alertes',
-        source_record_id: alert.id,
-        alert_id: alert.id,
-        entity_type: alert.entity_type || alert.type_cible || '',
-        related_id: alert.entity_id || alert.related_id || '',
-        priority: alert.priority || alert.priorite || alert.severity || 'haute',
-        status: 'a_faire',
-        due_date: alert.due_date || alert.date_prevue || new Date().toISOString().slice(0, 10),
-        notes: alert.action_recommandee || alert.recommendation || alert.message || '',
-        checklist: ['Identifier la cause', 'Faire l’action terrain', 'Ajouter une preuve/photo si nécessaire', 'Mettre à jour le module concerné'],
-        created_from: 'alerte',
-      });
-      await onUpdateAlert?.(alert.id, { task_status: 'tache_creee', linked_task_status: 'created' });
+      const workflow = buildTaskFromAlert(alert, tasks, alert.due_date || alert.date_prevue || new Date().toISOString().slice(0, 10));
+      await onCreateTask?.({ ...workflow.task, created_from: 'alerte' });
+      await onUpdateAlert?.(alert.id, { ...workflow.alertPatch, task_status: 'tache_creee', linked_task_status: 'created' });
       await Promise.allSettled([onRefreshTasks?.(), onRefreshAlertes?.()]);
       toast.success('Tâche créée depuis l’alerte');
     } catch (error) { toast.error(error.message || 'Création de tâche impossible'); }

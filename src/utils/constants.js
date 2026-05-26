@@ -602,7 +602,7 @@ export const MODULE_FORM_FIELDS = {
     { key: 'id', label: 'ID', type: 'text', required: true },
     { key: 'title', label: 'Titre', type: 'text', required: true },
     { key: 'message', label: 'Message', type: 'text', fullWidth: true },
-    { key: 'module_source', label: 'Module', type: 'select', options: ['animaux', 'avicole', 'cultures', 'stock', 'finances', 'ventes', 'clients', 'smartfarm', 'meteo', 'autre'] },
+    { key: 'module_source', label: 'Module', type: 'select', options: ['animaux', 'avicole', 'cultures', 'stock', 'finances', 'ventes', 'clients', 'fournisseurs', 'sante', 'documents', 'taches', 'equipements', 'smartfarm', 'meteo', 'autre'] },
     { key: 'entity_type', label: 'Type entite', type: 'text' },
     { key: 'entity_id', label: 'ID entite', type: 'text' },
     { key: 'severity', label: 'Gravite', type: 'select', options: ['info', 'warning', 'critique', 'urgence'] },
@@ -691,4 +691,3 @@ export const MODULE_FORM_FIELDS = {
     { key: 'status', label: 'Statut', type: 'select', options: ['a_traiter', 'en_discussion', 'reserve', 'converti', 'ignore'] },
   ],
 };
-
