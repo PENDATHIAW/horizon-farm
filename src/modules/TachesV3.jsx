@@ -2,6 +2,7 @@ import { CheckCircle2, ClipboardList, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { makeId } from '../utils/ids';
+import { normalizeTaskChecklist } from '../utils/taskWorkflows';
 import ActionTraceHealth from './ActionTraceHealth.jsx';
 import FarmRoutineTasksPanel from './FarmRoutineTasksPanel.jsx';
 import TachesTechnical from './TachesTechnical.jsx';
@@ -15,7 +16,7 @@ function HeyHorizonTaskCard({ draft, onCreateTask, onCreateBusinessEvent, onRefr
   const [dueDate, setDueDate] = useState(fields.due_date || fields.date || today());
   const [priority, setPriority] = useState(priorityFrom(fields.priority));
   const [moduleLie, setModuleLie] = useState(fields.module_lie || fields.module || 'ferme');
-  const [checklist, setChecklist] = useState(fields.checklist || 'À faire; Vérifier; Clôturer');
+  const [checklist, setChecklist] = useState(fields.checklist || '');
   const [note, setNote] = useState(fields.notes || '');
   const [saving, setSaving] = useState(false);
   const submit = async () => {
@@ -23,7 +24,7 @@ function HeyHorizonTaskCard({ draft, onCreateTask, onCreateBusinessEvent, onRefr
     try {
       setSaving(true);
       const id = makeId('TSK');
-      await onCreateTask?.({ id, title: title.trim(), description: note, due_date: dueDate, date_echeance: dueDate, priority, status: 'a_faire', statut: 'a_faire', module_lie: moduleLie, checklist, source_module: 'hey_horizon', created_from: 'hey_horizon' });
+      await onCreateTask?.({ id, title: title.trim(), description: note, due_date: dueDate, date_echeance: dueDate, priority, status: 'a_faire', statut: 'a_faire', module_lie: moduleLie, checklist: normalizeTaskChecklist(checklist, title.trim()), source_module: 'hey_horizon', created_from: 'hey_horizon' });
       await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'tache_hey_horizon', module_source: 'taches', entity_type: 'tache', entity_id: id, title: `Tâche créée · ${title.trim()}`, description: note || draft?.raw_input || '', event_date: today(), severity: priority === 'critique' ? 'warning' : 'info', saisies_evitees: 2 });
       await Promise.allSettled([onRefreshTasks?.(), onRefreshBusinessEvents?.()]);
       toast.success('Tâche créée depuis Hey Horizon');

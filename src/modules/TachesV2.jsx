@@ -1,7 +1,7 @@
 import { AlertTriangle, CalendarClock, CheckCircle2, ChevronDown, ListChecks, ShieldCheck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { generateSequentialId, makeId } from '../utils/ids';
+import { buildTaskFromAlert, completeTaskWorkflow, hasOpenTaskForAlert, isTaskClosed } from '../utils/taskWorkflows';
 import Taches from './Taches.jsx';
 import TaskAlertQualityControl from './TaskAlertQualityControl.jsx';
 
@@ -9,13 +9,10 @@ const arr = (value) => Array.isArray(value) ? value : [];
 const today = () => new Date().toISOString().slice(0, 10);
 const now = () => new Date().toISOString();
 const low = (value = '') => String(value || '').toLowerCase();
-const isDone = (task = {}) => ['termine', 'terminé', 'annule', 'annulé'].includes(low(task.status));
+const isDone = isTaskClosed;
 const isLate = (task = {}) => task.status === 'retard' || (task.due_date && !isDone(task) && new Date(task.due_date) < new Date());
 const isToday = (task = {}) => task.due_date && String(task.due_date).slice(0, 10) === today() && !isDone(task);
 const isPriority = (task = {}) => ['critique', 'haute'].includes(low(task.priority)) && !isDone(task);
-const alertKey = (alert = {}) => `${alert.module_source || alert.module || 'alertes'}:${alert.entity_type || 'alerte'}:${alert.entity_id || alert.id}:${alert.action_recommandee || alert.title || alert.message || 'action'}`;
-const taskKey = (task = {}) => task.alert_dedupe_key || `${task.module_lie || task.source_module || 'alertes'}:${task.entity_type || 'alerte'}:${task.related_id || task.source_record_id || task.id}:${task.action_key || task.title || 'action'}`;
-const hasOpenTaskForAlert = (tasks = [], alert = {}) => arr(tasks).some((task) => !isDone(task) && (String(task.source_record_id || '') === String(alert.id || '') || taskKey(task) === alertKey(alert)));
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
@@ -30,11 +27,10 @@ async function createTaskFromAlert(alert, props, setSavingId) {
   if (hasOpenTaskForAlert(props.rows || [], alert)) return toast.success('Une tâche ouverte existe déjà');
   try {
     setSavingId(alert.id);
-    const id = generateSequentialId('taches', props.rows || []);
-    const dedupeKey = alertKey(alert);
-    await props.onCreate?.({ id, title: alert.title || alert.message || 'Action alerte', module_lie: alert.module_source || alert.module || 'alertes', entity_type: alert.entity_type || 'alerte', related_id: alert.entity_id || alert.id, assigned_to: 'TEAM-FERME', due_date: today(), priority: ['critical', 'critique', 'urgence'].includes(alert.severity) ? 'critique' : 'haute', status: 'a_faire', notes: alert.message || alert.action_recommandee || '', source_module: 'alertes', source_record_id: alert.id, action_key: alert.action_recommandee || alert.title || 'action', alert_dedupe_key: dedupeKey });
-    await props.onUpdateAlert?.(alert.id, { linked_task_id: id, status: alert.status === 'nouvelle' ? 'lue' : alert.status || 'lue' });
-    await props.onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'tache_creee_depuis_alerte', module_source: 'taches', entity_type: alert.entity_type || 'alerte', entity_id: alert.entity_id || alert.id, title: `Tâche créée: ${alert.title || alert.message || alert.id}`, description: alert.action_recommandee || alert.message || '', event_date: today(), severity: alert.severity || 'info', linked_task_id: id, linked_alert_id: alert.id, saisies_evitees: 2 });
+    const workflow = buildTaskFromAlert(alert, props.rows || [], today());
+    await props.onCreate?.(workflow.task);
+    await props.onUpdateAlert?.(alert.id, workflow.alertPatch);
+    await props.onCreateBusinessEvent?.(workflow.event);
     await Promise.allSettled([props.onRefresh?.(), props.onRefreshAlertes?.(), props.onRefreshBusinessEvents?.()]);
     toast.success('Tâche créée depuis l’alerte');
   } catch {
@@ -48,9 +44,10 @@ async function finishTask(task, props, setSavingId) {
   if (!task?.id) return toast.error('Tâche invalide');
   try {
     setSavingId(task.id);
-    await props.onUpdate?.(task.id, { status: 'termine', completed_at: now() });
-    if (task.source_module === 'alertes' && task.source_record_id) await props.onUpdateAlert?.(task.source_record_id, { status: 'traitee', completed_task_id: task.id, treated_at: now() });
-    await props.onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'tache_terminee', module_source: 'taches', entity_type: task.module_lie || task.entity_type || 'tache', entity_id: task.related_id || task.id, title: `Tâche terminée: ${task.title || task.id}`, description: task.notes || '', event_date: today(), severity: 'info', linked_task_id: task.id, linked_alert_id: task.source_module === 'alertes' ? task.source_record_id : '' });
+    const workflow = completeTaskWorkflow(task, today(), now());
+    await props.onUpdate?.(task.id, workflow.taskPatch);
+    if (workflow.alertPatch) await props.onUpdateAlert?.(workflow.alertPatch.id, workflow.alertPatch.patch);
+    await props.onCreateBusinessEvent?.(workflow.event);
     await Promise.allSettled([props.onRefresh?.(), props.onRefreshAlertes?.(), props.onRefreshBusinessEvents?.()]);
     toast.success('Tâche terminée');
   } catch {

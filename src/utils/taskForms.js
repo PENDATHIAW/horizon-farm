@@ -1,4 +1,5 @@
 import { getRhDirectory, getResponsibleOptions, RH_MODULES } from './rhDirectory';
+import { normalizeTaskChecklist } from './taskWorkflows';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -92,6 +93,7 @@ export function normalizeTaskPayload(payload = {}) {
   const template = titleTemplate(payload.title_template);
   const checklist = clean(payload.checklist) || checklistText(payload.title_template);
   const title = clean(payload.title) || template?.title || 'Nouvelle tâche';
+  const normalizedChecklist = normalizeTaskChecklist(checklist, title).join('\n');
   return {
     ...payload,
     title,
@@ -101,7 +103,7 @@ export function normalizeTaskPayload(payload = {}) {
     frequency: payload.frequency || 'ponctuelle',
     status: payload.status || 'a_faire',
     priority: payload.priority || 'normale',
-    checklist,
+    checklist: normalizedChecklist,
     source_module: payload.source_module || payload.module_lie || template?.module || 'taches',
   };
 }
