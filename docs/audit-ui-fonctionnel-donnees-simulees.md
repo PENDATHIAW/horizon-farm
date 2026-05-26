@@ -618,7 +618,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Bugs trouvés : la marge par ligne, présente avant, n’était plus visible dans la caisse terrain `VentesV4`.
 - Corrections faites : `VentesV4` recalcule et affiche coût, marge, taux et source de marge pour chaque vente ouverte.
 - Tests ajoutés : garde sur les textes `Marge` et `Source marge` dans les fichiers utilisateur.
-- Commit poussé : à compléter après push.
+- Commit poussé : `f376a49 fix: automatiser depenses metier et marges ventes`.
 - Reste à faire : valider les coûts sources sur données réelles quand elles seront disponibles.
 
 ### Module : Tous modules visibles
@@ -830,7 +830,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `17f510a docs: documenter audit jury sante finance`
 - `26bbbf8 fix: simplifier preuves factures documents`
 
-Push GitHub : les commits jusqu'à `f75fa52` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
+Push GitHub : les commits jusqu'à `f376a49` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
 ## 10 problèmes restants les plus urgents
 
