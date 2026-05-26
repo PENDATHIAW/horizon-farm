@@ -13,7 +13,7 @@ Branche auditée : `feature/objectifs-croissance-centre-decisionnel`
 
 | Module | Version/fichier testé | Données simulées utilisées | Formulaires/boutons testés | Corrections faites | Commit associé | Restant | Priorité |
 |---|---|---|---|---|---|---|---|
-| Accueil | `DashboardV2` | ventes, paiements, santé, stock, tâches, alertes | cartes, actions rapides, navigation urgences | chiffres ventes/encaissements fiabilisés | `286e618` | enrichir regroupement administratif | P2 |
+| Accueil | `DashboardV2` | ventes, paiements, santé, stock, tâches, alertes, documents, capteurs, météo | cartes, actions rapides, navigation urgences | priorités du jour regroupées par argent/terrain/stock/santé/administratif/Smart Farm et routées vers les bons modules | `286e618`, `f75fa52` | vérifier le rendu exact en données réelles Supabase après activation du mode données simulées UI | P2 |
 | Assistant ERP | `AssistantERPV2` | commandes simulées, brouillons | ouverture Hey Horizon, orientation modules | smoke sans texte technique | `18e6d78` | préremplissage fiche encore à renforcer | P2 |
 | Centre décisionnel | `CentreIA` | stock, santé, finances, production | recommandations, preuves, ouverture source | smoke et audit métier | `18e6d78` | éviter doublons avec Alertes | P2 |
 | Objectifs & Croissance | `ObjectifsCroissanceV2` | objectifs production/finance | objectifs, plans, liens source | routage vérifié | `18e6d78` | actions automatiques à compléter | P2 |
@@ -61,7 +61,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 
 | Module | Formulaires/boutons testés | Sections ouvertes | Données utilisées | Corrections faites | Commit associé | Restant |
 |---|---|---|---|---|---|---|
-| Dashboard | cartes urgences, cash, créances, tâches | urgences terrain, argent, production | stock critique, panne, ventes, client crédit | priorisation vérifiée par test | `286e618` | navigation carte par carte à enrichir |
+| Dashboard | cartes urgences, cash, créances, tâches, documents, Smart Farm | urgences terrain, argent, stock, santé, administratif | stock critique, panne, ventes, client crédit, preuve manquante, capteur hors service | priorisation vérifiée par test et cartes routées vers modules sources | `286e618`, `f75fa52` | valider le rendu connecté avec vraies données Supabase |
 | Animaux | prêt à vendre, sortie vente | fiche animal, historique | `BOV-AZ-001` | opportunité unique et sortie historique validées | `d381dee`, `344e480` | mort/perte sur données réelles |
 | Avicole | ponte, vente œufs | ponte, lots actifs | `LOT-PONDEUSE-AZ`, 300 œufs | tablettes calculées et vendues | `4cd10ae` | décrément aliment réel côté stock |
 | Santé | retard, résolution | suivi soin, tâches liées | vaccin bovin | tâche/alerte clôturées après résolution | `7489b16` | preuve santé systématique |
@@ -427,6 +427,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Traçabilité sans contrôle de source | certains faits avaient un module ou un titre mais pas toujours une source ouvrable, et l’export n’était pas assez direct | normalisation des faits, panneau qualité des traces, badge source à compléter, export CSV et routage source fiable | `src/modules/Tracabilite.jsx`, `src/modules/TracabiliteV2.jsx`, `src/utils/traceabilityWorkflows.js` | `48fed4c` | `Traçabilité source les actions sensibles et ouvre le bon module` | vente, paiement, soin, récolte et action admin sont identifiables ; les faits orphelins sont signalés |
 | Activité & Sync trop technique | les anomalies étaient détectées mais les libellés/actions restaient parfois trop “audit” et l’ouverture source n’était pas directe | libellés terrain, route source, tâche de correction standardisée, preuve/facture au lieu de justificatif, journal renommé | `src/modules/SyncActivityCenter.jsx`, `src/modules/AuditLogs.jsx`, `src/utils/syncAuditWorkflows.js` | `4250fda` | `Activité & Sync détecte les incohérences et propose une action terrain` | paiement orphelin, document lié cassé et opportunité obsolète deviennent des actions compréhensibles |
 | Gestion système avec actions sensibles trop faciles | le retrait utilisateur n’avait pas de confirmation explicite et la zone d’effacement local n’était pas reliée au rôle admin | confirmation retrait, blocage reset hors admin, bannière RBAC/Supabase, utilitaire de permissions/audit testable | `src/modules/GestionSysteme.jsx`, `src/modules/GestionSystemeV2.jsx`, `src/modules/SystemDataResetPanel.jsx`, `src/utils/systemAccessWorkflows.js` | `f8caa6c` | `Gestion système protège les actions admin et trace les changements` | un visiteur reste en lecture seule, un admin trace ses actions, le reset exige Super Admin + EFFACER |
+| Dashboard qui ne voyait pas tout le terrain du jour | l’accueil ne recevait pas les documents/capteurs/caméras et les priorités étaient calculées directement dans le composant | utilitaire `dashboardWorkflows`, documents/capteurs/caméras transmis depuis `App.jsx`, catégories simples et carte Smart Farm/météo | `src/App.jsx`, `src/modules/DashboardV2.jsx`, `src/utils/dashboardWorkflows.js` | `f75fa52` | `Dashboard priorise les urgences terrain et ouvre les bons modules` | l’accueil ouvre Ventes, Alertes, Stock, Santé, Smart Farm, Tâches ou Documents selon la vraie urgence simulée |
 
 ## Module : Gestion système
 
@@ -554,13 +555,31 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Commit poussé : `9812ad2 fix: simplifier comptabilite terrain`, `ce0a66a test: couvrir vocabulaire comptabilite`.
 - Reste à faire : implémenter une clôture de période réelle avec verrouillage et export comptable signé.
 
+## Module : Accueil / Dashboard
+
+- Sections testées : Aujourd’hui, Pilotage ferme objectif du mois, Évolution détaillée en mode expert, cartes urgences, argent, stock, santé, administratif, Smart Farm, tâches et contrôle ERP.
+- Sections supprimées/fusionnées : aucune suppression ; les priorités du jour sont maintenant calculées par un workflow unique pour éviter des cartes répétées ou contradictoires.
+- Boutons testés : Voir plus de détails, Vue simple, Voir Centre décisionnel, cartes Encaisser ventes, Traiter alertes, Revoir stock faible, Rattraper soins/vaccins, Vérifier capteurs/météo, Terminer tâches, Ajouter preuves/factures, Vérifier ventes supprimées.
+- Boutons corrigés : chaque carte prioritaire garde un `moduleKey` explicite et ouvre le module source attendu : Ventes, Alertes, Stock, Santé, Smart Farm, Tâches, Documents ou Activité & Sync.
+- Formulaires testés : le Dashboard n’a pas de formulaire métier direct ; il sert de porte d’entrée vers les formulaires des modules sources.
+- Champs présents : objectif mensuel, CA réalisé, taux d’atteinte, reste à vendre, cash net, à encaisser, titre action, catégorie, détail, module cible.
+- Champs ajoutés : catégorie terrain sur chaque action du jour et protection d’affichage contre `undefined`, `null`, `NaN`, `[object Object]`.
+- Actions testées : vente partiellement payée, alerte ouverte, stock sous seuil, soin en retard, tâche ouverte, dépense sans preuve/facture, capteur hors service, météo à risque.
+- Conséquences métier vérifiées : l’accueil ne crée pas lui-même les données ; il révèle les conséquences des modules et route vers le bon endroit pour agir. Les preuves/factures manquantes et Smart Farm sont maintenant visibles dans les priorités.
+- Interconnexions vérifiées : Dashboard vers Ventes, Alertes, Stock, Santé, Smart Farm, Tâches, Documents, Activité & Sync, Centre décisionnel.
+- Bugs trouvés : documents, capteurs et caméras n’étaient pas transmis à `DashboardV2`; les règles de priorité étaient dans le composant et moins testables ; le libellé “justificatifs” restait moins simple que “preuves / factures”.
+- Corrections faites : ajout `dashboardWorkflows`, transmission des documents/capteurs/caméras depuis `App.jsx`, cartes catégorisées et sanitization des textes affichés.
+- Tests ajoutés : `Dashboard priorise les urgences terrain et ouvre les bons modules`.
+- Commit poussé : `f75fa52 fix: completer dashboard terrain`.
+- Reste à faire : valider en navigateur connecté le mode données simulées via Paramètres en haut à droite, puis comparer les chiffres avec les vraies lignes Supabase de production.
+
 ## Tests
 
 - `npm install --no-audit --no-fund` : réussi avant synchronisation ; après reprise, `npm`/`npx` n’étaient plus disponibles dans le `PATH` Codex. Les bindings natifs optionnels macOS manquants ont été restaurés pour exécuter build/tests avec le binaire Node local.
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Smart Farm, Assistant ERP, Centre décisionnel, Objectifs & Croissance, Traçabilité, Activité & Sync ERP/Audit logs, Gestion système, Avicole, Animaux, Finances, Comptabilité, `61 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Smart Farm, Assistant ERP, Centre décisionnel, Objectifs & Croissance, Traçabilité, Activité & Sync ERP/Audit logs, Gestion système, Dashboard, Avicole, Animaux, Finances, Comptabilité, `62 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -646,8 +665,10 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `4250fda fix: completer sync audit terrain`
 - `c89f0d9 docs: documenter corrections terrain sync audit`
 - `f8caa6c fix: completer gestion systeme terrain`
+- `a07ce5d docs: documenter corrections terrain gestion systeme`
+- `f75fa52 fix: completer dashboard terrain`
 
-Push GitHub : les commits jusqu'à `0d9ff24` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
+Push GitHub : les commits jusqu'à `f75fa52` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
 ## 10 problèmes restants les plus urgents
 
