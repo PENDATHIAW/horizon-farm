@@ -135,7 +135,7 @@ export default function DataTable({
             {emptyMessage}
           </div>
         ) : null}
-        {!loading && paged.length > 0 ? paged.map((row, index) => <MobileRowCard key={row.id ?? index} row={row} columns={columns} />) : null}
+        {!loading && paged.length > 0 ? paged.map((row, index) => <MobileRowCard key={`${row.id ?? 'row'}-${index}`} row={row} columns={columns} />) : null}
       </div>
 
       <div className="hidden lg:block overflow-x-auto">
@@ -177,7 +177,7 @@ export default function DataTable({
 
             {!loading && paged.length > 0
               ? paged.map((row, index) => (
-                  <tr key={row.id ?? index} className={`border-b border-[#eadcc2]/60 transition-colors hover:bg-[#fffdf8] ${index % 2 === 0 ? 'bg-white/40' : 'bg-[#fffdf8]/35'}`}>
+                  <tr key={`${row.id ?? 'row'}-${index}`} className={`border-b border-[#eadcc2]/60 transition-colors hover:bg-[#fffdf8] ${index % 2 === 0 ? 'bg-white/40' : 'bg-[#fffdf8]/35'}`}>
                     {columns.map((col) => (
                       <td key={col.key} className="px-5 py-4 text-[#7d6a4a] align-top">
                         {cellValue(row, col)}

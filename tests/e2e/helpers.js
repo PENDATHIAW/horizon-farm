@@ -35,12 +35,16 @@ export async function login(page) {
   await page.getByLabel(/Login/i).fill(USER_LOGIN);
   await page.getByLabel(/Mot de passe/i).fill(USER_PASSWORD);
   await page.getByRole('button', { name: /Se connecter/i }).click();
-  await expect(page.getByText(/Dashboard/i).first()).toBeVisible({ timeout: 25_000 });
+  await expect(page.getByText(/Accueil/i).first()).toBeVisible({ timeout: 25_000 });
+  await waitForAppReady(page);
 }
 
 export async function assertNoBadUiText(page, contextLabel) {
   const bodyText = await page.locator('body').innerText();
-  const found = BAD_UI_TEXTS.filter((text) => bodyText.toLowerCase().includes(text.toLowerCase()));
+  const found = BAD_UI_TEXTS.filter((text) => {
+    if (text === 'NaN') return /(^|[^\p{L}\p{N}_])NaN($|[^\p{L}\p{N}_])/u.test(bodyText);
+    return bodyText.toLowerCase().includes(text.toLowerCase());
+  });
   expect(found, `${contextLabel}: textes techniques visibles: ${found.join(', ')}`).toEqual([]);
 }
 
@@ -48,8 +52,7 @@ export async function goToModule(page, label) {
   const item = page.getByText(label, { exact: false }).first();
   await expect(item, `Module introuvable: ${label}`).toBeVisible({ timeout: 15_000 });
   await item.click();
-  await page.waitForLoadState('networkidle').catch(() => {});
-  await page.waitForTimeout(800);
+  await waitForAppReady(page);
   await assertNoBadUiText(page, `Module ${label}`);
 }
 
@@ -72,7 +75,15 @@ export function collectRuntimeErrors(page) {
 
 export async function closeTransientUi(page) {
   await page.keyboard.press('Escape').catch(() => {});
+  await page.getByRole('button', { name: /plus tard/i }).click({ timeout: 1_500 }).catch(() => {});
   const closeButtons = page.getByRole('button', { name: /fermer|annuler|close|×/i });
   const count = await closeButtons.count().catch(() => 0);
   if (count > 0) await closeButtons.first().click().catch(() => {});
+}
+
+export async function waitForAppReady(page) {
+  await page.waitForLoadState('networkidle').catch(() => {});
+  await page.getByText(/Chargement du module/i).waitFor({ state: 'detached', timeout: 25_000 }).catch(() => {});
+  await closeTransientUi(page);
+  await page.waitForTimeout(400);
 }

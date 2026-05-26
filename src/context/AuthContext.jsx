@@ -8,6 +8,7 @@ const AuthContext = createContext(null);
 const LOGIN_ALIASES = {
   penda: 'penda@horizonfarm.app',
 };
+const PROFILES_TABLE_ENABLED = import.meta.env.VITE_ENABLE_PROFILES_TABLE === 'true';
 
 const DEFAULT_SIMULATED_ROLES = ['visiteur', 'employe', 'veterinaire', 'comptable'];
 
@@ -121,6 +122,7 @@ const applyDefaultDataModeForRole = (role) => {
 
 async function upsertProfile(user, defaults = {}) {
   if (!user?.id) return null;
+  if (!PROFILES_TABLE_ENABLED) return fallbackProfile(user, defaults);
   const payload = {
     id: user.id,
     email: user.email,
@@ -148,6 +150,12 @@ export function AuthProvider({ children }) {
 
   const loadProfile = useCallback(async (user) => {
     if (!user?.id) { setProfile(null); return null; }
+    if (!PROFILES_TABLE_ENABLED) {
+      setProfilesAvailable(false);
+      const fallback = fallbackProfile(user, { role: user.user_metadata?.role || 'visiteur', status: user.user_metadata?.role === 'admin' ? 'active' : 'pending' });
+      setProfile(fallback);
+      return fallback;
+    }
     const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
     if (error) {
       if (isMissingProfilesTableError(error)) {

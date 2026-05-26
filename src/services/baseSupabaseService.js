@@ -43,13 +43,7 @@ const readDeletedIds = (table) => new Set(safeJson(simulatedDeletedKey(table), [
 const writeDeletedIds = (table, ids) => { if (typeof localStorage === 'undefined') return ids; localStorage.setItem(simulatedDeletedKey(table), JSON.stringify(Array.from(ids).map(String))); return ids; };
 const readRealDeletedIds = (table) => new Set(safeJson(realDeletedKey(table), []).map(String));
 const writeRealDeletedId = (table, id) => { if (typeof localStorage === 'undefined' || !id) return; const ids = readRealDeletedIds(table); ids.add(String(id)); localStorage.setItem(realDeletedKey(table), JSON.stringify(Array.from(ids))); };
-const readServerDeletedIds = async (table) => {
-  try {
-    const { data, error } = await supabase.from('deleted_records').select('record_id').or(`table_name.eq.${table},module_key.eq.${table}`);
-    if (error) return new Set();
-    return new Set((data || []).map((row) => String(row.record_id)).filter(Boolean));
-  } catch { return new Set(); }
-};
+const readServerDeletedIds = async () => new Set();
 const filterRealDeletedRows = async (table, rows = [], idField = 'id') => {
   const localIds = readRealDeletedIds(table);
   const serverIds = await readServerDeletedIds(table);
@@ -190,8 +184,6 @@ const linkSalesOrderToOpportunity = async (createdOrder = {}, originalPayload = 
 };
 const writeDeletedRecord = async ({ table, id, idField }) => {
   writeRealDeletedId(table, id);
-  try { const actor = await currentUserId(); await supabase.from('deleted_records').upsert({ id: `${table}:${id}`, module_key: table, table_name: table, record_id: String(id), id_field: idField, deleted_by: actor, deleted_at: new Date().toISOString() }, { onConflict: 'id' }); }
-  catch (error) { const message = String(error?.message || '').toLowerCase(); if (!message.includes('deleted_records') && !message.includes('schema cache') && !message.includes('does not exist')) console.warn('Deleted record journal non enregistre', error.message || error); }
 };
 const trySoftDelete = async ({ table, id, idField }) => {
   const actor = await currentUserId();

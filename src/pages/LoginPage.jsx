@@ -61,27 +61,27 @@ export default function LoginPage() {
           </div>
 
           {mode === 'signup' ? <div>
-            <label className="block text-xs font-semibold uppercase tracking-widest text-[#9a7a43] mb-2">Nom complet</label>
+            <label htmlFor="fullName" className="block text-xs font-semibold uppercase tracking-widest text-[#9a7a43] mb-2">Nom complet</label>
             <div className="relative">
               <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#b39b78]" />
-              <input value={fullName} onChange={(event) => setFullName(event.target.value)} className="w-full bg-white border border-[#d6c3a0] rounded-lg pl-10 pr-3 py-3 text-sm outline-none focus:border-[#c9a96a] focus:ring-2 focus:ring-[#c9a96a]/20" placeholder="Nom et prénom" autoComplete="name" />
+              <input id="fullName" value={fullName} onChange={(event) => setFullName(event.target.value)} className="w-full bg-white border border-[#d6c3a0] rounded-lg pl-10 pr-3 py-3 text-sm outline-none focus:border-[#c9a96a] focus:ring-2 focus:ring-[#c9a96a]/20" placeholder="Nom et prénom" autoComplete="name" />
             </div>
           </div> : null}
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-widest text-[#9a7a43] mb-2">Email / login</label>
+            <label htmlFor="login" className="block text-xs font-semibold uppercase tracking-widest text-[#9a7a43] mb-2">Email / login</label>
             <div className="relative">
               <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#b39b78]" />
-              <input value={login} onChange={(event) => setLogin(event.target.value)} className="w-full bg-white border border-[#d6c3a0] rounded-lg pl-10 pr-3 py-3 text-sm outline-none focus:border-[#c9a96a] focus:ring-2 focus:ring-[#c9a96a]/20" placeholder={mode === 'signup' ? 'email@exemple.com' : 'penda'} autoComplete="username" required />
+              <input id="login" value={login} onChange={(event) => setLogin(event.target.value)} className="w-full bg-white border border-[#d6c3a0] rounded-lg pl-10 pr-3 py-3 text-sm outline-none focus:border-[#c9a96a] focus:ring-2 focus:ring-[#c9a96a]/20" placeholder={mode === 'signup' ? 'email@exemple.com' : 'penda'} autoComplete="username" required />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-widest text-[#9a7a43] mb-2">Mot de passe</label>
+            <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-widest text-[#9a7a43] mb-2">Mot de passe</label>
             <div className="relative">
               <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#b39b78]" />
-              <input value={password} onChange={(event) => setPassword(event.target.value)} type={showPassword ? 'text' : 'password'} className="w-full bg-white border border-[#d6c3a0] rounded-lg pl-10 pr-11 py-3 text-sm outline-none focus:border-[#c9a96a] focus:ring-2 focus:ring-[#c9a96a]/20" placeholder="Mot de passe" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} required />
-              <button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8a7456] hover:text-[#2f2415]" aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+              <input id="password" value={password} onChange={(event) => setPassword(event.target.value)} type={showPassword ? 'text' : 'password'} className="w-full bg-white border border-[#d6c3a0] rounded-lg pl-10 pr-11 py-3 text-sm outline-none focus:border-[#c9a96a] focus:ring-2 focus:ring-[#c9a96a]/20" placeholder="Mot de passe" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} required />
+              <button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8a7456] hover:text-[#2f2415]" aria-label={showPassword ? 'Masquer la saisie' : 'Afficher la saisie'}>{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
             </div>
           </div>
 
