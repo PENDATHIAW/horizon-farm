@@ -575,13 +575,43 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 
 ## Tests
 
+- Mise à jour jury du 2026-05-26 : parcours navigateur connecté en mode `Données simulées · Simple` depuis Paramètres / données simulées, puis passage sur les modules Accueil, Assistant ERP, Centre décisionnel, Objectifs & Croissance, Impact & Valeur, Rapports, Animaux, Avicole, Santé & Vaccins, Cultures, Équipements, Smart Farm, Clients, Ventes, Fournisseurs, Finances, Comptabilité, Investissements, Stock, Traçabilité, Alertes, Documents, Tâches, RH & Équipe, Activité & Sync ERP, Gestion du système. Aucun affichage visible de `undefined`, `null`, `NaN`, `[object Object]`, `source_record_id`, `workflow`, `business event`, `Coût non retrouvé dans les finances`, `Aucun impact business immédiat` ou `Détail technique` n’a été relevé dans ce passage.
 - `npm install --no-audit --no-fund` : réussi avant synchronisation ; après reprise, `npm`/`npx` n’étaient plus disponibles dans le `PATH` Codex. Les bindings natifs optionnels macOS manquants ont été restaurés pour exécuter build/tests avec le binaire Node local.
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Smart Farm, Assistant ERP, Centre décisionnel, Objectifs & Croissance, Traçabilité, Activité & Sync ERP/Audit logs, Gestion système, Dashboard, Avicole, Animaux, Finances, Comptabilité, `62 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Smart Farm, Assistant ERP, Centre décisionnel, Objectifs & Croissance, Traçabilité, Activité & Sync ERP/Audit logs, Gestion système, Dashboard, Avicole, Animaux, Finances, Comptabilité, puis garde anti-jargon et rapprochement Santé/Finances/Comptabilité, `63 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
+
+## Corrections jury après parcours utilisateur
+
+### Module : Santé & Vaccins / Finances / Comptabilité
+
+- Sections testées : Santé & Vaccins, contrôle qualité santé, historique santé, Finances, Comptabilité, Documents, détails de fiches.
+- Boutons testés : marquer réalisé, créer dépense, ouvrir source, créer preuve/facture manquante, consulter détail.
+- Formulaires testés : soin avec coût, intervention santé, preuve/facture liée, formulaire de dépense générée.
+- Champs présents : type soin, cible, coût, statut, produit, dose, date prévue/réalisée, preuve/facture, lien finance, lien document.
+- Champs ajoutés / renforcés : transaction santé avec `amount`, `sante_id`, `montant_total`; document preuve/facture manquante avec `transaction_id`, `finance_id`, `module_source`, montant et statut lisible.
+- Actions testées : saisir un soin coûté, créer automatiquement la dépense Finance, créer une preuve/facture manquante pour Comptabilité, vérifier qu’un document manquant ne compte pas comme preuve valide.
+- Conséquences métier vérifiées : un coût Santé crée ou lie une seule dépense Finance ; la même dépense devient contrôlable en Comptabilité avec preuve/facture ; pas de double comptage.
+- Interconnexions vérifiées : Santé -> Finances, Santé -> Documents, Finances -> Comptabilité, détails de fiche -> champs internes masqués.
+- Bugs trouvés : `SanteV8` écrivait dans le mauvais CRUD (`transactions` au lieu de `finances`) ; les preuves manquantes n’étaient pas créées automatiquement ; le contrôle affichait “Coût non retrouvé dans les finances” et “Aucun impact business immédiat”.
+- Corrections faites : `SanteV8` utilise désormais `finances`, crée/lien la dépense et prépare la preuve/facture manquante ; `HealthQualityControl` propose “Dépense santé à enregistrer” avec bouton “Créer dépense” ; `DetailsModal` masque les clés internes (`source_record_id`, ids de workflow, liens techniques) et affiche “Non renseigné” au lieu de valeurs brutes.
+- Tests ajoutés : `coût santé crée une dépense finance non doublonnée`, `interface masque les libellés techniques et garde les messages terrain`.
+- Commit poussé : `7f2e188 fix: harmoniser sante finances comptabilite terrain`.
+- Reste à faire : valider avec les vraies politiques Supabase que la création automatique de dépense/document reste autorisée pour chaque rôle terrain.
+
+### Module : Tous modules visibles
+
+- Sections testées : navigation principale et pages des 26 modules en mode données simulées.
+- Boutons testés : navigation modules, actions principales visibles, paramètres de données simulées déjà actifs.
+- Formulaires testés : formulaires visibles détectés dans Avicole et Santé après navigation ; les tests métier couvrent les formulaires complets Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact, Équipements, RH, Smart Farm, Assistant, Centre décisionnel, Objectifs, Traçabilité, Sync, Gestion système et Dashboard.
+- Bugs trouvés : quelques libellés techniques restaient dans les fichiers UI actifs ou anciens (`workflow`, “Impact business / observation”, “Réparer le workflow ventes”, “Écriture finance créée…”).
+- Corrections faites : remplacement par “parcours”, “action”, “Conséquence terrain”, “Dépense alimentation créée depuis Stock”, “Espace” au lieu de “Module” dans l’assistant.
+- Tests ajoutés : garde anti-jargon dans `tests/e2e/simulated-business-workflows.spec.js`.
+- Commit poussé : `7f2e188 fix: harmoniser sante finances comptabilite terrain`.
+- Reste à faire : poursuivre le même mode jury avec saisie réelle navigateur module par module quand un compte Supabase de test stable et isolé est disponible pour éviter de polluer les données de production.
 
 ## Commits créés
 
@@ -667,6 +697,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `f8caa6c fix: completer gestion systeme terrain`
 - `a07ce5d docs: documenter corrections terrain gestion systeme`
 - `f75fa52 fix: completer dashboard terrain`
+- `7f2e188 fix: harmoniser sante finances comptabilite terrain`
 
 Push GitHub : les commits jusqu'à `f75fa52` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
