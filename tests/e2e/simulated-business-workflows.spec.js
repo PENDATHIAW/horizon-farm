@@ -25,6 +25,7 @@ import { buildReportGenerationWorkflow, buildReportScheduleTask } from '../../sr
 import { buildSmartFarmDeviceFollowUp, isSmartFarmDeviceCritical, smartDeviceSource } from '../../src/utils/smartFarmWorkflows.js';
 import { interpretHorizonCommand } from '../../src/services/aiIntentEngine.js';
 import { buildDecisionRecommendationTask } from '../../src/utils/decisionCenterWorkflows.js';
+import { buildObjectiveActionTask, buildObjectiveStatus } from '../../src/utils/objectivesWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -710,5 +711,19 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     }, { date: today() });
     expect(workflow.task).toMatchObject({ module_lie: 'stock', source_module: 'centre_ia', source_record_id: 'STK-ALIM-001', status: 'a_faire', priority: 'haute' });
     expect(workflow.event).toMatchObject({ event_type: 'decision_action_task_created', module_source: 'centre_ia', source_module: 'stock', source_record_id: 'STK-ALIM-001', linked_task_id: workflow.task.id });
+  });
+
+  test('Objectifs & Croissance marque atteint et crée une action si objectif en retard', () => {
+    expect(buildObjectiveStatus({ activity: 'oeufs', target: 100000, realized: 112000 })).toMatchObject({ key: 'atteint', label: 'Atteint' });
+    const workflow = buildObjectiveActionTask({
+      activity: 'poulets_chair',
+      label: 'Poulets de chair',
+      target: 250000,
+      realized: 125000,
+      remaining: 125000,
+    }, { date: today() });
+    expect(workflow.status).toMatchObject({ key: 'en_retard', priority: 'haute' });
+    expect(workflow.task).toMatchObject({ module_lie: 'avicole', source_module: 'objectifs_croissance', source_record_id: 'poulets_chair', status: 'a_faire' });
+    expect(workflow.event).toMatchObject({ event_type: 'objectif_plan_action', module_source: 'objectifs_croissance', source_module: 'avicole', linked_task_id: workflow.task.id });
   });
 });
