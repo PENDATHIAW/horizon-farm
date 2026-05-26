@@ -1,5 +1,14 @@
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value) => String(value || '').trim();
+const lower = (value) => clean(value).toLowerCase();
+const pendingProofStatuses = ['manquant', 'a_joindre', 'à joindre', 'a_completer', 'à compléter', 'missing', 'pending'];
+
+export function documentIsUsableProof(document = {}) {
+  if (document.file_url || document.url || document.storage_path || document.justificatif_url || document.proof_url || document.preuve_url) return true;
+  const status = lower(document.statut || document.status || document.etat);
+  if (pendingProofStatuses.includes(status)) return false;
+  return Boolean(clean(document.title || document.nom || document.name || document.document_category || document.category || document.type));
+}
 
 export function documentLinkedToTransaction(document = {}, transaction = {}) {
   const transactionId = clean(transaction.id);
@@ -32,7 +41,7 @@ export function documentLinkedToTransaction(document = {}, transaction = {}) {
 export function transactionHasProof(transaction = {}, businessDocuments = [], accountingDocuments = []) {
   if (transaction.justificatif_url || transaction.proof_url || transaction.preuve_url || transaction.receipt_url) return true;
   const documents = [...arr(businessDocuments), ...arr(accountingDocuments)];
-  return documents.some((document) => documentLinkedToTransaction(document, transaction));
+  return documents.some((document) => documentLinkedToTransaction(document, transaction) && documentIsUsableProof(document));
 }
 
 export function transactionsMissingProof(transactions = [], businessDocuments = [], accountingDocuments = []) {

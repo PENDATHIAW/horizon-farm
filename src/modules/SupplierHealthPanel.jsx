@@ -1,4 +1,5 @@
 import { AlertTriangle, CheckCircle2, FileText, Package, Receipt, Truck } from 'lucide-react';
+import { documentIsUsableProof } from '../utils/accountingProof';
 import { fmtCurrency, toNumber } from '../utils/format';
 
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -11,7 +12,7 @@ const stockSupplierId = (row = {}) => clean(row.fournisseur_id || row.supplier_i
 const txSupplierId = (row = {}) => clean(row.fournisseur_id || row.supplier_id || row.related_id);
 const isExpense = (row = {}) => ['sortie', 'depense', 'dépense', 'expense', 'achat'].some((word) => lower(`${row.type || ''} ${row.categorie || ''}`).includes(word));
 const isUnpaid = (row = {}) => ['impaye', 'partiel', 'a_payer', 'à payer'].includes(lower(row.statut || row.status));
-const hasProof = (row = {}, docs = []) => row.document_id || row.linked_document_id || row.piece_jointe || row.file_url || row.justificatif_url || arr(docs).some((doc) => clean(doc.transaction_id || doc.finance_id || doc.related_id || doc.entity_id) === clean(row.id));
+const hasProof = (row = {}, docs = []) => row.document_id || row.linked_document_id || row.piece_jointe || row.file_url || row.justificatif_url || arr(docs).some((doc) => clean(doc.transaction_id || doc.finance_id || doc.related_id || doc.entity_id) === clean(row.id) && documentIsUsableProof(doc));
 
 function buildRows({ fournisseurs = [], stocks = [], finances = [], documents = [] }) {
   return arr(fournisseurs).map((supplier) => {

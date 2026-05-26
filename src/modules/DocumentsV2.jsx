@@ -1,7 +1,7 @@
 import { AlertTriangle, CheckCircle2, FileText, Receipt, ShieldCheck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { transactionHasProof } from '../utils/accountingProof';
+import { documentLinkedToTransaction, transactionHasProof } from '../utils/accountingProof';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
 import DocumentControlPanel from './DocumentControlPanel.jsx';
@@ -16,6 +16,7 @@ function ModuleSection({ icon: Icon, title, subtitle, children }) {
 async function createDocFromTransaction(tx, props, setSavingId) {
   if (!tx?.id) return toast.error('Ligne introuvable');
   if (transactionHasProof(tx, props.rows || [])) return toast.success('Justificatif déjà ajouté');
+  if ((props.rows || []).some((doc) => documentLinkedToTransaction(doc, tx))) return toast.success('Fiche justificatif déjà ouverte');
   try {
     setSavingId(tx.id);
     await props.onCreate?.({
@@ -29,6 +30,8 @@ async function createDocFromTransaction(tx, props, setSavingId) {
       finance_id: tx.id,
       related_id: tx.related_id || tx.source_record_id || tx.id,
       source_record_id: tx.source_record_id || tx.id,
+      statut: 'a_joindre',
+      status: 'a_joindre',
       notes: `Preuve à joindre pour ${tx.libelle || tx.id} · ${fmtCurrency(tx.montant)}`,
     });
     await props.onRefresh?.();
