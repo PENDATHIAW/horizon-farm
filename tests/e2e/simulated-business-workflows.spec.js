@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { readFileSync } from 'fs';
 import { buildCalculatedCycleDates } from '../../src/services/productionCycleDates.js';
+import { computeFinanceCash } from '../../src/utils/financeCash.js';
 import { normalizeLot, normalizeProductionOeufsLog } from '../../src/utils/normalize.js';
 import { avicoleActiveCount, avicoleSickCount } from '../../src/utils/avicoleMetrics.js';
 
@@ -131,6 +132,19 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     const normalized = normalizeClient(client, sales, []);
     expect(normalized.creance_reelle).toBe(0);
     expect(normalized.statut).toBe('a_jour');
+  });
+
+  test('finance ne compte pas le reste à encaisser comme argent reçu', () => {
+    const cash = computeFinanceCash({
+      salesOrders: [{ id: 'CMD-CREDIT-001', montant_total: 100000 }],
+      payments: [{ id: 'PAY-001', order_id: 'CMD-CREDIT-001', montant: 40000 }],
+      transactions: [],
+      fournisseurs: [{ id: 'FOU-001', dette: 15000 }],
+    });
+    expect(cash.cashIn).toBe(40000);
+    expect(cash.receivables).toBe(60000);
+    expect(cash.debts).toBe(15000);
+    expect(cash.cashBalance).toBe(40000);
   });
 
   test('soin en retard ouvre tâche/alerte et soin fait les clôture', () => {
