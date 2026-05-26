@@ -33,7 +33,7 @@ export default function Rapports(props) {
     </ModuleSection>
 
     <ModuleSection icon={BarChart2} title="Rapports automatiques" subtitle="Produire des rapports opérationnels, rentabilité, production et synthèses périodiques.">
-      <RapportsAutoBridge rows={rows} data={props.data || {}} onCreate={props.onCreate} onUpdate={props.onUpdate} onRefresh={props.onRefresh} onCreateDocument={props.onCreateDocument} onRefreshDocuments={props.onRefreshDocuments} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} />
+      <RapportsAutoBridge rows={rows} data={props.data || {}} onCreate={props.onCreate} onUpdate={props.onUpdate} onRefresh={props.onRefresh} onCreateDocument={props.onCreateDocument} onRefreshDocuments={props.onRefreshDocuments} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onCreateTask={props.onCreateTask} onRefreshTasks={props.onRefreshTasks} />
     </ModuleSection>
 
     <ModuleSection icon={Download} title="Exports par module" subtitle="Télécharger rapidement les données utiles par domaine.">
