@@ -582,6 +582,8 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
 - `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Smart Farm, Assistant ERP, Centre décisionnel, Objectifs & Croissance, Traçabilité, Activité & Sync ERP/Audit logs, Gestion système, Dashboard, Avicole, Animaux, Finances, Comptabilité, puis garde anti-jargon et rapprochement Santé/Finances/Comptabilité, `63 passed`.
 - Vérification navigateur ciblée Cultures en mode `Données simulées · Simple` : ouverture du module Cultures après connexion, aucune alerte React de clé dupliquée `HF-CULT-002` ; seul un échec réseau météo externe non bloquant a été observé.
+- Passe “jury réel” sans données à préserver : ajout de `tests/e2e/jury-real-submissions.spec.js`, un parcours opt-in qui ouvre les formulaires principaux Stock, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Équipements, Smart Farm, Traçabilité et Gestion système, remplit des données `TEST JURY`, valide et vérifie l’absence de jargon/erreur visible. Le test est protégé par `E2E_REAL_SUBMISSIONS=1` pour éviter toute pollution involontaire ; en mode normal il est bien découvert et marqué `12 skipped`.
+- Essais destructifs réels lancés manuellement : les premières passes ont créé des lignes `TEST JURY` en Stock, Ventes et Cultures, ce qui confirme que l’environnement accepte l’écriture. Les rafraîchissements Supabase peuvent garder des modales ouvertes assez longtemps ; le helper Playwright a été durci pour ne plus attendre indéfiniment `networkidle`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -625,6 +627,18 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Tests ajoutés : build + `simulated-business-workflows.spec.js` relancés ; vérification navigateur ciblée Cultures en mode `Données simulées · Simple`.
 - Commit poussé : `8faf3da fix: dedupliquer affichage cultures simulees`.
 - Reste à faire : ignorer ou mocker la météo externe dans les tests navigateur pour supprimer le bruit réseau non métier.
+
+### Soumissions réelles de formulaires
+
+- Sections testées : formulaires principaux des modules Stock, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Équipements, Smart Farm, Traçabilité et Gestion système.
+- Boutons testés : créer/réceptionner stock, nouvelle vente guidée, nouveau client, nouveau fournisseur, ajouter document, ajouter tâche, nouvelle alerte, ajouter culture, ajouter équipement, ajouter capteur, ajouter un fait, créer utilisateur.
+- Données utilisées : préfixe `TEST JURY`, montants simples, téléphone test, dates au 2026-05-26, parcelle test et notes de saisie terrain contrôlée.
+- Corrections faites : ajout d’un test opt-in de soumissions destructives réelles ; durcissement du helper Playwright pour une application connectée qui garde des requêtes météo/Supabase ouvertes.
+- Fichier modifié : `tests/e2e/jury-real-submissions.spec.js`, `tests/e2e/helpers.js`.
+- Test : `E2E_REAL_SUBMISSIONS=1 E2E_LOGIN=penda E2E_PASSWORD=... E2E_BASE_URL=http://127.0.0.1:5173 node node_modules/@playwright/test/cli.js test tests/e2e/jury-real-submissions.spec.js --reporter=line`.
+- Résultat attendu : créer de vraies fiches `TEST JURY` dans un environnement sans données à préserver, puis vérifier que l’UI ne montre ni jargon technique, ni erreur visible, ni blocage de validation.
+- Résultat observé : les essais réels ont écrit des lignes `TEST JURY` sur les premiers modules ; le parcours complet reste volontairement opt-in car il pollue les données et dépend de la latence Supabase. En exécution standard, le fichier est découvert et marque `12 skipped`.
+- Reste à faire : lancer ce test avec `E2E_REAL_SUBMISSIONS=1` quand une passe destructive complète est explicitement souhaitée, puis nettoyer les lignes `TEST JURY` si besoin.
 
 ## Commits créés
 

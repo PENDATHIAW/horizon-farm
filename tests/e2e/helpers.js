@@ -82,7 +82,8 @@ export async function closeTransientUi(page) {
 }
 
 export async function waitForAppReady(page) {
-  await page.waitForLoadState('networkidle').catch(() => {});
+  await page.waitForLoadState('domcontentloaded', { timeout: 10_000 }).catch(() => {});
+  await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => {});
   await page.getByText(/Chargement du module/i).waitFor({ state: 'detached', timeout: 25_000 }).catch(() => {});
   await closeTransientUi(page);
   await page.waitForTimeout(400);
