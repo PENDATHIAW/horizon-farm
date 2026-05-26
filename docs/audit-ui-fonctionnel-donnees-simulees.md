@@ -423,6 +423,25 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Smart Farm sans conséquence à l’enregistrement critique | les signaux existaient mais un appareil ajouté/modifié critique ne déclenchait pas toujours immédiatement tâche/alerte/trace | workflow Smart Farm pour capteur/caméra critique, badges source simulation/réel, seuils de mesure dans le formulaire | `src/modules/SmartFarm.jsx`, `src/utils/constants.js`, `src/utils/smartFarmWorkflows.js` | `d41cbd1` | `capteur Smart Farm critique crée tâche, alerte et trace`, `Smart Farm distingue données simulées et données réelles`, `caméra Smart Farm hors ligne crée une action terrain` | un capteur ou une caméra critique ouvre une action terrain sans ambiguïté simulation/réel |
 | Hey Horizon trop générique sur certaines phrases terrain | l’interpréteur ne distinguait pas récolte, facture fournisseur, ouverture de fiche animal et stocks critiques | nouvelles intentions dédiées et auto-ouverture de brouillons validables | `src/services/aiIntentEngine.js`, `src/components/AssistantPanel.jsx`, `src/components/HorizonDraftPanel.jsx`, `src/modules/AnimauxV2.jsx` | `06e2035` | `Hey Horizon prépare les intentions terrain sans confondre les modules` | l’assistant prépare le bon module/formulaire au lieu de seulement chercher ou naviguer |
 | Centre décisionnel sans passage direct à l’action | les recommandations ouvraient surtout un brouillon ou un module, mais ne créaient pas une tâche terrain immédiatement exploitable | ajout d’un workflow décision -> tâche + trace et bouton Créer tâche sur les cartes prioritaires | `src/modules/CentreIA.jsx`, `src/modules/DecisionRecommendationCardCompact.jsx`, `src/utils/decisionCenterWorkflows.js`, `src/App.jsx` | `89d0e75` | `Centre décisionnel transforme une recommandation sourcée en tâche actionnable` | une recommandation stock/santé/production devient une tâche sourcée et traçable |
+| Objectifs sans plan d’action direct | les écarts objectif/réel étaient lisibles mais restaient trop statiques et ne créaient pas d’action terrain liée au module source | ajout du panneau Plans d’action objectifs, statut atteint/en retard/en cours, création tâche + trace métier et KPI BP alimentés depuis `dataMap` | `src/modules/ObjectifsCroissanceV2.jsx`, `src/utils/objectivesWorkflows.js`, `src/App.jsx` | `a8969b7` | `Objectifs & Croissance marque atteint et crée une action si objectif en retard` | un objectif en retard crée une tâche sourcée vers Avicole/Animaux/Cultures/Stock/Finances ; un objectif atteint est affiché comme tel |
+
+## Module : Objectifs & Croissance
+
+- Sections testées : KPI BP officiel, Objectifs par cycles réels, Plans d’action objectifs, Objectifs par activité, Objectifs mensuels officiels, plan financier léger.
+- Sections supprimées/fusionnées : aucune suppression ; ajout d’un panneau d’action pour éviter que les mêmes écarts restent seulement informatifs.
+- Boutons testés : Voir tâches, Ouvrir source, Créer plan d’action, Centre décisionnel, Ventes, Voir BP, Finances, Rapports.
+- Boutons corrigés : Créer plan d’action crée maintenant une tâche opérationnelle et une trace métier ; Ouvrir source envoie vers le module concerné par l’activité.
+- Formulaires testés : le module ne contient pas encore de formulaire complet d’objectif personnalisé ; le parcours actionnable testé est la création de tâche depuis un objectif en retard.
+- Champs présents : activité, objectif, réalisé, reste, atteinte, statut, source métier, notes d’action, échéance tâche, priorité.
+- Champs ajoutés : statut objectif calculé (`Atteint`, `En retard`, `En cours`), module source à ouvrir, checklist de rattrapage, clé de déduplication de tâche.
+- Actions testées : objectif œufs atteint, objectif poulets de chair en retard, création d’un plan d’action, navigation vers source Avicole, passage vers Tâches.
+- Conséquences métier vérifiées : objectif en retard -> tâche `objectifs_croissance` liée au module source + événement métier ; objectif atteint -> statut atteint sans faux retard.
+- Interconnexions vérifiées : Objectifs vers Tâches, Business events/Traçabilité métier, Centre décisionnel, Avicole, Animaux, Cultures, Stock, Finances.
+- Bugs trouvés : KPI BP pouvait ne pas recevoir toutes les données simulées, écarts sans action directe, statut objectif statique.
+- Corrections faites : normalisation des props KPI depuis `dataMap`, utilitaire `objectivesWorkflows`, panneau terrain d’actions objectif, callbacks tâches/événements branchés depuis `App.jsx`.
+- Tests ajoutés : `Objectifs & Croissance marque atteint et crée une action si objectif en retard`.
+- Commit poussé : `a8969b7 fix: completer objectifs croissance terrain`.
+- Reste à faire : ajouter un vrai formulaire “Ajouter objectif personnalisé” persistant si le métier veut créer des objectifs hors BP officiel.
 
 ## Module : Animaux
 
@@ -484,7 +503,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Smart Farm, Assistant ERP, Centre décisionnel, Avicole, Animaux, Finances, Comptabilité, `57 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Tâches, Alertes, Cultures, Investissements, Rapports, Impact & Valeur, Équipements, RH & Équipe, Smart Farm, Assistant ERP, Centre décisionnel, Objectifs & Croissance, Avicole, Animaux, Finances, Comptabilité, `58 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -562,6 +581,8 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `06e2035 fix: completer assistant erp terrain`
 - `97a3451 docs: documenter corrections terrain assistant erp`
 - `89d0e75 fix: completer centre decisionnel terrain`
+- `8885072 docs: documenter corrections terrain centre decisionnel`
+- `a8969b7 fix: completer objectifs croissance terrain`
 
 Push GitHub : les commits jusqu'à `0d9ff24` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
