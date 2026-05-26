@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { readFileSync } from 'fs';
 import { buildCalculatedCycleDates } from '../../src/services/productionCycleDates.js';
 import { normalizeLot, normalizeProductionOeufsLog } from '../../src/utils/normalize.js';
 import { avicoleActiveCount, avicoleSickCount } from '../../src/utils/avicoleMetrics.js';
@@ -180,5 +181,32 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     });
     expect(cycles.chairSales.map((row) => row.id)).toEqual(['LOT-CHAIR-001']);
     expect(cycles.layerReform.map((row) => row.id)).toEqual(['LOT-PONDEUSE-001']);
+  });
+
+  test('fiche animal complète affiche les champs terrain importants', () => {
+    const source = readFileSync('src/modules/AnimauxSpeciesFocused.jsx', 'utf8');
+    [
+      'Identifiant / boucle',
+      'Nom / repère',
+      'Espèce',
+      'Sexe',
+      'Race',
+      'Âge',
+      'Date naissance',
+      'Date entrée',
+      'Origine',
+      'Statut actuel',
+      'État de santé',
+      'Localisation',
+      'Poids entrée',
+      'Poids actuel',
+      'Prix achat',
+      'Coût cumulé',
+      'Valeur estimée',
+      'Documents / photos',
+      'Historique de vie',
+      'Notes terrain',
+    ].forEach((label) => expect(source).toContain(label));
+    expect(source).toContain('Non renseigné');
   });
 });
