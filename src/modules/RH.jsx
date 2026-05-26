@@ -1,10 +1,9 @@
 import { AlertTriangle, Banknote, CheckCircle2, UserCheck } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { buildRhFinancePayload } from '../services/rhCostCenterService';
 import { fmtCurrency, toNumber } from '../utils/format';
-import { makeId } from '../utils/ids';
 import { getRhDirectory, RH_TEAMS, saveRhDirectory } from '../utils/rhDirectory';
+import { buildRhSalaryWorkflow } from '../utils/rhWorkflows';
 import RHPeopleTeams from './RHPeopleTeams.jsx';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -44,25 +43,13 @@ function RhPriorityPayments({ onCreateFinanceTransaction, onRefreshFinances, onC
     if (m.net <= 0) return toast.error('Aucun net à payer');
     try {
       setSavingId(person.id);
-      const tx = buildRhFinancePayload({ person, payment: { period: today().slice(0, 7) }, amount: m.net, date: today(), id: makeId('TRX') });
-      await onCreateFinanceTransaction?.(tx);
-      await onCreateDocument?.({ id: makeId('DOC'), title: `Reçu salaire — ${person.nom}`, document_category: 'recu_salaire', module_source: 'rh', entity_type: 'personne', entity_id: person.id, related_id: person.id, transaction_id: tx.id, finance_id: tx.id, statut: 'a_joindre', status: 'a_joindre', montant: m.net, notes: `Preuve de paiement RH à joindre pour ${today().slice(0, 7)}.` });
-      await onCreateBusinessEvent?.({
-        id: makeId('EVT'),
-        event_type: 'paiement_remuneration',
-        module_source: 'rh',
-        entity_type: 'personne',
-        entity_id: person.id,
-        title: `Rémunération payée — ${person.nom}`,
-        description: `${fmtCurrency(m.net)} · équipe ${teamName(teams, person.equipe_id)}`,
-        event_date: today(),
-        severity: 'info',
-        amount: m.net,
-        equipe_id: person.equipe_id,
-      });
+      const workflow = buildRhSalaryWorkflow({ person, teams, amount: m.net, date: today() });
+      await onCreateFinanceTransaction?.(workflow.financeTransaction);
+      await onCreateDocument?.(workflow.document);
+      await onCreateBusinessEvent?.(workflow.event);
       const next = saveRhDirectory({
         ...directory,
-        people: (directory.people || []).map((item) => item.id === person.id ? { ...item, avance_mois: 0, dernier_paiement: today(), last_payment_amount: m.net } : item),
+        people: (directory.people || []).map((item) => item.id === person.id ? { ...item, ...workflow.personPatch } : item),
       });
       setDirectory(next);
       await Promise.allSettled([onRefreshFinances?.(), onRefreshDocuments?.(), onRefreshBusinessEvents?.(), onRefresh?.()]);

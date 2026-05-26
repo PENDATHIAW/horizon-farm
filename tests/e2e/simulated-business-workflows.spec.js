@@ -20,6 +20,7 @@ import { buildCultureHarvestWorkflow, buildCultureInputUsageWorkflow, buildCultu
 import { buildInvestmentAssetWorkflow, buildInvestmentRealizationWorkflow } from '../../src/utils/investmentWorkflows.js';
 import { buildImpactImprovementTask, buildImpactMissingProofWorkflow, buildImpactRiskFollowUp } from '../../src/utils/impactWorkflows.js';
 import { buildEquipmentBreakdownFollowUp, buildEquipmentRepairWorkflow } from '../../src/utils/equipmentWorkflows.js';
+import { buildRhAbsenceFollowUp, buildRhAssignedTask, buildRhSalaryWorkflow } from '../../src/utils/rhWorkflows.js';
 import { buildReportGenerationWorkflow, buildReportScheduleTask } from '../../src/utils/reportWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
@@ -630,5 +631,30 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(workflow.financeTransaction).toMatchObject({ type: 'sortie', module_lie: 'equipements', source_record_id: 'EQP-POMPE-001', montant: 45000, cash_effect: true });
     expect(workflow.document).toMatchObject({ module_source: 'equipements', entity_id: 'EQP-POMPE-001', status: 'manquant', verification_status: 'preuve_manquante' });
     expect(workflow.event).toMatchObject({ event_type: 'reparation_equipement_cloturee', linked_task_id: 'TSK-EQP-001', linked_alert_id: 'ALT-EQP-001', amount: 45000 });
+  });
+
+  test('salaire RH payé crée finance, preuve salaire et trace', () => {
+    const workflow = buildRhSalaryWorkflow({
+      person: { id: 'RH-AWA-001', nom: 'Awa Diop', equipe_id: 'TEAM-FERME', modules: ['avicole', 'stock'], salaire_mensuel: 90000, prime_mensuelle: 10000, avance_mois: 15000 },
+      teams: [{ id: 'TEAM-FERME', name: 'Équipe ferme' }],
+      date: today(),
+    });
+    expect(workflow.financeTransaction).toMatchObject({ type: 'sortie', module_lie: 'rh', source_record_id: 'RH-AWA-001', montant: 85000, cash_effect: true });
+    expect(workflow.document).toMatchObject({ module_source: 'rh', entity_id: 'RH-AWA-001', status: 'manquant', verification_status: 'preuve_manquante', montant: 85000 });
+    expect(workflow.personPatch).toMatchObject({ avance_mois: 0, dernier_paiement: today(), last_payment_amount: 85000 });
+    expect(workflow.event).toMatchObject({ event_type: 'paiement_remuneration', linked_transaction_id: workflow.financeTransaction.id, linked_document_id: workflow.document.id });
+  });
+
+  test('absence RH crée suivi terrain et tâche assignée', () => {
+    const absence = buildRhAbsenceFollowUp({ person: { id: 'RH-IBRA-001', nom: 'Ibrahima Sarr' }, date: today(), reason: 'Absence marché' });
+    expect(absence.personPatch).toMatchObject({ presence_status: 'absent', last_absence_date: today() });
+    expect(absence.task).toMatchObject({ module_lie: 'rh', assigned_to: 'RH-IBRA-001', status: 'a_faire' });
+    expect(absence.event).toMatchObject({ event_type: 'absence_rh_signalee', linked_task_id: absence.task.id });
+  });
+
+  test('tâche RH assignée reste visible dans le module métier', () => {
+    const workflow = buildRhAssignedTask({ person: { id: 'RH-CULT-001', nom: 'Mamadou Culture' }, module: 'cultures', title: 'Arroser parcelle tomates', dueDate: today() });
+    expect(workflow.task).toMatchObject({ module_lie: 'cultures', source_module: 'rh', assigned_to: 'RH-CULT-001', status: 'a_faire' });
+    expect(workflow.event).toMatchObject({ event_type: 'tache_rh_assignee', linked_task_id: workflow.task.id });
   });
 });
