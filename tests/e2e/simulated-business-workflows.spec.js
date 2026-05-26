@@ -19,6 +19,7 @@ import { dedupeAlertsBySource, isAlertResolved } from '../../src/utils/alertWork
 import { buildCultureHarvestWorkflow, buildCultureInputUsageWorkflow, buildCultureLossWorkflow, buildCultureWeatherRiskFollowUp } from '../../src/utils/cultureWorkflows.js';
 import { buildInvestmentAssetWorkflow, buildInvestmentRealizationWorkflow } from '../../src/utils/investmentWorkflows.js';
 import { buildImpactImprovementTask, buildImpactMissingProofWorkflow, buildImpactRiskFollowUp } from '../../src/utils/impactWorkflows.js';
+import { buildEquipmentBreakdownFollowUp, buildEquipmentRepairWorkflow } from '../../src/utils/equipmentWorkflows.js';
 import { buildReportGenerationWorkflow, buildReportScheduleTask } from '../../src/utils/reportWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
@@ -601,5 +602,33 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(workflow.task).toMatchObject({ module_lie: 'sante', source_module: 'impact_business', related_id: 'SAN-RETARD-IMPACT', priority: 'critique' });
     expect(workflow.alert).toMatchObject({ module_source: 'sante', entity_id: 'SAN-RETARD-IMPACT', severity: 'critique', status: 'nouvelle', linked_task_id: workflow.task.id });
     expect(workflow.event).toMatchObject({ event_type: 'risque_impact_signale', linked_task_id: workflow.task.id, linked_alert_id: workflow.alert.id });
+  });
+
+  test('panne équipement crée tâche, alerte et trace liées', () => {
+    const workflow = buildEquipmentBreakdownFollowUp(
+      { id: 'EQP-POMPE-001', name: 'Pompe irrigation' },
+      { date: today(), note: 'Pompe arrêtée pendant arrosage', priority: 'critique' },
+    );
+    expect(workflow.equipmentPatch).toMatchObject({ status: 'panne', statut: 'panne', last_incident_date: today() });
+    expect(workflow.task).toMatchObject({ module_lie: 'equipements', source_module: 'equipements', related_id: 'EQP-POMPE-001', priority: 'critique', status: 'a_faire' });
+    expect(workflow.alert).toMatchObject({ module_source: 'equipements', entity_id: 'EQP-POMPE-001', severity: 'critique', status: 'nouvelle', linked_task_id: workflow.task.id });
+    expect(workflow.event).toMatchObject({ event_type: 'panne_equipement_declaree', linked_task_id: workflow.task.id, linked_alert_id: workflow.alert.id });
+  });
+
+  test('réparation équipement clôture tâche/alerte et crée finance/document', () => {
+    const workflow = buildEquipmentRepairWorkflow({
+      equipment: { id: 'EQP-POMPE-001', name: 'Pompe irrigation', status: 'panne' },
+      task: { id: 'TSK-EQP-001', status: 'a_faire' },
+      alert: { id: 'ALT-EQP-001', status: 'nouvelle' },
+      cost: 45000,
+      note: 'Courroie remplacée',
+      date: today(),
+    });
+    expect(workflow.equipmentPatch).toMatchObject({ status: 'operationnel', statut: 'operationnel', maintenance_status: 'termine', repair_cost: 45000 });
+    expect(workflow.taskPatch).toMatchObject({ id: 'TSK-EQP-001', patch: { status: 'termine', statut: 'termine' } });
+    expect(workflow.alertPatch).toMatchObject({ id: 'ALT-EQP-001', patch: { status: 'resolue', statut: 'resolue' } });
+    expect(workflow.financeTransaction).toMatchObject({ type: 'sortie', module_lie: 'equipements', source_record_id: 'EQP-POMPE-001', montant: 45000, cash_effect: true });
+    expect(workflow.document).toMatchObject({ module_source: 'equipements', entity_id: 'EQP-POMPE-001', status: 'manquant', verification_status: 'preuve_manquante' });
+    expect(workflow.event).toMatchObject({ event_type: 'reparation_equipement_cloturee', linked_task_id: 'TSK-EQP-001', linked_alert_id: 'ALT-EQP-001', amount: 45000 });
   });
 });

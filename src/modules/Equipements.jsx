@@ -20,15 +20,20 @@ export default function Equipements(props) {
       <ModuleSection icon={Zap} title="Actions terrain équipements" subtitle="Déclarer une panne, programmer une maintenance ou saisir le carburant d’un matériel.">
         <EquipementsQuickActionsBridge
           rows={rows}
+          tasks={props.tasks || []}
+          alertes={props.alertes || []}
           onUpdate={props.onUpdate}
           onRefresh={props.onRefresh}
           onCreateTask={props.onCreateTask}
+          onUpdateTask={props.onUpdateTask}
           onRefreshTasks={props.onRefreshTasks}
           onCreateAlert={props.onCreateAlert}
           onUpdateAlert={props.onUpdateAlert}
           onRefreshAlertes={props.onRefreshAlertes}
           onCreateFinanceTransaction={props.onCreateFinanceTransaction}
           onRefreshFinances={props.onRefreshFinances}
+          onCreateDocument={props.onCreateDocument}
+          onRefreshDocuments={props.onRefreshDocuments}
           onCreateBusinessEvent={props.onCreateBusinessEvent}
           onRefreshBusinessEvents={props.onRefreshBusinessEvents}
         />
