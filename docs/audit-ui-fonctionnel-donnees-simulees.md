@@ -72,6 +72,24 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | RH | salaire payé | équipe, paie | `EMP-AWA` | paie crée sortie finance et document salaire à joindre | `344e480` | validation paie réelle |
 | Sync / Audit logs | vérification orphelins, traces | anomalies, logs | ventes, documents, traces | test détecte ventes sans client et documents orphelins | `18e6d78` | actions correctives automatiques |
 
+## Module : Stock
+
+- Sections testées : Pilotage stock, Stock courant, Inventaire, Alimentation liée au stock, Réapprovisionnement, Opportunités vente stock, Alimentation des animaux et lots, Évolution stock.
+- Sections supprimées/fusionnées : aucune suppression ; les sections Flux stock et Mouvement stock restent séparées, mais les conséquences critiques sont maintenant centralisées pour éviter un bouton seulement décoratif.
+- Boutons testés : Actualiser, Créer / réceptionner stock, Utiliser aliment, Rapport, Voir, Modifier, Réceptionner, Utiliser, Perte, Créer tâche, Clôturer tâche, Stock vendu, Plan alimentation.
+- Boutons corrigés : Réceptionner/Utiliser/Perte déclenchent désormais la vérification sous seuil avec tâche, alerte et trace ; Perte crée aussi l’impact valeur en finance si un prix unitaire existe.
+- Formulaires testés : création stock, modification stock, mouvement entrée, mouvement sortie, déclaration perte, utilisation alimentation liée, réapprovisionnement depuis stock critique.
+- Champs présents : produit, catégorie, quantité, unité, seuil, stock cible, prix unitaire, fournisseur, réception prévue, dernière réception, emplacement, preuve/facture, notes.
+- Champs ajoutés : motif du dernier mouvement et source liée dans le formulaire stock, pour éviter les entrées sans contexte terrain.
+- Actions testées : entrée fournisseur 20 kg, sortie alimentation 7 kg, perte/casse 2 tablettes, passage sous seuil, création automatique du suivi critique.
+- Conséquences métier vérifiées : entrée fournisseur augmente la quantité et crée une trace ; sortie alimentation décrémente le stock ; stock sous seuil crée tâche + alerte + événement métier dédupliqués ; perte stock crée trace et sortie finance de perte si la valeur peut être calculée ; l’historique de mouvement reste visible.
+- Interconnexions vérifiées : Stock vers Alertes, Tâches, Finances, Traçabilité, Fournisseurs, Animaux/Avicole via alimentation, Ventes via opportunités.
+- Bugs trouvés : un stock pouvait passer sous seuil sans tâche associée si l’utilisateur ne cliquait pas manuellement sur “Créer tâche” ; une perte était tracée en quantité mais ne matérialisait pas son impact valeur côté finance ; le formulaire ne demandait pas assez clairement motif/source du mouvement.
+- Corrections faites : ajout d’un utilitaire métier `stockWorkflows`, création automatique de suivi critique sur création/modification/mouvement, déduplication par clé `stock_reorder:[id]`, impact finance des pertes, champs motif/source dans le formulaire.
+- Tests ajoutés : stock critique crée alerte/tâche/trace, entrée fournisseur augmente le stock, sortie alimentation décrémente le stock, perte stock crée trace avec impact valeur, absence de valeurs techniques visibles dans les libellés Stock.
+- Commit poussé : `ebb2db1 fix: completer parcours stock terrain`, `391ea1a test: couvrir parcours stock terrain`.
+- Reste à faire : tester dans l’UI connectée une réception fournisseur avec facture réelle et vérifier la fermeture automatique des alertes stock après réapprovisionnement complet.
+
 ## Module : Avicole
 
 - Sections testées : séparation Pondeuses/Poulets de chair, Pilotage avicole, Vue active, Où saisir les œufs, Objectif œufs/pondeuses, Lots actifs, Gestion avicole, Journal de ponte et charges, Journal de ramassage des œufs, Charges directes pondeuses, Cycle et historique, Évolution détaillée.
@@ -98,6 +116,8 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Effectif actuel incohérent | plusieurs champs concurrents (`current_count`, `effectif_actuel`, `mortality`, `vendus`, `sorties`) étaient utilisés sans règle unique | règle unique de calcul et affichage de l’écart enregistré/calculé | `src/utils/avicoleMetrics.js`, `src/utils/normalize.js`, `src/modules/AvicoleBase.jsx`, `src/components/AvicoleLotDetailsModal.jsx` | `e51b139` | `effectif actuel avicole exclut morts/vendus/sorties mais pas malades` | initial 100 - morts 5 - vendus 10 = 85 ; 3 malades restent à surveiller |
 | Cycles avicoles dupliqués ou mal classés | les pondeuses pouvaient être détectées comme chair si le libellé contenait poulet, et les retards apparaissaient deux fois | exclusion des pondeuses avant classification chair et déduplication des cycles affichés | `src/services/productionCycleDates.js`, `src/modules/AvicoleCycleHealthPanel.jsx` | `1163fb7` | `cycles avicoles ne dupliquent pas les lots et ne classent pas les pondeuses en chair` | les lots pondeuses restent dans réforme/ponte, les lots chair dans vente chair |
 | Œufs du jour à zéro malgré des logs | le tableau de pilotage ne lisait pas `oeufs_produits` | compteur d’œufs unifié sur tous les alias de production | `src/modules/AvicoleCycleHealthPanel.jsx` | `1163fb7` | couvert par le test ramassage œufs | le pilotage compte les œufs produits du jour |
+| Stock critique sans tâche immédiate | la création tâche/alerte dépendait surtout du bouton manuel de réapprovisionnement | suivi critique automatique après création, modification et mouvement stock | `src/modules/StocksV3.jsx`, `src/utils/stockWorkflows.js` | `ebb2db1` | `stock critique crée une alerte, une tâche et une trace liées` | un stock sous seuil crée une tâche, une alerte et une trace dédupliquées |
+| Perte stock sans impact valeur clair | la perte était surtout un événement quantité | perte reliée à une sortie finance si prix unitaire disponible et trace enrichie en montant | `src/modules/StocksV3.jsx`, `src/utils/stockWorkflows.js` | `ebb2db1` | `perte stock crée une trace avec impact valeur` | une casse/perte affiche quantité, valeur perdue et lien finance |
 
 ## Module : Animaux
 
@@ -159,7 +179,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Avicole/Animaux/Finances/Comptabilité, `12 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Avicole, Animaux, Finances, Comptabilité, `16 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -193,6 +213,8 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `d5ee20a docs: documenter corrections terrain finances`
 - `9812ad2 fix: simplifier comptabilite terrain`
 - `ce0a66a test: couvrir vocabulaire comptabilite`
+- `ebb2db1 fix: completer parcours stock terrain`
+- `391ea1a test: couvrir parcours stock terrain`
 
 Push GitHub : les commits jusqu'à `ce0a66a` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
