@@ -144,6 +144,24 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Commit poussé : `5dc1292 fix: completer parcours clients terrain`, `33e8dfe test: couvrir parcours clients terrain`, `4621b58 fix: stabiliser fiche client terrain`.
 - Reste à faire : tester en navigateur connecté la fermeture automatique d’une relance quand le paiement est saisi depuis Ventes/Finances.
 
+## Module : Fournisseurs
+
+- Sections testées : Risque & dépendance fournisseurs, achats à préparer, dettes fournisseurs à suivre, fiches fournisseurs, évolution fournisseurs, documents commerciaux fournisseur.
+- Sections supprimées/fusionnées : aucune suppression ; la logique réception/dette/paiement a été extraite dans `supplierWorkflows` pour éviter les règles dispersées entre la fiche et le pont Stock.
+- Boutons testés : Nouveau fournisseur, Commander, Réceptionner, Payer, WhatsApp, Fiche, Modifier, Supprimer, Recherche réelle, Exporter.
+- Boutons corrigés : Réceptionner crée maintenant stock + dette + facture manquante + trace ; Payer solde les dettes sans double compter la réception en cash ; WhatsApp est marqué comme message simulé/préparé.
+- Formulaires testés : ajout fournisseur, modification fournisseur, préparation commande stock critique, réception stock, paiement fournisseur, suivi dette, facture/preuve à joindre.
+- Champs présents : nom, contact, téléphone, WhatsApp, email, catégorie, dettes, livraisons, note, adresse, produits liés, documents, historique achats.
+- Champs ajoutés : flux réception avec `cash_effect: false`, `is_supplier_accrual`, `reste_a_payer`, facture `preuve_manquante`, paiement `payment_for: supplier_debt`, preuve paiement manquante.
+- Actions testées : réception aliment fournisseur, paiement dette, facture fournisseur manquante, relance dette fournisseur, message WhatsApp simulé.
+- Conséquences métier vérifiées : réception -> stock augmenté + dette fournisseur + facture manquante + trace ; paiement -> sortie finance cash + dette soldée + preuve paiement à fournir ; dette en retard -> tâche + alerte liées ; WhatsApp -> log simulé.
+- Interconnexions vérifiées : Fournisseurs vers Stock, Finances, Documents, Tâches, Alertes, Traçabilité/business events, WhatsApp logs.
+- Bugs trouvés : la réception fournisseur pouvait devenir une sortie finance payée puis le paiement réel ajoutait une deuxième sortie ; les preuves de paiement/facture pouvaient être considérées comme documents sans statut de preuve manquante ; la relance dette n’avait pas de clé de déduplication testable ; WhatsApp préparé n’était pas clairement simulé.
+- Corrections faites : ajout de `supplierWorkflows`, séparation dette fournisseur et cash dépensé, règlement fournisseur sans double comptage, facture/preuve manquante explicite, suivi dette task/alerte dédupliqué, log WhatsApp marqué simulé.
+- Tests ajoutés : réception fournisseur crée stock/dette/facture manquante, paiement fournisseur solde sans double compter, retard paiement fournisseur crée tâche/alerte.
+- Commit poussé : `b38ae48 fix: completer parcours fournisseurs terrain`, `394cbf8 test: couvrir parcours fournisseurs terrain`.
+- Reste à faire : tester en navigateur connecté l’upload réel d’une facture fournisseur et la clôture automatique d’une alerte fournisseur déjà créée.
+
 ## Module : Avicole
 
 - Sections testées : séparation Pondeuses/Poulets de chair, Pilotage avicole, Vue active, Où saisir les œufs, Objectif œufs/pondeuses, Lots actifs, Gestion avicole, Journal de ponte et charges, Journal de ramassage des œufs, Charges directes pondeuses, Cycle et historique, Évolution détaillée.
@@ -176,6 +194,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Encaissement vente trop élevé côté Finance | le paiement était plafonné, mais la ligne finance utilisait encore le montant saisi brut | plafonnement appliqué avant création paiement et finance | `src/modules/VentesV4.jsx`, `src/utils/salesWorkflows.js` | `4dade40` | `vente plafonne un encaissement trop élevé au reste à payer` | une vente avec 40 000 FCFA restants ne peut créer que 40 000 FCFA d’encaissement |
 | Facture ou source vendue incomplète depuis action rapide | les factures rapides ne créaient pas toujours de document et Hey Horizon ne décrémentait pas la source vendue | document facture créé et patch source appliqué pour stock/animal/lot/culture | `src/modules/VentesV4.jsx`, `src/utils/salesWorkflows.js` | `4dade40` | `vente stock décrémente la source vendue`, `vente animal sort l’animal des actifs` | facture visible dans Documents, source vendue mise à jour |
 | Statut client obsolète ou suppression dangereuse | les ventes pouvaient être reliées par libellé et la suppression ne vérifiait pas l’historique | calcul client centralisé, suppression bloquée si vente liée, relance tracée, fiche stabilisée | `src/modules/Clients.jsx`, `src/modules/ClientsV2.jsx`, `src/utils/clientWorkflows.js` | `5dc1292`, `4621b58` | `client crédit passe à relancer et client payé reste à jour`, `fiche client conserve paiements et dernière commande lisibles`, `relance client crée tâche, alerte et trace liées`, `suppression client liée à une vente est bloquée` | un client payé est à jour, un client crédit est à relancer, l’historique vente est protégé |
+| Paiement fournisseur double compté | la réception fournisseur pouvait être transformée en sortie payée puis le paiement réel ajoutait une nouvelle sortie cash | réception enregistrée comme dette sans effet caisse, paiement séparé comme sortie cash, dette soldée par lien règlement | `src/modules/Fournisseurs.jsx`, `src/modules/FournisseursStockBridge.jsx`, `src/utils/supplierSettlement.js`, `src/utils/supplierWorkflows.js` | `b38ae48` | `réception fournisseur crée stock, dette et facture manquante`, `paiement fournisseur solde la dette sans double compter la réception`, `retard paiement fournisseur crée tâche et alerte liées` | stock augmente, dette existe, paiement solde sans double dépense, facture/preuve reste visible |
 
 ## Module : Animaux
 
@@ -237,7 +256,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Avicole, Animaux, Finances, Comptabilité, `26 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Avicole, Animaux, Finances, Comptabilité, `29 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -283,6 +302,9 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `5dc1292 fix: completer parcours clients terrain`
 - `33e8dfe test: couvrir parcours clients terrain`
 - `4621b58 fix: stabiliser fiche client terrain`
+- `ea84e8a docs: documenter corrections terrain clients`
+- `b38ae48 fix: completer parcours fournisseurs terrain`
+- `394cbf8 test: couvrir parcours fournisseurs terrain`
 
 Push GitHub : les commits jusqu'à `ce0a66a` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
