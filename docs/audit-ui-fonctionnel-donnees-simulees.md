@@ -592,7 +592,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 ### Module : Santé & Vaccins / Finances / Comptabilité
 
 - Sections testées : Santé & Vaccins, contrôle qualité santé, historique santé, Finances, Comptabilité, Documents, détails de fiches.
-- Boutons testés : marquer réalisé, créer dépense, ouvrir source, créer preuve/facture manquante, consulter détail.
+- Boutons testés : marquer réalisé, ouvrir source, joindre preuve/facture manquante, consulter détail.
 - Formulaires testés : soin avec coût, intervention santé, preuve/facture liée, formulaire de dépense générée.
 - Champs présents : type soin, cible, coût, statut, produit, dose, date prévue/réalisée, preuve/facture, lien finance, lien document.
 - Champs ajoutés / renforcés : transaction santé avec `amount`, `sante_id`, `montant_total`; document preuve/facture manquante avec `transaction_id`, `finance_id`, `module_source`, montant et statut lisible.
@@ -600,10 +600,26 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Conséquences métier vérifiées : un coût Santé crée ou lie une seule dépense Finance ; la même dépense devient contrôlable en Comptabilité avec preuve/facture ; pas de double comptage.
 - Interconnexions vérifiées : Santé -> Finances, Santé -> Documents, Finances -> Comptabilité, détails de fiche -> champs internes masqués.
 - Bugs trouvés : `SanteV8` écrivait dans le mauvais CRUD (`transactions` au lieu de `finances`) ; les preuves manquantes n’étaient pas créées automatiquement ; le contrôle affichait “Coût non retrouvé dans les finances” et “Aucun impact business immédiat”.
-- Corrections faites : `SanteV8` utilise désormais `finances`, crée/lien la dépense et prépare la preuve/facture manquante ; `HealthQualityControl` propose “Dépense santé à enregistrer” avec bouton “Créer dépense” ; `DetailsModal` masque les clés internes (`source_record_id`, ids de workflow, liens techniques) et affiche “Non renseigné” au lieu de valeurs brutes.
+- Corrections faites : `SanteV8` utilise désormais `finances`, crée/lien la dépense et prépare la preuve/facture manquante ; `HealthQualityControl` ne demande plus de créer une dépense à la main et régularise automatiquement la liaison Finance/Documents quand un coût santé existe ; `DetailsModal` masque les clés internes (`source_record_id`, ids de workflow, liens techniques) et affiche “Non renseigné” au lieu de valeurs brutes.
 - Tests ajoutés : `coût santé crée une dépense finance non doublonnée`, `interface masque les libellés techniques et garde les messages terrain`.
 - Commit poussé : `7f2e188 fix: harmoniser sante finances comptabilite terrain`.
 - Reste à faire : valider avec les vraies politiques Supabase que la création automatique de dépense/document reste autorisée pour chaque rôle terrain.
+
+### Module : Ventes / Marges terrain
+
+- Sections testées : caisse ventes, ventes à traiter, vente guidée, contrôle qualité ventes.
+- Boutons testés : nouvelle vente, modifier, traiter, livrer, facture.
+- Formulaires testés : vente guidée, action vente, encaissement, livraison, facture.
+- Champs présents : produit, client, quantité, prix, total, payé, reste, livraison.
+- Champs ajoutés / renforcés : coût direct, marge directe, taux de marge et source de marge visibles sur chaque ligne de vente ouverte.
+- Actions testées : affichage de ventes simulées avec sources stock/animal/lot/culture, calcul marge depuis `salesMarginEngine`.
+- Conséquences métier vérifiées : une ligne vente montre immédiatement la rentabilité quand le coût source est connu ; si le coût manque, la ligne indique que la marge n’est pas fiable au lieu de masquer l’information.
+- Interconnexions vérifiées : Ventes -> Stock, Animaux, Avicole, Cultures, Paiements, Finances.
+- Bugs trouvés : la marge par ligne, présente avant, n’était plus visible dans la caisse terrain `VentesV4`.
+- Corrections faites : `VentesV4` recalcule et affiche coût, marge, taux et source de marge pour chaque vente ouverte.
+- Tests ajoutés : garde sur les textes `Marge` et `Source marge` dans les fichiers utilisateur.
+- Commit poussé : à compléter après push.
+- Reste à faire : valider les coûts sources sur données réelles quand elles seront disponibles.
 
 ### Module : Tous modules visibles
 

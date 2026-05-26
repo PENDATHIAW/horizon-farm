@@ -840,6 +840,7 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
       'src/modules/SalesWorkflowRepairPanel.jsx',
       'src/modules/DecisionRecommendationCard.jsx',
       'src/modules/LifecycleHistoryPanel.jsx',
+      'src/modules/VentesV4.jsx',
     ];
     const visibleText = userFacingFiles.map((file) => readFileSync(file, 'utf8')).join('\n');
     expect(visibleText).not.toMatch(/Co[uû]t non retrouv[ée] dans les finances/i);
@@ -852,7 +853,12 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(visibleText).not.toMatch(/Justificatifs à compléter/i);
     expect(visibleText).not.toMatch(/Compléter justificatif/i);
     expect(visibleText).not.toMatch(/Justificatifs et preuves/i);
-    expect(visibleText).toContain('Dépense santé à enregistrer');
+    expect(visibleText).not.toMatch(/Créer dépense/i);
+    expect(visibleText).not.toMatch(/Dépense santé à enregistrer/i);
+    expect(visibleText).toContain('Dépense santé reliée automatiquement');
+    expect(visibleText).toContain('Liaison automatique en cours');
+    expect(visibleText).toContain('Marge');
+    expect(visibleText).toContain('Source marge');
     expect(visibleText).toContain('Conséquence terrain');
     expect(visibleText).toContain('Préparer aussi la dépense et la preuve/facture');
     expect(visibleText).toContain('Preuves / factures à compléter');

@@ -67,7 +67,7 @@ function buildPreventiveAlerts(props) {
   arr(props.stocks).forEach((row) => {
     const q = numberOf(row.quantite ?? row.quantity ?? row.stock);
     const s = numberOf(row.seuil ?? row.threshold ?? row.min_quantity);
-    if (s > 0 && q <= s) push({ id: `auto-j2-stock-${row.id}`, title: `Stock sous seuil : ${rowLabel(row)}`, message: `Quantité ${q} sous seuil ${s}. Réapprovisionnement à préparer.`, module_source: 'stock', entity_type: 'stock', entity_id: row.id, severity: q <= 0 ? 'critique' : 'warning', action_recommandee: 'Contacter fournisseur, confirmer prix/délai et créer dépense/preuve.', responsable: 'TEAM-STOCK' });
+    if (s > 0 && q <= s) push({ id: `auto-j2-stock-${row.id}`, title: `Stock sous seuil : ${rowLabel(row)}`, message: `Quantité ${q} sous seuil ${s}. Réapprovisionnement à préparer.`, module_source: 'stock', entity_type: 'stock', entity_id: row.id, severity: q <= 0 ? 'critique' : 'warning', action_recommandee: 'Contacter fournisseur, confirmer prix/délai et enregistrer l’achat avec sa preuve.', responsable: 'TEAM-STOCK' });
   });
   return alerts;
 }

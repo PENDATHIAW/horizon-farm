@@ -103,8 +103,8 @@ function HealthBridge(props) {
           </h3>
 
           <p className="text-sm text-[#8a7456] mt-1">
-            Un soin validé peut créer une dépense Finance, une tâche de suivi,
-            un événement métier et une sortie de stock santé.
+            Un soin validé relie automatiquement la dépense Finance, la tâche de suivi,
+            l’historique et la sortie de stock santé quand ces données existent.
           </p>
         </div>
 

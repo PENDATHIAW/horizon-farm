@@ -46,7 +46,7 @@ function taskTitleFromAlert(alert = {}) { return alert.title || alert.action_rec
 function checklistForAlert(alert = {}) {
   const type = lower(alert.type_alerte || alert.alert_type || alert.module_source);
   if (type.includes('sante') || type.includes('santé')) return ['Identifier la cible', 'Observer les symptômes', 'Isoler si nécessaire', 'Appeler vétérinaire si besoin', 'Mettre à jour Santé'];
-  if (type.includes('stock') || type.includes('aliment')) return ['Vérifier quantité réelle', 'Contacter fournisseur', 'Confirmer prix et délai', 'Créer dépense/preuve', 'Mettre à jour Stock'];
+  if (type.includes('stock') || type.includes('aliment')) return ['Vérifier quantité réelle', 'Contacter fournisseur', 'Confirmer prix et délai', 'Enregistrer l’achat avec sa preuve', 'Mettre à jour Stock'];
   if (type.includes('vente')) return ['Identifier client/commande', 'Appeler client', 'Préparer facture/reçu', 'Encaisser ou planifier livraison', 'Mettre à jour Ventes'];
   if (type.includes('maintenance') || type.includes('smartfarm')) return ['Vérifier alimentation/réseau', 'Tester fonctionnement', 'Nettoyer/refixer si besoin', 'Noter panne', 'Planifier réparation'];
   return ['Identifier la cause', 'Faire l’action terrain', 'Ajouter preuve/photo si nécessaire', 'Mettre à jour le module concerné'];

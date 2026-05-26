@@ -44,13 +44,13 @@ export const TASK_CHECKLIST_TEMPLATES = {
   avicole_eau_aliment: ['Vérifier abreuvoirs', 'Vérifier mangeoires', 'Contrôler consommation', 'Contrôler stock aliment', 'Noter anomalie'],
   animaux_tour_sante: ['Observer appétit', 'Vérifier eau/aliment', 'Repérer toux/boiterie', 'Isoler animal suspect', 'Prévenir vétérinaire si besoin'],
   animaux_pesee: ['Préparer contention', 'Peser animal', 'Noter poids', 'Comparer objectif', 'Signaler retard croissance'],
-  sante_vaccin: ['Identifier cible', 'Vérifier produit/dose', 'Administrer soin', 'Noter date', 'Créer preuve ou dépense si nécessaire'],
+  sante_vaccin: ['Identifier cible', 'Vérifier produit/dose', 'Administrer soin', 'Noter date', 'Joindre la preuve si elle manque'],
   stock_inventaire: ['Compter quantité disponible', 'Comparer seuil', 'Repérer produits expirés', 'Mettre à jour stock', 'Déclencher commande si besoin'],
-  stock_commande_aliment: ['Vérifier besoin', 'Contacter fournisseur', 'Comparer prix', 'Confirmer livraison', 'Créer dépense/preuve'],
+  stock_commande_aliment: ['Vérifier besoin', 'Contacter fournisseur', 'Comparer prix', 'Confirmer livraison', 'Enregistrer l’achat avec sa preuve'],
   ventes_relance: ['Identifier client', 'Appeler client', 'Noter promesse paiement', 'Fixer date encaissement', 'Mettre à jour vente'],
   ventes_livraison: ['Vérifier commande', 'Préparer quantité', 'Vérifier facture/reçu', 'Confirmer client', 'Marquer livrée'],
   cultures_intrants: ['Vérifier semences/engrais', 'Comparer seuil', 'Contrôler météo', 'Planifier application', 'Saisir utilisation'],
-  equipements_maintenance: ['Vérifier état', 'Nettoyer', 'Tester fonctionnement', 'Noter panne', 'Créer dépense/preuve si réparation'],
+  equipements_maintenance: ['Vérifier état', 'Nettoyer', 'Tester fonctionnement', 'Noter panne', 'Joindre la preuve si réparation payée'],
   biosecurite: ['Vérifier pédiluve', 'Contrôler lavage mains', 'Limiter visiteurs', 'Vérifier tenues propres', 'Noter anomalie'],
 };
 

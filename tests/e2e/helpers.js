@@ -38,6 +38,8 @@ export const BAD_UI_TEXTS = [
   'à synchroniser',
   'non synchronisé',
   'trace créée sans action réelle',
+  'Créer dépense',
+  'Dépense santé à enregistrer',
   'mock',
   'fallback schema',
   'related_id manquant',
