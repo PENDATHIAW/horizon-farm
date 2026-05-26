@@ -19,7 +19,7 @@ const inferName = (draft = {}) => {
 };
 const labelOf = (row = {}) => row.name || row.nom || row.libelle || row.equipement || row.id || 'Équipement';
 
-function HeyHorizonEquipmentCard({ draft, rows, onCreate, onUpdate, onCreateTask, onCreateFinanceTransaction, onCreateDocument, onCreateBusinessEvent, onRefresh, onRefreshTasks, onRefreshFinances, onRefreshDocuments, onRefreshBusinessEvents, onClose }) {
+function HeyHorizonEquipmentCard({ draft, rows, onCreate, onUpdate, onCreateTask, onCreateAlert, onCreateFinanceTransaction, onCreateDocument, onCreateBusinessEvent, onRefresh, onRefreshTasks, onRefreshAlertes, onRefreshFinances, onRefreshDocuments, onRefreshBusinessEvents, onClose }) {
   const fields = draft?.draft_fields || {};
   const initialType = inferType(draft);
   const [actionType, setActionType] = useState(initialType);
@@ -44,13 +44,15 @@ function HeyHorizonEquipmentCard({ draft, rows, onCreate, onUpdate, onCreateTask
         await onCreate?.({ id: eqId, name: name.trim(), nom: name.trim(), status: actionType === 'panne' ? 'panne' : 'maintenance', statut: actionType === 'panne' ? 'panne' : 'maintenance', date_achat: '', notes: note, source_module: 'hey_horizon', created_from: 'hey_horizon' });
       }
       if (actionType !== 'achat') {
-        await onCreateTask?.({ id: makeId('TSK'), title, module_lie: 'equipements', related_id: eqId, due_date: date, priority: actionType === 'panne' ? 'haute' : 'normale', status: 'a_faire', checklist: actionType === 'panne' ? 'Diagnostiquer; Réparer; Tester; Clôturer' : 'Contrôler; Nettoyer; Tester; Clôturer', source_module: 'hey_horizon' });
+        const taskId = makeId('TSK');
+        await onCreateTask?.({ id: taskId, title, module_lie: 'equipements', related_id: eqId, due_date: date, priority: actionType === 'panne' ? 'haute' : 'normale', status: 'a_faire', checklist: actionType === 'panne' ? 'Diagnostiquer; Réparer; Tester; Clôturer' : 'Contrôler; Nettoyer; Tester; Clôturer', source_module: 'hey_horizon', task_dedupe_key: `equipment:${actionType}:${eqId}` });
+        if (actionType === 'panne') await onCreateAlert?.({ id: makeId('ALT'), title: `Panne équipement: ${existing ? labelOf(existing) : name}`, message: note || 'Panne déclarée depuis Hey Horizon.', module_source: 'equipements', entity_type: 'equipement', entity_id: eqId, severity: 'critique', status: 'nouvelle', action_recommandee: 'Diagnostiquer, réparer puis clôturer la maintenance.', alert_dedupe_key: `equipment:${actionType}:${eqId}`, linked_task_id: taskId });
       }
       if (num(cost) > 0) {
         await onCreateFinanceTransaction?.({ id: makeId('TRX'), type: 'sortie', transaction_type: 'sortie', libelle: title, montant: num(cost), amount: num(cost), date, categorie: actionType === 'achat' ? 'Investissement équipement' : 'Maintenance équipement', module_lie: 'equipements', related_id: eqId, source_module: 'equipements', source_record_id: eqId, transaction_origin: 'automatique' });
       }
       await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: `equipement_${actionType}`, module_source: 'equipements', entity_type: 'equipement', entity_id: eqId, title, description: note, event_date: date, severity: actionType === 'panne' ? 'warning' : 'info', amount: num(cost), saisies_evitees: actionType === 'achat' ? 2 : 3 });
-      await Promise.allSettled([onRefresh?.(), onRefreshTasks?.(), onRefreshFinances?.(), onRefreshDocuments?.(), onRefreshBusinessEvents?.()]);
+      await Promise.allSettled([onRefresh?.(), onRefreshTasks?.(), onRefreshAlertes?.(), onRefreshFinances?.(), onRefreshDocuments?.(), onRefreshBusinessEvents?.()]);
       toast.success(`${title} enregistré depuis Hey Horizon`);
       onClose?.();
     } catch (error) { toast.error(error.message || 'Action équipement impossible'); } finally { setSaving(false); }
@@ -77,7 +79,7 @@ export default function EquipementsV2(props) {
     return () => window.removeEventListener('horizon-open-form', handler);
   }, []);
   return <div className="space-y-6">
-    {horizonDraft ? <div id="hey-horizon-equipment-card"><HeyHorizonEquipmentCard draft={horizonDraft} rows={props.rows || []} onCreate={props.onCreate} onUpdate={props.onUpdate} onCreateTask={props.onCreateTask} onCreateFinanceTransaction={props.onCreateFinanceTransaction} onCreateDocument={props.onCreateDocument} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefresh={props.onRefresh} onRefreshTasks={props.onRefreshTasks} onRefreshFinances={props.onRefreshFinances} onRefreshDocuments={props.onRefreshDocuments} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onClose={() => setHorizonDraft(null)} /></div> : null}
+    {horizonDraft ? <div id="hey-horizon-equipment-card"><HeyHorizonEquipmentCard draft={horizonDraft} rows={props.rows || []} onCreate={props.onCreate} onUpdate={props.onUpdate} onCreateTask={props.onCreateTask} onCreateAlert={props.onCreateAlert} onCreateFinanceTransaction={props.onCreateFinanceTransaction} onCreateDocument={props.onCreateDocument} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefresh={props.onRefresh} onRefreshTasks={props.onRefreshTasks} onRefreshAlertes={props.onRefreshAlertes} onRefreshFinances={props.onRefreshFinances} onRefreshDocuments={props.onRefreshDocuments} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onClose={() => setHorizonDraft(null)} /></div> : null}
     <Equipements {...props} />
   </div>;
 }

@@ -25,6 +25,7 @@ export default function Equipements(props) {
           onCreateTask={props.onCreateTask}
           onRefreshTasks={props.onRefreshTasks}
           onCreateAlert={props.onCreateAlert}
+          onUpdateAlert={props.onUpdateAlert}
           onRefreshAlertes={props.onRefreshAlertes}
           onCreateFinanceTransaction={props.onCreateFinanceTransaction}
           onRefreshFinances={props.onRefreshFinances}
@@ -57,12 +58,14 @@ export default function Equipements(props) {
         <EquipementsMaintenanceBridge
           rows={rows}
           tasks={props.tasks || []}
+          alertes={props.alertes || []}
           onUpdate={props.onUpdate}
           onRefresh={props.onRefresh}
           onCreateTask={props.onCreateTask}
           onUpdateTask={props.onUpdateTask}
           onRefreshTasks={props.onRefreshTasks}
           onCreateAlert={props.onCreateAlert}
+          onUpdateAlert={props.onUpdateAlert}
           onRefreshAlertes={props.onRefreshAlertes}
           onCreateFinanceTransaction={props.onCreateFinanceTransaction}
           onRefreshFinances={props.onRefreshFinances}

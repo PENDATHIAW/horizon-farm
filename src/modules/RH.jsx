@@ -24,7 +24,7 @@ function Mini({ icon: Icon, label, value }) {
   return <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2 min-w-[100px]"><Icon size={14} className="text-[#9a6b12]" /><b className="block text-[#2f2415]">{value}</b><span className="text-xs text-[#8a7456]">{label}</span></div>;
 }
 
-function RhPriorityPayments({ onCreateFinanceTransaction, onRefreshFinances, onCreateBusinessEvent, onRefreshBusinessEvents, onRefresh }) {
+function RhPriorityPayments({ onCreateFinanceTransaction, onRefreshFinances, onCreateDocument, onRefreshDocuments, onCreateBusinessEvent, onRefreshBusinessEvents, onRefresh }) {
   const [directory, setDirectory] = useState(() => getRhDirectory());
   const [savingId, setSavingId] = useState('');
   const people = activePeople(directory.people || []);
@@ -46,6 +46,7 @@ function RhPriorityPayments({ onCreateFinanceTransaction, onRefreshFinances, onC
       setSavingId(person.id);
       const tx = buildRhFinancePayload({ person, payment: { period: today().slice(0, 7) }, amount: m.net, date: today(), id: makeId('TRX') });
       await onCreateFinanceTransaction?.(tx);
+      await onCreateDocument?.({ id: makeId('DOC'), title: `Reçu salaire — ${person.nom}`, document_category: 'recu_salaire', module_source: 'rh', entity_type: 'personne', entity_id: person.id, related_id: person.id, transaction_id: tx.id, finance_id: tx.id, statut: 'a_joindre', status: 'a_joindre', montant: m.net, notes: `Preuve de paiement RH à joindre pour ${today().slice(0, 7)}.` });
       await onCreateBusinessEvent?.({
         id: makeId('EVT'),
         event_type: 'paiement_remuneration',
@@ -64,7 +65,7 @@ function RhPriorityPayments({ onCreateFinanceTransaction, onRefreshFinances, onC
         people: (directory.people || []).map((item) => item.id === person.id ? { ...item, avance_mois: 0, dernier_paiement: today(), last_payment_amount: m.net } : item),
       });
       setDirectory(next);
-      await Promise.allSettled([onRefreshFinances?.(), onRefreshBusinessEvents?.(), onRefresh?.()]);
+      await Promise.allSettled([onRefreshFinances?.(), onRefreshDocuments?.(), onRefreshBusinessEvents?.(), onRefresh?.()]);
       toast.success('Paiement RH enregistré');
     } catch (error) {
       toast.error(error.message || 'Paiement impossible');
