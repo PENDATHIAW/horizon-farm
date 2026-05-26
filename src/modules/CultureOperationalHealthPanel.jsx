@@ -14,6 +14,7 @@ const saleText = (row = {}) => lower(`${row.product_name || ''} ${row.source_typ
 const isCultureSale = (row = {}) => saleText(row).includes('culture') || saleText(row).includes('recolte') || saleText(row).includes('récolte');
 const isRisk = (row = {}) => ['perdu', 'sinistre', 'risque', 'retard'].some((word) => lower(`${row.statut || ''} ${row.status || ''}`).includes(word)) || score(row) < 80 || loss(row) > 0;
 const cultureName = (row = {}) => clean(row.nom || row.culture || row.type || row.name || row.id || 'Culture');
+const uniqueRows = (rows = []) => Array.from(new Map(arr(rows).map((row, index) => [clean(row.id || row.culture_id || cultureName(row) || `culture-${index}`), row])).values());
 
 function Mini({ icon: Icon, label, value, danger = false }) {
   return <div className={`rounded-xl border p-3 ${danger ? 'border-amber-200 bg-amber-50' : 'border-[#eadcc2] bg-white'}`}><Icon size={15} className={danger ? 'text-amber-700' : 'text-[#9a6b12]'} /><p className="mt-1 text-xs text-[#8a7456]">{label}</p><p className="font-black text-[#2f2415] break-words">{value}</p></div>;
@@ -31,7 +32,7 @@ export default function CultureOperationalHealthPanel({ rows = [], salesOrders =
   const totalRevenue = cultures.reduce((sum, row) => sum + revenue(row), 0);
   const salesRevenue = arr(salesOrders).filter(isCultureSale).reduce((sum, row) => sum + saleAmount(row), 0);
   const margin = totalRevenue + salesRevenue - totalCost;
-  const priorityRows = [...riskRows, ...active.filter((row) => qty(row) > 0)].slice(0, 6);
+  const priorityRows = uniqueRows([...riskRows, ...active.filter((row) => qty(row) > 0)]).slice(0, 6);
 
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
     <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><Sprout size={15} /> Pilotage cultures</p><h3 className="text-xl font-black text-[#2f2415] mt-1">Parcelles, récoltes, ventes et risques</h3><p className="text-sm text-[#8a7456] mt-1">Les cultures doivent relier intrants, météo, coûts, récoltes, ventes et pertes sans double saisie.</p></div>{riskRows.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {riskRows.length} culture(s) à surveiller</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 size={15} className="inline" /> Cultures maîtrisées</div>}</div>

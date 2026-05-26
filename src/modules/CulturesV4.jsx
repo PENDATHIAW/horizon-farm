@@ -23,6 +23,15 @@ const isCultureInput = (row = {}) => {
 const stockQty = (row = {}) => toNumber(row.quantite ?? row.quantity ?? row.stock);
 const stockThreshold = (row = {}) => toNumber(row.seuil ?? row.threshold ?? row.seuil_alerte);
 const stockLabel = (row = {}) => row.produit || row.name || row.nom || row.id || 'Intrant';
+const uniqueById = (rows = []) => {
+  const map = new Map();
+  rows.forEach((row, index) => {
+    const key = String(row?.id || row?.culture_id || row?.nom || `culture-${index}`);
+    if (!map.has(key)) map.set(key, { ...row, id: row?.id || key });
+    else map.set(key, { ...map.get(key), ...row, id: key });
+  });
+  return Array.from(map.values());
+};
 
 function withCultureLossMetrics(row = {}) {
   const metrics = calculateCultureMetricsWithLoss(row);
@@ -92,7 +101,7 @@ function Mini({ label, value, danger = false }) {
 export default function CulturesV4(props) {
   const stockCrud = useCrudModule('stock');
   const { weather: liveMeteo, loading: liveWeatherLoading } = useLiveWeather();
-  const adjustedRows = (props.rows || []).map(withCultureLossMetrics);
+  const adjustedRows = uniqueById(props.rows || []).map(withCultureLossMetrics);
   const adjustedProps = { ...props, rows: adjustedRows };
   const stocks = props.stocks || stockCrud.rows || [];
   const meteo = props.meteo || liveMeteo;
