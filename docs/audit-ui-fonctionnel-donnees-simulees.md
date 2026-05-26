@@ -162,6 +162,24 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - Commit poussé : `b38ae48 fix: completer parcours fournisseurs terrain`, `394cbf8 test: couvrir parcours fournisseurs terrain`.
 - Reste à faire : tester en navigateur connecté l’upload réel d’une facture fournisseur et la clôture automatique d’une alerte fournisseur déjà créée.
 
+## Module : Documents
+
+- Sections testées : Contrôle documentaire, Justificatifs à compléter, Documents reliés, Bibliothèque documentaire, historique des documents, filtres catégorie/module.
+- Sections supprimées/fusionnées : aucune suppression ; le rôle “preuve manquante” a été clarifié sans retirer la bibliothèque existante.
+- Boutons testés : Ajouter document, Créer fiche preuve, Modifier, Supprimer, Ouvrir fichier, Actualiser, Ventes, Finances, Dossier financeur.
+- Boutons corrigés : Créer fiche preuve génère aussi tâche + alerte liées ; une fiche preuve sans fichier reste manquante et ne valide pas la dépense.
+- Formulaires testés : ajout document, modification document, création de fiche preuve depuis transaction, liaison module/entité.
+- Champs présents : titre, catégorie, fichier/image, type fichier, module lié, entité liée, référence libre, notes.
+- Champs ajoutés : montant concerné, date du document, statut preuve, statut normalisé, `verification_status`.
+- Actions testées : document financier manquant, document fourni avec fichier, document lié à animal, dépense importante sans preuve, preuve fournisseur manquante.
+- Conséquences métier vérifiées : dépense sans preuve -> fiche document + tâche + alerte ; document manquant ne compte pas comme preuve ; fichier fourni -> preuve à vérifier ; module/entité liés restent visibles dans la bibliothèque.
+- Interconnexions vérifiées : Documents vers Finances, Comptabilité, Ventes, Fournisseurs, Santé, Animaux, Tâches, Alertes.
+- Bugs trouvés : un document avec titre/catégorie mais sans fichier pouvait être considéré comme preuve valide ; les fiches preuve créées depuis une transaction ne créaient pas d’action à faire ; le formulaire ne demandait pas montant/date/statut de preuve.
+- Corrections faites : ajout de `documentWorkflows`, statuts `manquant`/`preuve_manquante`, champs montant/date/statut, génération tâche+alerte pour preuve manquante, règle de preuve comptable renforcée.
+- Tests ajoutés : document manquant ne compte pas comme preuve, dépense importante sans preuve crée tâche/alerte, document lié conserve module source et statut lisible.
+- Commit poussé : `5abb335 fix: completer parcours documents terrain`, `e9796cb test: couvrir parcours documents terrain`.
+- Reste à faire : tester upload réel Supabase Storage et téléchargement/export dans le navigateur connecté.
+
 ## Module : Avicole
 
 - Sections testées : séparation Pondeuses/Poulets de chair, Pilotage avicole, Vue active, Où saisir les œufs, Objectif œufs/pondeuses, Lots actifs, Gestion avicole, Journal de ponte et charges, Journal de ramassage des œufs, Charges directes pondeuses, Cycle et historique, Évolution détaillée.
@@ -195,6 +213,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 | Facture ou source vendue incomplète depuis action rapide | les factures rapides ne créaient pas toujours de document et Hey Horizon ne décrémentait pas la source vendue | document facture créé et patch source appliqué pour stock/animal/lot/culture | `src/modules/VentesV4.jsx`, `src/utils/salesWorkflows.js` | `4dade40` | `vente stock décrémente la source vendue`, `vente animal sort l’animal des actifs` | facture visible dans Documents, source vendue mise à jour |
 | Statut client obsolète ou suppression dangereuse | les ventes pouvaient être reliées par libellé et la suppression ne vérifiait pas l’historique | calcul client centralisé, suppression bloquée si vente liée, relance tracée, fiche stabilisée | `src/modules/Clients.jsx`, `src/modules/ClientsV2.jsx`, `src/utils/clientWorkflows.js` | `5dc1292`, `4621b58` | `client crédit passe à relancer et client payé reste à jour`, `fiche client conserve paiements et dernière commande lisibles`, `relance client crée tâche, alerte et trace liées`, `suppression client liée à une vente est bloquée` | un client payé est à jour, un client crédit est à relancer, l’historique vente est protégé |
 | Paiement fournisseur double compté | la réception fournisseur pouvait être transformée en sortie payée puis le paiement réel ajoutait une nouvelle sortie cash | réception enregistrée comme dette sans effet caisse, paiement séparé comme sortie cash, dette soldée par lien règlement | `src/modules/Fournisseurs.jsx`, `src/modules/FournisseursStockBridge.jsx`, `src/utils/supplierSettlement.js`, `src/utils/supplierWorkflows.js` | `b38ae48` | `réception fournisseur crée stock, dette et facture manquante`, `paiement fournisseur solde la dette sans double compter la réception`, `retard paiement fournisseur crée tâche et alerte liées` | stock augmente, dette existe, paiement solde sans double dépense, facture/preuve reste visible |
+| Document manquant compté comme preuve | la preuve comptable vérifiait surtout le lien et le titre/catégorie, pas toujours le statut de vérification | statuts `manquant`/`preuve_manquante` exclus des preuves valides, fiche preuve crée tâche/alerte | `src/modules/DocumentsV2.jsx`, `src/utils/accountingProof.js`, `src/utils/documentForms.js`, `src/utils/documentWorkflows.js` | `5abb335` | `document manquant ne compte pas comme preuve valide`, `dépense importante sans preuve crée tâche et alerte document`, `document lié conserve module source et statut preuve lisible` | une dépense reste à compléter tant que le fichier/preuve n’est pas fourni |
 
 ## Module : Animaux
 
@@ -256,7 +275,7 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `npm run build` : équivalent exécuté avec `/Users/momofmarieme/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vite/bin/vite.js build`, réussi. Avertissement uniquement sur gros chunks.
 - `npx playwright install --with-deps chromium` : réussi avant synchronisation.
 - `npx playwright test tests/e2e/user-smoke.spec.js --reporter=line` : réussi avec `E2E_LOGIN=penda`, `1 passed (1.4m)`.
-- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Avicole, Animaux, Finances, Comptabilité, `29 passed`.
+- `npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line` : équivalent local Node réussi après corrections Stock, Santé, Ventes, Clients, Fournisseurs, Documents, Avicole, Animaux, Finances, Comptabilité, `32 passed`.
 - `npx playwright test tests/e2e/full-human-erp-journey.spec.js --reporter=line` : équivalent local Node réussi, `1 passed`.
 - Erreurs console/page : aucun échec dans les tests métier simulés ; le premier smoke relancé sans variables a échoué uniquement sur `E2E_LOGIN/E2E_PASSWORD` manquants.
 
@@ -305,6 +324,9 @@ Ce parcours complète l'audit module par module avec une simulation cohérente s
 - `ea84e8a docs: documenter corrections terrain clients`
 - `b38ae48 fix: completer parcours fournisseurs terrain`
 - `394cbf8 test: couvrir parcours fournisseurs terrain`
+- `c0c4964 docs: documenter corrections terrain fournisseurs`
+- `5abb335 fix: completer parcours documents terrain`
+- `e9796cb test: couvrir parcours documents terrain`
 
 Push GitHub : les commits jusqu'à `ce0a66a` sont poussés sur `origin/feature/objectifs-croissance-centre-decisionnel` après configuration SSH.
 
