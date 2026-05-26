@@ -6,6 +6,7 @@ import { normalizeLot, normalizeProductionOeufsLog } from '../../src/utils/norma
 import { applyStockMovement, buildStockCriticalFollowUp } from '../../src/utils/stockWorkflows.js';
 import { avicoleActiveCount, avicoleSickCount } from '../../src/utils/avicoleMetrics.js';
 import { buildHealthCostTransaction, buildHealthFollowUp, buildHealthProofDocument } from '../../src/utils/healthWorkflows.js';
+import { buildClientReminderFollowUp, canDeleteClient, normalizeClientFromSales } from '../../src/utils/clientWorkflows.js';
 import { buildSaleSourcePatch, capSalePayment } from '../../src/utils/salesWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
@@ -338,5 +339,28 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(patch).toMatchObject({ module: 'animal', id: 'BOV002' });
     expect(patch.patch.statut).toBe('vendu');
     expect(patch.patch.prix_vente_reel).toBe(450000);
+  });
+
+  test('client crédit passe à relancer et client payé reste à jour', () => {
+    const client = { id: 'CLI-TERRAIN-001', nom: 'Restaurant Keur Horizon' };
+    const credit = normalizeClientFromSales(client, [{ id: 'CMD-CLI-001', client_label: 'Restaurant Keur Horizon', montant_total: 90000, montant_paye: 40000 }], []);
+    const paid = normalizeClientFromSales(client, [{ id: 'CMD-CLI-002', client_id: 'CLI-TERRAIN-001', montant_total: 90000, montant_paye: 90000 }], []);
+    expect(credit).toMatchObject({ statut: 'a_relancer', creance_reelle: 50000, relance_requise: true });
+    expect(paid).toMatchObject({ statut: 'a_jour', creance_reelle: 0, relance_requise: false });
+  });
+
+  test('relance client crée tâche, alerte et trace liées', () => {
+    const client = { id: 'CLI-RELANCE-001', nom: 'Boutique Awa' };
+    const followUp = buildClientReminderFollowUp(client, { resteAPayer: 35000 });
+    expect(followUp.task).toMatchObject({ module_lie: 'clients', source_module: 'clients', related_id: 'CLI-RELANCE-001', status: 'a_faire' });
+    expect(followUp.alert).toMatchObject({ module_source: 'clients', entity_id: 'CLI-RELANCE-001', status: 'nouvelle' });
+    expect(followUp.event).toMatchObject({ event_type: 'relance_client_preparee', module_source: 'clients', amount: 35000 });
+    expect(followUp.task.task_dedupe_key).toBe(followUp.alert.alert_dedupe_key);
+  });
+
+  test('suppression client liée à une vente est bloquée', () => {
+    const client = { id: 'CLI-BLOCK-001', nom: 'Client historique' };
+    expect(canDeleteClient(client, [{ id: 'CMD-BLOCK-001', client_id: 'CLI-BLOCK-001', montant_total: 10000 }])).toBe(false);
+    expect(canDeleteClient(client, [])).toBe(true);
   });
 });
