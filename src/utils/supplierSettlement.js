@@ -6,8 +6,15 @@ const nameOf = (supplier = {}) => supplier.nom || supplier.name || supplier.id |
 const stockSupplierId = (row = {}) => row.fournisseur_id || row.supplier_id || row.fournisseur || row.supplier || '';
 const financeSupplierId = (row = {}) => row.fournisseur_id || row.supplier_id || row.related_id || row.entity_id || '';
 const isLinked = (value, supplier) => clean(value) === clean(supplier.id) || clean(value) === clean(nameOf(supplier));
-const isSupplierExpense = (tx = {}) => clean(tx.type) === 'sortie' && ['fournisseur', 'fournisseurs', 'stock', 'approvisionnement'].some((key) => clean(tx.categorie || tx.module_lie || tx.source_module).includes(key));
-const isSupplierDebt = (tx = {}) => clean(tx.type) === 'sortie' && ['impaye', 'partiel', 'en_attente', 'a_payer'].includes(clean(tx.statut || tx.status));
+const isSupplierExpense = (tx = {}) => clean(tx.type) === 'sortie'
+  && tx.cash_effect !== false
+  && !tx.is_supplier_accrual
+  && !tx.settlement_transaction_id
+  && ['fournisseur', 'fournisseurs', 'stock', 'approvisionnement'].some((key) => clean(tx.categorie || tx.module_lie || tx.source_module).includes(key));
+const isSupplierDebt = (tx = {}) => clean(tx.type) === 'sortie'
+  && !tx.settlement_transaction_id
+  && tx.cash_effect !== true
+  && ['impaye', 'partiel', 'en_attente', 'a_payer', 'à payer'].includes(clean(tx.statut || tx.status));
 
 export function calculateSupplierSettlement(supplier = {}, { stocks = [], transactions = [], documents = [] } = {}) {
   const stockRows = arr(stocks).filter((row) => isLinked(stockSupplierId(row), supplier));

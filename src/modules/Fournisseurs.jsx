@@ -16,6 +16,7 @@ import DeleteModal from '../modals/DeleteModal';
 import DetailsModal from '../modals/DetailsModal';
 import { calculateSupplierMetrics } from '../utils/businessCalculations';
 import { calculateSupplierSettlement } from '../utils/supplierSettlement';
+import { buildSupplierDebtFollowUp, buildSupplierPaymentWorkflow } from '../utils/supplierWorkflows';
 import { searchGeoPlaces } from '../services/geoSearchService';
 import { buildSupplierDecisionProfile, buildSupplierDecisionSummary } from '../services/supplierDecisionEngine';
 import FournisseursStockBridge from './FournisseursStockBridge.jsx';
@@ -28,7 +29,7 @@ const supplierName = (supplier = {}) => supplier.nom || supplier.name || supplie
 const supplierPhone = (supplier = {}) => String(supplier.whatsapp || supplier.tel || supplier.phone || '').trim();
 const hasPhone = (supplier = {}) => Boolean(supplierPhone(supplier));
 const supplierInitialValues = (rows) => ({ id: generateSequentialId('fournisseurs', rows), note: 4, dettes: 0, livraisons: 0, source: 'manuel', verified: false, favorite: false, categorie: 'Approvisionnement' });
-const isOpenSupplierDebt = (tx = {}) => String(tx.type || '').toLowerCase() === 'sortie' && ['impaye', 'partiel', 'en_attente', 'a_payer', 'à payer'].includes(String(tx.statut || tx.status || '').toLowerCase());
+const isOpenSupplierDebt = (tx = {}) => String(tx.type || '').toLowerCase() === 'sortie' && tx.cash_effect !== true && !tx.settlement_transaction_id && ['impaye', 'partiel', 'en_attente', 'a_payer', 'à payer'].includes(String(tx.statut || tx.status || '').toLowerCase());
 
 const SourceBadge = ({ source }) => (
   <span className={`text-[10px] px-2 py-1 rounded-full border ${source === 'demo' ? 'bg-amber-500/10 border-amber-500/30 text-amber-600' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600'}`}>
@@ -144,7 +145,7 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loadi
 
   const logWhatsApp = async (supplier, reason = 'contact_fournisseur') => {
     const message = messageFor(supplier);
-    await whatsappLogsCrud.create?.({ id: makeId('WALOG'), supplier_id: supplier.id, fournisseur_id: supplier.id, recipient: supplierPhone(supplier), message, status: 'prepare', provider: 'whatsapp', reason, sent_at: now() });
+    await whatsappLogsCrud.create?.({ id: makeId('WALOG'), supplier_id: supplier.id, fournisseur_id: supplier.id, recipient: supplierPhone(supplier), message, status: 'prepare', provider: 'whatsapp', simulation: true, channel_label: 'WhatsApp simulé (message préparé)', reason, sent_at: now() });
     await whatsappLogsCrud.refresh?.();
     return message;
   };
@@ -179,15 +180,14 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loadi
   const paySupplierDebt = async (supplier) => {
     const summary = summaryFor(supplier);
     if (summary.dettes <= 0) return toast.success('Aucune dette fournisseur');
+    const workflow = buildSupplierPaymentWorkflow({ supplier, debtAmount: summary.dettes, openDebtTransactions: summary.finances.filter(isOpenSupplierDebt), date: today() });
     try {
       setSaving(true);
-      const trxId = makeId('TRX');
-      const docId = makeId('DOC');
-      await financesCrud.create?.({ id: trxId, type: 'sortie', libelle: `Paiement fournisseur ${supplierName(supplier)}`, montant: summary.dettes, date: today(), categorie: 'Fournisseurs', module_lie: 'fournisseurs', related_id: supplier.id, fournisseur_id: supplier.id, statut: 'paye', source_module: 'fournisseurs', source_record_id: supplier.id });
-      await documentsCrud.create?.({ id: docId, title: `Paiement fournisseur ${supplierName(supplier)}`, document_category: 'reçu', module_source: 'fournisseurs', entity_type: 'fournisseur', entity_id: supplier.id, related_id: supplier.id, transaction_id: trxId });
-      await (onCreateBusinessEvent || eventsCrud.create)?.({ id: makeId('EVT'), event_type: 'paiement_fournisseur', module_source: 'fournisseurs', entity_type: 'fournisseur', entity_id: supplier.id, title: 'Paiement fournisseur', description: `${supplierName(supplier)} — ${fmtCurrency(summary.dettes)}`, amount: summary.dettes, event_date: today(), severity: 'info', linked_transaction_id: trxId, linked_document_id: docId });
-      await Promise.allSettled(summary.finances.filter(isOpenSupplierDebt).map((tx) => financesCrud.update?.(tx.id, { statut: 'paye', status: 'paye', paid_at: today(), settlement_transaction_id: trxId })));
-      await onUpdate?.(supplier.id, { dettes: 0, dernier_paiement: today(), last_payment_id: trxId });
+      await financesCrud.create?.(workflow.paymentTransaction);
+      await documentsCrud.create?.(workflow.paymentProofDocument);
+      await (onCreateBusinessEvent || eventsCrud.create)?.(workflow.event);
+      await Promise.allSettled(workflow.debtTransactionPatches.map(({ id, patch }) => financesCrud.update?.(id, patch)));
+      await onUpdate?.(supplier.id, workflow.supplierPatch);
       await Promise.allSettled([financesCrud.refresh?.(), documentsCrud.refresh?.(), (onRefreshBusinessEvents || eventsCrud.refresh)?.(), onRefresh?.()]);
       toast.success('Paiement fournisseur enregistré');
     } catch (error) {
@@ -200,9 +200,11 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loadi
   const createDebtAlert = async (supplier) => {
     const summary = summaryFor(supplier);
     if (summary.dettes <= 0) return toast.success('Aucune dette à suivre');
+    const followUp = buildSupplierDebtFollowUp(supplier, summary.dettes, today());
+    if (!followUp) return toast.success('Aucune dette à suivre');
     try {
-      await (onCreateAlert || alertesCrud.create)?.({ id: makeId('ALT'), title: `Dette fournisseur: ${supplierName(supplier)}`, message: `${fmtCurrency(summary.dettes)} à régler`, module_source: 'fournisseurs', entity_type: 'fournisseur', entity_id: supplier.id, severity: 'warning', status: 'nouvelle', action_recommandee: 'Vérifier facture fournisseur et planifier paiement.' });
-      await (onCreateTask || tachesCrud.create)?.({ id: makeId('TSK'), title: `Planifier paiement ${supplierName(supplier)}`, module_lie: 'fournisseurs', related_id: supplier.id, due_date: today(), priority: 'haute', status: 'a_faire', source_module: 'fournisseurs' });
+      await (onCreateAlert || alertesCrud.create)?.(followUp.alert);
+      await (onCreateTask || tachesCrud.create)?.(followUp.task);
       await Promise.allSettled([(onRefreshAlertes || alertesCrud.refresh)?.(), (onRefreshTasks || tachesCrud.refresh)?.()]);
       toast.success('Suivi dette créé');
     } catch (error) {

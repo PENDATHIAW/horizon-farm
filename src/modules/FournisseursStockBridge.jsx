@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import useCrudModule from '../hooks/useCrudModule';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
+import { buildSupplierReceptionWorkflow } from '../utils/supplierWorkflows';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const now = () => new Date().toISOString();
@@ -20,7 +21,6 @@ const reorderQty = (row = {}) => maxOf(row) > 0 ? Math.max(0, maxOf(row) - quant
 const isCritical = (row = {}) => thresholdOf(row) > 0 && quantityOf(row) <= thresholdOf(row);
 const taskKey = (supplier, row) => `supplier_order:${clean(supplier.id)}:${clean(row.id)}`;
 const isDone = (task = {}) => ['termine', 'terminé', 'annule', 'annulé', 'done', 'closed'].includes(clean(task.status || task.statut).toLowerCase());
-const supplierDebt = (supplier = {}) => toNumber(supplier.dettes ?? supplier.dette ?? supplier.solde_du ?? supplier.reste_a_payer);
 
 function linkedSupplier(stock, suppliers = []) {
   const id = supplierIdOfStock(stock);
@@ -93,74 +93,17 @@ export default function FournisseursStockBridge({ suppliers = [], stocks = [], t
   const receiveStock = async (supplier, stock) => {
     const key = taskKey(supplier, stock);
     const qty = reorderQty(stock);
-    const amount = qty * unitPriceOf(stock);
     const task = existingTaskFor(supplier, stock, tasks);
     if (qty <= 0) return toast.error('Quantité à réceptionner non calculée');
+    const workflow = buildSupplierReceptionWorkflow({ supplier, stock, qty, unitPrice: unitPriceOf(stock), date: today() });
     try {
       setSavingKey(`receive:${key}`);
-      const financeId = makeId('TRX');
-      const docId = makeId('DOC');
-      await onUpdateStock?.(stock.id, {
-        quantite: quantityOf(stock) + qty,
-        quantity: quantityOf(stock) + qty,
-        statut: 'recu',
-        stock_status: 'recu',
-        fournisseur_id: supplier.id,
-        supplier_id: supplier.id,
-        derniere_reception: today(),
-        last_receipt_qty: qty,
-        last_receipt_amount: amount,
-        source_module: 'fournisseurs',
-        source_record_id: supplier.id,
-      });
-      await financesCrud.create?.({
-        id: financeId,
-        type: 'sortie',
-        libelle: `Réception fournisseur ${supplierName(supplier)} — ${productName(stock)}`,
-        montant: amount,
-        date: today(),
-        categorie: 'Fournisseurs',
-        module_lie: 'fournisseurs',
-        related_id: supplier.id,
-        fournisseur_id: supplier.id,
-        stock_id: stock.id,
-        statut: 'impaye',
-        source_module: 'fournisseurs',
-        source_record_id: supplier.id,
-        notes: `Réception stock ${fmtNumber(qty)} ${stock.unite || ''}. Paiement fournisseur à planifier.`,
-      });
-      await documentsCrud.create?.({
-        id: docId,
-        title: `Facture fournisseur à joindre — ${supplierName(supplier)}`,
-        document_category: 'facture',
-        module_source: 'fournisseurs',
-        entity_type: 'fournisseur',
-        entity_id: supplier.id,
-        related_id: supplier.id,
-        transaction_id: financeId,
-        finance_id: financeId,
-        stock_id: stock.id,
-        statut: 'manquant',
-        status: 'manquant',
-        notes: `Joindre la facture pour la réception ${productName(stock)} · ${fmtCurrency(amount)}.`,
-      });
+      await onUpdateStock?.(stock.id, workflow.stockPatch);
+      await financesCrud.create?.(workflow.debtTransaction);
+      await documentsCrud.create?.(workflow.missingInvoiceDocument);
       if (task?.id) await tasksCrud.update?.(task.id, { status: 'termine', statut: 'termine', completed_at: now() });
-      await onUpdateSupplier?.(supplier.id, { dettes: supplierDebt(supplier) + amount, derniere_reception: today(), last_receipt_finance_id: financeId });
-      await onCreateBusinessEvent?.({
-        id: makeId('EVT'),
-        event_type: 'reception_fournisseur_stock',
-        module_source: 'fournisseurs',
-        entity_type: 'fournisseur',
-        entity_id: supplier.id,
-        related_stock_id: stock.id,
-        title: `Réception stock fournisseur`,
-        description: `${supplierName(supplier)} · ${productName(stock)} · ${fmtNumber(qty)} ${stock.unite || ''} · ${fmtCurrency(amount)}`,
-        amount,
-        event_date: today(),
-        severity: 'info',
-        linked_transaction_id: financeId,
-        linked_document_id: docId,
-      });
+      await onUpdateSupplier?.(supplier.id, workflow.supplierPatch);
+      await onCreateBusinessEvent?.(workflow.event);
       await Promise.allSettled([onRefreshStock?.(), financesCrud.refresh?.(), documentsCrud.refresh?.(), tasksCrud.refresh?.(), onRefreshBusinessEvents?.(), onRefreshSuppliers?.()]);
       toast.success('Réception enregistrée : stock augmenté, dette et preuve à joindre créées');
     } catch {
