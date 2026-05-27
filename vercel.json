@@ -1,1 +1,8 @@
-{"rewrites":[{"source":"/(.*)","destination":"/"}],"crons":[{"path":"/api/push/dispatch-alerts","schedule":"0 7 * * *"}]}
+{
+  "rewrites": [
+    { "source": "/((?!api/.*).*)", "destination": "/" }
+  ],
+  "crons": [
+    { "path": "/api/push/dispatch-alerts", "schedule": "0 7 * * *" }
+  ]
+}
