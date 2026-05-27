@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, CloudSun, CreditCard, FileText, Package, Settings2, Stethoscope, Target, TrendingUp } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CloudSun, CreditCard, FileText, MapPin, Package, Settings2, Stethoscope, Target, TrendingUp } from 'lucide-react';
 import DashboardEvolution from './DashboardEvolution.jsx';
 import { readUiSettings } from '../utils/uiPreferences';
 import { fmtCurrency } from '../utils/format';
@@ -14,6 +14,23 @@ const money = (row = {}) => Number(row?.montant ?? row?.amount ?? row?.total ?? 
 const remaining = (row = {}, payments = []) => Math.max(0, remainingForOrder(row, payments));
 const isOverdue = (row = {}) => ['retard', 'en_retard', 'a_faire_retard', 'overdue'].includes(lower(row.statut || row.status || row.etat));
 const isCriticalStock = (row = {}) => Number(row.quantite || row.quantity || row.stock || 0) <= Number(row.seuil || row.threshold || 0);
+const firstValue = (...values) => values.find((value) => value !== undefined && value !== null && String(value).trim() !== '');
+const formatDateTime = () => new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date());
+
+function farmLocationOf(props = {}) {
+  const farm = props.farm || props.ferme || props.farmProfile || props.farm_profile || {};
+  const meteo = props.meteo || props.weather || {};
+  const quartier = firstValue(farm.quartier, farm.neighborhood, farm.district, meteo.quartier, meteo.neighborhood, meteo.district);
+  const ville = firstValue(farm.ville, farm.city, farm.localite, farm.locality, meteo.ville, meteo.city, meteo.localite, meteo.locality, meteo.location);
+  const pays = firstValue(farm.pays, farm.country, meteo.pays, meteo.country);
+  const parts = [quartier, ville, pays].filter(Boolean);
+  return parts.length ? parts.join(', ') : firstValue(farm.location, farm.localisation, meteo.localisation, meteo.place, 'Ferme principale');
+}
+
+function displayUserOf(props = {}) {
+  const user = props.user || props.currentUser || {};
+  return firstValue(props.displayUser, props.userName, props.username, user.user_metadata?.login, user.user_metadata?.name, user.email?.split('@')[0], 'Penda');
+}
 
 function useUiSettings() {
   const [settings, setSettings] = useState(readUiSettings);
@@ -117,8 +134,11 @@ function FarmNotebook({ props, simple, onToggleExpert }) {
   const rows = useMemo(() => buildNotebookRows(props, plan, actions, payments, transactions, salesOrders), [props, plan, actions, payments, transactions, salesOrders]);
   const goal = plan.goals.global;
   const remainingAmount = Math.max(0, goal.monthTarget - goal.realized);
+  const displayUser = displayUserOf(props);
+  const location = farmLocationOf(props);
+  const dateTime = useMemo(formatDateTime, []);
 
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="flex flex-col gap-3 border-b border-[#eadcc2] pb-4 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Accueil</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Carnet de ferme</h1></div><button type="button" onClick={onToggleExpert} className="rounded-full border border-[#d6c3a0] bg-[#fffdf8] px-3 py-1.5 text-xs font-black text-[#2f2415]"><Settings2 size={13} className="inline" /> {simple ? 'Détails' : 'Simple'}</button></div><div className="divide-y divide-[#eadcc2]/70">{rows.map((row) => <NotebookRow key={row.label} {...row} onClick={row.moduleKey ? () => props.onNavigate?.(row.moduleKey) : undefined} />)}</div><div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4"><Mini label="Objectif" value={fmtCurrency(goal.monthTarget)} /><Mini label="Réalisé" value={fmtCurrency(goal.realized)} /><Mini label="Atteinte" value={`${goal.attainment}%`} tone={goal.attainment >= 90 ? 'good' : goal.attainment >= 50 ? 'warn' : 'bad'} /><Mini label="Reste" value={fmtCurrency(remainingAmount)} tone={remainingAmount > 0 ? 'warn' : 'good'} /></div></section>;
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="flex flex-col gap-3 border-b border-[#eadcc2] pb-4 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Accueil</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Bonjour {displayUser}</h1><div className="mt-2 flex flex-col gap-1 text-sm text-[#8a7456] sm:flex-row sm:flex-wrap sm:items-center sm:gap-3"><span className="capitalize">{dateTime}</span><span className="hidden sm:inline">·</span><span className="inline-flex items-center gap-1"><MapPin size={14} aria-hidden="true" /> {location}</span></div></div><button type="button" onClick={onToggleExpert} className="rounded-full border border-[#d6c3a0] bg-[#fffdf8] px-3 py-1.5 text-xs font-black text-[#2f2415]"><Settings2 size={13} className="inline" /> {simple ? 'Détails' : 'Simple'}</button></div><div className="divide-y divide-[#eadcc2]/70">{rows.map((row) => <NotebookRow key={row.label} {...row} onClick={row.moduleKey ? () => props.onNavigate?.(row.moduleKey) : undefined} />)}</div><div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4"><Mini label="Objectif" value={fmtCurrency(goal.monthTarget)} /><Mini label="Réalisé" value={fmtCurrency(goal.realized)} /><Mini label="Atteinte" value={`${goal.attainment}%`} tone={goal.attainment >= 90 ? 'good' : goal.attainment >= 50 ? 'warn' : 'bad'} /><Mini label="Reste" value={fmtCurrency(remainingAmount)} tone={remainingAmount > 0 ? 'warn' : 'good'} /></div></section>;
 }
 
 const actionIcons = { money: CreditCard, alert: AlertTriangle, stock: Package, health: Stethoscope, smart: CloudSun, task: CheckCircle2, document: FileText, sync: TrendingUp };
