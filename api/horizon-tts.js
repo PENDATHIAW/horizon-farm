@@ -22,9 +22,8 @@ function voiceInstructions(lang) {
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     res.status(200).json({
-      configured: Boolean(process.env.HORIZON_TTS_KEY || process.env.HORIZON_AI_KEY),
-      model: process.env.HORIZON_TTS_MODEL || 'gpt-4o-mini-tts',
-      voice: process.env.HORIZON_TTS_VOICE || 'marin',
+      status: (process.env.HORIZON_TTS_KEY || process.env.HORIZON_AI_KEY) ? 'ok' : 'missing_configuration',
+      message: (process.env.HORIZON_TTS_KEY || process.env.HORIZON_AI_KEY) ? 'La voix Horizon est prête.' : 'La voix Horizon n’est pas encore configurée.',
     });
     return;
   }
