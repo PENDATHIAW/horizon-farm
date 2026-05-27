@@ -1,6 +1,7 @@
 import { ArrowLeft, Camera, CheckCheck, Lock, Mic, MoreVertical, Paperclip, Phone, Send, Smile, Video } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { buildFarmChatReply, getLanguageLabel, shouldSpeakLanguage, speakChatReply } from '../services/chatIntelligence';
 
 const brandLogo = '/brand-logo.png';
 
@@ -9,63 +10,23 @@ const quickPrompts = [
   'Alimentation',
   'Prix du marché',
   'Créer une alerte',
+  'Nanga def, sama ganaar yi naka laa leen wara dundale ?',
+  'What should I feed broilers this week?',
 ];
 
-const seedMessages = [
+const nowTime = () =>
+  new Date().toLocaleTimeString('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+const initialMessages = [
   {
     id: 1,
     side: 'assistant',
-    time: '09:30',
-    text: '👋 Nanga def ? Bàjàn sunu assistant fermier intelligent. Comment puis-je vous aider aujourd’hui ?',
-  },
-  {
-    id: 2,
-    side: 'user',
-    time: '09:31',
-    text: 'Combien d’œufs mes poules ont pondu aujourd’hui ?',
-  },
-  {
-    id: 3,
-    side: 'assistant',
-    time: '09:31',
-    text: '🥚 Vous avez 28 œufs aujourd’hui. Bonne production ! Continuez avec une alimentation équilibrée.',
-  },
-  {
-    id: 4,
-    side: 'user',
-    time: '09:32',
-    audio: true,
-    duration: '0:07',
-  },
-  {
-    id: 5,
-    side: 'assistant',
-    time: '09:32',
-    text: 'Jërëjëf ! Naka laaj gën a jëfandikoo al-xam ak mbaq mi.',
-  },
-  {
-    id: 6,
-    side: 'user',
-    time: '09:33',
-    text: 'What do you recommend for feeding broilers this week?',
-  },
-  {
-    id: 7,
-    side: 'assistant',
-    time: '09:33',
-    text: '🌿 Pour cette semaine (3 à 5 semaines) :\n• Aliment démarrage : 22–24% protéines\n• Donner 2 fois par jour\n• Eau propre en permanence\n• Vérifiez la température (28–32°C)\n\nVeux-tu un rappel quotidien ?',
-  },
-  {
-    id: 8,
-    side: 'user',
-    time: '09:34',
-    text: 'Yes, daily reminder please.',
-  },
-  {
-    id: 9,
-    side: 'assistant',
-    time: '09:34',
-    text: '✅ C’est noté ! Vous recevrez un rappel tous les jours à 8h.',
+    time: nowTime(),
+    language: 'wo',
+    text: '👋 Nanga def ? Je suis ton assistant Horizon Farm. Tu peux me parler en wolof, français ou anglais. Pour le wolof, je réponds à l’écrit sans voix française afin d’éviter une mauvaise prononciation.',
   },
 ];
 
@@ -105,6 +66,13 @@ function MessageBubble({ message }) {
           <p className="whitespace-pre-line">{message.text}</p>
         )}
 
+        {message.language ? (
+          <div className="mt-2 w-fit rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-[#607167]">
+            {getLanguageLabel(message.language)}
+            {!isUser && !shouldSpeakLanguage(message.language) ? ' • texte uniquement' : ''}
+          </div>
+        ) : null}
+
         <div className={`mt-1 flex items-center justify-end gap-1 text-[11px] ${isUser ? 'text-[#5d7364]' : 'text-[#8a8a8a]'}`}>
           <span>{message.time}</span>
           {isUser ? <CheckCheck size={15} className="text-[#4fc3f7]" /> : null}
@@ -116,7 +84,51 @@ function MessageBubble({ message }) {
 
 function ChatPhone({ userName }) {
   const [message, setMessage] = useState('');
-  const messages = useMemo(() => seedMessages, []);
+  const [messages, setMessages] = useState(() => initialMessages);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
+  const nextIdRef = useRef(2);
+
+  const canSend = useMemo(() => message.trim().length > 0 && !isThinking, [message, isThinking]);
+
+  const pushExchange = (rawText) => {
+    const cleanText = String(rawText || '').trim();
+    if (!cleanText || isThinking) return;
+
+    const userMessage = {
+      id: nextIdRef.current,
+      side: 'user',
+      time: nowTime(),
+      text: cleanText,
+    };
+    nextIdRef.current += 1;
+
+    setMessages((current) => [...current, userMessage]);
+    setMessage('');
+    setIsThinking(true);
+
+    window.setTimeout(() => {
+      const reply = buildFarmChatReply(cleanText, { userName });
+      const assistantMessage = {
+        id: nextIdRef.current,
+        side: 'assistant',
+        time: nowTime(),
+        text: reply.text,
+        language: reply.language,
+        actionHint: reply.actionHint,
+      };
+      nextIdRef.current += 1;
+      setMessages((current) => [...current, assistantMessage]);
+      setIsThinking(false);
+
+      if (voiceEnabled) speakChatReply(reply);
+    }, 520);
+  };
+
+  const handleSubmit = (event) => {
+    event?.preventDefault?.();
+    pushExchange(message);
+  };
 
   return (
     <section className="mx-auto flex h-[min(920px,100dvh)] w-full max-w-[470px] flex-col overflow-hidden rounded-[3rem] border-[10px] border-[#101010] bg-[#efe7dc] shadow-2xl ring-1 ring-black/10 md:h-[920px]">
@@ -162,15 +174,36 @@ function ChatPhone({ userName }) {
         <div className="mx-auto w-fit rounded-full bg-white/80 px-3 py-1 text-xs font-bold text-[#6d6256] shadow-sm">Aujourd’hui</div>
 
         {messages.map((item) => <MessageBubble key={item.id} message={item} />)}
+
+        {isThinking ? (
+          <div className="flex justify-start">
+            <div className="rounded-2xl rounded-tl-md bg-white px-4 py-3 text-sm font-bold text-[#607167] shadow-sm">
+              Horizon réfléchit…
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="shrink-0 bg-[#efe7dc] px-3 pb-4 pt-2">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => setVoiceEnabled((value) => !value)}
+            className={`rounded-full px-3 py-1.5 text-xs font-black shadow-sm ring-1 ring-black/5 ${
+              voiceEnabled ? 'bg-[#d9fdd3] text-[#075e54]' : 'bg-white text-[#607167]'
+            }`}
+          >
+            Voix FR/EN {voiceEnabled ? 'ON' : 'OFF'}
+          </button>
+          <span className="text-[11px] font-semibold text-[#7b6b5c]">Wolof : réponse écrite seulement</span>
+        </div>
+
         <div className="mb-2 flex gap-2 overflow-x-auto pb-1">
           {quickPrompts.map((prompt) => (
             <button
               key={prompt}
               type="button"
-              onClick={() => setMessage(prompt)}
+              onClick={() => pushExchange(prompt)}
               className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-[#075e54] shadow-sm ring-1 ring-black/5"
             >
               {prompt}
@@ -178,7 +211,7 @@ function ChatPhone({ userName }) {
           ))}
         </div>
 
-        <div className="flex items-center gap-2">
+        <form onSubmit={handleSubmit} className="flex items-center gap-2">
           <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm">
             <Smile size={22} className="shrink-0 text-[#7d8580]" />
             <input
@@ -190,10 +223,15 @@ function ChatPhone({ userName }) {
             <Paperclip size={21} className="shrink-0 text-[#7d8580]" />
             <Camera size={21} className="shrink-0 text-[#7d8580]" />
           </div>
-          <button type="button" className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#008069] text-white shadow-lg" aria-label={message ? 'Envoyer' : 'Parler'}>
-            {message ? <Send size={20} /> : <Mic size={24} />}
+          <button
+            type={canSend ? 'submit' : 'button'}
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#008069] text-white shadow-lg disabled:opacity-60"
+            aria-label={canSend ? 'Envoyer' : 'Parler'}
+            disabled={isThinking}
+          >
+            {canSend ? <Send size={20} /> : <Mic size={24} />}
           </button>
-        </div>
+        </form>
       </div>
     </section>
   );
