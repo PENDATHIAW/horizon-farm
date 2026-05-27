@@ -10,6 +10,16 @@ const FRENCH_MARKERS = [
   'bonjour', 'salut', 'combien', 'pourquoi', 'comment', 'quand', 'œufs', 'oeufs', 'poules', 'aliment', 'alimentation', 'prix', 'marché', 'marche', 'alerte', 'rappel', 'stock', 'ferme', 'aujourd', 'semaine'
 ];
 
+const WOLOF_AUDIO_BY_ACTION = {
+  welcome: '/audio/wolof/welcome.mp3',
+  egg_tracking: '/audio/wolof/egg-tracking.mp3',
+  feeding_advice: '/audio/wolof/feeding-advice.mp3',
+  market_prices: '/audio/wolof/market-price.mp3',
+  create_alert: '/audio/wolof/create-alert.mp3',
+  general_help: '/audio/wolof/fallback.mp3',
+  fallback: '/audio/wolof/fallback.mp3',
+};
+
 const normalize = (value = '') =>
   String(value)
     .toLowerCase()
@@ -65,6 +75,16 @@ export function getReplyDisplayMode(reply = {}) {
   return reply.language === 'wo' ? 'audio_only' : 'text';
 }
 
+export function getWolofAudioUrl(actionHint = 'fallback') {
+  return WOLOF_AUDIO_BY_ACTION[actionHint] || WOLOF_AUDIO_BY_ACTION.fallback;
+}
+
+const withWolofAudio = (reply) => ({
+  ...reply,
+  displayMode: 'audio_only',
+  audioUrl: getWolofAudioUrl(reply.actionHint),
+});
+
 export function buildFarmChatReply(input = '', context = {}) {
   const language = detectChatLanguage(input);
   const text = normalize(input);
@@ -73,31 +93,42 @@ export function buildFarmChatReply(input = '', context = {}) {
   const hasEggs = ['oeuf', 'oeufs', 'egg', 'eggs', 'nen'].some((word) => text.includes(word));
   const hasFeed = ['aliment', 'alimentation', 'feeding', 'feed', 'broiler', 'pondeuse', 'ganaar'].some((word) => text.includes(word));
   const hasPrice = ['prix', 'price', 'marche', 'market'].some((word) => text.includes(word));
-  const hasAlert = ['alerte', 'alert', 'rappel', 'reminder'].some((word) => text.includes(word));
+  const hasAlert = ['alerte', 'alert', 'rappel', 'reminder', 'fattali'].some((word) => text.includes(word));
 
   if (language === 'wo') {
     if (hasEggs) {
-      return {
+      return withWolofAudio({
         language,
-        displayMode: 'audio_only',
         text: 'Waaw, man naa la dimbali ci toppatoo nen yi. Wax ma limu nen yi tey, ma wax la ndax production bi baax na walla dafa wàññi.',
         actionHint: 'egg_tracking',
-      };
+      });
     }
     if (hasFeed) {
-      return {
+      return withWolofAudio({
         language,
-        displayMode: 'audio_only',
         text: 'Ci mbayum ganaar, ñam wu sell ak ndox mu set dañuy am solo. Wax ma ayu-bis bi ak atum ganaar yi, ma jox la ndigal bu gën a leer.',
         actionHint: 'feeding_advice',
-      };
+      });
     }
-    return {
+    if (hasPrice) {
+      return withWolofAudio({
+        language,
+        text: 'Man naa la dimbali ci toppatoo njëgu marse bi. Boo ma joxee produit bi ak marse bi, dinaa la jox tontu bu leer.',
+        actionHint: 'market_prices',
+      });
+    }
+    if (hasAlert) {
+      return withWolofAudio({
+        language,
+        text: 'Waaw, man naa defal la fàttali. Wax ma lu ma wara fàttali, waxtu wi, ak ñaata yoon.',
+        actionHint: 'create_alert',
+      });
+    }
+    return withWolofAudio({
       language,
-      displayMode: 'audio_only',
       text: `Jërëjëf ${userName}. Maangi fii ngir la dimbali ci ferme bi. Mën nga wax ci wolof, français walla anglais. Lan nga bëgg ma toppatoo ?`,
       actionHint: 'general_help',
-    };
+    });
   }
 
   if (language === 'en') {
@@ -160,7 +191,23 @@ export function buildFarmChatReply(input = '', context = {}) {
   };
 }
 
+async function playStaticAudio(audioUrl) {
+  if (!audioUrl) return false;
+  const audio = new Audio(audioUrl);
+  await audio.play();
+  return true;
+}
+
 export async function playWolofAudio(reply) {
+  if (reply?.audioUrl) {
+    try {
+      await playStaticAudio(reply.audioUrl);
+      return true;
+    } catch {
+      // Continue to dynamic TTS if the prerecorded file is not present yet.
+    }
+  }
+
   const endpoint = import.meta.env?.VITE_WOLOF_TTS_ENDPOINT || '';
   const apiKey = import.meta.env?.VITE_WOLOF_TTS_API_KEY || '';
 
@@ -171,7 +218,7 @@ export async function playWolofAudio(reply) {
         'Content-Type': 'application/json',
         ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
       },
-      body: JSON.stringify({ text: reply.text, lang: 'wo-SN', voice: 'wolof' }),
+      body: JSON.stringify({ text: reply.text, lang: 'wo-SN', voice: 'wolof', actionHint: reply.actionHint }),
     });
 
     if (!response.ok) throw new Error('Service audio wolof indisponible');
@@ -184,16 +231,14 @@ export async function playWolofAudio(reply) {
     return true;
   }
 
-  return false;
+  throw new Error(`Audio wolof manquant : ajoute le fichier ${reply?.audioUrl || getWolofAudioUrl(reply?.actionHint)}.`);
 }
 
 export async function speakChatReply(reply) {
   if (!reply?.text) return false;
 
   if (reply.language === 'wo') {
-    const played = await playWolofAudio(reply);
-    if (played) return true;
-    throw new Error('Aucun moteur vocal wolof connecté');
+    return playWolofAudio(reply);
   }
 
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return false;
