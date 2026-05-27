@@ -1,9 +1,16 @@
-import { ArrowLeft, Camera, CheckCheck, Lock, Mic, MoreVertical, Paperclip, Phone, Send, Smile, Video } from 'lucide-react';
+import { ArrowLeft, Camera, CheckCheck, Lock, Mic, MoreVertical, Paperclip, Phone, Play, Send, Smile, Video, Volume2 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { buildFarmChatReply, getLanguageLabel, shouldSpeakLanguage, speakChatReply } from '../services/chatIntelligence';
+import {
+  buildFarmChatReply,
+  getLanguageLabel,
+  getReplyDisplayMode,
+  getSpeechRecognitionLang,
+  speakChatReply,
+} from '../services/chatIntelligence';
 
 const brandLogo = '/brand-logo.png';
+const SpeechRecognition = typeof window !== 'undefined' ? window.SpeechRecognition || window.webkitSpeechRecognition || null : null;
 
 const quickPrompts = [
   'Production d’œufs',
@@ -12,6 +19,12 @@ const quickPrompts = [
   'Créer une alerte',
   'Nanga def, sama ganaar yi naka laa leen wara dundale ?',
   'What should I feed broilers this week?',
+];
+
+const languageModes = [
+  { key: 'wo', label: 'Wolof' },
+  { key: 'fr', label: 'FR' },
+  { key: 'en', label: 'EN' },
 ];
 
 const nowTime = () =>
@@ -26,12 +39,30 @@ const initialMessages = [
     side: 'assistant',
     time: nowTime(),
     language: 'wo',
-    text: '👋 Nanga def ? Je suis ton assistant Horizon Farm. Tu peux me parler en wolof, français ou anglais. Pour le wolof, je réponds à l’écrit sans voix française afin d’éviter une mauvaise prononciation.',
+    displayMode: 'audio_only',
+    text: 'Nanga def ? Man maay sa assistant Horizon Farm. Waxal wolof, français walla anglais. Soo waxee wolof, dinaa la tontu ci kàddu, du ci bind.',
+    audioLabel: 'Message vocal wolof prêt',
   },
 ];
 
-function MessageBubble({ message }) {
+function AudioWave({ active = false }) {
+  return (
+    <div className="flex flex-1 items-center gap-1 opacity-70" aria-hidden="true">
+      {Array.from({ length: 24 }).map((_, index) => (
+        <span
+          // eslint-disable-next-line react/no-array-index-key
+          key={index}
+          className={`w-1 rounded-full ${active ? 'bg-[#075e54]' : 'bg-[#5d6d64]'}`}
+          style={{ height: `${8 + ((index * 7) % 24)}px` }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function MessageBubble({ message, onReplayAudio }) {
   const isUser = message.side === 'user';
+  const isAudioOnly = message.displayMode === 'audio_only';
 
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -42,34 +73,35 @@ function MessageBubble({ message }) {
             : 'rounded-tl-md bg-white text-[#1f1f1f]'
         }`}
       >
-        {message.audio ? (
+        {message.audio || isAudioOnly ? (
           <div className="flex min-w-[260px] items-center gap-3 py-1">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white ring-1 ring-emerald-100">
               <img src={brandLogo} alt="Horizon Farm" className="h-full w-full object-contain p-1" />
             </div>
-            <button type="button" className="grid h-8 w-8 place-items-center rounded-full text-[#607167]" aria-label="Lire l’audio">
-              <span className="ml-0.5 h-0 w-0 border-y-[8px] border-l-[13px] border-y-transparent border-l-current" />
+            <button
+              type="button"
+              onClick={() => onReplayAudio?.(message)}
+              className="grid h-9 w-9 place-items-center rounded-full bg-[#075e54] text-white shadow-sm"
+              aria-label="Lire le message vocal"
+            >
+              <Play size={16} className="ml-0.5" />
             </button>
-            <div className="flex flex-1 items-center gap-1 opacity-60" aria-hidden="true">
-              {Array.from({ length: 24 }).map((_, index) => (
-                <span
-                  // eslint-disable-next-line react/no-array-index-key
-                  key={index}
-                  className="w-1 rounded-full bg-[#5d6d64]"
-                  style={{ height: `${8 + ((index * 7) % 24)}px` }}
-                />
-              ))}
-            </div>
-            <span className="text-xs text-[#66756c]">{message.duration}</span>
+            <AudioWave active={isAudioOnly} />
+            <span className="text-xs font-bold text-[#66756c]">{message.duration || 'audio'}</span>
           </div>
         ) : (
           <p className="whitespace-pre-line">{message.text}</p>
         )}
 
+        {message.audioError ? (
+          <div className="mt-2 rounded-xl bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-700">
+            {message.audioError}
+          </div>
+        ) : null}
+
         {message.language ? (
           <div className="mt-2 w-fit rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-[#607167]">
-            {getLanguageLabel(message.language)}
-            {!isUser && !shouldSpeakLanguage(message.language) ? ' • texte uniquement' : ''}
+            {getLanguageLabel(message.language)}{isAudioOnly ? ' • vocal' : ''}
           </div>
         ) : null}
 
@@ -85,13 +117,30 @@ function MessageBubble({ message }) {
 function ChatPhone({ userName }) {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState(() => initialMessages);
-  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [speechLanguage, setSpeechLanguage] = useState('wo');
   const [isThinking, setIsThinking] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [voiceNotice, setVoiceNotice] = useState('');
+  const recognitionRef = useRef(null);
   const nextIdRef = useRef(2);
 
   const canSend = useMemo(() => message.trim().length > 0 && !isThinking, [message, isThinking]);
 
-  const pushExchange = (rawText) => {
+  const replayAudio = async (msg) => {
+    try {
+      await speakChatReply({ text: msg.text, language: msg.language });
+      setVoiceNotice('');
+    } catch (error) {
+      setVoiceNotice(error.message || 'Audio indisponible');
+    }
+  };
+
+  const updateMessageAudioError = (messageId, audioError) => {
+    setMessages((current) => current.map((item) => (item.id === messageId ? { ...item, audioError } : item)));
+  };
+
+  const pushExchange = (rawText, options = {}) => {
     const cleanText = String(rawText || '').trim();
     if (!cleanText || isThinking) return;
 
@@ -100,6 +149,8 @@ function ChatPhone({ userName }) {
       side: 'user',
       time: nowTime(),
       text: cleanText,
+      audio: options.fromVoice,
+      duration: options.fromVoice ? 'vocal' : undefined,
     };
     nextIdRef.current += 1;
 
@@ -115,19 +166,96 @@ function ChatPhone({ userName }) {
         time: nowTime(),
         text: reply.text,
         language: reply.language,
+        displayMode: getReplyDisplayMode(reply),
         actionHint: reply.actionHint,
+        audioLabel: reply.language === 'wo' ? 'Réponse vocale wolof' : undefined,
       };
+      const assistantMessageId = assistantMessage.id;
       nextIdRef.current += 1;
       setMessages((current) => [...current, assistantMessage]);
       setIsThinking(false);
 
-      if (voiceEnabled) speakChatReply(reply);
+      if (voiceEnabled || reply.language === 'wo') {
+        speakChatReply(reply).then(() => setVoiceNotice('')).catch((error) => {
+          updateMessageAudioError(
+            assistantMessageId,
+            reply.language === 'wo'
+              ? 'Moteur vocal wolof non connecté. Ajoute VITE_WOLOF_TTS_ENDPOINT pour entendre la réponse.'
+              : error.message || 'Audio indisponible'
+          );
+          setVoiceNotice(error.message || 'Audio indisponible');
+        });
+      }
     }, 520);
   };
 
   const handleSubmit = (event) => {
     event?.preventDefault?.();
     pushExchange(message);
+  };
+
+  const startVoiceInput = () => {
+    if (!SpeechRecognition) {
+      setVoiceNotice('Reconnaissance vocale non supportée par ce navigateur.');
+      return;
+    }
+
+    try {
+      recognitionRef.current?.stop?.();
+    } catch {
+      // ignore stale recognition session
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = getSpeechRecognitionLang(speechLanguage);
+    recognition.interimResults = true;
+    recognition.continuous = false;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setVoiceNotice(`J’écoute en ${getLanguageLabel(speechLanguage)}…`);
+    };
+
+    recognition.onerror = (event) => {
+      setIsListening(false);
+      setVoiceNotice(event.error === 'not-allowed' ? 'Autorise le micro pour parler.' : `Micro : ${event.error || 'erreur'}`);
+    };
+
+    recognition.onend = () => setIsListening(false);
+
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map((result) => result[0]?.transcript || '')
+        .join(' ')
+        .trim();
+
+      if (transcript) setMessage(transcript);
+
+      const finalText = Array.from(event.results)
+        .filter((result) => result.isFinal)
+        .map((result) => result[0]?.transcript || '')
+        .join(' ')
+        .trim();
+
+      if (finalText) {
+        setIsListening(false);
+        pushExchange(finalText, { fromVoice: true });
+      }
+    };
+
+    recognitionRef.current = recognition;
+
+    try {
+      recognition.start();
+    } catch (error) {
+      setIsListening(false);
+      setVoiceNotice(error.message || 'Impossible de démarrer le micro.');
+    }
+  };
+
+  const stopVoiceInput = () => {
+    recognitionRef.current?.stop?.();
+    setIsListening(false);
   };
 
   return (
@@ -148,12 +276,12 @@ function ChatPhone({ userName }) {
               <h1 className="truncate text-[20px] font-black tracking-tight">Horizon Farm</h1>
               <span className="grid h-5 w-5 place-items-center rounded-full bg-emerald-400 text-[11px] font-black text-white">✓</span>
             </div>
-            <p className="truncate text-sm text-white/80">En ligne • Wolof · Français · English</p>
+            <p className="truncate text-sm text-white/80">Vocal • Wolof · Français · English</p>
           </div>
 
           <div className="flex items-center gap-1 text-white/95">
-            <button type="button" aria-label="Appel vidéo" className="rounded-full p-2 hover:bg-white/10">
-              <Video size={21} />
+            <button type="button" aria-label="Voix" onClick={() => setVoiceEnabled((value) => !value)} className="rounded-full p-2 hover:bg-white/10">
+              <Volume2 size={21} className={voiceEnabled ? 'text-white' : 'text-white/45'} />
             </button>
             <button type="button" aria-label="Appel" className="rounded-full p-2 hover:bg-white/10">
               <Phone size={21} />
@@ -173,12 +301,12 @@ function ChatPhone({ userName }) {
 
         <div className="mx-auto w-fit rounded-full bg-white/80 px-3 py-1 text-xs font-bold text-[#6d6256] shadow-sm">Aujourd’hui</div>
 
-        {messages.map((item) => <MessageBubble key={item.id} message={item} />)}
+        {messages.map((item) => <MessageBubble key={item.id} message={item} onReplayAudio={replayAudio} />)}
 
         {isThinking ? (
           <div className="flex justify-start">
             <div className="rounded-2xl rounded-tl-md bg-white px-4 py-3 text-sm font-bold text-[#607167] shadow-sm">
-              Horizon réfléchit…
+              Horizon prépare la réponse vocale…
             </div>
           </div>
         ) : null}
@@ -186,17 +314,26 @@ function ChatPhone({ userName }) {
 
       <div className="shrink-0 bg-[#efe7dc] px-3 pb-4 pt-2">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={() => setVoiceEnabled((value) => !value)}
-            className={`rounded-full px-3 py-1.5 text-xs font-black shadow-sm ring-1 ring-black/5 ${
-              voiceEnabled ? 'bg-[#d9fdd3] text-[#075e54]' : 'bg-white text-[#607167]'
-            }`}
-          >
-            Voix FR/EN {voiceEnabled ? 'ON' : 'OFF'}
-          </button>
-          <span className="text-[11px] font-semibold text-[#7b6b5c]">Wolof : réponse écrite seulement</span>
+          <div className="flex gap-1 rounded-full bg-white p-1 shadow-sm ring-1 ring-black/5">
+            {languageModes.map((mode) => (
+              <button
+                key={mode.key}
+                type="button"
+                onClick={() => setSpeechLanguage(mode.key)}
+                className={`rounded-full px-3 py-1 text-xs font-black ${speechLanguage === mode.key ? 'bg-[#075e54] text-white' : 'text-[#607167]'}`}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+          <span className="text-[11px] font-semibold text-[#7b6b5c]">Micro : {getLanguageLabel(speechLanguage)}</span>
         </div>
+
+        {voiceNotice ? (
+          <div className="mb-2 rounded-xl bg-white/80 px-3 py-2 text-[11px] font-bold text-[#607167] shadow-sm">
+            {voiceNotice}
+          </div>
+        ) : null}
 
         <div className="mb-2 flex gap-2 overflow-x-auto pb-1">
           {quickPrompts.map((prompt) => (
@@ -217,7 +354,7 @@ function ChatPhone({ userName }) {
             <input
               value={message}
               onChange={(event) => setMessage(event.target.value)}
-              placeholder="Écrivez un message"
+              placeholder={isListening ? 'Parle maintenant…' : 'Écrivez ou parlez'}
               className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[#8b948f]"
             />
             <Paperclip size={21} className="shrink-0 text-[#7d8580]" />
@@ -225,8 +362,9 @@ function ChatPhone({ userName }) {
           </div>
           <button
             type={canSend ? 'submit' : 'button'}
-            className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#008069] text-white shadow-lg disabled:opacity-60"
-            aria-label={canSend ? 'Envoyer' : 'Parler'}
+            onClick={canSend ? undefined : (isListening ? stopVoiceInput : startVoiceInput)}
+            className={`grid h-12 w-12 shrink-0 place-items-center rounded-full text-white shadow-lg disabled:opacity-60 ${isListening ? 'bg-red-500' : 'bg-[#008069]'}`}
+            aria-label={canSend ? 'Envoyer' : isListening ? 'Arrêter' : 'Parler'}
             disabled={isThinking}
           >
             {canSend ? <Send size={20} /> : <Mic size={24} />}
