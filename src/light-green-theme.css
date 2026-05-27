@@ -1,0 +1,76 @@
+/* Horizon Farm — soft light green theme overrides */
+:root {
+  --hf-bg: #fbf8ef;
+  --hf-hero: #eaf7dd;
+  --hf-green-soft: #eaf7dd;
+  --hf-green-soft-2: #f6fbef;
+  --hf-green-border: #cfe7b8;
+  --hf-green-text: #1f5f37;
+  --hf-text: #243421;
+}
+
+body .bg-\[\#103c2d\] {
+  background-color: var(--hf-green-soft) !important;
+  color: var(--hf-text) !important;
+}
+
+body .bg-\[\#2f2415\] {
+  background-color: var(--hf-green-soft) !important;
+  color: var(--hf-text) !important;
+}
+
+body aside.bg-\[\#103c2d\] {
+  background: linear-gradient(180deg, #f6fbef 0%, #eaf7dd 100%) !important;
+  color: var(--hf-text) !important;
+  border-right: 1px solid var(--hf-green-border) !important;
+}
+
+body aside.bg-\[\#103c2d\] .border-white\/10 {
+  border-color: var(--hf-green-border) !important;
+}
+
+body aside.bg-\[\#103c2d\] .text-white,
+body aside.bg-\[\#103c2d\] .text-white\/80,
+body aside.bg-\[\#103c2d\] .text-white\/78,
+body aside.bg-\[\#103c2d\] .text-white\/60,
+body aside.bg-\[\#103c2d\] .text-white\/45 {
+  color: #35513b !important;
+}
+
+body aside.bg-\[\#103c2d\] .bg-white {
+  background-color: #ffffff !important;
+  color: var(--hf-green-text) !important;
+  border: 1px solid #b9dda3 !important;
+}
+
+body aside.bg-\[\#103c2d\] .hover\:bg-white\/10:hover,
+body aside.bg-\[\#103c2d\] .hover\:bg-white\/12:hover {
+  background-color: rgba(255, 255, 255, .72) !important;
+}
+
+body aside.bg-\[\#103c2d\] .bg-white\/8,
+body aside.bg-\[\#103c2d\] .bg-white\/\[0\.08\] {
+  background-color: rgba(255, 255, 255, .78) !important;
+}
+
+body aside.bg-\[\#103c2d\] .bg-emerald-300\/25 {
+  background-color: #d8efc6 !important;
+}
+
+body aside.bg-\[\#103c2d\] .text-emerald-100,
+body aside.bg-\[\#103c2d\] .text-emerald-300 {
+  color: var(--hf-green-text) !important;
+}
+
+body .bg-\[\#103c2d\] .text-white,
+body .bg-\[\#103c2d\] .text-white\/72,
+body .bg-\[\#103c2d\] .text-white\/65,
+body .bg-\[\#103c2d\] .text-emerald-100\/70 {
+  color: var(--hf-text) !important;
+}
+
+body .bg-\[\#103c2d\] .bg-white\/8,
+body .bg-\[\#103c2d\] .bg-white\/10 {
+  background-color: rgba(255, 255, 255, .72) !important;
+  color: var(--hf-text) !important;
+}
