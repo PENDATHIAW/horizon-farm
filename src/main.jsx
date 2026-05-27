@@ -2,6 +2,7 @@
 import { createRoot } from 'react-dom/client';
 import toast, { Toaster, useToasterStore } from 'react-hot-toast';
 import App from './App';
+import ChatEntry from './ChatEntry';
 import { AuthProvider } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
 import { registerServiceWorker } from './services/pwa';
@@ -43,11 +44,13 @@ function ToastGuard() {
   return null;
 }
 
+const RootApp = window.location.pathname === '/chat' ? ChatEntry : App;
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AuthProvider>
       <AppProvider>
-        <App />
+        <RootApp />
         <ToastGuard />
         <Toaster
           position="top-right"
@@ -70,4 +73,3 @@ createRoot(document.getElementById('root')).render(
     </AuthProvider>
   </StrictMode>
 );
-
