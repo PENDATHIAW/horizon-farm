@@ -5,6 +5,7 @@ import useOnlineStatus from './useOnlineStatus';
 import { getHorizonChatStats, getHorizonSensorAlerts, runHorizonAgent } from '../services/horizonAgent';
 import { detectVoiceLanguage, speakHorizonText } from '../services/horizonVoice';
 import { buildErpSearchContext } from '../services/horizonErpSearch';
+import { buildHealthAnswer } from '../services/horizonHealthAnswer';
 import { isLikelyWolof, softenWolofAnswer, wolofFallbackByIntent, wolofIntentHints, wolofTtsPrep } from '../services/wolofStyle';
 
 const localKey = (userId) => `horizon_chat_messages_${userId || 'local'}`;
@@ -151,9 +152,12 @@ export default function useHorizonChat({ user }) {
       const outMessage = { id: makeId('out'), direction: 'out', content: clean, created_at: new Date().toISOString() };
       await persistMessage(outMessage);
       const history = messages.slice(-8);
-      const ai = !pendingAction ? await askConfiguredAi({ message: clean, dataMap, stats, sensorAlerts, history }) : null;
+      const concreteHealth = !pendingAction ? buildHealthAnswer(clean, dataMap) : null;
+      const ai = !pendingAction && !concreteHealth ? await askConfiguredAi({ message: clean, dataMap, stats, sensorAlerts, history }) : null;
       let response;
-      if (ai?.text) {
+      if (concreteHealth) {
+        response = concreteHealth;
+      } else if (ai?.text) {
         response = { text: ai.text, intent: 'ai_answer', quickReplies: [], dataCard: null };
       } else {
         response = await runHorizonAgent({ message: clean, dataMap, pendingAction, actions: { production: productionCrud, sales: salesCrud, payments: paymentsCrud, finances: financesCrud, invoices: invoicesCrud, documents: documentsCrud, health: healthCrud, suppliers: suppliersCrud, events: eventsCrud, tasks: tasksCrud, alerts: alertsCrud } });
