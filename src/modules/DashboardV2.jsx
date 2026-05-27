@@ -10,7 +10,10 @@ import { buildDashboardTodayActions, sanitizeDashboardMetric } from '../utils/da
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase();
 const paid = (row = {}) => Number(row.montant_paye ?? row.paid_amount ?? row.amount_paid ?? 0) || 0;
+const money = (row = {}) => Number(row?.montant ?? row?.amount ?? row?.total ?? row?.montant_total ?? 0) || 0;
 const remaining = (row = {}, payments = []) => Math.max(0, remainingForOrder(row, payments));
+const isOverdue = (row = {}) => ['retard', 'en_retard', 'a_faire_retard', 'overdue'].includes(lower(row.statut || row.status || row.etat));
+const isCriticalStock = (row = {}) => Number(row.quantite || row.quantity || row.stock || 0) <= Number(row.seuil || row.threshold || 0);
 
 function useUiSettings() {
   const [settings, setSettings] = useState(readUiSettings);
@@ -31,23 +34,91 @@ function Mini({ label, value, tone = 'neutral' }) {
   return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">{label}</p><p className={`mt-1 text-lg font-black ${cls}`}>{value}</p></div>;
 }
 
-function UnifiedPilotageStatus({ props }) {
+function StatusPill({ children, tone = 'neutral' }) {
+  const classes = tone === 'bad' ? 'border-red-200 bg-red-50 text-red-700' : tone === 'warn' ? 'border-amber-200 bg-amber-50 text-amber-700' : tone === 'good' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-[#eadcc2] bg-[#fffdf8] text-[#8a7456]';
+  return <span className={`rounded-full border px-3 py-1 text-xs font-black ${classes}`}>{children}</span>;
+}
+
+function NotebookRow({ label, value, status, tone = 'neutral', onClick }) {
+  const content = <><span className="text-sm text-[#8a7456]">{label}</span><span className="font-black text-[#2f2415]">{value}</span>{status ? <StatusPill tone={tone}>{status}</StatusPill> : null}</>;
+  const cls = "grid grid-cols-1 gap-2 border-b border-[#eadcc2]/70 py-4 last:border-b-0 md:grid-cols-[210px_1fr_auto] md:items-center";
+  if (onClick) return <button type="button" onClick={onClick} className={`${cls} w-full text-left hover:bg-[#fffdf8]`}>{content}</button>;
+  return <div className={cls}>{content}</div>;
+}
+
+function buildNotebookRows(props, plan, actions, payments, transactions, salesOrders) {
+  const stocks = arr(props.stocks || props.stock);
+  const sante = arr(props.sante || props.vaccins);
+  const lots = arr(props.lotsData || props.lots || props.avicole);
+  const productionLogs = arr(props.productionLogs || props.production_oeufs_logs);
+  const criticalStocks = stocks.filter(isCriticalStock);
+  const overdueHealth = sante.filter(isOverdue);
+  const eggs = productionLogs.reduce((sum, row) => sum + Number(row.oeufs_produits || row.eggs_count || row.oeufs || 0), 0);
+  const receivable = salesOrders.reduce((sum, order) => sum + remaining(order, payments), 0);
+  const urgentAction = actions[0];
+  const goal = plan.goals.global;
+  const cashIn = Math.max(payments.reduce((sum, row) => sum + paid(row), 0), transactions.filter((row) => lower(row.type) === 'entree' || lower(row.type) === 'entrée').reduce((sum, row) => sum + money(row), 0));
+  const cashOut = transactions.filter((row) => ['sortie', 'depense', 'dépense'].includes(lower(row.type))).reduce((sum, row) => sum + money(row), 0);
+
+  return [
+    {
+      label: 'Priorité',
+      value: urgentAction ? sanitizeDashboardMetric(urgentAction.title, 'Action à traiter') : 'Aucune urgence',
+      status: urgentAction ? urgentAction.category : 'OK',
+      tone: urgentAction?.tone === 'red' ? 'bad' : urgentAction?.tone === 'amber' ? 'warn' : 'good',
+      moduleKey: urgentAction?.moduleKey,
+    },
+    {
+      label: 'Santé',
+      value: `${overdueHealth.length} soin(s) en retard`,
+      status: overdueHealth.length ? 'À traiter' : 'OK',
+      tone: overdueHealth.length ? 'warn' : 'good',
+      moduleKey: 'sante',
+    },
+    {
+      label: 'Production',
+      value: `${lots.length} lot(s) · ${eggs.toLocaleString('fr-FR')} œufs`,
+      status: lots.length || eggs ? 'Suivi' : 'Vide',
+      tone: lots.length || eggs ? 'good' : 'neutral',
+      moduleKey: 'avicole',
+    },
+    {
+      label: 'Stock',
+      value: `${criticalStocks.length} produit(s) sous seuil`,
+      status: criticalStocks.length ? 'Bas' : 'OK',
+      tone: criticalStocks.length ? 'warn' : 'good',
+      moduleKey: 'stock',
+    },
+    {
+      label: 'Commercial',
+      value: `${fmtCurrency(receivable)} à encaisser`,
+      status: receivable > 0 ? 'Relance' : 'OK',
+      tone: receivable > 0 ? 'warn' : 'good',
+      moduleKey: 'ventes',
+    },
+    {
+      label: 'Pilotage',
+      value: `${goal.attainment ?? 0}% objectif mensuel`,
+      status: fmtCurrency(cashIn - cashOut),
+      tone: goal.attainment >= 90 ? 'good' : goal.attainment >= 50 ? 'warn' : 'bad',
+      moduleKey: 'centre_ia',
+    },
+  ];
+}
+
+function FarmNotebook({ props, simple, onToggleExpert }) {
+  const actions = useMemo(() => buildDashboardTodayActions(props).slice(0, simple ? 4 : 6), [props, simple]);
   const plan = useMemo(() => buildDecisionCenterPlan({
     animaux: props.animaux || [], avicole: props.lotsData || props.lots || [], lots: props.lotsData || props.lots || [], cultures: props.cultures || [], stock: props.stocks || [], clients: props.clients || [], sales_orders: props.salesOrders || [], payments: props.payments || [], finances: props.transactions || [], production_oeufs_logs: props.productionLogs || [], alimentation_logs: props.alimentationLogs || [], meteo: props.meteo || {},
   }), [props]);
-  const goal = plan.goals.global;
-  const salesOrders = arr(props.salesOrders);
   const payments = arr(props.payments);
   const transactions = arr(props.transactions);
-  const cashIn = Math.max(payments.reduce((sum, row) => sum + paid(row), 0), transactions.filter((row) => lower(row.type) === 'entree' || lower(row.type) === 'entrée').reduce((sum, row) => sum + Number(row.montant || row.amount || 0), 0));
-  const cashOut = transactions.filter((row) => ['sortie', 'depense', 'dépense'].includes(lower(row.type))).reduce((sum, row) => sum + Number(row.montant || row.amount || 0), 0);
-  const receivable = salesOrders.reduce((sum, order) => sum + remaining(order, payments), 0);
+  const salesOrders = arr(props.salesOrders);
+  const rows = useMemo(() => buildNotebookRows(props, plan, actions, payments, transactions, salesOrders), [props, plan, actions, payments, transactions, salesOrders]);
+  const goal = plan.goals.global;
   const remainingAmount = Math.max(0, goal.monthTarget - goal.realized);
-  const tone = goal.attainment >= 90 ? 'good' : goal.attainment >= 50 ? 'warn' : 'bad';
-  const activitiesBehind = plan.goals.activities.filter((item) => item.attainment < 50 && item.target > 0).slice(0, 3);
-  const message = goal.attainment >= 90 ? 'Le mois est bien engagé. Continuer à sécuriser les ventes, le cash et les routines terrain.' : goal.realized > 0 ? 'Le mois avance, mais il reste du CA et du cash à aller chercher.' : 'Aucun CA réalisé visible ce mois-ci. Priorité : ventes, encaissements et opportunités immédiates.';
 
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black flex items-center gap-2"><Target size={15} /> Pilotage ferme · objectif du mois</p><h2 className="mt-1 text-2xl font-black text-[#2f2415]">Situation actuelle · {plan.goals.currentMonth}</h2><p className="mt-1 text-sm text-[#8a7456]">{message}</p></div><button type="button" onClick={() => props.onNavigate?.('centre_ia')} className="rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white hover:bg-[#3d2f1d]">Voir Centre décisionnel</button></div><div className="grid grid-cols-2 xl:grid-cols-6 gap-3"><Mini label="Objectif mensuel" value={fmtCurrency(goal.monthTarget)} /><Mini label="CA réalisé" value={fmtCurrency(goal.realized)} /><Mini label="Taux d’atteinte" value={`${goal.attainment}%`} tone={tone} /><Mini label="Reste à vendre" value={fmtCurrency(remainingAmount)} tone={remainingAmount > 0 ? 'warn' : 'good'} /><Mini label="Cash net" value={fmtCurrency(cashIn - cashOut)} tone={cashIn - cashOut >= 0 ? 'good' : 'bad'} /><Mini label="À encaisser" value={fmtCurrency(receivable)} tone={receivable > 0 ? 'warn' : 'good'} /></div>{activitiesBehind.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"><b>Activités à pousser :</b> {activitiesBehind.map((item) => `${item.label} (${item.attainment}%)`).join(' · ')}</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">Aucune activité prioritaire en retard critique selon les objectifs actuels.</div>}</section>;
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="flex flex-col gap-3 border-b border-[#eadcc2] pb-4 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Accueil</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Carnet de ferme</h1></div><button type="button" onClick={onToggleExpert} className="rounded-full border border-[#d6c3a0] bg-[#fffdf8] px-3 py-1.5 text-xs font-black text-[#2f2415]"><Settings2 size={13} className="inline" /> {simple ? 'Détails' : 'Simple'}</button></div><div className="divide-y divide-[#eadcc2]/70">{rows.map((row) => <NotebookRow key={row.label} {...row} onClick={row.moduleKey ? () => props.onNavigate?.(row.moduleKey) : undefined} />)}</div><div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4"><Mini label="Objectif" value={fmtCurrency(goal.monthTarget)} /><Mini label="Réalisé" value={fmtCurrency(goal.realized)} /><Mini label="Atteinte" value={`${goal.attainment}%`} tone={goal.attainment >= 90 ? 'good' : goal.attainment >= 50 ? 'warn' : 'bad'} /><Mini label="Reste" value={fmtCurrency(remainingAmount)} tone={remainingAmount > 0 ? 'warn' : 'good'} /></div></section>;
 }
 
 const actionIcons = { money: CreditCard, alert: AlertTriangle, stock: Package, health: Stethoscope, smart: CloudSun, task: CheckCircle2, document: FileText, sync: TrendingUp };
@@ -55,13 +126,13 @@ const actionIcons = { money: CreditCard, alert: AlertTriangle, stock: Package, h
 function TodayAction({ iconKey, category, title, detail, moduleKey, tone = 'amber', onNavigate }) {
   const Icon = actionIcons[iconKey] || AlertTriangle;
   const tones = { red: 'border-red-200 bg-red-50 text-red-700', amber: 'border-amber-200 bg-amber-50 text-amber-800', emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700', neutral: 'border-[#eadcc2] bg-[#fffdf8] text-[#8a7456]' };
-  return <button type="button" onClick={() => onNavigate?.(moduleKey)} className={`rounded-2xl border p-4 text-left transition hover:shadow-sm ${tones[tone] || tones.neutral}`}><div className="flex items-start gap-3"><div className="rounded-xl bg-white/70 p-2"><Icon size={17} /></div><div className="min-w-0"><span className="rounded-full bg-white/75 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide opacity-80">{category}</span><p className="mt-2 font-black text-[#2f2415]">{sanitizeDashboardMetric(title, 'Action à vérifier')}</p><p className="mt-1 text-xs opacity-80">{sanitizeDashboardMetric(detail, 'Détail non renseigné')}</p></div></div></button>;
+  return <button type="button" onClick={() => onNavigate?.(moduleKey)} className={`rounded-2xl border p-4 text-left transition hover:shadow-sm ${tones[tone] || tones.neutral}`}><div className="flex items-start gap-3"><div className="rounded-xl bg-white/70 p-2"><Icon size={17} /></div><div className="min-w-0"><span className="rounded-full bg-white/75 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide opacity-80">{category}</span><p className="mt-2 font-black text-[#2f2415]">{sanitizeDashboardMetric(title, 'Action')}</p>{detail ? <p className="mt-1 text-xs opacity-80">{sanitizeDashboardMetric(detail, '')}</p> : null}</div></div></button>;
 }
 
-function TodayFocus({ props, simple, onToggleExpert }) {
+function TodayFocus({ props, simple }) {
   const actions = useMemo(() => buildDashboardTodayActions(props).slice(0, simple ? 4 : 6), [props, simple]);
-
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Aujourd’hui</p><h2 className="mt-1 text-xl font-black text-[#2f2415]">Ce qu’il faut faire en premier</h2><p className="mt-1 text-sm text-[#8a7456]">Voici les actions importantes à regarder aujourd’hui.</p></div><button type="button" onClick={onToggleExpert} className="rounded-full border border-[#d6c3a0] bg-[#fffdf8] px-3 py-1.5 text-xs font-black text-[#2f2415]"><Settings2 size={13} className="inline" /> {simple ? 'Voir plus de détails' : 'Vue simple'}</button></div>{actions.length ? <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">{actions.map((action) => <TodayAction key={`${action.moduleKey}-${action.title}`} {...action} onNavigate={props.onNavigate} />)}</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><CheckCircle2 size={16} className="inline" /> Rien d’urgent pour le moment. Continue simplement ton suivi habituel.</div>}</section>;
+  if (!actions.length) return null;
+  return <section className="space-y-3"><div className="flex items-center justify-between"><h2 className="text-lg font-black text-[#2f2415]">Actions</h2></div><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">{actions.map((action) => <TodayAction key={`${action.moduleKey}-${action.title}`} {...action} onNavigate={props.onNavigate} />)}</div></section>;
 }
 
 export default function DashboardV2(props) {
@@ -73,5 +144,5 @@ export default function DashboardV2(props) {
     window.dispatchEvent(new CustomEvent('horizon-farm-ui-settings-changed', { detail: next }));
   };
 
-  return <div className="space-y-6"><TodayFocus props={props} simple={simple} onToggleExpert={toggleExpert} /><UnifiedPilotageStatus props={props} />{!simple ? <DashboardEvolution salesOrders={props.salesOrders || []} payments={props.payments || []} transactions={props.transactions || []} productionLogs={props.productionLogs || []} stocks={props.stocks || []} taches={props.taches || []} alertes={props.alertes || []} onNavigate={props.onNavigate} /> : <div className="flex flex-col gap-3 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456] sm:flex-row sm:items-center sm:justify-between"><span>Vue simple activée. Les graphiques détaillés sont masqués pour garder l’accueil lisible.</span><button type="button" onClick={toggleExpert} className="w-fit rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-xs font-black text-[#2f2415]"><Settings2 size={13} className="inline" /> Voir plus de détails</button></div>}</div>;
+  return <div className="space-y-6"><FarmNotebook props={props} simple={simple} onToggleExpert={toggleExpert} />{!simple ? <><TodayFocus props={props} simple={simple} /><DashboardEvolution salesOrders={props.salesOrders || []} payments={props.payments || []} transactions={props.transactions || []} productionLogs={props.productionLogs || []} stocks={props.stocks || []} taches={props.taches || []} alertes={props.alertes || []} onNavigate={props.onNavigate} /></> : null}</div>;
 }
