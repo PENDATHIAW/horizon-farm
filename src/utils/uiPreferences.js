@@ -4,7 +4,7 @@ export const DEMO_MODE_KEY = 'horizon_farm_show_demo_data'; // legacy compatibil
 
 export const DEFAULT_UI_SETTINGS = {
   density: 'comfortable',
-  theme: 'system',
+  theme: 'light',
   homeModule: 'dashboard',
   complexity: 'simple',
   showWeather: true,
@@ -12,10 +12,14 @@ export const DEFAULT_UI_SETTINGS = {
   compactKpis: false,
 };
 
+function normalizeUiSettings(settings = {}) {
+  return { ...DEFAULT_UI_SETTINGS, ...settings, theme: 'light' };
+}
+
 export function readUiSettings() {
   if (typeof window === 'undefined') return DEFAULT_UI_SETTINGS;
   try {
-    return { ...DEFAULT_UI_SETTINGS, ...JSON.parse(window.localStorage.getItem(UI_SETTINGS_KEY) || '{}') };
+    return normalizeUiSettings(JSON.parse(window.localStorage.getItem(UI_SETTINGS_KEY) || '{}'));
   } catch {
     return DEFAULT_UI_SETTINGS;
   }
@@ -23,7 +27,7 @@ export function readUiSettings() {
 
 export function writeUiSettings(settings = {}) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify({ ...DEFAULT_UI_SETTINGS, ...settings }));
+  window.localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify(normalizeUiSettings(settings)));
 }
 
 export function isSimulatedDataModeEnabled() {
@@ -64,7 +68,8 @@ export function setDemoMode(enabled) {
 
 export function applyUiSettingsToDocument(settings = readUiSettings()) {
   if (typeof document === 'undefined') return;
-  document.documentElement.dataset.horizonDensity = settings.density || DEFAULT_UI_SETTINGS.density;
-  document.documentElement.dataset.horizonTheme = settings.theme || DEFAULT_UI_SETTINGS.theme;
-  document.documentElement.dataset.horizonComplexity = settings.complexity || DEFAULT_UI_SETTINGS.complexity;
+  const next = normalizeUiSettings(settings);
+  document.documentElement.dataset.horizonDensity = next.density;
+  document.documentElement.dataset.horizonTheme = 'light';
+  document.documentElement.dataset.horizonComplexity = next.complexity;
 }
