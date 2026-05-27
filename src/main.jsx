@@ -6,7 +6,6 @@ import { AuthProvider } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
 import { registerServiceWorker } from './services/pwa';
 import './index.css';
-import './light-green-theme.css';
 
 registerServiceWorker();
 
