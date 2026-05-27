@@ -2,40 +2,61 @@
 
 :root {
   color-scheme: light;
-  --hf-bg: #f7fbf7;
+  --hf-bg: #f6faf6;
   --hf-surface: #ffffff;
   --hf-card: #ffffff;
-  --hf-border: #dbeadd;
-  --hf-border-soft: #edf5ee;
-  --hf-text: #0f2f1d;
-  --hf-muted: #6f8b73;
-  --hf-soft: #edf8ef;
+  --hf-border: #d1e5d1;
+  --hf-border-soft: #e8f3e8;
+  --hf-text: #052e16;
+  --hf-muted: #6b8a6b;
+  --hf-soft: #dcfce7;
   --hf-accent: #22c55e;
   --hf-accent-strong: #15803d;
-  --hf-hero: #0f2f1d;
+  --hf-hero: #052e16;
   --hf-density-scale: 1;
   --hf-radius-scale: 1;
-  --hf-shadow-soft: 0 10px 24px rgba(15, 47, 29, .045);
-  --hf-shadow-hover: 0 14px 32px rgba(15, 47, 29, .07);
+  --hf-shadow-soft: 0 12px 30px rgba(5, 46, 22, .06);
+  --hf-shadow-hover: 0 18px 42px rgba(5, 46, 22, .10);
 }
 
-html[data-horizon-theme='light'],
-html[data-horizon-theme='dark'],
-html[data-horizon-theme='system'] {
+html[data-horizon-theme='dark'] {
+  color-scheme: dark;
+  --hf-bg: #0a1410;
+  --hf-surface: #11201a;
+  --hf-card: #16291f;
+  --hf-border: #2d4d3a;
+  --hf-border-soft: #1f3a2c;
+  --hf-text: #e8f5e9;
+  --hf-muted: #9bbfa3;
+  --hf-soft: #1c3326;
+  --hf-accent: #4ade80;
+  --hf-accent-strong: #86efac;
+  --hf-hero: #04130a;
+  --hf-shadow-soft: 0 16px 36px rgba(0, 0, 0, .25);
+  --hf-shadow-hover: 0 20px 48px rgba(0, 0, 0, .35);
+}
+
+html[data-horizon-theme='light'] {
   color-scheme: light;
-  --hf-bg: #f7fbf7;
-  --hf-surface: #ffffff;
-  --hf-card: #ffffff;
-  --hf-border: #dbeadd;
-  --hf-border-soft: #edf5ee;
-  --hf-text: #0f2f1d;
-  --hf-muted: #6f8b73;
-  --hf-soft: #edf8ef;
-  --hf-accent: #22c55e;
-  --hf-accent-strong: #15803d;
-  --hf-hero: #0f2f1d;
-  --hf-shadow-soft: 0 10px 24px rgba(15, 47, 29, .045);
-  --hf-shadow-hover: 0 14px 32px rgba(15, 47, 29, .07);
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-horizon-theme='system'] {
+    color-scheme: dark;
+    --hf-bg: #0a1410;
+    --hf-surface: #11201a;
+    --hf-card: #16291f;
+    --hf-border: #2d4d3a;
+    --hf-border-soft: #1f3a2c;
+    --hf-text: #e8f5e9;
+    --hf-muted: #9bbfa3;
+    --hf-soft: #1c3326;
+    --hf-accent: #4ade80;
+    --hf-accent-strong: #86efac;
+    --hf-hero: #04130a;
+    --hf-shadow-soft: 0 16px 36px rgba(0, 0, 0, .25);
+    --hf-shadow-hover: 0 20px 48px rgba(0, 0, 0, .35);
+  }
 }
 
 html[data-horizon-density='compact'] {
@@ -52,26 +73,33 @@ body,
 
 body {
   margin: 0;
-  background: linear-gradient(180deg, var(--hf-bg), #f9fcf9 100%);
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, .10), transparent 34rem),
+    linear-gradient(180deg, var(--hf-bg), #eef5ee 100%);
   color: var(--hf-text);
   -webkit-font-smoothing: antialiased;
   text-rendering: geometricPrecision;
+}
+
+html[data-horizon-theme='dark'] body,
+html[data-horizon-theme='system'] body {
+  background:
+    radial-gradient(circle at top left, rgba(74, 222, 128, .08), transparent 34rem),
+    linear-gradient(180deg, var(--hf-bg), #050b08 100%);
 }
 
 * {
   box-sizing: border-box;
 }
 
-/* Horizon Farm UI preferences: thème clair, sobre et lisible */
+/* Horizon Farm UI preferences: theme - remap ancien brun/or vers nouveau vert */
 body .bg-\[\#f8f5ef\],
-body .bg-\[\#f6faf6\],
-body .bg-\[\#f7fbf7\] { background-color: var(--hf-bg) !important; }
-body .bg-\[\#fffdf8\],
+body .bg-\[\#f6faf6\] { background-color: var(--hf-bg) !important; }
+body .bg-\[\#fffdf8\] { background-color: var(--hf-surface) !important; }
 body .bg-\[\#ffffff\],
 body .bg-white { background-color: var(--hf-card) !important; }
 body .bg-\[\#e7d9be\],
-body .bg-\[\#dcfce7\],
-body .bg-\[\#edf8ef\] { background-color: var(--hf-soft) !important; }
+body .bg-\[\#dcfce7\] { background-color: var(--hf-soft) !important; }
 body .bg-\[\#2f2415\],
 body .bg-\[\#052e16\] { background-color: var(--hf-hero) !important; }
 body .bg-\[\#c9a96a\],
@@ -85,11 +113,11 @@ body .text-\[\#6b8a6b\] { color: var(--hf-muted) !important; }
 body .text-\[\#9a6b12\],
 body .text-\[\#15803d\] { color: var(--hf-accent-strong) !important; }
 body .border-\[\#d6c3a0\],
-body .border-\[\#d1e5d1\] { border-color: var(--hf-border) !important; }
+body .border-\[\#d1e5d1\] { border-color: color-mix(in srgb, var(--hf-border) 72%, transparent) !important; }
 body .border-\[\#e7d9be\],
 body .border-\[\#eadcc2\],
 body .border-\[\#d6c3a0\]\/60,
-body .border-\[\#e8f3e8\] { border-color: var(--hf-border-soft) !important; }
+body .border-\[\#e8f3e8\] { border-color: color-mix(in srgb, var(--hf-border-soft) 72%, transparent) !important; }
 body .hover\:bg-\[\#e7d9be\]:hover,
 body .hover\:bg-\[\#f8f0df\]:hover,
 body .hover\:bg-\[\#fffdf8\]:hover,
@@ -98,7 +126,7 @@ body .hover\:border-\[\#c9a96a\]:hover,
 body .hover\:border-\[\#b6975f\]:hover,
 body .hover\:border-\[\#22c55e\]:hover { border-color: var(--hf-accent) !important; }
 
-/* Rendu épuré : cartes simples, moins lourdes, plus digestes */
+/* Horizon Farm premium polish */
 body .rounded-3xl.border,
 body .rounded-2xl.border {
   box-shadow: var(--hf-shadow-soft);
@@ -107,7 +135,7 @@ body .rounded-2xl.border {
 body .rounded-3xl.border:hover,
 body .rounded-2xl.border:hover {
   box-shadow: var(--hf-shadow-hover);
-  transition: box-shadow .18s ease, border-color .18s ease;
+  transition: box-shadow .18s ease, border-color .18s ease, transform .18s ease;
 }
 
 body button,
@@ -115,7 +143,11 @@ body a,
 body input,
 body select,
 body textarea {
-  transition: background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease;
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+body button:active {
+  transform: translateY(1px);
 }
 
 body table {
@@ -124,31 +156,37 @@ body table {
 }
 
 body thead tr {
-  background: #f8fbf8 !important;
+  background: color-mix(in srgb, var(--hf-surface) 88%, white) !important;
 }
 
 body tbody tr:hover {
-  background: #fbfdfb !important;
+  background: color-mix(in srgb, var(--hf-surface) 80%, white) !important;
 }
 
 body input,
 body select,
 body textarea {
-  background-color: #ffffff !important;
-  color: var(--hf-text) !important;
-  border-color: var(--hf-border) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
 }
 
 body input:focus,
 body select:focus,
 body textarea:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, .14);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--hf-accent) 24%, transparent);
 }
 
-body input::placeholder,
-body textarea::placeholder {
-  color: #8aa78e !important;
+html[data-horizon-theme='dark'] input,
+html[data-horizon-theme='dark'] select,
+html[data-horizon-theme='dark'] textarea {
+  background-color: #11201a !important;
+  color: var(--hf-text) !important;
+  border-color: var(--hf-border) !important;
+}
+
+html[data-horizon-theme='dark'] input::placeholder,
+html[data-horizon-theme='dark'] textarea::placeholder {
+  color: #6b8a6b !important;
 }
 
 /* Horizon Farm UI preferences: density */
