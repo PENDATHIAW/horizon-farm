@@ -44,7 +44,8 @@ function ToastGuard() {
   return null;
 }
 
-const RootApp = window.location.pathname === '/chat' ? ChatEntry : App;
+const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
+const RootApp = normalizedPath === '/chat' ? ChatEntry : App;
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -57,15 +58,15 @@ createRoot(document.getElementById('root')).render(
           toastOptions={{
             duration: 3500,
             style: {
-              background: '#fffdf8',
-              color: '#2f2415',
-              border: '1px solid #d6c3a0',
+              background: '#ffffff',
+              color: '#052e16',
+              border: '1px solid #d1e5d1',
               maxWidth: 'min(92vw, 420px)',
               fontSize: '14px',
               lineHeight: '1.45',
             },
             success: {
-              iconTheme: { primary: '#b38b43', secondary: '#fffdf8' },
+              iconTheme: { primary: '#15803d', secondary: '#ffffff' },
             },
           }}
         />
