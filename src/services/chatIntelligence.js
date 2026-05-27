@@ -1,5 +1,5 @@
 const WOLOF_MARKERS = [
-  'nanga', 'def', 'jërëjëf', 'jerejef', 'na nga', 'ndax', 'lan', 'ana', 'fan', 'lu', 'dama', 'maa ngi', 'mangi', 'sama', 'sa', 'ñu', 'ngu', 'dafay', 'laaj', 'mbay', 'jur', 'ganaar', 'nen', 'ndimbal', 'waaw', 'déedéet', 'deedeet', 'baax', 'xam', 'yoon', 'leegi', 'léegi', 'tay', 'suba', 'ngir', 'ak', 'ci', 'bi', 'yi'
+  'nanga', 'def', 'jërëjëf', 'jerejef', 'na nga', 'ndax', 'lan', 'ana', 'fan', 'lu', 'dama', 'maa ngi', 'mangi', 'sama', 'sa', 'ñu', 'ngu', 'dafay', 'laaj', 'mbay', 'jur', 'ganaar', 'nen', 'ndimbal', 'waaw', 'déedéet', 'deedeet', 'baax', 'xam', 'yoon', 'leegi', 'léegi', 'tay', 'suba', 'ngir', 'ak', 'ci', 'bi', 'yi', 'stock', 'jeex', 'wéradi', 'weradi', 'sonn', 'feebar', 'dee', 'production', 'wàññi', 'wannyi', 'fàttaliku', 'fattaliku'
 ];
 
 const ENGLISH_MARKERS = [
@@ -13,9 +13,18 @@ const FRENCH_MARKERS = [
 const WOLOF_AUDIO_BY_ACTION = {
   welcome: '/audio/wolof/welcome.mp3',
   egg_tracking: '/audio/wolof/egg-tracking.mp3',
+  egg_production_low: '/audio/wolof/egg-production-low.mp3',
+  egg_production_good: '/audio/wolof/egg-production-good.mp3',
   feeding_advice: '/audio/wolof/feeding-advice.mp3',
+  feeding_reminder: '/audio/wolof/feeding-reminder.mp3',
   market_prices: '/audio/wolof/market-price.mp3',
   create_alert: '/audio/wolof/create-alert.mp3',
+  stock_feed_low: '/audio/wolof/stock-feed-low.mp3',
+  stock_empty: '/audio/wolof/stock-empty.mp3',
+  stock_ok: '/audio/wolof/stock-ok.mp3',
+  animal_health_alert: '/audio/wolof/animal-health-alert.mp3',
+  animal_health_ok: '/audio/wolof/animal-health-ok.mp3',
+  animal_death_report: '/audio/wolof/animal-death-report.mp3',
   general_help: '/audio/wolof/fallback.mp3',
   fallback: '/audio/wolof/fallback.mp3',
 };
@@ -29,6 +38,8 @@ const normalize = (value = '') =>
     .replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+const hasAny = (text, words) => words.some((word) => text.includes(normalize(word)));
 
 const scoreMarkers = (text, markers) => markers.reduce((score, marker) => (text.includes(normalize(marker)) ? score + 1 : score), 0);
 
@@ -85,50 +96,142 @@ const withWolofAudio = (reply) => ({
   audioUrl: getWolofAudioUrl(reply.actionHint),
 });
 
+function buildWolofReply(language, text, userName) {
+  const hasEggs = hasAny(text, ['oeuf', 'oeufs', 'egg', 'eggs', 'nen']);
+  const hasFeed = hasAny(text, ['aliment', 'alimentation', 'feeding', 'feed', 'broiler', 'pondeuse', 'ganaar', 'dundale', 'ñam', 'xob', 'ndox']);
+  const hasPrice = hasAny(text, ['prix', 'price', 'marche', 'market', 'nix', 'njeg', 'jaay', 'jend']);
+  const hasAlert = hasAny(text, ['alerte', 'alert', 'rappel', 'reminder', 'fattali', 'fattaliku', 'waxtu']);
+  const hasStock = hasAny(text, ['stock', 'des', 'jeex', 'jendaat', 'ñam wi', 'ndox mi']);
+  const hasEmpty = hasAny(text, ['jeex', 'amatu', 'amatul', 'rupture', 'empty']);
+  const hasLow = hasAny(text, ['des tuuti', 'tuuti', 'wanni', 'wannyi', 'low', 'presque']);
+  const hasOk = hasAny(text, ['baax', 'doy', 'ok', 'correct', 'am nga lu doy']);
+  const hasHealth = hasAny(text, ['wer', 'wér', 'weradi', 'wéradi', 'sonn', 'feebar', 'malade', 'sante', 'santé']);
+  const hasDeath = hasAny(text, ['dee', 'mort', 'mortalite', 'mortalité']);
+  const hasProduction = hasAny(text, ['production', 'ponte', 'limu nen', 'ñata nen', 'nata nen']);
+
+  if (hasDeath) {
+    return withWolofAudio({
+      language,
+      text: 'Baal na, am na jur gu dee. Bindal ko ci rapport bi, te seetal ndax am na yeneen yu wéradi.',
+      actionHint: 'animal_death_report',
+    });
+  }
+
+  if (hasHealth && hasOk) {
+    return withWolofAudio({
+      language,
+      text: 'Ganaar yi mel nañu ni dañuy wér. Kontineel toppatoo ñam wi, ndox mi, ak set-setal bi.',
+      actionHint: 'animal_health_ok',
+    });
+  }
+
+  if (hasHealth) {
+    return withWolofAudio({
+      language,
+      text: 'Ganaar bi mel na ni dafa sonn walla feebar. Seetal ko léegi, te teqale ko ak yeneen yi su fekkee dafa wéradi.',
+      actionHint: 'animal_health_alert',
+    });
+  }
+
+  if (hasStock && hasEmpty) {
+    return withWolofAudio({
+      language,
+      text: 'Stock bi jeex na. War nga jëndaat léegi ngir liggéey bi bañ a taxaw.',
+      actionHint: 'stock_empty',
+    });
+  }
+
+  if (hasStock && hasLow) {
+    return withWolofAudio({
+      language,
+      text: 'Ñam wi dafa des tuuti. War nga seet stock bi te waajal jëndaat bala muy jeex.',
+      actionHint: 'stock_feed_low',
+    });
+  }
+
+  if (hasStock && hasOk) {
+    return withWolofAudio({
+      language,
+      text: 'Stock bi baax na. Am nga lu doy pour liggéey bi kontine ci jamono ji.',
+      actionHint: 'stock_ok',
+    });
+  }
+
+  if (hasAlert && hasFeed) {
+    return withWolofAudio({
+      language,
+      text: 'Fàttaliku : waxtu wu ñu wara dundale ganaar yi jot na. Joxleen ñam ak ndox mu set.',
+      actionHint: 'feeding_reminder',
+    });
+  }
+
+  if ((hasEggs || hasProduction) && hasLow) {
+    return withWolofAudio({
+      language,
+      text: 'Productionu nen yi dafa wàññi. War nga seet ñam wi, ndox mi, leer bi, ak wér-gu-yaramu ganaar yi.',
+      actionHint: 'egg_production_low',
+    });
+  }
+
+  if ((hasEggs || hasProduction) && hasOk) {
+    return withWolofAudio({
+      language,
+      text: 'Productionu nen yi baax na tey. Kontineel ni nga koy toppatoo, ndax li nga def dafay jariñ.',
+      actionHint: 'egg_production_good',
+    });
+  }
+
+  if (hasEggs || hasProduction) {
+    return withWolofAudio({
+      language,
+      text: 'Waaw, man naa la dimbali ci toppatoo nen yi. Wax ma limu nen yi tey, ma wax la ndax production bi baax na walla dafa wàññi.',
+      actionHint: 'egg_tracking',
+    });
+  }
+
+  if (hasFeed) {
+    return withWolofAudio({
+      language,
+      text: 'Ci mbayum ganaar, ñam wu sell ak ndox mu set dañuy am solo. Wax ma ayu-bis bi ak atum ganaar yi, ma jox la ndigal bu gën a leer.',
+      actionHint: 'feeding_advice',
+    });
+  }
+
+  if (hasPrice) {
+    return withWolofAudio({
+      language,
+      text: 'Man naa la dimbali ci toppatoo njëgu marse bi. Boo ma joxee produit bi ak marse bi, dinaa la jox tontu bu leer.',
+      actionHint: 'market_prices',
+    });
+  }
+
+  if (hasAlert) {
+    return withWolofAudio({
+      language,
+      text: 'Waaw, man naa defal la fàttali. Wax ma lu ma wara fàttali, waxtu wi, ak ñaata yoon.',
+      actionHint: 'create_alert',
+    });
+  }
+
+  return withWolofAudio({
+    language,
+    text: `Jërëjëf ${userName}. Maangi fii ngir la dimbali ci ferme bi. Mën nga wax ci wolof, français walla anglais. Lan nga bëgg ma toppatoo ?`,
+    actionHint: 'general_help',
+  });
+}
+
 export function buildFarmChatReply(input = '', context = {}) {
   const language = detectChatLanguage(input);
   const text = normalize(input);
   const userName = context?.userName || 'vous';
 
-  const hasEggs = ['oeuf', 'oeufs', 'egg', 'eggs', 'nen'].some((word) => text.includes(word));
-  const hasFeed = ['aliment', 'alimentation', 'feeding', 'feed', 'broiler', 'pondeuse', 'ganaar'].some((word) => text.includes(word));
-  const hasPrice = ['prix', 'price', 'marche', 'market'].some((word) => text.includes(word));
-  const hasAlert = ['alerte', 'alert', 'rappel', 'reminder', 'fattali'].some((word) => text.includes(word));
+  const hasEggs = hasAny(text, ['oeuf', 'oeufs', 'egg', 'eggs', 'nen']);
+  const hasFeed = hasAny(text, ['aliment', 'alimentation', 'feeding', 'feed', 'broiler', 'pondeuse', 'ganaar']);
+  const hasPrice = hasAny(text, ['prix', 'price', 'marche', 'market']);
+  const hasAlert = hasAny(text, ['alerte', 'alert', 'rappel', 'reminder', 'fattali']);
 
   if (language === 'wo') {
-    if (hasEggs) {
-      return withWolofAudio({
-        language,
-        text: 'Waaw, man naa la dimbali ci toppatoo nen yi. Wax ma limu nen yi tey, ma wax la ndax production bi baax na walla dafa wàññi.',
-        actionHint: 'egg_tracking',
-      });
-    }
-    if (hasFeed) {
-      return withWolofAudio({
-        language,
-        text: 'Ci mbayum ganaar, ñam wu sell ak ndox mu set dañuy am solo. Wax ma ayu-bis bi ak atum ganaar yi, ma jox la ndigal bu gën a leer.',
-        actionHint: 'feeding_advice',
-      });
-    }
-    if (hasPrice) {
-      return withWolofAudio({
-        language,
-        text: 'Man naa la dimbali ci toppatoo njëgu marse bi. Boo ma joxee produit bi ak marse bi, dinaa la jox tontu bu leer.',
-        actionHint: 'market_prices',
-      });
-    }
-    if (hasAlert) {
-      return withWolofAudio({
-        language,
-        text: 'Waaw, man naa defal la fàttali. Wax ma lu ma wara fàttali, waxtu wi, ak ñaata yoon.',
-        actionHint: 'create_alert',
-      });
-    }
-    return withWolofAudio({
-      language,
-      text: `Jërëjëf ${userName}. Maangi fii ngir la dimbali ci ferme bi. Mën nga wax ci wolof, français walla anglais. Lan nga bëgg ma toppatoo ?`,
-      actionHint: 'general_help',
-    });
+    return buildWolofReply(language, text, userName);
   }
 
   if (language === 'en') {
