@@ -23,6 +23,8 @@ const MODULE_LABELS = {
   business_events: 'Activité ferme',
 };
 
+const EXCLUDED_MODULES = new Set(['chat_messages', 'messages', 'logs', 'audit_logs', 'sessions']);
+
 const MODULE_HINTS = {
   health: ['sante', 'animaux', 'bovins', 'avicole', 'alertes_center', 'business_events'],
   money: ['clients', 'sales_orders', 'ventes', 'payments', 'invoices', 'finances'],
@@ -107,6 +109,7 @@ export function searchErpData(dataMap = {}, query = '', options = {}) {
   const results = [];
 
   Object.entries(dataMap || {}).forEach(([moduleKey, rows]) => {
+    if (EXCLUDED_MODULES.has(moduleKey)) return;
     if (!Array.isArray(rows) || !rows.length) return;
     const moduleResults = rows.slice(0, 300).map((row) => ({ moduleKey, row, score: scoreRow(moduleKey, row, words, preferredModules) })).filter((item) => item.score > 0 || preferredModules.includes(moduleKey)).sort((a, b) => b.score - a.score).slice(0, rowLimit);
     if (moduleResults.length) {
@@ -123,6 +126,6 @@ export function buildErpSearchContext(dataMap = {}, query = '', stats = {}, sens
     stats,
     sensorAlerts,
     relevantModules: searchErpData(dataMap, query),
-    availableModules: Object.entries(dataMap || {}).filter(([, rows]) => Array.isArray(rows) && rows.length).map(([key, rows]) => ({ key, label: MODULE_LABELS[key] || key, count: rows.length })),
+    availableModules: Object.entries(dataMap || {}).filter(([key, rows]) => !EXCLUDED_MODULES.has(key) && Array.isArray(rows) && rows.length).map(([key, rows]) => ({ key, label: MODULE_LABELS[key] || key, count: rows.length })),
   };
 }
