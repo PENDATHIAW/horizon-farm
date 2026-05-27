@@ -4,6 +4,7 @@ import { useAppData } from '../context/AppContext';
 import useOnlineStatus from './useOnlineStatus';
 import { getHorizonChatStats, getHorizonSensorAlerts, runHorizonAgent } from '../services/horizonAgent';
 import { detectVoiceLanguage, speakHorizonText } from '../services/horizonVoice';
+import { isLikelyWolof, softenWolofAnswer, wolofFallbackByIntent, wolofIntentHints, wolofTtsPrep } from '../services/wolofStyle';
 
 const localKey = (userId) => `horizon_chat_messages_${userId || 'local'}`;
 const safeArray = (value) => Array.isArray(value) ? value : [];
@@ -85,6 +86,19 @@ async function askConfiguredAi({ message, dataMap, stats, sensorAlerts, history 
   } catch {
     return null;
   }
+}
+
+function polishAnswerForUser({ question, response, stats }) {
+  const wolof = isLikelyWolof(question);
+  if (!wolof) return response;
+  const hints = wolofIntentHints(question);
+  const fallbackText = response.intent === 'fallback' ? wolofFallbackByIntent(response.intent, { stats, hints }) : null;
+  return {
+    ...response,
+    language: 'wo',
+    text: softenWolofAnswer(fallbackText || response.text),
+    quickReplies: response.quickReplies?.length ? response.quickReplies : [{ label: 'Stock aliment bi' }, { label: 'Ku ma war xaalis ?' }, { label: 'Kaan moo feebar ?' }, { label: 'Ponte bi naka ?' }],
+  };
 }
 
 export default function useHorizonChat({ user }) {
@@ -250,6 +264,7 @@ export default function useHorizonChat({ user }) {
         });
       }
 
+      response = polishAnswerForUser({ question: clean, response, stats });
       setPendingAction(response.pendingAction || null);
       await persistMessage({
         id: makeId('in'),
@@ -260,7 +275,10 @@ export default function useHorizonChat({ user }) {
         intent: response.intent,
         created_at: new Date().toISOString(),
       });
-      if (voiceEnabled && response.text) speakHorizonText(response.text, response.language ? { fr: 'fr-FR', en: 'en-US', wo: 'wo-SN' }[response.language] : detectVoiceLanguage(response.text));
+      if (voiceEnabled && response.text) {
+        const voiceText = response.language === 'wo' ? wolofTtsPrep(response.text) : response.text;
+        speakHorizonText(voiceText, response.language ? { fr: 'fr-FR', en: 'en-US', wo: 'wo-SN' }[response.language] : detectVoiceLanguage(voiceText));
+      }
     } finally {
       setSending(false);
     }
@@ -269,7 +287,10 @@ export default function useHorizonChat({ user }) {
   const toggleVoice = useCallback(() => setVoiceEnabled((value) => !value), []);
   const speakLast = useCallback(() => {
     const lastIncoming = [...messages].reverse().find((message) => message.direction !== 'out' && message.content);
-    if (lastIncoming) speakHorizonText(lastIncoming.content, detectVoiceLanguage(lastIncoming.content));
+    if (lastIncoming) {
+      const voiceText = isLikelyWolof(lastIncoming.content) ? wolofTtsPrep(lastIncoming.content) : lastIncoming.content;
+      speakHorizonText(voiceText, detectVoiceLanguage(voiceText));
+    }
   }, [messages]);
 
   return { messages, stats, sensorAlerts, sending, online, sendMessage, pendingAction, voiceEnabled, toggleVoice, speakLast };
