@@ -1,4 +1,4 @@
-import { BarChart3, Beef, CheckCircle2, ChevronDown, ClipboardList, PackageCheck, Scale, Scissors, X } from 'lucide-react';
+import { BarChart3, Beef, ChevronDown, ClipboardList, PackageCheck, Scale, Scissors, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard.jsx';
@@ -72,20 +72,19 @@ function HeyHorizonAnimalCard({ draft, rows, species, onCreate, onUpdate, onCrea
         await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: formType === 'animal_weighing' ? 'pesee_animal' : 'perte_animal', module_source: 'animaux', entity_type: 'animal', entity_id: animal?.id || targetId, source_id: animal?.id || targetId, title: `${title} · ${targetId}`, description: note || draft?.raw_input || '', event_date: date, severity: formType === 'animal_loss' ? 'critical' : 'info', amount: formType === 'animal_loss' ? lossValueOf(animal || {}) : 0 });
       }
       await Promise.allSettled([onRefresh?.(), onRefreshBusinessEvents?.()]);
-      toast.success(`${title} enregistrée depuis Hey Horizon`);
+      toast.success(`${title} enregistrée`);
       onClose?.();
     } catch (error) { toast.error(error.message || 'Action animal impossible'); } finally { setSaving(false); }
   };
   return <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm space-y-4">
-    <div className="flex items-start justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-emerald-700 font-black flex items-center gap-2"><Scale size={15} /> Fiche préparée par Hey Horizon</p><h3 className="mt-1 text-xl font-black text-[#2f2415]">{title}</h3><p className="mt-1 text-sm text-emerald-800">Complète si besoin, puis valide. L’événement métier est créé automatiquement.</p></div><button type="button" onClick={onClose} className="rounded-full border border-emerald-200 bg-white p-2 text-emerald-700"><X size={16} /></button></div>
+    <div className="flex items-start justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-emerald-700 font-black flex items-center gap-2"><Scale size={15} /> Fiche animal</p><h3 className="mt-1 text-xl font-black text-[#2f2415]">{title}</h3></div><button type="button" onClick={onClose} className="rounded-full border border-emerald-200 bg-white p-2 text-emerald-700"><X size={16} /></button></div>
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       {formType === 'animal_creation' ? <><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Espèce</span><select value={type} onChange={(e) => setType(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm"><option>Bovin</option><option>Ovin</option><option>Caprin</option></select></label><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Nom / repère</span><input value={name} onChange={(e) => setName(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label></> : <label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Animal</span><select value={targetId} onChange={(e) => setTargetId(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm"><option value={targetId}>{animal ? `${labelOf(animal)} · ${targetId}` : targetId || 'Choisir'}</option>{rows.filter((row) => String(row.id) !== String(targetId)).map((row) => <option key={row.id} value={row.id}>{labelOf(row)} · {row.id}</option>)}</select></label>}
       {formType === 'animal_loss' ? <label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Statut</span><select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm"><option value="mort">Mort</option><option value="perdu">Perdu</option><option value="vole">Volé</option></select></label> : <label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Poids kg</span><input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label>}
       <label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Date</span><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label>
       <label className="space-y-1 md:col-span-3"><span className="text-xs font-bold text-emerald-800">Note</span><input value={note} onChange={(e) => setNote(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label>
     </div>
-    <div className="rounded-xl border border-emerald-200 bg-white p-3 text-sm text-emerald-800"><CheckCircle2 size={14} className="inline" /> À la validation : animal mis à jour/créé, événement métier créé, historique et Centre décisionnel alimentés.</div>
-    <div className="flex justify-end"><button type="button" onClick={submit} disabled={saving} className="rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60">{saving ? 'Validation...' : 'Valider la fiche animal'}</button></div>
+    <div className="flex justify-end"><button type="button" onClick={submit} disabled={saving} className="rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60">{saving ? 'Validation...' : 'Valider'}</button></div>
   </section>;
 }
 
@@ -113,7 +112,7 @@ export default function AnimauxV2(props) {
         const target = targetFrom(draft);
         const animal = findAnimal(target, props.rows || []);
         if (animal) setSpecies(speciesFromType(animal.espece || animal.type || species));
-        toast.success(animal ? `Fiche ${target} trouvée dans Animaux` : `Recherche ${target} ouverte dans Animaux`);
+        toast.success(animal ? `Fiche ${target} trouvée` : `Recherche ${target}`);
         window.setTimeout(() => document.getElementById('animaux-module-root')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
         return;
       }
@@ -172,12 +171,12 @@ export default function AnimauxV2(props) {
     await (props.onRefreshBusinessEvents || businessEventsCrud.refresh)?.();
   };
 
-  const createLossEvent = async (before = {}, after = {}, source = 'modification animal') => {
+  const createLossEvent = async (before = {}, after = {}) => {
     const becameDead = !isDead(before) && isDead(after);
     const valueIncreased = lossValueOf(after) > lossValueOf(before) && isDead(after);
     if (!becameDead && !valueIncreased) return;
     try {
-      await (props.onCreateBusinessEvent || businessEventsCrud.create)?.({ id: `EVT-ANI-${Date.now()}`, module: 'animaux', source_type: 'animal', source_id: after.id, title: `Perte animal · ${after.name || after.nom || after.boucle_numero || after.id}`, description: [`Source: ${source}`, `Espèce: ${after.type || after.espece || species}`, `Statut: ${before.status || before.statut || 'actif'} → ${after.status || after.statut || 'mort'}`, `Date décès: ${after.date_deces || today()}`, `Cause: ${after.cause_deces || 'non renseignée'}`, `Valeur estimée: ${lossValueOf(after)}`].join('\n'), severity: 'critique', status: 'nouveau', date: after.date_deces || today(), type_evenement: 'perte_animal', montant: lossValueOf(after) });
+      await (props.onCreateBusinessEvent || businessEventsCrud.create)?.({ id: `EVT-ANI-${Date.now()}`, module: 'animaux', source_type: 'animal', source_id: after.id, title: `Perte animal · ${after.name || after.nom || after.boucle_numero || after.id}`, description: [`Espèce: ${after.type || after.espece || species}`, `Statut: ${before.status || before.statut || 'actif'} → ${after.status || after.statut || 'mort'}`, `Date décès: ${after.date_deces || today()}`, `Cause: ${after.cause_deces || 'non renseignée'}`, `Valeur estimée: ${lossValueOf(after)}`].join('\n'), severity: 'critique', status: 'nouveau', date: after.date_deces || today(), type_evenement: 'perte_animal', montant: lossValueOf(after) });
       await (props.onRefreshBusinessEvents || businessEventsCrud.refresh)?.();
     } catch (error) { console.warn('Perte animal non consignée en événement', error); }
   };
@@ -185,7 +184,7 @@ export default function AnimauxV2(props) {
   const wrapCreate = async (payload) => {
     const restored = restoreSpeciesOnAnimalPayload(payload, species);
     await props.onCreate?.(restored);
-    await createLossEvent({}, restored, 'création animal');
+    await createLossEvent({}, restored);
     await createOrReactivateSaleOpportunity(restored, 'création animal prêt à vendre');
   };
   const wrapUpdate = async (id, payload) => {
@@ -193,7 +192,7 @@ export default function AnimauxV2(props) {
     const restored = restoreSpeciesOnAnimalPayload(payload, species);
     const after = { ...before, ...restored, id };
     await props.onUpdate?.(id, restored);
-    await createLossEvent(before, after, 'modification fiche animal');
+    await createLossEvent(before, after);
     if (!isReadyForSale(before) && isReadyForSale(after)) await createOrReactivateSaleOpportunity(after, 'animal marqué prêt à vendre');
   };
   const dataMap = { sales_orders: salesOrders, salesOrders, payments, finances: transactions, transactions, animaux: activeSpeciesRows };
@@ -202,14 +201,14 @@ export default function AnimauxV2(props) {
 
   return <div id="animaux-module-root" className="space-y-6 animaux-mobile-structured"><style>{`@media (max-width: 640px){.animaux-mobile-structured .rounded-2xl{border-radius:18px}.animaux-mobile-structured table{font-size:12px}.animaux-mobile-structured th,.animaux-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.animaux-mobile-structured .text-2xl{font-size:1.35rem}.animaux-mobile-structured .grid{gap:.75rem}.animaux-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
     {horizonDraft ? <div id="hey-horizon-animal-card"><HeyHorizonAnimalCard draft={horizonDraft} rows={props.rows || []} species={species} onCreate={wrapCreate} onUpdate={wrapUpdate} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} onClose={() => setHorizonDraft(null)} /></div> : null}
-    <ModuleSection icon={Beef} title="Cheptel par espèce" subtitle="Choisir d’abord l’espèce à piloter pour ne voir que les données utiles."><div className="grid grid-cols-1 md:grid-cols-3 gap-3">{ANIMAL_SPECIES_TABS.map((tab) => <button key={tab} type="button" onClick={() => setSpecies(tab)} className={`rounded-2xl border px-4 py-3 text-left transition-all ${species === tab ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}><p className="text-xs uppercase tracking-wide">Espèce</p><p className="font-black">{tab}s</p><p className="text-xs opacity-75">{counts[tab] || 0} animaux · {filterAnimalsBySpecies(props.rows || [], tab).filter(isOperationalAnimal).length} actifs</p></button>)}</div></ModuleSection>
+    <ModuleSection icon={Beef} title="Cheptel"><div className="grid grid-cols-1 md:grid-cols-3 gap-3">{ANIMAL_SPECIES_TABS.map((tab) => <button key={tab} type="button" onClick={() => setSpecies(tab)} className={`rounded-2xl border px-4 py-3 text-left transition-all ${species === tab ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}><p className="text-xs uppercase tracking-wide">Espèce</p><p className="font-black">{tab}s</p><p className="text-xs opacity-75">{counts[tab] || 0} animaux · {filterAnimalsBySpecies(props.rows || [], tab).filter(isOperationalAnimal).length} actifs</p></button>)}</div></ModuleSection>
     <AnimalCycleHealthPanel rows={props.rows || []} alimentationLogs={props.alimentationLogs || []} vaccins={props.vaccins || []} salesOrders={salesOrders} onNavigate={props.onNavigate} />
-    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4"><p className="text-xs uppercase tracking-[0.2em] text-[#9a6b12] font-black">Vue active</p><p className="mt-1 text-xl font-black text-[#2f2415]">{species}s</p><p className="mt-1 text-sm text-[#8a7456]">Le suivi quotidien affiche uniquement les animaux actifs. Les animaux vendus, morts, perdus, volés, abattus ou sortis restent dans Cycle et historique.</p></div>
+    <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4"><p className="text-xs uppercase tracking-[0.2em] text-[#9a6b12] font-black">Espèce active</p><p className="mt-1 text-xl font-black text-[#2f2415]">{species}s</p><p className="mt-1 text-sm text-[#8a7456]">{activeSpeciesRows.length} actif(s) · {historicalSpeciesRows.length} en historique</p></div>
     <ObjectivePerformanceCard dataMap={dataMap} activity={selectedActivity} title={`Objectif ${species}s`} compact onNavigate={props.onNavigate} />
-    <ModuleSection icon={PackageCheck} title={`${species}s : suivi quotidien`} subtitle={`Animaux actifs uniquement · ${historicalSpeciesRows.length} animal(aux) en historique.`}><AnimauxSpeciesFocused {...props} {...commonWorkflowProps} species={species} rows={activeSpeciesRows} onCreate={wrapCreate} onUpdate={wrapUpdate} /></ModuleSection>
-    <ModuleSection icon={Scissors} title={`${species}s : abattage, transformation et stock`} subtitle="Sortie de l’animal actif, transformation éventuelle et création de stock vendable."><AnimalSlaughterStockBridge rows={activeSpeciesRows} alimentationLogs={props.alimentationLogs || []} vaccins={props.vaccins || []} businessEvents={businessEvents} onUpdate={props.onUpdate} onRefresh={props.onRefresh} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} /></ModuleSection>
-    <ModuleSection icon={PackageCheck} title={`${species}s : frais liés à un animal`} subtitle="Frais directement rattachés aux animaux actifs."><DirectChargesBridge title={`Frais directs ${species.toLowerCase()}s`} subtitle="Ces frais améliorent le calcul du coût réel par animal actif." targetType="animaux" targets={activeSpeciesRows} businessEvents={businessEvents} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onUpdateBusinessEvent={props.onUpdateBusinessEvent || businessEventsCrud.update} onDeleteBusinessEvent={props.onDeleteBusinessEvent || businessEventsCrud.remove} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} /></ModuleSection>
-    <CollapsibleSection icon={ClipboardList} title={`${species}s : cycle et historique`} subtitle="Entrées, sorties, ventes, pertes, clôtures et événements importants." defaultOpen={false}><LifecycleHistoryPanel mode="animaux" rows={speciesRows} salesOrders={salesOrders} deliveries={deliveries} businessEvents={businessEvents} /></CollapsibleSection>
-    <CollapsibleSection icon={BarChart3} title={`${species}s : évolution`} subtitle="Poids, croissance, alimentation, santé, ventes, marge et coût par animal, historique inclus." defaultOpen={false}><AnimauxEvolution rows={speciesRows} alimentationLogs={props.alimentationLogs || []} vaccins={props.vaccins || []} businessEvents={businessEvents} opportunities={opportunities} salesOrders={salesOrders} payments={payments} transactions={transactions} onNavigate={props.onNavigate} /></CollapsibleSection>
+    <ModuleSection icon={PackageCheck} title={`${species}s`} subtitle={`${historicalSpeciesRows.length} animal(aux) en historique.`}><AnimauxSpeciesFocused {...props} {...commonWorkflowProps} species={species} rows={activeSpeciesRows} onCreate={wrapCreate} onUpdate={wrapUpdate} /></ModuleSection>
+    <ModuleSection icon={Scissors} title="Transformation et stock"><AnimalSlaughterStockBridge rows={activeSpeciesRows} alimentationLogs={props.alimentationLogs || []} vaccins={props.vaccins || []} businessEvents={businessEvents} onUpdate={props.onUpdate} onRefresh={props.onRefresh} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} /></ModuleSection>
+    <ModuleSection icon={PackageCheck} title="Charges directes"><DirectChargesBridge title={`Charges directes ${species.toLowerCase()}s`} targetType="animaux" targets={activeSpeciesRows} businessEvents={businessEvents} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onUpdateBusinessEvent={props.onUpdateBusinessEvent || businessEventsCrud.update} onDeleteBusinessEvent={props.onDeleteBusinessEvent || businessEventsCrud.remove} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} /></ModuleSection>
+    <CollapsibleSection icon={ClipboardList} title={`Cycle et historique · ${species}s`} defaultOpen={false}><LifecycleHistoryPanel mode="animaux" rows={speciesRows} salesOrders={salesOrders} deliveries={deliveries} businessEvents={businessEvents} /></CollapsibleSection>
+    <CollapsibleSection icon={BarChart3} title={`Évolution · ${species}s`} defaultOpen={false}><AnimauxEvolution rows={speciesRows} alimentationLogs={props.alimentationLogs || []} vaccins={props.vaccins || []} businessEvents={businessEvents} opportunities={opportunities} salesOrders={salesOrders} payments={payments} transactions={transactions} onNavigate={props.onNavigate} /></CollapsibleSection>
   </div>;
 }
