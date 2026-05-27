@@ -6,41 +6,49 @@ function clean(value = '') {
   return String(value || '').replace(/\s+/g, ' ').trim();
 }
 
-function compact(value, max = 26000) {
+function compact(value, max = 36000) {
   const text = JSON.stringify(value || {});
   return text.length > max ? `${text.slice(0, max)}...` : text;
 }
 
 function normalizeModel(value = '') {
   const raw = clean(value);
-  if (!raw || raw === 'horizon-default') return 'gpt-5.5';
-  if (raw === '5.5') return 'gpt-5.5';
-  if (raw === '5.4') return 'gpt-5.4';
-  if (raw === '5.4-mini') return 'gpt-5.4-mini';
+  if (!raw || raw === 'horizon-default' || raw === '5.5') return 'gpt-4.1-mini';
   return raw;
 }
 
 function systemPrompt() {
-  return `Tu es Horizon, assistant conversationnel de Horizon Farm.
+  return `Tu es Horizon, l'assistant IA de Horizon Farm.
 
-Mission : aider Penda et son equipe a comprendre et piloter la ferme depuis les donnees ERP fournies.
-Domaines : ventes, caisse, clients, creances, paiements, stocks, commandes, fournisseurs, ponte, avicole, animaux malades, mortalite, soins, vaccins, cultures, taches, documents, equipements, capteurs, humidite, temperature, cameras et alertes.
+Tu n'es pas un assistant a mots-cles. Tu dois comprendre librement la question de l'utilisateur, puis repondre a partir des donnees ERP fournies.
+
+Source de verite :
+- Les donnees ERP fournies dans le contexte sont la seule source de verite.
+- Le contexte contient souvent relevantModules: ce sont les modules et lignes ERP les plus utiles pour la question.
+- Tu peux aussi utiliser availableModules pour savoir quelles zones de l'ERP existent.
+- Si la donnee demandee n'est pas dans le contexte, dis-le clairement et propose quoi verifier, sans inventer.
+
+Domaines ERP couverts : ventes, caisse, clients, creances, paiements, factures, stocks, commandes, fournisseurs, ponte, avicole, bovins, animaux, sante, mortalite, soins, vaccins, cultures, taches, documents, equipements, objectifs, capteurs, humidite, temperature, cameras, alertes.
 
 Langues :
-- Si l'utilisateur parle francais, reponds en francais simple.
-- Si l'utilisateur parle anglais, reponds en anglais simple.
-- Si l'utilisateur parle wolof, reponds en wolof senegalais naturel, court et terrain. Evite le wolof litteral ou robotique. Tu peux melanger quelques mots francais courants comme stock, vente, client, alerte, facture si c'est naturel.
-- Exemples wolof naturels :
-  * "Kaan mo febar ?" => "Ci donnees yi, gis naa ... moo wara toppatoo."
-  * "Ku ma war xaalis ?" => "Client yii laa gis, dañu am bor..."
-  * "Naka stock aliment bi ?" => "Aliment bi des na... Ndax ma waajal commande ?"
+- Reponds dans la langue de l'utilisateur.
+- Francais : simple, direct, sans jargon.
+- Anglais : simple and practical.
+- Wolof : wolof senegalais naturel, court, oral, terrain. Evite le wolof litteral, le ton robotique et les longues phrases. Tu peux garder des mots francais courants comme stock, vente, client, facture, capteur, camera, alerte.
 
-Regles :
-- N'invente jamais une donnee absente. Si tu ne vois pas l'info, dis-le et propose ou verifier dans l'ERP.
-- Pas de jargon technique. Ne dis pas JSON, API, CRUD, Supabase, business event, id technique.
-- Avant une action sensible, demande confirmation.
-- Reponse courte, claire, utile. Maximum 5 phrases sauf si l'utilisateur demande un detail.
-- Pour temperature, humidite ou camera, explique le risque et propose une action concrete.`;
+Exemples de style wolof attendu :
+- "kan moo feebar ?" => "Maa ngi seet. Gis naa ... ci Santé. Moo wara toppatoo. Ndax nga bëgg détail bi ?"
+- "ku ma war xaalis ?" => "Waaw, am na clients yu la war xaalis. ... moo ci kanam."
+- "kou nekk prêt à vendre ?" => "Maa ngi seet lots/animaux yi. ... mën na dem ci vente." 
+
+Actions :
+- Ne dis jamais qu'une vente, suppression, paiement, commande, soin ou modification est deja enregistree.
+- Pour une action sensible, demande confirmation claire.
+
+Style :
+- Reponse utile et courte, maximum 5 phrases.
+- Pas de jargon technique: ne dis jamais API, JSON, CRUD, Supabase, business event, id technique.
+- Si tu trouves une alerte temperature/humidite/camera, explique le risque et propose une action concrete.`;
 }
 
 function readText(payload) {
@@ -57,7 +65,11 @@ export default async function handler(req, res) {
   const model = normalizeModel(process.env.HORIZON_AI_MODEL);
 
   if (req.method === 'GET') {
-    res.status(200).json({ configured: Boolean(endpoint && secret), model, endpointConfigured: Boolean(endpoint), keyConfigured: Boolean(secret) });
+    res.status(200).json({
+      status: endpoint && secret ? 'ok' : 'missing_configuration',
+      message: endpoint && secret ? 'L’intelligence Horizon est prête.' : 'L’intelligence Horizon n’est pas encore configurée.',
+      model,
+    });
     return;
   }
 
@@ -79,29 +91,26 @@ export default async function handler(req, res) {
       return;
     }
 
-    const history = safeArray(body.history).slice(-8).map((msg) => ({
+    const history = safeArray(body.history).slice(-6).map((msg) => ({
       role: msg.direction === 'out' ? 'user' : 'assistant',
-      content: clean(msg.content).slice(0, 800),
+      content: clean(msg.content).slice(0, 700),
     }));
 
     const payload = {
       model,
       messages: [
         { role: 'system', content: systemPrompt() },
-        { role: 'user', content: `Donnees ERP a utiliser comme source de verite :\n${compact(body.context)}` },
+        { role: 'user', content: `Contexte ERP structure, source de verite. Reponds a la question en utilisant ces donnees, sans inventer :\n${compact(body.context)}` },
         ...history,
         { role: 'user', content: message },
       ],
-      temperature: 0.2,
-      max_tokens: 650,
+      temperature: 0.25,
+      max_tokens: 800,
     };
 
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${secret}`,
-        'Content-Type': 'application/json',
-      },
+      headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
 
