@@ -1,4 +1,4 @@
-import { BarChart3, Camera, ChevronDown, Globe2, Mic, SendHorizontal, ThermometerSun, Volume2, VolumeX, X } from 'lucide-react';
+import { BarChart3, Camera, ChevronDown, Globe2, Mic, SendHorizontal, Sparkles, ThermometerSun, Volume2, VolumeX, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import BrandLogo from '../components/BrandLogo';
 import useHorizonChat from '../hooks/useHorizonChat';
@@ -6,6 +6,15 @@ import useHorizonChat from '../hooks/useHorizonChat';
 const money = (value) => `${Number(value || 0).toLocaleString('fr-FR')} FCFA`;
 const number = (value) => Number(value || 0).toLocaleString('fr-FR');
 const time = (value) => new Date(value || Date.now()).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+const starterPrompts = [
+  'Naka stock aliment bi ?',
+  'Ku ma war xaalis ?',
+  'Kaan moo feebar ?',
+  'Humidité ak température bi naka ?',
+  'How much cash today?',
+  'Prépare une vente de 2 tablettes',
+];
 
 function DataCard({ card }) {
   if (!card) return null;
@@ -19,7 +28,11 @@ function Summary({ open, onClose, stats, sensorAlerts, onAsk }) {
 }
 
 function Header({ online, sensorAlerts, onOpenSummary, voiceEnabled, onToggleVoice, onSpeakLast }) {
-  return <header className="shrink-0 bg-[#11351f] px-4 py-3 text-white"><div className="flex items-center gap-3"><BrandLogo variant="compact" /><div className="min-w-0 flex-1"><h1 className="text-base font-black leading-tight">Horizon</h1><p className="text-xs text-white/75">{online ? 'En ligne' : 'Hors ligne'} · français, wolof, english</p></div><button type="button" onClick={onOpenSummary} aria-label="Résumé ferme" className="relative min-h-10 min-w-10 rounded-full inline-flex items-center justify-center hover:bg-white/10"><BarChart3 size={18} />{sensorAlerts.length ? <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-amber-300" /> : null}</button><button type="button" onClick={onToggleVoice} onDoubleClick={onSpeakLast} aria-label={voiceEnabled ? 'Désactiver la voix' : 'Activer la voix'} className={`min-h-10 min-w-10 rounded-full inline-flex items-center justify-center ${voiceEnabled ? 'bg-white text-[#11351f]' : 'hover:bg-white/10 text-white'}`}>{voiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}</button></div><button type="button" onClick={onOpenSummary} className="mt-3 flex w-full items-center justify-between rounded-2xl bg-white/8 px-3 py-2 text-left text-xs text-white/80"><span className="flex items-center gap-2"><Globe2 size={14} /> Demande-moi le stock, la ponte, les ventes, les capteurs…</span><ChevronDown size={15} /></button>{voiceEnabled ? <p className="mt-2 text-[11px] text-white/65">Voix activée : Horizon peut lire ses réponses. Double-tape l’icône pour relire.</p> : null}</header>;
+  return <header className="shrink-0 bg-[#11351f] px-4 py-3 text-white"><div className="flex items-center gap-3"><BrandLogo variant="compact" /><div className="min-w-0 flex-1"><h1 className="text-base font-black leading-tight">Horizon</h1><p className="text-xs text-white/75">{online ? 'En ligne' : 'Hors ligne'} · français, wolof, english</p></div><button type="button" onClick={onOpenSummary} aria-label="Résumé ferme" className="relative min-h-10 min-w-10 rounded-full inline-flex items-center justify-center hover:bg-white/10"><BarChart3 size={18} />{sensorAlerts.length ? <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-amber-300" /> : null}</button><button type="button" onClick={onToggleVoice} onDoubleClick={onSpeakLast} aria-label={voiceEnabled ? 'Désactiver la voix IA' : 'Activer la voix IA'} className={`min-h-10 min-w-10 rounded-full inline-flex items-center justify-center ${voiceEnabled ? 'bg-white text-[#11351f]' : 'hover:bg-white/10 text-white'}`}>{voiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}</button></div><button type="button" onClick={onOpenSummary} className="mt-3 flex w-full items-center justify-between rounded-2xl bg-white/8 px-3 py-2 text-left text-xs text-white/80"><span className="flex items-center gap-2"><Globe2 size={14} /> Demande-moi le stock, la ponte, les ventes, les capteurs…</span><ChevronDown size={15} /></button>{voiceEnabled ? <p className="mt-2 text-[11px] text-white/65">Voix IA activée. Double-tape l’icône pour relire la dernière réponse.</p> : null}</header>;
+}
+
+function StarterPanel({ onAsk }) {
+  return <div className="rounded-[1.6rem] border border-[#dbe8dc] bg-white p-4 shadow-sm"><div className="mb-2 inline-flex items-center gap-2 rounded-full bg-[#eef7ef] px-3 py-1 text-[11px] font-black uppercase tracking-wide text-[#15803d]"><Sparkles size={13} /> Assistant ferme</div><h2 className="text-lg font-black text-[#11351f]">Parle à Horizon comme à quelqu’un sur le terrain.</h2><p className="mt-1 text-sm leading-relaxed text-[#6f8b73]">Français, wolof ou anglais. Horizon lit l’ERP, les capteurs, les caméras, les ventes, le stock, la santé et les tâches.</p><div className="mt-3 flex flex-wrap gap-2">{starterPrompts.map((prompt) => <button key={prompt} type="button" onClick={() => onAsk(prompt)} className="rounded-full border border-[#dbe8dc] bg-[#fbfdfb] px-3 py-2 text-xs font-bold text-[#11351f] hover:border-[#15803d] hover:text-[#15803d]">{prompt}</button>)}</div></div>;
 }
 
 function Bubble({ message, onQuickReply }) {
@@ -31,7 +44,8 @@ function Bubble({ message, onQuickReply }) {
 function Body({ messages, onQuickReply, sending }) {
   const endRef = useRef(null);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [messages, sending]);
-  return <main className="min-h-0 flex-1 overflow-y-auto bg-[#f6faf6] px-3 py-4 space-y-3" aria-label="Conversation Horizon">{messages.map((message) => <Bubble key={message.id} message={message} onQuickReply={onQuickReply} />)}{sending ? <div className="flex justify-start"><div className="rounded-[1.35rem] rounded-bl-md bg-white px-4 py-2 text-sm text-[#6f8b73] shadow-sm">Horizon écrit…</div></div> : null}<div ref={endRef} /></main>;
+  const showStarter = messages.length <= 1;
+  return <main className="min-h-0 flex-1 overflow-y-auto bg-[#f6faf6] px-3 py-4 space-y-3" aria-label="Conversation Horizon">{showStarter ? <StarterPanel onAsk={onQuickReply} /> : null}{messages.map((message) => <Bubble key={message.id} message={message} onQuickReply={onQuickReply} />)}{sending ? <div className="flex justify-start"><div className="rounded-[1.35rem] rounded-bl-md bg-white px-4 py-2 text-sm text-[#6f8b73] shadow-sm">Horizon réfléchit…</div></div> : null}<div ref={endRef} /></main>;
 }
 
 function Composer({ onSend, sending }) {
