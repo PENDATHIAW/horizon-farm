@@ -45,9 +45,24 @@ export function getLanguageLabel(language) {
   }[language] || 'Français';
 }
 
-export function shouldSpeakLanguage(language) {
-  // Avoid reading Wolof with a French browser voice. A dedicated Wolof TTS can replace this later.
-  return language !== 'wo';
+export function getSpeechRecognitionLang(language = 'fr') {
+  return {
+    wo: 'wo-SN',
+    fr: 'fr-FR',
+    en: 'en-US',
+  }[language] || 'fr-FR';
+}
+
+export function getSpeechSynthesisLang(language = 'fr') {
+  return {
+    wo: 'wo-SN',
+    fr: 'fr-FR',
+    en: 'en-US',
+  }[language] || 'fr-FR';
+}
+
+export function getReplyDisplayMode(reply = {}) {
+  return reply.language === 'wo' ? 'audio_only' : 'text';
 }
 
 export function buildFarmChatReply(input = '', context = {}) {
@@ -64,19 +79,22 @@ export function buildFarmChatReply(input = '', context = {}) {
     if (hasEggs) {
       return {
         language,
-        text: '🥚 Waaw, man naa la dimbali ci toppatoo nen yi. Bindal ma limu nen yi tey, ma wax la ndax production bi baax na walla dafa wàññi.',
+        displayMode: 'audio_only',
+        text: 'Waaw, man naa la dimbali ci toppatoo nen yi. Wax ma limu nen yi tey, ma wax la ndax production bi baax na walla dafa wàññi.',
         actionHint: 'egg_tracking',
       };
     }
     if (hasFeed) {
       return {
         language,
-        text: '🌾 Ci mbayum ganaar, ñam wu sell ak ndox mu set dañuy am solo. Wax ma ayu-bis bi ak atum ganaar yi, ma jox la ndigal bu gën a leer.',
+        displayMode: 'audio_only',
+        text: 'Ci mbayum ganaar, ñam wu sell ak ndox mu set dañuy am solo. Wax ma ayu-bis bi ak atum ganaar yi, ma jox la ndigal bu gën a leer.',
         actionHint: 'feeding_advice',
       };
     }
     return {
       language,
+      displayMode: 'audio_only',
       text: `Jërëjëf ${userName}. Maangi fii ngir la dimbali ci ferme bi. Mën nga wax ci wolof, français walla anglais. Lan nga bëgg ma toppatoo ?`,
       actionHint: 'general_help',
     };
@@ -86,6 +104,7 @@ export function buildFarmChatReply(input = '', context = {}) {
     if (hasFeed) {
       return {
         language,
+        displayMode: 'text',
         text: '🌿 For broilers this week: keep clean water available, feed at fixed times, monitor heat stress, and record daily consumption. I can turn this into a daily reminder when actions are connected.',
         actionHint: 'feeding_advice',
       };
@@ -93,12 +112,14 @@ export function buildFarmChatReply(input = '', context = {}) {
     if (hasPrice) {
       return {
         language,
+        displayMode: 'text',
         text: '📈 I can help track market prices. Next step: connect the chat to your ERP price/stock tables so I can answer with your real data instead of a generic estimate.',
         actionHint: 'market_prices',
       };
     }
     return {
       language,
+      displayMode: 'text',
       text: 'I’m ready. You can ask me about eggs, feed, stock, alerts, farm tasks, or market prices. I will keep the answer in the same language as your message.',
       actionHint: 'general_help',
     };
@@ -107,6 +128,7 @@ export function buildFarmChatReply(input = '', context = {}) {
   if (hasEggs) {
     return {
       language,
+      displayMode: 'text',
       text: '🥚 Je peux suivre la production d’œufs. Pour l’instant, donne-moi le nombre du jour et je te réponds avec une analyse simple. Prochaine étape : connexion aux vraies données ERP.',
       actionHint: 'egg_tracking',
     };
@@ -115,6 +137,7 @@ export function buildFarmChatReply(input = '', context = {}) {
   if (hasFeed) {
     return {
       language,
+      displayMode: 'text',
       text: '🌾 Pour l’alimentation : vérifie l’eau propre, la régularité des horaires, la température et la consommation par lot. Donne-moi l’âge du lot et je te propose un plan plus précis.',
       actionHint: 'feeding_advice',
     };
@@ -123,6 +146,7 @@ export function buildFarmChatReply(input = '', context = {}) {
   if (hasAlert) {
     return {
       language,
+      displayMode: 'text',
       text: '✅ Je peux préparer une alerte. Dis-moi le sujet, l’heure et la fréquence. Exemple : “Rappelle-moi de nourrir les poules chaque jour à 8h”.',
       actionHint: 'create_alert',
     };
@@ -130,17 +154,52 @@ export function buildFarmChatReply(input = '', context = {}) {
 
   return {
     language,
+    displayMode: 'text',
     text: 'Je suis prêt. Tu peux me parler en wolof, français ou anglais, à propos des œufs, de l’alimentation, des stocks, des alertes, des tâches ou des prix du marché.',
     actionHint: 'general_help',
   };
 }
 
-export function speakChatReply(reply) {
-  if (typeof window === 'undefined' || !reply?.text || !('speechSynthesis' in window)) return false;
-  if (!shouldSpeakLanguage(reply.language)) return false;
+export async function playWolofAudio(reply) {
+  const endpoint = import.meta.env?.VITE_WOLOF_TTS_ENDPOINT || '';
+  const apiKey = import.meta.env?.VITE_WOLOF_TTS_API_KEY || '';
+
+  if (endpoint) {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+      },
+      body: JSON.stringify({ text: reply.text, lang: 'wo-SN', voice: 'wolof' }),
+    });
+
+    if (!response.ok) throw new Error('Service audio wolof indisponible');
+
+    const blob = await response.blob();
+    const audioUrl = URL.createObjectURL(blob);
+    const audio = new Audio(audioUrl);
+    audio.onended = () => URL.revokeObjectURL(audioUrl);
+    await audio.play();
+    return true;
+  }
+
+  return false;
+}
+
+export async function speakChatReply(reply) {
+  if (!reply?.text) return false;
+
+  if (reply.language === 'wo') {
+    const played = await playWolofAudio(reply);
+    if (played) return true;
+    throw new Error('Aucun moteur vocal wolof connecté');
+  }
+
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return false;
 
   const utterance = new SpeechSynthesisUtterance(reply.text.replace(/[🥚🌿🌾📈✅]/g, '').trim());
-  utterance.lang = reply.language === 'en' ? 'en-US' : 'fr-FR';
+  utterance.lang = getSpeechSynthesisLang(reply.language);
   utterance.rate = 0.98;
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(utterance);
