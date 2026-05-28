@@ -1,1 +1,1 @@
-export { default } from './PilotageStrategieModule';
+export { default } from './VisionCroissanceModule';
