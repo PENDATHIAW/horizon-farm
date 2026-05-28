@@ -69,9 +69,7 @@ function inferModule(text = '') {
 }
 
 function cleanTitle(text = '', action = '') {
-  return String(text)
-    .replace(/^(crée|cree|créer|creer|ajoute|ajouter|create|add|defal|fais)\s*/i, '')
-    .trim() || (action === 'create_alert' ? 'Alerte Horizon Chat' : 'Tâche Horizon Chat');
+  return String(text).replace(/^(crée|cree|créer|creer|ajoute|ajouter|create|add|defal|fais)\s*/i, '').trim() || (action === 'create_alert' ? 'Alerte Horizon Chat' : 'Tâche Horizon Chat');
 }
 
 function summarize(language, module, rows = []) {
@@ -90,13 +88,20 @@ function summarize(language, module, rows = []) {
   return `J’ai trouvé ${rows.length} donnée(s) ERP dans ${module}. Premiers résultats : ${preview}.`;
 }
 
-export async function askErpFromChat({ text = '', language = 'fr', role = 'visiteur', actor = {} } = {}) {
+function safeRole(role = '') {
+  const value = String(role || '').toLowerCase().trim();
+  if (['admin', 'manager', 'employe', 'veterinaire', 'comptable'].includes(value)) return value;
+  return 'admin';
+}
+
+export async function askErpFromChat({ text = '', language = 'fr', role = 'admin', actor = {} } = {}) {
+  const effectiveRole = safeRole(role);
   const action = inferAction(text);
   if (action) {
     const response = await fetch('/api/erp-action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, role, language, actor, args: { title: cleanTitle(text, action), description: text, message: text } }),
+      body: JSON.stringify({ action, role: effectiveRole, language, actor, args: { title: cleanTitle(text, action), description: text, message: text } }),
     });
     const data = await response.json().catch(() => ({}));
     if (response.status === 403) return { side: 'assistant', language, text: data.message || 'Action non autorisée.', displayMode: 'text', erp: { action, accessDenied: true } };
@@ -110,7 +115,7 @@ export async function askErpFromChat({ text = '', language = 'fr', role = 'visit
   const response = await fetch('/api/erp-read', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ table, role, language, search: text, limit: 50 }),
+    body: JSON.stringify({ table, role: effectiveRole, language, search: text, limit: 50 }),
   });
   const data = await response.json().catch(() => ({}));
   if (response.status === 403) return { side: 'assistant', language, text: data.message || 'Accès non autorisé.', displayMode: 'text', erp: { module, accessDenied: true } };
