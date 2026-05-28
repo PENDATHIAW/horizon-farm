@@ -2,29 +2,35 @@ const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
-const ALLOWED_TABLES = [
-  'accounting_accounts','accounting_budgets','accounting_closures','accounting_documents','accounting_entries','accounting_entry_lines',
-  'alert_events','alert_rules','alertes','alertes_center','alertes_history','alertes_settings','alimentation','alimentation_logs',
-  'animal_health_records','animal_purchases','animal_weight_records','animals','api_webhooks','audit_logs','automation_settings',
-  'bp_funding_sources','bp_investment_lines','bp_lines_history','bp_links','bp_recurring_costs','bp_revenue_projections','bp_risks','bp_versions',
-  'business_events','business_plans','camera_devices','client_receivables','clients','couts','cultures','deliveries','documents','employes','equipment',
-  'erp_documents','finances','fournisseurs','intervention_medications','investissements','investments','invoices','localisation','logs','lots','meteo',
-  'notifications','objectifs','offline_queue','payments','price_catalog','production','production_oeufs_logs','push_subscriptions','recommandations',
-  'reports','reproduction_events','sales','sales_opportunities','sales_order_items','sales_orders','sante','score_ferme','security_events','sensor_devices',
-  'sensor_readings','stock','stocks','system_settings'
-];
+const BLOCKED_TABLES = ['system_settings'];
 
 const ROLE_TABLES = {
   admin: ['*'],
   manager: ['*'],
-  employe: ['animals','animal_health_records','animal_weight_records','animal_purchases','lots','production','production_oeufs_logs','alimentation','alimentation_logs','stock','stocks','cultures','documents','erp_documents','equipment','alertes_center','alert_events','notifications','recommandations','audit_logs','sales','clients','fournisseurs','price_catalog'],
-  veterinaire: ['animals','animal_health_records','intervention_medications','sante','lots','alertes_center','alert_events','documents','erp_documents','audit_logs','reproduction_events'],
-  comptable: ['finances','payments','invoices','accounting_accounts','accounting_budgets','accounting_closures','accounting_documents','accounting_entries','accounting_entry_lines','clients','client_receivables','sales','sales_orders','sales_order_items','deliveries','fournisseurs','investissements','business_plans','bp_funding_sources','bp_investment_lines','bp_recurring_costs','bp_revenue_projections','reports','documents','erp_documents','alertes_center','audit_logs'],
+  employe: [
+    'animals','animal_health_records','animal_weight_records','animal_purchases','lots','production','production_oeufs_logs',
+    'alimentation','alimentation_logs','stock','stocks','cultures','documents','erp_documents','equipment',
+    'taches','tasks','alertes_center','alert_events','notifications','recommandations','audit_logs','sales','clients','fournisseurs','price_catalog'
+  ],
+  veterinaire: [
+    'animals','animal_health_records','intervention_medications','sante','lots','taches','tasks','alertes_center','alert_events',
+    'documents','erp_documents','audit_logs','reproduction_events'
+  ],
+  comptable: [
+    'finances','transactions','payments','invoices','accounting_accounts','accounting_budgets','accounting_closures',
+    'accounting_documents','accounting_entries','accounting_entry_lines','clients','client_receivables','sales','sales_orders',
+    'sales_order_items','deliveries','fournisseurs','investissements','business_plans','reports','documents','erp_documents',
+    'taches','tasks','alertes_center','audit_logs'
+  ],
   visiteur: [],
 };
 
 function send(res, status, payload) {
   return res.status(status).json(payload);
+}
+
+function isSafeTableName(table) {
+  return /^[a-zA-Z0-9_]+$/.test(table) && !BLOCKED_TABLES.includes(table);
 }
 
 function canRead(role, table) {
@@ -75,7 +81,7 @@ export default async function handler(req, res) {
     const search = String(body.search || '').trim();
     const limit = Math.min(Math.max(Number(body.limit) || 50, 1), 100);
 
-    if (!ALLOWED_TABLES.includes(table)) return send(res, 400, { error: 'ERP table not allowed.', allowedTables: ALLOWED_TABLES });
+    if (!isSafeTableName(table)) return send(res, 400, { error: 'ERP table not allowed.' });
     if (!canRead(role, table)) return send(res, 403, { error: 'access_denied', message: denyMessage(language), role, table });
 
     let rows;
