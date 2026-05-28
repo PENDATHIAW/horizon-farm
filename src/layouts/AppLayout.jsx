@@ -25,10 +25,16 @@ const NAV_GROUPS = [
 ];
 
 function collapseNavItems(navItems = []) {
+  const strategicIds = new Set(['centre_ia', 'objectifs_croissance', 'impact_business']);
+  const strategicItems = navItems.filter((item) => strategicIds.has(item.id));
   const opsIds = new Set(['rh', 'equipements', 'smartfarm']);
   const opsItems = navItems.filter((item) => opsIds.has(item.id));
-  const collapsed = navItems.filter((item) => !['equipements', 'smartfarm'].includes(item.id));
-  return collapsed.map((item) => item.id === 'rh' ? { ...item, label: 'Opérations & Ressources', icon: UserCog, hasAlert: opsItems.some((entry) => entry.hasAlert) } : item);
+  const collapsed = navItems.filter((item) => !['objectifs_croissance', 'impact_business', 'equipements', 'smartfarm'].includes(item.id));
+  return collapsed.map((item) => {
+    if (item.id === 'centre_ia') return { ...item, label: 'Vision & Croissance', hasAlert: strategicItems.some((entry) => entry.hasAlert) };
+    if (item.id === 'rh') return { ...item, label: 'Opérations & Ressources', icon: UserCog, hasAlert: opsItems.some((entry) => entry.hasAlert) };
+    return item;
+  });
 }
 function getNavGroupKey(item = {}) {
   const text = normalize(`${item.id || ''} ${item.label || ''}`);
