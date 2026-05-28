@@ -1,0 +1,72 @@
+import { AlertTriangle, BarChart3, BrainCircuit, ClipboardList, FileText, Goal, Lightbulb, LineChart, Scale, Sparkles, TrendingUp } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { fmtCurrency, fmtNumber } from '../utils/format';
+
+const arr = (v) => Array.isArray(v) ? v : [];
+const low = (v) => String(v || '').toLowerCase();
+const n = (v = 0) => Number(v || 0);
+const amount = (r = {}) => n(r.montant ?? r.amount ?? r.total ?? r.montant_total ?? r.valeur ?? r.value);
+const label = (r = {}) => r.title || r.nom || r.name || r.libelle || r.description || r.id || 'Élément';
+const dateOf = (r = {}) => r.date || r.event_date || r.created_at || r.updated_at || '—';
+const isIncome = (r = {}) => ['entree', 'entrée', 'income', 'recette', 'vente'].includes(low(r.type || r.nature || r.sens));
+const isExpense = (r = {}) => ['sortie', 'expense', 'depense', 'dépense', 'achat', 'charge'].includes(low(r.type || r.nature || r.sens));
+const isOpen = (r = {}) => !['termine', 'terminé', 'closed', 'clos', 'resolu', 'résolu', 'done'].includes(low(r.status || r.statut || r.state));
+const isRisk = (r = {}) => ['retard', 'critique', 'urgent', 'malade', 'panne', 'hors_service', 'impaye', 'partiel', 'a_risque'].some((x) => low(`${r.status || ''} ${r.statut || ''} ${r.priority || ''} ${r.severity || ''} ${r.health_status || ''}`).includes(x));
+const score = (good, total) => total ? Math.round((good / total) * 100) : 100;
+
+function Stat({ label, value, tone = 'neutral' }) { const cls = tone === 'good' ? 'text-emerald-600' : tone === 'warn' ? 'text-amber-600' : tone === 'bad' ? 'text-red-600' : 'text-[#2f2415]'; return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">{label}</p><p className={`mt-1 text-xl font-black ${cls}`}>{value}</p></div>; }
+function Section({ icon: Icon, title, children, action }) { return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</h2>{action}</div>{children}</section>; }
+function Button({ children, onClick }) { return <button type="button" onClick={onClick} className="rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]">{children}</button>; }
+function Pill({ children, tone = 'neutral' }) { const cls = tone === 'good' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : tone === 'warn' ? 'border-amber-200 bg-amber-50 text-amber-700' : tone === 'bad' ? 'border-red-200 bg-red-50 text-red-700' : 'border-[#eadcc2] bg-[#fffdf8] text-[#8a7456]'; return <span className={`rounded-full border px-3 py-1 text-xs font-black ${cls}`}>{children}</span>; }
+function Row({ title, detail, value, tone = 'neutral', onClick }) { return <button type="button" onClick={onClick} className="grid w-full grid-cols-1 gap-2 border-b border-[#eadcc2]/70 py-4 text-left last:border-b-0 md:grid-cols-[260px_1fr_auto] md:items-center hover:bg-[#fffdf8]"><span className="font-black text-[#2f2415]">{title}</span><span className="text-sm text-[#8a7456]">{detail}</span><Pill tone={tone}>{value}</Pill></button>; }
+function Empty({ children }) { return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-5 text-sm text-[#8a7456]">{children}</div>; }
+function Tabs({ active, onChange }) { const tabs = ['Résumé', 'Décisions', 'Objectifs', 'Croissance', 'Opportunités', 'Valeur', 'Recommandations', 'Documents']; return <div className="overflow-x-auto"><div className="flex min-w-max gap-2 rounded-2xl border border-[#d6c3a0] bg-white p-2">{tabs.map((tab) => <button key={tab} type="button" onClick={() => onChange(tab)} className={`rounded-xl px-4 py-2 text-sm font-black transition ${active === tab ? 'bg-[#22c55e] text-[#052e16]' : 'text-[#8a7456] hover:bg-[#fffdf8] hover:text-[#2f2415]'}`}>{tab}</button>)}</div></div>; }
+
+function Summary({ data, setTab }) { return <div className="space-y-5"><div className="grid grid-cols-2 gap-3 xl:grid-cols-5"><Stat label="Santé globale" value={`${data.globalScore}/100`} tone={data.globalScore >= 75 ? 'good' : 'warn'} /><Stat label="Trésorerie" value={fmtCurrency(data.balance)} tone={data.balance >= 0 ? 'good' : 'bad'} /><Stat label="Priorités" value={fmtNumber(data.priorities.length)} tone={data.priorities.length ? 'warn' : 'good'} /><Stat label="Objectifs" value={fmtNumber(data.goals.length)} /><Stat label="Opportunités" value={fmtNumber(data.opportunities.length)} tone="good" /></div><Section icon={AlertTriangle} title="Ce qui mérite ton attention" action={<Button onClick={() => setTab('Décisions')}>Décisions</Button>}>{data.priorities.length ? data.priorities.slice(0, 8).map((r) => <Row key={r.id} title={r.title} detail={r.detail} value={r.value} tone={r.tone} onClick={() => setTab(r.tab)} />) : <Empty>Aucune priorité critique détectée.</Empty>}</Section></div>; }
+function Decisions({ data }) { return <Section icon={BrainCircuit} title="Décisions prioritaires">{data.priorities.length ? data.priorities.map((r) => <Row key={r.id} title={r.title} detail={r.detail} value={r.value} tone={r.tone} />) : <Empty>Aucune décision urgente.</Empty>}</Section>; }
+function Goals({ data }) { return <Section icon={Goal} title="Objectifs & plans d’action">{data.goals.length ? data.goals.slice(0, 12).map((r) => <Row key={r.id || label(r)} title={label(r)} detail={`${r.status || r.statut || 'Objectif'} · ${dateOf(r)}`} value={fmtCurrency(amount(r))} />) : <Empty>Aucun objectif renseigné. Les objectifs peuvent venir des business plans, investissements et plans d’action.</Empty>}</Section>; }
+function Growth({ data }) { return <div className="space-y-5"><div className="grid grid-cols-2 gap-3 xl:grid-cols-4"><Stat label="Recettes" value={fmtCurrency(data.income)} tone="good" /><Stat label="Charges" value={fmtCurrency(data.expenses)} tone="warn" /><Stat label="Marge estimée" value={fmtCurrency(data.margin)} tone={data.margin >= 0 ? 'good' : 'bad'} /><Stat label="Production" value={fmtNumber(data.productionCount)} /></div><Section icon={LineChart} title="Indicateurs de croissance"><Row title="Commercial" detail={`${fmtNumber(data.sales.length)} vente(s), ${fmtNumber(data.clients.length)} client(s)`} value={fmtCurrency(data.salesAmount)} tone="good" /><Row title="Production" detail={`${fmtNumber(data.animaux.length)} animaux, ${fmtNumber(data.lots.length)} lots, ${fmtNumber(data.cultures.length)} cultures`} value="Suivi" /><Row title="Finance" detail={`Recettes ${fmtCurrency(data.income)} · charges ${fmtCurrency(data.expenses)}`} value={data.margin >= 0 ? 'Rentable' : 'À corriger'} tone={data.margin >= 0 ? 'good' : 'warn'} /></Section></div>; }
+function Opportunities({ data }) { return <Section icon={TrendingUp} title="Opportunités business">{data.opportunities.length ? data.opportunities.slice(0, 12).map((r) => <Row key={r.id || label(r)} title={label(r)} detail={`${r.client_nom || r.customer_name || r.notes || 'Opportunité'} · ${dateOf(r)}`} value={fmtCurrency(amount(r))} tone="good" />) : <Empty>Aucune opportunité ouverte.</Empty>}</Section>; }
+function Value({ data }) { return <div className="space-y-5"><div className="grid grid-cols-2 gap-3 xl:grid-cols-4"><Stat label="Valeur stock" value={fmtCurrency(data.stockValue)} /><Stat label="Investissements" value={fmtCurrency(data.investmentValue)} /><Stat label="Créances/à encaisser" value={fmtCurrency(data.receivable)} tone={data.receivable ? 'warn' : 'good'} /><Stat label="Valeur estimée" value={fmtCurrency(data.estimatedValue)} tone="good" /></div><Section icon={Scale} title="Valeur & impact"><Row title="Exploitation" detail="Stock + investissements + marge estimée" value={fmtCurrency(data.estimatedValue)} tone="good" /><Row title="Preuves financeurs" detail={`${fmtNumber(data.documents.length)} document(s), ${fmtNumber(data.missingProof)} preuve(s) manquante(s)`} value={data.missingProof ? 'À compléter' : 'OK'} tone={data.missingProof ? 'warn' : 'good'} /></Section></div>; }
+function Recommendations({ data }) { return <Section icon={Sparkles} title="Recommandations Horizon">{data.recommendations.map((r) => <Row key={r.title} title={r.title} detail={r.detail} value={r.value} tone={r.tone} />)}</Section>; }
+function Documents({ data }) { return <Section icon={FileText} title="Documents stratégiques">{data.documents.length ? data.documents.slice(0, 12).map((r) => <Row key={r.id || label(r)} title={label(r)} detail={`${r.type || r.categorie || 'Document'} · ${dateOf(r)}`} value="Doc" />) : <Empty>Aucun document stratégique.</Empty>}</Section>; }
+
+export default function VisionCroissanceModule({ dataMap = {}, animaux = [], lots = [], cultures = [], stocks = [], clients = [], salesOrders = [], payments = [], finances = [], transactions = [], investissements = [], businessPlans = [], documents = [], alertes = [], taches = [], opportunities = [], salesOpportunities = [] }) {
+  const [tab, setTab] = useState('Résumé');
+  const data = useMemo(() => {
+    const allAnimals = arr(animaux).length ? arr(animaux) : arr(dataMap.animaux);
+    const allLots = arr(lots).length ? arr(lots) : arr(dataMap.lots || dataMap.avicole);
+    const allCultures = arr(cultures).length ? arr(cultures) : arr(dataMap.cultures);
+    const allStocks = arr(stocks).length ? arr(stocks) : arr(dataMap.stocks || dataMap.stock);
+    const allClients = arr(clients).length ? arr(clients) : arr(dataMap.clients);
+    const sales = arr(salesOrders).length ? arr(salesOrders) : arr(dataMap.salesOrders || dataMap.sales_orders);
+    const tx = [...arr(finances), ...arr(transactions), ...arr(dataMap.finances), ...arr(dataMap.transactions)].filter(Boolean);
+    const plans = arr(businessPlans).length ? arr(businessPlans) : arr(dataMap.business_plans);
+    const invest = arr(investissements).length ? arr(investissements) : arr(dataMap.investissements);
+    const docs = arr(documents).length ? arr(documents) : arr(dataMap.documents);
+    const opps = [...arr(opportunities), ...arr(salesOpportunities), ...arr(dataMap.sales_opportunities)].filter(Boolean);
+    const openAlerts = arr(alertes).filter(isOpen);
+    const openTasks = arr(taches).filter(isOpen);
+    const income = tx.filter(isIncome).reduce((s, r) => s + amount(r), 0);
+    const expenses = tx.filter((r) => isExpense(r) || (!isIncome(r) && amount(r) > 0)).reduce((s, r) => s + amount(r), 0);
+    const salesAmount = sales.reduce((s, r) => s + amount(r), 0);
+    const stockValue = allStocks.reduce((s, r) => s + n(r.quantite ?? r.quantity ?? r.stock) * n(r.prix_unitaire ?? r.unit_price ?? r.price), 0);
+    const investmentValue = invest.reduce((s, r) => s + amount(r), 0);
+    const missingProof = tx.filter((r) => amount(r) > 0 && !r.document_id && !r.proof_url && !r.justificatif_id).length;
+    const riskCount = allAnimals.filter(isRisk).length + allLots.filter(isRisk).length + allCultures.filter(isRisk).length + openAlerts.length + openTasks.filter(isRisk).length;
+    const totalObjects = allAnimals.length + allLots.length + allCultures.length + openAlerts.length + openTasks.length + 1;
+    const priorities = [
+      ...openAlerts.slice(0, 4).map((r) => ({ id: `a-${r.id || label(r)}`, title: label(r), detail: r.message || r.description || 'Alerte ouverte', value: 'Alerte', tone: 'warn', tab: 'Décisions' })),
+      ...openTasks.filter(isRisk).slice(0, 4).map((r) => ({ id: `t-${r.id || label(r)}`, title: label(r), detail: 'Tâche prioritaire', value: 'Action', tone: 'warn', tab: 'Décisions' })),
+      ...(missingProof ? [{ id: 'proofs', title: 'Preuves manquantes', detail: `${missingProof} justificatif(s) à compléter`, value: 'Documents', tone: 'warn', tab: 'Documents' }] : []),
+    ];
+    const recommendations = [
+      { title: 'Relancer les opportunités commerciales', detail: `${opps.length} opportunité(s) ouvertes ou produits à pousser`, value: 'Commercial', tone: opps.length ? 'good' : 'neutral' },
+      { title: 'Compléter les preuves financières', detail: `${missingProof} écriture(s) sans justificatif`, value: missingProof ? 'À faire' : 'OK', tone: missingProof ? 'warn' : 'good' },
+      { title: 'Sécuriser la production', detail: `${riskCount} point(s) à surveiller sur élevage, cultures ou suivi`, value: riskCount ? 'Suivre' : 'OK', tone: riskCount ? 'warn' : 'good' },
+    ];
+    return { animaux: allAnimals, lots: allLots, cultures: allCultures, stocks: allStocks, clients: allClients, sales, payments: arr(payments), income, expenses, balance: income - expenses, margin: income - expenses, salesAmount, stockValue, investmentValue, receivable: Math.max(0, salesAmount - arr(payments).reduce((s, r) => s + amount(r), 0)), estimatedValue: stockValue + investmentValue + Math.max(0, income - expenses), productionCount: allAnimals.length + allLots.length + allCultures.length, goals: [...plans, ...invest], opportunities: opps, documents: docs, missingProof, priorities, recommendations, globalScore: score(totalObjects - riskCount, totalObjects) };
+  }, [dataMap, animaux, lots, cultures, stocks, clients, salesOrders, payments, finances, transactions, investissements, businessPlans, documents, alertes, taches, opportunities, salesOpportunities]);
+  const content = tab === 'Résumé' ? <Summary data={data} setTab={setTab} /> : tab === 'Décisions' ? <Decisions data={data} /> : tab === 'Objectifs' ? <Goals data={data} /> : tab === 'Croissance' ? <Growth data={data} /> : tab === 'Opportunités' ? <Opportunities data={data} /> : tab === 'Valeur' ? <Value data={data} /> : tab === 'Recommandations' ? <Recommendations data={data} /> : <Documents data={data} />;
+  return <div className="space-y-6"><section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-6 shadow-sm"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Pilotage</p><h1 className="mt-1 text-3xl font-black text-[#2f2415]">Vision & Croissance</h1><p className="mt-2 text-sm text-[#8a7456] max-w-3xl">Une seule vue pour décider, suivre les objectifs, mesurer la valeur de la ferme et préparer la croissance.</p></div><Button onClick={() => setTab('Décisions')}>Voir les décisions</Button></div></section><Tabs active={tab} onChange={setTab} />{content}</div>;
+}
