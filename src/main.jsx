@@ -5,7 +5,7 @@ import App from './App';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
 import ChatPage from './pages/ChatPage';
-import LoginPage from './pages/LoginPage';
+import ChatLoginPage from './pages/ChatLoginPage';
 import { registerServiceWorker } from './services/pwa';
 import './index.css';
 
@@ -53,7 +53,7 @@ function RootRouter() {
   if (!isChatRoute) return <App />;
 
   if (loading) return <ChatPage />;
-  if (!user) return <LoginPage />;
+  if (!user) return <ChatLoginPage />;
 
   return <ChatPage />;
 }
