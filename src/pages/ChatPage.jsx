@@ -38,7 +38,7 @@ export default function ChatPage() {
   const [message, setMessage] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [notice, setNotice] = useState('');
-  const [messages, setMessages] = useState(() => [{ id: 1, side: 'assistant', text: 'Bienvenue sur Horizon Chat. Posez une question sur votre ERP.', time: nowTime(), language: 'fr' }]);
+  const [messages, setMessages] = useState(() => [{ id: 1, side: 'assistant', text: 'Bienvenue sur Horizon Chat. Posez librement une question sur votre ERP.', time: nowTime(), language: 'fr' }]);
 
   const role = roleOf(user, profile, authRole);
   const displayName = profile?.full_name || user?.email?.split('@')?.[0] || 'Horizon user';
@@ -54,7 +54,7 @@ export default function ChatPage() {
     setIsThinking(true);
     try {
       const reply = await askErpFromChat({ text, language, role, actor: { userId: user?.id, email: user?.email } });
-      addMessage(reply || { side: 'assistant', language, text: 'Je suis prêt. Posez une question sur une partie précise de l’ERP.' });
+      addMessage(reply || { side: 'assistant', language, text: 'Je suis prêt. Posez une question sur une partie précise de l’ERP, ou demandez une analyse.' });
     } catch (error) {
       addMessage({ side: 'assistant', language, text: error.message || 'Assistant ERP indisponible.', status: 'Erreur ERP' });
     } finally {
@@ -85,7 +85,7 @@ export default function ChatPage() {
         </header>
 
         <div className="flex-1 space-y-3 overflow-y-auto bg-[#efe7dc] px-4 py-4">
-          <div className="mx-auto w-fit rounded-xl bg-[#fff4cf] px-4 py-2 text-center text-xs font-semibold text-[#5f5333] shadow-sm">Assistant ERP • données temps réel</div>
+          <div className="mx-auto w-fit rounded-xl bg-[#fff4cf] px-4 py-2 text-center text-xs font-semibold text-[#5f5333] shadow-sm">Assistant ERP • questions libres • analyses</div>
           {messages.map((item) => {
             const isUser = item.side === 'user';
             return (
@@ -111,11 +111,8 @@ export default function ChatPage() {
             <span className="text-[11px] font-semibold text-[#7b6b5c]">{language.toUpperCase()}</span>
           </div>
           {notice ? <div className="mb-2 rounded-xl bg-white/80 px-3 py-2 text-[11px] font-bold text-[#607167] shadow-sm">{notice}</div> : null}
-          <div className="mb-2 flex gap-2 overflow-x-auto pb-1">
-            {['Dernière alerte','Tâche la plus récente','Combien de lots de pondeuses existent ?','Montre la production d’œufs'].map((prompt) => <button key={prompt} type="button" onClick={() => sendText(prompt)} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-[#075e54] shadow-sm ring-1 ring-black/5">{prompt}</button>)}
-          </div>
           <form onSubmit={(event) => { event.preventDefault(); sendText(); }} className="flex items-center gap-2">
-            <div className="flex min-w-0 flex-1 items-center rounded-full bg-white px-3 py-2 shadow-sm"><input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Demande quelque chose à l’ERP" className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[#8b948f]" /></div>
+            <div className="flex min-w-0 flex-1 items-center rounded-full bg-white px-3 py-2 shadow-sm"><input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Posez une question libre à l’ERP" className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[#8b948f]" /></div>
             <button type={canSend ? 'submit' : 'button'} className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#008069] text-white shadow-lg" disabled={!canSend}>{canSend ? <Send size={20} /> : <Mic size={24} />}</button>
           </form>
         </footer>
