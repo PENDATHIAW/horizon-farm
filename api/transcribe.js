@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     }
 
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
-    const audioBase64 = normalizeBase64(body.audioBase64);
+    const audioBase64 = normalizeBase64(body.audioBase64 || body.audioData || '');
     const mimeType = body.mimeType || 'audio/webm';
     const language = body.language || 'wo';
 
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     const form = new FormData();
     form.append('model', process.env.OPENAI_TRANSCRIBE_MODEL || 'gpt-4o-mini-transcribe');
     form.append('file', new Blob([audioBuffer], { type: mimeType }), `voice-note.${extension}`);
-    form.append('prompt', 'This is a short farming voice note for Horizon Farm. It may be in Wolof, French, or English. Preserve Wolof words as accurately as possible.');
+    form.append('prompt', 'Short farming voice note for Horizon Farm. It may be in Wolof, French, or English. Preserve Wolof words as accurately as possible.');
     if (language && language !== 'auto') form.append('language', language === 'wo-SN' ? 'wo' : language);
 
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
