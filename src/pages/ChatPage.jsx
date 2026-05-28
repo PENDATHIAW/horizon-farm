@@ -12,6 +12,26 @@ function roleOf(user, profile, role) {
   return 'admin';
 }
 
+function DataTable({ table }) {
+  if (!table?.columns?.length || !table?.rows?.length) return null;
+  return (
+    <div className="mt-3 max-w-full overflow-x-auto rounded-2xl border border-emerald-100 bg-white/80">
+      <table className="min-w-full text-left text-[11px]">
+        <thead className="bg-emerald-50 text-[#075e54]">
+          <tr>{table.columns.map((col) => <th key={col} className="whitespace-nowrap px-3 py-2 font-black uppercase tracking-wide">{col.replaceAll('_', ' ')}</th>)}</tr>
+        </thead>
+        <tbody>
+          {table.rows.map((row, index) => (
+            <tr key={index} className="border-t border-emerald-50">
+              {row.map((cell, cellIndex) => <td key={cellIndex} className="max-w-[170px] whitespace-nowrap px-3 py-2 text-[#263b31]">{cell}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function ChatPage() {
   const { user, profile, role: authRole, loading, signOut } = useAuth();
   const [language, setLanguage] = useState('fr');
@@ -54,9 +74,9 @@ export default function ChatPage() {
   if (loading) return <main className="grid min-h-dvh place-items-center bg-white text-[#075e54]"><p className="text-sm font-black">Chargement Horizon Chat…</p></main>;
 
   return (
-    <main className="min-h-dvh bg-white md:grid md:place-items-center md:px-4 md:py-4">
-      <section className="mx-auto flex h-dvh w-full max-w-[430px] flex-col overflow-hidden bg-[#efe7dc] shadow-2xl md:h-[880px] md:rounded-[2.5rem] md:border-[9px] md:border-[#101010]">
-        <header className="shrink-0 bg-[#075e54] px-4 pb-3 pt-4 text-white">
+    <main className="min-h-dvh bg-gradient-to-br from-white via-[#f3fbf4] to-[#e7f5e9] md:grid md:place-items-center md:px-4 md:py-4">
+      <section className="mx-auto flex h-dvh w-full max-w-[450px] flex-col overflow-hidden bg-[#efe7dc] shadow-2xl md:h-[890px] md:rounded-[2.7rem] md:border-[9px] md:border-[#101010]">
+        <header className="shrink-0 bg-gradient-to-r from-[#064d43] to-[#08745f] px-4 pb-3 pt-4 text-white">
           <div className="flex items-center gap-3">
             <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-white"><img src={brandLogo} alt="Horizon Farm" className="h-full w-full object-contain p-1" /></div>
             <div className="min-w-0 flex-1"><h1 className="truncate text-xl font-black">Horizon Farm</h1><p className="truncate text-sm text-white/80">{displayName} • {role}</p></div>
@@ -65,15 +85,16 @@ export default function ChatPage() {
         </header>
 
         <div className="flex-1 space-y-3 overflow-y-auto bg-[#efe7dc] px-4 py-4">
-          <div className="mx-auto w-fit rounded-xl bg-[#fff4cf] px-4 py-2 text-center text-xs font-semibold text-[#5f5333] shadow-sm">Messages protégés • données ERP</div>
+          <div className="mx-auto w-fit rounded-xl bg-[#fff4cf] px-4 py-2 text-center text-xs font-semibold text-[#5f5333] shadow-sm">Assistant ERP • données temps réel</div>
           {messages.map((item) => {
             const isUser = item.side === 'user';
             return (
               <div key={item.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[82%] rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed shadow-sm ${isUser ? 'rounded-tr-md bg-[#d9fdd3] text-[#1f2c22]' : 'rounded-tl-md bg-white text-[#1f1f1f]'}`}>
+                <div className={`${item.table ? 'max-w-[96%]' : 'max-w-[82%]'} rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed shadow-sm ${isUser ? 'rounded-tr-md bg-[#d9fdd3] text-[#1f2c22]' : 'rounded-tl-md bg-white text-[#1f1f1f]'}`}>
                   <p className="whitespace-pre-line">{item.text}</p>
+                  <DataTable table={item.table} />
                   {item.status ? <div className="mt-2 rounded-xl bg-white/70 px-2 py-1 text-[11px] font-bold text-[#607167]">{item.status}</div> : null}
-                  {item.erp ? <div className="mt-2 rounded-xl bg-[#eef8f1] px-2 py-1 text-[11px] font-black text-[#075e54]">ERP • {item.erp.module || item.erp.table || item.erp.action}</div> : null}
+                  {item.erp ? <div className="mt-2 rounded-xl bg-[#eef8f1] px-2 py-1 text-[11px] font-black text-[#075e54]">ERP • {item.erp.module || item.erp.table || item.erp.action}{item.erp.intent ? ` • ${item.erp.intent}` : ''}</div> : null}
                   <div className="mt-1 text-right text-[11px] text-[#8a8a8a]">{item.time}</div>
                 </div>
               </div>
@@ -91,12 +112,7 @@ export default function ChatPage() {
           </div>
           {notice ? <div className="mb-2 rounded-xl bg-white/80 px-3 py-2 text-[11px] font-bold text-[#607167] shadow-sm">{notice}</div> : null}
           <div className="mb-2 flex gap-2 overflow-x-auto pb-1">
-            {[
-              'Montre les tâches',
-              'Montre la production d’œufs',
-              'Quels équipements sont en panne ?',
-              'Montre les ventes',
-            ].map((prompt) => <button key={prompt} type="button" onClick={() => sendText(prompt)} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-[#075e54] shadow-sm ring-1 ring-black/5">{prompt}</button>)}
+            {['Dernière alerte','Tâche la plus récente','Combien de lots de pondeuses existent ?','Montre la production d’œufs'].map((prompt) => <button key={prompt} type="button" onClick={() => sendText(prompt)} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-[#075e54] shadow-sm ring-1 ring-black/5">{prompt}</button>)}
           </div>
           <form onSubmit={(event) => { event.preventDefault(); sendText(); }} className="flex items-center gap-2">
             <div className="flex min-w-0 flex-1 items-center rounded-full bg-white px-3 py-2 shadow-sm"><input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Demande quelque chose à l’ERP" className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[#8b948f]" /></div>
