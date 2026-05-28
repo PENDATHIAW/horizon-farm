@@ -2,72 +2,41 @@ import { CheckCheck, LogOut, Mic, Paperclip, Phone, Play, Send, Smile, Square, V
 import { useMemo, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getLanguageLabel, speakChatReply } from '../services/chatIntelligence';
+import { askErpFromChat } from '../services/erpChatBridge';
 import { transcribeVoiceNote } from '../services/voiceTranscription';
 
 const brandLogo = '/brand-logo.png';
 
 const quickPrompts = [
-  { label: 'Production d’œufs', action: 'egg_tracking', fr: 'Production d’œufs', en: 'Egg production today', wo: 'ñata nen ngeen am tey ?' },
-  { label: 'Alimentation', action: 'feeding_advice', fr: 'Alimentation', en: 'What should I feed broilers this week?', wo: 'naka laa wara dundale ganaar yi ?' },
-  { label: 'Prix du marché', action: 'market_prices', fr: 'Prix du marché', en: 'Market prices', wo: 'naka laay toppatoo njëgu marse bi ?' },
-  { label: 'Créer une alerte', action: 'create_alert', fr: 'Créer une alerte', en: 'Create a reminder', wo: 'defal ma fàttaliku' },
+  { label: 'Équipements', fr: 'Quels équipements demandent une attention ?', en: 'Which equipment needs attention?', wo: 'Ban jumtukaay lañu wara seet ?' },
+  { label: 'Tâches', fr: 'Quelles tâches sont en retard ?', en: 'Which tasks are late?', wo: 'Yan liggéey yi lañu yeex ?' },
+  { label: 'Clients', fr: 'Quels clients ont un suivi à faire ?', en: 'Which clients need follow-up?', wo: 'Yan client lañu wara toppatoo ?' },
+  { label: 'Alertes', fr: 'Montre-moi les alertes importantes', en: 'Show me important alerts', wo: 'Won ma alert yi am solo' },
 ];
 
 const audioByAction = {
-  welcome: '/audio/wolof/welcome.mp3',
+  fallback: '/audio/wolof/fallback.mp3',
   egg_tracking: '/audio/wolof/egg-tracking.mp3',
   feeding_advice: '/audio/wolof/feeding-advice.mp3',
   market_prices: '/audio/wolof/market-price.mp3',
   create_alert: '/audio/wolof/create-alert.mp3',
-  fallback: '/audio/wolof/fallback.mp3',
 };
 
-const replyTexts = {
-  fr: {
-    egg_tracking: '🥚 Je peux suivre la production d’œufs. Donne-moi le nombre du jour et je te réponds avec une analyse simple.',
-    feeding_advice: '🌾 Pour l’alimentation : vérifie l’eau propre, la régularité des horaires, la température et la consommation par lot.',
-    market_prices: '📈 Je peux suivre les prix du marché. Dès que l’ERP est connecté, je répondrai avec les vraies données.',
-    create_alert: '✅ Je peux préparer une alerte. Dis-moi le sujet, l’heure et la fréquence.',
-    fallback: 'Je suis prêt. Pose-moi une question sur la ferme, les œufs, l’alimentation, les stocks ou les alertes.',
-  },
-  en: {
-    egg_tracking: '🥚 I can help track egg production. Tell me today’s number and I’ll give you a simple analysis.',
-    feeding_advice: '🌿 For feeding: keep clean water available, feed at fixed times, and monitor daily consumption.',
-    market_prices: '📈 I can help track market prices. Once ERP data is connected, I’ll answer with real figures.',
-    create_alert: '✅ I can prepare a reminder. Tell me the subject, time, and frequency.',
-    fallback: 'I’m ready. Ask me about eggs, feeding, stock, alerts, farm tasks, or market prices.',
-  },
-  wo: {
-    egg_tracking: 'Waaw, man naa la dimbali ci toppatoo nen yi. Wax ma ñaata nen ngeen am tey.',
-    feeding_advice: 'Ci mbayum ganaar, ñam wu sell ak ndox mu set dañuy am solo. Wax ma ni lot bi mel.',
-    market_prices: 'Man naa la dimbali ci toppatoo njëgu marse bi. Wax ma produit bi ak marse bi.',
-    create_alert: 'Waaw, man naa defal la fàttali. Wax ma lu ma wara fàttali ak waxtu wi.',
-    fallback: 'Jërëjëf. Maangi fii ngir la dimbali ci ferme bi. Lan nga bëgg ma toppatoo ?',
-  },
+const fallbackReplies = {
+  fr: 'Je suis prêt. Pose-moi une question sur n’importe quelle partie de l’ERP Horizon Farm : animaux, ventes, finances, équipements, tâches, alertes, cultures, documents ou stocks.',
+  en: 'I’m ready. Ask me about any Horizon Farm ERP area: animals, sales, finance, equipment, tasks, alerts, crops, documents, or stock.',
+  wo: 'Maangi fii. Mën nga laaj lu jëm ci ERP Horizon Farm: jur, jaay, xaalis, jumtukaay, liggéey, alert, tool yi, document walla stock.',
 };
 
 const nowTime = () => new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
-function resolveAction(text = '', forcedAction) {
-  if (forcedAction) return forcedAction;
-  const value = String(text).toLowerCase();
-  if (/(oeuf|œuf|egg|nen|production)/i.test(value)) return 'egg_tracking';
-  if (/(aliment|feed|feeding|ganaar|dundale|ndox|poule)/i.test(value)) return 'feeding_advice';
-  if (/(prix|price|march|market|marse|njëg|vente)/i.test(value)) return 'market_prices';
-  if (/(alerte|alert|rappel|reminder|fàttali|fattali)/i.test(value)) return 'create_alert';
-  return 'fallback';
-}
-
-function buildReply({ text, language, shouldSpeak, action }) {
-  const safeLanguage = language || 'fr';
-  const actionHint = resolveAction(text, action);
+function buildFallbackReply(language = 'fr', shouldSpeak = false) {
   return {
     side: 'assistant',
-    language: safeLanguage,
-    actionHint,
-    text: replyTexts[safeLanguage]?.[actionHint] || replyTexts.fr.fallback,
-    displayMode: shouldSpeak && safeLanguage === 'wo' ? 'audio_only' : 'text',
-    audioUrl: shouldSpeak && safeLanguage === 'wo' ? audioByAction[actionHint] || audioByAction.fallback : undefined,
+    language,
+    text: fallbackReplies[language] || fallbackReplies.fr,
+    displayMode: shouldSpeak && language === 'wo' ? 'audio_only' : 'text',
+    audioUrl: shouldSpeak && language === 'wo' ? audioByAction.fallback : undefined,
   };
 }
 
@@ -104,6 +73,7 @@ function MessageBubble({ message, onReplayAudio }) {
         )}
         {message.transcript ? <div className="mt-2 rounded-xl bg-emerald-50 px-2 py-1 text-[11px] font-bold text-[#075e54]">Transcrit : {message.transcript}</div> : null}
         {message.status ? <div className="mt-2 rounded-xl bg-white/70 px-2 py-1 text-[11px] font-bold text-[#607167]">{message.status}</div> : null}
+        {message.erp ? <div className="mt-2 rounded-xl bg-[#eef8f1] px-2 py-1 text-[11px] font-black text-[#075e54]">ERP • {message.erp.module || message.erp.table}</div> : null}
         {message.language ? <div className="mt-2 w-fit rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-[#607167]">{getLanguageLabel(message.language)}{isAudio ? ' • vocal' : ''}</div> : null}
         <div className={`mt-1 flex items-center justify-end gap-1 text-[11px] ${isUser ? 'text-[#5d7364]' : 'text-[#8a8a8a]'}`}>
           <span>{message.time}</span>
@@ -118,18 +88,18 @@ export default function ChatPage() {
   const { user, profile, loading, signOut } = useAuth();
   const [message, setMessage] = useState('');
   const [language, setLanguage] = useState('fr');
-  const [messages, setMessages] = useState(() => [{ id: 1, side: 'assistant', time: nowTime(), language: 'fr', text: 'Bienvenue sur Horizon Chat. Écris un message ou envoie une note vocale.' }]);
+  const [messages, setMessages] = useState(() => [{ id: 1, side: 'assistant', time: nowTime(), language: 'fr', text: 'Bienvenue sur Horizon Chat. Pose une question sur l’ERP ou envoie une note vocale.' }]);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [notice, setNotice] = useState('');
   const recorderRef = useRef(null);
-  const streamRef = useRef(null);
   const chunksRef = useRef([]);
   const startRef = useRef(0);
   const nextIdRef = useRef(2);
 
   const displayName = profile?.full_name || user?.email?.split('@')?.[0] || 'Horizon user';
+  const role = profile?.role || user?.user_metadata?.role || 'visiteur';
   const canSend = useMemo(() => message.trim().length > 0 && !isThinking && !isRecording, [message, isThinking, isRecording]);
 
   const addMessage = (data) => {
@@ -157,8 +127,19 @@ export default function ChatPage() {
     }
   };
 
-  const answer = async ({ text, fromAudio = false, action }) => {
-    const reply = buildReply({ text, language, shouldSpeak: fromAudio && voiceEnabled, action });
+  const answer = async ({ text, fromAudio = false }) => {
+    let reply;
+    try {
+      reply = await askErpFromChat({ text, language, role });
+    } catch (error) {
+      reply = { side: 'assistant', language, text: error.message || 'Lecture ERP indisponible pour le moment.', displayMode: 'text', status: 'ERP indisponible' };
+    }
+
+    if (!reply) reply = buildFallbackReply(language, fromAudio && voiceEnabled);
+    if (fromAudio && voiceEnabled && language === 'wo' && !reply.audioUrl) {
+      reply = { ...reply, displayMode: 'audio_only', audioUrl: audioByAction.fallback };
+    }
+
     const replyId = addMessage(reply);
     if (fromAudio && voiceEnabled) {
       try {
@@ -170,16 +151,16 @@ export default function ChatPage() {
     }
   };
 
-  const sendText = (rawText = message, action) => {
+  const sendText = (rawText = message) => {
     const cleanText = String(rawText || '').trim();
     if (!cleanText || isThinking) return;
     addMessage({ side: 'user', text: cleanText });
     setMessage('');
     setIsThinking(true);
     window.setTimeout(async () => {
-      await answer({ text: cleanText, fromAudio: false, action });
+      await answer({ text: cleanText, fromAudio: false });
       setIsThinking(false);
-    }, 350);
+    }, 300);
   };
 
   const startVoiceNote = async () => {
@@ -192,7 +173,6 @@ export default function ChatPage() {
       const mimeType = MediaRecorder.isTypeSupported?.('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
       const recorder = new MediaRecorder(stream, { mimeType });
       chunksRef.current = [];
-      streamRef.current = stream;
       recorderRef.current = recorder;
       startRef.current = Date.now();
       recorder.ondataavailable = (event) => {
@@ -255,7 +235,7 @@ export default function ChatPage() {
         <header className="shrink-0 bg-[#075e54] px-4 pb-3 pt-4 text-white">
           <div className="flex items-center gap-3">
             <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-white"><img src={brandLogo} alt="Horizon Farm" className="h-full w-full object-contain p-1" /></div>
-            <div className="min-w-0 flex-1"><h1 className="truncate text-xl font-black">Horizon Farm</h1><p className="truncate text-sm text-white/80">Connecté : {displayName}</p></div>
+            <div className="min-w-0 flex-1"><h1 className="truncate text-xl font-black">Horizon Farm</h1><p className="truncate text-sm text-white/80">{displayName} • {role}</p></div>
             <button type="button" onClick={() => setVoiceEnabled((v) => !v)} className="rounded-full p-2 hover:bg-white/10" aria-label="Activer/désactiver la voix"><Volume2 size={21} className={voiceEnabled ? 'text-white' : 'text-white/40'} /></button>
             <button type="button" className="rounded-full p-2 hover:bg-white/10" aria-label="Appel"><Phone size={21} /></button>
             <button type="button" onClick={handleSignOut} className="rounded-full p-2 hover:bg-white/10" aria-label="Déconnexion"><LogOut size={21} /></button>
@@ -263,9 +243,9 @@ export default function ChatPage() {
         </header>
 
         <div className="flex-1 space-y-3 overflow-y-auto bg-[#efe7dc] px-4 py-4">
-          <div className="mx-auto w-fit rounded-xl bg-[#fff4cf] px-4 py-2 text-center text-xs font-semibold text-[#5f5333] shadow-sm">Messages protégés • session ERP</div>
+          <div className="mx-auto w-fit rounded-xl bg-[#fff4cf] px-4 py-2 text-center text-xs font-semibold text-[#5f5333] shadow-sm">Messages protégés • données ERP selon votre rôle</div>
           {messages.map((item) => <MessageBubble key={item.id} message={item} onReplayAudio={replayAudio} />)}
-          {isThinking ? <div className="w-fit rounded-2xl bg-white px-4 py-3 text-sm font-bold text-[#607167] shadow-sm">Horizon prépare la réponse…</div> : null}
+          {isThinking ? <div className="w-fit rounded-2xl bg-white px-4 py-3 text-sm font-bold text-[#607167] shadow-sm">Horizon consulte l’ERP…</div> : null}
         </div>
 
         <footer className="shrink-0 bg-[#efe7dc] px-3 pb-4 pt-2">
@@ -276,9 +256,9 @@ export default function ChatPage() {
             <span className="text-[11px] font-semibold text-[#7b6b5c]">Réponse : {isRecording ? 'enregistrement' : getLanguageLabel(language)}</span>
           </div>
           {notice ? <div className="mb-2 rounded-xl bg-white/80 px-3 py-2 text-[11px] font-bold text-[#607167] shadow-sm">{notice}</div> : null}
-          <div className="mb-2 flex gap-2 overflow-x-auto pb-1">{quickPrompts.map((prompt) => <button key={prompt.label} type="button" onClick={() => sendText(prompt[language] || prompt.label, prompt.action)} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-[#075e54] shadow-sm ring-1 ring-black/5">{prompt.label}</button>)}</div>
+          <div className="mb-2 flex gap-2 overflow-x-auto pb-1">{quickPrompts.map((prompt) => <button key={prompt.label} type="button" onClick={() => sendText(prompt[language] || prompt.label)} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-[#075e54] shadow-sm ring-1 ring-black/5">{prompt.label}</button>)}</div>
           <form onSubmit={(event) => { event.preventDefault(); sendText(); }} className="flex items-center gap-2">
-            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm"><Smile size={22} className="text-[#7d8580]" /><input value={message} onChange={(event) => setMessage(event.target.value)} placeholder={isRecording ? 'Enregistrement…' : 'Écrivez ou appuyez sur micro'} className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[#8b948f]" /><Paperclip size={21} className="text-[#7d8580]" /></div>
+            <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full bg-white px-3 py-2 shadow-sm"><Smile size={22} className="text-[#7d8580]" /><input value={message} onChange={(event) => setMessage(event.target.value)} placeholder={isRecording ? 'Enregistrement…' : 'Demande quelque chose à l’ERP'} className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[#8b948f]" /><Paperclip size={21} className="text-[#7d8580]" /></div>
             <button type={canSend ? 'submit' : 'button'} onClick={canSend ? undefined : (isRecording ? stopVoiceNote : startVoiceNote)} className={`grid h-12 w-12 shrink-0 place-items-center rounded-full text-white shadow-lg ${isRecording ? 'bg-red-500' : 'bg-[#008069]'}`} disabled={isThinking} aria-label={canSend ? 'Envoyer' : isRecording ? 'Arrêter' : 'Enregistrer'}>{canSend ? <Send size={20} /> : isRecording ? <Square size={20} /> : <Mic size={24} />}</button>
           </form>
         </footer>
