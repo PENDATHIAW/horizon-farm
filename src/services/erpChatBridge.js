@@ -6,13 +6,15 @@ function inferAction(text = '') {
 
 const MODULE_TO_TABLE = {
   equipements: 'equipment',
-  taches: 'alertes_center',
+  taches: 'tasks',
+  anciennes_taches: 'taches',
   alertes: 'alertes_center',
   clients: 'clients',
   creances: 'client_receivables',
   ventes: 'sales_orders',
   ventes_lignes: 'sales_order_items',
-  finances: 'finances',
+  finances: 'transactions',
+  transactions: 'transactions',
   paiements: 'payments',
   factures: 'invoices',
   fournisseurs: 'fournisseurs',
@@ -44,7 +46,8 @@ function inferModule(text = '') {
     ['factures', /facture|invoice|numero.?facture/i],
     ['ventes_lignes', /article|ligne|produit vendu|sales.?item/i],
     ['ventes', /vente|commande|livraison|sale|order|jaay/i],
-    ['finances', /finance|depense|dépense|revenu|transaction|montant|xaalis/i],
+    ['transactions', /transaction|mouvement financier|tresorerie|trésorerie/i],
+    ['finances', /finance|depense|dépense|revenu|montant|xaalis/i],
     ['fournisseurs', /fournisseur|supplier|achat|dette fournisseur/i],
     ['cultures', /culture|champ|parcelle|recolte|récolte|semis|rendement/i],
     ['sante', /sante|santé|vaccin|malade|traitement|diagnostic|symptome|symptôme|feebar/i],
@@ -78,7 +81,7 @@ function summarize(language, module, rows = []) {
     return `Je n’ai pas trouvé de donnée ERP correspondante dans le module ${module} pour l’instant.`;
   }
   const preview = rows.slice(0, 3).map((r, i) => [
-    r.title || r.nom || r.name || r.produit || r.product_name || r.reference || r.numero_facture || r.email || r.id || `élément ${i + 1}`,
+    r.title || r.description || r.nom || r.name || r.produit || r.product_name || r.reference || r.numero_facture || r.email || r.id || `élément ${i + 1}`,
     r.status || r.statut || r.severity || r.priority || r.priorite || r.health_status || r.payment_status || r.order_status || '',
     r.total || r.montant || r.montant_total || r.total_amount || r.remaining_amount || r.quantite || r.quantity || r.oeufs_produits || '',
   ].filter(Boolean).join(' — ')).join(' ; ');
