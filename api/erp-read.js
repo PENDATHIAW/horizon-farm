@@ -3,18 +3,23 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
 const ALLOWED_TABLES = [
-  'animaux', 'avicole', 'sante', 'veterinaires', 'stock', 'cultures', 'equipements', 'taches', 'alertes_center',
-  'clients', 'sales_orders', 'sales_order_items', 'deliveries', 'invoices', 'payments', 'finances', 'fournisseurs',
-  'investissements', 'business_plans', 'documents', 'rapports', 'sensor_devices', 'camera_devices', 'smartfarm_events',
-  'tracabilite', 'business_events', 'profiles', 'audit_logs', 'production_oeufs_logs', 'alimentation_logs'
+  'accounting_accounts','accounting_budgets','accounting_closures','accounting_documents','accounting_entries','accounting_entry_lines',
+  'alert_events','alert_rules','alertes','alertes_center','alertes_history','alertes_settings','alimentation','alimentation_logs',
+  'animal_health_records','animal_purchases','animal_weight_records','animals','api_webhooks','audit_logs','automation_settings',
+  'bp_funding_sources','bp_investment_lines','bp_lines_history','bp_links','bp_recurring_costs','bp_revenue_projections','bp_risks','bp_versions',
+  'business_events','business_plans','camera_devices','client_receivables','clients','couts','cultures','deliveries','documents','employes','equipment',
+  'erp_documents','finances','fournisseurs','intervention_medications','investissements','investments','invoices','localisation','logs','lots','meteo',
+  'notifications','objectifs','offline_queue','payments','price_catalog','production','production_oeufs_logs','push_subscriptions','recommandations',
+  'reports','reproduction_events','sales','sales_opportunities','sales_order_items','sales_orders','sante','score_ferme','security_events','sensor_devices',
+  'sensor_readings','stock','stocks','system_settings'
 ];
 
 const ROLE_TABLES = {
   admin: ['*'],
   manager: ['*'],
-  employe: ['animaux', 'avicole', 'sante', 'stock', 'cultures', 'documents', 'taches', 'equipements', 'alertes_center', 'audit_logs', 'production_oeufs_logs', 'alimentation_logs'],
-  veterinaire: ['animaux', 'avicole', 'sante', 'veterinaires', 'tracabilite', 'alertes_center', 'documents', 'taches', 'audit_logs'],
-  comptable: ['sante', 'finances', 'invoices', 'payments', 'investissements', 'business_plans', 'clients', 'sales_orders', 'sales_order_items', 'fournisseurs', 'documents', 'rapports', 'audit_logs', 'alertes_center'],
+  employe: ['animals','animal_health_records','animal_weight_records','animal_purchases','lots','production','production_oeufs_logs','alimentation','alimentation_logs','stock','stocks','cultures','documents','erp_documents','equipment','alertes_center','alert_events','notifications','recommandations','audit_logs','sales','clients','fournisseurs','price_catalog'],
+  veterinaire: ['animals','animal_health_records','intervention_medications','sante','lots','alertes_center','alert_events','documents','erp_documents','audit_logs','reproduction_events'],
+  comptable: ['finances','payments','invoices','accounting_accounts','accounting_budgets','accounting_closures','accounting_documents','accounting_entries','accounting_entry_lines','clients','client_receivables','sales','sales_orders','sales_order_items','deliveries','fournisseurs','investissements','business_plans','bp_funding_sources','bp_investment_lines','bp_recurring_costs','bp_revenue_projections','reports','documents','erp_documents','alertes_center','audit_logs'],
   visiteur: [],
 };
 
