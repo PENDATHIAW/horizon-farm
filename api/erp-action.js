@@ -16,6 +16,8 @@ const ROLE_ACTIONS = {
   visiteur: []
 };
 
+const CLOSED_STATUSES = ['termine', 'terminée', 'terminee', 'done', 'closed', 'archive', 'archived', 'annule', 'annulée', 'cancelled'];
+
 function send(res, status, payload) {
   return res.status(status).json(payload);
 }
@@ -31,25 +33,63 @@ function denyMessage(language = 'fr') {
   return 'Je ne peux pas effectuer cette action avec votre niveau d’accès actuel. Demandez à un responsable de vous accorder l’autorisation nécessaire.';
 }
 
-async function supabaseInsert(table, payload) {
+function normalize(value = '') {
+  return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function isClosed(row = {}) {
+  const status = normalize(row.status || row.statut || row.state || '');
+  return CLOSED_STATUSES.some((closed) => status.includes(normalize(closed)));
+}
+
+function duplicateMessage(language = 'fr', action = '') {
+  if (language === 'wo') return action === 'create_alert' ? 'Alert bu ni mel amoon na ba pare te amagul clôture. Du ma ko def ñaari yoon.' : 'Liggéey bu ni mel amoon na ba pare te amagul clôture. Du ma ko def ñaari yoon.';
+  if (language === 'en') return action === 'create_alert' ? 'A similar open alert already exists, so I did not create a duplicate.' : 'A similar open task already exists, so I did not create a duplicate.';
+  return action === 'create_alert' ? 'Une alerte similaire existe déjà et n’est pas clôturée, donc je n’ai pas créé de doublon.' : 'Une tâche similaire existe déjà et n’est pas terminée, donc je n’ai pas créé de doublon.';
+}
+
+async function supabaseRequest(table, options = {}) {
   if (!SUPABASE_URL || !(SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY)) {
     throw new Error('Supabase server variables are missing. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel.');
   }
   const key = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
-    method: 'POST',
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}${options.query || ''}`, {
+    method: options.method || 'GET',
     headers: {
       apikey: key,
       Authorization: `Bearer ${key}`,
       'Content-Type': 'application/json',
-      Prefer: 'return=representation'
+      Prefer: options.prefer || 'return=representation'
     },
-    body: JSON.stringify([payload])
+    body: options.body ? JSON.stringify(options.body) : undefined
   });
   const text = await response.text();
   const data = text ? JSON.parse(text) : null;
-  if (!response.ok) throw new Error(data?.message || data?.error || `Supabase insert failed: ${response.status}`);
+  if (!response.ok) throw new Error(data?.message || data?.error || `Supabase request failed: ${response.status}`);
   return data;
+}
+
+async function supabaseInsert(table, payload) {
+  return supabaseRequest(table, { method: 'POST', body: [payload] });
+}
+
+async function findDuplicate(table, payload, action) {
+  const rows = await supabaseRequest(table, { query: '?select=*&limit=100' });
+  const newTitle = normalize(payload.title);
+  const newMessage = normalize(payload.message || payload.description || '');
+  const newDueDate = payload.due_date || null;
+
+  return rows.find((row) => {
+    if (isClosed(row)) return false;
+    const rowTitle = normalize(row.title || row.titre || row.name || '');
+    const rowMessage = normalize(row.message || row.description || '');
+    const rowDueDate = row.due_date || row.date || null;
+    const titleMatch = newTitle && rowTitle && (rowTitle.includes(newTitle) || newTitle.includes(rowTitle));
+    const messageMatch = newMessage && rowMessage && (rowMessage.includes(newMessage) || newMessage.includes(rowMessage));
+    const dateCompatible = !newDueDate || !rowDueDate || String(newDueDate).slice(0, 10) === String(rowDueDate).slice(0, 10);
+    if (action === 'create_alert') return dateCompatible && (titleMatch || messageMatch);
+    return dateCompatible && (titleMatch || messageMatch);
+  });
 }
 
 function buildTaskPayload(args = {}, actor = {}) {
@@ -105,12 +145,24 @@ export default async function handler(req, res) {
     if (!canPerform(role, action)) return send(res, 403, { error: 'access_denied', message: denyMessage(language), role, action });
 
     const payload = action === 'create_alert' ? buildAlertPayload(args, actor) : buildTaskPayload(args, actor);
-    const rows = await supabaseInsert(actionConfig.table, payload);
+    const duplicate = await findDuplicate(actionConfig.table, payload, action);
+    if (duplicate) {
+      return send(res, 200, {
+        action,
+        module: actionConfig.module,
+        created: false,
+        duplicate: true,
+        message: duplicateMessage(language, action),
+        existing: duplicate
+      });
+    }
 
+    const rows = await supabaseInsert(actionConfig.table, payload);
     return send(res, 200, {
       action,
       module: actionConfig.module,
       created: true,
+      duplicate: false,
       message: successMessage(language, action),
       rows
     });
