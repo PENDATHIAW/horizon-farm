@@ -7,18 +7,14 @@ const MAP = {
 };
 
 const ROUTES = [
-  ['equipements', /equip|équip|materiel|matériel|tracteur|panne|maintenance|machine/i],
-  ['taches', /tache|tâche|task|mission|travail|liggéey|retard/i],
-  ['alertes', /alerte|alert|rappel|notification|urgence/i],
-  ['creances', /creance|créance|reste.?a.?payer|impay|dette client/i],
-  ['clients', /client|customer|acheteur/i], ['paiements', /paiement|payment|payé|paye/i], ['factures', /facture|invoice/i],
-  ['ventes', /vente|commande|livraison|sale|order|jaay/i], ['finances', /finance|transaction|depense|dépense|revenu|montant/i],
-  ['fournisseurs', /fournisseur|supplier|achat/i], ['cultures', /culture|champ|parcelle|recolte|récolte|semis|rendement/i],
+  ['equipements', /equip|équip|materiel|matériel|tracteur|panne|maintenance|machine/i], ['taches', /tache|tâche|task|mission|travail|liggéey|retard/i],
+  ['alertes', /alerte|alert|rappel|notification|urgence/i], ['creances', /creance|créance|reste.?a.?payer|impay|dette client/i], ['clients', /client|customer|acheteur/i],
+  ['paiements', /paiement|payment|payé|paye/i], ['factures', /facture|invoice/i], ['ventes', /vente|commande|livraison|sale|order|jaay/i],
+  ['finances', /finance|transaction|depense|dépense|revenu|montant/i], ['fournisseurs', /fournisseur|supplier|achat/i], ['cultures', /culture|champ|parcelle|recolte|récolte|semis|rendement/i],
   ['sante', /sante|santé|vaccin|malade|traitement|diagnostic|symptome|symptôme/i], ['animaux', /animal|animaux|mouton|vache|bovin|ovin|poids|gestation/i],
   ['oeufs', /oeuf|œuf|egg|ponte|production.*oeuf|production.*œuf/i], ['production', /production/i], ['alimentation', /aliment|alimentation|feed|provende/i],
-  ['avicole', /avicole|poule|poulet|ganaar|lot|mortalite|mortalité/i], ['stock', /stock|inventaire|rupture|maïs|mais|mboq|intrant/i],
-  ['documents', /document|fichier|preuve|file|pdf/i], ['rapports', /rapport|report|bilan|synthese|synthèse/i],
-  ['smartfarm', /capteur|sensor|mesure|temperature|humidité|meteo|météo/i], ['comptabilite', /compta|comptabilite|comptabilité|journal|debit|débit|credit|crédit/i],
+  ['avicole', /avicole|poule|poulet|ganaar|lot|mortalite|mortalité/i], ['stock', /stock|inventaire|rupture|maïs|mais|mboq|intrant/i], ['documents', /document|fichier|preuve|file|pdf/i],
+  ['rapports', /rapport|report|bilan|synthese|synthèse/i], ['smartfarm', /capteur|sensor|mesure|temperature|humidité|meteo|météo/i], ['comptabilite', /compta|comptabilite|comptabilité|journal|debit|débit|credit|crédit/i],
   ['business_plan', /business.?plan|prévision|prevision|projection|investissement|roi/i], ['audit', /audit|log|historique action|security/i]
 ];
 
@@ -29,39 +25,17 @@ const COLS = {
   clients: ['nom','name','tel','phone','statut'], creances: ['client_id','remaining_amount','status','due_date'], factures: ['numero_facture','date_facture','montant_total','statut']
 };
 
-function actionOf(text = '') {
-  if (/(crée|cree|créer|creer|ajoute|ajouter|create|add|defal|fais).*?(alerte|alert|rappel|notification)/i.test(text)) return 'create_alert';
-  if (/(crée|cree|créer|creer|ajoute|ajouter|create|add|defal|fais).*?(tache|tâche|task|mission|travail|liggéey)/i.test(text)) return 'create_task';
-  return '';
-}
+function actionOf(text = '') { if (/(crée|cree|créer|creer|ajoute|ajouter|create|add|defal|fais).*?(alerte|alert|rappel|notification)/i.test(text)) return 'create_alert'; if (/(crée|cree|créer|creer|ajoute|ajouter|create|add|defal|fais).*?(tache|tâche|task|mission|travail|liggéey)/i.test(text)) return 'create_task'; return ''; }
 function moduleOf(text = '') { return ROUTES.find(([, rx]) => rx.test(text))?.[0] || ''; }
-function intentOf(text = '') {
-  if (/(combien|nombre|total|how many|count|ñata|nata)/i.test(text)) return 'count';
-  if (/(dernier|dernière|derniere|plus récente|plus recente|récent|recent|latest|last)/i.test(text)) return 'latest';
-  return 'list';
-}
+function intentOf(text = '') { if (/(combien|nombre|total|how many|count|ñata|nata)/i.test(text)) return 'count'; if (/(dernier|dernière|derniere|plus récente|plus recente|récent|recent|latest|last)/i.test(text)) return 'latest'; return 'list'; }
 function titleOf(text = '', action = '') { return String(text).replace(/^(crée|cree|créer|creer|ajoute|ajouter|create|add|defal|fais)\s*/i, '').trim() || (action === 'create_alert' ? 'Alerte Horizon Chat' : 'Tâche Horizon Chat'); }
 function valueOf(row, key) { const value = row?.[key]; return value === null || value === undefined || value === '' ? '—' : String(value).slice(0, 80); }
 function dateValue(row = {}) { return Date.parse(row.created_at || row.updated_at || row.date || row.due_date || row.date_facture || row.entry_date || row.recorded_at || 0) || 0; }
 function sortRows(rows = []) { return [...rows].sort((a, b) => dateValue(b) - dateValue(a)); }
-function columnsFor(module, rows = []) {
-  const preferred = COLS[module] || [];
-  const keys = preferred.filter((key) => rows.some((row) => row && key in row));
-  if (keys.length) return keys.slice(0, 5);
-  return Object.keys(rows[0] || {}).filter((key) => !['owner_user_id','updated_at'].includes(key)).slice(0, 5);
-}
-function tableFor(module, rows = [], max = 8) {
-  const selected = rows.slice(0, max);
-  const columns = columnsFor(module, selected);
-  return { columns, rows: selected.map((row) => columns.map((key) => valueOf(row, key))) };
-}
+function columnsFor(module, rows = []) { const preferred = COLS[module] || []; const keys = preferred.filter((key) => rows.some((row) => row && key in row)); if (keys.length) return keys.slice(0, 5); return Object.keys(rows[0] || {}).filter((key) => !['owner_user_id','updated_at'].includes(key)).slice(0, 5); }
+function tableFor(module, rows = [], max = 8) { const selected = rows.slice(0, max); const columns = columnsFor(module, selected); return { columns, rows: selected.map((row) => columns.map((key) => valueOf(row, key))) }; }
 function label(module) { return ({ taches: 'tâches', alertes: 'alertes', oeufs: 'production d’œufs', avicole: 'lots avicoles', equipements: 'équipements' }[module] || module); }
-function intro(language, module, count, intent) {
-  const name = label(module);
-  if (intent === 'count') return language === 'en' ? `There are ${count} ERP record(s) in ${name}.` : language === 'wo' ? `Am na ${count} résultat ci ${name}.` : `Il y a ${count} donnée(s) ERP dans ${name}.`;
-  if (intent === 'latest') return language === 'en' ? `Here is the most recent ERP record in ${name}.` : language === 'wo' ? `Lii mooy résultat bi gën a bees ci ${name}.` : `Voici la donnée ERP la plus récente dans ${name}.`;
-  return language === 'en' ? `I found ${count} ERP record(s) in ${name}.` : language === 'wo' ? `Gis naa ${count} résultat ci ${name}.` : `J’ai trouvé ${count} donnée(s) ERP dans ${name}.`;
-}
+function intro(language, module, count, intent) { const name = label(module); if (intent === 'count') return language === 'en' ? `There are ${count} ERP record(s) in ${name}.` : language === 'wo' ? `Am na ${count} résultat ci ${name}.` : `Il y a ${count} donnée(s) ERP dans ${name}.`; if (intent === 'latest') return language === 'en' ? `Here is the most recent ERP record in ${name}.` : language === 'wo' ? `Lii mooy résultat bi gën a bees ci ${name}.` : `Voici la donnée ERP la plus récente dans ${name}.`; return language === 'en' ? `I found ${count} ERP record(s) in ${name}.` : language === 'wo' ? `Gis naa ${count} résultat ci ${name}.` : `J’ai trouvé ${count} donnée(s) ERP dans ${name}.`; }
 
 export async function askErpFromChat({ text = '', language = 'fr', role = 'admin', actor = {} } = {}) {
   const safeRole = ['admin', 'manager', 'employe', 'veterinaire', 'comptable'].includes(String(role).toLowerCase()) ? String(role).toLowerCase() : 'admin';
@@ -81,6 +55,5 @@ export async function askErpFromChat({ text = '', language = 'fr', role = 'admin
   if (!response.ok && !data.message) throw new Error(data.error || 'Lecture ERP indisponible.');
   const allRows = sortRows(Array.isArray(data.rows) ? data.rows : []);
   const rows = intent === 'latest' ? allRows.slice(0, 1) : allRows;
-  const textReply = data.message || intro(language, module, allRows.length, intent);
-  return { side: 'assistant', language, text: textReply, displayMode: 'text', table: intent === 'count' ? null : tableFor(module, rows), erp: { module, table, count: allRows.length, intent } };
+  return { side: 'assistant', language, text: data.message || intro(language, module, allRows.length, intent), displayMode: 'text', table: intent === 'count' ? null : tableFor(module, rows), erp: { module, table, count: allRows.length, intent } };
 }
