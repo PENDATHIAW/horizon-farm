@@ -1,9 +1,10 @@
 import { ArrowLeft, Camera, CheckCheck, Lock, Mic, MoreVertical, Paperclip, Phone, Play, Send, Smile, Square, Volume2 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { buildFarmChatReply, getLanguageLabel, getReplyDisplayMode, speakChatReply } from '../services/chatIntelligence';
+import { buildFarmChatReply, getLanguageLabel, getReplyDisplayMode, getSpeechRecognitionLang, speakChatReply } from '../services/chatIntelligence';
 
 const brandLogo = '/brand-logo.png';
+const BrowserSpeechRecognition = typeof window !== 'undefined' ? window.SpeechRecognition || window.webkitSpeechRecognition || null : null;
 
 const quickPrompts = [
   { label: 'Production d’œufs', wo: 'ñata nen ngeen am tey production bi baax na', fr: 'Production d’œufs', en: 'Egg production today' },
@@ -37,11 +38,7 @@ function AudioWave({ active = false }) {
   return (
     <div className="flex flex-1 items-center gap-1 opacity-70" aria-hidden="true">
       {Array.from({ length: 24 }).map((_, index) => (
-        <span
-          key={index}
-          className={`w-1 rounded-full ${active ? 'bg-[#075e54]' : 'bg-[#5d6d64]'}`}
-          style={{ height: `${8 + ((index * 7) % 24)}px` }}
-        />
+        <span key={index} className={`w-1 rounded-full ${active ? 'bg-[#075e54]' : 'bg-[#5d6d64]'}`} style={{ height: `${8 + ((index * 7) % 24)}px` }} />
       ))}
     </div>
   );
@@ -69,6 +66,7 @@ function MessageBubble({ message, onReplayAudio }) {
           <p className="whitespace-pre-line">{message.text}</p>
         )}
 
+        {message.transcriptionStatus ? <div className="mt-2 rounded-xl bg-white/70 px-2 py-1 text-[11px] font-bold text-[#607167]">{message.transcriptionStatus}</div> : null}
         {message.audioError ? <div className="mt-2 rounded-xl bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-700">{message.audioError}</div> : null}
         {message.language ? <div className="mt-2 w-fit rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-[#607167]">{getLanguageLabel(message.language)}{isAudioOnly ? ' • vocal' : ''}</div> : null}
 
@@ -92,6 +90,8 @@ function ChatPhone({ userName }) {
   const [voiceNotice, setVoiceNotice] = useState('');
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const recognitionRef = useRef(null);
+  const transcriptRef = useRef('');
   const nextIdRef = useRef(2);
 
   const canSend = useMemo(() => message.trim().length > 0 && !isThinking, [message, isThinking]);
@@ -99,6 +99,7 @@ function ChatPhone({ userName }) {
   const addMessage = (msg) => {
     setMessages((current) => [...current, { id: nextIdRef.current, time: nowTime(), ...msg }]);
     nextIdRef.current += 1;
+    return nextIdRef.current - 1;
   };
 
   const replayAudio = async (msg) => {
@@ -114,32 +115,62 @@ function ChatPhone({ userName }) {
     }
   };
 
-  const updateMessageAudioError = (messageId, audioError) => {
-    setMessages((current) => current.map((item) => (item.id === messageId ? { ...item, audioError } : item)));
+  const updateMessage = (messageId, patch) => {
+    setMessages((current) => current.map((item) => (item.id === messageId ? { ...item, ...patch } : item)));
   };
 
-  const pushExchange = (rawText, options = {}) => {
-    const cleanText = String(rawText || '').trim();
-    if (!cleanText || isThinking) return;
-
-    addMessage({ side: 'user', text: options.userLabel || cleanText, audio: options.fromVoice, duration: options.fromVoice ? 'vocal' : undefined });
-    setMessage('');
+  const replyToText = (cleanText) => {
     setIsThinking(true);
-
     window.setTimeout(() => {
       const reply = buildFarmChatReply(cleanText, { userName });
-      const assistantMessageId = nextIdRef.current;
-      addMessage({ side: 'assistant', text: reply.text, language: reply.language, displayMode: getReplyDisplayMode(reply), actionHint: reply.actionHint, audioUrl: reply.audioUrl });
+      const assistantMessageId = addMessage({ side: 'assistant', text: reply.text, language: reply.language, displayMode: getReplyDisplayMode(reply), actionHint: reply.actionHint, audioUrl: reply.audioUrl });
       setIsThinking(false);
 
       if (voiceEnabled || reply.language === 'wo') {
         speakChatReply(reply).then(() => setVoiceNotice('')).catch((error) => {
           const audioMessage = reply.language === 'wo' ? error.message || `Audio wolof à importer : ${reply.audioUrl || '/audio/wolof/fallback.mp3'}` : error.message || 'Audio indisponible';
-          updateMessageAudioError(assistantMessageId, audioMessage);
+          updateMessage(assistantMessageId, { audioError: audioMessage });
           setVoiceNotice(audioMessage);
         });
       }
     }, 520);
+  };
+
+  const pushExchange = (rawText, options = {}) => {
+    const cleanText = String(rawText || '').trim();
+    if (!cleanText || isThinking) return;
+    addMessage({ side: 'user', text: options.userLabel || cleanText, audio: options.fromVoice, duration: options.fromVoice ? 'vocal' : undefined });
+    setMessage('');
+    replyToText(cleanText);
+  };
+
+  const startSpeechRecognition = () => {
+    transcriptRef.current = '';
+    if (!BrowserSpeechRecognition) return;
+
+    try {
+      const recognition = new BrowserSpeechRecognition();
+      recognition.lang = getSpeechRecognitionLang(speechLanguage);
+      recognition.interimResults = true;
+      recognition.continuous = true;
+      recognition.onresult = (event) => {
+        const transcript = Array.from(event.results).map((result) => result[0]?.transcript || '').join(' ').trim();
+        if (transcript) transcriptRef.current = transcript;
+      };
+      recognition.onerror = () => {};
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch {
+      recognitionRef.current = null;
+    }
+  };
+
+  const stopSpeechRecognition = () => {
+    try {
+      recognitionRef.current?.stop?.();
+    } catch {
+      // ignore stale speech recognition sessions
+    }
   };
 
   const startVoiceNote = async () => {
@@ -154,26 +185,42 @@ function ChatPhone({ userName }) {
       audioChunksRef.current = [];
       mediaRecorderRef.current = recorder;
       setRecordingStartedAt(Date.now());
+      startSpeechRecognition();
 
       recorder.ondataavailable = (event) => {
         if (event.data?.size > 0) audioChunksRef.current.push(event.data);
       };
 
       recorder.onstop = () => {
+        stopSpeechRecognition();
         const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
         const audioUrl = URL.createObjectURL(blob);
         const durationSeconds = recordingStartedAt ? Math.max(1, Math.round((Date.now() - recordingStartedAt) / 1000)) : 1;
-        addMessage({ side: 'user', text: 'Note vocale', audio: true, audioUrl, duration: `0:${String(durationSeconds).padStart(2, '0')}` });
-        addMessage({ side: 'assistant', text: 'Note vocale reçue. La transcription automatique sera branchée ensuite.', language: 'fr', displayMode: 'text' });
+        const transcript = transcriptRef.current.trim();
+        const voiceNoteId = addMessage({
+          side: 'user',
+          text: 'Note vocale',
+          audio: true,
+          audioUrl,
+          duration: `0:${String(durationSeconds).padStart(2, '0')}`,
+          transcriptionStatus: transcript ? 'Transcription reçue, réponse en cours…' : 'Note vocale reçue, transcription non disponible.',
+        });
         stream.getTracks().forEach((track) => track.stop());
         setIsRecording(false);
         setRecordingStartedAt(null);
-        setVoiceNotice('Note vocale envoyée.');
+
+        if (transcript) {
+          updateMessage(voiceNoteId, { transcriptionStatus: 'Note vocale comprise.' });
+          replyToText(transcript);
+        } else {
+          addMessage({ side: 'assistant', text: 'Note vocale reçue. Je peux la lire, mais la transcription automatique n’a pas encore reconnu le contenu.', language: 'fr', displayMode: 'text' });
+          setVoiceNotice('Note vocale envoyée. Transcription non disponible sur ce navigateur/langue.');
+        }
       };
 
       recorder.start();
       setIsRecording(true);
-      setVoiceNotice('Enregistrement en cours… appuie encore sur le micro pour envoyer.');
+      setVoiceNotice('Enregistrement en cours… appuie encore sur le bouton rouge pour envoyer.');
     } catch (error) {
       setIsRecording(false);
       setVoiceNotice(error?.name === 'NotAllowedError' ? 'Autorise le micro pour enregistrer une note vocale.' : 'Impossible de démarrer la note vocale.');
