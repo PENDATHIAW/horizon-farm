@@ -41,8 +41,17 @@ export default async function handler(req, res) {
     let rows;
     try { rows = await readDb(`${table}?select=*&order=created_at.desc&limit=${limit}`); }
     catch (error) { rows = await readDb(`${table}?select=*&limit=${limit}`); }
-    const filtered = rows.filter((row) => matchRow(row, search));
-    return send(res, 200, { table, role, found: filtered.length > 0, count: filtered.length, rows: filtered.slice(0, limit), warning: filtered.length === 0 ? 'Aucune donnée correspondante enregistrée dans cette partie de l’ERP.' : null });
+    const exactRows = rows.filter((row) => matchRow(row, search));
+    const resultRows = exactRows.length ? exactRows : rows;
+    return send(res, 200, {
+      table,
+      role,
+      found: resultRows.length > 0,
+      exactMatch: exactRows.length > 0,
+      count: resultRows.length,
+      rows: resultRows.slice(0, limit),
+      warning: resultRows.length === 0 ? 'Aucune donnée enregistrée dans cette partie de l’ERP.' : exactRows.length === 0 && search ? 'Aucun résultat exact pour cette phrase ; voici les dernières données disponibles.' : null
+    });
   } catch (error) {
     return send(res, 500, { error: error?.message || 'ERP read failed.' });
   }
