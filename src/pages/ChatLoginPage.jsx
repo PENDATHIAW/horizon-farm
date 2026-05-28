@@ -20,16 +20,16 @@ export default function ChatLoginPage() {
     try {
       if (mode === 'signup') {
         await signUp({ login, password, fullName, role: 'visiteur' });
-        toast.success('Compte Horizon Chat créé.');
+        toast.success('Compte Horizon Chat créé. Connectez-vous maintenant.');
         setMode('login');
       } else {
         await signIn({ login, password });
         toast.success('Bienvenue sur Horizon Chat');
+        window.setTimeout(() => window.location.replace('/chat'), 120);
       }
     } catch (error) {
       const message = error.message?.toLowerCase().includes('invalid login credentials') ? 'Identifiants incorrects.' : error.message || 'Action impossible';
       toast.error(message);
-    } finally {
       setLoading(false);
     }
   };
@@ -140,7 +140,7 @@ export default function ChatLoginPage() {
                   </div>
 
                   <button type="submit" disabled={loading} className="w-full rounded-2xl bg-[#1f7a2f] py-4 text-base font-black text-white shadow-xl shadow-black/20 hover:bg-[#176226] disabled:opacity-60">
-                    {loading ? 'Traitement…' : mode === 'signup' ? 'Créer mon compte' : 'Se connecter'}
+                    {loading ? 'Ouverture…' : mode === 'signup' ? 'Créer mon compte' : 'Se connecter'}
                   </button>
 
                   <p className="text-center text-xs font-semibold text-white drop-shadow">
