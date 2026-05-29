@@ -8,6 +8,8 @@ export default function VentesV5(props) {
       payments={props.paymentsList || props.payments || []}
       deliveries={props.deliveriesList || props.deliveries || []}
     />
-    <VentesV6 {...props} />
+    <div className="commercial-sales-screen">
+      <VentesV6 {...props} />
+    </div>
   </>;
 }
