@@ -1,0 +1,58 @@
+name: ERP AI Audit
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - 'feature/*'
+
+jobs:
+  erp-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect fragile DOM patches
+        run: |
+          if rg -n "MutationObserver|SalesLabelCleaner|TreeWalker" src/; then
+            echo "::error::Correction DOM fragile détectée. Corriger les libellés dans les composants sources."
+            exit 1
+          fi
+          echo "OK — pas de MutationObserver dans src/"
+
+      - name: Check architecture layer
+        run: |
+          test -f src/config/modules.config.js || (echo "::error::modules.config.js manquant" && exit 1)
+          test -f src/services/moduleDataComposer.js || (echo "::error::moduleDataComposer.js manquant" && exit 1)
+          test -f src/services/erpHealthRules.js || (echo "::error::erpHealthRules.js manquant" && exit 1)
+          test -f src/services/workflowRefresh.js || (echo "::error::workflowRefresh.js manquant" && exit 1)
+          test -f src/services/erpRules/index.js || (echo "::error::erpRules/index.js manquant" && exit 1)
+          test -f api/erp-ai-audit.js || (echo "::error::api/erp-ai-audit.js manquant" && exit 1)
+          echo "OK — couche architecture présente"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install & lint
+        run: |
+          npm ci
+          npm run lint
+
+      - name: Run ERP audit API smoke test
+        run: |
+          node --input-type=module -e "
+          import { computeErpAuditFindings } from './src/services/erpRules/index.js';
+          const findings = computeErpAuditFindings({
+            stock: [{ id: 'S1', produit: 'Aliment', quantite: 2, seuil: 10 }],
+            sales_orders: [{ id: 'V1', montant_total: 50000, statut_paiement: 'non_paye' }],
+            finances: [{ id: 'F1', montant: 10000 }],
+            taches: [{ id: 'T1', priority: 'critique', status: 'a_faire' }],
+          });
+          if (!findings.length) throw new Error('Audit rules returned no findings');
+          console.log('Audit smoke OK:', findings.length, 'finding(s)');
+          "

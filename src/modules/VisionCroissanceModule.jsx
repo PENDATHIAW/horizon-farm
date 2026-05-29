@@ -1,86 +1,56 @@
-import { AlertTriangle, BarChart3, FileText, Goal, LineChart, Scale, ShieldAlert, TrendingUp } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { fmtCurrency, fmtNumber } from '../utils/format';
+import { buildRecommendationsFromData } from '../services/aiRecommendationsService';
+import VisionForecastsTab from './vision/VisionForecastsTab';
+import VisionFundingTab from './vision/VisionFundingTab';
+import VisionOpportunitiesTab from './vision/VisionOpportunitiesTab';
+import VisionPerformanceTab from './vision/VisionPerformanceTab';
+import VisionPlansTab from './vision/VisionPlansTab';
+import VisionPrioritiesTab from './vision/VisionPrioritiesTab';
+import VisionRisksTab from './vision/VisionRisksTab';
+import { buildVisionData } from './vision/visionUtils';
 
-const arr = (v) => Array.isArray(v) ? v : [];
-const low = (v) => String(v || '').toLowerCase();
-const n = (v = 0) => Number(v || 0);
-const amount = (r = {}) => n(r.montant ?? r.amount ?? r.total ?? r.montant_total ?? r.valeur ?? r.value);
-const label = (r = {}) => r.title || r.nom || r.name || r.libelle || r.description || r.produit || r.id || 'Élément';
-const dateOf = (r = {}) => r.date || r.event_date || r.created_at || r.updated_at || '—';
-const isIncome = (r = {}) => ['entree', 'entrée', 'income', 'recette', 'vente'].includes(low(r.type || r.nature || r.sens));
-const isExpense = (r = {}) => ['sortie', 'expense', 'depense', 'dépense', 'achat', 'charge'].includes(low(r.type || r.nature || r.sens));
-const isOpen = (r = {}) => !['termine', 'terminé', 'closed', 'clos', 'resolu', 'résolu', 'done'].includes(low(r.status || r.statut || r.state));
-const isRisk = (r = {}) => ['retard', 'critique', 'urgent', 'malade', 'panne', 'hors_service', 'impaye', 'partiel', 'a_risque'].some((x) => low(`${r.status || ''} ${r.statut || ''} ${r.priority || ''} ${r.severity || ''} ${r.health_status || ''}`).includes(x));
-const stockQty = (r = {}) => n(r.quantite ?? r.quantity ?? r.stock);
-const stockThreshold = (r = {}) => n(r.seuil ?? r.threshold ?? r.stock_min ?? r.minimum_stock);
-const score = (good, total) => total ? Math.round((good / total) * 100) : 100;
-
-function Stat({ label, value, tone = 'neutral' }) { const cls = tone === 'good' ? 'text-emerald-600' : tone === 'warn' ? 'text-amber-600' : tone === 'bad' ? 'text-red-600' : 'text-[#2f2415]'; return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">{label}</p><p className={`mt-1 text-xl font-black ${cls}`}>{value}</p></div>; }
-function Section({ icon: Icon, title, children }) { return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><h2 className="mb-4 flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</h2>{children}</section>; }
-function Pill({ children, tone = 'neutral' }) { const cls = tone === 'good' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : tone === 'warn' ? 'border-amber-200 bg-amber-50 text-amber-700' : tone === 'bad' ? 'border-red-200 bg-red-50 text-red-700' : 'border-[#eadcc2] bg-[#fffdf8] text-[#8a7456]'; return <span className={`rounded-full border px-3 py-1 text-xs font-black ${cls}`}>{children}</span>; }
-function Row({ title, detail, value, tone = 'neutral', onClick }) { return <button type="button" onClick={onClick} className="grid w-full grid-cols-1 gap-2 border-b border-[#eadcc2]/70 py-4 text-left last:border-b-0 md:grid-cols-[260px_1fr_auto] md:items-center hover:bg-[#fffdf8]"><span className="font-black text-[#2f2415]">{title}</span><span className="text-sm text-[#8a7456]">{detail}</span><Pill tone={tone}>{value}</Pill></button>; }
-function Empty({ children }) { return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-5 text-sm text-[#8a7456]">{children}</div>; }
-function Tabs({ active, onChange }) { const tabs = ['À traiter', 'Performance', 'Risques', 'Opportunités', 'Prévisions', 'Plans', 'Financeurs']; return <div className="overflow-x-auto"><div className="flex min-w-max gap-2 rounded-2xl border border-[#d6c3a0] bg-white p-2">{tabs.map((tab) => <button key={tab} type="button" onClick={() => onChange(tab)} className={`rounded-xl px-4 py-2 text-sm font-black transition ${active === tab ? 'bg-[#22c55e] text-[#052e16]' : 'text-[#8a7456] hover:bg-[#fffdf8] hover:text-[#2f2415]'}`}>{tab}</button>)}</div></div>; }
-
-function buildRisks(data) {
-  const risks = [];
-  data.openAlerts.forEach((r) => risks.push({ id: `alert-${r.id || label(r)}`, domain: 'Alerte', title: label(r), cause: r.message || r.description || 'Alerte ouverte', impact: 'Risque opérationnel non clôturé', action: 'Traiter ou transformer en tâche', module: 'activite_suivi', tone: low(r.severity).includes('critique') ? 'bad' : 'warn' }));
-  data.openTasks.filter(isRisk).forEach((r) => risks.push({ id: `task-${r.id || label(r)}`, domain: 'Tâche', title: label(r), cause: r.description || 'Tâche prioritaire', impact: 'Retard possible sur exploitation', action: 'Planifier ou clôturer', module: 'activite_suivi', tone: 'warn' }));
-  data.stocks.filter((r) => stockThreshold(r) > 0 && stockQty(r) <= stockThreshold(r)).forEach((r) => risks.push({ id: `stock-${r.id || label(r)}`, domain: 'Stock', title: label(r), cause: `${fmtNumber(stockQty(r))} disponible · seuil ${fmtNumber(stockThreshold(r))}`, impact: 'Rupture ou arrêt activité', action: 'Réapprovisionner', module: 'achats_stock', tone: stockQty(r) <= 0 ? 'bad' : 'warn' }));
-  data.animaux.filter(isRisk).forEach((r) => risks.push({ id: `animal-${r.id || label(r)}`, domain: 'Élevage', title: label(r), cause: r.health_status || r.status || r.statut || 'Suivi santé', impact: 'Perte, contagion ou vente bloquée', action: 'Vérifier fiche santé', module: 'elevage', tone: 'bad' }));
-  data.lots.filter(isRisk).forEach((r) => risks.push({ id: `lot-${r.id || label(r)}`, domain: 'Avicole', title: label(r), cause: r.status || r.statut || 'Lot à surveiller', impact: 'Mortalité, production ou vente affectée', action: 'Contrôler lot', module: 'elevage', tone: 'warn' }));
-  data.cultures.filter(isRisk).forEach((r) => risks.push({ id: `culture-${r.id || label(r)}`, domain: 'Cultures', title: label(r), cause: r.status || r.statut || 'Culture à risque', impact: 'Perte rendement ou récolte', action: 'Vérifier parcelle', module: 'cultures', tone: 'warn' }));
-  if (data.balance < 0) risks.push({ id: 'cash-negative', domain: 'Finance', title: 'Trésorerie négative', cause: 'Les charges dépassent les recettes saisies', impact: 'Tension de liquidité', action: 'Réduire charges ou accélérer encaissements', module: 'finance_pilotage', tone: 'bad' });
-  if (data.receivable > 0) risks.push({ id: 'receivable', domain: 'Commercial', title: 'Encaissements à suivre', cause: `${fmtCurrency(data.receivable)} restant à encaisser`, impact: 'Cash bloqué chez les clients', action: 'Relancer ou encaisser', module: 'commercial', tone: 'warn' });
-  if (data.missingProof > 0) risks.push({ id: 'missing-proof', domain: 'Documents', title: 'Preuves manquantes', cause: `${data.missingProof} écriture(s) sans justificatif`, impact: 'Comptabilité et financeurs fragilisés', action: 'Ajouter les preuves', module: 'documents_rapports', tone: 'warn' });
-  return risks.slice(0, 40);
+function Tabs({ active, onChange }) {
+  const tabs = ['À traiter', 'Performance', 'Risques', 'Opportunités', 'Prévisions', 'Plans', 'Financeurs'];
+  return (
+    <div className="overflow-x-auto">
+      <div className="flex min-w-max gap-2 rounded-2xl border border-[#d6c3a0] bg-white p-2">
+        {tabs.map((tab) => (
+          <button key={tab} type="button" onClick={() => onChange(tab)} className={`rounded-xl px-4 py-2 text-sm font-black transition ${active === tab ? 'bg-[#22c55e] text-[#052e16]' : 'text-[#8a7456] hover:bg-[#fffdf8] hover:text-[#2f2415]'}`}>{tab}</button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-function Priorities({ data, setTab }) { return <div className="space-y-5"><div className="grid grid-cols-2 gap-3 xl:grid-cols-5"><Stat label="Santé ferme" value={`${data.globalScore}/100`} tone={data.globalScore >= 75 ? 'good' : 'warn'} /><Stat label="Trésorerie" value={fmtCurrency(data.balance)} tone={data.balance >= 0 ? 'good' : 'bad'} /><Stat label="À traiter" value={fmtNumber(data.priorities.length)} tone={data.priorities.length ? 'warn' : 'good'} /><Stat label="Risques" value={fmtNumber(data.risks.length)} tone={data.risks.length ? 'warn' : 'good'} /><Stat label="Opportunités" value={fmtNumber(data.opportunities.length)} tone="good" /></div><Section icon={AlertTriangle} title="Ce qu’il faut traiter maintenant">{data.priorities.length ? data.priorities.slice(0, 10).map((r) => <Row key={r.id} title={r.title} detail={r.detail} value={r.value} tone={r.tone} onClick={() => setTab(r.tab || 'À traiter')} />) : <Empty>Aucune priorité critique détectée.</Empty>}</Section></div>; }
-function Performance({ data }) { return <div className="space-y-5"><div className="grid grid-cols-2 gap-3 xl:grid-cols-4"><Stat label="Recettes" value={fmtCurrency(data.income)} tone="good" /><Stat label="Charges" value={fmtCurrency(data.expenses)} tone="warn" /><Stat label="Marge estimée" value={fmtCurrency(data.margin)} tone={data.margin >= 0 ? 'good' : 'bad'} /><Stat label="Production suivie" value={fmtNumber(data.productionCount)} /></div><Section icon={BarChart3} title="Lecture rapide de la ferme"><Row title="Commercial" detail={`${fmtNumber(data.sales.length)} vente(s), ${fmtNumber(data.clients.length)} client(s)`} value={fmtCurrency(data.salesAmount)} tone="good" /><Row title="Production" detail={`${fmtNumber(data.animaux.length)} animaux, ${fmtNumber(data.lots.length)} lots, ${fmtNumber(data.cultures.length)} cultures`} value="Suivi" /><Row title="Finance" detail={`Recettes ${fmtCurrency(data.income)} · charges ${fmtCurrency(data.expenses)}`} value={data.margin >= 0 ? 'Rentable' : 'À corriger'} tone={data.margin >= 0 ? 'good' : 'warn'} /></Section></div>; }
-function Risks({ data, onNavigate }) { return <div className="space-y-5"><div className="grid grid-cols-2 gap-3 xl:grid-cols-4"><Stat label="Risques ouverts" value={fmtNumber(data.risks.length)} tone={data.risks.length ? 'warn' : 'good'} /><Stat label="Critiques" value={fmtNumber(data.risks.filter((r) => r.tone === 'bad').length)} tone={data.risks.some((r) => r.tone === 'bad') ? 'bad' : 'good'} /><Stat label="Finance" value={fmtCurrency(Math.max(0, -data.balance) + data.receivable)} tone={(data.balance < 0 || data.receivable > 0) ? 'warn' : 'good'} /><Stat label="Preuves" value={fmtNumber(data.missingProof)} tone={data.missingProof ? 'warn' : 'good'} /></div><Section icon={ShieldAlert} title="Registre des risques">{data.risks.length ? data.risks.map((r) => <Row key={r.id} title={`${r.domain} · ${r.title}`} detail={`${r.cause} → ${r.impact}. Action : ${r.action}`} value={r.tone === 'bad' ? 'Critique' : 'À suivre'} tone={r.tone} onClick={() => onNavigate?.(r.module)} />) : <Empty>Aucun risque majeur détecté.</Empty>}</Section></div>; }
-function Opportunities({ data }) { return <Section icon={TrendingUp} title="Ce qui peut faire gagner plus">{data.opportunities.length ? data.opportunities.slice(0, 12).map((r) => <Row key={r.id || label(r)} title={label(r)} detail={`${r.client_nom || r.customer_name || r.notes || 'Opportunité'} · ${dateOf(r)}`} value={fmtCurrency(amount(r))} tone="good" />) : <Empty>Aucune opportunité ouverte. Quand les ventes, clients ou produits à pousser seront renseignés, ils apparaîtront ici.</Empty>}</Section>; }
-function Forecasts({ data }) { return <div className="space-y-5"><div className="grid grid-cols-2 gap-3 xl:grid-cols-4"><Stat label="Solde actuel" value={fmtCurrency(data.balance)} tone={data.balance >= 0 ? 'good' : 'bad'} /><Stat label="À encaisser" value={fmtCurrency(data.receivable)} tone={data.receivable ? 'warn' : 'good'} /><Stat label="Valeur stock" value={fmtCurrency(data.stockValue)} /><Stat label="Risque" value={fmtNumber(data.risks.length)} tone={data.risks.length ? 'warn' : 'good'} /></div><Section icon={LineChart} title="Prévisions simples"><Row title="Trésorerie" detail="Solde estimé à partir des recettes et charges saisies" value={data.balance >= 0 ? 'Stable' : 'Tension'} tone={data.balance >= 0 ? 'good' : 'warn'} /><Row title="Production" detail="Volume suivi dans élevage et cultures" value={fmtNumber(data.productionCount)} /><Row title="Risque opérationnel" detail="Alertes, tâches critiques, santé et production" value={data.risks.length ? 'À suivre' : 'OK'} tone={data.risks.length ? 'warn' : 'good'} /></Section></div>; }
-function Plans({ data }) { return <Section icon={Goal} title="Objectifs, investissements et plans d’action">{data.goals.length ? data.goals.slice(0, 12).map((r) => <Row key={r.id || label(r)} title={label(r)} detail={`${r.status || r.statut || 'Objectif'} · ${dateOf(r)}`} value={fmtCurrency(amount(r))} />) : <Empty>Aucun objectif renseigné. Les business plans, investissements et plans d’action seront centralisés ici.</Empty>}</Section>; }
-function Funding({ data }) { return <div className="space-y-5"><div className="grid grid-cols-2 gap-3 xl:grid-cols-4"><Stat label="Valeur exploitation" value={fmtCurrency(data.estimatedValue)} tone="good" /><Stat label="Investissements" value={fmtCurrency(data.investmentValue)} /><Stat label="Documents" value={fmtNumber(data.documents.length)} /><Stat label="Preuves manquantes" value={fmtNumber(data.missingProof)} tone={data.missingProof ? 'warn' : 'good'} /></div><Section icon={Scale} title="Financeurs & documents"><Row title="Valeur estimée" detail="Stock + investissements + marge positive" value={fmtCurrency(data.estimatedValue)} tone="good" /><Row title="Justificatifs" detail={`${fmtNumber(data.documents.length)} document(s), ${fmtNumber(data.missingProof)} preuve(s) manquante(s)`} value={data.missingProof ? 'À compléter' : 'OK'} tone={data.missingProof ? 'warn' : 'good'} />{data.documents.length ? data.documents.slice(0, 8).map((r) => <Row key={r.id || label(r)} title={label(r)} detail={`${r.type || r.categorie || 'Document'} · ${dateOf(r)}`} value="Doc" />) : null}</Section></div>; }
-
-export default function VisionCroissanceModule({ dataMap = {}, animaux = [], lots = [], cultures = [], stocks = [], clients = [], salesOrders = [], payments = [], finances = [], transactions = [], investissements = [], businessPlans = [], documents = [], alertes = [], taches = [], opportunities = [], salesOpportunities = [], onNavigate }) {
+export default function VisionCroissanceModule(props) {
+  const { dataMap = {}, onNavigate, onCreateTask, onCreateAlert, onCreateBusinessPlan, onCreateBusinessEvent, onRefreshTasks, onRefreshAlertes } = props;
   const [tab, setTab] = useState('À traiter');
-  const data = useMemo(() => {
-    const allAnimals = arr(animaux).length ? arr(animaux) : arr(dataMap.animaux);
-    const allLots = arr(lots).length ? arr(lots) : arr(dataMap.lots || dataMap.avicole);
-    const allCultures = arr(cultures).length ? arr(cultures) : arr(dataMap.cultures);
-    const allStocks = arr(stocks).length ? arr(stocks) : arr(dataMap.stocks || dataMap.stock);
-    const allClients = arr(clients).length ? arr(clients) : arr(dataMap.clients);
-    const sales = arr(salesOrders).length ? arr(salesOrders) : arr(dataMap.salesOrders || dataMap.sales_orders);
-    const pay = arr(payments).length ? arr(payments) : arr(dataMap.payments);
-    const tx = [...arr(finances), ...arr(transactions), ...arr(dataMap.finances), ...arr(dataMap.transactions)].filter(Boolean);
-    const plans = arr(businessPlans).length ? arr(businessPlans) : arr(dataMap.business_plans);
-    const invest = arr(investissements).length ? arr(investissements) : arr(dataMap.investissements);
-    const docs = arr(documents).length ? arr(documents) : arr(dataMap.documents);
-    const opps = [...arr(opportunities), ...arr(salesOpportunities), ...arr(dataMap.sales_opportunities)].filter(Boolean);
-    const openAlerts = arr(alertes).length ? arr(alertes).filter(isOpen) : arr(dataMap.alertes_center || dataMap.alertes).filter(isOpen);
-    const openTasks = arr(taches).length ? arr(taches).filter(isOpen) : arr(dataMap.taches || dataMap.tasks).filter(isOpen);
-    const income = tx.filter(isIncome).reduce((s, r) => s + amount(r), 0);
-    const expenses = tx.filter((r) => isExpense(r) || (!isIncome(r) && amount(r) > 0)).reduce((s, r) => s + amount(r), 0);
-    const salesAmount = sales.reduce((s, r) => s + amount(r), 0);
-    const stockValue = allStocks.reduce((s, r) => s + stockQty(r) * n(r.prix_unitaire ?? r.unit_price ?? r.price), 0);
-    const investmentValue = invest.reduce((s, r) => s + amount(r), 0);
-    const missingProof = tx.filter((r) => amount(r) > 0 && !r.document_id && !r.proof_url && !r.justificatif_id).length;
-    const receivable = Math.max(0, salesAmount - pay.reduce((s, r) => s + amount(r), 0));
-    const base = { animaux: allAnimals, lots: allLots, cultures: allCultures, stocks: allStocks, clients: allClients, sales, payments: pay, income, expenses, balance: income - expenses, margin: income - expenses, salesAmount, stockValue, investmentValue, receivable, estimatedValue: stockValue + investmentValue + Math.max(0, income - expenses), productionCount: allAnimals.length + allLots.length + allCultures.length, goals: [...plans, ...invest], opportunities: opps, documents: docs, missingProof, openAlerts, openTasks };
-    const risks = buildRisks(base);
-    const priorities = [
-      ...openAlerts.slice(0, 5).map((r) => ({ id: `a-${r.id || label(r)}`, title: label(r), detail: r.message || r.description || 'Alerte ouverte', value: 'Alerte', tone: 'warn', tab: 'Risques' })),
-      ...openTasks.filter(isRisk).slice(0, 5).map((r) => ({ id: `t-${r.id || label(r)}`, title: label(r), detail: 'Tâche prioritaire', value: 'Action', tone: 'warn', tab: 'Risques' })),
-      ...(missingProof ? [{ id: 'proofs', title: 'Preuves manquantes', detail: `${missingProof} justificatif(s) à compléter`, value: 'Financeurs', tone: 'warn', tab: 'Financeurs' }] : []),
-      ...(income - expenses < 0 ? [{ id: 'cash', title: 'Trésorerie en tension', detail: 'Les charges dépassent les recettes saisies', value: 'Finance', tone: 'bad', tab: 'Risques' }] : []),
-    ];
-    const riskCount = risks.length;
-    const totalObjects = allAnimals.length + allLots.length + allCultures.length + openAlerts.length + openTasks.length + allStocks.length + 1;
-    return { ...base, priorities, risks, riskCount, globalScore: score(totalObjects - riskCount, totalObjects) };
-  }, [dataMap, animaux, lots, cultures, stocks, clients, salesOrders, payments, finances, transactions, investissements, businessPlans, documents, alertes, taches, opportunities, salesOpportunities]);
-  const content = tab === 'À traiter' ? <Priorities data={data} setTab={setTab} /> : tab === 'Performance' ? <Performance data={data} /> : tab === 'Risques' ? <Risks data={data} onNavigate={onNavigate} /> : tab === 'Opportunités' ? <Opportunities data={data} /> : tab === 'Prévisions' ? <Forecasts data={data} /> : tab === 'Plans' ? <Plans data={data} /> : <Funding data={data} />;
-  return <div className="space-y-6"><section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-6 shadow-sm"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Pilotage</p><h1 className="mt-1 text-3xl font-black text-[#2f2415]">Vision & Croissance</h1><p className="mt-2 text-sm text-[#8a7456] max-w-3xl">Une vue dirigeant : priorités, performance, risques, opportunités, prévisions et dossiers financeurs.</p></div></section><Tabs active={tab} onChange={setTab} />{content}</div>;
+  const data = useMemo(() => buildVisionData(props), [props, dataMap]);
+  const aiCount = useMemo(() => buildRecommendationsFromData(dataMap).length, [dataMap]);
+
+  const content = tab === 'À traiter'
+    ? <VisionPrioritiesTab data={data} setTab={setTab} onNavigate={onNavigate} onCreateTask={onCreateTask} onCreateAlert={onCreateAlert} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshTasks={onRefreshTasks} onRefreshAlertes={onRefreshAlertes} />
+    : tab === 'Performance' ? <VisionPerformanceTab data={data} />
+      : tab === 'Risques' ? <VisionRisksTab data={data} onNavigate={onNavigate} />
+        : tab === 'Opportunités' ? <VisionOpportunitiesTab data={data} />
+          : tab === 'Prévisions' ? <VisionForecastsTab data={data} />
+            : tab === 'Plans' ? <VisionPlansTab data={data} onCreateBusinessPlan={onCreateBusinessPlan} onNavigate={onNavigate} />
+              : <VisionFundingTab data={data} onNavigate={onNavigate} />;
+
+  return (
+    <div className="space-y-6">
+      <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-6 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Pilotage</p>
+            <h1 className="mt-1 text-3xl font-black text-[#2f2415]">Vision & Croissance</h1>
+            <p className="mt-2 text-sm text-[#8a7456] max-w-3xl">Vue dirigeante : priorités, performance, risques, opportunités, prévisions et dossiers financeurs.</p>
+          </div>
+          {aiCount > 0 ? <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"><b>{aiCount}</b> recommandation(s) IA détectée(s) — validation requise avant action.</div> : null}
+        </div>
+      </section>
+      <Tabs active={tab} onChange={setTab} />
+      {content}
+    </div>
+  );
 }

@@ -7,9 +7,11 @@ import { AppProvider } from './context/AppContext';
 import ChatPage from './pages/ChatPage';
 import ChatLoginPage from './pages/ChatLoginPage';
 import { registerServiceWorker } from './services/pwa';
+import { initFormModalBridge } from './services/formModalManager';
 import './index.css';
 
 registerServiceWorker();
+initFormModalBridge();
 
 function RootRouter() {
   const { user, loading } = useAuth();

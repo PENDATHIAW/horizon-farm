@@ -1,5 +1,7 @@
 import { Bot, CheckCircle2, ClipboardList, Mic, Send, Sparkles, Wand2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { buildRecommendationsFromData, draftToFormRequest, loadLocalRecommendations, saveLocalRecommendation } from '../services/aiRecommendationsService';
+import { openFormModal } from '../services/formModalManager';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -30,14 +32,14 @@ function Empty({ label }) { return <div className="rounded-2xl border border-[#e
 
 function inferIntent(text) {
   const query = lower(text);
-  if (/vente|vendu|client|payer|payé|livrer|facture/.test(query)) return { type: 'vente', module: 'Commercial', action: 'Préparer une vente complète', route: 'commercial' };
-  if (/panne|maintenance|tracteur|equipement|équipement|capteur|camera|caméra/.test(query)) return { type: 'maintenance', module: 'Opérations & Ressources', action: 'Préparer une intervention maintenance', route: 'rh' };
-  if (/stock|acheter|achat|fournisseur|aliment|seuil|rupture/.test(query)) return { type: 'achat_stock', module: 'Achats & Stock', action: 'Préparer un mouvement stock ou un achat', route: 'achats_stock' };
-  if (/animal|bovin|ovin|caprin|pondeuse|chair|vaccin|malade|mortalité|santé/.test(query)) return { type: 'elevage', module: 'Élevage', action: 'Préparer une action élevage', route: 'elevage' };
-  if (/dépense|recette|finance|paiement|justificatif|preuve|compta|invest/.test(query)) return { type: 'finance', module: 'Finance & Pilotage', action: 'Préparer une action financière', route: 'finance_pilotage' };
-  if (/tâche|alerte|retard|suivi|historique|trace/.test(query)) return { type: 'suivi', module: 'Activité & Suivi', action: 'Préparer une action de suivi', route: 'activite_suivi' };
-  if (/rapport|document|facture|reçu|export|preuve/.test(query)) return { type: 'document', module: 'Documents & Rapports', action: 'Préparer un document ou un rapport', route: 'documents_rapports' };
-  return { type: 'decision', module: 'Vision & Croissance', action: 'Analyser et proposer une décision', route: 'centre_ia' };
+  if (/vente|vendu|client|payer|payé|livrer|facture/.test(query)) return { type: 'vente', module: 'Commercial', action: 'Préparer une vente complète', route: 'commercial', confidence: 0.88 };
+  if (/panne|maintenance|tracteur|equipement|équipement|capteur|camera|caméra/.test(query)) return { type: 'maintenance', module: 'Opérations & Ressources', action: 'Préparer une intervention maintenance', route: 'equipements', confidence: 0.82 };
+  if (/stock|acheter|achat|fournisseur|aliment|seuil|rupture/.test(query)) return { type: 'achat_stock', module: 'Achats & Stock', action: 'Préparer un mouvement stock ou un achat', route: 'achats_stock', confidence: 0.85 };
+  if (/animal|bovin|ovin|caprin|pondeuse|chair|vaccin|malade|mortalité|santé/.test(query)) return { type: 'elevage', module: 'Élevage', action: 'Préparer une action élevage', route: 'elevage', confidence: 0.84 };
+  if (/dépense|recette|finance|paiement|justificatif|preuve|compta|invest/.test(query)) return { type: 'finance', module: 'Finance & Pilotage', action: 'Préparer une action financière', route: 'finance_pilotage', confidence: 0.83 };
+  if (/tâche|alerte|retard|suivi|historique|trace/.test(query)) return { type: 'suivi', module: 'Activité & Suivi', action: 'Préparer une action de suivi', route: 'activite_suivi', confidence: 0.8 };
+  if (/rapport|document|facture|reçu|export|preuve/.test(query)) return { type: 'document', module: 'Documents & Rapports', action: 'Préparer un document ou un rapport', route: 'documents_rapports', confidence: 0.79 };
+  return { type: 'decision', module: 'Vision & Croissance', action: 'Analyser et proposer une décision', route: 'centre_ia', confidence: 0.65 };
 }
 
 function buildDraft(text) {
@@ -55,20 +57,22 @@ function buildDraft(text) {
     decision: { fiches: ['Analyse décisionnelle', 'Plan d’action', 'Risque ou opportunité'], champs: ['Objectif', 'Horizon', 'Budget', 'Impact attendu'], impacts: ['Vision', 'Finance', 'Activité'] },
   };
   const scenario = scenarios[intent.type] || scenarios.decision;
-  return { text, ...intent, ...scenario, estimation: { qte, montant }, pret: false };
+  const confidence_score = Math.round((intent.confidence + (qte || montant ? 0.08 : 0)) * 100);
+  return { text, ...intent, ...scenario, estimation: { qte, montant }, confidence_score, pret: false };
 }
 
-function DraftPreview({ draft, onNavigate }) {
-  return <Section icon={Wand2} title="Fiche ERP préparée" action={<button type="button" onClick={() => onNavigate?.(draft.route)} className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white">Ouvrir {draft.module}</button>}>
-    <div className="grid grid-cols-1 gap-3 lg:grid-cols-3"><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">Module</p><p className="mt-1 font-black text-[#2f2415]">{draft.module}</p></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">Action proposée</p><p className="mt-1 font-black text-[#2f2415]">{draft.action}</p></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">Détection</p><p className="mt-1 font-black text-[#2f2415]">{draft.estimation.qte ? `${draft.estimation.qte} unité(s)` : 'Quantité à confirmer'} · {draft.estimation.montant ? fmtCurrency(draft.estimation.montant) : 'Montant à confirmer'}</p></div></div>
+function DraftPreview({ draft, onNavigate, onPrefill }) {
+  return <Section icon={Wand2} title="Fiche ERP préparée" action={<div className="flex flex-wrap gap-2"><button type="button" onClick={onPrefill} className="rounded-xl bg-[#22c55e] px-3 py-2 text-xs font-black text-[#052e16]">Préremplir formulaire</button><button type="button" onClick={() => onNavigate?.(draft.route)} className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white">Ouvrir {draft.module}</button></div>}>
+    <div className="grid grid-cols-1 gap-3 lg:grid-cols-4"><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">Module</p><p className="mt-1 font-black text-[#2f2415]">{draft.module}</p></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">Action proposée</p><p className="mt-1 font-black text-[#2f2415]">{draft.action}</p></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">Confiance IA</p><p className="mt-1 font-black text-[#2f2415]">{draft.confidence_score}%</p></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">Estimation</p><p className="mt-1 font-black text-[#2f2415]">{draft.estimation.qte ? `${draft.estimation.qte} unité(s)` : 'Quantité à confirmer'} · {draft.estimation.montant ? fmtCurrency(draft.estimation.montant) : 'Montant à confirmer'}</p></div></div>
     <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3"><div className="rounded-2xl border border-[#eadcc2] bg-white p-4"><p className="text-xs font-black uppercase tracking-[0.2em] text-[#8a7456]">Fiches à créer</p><div className="mt-3 flex flex-wrap gap-2">{draft.fiches.map((item) => <Pill key={item} tone="good">{item}</Pill>)}</div></div><div className="rounded-2xl border border-[#eadcc2] bg-white p-4"><p className="text-xs font-black uppercase tracking-[0.2em] text-[#8a7456]">Champs à confirmer</p><div className="mt-3 flex flex-wrap gap-2">{draft.champs.map((item) => <Pill key={item}>{item}</Pill>)}</div></div><div className="rounded-2xl border border-[#eadcc2] bg-white p-4"><p className="text-xs font-black uppercase tracking-[0.2em] text-[#8a7456]">Impacts ERP</p><div className="mt-3 flex flex-wrap gap-2">{draft.impacts.map((item) => <Pill key={item} tone="good">{item}</Pill>)}</div></div></div>
-    <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Validation finale à brancher : l’assistant doit ouvrir le formulaire métier prérempli dans {draft.module}, puis laisser l’utilisateur confirmer avant création.</div>
+    <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">Validation humaine obligatoire : Hey Horizon prépare le formulaire prérempli. Tu confirmes avant toute création ERP.</div>
   </Section>;
 }
 
 export default function HeyHorizonModule({ dataMap = {}, onOpenAssistant, onNavigate }) {
   const [command, setCommand] = useState('');
   const [draft, setDraft] = useState(null);
+  const [journalTab, setJournalTab] = useState(false);
   const data = useMemo(() => {
     const stocks = arr(dataMap.stock || dataMap.stocks);
     const sales = arr(dataMap.sales_orders || dataMap.salesOrders);
@@ -81,15 +85,29 @@ export default function HeyHorizonModule({ dataMap = {}, onOpenAssistant, onNavi
     const openTasks = tasks.filter(open);
     const openAlerts = alertes.filter(open);
     const missingProof = finances.filter((row) => amount(row) > 0 && !row.document_id && !row.proof_url && !row.justificatif_id);
-    return { stocks, sales, finances, tasks, alertes, documents, lowStocks, unpaid, openTasks, openAlerts, missingProof };
+    const aiRecommendations = buildRecommendationsFromData(dataMap);
+    return { stocks, sales, finances, tasks, alertes, documents, lowStocks, unpaid, openTasks, openAlerts, missingProof, aiRecommendations };
   }, [dataMap]);
-  const runDraft = (text = command) => { setCommand(text); setDraft(buildDraft(text)); };
-  return <div className="space-y-6"><section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-6 shadow-sm overflow-hidden relative"><div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-emerald-200/50 blur-2xl" /><div className="relative flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div><p className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black"><Bot size={16} /> Assistant ERP</p><h1 className="mt-2 text-3xl font-black text-[#2f2415]">Hey Horizon</h1><p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#7d6a4a]">Saisir vite, préparer une fiche ERP structurée, vérifier les impacts et ouvrir le bon module pour validation.</p></div><button type="button" onClick={onOpenAssistant} className="rounded-2xl bg-[#2f2415] px-5 py-3 text-sm font-black text-white shadow-lg"><Mic size={17} className="inline mr-2" /> Ouvrir le panneau</button></div></section>
-    <div className="grid grid-cols-2 gap-3 xl:grid-cols-5"><Stat label="Stocks bas" value={fmtNumber(data.lowStocks.length)} tone={data.lowStocks.length ? 'warn' : 'good'} /><Stat label="Impayés" value={fmtNumber(data.unpaid.length)} tone={data.unpaid.length ? 'warn' : 'good'} /><Stat label="Tâches ouvertes" value={fmtNumber(data.openTasks.length)} tone={data.openTasks.length ? 'warn' : 'good'} /><Stat label="Alertes" value={fmtNumber(data.openAlerts.length)} tone={data.openAlerts.length ? 'warn' : 'good'} /><Stat label="Preuves manquantes" value={fmtNumber(data.missingProof.length)} tone={data.missingProof.length ? 'warn' : 'good'} /></div>
+  const journal = useMemo(() => loadLocalRecommendations(), [draft]);
+  const runDraft = (text = command) => {
+    const next = buildDraft(text);
+    setCommand(text);
+    setDraft(next);
+    saveLocalRecommendation({ type: 'draft', text, module: next.module, confidence_score: next.confidence_score, action: next.action });
+  };
+  const prefillForm = () => {
+    if (!draft) return;
+    const req = draftToFormRequest(draft);
+    openFormModal(req);
+    onNavigate?.(draft.route);
+  };
+  return <div className="space-y-6"><section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-6 shadow-sm overflow-hidden relative"><div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-emerald-200/50 blur-2xl" /><div className="relative flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div><p className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black"><Bot size={16} /> Assistant ERP</p><h1 className="mt-2 text-3xl font-black text-[#2f2415]">Hey Horizon</h1><p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#7d6a4a]">Détection d'intention, score de confiance, préremplissage formulaire et journal des recommandations — validation humaine obligatoire.</p></div><button type="button" onClick={onOpenAssistant} className="rounded-2xl bg-[#2f2415] px-5 py-3 text-sm font-black text-white shadow-lg"><Mic size={17} className="inline mr-2" /> Ouvrir le panneau</button></div></section>
+    <div className="grid grid-cols-2 gap-3 xl:grid-cols-6"><Stat label="Stocks bas" value={fmtNumber(data.lowStocks.length)} tone={data.lowStocks.length ? 'warn' : 'good'} /><Stat label="Impayés" value={fmtNumber(data.unpaid.length)} tone={data.unpaid.length ? 'warn' : 'good'} /><Stat label="Tâches ouvertes" value={fmtNumber(data.openTasks.length)} tone={data.openTasks.length ? 'warn' : 'good'} /><Stat label="Alertes" value={fmtNumber(data.openAlerts.length)} tone={data.openAlerts.length ? 'warn' : 'good'} /><Stat label="Preuves manquantes" value={fmtNumber(data.missingProof.length)} tone={data.missingProof.length ? 'warn' : 'good'} /><Stat label="Recommandations IA" value={fmtNumber(data.aiRecommendations.length)} tone={data.aiRecommendations.length ? 'warn' : 'good'} /></div>
     <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="rounded-3xl border border-[#eadcc2] bg-[#fffdf8] p-4"><label className="text-xs font-black uppercase tracking-[0.2em] text-[#8a7456]">Demander à Hey Horizon</label><div className="mt-3 flex flex-col gap-3 lg:flex-row"><textarea value={command} onChange={(event) => setCommand(event.target.value)} rows={3} placeholder="Exemple : J’ai vendu 10 poulets à Aminata, livré et payé 65 000 FCFA" className="min-h-[96px] flex-1 rounded-2xl border border-[#d6c3a0] bg-white p-4 text-sm text-[#2f2415] outline-none focus:border-emerald-400" /><div className="flex lg:flex-col gap-2"><button type="button" onClick={() => runDraft()} className="rounded-2xl bg-[#22c55e] px-4 py-3 text-sm font-black text-[#052e16]"><Send size={16} className="inline mr-1" /> Préparer</button><button type="button" onClick={onOpenAssistant} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><Mic size={16} className="inline mr-1" /> Voix</button></div></div></div></section>
-    {draft ? <DraftPreview draft={draft} onNavigate={onNavigate} /> : null}
+    {draft ? <DraftPreview draft={draft} onNavigate={onNavigate} onPrefill={prefillForm} /> : null}
     <Section icon={Sparkles} title="Actions rapides"><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{QUICK_COMMANDS.map((item) => <button key={item.title} type="button" onClick={() => runDraft(item.text)} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left hover:bg-[#dcfce7]"><p className="font-black text-[#2f2415]">{item.title}</p><p className="mt-1 text-sm text-[#7d6a4a]">{item.text}</p><Pill tone="good">{item.target}</Pill></button>)}</div></Section>
-    <Section icon={ClipboardList} title="Informations utiles détectées"><div>{data.lowStocks.slice(0, 4).map((row) => <Row key={`stock-${row.id || label(row)}`} title={label(row)} detail="Stock sous seuil" value="Acheter" tone="warn" />)}{data.missingProof.slice(0, 4).map((row) => <Row key={`proof-${row.id || label(row)}`} title={label(row)} detail="Justificatif manquant" value={fmtCurrency(amount(row))} tone="warn" />)}{!data.lowStocks.length && !data.missingProof.length ? <Empty label="Aucune priorité automatique détectée." /> : null}</div></Section>
+    <Section icon={ClipboardList} title="Informations utiles détectées"><div>{data.lowStocks.slice(0, 4).map((row) => <Row key={`stock-${row.id || label(row)}`} title={label(row)} detail="Stock sous seuil" value="Acheter" tone="warn" />)}{data.missingProof.slice(0, 4).map((row) => <Row key={`proof-${row.id || label(row)}`} title={label(row)} detail="Justificatif manquant" value={fmtCurrency(amount(row))} tone="warn" />)}{data.aiRecommendations.slice(0, 4).map((row) => <Row key={row.id} title={row.title} detail={row.action_recommandee} value={`${row.confidence_score}%`} tone="warn" />)}{!data.lowStocks.length && !data.missingProof.length && !data.aiRecommendations.length ? <Empty label="Aucune priorité automatique détectée." /> : null}</div></Section>
+    <Section icon={ClipboardList} title="Journal des recommandations IA" action={<button type="button" onClick={() => setJournalTab((v) => !v)} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black">{journalTab ? 'Masquer' : 'Afficher'}</button>}>{journalTab ? (journal.length ? journal.slice(0, 12).map((entry, idx) => <Row key={`${entry.saved_at}-${idx}`} title={entry.action || entry.text || 'Recommandation'} detail={`${entry.module || '—'} · ${entry.saved_at ? new Date(entry.saved_at).toLocaleString('fr-FR') : '—'}`} value={entry.confidence_score ? `${entry.confidence_score}%` : '—'} />) : <Empty label="Aucune recommandation enregistrée." />) : <Empty label="Le journal enregistre chaque analyse Hey Horizon avec score de confiance." />}</Section>
     <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm"><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Modules compris par Hey Horizon</p><div className="mt-3 flex flex-wrap gap-2">{MODULES.map((module) => <Pill key={module} tone="good"><CheckCircle2 size={13} className="inline mr-1" /> {module}</Pill>)}</div></section>
   </div>;
 }
