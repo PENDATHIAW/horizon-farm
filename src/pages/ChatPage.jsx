@@ -12,6 +12,20 @@ function roleOf(user, profile, role) {
   return 'admin';
 }
 
+async function askServerAgent({ text, language, role, actor, session }) {
+  const response = await fetch('/api/agent', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+    },
+    body: JSON.stringify({ text, language, role, actor }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || data.message || 'Agent serveur indisponible.');
+  return data;
+}
+
 function DataTable({ table }) {
   if (!table?.columns?.length || !table?.rows?.length) return null;
   return (
@@ -33,7 +47,7 @@ function DataTable({ table }) {
 }
 
 export default function ChatPage() {
-  const { user, profile, role: authRole, loading, signOut } = useAuth();
+  const { session, user, profile, role: authRole, loading, signOut } = useAuth();
   const [language, setLanguage] = useState('fr');
   const [message, setMessage] = useState('');
   const [isThinking, setIsThinking] = useState(false);
@@ -53,7 +67,13 @@ export default function ChatPage() {
     setMessage('');
     setIsThinking(true);
     try {
-      const reply = await askErpFromChat({ text, language, role, actor: { userId: user?.id, email: user?.email } });
+      let reply;
+      try {
+        reply = await askServerAgent({ text, language, role, actor: { userId: user?.id, email: user?.email }, session });
+      } catch (agentError) {
+        console.warn('Horizon server agent fallback:', agentError?.message || agentError);
+        reply = await askErpFromChat({ text, language, role, actor: { userId: user?.id, email: user?.email } });
+      }
       addMessage(reply || { side: 'assistant', language, text: 'Je suis prêt. Posez une question sur une partie précise de l’ERP, ou demandez une analyse.' });
     } catch (error) {
       addMessage({ side: 'assistant', language, text: error.message || 'Assistant ERP indisponible.', status: 'Erreur ERP' });
@@ -85,7 +105,7 @@ export default function ChatPage() {
         </header>
 
         <div className="flex-1 space-y-3 overflow-y-auto bg-[#efe7dc] px-4 py-4">
-          <div className="mx-auto w-fit rounded-xl bg-[#fff4cf] px-4 py-2 text-center text-xs font-semibold text-[#5f5333] shadow-sm">Assistant ERP • questions libres • analyses</div>
+          <div className="mx-auto w-fit rounded-xl bg-[#fff4cf] px-4 py-2 text-center text-xs font-semibold text-[#5f5333] shadow-sm">Assistant ERP • agent serveur • questions libres</div>
           {messages.map((item) => {
             const isUser = item.side === 'user';
             return (
