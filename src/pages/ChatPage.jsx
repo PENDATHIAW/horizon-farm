@@ -65,7 +65,7 @@ export default function ChatPage() {
 
   const role = roleOf(user, profile, authRole);
   const displayName = profile?.full_name || user?.email?.split('@')?.[0] || 'Horizon user';
-  const canSend = useMemo(() => message.trim().length > 0 && !isThinking, [message, isThinking]);
+  const canSend = useMemo(() => message.trim().length > 0 && !isThinking && !isListening, [message, isThinking, isListening]);
 
   const addMessage = (item) => setMessages((current) => [...current, { id: Date.now() + Math.random(), time: nowTime(), ...item }]);
 
@@ -192,9 +192,9 @@ export default function ChatPage() {
             <span className="text-[11px] font-semibold text-[#7b6b5c]">{isListening ? 'ÉCOUTE…' : language.toUpperCase()}</span>
           </div>
           {notice ? <div className="mb-2 rounded-xl bg-white/80 px-3 py-2 text-[11px] font-bold text-[#607167] shadow-sm">{notice}</div> : null}
-          <form onSubmit={(event) => { event.preventDefault(); sendText(); }} className="flex items-center gap-2">
+          <form onSubmit={(event) => { event.preventDefault(); if (!isListening) sendText(); }} className="flex items-center gap-2">
             <div className="flex min-w-0 flex-1 items-center rounded-full bg-white px-3 py-2 shadow-sm"><input value={message} onChange={(event) => setMessage(event.target.value)} placeholder={isListening ? 'Je vous écoute…' : 'Posez une question libre à l’ERP'} className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[#8b948f]" /></div>
-            <button type={canSend ? 'submit' : 'button'} onClick={!canSend ? (isListening ? stopVoiceInput : startVoiceInput) : undefined} className={`grid h-12 w-12 shrink-0 place-items-center rounded-full text-white shadow-lg ${isListening ? 'bg-red-500 animate-pulse' : 'bg-[#008069]'}`} disabled={isThinking}>{canSend ? <Send size={20} /> : <Mic size={24} />}</button>
+            <button type={isListening || !canSend ? 'button' : 'submit'} onClick={isListening ? stopVoiceInput : (!canSend ? startVoiceInput : undefined)} className={`grid h-12 w-12 shrink-0 place-items-center rounded-full text-white shadow-lg ${isListening ? 'bg-red-500 animate-pulse' : 'bg-[#008069]'}`} disabled={isThinking}>{canSend && !isListening ? <Send size={20} /> : <Mic size={24} />}</button>
           </form>
         </footer>
       </section>
