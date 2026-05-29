@@ -2,6 +2,7 @@ import { ClipboardList, Database, Lock, MapPin, Settings, ShieldAlert, ShieldChe
 import { useCallback, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useAppData } from '../context/AppContext';
+import { setSimulatedDataMode } from '../utils/uiPreferences';
 import { canPerformSystemAction } from '../utils/systemAccessWorkflows';
 
 const arr = (v) => Array.isArray(v) ? v : [];
@@ -34,7 +35,7 @@ function ResetDataSection({ canManage, onClearAllData, onRefreshAll }) {
       setBusy(false);
     }
   };
-  return <div className="space-y-5"><Section icon={Database} title="Réinitialisation des données"><div className="space-y-4"><div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"><b>Action sensible :</b> cette action supprime les données enregistrées dans les tables, mais ne supprime pas les tables ni la structure de la base.</div><div className="grid grid-cols-1 gap-3 md:grid-cols-2"><Row title="Portée" detail="Ventes, clients, élevage, cultures, stock, finance, documents, tâches, alertes, événements et autres données applicatives." value="Données" tone="bad" /><Row title="Structure" detail="Les tables, colonnes, relations et configurations techniques restent en place." value="Conservée" tone="good" /></div><label className="block space-y-2"><span className="text-xs font-black uppercase tracking-[0.2em] text-[#8a7456]">Confirmation requise</span><input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="SUPPRIMER LES DONNEES" className="w-full rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm outline-none focus:border-red-300" /></label><button type="button" disabled={!allowed || busy} onClick={run} className="rounded-2xl border border-red-200 bg-red-600 px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50"><Trash2 size={16} className="inline mr-2" />{busy ? 'Suppression...' : 'Supprimer toutes les données'}</button></div></Section></div>;
+  return <div className="space-y-5"><Section icon={Database} title="Réinitialisation des données"><div className="space-y-4"><div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"><b>Action sensible :</b> cette action supprime les données enregistrées dans les tables et désactive le mode démonstration.</div><div className="grid grid-cols-1 gap-3 md:grid-cols-2"><Row title="Portée" detail="Ventes, clients, élevage, cultures, stock, finance, documents, tâches, alertes, événements et autres données applicatives." value="Données" tone="bad" /><Row title="Structure" detail="Les tables, colonnes, relations et configurations techniques restent en place." value="Conservée" tone="good" /></div><label className="block space-y-2"><span className="text-xs font-black uppercase tracking-[0.2em] text-[#8a7456]">Confirmation requise</span><input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="SUPPRIMER LES DONNEES" className="w-full rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm outline-none focus:border-red-300" /></label><button type="button" disabled={!allowed || busy} onClick={run} className="rounded-2xl border border-red-200 bg-red-600 px-5 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50"><Trash2 size={16} className="inline mr-2" />{busy ? 'Suppression...' : 'Supprimer toutes les données'}</button></div></Section></div>;
 }
 
 export default function GestionSystemeUnified({ equipements = [], transactions = [], documents = [], tasks = [], alertes = [], businessEvents = [], auditLogs = [], users = [], profiles = [], farm = {}, ferme = {}, online = true, lastOnlineAt, onRefreshAll, onFlushOffline, onClearAllData }) {
@@ -44,6 +45,7 @@ export default function GestionSystemeUnified({ equipements = [], transactions =
   const canManage = canPerformSystemAction(role, 'modifier');
   const farmInfo = farm || ferme || {};
   const clearAllData = useCallback(async () => {
+    setSimulatedDataMode(false);
     if (typeof onClearAllData === 'function') return onClearAllData();
     const entries = Object.entries(dataMap || {}).filter(([moduleKey, rows]) => !RESET_SKIP_KEYS.has(moduleKey) && Array.isArray(rows) && rows.length > 0);
     for (const [moduleKey, rows] of entries) {
