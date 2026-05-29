@@ -1,5 +1,5 @@
 import { LogOut, Mic, Send } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { askErpFromChat } from '../services/erpChatBridge';
 
@@ -62,10 +62,15 @@ export default function ChatPage() {
   const [messages, setMessages] = useState(() => [{ id: 1, side: 'assistant', text: 'Bienvenue sur Horizon Chat. Posez librement une question sur votre ERP.', time: nowTime(), language: 'fr' }]);
   const recognitionRef = useRef(null);
   const lastTranscriptRef = useRef('');
+  const messagesEndRef = useRef(null);
 
   const role = roleOf(user, profile, authRole);
   const displayName = profile?.full_name || user?.email?.split('@')?.[0] || 'Horizon user';
   const canSend = useMemo(() => message.trim().length > 0 && !isThinking && !isListening, [message, isThinking, isListening]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'end' });
+  }, [messages, isThinking, notice]);
 
   const addMessage = (item) => setMessages((current) => [...current, { id: Date.now() + Math.random(), time: nowTime(), ...item }]);
 
@@ -182,6 +187,7 @@ export default function ChatPage() {
             );
           })}
           {isThinking ? <div className="w-fit rounded-2xl bg-white px-4 py-3 text-sm font-bold text-[#607167] shadow-sm">Horizon consulte l’ERP…</div> : null}
+          <div ref={messagesEndRef} />
         </div>
 
         <footer className="shrink-0 bg-[#efe7dc] px-3 pb-4 pt-2">
