@@ -1,5 +1,5 @@
 import { LogOut, Mic, Send } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { askErpFromChat } from '../services/erpChatBridge';
 
@@ -10,6 +10,26 @@ function roleOf(user, profile, role) {
   const value = String(role || profile?.role || user?.user_metadata?.role || '').toLowerCase().trim();
   if (['admin', 'manager', 'employe', 'veterinaire', 'comptable'].includes(value)) return value;
   return 'admin';
+}
+
+function voiceLang(language) {
+  if (language === 'en') return 'en-US';
+  if (language === 'wo') return 'wo-SN';
+  return 'fr-FR';
+}
+
+function getSpeechRecognition() {
+  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+}
+
+function speakText(text = '', language = 'fr') {
+  if (!text || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(String(text).replace(/\n+/g, '. '));
+  utterance.lang = voiceLang(language);
+  utterance.rate = 0.95;
+  utterance.pitch = 1;
+  window.speechSynthesis.speak(utterance);
 }
 
 function DataTable({ table }) {
@@ -37,8 +57,10 @@ export default function ChatPage() {
   const [language, setLanguage] = useState('fr');
   const [message, setMessage] = useState('');
   const [isThinking, setIsThinking] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [notice, setNotice] = useState('');
   const [messages, setMessages] = useState(() => [{ id: 1, side: 'assistant', text: 'Bienvenue sur Horizon Chat. Posez librement une question sur votre ERP.', time: nowTime(), language: 'fr' }]);
+  const recognitionRef = useRef(null);
 
   const role = roleOf(user, profile, authRole);
   const displayName = profile?.full_name || user?.email?.split('@')?.[0] || 'Horizon user';
@@ -46,24 +68,76 @@ export default function ChatPage() {
 
   const addMessage = (item) => setMessages((current) => [...current, { id: Date.now() + Math.random(), time: nowTime(), ...item }]);
 
-  const sendText = async (raw = message) => {
+  const sendText = async (raw = message, options = {}) => {
     const text = String(raw || '').trim();
     if (!text || isThinking) return;
-    addMessage({ side: 'user', text, language });
+    addMessage({ side: 'user', text, language, status: options.fromVoice ? 'Message vocal' : undefined });
     setMessage('');
     setIsThinking(true);
     try {
       const reply = await askErpFromChat({ text, language, role, actor: { userId: user?.id, email: user?.email } });
-      addMessage(reply || { side: 'assistant', language, text: 'Je suis prêt. Posez une question sur une partie précise de l’ERP, ou demandez une analyse.' });
+      const finalReply = reply || { side: 'assistant', language, text: 'Je suis prêt. Posez une question sur une partie précise de l’ERP, ou demandez une analyse.' };
+      addMessage(finalReply);
+      if (options.fromVoice) speakText(finalReply.text, finalReply.language || language);
     } catch (error) {
-      addMessage({ side: 'assistant', language, text: error.message || 'Assistant ERP indisponible.', status: 'Erreur ERP' });
+      const errorMessage = { side: 'assistant', language, text: error.message || 'Assistant ERP indisponible.', status: 'Erreur ERP' };
+      addMessage(errorMessage);
+      if (options.fromVoice) speakText(errorMessage.text, language);
     } finally {
       setIsThinking(false);
     }
   };
 
+  const startVoiceInput = () => {
+    if (isThinking || isListening) return;
+    const Recognition = getSpeechRecognition();
+    if (!Recognition) {
+      setNotice('La reconnaissance vocale du navigateur n’est pas disponible ici. Essaie Chrome ou Edge, ou écris le message.');
+      return;
+    }
+    try {
+      const recognition = new Recognition();
+      recognitionRef.current = recognition;
+      recognition.lang = voiceLang(language);
+      recognition.interimResults = true;
+      recognition.continuous = false;
+      let finalTranscript = '';
+      setNotice(language === 'wo' ? 'J’écoute. Parle lentement en wolof.' : 'J’écoute. Parle maintenant.');
+      setIsListening(true);
+      recognition.onresult = (event) => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i += 1) {
+          const chunk = event.results[i][0]?.transcript || '';
+          if (event.results[i].isFinal) finalTranscript += `${chunk} `;
+          else interim += chunk;
+        }
+        setMessage((finalTranscript || interim).trim());
+      };
+      recognition.onerror = (event) => {
+        setIsListening(false);
+        setNotice(event.error === 'not-allowed' ? 'Micro refusé. Autorise le micro dans le navigateur.' : `Erreur micro : ${event.error || 'inconnue'}`);
+      };
+      recognition.onend = () => {
+        setIsListening(false);
+        const transcript = finalTranscript.trim();
+        if (transcript) sendText(transcript, { fromVoice: true });
+        else setNotice('Je n’ai pas capté de message vocal. Réessaie ou écris la question.');
+      };
+      recognition.start();
+    } catch (error) {
+      setIsListening(false);
+      setNotice(error.message || 'Impossible de démarrer le micro.');
+    }
+  };
+
+  const stopVoiceInput = () => {
+    try { recognitionRef.current?.stop?.(); } catch {}
+    setIsListening(false);
+  };
+
   const logout = async () => {
     try {
+      window.speechSynthesis?.cancel?.();
       await signOut();
       window.location.replace('/chat');
     } catch (error) {
@@ -85,7 +159,7 @@ export default function ChatPage() {
         </header>
 
         <div className="flex-1 space-y-3 overflow-y-auto bg-[#efe7dc] px-4 py-4">
-          <div className="mx-auto w-fit rounded-xl bg-[#fff4cf] px-4 py-2 text-center text-xs font-semibold text-[#5f5333] shadow-sm">Assistant ERP • questions libres • analyses</div>
+          <div className="mx-auto w-fit rounded-xl bg-[#fff4cf] px-4 py-2 text-center text-xs font-semibold text-[#5f5333] shadow-sm">Assistant ERP • questions libres • vocal</div>
           {messages.map((item) => {
             const isUser = item.side === 'user';
             return (
@@ -106,14 +180,14 @@ export default function ChatPage() {
         <footer className="shrink-0 bg-[#efe7dc] px-3 pb-4 pt-2">
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className="flex gap-1 rounded-full bg-white p-1 shadow-sm ring-1 ring-black/5">
-              {[['wo', 'Wolof'], ['fr', 'FR'], ['en', 'EN']].map(([key, label]) => <button key={key} type="button" onClick={() => setLanguage(key)} className={`rounded-full px-3 py-1 text-xs font-black ${language === key ? 'bg-[#075e54] text-white' : 'text-[#607167]'}`}>{label}</button>)}
+              {[['wo', 'Wolof'], ['fr', 'FR'], ['en', 'EN']].map(([key, label]) => <button key={key} type="button" onClick={() => { window.speechSynthesis?.cancel?.(); setLanguage(key); }} className={`rounded-full px-3 py-1 text-xs font-black ${language === key ? 'bg-[#075e54] text-white' : 'text-[#607167]'}`}>{label}</button>)}
             </div>
-            <span className="text-[11px] font-semibold text-[#7b6b5c]">{language.toUpperCase()}</span>
+            <span className="text-[11px] font-semibold text-[#7b6b5c]">{isListening ? 'ÉCOUTE…' : language.toUpperCase()}</span>
           </div>
           {notice ? <div className="mb-2 rounded-xl bg-white/80 px-3 py-2 text-[11px] font-bold text-[#607167] shadow-sm">{notice}</div> : null}
           <form onSubmit={(event) => { event.preventDefault(); sendText(); }} className="flex items-center gap-2">
-            <div className="flex min-w-0 flex-1 items-center rounded-full bg-white px-3 py-2 shadow-sm"><input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Posez une question libre à l’ERP" className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[#8b948f]" /></div>
-            <button type={canSend ? 'submit' : 'button'} className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#008069] text-white shadow-lg" disabled={!canSend}>{canSend ? <Send size={20} /> : <Mic size={24} />}</button>
+            <div className="flex min-w-0 flex-1 items-center rounded-full bg-white px-3 py-2 shadow-sm"><input value={message} onChange={(event) => setMessage(event.target.value)} placeholder={isListening ? 'Je vous écoute…' : 'Posez une question libre à l’ERP'} className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[#8b948f]" /></div>
+            <button type={canSend ? 'submit' : 'button'} onClick={!canSend ? (isListening ? stopVoiceInput : startVoiceInput) : undefined} className={`grid h-12 w-12 shrink-0 place-items-center rounded-full text-white shadow-lg ${isListening ? 'bg-red-500 animate-pulse' : 'bg-[#008069]'}`} disabled={isThinking}>{canSend ? <Send size={20} /> : <Mic size={24} />}</button>
           </form>
         </footer>
       </section>
