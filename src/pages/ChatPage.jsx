@@ -61,6 +61,7 @@ export default function ChatPage() {
   const [notice, setNotice] = useState('');
   const [messages, setMessages] = useState(() => [{ id: 1, side: 'assistant', text: 'Bienvenue sur Horizon Chat. Posez librement une question sur votre ERP.', time: nowTime(), language: 'fr' }]);
   const recognitionRef = useRef(null);
+  const lastTranscriptRef = useRef('');
 
   const role = roleOf(user, profile, authRole);
   const displayName = profile?.full_name || user?.email?.split('@')?.[0] || 'Horizon user';
@@ -98,6 +99,7 @@ export default function ChatPage() {
     try {
       const recognition = new Recognition();
       recognitionRef.current = recognition;
+      lastTranscriptRef.current = '';
       recognition.lang = voiceLang(language);
       recognition.interimResults = true;
       recognition.continuous = false;
@@ -111,7 +113,11 @@ export default function ChatPage() {
           if (event.results[i].isFinal) finalTranscript += `${chunk} `;
           else interim += chunk;
         }
-        setMessage((finalTranscript || interim).trim());
+        const heard = (finalTranscript || interim).trim();
+        if (heard) {
+          lastTranscriptRef.current = heard;
+          setMessage(heard);
+        }
       };
       recognition.onerror = (event) => {
         setIsListening(false);
@@ -119,7 +125,8 @@ export default function ChatPage() {
       };
       recognition.onend = () => {
         setIsListening(false);
-        const transcript = finalTranscript.trim();
+        const transcript = (finalTranscript || lastTranscriptRef.current || message).trim();
+        lastTranscriptRef.current = '';
         if (transcript) sendText(transcript, { fromVoice: true });
         else setNotice('Je n’ai pas capté de message vocal. Réessaie ou écris la question.');
       };
