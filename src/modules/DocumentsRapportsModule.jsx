@@ -8,6 +8,7 @@ import { emitHorizonForm } from '../services/formModalManager';
 import { applyOneClickRecommendation, createMissingProofTask } from '../services/heyHorizonRecommendationActions.js';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { rowsOf } from '../utils/moduleRows';
+import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import { aggregateMissingProofItems, buildDocumentsCoherenceRows, buildDocumentsHealthSnapshot } from './documents/documentsVisionHelpers.js';
 
 const arr = (v) => Array.isArray(v) ? v : [];
@@ -205,9 +206,14 @@ export default function DocumentsRapportsModule(props) {
   const tasksCrud = useCrudModule('taches');
   const alertsCrud = useCrudModule('alertes_center');
   const eventsCrud = useCrudModule('business_events');
-  const documents = rowsOf(props.documents, docsCrud);
-  const transactions = rowsOf(props.transactions || props.finances, financesCrud);
-  const salesOrders = arr(props.salesOrders);
+  const salesCrud = useCrudModule('sales_orders');
+  const paymentsCrud = useCrudModule('payments');
+  const periodFiltered = Boolean(props.periodFiltered);
+  const documents = rowsOf(props.documents, docsCrud, periodFiltered);
+  const transactions = rowsOf(props.transactions || props.finances, financesCrud, periodFiltered);
+  const salesOrders = rowsOf(props.salesOrders, salesCrud, periodFiltered);
+  const payments = rowsOf(props.payments, paymentsCrud, periodFiltered);
+  const businessEvents = rowsOf(props.businessEvents, eventsCrud, periodFiltered);
   const data = useMemo(() => {
     const docs = [...documents, ...arr(props.rapports), ...arr(props.reports)].filter(Boolean);
     const tx = transactions.length ? transactions : [];
@@ -224,7 +230,7 @@ export default function DocumentsRapportsModule(props) {
     const healthSnap = buildDocumentsHealthSnapshot({ documents: docs, transactions: tx, salesOrders });
     const coherenceRows = buildDocumentsCoherenceRows(docs, tx, salesOrders);
     const priorities = missingProofItems.slice(0, 8).map((row) => ({ id: `proof-${row.id}`, title: row.title, detail: `${String(row.date || '—').slice(0, 10)} · justificatif manquant`, amount: row.amount, trxId: row.id }));
-    const history = [...docs, ...arr(props.businessEvents)].sort((a, b) => String(dateOf(b)).localeCompare(String(dateOf(a))));
+    const history = [...docs, ...businessEvents].sort((a, b) => String(dateOf(b)).localeCompare(String(dateOf(a))));
     return {
       documents: docs,
       proofs,
@@ -243,8 +249,8 @@ export default function DocumentsRapportsModule(props) {
       healthPredictions: healthSnap.predictions,
       coherenceRows,
       transactions: tx,
-      salesOrders: arr(salesOrders),
-      payments: arr(props.payments),
+      salesOrders,
+      payments,
       animaux: arr(props.animaux),
       lots: arr(props.lots),
       cultures: arr(props.cultures),
@@ -254,7 +260,7 @@ export default function DocumentsRapportsModule(props) {
       businessPlans: arr(props.businessPlans),
       investissements: arr(props.investissements),
     };
-  }, [documents, props.rapports, props.reports, transactions, salesOrders, props.payments, props.animaux, props.lots, props.cultures, props.stocks, props.clients, props.fournisseurs, props.businessPlans, props.investissements, props.businessEvents]);
+  }, [documents, props.rapports, props.reports, transactions, salesOrders, payments, props.animaux, props.lots, props.cultures, props.stocks, props.clients, props.fournisseurs, props.businessPlans, props.investissements, businessEvents]);
   const actionHandlers = {
     onNavigate: props.onNavigate,
     onCreateTask: props.onCreateTask || tasksCrud.create,
@@ -292,7 +298,7 @@ export default function DocumentsRapportsModule(props) {
       setBusyId(null);
     }
   };
-  const content = tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onAttachProof={attachProof} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Bibliothèque' ? <Library data={data} selected={selectedDocument} setSelected={setSelectedDocument} /> : tab === 'Preuves' ? <Proofs data={data} onNavigate={props.onNavigate} onAttachProof={attachProof} busyId={busyId} /> : tab === 'Rapports' ? <Reports data={data} /> : tab === 'Exports' ? <Exports data={data} onNavigate={props.onNavigate} /> : tab === 'Modèles' ? <Templates data={data} /> : <ModuleGraphiquesTab moduleId="documents_rapports" transactions={data.transactions} finances={data.transactions} clients={data.clients} salesOrders={data.salesOrders} payments={data.payments} onNavigate={props.onNavigate} />;
+  const content = tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onAttachProof={attachProof} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Bibliothèque' ? <Library data={data} selected={selectedDocument} setSelected={setSelectedDocument} /> : tab === 'Preuves' ? <Proofs data={data} onNavigate={props.onNavigate} onAttachProof={attachProof} busyId={busyId} /> : tab === 'Rapports' ? <Reports data={data} /> : tab === 'Exports' ? <Exports data={data} onNavigate={props.onNavigate} /> : tab === 'Modèles' ? <Templates data={data} /> : <ModuleGraphiquesTab moduleId="documents_rapports" periodFiltered={periodFiltered} transactions={data.transactions} finances={data.transactions} clients={data.clients} salesOrders={data.salesOrders} payments={data.payments} onNavigate={props.onNavigate} />;
   return (
     <div className="space-y-6">
       <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
@@ -301,6 +307,7 @@ export default function DocumentsRapportsModule(props) {
             <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Dossiers</p>
             <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Documents & Rapports</h1>
             <p className="mt-1 text-sm text-[#8a7456]">Bibliothèque, preuves, exports — cohérence IA finance et conformité.</p>
+            {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div>

@@ -246,6 +246,7 @@ export default function App() {
       onRefreshAlertes: c.alertes_center.refresh,
       existingTasks: rows(c.taches),
       tracabilite: rows(c.tracabilite),
+      tracabiliteAll: rows(c.tracabilite),
       onCreateTrace: c.tracabilite.create,
       onUpdateTrace: c.tracabilite.update,
       onRefreshTrace: c.tracabilite.refresh,

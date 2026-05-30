@@ -9,6 +9,7 @@ import { emitHorizonForm } from '../services/formModalManager';
 import { applyOneClickRecommendation, createSupplierFollowUpTask } from '../services/heyHorizonRecommendationActions.js';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { rowsOf } from '../utils/moduleRows';
+import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import { aggregateSupplierDebts, buildAchatsStockCoherenceRows, buildAchatsStockHealthSnapshot } from './achatsStock/achatsStockVisionHelpers.js';
 import { resolveAchatsStockTab, navigateForIaFinding } from '../utils/commercialNavigation';
 import StocksV5 from './StocksV5';
@@ -204,11 +205,12 @@ export default function AchatsStockRecoveredModule(props) {
   const tasksCrud = useCrudModule('taches');
   const alertsCrud = useCrudModule('alertes_center');
   const documentsCrud = useCrudModule('documents');
-  const stocks = rowsOf(props.stocks || props.rows, stockCrud);
-  const suppliers = rowsOf(props.fournisseurs || props.suppliers, suppliersCrud);
-  const transactions = rowsOf(props.transactions || props.finances, financesCrud);
-  const feedLogs = rowsOf(props.alimentationLogs, feedCrud);
-  const businessEvents = rowsOf(props.businessEvents, eventsCrud);
+  const periodFiltered = Boolean(props.periodFiltered);
+  const stocks = rowsOf(props.stocks || props.rows, stockCrud, false);
+  const suppliers = rowsOf(props.fournisseurs || props.suppliers, suppliersCrud, false);
+  const transactions = rowsOf(props.transactions || props.finances, financesCrud, periodFiltered);
+  const feedLogs = rowsOf(props.alimentationLogs, feedCrud, periodFiltered);
+  const businessEvents = rowsOf(props.businessEvents, eventsCrud, periodFiltered);
   const data = useMemo(() => {
     const purchases = transactions.filter(isPurchaseTx);
     const stockEvents = businessEvents.filter((r) => /stock|aliment|mouvement|reception|réception/.test(low(`${r.event_type || ''} ${r.title || ''} ${r.module_source || ''}`)));
@@ -273,8 +275,8 @@ export default function AchatsStockRecoveredModule(props) {
       setBusyId(null);
     }
   };
-  const stockProps = { rows: stocks, alimentationLogs: feedLogs, animaux: arr(props.animaux), lots: arr(props.lots), fournisseurs: suppliers, opportunities: rowsOf(props.opportunities, opportunitiesCrud), taches: rowsOf(props.taches, tasksCrud), onCreate: props.onCreateStock || stockCrud.create, onUpdate: props.onUpdateStock || stockCrud.update, onDelete: props.onDeleteStock || stockCrud.remove, onRefresh: props.onRefreshStock || stockCrud.refresh, onCreateAlimentation: props.onCreateAlimentation || feedCrud.create, onUpdateAlimentation: props.onUpdateAlimentation || feedCrud.update, onDeleteAlimentation: props.onDeleteAlimentation || feedCrud.remove, onRefreshAlimentation: props.onRefreshAlimentation || feedCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: props.onNavigate };
-  const supplierProps = { rows: suppliers, stocks, tasks: rowsOf(props.tasks, tasksCrud), transactions, finances: transactions, documents: rowsOf(props.documents, documentsCrud), onCreate: props.onCreateSupplier || suppliersCrud.create, onUpdate: props.onUpdateSupplier || suppliersCrud.update, onDelete: props.onDeleteSupplier || suppliersCrud.remove, onRefresh: props.onRefreshSuppliers || suppliersCrud.refresh, onUpdateStock: props.onUpdateStock || stockCrud.update, onRefreshStock: props.onRefreshStock || stockCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: props.onNavigate };
+  const stockProps = { rows: stocks, alimentationLogs: feedLogs, animaux: arr(props.animaux), lots: arr(props.lots), fournisseurs: suppliers, opportunities: rowsOf(props.opportunities, opportunitiesCrud, periodFiltered), taches: rowsOf(props.taches, tasksCrud, false), onCreate: props.onCreateStock || stockCrud.create, onUpdate: props.onUpdateStock || stockCrud.update, onDelete: props.onDeleteStock || stockCrud.remove, onRefresh: props.onRefreshStock || stockCrud.refresh, onCreateAlimentation: props.onCreateAlimentation || feedCrud.create, onUpdateAlimentation: props.onUpdateAlimentation || feedCrud.update, onDeleteAlimentation: props.onDeleteAlimentation || feedCrud.remove, onRefreshAlimentation: props.onRefreshAlimentation || feedCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: props.onNavigate };
+  const supplierProps = { rows: suppliers, stocks, tasks: rowsOf(props.tasks, tasksCrud, false), transactions, finances: transactions, documents: rowsOf(props.documents, documentsCrud, periodFiltered), onCreate: props.onCreateSupplier || suppliersCrud.create, onUpdate: props.onUpdateSupplier || suppliersCrud.update, onDelete: props.onDeleteSupplier || suppliersCrud.remove, onRefresh: props.onRefreshSuppliers || suppliersCrud.refresh, onUpdateStock: props.onUpdateStock || stockCrud.update, onRefreshStock: props.onRefreshStock || stockCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: props.onNavigate };
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
@@ -283,12 +285,13 @@ export default function AchatsStockRecoveredModule(props) {
             <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Gestion</p>
             <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Achats & Stock</h1>
             <p className="mt-1 text-sm text-[#8a7456]">Approvisionnement, stock, alimentation — cohérence IA achat/stock/fournisseur.</p>
+            {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
           </div>
           <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div>
         </div>
       </section>
       <Tabs active={tab} onChange={setTab} />
-      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onRelance={relanceSupplier} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Stock' ? <StocksV5 {...stockProps} /> : tab === 'Achats' ? <AchatsHub data={data} onNavigate={props.onNavigate} setTab={setTab} /> : tab === 'Fournisseurs' ? <FournisseursReadable {...supplierProps} /> : tab === 'Mouvements' ? <MouvementsHub data={data} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="achats_stock" stocks={stocks} alimentationLogs={feedLogs} fournisseurs={suppliers} transactions={transactions} onNavigate={props.onNavigate} />}
+      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onRelance={relanceSupplier} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Stock' ? <StocksV5 {...stockProps} /> : tab === 'Achats' ? <AchatsHub data={data} onNavigate={props.onNavigate} setTab={setTab} /> : tab === 'Fournisseurs' ? <FournisseursReadable {...supplierProps} /> : tab === 'Mouvements' ? <MouvementsHub data={data} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="achats_stock" periodFiltered={periodFiltered} stocks={stocks} alimentationLogs={feedLogs} fournisseurs={suppliers} transactions={transactions} onNavigate={props.onNavigate} />}
     </div>
   );
 }
