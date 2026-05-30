@@ -11,7 +11,7 @@ export const HORIZON_MISSION = [
 ];
 
 export const MODULE_TARGET_TABS = {
-  dashboard: ['Vue globale', 'Graphiques'],
+  dashboard: ['Résumé', 'Graphiques'],
   assistant_erp: ['Hey Horizon'],
   objectifs_croissance: ['À traiter', 'Performance', 'Risques', 'Opportunités', 'Prévisions', 'Plans', 'Financeurs', 'Graphiques'],
   elevage: ['Résumé', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Graphiques'],
