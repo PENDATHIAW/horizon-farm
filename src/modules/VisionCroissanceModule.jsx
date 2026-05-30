@@ -12,8 +12,22 @@ import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import { buildVisionData } from './vision/visionUtils';
 
+const MODULE_COPY = {
+  centre_ia: {
+    kicker: 'Intelligence décisionnelle',
+    title: 'Centre décisionnel',
+    subtitle: 'Signaux IA, performance, risques et opportunités — lecture actionnable sur toute la ferme.',
+  },
+  objectifs_croissance: {
+    kicker: 'Pilotage stratégique',
+    title: 'Objectifs & Croissance',
+    subtitle: 'Priorités IA, performance, risques, opportunités, prévisions et dossiers financeurs.',
+  },
+};
+
 export default function VisionCroissanceModule(props) {
   const {
+    moduleId = 'objectifs_croissance',
     dataMap = {},
     onNavigate,
     onCreateTask,
@@ -26,6 +40,7 @@ export default function VisionCroissanceModule(props) {
     existingTasks = [],
     existingAlerts = [],
   } = props;
+  const copy = MODULE_COPY[moduleId] || MODULE_COPY.objectifs_croissance;
   const [tab, setTab] = useState('À traiter');
   const [persistedCount, setPersistedCount] = useState(null);
   const data = useMemo(() => buildVisionData(props), [props, dataMap]);
@@ -63,16 +78,16 @@ export default function VisionCroissanceModule(props) {
           : tab === 'Prévisions' ? <VisionForecastsTab data={data} onNavigate={onNavigate} />
             : tab === 'Plans' ? <VisionPlansTab data={data} onCreateBusinessPlan={onCreateBusinessPlan} onNavigate={onNavigate} />
               : tab === 'Financeurs' ? <VisionFundingTab data={data} onNavigate={onNavigate} />
-                : <ModuleGraphiquesTab moduleId="objectifs_croissance" periodFiltered={props.periodFiltered} {...props} {...dataMap} onNavigate={onNavigate} />;
+                : <ModuleGraphiquesTab moduleId={moduleId} periodFiltered={props.periodFiltered} {...props} {...dataMap} onNavigate={onNavigate} />;
 
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-6 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Pilotage stratégique</p>
-            <h1 className="mt-1 text-3xl font-black text-[#2f2415]">Vision & Croissance</h1>
-            <p className="mt-2 text-sm text-[#8a7456] max-w-3xl">Cerveau stratégique ERP : priorités IA, performance, risques, opportunités, prévisions et dossiers financeurs.</p>
+            <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">{copy.kicker}</p>
+            <h1 className="mt-1 text-3xl font-black text-[#2f2415]">{copy.title}</h1>
+            <p className="mt-2 text-sm text-[#8a7456] max-w-3xl">{copy.subtitle}</p>
             {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
           </div>
           <div className="flex flex-col gap-2">
@@ -81,7 +96,7 @@ export default function VisionCroissanceModule(props) {
           </div>
         </div>
       </section>
-      <ModuleTabsBar moduleId="objectifs_croissance" active={tab} onChange={setTab} />
+      <ModuleTabsBar moduleId={moduleId} active={tab} onChange={setTab} />
       {content}
     </div>
   );

@@ -38,6 +38,7 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
           onNavigate={onNavigate}
         />
       ), periodFiltered);
+    case 'centre_ia':
     case 'objectifs_croissance':
       return withChartPeriod((
         <div className="space-y-4">

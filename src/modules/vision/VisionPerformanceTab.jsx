@@ -5,6 +5,9 @@ import { Empty, Row, Section, Stat } from './visionUtils';
 export default function VisionPerformanceTab({ data, onNavigate }) {
   return (
     <div className="space-y-5">
+      {data.periodFiltered && data.periodLabel ? (
+        <p className="text-sm text-[#8a7456]">Flux CA / charges / encaissements sur <b className="text-[#2f2415]">{data.periodLabel}</b> — créances sur l&apos;historique complet.</p>
+      ) : null}
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-7">
         <Stat label="Chiffre d'affaires" value={fmtCurrency(data.salesAmount)} tone="good" />
         <Stat label="Encaissements réels" value={fmtCurrency(data.collected)} tone="good" />
