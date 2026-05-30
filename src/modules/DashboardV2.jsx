@@ -8,7 +8,13 @@ import {
   buildDashboardSummary,
   DASHBOARD_MODULES,
   DASHBOARD_MODULE_LABELS,
+  formatEggProductionDetail,
+  formatEggProductionDelta,
+  formatEncaisseDetail,
+  formatEncaisseDelta,
   formatFarmHeadcountDetail,
+  formatResultatDelta,
+  formatStockDetail,
 } from './dashboard/dashboardMetrics';
 import { navigateForDashboardAction, navigateForDashboardFinding } from './dashboard/dashboardNavigation';
 import { dashboardGreeting } from './dashboard/dashboardGreeting';
@@ -94,10 +100,21 @@ function Summary({ props, summary, health, simple, navigate }) {
       />,
     );
   }
-  if (summary.stockBas > 0) {
+  if (summary.stockSummary?.totalProducts > 0) {
     sideCards.push(
       <DashboardSnapshotCard
         key="stock"
+        label="Inventaire stock"
+        value={`${fmtNumber(summary.stockSummary.totalProducts)} produit(s)`}
+        detail={formatStockDetail(summary.stockSummary)}
+        tone={summary.stockSummary.lowStockCount ? 'warn' : 'good'}
+        onClick={() => navigate('achats_stock', { tab: 'Stock' })}
+      />,
+    );
+  } else if (summary.stockBas > 0) {
+    sideCards.push(
+      <DashboardSnapshotCard
+        key="stock-low"
         label="Stock sous seuil"
         value={`${fmtNumber(summary.stockBas)} produit(s)`}
         detail="Réapprovisionner"
@@ -106,13 +123,13 @@ function Summary({ props, summary, health, simple, navigate }) {
       />,
     );
   }
-  if (summary.production > 0) {
+  if (summary.eggProduction?.eggsAllTime > 0 || summary.eggProduction?.eggsThisMonth > 0 || summary.headcount?.effectifPondeuses > 0) {
     sideCards.push(
       <DashboardSnapshotCard
         key="production"
-        label="Production œufs"
+        label="Ponte (mois)"
         value={fmtNumber(summary.production)}
-        detail="Suivi élevage"
+        detail={formatEggProductionDetail(summary.eggProduction)}
         tone="good"
         onClick={() => navigate('elevage', { tab: 'Production' })}
       />,
@@ -135,11 +152,40 @@ function Summary({ props, summary, health, simple, navigate }) {
     <div className="space-y-5">
       <DashboardGoalsHero goal={summary.goal} onOpenVision={() => navigate('objectifs_croissance', { tab: 'Performance' })} />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        <DashboardKpi label="Encaissé" value={fmtCurrency(summary.encaisse)} tone="good" onClick={() => navigate('finance_pilotage', { tab: 'Trésorerie' })} />
-        <DashboardKpi label="Résultat" value={fmtCurrency(summary.resultat)} tone={summary.resultat >= 0 ? 'good' : 'bad'} onClick={() => navigate('finance_pilotage', { tab: 'Trésorerie' })} />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
+        <DashboardKpi
+          label="Encaissé"
+          value={fmtCurrency(summary.encaisse)}
+          detail={formatEncaisseDetail(summary.financePeriods)}
+          delta={formatEncaisseDelta(summary.financePeriods)}
+          tone="good"
+          onClick={() => navigate('finance_pilotage', { tab: 'Trésorerie' })}
+        />
+        <DashboardKpi
+          label="Résultat"
+          value={fmtCurrency(summary.resultat)}
+          delta={formatResultatDelta(summary.financePeriods)}
+          tone={summary.resultat >= 0 ? 'good' : 'bad'}
+          onClick={() => navigate('finance_pilotage', { tab: 'Trésorerie' })}
+        />
         <DashboardKpi label="Créances" value={fmtCurrency(summary.receivable)} tone={summary.receivable ? 'warn' : 'good'} onClick={() => navigate('commercial', { tab: 'Clients' })} />
-        <DashboardKpi label="Stocks bas" value={fmtNumber(summary.stockBas)} tone={summary.stockBas ? 'warn' : 'good'} onClick={() => navigate('achats_stock', { tab: 'Stock' })} />
+        <DashboardKpi
+          label="Stock"
+          value={fmtNumber(summary.stockSummary?.totalProducts ?? 0)}
+          detail={formatStockDetail(summary.stockSummary)}
+          tone={summary.stockSummary?.lowStockCount ? 'warn' : 'good'}
+          onClick={() => navigate('achats_stock', { tab: 'Stock' })}
+        />
+        {(summary.eggProduction?.eggsAllTime > 0 || summary.eggProduction?.eggsThisMonth > 0 || summary.headcount?.effectifPondeuses > 0) ? (
+          <DashboardKpi
+            label="Ponte (mois)"
+            value={fmtNumber(summary.production)}
+            detail={formatEggProductionDetail(summary.eggProduction)}
+            delta={formatEggProductionDelta(summary.eggProduction)}
+            tone="good"
+            onClick={() => navigate('elevage', { tab: 'Production' })}
+          />
+        ) : null}
         <DashboardKpi label="Alertes" value={fmtNumber(summary.alertesOuvertes)} tone={summary.alertesOuvertes ? 'warn' : 'good'} onClick={() => navigate('activite_suivi', { tab: 'Alertes' })} />
         <DashboardKpi
           label="Effectifs"

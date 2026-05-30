@@ -3,7 +3,7 @@ import { remainingForOrder } from '../../utils/salesStatuses';
 import { buildDashboardTodayActions } from '../../utils/dashboardWorkflows';
 import { avicoleActiveCount, avicoleHasActiveBirds } from '../../utils/avicoleMetrics';
 import { resolveAvicoleLotKind } from '../../utils/avicoleActivity';
-import { toNumber } from '../../utils/format';
+import { toNumber, fmtCurrency } from '../../utils/format';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const lower = (value) => String(value || '').trim().toLowerCase();
@@ -107,7 +107,193 @@ export function formatFarmHeadcountDetail(headcount = {}) {
   return parts.join(' · ');
 }
 
-const isCriticalStock = (row = {}) => Number(row.quantite || row.quantity || row.stock || 0) <= Number(row.seuil || row.threshold || 0);
+const stockQty = (row = {}) => toNumber(row.quantite ?? row.quantity ?? row.stock);
+const stockThreshold = (row = {}) => toNumber(row.seuil ?? row.threshold ?? row.stock_min ?? row.minimum_stock);
+const stockUnitPrice = (row = {}) => toNumber(row.prixUnit ?? row.prixunit ?? row.prix_unitaire ?? row.unit_price);
+
+/** Résumé stock — même logique que Stocks / Achats & Stock (seuil > 0 pour « sous seuil »). */
+export function computeStockSummary(stocks = []) {
+  const rows = arr(stocks);
+  const lowStock = rows.filter((row) => {
+    const threshold = stockThreshold(row);
+    return threshold > 0 && stockQty(row) <= threshold;
+  });
+  const available = rows.filter((row) => stockQty(row) > 0);
+  const stockValue = rows.reduce((sum, row) => sum + stockQty(row) * stockUnitPrice(row), 0);
+  return {
+    totalProducts: rows.length,
+    availableProducts: available.length,
+    lowStockCount: lowStock.length,
+    stockValue,
+  };
+}
+
+export function formatStockDetail(summary = {}) {
+  const low = Number(summary.lowStockCount || 0);
+  const available = Number(summary.availableProducts || 0);
+  const parts = [`${available} en stock`];
+  if (low > 0) parts.unshift(`${low} sous seuil`);
+  return parts.join(' · ');
+}
+
+const EGGS_PER_TABLET = 30;
+
+function asDate(value) {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function monthKeyFromValue(value) {
+  const date = asDate(value);
+  if (!date) return null;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function currentMonthKey() {
+  return monthKeyFromValue(new Date());
+}
+
+function previousMonthKey() {
+  const date = new Date();
+  date.setMonth(date.getMonth() - 1);
+  return monthKeyFromValue(date);
+}
+
+function rowDateValue(row = {}) {
+  return row.date || row.date_paiement || row.payment_date || row.date_commande || row.order_date || row.created_at || '';
+}
+
+export function formatMonthDelta(delta, { unit = '', formatValue = (value) => String(value) } = {}) {
+  const value = Number(delta || 0);
+  if (value === 0) return '±0 vs mois dernier';
+  const sign = value > 0 ? '+' : '';
+  const suffix = unit ? ` ${unit}` : '';
+  return `${sign}${formatValue(value)}${suffix} vs mois dernier`;
+}
+
+function eggsFromProductionLog(row = {}) {
+  return toNumber(row.oeufs_produits ?? row.eggs_count ?? row.eggs ?? row.quantite);
+}
+
+function brokenFromProductionLog(row = {}) {
+  return toNumber(row.oeufs_casses ?? row.broken ?? row.casses ?? row.pertes);
+}
+
+function isEggSale(order = {}) {
+  const text = lower(`${order.product_name || order.produit || ''} ${order.source_label || ''} ${order.sale_kind || ''} ${order.unit || order.unite || ''} ${order.source_type || ''}`);
+  if (order.sale_kind === 'oeufs_tablettes') return true;
+  if (order.source_type === 'lot_avicole' && /oeuf|œuf|tablette|ponte|plateau/.test(text)) return true;
+  return /oeuf|œuf|tablette|plateau|ponte|alvéole|alveole/.test(text);
+}
+
+function eggsFromSale(order = {}) {
+  const explicit = toNumber(order.eggs_quantity ?? order.oeufs_quantity ?? order.oeufs_vendus ?? order.eggs_sold);
+  if (explicit > 0) return explicit;
+  const qty = toNumber(order.quantity ?? order.quantite);
+  const unit = lower(order.unit || order.unite || '');
+  if (unit.includes('tablette') || unit.includes('plateau')) return qty * EGGS_PER_TABLET;
+  if (isEggSale(order) && qty > 0) return qty;
+  return 0;
+}
+
+function tabletsFromEggs(eggs = 0) {
+  return Math.floor(Math.max(0, toNumber(eggs)) / EGGS_PER_TABLET);
+}
+
+function sumProductionEggs(logs = [], monthKey = null) {
+  return arr(logs)
+    .filter((row) => !monthKey || monthKeyFromValue(rowDateValue(row)) === monthKey)
+    .reduce((sum, row) => sum + eggsFromProductionLog(row), 0);
+}
+
+function sumEggSales(orders = [], monthKey = null) {
+  return arr(orders)
+    .filter(isEggSale)
+    .filter((row) => !monthKey || monthKeyFromValue(rowDateValue(row)) === monthKey)
+    .reduce((sum, row) => sum + eggsFromSale(row), 0);
+}
+
+/** Ponte — mois en cours, cumuls ramassage/vente, delta vs mois dernier. */
+export function computeEggProductionSummary(productionLogs = [], salesOrders = []) {
+  const logs = arr(productionLogs);
+  const thisMonth = currentMonthKey();
+  const lastMonth = previousMonthKey();
+
+  const totalEggs = sumProductionEggs(logs);
+  const totalBroken = logs.reduce((sum, row) => sum + brokenFromProductionLog(row), 0);
+  const sellableEggs = Math.max(0, totalEggs - totalBroken);
+  const eggsSoldAllTime = sumEggSales(salesOrders);
+  const eggsThisMonth = sumProductionEggs(logs, thisMonth);
+  const eggsLastMonth = sumProductionEggs(logs, lastMonth);
+  const eggsSoldThisMonth = sumEggSales(salesOrders, thisMonth);
+  const eggsSoldLastMonth = sumEggSales(salesOrders, lastMonth);
+
+  return {
+    eggsThisMonth,
+    eggsAllTime: totalEggs,
+    sellableEggsAllTime: sellableEggs,
+    tablettesAllTime: tabletsFromEggs(sellableEggs),
+    eggsSoldAllTime,
+    tablettesSoldAllTime: tabletsFromEggs(eggsSoldAllTime),
+    deltaEggsVsLastMonth: eggsThisMonth - eggsLastMonth,
+    deltaSoldVsLastMonth: eggsSoldThisMonth - eggsSoldLastMonth,
+  };
+}
+
+export function formatEggProductionDetail(summary = {}) {
+  const fmt = (value = 0) => Number(value || 0).toLocaleString('fr-FR');
+  return `${fmt(summary.tablettesAllTime)} tablettes ramassées · ${fmt(summary.eggsSoldAllTime)} œufs vendus`;
+}
+
+export function formatEggProductionDelta(summary = {}) {
+  return formatMonthDelta(summary.deltaEggsVsLastMonth, { unit: 'œufs', formatValue: (value) => Number(value).toLocaleString('fr-FR') });
+}
+
+function sumPayments(payments = [], monthKey = null) {
+  return arr(payments)
+    .filter((row) => !monthKey || monthKeyFromValue(rowDateValue(row)) === monthKey)
+    .reduce((sum, row) => sum + paid(row), 0);
+}
+
+export function computeFinancePeriodDeltas(payments = [], transactions = []) {
+  const thisMonth = currentMonthKey();
+  const lastMonth = previousMonthKey();
+  const encaisseThisMonth = sumPayments(payments, thisMonth);
+  const encaisseLastMonth = sumPayments(payments, lastMonth);
+  const depensesThisMonth = arr(transactions)
+    .filter((row) => ['sortie', 'depense', 'dépense', 'achat'].includes(lower(row.type || '')))
+    .filter((row) => monthKeyFromValue(rowDateValue(row)) === thisMonth)
+    .reduce((sum, row) => sum + money(row), 0);
+  const depensesLastMonth = arr(transactions)
+    .filter((row) => ['sortie', 'depense', 'dépense', 'achat'].includes(lower(row.type || '')))
+    .filter((row) => monthKeyFromValue(rowDateValue(row)) === lastMonth)
+    .reduce((sum, row) => sum + money(row), 0);
+
+  return {
+    encaisseThisMonth,
+    encaisseLastMonth,
+    deltaEncaisseVsLastMonth: encaisseThisMonth - encaisseLastMonth,
+    resultatThisMonth: encaisseThisMonth - depensesThisMonth,
+    deltaResultatVsLastMonth: (encaisseThisMonth - depensesThisMonth) - (encaisseLastMonth - depensesLastMonth),
+  };
+}
+
+export function formatEncaisseDetail(periods = {}) {
+  return `${fmtCurrency(periods.encaisseThisMonth || 0)} ce mois`;
+}
+
+export function formatEncaisseDelta(periods = {}) {
+  return formatMonthDelta(periods.deltaEncaisseVsLastMonth, { formatValue: (value) => `${Number(value).toLocaleString('fr-FR')} FCFA` });
+}
+
+export function formatResultatDelta(periods = {}) {
+  return formatMonthDelta(periods.deltaResultatVsLastMonth, { formatValue: (value) => `${Number(value).toLocaleString('fr-FR')} FCFA` });
+}
+
+const isCriticalStock = (row = {}) => {
+  const threshold = stockThreshold(row);
+  return threshold > 0 && stockQty(row) <= threshold;
+};
 const isOpenTask = (row = {}) => !['termine', 'terminé', 'done', 'closed'].includes(lower(row.status || row.statut));
 const isOpenAlert = (row = {}) => !['traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée'].includes(lower(row.status || row.statut));
 
@@ -138,11 +324,14 @@ export function buildDashboardSummary(props = {}) {
   const resultat = encaisse - depenses;
   const receivable = salesOrders.reduce((sum, order) => sum + remainingForOrder(order, payments), 0);
   const stockBas = stocks.filter(isCriticalStock).length;
+  const stockSummary = computeStockSummary(stocks);
   const tachesOuvertes = taches.filter(isOpenTask).length;
   const alertesOuvertes = alertes.filter(isOpenAlert).length;
   const headcount = computeFarmHeadcount({ animaux, lots, cultures });
   const effectifs = headcount.total;
-  const production = productionLogs.reduce((sum, row) => sum + Number(row.oeufs_produits || row.eggs_count || 0), 0);
+  const eggProduction = computeEggProductionSummary(productionLogs, salesOrders);
+  const financePeriods = computeFinancePeriodDeltas(payments, transactions);
+  const production = eggProduction.eggsThisMonth;
 
   const plan = buildDecisionCenterPlan({
     animaux: props.animaux || [],
@@ -181,11 +370,14 @@ export function buildDashboardSummary(props = {}) {
     resultat,
     receivable,
     stockBas,
+    stockSummary,
     tachesOuvertes,
     alertesOuvertes,
     effectifs,
     headcount,
     production,
+    eggProduction,
+    financePeriods,
     actions,
     goal,
     plan,

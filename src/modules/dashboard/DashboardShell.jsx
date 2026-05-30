@@ -35,8 +35,13 @@ export function DashboardQuickActions({ onNavigate }) {
   );
 }
 
-export function DashboardKpi({ label, value, tone = 'neutral', onClick, detail }) {
+export function DashboardKpi({ label, value, tone = 'neutral', onClick, detail, delta }) {
   const toneCls = tone === 'good' ? 'text-emerald-700' : tone === 'warn' ? 'text-amber-700' : tone === 'bad' ? 'text-red-600' : 'text-[#2f2415]';
+  const deltaCls = String(delta || '').startsWith('+')
+    ? 'text-emerald-700'
+    : String(delta || '').startsWith('-')
+      ? 'text-red-600'
+      : 'text-[#8a7456]';
   const Tag = onClick ? 'button' : 'div';
   return (
     <Tag
@@ -47,6 +52,7 @@ export function DashboardKpi({ label, value, tone = 'neutral', onClick, detail }
       <p className="text-[11px] font-bold uppercase tracking-wide text-[#8a7456]">{label}</p>
       <p className={`mt-1 text-xl font-black ${toneCls}`}>{value}</p>
       {detail ? <p className="mt-2 text-[10px] font-medium leading-snug text-[#8a7456]">{detail}</p> : null}
+      {delta ? <p className={`mt-1 text-[10px] font-semibold ${deltaCls}`}>{delta}</p> : null}
     </Tag>
   );
 }
