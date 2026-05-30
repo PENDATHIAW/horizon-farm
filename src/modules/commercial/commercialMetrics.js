@@ -84,12 +84,49 @@ export function aggregateClientReceivables(orders = [], payments = []) {
   arr(orders).forEach((order) => {
     const rest = remainingForOrder(order, linked);
     if (rest <= 0) return;
-    const name = order.client_nom || order.customer_name || order.client_label || String(order.client_id || 'Client');
-    if (!map[name]) map[name] = { name, total: 0, orders: [] };
-    map[name].total += rest;
-    map[name].orders.push(order.id);
+    const clientId = String(order.client_id || order.customer_id || '').trim();
+    const key = clientId || `name:${order.client_nom || order.customer_name || order.client_label || 'Client'}`;
+    const name = order.client_nom || order.customer_name || order.client_label || clientId || 'Client';
+    if (!map[key]) map[key] = { name, total: 0, orders: [], clientId: clientId || null };
+    map[key].total += rest;
+    map[key].orders.push(order.id);
   });
   return Object.values(map).sort((a, b) => b.total - a.total);
+}
+
+/** Top clients par client_id (fallback nom si passage). */
+export function buildTopClients(orders = [], clients = [], limit = 5) {
+  const namesById = {};
+  arr(clients).forEach((client) => {
+    namesById[String(client.id)] = client.nom || client.name || client.raison_sociale || client.id;
+  });
+  const totals = {};
+  const labels = {};
+  arr(orders).forEach((order) => {
+    const amount = saleAmount(order);
+    if (amount <= 0) return;
+    const clientId = String(order.client_id || order.customer_id || '').trim();
+    const key = clientId || `walkin:${String(order.client_nom || order.customer_name || order.client_label || 'passage').toLowerCase()}`;
+    totals[key] = (totals[key] || 0) + amount;
+    labels[key] = clientId
+      ? (namesById[clientId] || order.client_nom || order.customer_name || clientId)
+      : (order.client_nom || order.customer_name || 'Client passage');
+  });
+  return Object.entries(totals)
+    .map(([key, total]) => ({ id: key, name: labels[key], total }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, limit);
+}
+
+export function clientsWithReceivableCount(orders = [], payments = []) {
+  const linked = linkedPaymentsForOrders(orders, payments);
+  const ids = new Set();
+  arr(orders).forEach((order) => {
+    if (remainingForOrder(order, linked) <= 0) return;
+    const clientId = String(order.client_id || order.customer_id || '').trim();
+    ids.add(clientId || `name:${order.client_nom || order.customer_name || order.client_label || order.id}`);
+  });
+  return ids.size;
 }
 
 /** Une ligne par vente — regroupe impayé / facture / livraison. */

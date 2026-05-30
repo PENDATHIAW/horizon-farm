@@ -11,6 +11,8 @@ import {
   aggregateClientReceivables,
   buildCommercialCoherenceRows,
   buildSummaryTodos,
+  buildTopClients,
+  clientsWithReceivableCount,
   collectedFromOrders,
   isOpportunityOpen,
   openSalesCount,
@@ -146,9 +148,8 @@ export default function CommercialRecoveredModule(props) {
     const receivable = receivableFromOrders(orders, payments);
     const collected = collectedFromOrders(orders, payments);
     const openSalesCountVal = openSalesCount(orders, payments);
-    const clientTotals = {};
-    orders.forEach((row) => { const name = row.client_nom || row.customer_name || row.client_label || row.client_id || 'Client'; clientTotals[name] = (clientTotals[name] || 0) + saleAmount(row); });
-    const topClients = Object.entries(clientTotals).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const topClients = buildTopClients(orders, clients, 5);
+    const clientsDebtCount = clientsWithReceivableCount(orders, payments);
     const openOpportunities = opportunities.filter(isOpportunityOpen);
     const healthSnap = buildCommercialHealthSnapshot({ salesOrders: orders, payments, clients, opportunities });
     const coherenceRows = buildCommercialCoherenceRows(orders, payments);
@@ -156,6 +157,7 @@ export default function CommercialRecoveredModule(props) {
     const summaryTodos = buildSummaryTodos(orders, payments, healthSnap.findings);
     return {
       orders, openSalesCount: openSalesCountVal, receivable, collected, topClients, openOpportunities,
+      clientsDebtCount,
       coherenceRows, clientReceivables, summaryTodos,
       todoCount: uniqueTodoCount({ orders, payments, healthFindings: healthSnap.findings }),
       healthScore: healthSnap.score,
@@ -197,7 +199,7 @@ export default function CommercialRecoveredModule(props) {
 
   return (
     <div className="space-y-4">
-      <CommercialModuleHeader tab={tab} setTab={setTab} healthScore={data.healthScore} badges={{ receivable: data.receivable, todo: todoBadge }} />
+      <CommercialModuleHeader tab={tab} setTab={setTab} healthScore={data.healthScore} badges={{ receivable: data.receivable, todo: todoBadge, tabs: { Ventes: data.openSalesCount, Clients: data.clientsDebtCount, Opportunités: data.openOpportunities.length } }} />
       {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} busyId={busyId} /> : null}
       {tab === 'Ventes' ? <VentesV3 {...salesProps} /> : null}
       {tab === 'Clients' ? <ClientsReadable {...clientProps} /> : null}

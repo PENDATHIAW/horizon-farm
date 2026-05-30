@@ -54,7 +54,7 @@ export function CommercialModuleHeader({ tab, setTab, healthScore, badges = {} }
           {badges.todo > 0 ? <span className="rounded-full border border-[#eadcc2] bg-white px-3 py-1 text-xs font-black text-[#2f2415]">{badges.todo} à traiter</span> : null}
         </div>
       </div>
-      <ModuleTabsBar moduleId="commercial" active={tab} onChange={setTab} />
+      <ModuleTabsBar moduleId="commercial" active={tab} onChange={setTab} tabBadges={badges.tabs || {}} />
     </div>
   );
 }
@@ -71,10 +71,10 @@ export function CommercialTopClients({ rows = [], setTab, subtitle = 'Par chiffr
         <button type="button" onClick={() => setTab('Clients')} className="inline-flex items-center gap-1 text-xs font-black text-[#9a6b12]">Voir tout <ArrowRight size={14} /></button>
       </div>
       <div className="space-y-2">
-        {rows.map(([name, total]) => (
-          <div key={name} className="flex items-center justify-between rounded-xl bg-[#fffdf8] px-3 py-2">
-            <span className="font-bold text-[#2f2415]">{name}</span>
-            <span className="text-sm font-black text-emerald-700">{fmtCurrency(total)}</span>
+        {rows.map((row) => (
+          <div key={row.id || row.name} className="flex items-center justify-between rounded-xl bg-[#fffdf8] px-3 py-2">
+            <span className="font-bold text-[#2f2415]">{row.name}</span>
+            <span className="text-sm font-black text-emerald-700">{fmtCurrency(row.total)}</span>
           </div>
         ))}
       </div>

@@ -17,6 +17,8 @@ export {
   aggregateClientReceivables,
   buildCommercialCoherenceRows,
   buildSummaryTodos,
+  buildTopClients,
+  clientsWithReceivableCount,
   collectedFromOrders,
   isDelivered,
   isInvoiced,
