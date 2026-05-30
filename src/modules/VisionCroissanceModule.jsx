@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { buildRecommendationsFromData } from '../services/aiRecommendationsService';
+import { useEffect, useMemo, useState } from 'react';
+import { buildRecommendationsFromData, syncRecommendationsToSupabase } from '../services/aiRecommendationsService';
 import VisionForecastsTab from './vision/VisionForecastsTab';
 import VisionFundingTab from './vision/VisionFundingTab';
 import VisionOpportunitiesTab from './vision/VisionOpportunitiesTab';
@@ -27,6 +27,10 @@ export default function VisionCroissanceModule(props) {
   const [tab, setTab] = useState('À traiter');
   const data = useMemo(() => buildVisionData(props), [props, dataMap]);
   const aiCount = useMemo(() => buildRecommendationsFromData(dataMap).length, [dataMap]);
+
+  useEffect(() => {
+    syncRecommendationsToSupabase(dataMap).catch(() => {});
+  }, [dataMap]);
 
   const content = tab === 'À traiter'
     ? <VisionPrioritiesTab data={data} setTab={setTab} onNavigate={onNavigate} onCreateTask={onCreateTask} onCreateAlert={onCreateAlert} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshTasks={onRefreshTasks} onRefreshAlertes={onRefreshAlertes} />

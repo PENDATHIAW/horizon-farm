@@ -114,10 +114,17 @@ function buildNotebookRows(props, plan, actions, payments, transactions, salesOr
       moduleKey: 'ventes',
     },
     {
-      label: 'Pilotage',
+      label: 'Vision & Croissance',
       value: `${goal.attainment ?? 0}% objectif mensuel`,
       status: fmtCurrency(cashIn - cashOut),
       tone: goal.attainment >= 90 ? 'good' : goal.attainment >= 50 ? 'warn' : 'bad',
+      moduleKey: 'objectifs_croissance',
+    },
+    {
+      label: 'Centre décisionnel',
+      value: `${plan.recommendations?.length || 0} priorité(s)`,
+      status: plan.recommendations?.[0]?.title || 'Pilotage IA',
+      tone: plan.recommendations?.length ? 'warn' : 'good',
       moduleKey: 'centre_ia',
     },
   ];
@@ -138,7 +145,7 @@ function FarmNotebook({ props, simple, onToggleExpert }) {
   const location = farmLocationOf(props);
   const dateTime = useMemo(formatDateTime, []);
 
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="flex flex-col gap-3 border-b border-[#eadcc2] pb-4 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Accueil</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Bonjour {displayUser}</h1><div className="mt-2 flex flex-col gap-1 text-sm text-[#8a7456] sm:flex-row sm:flex-wrap sm:items-center sm:gap-3"><span className="capitalize">{dateTime}</span><span className="hidden sm:inline">·</span><span className="inline-flex items-center gap-1"><MapPin size={14} aria-hidden="true" /> {location}</span></div></div><button type="button" onClick={onToggleExpert} className="rounded-full border border-[#d6c3a0] bg-[#fffdf8] px-3 py-1.5 text-xs font-black text-[#2f2415]"><Settings2 size={13} className="inline" /> {simple ? 'Détails' : 'Simple'}</button></div><div className="divide-y divide-[#eadcc2]/70">{rows.map((row) => <NotebookRow key={row.label} {...row} onClick={row.moduleKey ? () => props.onNavigate?.(row.moduleKey) : undefined} />)}</div><div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4"><Mini label="Objectif" value={fmtCurrency(goal.monthTarget)} /><Mini label="Réalisé" value={fmtCurrency(goal.realized)} /><Mini label="Atteinte" value={`${goal.attainment}%`} tone={goal.attainment >= 90 ? 'good' : goal.attainment >= 50 ? 'warn' : 'bad'} /><Mini label="Reste" value={fmtCurrency(remainingAmount)} tone={remainingAmount > 0 ? 'warn' : 'good'} /></div></section>;
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="flex flex-col gap-3 border-b border-[#eadcc2] pb-4 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Accueil</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Bonjour {displayUser}</h1><div className="mt-2 flex flex-col gap-1 text-sm text-[#8a7456] sm:flex-row sm:flex-wrap sm:items-center sm:gap-3"><span className="capitalize">{dateTime}</span><span className="hidden sm:inline">·</span><span className="inline-flex items-center gap-1"><MapPin size={14} aria-hidden="true" /> {location}</span></div></div><div className="flex flex-wrap items-center gap-2"><button type="button" onClick={() => props.onNavigate?.('objectifs_croissance')} className="inline-flex items-center gap-1 rounded-full border border-[#d6c3a0] bg-[#dcfce7] px-3 py-1.5 text-xs font-black text-[#14532d]"><Target size={13} /> Vision & Croissance</button><button type="button" onClick={onToggleExpert} className="rounded-full border border-[#d6c3a0] bg-[#fffdf8] px-3 py-1.5 text-xs font-black text-[#2f2415]"><Settings2 size={13} className="inline" /> {simple ? 'Détails' : 'Simple'}</button></div></div><div className="divide-y divide-[#eadcc2]/70">{rows.map((row) => <NotebookRow key={row.label} {...row} onClick={row.moduleKey ? () => props.onNavigate?.(row.moduleKey) : undefined} />)}</div><div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4"><Mini label="Objectif" value={fmtCurrency(goal.monthTarget)} /><Mini label="Réalisé" value={fmtCurrency(goal.realized)} /><Mini label="Atteinte" value={`${goal.attainment}%`} tone={goal.attainment >= 90 ? 'good' : goal.attainment >= 50 ? 'warn' : 'bad'} /><Mini label="Reste" value={fmtCurrency(remainingAmount)} tone={remainingAmount > 0 ? 'warn' : 'good'} /></div></section>;
 }
 
 const actionIcons = { money: CreditCard, alert: AlertTriangle, stock: Package, health: Stethoscope, smart: CloudSun, task: CheckCircle2, document: FileText, sync: TrendingUp };

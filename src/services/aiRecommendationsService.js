@@ -1,4 +1,5 @@
 import { computeErpAuditFindings } from './erpRules/index.js';
+import { supabase } from '../lib/supabase.js';
 
 const STORAGE_KEY = 'horizon-ai-recommendations-journal';
 
@@ -62,4 +63,41 @@ export function draftToFormRequest(draft = {}) {
       confidence_score: draft.confidence_score,
     },
   };
+}
+
+/** Charge les recommandations persistées depuis Supabase (Phase 1). */
+export async function loadSupabaseRecommendations(limit = 50) {
+  const { data, error } = await supabase
+    .from('ai_recommendations')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) return { ok: false, rows: [], error: error.message };
+  return { ok: true, rows: data || [] };
+}
+
+/** Upsert des recommandations IA générées depuis les règles métier. */
+export async function syncRecommendationsToSupabase(data = {}) {
+  const recommendations = buildRecommendationsFromData(data);
+  if (!recommendations.length) return { ok: true, synced: 0 };
+  const { error } = await supabase.from('ai_recommendations').upsert(
+    recommendations.map((row) => ({
+      ...row,
+      updated_at: new Date().toISOString(),
+    })),
+    { onConflict: 'id' },
+  );
+  if (error) return { ok: false, synced: 0, error: error.message };
+  recommendations.forEach((row) => saveLocalRecommendation(row));
+  return { ok: true, synced: recommendations.length };
+}
+
+/** Met à jour le statut d'une recommandation IA. */
+export async function updateRecommendationStatus(id, status, extra = {}) {
+  const { error } = await supabase
+    .from('ai_recommendations')
+    .update({ status, ...extra, updated_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }
