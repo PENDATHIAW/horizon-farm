@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import useCrudModule from '../hooks/useCrudModule';
 import { applyOneClickRecommendation } from '../services/heyHorizonRecommendationActions.js';
 import { buildSaleFormFromOpportunity } from '../utils/saleFormDraft';
+import { resolveCommercialTab } from '../utils/commercialNavigation';
 import { makeId } from '../utils/ids';
+import CommercialInsightPanel from './commercial/CommercialInsightPanel.jsx';
 import CommercialOpportunitiesPanel from './commercial/CommercialOpportunitiesPanel.jsx';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { buildCommercialHealthSnapshot } from './commercial/commercialVisionHelpers.js';
@@ -27,7 +29,7 @@ import ClientsReadable from './ClientsReadable';
 const arr = (v) => (Array.isArray(v) ? v : []);
 const rowsOf = (provided, crud) => (arr(provided).length ? arr(provided) : arr(crud?.rows));
 
-function Summary({ data, setTab, onApply, busyId }) {
+function Summary({ data, setTab, onApply, busyId, onNavigate, onNewSale }) {
   const todoCount = data.todoCount;
   const todos = data.summaryTodos.slice(0, 8);
   return (
@@ -39,7 +41,17 @@ function Summary({ data, setTab, onApply, busyId }) {
         <CommercialKpi label="Opportunités" value={fmtNumber(data.openOpportunities.length)} tone="good" onClick={() => setTab('Opportunités')} />
       </div>
 
-      <CommercialQuickActions setTab={setTab} />
+      <CommercialQuickActions setTab={setTab} onNewSale={onNewSale} />
+
+      <CommercialInsightPanel
+        findings={data.healthFindings}
+        predictions={data.healthPredictions}
+        coherenceRows={data.coherenceRows}
+        onApplyFinding={onApply}
+        onNavigate={onNavigate}
+        setTab={setTab}
+        busyId={busyId}
+      />
 
       {todoCount > 0 ? (
         <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
@@ -71,9 +83,26 @@ function Summary({ data, setTab, onApply, busyId }) {
 }
 
 export default function CommercialRecoveredModule(props) {
-  const [tab, setTab] = useState('Résumé');
+  const [tab, setTab] = useState(() => resolveCommercialTab(props.initialTab));
   const [busyId, setBusyId] = useState(null);
   const [pendingSaleDraft, setPendingSaleDraft] = useState(null);
+
+  useEffect(() => {
+    if (props.initialTab) setTab(resolveCommercialTab(props.initialTab));
+  }, [props.initialTab]);
+
+  useEffect(() => {
+    const handler = (event) => {
+      const draft = event.detail?.draft;
+      const module = event.detail?.module;
+      if ((module === 'commercial' || module === 'ventes') && draft?.form_type === 'sale_record') {
+        setPendingSaleDraft(draft);
+        setTab('Ventes');
+      }
+    };
+    window.addEventListener('horizon-open-form', handler);
+    return () => window.removeEventListener('horizon-open-form', handler);
+  }, []);
   const ordersCrud = useCrudModule('sales_orders');
   const itemsCrud = useCrudModule('sales_order_items');
   const deliveriesCrud = useCrudModule('deliveries');
@@ -135,12 +164,18 @@ export default function CommercialRecoveredModule(props) {
     try {
       const result = await applyOneClickRecommendation(finding, actionHandlers);
       if (result.createdTasks || result.createdAlerts) toast.success('Action IA créée');
-      else { toast.success('Module ouvert'); setTab('Ventes'); }
+      else if (finding.module === 'commercial' || finding.module_source === 'commercial') setTab('Ventes');
+      else toast.success('Module ouvert');
     } catch (e) {
       toast.error(e.message || 'Erreur');
     } finally {
       setBusyId(null);
     }
+  };
+
+  const openNewSale = () => {
+    setPendingSaleDraft({ form_type: 'sale_record', date: new Date().toISOString().slice(0, 10) });
+    setTab('Ventes');
   };
 
 
@@ -163,7 +198,7 @@ export default function CommercialRecoveredModule(props) {
     await whatsappLogsCrud.refresh?.();
   };
 
-  const convertOpportunityToSale = (opportunity, client) => {
+  const convertOpportunityToSale = async (opportunity, client) => {
     const formDraft = buildSaleFormFromOpportunity(
       opportunity,
       { clients, lots: rowsOf(props.lots, lotsCrud), animaux: rowsOf(props.animals || props.animaux, animalsCrud), stocks: rowsOf(props.stocks, stockCrud), cultures: rowsOf(props.cultures, culturesCrud) },
@@ -171,7 +206,17 @@ export default function CommercialRecoveredModule(props) {
     );
     setPendingSaleDraft({ form_type: 'sale_record', intent_label: `Convertir: ${opportunity.title || opportunity.libelle || 'Opportunité'}`, ...formDraft });
     setTab('Ventes');
-    toast.success('Formulaire vente prérempli depuis l’opportunité');
+    if (opportunity.id) {
+      await (props.onUpdateOpportunity || opportunitiesCrud.update)?.(opportunity.id, {
+        status: 'en_conversion',
+        statut: 'en_conversion',
+        client_id: client?.id || opportunity.client_id || '',
+        client_nom: client?.nom || client?.name || opportunity.client_nom || '',
+        converted_at: new Date().toISOString(),
+      });
+      await opportunitiesCrud.refresh?.();
+    }
+    toast.success('Formulaire vente prérempli — complétez la vente pour clôturer l’opportunité');
   };
 
   const todoBadge = data.todoCount;
@@ -179,10 +224,10 @@ export default function CommercialRecoveredModule(props) {
   return (
     <div className="space-y-4">
       <CommercialModuleHeader tab={tab} setTab={setTab} healthScore={data.healthScore} badges={{ receivable: data.receivable, todo: todoBadge, tabs: { Ventes: data.openSalesCount, Clients: data.clientsDebtCount, Opportunités: data.openOpportunities.length } }} />
-      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} busyId={busyId} /> : null}
+      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} busyId={busyId} onNavigate={props.onNavigate} onNewSale={openNewSale} /> : null}
       {tab === 'Ventes' ? <VentesV3 {...salesProps} /> : null}
       {tab === 'Clients' ? <ClientsReadable {...clientProps} /> : null}
-      {tab === 'Opportunités' ? <CommercialOpportunitiesPanel opportunities={data.openOpportunities} clients={clients} salesOrders={orders} setTab={setTab} onWhatsAppLog={logOpportunityWhatsApp} onConvertSale={convertOpportunityToSale} salesProps={salesProps} /> : null}
+      {tab === 'Opportunités' ? <CommercialOpportunitiesPanel opportunities={data.openOpportunities} clients={clients} salesOrders={orders} setTab={setTab} onWhatsAppLog={logOpportunityWhatsApp} onConvertSale={convertOpportunityToSale} /> : null}
       {tab === 'Graphiques' ? (
         <ModuleGraphiquesTab
           moduleId="commercial"

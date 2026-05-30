@@ -1,10 +1,11 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { MODULE_REGISTRY, NAV_MODULE_ORDER } from './config/modules.config';
 import { computeNavAlertCounts, navAlertFlags } from './services/erpHealthRules';
 import { scheduleErpHealthEngine, scheduleErpHealthOnCriticalChange } from './services/erpHealthEngine';
 import { trackNavOpen } from './services/erpRules/surveillanceUxRules.js';
 import { composeActionTraceShared, composeDecisionDataMap, composeInternalResources, composeReportData } from './services/moduleDataComposer';
 import { refreshAllModules, refreshSalesWorkflow } from './services/workflowRefresh';
+import { resolveCommercialTab, resolveElevageTab, resolveAchatsStockTab } from './utils/commercialNavigation';
 import AppNotificationManager from './components/AppNotificationManager';
 import AssistantPanel from './components/AssistantPanel';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -30,10 +31,30 @@ const crudRowsMap = (c) => Object.fromEntries(CRUD_KEYS.map((key) => [key, rows(
 
 export default function App() {
   const [active, setActiveState] = useState('dashboard');
-  const setActive = (moduleId) => {
+  const [commercialTab, setCommercialTab] = useState('Résumé');
+  const [elevageTab, setElevageTab] = useState('Résumé');
+  const [achatsStockTab, setAchatsStockTab] = useState('Résumé');
+  const navigateModule = useCallback((moduleId, options = {}) => {
+    const tab = options?.tab || options?.commercialTab || options?.elevageTab || options?.achatsStockTab;
+    if (moduleId === 'ventes') {
+      setCommercialTab(resolveCommercialTab(tab || 'Ventes'));
+      trackNavOpen('commercial');
+      setActiveState('commercial');
+      return;
+    }
+    if (moduleId === 'clients') {
+      setCommercialTab(resolveCommercialTab(tab || 'Clients'));
+      trackNavOpen('commercial');
+      setActiveState('commercial');
+      return;
+    }
+    if (moduleId === 'commercial' && tab) setCommercialTab(resolveCommercialTab(tab));
+    if (moduleId === 'elevage' && tab) setElevageTab(resolveElevageTab(tab));
+    if (moduleId === 'achats_stock' && tab) setAchatsStockTab(resolveAchatsStockTab(tab));
     trackNavOpen(moduleId);
     setActiveState(moduleId);
-  };
+  }, []);
+  const setActive = navigateModule;
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const { user, loading: authLoading, signOut } = useAuth();
@@ -105,6 +126,7 @@ export default function App() {
       existingAlerts: rows(c.alertes_center),
     }, centre_ia: { lots: rows(c.avicole), productionLogs: rows(c.production_oeufs_logs), alimentationLogs: rows(c.alimentation_logs), stocks: rows(c.stock), marketPrices: dataMap.market_prices || [], marketCalendarEvents: dataMap.market_calendar_events || [], salesOrders: rows(c.sales_orders), payments: rows(c.payments), transactions: rows(c.finances), smartfarmEvents: dataMap.smartfarm_events || [], sensors: rows(c.sensor_devices), cameras: rows(c.camera_devices), meteo: liveMeteo, dataMap: decisionDataMap, onNavigate: setActive, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh }, objectifs_croissance: { dataMap: decisionDataMap, onNavigate: setActive, onCreateBusinessPlan: c.business_plans.create, onRefreshBusinessPlans: c.business_plans.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, existingTasks: rows(c.taches), existingAlerts: rows(c.alertes_center) },
     elevage: {
+      initialTab: elevageTab,
       animaux: rows(c.animaux),
       lots: rows(c.avicole),
       sante: rows(c.sante),
@@ -123,13 +145,16 @@ export default function App() {
       existingAlerts: rows(c.alertes_center),
     },
     commercial: {
+      initialTab: commercialTab,
       clients: rows(c.clients),
       salesOrders: rows(c.sales_orders),
+      orderItems: rows(c.sales_order_items),
       payments: rows(c.payments),
       invoices: rows(c.invoices),
       deliveries: rows(c.deliveries),
       opportunities: rows(c.sales_opportunities),
       animals: rows(c.animaux),
+      animaux: rows(c.animaux),
       lots: rows(c.avicole),
       cultures: rows(c.cultures),
       stocks: rows(c.stock),
@@ -138,7 +163,26 @@ export default function App() {
       vaccins: rows(c.sante),
       businessEvents: rows(c.business_events),
       transactions: rows(c.finances),
-      onNavigate: setActive,
+      documents: rows(c.documents),
+      alertes: rows(c.alertes_center),
+      onNavigate: navigateModule,
+      onRefreshWorkflow: refreshSalesWorkflowFn,
+      onCreate: c.sales_orders.create,
+      onUpdate: c.sales_orders.update,
+      onDelete: c.sales_orders.remove,
+      onRefresh: c.sales_orders.refresh,
+      onCreatePayment: c.payments.create,
+      onUpdatePayment: c.payments.update,
+      onDeletePayment: c.payments.remove,
+      onRefreshPayments: c.payments.refresh,
+      onCreateClient: c.clients.create,
+      onUpdateClient: c.clients.update,
+      onDeleteClient: c.clients.remove,
+      onRefreshClients: c.clients.refresh,
+      onCreateOpportunity: c.sales_opportunities.create,
+      onUpdateOpportunity: c.sales_opportunities.update,
+      onDeleteOpportunity: c.sales_opportunities.remove,
+      onRefreshOpportunities: c.sales_opportunities.refresh,
       onCreateTask: c.taches.create,
       onCreateAlert: c.alertes_center.create,
       onUpdateAlert: c.alertes_center.update,
@@ -149,6 +193,7 @@ export default function App() {
       existingAlerts: rows(c.alertes_center),
     },
     achats_stock: {
+      initialTab: achatsStockTab,
       stocks: rows(c.stock),
       fournisseurs: rows(c.fournisseurs),
       suppliers: rows(c.fournisseurs),

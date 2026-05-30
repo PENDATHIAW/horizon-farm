@@ -1,21 +1,23 @@
 import { toNumber } from './format';
+import { paidForOrder, remainingForOrder } from './salesStatuses';
 
-const arr = (value) => Array.isArray(value) ? value : [];
+const arr = (value) => (Array.isArray(value) ? value : []);
 
-export const saleTotal = (sale = {}) => toNumber(sale.montant_total || sale.total || sale.amount || sale.total_amount || (toNumber(sale.quantity || sale.quantite) * toNumber(sale.unit_price || sale.prix_unitaire)));
+export const saleTotal = (order = {}) => toNumber(order.montant_total ?? order.total ?? order.amount ?? order.total_amount ?? (toNumber(order.quantity ?? order.quantite) * toNumber(order.unit_price ?? order.prix_unitaire)));
 export const paymentOrderId = (payment = {}) => String(payment.order_id || payment.sale_id || payment.source_record_id || payment.related_id || payment.commande_id || '');
-export const paymentValue = (payment = {}) => toNumber(payment.montant || payment.amount || payment.montant_paye || payment.paid_amount);
+export const paymentValue = (payment = {}) => toNumber(payment.montant_paye ?? payment.montant ?? payment.amount ?? payment.paid_amount);
 
+/** Aligné sur paidForOrder : max(montant sur fiche, somme paiements liés). */
 export function paidForSale(sale = {}, payments = []) {
-  return toNumber(sale.montant_paye || sale.paid_amount) || arr(payments).filter((payment) => paymentOrderId(payment) === String(sale.id)).reduce((sum, payment) => sum + paymentValue(payment), 0);
+  return paidForOrder(sale, payments);
 }
 
 export function remainingForSale(sale = {}, payments = []) {
-  return Math.max(0, saleTotal(sale) - paidForSale(sale, payments));
+  return remainingForOrder(sale, payments);
 }
 
 export function capSalePayment(sale = {}, payments = [], requested = 0) {
-  const remaining = remainingForSale(sale, payments);
+  const remaining = remainingForOrder(sale, payments);
   return Math.max(0, Math.min(toNumber(requested), remaining));
 }
 

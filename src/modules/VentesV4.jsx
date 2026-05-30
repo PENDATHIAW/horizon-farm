@@ -79,7 +79,7 @@ export default function VentesV4(props) {
   useEffect(() => {
     const handler = (event) => {
       const draft = event.detail?.draft;
-      if (event.detail?.module === 'ventes' && draft?.form_type === 'sale_record') {
+      if ((event.detail?.module === 'ventes' || event.detail?.module === 'commercial') && draft?.form_type === 'sale_record') {
         setModalDraft(draft);
         setModalOpen(true);
         setView('register');

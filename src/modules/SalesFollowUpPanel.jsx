@@ -10,6 +10,7 @@ import { saleQuantityDetail } from '../utils/saleQuantityLabel';
 import { paidForOrder, remainingForOrder } from '../utils/salesStatuses';
 import { deleteSaleComplete } from '../utils/salesDeleteWorkflow';
 import { recordSalePayment } from '../utils/recordSalePayment';
+import { moduleForSaleSource } from '../utils/commercialNavigation';
 import { isDelivered, linkedPaymentsForOrders, saleAmount } from './commercial/commercialMetrics.js';
 import SaleActionModal from './SaleActionModal.jsx';
 
@@ -63,6 +64,7 @@ async function settleOrder(order, props, linkedPayments) {
     },
   });
   if (result?.skipped && result.reason === 'duplicate_payment') toast.success('Encaissement déjà enregistré');
+  else if (result?.skipped && result.reason === 'over_payment') toast.error(`Maximum encaissable : ${fmtCurrency(result.remaining)}`);
   else toast.success('Vente encaissée');
 }
 
@@ -118,14 +120,26 @@ function MarginCell({ row }) {
   return <td className="px-5 py-4 text-right align-top"><span className={`font-black text-base ${net < 0 ? 'text-red-600' : 'text-emerald-700'}`}>{fmtCurrency(net)}</span><p className="text-[11px] text-[#8a7456] mt-1">{rate}% · nette</p></td>;
 }
 
-function CostCell({ row, order, deliveries }) {
+function CostCell({ row, order, deliveries, onNavigate }) {
   const qty = saleQuantityDetail(order || row);
   const breakdown = costBreakdownOf(row, order, deliveries);
   const tooltip = hasMissingCost(row)
     ? 'Coût source manquant : lier la vente à son lot, animal, stock ou culture et compléter les données de production.'
     : costBreakdownTooltip(breakdown) || row.cout_source || row.source_label || '';
   if (hasMissingCost(row)) {
-    return <td className="px-5 py-4 text-right align-top"><span className="font-bold text-amber-700">À compléter</span><p className="text-[11px] text-[#8a7456] mt-1 max-w-[200px] ml-auto">source production</p></td>;
+    const target = moduleForSaleSource(order || row);
+    return (
+      <td className="px-5 py-4 text-right align-top">
+        <span className="font-bold text-amber-700">À compléter</span>
+        {onNavigate ? (
+          <button type="button" onClick={() => onNavigate(target.module, { tab: target.tab || undefined })} className="block text-[11px] font-black text-[#9a6b12] mt-1 underline ml-auto max-w-[200px]">
+            → {target.label}
+          </button>
+        ) : (
+          <p className="text-[11px] text-[#8a7456] mt-1 max-w-[200px] ml-auto">source production</p>
+        )}
+      </td>
+    );
   }
   const unitHint = qty.isEggSale && qty.plateaux > 0
     ? `${fmtCurrency(breakdown.productionCost / qty.plateaux)} / plateau`
@@ -183,7 +197,7 @@ export default function SalesFollowUpPanel(props) {
       </div>
       <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a]">{orders.length} vente(s){missingCostCount ? ` · ${missingCostCount} coût(s) à compléter` : ''}</div>
     </div>
-    {missingCostCount ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{missingCostCount} vente(s) sans coût source fiable. Lier chaque vente à sa source (lot chair, lot pondeuse, animal, stock ou culture) et compléter alimentation / production dans le module concerné.</div> : null}
+    {missingCostCount ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{missingCostCount} vente(s) sans coût source fiable. Compléter alimentation / production dans <button type="button" className="font-black underline" onClick={() => props.onNavigate?.('elevage', { tab: 'Avicole' })}>Élevage</button> ou <button type="button" className="font-black underline" onClick={() => props.onNavigate?.('achats_stock', { tab: 'Stock' })}>Stock</button>.</div> : null}
     <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#7d6a4a]"><summary className="cursor-pointer font-black text-[#2f2415]">Comment est calculée la marge ?</summary><p className="mt-3 leading-relaxed">{SALES_MARGIN_FORMULA}</p><p className="mt-2 text-xs">Livraison : comptée uniquement si mode livré/à livrer et montant renseigné — retrait sur place = 0 FCFA. Viande abattue : vendre depuis le stock (kg), coût déjà consolidé au journal d’abattage.</p></details>
     <div className="space-y-3 md:hidden">{orders.length ? orders.map((order) => <MobileSaleCard key={order.id} order={order} linkedPayments={linkedPayments} props={props} marginRow={marginById.get(String(order.id)) || order} deliveries={deliveries} onOpen={openSale} />) : <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-6 text-center text-[#8a7456]">Aucune vente enregistrée pour le moment.</div>}</div>
     <div className="hidden md:block overflow-x-auto rounded-2xl border border-[#eadcc2] bg-[#fffdf8] -mx-1 px-1">
@@ -221,7 +235,7 @@ export default function SalesFollowUpPanel(props) {
               <td className="px-5 py-4 text-right font-black text-[#2f2415] whitespace-nowrap">{fmtCurrency(total)}</td>
               <td className="px-5 py-4 text-right text-[#2f2415] whitespace-nowrap">{fmtCurrency(paidForOrder(order, linkedPayments))}</td>
               <td className="px-5 py-4 text-right font-black text-[#2f2415] whitespace-nowrap">{fmtCurrency(remaining)}</td>
-              <CostCell row={marginRow} order={order} deliveries={deliveries} />
+              <CostCell row={marginRow} order={order} deliveries={deliveries} onNavigate={props.onNavigate} />
               <MarginCell row={marginRow} />
               <td className="px-5 py-4"><div className="flex flex-wrap gap-1.5"><StatusBadge tone={isPaid(order, linkedPayments) ? 'good' : 'warn'}>{isPaid(order, linkedPayments) ? 'Payée' : 'À encaisser'}</StatusBadge><StatusBadge tone={delivered ? 'good' : 'warn'}>{delivered ? 'Livrée' : 'À livrer'}</StatusBadge></div></td>
               <td className="px-5 py-4"><ActionButtons order={order} props={props} linkedPayments={linkedPayments} onOpen={openSale} /></td>

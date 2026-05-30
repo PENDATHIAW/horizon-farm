@@ -37,7 +37,7 @@ const openHorizonForm = (draft = {}, onNavigate) => {
 const isWeakDraft = (draft = {}, text = '') => {
   const cleaned = normalize(text);
   if (!draft || draft.status === 'unsupported' || draft.status === 'wake_only') return true;
-  if (draft.primary_module !== 'ventes') return false;
+  if (draft.primary_module !== 'ventes' && draft.primary_module !== 'commercial') return false;
   return !/(vend|vente|vends|client|paiement|paye|payé|commande|livr|facture|poulet|chair|oeuf|œuf|tablette)/.test(cleaned);
 };
 const QUICK_ACTIONS = [

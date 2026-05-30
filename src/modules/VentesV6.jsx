@@ -59,6 +59,10 @@ export default function VentesV6(props) {
       toast.success('Vente déjà soldée : aucun encaissement supplémentaire.');
       return null;
     }
+    if (result?.skipped && result.reason === 'over_payment') {
+      toast.error(`Maximum encaissable : ${fmtCurrency(result.remaining)}`);
+      return null;
+    }
     if (result?.skipped && result.reason === 'duplicate_payment') {
       toast.success('Encaissement déjà enregistré — aucun doublon créé.');
       return result.payment;

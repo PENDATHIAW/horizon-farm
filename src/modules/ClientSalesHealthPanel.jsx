@@ -52,7 +52,7 @@ export default function ClientSalesHealthPanel({ rows = [], salesOrders = [], pa
       </div>
       {!compact ? (
         <div className="flex justify-end gap-2">
-          <button type="button" onClick={() => onNavigate?.('ventes')} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm font-bold text-[#2f2415]">Voir ventes</button>
+          <button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm font-bold text-[#2f2415]">Voir ventes</button>
         </div>
       ) : null}
     </section>

@@ -5,13 +5,15 @@ import { fmtCurrency } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { findInvoicesForOrder } from '../services/salesIntegrityService';
 import { recordSalePayment } from '../utils/recordSalePayment';
+import { paidForOrder, remainingForOrder } from '../utils/salesStatuses';
 import { saleQuantityDetail, deliveryModeNeedsFee, deliveryFeeOf } from '../utils/saleQuantityLabel';
 
 const today = () => new Date().toISOString().slice(0, 10);
+const arr = (value) => (Array.isArray(value) ? value : []);
 const num = (value = 0) => Number(value || 0) || 0;
 const totalOf = (sale = {}) => num(sale.montant_total || sale.total || sale.amount || sale.total_amount || (num(sale.quantity || sale.quantite) * num(sale.unit_price || sale.prix_unitaire)));
-const paidOf = (sale = {}, payments = []) => num(sale.montant_paye || sale.paid_amount) || payments.filter((p) => String(p.order_id || p.sale_id || p.source_record_id) === String(sale.id)).reduce((sum, p) => sum + num(p.montant || p.amount || p.montant_paye), 0);
-const remainingOf = (sale = {}, payments = []) => Math.max(0, totalOf(sale) - paidOf(sale, payments));
+const paidOf = (sale = {}, paymentRows = []) => paidForOrder(sale, paymentRows);
+const remainingOf = (sale = {}, paymentRows = []) => remainingForOrder(sale, paymentRows);
 const deliveryStatus = (sale = {}) => sale.statut_livraison || sale.delivery_status || sale.status_livraison || 'a_livrer';
 
 const MODES = [['view', 'Voir'], ['edit', 'Modifier'], ['pay', 'Encaisser'], ['deliver', 'Livrer'], ['invoice', 'Facture'], ['close', 'Clôturer']];
@@ -45,9 +47,19 @@ export default function SaleActionModal({ sale, payments, props, onClose, initia
       setSaving(true);
       if (mode === 'edit') await props.onUpdate?.(sale.id, { client_label: client, product_name: product, quantity: num(quantity), unit_price: num(unitPrice), montant_ht: productTotal, frais_livraison: activeFee, delivery_fee: activeFee, fulfillment_mode: feeApplies ? (fulfillmentMode || delivery) : 'recupere', montant_total: editGrandTotal, reste_a_payer: Math.max(0, editGrandTotal - paidOf(sale, payments)) });
       if (mode === 'pay') {
+        const restDue = remainingOf(sale, payments);
+        const requested = num(amount);
+        if (requested <= 0) {
+          toast.error('Montant invalide');
+          return;
+        }
+        if (requested > restDue + 0.5) {
+          toast.error(`Impossible d'encaisser plus que le reste dû (${fmtCurrency(restDue)})`);
+          return;
+        }
         const result = await recordSalePayment({
           sale,
-          requestedAmount: amount,
+          requestedAmount: requested,
           payments,
           transactions: props.transactions || [],
           clients: props.clients || [],
@@ -65,6 +77,10 @@ export default function SaleActionModal({ sale, payments, props, onClose, initia
             onRefreshClients: props.onRefreshClients,
           },
         });
+        if (result?.skipped && result.reason === 'over_payment') {
+          toast.error(`Maximum encaissable : ${fmtCurrency(result.remaining)}`);
+          return;
+        }
         if (result?.skipped && result.reason === 'already_settled') {
           toast.success('Vente déjà soldée : aucun encaissement à ajouter.');
           onClose?.();
@@ -75,11 +91,19 @@ export default function SaleActionModal({ sale, payments, props, onClose, initia
           onClose?.();
           return;
         }
+        toast.success(`Encaissement enregistré : ${fmtCurrency(result.amount)}`);
+        onClose?.();
+        return;
       }
       if (mode === 'deliver') {
         const fee = deliveryModeNeedsFee(delivery) ? Math.max(0, num(deliveryFee)) : 0;
         const newTotal = productTotal + fee;
-        await props.onCreateDelivery?.({ id: makeId('LIV'), order_id: sale.id, date_livraison: today(), statut: delivery, status: delivery, frais_livraison: fee, delivery_fee: fee, destinataire: client });
+        const existingDelivery = arr(props.deliveriesList || props.deliveries).find((row) => String(row.order_id || row.sale_id || row.source_record_id) === String(sale.id));
+        if (existingDelivery?.id) {
+          await props.onUpdateDelivery?.(existingDelivery.id, { statut: delivery, status: delivery, date_livraison: today(), frais_livraison: fee, delivery_fee: fee, destinataire: client });
+        } else {
+          await props.onCreateDelivery?.({ id: makeId('LIV'), order_id: sale.id, date_livraison: today(), statut: delivery, status: delivery, frais_livraison: fee, delivery_fee: fee, destinataire: client });
+        }
         await props.onUpdate?.(sale.id, { statut_livraison: delivery, statut_commande: remainingOf(sale, payments) <= 0 && delivery !== 'a_livrer' ? 'livre' : 'ouvert', frais_livraison: fee, delivery_fee: fee, montant_total: fee > 0 || num(sale.frais_livraison) ? newTotal : totalOf(sale), reste_a_payer: Math.max(0, (fee > 0 || num(sale.frais_livraison) ? newTotal : totalOf(sale)) - paidOf(sale, payments)) });
       }
       if (mode === 'invoice') {
@@ -100,7 +124,7 @@ export default function SaleActionModal({ sale, payments, props, onClose, initia
       }
       if (mode === 'close') await props.onUpdate?.(sale.id, { statut_commande: 'cloture', closed_at: new Date().toISOString() });
       await props.onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: `vente_${mode}`, module_source: 'ventes', entity_type: 'commande', entity_id: sale.id, title: `Vente ${sale.id} · ${mode}`, description: product || sale.product_name || '', event_date: today(), severity: 'info' });
-      await Promise.allSettled([props.onRefresh?.(), props.onRefreshPayments?.(), props.onRefreshFinances?.(), props.onRefreshInvoices?.(), props.onRefreshDeliveries?.(), props.onRefreshBusinessEvents?.()]);
+      await Promise.allSettled([props.onRefresh?.(), props.onRefreshPayments?.(), props.onRefreshInvoices?.(), props.onRefreshDeliveries?.()]);
       toast.success('Vente mise à jour');
       onClose?.();
     } catch (error) { toast.error(error.message || 'Action vente impossible'); } finally { setSaving(false); }

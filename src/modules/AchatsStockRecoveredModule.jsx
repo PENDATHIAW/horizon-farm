@@ -1,5 +1,5 @@
 import { BrainCircuit, Handshake, PackageCheck, ShoppingBag, Warehouse, Zap } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleListHub from '../components/module/ModuleListHub.jsx';
@@ -9,6 +9,7 @@ import { emitHorizonForm } from '../services/formModalManager';
 import { applyOneClickRecommendation, createSupplierFollowUpTask } from '../services/heyHorizonRecommendationActions.js';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { aggregateSupplierDebts, buildAchatsStockCoherenceRows, buildAchatsStockHealthSnapshot } from './achatsStock/achatsStockVisionHelpers.js';
+import { resolveAchatsStockTab } from '../utils/commercialNavigation';
 import StocksV5 from './StocksV5';
 import FournisseursReadable from './FournisseursReadable';
 
@@ -186,8 +187,12 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate }) {
 }
 
 export default function AchatsStockRecoveredModule(props) {
-  const [tab, setTab] = useState('Résumé');
+  const [tab, setTab] = useState(() => resolveAchatsStockTab(props.initialTab));
   const [busyId, setBusyId] = useState(null);
+
+  useEffect(() => {
+    if (props.initialTab) setTab(resolveAchatsStockTab(props.initialTab));
+  }, [props.initialTab]);
   const stockCrud = useCrudModule('stock');
   const suppliersCrud = useCrudModule('fournisseurs');
   const financesCrud = useCrudModule('finances');

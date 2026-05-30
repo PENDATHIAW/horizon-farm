@@ -163,7 +163,6 @@ export function SaleModal({ props, onClose, onDone, prefill = null }) {
       const orderId = makeId('CMD');
       const invoiceId = form.invoice_issued ? makeId('FAC') : '';
       const paymentId = paid > 0 ? makeId('PAY') : '';
-      const transactionId = paid > 0 ? makeId('TRX') : '';
       const realClientId = form.client_id === WALK_IN ? '' : form.client_id;
       const productName = form.product_name;
       const isEggSale = selected?.sale_kind === 'oeufs_tablettes' || form.unit === 'tablette';
@@ -178,11 +177,10 @@ export function SaleModal({ props, onClose, onDone, prefill = null }) {
       }
       if (paid > 0) {
         await props.onCreatePayment?.({ id: paymentId, order_id: orderId, sale_id: orderId, source_record_id: orderId, client_id: realClientId, invoice_id: invoiceId, date_paiement: form.date, date: form.date, montant: paid, montant_paye: paid, amount: paid, moyen_paiement: form.payment_method, mode_paiement: form.payment_method, statut: 'paye', created_from: 'vente_terrain_guidee' });
-        await props.onCreateFinanceTransaction?.({ id: transactionId, type: 'entree', libelle: `${remaining > 0 ? 'Acompte' : 'Encaissement'} ${orderId} - ${clientName(props.clients, form.client_id)}`, montant: paid, date: form.date, categorie: 'Vente', module_lie: 'ventes', related_id: orderId, vente_id: orderId, client_id: realClientId, statut: remaining > 0 ? 'partiel' : 'paye', source_module: 'ventes', source_record_id: orderId, source_type: form.source_type, source_id: form.source_id || '', invoice_id: invoiceId, payment_id: paymentId, moyen_paiement: form.payment_method, created_from: 'vente_terrain_guidee', transaction_origin: 'automatique' });
       }
       if (remaining > 0) await props.onCreateFinanceTransaction?.({ id: makeId('TRX'), type: 'entree', libelle: `Créance client ${orderId} - ${clientName(props.clients, form.client_id)}`, montant: remaining, date: form.date, categorie: 'Creance client', module_lie: 'ventes', related_id: orderId, vente_id: orderId, client_id: realClientId, statut: 'impaye', reste_a_payer: remaining, source_module: 'ventes', source_record_id: orderId, created_from: 'vente_terrain_guidee', transaction_origin: 'automatique' });
-      await props.onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'vente_directe', module_source: 'ventes', entity_type: 'commande', entity_id: orderId, title: `Vente ${productName} - ${fmtCurrency(grandTotal)}`, description: `${clientName(props.clients, form.client_id)} · ${form.payment_status}${deliveryFee > 0 ? ` · livraison ${fmtCurrency(deliveryFee)}` : ''}`, amount: grandTotal, event_date: form.date, linked_sale_id: orderId, linked_invoice_id: invoiceId || null, linked_transaction_id: transactionId || null, source_type: form.source_type, source_id: form.source_id || '', sale_kind: selected?.sale_kind || form.source_type, severity: 'info' });
-      await Promise.allSettled([props.onRefresh?.(), props.onRefreshInvoices?.(), props.onRefreshPayments?.(), props.onRefreshDocuments?.(), props.onRefreshFinances?.(), props.onRefreshBusinessEvents?.(), props.onRefreshStocks?.(), props.onRefreshLots?.(), props.onRefreshAnimals?.(), props.onRefreshCultures?.(), props.onRefreshDeliveries?.()]);
+      await props.onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'vente_directe', module_source: 'ventes', entity_type: 'commande', entity_id: orderId, title: `Vente ${productName} - ${fmtCurrency(grandTotal)}`, description: `${clientName(props.clients, form.client_id)} · ${form.payment_status}${deliveryFee > 0 ? ` · livraison ${fmtCurrency(deliveryFee)}` : ''}`, amount: grandTotal, event_date: form.date, linked_sale_id: orderId, linked_invoice_id: invoiceId || null, linked_transaction_id: paymentId || null, source_type: form.source_type, source_id: form.source_id || '', sale_kind: selected?.sale_kind || form.source_type, severity: 'info' });
+      await Promise.allSettled([props.onRefresh?.(), props.onRefreshInvoices?.(), props.onRefreshPayments?.(), props.onRefreshDocuments?.(), props.onRefreshFinances?.(), props.onRefreshDeliveries?.()]);
       onDone?.(orderId);
     } catch (err) { setError(err.message || 'Enregistrement impossible.'); } finally { setSaving(false); }
   };

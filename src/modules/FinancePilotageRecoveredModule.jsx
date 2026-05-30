@@ -43,7 +43,11 @@ function FinanceIaPanel({ findings = [], predictions = [], onApply, busyId, onNa
           <div key={f.id} className="flex flex-col gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 sm:flex-row sm:items-center sm:justify-between">
             <div><b className="text-sm text-[#2f2415]">{f.title}</b><p className="text-xs text-amber-800">{f.recommended_action || f.description}</p></div>
             <div className="flex gap-2">
-              <button type="button" onClick={() => onNavigate?.(f.module === 'commercial' ? 'commercial' : 'documents_rapports')} className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-xs font-black">{f.module === 'commercial' ? 'Commercial' : 'Documents'}</button>
+              {f.module === 'commercial' ? (
+                <button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Clients' })} className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-xs font-black">Commercial</button>
+              ) : (
+                <button type="button" onClick={() => onNavigate?.('documents_rapports')} className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-xs font-black">Documents</button>
+              )}
               <button type="button" disabled={busyId === f.id} onClick={() => onApply?.(f)} className="rounded-lg bg-[#22c55e] px-2 py-1 text-xs font-black text-[#052e16] disabled:opacity-50">{busyId === f.id ? '…' : f.auto_action === 'create_task' ? 'Créer tâche' : f.auto_action === 'create_alert' ? 'Créer alerte' : 'Appliquer'}</button>
             </div>
           </div>
@@ -100,7 +104,7 @@ function CreancesPanel({ data, onNavigate }) {
         title: row.title,
         detail: row.detail,
         value: fmtCurrency(row.amount),
-        module: 'commercial',
+        onClick: () => onNavigate?.('commercial', { tab: 'Clients' }),
       }))}
       emptyLabel="Aucune créance ouverte."
       onNavigate={onNavigate}

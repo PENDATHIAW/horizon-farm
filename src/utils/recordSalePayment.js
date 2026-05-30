@@ -1,6 +1,8 @@
 import { buildClientSalesSummary } from './clientWorkflows';
 import { makeId } from './ids';
+import { toNumber } from './format';
 import { buildCoherentOrderPatch, findExistingFinanceForPayment, findExistingPayment } from '../services/salesIntegrityService';
+import { remainingForOrder } from './salesStatuses';
 import { capSalePayment } from './salesWorkflows';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
@@ -52,10 +54,22 @@ export async function recordSalePayment({
     onRefreshClients,
   } = handlers;
 
-  const cappedAmount = capSalePayment(sale, payments, requestedAmount);
+  const remaining = remainingForOrder(sale, payments);
+  const requested = toNumber(requestedAmount);
+
+  if (remaining <= 0) {
+    await onUpdateOrder?.(sale.id, buildCoherentOrderPatch(sale, payments, {}));
+    return { skipped: true, reason: 'already_settled', remaining: 0, requested };
+  }
+
+  if (requested > remaining + 0.5) {
+    return { skipped: true, reason: 'over_payment', remaining, requested };
+  }
+
+  const cappedAmount = capSalePayment(sale, payments, requested);
   if (cappedAmount <= 0) {
     await onUpdateOrder?.(sale.id, buildCoherentOrderPatch(sale, payments, {}));
-    return { skipped: true, reason: 'already_settled' };
+    return { skipped: true, reason: 'already_settled', remaining, requested };
   }
 
   const existingPayment = findExistingPayment({
@@ -80,7 +94,7 @@ export async function recordSalePayment({
   const payId = paymentId || makeId('PAY');
   const date = paymentDate || new Date().toISOString().slice(0, 10);
 
-  await onCreatePayment?.({
+  const paymentRow = {
     id: payId,
     order_id: sale.id,
     sale_id: sale.id,
@@ -95,9 +109,11 @@ export async function recordSalePayment({
     moyen_paiement: paymentMethod,
     mode_paiement: paymentMethod,
     statut: 'paye',
-  });
+  };
 
-  const nextPayments = [...payments, { id: payId, order_id: sale.id, montant: cappedAmount, montant_paye: cappedAmount, amount: cappedAmount, date_paiement: date, date, moyen_paiement: paymentMethod, statut: 'paye' }];
+  await onCreatePayment?.(paymentRow);
+
+  const nextPayments = payments.some((row) => clean(row.id) === payId) ? payments : [...payments, paymentRow];
 
   const existingFinance = findExistingFinanceForPayment({
     orderId: sale.id,
@@ -137,7 +153,7 @@ export async function recordSalePayment({
     if (clientPatch) await onUpdateClient?.(sale.client_id, clientPatch);
   }
 
-  await Promise.allSettled([onRefresh?.(), onRefreshPayments?.(), onRefreshFinances?.(), onRefreshClients?.()]);
+  await Promise.allSettled([onRefreshPayments?.(), onRefresh?.()]);
 
-  return { paymentId: payId, amount: cappedAmount, skipped: false };
+  return { paymentId: payId, amount: cappedAmount, remaining: Math.max(0, remaining - cappedAmount), requested, skipped: false };
 }

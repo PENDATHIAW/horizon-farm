@@ -11,7 +11,7 @@ export const isWalkInOrder = (row = {}) => !row.client_id || lower(row.client_ty
 
 export const isOpenOrder = (row = {}) => !['cloture', 'clôture', 'annule', 'annulé', 'termine', 'terminé'].includes(lower(row.statut_commande || row.status || row.statut));
 
-export const isOpportunityOpen = (row = {}) => !['fermee', 'fermée', 'closed', 'gagnee', 'gagnée', 'perdue'].includes(lower(row.status || row.statut));
+export const isOpportunityOpen = (row = {}) => !['fermee', 'fermée', 'closed', 'gagnee', 'gagnée', 'perdue', 'en_conversion'].includes(lower(row.status || row.statut));
 
 /** Retrait sur place = livré côté commercial. */
 export const isDelivered = (row = {}) => ['livre', 'livré', 'delivered', 'termine', 'terminé', 'recupere', 'récupéré'].includes(lower(row.delivery_status || row.statut_livraison || row.status_livraison || row.fulfillment_mode || row.status || row.statut));
