@@ -4,6 +4,7 @@ import { buildDashboardTodayActions } from '../../utils/dashboardWorkflows';
 import { avicoleActiveCount, avicoleHasActiveBirds } from '../../utils/avicoleMetrics';
 import { resolveAvicoleLotKind } from '../../utils/avicoleActivity';
 import { toNumber, fmtCurrency } from '../../utils/format';
+import { normalizePeriodScope, previousMonthKeyFrom } from '../../utils/periodScope';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const lower = (value) => String(value || '').trim().toLowerCase();
@@ -149,14 +150,16 @@ function monthKeyFromValue(value) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function currentMonthKey() {
-  return monthKeyFromValue(new Date());
-}
-
-function previousMonthKey() {
-  const date = new Date();
-  date.setMonth(date.getMonth() - 1);
-  return monthKeyFromValue(date);
+function resolvePeriodContext(scope = {}) {
+  const normalized = normalizePeriodScope(scope);
+  if (normalized.mode === 'all') {
+    return { mode: 'all', monthKey: null, compareMonthKey: null };
+  }
+  return {
+    mode: 'month',
+    monthKey: normalized.monthKey,
+    compareMonthKey: previousMonthKeyFrom(normalized.monthKey),
+  };
 }
 
 function rowDateValue(row = {}) {
@@ -173,10 +176,6 @@ export function formatMonthDelta(delta, { unit = '', formatValue = (value) => St
 
 function eggsFromProductionLog(row = {}) {
   return toNumber(row.oeufs_produits ?? row.eggs_count ?? row.eggs ?? row.quantite);
-}
-
-function brokenFromProductionLog(row = {}) {
-  return toNumber(row.oeufs_casses ?? row.broken ?? row.casses ?? row.pertes);
 }
 
 function isEggSale(order = {}) {
@@ -196,6 +195,16 @@ function eggsFromSale(order = {}) {
   return 0;
 }
 
+function tabletsFromSale(order = {}) {
+  const explicit = toNumber(order.tablettes_quantity ?? order.tablettes_vendues ?? order.plateaux_vendus);
+  if (explicit > 0) return explicit;
+  const qty = toNumber(order.quantity ?? order.quantite);
+  const unit = lower(order.unit || order.unite || '');
+  if (unit.includes('tablette') || unit.includes('plateau') || order.sale_kind === 'oeufs_tablettes') return qty;
+  if (isEggSale(order)) return tabletsFromEggs(eggsFromSale(order));
+  return 0;
+}
+
 function tabletsFromEggs(eggs = 0) {
   return Math.floor(Math.max(0, toNumber(eggs)) / EGGS_PER_TABLET);
 }
@@ -206,47 +215,49 @@ function sumProductionEggs(logs = [], monthKey = null) {
     .reduce((sum, row) => sum + eggsFromProductionLog(row), 0);
 }
 
-function sumEggSales(orders = [], monthKey = null) {
+function sumTabletSales(orders = [], monthKey = null) {
   return arr(orders)
     .filter(isEggSale)
     .filter((row) => !monthKey || monthKeyFromValue(rowDateValue(row)) === monthKey)
-    .reduce((sum, row) => sum + eggsFromSale(row), 0);
+    .reduce((sum, row) => sum + tabletsFromSale(row), 0);
 }
 
-/** Ponte — mois en cours, cumuls ramassage/vente, delta vs mois dernier. */
-export function computeEggProductionSummary(productionLogs = [], salesOrders = []) {
+/** Ponte — période sélectionnée, cumuls ramassage/vente, delta vs mois précédent. */
+export function computeEggProductionSummary(productionLogs = [], salesOrders = [], periodScope = {}) {
+  const { mode, monthKey, compareMonthKey } = resolvePeriodContext(periodScope);
   const logs = arr(productionLogs);
-  const thisMonth = currentMonthKey();
-  const lastMonth = previousMonthKey();
+  const orders = arr(salesOrders);
 
   const totalEggs = sumProductionEggs(logs);
-  const totalBroken = logs.reduce((sum, row) => sum + brokenFromProductionLog(row), 0);
-  const sellableEggs = Math.max(0, totalEggs - totalBroken);
-  const eggsSoldAllTime = sumEggSales(salesOrders);
-  const eggsThisMonth = sumProductionEggs(logs, thisMonth);
-  const eggsLastMonth = sumProductionEggs(logs, lastMonth);
-  const eggsSoldThisMonth = sumEggSales(salesOrders, thisMonth);
-  const eggsSoldLastMonth = sumEggSales(salesOrders, lastMonth);
+  const eggsPeriod = mode === 'all' ? totalEggs : sumProductionEggs(logs, monthKey);
+  const eggsCompare = mode === 'month' ? sumProductionEggs(logs, compareMonthKey) : 0;
+  const tablettesSoldAllTime = sumTabletSales(orders);
+  const tablettesSoldPeriod = mode === 'all' ? tablettesSoldAllTime : sumTabletSales(orders, monthKey);
+  const tablettesSoldCompare = mode === 'month' ? sumTabletSales(orders, compareMonthKey) : 0;
 
   return {
-    eggsThisMonth,
+    mode,
+    monthKey,
+    eggsPeriod,
     eggsAllTime: totalEggs,
-    sellableEggsAllTime: sellableEggs,
-    tablettesAllTime: tabletsFromEggs(sellableEggs),
-    eggsSoldAllTime,
-    tablettesSoldAllTime: tabletsFromEggs(eggsSoldAllTime),
-    deltaEggsVsLastMonth: eggsThisMonth - eggsLastMonth,
-    deltaSoldVsLastMonth: eggsSoldThisMonth - eggsSoldLastMonth,
+    tablettesSoldAllTime,
+    tablettesSoldPeriod,
+    deltaEggsVsPrevious: mode === 'month' ? eggsPeriod - eggsCompare : null,
+    deltaTablettesSoldVsPrevious: mode === 'month' ? tablettesSoldPeriod - tablettesSoldCompare : null,
   };
 }
 
 export function formatEggProductionDetail(summary = {}) {
   const fmt = (value = 0) => Number(value || 0).toLocaleString('fr-FR');
-  return `${fmt(summary.tablettesAllTime)} tablettes ramassées · ${fmt(summary.eggsSoldAllTime)} œufs vendus`;
+  if (summary.mode === 'all') {
+    return `${fmt(summary.tablettesSoldAllTime)} tablettes vendues`;
+  }
+  return `${fmt(summary.eggsAllTime)} œufs ramassés · ${fmt(summary.tablettesSoldAllTime)} tablettes vendues · depuis le début`;
 }
 
 export function formatEggProductionDelta(summary = {}) {
-  return formatMonthDelta(summary.deltaEggsVsLastMonth, { unit: 'œufs', formatValue: (value) => Number(value).toLocaleString('fr-FR') });
+  if (summary.mode === 'all' || summary.deltaEggsVsPrevious == null) return null;
+  return formatMonthDelta(summary.deltaEggsVsPrevious, { unit: 'œufs', formatValue: (value) => Number(value).toLocaleString('fr-FR') });
 }
 
 function sumPayments(payments = [], monthKey = null) {
@@ -255,39 +266,57 @@ function sumPayments(payments = [], monthKey = null) {
     .reduce((sum, row) => sum + paid(row), 0);
 }
 
-export function computeFinancePeriodDeltas(payments = [], transactions = []) {
-  const thisMonth = currentMonthKey();
-  const lastMonth = previousMonthKey();
-  const encaisseThisMonth = sumPayments(payments, thisMonth);
-  const encaisseLastMonth = sumPayments(payments, lastMonth);
-  const depensesThisMonth = arr(transactions)
+function sumDepenses(transactions = [], monthKey = null) {
+  return arr(transactions)
     .filter((row) => ['sortie', 'depense', 'dépense', 'achat'].includes(lower(row.type || '')))
-    .filter((row) => monthKeyFromValue(rowDateValue(row)) === thisMonth)
+    .filter((row) => !monthKey || monthKeyFromValue(rowDateValue(row)) === monthKey)
     .reduce((sum, row) => sum + money(row), 0);
-  const depensesLastMonth = arr(transactions)
-    .filter((row) => ['sortie', 'depense', 'dépense', 'achat'].includes(lower(row.type || '')))
-    .filter((row) => monthKeyFromValue(rowDateValue(row)) === lastMonth)
-    .reduce((sum, row) => sum + money(row), 0);
+}
+
+export function computeFinancePeriodSummary(payments = [], transactions = [], periodScope = {}) {
+  const { mode, monthKey, compareMonthKey } = resolvePeriodContext(periodScope);
+  const encaisseAllTime = sumPayments(payments);
+  const depensesAllTime = sumDepenses(transactions);
+  const encaissePeriod = mode === 'all' ? encaisseAllTime : sumPayments(payments, monthKey);
+  const depensesPeriod = mode === 'all' ? depensesAllTime : sumDepenses(transactions, monthKey);
+  const encaisseCompare = mode === 'month' ? sumPayments(payments, compareMonthKey) : 0;
+  const depensesCompare = mode === 'month' ? sumDepenses(transactions, compareMonthKey) : 0;
+  const resultatAllTime = encaisseAllTime - depensesAllTime;
+  const resultatPeriod = encaissePeriod - depensesPeriod;
+  const resultatCompare = encaisseCompare - depensesCompare;
 
   return {
-    encaisseThisMonth,
-    encaisseLastMonth,
-    deltaEncaisseVsLastMonth: encaisseThisMonth - encaisseLastMonth,
-    resultatThisMonth: encaisseThisMonth - depensesThisMonth,
-    deltaResultatVsLastMonth: (encaisseThisMonth - depensesThisMonth) - (encaisseLastMonth - depensesLastMonth),
+    mode,
+    monthKey,
+    encaisseAllTime,
+    encaissePeriod,
+    depensesAllTime,
+    depensesPeriod,
+    resultatAllTime,
+    resultatPeriod,
+    deltaEncaisseVsPrevious: mode === 'month' ? encaissePeriod - encaisseCompare : null,
+    deltaResultatVsPrevious: mode === 'month' ? resultatPeriod - resultatCompare : null,
   };
 }
 
 export function formatEncaisseDetail(periods = {}) {
-  return `${fmtCurrency(periods.encaisseThisMonth || 0)} ce mois`;
+  if (periods.mode === 'all') return null;
+  return `${fmtCurrency(periods.encaisseAllTime || 0)} depuis le début`;
 }
 
 export function formatEncaisseDelta(periods = {}) {
-  return formatMonthDelta(periods.deltaEncaisseVsLastMonth, { formatValue: (value) => `${Number(value).toLocaleString('fr-FR')} FCFA` });
+  if (periods.mode === 'all' || periods.deltaEncaisseVsPrevious == null) return null;
+  return formatMonthDelta(periods.deltaEncaisseVsPrevious, { formatValue: (value) => `${Number(value).toLocaleString('fr-FR')} FCFA` });
 }
 
 export function formatResultatDelta(periods = {}) {
-  return formatMonthDelta(periods.deltaResultatVsLastMonth, { formatValue: (value) => `${Number(value).toLocaleString('fr-FR')} FCFA` });
+  if (periods.mode === 'all' || periods.deltaResultatVsPrevious == null) return null;
+  return formatMonthDelta(periods.deltaResultatVsPrevious, { formatValue: (value) => `${Number(value).toLocaleString('fr-FR')} FCFA` });
+}
+
+export function formatResultatDetail(periods = {}) {
+  if (periods.mode === 'all') return null;
+  return `${fmtCurrency(periods.resultatAllTime || 0)} depuis le début`;
 }
 
 const isCriticalStock = (row = {}) => {
@@ -304,7 +333,7 @@ const rowYear = (row = {}) => {
   return Number.isNaN(parsed.getTime()) ? null : parsed.getFullYear();
 };
 
-export function buildDashboardSummary(props = {}) {
+export function buildDashboardSummary(props = {}, periodScope = {}) {
   const payments = arr(props.payments);
   const transactions = arr(props.transactions);
   const salesOrders = arr(props.salesOrders);
@@ -315,13 +344,13 @@ export function buildDashboardSummary(props = {}) {
   const lots = arr(props.lotsData || props.lots);
   const cultures = arr(props.cultures);
   const productionLogs = arr(props.productionLogs);
+  const scope = normalizePeriodScope(periodScope);
 
   const ca = salesOrders.reduce((sum, row) => sum + money(row), 0);
-  const encaisse = payments.reduce((sum, row) => sum + paid(row), 0);
-  const depenses = transactions
-    .filter((row) => ['sortie', 'depense', 'dépense', 'achat'].includes(lower(row.type || '')))
-    .reduce((sum, row) => sum + money(row), 0);
-  const resultat = encaisse - depenses;
+  const financePeriods = computeFinancePeriodSummary(payments, transactions, scope);
+  const encaisse = financePeriods.encaissePeriod;
+  const resultat = financePeriods.resultatPeriod;
+  const depenses = financePeriods.depensesPeriod;
   const receivable = salesOrders.reduce((sum, order) => sum + remainingForOrder(order, payments), 0);
   const stockBas = stocks.filter(isCriticalStock).length;
   const stockSummary = computeStockSummary(stocks);
@@ -329,9 +358,8 @@ export function buildDashboardSummary(props = {}) {
   const alertesOuvertes = alertes.filter(isOpenAlert).length;
   const headcount = computeFarmHeadcount({ animaux, lots, cultures });
   const effectifs = headcount.total;
-  const eggProduction = computeEggProductionSummary(productionLogs, salesOrders);
-  const financePeriods = computeFinancePeriodDeltas(payments, transactions);
-  const production = eggProduction.eggsThisMonth;
+  const eggProduction = computeEggProductionSummary(productionLogs, salesOrders, scope);
+  const production = eggProduction.eggsPeriod;
 
   const plan = buildDecisionCenterPlan({
     animaux: props.animaux || [],
@@ -378,6 +406,7 @@ export function buildDashboardSummary(props = {}) {
     production,
     eggProduction,
     financePeriods,
+    periodScope: scope,
     actions,
     goal,
     plan,

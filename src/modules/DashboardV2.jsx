@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import { readUiSettings } from '../utils/uiPreferences';
+import { PERIOD_SCOPE_CHANGED, readPeriodScope, writePeriodScope } from '../utils/periodScope';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { sanitizeDashboardMetric } from '../utils/dashboardWorkflows';
 import { runErpHealthEngine, loadLastHealthEngineSnapshot } from '../services/erpHealthEngine';
@@ -14,6 +15,7 @@ import {
   formatEncaisseDelta,
   formatFarmHeadcountDetail,
   formatResultatDelta,
+  formatResultatDetail,
   formatStockDetail,
 } from './dashboard/dashboardMetrics';
 import { navigateForDashboardAction, navigateForDashboardFinding } from './dashboard/dashboardNavigation';
@@ -24,6 +26,7 @@ import {
   DashboardKpi,
   DashboardModuleHeader,
   DashboardModuleNav,
+  DashboardPeriodBar,
   DashboardQuickActions,
   DashboardSnapshotCard,
   DashboardTodoRow,
@@ -50,6 +53,17 @@ function displayUserOf(props = {}) {
   if (!raw) return 'Exploitant';
   const text = String(raw).trim();
   return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function usePeriodScope() {
+  const [periodScope, setPeriodScope] = useState(readPeriodScope);
+  useEffect(() => {
+    const handler = (event) => setPeriodScope(event.detail || readPeriodScope());
+    window.addEventListener(PERIOD_SCOPE_CHANGED, handler);
+    return () => window.removeEventListener(PERIOD_SCOPE_CHANGED, handler);
+  }, []);
+  const updatePeriodScope = (next) => setPeriodScope(writePeriodScope(next));
+  return [periodScope, updatePeriodScope];
 }
 
 function useUiSettings() {
@@ -84,7 +98,7 @@ function buildHealthData(props = {}) {
   };
 }
 
-function Summary({ props, summary, health, simple, navigate }) {
+function Summary({ summary, health, simple, navigate }) {
   const actions = summary.actions.slice(0, simple ? 4 : 8);
   const sideCards = [];
 
@@ -123,18 +137,6 @@ function Summary({ props, summary, health, simple, navigate }) {
       />,
     );
   }
-  if (summary.eggProduction?.eggsAllTime > 0 || summary.eggProduction?.eggsThisMonth > 0 || summary.headcount?.effectifPondeuses > 0) {
-    sideCards.push(
-      <DashboardSnapshotCard
-        key="production"
-        label="Ponte (mois)"
-        value={fmtNumber(summary.production)}
-        detail={formatEggProductionDetail(summary.eggProduction)}
-        tone="good"
-        onClick={() => navigate('elevage', { tab: 'Production' })}
-      />,
-    );
-  }
   if (summary.tachesOuvertes > 0) {
     sideCards.push(
       <DashboardSnapshotCard
@@ -164,6 +166,7 @@ function Summary({ props, summary, health, simple, navigate }) {
         <DashboardKpi
           label="Résultat"
           value={fmtCurrency(summary.resultat)}
+          detail={formatResultatDetail(summary.financePeriods)}
           delta={formatResultatDelta(summary.financePeriods)}
           tone={summary.resultat >= 0 ? 'good' : 'bad'}
           onClick={() => navigate('finance_pilotage', { tab: 'Trésorerie' })}
@@ -176,9 +179,9 @@ function Summary({ props, summary, health, simple, navigate }) {
           tone={summary.stockSummary?.lowStockCount ? 'warn' : 'good'}
           onClick={() => navigate('achats_stock', { tab: 'Stock' })}
         />
-        {(summary.eggProduction?.eggsAllTime > 0 || summary.eggProduction?.eggsThisMonth > 0 || summary.headcount?.effectifPondeuses > 0) ? (
+        {(summary.eggProduction?.eggsAllTime > 0 || summary.eggProduction?.eggsPeriod > 0 || summary.headcount?.effectifPondeuses > 0) ? (
           <DashboardKpi
-            label="Ponte (mois)"
+            label="Ponte"
             value={fmtNumber(summary.production)}
             detail={formatEggProductionDetail(summary.eggProduction)}
             delta={formatEggProductionDelta(summary.eggProduction)}
@@ -274,6 +277,7 @@ function GraphiquesSection({ props, navigate }) {
 export default function DashboardV2(props) {
   const [tab, setTab] = useState('Résumé');
   const settings = useUiSettings();
+  const [periodScope, updatePeriodScope] = usePeriodScope();
   const simple = settings.complexity !== 'expert';
   const dateTime = useMemo(formatDateTime, []);
   const greeting = useMemo(() => dashboardGreeting(props), [props.user, props.displayUser, props.userName, props.username]);
@@ -286,7 +290,7 @@ export default function DashboardV2(props) {
     return report;
   }, [props]);
 
-  const summary = useMemo(() => buildDashboardSummary(props), [props]);
+  const summary = useMemo(() => buildDashboardSummary(props, periodScope), [props, periodScope]);
 
   const toggleExpert = () => {
     const next = { ...settings, complexity: simple ? 'expert' : 'simple' };
@@ -317,7 +321,10 @@ export default function DashboardV2(props) {
       />
 
       {tab === 'Résumé' ? (
-        <Summary props={props} summary={summary} health={health} simple={simple} navigate={navigate} />
+        <div className="space-y-5">
+          <DashboardPeriodBar periodScope={periodScope} onChange={updatePeriodScope} />
+          <Summary summary={summary} health={health} simple={simple} navigate={navigate} />
+        </div>
       ) : (
         <GraphiquesSection props={props} navigate={navigate} />
       )}

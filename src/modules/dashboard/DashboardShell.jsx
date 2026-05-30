@@ -1,8 +1,9 @@
-import { ArrowRight, BrainCircuit, MapPin, Settings2, Target } from 'lucide-react';
+import { ArrowRight, BrainCircuit, CalendarRange, MapPin, Settings2, Target } from 'lucide-react';
 import { MODULE_REGISTRY } from '../../config/modules.config';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import { openFormModal } from '../../services/formModalManager';
 import { fmtCurrency, fmtNumber } from '../../utils/format';
+import { formatPeriodScopeLabel, listRecentMonthKeys } from '../../utils/periodScope';
 
 export function DashboardQuickActions({ onNavigate }) {
   const openNewSale = () => {
@@ -32,6 +33,57 @@ export function DashboardQuickActions({ onNavigate }) {
         Assistant ERP
       </button>
     </div>
+  );
+}
+
+export function DashboardPeriodBar({ periodScope = {}, onChange }) {
+  const mode = periodScope.mode === 'all' ? 'all' : 'month';
+  const monthKey = periodScope.monthKey;
+  const monthOptions = listRecentMonthKeys(18);
+
+  return (
+    <section className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <p className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-[#9a6b12]">
+            <CalendarRange size={13} aria-hidden="true" />
+            Période affichée
+          </p>
+          <p className="mt-1 text-sm text-[#8a7456]">
+            Par défaut : mois en cours. Les cumuls « depuis le début » restent visibles en détail sous les KPI flux.
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+          <div className="inline-flex rounded-xl border border-[#d6c3a0] bg-white p-0.5">
+            <button
+              type="button"
+              onClick={() => onChange?.({ mode: 'month', monthKey: monthKey || monthOptions[0] })}
+              className={`rounded-lg px-3 py-1.5 text-xs font-black transition ${mode === 'month' ? 'bg-[#2f2415] text-white' : 'text-[#8a7456] hover:bg-[#fffdf8]'}`}
+            >
+              Mois
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange?.({ mode: 'all' })}
+              className={`rounded-lg px-3 py-1.5 text-xs font-black transition ${mode === 'all' ? 'bg-[#2f2415] text-white' : 'text-[#8a7456] hover:bg-[#fffdf8]'}`}
+            >
+              Depuis le début
+            </button>
+          </div>
+          {mode === 'month' ? (
+            <select
+              value={monthKey || monthOptions[0]}
+              onChange={(event) => onChange?.({ mode: 'month', monthKey: event.target.value })}
+              className="min-h-[36px] rounded-xl border border-[#d6c3a0] bg-white px-3 py-1.5 text-xs font-bold text-[#2f2415] outline-none"
+            >
+              {monthOptions.map((key) => (
+                <option key={key} value={key}>{formatPeriodScopeLabel({ mode: 'month', monthKey: key })}</option>
+              ))}
+            </select>
+          ) : null}
+        </div>
+      </div>
+    </section>
   );
 }
 
