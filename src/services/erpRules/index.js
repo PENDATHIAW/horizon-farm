@@ -4,6 +4,10 @@ import { evaluateFinanceRules } from './financeRules.js';
 import { evaluateLivestockRules } from './livestockRules.js';
 import { evaluateDocumentRules } from './documentRules.js';
 import { evaluateTaskAlertRules } from './taskAlertRules.js';
+import { evaluateCoherenceRules } from './coherenceRules.js';
+import { evaluateRiskRules } from './riskRules.js';
+import { evaluatePredictiveRules } from './predictiveRules.js';
+import { evaluateProfitabilityRules } from './profitabilityRules.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
@@ -16,6 +20,8 @@ export function computeErpAuditFindings(data = {}) {
     ...evaluateLivestockRules(arr(data.animaux), arr(data.avicole || data.lots), arr(data.sante)),
     ...evaluateDocumentRules(arr(data.finances || data.transactions)),
     ...evaluateTaskAlertRules(arr(data.taches || data.tasks), arr(data.alertes_center || data.alertes)),
+    ...evaluateCoherenceRules(data),
+    ...evaluateProfitabilityRules(data),
   ].sort((a, b) => {
     const rank = { critique: 0, haute: 1, moyenne: 2, basse: 3 };
     return (rank[a.severity] ?? 9) - (rank[b.severity] ?? 9);
@@ -29,4 +35,8 @@ export {
   evaluateLivestockRules,
   evaluateDocumentRules,
   evaluateTaskAlertRules,
+  evaluateCoherenceRules,
+  evaluateRiskRules,
+  evaluatePredictiveRules,
+  evaluateProfitabilityRules,
 };

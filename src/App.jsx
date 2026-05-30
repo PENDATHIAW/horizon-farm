@@ -1,6 +1,7 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { MODULE_REGISTRY, NAV_MODULE_ORDER } from './config/modules.config';
 import { computeNavAlertCounts, navAlertFlags } from './services/erpHealthRules';
+import { scheduleErpHealthEngine } from './services/erpHealthEngine';
 import { composeActionTraceShared, composeDecisionDataMap, composeInternalResources, composeReportData } from './services/moduleDataComposer';
 import { refreshAllModules, refreshSalesWorkflow } from './services/workflowRefresh';
 import AppNotificationManager from './components/AppNotificationManager';
@@ -44,6 +45,9 @@ export default function App() {
   const actionTraceShared = composeActionTraceShared(c, online);
   const internalResourcesShared = composeInternalResources(c);
   const decisionDataMap = useMemo(() => composeDecisionDataMap({ crud: c, dataMap, liveMeteo }), [c, dataMap, liveMeteo]);
+
+  useEffect(() => scheduleErpHealthEngine(() => decisionDataMap), [decisionDataMap]);
+
   const navItems = useMemo(() => NAV_MODULE_ORDER.map((id) => ({
     id,
     label: MODULE_REGISTRY[id]?.label || id,

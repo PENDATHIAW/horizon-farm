@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, CloudSun, CreditCard, FileText, MapPin, Package, Settings2, Stethoscope, Target, TrendingUp } from 'lucide-react';
+import { AlertTriangle, BrainCircuit, CheckCircle2, CloudSun, CreditCard, FileText, MapPin, Package, Settings2, Stethoscope, Target, TrendingUp } from 'lucide-react';
 import DashboardEvolution from './DashboardEvolution.jsx';
 import { readUiSettings } from '../utils/uiPreferences';
 import { fmtCurrency } from '../utils/format';
 import { buildDecisionCenterPlan } from '../services/growthDecisionEngine';
 import { remainingForOrder } from '../utils/salesStatuses';
 import { buildDashboardTodayActions, sanitizeDashboardMetric } from '../utils/dashboardWorkflows';
+import { runErpHealthEngine } from '../services/erpHealthEngine';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase();
@@ -162,6 +163,61 @@ function TodayFocus({ props, simple }) {
   return <section className="space-y-3"><div className="flex items-center justify-between"><h2 className="text-lg font-black text-[#2f2415]">Actions</h2></div><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">{actions.map((action) => <TodayAction key={`${action.moduleKey}-${action.title}`} {...action} onNavigate={props.onNavigate} />)}</div></section>;
 }
 
+function buildHealthData(props = {}) {
+  return {
+    sales_orders: props.salesOrders,
+    payments: props.payments,
+    finances: props.transactions,
+    stock: props.stocks,
+    animaux: props.animaux,
+    avicole: props.lotsData || props.lots,
+    sante: props.vaccins || props.sante,
+    taches: props.taches,
+    alertes_center: props.alertes,
+    alimentation_logs: props.alimentationLogs,
+    production_oeufs_logs: props.productionLogs,
+    clients: props.clients,
+    fournisseurs: props.fournisseurs,
+  };
+}
+
+function HealthEnginePanel({ props, onNavigate }) {
+  const health = useMemo(() => runErpHealthEngine(buildHealthData(props)), [props]);
+  const income = arr(props.payments).reduce((s, p) => s + paid(p), 0);
+  const expenses = arr(props.transactions).filter((t) => ['sortie', 'depense', 'dépense'].includes(lower(t.type || ''))).reduce((s, t) => s + money(t), 0);
+  const topRisk = health.risks[0];
+  const topPred = health.predictions[0];
+  const topRec = health.findings[0];
+
+  return (
+    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">ERP Health Engine</p>
+          <h2 className="mt-1 text-lg font-black text-[#2f2415]">Surveillance proactive</h2>
+          <p className="mt-1 text-sm text-[#8a7456]">Détection automatique · cohérence · risques · prévisions · recommandations</p>
+        </div>
+        <button type="button" onClick={() => onNavigate?.('objectifs_croissance')} className="inline-flex items-center gap-2 rounded-full border border-[#d6c3a0] bg-[#dcfce7] px-4 py-2 text-xs font-black text-[#14532d]"><BrainCircuit size={14} /> Vision & Croissance</button>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-6">
+        <Mini label="Santé ERP" value={`${health.score}/100`} tone={health.score >= 75 ? 'good' : health.score >= 50 ? 'warn' : 'bad'} />
+        <Mini label="CA encaissé" value={fmtCurrency(income)} tone="good" />
+        <Mini label="Résultat" value={fmtCurrency(income - expenses)} tone={income - expenses >= 0 ? 'good' : 'bad'} />
+        <Mini label="Alertes IA" value={health.counts.total} tone={health.counts.critical ? 'warn' : 'good'} />
+        <Mini label="Risques élevés" value={health.counts.risks} tone={health.counts.risks ? 'warn' : 'good'} />
+        <Mini label="Prévisions" value={health.counts.predictions} tone={health.counts.predictions ? 'warn' : 'good'} />
+      </div>
+      {(topRec || topRisk || topPred) ? (
+        <div className="mt-4 space-y-2">
+          {topRec ? <button type="button" onClick={() => onNavigate?.(topRec.module || 'activite_suivi')} className="flex w-full items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-left text-sm"><AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-700" /><span><b className="text-[#2f2415]">{topRec.title}</b><span className="block text-xs text-amber-800">{topRec.recommended_action}</span></span></button> : null}
+          {topRisk ? <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm"><b className="text-[#2f2415]">{topRisk.title}</b> · {topRisk.level} — {topRisk.detail}</div> : null}
+          {topPred ? <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm"><b className="text-[#2f2415]">{topPred.title}</b> — {topPred.description}</div> : null}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 export default function DashboardV2(props) {
   const settings = useUiSettings();
   const simple = settings.complexity !== 'expert';
@@ -171,5 +227,5 @@ export default function DashboardV2(props) {
     window.dispatchEvent(new CustomEvent('horizon-farm-ui-settings-changed', { detail: next }));
   };
 
-  return <div className="space-y-6"><FarmNotebook props={props} simple={simple} onToggleExpert={toggleExpert} />{!simple ? <><TodayFocus props={props} simple={simple} /><DashboardEvolution salesOrders={props.salesOrders || []} payments={props.payments || []} transactions={props.transactions || []} productionLogs={props.productionLogs || []} stocks={props.stocks || []} taches={props.taches || []} alertes={props.alertes || []} onNavigate={props.onNavigate} /></> : null}</div>;
+  return <div className="space-y-6"><FarmNotebook props={props} simple={simple} onToggleExpert={toggleExpert} /><HealthEnginePanel props={props} onNavigate={props.onNavigate} />{!simple ? <><TodayFocus props={props} simple={simple} /><DashboardEvolution salesOrders={props.salesOrders || []} payments={props.payments || []} transactions={props.transactions || []} productionLogs={props.productionLogs || []} stocks={props.stocks || []} taches={props.taches || []} alertes={props.alertes || []} onNavigate={props.onNavigate} /></> : null}</div>;
 }
