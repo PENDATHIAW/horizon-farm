@@ -34,6 +34,7 @@ export default function ClientsV2(props) {
         <Clients
           {...props}
           rows={rows}
+          opportunities={props.opportunities || []}
           onUpdate={guardedUpdate}
           hideEvolution
           embedded

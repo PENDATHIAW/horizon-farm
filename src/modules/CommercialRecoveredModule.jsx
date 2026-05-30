@@ -1,10 +1,10 @@
-import { Lightbulb } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import useCrudModule from '../hooks/useCrudModule';
-import { emitHorizonForm } from '../services/formModalManager';
 import { applyOneClickRecommendation } from '../services/heyHorizonRecommendationActions.js';
+import { makeId } from '../utils/ids';
+import CommercialOpportunitiesPanel from './commercial/CommercialOpportunitiesPanel.jsx';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { buildCommercialHealthSnapshot } from './commercial/commercialVisionHelpers.js';
 import {
@@ -17,7 +17,6 @@ import {
   isOpportunityOpen,
   openSalesCount,
   receivableFromOrders,
-  saleAmount,
   uniqueTodoCount,
 } from './commercial/commercialMetrics.js';
 import { CommercialKpi, CommercialModuleHeader, CommercialQuickActions, CommercialTodoRow, CommercialTopClients } from './commercial/CommercialShell.jsx';
@@ -66,54 +65,6 @@ function Summary({ data, setTab, onApply, busyId }) {
       )}
 
       <CommercialTopClients rows={data.topClients} setTab={setTab} />
-    </div>
-  );
-}
-
-function Opportunities({ opportunities, setTab }) {
-  const pipeline = opportunities.reduce((sum, row) => sum + saleAmount(row), 0);
-  const convertOpportunity = (row) => {
-    emitHorizonForm('ventes', 'sale_record', `Convertir: ${row.title || row.libelle || 'Opportunité'}`, {
-      source_id: row.source_id || '',
-      source_type: row.source_type || '',
-      product_name: row.title || row.libelle || row.product_name || 'Opportunité',
-      quantity: row.quantity || 1,
-      unit: row.unit || 'unité',
-      estimated_value: row.montant_estime || row.estimated_amount || row.estimated_value || 0,
-      client_id: row.client_id || '',
-      client_name: row.client_nom || row.customer_name || '',
-      notes: row.notes || row.reason || '',
-      date: new Date().toISOString().slice(0, 10),
-    });
-    setTab('Ventes');
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-wide text-[#8a7456]">Pipeline</p>
-          <p className="text-2xl font-black text-[#2f2415]">{fmtCurrency(pipeline)}</p>
-          <p className="text-sm text-[#8a7456]">{opportunities.length} opportunité(s) ouverte(s)</p>
-        </div>
-        <button type="button" onClick={() => { emitHorizonForm('ventes', 'sale_record', 'Nouvelle vente', { date: new Date().toISOString().slice(0, 10) }); setTab('Ventes'); }} className="min-h-[44px] rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white">+ Vente directe</button>
-      </div>
-      {opportunities.length ? (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {opportunities.slice(0, 20).map((row) => (
-            <button key={row.id || row.title || row.libelle} type="button" onClick={() => convertOpportunity(row)} className="rounded-2xl border border-[#d6c3a0] bg-white p-4 text-left shadow-sm transition hover:border-[#c9a96a] hover:shadow-md">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2"><Lightbulb size={16} className="text-[#9a6b12]" /><b className="text-[#2f2415]">{row.title || row.libelle || row.product_name || 'Opportunité'}</b></div>
-                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700">Convertir</span>
-              </div>
-              <p className="mt-2 text-sm text-[#8a7456]">{row.client_nom || row.customer_name || 'Client à préciser'}</p>
-              <p className="mt-1 text-lg font-black text-emerald-700">{fmtCurrency(row.montant_estime || row.estimated_amount || 0)}</p>
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-6 text-center text-sm text-[#8a7456]">Aucune opportunité ouverte. Les signaux IA apparaîtront ici ou dans le Résumé.</div>
-      )}
     </div>
   );
 }
@@ -193,7 +144,22 @@ export default function CommercialRecoveredModule(props) {
 
   const refreshWorkflow = props.onRefreshWorkflow || (async () => Promise.allSettled([ordersCrud.refresh?.(), itemsCrud.refresh?.(), deliveriesCrud.refresh?.(), invoicesCrud.refresh?.(), paymentsCrud.refresh?.(), opportunitiesCrud.refresh?.(), clientsCrud.refresh?.(), stockCrud.refresh?.(), animalsCrud.refresh?.(), lotsCrud.refresh?.(), culturesCrud.refresh?.(), financesCrud.refresh?.(), docsCrud.refresh?.(), eventsCrud.refresh?.(), alertsCrud.refresh?.(), alimentationCrud.refresh?.(), productionCrud.refresh?.(), santeCrud.refresh?.()]));
   const salesProps = { embedded: true, rows: orders, clients, orderItems: rowsOf(props.orderItems, itemsCrud), deliveriesList: rowsOf(props.deliveries, deliveriesCrud), invoicesList: rowsOf(props.invoices, invoicesCrud), paymentsList: payments, opportunities, animaux: rowsOf(props.animals || props.animaux, animalsCrud), lots: rowsOf(props.lots, lotsCrud), cultures: rowsOf(props.cultures, culturesCrud), stocks: rowsOf(props.stocks, stockCrud), alimentationLogs: rowsOf(props.alimentationLogs, alimentationCrud), productionLogs: rowsOf(props.productionLogs, productionCrud), vaccins: rowsOf(props.vaccins || props.sante, santeCrud), transactions: rowsOf(props.transactions, financesCrud), businessEvents: rowsOf(props.businessEvents, eventsCrud), documents: rowsOf(props.documents, docsCrud), alertes: rowsOf(props.alertes, alertsCrud), onCreate: props.onCreate || ordersCrud.create, onUpdate: props.onUpdate || ordersCrud.update, onDelete: props.onDelete || ordersCrud.remove, onRefresh: props.onRefresh || ordersCrud.refresh, onCreateItem: props.onCreateItem || itemsCrud.create, onUpdateItem: props.onUpdateItem || itemsCrud.update, onDeleteItem: props.onDeleteItem || itemsCrud.remove, onCreateDelivery: props.onCreateDelivery || deliveriesCrud.create, onUpdateDelivery: props.onUpdateDelivery || deliveriesCrud.update, onDeleteDelivery: props.onDeleteDelivery || deliveriesCrud.remove, onRefreshDeliveries: props.onRefreshDeliveries || deliveriesCrud.refresh, onCreateInvoice: props.onCreateInvoice || invoicesCrud.create, onUpdateInvoice: props.onUpdateInvoice || invoicesCrud.update, onDeleteInvoice: props.onDeleteInvoice || invoicesCrud.remove, onRefreshInvoices: props.onRefreshInvoices || invoicesCrud.refresh, onCreatePayment: props.onCreatePayment || paymentsCrud.create, onUpdatePayment: props.onUpdatePayment || paymentsCrud.update, onDeletePayment: props.onDeletePayment || paymentsCrud.remove, onRefreshPayments: props.onRefreshPayments || paymentsCrud.refresh, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onDeleteOpportunity: props.onDeleteOpportunity || opportunitiesCrud.remove, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, onUpdateAnimal: props.onUpdateAnimal || animalsCrud.update, onRefreshAnimals: props.onRefreshAnimals || animalsCrud.refresh, onUpdateLot: props.onUpdateLot || lotsCrud.update, onRefreshLots: props.onRefreshLots || lotsCrud.refresh, onUpdateCulture: props.onUpdateCulture || culturesCrud.update, onRefreshCultures: props.onRefreshCultures || culturesCrud.refresh, onUpdateStock: props.onUpdateStock || stockCrud.update, onRefreshStocks: props.onRefreshStocks || stockCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateTrace: props.onCreateTrace || traceCrud.create, onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onCreateDocument: props.onCreateDocument || docsCrud.create, onRefreshDocuments: props.onRefreshDocuments || docsCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onUpdateClient: props.onUpdateClient || clientsCrud.update, onRefreshWorkflow: refreshWorkflow, onNavigate: props.onNavigate };
-  const clientProps = { embedded: true, rows: clients, salesOrders: orders, payments, transactions: rowsOf(props.transactions, financesCrud), onCreate: props.onCreateClient || clientsCrud.create, onUpdate: props.onUpdateClient || clientsCrud.update, onDelete: props.onDeleteClient || clientsCrud.remove, onRefresh: props.onRefreshClients || clientsCrud.refresh, onNavigate: props.onNavigate };
+  const whatsappLogsCrud = useCrudModule('whatsapp_logs');
+  const clientProps = { embedded: true, rows: clients, salesOrders: orders, payments, opportunities: data.openOpportunities, transactions: rowsOf(props.transactions, financesCrud), onCreate: props.onCreateClient || clientsCrud.create, onUpdate: props.onUpdateClient || clientsCrud.update, onDelete: props.onDeleteClient || clientsCrud.remove, onRefresh: props.onRefreshClients || clientsCrud.refresh, onNavigate: props.onNavigate };
+
+  const logOpportunityWhatsApp = async (client, message) => {
+    await whatsappLogsCrud.create?.({
+      id: makeId('WALOG'),
+      client_id: client.id,
+      recipient: client.whatsapp || client.tel || client.phone,
+      message,
+      status: 'prepare',
+      provider: 'whatsapp',
+      reason: 'proposition_opportunite',
+      sent_at: new Date().toISOString(),
+    });
+    await whatsappLogsCrud.refresh?.();
+  };
 
   const todoBadge = data.todoCount;
 
@@ -203,7 +169,7 @@ export default function CommercialRecoveredModule(props) {
       {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} busyId={busyId} /> : null}
       {tab === 'Ventes' ? <VentesV3 {...salesProps} /> : null}
       {tab === 'Clients' ? <ClientsReadable {...clientProps} /> : null}
-      {tab === 'Opportunités' ? <Opportunities opportunities={data.openOpportunities} setTab={setTab} /> : null}
+      {tab === 'Opportunités' ? <CommercialOpportunitiesPanel opportunities={data.openOpportunities} clients={clients} salesOrders={orders} setTab={setTab} onWhatsAppLog={logOpportunityWhatsApp} /> : null}
       {tab === 'Graphiques' ? <ModuleGraphiquesTab moduleId="commercial" salesOrders={orders} payments={payments} opportunities={opportunities} clients={clients} onNavigate={props.onNavigate} /> : null}
     </div>
   );
