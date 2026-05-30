@@ -59,12 +59,15 @@ export function CommercialModuleHeader({ tab, setTab, healthScore, badges = {} }
   );
 }
 
-export function CommercialTopClients({ rows = [], setTab }) {
+export function CommercialTopClients({ rows = [], setTab, subtitle = 'Par chiffre d\'affaires commandé' }) {
   if (!rows.length) return null;
   return (
     <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-sm font-black text-[#2f2415]">Top clients</h2>
+        <div>
+          <h2 className="text-sm font-black text-[#2f2415]">Top clients</h2>
+          <p className="text-[11px] text-[#8a7456]">{subtitle}</p>
+        </div>
         <button type="button" onClick={() => setTab('Clients')} className="inline-flex items-center gap-1 text-xs font-black text-[#9a6b12]">Voir tout <ArrowRight size={14} /></button>
       </div>
       <div className="space-y-2">
