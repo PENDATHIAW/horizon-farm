@@ -38,4 +38,27 @@ export function saleQuantityDetail(row = {}) {
   };
 }
 
-export const EGG_MARGIN_FORMULA = 'Marge plateaux = CA vente − [(coût œuf × nb œufs) + (coût emballage × nb plateaux) + transport livraison]. Le coût œuf = (amortissement cheptel pondeuses + alimentation + santé + charges directes) ÷ œufs vendables produits sur la période.';
+export const EGG_MARGIN_FORMULA = 'Marge plateaux = CA vente − [(coût œuf × nb œufs) + (coût emballage × nb plateaux) + frais livraison client]. Le coût œuf = (amortissement cheptel pondeuses + alimentation + santé + charges directes) ÷ œufs vendables produits sur la période.';
+
+const clean = (value = '') => String(value || '').trim();
+
+export function fulfillmentModeOf(order = {}, deliveries = []) {
+  const fromOrder = order.fulfillment_mode || order.mode_livraison || order.statut_livraison || order.delivery_status;
+  if (fromOrder) return lower(`${fromOrder}`);
+  const linked = (Array.isArray(deliveries) ? deliveries : []).find((row) => clean(row.order_id || row.sale_id || row.source_record_id) === clean(order.id));
+  return lower(`${linked?.fulfillment_mode || linked?.mode_livraison || linked?.statut || linked?.status || ''}`);
+}
+
+export function deliveryModeNeedsFee(mode = '') {
+  const m = lower(`${mode}`);
+  return m === 'livraison' || m === 'a_livrer' || m === 'livre';
+}
+
+/** Frais livraison client : uniquement si mode livraison ET montant renseigné. Retrait sur place = 0 FCFA. */
+export function deliveryFeeOf(order = {}, deliveries = []) {
+  if (!deliveryModeNeedsFee(fulfillmentModeOf(order, deliveries))) return 0;
+  const direct = toNumber(order.frais_livraison ?? order.delivery_fee ?? order.frais_transport_vente);
+  if (direct > 0) return direct;
+  const linked = (Array.isArray(deliveries) ? deliveries : []).find((row) => clean(row.order_id || row.sale_id || row.source_record_id) === clean(order.id));
+  return toNumber(linked?.frais_livraison ?? linked?.delivery_fee);
+}

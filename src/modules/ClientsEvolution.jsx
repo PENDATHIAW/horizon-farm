@@ -1,5 +1,7 @@
+import ChartsGrid from '../components/charts/ChartsGrid.jsx';
 import SmartEvolutionChart from '../components/charts/SmartEvolutionChart.jsx';
-import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
+import SmartPieChart from '../components/charts/SmartPieChart.jsx';
+import { toNumber } from '../utils/format';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const monthKey = (value) => String(value || new Date().toISOString()).slice(0, 7);
@@ -19,8 +21,7 @@ const validPayment = (payment = {}) => !['annule', 'annulé', 'cancelled', 'reje
 
 function orderPaid(order = {}, payments = []) {
   const linked = arr(payments).filter(validPayment).filter((payment) => String(paymentOrderId(payment) || '') === String(order.id || ''));
-  const paidLinked = linked.reduce((sum, payment) => sum + paymentAmount(payment), 0);
-  return Math.max(paidOf(order), paidLinked);
+  return Math.max(paidOf(order), linked.reduce((sum, payment) => sum + paymentAmount(payment), 0));
 }
 
 function buildRows({ salesOrders = [], payments = [] }) {
@@ -28,46 +29,30 @@ function buildRows({ salesOrders = [], payments = [] }) {
     const orders = arr(salesOrders).filter((order) => !isCancelled(order) && monthKey(order.date || order.created_at) === month);
     const ca = orders.reduce((sum, order) => sum + amountOf(order), 0);
     const encaisse = orders.reduce((sum, order) => sum + Math.min(amountOf(order), orderPaid(order, payments)), 0);
-    const creances = Math.max(0, ca - encaisse);
-    return { month, ca, encaisse, creances, commandes: orders.length };
+    return { month, ca, encaisse, creances: Math.max(0, ca - encaisse), commandes: orders.length };
   });
 }
 
-export default function ClientsEvolution({ rows = [], salesOrders = [], payments = [], onNavigate }) {
+export default function ClientsEvolution({ salesOrders = [], payments = [] }) {
   const data = buildRows({ salesOrders, payments });
   const ca = data.reduce((sum, row) => sum + row.ca, 0);
   const encaisse = data.reduce((sum, row) => sum + row.encaisse, 0);
   const creances = data.reduce((sum, row) => sum + row.creances, 0);
-  const commandes = data.reduce((sum, row) => sum + row.commandes, 0);
-  const clientsAvecCreance = arr(rows).filter((client) => arr(salesOrders).some((order) => String(order.client_id || '') === String(client.id || '') && Math.max(0, amountOf(order) - orderPaid(order, payments)) > 0)).length;
 
   return (
-    <div className="space-y-3">
-      <SmartEvolutionChart
-        moduleName="Clients"
-        title="Évolution clients & créances"
-        subtitle="CA clients, encaissements, créances et commandes sur les derniers mois"
-        months={data.map((row) => row.month)}
-        leftUnit="FCFA"
-        rightUnit="cmd"
-        series={[
-          { name: 'CA clients', type: 'bar', unit: 'FCFA', data: data.map((row) => row.ca) },
-          { name: 'Encaissé', type: 'bar', unit: 'FCFA', data: data.map((row) => row.encaisse) },
-          { name: 'Créances', type: 'bar', unit: 'FCFA', data: data.map((row) => row.creances) },
-          { name: 'Commandes', type: 'line', axis: 'right', unit: 'cmd', data: data.map((row) => row.commandes) },
-        ]}
-        reportPayload={{
-          ca_clients: fmtCurrency(ca),
-          encaissements: fmtCurrency(encaisse),
-          creances: fmtCurrency(creances),
-          commandes: fmtNumber(commandes),
-          clients_a_relancer: fmtNumber(clientsAvecCreance),
-        }}
-      />
-      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#7d6a4a]">
-        <p><b>Interprétation :</b> {creances > 0 ? `${fmtCurrency(creances)} restent à relancer sur les clients.` : 'Les encaissements couvrent les ventes suivies sur la période.'}</p>
-        <button type="button" onClick={() => onNavigate?.('clients')} className="mt-2 font-bold text-emerald-700">Action recommandée : ouvrir les clients à relancer</button>
-      </div>
-    </div>
+    <ChartsGrid>
+      <SmartEvolutionChart moduleName="Clients" compact title="CA vs encaissé" subtitle="Histogramme — ventes clients" months={data.map((row) => row.month)} leftUnit="FCFA" rightUnit="" series={[
+        { name: 'CA clients', type: 'bar', unit: 'FCFA', data: data.map((row) => row.ca) },
+        { name: 'Encaissé', type: 'bar', unit: 'FCFA', data: data.map((row) => row.encaisse) },
+      ]} />
+      <SmartEvolutionChart moduleName="Clients" compact title="Créances vs commandes" subtitle="Barres + courbe — créances et volume" months={data.map((row) => row.month)} leftUnit="FCFA" rightUnit="cmd" series={[
+        { name: 'Créances', type: 'bar', unit: 'FCFA', data: data.map((row) => row.creances) },
+        { name: 'Commandes', type: 'line', axis: 'right', unit: 'cmd', data: data.map((row) => row.commandes) },
+      ]} />
+      <SmartPieChart moduleName="Clients" compact title="Encaissé vs créances" subtitle="Camembert — solde clients global" unit="FCFA" items={[
+        { name: 'Encaissé', value: encaisse },
+        { name: 'Créances', value: creances },
+      ]} />
+    </ChartsGrid>
   );
 }

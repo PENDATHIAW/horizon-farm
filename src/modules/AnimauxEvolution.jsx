@@ -1,6 +1,7 @@
-import { HeartPulse, Scale, ShoppingBag, TrendingUp } from 'lucide-react';
+import ChartsGrid from '../components/charts/ChartsGrid.jsx';
 import SmartEvolutionChart from '../components/charts/SmartEvolutionChart.jsx';
-import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
+import SmartPieChart from '../components/charts/SmartPieChart.jsx';
+import { toNumber } from '../utils/format';
 import { isActiveAnimalForFeeding } from '../utils/alimentation';
 import { buildGrowthSummary } from '../utils/animalGrowth';
 import { getAnimalSaleReadiness, calculateAnimalSalePricing } from '../utils/animalSalePricing';
@@ -60,30 +61,40 @@ export default function AnimauxEvolution({ rows = [], alimentationLogs = [], vac
   const avgGMQ = costDetails.filter((item) => item.gmq > 0).length ? costDetails.filter((item) => item.gmq > 0).reduce((sum, item) => sum + item.gmq, 0) / costDetails.filter((item) => item.gmq > 0).length : 0;
   const avgProjectedWeight = costDetails.filter((item) => item.projectedExitWeight > 0).length ? costDetails.filter((item) => item.projectedExitWeight > 0).reduce((sum, item) => sum + item.projectedExitWeight, 0) / costDetails.filter((item) => item.projectedExitWeight > 0).length : 0;
   const monthly = buildMonthly({ rows, opportunities, salesOrders, payments, transactions, details });
-  const active = animals.filter(isActiveAnimalForFeeding).length;
-  const sick = animals.filter(isSick).length;
-  const ready = animals.filter(isReady).length;
-  const sold = animals.filter(isSold).length;
-  const losses = animals.filter(isLoss).length;
-  const slowGrowth = animals.filter((animal) => ['croissance_lente', 'perte_poids'].includes(buildGrowthSummary(animal).status)).length;
-  const avgWeight = active ? animals.filter(isActiveAnimalForFeeding).reduce((sum, animal) => sum + weight(animal), 0) / Math.max(1, animals.filter((animal) => isActiveAnimalForFeeding(animal) && weight(animal) > 0).length) : 0;
-  const openOpps = arr(opportunities).filter((opp) => String(opp.source_module || opp.created_from || '').includes('animaux') && !['fermee', 'fermée', 'gagnee', 'gagnée', 'perdue'].includes(lower(opp.status || opp.statut))).length;
-  const salesRevenue = animals.reduce((sum, animal) => sum + (isSold(animal) || linkedSalesForAnimal(animal, salesOrders, payments, transactions).total > 0 ? animalSaleValue(animal, salesOrders, payments, transactions) : 0), 0);
-  const salesPaid = animals.reduce((sum, animal) => sum + linkedSalesForAnimal(animal, salesOrders, payments, transactions).paid, 0);
-  const potentialCA = animals.filter((animal) => isReady(animal) && !isSold(animal)).reduce((sum, animal) => sum + animalSaleValue(animal, salesOrders, payments, transactions), 0);
-  const totalMargin = salesRevenue + potentialCA - totalCost;
-  const missingCount = Math.max(0, animals.length - complete.length);
-  const priority = sick > 0 ? { module: 'sante', label: 'Traiter le suivi santé', icon: HeartPulse } : missingCount > 0 ? { module: 'stock', label: 'Compléter les coûts embouche', icon: Scale } : ready > 0 ? { module: 'ventes', label: 'Convertir les animaux prêts', icon: ShoppingBag } : slowGrowth > 0 ? { module: 'animaux', label: 'Vérifier les croissances lentes', icon: Scale } : { module: 'animaux', label: 'Mettre à jour les pesées', icon: Scale };
-  const PriorityIcon = priority.icon;
-  const interpretation = sick > 0 ? `${fmtNumber(sick)} animal(aux) nécessitent un suivi santé.` : missingCount > 0 ? `Coût embouche à compléter pour ${fmtNumber(missingCount)} animal(aux) : achat, aliment, santé, eau, main-d’œuvre ou transport manquant.` : ready > 0 ? `${fmtNumber(ready)} animal(aux) sont prêts ou presque prêts à vendre.` : slowGrowth > 0 ? `${fmtNumber(slowGrowth)} animal(aux) ont une croissance à surveiller.` : 'Cheptel stable : maintenir les pesées, l’alimentation et le suivi sanitaire.';
+  const chargePie = {
+    aliment: costDetails.reduce((sum, item) => sum + toNumber(item.realFeedCost), 0),
+    sante: costDetails.reduce((sum, item) => sum + toNumber(item.healthCost), 0),
+    autres: costDetails.reduce((sum, item) => sum + toNumber(item.baseCost) + toNumber(item.otherDirectCost), 0),
+  };
 
-  return <div className="space-y-5">
-    <Header priority={priority} onNavigate={onNavigate} />
-    <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4"><div className="grid grid-cols-2 lg:grid-cols-6 gap-3"><SmallMetric label="Actifs" value={fmtNumber(active)} hint="bovins/ovins/caprins" /><SmallMetric label="Malades" value={fmtNumber(sick)} hint="à suivre" danger={sick > 0} /><SmallMetric label="Coût embouche" value={avgCost ? fmtCurrency(avgCost) : 'Coût incomplet'} hint={`${fmtNumber(complete.length)} complet(s), ${fmtNumber(missingCount)} à compléter`} danger={!avgCost && animals.length} /><SmallMetric label="Coût / kg vif" value={avgCostPerKg ? fmtCurrency(avgCostPerKg) : '—'} hint="achat + charges / poids" /><SmallMetric label="GMQ moyen" value={`${Number(avgGMQ || 0).toFixed(3)} kg/j`} hint="gain moyen quotidien" /><SmallMetric label="Marge estimée" value={fmtCurrency(totalMargin)} hint={`CA vendu ${fmtCurrency(salesRevenue)} · encaissé ${fmtCurrency(salesPaid)} · potentiel ${fmtCurrency(potentialCA)}`} danger={totalMargin < 0} /></div></div>
-    <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4"><div className="grid grid-cols-2 lg:grid-cols-5 gap-3"><SmallMetric label="Aliment réel" value={fmtCurrency(totalFeed)} hint="sorties stock/logs" /><SmallMetric label="Santé" value={fmtCurrency(totalHealth)} hint="déparasitage, vaccins, vitamines" /><SmallMetric label="Poids moyen" value={`${Number(avgWeight || 0).toFixed(2)} kg`} hint="actifs pesés" /><SmallMetric label="Poids sortie projeté" value={avgProjectedWeight ? `${Number(avgProjectedWeight).toFixed(2)} kg` : '—'} hint="poids entrée + GMQ × durée cible" /><SmallMetric label="Coût total cheptel" value={fmtCurrency(totalCost)} hint="achat + aliment + santé + frais" /></div></div>
-    <SmartEvolutionChart title="Animaux — économie embouche mensuelle" subtitle="Charges réelles, CA, encaissé, marge, poids moyen et coût par jour." months={labels(monthly)} leftUnit="FCFA" rightUnit="kg" series={[{ name: 'Alimentation', type: 'bar', unit: 'FCFA', data: values(monthly, 'charges_aliments') }, { name: 'Santé', type: 'bar', unit: 'FCFA', data: values(monthly, 'charges_soins') }, { name: 'Achat + frais fixes', type: 'bar', unit: 'FCFA', data: values(monthly, 'charges_autres') }, { name: 'CA ventes', type: 'bar', unit: 'FCFA', data: values(monthly, 'ca_ventes') }, { name: 'Encaissé', type: 'bar', unit: 'FCFA', data: values(monthly, 'encaisse') }, { name: 'Marge', type: 'bar', unit: 'FCFA', data: values(monthly, 'marge') }, { name: 'Poids moyen', type: 'line', axis: 'right', unit: 'kg', data: values(monthly, 'poids_moyen') }, { name: 'Coût / jour', type: 'line', axis: 'right', unit: 'FCFA/j', data: values(monthly, 'cout_jour') }]} />
-    <SmartEvolutionChart title="Animaux — performance embouche" subtitle="Effectif, prêts vente, malades, pertes, GMQ et poids sortie projeté." months={labels(monthly)} leftUnit="" rightUnit="kg" series={[{ name: 'Effectif actif', type: 'bar', data: values(monthly, 'effectif') }, { name: 'Prêts vente', type: 'bar', data: values(monthly, 'prets') }, { name: 'Malades', type: 'bar', data: values(monthly, 'malades') }, { name: 'Pertes', type: 'bar', data: values(monthly, 'pertes') }, { name: 'Vendus', type: 'bar', data: values(monthly, 'vendus') }, { name: 'GMQ moyen', type: 'line', axis: 'right', unit: 'kg/j', data: values(monthly, 'gmq_moyen') }, { name: 'Poids sortie projeté', type: 'line', axis: 'right', unit: 'kg', data: values(monthly, 'poids_sortie_projete') }]} />
-    <div className="bg-[#fffdf8] border border-[#d6c3a0] rounded-2xl p-4 text-sm text-[#7d6a4a] flex items-start gap-3"><TrendingUp size={18} className="text-[#9a6b12] mt-0.5" /><div><b className="text-[#2f2415]">Interprétation :</b> {interpretation}</div></div>
-    <div className={`${sick || losses || slowGrowth || missingCount > 0 ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'} border rounded-2xl p-4 text-sm flex items-start justify-between gap-3`}><div className="flex items-start gap-2"><PriorityIcon size={18} className="mt-0.5" /><div><b>Action recommandée :</b> {priority.label}.</div></div><button type="button" onClick={() => onNavigate?.(priority.module)} className="shrink-0 rounded-xl bg-white/70 border border-current/10 px-3 py-1.5 text-xs font-bold">Ouvrir</button></div>
-  </div>;
+  if (!animals.length) return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Aucun animal — graphiques indisponibles.</div>;
+
+  return (
+    <ChartsGrid>
+      <SmartEvolutionChart moduleName="Animaux" compact title="CA vs encaissé" subtitle="Histogramme — ventes embouche" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
+        { name: 'CA ventes', type: 'bar', unit: 'FCFA', data: values(monthly, 'ca_ventes') },
+        { name: 'Encaissé', type: 'bar', unit: 'FCFA', data: values(monthly, 'encaisse') },
+      ]} />
+      <SmartEvolutionChart moduleName="Animaux" compact title="Marge mensuelle" subtitle="Courbe — CA − charges" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
+        { name: 'Marge', type: 'line', unit: 'FCFA', data: values(monthly, 'marge') },
+      ]} />
+      <SmartPieChart moduleName="Animaux" compact title="Structure des charges" subtitle="Camembert — aliment / santé / achat" unit="FCFA" items={[
+        { name: 'Alimentation', value: chargePie.aliment },
+        { name: 'Santé', value: chargePie.sante },
+        { name: 'Achat + frais', value: chargePie.autres },
+      ]} />
+      <SmartEvolutionChart moduleName="Animaux" compact title="Poids moyen vs GMQ" subtitle="Courbes — performance croissance" months={labels(monthly)} leftUnit="kg" rightUnit="kg/j" series={[
+        { name: 'Poids moyen', type: 'line', unit: 'kg', data: values(monthly, 'poids_moyen') },
+        { name: 'GMQ moyen', type: 'line', axis: 'right', unit: 'kg/j', data: values(monthly, 'gmq_moyen') },
+      ]} />
+      <SmartEvolutionChart moduleName="Animaux" compact title="Effectif vs malades" subtitle="Histogramme — cheptel actif" months={labels(monthly)} leftUnit="" rightUnit="" series={[
+        { name: 'Effectif actif', type: 'bar', data: values(monthly, 'effectif') },
+        { name: 'Malades', type: 'bar', data: values(monthly, 'malades') },
+      ]} />
+      <SmartEvolutionChart moduleName="Animaux" compact title="Prêts vente vs pertes" subtitle="Histogramme — sorties cheptel" months={labels(monthly)} leftUnit="" rightUnit="" series={[
+        { name: 'Prêts vente', type: 'bar', data: values(monthly, 'prets') },
+        { name: 'Pertes', type: 'bar', data: values(monthly, 'pertes') },
+      ]} />
+    </ChartsGrid>
+  );
 }

@@ -1,6 +1,7 @@
-import { ShoppingBag, TrendingUp } from 'lucide-react';
+import ChartsGrid from '../components/charts/ChartsGrid.jsx';
 import SmartEvolutionChart from '../components/charts/SmartEvolutionChart.jsx';
-import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
+import SmartPieChart from '../components/charts/SmartPieChart.jsx';
+import { toNumber } from '../utils/format';
 import { filterLotsByActivity } from '../utils/avicoleActivity';
 import { avicoleActiveCount, avicoleDeadCount, avicoleSickCount } from '../utils/avicoleMetrics';
 import { summarizeAvicoleCosts } from '../utils/costEngine';
@@ -181,17 +182,56 @@ export default function AvicoleEvolution({ rows = [], productionLogs = [], alime
   const avgPonteCostEgg = average(ponte, 'cout_oeuf');
   const avgPonteCostTablet = average(ponte, 'cout_tablette');
 
-  if (!activeRows.length) return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Aucun lot avicole dans cette vue.</div>;
+  if (!activeRows.length) return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Aucun lot avicole — graphiques indisponibles.</div>;
 
-  return <div className="space-y-5">
-    <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4 space-y-4">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div><p className="font-black text-[#2f2415]">Synthèse unique {showPonte && !showChair ? 'pondeuses' : showChair && !showPonte ? 'chair' : 'avicole'}</p><p className="text-xs text-[#8a7456] mt-1">Une seule lecture : effectifs, coûts réels, production/ventes, santé, marge et graphes associés.</p></div>{priority ? <button type="button" onClick={() => onNavigate?.(priority.module)} className="inline-flex items-center gap-2 rounded-xl bg-[#c9a96a] px-3 py-2 text-sm font-bold text-white"><ShoppingBag size={15} />{priority.label}</button> : null}</div>
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">{showChair ? <><SmallMetric label="Effectif chair" value={fmtNumber(lastChair.effectif || 0)} hint="actif ou vendu suivi" /><SmallMetric label="Vendables" value={fmtNumber(lastChair.vendables || 0)} hint="initial - morts - pertes" /><SmallMetric label="Morts / malades" value={`${fmtNumber(lastChair.morts || 0)} / ${fmtNumber(lastChair.malades || 0)}`} danger={(lastChair.morts || lastChair.malades) > 0} /><SmallMetric label="Vendus / sorties" value={fmtNumber(lastChair.vendus || 0)} /><SmallMetric label="Coût / poulet" value={costLabel(avgChairCostLive, !avgChairCostLive && chair.length)} hint="coût bande / vendables" danger={!avgChairCostLive && chair.length} /><SmallMetric label="Marge chair" value={fmtCurrency(chair.reduce((sum, row) => sum + row.marge, 0))} hint="CA réel - coûts bande" /></> : null}{showPonte ? <><SmallMetric label="Pondeuses" value={fmtNumber(lastPonte.pondeuses || 0)} hint="actives" /><SmallMetric label="Œufs produits" value={fmtNumber(totalEggs)} hint={`${fmtNumber(tabletsFromEggs(totalEggs).tablets)} tablette(s) + ${fmtNumber(tabletsFromEggs(totalEggs).remaining)} œuf(s)`} /><SmallMetric label="Œufs vendables" value={fmtNumber(totalSellable)} hint={`${fmtNumber(totalTabletsData.tablets)} tablette(s) + ${fmtNumber(totalTabletsData.remaining)} œuf(s)`} /><SmallMetric label="Coût / œuf" value={costLabel(avgPonteCostEgg, !avgPonteCostEgg && totalSellable > 0)} hint={pondeuseCosts.layingRate ? `taux ponte ${(pondeuseCosts.layingRate * 100).toFixed(1)}%` : 'taux ponte requis'} danger={!avgPonteCostEgg && totalSellable > 0} /><SmallMetric label="Coût / tablette" value={costLabel(avgPonteCostTablet, !avgPonteCostTablet && totalSellable > 0)} hint={totalPackaging > 0 ? 'œuf × 30 + emballage' : 'œuf × 30'} danger={!avgPonteCostTablet && totalSellable > 0} /><SmallMetric label="Marge ponte" value={fmtCurrency(ponte.reduce((sum, row) => sum + row.marge, 0))} hint="CA réel - coûts réels" /></> : null}</div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3"><SmallMetric label="Charges production" value={fmtCurrency(totalRealCharges - totalPackaging)} hint={showChair ? 'poussins + aliment + santé + litière/chauffage' : 'amortissement + aliment + santé + autres'} danger={costIncomplete} /><SmallMetric label="Emballages" value={fmtCurrency(totalPackaging)} hint="compté une seule fois" /><SmallMetric label="CA réel" value={fmtCurrency(totalSalesReal)} hint={totalSalesReal ? 'ventes/finances liées' : 'aucune vente liée'} /><SmallMetric label="Encaissé" value={fmtCurrency(totalEncaisse)} hint="paiements/finances liés" /></div>
-      {costIncomplete ? <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700">Coût incomplet : des productions existent mais aucun coût réel lié n’a été trouvé. Compléter stock, achats, santé, charges, emballages/tablettes, chauffage, litière ou transport.</div> : null}
-    </div>
-    {showChair ? <><SmartEvolutionChart title="Chair — économie par bande" subtitle="Coût total bande, CA réel, encaissé, marge et poids moyen." months={labels(chair)} leftUnit="FCFA" rightUnit="kg" series={[{ name: 'Coût total bande', type: 'bar', unit: 'FCFA', data: values(chair, 'charges_aliments') }, { name: 'CA ventes chair', type: 'bar', unit: 'FCFA', data: values(chair, 'ca') }, { name: 'Encaissé', type: 'bar', unit: 'FCFA', data: values(chair, 'encaisse') }, { name: 'Marge chair', type: 'bar', unit: 'FCFA', data: values(chair, 'marge') }, { name: 'Poids moyen', type: 'line', axis: 'right', unit: 'kg', data: values(chair, 'poids_moyen') }]} /><SmartEvolutionChart title="Chair — effectifs" subtitle="Effectif, vendables, morts, malades, vendus et taux de mortalité." months={labels(chair)} leftUnit="" rightUnit="%" series={[{ name: 'Effectif suivi', type: 'bar', data: values(chair, 'effectif') }, { name: 'Vendables', type: 'bar', data: values(chair, 'vendables') }, { name: 'Morts', type: 'bar', data: values(chair, 'morts') }, { name: 'Malades', type: 'bar', data: values(chair, 'malades') }, { name: 'Vendus / sorties', type: 'bar', data: values(chair, 'vendus') }, { name: 'Taux mortalité', type: 'line', axis: 'right', unit: '%', data: values(chair, 'taux_mortalite') }]} /></> : null}
-    {showPonte ? <><SmartEvolutionChart title="Ponte — économie mensuelle" subtitle="Charges production, emballages, CA tablettes, encaissé, marge, taux de ponte et casse." months={labels(ponte)} leftUnit="FCFA" rightUnit="%" series={[{ name: 'Coût production œufs', type: 'bar', unit: 'FCFA', data: values(ponte, 'charges_aliments') }, { name: 'Emballages tablettes', type: 'bar', unit: 'FCFA', data: values(ponte, 'charges_emballages') }, { name: 'CA tablettes', type: 'bar', unit: 'FCFA', data: values(ponte, 'ca') }, { name: 'Encaissé', type: 'bar', unit: 'FCFA', data: values(ponte, 'encaisse') }, { name: 'Marge ponte', type: 'bar', unit: 'FCFA', data: values(ponte, 'marge') }, { name: 'Taux ponte', type: 'line', axis: 'right', unit: '%', data: values(ponte, 'taux_ponte') }, { name: 'Taux casse', type: 'line', axis: 'right', unit: '%', data: values(ponte, 'taux_casse') }]} /><SmartEvolutionChart title="Ponte — production mensuelle" subtitle="Œufs produits, vendables, tablettes, casses et effectif pondeuses." months={labels(ponte)} leftUnit="" rightUnit="%" series={[{ name: 'Œufs produits', type: 'bar', data: values(ponte, 'oeufs') }, { name: 'Œufs vendables', type: 'bar', data: values(ponte, 'vendables') }, { name: 'Tablettes vendables', type: 'bar', data: values(ponte, 'tablettes') }, { name: 'Casses', type: 'bar', data: values(ponte, 'casses') }, { name: 'Pondeuses actives', type: 'line', data: values(ponte, 'pondeuses') }, { name: 'Taux ponte', type: 'line', axis: 'right', unit: '%', data: values(ponte, 'taux_ponte') }]} /></> : null}
-    <div className="bg-[#fffdf8] border border-[#d6c3a0] rounded-2xl p-4 text-sm text-[#7d6a4a] flex items-start gap-3"><TrendingUp size={18} className="text-[#9a6b12] mt-0.5" /><div><b className="text-[#2f2415]">Interprétation :</b> {costIncomplete ? 'Des coûts réels manquent : pas d’estimation automatique, la marge reste à compléter.' : totalSalesReal > 0 ? 'Les graphes utilisent les commandes, paiements ou revenus Finance réellement liés aux lots avicoles.' : healthIssues > 0 ? `${fmtNumber(healthIssues)} point(s) santé/mortalité à traiter.` : showChair ? 'Vue chair : coût par poulet = coût total bande / poulets vendables, la mortalité augmente le coût des survivants.' : showPonte ? 'Vue pondeuses : coût œuf basé sur coût journalier par poule / taux de ponte, tablette = œuf × 30 + emballage.' : 'Compléter les coûts et ventes liées pour affiner les marges.'}</div></div>
-  </div>;
+  const chargePieChair = showChair ? [
+    { name: 'Coût bande', value: chair.reduce((s, r) => s + toNumber(r.charges_aliments), 0) },
+    { name: 'CA chair', value: chair.reduce((s, r) => s + toNumber(r.ca), 0) },
+  ] : [];
+  const chargePiePonte = showPonte ? [
+    { name: 'Production', value: ponte.reduce((s, r) => s + toNumber(r.charges_aliments), 0) },
+    { name: 'Emballages', value: ponte.reduce((s, r) => s + toNumber(r.charges_emballages), 0) },
+    { name: 'CA tablettes', value: ponte.reduce((s, r) => s + toNumber(r.ca), 0) },
+  ] : [];
+
+  return (
+    <ChartsGrid>
+      {showChair ? <>
+        <SmartEvolutionChart moduleName="Avicole" compact title="Chair — CA vs coût" subtitle="Histogramme — économie bande" months={labels(chair)} leftUnit="FCFA" rightUnit="" series={[
+          { name: 'Coût bande', type: 'bar', unit: 'FCFA', data: values(chair, 'charges_aliments') },
+          { name: 'CA ventes', type: 'bar', unit: 'FCFA', data: values(chair, 'ca') },
+        ]} />
+        <SmartEvolutionChart moduleName="Avicole" compact title="Chair — marge vs poids" subtitle="Barres + courbe — marge et poids moyen" months={labels(chair)} leftUnit="FCFA" rightUnit="kg" series={[
+          { name: 'Marge', type: 'bar', unit: 'FCFA', data: values(chair, 'marge') },
+          { name: 'Poids moyen', type: 'line', axis: 'right', unit: 'kg', data: values(chair, 'poids_moyen') },
+        ]} />
+        <SmartPieChart moduleName="Avicole" compact title="Chair — coût vs CA" subtitle="Camembert — structure bande" unit="FCFA" items={chargePieChair} />
+        <SmartEvolutionChart moduleName="Avicole" compact title="Chair — effectifs vs morts" subtitle="Histogramme — suivi effectif" months={labels(chair)} leftUnit="" rightUnit="" series={[
+          { name: 'Vendables', type: 'bar', data: values(chair, 'vendables') },
+          { name: 'Morts', type: 'bar', data: values(chair, 'morts') },
+        ]} />
+        <SmartEvolutionChart moduleName="Avicole" compact title="Chair — taux mortalité" subtitle="Courbe — % pertes" months={labels(chair)} leftUnit="%" rightUnit="" series={[
+          { name: 'Taux mortalité', type: 'line', unit: '%', data: values(chair, 'taux_mortalite') },
+        ]} />
+      </> : null}
+      {showPonte ? <>
+        <SmartEvolutionChart moduleName="Avicole" compact title="Ponte — CA vs coût" subtitle="Histogramme — économie mensuelle" months={labels(ponte)} leftUnit="FCFA" rightUnit="" series={[
+          { name: 'Coût production', type: 'bar', unit: 'FCFA', data: values(ponte, 'charges_aliments') },
+          { name: 'CA tablettes', type: 'bar', unit: 'FCFA', data: values(ponte, 'ca') },
+        ]} />
+        <SmartEvolutionChart moduleName="Avicole" compact title="Ponte — taux ponte vs casse" subtitle="Courbes — performance ponte" months={labels(ponte)} leftUnit="%" rightUnit="%" series={[
+          { name: 'Taux ponte', type: 'line', unit: '%', data: values(ponte, 'taux_ponte') },
+          { name: 'Taux casse', type: 'line', unit: '%', data: values(ponte, 'taux_casse') },
+        ]} />
+        <SmartPieChart moduleName="Avicole" compact title="Ponte — structure coûts" subtitle="Camembert — production / emballage / CA" unit="FCFA" items={chargePiePonte} />
+        <SmartEvolutionChart moduleName="Avicole" compact title="Ponte — œufs vs tablettes" subtitle="Histogramme — production vendable" months={labels(ponte)} leftUnit="" rightUnit="" series={[
+          { name: 'Œufs vendables', type: 'bar', data: values(ponte, 'vendables') },
+          { name: 'Tablettes', type: 'bar', data: values(ponte, 'tablettes') },
+        ]} />
+        <SmartEvolutionChart moduleName="Avicole" compact title="Ponte — marge mensuelle" subtitle="Courbe — CA − charges" months={labels(ponte)} leftUnit="FCFA" rightUnit="" series={[
+          { name: 'Marge ponte', type: 'line', unit: 'FCFA', data: values(ponte, 'marge') },
+        ]} />
+      </> : null}
+    </ChartsGrid>
+  );
 }

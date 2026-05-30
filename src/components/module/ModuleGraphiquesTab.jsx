@@ -30,14 +30,14 @@ export default function ModuleGraphiquesTab({ moduleId, ...props }) {
       );
     case 'objectifs_croissance':
       return (
-        <div className="space-y-5">
+        <div className="space-y-4">
           <FinanceEvolution rows={arr(props.transactions || props.finances)} payments={arr(props.payments)} salesOrders={arr(props.salesOrders)} onNavigate={onNavigate} />
           <SalesEvolution rows={arr(props.salesOrders)} payments={arr(props.payments)} opportunities={arr(props.opportunities)} onNavigate={onNavigate} />
         </div>
       );
     case 'elevage':
       return (
-        <div className="space-y-5">
+        <div className="space-y-4">
           <AvicoleEvolution rows={arr(props.lots)} productionLogs={arr(props.productionLogs)} alimentationLogs={arr(props.alimentationLogs)} transactions={arr(props.transactions)} onNavigate={onNavigate} />
           <AnimauxEvolution rows={arr(props.animaux)} alimentationLogs={arr(props.alimentationLogs)} salesOrders={arr(props.salesOrders)} payments={arr(props.payments)} onNavigate={onNavigate} />
         </div>
@@ -54,14 +54,14 @@ export default function ModuleGraphiquesTab({ moduleId, ...props }) {
       );
     case 'achats_stock':
       return (
-        <div className="space-y-5">
+        <div className="space-y-4">
           <StockEvolution rows={arr(props.stocks || props.rows)} alimentationLogs={arr(props.alimentationLogs)} onNavigate={onNavigate} />
           <FournisseursEvolution rows={arr(props.fournisseurs)} transactions={arr(props.transactions)} onNavigate={onNavigate} />
         </div>
       );
     case 'finance_pilotage':
       return (
-        <div className="space-y-5">
+        <div className="space-y-4">
           <FinanceEvolution rows={arr(props.transactions || props.finances || props.rows)} payments={arr(props.payments)} salesOrders={arr(props.salesOrders)} onNavigate={onNavigate} />
           <InvestissementsEvolution rows={arr(props.investissements)} businessPlans={arr(props.businessPlans)} onNavigate={onNavigate} />
         </div>
@@ -70,7 +70,7 @@ export default function ModuleGraphiquesTab({ moduleId, ...props }) {
       return <TachesEvolution rows={arr(props.taches || props.tasks)} onNavigate={onNavigate} />;
     case 'documents_rapports':
       return (
-        <div className="space-y-5">
+        <div className="space-y-4">
           <FinanceEvolution rows={arr(props.transactions || props.finances)} onNavigate={onNavigate} />
           <ClientsEvolution rows={arr(props.clients)} salesOrders={arr(props.salesOrders)} payments={arr(props.payments)} onNavigate={onNavigate} />
         </div>

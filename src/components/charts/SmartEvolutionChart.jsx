@@ -93,6 +93,7 @@ export default function SmartEvolutionChart({
   emptyText = 'Aucune donnée exploitable pour le moment.',
   moduleName = 'Module',
   reportPayload = {},
+  compact = true,
 }) {
   const years = useMemo(() => uniqueYears(months), [months]);
   const [filter, setFilter] = useState({ mode: 'all', year: years[0] || new Date().getFullYear(), month: 1, day: '', start: '', end: '' });
@@ -141,5 +142,5 @@ export default function SmartEvolutionChart({
 
   if (!hasData) return <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4">{Controls}<p className="font-black text-[#2f2415]">{title}</p>{subtitle ? <p className="text-xs text-[#8a7456] mt-1">{subtitle}</p> : null}<div className="h-64 mt-4 rounded-xl bg-[#fffdf8] border border-[#eadcc2] flex items-center justify-center text-sm text-[#8a7456]">{emptyText}</div></div>;
 
-  return <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4 shadow-sm">{Controls}<ReactECharts option={option} style={{ height, width: '100%' }} notMerge lazyUpdate /><p className="mt-2 text-[11px] text-[#8a7456]">Astuce : clique sur la légende pour masquer/afficher une série, puis utilise le zoom en bas pour affiner l’affichage.</p></div>;
+  return <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4 shadow-sm">{Controls}<ReactECharts option={option} style={{ height, width: '100%' }} notMerge lazyUpdate />{!compact ? <p className="mt-2 text-[11px] text-[#8a7456]">Astuce : clique sur la légende pour masquer/afficher une série, puis utilise le zoom en bas pour affiner l’affichage.</p> : null}</div>;
 }
