@@ -4,7 +4,7 @@ import { buildDashboardTodayActions } from '../../utils/dashboardWorkflows';
 import { avicoleActiveCount, avicoleHasActiveBirds } from '../../utils/avicoleMetrics';
 import { resolveAvicoleLotKind } from '../../utils/avicoleActivity';
 import { toNumber, fmtCurrency } from '../../utils/format';
-import { normalizePeriodScope, previousMonthKeyFrom } from '../../utils/periodScope';
+import { normalizePeriodScope, resolvePeriodContext, rowMatchesMonthKeys } from '../../utils/periodScope';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const lower = (value) => String(value || '').trim().toLowerCase();
@@ -150,16 +150,8 @@ function monthKeyFromValue(value) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function resolvePeriodContext(scope = {}) {
-  const normalized = normalizePeriodScope(scope);
-  if (normalized.mode === 'all') {
-    return { mode: 'all', monthKey: null, compareMonthKey: null };
-  }
-  return {
-    mode: 'month',
-    monthKey: normalized.monthKey,
-    compareMonthKey: previousMonthKeyFrom(normalized.monthKey),
-  };
+function resolvePeriodContextLocal(scope = {}) {
+  return resolvePeriodContext(scope);
 }
 
 function rowDateValue(row = {}) {
@@ -209,41 +201,42 @@ function tabletsFromEggs(eggs = 0) {
   return Math.floor(Math.max(0, toNumber(eggs)) / EGGS_PER_TABLET);
 }
 
-function sumProductionEggs(logs = [], monthKey = null) {
+function sumProductionEggs(logs = [], monthKeys = null) {
   return arr(logs)
-    .filter((row) => !monthKey || monthKeyFromValue(rowDateValue(row)) === monthKey)
+    .filter((row) => !monthKeys || rowMatchesMonthKeys(row, monthKeys))
     .reduce((sum, row) => sum + eggsFromProductionLog(row), 0);
 }
 
-function sumTabletSales(orders = [], monthKey = null) {
+function sumTabletSales(orders = [], monthKeys = null) {
   return arr(orders)
     .filter(isEggSale)
-    .filter((row) => !monthKey || monthKeyFromValue(rowDateValue(row)) === monthKey)
+    .filter((row) => !monthKeys || rowMatchesMonthKeys(row, monthKeys))
     .reduce((sum, row) => sum + tabletsFromSale(row), 0);
 }
 
 /** Ponte — période sélectionnée, cumuls ramassage/vente, delta vs mois précédent. */
 export function computeEggProductionSummary(productionLogs = [], salesOrders = [], periodScope = {}) {
-  const { mode, monthKey, compareMonthKey } = resolvePeriodContext(periodScope);
+  const { mode, monthKeys, compareMonthKey, isSingleMonth } = resolvePeriodContextLocal(periodScope);
   const logs = arr(productionLogs);
   const orders = arr(salesOrders);
 
   const totalEggs = sumProductionEggs(logs);
-  const eggsPeriod = mode === 'all' ? totalEggs : sumProductionEggs(logs, monthKey);
-  const eggsCompare = mode === 'month' ? sumProductionEggs(logs, compareMonthKey) : 0;
+  const eggsPeriod = mode === 'all' ? totalEggs : sumProductionEggs(logs, monthKeys);
+  const eggsCompare = isSingleMonth ? sumProductionEggs(logs, [compareMonthKey]) : 0;
   const tablettesSoldAllTime = sumTabletSales(orders);
-  const tablettesSoldPeriod = mode === 'all' ? tablettesSoldAllTime : sumTabletSales(orders, monthKey);
-  const tablettesSoldCompare = mode === 'month' ? sumTabletSales(orders, compareMonthKey) : 0;
+  const tablettesSoldPeriod = mode === 'all' ? tablettesSoldAllTime : sumTabletSales(orders, monthKeys);
+  const tablettesSoldCompare = isSingleMonth ? sumTabletSales(orders, [compareMonthKey]) : 0;
 
   return {
     mode,
-    monthKey,
+    monthKeys,
+    isSingleMonth,
     eggsPeriod,
     eggsAllTime: totalEggs,
     tablettesSoldAllTime,
     tablettesSoldPeriod,
-    deltaEggsVsPrevious: mode === 'month' ? eggsPeriod - eggsCompare : null,
-    deltaTablettesSoldVsPrevious: mode === 'month' ? tablettesSoldPeriod - tablettesSoldCompare : null,
+    deltaEggsVsPrevious: isSingleMonth ? eggsPeriod - eggsCompare : null,
+    deltaTablettesSoldVsPrevious: isSingleMonth ? tablettesSoldPeriod - tablettesSoldCompare : null,
   };
 }
 
@@ -256,46 +249,47 @@ export function formatEggProductionDetail(summary = {}) {
 }
 
 export function formatEggProductionDelta(summary = {}) {
-  if (summary.mode === 'all' || summary.deltaEggsVsPrevious == null) return null;
+  if (summary.mode === 'all' || !summary.isSingleMonth || summary.deltaEggsVsPrevious == null) return null;
   return formatMonthDelta(summary.deltaEggsVsPrevious, { unit: 'œufs', formatValue: (value) => Number(value).toLocaleString('fr-FR') });
 }
 
-function sumPayments(payments = [], monthKey = null) {
+function sumPayments(payments = [], monthKeys = null) {
   return arr(payments)
-    .filter((row) => !monthKey || monthKeyFromValue(rowDateValue(row)) === monthKey)
+    .filter((row) => !monthKeys || rowMatchesMonthKeys(row, monthKeys))
     .reduce((sum, row) => sum + paid(row), 0);
 }
 
-function sumDepenses(transactions = [], monthKey = null) {
+function sumDepenses(transactions = [], monthKeys = null) {
   return arr(transactions)
     .filter((row) => ['sortie', 'depense', 'dépense', 'achat'].includes(lower(row.type || '')))
-    .filter((row) => !monthKey || monthKeyFromValue(rowDateValue(row)) === monthKey)
+    .filter((row) => !monthKeys || rowMatchesMonthKeys(row, monthKeys))
     .reduce((sum, row) => sum + money(row), 0);
 }
 
 export function computeFinancePeriodSummary(payments = [], transactions = [], periodScope = {}) {
-  const { mode, monthKey, compareMonthKey } = resolvePeriodContext(periodScope);
+  const { mode, monthKeys, compareMonthKey, isSingleMonth } = resolvePeriodContextLocal(periodScope);
   const encaisseAllTime = sumPayments(payments);
   const depensesAllTime = sumDepenses(transactions);
-  const encaissePeriod = mode === 'all' ? encaisseAllTime : sumPayments(payments, monthKey);
-  const depensesPeriod = mode === 'all' ? depensesAllTime : sumDepenses(transactions, monthKey);
-  const encaisseCompare = mode === 'month' ? sumPayments(payments, compareMonthKey) : 0;
-  const depensesCompare = mode === 'month' ? sumDepenses(transactions, compareMonthKey) : 0;
+  const encaissePeriod = mode === 'all' ? encaisseAllTime : sumPayments(payments, monthKeys);
+  const depensesPeriod = mode === 'all' ? depensesAllTime : sumDepenses(transactions, monthKeys);
+  const encaisseCompare = isSingleMonth ? sumPayments(payments, [compareMonthKey]) : 0;
+  const depensesCompare = isSingleMonth ? sumDepenses(transactions, [compareMonthKey]) : 0;
   const resultatAllTime = encaisseAllTime - depensesAllTime;
   const resultatPeriod = encaissePeriod - depensesPeriod;
   const resultatCompare = encaisseCompare - depensesCompare;
 
   return {
     mode,
-    monthKey,
+    monthKeys,
+    isSingleMonth,
     encaisseAllTime,
     encaissePeriod,
     depensesAllTime,
     depensesPeriod,
     resultatAllTime,
     resultatPeriod,
-    deltaEncaisseVsPrevious: mode === 'month' ? encaissePeriod - encaisseCompare : null,
-    deltaResultatVsPrevious: mode === 'month' ? resultatPeriod - resultatCompare : null,
+    deltaEncaisseVsPrevious: isSingleMonth ? encaissePeriod - encaisseCompare : null,
+    deltaResultatVsPrevious: isSingleMonth ? resultatPeriod - resultatCompare : null,
   };
 }
 
@@ -305,12 +299,12 @@ export function formatEncaisseDetail(periods = {}) {
 }
 
 export function formatEncaisseDelta(periods = {}) {
-  if (periods.mode === 'all' || periods.deltaEncaisseVsPrevious == null) return null;
+  if (periods.mode === 'all' || !periods.isSingleMonth || periods.deltaEncaisseVsPrevious == null) return null;
   return formatMonthDelta(periods.deltaEncaisseVsPrevious, { formatValue: (value) => `${Number(value).toLocaleString('fr-FR')} FCFA` });
 }
 
 export function formatResultatDelta(periods = {}) {
-  if (periods.mode === 'all' || periods.deltaResultatVsPrevious == null) return null;
+  if (periods.mode === 'all' || !periods.isSingleMonth || periods.deltaResultatVsPrevious == null) return null;
   return formatMonthDelta(periods.deltaResultatVsPrevious, { formatValue: (value) => `${Number(value).toLocaleString('fr-FR')} FCFA` });
 }
 

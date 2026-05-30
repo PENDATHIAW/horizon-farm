@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import { readUiSettings } from '../utils/uiPreferences';
-import { PERIOD_SCOPE_CHANGED, readPeriodScope, writePeriodScope } from '../utils/periodScope';
+import { readPeriodScope } from '../utils/periodScope';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { sanitizeDashboardMetric } from '../utils/dashboardWorkflows';
 import { runErpHealthEngine, loadLastHealthEngineSnapshot } from '../services/erpHealthEngine';
@@ -26,7 +26,6 @@ import {
   DashboardKpi,
   DashboardModuleHeader,
   DashboardModuleNav,
-  DashboardPeriodBar,
   DashboardQuickActions,
   DashboardSnapshotCard,
   DashboardTodoRow,
@@ -53,17 +52,6 @@ function displayUserOf(props = {}) {
   if (!raw) return 'Exploitant';
   const text = String(raw).trim();
   return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
-function usePeriodScope() {
-  const [periodScope, setPeriodScope] = useState(readPeriodScope);
-  useEffect(() => {
-    const handler = (event) => setPeriodScope(event.detail || readPeriodScope());
-    window.addEventListener(PERIOD_SCOPE_CHANGED, handler);
-    return () => window.removeEventListener(PERIOD_SCOPE_CHANGED, handler);
-  }, []);
-  const updatePeriodScope = (next) => setPeriodScope(writePeriodScope(next));
-  return [periodScope, updatePeriodScope];
 }
 
 function useUiSettings() {
@@ -277,7 +265,7 @@ function GraphiquesSection({ props, navigate }) {
 export default function DashboardV2(props) {
   const [tab, setTab] = useState('Résumé');
   const settings = useUiSettings();
-  const [periodScope, updatePeriodScope] = usePeriodScope();
+  const periodScope = props.periodScope || readPeriodScope();
   const simple = settings.complexity !== 'expert';
   const dateTime = useMemo(formatDateTime, []);
   const greeting = useMemo(() => dashboardGreeting(props), [props.user, props.displayUser, props.userName, props.username]);
@@ -321,10 +309,7 @@ export default function DashboardV2(props) {
       />
 
       {tab === 'Résumé' ? (
-        <div className="space-y-5">
-          <DashboardPeriodBar periodScope={periodScope} onChange={updatePeriodScope} />
-          <Summary summary={summary} health={health} simple={simple} navigate={navigate} />
-        </div>
+        <Summary summary={summary} health={health} simple={simple} navigate={navigate} />
       ) : (
         <GraphiquesSection props={props} navigate={navigate} />
       )}

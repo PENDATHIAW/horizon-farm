@@ -17,7 +17,10 @@ import { useAppData } from './context/AppContext';
 import useCrudModules from './hooks/useCrudModules';
 import useLiveWeather from './hooks/useLiveWeather';
 import useOnlineStatus from './hooks/useOnlineStatus';
+import usePeriodScope from './hooks/usePeriodScope';
 import AppLayout from './layouts/AppLayout';
+import { applyPeriodScopeToDataMap, applyPeriodScopeToProps } from './utils/applyPeriodScope';
+import { formatPeriodScopeLabel } from './utils/periodScope';
 import LoginPage from './pages/LoginPage';
 
 const MODULES = {
@@ -75,6 +78,8 @@ export default function App() {
   const { dataMap, refreshModule, flushOfflineQueue } = useAppData();
   const { online, lastOnlineAt } = useOnlineStatus();
   const { weather: liveMeteo, loading: weatherLoading, source: weatherSource } = useLiveWeather();
+  const [periodScope, setPeriodScope] = usePeriodScope();
+  const periodLabel = useMemo(() => formatPeriodScopeLabel(periodScope), [periodScope]);
   const c = useCrudModules();
   const base = (key) => ({ rows: rows(c[key]), loading: c[key]?.loading, onCreate: c[key]?.create, onUpdate: c[key]?.update, onDelete: c[key]?.remove, onRefresh: c[key]?.refresh });
 
@@ -85,7 +90,10 @@ export default function App() {
   const refreshSalesWorkflowFn = async () => refreshSalesWorkflow(c);
   const actionTraceShared = composeActionTraceShared(c, online);
   const internalResourcesShared = composeInternalResources(c);
-  const decisionDataMap = useMemo(() => composeDecisionDataMap({ crud: c, dataMap, liveMeteo }), [c, dataMap, liveMeteo]);
+  const decisionDataMap = useMemo(() => {
+    const base = composeDecisionDataMap({ crud: c, dataMap, liveMeteo });
+    return applyPeriodScopeToDataMap(base, periodScope);
+  }, [c, dataMap, liveMeteo, periodScope]);
 
   const healthAutoActions = useMemo(() => (data) => ({
     existingTasks: arr(data.taches || data.tasks),
@@ -388,11 +396,12 @@ export default function App() {
   if (authLoading) return <div className="min-h-screen bg-[#f6efe2] flex items-center justify-center text-[#2f2415] font-black">Chargement Horizon Farm...</div>;
   if (!user) return <LoginPage />;
   const ActiveModule = MODULES[active] || MODULES.dashboard;
+  const activeModuleProps = applyPeriodScopeToProps(moduleProps[active] || {}, periodScope);
 
-  return <AppLayout navItems={navItems} active={active} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => setAssistantOpen(true)}>
-    <ErrorBoundary title="Module indisponible"><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...(moduleProps[active] || {})} /></Suspense></ErrorBoundary>
+  return <AppLayout navItems={navItems} active={active} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => setAssistantOpen(true)} periodScope={periodScope} onPeriodScopeChange={setPeriodScope}>
+    <ErrorBoundary title="Module indisponible"><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...activeModuleProps} periodLabel={periodLabel} /></Suspense></ErrorBoundary>
     {!assistantOpen ? <button type="button" onClick={() => setAssistantOpen(true)} className="fixed right-4 top-[76px] z-40 flex items-center gap-2 rounded-full border border-amber-200 bg-[#fff8dc] px-3 py-2 text-xs font-black text-[#7a4f08] shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all max-md:top-auto max-md:right-4 max-md:bottom-[96px]" aria-label="Ouvrir Hey Horizon"><span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-amber-300 text-[#2f2415]"><Sun size={18} /><span className="absolute inset-[-5px] rounded-full border border-amber-300/70 animate-ping" /></span><span className="hidden sm:inline">Hey Horizon</span></button> : null}
-    <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={dataMap} onNavigate={setActive} />
+    <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={applyPeriodScopeToDataMap(dataMap, periodScope)} onNavigate={setActive} />
     <ErpInterconnectionBridge cruds={c} />
     <AppNotificationManager />
   </AppLayout>;
