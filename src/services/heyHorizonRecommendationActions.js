@@ -36,6 +36,27 @@ export async function applyOneClickRecommendation(finding, handlers = {}) {
   return { ok: true, navigated: true };
 }
 
+/** Crée une tâche maintenance pour un équipement à risque. */
+export async function createMaintenanceTask({ equipmentName, equipmentId, statusLabel, handlers = {} }) {
+  const { onCreateTask, existingTasks = [], onNavigate } = handlers;
+  if (typeof onCreateTask !== 'function') {
+    onNavigate?.('rh');
+    return { ok: false };
+  }
+  const finding = {
+    id: `maint-task-${equipmentId || equipmentName}`,
+    module: 'rh',
+    severity: 'haute',
+    category: 'coherence',
+    title: `Maintenance : ${equipmentName}`,
+    description: statusLabel || 'Équipement à maintenir',
+    recommended_action: `Planifier maintenance pour ${equipmentName}`,
+    auto_action: 'create_task',
+    equipment_id: equipmentId,
+  };
+  return applyOneClickRecommendation(finding, { ...handlers, existingTasks });
+}
+
 /** Crée une tâche conformité pour joindre une preuve manquante. */
 export async function createMissingProofTask({ transactionLabel, amount, transactionId, handlers = {} }) {
   const { onCreateTask, existingTasks = [], onNavigate } = handlers;
