@@ -11,7 +11,6 @@ import AppNotificationManager from './components/AppNotificationManager';
 import ErpInterconnectionBridge from './components/ErpInterconnectionBridge';
 import AssistantPanel from './components/AssistantPanel';
 import ErrorBoundary from './components/ErrorBoundary';
-import { Sun } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 import { useAppData } from './context/AppContext';
 import useCrudModules from './hooks/useCrudModules';
@@ -20,7 +19,7 @@ import useOnlineStatus from './hooks/useOnlineStatus';
 import usePeriodScope from './hooks/usePeriodScope';
 import AppLayout from './layouts/AppLayout';
 import { applyPeriodScopeToDataMap, applyPeriodScopeToProps } from './utils/applyPeriodScope';
-import { formatPeriodScopeLabel } from './utils/periodScope';
+import { formatPeriodScopeLabel, isAllTimeScope } from './utils/periodScope';
 import LoginPage from './pages/LoginPage';
 
 const MODULES = {
@@ -80,7 +79,12 @@ export default function App() {
   const { weather: liveMeteo, loading: weatherLoading, source: weatherSource } = useLiveWeather();
   const [periodScope, setPeriodScope] = usePeriodScope();
   const periodLabel = useMemo(() => formatPeriodScopeLabel(periodScope), [periodScope]);
+  const periodScopeKey = useMemo(() => JSON.stringify(periodScope), [periodScope]);
   const c = useCrudModules();
+  const crudFingerprint = useMemo(
+    () => CRUD_KEYS.map((key) => `${key}:${rows(c[key]).length}`).join('|'),
+    [c],
+  );
   const base = (key) => ({ rows: rows(c[key]), loading: c[key]?.loading, onCreate: c[key]?.create, onUpdate: c[key]?.update, onDelete: c[key]?.remove, onRefresh: c[key]?.refresh });
 
   const alertCounts = useMemo(() => computeNavAlertCounts(crudRowsMap(c)), [c]);
@@ -90,10 +94,14 @@ export default function App() {
   const refreshSalesWorkflowFn = async () => refreshSalesWorkflow(c);
   const actionTraceShared = composeActionTraceShared(c, online);
   const internalResourcesShared = composeInternalResources(c);
-  const decisionDataMap = useMemo(() => {
-    const base = composeDecisionDataMap({ crud: c, dataMap, liveMeteo });
-    return applyPeriodScopeToDataMap(base, periodScope);
-  }, [c, dataMap, liveMeteo, periodScope]);
+  const decisionDataMapRaw = useMemo(
+    () => composeDecisionDataMap({ crud: c, dataMap, liveMeteo }),
+    [c, dataMap, liveMeteo],
+  );
+  const decisionDataMap = useMemo(
+    () => (isAllTimeScope(periodScope) ? decisionDataMapRaw : applyPeriodScopeToDataMap(decisionDataMapRaw, periodScope)),
+    [decisionDataMapRaw, periodScope, periodScopeKey],
+  );
 
   const healthAutoActions = useMemo(() => (data) => ({
     existingTasks: arr(data.taches || data.tasks),
@@ -105,19 +113,19 @@ export default function App() {
   }), [c.taches.create, c.alertes_center.create, c.alertes_center.update, c.business_events.create]);
 
   useEffect(() => scheduleErpHealthEngine(
-    () => decisionDataMap,
+    () => decisionDataMapRaw,
     null,
     60 * 60 * 1000,
     healthAutoActions,
-  ), [decisionDataMap, healthAutoActions]);
+  ), [decisionDataMapRaw, healthAutoActions]);
 
   useEffect(() => { pruneHeavyLocalStorage(); }, []);
 
   useEffect(() => {
-    const trigger = scheduleErpHealthOnCriticalChange(() => decisionDataMap, null, healthAutoActions);
-    trigger(decisionDataMap);
-    return trigger(decisionDataMap);
-  }, [decisionDataMap, healthAutoActions]);
+    const trigger = scheduleErpHealthOnCriticalChange(() => decisionDataMapRaw, null, healthAutoActions);
+    trigger(decisionDataMapRaw);
+    return trigger(decisionDataMapRaw);
+  }, [decisionDataMapRaw, healthAutoActions]);
 
   const navItems = useMemo(() => NAV_MODULE_ORDER.map((id) => ({
     id,
@@ -393,15 +401,22 @@ export default function App() {
     sync_activity: syncActivityProps,
   };
 
+  const activeModuleProps = useMemo(
+    () => applyPeriodScopeToProps(moduleProps[active] || {}, periodScope),
+    [active, periodScopeKey, crudFingerprint, commercialTab, elevageTab, achatsStockTab, financeTab],
+  );
+  const scopedAssistantDataMap = useMemo(
+    () => (isAllTimeScope(periodScope) ? dataMap : applyPeriodScopeToDataMap(dataMap, periodScope)),
+    [dataMap, periodScope, periodScopeKey],
+  );
+
   if (authLoading) return <div className="min-h-screen bg-[#f6efe2] flex items-center justify-center text-[#2f2415] font-black">Chargement Horizon Farm...</div>;
   if (!user) return <LoginPage />;
   const ActiveModule = MODULES[active] || MODULES.dashboard;
-  const activeModuleProps = applyPeriodScopeToProps(moduleProps[active] || {}, periodScope);
 
   return <AppLayout navItems={navItems} active={active} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => setAssistantOpen(true)} periodScope={periodScope} onPeriodScopeChange={setPeriodScope}>
     <ErrorBoundary title="Module indisponible"><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...activeModuleProps} periodLabel={periodLabel} /></Suspense></ErrorBoundary>
-    {!assistantOpen ? <button type="button" onClick={() => setAssistantOpen(true)} className="fixed right-4 top-[76px] z-40 flex items-center gap-2 rounded-full border border-amber-200 bg-[#fff8dc] px-3 py-2 text-xs font-black text-[#7a4f08] shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all max-md:top-auto max-md:right-4 max-md:bottom-[96px]" aria-label="Ouvrir Hey Horizon"><span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-amber-300 text-[#2f2415]"><Sun size={18} /><span className="absolute inset-[-5px] rounded-full border border-amber-300/70 animate-ping" /></span><span className="hidden sm:inline">Hey Horizon</span></button> : null}
-    <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={applyPeriodScopeToDataMap(dataMap, periodScope)} onNavigate={setActive} />
+    <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={scopedAssistantDataMap} onNavigate={setActive} />
     <ErpInterconnectionBridge cruds={c} />
     <AppNotificationManager />
   </AppLayout>;

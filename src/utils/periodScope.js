@@ -138,7 +138,11 @@ export function isRowInPeriodScope(row = {}, scope = readPeriodScope()) {
 export function filterRowsByPeriodScope(rows = [], scope = readPeriodScope()) {
   const normalized = normalizePeriodScope(scope);
   if (normalized.mode === 'all') return arr(rows);
-  return arr(rows).filter((row) => isRowInPeriodScope(row, normalized));
+  const monthSet = new Set(normalized.monthKeys);
+  return arr(rows).filter((row) => {
+    const key = monthKeyFromRow(row);
+    return key && monthSet.has(key);
+  });
 }
 
 export function resolvePeriodContext(scope = {}) {
@@ -160,7 +164,8 @@ export function resolvePeriodContext(scope = {}) {
 export function rowMatchesMonthKeys(row = {}, monthKeys = []) {
   const key = monthKeyFromRow(row);
   if (!key) return false;
-  return monthKeys.includes(key);
+  const monthSet = monthKeys instanceof Set ? monthKeys : new Set(monthKeys);
+  return monthSet.has(key);
 }
 
 export function toggleMonthKey(scope = {}, monthKey) {
