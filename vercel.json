@@ -1,1 +1,11 @@
-{"rewrites":[{"source":"/(.*)","destination":"/"}],"crons":[{"path":"/api/push/dispatch-alerts","schedule":"0 7 * * *"}]}
+{
+  "rewrites": [
+    { "source": "/api/erp-read", "destination": "/api/erp/read" },
+    { "source": "/api/erp-action", "destination": "/api/erp/action" },
+    { "source": "/api/erp-ai-audit", "destination": "/api/erp/audit" },
+    { "source": "/(.*)", "destination": "/" }
+  ],
+  "crons": [
+    { "path": "/api/push/dispatch-alerts", "schedule": "0 7 * * *" }
+  ]
+}

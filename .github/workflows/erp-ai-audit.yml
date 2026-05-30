@@ -30,7 +30,8 @@ jobs:
           test -f src/services/erpHealthRules.js || (echo "::error::erpHealthRules.js manquant" && exit 1)
           test -f src/services/workflowRefresh.js || (echo "::error::workflowRefresh.js manquant" && exit 1)
           test -f src/services/erpRules/index.js || (echo "::error::erpRules/index.js manquant" && exit 1)
-          test -f api/erp-ai-audit.js || (echo "::error::api/erp-ai-audit.js manquant" && exit 1)
+          test -f lib/server/erp/audit.js || (echo "::error::lib/server/erp/audit.js manquant" && exit 1)
+          test -f api/erp/\[action\].js || (echo "::error::api/erp/[action].js manquant" && exit 1)
           echo "OK — couche architecture présente"
 
       - name: Setup Node
