@@ -22,6 +22,7 @@ export function evaluateErpUxAuditRules() {
         description: `Routes avancées parallèles : ${advancedOverlap.join(', ')}`,
         recommended_action: 'Utiliser le grand module ; garder routes avancées en moteurs internes seulement',
         confidence_score: 0.88,
+        auto_action: 'create_alert',
       });
     }
   });
@@ -38,6 +39,7 @@ export function evaluateErpUxAuditRules() {
         description: 'MODULE_TARGET_TABS manquant',
         recommended_action: 'Définir la structure onglets vision',
         confidence_score: 0.95,
+        auto_action: 'create_task',
       });
     }
   });

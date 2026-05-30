@@ -275,7 +275,27 @@ export default function App() {
     },
     rapports: { ...base('rapports'), data: reportData, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, ...shared },
     equipements: { ...base('equipements'), ...internalResourcesShared, tasks: rows(c.taches), alertes: rows(c.alertes_center), onCreateTask: c.taches.create, onUpdateTask: c.taches.update, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onCreateFinanceTransaction: c.finances.create, onRefreshFinances: c.finances.refresh, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, ...shared },
-    audit_logs: syncActivityProps, smartfarm: { meteo: liveMeteo, online, sensors: rows(c.sensor_devices), cameras: rows(c.camera_devices), tasks: rows(c.taches), sensorLoading: c.sensor_devices.loading, cameraLoading: c.camera_devices.loading, onCreateSensor: c.sensor_devices.create, onUpdateSensor: c.sensor_devices.update, onDeleteSensor: c.sensor_devices.remove, onRefreshSensors: c.sensor_devices.refresh, onCreateCamera: c.camera_devices.create, onUpdateCamera: c.camera_devices.update, onDeleteCamera: c.camera_devices.remove, onRefreshCameras: c.camera_devices.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onRefreshAlertes: c.alertes_center.refresh, ...shared }, gestion_systeme: { ...internalResourcesShared, dataMap: decisionDataMap, onNavigate: setActive }, sync: syncActivityProps, sync_activity: syncActivityProps,
+    audit_logs: syncActivityProps, smartfarm: { meteo: liveMeteo, online, sensors: rows(c.sensor_devices), cameras: rows(c.camera_devices), tasks: rows(c.taches), sensorLoading: c.sensor_devices.loading, cameraLoading: c.camera_devices.loading, onCreateSensor: c.sensor_devices.create, onUpdateSensor: c.sensor_devices.update, onDeleteSensor: c.sensor_devices.remove, onRefreshSensors: c.sensor_devices.refresh, onCreateCamera: c.camera_devices.create, onUpdateCamera: c.camera_devices.update, onDeleteCamera: c.camera_devices.remove, onRefreshCameras: c.camera_devices.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onRefreshAlertes: c.alertes_center.refresh, ...shared },
+    gestion_systeme: {
+      ...internalResourcesShared,
+      alertes: rows(c.alertes_center),
+      businessEvents: rows(c.business_events),
+      auditLogs: rows(c.audit_logs),
+      online,
+      lastOnlineAt,
+      dataMap: decisionDataMap,
+      onNavigate: setActive,
+      onRefreshAll: refreshAll,
+      onFlushOffline: flushOfflineQueue,
+      onCreateTask: c.taches.create,
+      onCreateAlert: c.alertes_center.create,
+      onUpdateAlert: c.alertes_center.update,
+      onCreateBusinessEvent: c.business_events.create,
+      existingTasks: rows(c.taches),
+      existingAlerts: rows(c.alertes_center),
+    },
+    sync: syncActivityProps,
+    sync_activity: syncActivityProps,
   };
 
   if (authLoading) return <div className="min-h-screen bg-[#f6efe2] flex items-center justify-center text-[#2f2415] font-black">Chargement Horizon Farm...</div>;
