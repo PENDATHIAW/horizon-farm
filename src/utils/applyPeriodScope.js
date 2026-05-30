@@ -27,6 +27,7 @@ export const PERIOD_UNFILTERED_PROP_KEYS = new Set([
   'transactionsAll',
   'businessEventsAll',
   'auditLogsAll',
+  'tracabiliteAll',
 ]);
 
 /** Clés de props contenant des enregistrements datés — filtrées globalement. */

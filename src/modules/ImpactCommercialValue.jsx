@@ -19,8 +19,8 @@ export default function ImpactCommercialValue(props) {
   const clients = arr(props.clients);
   const fournisseurs = arr(props.fournisseurs);
   const clientSegmentation = buildClientSegmentation(clients, {
-    sales_orders: props.salesOrders || props.sales_orders || [],
-    payments: props.payments || [],
+    sales_orders: arr(props.salesOrdersAll?.length ? props.salesOrdersAll : (props.salesOrders || props.sales_orders || [])),
+    payments: arr(props.paymentsAll?.length ? props.paymentsAll : (props.payments || [])),
   });
   const supplierSummary = buildSupplierDecisionSummary(fournisseurs, {
     stocks: props.stocks || props.stock || [],

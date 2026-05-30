@@ -7,7 +7,8 @@ import useCrudModule from '../hooks/useCrudModule';
 import { emitHorizonForm } from '../services/formModalManager';
 import { applyOneClickRecommendation, createAlertResolutionTask } from '../services/heyHorizonRecommendationActions.js';
 import { fmtNumber } from '../utils/format';
-import { rowsOf } from '../utils/moduleRows';
+import { allRows, rowsOf } from '../utils/moduleRows';
+import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import { aggregatePriorityQueue, buildActiviteCoherenceRows, buildActiviteHealthSnapshot, countOpenByModule } from './activiteSuivi/activiteSuiviVisionHelpers.js';
 import AlertesCenterV2 from './AlertesCenterV2.jsx';
 import TachesV3 from './TachesV3.jsx';
@@ -140,15 +141,23 @@ export default function ActiviteSuiviRecoveredModule(props) {
   const sensorsCrud = useCrudModule('sensor_devices');
   const whatsappTemplatesCrud = useCrudModule('whatsapp_templates');
   const whatsappLogsCrud = useCrudModule('whatsapp_logs');
-  const alertes = rowsOf(props.alertes, alertsCrud);
-  const tasks = rowsOf(props.taches || props.tasks, tasksCrud);
-  const events = rowsOf(props.businessEvents, eventsCrud);
+  const periodFiltered = Boolean(props.periodFiltered);
+  const alertes = rowsOf(props.alertes, alertsCrud, false);
+  const tasks = rowsOf(props.taches || props.tasks, tasksCrud, false);
+  const eventsAll = allRows(props.businessEventsAll, eventsCrud);
+  const eventsPeriod = rowsOf(props.businessEvents, eventsCrud, periodFiltered);
+  const traceRows = allRows(props.tracabiliteAll, traceCrud).length
+    ? allRows(props.tracabiliteAll, traceCrud)
+    : rowsOf(props.tracabilite, traceCrud, periodFiltered);
+  const auditLogsAll = allRows(props.auditLogsAll, auditCrud).length
+    ? allRows(props.auditLogsAll, auditCrud)
+    : rowsOf(props.auditLogs, auditCrud, periodFiltered);
   const data = useMemo(() => {
     const openAlerts = alertes.filter(isOpen);
     const criticalAlerts = openAlerts.filter(isCriticalAlert);
     const openTasks = tasks.filter(isOpen);
     const lateTasks = tasks.filter(isLate);
-    const healthSnap = buildActiviteHealthSnapshot({ tasks, alertes, businessEvents: events });
+    const healthSnap = buildActiviteHealthSnapshot({ tasks, alertes, businessEvents: eventsAll.length ? eventsAll : eventsPeriod });
     const coherenceRows = buildActiviteCoherenceRows(tasks, alertes);
     const priorityQueue = aggregatePriorityQueue(tasks, alertes);
     const moduleBreakdown = countOpenByModule(alertes, tasks);
@@ -157,7 +166,7 @@ export default function ActiviteSuiviRecoveredModule(props) {
       criticalAlerts,
       openTasks,
       lateTasks,
-      events,
+      events: eventsAll.length ? eventsAll : eventsPeriod,
       healthScore: healthSnap.score,
       healthFindings: healthSnap.findings,
       healthPredictions: healthSnap.predictions,
@@ -165,7 +174,7 @@ export default function ActiviteSuiviRecoveredModule(props) {
       priorityQueue,
       moduleBreakdown,
     };
-  }, [alertes, tasks, events]);
+  }, [alertes, tasks, eventsAll, eventsPeriod]);
   const actionHandlers = {
     onNavigate: props.onNavigate,
     onCreateTask: props.onCreateTask || tasksCrud.create,
@@ -203,7 +212,7 @@ export default function ActiviteSuiviRecoveredModule(props) {
       setBusyId(null);
     }
   };
-  const shared = { ...props, alertes, tasks, rows: tasks, businessEvents: events, events, auditLogs: rowsOf(props.auditLogs, auditCrud), animaux: rowsOf(props.animaux, animalsCrud), lots: rowsOf(props.lots, lotsCrud), avicole: rowsOf(props.lots, lotsCrud), sante: rowsOf(props.sante || props.vaccins, santeCrud), stocks: rowsOf(props.stocks, stockCrud), cultures: rowsOf(props.cultures, culturesCrud), sensorDevices: rowsOf(props.sensorDevices, sensorsCrud), whatsappTemplates: rowsOf(props.whatsappTemplates, whatsappTemplatesCrud), whatsappLogs: rowsOf(props.whatsappLogs, whatsappLogsCrud), onCreate: props.onCreateTask || tasksCrud.create, onUpdate: props.onUpdateTask || tasksCrud.update, onDelete: props.onDeleteTask || tasksCrud.remove, onRefresh: props.onRefreshTasks || tasksCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onUpdateAlert: props.onUpdateAlert || alertsCrud.update, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: props.onNavigate };
+  const shared = { ...props, alertes, tasks, rows: tasks, businessEvents: eventsAll.length ? eventsAll : eventsPeriod, events: eventsAll.length ? eventsAll : eventsPeriod, auditLogs: auditLogsAll, animaux: rowsOf(props.animaux, animalsCrud, false), lots: rowsOf(props.lots, lotsCrud, false), avicole: rowsOf(props.lots, lotsCrud, false), sante: rowsOf(props.sante || props.vaccins, santeCrud, false), stocks: rowsOf(props.stocks, stockCrud, false), cultures: rowsOf(props.cultures, culturesCrud, false), sensorDevices: rowsOf(props.sensorDevices, sensorsCrud, false), whatsappTemplates: rowsOf(props.whatsappTemplates, whatsappTemplatesCrud, false), whatsappLogs: rowsOf(props.whatsappLogs, whatsappLogsCrud, false), onCreate: props.onCreateTask || tasksCrud.create, onUpdate: props.onUpdateTask || tasksCrud.update, onDelete: props.onDeleteTask || tasksCrud.remove, onRefresh: props.onRefreshTasks || tasksCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onUpdateAlert: props.onUpdateAlert || alertsCrud.update, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: props.onNavigate };
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
@@ -212,12 +221,13 @@ export default function ActiviteSuiviRecoveredModule(props) {
             <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Suivi</p>
             <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Activité & Suivi</h1>
             <p className="mt-1 text-sm text-[#8a7456]">Alertes, tâches, traçabilité — cohérence IA priorités et retards.</p>
+            {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
           </div>
           <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div>
         </div>
       </section>
       <Tabs active={tab} onChange={setTab} />
-      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onResolveAlert={resolveAlert} busyId={busyId} /> : tab === 'Alertes' ? <AlertesCenterV2 {...shared} onUpdate={shared.onUpdateAlert} onRefresh={shared.onRefreshAlertes} /> : tab === 'Tâches' ? <TachesV3 {...shared} /> : tab === 'Traçabilité' ? <TracabiliteV2 {...shared} rows={rowsOf(props.tracabilite, traceCrud)} onCreate={props.onCreateTrace || traceCrud.create} onUpdate={props.onUpdateTrace || traceCrud.update} onDelete={props.onDeleteTrace || traceCrud.remove} onRefresh={props.onRefreshTrace || traceCrud.refresh} /> : <ModuleGraphiquesTab moduleId="activite_suivi" taches={tasks} alertes={alertes} onNavigate={props.onNavigate} />}
+      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onResolveAlert={resolveAlert} busyId={busyId} /> : tab === 'Alertes' ? <AlertesCenterV2 {...shared} onUpdate={shared.onUpdateAlert} onRefresh={shared.onRefreshAlertes} /> : tab === 'Tâches' ? <TachesV3 {...shared} /> : tab === 'Traçabilité' ? <TracabiliteV2 {...shared} rows={traceRows} onCreate={props.onCreateTrace || traceCrud.create} onUpdate={props.onUpdateTrace || traceCrud.update} onDelete={props.onDeleteTrace || traceCrud.remove} onRefresh={props.onRefreshTrace || traceCrud.refresh} /> : <ModuleGraphiquesTab moduleId="activite_suivi" taches={tasks} alertes={alertes} onNavigate={props.onNavigate} />}
     </div>
   );
 }
