@@ -42,6 +42,8 @@ const CATEGORY_ACCOUNT_MAP = {
   'Vente animaux': { debit: '572', credit: '701', journal: 'ventes', label: 'Argent encaisse - vente animaux' },
   'Vente oeufs': { debit: '572', credit: '702', journal: 'ventes', label: 'Argent encaisse - vente avicole' },
   'Vente cultures': { debit: '572', credit: '703', journal: 'ventes', label: 'Argent encaisse - vente cultures' },
+  'Creance client': { debit: '411', credit: '707', journal: 'ventes', label: 'Creance client ouverte' },
+  Ventes: { debit: '572', credit: '707', journal: 'ventes', label: 'Argent encaisse - vente' },
   Alimentation: { debit: '601', credit: '572', journal: 'achats', label: 'Depense alimentation validee' },
   Sante: { debit: '602', credit: '572', journal: 'achats', label: 'Depense sante validee' },
   Cultures: { debit: '603', credit: '572', journal: 'achats', label: 'Depense cultures validee' },
@@ -62,11 +64,24 @@ const PAYMENT_TREASURY_MAP = {
   'Carte bancaire': '521',
 };
 
+const lower = (value = '') => String(value || '').trim().toLowerCase();
+
 export const findAccountByCode = (accounts = [], code) => accounts.find((account) => account.code === code);
 
 export const getAccountingMapping = (transaction = {}) => {
-  const categoryMap = CATEGORY_ACCOUNT_MAP[transaction.categorie] || CATEGORY_ACCOUNT_MAP.Autre;
+  const statut = lower(transaction.statut || transaction.status || '');
+  const categorie = transaction.categorie || '';
+  const categoryMap = CATEGORY_ACCOUNT_MAP[categorie] || CATEGORY_ACCOUNT_MAP.Autre;
   const treasuryCode = PAYMENT_TREASURY_MAP[transaction.paiement] || categoryMap.debit;
+
+  if (transaction.type === 'entree' && ['impaye', 'impayé', 'partiel'].includes(statut) && lower(categorie).includes('creance')) {
+    return {
+      debit: '411',
+      credit: categoryMap.credit || '707',
+      journal: 'ventes',
+      label: 'Creance client',
+    };
+  }
 
   if (transaction.type === 'entree') {
     return {

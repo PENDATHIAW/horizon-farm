@@ -58,3 +58,71 @@ export function buildSaleSourcePatch({ sourceType, sourceRow = {}, quantity = 0,
   }
   return null;
 }
+
+/** Annule l'impact inventaire d'une vente supprimée (restitution stock/lot/animal/culture). */
+export function buildReverseSaleSourcePatch({ sourceType, sourceRow = {}, quantity = 0, total = 0 } = {}) {
+  const qty = toNumber(quantity);
+  if (!sourceRow?.id || !sourceType || sourceType === 'autre' || qty <= 0) return null;
+  if (sourceType === 'stock') {
+    return {
+      module: 'stock',
+      id: sourceRow.id,
+      patch: {
+        quantite: toNumber(sourceRow.quantite) + qty,
+        quantity_sold: Math.max(0, toNumber(sourceRow.quantity_sold ?? sourceRow.vendus) - qty),
+        vendus: Math.max(0, toNumber(sourceRow.vendus) - qty),
+        last_sale_id: null,
+        sale_order_id: null,
+      },
+    };
+  }
+  if (sourceType === 'lot_avicole') {
+    const current = toNumber(sourceRow.current_count ?? sourceRow.effectif_actuel ?? sourceRow.active_count ?? sourceRow.initial_count);
+    const next = current + qty;
+    const initial = toNumber(sourceRow.initial_count ?? sourceRow.effectif_initial ?? next);
+    return {
+      module: 'lot_avicole',
+      id: sourceRow.id,
+      patch: {
+        current_count: Math.min(next, initial || next),
+        effectif_actuel: Math.min(next, initial || next),
+        vendus: Math.max(0, toNumber(sourceRow.vendus) - qty),
+        sold_count: Math.max(0, toNumber(sourceRow.sold_count) - qty),
+        status: next >= initial ? 'actif' : 'vendu_partiellement',
+        last_sale_id: null,
+        sale_order_id: null,
+      },
+    };
+  }
+  if (sourceType === 'animal') {
+    return {
+      module: 'animal',
+      id: sourceRow.id,
+      patch: {
+        status: 'actif',
+        statut: 'actif',
+        date_vente: null,
+        sale_price: null,
+        prix_vente_reel: null,
+        last_sale_id: null,
+        sale_order_id: null,
+      },
+    };
+  }
+  if (sourceType === 'culture') {
+    const available = toNumber(sourceRow.quantite_disponible ?? sourceRow.quantite_recoltee);
+    return {
+      module: 'culture',
+      id: sourceRow.id,
+      patch: {
+        quantite_disponible: available + qty,
+        quantity_sold: Math.max(0, toNumber(sourceRow.quantity_sold ?? sourceRow.quantite_vendue) - qty),
+        quantite_vendue: Math.max(0, toNumber(sourceRow.quantite_vendue) - qty),
+        revenu_reel: Math.max(0, toNumber(sourceRow.revenu_reel) - total),
+        last_sale_id: null,
+        sale_order_id: null,
+      },
+    };
+  }
+  return null;
+}

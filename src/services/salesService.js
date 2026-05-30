@@ -22,6 +22,10 @@ const paidStatus = (total, paid) => {
 
 const opportunityClosed = (opp = {}) => /converti|convertie|ferme|fermée|cloture|clôture|commande/.test(lower(opp.status || opp.statut || opp.etat));
 
+/** Évite les doublons finance quand saleSideEffects gère déjà la vente. */
+const sideEffectsManaged = (row = {}) => row.side_effects_managed === true
+  || ['vente_terrain_guidee', 'record_sale_payment', 'sale_side_effects'].includes(lower(row.created_from));
+
 const opportunityMatchesOrder = (opp = {}, order = {}) => {
   const oppId = clean(opp.id);
   const sourceId = clean(opp.source_id || opp.related_id || opp.entity_id);
@@ -181,13 +185,13 @@ export const salesOrdersService = {
   ...rawSalesOrdersService,
   async create(payload) {
     const order = await rawSalesOrdersService.create(normalizeOrderStatus(payload));
-    await syncSalesOrderToFinance(order || payload);
+    if (!sideEffectsManaged(order || payload)) await syncSalesOrderToFinance(order || payload);
     await closeLinkedOpportunity(order || payload);
     return order;
   },
   async update(id, payload) {
     const order = await rawSalesOrdersService.update(id, normalizeOrderStatus({ ...payload, id }));
-    await syncSalesOrderToFinance(order || { ...payload, id });
+    if (!sideEffectsManaged(order || { ...payload, id })) await syncSalesOrderToFinance(order || { ...payload, id });
     await closeLinkedOpportunity(order || { ...payload, id });
     return order;
   },
@@ -217,14 +221,14 @@ export const paymentsService = {
   async create(payload) {
     const normalized = normalizePaymentPayload(payload);
     const payment = await rawPaymentsService.create(normalized);
-    await syncPaymentToFinance(payment || normalized);
+    if (!sideEffectsManaged(normalized)) await syncPaymentToFinance(payment || normalized);
     await refreshOrderPaymentStatus(normalized.order_id || normalized.sale_id || normalized.source_record_id);
     return payment;
   },
   async update(id, payload) {
     const normalized = normalizePaymentPayload({ ...payload, id });
     const payment = await rawPaymentsService.update(id, normalized);
-    await syncPaymentToFinance(payment || normalized);
+    if (!sideEffectsManaged(normalized)) await syncPaymentToFinance(payment || normalized);
     await refreshOrderPaymentStatus(normalized.order_id || normalized.sale_id || normalized.source_record_id);
     return payment;
   },

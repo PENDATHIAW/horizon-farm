@@ -1,0 +1,457 @@
+import { syncFinanceSideEffects, closeOpportunityForOrder, syncSaleTraceFromOrder, resolveSaleTasksOnPayment } from '../services/erpInterconnectionEngine';
+import { getFinanceActivityFromSale, getFinanceCategoryFromSale } from '../services/financeSyncService';
+import { buildClientReminderFollowUp, buildClientSalesSummary } from './clientWorkflows';
+import { buildClientReceivablePatch } from './recordSalePayment';
+import { buildReverseSaleSourcePatch, buildSaleSourcePatch } from './salesWorkflows';
+import { remainingForOrder } from './salesStatuses';
+import { makeId } from './ids';
+import { toNumber } from './format';
+
+const arr = (value) => (Array.isArray(value) ? value : []);
+const num = (value) => toNumber(value);
+const clean = (value) => String(value || '').trim();
+const lower = (value) => clean(value).toLowerCase();
+const today = () => new Date().toISOString().slice(0, 10);
+
+export const financeIds = {
+  paid: (orderId, paymentId = '') => (paymentId ? `TRX-PAY-${paymentId}` : `TRX-SALE-${orderId}`),
+  receivable: (orderId) => `TRX-CREANCE-${orderId}`,
+  alert: (orderId) => `ALT-CREANCE-${orderId}`,
+};
+
+/** Ligne finance créance liée à une commande. */
+export function findReceivableFinanceForOrder(orderId = '', transactions = []) {
+  const target = clean(orderId);
+  return arr(transactions).find((trx) => {
+    const linked = clean(trx.order_id || trx.sale_id || trx.related_id || trx.source_record_id || trx.vente_id);
+    if (linked !== target) return false;
+    const category = lower(`${trx.categorie || ''} ${trx.libelle || ''}`);
+    const status = lower(trx.statut || trx.status || '');
+    return (category.includes('creance') || category.includes('créance') || clean(trx.id) === financeIds.receivable(target))
+      && ['impaye', 'impayé', 'partiel', 'a_payer', 'unpaid'].includes(status);
+  }) || null;
+}
+
+export function buildPaidFinanceRow({
+  orderId,
+  clientId = '',
+  clientLabel = 'Client',
+  amount = 0,
+  date = '',
+  paymentId = '',
+  paymentMethod = 'especes',
+  invoiceId = '',
+  order = {},
+  remaining = 0,
+} = {}) {
+  const value = num(amount);
+  if (value <= 0) return null;
+  return {
+    id: financeIds.paid(orderId, paymentId),
+    type: 'entree',
+    libelle: `${remaining > 0 ? 'Acompte' : 'Encaissement'} ${orderId} - ${clientLabel}`,
+    montant: value,
+    amount: value,
+    date: date || today(),
+    categorie: getFinanceCategoryFromSale(order),
+    activite: getFinanceActivityFromSale(order),
+    module_lie: 'ventes',
+    related_id: orderId,
+    vente_id: orderId,
+    order_id: orderId,
+    client_id: clientId,
+    statut: remaining > 0 ? 'partiel' : 'paye',
+    source_module: 'ventes',
+    source_record_id: orderId,
+    invoice_id: invoiceId || '',
+    payment_id: paymentId || '',
+    moyen_paiement: paymentMethod,
+    transaction_origin: 'automatique',
+    side_effects_managed: true,
+    created_from: 'sale_side_effects',
+  };
+}
+
+export function buildReceivableFinanceRow({
+  orderId,
+  clientId = '',
+  clientLabel = 'Client',
+  amount = 0,
+  date = '',
+  order = {},
+} = {}) {
+  const value = num(amount);
+  if (value <= 0) return null;
+  return {
+    id: financeIds.receivable(orderId),
+    type: 'entree',
+    libelle: `Créance client ${orderId} - ${clientLabel}`,
+    montant: value,
+    amount: value,
+    date: date || today(),
+    categorie: 'Creance client',
+    activite: getFinanceActivityFromSale(order),
+    module_lie: 'ventes',
+    related_id: orderId,
+    vente_id: orderId,
+    order_id: orderId,
+    client_id: clientId,
+    statut: 'impaye',
+    reste_a_payer: value,
+    source_module: 'ventes',
+    source_record_id: orderId,
+    transaction_origin: 'automatique',
+    side_effects_managed: true,
+    created_from: 'sale_side_effects',
+  };
+}
+
+export function buildReceivableAlertRow({ orderId, clientLabel = 'Client', amount = 0, productName = 'Vente' } = {}) {
+  const value = num(amount);
+  if (value <= 0) return null;
+  return {
+    id: financeIds.alert(orderId),
+    title: 'Créance client à suivre',
+    message: `${productName} · ${clientLabel} · reste ${value.toLocaleString('fr-FR')} FCFA`,
+    module_source: 'ventes',
+    entity_type: 'commande',
+    entity_id: orderId,
+    related_id: orderId,
+    severity: 'warning',
+    status: 'nouvelle',
+    action_recommandee: 'Encaisser ou relancer le client depuis Commercial',
+    alert_dedupe_key: `creance-vente-${orderId}`,
+    side_effects_managed: true,
+  };
+}
+
+function resolveSourceRow(sourceType, sourceId, { stocks = [], lots = [], cultures = [], animaux = [] } = {}) {
+  if (!sourceId || sourceType === 'autre') return null;
+  if (sourceType === 'stock') return arr(stocks).find((row) => String(row.id) === String(sourceId)) || null;
+  if (sourceType === 'lot_avicole') return arr(lots).find((row) => String(row.id) === String(sourceId)) || null;
+  if (sourceType === 'culture') return arr(cultures).find((row) => String(row.id) === String(sourceId)) || null;
+  if (sourceType === 'animal') return arr(animaux).find((row) => String(row.id) === String(sourceId)) || null;
+  return null;
+}
+
+/** Décrémente stock / lot / animal / culture vendu. */
+export async function applySourceImpactFromSale({
+  handlers = {},
+  sourceType,
+  sourceId,
+  quantity = 0,
+  total = 0,
+  date = '',
+  orderId = '',
+  clientId = '',
+  saleKind = '',
+  stocks = [],
+  lots = [],
+  cultures = [],
+  animaux = [],
+} = {}) {
+  const sourceRow = resolveSourceRow(sourceType, sourceId, { stocks, lots, cultures, animaux });
+  const patchPlan = buildSaleSourcePatch({
+    sourceType,
+    sourceRow: sourceRow || { id: sourceId },
+    quantity,
+    total,
+    date,
+    orderId,
+    clientId,
+    saleKind,
+  });
+  if (!patchPlan?.id) return null;
+
+  if (patchPlan.module === 'stock') await handlers.onUpdateStock?.(patchPlan.id, patchPlan.patch);
+  if (patchPlan.module === 'lot_avicole') await handlers.onUpdateLot?.(patchPlan.id, patchPlan.patch);
+  if (patchPlan.module === 'animal') await handlers.onUpdateAnimal?.(patchPlan.id, patchPlan.patch);
+  if (patchPlan.module === 'culture') await handlers.onUpdateCulture?.(patchPlan.id, patchPlan.patch);
+  return patchPlan;
+}
+
+/** Restitue stock / lot / animal / culture après suppression vente. */
+export async function reverseSourceImpactFromSale({
+  handlers = {},
+  order = {},
+  stocks = [],
+  lots = [],
+  cultures = [],
+  animaux = [],
+} = {}) {
+  const sourceType = order.source_type;
+  const sourceId = order.source_id;
+  const quantity = num(order.quantity ?? order.quantite);
+  const total = num(order.montant_ht ?? order.montant_total) - num(order.frais_livraison ?? order.delivery_fee);
+  const sourceRow = resolveSourceRow(sourceType, sourceId, { stocks, lots, cultures, animaux });
+  const patchPlan = buildReverseSaleSourcePatch({ sourceType, sourceRow: sourceRow || { id: sourceId }, quantity, total });
+  if (!patchPlan?.id) return null;
+
+  if (patchPlan.module === 'stock') await handlers.onUpdateStock?.(patchPlan.id, patchPlan.patch);
+  if (patchPlan.module === 'lot_avicole') await handlers.onUpdateLot?.(patchPlan.id, patchPlan.patch);
+  if (patchPlan.module === 'animal') await handlers.onUpdateAnimal?.(patchPlan.id, patchPlan.patch);
+  if (patchPlan.module === 'culture') await handlers.onUpdateCulture?.(patchPlan.id, patchPlan.patch);
+  return patchPlan;
+}
+
+async function applyClientReminderIfNeeded({ clientId, clients, salesOrders, payments, handlers, alertes = [] }) {
+  if (!clientId) return null;
+  const client = arr(clients).find((row) => String(row.id) === String(clientId));
+  if (!client) return null;
+  const summary = buildClientSalesSummary(client, salesOrders, payments);
+  const followUp = buildClientReminderFollowUp(client, summary);
+  if (!followUp) return null;
+
+  const alertExists = arr(alertes).some((row) => clean(row.alert_dedupe_key || row.id) === clean(followUp.key) || clean(row.linked_task_id) === clean(followUp.task.id));
+  const taskExists = arr(handlers.existingTasks || []).some((row) => clean(row.task_dedupe_key || row.routine_key) === clean(followUp.key));
+
+  if (!taskExists) await handlers.onCreateTask?.(followUp.task);
+  if (!alertExists) await handlers.onCreateAlert?.(followUp.alert);
+  return followUp;
+}
+
+/** Met à jour le client (créances, totaux, dernière commande). */
+export async function syncClientFromSale({
+  clientId,
+  clients = [],
+  salesOrders = [],
+  payments = [],
+  date = '',
+  handlers = {},
+  alertes = [],
+} = {}) {
+  if (!clientId) return null;
+  const patch = buildClientReceivablePatch(clientId, { clients, salesOrders, payments });
+  if (!patch) return null;
+  const payload = {
+    ...patch,
+    dernier_achat: date || today(),
+    derniere_commande: date || today(),
+    last_order_date: date || today(),
+  };
+  await handlers.onUpdateClient?.(clientId, payload);
+  if (num(patch.reste_a_payer) > 0) {
+    await applyClientReminderIfNeeded({ clientId, clients, salesOrders, payments, handlers, alertes });
+  }
+  return payload;
+}
+
+/** Solde la créance finance quand la vente est encaissée. */
+export async function syncReceivableAfterPayment({
+  sale = {},
+  payments = [],
+  transactions = [],
+  handlers = {},
+} = {}) {
+  const remaining = remainingForOrder(sale, payments);
+  const receivable = findReceivableFinanceForOrder(sale.id, transactions);
+  if (!receivable?.id || !handlers.onUpdateFinanceTransaction) return null;
+  await handlers.onUpdateFinanceTransaction(receivable.id, {
+    statut: remaining <= 0 ? 'paye' : 'partiel',
+    reste_a_payer: Math.max(0, remaining),
+  });
+  if (remaining <= 0 && handlers.onUpdateAlert) {
+    const alertId = financeIds.alert(sale.id);
+    await handlers.onUpdateAlert?.(alertId, { status: 'resolue', statut: 'resolue' });
+  }
+  return { remaining, receivableId: receivable.id };
+}
+
+/** Tâche de livraison si la vente est « à livrer ». */
+export async function ensureDeliveryTask({
+  orderId,
+  productName = 'Vente',
+  clientLabel = 'Client',
+  date = '',
+  fulfillmentMode = '',
+  tasks = [],
+  handlers = {},
+} = {}) {
+  const mode = lower(fulfillmentMode);
+  if (mode !== 'a_livrer' && mode !== 'a livrer') return null;
+  const existing = arr(tasks).find((task) => clean(task.related_id || task.order_id || task.entity_id) === clean(orderId));
+  if (existing?.id) return existing;
+  const task = {
+    id: makeId('TSK'),
+    title: `Livrer ${productName} → ${clientLabel}`,
+    module_lie: 'ventes',
+    related_id: orderId,
+    entity_id: orderId,
+    entity_type: 'commande',
+    due_date: date || today(),
+    priority: 'normale',
+    status: 'a_faire',
+    routine_key: `livraison-vente-${orderId}`,
+    checklist: 'Préparer le produit; confirmer adresse/téléphone; marquer livré dans Commercial.',
+  };
+  await handlers.onCreateTask?.(task);
+  return task;
+}
+
+/**
+ * Effets automatiques après création d'une vente (1 saisie → N modules).
+ * Finance · Client · Stock/Élevage · Tâche livraison · Alerte créance
+ */
+export async function runNewSaleSideEffects({
+  order = {},
+  orderId = '',
+  form = {},
+  paid = 0,
+  remaining = 0,
+  paymentId = '',
+  invoiceId = '',
+  productName = '',
+  clientLabel = 'Client',
+  realClientId = '',
+  selected = null,
+  stocks = [],
+  lots = [],
+  cultures = [],
+  animaux = [],
+  clients = [],
+  salesOrders = [],
+  payments = [],
+  tasks = [],
+  alertes = [],
+  handlers = {},
+} = {}) {
+  const date = form.date || order.date || today();
+  const qty = num(form.quantity ?? order.quantity);
+
+  await applySourceImpactFromSale({
+    handlers,
+    sourceType: form.source_type || order.source_type,
+    sourceId: form.source_id || order.source_id,
+    quantity: qty,
+    total: num(order.montant_ht ?? order.montant_total) - num(order.frais_livraison ?? order.delivery_fee),
+    date,
+    orderId,
+    clientId: realClientId,
+    saleKind: selected?.sale_kind || order.sale_kind,
+    stocks,
+    lots,
+    cultures,
+    animaux,
+  });
+
+  if (paid > 0 && paymentId) {
+    const paidFinance = buildPaidFinanceRow({
+      orderId,
+      clientId: realClientId,
+      clientLabel,
+      amount: paid,
+      date,
+      paymentId,
+      paymentMethod: form.payment_method || order.moyen_paiement,
+      invoiceId,
+      order,
+      remaining,
+    });
+    if (paidFinance) {
+      await handlers.onCreateFinanceTransaction?.(paidFinance);
+      await syncFinanceSideEffects(paidFinance, { handlers });
+    }
+  }
+
+  if (remaining > 0) {
+    const receivableFinance = buildReceivableFinanceRow({
+      orderId,
+      clientId: realClientId,
+      clientLabel,
+      amount: remaining,
+      date,
+      order,
+    });
+    if (receivableFinance) {
+      await handlers.onCreateFinanceTransaction?.(receivableFinance);
+      await syncFinanceSideEffects(receivableFinance, { handlers });
+    }
+
+    const alertRow = buildReceivableAlertRow({ orderId, clientLabel, amount: remaining, productName: productName || order.product_name });
+    const alertExists = arr(alertes).some((row) => clean(row.alert_dedupe_key) === clean(alertRow?.alert_dedupe_key));
+    if (alertRow && !alertExists) await handlers.onCreateAlert?.(alertRow);
+  }
+
+  const nextPayments = paid > 0 && paymentId
+    ? [...arr(payments), { id: paymentId, order_id: orderId, sale_id: orderId, client_id: realClientId, montant: paid, amount: paid, montant_paye: paid }]
+    : arr(payments);
+  const nextOrders = [...arr(salesOrders).filter((row) => String(row.id) !== String(orderId)), order];
+
+  await syncClientFromSale({
+    clientId: realClientId,
+    clients,
+    salesOrders: nextOrders,
+    payments: nextPayments,
+    date,
+    handlers: { ...handlers, existingTasks: tasks },
+    alertes,
+  });
+
+  await ensureDeliveryTask({
+    orderId,
+    productName: productName || order.product_name,
+    clientLabel,
+    date,
+    fulfillmentMode: form.fulfillment_mode || order.fulfillment_mode,
+    tasks,
+    handlers,
+  });
+
+  await closeOpportunityForOrder(order, handlers.opportunities || [], handlers);
+  await syncSaleTraceFromOrder(order, { clientLabel, handlers, existingTraces: handlers.existingTraces || [] });
+
+  return { paidFinance: paid > 0, receivableFinance: remaining > 0, clientSynced: Boolean(realClientId) };
+}
+
+/** Effets après encaissement partiel/total sur vente existante. */
+export async function runPaymentSideEffects({
+  sale = {},
+  payments = [],
+  transactions = [],
+  clients = [],
+  salesOrders = [],
+  alertes = [],
+  tasks = [],
+  handlers = {},
+} = {}) {
+  await syncReceivableAfterPayment({ sale, payments, transactions, handlers });
+  if (sale.client_id) {
+    await syncClientFromSale({
+      clientId: sale.client_id,
+      clients,
+      salesOrders,
+      payments,
+      date: today(),
+      handlers,
+      alertes,
+    });
+  }
+  await resolveSaleTasksOnPayment({ sale, payments, tasks, handlers });
+  const lastPayment = arr(payments).filter((row) => clean(row.order_id || row.sale_id) === clean(sale.id)).slice(-1)[0];
+  if (lastPayment) {
+    const financeRow = arr(transactions).find((row) => clean(row.payment_id) === clean(lastPayment.id))
+      || { id: financeIds.paid(sale.id, lastPayment.id), montant: lastPayment.montant, type: 'entree', categorie: 'Vente', module_lie: 'ventes', date: lastPayment.date_paiement || today(), libelle: `Encaissement ${sale.id}` };
+    await syncFinanceSideEffects(financeRow, { handlers });
+  }
+}
+
+/** Effets après changement de livraison depuis le modal vente. */
+export async function runDeliverySideEffects({
+  sale = {},
+  deliveryStatus = '',
+  productName = '',
+  clientLabel = 'Client',
+  tasks = [],
+  handlers = {},
+} = {}) {
+  if (lower(deliveryStatus) === 'livre' || lower(deliveryStatus) === 'recupere') return null;
+  return ensureDeliveryTask({
+    orderId: sale.id,
+    productName: productName || sale.product_name,
+    clientLabel,
+    date: sale.date || sale.date_commande || today(),
+    fulfillmentMode: deliveryStatus || sale.fulfillment_mode,
+    tasks,
+    handlers,
+  });
+}

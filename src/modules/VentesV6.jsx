@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import toast from 'react-hot-toast';
+import { fmtCurrency } from '../utils/format';
 import { paidForOrder, remainingForOrder } from '../utils/salesStatuses';
 import { recordSalePayment } from '../utils/recordSalePayment';
 import VentesV4 from './VentesV4.jsx';
@@ -67,6 +68,7 @@ export default function VentesV6(props) {
       toast.success('Encaissement déjà enregistré — aucun doublon créé.');
       return result.payment;
     }
+    void props.onRefreshWorkflow?.();
     return result;
   };
 

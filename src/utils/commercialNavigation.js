@@ -1,3 +1,5 @@
+import { ROUTE_TO_MODULE } from '../config/modules.config.js';
+
 const lower = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 /** Module Horizon à ouvrir selon la source d'une vente / coût. */
@@ -21,6 +23,8 @@ export function moduleForSaleSource(order = {}) {
 
 export const ELEVAGE_TABS = ['Résumé', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Graphiques'];
 export const ACHATS_STOCK_TABS = ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Graphiques'];
+export const COMMERCIAL_TABS = ['Résumé', 'Ventes', 'Clients', 'Opportunités', 'Graphiques'];
+export const FINANCE_TABS = ['Résumé', 'Trésorerie', 'Créances', 'Dettes', 'Investissements', 'Rentabilité', 'Graphiques'];
 
 const tabAliases = {
   avicole: 'Avicole',
@@ -29,6 +33,17 @@ const tabAliases = {
   achats: 'Achats',
   fournisseurs: 'Fournisseurs',
   mouvements: 'Mouvements',
+  ventes: 'Ventes',
+  clients: 'Clients',
+  opportunites: 'Opportunités',
+  opportunities: 'Opportunités',
+  graphiques: 'Graphiques',
+  resume: 'Résumé',
+  creances: 'Créances',
+  dettes: 'Dettes',
+  tresorerie: 'Trésorerie',
+  investissements: 'Investissements',
+  rentabilite: 'Rentabilité',
 };
 
 export function resolveElevageTab(value = '') {
@@ -43,9 +58,114 @@ export function resolveAchatsStockTab(value = '') {
   return tabAliases[lower(tab)] || 'Résumé';
 }
 
-export const COMMERCIAL_TABS = ['Résumé', 'Ventes', 'Clients', 'Opportunités', 'Graphiques'];
-
 export function resolveCommercialTab(value = '') {
   const tab = String(value || '').trim();
-  return COMMERCIAL_TABS.includes(tab) ? tab : 'Résumé';
+  if (COMMERCIAL_TABS.includes(tab)) return tab;
+  return tabAliases[lower(tab)] || 'Résumé';
+}
+
+export function resolveFinanceTab(value = '') {
+  const tab = String(value || '').trim();
+  if (FINANCE_TABS.includes(tab)) return tab;
+  return tabAliases[lower(tab)] || 'Résumé';
+}
+
+/** Résout un identifiant legacy (ventes, finances, stock…) vers le grand module ERP. */
+export function resolveRouteModule(moduleId = '') {
+  return ROUTE_TO_MODULE[moduleId] || moduleId;
+}
+
+/** Onglet par défaut quand on entre via un alias legacy. */
+export function defaultTabForLegacyModule(moduleId = '') {
+  if (moduleId === 'clients') return 'Clients';
+  if (moduleId === 'ventes' || moduleId === 'sales_orders') return 'Ventes';
+  if (moduleId === 'sales_opportunities') return 'Opportunités';
+  if (moduleId === 'animaux') return 'Animaux';
+  if (moduleId === 'avicole') return 'Avicole';
+  if (moduleId === 'sante') return 'Santé';
+  if (moduleId === 'stock') return 'Stock';
+  if (moduleId === 'fournisseurs') return 'Fournisseurs';
+  if (moduleId === 'finances') return 'Trésorerie';
+  if (moduleId === 'investissements') return 'Investissements';
+  if (moduleId === 'payments') return 'Créances';
+  if (moduleId === 'invoices' || moduleId === 'deliveries') return 'Ventes';
+  return null;
+}
+
+const SEARCH_KEY_TO_MODULE = {
+  sales_orders: { module: 'commercial', tab: 'Ventes' },
+  sales_order_items: { module: 'commercial', tab: 'Ventes' },
+  sales_opportunities: { module: 'commercial', tab: 'Opportunités' },
+  invoices: { module: 'commercial', tab: 'Ventes' },
+  deliveries: { module: 'commercial', tab: 'Ventes' },
+  clients: { module: 'commercial', tab: 'Clients' },
+  payments: { module: 'finance_pilotage', tab: 'Créances' },
+  finances: { module: 'finance_pilotage', tab: 'Trésorerie' },
+  stock: { module: 'achats_stock', tab: 'Stock' },
+  fournisseurs: { module: 'achats_stock', tab: 'Fournisseurs' },
+  animaux: { module: 'elevage', tab: 'Animaux' },
+  avicole: { module: 'elevage', tab: 'Avicole' },
+  sante: { module: 'elevage', tab: 'Santé' },
+  alimentation_logs: { module: 'achats_stock', tab: 'Mouvements' },
+  taches: { module: 'activite_suivi', tab: null },
+  alertes_center: { module: 'activite_suivi', tab: null },
+  documents: { module: 'documents_rapports', tab: null },
+  rapports: { module: 'documents_rapports', tab: null },
+  investissements: { module: 'finance_pilotage', tab: 'Investissements' },
+  business_plans: { module: 'objectifs_croissance', tab: null },
+};
+
+/** Cible de navigation pour un résultat de recherche ERP (clé dataMap). */
+export function resolveSearchNavigation(moduleKey = '') {
+  const mapped = SEARCH_KEY_TO_MODULE[moduleKey];
+  if (mapped) return mapped;
+  const module = resolveRouteModule(moduleKey);
+  const tab = defaultTabForLegacyModule(moduleKey);
+  return { module, tab };
+}
+
+/** Module + onglet pour une recommandation IA / finding ERP. */
+export function navigationOptionsForFinding(finding = {}) {
+  const rawModule = finding.module || finding.module_target || 'objectifs_croissance';
+  const module = resolveRouteModule(rawModule);
+  const explicitTab = finding.tab || finding.commercial_tab || finding.finance_tab;
+
+  if (module === 'commercial') {
+    const tab = explicitTab
+      || (String(finding.title || '').toLowerCase().includes('relancer') ? 'Clients' : 'Ventes');
+    return { module, tab: resolveCommercialTab(tab) };
+  }
+  if (module === 'finance_pilotage') {
+    return { module, tab: resolveFinanceTab(explicitTab || defaultTabForLegacyModule(rawModule) || 'Créances') };
+  }
+  if (module === 'elevage') {
+    return { module, tab: resolveElevageTab(explicitTab || defaultTabForLegacyModule(rawModule) || 'Résumé') };
+  }
+  if (module === 'achats_stock') {
+    return { module, tab: resolveAchatsStockTab(explicitTab || defaultTabForLegacyModule(rawModule) || 'Résumé') };
+  }
+  return { module, tab: explicitTab || null };
+}
+
+/** Bouton « Voir » dans un panneau IA multi-modules. */
+export function navigateForIaFinding(finding = {}, onNavigate) {
+  if (!onNavigate) return;
+  const module = resolveRouteModule(finding.module || '');
+  if (module === 'commercial') {
+    onNavigate('commercial', { tab: resolveCommercialTab(finding.tab || 'Ventes') });
+    return;
+  }
+  if (module === 'finance_pilotage') {
+    onNavigate('finance_pilotage', { tab: resolveFinanceTab(finding.tab || 'Créances') });
+    return;
+  }
+  if (module === 'achats_stock') {
+    onNavigate('achats_stock', { tab: resolveAchatsStockTab(finding.tab || 'Stock') });
+    return;
+  }
+  if (module === 'elevage') {
+    onNavigate('elevage', { tab: resolveElevageTab(finding.tab || 'Résumé') });
+    return;
+  }
+  onNavigate(module || 'elevage');
 }

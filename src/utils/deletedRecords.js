@@ -1,3 +1,5 @@
+import { safeLocalStorageSetJson } from './safeLocalStorage';
+
 const tombstoneKey = (moduleKey) => `horizon_farm_deleted_ids:${moduleKey}`;
 const tombstoneMetaKey = (moduleKey) => `horizon_farm_deleted_records:${moduleKey}`;
 
@@ -13,7 +15,13 @@ function safeReadJson(key, fallback) {
 
 function safeWriteJson(key, value) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(key, JSON.stringify(value));
+  const payload = Array.isArray(value) ? value.slice(-500) : value;
+  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    const entries = Object.entries(payload).slice(-120);
+    safeLocalStorageSetJson(key, Object.fromEntries(entries));
+    return;
+  }
+  safeLocalStorageSetJson(key, payload);
 }
 
 export function readDeletedIds(moduleKey) {

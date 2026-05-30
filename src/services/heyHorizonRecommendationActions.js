@@ -1,4 +1,5 @@
 import { applyErpHealthAutoActions } from './erpHealthAutoActions.js';
+import { navigationOptionsForFinding } from '../utils/commercialNavigation';
 
 /** Action one-click depuis Hey Horizon : navigation, tâche ou alerte selon finding.auto_action. */
 export async function applyOneClickRecommendation(finding, handlers = {}) {
@@ -32,8 +33,9 @@ export async function applyOneClickRecommendation(finding, handlers = {}) {
     return { ok: true, ...result, action: finding.auto_action };
   }
 
-  onNavigate?.(finding.module || finding.module_target || 'objectifs_croissance');
-  return { ok: true, navigated: true };
+  const target = navigationOptionsForFinding(finding);
+  onNavigate?.(target.module, target.tab ? { tab: target.tab } : {});
+  return { ok: true, navigated: true, module: target.module, tab: target.tab };
 }
 
 /** Crée une tâche maintenance pour un équipement à risque. */

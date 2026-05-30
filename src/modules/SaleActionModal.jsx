@@ -5,6 +5,7 @@ import { fmtCurrency } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { findInvoicesForOrder } from '../services/salesIntegrityService';
 import { recordSalePayment } from '../utils/recordSalePayment';
+import { runDeliverySideEffects } from '../utils/saleSideEffects';
 import { paidForOrder, remainingForOrder } from '../utils/salesStatuses';
 import { saleQuantityDetail, deliveryModeNeedsFee, deliveryFeeOf } from '../utils/saleQuantityLabel';
 
@@ -69,13 +70,14 @@ export default function SaleActionModal({ sale, payments, props, onClose, initia
           handlers: {
             onCreatePayment: props.onCreatePayment,
             onCreateFinanceTransaction: props.onCreateFinanceTransaction,
+            onUpdateFinanceTransaction: props.onUpdateFinanceTransaction,
             onUpdateOrder: props.onUpdate,
             onUpdateClient: props.onUpdateClient,
-            onRefresh: props.onRefresh,
-            onRefreshPayments: props.onRefreshPayments,
-            onRefreshFinances: props.onRefreshFinances,
-            onRefreshClients: props.onRefreshClients,
+            onUpdateAlert: props.onUpdateAlert,
+            onUpdateTask: props.onUpdateTask,
           },
+          alertes: props.alertes || [],
+          tasks: props.tasks || props.existingTasks || [],
         });
         if (result?.skipped && result.reason === 'over_payment') {
           toast.error(`Maximum encaissable : ${fmtCurrency(result.remaining)}`);
@@ -92,6 +94,7 @@ export default function SaleActionModal({ sale, payments, props, onClose, initia
           return;
         }
         toast.success(`Encaissement enregistré : ${fmtCurrency(result.amount)}`);
+        void props.onRefreshWorkflow?.();
         onClose?.();
         return;
       }
@@ -105,6 +108,14 @@ export default function SaleActionModal({ sale, payments, props, onClose, initia
           await props.onCreateDelivery?.({ id: makeId('LIV'), order_id: sale.id, date_livraison: today(), statut: delivery, status: delivery, frais_livraison: fee, delivery_fee: fee, destinataire: client });
         }
         await props.onUpdate?.(sale.id, { statut_livraison: delivery, statut_commande: remainingOf(sale, payments) <= 0 && delivery !== 'a_livrer' ? 'livre' : 'ouvert', frais_livraison: fee, delivery_fee: fee, montant_total: fee > 0 || num(sale.frais_livraison) ? newTotal : totalOf(sale), reste_a_payer: Math.max(0, (fee > 0 || num(sale.frais_livraison) ? newTotal : totalOf(sale)) - paidOf(sale, payments)) });
+        await runDeliverySideEffects({
+          sale: { ...sale, fulfillment_mode: delivery },
+          deliveryStatus: delivery,
+          productName: product,
+          clientLabel: client,
+          tasks: props.tasks || props.existingTasks || [],
+          handlers: { onCreateTask: props.onCreateTask },
+        });
       }
       if (mode === 'invoice') {
         const invoices = props.invoicesList || props.invoices || [];
@@ -124,6 +135,7 @@ export default function SaleActionModal({ sale, payments, props, onClose, initia
       }
       if (mode === 'close') await props.onUpdate?.(sale.id, { statut_commande: 'cloture', closed_at: new Date().toISOString() });
       await props.onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: `vente_${mode}`, module_source: 'ventes', entity_type: 'commande', entity_id: sale.id, title: `Vente ${sale.id} · ${mode}`, description: product || sale.product_name || '', event_date: today(), severity: 'info' });
+      void props.onRefreshWorkflow?.();
       toast.success('Vente mise à jour');
       onClose?.();
     } catch (error) { toast.error(error.message || 'Action vente impossible'); } finally { setSaving(false); }

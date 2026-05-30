@@ -9,7 +9,7 @@ import { emitHorizonForm } from '../services/formModalManager';
 import { applyOneClickRecommendation, createSupplierFollowUpTask } from '../services/heyHorizonRecommendationActions.js';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { aggregateSupplierDebts, buildAchatsStockCoherenceRows, buildAchatsStockHealthSnapshot } from './achatsStock/achatsStockVisionHelpers.js';
-import { resolveAchatsStockTab } from '../utils/commercialNavigation';
+import { resolveAchatsStockTab, navigateForIaFinding } from '../utils/commercialNavigation';
 import StocksV5 from './StocksV5';
 import FournisseursReadable from './FournisseursReadable';
 
@@ -46,7 +46,8 @@ function StockIaPanel({ findings = [], predictions = [], onApply, busyId, onNavi
           <div key={f.id} className="flex flex-col gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 sm:flex-row sm:items-center sm:justify-between">
             <div><b className="text-sm text-[#2f2415]">{f.title}</b><p className="text-xs text-amber-800">{f.recommended_action || f.description}</p></div>
             <div className="flex gap-2">
-              <button type="button" onClick={() => onNavigate?.('finance_pilotage')} className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-xs font-black">Finance</button>
+              <button type="button" onClick={() => navigateForIaFinding(f, onNavigate)} className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-xs font-black">Voir</button>
+              <button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-xs font-black">Commercial</button>
               <button type="button" disabled={busyId === f.id} onClick={() => onApply?.(f)} className="rounded-lg bg-[#22c55e] px-2 py-1 text-xs font-black text-[#052e16] disabled:opacity-50">{busyId === f.id ? '…' : f.auto_action === 'create_task' ? 'Créer tâche' : f.auto_action === 'create_alert' ? 'Créer alerte' : 'Appliquer'}</button>
             </div>
           </div>
@@ -180,6 +181,7 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate }) {
           <button type="button" onClick={() => setTab('Stock')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Stock</b><p className="mt-1 text-sm text-[#8a7456]">Entrée, sortie, perte, alimentation.</p></button>
           <button type="button" onClick={() => setTab('Fournisseurs')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Fournisseurs</b><p className="mt-1 text-sm text-[#8a7456]">Dettes, documents, risques.</p></button>
           <button type="button" onClick={() => setTab('Mouvements')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Mouvements</b><p className="mt-1 text-sm text-[#8a7456]">Historique aliment & stock.</p></button>
+          <button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">Commercial</b><p className="mt-1 text-sm text-[#8a7456]">Vendre stock / opportunités détectées.</p></button>
         </div>
       </Section>
     </div>

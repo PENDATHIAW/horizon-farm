@@ -11,6 +11,7 @@ import { interpretHorizonCommand, parseConversationControl, updateHorizonDraft }
 import { detectStrategicQuery, buildStrategicAnswer } from '../services/heyHorizonStrategicAnswers.js';
 import { interpretVoiceCommand } from '../services/voiceCommands';
 import { searchERP } from '../services/globalSearchService';
+import { resolveSearchNavigation } from '../utils/commercialNavigation';
 
 const moduleLabel = (key = '') => ({
   dashboard: 'Accueil', assistant_erp: 'Assistant ERP', objectifs_croissance: 'Vision & Croissance',
@@ -18,6 +19,7 @@ const moduleLabel = (key = '') => ({
   finance_pilotage: 'Finance & Pilotage', activite_suivi: 'Activité & Suivi',
   documents_rapports: 'Documents & Rapports', rh: 'Opérations & Ressources',
   ventes: 'Commercial', finances: 'Finance & Pilotage', clients: 'Commercial', stock: 'Achats & Stock',
+  sales_orders: 'Commercial', sales_opportunities: 'Commercial', payments: 'Finance & Pilotage',
   sante: 'Élevage', avicole: 'Élevage', animaux: 'Élevage', cultures: 'Cultures',
   documents: 'Documents & Rapports', taches: 'Activité & Suivi', alertes: 'Activité & Suivi',
   sync_activity: 'Vérifications', impact_business: 'Impact & Valeur', fournisseurs: 'Achats & Stock',
@@ -211,7 +213,7 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
         <HorizonDraftPanel draft={draft} onChangeField={updateDraftField} onValidate={validateDraft} onCancel={() => cancelDraft()} onOpenModule={onNavigate} />
         {messages.slice(-5).map((message, index) => <div key={`${message.role}-${index}`} className={`rounded-2xl px-3 py-2 text-sm leading-relaxed ${message.role === 'assistant' ? 'bg-[#fffdf8] border border-[#eadcc2] text-[#7d6a4a]' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-700'}`}>{message.text}</div>)}
         {isThinking || isValidating ? <div className="rounded-2xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs font-bold text-amber-700">{isValidating ? 'Horizon valide et rafraîchit les modules...' : 'Horizon comprend la demande...'}</div> : null}
-        {results.length > 0 && !draft && query.trim() ? <div className="space-y-2"><p className="text-[11px] uppercase tracking-widest text-[#8a7456] font-bold">Résultats ERP</p>{results.map((result) => <button key={`${result.moduleKey}-${result.id}`} type="button" onClick={() => { onNavigate?.(result.moduleKey); toast.success(`Ouverture ${moduleLabel(result.moduleKey)}`); }} className="w-full text-left bg-[#fffdf8] border border-[#d6c3a0] rounded-xl p-2 hover:border-emerald-500 transition-colors"><div className="text-sm font-semibold text-[#2f2415]">{result.title}</div><div className="text-xs text-[#8a7456]">{moduleLabel(result.moduleKey)} · {result.subtitle}</div></button>)}</div> : null}
+        {results.length > 0 && !draft && query.trim() ? <div className="space-y-2"><p className="text-[11px] uppercase tracking-widest text-[#8a7456] font-bold">Résultats ERP</p>{results.map((result) => { const target = resolveSearchNavigation(result.moduleKey); return <button key={`${result.moduleKey}-${result.id}`} type="button" onClick={() => { onNavigate?.(target.module, target.tab ? { tab: target.tab } : {}); toast.success(`Ouverture ${moduleLabel(target.module)}`); }} className="w-full text-left bg-[#fffdf8] border border-[#d6c3a0] rounded-xl p-2 hover:border-emerald-500 transition-colors"><div className="text-sm font-semibold text-[#2f2415]">{result.title}</div><div className="text-xs text-[#8a7456]">{moduleLabel(target.module)} · {result.subtitle}</div></button>; })}</div> : null}
       </div>
     </aside> : null}
   </>;

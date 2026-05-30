@@ -4,6 +4,7 @@ import { toNumber } from './format';
 import { buildCoherentOrderPatch, findExistingFinanceForPayment, findExistingPayment } from '../services/salesIntegrityService';
 import { remainingForOrder } from './salesStatuses';
 import { capSalePayment } from './salesWorkflows';
+import { financeIds, runPaymentSideEffects } from './saleSideEffects';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value = '') => String(value || '').trim();
@@ -41,13 +42,18 @@ export async function recordSalePayment({
   paymentMethod = 'especes',
   paymentDate = '',
   paymentId = '',
+  alertes = [],
+  tasks = [],
   handlers = {},
 } = {}) {
   const {
     onCreatePayment,
     onCreateFinanceTransaction,
+    onUpdateFinanceTransaction,
     onUpdateOrder,
     onUpdateClient,
+    onUpdateAlert,
+    onUpdateTask,
   } = handlers;
 
   const remaining = remainingForOrder(sale, payments);
@@ -105,6 +111,8 @@ export async function recordSalePayment({
     moyen_paiement: paymentMethod,
     mode_paiement: paymentMethod,
     statut: 'paye',
+    created_from: 'record_sale_payment',
+    side_effects_managed: true,
   };
 
   await onCreatePayment?.(paymentRow);
@@ -122,7 +130,7 @@ export async function recordSalePayment({
 
   if (!existingFinance && onCreateFinanceTransaction) {
     await onCreateFinanceTransaction({
-      id: makeId('TRX'),
+      id: financeIds.paid(sale.id, payId),
       type: 'entree',
       libelle: `Encaissement ${sale.id} - ${sale.client_label || sale.client_name || 'Client'}`,
       montant: cappedAmount,
@@ -131,6 +139,7 @@ export async function recordSalePayment({
       module_lie: 'ventes',
       related_id: sale.id,
       vente_id: sale.id,
+      order_id: sale.id,
       client_id: sale.client_id || '',
       statut: 'paye',
       source_module: 'ventes',
@@ -139,15 +148,23 @@ export async function recordSalePayment({
       payment_id: payId,
       moyen_paiement: paymentMethod,
       transaction_origin: 'automatique',
+      created_from: 'record_sale_payment',
+      side_effects_managed: true,
     });
   }
 
   await onUpdateOrder?.(sale.id, buildCoherentOrderPatch(sale, nextPayments, {}));
 
-  if (sale.client_id) {
-    const clientPatch = buildClientReceivablePatch(sale.client_id, { clients, salesOrders, payments: nextPayments });
-    if (clientPatch) await onUpdateClient?.(sale.client_id, clientPatch);
-  }
+  await runPaymentSideEffects({
+    sale,
+    payments: nextPayments,
+    transactions,
+    clients,
+    salesOrders,
+    alertes,
+    tasks,
+    handlers: { onUpdateFinanceTransaction, onUpdateClient, onUpdateAlert, onUpdateTask: handlers.onUpdateTask },
+  });
 
   return { paymentId: payId, amount: cappedAmount, remaining: Math.max(0, remaining - cappedAmount), requested, skipped: false };
 }

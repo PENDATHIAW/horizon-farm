@@ -5,8 +5,10 @@ import { scheduleErpHealthEngine, scheduleErpHealthOnCriticalChange } from './se
 import { trackNavOpen } from './services/erpRules/surveillanceUxRules.js';
 import { composeActionTraceShared, composeDecisionDataMap, composeInternalResources, composeReportData } from './services/moduleDataComposer';
 import { refreshAllModules, refreshSalesWorkflow } from './services/workflowRefresh';
-import { resolveCommercialTab, resolveElevageTab, resolveAchatsStockTab } from './utils/commercialNavigation';
+import { resolveCommercialTab, resolveElevageTab, resolveAchatsStockTab, resolveFinanceTab, resolveRouteModule, defaultTabForLegacyModule } from './utils/commercialNavigation';
+import { pruneHeavyLocalStorage } from './utils/safeLocalStorage';
 import AppNotificationManager from './components/AppNotificationManager';
+import ErpInterconnectionBridge from './components/ErpInterconnectionBridge';
 import AssistantPanel from './components/AssistantPanel';
 import ErrorBoundary from './components/ErrorBoundary';
 import { Sun } from 'lucide-react';
@@ -34,25 +36,37 @@ export default function App() {
   const [commercialTab, setCommercialTab] = useState('Résumé');
   const [elevageTab, setElevageTab] = useState('Résumé');
   const [achatsStockTab, setAchatsStockTab] = useState('Résumé');
+  const [financeTab, setFinanceTab] = useState('Résumé');
   const navigateModule = useCallback((moduleId, options = {}) => {
-    const tab = options?.tab || options?.commercialTab || options?.elevageTab || options?.achatsStockTab;
-    if (moduleId === 'ventes') {
-      setCommercialTab(resolveCommercialTab(tab || 'Ventes'));
+    const tab = options?.tab || options?.commercialTab || options?.elevageTab || options?.achatsStockTab || options?.financeTab;
+    const resolved = resolveRouteModule(moduleId);
+
+    if (resolved === 'commercial') {
+      setCommercialTab(resolveCommercialTab(tab || defaultTabForLegacyModule(moduleId) || 'Résumé'));
       trackNavOpen('commercial');
       setActiveState('commercial');
       return;
     }
-    if (moduleId === 'clients') {
-      setCommercialTab(resolveCommercialTab(tab || 'Clients'));
-      trackNavOpen('commercial');
-      setActiveState('commercial');
+    if (resolved === 'elevage') {
+      setElevageTab(resolveElevageTab(tab || defaultTabForLegacyModule(moduleId) || 'Résumé'));
+      trackNavOpen('elevage');
+      setActiveState('elevage');
       return;
     }
-    if (moduleId === 'commercial' && tab) setCommercialTab(resolveCommercialTab(tab));
-    if (moduleId === 'elevage' && tab) setElevageTab(resolveElevageTab(tab));
-    if (moduleId === 'achats_stock' && tab) setAchatsStockTab(resolveAchatsStockTab(tab));
-    trackNavOpen(moduleId);
-    setActiveState(moduleId);
+    if (resolved === 'achats_stock') {
+      setAchatsStockTab(resolveAchatsStockTab(tab || defaultTabForLegacyModule(moduleId) || 'Résumé'));
+      trackNavOpen('achats_stock');
+      setActiveState('achats_stock');
+      return;
+    }
+    if (resolved === 'finance_pilotage') {
+      setFinanceTab(resolveFinanceTab(tab || defaultTabForLegacyModule(moduleId) || 'Résumé'));
+      trackNavOpen('finance_pilotage');
+      setActiveState('finance_pilotage');
+      return;
+    }
+    trackNavOpen(resolved);
+    setActiveState(resolved);
   }, []);
   const setActive = navigateModule;
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -88,6 +102,8 @@ export default function App() {
     60 * 60 * 1000,
     healthAutoActions,
   ), [decisionDataMap, healthAutoActions]);
+
+  useEffect(() => { pruneHeavyLocalStorage(); }, []);
 
   useEffect(() => {
     const trigger = scheduleErpHealthOnCriticalChange(() => decisionDataMap, null, healthAutoActions);
@@ -184,12 +200,22 @@ export default function App() {
       onDeleteOpportunity: c.sales_opportunities.remove,
       onRefreshOpportunities: c.sales_opportunities.refresh,
       onCreateTask: c.taches.create,
+      onDeleteTask: c.taches.remove,
+      onUpdateTask: c.taches.update,
       onCreateAlert: c.alertes_center.create,
       onUpdateAlert: c.alertes_center.update,
+      onDeleteAlert: c.alertes_center.remove,
+      onCreateFinanceTransaction: c.finances.create,
+      onUpdateFinanceTransaction: c.finances.update,
+      onDeleteFinanceTransaction: c.finances.remove,
       onCreateBusinessEvent: c.business_events.create,
       onRefreshTasks: c.taches.refresh,
       onRefreshAlertes: c.alertes_center.refresh,
       existingTasks: rows(c.taches),
+      tracabilite: rows(c.tracabilite),
+      onCreateTrace: c.tracabilite.create,
+      onUpdateTrace: c.tracabilite.update,
+      onRefreshTrace: c.tracabilite.refresh,
       existingAlerts: rows(c.alertes_center),
     },
     achats_stock: {
@@ -216,6 +242,7 @@ export default function App() {
       existingAlerts: rows(c.alertes_center),
     },
     finance_pilotage: {
+      initialTab: financeTab,
       transactions: rows(c.finances),
       finances: rows(c.finances),
       documents: rows(c.documents),
@@ -229,7 +256,7 @@ export default function App() {
       fournisseurs: rows(c.fournisseurs),
       clients: rows(c.clients),
       stocks: rows(c.stock),
-      onNavigate: setActive,
+      onNavigate: navigateModule,
       onCreateTask: c.taches.create,
       onCreateAlert: c.alertes_center.create,
       onUpdateAlert: c.alertes_center.update,
@@ -355,6 +382,7 @@ export default function App() {
     <ErrorBoundary title="Module indisponible"><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...(moduleProps[active] || {})} /></Suspense></ErrorBoundary>
     {!assistantOpen ? <button type="button" onClick={() => setAssistantOpen(true)} className="fixed right-4 top-[76px] z-40 flex items-center gap-2 rounded-full border border-amber-200 bg-[#fff8dc] px-3 py-2 text-xs font-black text-[#7a4f08] shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all max-md:top-auto max-md:right-4 max-md:bottom-[96px]" aria-label="Ouvrir Hey Horizon"><span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-amber-300 text-[#2f2415]"><Sun size={18} /><span className="absolute inset-[-5px] rounded-full border border-amber-300/70 animate-ping" /></span><span className="hidden sm:inline">Hey Horizon</span></button> : null}
     <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={dataMap} onNavigate={setActive} />
+    <ErpInterconnectionBridge cruds={c} />
     <AppNotificationManager />
   </AppLayout>;
 }

@@ -100,7 +100,10 @@ export default function CommercialInsightPanel({
               key={link.key}
               type="button"
               title={link.hint}
-              onClick={() => onNavigate?.(link.key)}
+              onClick={() => {
+                if (link.key === 'finance_pilotage') onNavigate?.('finance_pilotage', { tab: 'Créances' });
+                else onNavigate?.(link.key);
+              }}
               className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-left hover:border-[#c9a96a]"
             >
               <span className="text-xs font-black text-[#2f2415]">{link.label}</span>

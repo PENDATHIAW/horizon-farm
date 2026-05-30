@@ -55,17 +55,19 @@ async function settleOrder(order, props, linkedPayments) {
     handlers: {
       onCreatePayment: props.onCreatePayment,
       onCreateFinanceTransaction: props.onCreateFinanceTransaction,
+      onUpdateFinanceTransaction: props.onUpdateFinanceTransaction,
       onUpdateOrder: props.onUpdate,
       onUpdateClient: props.onUpdateClient,
-      onRefresh: props.onRefresh,
-      onRefreshPayments: props.onRefreshPayments,
-      onRefreshFinances: props.onRefreshFinances,
-      onRefreshClients: props.onRefreshClients,
+      onUpdateAlert: props.onUpdateAlert,
+      onUpdateTask: props.onUpdateTask,
     },
+    alertes: props.alertes || [],
+    tasks: props.tasks || props.existingTasks || [],
   });
   if (result?.skipped && result.reason === 'duplicate_payment') toast.success('Encaissement déjà enregistré');
   else if (result?.skipped && result.reason === 'over_payment') toast.error(`Maximum encaissable : ${fmtCurrency(result.remaining)}`);
   else toast.success('Vente encaissée');
+  void props.onRefreshWorkflow?.();
 }
 
 async function markDelivered(order, props) {
@@ -86,11 +88,25 @@ async function deleteOrder(order, props) {
       deliveries: props.deliveriesList || props.deliveries || [],
       documents: props.documents || props.documentsList || [],
       transactions: props.transactions || [],
+      tasks: props.tasks || props.existingTasks || [],
+      salesOrders: props.rows || [],
+      clients: props.clients || [],
+      stocks: props.stocks || [],
+      lots: props.lots || [],
+      cultures: props.cultures || [],
+      animaux: props.animaux || [],
       onDeletePayment: props.onDeletePayment,
       onDeleteInvoice: props.onDeleteInvoice,
       onDeleteDelivery: props.onDeleteDelivery,
       onDeleteDocument: props.onDeleteDocument,
       onDeleteFinanceTransaction: props.onDeleteFinanceTransaction || props.onDeleteTransaction,
+      onDeleteTask: props.onDeleteTask,
+      onDeleteAlert: props.onDeleteAlert,
+      onUpdateStock: props.onUpdateStock,
+      onUpdateLot: props.onUpdateLot,
+      onUpdateAnimal: props.onUpdateAnimal,
+      onUpdateCulture: props.onUpdateCulture,
+      onUpdateClient: props.onUpdateClient,
       onDeleteOrder: props.onDelete,
       onRefresh: props.onRefresh,
       onRefreshPayments: props.onRefreshPayments,
@@ -98,6 +114,9 @@ async function deleteOrder(order, props) {
       onRefreshDeliveries: props.onRefreshDeliveries,
       onRefreshFinances: props.onRefreshFinances,
       onRefreshDocuments: props.onRefreshDocuments,
+      onRefreshClients: props.onRefreshClients,
+      onRefreshTasks: props.onRefreshTasks,
+      onRefreshAlertes: props.onRefreshAlertes,
     });
     toast.success(`Vente supprimée (${result.removed.payments} paiement(s), ${result.removed.invoices} facture(s))`);
   } catch (error) {

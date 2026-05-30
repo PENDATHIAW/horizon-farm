@@ -1,5 +1,5 @@
 import { BarChart3, BrainCircuit, PiggyBank, Wallet, Zap } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleListHub from '../components/module/ModuleListHub.jsx';
@@ -7,6 +7,7 @@ import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
 import { emitHorizonForm } from '../services/formModalManager';
 import { applyOneClickRecommendation } from '../services/heyHorizonRecommendationActions.js';
+import { navigationOptionsForFinding, resolveFinanceTab } from '../utils/commercialNavigation';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { aggregateMissingProofTransactions, buildFinanceCoherenceRows, buildFinanceHealthSnapshot } from './finance/financeVisionHelpers.js';
 import FinancesV12 from './FinancesV12';
@@ -190,8 +191,12 @@ function Summary({ data, setTab, onApply, busyId, onNavigate }) {
 }
 
 export default function FinancePilotageRecoveredModule(props) {
-  const [tab, setTab] = useState('Résumé');
+  const [tab, setTab] = useState(() => resolveFinanceTab(props.initialTab));
   const [busyId, setBusyId] = useState(null);
+
+  useEffect(() => {
+    if (props.initialTab) setTab(resolveFinanceTab(props.initialTab));
+  }, [props.initialTab]);
   const financesCrud = useCrudModule('finances');
   const investmentsCrud = useCrudModule('investissements');
   const businessPlansCrud = useCrudModule('business_plans');
@@ -276,7 +281,11 @@ export default function FinancePilotageRecoveredModule(props) {
     try {
       const result = await applyOneClickRecommendation(finding, actionHandlers);
       if (result.createdTasks || result.createdAlerts) toast.success('Action IA créée');
-      else { toast.success('Module ouvert'); setTab('Trésorerie'); }
+      else {
+        toast.success('Module ouvert');
+        const target = navigationOptionsForFinding(finding);
+        if (target.module === 'finance_pilotage') setTab(target.tab || 'Trésorerie');
+      }
     } catch (e) {
       toast.error(e.message || 'Erreur');
     } finally {

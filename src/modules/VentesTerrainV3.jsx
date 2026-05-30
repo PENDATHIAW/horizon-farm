@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { fmtCurrency } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { buildSaleFormFromDraft } from '../utils/saleFormDraft';
+import { runNewSaleSideEffects } from '../utils/saleSideEffects';
 import { DELIVERY_HINT, isMeatStock, saleSourceHint } from '../utils/saleSourceHints';
 
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -38,7 +39,7 @@ const STEPS = [
 const defaultForm = () => ({
   date: today(), client_id: WALK_IN, source_type: 'lot_avicole', source_id: '', product_name: '',
   quantity: 1, unit: 'tête', unit_price: 0, payment_status: 'paye', paid_amount: '', payment_method: 'especes',
-  fulfillment_mode: 'recupere', delivery_fee: 0, invoice_issued: true, notes: '',
+  fulfillment_mode: 'recupere', delivery_fee: 0, invoice_issued: true, notes: '', opportunity_id: '',
 });
 
 function buildOptions(type, props) {
@@ -47,28 +48,6 @@ function buildOptions(type, props) {
   if (type === 'stock') return arr(props.stocks).filter((s) => num(s.quantite) > 0 && isSellableStock(s)).map((s) => ({ value: s.id, label: `${s.produit || s.nom || s.id}${isMeatStock(s) ? ' · viande abattue' : ''} · ${s.quantite} ${s.unite || ''}`, qty: num(s.quantite), price: num(s.prixunit || s.prixUnit || s.prix_unitaire || s.cout_revient_unitaire), name: s.produit || s.nom || s.id, unit: s.unite || 'unité', sale_kind: 'stock', sourceRow: s }));
   if (type === 'culture') return arr(props.cultures).filter((c) => num(c.quantite_disponible ?? c.quantite_recoltee) > 0).map((c) => ({ value: c.id, label: `${c.culture || c.nom || c.id} · ${c.quantite_disponible ?? c.quantite_recoltee} ${c.unite || 'kg'}`, qty: num(c.quantite_disponible ?? c.quantite_recoltee), price: num(c.prix_vente_kg), name: c.culture || c.nom || c.id, unit: c.unite || 'kg', sale_kind: 'culture' }));
   return [];
-}
-
-async function applySourceImpact({ props, form, total, selected, orderId, realClientId }) {
-  const qty = num(form.quantity);
-  if (!form.source_id || form.source_type === 'autre' || qty <= 0) return;
-  const common = { last_sale_id: orderId, sale_order_id: orderId, derniere_vente: form.date, last_sale_date: form.date, client_id: realClientId || null };
-  if (form.source_type === 'stock') {
-    const stock = arr(props.stocks).find((s) => String(s.id) === String(form.source_id));
-    if (stock) await props.onUpdateStock?.(form.source_id, { ...common, quantite: Math.max(0, num(stock.quantite) - qty), quantity_sold: num(stock.quantity_sold ?? stock.vendus) + qty, vendus: num(stock.vendus) + qty });
-  }
-  if (form.source_type === 'lot_avicole') {
-    const lot = arr(props.lots).find((l) => String(l.id) === String(form.source_id));
-    if (!lot) return;
-    const current = lotActiveCount(lot);
-    const next = Math.max(0, current - qty);
-    await props.onUpdateLot?.(form.source_id, { ...common, current_count: next, effectif_actuel: next, vendus: num(lot.vendus) + qty, sold_count: num(lot.sold_count) + qty, status: next === 0 ? 'vendu' : 'vendu_partiellement', sale_kind: selected?.sale_kind });
-  }
-  if (form.source_type === 'animal') await props.onUpdateAnimal?.(form.source_id, { ...common, status: 'vendu', statut: 'vendu', date_vente: form.date, sale_price: total, prix_vente_reel: total });
-  if (form.source_type === 'culture') {
-    const culture = arr(props.cultures).find((c) => String(c.id) === String(form.source_id));
-    if (culture) await props.onUpdateCulture?.(form.source_id, { ...common, quantite_disponible: Math.max(0, num(culture.quantite_disponible ?? culture.quantite_recoltee) - qty), quantity_sold: num(culture.quantity_sold ?? culture.quantite_vendue) + qty, quantite_vendue: num(culture.quantite_vendue) + qty, revenu_reel: num(culture.revenu_reel) + total });
-  }
 }
 
 function SourceHintBanner({ hint }) {
@@ -96,9 +75,10 @@ function ImpactSummary({ form, selected, clients, productTotal, deliveryFee, gra
     deliveryFee > 0 ? `Frais de livraison enregistrés : ${fmtCurrency(deliveryFee)} (visibles au suivi des ventes et dans la marge).` : deliveryModeNeedsFee(form.fulfillment_mode) ? 'Livraison choisie : pense à renseigner les frais si le client paie la livraison.' : 'Retrait sur place : aucun frais de livraison.',
     paid > 0 ? 'Paiement créé et entrée finance automatique enregistrée une seule fois.' : 'Créance client créée : aucun encaissement immédiat.',
     remaining > 0 ? 'Reste à payer visible en créance et relance possible.' : 'Aucune créance si paiement total.',
+    form.client_id !== WALK_IN ? 'Fiche client mise à jour (CA, créance, dernière commande).' : 'Client de passage : pas de fiche client mise à jour.',
     form.source_type !== 'autre' ? 'Stock, lot, animal ou culture mis à jour selon la source vendue.' : 'Vente hors source : aucun stock/effectif décrémenté.',
     form.invoice_issued ? 'Facture et document de preuve créés automatiquement.' : 'Facture non créée : à ajouter plus tard si nécessaire.',
-    form.fulfillment_mode === 'a_livrer' ? 'Livraison à planifier, tâche de suivi possible.' : 'Livraison/retrait marqué immédiatement.',
+    form.fulfillment_mode === 'a_livrer' ? 'Tâche de livraison créée dans Activité & Suivi.' : 'Livraison/retrait marqué immédiatement.',
     'Événement métier créé pour traçabilité, rapports et Centre IA.',
   ];
   return <div className="space-y-3"><div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><p className="text-xs uppercase tracking-widest font-black text-emerald-700">Résumé avant validation</p><p className="mt-1 text-2xl font-black text-emerald-800">{fmtCurrency(grandTotal)}</p><p className="text-sm text-emerald-800">Produits : {fmtCurrency(productTotal)}{deliveryFee > 0 ? ` · Livraison : ${fmtCurrency(deliveryFee)}` : ''}</p><p className="text-sm text-emerald-800">Payé : {fmtCurrency(paid)} · Reste : {fmtCurrency(remaining)}</p><p className="mt-2 text-sm text-emerald-800">Produit : <b>{form.product_name || selected?.name || '-'}</b> · Client : <b>{clientName(clients, form.client_id)}</b></p></div><div className="grid grid-cols-1 md:grid-cols-2 gap-2">{impacts.map((impact) => <div key={impact} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a]"><CheckCircle2 size={14} className="inline text-emerald-600" /> {impact}</div>)}</div></div>;
@@ -166,20 +146,58 @@ export function SaleModal({ props, onClose, onDone, prefill = null }) {
       const realClientId = form.client_id === WALK_IN ? '' : form.client_id;
       const productName = form.product_name;
       const isEggSale = selected?.sale_kind === 'oeufs_tablettes' || form.unit === 'tablette';
-      const orderPayload = { id: orderId, date: form.date, client_id: realClientId, client_type: form.client_id === WALK_IN ? 'passage' : 'client', client_label: clientName(props.clients, form.client_id), type_document: 'commande', statut_commande: orderStatus(form.fulfillment_mode), statut_livraison: deliveryStatus(form.fulfillment_mode), fulfillment_mode: form.fulfillment_mode, statut_paiement: form.payment_status, montant_ht: productTotal, frais_livraison: deliveryFee, delivery_fee: deliveryFee, montant_total: grandTotal, montant_paye: paid, reste_a_payer: remaining, moyen_paiement: paid > 0 ? form.payment_method : '', payment_method: paid > 0 ? form.payment_method : '', invoice_id: invoiceId, invoice_status: form.invoice_issued ? 'emise' : 'non_emise', facture_emise: form.invoice_issued, source_type: form.source_type, source_module: form.source_type === 'lot_avicole' ? 'avicole' : form.source_type, source_id: form.source_id || null, product_name: productName, source_label: productName, quantity: num(form.quantity), unit: form.unit, unite: form.unit, sale_kind: selected?.sale_kind || form.source_type, eggs_per_unit: isEggSale ? EGGS_PER_TABLET : undefined, eggs_quantity: isEggSale ? num(form.quantity) * EGGS_PER_TABLET : undefined, unit_price: num(form.unit_price), notes: form.notes || null, created_from: 'vente_terrain_guidee' };
+      const orderPayload = { id: orderId, date: form.date, client_id: realClientId, client_type: form.client_id === WALK_IN ? 'passage' : 'client', client_label: clientName(props.clients, form.client_id), type_document: 'commande', statut_commande: orderStatus(form.fulfillment_mode), statut_livraison: deliveryStatus(form.fulfillment_mode), fulfillment_mode: form.fulfillment_mode, statut_paiement: form.payment_status, montant_ht: productTotal, frais_livraison: deliveryFee, delivery_fee: deliveryFee, montant_total: grandTotal, montant_paye: paid, reste_a_payer: remaining, moyen_paiement: paid > 0 ? form.payment_method : '', payment_method: paid > 0 ? form.payment_method : '', invoice_id: invoiceId, invoice_status: form.invoice_issued ? 'emise' : 'non_emise', facture_emise: form.invoice_issued, source_type: form.source_type, source_module: form.source_type === 'lot_avicole' ? 'avicole' : form.source_type, source_id: form.source_id || null, product_name: productName, source_label: productName, quantity: num(form.quantity), unit: form.unit, unite: form.unit, sale_kind: selected?.sale_kind || form.source_type, eggs_per_unit: isEggSale ? EGGS_PER_TABLET : undefined, eggs_quantity: isEggSale ? num(form.quantity) * EGGS_PER_TABLET : undefined, unit_price: num(form.unit_price), notes: form.notes || null, opportunity_id: form.opportunity_id || '', converted_opportunity_id: form.opportunity_id || '', created_from: 'vente_terrain_guidee', side_effects_managed: true };
       await props.onCreate?.(orderPayload);
       await props.onCreateItem?.({ id: makeId('CMDI'), order_id: orderId, source_type: form.source_type, source_module: orderPayload.source_module, source_id: form.source_id || null, product_name: productName, quantity: num(form.quantity), unit: form.unit, unite: form.unit, unit_price: num(form.unit_price), total: productTotal, line_total: productTotal, sale_kind: orderPayload.sale_kind, available_quantity_snapshot: selected?.qty ?? null });
-      await applySourceImpact({ props, form, total: productTotal, selected, orderId, realClientId });
       await props.onCreateDelivery?.({ id: makeId('LIV'), order_id: orderId, date_livraison: form.date, statut: deliveryStatus(form.fulfillment_mode), status: deliveryStatus(form.fulfillment_mode), mode_livraison: form.fulfillment_mode, fulfillment_mode: form.fulfillment_mode, frais_livraison: deliveryFee, delivery_fee: deliveryFee, destinataire: clientName(props.clients, form.client_id), client_id: realClientId, notes: form.fulfillment_mode === 'a_livrer' ? 'Livraison à planifier automatiquement dans Tâches.' : deliveryFee > 0 ? `Frais livraison : ${fmtCurrency(deliveryFee)}` : '' });
       if (form.invoice_issued) {
         await props.onCreateInvoice?.({ id: invoiceId, order_id: orderId, numero_facture: `FAC-${orderId.slice(-6)}`, date_facture: form.date, montant_total: grandTotal, statut: 'emise', invoice_status: 'emise' });
         await props.onCreateDocument?.({ id: makeId('DOC'), title: `Facture FAC-${orderId.slice(-6)}`, document_category: 'facture', module_source: 'ventes', entity_type: 'commande', entity_id: orderId, related_id: orderId, invoice_id: invoiceId, status: 'emise', amount: grandTotal });
       }
       if (paid > 0) {
-        await props.onCreatePayment?.({ id: paymentId, order_id: orderId, sale_id: orderId, source_record_id: orderId, client_id: realClientId, invoice_id: invoiceId, date_paiement: form.date, date: form.date, montant: paid, montant_paye: paid, amount: paid, moyen_paiement: form.payment_method, mode_paiement: form.payment_method, statut: 'paye', created_from: 'vente_terrain_guidee' });
+        await props.onCreatePayment?.({ id: paymentId, order_id: orderId, sale_id: orderId, source_record_id: orderId, client_id: realClientId, invoice_id: invoiceId, date_paiement: form.date, date: form.date, montant: paid, montant_paye: paid, amount: paid, moyen_paiement: form.payment_method, mode_paiement: form.payment_method, statut: 'paye', created_from: 'vente_terrain_guidee', side_effects_managed: true });
       }
-      if (remaining > 0) await props.onCreateFinanceTransaction?.({ id: makeId('TRX'), type: 'entree', libelle: `Créance client ${orderId} - ${clientName(props.clients, form.client_id)}`, montant: remaining, date: form.date, categorie: 'Creance client', module_lie: 'ventes', related_id: orderId, vente_id: orderId, client_id: realClientId, statut: 'impaye', reste_a_payer: remaining, source_module: 'ventes', source_record_id: orderId, created_from: 'vente_terrain_guidee', transaction_origin: 'automatique' });
+      const clientLabel = clientName(props.clients, form.client_id);
+      await runNewSaleSideEffects({
+        order: orderPayload,
+        orderId,
+        form,
+        paid,
+        remaining,
+        paymentId,
+        invoiceId,
+        productName,
+        clientLabel,
+        realClientId,
+        selected,
+        stocks: props.stocks,
+        lots: props.lots,
+        cultures: props.cultures,
+        animaux: props.animaux,
+        clients: props.clients,
+        salesOrders: [...arr(props.rows), orderPayload],
+        payments: paid > 0 ? [...arr(props.paymentsList || props.payments), { id: paymentId, order_id: orderId, client_id: realClientId, montant: paid }] : arr(props.paymentsList || props.payments),
+        tasks: props.tasks || props.existingTasks || [],
+        alertes: props.alertes || [],
+        handlers: {
+          onUpdateStock: props.onUpdateStock,
+          onUpdateLot: props.onUpdateLot,
+          onUpdateAnimal: props.onUpdateAnimal,
+          onUpdateCulture: props.onUpdateCulture,
+          onCreateFinanceTransaction: props.onCreateFinanceTransaction,
+          onUpdateFinanceTransaction: props.onUpdateFinanceTransaction,
+          onUpdateClient: props.onUpdateClient,
+          onCreateTask: props.onCreateTask,
+          onCreateAlert: props.onCreateAlert,
+          onUpdateOpportunity: props.onUpdateOpportunity,
+          onCreateTrace: props.onCreateTrace,
+          onUpdateTrace: props.onUpdateTrace,
+          opportunities: props.opportunities || [],
+          existingTraces: props.traces || props.tracabilite || [],
+        },
+      });
       await props.onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'vente_directe', module_source: 'ventes', entity_type: 'commande', entity_id: orderId, title: `Vente ${productName} - ${fmtCurrency(grandTotal)}`, description: `${clientName(props.clients, form.client_id)} · ${form.payment_status}${deliveryFee > 0 ? ` · livraison ${fmtCurrency(deliveryFee)}` : ''}`, amount: grandTotal, event_date: form.date, linked_sale_id: orderId, linked_invoice_id: invoiceId || null, linked_transaction_id: paymentId || null, source_type: form.source_type, source_id: form.source_id || '', sale_kind: selected?.sale_kind || form.source_type, severity: 'info' });
+      void props.onRefreshWorkflow?.();
       onDone?.(orderId);
     } catch (err) { setError(err.message || 'Enregistrement impossible.'); } finally { setSaving(false); }
   };

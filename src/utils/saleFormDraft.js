@@ -53,6 +53,7 @@ export function buildSaleFormFromDraft(draft = {}, props = {}) {
     delivery_fee: num(fields.delivery_fee || fields.frais_livraison || 0),
     invoice_issued: fields.invoice_issued !== false,
     notes: draft.raw_input || fields.notes || fields.reason || '',
+    opportunity_id: fields.opportunity_id || draft.opportunity_id || '',
   };
 }
 
@@ -60,7 +61,9 @@ export function buildSaleFormFromOpportunity(opportunity = {}, props = {}, clien
   const qty = Math.max(1, num(opportunity.quantity || 1));
   const total = num(opportunity.estimated_value || opportunity.montant_estime || 0);
   return buildSaleFormFromDraft({
+    opportunity_id: opportunity.id,
     draft_fields: {
+      opportunity_id: opportunity.id,
       source_id: opportunity.source_id || '',
       source_type: opportunity.source_type || '',
       product_name: opportunity.title || opportunity.libelle || opportunity.product_name || 'Opportunité',
