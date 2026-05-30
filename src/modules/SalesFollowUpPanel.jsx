@@ -5,6 +5,7 @@ import { allocateOverheadToEntities, applyOperatingMargin } from '../services/op
 import { fmtCurrency, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { summarizeSalesMargins } from '../utils/salesMarginEngine';
+import { EGG_MARGIN_FORMULA, saleQuantityDetail } from '../utils/saleQuantityLabel';
 import SaleActionModal from './SaleActionModal.jsx';
 
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -81,16 +82,23 @@ function StatusBadge({ children, tone = 'neutral' }) {
 
 function MarginCell({ row }) {
   if (hasMissingCost(row)) {
-    return <td className="px-3 py-2 text-right"><span className="font-bold text-amber-700">Non fiable</span><p className="text-[11px] text-[#8a7456]">coût à compléter</p></td>;
+    return <td className="px-5 py-4 text-right align-top"><span className="font-bold text-amber-700">Non fiable</span><p className="text-[11px] text-[#8a7456] mt-1">coût à compléter</p></td>;
   }
   const net = netMarginOf(row);
   const rate = netMarginRateOf(row);
-  return <td className="px-3 py-2 text-right"><span className={`font-black ${net < 0 ? 'text-red-600' : 'text-emerald-700'}`}>{fmtCurrency(net)}</span><p className="text-[11px] text-[#8a7456]">{rate}% · nette</p></td>;
+  return <td className="px-5 py-4 text-right align-top"><span className={`font-black text-base ${net < 0 ? 'text-red-600' : 'text-emerald-700'}`}>{fmtCurrency(net)}</span><p className="text-[11px] text-[#8a7456] mt-1">{rate}% · nette</p></td>;
 }
 
-function CostCell({ row }) {
-  if (hasMissingCost(row)) return <td className="px-3 py-2 text-right"><span className="font-bold text-amber-700">À compléter</span></td>;
-  return <td className="px-3 py-2 text-right font-black text-[#2f2415]" title={row.cout_source || ''}>{fmtCurrency(costOf(row))}</td>;
+function CostCell({ row, order }) {
+  const qty = saleQuantityDetail(order || row);
+  const detail = row.cout_detail || {};
+  const tooltip = hasMissingCost(row)
+    ? 'Coût source manquant : lier le lot pondeuse et saisir les ramassages / alimentation.'
+    : qty.isEggSale && detail.eggCost
+      ? `Œufs ${fmtCurrency(detail.eggCost)} + emballages ${fmtCurrency(detail.packagingCost || 0)} + transport ${fmtCurrency(detail.transportSaleCost || order?.frais_livraison || 0)}`
+      : (row.cout_source || row.source_label || '');
+  if (hasMissingCost(row)) return <td className="px-5 py-4 text-right align-top"><span className="font-bold text-amber-700">À compléter</span><p className="text-[11px] text-[#8a7456] mt-1 max-w-[180px] ml-auto">lot pondeuse / production</p></td>;
+  return <td className="px-5 py-4 text-right align-top font-black text-[#2f2415]" title={tooltip}><span>{fmtCurrency(costOf(row))}</span>{qty.isEggSale ? <p className="text-[11px] font-normal text-[#8a7456] mt-1">{fmtCurrency(costOf(row) / Math.max(1, qty.plateaux || 1))} / plateau</p> : null}</td>;
 }
 
 function ActionButtons({ order, props, payments, onOpen }) {
@@ -102,7 +110,8 @@ function ActionButtons({ order, props, payments, onOpen }) {
 function MobileSaleCard({ order, payments, props, marginRow, onOpen }) {
   const remaining = remainingFor(order, payments);
   const delivered = isDelivered(order);
-  return <article className="rounded-2xl border border-[#eadcc2] bg-white p-4 space-y-3 md:hidden"><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Vente</p><p className="font-black text-[#2f2415]">{productLabel(order)}</p><p className="text-xs text-[#8a7456]">{order.id} · {saleDate(order) || 'date non renseignée'}</p></div><div className="grid grid-cols-2 gap-2 text-sm"><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Client</p><p>{clientLabel(order)}</p></div><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Total</p><p className="font-black">{fmtCurrency(amount(order))}</p></div><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Reste</p><p className="font-black">{fmtCurrency(remaining)}</p></div><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Coût</p><p className="font-black">{hasMissingCost(marginRow) ? 'À compléter' : fmtCurrency(costOf(marginRow))}</p></div><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Marge nette</p><p className={`font-black ${hasMissingCost(marginRow) ? 'text-amber-700' : netMarginOf(marginRow) < 0 ? 'text-red-600' : 'text-emerald-700'}`}>{hasMissingCost(marginRow) ? 'Non fiable' : fmtCurrency(netMarginOf(marginRow))}</p></div><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Statut</p><div className="flex flex-wrap gap-1 mt-1"><StatusBadge tone={isPaid(order, payments) ? 'good' : 'warn'}>{isPaid(order, payments) ? 'Payée' : 'À encaisser'}</StatusBadge><StatusBadge tone={delivered ? 'good' : 'warn'}>{delivered ? 'Livrée' : 'À livrer'}</StatusBadge></div></div></div><ActionButtons order={order} props={props} payments={payments} onOpen={onOpen} /></article>;
+  const qty = saleQuantityDetail(order);
+  return <article className="rounded-2xl border border-[#eadcc2] bg-white p-5 space-y-4 md:hidden"><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Vente</p><p className="font-black text-[#2f2415]">{productLabel(order)}</p><p className="text-xs text-[#8a7456]">{order.id} · {saleDate(order) || 'date non renseignée'}</p><p className="text-sm font-bold text-[#2f2415] mt-2">{qty.label}</p></div><div className="grid grid-cols-2 gap-3 text-sm"><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Client</p><p>{clientLabel(order)}</p></div><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Total</p><p className="font-black">{fmtCurrency(amount(order))}</p></div><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Reste</p><p className="font-black">{fmtCurrency(remaining)}</p></div><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Coût</p><p className="font-black">{hasMissingCost(marginRow) ? 'À compléter' : fmtCurrency(costOf(marginRow))}</p></div><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Marge nette</p><p className={`font-black ${hasMissingCost(marginRow) ? 'text-amber-700' : netMarginOf(marginRow) < 0 ? 'text-red-600' : 'text-emerald-700'}`}>{hasMissingCost(marginRow) ? 'Non fiable' : fmtCurrency(netMarginOf(marginRow))}</p></div><div><p className="text-[11px] font-bold uppercase text-[#8a7456]">Statut</p><div className="flex flex-wrap gap-1 mt-1"><StatusBadge tone={isPaid(order, payments) ? 'good' : 'warn'}>{isPaid(order, payments) ? 'Payée' : 'À encaisser'}</StatusBadge><StatusBadge tone={delivered ? 'good' : 'warn'}>{delivered ? 'Livrée' : 'À livrer'}</StatusBadge></div></div></div><ActionButtons order={order} props={props} payments={payments} onOpen={onOpen} /></article>;
 }
 
 export default function SalesFollowUpPanel(props) {
@@ -135,22 +144,24 @@ export default function SalesFollowUpPanel(props) {
       </div>
       <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a]">{orders.length} vente(s){missingCostCount ? ` · ${missingCostCount} coût(s) à compléter` : ''}</div>
     </div>
-    {missingCostCount ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{missingCostCount} vente(s) sans coût source fiable : la marge est neutralisée jusqu’à complétion des coûts (stock, lot, animal ou culture lié).</div> : null}
+    {missingCostCount ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{missingCostCount} vente(s) sans coût source fiable. Pour les œufs : lier la vente au lot pondeuse (HF-PO-001) et vérifier les ramassages + alimentation dans Élevage.</div> : null}
+    <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#7d6a4a]"><summary className="cursor-pointer font-black text-[#2f2415]">Comment est calculée la marge des plateaux d’œufs ?</summary><p className="mt-3 leading-relaxed">{EGG_MARGIN_FORMULA}</p><p className="mt-2 text-xs">Exemple HF-CMD-003 : 680 plateaux (20 400 œufs) × coût œuf du lot + emballages + 15 000 FCFA livraison, puis charges RH/exploitation allouées pour la marge nette.</p></details>
     <div className="space-y-3 md:hidden">{orders.length ? orders.map((order) => <MobileSaleCard key={order.id} order={order} payments={payments} props={props} marginRow={marginById.get(String(order.id)) || order} onOpen={openSale} />) : <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-6 text-center text-[#8a7456]">Aucune vente enregistrée pour le moment.</div>}</div>
-    <div className="hidden md:block overflow-x-auto rounded-2xl border border-[#eadcc2] bg-[#fffdf8]">
-      <table className="min-w-full text-sm">
+    <div className="hidden md:block overflow-x-auto rounded-2xl border border-[#eadcc2] bg-[#fffdf8] -mx-1 px-1">
+      <table className="min-w-[1520px] w-full text-sm">
         <thead className="sticky top-0 z-10">
-          <tr className="border-b border-[#eadcc2] bg-[#fffdf8] text-left text-xs uppercase tracking-wide text-[#8a7456]">
-            <th scope="col" className="px-3 py-3 font-black">Date</th>
-            <th scope="col" className="px-3 py-3 font-black">Vente</th>
-            <th scope="col" className="px-3 py-3 font-black">Client</th>
-            <th scope="col" className="px-3 py-3 font-black text-right">Total</th>
-            <th scope="col" className="px-3 py-3 font-black text-right">Payé</th>
-            <th scope="col" className="px-3 py-3 font-black text-right">Reste</th>
-            <th scope="col" className="px-3 py-3 font-black text-right">Coût</th>
-            <th scope="col" className="px-3 py-3 font-black text-right">Marge nette</th>
-            <th scope="col" className="px-3 py-3 font-black">Statut</th>
-            <th scope="col" className="px-3 py-3 font-black text-right">Actions</th>
+          <tr className="border-b-2 border-[#d6c3a0] bg-[#fffdf8] text-left text-xs uppercase tracking-wide text-[#8a7456]">
+            <th scope="col" className="px-5 py-4 font-black whitespace-nowrap">Date</th>
+            <th scope="col" className="px-5 py-4 font-black min-w-[220px]">Vente</th>
+            <th scope="col" className="px-5 py-4 font-black min-w-[160px]">Quantité</th>
+            <th scope="col" className="px-5 py-4 font-black min-w-[140px]">Client</th>
+            <th scope="col" className="px-5 py-4 font-black text-right whitespace-nowrap">Total</th>
+            <th scope="col" className="px-5 py-4 font-black text-right whitespace-nowrap">Payé</th>
+            <th scope="col" className="px-5 py-4 font-black text-right whitespace-nowrap">Reste</th>
+            <th scope="col" className="px-5 py-4 font-black text-right min-w-[120px]">Coût</th>
+            <th scope="col" className="px-5 py-4 font-black text-right min-w-[130px]">Marge nette</th>
+            <th scope="col" className="px-5 py-4 font-black min-w-[150px]">Statut</th>
+            <th scope="col" className="px-5 py-4 font-black text-right min-w-[200px]">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -158,19 +169,21 @@ export default function SalesFollowUpPanel(props) {
             const marginRow = marginById.get(String(order.id)) || order;
             const remaining = remainingFor(order, payments);
             const delivered = isDelivered(order);
-            return <tr key={order.id} className="border-t border-[#eadcc2] hover:bg-white">
-              <td className="px-3 py-2 text-[#7d6a4a] whitespace-nowrap">{saleDate(order) || '—'}</td>
-              <td className="px-3 py-2"><b className="text-[#2f2415]">{productLabel(order)}</b><p className="text-xs text-[#8a7456]">{order.id}</p></td>
-              <td className="px-3 py-2 text-[#7d6a4a]">{clientLabel(order)}</td>
-              <td className="px-3 py-2 text-right font-black text-[#2f2415]">{fmtCurrency(amount(order))}</td>
-              <td className="px-3 py-2 text-right text-[#2f2415]">{fmtCurrency(paidFor(order, payments))}</td>
-              <td className="px-3 py-2 text-right font-black text-[#2f2415]">{fmtCurrency(remaining)}</td>
-              <CostCell row={marginRow} />
+            const qty = saleQuantityDetail(order);
+            return <tr key={order.id} className="border-t border-[#eadcc2] hover:bg-white align-top">
+              <td className="px-5 py-4 text-[#7d6a4a] whitespace-nowrap">{saleDate(order) || '—'}</td>
+              <td className="px-5 py-4"><b className="text-[#2f2415] text-base">{productLabel(order)}</b><p className="text-xs text-[#8a7456] mt-1">{order.id}</p>{marginRow.source_label ? <p className="text-[11px] text-[#8a7456] mt-1">Lot : {marginRow.source_label}</p> : null}</td>
+              <td className="px-5 py-4 font-bold text-[#2f2415]">{qty.label}</td>
+              <td className="px-5 py-4 text-[#7d6a4a]">{clientLabel(order)}</td>
+              <td className="px-5 py-4 text-right font-black text-[#2f2415] whitespace-nowrap">{fmtCurrency(amount(order))}</td>
+              <td className="px-5 py-4 text-right text-[#2f2415] whitespace-nowrap">{fmtCurrency(paidFor(order, payments))}</td>
+              <td className="px-5 py-4 text-right font-black text-[#2f2415] whitespace-nowrap">{fmtCurrency(remaining)}</td>
+              <CostCell row={marginRow} order={order} />
               <MarginCell row={marginRow} />
-              <td className="px-3 py-2"><div className="flex flex-wrap gap-1"><StatusBadge tone={isPaid(order, payments) ? 'good' : 'warn'}>{isPaid(order, payments) ? 'Payée' : 'À encaisser'}</StatusBadge><StatusBadge tone={delivered ? 'good' : 'warn'}>{delivered ? 'Livrée' : 'À livrer'}</StatusBadge></div></td>
-              <td className="px-3 py-2"><ActionButtons order={order} props={props} payments={payments} onOpen={openSale} /></td>
+              <td className="px-5 py-4"><div className="flex flex-wrap gap-1.5"><StatusBadge tone={isPaid(order, payments) ? 'good' : 'warn'}>{isPaid(order, payments) ? 'Payée' : 'À encaisser'}</StatusBadge><StatusBadge tone={delivered ? 'good' : 'warn'}>{delivered ? 'Livrée' : 'À livrer'}</StatusBadge></div></td>
+              <td className="px-5 py-4"><ActionButtons order={order} props={props} payments={payments} onOpen={openSale} /></td>
             </tr>;
-          }) : <tr><td colSpan="10" className="px-3 py-6 text-center text-[#8a7456]">Aucune vente enregistrée pour le moment.</td></tr>}
+          }) : <tr><td colSpan="11" className="px-5 py-8 text-center text-[#8a7456]">Aucune vente enregistrée pour le moment.</td></tr>}
         </tbody>
       </table>
     </div>
