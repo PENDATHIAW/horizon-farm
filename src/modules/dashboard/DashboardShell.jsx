@@ -1,8 +1,9 @@
-import { ArrowRight, BrainCircuit, MapPin, Settings2, Target } from 'lucide-react';
+import { ArrowRight, Bot, BrainCircuit, MapPin, Settings2, Target } from 'lucide-react';
 import { MODULE_REGISTRY } from '../../config/modules.config';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import { openFormModal } from '../../services/formModalManager';
+import { launchHeyHorizonAssistant } from '../../utils/dashboardHeyHorizon.js';
 import { fmtCurrency, fmtNumber } from '../../utils/format';
 
 export function DashboardQuickActions({ onNavigate }) {
@@ -155,6 +156,52 @@ export function DashboardModuleNav({ modules = [], onNavigate }) {
   );
 }
 
+export function DashboardHeyHorizonStrip({ suggestions = [], onNavigate, onOpenAssistant }) {
+  if (!suggestions.length || !onOpenAssistant) return null;
+  return (
+    <section className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 shadow-sm">
+      <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-emerald-800">
+            <Bot size={14} />
+            Hey Horizon — suggestions
+          </p>
+          <p className="text-xs text-emerald-900/80">Questions préparées depuis ton Accueil et tes priorités du jour.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onNavigate?.('assistant_erp')}
+          className="text-xs font-black text-emerald-900"
+        >
+          Ouvrir Assistant ERP →
+        </button>
+      </div>
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+        {suggestions.map((item) => {
+          const toneCls = item.tone === 'bad'
+            ? 'border-red-200 bg-red-50 hover:bg-red-100/70'
+            : item.tone === 'warn'
+              ? 'border-amber-200 bg-amber-50 hover:bg-amber-100/70'
+              : item.tone === 'good'
+                ? 'border-emerald-300 bg-white hover:bg-emerald-50'
+                : 'border-[#eadcc2] bg-white hover:bg-[#fffdf8]';
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => launchHeyHorizonAssistant({ query: item.query, onNavigate, onOpenAssistant })}
+              className={`rounded-xl border p-3 text-left transition ${toneCls}`}
+            >
+              <p className="font-black text-sm text-[#2f2415]">{item.label}</p>
+              {item.detail ? <p className="mt-1 text-xs text-[#8a7456]">{item.detail}</p> : null}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export function DashboardSnapshotCard({ label, value, detail, tone = 'neutral', onClick }) {
   const toneCls = tone === 'good'
     ? 'border-emerald-200 bg-emerald-50 hover:bg-emerald-100/80'
@@ -187,7 +234,7 @@ export function DashboardTodoRow({ title, detail, moduleLabel, onOpen, tone = 'a
   );
 }
 
-export function DashboardGoalsHero({ goal = {}, onOpenVision }) {
+export function DashboardGoalsHero({ goal = {}, onOpenVision, onOpenAssistant, onNavigate }) {
   const primaryLabel = goal.periodLabel || 'Objectif du mois';
   const primarySubtitle = goal.periodSubtitle || '';
   const primaryTarget = Number(goal.periodTarget ?? goal.monthTarget ?? 0);
@@ -217,13 +264,29 @@ export function DashboardGoalsHero({ goal = {}, onOpenVision }) {
           <h2 className="text-lg font-black text-[#2f2415]">{heroTitle}</h2>
           {primarySubtitle ? <p className="mt-1 text-xs text-[#8a7456]">Période ERP · {primarySubtitle}</p> : null}
         </div>
-        <button
-          type="button"
-          onClick={onOpenVision}
-          className="inline-flex items-center gap-1 text-xs font-black text-[#9a6b12]"
-        >
-          Vision détaillée <ArrowRight size={14} />
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {onOpenAssistant ? (
+            <button
+              type="button"
+              onClick={() => launchHeyHorizonAssistant({
+                query: 'Où en suis-je sur mon objectif du mois ?',
+                onNavigate,
+                onOpenAssistant,
+              })}
+              className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-black text-emerald-800"
+            >
+              <Bot size={13} />
+              Hey Horizon
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onOpenVision}
+            className="inline-flex items-center gap-1 text-xs font-black text-[#9a6b12]"
+          >
+            Vision détaillée <ArrowRight size={14} />
+          </button>
+        </div>
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <button

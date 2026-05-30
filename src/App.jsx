@@ -19,8 +19,9 @@ import useOnlineStatus from './hooks/useOnlineStatus';
 import usePeriodScope from './hooks/usePeriodScope';
 import AppLayout from './layouts/AppLayout';
 import { applyPeriodScopeToDataMap, applyPeriodScopeToProps } from './utils/applyPeriodScope';
+import { enrichAssistantDataMap } from './utils/assistantDataMap.js';
 import { clearPeriodFilterCache } from './utils/periodFilterCache';
-import { formatPeriodScopeLabel, isAllTimeScope } from './utils/periodScope';
+import { formatPeriodScopeLabel, isAllTimeScope, normalizePeriodScope } from './utils/periodScope';
 import LoginPage from './pages/LoginPage';
 
 const MODULES = {
@@ -149,9 +150,15 @@ export default function App() {
     onCreateBpRisk: c.bp_risks.create, onUpdateBpRisk: c.bp_risks.update, onDeleteBpRisk: c.bp_risks.remove, onRefreshBpRisks: c.bp_risks.refresh,
   };
   const moduleProps = {
-    dashboard: { user, dataFingerprint: crudFingerprint, lotsData: rows(c.avicole), animaux: rows(c.animaux), vaccins: rows(c.sante), stocks: rows(c.stock), clients: rows(c.clients), cultures: rows(c.cultures), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), documents: rows(c.documents), alimentationLogs: rows(c.alimentation_logs), productionLogs: rows(c.production_oeufs_logs), opportunities: rows(c.sales_opportunities), taches: rows(c.taches), alertes: rows(c.alertes_center), equipements: rows(c.equipements), sensorDevices: rows(c.sensor_devices), cameraDevices: rows(c.camera_devices), businessEvents: rows(c.business_events), meteo: liveMeteo, onNavigate: setActive, onRefresh: refreshAll },
+    dashboard: { user, dataFingerprint: crudFingerprint, lotsData: rows(c.avicole), animaux: rows(c.animaux), vaccins: rows(c.sante), stocks: rows(c.stock), clients: rows(c.clients), cultures: rows(c.cultures), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), documents: rows(c.documents), alimentationLogs: rows(c.alimentation_logs), productionLogs: rows(c.production_oeufs_logs), opportunities: rows(c.sales_opportunities), taches: rows(c.taches), alertes: rows(c.alertes_center), equipements: rows(c.equipements), sensorDevices: rows(c.sensor_devices), cameraDevices: rows(c.camera_devices), businessEvents: rows(c.business_events), meteo: liveMeteo, onNavigate: setActive, onRefresh: refreshAll, onOpenAssistant: () => setAssistantOpen(true) },
     assistant_erp: {
       dataMap: decisionDataMapRaw,
+      salesOrders: rows(c.sales_orders),
+      salesOrdersAll: rows(c.sales_orders),
+      payments: rows(c.payments),
+      paymentsAll: rows(c.payments),
+      transactions: rows(c.finances),
+      transactionsAll: rows(c.finances),
       onNavigate: setActive,
       onOpenAssistant: () => setAssistantOpen(true),
       onCreateTask: c.taches.create,
@@ -160,6 +167,8 @@ export default function App() {
       onCreateBusinessEvent: c.business_events.create,
       existingTasks: rows(c.taches),
       existingAlerts: rows(c.alertes_center),
+      businessEvents: rows(c.business_events),
+      businessEventsAll: rows(c.business_events),
     }, centre_ia: { animaux: rows(c.animaux), lots: rows(c.avicole), cultures: rows(c.cultures), stocks: rows(c.stock), clients: rows(c.clients), alertes: rows(c.alertes_center), taches: rows(c.taches), documents: rows(c.documents), opportunities: rows(c.sales_opportunities), businessPlans: rows(c.business_plans), investissements: rows(c.investissements), productionLogs: rows(c.production_oeufs_logs), alimentationLogs: rows(c.alimentation_logs), marketPrices: dataMap.market_prices || [], marketCalendarEvents: dataMap.market_calendar_events || [], salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), smartfarmEvents: dataMap.smartfarm_events || [], sensors: rows(c.sensor_devices), cameras: rows(c.camera_devices), meteo: liveMeteo, dataMap: decisionDataMapRaw, onNavigate: setActive, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, existingTasks: rows(c.taches), existingAlerts: rows(c.alertes_center) }, objectifs_croissance: { dataMap: decisionDataMapRaw, animaux: rows(c.animaux), lots: rows(c.avicole), cultures: rows(c.cultures), stocks: rows(c.stock), clients: rows(c.clients), alertes: rows(c.alertes_center), taches: rows(c.taches), documents: rows(c.documents), opportunities: rows(c.sales_opportunities), businessPlans: rows(c.business_plans), investissements: rows(c.investissements), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), onNavigate: setActive, onCreateBusinessPlan: c.business_plans.create, onRefreshBusinessPlans: c.business_plans.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, existingTasks: rows(c.taches), existingAlerts: rows(c.alertes_center) },
     elevage: {
       initialTab: elevageTab,
@@ -422,11 +431,21 @@ export default function App() {
   );
   const scopedAssistantDataMap = useMemo(
     () => {
-      if (!assistantOpen) return dataMap;
-      if (isAllTimeScope(periodScope)) return dataMap;
-      return applyPeriodScopeToDataMap(dataMap, periodScope, crudFingerprint);
+      const periodActive = assistantOpen && !isAllTimeScope(periodScope);
+      const base = periodActive
+        ? applyPeriodScopeToDataMap(dataMap, periodScope, crudFingerprint)
+        : dataMap;
+      if (!assistantOpen) return base;
+      return enrichAssistantDataMap(base, {
+        salesOrdersAll: rows(c.sales_orders),
+        paymentsAll: rows(c.payments),
+        transactionsAll: rows(c.finances),
+        periodFiltered: periodActive,
+        periodScope: normalizePeriodScope(periodScope),
+        periodLabel: formatPeriodScopeLabel(periodScope),
+      });
     },
-    [assistantOpen, dataMap, periodScopeKey, crudFingerprint, periodScope],
+    [assistantOpen, dataMap, periodScopeKey, crudFingerprint, periodScope, c.sales_orders, c.payments, c.finances],
   );
 
   if (authLoading) return <div className="min-h-screen bg-[#f6efe2] flex items-center justify-center text-[#2f2415] font-black">Chargement Horizon Farm...</div>;

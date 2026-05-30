@@ -1,14 +1,12 @@
 import { AlertTriangle, Bot, ClipboardList, CreditCard, FileWarning, Package, ShoppingCart, Sprout } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { receivableOfOrder, totalOpenReceivables } from '../utils/assistantDataMap.js';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value = '') => String(value || '').toLowerCase();
-const today = () => new Date().toISOString().slice(0, 10);
 const isOpen = (row = {}) => !['termine', 'terminé', 'done', 'closed', 'annule', 'annulé', 'traitee', 'traitée'].includes(lower(row.status || row.statut));
 const amount = (row = {}) => toNumber(row.montant_total ?? row.total ?? row.amount ?? row.montant);
-const paid = (row = {}) => toNumber(row.montant_paye ?? row.paid_amount ?? row.amount_paid ?? row.paid);
-const remaining = (row = {}) => Math.max(0, toNumber(row.reste_a_payer ?? row.remaining_amount ?? (amount(row) - paid(row))));
 const stockQty = (row = {}) => toNumber(row.quantite ?? row.quantity ?? row.stock);
 const stockMin = (row = {}) => toNumber(row.seuil ?? row.threshold ?? row.min_quantity);
 const stockLabel = (row = {}) => row.produit || row.nom || row.name || row.id || 'Stock';
@@ -18,8 +16,8 @@ const cultureQty = (row = {}) => toNumber(row.quantite_disponible ?? row.quantit
 function buildAnswers(dataMap = {}) {
   const tasks = arr(dataMap.taches || dataMap.tasks);
   const alertes = arr(dataMap.alertes_center || dataMap.alertes);
-  const sales = arr(dataMap.sales_orders || dataMap.salesOrders || dataMap.ventes);
-  const payments = arr(dataMap.payments);
+  const sales = arr(dataMap.salesOrdersAll || dataMap.sales_orders || dataMap.salesOrders || dataMap.ventes);
+  const payments = arr(dataMap.paymentsAll || dataMap.payments);
   const stock = arr(dataMap.stock || dataMap.stocks);
   const finances = arr(dataMap.finances || dataMap.transactions);
   const docs = arr(dataMap.documents);
@@ -30,7 +28,8 @@ function buildAnswers(dataMap = {}) {
   const equipments = arr(dataMap.equipements);
   const openTasks = tasks.filter(isOpen);
   const openAlerts = alertes.filter(isOpen);
-  const unpaid = sales.filter((sale) => remaining(sale) > 0);
+  const unpaid = sales.filter((sale) => receivableOfOrder(sale, payments) > 0);
+  const unpaidTotal = totalOpenReceivables(sales, payments);
   const lowStock = stock.filter((row) => stockMin(row) > 0 && stockQty(row) <= stockMin(row));
   const txWithoutDocs = finances.filter((tx) => amount(tx) > 0 && !docLinked(docs, tx.id));
   const sick = [...animaux.filter((row) => /malade|traitement|surveiller/.test(lower(`${row.health_status} ${row.status_sante} ${row.statut}`))), ...lots.filter((row) => /malade|alerte|surveiller/.test(lower(`${row.health_status} ${row.status_sante} ${row.statut}`)))];
@@ -40,7 +39,7 @@ function buildAnswers(dataMap = {}) {
   return [
     { key: 'today', icon: ClipboardList, module: 'taches', q: 'Qu’est-ce que je dois faire aujourd’hui ?', a: openTasks.length ? `${openTasks.length} tâche(s) ouverte(s). Priorité : ${openTasks.slice(0, 3).map((t) => t.title || t.nom || t.id).join(' · ')}.` : 'Aucune tâche ouverte urgente. Continue le suivi habituel et vérifie les alertes.', value: openTasks.length },
     { key: 'alerts', icon: AlertTriangle, module: 'alertes', q: 'Quels risques bloquent la ferme ?', a: openAlerts.length ? `${openAlerts.length} alerte(s) ouverte(s). Traite d’abord les alertes critiques puis crée une tâche terrain si nécessaire.` : 'Aucune alerte ouverte détectée.', value: openAlerts.length, danger: openAlerts.length > 0 },
-    { key: 'sales', icon: ShoppingCart, module: 'ventes', q: 'Qui me doit de l’argent ?', a: unpaid.length ? `${unpaid.length} vente(s) avec reste à payer, total estimé ${fmtCurrency(unpaid.reduce((s, row) => s + remaining(row), 0))}.` : 'Aucune créance visible sur les ventes.', value: unpaid.length, danger: unpaid.length > 0 },
+    { key: 'sales', icon: ShoppingCart, module: 'commercial', q: 'Qui me doit de l’argent ?', a: unpaid.length ? `${unpaid.length} vente(s) avec reste à payer, total estimé ${fmtCurrency(unpaidTotal)}.` : 'Aucune créance visible sur les ventes.', value: unpaid.length, danger: unpaid.length > 0 },
     { key: 'stock', icon: Package, module: 'stock', q: 'Quels stocks sont critiques ?', a: lowStock.length ? `${lowStock.length} stock(s) sous seuil : ${lowStock.slice(0, 4).map(stockLabel).join(' · ')}.` : 'Aucun stock sous seuil détecté.', value: lowStock.length, danger: lowStock.length > 0 },
     { key: 'docs', icon: FileWarning, module: 'documents', q: 'Quels documents manquent ?', a: txWithoutDocs.length ? `${txWithoutDocs.length} transaction(s) semblent sans justificatif lié. Ajoute facture, reçu ou preuve.` : 'Les justificatifs principaux semblent suivis.', value: txWithoutDocs.length, danger: txWithoutDocs.length > 0 },
     { key: 'health', icon: AlertTriangle, module: 'sante', q: 'Quels soins sont à traiter ?', a: sick.length || healthLate.length ? `${sick.length} animal/lot à surveiller et ${healthLate.length} soin(s) en retard ou à faire.` : 'Aucun soin prioritaire détecté.', value: sick.length + healthLate.length, danger: sick.length + healthLate.length > 0 },

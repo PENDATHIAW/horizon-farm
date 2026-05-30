@@ -19,6 +19,31 @@ export function saveLocalRecommendation(entry) {
   return journal;
 }
 
+const ASSISTANT_EVENT_PREFIXES = ['assistant_', 'hey_horizon'];
+
+/** Fusionne journal local + événements métier assistant_erp. */
+export function buildAssistantJournal({ localEntries = [], businessEvents = [] } = {}) {
+  const fromEvents = (Array.isArray(businessEvents) ? businessEvents : [])
+    .filter((evt) => {
+      const module = String(evt.module_source || evt.source_module || '');
+      const type = String(evt.event_type || '');
+      return module === 'assistant_erp' || ASSISTANT_EVENT_PREFIXES.some((prefix) => type.startsWith(prefix));
+    })
+    .map((evt) => ({
+      type: 'event',
+      action: evt.title || evt.event_type,
+      text: evt.description || evt.title,
+      module: evt.module_source || evt.entity_type,
+      confidence_score: null,
+      saved_at: evt.created_at || evt.event_date,
+      source: 'erp',
+    }));
+  const local = (Array.isArray(localEntries) ? localEntries : []).map((entry) => ({ ...entry, source: 'local' }));
+  return [...local, ...fromEvents]
+    .sort((a, b) => new Date(b.saved_at || 0).getTime() - new Date(a.saved_at || 0).getTime())
+    .slice(0, 24);
+}
+
 /** Génère des recommandations depuis le Health Engine (cohérence, risques, prédictions, UX). */
 export function buildRecommendationsFromData(data = {}) {
   const health = runErpHealthEngine(data);

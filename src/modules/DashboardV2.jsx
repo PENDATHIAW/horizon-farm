@@ -4,6 +4,7 @@ import { readUiSettings } from '../utils/uiPreferences';
 import { readPeriodScope } from '../utils/periodScope';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { sanitizeDashboardMetric } from '../utils/dashboardWorkflows';
+import { buildDashboardHeyHorizonSuggestions } from '../utils/dashboardHeyHorizon.js';
 import { runErpHealthEngine, loadLastHealthEngineSnapshot } from '../services/erpHealthEngine';
 import {
   buildDashboardSummary,
@@ -23,6 +24,7 @@ import { dashboardGreeting } from './dashboard/dashboardGreeting';
 import {
   DashboardGoalsHero,
   DashboardHealthStrip,
+  DashboardHeyHorizonStrip,
   DashboardKpi,
   DashboardModuleHeader,
   DashboardModuleNav,
@@ -86,8 +88,9 @@ function buildHealthData(props = {}) {
   };
 }
 
-function Summary({ summary, health, simple, navigate }) {
+function Summary({ summary, health, simple, navigate, onOpenAssistant }) {
   const actions = summary.actions.slice(0, simple ? 4 : 8);
+  const heyHorizonSuggestions = buildDashboardHeyHorizonSuggestions(summary.actions, summary.goal);
   const sideCards = [];
 
   if (summary.receivable > 0) {
@@ -140,7 +143,13 @@ function Summary({ summary, health, simple, navigate }) {
 
   return (
     <div className="space-y-5">
-      <DashboardGoalsHero goal={summary.goal} onOpenVision={() => navigate('objectifs_croissance', { tab: 'Performance' })} />
+      <DashboardGoalsHero
+        goal={summary.goal}
+        onOpenVision={() => navigate('objectifs_croissance', { tab: 'Performance' })}
+        onOpenAssistant={onOpenAssistant}
+        onNavigate={navigate}
+      />
+      <DashboardHeyHorizonStrip suggestions={heyHorizonSuggestions} onNavigate={navigate} onOpenAssistant={onOpenAssistant} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
         <DashboardKpi
@@ -327,7 +336,7 @@ export default function DashboardV2(props) {
       />
 
       {tab === 'Résumé' ? (
-        <Summary summary={summary} health={health} simple={simple} navigate={navigate} />
+        <Summary summary={summary} health={health} simple={simple} navigate={navigate} onOpenAssistant={props.onOpenAssistant} />
       ) : (
         <GraphiquesSection props={props} navigate={navigate} periodFiltered={props.periodFiltered} />
       )}

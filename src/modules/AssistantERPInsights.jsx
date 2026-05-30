@@ -2,6 +2,7 @@ import { AlertTriangle, Bot, CheckCircle2, ClipboardList, FileWarning, GitBranch
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import useCrudModule from '../hooks/useCrudModule';
+import { receivableOfOrder } from '../utils/assistantDataMap.js';
 import { fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 
@@ -45,7 +46,8 @@ function PriorityRow({ item, onNavigate, onCreateTask, busy }) {
 }
 
 function buildAssistantPriorities(dataMap = {}) {
-  const sales = arr(dataMap.sales_orders || dataMap.ventes);
+  const sales = arr(dataMap.salesOrdersAll || dataMap.sales_orders || dataMap.ventes);
+  const payments = arr(dataMap.paymentsAll || dataMap.payments);
   const transactions = arr(dataMap.finances);
   const stock = arr(dataMap.stock);
   const animals = arr(dataMap.animaux);
@@ -60,7 +62,7 @@ function buildAssistantPriorities(dataMap = {}) {
 
   const openAlerts = alerts.filter(isOpen);
   const openTasks = tasks.filter(isOpen);
-  const unpaidSales = sales.filter((sale) => totalOf(sale) > paymentOf(sale) && !['annule', 'annulé'].includes(lower(sale.statut_commande || sale.status)));
+  const unpaidSales = sales.filter((sale) => receivableOfOrder(sale, payments) > 0 && !['annule', 'annulé'].includes(lower(sale.statut_commande || sale.status)));
   const criticalStock = stock.filter((s) => toNumber(s.quantite) <= toNumber(s.seuil));
   const sickAnimals = animals.filter((a) => /malade|traitement|surveiller/.test(lower(a.health_status || a.sante || a.status_sante)));
   const riskyLots = lots.filter((lot) => toNumber(lot.current_count ?? lot.actifs) <= 0 && !/cl[oô]tur|vendu|abattu|transform|perdu|livr/.test(lower(`${lot.status || ''} ${lot.statut || ''}`)));
@@ -72,7 +74,7 @@ function buildAssistantPriorities(dataMap = {}) {
 
   const priorities = [];
   if (openAlerts.length) priorities.push({ module: 'alertes', level: 'critical', badge: 'Alerte', title: `${openAlerts.length} alerte(s) ouverte(s)`, description: 'Transformer les alertes critiques en tâches terrain et clôturer celles déjà traitées.' });
-  if (unpaidSales.length) priorities.push({ module: 'ventes', level: 'warning', badge: 'Créance', title: `${unpaidSales.length} commande(s) non soldée(s)`, description: 'Encaisser les restes à payer, générer factures/preuves et relancer les clients.' });
+  if (unpaidSales.length) priorities.push({ module: 'commercial', level: 'warning', badge: 'Créance', title: `${unpaidSales.length} commande(s) non soldée(s)`, description: 'Encaisser les restes à payer, générer factures/preuves et relancer les clients.' });
   if (criticalStock.length) priorities.push({ module: 'stock', level: 'critical', badge: 'Stock', title: `${criticalStock.length} stock(s) critique(s)`, description: 'Réapprovisionner, corriger les seuils ou affecter les sorties alimentation/santé.' });
   if (sickAnimals.length) priorities.push({ module: 'animaux', level: 'critical', badge: 'Santé', title: `${sickAnimals.length} animal(aux) à suivre`, description: 'Créer un soin, relier les coûts santé et mettre à jour le statut du sujet.' });
   if (riskyLots.length) priorities.push({ module: 'avicole', level: 'warning', badge: 'Cycle', title: `${riskyLots.length} lot(s) à 0 actif non clôturé(s)`, description: 'Consulter l’historique effectif puis clôturer, justifier la sortie ou corriger l’effectif.' });
@@ -125,7 +127,7 @@ export default function AssistantERPInsights({ dataMap = {}, onNavigate }) {
     </div>
 
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <Card icon={FileWarning} label="Créances" value={analysis.unpaidSales.length} hint="commandes non soldées" danger={analysis.unpaidSales.length > 0} onClick={() => onNavigate?.('ventes')} />
+      <Card icon={FileWarning} label="Créances" value={analysis.unpaidSales.length} hint="commandes non soldées" danger={analysis.unpaidSales.length > 0} onClick={() => onNavigate?.('commercial')} />
       <Card icon={AlertTriangle} label="Stocks critiques" value={analysis.criticalStock.length} hint="à réapprovisionner" danger={analysis.criticalStock.length > 0} onClick={() => onNavigate?.('stock')} />
       <Card icon={Sparkles} label="Lots à clôturer" value={analysis.riskyLots.length} hint="effectif 0 non justifié" danger={analysis.riskyLots.length > 0} onClick={() => onNavigate?.('avicole')} />
       <Card icon={ClipboardList} label="Tâches ouvertes" value={analysis.openTasks.length} hint="terrain / suivi" danger={analysis.openTasks.length > 8} onClick={() => onNavigate?.('taches')} />

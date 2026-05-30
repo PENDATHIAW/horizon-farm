@@ -1,5 +1,9 @@
 import { runErpHealthEngine } from './erpHealthEngine.js';
+import { computeDashboardPeriodGoal } from '../modules/dashboard/dashboardMetrics.js';
+import { buildGoalPerformance } from './growthDecisionEngine.js';
+import { totalOpenReceivables } from '../utils/assistantDataMap.js';
 import { fmtCurrency, fmtNumber } from '../utils/format.js';
+import { formatPeriodScopeLabel, normalizePeriodScope } from '../utils/periodScope.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v = 0) => Number(v || 0);
@@ -12,7 +16,34 @@ function matchQuery(text, patterns) {
   return patterns.some((p) => (typeof p === 'string' ? q.includes(p) : p.test(q)));
 }
 
+/** Préfixe période pour les réponses stratégiques Hey Horizon. */
+export function buildHeyHorizonPeriodContext(dataMap = {}) {
+  const scope = normalizePeriodScope(dataMap.periodScope || { mode: 'all' });
+  const label = dataMap.periodLabel || formatPeriodScopeLabel(scope);
+  if (!label || label === 'Toutes les périodes') {
+    const receivable = totalOpenReceivables(
+      arr(dataMap.salesOrdersAll || dataMap.sales_orders || dataMap.salesOrders),
+      arr(dataMap.paymentsAll || dataMap.payments),
+    );
+    return receivable > 0 ? `Créances totales ouvertes : ${fmtCurrency(receivable)}. ` : '';
+  }
+  const salesPeriod = arr(dataMap.sales_orders || dataMap.salesOrders);
+  const caPeriod = salesPeriod.reduce((sum, row) => sum + amount(row), 0);
+  const receivable = totalOpenReceivables(
+    arr(dataMap.salesOrdersAll || dataMap.sales_orders || dataMap.salesOrders),
+    arr(dataMap.paymentsAll || dataMap.payments),
+  );
+  return `Sur ${label} : CA ${fmtCurrency(caPeriod)} · créances totales ${fmtCurrency(receivable)}. `;
+}
+
+function withPeriodContext(dataMap, summary) {
+  const prefix = buildHeyHorizonPeriodContext(dataMap);
+  if (!prefix || !summary) return summary;
+  return `${prefix}${summary}`;
+}
+
 export function detectStrategicQuery(text = '') {
+  if (matchQuery(text, [/objectif.*mois/, 'objectif du mois', 'où en suis', 'ou en suis', 'mon objectif', 'progression objectif', /ca.*objectif/, 'atteint.*objectif', 'objectif période', 'objectif periode'])) return 'month_goal';
   if (matchQuery(text, ['client', 'doivent', 'doit', 'créance', 'creance', 'impayé', 'impaye', 'relancer', 'encaisser'])) return 'clients_debt';
   if (matchQuery(text, [/lot.*rentab/, /rentab.*lot/, 'moins rentable', 'peu rentable', 'lot le plus'])) return 'lot_profitability';
   if (matchQuery(text, [/marge.*baiss/, 'pourquoi.*marge', 'baisse.*marge', 'marge baisse'])) return 'margin_drop';
@@ -22,8 +53,8 @@ export function detectStrategicQuery(text = '') {
 }
 
 export function buildStrategicAnswer(type, dataMap = {}) {
-  const sales = arr(dataMap.sales_orders || dataMap.salesOrders);
-  const payments = arr(dataMap.payments);
+  const sales = arr(dataMap.salesOrdersAll || dataMap.sales_orders || dataMap.salesOrders);
+  const payments = arr(dataMap.paymentsAll || dataMap.payments);
   const finances = arr(dataMap.finances || dataMap.transactions);
   const clients = arr(dataMap.clients);
   const lots = arr(dataMap.avicole || dataMap.lots);
@@ -34,6 +65,57 @@ export function buildStrategicAnswer(type, dataMap = {}) {
   const health = runErpHealthEngine(dataMap);
 
   switch (type) {
+    case 'month_goal': {
+      const scope = normalizePeriodScope(dataMap.periodScope || { mode: 'all' });
+      const salesAll = arr(dataMap.salesOrdersAll || dataMap.sales_orders || dataMap.salesOrders);
+      const performance = buildGoalPerformance(dataMap, { periodScope: scope });
+      const global = performance?.global || {};
+      const goal = computeDashboardPeriodGoal(salesAll, scope, {
+        annualTarget: global.annualTarget,
+      });
+      const primaryLabel = goal.periodLabel || 'Objectif';
+      const primaryAttainment = Number(goal.periodAttainment ?? 0);
+      const primaryRealized = Number(goal.periodRealized ?? 0);
+      const primaryTarget = Number(goal.periodTarget ?? 0);
+      const primaryRemaining = Number(goal.periodRemaining ?? 0);
+      const activities = arr(performance?.activities).filter((a) => a.target > 0).slice(0, 5);
+      return {
+        type,
+        title: primaryLabel,
+        summary: withPeriodContext(
+          dataMap,
+          `${primaryLabel} : ${fmtCurrency(primaryRealized)} / ${fmtCurrency(primaryTarget)} (${primaryAttainment}%). Reste ${fmtCurrency(primaryRemaining)}.${goal.periodSubtitle ? ` Période ERP : ${goal.periodSubtitle}.` : ''}`,
+        ),
+        rows: [
+          {
+            title: 'CA période',
+            detail: `${primaryAttainment}% de l'objectif`,
+            value: fmtCurrency(primaryRealized),
+            module: 'dashboard',
+          },
+          {
+            title: 'Encaissements',
+            detail: `Taux encaissement ${global.cashRate ?? 0}%`,
+            value: fmtCurrency(global.encaisse ?? 0),
+            module: 'finance_pilotage',
+          },
+          {
+            title: 'Marge période',
+            detail: `Dépenses ${fmtCurrency(global.depenses ?? 0)}`,
+            value: fmtCurrency(global.marge ?? 0),
+            module: 'finance_pilotage',
+          },
+          ...activities.map((a) => ({
+            title: a.label || a.activity,
+            detail: `Objectif ${fmtCurrency(a.target)}`,
+            value: `${a.attainment ?? 0}%`,
+            module: 'objectifs_croissance',
+          })),
+        ],
+        route: 'objectifs_croissance',
+        confidence: 94,
+      };
+    }
     case 'clients_debt': {
       const rows = sales.map((order) => {
         const total = amount(order);
@@ -44,7 +126,12 @@ export function buildStrategicAnswer(type, dataMap = {}) {
       return {
         type,
         title: 'Clients à relancer',
-        summary: rows.length ? `${rows.length} client(s) avec encaissements en attente — total ${fmtCurrency(rows.reduce((s, r) => s + r.rest, 0))}.` : 'Aucune créance client ouverte détectée.',
+        summary: rows.length
+          ? withPeriodContext(
+            dataMap,
+            `${rows.length} client(s) avec encaissements en attente — total ${fmtCurrency(rows.reduce((s, r) => s + r.rest, 0))}.${dataMap.periodFiltered ? ' Créances sur l’historique complet (hors filtre période ventes).' : ''}`,
+          )
+          : withPeriodContext(dataMap, 'Aucune créance client ouverte détectée.'),
         rows: rows.slice(0, 8).map((r) => ({ title: r.name, detail: `Commande ${r.orderId}`, value: fmtCurrency(r.rest), module: 'commercial', orderId: r.orderId })),
         route: 'commercial',
         confidence: 92,
@@ -65,11 +152,14 @@ export function buildStrategicAnswer(type, dataMap = {}) {
       return {
         type,
         title: 'Rentabilité des lots',
-        summary: worst
-          ? `Lot le moins rentable suivi : ${worst.lot.name || worst.lot.nom || worst.lot.id} (${fmtCurrency(worst.margin)}).`
-          : unreliable.length
-            ? `${unreliable.length} lot(s)/animal(aux) avec marge non fiable — données coûts incomplètes.`
-            : 'Complétez coûts aliment, poussins et revenus pour comparer les lots.',
+        summary: withPeriodContext(
+          dataMap,
+          worst
+            ? `Lot le moins rentable suivi : ${worst.lot.name || worst.lot.nom || worst.lot.id} (${fmtCurrency(worst.margin)}).`
+            : unreliable.length
+              ? `${unreliable.length} lot(s)/animal(aux) avec marge non fiable — données coûts incomplètes.`
+              : 'Complétez coûts aliment, poussins et revenus pour comparer les lots.',
+        ),
         rows: [
           ...lotRows.slice(0, 5).map((r) => ({ title: r.lot.name || r.lot.nom || r.lot.id, detail: `Coûts ${fmtCurrency(r.cost)} · CA ${fmtCurrency(r.revenue)}`, value: fmtCurrency(r.margin), module: 'elevage' })),
           ...unreliable.slice(0, 3).map((f) => ({ title: f.title, detail: f.description, value: 'Non fiable', module: 'elevage' })),
@@ -87,10 +177,13 @@ export function buildStrategicAnswer(type, dataMap = {}) {
       return {
         type,
         title: 'Pourquoi la marge baisse ?',
-        summary: `Marge actuelle ${fmtCurrency(margin)} (recettes ${fmtCurrency(income)} − dépenses ${fmtCurrency(expenses)}). ${profitFindings.length + riskFindings.length} signal(aux) IA expliquent la pression.`,
+        summary: withPeriodContext(
+          dataMap,
+          `Marge actuelle ${fmtCurrency(margin)} (recettes ${fmtCurrency(income)} − dépenses ${fmtCurrency(expenses)}). ${profitFindings.length + riskFindings.length} signal(aux) IA expliquent la pression.`,
+        ),
         rows: [
           ...profitFindings.slice(0, 4).map((f) => ({ title: f.title, detail: f.description, value: f.recommended_action, module: f.module || 'finance_pilotage' })),
-          ...riskFindings.slice(0, 3).map((r) => ({ title: r.title, detail: r.detail, value: r.level, module: r.module || 'objectifs_croissance' })),
+          ...riskFindings.slice(0, 3).map((r) => ({ title: r.title, detail: r.detail, value: r.level, module: r.module || 'centre_ia' })),
         ],
         route: 'finance_pilotage',
         confidence: 88,
@@ -109,7 +202,10 @@ export function buildStrategicAnswer(type, dataMap = {}) {
       return {
         type,
         title: 'Coûts équipements',
-        summary: `${eqRows.length} équipement(s) · ${fmtNumber(txCosts.length)} dépense(s) liées (${fmtCurrency(txTotal)}).`,
+        summary: withPeriodContext(
+          dataMap,
+          `${eqRows.length} équipement(s) · ${fmtNumber(txCosts.length)} dépense(s) liées (${fmtCurrency(txTotal)}).`,
+        ),
         rows: [
           ...eqRows.slice(0, 5),
           ...txCosts.slice(0, 4).map((t) => ({ title: t.libelle || t.title || 'Dépense', detail: t.date || t.created_at || '—', value: fmtCurrency(amount(t)), module: 'finance_pilotage' })),
@@ -124,12 +220,15 @@ export function buildStrategicAnswer(type, dataMap = {}) {
       return {
         type,
         title: 'Risques du mois',
-        summary: risks.length ? `${risks.length} risque(s) actif(s), dont ${risks.filter((r) => r.level === 'critique' || r.level === 'eleve').length} élevé(s) ou critique(s).` : 'Aucun risque élevé détecté ce mois.',
+        summary: withPeriodContext(
+          dataMap,
+          risks.length ? `${risks.length} risque(s) actif(s), dont ${risks.filter((r) => r.level === 'critique' || r.level === 'eleve').length} élevé(s) ou critique(s).` : 'Aucun risque élevé détecté ce mois.',
+        ),
         rows: [
-          ...risks.map((r) => ({ title: r.title, detail: r.detail, value: r.level, module: r.module || 'objectifs_croissance' })),
-          ...preds.map((p) => ({ title: p.title, detail: p.description, value: p.horizon || 'Prévision', module: p.module || 'objectifs_croissance' })),
+          ...risks.map((r) => ({ title: r.title, detail: r.detail, value: r.level, module: r.module || 'centre_ia' })),
+          ...preds.map((p) => ({ title: p.title, detail: p.description, value: p.horizon || 'Prévision', module: p.module || 'centre_ia' })),
         ],
-        route: 'objectifs_croissance',
+        route: 'centre_ia',
         confidence: 90,
       };
     }

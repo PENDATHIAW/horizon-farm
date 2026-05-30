@@ -1,48 +1,26 @@
-import { Bot, CheckCircle2, Ear, Mic, RefreshCw, Send, Sun, Volume2, VolumeX, X } from 'lucide-react';
+import { Bot, Ear, Mic, RefreshCw, Send, Sun, Volume2, VolumeX, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import HeyHorizonDraftSummary from './HeyHorizonDraftSummary';
 import HorizonDraftPanel from './HorizonDraftPanel';
 import HorizonWakeAnimation from './HorizonWakeAnimation';
-import { useAppData } from '../context/AppContext';
+import useHeyHorizonCommand from '../hooks/useHeyHorizonCommand';
 import useSpeechSynthesis from '../hooks/useSpeechSynthesis';
 import useVoiceRecognition from '../hooks/useVoiceRecognition';
-import { supabase } from '../lib/supabase';
-import { interpretHorizonCommand, parseConversationControl, updateHorizonDraft } from '../services/aiIntentEngine';
-import { detectStrategicQuery, buildStrategicAnswer } from '../services/heyHorizonStrategicAnswers.js';
-import { interpretVoiceCommand } from '../services/voiceCommands';
+import { parseConversationControl } from '../services/aiIntentEngine';
+import {
+  heyHorizonModuleLabel,
+  normalizeHeyHorizonText,
+  openHeyHorizonForm,
+  shouldAutoOpenHeyHorizonForm,
+} from '../services/heyHorizonAssistantService.js';
 import { searchERP } from '../services/globalSearchService';
 import { resolveSearchNavigation } from '../utils/commercialNavigation';
 
-const moduleLabel = (key = '') => ({
-  dashboard: 'Accueil', assistant_erp: 'Assistant ERP', objectifs_croissance: 'Vision & Croissance',
-  elevage: 'Élevage', commercial: 'Commercial', achats_stock: 'Achats & Stock',
-  finance_pilotage: 'Finance & Pilotage', activite_suivi: 'Activité & Suivi',
-  documents_rapports: 'Documents & Rapports', rh: 'Opérations & Ressources',
-  ventes: 'Commercial', finances: 'Finance & Pilotage', clients: 'Commercial', stock: 'Achats & Stock',
-  sales_orders: 'Commercial', sales_opportunities: 'Commercial', payments: 'Finance & Pilotage',
-  sante: 'Élevage', avicole: 'Élevage', animaux: 'Élevage', cultures: 'Cultures',
-  documents: 'Documents & Rapports', taches: 'Activité & Suivi', alertes: 'Activité & Suivi',
-  sync_activity: 'Vérifications', impact_business: 'Impact & Valeur', fournisseurs: 'Achats & Stock',
-  tracabilite: 'Traçabilité', centre_ia: 'Vision & Croissance', rapports: 'Rapports',
-  equipements: 'Opérations & Ressources', smartfarm: 'Smart Farm',
-}[key] || 'Espace lié');
-const normalize = (value = '') => String(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-const hasWakeWord = (value = '') => { const text = normalize(value); return text.includes('hey horizon') || text.includes('he horizon') || text.includes('horizon'); };
-const stripWakeWord = (value = '') => normalize(value).replace(/\b(hey|he|eh|e)\s+horizon\b/g, '').replace(/\bhorizon\b/g, '').trim();
-const AUTO_OPEN_FORM_TYPES = new Set(['health_action', 'animal_creation', 'animal_weighing', 'animal_loss', 'entity_lookup', 'sale_record', 'egg_production', 'poultry_mortality', 'poultry_close', 'stock_purchase', 'stock_movement', 'stock_critical_lookup', 'task_creation', 'finance_entry', 'equipment_action', 'financing_file', 'culture_harvest', 'supplier_invoice']);
-const shouldAutoOpenForm = (draft = {}) => draft?.primary_module && draft?.form_type && AUTO_OPEN_FORM_TYPES.has(draft.form_type) && draft.status !== 'draft_incomplete';
-const openHorizonForm = (draft = {}, onNavigate) => {
-  if (!draft?.primary_module) return;
-  onNavigate?.(draft.primary_module);
-  window.setTimeout(() => window.dispatchEvent(new CustomEvent('horizon-open-form', { detail: { module: draft.primary_module, draft } })), 220);
-};
-const isWeakDraft = (draft = {}, text = '') => {
-  const cleaned = normalize(text);
-  if (!draft || draft.status === 'unsupported' || draft.status === 'wake_only') return true;
-  if (draft.primary_module !== 'ventes' && draft.primary_module !== 'commercial') return false;
-  return !/(vend|vente|vends|client|paiement|paye|payé|commande|livr|facture|poulet|chair|oeuf|œuf|tablette)/.test(cleaned);
-};
+const hasWakeWord = (value = '') => { const text = normalizeHeyHorizonText(value); return text.includes('hey horizon') || text.includes('he horizon') || text.includes('horizon'); };
+const stripWakeWord = (value = '') => normalizeHeyHorizonText(value).replace(/\b(hey|he|eh|e)\s+horizon\b/g, '').replace(/\bhorizon\b/g, '').trim();
 const QUICK_ACTIONS = [
+  { label: 'Objectif du mois', text: 'Où en suis-je sur mon objectif du mois ?', module: 'assistant_erp', strategic: true },
   { label: 'Créances clients', text: 'Quels clients me doivent de l\'argent ?', module: 'assistant_erp', strategic: true },
   { label: 'Risques du mois', text: 'Quels sont mes risques du mois ?', module: 'assistant_erp', strategic: true },
   { label: 'Créer vente', text: 'Créer une vente', module: 'commercial' },
@@ -54,28 +32,8 @@ const QUICK_ACTIONS = [
   { label: 'Tâche', text: 'Créer une tâche ', module: 'activite_suivi' },
   { label: 'Dossier financeur', text: 'Préparer dossier financeur', module: 'rapports' },
 ];
-const REFRESH_KEYS_BY_MODULE = {
-  dashboard: ['animaux', 'avicole', 'sante', 'finances', 'stock', 'clients', 'fournisseurs', 'cultures', 'taches', 'alertes_center', 'business_events', 'sales_orders', 'payments'], centre_ia: ['stock', 'finances', 'avicole', 'animaux', 'cultures', 'alertes_center', 'business_events', 'sales_orders', 'payments', 'sensor_devices', 'camera_devices'], stock: ['stock', 'alimentation_logs', 'business_events'], finances: ['finances', 'payments', 'business_events'], fournisseurs: ['fournisseurs', 'finances', 'stock', 'business_events'], clients: ['clients', 'sales_orders', 'payments', 'business_events'], ventes: ['sales_orders', 'sales_order_items', 'deliveries', 'invoices', 'payments', 'stock', 'clients', 'business_events'], animaux: ['animaux', 'sante', 'alimentation_logs', 'sales_opportunities', 'business_events'], avicole: ['avicole', 'production_oeufs_logs', 'alimentation_logs', 'sales_opportunities', 'business_events'], sante: ['sante', 'veterinaires', 'stock', 'finances', 'taches', 'business_events'], cultures: ['cultures', 'stock', 'finances', 'sales_opportunities', 'business_events'], documents: ['documents', 'finances', 'sales_orders', 'business_events'], taches: ['taches', 'alertes_center', 'business_events'], alertes: ['alertes_center', 'whatsapp_logs', 'taches', 'business_events'], tracabilite: ['tracabilite', 'business_events'], smartfarm: ['sensor_devices', 'camera_devices', 'alertes_center', 'taches', 'business_events'], equipements: ['equipements', 'taches', 'finances', 'documents', 'business_events'], rh: ['finances', 'taches', 'business_events'],
-};
-const buildRefreshKeys = (result = {}, draft = {}) => { const modules = new Set([...(result.impacted_modules || []), draft.primary_module, 'dashboard', 'centre_ia', 'alertes', 'tracabilite'].filter(Boolean)); const keys = new Set(); modules.forEach((module) => (REFRESH_KEYS_BY_MODULE[module] || [module]).forEach((key) => keys.add(key))); return [...keys]; };
-
 function DraftSummary({ draft }) {
-  if (!draft || draft.status === 'unsupported' || draft.status === 'wake_only') return null;
-  const fields = draft.draft_fields || {};
-  const missing = draft.missing_fields || [];
-  const impacted = (draft.impacted_modules || []).map(moduleLabel).filter(Boolean);
-  const action = draft.intent_label || draft.intent || draft.action || 'Action ERP';
-  return <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-    <p className="flex items-center gap-2 font-black"><CheckCircle2 size={15} /> Ce que Horizon a compris</p>
-    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-      <span><b>Action :</b> {action}</span>
-      <span><b>Espace :</b> {moduleLabel(draft.primary_module)}</span>
-      {fields.entity_id || fields.target_id || fields.source_id || fields.animal_id ? <span><b>Cible :</b> {fields.entity_id || fields.target_id || fields.source_id || fields.animal_id}</span> : null}
-      {fields.date || fields.event_date ? <span><b>Date :</b> {fields.date || fields.event_date}</span> : null}
-      {impacted.length ? <span className="sm:col-span-2"><b>Impacts :</b> {impacted.join(', ')}</span> : null}
-    </div>
-    {missing.length ? <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"><b>À compléter :</b> {missing.join(', ')}</p> : null}
-  </div>;
+  return <HeyHorizonDraftSummary draft={draft} />;
 }
 
 export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
@@ -83,50 +41,61 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
   const [wakeState, setWakeState] = useState('idle');
   const [terrainMode, setTerrainMode] = useState(false);
   const [query, setQuery] = useState('');
-  const [draft, setDraft] = useState(null);
   const [isThinking, setIsThinking] = useState(false);
-  const [isValidating, setIsValidating] = useState(false);
   const [messages, setMessages] = useState([{ role: 'assistant', text: 'Hey Horizon est prêt. Clique Parler ou écris une action simple : vente, vaccin, œufs, stock, tâche, dépense…' }]);
   const silenceTimerRef = useRef(null);
   const lastHeardRef = useRef('');
   const speech = useSpeechSynthesis();
-  const { refreshModule } = useAppData();
+  const {
+    draft,
+    isValidating,
+    runCommand,
+    updateDraftField,
+    cancelDraft,
+    loadDraft,
+    validateDraft,
+  } = useHeyHorizonCommand({ dataMap, onNavigate });
   const voice = useVoiceRecognition({ continuous: terrainMode, autoRestart: terrainMode, onInterim: (text) => { if (!text) return; if (hasWakeWord(text) && wakeState === 'idle') wakeHorizon(); if (terrainMode && wakeState === 'idle') setWakeState('listening'); setLocalOpen(true); const withoutWake = stripWakeWord(text); setQuery(withoutWake || text); scheduleSilenceProcessing(withoutWake || text); }, onResult: (text) => { if (!text) return; if (hasWakeWord(text) && wakeState === 'idle') wakeHorizon(); setLocalOpen(true); scheduleSilenceProcessing(stripWakeWord(text) || text); } });
 
   const wakeHorizon = () => { setWakeState('wake_detected'); window.setTimeout(() => setWakeState('circuit'), 120); window.setTimeout(() => setWakeState('sun'), 1450); window.setTimeout(() => { setWakeState('idle'); setLocalOpen(true); }, 3000); };
-  const buildAssistantTextFromDraft = (nextDraft) => { if (!nextDraft || nextDraft.status === 'unsupported' || nextDraft.status === 'wake_only') return null; const missing = nextDraft.missing_fields || []; const impacted = (nextDraft.impacted_modules || []).map(moduleLabel).join(', '); if (nextDraft.form_type === 'health_action') return missing.length ? `J’ai compris : fiche santé à préparer. Il manque ${missing.join(', ')}.` : `J’ai compris : fiche ${nextDraft.draft_fields?.action_type || 'santé'} pour ${nextDraft.draft_fields?.target_id || nextDraft.draft_fields?.animal_id}. J’ouvre la fiche préremplie.`; if (missing.length) return `J’ai compris l’action. Il reste ${missing.length} champ(s) à compléter. Modules concernés : ${impacted || moduleLabel(nextDraft.primary_module)}.`; if (nextDraft.next_required_form) return `J’ai compris, mais un formulaire lié est requis : ${nextDraft.next_required_form.title}.`; return `Action prête. J’ouvre la fiche préremplie dans ${moduleLabel(nextDraft.primary_module)}.`; };
-  const refreshImpactedModules = async (result, validatedDraft) => { const keys = buildRefreshKeys(result, validatedDraft); if (!keys.length) return; await Promise.allSettled(keys.map((key) => refreshModule(key))); toast.success(`Modules rafraîchis : ${keys.slice(0, 4).join(', ')}${keys.length > 4 ? '…' : ''}`); };
-  const validateDraft = async () => {
-    if (!draft || isValidating) return;
-    if (shouldAutoOpenForm(draft)) {
-      openHorizonForm(draft, onNavigate);
-      toast.success('Fiche préremplie ouverte pour validation');
-      return;
-    }
-    setIsValidating(true);
+
+  const handleValidateDraft = async () => {
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      const response = await fetch('/api/assistant/validate', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ draft, confirmed: true, execute: true, user_id: sessionData?.session?.user?.id || null }) });
-      const result = await response.json();
-      if (!response.ok || !result.ok) throw new Error(result.message || result.execution?.results?.find?.((item) => item.error)?.error || 'Validation impossible');
-      const message = result.message || 'Action exécutée.';
+      const result = await validateDraft();
+      if (result?.message) {
+        setMessages((prev) => [...prev, { role: 'assistant', text: result.message }]);
+        speech.speak(result.message);
+      }
+    } catch (error) {
+      const message = `Je n’ai pas pu valider : ${error.message}`;
       setMessages((prev) => [...prev, { role: 'assistant', text: message }]);
-      speech.speak(message);
-      toast.success(result.executed ? 'Action exécutée' : 'Action préparée');
-      await refreshImpactedModules(result, draft);
-      window.dispatchEvent(new CustomEvent('horizon-assistant-executed', { detail: result }));
-      if (draft.primary_module) onNavigate?.(draft.primary_module);
-      setDraft(null);
-    } catch (error) { const message = `Je n’ai pas pu valider : ${error.message}`; setMessages((prev) => [...prev, { role: 'assistant', text: message }]); toast.error(error.message); }
-    finally { setIsValidating(false); }
+    }
   };
-  const cancelDraft = (reason = 'Action annulée.') => { setDraft(null); setQuery(''); lastHeardRef.current = ''; setMessages((prev) => [...prev, { role: 'assistant', text: reason }]); speech.speak(reason); };
-  const resetConversation = () => { speech.stop(); setDraft(null); lastHeardRef.current = ''; setMessages([{ role: 'assistant', text: 'Nouvelle demande ouverte. Clique Parler, écris une action ou choisis un raccourci.' }]); setQuery(''); };
-  const loadExternalDraft = (nextDraft, sourceLabel = 'Centre IA') => { if (!nextDraft) return; setDraft(nextDraft); setLocalOpen(true); setWakeState('idle'); const text = `${sourceLabel} a préparé une action. Vérifie, complète si besoin, puis valide.`; setMessages((prev) => [...prev, { role: 'assistant', text }]); speech.speak(text); if (shouldAutoOpenForm(nextDraft)) openHorizonForm(nextDraft, onNavigate); };
-  const processCommand = (rawText, { fromSilence = false } = {}) => {
-    const cleaned = stripWakeWord(rawText || '').trim() || normalize(rawText || '').trim();
-    const rawNormalized = normalize(rawText || '').trim();
+
+  const handleCancelDraft = (reason = 'Action annulée.') => {
+    cancelDraft();
+    setQuery('');
+    lastHeardRef.current = '';
+    setMessages((prev) => [...prev, { role: 'assistant', text: reason }]);
+    speech.speak(reason);
+  };
+
+  const resetConversation = () => { speech.stop(); cancelDraft(); lastHeardRef.current = ''; setMessages([{ role: 'assistant', text: 'Nouvelle demande ouverte. Clique Parler, écris une action ou choisis un raccourci.' }]); setQuery(''); };
+
+  const loadExternalDraft = (nextDraft, sourceLabel = 'Centre IA') => {
+    if (!nextDraft) return;
+    loadDraft(nextDraft);
+    setLocalOpen(true);
+    setWakeState('idle');
+    const text = `${sourceLabel} a préparé une action. Vérifie, complète si besoin, puis valide.`;
+    setMessages((prev) => [...prev, { role: 'assistant', text }]);
+    speech.speak(text);
+    if (shouldAutoOpenHeyHorizonForm(nextDraft)) openHeyHorizonForm(nextDraft, onNavigate);
+  };
+
+  const processCommand = async (rawText, { fromSilence = false } = {}) => {
+    const cleaned = stripWakeWord(rawText || '').trim() || normalizeHeyHorizonText(rawText || '').trim();
+    const rawNormalized = normalizeHeyHorizonText(rawText || '').trim();
     if (!cleaned) {
       setLocalOpen(true);
       const text = 'Je suis prêt. Dis-moi maintenant l’action à faire : vaccin, vente, stock, œufs, tâche…';
@@ -136,49 +105,45 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
     }
     const control = parseConversationControl(cleaned || rawNormalized);
     if (control === 'wake') { const text = 'Je suis prêt. Quelle action veux-tu faire ?'; setMessages((prev) => [...prev, { role: 'assistant', text }]); speech.speak(text); setQuery(''); return; }
-    if (control === 'validate') { validateDraft(); setQuery(''); return; }
-    if (control === 'cancel') { cancelDraft(); return; }
+    if (control === 'validate') { await handleValidateDraft(); setQuery(''); return; }
+    if (control === 'cancel') { handleCancelDraft(); return; }
     if (control === 'reset') { resetConversation(); return; }
-    setIsThinking(true); window.setTimeout(() => setIsThinking(false), 700);
-    const strategicType = detectStrategicQuery(cleaned);
-    if (strategicType) {
-      const answer = buildStrategicAnswer(strategicType, dataMap);
-      const assistantText = answer?.summary || 'Analyse stratégique disponible dans Assistant ERP.';
-      setMessages((prev) => [...prev, { role: 'user', text: cleaned }, { role: 'assistant', text: assistantText }]);
-      setDraft(null);
-      speech.speak(assistantText);
-      onNavigate?.('assistant_erp');
-      setQuery('');
-      return;
-    }
-    const nextDraft = draft ? updateHorizonDraft(draft, cleaned, dataMap) : interpretHorizonCommand(cleaned, dataMap);
-    if (nextDraft?.status === 'wake_only') { const text = 'Je suis prêt. Quelle action veux-tu faire ?'; setMessages((prev) => [...prev, { role: 'assistant', text }]); speech.speak(text); setQuery(''); return; }
-    const weak = isWeakDraft(nextDraft, cleaned);
-    const draftText = weak ? null : buildAssistantTextFromDraft(nextDraft);
-    const fallback = interpretVoiceCommand(cleaned, dataMap);
-    const assistantText = draftText || fallback.answer || 'Je n’ai pas assez compris. Choisis une action rapide ou précise : vente, vaccin, stock, œufs, tâche, dépense.';
+    setIsThinking(true);
+    window.setTimeout(() => setIsThinking(false), 700);
+    const result = await runCommand(cleaned, { mergeDraft: Boolean(draft), autoOpenForm: true, navigateOnDraft: true });
+    const assistantText = result?.assistantText || 'Je n’ai pas assez compris. Choisis une action rapide ou précise : vente, vaccin, stock, œufs, tâche, dépense.';
     setMessages((prev) => [...prev, { role: 'user', text: cleaned }, { role: 'assistant', text: assistantText }]);
-    if (draftText) {
-      setDraft(nextDraft);
-      if (shouldAutoOpenForm(nextDraft)) openHorizonForm(nextDraft, onNavigate);
-      else if (nextDraft.primary_module) onNavigate?.(nextDraft.primary_module);
-      speech.speak(draftText);
-    }
-    else { setDraft(null); if (fallback.moduleKey && fallback.moduleKey !== 'ventes') onNavigate?.(fallback.moduleKey); speech.speak(assistantText); }
+    if (result?.kind === 'strategic') onNavigate?.('assistant_erp');
+    speech.speak(assistantText);
     setQuery('');
     if (fromSilence && terrainMode && voice.supported && !voice.listening) window.setTimeout(() => voice.start(), 900);
   };
-  const scheduleSilenceProcessing = (text) => { const cleaned = stripWakeWord(text || '').trim() || normalize(text || '').trim(); if (!cleaned || cleaned === lastHeardRef.current) return; lastHeardRef.current = cleaned; window.clearTimeout(silenceTimerRef.current); silenceTimerRef.current = window.setTimeout(() => processCommand(cleaned, { fromSilence: true }), 1400); };
+  const scheduleSilenceProcessing = (text) => { const cleaned = stripWakeWord(text || '').trim() || normalizeHeyHorizonText(text || '').trim(); if (!cleaned || cleaned === lastHeardRef.current) return; lastHeardRef.current = cleaned; window.clearTimeout(silenceTimerRef.current); silenceTimerRef.current = window.setTimeout(() => processCommand(cleaned, { fromSilence: true }), 1400); };
 
   useEffect(() => { if (!terrainMode) { voice.stop(); return; } if (!voice.listening) voice.start(); }, [terrainMode]);
   useEffect(() => () => window.clearTimeout(silenceTimerRef.current), []);
   useEffect(() => { const handler = (event) => loadExternalDraft(event.detail?.draft, event.detail?.sourceLabel || 'Centre IA'); window.addEventListener('horizon-open-draft', handler); return () => window.removeEventListener('horizon-open-draft', handler); }, [speech, onNavigate]);
 
+  useEffect(() => {
+    const handler = async (event) => {
+      const query = event.detail?.query;
+      if (!query) return;
+      setLocalOpen(true);
+      setQuery(query);
+      const result = await runCommand(query, { autoOpenForm: false, navigateOnDraft: false });
+      if (result?.assistantText) {
+        setMessages((prev) => [...prev, { role: 'assistant', text: result.assistantText }]);
+      }
+    };
+    window.addEventListener('horizon-assistant-query', handler);
+    return () => window.removeEventListener('horizon-assistant-query', handler);
+  }, [runCommand]);
+
   const results = useMemo(() => searchERP(dataMap, query).slice(0, 4), [dataMap, query]);
   const panelOpen = open || localOpen;
   const toggleTerrainMode = () => { if (!voice.supported) { toast.error('Reconnaissance vocale non supportée ici'); setLocalOpen(true); setMessages((prev) => [...prev, { role: 'assistant', text: voice.hint || 'Utilise le champ texte : la reconnaissance vocale n’est pas disponible dans ce navigateur.' }]); return; } setTerrainMode((prev) => { const next = !prev; if (next) { setLocalOpen(true); setWakeState('idle'); toast.success('Micro Horizon activé. Parle puis marque une pause.'); window.setTimeout(() => voice.start(), 250); } else { voice.stop(); toast('Micro Horizon désactivé.'); } return next; }); };
   const toggleVoiceReplies = () => { if (!speech.supported) return toast.error('Réponse vocale non disponible ici'); if (speech.enabled) { speech.disable(); toast.success('Réponses vocales désactivées'); return; } speech.enable(); speech.test(); toast.success('Réponses vocales activées'); };
-  const updateDraftField = (key, value) => setDraft((current) => current ? { ...current, draft_fields: { ...(current.draft_fields || {}), [key]: value }, missing_fields: (current.missing_fields || []).filter((field) => field !== key) } : current);
+  const updateDraftFieldHandler = updateDraftField;
   const closePanel = () => { speech.stop(); setLocalOpen(false); setWakeState('idle'); onClose?.(); };
   const quickAction = (item) => {
     setLocalOpen(true);
@@ -210,10 +175,10 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
       </div>
       <div className="max-h-[44vh] overflow-y-auto p-4 space-y-3 max-md:max-h-[38vh]">
         <DraftSummary draft={draft} />
-        <HorizonDraftPanel draft={draft} onChangeField={updateDraftField} onValidate={validateDraft} onCancel={() => cancelDraft()} onOpenModule={onNavigate} />
+        <HorizonDraftPanel draft={draft} onChangeField={updateDraftFieldHandler} onValidate={handleValidateDraft} onCancel={() => handleCancelDraft()} onOpenModule={onNavigate} />
         {messages.slice(-5).map((message, index) => <div key={`${message.role}-${index}`} className={`rounded-2xl px-3 py-2 text-sm leading-relaxed ${message.role === 'assistant' ? 'bg-[#fffdf8] border border-[#eadcc2] text-[#7d6a4a]' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-700'}`}>{message.text}</div>)}
         {isThinking || isValidating ? <div className="rounded-2xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs font-bold text-amber-700">{isValidating ? 'Horizon valide et rafraîchit les modules...' : 'Horizon comprend la demande...'}</div> : null}
-        {results.length > 0 && !draft && query.trim() ? <div className="space-y-2"><p className="text-[11px] uppercase tracking-widest text-[#8a7456] font-bold">Résultats ERP</p>{results.map((result) => { const target = resolveSearchNavigation(result.moduleKey); return <button key={`${result.moduleKey}-${result.id}`} type="button" onClick={() => { onNavigate?.(target.module, target.tab ? { tab: target.tab } : {}); toast.success(`Ouverture ${moduleLabel(target.module)}`); }} className="w-full text-left bg-[#fffdf8] border border-[#d6c3a0] rounded-xl p-2 hover:border-emerald-500 transition-colors"><div className="text-sm font-semibold text-[#2f2415]">{result.title}</div><div className="text-xs text-[#8a7456]">{moduleLabel(target.module)} · {result.subtitle}</div></button>; })}</div> : null}
+        {results.length > 0 && !draft && query.trim() ? <div className="space-y-2"><p className="text-[11px] uppercase tracking-widest text-[#8a7456] font-bold">Résultats ERP</p>{results.map((result) => { const target = resolveSearchNavigation(result.moduleKey); return <button key={`${result.moduleKey}-${result.id}`} type="button" onClick={() => { onNavigate?.(target.module, target.tab ? { tab: target.tab } : {}); toast.success(`Ouverture ${heyHorizonModuleLabel(target.module)}`); }} className="w-full text-left bg-[#fffdf8] border border-[#d6c3a0] rounded-xl p-2 hover:border-emerald-500 transition-colors"><div className="text-sm font-semibold text-[#2f2415]">{result.title}</div><div className="text-xs text-[#8a7456]">{heyHorizonModuleLabel(target.module)} · {result.subtitle}</div></button>; })}</div> : null}
       </div>
     </aside> : null}
   </>;
