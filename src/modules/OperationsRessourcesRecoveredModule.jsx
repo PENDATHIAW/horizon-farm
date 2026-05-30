@@ -9,6 +9,7 @@ import { emitHorizonForm } from '../services/formModalManager';
 import { applyOneClickRecommendation, createMaintenanceTask } from '../services/heyHorizonRecommendationActions.js';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { rowsOf } from '../utils/moduleRows';
+import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import { getRhDirectory } from '../utils/rhDirectory';
 import { aggregateMaintenanceQueue, buildRhCoherenceRows, buildRhHealthSnapshot, computePayrollSummary } from './rh/rhVisionHelpers.js';
 import RHPeopleTeams from './RHPeopleTeams.jsx';
@@ -201,6 +202,7 @@ export default function OperationsRessourcesRecoveredModule(props) {
   const financesCrud = useCrudModule('finances');
   const docsCrud = useCrudModule('documents');
   const eventsCrud = useCrudModule('business_events');
+  const periodFiltered = Boolean(props.periodFiltered);
 
   useEffect(() => {
     const sync = () => setDirectoryPeople(getRhDirectory().people || []);
@@ -208,16 +210,16 @@ export default function OperationsRessourcesRecoveredModule(props) {
     return () => window.removeEventListener('horizon-farm-rh-updated', sync);
   }, []);
 
-  const crudTeam = rowsOf(props.equipe || props.rh, rhCrud);
+  const crudTeam = rowsOf(props.equipe || props.rh, rhCrud, false);
   const team = crudTeam.length ? crudTeam : directoryPeople;
-  const equipment = rowsOf(props.equipements, eqCrud);
-  const sensors = rowsOf(props.sensorDevices, sensorCrud);
-  const cameras = rowsOf(props.cameraDevices, cameraCrud);
-  const transactions = rowsOf(props.transactions || props.finances, financesCrud);
-  const allDocuments = rowsOf(props.documents, docsCrud);
+  const equipment = rowsOf(props.equipements, eqCrud, false);
+  const sensors = rowsOf(props.sensorDevices, sensorCrud, false);
+  const cameras = rowsOf(props.cameraDevices, cameraCrud, false);
+  const transactions = rowsOf(props.transactions || props.finances, financesCrud, periodFiltered);
+  const allDocuments = rowsOf(props.documents, docsCrud, periodFiltered);
   const documents = allDocuments.filter(isRhDoc);
-  const tasks = rowsOf(props.tasks || props.taches, tasksCrud);
-  const alertes = rowsOf(props.alertes, alertsCrud);
+  const tasks = rowsOf(props.tasks || props.taches, tasksCrud, false);
+  const alertes = rowsOf(props.alertes, alertsCrud, false);
 
   const shared = {
     ...props,
@@ -347,6 +349,7 @@ export default function OperationsRessourcesRecoveredModule(props) {
             <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Ressources</p>
             <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Opérations & Ressources</h1>
             <p className="mt-1 text-sm text-[#8a7456]">Équipements, maintenance, affectations — cohérence IA coûts et ressources.</p>
+            {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
           </div>
           <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div>
         </div>
@@ -358,7 +361,7 @@ export default function OperationsRessourcesRecoveredModule(props) {
             : tab === 'Affectations' ? <RHPeopleTeams {...rhProps} />
               : tab === 'Coûts' ? <CostsHub data={data} onNavigate={props.onNavigate} />
                 : tab === 'Documents' ? <DocumentsHub data={data} onNavigate={props.onNavigate} />
-                  : <ModuleGraphiquesTab moduleId="rh" equipements={equipment} transactions={transactions} onNavigate={props.onNavigate} />}
+                  : <ModuleGraphiquesTab moduleId="rh" periodFiltered={periodFiltered} equipements={equipment} transactions={transactions} onNavigate={props.onNavigate} />}
     </div>
   );
 }
