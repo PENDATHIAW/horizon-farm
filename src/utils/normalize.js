@@ -83,31 +83,32 @@ export const normalizeLot = (lot = {}) => {
   const saleReady = isSaleReadyRecord(lot);
   const normalizedStatus = ['sain', 'malade'].includes(lot.status) ? 'actif' : (lot.status || lot.statut || 'actif');
   const finalStatus = saleReady && !['vendu', 'perdu', 'archive', 'archivé'].includes(String(normalizedStatus).toLowerCase()) ? 'pret_a_la_vente' : normalizedStatus;
+  const initial = toNumber(lot.initial_count ?? lot.effectif_initial ?? lot.effectif_depart ?? lot.nombre_initial ?? lot.effectif ?? lot.nombre ?? lot.quantite);
+  const dead = toNumber(lot.mortality ?? lot.mortalite ?? lot.morts ?? lot.dead_count ?? lot.deaths ?? lot.pertes_mortalite);
+  const stolen = toNumber(lot.vols ?? lot.voles ?? lot.stolen);
+  const sold = toNumber(lot.vendus ?? lot.sold_count ?? lot.sold);
+  const reformed = toNumber(lot.reformes ?? lot.reformed_count ?? lot.reformed);
+  const exits = toNumber(lot.sorties ?? lot.autres_sorties ?? lot.sorties_autres ?? lot.other_exits);
+  const calculatedCurrent = Math.max(0, initial - dead - stolen - sold - reformed - exits);
   return {
     ...lot,
     productionJour: toNumber(lot.productionJour ?? lot.productionjour ?? lot.production_jour),
     revenuEstime: toNumber(lot.revenuEstime ?? lot.revenu_estime),
-    mortality: toNumber(lot.mortality ?? lot.mortalite),
-    initial_count: toNumber(lot.initial_count),
+    mortality: dead,
+    morts: dead,
+    initial_count: initial,
+    effectif_initial: initial,
     scoresSante: toNumber(lot.scoresSante ?? lot.scores_sante),
     weight_avg: toNumber(lot.weight_avg),
     marge: toNumber(lot.marge),
     malades: toNumber(lot.malades),
-    vols: toNumber(lot.vols),
-    vendus: toNumber(lot.vendus),
-    reformes: toNumber(lot.reformes),
-    sorties: toNumber(lot.sorties),
-    current_count: toNumber(lot.initial_count) > 0
-      ? Math.max(
-          0,
-          toNumber(lot.initial_count) -
-            toNumber(lot.mortality ?? lot.mortalite) -
-            toNumber(lot.vols) -
-            toNumber(lot.vendus) -
-            toNumber(lot.reformes) -
-            toNumber(lot.sorties)
-        )
-      : toNumber(lot.current_count),
+    vols: stolen,
+    vendus: sold,
+    sold_count: sold,
+    reformes: reformed,
+    sorties: exits,
+    current_count: initial > 0 ? calculatedCurrent : toNumber(lot.current_count ?? lot.effectif_actuel),
+    effectif_actuel: initial > 0 ? calculatedCurrent : toNumber(lot.effectif_actuel ?? lot.current_count),
     oeufs_casses: toNumber(lot.oeufs_casses),
     taux_ponte: toNumber(lot.taux_ponte),
     frais_sante: toNumber(lot.frais_sante ?? lot.sante),

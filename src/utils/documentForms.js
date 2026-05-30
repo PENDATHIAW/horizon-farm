@@ -41,6 +41,9 @@ export function documentFields(context = {}) {
     { key: 'id', label: 'ID', type: 'text', required: true },
     { key: 'title', label: 'Titre', type: 'text', required: true },
     { key: 'document_category', label: 'Catégorie', type: 'select', options: DOC_CATEGORIES },
+    { key: 'montant', label: 'Montant concerné', type: 'number' },
+    { key: 'date_document', label: 'Date du document', type: 'date' },
+    { key: 'statut', label: 'Statut preuve', type: 'select', options: ['fourni', 'manquant', 'a_verifier', 'verifie'] },
     { key: 'file_url', label: 'Fichier / image', type: 'image' },
     { key: 'file_type', label: 'Type fichier', type: 'select', options: ['pdf', 'image', 'excel', 'word', 'autre'] },
     { key: 'module_source', label: 'Module lié', type: 'select', clearOnChange: ['entity_type', 'entity_id', 'related_id'], options: sources, emptyLabel: 'Aucun module avec fiche valide' },
@@ -59,5 +62,7 @@ export function normalizeDocumentPayload(payload = {}, context = {}) {
     ...payload,
     entity_type: payload.module_source === 'autre' ? 'autre' : entityType,
     related_id: payload.related_id || payload.entity_id || '',
+    status: payload.status || payload.statut || (payload.file_url ? 'fourni' : 'manquant'),
+    verification_status: payload.verification_status || (payload.file_url ? 'a_verifier' : 'preuve_manquante'),
   };
 }

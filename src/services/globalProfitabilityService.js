@@ -1,11 +1,11 @@
 import { toNumber } from '../utils/format';
+import { consolidateFinance } from '../utils/financeConsolidationEngine';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').toLowerCase();
-const amount = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?? row.montant_total ?? row.chiffre_affaires);
+const amount = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?? row.montant_total ?? row.chiffre_affaires ?? row.cout ?? row.coût ?? row.cost);
 const total = (row = {}) => toNumber(row.montant_total ?? row.total ?? row.chiffre_affaires ?? row.amount);
-const linkedText = (row = {}) => lower(`${row.module_lie || ''} ${row.source_module || ''} ${row.entity_type || ''} ${row.target_type || ''} ${row.type_cible || ''} ${row.related_type || ''}`);
-const fullText = (row = {}) => lower(`${row.categorie || ''} ${row.category || ''} ${row.module_lie || ''} ${row.source_module || ''} ${row.entity_type || ''} ${row.target_type || ''} ${row.type_cible || ''} ${row.libelle || ''} ${row.description || ''} ${row.notes || ''}`);
+const textOf = (row = {}) => lower(`${row.profit_bucket || ''} ${row.categorie || ''} ${row.category || ''} ${row.module_lie || ''} ${row.source_module || ''} ${row.entity_type || ''} ${row.target_type || ''} ${row.module || ''} ${row.source_type || ''} ${row.libelle || ''} ${row.title || ''} ${row.description || ''}`);
 
 export const PROFIT_BUCKETS = {
   animaux: 'Charges directes animaux',
@@ -17,95 +17,89 @@ export const PROFIT_BUCKETS = {
   rh: 'Charges RH',
   exploitation: 'Charges exploitation',
   equipements: 'Équipements / maintenance',
-  fournisseurs_achats: 'Achats généraux non affectés',
+  fournisseurs_achats: 'Achats fournisseurs',
   investissements: 'Investissements',
   prelevements_proprietaire: 'Prélèvements propriétaire',
   autres_charges: 'Autres charges',
 };
 
-function activityFromLink(row = {}) {
-  const text = linkedText(row);
-  if (/animal|animaux|bovin|ovin|caprin/.test(text)) return 'animaux';
-  if (/avicole|volaille|poulet|poussin|pondeuse|chair|lot_avicole|lot/.test(text)) return 'avicole';
-  if (/culture|cultures|maraichage|maraîchage|parcelle/.test(text)) return 'cultures';
-  return '';
-}
-
-function supplierGeneralPurchase(text = '') {
-  const isSupplier = /fournisseur|achat|approvisionnement|dette fournisseur/.test(text);
-  if (!isSupplier) return false;
-  const isStockOrFeed = /stock|aliment|alimentation|provende|maïs|mais|son|fourrage|foin|granul[eé]|céréale|cereale|intrant stock|mati[eè]re premi[eè]re/.test(text);
-  const isHealth = /sant|vaccin|m[eé]dicament|medicament|veto|véto|soin|traitement|bios[eé]curit/.test(text);
-  const isEquipment = /equip|mat[eé]riel|materiel|maintenance|machine|pompe|groupe|incubateur|v[eé]hicule|carburant/.test(text);
-  const isActivity = /animal|bovin|ovin|caprin|cheptel|avicole|volaille|poulet|poussin|pondeuse|chair|culture|maraichage|maraîchage|semence|r[eé]colte|parcelle/.test(text);
-  const isInvestment = /invest|business plan|bp|immobilisation|construction|bâtiment|batiment/.test(text);
-  return !isStockOrFeed && !isHealth && !isEquipment && !isActivity && !isInvestment;
-}
-
 export function classifyProfitCharge(row = {}) {
   if (row.profit_bucket && PROFIT_BUCKETS[row.profit_bucket]) return row.profit_bucket;
-  const linkedActivity = activityFromLink(row);
-  if (linkedActivity) return linkedActivity;
-  const text = fullText(row);
-  if (/salaire.*(propri[eé]taire|dirigeant|fondatrice|g[eé]rante|penda)|r[eé]mun[eé]ration.*(propri[eé]taire|dirigeant|fondatrice|g[eé]rante|penda)|salaire penda|paie penda/.test(text)) return 'remuneration_proprietaire';
-  if (/pr[eé]l[eè]vement|retrait perso|personnel|avance associ[eé]|compte exploitant|voyage personnel|d[eé]pense perso/.test(text)) return 'prelevements_proprietaire';
-  if (/rh|salaire|paie|rémun|remun/.test(text)) return 'rh';
-  if (/animal|bovin|ovin|caprin|cheptel/.test(text)) return 'animaux';
+  const text = textOf(row);
+  if (/animal|animaux|bovin|ovin|caprin|cheptel/.test(text)) return 'animaux';
   if (/avicole|volaille|poulet|poussin|pondeuse|chair|lot/.test(text)) return 'avicole';
-  if (/culture|maraichage|maraîchage|semence|intrant|récolte|recolte|parcelle/.test(text)) return 'cultures';
-  if (/stock|aliment|alimentation|provende|maïs|mais|son|fourrage|foin|granul[eé]|céréale|cereale|perte stock/.test(text)) return 'stock_non_affecte';
-  if (/sant|vaccin|m[eé]dicament|medicament|veto|véto|soin|traitement|biosécurité|biosecurite/.test(text)) return 'sante_non_affectee';
-  if (/equip|matériel|materiel|maintenance|carburant|machine|pompe|groupe|incubateur|v[eé]hicule/.test(text)) return 'equipements';
-  if (/invest|business plan|bp|immobilisation|construction|bâtiment|batiment/.test(text)) return 'investissements';
-  if (/loyer|electric|électric|eau|internet|transport|admin|assurance|impot|impôt|taxe|frais généraux|frais generaux|exploitation/.test(text)) return 'exploitation';
-  if (supplierGeneralPurchase(text)) return 'fournisseurs_achats';
+  if (/culture|maraichage|maraîchage|semence|recolte|récolte|parcelle/.test(text)) return 'cultures';
+  if (/sant|vaccin|medicament|médicament|veto|véto|soin|traitement/.test(text)) return 'sante_non_affectee';
+  if (/stock|aliment|alimentation|provende|intrant|fourrage|foin|granul|cereale|céréale/.test(text)) return 'stock_non_affecte';
+  if (/equip|materiel|matériel|maintenance|machine|pompe|incubateur|vehicule|véhicule/.test(text)) return 'equipements';
+  if (/invest|business plan|immobilisation|construction|batiment|bâtiment/.test(text)) return 'investissements';
+  if (/fournisseur|achat|approvisionnement|dette fournisseur/.test(text)) return 'fournisseurs_achats';
+  if (/salaire|paie|rh|employ/.test(text)) return 'rh';
+  if (/prelevement|prélèvement|retrait perso|avance associe|avance associé|compte exploitant/.test(text)) return 'prelevements_proprietaire';
+  if (/loyer|electric|électric|eau|internet|transport|admin|assurance|taxe|impot|impôt|exploitation/.test(text)) return 'exploitation';
   return 'autres_charges';
 }
 
-export function computeGlobalProfitability({ transactions = [], salesOrders = [], payments = [] } = {}) {
-  const salesCa = arr(salesOrders).reduce((sum, sale) => sum + total(sale), 0);
-  const financeIn = arr(transactions).filter((tx) => ['entree', 'entrée'].includes(lower(tx.type))).reduce((sum, tx) => sum + amount(tx), 0);
-  const paidIn = arr(payments).reduce((sum, payment) => sum + amount(payment), 0);
-  const caTotal = Math.max(salesCa, financeIn, paidIn);
-  const encaisse = Math.max(financeIn, paidIn);
-  const buckets = Object.fromEntries(Object.keys(PROFIT_BUCKETS).map((key) => [key, 0]));
-  const rowsByBucket = Object.fromEntries(Object.keys(PROFIT_BUCKETS).map((key) => [key, []]));
+function buildRowsByBucket() {
+  return Object.fromEntries(Object.keys(PROFIT_BUCKETS).map((key) => [key, []]));
+}
 
+function addRow(rowsByBucket, bucket, value, source = {}) {
+  if (!bucket || !PROFIT_BUCKETS[bucket] || toNumber(value) <= 0) return;
+  rowsByBucket[bucket].push({ ...source, montant: value, profit_bucket: bucket, type: 'sortie' });
+}
+
+function manualFinanceBuckets(transactions = []) {
+  const rowsByBucket = buildRowsByBucket();
+  const buckets = Object.fromEntries(Object.keys(PROFIT_BUCKETS).map((key) => [key, 0]));
   arr(transactions).filter((tx) => lower(tx.type) === 'sortie').forEach((tx) => {
     const bucket = classifyProfitCharge(tx);
     const value = amount(tx);
     buckets[bucket] += value;
-    rowsByBucket[bucket].push(tx);
+    addRow(rowsByBucket, bucket, value, tx);
   });
+  return { buckets, rowsByBucket };
+}
 
-  const directActivityCharges = buckets.animaux + buckets.avicole + buckets.cultures;
-  const unallocatedOperationalCharges = buckets.stock_non_affecte + buckets.sante_non_affectee;
-  const ownerSalary = buckets.remuneration_proprietaire;
-  const ownerWithdrawals = buckets.prelevements_proprietaire;
-  const structureCharges = ownerSalary + buckets.rh + buckets.exploitation + buckets.equipements + buckets.fournisseurs_achats + buckets.autres_charges;
-  const investments = buckets.investissements;
+export function computeGlobalProfitability({ transactions = [], salesOrders = [], payments = [], businessEvents = [], animaux = [], lots = [], cultures = [], stocks = [], sante = [], alimentationLogs = [], fournisseurs = [], investissements = [], equipements = [] } = {}) {
+  const finance = consolidateFinance({ transactions, salesOrders, payments, fournisseurs, stocks, animaux, lots, cultures, sante, alimentationLogs, investissements, equipements, businessEvents });
+  const manual = manualFinanceBuckets(transactions);
+  const detail = finance.chargesDeriveesDetail || {};
+  const buckets = {
+    ...manual.buckets,
+    animaux: Math.max(manual.buckets.animaux || 0, detail.animaux || 0),
+    avicole: Math.max(manual.buckets.avicole || 0, detail.avicole || 0),
+    cultures: Math.max(manual.buckets.cultures || 0, detail.cultures || 0),
+    stock_non_affecte: Math.max(manual.buckets.stock_non_affecte || 0, detail.stockAchats || 0, detail.alimentation || 0),
+    sante_non_affectee: Math.max(manual.buckets.sante_non_affectee || 0, detail.sante || 0),
+    fournisseurs_achats: Math.max(manual.buckets.fournisseurs_achats || 0, detail.dettesFournisseurs || 0),
+    investissements: Math.max(manual.buckets.investissements || 0, detail.investissements || 0),
+    equipements: Math.max(manual.buckets.equipements || 0, detail.equipements || 0),
+    autres_charges: Math.max(manual.buckets.autres_charges || 0, detail.evenements || 0),
+  };
+  const rowsByBucket = manual.rowsByBucket;
+  addRow(rowsByBucket, 'animaux', detail.animaux, { source_module: 'consolidation_animaux' });
+  addRow(rowsByBucket, 'avicole', detail.avicole, { source_module: 'consolidation_avicole' });
+  addRow(rowsByBucket, 'cultures', detail.cultures, { source_module: 'consolidation_cultures' });
+  addRow(rowsByBucket, 'stock_non_affecte', Math.max(detail.stockAchats || 0, detail.alimentation || 0), { source_module: 'consolidation_stock_alimentation' });
+  addRow(rowsByBucket, 'sante_non_affectee', detail.sante, { source_module: 'consolidation_sante' });
+  addRow(rowsByBucket, 'fournisseurs_achats', detail.dettesFournisseurs, { source_module: 'consolidation_fournisseurs' });
+  addRow(rowsByBucket, 'investissements', detail.investissements, { source_module: 'consolidation_investissements' });
+  addRow(rowsByBucket, 'equipements', detail.equipements, { source_module: 'consolidation_equipements' });
+  addRow(rowsByBucket, 'autres_charges', detail.evenements, { source_module: 'consolidation_evenements' });
+
+  const caTotal = Math.max(finance.caConsolide || 0, arr(salesOrders).reduce((sum, sale) => sum + total(sale), 0), arr(payments).reduce((sum, payment) => sum + amount(payment), 0));
+  const encaisse = finance.cashEncaisse || 0;
+  const directActivityCharges = (buckets.animaux || 0) + (buckets.avicole || 0) + (buckets.cultures || 0);
+  const unallocatedOperationalCharges = (buckets.stock_non_affecte || 0) + (buckets.sante_non_affectee || 0);
+  const ownerSalary = buckets.remuneration_proprietaire || 0;
+  const ownerWithdrawals = buckets.prelevements_proprietaire || 0;
+  const structureCharges = ownerSalary + (buckets.rh || 0) + (buckets.exploitation || 0) + (buckets.equipements || 0) + (buckets.fournisseurs_achats || 0) + (buckets.autres_charges || 0);
+  const investments = buckets.investissements || 0;
   const chargesBeforeInvestments = directActivityCharges + unallocatedOperationalCharges + structureCharges;
   const grossActivityMargin = caTotal - directActivityCharges;
   const operatingResult = caTotal - chargesBeforeInvestments;
   const cashResultAfterInvestments = encaisse - chargesBeforeInvestments - investments;
   const availableCashAfterWithdrawals = cashResultAfterInvestments - ownerWithdrawals;
-
-  return {
-    caTotal,
-    encaisse,
-    buckets,
-    rowsByBucket,
-    directActivityCharges,
-    unallocatedOperationalCharges,
-    structureCharges,
-    investments,
-    ownerSalary,
-    ownerWithdrawals,
-    chargesBeforeInvestments,
-    grossActivityMargin,
-    operatingResult,
-    cashResultAfterInvestments,
-    availableCashAfterWithdrawals,
-    operatingMarginPct: caTotal > 0 ? (operatingResult / caTotal) * 100 : 0,
-  };
+  return { caTotal, encaisse, buckets, rowsByBucket, directActivityCharges, unallocatedOperationalCharges, structureCharges, investments, ownerSalary, ownerWithdrawals, lossCharges: finance.lossCharges || 0, chargesBeforeInvestments, grossActivityMargin, operatingResult, cashResultAfterInvestments, availableCashAfterWithdrawals, operatingMarginPct: caTotal > 0 ? (operatingResult / caTotal) * 100 : 0 };
 }

@@ -11,8 +11,9 @@ const toISODate = (input = '') => {
   const literal = text.match(/(\d{1,2})\s+(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)\s+(\d{4})/);
   if (literal) return `${literal[3]}-${months[literal[2]]}-${String(literal[1]).padStart(2, '0')}`;
   if (text.includes('aujourd hui') || text.includes('aujourdhui')) return new Date().toISOString().slice(0, 10);
+  if (text.includes('demain')) { const date = new Date(); date.setDate(date.getDate() + 1); return date.toISOString().slice(0, 10); }
   if (text.includes('hier')) { const date = new Date(); date.setDate(date.getDate() - 1); return date.toISOString().slice(0, 10); }
-  return null;
+  return new Date().toISOString().slice(0, 10);
 };
 
 const extractNamedValue = (raw = '', patterns = []) => {
@@ -23,209 +24,103 @@ const extractNamedValue = (raw = '', patterns = []) => {
   }
   return '';
 };
-
+const extractTargetId = (raw = '') => { const text = original(raw).toUpperCase(); const match = text.match(/\b([A-Z]{2,6}[-_ ]?\d{1,6})\b/); return match ? match[1].replace(/\s+/g, '') : ''; };
+const extractLotId = (raw = '') => { const text = original(raw).toUpperCase(); const match = text.match(/\b(?:LOT\s*)?([A-Z]{2,8}[-_ ]?\d{1,6})\b/); return match ? match[1].replace(/\s+/g, '') : ''; };
 const extractSupplierName = (raw = '') => extractNamedValue(raw, [/chez\s+(?:le\s+fournisseur\s+)?([^.,;]+)/i, /fournisseur\s+([^.,;]+)/i, /aupres\s+de\s+([^.,;]+)/i, /auprès\s+de\s+([^.,;]+)/i]);
 const extractClientName = (raw = '') => extractNamedValue(raw, [/client\s+([^.,;]+)/i, /a\s+(?:madame|monsieur|m\.|mme\s+)?([^.,;]+)/i, /à\s+(?:madame|monsieur|m\.|mme\s+)?([^.,;]+)/i]);
-
-const extractProductName = (raw = '') => {
-  const text = normalize(raw);
-  if (text.includes('aliment')) return text.includes('pondeuse') ? 'aliment pondeuse' : text.includes('chair') ? 'aliment chair' : 'aliment';
-  if (text.includes('mais')) return 'maïs';
-  if (text.includes('son')) return 'son';
-  if (text.includes('oeuf') || text.includes('œuf')) return 'oeufs';
-  if (text.includes('poulet')) return 'poulet';
-  return '';
+const extractProductName = (raw = '') => { const text = normalize(raw); if (text.includes('aliment')) return text.includes('pondeuse') ? 'aliment pondeuse' : text.includes('chair') ? 'aliment chair' : 'aliment'; if (text.includes('mais')) return 'maïs'; if (text.includes('son')) return 'son'; if (text.includes('oeuf') || text.includes('œuf')) return 'oeufs'; if (text.includes('poulet')) return 'poulet'; return ''; };
+const extractCultureName = (raw = '') => { const text = normalize(raw); if (text.includes('tomate')) return 'tomate'; if (text.includes('oignon')) return 'oignon'; if (text.includes('piment')) return 'piment'; if (text.includes('salade')) return 'salade'; if (text.includes('mangue')) return 'mangue'; return extractNamedValue(raw, [/culture\s+([^.,;]+)/i, /de\s+([^.,;]+)/i]) || 'récolte'; };
+const extractQuantity = (raw = '') => { const text = normalize(raw); const match = text.match(/(\d+(?:[.,]\d+)?)\s*(sacs?|sachets?|kg|kilogrammes?|tonnes?|unites?|unités?|tablettes?|plateaux?|oeufs?|œufs?|pondeuses?|poulets?|vaches?|moutons?|chevres?|chèvres?|tetes?|têtes?)/); if (!match) return { quantity: null, unit: '' }; return { quantity: n(match[1]), unit: match[2].replace(/s$/, '') }; };
+const extractAnyNumber = (raw = '') => { const match = normalize(raw).match(/(\d+(?:[.,]\d+)?)/); return match ? n(match[1]) : null; };
+const extractUnitWeightKg = (raw = '') => { const text = normalize(raw); const match = text.match(/(\d+(?:[.,]\d+)?)\s*(kg|kilogrammes?)\s*(?:chacun|par\s+sac|le\s+sac)?/); return match ? n(match[1]) : null; };
+const extractPaymentStatus = (raw = '') => { const text = normalize(raw); if (includesAny(text, ['paiement effectif', 'paiement est effectif', 'deja paye', 'paye cash', 'payé cash', 'cash', 'paye', 'payé', 'regle', 'réglé'])) return 'paid'; if (includesAny(text, ['credit', 'crédit', 'a credit', 'à crédit', 'non paye', 'non payé', 'reste a payer'])) return 'credit'; if (includesAny(text, ['moitie cash', 'moitié cash', 'partiel', 'avance'])) return 'partial'; return 'unknown'; };
+const extractPaymentAmount = (raw = '') => { const text = normalize(raw); const match = text.match(/(\d+(?:[.,]\d+)?)\s*(?:fcfa|francs?|f\s*cfa|xof)/); return match ? n(match[1]) : null; };
+const extractAnimalWeight = (raw = '') => { const text = normalize(raw); const match = text.match(/(?:pese|pesé|poids|weigh|weighed)[^0-9]*(\d+(?:[.,]\d+)?)\s*(?:kg|kilos?|kilogrammes?)|(?:a|à)\s*(\d+(?:[.,]\d+)?)\s*(?:kg|kilos?|kilogrammes?)/); return match ? n(match[1] || match[2]) : null; };
+const extractEquipmentName = (raw = '') => {
+  const cleaned = original(raw).replace(/^(déclarer|declare|créer|creer|ajouter|ajoute|enregistrer|j'ai|jai)\s+/i, '').replace(/\b(panne|maintenance|révision|revision|entretien|achat|acheter|acheté|equipement|équipement|sur|de|du|la|le|une|un)\b/gi, ' ').replace(/\d+(?:[.,]\d+)?\s*(?:fcfa|francs?|f\s*cfa|xof)?/gi, ' ').replace(/\s+/g, ' ').trim();
+  return cleaned || 'Équipement à préciser';
 };
-
-const extractQuantity = (raw = '') => {
-  const text = normalize(raw);
-  const match = text.match(/(\d+(?:[.,]\d+)?)\s*(sacs?|sachets?|kg|kilogrammes?|tonnes?|unites?|unites?|tablettes?|plateaux?|pondeuses?|poulets?|vaches?|moutons?|chevres?|chèvres?|tetes?|têtes?)/);
-  if (!match) return { quantity: null, unit: '' };
-  return { quantity: n(match[1]), unit: match[2].replace(/s$/, '') };
-};
-
-const extractUnitWeightKg = (raw = '') => {
-  const text = normalize(raw);
-  const match = text.match(/(\d+(?:[.,]\d+)?)\s*(kg|kilogrammes?)\s*(?:chacun|par\s+sac|le\s+sac)?/);
-  return match ? n(match[1]) : null;
-};
-
-const extractPaymentStatus = (raw = '') => {
-  const text = normalize(raw);
-  if (includesAny(text, ['paiement effectif', 'paiement est effectif', 'deja paye', 'paye cash', 'payé cash', 'cash', 'paye', 'payé', 'regle', 'réglé'])) return 'paid';
-  if (includesAny(text, ['credit', 'crédit', 'a credit', 'à crédit', 'non paye', 'non payé', 'reste a payer'])) return 'credit';
-  if (includesAny(text, ['moitie cash', 'moitié cash', 'partiel', 'avance'])) return 'partial';
-  return 'unknown';
-};
-
-const extractPaymentAmount = (raw = '') => {
-  const text = normalize(raw);
-  const match = text.match(/(\d+(?:[.,]\d+)?)\s*(?:fcfa|francs?|f\s*cfa|xof)/);
-  return match ? n(match[1]) : null;
-};
-
-const extractAnimalFields = (raw = '') => {
-  const text = normalize(raw);
-  const type = text.includes('vache') || text.includes('bovin') ? 'bovin' : text.includes('mouton') || text.includes('ovin') ? 'ovin' : text.includes('chevre') || text.includes('chèvre') || text.includes('caprin') ? 'caprin' : text.includes('poulet') ? 'volaille' : '';
-  const race = ['gobra', 'ladoum', 'azawak', 'nelore', 'montbeliarde', 'holstein', 'sahelien', 'bali bali'].find((r) => text.includes(normalize(r))) || '';
-  const name = extractNamedValue(raw, [/appele(?:e)?\s+([^.,;]+)/i, /nomme(?:e)?\s+([^.,;]+)/i, /nom\s+([^.,;]+)/i]);
-  const age = text.match(/(\d+(?:[.,]\d+)?)\s*(ans?|mois)/);
-  const weight = text.match(/(\d+(?:[.,]\d+)?)\s*(kg|kilos?|kilogrammes?)/);
-  return { type, race, name, age: age ? `${age[1]} ${age[2]}` : '', weight_kg: weight ? n(weight[1]) : null };
-};
-
-const extractLotFields = (raw = '') => {
-  const text = normalize(raw);
-  const { quantity } = extractQuantity(raw);
-  const type = text.includes('pondeuse') ? 'pondeuses' : text.includes('chair') ? 'poulets_de_chair' : text.includes('poussin') ? 'poussins' : text.includes('poulet') ? 'poulets' : 'avicole';
-  const name = extractNamedValue(raw, [/lot\s+(?:appele|nomme|nommé)?\s*([^.,;]+)/i, /appele(?:e)?\s+([^.,;]+)/i]);
-  const age = text.match(/(\d+(?:[.,]\d+)?)\s*(semaines?|jours?|mois)/);
-  return { type, initial_count: quantity, name, age_weeks: age && age[2].startsWith('semaine') ? n(age[1]) : null, date: toISODate(raw) };
-};
-
-const findExistingSupplier = (supplierName = '', dataMap = {}) => {
-  const suppliers = Array.isArray(dataMap.fournisseurs) ? dataMap.fournisseurs : [];
-  const needle = normalize(supplierName);
-  if (!needle) return null;
-  return suppliers.find((supplier) => normalize(`${supplier.name || ''} ${supplier.nom || ''} ${supplier.raison_sociale || ''}`).includes(needle) || needle.includes(normalize(supplier.name || supplier.nom || supplier.raison_sociale || ''))) || null;
-};
-
-const findExistingStockProduct = (productName = '', dataMap = {}) => {
-  const stocks = Array.isArray(dataMap.stock) ? dataMap.stock : [];
-  const needle = normalize(productName);
-  if (!needle) return null;
-  return stocks.find((stock) => normalize(`${stock.produit || ''} ${stock.nom || ''} ${stock.name || ''} ${stock.categorie || ''}`).includes(needle)) || null;
-};
+const extractFinancier = (raw = '') => { const text = normalize(raw); if (text.includes('fongip')) return 'FONGIP'; if (text.includes('bnde')) return 'BNDE'; if (text.includes('der')) return 'DER'; if (text.includes('banque')) return 'Banque'; if (text.includes('investisseur')) return 'Investisseur'; if (text.includes('partenaire')) return 'Partenaire'; return 'Partenaire'; };
+const extractAnimalFields = (raw = '') => { const text = normalize(raw); const type = text.includes('vache') || text.includes('bovin') ? 'bovin' : text.includes('mouton') || text.includes('ovin') ? 'ovin' : text.includes('chevre') || text.includes('chèvre') || text.includes('caprin') ? 'caprin' : text.includes('poulet') ? 'volaille' : ''; const race = ['gobra', 'ladoum', 'azawak', 'nelore', 'montbeliarde', 'holstein', 'sahelien', 'bali bali'].find((r) => text.includes(normalize(r))) || ''; const name = extractNamedValue(raw, [/appele(?:e)?\s+([^.,;]+)/i, /nomme(?:e)?\s+([^.,;]+)/i, /nom\s+([^.,;]+)/i]); const age = text.match(/(\d+(?:[.,]\d+)?)\s*(ans?|mois)/); const weight = text.match(/(\d+(?:[.,]\d+)?)\s*(kg|kilos?|kilogrammes?)/); return { type, race, name, age: age ? `${age[1]} ${age[2]}` : '', weight_kg: weight ? n(weight[1]) : null }; };
+const extractLotFields = (raw = '') => { const text = normalize(raw); const { quantity } = extractQuantity(raw); const type = text.includes('pondeuse') ? 'pondeuses' : text.includes('chair') ? 'poulets_de_chair' : text.includes('poussin') ? 'poussins' : text.includes('poulet') ? 'poulets' : 'avicole'; const name = extractNamedValue(raw, [/lot\s+(?:appele|nomme|nommé)?\s*([^.,;]+)/i, /appele(?:e)?\s+([^.,;]+)/i]); const age = text.match(/(\d+(?:[.,]\d+)?)\s*(semaines?|jours?|mois)/); return { type, initial_count: quantity, name, age_weeks: age && age[2].startsWith('semaine') ? n(age[1]) : null, date: toISODate(raw) }; };
+const findExistingSupplier = (supplierName = '', dataMap = {}) => { const suppliers = Array.isArray(dataMap.fournisseurs) ? dataMap.fournisseurs : []; const needle = normalize(supplierName); if (!needle) return null; return suppliers.find((supplier) => normalize(`${supplier.name || ''} ${supplier.nom || ''} ${supplier.raison_sociale || ''}`).includes(needle) || needle.includes(normalize(supplier.name || supplier.nom || supplier.raison_sociale || ''))) || null; };
+const findExistingStockProduct = (productName = '', dataMap = {}) => { const stocks = Array.isArray(dataMap.stock) ? dataMap.stock : []; const needle = normalize(productName); if (!needle) return null; return stocks.find((stock) => normalize(`${stock.produit || ''} ${stock.nom || ''} ${stock.name || ''} ${stock.categorie || ''}`).includes(needle)) || null; };
+const isWakeOnly = (raw = '') => ['horizon', 'hey horizon', 'he horizon', 'eh horizon', 'e horizon'].includes(normalize(raw));
+const hasAnimalId = (raw = '') => Boolean(extractTargetId(raw));
 
 const detectIntent = (raw = '') => {
   const text = normalize(raw);
+  if (isWakeOnly(raw)) return 'wake_only';
+  if (includesAny(text, ['dossier der', 'dossier fongip', 'dossier bnde', 'dossier banque', 'dossier partenaire', 'dossier investisseur', 'dossier financement', 'demande de financement', 'generer dossier', 'générer dossier', 'preparer dossier', 'préparer dossier'])) return 'financing_file';
+  if (hasAnimalId(raw) && includesAny(text, ['ouvre fiche', 'ouvrir fiche', 'montre fiche', 'affiche fiche', 'fiche animal', 'fiche bov', 'fiche ovin', 'fiche caprin'])) return 'entity_lookup';
+  if (includesAny(text, ['stocks critiques', 'stock critique', 'montre les stocks', 'voir stocks critiques', 'sous seuil'])) return 'stock_critical_lookup';
+  if (includesAny(text, ['facture fournisseur', 'facture du fournisseur', 'ajouter facture fournisseur', 'ajoute facture fournisseur', 'preuve fournisseur'])) return 'supplier_invoice';
+  if (includesAny(text, ['j ai recolte', 'j’ai récolté', 'recolte de', 'récolte de', 'recolte culture', 'récolte culture', 'recolte tomates', 'récolté tomates'])) return 'culture_harvest';
+  if (hasAnimalId(raw) && includesAny(text, ['pese', 'pesé', 'poids', 'kg', 'kilo'])) return 'animal_weighing';
+  if (hasAnimalId(raw) && includesAny(text, ['mort', 'decede', 'décédé', 'perdu', 'vole', 'volé'])) return 'animal_loss';
+  if (includesAny(text, ['panne', 'pompe', 'couveuse', 'abreuvoir', 'mangeoire', 'groupe electrogene', 'groupe électrogène', 'maintenance', 'entretien', 'revision', 'révision', 'equipement', 'équipement'])) return 'equipment_action';
+  if (includesAny(text, ['vaccin', 'vacciner', 'vacciné', 'vaccine', 'deparasitage', 'déparasitage', 'deparasite', 'déparasité', 'parasitage', 'vermifuge', 'soin', 'traite', 'traité', 'malade', 'fiche vaccination', 'fiche de vaccination', 'fiche deparasitage', 'fiche de parasitage'])) return 'health_action';
   if (includesAny(text, ['enregistre un achat', 'enregistrer un achat', 'achat de', 'j ai achete', 'ajoute un achat', 'saisie achat', 'aliment', 'sac'])) return 'purchase_stock';
   if (includesAny(text, ['enregistre une vente', 'vente de', 'j ai vendu', 'ajoute une vente', 'vendre', 'vendu'])) return 'sale_record';
   if (includesAny(text, ['ajoute une vache', 'ajoute un animal', 'nouvel animal', 'enregistre une vache', 'bovin', 'ovin', 'caprin', 'mouton', 'chevre', 'chèvre'])) return 'animal_creation';
+  if (includesAny(text, ['reforme', 'réforme', 'reformer', 'réformer', 'cloture', 'clôture', 'cloturer', 'clôturer'])) return 'poultry_close';
   if (includesAny(text, ['cree un lot', 'crée un lot', 'ajoute un lot', 'lot de', 'pondeuses', 'poulets de chair', 'poussins'])) return 'poultry_lot_creation';
   if (includesAny(text, ['cree une tache', 'crée une tâche', 'ajoute une tache', 'rappelle moi', 'a faire'])) return 'task_creation';
   if (includesAny(text, ['enregistre une depense', 'enregistre une dépense', 'depense de', 'recette de', 'encaissement de'])) return 'finance_entry';
-  if (includesAny(text, ['ponte', 'oeufs produits', 'œufs produits', 'oeufs aujourd hui'])) return 'egg_production';
-  if (includesAny(text, ['mortalite', 'mortalité', 'mort', 'morts'])) return 'mortality_event';
+  if (includesAny(text, ['ponte', 'oeufs produits', 'œufs produits', 'oeufs aujourd hui', 'ramasse', 'ramassé', 'ramassage', 'tablettes'])) return 'egg_production';
+  if (includesAny(text, ['mortalite', 'mortalité', 'morts'])) return 'mortality_event';
   return 'unknown';
 };
-
-const commonDraft = ({ intent, status, primary_module, form_type, fields, missing, impacted, rawInput, title, subtitle, confidence = 0.86 }) => ({
-  status,
-  intent,
-  confidence,
-  raw_input: rawInput,
-  history: [{ role: 'user', content: rawInput }],
-  primary_module,
-  form_type,
-  requires_validation: true,
-  missing_fields: missing,
-  warnings: [],
-  draft_fields: fields,
-  impacted_modules: impacted,
-  proposed_actions: impacted.map((module) => ({ module, action: 'prepare_update', label: `Mettre à jour ${module}` })),
-  ui: { title, subtitle, validation_label: 'Valider', cancel_label: 'Annuler', edit_label: 'Modifier', missing_label: missing.length ? `Champs à renseigner: ${missing.join(', ')}` : '' },
-});
-
+const commonDraft = ({ intent, status, primary_module, form_type, fields, missing, impacted, rawInput, title, subtitle, confidence = 0.86, action = 'prepare_update' }) => ({ status, intent, confidence, raw_input: rawInput, history: [{ role: 'user', content: rawInput }], primary_module, form_type, requires_validation: true, missing_fields: missing, warnings: [], draft_fields: fields, impacted_modules: impacted, proposed_actions: impacted.map((module) => ({ module, action, label: `Mettre à jour ${module}` })), ui: { title, subtitle, validation_label: 'Valider', cancel_label: 'Annuler', edit_label: 'Modifier', missing_label: missing.length ? `Champs à renseigner: ${missing.join(', ')}` : '' } });
 const computePurchaseMissing = (f = {}) => ['product_name', 'quantity', 'unit', 'supplier_name', 'date', 'payment_status'].filter((k) => !f[k] || f[k] === 'unknown');
-
-const buildPurchaseResponse = ({ rawInput = '', fields = {}, dataMap = {}, history = [] }) => {
-  const supplier = findExistingSupplier(fields.supplier_name, dataMap);
-  const stockProduct = findExistingStockProduct(fields.product_name, dataMap);
-  const mergedFields = { ...fields, product_id: stockProduct?.id || fields.product_id || null, supplier_id: supplier?.id || fields.supplier_id || null, total_weight_kg: fields.quantity && fields.unit_weight_kg ? fields.quantity * fields.unit_weight_kg : fields.total_weight_kg || null, notes: rawInput };
-  const missing = computePurchaseMissing(mergedFields);
-  const warnings = [];
-  if (!supplier && mergedFields.supplier_name) warnings.push(`Fournisseur non trouvé: ${mergedFields.supplier_name}. Horizon proposera le formulaire fournisseur avant validation finale.`);
-  if (!stockProduct && mergedFields.product_name) warnings.push(`Produit stock non trouvé exactement: ${mergedFields.product_name}. Il pourra être créé ou rattaché avant validation.`);
-  return { ...commonDraft({ intent: 'purchase_stock', status: missing.length ? 'draft_incomplete' : 'awaiting_validation', primary_module: 'stock', form_type: 'stock_purchase', fields: mergedFields, missing, impacted: ['stock', 'finances', 'fournisseurs', 'tracabilite', 'centre_ia'], rawInput, title: missing.length ? 'Brouillon achat à compléter' : 'Achat stock à valider', subtitle: missing.length ? 'Complète les champs manquants par la voix ou à l’écrit.' : 'Vérifie puis valide.' }), history, warnings };
-};
-
+const buildPurchaseResponse = ({ rawInput = '', fields = {}, dataMap = {}, history = [] }) => { const supplier = findExistingSupplier(fields.supplier_name, dataMap); const stockProduct = findExistingStockProduct(fields.product_name, dataMap); const mergedFields = { ...fields, product_id: stockProduct?.id || fields.product_id || null, supplier_id: supplier?.id || fields.supplier_id || null, total_weight_kg: fields.quantity && fields.unit_weight_kg ? fields.quantity * fields.unit_weight_kg : fields.total_weight_kg || null, notes: rawInput }; const missing = computePurchaseMissing(mergedFields); const warnings = []; if (!supplier && mergedFields.supplier_name) warnings.push(`Fournisseur non trouvé: ${mergedFields.supplier_name}. Horizon proposera le formulaire fournisseur avant validation finale.`); if (!stockProduct && mergedFields.product_name) warnings.push(`Produit stock non trouvé exactement: ${mergedFields.product_name}. Il pourra être créé ou rattaché avant validation.`); return { ...commonDraft({ intent: 'purchase_stock', status: missing.length ? 'draft_incomplete' : 'awaiting_validation', primary_module: 'stock', form_type: 'stock_purchase', fields: mergedFields, missing, impacted: ['stock', 'finances', 'fournisseurs', 'tracabilite', 'centre_ia'], rawInput, title: missing.length ? 'Brouillon achat à compléter' : 'Achat stock à valider', subtitle: missing.length ? 'Complète les champs manquants par la voix ou à l’écrit.' : 'Vérifie puis valide.' }), history, warnings }; };
 const extractPurchaseFields = (raw = '') => ({ product_name: extractProductName(raw), ...extractQuantity(raw), unit_weight_kg: extractUnitWeightKg(raw), supplier_name: extractSupplierName(raw), payment_status: extractPaymentStatus(raw), date: toISODate(raw), payment_amount: extractPaymentAmount(raw) });
 const buildPurchaseStockDraft = (rawInput = '', dataMap = {}) => buildPurchaseResponse({ rawInput, fields: extractPurchaseFields(rawInput), dataMap, history: [{ role: 'user', content: rawInput }] });
+const buildFinancingFileDraft = (rawInput = '') => { const fields = { financier: extractFinancier(rawInput), amount: extractPaymentAmount(rawInput), purpose: original(rawInput), date: toISODate(rawInput) }; return commonDraft({ intent: 'financing_file', status: 'awaiting_validation', primary_module: 'rapports', form_type: 'financing_file', fields, missing: [], impacted: ['rapports', 'documents', 'impact_business', 'investissements', 'finances', 'centre_ia'], rawInput, title: `Dossier ${fields.financier} à préparer`, subtitle: 'Horizon prépare le dossier banque/partenaire avec choix du BP et sections financeur.', action: 'open_form' }); };
+const buildEquipmentDraft = (rawInput = '') => { const text = normalize(rawInput); const actionType = text.includes('achat') || text.includes('achete') || text.includes('acheté') ? 'achat' : text.includes('maintenance') || text.includes('entretien') || text.includes('revision') || text.includes('révision') ? 'maintenance' : 'panne'; const fields = { equipment_name: extractEquipmentName(rawInput), action_type: actionType, amount: extractPaymentAmount(rawInput), date: toISODate(rawInput), notes: original(rawInput) }; const missing = ['equipment_name'].filter((k) => !fields[k]); return commonDraft({ intent: 'equipment_action', status: missing.length ? 'draft_incomplete' : 'awaiting_validation', primary_module: 'equipements', form_type: 'equipment_action', fields, missing, impacted: ['equipements', 'taches', 'finances', 'documents', 'tracabilite', 'centre_ia'], rawInput, title: actionType === 'achat' ? 'Achat équipement à ouvrir' : actionType === 'maintenance' ? 'Maintenance équipement à ouvrir' : 'Panne équipement à ouvrir', subtitle: 'Horizon prépare une fiche équipement guidée.', action: 'open_form' }); };
+const buildHealthDraft = (rawInput = '') => { const text = normalize(rawInput); const actionType = text.includes('deparas') || text.includes('parasitage') || text.includes('vermifuge') ? 'deparasitage' : text.includes('malade') || text.includes('soin') || text.includes('traite') ? 'soin' : 'vaccination'; const fields = { target_id: extractTargetId(rawInput), animal_id: extractTargetId(rawInput), action_type: actionType, soin_type: actionType, date: toISODate(rawInput), notes: original(rawInput) }; const missing = ['target_id'].filter((key) => !fields[key]); return commonDraft({ intent: 'health_action', status: missing.length ? 'draft_incomplete' : 'awaiting_validation', primary_module: 'sante', form_type: 'health_action', fields, missing, impacted: ['sante', 'animaux', 'stock', 'taches', 'tracabilite', 'centre_ia'], rawInput, title: actionType === 'deparasitage' ? 'Fiche déparasitage à ouvrir' : actionType === 'soin' ? 'Fiche soin à ouvrir' : 'Fiche vaccination à ouvrir', subtitle: 'Horizon prépare une fiche santé guidée pour enregistrer l’action.', action: 'open_form' }); };
+const buildAnimalDraft = (rawInput = '') => { const fields = extractAnimalFields(rawInput); const missing = ['type'].filter((k) => !fields[k]); return commonDraft({ intent: 'animal_creation', status: missing.length ? 'draft_incomplete' : 'awaiting_validation', primary_module: 'animaux', form_type: 'animal_creation', fields, missing, impacted: ['animaux', 'tracabilite', 'centre_ia'], rawInput, title: 'Animal à valider', subtitle: 'Horizon prépare la fiche animal.', action: 'open_form' }); };
+const buildAnimalWeighingDraft = (rawInput = '') => { const fields = { target_id: extractTargetId(rawInput), animal_id: extractTargetId(rawInput), weight_kg: extractAnimalWeight(rawInput), date: toISODate(rawInput), notes: original(rawInput) }; const missing = ['target_id', 'weight_kg'].filter((k) => !fields[k]); return commonDraft({ intent: 'animal_weighing', status: missing.length ? 'draft_incomplete' : 'awaiting_validation', primary_module: 'animaux', form_type: 'animal_weighing', fields, missing, impacted: ['animaux', 'taches', 'tracabilite', 'centre_ia'], rawInput, title: 'Pesée animal à ouvrir', subtitle: 'Horizon prépare une fiche pesée.', action: 'open_form' }); };
+const buildAnimalLossDraft = (rawInput = '') => { const fields = { target_id: extractTargetId(rawInput), animal_id: extractTargetId(rawInput), status: normalize(rawInput).includes('vole') ? 'vole' : 'mort', date: toISODate(rawInput), notes: original(rawInput) }; const missing = ['target_id'].filter((k) => !fields[k]); return commonDraft({ intent: 'animal_loss', status: missing.length ? 'draft_incomplete' : 'awaiting_validation', primary_module: 'animaux', form_type: 'animal_loss', fields, missing, impacted: ['animaux', 'finances', 'alertes', 'tracabilite', 'centre_ia'], rawInput, title: 'Perte animal à ouvrir', subtitle: 'Horizon prépare une fiche incident / sortie.', action: 'open_form' }); };
+const buildLotDraft = (rawInput = '') => { const fields = extractLotFields(rawInput); const missing = ['type', 'initial_count'].filter((k) => !fields[k]); return commonDraft({ intent: 'poultry_lot_creation', status: missing.length ? 'draft_incomplete' : 'awaiting_validation', primary_module: 'avicole', form_type: 'poultry_lot_creation', fields, missing, impacted: ['avicole', 'tracabilite', 'centre_ia'], rawInput, title: 'Lot avicole à valider', subtitle: 'Horizon prépare le lot avicole.', action: 'open_form' }); };
+const buildEggDraft = (rawInput = '') => { const text = normalize(rawInput); const { quantity, unit } = extractQuantity(rawInput); const qty = unit.includes('tablette') ? quantity * 30 : quantity || extractAnyNumber(rawInput); const fields = { lot_id: extractLotId(rawInput), eggs_count: qty, tablettes: text.includes('tablette') ? quantity : Math.floor((qty || 0) / 30), date: toISODate(rawInput), notes: original(rawInput) }; const missing = ['eggs_count'].filter((k) => !fields[k]); return commonDraft({ intent: 'egg_production', status: missing.length ? 'draft_incomplete' : 'awaiting_validation', primary_module: 'avicole', form_type: 'egg_production', fields, missing, impacted: ['avicole', 'stock', 'ventes', 'tracabilite', 'centre_ia'], rawInput, title: 'Ramassage œufs à ouvrir', subtitle: 'Horizon prépare une fiche de ponte / ramassage.', action: 'open_form' }); };
+const buildMortalityDraft = (rawInput = '') => { const { quantity } = extractQuantity(rawInput); const fields = { lot_id: extractLotId(rawInput), quantity: quantity || extractAnyNumber(rawInput), date: toISODate(rawInput), notes: original(rawInput) }; const missing = ['quantity'].filter((k) => !fields[k]); return commonDraft({ intent: 'mortality_event', status: missing.length ? 'draft_incomplete' : 'awaiting_validation', primary_module: 'avicole', form_type: 'poultry_mortality', fields, missing, impacted: ['avicole', 'alertes', 'tracabilite', 'centre_ia'], rawInput, title: 'Mortalité avicole à ouvrir', subtitle: 'Horizon prépare une fiche mortalité rapide.', action: 'open_form' }); };
+const buildPoultryCloseDraft = (rawInput = '') => { const text = normalize(rawInput); const { quantity } = extractQuantity(rawInput); const fields = { lot_id: extractLotId(rawInput), quantity: quantity || extractAnyNumber(rawInput), action_type: text.includes('reforme') ? 'reforme' : 'cloture', date: toISODate(rawInput), notes: original(rawInput) }; return commonDraft({ intent: 'poultry_close', status: 'awaiting_validation', primary_module: 'avicole', form_type: 'poultry_close', fields, missing: [], impacted: ['avicole', 'ventes', 'tracabilite', 'centre_ia'], rawInput, title: 'Clôture / réforme avicole à ouvrir', subtitle: 'Horizon prépare une sortie ou réforme de lot.', action: 'open_form' }); };
+const buildSaleDraft = (rawInput = '') => { const fields = { product_name: extractProductName(rawInput), source_id: extractTargetId(rawInput), ...extractQuantity(rawInput), client_name: extractClientName(rawInput), payment_status: extractPaymentStatus(rawInput), payment_amount: extractPaymentAmount(rawInput), date: toISODate(rawInput) }; const missing = ['product_name'].filter((k) => !fields[k] && !fields.source_id); return commonDraft({ intent: 'sale_record', status: missing.length ? 'draft_incomplete' : 'awaiting_validation', primary_module: 'ventes', form_type: 'sale_record', fields, missing, impacted: ['ventes', 'stock', 'finances', 'clients', 'tracabilite', 'centre_ia'], rawInput, title: 'Vente à valider', subtitle: 'Horizon prépare la commande et ses impacts.' }); };
+const buildTaskDraft = (rawInput = '') => { const text = original(rawInput); const fields = { title: text.replace(/^(ajoute|cree|crée|rappelle moi|tache|tâche)\s+/i, '').trim() || text, due_date: toISODate(rawInput), priority: includesAny(normalize(rawInput), ['urgent', 'critique']) ? 'critique' : 'normale' }; return commonDraft({ intent: 'task_creation', status: fields.title ? 'awaiting_validation' : 'draft_incomplete', primary_module: 'taches', form_type: 'task_creation', fields, missing: fields.title ? [] : ['title'], impacted: ['taches', 'tracabilite', 'centre_ia'], rawInput, title: 'Tâche à valider', subtitle: 'Horizon prépare une tâche terrain.' }); };
+const buildFinanceDraft = (rawInput = '') => { const text = normalize(rawInput); const fields = { transaction_type: text.includes('recette') || text.includes('encaissement') ? 'entree' : 'sortie', amount: extractPaymentAmount(rawInput), category: text.includes('aliment') ? 'achat_stock' : 'general', label: original(rawInput), date: toISODate(rawInput) }; const missing = ['transaction_type', 'amount'].filter((k) => !fields[k]); return commonDraft({ intent: 'finance_entry', status: missing.length ? 'draft_incomplete' : 'awaiting_validation', primary_module: 'finances', form_type: 'finance_entry', fields, missing, impacted: ['finances', 'tracabilite', 'centre_ia'], rawInput, title: 'Argent reçu/dépensé à valider', subtitle: 'Horizon prépare la ligne finance avec ses liens métier.' }); };
+const buildEntityLookupDraft = (rawInput = '') => { const targetId = extractTargetId(rawInput); return commonDraft({ intent: 'entity_lookup', status: targetId ? 'awaiting_validation' : 'draft_incomplete', primary_module: 'animaux', form_type: 'entity_lookup', fields: { target_id: targetId, search: targetId, notes: original(rawInput) }, missing: targetId ? [] : ['target_id'], impacted: ['animaux', 'sante', 'ventes', 'tracabilite'], rawInput, title: targetId ? `Fiche ${targetId} à ouvrir` : 'Fiche animal à préciser', subtitle: 'Horizon ouvre le module Animaux avec la cible recherchée.', action: 'open_form' }); };
+const buildStockCriticalLookupDraft = (rawInput = '') => commonDraft({ intent: 'stock_critical_lookup', status: 'awaiting_validation', primary_module: 'stock', form_type: 'stock_critical_lookup', fields: { filter: 'stocks_critiques', notes: original(rawInput) }, missing: [], impacted: ['stock', 'alertes', 'taches', 'dashboard'], rawInput, title: 'Stocks critiques à afficher', subtitle: 'Horizon ouvre le stock filtré sur les produits sous seuil.', action: 'open_form' });
+const buildSupplierInvoiceDraft = (rawInput = '') => { const fields = { title: 'Facture fournisseur', document_category: 'facture', module_source: 'fournisseurs', supplier_name: extractSupplierName(rawInput), amount: extractPaymentAmount(rawInput), date: toISODate(rawInput), notes: original(rawInput), verification_status: 'preuve_manquante' }; return commonDraft({ intent: 'supplier_invoice', status: 'awaiting_validation', primary_module: 'documents', form_type: 'supplier_invoice', fields, missing: [], impacted: ['documents', 'fournisseurs', 'comptabilite', 'finances'], rawInput, title: 'Facture fournisseur à joindre', subtitle: 'Horizon prépare une preuve/facture liée au fournisseur.', action: 'open_form' }); };
+const buildCultureHarvestDraft = (rawInput = '') => { const quantity = extractQuantity(rawInput); const fields = { culture_name: extractCultureName(rawInput), quantity: quantity.quantity || extractAnyNumber(rawInput), unit: quantity.unit || 'kg', date: toISODate(rawInput), notes: original(rawInput) }; const missing = ['quantity'].filter((key) => !fields[key]); return commonDraft({ intent: 'culture_harvest', status: missing.length ? 'draft_incomplete' : 'awaiting_validation', primary_module: 'cultures', form_type: 'culture_harvest', fields, missing, impacted: ['cultures', 'stock', 'ventes', 'tracabilite', 'centre_ia'], rawInput, title: 'Récolte culture à ouvrir', subtitle: 'Horizon prépare la saisie récolte, stock et opportunité de vente.', action: 'open_form' }); };
+const mergeDefinedFields = (base = {}, patch = {}) => { const next = { ...base }; Object.entries(patch).forEach(([key, value]) => { if (value !== null && value !== undefined && value !== '' && value !== 'unknown') next[key] = value; }); return next; };
 
-const buildAnimalDraft = (rawInput = '') => {
-  const fields = extractAnimalFields(rawInput);
-  const missing = ['type'].filter((k) => !fields[k]);
-  return commonDraft({ intent: 'animal_creation', status: missing.length ? 'draft_incomplete' : 'awaiting_validation', primary_module: 'animaux', form_type: 'animal_creation', fields, missing, impacted: ['animaux', 'tracabilite', 'centre_ia'], rawInput, title: 'Animal à valider', subtitle: 'Horizon prépare la fiche animal.' });
-};
-
-const buildLotDraft = (rawInput = '') => {
-  const fields = extractLotFields(rawInput);
-  const missing = ['type', 'initial_count'].filter((k) => !fields[k]);
-  return commonDraft({ intent: 'poultry_lot_creation', status: missing.length ? 'draft_incomplete' : 'awaiting_validation', primary_module: 'avicole', form_type: 'poultry_lot_creation', fields, missing, impacted: ['avicole', 'tracabilite', 'centre_ia'], rawInput, title: 'Lot avicole à valider', subtitle: 'Horizon prépare le lot avicole.' });
-};
-
-const buildSaleDraft = (rawInput = '') => {
-  const fields = { product_name: extractProductName(rawInput), ...extractQuantity(rawInput), client_name: extractClientName(rawInput), payment_status: extractPaymentStatus(rawInput), payment_amount: extractPaymentAmount(rawInput), date: toISODate(rawInput) };
-  const missing = ['product_name', 'quantity'].filter((k) => !fields[k]);
-  return commonDraft({ intent: 'sale_record', status: missing.length ? 'draft_incomplete' : 'awaiting_validation', primary_module: 'ventes', form_type: 'sale_record', fields, missing, impacted: ['ventes', 'stock', 'finances', 'clients', 'tracabilite', 'centre_ia'], rawInput, title: 'Vente à valider', subtitle: 'Horizon prépare la commande et ses impacts.' });
-};
-
-const buildTaskDraft = (rawInput = '') => {
-  const text = original(rawInput);
-  const fields = { title: text.replace(/^(ajoute|cree|crée|rappelle moi|tache|tâche)\s+/i, '').trim() || text, due_date: toISODate(rawInput), priority: includesAny(normalize(rawInput), ['urgent', 'critique']) ? 'critique' : 'normale' };
-  return commonDraft({ intent: 'task_creation', status: fields.title ? 'awaiting_validation' : 'draft_incomplete', primary_module: 'taches', form_type: 'task_creation', fields, missing: fields.title ? [] : ['title'], impacted: ['taches', 'tracabilite', 'centre_ia'], rawInput, title: 'Tâche à valider', subtitle: 'Horizon prépare une tâche terrain.' });
-};
-
-const buildFinanceDraft = (rawInput = '') => {
-  const text = normalize(rawInput);
-  const fields = { transaction_type: text.includes('recette') || text.includes('encaissement') ? 'entree' : 'sortie', amount: extractPaymentAmount(rawInput), category: text.includes('aliment') ? 'achat_stock' : 'general', label: original(rawInput), date: toISODate(rawInput) };
-  const missing = ['transaction_type', 'amount'].filter((k) => !fields[k]);
-  return commonDraft({ intent: 'finance_entry', status: missing.length ? 'draft_incomplete' : 'awaiting_validation', primary_module: 'finances', form_type: 'finance_entry', fields, missing, impacted: ['finances', 'tracabilite', 'centre_ia'], rawInput, title: 'Transaction à valider', subtitle: 'Horizon prépare l’écriture financière.' });
-};
-
-const mergeDefinedFields = (base = {}, patch = {}) => {
-  const next = { ...base };
-  Object.entries(patch).forEach(([key, value]) => { if (value !== null && value !== undefined && value !== '' && value !== 'unknown') next[key] = value; });
-  return next;
-};
-
-export const parseConversationControl = (rawInput = '') => {
-  const text = normalize(rawInput);
-  if (includesAny(text, ['valide', 'valider', 'confirme', 'confirmer', 'c est bon', 'ok valide', 'necessaire fait'])) return 'validate';
-  if (includesAny(text, ['annule', 'annuler', 'abandonne', 'stop', 'efface brouillon'])) return 'cancel';
-  if (includesAny(text, ['recommence', 'nouveau brouillon', 'nouvelle commande'])) return 'reset';
-  return null;
-};
-
+export const parseConversationControl = (rawInput = '') => { const text = normalize(rawInput); if (isWakeOnly(rawInput)) return 'wake'; if (includesAny(text, ['valide', 'valider', 'confirme', 'confirmer', 'c est bon', 'ok valide', 'necessaire fait'])) return 'validate'; if (includesAny(text, ['annule', 'annuler', 'abandonne', 'stop', 'efface brouillon'])) return 'cancel'; if (includesAny(text, ['recommence', 'nouveau brouillon', 'nouvelle commande'])) return 'reset'; return null; };
 const extractPatchByIntent = (intent, rawInput) => {
   const text = normalize(rawInput);
   const generic = { date: toISODate(rawInput), payment_status: extractPaymentStatus(rawInput), payment_amount: extractPaymentAmount(rawInput) };
   const quantity = extractQuantity(rawInput);
   if (text.match(/quantite|quantité|corrige|modifie/) && quantity.quantity) generic.quantity = quantity.quantity;
+  if (intent === 'financing_file') return mergeDefinedFields(generic, { financier: extractFinancier(rawInput), amount: extractPaymentAmount(rawInput), purpose: original(rawInput) });
+  if (intent === 'equipment_action') return mergeDefinedFields(generic, { equipment_name: extractEquipmentName(rawInput), action_type: text.includes('achat') ? 'achat' : text.includes('maintenance') || text.includes('entretien') ? 'maintenance' : 'panne', amount: extractPaymentAmount(rawInput), notes: original(rawInput) });
+  if (intent === 'egg_production') return mergeDefinedFields(generic, { lot_id: extractLotId(rawInput), eggs_count: quantity.unit.includes('tablette') ? quantity.quantity * 30 : quantity.quantity || extractAnyNumber(rawInput), tablettes: quantity.unit.includes('tablette') ? quantity.quantity : null, notes: original(rawInput) });
+  if (intent === 'mortality_event' || intent === 'poultry_close') return mergeDefinedFields(generic, { lot_id: extractLotId(rawInput), quantity: quantity.quantity || extractAnyNumber(rawInput), notes: original(rawInput) });
+  if (intent === 'animal_weighing') return mergeDefinedFields(generic, { target_id: extractTargetId(rawInput), animal_id: extractTargetId(rawInput), weight_kg: extractAnimalWeight(rawInput), notes: original(rawInput) });
+  if (intent === 'animal_loss') return mergeDefinedFields(generic, { target_id: extractTargetId(rawInput), animal_id: extractTargetId(rawInput), status: text.includes('vole') ? 'vole' : 'mort', notes: original(rawInput) });
+  if (intent === 'health_action') return mergeDefinedFields(generic, { target_id: extractTargetId(rawInput), animal_id: extractTargetId(rawInput), notes: original(rawInput) });
   if (intent === 'purchase_stock') return mergeDefinedFields(generic, { ...quantity, unit_weight_kg: extractUnitWeightKg(rawInput), supplier_name: extractSupplierName(rawInput), product_name: extractProductName(rawInput) });
-  if (intent === 'sale_record') return mergeDefinedFields(generic, { ...quantity, client_name: extractClientName(rawInput), product_name: extractProductName(rawInput) });
+  if (intent === 'sale_record') return mergeDefinedFields(generic, { ...quantity, client_name: extractClientName(rawInput), product_name: extractProductName(rawInput), source_id: extractTargetId(rawInput) });
   if (intent === 'animal_creation') return mergeDefinedFields(generic, extractAnimalFields(rawInput));
   if (intent === 'poultry_lot_creation') return mergeDefinedFields(generic, extractLotFields(rawInput));
   if (intent === 'finance_entry') return mergeDefinedFields(generic, { amount: extractPaymentAmount(rawInput) });
+  if (intent === 'entity_lookup') return mergeDefinedFields(generic, { target_id: extractTargetId(rawInput), search: extractTargetId(rawInput) });
+  if (intent === 'stock_critical_lookup') return mergeDefinedFields(generic, { filter: 'stocks_critiques' });
+  if (intent === 'supplier_invoice') return mergeDefinedFields(generic, { supplier_name: extractSupplierName(rawInput), amount: extractPaymentAmount(rawInput), notes: original(rawInput) });
+  if (intent === 'culture_harvest') return mergeDefinedFields(generic, { culture_name: extractCultureName(rawInput), quantity: quantity.quantity || extractAnyNumber(rawInput), unit: quantity.unit || 'kg', notes: original(rawInput) });
   return generic;
 };
-
-const rebuildDraft = (draft, rawInput, dataMap) => {
-  if (draft.intent === 'purchase_stock') return buildPurchaseResponse({ rawInput, fields: draft.draft_fields, dataMap, history: draft.history || [] });
-  const missingByIntent = { animal_creation: ['type'], poultry_lot_creation: ['type', 'initial_count'], sale_record: ['product_name', 'quantity'], finance_entry: ['transaction_type', 'amount'], task_creation: ['title'] };
-  const missing = (missingByIntent[draft.intent] || []).filter((k) => !draft.draft_fields?.[k]);
-  return { ...draft, status: missing.length ? 'draft_incomplete' : 'awaiting_validation', missing_fields: missing, raw_input: rawInput, history: [...(draft.history || []), { role: 'user', content: rawInput }] };
-};
-
-export const updateHorizonDraft = (currentDraft = null, rawInput = '', dataMap = {}) => {
-  if (!currentDraft) return interpretHorizonCommand(rawInput, dataMap);
-  const patch = extractPatchByIntent(currentDraft.intent, rawInput);
-  const mergedFields = mergeDefinedFields(currentDraft.draft_fields || {}, patch);
-  return rebuildDraft({ ...currentDraft, draft_fields: mergedFields }, rawInput, dataMap);
-};
-
+const rebuildDraft = (draft, rawInput, dataMap) => { if (draft.intent === 'purchase_stock') return buildPurchaseResponse({ rawInput, fields: draft.draft_fields, dataMap, history: draft.history || [] }); const missingByIntent = { equipment_action: ['equipment_name'], health_action: ['target_id'], animal_creation: ['type'], animal_weighing: ['target_id', 'weight_kg'], animal_loss: ['target_id'], poultry_lot_creation: ['type', 'initial_count'], egg_production: ['eggs_count'], mortality_event: ['quantity'], sale_record: ['product_name'], finance_entry: ['transaction_type', 'amount'], task_creation: ['title'], entity_lookup: ['target_id'], culture_harvest: ['quantity'] }; const missing = (missingByIntent[draft.intent] || []).filter((k) => !draft.draft_fields?.[k]); return { ...draft, status: missing.length ? 'draft_incomplete' : 'awaiting_validation', missing_fields: missing, raw_input: rawInput, history: [...(draft.history || []), { role: 'user', content: rawInput }] }; };
+export const updateHorizonDraft = (currentDraft = null, rawInput = '', dataMap = {}) => { if (!currentDraft) return interpretHorizonCommand(rawInput, dataMap); const patch = extractPatchByIntent(currentDraft.intent, rawInput); const mergedFields = mergeDefinedFields(currentDraft.draft_fields || {}, patch); return rebuildDraft({ ...currentDraft, draft_fields: mergedFields }, rawInput, dataMap); };
 export const completeRelatedFormDraft = (currentDraft = null, relatedFormPatch = {}) => currentDraft?.next_required_form ? { ...currentDraft, next_required_form: { ...currentDraft.next_required_form, draft_fields: mergeDefinedFields(currentDraft.next_required_form.draft_fields || {}, relatedFormPatch) } } : currentDraft;
-
-export const interpretHorizonCommand = (rawInput = '', dataMap = {}) => {
-  const intent = detectIntent(rawInput);
-  if (intent === 'purchase_stock') return buildPurchaseStockDraft(rawInput, dataMap);
-  if (intent === 'sale_record') return buildSaleDraft(rawInput, dataMap);
-  if (intent === 'animal_creation') return buildAnimalDraft(rawInput, dataMap);
-  if (intent === 'poultry_lot_creation') return buildLotDraft(rawInput, dataMap);
-  if (intent === 'task_creation') return buildTaskDraft(rawInput, dataMap);
-  if (intent === 'finance_entry') return buildFinanceDraft(rawInput, dataMap);
-  return { status: 'unsupported', intent, confidence: intent === 'unknown' ? 0.2 : 0.45, raw_input: rawInput, primary_module: null, form_type: null, requires_validation: true, missing_fields: [], warnings: ['Commande non reconnue. Essaie: ajoute 20 sacs d aliment, ajoute une vache Gobra appelée Awa, crée un lot de 500 pondeuses, enregistre une vente.'], draft_fields: {}, impacted_modules: [], proposed_actions: [] };
-};
-
+export const interpretHorizonCommand = (rawInput = '', dataMap = {}) => { const intent = detectIntent(rawInput); if (intent === 'wake_only') return { status: 'wake_only', intent, confidence: 1, raw_input: rawInput, primary_module: null, form_type: null, requires_validation: false, missing_fields: [], warnings: [], draft_fields: {}, impacted_modules: [], proposed_actions: [] }; if (intent === 'financing_file') return buildFinancingFileDraft(rawInput, dataMap); if (intent === 'entity_lookup') return buildEntityLookupDraft(rawInput, dataMap); if (intent === 'stock_critical_lookup') return buildStockCriticalLookupDraft(rawInput, dataMap); if (intent === 'supplier_invoice') return buildSupplierInvoiceDraft(rawInput, dataMap); if (intent === 'culture_harvest') return buildCultureHarvestDraft(rawInput, dataMap); if (intent === 'equipment_action') return buildEquipmentDraft(rawInput, dataMap); if (intent === 'animal_weighing') return buildAnimalWeighingDraft(rawInput, dataMap); if (intent === 'animal_loss') return buildAnimalLossDraft(rawInput, dataMap); if (intent === 'health_action') return buildHealthDraft(rawInput, dataMap); if (intent === 'purchase_stock') return buildPurchaseStockDraft(rawInput, dataMap); if (intent === 'sale_record') return buildSaleDraft(rawInput, dataMap); if (intent === 'animal_creation') return buildAnimalDraft(rawInput, dataMap); if (intent === 'poultry_lot_creation') return buildLotDraft(rawInput, dataMap); if (intent === 'egg_production') return buildEggDraft(rawInput, dataMap); if (intent === 'mortality_event') return buildMortalityDraft(rawInput, dataMap); if (intent === 'poultry_close') return buildPoultryCloseDraft(rawInput, dataMap); if (intent === 'task_creation') return buildTaskDraft(rawInput, dataMap); if (intent === 'finance_entry') return buildFinanceDraft(rawInput, dataMap); return { status: 'unsupported', intent, confidence: intent === 'unknown' ? 0.2 : 0.45, raw_input: rawInput, primary_module: null, form_type: null, requires_validation: true, missing_fields: [], warnings: ['Commande non reconnue. Essaie: dossier DER, panne pompe, BOV002 pesé à 180 kg, ouvre fiche vaccination BOV002, j’ai vendu 10 poulets, ramassage 12 tablettes.'], draft_fields: {}, impacted_modules: [], proposed_actions: [] }; };
 export default interpretHorizonCommand;

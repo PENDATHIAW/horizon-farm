@@ -1,10 +1,13 @@
 import { AlertTriangle, BellRing, CheckCircle2, ClipboardList, Link2, Timer } from 'lucide-react';
 import { analyzeTaskAlertIntegrity } from '../services/taskAlertIntegrityService';
 
-const MODULE_LABELS = { animaux: 'Animaux', avicole: 'Avicole', cultures: 'Cultures', stock: 'Stock', finances: 'Finances', clients: 'Clients', fournisseurs: 'Fournisseurs', smartfarm: 'Smart Farm', equipements: 'Équipements', sante: 'Santé', ventes: 'Ventes', documents: 'Documents', taches: 'Tâches', alertes: 'Alertes', autre: 'Autre' };
+const MODULE_LABELS = { animaux: 'Animaux', avicole: 'Avicole', cultures: 'Cultures', stock: 'Stock', finances: 'Finances', clients: 'Clients', fournisseurs: 'Fournisseurs', smartfarm: 'Smart Farm', equipements: 'Équipements', sante: 'Santé', ventes: 'Ventes', documents: 'Documents', taches: 'Tâches', alertes: 'Alertes', alertes_center: 'Alertes', business_events: 'Historique métier', audit_logs: 'Journal activité', autre: 'Autre' };
 const ISSUE_LABELS = { critical_alert_without_task: 'Alerte urgente sans tâche', duplicate_task: 'Tâche possiblement en double', late_task: 'Tâche en retard', orphan_task: 'Tâche sans lien clair' };
 const label = (row = {}) => row.title || row.titre || row.message || row.description || row.id || 'Élément';
-const source = (row = {}) => MODULE_LABELS[row.module_lie || row.source_module || row.module_source || row.module] || row.module_lie || row.source_module || row.module_source || row.module || 'À préciser';
+const source = (row = {}) => {
+  const key = String(row.module_lie || row.source_module || row.module_source || row.module || '').toLowerCase();
+  return MODULE_LABELS[key] || key.replace(/_/g, ' ') || 'À préciser';
+};
 const issueLabel = (type) => ISSUE_LABELS[type] || String(type || '').replace(/_/g, ' ') || 'À vérifier';
 
 function Card({ icon: Icon, label, value, danger = false }) {

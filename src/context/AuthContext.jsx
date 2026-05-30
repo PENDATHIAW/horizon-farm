@@ -1,12 +1,16 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { DEMO_MODE_KEY, SIMULATED_DATA_MODE_KEY, setSimulatedDataMode } from '../utils/uiPreferences';
 
 const AuthContext = createContext(null);
 
 const LOGIN_ALIASES = {
   penda: 'penda@horizonfarm.app',
 };
+const PROFILES_TABLE_ENABLED = import.meta.env.VITE_ENABLE_PROFILES_TABLE === 'true';
+
+const DEFAULT_SIMULATED_ROLES = ['visiteur', 'employe', 'veterinaire', 'comptable'];
 
 export const ERP_MODULE_PERMISSIONS = [
   'dashboard',
@@ -109,8 +113,16 @@ const fallbackProfile = (user, defaults = {}) => ({
   source: 'auth_fallback',
 });
 
+const applyDefaultDataModeForRole = (role) => {
+  if (typeof window === 'undefined') return;
+  const hasManualChoice = window.localStorage.getItem(SIMULATED_DATA_MODE_KEY) !== null || window.localStorage.getItem(DEMO_MODE_KEY) !== null;
+  if (hasManualChoice) return;
+  setSimulatedDataMode(DEFAULT_SIMULATED_ROLES.includes(role));
+};
+
 async function upsertProfile(user, defaults = {}) {
   if (!user?.id) return null;
+  if (!PROFILES_TABLE_ENABLED) return fallbackProfile(user, defaults);
   const payload = {
     id: user.id,
     email: user.email,
@@ -138,6 +150,12 @@ export function AuthProvider({ children }) {
 
   const loadProfile = useCallback(async (user) => {
     if (!user?.id) { setProfile(null); return null; }
+    if (!PROFILES_TABLE_ENABLED) {
+      setProfilesAvailable(false);
+      const fallback = fallbackProfile(user, { role: user.user_metadata?.role || 'visiteur', status: user.user_metadata?.role === 'admin' ? 'active' : 'pending' });
+      setProfile(fallback);
+      return fallback;
+    }
     const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
     if (error) {
       if (isMissingProfilesTableError(error)) {
@@ -258,8 +276,12 @@ export function AuthProvider({ children }) {
   }, []);
 
   const role = profile?.role || session?.user?.user_metadata?.role || 'visiteur';
+
+  useEffect(() => {
+    if (!loading && session?.user) applyDefaultDataModeForRole(role);
+  }, [loading, session, role]);
+
   const canAccess = useCallback((moduleKey) => {
-    if (ERP_MODULE_PERMISSIONS.includes(moduleKey)) return true;
     const permissions = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.visiteur;
     return permissions.includes('*') || permissions.includes(moduleKey);
   }, [role]);

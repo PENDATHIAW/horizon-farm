@@ -16,14 +16,20 @@ const isMaintenanceNeeded = (row = {}) => {
   return false;
 };
 const taskKey = (row = {}) => `equipment_maintenance:${clean(row.id)}`;
+const breakdownKey = (row = {}) => `equipment:panne:${clean(row.id)}`;
 const isDone = (task = {}) => ['termine', 'terminé', 'annule', 'annulé', 'done', 'closed'].includes(clean(task.status || task.statut).toLowerCase());
 function existingTaskFor(row, tasks = []) {
   const key = taskKey(row);
   const id = clean(row.id);
   return arr(tasks).find((task) => !isDone(task) && (clean(task.task_dedupe_key || task.action_key) === key || (clean(task.source_module) === 'equipements' && clean(task.related_id || task.source_record_id) === id)));
 }
+function linkedAlertFor(row, alertes = []) {
+  const keys = [taskKey(row), breakdownKey(row)];
+  const id = clean(row.id);
+  return arr(alertes).find((alert) => !isDone(alert) && (keys.includes(clean(alert.alert_dedupe_key || alert.action_key)) || (clean(alert.module_source || alert.source_module) === 'equipements' && clean(alert.entity_id || alert.related_id) === id)));
+}
 
-export default function EquipementsMaintenanceBridge({ rows = [], tasks = [], onUpdate, onRefresh, onCreateTask, onUpdateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, onCreateFinanceTransaction, onRefreshFinances, onCreateDocument, onRefreshDocuments, onCreateBusinessEvent, onRefreshBusinessEvents }) {
+export default function EquipementsMaintenanceBridge({ rows = [], tasks = [], alertes = [], onUpdate, onRefresh, onCreateTask, onUpdateTask, onRefreshTasks, onCreateAlert, onUpdateAlert, onRefreshAlertes, onCreateFinanceTransaction, onRefreshFinances, onCreateDocument, onRefreshDocuments, onCreateBusinessEvent, onRefreshBusinessEvents }) {
   const [savingId, setSavingId] = useState('');
   const candidates = useMemo(() => arr(rows).filter(isMaintenanceNeeded).map((row) => ({ row, task: existingTaskFor(row, tasks) })).slice(0, 8), [rows, tasks]);
 
@@ -58,9 +64,11 @@ export default function EquipementsMaintenanceBridge({ rows = [], tasks = [], on
     try {
       setSavingId(row.id);
       await onUpdateTask?.(task.id, { status: 'termine', completed_at: now() });
+      const alert = linkedAlertFor(row, alertes);
+      if (alert?.id) await onUpdateAlert?.(alert.id, { status: 'resolue', statut: 'resolue', resolved_at: now(), linked_resolution_task_id: task.id });
       await onUpdate?.(row.id, { status: 'operationnel', statut: 'operationnel', maintenance_status: 'termine', last_maintenance_done_at: now() });
       await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'maintenance_equipement_cloturee', module_source: 'equipements', entity_type: 'equipement', entity_id: row.id, title: `Maintenance clôturée ${equipmentName(row)}`, description: task.title || '', event_date: today(), severity: 'info', linked_task_id: task.id });
-      await Promise.allSettled([onRefresh?.(), onRefreshTasks?.(), onRefreshBusinessEvents?.()]);
+      await Promise.allSettled([onRefresh?.(), onRefreshTasks?.(), onRefreshAlertes?.(), onRefreshBusinessEvents?.()]);
       toast.success('Maintenance clôturée');
     } catch {
       toast.error('Clôture maintenance impossible');

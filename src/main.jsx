@@ -1,4 +1,4 @@
-﻿import { StrictMode, useEffect, useRef } from 'react';
+import { StrictMode, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import toast, { Toaster, useToasterStore } from 'react-hot-toast';
 import App from './App';
@@ -7,9 +7,11 @@ import { AppProvider } from './context/AppContext';
 import ChatPage from './pages/ChatPage';
 import ChatLoginPage from './pages/ChatLoginPage';
 import { registerServiceWorker } from './services/pwa';
+import { initFormModalBridge } from './services/formModalManager';
 import './index.css';
 
 registerServiceWorker();
+initFormModalBridge();
 
 function ToastGuard() {
   const { toasts } = useToasterStore();

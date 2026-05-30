@@ -1,0 +1,92 @@
+import { fmtCurrency, fmtNumber } from '../../utils/format';
+
+export const arr = (v) => (Array.isArray(v) ? v : []);
+export const low = (v) => String(v || '').toLowerCase();
+export const n = (v = 0) => Number(v || 0);
+export const amount = (r = {}) => n(r.montant ?? r.amount ?? r.total ?? r.montant_total ?? r.valeur ?? r.value);
+export const label = (r = {}) => r.title || r.nom || r.name || r.libelle || r.description || r.produit || r.id || 'Élément';
+export const dateOf = (r = {}) => r.date || r.event_date || r.created_at || r.updated_at || '—';
+export const isIncome = (r = {}) => ['entree', 'entrée', 'income', 'recette', 'vente'].includes(low(r.type || r.nature || r.sens));
+export const isExpense = (r = {}) => ['sortie', 'expense', 'depense', 'dépense', 'achat', 'charge'].includes(low(r.type || r.nature || r.sens));
+export const isOpen = (r = {}) => !['termine', 'terminé', 'closed', 'clos', 'resolu', 'résolu', 'done'].includes(low(r.status || r.statut || r.state));
+export const isRisk = (r = {}) => ['retard', 'critique', 'urgent', 'malade', 'panne', 'hors_service', 'impaye', 'partiel', 'a_risque'].some((x) => low(`${r.status || ''} ${r.statut || ''} ${r.priority || ''} ${r.severity || ''} ${r.health_status || ''}`).includes(x));
+export const stockQty = (r = {}) => n(r.quantite ?? r.quantity ?? r.stock);
+export const stockThreshold = (r = {}) => n(r.seuil ?? r.threshold ?? r.stock_min ?? r.minimum_stock);
+export const score = (good, total) => (total ? Math.round((good / total) * 100) : 100);
+
+export function Stat({ label: statLabel, value, tone = 'neutral' }) {
+  const cls = tone === 'good' ? 'text-emerald-600' : tone === 'warn' ? 'text-amber-600' : tone === 'bad' ? 'text-red-600' : 'text-[#2f2415]';
+  return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">{statLabel}</p><p className={`mt-1 text-xl font-black ${cls}`}>{value}</p></div>;
+}
+export function Section({ icon: Icon, title, children, action }) {
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</h2>{action}</div>{children}</section>;
+}
+export function Pill({ children, tone = 'neutral' }) {
+  const cls = tone === 'good' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : tone === 'warn' ? 'border-amber-200 bg-amber-50 text-amber-700' : tone === 'bad' ? 'border-red-200 bg-red-50 text-red-700' : 'border-[#eadcc2] bg-[#fffdf8] text-[#8a7456]';
+  return <span className={`rounded-full border px-3 py-1 text-xs font-black ${cls}`}>{children}</span>;
+}
+export function Row({ title, detail, value, tone = 'neutral', onClick, actions }) {
+  return (
+    <div className="grid w-full grid-cols-1 gap-2 border-b border-[#eadcc2]/70 py-4 last:border-b-0 md:grid-cols-[260px_1fr_auto] md:items-center">
+      <button type="button" onClick={onClick} className="text-left font-black text-[#2f2415] hover:text-emerald-700">{title}</button>
+      <span className="text-sm text-[#8a7456]">{detail}</span>
+      <div className="flex flex-wrap items-center gap-2">{actions || <Pill tone={tone}>{value}</Pill>}</div>
+    </div>
+  );
+}
+export function Empty({ children }) {
+  return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-5 text-sm text-[#8a7456]">{children}</div>;
+}
+export function Btn({ children, onClick }) {
+  return <button type="button" onClick={onClick} className="rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]">{children}</button>;
+}
+
+export function buildRisks(data) {
+  const risks = [];
+  data.openAlerts.forEach((r) => risks.push({ id: `alert-${r.id || label(r)}`, domain: 'Alerte', title: label(r), cause: r.message || r.description || 'Alerte ouverte', impact: 'Risque opérationnel non clôturé', action: 'Traiter ou transformer en tâche', module: 'activite_suivi', severity: low(r.severity).includes('critique') ? 'Critique' : 'Moyenne', probability: 'Élevée', financialImpact: r.amount ? fmtCurrency(r.amount) : '—', owner: r.responsable || '—', due: dateOf(r), resolutionStatus: r.status || 'ouverte', tone: low(r.severity).includes('critique') ? 'bad' : 'warn' }));
+  data.openTasks.filter(isRisk).forEach((r) => risks.push({ id: `task-${r.id || label(r)}`, domain: 'Tâche', title: label(r), cause: r.description || 'Tâche prioritaire', impact: 'Retard possible sur exploitation', action: 'Planifier ou clôturer', module: 'activite_suivi', severity: 'Moyenne', probability: 'Moyenne', financialImpact: '—', owner: r.assigned_to || '—', due: r.due_date || '—', resolutionStatus: r.status || 'ouverte', tone: 'warn' }));
+  data.stocks.filter((r) => stockThreshold(r) > 0 && stockQty(r) <= stockThreshold(r)).forEach((r) => risks.push({ id: `stock-${r.id || label(r)}`, domain: 'Stock', title: label(r), cause: `${fmtNumber(stockQty(r))} disponible · seuil ${fmtNumber(stockThreshold(r))}`, impact: 'Rupture ou arrêt activité', action: 'Réapprovisionner', module: 'achats_stock', severity: stockQty(r) <= 0 ? 'Critique' : 'Moyenne', probability: 'Élevée', financialImpact: fmtCurrency(stockQty(r) * n(r.prix_unitaire)), owner: '—', due: '—', resolutionStatus: 'ouverte', tone: stockQty(r) <= 0 ? 'bad' : 'warn' }));
+  data.animaux.filter(isRisk).forEach((r) => risks.push({ id: `animal-${r.id || label(r)}`, domain: 'Élevage', title: label(r), cause: r.health_status || r.status || 'Suivi santé', impact: 'Perte, contagion ou vente bloquée', action: 'Vérifier fiche santé', module: 'elevage', severity: 'Critique', probability: 'Élevée', financialImpact: '—', owner: '—', due: '—', resolutionStatus: 'ouverte', tone: 'bad' }));
+  if (data.balance < 0) risks.push({ id: 'cash-negative', domain: 'Finance', title: 'Trésorerie négative', cause: 'Charges > recettes', impact: 'Tension de liquidité', action: 'Accélérer encaissements', module: 'finance_pilotage', severity: 'Critique', probability: 'Certaine', financialImpact: fmtCurrency(Math.abs(data.balance)), owner: '—', due: '—', resolutionStatus: 'ouverte', tone: 'bad' });
+  if (data.receivable > 0) risks.push({ id: 'receivable', domain: 'Commercial', title: 'Encaissements à suivre', cause: `${fmtCurrency(data.receivable)} restant`, impact: 'Cash bloqué', action: 'Relancer clients', module: 'commercial', severity: 'Moyenne', probability: 'Moyenne', financialImpact: fmtCurrency(data.receivable), owner: '—', due: '—', resolutionStatus: 'ouverte', tone: 'warn' });
+  if (data.missingProof > 0) risks.push({ id: 'missing-proof', domain: 'Documents', title: 'Preuves manquantes', cause: `${data.missingProof} sans justificatif`, impact: 'Financeurs fragilisés', action: 'Ajouter preuves', module: 'documents_rapports', severity: 'Moyenne', probability: 'Certaine', financialImpact: '—', owner: '—', due: '—', resolutionStatus: 'ouverte', tone: 'warn' });
+  return risks.slice(0, 40);
+}
+
+export function buildVisionData(props = {}) {
+  const { dataMap = {}, animaux = [], lots = [], cultures = [], stocks = [], clients = [], salesOrders = [], payments = [], finances = [], transactions = [], investissements = [], businessPlans = [], documents = [], alertes = [], taches = [], opportunities = [], salesOpportunities = [] } = props;
+  const allAnimals = arr(animaux).length ? arr(animaux) : arr(dataMap.animaux);
+  const allLots = arr(lots).length ? arr(lots) : arr(dataMap.lots || dataMap.avicole);
+  const allCultures = arr(cultures).length ? arr(cultures) : arr(dataMap.cultures);
+  const allStocks = arr(stocks).length ? arr(stocks) : arr(dataMap.stocks || dataMap.stock);
+  const allClients = arr(clients).length ? arr(clients) : arr(dataMap.clients);
+  const sales = arr(salesOrders).length ? arr(salesOrders) : arr(dataMap.salesOrders || dataMap.sales_orders);
+  const pay = arr(payments).length ? arr(payments) : arr(dataMap.payments);
+  const tx = [...arr(finances), ...arr(transactions), ...arr(dataMap.finances), ...arr(dataMap.transactions)].filter(Boolean);
+  const plans = arr(businessPlans).length ? arr(businessPlans) : arr(dataMap.business_plans);
+  const invest = arr(investissements).length ? arr(investissements) : arr(dataMap.investissements);
+  const docs = arr(documents).length ? arr(documents) : arr(dataMap.documents);
+  const opps = [...arr(opportunities), ...arr(salesOpportunities), ...arr(dataMap.sales_opportunities)].filter(Boolean);
+  const openAlerts = arr(alertes).length ? arr(alertes).filter(isOpen) : arr(dataMap.alertes_center || dataMap.alertes).filter(isOpen);
+  const openTasks = arr(taches).length ? arr(taches).filter(isOpen) : arr(dataMap.taches || dataMap.tasks).filter(isOpen);
+  const income = tx.filter(isIncome).reduce((s, r) => s + amount(r), 0);
+  const expenses = tx.filter((r) => isExpense(r) || (!isIncome(r) && amount(r) > 0)).reduce((s, r) => s + amount(r), 0);
+  const salesAmount = sales.reduce((s, r) => s + amount(r), 0);
+  const collected = pay.reduce((s, r) => s + amount(r), 0);
+  const stockValue = allStocks.reduce((s, r) => s + stockQty(r) * n(r.prix_unitaire ?? r.unit_price ?? r.price), 0);
+  const investmentValue = invest.reduce((s, r) => s + amount(r), 0);
+  const missingProof = tx.filter((r) => amount(r) > 0 && !r.document_id && !r.proof_url && !r.justificatif_id).length;
+  const receivable = Math.max(0, salesAmount - collected);
+  const grossMargin = income - expenses;
+  const base = { animaux: allAnimals, lots: allLots, cultures: allCultures, stocks: allStocks, clients: allClients, sales, payments: pay, income, expenses, balance: income - expenses, margin: grossMargin, grossMargin, netMargin: grossMargin, salesAmount, collected, stockValue, investmentValue, receivable, estimatedValue: stockValue + investmentValue + Math.max(0, grossMargin), productionCount: allAnimals.length + allLots.length + allCultures.length, goals: [...plans, ...invest], opportunities: opps, documents: docs, missingProof, openAlerts, openTasks, debts: expenses, receivables: receivable };
+  const risks = buildRisks(base);
+  const priorities = [
+    ...openAlerts.slice(0, 5).map((r) => ({ id: `a-${r.id || label(r)}`, title: label(r), detail: r.message || 'Alerte ouverte', value: 'Alerte', tone: 'warn', tab: 'Risques', sourceModule: r.module_source || 'activite_suivi', record: r })),
+    ...openTasks.filter(isRisk).slice(0, 5).map((r) => ({ id: `t-${r.id || label(r)}`, title: label(r), detail: 'Tâche prioritaire', value: 'Action', tone: 'warn', tab: 'Risques', sourceModule: r.module_lie || 'activite_suivi', record: r })),
+    ...(missingProof ? [{ id: 'proofs', title: 'Preuves manquantes', detail: `${missingProof} justificatif(s)`, value: 'Financeurs', tone: 'warn', tab: 'Financeurs', sourceModule: 'documents_rapports' }] : []),
+    ...(grossMargin < 0 ? [{ id: 'cash', title: 'Trésorerie en tension', detail: 'Charges > recettes', value: 'Finance', tone: 'bad', tab: 'Risques', sourceModule: 'finance_pilotage' }] : []),
+  ];
+  const riskCount = risks.length;
+  const totalObjects = allAnimals.length + allLots.length + allCultures.length + openAlerts.length + openTasks.length + allStocks.length + 1;
+  return { ...base, priorities, risks, riskCount, globalScore: score(totalObjects - riskCount, totalObjects) };
+}

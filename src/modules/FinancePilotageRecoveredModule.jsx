@@ -1,0 +1,64 @@
+import { BarChart3, PiggyBank, Wallet } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import useCrudModule from '../hooks/useCrudModule';
+import { fmtCurrency, fmtNumber } from '../utils/format';
+import FinancesV12 from './FinancesV12';
+import InvestissementsV9 from './InvestissementsV9';
+
+const arr = (v) => Array.isArray(v) ? v : [];
+const rowsOf = (provided, crud) => arr(provided).length ? arr(provided) : arr(crud?.rows);
+const n = (v = 0) => Number(v || 0);
+const low = (v) => String(v || '').toLowerCase();
+const amount = (r = {}) => n(r.montant ?? r.amount ?? r.total ?? r.valeur ?? r.value);
+const isIncome = (r = {}) => ['entree', 'entrée', 'income', 'recette', 'vente'].includes(low(r.type || r.nature || r.sens || r.transaction_type));
+const isExpense = (r = {}) => ['sortie', 'expense', 'depense', 'dépense', 'achat', 'charge'].includes(low(r.type || r.nature || r.sens || r.transaction_type));
+const isUnpaid = (r = {}) => ['impaye', 'impayé', 'partiel', 'a_payer', 'à payer', 'due', 'unpaid'].includes(low(r.statut || r.status || r.payment_status));
+const hasProof = (r = {}) => Boolean(r.document_id || r.proof_url || r.justificatif_id || r.file_url || r.url);
+
+function Stat({ label, value, tone = 'neutral' }) {
+  const cls = tone === 'good' ? 'text-emerald-600' : tone === 'warn' ? 'text-amber-600' : tone === 'bad' ? 'text-red-600' : 'text-[#2f2415]';
+  return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">{label}</p><p className={`mt-1 text-xl font-black ${cls}`}>{value}</p></div>;
+}
+function Tabs({ active, onChange }) {
+  const tabs = [['Résumé', BarChart3], ['Trésorerie', Wallet], ['Investissements & BP', PiggyBank]];
+  return <div className="overflow-x-auto"><div className="flex min-w-max gap-2 rounded-2xl border border-[#d6c3a0] bg-white p-2">{tabs.map(([tab, Icon]) => <button key={tab} type="button" onClick={() => onChange(tab)} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-black transition ${active === tab ? 'bg-[#22c55e] text-[#052e16]' : 'text-[#8a7456] hover:bg-[#fffdf8] hover:text-[#2f2415]'}`}><Icon size={16} />{tab}</button>)}</div></div>;
+}
+function Summary({ data, setTab }) {
+  return <div className="space-y-5"><div className="grid grid-cols-2 gap-3 xl:grid-cols-6"><Stat label="Solde" value={fmtCurrency(data.balance)} tone={data.balance >= 0 ? 'good' : 'bad'} /><Stat label="Recettes" value={fmtCurrency(data.income)} tone="good" /><Stat label="Dépenses" value={fmtCurrency(data.expenses)} tone={data.expenses ? 'warn' : 'neutral'} /><Stat label="Marge" value={fmtCurrency(data.margin)} tone={data.margin >= 0 ? 'good' : 'bad'} /><Stat label="Sans preuve" value={fmtNumber(data.missingProof)} tone={data.missingProof ? 'warn' : 'good'} /><Stat label="Investissements" value={fmtNumber(data.investments.length)} /></div><section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><BarChart3 size={20} /> Workflows financiers récupérés</h2><p className="mt-2 text-sm leading-relaxed text-[#8a7456]">Finance & Pilotage remet les anciens moteurs : saisie finance Hey Horizon, trésorerie, santé comptable, preuves, business plan, paiement d’investissement, création d’actifs, documents et événements métier.</p><div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2"><button type="button" onClick={() => setTab('Trésorerie')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Trésorerie</b><p className="mt-1 text-sm text-[#8a7456]">Recettes, dépenses, preuves, paiements, cohérence comptable.</p></button><button type="button" onClick={() => setTab('Investissements & BP')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Investissements & BP</b><p className="mt-1 text-sm text-[#8a7456]">Budget, projections, paiements, actifs, documents et financeurs.</p></button></div></section></div>;
+}
+
+export default function FinancePilotageRecoveredModule(props) {
+  const [tab, setTab] = useState('Résumé');
+  const financesCrud = useCrudModule('finances');
+  const investmentsCrud = useCrudModule('investissements');
+  const businessPlansCrud = useCrudModule('business_plans');
+  const bpInvestmentLinesCrud = useCrudModule('bp_investment_lines');
+  const bpRecurringCostsCrud = useCrudModule('bp_recurring_costs');
+  const bpRevenueProjectionsCrud = useCrudModule('bp_revenue_projections');
+  const bpFundingSourcesCrud = useCrudModule('bp_funding_sources');
+  const bpLinksCrud = useCrudModule('bp_links');
+  const bpRisksCrud = useCrudModule('bp_risks');
+  const documentsCrud = useCrudModule('documents');
+  const eventsCrud = useCrudModule('business_events');
+  const paymentsCrud = useCrudModule('payments');
+  const salesCrud = useCrudModule('sales_orders');
+  const clientsCrud = useCrudModule('clients');
+  const suppliersCrud = useCrudModule('fournisseurs');
+  const animalsCrud = useCrudModule('animaux');
+  const lotsCrud = useCrudModule('avicole');
+  const culturesCrud = useCrudModule('cultures');
+  const equipementsCrud = useCrudModule('equipements');
+  const stockCrud = useCrudModule('stock');
+  const transactions = rowsOf(props.transactions || props.finances || props.rows, financesCrud);
+  const investments = rowsOf(props.investissements, investmentsCrud);
+  const data = useMemo(() => {
+    const income = transactions.filter(isIncome).reduce((s, r) => s + amount(r), 0);
+    const expenses = transactions.filter((r) => isExpense(r) || (!isIncome(r) && amount(r) > 0)).reduce((s, r) => s + amount(r), 0);
+    const unpaid = transactions.filter(isUnpaid).reduce((s, r) => s + amount(r), 0);
+    const missingProof = transactions.filter((r) => amount(r) > 0 && !hasProof(r)).length;
+    return { income, expenses, balance: income - expenses, margin: income - expenses, unpaid, missingProof, investments };
+  }, [transactions, investments]);
+  const financeProps = { rows: transactions, transactions, finances: transactions, documents: rowsOf(props.documents, documentsCrud), investissements: investments, salesOrders: rowsOf(props.salesOrders, salesCrud), payments: rowsOf(props.payments, paymentsCrud), fournisseurs: rowsOf(props.fournisseurs, suppliersCrud), clients: rowsOf(props.clients, clientsCrud), onCreate: props.onCreateFinanceTransaction || financesCrud.create, onUpdate: props.onUpdateFinanceTransaction || financesCrud.update, onDelete: props.onDeleteFinanceTransaction || financesCrud.remove, onRefresh: props.onRefreshFinances || financesCrud.refresh, onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: props.onNavigate };
+  const investmentProps = { rows: investments, investissements: investments, businessPlans: rowsOf(props.businessPlans, businessPlansCrud), bpInvestmentLines: rowsOf(props.bpInvestmentLines, bpInvestmentLinesCrud), bpRecurringCosts: rowsOf(props.bpRecurringCosts, bpRecurringCostsCrud), bpRevenueProjections: rowsOf(props.bpRevenueProjections, bpRevenueProjectionsCrud), bpFundingSources: rowsOf(props.bpFundingSources, bpFundingSourcesCrud), bpLinks: rowsOf(props.bpLinks, bpLinksCrud), bpRisks: rowsOf(props.bpRisks, bpRisksCrud), transactions, lots: rowsOf(props.lots, lotsCrud), animaux: rowsOf(props.animaux, animalsCrud), cultures: rowsOf(props.cultures, culturesCrud), onCreate: props.onCreateInvestment || investmentsCrud.create, onUpdate: props.onUpdateInvestment || investmentsCrud.update, onDelete: props.onDeleteInvestment || investmentsCrud.remove, onRefresh: props.onRefreshInvestments || investmentsCrud.refresh, onCreateBusinessPlan: props.onCreateBusinessPlan || businessPlansCrud.create, onUpdateBusinessPlan: props.onUpdateBusinessPlan || businessPlansCrud.update, onDeleteBusinessPlan: props.onDeleteBusinessPlan || businessPlansCrud.remove, onRefreshBusinessPlans: props.onRefreshBusinessPlans || businessPlansCrud.refresh, onCreateBpInvestmentLine: props.onCreateBpInvestmentLine || bpInvestmentLinesCrud.create, onUpdateBpInvestmentLine: props.onUpdateBpInvestmentLine || bpInvestmentLinesCrud.update, onDeleteBpInvestmentLine: props.onDeleteBpInvestmentLine || bpInvestmentLinesCrud.remove, onRefreshBpInvestmentLines: props.onRefreshBpInvestmentLines || bpInvestmentLinesCrud.refresh, onCreateBpRecurringCost: props.onCreateBpRecurringCost || bpRecurringCostsCrud.create, onUpdateBpRecurringCost: props.onUpdateBpRecurringCost || bpRecurringCostsCrud.update, onDeleteBpRecurringCost: props.onDeleteBpRecurringCost || bpRecurringCostsCrud.remove, onRefreshBpRecurringCosts: props.onRefreshBpRecurringCosts || bpRecurringCostsCrud.refresh, onCreateBpRevenueProjection: props.onCreateBpRevenueProjection || bpRevenueProjectionsCrud.create, onUpdateBpRevenueProjection: props.onUpdateBpRevenueProjection || bpRevenueProjectionsCrud.update, onDeleteBpRevenueProjection: props.onDeleteBpRevenueProjection || bpRevenueProjectionsCrud.remove, onRefreshBpRevenueProjections: props.onRefreshBpRevenueProjections || bpRevenueProjectionsCrud.refresh, onCreateBpFundingSource: props.onCreateBpFundingSource || bpFundingSourcesCrud.create, onUpdateBpFundingSource: props.onUpdateBpFundingSource || bpFundingSourcesCrud.update, onDeleteBpFundingSource: props.onDeleteBpFundingSource || bpFundingSourcesCrud.remove, onRefreshBpFundingSources: props.onRefreshBpFundingSources || bpFundingSourcesCrud.refresh, onCreateBpLink: props.onCreateBpLink || bpLinksCrud.create, onUpdateBpLink: props.onUpdateBpLink || bpLinksCrud.update, onDeleteBpLink: props.onDeleteBpLink || bpLinksCrud.remove, onRefreshBpLinks: props.onRefreshBpLinks || bpLinksCrud.refresh, onCreateBpRisk: props.onCreateBpRisk || bpRisksCrud.create, onUpdateBpRisk: props.onUpdateBpRisk || bpRisksCrud.update, onDeleteBpRisk: props.onDeleteBpRisk || bpRisksCrud.remove, onRefreshBpRisks: props.onRefreshBpRisks || bpRisksCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateDocument: props.onCreateDocument || documentsCrud.create, onRefreshDocuments: props.onRefreshDocuments || documentsCrud.refresh, onCreateLot: props.onCreateLot || lotsCrud.create, onRefreshLots: props.onRefreshLots || lotsCrud.refresh, onCreateAnimal: props.onCreateAnimal || animalsCrud.create, onRefreshAnimals: props.onRefreshAnimals || animalsCrud.refresh, onCreateCulture: props.onCreateCulture || culturesCrud.create, onRefreshCultures: props.onRefreshCultures || culturesCrud.refresh, onCreateEquipement: props.onCreateEquipement || equipementsCrud.create, onRefreshEquipements: props.onRefreshEquipements || equipementsCrud.refresh, onCreateStock: props.onCreateStock || stockCrud.create, onRefreshStock: props.onRefreshStock || stockCrud.refresh, onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: props.onNavigate };
+  return <div className="space-y-6"><section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Pilotage</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Finance & Pilotage</h1><p className="mt-1 text-sm text-[#8a7456]">Trésorerie, comptabilité, preuves, investissements, business plan et actifs liés.</p></section><Tabs active={tab} onChange={setTab} />{tab === 'Résumé' ? <Summary data={data} setTab={setTab} /> : tab === 'Trésorerie' ? <FinancesV12 {...financeProps} /> : <InvestissementsV9 {...investmentProps} />}</div>;
+}

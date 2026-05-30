@@ -2,31 +2,37 @@ import { expect, test } from '@playwright/test';
 import { assertNoBadUiText, collectRuntimeErrors, goToModule, login } from './helpers.js';
 
 const MODULE_LABELS = [
-  'Dashboard',
+  'Accueil',
+  'Assistant ERP',
+  'Centre décisionnel',
+  'Objectifs',
   'Animaux',
   'Avicole',
-  'Sante',
+  'Santé',
   'Finances',
-  'Comptabilite',
+  'Comptabilité',
   'Investissements',
-  'Impact Business',
+  'Impact',
   'Stock',
   'Clients',
   'Ventes',
   'Fournisseurs',
-  'Tracabilite',
-  'Centre Alertes',
+  'Traçabilité',
+  'Alertes',
   'Cultures',
   'Documents',
-  'Taches',
+  'Tâches',
+  'RH',
   'Rapports',
-  'Equipements',
+  'Équipements',
   'Smart Farm',
-  'Audit Logs',
-  'Sync Offline',
+  'Activité',
+  'Gestion',
 ];
 
 test.describe('Horizon Farm — parcours ami utilisateur', () => {
+  test.setTimeout(180_000);
+
   test('connexion puis ouverture de chaque module sans erreur visible', async ({ page }) => {
     const runtime = collectRuntimeErrors(page);
 

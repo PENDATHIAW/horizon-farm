@@ -168,8 +168,8 @@ export default function AvicoleHealthBridge({ rows = [], productionLogs = [], al
         <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]"><CheckCircle2 size={14} className="inline" /> Aucun lot avicole actif disponible.</div>
       ) : riskyLots.length ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
-          {riskyLots.map(({ lot, risk }) => (
-            <div key={lotId(lot)} className="rounded-xl border border-amber-200 bg-amber-50/60 p-3">
+          {riskyLots.map(({ lot, risk }, index) => (
+            <div key={`${lotId(lot)}-${index}`} className="rounded-xl border border-amber-200 bg-amber-50/60 p-3">
               <p className="font-bold text-[#2f2415]"><AlertTriangle size={14} className="inline text-amber-600" /> {lotName(lot)}</p>
               <p className="text-xs text-[#8a7456] mt-1">{risk.reasons.join(' · ')}</p>
               <p className="text-xs text-[#8a7456] mt-1">{fmtNumber(risk.active)} actifs · ponte récente {fmtNumber(risk.eggDrop.last || 0)}</p>

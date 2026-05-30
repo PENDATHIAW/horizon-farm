@@ -1,10 +1,11 @@
-import { CheckCircle2, CreditCard, FileText, Receipt, RefreshCw, Users } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CreditCard, FileText, Receipt, RefreshCw, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import useCrudModule from '../hooks/useCrudModule';
 import { commitSaleWorkflow, prepareSaleWorkflow, useSuggestion } from '../services/workflowService';
 import { buildSaleAssetPatch, cleanPatchForWrite } from '../services/saleAssetPatchService';
 import {
+  analyzeSalesIntegrity,
   buildCoherentOrderPatch,
   capPaymentToRemaining,
   findExistingFinanceForPayment,
@@ -25,13 +26,19 @@ import {
 import SalesDeliveryControl from './SalesDeliveryControl.jsx';
 import SalesOpportunitiesBridge from './SalesOpportunitiesBridge.jsx';
 import SalesQualityControl from './SalesQualityControl.jsx';
-import Ventes from './Ventes.jsx';
+import VentesTerrain from './VentesTerrain.jsx';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const today = () => new Date().toISOString().slice(0, 10);
 
 const total = (order = {}) =>
   toNumber(order.montant_total ?? order.total ?? order.amount ?? order.total_amount);
+
+const paymentAmount = (payment = {}) =>
+  toNumber(payment.montant_paye ?? payment.montant ?? payment.amount ?? payment.paid_amount);
+
+const paymentDate = (payment = {}) =>
+  payment.date_paiement || payment.payment_date || payment.date || today();
 
 const clientName = (clients, id) =>
   arr(clients).find((client) => client.id === id)?.nom ||
@@ -51,6 +58,38 @@ const paymentMethods = [
   { value: 'virement', label: 'Virement' },
   { value: 'cheque', label: 'Chèque' },
 ];
+
+function buildFinanceFromPayment({ payment, order }) {
+  const amount = paymentAmount(payment);
+  const date = paymentDate(payment);
+  const method = payment.moyen_paiement || payment.mode_paiement || order.moyen_paiement || 'non_precise';
+  return {
+    id: makeId('TRX'),
+    type: 'entree',
+    libelle: `Encaissement ${order.product_name || order.libelle || order.id}`,
+    montant: amount,
+    amount,
+    date,
+    categorie: getFinanceCategoryFromSale(order),
+    module_lie: 'ventes',
+    related_id: order.id,
+    vente_id: order.id,
+    order_id: order.id,
+    sale_id: order.id,
+    activite: getFinanceActivityFromSale(order),
+    client_id: order.client_id || payment.client_id || '',
+    statut: 'paye',
+    source_module: 'ventes',
+    source_record_id: order.id,
+    source_type: order.source_type || order.type_vente || order.product_type,
+    source_id: order.source_id || order.product_id || order.entity_id,
+    invoice_id: payment.invoice_id || order.invoice_id || '',
+    payment_id: payment.id,
+    moyen_paiement: method,
+    mode_paiement: method,
+    notes: `Synchronisé depuis le paiement ${payment.id}`,
+  };
+}
 
 async function secureSale(order, props, setPreview) {
   const payments = arr(props.paymentsList || props.payments);
@@ -211,7 +250,6 @@ async function commitPreview(preview, props, setPreview) {
 
     await commitSaleWorkflow(preview, {
       onCreateInvoice: props.onCreateInvoice,
-
       onCreatePayment: existingPayment
         ? undefined
         : async (record) =>
@@ -222,7 +260,6 @@ async function commitPreview(preview, props, setPreview) {
               montant_paye: paymentValue,
               amount: paymentValue,
             }),
-
       onCreateFinanceTransaction: existingFinance
         ? undefined
         : async (record) =>
@@ -231,7 +268,6 @@ async function commitPreview(preview, props, setPreview) {
               payment_id: paymentId,
               montant: paymentValue,
             }),
-
       onUpdateOrder: async (id, patch) =>
         props.onUpdate?.(
           id,
@@ -254,12 +290,9 @@ async function commitPreview(preview, props, setPreview) {
             patch
           )
         ),
-
       onUpdateClient: props.onUpdateClient,
-
       onUpdateSourceAsset: (activity, id, patch) =>
         updateSourceAsset(activity, id, patch, props, order),
-
       onCreateDocument: props.onCreateDocument,
       onCreateBusinessEvent: props.onCreateBusinessEvent,
       onCreateAlert: props.onCreateAlert,
@@ -540,6 +573,103 @@ function PaymentCapturePanel(props) {
   );
 }
 
+function PaymentFinanceAuditPanel(props) {
+  const [syncing, setSyncing] = useState(false);
+  const payments = arr(props.paymentsList || props.payments);
+  const transactions = arr(props.transactions);
+  const integrity = useMemo(
+    () => analyzeSalesIntegrity({
+      orders: props.rows || [],
+      payments,
+      transactions,
+      invoices: props.invoicesList || props.invoices || [],
+    }),
+    [props.rows, payments, transactions, props.invoicesList, props.invoices]
+  );
+
+  const missing = integrity.flatMap((report) =>
+    arr(report.missingFinance).map((item) => ({
+      order: report.order,
+      payment: item.payment,
+    }))
+  );
+
+  const syncOne = async ({ order, payment }) => {
+    const amount = paymentAmount(payment);
+    if (amount <= 0) return;
+    const existing = findExistingFinanceForPayment({
+      orderId: order.id,
+      paymentId: payment.id,
+      amount,
+      transactions,
+    });
+    if (existing) return;
+    await props.onCreateFinanceTransaction?.(buildFinanceFromPayment({ payment, order }));
+  };
+
+  const syncAll = async () => {
+    if (!missing.length || syncing) return;
+    try {
+      setSyncing(true);
+      for (const item of missing) await syncOne(item);
+      await refreshRelated(props);
+      toast.success(`${missing.length} paiement(s) synchronisé(s) en finances`);
+    } catch (error) {
+      toast.error(error.message || 'Synchronisation finances impossible');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  if (!payments.length) return null;
+
+  return (
+    <div className={`rounded-2xl border p-5 space-y-4 ${missing.length ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[#8a7456]">Contrôle comptable</p>
+          <h3 className="font-black text-[#2f2415]">Paiements ↔ Finances</h3>
+          <p className="text-sm text-[#7d6a4a] mt-1">
+            Chaque paiement encaissé doit avoir une écriture finance liée.
+          </p>
+        </div>
+
+        {missing.length ? (
+          <button
+            type="button"
+            disabled={syncing}
+            onClick={syncAll}
+            className="min-h-[44px] rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
+          >
+            {syncing ? 'Synchronisation...' : 'Synchroniser les finances'}
+          </button>
+        ) : null}
+      </div>
+
+      {missing.length ? (
+        <div className="space-y-2">
+          <div className="rounded-xl border border-amber-200 bg-white/70 p-3 text-sm text-amber-800">
+            <AlertTriangle size={14} className="inline" /> {missing.length} paiement(s) encaissé(s) ne sont pas encore comptabilisés en finances.
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {missing.slice(0, 6).map(({ order, payment }) => (
+              <div key={`${order.id}-${payment.id}`} className="rounded-xl border border-amber-200 bg-white p-3 text-sm">
+                <p className="font-black text-[#2f2415]">{order.id} · {payment.id}</p>
+                <p className="text-[#7d6a4a]">{order.product_name || order.libelle || 'Vente'} · {fmtCurrency(paymentAmount(payment))}</p>
+                <p className="text-xs text-[#8a7456] mt-1">Statut : paiement non comptabilisé</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-emerald-200 bg-white/70 p-3 text-sm text-emerald-700">
+          <CheckCircle2 size={14} className="inline" /> Tous les paiements encaissés ont une écriture finance liée.
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SalesPreviewModal({ preview, setPreview, props }) {
   const [committing, setCommitting] = useState(false);
 
@@ -776,9 +906,7 @@ function Mini({ icon: Icon, label, value }) {
   return (
     <div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] px-3 py-2 min-w-[110px]">
       <Icon size={14} className="text-[#9a6b12]" />
-
       <b className="block text-[#2f2415]">{value}</b>
-
       <span className="text-xs text-[#8a7456]">{label}</span>
     </div>
   );
@@ -822,6 +950,7 @@ export default function VentesV2(props) {
     onCreatePayment: props.onCreatePayment || paymentsCrud.create,
     onRefreshPayments: props.onRefreshPayments || paymentsCrud.refresh,
 
+    onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create,
     onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh,
   };
 
@@ -831,8 +960,9 @@ export default function VentesV2(props) {
       <SalesQualityControl {...mergedProps} />
       <SalesDeliveryControl {...mergedProps} />
       <SalesBridge {...mergedProps} />
+      <PaymentFinanceAuditPanel {...mergedProps} />
       <PaymentCapturePanel {...mergedProps} />
-      <Ventes {...mergedProps} />
+      <VentesTerrain {...mergedProps} />
     </div>
   );
 }

@@ -23,13 +23,13 @@ export default function BrandLogo({ variant = 'sidebar', showText = false, class
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      <div className={`${styles.wrapper} bg-white border border-[#d6c3a0] shadow-sm shadow-[#d6c3a0]/30 flex items-center justify-center overflow-hidden shrink-0`}>
+      <div className={`${styles.wrapper} bg-white border border-[#d1e5d1] shadow-sm shadow-[#d1e5d1]/30 flex items-center justify-center overflow-hidden shrink-0`}>
         <img src={logoSrc} alt="Horizon Farm" className={styles.image} />
       </div>
       {showText ? (
         <div className="min-w-0">
-          <div className="font-black text-[#2f2415] text-sm leading-tight truncate">HORIZON FARM</div>
-          <div className="text-[10px] text-[#9a7a43] font-semibold tracking-widest truncate">DE LA TERRE A L'HORIZON</div>
+          <div className="font-black text-[#052e16] text-sm leading-tight truncate">HORIZON FARM</div>
+          <div className="text-[10px] text-[#15803d] font-semibold tracking-widest truncate">DE LA TERRE A L'HORIZON</div>
         </div>
       ) : null}
     </div>

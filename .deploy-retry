@@ -1,0 +1,3 @@
+Retry deployment after Vercel build rate limit.
+Last functional commit: 384c5c54171896659a6f6bfda641311bd81b2a1b
+Date: 2026-05-16

@@ -40,7 +40,7 @@ export const avicoleReformedCount = (lot = {}) => firstNumber(lot.reformes, lot.
 export const avicoleOtherExitCount = (lot = {}) => firstNumber(lot.autres_sorties, lot.sorties_autres, lot.sorties, lot.other_exits);
 export const avicoleSickCount = (lot = {}) => firstNumber(lot.malades, lot.sick_count, lot.sick, lot.malade_count);
 
-export const avicoleActiveCount = (lot = {}) => Math.max(
+export const avicoleCalculatedActiveCount = (lot = {}) => Math.max(
   0,
   avicoleInitialCount(lot)
   - avicoleDeadCount(lot)
@@ -50,6 +50,9 @@ export const avicoleActiveCount = (lot = {}) => Math.max(
   - avicoleReformedCount(lot)
   - avicoleOtherExitCount(lot),
 );
+export const avicoleRegisteredActiveCount = (lot = {}) => firstNumber(lot.current_count, lot.effectif_actuel, lot.nombre_actuel, lot.active_count);
+export const avicoleActiveCount = (lot = {}) => avicoleInitialCount(lot) > 0 ? avicoleCalculatedActiveCount(lot) : avicoleRegisteredActiveCount(lot);
+export const avicoleHasCountMismatch = (lot = {}) => avicoleInitialCount(lot) > 0 && avicoleRegisteredActiveCount(lot) > 0 && avicoleRegisteredActiveCount(lot) !== avicoleCalculatedActiveCount(lot);
 
 export const avicoleIsTerminalStatus = (status) => AVICOLE_TERMINAL_STATUSES.includes(String(status || '').toLowerCase().trim());
 

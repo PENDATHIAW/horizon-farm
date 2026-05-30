@@ -10,6 +10,7 @@ import DeleteModal from '../modals/DeleteModal';
 import DetailsModal from '../modals/DetailsModal';
 import EditModal from '../modals/EditModal';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
+import { applyGovernedDefaults, governFormFields } from '../utils/formFieldGovernance';
 import { generateSequentialId } from '../utils/ids';
 
 export default function GenericCrudModule({
@@ -36,14 +37,15 @@ export default function GenericCrudModule({
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
 
-  const visibleColumns = columns.length ? columns : fields.slice(0, 5).map((field) => field.key);
+  const governedFields = useMemo(() => governFormFields(moduleKey, fields), [moduleKey, fields]);
+  const visibleColumns = columns.length ? columns : governedFields.slice(0, 5).map((field) => field.key);
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return rows;
     return rows.filter((row) => visibleColumns.some((column) => String(row[column] ?? '').toLowerCase().includes(query)));
   }, [rows, search, visibleColumns]);
 
-  const defaults = useMemo(() => ({ id: generateSequentialId(moduleKey, rows), ...initialValues }), [moduleKey, rows, initialValues]);
+  const defaults = useMemo(() => applyGovernedDefaults(moduleKey, { id: generateSequentialId(moduleKey, rows), ...initialValues }), [moduleKey, rows, initialValues]);
 
   const submitCreate = async (payload) => {
     try {
@@ -156,10 +158,9 @@ export default function GenericCrudModule({
       </div>
 
       <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected} title={title} />
-      <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={fields} initialValues={defaults} autoId={() => generateSequentialId(moduleKey, rows)} uploadFolder={uploadFolder || moduleKey} loading={saving} title={addLabel} submitLabel="Ajouter" />
-      <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={fields} initialValues={selected || {}} uploadFolder={uploadFolder || moduleKey} loading={saving} title={`Modifier ${title}`} submitLabel="Enregistrer" />
+      <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={governedFields} initialValues={defaults} autoId={() => generateSequentialId(moduleKey, rows)} uploadFolder={uploadFolder || moduleKey} loading={saving} title={addLabel} submitLabel="Ajouter" />
+      <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={governedFields} initialValues={selected || {}} uploadFolder={uploadFolder || moduleKey} loading={saving} title={`Modifier ${title}`} submitLabel="Enregistrer" />
       <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected ? String(selected.name || selected.nom || selected.libelle || selected.title || selected.id) : ''} loading={saving} />
     </div>
   );
 }
-

@@ -1,8 +1,10 @@
 import { AlertTriangle, CheckCircle2, Package, Truck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import useCrudModule from '../hooks/useCrudModule';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
+import { buildSupplierReceptionWorkflow } from '../utils/supplierWorkflows';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const now = () => new Date().toISOString();
@@ -32,6 +34,9 @@ function existingTaskFor(supplier, stock, tasks = []) {
 
 export default function FournisseursStockBridge({ suppliers = [], stocks = [], tasks = [], onUpdateStock, onRefreshStock, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, onCreateBusinessEvent, onRefreshBusinessEvents, onUpdateSupplier, onRefreshSuppliers }) {
   const [savingKey, setSavingKey] = useState('');
+  const financesCrud = useCrudModule('finances');
+  const documentsCrud = useCrudModule('documents');
+  const tasksCrud = useCrudModule('taches');
   const candidates = useMemo(() => arr(stocks)
     .filter(isCritical)
     .map((stock) => ({ stock, supplier: linkedSupplier(stock, suppliers) }))
@@ -85,6 +90,29 @@ export default function FournisseursStockBridge({ suppliers = [], stocks = [], t
     }
   };
 
+  const receiveStock = async (supplier, stock) => {
+    const key = taskKey(supplier, stock);
+    const qty = reorderQty(stock);
+    const task = existingTaskFor(supplier, stock, tasks);
+    if (qty <= 0) return toast.error('Quantité à réceptionner non calculée');
+    const workflow = buildSupplierReceptionWorkflow({ supplier, stock, qty, unitPrice: unitPriceOf(stock), date: today() });
+    try {
+      setSavingKey(`receive:${key}`);
+      await onUpdateStock?.(stock.id, workflow.stockPatch);
+      await financesCrud.create?.(workflow.debtTransaction);
+      await documentsCrud.create?.(workflow.missingInvoiceDocument);
+      if (task?.id) await tasksCrud.update?.(task.id, { status: 'termine', statut: 'termine', completed_at: now() });
+      await onUpdateSupplier?.(supplier.id, workflow.supplierPatch);
+      await onCreateBusinessEvent?.(workflow.event);
+      await Promise.allSettled([onRefreshStock?.(), financesCrud.refresh?.(), documentsCrud.refresh?.(), tasksCrud.refresh?.(), onRefreshBusinessEvents?.(), onRefreshSuppliers?.()]);
+      toast.success('Réception enregistrée : stock augmenté, dette et preuve à joindre créées');
+    } catch {
+      toast.error('Réception fournisseur impossible');
+    } finally {
+      setSavingKey('');
+    }
+  };
+
   if (!candidates.length) return null;
   return (
     <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
@@ -106,7 +134,10 @@ export default function FournisseursStockBridge({ suppliers = [], stocks = [], t
               <p className="text-xs text-[#8a7456] mt-1"><Package size={13} className="inline" /> {productName(stock)}</p>
               <p className="text-xs text-[#8a7456] mt-1">Stock: {fmtNumber(quantityOf(stock))} / seuil {fmtNumber(thresholdOf(stock))}</p>
               <p className="text-xs text-[#8a7456] mt-1">À commander: <b>{fmtNumber(qty)} {stock.unite || ''}</b> · {fmtCurrency(qty * unitPriceOf(stock))}</p>
-              {task ? <p className="mt-3 text-xs font-bold text-emerald-700"><CheckCircle2 size={13} className="inline" /> Déjà en suivi</p> : <button type="button" disabled={savingKey === key} className="mt-3 text-sm font-bold text-emerald-700 disabled:opacity-60" onClick={() => createOrderTask(supplier, stock)}><CheckCircle2 size={14} className="inline" /> {savingKey === key ? 'Préparation...' : 'Préparer commande'}</button>}
+              <div className="mt-3 flex flex-wrap gap-2">
+                {task ? <p className="text-xs font-bold text-emerald-700"><CheckCircle2 size={13} className="inline" /> Déjà en suivi</p> : <button type="button" disabled={savingKey === key} className="text-sm font-bold text-emerald-700 disabled:opacity-60" onClick={() => createOrderTask(supplier, stock)}><CheckCircle2 size={14} className="inline" /> {savingKey === key ? 'Préparation...' : 'Préparer commande'}</button>}
+                <button type="button" disabled={savingKey === `receive:${key}`} className="text-sm font-bold text-[#2f2415] disabled:opacity-60" onClick={() => receiveStock(supplier, stock)}><Package size={14} className="inline" /> {savingKey === `receive:${key}` ? 'Réception...' : 'Réceptionner'}</button>
+              </div>
             </div>
           );
         })}

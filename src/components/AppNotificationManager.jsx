@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { buildTechnicalFarmingAlerts } from '../services/technicalFarmingRules';
 import { notifyAlerts, notificationPermission, requestNotificationPermission, shouldNotifyAlert } from '../utils/appNotifications';
 import { isDeletedRecord } from '../utils/deletedRecords';
 import { pushSetupStatus, sendTestPush, subscribeDeviceToPush } from '../utils/pushSubscriptions';
@@ -29,6 +30,7 @@ function moduleFor(alert = {}) {
   if (source.includes('finance') || source.includes('transaction')) return 'finances';
   if (source.includes('client')) return 'clients';
   if (source.includes('fournisseur')) return 'fournisseurs';
+  if (source.includes('sante') || source.includes('santé')) return 'sante';
   if (source.includes('sensor') || source.includes('smart')) return 'smartfarm';
   if (source.includes('equip')) return 'equipements';
   return 'alertes';
@@ -73,6 +75,14 @@ function buildDerivedAlerts(dataMap = {}) {
   arr(dataMap.avicole).filter((lot) => Number(lot.initial_count || 0) > 0 && Number(lot.mortality || lot.morts || 0) > Number(lot.initial_count || 0) * 0.04).forEach((lot) => result.push({ id: `notify-lot-mortalite-${lot.id}`, title: `Mortalité élevée: ${lot.name || lot.nom || lot.id}`, message: 'Un lot avicole dépasse le seuil critique de mortalité.', module_source: 'avicole', entity_type: 'lot_avicole', entity_id: lot.id, severity: 'critique', status: 'nouvelle', action_recommandee: 'Appliquer contrôle santé et biosécurité' }));
   arr(dataMap.stock).filter((stock) => Number(stock.seuil || 0) > 0 && Number(stock.quantite || 0) <= 0).forEach((stock) => result.push({ id: `notify-stock-zero-${stock.id}`, title: `Rupture stock: ${stock.nom || stock.produit || stock.id}`, message: 'Un produit est à zéro.', module_source: 'stock', entity_type: 'stock', entity_id: stock.id, severity: 'urgence', status: 'nouvelle', action_recommandee: 'Commander réapprovisionnement' }));
   arr(dataMap.cultures).filter((culture) => lower(culture.statut) === 'perdu').forEach((culture) => result.push({ id: `notify-culture-perdue-${culture.id}`, title: `Culture perdue: ${culture.nom || culture.name || culture.id}`, message: 'Une culture a été marquée comme perdue.', module_source: 'cultures', entity_type: 'culture', entity_id: culture.id, severity: 'critique', status: 'nouvelle', action_recommandee: 'Analyser cause et planifier nouvelle culture' }));
+  buildTechnicalFarmingAlerts({
+    lots: arr(dataMap.avicole),
+    animaux: arr(dataMap.animaux),
+    stocks: arr(dataMap.stock),
+    sante: arr(dataMap.sante),
+    businessEvents: arr(dataMap.business_events || dataMap.businessEvents),
+    sensorDevices: arr(dataMap.sensor_devices || dataMap.sensorDevices),
+  }).forEach((alert) => result.push({ ...alert, id: `notify-${alert.id}`, severity: alert.severity || 'warning' }));
   return result.filter((alert) => !wasHandledOrDeleted(alert, persistedAlerts));
 }
 

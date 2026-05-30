@@ -1,4 +1,4 @@
-﻿import { AlertTriangle, ArrowDown, ArrowUp, BarChart2, CreditCard, Download, Edit, Eye, FileText, Landmark, Plus, RefreshCw, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, BarChart2, CreditCard, Download, Edit, Eye, FileText, Landmark, Plus, RefreshCw, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import toast from 'react-hot-toast';
@@ -12,6 +12,7 @@ import { MODULE_FORM_FIELDS } from '../utils/constants';
 import { generateSequentialId } from '../utils/ids';
 import { buildFinanceAlerts } from '../utils/accounting';
 import { calculateAnimalMetrics, calculateCultureMetrics, calculateInvestmentMetrics, calculateLotMetrics, calculateStockMetrics } from '../utils/businessCalculations';
+import { HORIZON_FARM_OFFICIAL_BP } from '../services/horizonFarmOfficialBusinessPlan';
 import CreateModal from '../modals/CreateModal';
 import EditModal from '../modals/EditModal';
 import DeleteModal from '../modals/DeleteModal';
@@ -33,6 +34,35 @@ const normalizeActivity = ({ id, name, module, revenus = 0, couts = 0, roi = nul
   const marge = Number(revenus || 0) - Number(couts || 0);
   return { id, name, module, revenus, couts, marge, roi: roi ?? (couts > 0 ? (marge / couts) * 100 : 0) };
 };
+
+function getOfficialFinalCash() {
+  const rows = Array.isArray(HORIZON_FARM_OFFICIAL_BP.forecast.monthlyCashYear1) ? HORIZON_FARM_OFFICIAL_BP.forecast.monthlyCashYear1 : [];
+  return rows[rows.length - 1]?.cumulativeCash || 0;
+}
+
+function OfficialBpForecastPanel() {
+  const bp = HORIZON_FARM_OFFICIAL_BP;
+  return <section className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-3">
+    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
+      <div>
+        <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Prévisionnel BP officiel</p>
+        <h3 className="text-lg font-black text-[#2f2415]">Référence financière Horizon Farm</h3>
+        <p className="text-sm text-[#8a7456] mt-1">Ces chiffres viennent du fichier BP. Les KPI au-dessus restent les flux réels enregistrés dans Finances.</p>
+      </div>
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">Poussins chair corrigés : <b>1 024 000 FCFA/mois</b></div>
+    </div>
+    <div className="grid grid-cols-2 xl:grid-cols-6 gap-3">
+      <MiniMetric label="CA année 1" value={bp.revenue.annualTotal} />
+      <MiniMetric label="Charges variables corrigées" value={bp.variableCosts.correctedAnnualTotal} />
+      <MiniMetric label="Charges fixes A1" value={bp.fixedCosts.annualByYear[0]} />
+      <MiniMetric label="Salaires + rémunération" value={bp.payroll.annualTotal} />
+      <MiniMetric label="BFR A1" value={bp.workingCapital.bfrByYear[0]} />
+      <MiniMetric label="Résultat A1" value={bp.forecast.resultByYear[0]} />
+      <MiniMetric label="CAF A1" value={bp.forecast.cashFlowCapacityByYear[0]} />
+      <MiniMetric label="Trésorerie finale A1" value={getOfficialFinalCash()} />
+    </div>
+  </section>;
+}
 
 export default function Finances({
   rows = [],
@@ -198,7 +228,7 @@ export default function Finances({
     <div className="space-y-6">
       <SectionHeader
         title="Pilotage Financier"
-        sub="Tresorerie - flux - marges - rentabilite par activite"
+        sub="Tresorerie - flux reels - marges - previsionnel BP officiel"
         actions={
           <>
             <Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn>
@@ -211,139 +241,44 @@ export default function Finances({
       <div className="grid grid-cols-2 xl:grid-cols-6 gap-4">
         <KpiCard icon={TrendingUp} label="Flux entrants encaisses" value={fmtCurrency(totalRec)} color="bg-emerald-500/20 text-emerald-400" trend={8} />
         <KpiCard icon={TrendingDown} label="Flux sortants" value={fmtCurrency(totalDep)} color="bg-red-500/20 text-red-400" trend={-3} />
-        <KpiCard icon={Wallet} label="Resultat cash" value={fmtCurrency(benefice)} color="bg-sky-500/20 text-sky-400" trend={12} />
-        <KpiCard icon={CreditCard} label="Cash disponible" value={fmtCurrency(cashDisponible)} color="bg-purple-500/20 text-purple-400" />
+        <KpiCard icon={Wallet} label="Resultat cash reel" value={fmtCurrency(benefice)} color="bg-sky-500/20 text-sky-400" trend={12} />
+        <KpiCard icon={CreditCard} label="Cash disponible reel" value={fmtCurrency(cashDisponible)} color="bg-purple-500/20 text-purple-400" />
         <KpiCard icon={Landmark} label="Creances ouvertes" value={fmtCurrency(totalCreances)} color="bg-amber-500/20 text-amber-500" />
         <KpiCard icon={BarChart2} label="Taux marge cash" value={fmtPercent(totalRec ? (benefice / totalRec) * 100 : 0)} color="bg-emerald-500/20 text-emerald-500" />
       </div>
 
+      <OfficialBpForecastPanel />
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5">
-          <p className="font-semibold text-[#2f2415]">Commandes encaissees</p>
-          <p className="mt-2 text-2xl font-black text-emerald-600">{ventesPayees}</p>
-          <p className="text-xs text-[#8a7456]">Le detail operationnel reste dans Ventes.</p>
-        </div>
-        <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5">
-          <p className="font-semibold text-[#2f2415]">Paiements partiels</p>
-          <p className="mt-2 text-2xl font-black text-amber-600">{paiementsPartiels}</p>
-          <p className="text-xs text-[#8a7456]">A surveiller pour le cash previsionnel.</p>
-        </div>
-        <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5">
-          <p className="font-semibold text-[#2f2415]">Creances ouvertes</p>
-          <p className="mt-2 text-2xl font-black text-[#2f2415]">{fmtCurrency(totalCreances)}</p>
-          <p className="text-xs text-[#8a7456]">Relances et commandes detaillees dans Ventes / Comptabilite.</p>
-        </div>
+        <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5"><p className="font-semibold text-[#2f2415]">Commandes encaissees</p><p className="mt-2 text-2xl font-black text-emerald-600">{ventesPayees}</p><p className="text-xs text-[#8a7456]">Le detail operationnel reste dans Ventes.</p></div>
+        <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5"><p className="font-semibold text-[#2f2415]">Paiements partiels</p><p className="mt-2 text-2xl font-black text-amber-600">{paiementsPartiels}</p><p className="text-xs text-[#8a7456]">A surveiller pour le cash previsionnel.</p></div>
+        <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5"><p className="font-semibold text-[#2f2415]">Creances ouvertes</p><p className="mt-2 text-2xl font-black text-[#2f2415]">{fmtCurrency(totalCreances)}</p><p className="text-xs text-[#8a7456]">Relances et commandes detaillees dans Ventes / Comptabilite.</p></div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div className="xl:col-span-2 bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5">
-          <p className="font-semibold text-[#2f2415] mb-4">Evolution des flux</p>
+          <p className="font-semibold text-[#2f2415] mb-4">Evolution des flux reels</p>
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={weeklyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e7d9be" />
-              <XAxis dataKey="label" stroke="#8a7456" fontSize={12} />
-              <YAxis stroke="#8a7456" fontSize={11} tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
-              <Tooltip formatter={(v) => fmtCurrency(v)} contentStyle={{ background: '#ffffff', border: '1px solid #b6975f', borderRadius: 8 }} />
-              <Bar dataKey="recettes" fill="#22c55e" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="depenses" fill="#ef4444" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="benefice" fill="#0ea5e9" radius={[6, 6, 0, 0]} />
-            </BarChart>
+            <BarChart data={weeklyData}><CartesianGrid strokeDasharray="3 3" stroke="#e7d9be" /><XAxis dataKey="label" stroke="#8a7456" fontSize={12} /><YAxis stroke="#8a7456" fontSize={11} tickFormatter={(v) => `${Math.round(v / 1000)}k`} /><Tooltip formatter={(v) => fmtCurrency(v)} contentStyle={{ background: '#ffffff', border: '1px solid #b6975f', borderRadius: 8 }} /><Bar dataKey="recettes" fill="#22c55e" radius={[6, 6, 0, 0]} /><Bar dataKey="depenses" fill="#ef4444" radius={[6, 6, 0, 0]} /><Bar dataKey="benefice" fill="#0ea5e9" radius={[6, 6, 0, 0]} /></BarChart>
           </ResponsiveContainer>
         </div>
-
-        <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5">
-          <p className="font-semibold text-[#2f2415] mb-4">Previsions financieres</p>
-          <div className="space-y-3">
-            <MiniMetric label="Revenus prevus" value={forecast.revenus} />
-            <MiniMetric label="Depenses prevues" value={forecast.depenses} />
-            <MiniMetric label="Cashflow previsionnel" value={forecast.cashflow} />
-            <MiniMetric label="Estimation benefice" value={forecast.benefice} />
-          </div>
-        </div>
+        <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5"><p className="font-semibold text-[#2f2415] mb-4">Previsions basees sur le reel</p><div className="space-y-3"><MiniMetric label="Revenus prevus" value={forecast.revenus} /><MiniMetric label="Depenses prevues" value={forecast.depenses} /><MiniMetric label="Cashflow previsionnel" value={forecast.cashflow} /><MiniMetric label="Estimation benefice" value={forecast.benefice} /></div></div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5">
-          <p className="font-semibold text-[#2f2415] mb-4">Tresorerie par canal</p>
-          <div className="space-y-2">
-            {treasury.map((item) => (
-              <div key={item.method} className="rounded-xl bg-[#fffdf8] border border-[#e7d9be] p-3">
-                <div className="flex items-center justify-between mb-2"><span className="font-semibold text-[#2f2415]">{item.method}</span><span className="font-bold text-[#2f2415]">{fmtCurrency(item.solde)}</span></div>
-                <div className="h-2 bg-[#eadcc2] rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.min(Math.abs(item.solde) / Math.max(Math.abs(cashDisponible), 1) * 100, 100)}%`, background: item.color }} /></div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5">
-          <p className="font-semibold text-[#2f2415] mb-4">Rentabilite par activite</p>
-          <div className="space-y-2">
-            {topActivities.map((activity) => (
-              <div key={activity.id} className="flex items-center justify-between rounded-xl bg-[#fffdf8] border border-[#e7d9be] px-3 py-2">
-                <div><p className="text-sm font-semibold text-[#2f2415]">{activity.name}</p><p className="text-xs text-[#8a7456]">ROI {fmtPercent(activity.roi)}</p></div>
-                <span className={`font-bold ${activity.marge >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>{fmtCurrency(activity.marge)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5">
-          <p className="font-semibold text-[#2f2415] mb-4">Alertes financieres</p>
-          <div className="space-y-2">
-            {alerts.length ? alerts.slice(0, 6).map((alert) => (
-              <div key={alert.id} className={`rounded-xl border p-3 ${alert.level === 'danger' ? 'bg-red-500/10 border-red-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
-                <p className="text-sm font-semibold text-[#2f2415]">{alert.title}</p>
-                <p className="text-xs text-[#8a7456]">{alert.message}</p>
-              </div>
-            )) : <p className="text-sm text-[#8a7456]">Aucune alerte financiere.</p>}
-          </div>
-          {deficitActivities.length ? <p className="text-xs text-red-500 mt-3">Activites deficitaires: {deficitActivities.map((a) => a.name).join(', ')}</p> : null}
-        </div>
+        <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5"><p className="font-semibold text-[#2f2415] mb-4">Tresorerie par canal</p><div className="space-y-2">{treasury.map((item) => <div key={item.method} className="rounded-xl bg-[#fffdf8] border border-[#e7d9be] p-3"><div className="flex items-center justify-between mb-2"><span className="font-semibold text-[#2f2415]">{item.method}</span><span className="font-bold text-[#2f2415]">{fmtCurrency(item.solde)}</span></div><div className="h-2 bg-[#eadcc2] rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.min(Math.abs(item.solde) / Math.max(Math.abs(cashDisponible), 1) * 100, 100)}%`, background: item.color }} /></div></div>)}</div></div>
+        <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5"><p className="font-semibold text-[#2f2415] mb-4">Rentabilite par activite</p><div className="space-y-2">{topActivities.map((activity) => <div key={activity.id} className="flex items-center justify-between rounded-xl bg-[#fffdf8] border border-[#e7d9be] px-3 py-2"><div><p className="text-sm font-semibold text-[#2f2415]">{activity.name}</p><p className="text-xs text-[#8a7456]">ROI {fmtPercent(activity.roi)}</p></div><span className={`font-bold ${activity.marge >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>{fmtCurrency(activity.marge)}</span></div>)}</div></div>
+        <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5"><p className="font-semibold text-[#2f2415] mb-4">Alertes financieres</p><div className="space-y-2">{alerts.length ? alerts.slice(0, 6).map((alert) => <div key={alert.id} className={`rounded-xl border p-3 ${alert.level === 'danger' ? 'bg-red-500/10 border-red-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}><p className="text-sm font-semibold text-[#2f2415]">{alert.title}</p><p className="text-xs text-[#8a7456]">{alert.message}</p></div>) : <p className="text-sm text-[#8a7456]">Aucune alerte financiere.</p>}</div>{deficitActivities.length ? <p className="text-xs text-red-500 mt-3">Activites deficitaires: {deficitActivities.map((a) => a.name).join(', ')}</p> : null}</div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5">
-          <p className="font-semibold text-[#2f2415] mb-4">Repartition des flux</p>
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
-              <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value">
-                {pieData.map((entry, index) => <Cell key={`${entry.name}-${index}`} fill={entry.color} />)}
-              </Pie>
-              <Tooltip formatter={(v) => fmtCurrency(v)} contentStyle={{ background: '#ffffff', border: '1px solid #b6975f', borderRadius: 8 }} />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-
+        <div className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5"><p className="font-semibold text-[#2f2415] mb-4">Repartition des flux</p><ResponsiveContainer width="100%" height={220}><PieChart><Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value">{pieData.map((entry, index) => <Cell key={`${entry.name}-${index}`} fill={entry.color} />)}</Pie><Tooltip formatter={(v) => fmtCurrency(v)} contentStyle={{ background: '#ffffff', border: '1px solid #b6975f', borderRadius: 8 }} /></PieChart></ResponsiveContainer></div>
         <div className="lg:col-span-2 bg-[#ffffff] border border-[#d6c3a0] rounded-2xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#d6c3a0] flex flex-wrap gap-3 items-center justify-between">
-            <p className="font-semibold text-[#2f2415]">Transactions financieres</p>
-            <div className="flex gap-2 flex-wrap">
-              {['tous', 'entree', 'sortie'].map((filter) => <FilterButton key={filter} active={typeFilter === filter} onClick={() => setTypeFilter(filter)}>{filter === 'entree' ? 'Entrees' : filter === 'sortie' ? 'Sorties' : 'Toutes'}</FilterButton>)}
-              {['tous', 'paye', 'partiel', 'impaye', 'annule'].map((filter) => <FilterButton key={filter} active={statusFilter === filter} onClick={() => setStatusFilter(filter)}>{filter}</FilterButton>)}
-              {['tous', ...PAYMENT_METHODS].map((filter) => <FilterButton key={filter} active={paymentFilter === filter} onClick={() => setPaymentFilter(filter)}>{filter}</FilterButton>)}
-              {businessPlans.length > 0 && [{ id: 'tous', nom: 'Tous les BP' }, ...businessPlans].map((bp) => <FilterButton key={bp.id} active={bpFilter === bp.id} onClick={() => setBpFilter(bp.id)}>{bp.nom}</FilterButton>)}
-            </div>
-          </div>
-
+          <div className="px-5 py-4 border-b border-[#d6c3a0] flex flex-wrap gap-3 items-center justify-between"><p className="font-semibold text-[#2f2415]">Transactions financieres</p><div className="flex gap-2 flex-wrap">{['tous', 'entree', 'sortie'].map((filter) => <FilterButton key={filter} active={typeFilter === filter} onClick={() => setTypeFilter(filter)}>{filter === 'entree' ? 'Entrees' : filter === 'sortie' ? 'Sorties' : 'Toutes'}</FilterButton>)}{['tous', 'paye', 'partiel', 'impaye', 'annule'].map((filter) => <FilterButton key={filter} active={statusFilter === filter} onClick={() => setStatusFilter(filter)}>{filter}</FilterButton>)}{['tous', ...PAYMENT_METHODS].map((filter) => <FilterButton key={filter} active={paymentFilter === filter} onClick={() => setPaymentFilter(filter)}>{filter}</FilterButton>)}{businessPlans.length > 0 && [{ id: 'tous', nom: 'Tous les BP' }, ...businessPlans].map((bp) => <FilterButton key={bp.id} active={bpFilter === bp.id} onClick={() => setBpFilter(bp.id)}>{bp.nom}</FilterButton>)}</div></div>
           <div className="divide-y divide-[#d6c3a0]/50">
             {loading ? Array.from({ length: 6 }).map((_, i) => <div key={i} className="px-5 py-4"><div className="h-3 rounded bg-[#d6c3a0]/60 animate-pulse" /></div>) : null}
             {!loading && filtered.length === 0 ? <div className="px-5 py-8 text-center text-[#8a7456]">Aucune transaction.</div> : null}
-            {!loading ? filtered.map((t) => (
-              <div key={t.id} className="px-5 py-3 hover:bg-[#d6c3a0]/30 transition-colors flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${t.type === 'entree' ? 'bg-emerald-500/20' : 'bg-red-500/20'}`}>{t.type === 'entree' ? <ArrowUp size={14} className="text-emerald-400" /> : <ArrowDown size={14} className="text-red-400" />}</div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-[#2f2415] truncate">{t.libelle}</p>
-                  <p className="text-xs text-[#8a7456]">{t.date} - {t.categorie} - {t.module_lie || 'module non lie'} - {t.paiement} - {t.statut || 'paye'}{t.business_plan_id ? ` | BP: ${businessPlans.find((bp) => bp.id === t.business_plan_id)?.nom || t.business_plan_id}` : ''}</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className={`font-bold text-sm ${t.type === 'entree' ? 'text-emerald-400' : 'text-red-400'}`}>{t.type === 'entree' ? '+' : '-'}{fmtCurrency(t.montant)}</span>
-                  {t.justificatif_url ? <FileText size={14} className="text-sky-500" /> : null}
-                  <ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected(t); setModal('details'); }} />
-                  <ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(t); setModal('edit'); }} />
-                  <ActionIconButton icon={AlertTriangle} title="Supprimer" color="red" onClick={() => { setSelected(t); setModal('delete'); }} />
-                </div>
-              </div>
-            )) : null}
+            {!loading ? filtered.map((t) => <div key={t.id} className="px-5 py-3 hover:bg-[#d6c3a0]/30 transition-colors flex items-center gap-3"><div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${t.type === 'entree' ? 'bg-emerald-500/20' : 'bg-red-500/20'}`}>{t.type === 'entree' ? <ArrowUp size={14} className="text-emerald-400" /> : <ArrowDown size={14} className="text-red-400" />}</div><div className="flex-1 min-w-0"><p className="text-sm text-[#2f2415] truncate">{t.libelle}</p><p className="text-xs text-[#8a7456]">{t.date} - {t.categorie} - {t.module_lie || 'module non lie'} - {t.paiement} - {t.statut || 'paye'}{t.business_plan_id ? ` | BP: ${businessPlans.find((bp) => bp.id === t.business_plan_id)?.nom || t.business_plan_id}` : ''}</p></div><div className="flex items-center gap-2 shrink-0"><span className={`font-bold text-sm ${t.type === 'entree' ? 'text-emerald-400' : 'text-red-400'}`}>{t.type === 'entree' ? '+' : '-'}{fmtCurrency(t.montant)}</span>{t.justificatif_url ? <FileText size={14} className="text-sky-500" /> : null}<ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected(t); setModal('details'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(t); setModal('edit'); }} /><ActionIconButton icon={AlertTriangle} title="Supprimer" color="red" onClick={() => { setSelected(t); setModal('delete'); }} /></div></div>) : null}
           </div>
         </div>
       </div>

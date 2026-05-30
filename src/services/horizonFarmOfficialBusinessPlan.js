@@ -1,0 +1,191 @@
+export const HORIZON_FARM_OFFICIAL_BP = {
+  sourceDocument: 'Plan-financier-previsionnel HORIZON FARM(4).xlsx',
+  identity: {
+    projectName: 'HORIZON FARM',
+    ownerName: 'PENDA THIAW DIAGNE',
+    legalStatus: 'Entreprise individuelle au réel IR',
+    activityType: 'Marchandises',
+    acre: false,
+    taxRegime: 'Impôt sur le revenu',
+  },
+  startupNeeds: {
+    officialTotal: 26064000,
+    lines: [
+      { designation: 'Abreuvoir 5L', category: 'petit_materiel_avicole', quantity: 100, unit: 'unités', unitPrice: 2500, total: 250000 },
+      { designation: 'Abreuvoir 10L', category: 'petit_materiel_avicole', quantity: 100, unit: 'unités', unitPrice: 5000, total: 500000 },
+      { designation: 'Plateaux démarrage', category: 'petit_materiel_avicole', quantity: 100, unit: 'unités', unitPrice: 2500, total: 250000 },
+      { designation: 'Mangeoires trémie', category: 'petit_materiel_avicole', quantity: 100, unit: 'unités', unitPrice: 3000, total: 300000 },
+      { designation: 'Radiants', category: 'materiel_chair', quantity: 4, unit: 'unités', unitPrice: 60000, total: 240000 },
+      { designation: 'Bâches', category: 'petit_materiel_avicole', quantity: 120, unit: 'unités', unitPrice: 400, total: 48000 },
+      { designation: 'Bottes', category: 'epi', quantity: 5, unit: 'paires', unitPrice: 10000, total: 50000 },
+      { designation: 'Combinaisons', category: 'epi', quantity: 5, unit: 'unités', unitPrice: 10000, total: 50000 },
+      { designation: 'Lassos', category: 'materiel_bovins', quantity: 2, unit: 'unités', unitPrice: 8000, total: 16000 },
+      { designation: 'Mangeoires petits', category: 'petit_materiel_avicole', quantity: 100, unit: 'unités', unitPrice: 800, total: 80000 },
+      { designation: 'Papier', category: 'administratif', quantity: 50, unit: 'unités', unitPrice: 700, total: 35000 },
+      { designation: 'Abreuvoir bovins', category: 'materiel_bovins', quantity: 5, unit: 'unités', unitPrice: 5000, total: 25000 },
+      { designation: '3000 poussins pondeuses', category: 'cheptel_pondeuses', quantity: 3000, unit: 'sujets', unitPrice: 900, total: 2700000 },
+      { designation: 'Stock de matières et produits de démarrage', category: 'stock_depart', quantity: 1, unit: 'forfait', unitPrice: 17260000, total: 17260000, needsBreakdown: true },
+      { designation: 'Trésorerie de départ', category: 'tresorerie_depart', quantity: 1, unit: 'forfait', unitPrice: 4260000, total: 4260000 },
+    ],
+    excludedOrToClarify: [
+      { designation: 'Lampe', quantity: 4, unitPrice: 35000, total: 140000, reason: 'Présente dans Hypothèses mais absente du total officiel Données à saisir.' },
+    ],
+  },
+  funding: {
+    officialTotal: 26064000,
+    lines: [
+      { designation: 'Apport personnel / familial', amount: 26064000 },
+      { designation: 'Apports en nature', amount: 0 },
+      { designation: 'Prêt n°1 BNDE', amount: 0 },
+      { designation: 'Prêt n°2', amount: 0 },
+      { designation: 'Prêt n°3', amount: 0 },
+      { designation: 'Subvention PNUD / UGB', amount: 0 },
+      { designation: 'Autre financement', amount: 0 },
+    ],
+  },
+  amortization: {
+    years: 2,
+    amortizableAmount: 2700000,
+    annualDepreciation: [1350000, 1350000, 0, 0, 0],
+  },
+  variableCosts: {
+    workbookAnnualTotal: 80512000,
+    correctedAnnualTotal: 91776000,
+    correctionReason: 'Cartons poussins chair validés à 32 cartons/mois, et non 32 cartons/an.',
+    lines: [
+      { designation: 'Vaccins / prophylaxie', category: 'sante', quantity: 1, unitPrice: 40000, monthly: 40000, annual: 480000 },
+      { designation: 'Aliments pondeuses', category: 'alimentation_pondeuses', quantity: 180, unitPrice: 18000, monthly: 3240000, annual: 38880000 },
+      { designation: 'Aliments chair', category: 'alimentation_chair', quantity: 90, unitPrice: 18000, monthly: 1620000, annual: 19440000 },
+      { designation: 'Aliments bœufs', category: 'alimentation_bovins', quantity: 8, unitPrice: 25000, monthly: 200000, annual: 2400000 },
+      { designation: 'Emballages œufs 30', category: 'emballages_oeufs', quantity: 14, unitPrice: 4000, monthly: 56000, annual: 672000 },
+      { designation: 'Achat bœufs', category: 'achat_bovins', quantity: 50, unitPrice: 300000, monthly: 1250000, annual: 15000000 },
+      { designation: 'Cartons poussins chair', category: 'poussins_chair', quantity: 32, unitPrice: 32000, monthly: 1024000, annual: 12288000, corrected: true },
+      { designation: 'Gaz', category: 'gaz', quantity: 2, unitPrice: 9000, monthly: 18000, annual: 216000 },
+      { designation: 'Litière', category: 'litiere', quantity: 100, unitPrice: 2000, monthly: 200000, annual: 2400000 },
+    ],
+  },
+  fixedCosts: {
+    annualByYear: [6000000, 6600000, 7260000, 7986000, 8784600],
+    lines: [
+      { designation: 'Loyer pondeuses', category: 'loyer_pondeuses', monthly: 150000, annual: 1800000 },
+      { designation: 'Loyer chair', category: 'loyer_chair', monthly: 150000, annual: 1800000 },
+      { designation: 'Loyer bœufs', category: 'loyer_bovins', monthly: 150000, annual: 1800000 },
+      { designation: 'Provisions besoins divers', category: 'provisions', monthly: 40000, annual: 480000 },
+      { designation: 'Nettoyage & entretien des locaux', category: 'entretien', monthly: 10000, annual: 120000 },
+    ],
+  },
+  payroll: {
+    annualTotal: 11040000,
+    lines: [
+      { designation: 'Gardien', people: 1, monthlySalary: 110000, annual: 1320000 },
+      { designation: 'Aviculture & conditionnement œufs', people: 2, monthlySalary: 70000, annual: 1680000 },
+      { designation: 'Agent élevage bovins', people: 1, monthlySalary: 70000, annual: 840000 },
+      { designation: 'Coordonnatrice projet', people: 1, monthlySalary: 600000, annual: 7200000 },
+    ],
+    salariesByYear: [3840000, 4224000, 4646400, 5111040, 5622144],
+    ownerCompensationByYear: [7200000, 7920000, 8712000, 9583200, 10541520],
+    socialChargesEmployeesByYear: [2764800, 3041280, 3345408],
+    socialChargesOwnerByYear: [2160000, 2376000, 2613600],
+  },
+  revenue: {
+    annualTotal: 121820000,
+    byActivity: [
+      { activity: 'oeufs', label: 'Tablettes de 30 œufs', quantity: 16650, unitPrice: 2200, annual: 36630000 },
+      { activity: 'poulets_chair', label: 'Poulets de chair', quantity: 19008, unitPrice: 2500, annual: 47520000 },
+      { activity: 'bovins', label: 'Bœufs', quantity: 50, unitPrice: 700000, annual: 35000000 },
+      { activity: 'fumier_pondeuses', label: 'Fumier pondeuses', quantity: 1200, unitPrice: 1500, annual: 1800000 },
+      { activity: 'fumier_chair', label: 'Fumier chair', quantity: 600, unitPrice: 1000, annual: 600000 },
+      { activity: 'fumier_bovins', label: 'Fumier bœufs', quantity: 540, unitPrice: 500, annual: 270000 },
+    ],
+    monthly: [
+      { month: 1, oeufs: 0, chair: 0, bovins: 0, fumierPondeuses: 150000, fumierChair: 50000, fumierBovins: 15000, total: 215000 },
+      { month: 2, oeufs: 0, chair: 2500000, bovins: 0, fumierPondeuses: 150000, fumierChair: 50000, fumierBovins: 30000, total: 2730000 },
+      { month: 3, oeufs: 0, chair: 2500000, bovins: 3500000, fumierPondeuses: 150000, fumierChair: 50000, fumierBovins: 15000, total: 6215000 },
+      { month: 4, oeufs: 0, chair: 2500000, bovins: 3500000, fumierPondeuses: 150000, fumierChair: 50000, fumierBovins: 30000, total: 6230000 },
+      { month: 5, oeufs: 990000, chair: 5000000, bovins: 3500000, fumierPondeuses: 150000, fumierChair: 50000, fumierBovins: 15000, total: 9705000 },
+      { month: 6, oeufs: 3960000, chair: 5000000, bovins: 3500000, fumierPondeuses: 150000, fumierChair: 50000, fumierBovins: 30000, total: 12690000 },
+      { month: 7, oeufs: 5280000, chair: 5000000, bovins: 3500000, fumierPondeuses: 150000, fumierChair: 50000, fumierBovins: 15000, total: 13995000 },
+      { month: 8, oeufs: 5280000, chair: 5000000, bovins: 3500000, fumierPondeuses: 150000, fumierChair: 50000, fumierBovins: 30000, total: 14010000 },
+      { month: 9, oeufs: 5280000, chair: 5000000, bovins: 3500000, fumierPondeuses: 150000, fumierChair: 50000, fumierBovins: 15000, total: 13995000 },
+      { month: 10, oeufs: 5280000, chair: 5000000, bovins: 3500000, fumierPondeuses: 150000, fumierChair: 50000, fumierBovins: 30000, total: 14010000 },
+      { month: 11, oeufs: 5280000, chair: 5000000, bovins: 3500000, fumierPondeuses: 150000, fumierChair: 50000, fumierBovins: 15000, total: 13995000 },
+      { month: 12, oeufs: 5280000, chair: 5020000, bovins: 3500000, fumierPondeuses: 150000, fumierChair: 50000, fumierBovins: 30000, total: 14030000 },
+    ],
+    annualByYear: [121820000, 158366000, 190039200, 218545080, 240399588],
+  },
+  workingCapital: {
+    clientCreditDays: 30,
+    supplierDebtDays: 30,
+    bfrByYear: [3395178, 4413732, 5296478, 6090949, 6700044],
+  },
+  forecast: {
+    resultByYear: [22918000, 33606400, 43822080, 51426312, 56568943],
+    cashFlowCapacityByYear: [24268000, 34956400, 43822080, 51426312, 56568943],
+    monthlyCashYear1: [
+      { month: 1, receipts: 26279000, disbursements: 23366096, monthlyBalance: 2912904, cumulativeCash: 2912904 },
+      { month: 2, receipts: 2730000, disbursements: 3224283, monthlyBalance: -494283, cumulativeCash: 2418621 },
+      { month: 3, receipts: 6215000, disbursements: 5527553, monthlyBalance: 687447, cumulativeCash: 3106069 },
+      { month: 4, receipts: 6230000, disbursements: 5537466, monthlyBalance: 692534, cumulativeCash: 3798602 },
+      { month: 5, receipts: 9705000, disbursements: 7834127, monthlyBalance: 1870873, cumulativeCash: 5669475 },
+      { month: 6, receipts: 12690000, disbursements: 9806942, monthlyBalance: 2883058, cumulativeCash: 8552533 },
+      { month: 7, receipts: 13995000, disbursements: 10669429, monthlyBalance: 3325571, cumulativeCash: 11878104 },
+      { month: 8, receipts: 14010000, disbursements: 10679343, monthlyBalance: 3330657, cumulativeCash: 15208761 },
+      { month: 9, receipts: 13995000, disbursements: 10669429, monthlyBalance: 3325571, cumulativeCash: 18534332 },
+      { month: 10, receipts: 14010000, disbursements: 10679343, monthlyBalance: 3330657, cumulativeCash: 21864990 },
+      { month: 11, receipts: 13995000, disbursements: 10669429, monthlyBalance: 3325571, cumulativeCash: 25190561 },
+      { month: 12, receipts: 14030000, disbursements: 10692561, monthlyBalance: 3337439, cumulativeCash: 28528000 },
+    ],
+  },
+  operatingStrategy: {
+    chair: {
+      starterBand: 500,
+      cycleDays: 40,
+      cadenceDaysAfterRamp: 15,
+      sequence: ['Acheter 500 poussins', 'Attendre environ 40 jours', 'Écouler la bande', 'Racheter 500 poussins', '15 jours après, ajouter 500 autres poussins', 'Maintenir le roulement'],
+      cartonsPerMonth: 32,
+      chicksPerCarton: 50,
+      chicksPerMonth: 1600,
+    },
+    bovins: {
+      starterM1: 5,
+      purchaseM2: 5,
+      purchaseM3: 5,
+      cycleDays: 90,
+      sequence: ['M1 : acheter 5 bovins', 'M2 : acheter 5 bovins', 'M3 : acheter 5 bovins', 'M4 : vendre M1 et racheter 5', 'M5 : vendre M2 et racheter 5', 'M6 : vendre M3 et racheter 5', 'Ensuite : vendre/racheter 5 bovins chaque mois'],
+    },
+    pondeuses: {
+      initialBand: 3000,
+      nextBandPolicy: 'Décision plus tard selon taux de ponte réel, demande client et risque de rupture.',
+    },
+  },
+  integrationWarnings: [
+    'Le fichier compte Cartons poussins chair comme 32/an, mais la stratégie validée est 32/mois.',
+    'La périodicité du fichier fait vendre des bovins dès M3 ; la stratégie validée vend M1 en M4, M2 en M5, M3 en M6.',
+    'La périodicité chair du fichier 1 000 puis 2 000/mois doit être réconciliée avec les bandes de 500.',
+    'La ligne Lampe est présente dans Hypothèses mais absente du total officiel des besoins de démarrage.',
+    'Le stock de départ de 17 260 000 FCFA doit être ventilé si le détail devient disponible.',
+  ],
+};
+
+export const getOfficialStartupInvestmentLines = () => HORIZON_FARM_OFFICIAL_BP.startupNeeds.lines.map((line) => ({
+  designation: line.designation,
+  categorie: line.category,
+  quantite: line.quantity,
+  unite: line.unit,
+  prix_unitaire: line.unitPrice,
+}));
+
+export const getOfficialMonthlyCosts = () => [
+  ...HORIZON_FARM_OFFICIAL_BP.variableCosts.lines.map((line) => ({ designation: line.designation, categorie: line.category, montant_mensuel: line.monthly })),
+  ...HORIZON_FARM_OFFICIAL_BP.fixedCosts.lines.map((line) => ({ designation: line.designation, categorie: line.category, montant_mensuel: line.monthly })),
+  ...HORIZON_FARM_OFFICIAL_BP.payroll.lines.map((line) => ({ designation: line.designation, categorie: 'salaires', montant_mensuel: line.annual / 12 })),
+];
+
+export const getOfficialMonthlyRevenueProjections = () => HORIZON_FARM_OFFICIAL_BP.revenue.monthly.map((row) => ({
+  mois_index: row.month,
+  ca_estime: row.total,
+  charges_estimees: getOfficialMonthlyCosts().reduce((sum, cost) => sum + Number(cost.montant_mensuel || 0), 0),
+  notes: 'Projection mensuelle issue du BP officiel Horizon Farm, à réconcilier avec la stratégie opérationnelle validée.',
+}));
+
+export default HORIZON_FARM_OFFICIAL_BP;
