@@ -149,10 +149,12 @@ export function buildStructuredFarmImpact(payload = {}) {
   };
 }
 
-export function buildInterconnectionAudit({ orders = [], payments = [], finances = [], invoices = [], documents = [], opportunities = [], sante = [] } = {}) {
+export function buildInterconnectionAudit({ orders = [], payments = [], finances = [], invoices = [], documents = [], opportunities = [], sante = [], stocks = [], alimentationLogs = [] } = {}) {
   const paymentsWithoutFinance = arr(payments).map((payment) => ({ payment, order: findOrderForPayment(payment, orders) })).filter(({ payment, order }) => amountOf(payment) > 0 && !financeExistsForPayment(payment, order, finances));
   const opportunitiesToClose = arr(opportunities).map((opp) => ({ opp, order: findOrderForOpportunity(opp, orders) })).filter(({ opp, order }) => order && !isOpportunityClosed(opp));
   const invoicesWithoutDocument = arr(invoices).map((invoice) => ({ invoice, order: arr(orders).find((order) => String(order.id) === String(invoice.order_id || invoice.sale_id || invoice.related_id || '')) || {} })).filter(({ invoice }) => !documentExistsForInvoice(invoice, documents));
   const healthWithoutStructuredImpact = arr(sante).filter((row) => !row.impact_structured && !row.impact_business_category && !row.impact_category);
-  return { paymentsWithoutFinance, opportunitiesToClose, invoicesWithoutDocument, healthWithoutStructuredImpact };
+  const healthWithoutFinance = arr(sante).filter((row) => Number(row.cout || row.montant || 0) > 0 && !arr(finances).some((trx) => String(trx.source_record_id || trx.related_id || '') === String(row.id)));
+  const feedingWithoutFinance = arr(alimentationLogs).filter((row) => Number(row.montant_total || 0) > 0 && !arr(finances).some((trx) => String(trx.source_record_id || trx.related_id || '') === String(row.id)));
+  return { paymentsWithoutFinance, opportunitiesToClose, invoicesWithoutDocument, healthWithoutStructuredImpact, healthWithoutFinance, feedingWithoutFinance };
 }

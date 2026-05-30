@@ -6,7 +6,7 @@ import KpiCard from '../components/KpiCard';
 import SectionHeader from '../components/SectionHeader';
 import useCrudModule from '../hooks/useCrudModule';
 import useVoiceRecognition from '../hooks/useVoiceRecognition';
-import { commitBiosecurityWorkflow, commitEquipmentWorkflow, commitHealthWorkflow, commitSaleWorkflow, prepareBiosecurityWorkflow, prepareEquipmentWorkflow, prepareHealthWorkflow, prepareSaleWorkflow } from '../services/workflowService';
+import { commitBiosecurityWorkflow, commitEquipmentWorkflow, commitHealthWorkflow, commitPurchaseWorkflow, commitSaleWorkflow, prepareBiosecurityWorkflow, prepareEquipmentWorkflow, prepareHealthWorkflow, preparePurchaseWorkflow, prepareSaleWorkflow } from '../services/workflowService';
 import { recordSalePayment } from '../utils/recordSalePayment';
 import { buildAssistantDraft, FORM_SCHEMA_REGISTRY, listAssistantModules } from '../utils/formSchemaRegistry';
 import { makeId } from '../utils/ids';
@@ -189,8 +189,64 @@ export default function AssistantERP({ dataMap = {}, onNavigate }) {
     return { label: `${orderId} · ${result.saisies_evitees} saisies évitées`, route: 'ventes' };
   };
   const createHealthWorkflow = async (payload) => { const emergency = ['urgence', 'critique', 'biosécurité', 'biosecurite'].some((word) => normalize(payload.type_intervention || payload.nom || payload.severity).includes(word)); if (emergency) { const preview = prepareBiosecurityWorkflow({ ...payload, module_source: 'sante', entity_type: payload.target_mode || 'sanitary_event', entity_id: payload.entity_id || payload.target_id || payload.id, title: payload.nom || payload.title || 'Action sanitaire', message: payload.notes || payload.description || payload.nom }, { alerts: cruds.alertes_center.rows, tasks: cruds.taches.rows, documents: cruds.documents.rows, events: cruds.business_events.rows }); const result = await commitBiosecurityWorkflow(preview, { onCreateAlert: cruds.alertes_center.create, onCreateTask: cruds.taches.create, onCreateDocument: cruds.documents.create, onCreateBusinessEvent: cruds.business_events.create, alerts: cruds.alertes_center.rows, tasks: cruds.taches.rows }); await Promise.allSettled([cruds.alertes_center.refresh?.(), cruds.taches.refresh?.(), cruds.documents.refresh?.(), cruds.business_events.refresh?.()]); return { label: `biosécurité · ${result.saisies_evitees} saisies évitées`, route: 'sante' }; } const healthRecord = { ...payload, id: payload.id || makeId('SAN') }; await cruds.sante.create?.(healthRecord); const preview = prepareHealthWorkflow(healthRecord, { tasks: cruds.taches.rows, transactions: cruds.finances.rows, events: cruds.business_events.rows }); await commitHealthWorkflow(preview, { onUpdateHealth: cruds.sante.update, onUpdateStockMovement: async (movement) => { const stock = cruds.stock.rows.find((row) => String(row.id) === String(movement.stock_id)); if (stock) await cruds.stock.update(stock.id, { quantite: Math.max(0, numeric(stock.quantite) - numeric(movement.qty)), last_movement_type: movement.type, last_movement_at: today() }); }, onCreateFinanceTransaction: cruds.finances.create, onCreateTask: cruds.taches.create, onCreateBusinessEvent: cruds.business_events.create }); await Promise.allSettled([cruds.sante.refresh?.(), cruds.stock.refresh?.(), cruds.finances.refresh?.(), cruds.taches.refresh?.(), cruds.business_events.refresh?.()]); return { label: healthRecord.nom || healthRecord.id, route: 'sante' }; };
-  const createEquipmentWorkflow = async (payload) => { const record = normalizeRecord('equipements', payload); const existing = asArray(cruds.equipements.rows).some((item) => String(item.id) === String(record.id)); if (!existing) await cruds.equipements.create?.(record); const preview = prepareEquipmentWorkflow(record, { tasks: cruds.taches.rows, alerts: cruds.alertes_center.rows, transactions: cruds.finances.rows }); await commitEquipmentWorkflow(preview, { onUpdateEquipment: cruds.equipements.update, onCreateTask: cruds.taches.create, onCreateAlert: cruds.alertes_center.create, onCreateFinanceTransaction: cruds.finances.create }); await Promise.allSettled([cruds.equipements.refresh?.(), cruds.taches.refresh?.(), cruds.alertes_center.refresh?.(), cruds.finances.refresh?.()]); return { label: record.nom || record.name || record.id, route: 'equipements' }; };
-  const createStockWorkflow = async (payload) => { const record = normalizeRecord('stock', payload); await cruds.stock.create?.(record); const amount = numeric(payload.montant || payload.amount || numeric(payload.quantite) * numeric(payload.prix_unitaire || payload.prixUnit)); if (amount > 0) await cruds.finances.create?.({ id: makeId('TRX'), type: 'sortie', libelle: `Stock ${record.produit || record.id}`, montant: amount, date: today(), categorie: 'Stock', module_lie: 'stock', related_id: record.id, source_module: 'assistant_erp', source_record_id: record.id, statut: 'paye' }); await cruds.business_events.create?.({ id: makeId('EVT'), event_type: 'stock_assistant', module_source: 'stock', entity_type: 'stock', entity_id: record.id, title: `Stock créé: ${record.produit || record.id}`, event_date: today(), severity: 'info' }); await Promise.allSettled([cruds.stock.refresh?.(), cruds.finances.refresh?.(), cruds.business_events.refresh?.()]); return { label: record.produit || record.id, route: 'stock' }; };
+  const createEquipmentWorkflow = async (payload) => {
+    const record = normalizeRecord('equipements', payload);
+    const existing = asArray(cruds.equipements.rows).some((item) => String(item.id) === String(record.id));
+    if (!existing) await cruds.equipements.create?.(record);
+    const preview = prepareEquipmentWorkflow(record, { tasks: cruds.taches.rows, alerts: cruds.alertes_center.rows, transactions: cruds.finances.rows });
+    await commitEquipmentWorkflow(preview, {
+      context: { tasks: cruds.taches.rows, alertes: cruds.alertes_center.rows, transactions: cruds.finances.rows },
+      onUpdateEquipment: cruds.equipements.update,
+      onCreateTask: cruds.taches.create,
+      onCreateAlert: cruds.alertes_center.create,
+      onCreateFinanceTransaction: cruds.finances.create,
+      onCreateDocument: cruds.documents.create,
+      onCreateBusinessEvent: cruds.business_events.create,
+      onUpdateTask: cruds.taches.update,
+      onUpdateAlert: cruds.alertes_center.update,
+    });
+    await Promise.allSettled([cruds.equipements.refresh?.(), cruds.taches.refresh?.(), cruds.alertes_center.refresh?.(), cruds.finances.refresh?.(), cruds.documents.refresh?.(), cruds.business_events.refresh?.()]);
+    return { label: record.nom || record.name || record.id, route: 'equipements' };
+  };
+  const createStockWorkflow = async (payload) => {
+    const record = normalizeRecord('stock', payload);
+    await cruds.stock.create?.(record);
+    const amount = numeric(payload.montant || payload.amount || numeric(payload.quantite) * numeric(payload.prix_unitaire || payload.prixUnit));
+    if (amount > 0) {
+      const preview = preparePurchaseWorkflow({
+        id: record.id,
+        produit: record.produit,
+        quantite: numeric(record.quantite),
+        prix_unitaire: numeric(record.prixUnit || record.prix_unitaire),
+        montant: amount,
+        fournisseur_id: record.fournisseur_id || '',
+        source_record_id: record.id,
+        last_movement_type: 'entree',
+        last_movement_label: 'Réception Assistant ERP',
+        last_movement_qty: numeric(record.quantite),
+        last_movement_at: new Date().toISOString(),
+      }, { transactions: cruds.finances.rows, documents: cruds.documents.rows, events: cruds.business_events.rows });
+      await commitPurchaseWorkflow(preview, {
+        context: {
+          stocks: cruds.stock.rows,
+          transactions: cruds.finances.rows,
+          tasks: cruds.taches.rows,
+          alertes: cruds.alertes_center.rows,
+          documents: cruds.documents.rows,
+        },
+        onCreateOrUpdateStock: (patch) => cruds.stock.update?.(record.id, patch),
+        onCreateFinanceTransaction: cruds.finances.create,
+        onCreateDocument: cruds.documents.create,
+        onCreateBusinessEvent: cruds.business_events.create,
+        onCreateTask: cruds.taches.create,
+        onCreateAlert: cruds.alertes_center.create,
+      });
+    } else {
+      await cruds.business_events.create?.({ id: makeId('EVT'), event_type: 'stock_assistant', module_source: 'stock', entity_type: 'stock', entity_id: record.id, title: `Stock créé: ${record.produit || record.id}`, event_date: today(), severity: 'info', side_effects_managed: true });
+    }
+    await Promise.allSettled([cruds.stock.refresh?.(), cruds.finances.refresh?.(), cruds.documents.refresh?.(), cruds.business_events.refresh?.(), cruds.taches.refresh?.(), cruds.alertes_center.refresh?.()]);
+    return { label: record.produit || record.id, route: 'stock' };
+  };
   const createDirect = async () => { const raw = parseJsonSafe(payloadText); if (!raw) return toast.error('JSON invalide'); const payload = enrichPayload(moduleKey, command, raw); setPayloadText(JSON.stringify(payload, null, 2)); const nextDraft = buildAssistantDraft(moduleKey, payload); setDraft(nextDraft); if (!nextDraft.ok) return toast.error(`Champs manquants: ${nextDraft.missing.join(', ')}`); try { setSaving(true); let result; if (moduleKey === 'rh') result = await createRhRecord(payload); else if (moduleKey === 'paiements') result = await createPaymentWorkflow(payload); else if (moduleKey === 'ventes') result = await createSaleWorkflow(payload); else if (moduleKey === 'sante') result = await createHealthWorkflow(payload); else if (moduleKey === 'equipements') result = await createEquipmentWorkflow(payload); else if (moduleKey === 'stock') result = await createStockWorkflow(payload); else if (moduleKey === 'sync') { toast('Sync ne crée pas de fiche métier. Ouverture du module.', { icon: 'ℹ️' }); return openModule(); } else { const crud = cruds[moduleKey]; if (!crud?.create) { toast('Création directe pas encore disponible pour ce module.', { icon: 'ℹ️' }); return openModule(); } const record = normalizeRecord(moduleKey, payload); await crud.create(record); await crud.refresh?.(); await cruds.business_events.create?.({ id: makeId('EVT'), event_type: 'assistant_erp_creation', module_source: moduleKey, entity_type: moduleKey, entity_id: record.id, title: `Création Assistant ERP — ${schema.label}`, description: record.nom || record.name || record.title || record.produit || record.id, event_date: today(), severity: 'info', saisies_evitees: Math.max(1, schema.required.length + schema.recommended.length - 1) }); result = { label: record.nom || record.name || record.title || record.produit || record.id, route: routeFor(moduleKey) }; } toast.success(`Créé : ${result.label}`); onNavigate?.(result.route); } catch (error) { toast.error(error.message || 'Création impossible'); } finally { setSaving(false); } };
   const validateAction = () => canCreateDirectly ? createDirect() : openModule();
   const totalRows = Object.values(dataMap || {}).reduce((sum, rows) => sum + (Array.isArray(rows) ? rows.length : 0), 0);

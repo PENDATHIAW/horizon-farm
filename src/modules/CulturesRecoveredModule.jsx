@@ -1,5 +1,5 @@
 import useCrudModule from '../hooks/useCrudModule';
-import { buildCultureHarvestWorkflow } from '../utils/cultureWorkflows';
+import { runCultureHarvestSideEffects } from '../utils/cultureSideEffects';
 import CulturesV4 from './CulturesV4.jsx';
 
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -20,14 +20,24 @@ export default function CulturesRecoveredModule(props) {
   const opportunities = rowsOf(props.opportunities, opportunitiesCrud);
 
   const syncHarvest = async (before = {}, after = {}, source = 'fiche culture') => {
-    const workflow = buildCultureHarvestWorkflow({ before, after, stocks, opportunities, source });
-    if (!workflow) return;
-    if (workflow.stockExistingId) await (props.onUpdateStock || stockCrud.update)?.(workflow.stockExistingId, workflow.stock);
-    else await (props.onCreateStock || stockCrud.create)?.(workflow.stock);
-    if (workflow.opportunityExistingId) await (props.onUpdateOpportunity || opportunitiesCrud.update)?.(workflow.opportunityExistingId, workflow.opportunity);
-    else await (props.onCreateOpportunity || opportunitiesCrud.create)?.(workflow.opportunity);
-    if (workflow.event) await (props.onCreateBusinessEvent || eventsCrud.create)?.(workflow.event);
-    await Promise.allSettled([stockCrud.refresh?.(), opportunitiesCrud.refresh?.(), eventsCrud.refresh?.(), props.onRefreshStock?.(), props.onRefreshStocks?.(), props.onRefreshOpportunities?.(), props.onRefreshBusinessEvents?.()]);
+    await runCultureHarvestSideEffects({
+      before,
+      after,
+      stocks,
+      opportunities,
+      transactions: rowsOf(props.transactions || props.finances, financesCrud),
+      source,
+      handlers: {
+        onCreateStock: props.onCreateStock || stockCrud.create,
+        onUpdateStock: props.onUpdateStock || stockCrud.update,
+        onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create,
+        onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update,
+        onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create,
+        onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create,
+        onCreateTrace: props.onCreateTrace,
+      },
+    });
+    await Promise.allSettled([stockCrud.refresh?.(), opportunitiesCrud.refresh?.(), eventsCrud.refresh?.(), financesCrud.refresh?.(), props.onRefreshStock?.(), props.onRefreshStocks?.(), props.onRefreshOpportunities?.(), props.onRefreshBusinessEvents?.(), props.onRefreshFinances?.()]);
   };
 
   const onCreate = async (payload) => {

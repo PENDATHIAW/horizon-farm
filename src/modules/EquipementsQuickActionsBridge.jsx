@@ -3,7 +3,9 @@ import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
-import { buildEquipmentBreakdownFollowUp, buildEquipmentRepairWorkflow, findOpenEquipmentAlert, findOpenEquipmentTask } from '../utils/equipmentWorkflows';
+import { runEquipmentBreakdownSideEffects, runEquipmentRepairSideEffects } from '../utils/equipmentSideEffects';
+import { financeIds } from '../utils/sideEffectIds';
+import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const now = () => new Date().toISOString();
@@ -41,37 +43,47 @@ export default function EquipementsQuickActionsBridge({ rows = [], tasks = [], a
     try {
       setSaving(true);
       if (action === 'panne') {
-        const workflow = buildEquipmentBreakdownFollowUp(selected, { date: today(), note: form.notes || '', priority: form.priority || 'critique' });
-        await onUpdate?.(selected.id, workflow.equipmentPatch);
-        await onCreateTask?.(workflow.task);
-        await onCreateAlert?.(workflow.alert);
-        await onCreateBusinessEvent?.(workflow.event);
+        await runEquipmentBreakdownSideEffects({
+          equipment: selected,
+          note: form.notes || '',
+          priority: form.priority || 'critique',
+          tasks,
+          alertes,
+          handlers: { onUpdateEquipment: onUpdate, onCreateTask, onCreateAlert, onCreateBusinessEvent },
+        });
         toast.success('Panne déclarée');
       }
       if (action === 'maintenance') {
-        const trxId = amount > 0 ? makeId('TRX') : '';
-        await onUpdate?.(selected.id, { status: 'maintenance', statut: 'maintenance', maintenance_due: form.date || today(), maintenance_cost: amount, cout_maintenance: amount, maintenance_status: 'a_preparer', last_maintenance_transaction_id: trxId, notes: form.notes || selected.notes || '' });
-        if (amount > 0) await onCreateFinanceTransaction?.({ id: trxId, type: 'sortie', libelle: `Maintenance ${equipmentName(selected)}`, montant: amount, date: form.date || today(), categorie: 'Maintenance équipements', module_lie: 'equipements', related_id: selected.id, source_module: 'equipements', source_record_id: selected.id, statut: 'paye' });
-        await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'maintenance_equipement_programmee', module_source: 'equipements', entity_type: 'equipement', entity_id: selected.id, title: `Maintenance ${equipmentName(selected)}`, description: amount > 0 ? fmtCurrency(amount) : form.notes || '', event_date: form.date || today(), severity: 'warning', linked_transaction_id: trxId, saisies_evitees: amount > 0 ? 2 : 1 });
+        const trxId = amount > 0 ? financeIds.equipment(selected.id, 'maint') : '';
+        await onUpdate?.(selected.id, { status: 'maintenance', statut: 'maintenance', maintenance_due: form.date || today(), maintenance_cost: amount, cout_maintenance: amount, maintenance_status: 'a_preparer', last_maintenance_transaction_id: trxId, notes: form.notes || selected.notes || '', side_effects_managed: true });
+        if (amount > 0) {
+          const financeRow = { id: trxId, type: 'sortie', libelle: `Maintenance ${equipmentName(selected)}`, montant: amount, date: form.date || today(), categorie: 'Maintenance équipements', module_lie: 'equipements', related_id: selected.id, source_module: 'equipements', source_record_id: selected.id, statut: 'paye', side_effects_managed: true, created_from: 'equipment_side_effects' };
+          await onCreateFinanceTransaction?.(financeRow);
+          await syncFinanceSideEffects(financeRow, { handlers: { onCreateFinanceTransaction } });
+        }
+        await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'maintenance_equipement_programmee', module_source: 'equipements', entity_type: 'equipement', entity_id: selected.id, title: `Maintenance ${equipmentName(selected)}`, description: amount > 0 ? fmtCurrency(amount) : form.notes || '', event_date: form.date || today(), severity: 'warning', linked_transaction_id: trxId, saisies_evitees: amount > 0 ? 2 : 1, side_effects_managed: true });
         toast.success(amount > 0 ? 'Maintenance enregistrée en Finance' : 'Maintenance programmée');
       }
       if (action === 'fuel') {
-        const trxId = makeId('TRX');
-        await onCreateFinanceTransaction?.({ id: trxId, type: 'sortie', libelle: `Carburant ${equipmentName(selected)}`, montant: amount, date: form.date || today(), categorie: 'Carburant équipements', module_lie: 'equipements', related_id: selected.id, source_module: 'equipements', source_record_id: selected.id, statut: 'paye' });
-        await onUpdate?.(selected.id, { fuel_cost: toNumber(selected.fuel_cost) + amount, last_fuel_amount: amount, last_fuel_qty: toNumber(form.quantity), last_fuel_at: form.date || today() });
-        await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'carburant_equipement', module_source: 'equipements', entity_type: 'equipement', entity_id: selected.id, title: `Carburant ${equipmentName(selected)}`, description: fmtCurrency(amount), event_date: form.date || today(), severity: 'info', linked_transaction_id: trxId, saisies_evitees: 2 });
+        const trxId = financeIds.equipment(selected.id, 'fuel');
+        const financeRow = { id: trxId, type: 'sortie', libelle: `Carburant ${equipmentName(selected)}`, montant: amount, date: form.date || today(), categorie: 'Carburant équipements', module_lie: 'equipements', related_id: selected.id, source_module: 'equipements', source_record_id: selected.id, statut: 'paye', side_effects_managed: true, created_from: 'equipment_side_effects' };
+        await onCreateFinanceTransaction?.(financeRow);
+        await syncFinanceSideEffects(financeRow, { handlers: { onCreateFinanceTransaction } });
+        await onUpdate?.(selected.id, { fuel_cost: toNumber(selected.fuel_cost) + amount, last_fuel_amount: amount, last_fuel_qty: toNumber(form.quantity), last_fuel_at: form.date || today(), side_effects_managed: true });
+        await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'carburant_equipement', module_source: 'equipements', entity_type: 'equipement', entity_id: selected.id, title: `Carburant ${equipmentName(selected)}`, description: fmtCurrency(amount), event_date: form.date || today(), severity: 'info', linked_transaction_id: trxId, saisies_evitees: 2, side_effects_managed: true });
         toast.success('Carburant enregistré');
       }
       if (action === 'repair') {
-        const task = findOpenEquipmentTask(selected, tasks);
-        const alert = findOpenEquipmentAlert(selected, alertes);
-        const workflow = buildEquipmentRepairWorkflow({ equipment: selected, task, alert, cost: amount, note: form.notes || '', date: form.date || today() });
-        await onUpdate?.(selected.id, workflow.equipmentPatch);
-        if (workflow.taskPatch) await onUpdateTask?.(workflow.taskPatch.id, workflow.taskPatch.patch);
-        if (workflow.alertPatch) await onUpdateAlert?.(workflow.alertPatch.id, workflow.alertPatch.patch);
-        if (workflow.financeTransaction) await onCreateFinanceTransaction?.(workflow.financeTransaction);
-        if (workflow.document) await onCreateDocument?.(workflow.document);
-        await onCreateBusinessEvent?.(workflow.event);
+        await runEquipmentRepairSideEffects({
+          equipment: selected,
+          cost: amount,
+          note: form.notes || '',
+          date: form.date || today(),
+          tasks,
+          alertes,
+          transactions: [],
+          handlers: { onUpdateEquipment: onUpdate, onUpdateTask, onUpdateAlert, onCreateFinanceTransaction, onCreateDocument, onCreateBusinessEvent },
+        });
         toast.success('Réparation clôturée');
       }
       await Promise.allSettled([onRefresh?.(), onRefreshTasks?.(), onRefreshAlertes?.(), onRefreshFinances?.(), onRefreshDocuments?.(), onRefreshBusinessEvents?.()]);

@@ -4,20 +4,17 @@ import { buildClientReminderFollowUp, buildClientSalesSummary } from './clientWo
 import { buildClientReceivablePatch } from './recordSalePayment';
 import { buildReverseSaleSourcePatch, buildSaleSourcePatch } from './salesWorkflows';
 import { remainingForOrder } from './salesStatuses';
+import { financeIds } from './sideEffectIds';
 import { makeId } from './ids';
 import { toNumber } from './format';
+
+export { financeIds };
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const num = (value) => toNumber(value);
 const clean = (value) => String(value || '').trim();
 const lower = (value) => clean(value).toLowerCase();
 const today = () => new Date().toISOString().slice(0, 10);
-
-export const financeIds = {
-  paid: (orderId, paymentId = '') => (paymentId ? `TRX-PAY-${paymentId}` : `TRX-SALE-${orderId}`),
-  receivable: (orderId) => `TRX-CREANCE-${orderId}`,
-  alert: (orderId) => `ALT-CREANCE-${orderId}`,
-};
 
 /** Ligne finance créance liée à une commande. */
 export function findReceivableFinanceForOrder(orderId = '', transactions = []) {

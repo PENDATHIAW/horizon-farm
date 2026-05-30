@@ -16,7 +16,8 @@ import DeleteModal from '../modals/DeleteModal';
 import DetailsModal from '../modals/DetailsModal';
 import { calculateSupplierMetrics } from '../utils/businessCalculations';
 import { calculateSupplierSettlement } from '../utils/supplierSettlement';
-import { buildSupplierDebtFollowUp, buildSupplierPaymentWorkflow } from '../utils/supplierWorkflows';
+import { buildSupplierDebtFollowUp } from '../utils/supplierWorkflows';
+import { runSupplierPaymentSideEffects } from '../utils/supplierSideEffects';
 import { searchGeoPlaces } from '../services/geoSearchService';
 import { buildSupplierDecisionProfile, buildSupplierDecisionSummary } from '../services/supplierDecisionEngine';
 import FournisseursStockBridge from './FournisseursStockBridge.jsx';
@@ -99,6 +100,7 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loadi
   const whatsappLogsCrud = useCrudModule('whatsapp_logs');
   const stockRows = stocks.length ? stocks : stockCrud.rows;
   const taskRows = tasks.length ? tasks : tachesCrud.rows;
+  const alertRows = alertesCrud.rows || [];
   const supplierDecisionSummary = useMemo(() => buildSupplierDecisionSummary(rows, { stocks: stockRows, finances: financesCrud.rows }), [rows, stockRows, financesCrud.rows]);
 
   const summaryFor = (supplier) => buildSupplierSummary(supplier, stockRows, financesCrud.rows, documentsCrud.rows);
@@ -180,15 +182,29 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loadi
   const paySupplierDebt = async (supplier) => {
     const summary = summaryFor(supplier);
     if (summary.dettes <= 0) return toast.success('Aucune dette fournisseur');
-    const workflow = buildSupplierPaymentWorkflow({ supplier, debtAmount: summary.dettes, openDebtTransactions: summary.finances.filter(isOpenSupplierDebt), date: today() });
     try {
       setSaving(true);
-      await financesCrud.create?.(workflow.paymentTransaction);
-      await documentsCrud.create?.(workflow.paymentProofDocument);
-      await (onCreateBusinessEvent || eventsCrud.create)?.(workflow.event);
-      await Promise.allSettled(workflow.debtTransactionPatches.map(({ id, patch }) => financesCrud.update?.(id, patch)));
-      await onUpdate?.(supplier.id, workflow.supplierPatch);
-      await Promise.allSettled([financesCrud.refresh?.(), documentsCrud.refresh?.(), (onRefreshBusinessEvents || eventsCrud.refresh)?.(), onRefresh?.()]);
+      await runSupplierPaymentSideEffects({
+        supplier,
+        debtAmount: summary.dettes,
+        openDebtTransactions: summary.finances.filter(isOpenSupplierDebt),
+        date: today(),
+        paymentRef: today(),
+        transactions: financesCrud.rows || [],
+        tasks: taskRows,
+        alertes: alertRows,
+        handlers: {
+          onCreateFinanceTransaction: financesCrud.create,
+          onUpdateFinanceTransaction: financesCrud.update,
+          onCreateDocument: documentsCrud.create,
+          onUpdateSupplier: onUpdate,
+          onCreateBusinessEvent: onCreateBusinessEvent || eventsCrud.create,
+          onUpdateTask: onUpdateTask || tachesCrud.update,
+          onUpdateAlert: onUpdateAlert || alertesCrud.update,
+          existingDocuments: documentsCrud.rows || [],
+        },
+      });
+      await Promise.allSettled([financesCrud.refresh?.(), documentsCrud.refresh?.(), (onRefreshBusinessEvents || eventsCrud.refresh)?.(), onRefresh?.(), (onRefreshTasks || tachesCrud.refresh)?.(), (onRefreshAlertes || alertesCrud.refresh)?.()]);
       toast.success('Paiement fournisseur enregistré');
     } catch (error) {
       toast.error(error.message || 'Paiement fournisseur impossible');

@@ -8,7 +8,7 @@ import {
   isOpportunityClosed,
 } from './erpInterconnectionRules';
 import { syncFinanceTransactionToAccounting, linkDocumentToAccounting } from './accountingSyncService';
-import { financeIds } from '../utils/saleSideEffects';
+import { financeIds } from '../utils/sideEffectIds';
 import { remainingForOrder } from '../utils/salesStatuses';
 import { makeId } from '../utils/ids';
 import { makeInterconnectionEvent } from '../utils/moduleInterconnections';
@@ -111,11 +111,15 @@ export async function runErpInterconnectionRepair({
   opportunities = [],
   sante = [],
   stocks = [],
+  fournisseurs = [],
+  alimentationLogs = [],
+  equipements = [],
+  cultures = [],
   tasks = [],
   alertes = [],
   handlers = {},
 } = {}) {
-  const audit = buildInterconnectionAudit({ orders, payments, finances, invoices, documents, opportunities, sante });
+  const audit = buildInterconnectionAudit({ orders, payments, finances, invoices, documents, opportunities, sante, stocks, alimentationLogs });
   let fixed = 0;
 
   for (const { payment, order } of audit.paymentsWithoutFinance) {
@@ -168,6 +172,53 @@ export async function runErpInterconnectionRepair({
       action_recommandee: 'Réapprovisionner depuis Achats & Stock',
     });
     fixed += 1;
+  }
+
+  for (const row of audit.healthWithoutFinance || []) {
+    const payload = {
+      id: financeIds.health(row.id),
+      type: 'sortie',
+      libelle: `Soin/Vaccin ${row.nom || row.id}`,
+      montant: Number(row.cout || row.montant || 0),
+      date: row.date || today(),
+      categorie: 'Sante',
+      module_lie: 'sante',
+      related_id: row.id,
+      source_module: 'sante',
+      source_record_id: row.id,
+      statut: 'paye',
+      side_effects_managed: true,
+      created_from: 'interconnection_repair',
+      ...buildStructuredFarmImpact(row),
+    };
+    if (payload.montant > 0) {
+      await handlers.onCreateFinanceTransaction?.(payload);
+      await syncFinanceSideEffects(payload, { handlers });
+      fixed += 1;
+    }
+  }
+
+  for (const row of audit.feedingWithoutFinance || []) {
+    const payload = {
+      id: financeIds.feeding(row.id),
+      type: 'sortie',
+      libelle: `Alimentation ${row.stock_id || row.categorie || row.id}`,
+      montant: Number(row.montant_total || 0),
+      date: row.date || today(),
+      categorie: 'Alimentation',
+      module_lie: 'alimentation',
+      related_id: row.stock_id || row.id,
+      source_module: 'alimentation',
+      source_record_id: row.id,
+      statut: 'paye',
+      side_effects_managed: true,
+      created_from: 'interconnection_repair',
+    };
+    if (payload.montant > 0) {
+      await handlers.onCreateFinanceTransaction?.(payload);
+      await syncFinanceSideEffects(payload, { handlers });
+      fixed += 1;
+    }
   }
 
   if (handlers.onCreateBusinessEvent && fixed > 0) {

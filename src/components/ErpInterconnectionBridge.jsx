@@ -11,7 +11,9 @@ export default function ErpInterconnectionBridge({ cruds = {} }) {
     const orders = rows(cruds.sales_orders);
     const payments = rows(cruds.payments);
     const finances = rows(cruds.finances);
-    return `${orders.length}-${payments.length}-${finances.length}-${rows(cruds.invoices).length}-${rows(cruds.documents).length}`;
+    const stocks = rows(cruds.stock);
+    const sante = rows(cruds.sante);
+    return `${orders.length}-${payments.length}-${finances.length}-${rows(cruds.invoices).length}-${rows(cruds.documents).length}-${stocks.length}-${sante.length}-${rows(cruds.alimentation_logs).length}`;
   }, [cruds]);
 
   useEffect(() => {
@@ -30,6 +32,9 @@ export default function ErpInterconnectionBridge({ cruds = {} }) {
         opportunities: rows(cruds.sales_opportunities),
         sante: rows(cruds.sante),
         stocks: rows(cruds.stock),
+        fournisseurs: rows(cruds.fournisseurs),
+        alimentationLogs: rows(cruds.alimentation_logs),
+        equipements: rows(cruds.equipements),
         tasks: rows(cruds.taches),
         alertes: rows(cruds.alertes_center),
         handlers: {
@@ -40,6 +45,9 @@ export default function ErpInterconnectionBridge({ cruds = {} }) {
           onUpdateDocument: cruds.documents?.update,
           onUpdateHealth: cruds.sante?.update,
           onCreateAlert: cruds.alertes_center?.create,
+          onCreateTask: cruds.taches?.create,
+          onUpdateStock: cruds.stock?.update,
+          onUpdateSupplier: cruds.fournisseurs?.update,
           onCreateBusinessEvent: cruds.business_events?.create,
         },
       });
