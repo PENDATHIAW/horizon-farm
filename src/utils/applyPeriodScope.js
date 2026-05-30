@@ -1,6 +1,24 @@
 import { filterRowsByPeriodScope, isAllTimeScope, normalizePeriodScope } from './periodScope';
+import { periodFilterCacheKey, readCachedFilteredRows, writeCachedFilteredRows } from './periodFilterCache';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
+
+function scopeKeyOf(scope = {}) {
+  return JSON.stringify(normalizePeriodScope(scope));
+}
+
+function filterRowsCached(rows = [], scope = {}, label = '', cacheGeneration = '') {
+  if (isAllTimeScope(scope)) return rows;
+  const list = arr(rows);
+  if (!list.length) return list;
+  const scopeKey = scopeKeyOf(scope);
+  const cacheKey = periodFilterCacheKey(list, scopeKey, cacheGeneration, label);
+  const cached = readCachedFilteredRows(cacheKey);
+  if (cached) return cached;
+  const filtered = filterRowsByPeriodScope(list, scope);
+  writeCachedFilteredRows(cacheKey, filtered);
+  return filtered;
+}
 
 /** Données de référence non filtrées par période (objectifs annuels, comparaisons). */
 export const PERIOD_UNFILTERED_PROP_KEYS = new Set([
@@ -66,14 +84,14 @@ export const PERIOD_FILTER_DATA_MAP_KEYS = new Set([
   'rapports',
 ]);
 
-function filterValue(value, scope) {
+function filterValue(value, scope, label, cacheGeneration) {
   if (isAllTimeScope(scope)) return value;
-  if (Array.isArray(value)) return filterRowsByPeriodScope(value, scope);
+  if (Array.isArray(value)) return filterRowsCached(value, scope, label, cacheGeneration);
   if (value && typeof value === 'object') {
     const next = { ...value };
     Object.keys(next).forEach((key) => {
       if (PERIOD_FILTER_DATA_MAP_KEYS.has(key) && Array.isArray(next[key])) {
-        next[key] = filterRowsByPeriodScope(next[key], scope);
+        next[key] = filterRowsCached(next[key], scope, `${label}.${key}`, cacheGeneration);
       }
     });
     return next;
@@ -81,7 +99,8 @@ function filterValue(value, scope) {
   return value;
 }
 
-export function applyPeriodScopeToProps(props = {}, scope = {}) {
+export function applyPeriodScopeToProps(props = {}, scope = {}, options = {}) {
+  const cacheGeneration = options.cacheGeneration || '';
   const normalized = normalizePeriodScope(scope);
   if (normalized.mode === 'all') {
     return { ...props, periodScope: normalized, periodFiltered: false };
@@ -91,24 +110,26 @@ export function applyPeriodScopeToProps(props = {}, scope = {}) {
   Object.keys(next).forEach((key) => {
     if (PERIOD_UNFILTERED_PROP_KEYS.has(key)) return;
     if (!PERIOD_FILTER_PROP_KEYS.has(key)) return;
-    next[key] = filterValue(next[key], normalized);
+    next[key] = filterValue(next[key], normalized, key, cacheGeneration);
   });
 
   if (next.dataMap && typeof next.dataMap === 'object') {
-    next.dataMap = filterValue(next.dataMap, normalized);
+    next.dataMap = filterValue(next.dataMap, normalized, 'dataMap', cacheGeneration);
   }
   if (next.data && typeof next.data === 'object' && !Array.isArray(next.data)) {
-    next.data = filterValue(next.data, normalized);
+    next.data = filterValue(next.data, normalized, 'data', cacheGeneration);
   }
 
   return next;
 }
 
-export function applyPeriodScopeToDataMap(dataMap = {}, scope = {}) {
+export function applyPeriodScopeToDataMap(dataMap = {}, scope = {}, cacheGeneration = '') {
   if (isAllTimeScope(scope)) return dataMap;
   const next = { ...dataMap };
   PERIOD_FILTER_DATA_MAP_KEYS.forEach((key) => {
-    if (Array.isArray(next[key])) next[key] = filterRowsByPeriodScope(next[key], scope);
+    if (Array.isArray(next[key])) {
+      next[key] = filterRowsCached(next[key], scope, `dataMap.${key}`, cacheGeneration);
+    }
   });
   return next;
 }

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, useTransition } from 'react';
 import { MODULE_REGISTRY, NAV_MODULE_ORDER } from './config/modules.config';
 import { computeNavAlertCounts, navAlertFlags } from './services/erpHealthRules';
 import { scheduleErpHealthEngine, scheduleErpHealthOnCriticalChange } from './services/erpHealthEngine';
@@ -19,6 +19,7 @@ import useOnlineStatus from './hooks/useOnlineStatus';
 import usePeriodScope from './hooks/usePeriodScope';
 import AppLayout from './layouts/AppLayout';
 import { applyPeriodScopeToDataMap, applyPeriodScopeToProps } from './utils/applyPeriodScope';
+import { clearPeriodFilterCache } from './utils/periodFilterCache';
 import { formatPeriodScopeLabel, isAllTimeScope } from './utils/periodScope';
 import LoginPage from './pages/LoginPage';
 
@@ -78,6 +79,10 @@ export default function App() {
   const { online, lastOnlineAt } = useOnlineStatus();
   const { weather: liveMeteo, loading: weatherLoading, source: weatherSource } = useLiveWeather();
   const [periodScope, setPeriodScope] = usePeriodScope();
+  const [, startPeriodTransition] = useTransition();
+  const handlePeriodScopeChange = useCallback((next) => {
+    startPeriodTransition(() => setPeriodScope(next));
+  }, [setPeriodScope]);
   const periodLabel = useMemo(() => formatPeriodScopeLabel(periodScope), [periodScope]);
   const periodScopeKey = useMemo(() => JSON.stringify(periodScope), [periodScope]);
   const c = useCrudModules();
@@ -85,6 +90,9 @@ export default function App() {
     () => CRUD_KEYS.map((key) => `${key}:${rows(c[key]).length}`).join('|'),
     [c],
   );
+  useEffect(() => {
+    clearPeriodFilterCache();
+  }, [crudFingerprint]);
   const base = (key) => ({ rows: rows(c[key]), loading: c[key]?.loading, onCreate: c[key]?.create, onUpdate: c[key]?.update, onDelete: c[key]?.remove, onRefresh: c[key]?.refresh });
 
   const alertCounts = useMemo(() => computeNavAlertCounts(crudRowsMap(c)), [c]);
@@ -97,10 +105,6 @@ export default function App() {
   const decisionDataMapRaw = useMemo(
     () => composeDecisionDataMap({ crud: c, dataMap, liveMeteo }),
     [c, dataMap, liveMeteo],
-  );
-  const decisionDataMap = useMemo(
-    () => (isAllTimeScope(periodScope) ? decisionDataMapRaw : applyPeriodScopeToDataMap(decisionDataMapRaw, periodScope)),
-    [decisionDataMapRaw, periodScope, periodScopeKey],
   );
 
   const healthAutoActions = useMemo(() => (data) => ({
@@ -145,9 +149,9 @@ export default function App() {
     onCreateBpRisk: c.bp_risks.create, onUpdateBpRisk: c.bp_risks.update, onDeleteBpRisk: c.bp_risks.remove, onRefreshBpRisks: c.bp_risks.refresh,
   };
   const moduleProps = {
-    dashboard: { user, lotsData: rows(c.avicole), animaux: rows(c.animaux), vaccins: rows(c.sante), stocks: rows(c.stock), clients: rows(c.clients), cultures: rows(c.cultures), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), documents: rows(c.documents), alimentationLogs: rows(c.alimentation_logs), productionLogs: rows(c.production_oeufs_logs), opportunities: rows(c.sales_opportunities), taches: rows(c.taches), alertes: rows(c.alertes_center), equipements: rows(c.equipements), sensorDevices: rows(c.sensor_devices), cameraDevices: rows(c.camera_devices), businessEvents: rows(c.business_events), meteo: liveMeteo, onNavigate: setActive, onRefresh: refreshAll },
+    dashboard: { user, dataFingerprint: crudFingerprint, lotsData: rows(c.avicole), animaux: rows(c.animaux), vaccins: rows(c.sante), stocks: rows(c.stock), clients: rows(c.clients), cultures: rows(c.cultures), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), documents: rows(c.documents), alimentationLogs: rows(c.alimentation_logs), productionLogs: rows(c.production_oeufs_logs), opportunities: rows(c.sales_opportunities), taches: rows(c.taches), alertes: rows(c.alertes_center), equipements: rows(c.equipements), sensorDevices: rows(c.sensor_devices), cameraDevices: rows(c.camera_devices), businessEvents: rows(c.business_events), meteo: liveMeteo, onNavigate: setActive, onRefresh: refreshAll },
     assistant_erp: {
-      dataMap: decisionDataMap,
+      dataMap: decisionDataMapRawRaw,
       onNavigate: setActive,
       onOpenAssistant: () => setAssistantOpen(true),
       onCreateTask: c.taches.create,
@@ -156,7 +160,7 @@ export default function App() {
       onCreateBusinessEvent: c.business_events.create,
       existingTasks: rows(c.taches),
       existingAlerts: rows(c.alertes_center),
-    }, centre_ia: { lots: rows(c.avicole), productionLogs: rows(c.production_oeufs_logs), alimentationLogs: rows(c.alimentation_logs), stocks: rows(c.stock), marketPrices: dataMap.market_prices || [], marketCalendarEvents: dataMap.market_calendar_events || [], salesOrders: rows(c.sales_orders), payments: rows(c.payments), transactions: rows(c.finances), smartfarmEvents: dataMap.smartfarm_events || [], sensors: rows(c.sensor_devices), cameras: rows(c.camera_devices), meteo: liveMeteo, dataMap: decisionDataMap, onNavigate: setActive, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh }, objectifs_croissance: { dataMap: decisionDataMap, onNavigate: setActive, onCreateBusinessPlan: c.business_plans.create, onRefreshBusinessPlans: c.business_plans.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, existingTasks: rows(c.taches), existingAlerts: rows(c.alertes_center) },
+    }, centre_ia: { lots: rows(c.avicole), productionLogs: rows(c.production_oeufs_logs), alimentationLogs: rows(c.alimentation_logs), stocks: rows(c.stock), marketPrices: dataMap.market_prices || [], marketCalendarEvents: dataMap.market_calendar_events || [], salesOrders: rows(c.sales_orders), payments: rows(c.payments), transactions: rows(c.finances), smartfarmEvents: dataMap.smartfarm_events || [], sensors: rows(c.sensor_devices), cameras: rows(c.camera_devices), meteo: liveMeteo, dataMap: decisionDataMapRaw, onNavigate: setActive, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh }, objectifs_croissance: { dataMap: decisionDataMapRaw, onNavigate: setActive, onCreateBusinessPlan: c.business_plans.create, onRefreshBusinessPlans: c.business_plans.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, existingTasks: rows(c.taches), existingAlerts: rows(c.alertes_center) },
     elevage: {
       initialTab: elevageTab,
       animaux: rows(c.animaux),
@@ -386,7 +390,7 @@ export default function App() {
       auditLogs: rows(c.audit_logs),
       online,
       lastOnlineAt,
-      dataMap: decisionDataMap,
+      dataMap: decisionDataMapRaw,
       onNavigate: setActive,
       onRefreshAll: refreshAll,
       onFlushOffline: flushOfflineQueue,
@@ -402,19 +406,23 @@ export default function App() {
   };
 
   const activeModuleProps = useMemo(
-    () => applyPeriodScopeToProps(moduleProps[active] || {}, periodScope),
+    () => applyPeriodScopeToProps(moduleProps[active] || {}, periodScope, { cacheGeneration: crudFingerprint }),
     [active, periodScopeKey, crudFingerprint, commercialTab, elevageTab, achatsStockTab, financeTab],
   );
   const scopedAssistantDataMap = useMemo(
-    () => (isAllTimeScope(periodScope) ? dataMap : applyPeriodScopeToDataMap(dataMap, periodScope)),
-    [dataMap, periodScope, periodScopeKey],
+    () => {
+      if (!assistantOpen) return dataMap;
+      if (isAllTimeScope(periodScope)) return dataMap;
+      return applyPeriodScopeToDataMap(dataMap, periodScope, crudFingerprint);
+    },
+    [assistantOpen, dataMap, periodScopeKey, crudFingerprint, periodScope],
   );
 
   if (authLoading) return <div className="min-h-screen bg-[#f6efe2] flex items-center justify-center text-[#2f2415] font-black">Chargement Horizon Farm...</div>;
   if (!user) return <LoginPage />;
   const ActiveModule = MODULES[active] || MODULES.dashboard;
 
-  return <AppLayout navItems={navItems} active={active} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => setAssistantOpen(true)} periodScope={periodScope} onPeriodScopeChange={setPeriodScope}>
+  return <AppLayout navItems={navItems} active={active} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => setAssistantOpen(true)} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange}>
     <ErrorBoundary title="Module indisponible"><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...activeModuleProps} periodLabel={periodLabel} /></Suspense></ErrorBoundary>
     <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={scopedAssistantDataMap} onNavigate={setActive} />
     <ErpInterconnectionBridge cruds={c} />

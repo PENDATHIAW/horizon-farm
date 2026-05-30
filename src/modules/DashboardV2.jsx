@@ -70,8 +70,8 @@ function useUiSettings() {
 
 function buildHealthData(props = {}) {
   return {
-    sales_orders: props.salesOrders,
-    payments: props.payments,
+    sales_orders: props.salesOrdersAll || props.salesOrders,
+    payments: props.paymentsAll || props.payments,
     finances: props.transactions,
     stock: props.stocks,
     animaux: props.animaux,
@@ -266,6 +266,7 @@ export default function DashboardV2(props) {
   const [tab, setTab] = useState('Résumé');
   const settings = useUiSettings();
   const periodScope = props.periodScope || readPeriodScope();
+  const periodScopeKey = useMemo(() => JSON.stringify(periodScope), [periodScope]);
   const simple = settings.complexity !== 'expert';
   const dateTime = useMemo(formatDateTime, []);
   const greeting = useMemo(() => dashboardGreeting(props), [props.user, props.displayUser, props.userName, props.username]);
@@ -276,9 +277,25 @@ export default function DashboardV2(props) {
     if (snap?.autoExecution) report.autoExecution = snap.autoExecution;
     if (snap?.counts?.ux != null && report.counts) report.counts.ux = snap.counts.ux;
     return report;
-  }, [props]);
+  }, [props.dataFingerprint]);
 
-  const summary = useMemo(() => buildDashboardSummary(props, periodScope), [props, periodScope]);
+  const summary = useMemo(
+    () => buildDashboardSummary(props, periodScope),
+    [
+      periodScopeKey,
+      props.dataFingerprint,
+      props.salesOrders,
+      props.payments,
+      props.transactions,
+      props.productionLogs,
+      props.stocks,
+      props.taches,
+      props.alertes,
+      props.animaux,
+      props.lotsData,
+      props.cultures,
+    ],
+  );
 
   const toggleExpert = () => {
     const next = { ...settings, complexity: simple ? 'expert' : 'simple' };
