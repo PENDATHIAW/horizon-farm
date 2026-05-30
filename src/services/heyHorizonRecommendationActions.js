@@ -36,6 +36,27 @@ export async function applyOneClickRecommendation(finding, handlers = {}) {
   return { ok: true, navigated: true };
 }
 
+/** Crée une tâche de résolution depuis une alerte ouverte. */
+export async function createAlertResolutionTask({ alertTitle, alertId, actionLabel, handlers = {} }) {
+  const { onCreateTask, existingTasks = [], onNavigate } = handlers;
+  if (typeof onCreateTask !== 'function') {
+    onNavigate?.('activite_suivi');
+    return { ok: false };
+  }
+  const finding = {
+    id: `resolve-alert-${alertId || alertTitle}`,
+    module: 'activite_suivi',
+    severity: 'haute',
+    category: 'coherence',
+    title: `Traiter : ${alertTitle}`,
+    description: actionLabel || 'Résoudre alerte ouverte',
+    recommended_action: actionLabel || `Traiter l'alerte ${alertTitle}`,
+    auto_action: 'create_task',
+    alert_id: alertId,
+  };
+  return applyOneClickRecommendation(finding, { ...handlers, existingTasks });
+}
+
 /** Crée une tâche de suivi dette fournisseur. */
 export async function createSupplierFollowUpTask({ supplierName, amount, supplierId, handlers = {} }) {
   const { onCreateTask, existingTasks = [], onNavigate } = handlers;

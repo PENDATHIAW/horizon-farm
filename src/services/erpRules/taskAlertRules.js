@@ -12,6 +12,7 @@ export function evaluateTaskAlertRules(taches = [], alertes = []) {
       title: `Tâche critique : ${t.title || t.id}`,
       recommended_action: 'Traiter ou réassigner',
       confidence_score: 0.87,
+      auto_action: 'create_task',
       source_records: [{ type: 'task', id: t.id }],
     });
   });
@@ -23,6 +24,7 @@ export function evaluateTaskAlertRules(taches = [], alertes = []) {
       title: a.title || 'Alerte non traitée',
       recommended_action: a.action_recommandee || 'Créer tâche ou résoudre',
       confidence_score: 0.86,
+      auto_action: 'create_task',
       source_records: [{ type: 'alert', id: a.id }],
     });
   });
