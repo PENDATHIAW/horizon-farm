@@ -239,19 +239,32 @@ export async function syncReceivableAfterPayment({
   payments = [],
   transactions = [],
   handlers = {},
+  alertes = [],
 } = {}) {
   const remaining = remainingForOrder(sale, payments);
   const receivable = findReceivableFinanceForOrder(sale.id, transactions);
-  if (!receivable?.id || !handlers.onUpdateFinanceTransaction) return null;
-  await handlers.onUpdateFinanceTransaction(receivable.id, {
-    statut: remaining <= 0 ? 'paye' : 'partiel',
-    reste_a_payer: Math.max(0, remaining),
-  });
+  if (receivable?.id && handlers.onUpdateFinanceTransaction) {
+    try {
+      await handlers.onUpdateFinanceTransaction(receivable.id, {
+        statut: remaining <= 0 ? 'paye' : 'partiel',
+        reste_a_payer: Math.max(0, remaining),
+      });
+    } catch (error) {
+      console.warn('syncReceivableAfterPayment finance', error?.message || error);
+    }
+  }
   if (remaining <= 0 && handlers.onUpdateAlert) {
     const alertId = financeIds.alert(sale.id);
-    await handlers.onUpdateAlert?.(alertId, { status: 'resolue', statut: 'resolue' });
+    const alertExists = arr(alertes).some((row) => clean(row.id) === clean(alertId));
+    if (alertExists) {
+      try {
+        await handlers.onUpdateAlert(alertId, { status: 'resolue', statut: 'resolue' });
+      } catch (error) {
+        console.warn('syncReceivableAfterPayment alert', error?.message || error);
+      }
+    }
   }
-  return { remaining, receivableId: receivable.id };
+  return { remaining, receivableId: receivable?.id || null };
 }
 
 /** Tâche de livraison si la vente est « à livrer ». */
@@ -442,24 +455,40 @@ export async function runPaymentSideEffects({
   tasks = [],
   handlers = {},
 } = {}) {
-  await syncReceivableAfterPayment({ sale, payments, transactions, handlers });
-  if (sale.client_id) {
-    await syncClientFromSale({
-      clientId: sale.client_id,
-      clients,
-      salesOrders,
-      payments,
-      date: today(),
-      handlers,
-      alertes,
-    });
+  try {
+    await syncReceivableAfterPayment({ sale, payments, transactions, handlers, alertes });
+  } catch (error) {
+    console.warn('syncReceivableAfterPayment', error?.message || error);
   }
-  await resolveSaleTasksOnPayment({ sale, payments, tasks, handlers });
+  if (sale.client_id) {
+    try {
+      await syncClientFromSale({
+        clientId: sale.client_id,
+        clients,
+        salesOrders,
+        payments,
+        date: today(),
+        handlers,
+        alertes,
+      });
+    } catch (error) {
+      console.warn('syncClientFromSale', error?.message || error);
+    }
+  }
+  try {
+    await resolveSaleTasksOnPayment({ sale, payments, tasks, handlers });
+  } catch (error) {
+    console.warn('resolveSaleTasksOnPayment', error?.message || error);
+  }
   const lastPayment = arr(payments).filter((row) => clean(row.order_id || row.sale_id) === clean(sale.id)).slice(-1)[0];
   if (lastPayment) {
     const financeRow = arr(transactions).find((row) => clean(row.payment_id) === clean(lastPayment.id))
       || { id: financeIds.paid(sale.id, lastPayment.id), montant: lastPayment.montant, type: 'entree', categorie: 'Vente', module_lie: 'ventes', date: lastPayment.date_paiement || today(), libelle: `Encaissement ${sale.id}` };
-    await syncFinanceSideEffects(financeRow, { handlers });
+    try {
+      await syncFinanceSideEffects(financeRow, { handlers });
+    } catch (error) {
+      console.warn('syncFinanceSideEffects', error?.message || error);
+    }
   }
 }
 

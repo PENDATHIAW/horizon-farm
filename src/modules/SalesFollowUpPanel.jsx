@@ -43,40 +43,52 @@ function buildMarginContext(props, payments) {
 async function settleOrder(order, props, linkedPayments) {
   const remaining = remainingForOrder(order, linkedPayments);
   if (remaining <= 0) return toast('Vente déjà encaissée');
-  const result = await recordSalePayment({
-    sale: order,
-    requestedAmount: remaining,
-    payments: linkedPayments,
-    transactions: props.transactions || [],
-    clients: props.clients || [],
-    salesOrders: props.rows || [],
-    paymentMethod: order.moyen_paiement || order.payment_method || 'especes',
-    paymentDate: new Date().toISOString().slice(0, 10),
-    handlers: {
-      onCreatePayment: props.onCreatePayment,
-      onCreateFinanceTransaction: props.onCreateFinanceTransaction,
-      onUpdateFinanceTransaction: props.onUpdateFinanceTransaction,
-      onUpdateOrder: props.onUpdate,
-      onUpdateClient: props.onUpdateClient,
-      onUpdateAlert: props.onUpdateAlert,
-      onUpdateTask: props.onUpdateTask,
-    },
-    alertes: props.alertes || [],
-    tasks: props.tasks || props.existingTasks || [],
-  });
-  if (result?.skipped && result.reason === 'duplicate_payment') toast.success('Encaissement déjà enregistré');
-  else if (result?.skipped && result.reason === 'over_payment') toast.error(`Maximum encaissable : ${fmtCurrency(result.remaining)}`);
-  else toast.success('Vente encaissée');
-  void props.onRefreshWorkflow?.();
+  try {
+    const result = await recordSalePayment({
+      sale: order,
+      requestedAmount: remaining,
+      payments: linkedPayments,
+      transactions: props.transactions || [],
+      clients: props.clients || [],
+      salesOrders: props.rows || [],
+      paymentMethod: order.moyen_paiement || order.payment_method || 'especes',
+      paymentDate: new Date().toISOString().slice(0, 10),
+      handlers: {
+        onCreatePayment: props.onCreatePayment,
+        onCreateFinanceTransaction: props.onCreateFinanceTransaction,
+        onUpdateFinanceTransaction: props.onUpdateFinanceTransaction,
+        onUpdateOrder: props.onUpdate,
+        onUpdateClient: props.onUpdateClient,
+        onUpdateAlert: props.onUpdateAlert,
+        onUpdateTask: props.onUpdateTask,
+      },
+      alertes: props.alertes || [],
+      tasks: props.tasks || props.existingTasks || [],
+    });
+    if (result?.skipped && result.reason === 'duplicate_payment') toast.success('Encaissement déjà enregistré');
+    else if (result?.skipped && result.reason === 'over_payment') toast.error(`Maximum encaissable : ${fmtCurrency(result.remaining)}`);
+    else if (result?.skipped && result.reason === 'already_settled') toast.success('Vente déjà soldée');
+    else toast.success('Vente encaissée');
+    void props.onRefreshWorkflow?.();
+  } catch (error) {
+    console.error('Encaissement vente', error);
+    toast.error(error?.message || 'Encaissement impossible — réessayez');
+  }
 }
 
 async function markDelivered(order, props) {
   const date = new Date().toISOString().slice(0, 10);
-  await props.onUpdate?.(order.id, { statut_commande: 'livre', statut_livraison: 'livre', delivery_status: 'livre', fulfillment_mode: 'livraison', date_livraison: date });
-  const existingDelivery = arr(props.deliveriesList || props.deliveries).find((delivery) => clean(delivery.order_id || delivery.sale_id || delivery.source_record_id || delivery.related_id) === clean(order.id));
-  if (existingDelivery?.id && props.onUpdateDelivery) await props.onUpdateDelivery(existingDelivery.id, { statut: 'livre', status: 'livre', date_livraison: date });
-  else await props.onCreateDelivery?.({ id: makeId('LIV'), order_id: order.id, sale_id: order.id, date_livraison: date, statut: 'livre', status: 'livre', mode_livraison: 'livraison', destinataire: clientLabel(order), client_id: order.client_id || '' });
-  toast.success('Livraison clôturée');
+  try {
+    await props.onUpdate?.(order.id, { statut_commande: 'livre', statut_livraison: 'livre', delivery_status: 'livre', fulfillment_mode: 'livraison', date_livraison: date });
+    const existingDelivery = arr(props.deliveriesList || props.deliveries).find((delivery) => clean(delivery.order_id || delivery.sale_id || delivery.source_record_id || delivery.related_id) === clean(order.id));
+    if (existingDelivery?.id && props.onUpdateDelivery) await props.onUpdateDelivery(existingDelivery.id, { statut: 'livre', status: 'livre', date_livraison: date });
+    else await props.onCreateDelivery?.({ id: makeId('LIV'), order_id: order.id, sale_id: order.id, date_livraison: date, statut: 'livre', status: 'livre', mode_livraison: 'livraison', destinataire: clientLabel(order), client_id: order.client_id || '' });
+    toast.success('Livraison clôturée');
+    void props.onRefreshWorkflow?.();
+  } catch (error) {
+    console.error('Livraison vente', error);
+    toast.error(error?.message || 'Livraison impossible — réessayez');
+  }
 }
 
 async function deleteOrder(order, props) {

@@ -129,7 +129,7 @@ export default function App() {
     onCreateBpRisk: c.bp_risks.create, onUpdateBpRisk: c.bp_risks.update, onDeleteBpRisk: c.bp_risks.remove, onRefreshBpRisks: c.bp_risks.refresh,
   };
   const moduleProps = {
-    dashboard: { lotsData: rows(c.avicole), animaux: rows(c.animaux), vaccins: rows(c.sante), stocks: rows(c.stock), clients: rows(c.clients), cultures: rows(c.cultures), salesOrders: rows(c.sales_orders), payments: rows(c.payments), transactions: rows(c.finances), documents: rows(c.documents), alimentationLogs: rows(c.alimentation_logs), productionLogs: rows(c.production_oeufs_logs), opportunities: rows(c.sales_opportunities), taches: rows(c.taches), alertes: rows(c.alertes_center), equipements: rows(c.equipements), sensorDevices: rows(c.sensor_devices), cameraDevices: rows(c.camera_devices), businessEvents: rows(c.business_events), meteo: liveMeteo, onNavigate: setActive, onRefresh: refreshAll },
+    dashboard: { user, lotsData: rows(c.avicole), animaux: rows(c.animaux), vaccins: rows(c.sante), stocks: rows(c.stock), clients: rows(c.clients), cultures: rows(c.cultures), salesOrders: rows(c.sales_orders), payments: rows(c.payments), transactions: rows(c.finances), documents: rows(c.documents), alimentationLogs: rows(c.alimentation_logs), productionLogs: rows(c.production_oeufs_logs), opportunities: rows(c.sales_opportunities), taches: rows(c.taches), alertes: rows(c.alertes_center), equipements: rows(c.equipements), sensorDevices: rows(c.sensor_devices), cameraDevices: rows(c.camera_devices), businessEvents: rows(c.business_events), meteo: liveMeteo, onNavigate: setActive, onRefresh: refreshAll },
     assistant_erp: {
       dataMap: decisionDataMap,
       onNavigate: setActive,
@@ -191,6 +191,17 @@ export default function App() {
       onUpdatePayment: c.payments.update,
       onDeletePayment: c.payments.remove,
       onRefreshPayments: c.payments.refresh,
+      onCreateDelivery: c.deliveries.create,
+      onUpdateDelivery: c.deliveries.update,
+      onDeleteDelivery: c.deliveries.remove,
+      onRefreshDeliveries: c.deliveries.refresh,
+      onCreateInvoice: c.invoices.create,
+      onUpdateInvoice: c.invoices.update,
+      onDeleteInvoice: c.invoices.remove,
+      onRefreshInvoices: c.invoices.refresh,
+      onCreateDocument: c.documents.create,
+      onUpdateDocument: c.documents.update,
+      onRefreshDocuments: c.documents.refresh,
       onCreateClient: c.clients.create,
       onUpdateClient: c.clients.update,
       onDeleteClient: c.clients.remove,

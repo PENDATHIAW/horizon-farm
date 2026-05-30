@@ -11,6 +11,13 @@ const isCriticalStock = (row = {}) => Number(row.quantite || row.quantity || row
 const isOpenTask = (row = {}) => !['termine', 'terminé', 'done', 'closed'].includes(lower(row.status || row.statut));
 const isOpenAlert = (row = {}) => !['traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée'].includes(lower(row.status || row.statut));
 
+const rowYear = (row = {}) => {
+  const raw = row.date || row.date_commande || row.order_date || row.created_at;
+  if (!raw) return null;
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.getFullYear();
+};
+
 export function buildDashboardSummary(props = {}) {
   const payments = arr(props.payments);
   const transactions = arr(props.transactions);
@@ -52,7 +59,19 @@ export function buildDashboardSummary(props = {}) {
   });
 
   const actions = buildDashboardTodayActions(props);
-  const goal = plan.goals?.global || { monthTarget: 0, realized: 0, attainment: 0 };
+  const goalBase = plan.goals?.global || { monthTarget: 0, realized: 0, attainment: 0, annualTarget: 0 };
+  const currentYear = new Date().getFullYear();
+  const annualRealized = salesOrders
+    .filter((row) => rowYear(row) === currentYear)
+    .reduce((sum, row) => sum + money(row), 0);
+  const annualTarget = Number(goalBase.annualTarget || 0);
+  const annualAttainment = annualTarget ? Math.round((annualRealized / annualTarget) * 100) : 0;
+  const goal = {
+    ...goalBase,
+    annualRealized,
+    annualAttainment,
+    annualRemaining: Math.max(0, annualTarget - annualRealized),
+  };
 
   return {
     ca,

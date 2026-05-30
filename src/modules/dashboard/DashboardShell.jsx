@@ -54,6 +54,7 @@ export function DashboardModuleHeader({
   tab,
   setTab,
   displayUser = 'Exploitant',
+  greeting = '',
   location = 'Ferme principale',
   dateTime = '',
   healthScore = 100,
@@ -68,7 +69,7 @@ export function DashboardModuleHeader({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#9a6b12]">Accueil</p>
-            <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Bonjour {displayUser}</h1>
+            <h1 className="mt-1 text-2xl font-black text-[#2f2415]">{greeting || `Bonjour ${displayUser}`}</h1>
             <div className="mt-2 flex flex-col gap-1 text-sm text-[#8a7456] sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
               {dateTime ? <span className="capitalize">{dateTime}</span> : null}
               {dateTime ? <span className="hidden sm:inline">·</span> : null}
@@ -173,6 +174,75 @@ export function DashboardTodoRow({ title, detail, moduleLabel, onOpen, tone = 'a
       </span>
       <span className="shrink-0 text-xs font-black text-[#9a6b12]">{moduleLabel} →</span>
     </button>
+  );
+}
+
+export function DashboardGoalsHero({ goal = {}, onOpenVision }) {
+  const monthRemaining = Math.max(0, Number(goal.monthTarget || 0) - Number(goal.realized || 0));
+  const monthAttainment = Number(goal.attainment || 0);
+  const annualTarget = Number(goal.annualTarget || 0);
+  const annualRealized = Number(goal.annualRealized || 0);
+  const annualAttainment = Number(goal.annualAttainment || 0);
+  const annualRemaining = Number(goal.annualRemaining ?? Math.max(0, annualTarget - annualRealized));
+  const toneFor = (pct) => (pct >= 90 ? 'good' : pct >= 50 ? 'warn' : 'bad');
+
+  return (
+    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-4 shadow-sm md:p-5">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#9a6b12]">Objectifs</p>
+          <h2 className="text-lg font-black text-[#2f2415]">Pilotage mensuel & annuel</h2>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenVision}
+          className="inline-flex items-center gap-1 text-xs font-black text-[#9a6b12]"
+        >
+          Vision détaillée <ArrowRight size={14} />
+        </button>
+      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <button
+          type="button"
+          onClick={onOpenVision}
+          className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left transition hover:border-[#c9a96a] hover:bg-white"
+        >
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[#8a7456]">Objectif du mois</p>
+          <div className="mt-2 flex items-end justify-between gap-3">
+            <p className={`text-3xl font-black ${toneFor(monthAttainment) === 'good' ? 'text-emerald-700' : toneFor(monthAttainment) === 'warn' ? 'text-amber-700' : 'text-red-600'}`}>
+              {monthAttainment}%
+            </p>
+            <p className="text-right text-xs text-[#8a7456]">
+              {fmtCurrency(goal.realized)} / {fmtCurrency(goal.monthTarget)}
+            </p>
+          </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#eadcc2]/60">
+            <div className="h-full rounded-full bg-[#22c55e]" style={{ width: `${Math.min(100, monthAttainment)}%` }} />
+          </div>
+          <p className="mt-2 text-xs text-[#8a7456]">Reste {fmtCurrency(monthRemaining)}</p>
+        </button>
+
+        <button
+          type="button"
+          onClick={onOpenVision}
+          className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left transition hover:border-[#c9a96a] hover:bg-white"
+        >
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[#8a7456]">Objectif annuel {new Date().getFullYear()}</p>
+          <div className="mt-2 flex items-end justify-between gap-3">
+            <p className={`text-3xl font-black ${toneFor(annualAttainment) === 'good' ? 'text-emerald-700' : toneFor(annualAttainment) === 'warn' ? 'text-amber-700' : 'text-red-600'}`}>
+              {annualAttainment}%
+            </p>
+            <p className="text-right text-xs text-[#8a7456]">
+              {fmtCurrency(annualRealized)} / {fmtCurrency(annualTarget)}
+            </p>
+          </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#eadcc2]/60">
+            <div className="h-full rounded-full bg-[#22c55e]" style={{ width: `${Math.min(100, annualAttainment)}%` }} />
+          </div>
+          <p className="mt-2 text-xs text-[#8a7456]">Reste {fmtCurrency(annualRemaining)}</p>
+        </button>
+      </div>
+    </section>
   );
 }
 

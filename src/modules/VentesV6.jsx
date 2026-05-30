@@ -34,42 +34,49 @@ export default function VentesV6(props) {
     const saleId = String(payload.order_id || payload.sale_id || payload.source_record_id || payload.related_id || '');
     const sale = orders.find((row) => String(row.id) === saleId) || normalizedRows.find((row) => String(row.id) === saleId);
     const linked = linkedPaymentsForOrders(orders, payments);
-    const result = await recordSalePayment({
-      sale: sale || { id: saleId, client_id: payload.client_id },
-      requestedAmount: Number(payload.montant || payload.amount || payload.montant_paye || 0),
-      payments: linked,
-      transactions: props.transactions || [],
-      clients: props.clients || [],
-      salesOrders: orders,
-      paymentMethod: payload.moyen_paiement || payload.mode_paiement || payload.payment_method || 'especes',
-      paymentDate: payload.date_paiement || payload.date || '',
-      paymentId: payload.id,
-      handlers: {
-        onCreatePayment: props.onCreatePayment,
-        onCreateFinanceTransaction: props.onCreateFinanceTransaction,
-        onUpdateOrder: props.onUpdate,
-        onUpdateClient: props.onUpdateClient,
-        onRefresh: props.onRefresh,
-        onRefreshPayments: props.onRefreshPayments,
-        onRefreshFinances: props.onRefreshFinances,
-        onRefreshClients: props.onRefreshClients,
-      },
-    });
+    try {
+      const result = await recordSalePayment({
+        sale: sale || { id: saleId, client_id: payload.client_id },
+        requestedAmount: Number(payload.montant || payload.amount || payload.montant_paye || 0),
+        payments: linked,
+        transactions: props.transactions || [],
+        clients: props.clients || [],
+        salesOrders: orders,
+        paymentMethod: payload.moyen_paiement || payload.mode_paiement || payload.payment_method || 'especes',
+        paymentDate: payload.date_paiement || payload.date || '',
+        paymentId: payload.id,
+        handlers: {
+          onCreatePayment: props.onCreatePayment,
+          onCreateFinanceTransaction: props.onCreateFinanceTransaction,
+          onUpdateFinanceTransaction: props.onUpdateFinanceTransaction,
+          onUpdateOrder: props.onUpdate,
+          onUpdateClient: props.onUpdateClient,
+          onUpdateAlert: props.onUpdateAlert,
+          onUpdateTask: props.onUpdateTask,
+        },
+        alertes: props.alertes || [],
+        tasks: props.tasks || props.existingTasks || [],
+      });
 
-    if (result?.skipped && result.reason === 'already_settled') {
-      toast.success('Vente déjà soldée : aucun encaissement supplémentaire.');
-      return null;
+      if (result?.skipped && result.reason === 'already_settled') {
+        toast.success('Vente déjà soldée : aucun encaissement supplémentaire.');
+        return null;
+      }
+      if (result?.skipped && result.reason === 'over_payment') {
+        toast.error(`Maximum encaissable : ${fmtCurrency(result.remaining)}`);
+        return null;
+      }
+      if (result?.skipped && result.reason === 'duplicate_payment') {
+        toast.success('Encaissement déjà enregistré — aucun doublon créé.');
+        return result.payment;
+      }
+      void props.onRefreshWorkflow?.();
+      return result;
+    } catch (error) {
+      console.error('Encaissement vente', error);
+      toast.error(error?.message || 'Encaissement impossible');
+      throw error;
     }
-    if (result?.skipped && result.reason === 'over_payment') {
-      toast.error(`Maximum encaissable : ${fmtCurrency(result.remaining)}`);
-      return null;
-    }
-    if (result?.skipped && result.reason === 'duplicate_payment') {
-      toast.success('Encaissement déjà enregistré — aucun doublon créé.');
-      return result.payment;
-    }
-    void props.onRefreshWorkflow?.();
-    return result;
   };
 
   const guardedUpdate = async (id, payload = {}) => {

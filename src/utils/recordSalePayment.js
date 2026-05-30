@@ -155,16 +155,20 @@ export async function recordSalePayment({
 
   await onUpdateOrder?.(sale.id, buildCoherentOrderPatch(sale, nextPayments, {}));
 
-  await runPaymentSideEffects({
-    sale,
-    payments: nextPayments,
-    transactions,
-    clients,
-    salesOrders,
-    alertes,
-    tasks,
-    handlers: { onUpdateFinanceTransaction, onUpdateClient, onUpdateAlert, onUpdateTask: handlers.onUpdateTask },
-  });
+  try {
+    await runPaymentSideEffects({
+      sale,
+      payments: nextPayments,
+      transactions,
+      clients,
+      salesOrders,
+      alertes,
+      tasks,
+      handlers: { onUpdateFinanceTransaction, onUpdateClient, onUpdateAlert, onUpdateTask: handlers.onUpdateTask },
+    });
+  } catch (error) {
+    console.warn('Effets encaissement partiels', error?.message || error);
+  }
 
   return { paymentId: payId, amount: cappedAmount, remaining: Math.max(0, remaining - cappedAmount), requested, skipped: false };
 }

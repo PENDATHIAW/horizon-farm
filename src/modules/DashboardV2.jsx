@@ -10,8 +10,9 @@ import {
   DASHBOARD_MODULE_LABELS,
 } from './dashboard/dashboardMetrics';
 import { navigateForDashboardAction, navigateForDashboardFinding } from './dashboard/dashboardNavigation';
+import { dashboardGreeting } from './dashboard/dashboardGreeting';
 import {
-  DashboardGoalCard,
+  DashboardGoalsHero,
   DashboardHealthStrip,
   DashboardKpi,
   DashboardModuleHeader,
@@ -38,7 +39,10 @@ function farmLocationOf(props = {}) {
 
 function displayUserOf(props = {}) {
   const user = props.user || props.currentUser || {};
-  return firstValue(props.displayUser, props.userName, props.username, user.user_metadata?.login, user.user_metadata?.name, user.email?.split('@')[0], 'Exploitant');
+  const raw = firstValue(props.displayUser, props.userName, props.username, user.user_metadata?.login, user.user_metadata?.name, user.email?.split('@')[0]);
+  if (!raw) return 'Exploitant';
+  const text = String(raw).trim();
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 function useUiSettings() {
@@ -128,6 +132,8 @@ function Summary({ props, summary, health, simple, navigate }) {
 
   return (
     <div className="space-y-5">
+      <DashboardGoalsHero goal={summary.goal} onOpenVision={() => navigate('objectifs_croissance', { tab: 'Performance' })} />
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
         <DashboardKpi label="Encaissé" value={fmtCurrency(summary.encaisse)} tone="good" onClick={() => navigate('finance_pilotage', { tab: 'Trésorerie' })} />
         <DashboardKpi label="Résultat" value={fmtCurrency(summary.resultat)} tone={summary.resultat >= 0 ? 'good' : 'bad'} onClick={() => navigate('finance_pilotage', { tab: 'Trésorerie' })} />
@@ -186,8 +192,6 @@ function Summary({ props, summary, health, simple, navigate }) {
         </div>
       </div>
 
-      <DashboardGoalCard goal={summary.goal} onOpenVision={() => navigate('objectifs_croissance', { tab: 'Performance' })} />
-
       {!simple ? (
         <DashboardHealthStrip
           health={health}
@@ -220,6 +224,7 @@ export default function DashboardV2(props) {
   const settings = useUiSettings();
   const simple = settings.complexity !== 'expert';
   const dateTime = useMemo(formatDateTime, []);
+  const greeting = useMemo(() => dashboardGreeting(props), [props.user, props.displayUser, props.userName, props.username]);
 
   const health = useMemo(() => {
     const report = runErpHealthEngine(buildHealthData(props));
@@ -249,6 +254,7 @@ export default function DashboardV2(props) {
         tab={tab}
         setTab={setTab}
         displayUser={displayUserOf(props)}
+        greeting={greeting}
         location={farmLocationOf(props)}
         dateTime={dateTime}
         healthScore={health.score}
