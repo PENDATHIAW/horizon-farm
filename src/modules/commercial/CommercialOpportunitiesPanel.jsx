@@ -2,7 +2,6 @@ import { Lightbulb, MessageCircle, Phone, ShoppingCart } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Btn from '../../components/Btn';
-import { emitHorizonForm } from '../../services/formModalManager';
 import { fmtCurrency } from '../../utils/format';
 import { saleAmount } from './commercialMetrics.js';
 import ClientContactModal from './ClientContactModal.jsx';
@@ -40,7 +39,7 @@ function OpportunityCard({ row, match, onConvert, onContactClient, onContactAll 
   );
 }
 
-export default function CommercialOpportunitiesPanel({ opportunities = [], clients = [], salesOrders = [], setTab, onWhatsAppLog }) {
+export default function CommercialOpportunitiesPanel({ opportunities = [], clients = [], salesOrders = [], setTab, onWhatsAppLog, onConvertSale, salesProps = {} }) {
   const [contact, setContact] = useState(null);
 
   const enriched = useMemo(() => arr(opportunities).map((row) => ({
@@ -51,18 +50,19 @@ export default function CommercialOpportunitiesPanel({ opportunities = [], clien
   const pipeline = enriched.reduce((sum, { row }) => sum + saleAmount(row), 0);
 
   const convertOpportunity = (row, client) => {
-    emitHorizonForm('ventes', 'sale_record', `Convertir: ${row.title || row.libelle || 'Opportunité'}`, {
-      source_id: row.source_id || '',
-      source_type: row.source_type || '',
-      product_name: row.title || row.libelle || row.product_name || 'Opportunité',
-      quantity: row.quantity || 1,
-      unit: row.unit || 'unité',
-      estimated_value: row.montant_estime || row.estimated_amount || row.estimated_value || 0,
-      client_id: client?.id || row.client_id || '',
-      client_name: client?.nom || client?.name || row.client_nom || '',
-      notes: row.notes || row.reason || '',
-      date: new Date().toISOString().slice(0, 10),
-    });
+    if (onConvertSale) {
+      onConvertSale(row, client);
+      return;
+    }
+    setTab('Ventes');
+    toast('Ouvrez Nouvelle vente pour finaliser la conversion.');
+  };
+
+  const openDirectSale = () => {
+    if (onConvertSale) {
+      onConvertSale({ title: 'Vente directe', product_name: 'Vente directe' }, null);
+      return;
+    }
     setTab('Ventes');
   };
 
@@ -97,7 +97,7 @@ export default function CommercialOpportunitiesPanel({ opportunities = [], clien
           <p className="text-2xl font-black text-[#2f2415]">{fmtCurrency(pipeline)}</p>
           <p className="text-sm text-[#8a7456]">{opportunities.length} opportunité(s) · clients ciblés automatiquement</p>
         </div>
-        <button type="button" onClick={() => { emitHorizonForm('ventes', 'sale_record', 'Nouvelle vente', { date: new Date().toISOString().slice(0, 10) }); setTab('Ventes'); }} className="min-h-[44px] rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white">+ Vente directe</button>
+        <button type="button" onClick={openDirectSale} className="min-h-[44px] rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white">+ Vente directe</button>
       </div>
 
       {enriched.length ? (

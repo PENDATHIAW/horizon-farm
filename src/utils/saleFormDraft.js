@@ -56,7 +56,7 @@ export function buildSaleFormFromDraft(draft = {}, props = {}) {
   };
 }
 
-export function buildSaleFormFromOpportunity(opportunity = {}, props = {}) {
+export function buildSaleFormFromOpportunity(opportunity = {}, props = {}, client = null) {
   const qty = Math.max(1, num(opportunity.quantity || 1));
   const total = num(opportunity.estimated_value || opportunity.montant_estime || 0);
   return buildSaleFormFromDraft({
@@ -67,8 +67,8 @@ export function buildSaleFormFromOpportunity(opportunity = {}, props = {}) {
       quantity: qty,
       unit: opportunity.unit || 'unité',
       unit_price: total > 0 ? Math.round(total / qty) : 0,
-      client_id: opportunity.client_id || '',
-      client_name: opportunity.client_nom || opportunity.customer_name || '',
+      client_id: client?.id || opportunity.client_id || '',
+      client_name: client?.nom || client?.name || opportunity.client_nom || opportunity.customer_name || '',
       date: today(),
       notes: opportunity.reason || opportunity.notes || '',
     },

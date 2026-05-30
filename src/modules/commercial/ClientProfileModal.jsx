@@ -54,7 +54,13 @@ export default function ClientProfileModal({
             <Row label="Fidélité" value={`${segment.loyaltyScore ?? 0}%`} />
             <Row label="Taux paiement" value={`${segment.paymentRate ?? 0}%`} />
             <Row label="Panier moyen" value={fmtCurrency(segment.averageBasket || summary.averageBasket || 0)} />
-            <Row label="Inactivité" value={segment.inactivityDays != null ? `${segment.inactivityDays} j` : '—'} />
+            <Row label="Fréquence d'achat" value={segment.frequencyLabel || '—'} />
+            <Row label="Intervalle moyen" value={segment.averageIntervalDays != null ? `${segment.averageIntervalDays} j` : '—'} />
+            <Row label="Commandes / mois" value={segment.ordersPerMonth != null ? String(segment.ordersPerMonth) : '—'} />
+            <Row label="Inactivité" value={segment.inactivityDays != null ? `${segment.inactivityDays} j` : '—'} warn={segment.isDueForReorder} />
+            {segment.isDueForReorder ? (
+              <Row label="Renouvellement" value={`En retard (+${segment.daysOverdue || 0} j)`} warn />
+            ) : null}
           </div>
         </section>
 
@@ -93,7 +99,13 @@ export default function ClientProfileModal({
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <p className="font-black text-[#2f2415]">{opportunity.title || opportunity.libelle || 'Opportunité'}</p>
-                      <p className="text-xs text-[#8a7456] mt-1">Adéquation {score}% · {fmtCurrency(opportunity.montant_estime || opportunity.estimated_value || 0)}</p>
+                      <p className="text-xs text-[#8a7456] mt-1">
+                        Adéquation {score}%
+                        {segment.frequencyLabel ? ` · ${segment.frequencyLabel}` : ''}
+                        {segment.isDueForReorder ? ' · à renouveler' : ''}
+                        {' · '}
+                        {fmtCurrency(opportunity.montant_estime || opportunity.estimated_value || 0)}
+                      </p>
                     </div>
                     <Btn variant="amber" small onClick={() => onProposeOpportunity?.(client, opportunity, opportunityMessageForClient(opportunity, client))}>Proposer</Btn>
                   </div>

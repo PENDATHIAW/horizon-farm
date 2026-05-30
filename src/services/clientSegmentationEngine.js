@@ -17,6 +17,77 @@ function daysSince(dateValue) {
   return Math.floor((Date.now() - d.getTime()) / 86400000);
 }
 
+function orderDate(order = {}) {
+  return order.date || order.created_at || order.date_commande || '';
+}
+
+function frequencyLabelFromInterval(days) {
+  if (days == null) return 'Prospect';
+  if (days <= 7) return 'Hebdomadaire';
+  if (days <= 14) return 'Bi-hebdomadaire';
+  if (days <= 28) return 'Mensuelle';
+  if (days <= 60) return 'Bimestrielle';
+  if (days <= 120) return 'Trimestrielle';
+  return 'Occasionnelle';
+}
+
+/** Fréquence d'achat à partir de l'historique commandes (dates). */
+export function computePurchaseFrequency(orders = []) {
+  const dates = arr(orders)
+    .map((order) => orderDate(order))
+    .filter(Boolean)
+    .map((value) => new Date(value))
+    .filter((date) => !Number.isNaN(date.getTime()))
+    .sort((a, b) => a - b);
+
+  const orderCount = dates.length;
+  if (!orderCount) {
+    return {
+      orderCount: 0,
+      averageIntervalDays: null,
+      ordersPerMonth: 0,
+      frequencyLabel: 'Prospect',
+      isDueForReorder: false,
+      daysOverdue: 0,
+    };
+  }
+
+  if (orderCount === 1) {
+    const inactivityDays = daysSince(dates[0]);
+    const overdue = inactivityDays !== null && inactivityDays > 30 ? inactivityDays - 30 : 0;
+    return {
+      orderCount: 1,
+      averageIntervalDays: null,
+      ordersPerMonth: 0,
+      frequencyLabel: 'Première commande',
+      isDueForReorder: overdue > 0,
+      daysOverdue: overdue,
+    };
+  }
+
+  const intervals = [];
+  for (let index = 1; index < dates.length; index += 1) {
+    intervals.push(Math.max(1, Math.round((dates[index] - dates[index - 1]) / 86400000)));
+  }
+  const averageIntervalDays = Math.round(intervals.reduce((sum, value) => sum + value, 0) / intervals.length);
+  const lastOrderDate = dates[dates.length - 1];
+  const inactivityDays = daysSince(lastOrderDate);
+  const ordersPerMonth = averageIntervalDays > 0 ? Math.round((30 / averageIntervalDays) * 10) / 10 : 0;
+  const threshold = Math.max(7, Math.round(averageIntervalDays * 0.85));
+  const isDueForReorder = inactivityDays !== null && inactivityDays >= threshold;
+  const daysOverdue = isDueForReorder ? inactivityDays - threshold : 0;
+
+  return {
+    orderCount,
+    averageIntervalDays,
+    ordersPerMonth,
+    frequencyLabel: frequencyLabelFromInterval(averageIntervalDays),
+    isDueForReorder,
+    daysOverdue,
+    lastOrderDate,
+  };
+}
+
 function clientChannel(client = {}) {
   const raw = norm(`${client.type || ''} ${client.type_client || ''} ${client.segment || ''} ${client.categorie || ''} ${client.nom || ''} ${client.notes || ''} ${client.prefs || ''}`);
   if (raw.includes('boucher')) return 'Boucher';
@@ -65,6 +136,7 @@ export function buildClientSegment(client = {}, dataMap = {}) {
   const lastOrderDate = lastOrder?.date || lastOrder?.created_at || client.derniereCommande || client.derniere_commande;
   const inactivityDays = daysSince(lastOrderDate);
   const orderCount = orders.length;
+  const purchaseFrequency = computePurchaseFrequency(orders);
   const averageBasket = orderCount ? ca / orderCount : 0;
   const paymentRate = ca > 0 ? Math.round((paidTotal / ca) * 100) : 0;
   const channel = clientChannel(client);
@@ -78,17 +150,21 @@ export function buildClientSegment(client = {}, dataMap = {}) {
 
   const loyaltyScore = Math.max(0, Math.min(100,
     (ca >= 1000000 ? 28 : ca >= 300000 ? 18 : ca > 0 ? 10 : 0) +
-    Math.min(25, orderCount * 4) +
+    Math.min(20, orderCount * 3) +
+    Math.min(20, purchaseFrequency.ordersPerMonth * 6) +
     Math.min(25, paymentRate / 4) +
     (inactivityDays === null ? 5 : inactivityDays <= 30 ? 18 : inactivityDays <= 60 ? 10 : 0) -
-    (receivable > 0 ? 12 : 0)
+    (receivable > 0 ? 12 : 0) -
+    (purchaseFrequency.isDueForReorder ? 8 : 0)
   ));
 
   const action = (() => {
     if (segment === 'À risque paiement') return 'Bloquer le crédit, relancer paiement et proposer paiement partiel.';
     if (segment === 'À relancer') return 'Relancer la créance et proposer une nouvelle commande après paiement.';
     if (segment === 'VIP / Gros acheteur') return 'Sécuriser précommandes, tarifs préférentiels et appels avant pics.';
-    if (segment === 'Bon payeur') return 'Fidéliser avec offre récurrente et priorité disponibilité.';
+    if (segment === 'Bon payeur') return purchaseFrequency.isDueForReorder
+      ? 'Client régulier en retard de commande : proposer renouvellement maintenant.'
+      : 'Fidéliser avec offre récurrente et priorité disponibilité.';
     if (segment === 'Dormant') return 'Réactiver avec message personnalisé et offre de retour.';
     return 'Qualifier besoin, canal, volume et période d’achat.';
   })();
@@ -106,6 +182,7 @@ export function buildClientSegment(client = {}, dataMap = {}) {
     paymentRate,
     lastOrderDate,
     inactivityDays,
+    ...purchaseFrequency,
     loyaltyScore: Math.round(loyaltyScore),
     action,
   };

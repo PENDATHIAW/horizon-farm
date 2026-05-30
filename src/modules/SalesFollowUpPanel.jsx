@@ -8,6 +8,7 @@ import { summarizeSalesMargins } from '../utils/salesMarginEngine';
 import { costBreakdownOf, costBreakdownShort, costBreakdownTooltip, productAmountOf, SALES_MARGIN_FORMULA } from '../utils/saleCostPresentation';
 import { saleQuantityDetail } from '../utils/saleQuantityLabel';
 import { paidForOrder, remainingForOrder } from '../utils/salesStatuses';
+import { deleteSaleComplete } from '../utils/salesDeleteWorkflow';
 import { isDelivered, linkedPaymentsForOrders, saleAmount } from './commercial/commercialMetrics.js';
 import SaleActionModal from './SaleActionModal.jsx';
 
@@ -60,11 +61,28 @@ async function markDelivered(order, props) {
 }
 
 async function deleteOrder(order, props) {
-  if (!window.confirm(`Supprimer la vente ${order.id} (${productLabel(order)}) ? Cette action est irréversible.`)) return;
+  if (!window.confirm(`Supprimer la vente ${order.id} (${productLabel(order)}) et toutes les pièces liées (paiements, facture, livraison) ?`)) return;
   try {
-    await props.onDelete?.(order.id);
-    await props.onRefresh?.();
-    toast.success('Vente supprimée');
+    const result = await deleteSaleComplete(order, {
+      payments: props.paymentsList || props.payments || [],
+      invoices: props.invoicesList || props.invoices || [],
+      deliveries: props.deliveriesList || props.deliveries || [],
+      documents: props.documents || props.documentsList || [],
+      transactions: props.transactions || [],
+      onDeletePayment: props.onDeletePayment,
+      onDeleteInvoice: props.onDeleteInvoice,
+      onDeleteDelivery: props.onDeleteDelivery,
+      onDeleteDocument: props.onDeleteDocument,
+      onDeleteFinanceTransaction: props.onDeleteFinanceTransaction || props.onDeleteTransaction,
+      onDeleteOrder: props.onDelete,
+      onRefresh: props.onRefresh,
+      onRefreshPayments: props.onRefreshPayments,
+      onRefreshInvoices: props.onRefreshInvoices,
+      onRefreshDeliveries: props.onRefreshDeliveries,
+      onRefreshFinances: props.onRefreshFinances,
+      onRefreshDocuments: props.onRefreshDocuments,
+    });
+    toast.success(`Vente supprimée (${result.removed.payments} paiement(s), ${result.removed.invoices} facture(s))`);
   } catch (error) {
     toast.error(error.message || 'Suppression impossible');
   }

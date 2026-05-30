@@ -1,6 +1,7 @@
 import ChartsGrid from '../components/charts/ChartsGrid.jsx';
 import SmartEvolutionChart from '../components/charts/SmartEvolutionChart.jsx';
 import SmartPieChart from '../components/charts/SmartPieChart.jsx';
+import { monthKeyFromDate, monthLabelFromKey, resolveChartDate } from '../utils/chartDates';
 import { toNumber } from '../utils/format';
 import { paidForOrder, remainingForOrder } from '../utils/salesStatuses';
 import { summarizeSalesMargins } from '../utils/salesMarginEngine';
@@ -8,25 +9,41 @@ import { summarizeSalesMargins } from '../utils/salesMarginEngine';
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase();
 const amount = (row = {}) => toNumber(row.montant_total ?? row.total ?? row.amount ?? row.total_amount ?? row.montant ?? 0);
-const rowDate = (row = {}) => row.date_commande || row.order_date || row.date || row.created_at || row.updated_at;
 const paymentDate = (row = {}) => row.date_paiement || row.payment_date || row.date || row.created_at || row.updated_at;
 const paymentOrderId = (row = {}) => String(row.order_id || row.sale_id || row.commande_id || row.related_id || row.source_record_id || '').trim();
 const isCancelledPayment = (row = {}) => ['annule', 'annulé', 'annulee', 'cancelled', 'supprime', 'supprimé', 'deleted'].includes(lower(row.statut || row.status));
 const hasMissingCost = (row = {}) => Boolean(row.cout_a_completer || row.margin_reliable === false || (amount(row) > 0 && toNumber(row.cout_revient ?? row.cout_direct) <= 0));
 const reliableMargin = (row = {}) => hasMissingCost(row) ? 0 : toNumber(row.marge_directe ?? row.marge_montant ?? row.marge ?? 0);
 
-function asDate(value) { const parsed = new Date(value); return Number.isNaN(parsed.getTime()) ? null : parsed; }
-function monthKey(value) { const date = asDate(value); if (!date) return 'Sans date'; return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; }
-function monthLabel(key) { if (key === 'Sans date') return key; const [year, month] = key.split('-'); return `${month}/${String(year).slice(-2)}`; }
-function ensure(map, key) { if (!map.has(key)) map.set(key, { key, mois: monthLabel(key), commandes: 0, encaisses: 0, impayes: 0, marge: 0, nb_commandes: 0, ouvertes: 0, converties: 0, taux_paiement: 0 }); return map.get(key); }
+function ensure(map, key) { if (!map.has(key)) map.set(key, { key, mois: monthLabelFromKey(key), commandes: 0, encaisses: 0, impayes: 0, marge: 0, nb_commandes: 0, ouvertes: 0, converties: 0, taux_paiement: 0 }); return map.get(key); }
 function activeLinkedPayments(rows = [], payments = []) { const orderIds = new Set(arr(rows).map((row) => String(row.id || '').trim()).filter(Boolean)); return arr(payments).filter((payment) => !isCancelledPayment(payment) && paymentOrderId(payment) && orderIds.has(paymentOrderId(payment))); }
+
+function buildMarginContext(props = {}) {
+  return {
+    lots: props.lots || [],
+    animaux: props.animaux || [],
+    cultures: props.cultures || [],
+    stocks: props.stocks || [],
+    alimentationLogs: props.alimentationLogs || [],
+    productionLogs: props.productionLogs || [],
+    vaccins: props.vaccins || [],
+    businessEvents: props.businessEvents || [],
+    payments: props.payments || [],
+    transactions: props.transactions || [],
+  };
+}
 
 function buildMonthly({ rows = [], payments = [], opportunities = [], marginDetails = [] }) {
   const map = new Map();
+  let undatedOrders = 0;
   const linkedPayments = activeLinkedPayments(rows, payments);
   const marginMap = new Map(arr(marginDetails).map((row) => [String(row.id), row]));
   arr(rows).forEach((order) => {
-    const key = monthKey(rowDate(order));
+    const key = monthKeyFromDate(resolveChartDate(order));
+    if (!key) {
+      undatedOrders += 1;
+      return;
+    }
     const bucket = ensure(map, key);
     const enriched = marginMap.get(String(order.id)) || order;
     bucket.commandes += amount(enriched);
@@ -36,31 +53,55 @@ function buildMonthly({ rows = [], payments = [], opportunities = [], marginDeta
     bucket.nb_commandes += 1;
     if (remainingForOrder(order, linkedPayments) > 0) bucket.ouvertes += 1;
   });
-  linkedPayments.forEach(() => {});
   arr(opportunities).forEach((opp) => {
-    const key = monthKey(opp.created_at || opp.updated_at || opp.date);
+    const key = monthKeyFromDate(resolveChartDate(opp, [opp.created_at, opp.updated_at, opp.date]));
+    if (!key) return;
     const bucket = ensure(map, key);
     if (['gagnee', 'gagnée', 'converted', 'convertie', 'commande'].includes(lower(opp.status || opp.statut))) bucket.converties += 1;
   });
-  return [...map.values()].sort((a, b) => a.key.localeCompare(b.key)).map((row) => ({
-    ...row,
-    taux_paiement: row.commandes > 0 ? Number(((row.encaisses / row.commandes) * 100).toFixed(1)) : 0,
-  }));
+  return {
+    rows: [...map.values()].sort((a, b) => a.key.localeCompare(b.key)).map((row) => ({
+      ...row,
+      taux_paiement: row.commandes > 0 ? Number(((row.encaisses / row.commandes) * 100).toFixed(1)) : 0,
+    })),
+    undatedOrders,
+  };
 }
 
 function labels(rows) { return rows.map((row) => row.mois); }
 function values(rows, key) { return rows.map((row) => toNumber(row[key])); }
 
-export default function SalesEvolution({ rows = [], payments = [], opportunities = [], lots = [], animaux = [], cultures = [], stocks = [], alimentationLogs = [], productionLogs = [], vaccins = [], businessEvents = [], transactions = [] }) {
+export default function SalesEvolution({
+  rows = [],
+  payments = [],
+  opportunities = [],
+  lots = [],
+  animaux = [],
+  cultures = [],
+  stocks = [],
+  alimentationLogs = [],
+  productionLogs = [],
+  vaccins = [],
+  businessEvents = [],
+  transactions = [],
+}) {
   const linkedPayments = activeLinkedPayments(rows, payments);
-  const marginSummary = summarizeSalesMargins(rows, { payments: linkedPayments, transactions, lots, animaux, cultures, stocks, alimentationLogs, productionLogs, vaccins, businessEvents });
-  const monthly = buildMonthly({ rows, payments: linkedPayments, opportunities, marginDetails: marginSummary.details });
+  const marginContext = buildMarginContext({
+    lots, animaux, cultures, stocks, alimentationLogs, productionLogs, vaccins, businessEvents, payments: linkedPayments, transactions,
+  });
+  const marginSummary = summarizeSalesMargins(rows, marginContext);
+  const { rows: monthly, undatedOrders } = buildMonthly({ rows, payments: linkedPayments, opportunities, marginDetails: marginSummary.details });
   const totalOrders = arr(rows).reduce((sum, row) => sum + amount(row), 0);
   const totalPaid = arr(rows).reduce((sum, row) => sum + paidForOrder(row, linkedPayments), 0);
   const totalRemaining = arr(rows).reduce((sum, row) => sum + remainingForOrder(row, linkedPayments), 0);
 
   return (
     <ChartsGrid>
+      {undatedOrders > 0 ? (
+        <p className="col-span-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+          {undatedOrders} vente(s) sans date valide — exclue(s) des graphiques mensuels. Renseignez la date sur la fiche vente.
+        </p>
+      ) : null}
       <SmartEvolutionChart moduleName="Ventes" compact title="CA commandé vs encaissé" subtitle="Histogramme — montants mensuels" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
         { name: 'CA commandé', type: 'bar', unit: 'FCFA', data: values(monthly, 'commandes') },
         { name: 'Encaissé', type: 'bar', unit: 'FCFA', data: values(monthly, 'encaisses') },

@@ -89,6 +89,14 @@ export default function VentesV4(props) {
     return () => window.removeEventListener('horizon-open-form', handler);
   }, []);
 
+  useEffect(() => {
+    if (!props.initialSaleDraft) return;
+    setModalDraft(props.initialSaleDraft);
+    setModalOpen(true);
+    setView('register');
+    props.onConsumeSaleDraft?.();
+  }, [props.initialSaleDraft]);
+
   const openNewSale = () => { setModalDraft(null); setModalOpen(true); };
   const closeSale = () => { setModalOpen(false); setModalDraft(null); };
   const onSaleDone = (orderId) => {

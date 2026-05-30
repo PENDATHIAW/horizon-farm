@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import Btn from '../../components/Btn';
 import BaseModal from '../../modals/BaseModal.jsx';
-import { toWhatsappLink } from '../../utils/ids';
+import { callPhone, openWhatsAppApp } from '../../utils/contactActions';
 
 const phoneOf = (client = {}) => client.whatsapp || client.tel || client.phone || '';
 const nameOf = (client = {}) => client.nom || client.name || client.id || 'Client';
@@ -27,21 +27,23 @@ export default function ClientContactModal({
 
   const phone = phoneOf(client);
   const call = () => {
-    if (!phone) return toast.error('Aucun numéro renseigné pour ce client');
-    window.open(`tel:${phone}`, '_self');
+    if (!callPhone(phone)) return;
     onAfterSend?.('call');
   };
   const whatsapp = async () => {
-    if (!phone) return toast.error('Aucun numéro WhatsApp / téléphone renseigné');
-    const text = message.trim() || defaultMessage;
+    const text = (message.trim() || defaultMessage || '').trim();
+    if (!text) return toast.error('Écrivez un message avant envoi');
     try {
       await onWhatsAppLog?.(client, text);
     } catch (error) {
       console.warn(error.message);
     }
-    window.open(toWhatsappLink(phone, text), '_blank', 'noopener,noreferrer');
-    toast.success('WhatsApp ouvert');
-    onAfterSend?.('whatsapp');
+    try {
+      await openWhatsAppApp({ phone, message: text, fallbackWeb: true });
+      onAfterSend?.('whatsapp');
+    } catch {
+      /* toast déjà affiché */
+    }
   };
 
   return (

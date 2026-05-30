@@ -1,4 +1,4 @@
-import { buildClientSegment } from '../../services/clientSegmentationEngine';
+import { buildClientSegment, computePurchaseFrequency } from '../../services/clientSegmentationEngine';
 import { fmtCurrency } from '../../utils/format';
 import { saleAmount } from './commercialMetrics.js';
 
@@ -31,6 +31,18 @@ function ordersForClient(client = {}, salesOrders = []) {
   return arr(salesOrders).filter((order) => String(order.client_id || '') === id || norm(order.client_nom || order.client_name || '').includes(name));
 }
 
+function orderProductText(order = {}) {
+  const lines = arr(order.lines || order.items || order.lignes);
+  const lineText = lines.map((line) => [line.product_name, line.produit, line.designation, line.libelle].filter(Boolean).join(' ')).join(' ');
+  return norm([order.product_name, order.produit, order.designation, lineText, order.notes].join(' '));
+}
+
+function productOrdersForClient(client = {}, salesOrders = [], hint = null) {
+  const orders = ordersForClient(client, salesOrders);
+  if (!hint) return orders;
+  return orders.filter((order) => hint.keys.some((key) => orderProductText(order).includes(key)));
+}
+
 /** Score 0–100 : adéquation client ↔ opportunité. */
 export function scoreClientForOpportunity(client = {}, opportunity = {}, salesOrders = []) {
   if (opportunity.client_id && String(opportunity.client_id) === String(client.id)) return 100;
@@ -48,7 +60,25 @@ export function scoreClientForOpportunity(client = {}, opportunity = {}, salesOr
   }
 
   const orders = ordersForClient(client, salesOrders);
-  if (orders.length > 0) score += Math.min(20, orders.length * 4);
+  const productOrders = productOrdersForClient(client, salesOrders, hint);
+  const globalFrequency = computePurchaseFrequency(orders);
+  const productFrequency = computePurchaseFrequency(productOrders.length >= 2 ? productOrders : orders);
+
+  if (orders.length > 0) score += Math.min(12, orders.length * 2);
+  if (productOrders.length >= 2) score += Math.min(18, productOrders.length * 3);
+
+  if (productFrequency.frequencyLabel === 'Hebdomadaire' || productFrequency.frequencyLabel === 'Bi-hebdomadaire') score += 18;
+  else if (productFrequency.frequencyLabel === 'Mensuelle') score += 14;
+  else if (productFrequency.frequencyLabel === 'Bimestrielle') score += 8;
+
+  if (productFrequency.isDueForReorder) {
+    score += Math.min(22, 12 + Math.floor((productFrequency.daysOverdue || 0) / 7) * 2);
+  } else if (globalFrequency.isDueForReorder && hint) {
+    score += 10;
+  }
+
+  if (productFrequency.frequencyLabel === 'Occasionnelle' && !productFrequency.isDueForReorder) score -= 8;
+
   if (segment.segment === 'VIP / Gros acheteur') score += 20;
   else if (segment.segment === 'Bon payeur') score += 12;
   else if (segment.segment === 'Dormant') score -= 15;

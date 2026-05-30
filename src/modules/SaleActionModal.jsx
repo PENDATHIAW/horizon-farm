@@ -3,6 +3,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { fmtCurrency } from '../utils/format';
 import { makeId } from '../utils/ids';
+import { findInvoicesForOrder } from '../services/salesIntegrityService';
 import { capSalePayment } from '../utils/salesWorkflows';
 import { saleQuantityDetail, deliveryModeNeedsFee, deliveryFeeOf } from '../utils/saleQuantityLabel';
 
@@ -65,10 +66,20 @@ export default function SaleActionModal({ sale, payments, props, onClose, initia
         await props.onUpdate?.(sale.id, { statut_livraison: delivery, statut_commande: remainingOf(sale, payments) <= 0 && delivery !== 'a_livrer' ? 'livre' : 'ouvert', frais_livraison: fee, delivery_fee: fee, montant_total: fee > 0 || num(sale.frais_livraison) ? newTotal : totalOf(sale), reste_a_payer: Math.max(0, (fee > 0 || num(sale.frais_livraison) ? newTotal : totalOf(sale)) - paidOf(sale, payments)) });
       }
       if (mode === 'invoice') {
-        const invId = sale.invoice_id || makeId('FAC');
-        await props.onCreateInvoice?.({ id: invId, order_id: sale.id, numero_facture: `FAC-${sale.id.slice(-6)}`, date_facture: today(), montant_total: totalOf(sale), statut: 'emise' });
-        await props.onCreateDocument?.({ id: makeId('DOC'), title: `Facture FAC-${sale.id.slice(-6)}`, document_category: 'facture', module_source: 'ventes', entity_type: 'commande', entity_id: sale.id, related_id: sale.id, invoice_id: invId, status: 'emise', amount: totalOf(sale) });
-        await props.onUpdate?.(sale.id, { facture_emise: true, invoice_id: invId });
+        const invoices = props.invoicesList || props.invoices || [];
+        const linked = findInvoicesForOrder(sale.id, invoices);
+        const existing = linked[0] || (sale.invoice_id ? invoices.find((row) => String(row.id) === String(sale.invoice_id)) : null);
+        await Promise.allSettled(linked.slice(1).map((row) => props.onDeleteInvoice?.(row.id)));
+        if (existing) {
+          await props.onUpdate?.(sale.id, { facture_emise: true, invoice_id: existing.id, invoice_status: 'emise', statut_facture: 'emise' });
+          toast.success('Facture déjà émise — aucun doublon créé');
+        } else {
+          const invId = makeId('FAC');
+          await props.onCreateInvoice?.({ id: invId, order_id: sale.id, numero_facture: `FAC-${sale.id.slice(-6)}`, date_facture: today(), montant_total: totalOf(sale), statut: 'emise', invoice_status: 'emise' });
+          await props.onCreateDocument?.({ id: makeId('DOC'), title: `Facture FAC-${sale.id.slice(-6)}`, document_category: 'facture', module_source: 'ventes', entity_type: 'commande', entity_id: sale.id, related_id: sale.id, invoice_id: invId, status: 'emise', amount: totalOf(sale) });
+          await props.onUpdate?.(sale.id, { facture_emise: true, invoice_id: invId, invoice_status: 'emise', statut_facture: 'emise' });
+          toast.success('Facture émise');
+        }
       }
       if (mode === 'close') await props.onUpdate?.(sale.id, { statut_commande: 'cloture', closed_at: new Date().toISOString() });
       await props.onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: `vente_${mode}`, module_source: 'ventes', entity_type: 'commande', entity_id: sale.id, title: `Vente ${sale.id} · ${mode}`, description: product || sale.product_name || '', event_date: today(), severity: 'info' });

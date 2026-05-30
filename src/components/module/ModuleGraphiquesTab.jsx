@@ -49,6 +49,15 @@ export default function ModuleGraphiquesTab({ moduleId, ...props }) {
           payments={arr(props.payments)}
           opportunities={arr(props.opportunities)}
           clients={arr(props.clients)}
+          lots={arr(props.lots)}
+          animaux={arr(props.animaux)}
+          cultures={arr(props.cultures)}
+          stocks={arr(props.stocks)}
+          alimentationLogs={arr(props.alimentationLogs)}
+          productionLogs={arr(props.productionLogs)}
+          vaccins={arr(props.vaccins)}
+          businessEvents={arr(props.businessEvents)}
+          transactions={arr(props.transactions)}
           onNavigate={onNavigate}
         />
       );

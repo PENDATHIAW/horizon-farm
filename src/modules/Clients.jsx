@@ -17,7 +17,8 @@ import { buildClientSalesSummary as buildClientSalesSummaryFromWorkflows, canDel
 import { MODULE_FORM_FIELDS } from '../utils/constants';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { fmtCurrency } from '../utils/format';
-import { generateSequentialId, makeId, toWhatsappLink } from '../utils/ids';
+import { generateSequentialId, makeId } from '../utils/ids';
+import { openWhatsAppApp } from '../utils/contactActions';
 import { buildSenegalMapQuery } from '../utils/location';
 import { calculateClientMetrics } from '../utils/businessCalculations';
 import ClientsEvolution from './ClientsEvolution.jsx';
@@ -146,7 +147,11 @@ export default function Clients({ rows = [], loading, salesOrders = [], payments
   const toggleAutomation = async (key) => { try { await automations.toggle(key); toast.success('Automatisation sauvegardée'); } catch (error) { toast.error(error.message || 'Sauvegarde impossible'); } };
   const messageFor = (client) => { const summary = salesSummaryFor(client); const segment = segmentFor(client); if (summary.resteAPayer > 0) return `Bonjour ${clientName(client)}, sauf erreur, il reste ${fmtCurrency(summary.resteAPayer)} à régler sur vos commandes Horizon Farm. Merci.`; if (segment.segment === 'VIP / Gros acheteur') return `Bonjour ${clientName(client)}, Horizon Farm peut vous réserver une disponibilité prioritaire. Souhaitez-vous préparer une précommande ?`; if (segment.segment === 'Dormant') return `Bonjour ${clientName(client)}, nous aimerions reprendre contact avec vous. Souhaitez-vous recevoir nos disponibilités Horizon Farm ?`; return `Bonjour ${clientName(client)}, souhaitez-vous renouveler votre commande Horizon Farm ?`; };
   const logWhatsApp = async (client, message, reason = 'relance_client') => { await whatsappLogsCrud.create?.({ id: makeId('WALOG'), client_id: client.id, recipient: clientPhone(client), message, status: 'prepare', provider: 'whatsapp', reason, sent_at: new Date().toISOString(), dedupe_key: `${clientReceivableKey(client)}:${reason}:${today()}` }); await whatsappLogsCrud.refresh?.(); };
-  const openWhatsApp = async (client) => { const message = messageFor(client); try { await logWhatsApp(client, message, salesSummaryFor(client).resteAPayer > 0 ? 'relance_creance' : 'relance_renouvellement'); } catch (error) { console.warn(error.message); } window.open(toWhatsappLink(clientPhone(client), message), '_blank', 'noopener,noreferrer'); };
+  const openWhatsApp = async (client) => {
+    const message = messageFor(client);
+    try { await logWhatsApp(client, message, salesSummaryFor(client).resteAPayer > 0 ? 'relance_creance' : 'relance_renouvellement'); } catch (error) { console.warn(error.message); }
+    await openWhatsAppApp({ phone: clientPhone(client), message, fallbackWeb: true });
+  };
   const openContact = (client, message, title = 'Contacter le client') => setContactModal({ client, message, title });
   const openProfile = (client) => setProfileClient(client);
   const matchedOppsFor = (client) => opportunitiesForClient(client, opportunities, salesOrders, 50);
@@ -199,6 +204,8 @@ export default function Clients({ rows = [], loading, salesOrders = [], payments
                     <p className="truncate font-black text-[#2f2415]">{client.nom}</p>
                     <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                       <SegmentBadge segment={segment.segment} />
+                      {segment.isDueForReorder ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-black text-sky-800">À renouveler</span> : null}
+                      {segment.frequencyLabel && segment.frequencyLabel !== 'Prospect' ? <span className="rounded-full bg-[#fff8e8] px-2 py-0.5 text-[10px] font-black text-[#9a6b12]">{segment.frequencyLabel}</span> : null}
                       {matchedOpps.length ? <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-800"><Lightbulb size={10} className="inline" /> {matchedOpps.length} opp.</span> : null}
                       {client.tel ? <span className="text-[11px] text-[#8a7456]">{client.tel}</span> : null}
                     </div>
