@@ -1,5 +1,6 @@
 import { toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
+import { buildSaleWorkflowHandlers, financeIds, runNewSaleSideEffects } from '../utils/saleSideEffects';
 import { getFinanceActivityFromSale, getFinanceCategoryFromSale } from './financeSyncService';
 import { buildOpportunityClosedPatch, buildStructuredFarmImpact } from './erpInterconnectionRules';
 
@@ -141,7 +142,7 @@ export function prepareSaleWorkflow(payload = {}, context = {}) {
   const activity = saleActivity(order);
   const invoiceId = order.invoice_id || safeId('FAC', context.invoices);
   const paymentId = order.payment_id || safeId('PAI', context.payments);
-  const transactionId = order.transaction_id || safeId('TRX', context.transactions);
+  const transactionId = order.transaction_id || financeIds.paid(order.id || 'NEW', paymentId);
   const eventId = safeId('EVT', context.events);
   const documentId = safeId('DOC', context.documents);
   const client = arr(context.clients).find((candidate) => candidate.id === order.client_id);
@@ -305,33 +306,98 @@ export async function commitSaleWorkflow(preview, handlers = {}) {
   const paymentToRecord = toNumber(finalValue(p.fields.payment_to_record || p.fields.paid));
   const nextPaid = Math.min(amount || alreadyPaid + paymentToRecord, alreadyPaid + paymentToRecord);
   const remaining = Math.max(0, amount - nextPaid);
-  const activity = finalValue(p.fields.activity);
-  const category = finalValue(p.fields.category) || getFinanceCategoryFromSale(p.source_order || {});
   const records = p.records;
+  const order = p.source_order || {};
+  const orderId = order.id;
+  const ctx = handlers.context || {};
+  const paymentId = records.payment?.id || order.payment_id;
+  const invoiceId = records.invoice?.id || order.invoice_id;
 
-  records.order_patch = { ...records.order_patch, montant_paye: nextPaid, reste_a_payer: remaining, statut_paiement: paymentStatusOf(amount, nextPaid), statut_commande: orderStatusAfterPayment(p.source_order, amount, nextPaid), workflow_id: p.workflow_id };
-  records.invoice = { ...records.invoice, total_amount: amount, montant_total: amount, statut_facture: 'emise', invoice_status: 'emise', statut: 'emise', statut_paiement: records.order_patch.statut_paiement };
-  records.payment = { ...records.payment, montant: paymentToRecord, montant_paye: paymentToRecord, amount: paymentToRecord, date_paiement: records.payment.date_paiement || today() };
-  records.finance = { ...records.finance, montant: paymentToRecord, amount: paymentToRecord, activite: activity, categorie: category };
-  records.document = { ...records.document, montant: amount, invoice_id: records.invoice.id, order_id: p.source_order?.id || records.document.order_id, transaction_id: records.finance.id };
+  records.order_patch = {
+    ...records.order_patch,
+    montant_paye: nextPaid,
+    reste_a_payer: remaining,
+    statut_paiement: paymentStatusOf(amount, nextPaid),
+    statut_commande: orderStatusAfterPayment(order, amount, nextPaid),
+    workflow_id: p.workflow_id,
+    invoice_id: invoiceId,
+    side_effects_managed: true,
+  };
+  records.invoice = {
+    ...records.invoice,
+    total_amount: amount,
+    montant_total: amount,
+    statut_facture: 'emise',
+    invoice_status: 'emise',
+    statut: 'emise',
+    statut_paiement: records.order_patch.statut_paiement,
+  };
+  records.payment = {
+    ...records.payment,
+    id: paymentId,
+    montant: paymentToRecord,
+    montant_paye: paymentToRecord,
+    amount: paymentToRecord,
+    date_paiement: records.payment.date_paiement || today(),
+    side_effects_managed: true,
+    created_from: 'sale_workflow',
+  };
+  records.document = {
+    ...records.document,
+    montant: amount,
+    invoice_id: invoiceId,
+    order_id: orderId || records.document.order_id,
+    transaction_id: paymentToRecord > 0 ? financeIds.paid(orderId, paymentId) : records.document.transaction_id,
+  };
 
   await handlers.onCreateInvoice?.(records.invoice);
   if (paymentToRecord > 0) await handlers.onCreatePayment?.(records.payment);
-  if (paymentToRecord > 0) await handlers.onCreateFinanceTransaction?.(records.finance);
-  if (p.source_order?.id) await handlers.onUpdateOrder?.(p.source_order.id, records.order_patch);
-
-  const oppId = opportunityIdOf(p.source_order || {});
-  if (oppId && records.opportunity_patch) {
-    await handlers.onUpdateOpportunity?.(oppId, records.opportunity_patch);
-  }
-
-  if (p.source_order?.client_id && records.client_patch) await handlers.onUpdateClient?.(p.source_order.client_id, records.client_patch);
-  if (records.source_patch) await handlers.onUpdateSourceAsset?.(activity, records.source_patch.id, records.source_patch);
+  if (orderId) await handlers.onUpdateOrder?.(orderId, records.order_patch);
   await handlers.onCreateDocument?.(records.document);
-  await handlers.onCreateBusinessEvent?.(records.trace);
 
-  if (remaining > 0 && records.alert) {
-    await handlers.onCreateAlert?.({ ...records.alert, message: `${p.source_order?.product_name || p.source_order?.id}: ${remaining}`, remaining_amount: remaining });
+  const updatedOrder = { ...order, ...records.order_patch };
+  const clientRow = arr(ctx.clients).find((candidate) => candidate.id === order.client_id);
+  const clientLabel = clientRow?.nom || clientRow?.name || order.client_label || 'Client';
+  const skipSourceImpact = order.side_effects_managed === true || order.source_impact_applied === true;
+
+  await runNewSaleSideEffects({
+    order: updatedOrder,
+    orderId,
+    form: {
+      source_type: order.source_type,
+      source_id: order.source_id,
+      quantity: order.quantite ?? order.quantity,
+      payment_method: records.payment.moyen_paiement || records.payment.mode_paiement,
+      fulfillment_mode: order.fulfillment_mode || order.statut_livraison,
+      date: records.payment.date_paiement || order.date || today(),
+    },
+    paid: paymentToRecord,
+    remaining,
+    paymentId,
+    invoiceId,
+    productName: order.product_name || order.libelle,
+    clientLabel,
+    realClientId: order.client_id,
+    stocks: ctx.stocks || [],
+    lots: ctx.lots || [],
+    cultures: ctx.cultures || [],
+    animaux: ctx.animaux || [],
+    clients: ctx.clients || [],
+    salesOrders: ctx.salesOrders || ctx.sales_orders || [],
+    payments: paymentToRecord > 0 ? [...arr(ctx.payments), records.payment] : arr(ctx.payments),
+    transactions: ctx.transactions || [],
+    tasks: ctx.tasks || [],
+    alertes: ctx.alertes || [],
+    handlers: buildSaleWorkflowHandlers(handlers, ctx),
+    skipSourceImpact,
+  });
+
+  if (records.trace && handlers.onCreateBusinessEvent) {
+    await handlers.onCreateBusinessEvent({
+      ...records.trace,
+      linked_transaction_id: paymentToRecord > 0 ? financeIds.paid(orderId, paymentId) : records.trace.linked_transaction_id,
+      linked_invoice_id: invoiceId,
+    });
   }
 
   return { ok: true, saisies_evitees: p.workflow_meta?.saisies_evitees || 0, workflow_id: p.workflow_id };

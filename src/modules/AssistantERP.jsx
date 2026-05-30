@@ -6,8 +6,8 @@ import KpiCard from '../components/KpiCard';
 import SectionHeader from '../components/SectionHeader';
 import useCrudModule from '../hooks/useCrudModule';
 import useVoiceRecognition from '../hooks/useVoiceRecognition';
-import { getFinanceActivityFromSale, getFinanceCategoryFromSale } from '../services/financeSyncService';
 import { commitBiosecurityWorkflow, commitEquipmentWorkflow, commitHealthWorkflow, commitSaleWorkflow, prepareBiosecurityWorkflow, prepareEquipmentWorkflow, prepareHealthWorkflow, prepareSaleWorkflow } from '../services/workflowService';
+import { recordSalePayment } from '../utils/recordSalePayment';
 import { buildAssistantDraft, FORM_SCHEMA_REGISTRY, listAssistantModules } from '../utils/formSchemaRegistry';
 import { makeId } from '../utils/ids';
 import { getRhDirectory, RH_FUNCTIONS_BY_ROLE, RH_ROLES, RH_TEAMS, saveRhDirectory } from '../utils/rhDirectory';
@@ -64,7 +64,7 @@ function PillList({ title, items = [], tone = 'neutral' }) { const cls = tone ==
 
 export default function AssistantERP({ dataMap = {}, onNavigate }) {
   const modules = useMemo(() => listAssistantModules(), []);
-  const cruds = { ventes: useCrudModule('sales_orders'), paiements: useCrudModule('payments'), clients: useCrudModule('clients'), stock: useCrudModule('stock'), animaux: useCrudModule('animaux'), avicole: useCrudModule('avicole'), cultures: useCrudModule('cultures'), sante: useCrudModule('sante'), fournisseurs: useCrudModule('fournisseurs'), documents: useCrudModule('documents'), taches: useCrudModule('taches'), alertes_center: useCrudModule('alertes_center'), equipements: useCrudModule('equipements'), smartfarm: useCrudModule('sensor_devices'), rapports: useCrudModule('rapports'), finances: useCrudModule('finances'), business_events: useCrudModule('business_events'), invoices: useCrudModule('invoices') };
+  const cruds = { ventes: useCrudModule('sales_orders'), paiements: useCrudModule('payments'), clients: useCrudModule('clients'), stock: useCrudModule('stock'), animaux: useCrudModule('animaux'), avicole: useCrudModule('avicole'), cultures: useCrudModule('cultures'), sante: useCrudModule('sante'), fournisseurs: useCrudModule('fournisseurs'), documents: useCrudModule('documents'), taches: useCrudModule('taches'), alertes_center: useCrudModule('alertes_center'), equipements: useCrudModule('equipements'), smartfarm: useCrudModule('sensor_devices'), rapports: useCrudModule('rapports'), finances: useCrudModule('finances'), business_events: useCrudModule('business_events'), invoices: useCrudModule('invoices'), opportunities: useCrudModule('sales_opportunities'), tracabilite: useCrudModule('tracabilite') };
   const [moduleKey, setModuleKey] = useState('ventes');
   const [intent, setIntent] = useState(FORM_SCHEMA_REGISTRY.ventes.intents[0]);
   const [command, setCommand] = useState('');
@@ -81,9 +81,113 @@ export default function AssistantERP({ dataMap = {}, onNavigate }) {
   const openModule = () => { onNavigate?.(routeFor(moduleKey)); toast.success(`Ouverture ${schema.label}`); };
   const createRhRecord = async (payload) => { const directory = getRhDirectory(); const role = payload.role || 'Ouvrier ferme'; const record = { id: payload.id || makeRhId(payload.nom), nom: payload.nom, role, fonction: payload.fonction || first(RH_FUNCTIONS_BY_ROLE[role]) || role, statut: payload.statut || 'actif', equipe_id: payload.equipe_id || teamForRole(role), modules: Array.isArray(payload.modules) ? payload.modules : modulesForRole(role), phone: payload.phone || payload.tel || '', whatsapp: payload.whatsapp || payload.phone || payload.tel || '', email: payload.email || '', salaire_mensuel: numeric(payload.salaire_mensuel || payload.salaire), prime_mensuelle: numeric(payload.prime_mensuelle || payload.prime), avance_mois: numeric(payload.avance_mois || payload.avance), date_entree: payload.date_entree || today(), notes: payload.notes || 'Créé depuis Assistant ERP.', created_from: 'assistant_erp', created_at: new Date().toISOString() }; const people = asArray(directory.people); const teams = asArray(directory.teams).length ? directory.teams : RH_TEAMS; const exists = people.some((p) => String(p.id) === String(record.id) || normalize(p.nom) === normalize(record.nom)); saveRhDirectory({ people: exists ? people.map((p) => (String(p.id) === String(record.id) || normalize(p.nom) === normalize(record.nom)) ? { ...p, ...record, updated_at: new Date().toISOString() } : p) : [record, ...people], teams }); return { label: record.nom, route: 'rh', updated: exists }; };
   const normalizeRecord = (key, payload) => ({ id: payload.id || makeId(PREFIX[key] || 'ERP'), ...payload, created_from: 'assistant_erp', created_at: new Date().toISOString() });
-  const createPaymentWorkflow = async (payload) => { const order = asArray(cruds.ventes.rows).find((item) => String(item.id) === String(payload.order_id)); if (!order) throw new Error('Commande introuvable pour ce paiement'); const total = totalOfOrder(order); const alreadyPaid = Math.max(paidOfOrder(order), orderPayments(order.id, cruds.paiements.rows).reduce((sum, payment) => sum + paymentAmount(payment), 0)); const amount = numeric(payload.montant); const nextPaid = Math.min(total || alreadyPaid + amount, alreadyPaid + amount); const remaining = Math.max(0, total - nextPaid); if (amount <= 0) throw new Error('Montant de paiement invalide'); if (total > 0 && alreadyPaid >= total) throw new Error('Commande déjà soldée'); if (total > 0 && amount > total - alreadyPaid) throw new Error(`Montant supérieur au reste à payer (${total - alreadyPaid})`); const paymentId = payload.id || makeId('PAY'); const txId = makeId('TRX'); const payment = { id: paymentId, order_id: order.id, sale_id: order.id, source_record_id: order.id, client_id: payload.client_id || order.client_id || '', invoice_id: order.invoice_id || payload.invoice_id || '', date_paiement: payload.date_paiement || today(), date: payload.date_paiement || today(), montant: amount, montant_paye: amount, amount, moyen_paiement: payload.moyen_paiement || 'cash', mode_paiement: payload.moyen_paiement || 'cash', statut: 'paye', notes: payload.notes || 'Paiement créé depuis Assistant ERP', created_from: 'assistant_erp' }; const finance = { id: txId, type: 'entree', libelle: `Encaissement ${order.product_name || order.libelle || order.id}`, montant: amount, date: payment.date, categorie: getFinanceCategoryFromSale(order), module_lie: 'ventes', related_id: order.id, activite: getFinanceActivityFromSale(order), client_id: order.client_id || payload.client_id || '', statut: 'paye', source_module: 'ventes', source_record_id: order.id, source_type: order.source_type || order.type_vente || order.product_type, source_id: order.source_id || order.product_id || order.entity_id, invoice_id: payment.invoice_id, payment_id: paymentId, moyen_paiement: payment.moyen_paiement, created_from: 'assistant_erp' }; await cruds.paiements.create(payment); await cruds.finances.create(finance); await cruds.ventes.update(order.id, { montant_paye: nextPaid, reste_a_payer: remaining, statut_paiement: remaining <= 0 ? 'paye' : 'partiel', payment_status: remaining <= 0 ? 'paye' : 'partiel', statut_commande: 'confirme', order_status: 'confirme', last_payment_id: paymentId, last_payment_date: payment.date, last_transaction_id: txId }); await Promise.allSettled([cruds.paiements.refresh?.(), cruds.finances.refresh?.(), cruds.ventes.refresh?.()]); return { label: `${order.id} · ${amount}`, route: 'ventes' }; };
+  const createPaymentWorkflow = async (payload) => {
+    const order = asArray(cruds.ventes.rows).find((item) => String(item.id) === String(payload.order_id));
+    if (!order) throw new Error('Commande introuvable pour ce paiement');
+    const amount = numeric(payload.montant);
+    if (amount <= 0) throw new Error('Montant de paiement invalide');
+    const payments = orderPayments(order.id, cruds.paiements.rows);
+    const total = totalOfOrder(order);
+    const alreadyPaid = Math.max(paidOfOrder(order), payments.reduce((sum, payment) => sum + paymentAmount(payment), 0));
+    if (total > 0 && alreadyPaid >= total) throw new Error('Commande déjà soldée');
+    if (total > 0 && amount > total - alreadyPaid) throw new Error(`Montant supérieur au reste à payer (${total - alreadyPaid})`);
+    const result = await recordSalePayment({
+      sale: order,
+      requestedAmount: amount,
+      payments,
+      transactions: cruds.finances.rows,
+      clients: cruds.clients.rows,
+      salesOrders: cruds.ventes.rows,
+      paymentMethod: payload.moyen_paiement || 'cash',
+      paymentDate: payload.date_paiement || today(),
+      paymentId: payload.id,
+      alertes: cruds.alertes_center.rows,
+      tasks: cruds.taches.rows,
+      handlers: {
+        onCreatePayment: cruds.paiements.create,
+        onCreateFinanceTransaction: cruds.finances.create,
+        onUpdateFinanceTransaction: cruds.finances.update,
+        onUpdateOrder: cruds.ventes.update,
+        onUpdateClient: cruds.clients.update,
+        onUpdateAlert: cruds.alertes_center.update,
+        onUpdateTask: cruds.taches.update,
+      },
+    });
+    await Promise.allSettled([cruds.paiements.refresh?.(), cruds.finances.refresh?.(), cruds.ventes.refresh?.(), cruds.clients.refresh?.(), cruds.alertes_center.refresh?.(), cruds.taches.refresh?.()]);
+    return { label: `${order.id} · ${result?.amount ?? amount}`, route: 'ventes' };
+  };
   const updateSourceAsset = async (activity, id, patch) => { if (!id) return; if (activity === 'animaux') return cruds.animaux.update?.(id, patch); if (activity === 'cultures') return cruds.cultures.update?.(id, patch); if (activity === 'stock') return cruds.stock.update?.(id, patch); if (String(activity || '').startsWith('avicole')) return cruds.avicole.update?.(id, patch); };
-  const createSaleWorkflow = async (payload) => { const preview = prepareSaleWorkflow(payload, { invoices: cruds.invoices.rows, payments: cruds.paiements.rows, transactions: cruds.finances.rows, documents: cruds.documents.rows, clients: cruds.clients.rows, events: cruds.business_events.rows, alerts: cruds.alertes_center.rows }); const result = await commitSaleWorkflow(preview, { onCreateInvoice: cruds.invoices.create, onCreatePayment: cruds.paiements.create, onCreateFinanceTransaction: cruds.finances.create, onUpdateOrder: cruds.ventes.update, onUpdateClient: cruds.clients.update, onUpdateSourceAsset: updateSourceAsset, onCreateDocument: cruds.documents.create, onCreateBusinessEvent: cruds.business_events.create, onCreateAlert: cruds.alertes_center.create }); await Promise.allSettled([cruds.ventes.refresh?.(), cruds.paiements.refresh?.(), cruds.finances.refresh?.(), cruds.invoices.refresh?.(), cruds.documents.refresh?.(), cruds.business_events.refresh?.(), cruds.alertes_center.refresh?.()]); return { label: `${payload.id || 'vente'} · ${result.saisies_evitees} saisies évitées`, route: 'ventes' }; };
+  const createSaleWorkflow = async (payload) => {
+    const orderId = payload.id || makeId('CMD');
+    const totalAmount = numeric(payload.montant_total);
+    const order = {
+      ...payload,
+      id: orderId,
+      date: payload.date || today(),
+      montant_total: totalAmount,
+      montant_ht: totalAmount,
+      quantity: numeric(payload.quantity) || 1,
+      quantite: numeric(payload.quantity) || 1,
+      product_name: payload.product_name || 'Vente',
+      source_type: payload.source_type || payload.source_module || 'stock',
+      source_id: payload.source_id || '',
+      statut_commande: payload.statut_commande || 'enregistree',
+      statut_paiement: payload.statut_paiement || (totalAmount > 0 ? 'non_paye' : 'paye'),
+      montant_paye: numeric(payload.montant_paye),
+      reste_a_payer: payload.reste_a_payer ?? totalAmount,
+      created_from: 'assistant_erp',
+    };
+    const exists = asArray(cruds.ventes.rows).some((row) => String(row.id) === String(orderId));
+    if (!exists) await cruds.ventes.create?.(order);
+    const workflowContext = {
+      invoices: cruds.invoices.rows,
+      payments: cruds.paiements.rows,
+      transactions: cruds.finances.rows,
+      documents: cruds.documents.rows,
+      clients: cruds.clients.rows,
+      events: cruds.business_events.rows,
+      alerts: cruds.alertes_center.rows,
+    };
+    const preview = prepareSaleWorkflow(order, workflowContext);
+    const saleContext = {
+      clients: cruds.clients.rows,
+      stocks: cruds.stock.rows,
+      lots: cruds.avicole.rows,
+      cultures: cruds.cultures.rows,
+      animaux: cruds.animaux.rows,
+      payments: cruds.paiements.rows,
+      salesOrders: cruds.ventes.rows,
+      transactions: cruds.finances.rows,
+      tasks: cruds.taches.rows,
+      alertes: cruds.alertes_center.rows,
+      opportunities: cruds.opportunities.rows,
+      traces: cruds.tracabilite.rows,
+    };
+    const result = await commitSaleWorkflow(preview, {
+      context: saleContext,
+      onCreateInvoice: cruds.invoices.create,
+      onCreatePayment: cruds.paiements.create,
+      onCreateFinanceTransaction: cruds.finances.create,
+      onUpdateFinanceTransaction: cruds.finances.update,
+      onUpdateOrder: cruds.ventes.update,
+      onUpdateClient: cruds.clients.update,
+      onUpdateSourceAsset: updateSourceAsset,
+      onUpdateStock: (id, patch) => cruds.stock.update?.(id, patch),
+      onUpdateLot: (id, patch) => cruds.avicole.update?.(id, patch),
+      onUpdateAnimal: (id, patch) => cruds.animaux.update?.(id, patch),
+      onUpdateCulture: (id, patch) => cruds.cultures.update?.(id, patch),
+      onCreateDocument: cruds.documents.create,
+      onCreateBusinessEvent: cruds.business_events.create,
+      onCreateAlert: cruds.alertes_center.create,
+      onCreateTask: cruds.taches.create,
+      onUpdateOpportunity: cruds.opportunities.update,
+      onCreateTrace: cruds.tracabilite.create,
+      onUpdateTrace: cruds.tracabilite.update,
+      onUpdateAlert: cruds.alertes_center.update,
+    });
+    await Promise.allSettled([cruds.ventes.refresh?.(), cruds.paiements.refresh?.(), cruds.finances.refresh?.(), cruds.invoices.refresh?.(), cruds.documents.refresh?.(), cruds.business_events.refresh?.(), cruds.alertes_center.refresh?.(), cruds.taches.refresh?.(), cruds.clients.refresh?.(), cruds.stock.refresh?.(), cruds.avicole.refresh?.(), cruds.animaux.refresh?.(), cruds.cultures.refresh?.(), cruds.opportunities.refresh?.(), cruds.tracabilite.refresh?.()]);
+    return { label: `${orderId} · ${result.saisies_evitees} saisies évitées`, route: 'ventes' };
+  };
   const createHealthWorkflow = async (payload) => { const emergency = ['urgence', 'critique', 'biosécurité', 'biosecurite'].some((word) => normalize(payload.type_intervention || payload.nom || payload.severity).includes(word)); if (emergency) { const preview = prepareBiosecurityWorkflow({ ...payload, module_source: 'sante', entity_type: payload.target_mode || 'sanitary_event', entity_id: payload.entity_id || payload.target_id || payload.id, title: payload.nom || payload.title || 'Action sanitaire', message: payload.notes || payload.description || payload.nom }, { alerts: cruds.alertes_center.rows, tasks: cruds.taches.rows, documents: cruds.documents.rows, events: cruds.business_events.rows }); const result = await commitBiosecurityWorkflow(preview, { onCreateAlert: cruds.alertes_center.create, onCreateTask: cruds.taches.create, onCreateDocument: cruds.documents.create, onCreateBusinessEvent: cruds.business_events.create, alerts: cruds.alertes_center.rows, tasks: cruds.taches.rows }); await Promise.allSettled([cruds.alertes_center.refresh?.(), cruds.taches.refresh?.(), cruds.documents.refresh?.(), cruds.business_events.refresh?.()]); return { label: `biosécurité · ${result.saisies_evitees} saisies évitées`, route: 'sante' }; } const healthRecord = { ...payload, id: payload.id || makeId('SAN') }; await cruds.sante.create?.(healthRecord); const preview = prepareHealthWorkflow(healthRecord, { tasks: cruds.taches.rows, transactions: cruds.finances.rows, events: cruds.business_events.rows }); await commitHealthWorkflow(preview, { onUpdateHealth: cruds.sante.update, onUpdateStockMovement: async (movement) => { const stock = cruds.stock.rows.find((row) => String(row.id) === String(movement.stock_id)); if (stock) await cruds.stock.update(stock.id, { quantite: Math.max(0, numeric(stock.quantite) - numeric(movement.qty)), last_movement_type: movement.type, last_movement_at: today() }); }, onCreateFinanceTransaction: cruds.finances.create, onCreateTask: cruds.taches.create, onCreateBusinessEvent: cruds.business_events.create }); await Promise.allSettled([cruds.sante.refresh?.(), cruds.stock.refresh?.(), cruds.finances.refresh?.(), cruds.taches.refresh?.(), cruds.business_events.refresh?.()]); return { label: healthRecord.nom || healthRecord.id, route: 'sante' }; };
   const createEquipmentWorkflow = async (payload) => { const record = normalizeRecord('equipements', payload); const existing = asArray(cruds.equipements.rows).some((item) => String(item.id) === String(record.id)); if (!existing) await cruds.equipements.create?.(record); const preview = prepareEquipmentWorkflow(record, { tasks: cruds.taches.rows, alerts: cruds.alertes_center.rows, transactions: cruds.finances.rows }); await commitEquipmentWorkflow(preview, { onUpdateEquipment: cruds.equipements.update, onCreateTask: cruds.taches.create, onCreateAlert: cruds.alertes_center.create, onCreateFinanceTransaction: cruds.finances.create }); await Promise.allSettled([cruds.equipements.refresh?.(), cruds.taches.refresh?.(), cruds.alertes_center.refresh?.(), cruds.finances.refresh?.()]); return { label: record.nom || record.name || record.id, route: 'equipements' }; };
   const createStockWorkflow = async (payload) => { const record = normalizeRecord('stock', payload); await cruds.stock.create?.(record); const amount = numeric(payload.montant || payload.amount || numeric(payload.quantite) * numeric(payload.prix_unitaire || payload.prixUnit)); if (amount > 0) await cruds.finances.create?.({ id: makeId('TRX'), type: 'sortie', libelle: `Stock ${record.produit || record.id}`, montant: amount, date: today(), categorie: 'Stock', module_lie: 'stock', related_id: record.id, source_module: 'assistant_erp', source_record_id: record.id, statut: 'paye' }); await cruds.business_events.create?.({ id: makeId('EVT'), event_type: 'stock_assistant', module_source: 'stock', entity_type: 'stock', entity_id: record.id, title: `Stock créé: ${record.produit || record.id}`, event_date: today(), severity: 'info' }); await Promise.allSettled([cruds.stock.refresh?.(), cruds.finances.refresh?.(), cruds.business_events.refresh?.()]); return { label: record.produit || record.id, route: 'stock' }; };

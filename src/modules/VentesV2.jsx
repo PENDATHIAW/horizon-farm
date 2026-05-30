@@ -11,6 +11,7 @@ import {
   findExistingFinanceForPayment,
   findExistingPayment,
 } from '../services/salesIntegrityService';
+import { recordSalePayment } from '../utils/recordSalePayment';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import {
@@ -249,6 +250,20 @@ async function commitPreview(preview, props, setPreview) {
     });
 
     await commitSaleWorkflow(preview, {
+      context: {
+        clients: props.clients,
+        stocks: props.stocks,
+        lots: props.lots,
+        cultures: props.cultures,
+        animaux: props.animaux,
+        payments,
+        salesOrders: props.rows,
+        transactions,
+        tasks: props.tasks || props.existingTasks,
+        alertes: props.alertes,
+        opportunities: props.opportunities,
+        traces: props.traces || props.tracabilite,
+      },
       onCreateInvoice: props.onCreateInvoice,
       onCreatePayment: existingPayment
         ? undefined
@@ -260,14 +275,8 @@ async function commitPreview(preview, props, setPreview) {
               montant_paye: paymentValue,
               amount: paymentValue,
             }),
-      onCreateFinanceTransaction: existingFinance
-        ? undefined
-        : async (record) =>
-            props.onCreateFinanceTransaction?.({
-              ...record,
-              payment_id: paymentId,
-              montant: paymentValue,
-            }),
+      onCreateFinanceTransaction: props.onCreateFinanceTransaction,
+      onUpdateFinanceTransaction: props.onUpdateFinanceTransaction,
       onUpdateOrder: async (id, patch) =>
         props.onUpdate?.(
           id,
@@ -293,9 +302,18 @@ async function commitPreview(preview, props, setPreview) {
       onUpdateClient: props.onUpdateClient,
       onUpdateSourceAsset: (activity, id, patch) =>
         updateSourceAsset(activity, id, patch, props, order),
+      onUpdateStock: props.onUpdateStock,
+      onUpdateLot: props.onUpdateLot,
+      onUpdateAnimal: props.onUpdateAnimal,
+      onUpdateCulture: props.onUpdateCulture,
       onCreateDocument: props.onCreateDocument,
       onCreateBusinessEvent: props.onCreateBusinessEvent,
       onCreateAlert: props.onCreateAlert,
+      onCreateTask: props.onCreateTask,
+      onUpdateOpportunity: props.onUpdateOpportunity,
+      onCreateTrace: props.onCreateTrace,
+      onUpdateTrace: props.onUpdateTrace,
+      onUpdateAlert: props.onUpdateAlert,
     });
 
     await refreshRelated(props);
@@ -363,98 +381,35 @@ function PaymentCapturePanel(props) {
     try {
       setSaving(true);
 
-      const paymentId = makeId('PAY');
-      const transactionId = makeId('TRX');
-
-      const existingPayment = findExistingPayment({
-        orderId: selectedOrder.id,
-        amount,
+      const result = await recordSalePayment({
+        sale: selectedOrder,
+        requestedAmount: amount,
         payments,
-      });
-
-      const finalPaymentId = existingPayment?.id || paymentId;
-
-      const existingFinance = findExistingFinanceForPayment({
-        orderId: selectedOrder.id,
-        paymentId: finalPaymentId,
-        amount,
         transactions,
+        clients: props.clients,
+        salesOrders: props.rows,
+        paymentMethod: form.moyen_paiement,
+        paymentDate: form.date_paiement || today(),
+        alertes: props.alertes,
+        tasks: props.tasks || props.existingTasks,
+        handlers: {
+          onCreatePayment: props.onCreatePayment,
+          onCreateFinanceTransaction: props.onCreateFinanceTransaction,
+          onUpdateFinanceTransaction: props.onUpdateFinanceTransaction,
+          onUpdateOrder: props.onUpdate,
+          onUpdateClient: props.onUpdateClient,
+          onUpdateAlert: props.onUpdateAlert,
+          onUpdateTask: props.onUpdateTask,
+        },
       });
-
-      const virtualPayment = existingPayment || {
-        id: finalPaymentId,
-        order_id: selectedOrder.id,
-        sale_id: selectedOrder.id,
-        source_record_id: selectedOrder.id,
-        montant_paye: amount,
-        montant: amount,
-        amount,
-        statut: 'paye',
-      };
-
-      const nextPayments = [...payments, virtualPayment];
-
-      if (!existingPayment) {
-        await props.onCreatePayment?.({
-          id: finalPaymentId,
-          order_id: selectedOrder.id,
-          sale_id: selectedOrder.id,
-          source_record_id: selectedOrder.id,
-          client_id: selectedOrder.client_id,
-          invoice_id: selectedOrder.invoice_id || '',
-          date_paiement: form.date_paiement || today(),
-          date: form.date_paiement || today(),
-          montant_paye: amount,
-          montant: amount,
-          amount,
-          moyen_paiement: form.moyen_paiement,
-          mode_paiement: form.moyen_paiement,
-          statut: 'paye',
-          notes: form.notes || `Paiement commande ${selectedOrder.id}`,
-        });
-      }
-
-      if (!existingFinance) {
-        await props.onCreateFinanceTransaction?.({
-          id: transactionId,
-          type: 'entree',
-          libelle: `Encaissement ${selectedOrder.product_name || selectedOrder.libelle || selectedOrder.id}`,
-          montant: amount,
-          date: form.date_paiement || today(),
-          categorie: getFinanceCategoryFromSale(selectedOrder),
-          module_lie: 'ventes',
-          related_id: selectedOrder.id,
-          activite: getFinanceActivityFromSale(selectedOrder),
-          client_id: selectedOrder.client_id || '',
-          statut: 'paye',
-          source_module: 'ventes',
-          source_record_id: selectedOrder.id,
-          source_type: selectedOrder.source_type || selectedOrder.type_vente || selectedOrder.product_type,
-          source_id: selectedOrder.source_id || selectedOrder.product_id || selectedOrder.entity_id,
-          invoice_id: selectedOrder.invoice_id || '',
-          payment_id: finalPaymentId,
-          moyen_paiement: form.moyen_paiement,
-          notes: form.notes || `Encaissement rapide commande ${selectedOrder.id}`,
-        });
-      }
-
-      await props.onUpdate?.(
-        selectedOrder.id,
-        buildCoherentOrderPatch(selectedOrder, nextPayments, {
-          moyen_paiement: form.moyen_paiement,
-          last_payment_id: finalPaymentId,
-          last_payment_date: form.date_paiement || today(),
-          last_transaction_id: existingFinance?.id || transactionId,
-        })
-      );
 
       await refreshRelated(props);
 
-      toast.success(
-        existingPayment || existingFinance
-          ? 'Paiement déjà présent : vente remise à jour'
-          : 'Paiement enregistré et vente mise à jour'
-      );
+      if (result?.skipped) {
+        toast.success(result.reason === 'duplicate_payment' ? 'Paiement déjà présent : vente remise à jour' : 'Commande déjà soldée');
+      } else {
+        toast.success('Paiement enregistré et vente mise à jour');
+      }
 
       setForm({
         order_id: '',

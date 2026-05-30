@@ -292,6 +292,28 @@ export async function ensureDeliveryTask({
  * Effets automatiques après création d'une vente (1 saisie → N modules).
  * Finance · Client · Stock/Élevage · Tâche livraison · Alerte créance
  */
+/** Mappe les handlers workflow (onUpdateSourceAsset) vers le pipeline unifié. */
+export function buildSaleWorkflowHandlers(handlers = {}, context = {}) {
+  const mapSource = (activity, id, patch) => {
+    if (handlers.onUpdateSourceAsset) return handlers.onUpdateSourceAsset(activity, id, patch);
+    if (handlers.onUpdateStock && (activity === 'stock' || String(activity).includes('stock'))) return handlers.onUpdateStock(id, patch);
+    if (handlers.onUpdateLot && (String(activity).includes('avicole') || String(activity).includes('lot'))) return handlers.onUpdateLot(id, patch);
+    if (handlers.onUpdateAnimal && (activity === 'animaux' || String(activity).includes('animal'))) return handlers.onUpdateAnimal(id, patch);
+    if (handlers.onUpdateCulture && (activity === 'cultures' || String(activity).includes('culture'))) return handlers.onUpdateCulture(id, patch);
+    return null;
+  };
+
+  return {
+    ...handlers,
+    onUpdateStock: handlers.onUpdateStock || ((id, patch) => mapSource('stock', id, patch)),
+    onUpdateLot: handlers.onUpdateLot || ((id, patch) => mapSource('avicole', id, patch)),
+    onUpdateAnimal: handlers.onUpdateAnimal || ((id, patch) => mapSource('animaux', id, patch)),
+    onUpdateCulture: handlers.onUpdateCulture || ((id, patch) => mapSource('cultures', id, patch)),
+    opportunities: context.opportunities || handlers.opportunities || [],
+    existingTraces: context.traces || context.tracabilite || handlers.existingTraces || [],
+  };
+}
+
 export async function runNewSaleSideEffects({
   order = {},
   orderId = '',
@@ -311,14 +333,17 @@ export async function runNewSaleSideEffects({
   clients = [],
   salesOrders = [],
   payments = [],
+  transactions = [],
   tasks = [],
   alertes = [],
   handlers = {},
+  skipSourceImpact = false,
 } = {}) {
   const date = form.date || order.date || today();
   const qty = num(form.quantity ?? order.quantity);
 
-  await applySourceImpactFromSale({
+  if (!skipSourceImpact) {
+    await applySourceImpactFromSale({
     handlers,
     sourceType: form.source_type || order.source_type,
     sourceId: form.source_id || order.source_id,
@@ -332,7 +357,11 @@ export async function runNewSaleSideEffects({
     lots,
     cultures,
     animaux,
-  });
+    });
+    if (handlers.onUpdateOrder && orderId) {
+      await handlers.onUpdateOrder(orderId, { source_impact_applied: true });
+    }
+  }
 
   if (paid > 0 && paymentId) {
     const paidFinance = buildPaidFinanceRow({
@@ -348,8 +377,9 @@ export async function runNewSaleSideEffects({
       remaining,
     });
     if (paidFinance) {
-      await handlers.onCreateFinanceTransaction?.(paidFinance);
-      await syncFinanceSideEffects(paidFinance, { handlers });
+      const existingPaid = arr(transactions).find((row) => clean(row.id) === clean(paidFinance.id));
+      if (!existingPaid) await handlers.onCreateFinanceTransaction?.(paidFinance);
+      await syncFinanceSideEffects(existingPaid || paidFinance, { handlers });
     }
   }
 
@@ -363,8 +393,9 @@ export async function runNewSaleSideEffects({
       order,
     });
     if (receivableFinance) {
-      await handlers.onCreateFinanceTransaction?.(receivableFinance);
-      await syncFinanceSideEffects(receivableFinance, { handlers });
+      const existingReceivable = arr(transactions).find((row) => clean(row.id) === clean(receivableFinance.id));
+      if (!existingReceivable) await handlers.onCreateFinanceTransaction?.(receivableFinance);
+      await syncFinanceSideEffects(existingReceivable || receivableFinance, { handlers });
     }
 
     const alertRow = buildReceivableAlertRow({ orderId, clientLabel, amount: remaining, productName: productName || order.product_name });
