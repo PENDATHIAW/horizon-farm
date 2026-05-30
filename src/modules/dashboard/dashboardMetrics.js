@@ -1,11 +1,111 @@
 import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine';
 import { remainingForOrder } from '../../utils/salesStatuses';
 import { buildDashboardTodayActions } from '../../utils/dashboardWorkflows';
+import { avicoleActiveCount, avicoleHasActiveBirds } from '../../utils/avicoleMetrics';
+import { resolveAvicoleLotKind } from '../../utils/avicoleActivity';
+import { toNumber } from '../../utils/format';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const lower = (value) => String(value || '').trim().toLowerCase();
 const money = (row = {}) => Number(row?.montant ?? row?.amount ?? row?.total ?? row?.montant_total ?? 0) || 0;
 const paid = (row = {}) => Number(row.montant_paye ?? row.paid_amount ?? row.amount_paid ?? 0) || 0;
+
+const CLOSED_ANIMAL_WORDS = ['vendu', 'mort', 'vole', 'volé', 'perdu', 'abattu', 'cloture', 'clôture', 'sorti'];
+const isClosedAnimal = (row = {}) => CLOSED_ANIMAL_WORDS.some((word) => lower(row.status || row.statut).includes(word));
+
+const cultureRecordType = (row = {}) => lower(row.record_type || row.type_fiche || 'culture');
+const parcelLabel = (row = {}) => String(row.parcelle_code || row.parcelle_nom || row.parcelle || row.nom || '').trim();
+const CLOSED_PARCEL_WORDS = ['archive', 'archivé', 'supprime', 'supprimé', 'ferme', 'fermé', 'inactive', 'inactif'];
+
+function isActiveParcelRecord(row = {}) {
+  const status = lower(row.statut || row.status || 'actif');
+  return !CLOSED_PARCEL_WORDS.some((word) => status.includes(word));
+}
+
+function surfaceToM2(row = {}) {
+  const surface = toNumber(row.surface_exploitable ?? row.surface);
+  if (surface <= 0) return 0;
+  const unit = lower(String(row.unite_surface || row.unite || 'm²').replace(/\s/g, ''));
+  if (unit === 'ha' || unit === 'hectare' || unit === 'hectares') return surface * 10000;
+  return surface;
+}
+
+/** Surface totale des parcelles de la ferme (m²) — fiches parcelle ou déduction cultures actives. */
+export function computeFarmParcelSurfaceM2(cultures = []) {
+  const rows = arr(cultures);
+  const parcelRecords = rows.filter((row) => cultureRecordType(row) === 'parcelle' && isActiveParcelRecord(row));
+  if (parcelRecords.length) {
+    return parcelRecords.reduce((sum, row) => sum + surfaceToM2(row), 0);
+  }
+  const byParcel = new Map();
+  rows
+    .filter((row) => cultureRecordType(row) === 'culture' && !['termine', 'perdu', 'archive', 'archivé'].includes(lower(row.statut || row.status)))
+    .forEach((row) => {
+      const key = lower(parcelLabel(row));
+      if (!key || key.includes('non renseign')) return;
+      const area = surfaceToM2(row);
+      if (area <= 0) return;
+      byParcel.set(key, Math.max(byParcel.get(key) || 0, area));
+    });
+  return [...byParcel.values()].reduce((sum, value) => sum + value, 0);
+}
+
+/**
+ * Effectifs exploitation — animaux unitaires, lots avicoles actifs, surface parcelles.
+ * Se met à jour via les CRUD animaux / avicole / cultures (ventes, mortalités, naissances, achats…).
+ */
+export function computeFarmHeadcount({ animaux = [], lots = [], cultures = [] } = {}) {
+  const activeAnimalRows = arr(animaux).filter((row) => !isClosedAnimal(row));
+  const activeLotRows = arr(lots).filter(avicoleHasActiveBirds);
+
+  let effectifChair = 0;
+  let effectifPondeuses = 0;
+  let effectifAvicoleOther = 0;
+  let activeLotsChair = 0;
+  let activeLotsPondeuses = 0;
+
+  activeLotRows.forEach((lot) => {
+    const count = avicoleActiveCount(lot);
+    const kind = resolveAvicoleLotKind(lot);
+    if (kind === 'pondeuse') {
+      effectifPondeuses += count;
+      activeLotsPondeuses += 1;
+    } else if (kind === 'chair') {
+      effectifChair += count;
+      activeLotsChair += 1;
+    } else {
+      effectifAvicoleOther += count;
+    }
+  });
+
+  const activeAvicole = effectifChair + effectifPondeuses + effectifAvicoleOther;
+
+  return {
+    total: activeAnimalRows.length + activeAvicole,
+    activeAnimals: activeAnimalRows.length,
+    activeAvicole,
+    effectifChair,
+    effectifPondeuses,
+    effectifAvicoleOther,
+    activeLots: activeLotRows.length,
+    activeLotsChair,
+    activeLotsPondeuses,
+    parcelSurfaceM2: computeFarmParcelSurfaceM2(cultures),
+  };
+}
+
+export function formatFarmHeadcountDetail(headcount = {}) {
+  const fmt = (value = 0) => Number(value || 0).toLocaleString('fr-FR');
+  const parts = [];
+  if (Number(headcount.activeAnimals || 0) > 0) {
+    parts.push(`${fmt(headcount.activeAnimals)} animaux`);
+  }
+  parts.push(`${fmt(headcount.effectifChair)} chair`);
+  parts.push(`${fmt(headcount.effectifPondeuses)} pondeuses`);
+  const m2 = Math.round(Number(headcount.parcelSurfaceM2 || 0));
+  if (m2 > 0) parts.push(`${m2.toLocaleString('fr-FR')} m²`);
+  return parts.join(' · ');
+}
 
 const isCriticalStock = (row = {}) => Number(row.quantite || row.quantity || row.stock || 0) <= Number(row.seuil || row.threshold || 0);
 const isOpenTask = (row = {}) => !['termine', 'terminé', 'done', 'closed'].includes(lower(row.status || row.statut));
@@ -27,6 +127,7 @@ export function buildDashboardSummary(props = {}) {
   const alertes = arr(props.alertes);
   const animaux = arr(props.animaux);
   const lots = arr(props.lotsData || props.lots);
+  const cultures = arr(props.cultures);
   const productionLogs = arr(props.productionLogs);
 
   const ca = salesOrders.reduce((sum, row) => sum + money(row), 0);
@@ -39,8 +140,8 @@ export function buildDashboardSummary(props = {}) {
   const stockBas = stocks.filter(isCriticalStock).length;
   const tachesOuvertes = taches.filter(isOpenTask).length;
   const alertesOuvertes = alertes.filter(isOpenAlert).length;
-  const effectifs = animaux.filter((row) => !['vendu', 'mort', 'sorti'].includes(lower(row.status || row.statut))).length
-    + lots.reduce((sum, row) => sum + Number(row.current_count ?? row.effectif ?? 0), 0);
+  const headcount = computeFarmHeadcount({ animaux, lots, cultures });
+  const effectifs = headcount.total;
   const production = productionLogs.reduce((sum, row) => sum + Number(row.oeufs_produits || row.eggs_count || 0), 0);
 
   const plan = buildDecisionCenterPlan({
@@ -83,6 +184,7 @@ export function buildDashboardSummary(props = {}) {
     tachesOuvertes,
     alertesOuvertes,
     effectifs,
+    headcount,
     production,
     actions,
     goal,

@@ -8,6 +8,7 @@ import {
   buildDashboardSummary,
   DASHBOARD_MODULES,
   DASHBOARD_MODULE_LABELS,
+  formatFarmHeadcountDetail,
 } from './dashboard/dashboardMetrics';
 import { navigateForDashboardAction, navigateForDashboardFinding } from './dashboard/dashboardNavigation';
 import { dashboardGreeting } from './dashboard/dashboardGreeting';
@@ -140,7 +141,12 @@ function Summary({ props, summary, health, simple, navigate }) {
         <DashboardKpi label="Créances" value={fmtCurrency(summary.receivable)} tone={summary.receivable ? 'warn' : 'good'} onClick={() => navigate('commercial', { tab: 'Clients' })} />
         <DashboardKpi label="Stocks bas" value={fmtNumber(summary.stockBas)} tone={summary.stockBas ? 'warn' : 'good'} onClick={() => navigate('achats_stock', { tab: 'Stock' })} />
         <DashboardKpi label="Alertes" value={fmtNumber(summary.alertesOuvertes)} tone={summary.alertesOuvertes ? 'warn' : 'good'} onClick={() => navigate('activite_suivi', { tab: 'Alertes' })} />
-        <DashboardKpi label="Effectifs" value={fmtNumber(summary.effectifs)} onClick={() => navigate('elevage', { tab: 'Résumé' })} />
+        <DashboardKpi
+          label="Effectifs"
+          value={fmtNumber(summary.effectifs)}
+          detail={formatFarmHeadcountDetail(summary.headcount)}
+          onClick={() => navigate('elevage', { tab: 'Résumé' })}
+        />
       </div>
 
       <DashboardQuickActions onNavigate={navigate} />
@@ -182,9 +188,9 @@ function Summary({ props, summary, health, simple, navigate }) {
         <div className="lg:col-span-2 space-y-4">
           {sideCards.length ? sideCards : (
             <DashboardSnapshotCard
-              label="Exploitation"
+              label="Effectifs"
               value={`${fmtNumber(summary.effectifs)} sujet(s)`}
-              detail="Tout est calme — consultez les modules métier."
+              detail={formatFarmHeadcountDetail(summary.headcount)}
               tone="good"
               onClick={() => navigate('elevage', { tab: 'Résumé' })}
             />

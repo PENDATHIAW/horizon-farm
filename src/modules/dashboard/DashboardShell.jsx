@@ -35,7 +35,7 @@ export function DashboardQuickActions({ onNavigate }) {
   );
 }
 
-export function DashboardKpi({ label, value, tone = 'neutral', onClick }) {
+export function DashboardKpi({ label, value, tone = 'neutral', onClick, detail }) {
   const toneCls = tone === 'good' ? 'text-emerald-700' : tone === 'warn' ? 'text-amber-700' : tone === 'bad' ? 'text-red-600' : 'text-[#2f2415]';
   const Tag = onClick ? 'button' : 'div';
   return (
@@ -46,6 +46,7 @@ export function DashboardKpi({ label, value, tone = 'neutral', onClick }) {
     >
       <p className="text-[11px] font-bold uppercase tracking-wide text-[#8a7456]">{label}</p>
       <p className={`mt-1 text-xl font-black ${toneCls}`}>{value}</p>
+      {detail ? <p className="mt-2 text-[10px] font-medium leading-snug text-[#8a7456]">{detail}</p> : null}
     </Tag>
   );
 }
