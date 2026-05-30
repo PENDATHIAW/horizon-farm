@@ -36,6 +36,26 @@ export async function applyOneClickRecommendation(finding, handlers = {}) {
   return { ok: true, navigated: true };
 }
 
+/** Crée une tâche conformité pour joindre une preuve manquante. */
+export async function createMissingProofTask({ transactionLabel, amount, transactionId, handlers = {} }) {
+  const { onCreateTask, existingTasks = [], onNavigate } = handlers;
+  if (typeof onCreateTask !== 'function') {
+    onNavigate?.('documents_rapports');
+    return { ok: false };
+  }
+  const finding = {
+    id: `proof-task-${transactionId || transactionLabel}`,
+    module: 'documents_rapports',
+    severity: 'haute',
+    category: 'coherence',
+    title: `Joindre preuve : ${transactionLabel}`,
+    description: `Justificatif manquant${transactionId ? ` · ${transactionId}` : ''}`,
+    recommended_action: `Attacher preuve pour ${amount || 'la transaction'}`,
+    auto_action: 'create_task',
+  };
+  return applyOneClickRecommendation(finding, { ...handlers, existingTasks });
+}
+
 /** Crée une tâche de résolution depuis une alerte ouverte. */
 export async function createAlertResolutionTask({ alertTitle, alertId, actionLabel, handlers = {} }) {
   const { onCreateTask, existingTasks = [], onNavigate } = handlers;
