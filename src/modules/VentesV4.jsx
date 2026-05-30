@@ -1,10 +1,11 @@
 import { CheckCircle2, ChevronDown, CreditCard, Edit3, FileText, PackageCheck, ReceiptText, ShieldCheck, Truck, X } from 'lucide-react';
+import SaleActionModal from './SaleActionModal.jsx';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { fmtCurrency } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { calculateSalesMargin } from '../utils/salesMarginEngine';
-import { buildSaleSourcePatch, capSalePayment } from '../utils/salesWorkflows';
+import { buildSaleSourcePatch } from '../utils/salesWorkflows';
 import SalesFollowUpPanel from './SalesFollowUpPanel.jsx';
 import SalesWorkflowHealth from './SalesWorkflowHealth.jsx';
 import VentesTerrainV3 from './VentesTerrainV3.jsx';
@@ -90,55 +91,6 @@ function HorizonSaleCard({ draft, props, onClose }) {
     } catch (error) { toast.error(error.message || 'Création vente impossible'); } finally { setSaving(false); }
   };
   return <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm space-y-4"><div className="flex items-start justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-emerald-700 font-black flex items-center gap-2"><CreditCard size={15} /> Vente préparée</p><h3 className="mt-1 text-xl font-black text-[#2f2415]">Nouvelle vente</h3><p className="mt-1 text-sm text-emerald-800">Comme en caisse : produit, client, paiement, livraison et facture au même endroit.</p></div><button type="button" onClick={onClose} className="rounded-full border border-emerald-200 bg-white p-2 text-emerald-700"><X size={16} /></button></div><div className="grid grid-cols-1 md:grid-cols-3 gap-3"><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Produit vendu</span><input value={productName} onChange={(e) => setProductName(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Quantité</span><input type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Unité</span><input value={unit} onChange={(e) => setUnit(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Prix unitaire</span><input type="number" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Client</span><input value={clientName} onChange={(e) => setClientName(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Date</span><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Paiement</span><select value={paymentStatus} onChange={(e) => setPaymentStatus(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm"><option value="paye">Payé maintenant</option><option value="partiel">Avance / partiel</option><option value="non_paye">À crédit</option></select></label>{paymentStatus === 'partiel' ? <label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Montant reçu</span><input type="number" value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label> : null}<label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Livraison</span><select value={delivery} onChange={(e) => setDelivery(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm"><option value="recupere">Récupéré sur place</option><option value="a_livrer">À livrer</option><option value="livre">Déjà livré</option></select></label></div><div className="rounded-xl border border-emerald-200 bg-white p-3 text-sm text-emerald-800"><CheckCircle2 size={14} className="inline" /> Total : <b>{fmtCurrency(total)}</b> · Reçu : <b>{fmtCurrency(paid)}</b> · Reste : <b>{fmtCurrency(remaining)}</b></div><div className="flex justify-end"><button type="button" onClick={submit} disabled={saving} className="rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60">{saving ? 'Création...' : 'Créer vente + facture'}</button></div></section>;
-}
-
-function SaleActionModal({ sale, payments, props, onClose, initialMode = 'edit' }) {
-  const [mode, setMode] = useState(initialMode);
-  const [client, setClient] = useState(sale.client_label || sale.client_name || 'Client de passage');
-  const [product, setProduct] = useState(sale.product_name || sale.produit || '');
-  const [quantity, setQuantity] = useState(sale.quantity || 1);
-  const [unitPrice, setUnitPrice] = useState(sale.unit_price || '');
-  const [amount, setAmount] = useState(remainingOf(sale, payments));
-  const [delivery, setDelivery] = useState(deliveryStatus(sale));
-  const [saving, setSaving] = useState(false);
-  const total = num(quantity) * num(unitPrice);
-  const save = async () => {
-    try {
-      setSaving(true);
-      if (mode === 'edit') await props.onUpdate?.(sale.id, { client_label: client, product_name: product, quantity: num(quantity), unit_price: num(unitPrice), montant_total: total, reste_a_payer: Math.max(0, total - paidOf(sale, payments)) });
-      if (mode === 'pay') {
-        const cappedAmount = capSalePayment(sale, payments, amount);
-        if (cappedAmount <= 0) {
-          toast.success('Vente déjà soldée : aucun encaissement à ajouter.');
-          await props.onUpdate?.(sale.id, { reste_a_payer: 0, statut_paiement: 'paye', payment_status: 'paye' });
-          await props.onRefresh?.();
-          onClose?.();
-          return;
-        }
-        const payId = makeId('PAY');
-        await props.onCreatePayment?.({ id: payId, order_id: sale.id, sale_id: sale.id, source_record_id: sale.id, date_paiement: today(), montant: cappedAmount, amount: cappedAmount, moyen_paiement: 'especes', statut: 'paye' });
-        await props.onCreateFinanceTransaction?.({ id: makeId('TRX'), type: 'entree', libelle: `Encaissement ${sale.id} - ${client}`, montant: cappedAmount, date: today(), categorie: 'Vente', module_lie: 'ventes', related_id: sale.id, source_module: 'ventes', source_record_id: sale.id, payment_id: payId, transaction_origin: 'automatique' });
-        const newPaid = paidOf(sale, payments) + cappedAmount;
-        await props.onUpdate?.(sale.id, { montant_paye: newPaid, reste_a_payer: Math.max(0, totalOf(sale) - newPaid), statut_paiement: Math.max(0, totalOf(sale) - newPaid) <= 0 ? 'paye' : 'partiel' });
-      }
-      if (mode === 'deliver') {
-        await props.onCreateDelivery?.({ id: makeId('LIV'), order_id: sale.id, date_livraison: today(), statut: delivery, status: delivery, destinataire: client });
-        await props.onUpdate?.(sale.id, { statut_livraison: delivery, statut_commande: remainingOf(sale, payments) <= 0 && delivery !== 'a_livrer' ? 'livre' : 'ouvert' });
-      }
-      if (mode === 'invoice') {
-        const invId = sale.invoice_id || makeId('FAC');
-        await props.onCreateInvoice?.({ id: invId, order_id: sale.id, numero_facture: `FAC-${sale.id.slice(-6)}`, date_facture: today(), montant_total: totalOf(sale), statut: 'emise' });
-        await props.onCreateDocument?.({ id: makeId('DOC'), title: `Facture FAC-${sale.id.slice(-6)}`, document_category: 'facture', module_source: 'ventes', entity_type: 'commande', entity_id: sale.id, related_id: sale.id, invoice_id: invId, status: 'emise', amount: totalOf(sale) });
-        await props.onUpdate?.(sale.id, { facture_emise: true, invoice_id: invId });
-      }
-      if (mode === 'close') await props.onUpdate?.(sale.id, { statut_commande: 'cloture', closed_at: new Date().toISOString() });
-      await props.onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: `vente_${mode}`, module_source: 'ventes', entity_type: 'commande', entity_id: sale.id, title: `Vente ${sale.id} · ${mode}`, description: product || sale.product_name || '', event_date: today(), severity: 'info' });
-      await Promise.allSettled([props.onRefresh?.(), props.onRefreshPayments?.(), props.onRefreshFinances?.(), props.onRefreshInvoices?.(), props.onRefreshDeliveries?.(), props.onRefreshBusinessEvents?.()]);
-      toast.success('Vente mise à jour');
-      onClose?.();
-    } catch (error) { toast.error(error.message || 'Action vente impossible'); } finally { setSaving(false); }
-  };
-  return <div className="fixed inset-0 z-[90] bg-black/40 p-4 flex items-center justify-center"><div className="w-full max-w-2xl rounded-3xl bg-[#fffdf8] border border-[#d6c3a0] shadow-2xl overflow-hidden"><div className="p-5 border-b border-[#eadcc2] flex items-start justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Vente {sale.id}</p><h3 className="text-xl font-black text-[#2f2415]">Traiter la vente</h3><p className="text-sm text-[#8a7456] mt-1">Modifier, encaisser, livrer, facturer ou clôturer.</p></div><button type="button" onClick={onClose}><X size={18} /></button></div><div className="p-5 space-y-4"><div className="grid grid-cols-2 md:grid-cols-5 gap-2">{[['edit','Modifier'],['pay','Encaisser'],['deliver','Livrer'],['invoice','Facture'],['close','Clôturer']].map(([key, text]) => <button key={key} type="button" onClick={() => setMode(key)} className={`rounded-xl border px-3 py-2 text-sm font-black ${mode === key ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#7d6a4a] border-[#d6c3a0]'}`}>{text}</button>)}</div>{mode === 'edit' ? <div className="grid grid-cols-1 md:grid-cols-2 gap-3"><input value={client} onChange={(e) => setClient(e.target.value)} className="rounded-xl border border-[#d6c3a0] px-3 py-2" placeholder="Client" /><input value={product} onChange={(e) => setProduct(e.target.value)} className="rounded-xl border border-[#d6c3a0] px-3 py-2" placeholder="Produit" /><input type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="rounded-xl border border-[#d6c3a0] px-3 py-2" placeholder="Quantité" /><input type="number" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} className="rounded-xl border border-[#d6c3a0] px-3 py-2" placeholder="Prix unitaire" /></div> : null}{mode === 'pay' ? <label className="block"><span className="text-xs font-bold text-[#8a7456]">Montant reçu</span><input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="mt-1 w-full rounded-xl border border-[#d6c3a0] px-3 py-2" /></label> : null}{mode === 'deliver' ? <label className="block"><span className="text-xs font-bold text-[#8a7456]">Statut livraison</span><select value={delivery} onChange={(e) => setDelivery(e.target.value)} className="mt-1 w-full rounded-xl border border-[#d6c3a0] px-3 py-2"><option value="recupere">Récupéré sur place</option><option value="a_livrer">À livrer</option><option value="livre">Livré</option></select></label> : null}{mode === 'invoice' ? <div className="rounded-xl border border-[#eadcc2] bg-white p-3 text-sm text-[#7d6a4a]">Une facture sera créée ou rattachée à cette vente.</div> : null}{mode === 'close' ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">Clôture la vente quand paiement et livraison sont OK ou quand tu veux archiver le dossier.</div> : null}<div className="rounded-xl border border-[#eadcc2] bg-white p-3 text-sm text-[#7d6a4a]">Total : <b>{fmtCurrency(mode === 'edit' ? total : totalOf(sale))}</b> · Payé : <b>{fmtCurrency(paidOf(sale, payments))}</b> · Reste : <b>{fmtCurrency(remainingOf(sale, payments))}</b></div></div><div className="p-4 border-t border-[#eadcc2] flex justify-end gap-2"><button type="button" onClick={onClose} className="rounded-xl border border-[#d6c3a0] px-4 py-2">Annuler</button><button type="button" disabled={saving} onClick={save} className="rounded-xl bg-[#2f2415] px-4 py-2 text-white font-black disabled:opacity-60">{saving ? 'Enregistrement...' : 'Valider'}</button></div></div></div>;
 }
 
 function SalesDesk({ props, payments }) {
