@@ -45,7 +45,7 @@ export function buildStrategicAnswer(type, dataMap = {}) {
         type,
         title: 'Clients à relancer',
         summary: rows.length ? `${rows.length} client(s) avec encaissements en attente — total ${fmtCurrency(rows.reduce((s, r) => s + r.rest, 0))}.` : 'Aucune créance client ouverte détectée.',
-        rows: rows.slice(0, 8).map((r) => ({ title: r.name, detail: `Commande ${r.orderId}`, value: fmtCurrency(r.rest), module: 'commercial' })),
+        rows: rows.slice(0, 8).map((r) => ({ title: r.name, detail: `Commande ${r.orderId}`, value: fmtCurrency(r.rest), module: 'commercial', orderId: r.orderId })),
         route: 'commercial',
         confidence: 92,
       };

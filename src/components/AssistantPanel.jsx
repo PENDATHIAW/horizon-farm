@@ -8,10 +8,22 @@ import useSpeechSynthesis from '../hooks/useSpeechSynthesis';
 import useVoiceRecognition from '../hooks/useVoiceRecognition';
 import { supabase } from '../lib/supabase';
 import { interpretHorizonCommand, parseConversationControl, updateHorizonDraft } from '../services/aiIntentEngine';
+import { detectStrategicQuery, buildStrategicAnswer } from '../services/heyHorizonStrategicAnswers.js';
 import { interpretVoiceCommand } from '../services/voiceCommands';
 import { searchERP } from '../services/globalSearchService';
 
-const moduleLabel = (key = '') => ({ dashboard: 'Accueil', ventes: 'Ventes', finances: 'Finances', clients: 'Clients', stock: 'Stock', sante: 'Santé', avicole: 'Avicole', animaux: 'Animaux', cultures: 'Cultures', documents: 'Documents', taches: 'Tâches', alertes: 'Alertes', sync_activity: 'Vérifications', impact_business: 'Impact & Valeur', fournisseurs: 'Fournisseurs', tracabilite: 'Traçabilité', centre_ia: 'Centre IA', rapports: 'Rapports', equipements: 'Équipements', smartfarm: 'Smart Farm' }[key] || 'Espace lié');
+const moduleLabel = (key = '') => ({
+  dashboard: 'Accueil', assistant_erp: 'Assistant ERP', objectifs_croissance: 'Vision & Croissance',
+  elevage: 'Élevage', commercial: 'Commercial', achats_stock: 'Achats & Stock',
+  finance_pilotage: 'Finance & Pilotage', activite_suivi: 'Activité & Suivi',
+  documents_rapports: 'Documents & Rapports', rh: 'Opérations & Ressources',
+  ventes: 'Commercial', finances: 'Finance & Pilotage', clients: 'Commercial', stock: 'Achats & Stock',
+  sante: 'Élevage', avicole: 'Élevage', animaux: 'Élevage', cultures: 'Cultures',
+  documents: 'Documents & Rapports', taches: 'Activité & Suivi', alertes: 'Activité & Suivi',
+  sync_activity: 'Vérifications', impact_business: 'Impact & Valeur', fournisseurs: 'Achats & Stock',
+  tracabilite: 'Traçabilité', centre_ia: 'Vision & Croissance', rapports: 'Rapports',
+  equipements: 'Opérations & Ressources', smartfarm: 'Smart Farm',
+}[key] || 'Espace lié');
 const normalize = (value = '') => String(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 const hasWakeWord = (value = '') => { const text = normalize(value); return text.includes('hey horizon') || text.includes('he horizon') || text.includes('horizon'); };
 const stripWakeWord = (value = '') => normalize(value).replace(/\b(hey|he|eh|e)\s+horizon\b/g, '').replace(/\bhorizon\b/g, '').trim();
@@ -29,14 +41,16 @@ const isWeakDraft = (draft = {}, text = '') => {
   return !/(vend|vente|vends|client|paiement|paye|payé|commande|livr|facture|poulet|chair|oeuf|œuf|tablette)/.test(cleaned);
 };
 const QUICK_ACTIONS = [
-  { label: 'Créer vente', text: 'Créer une vente', module: 'ventes' },
-  { label: 'Vaccin / soin', text: 'J’ai vacciné ', module: 'sante' },
-  { label: 'Ramassage œufs', text: 'J’ai ramassé ', module: 'avicole' },
-  { label: 'Utiliser stock', text: 'J’ai utilisé ', module: 'stock' },
-  { label: 'Mortalité', text: 'Mortalité de ', module: 'avicole' },
-  { label: 'Dépense', text: 'Ajouter une dépense de ', module: 'finances' },
-  { label: 'Tâche', text: 'Créer une tâche ', module: 'taches' },
-  { label: 'Rapport', text: 'Générer un rapport ', module: 'rapports' },
+  { label: 'Créances clients', text: 'Quels clients me doivent de l\'argent ?', module: 'assistant_erp', strategic: true },
+  { label: 'Risques du mois', text: 'Quels sont mes risques du mois ?', module: 'assistant_erp', strategic: true },
+  { label: 'Créer vente', text: 'Créer une vente', module: 'commercial' },
+  { label: 'Vaccin / soin', text: 'J’ai vacciné ', module: 'elevage' },
+  { label: 'Ramassage œufs', text: 'J’ai ramassé ', module: 'elevage' },
+  { label: 'Utiliser stock', text: 'J’ai utilisé ', module: 'achats_stock' },
+  { label: 'Mortalité', text: 'Mortalité de ', module: 'elevage' },
+  { label: 'Dépense', text: 'Ajouter une dépense de ', module: 'finance_pilotage' },
+  { label: 'Tâche', text: 'Créer une tâche ', module: 'activite_suivi' },
+  { label: 'Dossier financeur', text: 'Préparer dossier financeur', module: 'rapports' },
 ];
 const REFRESH_KEYS_BY_MODULE = {
   dashboard: ['animaux', 'avicole', 'sante', 'finances', 'stock', 'clients', 'fournisseurs', 'cultures', 'taches', 'alertes_center', 'business_events', 'sales_orders', 'payments'], centre_ia: ['stock', 'finances', 'avicole', 'animaux', 'cultures', 'alertes_center', 'business_events', 'sales_orders', 'payments', 'sensor_devices', 'camera_devices'], stock: ['stock', 'alimentation_logs', 'business_events'], finances: ['finances', 'payments', 'business_events'], fournisseurs: ['fournisseurs', 'finances', 'stock', 'business_events'], clients: ['clients', 'sales_orders', 'payments', 'business_events'], ventes: ['sales_orders', 'sales_order_items', 'deliveries', 'invoices', 'payments', 'stock', 'clients', 'business_events'], animaux: ['animaux', 'sante', 'alimentation_logs', 'sales_opportunities', 'business_events'], avicole: ['avicole', 'production_oeufs_logs', 'alimentation_logs', 'sales_opportunities', 'business_events'], sante: ['sante', 'veterinaires', 'stock', 'finances', 'taches', 'business_events'], cultures: ['cultures', 'stock', 'finances', 'sales_opportunities', 'business_events'], documents: ['documents', 'finances', 'sales_orders', 'business_events'], taches: ['taches', 'alertes_center', 'business_events'], alertes: ['alertes_center', 'whatsapp_logs', 'taches', 'business_events'], tracabilite: ['tracabilite', 'business_events'], smartfarm: ['sensor_devices', 'camera_devices', 'alertes_center', 'taches', 'business_events'], equipements: ['equipements', 'taches', 'finances', 'documents', 'business_events'], rh: ['finances', 'taches', 'business_events'],
@@ -124,6 +138,17 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
     if (control === 'cancel') { cancelDraft(); return; }
     if (control === 'reset') { resetConversation(); return; }
     setIsThinking(true); window.setTimeout(() => setIsThinking(false), 700);
+    const strategicType = detectStrategicQuery(cleaned);
+    if (strategicType) {
+      const answer = buildStrategicAnswer(strategicType, dataMap);
+      const assistantText = answer?.summary || 'Analyse stratégique disponible dans Assistant ERP.';
+      setMessages((prev) => [...prev, { role: 'user', text: cleaned }, { role: 'assistant', text: assistantText }]);
+      setDraft(null);
+      speech.speak(assistantText);
+      onNavigate?.('assistant_erp');
+      setQuery('');
+      return;
+    }
     const nextDraft = draft ? updateHorizonDraft(draft, cleaned, dataMap) : interpretHorizonCommand(cleaned, dataMap);
     if (nextDraft?.status === 'wake_only') { const text = 'Je suis prêt. Quelle action veux-tu faire ?'; setMessages((prev) => [...prev, { role: 'assistant', text }]); speech.speak(text); setQuery(''); return; }
     const weak = isWeakDraft(nextDraft, cleaned);
@@ -153,7 +178,18 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
   const toggleVoiceReplies = () => { if (!speech.supported) return toast.error('Réponse vocale non disponible ici'); if (speech.enabled) { speech.disable(); toast.success('Réponses vocales désactivées'); return; } speech.enable(); speech.test(); toast.success('Réponses vocales activées'); };
   const updateDraftField = (key, value) => setDraft((current) => current ? { ...current, draft_fields: { ...(current.draft_fields || {}), [key]: value }, missing_fields: (current.missing_fields || []).filter((field) => field !== key) } : current);
   const closePanel = () => { speech.stop(); setLocalOpen(false); setWakeState('idle'); onClose?.(); };
-  const quickAction = (item) => { setLocalOpen(true); setQuery(item.text); onNavigate?.(item.module); setMessages((prev) => [...prev, { role: 'assistant', text: `D’accord. Je prépare : ${item.label}. Complète la phrase ou parle.` }]); };
+  const quickAction = (item) => {
+    setLocalOpen(true);
+    if (item.strategic) {
+      setQuery(item.text);
+      processCommand(item.text);
+      onNavigate?.('assistant_erp');
+      return;
+    }
+    setQuery(item.text);
+    onNavigate?.(item.module);
+    setMessages((prev) => [...prev, { role: 'assistant', text: `D’accord. Je prépare : ${item.label}. Complète la phrase ou parle.` }]);
+  };
 
   return <>
     <HorizonWakeAnimation state={wakeState} onClose={() => setWakeState('idle')} />

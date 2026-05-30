@@ -1,7 +1,10 @@
-import { Bot, CheckCircle2, ClipboardList, Mic, Send, Sparkles, Wand2 } from 'lucide-react';
+import { Bot, CheckCircle2, ClipboardList, Mic, Send, Sparkles, Wand2, Zap } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import { buildRecommendationsFromData, draftToFormRequest, loadLocalRecommendations, saveLocalRecommendation } from '../services/aiRecommendationsService';
 import { detectStrategicQuery, buildStrategicAnswer } from '../services/heyHorizonStrategicAnswers.js';
+import { applyOneClickRecommendation, createClientFollowUpTask } from '../services/heyHorizonRecommendationActions.js';
+import { runErpHealthEngine } from '../services/erpHealthEngine.js';
 import { openFormModal } from '../services/formModalManager';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 
@@ -30,19 +33,24 @@ const MODULES = ['Commercial', 'Élevage', 'Achats & Stock', 'Finance & Pilotage
 function Stat({ label, value, tone = 'neutral' }) { const cls = tone === 'good' ? 'text-emerald-600' : tone === 'warn' ? 'text-amber-600' : tone === 'bad' ? 'text-red-600' : 'text-[#2f2415]'; return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">{label}</p><p className={`mt-1 text-xl font-black ${cls}`}>{value}</p></div>; }
 function Section({ icon: Icon, title, children, action }) { return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</h2>{action}</div>{children}</section>; }
 function Pill({ children, tone = 'neutral' }) { const cls = tone === 'good' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : tone === 'warn' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-[#eadcc2] bg-[#fffdf8] text-[#8a7456]'; return <span className={`rounded-full border px-3 py-1 text-xs font-black ${cls}`}>{children}</span>; }
-function Row({ title, detail, value, tone = 'neutral' }) { return <div className="grid grid-cols-1 gap-2 border-b border-[#eadcc2]/70 py-4 last:border-b-0 md:grid-cols-[260px_1fr_auto] md:items-center"><b className="text-[#2f2415]">{title}</b><span className="text-sm text-[#8a7456]">{detail}</span><Pill tone={tone}>{value}</Pill></div>; }
+function Row({ title, detail, value, tone = 'neutral', onClick }) {
+  const inner = <><b className="text-[#2f2415]">{title}</b><span className="text-sm text-[#8a7456]">{detail}</span><Pill tone={tone}>{value}</Pill></>;
+  const cls = 'grid grid-cols-1 gap-2 border-b border-[#eadcc2]/70 py-4 last:border-b-0 md:grid-cols-[260px_1fr_auto] md:items-center';
+  if (onClick) return <button type="button" onClick={onClick} className={`${cls} w-full text-left hover:bg-[#fffdf8]`}>{inner}</button>;
+  return <div className={cls}>{inner}</div>;
+}
 function Empty({ label }) { return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-5 text-sm text-[#8a7456]">{label}</div>; }
 
 function inferIntent(text) {
   const query = lower(text);
   if (/vente|vendu|client|payer|payé|livrer|facture/.test(query)) return { type: 'vente', module: 'Commercial', action: 'Préparer une vente complète', route: 'commercial', confidence: 0.88 };
-  if (/panne|maintenance|tracteur|equipement|équipement|capteur|camera|caméra/.test(query)) return { type: 'maintenance', module: 'Opérations & Ressources', action: 'Préparer une intervention maintenance', route: 'equipements', confidence: 0.82 };
+  if (/panne|maintenance|tracteur|equipement|équipement|capteur|camera|caméra/.test(query)) return { type: 'maintenance', module: 'Opérations & Ressources', action: 'Préparer une intervention maintenance', route: 'rh', confidence: 0.82 };
   if (/stock|acheter|achat|fournisseur|aliment|seuil|rupture/.test(query)) return { type: 'achat_stock', module: 'Achats & Stock', action: 'Préparer un mouvement stock ou un achat', route: 'achats_stock', confidence: 0.85 };
   if (/animal|bovin|ovin|caprin|pondeuse|chair|vaccin|malade|mortalité|santé/.test(query)) return { type: 'elevage', module: 'Élevage', action: 'Préparer une action élevage', route: 'elevage', confidence: 0.84 };
   if (/dépense|recette|finance|paiement|justificatif|preuve|compta|invest/.test(query)) return { type: 'finance', module: 'Finance & Pilotage', action: 'Préparer une action financière', route: 'finance_pilotage', confidence: 0.83 };
   if (/tâche|alerte|retard|suivi|historique|trace/.test(query)) return { type: 'suivi', module: 'Activité & Suivi', action: 'Préparer une action de suivi', route: 'activite_suivi', confidence: 0.8 };
   if (/rapport|document|facture|reçu|export|preuve/.test(query)) return { type: 'document', module: 'Documents & Rapports', action: 'Préparer un document ou un rapport', route: 'documents_rapports', confidence: 0.79 };
-  return { type: 'decision', module: 'Vision & Croissance', action: 'Analyser et proposer une décision', route: 'centre_ia', confidence: 0.65 };
+  return { type: 'decision', module: 'Vision & Croissance', action: 'Analyser et proposer une décision', route: 'objectifs_croissance', confidence: 0.65 };
 }
 
 function buildDraft(text) {
@@ -72,18 +80,25 @@ function DraftPreview({ draft, onNavigate, onPrefill }) {
   </Section>;
 }
 
-function StrategicAnswerPanel({ answer, onNavigate }) {
+function StrategicAnswerPanel({ answer, onNavigate, onRelanceClient, busyId }) {
   if (!answer) return null;
   return (
     <Section icon={Sparkles} title={answer.title} action={<button type="button" onClick={() => onNavigate?.(answer.route)} className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white">Ouvrir module</button>}>
       <p className="mb-4 text-sm text-[#8a7456]">{answer.summary}</p>
       <div className="divide-y divide-[#eadcc2]/70">
         {answer.rows?.length ? answer.rows.map((row) => (
-          <button key={`${row.title}-${row.detail}`} type="button" onClick={() => onNavigate?.(row.module || answer.route)} className="grid w-full grid-cols-1 gap-2 border-b border-[#eadcc2]/70 py-4 text-left last:border-b-0 md:grid-cols-[260px_1fr_auto] md:items-center hover:bg-[#fffdf8]">
-            <b className="text-[#2f2415]">{row.title}</b>
-            <span className="text-sm text-[#8a7456]">{row.detail}</span>
-            <Pill tone="warn">{row.value}</Pill>
-          </button>
+          <div key={`${row.title}-${row.detail}`} className="grid grid-cols-1 gap-2 border-b border-[#eadcc2]/70 py-4 last:border-b-0 md:grid-cols-[1fr_auto] md:items-center">
+            <button type="button" onClick={() => onNavigate?.(row.module || answer.route)} className="grid w-full grid-cols-1 gap-2 text-left md:grid-cols-[260px_1fr_auto] md:items-center hover:bg-[#fffdf8]">
+              <b className="text-[#2f2415]">{row.title}</b>
+              <span className="text-sm text-[#8a7456]">{row.detail}</span>
+              <Pill tone="warn">{row.value}</Pill>
+            </button>
+            {answer.type === 'clients_debt' && row.orderId ? (
+              <button type="button" disabled={busyId === row.orderId} onClick={() => onRelanceClient?.(row)} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800 disabled:opacity-50">
+                {busyId === row.orderId ? 'Création…' : 'Créer relance'}
+              </button>
+            ) : null}
+          </div>
         )) : <Empty label="Aucune donnée structurée pour cette question." />}
       </div>
       <p className="mt-3 text-xs text-emerald-800">Confiance analyse : {answer.confidence}% · Réponse basée sur les données ERP réelles.</p>
@@ -91,11 +106,47 @@ function StrategicAnswerPanel({ answer, onNavigate }) {
   );
 }
 
-export default function HeyHorizonModule({ dataMap = {}, onOpenAssistant, onNavigate }) {
+function ProactiveRecommendationsPanel({ findings = [], onApply, busyId, onNavigate }) {
+  if (!findings.length) return null;
+  return (
+    <Section icon={Zap} title="Recommandations IA — one-click" action={<button type="button" onClick={() => onNavigate?.('objectifs_croissance')} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black">Vision & Croissance</button>}>
+      <p className="mb-4 text-sm text-[#8a7456]">Le moteur ERP a détecté ces actions. Un clic crée la tâche/alerte ou ouvre le module concerné.</p>
+      <div className="space-y-2">
+        {findings.slice(0, 8).map((finding) => (
+          <div key={finding.id} className="flex flex-col gap-2 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="font-black text-[#2f2415]">{finding.title}</p>
+              <p className="text-xs text-[#8a7456]">{finding.recommended_action || finding.description}</p>
+            </div>
+            <div className="flex flex-wrap gap-2 shrink-0">
+              <button type="button" disabled={busyId === finding.id} onClick={() => onApply(finding, 'navigate')} className="rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-xs font-black text-[#2f2415]">Ouvrir</button>
+              <button type="button" disabled={busyId === finding.id} onClick={() => onApply(finding, 'apply')} className="rounded-xl bg-[#22c55e] px-3 py-2 text-xs font-black text-[#052e16]">
+                {busyId === finding.id ? '…' : finding.auto_action === 'create_task' ? 'Créer tâche' : finding.auto_action === 'create_alert' ? 'Créer alerte' : 'Appliquer'}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+export default function HeyHorizonModule({
+  dataMap = {},
+  onOpenAssistant,
+  onNavigate,
+  onCreateTask,
+  onCreateAlert,
+  onUpdateAlert,
+  onCreateBusinessEvent,
+  existingTasks = [],
+  existingAlerts = [],
+}) {
   const [command, setCommand] = useState('');
   const [draft, setDraft] = useState(null);
   const [strategic, setStrategic] = useState(null);
   const [journalTab, setJournalTab] = useState(false);
+  const [busyId, setBusyId] = useState(null);
   const data = useMemo(() => {
     const stocks = arr(dataMap.stock || dataMap.stocks);
     const sales = arr(dataMap.sales_orders || dataMap.salesOrders);
@@ -109,7 +160,9 @@ export default function HeyHorizonModule({ dataMap = {}, onOpenAssistant, onNavi
     const openAlerts = alertes.filter(open);
     const missingProof = finances.filter((row) => amount(row) > 0 && !row.document_id && !row.proof_url && !row.justificatif_id);
     const aiRecommendations = buildRecommendationsFromData(dataMap);
-    return { stocks, sales, finances, tasks, alertes, documents, lowStocks, unpaid, openTasks, openAlerts, missingProof, aiRecommendations };
+    const health = runErpHealthEngine(dataMap);
+    const proactiveFindings = health.findings.filter((f) => f.recommended_action).slice(0, 12);
+    return { stocks, sales, finances, tasks, alertes, documents, lowStocks, unpaid, openTasks, openAlerts, missingProof, aiRecommendations, proactiveFindings, healthScore: health.score };
   }, [dataMap]);
   const journal = useMemo(() => loadLocalRecommendations(), [draft]);
   const runDraft = (text = command) => {
@@ -128,6 +181,54 @@ export default function HeyHorizonModule({ dataMap = {}, onOpenAssistant, onNavi
     setDraft(next);
     saveLocalRecommendation({ type: 'draft', text: query, module: next.module, confidence_score: next.confidence_score, action: next.action });
   };
+  const actionHandlers = useMemo(() => ({
+    onNavigate,
+    onCreateTask,
+    onCreateAlert,
+    onUpdateAlert,
+    onCreateBusinessEvent,
+    existingTasks,
+    existingAlerts,
+  }), [onNavigate, onCreateTask, onCreateAlert, onUpdateAlert, onCreateBusinessEvent, existingTasks, existingAlerts]);
+
+  const applyFinding = async (finding, mode = 'apply') => {
+    setBusyId(finding.id);
+    try {
+      if (mode === 'navigate') {
+        onNavigate?.(finding.module || finding.module_target || 'objectifs_croissance');
+        return;
+      }
+      const result = await applyOneClickRecommendation(finding, actionHandlers);
+      if (result.createdTasks || result.createdAlerts) {
+        toast.success(`${result.createdTasks || 0} tâche(s), ${result.createdAlerts || 0} alerte(s) créées`);
+      } else if (result.navigated) {
+        toast.success('Module ouvert');
+      }
+      saveLocalRecommendation({ type: 'one_click', text: finding.title, module: finding.module, confidence_score: Math.round((finding.confidence_score || 0.85) * 100), action: finding.recommended_action });
+    } catch (e) {
+      toast.error(e.message || 'Action impossible');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const relanceClient = async (row) => {
+    setBusyId(row.orderId);
+    try {
+      await createClientFollowUpTask({
+        clientName: row.title,
+        amount: row.value,
+        orderId: row.orderId,
+        handlers: actionHandlers,
+      });
+      toast.success(`Relance créée pour ${row.title}`);
+    } catch (e) {
+      toast.error(e.message || 'Relance impossible');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const prefillForm = () => {
     if (!draft) return;
     const req = draftToFormRequest(draft);
@@ -135,12 +236,13 @@ export default function HeyHorizonModule({ dataMap = {}, onOpenAssistant, onNavi
     onNavigate?.(draft.route);
   };
   return <div className="space-y-6"><section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-6 shadow-sm overflow-hidden relative"><div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-emerald-200/50 blur-2xl" /><div className="relative flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div><p className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black"><Bot size={16} /> Assistant ERP</p><h1 className="mt-2 text-3xl font-black text-[#2f2415]">Hey Horizon</h1><p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#7d6a4a]">Détection d'intention, score de confiance, préremplissage formulaire et journal des recommandations — validation humaine obligatoire.</p></div><button type="button" onClick={onOpenAssistant} className="rounded-2xl bg-[#2f2415] px-5 py-3 text-sm font-black text-white shadow-lg"><Mic size={17} className="inline mr-2" /> Ouvrir le panneau</button></div></section>
-    <div className="grid grid-cols-2 gap-3 xl:grid-cols-6"><Stat label="Stocks bas" value={fmtNumber(data.lowStocks.length)} tone={data.lowStocks.length ? 'warn' : 'good'} /><Stat label="Impayés" value={fmtNumber(data.unpaid.length)} tone={data.unpaid.length ? 'warn' : 'good'} /><Stat label="Tâches ouvertes" value={fmtNumber(data.openTasks.length)} tone={data.openTasks.length ? 'warn' : 'good'} /><Stat label="Alertes" value={fmtNumber(data.openAlerts.length)} tone={data.openAlerts.length ? 'warn' : 'good'} /><Stat label="Preuves manquantes" value={fmtNumber(data.missingProof.length)} tone={data.missingProof.length ? 'warn' : 'good'} /><Stat label="Recommandations IA" value={fmtNumber(data.aiRecommendations.length)} tone={data.aiRecommendations.length ? 'warn' : 'good'} /></div>
+    <div className="grid grid-cols-2 gap-3 xl:grid-cols-7"><Stat label="Santé ERP" value={`${data.healthScore}/100`} tone={data.healthScore >= 75 ? 'good' : data.healthScore >= 50 ? 'warn' : 'bad'} /><Stat label="Stocks bas" value={fmtNumber(data.lowStocks.length)} tone={data.lowStocks.length ? 'warn' : 'good'} /><Stat label="Impayés" value={fmtNumber(data.unpaid.length)} tone={data.unpaid.length ? 'warn' : 'good'} /><Stat label="Tâches ouvertes" value={fmtNumber(data.openTasks.length)} tone={data.openTasks.length ? 'warn' : 'good'} /><Stat label="Alertes" value={fmtNumber(data.openAlerts.length)} tone={data.openAlerts.length ? 'warn' : 'good'} /><Stat label="Preuves manquantes" value={fmtNumber(data.missingProof.length)} tone={data.missingProof.length ? 'warn' : 'good'} /><Stat label="Recommandations IA" value={fmtNumber(data.proactiveFindings.length)} tone={data.proactiveFindings.length ? 'warn' : 'good'} /></div>
+    <ProactiveRecommendationsPanel findings={data.proactiveFindings} onApply={applyFinding} busyId={busyId} onNavigate={onNavigate} />
     <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="rounded-3xl border border-[#eadcc2] bg-[#fffdf8] p-4"><label className="text-xs font-black uppercase tracking-[0.2em] text-[#8a7456]">Demander à Hey Horizon</label><div className="mt-3 flex flex-col gap-3 lg:flex-row"><textarea value={command} onChange={(event) => setCommand(event.target.value)} rows={3} placeholder="Exemple : J’ai vendu 10 poulets à Aminata, livré et payé 65 000 FCFA" className="min-h-[96px] flex-1 rounded-2xl border border-[#d6c3a0] bg-white p-4 text-sm text-[#2f2415] outline-none focus:border-emerald-400" /><div className="flex lg:flex-col gap-2"><button type="button" onClick={() => runDraft()} className="rounded-2xl bg-[#22c55e] px-4 py-3 text-sm font-black text-[#052e16]"><Send size={16} className="inline mr-1" /> Préparer</button><button type="button" onClick={onOpenAssistant} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><Mic size={16} className="inline mr-1" /> Voix</button></div></div></div></section>
-    {strategic ? <StrategicAnswerPanel answer={strategic} onNavigate={onNavigate} /> : null}
+    {strategic ? <StrategicAnswerPanel answer={strategic} onNavigate={onNavigate} onRelanceClient={relanceClient} busyId={busyId} /> : null}
     {draft ? <DraftPreview draft={draft} onNavigate={onNavigate} onPrefill={prefillForm} /> : null}
     <Section icon={Sparkles} title="Actions rapides"><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{QUICK_COMMANDS.map((item) => <button key={item.title} type="button" onClick={() => runDraft(item.text)} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left hover:bg-[#dcfce7]"><p className="font-black text-[#2f2415]">{item.title}</p><p className="mt-1 text-sm text-[#7d6a4a]">{item.text}</p><Pill tone="good">{item.target}</Pill></button>)}</div></Section>
-    <Section icon={ClipboardList} title="Informations utiles détectées"><div>{data.lowStocks.slice(0, 4).map((row) => <Row key={`stock-${row.id || label(row)}`} title={label(row)} detail="Stock sous seuil" value="Acheter" tone="warn" />)}{data.missingProof.slice(0, 4).map((row) => <Row key={`proof-${row.id || label(row)}`} title={label(row)} detail="Justificatif manquant" value={fmtCurrency(amount(row))} tone="warn" />)}{data.aiRecommendations.slice(0, 4).map((row) => <Row key={row.id} title={row.title} detail={row.action_recommandee} value={`${row.confidence_score}%`} tone="warn" />)}{!data.lowStocks.length && !data.missingProof.length && !data.aiRecommendations.length ? <Empty label="Aucune priorité automatique détectée." /> : null}</div></Section>
+    <Section icon={ClipboardList} title="Informations utiles détectées"><div>{data.lowStocks.slice(0, 4).map((row) => <Row key={`stock-${row.id || label(row)}`} title={label(row)} detail="Stock sous seuil" value="Acheter" tone="warn" onClick={() => onNavigate?.('achats_stock')} />)}{data.missingProof.slice(0, 4).map((row) => <Row key={`proof-${row.id || label(row)}`} title={label(row)} detail="Justificatif manquant" value={fmtCurrency(amount(row))} tone="warn" onClick={() => onNavigate?.('documents_rapports')} />)}{data.aiRecommendations.slice(0, 4).map((row) => <Row key={row.id} title={row.title} detail={row.action_recommandee} value={`${row.confidence_score}%`} tone="warn" onClick={() => applyFinding({ id: row.id, title: row.title, module: row.module_target, recommended_action: row.action_recommandee, auto_action: row.auto_action, confidence_score: (row.confidence_score || 80) / 100 }, 'apply')} />)}{!data.lowStocks.length && !data.missingProof.length && !data.aiRecommendations.length ? <Empty label="Aucune priorité automatique détectée." /> : null}</div></Section>
     <Section icon={ClipboardList} title="Journal des recommandations IA" action={<button type="button" onClick={() => setJournalTab((v) => !v)} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black">{journalTab ? 'Masquer' : 'Afficher'}</button>}>{journalTab ? (journal.length ? journal.slice(0, 12).map((entry, idx) => <Row key={`${entry.saved_at}-${idx}`} title={entry.action || entry.text || 'Recommandation'} detail={`${entry.module || '—'} · ${entry.saved_at ? new Date(entry.saved_at).toLocaleString('fr-FR') : '—'}`} value={entry.confidence_score ? `${entry.confidence_score}%` : '—'} />) : <Empty label="Aucune recommandation enregistrée." />) : <Empty label="Le journal enregistre chaque analyse Hey Horizon avec score de confiance." />}</Section>
     <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm"><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Modules compris par Hey Horizon</p><div className="mt-3 flex flex-wrap gap-2">{MODULES.map((module) => <Pill key={module} tone="good"><CheckCircle2 size={13} className="inline mr-1" /> {module}</Pill>)}</div></section>
   </div>;

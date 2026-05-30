@@ -1,4 +1,5 @@
 import { computeErpAuditFindings } from './erpRules/index.js';
+import { runErpHealthEngine } from './erpHealthEngine.js';
 import { supabase } from '../lib/supabase.js';
 
 const STORAGE_KEY = 'horizon-ai-recommendations-journal';
@@ -18,13 +19,14 @@ export function saveLocalRecommendation(entry) {
   return journal;
 }
 
-/** Génère des recommandations depuis les règles métier (Phase 1). */
+/** Génère des recommandations depuis le Health Engine (cohérence, risques, prédictions, UX). */
 export function buildRecommendationsFromData(data = {}) {
-  return computeErpAuditFindings(data).map((finding) => ({
+  const health = runErpHealthEngine(data);
+  return health.findings.slice(0, 50).map((finding) => ({
     id: finding.id,
     title: finding.title,
     summary: finding.description || '',
-    recommendation_type: finding.module,
+    recommendation_type: finding.category || finding.module,
     module_target: finding.module,
     priority: finding.severity,
     status: 'nouvelle',
@@ -33,20 +35,21 @@ export function buildRecommendationsFromData(data = {}) {
     confidence_score: Math.round((finding.confidence_score || 0.8) * 100),
     source_data: { source_records: finding.source_records || [] },
     created_by_ai: true,
+    auto_action: finding.auto_action,
   }));
 }
 
 /** Mappe un brouillon Hey Horizon vers openFormModal. */
 export function draftToFormRequest(draft = {}) {
   const typeMap = {
-    vente: { module: 'ventes', form_type: 'sale_record' },
-    achat_stock: { module: 'stock', form_type: 'stock_movement' },
-    elevage: { module: 'animaux', form_type: 'animal_action' },
-    maintenance: { module: 'equipements', form_type: 'maintenance' },
-    finance: { module: 'finances', form_type: 'finance_transaction' },
-    suivi: { module: 'taches', form_type: 'task' },
-    document: { module: 'documents', form_type: 'document' },
-    decision: { module: 'centre_ia', form_type: 'decision' },
+    vente: { module: 'commercial', form_type: 'sale_record' },
+    achat_stock: { module: 'achats_stock', form_type: 'stock_movement' },
+    elevage: { module: 'elevage', form_type: 'animal_action' },
+    maintenance: { module: 'rh', form_type: 'maintenance' },
+    finance: { module: 'finance_pilotage', form_type: 'finance_transaction' },
+    suivi: { module: 'activite_suivi', form_type: 'task' },
+    document: { module: 'documents_rapports', form_type: 'document' },
+    decision: { module: 'objectifs_croissance', form_type: 'decision' },
   };
   const mapped = typeMap[draft.type] || typeMap.decision;
   return {
