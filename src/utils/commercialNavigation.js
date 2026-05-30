@@ -21,7 +21,7 @@ export function moduleForSaleSource(order = {}) {
   return { module: 'commercial', label: 'Commercial', tab: 'Ventes' };
 }
 
-export const ELEVAGE_TABS = ['Résumé', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Graphiques'];
+export const ELEVAGE_TABS = ['Résumé', 'Cycles', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Graphiques'];
 export const ACHATS_STOCK_TABS = ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Graphiques'];
 export const COMMERCIAL_TABS = ['Résumé', 'Ventes', 'Clients', 'Opportunités', 'Graphiques'];
 export const FINANCE_TABS = ['Résumé', 'Trésorerie', 'Créances', 'Dettes', 'Investissements', 'Rentabilité', 'Graphiques'];
@@ -38,6 +38,9 @@ const tabAliases = {
   opportunites: 'Opportunités',
   opportunities: 'Opportunités',
   graphiques: 'Graphiques',
+  cycles: 'Cycles',
+  cycle: 'Cycles',
+  bandes: 'Cycles',
   resume: 'Résumé',
   creances: 'Créances',
   dettes: 'Dettes',

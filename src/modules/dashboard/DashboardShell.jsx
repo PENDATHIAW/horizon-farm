@@ -3,7 +3,7 @@ import { MODULE_REGISTRY } from '../../config/modules.config';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import { openFormModal } from '../../services/formModalManager';
-import { launchHeyHorizonAssistant } from '../../utils/dashboardHeyHorizon.js';
+import { launchHeyHorizonAssistant, launchPilotageSuggestion } from '../../utils/dashboardHeyHorizon.js';
 import { fmtCurrency, fmtNumber } from '../../utils/format';
 
 export function DashboardQuickActions({ onNavigate }) {
@@ -157,23 +157,23 @@ export function DashboardModuleNav({ modules = [], onNavigate }) {
 }
 
 export function DashboardHeyHorizonStrip({ suggestions = [], onNavigate, onOpenAssistant }) {
-  if (!suggestions.length || !onOpenAssistant) return null;
+  if (!suggestions.length) return null;
   return (
     <section className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 shadow-sm">
       <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-emerald-800">
             <Bot size={14} />
-            Hey Horizon — suggestions
+            Pilotage & production
           </p>
-          <p className="text-xs text-emerald-900/80">Questions préparées depuis ton Accueil et tes priorités du jour.</p>
+          <p className="text-xs text-emerald-900/80">Objectifs, bandes, risques — pas les actions terrain Hey Horizon.</p>
         </div>
         <button
           type="button"
-          onClick={() => onNavigate?.('assistant_erp')}
+          onClick={() => onNavigate?.('elevage', { tab: 'Cycles' })}
           className="text-xs font-black text-emerald-900"
         >
-          Ouvrir Assistant ERP →
+          Élevage → Cycles →
         </button>
       </div>
       <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
@@ -189,7 +189,12 @@ export function DashboardHeyHorizonStrip({ suggestions = [], onNavigate, onOpenA
             <button
               key={item.id}
               type="button"
-              onClick={() => launchHeyHorizonAssistant({ query: item.query, onNavigate, onOpenAssistant })}
+              onClick={() => launchPilotageSuggestion({
+                module: item.module,
+                tab: item.tab,
+                productionQuestion: item.productionQuestion,
+                onNavigate,
+              })}
               className={`rounded-xl border p-3 text-left transition ${toneCls}`}
             >
               <p className="font-black text-sm text-[#2f2415]">{item.label}</p>

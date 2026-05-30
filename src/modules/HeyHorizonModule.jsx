@@ -10,6 +10,7 @@ import { buildRecommendationsFromData, buildAssistantJournal, loadLocalRecommend
 import { applyOneClickRecommendation, createClientFollowUpTask } from '../services/heyHorizonRecommendationActions.js';
 import { runErpHealthEngine } from '../services/erpHealthEngine.js';
 import { isHeyHorizonLlmEnabled } from '../services/heyHorizonLlmService.js';
+import { launchProductionQuestion } from '../utils/productionNavigation.js';
 import { countOpenReceivables, enrichAssistantDataMap } from '../utils/assistantDataMap.js';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import AssistantERPInsights from './AssistantERPInsights.jsx';
@@ -24,16 +25,14 @@ const isLowStock = (row = {}) => n(row.quantite ?? row.quantity ?? row.stock) <=
 const label = (row = {}) => row.title || row.nom || row.name || row.libelle || row.produit || row.id || 'Élément';
 
 const QUICK_COMMANDS = [
-  { title: 'Objectif du mois', text: 'Où en suis-je sur mon objectif du mois ?', target: 'Accueil' },
-  { title: 'Objectif annuel', text: 'Où en suis-je sur mon objectif annuel ?', target: 'Objectifs & croissance' },
-  { title: 'Créances clients', text: 'Quels clients me doivent de l\'argent ?', target: 'Commercial' },
-  { title: 'Lots rentables', text: 'Quels sont mes lots les moins rentables ?', target: 'Élevage' },
-  { title: 'Baisse de marge', text: 'Pourquoi ma marge baisse ?', target: 'Finance & Pilotage' },
-  { title: 'Coût équipements', text: 'Quels équipements coûtent le plus cher ?', target: 'Opérations & Ressources' },
-  { title: 'Risques du mois', text: 'Quels sont mes risques du mois ?', target: 'Centre décisionnel' },
   { title: 'Vente complète', text: 'Créer une vente de 10 poulets, livrée et payée en espèces', target: 'Commercial' },
   { title: 'Achat aliment', text: 'J\'ai acheté 10 sacs d\'aliments à 18500 le sac', target: 'Achats & Stock' },
-  { title: 'Preuves finance', text: 'Afficher les dépenses sans justificatif', target: 'Documents & Rapports' },
+  { title: 'Vaccin / soin', text: 'J\'ai vacciné le lot pondeuses A', target: 'Élevage' },
+  { title: 'Ramassage œufs', text: 'J\'ai ramassé 120 œufs ce matin', target: 'Élevage' },
+  { title: 'Mortalité lot', text: 'Mortalité de 5 sujets sur le lot chair B', target: 'Élevage' },
+  { title: 'Dépense', text: 'Ajouter une dépense de 25000 FCFA carburant', target: 'Finance & Pilotage' },
+  { title: 'Tâche', text: 'Créer une tâche nettoyage poulailler demain', target: 'Activité & Suivi' },
+  { title: 'Utiliser stock', text: 'J\'ai utilisé 2 sacs d\'aliment pondeuse', target: 'Achats & Stock' },
 ];
 const MODULES = ['Commercial', 'Élevage', 'Achats & Stock', 'Finance & Pilotage', 'Activité & Suivi', 'Documents & Rapports', 'Opérations & Ressources', 'Centre décisionnel'];
 
@@ -184,6 +183,9 @@ export default function HeyHorizonModule({
     const result = await runCommand(query, { autoOpenForm: true, navigateOnDraft: false });
     setLastSource(result?.source || 'rules');
     if (result?.kind === 'error') toast.error(result.assistantText);
+    if (result?.kind === 'redirect_pilotage' && result.assistantText) {
+      toast.success(result.assistantText.slice(0, 140));
+    }
   };
 
   useEffect(() => {
@@ -253,7 +255,8 @@ export default function HeyHorizonModule({
       // toast handled in hook
     }
   };
-  return <div className="space-y-6"><section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-6 shadow-sm overflow-hidden relative"><div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-emerald-200/50 blur-2xl" /><div className="relative flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div><p className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black"><Bot size={16} /> Assistant ERP</p><h1 className="mt-2 text-3xl font-black text-[#2f2415]">Hey Horizon</h1><p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#7d6a4a]">Moteur hybride : règles métier + IA LLM (fallback). Créances sur l&apos;historique complet ; flux sur la période active. Validation humaine avant écriture ERP.</p>{periodLabel ? <div className="mt-3"><PeriodScopeBadge label={periodLabel} /></div> : null}{isHeyHorizonLlmEnabled() ? <p className="mt-2 text-xs font-black text-emerald-800">Mode IA : auto (LLM si règles insuffisantes)</p> : null}</div><button type="button" onClick={onOpenAssistant} className="rounded-2xl bg-[#2f2415] px-5 py-3 text-sm font-black text-white shadow-lg"><Mic size={17} className="inline mr-2" /> Ouvrir le panneau</button></div></section>
+  return <div className="space-y-6"><section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-6 shadow-sm overflow-hidden relative"><div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-emerald-200/50 blur-2xl" /><div className="relative flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div><p className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black"><Bot size={16} /> Assistant ERP</p><h1 className="mt-2 text-3xl font-black text-[#2f2415]">Hey Horizon</h1><p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#7d6a4a]">Actions terrain : vente, vaccin, stock, œufs, tâche, dépense. Validation humaine avant écriture ERP. Les questions « quand lancer une bande ? » sont dans Élevage → Cycles et Centre décisionnel.</p>{periodLabel ? <div className="mt-3"><PeriodScopeBadge label={periodLabel} /></div> : null}{isHeyHorizonLlmEnabled() ? <p className="mt-2 text-xs font-black text-emerald-800">Mode IA : auto (complète les actions ambiguës uniquement)</p> : null}</div><button type="button" onClick={onOpenAssistant} className="rounded-2xl bg-[#2f2415] px-5 py-3 text-sm font-black text-white shadow-lg"><Mic size={17} className="inline mr-2" /> Ouvrir le panneau</button></div></section>
+    <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-black text-amber-900">Pilotage production & stratégie</p><p className="text-sm text-amber-800">Bandes, cycles, objectifs CA, risques — pas ici.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => launchProductionQuestion({ questionId: 'new_layer_band', onNavigate })} className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white">Élevage → Cycles</button><button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'À traiter' })} className="rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-black text-amber-900">Centre décisionnel</button><button type="button" onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Performance' })} className="rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-black text-amber-900">Objectifs</button></div></section>
     <div className="grid grid-cols-2 gap-3 xl:grid-cols-7"><Stat label="Santé ERP" value={`${data.healthScore}/100`} tone={data.healthScore >= 75 ? 'good' : data.healthScore >= 50 ? 'warn' : 'bad'} /><Stat label="Stocks bas" value={fmtNumber(data.lowStocks.length)} tone={data.lowStocks.length ? 'warn' : 'good'} /><Stat label="Créances" value={fmtNumber(data.openReceivables)} tone={data.openReceivables ? 'warn' : 'good'} /><Stat label="Tâches ouvertes" value={fmtNumber(data.openTasks.length)} tone={data.openTasks.length ? 'warn' : 'good'} /><Stat label="Alertes" value={fmtNumber(data.openAlerts.length)} tone={data.openAlerts.length ? 'warn' : 'good'} /><Stat label="Preuves manquantes" value={fmtNumber(data.missingProof.length)} tone={data.missingProof.length ? 'warn' : 'good'} /><Stat label="Recommandations IA" value={fmtNumber(data.proactiveFindings.length)} tone={data.proactiveFindings.length ? 'warn' : 'good'} /></div>
     <AssistantERPInsights dataMap={enrichedDataMap} onNavigate={onNavigate} />
     <ProactiveRecommendationsPanel findings={data.proactiveFindings} onApply={applyFinding} busyId={busyId} onNavigate={onNavigate} />
@@ -277,7 +280,7 @@ export default function HeyHorizonModule({
       </Section>
     ) : null}
     <AssistantERPQuickAnswers dataMap={enrichedDataMap} onNavigate={onNavigate} />
-    <Section icon={Sparkles} title="Actions rapides"><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{QUICK_COMMANDS.map((item) => <button key={item.title} type="button" onClick={() => runDraft(item.text)} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left hover:bg-[#dcfce7]"><p className="font-black text-[#2f2415]">{item.title}</p><p className="mt-1 text-sm text-[#7d6a4a]">{item.text}</p><Pill tone="good">{item.target}</Pill></button>)}</div></Section>
+    <Section icon={Sparkles} title="Actions rapides terrain"><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{QUICK_COMMANDS.map((item) => <button key={item.title} type="button" onClick={() => runDraft(item.text)} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left hover:bg-[#dcfce7]"><p className="font-black text-[#2f2415]">{item.title}</p><p className="mt-1 text-sm text-[#7d6a4a]">{item.text}</p><Pill tone="good">{item.target}</Pill></button>)}</div></Section>
     <Section icon={ClipboardList} title="Informations utiles détectées"><div>{data.lowStocks.slice(0, 4).map((row) => <Row key={`stock-${row.id || label(row)}`} title={label(row)} detail="Stock sous seuil" value="Acheter" tone="warn" onClick={() => onNavigate?.('achats_stock')} />)}{data.missingProof.slice(0, 4).map((row) => <Row key={`proof-${row.id || label(row)}`} title={label(row)} detail="Justificatif manquant" value={fmtCurrency(amount(row))} tone="warn" onClick={() => onNavigate?.('documents_rapports')} />)}{data.aiRecommendations.slice(0, 4).map((row) => <Row key={row.id} title={row.title} detail={row.action_recommandee} value={`${row.confidence_score}%`} tone="warn" onClick={() => applyFinding({ id: row.id, title: row.title, module: row.module_target, recommended_action: row.action_recommandee, auto_action: row.auto_action, confidence_score: (row.confidence_score || 80) / 100 }, 'apply')} />)}{!data.lowStocks.length && !data.missingProof.length && !data.aiRecommendations.length ? <Empty label="Aucune priorité automatique détectée." /> : null}</div></Section>
     <Section icon={ClipboardList} title="Journal Hey Horizon" action={<button type="button" onClick={() => setJournalTab((v) => !v)} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black">{journalTab ? 'Masquer' : 'Afficher'}</button>}>{journalTab ? (journal.length ? journal.slice(0, 12).map((entry, idx) => <Row key={`${entry.saved_at}-${idx}`} title={entry.action || entry.text || 'Recommandation'} detail={`${entry.module || '—'} · ${entry.source === 'erp' ? 'ERP' : 'local'} · ${entry.saved_at ? new Date(entry.saved_at).toLocaleString('fr-FR') : '—'}`} value={entry.confidence_score ? `${entry.confidence_score}%` : entry.type === 'event' ? 'Event' : '—'} />) : <Empty label="Aucune activité enregistrée." />) : <Empty label="Journal local + événements métier assistant (tâches, validations, one-click)." />}</Section>
     <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm"><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Modules compris par Hey Horizon</p><div className="mt-3 flex flex-wrap gap-2">{MODULES.map((module) => <Pill key={module} tone="good"><CheckCircle2 size={13} className="inline mr-1" /> {module}</Pill>)}</div></section>

@@ -4,7 +4,7 @@ import { readUiSettings } from '../utils/uiPreferences';
 import { readPeriodScope } from '../utils/periodScope';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { sanitizeDashboardMetric } from '../utils/dashboardWorkflows';
-import { buildDashboardHeyHorizonSuggestions } from '../utils/dashboardHeyHorizon.js';
+import { buildDashboardPilotageSuggestions, launchHeyHorizonAssistant, launchPilotageSuggestion } from '../utils/dashboardHeyHorizon.js';
 import { runErpHealthEngine, loadLastHealthEngineSnapshot } from '../services/erpHealthEngine';
 import {
   buildDashboardSummary,
@@ -90,7 +90,7 @@ function buildHealthData(props = {}) {
 
 function Summary({ summary, health, simple, navigate, onOpenAssistant }) {
   const actions = summary.actions.slice(0, simple ? 4 : 8);
-  const heyHorizonSuggestions = buildDashboardHeyHorizonSuggestions(summary.actions, summary.goal);
+  const heyHorizonSuggestions = buildDashboardPilotageSuggestions(summary.actions, summary.goal);
   const sideCards = [];
 
   if (summary.receivable > 0) {

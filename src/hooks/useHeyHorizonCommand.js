@@ -7,6 +7,7 @@ import {
   updateHeyHorizonDraftField,
   validateHeyHorizonDraft,
 } from '../services/heyHorizonAssistantService.js';
+import { launchProductionQuestion } from '../utils/productionNavigation.js';
 
 export default function useHeyHorizonCommand({
   dataMap = {},
@@ -33,8 +34,21 @@ export default function useHeyHorizonCommand({
         allowWeakDraft,
         forceLlm: options.forceLlm ?? forceLlm,
       });
-      setLastSource(result.source || (result.kind === 'strategic' ? 'rules' : 'rules'));
-      if (result.kind === 'strategic' || result.kind === 'llm') {
+      setLastSource(result.source || 'rules');
+      if (result.kind === 'redirect_pilotage') {
+        setStrategic(null);
+        setDraft(null);
+        if (result.productionQuestion) {
+          launchProductionQuestion({
+            questionId: result.productionQuestion,
+            moduleId: result.route,
+            onNavigate,
+          });
+        } else {
+          onNavigate?.(result.route, { tab: result.tab });
+        }
+        toast.success(result.assistantText?.slice(0, 120) || 'Module pilotage ouvert');
+      } else if (result.kind === 'strategic' || result.kind === 'llm') {
         setStrategic(result.strategic);
         setDraft(null);
       } else if (result.kind === 'draft') {

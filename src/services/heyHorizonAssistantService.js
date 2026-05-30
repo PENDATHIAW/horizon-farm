@@ -1,7 +1,8 @@
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase.js';
 import { interpretHorizonCommand, updateHorizonDraft } from './aiIntentEngine.js';
-import { detectStrategicQuery, buildStrategicAnswer } from './heyHorizonStrategicAnswers.js';
+import { detectStrategicQuery } from './heyHorizonStrategicAnswers.js';
+import { detectProductionQuestion } from './productionStrategicAnswers.js';
 import { saveLocalRecommendation } from './aiRecommendationsService.js';
 import { interpretVoiceCommand } from './voiceCommands.js';
 import { enhanceHeyHorizonQuestion, isHeyHorizonLlmEnabled, normalizeLlmDraft } from './heyHorizonLlmService.js';
@@ -134,6 +135,36 @@ export async function refreshHeyHorizonModules(refreshModule, result = {}, draft
   return keys;
 }
 
+const PILOTAGE_REDIRECTS = {
+  month_goal: { module: 'objectifs_croissance', tab: 'Performance', label: 'Objectifs & Croissance' },
+  annual_goal: { module: 'objectifs_croissance', tab: 'Performance', label: 'Objectifs & Croissance' },
+  clients_debt: { module: 'commercial', tab: 'Clients', label: 'Commercial' },
+  lot_profitability: { module: 'elevage', tab: 'Cycles', productionQuestion: 'reform_lot', label: 'Élevage → Cycles' },
+  margin_drop: { module: 'finance_pilotage', tab: 'Rentabilité', label: 'Finance & Pilotage' },
+  equipment_cost: { module: 'rh', tab: 'Coûts', label: 'Opérations & Ressources' },
+  monthly_risks: { module: 'centre_ia', tab: 'Risques', label: 'Centre décisionnel' },
+};
+
+const PRODUCTION_LABELS = {
+  new_chair_band: 'Quand lancer une bande chair ?',
+  new_layer_band: 'Quand ajouter une bande pondeuse ?',
+  reform_lot: 'Quand réformer un lot ?',
+  bovine_cycle: 'Cycle bovins / embouche',
+  feed_autonomy: 'Autonomie aliment',
+  egg_gap: 'Continuité des œufs',
+};
+
+function buildPilotageRedirect({ module, tab, productionQuestion, label }, prefix = '') {
+  const where = `${label}${tab ? ` → ${tab}` : ''}`;
+  return {
+    kind: 'redirect_pilotage',
+    route: module,
+    tab,
+    productionQuestion,
+    assistantText: `${prefix}Ouvre ${where}. Hey Horizon reste pour les actions terrain : vente, vaccin, stock, tâche…`,
+  };
+}
+
 export async function logHeyHorizonValidationEvent(draft, result, onCreateBusinessEvent) {
   if (!onCreateBusinessEvent || !draft) return null;
   try {
@@ -200,24 +231,24 @@ export function processHeyHorizonCommand(rawText = '', { dataMap = {}, currentDr
   if (!cleaned) {
     return { kind: 'empty', assistantText: 'Je suis prêt. Dis-moi l’action à faire : vaccin, vente, stock, œufs, tâche…' };
   }
+  const productionType = detectProductionQuestion(rawText);
+  if (productionType) {
+    return buildPilotageRedirect(
+      {
+        module: 'elevage',
+        tab: 'Cycles',
+        productionQuestion: productionType,
+        label: 'Élevage → Cycles',
+      },
+      `Question production : ${PRODUCTION_LABELS[productionType] || 'analyse bandes'}. `,
+    );
+  }
   const strategicType = detectStrategicQuery(rawText);
   if (strategicType) {
-    const answer = buildStrategicAnswer(strategicType, dataMap);
-    const journalEntry = {
-      type: 'strategic',
-      text: rawText,
-      module: answer?.route,
-      confidence_score: answer?.confidence,
-      action: answer?.title,
-    };
-    saveLocalRecommendation(journalEntry);
-    return {
-      kind: 'strategic',
-      strategic: answer,
-      draft: null,
-      assistantText: answer?.summary || 'Analyse stratégique disponible.',
-      journalEntry,
-    };
+    const redirect = PILOTAGE_REDIRECTS[strategicType];
+    if (redirect) {
+      return buildPilotageRedirect(redirect, 'Pilotage stratégique. ');
+    }
   }
   const nextDraft = currentDraft
     ? updateHorizonDraft(currentDraft, rawText, dataMap)
@@ -290,8 +321,8 @@ export async function processHeyHorizonCommandAsync(rawText = '', options = {}) 
   const base = processHeyHorizonCommand(rawText, options);
   const shouldTryLlm = isHeyHorizonLlmEnabled()
     && (base.llmCandidate || options.forceLlm)
-    && base.kind !== 'strategic'
-    && base.kind !== 'draft';
+    && base.kind !== 'draft'
+    && base.kind !== 'redirect_pilotage';
 
   if (!shouldTryLlm) return base;
 

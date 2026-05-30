@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { buildRecommendationsFromData, loadSupabaseRecommendations, syncRecommendationsToSupabase } from '../services/aiRecommendationsService';
+import VisionCyclesTab from './vision/VisionCyclesTab';
 import VisionForecastsTab from './vision/VisionForecastsTab';
 import VisionFundingTab from './vision/VisionFundingTab';
 import VisionOpportunitiesTab from './vision/VisionOpportunitiesTab';
@@ -41,10 +42,14 @@ export default function VisionCroissanceModule(props) {
     existingAlerts = [],
   } = props;
   const copy = MODULE_COPY[moduleId] || MODULE_COPY.objectifs_croissance;
-  const [tab, setTab] = useState('À traiter');
+  const [tab, setTab] = useState(props.initialTab || 'À traiter');
   const [persistedCount, setPersistedCount] = useState(null);
   const data = useMemo(() => buildVisionData(props), [props, dataMap]);
   const aiCount = useMemo(() => data.healthFindings?.length || buildRecommendationsFromData(dataMap).length, [dataMap, data.healthFindings]);
+
+  useEffect(() => {
+    if (props.initialTab) setTab(props.initialTab);
+  }, [props.initialTab]);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,6 +81,15 @@ export default function VisionCroissanceModule(props) {
       : tab === 'Risques' ? <VisionRisksTab data={data} onNavigate={onNavigate} />
         : tab === 'Opportunités' ? <VisionOpportunitiesTab data={data} onNavigate={onNavigate} />
           : tab === 'Prévisions' ? <VisionForecastsTab data={data} onNavigate={onNavigate} />
+            : tab === 'Cycles' ? (
+              <VisionCyclesTab
+                dataMap={dataMap}
+                lots={props.lots}
+                animaux={props.animaux}
+                productionLogs={props.productionLogs || props.production_oeufs_logs}
+                onNavigate={onNavigate}
+              />
+            )
             : tab === 'Plans' ? <VisionPlansTab data={data} onCreateBusinessPlan={onCreateBusinessPlan} onNavigate={onNavigate} />
               : tab === 'Financeurs' ? <VisionFundingTab data={data} onNavigate={onNavigate} />
                 : <ModuleGraphiquesTab moduleId={moduleId} periodFiltered={props.periodFiltered} {...props} {...dataMap} onNavigate={onNavigate} />;

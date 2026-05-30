@@ -1,14 +1,14 @@
 import { Bot } from 'lucide-react';
-import { launchHeyHorizonAssistant } from '../utils/dashboardHeyHorizon.js';
+import { launchProductionQuestion } from '../utils/productionNavigation.js';
 
 const PRESETS = {
   commercial: [
-    { label: 'Créances', query: 'Quels clients me doivent de l\'argent ?' },
-    { label: 'Objectif mois', query: 'Où en suis-je sur mon objectif du mois ?' },
+    { label: 'Créances', moduleId: 'commercial', tab: 'Clients' },
+    { label: 'Objectif mois', moduleId: 'objectifs_croissance', tab: 'Performance' },
   ],
   elevage: [
-    { label: 'Lots rentables', query: 'Quels sont mes lots les moins rentables ?' },
-    { label: 'Risques', query: 'Quels sont mes risques du mois ?' },
+    { label: 'Nouvelle bande', questionId: 'new_layer_band', moduleId: 'elevage' },
+    { label: 'Bande chair', questionId: 'new_chair_band', moduleId: 'elevage' },
   ],
 };
 
@@ -27,14 +27,15 @@ export default function HeyHorizonQuickAsk({
       </span>
       {items.map((item) => (
         <button
-          key={item.query}
+          key={item.label}
           type="button"
-          onClick={() => launchHeyHorizonAssistant({
-            query: item.query,
-            sourceLabel: moduleKey,
-            onNavigate,
-            onOpenAssistant,
-          })}
+          onClick={() => {
+            if (item.questionId) {
+              launchProductionQuestion({ questionId: item.questionId, moduleId: item.moduleId, onNavigate });
+              return;
+            }
+            onNavigate?.(item.moduleId, { tab: item.tab });
+          }}
           className="rounded-full border border-[#eadcc2] bg-[#fffdf8] px-3 py-1 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]"
         >
           {item.label}

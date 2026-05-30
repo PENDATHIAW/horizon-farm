@@ -16,13 +16,11 @@ import {
 } from '../services/heyHorizonAssistantService.js';
 import { searchERP } from '../services/globalSearchService';
 import { resolveSearchNavigation } from '../utils/commercialNavigation';
+import { launchProductionQuestion } from '../utils/productionNavigation.js';
 
 const hasWakeWord = (value = '') => { const text = normalizeHeyHorizonText(value); return text.includes('hey horizon') || text.includes('he horizon') || text.includes('horizon'); };
 const stripWakeWord = (value = '') => normalizeHeyHorizonText(value).replace(/\b(hey|he|eh|e)\s+horizon\b/g, '').replace(/\bhorizon\b/g, '').trim();
 const QUICK_ACTIONS = [
-  { label: 'Objectif du mois', text: 'Où en suis-je sur mon objectif du mois ?', module: 'assistant_erp', strategic: true },
-  { label: 'Créances clients', text: 'Quels clients me doivent de l\'argent ?', module: 'assistant_erp', strategic: true },
-  { label: 'Risques du mois', text: 'Quels sont mes risques du mois ?', module: 'assistant_erp', strategic: true },
   { label: 'Créer vente', text: 'Créer une vente', module: 'commercial' },
   { label: 'Vaccin / soin', text: 'J’ai vacciné ', module: 'elevage' },
   { label: 'Ramassage œufs', text: 'J’ai ramassé ', module: 'elevage' },
@@ -30,7 +28,7 @@ const QUICK_ACTIONS = [
   { label: 'Mortalité', text: 'Mortalité de ', module: 'elevage' },
   { label: 'Dépense', text: 'Ajouter une dépense de ', module: 'finance_pilotage' },
   { label: 'Tâche', text: 'Créer une tâche ', module: 'activite_suivi' },
-  { label: 'Dossier financeur', text: 'Préparer dossier financeur', module: 'rapports' },
+  { label: 'Cycles bandes', text: '', module: 'elevage', pilotage: 'new_layer_band' },
 ];
 function DraftSummary({ draft }) {
   return <HeyHorizonDraftSummary draft={draft} />;
@@ -113,7 +111,9 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate, onC
     const result = await runCommand(cleaned, { mergeDraft: Boolean(draft), autoOpenForm: true, navigateOnDraft: true });
     const assistantText = result?.assistantText || 'Je n’ai pas assez compris. Choisis une action rapide ou précise : vente, vaccin, stock, œufs, tâche, dépense.';
     setMessages((prev) => [...prev, { role: 'user', text: cleaned }, { role: 'assistant', text: assistantText }]);
-    if (result?.kind === 'strategic') onNavigate?.('assistant_erp');
+    if (result?.kind === 'redirect_pilotage') {
+      // Navigation handled in useHeyHorizonCommand
+    } else if (result?.kind === 'strategic') onNavigate?.('assistant_erp');
     speech.speak(assistantText);
     setQuery('');
     if (fromSilence && terrainMode && voice.supported && !voice.listening) window.setTimeout(() => voice.start(), 900);
@@ -147,10 +147,9 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate, onC
   const closePanel = () => { speech.stop(); setLocalOpen(false); setWakeState('idle'); onClose?.(); };
   const quickAction = (item) => {
     setLocalOpen(true);
-    if (item.strategic) {
-      setQuery(item.text);
-      processCommand(item.text);
-      onNavigate?.('assistant_erp');
+    if (item.pilotage) {
+      launchProductionQuestion({ questionId: item.pilotage, moduleId: 'elevage', onNavigate });
+      setMessages((prev) => [...prev, { role: 'assistant', text: 'Question production : ouverture Élevage → Cycles.' }]);
       return;
     }
     setQuery(item.text);
