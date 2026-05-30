@@ -36,7 +36,7 @@ function DraftSummary({ draft }) {
   return <HeyHorizonDraftSummary draft={draft} />;
 }
 
-export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
+export default function AssistantPanel({ open, onClose, dataMap, onNavigate, onCreateBusinessEvent }) {
   const [localOpen, setLocalOpen] = useState(false);
   const [wakeState, setWakeState] = useState('idle');
   const [terrainMode, setTerrainMode] = useState(false);
@@ -54,7 +54,7 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate }) {
     cancelDraft,
     loadDraft,
     validateDraft,
-  } = useHeyHorizonCommand({ dataMap, onNavigate });
+  } = useHeyHorizonCommand({ dataMap, onNavigate, onCreateBusinessEvent });
   const voice = useVoiceRecognition({ continuous: terrainMode, autoRestart: terrainMode, onInterim: (text) => { if (!text) return; if (hasWakeWord(text) && wakeState === 'idle') wakeHorizon(); if (terrainMode && wakeState === 'idle') setWakeState('listening'); setLocalOpen(true); const withoutWake = stripWakeWord(text); setQuery(withoutWake || text); scheduleSilenceProcessing(withoutWake || text); }, onResult: (text) => { if (!text) return; if (hasWakeWord(text) && wakeState === 'idle') wakeHorizon(); setLocalOpen(true); scheduleSilenceProcessing(stripWakeWord(text) || text); } });
 
   const wakeHorizon = () => { setWakeState('wake_detected'); window.setTimeout(() => setWakeState('circuit'), 120); window.setTimeout(() => setWakeState('sun'), 1450); window.setTimeout(() => { setWakeState('idle'); setLocalOpen(true); }, 3000); };

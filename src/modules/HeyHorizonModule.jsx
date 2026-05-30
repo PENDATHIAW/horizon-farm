@@ -2,12 +2,14 @@ import { Bot, CheckCircle2, ClipboardList, Mic, Send, Sparkles, Zap } from 'luci
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import HeyHorizonDraftSummary from '../components/HeyHorizonDraftSummary.jsx';
+import HeyHorizonFeedbackBar from '../components/HeyHorizonFeedbackBar.jsx';
 import HorizonDraftPanel from '../components/HorizonDraftPanel.jsx';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import useHeyHorizonCommand from '../hooks/useHeyHorizonCommand.js';
 import { buildRecommendationsFromData, buildAssistantJournal, loadLocalRecommendations, saveLocalRecommendation } from '../services/aiRecommendationsService';
 import { applyOneClickRecommendation, createClientFollowUpTask } from '../services/heyHorizonRecommendationActions.js';
 import { runErpHealthEngine } from '../services/erpHealthEngine.js';
+import { isHeyHorizonLlmEnabled } from '../services/heyHorizonLlmService.js';
 import { countOpenReceivables, enrichAssistantDataMap } from '../utils/assistantDataMap.js';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import AssistantERPInsights from './AssistantERPInsights.jsx';
@@ -23,6 +25,7 @@ const label = (row = {}) => row.title || row.nom || row.name || row.libelle || r
 
 const QUICK_COMMANDS = [
   { title: 'Objectif du mois', text: 'Où en suis-je sur mon objectif du mois ?', target: 'Accueil' },
+  { title: 'Objectif annuel', text: 'Où en suis-je sur mon objectif annuel ?', target: 'Objectifs & croissance' },
   { title: 'Créances clients', text: 'Quels clients me doivent de l\'argent ?', target: 'Commercial' },
   { title: 'Lots rentables', text: 'Quels sont mes lots les moins rentables ?', target: 'Élevage' },
   { title: 'Baisse de marge', text: 'Pourquoi ma marge baisse ?', target: 'Finance & Pilotage' },
@@ -45,7 +48,7 @@ function Row({ title, detail, value, tone = 'neutral', onClick }) {
 }
 function Empty({ label }) { return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-5 text-sm text-[#8a7456]">{label}</div>; }
 
-function StrategicAnswerPanel({ answer, onNavigate, onRelanceClient, busyId }) {
+function StrategicAnswerPanel({ answer, onNavigate, onRelanceClient, busyId, lastQuery, lastSource, onFeedback }) {
   if (!answer) return null;
   return (
     <Section icon={Sparkles} title={answer.title} action={<button type="button" onClick={() => onNavigate?.(answer.route)} className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white">Ouvrir module</button>}>
@@ -67,6 +70,13 @@ function StrategicAnswerPanel({ answer, onNavigate, onRelanceClient, busyId }) {
         )) : <Empty label="Aucune donnée structurée pour cette question." />}
       </div>
       <p className="mt-3 text-xs text-emerald-800">Confiance analyse : {answer.confidence}% · Réponse basée sur les données ERP réelles.</p>
+      <HeyHorizonFeedbackBar
+        query={lastQuery}
+        answerText={answer.summary}
+        source={lastSource || (answer.type === 'llm_answer' ? 'llm' : 'rules')}
+        confidence={answer.confidence}
+        onFeedback={onFeedback}
+      />
     </Section>
   );
 }
@@ -118,6 +128,8 @@ export default function HeyHorizonModule({
   const [command, setCommand] = useState('');
   const [journalTab, setJournalTab] = useState(false);
   const [busyId, setBusyId] = useState(null);
+  const [lastQuery, setLastQuery] = useState('');
+  const [lastSource, setLastSource] = useState('rules');
   const enrichedDataMap = useMemo(
     () => enrichAssistantDataMap(dataMap, {
       salesOrdersAll,
@@ -137,7 +149,7 @@ export default function HeyHorizonModule({
     updateDraftField,
     cancelDraft,
     validateDraft,
-  } = useHeyHorizonCommand({ dataMap: enrichedDataMap, onNavigate, allowWeakDraft: true });
+  } = useHeyHorizonCommand({ dataMap: enrichedDataMap, onNavigate, allowWeakDraft: true, onCreateBusinessEvent });
   const data = useMemo(() => {
     const stocks = arr(dataMap.stock || dataMap.stocks);
     const salesAll = arr(enrichedDataMap.salesOrdersAll);
@@ -168,7 +180,9 @@ export default function HeyHorizonModule({
     const query = text || command;
     if (!String(query || '').trim()) return;
     setCommand(query);
+    setLastQuery(query);
     const result = await runCommand(query, { autoOpenForm: true, navigateOnDraft: false });
+    setLastSource(result?.source || 'rules');
     if (result?.kind === 'error') toast.error(result.assistantText);
   };
 
@@ -239,12 +253,12 @@ export default function HeyHorizonModule({
       // toast handled in hook
     }
   };
-  return <div className="space-y-6"><section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-6 shadow-sm overflow-hidden relative"><div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-emerald-200/50 blur-2xl" /><div className="relative flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div><p className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black"><Bot size={16} /> Assistant ERP</p><h1 className="mt-2 text-3xl font-black text-[#2f2415]">Hey Horizon</h1><p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#7d6a4a]">Même moteur que le panneau global : intention, brouillon, validation humaine. Créances sur l&apos;historique complet ; flux sur la période active.</p>{periodLabel ? <div className="mt-3"><PeriodScopeBadge label={periodLabel} /></div> : null}</div><button type="button" onClick={onOpenAssistant} className="rounded-2xl bg-[#2f2415] px-5 py-3 text-sm font-black text-white shadow-lg"><Mic size={17} className="inline mr-2" /> Ouvrir le panneau</button></div></section>
+  return <div className="space-y-6"><section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-6 shadow-sm overflow-hidden relative"><div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-emerald-200/50 blur-2xl" /><div className="relative flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div><p className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black"><Bot size={16} /> Assistant ERP</p><h1 className="mt-2 text-3xl font-black text-[#2f2415]">Hey Horizon</h1><p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#7d6a4a]">Moteur hybride : règles métier + IA LLM (fallback). Créances sur l&apos;historique complet ; flux sur la période active. Validation humaine avant écriture ERP.</p>{periodLabel ? <div className="mt-3"><PeriodScopeBadge label={periodLabel} /></div> : null}{isHeyHorizonLlmEnabled() ? <p className="mt-2 text-xs font-black text-emerald-800">Mode IA : auto (LLM si règles insuffisantes)</p> : null}</div><button type="button" onClick={onOpenAssistant} className="rounded-2xl bg-[#2f2415] px-5 py-3 text-sm font-black text-white shadow-lg"><Mic size={17} className="inline mr-2" /> Ouvrir le panneau</button></div></section>
     <div className="grid grid-cols-2 gap-3 xl:grid-cols-7"><Stat label="Santé ERP" value={`${data.healthScore}/100`} tone={data.healthScore >= 75 ? 'good' : data.healthScore >= 50 ? 'warn' : 'bad'} /><Stat label="Stocks bas" value={fmtNumber(data.lowStocks.length)} tone={data.lowStocks.length ? 'warn' : 'good'} /><Stat label="Créances" value={fmtNumber(data.openReceivables)} tone={data.openReceivables ? 'warn' : 'good'} /><Stat label="Tâches ouvertes" value={fmtNumber(data.openTasks.length)} tone={data.openTasks.length ? 'warn' : 'good'} /><Stat label="Alertes" value={fmtNumber(data.openAlerts.length)} tone={data.openAlerts.length ? 'warn' : 'good'} /><Stat label="Preuves manquantes" value={fmtNumber(data.missingProof.length)} tone={data.missingProof.length ? 'warn' : 'good'} /><Stat label="Recommandations IA" value={fmtNumber(data.proactiveFindings.length)} tone={data.proactiveFindings.length ? 'warn' : 'good'} /></div>
     <AssistantERPInsights dataMap={enrichedDataMap} onNavigate={onNavigate} />
     <ProactiveRecommendationsPanel findings={data.proactiveFindings} onApply={applyFinding} busyId={busyId} onNavigate={onNavigate} />
     <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="rounded-3xl border border-[#eadcc2] bg-[#fffdf8] p-4"><label className="text-xs font-black uppercase tracking-[0.2em] text-[#8a7456]">Demander à Hey Horizon</label><div className="mt-3 flex flex-col gap-3 lg:flex-row"><textarea value={command} onChange={(event) => setCommand(event.target.value)} rows={3} placeholder="Exemple : J’ai vendu 10 poulets à Aminata, livré et payé 65 000 FCFA" className="min-h-[96px] flex-1 rounded-2xl border border-[#d6c3a0] bg-white p-4 text-sm text-[#2f2415] outline-none focus:border-emerald-400" /><div className="flex lg:flex-col gap-2"><button type="button" onClick={() => runDraft()} className="rounded-2xl bg-[#22c55e] px-4 py-3 text-sm font-black text-[#052e16]"><Send size={16} className="inline mr-1" /> Préparer</button><button type="button" onClick={onOpenAssistant} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><Mic size={16} className="inline mr-1" /> Voix</button></div></div></div></section>
-    {strategic ? <StrategicAnswerPanel answer={strategic} onNavigate={onNavigate} onRelanceClient={relanceClient} busyId={busyId} /> : null}
+    {strategic ? <StrategicAnswerPanel answer={strategic} onNavigate={onNavigate} onRelanceClient={relanceClient} busyId={busyId} lastQuery={lastQuery} lastSource={lastSource} onFeedback={(rating) => toast.success(rating === 'up' ? 'Merci pour le retour' : 'Retour enregistré — on améliorera la réponse')} /> : null}
     {draft ? (
       <Section icon={Sparkles} title="Brouillon Hey Horizon">
         <HeyHorizonDraftSummary draft={draft} />

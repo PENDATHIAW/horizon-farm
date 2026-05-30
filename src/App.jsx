@@ -180,6 +180,7 @@ export default function App() {
       businessEvents: rows(c.business_events),
       productionLogs: rows(c.production_oeufs_logs),
       onNavigate: setActive,
+      onOpenAssistant: () => setAssistantOpen(true),
       onCreateTask: c.taches.create,
       onCreateAlert: c.alertes_center.create,
       onUpdateAlert: c.alertes_center.update,
@@ -213,6 +214,7 @@ export default function App() {
       documents: rows(c.documents),
       alertes: rows(c.alertes_center),
       onNavigate: navigateModule,
+      onOpenAssistant: () => setAssistantOpen(true),
       onRefreshWorkflow: refreshSalesWorkflowFn,
       onCreate: c.sales_orders.create,
       onUpdate: c.sales_orders.update,
@@ -454,7 +456,7 @@ export default function App() {
 
   return <AppLayout navItems={navItems} active={active} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => setAssistantOpen(true)} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange}>
     <ErrorBoundary title="Module indisponible"><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...activeModuleProps} periodLabel={periodLabel} /></Suspense></ErrorBoundary>
-    <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={scopedAssistantDataMap} onNavigate={setActive} />
+    <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={scopedAssistantDataMap} onNavigate={setActive} onCreateBusinessEvent={c.business_events.create} />
     <ErpInterconnectionBridge cruds={c} />
     <AppNotificationManager />
   </AppLayout>;

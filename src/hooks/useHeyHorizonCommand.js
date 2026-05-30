@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { useAppData } from '../context/AppContext';
 import {
   openHeyHorizonForm,
-  processHeyHorizonCommand,
+  processHeyHorizonCommandAsync,
   updateHeyHorizonDraftField,
   validateHeyHorizonDraft,
 } from '../services/heyHorizonAssistantService.js';
@@ -12,24 +12,29 @@ export default function useHeyHorizonCommand({
   dataMap = {},
   onNavigate,
   allowWeakDraft = false,
+  onCreateBusinessEvent,
+  forceLlm = false,
 } = {}) {
   const { refreshModule } = useAppData();
   const [draft, setDraft] = useState(null);
   const [strategic, setStrategic] = useState(null);
   const [isValidating, setIsValidating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [lastSource, setLastSource] = useState('rules');
 
   const runCommand = useCallback(async (rawText = '', options = {}) => {
     const text = String(rawText || '').trim();
     if (!text) return null;
     setIsProcessing(true);
     try {
-      const result = processHeyHorizonCommand(text, {
+      const result = await processHeyHorizonCommandAsync(text, {
         dataMap,
         currentDraft: options.mergeDraft ? draft : null,
         allowWeakDraft,
+        forceLlm: options.forceLlm ?? forceLlm,
       });
-      if (result.kind === 'strategic') {
+      setLastSource(result.source || (result.kind === 'strategic' ? 'rules' : 'rules'));
+      if (result.kind === 'strategic' || result.kind === 'llm') {
         setStrategic(result.strategic);
         setDraft(null);
       } else if (result.kind === 'draft') {
@@ -51,7 +56,7 @@ export default function useHeyHorizonCommand({
     } finally {
       setIsProcessing(false);
     }
-  }, [allowWeakDraft, dataMap, draft, onNavigate]);
+  }, [allowWeakDraft, dataMap, draft, forceLlm, onNavigate]);
 
   const updateDraftField = useCallback((key, value) => {
     setDraft((current) => updateHeyHorizonDraftField(current, key, value));
@@ -72,7 +77,7 @@ export default function useHeyHorizonCommand({
     if (!draft || isValidating) return null;
     setIsValidating(true);
     try {
-      const result = await validateHeyHorizonDraft(draft, { refreshModule, onNavigate });
+      const result = await validateHeyHorizonDraft(draft, { refreshModule, onNavigate, onCreateBusinessEvent });
       if (result.openedForm) {
         toast.success(result.message);
       } else {
@@ -86,13 +91,14 @@ export default function useHeyHorizonCommand({
     } finally {
       setIsValidating(false);
     }
-  }, [draft, isValidating, onNavigate, refreshModule]);
+  }, [draft, isValidating, onCreateBusinessEvent, onNavigate, refreshModule]);
 
   return {
     draft,
     strategic,
     isValidating,
     isProcessing,
+    lastSource,
     runCommand,
     updateDraftField,
     cancelDraft,

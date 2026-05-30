@@ -43,6 +43,7 @@ function withPeriodContext(dataMap, summary) {
 }
 
 export function detectStrategicQuery(text = '') {
+  if (matchQuery(text, [/objectif.*annuel/, 'objectif de l\'année', 'objectif de l annee', 'objectif année', 'objectif annee', 'bp annuel', 'business plan', /ca.*annuel/, 'où en suis.*année', 'ou en suis.*annee'])) return 'annual_goal';
   if (matchQuery(text, [/objectif.*mois/, 'objectif du mois', 'où en suis', 'ou en suis', 'mon objectif', 'progression objectif', /ca.*objectif/, 'atteint.*objectif', 'objectif période', 'objectif periode'])) return 'month_goal';
   if (matchQuery(text, ['client', 'doivent', 'doit', 'créance', 'creance', 'impayé', 'impaye', 'relancer', 'encaisser'])) return 'clients_debt';
   if (matchQuery(text, [/lot.*rentab/, /rentab.*lot/, 'moins rentable', 'peu rentable', 'lot le plus'])) return 'lot_profitability';
@@ -65,6 +66,56 @@ export function buildStrategicAnswer(type, dataMap = {}) {
   const health = runErpHealthEngine(dataMap);
 
   switch (type) {
+    case 'annual_goal': {
+      const salesAll = arr(dataMap.salesOrdersAll || dataMap.sales_orders || dataMap.salesOrders);
+      const performance = buildGoalPerformance(dataMap, { periodScope: { mode: 'all' } });
+      const global = performance?.global || {};
+      const goal = computeDashboardPeriodGoal(salesAll, { mode: 'all' }, {
+        annualTarget: global.annualTarget,
+      });
+      const attainment = Number(goal.periodAttainment ?? goal.annualAttainment ?? 0);
+      const realized = Number(goal.periodRealized ?? goal.annualRealized ?? 0);
+      const target = Number(goal.periodTarget ?? goal.annualTarget ?? 0);
+      const remaining = Number(goal.periodRemaining ?? goal.annualRemaining ?? 0);
+      const currentYear = new Date().getFullYear();
+      const activities = arr(performance?.activities).filter((a) => a.target > 0).slice(0, 5);
+      return {
+        type,
+        title: `Objectif annuel ${currentYear}`,
+        summary: withPeriodContext(
+          dataMap,
+          `CA ${currentYear} : ${fmtCurrency(realized)} / ${fmtCurrency(target)} (${attainment}%). Reste ${fmtCurrency(remaining)} sur le BP.`,
+        ),
+        rows: [
+          {
+            title: 'CA annuel',
+            detail: `${attainment}% du BP`,
+            value: fmtCurrency(realized),
+            module: 'objectifs_croissance',
+          },
+          {
+            title: 'Encaissements',
+            detail: `Taux encaissement ${global.cashRate ?? 0}%`,
+            value: fmtCurrency(global.encaisse ?? 0),
+            module: 'finance_pilotage',
+          },
+          {
+            title: 'Marge',
+            detail: `Dépenses ${fmtCurrency(global.depenses ?? 0)}`,
+            value: fmtCurrency(global.marge ?? 0),
+            module: 'finance_pilotage',
+          },
+          ...activities.map((a) => ({
+            title: a.label || a.activity,
+            detail: `Objectif activité ${fmtCurrency(a.target)}`,
+            value: `${a.attainment ?? 0}%`,
+            module: 'objectifs_croissance',
+          })),
+        ],
+        route: 'objectifs_croissance',
+        confidence: 93,
+      };
+    }
     case 'month_goal': {
       const scope = normalizePeriodScope(dataMap.periodScope || { mode: 'all' });
       const salesAll = arr(dataMap.salesOrdersAll || dataMap.sales_orders || dataMap.salesOrders);

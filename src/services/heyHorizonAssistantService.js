@@ -4,6 +4,7 @@ import { interpretHorizonCommand, updateHorizonDraft } from './aiIntentEngine.js
 import { detectStrategicQuery, buildStrategicAnswer } from './heyHorizonStrategicAnswers.js';
 import { saveLocalRecommendation } from './aiRecommendationsService.js';
 import { interpretVoiceCommand } from './voiceCommands.js';
+import { enhanceHeyHorizonQuestion, isHeyHorizonLlmEnabled, normalizeLlmDraft } from './heyHorizonLlmService.js';
 
 export const HEY_HORIZON_MODULE_LABELS = {
   dashboard: 'Accueil',
@@ -133,7 +134,23 @@ export async function refreshHeyHorizonModules(refreshModule, result = {}, draft
   return keys;
 }
 
-export async function validateHeyHorizonDraft(draft, { refreshModule, onNavigate } = {}) {
+export async function logHeyHorizonValidationEvent(draft, result, onCreateBusinessEvent) {
+  if (!onCreateBusinessEvent || !draft) return null;
+  try {
+    return await onCreateBusinessEvent({
+      event_type: 'assistant_validation',
+      title: draft.ui?.title || draft.intent || 'Validation Hey Horizon',
+      description: result?.message || (result?.executed ? 'Action exécutée via Hey Horizon' : 'Brouillon validé'),
+      module_source: 'assistant_erp',
+      entity_type: draft.primary_module || 'assistant_erp',
+      metadata: { intent: draft.intent, form_type: draft.form_type, executed: Boolean(result?.executed) },
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function validateHeyHorizonDraft(draft, { refreshModule, onNavigate, onCreateBusinessEvent } = {}) {
   if (!draft) throw new Error('Aucun brouillon à valider');
   if (shouldAutoOpenHeyHorizonForm(draft)) {
     openHeyHorizonForm(draft, onNavigate);
@@ -159,6 +176,7 @@ export async function validateHeyHorizonDraft(draft, { refreshModule, onNavigate
     throw new Error(result.message || result.execution?.results?.find?.((item) => item.error)?.error || 'Validation impossible');
   }
   await refreshHeyHorizonModules(refreshModule, result, draft);
+  await logHeyHorizonValidationEvent(draft, result, onCreateBusinessEvent);
   window.dispatchEvent(new CustomEvent('horizon-assistant-executed', { detail: result }));
   if (draft.primary_module) onNavigate?.(draft.primary_module);
   return result;
@@ -209,22 +227,42 @@ export function processHeyHorizonCommand(rawText = '', { dataMap = {}, currentDr
   }
   if (nextDraft?.status === 'unsupported') {
     const fallback = interpretVoiceCommand(rawText, dataMap);
+    if (fallback.answer && fallback.moduleKey) {
+      return {
+        kind: 'fallback',
+        draft: null,
+        assistantText: fallback.answer,
+        fallbackModule: fallback.moduleKey,
+        source: 'voice_commands',
+      };
+    }
     return {
       kind: 'error',
       draft: null,
       assistantText: fallback.answer || 'Commande non reconnue. Essaie une action rapide ou précise.',
       fallbackModule: fallback.moduleKey,
+      llmCandidate: true,
     };
   }
   const weak = !allowWeakDraft && isWeakHeyHorizonDraft(nextDraft, rawText);
   const draftText = weak ? null : buildHeyHorizonAssistantText(nextDraft);
   if (!draftText) {
     const fallback = interpretVoiceCommand(rawText, dataMap);
+    if (fallback.answer && fallback.moduleKey) {
+      return {
+        kind: 'fallback',
+        draft: null,
+        assistantText: fallback.answer,
+        fallbackModule: fallback.moduleKey,
+        source: 'voice_commands',
+      };
+    }
     return {
       kind: 'error',
       draft: null,
       assistantText: fallback.answer || 'Je n’ai pas assez compris. Précise vente, vaccin, stock, œufs, tâche ou dépense.',
       fallbackModule: fallback.moduleKey,
+      llmCandidate: true,
     };
   }
   const journalEntry = {
@@ -243,4 +281,74 @@ export function processHeyHorizonCommand(rawText = '', { dataMap = {}, currentDr
     journalEntry,
     autoOpenForm: shouldAutoOpenHeyHorizonForm(nextDraft),
   };
+}
+
+/**
+ * Traite une commande avec fallback LLM hybride (règles → voiceCommands → /api/assistant/enhance).
+ */
+export async function processHeyHorizonCommandAsync(rawText = '', options = {}) {
+  const base = processHeyHorizonCommand(rawText, options);
+  const shouldTryLlm = isHeyHorizonLlmEnabled()
+    && (base.llmCandidate || options.forceLlm)
+    && base.kind !== 'strategic'
+    && base.kind !== 'draft';
+
+  if (!shouldTryLlm) return base;
+
+  try {
+    const enhanced = await enhanceHeyHorizonQuestion(rawText, options.dataMap || {}, { forceLlm: options.forceLlm });
+    if (enhanced.mode === 'draft' && enhanced.draft) {
+      const llmDraft = normalizeLlmDraft(enhanced.draft, rawText);
+      if (llmDraft) {
+        const journalEntry = {
+          type: 'draft',
+          text: rawText,
+          module: llmDraft.primary_module,
+          confidence_score: enhanced.confidence,
+          action: llmDraft.ui?.title || llmDraft.intent,
+          source_engine: enhanced.source,
+        };
+        saveLocalRecommendation(journalEntry);
+        return {
+          kind: 'draft',
+          strategic: null,
+          draft: llmDraft,
+          assistantText: enhanced.text || buildHeyHorizonAssistantText(llmDraft) || 'Brouillon IA préparé — vérifie avant validation.',
+          journalEntry,
+          source: enhanced.source,
+          llmEnhanced: true,
+        };
+      }
+    }
+
+    const journalEntry = {
+      type: enhanced.source === 'llm' ? 'llm_answer' : 'enhanced_answer',
+      text: rawText,
+      module: enhanced.moduleKey || 'assistant_erp',
+      confidence_score: enhanced.confidence,
+      action: enhanced.text?.slice?.(0, 80),
+      source_engine: enhanced.source,
+    };
+    saveLocalRecommendation(journalEntry);
+
+    return {
+      kind: enhanced.source === 'llm' ? 'llm' : 'fallback',
+      strategic: enhanced.source === 'llm' ? {
+        type: 'llm_answer',
+        title: 'Hey Horizon IA',
+        summary: enhanced.text,
+        rows: [],
+        route: enhanced.moduleKey || 'assistant_erp',
+        confidence: enhanced.confidence,
+      } : null,
+      draft: null,
+      assistantText: enhanced.text || base.assistantText,
+      journalEntry,
+      source: enhanced.source,
+      llmEnhanced: enhanced.source === 'llm',
+      fallbackModule: enhanced.moduleKey || base.fallbackModule,
+    };
+  } catch {
+    return base;
+  }
 }

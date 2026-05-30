@@ -209,7 +209,7 @@ export default function CommercialRecoveredModule(props) {
 
   return (
     <div className="space-y-4">
-      <CommercialModuleHeader tab={tab} setTab={setTab} healthScore={data.healthScore} periodLabel={props.periodLabel} badges={{ receivable: data.receivable, todo: todoBadge, tabs: { Ventes: data.openSalesCount, Clients: data.clientsDebtCount, Opportunités: data.openOpportunities.length } }} />
+      <CommercialModuleHeader tab={tab} setTab={setTab} healthScore={data.healthScore} periodLabel={props.periodLabel} onNavigate={props.onNavigate} onOpenAssistant={props.onOpenAssistant} badges={{ receivable: data.receivable, todo: todoBadge, tabs: { Ventes: data.openSalesCount, Clients: data.clientsDebtCount, Opportunités: data.openOpportunities.length } }} />
       {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onNewSale={openNewSale} /> : null}
       {tab === 'Ventes' ? <VentesV3 {...salesProps} /> : null}
       {tab === 'Clients' ? <ClientsReadable {...clientProps} /> : null}
