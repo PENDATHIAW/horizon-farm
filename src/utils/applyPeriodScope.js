@@ -2,6 +2,13 @@ import { filterRowsByPeriodScope, isAllTimeScope, normalizePeriodScope } from '.
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 
+/** Données de référence non filtrées par période (objectifs annuels, comparaisons). */
+export const PERIOD_UNFILTERED_PROP_KEYS = new Set([
+  'salesOrdersAll',
+  'paymentsAll',
+  'transactionsAll',
+]);
+
 /** Clés de props contenant des enregistrements datés — filtrées globalement. */
 export const PERIOD_FILTER_PROP_KEYS = new Set([
   'rows',
@@ -23,12 +30,6 @@ export const PERIOD_FILTER_PROP_KEYS = new Set([
   'orderItems',
   'businessEvents',
   'business_events',
-  'taches',
-  'tasks',
-  'existingTasks',
-  'alertes',
-  'alertes_center',
-  'existingAlerts',
   'tracabilite',
   'auditLogs',
   'audit_logs',
@@ -52,8 +53,6 @@ export const PERIOD_FILTER_DATA_MAP_KEYS = new Set([
   'production_oeufs_logs',
   'alimentation_logs',
   'documents',
-  'taches',
-  'alertes_center',
   'business_events',
   'tracabilite',
   'audit_logs',
@@ -90,6 +89,7 @@ export function applyPeriodScopeToProps(props = {}, scope = {}) {
 
   const next = { ...props, periodScope: normalized, periodFiltered: true };
   Object.keys(next).forEach((key) => {
+    if (PERIOD_UNFILTERED_PROP_KEYS.has(key)) return;
     if (!PERIOD_FILTER_PROP_KEYS.has(key)) return;
     next[key] = filterValue(next[key], normalized);
   });

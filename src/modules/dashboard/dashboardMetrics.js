@@ -1,10 +1,10 @@
-import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine';
+import { buildDecisionCenterPlan, annualRevenueTarget, monthlyRevenueTargets } from '../../services/growthDecisionEngine';
 import { remainingForOrder } from '../../utils/salesStatuses';
 import { buildDashboardTodayActions } from '../../utils/dashboardWorkflows';
 import { avicoleActiveCount, avicoleHasActiveBirds } from '../../utils/avicoleMetrics';
 import { resolveAvicoleLotKind } from '../../utils/avicoleActivity';
 import { toNumber, fmtCurrency } from '../../utils/format';
-import { normalizePeriodScope, resolvePeriodContext, rowMatchesMonthKeys } from '../../utils/periodScope';
+import { formatPeriodScopeLabel, normalizePeriodScope, resolvePeriodContext, rowMatchesMonthKeys } from '../../utils/periodScope';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const lower = (value) => String(value || '').trim().toLowerCase();
@@ -327,6 +327,79 @@ const rowYear = (row = {}) => {
   return Number.isNaN(parsed.getTime()) ? null : parsed.getFullYear();
 };
 
+function monthTargetForKey(monthKey, annualTarget = annualRevenueTarget) {
+  const month = Number(String(monthKey || '').split('-')[1]) - 1;
+  return Number(monthlyRevenueTargets[month] || annualTarget / 12) || 0;
+}
+
+function sumSalesAmount(orders = [], monthKeys = null) {
+  return arr(orders)
+    .filter((row) => !monthKeys || rowMatchesMonthKeys(row, monthKeys))
+    .reduce((sum, row) => sum + money(row), 0);
+}
+
+/** Objectifs alignés sur la période ERP sélectionnée. */
+export function computeDashboardPeriodGoal(salesOrders = [], periodScope = {}, goalBase = {}) {
+  const { mode, monthKeys, isSingleMonth } = resolvePeriodContext(periodScope);
+  const annualTarget = Number(goalBase.annualTarget || annualRevenueTarget);
+  const periodSubtitle = formatPeriodScopeLabel(periodScope);
+  const currentYear = new Date().getFullYear();
+  const yearRealizedCurrentYear = arr(salesOrders)
+    .filter((row) => rowYear(row) === currentYear)
+    .reduce((sum, row) => sum + money(row), 0);
+  const allTimeRealized = sumSalesAmount(salesOrders, null);
+
+  if (mode === 'all') {
+    const periodAttainment = annualTarget ? Math.round((yearRealizedCurrentYear / annualTarget) * 100) : 0;
+    return {
+      periodMode: 'all',
+      periodLabel: 'Objectif annuel',
+      periodSubtitle,
+      periodTarget: annualTarget,
+      periodRealized: yearRealizedCurrentYear,
+      periodAttainment,
+      periodRemaining: Math.max(0, annualTarget - yearRealizedCurrentYear),
+      secondaryLabel: 'CA total cumulé',
+      secondaryTarget: null,
+      secondaryRealized: allTimeRealized,
+      secondaryAttainment: null,
+      secondaryRemaining: null,
+      annualTarget,
+      annualRealized: yearRealizedCurrentYear,
+      annualAttainment: periodAttainment,
+      annualRemaining: Math.max(0, annualTarget - yearRealizedCurrentYear),
+    };
+  }
+
+  const periodTarget = monthKeys.reduce((sum, key) => sum + monthTargetForKey(key, annualTarget), 0);
+  const periodRealized = sumSalesAmount(salesOrders, monthKeys);
+  const periodAttainment = periodTarget ? Math.round((periodRealized / periodTarget) * 100) : 0;
+  const annualAttainment = annualTarget ? Math.round((yearRealizedCurrentYear / annualTarget) * 100) : 0;
+
+  return {
+    periodMode: isSingleMonth ? 'month' : 'period',
+    periodLabel: isSingleMonth ? 'Objectif du mois' : 'Objectif période',
+    periodSubtitle,
+    periodTarget,
+    periodRealized,
+    periodAttainment,
+    periodRemaining: Math.max(0, periodTarget - periodRealized),
+    secondaryLabel: `Objectif annuel ${currentYear}`,
+    secondaryTarget: annualTarget,
+    secondaryRealized: yearRealizedCurrentYear,
+    secondaryAttainment: annualAttainment,
+    secondaryRemaining: Math.max(0, annualTarget - yearRealizedCurrentYear),
+    annualTarget,
+    annualRealized: yearRealizedCurrentYear,
+    annualAttainment,
+    annualRemaining: Math.max(0, annualTarget - yearRealizedCurrentYear),
+    monthTarget: isSingleMonth ? periodTarget : undefined,
+    realized: periodRealized,
+    attainment: periodAttainment,
+    remaining: Math.max(0, periodTarget - periodRealized),
+  };
+}
+
 export function buildDashboardSummary(props = {}, periodScope = {}) {
   const payments = arr(props.payments);
   const transactions = arr(props.transactions);
@@ -339,13 +412,15 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
   const cultures = arr(props.cultures);
   const productionLogs = arr(props.productionLogs);
   const scope = normalizePeriodScope(periodScope);
+  const salesAll = arr(props.salesOrdersAll?.length ? props.salesOrdersAll : props.salesOrders);
+  const paymentsAll = arr(props.paymentsAll?.length ? props.paymentsAll : props.payments);
 
   const ca = salesOrders.reduce((sum, row) => sum + money(row), 0);
   const financePeriods = computeFinancePeriodSummary(payments, transactions, scope);
   const encaisse = financePeriods.encaissePeriod;
   const resultat = financePeriods.resultatPeriod;
   const depenses = financePeriods.depensesPeriod;
-  const receivable = salesOrders.reduce((sum, order) => sum + remainingForOrder(order, payments), 0);
+  const receivable = salesAll.reduce((sum, order) => sum + remainingForOrder(order, paymentsAll), 0);
   const stockBas = stocks.filter(isCriticalStock).length;
   const stockSummary = computeStockSummary(stocks);
   const tachesOuvertes = taches.filter(isOpenTask).length;
@@ -370,20 +445,14 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
     meteo: props.meteo || {},
   });
 
-  const actions = buildDashboardTodayActions(props);
+  const actions = buildDashboardTodayActions({
+    ...props,
+    salesOrders: salesAll,
+    sales_orders: salesAll,
+    payments: paymentsAll,
+  });
   const goalBase = plan.goals?.global || { monthTarget: 0, realized: 0, attainment: 0, annualTarget: 0 };
-  const currentYear = new Date().getFullYear();
-  const annualRealized = salesOrders
-    .filter((row) => rowYear(row) === currentYear)
-    .reduce((sum, row) => sum + money(row), 0);
-  const annualTarget = Number(goalBase.annualTarget || 0);
-  const annualAttainment = annualTarget ? Math.round((annualRealized / annualTarget) * 100) : 0;
-  const goal = {
-    ...goalBase,
-    annualRealized,
-    annualAttainment,
-    annualRemaining: Math.max(0, annualTarget - annualRealized),
-  };
+  const goal = computeDashboardPeriodGoal(salesAll, scope, goalBase);
 
   return {
     ca,

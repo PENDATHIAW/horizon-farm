@@ -185,20 +185,34 @@ export function DashboardTodoRow({ title, detail, moduleLabel, onOpen, tone = 'a
 }
 
 export function DashboardGoalsHero({ goal = {}, onOpenVision }) {
-  const monthRemaining = Math.max(0, Number(goal.monthTarget || 0) - Number(goal.realized || 0));
-  const monthAttainment = Number(goal.attainment || 0);
-  const annualTarget = Number(goal.annualTarget || 0);
-  const annualRealized = Number(goal.annualRealized || 0);
-  const annualAttainment = Number(goal.annualAttainment || 0);
-  const annualRemaining = Number(goal.annualRemaining ?? Math.max(0, annualTarget - annualRealized));
+  const primaryLabel = goal.periodLabel || 'Objectif du mois';
+  const primarySubtitle = goal.periodSubtitle || '';
+  const primaryTarget = Number(goal.periodTarget ?? goal.monthTarget ?? 0);
+  const primaryRealized = Number(goal.periodRealized ?? goal.realized ?? 0);
+  const primaryAttainment = Number(goal.periodAttainment ?? goal.attainment ?? 0);
+  const primaryRemaining = Number(goal.periodRemaining ?? Math.max(0, primaryTarget - primaryRealized));
+
+  const secondaryLabel = goal.secondaryLabel || `Objectif annuel ${new Date().getFullYear()}`;
+  const secondaryTarget = Number(goal.secondaryTarget ?? goal.annualTarget ?? 0);
+  const secondaryRealized = Number(goal.secondaryRealized ?? goal.annualRealized ?? 0);
+  const secondaryAttainment = Number(goal.secondaryAttainment ?? goal.annualAttainment ?? 0);
+  const secondaryRemaining = Number(goal.secondaryRemaining ?? goal.annualRemaining ?? Math.max(0, secondaryTarget - secondaryRealized));
+  const showSecondaryTarget = goal.periodMode !== 'all' && secondaryTarget > 0;
+
   const toneFor = (pct) => (pct >= 90 ? 'good' : pct >= 50 ? 'warn' : 'bad');
+  const heroTitle = goal.periodMode === 'all'
+    ? 'Pilotage annuel & cumul'
+    : goal.periodMode === 'period'
+      ? 'Pilotage de la période sélectionnée'
+      : 'Pilotage mensuel & annuel';
 
   return (
     <section className="rounded-3xl border border-[#d6c3a0] bg-white p-4 shadow-sm md:p-5">
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#9a6b12]">Objectifs</p>
-          <h2 className="text-lg font-black text-[#2f2415]">Pilotage mensuel & annuel</h2>
+          <h2 className="text-lg font-black text-[#2f2415]">{heroTitle}</h2>
+          {primarySubtitle ? <p className="mt-1 text-xs text-[#8a7456]">Période ERP · {primarySubtitle}</p> : null}
         </div>
         <button
           type="button"
@@ -214,19 +228,19 @@ export function DashboardGoalsHero({ goal = {}, onOpenVision }) {
           onClick={onOpenVision}
           className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left transition hover:border-[#c9a96a] hover:bg-white"
         >
-          <p className="text-[11px] font-bold uppercase tracking-wide text-[#8a7456]">Objectif du mois</p>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[#8a7456]">{primaryLabel}</p>
           <div className="mt-2 flex items-end justify-between gap-3">
-            <p className={`text-3xl font-black ${toneFor(monthAttainment) === 'good' ? 'text-emerald-700' : toneFor(monthAttainment) === 'warn' ? 'text-amber-700' : 'text-red-600'}`}>
-              {monthAttainment}%
+            <p className={`text-3xl font-black ${toneFor(primaryAttainment) === 'good' ? 'text-emerald-700' : toneFor(primaryAttainment) === 'warn' ? 'text-amber-700' : 'text-red-600'}`}>
+              {primaryAttainment}%
             </p>
             <p className="text-right text-xs text-[#8a7456]">
-              {fmtCurrency(goal.realized)} / {fmtCurrency(goal.monthTarget)}
+              {fmtCurrency(primaryRealized)} / {fmtCurrency(primaryTarget)}
             </p>
           </div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#eadcc2]/60">
-            <div className="h-full rounded-full bg-[#22c55e]" style={{ width: `${Math.min(100, monthAttainment)}%` }} />
+            <div className="h-full rounded-full bg-[#22c55e]" style={{ width: `${Math.min(100, primaryAttainment)}%` }} />
           </div>
-          <p className="mt-2 text-xs text-[#8a7456]">Reste {fmtCurrency(monthRemaining)}</p>
+          <p className="mt-2 text-xs text-[#8a7456]">Reste {fmtCurrency(primaryRemaining)}</p>
         </button>
 
         <button
@@ -234,19 +248,27 @@ export function DashboardGoalsHero({ goal = {}, onOpenVision }) {
           onClick={onOpenVision}
           className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left transition hover:border-[#c9a96a] hover:bg-white"
         >
-          <p className="text-[11px] font-bold uppercase tracking-wide text-[#8a7456]">Objectif annuel {new Date().getFullYear()}</p>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[#8a7456]">{secondaryLabel}</p>
           <div className="mt-2 flex items-end justify-between gap-3">
-            <p className={`text-3xl font-black ${toneFor(annualAttainment) === 'good' ? 'text-emerald-700' : toneFor(annualAttainment) === 'warn' ? 'text-amber-700' : 'text-red-600'}`}>
-              {annualAttainment}%
+            <p className={`text-3xl font-black ${toneFor(secondaryAttainment || 0) === 'good' ? 'text-emerald-700' : toneFor(secondaryAttainment || 0) === 'warn' ? 'text-amber-700' : 'text-red-600'}`}>
+              {showSecondaryTarget ? `${secondaryAttainment}%` : fmtCurrency(secondaryRealized)}
             </p>
             <p className="text-right text-xs text-[#8a7456]">
-              {fmtCurrency(annualRealized)} / {fmtCurrency(annualTarget)}
+              {showSecondaryTarget
+                ? `${fmtCurrency(secondaryRealized)} / ${fmtCurrency(secondaryTarget)}`
+                : 'Depuis le début'}
             </p>
           </div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#eadcc2]/60">
-            <div className="h-full rounded-full bg-[#22c55e]" style={{ width: `${Math.min(100, annualAttainment)}%` }} />
-          </div>
-          <p className="mt-2 text-xs text-[#8a7456]">Reste {fmtCurrency(annualRemaining)}</p>
+          {showSecondaryTarget ? (
+            <>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#eadcc2]/60">
+                <div className="h-full rounded-full bg-[#22c55e]" style={{ width: `${Math.min(100, secondaryAttainment)}%` }} />
+              </div>
+              <p className="mt-2 text-xs text-[#8a7456]">Reste {fmtCurrency(secondaryRemaining)}</p>
+            </>
+          ) : (
+            <p className="mt-3 text-xs text-[#8a7456]">Chiffre d&apos;affaires cumulé toutes périodes confondues.</p>
+          )}
         </button>
       </div>
     </section>
