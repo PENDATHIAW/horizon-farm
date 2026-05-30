@@ -1,4 +1,5 @@
 import { fmtCurrency, fmtNumber } from '../../utils/format';
+import { runErpHealthEngine } from '../../services/erpHealthEngine.js';
 
 export const arr = (v) => (Array.isArray(v) ? v : []);
 export const low = (v) => String(v || '').toLowerCase();
@@ -39,6 +40,46 @@ export function Empty({ children }) {
 }
 export function Btn({ children, onClick }) {
   return <button type="button" onClick={onClick} className="rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]">{children}</button>;
+}
+
+export function riskLevelLabel(level = '') {
+  const map = { critique: 'Critique', eleve: 'Élevé', haute: 'Élevé', moyen: 'Moyen', moyenne: 'Moyen', faible: 'Faible', basse: 'Faible' };
+  return map[low(level)] || level || '—';
+}
+
+function mapEngineRisk(r) {
+  const tone = r.level === 'critique' || r.level === 'eleve' ? 'bad' : r.level === 'moyen' ? 'warn' : 'good';
+  return {
+    id: r.id,
+    domain: r.domain || 'IA',
+    title: r.title,
+    cause: r.detail,
+    impact: `Indice ${r.score}/100`,
+    action: r.level === 'critique' ? 'Traiter immédiatement' : 'Surveiller',
+    module: r.module,
+    severity: riskLevelLabel(r.level),
+    probability: r.level === 'critique' || r.level === 'eleve' ? 'Élevée' : 'Moyenne',
+    financialImpact: '—',
+    owner: '—',
+    due: '—',
+    resolutionStatus: 'ouverte',
+    tone,
+    engineRisk: true,
+  };
+}
+
+function mapEnginePrediction(p) {
+  return {
+    id: p.id,
+    title: p.title,
+    description: p.description,
+    recommended_action: p.recommended_action,
+    module: p.module,
+    severity: p.severity,
+    days_left: p.days_left,
+    horizon: p.days_left != null ? `${p.days_left} j` : '—',
+    type: p.type,
+  };
 }
 
 export function buildRisks(data) {
@@ -88,5 +129,71 @@ export function buildVisionData(props = {}) {
   ];
   const riskCount = risks.length;
   const totalObjects = allAnimals.length + allLots.length + allCultures.length + openAlerts.length + openTasks.length + allStocks.length + 1;
-  return { ...base, priorities, risks, riskCount, globalScore: score(totalObjects - riskCount, totalObjects) };
+
+  const engineInput = {
+    ...dataMap,
+    animaux: allAnimals,
+    avicole: allLots,
+    lots: allLots,
+    cultures: allCultures,
+    stock: allStocks,
+    stocks: allStocks,
+    clients: allClients,
+    sales_orders: sales,
+    salesOrders: sales,
+    payments: pay,
+    finances: tx,
+    transactions: tx,
+    documents: docs,
+    alertes_center: openAlerts,
+    taches: openTasks,
+    business_plans: plans,
+    investissements: invest,
+    fournisseurs: arr(dataMap.fournisseurs),
+    sante: arr(dataMap.sante),
+    alimentation_logs: arr(dataMap.alimentation_logs),
+    production_oeufs_logs: arr(dataMap.production_oeufs_logs),
+  };
+  const health = runErpHealthEngine(engineInput);
+  const engineRisks = health.risks.map(mapEngineRisk);
+  const mergedRisks = [...engineRisks, ...risks.filter((r) => !engineRisks.some((e) => e.domain === r.domain && e.title === r.title))].slice(0, 50);
+  const predictions = health.predictions.map(mapEnginePrediction);
+  const enginePriorities = health.findings.slice(0, 12).map((f) => ({
+    id: f.id,
+    title: f.title,
+    detail: f.recommended_action || f.description || '—',
+    value: 'IA',
+    tone: f.severity === 'critique' || f.severity === 'haute' ? 'bad' : 'warn',
+    tab: 'À traiter',
+    sourceModule: f.module || 'objectifs_croissance',
+    finding: f,
+    isEngine: true,
+  }));
+  const mergedPriorities = [...enginePriorities, ...priorities.filter((p) => !enginePriorities.some((e) => e.id === p.id))].slice(0, 18);
+  const unreliableMargins = health.findings.filter((f) => f.category === 'rentabilite' || f.margin_reliable === false).length;
+  const iaOpportunities = health.findings
+    .filter((f) => f.recommended_action && !['critique', 'haute'].includes(f.severity))
+    .slice(0, 6)
+    .map((f) => ({
+      id: f.id,
+      title: f.title,
+      notes: f.recommended_action,
+      montant_estime: 0,
+      probability: Math.round((f.confidence_score || 0.8) * 100),
+      module: f.module,
+    }));
+
+  return {
+    ...base,
+    priorities: mergedPriorities,
+    risks: mergedRisks,
+    riskCount: mergedRisks.length,
+    globalScore: health.score || score(totalObjects - riskCount, totalObjects),
+    healthScore: health.score,
+    predictions,
+    healthFindings: health.findings,
+    engineRisks: health.risks,
+    unreliableMargins,
+    iaOpportunities,
+  };
 }
