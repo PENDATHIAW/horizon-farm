@@ -492,6 +492,23 @@ export async function runPaymentSideEffects({
   }
 }
 
+/** Clôture les tâches de livraison liées à une vente. */
+export async function resolveSaleTasksOnDelivery({ sale = {}, tasks = [], handlers = {} } = {}) {
+  if (!handlers.onUpdateTask || !sale?.id) return null;
+  const target = clean(sale.id);
+  const related = arr(tasks).filter((task) => {
+    const linked = clean(task.related_id || task.order_id || task.entity_id || task.source_record_id);
+    const routine = lower(task.routine_key || '');
+    return linked === target || routine.includes(`livraison-vente-${target}`);
+  });
+  await Promise.allSettled(related.map((task) => handlers.onUpdateTask(task.id, {
+    status: 'termine',
+    statut: 'termine',
+    completed_at: new Date().toISOString(),
+  })));
+  return related.length;
+}
+
 /** Effets après changement de livraison depuis le modal vente. */
 export async function runDeliverySideEffects({
   sale = {},

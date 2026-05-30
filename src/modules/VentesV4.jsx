@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { fmtCurrency } from '../utils/format';
 import { calculateSalesMargin } from '../utils/salesMarginEngine';
+import { buildDeliveryHandlers, confirmSaleDelivery } from '../utils/confirmSaleDelivery';
 import { paidForOrder, remainingForOrder } from '../utils/salesStatuses';
 import { isDelivered, isSaleClosed, linkedPaymentsForOrders, saleAmount } from './commercial/commercialMetrics.js';
 import SalesFollowUpPanel from './SalesFollowUpPanel.jsx';
@@ -28,7 +29,31 @@ function AdminFold({ children }) {
 function SalesDesk({ props, payments, onShowFollowup, embedded = false }) {
   const [selected, setSelected] = useState(null);
   const [initialMode, setInitialMode] = useState('edit');
+  const [deliveringId, setDeliveringId] = useState(null);
   const openSale = (sale, mode = 'edit') => { setSelected(sale); setInitialMode(mode); };
+  const quickDeliver = async (sale) => {
+    try {
+      setDeliveringId(sale.id);
+      const mode = String(sale.fulfillment_mode || sale.mode_livraison || deliveryStatus(sale)).toLowerCase();
+      const status = mode === 'recupere' || mode === 'récupéré' ? 'recupere' : 'livre';
+      await confirmSaleDelivery({
+        sale,
+        deliveryStatus: status,
+        deliveries: props.deliveriesList || props.deliveries || [],
+        payments,
+        handlers: buildDeliveryHandlers(props),
+        tasks: props.tasks || props.existingTasks || [],
+        clientLabel: sale.client_label || sale.client_name || 'Client',
+      });
+      toast.success('Livraison confirmée');
+      void props.onRefreshWorkflow?.();
+    } catch (error) {
+      console.error('Livraison vente', error);
+      toast.error(error?.message || 'Livraison impossible');
+    } finally {
+      setDeliveringId(null);
+    }
+  };
   const sales = props.rows || [];
   const linked = useMemo(() => linkedPaymentsForOrders(sales, payments), [sales, payments]);
   const marginContext = useMemo(() => ({
@@ -62,7 +87,7 @@ function SalesDesk({ props, payments, onShowFollowup, embedded = false }) {
     <div className="space-y-2">
       {!embedded ? <p className="text-sm font-black text-[#2f2415]">Actions rapides — ventes ouvertes</p> : null}
       {!embedded ? <p className="text-xs text-[#8a7456]">Encaisser, livrer ou facturer. L&apos;historique complet et les marges sont dans l&apos;onglet Suivi & marges.</p> : null}
-      {openSales.length ? <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">{openSales.map((sale) => { const remaining = remainingForOrder(sale, linked); const delivery = deliveryStatus(sale); const total = saleAmount(sale); const margin = calculateSalesMargin(sale, marginContext); const needsPay = remaining > 0; const needsDelivery = !isDelivered(sale); return <article key={sale.id} className={`rounded-2xl border bg-white p-4 space-y-3 ${needsPay ? 'border-amber-300' : 'border-[#d6c3a0]'}`}><div className="flex items-start justify-between gap-3"><div><p className="font-black text-[#2f2415]">{sale.product_name || sale.produit || sale.id}</p><p className="text-xs text-[#8a7456]">{sale.client_label || sale.client_name || 'Client'} · {sale.date || 'date non renseignée'}</p></div><div className="flex flex-wrap gap-1 justify-end">{statusBadge(remaining <= 0 ? 'Payé' : remaining < total ? 'Partiel' : 'À encaisser', remaining <= 0 ? 'green' : 'amber')}{statusBadge(needsDelivery ? 'À livrer' : 'Livré', needsDelivery ? 'red' : 'green')}</div></div><div className={`grid gap-2 text-sm ${embedded ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4'}`}><div><span className="text-[#8a7456]">Total</span><b className="block text-[#2f2415]">{fmtCurrency(total)}</b></div><div><span className="text-[#8a7456]">Reste</span><b className={`block ${needsPay ? 'text-amber-800' : 'text-[#2f2415]'}`}>{fmtCurrency(remaining)}</b></div>{!embedded ? <><div className="hidden md:block"><span className="text-[#8a7456]">Coût</span><b className="block text-[#2f2415]">{margin.cout_a_completer ? 'À compléter' : fmtCurrency(margin.cout_revient)}</b></div><div className="hidden md:block"><span className="text-[#8a7456]">Marge</span><b className={`block ${margin.cout_a_completer ? 'text-amber-700' : margin.marge_directe < 0 ? 'text-red-600' : 'text-emerald-700'}`}>{margin.cout_a_completer ? 'Non fiable' : fmtCurrency(margin.marge_directe)}</b></div></> : null}</div><div className="grid grid-cols-2 md:grid-cols-4 gap-2"><button type="button" onClick={() => openSale(sale, 'edit')} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black text-[#7d6a4a]"><Edit3 size={13} className="inline" /> Modifier</button>{needsPay ? <button type="button" onClick={() => openSale(sale, 'pay')} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700"><ReceiptText size={13} className="inline" /> Encaisser</button> : null}{needsDelivery ? <button type="button" onClick={() => openSale(sale, 'deliver')} className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-700"><Truck size={13} className="inline" /> Livrer</button> : null}<button type="button" onClick={() => openSale(sale, 'invoice')} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-xs font-black text-[#7d6a4a]"><FileText size={13} className="inline" /> Facture</button></div></article>; })}</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">Aucune vente à traiter — tout est à jour.</div>}
+      {openSales.length ? <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">{openSales.map((sale) => { const remaining = remainingForOrder(sale, linked); const delivery = deliveryStatus(sale); const total = saleAmount(sale); const margin = calculateSalesMargin(sale, marginContext); const needsPay = remaining > 0; const needsDelivery = !isDelivered(sale); return <article key={sale.id} className={`rounded-2xl border bg-white p-4 space-y-3 ${needsPay ? 'border-amber-300' : 'border-[#d6c3a0]'}`}><div className="flex items-start justify-between gap-3"><div><p className="font-black text-[#2f2415]">{sale.product_name || sale.produit || sale.id}</p><p className="text-xs text-[#8a7456]">{sale.client_label || sale.client_name || 'Client'} · {sale.date || 'date non renseignée'}</p></div><div className="flex flex-wrap gap-1 justify-end">{statusBadge(remaining <= 0 ? 'Payé' : remaining < total ? 'Partiel' : 'À encaisser', remaining <= 0 ? 'green' : 'amber')}{statusBadge(needsDelivery ? 'À livrer' : 'Livré', needsDelivery ? 'red' : 'green')}</div></div><div className={`grid gap-2 text-sm ${embedded ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4'}`}><div><span className="text-[#8a7456]">Total</span><b className="block text-[#2f2415]">{fmtCurrency(total)}</b></div><div><span className="text-[#8a7456]">Reste</span><b className={`block ${needsPay ? 'text-amber-800' : 'text-[#2f2415]'}`}>{fmtCurrency(remaining)}</b></div>{!embedded ? <><div className="hidden md:block"><span className="text-[#8a7456]">Coût</span><b className="block text-[#2f2415]">{margin.cout_a_completer ? 'À compléter' : fmtCurrency(margin.cout_revient)}</b></div><div className="hidden md:block"><span className="text-[#8a7456]">Marge</span><b className={`block ${margin.cout_a_completer ? 'text-amber-700' : margin.marge_directe < 0 ? 'text-red-600' : 'text-emerald-700'}`}>{margin.cout_a_completer ? 'Non fiable' : fmtCurrency(margin.marge_directe)}</b></div></> : null}</div><div className="grid grid-cols-2 md:grid-cols-4 gap-2"><button type="button" onClick={() => openSale(sale, 'edit')} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black text-[#7d6a4a]"><Edit3 size={13} className="inline" /> Modifier</button>{needsPay ? <button type="button" onClick={() => openSale(sale, 'pay')} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700"><ReceiptText size={13} className="inline" /> Encaisser</button> : null}{needsDelivery ? <button type="button" onClick={() => quickDeliver(sale)} disabled={deliveringId === sale.id} className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-700"><Truck size={13} className="inline" /> Livrer</button> : null}<button type="button" onClick={() => openSale(sale, 'invoice')} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-xs font-black text-[#7d6a4a]"><FileText size={13} className="inline" /> Facture</button></div></article>; })}</div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">Aucune vente à traiter — tout est à jour.</div>}
     </div>
   </div>;
 }

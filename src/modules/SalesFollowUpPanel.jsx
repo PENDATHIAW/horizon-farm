@@ -3,12 +3,12 @@ import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { allocateOverheadToEntities, applyOperatingMargin } from '../services/operatingMarginService';
 import { fmtCurrency, toNumber } from '../utils/format';
-import { makeId } from '../utils/ids';
 import { summarizeSalesMargins } from '../utils/salesMarginEngine';
 import { costBreakdownOf, costBreakdownShort, costBreakdownTooltip, productAmountOf, SALES_MARGIN_FORMULA } from '../utils/saleCostPresentation';
 import { saleQuantityDetail } from '../utils/saleQuantityLabel';
 import { paidForOrder, remainingForOrder } from '../utils/salesStatuses';
 import { deleteSaleComplete } from '../utils/salesDeleteWorkflow';
+import { buildDeliveryHandlers, confirmSaleDelivery } from '../utils/confirmSaleDelivery';
 import { recordSalePayment } from '../utils/recordSalePayment';
 import { moduleForSaleSource } from '../utils/commercialNavigation';
 import { isDelivered, linkedPaymentsForOrders, saleAmount } from './commercial/commercialMetrics.js';
@@ -77,12 +77,18 @@ async function settleOrder(order, props, linkedPayments) {
 }
 
 async function markDelivered(order, props) {
-  const date = new Date().toISOString().slice(0, 10);
   try {
-    await props.onUpdate?.(order.id, { statut_commande: 'livre', statut_livraison: 'livre', delivery_status: 'livre', fulfillment_mode: 'livraison', date_livraison: date });
-    const existingDelivery = arr(props.deliveriesList || props.deliveries).find((delivery) => clean(delivery.order_id || delivery.sale_id || delivery.source_record_id || delivery.related_id) === clean(order.id));
-    if (existingDelivery?.id && props.onUpdateDelivery) await props.onUpdateDelivery(existingDelivery.id, { statut: 'livre', status: 'livre', date_livraison: date });
-    else await props.onCreateDelivery?.({ id: makeId('LIV'), order_id: order.id, sale_id: order.id, date_livraison: date, statut: 'livre', status: 'livre', mode_livraison: 'livraison', destinataire: clientLabel(order), client_id: order.client_id || '' });
+    const fulfillment = clean(order.fulfillment_mode || order.mode_livraison || '').toLowerCase();
+    const deliveryStatus = fulfillment === 'recupere' || fulfillment === 'récupéré' ? 'recupere' : 'livre';
+    await confirmSaleDelivery({
+      sale: order,
+      deliveryStatus,
+      deliveries: props.deliveriesList || props.deliveries || [],
+      payments: props.paymentsList || props.payments || [],
+      handlers: buildDeliveryHandlers(props),
+      tasks: props.tasks || props.existingTasks || [],
+      clientLabel: clientLabel(order),
+    });
     toast.success('Livraison clôturée');
     void props.onRefreshWorkflow?.();
   } catch (error) {

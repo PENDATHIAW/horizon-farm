@@ -4,8 +4,8 @@ import toast from 'react-hot-toast';
 import { fmtCurrency } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { findInvoicesForOrder } from '../services/salesIntegrityService';
+import { buildDeliveryHandlers, confirmSaleDelivery } from '../utils/confirmSaleDelivery';
 import { recordSalePayment } from '../utils/recordSalePayment';
-import { runDeliverySideEffects } from '../utils/saleSideEffects';
 import { paidForOrder, remainingForOrder } from '../utils/salesStatuses';
 import { saleQuantityDetail, deliveryModeNeedsFee, deliveryFeeOf } from '../utils/saleQuantityLabel';
 
@@ -15,7 +15,16 @@ const num = (value = 0) => Number(value || 0) || 0;
 const totalOf = (sale = {}) => num(sale.montant_total || sale.total || sale.amount || sale.total_amount || (num(sale.quantity || sale.quantite) * num(sale.unit_price || sale.prix_unitaire)));
 const paidOf = (sale = {}, paymentRows = []) => paidForOrder(sale, paymentRows);
 const remainingOf = (sale = {}, paymentRows = []) => remainingForOrder(sale, paymentRows);
+const lower = (value = '') => String(value || '').trim().toLowerCase();
 const deliveryStatus = (sale = {}) => sale.statut_livraison || sale.delivery_status || sale.status_livraison || 'a_livrer';
+const defaultDeliveryStatus = (sale = {}, mode = 'edit') => {
+  if (mode === 'deliver') {
+    const fulfillment = lower(sale.fulfillment_mode || sale.mode_livraison || '');
+    if (fulfillment === 'recupere' || fulfillment === 'récupéré') return 'recupere';
+    return 'livre';
+  }
+  return deliveryStatus(sale);
+};
 
 const MODES = [['view', 'Voir'], ['edit', 'Modifier'], ['pay', 'Encaisser'], ['deliver', 'Livrer'], ['invoice', 'Facture'], ['close', 'Clôturer']];
 
@@ -33,7 +42,7 @@ export default function SaleActionModal({ sale, payments, props, onClose, initia
   const [unitPrice, setUnitPrice] = useState(sale.unit_price || '');
   const [deliveryFee, setDeliveryFee] = useState(deliveryFeeOf(sale, deliveries));
   const [amount, setAmount] = useState(remainingOf(sale, payments));
-  const [delivery, setDelivery] = useState(deliveryStatus(sale));
+  const [delivery, setDelivery] = useState(defaultDeliveryStatus(sale, initialMode));
   const [saving, setSaving] = useState(false);
   const productTotal = num(quantity) * num(unitPrice);
   const feeApplies = deliveryModeNeedsFee(fulfillmentMode) || deliveryModeNeedsFee(delivery);
@@ -100,22 +109,25 @@ export default function SaleActionModal({ sale, payments, props, onClose, initia
       }
       if (mode === 'deliver') {
         const fee = deliveryModeNeedsFee(delivery) ? Math.max(0, num(deliveryFee)) : 0;
-        const newTotal = productTotal + fee;
-        const existingDelivery = arr(props.deliveriesList || props.deliveries).find((row) => String(row.order_id || row.sale_id || row.source_record_id) === String(sale.id));
-        if (existingDelivery?.id) {
-          await props.onUpdateDelivery?.(existingDelivery.id, { statut: delivery, status: delivery, date_livraison: today(), frais_livraison: fee, delivery_fee: fee, destinataire: client });
-        } else {
-          await props.onCreateDelivery?.({ id: makeId('LIV'), order_id: sale.id, date_livraison: today(), statut: delivery, status: delivery, frais_livraison: fee, delivery_fee: fee, destinataire: client });
-        }
-        await props.onUpdate?.(sale.id, { statut_livraison: delivery, statut_commande: remainingOf(sale, payments) <= 0 && delivery !== 'a_livrer' ? 'livre' : 'ouvert', frais_livraison: fee, delivery_fee: fee, montant_total: fee > 0 || num(sale.frais_livraison) ? newTotal : totalOf(sale), reste_a_payer: Math.max(0, (fee > 0 || num(sale.frais_livraison) ? newTotal : totalOf(sale)) - paidOf(sale, payments)) });
-        await runDeliverySideEffects({
-          sale: { ...sale, fulfillment_mode: delivery },
+        const result = await confirmSaleDelivery({
+          sale,
           deliveryStatus: delivery,
-          productName: product,
-          clientLabel: client,
+          deliveryFee: fee,
+          deliveries: props.deliveriesList || props.deliveries || [],
+          payments,
+          handlers: buildDeliveryHandlers({ ...props, onUpdate: props.onUpdate }),
           tasks: props.tasks || props.existingTasks || [],
-          handlers: { onCreateTask: props.onCreateTask },
+          clientLabel: client,
         });
+        try {
+          await props.onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'vente_deliver', module_source: 'ventes', entity_type: 'commande', entity_id: sale.id, title: `Livraison ${sale.id}`, description: product || sale.product_name || '', event_date: today(), severity: 'info' });
+        } catch (eventError) {
+          console.warn('vente_deliver event', eventError?.message || eventError);
+        }
+        toast.success(result.complete ? 'Livraison confirmée' : 'Livraison planifiée');
+        void props.onRefreshWorkflow?.();
+        onClose?.();
+        return;
       }
       if (mode === 'invoice') {
         const invoices = props.invoicesList || props.invoices || [];
@@ -134,7 +146,11 @@ export default function SaleActionModal({ sale, payments, props, onClose, initia
         }
       }
       if (mode === 'close') await props.onUpdate?.(sale.id, { statut_commande: 'cloture', closed_at: new Date().toISOString() });
-      await props.onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: `vente_${mode}`, module_source: 'ventes', entity_type: 'commande', entity_id: sale.id, title: `Vente ${sale.id} · ${mode}`, description: product || sale.product_name || '', event_date: today(), severity: 'info' });
+      try {
+        await props.onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: `vente_${mode}`, module_source: 'ventes', entity_type: 'commande', entity_id: sale.id, title: `Vente ${sale.id} · ${mode}`, description: product || sale.product_name || '', event_date: today(), severity: 'info' });
+      } catch (eventError) {
+        console.warn(`vente_${mode} event`, eventError?.message || eventError);
+      }
       void props.onRefreshWorkflow?.();
       toast.success('Vente mise à jour');
       onClose?.();
