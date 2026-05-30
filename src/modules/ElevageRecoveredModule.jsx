@@ -1,6 +1,9 @@
 import { Beef, Bird, HeartPulse, LayoutDashboard, Milk, PackageCheck, Sprout, Utensils } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
+import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
+import { emitHorizonForm } from '../services/formModalManager';
 import { fmtNumber } from '../utils/format';
 import AnimauxV2 from './AnimauxV2';
 import AvicoleV10 from './AvicoleV10';
@@ -15,15 +18,17 @@ const isPondeuse = (row = {}) => lotName(row).includes('pondeuse') || lotName(ro
 const isChair = (row = {}) => lotName(row).includes('chair') || lotName(row).includes('broiler');
 const isHealthLate = (row = {}) => ['retard', 'en_retard', 'a_faire_retard', 'overdue'].includes(lower(row.statut || row.status || row.etat));
 const today = () => new Date().toISOString().slice(0, 10);
-import { emitHorizonForm } from '../services/formModalManager';
 
 function Stat({ label, value, tone = 'neutral' }) {
   const cls = tone === 'good' ? 'text-emerald-600' : tone === 'warn' ? 'text-amber-600' : tone === 'bad' ? 'text-red-600' : 'text-[#2f2415]';
   return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">{label}</p><p className={`mt-1 text-xl font-black ${cls}`}>{value}</p></div>;
 }
 function Tabs({ active, onChange }) {
-  const tabs = [['Résumé', LayoutDashboard], ['Animaux', Beef], ['Avicole', Bird], ['Production', Milk], ['Transformation', PackageCheck], ['Alimentation', Utensils], ['Reproduction', Sprout], ['Santé', HeartPulse]];
-  return <div className="overflow-x-auto"><div className="flex min-w-max gap-2 rounded-2xl border border-[#d6c3a0] bg-white p-2">{tabs.map(([tab, Icon]) => <button key={tab} type="button" onClick={() => onChange(tab)} className={`rounded-xl px-4 py-2 text-sm font-black transition inline-flex items-center gap-2 ${active === tab ? 'bg-[#22c55e] text-[#052e16]' : 'text-[#8a7456] hover:bg-[#fffdf8] hover:text-[#2f2415]'}`}><Icon size={16} />{tab}</button>)}</div></div>;
+  return (
+    <div className="space-y-2">
+      <ModuleTabsBar moduleId="elevage" active={active} onChange={onChange} />
+    </div>
+  );
 }
 function ActionCard({ title, text, onClick }) { return <button type="button" onClick={onClick} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left transition hover:bg-[#dcfce7]"><b className="text-[#2f2415]">{title}</b><p className="mt-1 text-sm text-[#8a7456]">{text}</p></button>; }
 function BusinessHub({ title, intro, stats, children }) { return <div className="space-y-5"><div className="grid grid-cols-2 gap-3 xl:grid-cols-4">{stats.map((s) => <Stat key={s.label} {...s} />)}</div><section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><h2 className="text-lg font-black text-[#2f2415]">{title}</h2><p className="mt-2 text-sm leading-relaxed text-[#8a7456]">{intro}</p><div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">{children}</div></section></div>; }
@@ -43,7 +48,23 @@ function FeedingHub({ data, setTab }) {
   return <BusinessHub title="Alimentation" intro="Ici on range les distributions et consommations d’aliments. Les achats restent connectés au stock, mais l’usage terrain côté élevage est visible ici." stats={[{ label: 'Sorties aliment', value: fmtNumber(data.feedLogs.length) }, { label: 'Lots suivis', value: fmtNumber(data.lots.length) }, { label: 'Animaux suivis', value: fmtNumber(data.animals.length) }, { label: 'Stock aliment', value: fmtNumber(data.feedStocks.length), tone: data.feedStocks.length ? 'good' : 'warn' }]}><ActionCard title="+ Distribution aliment" text="Ouvre le workflow existant de mouvement/consommation d’aliment." onClick={() => emitHorizonForm('stock', 'stock_movement', 'Distribution aliment', { date: today(), category: 'alimentation' })} /><ActionCard title="Voir alimentation avicole" text="Consulter consommations et historiques dans le moteur Avicole." onClick={() => setTab('Avicole')} /><ActionCard title="Voir alimentation animaux" text="Consulter consommations et historiques dans le moteur Animaux." onClick={() => setTab('Animaux')} /></BusinessHub>;
 }
 function ReproductionHub({ data, setTab }) {
-  return <BusinessHub title="Reproduction" intro="Je n’ai pas trouvé de moteur reproduction dédié dans l’ancien code. Cet espace prépare le rangement futur : saillies, gestations, mises bas, naissances et descendance, sans inventer de faux bouton tant que le CRUD n’existe pas." stats={[{ label: 'Animaux femelles', value: fmtNumber(data.females) }, { label: 'Naissances détectées', value: fmtNumber(data.birthLikeEvents) }, { label: 'Événements élevage', value: fmtNumber(data.livestockEvents.length) }, { label: 'À structurer', value: 'Oui', tone: 'warn' }]}><ActionCard title="Voir fiches animaux" text="Les informations existantes de cycle animal restent consultables ici pour le moment." onClick={() => setTab('Animaux')} /><ActionCard title="À créer au design final" text="Saillie, gestation, mise bas et naissance devront devenir de vraies actions métier." onClick={() => setTab('Animaux')} /></BusinessHub>;
+  return (
+    <BusinessHub
+      title="Reproduction"
+      intro="Saillies, gestations, mises bas et naissances — branchées sur les fiches Animaux existantes (mode naissance / reproduction interne)."
+      stats={[
+        { label: 'Femelles', value: fmtNumber(data.females) },
+        { label: 'Naissances', value: fmtNumber(data.birthLikeEvents), tone: 'good' },
+        { label: 'Événements', value: fmtNumber(data.livestockEvents.length) },
+        { label: 'À suivre', value: fmtNumber(data.females) > data.birthLikeEvents ? data.females - data.birthLikeEvents : 0, tone: 'warn' },
+      ]}
+    >
+      <ActionCard title="+ Naissance / mise bas" text="Ouvre la fiche animal en mode naissance sur la ferme avec mère et portée." onClick={() => emitHorizonForm('animaux', 'animal_create', 'Naissance / mise bas', { date: today(), mode_acquisition: 'naissance_ferme' })} />
+      <ActionCard title="+ Reproduction interne" text="Enregistrer un animal issu de reproduction interne avec lien mère/père." onClick={() => emitHorizonForm('animaux', 'animal_create', 'Reproduction interne', { date: today(), mode_acquisition: 'reproduction_interne' })} />
+      <ActionCard title="Voir femelles reproductrices" text="Consulter statut reproduction, mère, père et notes sur les fiches Animaux." onClick={() => setTab('Animaux')} />
+      <ActionCard title="Historique naissances" text="Événements métier naissance / mise bas / portée déjà enregistrés." onClick={() => setTab('Animaux')} />
+    </BusinessHub>
+  );
 }
 
 export default function ElevageRecoveredModule(props) {
@@ -86,6 +107,6 @@ export default function ElevageRecoveredModule(props) {
   const animalProps = { rows: animals, alimentationLogs: feedLogs, vaccins: health, salesOrders, payments: rowsOf(props.payments, paymentsCrud), opportunities, businessEvents, onCreate: props.onCreateAnimal || animauxCrud.create, onUpdate: props.onUpdateAnimal || animauxCrud.update, onDelete: props.onDeleteAnimal || animauxCrud.remove, onRefresh: props.onRefreshAnimals || animauxCrud.refresh, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, ...shared };
   const avicoleProps = { rows: lots, transactions: rowsOf(props.transactions, financesCrud), alimentationLogs: feedLogs, productionLogs, opportunities, businessEvents, onCreate: props.onCreateLot || avicoleCrud.create, onUpdate: props.onUpdateLot || avicoleCrud.update, onDelete: props.onDeleteLot || avicoleCrud.remove, onRefresh: props.onRefreshLots || avicoleCrud.refresh, onCreateProduction: props.onCreateProduction || productionCrud.create, onUpdateProduction: props.onUpdateProduction || productionCrud.update, onDeleteProduction: props.onDeleteProduction || productionCrud.remove, onRefreshProduction: props.onRefreshProduction || productionCrud.refresh, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, ...shared };
   const healthProps = { rows: health, vets: rowsOf(props.veterinaires, vetsCrud), animaux: animals, lots, stocks, transactions: rowsOf(props.transactions, financesCrud), documents: rowsOf(props.documents, documentsCrud), tasks: rowsOf(props.tasks, tasksCrud), alertes: rowsOf(props.alertes, alertsCrud), onCreate: props.onCreateHealth || santeCrud.create, onUpdate: props.onUpdateHealth || santeCrud.update, onDelete: props.onDeleteHealth || santeCrud.remove, onRefresh: props.onRefreshHealth || santeCrud.refresh, onCreateVet: props.onCreateVet || vetsCrud.create, onUpdateVet: props.onUpdateVet || vetsCrud.update, onDeleteVet: props.onDeleteVet || vetsCrud.remove, onRefreshVets: props.onRefreshVets || vetsCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onUpdateAlert: props.onUpdateAlert || alertsCrud.update, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateDocument: props.onCreateDocument || documentsCrud.create, onRefreshDocuments: props.onRefreshDocuments || documentsCrud.refresh, onNavigate: props.onNavigate };
-  const content = tab === 'Résumé' ? <Summary data={data} setTab={setTab} /> : tab === 'Animaux' ? <AnimauxV2 {...animalProps} /> : tab === 'Avicole' ? <AvicoleV10 {...avicoleProps} /> : tab === 'Production' ? <ProductionHub data={data} setTab={setTab} /> : tab === 'Transformation' ? <TransformationHub data={data} setTab={setTab} /> : tab === 'Alimentation' ? <FeedingHub data={data} setTab={setTab} /> : tab === 'Reproduction' ? <ReproductionHub data={data} setTab={setTab} /> : <SanteV8 {...healthProps} />;
+  const content = tab === 'Résumé' ? <Summary data={data} setTab={setTab} /> : tab === 'Animaux' ? <AnimauxV2 {...animalProps} /> : tab === 'Avicole' ? <AvicoleV10 {...avicoleProps} /> : tab === 'Alimentation' ? <FeedingHub data={data} setTab={setTab} /> : tab === 'Santé' ? <SanteV8 {...healthProps} /> : tab === 'Reproduction' ? <ReproductionHub data={data} setTab={setTab} /> : tab === 'Production' ? <ProductionHub data={data} setTab={setTab} /> : tab === 'Transformation' ? <TransformationHub data={data} setTab={setTab} /> : <ModuleGraphiquesTab moduleId="elevage" lots={lots} animaux={animals} productionLogs={productionLogs} alimentationLogs={feedLogs} transactions={rowsOf(props.transactions, financesCrud)} salesOrders={salesOrders} onNavigate={props.onNavigate} />;
   return <div className="space-y-6"><section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Élevage</h1><p className="mt-1 text-sm text-[#8a7456]">Parcours fusionné et rangé par usage : fiches, production, transformation, alimentation, reproduction et santé.</p></section><Tabs active={tab} onChange={setTab} />{content}</div>;
 }

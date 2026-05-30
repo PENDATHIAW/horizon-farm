@@ -1,6 +1,7 @@
 import { Bot, CheckCircle2, ClipboardList, Mic, Send, Sparkles, Wand2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { buildRecommendationsFromData, draftToFormRequest, loadLocalRecommendations, saveLocalRecommendation } from '../services/aiRecommendationsService';
+import { detectStrategicQuery, buildStrategicAnswer } from '../services/heyHorizonStrategicAnswers.js';
 import { openFormModal } from '../services/formModalManager';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 
@@ -15,12 +16,14 @@ const moneyInText = (text = '') => { const matches = String(text).replace(/\s/g,
 const qtyInText = (text = '') => { const matches = String(text).match(/\b\d+\b/g); return matches?.[0] ? Number(matches[0]) : null; };
 
 const QUICK_COMMANDS = [
+  { title: 'Créances clients', text: 'Quels clients me doivent de l\'argent ?', target: 'Commercial' },
+  { title: 'Lots rentables', text: 'Quels sont mes lots les moins rentables ?', target: 'Élevage' },
+  { title: 'Baisse de marge', text: 'Pourquoi ma marge baisse ?', target: 'Finance & Pilotage' },
+  { title: 'Coût équipements', text: 'Quels équipements coûtent le plus cher ?', target: 'Opérations & Ressources' },
+  { title: 'Risques du mois', text: 'Quels sont mes risques du mois ?', target: 'Vision & Croissance' },
   { title: 'Vente complète', text: 'Créer une vente de 10 poulets, livrée et payée en espèces', target: 'Commercial' },
-  { title: 'Achat aliment', text: 'J’ai acheté 10 sacs d’aliments à 18500 le sac', target: 'Achats & Stock' },
-  { title: 'Santé élevage', text: 'Créer une tâche de soin pour les animaux à surveiller', target: 'Élevage' },
-  { title: 'Panne équipement', text: 'Le tracteur est tombé en panne, créer une maintenance urgente', target: 'Opérations & Ressources' },
+  { title: 'Achat aliment', text: 'J\'ai acheté 10 sacs d\'aliments à 18500 le sac', target: 'Achats & Stock' },
   { title: 'Preuves finance', text: 'Afficher les dépenses sans justificatif', target: 'Documents & Rapports' },
-  { title: 'Relance client', text: 'Quels clients dois-je relancer aujourd’hui ?', target: 'Commercial' },
 ];
 const MODULES = ['Commercial', 'Élevage', 'Achats & Stock', 'Finance & Pilotage', 'Activité & Suivi', 'Documents & Rapports', 'Opérations & Ressources', 'Vision & Croissance'];
 
@@ -69,9 +72,29 @@ function DraftPreview({ draft, onNavigate, onPrefill }) {
   </Section>;
 }
 
+function StrategicAnswerPanel({ answer, onNavigate }) {
+  if (!answer) return null;
+  return (
+    <Section icon={Sparkles} title={answer.title} action={<button type="button" onClick={() => onNavigate?.(answer.route)} className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white">Ouvrir module</button>}>
+      <p className="mb-4 text-sm text-[#8a7456]">{answer.summary}</p>
+      <div className="divide-y divide-[#eadcc2]/70">
+        {answer.rows?.length ? answer.rows.map((row) => (
+          <button key={`${row.title}-${row.detail}`} type="button" onClick={() => onNavigate?.(row.module || answer.route)} className="grid w-full grid-cols-1 gap-2 border-b border-[#eadcc2]/70 py-4 text-left last:border-b-0 md:grid-cols-[260px_1fr_auto] md:items-center hover:bg-[#fffdf8]">
+            <b className="text-[#2f2415]">{row.title}</b>
+            <span className="text-sm text-[#8a7456]">{row.detail}</span>
+            <Pill tone="warn">{row.value}</Pill>
+          </button>
+        )) : <Empty label="Aucune donnée structurée pour cette question." />}
+      </div>
+      <p className="mt-3 text-xs text-emerald-800">Confiance analyse : {answer.confidence}% · Réponse basée sur les données ERP réelles.</p>
+    </Section>
+  );
+}
+
 export default function HeyHorizonModule({ dataMap = {}, onOpenAssistant, onNavigate }) {
   const [command, setCommand] = useState('');
   const [draft, setDraft] = useState(null);
+  const [strategic, setStrategic] = useState(null);
   const [journalTab, setJournalTab] = useState(false);
   const data = useMemo(() => {
     const stocks = arr(dataMap.stock || dataMap.stocks);
@@ -90,10 +113,20 @@ export default function HeyHorizonModule({ dataMap = {}, onOpenAssistant, onNavi
   }, [dataMap]);
   const journal = useMemo(() => loadLocalRecommendations(), [draft]);
   const runDraft = (text = command) => {
-    const next = buildDraft(text);
-    setCommand(text);
+    const query = text || command;
+    setCommand(query);
+    const strategicType = detectStrategicQuery(query);
+    if (strategicType) {
+      const answer = buildStrategicAnswer(strategicType, dataMap);
+      setStrategic(answer);
+      setDraft(null);
+      saveLocalRecommendation({ type: 'strategic', text: query, module: answer.route, confidence_score: answer.confidence, action: answer.title });
+      return;
+    }
+    setStrategic(null);
+    const next = buildDraft(query);
     setDraft(next);
-    saveLocalRecommendation({ type: 'draft', text, module: next.module, confidence_score: next.confidence_score, action: next.action });
+    saveLocalRecommendation({ type: 'draft', text: query, module: next.module, confidence_score: next.confidence_score, action: next.action });
   };
   const prefillForm = () => {
     if (!draft) return;
@@ -104,6 +137,7 @@ export default function HeyHorizonModule({ dataMap = {}, onOpenAssistant, onNavi
   return <div className="space-y-6"><section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-6 shadow-sm overflow-hidden relative"><div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-emerald-200/50 blur-2xl" /><div className="relative flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div><p className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black"><Bot size={16} /> Assistant ERP</p><h1 className="mt-2 text-3xl font-black text-[#2f2415]">Hey Horizon</h1><p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#7d6a4a]">Détection d'intention, score de confiance, préremplissage formulaire et journal des recommandations — validation humaine obligatoire.</p></div><button type="button" onClick={onOpenAssistant} className="rounded-2xl bg-[#2f2415] px-5 py-3 text-sm font-black text-white shadow-lg"><Mic size={17} className="inline mr-2" /> Ouvrir le panneau</button></div></section>
     <div className="grid grid-cols-2 gap-3 xl:grid-cols-6"><Stat label="Stocks bas" value={fmtNumber(data.lowStocks.length)} tone={data.lowStocks.length ? 'warn' : 'good'} /><Stat label="Impayés" value={fmtNumber(data.unpaid.length)} tone={data.unpaid.length ? 'warn' : 'good'} /><Stat label="Tâches ouvertes" value={fmtNumber(data.openTasks.length)} tone={data.openTasks.length ? 'warn' : 'good'} /><Stat label="Alertes" value={fmtNumber(data.openAlerts.length)} tone={data.openAlerts.length ? 'warn' : 'good'} /><Stat label="Preuves manquantes" value={fmtNumber(data.missingProof.length)} tone={data.missingProof.length ? 'warn' : 'good'} /><Stat label="Recommandations IA" value={fmtNumber(data.aiRecommendations.length)} tone={data.aiRecommendations.length ? 'warn' : 'good'} /></div>
     <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="rounded-3xl border border-[#eadcc2] bg-[#fffdf8] p-4"><label className="text-xs font-black uppercase tracking-[0.2em] text-[#8a7456]">Demander à Hey Horizon</label><div className="mt-3 flex flex-col gap-3 lg:flex-row"><textarea value={command} onChange={(event) => setCommand(event.target.value)} rows={3} placeholder="Exemple : J’ai vendu 10 poulets à Aminata, livré et payé 65 000 FCFA" className="min-h-[96px] flex-1 rounded-2xl border border-[#d6c3a0] bg-white p-4 text-sm text-[#2f2415] outline-none focus:border-emerald-400" /><div className="flex lg:flex-col gap-2"><button type="button" onClick={() => runDraft()} className="rounded-2xl bg-[#22c55e] px-4 py-3 text-sm font-black text-[#052e16]"><Send size={16} className="inline mr-1" /> Préparer</button><button type="button" onClick={onOpenAssistant} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><Mic size={16} className="inline mr-1" /> Voix</button></div></div></div></section>
+    {strategic ? <StrategicAnswerPanel answer={strategic} onNavigate={onNavigate} /> : null}
     {draft ? <DraftPreview draft={draft} onNavigate={onNavigate} onPrefill={prefillForm} /> : null}
     <Section icon={Sparkles} title="Actions rapides"><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{QUICK_COMMANDS.map((item) => <button key={item.title} type="button" onClick={() => runDraft(item.text)} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left hover:bg-[#dcfce7]"><p className="font-black text-[#2f2415]">{item.title}</p><p className="mt-1 text-sm text-[#7d6a4a]">{item.text}</p><Pill tone="good">{item.target}</Pill></button>)}</div></Section>
     <Section icon={ClipboardList} title="Informations utiles détectées"><div>{data.lowStocks.slice(0, 4).map((row) => <Row key={`stock-${row.id || label(row)}`} title={label(row)} detail="Stock sous seuil" value="Acheter" tone="warn" />)}{data.missingProof.slice(0, 4).map((row) => <Row key={`proof-${row.id || label(row)}`} title={label(row)} detail="Justificatif manquant" value={fmtCurrency(amount(row))} tone="warn" />)}{data.aiRecommendations.slice(0, 4).map((row) => <Row key={row.id} title={row.title} detail={row.action_recommandee} value={`${row.confidence_score}%`} tone="warn" />)}{!data.lowStocks.length && !data.missingProof.length && !data.aiRecommendations.length ? <Empty label="Aucune priorité automatique détectée." /> : null}</div></Section>

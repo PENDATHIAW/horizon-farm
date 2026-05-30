@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, BrainCircuit, CheckCircle2, CloudSun, CreditCard, FileText, MapPin, Package, Settings2, Stethoscope, Target, TrendingUp } from 'lucide-react';
-import DashboardEvolution from './DashboardEvolution.jsx';
+import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
+import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import { readUiSettings } from '../utils/uiPreferences';
-import { fmtCurrency } from '../utils/format';
+import { fmtCurrency, fmtNumber } from '../utils/format';
 import { buildDecisionCenterPlan } from '../services/growthDecisionEngine';
 import { remainingForOrder } from '../utils/salesStatuses';
 import { buildDashboardTodayActions, sanitizeDashboardMetric } from '../utils/dashboardWorkflows';
-import { runErpHealthEngine } from '../services/erpHealthEngine';
+import { runErpHealthEngine, loadLastHealthEngineSnapshot } from '../services/erpHealthEngine';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase();
@@ -131,6 +132,60 @@ function buildNotebookRows(props, plan, actions, payments, transactions, salesOr
   ];
 }
 
+function DashboardGlobalKpis({ props, health, onNavigate }) {
+  const payments = arr(props.payments);
+  const transactions = arr(props.transactions);
+  const salesOrders = arr(props.salesOrders);
+  const stocks = arr(props.stocks);
+  const animaux = arr(props.animaux);
+  const lots = arr(props.lotsData || props.lots);
+  const productionLogs = arr(props.productionLogs);
+  const taches = arr(props.taches);
+  const alertes = arr(props.alertes);
+
+  const ca = salesOrders.reduce((s, o) => s + money(o), 0);
+  const encaisse = payments.reduce((s, p) => s + paid(p), 0);
+  const depenses = transactions.filter((t) => ['sortie', 'depense', 'dépense', 'achat'].includes(lower(t.type || ''))).reduce((s, t) => s + money(t), 0);
+  const resultat = encaisse - depenses;
+  const effectifs = animaux.filter((a) => !['vendu', 'mort', 'sorti'].includes(lower(a.status || a.statut))).length + lots.reduce((s, l) => s + Number(l.current_count ?? l.effectif ?? 0), 0);
+  const production = productionLogs.reduce((s, r) => s + Number(r.oeufs_produits || r.eggs_count || 0), 0);
+  const stockBas = stocks.filter(isCriticalStock).length;
+  const tachesOuvertes = taches.filter((t) => !['termine', 'terminé', 'done', 'closed'].includes(lower(t.status || t.statut))).length;
+  const alertesOuvertes = alertes.filter((a) => !['traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée'].includes(lower(a.status || a.statut))).length;
+  const recoIa = health.recommendations?.length || health.findings?.length || 0;
+
+  const items = [
+    { label: 'CA ventes', value: fmtCurrency(ca), tone: 'good', module: 'commercial' },
+    { label: 'Encaissements', value: fmtCurrency(encaisse), tone: 'good', module: 'finance_pilotage' },
+    { label: 'Résultat', value: fmtCurrency(resultat), tone: resultat >= 0 ? 'good' : 'bad', module: 'finance_pilotage' },
+    { label: 'Effectifs', value: fmtNumber(effectifs), module: 'elevage' },
+    { label: 'Production œufs', value: fmtNumber(production), module: 'elevage' },
+    { label: 'Stocks bas', value: fmtNumber(stockBas), tone: stockBas ? 'warn' : 'good', module: 'achats_stock' },
+    { label: 'Tâches', value: fmtNumber(tachesOuvertes), tone: tachesOuvertes ? 'warn' : 'good', module: 'activite_suivi' },
+    { label: 'Alertes', value: fmtNumber(alertesOuvertes), tone: alertesOuvertes ? 'warn' : 'good', module: 'activite_suivi' },
+    { label: 'Reco. IA', value: fmtNumber(recoIa), tone: recoIa ? 'warn' : 'good', module: 'objectifs_croissance' },
+  ];
+
+  return (
+    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Vue globale</p>
+          <h2 className="text-lg font-black text-[#2f2415]">Pilotage en un coup d&apos;œil</h2>
+        </div>
+        <button type="button" onClick={() => onNavigate?.('objectifs_croissance')} className="rounded-xl border border-[#d6c3a0] bg-[#dcfce7] px-4 py-2 text-xs font-black text-[#14532d]">À traiter → Vision</button>
+      </div>
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-9">
+        {items.map((item) => (
+          <button key={item.label} type="button" onClick={() => onNavigate?.(item.module)} className="text-left">
+            <Mini label={item.label} value={item.value} tone={item.tone || 'neutral'} />
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function FarmNotebook({ props, simple, onToggleExpert }) {
   const actions = useMemo(() => buildDashboardTodayActions(props).slice(0, simple ? 4 : 6), [props, simple]);
   const plan = useMemo(() => buildDecisionCenterPlan({
@@ -181,13 +236,13 @@ function buildHealthData(props = {}) {
   };
 }
 
-function HealthEnginePanel({ props, onNavigate }) {
-  const health = useMemo(() => runErpHealthEngine(buildHealthData(props)), [props]);
+function HealthEnginePanel({ props, health, onNavigate }) {
   const income = arr(props.payments).reduce((s, p) => s + paid(p), 0);
   const expenses = arr(props.transactions).filter((t) => ['sortie', 'depense', 'dépense'].includes(lower(t.type || ''))).reduce((s, t) => s + money(t), 0);
   const topRisk = health.risks[0];
   const topPred = health.predictions[0];
   const topRec = health.findings[0];
+  const autoExec = health.autoExecution;
 
   return (
     <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
@@ -206,7 +261,13 @@ function HealthEnginePanel({ props, onNavigate }) {
         <Mini label="Alertes IA" value={health.counts.total} tone={health.counts.critical ? 'warn' : 'good'} />
         <Mini label="Risques élevés" value={health.counts.risks} tone={health.counts.risks ? 'warn' : 'good'} />
         <Mini label="Prévisions" value={health.counts.predictions} tone={health.counts.predictions ? 'warn' : 'good'} />
+        {health.counts.ux ? <Mini label="Signaux UX" value={health.counts.ux} tone="warn" /> : null}
       </div>
+      {autoExec && (autoExec.createdTasks || autoExec.createdAlerts) ? (
+        <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+          Actions auto : {autoExec.createdAlerts || 0} alerte(s), {autoExec.createdTasks || 0} tâche(s) créées par le moteur ERP.
+        </div>
+      ) : null}
       {(topRec || topRisk || topPred) ? (
         <div className="mt-4 space-y-2">
           {topRec ? <button type="button" onClick={() => onNavigate?.(topRec.module || 'activite_suivi')} className="flex w-full items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-left text-sm"><AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-700" /><span><b className="text-[#2f2415]">{topRec.title}</b><span className="block text-xs text-amber-800">{topRec.recommended_action}</span></span></button> : null}
@@ -219,13 +280,35 @@ function HealthEnginePanel({ props, onNavigate }) {
 }
 
 export default function DashboardV2(props) {
+  const [tab, setTab] = useState('Vue globale');
   const settings = useUiSettings();
   const simple = settings.complexity !== 'expert';
+  const health = useMemo(() => {
+    const report = runErpHealthEngine(buildHealthData(props));
+    const snap = loadLastHealthEngineSnapshot();
+    if (snap?.autoExecution) report.autoExecution = snap.autoExecution;
+    if (snap?.counts?.ux != null && report.counts) report.counts.ux = snap.counts.ux;
+    return report;
+  }, [props]);
   const toggleExpert = () => {
     const next = { ...settings, complexity: simple ? 'expert' : 'simple' };
     localStorage.setItem('horizon_farm_ui_settings', JSON.stringify(next));
     window.dispatchEvent(new CustomEvent('horizon-farm-ui-settings-changed', { detail: next }));
   };
 
-  return <div className="space-y-6"><FarmNotebook props={props} simple={simple} onToggleExpert={toggleExpert} /><HealthEnginePanel props={props} onNavigate={props.onNavigate} />{!simple ? <><TodayFocus props={props} simple={simple} /><DashboardEvolution salesOrders={props.salesOrders || []} payments={props.payments || []} transactions={props.transactions || []} productionLogs={props.productionLogs || []} stocks={props.stocks || []} taches={props.taches || []} alertes={props.alertes || []} onNavigate={props.onNavigate} /></> : null}</div>;
+  return (
+    <div className="space-y-6">
+      <ModuleTabsBar moduleId="dashboard" active={tab} onChange={setTab} />
+      {tab === 'Vue globale' ? (
+        <>
+          <DashboardGlobalKpis props={props} health={health} onNavigate={props.onNavigate} />
+          <FarmNotebook props={props} simple={simple} onToggleExpert={toggleExpert} />
+          <HealthEnginePanel props={props} health={health} onNavigate={props.onNavigate} />
+          {!simple ? <TodayFocus props={props} simple={simple} /> : null}
+        </>
+      ) : (
+        <ModuleGraphiquesTab moduleId="dashboard" {...props} onNavigate={props.onNavigate} />
+      )}
+    </div>
+  );
 }

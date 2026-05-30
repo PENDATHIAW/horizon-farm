@@ -3,7 +3,9 @@ import { evaluateCoherenceRules } from './erpRules/coherenceRules.js';
 import { evaluateRiskRules } from './erpRules/riskRules.js';
 import { evaluatePredictiveRules } from './erpRules/predictiveRules.js';
 import { evaluateProfitabilityRules } from './erpRules/profitabilityRules.js';
+import { evaluateSurveillanceUxRules } from './erpRules/surveillanceUxRules.js';
 import { syncRecommendationsToSupabase } from './aiRecommendationsService.js';
+import { applyErpHealthAutoActions } from './erpHealthAutoActions.js';
 
 const STORAGE_KEY = 'horizon-erp-health-engine-last';
 
@@ -32,8 +34,9 @@ export function runErpHealthEngine(data = {}) {
   const risks = evaluateRiskRules(data);
   const predictions = evaluatePredictiveRules(data);
   const profitability = evaluateProfitabilityRules(data);
+  const uxSurveillance = evaluateSurveillanceUxRules();
 
-  const findings = [...audit, ...coherence, ...profitability, ...predictions.map((p) => ({
+  const findings = [...audit, ...coherence, ...profitability, ...uxSurveillance, ...predictions.map((p) => ({
     ...p,
     category: 'predictive',
     recommended_action: p.recommended_action,
@@ -61,12 +64,13 @@ export function runErpHealthEngine(data = {}) {
       risks: risks.filter((r) => r.level === 'critique' || r.level === 'eleve').length,
       predictions: predictions.length,
       unreliableMargins: profitability.length,
+      ux: uxSurveillance.length,
     },
     generated_at: new Date().toISOString(),
   };
 
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ score, counts: report.counts, generated_at: report.generated_at }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ score, counts: report.counts, generated_at: report.generated_at, autoExecution: report.autoExecution || null }));
   } catch { /* ignore */ }
 
   return report;
@@ -90,10 +94,21 @@ export function loadLastHealthEngineSnapshot() {
 }
 
 /** Planification : toutes les heures + à chaque modification critique (appel manuel). */
-export function scheduleErpHealthEngine(getData, onReport, intervalMs = 60 * 60 * 1000) {
+export function scheduleErpHealthEngine(getData, onReport, intervalMs = 60 * 60 * 1000, autoActions = null) {
   const tick = async () => {
     const data = typeof getData === 'function' ? getData() : getData;
     const report = await runErpHealthEngineAndSync(data);
+    if (autoActions && typeof autoActions === 'function') {
+      report.autoExecution = await applyErpHealthAutoActions(report, autoActions(data, report));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          score: report.score,
+          counts: report.counts,
+          generated_at: report.generated_at,
+          autoExecution: report.autoExecution,
+        }));
+      } catch { /* ignore */ }
+    }
     onReport?.(report);
   };
   tick();

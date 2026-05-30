@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { MODULE_REGISTRY, NAV_MODULE_ORDER } from './config/modules.config';
 import { computeNavAlertCounts, navAlertFlags } from './services/erpHealthRules';
 import { scheduleErpHealthEngine } from './services/erpHealthEngine';
+import { trackNavOpen } from './services/erpRules/surveillanceUxRules.js';
 import { composeActionTraceShared, composeDecisionDataMap, composeInternalResources, composeReportData } from './services/moduleDataComposer';
 import { refreshAllModules, refreshSalesWorkflow } from './services/workflowRefresh';
 import AppNotificationManager from './components/AppNotificationManager';
@@ -24,10 +25,15 @@ const MODULES = {
 };
 const CRUD_KEYS = ['animaux','avicole','sante','veterinaires','finances','investissements','business_plans','bp_investment_lines','bp_recurring_costs','bp_revenue_projections','bp_funding_sources','bp_links','bp_risks','stock','clients','fournisseurs','tracabilite','cultures','documents','taches','rapports','equipements','audit_logs','alimentation_logs','production_oeufs_logs','sensor_devices','camera_devices','business_events','alertes_center','whatsapp_templates','whatsapp_logs','sales_orders','sales_order_items','deliveries','invoices','payments','sales_opportunities'];
 const rows = (crud) => crud?.rows || [];
+const arr = (value) => (Array.isArray(value) ? value : []);
 const crudRowsMap = (c) => Object.fromEntries(CRUD_KEYS.map((key) => [key, rows(c[key])]));
 
 export default function App() {
-  const [active, setActive] = useState('dashboard');
+  const [active, setActiveState] = useState('dashboard');
+  const setActive = (moduleId) => {
+    trackNavOpen(moduleId);
+    setActiveState(moduleId);
+  };
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const { user, loading: authLoading, signOut } = useAuth();
@@ -46,7 +52,19 @@ export default function App() {
   const internalResourcesShared = composeInternalResources(c);
   const decisionDataMap = useMemo(() => composeDecisionDataMap({ crud: c, dataMap, liveMeteo }), [c, dataMap, liveMeteo]);
 
-  useEffect(() => scheduleErpHealthEngine(() => decisionDataMap), [decisionDataMap]);
+  useEffect(() => scheduleErpHealthEngine(
+    () => decisionDataMap,
+    null,
+    60 * 60 * 1000,
+    (data) => ({
+      existingTasks: arr(data.taches || data.tasks),
+      existingAlerts: arr(data.alertes_center || data.alertes),
+      onCreateTask: c.taches.create,
+      onCreateAlert: c.alertes_center.create,
+      onUpdateAlert: c.alertes_center.update,
+      onCreateBusinessEvent: c.business_events.create,
+    }),
+  ), [decisionDataMap, c.taches.create, c.alertes_center.create, c.alertes_center.update, c.business_events.create]);
 
   const navItems = useMemo(() => NAV_MODULE_ORDER.map((id) => ({
     id,
