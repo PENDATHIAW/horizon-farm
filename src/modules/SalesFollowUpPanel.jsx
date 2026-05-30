@@ -9,6 +9,7 @@ import { costBreakdownOf, costBreakdownShort, costBreakdownTooltip, productAmoun
 import { saleQuantityDetail } from '../utils/saleQuantityLabel';
 import { paidForOrder, remainingForOrder } from '../utils/salesStatuses';
 import { deleteSaleComplete } from '../utils/salesDeleteWorkflow';
+import { recordSalePayment } from '../utils/recordSalePayment';
 import { isDelivered, linkedPaymentsForOrders, saleAmount } from './commercial/commercialMetrics.js';
 import SaleActionModal from './SaleActionModal.jsx';
 
@@ -41,13 +42,28 @@ function buildMarginContext(props, payments) {
 async function settleOrder(order, props, linkedPayments) {
   const remaining = remainingForOrder(order, linkedPayments);
   if (remaining <= 0) return toast('Vente déjà encaissée');
-  const paymentId = makeId('PAY');
-  const date = new Date().toISOString().slice(0, 10);
-  await props.onCreatePayment?.({ id: paymentId, order_id: order.id, sale_id: order.id, source_record_id: order.id, client_id: order.client_id || '', invoice_id: order.invoice_id || '', date_paiement: date, date, montant: remaining, montant_paye: remaining, amount: remaining, moyen_paiement: order.moyen_paiement || order.payment_method || 'especes', mode_paiement: order.moyen_paiement || order.payment_method || 'especes', statut: 'paye' });
-  await props.onCreateFinanceTransaction?.({ id: makeId('TRX'), type: 'entree', libelle: `Solde vente ${order.id} - ${clientLabel(order)}`, montant: remaining, date, categorie: 'Vente', module_lie: 'ventes', related_id: order.id, vente_id: order.id, client_id: order.client_id || '', statut: 'paye', source_module: 'ventes', source_record_id: order.id, invoice_id: order.invoice_id || '', payment_id: paymentId, moyen_paiement: order.moyen_paiement || order.payment_method || 'especes' });
-  await props.onUpdate?.(order.id, { montant_paye: saleAmount(order), reste_a_payer: 0, statut_paiement: 'paye', payment_status: 'paye' });
-  await Promise.allSettled([props.onRefresh?.(), props.onRefreshPayments?.(), props.onRefreshFinances?.()]);
-  toast.success('Vente encaissée');
+  const result = await recordSalePayment({
+    sale: order,
+    requestedAmount: remaining,
+    payments: linkedPayments,
+    transactions: props.transactions || [],
+    clients: props.clients || [],
+    salesOrders: props.rows || [],
+    paymentMethod: order.moyen_paiement || order.payment_method || 'especes',
+    paymentDate: new Date().toISOString().slice(0, 10),
+    handlers: {
+      onCreatePayment: props.onCreatePayment,
+      onCreateFinanceTransaction: props.onCreateFinanceTransaction,
+      onUpdateOrder: props.onUpdate,
+      onUpdateClient: props.onUpdateClient,
+      onRefresh: props.onRefresh,
+      onRefreshPayments: props.onRefreshPayments,
+      onRefreshFinances: props.onRefreshFinances,
+      onRefreshClients: props.onRefreshClients,
+    },
+  });
+  if (result?.skipped && result.reason === 'duplicate_payment') toast.success('Encaissement déjà enregistré');
+  else toast.success('Vente encaissée');
 }
 
 async function markDelivered(order, props) {

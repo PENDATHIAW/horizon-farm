@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { paidForOrder, remainingForOrder } from '../utils/salesStatuses';
+import { recordSalePayment } from '../utils/recordSalePayment';
 import VentesV4 from './VentesV4.jsx';
 import { linkedPaymentsForOrders, saleAmount } from './commercial/commercialMetrics.js';
 
@@ -30,18 +31,39 @@ export default function VentesV6(props) {
 
   const guardedCreatePayment = async (payload = {}) => {
     const saleId = String(payload.order_id || payload.sale_id || payload.source_record_id || payload.related_id || '');
-    const sale = normalizedRows.find((row) => String(row.id) === saleId);
+    const sale = orders.find((row) => String(row.id) === saleId) || normalizedRows.find((row) => String(row.id) === saleId);
     const linked = linkedPaymentsForOrders(orders, payments);
-    if (sale && remainingForOrder(sale, linked) <= 0) {
-      toast.success('Vente déjà soldée : aucun encaissement supplémentaire nécessaire.');
-      await props.onUpdate?.(sale.id, { reste_a_payer: 0, statut_paiement: 'paye', payment_status: 'paye' });
-      await props.onRefresh?.();
+    const result = await recordSalePayment({
+      sale: sale || { id: saleId, client_id: payload.client_id },
+      requestedAmount: Number(payload.montant || payload.amount || payload.montant_paye || 0),
+      payments: linked,
+      transactions: props.transactions || [],
+      clients: props.clients || [],
+      salesOrders: orders,
+      paymentMethod: payload.moyen_paiement || payload.mode_paiement || payload.payment_method || 'especes',
+      paymentDate: payload.date_paiement || payload.date || '',
+      paymentId: payload.id,
+      handlers: {
+        onCreatePayment: props.onCreatePayment,
+        onCreateFinanceTransaction: props.onCreateFinanceTransaction,
+        onUpdateOrder: props.onUpdate,
+        onUpdateClient: props.onUpdateClient,
+        onRefresh: props.onRefresh,
+        onRefreshPayments: props.onRefreshPayments,
+        onRefreshFinances: props.onRefreshFinances,
+        onRefreshClients: props.onRefreshClients,
+      },
+    });
+
+    if (result?.skipped && result.reason === 'already_settled') {
+      toast.success('Vente déjà soldée : aucun encaissement supplémentaire.');
       return null;
     }
-    const remaining = sale ? remainingForOrder(sale, linked) : Number(payload.montant || payload.amount || payload.montant_paye || 0);
-    const requested = Number(payload.montant || payload.amount || payload.montant_paye || 0);
-    const capped = Math.min(requested, remaining);
-    return props.onCreatePayment?.({ ...payload, montant: capped, amount: capped, montant_paye: capped });
+    if (result?.skipped && result.reason === 'duplicate_payment') {
+      toast.success('Encaissement déjà enregistré — aucun doublon créé.');
+      return result.payment;
+    }
+    return result;
   };
 
   const guardedUpdate = async (id, payload = {}) => {

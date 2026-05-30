@@ -1,0 +1,143 @@
+import { buildClientSalesSummary } from './clientWorkflows';
+import { makeId } from './ids';
+import { buildCoherentOrderPatch, findExistingFinanceForPayment, findExistingPayment } from '../services/salesIntegrityService';
+import { capSalePayment } from './salesWorkflows';
+
+const arr = (value) => (Array.isArray(value) ? value : []);
+const clean = (value = '') => String(value || '').trim();
+
+/** Met à jour le statut client selon créances réelles après encaissement. */
+export function buildClientReceivablePatch(clientId, { clients = [], salesOrders = [], payments = [] } = {}) {
+  const client = arr(clients).find((row) => String(row.id) === String(clientId));
+  if (!client) return null;
+  const summary = buildClientSalesSummary(client, salesOrders, payments);
+  const hasDebt = summary.resteAPayer > 0;
+  return {
+    reste_a_payer: summary.resteAPayer,
+    creance_reelle: summary.resteAPayer,
+    dette: summary.resteAPayer,
+    total_paye: summary.totalPaye,
+    total_ventes: summary.totalAchete,
+    statut: hasDebt ? 'a_relancer' : summary.totalAchete > 0 ? 'a_jour' : (client.statut || 'prospect'),
+    status: hasDebt ? 'a_relancer' : summary.totalAchete > 0 ? 'a_jour' : (client.status || client.statut || 'prospect'),
+    relance_requise: hasDebt,
+    statut_relance: hasDebt ? 'a_relancer' : 'solde',
+  };
+}
+
+/**
+ * Encaisse une vente avec plafond, anti-doublon paiement/finance, statuts cohérents.
+ * Retourne null si rien à encaisser ou doublon détecté.
+ */
+export async function recordSalePayment({
+  sale = {},
+  requestedAmount = 0,
+  payments = [],
+  transactions = [],
+  clients = [],
+  salesOrders = [],
+  paymentMethod = 'especes',
+  paymentDate = '',
+  paymentId = '',
+  handlers = {},
+} = {}) {
+  const {
+    onCreatePayment,
+    onCreateFinanceTransaction,
+    onUpdateOrder,
+    onUpdateClient,
+    onRefresh,
+    onRefreshPayments,
+    onRefreshFinances,
+    onRefreshClients,
+  } = handlers;
+
+  const cappedAmount = capSalePayment(sale, payments, requestedAmount);
+  if (cappedAmount <= 0) {
+    await onUpdateOrder?.(sale.id, buildCoherentOrderPatch(sale, payments, {}));
+    return { skipped: true, reason: 'already_settled' };
+  }
+
+  const existingPayment = findExistingPayment({
+    orderId: sale.id,
+    amount: cappedAmount,
+    payments,
+    paymentId,
+    date: paymentDate,
+    method: paymentMethod,
+  });
+
+  if (existingPayment) {
+    const nextPayments = payments.some((row) => row.id === existingPayment.id) ? payments : [...payments, existingPayment];
+    await onUpdateOrder?.(sale.id, buildCoherentOrderPatch(sale, nextPayments, {}));
+    if (sale.client_id) {
+      const clientPatch = buildClientReceivablePatch(sale.client_id, { clients, salesOrders, payments: nextPayments });
+      if (clientPatch) await onUpdateClient?.(sale.client_id, clientPatch);
+    }
+    return { skipped: true, reason: 'duplicate_payment', payment: existingPayment };
+  }
+
+  const payId = paymentId || makeId('PAY');
+  const date = paymentDate || new Date().toISOString().slice(0, 10);
+
+  await onCreatePayment?.({
+    id: payId,
+    order_id: sale.id,
+    sale_id: sale.id,
+    source_record_id: sale.id,
+    client_id: sale.client_id || '',
+    invoice_id: sale.invoice_id || '',
+    date_paiement: date,
+    date,
+    montant: cappedAmount,
+    montant_paye: cappedAmount,
+    amount: cappedAmount,
+    moyen_paiement: paymentMethod,
+    mode_paiement: paymentMethod,
+    statut: 'paye',
+  });
+
+  const nextPayments = [...payments, { id: payId, order_id: sale.id, montant: cappedAmount, montant_paye: cappedAmount, amount: cappedAmount, date_paiement: date, date, moyen_paiement: paymentMethod, statut: 'paye' }];
+
+  const existingFinance = findExistingFinanceForPayment({
+    orderId: sale.id,
+    paymentId: payId,
+    amount: cappedAmount,
+    transactions,
+    date,
+    method: paymentMethod,
+  });
+
+  if (!existingFinance && onCreateFinanceTransaction) {
+    await onCreateFinanceTransaction({
+      id: makeId('TRX'),
+      type: 'entree',
+      libelle: `Encaissement ${sale.id} - ${sale.client_label || sale.client_name || 'Client'}`,
+      montant: cappedAmount,
+      date,
+      categorie: 'Vente',
+      module_lie: 'ventes',
+      related_id: sale.id,
+      vente_id: sale.id,
+      client_id: sale.client_id || '',
+      statut: 'paye',
+      source_module: 'ventes',
+      source_record_id: sale.id,
+      invoice_id: sale.invoice_id || '',
+      payment_id: payId,
+      moyen_paiement: paymentMethod,
+      transaction_origin: 'automatique',
+    });
+  }
+
+  await onUpdateOrder?.(sale.id, buildCoherentOrderPatch(sale, nextPayments, {}));
+
+  if (sale.client_id) {
+    const clientPatch = buildClientReceivablePatch(sale.client_id, { clients, salesOrders, payments: nextPayments });
+    if (clientPatch) await onUpdateClient?.(sale.client_id, clientPatch);
+  }
+
+  await Promise.allSettled([onRefresh?.(), onRefreshPayments?.(), onRefreshFinances?.(), onRefreshClients?.()]);
+
+  return { paymentId: payId, amount: cappedAmount, skipped: false };
+}

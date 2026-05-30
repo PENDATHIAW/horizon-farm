@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { fmtCurrency } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { findInvoicesForOrder } from '../services/salesIntegrityService';
-import { capSalePayment } from '../utils/salesWorkflows';
+import { recordSalePayment } from '../utils/recordSalePayment';
 import { saleQuantityDetail, deliveryModeNeedsFee, deliveryFeeOf } from '../utils/saleQuantityLabel';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -45,19 +45,36 @@ export default function SaleActionModal({ sale, payments, props, onClose, initia
       setSaving(true);
       if (mode === 'edit') await props.onUpdate?.(sale.id, { client_label: client, product_name: product, quantity: num(quantity), unit_price: num(unitPrice), montant_ht: productTotal, frais_livraison: activeFee, delivery_fee: activeFee, fulfillment_mode: feeApplies ? (fulfillmentMode || delivery) : 'recupere', montant_total: editGrandTotal, reste_a_payer: Math.max(0, editGrandTotal - paidOf(sale, payments)) });
       if (mode === 'pay') {
-        const cappedAmount = capSalePayment(sale, payments, amount);
-        if (cappedAmount <= 0) {
+        const result = await recordSalePayment({
+          sale,
+          requestedAmount: amount,
+          payments,
+          transactions: props.transactions || [],
+          clients: props.clients || [],
+          salesOrders: props.rows || [],
+          paymentMethod: 'especes',
+          paymentDate: today(),
+          handlers: {
+            onCreatePayment: props.onCreatePayment,
+            onCreateFinanceTransaction: props.onCreateFinanceTransaction,
+            onUpdateOrder: props.onUpdate,
+            onUpdateClient: props.onUpdateClient,
+            onRefresh: props.onRefresh,
+            onRefreshPayments: props.onRefreshPayments,
+            onRefreshFinances: props.onRefreshFinances,
+            onRefreshClients: props.onRefreshClients,
+          },
+        });
+        if (result?.skipped && result.reason === 'already_settled') {
           toast.success('Vente déjà soldée : aucun encaissement à ajouter.');
-          await props.onUpdate?.(sale.id, { reste_a_payer: 0, statut_paiement: 'paye', payment_status: 'paye' });
-          await props.onRefresh?.();
           onClose?.();
           return;
         }
-        const payId = makeId('PAY');
-        await props.onCreatePayment?.({ id: payId, order_id: sale.id, sale_id: sale.id, source_record_id: sale.id, date_paiement: today(), montant: cappedAmount, amount: cappedAmount, moyen_paiement: 'especes', statut: 'paye' });
-        await props.onCreateFinanceTransaction?.({ id: makeId('TRX'), type: 'entree', libelle: `Encaissement ${sale.id} - ${client}`, montant: cappedAmount, date: today(), categorie: 'Vente', module_lie: 'ventes', related_id: sale.id, source_module: 'ventes', source_record_id: sale.id, payment_id: payId, transaction_origin: 'automatique' });
-        const newPaid = paidOf(sale, payments) + cappedAmount;
-        await props.onUpdate?.(sale.id, { montant_paye: newPaid, reste_a_payer: Math.max(0, totalOf(sale) - newPaid), statut_paiement: Math.max(0, totalOf(sale) - newPaid) <= 0 ? 'paye' : 'partiel' });
+        if (result?.skipped && result.reason === 'duplicate_payment') {
+          toast.success('Encaissement déjà enregistré — aucun doublon.');
+          onClose?.();
+          return;
+        }
       }
       if (mode === 'deliver') {
         const fee = deliveryModeNeedsFee(delivery) ? Math.max(0, num(deliveryFee)) : 0;
