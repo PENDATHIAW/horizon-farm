@@ -14,6 +14,7 @@ export function evaluateFinanceRules(transactions = []) {
         description: `Transaction de ${amount(trx)} FCFA sans justificatif`,
         recommended_action: 'Attacher une preuve ou créer une tâche conformité',
         confidence_score: 0.92,
+        auto_action: 'create_task',
         source_records: [{ type: 'finance', id: trx.id }],
       });
     }
