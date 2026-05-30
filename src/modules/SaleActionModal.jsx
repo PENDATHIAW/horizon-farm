@@ -124,7 +124,6 @@ export default function SaleActionModal({ sale, payments, props, onClose, initia
       }
       if (mode === 'close') await props.onUpdate?.(sale.id, { statut_commande: 'cloture', closed_at: new Date().toISOString() });
       await props.onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: `vente_${mode}`, module_source: 'ventes', entity_type: 'commande', entity_id: sale.id, title: `Vente ${sale.id} · ${mode}`, description: product || sale.product_name || '', event_date: today(), severity: 'info' });
-      await Promise.allSettled([props.onRefresh?.(), props.onRefreshPayments?.(), props.onRefreshInvoices?.(), props.onRefreshDeliveries?.()]);
       toast.success('Vente mise à jour');
       onClose?.();
     } catch (error) { toast.error(error.message || 'Action vente impossible'); } finally { setSaving(false); }

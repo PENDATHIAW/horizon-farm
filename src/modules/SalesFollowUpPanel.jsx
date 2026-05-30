@@ -74,7 +74,6 @@ async function markDelivered(order, props) {
   const existingDelivery = arr(props.deliveriesList || props.deliveries).find((delivery) => clean(delivery.order_id || delivery.sale_id || delivery.source_record_id || delivery.related_id) === clean(order.id));
   if (existingDelivery?.id && props.onUpdateDelivery) await props.onUpdateDelivery(existingDelivery.id, { statut: 'livre', status: 'livre', date_livraison: date });
   else await props.onCreateDelivery?.({ id: makeId('LIV'), order_id: order.id, sale_id: order.id, date_livraison: date, statut: 'livre', status: 'livre', mode_livraison: 'livraison', destinataire: clientLabel(order), client_id: order.client_id || '' });
-  await Promise.allSettled([props.onRefresh?.(), props.onRefreshDeliveries?.()]);
   toast.success('Livraison clôturée');
 }
 

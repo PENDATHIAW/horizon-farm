@@ -48,10 +48,6 @@ export async function recordSalePayment({
     onCreateFinanceTransaction,
     onUpdateOrder,
     onUpdateClient,
-    onRefresh,
-    onRefreshPayments,
-    onRefreshFinances,
-    onRefreshClients,
   } = handlers;
 
   const remaining = remainingForOrder(sale, payments);
@@ -152,8 +148,6 @@ export async function recordSalePayment({
     const clientPatch = buildClientReceivablePatch(sale.client_id, { clients, salesOrders, payments: nextPayments });
     if (clientPatch) await onUpdateClient?.(sale.client_id, clientPatch);
   }
-
-  await Promise.allSettled([onRefreshPayments?.(), onRefresh?.()]);
 
   return { paymentId: payId, amount: cappedAmount, remaining: Math.max(0, remaining - cappedAmount), requested, skipped: false };
 }

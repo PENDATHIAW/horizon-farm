@@ -82,7 +82,7 @@ export default function useCrudModule(moduleKey) {
           rememberDeletedId(moduleKey, id, findExistingRow(id));
           return deleteRecord(moduleKey, id);
         },
-        refresh: () => refreshModule(moduleKey),
+        refresh: () => refreshModule(moduleKey, { immediate: true }),
       };
     },
     [moduleKey, dataMap, loadingMap, errorMap, createRecord, updateRecord, deleteRecord, refreshModule]
