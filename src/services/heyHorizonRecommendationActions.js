@@ -36,6 +36,26 @@ export async function applyOneClickRecommendation(finding, handlers = {}) {
   return { ok: true, navigated: true };
 }
 
+/** Crée une tâche de suivi dette fournisseur. */
+export async function createSupplierFollowUpTask({ supplierName, amount, supplierId, handlers = {} }) {
+  const { onCreateTask, existingTasks = [], onNavigate } = handlers;
+  if (typeof onCreateTask !== 'function') {
+    onNavigate?.('achats_stock');
+    return { ok: false };
+  }
+  const finding = {
+    id: `relance-fourn-${supplierId || supplierName}`,
+    module: 'achats_stock',
+    severity: 'haute',
+    category: 'coherence',
+    title: `Payer ${supplierName}`,
+    description: `Dette fournisseur${supplierId ? ` · ${supplierId}` : ''}`,
+    recommended_action: `Planifier paiement de ${amount || 'la dette'} à ${supplierName}`,
+    auto_action: 'create_task',
+  };
+  return applyOneClickRecommendation(finding, { ...handlers, existingTasks });
+}
+
 /** Crée une tâche de relance client depuis une réponse stratégique créances. */
 export async function createClientFollowUpTask({ clientName, amount, orderId, handlers = {} }) {
   const { onCreateTask, onCreateBusinessEvent, existingTasks = [], onNavigate } = handlers;
