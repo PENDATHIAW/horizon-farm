@@ -129,6 +129,27 @@ export function clientsWithReceivableCount(orders = [], payments = []) {
   return ids.size;
 }
 
+const cleanStr = (value = '') => String(value || '').trim();
+const orderClientId = (row = {}) => cleanStr(row.client_id || row.customer_id || row.client);
+const saleDateOf = (row = {}) => cleanStr(row.date || row.date_vente || row.order_date || row.created_at).slice(0, 10);
+const clientNameOf = (client = {}) => cleanStr(client.nom || client.name || client.raison_sociale || client.id || 'Client');
+
+/** Ledger client : CA, payé, reste — source unique salesStatuses. */
+export function buildClientLedger(clients = [], orders = [], payments = []) {
+  const linked = linkedPaymentsForOrders(orders, payments);
+  const rows = arr(clients).map((client) => {
+    const id = cleanStr(client.id);
+    const clientOrders = arr(orders).filter((order) => orderClientId(order) === id);
+    const ca = clientOrders.reduce((sum, order) => sum + saleAmount(order), 0);
+    const paid = clientOrders.reduce((sum, order) => sum + paidForOrder(order, linked), 0);
+    const remaining = clientOrders.reduce((sum, order) => sum + remainingForOrder(order, linked), 0);
+    const lastSale = clientOrders.map(saleDateOf).filter(Boolean).sort().reverse()[0] || '';
+    return { client, id, name: clientNameOf(client), orders: clientOrders.length, ca, paid, remaining, lastSale };
+  }).sort((a, b) => b.remaining - a.remaining || b.ca - a.ca);
+  const walkInOrders = arr(orders).filter(isWalkInOrder);
+  return { rows, walkInOrders };
+}
+
 /** Une ligne par vente — regroupe impayé / facture / livraison. */
 export function buildSummaryTodos(orders = [], payments = [], healthFindings = []) {
   const linked = linkedPaymentsForOrders(orders, payments);

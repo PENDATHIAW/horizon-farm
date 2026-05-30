@@ -1,32 +1,7 @@
 import { AlertTriangle, CheckCircle2, CreditCard, ShoppingCart, UserRound } from 'lucide-react';
-import { fmtCurrency, toNumber } from '../utils/format';
+import { fmtCurrency } from '../utils/format';
+import { buildClientLedger, saleAmount } from './commercial/commercialMetrics.js';
 
-const arr = (value) => Array.isArray(value) ? value : [];
-const clean = (value = '') => String(value || '').trim();
-const amount = (row = {}) => toNumber(row.montant_total ?? row.total ?? row.amount ?? row.montant);
-const paidOrder = (row = {}) => toNumber(row.montant_paye ?? row.paid_amount ?? row.amount_paid);
-const paymentAmount = (row = {}) => toNumber(row.montant_paye ?? row.montant ?? row.amount ?? row.paid_amount);
-const orderClientId = (row = {}) => clean(row.client_id || row.customer_id || row.client);
-const paymentOrderId = (row = {}) => clean(row.order_id || row.sale_id || row.source_record_id || row.related_id);
-const clientName = (client = {}) => clean(client.nom || client.name || client.raison_sociale || client.id || 'Client');
-const saleDate = (row = {}) => clean(row.date || row.date_vente || row.order_date || row.created_at).slice(0, 10);
-
-function paidForOrder(order, payments = []) {
-  return Math.max(paidOrder(order), arr(payments).filter((p) => paymentOrderId(p) === clean(order.id)).reduce((sum, p) => sum + paymentAmount(p), 0));
-}
-function buildRows({ clients = [], salesOrders = [], payments = [] }) {
-  const rows = arr(clients).map((client) => {
-    const id = clean(client.id);
-    const orders = arr(salesOrders).filter((order) => orderClientId(order) === id);
-    const ca = orders.reduce((sum, order) => sum + amount(order), 0);
-    const paid = orders.reduce((sum, order) => sum + paidForOrder(order, payments), 0);
-    const remaining = Math.max(0, ca - paid);
-    const lastSale = orders.map(saleDate).filter(Boolean).sort().reverse()[0] || '';
-    return { client, id, name: clientName(client), orders: orders.length, ca, paid, remaining, lastSale };
-  }).sort((a, b) => b.remaining - a.remaining || b.ca - a.ca);
-  const walkInOrders = arr(salesOrders).filter((order) => !orderClientId(order) && clean(order.client_type) === 'passage');
-  return { rows, walkInOrders };
-}
 function Mini({ icon: Icon, label, value, danger = false }) {
   return <div className={`rounded-xl border p-3 ${danger ? 'border-amber-200 bg-amber-50' : 'border-[#eadcc2] bg-white'}`}><Icon size={15} className={danger ? 'text-amber-700' : 'text-[#9a6b12]'} /><p className="mt-1 text-xs text-[#8a7456]">{label}</p><p className="font-black text-[#2f2415] break-words">{value}</p></div>;
 }
@@ -35,10 +10,10 @@ function Badge({ children, danger }) {
 }
 
 export default function ClientSalesHealthPanel({ rows = [], salesOrders = [], payments = [], onNavigate, compact = false }) {
-  const { rows: clientRows, walkInOrders } = buildRows({ clients: rows, salesOrders, payments });
+  const { rows: clientRows, walkInOrders } = buildClientLedger(rows, salesOrders, payments);
   const receivables = clientRows.reduce((sum, row) => sum + row.remaining, 0);
   const clientsWithDebt = clientRows.filter((row) => row.remaining > 0);
-  const ca = clientRows.reduce((sum, row) => sum + row.ca, 0) + walkInOrders.reduce((sum, row) => sum + amount(row), 0);
+  const ca = clientRows.reduce((sum, row) => sum + row.ca, 0) + walkInOrders.reduce((sum, row) => sum + saleAmount(row), 0);
   const top = clientRows.slice(0, compact ? 8 : 6);
   return (
     <section className={`rounded-2xl border border-[#d6c3a0] bg-white shadow-sm ${compact ? 'p-4 space-y-3' : 'rounded-3xl p-5 space-y-4'}`}>
@@ -64,11 +39,11 @@ export default function ClientSalesHealthPanel({ rows = [], salesOrders = [], pa
           <thead className="bg-[#2f2415] text-white"><tr><th className="px-3 py-2 text-left">Client</th><th className="px-3 py-2 text-right">Ventes</th><th className="px-3 py-2 text-right">CA</th><th className="px-3 py-2 text-right">Reste</th><th className="px-3 py-2 text-left">Statut</th></tr></thead>
           <tbody>
             {top.length ? top.map((row) => (
-              <tr key={row.id || row.name} className="border-t border-[#eadcc2]">
+              <tr key={row.id || row.name} className={`border-t border-[#eadcc2] ${row.remaining > 0 ? 'bg-amber-50/30' : ''}`}>
                 <td className="px-3 py-2"><b className="text-[#2f2415]">{row.name}</b><p className="text-xs text-[#8a7456]">{row.lastSale || '—'}</p></td>
                 <td className="px-3 py-2 text-right font-bold">{row.orders}</td>
                 <td className="px-3 py-2 text-right font-black">{fmtCurrency(row.ca)}</td>
-                <td className="px-3 py-2 text-right font-black">{fmtCurrency(row.remaining)}</td>
+                <td className={`px-3 py-2 text-right font-black ${row.remaining > 0 ? 'text-amber-800' : ''}`}>{fmtCurrency(row.remaining)}</td>
                 <td className="px-3 py-2"><Badge danger={row.remaining > 0}>{row.remaining > 0 ? 'À relancer' : 'À jour'}</Badge></td>
               </tr>
             )) : <tr><td colSpan="5" className="px-3 py-6 text-center text-[#8a7456]">Aucun client enregistré.</td></tr>}

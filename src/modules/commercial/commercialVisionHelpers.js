@@ -15,6 +15,7 @@ export function buildCommercialHealthSnapshot({ salesOrders = [], payments = [],
 
 export {
   aggregateClientReceivables,
+  buildClientLedger,
   buildCommercialCoherenceRows,
   buildSummaryTodos,
   buildTopClients,
