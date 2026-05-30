@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { MODULE_REGISTRY, NAV_MODULE_ORDER } from './config/modules.config';
 import { computeNavAlertCounts, navAlertFlags } from './services/erpHealthRules';
-import { scheduleErpHealthEngine } from './services/erpHealthEngine';
+import { scheduleErpHealthEngine, scheduleErpHealthOnCriticalChange } from './services/erpHealthEngine';
 import { trackNavOpen } from './services/erpRules/surveillanceUxRules.js';
 import { composeActionTraceShared, composeDecisionDataMap, composeInternalResources, composeReportData } from './services/moduleDataComposer';
 import { refreshAllModules, refreshSalesWorkflow } from './services/workflowRefresh';
@@ -52,19 +52,27 @@ export default function App() {
   const internalResourcesShared = composeInternalResources(c);
   const decisionDataMap = useMemo(() => composeDecisionDataMap({ crud: c, dataMap, liveMeteo }), [c, dataMap, liveMeteo]);
 
+  const healthAutoActions = useMemo(() => (data) => ({
+    existingTasks: arr(data.taches || data.tasks),
+    existingAlerts: arr(data.alertes_center || data.alertes),
+    onCreateTask: c.taches.create,
+    onCreateAlert: c.alertes_center.create,
+    onUpdateAlert: c.alertes_center.update,
+    onCreateBusinessEvent: c.business_events.create,
+  }), [c.taches.create, c.alertes_center.create, c.alertes_center.update, c.business_events.create]);
+
   useEffect(() => scheduleErpHealthEngine(
     () => decisionDataMap,
     null,
     60 * 60 * 1000,
-    (data) => ({
-      existingTasks: arr(data.taches || data.tasks),
-      existingAlerts: arr(data.alertes_center || data.alertes),
-      onCreateTask: c.taches.create,
-      onCreateAlert: c.alertes_center.create,
-      onUpdateAlert: c.alertes_center.update,
-      onCreateBusinessEvent: c.business_events.create,
-    }),
-  ), [decisionDataMap, c.taches.create, c.alertes_center.create, c.alertes_center.update, c.business_events.create]);
+    healthAutoActions,
+  ), [decisionDataMap, healthAutoActions]);
+
+  useEffect(() => {
+    const trigger = scheduleErpHealthOnCriticalChange(() => decisionDataMap, null, healthAutoActions);
+    trigger(decisionDataMap);
+    return trigger(decisionDataMap);
+  }, [decisionDataMap, healthAutoActions]);
 
   const navItems = useMemo(() => NAV_MODULE_ORDER.map((id) => ({
     id,
@@ -111,7 +119,7 @@ export default function App() {
     rh: { ...internalResourcesShared, onRefresh: refreshAll, onCreateFinanceTransaction: c.finances.create, onRefreshFinances: c.finances.refresh, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, ...shared },
     rapports: { ...base('rapports'), data: reportData, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, ...shared },
     equipements: { ...base('equipements'), ...internalResourcesShared, tasks: rows(c.taches), alertes: rows(c.alertes_center), onCreateTask: c.taches.create, onUpdateTask: c.taches.update, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onCreateFinanceTransaction: c.finances.create, onRefreshFinances: c.finances.refresh, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, ...shared },
-    audit_logs: syncActivityProps, smartfarm: { meteo: liveMeteo, online, sensors: rows(c.sensor_devices), cameras: rows(c.camera_devices), tasks: rows(c.taches), sensorLoading: c.sensor_devices.loading, cameraLoading: c.camera_devices.loading, onCreateSensor: c.sensor_devices.create, onUpdateSensor: c.sensor_devices.update, onDeleteSensor: c.sensor_devices.remove, onRefreshSensors: c.sensor_devices.refresh, onCreateCamera: c.camera_devices.create, onUpdateCamera: c.camera_devices.update, onDeleteCamera: c.camera_devices.remove, onRefreshCameras: c.camera_devices.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onRefreshAlertes: c.alertes_center.refresh, ...shared }, gestion_systeme: { ...internalResourcesShared, onNavigate: setActive }, sync: syncActivityProps, sync_activity: syncActivityProps,
+    audit_logs: syncActivityProps, smartfarm: { meteo: liveMeteo, online, sensors: rows(c.sensor_devices), cameras: rows(c.camera_devices), tasks: rows(c.taches), sensorLoading: c.sensor_devices.loading, cameraLoading: c.camera_devices.loading, onCreateSensor: c.sensor_devices.create, onUpdateSensor: c.sensor_devices.update, onDeleteSensor: c.sensor_devices.remove, onRefreshSensors: c.sensor_devices.refresh, onCreateCamera: c.camera_devices.create, onUpdateCamera: c.camera_devices.update, onDeleteCamera: c.camera_devices.remove, onRefreshCameras: c.camera_devices.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onRefreshAlertes: c.alertes_center.refresh, ...shared }, gestion_systeme: { ...internalResourcesShared, dataMap: decisionDataMap, onNavigate: setActive }, sync: syncActivityProps, sync_activity: syncActivityProps,
   };
 
   if (authLoading) return <div className="min-h-screen bg-[#f6efe2] flex items-center justify-center text-[#2f2415] font-black">Chargement Horizon Farm...</div>;

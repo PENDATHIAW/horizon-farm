@@ -4,6 +4,7 @@ import { evaluateRiskRules } from './erpRules/riskRules.js';
 import { evaluatePredictiveRules } from './erpRules/predictiveRules.js';
 import { evaluateProfitabilityRules } from './erpRules/profitabilityRules.js';
 import { evaluateSurveillanceUxRules } from './erpRules/surveillanceUxRules.js';
+import { evaluateErpUxAuditRules } from './erpRules/erpUxAuditRules.js';
 import { syncRecommendationsToSupabase } from './aiRecommendationsService.js';
 import { applyErpHealthAutoActions } from './erpHealthAutoActions.js';
 
@@ -35,8 +36,9 @@ export function runErpHealthEngine(data = {}) {
   const predictions = evaluatePredictiveRules(data);
   const profitability = evaluateProfitabilityRules(data);
   const uxSurveillance = evaluateSurveillanceUxRules();
+  const uxAudit = evaluateErpUxAuditRules();
 
-  const findings = [...audit, ...coherence, ...profitability, ...uxSurveillance, ...predictions.map((p) => ({
+  const findings = [...audit, ...coherence, ...profitability, ...uxSurveillance, ...uxAudit, ...predictions.map((p) => ({
     ...p,
     category: 'predictive',
     recommended_action: p.recommended_action,
@@ -64,7 +66,7 @@ export function runErpHealthEngine(data = {}) {
       risks: risks.filter((r) => r.level === 'critique' || r.level === 'eleve').length,
       predictions: predictions.length,
       unreliableMargins: profitability.length,
-      ux: uxSurveillance.length,
+      ux: uxSurveillance.length + uxAudit.length,
     },
     generated_at: new Date().toISOString(),
   };
@@ -91,6 +93,43 @@ export function loadLastHealthEngineSnapshot() {
   } catch {
     return null;
   }
+}
+
+/** Déclenchement différé après modification critique des données (debounce 45s). */
+export function scheduleErpHealthOnCriticalChange(getData, onReport, autoActions = null, debounceMs = 45_000) {
+  let timer = null;
+  let lastFingerprint = '';
+  const run = async () => {
+    const data = typeof getData === 'function' ? getData() : getData;
+    const fingerprint = JSON.stringify([
+      (data.sales_orders || data.salesOrders || []).length,
+      (data.finances || data.transactions || []).length,
+      (data.stock || data.stocks || []).length,
+      (data.avicole || data.lots || []).length,
+      (data.taches || data.tasks || []).length,
+      (data.alertes_center || data.alertes || []).length,
+    ]);
+    if (fingerprint === lastFingerprint) return;
+    lastFingerprint = fingerprint;
+    const report = await runErpHealthEngineAndSync(data);
+    if (autoActions && typeof autoActions === 'function') {
+      report.autoExecution = await applyErpHealthAutoActions(report, autoActions(data, report));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          score: report.score,
+          counts: report.counts,
+          generated_at: report.generated_at,
+          autoExecution: report.autoExecution,
+        }));
+      } catch { /* ignore */ }
+    }
+    onReport?.(report);
+  };
+  return (data) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => run(data), debounceMs);
+    return () => clearTimeout(timer);
+  };
 }
 
 /** Planification : toutes les heures + à chaque modification critique (appel manuel). */

@@ -27,14 +27,14 @@ export function evaluateCoherenceRules(data = {}) {
       findings.push({ id: `coh-sale-no-invoice-${order.id}`, module: 'commercial', severity: 'moyenne', category: 'coherence', title: `Vente sans facture : ${order.id}`, description: 'Facture non émise', recommended_action: 'Créer facture manquante', confidence_score: 0.88, auto_action: 'create_alert' });
     }
     if (!isDelivered(order) && total > 0) {
-      findings.push({ id: `coh-sale-no-delivery-${order.id}`, module: 'commercial', severity: 'moyenne', category: 'coherence', title: `Vente sans livraison : ${order.id}`, description: 'Livraison non confirmée', recommended_action: 'Mettre à jour le statut livraison', confidence_score: 0.85 });
+      findings.push({ id: `coh-sale-no-delivery-${order.id}`, module: 'commercial', severity: 'moyenne', category: 'coherence', title: `Vente sans livraison : ${order.id}`, description: 'Livraison non confirmée', recommended_action: 'Mettre à jour le statut livraison', confidence_score: 0.85, auto_action: 'create_task' });
     }
   });
 
   finances.filter((trx) => low(trx.type).includes('achat') || low(trx.categorie).includes('achat')).forEach((trx) => {
     const linked = stocks.some((s) => String(s.last_purchase_id || s.source_id) === String(trx.id)) || trx.stock_impact === true;
     if (!linked && amount(trx) > 0) {
-      findings.push({ id: `coh-purchase-no-stock-${trx.id}`, module: 'achats_stock', severity: 'moyenne', category: 'coherence', title: `Achat sans impact stock : ${trx.libelle || trx.id}`, description: 'Aucun mouvement stock lié', recommended_action: 'Enregistrer entrée stock', confidence_score: 0.9 });
+      findings.push({ id: `coh-purchase-no-stock-${trx.id}`, module: 'achats_stock', severity: 'moyenne', category: 'coherence', title: `Achat sans impact stock : ${trx.libelle || trx.id}`, description: 'Aucun mouvement stock lié', recommended_action: 'Enregistrer entrée stock', confidence_score: 0.9, auto_action: 'create_alert' });
     }
   });
 
@@ -42,13 +42,20 @@ export function evaluateCoherenceRules(data = {}) {
     const mortality = n(lot.mortality ?? lot.mortalite);
     const count = n(lot.current_count ?? lot.effectif);
     if (mortality > 0 && count <= 0) {
-      findings.push({ id: `coh-mortality-no-headcount-${lot.id}`, module: 'elevage', severity: 'haute', category: 'coherence', title: `Mortalité sans effectif : ${lot.name || lot.id}`, description: 'Mortalité enregistrée mais effectif à 0', recommended_action: 'Corriger effectif lot', confidence_score: 0.93 });
+      findings.push({ id: `coh-mortality-no-headcount-${lot.id}`, module: 'elevage', severity: 'haute', category: 'coherence', title: `Mortalité sans effectif : ${lot.name || lot.id}`, description: 'Mortalité enregistrée mais effectif à 0', recommended_action: 'Corriger effectif lot', confidence_score: 0.93, auto_action: 'create_task' });
+    }
+    if (mortality > 0 && count > 0 && mortality > count) {
+      findings.push({ id: `coh-mortality-exceeds-${lot.id}`, module: 'elevage', severity: 'haute', category: 'coherence', title: `Mortalité supérieure à l'effectif : ${lot.name || lot.id}`, description: `${mortality} mortalité(s) pour ${count} tête(s)`, recommended_action: 'Réconcilier mortalité et effectif', confidence_score: 0.91, auto_action: 'create_alert' });
     }
   });
 
   const recentEggs = eggLogs.slice(0, 7).reduce((s, r) => s + n(r.oeufs_produits ?? r.eggs_count), 0);
+  const eggStock = stocks.filter((s) => /oeuf|egg|plateau/i.test(String(s.produit || s.nom || '')));
+  if (recentEggs > 0 && !eggStock.length) {
+    findings.push({ id: 'coh-eggs-no-stock', module: 'elevage', severity: 'moyenne', category: 'coherence', title: 'Ponte sans impact stock œufs', description: `${recentEggs} œuf(s) produits sans ligne stock œufs`, recommended_action: 'Mettre à jour stock production œufs', confidence_score: 0.86, auto_action: 'create_alert' });
+  }
   if (recentEggs > 0 && !feedLogs.length && !stocks.some((s) => /aliment|feed|provende/i.test(String(s.produit || s.nom || '')))) {
-    findings.push({ id: 'coh-eggs-no-feed-stock', module: 'elevage', severity: 'moyenne', category: 'coherence', title: 'Ponte sans stock aliment visible', description: 'Production d\'œufs sans trace aliment/stock', recommended_action: 'Vérifier consommation et stock aliment', confidence_score: 0.8 });
+    findings.push({ id: 'coh-eggs-no-feed-stock', module: 'elevage', severity: 'moyenne', category: 'coherence', title: 'Ponte sans stock aliment visible', description: 'Production d\'œufs sans trace aliment/stock', recommended_action: 'Vérifier consommation et stock aliment', confidence_score: 0.8, auto_action: 'create_alert' });
   }
 
   return findings;

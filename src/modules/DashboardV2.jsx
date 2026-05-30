@@ -92,28 +92,28 @@ function buildNotebookRows(props, plan, actions, payments, transactions, salesOr
       value: `${overdueHealth.length} soin(s) en retard`,
       status: overdueHealth.length ? 'À traiter' : 'OK',
       tone: overdueHealth.length ? 'warn' : 'good',
-      moduleKey: 'sante',
+      moduleKey: 'elevage',
     },
     {
       label: 'Production',
       value: `${lots.length} lot(s) · ${eggs.toLocaleString('fr-FR')} œufs`,
       status: lots.length || eggs ? 'Suivi' : 'Vide',
       tone: lots.length || eggs ? 'good' : 'neutral',
-      moduleKey: 'avicole',
+      moduleKey: 'elevage',
     },
     {
       label: 'Stock',
       value: `${criticalStocks.length} produit(s) sous seuil`,
       status: criticalStocks.length ? 'Bas' : 'OK',
       tone: criticalStocks.length ? 'warn' : 'good',
-      moduleKey: 'stock',
+      moduleKey: 'achats_stock',
     },
     {
       label: 'Commercial',
       value: `${fmtCurrency(receivable)} à encaisser`,
       status: receivable > 0 ? 'Relance' : 'OK',
       tone: receivable > 0 ? 'warn' : 'good',
-      moduleKey: 'ventes',
+      moduleKey: 'commercial',
     },
     {
       label: 'Vision & Croissance',
@@ -123,11 +123,11 @@ function buildNotebookRows(props, plan, actions, payments, transactions, salesOr
       moduleKey: 'objectifs_croissance',
     },
     {
-      label: 'Centre décisionnel',
+      label: 'Recommandations IA',
       value: `${plan.recommendations?.length || 0} priorité(s)`,
       status: plan.recommendations?.[0]?.title || 'Pilotage IA',
       tone: plan.recommendations?.length ? 'warn' : 'good',
-      moduleKey: 'centre_ia',
+      moduleKey: 'objectifs_croissance',
     },
   ];
 }
@@ -163,7 +163,7 @@ function DashboardGlobalKpis({ props, health, onNavigate }) {
     { label: 'Stocks bas', value: fmtNumber(stockBas), tone: stockBas ? 'warn' : 'good', module: 'achats_stock' },
     { label: 'Tâches', value: fmtNumber(tachesOuvertes), tone: tachesOuvertes ? 'warn' : 'good', module: 'activite_suivi' },
     { label: 'Alertes', value: fmtNumber(alertesOuvertes), tone: alertesOuvertes ? 'warn' : 'good', module: 'activite_suivi' },
-    { label: 'Reco. IA', value: fmtNumber(recoIa), tone: recoIa ? 'warn' : 'good', module: 'objectifs_croissance' },
+    { label: 'Reco. IA', value: fmtNumber(recoIa), tone: recoIa ? 'warn' : 'good', module: 'assistant_erp' },
   ];
 
   return (
@@ -236,12 +236,39 @@ function buildHealthData(props = {}) {
   };
 }
 
+function DashboardAiTreatPanel({ health, onNavigate }) {
+  const items = (health.findings || []).slice(0, 5);
+  if (!items.length) return null;
+  return (
+    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">À traiter</p>
+          <h2 className="text-lg font-black text-[#2f2415]">L&apos;ERP a détecté ces points</h2>
+        </div>
+        <button type="button" onClick={() => onNavigate?.('objectifs_croissance')} className="rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-4 py-2 text-xs font-black text-[#2f2415]">Tout voir → Vision</button>
+      </div>
+      <div className="space-y-2">
+        {items.map((item) => (
+          <button key={item.id} type="button" onClick={() => onNavigate?.(item.module || 'activite_suivi')} className="flex w-full items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-left text-sm hover:bg-amber-100/80">
+            <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-700" />
+            <span className="min-w-0">
+              <b className="text-[#2f2415]">{item.title}</b>
+              <span className="mt-1 block text-xs text-amber-800">{item.recommended_action || item.description}</span>
+            </span>
+            <StatusPill tone={item.severity === 'critique' || item.severity === 'haute' ? 'bad' : 'warn'}>{item.severity || 'IA'}</StatusPill>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function HealthEnginePanel({ props, health, onNavigate }) {
   const income = arr(props.payments).reduce((s, p) => s + paid(p), 0);
   const expenses = arr(props.transactions).filter((t) => ['sortie', 'depense', 'dépense'].includes(lower(t.type || ''))).reduce((s, t) => s + money(t), 0);
   const topRisk = health.risks[0];
   const topPred = health.predictions[0];
-  const topRec = health.findings[0];
   const autoExec = health.autoExecution;
 
   return (
@@ -268,11 +295,10 @@ function HealthEnginePanel({ props, health, onNavigate }) {
           Actions auto : {autoExec.createdAlerts || 0} alerte(s), {autoExec.createdTasks || 0} tâche(s) créées par le moteur ERP.
         </div>
       ) : null}
-      {(topRec || topRisk || topPred) ? (
+      {(topRisk || topPred) ? (
         <div className="mt-4 space-y-2">
-          {topRec ? <button type="button" onClick={() => onNavigate?.(topRec.module || 'activite_suivi')} className="flex w-full items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-left text-sm"><AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-700" /><span><b className="text-[#2f2415]">{topRec.title}</b><span className="block text-xs text-amber-800">{topRec.recommended_action}</span></span></button> : null}
-          {topRisk ? <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm"><b className="text-[#2f2415]">{topRisk.title}</b> · {topRisk.level} — {topRisk.detail}</div> : null}
-          {topPred ? <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm"><b className="text-[#2f2415]">{topPred.title}</b> — {topPred.description}</div> : null}
+          {topRisk ? <button type="button" onClick={() => onNavigate?.(topRisk.module || 'objectifs_croissance')} className="w-full rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-left text-sm hover:bg-white"><b className="text-[#2f2415]">{topRisk.title}</b> · {topRisk.level} — {topRisk.detail}</button> : null}
+          {topPred ? <button type="button" onClick={() => onNavigate?.(topPred.module || 'achats_stock')} className="w-full rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-left text-sm hover:bg-white"><b className="text-[#2f2415]">{topPred.title}</b> — {topPred.description}</button> : null}
         </div>
       ) : null}
     </section>
@@ -302,9 +328,10 @@ export default function DashboardV2(props) {
       {tab === 'Vue globale' ? (
         <>
           <DashboardGlobalKpis props={props} health={health} onNavigate={props.onNavigate} />
+          <DashboardAiTreatPanel health={health} onNavigate={props.onNavigate} />
           <FarmNotebook props={props} simple={simple} onToggleExpert={toggleExpert} />
           <HealthEnginePanel props={props} health={health} onNavigate={props.onNavigate} />
-          {!simple ? <TodayFocus props={props} simple={simple} /> : null}
+          <TodayFocus props={props} simple={simple} />
         </>
       ) : (
         <ModuleGraphiquesTab moduleId="dashboard" {...props} onNavigate={props.onNavigate} />

@@ -16,7 +16,7 @@ export default function VisionFundingTab({ data, onNavigate }) {
         <Row title="Chiffres clés" detail={`CA ${fmtCurrency(data.salesAmount)} · marge ${fmtCurrency(data.grossMargin)} · trésorerie ${fmtCurrency(data.balance)}`} value="Pilotage" onClick={() => onNavigate?.('finance_pilotage')} />
         <Row title="Preuves & justificatifs" detail={`${fmtNumber(data.documents.length)} doc(s) · ${fmtNumber(data.missingProof)} manquant(s)`} value={data.missingProof ? 'À compléter' : 'OK'} tone={data.missingProof ? 'warn' : 'good'} onClick={() => onNavigate?.('documents_rapports')} />
         <Row title="Risques maîtrisés" detail={`${fmtNumber(data.risks.filter((r) => r.tone !== 'bad').length)} risque(s) modéré(s)`} value={`${fmtNumber(data.risks.filter((r) => r.tone === 'bad').length)} critique(s)`} tone={data.risks.some((r) => r.tone === 'bad') ? 'warn' : 'good'} onClick={() => onNavigate?.('objectifs_croissance')} />
-        <Row title="Export dossier" detail="Générer PDF financeur depuis Documents & Rapports" value="PDF" onClick={() => onNavigate?.('documents_rapports')} />
+        <Row title="Export dossier PDF" detail="DER, FONGIP, BNDE, CNCAS — générateur dossier financeur" value="PDF" onClick={() => onNavigate?.('rapports')} />
         {data.documents.length ? data.documents.slice(0, 6).map((r) => (
           <Row key={r.id || label(r)} title={label(r)} detail={`${r.type || r.categorie || 'Document'} · ${dateOf(r)}`} value="Doc" />
         )) : null}
