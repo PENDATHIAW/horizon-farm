@@ -102,7 +102,9 @@ export function buildVisionData(props = {}) {
   const allStocks = arr(stocks).length ? arr(stocks) : arr(dataMap.stocks || dataMap.stock);
   const allClients = arr(clients).length ? arr(clients) : arr(dataMap.clients);
   const sales = arr(salesOrders).length ? arr(salesOrders) : arr(dataMap.salesOrders || dataMap.sales_orders);
+  const salesAll = arr(props.salesOrdersAll).length ? arr(props.salesOrdersAll) : sales;
   const pay = arr(payments).length ? arr(payments) : arr(dataMap.payments);
+  const payAll = arr(props.paymentsAll).length ? arr(props.paymentsAll) : pay;
   const tx = [...arr(finances), ...arr(transactions), ...arr(dataMap.finances), ...arr(dataMap.transactions)].filter(Boolean);
   const plans = arr(businessPlans).length ? arr(businessPlans) : arr(dataMap.business_plans);
   const invest = arr(investissements).length ? arr(investissements) : arr(dataMap.investissements);
@@ -117,7 +119,7 @@ export function buildVisionData(props = {}) {
   const stockValue = allStocks.reduce((s, r) => s + stockQty(r) * n(r.prix_unitaire ?? r.unit_price ?? r.price), 0);
   const investmentValue = invest.reduce((s, r) => s + amount(r), 0);
   const missingProof = tx.filter((r) => amount(r) > 0 && !r.document_id && !r.proof_url && !r.justificatif_id).length;
-  const receivable = Math.max(0, salesAmount - collected);
+  const receivable = Math.max(0, salesAll.reduce((s, r) => s + amount(r), 0) - payAll.reduce((s, r) => s + amount(r), 0));
   const grossMargin = income - expenses;
   const base = { animaux: allAnimals, lots: allLots, cultures: allCultures, stocks: allStocks, clients: allClients, sales, payments: pay, income, expenses, balance: income - expenses, margin: grossMargin, grossMargin, netMargin: grossMargin, salesAmount, collected, stockValue, investmentValue, receivable, estimatedValue: stockValue + investmentValue + Math.max(0, grossMargin), productionCount: allAnimals.length + allLots.length + allCultures.length, goals: [...plans, ...invest], opportunities: opps, documents: docs, missingProof, openAlerts, openTasks, debts: expenses, receivables: receivable };
   const risks = buildRisks(base);

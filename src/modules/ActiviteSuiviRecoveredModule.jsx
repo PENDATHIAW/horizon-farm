@@ -7,13 +7,13 @@ import useCrudModule from '../hooks/useCrudModule';
 import { emitHorizonForm } from '../services/formModalManager';
 import { applyOneClickRecommendation, createAlertResolutionTask } from '../services/heyHorizonRecommendationActions.js';
 import { fmtNumber } from '../utils/format';
+import { rowsOf } from '../utils/moduleRows';
 import { aggregatePriorityQueue, buildActiviteCoherenceRows, buildActiviteHealthSnapshot, countOpenByModule } from './activiteSuivi/activiteSuiviVisionHelpers.js';
 import AlertesCenterV2 from './AlertesCenterV2.jsx';
 import TachesV3 from './TachesV3.jsx';
 import TracabiliteV2 from './TracabiliteV2.jsx';
 
 const arr = (v) => Array.isArray(v) ? v : [];
-const rowsOf = (provided, crud) => arr(provided).length ? arr(provided) : arr(crud?.rows);
 const low = (v) => String(v || '').toLowerCase();
 const isOpen = (r = {}) => !['termine', 'terminé', 'done', 'closed', 'clos', 'resolu', 'résolu'].includes(low(r.status || r.statut || r.state));
 const isLate = (r = {}) => ['retard', 'en_retard', 'overdue'].includes(low(r.status || r.statut || r.state));

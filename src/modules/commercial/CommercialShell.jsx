@@ -39,13 +39,16 @@ export function CommercialTodoRow({ title, detail, actionLabel, onAction, onOpen
   );
 }
 
-export function CommercialModuleHeader({ tab, setTab, healthScore, badges = {} }) {
+import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
+
+export function CommercialModuleHeader({ tab, setTab, healthScore, badges = {}, periodLabel = '' }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#9a6b12]">Commercial</p>
           <h1 className="text-2xl font-black text-[#2f2415]">Ventes & clients</h1>
+          {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className={`rounded-full border px-3 py-1 text-xs font-black ${healthScore >= 75 ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>Santé {healthScore}/100</span>

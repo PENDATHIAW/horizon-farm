@@ -10,11 +10,12 @@ import { applyOneClickRecommendation } from '../services/heyHorizonRecommendatio
 import { navigationOptionsForFinding, resolveFinanceTab } from '../utils/commercialNavigation';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { aggregateMissingProofTransactions, buildFinanceCoherenceRows, buildFinanceHealthSnapshot } from './finance/financeVisionHelpers.js';
+import { rowsOf, allRows } from '../utils/moduleRows';
+import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import FinancesV12 from './FinancesV12';
 import InvestissementsV9 from './InvestissementsV9';
 
 const arr = (v) => Array.isArray(v) ? v : [];
-const rowsOf = (provided, crud) => arr(provided).length ? arr(provided) : arr(crud?.rows);
 const n = (v = 0) => Number(v || 0);
 const low = (v) => String(v || '').toLowerCase();
 const amount = (r = {}) => n(r.montant ?? r.amount ?? r.total ?? r.valeur ?? r.value);
@@ -219,27 +220,32 @@ export default function FinancePilotageRecoveredModule(props) {
   const stockCrud = useCrudModule('stock');
   const tasksCrud = useCrudModule('taches');
   const alertsCrud = useCrudModule('alertes_center');
-  const payments = rowsOf(props.payments, paymentsCrud);
-  const salesOrders = rowsOf(props.salesOrders, salesCrud);
-  const clients = rowsOf(props.clients, clientsCrud);
-  const suppliers = rowsOf(props.fournisseurs, suppliersCrud);
-  const transactions = rowsOf(props.transactions || props.finances || props.rows, financesCrud);
-  const investments = rowsOf(props.investissements, investmentsCrud);
-  const businessPlans = rowsOf(props.businessPlans, businessPlansCrud);
+  const periodFiltered = Boolean(props.periodFiltered);
+  const payments = rowsOf(props.payments, paymentsCrud, periodFiltered);
+  const salesOrders = rowsOf(props.salesOrders, salesCrud, periodFiltered);
+  const salesOrdersAll = allRows(props.salesOrdersAll, salesCrud);
+  const paymentsAll = allRows(props.paymentsAll, paymentsCrud);
+  const clients = rowsOf(props.clients, clientsCrud, periodFiltered);
+  const suppliers = rowsOf(props.fournisseurs, suppliersCrud, periodFiltered);
+  const transactions = rowsOf(props.transactions || props.finances || props.rows, financesCrud, periodFiltered);
+  const investments = rowsOf(props.investissements, investmentsCrud, periodFiltered);
+  const businessPlans = rowsOf(props.businessPlans, businessPlansCrud, periodFiltered);
   const data = useMemo(() => {
     const income = transactions.filter(isIncome).reduce((s, r) => s + amount(r), 0);
     const expenses = transactions.filter((r) => isExpense(r) || (!isIncome(r) && amount(r) > 0)).reduce((s, r) => s + amount(r), 0);
     const unpaidTx = transactions.filter(isUnpaid);
     const unpaid = unpaidTx.reduce((s, r) => s + amount(r), 0);
     const missingProof = transactions.filter((r) => amount(r) > 0 && !hasProof(r)).length;
-    const orderReceivables = salesOrders.map((order) => ({ id: order.id, title: order.client_nom || order.customer_name || 'Vente', detail: `${order.date || order.created_at || '—'} · commande`, amount: remainingOf(order, payments) })).filter((row) => row.amount > 0);
+    const snapshotOrders = salesOrdersAll.length ? salesOrdersAll : salesOrders;
+    const snapshotPayments = paymentsAll.length ? paymentsAll : payments;
+    const orderReceivables = snapshotOrders.map((order) => ({ id: order.id, title: order.client_nom || order.customer_name || 'Vente', detail: `${order.date || order.created_at || '—'} · commande`, amount: remainingOf(order, snapshotPayments) })).filter((row) => row.amount > 0);
     const txReceivables = transactions.filter(isReceivable).map((row) => ({ id: row.id, title: row.libelle || row.title || 'Créance', detail: `${row.date || row.created_at || '—'} · finance`, amount: amount(row) }));
     const receivables = [...orderReceivables, ...txReceivables];
     const supplierDebt = suppliers.reduce((s, r) => s + n(r.dettes ?? r.dette ?? r.solde ?? r.balance), 0);
     const txPayables = transactions.filter(isPayable).map((row) => ({ id: row.id, title: row.libelle || row.title || 'Dette', detail: `${row.date || row.created_at || '—'} · finance`, amount: amount(row) }));
     const supplierPayables = suppliers.filter((r) => n(r.dettes ?? r.dette ?? r.solde) > 0).map((r) => ({ id: r.id, title: r.nom || r.name || 'Fournisseur', detail: 'Dette fournisseur', amount: n(r.dettes ?? r.dette ?? r.solde) }));
     const payables = [...txPayables, ...supplierPayables];
-    const healthSnap = buildFinanceHealthSnapshot({ transactions, salesOrders, payments, investments, stocks: rowsOf(props.stocks, stockCrud) });
+    const healthSnap = buildFinanceHealthSnapshot({ transactions, salesOrders: snapshotOrders, payments: snapshotPayments, investments, stocks: rowsOf(props.stocks, stockCrud, false) });
     const coherenceRows = buildFinanceCoherenceRows(transactions, salesOrders, payments);
     const missingProofItems = aggregateMissingProofTransactions(transactions);
     const profitAlerts = healthSnap.findings.filter((f) => f.category === 'rentabilite' || /marge|rentab|charge|coût|cout/.test(low(`${f.title || ''} ${f.detail || ''}`)));
@@ -266,7 +272,7 @@ export default function FinancePilotageRecoveredModule(props) {
       healthPredictions: healthSnap.predictions,
       coherenceRows,
     };
-  }, [transactions, investments, salesOrders, payments, clients, suppliers, props.stocks, stockCrud]);
+  }, [transactions, investments, salesOrders, salesOrdersAll, payments, paymentsAll, clients, suppliers, props.stocks, stockCrud]);
   const actionHandlers = {
     onNavigate: props.onNavigate,
     onCreateTask: props.onCreateTask || tasksCrud.create,
@@ -302,6 +308,7 @@ export default function FinancePilotageRecoveredModule(props) {
             <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Pilotage</p>
             <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Finance & Pilotage</h1>
             <p className="mt-1 text-sm text-[#8a7456]">Trésorerie, créances, dettes — cohérence IA preuves et rentabilité.</p>
+            {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
           </div>
           <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div>
         </div>

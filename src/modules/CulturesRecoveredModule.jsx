@@ -1,11 +1,12 @@
 import useCrudModule from '../hooks/useCrudModule';
+import { rowsOf } from '../utils/moduleRows';
 import { runCultureHarvestSideEffects } from '../utils/cultureSideEffects';
 import CulturesV4 from './CulturesV4.jsx';
 
 const arr = (value) => Array.isArray(value) ? value : [];
-const rowsOf = (provided, crud) => arr(provided).length ? arr(provided) : arr(crud?.rows);
 
 export default function CulturesRecoveredModule(props) {
+  const periodFiltered = Boolean(props.periodFiltered);
   const culturesCrud = useCrudModule('cultures');
   const stockCrud = useCrudModule('stock');
   const opportunitiesCrud = useCrudModule('sales_opportunities');
@@ -15,9 +16,9 @@ export default function CulturesRecoveredModule(props) {
   const paymentsCrud = useCrudModule('payments');
   const deliveriesCrud = useCrudModule('deliveries');
 
-  const rows = rowsOf(props.rows || props.cultures, culturesCrud);
-  const stocks = rowsOf(props.stocks, stockCrud);
-  const opportunities = rowsOf(props.opportunities, opportunitiesCrud);
+  const rows = rowsOf(props.rows || props.cultures, culturesCrud, periodFiltered);
+  const stocks = rowsOf(props.stocks, stockCrud, false);
+  const opportunities = rowsOf(props.opportunities, opportunitiesCrud, periodFiltered);
 
   const syncHarvest = async (before = {}, after = {}, source = 'fiche culture') => {
     await runCultureHarvestSideEffects({

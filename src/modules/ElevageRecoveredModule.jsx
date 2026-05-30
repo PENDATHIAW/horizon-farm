@@ -7,6 +7,7 @@ import useCrudModule from '../hooks/useCrudModule';
 import { emitHorizonForm } from '../services/formModalManager';
 import { applyOneClickRecommendation } from '../services/heyHorizonRecommendationActions.js';
 import { fmtNumber } from '../utils/format';
+import { rowsOf } from '../utils/moduleRows';
 import { resolveElevageTab, navigateForIaFinding } from '../utils/commercialNavigation';
 import { buildElevageHealthSnapshot, computeLotMargin, computeAnimalMargin, formatMargin } from './elevage/elevageVisionHelpers.js';
 import AnimauxV2 from './AnimauxV2';
@@ -14,7 +15,6 @@ import AvicoleV10 from './AvicoleV10';
 import SanteV8 from './SanteV8';
 
 const arr = (value) => Array.isArray(value) ? value : [];
-const rowsOf = (provided, crud) => arr(provided).length ? arr(provided) : arr(crud?.rows);
 const lower = (value) => String(value || '').toLowerCase();
 const isClosedAnimal = (row = {}) => ['vendu', 'mort', 'vole', 'volé', 'perdu', 'abattu', 'cloture', 'clôture', 'sorti'].some((word) => lower(row.status || row.statut).includes(word));
 const lotName = (row = {}) => lower(`${row.type || ''} ${row.type_lot || ''} ${row.production_type || ''} ${row.activity_type || ''} ${row.categorie || ''} ${row.name || ''} ${row.nom || ''}`);
@@ -151,15 +151,16 @@ export default function ElevageRecoveredModule(props) {
   const documentsCrud = useCrudModule('documents');
   const tasksCrud = useCrudModule('taches');
   const alertsCrud = useCrudModule('alertes_center');
+  const periodFiltered = Boolean(props.periodFiltered);
 
-  const animals = rowsOf(props.animaux, animauxCrud);
-  const lots = rowsOf(props.lots, avicoleCrud);
-  const health = rowsOf(props.sante, santeCrud);
-  const productionLogs = rowsOf(props.productionLogs, productionCrud);
-  const feedLogs = rowsOf(props.alimentationLogs, feedCrud);
-  const stocks = rowsOf(props.stocks, stockCrud);
-  const opportunities = rowsOf(props.opportunities, opportunitiesCrud);
-  const salesOrders = rowsOf(props.salesOrders, salesCrud);
+  const animals = rowsOf(props.animaux, animauxCrud, false);
+  const lots = rowsOf(props.lots, avicoleCrud, false);
+  const health = rowsOf(props.sante, santeCrud, periodFiltered);
+  const productionLogs = rowsOf(props.productionLogs, productionCrud, periodFiltered);
+  const feedLogs = rowsOf(props.alimentationLogs, feedCrud, periodFiltered);
+  const stocks = rowsOf(props.stocks, stockCrud, false);
+  const opportunities = rowsOf(props.opportunities, opportunitiesCrud, periodFiltered);
+  const salesOrders = rowsOf(props.salesOrders, salesCrud, periodFiltered);
   const businessEvents = rowsOf(props.businessEvents, eventsCrud);
   const data = useMemo(() => {
     const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);

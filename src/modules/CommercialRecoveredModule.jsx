@@ -19,13 +19,13 @@ import {
   receivableFromOrders,
   uniqueTodoCount,
 } from './commercial/commercialMetrics.js';
+import { rowsOf, allRows } from '../utils/moduleRows';
 import { CommercialKpi, CommercialModuleHeader, CommercialQuickActions, CommercialTodoRow, CommercialTopClients } from './commercial/CommercialShell.jsx';
 import CommercialOpportunitiesPanel from './commercial/CommercialOpportunitiesPanel.jsx';
 import VentesV3 from './VentesV3';
 import ClientsReadable from './ClientsReadable';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
-const rowsOf = (provided, crud) => (arr(provided).length ? arr(provided) : arr(crud?.rows));
 
 function Summary({ data, setTab, onNewSale }) {
   const todos = data.summaryTodos.slice(0, 6);
@@ -126,31 +126,36 @@ export default function CommercialRecoveredModule(props) {
   const alimentationCrud = useCrudModule('alimentation_logs');
   const productionCrud = useCrudModule('production_oeufs_logs');
   const santeCrud = useCrudModule('sante');
-  const orders = rowsOf(props.salesOrders || props.rows, ordersCrud);
-  const payments = rowsOf(props.payments, paymentsCrud);
-  const clients = rowsOf(props.clients, clientsCrud);
-  const opportunities = rowsOf(props.opportunities, opportunitiesCrud);
+  const periodFiltered = Boolean(props.periodFiltered);
+  const orders = rowsOf(props.salesOrders || props.rows, ordersCrud, periodFiltered);
+  const ordersAll = allRows(props.salesOrdersAll, ordersCrud);
+  const payments = rowsOf(props.payments, paymentsCrud, periodFiltered);
+  const paymentsAll = allRows(props.paymentsAll, paymentsCrud);
+  const clients = rowsOf(props.clients, clientsCrud, periodFiltered);
+  const opportunities = rowsOf(props.opportunities, opportunitiesCrud, periodFiltered);
   const data = useMemo(() => {
-    const receivable = receivableFromOrders(orders, payments);
+    const snapshotOrders = ordersAll.length ? ordersAll : orders;
+    const snapshotPayments = paymentsAll.length ? paymentsAll : payments;
+    const receivable = receivableFromOrders(snapshotOrders, snapshotPayments);
     const collected = collectedFromOrders(orders, payments);
-    const openSalesCountVal = openSalesCount(orders, payments);
+    const openSalesCountVal = openSalesCount(snapshotOrders, snapshotPayments);
     const topClients = buildTopClients(orders, clients, 5);
-    const clientsDebtCount = clientsWithReceivableCount(orders, payments);
+    const clientsDebtCount = clientsWithReceivableCount(snapshotOrders, snapshotPayments);
     const openOpportunities = opportunities.filter(isOpportunityOpen);
-    const healthSnap = buildCommercialHealthSnapshot({ salesOrders: orders, payments, clients, opportunities });
+    const healthSnap = buildCommercialHealthSnapshot({ salesOrders: snapshotOrders, payments: snapshotPayments, clients, opportunities });
     const coherenceRows = buildCommercialCoherenceRows(orders, payments);
-    const clientReceivables = aggregateClientReceivables(orders, payments);
-    const summaryTodos = buildSummaryTodos(orders, payments, healthSnap.findings);
+    const clientReceivables = aggregateClientReceivables(snapshotOrders, snapshotPayments);
+    const summaryTodos = buildSummaryTodos(snapshotOrders, snapshotPayments, healthSnap.findings);
     return {
       orders, openSalesCount: openSalesCountVal, receivable, collected, topClients, openOpportunities,
       clientsDebtCount,
       coherenceRows, clientReceivables, summaryTodos,
-      todoCount: uniqueTodoCount({ orders, payments, healthFindings: healthSnap.findings }),
+      todoCount: uniqueTodoCount({ orders: snapshotOrders, payments: snapshotPayments, healthFindings: healthSnap.findings }),
       healthScore: healthSnap.score,
       healthFindings: healthSnap.findings,
       healthPredictions: healthSnap.predictions,
     };
-  }, [orders, payments, clients, opportunities]);
+  }, [orders, ordersAll, payments, paymentsAll, clients, opportunities]);
 
   const openNewSale = () => {
     setPendingSaleDraft({ form_type: 'sale_record', date: new Date().toISOString().slice(0, 10) });
@@ -202,7 +207,7 @@ export default function CommercialRecoveredModule(props) {
 
   return (
     <div className="space-y-4">
-      <CommercialModuleHeader tab={tab} setTab={setTab} healthScore={data.healthScore} badges={{ receivable: data.receivable, todo: todoBadge, tabs: { Ventes: data.openSalesCount, Clients: data.clientsDebtCount, Opportunités: data.openOpportunities.length } }} />
+      <CommercialModuleHeader tab={tab} setTab={setTab} healthScore={data.healthScore} periodLabel={props.periodLabel} badges={{ receivable: data.receivable, todo: todoBadge, tabs: { Ventes: data.openSalesCount, Clients: data.clientsDebtCount, Opportunités: data.openOpportunities.length } }} />
       {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onNewSale={openNewSale} /> : null}
       {tab === 'Ventes' ? <VentesV3 {...salesProps} /> : null}
       {tab === 'Clients' ? <ClientsReadable {...clientProps} /> : null}
@@ -223,6 +228,7 @@ export default function CommercialRecoveredModule(props) {
           vaccins={rowsOf(props.vaccins || props.sante, santeCrud)}
           businessEvents={rowsOf(props.businessEvents, eventsCrud)}
           transactions={rowsOf(props.transactions, financesCrud)}
+          periodFiltered={periodFiltered}
           onNavigate={props.onNavigate}
         />
       ) : null}

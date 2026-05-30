@@ -8,13 +8,13 @@ import useCrudModule from '../hooks/useCrudModule';
 import { emitHorizonForm } from '../services/formModalManager';
 import { applyOneClickRecommendation, createSupplierFollowUpTask } from '../services/heyHorizonRecommendationActions.js';
 import { fmtCurrency, fmtNumber } from '../utils/format';
+import { rowsOf } from '../utils/moduleRows';
 import { aggregateSupplierDebts, buildAchatsStockCoherenceRows, buildAchatsStockHealthSnapshot } from './achatsStock/achatsStockVisionHelpers.js';
 import { resolveAchatsStockTab, navigateForIaFinding } from '../utils/commercialNavigation';
 import StocksV5 from './StocksV5';
 import FournisseursReadable from './FournisseursReadable';
 
 const arr = (v) => Array.isArray(v) ? v : [];
-const rowsOf = (provided, crud) => arr(provided).length ? arr(provided) : arr(crud?.rows);
 const n = (v = 0) => Number(v || 0);
 const low = (v) => String(v || '').toLowerCase();
 const qty = (r = {}) => n(r.quantite ?? r.quantity ?? r.stock);

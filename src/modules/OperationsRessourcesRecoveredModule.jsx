@@ -8,6 +8,7 @@ import useCrudModule from '../hooks/useCrudModule';
 import { emitHorizonForm } from '../services/formModalManager';
 import { applyOneClickRecommendation, createMaintenanceTask } from '../services/heyHorizonRecommendationActions.js';
 import { fmtCurrency, fmtNumber } from '../utils/format';
+import { rowsOf } from '../utils/moduleRows';
 import { getRhDirectory } from '../utils/rhDirectory';
 import { aggregateMaintenanceQueue, buildRhCoherenceRows, buildRhHealthSnapshot, computePayrollSummary } from './rh/rhVisionHelpers.js';
 import RHPeopleTeams from './RHPeopleTeams.jsx';
@@ -15,7 +16,6 @@ import EquipementsV2 from './EquipementsV2.jsx';
 import SmartFarm from './SmartFarm.jsx';
 
 const arr = (v) => Array.isArray(v) ? v : [];
-const rowsOf = (provided, crud) => arr(provided).length ? arr(provided) : arr(crud?.rows);
 const low = (v) => String(v || '').toLowerCase();
 const n = (v = 0) => Number(v || 0);
 const amount = (r = {}) => n(r.montant ?? r.amount ?? r.total ?? r.cout ?? r.cost);

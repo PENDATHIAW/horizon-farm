@@ -443,7 +443,7 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
     production_oeufs_logs: props.productionLogs || [],
     alimentation_logs: props.alimentationLogs || [],
     meteo: props.meteo || {},
-  });
+  }, { periodScope: scope });
 
   const actions = buildDashboardTodayActions({
     ...props,

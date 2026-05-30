@@ -138,7 +138,7 @@ export default function App() {
     hasAlert: alertFlags[id],
   })), [alertFlags]);
   const reportData = composeReportData(c);
-  const syncActivityProps = { onRefreshAll: refreshAll, onFlushOffline: flushOfflineQueue, online, lastOnlineAt, dataMap, tasks: rows(c.taches), alertes: rows(c.alertes_center), businessEvents: rows(c.business_events), auditLogs: rows(c.audit_logs), auditLoading: c.audit_logs.loading, onRefreshAuditLogs: c.audit_logs.refresh, onNavigate: setActive, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onRefreshAlertes: c.alertes_center.refresh, onUpdateSalesOrder: c.sales_orders.update, onRefreshSalesOrders: c.sales_orders.refresh, onUpdateOpportunity: c.sales_opportunities.update, onRefreshOpportunities: c.sales_opportunities.refresh, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh };
+  const syncActivityProps = { onRefreshAll: refreshAll, onFlushOffline: flushOfflineQueue, online, lastOnlineAt, dataMap, tasks: rows(c.taches), alertes: rows(c.alertes_center), businessEvents: rows(c.business_events), businessEventsAll: rows(c.business_events), auditLogs: rows(c.audit_logs), auditLogsAll: rows(c.audit_logs), auditLoading: c.audit_logs.loading, onRefreshAuditLogs: c.audit_logs.refresh, onNavigate: setActive, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onRefreshAlertes: c.alertes_center.refresh, onUpdateSalesOrder: c.sales_orders.update, onRefreshSalesOrders: c.sales_orders.refresh, onUpdateOpportunity: c.sales_opportunities.update, onRefreshOpportunities: c.sales_opportunities.refresh, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh };
   const shared = { onNavigate: setActive, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh };
   const bpCallbacks = {
     onCreateBpInvestmentLine: c.bp_investment_lines.create, onUpdateBpInvestmentLine: c.bp_investment_lines.update, onDeleteBpInvestmentLine: c.bp_investment_lines.remove, onRefreshBpInvestmentLines: c.bp_investment_lines.refresh,
@@ -151,7 +151,7 @@ export default function App() {
   const moduleProps = {
     dashboard: { user, dataFingerprint: crudFingerprint, lotsData: rows(c.avicole), animaux: rows(c.animaux), vaccins: rows(c.sante), stocks: rows(c.stock), clients: rows(c.clients), cultures: rows(c.cultures), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), documents: rows(c.documents), alimentationLogs: rows(c.alimentation_logs), productionLogs: rows(c.production_oeufs_logs), opportunities: rows(c.sales_opportunities), taches: rows(c.taches), alertes: rows(c.alertes_center), equipements: rows(c.equipements), sensorDevices: rows(c.sensor_devices), cameraDevices: rows(c.camera_devices), businessEvents: rows(c.business_events), meteo: liveMeteo, onNavigate: setActive, onRefresh: refreshAll },
     assistant_erp: {
-      dataMap: decisionDataMapRawRaw,
+      dataMap: decisionDataMapRaw,
       onNavigate: setActive,
       onOpenAssistant: () => setAssistantOpen(true),
       onCreateTask: c.taches.create,
@@ -160,7 +160,7 @@ export default function App() {
       onCreateBusinessEvent: c.business_events.create,
       existingTasks: rows(c.taches),
       existingAlerts: rows(c.alertes_center),
-    }, centre_ia: { lots: rows(c.avicole), productionLogs: rows(c.production_oeufs_logs), alimentationLogs: rows(c.alimentation_logs), stocks: rows(c.stock), marketPrices: dataMap.market_prices || [], marketCalendarEvents: dataMap.market_calendar_events || [], salesOrders: rows(c.sales_orders), payments: rows(c.payments), transactions: rows(c.finances), smartfarmEvents: dataMap.smartfarm_events || [], sensors: rows(c.sensor_devices), cameras: rows(c.camera_devices), meteo: liveMeteo, dataMap: decisionDataMapRaw, onNavigate: setActive, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh }, objectifs_croissance: { dataMap: decisionDataMapRaw, onNavigate: setActive, onCreateBusinessPlan: c.business_plans.create, onRefreshBusinessPlans: c.business_plans.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, existingTasks: rows(c.taches), existingAlerts: rows(c.alertes_center) },
+    }, centre_ia: { lots: rows(c.avicole), productionLogs: rows(c.production_oeufs_logs), alimentationLogs: rows(c.alimentation_logs), stocks: rows(c.stock), marketPrices: dataMap.market_prices || [], marketCalendarEvents: dataMap.market_calendar_events || [], salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), smartfarmEvents: dataMap.smartfarm_events || [], sensors: rows(c.sensor_devices), cameras: rows(c.camera_devices), meteo: liveMeteo, dataMap: decisionDataMapRaw, onNavigate: setActive, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh }, objectifs_croissance: { dataMap: decisionDataMapRaw, salesOrdersAll: rows(c.sales_orders), paymentsAll: rows(c.payments), transactionsAll: rows(c.finances), onNavigate: setActive, onCreateBusinessPlan: c.business_plans.create, onRefreshBusinessPlans: c.business_plans.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, existingTasks: rows(c.taches), existingAlerts: rows(c.alertes_center) },
     elevage: {
       initialTab: elevageTab,
       animaux: rows(c.animaux),
@@ -184,8 +184,10 @@ export default function App() {
       initialTab: commercialTab,
       clients: rows(c.clients),
       salesOrders: rows(c.sales_orders),
+      salesOrdersAll: rows(c.sales_orders),
       orderItems: rows(c.sales_order_items),
       payments: rows(c.payments),
+      paymentsAll: rows(c.payments),
       invoices: rows(c.invoices),
       deliveries: rows(c.deliveries),
       opportunities: rows(c.sales_opportunities),
@@ -275,6 +277,7 @@ export default function App() {
     finance_pilotage: {
       initialTab: financeTab,
       transactions: rows(c.finances),
+      transactionsAll: rows(c.finances),
       finances: rows(c.finances),
       documents: rows(c.documents),
       investissements: rows(c.investissements),
@@ -283,7 +286,9 @@ export default function App() {
       bpRevenueProjections: rows(c.bp_revenue_projections),
       bpRisks: rows(c.bp_risks),
       payments: rows(c.payments),
+      paymentsAll: rows(c.payments),
       salesOrders: rows(c.sales_orders),
+      salesOrdersAll: rows(c.sales_orders),
       fournisseurs: rows(c.fournisseurs),
       clients: rows(c.clients),
       stocks: rows(c.stock),

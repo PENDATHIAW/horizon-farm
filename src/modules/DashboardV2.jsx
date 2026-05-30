@@ -246,18 +246,18 @@ function Summary({ summary, health, simple, navigate }) {
   );
 }
 
-function GraphiquesSection({ props, navigate }) {
+function GraphiquesSection({ props, navigate, periodFiltered }) {
   return (
     <div className="space-y-4">
       <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
         <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#9a6b12]">Graphiques</p>
         <h2 className="mt-1 text-lg font-black text-[#2f2415]">Évolution de l&apos;exploitation</h2>
-        <p className="mt-1 text-sm text-[#8a7456]">Commandes, trésorerie, production et alertes — vue mensuelle.</p>
+        <p className="mt-1 text-sm text-[#8a7456]">Commandes, trésorerie, production et alertes — alignés sur la période ERP.</p>
         <button type="button" onClick={() => navigate('objectifs_croissance', { tab: 'Graphiques' })} className="mt-3 text-xs font-black text-[#9a6b12]">
           Vision détaillée →
         </button>
       </section>
-      <ModuleGraphiquesTab moduleId="dashboard" {...props} onNavigate={props.onNavigate} />
+      <ModuleGraphiquesTab moduleId="dashboard" periodFiltered={periodFiltered} {...props} onNavigate={props.onNavigate} />
     </div>
   );
 }
@@ -323,12 +323,13 @@ export default function DashboardV2(props) {
         simple={simple}
         onToggleExpert={toggleExpert}
         onNavigate={navigate}
+        periodLabel={props.periodLabel}
       />
 
       {tab === 'Résumé' ? (
         <Summary summary={summary} health={health} simple={simple} navigate={navigate} />
       ) : (
-        <GraphiquesSection props={props} navigate={navigate} />
+        <GraphiquesSection props={props} navigate={navigate} periodFiltered={props.periodFiltered} />
       )}
     </div>
   );

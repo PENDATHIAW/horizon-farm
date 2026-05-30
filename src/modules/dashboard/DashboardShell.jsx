@@ -1,5 +1,6 @@
 import { ArrowRight, BrainCircuit, MapPin, Settings2, Target } from 'lucide-react';
 import { MODULE_REGISTRY } from '../../config/modules.config';
+import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import { openFormModal } from '../../services/formModalManager';
 import { fmtCurrency, fmtNumber } from '../../utils/format';
@@ -69,6 +70,7 @@ export function DashboardModuleHeader({
   simple = true,
   onToggleExpert,
   onNavigate,
+  periodLabel = '',
 }) {
   return (
     <div className="space-y-3">
@@ -77,6 +79,7 @@ export function DashboardModuleHeader({
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#9a6b12]">Accueil</p>
             <h1 className="mt-1 text-2xl font-black text-[#2f2415]">{greeting || `Bonjour ${displayUser}`}</h1>
+            {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
             <div className="mt-2 flex flex-col gap-1 text-sm text-[#8a7456] sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
               {dateTime ? <span className="capitalize">{dateTime}</span> : null}
               {dateTime ? <span className="hidden sm:inline">·</span> : null}

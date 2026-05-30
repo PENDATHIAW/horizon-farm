@@ -7,10 +7,10 @@ import useCrudModule from '../hooks/useCrudModule';
 import { emitHorizonForm } from '../services/formModalManager';
 import { applyOneClickRecommendation, createMissingProofTask } from '../services/heyHorizonRecommendationActions.js';
 import { fmtCurrency, fmtNumber } from '../utils/format';
+import { rowsOf } from '../utils/moduleRows';
 import { aggregateMissingProofItems, buildDocumentsCoherenceRows, buildDocumentsHealthSnapshot } from './documents/documentsVisionHelpers.js';
 
 const arr = (v) => Array.isArray(v) ? v : [];
-const rowsOf = (provided, crud) => arr(provided).length ? arr(provided) : arr(crud?.rows);
 const low = (v) => String(v || '').toLowerCase();
 const dateOf = (r = {}) => r.date || r.created_at || r.updated_at || r.event_date || '—';
 const labelOf = (r = {}) => r.title || r.nom || r.name || r.filename || r.libelle || r.id || 'Document';

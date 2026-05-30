@@ -7,6 +7,7 @@ import VisionPerformanceTab from './vision/VisionPerformanceTab';
 import VisionPlansTab from './vision/VisionPlansTab';
 import VisionPrioritiesTab from './vision/VisionPrioritiesTab';
 import VisionRisksTab from './vision/VisionRisksTab';
+import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import { buildVisionData } from './vision/visionUtils';
@@ -62,7 +63,7 @@ export default function VisionCroissanceModule(props) {
           : tab === 'Prévisions' ? <VisionForecastsTab data={data} onNavigate={onNavigate} />
             : tab === 'Plans' ? <VisionPlansTab data={data} onCreateBusinessPlan={onCreateBusinessPlan} onNavigate={onNavigate} />
               : tab === 'Financeurs' ? <VisionFundingTab data={data} onNavigate={onNavigate} />
-                : <ModuleGraphiquesTab moduleId="objectifs_croissance" {...dataMap} onNavigate={onNavigate} />;
+                : <ModuleGraphiquesTab moduleId="objectifs_croissance" periodFiltered={props.periodFiltered} {...props} {...dataMap} onNavigate={onNavigate} />;
 
   return (
     <div className="space-y-6">
@@ -72,6 +73,7 @@ export default function VisionCroissanceModule(props) {
             <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Pilotage stratégique</p>
             <h1 className="mt-1 text-3xl font-black text-[#2f2415]">Vision & Croissance</h1>
             <p className="mt-2 text-sm text-[#8a7456] max-w-3xl">Cerveau stratégique ERP : priorités IA, performance, risques, opportunités, prévisions et dossiers financeurs.</p>
+            {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
           </div>
           <div className="flex flex-col gap-2">
             <div className="rounded-2xl border border-[#eadcc2] bg-white px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé ERP </span><b className="text-[#2f2415]">{data.healthScore ?? data.globalScore}/100</b></div>
