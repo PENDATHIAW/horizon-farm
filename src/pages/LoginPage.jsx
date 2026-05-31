@@ -4,10 +4,10 @@ import {
   Bell,
   Eye,
   EyeOff,
+  Layers,
   Leaf,
   Lock,
   Mail,
-  Sprout,
   TrendingUp,
   UserPlus,
 } from 'lucide-react';
@@ -21,7 +21,7 @@ const FEATURES = [
   { icon: Leaf, title: 'Vision claire', detail: 'Toutes vos données au même endroit.' },
   { icon: Bell, title: 'Maîtrise des risques', detail: 'Alertes et décisions au bon moment.' },
   { icon: TrendingUp, title: 'Croissance durable', detail: 'Développez votre ferme sereinement.' },
-  { icon: Sprout, title: 'Toutes vos filières', detail: 'Cultures, élevages et activités réunis.' },
+  { icon: Layers, title: 'Toutes vos filières', detail: 'Maraîchage, avicole, bovins, caprins, ovins…' },
 ];
 
 export default function LoginPage() {
@@ -71,28 +71,37 @@ export default function LoginPage() {
         className="pointer-events-none absolute inset-0 bg-cover bg-no-repeat"
         style={{
           backgroundImage: `url(${farmBg})`,
-          backgroundPosition: '68% 22%',
+          /* Sol → horizon + soleil visibles en haut à droite (niveau logo) */
+          backgroundPosition: '62% 38%',
         }}
         aria-hidden
       />
+      {/* Voile gauche seulement — le ciel / horizon reste libres */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: 'linear-gradient(90deg, rgba(255,248,239,0.90) 0%, rgba(255,248,239,0.68) 36%, rgba(255,248,239,0.18) 58%, transparent 72%)',
+          background: `
+            linear-gradient(90deg, rgba(255,248,239,0.88) 0%, rgba(255,248,239,0.52) 34%, transparent 52%),
+            linear-gradient(180deg, transparent 0%, transparent 38%, rgba(255,248,239,0.12) 55%, transparent 72%)
+          `,
         }}
         aria-hidden
       />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#063321]/65 via-transparent to-transparent" aria-hidden />
 
+      {/* Logo sur l'horizon — sans fond blanc, ne masque pas le ciel */}
+      <div className="pointer-events-none absolute right-3 top-3 z-20 sm:right-6 sm:top-4 lg:right-10 lg:top-5">
+        <img
+          src={brandLogo}
+          alt="Horizon Farm"
+          className="h-auto w-28 object-contain mix-blend-multiply sm:w-32 lg:w-36 xl:w-40"
+          style={{ filter: 'drop-shadow(0 1px 2px rgba(255,255,255,0.35))' }}
+        />
+      </div>
+
       <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col">
         <section className="mx-auto grid w-full max-w-7xl flex-1 min-h-0 items-center gap-6 px-4 py-3 sm:gap-8 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:px-8 xl:px-10">
-          <div className="max-w-xl">
-            <img
-              src={brandLogo}
-              alt="Horizon Farm"
-              className="mb-4 h-auto w-40 object-contain sm:w-44 lg:mb-5 lg:w-48"
-            />
-
+          <div className="max-w-xl pr-2 sm:pr-4 lg:pr-28 xl:pr-36">
             <h1 className="sr-only">Horizon Farm ERP</h1>
             <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#c9851a] sm:text-xs">
               De la terre à l&apos;horizon
@@ -105,10 +114,6 @@ export default function LoginPage() {
             </p>
             <p className="mt-1 text-[1.65rem] font-black leading-[1.12] tracking-tight text-[#063321] sm:text-3xl lg:text-[2.15rem] xl:text-4xl">
               Développez votre croissance.
-            </p>
-
-            <p className="mt-3 max-w-md text-xs leading-5 text-[#2f4a3a] sm:text-sm sm:leading-6 lg:mt-4">
-              De la terre nourricière à l&apos;horizon de votre prospérité — cultivez, élevez, bâtissez et faites grandir votre ferme avec sérénité.
             </p>
           </div>
 
