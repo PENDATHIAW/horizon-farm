@@ -401,6 +401,50 @@ export function validateCycleBfrCoverage(dataMap = {}, options = {}) {
   return result;
 }
 
+
+function enrichSanitaryAlert(alert, refDate = new Date()) {
+  const isMortality = String(alert.id || '').includes('sanitary-extended');
+  const required = alert.requiredDays || 10;
+  const extra = alert.extraVacuumDays || 0;
+
+  if (isMortality) {
+    const totalWait = required + extra;
+    const earliest = addDays(refDate, extra);
+    return {
+      ...alert,
+      type: 'historique_pathologique',
+      title: `Bâtiment ${alert.building} — mortalité élevée sur bande précédente`,
+      explanation: `La dernière bande dans ${alert.building} a enregistré ${alert.mortalityRate}% de mortalité (seuil alerte : 5 %). Des germes peuvent persister dans le sol. Il faut prolonger le vide sanitaire avant toute nouvelle bande.`,
+      actions: [
+        `Attendre ${totalWait} jours minimum sans animaux (${required} j standard + ${extra} j supplémentaires)`,
+        'Retirer ou brûler la litière, puis désinfecter le sol et les équipements',
+        'Faire valider le bâtiment par le vétérinaire avant commande de poussins',
+        `Ne pas lancer de nouvelle bande dans ${alert.building} avant le ${iso(earliest)}`,
+      ],
+      earliestLaunchDate: iso(earliest),
+      priority: 'critique',
+    };
+  }
+
+  const delayDays = Math.max(0, required - (alert.gapDays || 0));
+  const earliest = addDays(refDate, delayDays);
+  return {
+    ...alert,
+    type: 'vide_insuffisant',
+    title: `Bâtiment ${alert.building} — pause entre bandes trop courte`,
+    explanation: `Seulement ${alert.gapDays} jours entre la bande précédente et le lot « ${alert.lotName || alert.lotId} ». Le vide sanitaire minimum est de ${required} jours pour désinfecter le bâtiment.`,
+    actions: [
+      delayDays > 0 ? `Reporter la mise en place du lot ${alert.lotName || alert.lotId} de ${delayDays} jours` : 'Vérifier les dates de fin de bande précédente',
+      'Nettoyer, laver et désinfecter le sol et les abreuvoirs',
+      'Laisser sécher le bâtiment avant introduction des poussins',
+      delayDays > 0 ? `Lancement possible après le ${iso(earliest)}` : "Consigner la date de fin de bande dans l'ERP",
+    ],
+    earliestLaunchDate: delayDays > 0 ? iso(earliest) : null,
+    priority: 'critique',
+  };
+}
+
+
 /** Vide sanitaire prolongé si mortalité élevée sur bâtiment. */
 export function buildExtendedSanitaryAlerts(dataMap = {}) {
   const lots = arr(dataMap.avicole || dataMap.lots);

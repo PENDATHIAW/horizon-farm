@@ -75,9 +75,12 @@ export default function CentreDecisionModule({
 
   const decisionPlan = useMemo(() => {
     const base = buildDecisionCenterPlan(enrichedDataMap);
+    const commercialRecommendations = (base.recommendations || [])
+      .filter((r) => !r.strategic && !r.technical_rule)
+      .slice(0, 5);
     return {
       ...base,
-      recommendations: [...(strategicPlan.recommendations || []), ...(base.recommendations || [])],
+      commercialRecommendations,
       strategic: strategicPlan,
     };
   }, [enrichedDataMap, strategicPlan]);
@@ -111,7 +114,7 @@ export default function CentreDecisionModule({
   const content = tab === 'À traiter'
     ? <VisionPrioritiesTab {...priorityProps} />
     : tab === 'Recommandations'
-      ? <CentreRecommandationsTab plan={decisionPlan} dataMap={enrichedDataMap} onNavigate={onNavigate} />
+      ? <CentreRecommandationsTab plan={decisionPlan} onNavigate={onNavigate} onSwitchTab={setTab} />
       : tab === 'Cycles'
         ? (
           <VisionCyclesTab
@@ -144,7 +147,7 @@ export default function CentreDecisionModule({
             <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Intelligence décisionnelle</p>
             <h1 className="mt-1 text-3xl font-black text-[#2f2415]">Centre décisionnel</h1>
             <p className="mt-2 text-sm text-[#8a7456] max-w-3xl">
-              QUAND vendre, QUAND lancer — croisement marché, calendrier religieux, ITH, BFR, audit stock et vide sanitaire. Tableaux détaillés → Objectifs & Croissance.
+              5 onglets distincts : priorités du jour · marge & ventes · lancer une bande (Cycles) · vendre (Risques) · historique.
             </p>
             <HeyHorizonQuickAsk moduleKey="centre_ia" onNavigate={onNavigate} onOpenAssistant={onOpenAssistant} className="mt-2" />
             {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
