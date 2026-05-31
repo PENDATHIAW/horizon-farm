@@ -13,6 +13,7 @@ import { computeAvicoleLivingTarget } from '../services/avicoleLivingTargets';
 import { buildPondeuseProductionProfile, saleOpportunityGuard } from '../services/growthProjectionService';
 import { PondeuseProductionPanel, SaleOpportunityGuardPanel, WeightProjectionPanel } from './GrowthProjectionPanel';
 import { avicoleActiveCount, avicoleCalculatedActiveCount, avicoleDeadCount, avicoleHasCountMismatch, avicoleInitialCount, avicoleOtherExitCount, avicoleRegisteredActiveCount, avicoleSickCount, avicoleSoldCount } from '../utils/avicoleMetrics';
+import { formatLotAge } from '../utils/ageDisplay.js';
 
 const Field = ({ label, value, children, danger = false }) => (
   <div className={`rounded-xl border px-3 py-2 ${danger ? 'border-red-200 bg-red-50' : 'border-[#eadcc2] bg-white'}`}>
@@ -154,7 +155,7 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
     <div className="rounded-2xl border border-[#d6c3a0] bg-[#2f2415] p-4 text-white">
       <p className="text-xs uppercase tracking-[0.2em] text-[#c9a96a]">{layer ? 'Lot pondeuses' : 'Lot poulets de chair'}</p>
       <h2 className="mt-1 text-2xl font-black">{lot.name || lot.id}</h2>
-      <p className="mt-1 text-sm text-[#f4e6c8]">{lot.type || 'Type non renseigné'} · {active} sujet(s) actif(s)</p>
+      <p className="mt-1 text-sm text-[#f4e6c8]">{lot.type || 'Type non renseigné'} · {active} sujet(s) actif(s) · {formatLotAge(lot, { layer })}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         <Badge status={lot.status || 'actif'} />
         <Badge status={lot.health_status || 'sain'} />
@@ -179,6 +180,7 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
                   <Field label="Effectif actuel calculé" value={fmtNumber(active)} />
                   <Field label="Effectif actuel enregistré" value={fmtNumber(avicoleRegisteredActiveCount(lot))} danger={avicoleHasCountMismatch(lot)}>{fmtNumber(avicoleRegisteredActiveCount(lot))}{avicoleHasCountMismatch(lot) ? <p className="mt-1 text-[11px] text-red-700">Incohérence : le calcul donne {fmtNumber(avicoleCalculatedActiveCount(lot))}.</p> : null}</Field>
                   <Field label="Date entrée" value={lot.date_debut || lot.entry_date || '-'} />
+        <Field label="Âge du lot" value={formatLotAge(lot, { layer })} />
                   <Field label="Phase" value={lot.phase || '-'} />
                   <Field label="Bâtiment" value={lot.nom_batiment || lot.batiment || lot.logement || '-'} />
                   <Field label="Fournisseur poussins" value={lot.fournisseur_poussins || lot.fournisseur || '-'} />

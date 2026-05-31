@@ -14,6 +14,7 @@ import { generateSequentialId } from '../utils/ids';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { isActiveAnimalForFeeding } from '../utils/alimentation';
+import { formatAnimalAge } from '../utils/ageDisplay.js';
 import DetailSheetTabs from '../components/DetailSheetTabs.jsx';
 import AnimalHealthBridge from './AnimalHealthBridge.jsx';
 
@@ -39,18 +40,7 @@ const fallbackText = (value, fallback = 'Non renseigné') => {
   return text && !['undefined', 'null', 'nan', '[object object]'].includes(text.toLowerCase()) ? text : fallback;
 };
 const dateLabel = (value) => fallbackText(value, 'Non renseignée');
-const ageLabel = (row = {}) => {
-  const birth = row.date_naissance || row.birth_date;
-  const rawAge = row.age || row.age_label;
-  if (rawAge) return fallbackText(rawAge);
-  if (!birth) return 'Non renseigné';
-  const date = new Date(birth);
-  if (Number.isNaN(date.getTime())) return 'Non renseigné';
-  const months = Math.max(0, Math.floor((Date.now() - date.getTime()) / 2629800000));
-  if (months < 1) return 'Moins d’un mois';
-  if (months < 24) return `${months} mois`;
-  return `${Math.floor(months / 12)} an(s) ${months % 12 ? `${months % 12} mois` : ''}`.trim();
-};
+const ageLabel = (row = {}) => formatAnimalAge(row);;
 const animalOrigin = (row = {}) => fallbackText(row.origine || row.fournisseur_vendeur || row.source || row.mode_acquisition);
 const locationOf = (row = {}) => fallbackText(row.localisation || row.emplacement || row.parc || row.enclos);
 function parseDocuments(raw) {
@@ -316,8 +306,8 @@ function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vacci
     <div className="rounded-3xl bg-[#2f2415] text-white p-5">
       <p className="text-xs uppercase tracking-widest text-[#c9a96a]">{fallbackText(animal.type || animal.espece, 'Espèce non renseignée')} · {fallbackText(animal.sexe === 'M' ? 'Mâle' : animal.sexe === 'F' ? 'Femelle' : animal.sexe)} · {isLocked(animal) ? 'Fiche verrouillée' : 'Actif'}</p>
       <h2 className="text-2xl font-black mt-1">{fallbackText(animal.name || animal.nom || physicalIdOf(animal))}</h2>
-      <p className="mt-1 text-sm text-[#f4e6c8]">{locationOf(animal)} · {animalOrigin(animal)}</p>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">{[['Poids entrée', entryWeightOf(animal) ? `${fmtNumber(entryWeightOf(animal))} kg` : 'Non renseigné'], ['Poids actuel', g.current ? `${fmtNumber(g.current)} kg` : 'Non renseigné'], ['Objectif', g.target ? `${fmtNumber(g.target)} kg` : 'À renseigner'], ['Progression', `${g.progress}%`], ['Prêt à vendre', g.status === 'pret' ? 'Oui' : 'Non']].map(([label, value]) => <div key={label} className="rounded-2xl bg-white/10 border border-white/10 p-3"><p className="text-xs text-[#f4e6c8]">{label}</p><p className="font-black text-white mt-1">{value}</p></div>)}</div>
+      <p className="mt-1 text-sm text-[#f4e6c8]">{locationOf(animal)} · {animalOrigin(animal)} · {formatAnimalAge(animal)}</p>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-4">{[['Poids entrée', entryWeightOf(animal) ? `${fmtNumber(entryWeightOf(animal))} kg` : 'Non renseigné'], ['Poids actuel', g.current ? `${fmtNumber(g.current)} kg` : 'Non renseigné'], ['Objectif', g.target ? `${fmtNumber(g.target)} kg` : 'À renseigner'], ['Âge / ferme', formatAnimalAge(animal)], ['Progression', `${g.progress}%`], ['Prêt à vendre', g.status === 'pret' ? 'Oui' : 'Non']].map(([label, value]) => <div key={label} className="rounded-2xl bg-white/10 border border-white/10 p-3"><p className="text-xs text-[#f4e6c8]">{label}</p><p className="font-black text-white mt-1">{value}</p></div>)}</div>
     </div>
   );
 
