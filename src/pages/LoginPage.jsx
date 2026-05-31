@@ -2,6 +2,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   BrainCircuit,
+  CheckCircle2,
   Eye,
   EyeOff,
   Layers,
@@ -16,30 +17,78 @@ import { useAuth } from '../context/AuthContext';
 
 const brandLogo = '/brand-logo.png';
 const farmBg = '/login-farm-bg.png';
+const POST_LOGIN_KEY = 'horizon_post_login_module';
 
-/** Quatre piliers alignés sur la promesse réelle de l'ERP Horizon Farm. */
+const HIGHLIGHTS = [
+  'Production, stocks et finances sans tableur.',
+  'Alertes et centre décisionnel pour agir vite.',
+  'Objectifs zootechniques et rentabilité par lot.',
+];
+
 const FEATURES = [
   {
     icon: LayoutDashboard,
     title: 'Pilotage unifié',
     detail: 'Tableau de bord, stocks, ventes et finances connectés.',
+    hint: 'Accueil & vue d\'ensemble',
+    moduleId: 'dashboard',
   },
   {
     icon: BrainCircuit,
     title: 'Décisions terrain',
     detail: 'Centre décisionnel, alertes et actions en un clic.',
+    hint: 'Centre décisionnel',
+    moduleId: 'centre_ia',
+    options: { tab: 'Rentabilité lots' },
   },
   {
     icon: TrendingUp,
     title: 'Objectifs & rentabilité',
     detail: 'Écarts zootechniques, marges lots et croissance.',
+    hint: 'Objectifs & Croissance',
+    moduleId: 'objectifs_croissance',
+    options: { tab: 'Objectifs & Écarts Zootechniques' },
   },
   {
     icon: Layers,
     title: 'Multi-filières',
     detail: 'Avicole, embouche, maraîchage et traçabilité.',
+    hint: 'Élevage multi-activités',
+    moduleId: 'elevage',
+    options: { tab: 'Résumé' },
   },
 ];
+
+function queuePostLoginModule(feature) {
+  sessionStorage.setItem(
+    POST_LOGIN_KEY,
+    JSON.stringify({ moduleId: feature.moduleId, options: feature.options || {} }),
+  );
+}
+
+function PillarCard({ feature, onSelect, className = '' }) {
+  const { icon: Icon, title, detail, hint } = feature;
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(feature)}
+      className={`group relative flex gap-2.5 rounded-xl text-left text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/50 sm:gap-3 ${className}`}
+    >
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/20 bg-white/10 sm:h-10 sm:w-10">
+        <Icon size={18} className="sm:hidden" />
+        <Icon size={19} className="hidden sm:block" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-black leading-tight sm:text-sm">{title}</p>
+        <p className="mt-0.5 text-[11px] leading-snug text-white/75 sm:text-xs">{detail}</p>
+      </div>
+      <span className="pointer-events-none absolute bottom-[calc(100%+0.5rem)] left-4 z-20 hidden max-w-[220px] rounded-lg border border-white/15 bg-[#0a2e1c] px-3 py-2 text-[11px] font-semibold text-white/95 opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-visible:opacity-100 lg:block">
+        {hint}
+        <span className="mt-0.5 block font-normal text-white/70">Connexion requise</span>
+      </span>
+    </button>
+  );
+}
 
 export default function LoginPage() {
   const { signIn, signUp, resetPassword, remember, setRemember } = useAuth();
@@ -49,6 +98,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const handlePillarClick = (feature) => {
+    queuePostLoginModule(feature);
+    toast.success(`Après connexion : ${feature.hint}`);
+    document.getElementById('login')?.focus();
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -85,12 +140,13 @@ export default function LoginPage() {
   return (
     <main className="relative flex min-h-dvh flex-col overflow-x-hidden text-[#063321] lg:h-dvh lg:overflow-hidden">
       <div
-        className="pointer-events-none absolute inset-0 bg-cover bg-center"
+        className="pointer-events-none absolute inset-0 bg-cover bg-[center_30%] lg:bg-right"
         style={{ backgroundImage: `url(${farmBg})` }}
         aria-hidden
       />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#fff8ef]/94 via-[#fff8ef]/82 to-[#fff8ef]/45" aria-hidden />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#063321]/50 via-transparent to-transparent" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#fff8ef]/93 from-0% via-[#fff8ef]/62 via-45% to-transparent to-100%" aria-hidden />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-[min(52%,640px)] bg-gradient-to-l from-[#fff8ef]/12 to-transparent" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#063321]/55 via-transparent to-transparent" aria-hidden />
 
       <div className="relative z-10 flex min-h-dvh flex-1 flex-col lg:min-h-0">
         <header className="shrink-0 px-4 pt-4 sm:px-6 lg:px-10 lg:pt-5">
@@ -111,24 +167,27 @@ export default function LoginPage() {
         <section className="mx-auto grid w-full max-w-7xl flex-1 min-h-0 items-center gap-6 px-4 py-4 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-8 lg:px-10 lg:py-2">
           <div className="max-w-lg lg:pr-4">
             <h1 className="sr-only">Horizon Farm ERP</h1>
-            <p className="text-[1.65rem] font-black leading-[1.15] tracking-tight text-[#063321] sm:text-3xl lg:text-[2rem] xl:text-4xl">
-              Pilotez votre ferme.
+            <p className="text-2xl font-black leading-tight tracking-tight text-[#063321] sm:text-3xl lg:text-[2rem] xl:text-[2.35rem]">
+              Votre ferme,{' '}
+              <span className="text-[#c9851a]">pilotée en un seul écran.</span>
             </p>
-            <p className="mt-1 text-[1.65rem] font-black leading-[1.15] tracking-tight text-[#c9851a] sm:text-3xl lg:text-[2rem] xl:text-4xl">
-              Anticipez vos risques.
+            <p className="mt-3 max-w-md text-sm leading-6 text-[#2f4a3a] sm:text-base">
+              Horizon Farm centralise vos filières, vos chiffres et vos décisions du quotidien.
             </p>
-            <p className="mt-1 text-[1.65rem] font-black leading-[1.15] tracking-tight text-[#063321] sm:text-3xl lg:text-[2rem] xl:text-4xl">
-              Développez votre croissance.
-            </p>
-            <p className="mt-4 max-w-md text-sm leading-6 text-[#2f4a3a] sm:text-base lg:mt-5 lg:leading-7">
-              Horizon Farm est votre centre de pilotage agricole pour gérer, analyser et faire grandir votre activité en toute sérénité.
-            </p>
+            <ul className="mt-4 space-y-2.5">
+              {HIGHLIGHTS.map((line) => (
+                <li key={line} className="flex items-start gap-2.5 text-sm text-[#2f4a3a] sm:text-[0.95rem]">
+                  <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-[#1f7a2f]" aria-hidden />
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
           </div>
 
           <div className="mx-auto w-full max-w-md lg:max-w-[22rem] xl:max-w-md">
             <form
               onSubmit={handleSubmit}
-              className="rounded-3xl border border-white/70 bg-white/95 p-5 shadow-2xl shadow-[#063321]/10 backdrop-blur-sm sm:p-6"
+              className="rounded-3xl border border-white/60 bg-white/88 p-5 shadow-2xl shadow-[#063321]/10 backdrop-blur-md sm:p-6 lg:bg-white/82"
             >
               <div className="mb-5 text-center">
                 <span className="mx-auto mb-2 inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#e8f5ea] text-[#1f7a2f]">
@@ -153,7 +212,7 @@ export default function LoginPage() {
                     id="fullName"
                     value={fullName}
                     onChange={(event) => setFullName(event.target.value)}
-                    className="w-full rounded-xl border border-[#d6e3d8] bg-[#fafcf9] px-4 py-2.5 text-sm outline-none focus:border-[#1f7a2f] focus:ring-2 focus:ring-[#1f7a2f]/20"
+                    className="w-full rounded-xl border border-[#d6e3d8] bg-[#fafcf9]/95 px-4 py-2.5 text-sm outline-none focus:border-[#1f7a2f] focus:ring-2 focus:ring-[#1f7a2f]/20"
                     placeholder="Nom et prénom"
                     autoComplete="name"
                   />
@@ -170,7 +229,7 @@ export default function LoginPage() {
                     id="login"
                     value={login}
                     onChange={(event) => setLogin(event.target.value)}
-                    className="w-full rounded-xl border border-[#d6e3d8] bg-[#fafcf9] py-2.5 pl-10 pr-4 text-sm outline-none focus:border-[#1f7a2f] focus:ring-2 focus:ring-[#1f7a2f]/20"
+                    className="w-full rounded-xl border border-[#d6e3d8] bg-[#fafcf9]/95 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-[#1f7a2f] focus:ring-2 focus:ring-[#1f7a2f]/20"
                     placeholder="votre@email.com"
                     autoComplete="username"
                     required
@@ -189,7 +248,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     type={showPassword ? 'text' : 'password'}
-                    className="w-full rounded-xl border border-[#d6e3d8] bg-[#fafcf9] py-2.5 pl-10 pr-11 text-sm outline-none focus:border-[#1f7a2f] focus:ring-2 focus:ring-[#1f7a2f]/20"
+                    className="w-full rounded-xl border border-[#d6e3d8] bg-[#fafcf9]/95 py-2.5 pl-10 pr-11 text-sm outline-none focus:border-[#1f7a2f] focus:ring-2 focus:ring-[#1f7a2f]/20"
                     placeholder="Entrez votre mot de passe"
                     autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
                     required
@@ -250,7 +309,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setMode(mode === 'signup' ? 'login' : 'signup')}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#1f7a2f] bg-white py-2.5 text-sm font-black text-[#1f7a2f] transition hover:bg-[#f3faf4]"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#1f7a2f] bg-white/90 py-2.5 text-sm font-black text-[#1f7a2f] transition hover:bg-[#f3faf4]"
               >
                 <UserPlus size={17} />
                 {mode === 'signup' ? 'Se connecter' : 'Créer un compte'}
@@ -260,18 +319,29 @@ export default function LoginPage() {
         </section>
 
         <footer className="shrink-0 bg-[#063321] px-4 py-4 sm:px-6 lg:px-10 lg:py-4">
-          <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-5">
-            {FEATURES.map(({ icon: Icon, title, detail }) => (
-              <div key={title} className="flex gap-2.5 text-white sm:gap-3">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/20 bg-white/10 sm:h-10 sm:w-10">
-                  <Icon size={18} className="sm:hidden" />
-                  <Icon size={19} className="hidden sm:block" />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-xs font-black leading-tight sm:text-sm">{title}</p>
-                  <p className="mt-0.5 text-[11px] leading-snug text-white/75 sm:text-xs">{detail}</p>
-                </div>
-              </div>
+          <p className="mx-auto mb-3 max-w-7xl text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50 lg:hidden">
+            Découvrir l&apos;ERP — glissez
+          </p>
+
+          <div className="mx-auto flex max-w-7xl gap-3 overflow-x-auto pb-1 snap-x snap-mandatory scroll-px-4 [-ms-overflow-style:none] [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden">
+            {FEATURES.map((feature) => (
+              <PillarCard
+                key={feature.title}
+                feature={feature}
+                onSelect={handlePillarClick}
+                className="min-w-[82%] shrink-0 snap-center border border-white/10 bg-white/5 p-3 sm:min-w-[48%]"
+              />
+            ))}
+          </div>
+
+          <div className="mx-auto hidden max-w-7xl grid-cols-4 gap-5 lg:grid">
+            {FEATURES.map((feature) => (
+              <PillarCard
+                key={feature.title}
+                feature={feature}
+                onSelect={handlePillarClick}
+                className="p-2"
+              />
             ))}
           </div>
         </footer>
