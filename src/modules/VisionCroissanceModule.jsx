@@ -44,23 +44,19 @@ export default function VisionCroissanceModule(props) {
     existingAlerts = [],
   } = props;
   const copy = MODULE_COPY[moduleId] || MODULE_COPY.objectifs_croissance;
-  const [tab, setTab] = useState(() => resolveVisionTab(moduleId, props.initialTab, null));
+  const [localTab, setLocalTab] = useState(() => resolveVisionTab(moduleId, props.initialTab, null));
   const [persistedCount, setPersistedCount] = useState(null);
-  const data = useMemo(() => buildVisionData(props), [props, dataMap]);
+  const controlledTab = typeof props.onTabChange === 'function';
+  const tab = resolveVisionTab(moduleId, controlledTab ? props.initialTab : localTab, onNavigate);
+  const data = useMemo(() => buildVisionData(props), [props]);
   const badges = useMemo(() => buildVisionBadges(data, moduleId), [data, moduleId]);
   const aiCount = useMemo(() => data.healthFindings?.length || buildRecommendationsFromData(dataMap).length, [dataMap, data.healthFindings]);
 
   const handleTabChange = (nextTab) => {
     const resolved = resolveVisionTab(moduleId, nextTab, onNavigate);
-    setTab(resolved);
-    props.onTabChange?.(resolved);
+    if (controlledTab) props.onTabChange(resolved);
+    else setLocalTab(resolved);
   };
-
-  useEffect(() => {
-    if (!props.initialTab) return;
-    const resolved = resolveVisionTab(moduleId, props.initialTab, onNavigate);
-    setTab(resolved);
-  }, [props.initialTab, moduleId, onNavigate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,7 +89,7 @@ export default function VisionCroissanceModule(props) {
       : tab === 'Risques' ? (
         <VisionRisksTab
           data={data}
-          setTab={setTab}
+          setTab={handleTabChange}
           onNavigate={onNavigate}
           onCreateTask={onCreateTask}
           onRefreshTasks={onRefreshTasks}

@@ -5,6 +5,7 @@ import { applyOneClickRecommendation } from '../../services/heyHorizonRecommenda
 import { buildDecisionRecommendationTask } from '../../utils/decisionCenterWorkflows.js';
 import { buildObjectiveActionTask } from '../../utils/objectivesWorkflows';
 import { fmtCurrency } from '../../utils/format';
+import VisionBrainPanel from './VisionBrainPanel.jsx';
 import { openVisionPriority } from './visionMetrics.js';
 import { navigateVisionFinding, navigateVisionPriority as navFromItem } from './visionNavigation.js';
 import { Btn, DataRow, DataTable, Empty, Section, TabIntro, VISION_TABLE_COLS, VisionKpi } from './visionUtils';
@@ -100,6 +101,7 @@ export default function VisionPrioritiesTab({
 
   return (
     <div className="space-y-5">
+      {moduleId === 'centre_ia' ? <VisionBrainPanel data={data} setTab={setTab} onNavigate={onNavigate} /> : null}
       <TabIntro
         title="Priorités actionnables"
         detail={data.periodLabel ? `Lecture financière sur ${data.periodLabel} — créances sur l'historique complet.` : 'Signaux IA et alertes terrain à traiter en priorité.'}

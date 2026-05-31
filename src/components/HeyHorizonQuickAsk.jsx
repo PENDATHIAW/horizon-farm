@@ -47,6 +47,15 @@ export default function HeyHorizonQuickAsk({
           {item.label}
         </button>
       ))}
+      {onOpenAssistant ? (
+        <button
+          type="button"
+          onClick={onOpenAssistant}
+          className="rounded-full border border-[#d6c3a0] bg-white px-3 py-1 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]"
+        >
+          Demander
+        </button>
+      ) : null}
     </div>
   );
 }
