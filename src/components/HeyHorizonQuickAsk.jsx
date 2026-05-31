@@ -13,8 +13,8 @@ const PRESETS = {
   centre_ia: [
     { label: 'À traiter', moduleId: 'centre_ia', tab: 'À traiter' },
     { label: 'Risques', moduleId: 'centre_ia', tab: 'Risques' },
-    { label: 'Cycles', moduleId: 'centre_ia', tab: 'Cycles' },
-    { label: 'Objectif mois', moduleId: 'objectifs_croissance', tab: 'Performance' },
+    { label: 'Commercial', moduleId: 'commercial', tab: 'Opportunités' },
+    { label: 'Objectifs', moduleId: 'objectifs_croissance', tab: 'Performance' },
   ],
 };
 

@@ -19,7 +19,7 @@ const MODULE_COPY = {
   centre_ia: {
     kicker: 'Intelligence décisionnelle',
     title: 'Centre décisionnel',
-    subtitle: 'Priorités du jour, risques, opportunités commerciales et cycles production — actions concrètes.',
+    subtitle: 'Le cerveau Horizon : prioriser les actions et ouvrir le bon module, sans remplacer les modules métier.',
   },
   objectifs_croissance: {
     kicker: 'Pilotage stratégique',
@@ -27,6 +27,63 @@ const MODULE_COPY = {
     subtitle: 'Performance, prévisions, plans d\'activité et dossiers financeurs — vision long terme.',
   },
 };
+
+const EMPTY_VISION_DATA = {
+  priorities: [],
+  risks: [],
+  openOpportunities: [],
+  opportunities: [],
+  predictions: [],
+  healthFindings: [],
+  engineRisks: [],
+  iaOpportunities: [],
+  goals: [],
+  planGoals: [],
+  growthRecommendations: [],
+  documents: [],
+  sales: [],
+  payments: [],
+  clients: [],
+  animaux: [],
+  lots: [],
+  cultures: [],
+  stocks: [],
+  openAlerts: [],
+  openTasks: [],
+  healthScore: 100,
+  globalScore: 100,
+  treasuryResult: 0,
+  balance: 0,
+  receivable: 0,
+  salesAmount: 0,
+  collected: 0,
+  expenses: 0,
+  grossMargin: 0,
+  stockValue: 0,
+  investmentValue: 0,
+  estimatedValue: 0,
+  missingProof: 0,
+  criticalStockCount: 0,
+  pipelineTotal: 0,
+  productionCount: 0,
+  unreliableMargins: 0,
+  periodFiltered: false,
+  periodLabel: '',
+};
+
+function safeBuildVisionData(props = {}) {
+  try {
+    return { ...EMPTY_VISION_DATA, ...buildVisionData(props) };
+  } catch (error) {
+    console.error('Vision data unavailable', error);
+    return {
+      ...EMPTY_VISION_DATA,
+      visionError: error?.message || 'Données décisionnelles indisponibles',
+      periodFiltered: Boolean(props.periodFiltered),
+      periodLabel: props.periodLabel || '',
+    };
+  }
+}
 
 export default function VisionCroissanceModule(props) {
   const {
@@ -47,12 +104,20 @@ export default function VisionCroissanceModule(props) {
   const [localTab, setLocalTab] = useState(() => resolveVisionTab(moduleId, props.initialTab, null));
   const [persistedCount, setPersistedCount] = useState(null);
   const controlledTab = typeof props.onTabChange === 'function';
-  const tab = resolveVisionTab(moduleId, controlledTab ? props.initialTab : localTab, onNavigate);
-  const data = useMemo(() => buildVisionData(props), [props]);
+  const tab = resolveVisionTab(moduleId, controlledTab ? props.initialTab : localTab, null);
+  const data = useMemo(() => safeBuildVisionData(props), [props]);
   const badges = useMemo(() => buildVisionBadges(data, moduleId), [data, moduleId]);
   const aiCount = useMemo(() => data.healthFindings?.length || buildRecommendationsFromData(dataMap).length, [dataMap, data.healthFindings]);
 
   const handleTabChange = (nextTab) => {
+    if (moduleId === 'centre_ia' && nextTab === 'Opportunités') {
+      onNavigate?.('commercial', { tab: 'Opportunités' });
+      return;
+    }
+    if (moduleId === 'centre_ia' && nextTab === 'Cycles') {
+      onNavigate?.('elevage', { tab: 'Cycles' });
+      return;
+    }
     const resolved = resolveVisionTab(moduleId, nextTab, onNavigate);
     if (controlledTab) props.onTabChange(resolved);
     else setLocalTab(resolved);

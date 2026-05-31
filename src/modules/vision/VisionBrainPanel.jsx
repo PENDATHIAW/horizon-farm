@@ -143,7 +143,7 @@ export default function VisionBrainPanel({ data = {}, setTab, onNavigate }) {
             detail={`${fmtNumber(data.criticalStockCount || 0)} stock(s) sous seuil, cycles à piloter.`}
             tone={data.criticalStockCount ? 'warn' : 'neutral'}
             action="Cycles"
-            onClick={() => setTab?.('Cycles')}
+            onClick={() => onNavigate?.('elevage', { tab: 'Cycles' })}
           />
           <BrainLever
             icon={TrendingUp}
@@ -152,7 +152,7 @@ export default function VisionBrainPanel({ data = {}, setTab, onNavigate }) {
             detail={`${fmtNumber(openOpps)} opportunité(s), objectifs dans Objectifs & Croissance.`}
             tone={openOpps ? 'good' : 'neutral'}
             action="Vendre"
-            onClick={() => setTab?.('Opportunités')}
+            onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })}
           />
         </div>
       </div>
