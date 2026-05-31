@@ -2,6 +2,8 @@ import { fmtCurrency, fmtNumber } from '../../utils/format';
 import { runErpHealthEngine } from '../../services/erpHealthEngine.js';
 import { filterRealOpenTasks } from '../../utils/healthFindingLabels.js';
 import { remainingForOrder } from '../../utils/salesStatuses.js';
+import { computeFinancePeriodSummary } from '../dashboard/dashboardMetrics.js';
+import { isOpportunityOpen, saleAmount } from '../commercial/commercialMetrics.js';
 
 export const arr = (v) => (Array.isArray(v) ? v : []);
 export const low = (v) => String(v || '').toLowerCase();
@@ -42,6 +44,68 @@ export function Empty({ children }) {
 }
 export function Btn({ children, onClick }) {
   return <button type="button" onClick={onClick} className="rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]">{children}</button>;
+}
+
+export const VISION_TABLE_COLS = ['Sujet', 'Détail', 'Statut', 'Actions'];
+export const VISION_TABLE_COLS_3 = ['Sujet', 'Détail', 'Actions'];
+
+const TABLE_GRID_4 = 'md:grid-cols-[minmax(160px,1.1fr)_minmax(180px,2fr)_minmax(96px,0.75fr)_auto]';
+const TABLE_GRID_3 = 'md:grid-cols-[minmax(160px,1.2fr)_minmax(200px,2fr)_auto]';
+
+export function TableHeader({ columns = VISION_TABLE_COLS }) {
+  const gridCls = columns.length === 3 ? TABLE_GRID_3 : TABLE_GRID_4;
+  return (
+    <div className={`hidden md:grid gap-3 border-b-2 border-[#d6c3a0] bg-[#fffdf8] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#8a7456] ${gridCls}`}>
+      {columns.map((col) => <span key={col}>{col}</span>)}
+    </div>
+  );
+}
+
+export function VisionKpi({ label, value, tone = 'neutral', detail, onClick }) {
+  const toneCls = tone === 'good' ? 'text-emerald-700' : tone === 'warn' ? 'text-amber-700' : tone === 'bad' ? 'text-red-600' : 'text-[#2f2415]';
+  const Tag = onClick ? 'button' : 'div';
+  return (
+    <Tag type={onClick ? 'button' : undefined} onClick={onClick} className={`rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left ${onClick ? 'transition hover:border-[#c9a96a] hover:bg-white' : ''}`}>
+      <p className="text-[11px] font-bold uppercase tracking-wide text-[#8a7456]">{label}</p>
+      <p className={`mt-1 text-xl font-black ${toneCls}`}>{value}</p>
+      {detail ? <p className="mt-1 text-[10px] leading-snug text-[#8a7456]">{detail}</p> : null}
+    </Tag>
+  );
+}
+
+export function DataRow({ title, detail, status, tone = 'neutral', onClick, actions, columns = 4 }) {
+  const gridCls = columns === 3 ? TABLE_GRID_3 : TABLE_GRID_4;
+  return (
+    <div className={`grid grid-cols-1 gap-2 border-b border-[#eadcc2]/70 px-4 py-3 last:border-b-0 ${gridCls} md:items-center`}>
+      <button type="button" onClick={onClick} className="text-left font-black text-[#2f2415] hover:text-emerald-700">{title}</button>
+      <span className="text-sm text-[#8a7456]">{detail}</span>
+      {columns === 4 ? (
+        <div className="flex items-center">{status ? <Pill tone={tone}>{status}</Pill> : <span className="text-xs text-[#8a7456]">—</span>}</div>
+      ) : null}
+      <div className="flex flex-wrap items-center gap-2">{actions || (columns === 3 && status ? <Pill tone={tone}>{status}</Pill> : null)}</div>
+    </div>
+  );
+}
+
+export function DataTable({ columns = VISION_TABLE_COLS, children }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-[#eadcc2] bg-white">
+      <TableHeader columns={columns} />
+      <div>{children}</div>
+    </div>
+  );
+}
+
+export function TabIntro({ title, detail, action }) {
+  return (
+    <div className="flex flex-col gap-2 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="text-sm font-black text-[#2f2415]">{title}</p>
+        {detail ? <p className="mt-0.5 text-xs text-[#8a7456]">{detail}</p> : null}
+      </div>
+      {action || null}
+    </div>
+  );
 }
 
 export function riskLevelLabel(level = '') {
@@ -86,13 +150,13 @@ function mapEnginePrediction(p) {
 
 export function buildRisks(data) {
   const risks = [];
-  data.openAlerts.forEach((r) => risks.push({ id: `alert-${r.id || label(r)}`, domain: 'Alerte', title: label(r), cause: r.message || r.description || 'Alerte ouverte', impact: 'Risque opérationnel non clôturé', action: 'Traiter ou transformer en tâche', module: 'activite_suivi', severity: low(r.severity).includes('critique') ? 'Critique' : 'Moyenne', probability: 'Élevée', financialImpact: r.amount ? fmtCurrency(r.amount) : '—', owner: r.responsable || '—', due: dateOf(r), resolutionStatus: r.status || 'ouverte', tone: low(r.severity).includes('critique') ? 'bad' : 'warn' }));
-  data.openTasks.filter(isRisk).forEach((r) => risks.push({ id: `task-${r.id || label(r)}`, domain: 'Tâche', title: label(r), cause: r.description || 'Tâche prioritaire', impact: 'Retard possible sur exploitation', action: 'Planifier ou clôturer', module: 'activite_suivi', severity: 'Moyenne', probability: 'Moyenne', financialImpact: '—', owner: r.assigned_to || '—', due: r.due_date || '—', resolutionStatus: r.status || 'ouverte', tone: 'warn' }));
-  data.stocks.filter((r) => stockThreshold(r) > 0 && stockQty(r) <= stockThreshold(r)).forEach((r) => risks.push({ id: `stock-${r.id || label(r)}`, domain: 'Stock', title: label(r), cause: `${fmtNumber(stockQty(r))} disponible · seuil ${fmtNumber(stockThreshold(r))}`, impact: 'Rupture ou arrêt activité', action: 'Réapprovisionner', module: 'achats_stock', severity: stockQty(r) <= 0 ? 'Critique' : 'Moyenne', probability: 'Élevée', financialImpact: fmtCurrency(stockQty(r) * n(r.prix_unitaire)), owner: '—', due: '—', resolutionStatus: 'ouverte', tone: stockQty(r) <= 0 ? 'bad' : 'warn' }));
-  data.animaux.filter(isRisk).forEach((r) => risks.push({ id: `animal-${r.id || label(r)}`, domain: 'Élevage', title: label(r), cause: r.health_status || r.status || 'Suivi santé', impact: 'Perte, contagion ou vente bloquée', action: 'Vérifier fiche santé', module: 'elevage', severity: 'Critique', probability: 'Élevée', financialImpact: '—', owner: '—', due: '—', resolutionStatus: 'ouverte', tone: 'bad' }));
-  if (data.balance < 0) risks.push({ id: 'cash-negative', domain: 'Finance', title: 'Trésorerie négative', cause: 'Charges > recettes', impact: 'Tension de liquidité', action: 'Accélérer encaissements', module: 'finance_pilotage', severity: 'Critique', probability: 'Certaine', financialImpact: fmtCurrency(Math.abs(data.balance)), owner: '—', due: '—', resolutionStatus: 'ouverte', tone: 'bad' });
-  if (data.receivable > 0) risks.push({ id: 'receivable', domain: 'Commercial', title: 'Encaissements à suivre', cause: `${fmtCurrency(data.receivable)} restant`, impact: 'Cash bloqué', action: 'Relancer clients', module: 'commercial', severity: 'Moyenne', probability: 'Moyenne', financialImpact: fmtCurrency(data.receivable), owner: '—', due: '—', resolutionStatus: 'ouverte', tone: 'warn' });
-  if (data.missingProof > 0) risks.push({ id: 'missing-proof', domain: 'Documents', title: 'Preuves manquantes', cause: `${data.missingProof} sans justificatif`, impact: 'Financeurs fragilisés', action: 'Ajouter preuves', module: 'documents_rapports', severity: 'Moyenne', probability: 'Certaine', financialImpact: '—', owner: '—', due: '—', resolutionStatus: 'ouverte', tone: 'warn' });
+  data.openAlerts.forEach((r) => risks.push({ id: `alert-${r.id || label(r)}`, domain: 'Alerte', title: label(r), cause: r.message || r.description || 'Alerte ouverte', impact: 'Risque opérationnel non clôturé', action: 'Traiter ou transformer en tâche', module: 'activite_suivi', navTab: 'Alertes', severity: low(r.severity).includes('critique') ? 'Critique' : 'Moyenne', probability: 'Élevée', financialImpact: r.amount ? fmtCurrency(r.amount) : '—', owner: r.responsable || '—', due: dateOf(r), resolutionStatus: r.status || 'ouverte', tone: low(r.severity).includes('critique') ? 'bad' : 'warn' }));
+  data.openTasks.filter(isRisk).forEach((r) => risks.push({ id: `task-${r.id || label(r)}`, domain: 'Tâche', title: label(r), cause: r.description || 'Tâche prioritaire', impact: 'Retard possible sur exploitation', action: 'Planifier ou clôturer', module: 'activite_suivi', navTab: 'Tâches', severity: 'Moyenne', probability: 'Moyenne', financialImpact: '—', owner: r.assigned_to || '—', due: r.due_date || '—', resolutionStatus: r.status || 'ouverte', tone: 'warn' }));
+  data.stocks.filter((r) => stockThreshold(r) > 0 && stockQty(r) <= stockThreshold(r)).forEach((r) => risks.push({ id: `stock-${r.id || label(r)}`, domain: 'Stock', title: label(r), cause: `${fmtNumber(stockQty(r))} disponible · seuil ${fmtNumber(stockThreshold(r))}`, impact: 'Rupture ou arrêt activité', action: 'Réapprovisionner', module: 'achats_stock', navTab: 'Stock', severity: stockQty(r) <= 0 ? 'Critique' : 'Moyenne', probability: 'Élevée', financialImpact: fmtCurrency(stockQty(r) * n(r.prix_unitaire)), owner: '—', due: '—', resolutionStatus: 'ouverte', tone: stockQty(r) <= 0 ? 'bad' : 'warn' }));
+  data.animaux.filter(isRisk).forEach((r) => risks.push({ id: `animal-${r.id || label(r)}`, domain: 'Élevage', title: label(r), cause: r.health_status || r.status || 'Suivi santé', impact: 'Perte, contagion ou vente bloquée', action: 'Vérifier fiche santé', module: 'elevage', navTab: 'Santé', severity: 'Critique', probability: 'Élevée', financialImpact: '—', owner: '—', due: '—', resolutionStatus: 'ouverte', tone: 'bad' }));
+  if (data.treasuryResult < 0) risks.push({ id: 'cash-negative', domain: 'Finance', title: 'Trésorerie en tension', cause: 'Encaissements < charges sur la période', impact: 'Tension de liquidité', action: 'Accélérer encaissements', module: 'finance_pilotage', navTab: 'Trésorerie', severity: 'Critique', probability: 'Certaine', financialImpact: fmtCurrency(Math.abs(data.treasuryResult)), owner: '—', due: '—', resolutionStatus: 'ouverte', tone: 'bad' });
+  if (data.receivable > 0) risks.push({ id: 'receivable', domain: 'Commercial', title: 'Encaissements à suivre', cause: `${fmtCurrency(data.receivable)} restant à encaisser`, impact: 'Cash bloqué chez les clients', action: 'Relancer clients', module: 'commercial', navTab: 'Clients', severity: 'Moyenne', probability: 'Moyenne', financialImpact: fmtCurrency(data.receivable), owner: '—', due: '—', resolutionStatus: 'ouverte', tone: 'warn' });
+  if (data.missingProof > 0) risks.push({ id: 'missing-proof', domain: 'Documents', title: 'Preuves manquantes', cause: `${data.missingProof} opération(s) sans justificatif`, impact: 'Dossiers financeurs fragilisés', action: 'Ajouter preuves', module: 'documents_rapports', navTab: 'Preuves', severity: 'Moyenne', probability: 'Certaine', financialImpact: '—', owner: '—', due: '—', resolutionStatus: 'ouverte', tone: 'warn' });
   return risks.slice(0, 40);
 }
 
@@ -117,6 +181,11 @@ export function buildVisionData(props = {}) {
   const invest = arr(investissements).length ? arr(investissements) : arr(dataMap.investissements);
   const docs = arr(documents).length ? arr(documents) : arr(dataMap.documents);
   const opps = [...arr(opportunities), ...arr(salesOpportunities), ...arr(dataMap.sales_opportunities)].filter(Boolean);
+  const openOpportunities = opps.filter(isOpportunityOpen);
+  const pipelineTotal = openOpportunities.reduce((sum, row) => sum + saleAmount(row), 0);
+  const financePeriods = computeFinancePeriodSummary(pay, tx, props.periodScope || {});
+  const treasuryResult = periodFiltered ? financePeriods.resultatPeriod : financePeriods.resultatAllTime;
+  const encaisseDisplay = periodFiltered ? financePeriods.encaissePeriod : financePeriods.encaisseAllTime;
   const openAlerts = arr(alertes).length ? arr(alertes).filter(isOpen) : arr(dataMap.alertes_center || dataMap.alertes).filter(isOpen);
   const rawTasks = arr(taches).length ? arr(taches) : arr(dataMap.taches || dataMap.tasks);
   const openTasks = filterRealOpenTasks(rawTasks.filter(isOpen));
@@ -129,13 +198,13 @@ export function buildVisionData(props = {}) {
   const missingProof = tx.filter((r) => amount(r) > 0 && !r.document_id && !r.proof_url && !r.justificatif_id).length;
   const receivable = salesAll.reduce((sum, order) => sum + remainingForOrder(order, payAll), 0);
   const grossMargin = income - expenses;
-  const base = { animaux: allAnimals, lots: allLots, cultures: allCultures, stocks: allStocks, clients: allClients, sales, payments: pay, income, expenses, balance: income - expenses, margin: grossMargin, grossMargin, netMargin: grossMargin, salesAmount, collected, stockValue, investmentValue, receivable, estimatedValue: stockValue + investmentValue + Math.max(0, grossMargin), productionCount: allAnimals.length + allLots.length + allCultures.length, goals: [...plans, ...invest], opportunities: opps, documents: docs, missingProof, openAlerts, openTasks, debts: expenses, receivables: receivable, periodFiltered, periodLabel: props.periodLabel || '' };
+  const base = { animaux: allAnimals, lots: allLots, cultures: allCultures, stocks: allStocks, clients: allClients, sales, payments: pay, income, expenses, balance: income - expenses, treasuryResult, encaisseDisplay, financePeriods, margin: grossMargin, grossMargin, netMargin: grossMargin, salesAmount, collected, stockValue, investmentValue, receivable, estimatedValue: stockValue + investmentValue + Math.max(0, grossMargin), productionCount: allAnimals.length + allLots.length + allCultures.length, goals: [...plans, ...invest], opportunities: opps, openOpportunities, pipelineTotal, documents: docs, missingProof, openAlerts, openTasks, debts: expenses, receivables: receivable, periodFiltered, periodLabel: props.periodLabel || '', openAlertsCount: openAlerts.length, openTasksCount: openTasks.length, criticalStockCount: allStocks.filter((r) => stockThreshold(r) > 0 && stockQty(r) <= stockThreshold(r)).length };
   const risks = buildRisks(base);
   const priorities = [
     ...openAlerts.slice(0, 5).map((r) => ({ id: `a-${r.id || label(r)}`, title: label(r), detail: r.message || 'Alerte ouverte', value: 'Alerte', tone: 'warn', tab: 'Risques', sourceModule: r.module_source || 'activite_suivi', record: r })),
     ...openTasks.filter(isRisk).slice(0, 5).map((r) => ({ id: `t-${r.id || label(r)}`, title: label(r), detail: 'Tâche prioritaire', value: 'Action', tone: 'warn', tab: 'Risques', sourceModule: r.module_lie || 'activite_suivi', record: r })),
     ...(missingProof ? [{ id: 'proofs', title: 'Preuves manquantes', detail: `${missingProof} justificatif(s)`, value: 'Financeurs', tone: 'warn', tab: 'Financeurs', navModule: 'objectifs_croissance', sourceModule: 'documents_rapports' }] : []),
-    ...(grossMargin < 0 ? [{ id: 'cash', title: 'Trésorerie en tension', detail: 'Charges > recettes', value: 'Finance', tone: 'bad', tab: 'Risques', sourceModule: 'finance_pilotage' }] : []),
+    ...(grossMargin < 0 || treasuryResult < 0 ? [{ id: 'cash', title: 'Trésorerie en tension', detail: periodFiltered ? 'Encaissements < charges sur la période' : 'Résultat cumulé négatif', value: 'Finance', tone: 'bad', tab: 'Risques', sourceModule: 'finance_pilotage', navTab: 'Trésorerie' }] : []),
   ];
   const riskCount = risks.length;
   const totalObjects = allAnimals.length + allLots.length + allCultures.length + openAlerts.length + openTasks.length + allStocks.length + 1;

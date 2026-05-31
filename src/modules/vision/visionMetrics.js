@@ -50,7 +50,7 @@ export function buildVisionBadges(data = {}, moduleId = 'centre_ia') {
   const treatCount = arr(data.priorities).length;
   const risksCount = arr(data.risks).length;
   const criticalRisks = arr(data.risks).filter((r) => r.tone === 'bad').length;
-  const openOpportunities = arr(data.opportunities).filter(isOpportunityOpen);
+  const openOpportunities = arr(data.openOpportunities).length ? arr(data.openOpportunities) : arr(data.opportunities).filter(isOpportunityOpen);
   const predictionsCount = arr(data.predictions).length;
   const missingProof = n(data.missingProof);
   const unreliableMargins = n(data.unreliableMargins);
@@ -61,6 +61,8 @@ export function buildVisionBadges(data = {}, moduleId = 'centre_ia') {
     if (treatCount > 0) tabs['À traiter'] = treatCount;
     if (risksCount > 0) tabs.Risques = criticalRisks || risksCount;
     if (openOpportunities.length > 0) tabs.Opportunités = openOpportunities.length;
+    const cycleSignals = n(data.criticalStockCount) + n(data.openAlertsCount);
+    if (cycleSignals > 0) tabs.Cycles = cycleSignals;
   } else {
     if (unreliableMargins > 0) tabs.Performance = unreliableMargins;
     if (predictionsCount > 0) tabs.Prévisions = predictionsCount;

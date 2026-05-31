@@ -40,6 +40,38 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
         />
       ), periodFiltered);
     case 'centre_ia':
+      return withChartPeriod((
+        <div className="space-y-6">
+          <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
+            <h2 className="text-sm font-black text-[#2f2415]">Trésorerie & encaissements</h2>
+            <p className="mt-1 text-xs text-[#8a7456]">Flux financiers — cliquez sur un point pour ouvrir Finance & Pilotage.</p>
+            <div className="mt-3">
+              <FinanceEvolution rows={arr(props.transactions || props.finances)} payments={arr(props.payments)} salesOrders={arr(props.salesOrders)} onNavigate={onNavigate} />
+            </div>
+          </section>
+          <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
+            <h2 className="text-sm font-black text-[#2f2415]">Ventes & créances</h2>
+            <p className="mt-1 text-xs text-[#8a7456]">Évolution commerciale — relier aux relances clients et opportunités.</p>
+            <div className="mt-3">
+              <SalesEvolution rows={arr(props.salesOrders)} payments={arr(props.payments)} opportunities={arr(props.opportunities)} onNavigate={onNavigate} />
+            </div>
+          </section>
+          <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
+            <h2 className="text-sm font-black text-[#2f2415]">Stock & alertes</h2>
+            <p className="mt-1 text-xs text-[#8a7456]">Ruptures et tension inventaire — croiser avec l'onglet Risques.</p>
+            <div className="mt-3">
+              <StockEvolution rows={arr(props.stocks || props.stock)} onNavigate={onNavigate} />
+            </div>
+          </section>
+          <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
+            <h2 className="text-sm font-black text-[#2f2415]">Production avicole</h2>
+            <p className="mt-1 text-xs text-[#8a7456]">Lots et pontes — compléter l'onglet Cycles pour les décisions J+40.</p>
+            <div className="mt-3">
+              <AvicoleEvolution rows={arr(props.lots)} productionLogs={arr(props.productionLogs)} alimentationLogs={arr(props.alimentationLogs)} transactions={arr(props.transactions)} onNavigate={onNavigate} />
+            </div>
+          </section>
+        </div>
+      ), periodFiltered);
     case 'objectifs_croissance':
       return withChartPeriod((
         <div className="space-y-4">
