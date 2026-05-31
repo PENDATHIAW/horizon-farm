@@ -305,6 +305,21 @@ export function buildMaraichageAnalysis(dataMap = {}, options = {}) {
 }
 
 export function buildLotAnalyticsPlan(dataMap = {}, options = {}) {
+  try {
+    return buildLotAnalyticsPlanInner(dataMap, options);
+  } catch (error) {
+    console.warn('[buildLotAnalyticsPlan] fallback', error?.message || error);
+    return {
+      rentability: { lots: [], suppliers: [] },
+      technical: { rows: [], thermalAlerts: [] },
+      flux: { occupancy: [], mortalityRows: [], sanitaryAlerts: [] },
+      maraichage: { cultures: [], biomass: null },
+      cross: {},
+    };
+  }
+}
+
+function buildLotAnalyticsPlanInner(dataMap = {}, options = {}) {
   return {
     rentability: buildRentabilityAnalysis(dataMap, options),
     technical: buildTechnicalEfficiencyAnalysis(dataMap, options),

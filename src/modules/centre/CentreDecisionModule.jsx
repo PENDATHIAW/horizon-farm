@@ -16,6 +16,19 @@ import PilotageSettingsPanel from './PilotageSettingsPanel.jsx';
 import { mergePilotageIntoDataMap } from '../../services/pilotageSettingsService.js';
 import { syncStrategicAlertsToCenter } from '../../services/strategicAlertBridge.js';
 
+const EMPTY_STRATEGIC_PLAN = {
+  sellNow: [],
+  launch: { alerts: [], cycleDecisions: [] },
+  stockAudit: { alerts: [] },
+  bfr: {},
+  sanitary: [],
+  scissors: null,
+  transformation: null,
+  recommendations: [],
+  risks: [],
+  ith: null,
+};
+
 const TAB_IDS = MODULE_TARGET_TABS.centre_ia;
 
 const TAB_ALIASES = {
@@ -49,7 +62,14 @@ export default function CentreDecisionModule({
   }, [initialTab]);
 
   const visionProps = useMemo(() => ({ ...props, dataMap, moduleId: 'centre_ia', meteo }), [props, dataMap, meteo]);
-  const data = useMemo(() => buildVisionData(visionProps), [visionProps]);
+  const data = useMemo(() => {
+    try {
+      return buildVisionData(visionProps);
+    } catch (error) {
+      console.warn('[CentreDecisionModule] buildVisionData fallback', error);
+      return { priorities: [], risks: [], predictions: [], healthScore: 0 };
+    }
+  }, [visionProps]);
   const badges = useMemo(() => buildVisionBadges(data, 'centre_ia'), [data]);
 
   const enrichedDataMap = useMemo(() => mergePilotageIntoDataMap({
@@ -73,13 +93,22 @@ export default function CentreDecisionModule({
     meteo: meteo || dataMap.meteo,
   }), [dataMap, props, meteo, pilotageVersion]);
 
-  const strategicPlan = useMemo(
-    () => buildStrategicDecisionPlan(enrichedDataMap, { meteo: meteo || dataMap.meteo }),
-    [enrichedDataMap, meteo, dataMap.meteo],
-  );
+  const strategicPlan = useMemo(() => {
+    try {
+      return buildStrategicDecisionPlan(enrichedDataMap, { meteo: meteo || dataMap.meteo });
+    } catch (error) {
+      console.warn('[CentreDecisionModule] strategic plan fallback', error);
+      return EMPTY_STRATEGIC_PLAN;
+    }
+  }, [enrichedDataMap, meteo, dataMap.meteo]);
 
   const decisionPlan = useMemo(() => {
-    const base = buildDecisionCenterPlan(enrichedDataMap);
+    let base = { recommendations: [], commercialRecommendations: [] };
+    try {
+      base = buildDecisionCenterPlan(enrichedDataMap);
+    } catch (error) {
+      console.warn('[CentreDecisionModule] decision plan fallback', error);
+    }
     const commercialRecommendations = (base.recommendations || [])
       .filter((r) => !r.strategic && !r.technical_rule)
       .slice(0, 5);
@@ -197,8 +226,21 @@ export default function CentreDecisionModule({
         </div>
       </section>
 
-      <PilotageSettingsPanel clients={props.clients || dataMap.clients} onChange={() => setPilotageVersion((v) => v + 1)} />
-      <ModuleTabsBar moduleId="centre_ia" active={tab} onChange={setTab} tabBadges={tabBadges} />
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+        <div className="flex-1">
+          <PilotageSettingsPanel clients={props.clients || dataMap.clients} onChange={() => setPilotageVersion((v) => v + 1)} />
+        </div>
+        {props.onCreateAlert ? (
+          <button
+            type="button"
+            onClick={() => syncStrategicAlertsToCenter({ strategicPlan, existingAlerts: props.existingAlerts, onCreateAlert: props.onCreateAlert, onRefreshAlertes: props.onRefreshAlertes }).catch(() => undefined)}
+            className="shrink-0 rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415] hover:bg-[#dcfce7]"
+          >
+            Pousser alertes critiques
+          </button>
+        ) : null}
+      </div>
+      <ModuleTabsBar moduleId="centre_ia" active={tab} onChange={(next) => setTab(resolveTab(next))} tabBadges={tabBadges} />
       {content}
     </div>
   );

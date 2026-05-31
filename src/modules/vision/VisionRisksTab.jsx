@@ -4,10 +4,28 @@ import { navigateVisionRisk } from './visionNavigation.js';
 import StrategicDecisionCard from '../centre/StrategicDecisionCard.jsx';
 import { Btn, DataRow, DataTable, Empty, Pill, Section, TabIntro, VisionKpi, riskLevelLabel } from './visionUtils';
 
-export default function VisionRisksTab({ data, onNavigate, setTab, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, strategicPlan = {} }) {
-  const engineRisks = data.engineRisks || [];
-  const criticalCount = data.risks.filter((r) => r.tone === 'bad').length;
+const arr = (v) => (Array.isArray(v) ? v : []);
+
+export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, strategicPlan = {} }) {
+  const engineRisks = arr(data.engineRisks);
+  const risks = arr(data.risks);
+  const criticalCount = risks.filter((r) => r.tone === 'bad').length;
   const financeExposure = Math.max(0, -(data.treasuryResult ?? data.balance)) + (data.receivable || 0);
+
+  const createAlertFromRisk = async (risk) => {
+    if (!onCreateAlert) return;
+    await onCreateAlert({
+      title: `Risque : ${risk.title}`,
+      message: `${risk.cause} → ${risk.impact}`,
+      module_source: risk.module || 'centre_decisionnel',
+      entity_type: 'risk',
+      severity: risk.tone === 'bad' ? 'critique' : 'warning',
+      status: 'nouvelle',
+      action_recommandee: risk.action,
+      alert_dedupe_key: `centre_risque:${risk.id}:${risk.title}`,
+    });
+    await onRefreshAlertes?.();
+  };
 
   const createTaskFromRisk = async (risk) => {
     if (!onCreateTask) return;
@@ -29,7 +47,7 @@ export default function VisionRisksTab({ data, onNavigate, setTab, onCreateTask,
         action={onNavigate ? <Btn onClick={() => onNavigate('activite_suivi', { tab: 'Alertes' })}>Centre alertes</Btn> : null}
       />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
-        <VisionKpi label="Risques ouverts" value={fmtNumber(data.risks.length)} tone={data.risks.length ? 'warn' : 'good'} />
+        <VisionKpi label="Risques ouverts" value={fmtNumber(risks.length)} tone={risks.length ? 'warn' : 'good'} />
         <VisionKpi label="Critiques / élevés" value={fmtNumber(criticalCount)} tone={criticalCount ? 'bad' : 'good'} onClick={() => setTab?.('À traiter')} />
         <VisionKpi label="Signaux IA" value={fmtNumber(engineRisks.length)} tone={engineRisks.length ? 'warn' : 'good'} />
         <VisionKpi label="Exposition finance" value={fmtCurrency(financeExposure)} tone={financeExposure ? 'warn' : 'good'} onClick={() => onNavigate?.('finance_pilotage', { tab: 'Trésorerie' })} />
@@ -100,9 +118,9 @@ export default function VisionRisksTab({ data, onNavigate, setTab, onCreateTask,
         </Section>
       ) : null}
       <Section icon={ShieldAlert} title="Risques opérationnels">
-        {data.risks.length ? (
+        {risks.length ? (
           <DataTable columns={['Domaine · Sujet', 'Cause & impact', 'Gravité', 'Actions']}>
-            {data.risks.map((r) => (
+            {risks.map((r) => (
               <DataRow
                 key={r.id}
                 title={`${r.domain} · ${r.title}`}
@@ -114,6 +132,7 @@ export default function VisionRisksTab({ data, onNavigate, setTab, onCreateTask,
                   <Pill tone={r.tone}>{r.resolutionStatus}</Pill>
                   <button type="button" onClick={() => navigateVisionRisk(onNavigate, r)} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Voir source</button>
                   {onCreateTask ? <button type="button" onClick={() => createTaskFromRisk(r)} className="rounded-lg border border-emerald-300 px-2 py-1 text-xs font-black text-emerald-700">Tâche</button> : null}
+                  {onCreateAlert ? <button type="button" onClick={() => createAlertFromRisk(r)} className="rounded-lg border border-amber-300 px-2 py-1 text-xs font-black text-amber-700">Alerte</button> : null}
                 </>}
               />
             ))}

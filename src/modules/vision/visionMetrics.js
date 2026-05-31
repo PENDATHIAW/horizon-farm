@@ -2,7 +2,7 @@ import { MODULE_TARGET_TABS } from '../../config/horizonVision.config.js';
 import { isOpportunityOpen } from '../commercial/commercialMetrics.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
-const n = (v = 0) => Number(v || 0);
+const n = (v = 0) => Number(v || 0) || 0;
 const low = (v) => String(v || '').toLowerCase();
 const isClosedGoal = (row = {}) => ['termine', 'terminé', 'closed', 'clos', 'done'].includes(low(row.status || row.statut || row.state));
 

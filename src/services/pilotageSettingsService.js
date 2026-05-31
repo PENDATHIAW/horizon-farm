@@ -22,6 +22,8 @@ const num = (value, fallback) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
+const hasStorage = () => typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+
 export function normalizePilotageSettings(raw = {}) {
   const festival = { ...DEFAULT_PILOTAGE_SETTINGS.festival_dates, ...(raw.festival_dates || {}) };
   return {
@@ -39,6 +41,7 @@ export function normalizePilotageSettings(raw = {}) {
 }
 
 export function loadPilotageSettings() {
+  if (!hasStorage()) return { ...DEFAULT_PILOTAGE_SETTINGS };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULT_PILOTAGE_SETTINGS };
@@ -50,7 +53,13 @@ export function loadPilotageSettings() {
 
 export function savePilotageSettings(settings = {}) {
   const normalized = normalizePilotageSettings(settings);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+  if (hasStorage()) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+    } catch {
+      /* ignore quota / private mode */
+    }
+  }
   return normalized;
 }
 

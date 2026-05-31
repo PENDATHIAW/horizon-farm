@@ -122,6 +122,17 @@ export function buildObjectifsExportWorkbook(analytics = {}) {
     ], [28, 18]);
   }
 
+
+  const crossInsights = [
+    ...(analytics.cross?.veterinaires?.insights || []).map((v) => ({ Type: 'Véto', Sujet: v.intervention, Message: v.message })),
+    ...(analytics.cross?.feedInflation?.alerts || []).map((a) => ({ Type: 'Inflation aliment', Sujet: a.product, Message: a.message })),
+    ...(analytics.cross?.shrinkage?.alerts || []).map((a) => ({ Type: 'Démarque', Sujet: a.product || a.lotName, Message: a.message })),
+    ...(analytics.cross?.clientQuality?.insights || []).map((c) => ({ Type: 'Client', Sujet: c.clientName || c.client, Message: c.message })),
+  ];
+  if (crossInsights.length) {
+    addSheet(workbook, 'Croisements', ['Type', 'Sujet', 'Message'], crossInsights, [18, 24, 48]);
+  }
+
   return workbook;
 }
 

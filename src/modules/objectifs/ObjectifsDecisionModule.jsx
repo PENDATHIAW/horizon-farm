@@ -10,7 +10,15 @@ import MaraichageDiversificationTab from './MaraichageDiversificationTab.jsx';
 import CrossAnalyticsSections from './CrossAnalyticsSections.jsx';
 import Btn from '../../components/Btn.jsx';
 import { mergePilotageIntoDataMap } from '../../services/pilotageSettingsService.js';
-import { exportObjectifsAnalyticsExcel } from '../../services/objectifsDecision/objectifsAnalyticsExport.js';
+import { exportObjectifsAnalyticsExcel, exportObjectifsAnalyticsCsv } from '../../services/objectifsDecision/objectifsAnalyticsExport.js';
+
+const EMPTY_ANALYTICS = {
+  rentability: { lots: [], suppliers: [] },
+  technical: { rows: [], thermalAlerts: [] },
+  flux: { occupancy: [], mortalityRows: [], sanitaryAlerts: [] },
+  maraichage: { cultures: [], biomass: null },
+  cross: {},
+};
 
 const TAB_IDS = MODULE_TARGET_TABS.objectifs_croissance;
 
@@ -63,10 +71,14 @@ export default function ObjectifsDecisionModule({
     growth_settings: dataMap.growth_settings || {},
   }), [dataMap, props, meteo]);
 
-  const analytics = useMemo(
-    () => buildLotAnalyticsPlan(enrichedDataMap, { currentTemp: meteo?.temperature ?? meteo?.temp }),
-    [enrichedDataMap, meteo],
-  );
+  const analytics = useMemo(() => {
+    try {
+      return buildLotAnalyticsPlan(enrichedDataMap, { currentTemp: meteo?.temperature ?? meteo?.temp });
+    } catch (error) {
+      console.warn('[ObjectifsDecisionModule] analytics fallback', error);
+      return EMPTY_ANALYTICS;
+    }
+  }, [enrichedDataMap, meteo]);
 
   const tabBadges = useMemo(() => ({
     'Efficacité Technique': (analytics.technical?.thermalAlerts?.length || 0)
@@ -95,7 +107,10 @@ export default function ObjectifsDecisionModule({
             {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
           </div>
           <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap gap-2">
             <Btn variant="outline" onClick={() => exportObjectifsAnalyticsExcel(analytics)}>Exporter Excel</Btn>
+            <Btn variant="outline" onClick={() => exportObjectifsAnalyticsCsv(analytics, tab === 'Rentabilité Lot & Cycle' ? 'rentabilite' : tab === 'Efficacité Technique' ? 'technique' : tab === 'Flux & Équilibres' ? 'flux' : 'maraichage')}>Exporter CSV (onglet)</Btn>
+          </div>
             <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'À traiter' })} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-left text-sm hover:bg-[#dcfce7]">
               <span className="text-[#8a7456]">Actions & recommandations → </span><b>Centre décisionnel</b>
             </button>
@@ -103,7 +118,7 @@ export default function ObjectifsDecisionModule({
         </div>
       </section>
 
-      <ModuleTabsBar moduleId="objectifs_croissance" active={tab} onChange={setTab} tabBadges={tabBadges} />
+      <ModuleTabsBar moduleId="objectifs_croissance" active={tab} onChange={(next) => setTab(resolveTab(next))} tabBadges={tabBadges} />
       {content}
       <CrossAnalyticsSections cross={analytics.cross} />
     </div>
