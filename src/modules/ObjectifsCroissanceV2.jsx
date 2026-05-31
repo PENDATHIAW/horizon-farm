@@ -1,5 +1,5 @@
-import ObjectifsCroissance from './ObjectifsCroissance.jsx';
+import ObjectifsDecisionModule from './objectifs/ObjectifsDecisionModule.jsx';
 
-export default function ObjectifsCroissanceModule({ dataMap = {}, onNavigate, ...props }) {
-  return <ObjectifsCroissance dataMap={dataMap} onNavigate={onNavigate} {...props} />;
+export default function ObjectifsCroissanceModule(props) {
+  return <ObjectifsDecisionModule {...props} />;
 }
