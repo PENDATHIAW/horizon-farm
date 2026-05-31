@@ -315,6 +315,22 @@ export function validateBuildingCapacityForChickOrder({ lots = [], building, pla
   if (!building || !plannedStartDate) return { ok: true };
   const conflicts = buildCapacityAlerts(lots).filter((a) => a.building === building && a.nextStart === plannedStartDate);
   if (conflicts.length) return { ok: false, message: conflicts[0].message, alerts: conflicts };
+
+  const planned = new Date(plannedStartDate);
+  for (const lot of arr(lots)) {
+    if (buildingOf(lot) !== building) continue;
+    const exitDate = lot.date_sortie_prevue || lot.date_fin_prevue || lot.date_sortie || lot.date_fin_reelle;
+    if (!exitDate) continue;
+    const freeDate = new Date(exitDate);
+    freeDate.setDate(freeDate.getDate() + SANITARY_VACUUM_DAYS);
+    if (planned < freeDate) {
+      return {
+        ok: false,
+        message: `Erreur : Capacité saturée sur le Bâtiment ${building} — vide sanitaire ${SANITARY_VACUUM_DAYS} j non respecté (libre après ${freeDate.toISOString().slice(0, 10)}).`,
+        alerts: conflicts,
+      };
+    }
+  }
   return { ok: true };
 }
 
