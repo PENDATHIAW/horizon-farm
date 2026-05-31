@@ -56,6 +56,8 @@ export const MODULE_FORM_FIELDS = {
     { key: 'race', label: 'Race', type: 'text' },
     { key: 'sexe', label: 'Sexe', type: 'select', options: ['M', 'F'] },
     { key: 'poids', label: 'Poids (kg)', type: 'number' },
+    { key: 'batiment', label: 'Batiment / parc', type: 'select', options: ['parc_bovins', 'enclos_ovins', 'enclos_caprins', 'zone_quarantaine', 'magasin_stock', 'autre'] },
+    { key: 'localisation', label: 'Localisation / enclos', type: 'text' },
     { key: 'section_origine', label: 'Origine & dates', type: 'section', description: 'Permet de distinguer achat, naissance sur la ferme et reproduction interne.' },
     { key: 'mode_acquisition', label: 'Mode acquisition', type: 'select', options: [
       { value: 'achat', label: 'Achat' },

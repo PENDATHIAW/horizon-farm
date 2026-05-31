@@ -10,6 +10,7 @@ import EditModal from '../modals/EditModal';
 import DeleteModal from '../modals/DeleteModal';
 import BaseModal from '../modals/BaseModal';
 import { applyAnimalDecisionDefaults } from '../services/animalDecisionEngine';
+import { buildingField, resolveBuildingLabel, resolveSupplierName, supplierSelectField } from '../utils/decisionFormFields';
 import { generateSequentialId } from '../utils/ids';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
