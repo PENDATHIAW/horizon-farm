@@ -39,6 +39,35 @@ export function shouldSkipCriticalTaskFinding(task = {}) {
   return false;
 }
 
+const CLOSED_TASK_STATUSES = new Set(['termine', 'terminé', 'done', 'closed', 'resolu', 'résolu', 'annule', 'annulé', 'traitee', 'traitée']);
+
+export function isOpenTaskStatus(task = {}) {
+  return !CLOSED_TASK_STATUSES.has(String(task.status || task.statut || '').toLowerCase());
+}
+
+/** Tâche miroir IA ou bruit Health Engine — exclure des compteurs et priorités terrain. */
+export function isHealthMirrorNoiseTask(task = {}) {
+  if (isHealthEngineMirrorTask(task)) return true;
+  if (String(task.source_module || '') === 'erp_health_engine') return true;
+
+  const title = String(task.title || '').trim();
+  if (/^tâche critique\s*:/i.test(title)) return true;
+  if (/^preuve manquante\s*:/i.test(title) && String(task.source_module || '') === 'erp_health_engine') return true;
+
+  return false;
+}
+
+export function filterRealOpenTasks(tasks = []) {
+  return arr(tasks).filter((task) => isOpenTaskStatus(task) && !isHealthMirrorNoiseTask(task));
+}
+
+export function formatTaskTitleForDisplay(task = {}, maxLen = 80) {
+  let title = stripRepeatedPrefix(String(task.title || task.nom || task.id || ''), 'Tâche critique');
+  title = stripRepeatedPrefix(title, 'Preuve manquante');
+  if (title.length <= maxLen) return title;
+  return `${title.slice(0, Math.max(0, maxLen - 1))}…`;
+}
+
 export function hasOpenTaskForHealthFinding(tasks = [], finding = {}) {
   const key = finding?.id;
   const relatedId = finding?.source_records?.[0]?.id;

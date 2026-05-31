@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import useCrudModule from '../hooks/useCrudModule';
 import { receivableOfOrder } from '../utils/assistantDataMap.js';
 import { fmtNumber, toNumber } from '../utils/format';
+import { filterRealOpenTasks } from '../utils/healthFindingLabels.js';
 import { makeId } from '../utils/ids';
 
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -61,7 +62,7 @@ function buildAssistantPriorities(dataMap = {}) {
   const equipments = arr(dataMap.equipements);
 
   const openAlerts = alerts.filter(isOpen);
-  const openTasks = tasks.filter(isOpen);
+  const openTasks = filterRealOpenTasks(tasks);
   const unpaidSales = sales.filter((sale) => receivableOfOrder(sale, payments) > 0 && !['annule', 'annulé'].includes(lower(sale.statut_commande || sale.status)));
   const criticalStock = stock.filter((s) => toNumber(s.quantite) <= toNumber(s.seuil));
   const sickAnimals = animals.filter((a) => /malade|traitement|surveiller/.test(lower(a.health_status || a.sante || a.status_sante)));

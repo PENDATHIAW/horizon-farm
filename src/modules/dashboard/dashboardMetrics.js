@@ -1,4 +1,5 @@
 import { buildDecisionCenterPlan, annualRevenueTarget, monthlyRevenueTargets } from '../../services/growthDecisionEngine';
+import { filterRealOpenTasks } from '../../utils/healthFindingLabels.js';
 import { remainingForOrder } from '../../utils/salesStatuses';
 import { buildDashboardTodayActions } from '../../utils/dashboardWorkflows';
 import { avicoleActiveCount, avicoleHasActiveBirds } from '../../utils/avicoleMetrics';
@@ -423,7 +424,7 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
   const receivable = salesAll.reduce((sum, order) => sum + remainingForOrder(order, paymentsAll), 0);
   const stockBas = stocks.filter(isCriticalStock).length;
   const stockSummary = computeStockSummary(stocks);
-  const tachesOuvertes = taches.filter(isOpenTask).length;
+  const tachesOuvertes = filterRealOpenTasks(taches).length;
   const alertesOuvertes = alertes.filter(isOpenAlert).length;
   const headcount = computeFarmHeadcount({ animaux, lots, cultures });
   const effectifs = headcount.total;

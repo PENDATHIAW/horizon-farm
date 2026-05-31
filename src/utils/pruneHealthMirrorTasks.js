@@ -1,11 +1,11 @@
-import { isHealthEngineMirrorTask, stripRepeatedPrefix } from './healthFindingLabels.js';
+import {
+  isHealthEngineMirrorTask,
+  isHealthMirrorNoiseTask,
+  isOpenTaskStatus,
+  stripRepeatedPrefix,
+} from './healthFindingLabels.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
-const closed = new Set(['termine', 'terminé', 'done', 'closed', 'resolu', 'résolu', 'annule', 'annulé']);
-
-function isClosed(task = {}) {
-  return closed.has(String(task.status || task.statut || '').toLowerCase());
-}
 
 function normalizedMirrorTitle(task = {}) {
   return stripRepeatedPrefix(task.title || task.id || '', 'Tâche critique').toLowerCase();
@@ -16,7 +16,7 @@ function normalizedMirrorTitle(task = {}) {
  * Garde la plus ancienne ouverte par clé métier ; les autres peuvent être clôturées.
  */
 export function findDuplicateHealthMirrorTasks(tasks = []) {
-  const open = arr(tasks).filter((task) => !isClosed(task));
+  const open = arr(tasks).filter((task) => isOpenTaskStatus(task));
   const groups = new Map();
 
   open.forEach((task) => {
@@ -42,19 +42,38 @@ export function findDuplicateHealthMirrorTasks(tasks = []) {
   return toClose;
 }
 
-export async function closeDuplicateHealthMirrorTasks(tasks = [], onUpdateTask) {
-  if (typeof onUpdateTask !== 'function') return { closed: 0, ids: [] };
-  const duplicates = findDuplicateHealthMirrorTasks(tasks);
-  const ids = [];
+/** Toutes les tâches miroir IA ouvertes à archiver (y compris les singletons uniques par clé). */
+export function findHealthMirrorTasksToArchive(tasks = []) {
+  return arr(tasks).filter((task) => isOpenTaskStatus(task) && isHealthMirrorNoiseTask(task));
+}
 
-  for (const task of duplicates) {
-    try {
-      await onUpdateTask(task.id, { status: 'termine', notes: `${task.notes || ''} · Doublon IA archivé`.trim() });
-      ids.push(task.id);
-    } catch {
-      // ignore single failure
-    }
+async function closeTasksInBatches(tasks = [], onUpdateTask, note = 'Miroir IA archivé') {
+  const ids = [];
+  const batchSize = 8;
+
+  for (let index = 0; index < tasks.length; index += batchSize) {
+    const batch = tasks.slice(index, index + batchSize);
+    const results = await Promise.allSettled(batch.map((task) => onUpdateTask(task.id, {
+      status: 'termine',
+      notes: `${task.notes || ''} · ${note}`.trim(),
+    })));
+
+    results.forEach((result, batchIndex) => {
+      if (result.status === 'fulfilled') ids.push(batch[batchIndex].id);
+    });
   }
 
   return { closed: ids.length, ids };
+}
+
+export async function archiveHealthMirrorTasks(tasks = [], onUpdateTask) {
+  if (typeof onUpdateTask !== 'function') return { closed: 0, ids: [] };
+  const toClose = findHealthMirrorTasksToArchive(tasks);
+  return closeTasksInBatches(toClose, onUpdateTask, 'Miroir IA archivé (nettoyage massif)');
+}
+
+export async function closeDuplicateHealthMirrorTasks(tasks = [], onUpdateTask) {
+  if (typeof onUpdateTask !== 'function') return { closed: 0, ids: [] };
+  const duplicates = findDuplicateHealthMirrorTasks(tasks);
+  return closeTasksInBatches(duplicates, onUpdateTask, 'Doublon IA archivé');
 }

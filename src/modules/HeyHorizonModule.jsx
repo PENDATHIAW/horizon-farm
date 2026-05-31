@@ -13,6 +13,7 @@ import { isHeyHorizonLlmEnabled } from '../services/heyHorizonLlmService.js';
 import { launchProductionQuestion } from '../utils/productionNavigation.js';
 import { countOpenReceivables, enrichAssistantDataMap } from '../utils/assistantDataMap.js';
 import { fmtCurrency, fmtNumber } from '../utils/format';
+import { filterRealOpenTasks } from '../utils/healthFindingLabels.js';
 import AssistantERPInsights from './AssistantERPInsights.jsx';
 import AssistantERPQuickAnswers from './AssistantERPQuickAnswers.jsx';
 
@@ -149,7 +150,7 @@ export default function HeyHorizonModule({
     const documents = arr(dataMap.documents);
     const lowStocks = stocks.filter(isLowStock);
     const openReceivables = countOpenReceivables(salesAll, paymentsSnapshot);
-    const openTasks = tasks.filter(open);
+    const openTasks = filterRealOpenTasks(tasks);
     const openAlerts = alertes.filter(open);
     const missingProof = finances.filter((row) => amount(row) > 0 && !row.document_id && !row.proof_url && !row.justificatif_id);
     const aiRecommendations = buildRecommendationsFromData(enrichedDataMap);

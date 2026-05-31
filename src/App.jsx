@@ -7,7 +7,7 @@ import { composeActionTraceShared, composeDecisionDataMap, composeInternalResour
 import { refreshAllModules, refreshSalesWorkflow } from './services/workflowRefresh';
 import { resolveCommercialTab, resolveElevageTab, resolveAchatsStockTab, resolveFinanceTab, resolveRouteModule, defaultTabForLegacyModule } from './utils/commercialNavigation';
 import { pruneHeavyLocalStorage } from './utils/safeLocalStorage';
-import { closeDuplicateHealthMirrorTasks } from './utils/pruneHealthMirrorTasks.js';
+import { archiveHealthMirrorTasks } from './utils/pruneHealthMirrorTasks.js';
 import AppNotificationManager from './components/AppNotificationManager';
 import ErpInterconnectionBridge from './components/ErpInterconnectionBridge';
 import AssistantPanel from './components/AssistantPanel';
@@ -140,9 +140,9 @@ export default function App() {
   useEffect(() => { pruneHeavyLocalStorage(); }, []);
 
   useEffect(() => {
-    const flag = 'horizon-pruned-health-mirror-tasks-v1';
+    const flag = 'horizon-pruned-health-mirror-tasks-v2';
     if (localStorage.getItem(flag) !== null || !rows(c.taches).length) return;
-    void closeDuplicateHealthMirrorTasks(rows(c.taches), c.taches.update).then((result) => {
+    void archiveHealthMirrorTasks(rows(c.taches), c.taches.update).then((result) => {
       localStorage.setItem(flag, String(result.closed || 0));
     });
   }, [c.taches]);

@@ -2,6 +2,7 @@ import { AlertTriangle, Bot, ClipboardList, CreditCard, FileWarning, Package, Sh
 import { useMemo, useState } from 'react';
 import { receivableOfOrder, totalOpenReceivables } from '../utils/assistantDataMap.js';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
+import { filterRealOpenTasks, formatTaskTitleForDisplay } from '../utils/healthFindingLabels.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value = '') => String(value || '').toLowerCase();
@@ -27,6 +28,18 @@ function buildAnswers(dataMap = {}) {
   const health = arr(dataMap.sante || dataMap.vaccins);
   const equipments = arr(dataMap.equipements);
   const openTasks = tasks.filter(isOpen);
+  const realOpenTasks = filterRealOpenTasks(tasks);
+  const mirrorCount = openTasks.length - realOpenTasks.length;
+  const priorityTasks = (realOpenTasks.length ? realOpenTasks : openTasks).slice(0, 3);
+  const todayAnswer = (() => {
+    if (!openTasks.length) return 'Aucune tâche ouverte urgente. Continue le suivi habituel et vérifie les alertes.';
+    const countLabel = realOpenTasks.length
+      ? `${realOpenTasks.length} tâche(s) terrain`
+      : `${openTasks.length} tâche(s) ouverte(s)`;
+    const mirrorNote = mirrorCount > 0 ? ` (${mirrorCount} doublon(s) IA en cours d’archivage)` : '';
+    const priorities = priorityTasks.map((task) => formatTaskTitleForDisplay(task)).join(' · ');
+    return `${countLabel}${mirrorNote}. Priorité : ${priorities}.`;
+  })();
   const openAlerts = alertes.filter(isOpen);
   const unpaid = sales.filter((sale) => receivableOfOrder(sale, payments) > 0);
   const unpaidTotal = totalOpenReceivables(sales, payments);
@@ -37,7 +50,7 @@ function buildAnswers(dataMap = {}) {
   const maintenance = equipments.filter((row) => /panne|maintenance|hors_service/.test(lower(`${row.status} ${row.statut}`)));
   const healthLate = health.filter((row) => /retard|a_faire|à faire/.test(lower(`${row.status} ${row.statut}`)));
   return [
-    { key: 'today', icon: ClipboardList, module: 'taches', q: 'Qu’est-ce que je dois faire aujourd’hui ?', a: openTasks.length ? `${openTasks.length} tâche(s) ouverte(s). Priorité : ${openTasks.slice(0, 3).map((t) => t.title || t.nom || t.id).join(' · ')}.` : 'Aucune tâche ouverte urgente. Continue le suivi habituel et vérifie les alertes.', value: openTasks.length },
+    { key: 'today', icon: ClipboardList, module: 'taches', q: 'Qu’est-ce que je dois faire aujourd’hui ?', a: todayAnswer, value: realOpenTasks.length || openTasks.length, danger: realOpenTasks.length > 5 || mirrorCount > 0 },
     { key: 'alerts', icon: AlertTriangle, module: 'alertes', q: 'Quels risques bloquent la ferme ?', a: openAlerts.length ? `${openAlerts.length} alerte(s) ouverte(s). Traite d’abord les alertes critiques puis crée une tâche terrain si nécessaire.` : 'Aucune alerte ouverte détectée.', value: openAlerts.length, danger: openAlerts.length > 0 },
     { key: 'sales', icon: ShoppingCart, module: 'commercial', q: 'Qui me doit de l’argent ?', a: unpaid.length ? `${unpaid.length} vente(s) avec reste à payer, total estimé ${fmtCurrency(unpaidTotal)}.` : 'Aucune créance visible sur les ventes.', value: unpaid.length, danger: unpaid.length > 0 },
     { key: 'stock', icon: Package, module: 'stock', q: 'Quels stocks sont critiques ?', a: lowStock.length ? `${lowStock.length} stock(s) sous seuil : ${lowStock.slice(0, 4).map(stockLabel).join(' · ')}.` : 'Aucun stock sous seuil détecté.', value: lowStock.length, danger: lowStock.length > 0 },
