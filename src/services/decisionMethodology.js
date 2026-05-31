@@ -2,6 +2,7 @@
 
 import { DEFAULT_PILOTAGE_SETTINGS, normalizePilotageSettings } from './pilotageSettingsService.js';
 import { HIJRI_FESTIVAL_RULES } from './islamicCalendarEngine.js';
+import { annexePresetForModule } from './annexeModuleConfig.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
@@ -729,6 +730,11 @@ export function buildAnnexeSnapshot(dataMap = {}) {
 }
 
 export function formulasForModule(moduleId = 'centre_ia') {
+  const preset = annexePresetForModule(moduleId);
+  if (preset) {
+    const ids = new Set(preset.blockIds || []);
+    return FORMULA_BLOCKS.filter((block) => preset.categories.includes(block.category) || ids.has(block.id));
+  }
   return FORMULA_BLOCKS.filter((block) => block.modules.includes(moduleId));
 }
 

@@ -145,7 +145,7 @@ function Summary({ summary, health, simple, navigate, onOpenAssistant }) {
     <div className="space-y-5">
       <DashboardGoalsHero
         goal={summary.goal}
-        onOpenVision={() => navigate('objectifs_croissance', { tab: 'Rentabilité Lot & Cycle' })}
+        onOpenVision={() => navigate('objectifs_croissance', { tab: 'Performance' })}
         onOpenAssistant={onOpenAssistant}
         onNavigate={navigate}
       />
@@ -287,6 +287,8 @@ export default function DashboardV2(props) {
     if (snap?.counts?.ux != null && report.counts) report.counts.ux = snap.counts.ux;
     return report;
   }, [props.dataFingerprint]);
+
+  const heyFindings = useMemo(() => (health.findings || []).slice(0, 3), [health.findings]);
 
   const summary = useMemo(
     () => buildDashboardSummary(props, periodScope),

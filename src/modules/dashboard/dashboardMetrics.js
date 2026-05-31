@@ -118,7 +118,7 @@ const stockThreshold = (row = {}) => toNumber(row.seuil ?? row.threshold ?? row.
 const stockUnitPrice = (row = {}) => toNumber(row.prixUnit ?? row.prixunit ?? row.prix_unitaire ?? row.unit_price);
 
 /** Résumé stock — même logique que Stocks / Achats & Stock (seuil > 0 pour « sous seuil »). */
-export function computeStockSummary(stocks = []) {
+export function computeStockSummary(stocks = [], alimentationLogs = []) {
   const rows = arr(stocks);
   const lowStock = rows.filter((row) => {
     const threshold = stockThreshold(row);
@@ -126,11 +126,47 @@ export function computeStockSummary(stocks = []) {
   });
   const available = rows.filter((row) => stockQty(row) > 0);
   const stockValue = rows.reduce((sum, row) => sum + stockQty(row) * stockUnitPrice(row), 0);
+
+  const recentDays = 14;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - recentDays);
+  const consumptionByKey = new Map();
+  arr(alimentationLogs).forEach((log) => {
+    const date = asDate(log.date || log.created_at);
+    if (!date || date < cutoff) return;
+    const key = lower(`${log.produit || log.product || log.aliment || log.stock_id || ''}`);
+    if (!key) return;
+    const qty = toNumber(log.quantite ?? log.quantity ?? log.kg ?? log.amount);
+    consumptionByKey.set(key, (consumptionByKey.get(key) || 0) + qty);
+  });
+
+  let minDaysUntilRupture = null;
+  let ruptureProduct = '';
+  rows.forEach((row) => {
+    const qty = stockQty(row);
+    if (qty <= 0) return;
+    const name = lower(`${row.produit || row.nom || row.name || row.id || ''}`);
+    let dailyUse = 0;
+    consumptionByKey.forEach((total, key) => {
+      if (!key) return;
+      if (name.includes(key) || key.includes(name)) dailyUse = Math.max(dailyUse, total / recentDays);
+    });
+    if (dailyUse > 0) {
+      const days = Math.floor(qty / dailyUse);
+      if (minDaysUntilRupture === null || days < minDaysUntilRupture) {
+        minDaysUntilRupture = days;
+        ruptureProduct = row.produit || row.nom || row.name || '';
+      }
+    }
+  });
+
   return {
     totalProducts: rows.length,
     availableProducts: available.length,
     lowStockCount: lowStock.length,
     stockValue,
+    minDaysUntilRupture,
+    ruptureProduct,
   };
 }
 
@@ -139,6 +175,9 @@ export function formatStockDetail(summary = {}) {
   const available = Number(summary.availableProducts || 0);
   const parts = [`${available} en stock`];
   if (low > 0) parts.unshift(`${low} sous seuil`);
+  if (summary.minDaysUntilRupture != null) {
+    parts.push(`rupture ~${summary.minDaysUntilRupture} j${summary.ruptureProduct ? ` (${summary.ruptureProduct})` : ''}`);
+  }
   return parts.join(' · ');
 }
 
@@ -232,11 +271,15 @@ export function computeEggProductionSummary(productionLogs = [], salesOrders = [
   const tablettesSoldPeriod = mode === 'all' ? tablettesSoldAllTime : sumTabletSales(orders, monthKeys);
   const tablettesSoldCompare = isSingleMonth ? sumTabletSales(orders, [compareMonthKey]) : 0;
 
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const eggsToday = sumProductionEggs(logs.filter((row) => String(row.date || row.created_at || '').slice(0, 10) === todayKey));
+
   return {
     mode,
     monthKeys,
     isSingleMonth,
     eggsPeriod,
+    eggsToday,
     eggsAllTime: totalEggs,
     tablettesSoldAllTime,
     tablettesSoldPeriod,
@@ -247,10 +290,11 @@ export function computeEggProductionSummary(productionLogs = [], salesOrders = [
 
 export function formatEggProductionDetail(summary = {}) {
   const fmt = (value = 0) => Number(value || 0).toLocaleString('fr-FR');
+  const todayPart = summary.eggsToday > 0 ? `${fmt(summary.eggsToday)} œufs aujourd'hui · ` : '';
   if (summary.mode === 'all') {
-    return `${fmt(summary.tablettesSoldAllTime)} tablettes vendues`;
+    return `${todayPart}${fmt(summary.tablettesSoldAllTime)} tablettes vendues`;
   }
-  return `${fmt(summary.eggsAllTime)} œufs ramassés · ${fmt(summary.tablettesSoldAllTime)} tablettes vendues · depuis le début`;
+  return `${todayPart}${fmt(summary.eggsPeriod)} œufs ce mois · ${fmt(summary.eggsAllTime)} cumul ramassage`;
 }
 
 export function formatEggProductionDelta(summary = {}) {
@@ -271,7 +315,7 @@ function sumDepenses(transactions = [], monthKeys = null) {
     .reduce((sum, row) => sum + money(row), 0);
 }
 
-export function computeFinancePeriodSummary(payments = [], transactions = [], periodScope = {}) {
+export function computeFinancePeriodSummary(payments = [], transactions = [], periodScope = {}, salesOrders = []) {
   const { mode, monthKeys, compareMonthKey, isSingleMonth } = resolvePeriodContextLocal(periodScope);
   const encaisseAllTime = sumPayments(payments);
   const depensesAllTime = sumDepenses(transactions);
@@ -282,6 +326,8 @@ export function computeFinancePeriodSummary(payments = [], transactions = [], pe
   const resultatAllTime = encaisseAllTime - depensesAllTime;
   const resultatPeriod = encaissePeriod - depensesPeriod;
   const resultatCompare = encaisseCompare - depensesCompare;
+  const ventesAllTime = sumSalesAmount(salesOrders, null);
+  const ventesPeriod = mode === 'all' ? ventesAllTime : sumSalesAmount(salesOrders, monthKeys);
 
   return {
     mode,
@@ -289,6 +335,8 @@ export function computeFinancePeriodSummary(payments = [], transactions = [], pe
     isSingleMonth,
     encaisseAllTime,
     encaissePeriod,
+    ventesAllTime,
+    ventesPeriod,
     depensesAllTime,
     depensesPeriod,
     resultatAllTime,
@@ -299,8 +347,10 @@ export function computeFinancePeriodSummary(payments = [], transactions = [], pe
 }
 
 export function formatEncaisseDetail(periods = {}) {
-  if (periods.mode === 'all') return null;
-  return `${fmtCurrency(periods.encaisseAllTime || 0)} depuis le début`;
+  const ventes = fmtCurrency(periods.ventesPeriod ?? periods.ventesAllTime ?? 0);
+  const enc = fmtCurrency(periods.encaissePeriod ?? periods.encaisseAllTime ?? 0);
+  if (periods.mode === 'all') return `Ventes ${ventes} · Encaissé ${enc}`;
+  return `Ventes ${ventes} · Encaissé ${enc} · ${fmtCurrency(periods.encaisseAllTime || 0)} cumul`;
 }
 
 export function formatEncaisseDelta(periods = {}) {
@@ -422,13 +472,13 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
   const paymentsAll = arr(props.paymentsAll?.length ? props.paymentsAll : props.payments);
 
   const ca = salesOrders.reduce((sum, row) => sum + money(row), 0);
-  const financePeriods = computeFinancePeriodSummary(payments, transactions, scope);
+  const financePeriods = computeFinancePeriodSummary(payments, transactions, scope, salesOrders);
   const encaisse = financePeriods.encaissePeriod;
   const resultat = financePeriods.resultatPeriod;
   const depenses = financePeriods.depensesPeriod;
   const receivable = salesAll.reduce((sum, order) => sum + remainingForOrder(order, paymentsAll), 0);
   const stockBas = stocks.filter(isCriticalStock).length;
-  const stockSummary = computeStockSummary(stocks);
+  const stockSummary = computeStockSummary(stocks, arr(props.alimentationLogs));
   const tachesOuvertes = filterRealOpenTasks(taches).length;
   const alertesOuvertes = alertes.filter(isOpenAlert).length;
   const headcount = computeFarmHeadcount({ animaux, lots, cultures });
@@ -463,8 +513,15 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
   const goalBase = plan.goals?.global || { monthTarget: 0, realized: 0, attainment: 0, annualTarget: 0 };
   const goal = computeDashboardPeriodGoal(salesAll, scope, goalBase, plan.activityYear);
 
+  const topUrgencies = actions
+    .filter((a) => a.tone === 'red' || a.priority === 'haute' || a.severity === 'critique')
+    .slice(0, 3);
+  const fallbackUrgencies = actions.slice(0, 3);
+  const urgencies = topUrgencies.length ? topUrgencies : fallbackUrgencies;
+
   return {
     ca,
+    ventes: financePeriods.ventesPeriod,
     encaisse,
     depenses,
     resultat,
@@ -480,6 +537,7 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
     financePeriods,
     periodScope: scope,
     actions,
+    topUrgencies: urgencies,
     goal,
     plan,
     todoCount: actions.length,

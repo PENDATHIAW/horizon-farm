@@ -407,7 +407,7 @@ export default function AchatsStockRecoveredModule(props) {
         </div>
       </section>
       <Tabs active={tab} onChange={setTab} />
-      {tab === 'Résumé' ? <Summary data={data} lots={arr(props.lots)} setTab={setTab} onApply={applyFinding} onRelance={relanceSupplier} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Stock' ? <StocksV5 {...stockProps} /> : tab === 'Achats' ? <AchatsHub data={data} lots={arr(props.lots)} onNavigate={props.onNavigate} setTab={setTab} /> : tab === 'Fournisseurs' ? <FournisseursReadable {...supplierProps} /> : tab === 'Mouvements' ? <MouvementsHub data={data} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="achats_stock" periodFiltered={periodFiltered} stocks={stocks} alimentationLogs={feedLogs} fournisseurs={suppliers} transactions={transactions} onNavigate={props.onNavigate} />}
+      {tab === 'Résumé' ? <Summary data={data} lots={arr(props.lots)} setTab={setTab} onApply={applyFinding} onRelance={relanceSupplier} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Stock' ? <StocksV5 {...stockProps} /> : tab === 'Achats' ? <AchatsHub data={data} lots={arr(props.lots)} onNavigate={props.onNavigate} setTab={setTab} /> : tab === 'Fournisseurs' ? <FournisseursReadable {...supplierProps} /> : tab === 'Mouvements' ? <MouvementsHub data={data} onNavigate={props.onNavigate} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="achats_stock" dataMap={{ stock: stocks, alimentation_logs: feedLogs, fournisseurs: suppliers }} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="achats_stock" periodFiltered={periodFiltered} stocks={stocks} alimentationLogs={feedLogs} fournisseurs={suppliers} transactions={transactions} onNavigate={props.onNavigate} />}
     </div>
   );
 }

@@ -11,7 +11,7 @@ export const HORIZON_MISSION = [
 ];
 
 export const MODULE_TARGET_TABS = {
-  dashboard: ['Résumé', 'Graphiques'],
+  dashboard: ['Résumé', 'Graphiques', 'Annexe'],
   assistant_erp: ['Hey Horizon'],
   objectifs_croissance: [
     'Rentabilité Lot & Cycle',
@@ -22,12 +22,12 @@ export const MODULE_TARGET_TABS = {
     'Annexe',
   ],
   centre_ia: ['À traiter', 'Risques', 'Opportunités', 'Cycles', 'Graphiques', 'Annexe'],
-  elevage: ['Résumé', 'Cycles', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Graphiques'],
-  commercial: ['Résumé', 'Ventes', 'Clients', 'Opportunités', 'Graphiques'],
-  achats_stock: ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Graphiques'],
-  finance_pilotage: ['Résumé', 'Trésorerie', 'Créances', 'Dettes', 'Investissements', 'Rentabilité', 'Graphiques'],
-  activite_suivi: ['Résumé', 'Alertes', 'Tâches', 'Traçabilité', 'Graphiques'],
-  documents_rapports: ['Résumé', 'Bibliothèque', 'Preuves', 'Rapports', 'Exports', 'Modèles', 'Graphiques'],
+  elevage: ['Résumé', 'Cycles', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Graphiques', 'Annexe'],
+  commercial: ['Résumé', 'Ventes', 'Clients', 'Opportunités', 'Graphiques', 'Annexe'],
+  achats_stock: ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Graphiques', 'Annexe'],
+  finance_pilotage: ['Résumé', 'Trésorerie', 'Créances', 'Dettes', 'Investissements', 'Rentabilité', 'Graphiques', 'Annexe'],
+  activite_suivi: ['Résumé', 'Alertes', 'Tâches', 'Traçabilité', 'Graphiques', 'Annexe'],
+  documents_rapports: ['Résumé', 'Bibliothèque', 'Preuves', 'Rapports', 'Exports', 'Modèles', 'Graphiques', 'Annexe'],
   rh: ['Résumé', 'Équipements', 'Maintenance', 'Affectations', 'Coûts', 'Documents', 'Graphiques'],
   gestion_systeme: ['Vue admin', 'Utilisateurs', 'Paramètres', 'Sécurité', 'Sauvegardes', 'Réinitialisation', 'Audit'],
 };

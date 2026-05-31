@@ -265,6 +265,9 @@ export default function CommercialRecoveredModule(props) {
       {tab === 'Ventes' ? <VentesV3 {...salesProps} /> : null}
       {tab === 'Clients' ? <ClientsReadable {...clientProps} /> : null}
       {tab === 'Opportunités' ? <CommercialOpportunitiesPanel opportunities={data.openOpportunities} clients={clients} salesOrders={data.orders} setTab={setTab} onWhatsAppLog={logOpportunityWhatsApp} onConvertSale={convertOpportunityToSale} /> : null}
+      {tab === 'Annexe' ? (
+        <ModuleAnnexeTab moduleId="commercial" dataMap={{ sales_orders: ordersAll, payments: paymentsAll, clients }} onNavigate={props.onNavigate} />
+      ) : null}
       {tab === 'Graphiques' ? (
         <ModuleGraphiquesTab
           moduleId="commercial"

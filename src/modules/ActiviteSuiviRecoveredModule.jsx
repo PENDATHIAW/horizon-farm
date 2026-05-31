@@ -228,7 +228,7 @@ export default function ActiviteSuiviRecoveredModule(props) {
         </div>
       </section>
       <Tabs active={tab} onChange={setTab} />
-      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onResolveAlert={resolveAlert} busyId={busyId} /> : tab === 'Alertes' ? <AlertesCenterV2 {...shared} onUpdate={shared.onUpdateAlert} onRefresh={shared.onRefreshAlertes} /> : tab === 'Tâches' ? <TachesV3 {...shared} /> : tab === 'Traçabilité' ? <TracabiliteV2 {...shared} rows={traceRows} onCreate={props.onCreateTrace || traceCrud.create} onUpdate={props.onUpdateTrace || traceCrud.update} onDelete={props.onDeleteTrace || traceCrud.remove} onRefresh={props.onRefreshTrace || traceCrud.refresh} /> : <ModuleGraphiquesTab moduleId="activite_suivi" taches={tasks} alertes={alertes} onNavigate={props.onNavigate} />}
+      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onResolveAlert={resolveAlert} busyId={busyId} /> : tab === 'Alertes' ? <AlertesCenterV2 {...shared} onUpdate={shared.onUpdateAlert} onRefresh={shared.onRefreshAlertes} /> : tab === 'Tâches' ? <TachesV3 {...shared} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="activite_suivi" onNavigate={props.onNavigate} /> : tab === 'Traçabilité' ? <TracabiliteV2 {...shared} rows={traceRows} onCreate={props.onCreateTrace || traceCrud.create} onUpdate={props.onUpdateTrace || traceCrud.update} onDelete={props.onDeleteTrace || traceCrud.remove} onRefresh={props.onRefreshTrace || traceCrud.refresh} /> : <ModuleGraphiquesTab moduleId="activite_suivi" taches={tasks} alertes={alertes} onNavigate={props.onNavigate} />}
     </div>
   );
 }

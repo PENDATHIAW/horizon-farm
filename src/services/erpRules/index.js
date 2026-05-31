@@ -8,6 +8,7 @@ import { evaluateCoherenceRules } from './coherenceRules.js';
 import { evaluateRiskRules } from './riskRules.js';
 import { evaluatePredictiveRules } from './predictiveRules.js';
 import { evaluateProfitabilityRules } from './profitabilityRules.js';
+import { evaluateModuleDataCoverage } from '../moduleDataCoverageAudit.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 

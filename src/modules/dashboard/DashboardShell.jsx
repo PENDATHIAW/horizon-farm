@@ -239,6 +239,59 @@ export function DashboardTodoRow({ title, detail, moduleLabel, onOpen, tone = 'a
   );
 }
 
+
+export function DashboardUrgenciesStrip({ urgencies = [], onOpenAction }) {
+  if (!urgencies.length) return null;
+  return (
+    <section className="rounded-2xl border border-red-200 bg-red-50/70 p-4 shadow-sm">
+      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-red-800">3 urgences du jour</p>
+      <div className="mt-3 space-y-2">
+        {urgencies.slice(0, 3).map((item, index) => (
+          <button
+            key={`${item.title}-${index}`}
+            type="button"
+            onClick={() => onOpenAction?.(item)}
+            className="flex w-full items-start justify-between gap-3 rounded-xl border border-red-200 bg-white px-3 py-2 text-left text-sm hover:bg-red-50"
+          >
+            <span>
+              <b className="text-red-900">{item.title}</b>
+              {item.detail ? <span className="mt-0.5 block text-xs text-red-800/80">{item.detail}</span> : null}
+            </span>
+            <span className="shrink-0 text-xs font-black text-red-700">→</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function DashboardHeyHorizonDetections({ findings = [], onOpenFinding }) {
+  if (!findings.length) return null;
+  return (
+    <section className="rounded-2xl border border-violet-200 bg-violet-50/60 p-4 shadow-sm">
+      <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-violet-900">
+        <Bot size={14} />
+        Hey Horizon a détecté…
+      </p>
+      <div className="mt-3 space-y-2">
+        {findings.slice(0, 3).map((item) => (
+          <button
+            key={item.id || item.title}
+            type="button"
+            onClick={() => onOpenFinding?.(item)}
+            className="w-full rounded-xl border border-violet-200 bg-white px-3 py-2 text-left text-sm hover:bg-violet-50"
+          >
+            <b className="text-violet-950">{item.title}</b>
+            {item.description || item.detail ? (
+              <p className="mt-0.5 text-xs text-violet-900/80">{item.description || item.detail}</p>
+            ) : null}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function DashboardGoalsHero({ goal = {}, onOpenVision, onOpenAssistant, onNavigate }) {
   const primaryLabel = goal.periodLabel || 'Objectif du mois';
   const primarySubtitle = goal.periodSubtitle || '';
