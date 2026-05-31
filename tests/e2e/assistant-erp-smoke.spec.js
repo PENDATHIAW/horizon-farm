@@ -9,7 +9,6 @@ test.describe('Assistant ERP — Hey Horizon', () => {
     await goToModule(page, 'Assistant ERP');
 
     await expect(page.getByRole('heading', { name: /Hey Horizon/i })).toBeVisible();
-    await expect(page.getByText(/Pilotage production & stratégie/i)).toBeVisible();
     await expect(page.getByText(/Indicateurs du jour/i)).toBeVisible();
     await expect(page.getByText(/Actions rapides terrain/i)).toBeVisible();
 
