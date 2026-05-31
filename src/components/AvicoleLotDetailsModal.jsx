@@ -13,7 +13,8 @@ import { computeAvicoleLivingTarget } from '../services/avicoleLivingTargets';
 import { buildPondeuseProductionProfile, saleOpportunityGuard } from '../services/growthProjectionService';
 import { PondeuseProductionPanel, SaleOpportunityGuardPanel, WeightProjectionPanel } from './GrowthProjectionPanel';
 import { avicoleActiveCount, avicoleCalculatedActiveCount, avicoleDeadCount, avicoleHasCountMismatch, avicoleInitialCount, avicoleOtherExitCount, avicoleRegisteredActiveCount, avicoleSickCount, avicoleSoldCount } from '../utils/avicoleMetrics';
-import { formatLotAge } from '../utils/ageDisplay.js';
+import { formatLotAge, lotAgeDateLabel, lotAgeDateValue } from '../utils/ageDisplay.js';
+import { acquisitionLabel } from '../utils/animalLifecycle.js';
 
 const Field = ({ label, value, children, danger = false }) => (
   <div className={`rounded-xl border px-3 py-2 ${danger ? 'border-red-200 bg-red-50' : 'border-[#eadcc2] bg-white'}`}>
@@ -179,7 +180,8 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
                   <Field label="Vendus / sortis" value={fmtNumber(avicoleSoldCount(lot) + avicoleOtherExitCount(lot))} />
                   <Field label="Effectif actuel calculé" value={fmtNumber(active)} />
                   <Field label="Effectif actuel enregistré" value={fmtNumber(avicoleRegisteredActiveCount(lot))} danger={avicoleHasCountMismatch(lot)}>{fmtNumber(avicoleRegisteredActiveCount(lot))}{avicoleHasCountMismatch(lot) ? <p className="mt-1 text-[11px] text-red-700">Incohérence : le calcul donne {fmtNumber(avicoleCalculatedActiveCount(lot))}.</p> : null}</Field>
-                  <Field label="Date entrée" value={lot.date_debut || lot.entry_date || '-'} />
+                  <Field label="Origine du lot" value={acquisitionLabel(lot.mode_acquisition || 'achat')} />
+        <Field label={lotAgeDateLabel(lot)} value={lotAgeDateValue(lot) || '-'} />
         <Field label="Âge du lot" value={formatLotAge(lot, { layer })} />
                   <Field label="Phase" value={lot.phase || '-'} />
                   <Field label="Bâtiment" value={lot.nom_batiment || lot.batiment || lot.logement || '-'} />

@@ -14,7 +14,8 @@ import { generateSequentialId } from '../utils/ids';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { isActiveAnimalForFeeding } from '../utils/alimentation';
-import { formatAnimalAge } from '../utils/ageDisplay.js';
+import { animalAgeDateLabel, animalAgeDateValue, formatAnimalAge } from '../utils/ageDisplay.js';
+import { acquisitionLabel, ACQUISITION_OPTIONS } from '../utils/animalLifecycle.js';
 import DetailSheetTabs from '../components/DetailSheetTabs.jsx';
 import AnimalHealthBridge from './AnimalHealthBridge.jsx';
 
@@ -40,7 +41,7 @@ const fallbackText = (value, fallback = 'Non renseigné') => {
   return text && !['undefined', 'null', 'nan', '[object object]'].includes(text.toLowerCase()) ? text : fallback;
 };
 const dateLabel = (value) => fallbackText(value, 'Non renseignée');
-const ageLabel = (row = {}) => formatAnimalAge(row);;
+const ageLabel = (row = {}) => formatAnimalAge(row);
 const animalOrigin = (row = {}) => fallbackText(row.origine || row.fournisseur_vendeur || row.source || row.mode_acquisition);
 const locationOf = (row = {}) => fallbackText(row.localisation || row.emplacement || row.parc || row.enclos);
 function parseDocuments(raw) {
@@ -178,6 +179,7 @@ function statusBadge(status) {
   const label = { vendu: 'Vendu', pret: 'Prêt vente', presque: 'Presque prêt', retard: 'En retard', normal: 'Normal' }[status] || status;
   return <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-black ${map[status] || map.normal}`}>{label}</span>;
 }
+const birthMode = (form = {}) => ['naissance_ferme', 'reproduction_interne'].includes(form.mode_acquisition);
 function buildCreateFields() { return [
   { key: 'id', label: 'ID animal', type: 'text', required: true },
   { key: 'boucle_numero', label: 'N° boucle terrain', type: 'text', required: true },
@@ -185,17 +187,17 @@ function buildCreateFields() { return [
   { key: 'name', label: 'Nom / repère', type: 'text', required: true },
   { key: 'race', label: 'Race', type: 'text' },
   { key: 'sexe', label: 'Sexe', type: 'select', required: true, options: [{ value: 'F', label: 'Femelle' }, { value: 'M', label: 'Mâle' }] },
-  { key: 'date_naissance', label: 'Date naissance', type: 'date' },
-  { key: 'mode_acquisition', label: 'Mode acquisition', type: 'select', required: true, options: [{ value: 'achat', label: 'Achat' }, { value: 'naissance_ferme', label: 'Naissance ferme' }, { value: 'don', label: 'Don / autre' }] },
-  { key: 'origine', label: 'Origine / vendeur', type: 'text' },
+  { key: 'mode_acquisition', label: 'Mode acquisition', type: 'select', required: true, options: ACQUISITION_OPTIONS.filter((o) => o.value !== 'autre') },
+  { key: 'date_naissance', label: 'Date de naissance', type: 'date', required: true, showWhen: birthMode },
+  { key: 'date_entree_ferme', label: 'Date entrée en ferme', type: 'date', required: true, showWhen: (form) => !birthMode(form) },
+  { key: 'date_achat', label: 'Date achat', type: 'date', required: true, showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat' },
+  { key: 'origine', label: 'Origine / vendeur', type: 'text', showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat' },
   { key: 'localisation', label: 'Localisation / enclos', type: 'text' },
-  { key: 'date_entree_ferme', label: 'Date entrée ferme', type: 'date', required: true },
-  { key: 'date_achat', label: 'Date achat', type: 'date' },
   { key: 'poids_entree', label: 'Poids entrée ferme (kg)', type: 'number', required: true },
   { key: 'poids', label: 'Poids actuel / 1ère pesée (kg)', type: 'number', required: true },
   { key: 'date_derniere_pesee', label: 'Date dernière pesée', type: 'date', required: true },
   { key: 'poids_cible', label: 'Poids cible vente proposé (kg, ajustable)', type: 'number', required: true },
-  { key: 'purchase_cost', label: 'Prix achat / valeur entrée', type: 'number', required: true },
+  { key: 'purchase_cost', label: 'Prix achat / valeur entrée', type: 'number', required: true, showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat' },
   { key: 'prix_vente_estime', label: 'Prix vente estimé', type: 'number' },
   { key: 'health_status', label: 'Santé', type: 'select', required: true, options: [{ value: 'sain', label: 'Sain' }, { value: 'a_surveiller', label: 'À surveiller' }, { value: 'malade', label: 'Malade' }] },
   { key: 'photo_url', label: 'Photo animal', type: 'image', fullWidth: true },
@@ -208,8 +210,11 @@ const editFields = [
   { key: 'name', label: 'Nom / repère', type: 'text', required: true },
   { key: 'race', label: 'Race', type: 'text' },
   { key: 'sexe', label: 'Sexe', type: 'select', options: [{ value: 'F', label: 'Femelle' }, { value: 'M', label: 'Mâle' }] },
-  { key: 'date_naissance', label: 'Date naissance', type: 'date' },
-  { key: 'origine', label: 'Origine / vendeur', type: 'text' },
+  { key: 'mode_acquisition', label: 'Mode acquisition', type: 'select', options: ACQUISITION_OPTIONS.filter((o) => o.value !== 'autre') },
+  { key: 'date_naissance', label: 'Date de naissance', type: 'date', showWhen: birthMode },
+  { key: 'date_entree_ferme', label: 'Date entrée en ferme', type: 'date', showWhen: (form) => !birthMode(form) },
+  { key: 'date_achat', label: 'Date achat', type: 'date', showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat' },
+  { key: 'origine', label: 'Origine / vendeur', type: 'text', showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat' },
   { key: 'localisation', label: 'Localisation / enclos', type: 'text' },
   { key: 'section_growth', label: 'Suivi croissance', type: 'section', description: 'Une nouvelle pesée recalcule automatiquement la prochaine pesée à J+15 et le rappel à J-1.' },
   { key: 'poids_entree', label: 'Poids entrée ferme (kg)', type: 'number' },
@@ -244,9 +249,10 @@ export function buildAnimalDetailAuditModel({ animal = {}, alimentationLogs = []
     ['Espèce', animal.type || animal.espece],
     ['Sexe', animal.sexe === 'M' ? 'Mâle' : animal.sexe === 'F' ? 'Femelle' : animal.sexe],
     ['Race', animal.race],
+    ['Mode acquisition', acquisitionLabel(animal.mode_acquisition || 'achat')],
+    [animalAgeDateLabel(animal), dateLabel(animalAgeDateValue(animal))],
     ['Âge', ageLabel(animal)],
-    ['Date naissance', dateLabel(animal.date_naissance || animal.birth_date)],
-    ['Date entrée', dateLabel(animal.date_entree_ferme || animal.date_achat)],
+    ['Origine', animalOrigin(animal)],
     ['Origine', animalOrigin(animal)],
     ['Statut actuel', statusOf(animal)],
     ['État de santé', healthOf(animal)],
@@ -278,9 +284,10 @@ function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vacci
     ['Espèce', animal.type || animal.espece],
     ['Sexe', animal.sexe === 'M' ? 'Mâle' : animal.sexe === 'F' ? 'Femelle' : animal.sexe],
     ['Race', animal.race],
+    ['Mode acquisition', acquisitionLabel(animal.mode_acquisition || 'achat')],
+    [animalAgeDateLabel(animal), dateLabel(animalAgeDateValue(animal))],
     ['Âge', ageLabel(animal)],
-    ['Date naissance', dateLabel(animal.date_naissance || animal.birth_date)],
-    ['Date entrée', dateLabel(animal.date_entree_ferme || animal.date_achat)],
+    ['Origine', animalOrigin(animal)],
     ['Origine', animalOrigin(animal)],
     ['Statut actuel', statusOf(animal)],
     ['État de santé', healthOf(animal)],
@@ -307,7 +314,7 @@ function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vacci
       <p className="text-xs uppercase tracking-widest text-[#c9a96a]">{fallbackText(animal.type || animal.espece, 'Espèce non renseignée')} · {fallbackText(animal.sexe === 'M' ? 'Mâle' : animal.sexe === 'F' ? 'Femelle' : animal.sexe)} · {isLocked(animal) ? 'Fiche verrouillée' : 'Actif'}</p>
       <h2 className="text-2xl font-black mt-1">{fallbackText(animal.name || animal.nom || physicalIdOf(animal))}</h2>
       <p className="mt-1 text-sm text-[#f4e6c8]">{locationOf(animal)} · {animalOrigin(animal)} · {formatAnimalAge(animal)}</p>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-4">{[['Poids entrée', entryWeightOf(animal) ? `${fmtNumber(entryWeightOf(animal))} kg` : 'Non renseigné'], ['Poids actuel', g.current ? `${fmtNumber(g.current)} kg` : 'Non renseigné'], ['Objectif', g.target ? `${fmtNumber(g.target)} kg` : 'À renseigner'], ['Âge / ferme', formatAnimalAge(animal)], ['Progression', `${g.progress}%`], ['Prêt à vendre', g.status === 'pret' ? 'Oui' : 'Non']].map(([label, value]) => <div key={label} className="rounded-2xl bg-white/10 border border-white/10 p-3"><p className="text-xs text-[#f4e6c8]">{label}</p><p className="font-black text-white mt-1">{value}</p></div>)}</div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-4">{[['Poids entrée', entryWeightOf(animal) ? `${fmtNumber(entryWeightOf(animal))} kg` : 'Non renseigné'], ['Poids actuel', g.current ? `${fmtNumber(g.current)} kg` : 'Non renseigné'], ['Objectif', g.target ? `${fmtNumber(g.target)} kg` : 'À renseigner'], ['Âge', formatAnimalAge(animal)], ['Progression', `${g.progress}%`], ['Prêt à vendre', g.status === 'pret' ? 'Oui' : 'Non']].map(([label, value]) => <div key={label} className="rounded-2xl bg-white/10 border border-white/10 p-3"><p className="text-xs text-[#f4e6c8]">{label}</p><p className="font-black text-white mt-1">{value}</p></div>)}</div>
     </div>
   );
 
@@ -382,7 +389,11 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
   const initialValues = useMemo(() => { const physicalCode = defaultPhysicalCode(species, normalizedRows); const date = today(); return applyAnimalDecisionDefaults({ id: physicalCode || generateSequentialId('animaux', normalizedRows, { type: species }), tag: physicalCode, boucle_numero: physicalCode, qr_code: physicalCode, type: species, espece: species, status: 'actif', health_status: 'sain', mode_acquisition: 'achat', origine: '', localisation: '', race: '', date_achat: date, date_entree_ferme: date, date_poids_entree: date, date_derniere_pesee: date, sexe: 'F', poids_entree: 0, poids: 0, poids_cible: 0, purchase_cost: 0, documents_text: '', photo_url: '' }); }, [normalizedRows, species]);
   const prepare = (payload = {}, existing = {}) => {
     const physicalCode = payload.boucle_numero || payload.qr_code || existing.boucle_numero || existing.qr_code || defaultPhysicalCode(species, normalizedRows);
-    const entryDate = payload.date_entree_ferme || payload.date_achat || existing.date_entree_ferme || today();
+    const acquisition = payload.mode_acquisition || existing.mode_acquisition || 'achat';
+    const isBirth = ['naissance_ferme', 'reproduction_interne'].includes(acquisition);
+    const entryDate = isBirth
+      ? (payload.date_naissance || existing.date_naissance || payload.date_entree_ferme || existing.date_entree_ferme || today())
+      : (payload.date_entree_ferme || payload.date_achat || existing.date_entree_ferme || existing.date_achat || today());
     const textHistory = payload.poids_history_text;
     const documentsText = payload.documents_text;
     const current = toNumber(payload.poids ?? payload.poids_actuel ?? existing.poids ?? existing.poids_actuel ?? payload.poids_entree);
@@ -408,7 +419,10 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
       localisation: payload.localisation || existing.localisation || existing.emplacement || '',
       health_status: payload.health_status || payload.sante || existing.health_status || 'sain',
       status: payload.status || payload.statut || existing.status || 'actif',
-      date_entree_ferme: entryDate,
+      mode_acquisition: acquisition,
+      date_naissance: isBirth ? entryDate : (payload.date_naissance || existing.date_naissance || ''),
+      date_entree_ferme: isBirth ? (payload.date_entree_ferme || existing.date_entree_ferme || entryDate) : entryDate,
+      date_achat: acquisition === 'achat' ? (payload.date_achat || existing.date_achat || entryDate) : '',
       date_poids_entree: payload.date_poids_entree || existing.date_poids_entree || entryDate,
       date_derniere_pesee: lastWeighing,
       prochaine_pesee: nextWeighing,

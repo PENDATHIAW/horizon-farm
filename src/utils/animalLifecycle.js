@@ -4,6 +4,7 @@ export const ACQUISITION_OPTIONS = [
   { value: 'achat', label: 'Achat' },
   { value: 'naissance_ferme', label: 'Naissance sur la ferme' },
   { value: 'reproduction_interne', label: 'Reproduction interne' },
+  { value: 'elevage_interne', label: 'Élevage interne' },
   { value: 'don', label: 'Don' },
   { value: 'autre', label: 'Autre' },
 ];

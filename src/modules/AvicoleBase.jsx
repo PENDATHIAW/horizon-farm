@@ -13,12 +13,13 @@ import DeleteModal from '../modals/DeleteModal';
 import EditModal from '../modals/EditModal';
 import { applyAvicoleDecisionDefaults, buildAvicoleLotDecision } from '../services/avicoleDecisionEngine';
 import { MODULE_FORM_FIELDS } from '../utils/constants';
-import { addDays, addMonths, buildingField, enrichAvicoleFieldsForDecision, resolveBuildingLabel, resolveSupplierName, supplierSelectField } from '../utils/decisionFormFields';
+import { addDays, addMonths, enrichAvicoleFieldsForDecision } from '../utils/decisionFormFields';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
 import { calculateLotMetrics } from '../utils/businessCalculations';
 import { filterLotsByActivity } from '../utils/avicoleActivity';
+import { formatLotAge } from '../utils/ageDisplay.js';
 import { avicoleActiveCount, avicoleCalculatedActiveCount, avicoleDeadCount, avicoleExitReason, avicoleHasActiveBirds, avicoleHasCountMismatch, avicoleInitialCount, avicoleOtherExitCount, avicoleRegisteredActiveCount, avicoleSickCount, avicoleSoldCount, avicoleStatusFor } from '../utils/avicoleMetrics';
 import { getResponsibleOptions, resolveResponsibleLabel } from '../utils/rhDirectory';
 
@@ -65,7 +66,7 @@ function phaseFor(lot = {}) { if (!hasActiveBirds(lot)) return exitReasonLabel(l
 function decisionColor(decision = {}) { if (decision.priority === 'haute') return 'red'; if (decision.priority === 'moyenne') return 'amber'; return 'gray'; }
 function computePurchaseFields(payload = {}, existing = {}) { const initial = Math.max(0, toNumber(payload.initial_count ?? payload.effectif_initial ?? existing.initial_count ?? existing.effectif_initial)); const crateSize = toNumber(payload.poussins_par_caisse ?? existing.poussins_par_caisse) || DEFAULT_CHICK_CRATE_SIZE; const cratePrice = toNumber(payload.prix_caisse_poussins ?? payload.cout_caisse_poussins ?? existing.prix_caisse_poussins ?? existing.cout_caisse_poussins) || DEFAULT_CHICK_CRATE_PRICE; const totalInput = toNumber(payload.cout_total_achat ?? payload.cout_achat_bande ?? payload.purchase_cost ?? payload.cout_poussins ?? payload.cout_achat); const unitInput = toNumber(payload.prix_unitaire_sujet ?? payload.unit_cost ?? payload.cout_unitaire_poussin); const defaultUnit = crateSize > 0 ? cratePrice / crateSize : DEFAULT_CHICK_CRATE_PRICE / DEFAULT_CHICK_CRATE_SIZE; const unit = totalInput > 0 && initial > 0 ? totalInput / initial : unitInput > 0 ? unitInput : defaultUnit; const total = totalInput > 0 ? totalInput : initial > 0 ? unit * initial : 0; return { initial, crateSize, cratePrice, unit: Number(unit.toFixed(2)), total: Number(total.toFixed(0)) }; }
 
-export default function AvicoleBase({ rows = [], alimentationLogs = [], productionLogs = [], opportunities = [], salesOrders = [], payments = [], transactions = [], businessEvents = [], fournisseurs = [], loading, onCreate, onUpdate, onDelete, onRefresh, onCreateProduction, onRefreshProduction, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateBusinessEvent, onRefreshBusinessEvents, onNavigate, activity = 'pondeuse', lockActivity = false }) {
+export default function AvicoleBase({ rows = [], alimentationLogs = [], productionLogs = [], opportunities = [], salesOrders = [], payments = [], transactions = [], businessEvents = [], loading, onCreate, onUpdate, onDelete, onRefresh, onCreateProduction, onRefreshProduction, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateBusinessEvent, onRefreshBusinessEvents, onNavigate, activity = 'pondeuse', lockActivity = false }) {
   const [tab, setTab] = useState(activityToTab(activity));
   const [modal, setModal] = useState(null);
   const [selected, setSelected] = useState(null);
@@ -97,15 +98,14 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
     { key: 'id', label: 'Identifiant lot', type: 'text', required: true },
     { key: 'name', label: 'Nom du lot', type: 'text', required: true },
     { key: 'type', label: 'Type', type: 'select', required: true, options: [{ value: 'Pondeuse', label: 'Pondeuse' }, { value: 'Chair', label: 'Poulet de chair' }] },
-    { key: 'date_debut', label: 'Date d’entrée / démarrage', type: 'date', required: true },
-    buildingField('batiment', tab === 'Pondeuse' ? 'Bâtiment / salle de ponte' : 'Bâtiment / poulailler'),
-    { key: 'nom_batiment', label: 'Nom bâtiment (libre si autre)', type: 'text' },
+    { key: 'mode_acquisition', label: 'Origine du lot', type: 'select', required: true, options: [{ value: 'achat', label: 'Achat (poussins)' }, { value: 'naissance_ferme', label: 'Naissance / éclosion sur ferme' }, { value: 'elevage_interne', label: 'Élevage interne' }] },
+    { key: 'date_debut', label: 'Date entrée en ferme', type: 'date', required: true, showWhen: (form) => !['naissance_ferme', 'elevage_interne'].includes(form.mode_acquisition) },
+    { key: 'date_naissance', label: 'Date de naissance / éclosion', type: 'date', required: true, showWhen: (form) => ['naissance_ferme', 'elevage_interne'].includes(form.mode_acquisition) },
     { key: 'initial_count', label: 'Effectif initial', type: 'number', required: true },
-    { key: 'section_achat', label: 'Achat / fournisseur', type: 'section', description: 'Coût d’achat seulement. Alimentation et santé seront calculées depuis les journaux liés.' },
-    { key: 'cout_total_achat', label: 'Coût total achat bande', type: 'number' },
-    { key: 'prix_unitaire_sujet', label: 'Prix unitaire sujet', type: 'number' },
-    supplierSelectField(fournisseurs, 'fournisseur_id', 'Fournisseur poussins'),
-    { key: 'fournisseur_poussins', label: 'Fournisseur (texte libre si hors référentiel)', type: 'text' },
+    { key: 'section_achat', label: 'Achat / fournisseur', type: 'section', description: 'Coût d’achat seulement. Alimentation et santé seront calculées depuis les journaux liés.', showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat' },
+    { key: 'cout_total_achat', showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat', label: 'Coût total achat bande', type: 'number' },
+    { key: 'prix_unitaire_sujet', showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat', label: 'Prix unitaire sujet', type: 'number' },
+    { key: 'fournisseur_poussins', showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat', label: 'Fournisseur', type: 'text' },
     ...(tab === 'Chair' ? [
       { key: 'section_chair', label: 'Démarrage chair', type: 'section', description: 'Le poids objectif vente est prérempli et ajustable. Les pesées sont espacées de 15 jours avec rappel J-1.' },
       { key: 'poids_moyen_entree', label: 'Poids moyen entrée si connu (kg)', type: 'number' },
@@ -114,21 +114,20 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
       { key: 'age_entree_jours', label: 'Âge entrée estimé si connu (jours)', type: 'number' },
     ]),
     { key: 'notes', label: 'Notes initiales', type: 'textarea', rows: 3, fullWidth: true },
-  ], [tab, fournisseurs]);
+  ], [tab]);
 
   const editFields = useMemo(() => {
-    const base = enrichAvicoleFieldsForDecision(MODULE_FORM_FIELDS.avicole || [], fournisseurs);
+    const base = enrichAvicoleFieldsForDecision(MODULE_FORM_FIELDS.avicole || []);
     const purchaseFields = [
       { key: 'section_achat_bande', label: 'Achat de la bande', type: 'section', description: 'Coûts, fournisseur et prix unitaire.' },
-      { key: 'cout_total_achat', label: 'Coût total achat bande', type: 'number' },
-      { key: 'prix_unitaire_sujet', label: 'Coût unitaire sujet', type: 'number' },
+      { key: 'cout_total_achat', showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat', label: 'Coût total achat bande', type: 'number' },
+      { key: 'prix_unitaire_sujet', showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat', label: 'Coût unitaire sujet', type: 'number' },
       { key: 'poussins_par_caisse', label: 'Sujets par caisse', type: 'number' },
       { key: 'prix_caisse_poussins', label: 'Prix caisse poussins', type: 'number' },
-      supplierSelectField(fournisseurs, 'fournisseur_id', 'Fournisseur poussins'),
-      { key: 'fournisseur_poussins', label: 'Fournisseur (texte libre)', type: 'text' },
+      { key: 'fournisseur_poussins', showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat', label: 'Fournisseur poussins', type: 'text' },
     ];
     return base.flatMap((field) => { if (field.key === 'initial_count') return [field, ...purchaseFields]; if (field.key === 'phase') return [{ ...field, type: 'select', options: phaseOptions }]; return [field]; });
-  }, [fournisseurs]);
+  }, []);
 
   const eggFields = useMemo(() => [
     { key: 'section_ramassage', label: 'Ramassage œufs', type: 'section', description: 'Les œufs vendables sont convertis automatiquement en tablettes de 30 œufs.' },
@@ -146,7 +145,7 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
     const id = generateSequentialId('avicole', rows, { type });
     const start = today();
     const weighingDays = weighingDaysFor(type);
-    return applyAvicoleDecisionDefaults({ id, name: `${id} ${type}`, type, status: 'actif', health_status: 'sain', phase: type === 'Chair' ? 'Croissance' : 'Production', date_debut: start, entry_date: start, initial_count: type === 'Pondeuse' ? 4000 : 200, mortality: 0, malades: 0, cout_total_achat: 0, prix_unitaire_sujet: type === 'Pondeuse' ? 900 : DEFAULT_CHICK_CRATE_PRICE / DEFAULT_CHICK_CRATE_SIZE, poussins_par_caisse: DEFAULT_CHICK_CRATE_SIZE, prix_caisse_poussins: DEFAULT_CHICK_CRATE_PRICE, poids_moyen_entree: 0, poids_objectif_vente: DEFAULT_SALE_TARGET_WEIGHT, poids_moyen_actuel: 0, date_pesee_entree: type === 'Chair' ? start : '', date_derniere_pesee: '', frequence_pesee_jours: weighingDays, date_prochaine_pesee_recommandee: type === 'Chair' ? addDays(start, weighingDays) : '', rappel_pesee: type === 'Chair' ? addDays(addDays(start, weighingDays), -1) : '', date_rappel_pesee: type === 'Chair' ? addDays(addDays(start, weighingDays), -1) : '', duree_cycle_unite: type === 'Chair' ? 'jours' : 'mois', duree_cycle_valeur: type === 'Chair' ? 45 : 18, age_reforme_recommandee_mois: 17, age_reforme_cible_mois: 18, date_debut_reforme_recommandee: type === 'Pondeuse' ? addMonths(start, 17) : '', date_reforme_cible: type === 'Pondeuse' ? addMonths(start, 18) : '', objectif_ponte_pct: type === 'Pondeuse' ? 80 : '' }, {}, productionLogs);
+    return applyAvicoleDecisionDefaults({ id, name: `${id} ${type}`, type, status: 'actif', health_status: 'sain', phase: type === 'Chair' ? 'Croissance' : 'Production', mode_acquisition: 'achat', date_debut: start, entry_date: start, initial_count: type === 'Pondeuse' ? 4000 : 200, mortality: 0, malades: 0, cout_total_achat: 0, prix_unitaire_sujet: type === 'Pondeuse' ? 900 : DEFAULT_CHICK_CRATE_PRICE / DEFAULT_CHICK_CRATE_SIZE, poussins_par_caisse: DEFAULT_CHICK_CRATE_SIZE, prix_caisse_poussins: DEFAULT_CHICK_CRATE_PRICE, poids_moyen_entree: 0, poids_objectif_vente: DEFAULT_SALE_TARGET_WEIGHT, poids_moyen_actuel: 0, date_pesee_entree: type === 'Chair' ? start : '', date_derniere_pesee: '', frequence_pesee_jours: weighingDays, date_prochaine_pesee_recommandee: type === 'Chair' ? addDays(start, weighingDays) : '', rappel_pesee: type === 'Chair' ? addDays(addDays(start, weighingDays), -1) : '', date_rappel_pesee: type === 'Chair' ? addDays(addDays(start, weighingDays), -1) : '', duree_cycle_unite: type === 'Chair' ? 'jours' : 'mois', duree_cycle_valeur: type === 'Chair' ? 45 : 18, age_reforme_recommandee_mois: 17, age_reforme_cible_mois: 18, date_debut_reforme_recommandee: type === 'Pondeuse' ? addMonths(start, 17) : '', date_reforme_cible: type === 'Pondeuse' ? addMonths(start, 18) : '', objectif_ponte_pct: type === 'Pondeuse' ? 80 : '' }, {}, productionLogs);
   }, [rows, tab, productionLogs]);
 
   const initialEggEntry = useMemo(() => ({ id: `PROD-${Date.now()}`, lot_id: pondeusesDisponibles[0]?.id || '', date: today(), heure_ramassage: '', oeufs_produits: '', oeufs_casses: 0, responsable: responsibleOptions[0]?.value || 'TEAM-AVICOLE', notes: '' }), [pondeusesDisponibles, responsibleOptions]);
@@ -166,12 +165,16 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
     const entryDate = lotType === 'Chair' ? (existing.date_pesee_entree || payload.date_pesee_entree || payload.date_debut || payload.entry_date || today()) : '';
     const currentDate = lotType === 'Chair' ? (payload.date_derniere_pesee || existing.date_derniere_pesee || '') : '';
     const weighingFrequency = weighingDaysFor(lotType) || toNumber(payload.frequence_pesee_jours ?? existing.frequence_pesee_jours) || 0;
-    const start = payload.date_debut || payload.entry_date || existing.date_debut || existing.entry_date || today();
+    const lotMode = payload.mode_acquisition || existing.mode_acquisition || 'achat';
+    const lotBirth = ['naissance_ferme', 'elevage_interne'].includes(lotMode);
+    const start = lotBirth
+      ? (payload.date_naissance || existing.date_naissance || payload.date_debut || existing.date_debut || today())
+      : (payload.date_debut || payload.entry_date || existing.date_debut || existing.entry_date || today());
     const nextWeighing = lotType === 'Chair' ? (payload.date_prochaine_pesee_recommandee || (currentDate ? addDays(currentDate, weighingFrequency) : addDays(start, weighingFrequency))) : '';
     const reformStartMonth = toNumber(payload.age_reforme_recommandee_mois ?? existing.age_reforme_recommandee_mois) || 17;
     const reformTargetMonth = toNumber(payload.age_reforme_cible_mois ?? existing.age_reforme_cible_mois) || 18;
     const nextBase = { ...base, current_count: current, effectif_actuel: current };
-    const prepared = { ...payload, type: lotType, initial_count: purchase.initial || toNumber(payload.initial_count), effectif_initial: purchase.initial || toNumber(payload.initial_count), current_count: current, effectif_actuel: current, cout_total_achat: purchase.total, cout_achat_bande: purchase.total, purchase_cost: purchase.total, cout_poussins: purchase.total, prix_unitaire_sujet: purchase.unit, unit_cost: purchase.unit, cout_unitaire_poussin: purchase.unit, poussins_par_caisse: purchase.crateSize, prix_caisse_poussins: purchase.cratePrice, fournisseur_id: payload.fournisseur_id || existing.fournisseur_id || '', fournisseur_poussins: resolveSupplierName(payload.fournisseur_id || existing.fournisseur_id, fournisseurs, payload.fournisseur_poussins || existing.fournisseur_poussins || ''), batiment: payload.batiment || existing.batiment || '', nom_batiment: resolveBuildingLabel(payload.batiment || existing.batiment, payload.nom_batiment || existing.nom_batiment || ''), logement: resolveBuildingLabel(payload.batiment || existing.batiment, payload.nom_batiment || existing.nom_batiment || payload.logement || existing.logement || ''), weight_entry: nextEntryWeight, poids_moyen_entree: nextEntryWeight, poids_objectif_vente: nextTargetWeight, poids_objectif: nextTargetWeight, objectif_poids_moyen: nextTargetWeight, target_weight: nextTargetWeight, weight_avg: nextCurrentWeight, average_weight: nextCurrentWeight, last_weight_avg: nextCurrentWeight, poids_moyen_actuel: nextCurrentWeight, date_pesee_entree: entryDate, date_derniere_pesee: currentDate, frequence_pesee_jours: weighingFrequency, date_prochaine_pesee_recommandee: nextWeighing, rappel_pesee: lotType === 'Chair' && nextWeighing ? addDays(nextWeighing, -1) : '', date_rappel_pesee: lotType === 'Chair' && nextWeighing ? addDays(nextWeighing, -1) : '', age_reforme_recommandee_mois: reformStartMonth, age_reforme_cible_mois: reformTargetMonth, date_debut_reforme_recommandee: lotType === 'Pondeuse' ? (payload.date_debut_reforme_recommandee || addMonths(start, reformStartMonth)) : '', date_reforme_cible: lotType === 'Pondeuse' ? (payload.date_reforme_cible || addMonths(start, reformTargetMonth)) : '', status: current <= 0 ? avicoleExitReason(nextBase) : statusFor(nextBase), phase: current <= 0 ? exitReasonLabel(nextBase) : (payload.phase || phaseFor({ ...payload, current_count: current, poids_moyen_actuel: nextCurrentWeight, poids_objectif_vente: nextTargetWeight, date_debut: start })), date_debut: start, entry_date: payload.entry_date || payload.date_debut || existing.entry_date || existing.date_debut || today() };
+    const prepared = { ...payload, type: lotType, initial_count: purchase.initial || toNumber(payload.initial_count), effectif_initial: purchase.initial || toNumber(payload.initial_count), current_count: current, effectif_actuel: current, cout_total_achat: purchase.total, cout_achat_bande: purchase.total, purchase_cost: purchase.total, cout_poussins: purchase.total, prix_unitaire_sujet: purchase.unit, unit_cost: purchase.unit, cout_unitaire_poussin: purchase.unit, poussins_par_caisse: purchase.crateSize, prix_caisse_poussins: purchase.cratePrice, weight_entry: nextEntryWeight, poids_moyen_entree: nextEntryWeight, poids_objectif_vente: nextTargetWeight, poids_objectif: nextTargetWeight, objectif_poids_moyen: nextTargetWeight, target_weight: nextTargetWeight, weight_avg: nextCurrentWeight, average_weight: nextCurrentWeight, last_weight_avg: nextCurrentWeight, poids_moyen_actuel: nextCurrentWeight, date_pesee_entree: entryDate, date_derniere_pesee: currentDate, frequence_pesee_jours: weighingFrequency, date_prochaine_pesee_recommandee: nextWeighing, rappel_pesee: lotType === 'Chair' && nextWeighing ? addDays(nextWeighing, -1) : '', date_rappel_pesee: lotType === 'Chair' && nextWeighing ? addDays(nextWeighing, -1) : '', age_reforme_recommandee_mois: reformStartMonth, age_reforme_cible_mois: reformTargetMonth, date_debut_reforme_recommandee: lotType === 'Pondeuse' ? (payload.date_debut_reforme_recommandee || addMonths(start, reformStartMonth)) : '', date_reforme_cible: lotType === 'Pondeuse' ? (payload.date_reforme_cible || addMonths(start, reformTargetMonth)) : '', status: current <= 0 ? avicoleExitReason(nextBase) : statusFor(nextBase), phase: current <= 0 ? exitReasonLabel(nextBase) : (payload.phase || phaseFor({ ...payload, current_count: current, poids_moyen_actuel: nextCurrentWeight, poids_objectif_vente: nextTargetWeight, date_debut: start })), mode_acquisition: lotMode, date_naissance: lotBirth ? start : (payload.date_naissance || existing.date_naissance || ''), date_debut: start, entry_date: start };
     return applyAvicoleDecisionDefaults(prepared, existing, productionLogs);
   };
 
