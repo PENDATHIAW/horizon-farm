@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
-"""Generate exhaustive decisionMethodology.js for Annexe tab."""
+"""Génère decisionMethodology.js — Annexe en langage simple (sans jargon technique)."""
 
 import json
-import os
+from pathlib import Path
 
-def p(name, label, unit, default, source):
-    return {"name": name, "label": label, "unit": unit, "default": default, "source": source}
+def p(label, unit, default, where):
+    return {"label": label, "unit": unit, "default": default, "where": where}
 
-def blk(id_, modules, category, title, formula, parameters, outputs):
+def blk(id_, modules, category, title, summary, formula, parameters, outputs):
     return {
         "id": id_,
         "modules": modules,
         "category": category,
         "title": title,
+        "summary": summary,
         "formula": formula.strip(),
         "parameters": parameters,
         "outputs": outputs,
@@ -23,738 +24,729 @@ CENTRE = ["centre_ia"]
 OBJ = ["objectifs_croissance"]
 
 blocks = [
-    blk("hijri_calendar", BOTH, "calendrier", "Calendrier hijri — dates de fêtes", """
-dateGrégorienne = hijriToGregorian(hy, hm, hd)
+    blk("hijri_calendar", BOTH, "calendrier",
+        "Dates des fêtes (calendrier musulman)",
+        "Le système calcule tout seul la date de Tabaski, Korité, Ramadan, Magal, Gamou et fin d'année, sans que vous ayez à les saisir.",
+        """Chaque fête a une date fixe dans le calendrier musulman (hijri).
+Le logiciel la convertit en date du calendrier courant.
 
-Tabaski     → hy, hm=12, hd=10
-Korité      → hy, hm=10, hd=1
-Ramadan     → hy, hm=9,  hd=1
-Magal       → hy, hm=2,  hd=18
-Gamou       → hy, hm=3,  hd=12
-Fin d'année → grégorien, 24 décembre
+Exemples :
+• Tabaski → 10e jour du 12e mois hijri
+• Korité → 1er jour du 10e mois hijri
+• Magal → 18e jour du 2e mois hijri
 
-datePivot(fête, produit) = dateFête − cycleDays(produit)""",
-    [p("hy", "Année hijri", "—", "auto", "gregorianToHijri(dateDuJour)"),
-     p("hm / hd", "Mois / jour hijri", "—", "voir règles", "islamicCalendarEngine.HIJRI_FESTIVAL_RULES"),
-     p("festival_dates", "Surcharge manuelle", "ISO", "vide", "growth_settings.festival_dates.*")],
-    ["dateIso", "eventDate", "pivotDate"]),
+Date limite pour se préparer = date de la fête − durée du cycle (90 j bœuf, 40 j poulet, 30 j œufs).""",
+        [p("Date de la fête", "jour", "calculée auto", "Paramètres pilotage → fêtes (surcharge possible)"),
+         p("Durée du cycle", "jours", "90 / 40 / 30", "Réglages de la ferme")],
+        ["Date de la fête affichée", "Date limite pour lancer ou acheter"]),
 
-    blk("launch_timing", CENTRE, "calendrier", "QUAND LANCER — dates pivot par fête et produit", """
-Pour chaque fête F et produit P :
-  pivotDate = eventDate − cycleDays[P]
+    blk("launch_timing", CENTRE, "calendrier",
+        "Quand lancer une bande avant une fête ?",
+        "Pour vendre au bon moment (Tabaski, Korité, Magal…), il faut lancer ou acheter assez tôt. Le Centre vous donne la dernière date possible.",
+        """Pour chaque fête et chaque produit :
 
-cycleDays :
-  bovins         = BOVIN_CYCLE_DAYS (90)
-  poulets_chair  = BROILER_CYCLE_DAYS (40)
-  oeufs          = 30
+Date limite = date de la fête − nombre de jours du cycle
 
-Priorité :
-  critique si pivotDate dépassée ET hasActiveLot = false
-  haute    si 0 ≤ joursRestants ≤ 14
-  moyenne  sinon
+Durées habituelles :
+• Bœufs (embouche) : 90 jours
+• Poulets de chair : 40 jours
+• Œufs / ponte : 30 jours
 
-hasActiveLot(bovins)  : animaux bovins entrés ≥ cycleDays − 15
-hasActiveLot(chair)   : bande chair lancée ≥ cycleDays − 10
-hasActiveLot(oeufs)   : pondeuses actives > 0""",
-    [p("BOVIN_CYCLE_DAYS", "Cycle embouche bovine", "j", "90", "strategicDecisionEngine.js"),
-     p("BROILER_CYCLE_DAYS", "Cycle poulet chair", "j", "40", "strategicDecisionEngine.js"),
-     p("eventDate", "Date fête", "ISO", "calcul hijri", "buildMarketEvents()"),
-     p("pivotDate", "Date limite mise en place", "ISO", "—", "addDays(eventDate, −cycleDays)")],
-    ["eventLabel", "activityLines[]", "message", "priority"]),
+Alerte rouge si la date limite est passée et que vous n'avez rien en production.
+Alerte orange s'il reste moins de 14 jours.""",
+        [p("Date de la fête", "jour", "auto", "Calendrier fêtes du Centre"),
+         p("Cycle bœuf", "jours", "90", "Réglages Centre"),
+         p("Cycle poulet chair", "jours", "40", "Réglages Centre")],
+        ["Message « lancer avant le… »", "Niveau d'urgence (critique / moyen)"]),
 
-    blk("date_pivot", BOTH, "calendrier", "Date pivot lot et âge (datePivotEngine)", """
-pivotDate = entity.date_pivot | date_debut | date_entree | created_at
+    blk("date_pivot", BOTH, "calendrier",
+        "Âge d'une bande et objectif du catalogue",
+        "On compte combien de jours se sont écoulés depuis l'arrivée des poussins ou pondeuses, puis on compare à ce que la race devrait produire à cet âge.",
+        """Date de départ = jour où la bande est entrée à la ferme.
 
-ageDays = floor((referenceDate − pivotDate) / 86400000)
+Âge en jours = aujourd'hui − date de départ.
 
-theoretical = theoreticalStandardAtAge(breedCode, ageDays)
+Objectif du catalogue = ce que votre type de poules devrait peser ou pondre à cet âge (fiche race).""",
+        [p("Date d'entrée de la bande", "jour", "date saisie", "Fiche bande avicole → date de début"),
+         p("Type de race", "texte", "ex. Novogen", "Fiche bande → race / souche"),
+         p("Âge actuel", "jours", "calculé", "Automatique")],
+        ["Âge en jours", "Objectif catalogue", "Type d'atelier (chair, ponte, bœuf)"]),
 
-buildLotPivotContext → { lotId, workshop, breedCode, ageDays, theoretical }""",
-    [p("date_pivot", "Date pivot lot", "ISO", "date_entree", "lot.date_pivot | date_debut"),
-     p("breedCode", "Code souche", "—", "—", "resolveBreedCode(lot) · breedStockReferential"),
-     p("referenceDate", "Date de référence", "ISO", "aujourd'hui", "options.referenceDate")],
-    ["ageDays", "theoretical", "workshop", "targetDays"]),
+    blk("lead_times", BOTH, "calendrier",
+        "Combien de jours avant une vente ?",
+        "Délai moyen pour qu'un produit soit prêt : œufs ~150 j, poulet ~40 j, bœuf ~90 j.",
+        """Le système regarde l'historique de votre ferme.
+S'il manque d'infos, il utilise des durées standard :
 
-    blk("lead_times", BOTH, "calendrier", "Délais moyens de cycle (estimateLeadTimes)", """
-leadTimes[activité] = moyenne(historique ERP) ou défaut BP
+• Ponte : 150 jours
+• Poulet chair : 40 jours
+• Bœuf / mouton / chèvre : 90 jours
+• Maraîchage : 90 jours
 
-Défauts :
-  oeufs = 150 j · poulets_chair = 40 j
-  bovins/ovins/caprins = 90 j · cultures = 90 j
+Cela sert à dire : « commencez au plus tard le… » avant une grosse demande.""",
+        [p("Durée cycle ponte", "jours", "150", "Historique bandes pondeuses"),
+         p("Durée cycle chair", "jours", "40", "Historique bandes chair"),
+         p("Durée embouche", "jours", "90", "Fiche animaux bovins")],
+        ["Délai par activité"]),
 
-Utilisé pour latest_start = target_date − leadTimes[activité]""",
-    [p("days_to_lay", "Délai ponte lot", "j", "150", "lot.days_to_lay | age_debut_ponte_jours"),
-     p("cycle_days", "Durée cycle chair", "j", "40", "lot.cycle_days | duree_cycle"),
-     p("days_to_sale", "Délai vente bovin", "j", "90", "animal.days_to_sale | duree_garde_jours")],
-    ["leadTimes.oeufs", "leadTimes.poulets_chair", "leadTimes.bovins"]),
+    blk("commercial_calendar", CENTRE, "calendrier",
+        "Objectif de vente mois par mois",
+        "Chaque mois a un chiffre d'affaires cible issu du business plan. Le Centre indique où concentrer les efforts (œufs, chair, bœufs).",
+        """Pour chaque mois de l'année :
+• Objectif de ventes en FCFA
+• Activités prioritaires ce mois-là
 
-    blk("commercial_calendar", CENTRE, "calendrier", "Calendrier commercial mensuel (buildCommercialCalendar)", """
-Pour chaque mois M de l'exercice :
-  target = BP.revenue.monthly[M].total
-  focus  = activités avec CA BP > 0 (oeufs, chair, bovins)
+Le mois en cours et les 6 suivants sont mis en avant.""",
+        [p("Objectif mensuel", "FCFA", "business plan", "Module Objectifs / plan officiel")],
+        ["Mois en cours", "Six prochains mois"]),
 
-current = mois en cours · next = 6 mois suivants""",
-    [p("monthly_targets", "Objectifs mensuels", "FCFA", "BP officiel", "HORIZON_FARM_OFFICIAL_BP.revenue.monthly"),
-     p("activityYear", "Exercice", "—", "auto", "resolveActivityYearContext(dataMap)")],
-    ["current", "next[]", "year[]"]),
+    blk("sell_now", CENTRE, "commerce",
+        "Quand vendre tout de suite ? (bœuf ou poulet)",
+        "Si l'animal coûte plus cher à nourrir chaque jour qu'il ne prend en valeur, il vaut mieux le vendre maintenant.",
+        """Chaque jour on compare deux montants :
 
-    blk("sell_now", CENTRE, "commerce", "QUAND VENDRE — maturité économique", """
-gmqSmoothed = lissage(GMQ, alimentation_logs, 7j)
+1) Gain du jour = prise de poids du jour × prix de vente au kilo
+2) Coût du jour = aliment mangé ce jour × prix du sac d'aliment
 
-Bovin embouche :
-  gainValeurJour = gmqSmoothed × prixKg
-  coutRationJour = dailyFeedKg × feedPrice
+Si le coût dépasse le gain → alerte « VENDRE MAINTENANT ».
 
-Bande chair :
-  gainValeurJour = gmqSmoothed × effectifActif × prixKg
-  coutRationJour = dailyFeedKg × feedPrice
+Exemple : gain 1 500 F/j, ration 1 800 F/j → vous perdez de l'argent à le garder.""",
+        [p("Prise de poids par jour", "kg/j", "pesées + alimentation", "Module Animaux ou Avicole"),
+         p("Prix viande au marché", "FCFA/kg", "prix saisi", "Fiche animal ou marché"),
+         p("Aliment consommé par jour", "kg/j", "distribution", "Module Alimentation"),
+         p("Prix aliment", "FCFA/kg", "dernier achat", "Module Stock / Achats")],
+        ["Alerte urgence vente", "Montant gain vs coût du jour"]),
 
-SI gainValeurJour < coutRationJour → URGENCE VENTE""",
-    [p("gmqSmoothed", "GMQ lissée", "kg/j", "—", "calculateAnimalCost / alimentation_logs"),
-     p("prixKg", "Prix marché viande", "FCFA/kg", "—", "animal.prix_kg_marche | lot.prix_vente_kg"),
-     p("dailyFeedKg", "Aliment consommé / jour", "kg/j", "—", "dailyFeedKgForEntity()"),
-     p("feedPrice", "Prix aliment", "FCFA/kg", "—", "feedPricePerKg(stock)"),
-     p("effectifActif", "Effectif bande", "sujets", "—", "avicoleActiveCount(lot)")],
-    ["gainValeurJour", "coutRationJour", "priority=critique"]),
-
-    blk("commercial_gap", BOTH, "commerce", "Écart CA commercial (buildGoalPerformance)", """
-remaining = max(0, activityGoal.target − activityGoal.realized)
-ca_attainment = (realized / target) × 100
-
-Par activité :
-  target = monthTarget × (activityAnnual / annualRevenueTarget)
-  realized = Σ ventes classées (classifySaleActivity)
+    blk("commercial_gap", BOTH, "commerce",
+        "Écart entre objectif de vente et réalisé",
+        "Compare ce que vous deviez vendre ce mois et ce que vous avez vraiment encaissé, par activité (œufs, chair, bœufs…).",
+        """Par activité :
+Reste à vendre = objectif du mois − ventes déjà faites
+Taux de réussite = ventes ÷ objectif × 100
 
 Global :
-  monthTarget = BP mensuel ou growth_settings.monthly_targets[i]
-  encaisse = min(realized, max(payments, finances entrées))
-  marge = realized − depenses""",
-    [p("activityGoal.target", "Objectif CA activité", "FCFA", "BP officiel", "buildGoalPerformance()"),
-     p("annual_ca_target", "Objectif annuel global", "FCFA", "BP", "growth_settings.annual_ca_target"),
-     p("monthTarget", "Objectif mois courant", "FCFA", "BP mensuel", "monthlyRevenueTargets[planIndex]")],
-    ["gap_revenue", "ca_attainment", "remaining", "encaisse", "marge"]),
+Trésorerie encaissée, dépenses du mois, marge = ventes − dépenses.""",
+        [p("Objectif du mois", "FCFA", "business plan", "Objectifs & Croissance"),
+         p("Ventes enregistrées", "FCFA", "—", "Module Ventes / Finances")],
+        ["Reste à vendre", "Pourcentage d'objectif atteint"]),
 
-    blk("production_capacity", BOTH, "commerce", "Capacité production ponte (buildProductionCapacity)", """
-activeLayers = Σ effectif pondeuses actives
+    blk("production_capacity", BOTH, "commerce",
+        "Combien d'œufs produisez-vous par jour ?",
+        "Compte les pondeuses actives et la moyenne d'œufs des 14 derniers jours pour estimer tablettes/jour et taux de ponte.",
+        """Pondeuses vivantes = total des sujets en production.
 
-avgEggsDay = Σ oeufs (14 derniers j) / min(14, nb jours logs)
+Œufs par jour = moyenne des 14 derniers jours de comptage.
 
-layingRate = (avgEggsDay / activeLayers) × 100
+Taux de ponte (%) = œufs du jour ÷ pondeuses × 100.
 
-tabletsDay = avgEggsDay / 30""",
-    [p("production_oeufs_logs", "Journal ponte", "—", "—", "dataMap.production_oeufs_logs"),
-     p("activeLayers", "Pondeuses actives", "sujets", "—", "avicoleActiveCount(lot pondeuse)")],
-    ["eggsDay", "tabletsDay", "layingRate", "capacitySource"]),
+Tablettes par jour ≈ œufs ÷ 30.""",
+        [p("Journal de ponte", "œufs/j", "—", "Module Production → comptage œufs"),
+         p("Effectif pondeuses", "sujets", "—", "Module Avicole → bande pondeuse")],
+        ["Œufs/jour", "Tablettes/jour", "Taux de ponte %"]),
 
-    blk("financial_gap", OBJ, "commerce", "Écarts financiers ateliers (buildFinancialGapAnalysis)", """
-Par atelier ws :
-  caRealized = Σ ventes mois (classifySaleActivity)
-  caTargetMonth = workshopTargets.monthly[monthIdx].caTarget
-  caGap = caTargetMonth − caRealized
-  caAttainment = (caRealized / caTargetMonth) × 100
+    blk("financial_gap", OBJ, "commerce",
+        "Écart par atelier (pondeuses, chair, bœufs…)",
+        "Pour chaque activité : objectif du mois vs ventes réelles, et alerte si le prix pratiqué est trop bas.",
+        """Par atelier :
+• Ventes du mois vs objectif du mois
+• Marge visée vs marge estimée
+• Alerte si prix de vente trop bas par rapport au coût""",
+        [p("Objectif CA atelier", "FCFA/mois", "business plan", "Objectifs & Croissance"),
+         p("Marge brute visée", "%", "35 %", "Paramètres pilotage")],
+        ["Écart CA", "Écart marge", "Alertes prix"]),
 
-  marginRealized = caRealized × (marginPctTarget / 100)
-  marginGap = marginTargetMonth − marginRealized
+    blk("workshop_targets", OBJ, "commerce",
+        "Objectifs mensuels par activité",
+        "Découpe l'objectif annuel en mois pour pondeuses, chair, bœufs et maraîchage.",
+        """Chaque mois :
+Objectif ventes = ligne du business plan pour l'activité
+Objectif marge = objectif ventes × marge visée (ex. 35 %)""",
+        [p("Marge visée", "%", "35", "Paramètres pilotage"),
+         p("Plan maraîchage", "FCFA/mois", "réglages", "Paramètres pilotage")],
+        ["Objectif mensuel par atelier", "Objectif marge annuel"]),
 
-  mispricingAlert = pricing.mispricingRisk""",
-    [p("workshopTargets", "Objectifs ateliers", "FCFA/mois", "BP", "buildWorkshopFinancialTargets()"),
-     p("marginPctTarget", "Marge brute cible", "%", "35", "growth_settings.target_gross_margin_pct")],
-    ["caGap", "marginGap", "mispricingAlerts[]"]),
+    blk("break_even", BOTH, "commerce",
+        "Point mort du mois (seuil de rentabilité)",
+        "Montant minimum à vendre ce mois pour couvrir salaires, charges fixes et variables.",
+        """Charges fixes du mois = (loyer, salaires annuels…) ÷ 12
+Charges variables = achats variables ÷ 12
 
-    blk("workshop_targets", OBJ, "commerce", "Objectifs CA/marge par atelier (buildWorkshopFinancialTargets)", """
-Pour chaque atelier (pondeuses, chair, bovins, maraîchage) :
-  caTarget[M] = BP.revenue.monthly[M][bpKey]
-  marginTarget[M] = caTarget[M] × target_gross_margin_pct
+Seuil rentabilité = (fixes + variables) ÷ marge brute visée
 
-annualCaTarget = Σ caTarget[M]
-annualMarginTarget = annualCaTarget × marginPct""",
-    [p("target_gross_margin_pct", "Marge brute cible", "%", "35", "growth_settings.target_gross_margin_pct"),
-     p("maraichage_monthly", "CA maraîchage mensuel", "FCFA", "settings", "growth_settings.maraichage_monthly")],
-    ["monthly[]", "annualCaTarget", "annualMarginTarget"]),
+Objectif marge nette = seuil plus élevé si vous voulez garder X % de bénéfice.
 
-    blk("break_even", BOTH, "commerce", "Point mort mensuel (computeMonthlyBreakEven)", """
-fixedMonthly = (fixedCosts.annual + payroll.annual) / 12
-variableMonthly = variableCosts.correctedAnnualTotal / 12
+Écart = seuil − ventes déjà faites ce mois.""",
+        [p("Marge brute visée", "%", "35", "Paramètres pilotage"),
+         p("Marge nette visée", "%", "12", "Paramètres pilotage"),
+         p("Charges du business plan", "FCFA/an", "plan officiel", "Business plan ERP")],
+        ["Seuil minimum du mois", "Objectif avec marge nette", "Rentable ou non"]),
 
-breakEvenCa = (fixedMonthly + variableMonthly) / grossMarginPct
+    blk("demand_coverage", BOTH, "demande",
+        "Assez de stock pour la demande ?",
+        "Estime combien les clients vont demander (fêtes, saison) et vérifie si votre stock ou production peut couvrir.",
+        """Indice de demande = saison + effet fête (Tabaski, Korité…)
 
-targetCaForNetMargin =
-  (fixedMonthly + variableMonthly) / (grossMarginPct − netMarginTargetPct)
+Objectif ventes du mois = part annuelle × indice
 
-gapToBreakEven = breakEvenCa − caRealizedMonth
-isProfitable = caRealizedMonth ≥ breakEvenCa""",
-    [p("target_gross_margin_pct", "Marge brute cible", "%", "35", "growth_settings.target_gross_margin_pct"),
-     p("target_net_margin_pct", "Marge nette cible", "%", "12", "growth_settings.target_net_margin_pct"),
-     p("fixedCosts / payroll", "Charges fixes BP", "FCFA/an", "BP officiel", "HORIZON_FARM_OFFICIAL_BP")],
-    ["breakEvenCa", "targetCaForNetMargin", "gapToBreakEven", "isProfitable"]),
+Stock disponible valorisé ÷ objectif = taux de couverture %
 
-    blk("demand_coverage", BOTH, "demande", "Demande et couverture stock (farmDemandCoverageEngine)", """
-demandIndex = baseFactor(saison) × eventBoost(fête)
-revenueTarget = (annualTarget × mix[activité] / 12) × demandIndex
-estimatedUnits = revenueTarget / unitPrice
+Manque = objectif − ce que vous pouvez livrer
 
-availableRevenue = availableUnits × unitPrice
-coverageRate = (availableRevenue / revenueTarget) × 100
-gapRevenue = max(0, revenueTarget − availableRevenue)
-gapUnits = max(0, estimatedUnits − availableUnits)
+Dernière date pour lancer = date cible − délai de production""",
+        [p("Mix des activités", "parts", "business plan", "Paramètres pilotage"),
+         p("Prix moyen de vente", "FCFA", "historique", "Module Ventes"),
+         p("Stock / production dispo", "unités", "—", "Stock + production en cours")],
+        ["Taux couverture %", "Manque en FCFA", "Date limite pour produire"]),
 
-coverage_status :
-  ≥ 100% → couvert · ≥ 60% → partiel · sinon insuffisant
+    blk("demand_forecast", BOTH, "demande",
+        "Prévision de demande du mois",
+        "Anticipe les ventes du mois selon la saison et les fêtes à venir.",
+        """Facteur saison = mois fort ou faible historiquement
+Bonus fête = +8 % à +18 % si grosse fête dans le mois
 
-latest_start = target_date − leadTimes[activité]""",
-    [p("annual_mix", "Mix activités", "parts", "BP", "growth_settings.annual_mix"),
-     p("demandLevel", "Demande", "forte|normale|faible", "—", "horizonCommercialCalendar + eventBoost"),
-     p("unitPrice", "Prix unitaire moyen", "FCFA", "historique ventes", "avgUnitPrice(activity, sales_orders)"),
-     p("availableUnits", "Stock / production dispo", "unités", "—", "buildFarmSupplyCoverage()")],
-    ["coverage_rate", "gap_revenue", "gap_units", "target_date", "latest_start"]),
+Objectif du mois = part annuelle × facteurs
+Quantité estimée = objectif ÷ prix moyen""",
+        [p("Objectif annuel", "FCFA", "business plan", "Paramètres pilotage"),
+         p("Fêtes du mois", "liste", "auto", "Calendrier Centre")],
+        ["Indice demande", "Objectif FCFA", "Quantité estimée"]),
 
-    blk("demand_forecast", BOTH, "demande", "Prévision demande mensuelle (buildMonthlyDemandForecast)", """
-Pour chaque mois M et activité A :
-  baseFactor = demandLevelToFactor(commercialMonth.demand[A])
-  eventBoost = 1.18 (fête forte) ou 1.08 (fête modérée) ou 1
-  demandIndex = baseFactor × eventBoost
+    blk("supply_coverage", BOTH, "demande",
+        "Ce que la ferme peut livrer",
+        "Additionne stock prêt à vendre + production à venir, moins les commandes déjà promises.",
+        """Disponible = stock + production prévue − engagements clients
+Valeur dispo = quantité × prix moyen
+Couverture = valeur dispo ÷ objectif du mois × 100""",
+        [p("Stocks produits finis", "unités", "—", "Module Stock"),
+         p("Capacité production", "œufs/j…", "—", "Production en cours")],
+        ["Quantité disponible", "Taux de couverture %"]),
 
-  revenueTarget = (annualTarget × mix[A] / 12) × demandIndex
-  estimatedUnits = revenueTarget / unitPrice(A)""",
-    [p("annual_ca_target", "Objectif annuel", "FCFA", "BP", "growth_settings.annual_ca_target"),
-     p("annual_mix", "Mix activités", "parts", "BP", "growth_settings.annual_mix"),
-     p("market_events", "Fêtes du mois", "—", "calcul hijri", "buildMarketEvents()")],
-    ["demandIndex", "revenueTarget", "estimatedUnits", "demandLevel"]),
+    blk("zootechnical", BOTH, "zootechnie",
+        "Performance réelle vs fiche race",
+        "Compare ponte, poids ou croissance réels à ce que la race devrait faire à le même âge.",
+        """Écart % = (réel − objectif catalogue) ÷ objectif × 100
 
-    blk("supply_coverage", BOTH, "demande", "Couverture offre ferme (buildFarmSupplyCoverage)", """
-availableUnits[activité] = stock + production prévue − engagements
+Vert si écart petit (dans la marge de tolérance).
+Orange / rouge si trop en dessous → risque surcoût aliment ou retard.""",
+        [p("Type de race", "texte", "—", "Fiche bande → race"),
+         p("Marge de tolérance", "%", "5 à 8", "Catalogue races"),
+         p("Cible croissance", "g/j ou kg/j", "selon race", "Catalogue races")],
+        ["Valeur réelle", "Objectif catalogue", "Écart %", "Surcoût estimé"]),
 
-availableRevenue = availableUnits × unitPrice
+    blk("laying_rate", BOTH, "zootechnie",
+        "Taux de ponte (% d'œufs par poule)",
+        "Sur 7 jours : combien d'œufs par poule par jour, comparé à la fiche race (ex. Lohmann ~92 % au pic).",
+        """Taux = total œufs 7 jours ÷ (poules × jours comptés) × 100
 
-coverageRate = (availableRevenue / revenueTarget) × 100
+Compare au catalogue selon l'âge en semaines.
 
-findDemandCoverageForActivity(coverage, activity, targetDate)""",
-    [p("stock", "Stocks produits finis", "unités", "—", "dataMap.stock"),
-     p("production_capacity", "Capacité production", "—", "—", "buildProductionCapacity()")],
-    ["availableUnits", "availableRevenue", "coverageRate"]),
+Chute brutale sur 48 h → alerte (aliment, chaleur ou maladie).""",
+        [p("Comptage œufs", "œufs/j", "—", "Module Production"),
+         p("Fenêtre de calcul", "jours", "7", "Automatique")],
+        ["Taux réel %", "Taux attendu %", "Écart"]),
 
-    blk("zootechnical", BOTH, "zootechnie", "Écarts zootechniques — standard souche", """
-realValue = mesure terrain (ponte, poids, GMQ…)
-theoretical = theoreticalStandardAtAge(code_souche, ageDays)
-gapPct = ((real − theoretical) / theoretical) × 100
+    blk("gmq_real", BOTH, "zootechnie",
+        "Prise de poids par jour",
+        "Combien l'animal ou le lot grossit chaque jour. Sert aussi à décider de vendre si la ration coûte trop cher.",
+        """Poulet : (poids actuel − poids à l'entrée) ÷ âge en jours (en grammes/j).
 
-statut = OK si |gapPct| ≤ tolerancePct
-         warning si gapPct < −tolerancePct
-         critical si gapPct < −2×tolerancePct
+Bœuf : (poids actuel − poids à l'entrée) ÷ jours en ferme (en kg/j).
 
-feedOvercost (pondeuses) = |gapPct| × feedOvercostPerPointPct × effectif / 100
-delayDays (chair) = (theoretical − realWeight) / gmq""",
-    [p("code_souche", "Code souche", "—", "—", "lot.code_souche | breedStockReferential"),
-     p("tolerancePct", "Tolérance écart", "%", "5 ponte · 8 poids", "breedStockReferential"),
-     p("gmqTargetG", "Cible GMQ souche", "g/j", "55 chair · 800 bovin", "breedStockReferential.gmqTargetG")],
-    ["realValue", "theoretical", "gapPct", "feedOvercostFcfa", "delayDays"]),
+Si coût aliment du jour > gain de valeur du jour → vendre.""",
+        [p("Poids actuel", "kg ou g", "pesée", "Fiche lot / animal"),
+         p("Poids à l'entrée", "kg", "saisie entrée", "Fiche lot / animal"),
+         p("Prix marché", "FCFA/kg", "—", "Fiche animal ou marché")],
+        ["Prise de poids/j", "Vendre maintenant ? oui/non"]),
 
-    blk("laying_rate", BOTH, "zootechnie", "Taux de ponte réel (computeRealLayingRate)", """
-rate = (Σ oeufs fenêtre / (effectif × nbJoursLogs)) × 100
+    blk("ic_chair", BOTH, "zootechnie",
+        "Kilos d'aliment pour 1 kg de viande (poulet chair)",
+        "Plus ce chiffre est élevé, plus vous gaspillez d'aliment. Cible habituelle : 1,6 à 1,9 kg d'aliment par kg de poulet.",
+        """Indice = total aliment consommé ÷ poids vif total du lot
 
-Fenêtre par défaut = 7 jours
+Exemple : 1 900 kg aliment pour 1 000 kg de poulets → indice 1,9
 
-theoretical = theoreticalStandardAtAge(breedCode, ageDays)
-  ou theoreticalLayingRate(souche, ageWeeks) :
-    peak Lohmann = 92% · ISA = 90% · défaut = 88%
-    si ageWeeks < 20 : min(peak, 0.1 + ageWeeks×0.04)
-    si ageWeeks > 40 : max(0.65, peak − (ageWeeks−40)×0.003)
+Alerte si au-dessus de 1,9 (gaspillage) ou anormalement bas (pesée douteuse).""",
+        [p("Aliment distribué au lot", "kg", "cumul", "Module Alimentation"),
+         p("Poids vif du lot", "kg", "pesée × effectif", "Fiche bande chair")],
+        ["Indice de consommation", "Alerte gaspillage"]),
 
-drop48h = rate7j − rate2j → corrélation aliment / véto si drop ≥ 3 pts""",
-    [p("production_oeufs_logs", "Journal ponte", "—", "—", "dataMap.production_oeufs_logs"),
-     p("windowDays", "Fenêtre calcul", "j", "7", "computeRealLayingRate()")],
-    ["rate", "theoretical", "deviation", "correlation"]),
-
-    blk("gmq_real", BOTH, "zootechnie", "GMQ réel (computeRealGmq / calculateAnimalCost)", """
-Chair :
-  gmq(g) = ((poids_moyen_kg − poids_entree) / ageDays) × 1000
-
-Bovin :
-  gmq(kg/j) = (poids_actuel − poids_entree) / elapsedDays
-
-optimal (vente) :
-  dailyGainValue = gmq × prixKg / 1000
-  optimal = dailyFeedCost ≥ dailyGainValue → vendre""",
-    [p("poids_moyen_actuel", "Poids moyen lot", "g ou kg", "—", "lot.poids_moyen_actuel"),
-     p("poids_entree", "Poids entrée", "kg", "0.042 chair", "lot.poids_entree | animal.poids_entree"),
-     p("prix_kg_marche", "Prix marché", "FCFA/kg", "—", "animal.prix_kg_marche")],
-    ["gmq", "dailyGainValue", "dailyFeedCost", "optimal"]),
-
-    blk("ic_chair", BOTH, "zootechnie", "Indice de consommation chair (IC)", """
-IC = feedKg / liveWeightKg
-
-liveWeightKg = poids_moyen × effectif (chair)
-             ou feedKg / (sellableEggs / 12) (pondeuses proxy)
-
-Cible BROILER_IC_TARGET = 1,6 – 1,9
-
-Alerte si IC > 1,9 (gaspillage) ou IC < 1,6×0.8 (pesée douteuse)""",
-    [p("feedKg", "Aliment consommé", "kg", "—", "alimentation_logs cumul lot"),
-     p("liveWeightKg", "Poids vif total", "kg", "—", "lot.poids_moyen × effectif"),
-     p("BROILER_IC_TARGET", "Plage cible IC", "—", "1,6 – 1,9", "decisionCenterMetrics.js")],
-    ["ic", "tone", "icAlert"]),
-
-    blk("ith_heat", BOTH, "zootechnie", "Stress thermique (ITH / checkThermalStress)", """
-ITH = temperature + humidity
+    blk("ith_heat", BOTH, "zootechnie",
+        "Chaleur ressentie (température + humidité)",
+        "En canicule, les animaux mangent moins et coûtent plus cher à nourrir. Le Centre peut conseiller de reporter un lancement ou réduire la densité.",
+        """Indice chaleur = température (°C) + humidité (%)
 
 Canicule si :
-  ITH ≥ ith_stress_threshold (29)
-  OU temp ≥ HEAT_FORECAST_THRESHOLD (38°C)
-  OU ≥ 3 jours prévision ≥ 38°C
+• Indice ≥ 29
+• ou température ≥ 38 °C
+• ou 3 jours très chauds prévus
 
-Ponte : alerte si temp ≥ 32°C ET realPonte < theoretical − 5 pts
-Action : delayDays = 14 · densityReductionPct = 15""",
-    [p("temperature", "Température", "°C", "—", "meteo.temperature"),
-     p("humidity", "Humidité", "%", "—", "meteo.humidity"),
-     p("ith_stress_threshold", "Seuil ITH stress", "—", "29", "growth_settings.ith_stress_threshold")],
-    ["ith", "delayDays", "densityReductionPct", "thermal.alert"]),
+Actions proposées : reporter le lancement de 14 jours, réduire les sujets/m² de 15 %.""",
+        [p("Température", "°C", "météo", "Météo ferme ou saisie"),
+         p("Humidité", "%", "météo", "Météo ferme"),
+         p("Seuil alerte chaleur", "—", "29", "Paramètres pilotage")],
+        ["Indice chaleur", "Reporter lancement ?", "Réduction densité %"]),
 
-    blk("theoretical_standard", BOTH, "zootechnie", "Courbe standard souche (theoreticalStandardAtAge)", """
-theoreticalStandardAtAge(breedCode, ageDays) :
-  interpolation linéaire entre points courbe souche
+    blk("theoretical_standard", BOTH, "zootechnie",
+        "Courbe de référence de la race",
+        "Chaque race a une courbe (ponte ou poids selon l'âge). Le système lit la fiche race pour savoir ce qui est normal à J+30, J+60…",
+        """À X jours après l'entrée, la fiche race indique :
+• taux de ponte attendu, ou
+• poids moyen attendu
 
-BREED_STOCK_REFERENTIAL[code] :
-  metric = layingRate | weightG | weightKg
-  curve[] = { ageDays, value }
-  tolerancePct, gmqTargetG, feedOvercostPerPointPct""",
-    [p("breedCode", "Code souche", "—", "—", "resolveBreedCode(lot)"),
-     p("ageDays", "Âge lot", "j", "computeAgeDays()", "datePivotEngine")],
-    ["theoretical", "metric", "targetDays"]),
+Le logiciel interpole entre les points de la courbe.""",
+        [p("Race / souche", "texte", "—", "Fiche bande"),
+         p("Âge de la bande", "jours", "calculé", "Date entrée → aujourd'hui")],
+        ["Valeur attendue à cet âge", "Type de mesure (ponte ou poids)"]),
 
-    blk("cost_animal", BOTH, "couts", "Coût revient embouche (calculateAnimalCost)", """
-baseCost = prix_achat animal
+    blk("cost_animal", BOTH, "couts",
+        "Coût total d'un bœuf (ou mouton) jusqu'à la vente",
+        "Additionne achat de la bête, aliment, soins vétérinaires et autres frais directs.",
+        """Coût total =
+  prix d'achat de la bête
++ aliment réellement consommé (ou estimation)
++ soins et vaccins
++ chauffage, transport, main d'œuvre…
 
-realFeedCost = Σ alimentation_logs (ou estimation FEEDING_DEFAULTS)
+Marge = prix de vente − coût total
+Coût au kilo = coût total ÷ poids à la vente""",
+        [p("Prix d'achat bête", "FCFA", "saisie", "Fiche animal"),
+         p("Aliment consommé", "FCFA", "journal", "Module Alimentation"),
+         p("Soins vétérinaires", "FCFA", "—", "Module Santé")],
+        ["Coût total", "Marge", "Coût au kilo", "Prise de poids/j"]),
 
-healthCost = Σ interventions santé (isHealthCostEvent)
+    blk("cost_avicole", BOTH, "couts",
+        "Coût total d'une bande avicole",
+        "Poussins achetés + aliment + santé + divers, réparti par œuf ou par kg de poulet.",
+        """Coût total =
+  poussins (caisse × prix)
++ aliment du lot
++ santé et frais directs
 
-otherDirectCost = charges directes (chauffage, transport, MO…)
+Chair : coût/kg = coût total ÷ (poids moyen × sujets vendables)
+Ponte : coût/œuf = coût total ÷ œufs produits""",
+        [p("Prix caisse poussins", "FCFA", "32 000 / 50 sujets", "Fiche bande ou défaut"),
+         p("Aliment du lot", "FCFA", "cumul", "Alimentation"),
+         p("Durée vie pondeuse", "jours", "540", "Référentiel")],
+        ["Coût total", "Coût/œuf ou /kg", "Marge sur aliment"]),
 
-totalCost = baseCost + realFeedCost + healthCost + otherDirectCost
+    blk("cost_layer_tablet", OBJ, "couts",
+        "Coût de vente d'une tablette d'œufs (30 œufs)",
+        "Coût des œufs + emballage + transport + casse.",
+        """Coût vente =
+  (coût par œuf × 30)
++ emballage tablette
++ transport
++ pertes casse
 
-gmq = (poids_actuel − poids_entree) / elapsedDays
+Bénéfice = prix de vente tablettes − coût vente""",
+        [p("Œufs par tablette", "œufs", "30", "Standard marché"),
+         p("Transport vente", "FCFA", "0", "Saisie vente"),
+         p("Pertes casse", "FCFA", "0", "Saisie vente")],
+        ["Coût de revient tablette", "Marge"]),
 
-costPerKg = totalCost / poids_vif
-margin = prix_vente − totalCost""",
-    [p("alimentation_logs", "Logs alimentation", "—", "—", "dataMap.alimentation_logs"),
-     p("FEEDING_DEFAULTS", "Rations espèce", "kg/j", "bovin 4.5 · ovin 2.5", "costEngine.FEEDING_DEFAULTS"),
-     p("healthEvents", "Interventions santé", "—", "—", "dataMap.sante | vaccins")],
-    ["totalCost", "gmq", "costPerKg", "margin", "costComplete"]),
+    blk("mca_rentabilite", BOTH, "couts",
+        "Gain après coût de l'aliment seul",
+        "Montant qu'il vous reste si on ne compte que le coût de l'aliment (hors achat poussins ou bête).",
+        """Marge aliment =
+  ventes (ou estimation)
+− coût aliment seul
 
-    blk("cost_avicole", BOTH, "couts", "Coût revient lot avicole (calculateAvicoleLotCost)", """
-purchaseCost = effectif × prix_unitaire_sujet (caisse poussins)
+En % : (ventes − aliment) ÷ aliment × 100
 
-realFeedCost = Σ alimentation_logs lot
+Utile pour voir si l'alimentation « mange » toute la marge.""",
+        [p("Ventes ou estimation", "FCFA", "—", "Ventes / estimation lot"),
+         p("Coût aliment", "FCFA", "—", "Alimentation")],
+        ["Marge FCFA", "Marge %", "Alerte négative"]),
 
-healthCost + otherDirectCost = charges directes lot
+    blk("rentabilite_ranking", BOTH, "couts",
+        "Classement des lots et fournisseurs",
+        "Quels lots perdent de l'argent ? Quels fournisseurs d'aliment ou poussins donnent les meilleures marges ?",
+        """Par lot ou bête : ventes, coût total, marge, coût unitaire.
 
-totalCost = purchase + aliment + santé + extras
+Par fournisseur : moyenne des marges sur plusieurs lots.""",
+        [p("Fournisseur aliment / poussins", "nom", "—", "Fiche bande ou animal")],
+        ["Classement lots", "Classement fournisseurs"]),
 
-Chair :
-  sellableSubjects = effectif − mortalité − pertes
-  costPerKg = totalCost / (poids_moyen × sellableSubjects)
+    blk("bfr", CENTRE, "flux",
+        "Assez d'argent pour acheter l'aliment du prochain cycle ? (BFR)",
+        "BFR = argent disponible (caisse + créances clients VIP) comparé au coût aliment d'un cycle complet. Si couverture < 50 %, le lancement est bloqué.",
+        """Coût estimé du cycle =
+  nombre de sujets × kg aliment/j/sujet × jours du cycle × prix aliment
 
-Ponte :
-  costPerEgg = totalCost / œufs vendables
-  sellableEggs = production cumulée""",
-    [p("DEFAULT_BROILER_CRATE_SIZE", "Sujets / caisse", "sujets", "50", "costEngine.js"),
-     p("DEFAULT_BROILER_CRATE_PRICE", "Prix caisse poussins", "FCFA", "32000", "costEngine.js"),
-     p("DEFAULT_LAYER_AMORTIZATION_DAYS", "Amortissement pondeuse", "j", "540", "costEngine.js")],
-    ["totalCost", "costPerKg", "costPerEgg", "sellableSubjects", "mca"]),
+Argent disponible =
+  trésorerie (entrées − sorties)
++ factures clients VIP à encaisser sous 7 jours
 
-    blk("cost_layer_tablet", OBJ, "couts", "Coût vente tablette œufs (calculateLayerTabletSaleCost)", """
-eggCost = costPerEggWithoutPackaging × eggQty
+Couverture % = argent disponible ÷ coût cycle × 100
 
-packagingCost = packagingUnitCost × tabletQty
+Si couverture < 50 % (réglage) → ne pas lancer la bande.""",
+        [p("Effectif prochaine bande", "sujets", "5000", "Paramètres pilotage"),
+         p("Ration par sujet/j", "kg", "0,095 chair · 4,5 bœuf", "Réglages Centre"),
+         p("Couverture minimum", "%", "50", "Paramètres pilotage"),
+         p("Clients VIP", "liste", "—", "Paramètres pilotage + fiche client")],
+        ["Couverture %", "Lancement bloqué oui/non", "Jours d'autonomie aliment"]),
 
-saleCost = eggCost + packagingCost + transportCost + lossCost
+    blk("stock_audit", BOTH, "flux",
+        "Surconsommation d'aliment suspecte (coulage ?)",
+        "Compare aliment réellement sorti du silo à ce que les poules/bœufs devraient manger selon la fiche race.",
+        """Par bâtiment et par jour :
 
-margin = CA tablettes − saleCost
+Théorique = effectif × ration standard du jour
+Réel = sorties aliment enregistrées
 
-eggQty = tablets × DEFAULT_EGGS_PER_TABLET (30)""",
-    [p("DEFAULT_EGGS_PER_TABLET", "Œufs / tablette", "œufs", "30", "costEngine.js"),
-     p("transportCost", "Transport vente", "FCFA", "0", "paramètre vente"),
-     p("lossCost", "Pertes casse", "FCFA", "0", "paramètre vente")],
-    ["saleCost", "eggCost", "packagingCost", "margin"]),
+Écart % = (réel − théorique) ÷ théorique × 100
 
-    blk("mca_rentabilite", BOTH, "couts", "Marge sur coût alimentaire (MCA)", """
-Centre (decisionCenterMetrics) :
-  mca = revenue − feedCost
-  mcaFlash (bovin) = prix_vente_estime − (baseCost + feedCost)
+Alerte si écart > 10 % pendant 3 jours d'affilée
+→ vérifier coulage, vol, erreur de pesée.""",
+        [p("Seuil écart max", "%", "10", "Réglage moteur"),
+         p("Jours consécutifs", "jours", "3", "Réglage moteur"),
+         p("Ration standard race", "kg/j/sujet", "fiche race", "Catalogue races")],
+        ["Écart %", "Kg théorique vs réel", "Bâtiment concerné"]),
 
-Objectifs (lotAnalyticsEngine) :
-  mcaPct = ((revenueEstimate − feedCost) / feedCost) × 100
+    blk("flux_silo", BOTH, "flux",
+        "Combien de jours reste l'aliment en silo ?",
+        "Stock en kg ÷ consommation moyenne par jour = jours restants. Alerte si moins de 5 jours.",
+        """Consommation/j = moyenne des 30 derniers jours de distribution
+(ou estimation : effectif × ration)
 
-unitCost :
-  ponte → totalCost / œufs7j
-  chair → totalCost / (effectif × poids_vif_kg)""",
-    [p("revenue", "CA réalisé / estimé", "FCFA", "—", "sales_orders | estimations lot"),
-     p("feedCost", "Coût aliment", "FCFA", "—", "alimentation_logs cumul")],
-    ["mca", "mcaPct", "unitCost", "tone"]),
+Jours restants = stock aliment (kg) ÷ consommation/j
 
-    blk("rentabilite_ranking", BOTH, "couts", "Classement rentabilité lots et fournisseurs", """
-Par lot/animal :
-  revenue, totalCost, feedCost, mca, unitCost, tone
+Alerte rouge si < 5 jours.""",
+        [p("Stock aliment", "kg", "—", "Module Stock"),
+         p("Seuil alerte", "jours", "5", "Réglage Centre")],
+        ["Jours restants", "Consommation/j"]),
 
-supplierRanking :
-  marginPct = (Σ mca / Σ revenue) × 100
-  tri par mca décroissant
+    blk("flux_occupation", BOTH, "flux",
+        "Remplissage des bâtiments et pertes",
+        "Combien de sujets par bâtiment ? Mortalité et valeur des pertes.",
+        """Taux remplissage ≈ effectif ÷ capacité référence (500 sujets)
 
-Alerte rentabilité si mca < 0 ou tone = bad""",
-    [p("fournisseur", "Fournisseur aliment / poussins", "—", "—", "lot.fournisseur | animal.provenance")],
-    ["supplierRanking[]", "lotRentabilite[]", "animalRentabilite[]"]),
+Balance : entrées, sorties (ventes), mortalité
+Valeur perte = morts × coût unitaire moyen""",
+        [p("Bâtiment", "nom", "—", "Fiche bande"),
+         p("Capacité référence", "sujets", "500", "Réglage affichage")],
+        ["Effectif par bâtiment", "Mortalité %", "Valeur des pertes"]),
 
-    blk("bfr", CENTRE, "flux", "BFR cycle — blocage lancement (validateCycleBfrCoverage)", """
-coutEstimeCycle = plannedHeadcount × avgDailyFeedPerHead × cycleDays × feedPrice
+    blk("sanitary", BOTH, "flux",
+        "Pause obligatoire entre deux bandes (vide sanitaire)",
+        "Minimum 10 jours sans animaux entre deux lots dans le même bâtiment pour nettoyer et désinfecter.",
+        """Jours entre fin bande précédente et début suivante
 
-totalAvailable = max(0, treasury) + vipReceivables
+Si < 10 jours → blocage lancement
+Message : attendre, nettoyer, laisser sécher.""",
+        [p("Durée minimum", "jours", "10", "Paramètres pilotage")],
+        ["Jours de pause", "Lancement bloqué oui/non"]),
 
-coveragePct = (totalAvailable / coutEstimeCycle) × 100
+    blk("sanitary_extended", CENTRE, "flux",
+        "Pause prolongée après forte mortalité",
+        "Si la bande précédente a perdu plus de 5 % des sujets (maladie), ajouter 7 jours de pause et désinfection renforcée.",
+        """Taux mortalité bande précédente = morts ÷ effectif initial × 100
 
-blocked = coveragePct < bfr_min_coverage_pct
+Si > 5 % :
+  pause totale = 10 j + 7 j supplémentaires
+  validation vétérinaire recommandée avant nouveaux poussins""",
+        [p("Seuil mortalité", "%", "5", "Paramètres pilotage"),
+         p("Jours supplémentaires", "jours", "7", "Paramètres pilotage")],
+        ["Taux mortalité %", "Date reprise possible"]),
 
-feedAutonomyDays = stockAlimentKg / dailyNeed
+    blk("shrinkage", BOTH, "flux",
+        "Écart entre production et ventes (œufs ou aliment)",
+        "Œufs produits vs œufs vendus : écart > 2 % → casse, vol ou oubli de saisie. Même logique sur l'aliment global.",
+        """Œufs : écart % = (produits − vendus) ÷ produits × 100
 
-treasury = Σ entrées finances − Σ sorties finances
-vipReceivables = créances clients VIP échéance ≤ 7 j""",
-    [p("next_band_size", "Effectif prochaine bande", "sujets", "5000", "growth_settings.next_band_size"),
-     p("avgDailyFeedPerHead", "Ration / tête / jour", "kg", "0.095 chair · 4.5 bovin", "validateCycleBfrCoverage"),
-     p("bfr_min_coverage_pct", "Couverture minimum", "%", "50", "growth_settings.bfr_min_coverage_pct"),
-     p("vip_client_ids", "Clients VIP BFR", "ids", "[]", "growth_settings.vip_client_ids")],
-    ["coveragePct", "blocked", "coutEstimeCycle", "feedAutonomyDays"]),
+Aliment : écart % = (consommé − standard) ÷ standard × 100
 
-    blk("stock_audit", BOTH, "flux", "Audit stock aliment bâtiment (auditFeedStockConsumption)", """
-Par bâtiment B et jour J :
-  theoretical = Σ (effectif_lot × feedStandardKgPerBird(workshop, ageDays))
+Alerte si seuils dépassés.""",
+        [p("Comptage ponte", "œufs", "—", "Production"),
+         p("Ventes enregistrées", "—", "—", "Module Ventes")],
+        ["Écart %", "Perte estimée en FCFA"]),
 
-  actual = Σ alimentation_logs(J, B)
-         + Σ business_events sortie aliment(J, B)
+    blk("pricing_floor", OBJ, "prix",
+        "Prix minimum de vente (ne pas vendre en dessous)",
+        "Coût de revient + marge minimum (ex. 15 %) = prix plancher.",
+        """Prix plancher = coût unitaire × (1 + marge min %)
 
-  overPct = ((actual − theoretical) / theoretical) × 100
+Coûts par défaut si pas de calcul :
+œuf 550 F · poulet 1 900 F/kg · bœuf 300 000 F · légume 400 F/kg""",
+        [p("Coût unitaire", "FCFA", "calcul ERP", "Coûts lot / animal"),
+         p("Marge minimum", "%", "15", "Paramètres pilotage")],
+        ["Prix plancher"]),
 
-Alerte si overPct > STOCK_AUDIT_THRESHOLD_PCT (10%)
-pendant STOCK_AUDIT_CONSECUTIVE_DAYS (3) jours consécutifs""",
-    [p("STOCK_AUDIT_THRESHOLD_PCT", "Écart max acceptable", "%", "10", "strategicDecisionEngine.js"),
-     p("STOCK_AUDIT_CONSECUTIVE_DAYS", "Jours consécutifs", "j", "3", "strategicDecisionEngine.js"),
-     p("feedStandardKgPerBird", "Standard ration souche", "kg/j/sujet", "—", "strategicDecisionEngine.feedStandardKgPerBird")],
-    ["overPct", "theoreticalKg", "actualKg", "consecutiveDays", "building"]),
-
-    blk("flux_silo", BOTH, "flux", "Autonomie silo aliment (buildFlux)", """
-dailyConsumption = moyenne(alimentation_logs 30j)
-  ou fallback Σ (effectif × ration/j)
-
-daysLeft = stockKg / dailyConsumption
-
-Alerte si daysLeft < STOCK_CRITICAL_DAYS (5)
-
-pct = min(100, stockKg / (dailyConsumption × 30) × 100)""",
-    [p("STOCK_CRITICAL_DAYS", "Seuil stock critique", "j", "5", "decisionCenterMetrics.js"),
-     p("stock", "Stock aliment", "kg", "—", "dataMap.stock (catégorie aliment)")],
-    ["daysLeft", "dailyConsumption", "tone", "pct"]),
-
-    blk("flux_occupation", BOTH, "flux", "Occupation bâtiments et balance matière", """
-occupancyPct = min(100, effectif_bâtiment / 500 × 100)
-
-materialBalance :
-  entrees = effectif_initial
-  sorties = vendus + effectif_actif
-  pertes = mortalité
-  lossValue = pertes × (totalCost / effectif_initial)
-  mortalityPct = (pertes / entrees) × 100""",
-    [p("batiment", "Bâtiment", "—", "—", "lot.batiment | lot.building"),
-     p("capacity_ref", "Capacité référence", "sujets", "500", "decisionCenterMetrics (hardcodé)")],
-    ["occupancyPct", "materialBalance[]", "lossValue"]),
-
-    blk("sanitary", BOTH, "flux", "Vide sanitaire (buildSanitaryVacuumAlerts)", """
-gapDays = date_entree_lot_suivant − date_fin_lot_précédent
-
-blocking = gapDays < sanitary_min_days (10)
-
-effectiveGap = lot.vide_sanitaire_jours si renseigné, sinon gapDays""",
-    [p("sanitary_min_days", "Vide sanitaire min", "j", "10", "growth_settings.sanitary_min_days"),
-     p("SANITARY_MIN_DAYS", "Constante Objectifs", "j", "10", "objectifsDecisionEngine.js")],
-    ["gapDays", "blocking", "requiredDays"]),
-
-    blk("sanitary_extended", CENTRE, "flux", "Vide sanitaire prolongé — mortalité pathologique", """
-mortalityRate = (morts / effectif_initial) × 100
-
-Si mortalityRate > mortality_threshold_pct (5%) :
-  extraVacuumDays = growth_settings.extra_vacuum_days (7)
-  totalWait = sanitary_min_days + extraVacuumDays
-  earliestLaunchDate = today + extraVacuumDays
-
-enrichSanitaryAlert → actions désinfection + validation véto""",
-    [p("mortality_threshold_pct", "Seuil mortalité bande préc.", "%", "5", "growth_settings.mortality_threshold_pct"),
-     p("extra_vacuum_days", "Prolongation pathologie", "j", "7", "growth_settings.extra_vacuum_days")],
-    ["mortalityRate", "extraVacuumDays", "earliestLaunchDate", "blocking"]),
-
-    blk("shrinkage", BOTH, "flux", "Démarque stock (buildStockShrinkageAnalysis)", """
-Œufs :
-  shrinkPct = ((theoreticalEggs − soldEggs) / theoreticalEggs) × 100
-  Alerte si shrinkPct > 2%
-
-Aliment global :
-  overPct = ((actualFeedKg − theoreticalFeedKg) / theoreticalFeedKg) × 100
-  Alerte si overPct > 10%
-
-lossValue = (theoretical − actual) × prix_unitaire""",
-    [p("production_oeufs_logs", "Ponte théorique", "œufs", "—", "production_oeufs_logs"),
-     p("sales_orders", "Ventes enregistrées", "—", "—", "sales_orders")],
-    ["shrinkPct", "lossValue", "theoretical", "actual"]),
-
-    blk("pricing_floor", OBJ, "prix", "Prix plancher (computeFloorPrice)", """
-floorPrice = unitCost × (1 + minMarginPct / 100)
-
-unitCost défaut :
-  oeufs = 550 · chair = 1900 · bovins = 300000 · cultures = 400 FCFA
-
-minMarginPct = growth_settings.min_margin_pct ou 15%""",
-    [p("unitCost", "Coût unitaire revient", "FCFA", "voir DEFAULT_UNIT_COST", "calculateAvicoleLotCost / calculateAnimalCost"),
-     p("min_margin_pct", "Marge minimum", "%", "15", "growth_settings.min_margin_pct")],
-    ["floorPrice"]),
-
-    blk("pricing_seasonality", OBJ, "prix", "Coefficient saisonnalité (computeSeasonalityCoefficient)", """
-Si historique ventes ≥ 2 mois :
-  avgMonthly = totalRevenue / monthsWithData
-  raw = monthRevenue / avgMonthly
-  coef = clamp(raw, 0.85, 1.25)
+    blk("pricing_seasonality", OBJ, "prix",
+        "Saison forte ou faible",
+        "Certaines périodes se vendent mieux (fêtes). Le prix conseillé tient compte du mois.",
+        """Si historique ventes suffisant :
+  coef = ventes ce mois ÷ moyenne mensuelle (entre 0,85 et 1,25)
 
 Sinon :
-  coef = demandLevelToFactor(commercialMonth.demand[activité])
-    forte = 1.15 · normale = 1 · faible = 0.85""",
-    [p("sales_orders", "Historique ventes", "—", "—", "dataMap.sales_orders"),
-     p("referenceDate", "Mois de référence", "ISO", "aujourd'hui", "options.referenceDate")],
-    ["seasonalityCoefficient"]),
+  forte demande +15 % · normale 100 % · faible −15 %""",
+        [p("Historique ventes", "—", "—", "Module Ventes"),
+         p("Mois concerné", "—", "aujourd'hui", "Automatique")],
+        ["Coefficient saison"]),
 
-    blk("pricing_recommended", OBJ, "prix", "Prix recommandé ERP (computeRecommendedPrice)", """
-floor = computeFloorPrice(unitCost, minMarginPct)
-market = resolveLocalMarketPrice(activité, marketPrices, location)
-adjustedMarket = market × seasonalityCoefficient
+    blk("pricing_recommended", OBJ, "prix",
+        "Prix de vente conseillé",
+        "Le plus élevé entre : prix plancher (coût + marge) et prix marché local ajusté à la saison.",
+        """Prix marché local = moyenne prix marché à votre zone
+Prix ajusté = marché × coefficient saison
 
-recommendedPrice = MAX(floor, adjustedMarket)
+Prix conseillé = MAX(prix plancher ; prix ajusté)
 
-mispricingRisk = floor > adjustedMarket
-  → "Coût production trop élevé vs marché local" """,
-    [p("market_prices", "Prix marché local", "FCFA", "DEFAULT_MARKET", "dataMap.market_prices | price_catalog"),
-     p("location", "Localité ferme", "—", "—", "farm.ville | meteo.ville")],
-    ["floorPrice", "marketPrice", "adjustedMarketPrice", "recommendedPrice", "mispricingRisk"]),
+Alerte si votre coût est plus haut que le marché → risque de vendre à perte.""",
+        [p("Prix marché local", "FCFA", "catalogue ou saisie", "Prix marché / catalogue"),
+         p("Localité", "ville", "—", "Fiche ferme")],
+        ["Prix conseillé", "Alerte vente à perte"]),
 
-    blk("pricing_matrix", OBJ, "prix", "Matrice prix par activité (buildPricingMatrix)", """
-Pour chaque activité ∈ [oeufs, poulets_chair, bovins] :
-  computeRecommendedPrice(...)
-  practicedPrice = moyenne(prix ventes historiques activité)
+    blk("pricing_matrix", OBJ, "prix",
+        "Tableau prix par activité",
+        "Pour œufs, chair et bœufs : prix conseillé vs prix que vous pratiquez en moyenne.",
+        """Une ligne par activité :
+• coût unitaire
+• prix plancher
+• prix marché ajusté
+• prix conseillé
+• prix moyen de vos ventes récentes""",
+        [p("Coûts par activité", "FCFA", "ERP", "Calculs coûts"),
+         p("Activités", "liste", "œufs, chair, bœufs", "Automatique")],
+        ["Tableau prix", "Alertes mauvais prix"]),
 
-Écart pratiqué vs recommandé → mispricingAlert dans buildFinancialGapAnalysis""",
-    [p("unitCosts", "Coûts unitaires par activité", "FCFA", "calcul ERP", "calculateAvicoleLotCost / calculateAnimalCost"),
-     p("activities", "Activités analysées", "—", "oeufs, chair, bovins", "buildPricingMatrix param")],
-    ["pricing[]", "practicedPrice", "mispricingAlerts[]"]),
+    blk("scissors_effect", CENTRE, "analytique",
+        "Prix du maïs / soja qui monte (effet ciseau)",
+        "Si les intrants alimentaires augmentent fortement, le Centre propose d'acheter 3 mois de stock maintenant pour économiser.",
+        """Pour maïs, soja, tourteau :
+  hausse mensuelle estimée → projection sur 3 mois
 
-    blk("scissors_effect", CENTRE, "analytique", "Effet ciseau — hausse intrants aliment (buildScissorsEffectAlert)", """
-Pour chaque commodité (maïs, soja, tourteau) :
-  monthlyPct = ((dernier_prix − premier_prix) / premier_prix) × 100 / nb_mois
-  projected3mPct = monthlyPct × 3
+Si hausse ≥ 5 %/mois :
+  économie possible = stock actuel × prix × hausse estimée × 50 %
 
-avgRise = moyenne(projected3mPct des hausses ≥ 5%/mois)
+Recommandation si trésorerie suffisante.""",
+        [p("Cours intrants", "FCFA", "—", "Prix marché enregistrés"),
+         p("Stock aliment actuel", "kg", "—", "Module Stock")],
+        ["Hausse estimée %", "Économie possible FCFA"]),
 
-economieEstimee = stockAlimentKg × feedPrice × (avgRise / 100) × 0.5
+    blk("transformation_arbitrage", CENTRE, "analytique",
+        "Mieux vendre les œufs ou les incuber en poussins ?",
+        "Compare marge tablette d'œufs vs poussin d'un jour (électricité couvoir incluse).",
+        """Marge œuf = prix tablette
 
-Recommandation si trésorerie > economieEstimee → acheter 3 mois stock""",
-    [p("market_prices", "Cours intrants", "FCFA", "—", "dataMap.market_prices"),
-     p("feedStock", "Stock aliment actuel", "kg", "—", "dataMap.stock")],
-    ["projectedRisePct", "economieEstimee", "hasTreasurySurplus"]),
+Marge poussin = prix poussin × taux éclosion − coût électricité/œuf
 
-    blk("transformation_arbitrage", CENTRE, "analytique", "Arbitrage incubation vs vente œufs (buildTransformationArbitrage)", """
-netEggMargin = eggTrayPrice
+Si poussin plus rentable de ≥ 5 % → conseiller % de ponte à incuber
+Sinon → vendre les œufs directement""",
+        [p("Prix tablette", "FCFA", "900", "Marché ou réglage"),
+         p("Prix poussin", "FCFA", "350", "Marché ou réglage"),
+         p("Taux éclosion", "%", "82", "Réglage couvoir"),
+         p("Coût incubation/œuf", "FCFA", "15", "Réglage")],
+        ["Marge œuf vs poussin", "% à incuber conseillé"]),
 
-netChickMargin = chickPrice × hatchRate − incubatorCostPerEgg
+    blk("vet_comparison", BOTH, "analytique",
+        "Comparer les vétérinaires (même intervention)",
+        "Pour la même maladie ou vaccin : qui coûte moins cher ? Qui guérit plus vite ?",
+        """Par type d'intervention :
+  coût moyen par vétérinaire
+  jours avant animal « sain »
 
-diffPct = ((netChickMargin − netEggMargin) / netEggMargin) × 100
+Insight si écart coût ≥ 5 % ou guérison ≥ 2 jours""",
+        [p("Interventions réalisées", "—", "—", "Module Santé"),
+         p("Liste vétérinaires", "—", "—", "Référentiel véto")],
+        ["Classement coût", "Classement délai guérison"]),
 
-Si |diffPct| ≥ 5% :
-  incubatePct = min(80, 50 + diffPct/2) si diffPct > 0
-  sinon vente directe œufs recommandée
+    blk("feed_inflation", BOTH, "analytique",
+        "Aliment plus cher qu'avant ?",
+        "Compare prix d'achat aliment des 30 derniers jours vs les 30 jours d'avant. Alerte si +10 %.",
+        """Prix moyen/kg période récente vs période précédente
 
-Défauts : eggTrayPrice=900 · chickPrice=350 · hatchRate=0.82 · incubatorCost=15 F/œuf""",
-    [p("egg_tray_price", "Prix tablette œufs", "FCFA", "900", "market_prices | growth_settings.egg_tray_price"),
-     p("chick_day_old_price", "Prix poussin", "FCFA", "350", "market_prices | growth_settings"),
-     p("hatch_rate", "Taux éclosion", "ratio", "0.82", "growth_settings.hatch_rate"),
-     p("incubator_cost_per_egg", "Coût incubation / œuf", "FCFA", "15", "growth_settings.incubator_cost_per_egg")],
-    ["netChickMargin", "netEggMargin", "diffPct", "incubatePct"]),
+Hausse % = (récent − ancien) ÷ ancien × 100
 
-    blk("vet_comparison", BOTH, "analytique", "Comparatif vétérinaires (buildVetPerformanceComparison)", """
-Par type d'intervention :
-  avgCost(vet) = moyenne(cout interventions)
-  avgRecovery(vet) = moyenne(jours rétablissement)
+Alerte si ≥ 10 % (critique si ≥ 15 %)""",
+        [p("Achats aliment", "—", "—", "Alimentation / Achats")],
+        ["Hausse %", "Prix/kg avant et après"]),
 
-  costSavePct = ((worst.avgCost − best.avgCost) / worst.avgCost) × 100
-  recoveryGain = worst.avgRecovery − best.avgRecovery
+    blk("feed_supplier_ranking", CENTRE, "analytique",
+        "Quel fournisseur d'aliment est le moins cher ?",
+        "Même produit, plusieurs fournisseurs : écart de prix et alerte si spread ≥ 5 %.",
+        """Prix moyen/kg par fournisseur et par type d'aliment
+Écart % entre le moins cher et le plus cher""",
+        [p("Fournisseurs", "liste", "—", "Module Achats"),
+         p("Historique achats", "—", "—", "Alimentation")],
+        ["Classement fournisseurs", "Alertes écart prix"]),
 
-Insight si costSavePct ≥ 5% ou recoveryGain ≥ 2 j""",
-    [p("sante", "Interventions réalisées", "—", "—", "dataMap.sante | vaccins"),
-     p("veterinaires", "Référentiel véto", "—", "—", "dataMap.veterinaires")],
-    ["rankings[]", "insights[]", "avgCost", "avgRecovery"]),
+    blk("seasonality_weather", OBJ, "analytique",
+        "Chaleur d'avril-mai et baisse de ponte",
+        "Historique : en saison chaude, la ponte baisse souvent. Alerte si chaleur actuelle ≥ 35 °C.",
+        """Par mois : taux ponte moyen
+Compare mois chauds (avr–mai) vs autres mois
 
-    blk("feed_inflation", BOTH, "analytique", "Inflation aliment fournisseur (buildFeedInflationAlerts)", """
-Période courante = 30 derniers j · précédente = J−60 à J−30
+Alerte si baisse saisonnière ≥ 5 points ou canicule actuelle""",
+        [p("Météo", "°C", "—", "Météo ferme"),
+         p("Historique ponte", "—", "—", "Production")],
+        ["Baisse saison %", "Conseils brumisation"]),
 
-curAvg = moyenne(prix/kg achats courants)
-prevAvg = moyenne(prix/kg achats précédents)
+    blk("client_quality", OBJ, "analytique",
+        "Client exigeant qui paie peu",
+        "Client demandant tri strict ou gros calibre pour un petit supplément → rentabilité faible.",
+        """Prix unitaire = montant commande ÷ quantité
 
-pctChange = ((curAvg − prevAvg) / prevAvg) × 100
+Si exigence « tri strict » et prix unitaire bas → alerte rentabilité""",
+        [p("Commandes clients", "—", "—", "Module Ventes"),
+         p("Fiches clients", "—", "—", "Module Clients")],
+        ["Classement clients", "Alertes mauvaise marge"]),
 
-Alerte si pctChange ≥ 10% (critique si ≥ 15%)""",
-    [p("alimentation_logs", "Achats aliment", "—", "—", "dataMap.alimentation_logs"),
-     p("achats", "Mouvements stock", "—", "—", "dataMap.achats | stock_movements")],
-    ["pctChange", "currentPricePerKg", "previousPricePerKg"]),
+    blk("maraichage_biomass", BOTH, "analytique",
+        "Fumier et litière = engrais gratuit",
+        "Estime kg de fumier/litière par an et équivalent sacs NPK économisés pour le maraîchage.",
+        """Litière pondeuses ≈ 0,08 kg/j/poule × 365
+Fumier bovins ≈ 15 kg/j/bête × 365
 
-    blk("feed_supplier_ranking", CENTRE, "analytique", "Comparatif fournisseurs aliment (buildFeedComparisons)", """
-avgPricePerKg(fournisseur) = totalAmount / totalKg
+Sacs NPK économisés = total kg ÷ 50
+Économie = sacs × prix sac (15 000 F par défaut)""",
+        [p("Prix sac NPK", "FCFA", "15 000", "Paramètres pilotage"),
+         p("Poids sac", "kg", "50", "Standard")],
+        ["Économie engrais FCFA", "Simulation cultures"]),
 
-spreadPct = ((worst − best) / best) × 100
+    blk("maraichage_sandbox", OBJ, "analytique",
+        "Simulateur parcelle maraîchage",
+        "Entrez charges, rendement et prix marché → marge estimée et quantité minimum à vendre pour être rentable.",
+        """Coût total = charges fixes + charges extra + rendement × coût/kg
 
-Alerte si spreadPct ≥ 5% (bad si > 15%)
+Recette = rendement × prix marché
+Marge = recette − coût
 
-periodAlerts : variation prix produit ≥ 5% sur 30 j vs 30 j précédents""",
-    [p("fournisseurs", "Référentiel fournisseurs", "—", "—", "dataMap.fournisseurs"),
-     p("alimentation_logs", "Historique achats", "—", "—", "dataMap.alimentation_logs")],
-    ["supplierRankings[]", "supplierAlerts[]", "periodAlerts[]"]),
+Seuil rentabilité kg = coût total ÷ (prix − coût/kg)""",
+        [p("Charges fixes", "FCFA", "0", "Saisie simulateur"),
+         p("Rendement", "kg", "—", "Saisie simulateur"),
+         p("Coût production/kg", "FCFA", "400", "Saisie simulateur")],
+        ["Marge scénario A/B", "Kg minimum rentable"]),
 
-    blk("seasonality_weather", OBJ, "analytique", "Saisonnalité météo vs performance (buildSeasonalityWeatherAnalysis)", """
-Par mois :
-  layingRate = oeufs / (effectif × nbJours)
-  icProxy = feedKg / (oeufs / 12)
-
-isHotSeason = avril–mai (mois 4–5)
-
-seasonalDrop = avgCoolLaying − avgHotLaying
-
-Alerte si seasonalDrop ≥ 5 pts ou temp actuelle ≥ 35°C""",
-    [p("meteo", "Météo actuelle", "°C / %", "—", "dataMap.meteo"),
-     p("production_oeufs_logs", "Historique ponte", "—", "—", "production_oeufs_logs")],
-    ["seasonalDropPct", "rows[]", "insights[]"]),
-
-    blk("client_quality", OBJ, "analytique", "Qualité lots par client (buildLotQualityByClient)", """
-unitPrice = montant_total / quantité
-
-triStrict = notes contient "tri" ou exigence "calibr"
-
-marginScore :
-  faible si triStrict ET unitPrice < 5000
-  bonne si unitPrice ≥ 5000
-
-Alerte si triStrict ET marginScore = faible""",
-    [p("sales_orders", "Commandes clients", "—", "—", "dataMap.sales_orders"),
-     p("clients", "Référentiel clients", "—", "—", "dataMap.clients")],
-    ["clientRanking[]", "insights[]", "marginScore"]),
-
-    blk("maraichage_biomass", BOTH, "analytique", "Valorisation fumier / litière (calculateBiomassValue)", """
-litterKgYear = poules × 0.08 × 365
-manureKgYear = bovins × 15 × 365
-totalEffluentKg = litter + manure
-
-bagsSaved = floor(totalEffluentKg / 50)
-fertilizerSavings = bagsSaved × npkBagPrice (15000 F)
-
-Centre maraîchage :
-  marginM2 = yieldKgM2 × priceKg − seedCostM2
-  marginHa = marginM2 × 10000""",
-    [p("npk_bag_price", "Prix sac NPK 50kg", "FCFA", "15000", "growth_settings.npk_bag_price"),
-     p("FERTILIZER_BAG_KG", "Poids sac engrais", "kg", "50", "decisionCenterMetrics.js")],
-    ["economie_totale_fcfa", "bagsSaved", "cropSimulation[]"]),
-
-    blk("maraichage_sandbox", OBJ, "analytique", "Simulateur maraîchage (simulateMaraichageSandbox)", """
-totalCost = baseCharges + extraCharges + yieldKg × costPerKg
-
-revenueA = yieldKg × marketPriceA
-revenueB = yieldKg × marketPriceB
-
-marginA = revenueA − totalCost
-marginB = revenueB − totalCost
-
-breakEvenKgA = ceil(totalCost / (marketPriceA − costPerKg))""",
-    [p("baseCharges", "Charges fixes parcelle", "FCFA", "0", "paramètre sandbox"),
-     p("yieldKg", "Rendement attendu", "kg", "—", "paramètre sandbox"),
-     p("costPerKg", "Coût production / kg", "FCFA/kg", "400", "paramètre sandbox")],
-    ["marginA", "marginB", "breakEvenKgA", "breakEvenKgB"]),
-
-    blk("charts_g1_g7", OBJ, "graphiques", "Graphiques G1 – G7 (Objectifs)", """
-G1 : courbe ponte réelle vs souche (theoreticalStandardAtAge)
-G2 : comparaison lots (rentabilité / cycle)
-G3 : CA mensuel vs breakEvenCa vs targetCaForNetMargin
-G4 : âge lots (J+ageDays)
+    blk("charts_g1_g7", OBJ, "graphiques",
+        "Graphiques Objectifs (G1 à G7)",
+        "Courbes du module Objectifs : ponte, lots, seuil rentabilité, âge bandes, trésorerie, jauge objectif annuel, prix vs coût.",
+        """G1 : ponte réelle vs catalogue race
+G2 : comparer les lots
+G3 : ventes du mois vs seuil rentabilité
+G4 : âge des bandes (J+ = jours depuis le début)
 G5 : flux trésorerie
-G6 : jauge attainment objectif annuel (%)
-G7 : coût revient vs marché vs prix pratiqué par activité""",
-    [p("chartData.g1…g7", "Jeux de données", "—", "—", "buildChartDataset() · objectifsDecisionEngine")],
-    ["chartData"]),
+G6 : % objectif annuel atteint
+G7 : coût revient vs marché vs prix pratiqué""",
+        [p("Données graphiques", "—", "—", "Module Objectifs → onglet Graphiques")],
+        ["Courbes G1–G7"]),
 
-    blk("charts_centre", CENTRE, "graphiques", "Graphiques Centre décisionnel", """
-Ponte vs aliment : layingRate(%) + feedKg/j
-IC chair par lot : feedKg / liveWeightKg
-Embouche GMQ : gmq vs seuil 400 g/j
-Silo : daysLeft = stockKg / consoJour
-Maraîchage : simulateur charges / rendement / prix marché""",
-    [p("STOCK_CRITICAL_DAYS", "Seuil stock aliment critique", "j", "5", "decisionCenterMetrics.js"),
-     p("production_oeufs_logs", "Journal ponte", "—", "—", "dataMap.production_oeufs_logs")],
-    ["graphiques.avicoleDaily", "graphiques.broilerIC", "graphiques.cattleGMQ", "graphiques.siloLevels"]),
+    blk("charts_centre", CENTRE, "graphiques",
+        "Graphiques du Centre décisionnel",
+        "Ponte vs aliment, indice consommation chair, croissance bovins, niveau silo, maraîchage.",
+        """• Ponte (% ) et kg aliment/j
+• Indice consommation par lot chair
+• Prise de poids bovins
+• Jours restants silo
+• Simulateur maraîchage""",
+        [p("Journal ponte", "—", "—", "Production"),
+         p("Seuil silo critique", "jours", "5", "Réglage Centre")],
+        ["Graphiques Centre"]),
 
-    blk("technical_farming", CENTRE, "pilotage", "Alertes conduite technique (buildTechnicalFarmingAlerts)", """
-Règles technicalFarmingRules appliquées sur :
-  lots avicole · animaux · stocks · santé · capteurs
+    blk("technical_farming", CENTRE, "pilotage",
+        "Alertes du quotidien (technique)",
+        "Rappels concrets : stock bas, santé, capteurs, anomalies de saisie — issus des règles métier de la ferme.",
+        """Le système scanne lots, animaux, stocks, santé, capteurs.
 
-Sévérité → priorité recommandation :
-  critique/urgence → haute · warning → moyenne
-
-activityFromTechnicalAlert → oeufs | chair | bovins | stock | cultures""",
-    [p("sensor_devices", "Capteurs IoT", "—", "—", "dataMap.sensor_devices"),
-     p("business_events", "Événements métier", "—", "—", "dataMap.business_events")],
-    ["technical_alerts[]", "technical_recommendations[]"]),
+Gravité :
+• critique → à traiter tout de suite
+• warning → à planifier""",
+        [p("Capteurs (température…)", "—", "—", "IoT si installé"),
+         p("Événements saisis", "—", "—", "Journal ERP")],
+        ["Liste alertes", "Actions proposées"]),
 ]
 
-def js_str(s):
-    return json.dumps(s, ensure_ascii=False)
+header = """/** Annexe — explications simples des calculs (Centre + Objectifs). */
+
+import { DEFAULT_PILOTAGE_SETTINGS, normalizePilotageSettings } from './pilotageSettingsService.js';
+import { HIJRI_FESTIVAL_RULES } from './islamicCalendarEngine.js';
+
+const arr = (v) => (Array.isArray(v) ? v : []);
+
+/** Catégories affichées dans l'Annexe. */
+export const FORMULA_CATEGORIES = [
+  { id: 'calendrier', label: 'Dates & fêtes' },
+  { id: 'commerce', label: 'Objectifs de vente' },
+  { id: 'demande', label: 'Demande & stock disponible' },
+  { id: 'zootechnie', label: 'Performance des animaux' },
+  { id: 'couts', label: 'Coûts & bénéfices' },
+  { id: 'flux', label: 'Aliment, bâtiments & trésorerie' },
+  { id: 'prix', label: 'Prix de vente conseillés' },
+  { id: 'analytique', label: 'Comparaisons & alertes' },
+  { id: 'graphiques', label: 'Courbes du tableau de bord' },
+  { id: 'pilotage', label: 'Réglages & alertes du quotidien' },
+];
+
+/** Sigles et mots — lire en premier. */
+export const ACRONYM_GLOSSARY = [
+  { term: 'J+40, J+90…', definition: 'Nombre de jours depuis le début de la bande ou l\\'entrée des animaux. J+40 = 40 jours après le lancement. J+90 = environ 3 mois d\\'élevage.' },
+  { term: 'BFR', definition: 'Besoin en fonds de roulement : avez-vous assez d\\'argent (caisse + factures clients à encaisser) pour payer l\\'aliment du prochain cycle avant d\\'être payé vous-même ?' },
+  { term: 'ITH', definition: 'Indice chaleur ressentie = température (°C) + humidité (%). Au-dessus de 29, les animaux souffrent et mangent mal.' },
+  { term: 'IC (indice consommation)', definition: 'Kilos d\\'aliment nécessaires pour produire 1 kg de poulet. Exemple : 1,8 = 1,8 kg d\\'aliment pour 1 kg de viande. Cible chair : 1,6 à 1,9.' },
+  { term: 'GMQ / prise de poids', definition: 'Combien l\\'animal grossit par jour (grammes ou kg). Sert à savoir s\\'il vaut encore la peine de le nourrir.' },
+  { term: 'MCA / marge aliment', definition: 'Ce qu\\'il reste après avoir payé uniquement l\\'aliment : ventes − coût aliment.' },
+  { term: 'Point mort', definition: 'Chiffre d\\'affaires minimum du mois pour couvrir toutes les charges (salaires, achats, etc.). En dessous, vous perdez de l'argent.' },
+  { term: 'Vide sanitaire', definition: 'Pause sans animaux dans le bâtiment (souvent 10 jours) pour nettoyer et désinfecter entre deux bandes.' },
+  { term: 'Date pivot / date limite', definition: 'Dernière date pour lancer ou acheter afin d\\'être prêt à vendre avant une fête (Tabaski, Korité…).' },
+  { term: 'Taux de ponte', definition: 'Pourcentage de poules qui pondent chaque jour (ex. 85 % = 85 poules sur 100 ont pondu).' },
+  { term: 'Souche / race', definition: 'Type de poules ou animaux achetés (ex. Novogen, Lohmann) avec une fiche performance (ponte, poids attendus).' },
+  { term: 'Effet ciseau', definition: 'Quand le prix de l\\'aliment monte vite alors que le prix de vente de la viande ne suit pas — marge compressée.' },
+  { term: 'Couverture %', definition: 'Pourcentage : est-ce que votre stock ou votre argent suffit par rapport à l\\'objectif ou au coût du cycle ? 100 % = juste assez. 50 % = il manque la moitié.' },
+  { term: 'Catalogue race / objectif catalogue', definition: 'Fiche de référence du fabricant : à tel âge, la race devrait peser X ou pondre Y %.' },
+  { term: 'Client VIP (BFR)', definition: 'Gros client dont l\\'encaissement proche est compté dans l\\'argent disponible pour lancer une bande.' },
+];
+
+/** Rappels courts par thème. */
+export const DECISION_METHODOLOGY_SECTIONS = [
+  { id: 'calendrier', title: 'Fêtes & dates', items: ['Les dates de Tabaski, Korité, Magal… sont calculées automatiquement.', 'Vous pouvez les corriger manuellement dans Paramètres pilotage si besoin.'] },
+  { id: 'quand-vendre', title: 'Quand vendre ?', items: ['Si le coût aliment du jour dépasse le gain de poids du jour → vendre.', 'Bœufs : module Animaux · Poulets : module Avicole.'] },
+  { id: 'quand-lancer', title: 'Quand lancer une bande ?', items: ['Date limite = date de la fête − durée du cycle (90 j bœuf, 40 j poulet).', 'Alerte rouge si la date est passée et qu\\'il n\\'y a rien en production.'] },
+  { id: 'bfr', title: 'Argent pour l\\'aliment (BFR)', items: ['On compare trésorerie + factures VIP à payer vs coût aliment du cycle.', 'Si couverture < 50 % → ne pas lancer (réglable).'] },
+  { id: 'demande', title: 'Demande clients', items: ['Estime les ventes du mois (saison + fêtes) et vérifie si vous avez assez de stock ou production.'] },
+  { id: 'zootechnical', title: 'Performance vs race', items: ['Compare ponte ou poids réels à la fiche de la race achetée.'] },
+  { id: 'break_even', title: 'Seuil de rentabilité', items: ['Montant minimum à vendre ce mois pour payer charges fixes et variables.'] },
+  { id: 'stock_audit', title: 'Coulage aliment ?', items: ['Si le silo sort plus d\\'aliment que les animaux ne devraient manger → alerte par bâtiment.'] },
+  { id: 'couts', title: 'Coût de revient', items: ['Achats + aliment + santé + frais = coût total. Marge = vente − coût.'] },
+  { id: 'prix', title: 'Prix conseillé', items: ['Ne jamais vendre sous le coût + marge minimum. Tenir compte du marché local et de la saison.'] },
+];
+
+export const FORMULA_BLOCKS = [
+"""
 
 def render_block(b):
     lines = [
         "  {",
-        f"    id: {js_str(b['id'])},",
+        f"    id: {json.dumps(b['id'], ensure_ascii=False)},",
         f"    modules: {json.dumps(b['modules'])},",
-        f"    category: {js_str(b['category'])},",
-        f"    title: {js_str(b['title'])},",
-        f"    formula: {js_str(b['formula'])},",
+        f"    category: {json.dumps(b['category'], ensure_ascii=False)},",
+        f"    title: {json.dumps(b['title'], ensure_ascii=False)},",
+        f"    summary: {json.dumps(b['summary'], ensure_ascii=False)},",
+        f"    formula: {json.dumps(b['formula'], ensure_ascii=False)},",
         "    parameters: [",
     ]
     for row in b["parameters"]:
         lines.append(
-            f"      {{ name: {js_str(row['name'])}, label: {js_str(row['label'])}, unit: {js_str(row['unit'])}, default: {js_str(row['default'])}, source: {js_str(row['source'])} }},"
+            "      { "
+            + f"label: {json.dumps(row['label'], ensure_ascii=False)}, "
+            + f"unit: {json.dumps(row['unit'], ensure_ascii=False)}, "
+            + f"default: {json.dumps(row['default'], ensure_ascii=False)}, "
+            + f"where: {json.dumps(row['where'], ensure_ascii=False)} "
+            + "},"
         )
     lines.append("    ],")
-    lines.append(f"    outputs: {json.dumps(b['outputs'])},\n  }},")
+    lines.append(f"    outputs: {json.dumps(b['outputs'], ensure_ascii=False)},")
+    lines.append("  },")
     return "\n".join(lines)
 
 footer = """
-export const ENTITY_GLOSSARY = [
-  { term: 'Bande / lot avicole', definition: 'Ensemble poulets chair ou pondeuses — champs lot_id, module Avicole.' },
-  { term: 'Bête / embouche', definition: 'Animal individuel bovin/ovin/caprin — champs animaux.id, module Animaux.' },
-  { term: 'gmqSmoothed', definition: 'Gain moyen quotidien lissé (kg/j) sur les derniers logs alimentation.' },
-  { term: 'pivotDate', definition: 'Dernière date pour lancer/acheter avant une fête (eventDate − cycleDays).' },
-  { term: 'coveragePct', definition: 'Couverture BFR en % — trésorerie+VIP vs coût cycle aliment.' },
-  { term: 'coverage_rate', definition: 'Couverture demande en % — stock valorisé vs objectif CA activité.' },
-  { term: 'ITH', definition: 'temperature + humidity — indice stress thermique.' },
-  { term: 'IC', definition: 'feedKg / liveWeightKg — indice de consommation chair.' },
-  { term: 'MCA', definition: 'Marge sur coût alimentaire — CA ou revenu estimé moins coût aliment.' },
-  { term: 'theoreticalStandardAtAge', definition: 'Valeur attendue souche à ageDays (ponte, poids, GMQ).' },
-  { term: 'mispricingRisk', definition: 'Prix plancher > prix marché ajusté — risque de mévente.' },
-  { term: 'overPct / shrinkPct', definition: 'Écart % entre consommation ou production réelle et théorique.' },
-];
+export const ENTITY_GLOSSARY = ACRONYM_GLOSSARY;
 
 export const PILOTAGE_PARAM_ROWS = [
-  { key: 'sanitary_min_days', label: 'Vide sanitaire minimum', unit: 'j' },
-  { key: 'mortality_threshold_pct', label: 'Seuil mortalité bande préc.', unit: '%' },
-  { key: 'extra_vacuum_days', label: 'Prolongation pathologie', unit: 'j' },
-  { key: 'next_band_size', label: 'Effectif prochaine bande', unit: 'sujets' },
-  { key: 'bfr_min_coverage_pct', label: 'Couverture BFR minimum', unit: '%' },
-  { key: 'ith_stress_threshold', label: 'Seuil ITH stress', unit: '—' },
+  { key: 'sanitary_min_days', label: 'Pause minimum entre bandes', unit: 'jours' },
+  { key: 'mortality_threshold_pct', label: 'Mortalité max bande précédente', unit: '%' },
+  { key: 'extra_vacuum_days', label: 'Jours en plus si maladie', unit: 'jours' },
+  { key: 'next_band_size', label: 'Taille prochaine bande', unit: 'sujets' },
+  { key: 'bfr_min_coverage_pct', label: 'Couverture trésorerie minimum', unit: '%' },
+  { key: 'ith_stress_threshold', label: 'Seuil chaleur (ITH)', unit: '—' },
 ];
 
 const FESTIVAL_PARAM_ROWS = Object.entries(HIJRI_FESTIVAL_RULES).map(([key, rule]) => ({
@@ -763,7 +755,6 @@ const FESTIVAL_PARAM_ROWS = Object.entries(HIJRI_FESTIVAL_RULES).map(([key, rule
   rule: `${rule.day} / mois hijri ${rule.month}`,
 }));
 
-/** Valeurs pilotage + fêtes pour affichage dynamique dans l'Annexe. */
 export function buildAnnexeSnapshot(dataMap = {}) {
   const settings = normalizePilotageSettings(dataMap.growth_settings || DEFAULT_PILOTAGE_SETTINGS);
   return {
@@ -774,7 +765,7 @@ export function buildAnnexeSnapshot(dataMap = {}) {
     })),
     festivals: FESTIVAL_PARAM_ROWS,
     growthSettings: {
-      annual_ca_target: settings.annual_ca_target || dataMap.growth_settings?.annual_ca_target || 'BP officiel',
+      annual_ca_target: settings.annual_ca_target || dataMap.growth_settings?.annual_ca_target || 'Business plan',
       target_gross_margin_pct: dataMap.growth_settings?.target_gross_margin_pct ?? 35,
       target_net_margin_pct: dataMap.growth_settings?.target_net_margin_pct ?? 12,
       vip_count: arr(settings.vip_client_ids).length,
@@ -802,51 +793,6 @@ export function formulasGroupedByCategory(moduleId = 'centre_ia') {
 export default FORMULA_BLOCKS;
 """
 
-header = """/** Annexe méthodologique — formules, noms de paramètres et sources de données (exhaustif). */
-
-import { DEFAULT_PILOTAGE_SETTINGS, normalizePilotageSettings } from './pilotageSettingsService.js';
-import { HIJRI_FESTIVAL_RULES } from './islamicCalendarEngine.js';
-
-const arr = (v) => (Array.isArray(v) ? v : []);
-
-export const FORMULA_CATEGORIES = [
-  { id: 'calendrier', label: 'Calendrier & timing' },
-  { id: 'commerce', label: 'Commerce & objectifs CA' },
-  { id: 'demande', label: 'Demande & couverture' },
-  { id: 'zootechnie', label: 'Zootechnie & efficacité' },
-  { id: 'couts', label: 'Coûts & rentabilité' },
-  { id: 'flux', label: 'Flux, stock & logistique' },
-  { id: 'prix', label: 'Prix dynamique & marge' },
-  { id: 'analytique', label: 'Analytique croisée' },
-  { id: 'graphiques', label: 'Graphiques décisionnels' },
-  { id: 'pilotage', label: 'Pilotage & alertes techniques' },
-];
-
-/** Rappels textuels courts (complètent les blocs formule). */
-export const DECISION_METHODOLOGY_SECTIONS = [
-  { id: 'calendrier', title: 'Calendrier marché', items: ['Dates hijri calculées automatiquement.', 'Surcharge via growth_settings.festival_dates.*'] },
-  { id: 'quand-vendre', title: 'QUAND VENDRE', items: ['Compare gainValeurJour et coutRationJour.', 'Bovin → Animaux · Bande chair → Avicole.'] },
-  { id: 'quand-lancer', title: 'QUAND LANCER', items: ['Une date pivot par produit et par fête.', 'Priorité critique si pivot dépassée sans stock.'] },
-  { id: 'bfr', title: 'BFR', items: ['Blocage si coveragePct < bfr_min_coverage_pct.'] },
-  { id: 'demande', title: 'Demande & couverture', items: ['coverage_rate et gap_revenue alimentent Objectifs.'] },
-  { id: 'zootechnical', title: 'Zootechnie', items: ['Écart réel vs souche theoreticalStandardAtAge.'] },
-  { id: 'break_even', title: 'Point mort', items: ['breakEvenCa et targetCaForNetMargin pour G3.'] },
-  { id: 'stock_audit', title: 'Audit aliment', items: ['Surconsommation bâtiment vs théorique souche.'] },
-  { id: 'couts', title: 'Coûts revient', items: ['calculateAnimalCost / calculateAvicoleLotCost — MCA = CA − coût aliment.'] },
-  { id: 'prix', title: 'Prix recommandé', items: ['MAX(prixPlancher ; prixMarché × coefSaisonnalité).'] },
-];
-
-/** Blocs formule affichés dans l'onglet Annexe (Centre + Objectifs) — exhaustif. */
-export const FORMULA_BLOCKS = [
-"""
-
-out_path = "/workspace/src/services/decisionMethodology.js"
-with open(out_path, "w", encoding="utf-8") as f:
-    f.write(header)
-    for b in blocks:
-        f.write(render_block(b))
-        f.write("\n")
-    f.write("];\n")
-    f.write(footer)
-
-print(f"Wrote {len(blocks)} blocks to {out_path}")
+out = Path("/workspace/src/services/decisionMethodology.js")
+out.write_text(header + "\n".join(render_block(b) for b in blocks) + "\n];\n" + footer, encoding="utf-8")
+print(f"Wrote {len(blocks)} plain-language blocks")
