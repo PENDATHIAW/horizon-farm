@@ -70,25 +70,26 @@ export function buildStrategicAnswer(type, dataMap = {}) {
       const salesAll = arr(dataMap.salesOrdersAll || dataMap.sales_orders || dataMap.salesOrders);
       const performance = buildGoalPerformance(dataMap, { periodScope: { mode: 'all' } });
       const global = performance?.global || {};
+      const activityYear = performance?.activityYear;
       const goal = computeDashboardPeriodGoal(salesAll, { mode: 'all' }, {
         annualTarget: global.annualTarget,
-      });
+      }, activityYear);
       const attainment = Number(goal.periodAttainment ?? goal.annualAttainment ?? 0);
       const realized = Number(goal.periodRealized ?? goal.annualRealized ?? 0);
       const target = Number(goal.periodTarget ?? goal.annualTarget ?? 0);
       const remaining = Number(goal.periodRemaining ?? goal.annualRemaining ?? 0);
-      const currentYear = new Date().getFullYear();
+      const year1Label = activityYear?.year1Label || 'Année 1';
       const activities = arr(performance?.activities).filter((a) => a.target > 0).slice(0, 5);
       return {
         type,
-        title: `Objectif annuel ${currentYear}`,
+        title: year1Label,
         summary: withPeriodContext(
           dataMap,
-          `CA ${currentYear} : ${fmtCurrency(realized)} / ${fmtCurrency(target)} (${attainment}%). Reste ${fmtCurrency(remaining)} sur le BP.`,
+          `CA ${year1Label} : ${fmtCurrency(realized)} / ${fmtCurrency(target)} (${attainment}%). Reste ${fmtCurrency(remaining)} sur le BP. Démarrage ${activityYear?.startDate || '—'}.`,
         ),
         rows: [
           {
-            title: 'CA annuel',
+            title: 'CA Année 1',
             detail: `${attainment}% du BP`,
             value: fmtCurrency(realized),
             module: 'objectifs_croissance',

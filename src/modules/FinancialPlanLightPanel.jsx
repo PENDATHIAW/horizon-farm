@@ -28,14 +28,19 @@ export default function FinancialPlanLightPanel({ dataMap = {}, salesOrders = []
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-[#9a6b12] font-black flex items-center gap-2"><PiggyBank size={15} aria-hidden="true" /> Fichier financier intégré</p>
           <h2 className="mt-1 text-xl font-black text-[#2f2415]">Plan Horizon Farm — objectifs officiels</h2>
-          <p className="mt-1 text-sm text-[#8a7456] leading-relaxed">Ce bloc reprend la source unique du BP : CA annuel, objectifs mensuels, charges corrigées, BFR, résultat et trésorerie prévisionnelle.</p>
+          <p className="mt-1 text-sm text-[#8a7456] leading-relaxed">
+            Année 1 d&apos;activité · démarrage {new Date(model.activityYear?.startDate || Date.now()).toLocaleDateString('fr-FR')}
+            {' · '}
+            {model.activityYear?.year1Label || model.year}
+            . Objectifs mensuels calés sur M1 = mois de démarrage.
+          </p>
         </div>
         <button type="button" onClick={() => onNavigate?.('centre_ia')} className="min-h-[44px] rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white hover:bg-[#3d2f1d]">Voir décisions</button>
       </div>
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        <MiniMetricCard icon={PiggyBank} tone="success" label="Objectif annuel" value={fmtCurrency(model.annualTarget)} sub="Plan financier" />
-        <MiniMetricCard icon={CalendarDays} tone="white" label="Objectif du mois" value={fmtCurrency(target.revenueTarget)} sub={model.monthCode} />
+        <MiniMetricCard icon={PiggyBank} tone="success" label="Objectif Année 1" value={fmtCurrency(model.annualTarget)} sub={model.activityYear?.year1Label || 'Plan financier'} />
+        <MiniMetricCard icon={CalendarDays} tone="white" label="Objectif du mois" value={fmtCurrency(target.revenueTarget)} sub={model.monthLabel || model.monthCode} />
         <MiniMetricCard icon={TrendingUp} tone={model.revenueAttainment >= 80 ? 'success' : 'warning'} label="Réalisé du mois" value={fmtCurrency(model.actualRevenue)} sub={`${model.revenueAttainment}% atteint`} />
         <MiniMetricCard icon={WalletCards} tone={model.cashRate >= 80 || !model.actualRevenue ? 'success' : 'warning'} label="Encaissement" value={`${model.cashRate || 0}%`} sub={fmtCurrency(model.actualCash)} />
       </div>

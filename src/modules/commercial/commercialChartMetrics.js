@@ -4,7 +4,8 @@ import { paidForOrder, remainingForOrder } from '../../utils/salesStatuses.js';
 import { summarizeSalesMargins } from '../../utils/salesMarginEngine.js';
 import { filterRowsByPeriodScope, isAllTimeScope, normalizePeriodScope, resolvePeriodContext } from '../../utils/periodScope.js';
 import {
-  activityMonthChartLabel,
+  activityStartSourceLabel,
+  buildActivityYearInputFromDataMap,
   planMonthIndexForKey,
   resolveActivityYearContext,
 } from '../../utils/activityYear.js';
@@ -246,13 +247,17 @@ export function buildCommercialChartDataset(props = {}) {
     rows = filterRowsByPeriodScope(rows, scope);
   }
 
-  const activityYear = resolveActivityYearContext({
+  const activityYear = resolveActivityYearContext(buildActivityYearInputFromDataMap({
     businessPlans: props.businessPlans,
     investissements: props.investissements,
     lots: props.lots,
     animaux: props.animaux,
+    cultures: props.cultures,
+    productionLogs: props.productionLogs,
     salesOrders: arr(props.rows || props.salesOrders),
-  });
+    transactions: props.transactions,
+    farm: props.farm || props.ferme,
+  }));
 
   const payments = activeLinkedPayments(rows, arr(props.payments));
   const context = buildMarginContext({ ...props, payments });

@@ -1,4 +1,5 @@
 import { demandLevelToFactor, getCommercialMonth } from './horizonCommercialCalendar';
+import { buildActivityYearInputFromDataMap, planMonthIndexForKey, resolveActivityYearContext } from '../utils/activityYear.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const num = (value = 0) => Number(value || 0);
@@ -68,13 +69,18 @@ function demandLevelFromIndex(index) {
 }
 
 export function buildMonthlyDemandForecast(dataMap = {}, events = [], options = {}) {
-  const referenceDate = options.date || new Date();
+  const activityYear = options.activityYear || resolveActivityYearContext(buildActivityYearInputFromDataMap(dataMap));
   const annualTarget = num(options.annualTarget || dataMap?.growth_settings?.annual_ca_target || 120000000);
   const mix = dataMap?.growth_settings?.annual_mix || { oeufs: 0.32, poulets_chair: 0.22, bovins: 0.12, ovins: 0.09, caprins: 0.05, cultures: 0.15, stock: 0.05 };
-  const months = Array.from({ length: options.months || 12 }).map((_, index) => addMonths(referenceDate, index));
+  const monthKeys = options.monthKeys || activityYear.year1MonthKeys;
+  const months = monthKeys.map((key) => {
+    const [year, month] = String(key).split('-').map(Number);
+    return new Date(year, (month || 1) - 1, 1);
+  });
 
-  return months.map((date) => {
-    const monthRef = getCommercialMonth(date.getMonth() + 1);
+  return months.map((date, index) => {
+    const planIndex = planMonthIndexForKey(monthKeys[index], activityYear.year1MonthKeys) ?? index;
+    const monthRef = getCommercialMonth(planIndex + 1);
     const activities = Object.keys(mix).map((activity) => {
       const baseLevel = monthRef?.demand?.[activity] || 'normale';
       const baseFactor = demandLevelToFactor(baseLevel);

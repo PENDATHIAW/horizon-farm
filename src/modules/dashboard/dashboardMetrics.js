@@ -5,7 +5,11 @@ import { buildDashboardTodayActions } from '../../utils/dashboardWorkflows';
 import { avicoleActiveCount, avicoleHasActiveBirds } from '../../utils/avicoleMetrics';
 import { resolveAvicoleLotKind } from '../../utils/avicoleActivity';
 import { toNumber, fmtCurrency } from '../../utils/format';
-import { formatPeriodScopeLabel, normalizePeriodScope, resolvePeriodContext, rowMatchesMonthKeys } from '../../utils/periodScope';
+import { formatPeriodScopeLabel, normalizePeriodScope, resolvePeriodContext, rowMatchesMonthKeys, monthKeyFromRow } from '../../utils/periodScope';
+import {
+  monthTargetForKey,
+  resolveActivityYearContext,
+} from '../../utils/activityYear.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const lower = (value) => String(value || '').trim().toLowerCase();
@@ -321,16 +325,16 @@ const isCriticalStock = (row = {}) => {
 const isOpenTask = (row = {}) => !['termine', 'terminé', 'done', 'closed'].includes(lower(row.status || row.statut));
 const isOpenAlert = (row = {}) => !['traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée'].includes(lower(row.status || row.statut));
 
-const rowYear = (row = {}) => {
-  const raw = row.date || row.date_commande || row.order_date || row.created_at;
-  if (!raw) return null;
-  const parsed = new Date(raw);
-  return Number.isNaN(parsed.getTime()) ? null : parsed.getFullYear();
-};
+function dashboardMonthTarget(monthKey, activityYear, annualTarget = annualRevenueTarget) {
+  const target = monthTargetForKey(monthKey, activityYear, monthlyRevenueTargets);
+  if (target > 0) return target;
+  return Number(annualTarget / 12) || 0;
+}
 
-function monthTargetForKey(monthKey, annualTarget = annualRevenueTarget) {
-  const month = Number(String(monthKey || '').split('-')[1]) - 1;
-  return Number(monthlyRevenueTargets[month] || annualTarget / 12) || 0;
+function sumYear1Sales(orders = [], activityYear = {}) {
+  return arr(orders)
+    .filter((row) => activityYear.year1MonthSet?.has(monthKeyFromRow(row)))
+    .reduce((sum, row) => sum + money(row), 0);
 }
 
 function sumSalesAmount(orders = [], monthKeys = null) {
@@ -339,45 +343,46 @@ function sumSalesAmount(orders = [], monthKeys = null) {
     .reduce((sum, row) => sum + money(row), 0);
 }
 
-/** Objectifs alignés sur la période ERP sélectionnée. */
-export function computeDashboardPeriodGoal(salesOrders = [], periodScope = {}, goalBase = {}) {
+/** Objectifs alignés sur la période ERP et l'Année 1 d'activité. */
+export function computeDashboardPeriodGoal(salesOrders = [], periodScope = {}, goalBase = {}, activityYear = null) {
   const { mode, monthKeys, isSingleMonth } = resolvePeriodContext(periodScope);
   const annualTarget = Number(goalBase.annualTarget || annualRevenueTarget);
   const periodSubtitle = formatPeriodScopeLabel(periodScope);
-  const currentYear = new Date().getFullYear();
-  const yearRealizedCurrentYear = arr(salesOrders)
-    .filter((row) => rowYear(row) === currentYear)
-    .reduce((sum, row) => sum + money(row), 0);
+  const yearCtx = activityYear || resolveActivityYearContext({ salesOrders });
+  const year1Realized = sumYear1Sales(salesOrders, yearCtx);
   const allTimeRealized = sumSalesAmount(salesOrders, null);
+  const year1Label = yearCtx.year1Label || 'Année 1';
 
   if (mode === 'all') {
-    const periodAttainment = annualTarget ? Math.round((yearRealizedCurrentYear / annualTarget) * 100) : 0;
+    const periodAttainment = annualTarget ? Math.round((year1Realized / annualTarget) * 100) : 0;
     return {
+      activityYear: yearCtx,
       periodMode: 'all',
-      periodLabel: 'Objectif annuel',
+      periodLabel: year1Label,
       periodSubtitle,
       periodTarget: annualTarget,
-      periodRealized: yearRealizedCurrentYear,
+      periodRealized: year1Realized,
       periodAttainment,
-      periodRemaining: Math.max(0, annualTarget - yearRealizedCurrentYear),
+      periodRemaining: Math.max(0, annualTarget - year1Realized),
       secondaryLabel: 'CA total cumulé',
       secondaryTarget: null,
       secondaryRealized: allTimeRealized,
       secondaryAttainment: null,
       secondaryRemaining: null,
       annualTarget,
-      annualRealized: yearRealizedCurrentYear,
+      annualRealized: year1Realized,
       annualAttainment: periodAttainment,
-      annualRemaining: Math.max(0, annualTarget - yearRealizedCurrentYear),
+      annualRemaining: Math.max(0, annualTarget - year1Realized),
     };
   }
 
-  const periodTarget = monthKeys.reduce((sum, key) => sum + monthTargetForKey(key, annualTarget), 0);
+  const periodTarget = monthKeys.reduce((sum, key) => sum + dashboardMonthTarget(key, yearCtx, annualTarget), 0);
   const periodRealized = sumSalesAmount(salesOrders, monthKeys);
   const periodAttainment = periodTarget ? Math.round((periodRealized / periodTarget) * 100) : 0;
-  const annualAttainment = annualTarget ? Math.round((yearRealizedCurrentYear / annualTarget) * 100) : 0;
+  const annualAttainment = annualTarget ? Math.round((year1Realized / annualTarget) * 100) : 0;
 
   return {
+    activityYear: yearCtx,
     periodMode: isSingleMonth ? 'month' : 'period',
     periodLabel: isSingleMonth ? 'Objectif du mois' : 'Objectif période',
     periodSubtitle,
@@ -385,15 +390,15 @@ export function computeDashboardPeriodGoal(salesOrders = [], periodScope = {}, g
     periodRealized,
     periodAttainment,
     periodRemaining: Math.max(0, periodTarget - periodRealized),
-    secondaryLabel: `Objectif annuel ${currentYear}`,
+    secondaryLabel: year1Label,
     secondaryTarget: annualTarget,
-    secondaryRealized: yearRealizedCurrentYear,
+    secondaryRealized: year1Realized,
     secondaryAttainment: annualAttainment,
-    secondaryRemaining: Math.max(0, annualTarget - yearRealizedCurrentYear),
+    secondaryRemaining: Math.max(0, annualTarget - year1Realized),
     annualTarget,
-    annualRealized: yearRealizedCurrentYear,
+    annualRealized: year1Realized,
     annualAttainment,
-    annualRemaining: Math.max(0, annualTarget - yearRealizedCurrentYear),
+    annualRemaining: Math.max(0, annualTarget - year1Realized),
     monthTarget: isSingleMonth ? periodTarget : undefined,
     realized: periodRealized,
     attainment: periodAttainment,
@@ -444,6 +449,9 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
     production_oeufs_logs: props.productionLogs || [],
     alimentation_logs: props.alimentationLogs || [],
     meteo: props.meteo || {},
+    business_plans: props.businessPlans || [],
+    investissements: props.investissements || [],
+    farm: props.farm || props.ferme || {},
   }, { periodScope: scope });
 
   const actions = buildDashboardTodayActions({
@@ -453,7 +461,7 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
     payments: paymentsAll,
   });
   const goalBase = plan.goals?.global || { monthTarget: 0, realized: 0, attainment: 0, annualTarget: 0 };
-  const goal = computeDashboardPeriodGoal(salesAll, scope, goalBase);
+  const goal = computeDashboardPeriodGoal(salesAll, scope, goalBase, plan.activityYear);
 
   return {
     ca,

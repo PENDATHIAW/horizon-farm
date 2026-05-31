@@ -1,4 +1,12 @@
 import { resolvePeriodContext, rowMatchesMonthKeys } from '../utils/periodScope';
+import {
+  activityMonthChartLabel,
+  buildActivityYearInputFromDataMap,
+  monthTargetForKey,
+  planMonthIndexForKey,
+  resolveActivityYearContext,
+  sumTargetsForKeys,
+} from '../utils/activityYear.js';
 import { HORIZON_FARM_OFFICIAL_BP } from './horizonFarmOfficialBusinessPlan';
 import { buildTechnicalFarmingAlerts } from './technicalFarmingRules';
 
@@ -61,22 +69,33 @@ function mergeRevenueRows(sales = [], financeRevenue = []) {
   return [...sales, ...financeRevenue.filter((row) => !seen.has(String(row.related_id || row.source_record_id || row.id || '')))];
 }
 
-export function buildCommercialCalendar(date = new Date()) {
+export function buildCommercialCalendar(date = new Date(), activityYear = null) {
   return safeRun(() => {
-    const d = safeDate(date); const month = d.getMonth() + 1;
-    const rows = HORIZON_FARM_OFFICIAL_BP.revenue.monthly.map((row) => ({
-      month: row.month,
-      label: new Date(d.getFullYear(), row.month - 1, 1).toLocaleDateString('fr-FR', { month: 'long' }),
-      focus: ['oeufs', 'poulets_chair', 'bovins'].filter((activity) => {
-        if (activity === 'oeufs') return row.oeufs > 0;
-        if (activity === 'poulets_chair') return row.chair > 0;
-        if (activity === 'bovins') return row.bovins > 0;
-        return false;
-      }),
-      target: row.total,
-      note: row.month === 3 ? 'Prévision fichier : à réconcilier avec la stratégie validée bovins (M4 vend M1).' : `Objectif CA ${row.total.toLocaleString('fr-FR')} FCFA.`
-    }));
-    return { current: rows.find((row) => row.month === month) || rows[0], next: [1, 2, 3, 4, 5, 6].map((offset) => rows[(month - 1 + offset) % 12]), year: rows };
+    const ctx = activityYear || resolveActivityYearContext(buildActivityYearInputFromDataMap({}));
+    const rows = ctx.year1MonthKeys.map((monthCode, index) => {
+      const bpRow = HORIZON_FARM_OFFICIAL_BP.revenue.monthly[index] || {};
+      return {
+        month: index + 1,
+        monthCode,
+        label: activityMonthChartLabel(monthCode, ctx.year1MonthKeys),
+        focus: ['oeufs', 'poulets_chair', 'bovins'].filter((activity) => {
+          if (activity === 'oeufs') return bpRow.oeufs > 0;
+          if (activity === 'poulets_chair') return bpRow.chair > 0;
+          if (activity === 'bovins') return bpRow.bovins > 0;
+          return false;
+        }),
+        target: bpRow.total || monthlyRevenueTargets[index] || 0,
+        note: index === 2 ? 'M3 — à réconcilier avec la stratégie bovins validée.' : `Objectif CA M${index + 1} : ${(bpRow.total || monthlyRevenueTargets[index] || 0).toLocaleString('fr-FR')} FCFA.`,
+      };
+    });
+    const currentIndex = planMonthIndexForKey(ctx.nowKey, ctx.year1MonthKeys);
+    const baseIndex = currentIndex ?? 0;
+    return {
+      activityYear: ctx,
+      current: rows[baseIndex] || rows[0],
+      next: [1, 2, 3, 4, 5, 6].map((offset) => rows[(baseIndex + offset) % 12]),
+      year: rows,
+    };
   }, { current: null, next: [], year: [] });
 }
 
@@ -118,6 +137,7 @@ export function buildProductionCapacity(dataMap = {}) {
 export function buildGoalPerformance(dataMap = {}, options = {}) {
   return safeRun(() => {
     const date = safeDate(options.date || new Date());
+    const activityYear = options.activityYear || resolveActivityYearContext(buildActivityYearInputFromDataMap(dataMap));
     const annualTarget = num(options.annualTarget || dataMap?.growth_settings?.annual_ca_target || annualRevenueTarget);
     const periodScope = options.periodScope;
     const periodCtx = periodScope ? resolvePeriodContext(periodScope) : null;
@@ -128,25 +148,37 @@ export function buildGoalPerformance(dataMap = {}, options = {}) {
     let monthTarget;
     let currentMonth;
 
+    const inYear1 = (row) => activityYear.year1MonthSet.has(monthOf(row));
+
     if (periodCtx?.mode === 'all') {
-      currentMonth = `${date.getFullYear()}`;
+      currentMonth = activityYear.year1Label;
       monthTarget = annualTarget;
-      sales = sales.filter((row) => String(monthOf(row)).startsWith(`${date.getFullYear()}-`));
-      payments = payments.filter((row) => String(monthOf(row)).startsWith(`${date.getFullYear()}-`));
-      finances = finances.filter((row) => String(monthOf(row)).startsWith(`${date.getFullYear()}-`));
+      sales = sales.filter(inYear1);
+      payments = payments.filter(inYear1);
+      finances = finances.filter(inYear1);
     } else if (periodCtx?.mode === 'months') {
       const monthKeys = periodCtx.monthKeys || [];
       currentMonth = periodCtx.isSingleMonth ? monthKeys[0] : 'period';
       sales = sales.filter((row) => rowMatchesMonthKeys(row, monthKeys));
       payments = payments.filter((row) => rowMatchesMonthKeys(row, monthKeys));
       finances = finances.filter((row) => rowMatchesMonthKeys(row, monthKeys));
-      monthTarget = monthKeys.reduce((sum, key) => {
-        const month = Number(String(key || '').split('-')[1]) - 1;
-        return sum + num(dataMap?.growth_settings?.monthly_targets?.[month] || monthlyRevenueTargets[month] || annualTarget / 12);
-      }, 0);
+      monthTarget = sumTargetsForKeys(monthKeys, activityYear, monthlyRevenueTargets);
+      if (!monthTarget) {
+        monthTarget = monthKeys.reduce((sum, key) => {
+          const index = planMonthIndexForKey(key, activityYear.year1MonthKeys);
+          if (index === null) return sum;
+          return sum + num(dataMap?.growth_settings?.monthly_targets?.[index] || monthlyRevenueTargets[index] || annualTarget / 12);
+        }, 0);
+      }
     } else {
-      currentMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      monthTarget = num(dataMap?.growth_settings?.monthly_targets?.[date.getMonth()] || monthlyRevenueTargets[date.getMonth()] || annualTarget / 12);
+      const nowKey = activityYear.nowKey && activityYear.year1MonthSet.has(activityYear.nowKey)
+        ? activityYear.nowKey
+        : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      currentMonth = nowKey;
+      const planIndex = planMonthIndexForKey(nowKey, activityYear.year1MonthKeys);
+      monthTarget = planIndex !== null
+        ? num(dataMap?.growth_settings?.monthly_targets?.[planIndex] || monthlyRevenueTargets[planIndex] || annualTarget / 12)
+        : monthTargetForKey(nowKey, activityYear, monthlyRevenueTargets) || annualTarget / 12;
       sales = sales.filter((row) => monthOf(row) === currentMonth);
       payments = payments.filter((row) => monthOf(row) === currentMonth);
       finances = finances.filter((row) => monthOf(row) === currentMonth);
@@ -165,14 +197,43 @@ export function buildGoalPerformance(dataMap = {}, options = {}) {
     const financeCash = finances.filter((f) => normalize(f.type).includes('entree')).reduce((sum, row) => sum + amount(row), 0);
     const encaisse = Math.min(realized, Math.max(paymentCash, financeCash));
     const depenses = finances.filter((f) => normalize(f.type).includes('sortie')).reduce((sum, row) => sum + amount(row), 0);
-    return { global: { activity: 'global', label: activityLabels.global, annualTarget, monthTarget, weekTarget: monthTarget / 4.33, realized, encaisse, depenses, marge: realized - depenses, attainment: monthTarget ? Math.round((realized / monthTarget) * 100) : 0, remaining: Math.max(0, monthTarget - realized), cashRate: realized ? Math.min(100, Math.round((encaisse / realized) * 100)) : 0 }, activities: [...Object.values(activities), animalGlobal].map((row) => ({ ...row, attainment: row.target ? Math.round((row.realized / row.target) * 100) : 0, remaining: Math.max(0, row.target - row.realized) })).sort((a, b) => b.target - a.target), currentMonth };
+    const year1Actual = arr(dataMap.sales_orders || dataMap.salesOrders).filter(inYear1).reduce((sum, row) => sum + amount(row), 0);
+    return {
+      activityYear,
+      global: {
+        activity: 'global',
+        label: activityLabels.global,
+        annualTarget,
+        monthTarget,
+        weekTarget: monthTarget / 4.33,
+        realized,
+        encaisse,
+        depenses,
+        marge: realized - depenses,
+        attainment: monthTarget ? Math.round((realized / monthTarget) * 100) : 0,
+        remaining: Math.max(0, monthTarget - realized),
+        cashRate: realized ? Math.min(100, Math.round((encaisse / realized) * 100)) : 0,
+        year1Actual,
+        year1Attainment: annualTarget ? Math.round((year1Actual / annualTarget) * 100) : 0,
+      },
+      activities: [...Object.values(activities), animalGlobal].map((row) => ({ ...row, attainment: row.target ? Math.round((row.realized / row.target) * 100) : 0, remaining: Math.max(0, row.target - row.realized) })).sort((a, b) => b.target - a.target),
+      currentMonth,
+    };
   }, fallbackGoals(options));
 }
 
 function fallbackGoals(options = {}) {
-  const date = safeDate(options.date || new Date()); const annualTarget = num(options.annualTarget || annualRevenueTarget); const monthTarget = monthlyRevenueTargets[date.getMonth()] || annualTarget / 12;
+  const activityYear = options.activityYear || resolveActivityYearContext(buildActivityYearInputFromDataMap(options.dataMap || {}));
+  const planIndex = activityYear.currentPlanMonthIndex ?? new Date().getMonth();
+  const annualTarget = num(options.annualTarget || annualRevenueTarget);
+  const monthTarget = monthlyRevenueTargets[planIndex] || annualTarget / 12;
   const activities = Object.entries(activityAnnualTargets).map(([key, target]) => ({ activity: key, label: activityLabels[key], target: monthTarget * (target / Math.max(1, annualRevenueTarget)), realized: 0, attainment: 0, remaining: monthTarget * (target / Math.max(1, annualRevenueTarget)) }));
-  return { global: { activity: 'global', label: activityLabels.global, annualTarget, monthTarget, weekTarget: monthTarget / 4.33, realized: 0, encaisse: 0, depenses: 0, marge: 0, attainment: 0, remaining: monthTarget, cashRate: 0 }, activities, currentMonth: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}` };
+  return {
+    activityYear,
+    global: { activity: 'global', label: activityLabels.global, annualTarget, monthTarget, weekTarget: monthTarget / 4.33, realized: 0, encaisse: 0, depenses: 0, marge: 0, attainment: 0, remaining: monthTarget, cashRate: 0, year1Actual: 0, year1Attainment: 0 },
+    activities,
+    currentMonth: activityYear.nowKey,
+  };
 }
 
 function priorityFromSeverity(severity = '') { const value = normalize(severity); if (value.includes('critique') || value.includes('urgence')) return 'haute'; if (value.includes('warning')) return 'moyenne'; return 'basse'; }
@@ -200,13 +261,14 @@ export function buildGrowthRecommendations(dataMap = {}, options = {}) {
 
 export function buildDecisionCenterPlan(dataMap = {}, options = {}) {
   return safeRun(() => {
-    const goals = buildGoalPerformance(dataMap, options) || fallbackGoals(options);
-    const recommendations = buildGrowthRecommendations(dataMap, options) || [];
+    const activityYear = resolveActivityYearContext(buildActivityYearInputFromDataMap(dataMap));
+    const goals = buildGoalPerformance(dataMap, { ...options, activityYear }) || fallbackGoals({ ...options, activityYear, dataMap });
+    const recommendations = buildGrowthRecommendations(dataMap, { ...options, activityYear }) || [];
     const leadTimes = estimateLeadTimes(dataMap) || { oeufs: 150, poulets_chair: 40, animaux: 90, bovins: 90, ovins: 90, caprins: 90, cultures: 90 };
     const capacity = buildProductionCapacity(dataMap) || { activeLayers: 0, eggsDay: 0, tabletsDay: 0, layingRate: 0 };
-    const calendar = buildCommercialCalendar(options.date || new Date()) || { current: null, next: [], year: [] };
-    return { goals, recommendations, leadTimes, capacity, calendar, generated_at: new Date().toISOString() };
-  }, { goals: fallbackGoals(options), recommendations: [], leadTimes: { oeufs: 150, poulets_chair: 40, animaux: 90, bovins: 90, ovins: 90, caprins: 90, cultures: 90 }, capacity: { activeLayers: 0, eggsDay: 0, tabletsDay: 0, layingRate: 0 }, calendar: buildCommercialCalendar(options.date || new Date()), generated_at: new Date().toISOString() });
+    const calendar = buildCommercialCalendar(options.date || new Date(), activityYear) || { current: null, next: [], year: [] };
+    return { activityYear, goals, recommendations, leadTimes, capacity, calendar, generated_at: new Date().toISOString() };
+  }, { activityYear: resolveActivityYearContext({}), goals: fallbackGoals(options), recommendations: [], leadTimes: { oeufs: 150, poulets_chair: 40, animaux: 90, bovins: 90, ovins: 90, caprins: 90, cultures: 90 }, capacity: { activeLayers: 0, eggsDay: 0, tabletsDay: 0, layingRate: 0 }, calendar: buildCommercialCalendar(options.date || new Date()), generated_at: new Date().toISOString() });
 }
 
 export default buildDecisionCenterPlan;

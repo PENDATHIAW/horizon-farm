@@ -53,8 +53,10 @@ export default function FinancialPlanPanel({ dataMap = {}, salesOrders = [], pay
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-[#9a6b12] font-black flex items-center gap-2"><PiggyBank size={15} aria-hidden="true" /> Plan financier prévisionnel</p>
-          <h2 className="mt-1 text-2xl font-black text-[#2f2415]">Prévu vs réel · {model.monthCode}</h2>
-          <p className="mt-1 text-sm text-[#8a7456] leading-relaxed">Référence importée du plan Horizon Farm : œufs, poulets de chair, bœufs, fumier, charges, salaires et marge. Le suivi compare les prévisions au réel des ventes, paiements et finances.</p>
+          <h2 className="mt-1 text-2xl font-black text-[#2f2415]">Prévu vs réel · {model.monthLabel || model.monthCode}</h2>
+          <p className="mt-1 text-sm text-[#8a7456] leading-relaxed">
+            {model.activityYear?.year1Label || 'Année 1'} — objectifs BP calés sur 12 mois après le démarrage ({new Date(model.activityYear?.startDate || Date.now()).toLocaleDateString('fr-FR')}).
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => onNavigate?.('objectifs_croissance')} className="min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-4 py-2 text-sm font-black text-[#7d6a4a] hover:bg-[#fff8e8]">Objectifs</button>
@@ -73,7 +75,7 @@ export default function FinancialPlanPanel({ dataMap = {}, salesOrders = [], pay
       {critical.length ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><p className="font-black flex items-center gap-2"><AlertTriangle size={16} aria-hidden="true" /> Points à surveiller</p><ul className="mt-2 list-disc pl-5 space-y-1">{critical.map((item) => <li key={item}>{item}</li>)}</ul></div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><CheckCircle2 size={16} className="inline" aria-hidden="true" /> Le mois est cohérent avec le prévisionnel financier.</div>}
 
       <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#eadcc2]"><p className="font-black text-[#2f2415]">CA prévu vs réel par activité</p><p className="text-xs text-[#8a7456]">Objectif annuel prévisionnel : {fmtCurrency(model.annualTarget)} · réalisé annuel : {fmtCurrency(model.annualActual)} ({model.annualAttainment}%)</p></div>
+        <div className="px-4 py-3 border-b border-[#eadcc2]"><p className="font-black text-[#2f2415]">CA prévu vs réel par activité</p><p className="text-xs text-[#8a7456]">Objectif Année 1 : {fmtCurrency(model.annualTarget)} · réalisé Année 1 : {fmtCurrency(model.annualActual)} ({model.annualAttainment}%)</p></div>
         <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="text-left text-[11px] uppercase tracking-wide text-[#8a7456]"><th className="px-4 py-3">Activité</th><th className="px-4 py-3">Prévu mois</th><th className="px-4 py-3">Réel mois</th><th className="px-4 py-3">Écart</th><th className="px-4 py-3">Atteinte</th><th className="px-4 py-3">Statut</th></tr></thead>

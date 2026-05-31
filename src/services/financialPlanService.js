@@ -1,4 +1,10 @@
 import { HORIZON_FARM_OFFICIAL_BP } from './horizonFarmOfficialBusinessPlan';
+import {
+  activityMonthChartLabel,
+  buildActivityYearInputFromDataMap,
+  planMonthIndexForKey,
+  resolveActivityYearContext,
+} from '../utils/activityYear.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const num = (value = 0) => Number(value || 0) || 0;
@@ -138,21 +144,26 @@ export function buildActivityYearFinancialTargets(plan = defaultFinancialPlan, y
 }
 
 export function buildFinancialPlanVsActual(dataMap = {}, plan = defaultFinancialPlan, options = {}) {
-  const year = options.year || currentYear();
-  const month = options.month || new Date().getMonth() + 1;
-  const monthCode = `${year}-${String(month).padStart(2, '0')}`;
+  const activityYear = options.activityYear || resolveActivityYearContext(buildActivityYearInputFromDataMap(dataMap));
   const salesOrders = arr(dataMap.salesOrders || dataMap.sales_orders);
   const payments = arr(dataMap.payments);
   const transactions = arr(dataMap.transactions || dataMap.finances);
-  const monthTargets = buildMonthlyFinancialTargets(plan, year);
-  const currentMonthTarget = monthTargets[month - 1] || monthTargets[0];
+  const monthTargets = buildActivityYearFinancialTargets(plan, activityYear.year1MonthKeys);
+  const targetMap = new Map(monthTargets.map((row) => [row.monthCode, row]));
+
+  const monthCode = options.monthCode
+    || (activityYear.nowKey && activityYear.year1MonthSet.has(activityYear.nowKey)
+      ? activityYear.nowKey
+      : activityYear.visibleMonthKeys[activityYear.visibleMonthKeys.length - 1]);
+  const planMonthIndex = planMonthIndexForKey(monthCode, activityYear.year1MonthKeys);
+  const currentMonthTarget = targetMap.get(monthCode) || monthTargets[planMonthIndex ?? 0] || monthTargets[0];
 
   const revenueByActivity = plan.revenueLines.map((line) => {
     const actual = salesOrders
       .filter((order) => monthKey(order.date || order.date_commande || order.created_at) === monthCode)
       .filter((order) => detectRevenueActivity(order, dataMap) === line.activity)
       .reduce((sum, order) => sum + revenueAmount(order), 0);
-    const target = num(line.monthly?.[month - 1]);
+    const target = planMonthIndex !== null ? num(line.monthly?.[planMonthIndex]) : 0;
     return { ...line, target, actual, gap: actual - target, attainment: target > 0 ? Math.round((actual / target) * 100) : actual > 0 ? 100 : 0 };
   });
 
@@ -170,10 +181,35 @@ export function buildFinancialPlanVsActual(dataMap = {}, plan = defaultFinancial
   }, {});
 
   const annualTarget = plan.revenueLines.reduce((sum, line) => sum + num(line.annualRevenue), 0);
-  const annualActual = salesOrders.filter((order) => String(order.date || order.date_commande || order.created_at || '').startsWith(String(year))).reduce((sum, order) => sum + revenueAmount(order), 0);
+  const annualActual = salesOrders
+    .filter((order) => activityYear.year1MonthSet.has(monthKey(order.date || order.date_commande || order.created_at)))
+    .reduce((sum, order) => sum + revenueAmount(order), 0);
   const actualCash = actualRevenue > 0 ? Math.min(actualRevenue, actualCashRaw) : actualCashRaw;
 
-  return { plan, year, month, monthCode, monthTargets, currentMonthTarget, revenueByActivity, costsByBucket, actualRevenue, actualCash, actualCosts, actualMargin: actualRevenue - actualCosts, revenueGap: actualRevenue - currentMonthTarget.revenueTarget, costGap: actualCosts - currentMonthTarget.costTarget, marginGap: (actualRevenue - actualCosts) - currentMonthTarget.marginTarget, revenueAttainment: currentMonthTarget.revenueTarget > 0 ? Math.round((actualRevenue / currentMonthTarget.revenueTarget) * 100) : 0, cashRate: actualRevenue > 0 ? Math.min(100, Math.round((actualCash / actualRevenue) * 100)) : 0, annualTarget, annualActual, annualAttainment: annualTarget > 0 ? Math.round((annualActual / annualTarget) * 100) : 0 };
+  return {
+    plan,
+    activityYear,
+    year: activityYear.year1Label,
+    month: planMonthIndex !== null ? planMonthIndex + 1 : 1,
+    monthCode,
+    monthLabel: activityMonthChartLabel(monthCode, activityYear.year1MonthKeys),
+    monthTargets,
+    currentMonthTarget,
+    revenueByActivity,
+    costsByBucket,
+    actualRevenue,
+    actualCash,
+    actualCosts,
+    actualMargin: actualRevenue - actualCosts,
+    revenueGap: actualRevenue - currentMonthTarget.revenueTarget,
+    costGap: actualCosts - currentMonthTarget.costTarget,
+    marginGap: (actualRevenue - actualCosts) - currentMonthTarget.marginTarget,
+    revenueAttainment: currentMonthTarget.revenueTarget > 0 ? Math.round((actualRevenue / currentMonthTarget.revenueTarget) * 100) : 0,
+    cashRate: actualRevenue > 0 ? Math.min(100, Math.round((actualCash / actualRevenue) * 100)) : 0,
+    annualTarget,
+    annualActual,
+    annualAttainment: annualTarget > 0 ? Math.round((annualActual / annualTarget) * 100) : 0,
+  };
 }
 
 export default buildFinancialPlanVsActual;

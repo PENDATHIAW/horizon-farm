@@ -247,7 +247,7 @@ export function DashboardGoalsHero({ goal = {}, onOpenVision, onOpenAssistant, o
   const primaryAttainment = Number(goal.periodAttainment ?? goal.attainment ?? 0);
   const primaryRemaining = Number(goal.periodRemaining ?? Math.max(0, primaryTarget - primaryRealized));
 
-  const secondaryLabel = goal.secondaryLabel || `Objectif annuel ${new Date().getFullYear()}`;
+  const secondaryLabel = goal.secondaryLabel || goal.activityYear?.year1Label || 'Année 1';
   const secondaryTarget = Number(goal.secondaryTarget ?? goal.annualTarget ?? 0);
   const secondaryRealized = Number(goal.secondaryRealized ?? goal.annualRealized ?? 0);
   const secondaryAttainment = Number(goal.secondaryAttainment ?? goal.annualAttainment ?? 0);
@@ -256,7 +256,7 @@ export function DashboardGoalsHero({ goal = {}, onOpenVision, onOpenAssistant, o
 
   const toneFor = (pct) => (pct >= 90 ? 'good' : pct >= 50 ? 'warn' : 'bad');
   const heroTitle = goal.periodMode === 'all'
-    ? 'Pilotage annuel & cumul'
+    ? 'Pilotage Année 1 & cumul'
     : goal.periodMode === 'period'
       ? 'Pilotage de la période sélectionnée'
       : 'Pilotage mensuel & annuel';

@@ -2,6 +2,7 @@ import ChartsGrid from '../../components/charts/ChartsGrid.jsx';
 import SmartEvolutionChart from '../../components/charts/SmartEvolutionChart.jsx';
 import SmartPieChart from '../../components/charts/SmartPieChart.jsx';
 import { buildCommercialChartDataset } from './commercialChartMetrics.js';
+import { activityStartSourceLabel } from '../../utils/activityYear.js';
 
 function ChartSection({ title, question, children }) {
   return (
@@ -42,6 +43,9 @@ export default function CommercialEvolution(props) {
         <span className="font-bold text-[#2f2415]">Année 1 d&apos;activité</span>
         {' — '}
         démarrage {new Date(data.activityYear.startDate).toLocaleDateString('fr-FR')}
+        {' ('}
+        {activityStartSourceLabel(data.activityYear.startSource)}
+        {')'}
         {' · '}
         {data.activityYear.year1Label}
         {' · '}
