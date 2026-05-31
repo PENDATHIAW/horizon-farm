@@ -53,8 +53,8 @@ export async function login(page) {
   }
 
   await page.goto('/');
-  await expect(page.getByText(/Horizon Farm ERP|Pilotez votre ferme|De la terre/i)).toBeVisible({ timeout: 20_000 });
-  await page.getByLabel(/Email|Login/i).fill(USER_LOGIN);
+  await expect(page.getByText(/Pilotez votre ferme|De la terre|Connexion/i)).toBeVisible({ timeout: 20_000 });
+  await page.getByLabel(/Email/i).fill(USER_LOGIN);
   await page.getByLabel(/Mot de passe/i).fill(USER_PASSWORD);
   await page.getByRole('button', { name: /Se connecter/i }).click();
   await expect(page.getByText(/Accueil/i).first()).toBeVisible({ timeout: 25_000 });

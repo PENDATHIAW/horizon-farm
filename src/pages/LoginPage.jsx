@@ -7,6 +7,7 @@ import {
   Layers,
   Leaf,
   Lock,
+  LogIn,
   Mail,
   TrendingUp,
   UserPlus,
@@ -16,13 +17,14 @@ import { useAuth } from '../context/AuthContext';
 const brandLogo = '/brand-logo-login.png';
 const farmBg = '/login-farm-bg.png';
 
-/** Piliers universels — toutes fermes, promesse Horizon Farm. */
 const FEATURES = [
   { icon: Leaf, title: 'Vision claire', detail: 'Toutes vos données au même endroit.' },
   { icon: Bell, title: 'Maîtrise des risques', detail: 'Alertes et décisions au bon moment.' },
   { icon: TrendingUp, title: 'Croissance durable', detail: 'Développez votre ferme sereinement.' },
   { icon: Layers, title: 'Toutes vos filières', detail: 'Maraîchage, avicole, bovins, caprins, ovins…' },
 ];
+
+const textShadow = '0 1px 14px rgba(255,248,239,0.92), 0 0 2px rgba(255,248,239,0.65)';
 
 export default function LoginPage() {
   const { signIn, signUp, resetPassword, remember, setRemember } = useAuth();
@@ -71,56 +73,56 @@ export default function LoginPage() {
         className="pointer-events-none absolute inset-0 bg-cover bg-no-repeat"
         style={{
           backgroundImage: `url(${farmBg})`,
-          /* Sol → horizon + soleil visibles en haut à droite (niveau logo) */
-          backgroundPosition: '62% 38%',
+          backgroundPosition: 'center center',
         }}
         aria-hidden
       />
-      {/* Voile gauche seulement — le ciel / horizon reste libres */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: `
-            linear-gradient(90deg, rgba(255,248,239,0.88) 0%, rgba(255,248,239,0.52) 34%, transparent 52%),
-            linear-gradient(180deg, transparent 0%, transparent 38%, rgba(255,248,239,0.12) 55%, transparent 72%)
-          `,
-        }}
-        aria-hidden
-      />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#063321]/65 via-transparent to-transparent" aria-hidden />
+      {/* Léger assombrissement bas pour le footer ; pas de voile blanc sur la photo */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#063321]/72 via-transparent to-transparent" aria-hidden />
 
-      {/* Logo sur l'horizon — sans fond blanc, ne masque pas le ciel */}
-      <div className="pointer-events-none absolute right-3 top-3 z-20 sm:right-6 sm:top-4 lg:right-10 lg:top-5">
+      <div className="pointer-events-none absolute right-4 top-4 z-20 sm:right-8 sm:top-5 lg:right-10 lg:top-6">
         <img
           src={brandLogo}
           alt="Horizon Farm"
-          className="h-auto w-28 object-contain sm:w-32 lg:w-36 xl:w-40"
-          style={{ filter: 'drop-shadow(0 2px 12px rgba(6,51,33,0.22))' }}
+          className="h-auto w-36 object-contain sm:w-40 lg:w-44 xl:w-48"
+          style={{ filter: 'drop-shadow(0 2px 10px rgba(255,255,255,0.45))' }}
         />
       </div>
 
       <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col">
-        <section className="mx-auto grid w-full max-w-7xl flex-1 min-h-0 items-center gap-6 px-4 py-3 sm:gap-8 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:px-8 xl:px-10">
-          <div className="max-w-xl pr-2 sm:pr-4 lg:pr-28 xl:pr-36">
+        <section className="mx-auto grid w-full max-w-7xl flex-1 min-h-0 items-center gap-5 px-4 py-2 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:gap-8 lg:px-8 xl:px-10">
+          <div className="max-w-lg pt-2 lg:pt-0">
             <h1 className="sr-only">Horizon Farm ERP</h1>
-            <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#c9851a] sm:text-xs">
+            <p
+              className="text-[10px] font-bold uppercase tracking-[0.32em] text-[#c9851a] sm:text-xs"
+              style={{ textShadow }}
+            >
               De la terre à l&apos;horizon
             </p>
-            <p className="mt-2 text-[1.65rem] font-black leading-[1.12] tracking-tight text-[#063321] sm:text-3xl lg:text-[2.15rem] xl:text-4xl">
+            <p
+              className="mt-3 text-[1.7rem] font-black leading-[1.1] tracking-tight text-[#063321] sm:text-3xl lg:text-[2.25rem] xl:text-[2.65rem]"
+              style={{ textShadow }}
+            >
               Pilotez votre ferme.
             </p>
-            <p className="mt-1 text-[1.65rem] font-black leading-[1.12] tracking-tight text-[#c9851a] sm:text-3xl lg:text-[2.15rem] xl:text-4xl">
+            <p
+              className="mt-1.5 text-[1.7rem] font-black leading-[1.1] tracking-tight text-[#c9851a] sm:text-3xl lg:text-[2.25rem] xl:text-[2.65rem]"
+              style={{ textShadow }}
+            >
               Anticipez vos risques.
             </p>
-            <p className="mt-1 text-[1.65rem] font-black leading-[1.12] tracking-tight text-[#063321] sm:text-3xl lg:text-[2.15rem] xl:text-4xl">
+            <p
+              className="mt-1.5 text-[1.7rem] font-black leading-[1.1] tracking-tight text-[#063321] sm:text-3xl lg:text-[2.25rem] xl:text-[2.65rem]"
+              style={{ textShadow }}
+            >
               Développez votre croissance.
             </p>
           </div>
 
-          <div className="mx-auto w-full max-w-[20rem] sm:max-w-sm lg:max-w-[21rem] xl:max-w-sm">
+          <div className="mx-auto w-full max-w-[19rem] sm:max-w-sm lg:mx-0 lg:ml-auto lg:max-w-[21rem] xl:max-w-[22rem]">
             <form
               onSubmit={handleSubmit}
-              className="rounded-3xl border border-white/70 bg-white/94 p-4 shadow-2xl shadow-[#063321]/10 backdrop-blur-sm sm:p-5"
+              className="rounded-3xl border border-white/60 bg-white/78 p-4 shadow-2xl shadow-[#063321]/15 backdrop-blur-md sm:p-5"
             >
               <div className="mb-4 text-center">
                 <span className="mx-auto mb-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#e8f5ea] text-[#1f7a2f]">
@@ -145,7 +147,7 @@ export default function LoginPage() {
                     id="fullName"
                     value={fullName}
                     onChange={(event) => setFullName(event.target.value)}
-                    className="w-full rounded-xl border border-[#d6e3d8] bg-[#fafcf9] px-3 py-2 text-sm outline-none focus:border-[#1f7a2f] focus:ring-2 focus:ring-[#1f7a2f]/20"
+                    className="w-full rounded-xl border border-[#d6e3d8] bg-white/90 px-3 py-2 text-sm outline-none focus:border-[#1f7a2f] focus:ring-2 focus:ring-[#1f7a2f]/20"
                     placeholder="Nom et prénom"
                     autoComplete="name"
                   />
@@ -162,8 +164,8 @@ export default function LoginPage() {
                     id="login"
                     value={login}
                     onChange={(event) => setLogin(event.target.value)}
-                    className="w-full rounded-xl border border-[#d6e3d8] bg-[#fafcf9] py-2 pl-9 pr-3 text-sm outline-none focus:border-[#1f7a2f] focus:ring-2 focus:ring-[#1f7a2f]/20"
-                    placeholder="votre@email.com"
+                    className="w-full rounded-xl border border-[#d6e3d8] bg-white/90 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#1f7a2f] focus:ring-2 focus:ring-[#1f7a2f]/20"
+                    placeholder={mode === 'signup' ? 'votre@email.com' : 'penda'}
                     autoComplete="username"
                     required
                   />
@@ -181,7 +183,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     type={showPassword ? 'text' : 'password'}
-                    className="w-full rounded-xl border border-[#d6e3d8] bg-[#fafcf9] py-2 pl-9 pr-10 text-sm outline-none focus:border-[#1f7a2f] focus:ring-2 focus:ring-[#1f7a2f]/20"
+                    className="w-full rounded-xl border border-[#d6e3d8] bg-white/90 py-2 pl-9 pr-10 text-sm outline-none focus:border-[#1f7a2f] focus:ring-2 focus:ring-[#1f7a2f]/20"
                     placeholder="Entrez votre mot de passe"
                     autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
                     required
@@ -223,7 +225,7 @@ export default function LoginPage() {
                 disabled={loading}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1f7a2f] py-2.5 text-sm font-black text-white shadow-lg shadow-[#1f7a2f]/25 transition hover:bg-[#176226] disabled:opacity-60"
               >
-                <Leaf size={16} />
+                {mode === 'signup' ? <UserPlus size={16} /> : <LogIn size={16} />}
                 {loading ? 'Traitement…' : mode === 'signup' ? 'Créer mon compte' : 'Se connecter'}
               </button>
 
@@ -236,7 +238,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setMode(mode === 'signup' ? 'login' : 'signup')}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#1f7a2f] bg-white py-2 text-sm font-black text-[#1f7a2f] transition hover:bg-[#f3faf4]"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#1f7a2f] bg-white/85 py-2 text-sm font-black text-[#1f7a2f] transition hover:bg-[#f3faf4]"
               >
                 <UserPlus size={16} />
                 {mode === 'signup' ? 'Se connecter' : 'Créer un compte'}
@@ -245,7 +247,7 @@ export default function LoginPage() {
           </div>
         </section>
 
-        <footer className="shrink-0 bg-[#063321] px-4 py-3 sm:px-6 lg:px-8 xl:px-10">
+        <footer className="shrink-0 border-t border-white/10 bg-[#063321]/88 px-4 py-3 backdrop-blur-sm sm:px-6 lg:px-8 xl:px-10">
           <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-4 gap-y-2 lg:grid-cols-4 lg:gap-4">
             {FEATURES.map(({ icon: Icon, title, detail }) => (
               <div key={title} className="flex items-center gap-2.5 text-white sm:gap-3">
