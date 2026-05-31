@@ -1,9 +1,18 @@
 import { runErpHealthEngine } from '../../services/erpHealthEngine.js';
+import { enrichCommercialOrders } from './commercialMetrics.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
-export function buildCommercialHealthSnapshot({ salesOrders = [], payments = [], clients = [], opportunities = [] }) {
-  const data = { sales_orders: salesOrders, salesOrders, payments, clients, sales_opportunities: opportunities };
+export function buildCommercialHealthSnapshot({
+  salesOrders = [],
+  payments = [],
+  clients = [],
+  opportunities = [],
+  deliveries = [],
+  invoices = [],
+}) {
+  const enriched = enrichCommercialOrders(salesOrders, { deliveries, invoices });
+  const data = { sales_orders: enriched, salesOrders: enriched, payments, clients, sales_opportunities: opportunities };
   const health = runErpHealthEngine(data);
   return {
     score: health.score,

@@ -17,6 +17,7 @@ export function resolveCommercialDataset({
   clientsCrud,
   opportunitiesCrud,
   deliveriesCrud,
+  invoicesCrud,
   periodFiltered = false,
   periodScope,
 }) {
@@ -24,6 +25,7 @@ export function resolveCommercialDataset({
   const ordersLive = crudFirstRows(props.salesOrdersAll || props.salesOrders || props.rows, ordersCrud, false);
   const paymentsLive = crudFirstRows(props.paymentsAll || props.payments, paymentsCrud, false);
   const deliveriesLive = crudFirstRows(props.deliveries, deliveriesCrud, false);
+  const invoicesLive = crudFirstRows(props.invoices, invoicesCrud, false);
   const clientsLive = crudFirstRows(props.clients, clientsCrud, false);
   const opportunitiesLive = crudFirstRows(props.opportunities, opportunitiesCrud, false);
   const applyPeriod = periodFiltered && !isAllTimeScope(scope);
@@ -32,6 +34,7 @@ export function resolveCommercialDataset({
     ordersAll: ordersLive,
     paymentsAll: paymentsLive,
     deliveriesAll: deliveriesLive,
+    invoicesAll: invoicesLive,
     orders: applyPeriod ? filterRowsByPeriodScope(ordersLive, scope) : ordersLive,
     payments: applyPeriod ? filterRowsByPeriodScope(paymentsLive, scope) : paymentsLive,
     clients: applyPeriod ? filterRowsByPeriodScope(clientsLive, scope) : clientsLive,

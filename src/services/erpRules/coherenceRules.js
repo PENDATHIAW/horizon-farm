@@ -1,16 +1,23 @@
+import {
+  invoiceRequired,
+  isDelivered,
+  isInvoiced,
+  isSaleClosed,
+  linkedPaymentsForOrders,
+} from '../../modules/commercial/commercialMetrics.js';
+import { remainingForOrder } from '../../utils/salesStatuses.js';
+
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v = 0) => Number(v || 0);
 const low = (v) => String(v || '').toLowerCase();
 const amount = (r = {}) => n(r.montant ?? r.amount ?? r.total ?? r.montant_total);
-const isDelivered = (r = {}) => ['livre', 'livré', 'delivered', 'termine', 'terminé'].includes(low(r.delivery_status || r.statut_livraison || r.status));
-const isInvoiced = (r = {}) => r.invoice_id || r.facture_id || ['facture', 'facturé', 'invoiced'].includes(low(r.invoice_status || r.facture_status));
-const paidOf = (order, payments) => n(order.montant_paye) || arr(payments).filter((p) => String(p.order_id || p.sale_id) === String(order.id)).reduce((s, p) => s + amount(p), 0);
 
 /** Cohérence inter-modules : vente, achat, mortalité, ponte. */
 export function evaluateCoherenceRules(data = {}) {
   const findings = [];
   const orders = arr(data.sales_orders || data.salesOrders);
   const payments = arr(data.payments);
+  const linked = linkedPaymentsForOrders(orders, payments);
   const stocks = arr(data.stock || data.stocks);
   const finances = arr(data.finances || data.transactions);
   const lots = arr(data.avicole || data.lots);
@@ -19,14 +26,15 @@ export function evaluateCoherenceRules(data = {}) {
 
   orders.forEach((order) => {
     const total = amount(order);
-    const paid = paidOf(order, payments);
-    if (total > 0 && paid < total) {
-      findings.push({ id: `coh-sale-unpaid-${order.id}`, module: 'commercial', severity: 'haute', category: 'coherence', title: `Vente sans paiement complet : ${order.client_nom || order.id}`, description: `Reste ${total - paid} FCFA`, recommended_action: 'Encaisser ou créer tâche de relance', confidence_score: 0.92, auto_action: 'create_task' });
+    if (total <= 0 || isSaleClosed(order, linked)) return;
+    const rest = remainingForOrder(order, linked);
+    if (rest > 0) {
+      findings.push({ id: `coh-sale-unpaid-${order.id}`, module: 'commercial', severity: 'haute', category: 'coherence', title: `Vente sans paiement complet : ${order.client_nom || order.id}`, description: `Reste ${rest} FCFA`, recommended_action: 'Encaisser ou créer tâche de relance', confidence_score: 0.92, auto_action: 'create_task' });
     }
-    if (!isInvoiced(order)) {
+    if (invoiceRequired(order) && !isInvoiced(order)) {
       findings.push({ id: `coh-sale-no-invoice-${order.id}`, module: 'commercial', severity: 'moyenne', category: 'coherence', title: `Vente sans facture : ${order.id}`, description: 'Facture non émise', recommended_action: 'Créer facture manquante', confidence_score: 0.88, auto_action: 'create_alert' });
     }
-    if (!isDelivered(order) && total > 0) {
+    if (!isDelivered(order)) {
       findings.push({ id: `coh-sale-no-delivery-${order.id}`, module: 'commercial', severity: 'moyenne', category: 'coherence', title: `Vente sans livraison : ${order.id}`, description: 'Livraison non confirmée', recommended_action: 'Mettre à jour le statut livraison', confidence_score: 0.85, auto_action: 'create_task' });
     }
   });

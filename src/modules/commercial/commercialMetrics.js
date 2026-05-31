@@ -9,14 +9,38 @@ export const saleAmount = (row = {}) => n(row.montant_total ?? row.total ?? row.
 
 export const isWalkInOrder = (row = {}) => !row.client_id || lower(row.client_type) === 'passage';
 
+/** Facture requise pour le suivi Résumé (comptoir / sans facture volontaire = non). */
+export function invoiceRequired(order = {}) {
+  if (order.facture_emise === false) return false;
+  if (order.sans_facture === true || order.no_invoice === true) return false;
+  const mode = lower(order.fulfillment_mode || order.mode_vente || order.mode_livraison || '');
+  if (['comptoir', 'passage', 'walkin', 'walk_in'].includes(mode)) return false;
+  return true;
+}
+
 export const isOpenOrder = (row = {}) => !['cloture', 'clôture', 'annule', 'annulé', 'termine', 'terminé'].includes(lower(row.statut_commande || row.status || row.statut));
 
 export const isOpportunityOpen = (row = {}) => !['fermee', 'fermée', 'closed', 'gagnee', 'gagnée', 'perdue', 'en_conversion'].includes(lower(row.status || row.statut));
 
 /** Retrait sur place = livré côté commercial. */
-export const isDelivered = (row = {}) => ['livre', 'livré', 'delivered', 'termine', 'terminé', 'recupere', 'récupéré'].includes(lower(row.delivery_status || row.statut_livraison || row.status_livraison || row.fulfillment_mode || row.status || row.statut));
+export const isDelivered = (row = {}) => {
+  const status = lower(row.delivery_status || row.statut_livraison || row.status_livraison || row.fulfillment_mode || row.mode_livraison || row.status || row.statut);
+  if (['livre', 'livré', 'livree', 'delivered', 'termine', 'terminé', 'recupere', 'récupéré', 'recupéré', 'pickup', 'retrait'].includes(status)) return true;
+  if (['cloture', 'clôture', 'livre'].includes(lower(row.statut_commande || row.order_status))) return true;
+  const ordered = Math.max(0, n(row.quantite_commandee ?? row.quantite ?? row.quantity ?? row.qty ?? 0));
+  const delivered = Math.max(0, n(row.quantite_livree ?? row.delivered_qty ?? row.qty_delivered ?? row.livree ?? 0));
+  return ordered > 0 && delivered >= ordered;
+};
 
-export const isInvoiced = (row = {}) => row.invoice_id || row.facture_id || ['facture', 'facturé', 'invoiced', 'emise', 'émise'].includes(lower(row.invoice_status || row.facture_status || row.status_facture));
+export const isInvoiced = (row = {}) => {
+  if (!invoiceRequired(row)) return true;
+  return Boolean(
+    row.invoice_id
+    || row.facture_id
+    || row.numero_facture
+    || ['facture', 'facturé', 'invoiced', 'emise', 'émise', 'emise'].includes(lower(row.invoice_status || row.facture_status || row.status_facture || row.statut_facture)),
+  );
+};
 
 export const isCancelledPayment = (payment = {}) => ['annule', 'annulé', 'annulee', 'cancelled', 'supprime', 'supprimé', 'deleted', 'rejete', 'rejeté'].includes(lower(payment.statut || payment.status));
 
@@ -51,7 +75,7 @@ export function enrichOrdersWithDeliveries(orders = [], deliveries = []) {
     const mode = lower(delivery.mode_livraison || delivery.fulfillment_mode || '');
     let commercial = '';
     if (['livree', 'livre', 'livré', 'delivered'].includes(recordStatus) || mode === 'livraison') commercial = 'livre';
-    else if (['recupere', 'récupéré'].includes(recordStatus) || mode === 'recupere' || mode === 'récupéré') commercial = 'recupere';
+    else if (['recupere', 'récupéré', 'pickup', 'retrait'].includes(recordStatus) || ['recupere', 'récupéré', 'pickup', 'retrait'].includes(mode)) commercial = 'recupere';
     else if (mode) commercial = mode;
 
     if (!commercial) return order;
@@ -60,8 +84,36 @@ export function enrichOrdersWithDeliveries(orders = [], deliveries = []) {
       statut_livraison: commercial,
       delivery_status: commercial,
       status_livraison: commercial,
+      fulfillment_mode: order.fulfillment_mode || commercial,
     };
   });
+}
+
+export function enrichOrdersWithInvoices(orders = [], invoices = []) {
+  const byOrder = new Map();
+  arr(invoices).forEach((row) => {
+    const id = String(row.order_id || row.sale_id || row.source_record_id || '');
+    if (id) byOrder.set(id, row);
+  });
+
+  return arr(orders).map((order) => {
+    if (isInvoiced(order)) return order;
+    const invoice = byOrder.get(String(order.id));
+    if (!invoice) return order;
+    return {
+      ...order,
+      invoice_id: invoice.id,
+      facture_id: invoice.id,
+      numero_facture: invoice.numero_facture || invoice.number,
+      invoice_status: invoice.invoice_status || invoice.statut || 'emise',
+      statut_facture: invoice.statut_facture || invoice.statut || 'emise',
+      facture_emise: true,
+    };
+  });
+}
+
+export function enrichCommercialOrders(orders = [], { deliveries = [], invoices = [] } = {}) {
+  return enrichOrdersWithInvoices(enrichOrdersWithDeliveries(orders, deliveries), invoices);
 }
 
 /** Vente clôturée = payée + livrée (ou statut terminal). */
@@ -91,13 +143,13 @@ export function buildCommercialCoherenceRows(orders = [], payments = []) {
   const rows = [];
   arr(orders).forEach((order) => {
     const total = saleAmount(order);
-    if (total <= 0) return;
+    if (total <= 0 || isSaleClosed(order, linked)) return;
     const rest = remainingForOrder(order, linked);
     const name = order.client_nom || order.customer_name || order.client_label || order.client_id || 'Client';
     if (rest > 0) {
       rows.push({ id: `unpaid-${order.id}`, orderId: order.id, type: 'impaye', title: `${name} — impayé`, detail: `Reste ${fmtCurrency(rest)}`, value: rest, finding: { id: `coh-sale-unpaid-${order.id}`, module: 'commercial', severity: 'haute', auto_action: 'create_task', title: `Vente sans paiement complet : ${name}`, description: `Reste ${rest} FCFA`, recommended_action: 'Encaisser ou créer tâche de relance', confidence_score: 0.92 } });
     }
-    if (!isInvoiced(order)) {
+    if (invoiceRequired(order) && !isInvoiced(order)) {
       rows.push({ id: `noinv-${order.id}`, orderId: order.id, type: 'facture', title: `Vente ${order.id} sans facture`, detail: name, finding: { id: `coh-sale-no-invoice-${order.id}`, module: 'commercial', severity: 'moyenne', auto_action: 'create_alert', title: `Vente sans facture : ${order.id}`, description: 'Facture non émise', recommended_action: 'Créer facture manquante', confidence_score: 0.88 } });
     }
     if (!isDelivered(order)) {
@@ -179,25 +231,28 @@ export function buildClientLedger(clients = [], orders = [], payments = []) {
   return { rows, walkInOrders };
 }
 
-/** Une ligne par vente — regroupe impayé / facture / livraison. */
-export function buildSummaryTodos(orders = [], payments = [], healthFindings = []) {
+/** Une ligne par vente — uniquement les blocages réels (pas les ventes clôturées). */
+export function buildSummaryTodos(orders = [], payments = [], _healthFindings = []) {
   const linked = linkedPaymentsForOrders(orders, payments);
   const items = arr(orders).map((order) => {
     const total = saleAmount(order);
     if (total <= 0) return null;
+    if (isSaleClosed(order, linked)) return null;
+
     const rest = remainingForOrder(order, linked);
     const issues = [];
     if (rest > 0) issues.push('encaissement');
-    if (!isInvoiced(order)) issues.push('facture');
     if (!isDelivered(order)) issues.push('livraison');
+    if (invoiceRequired(order) && !isInvoiced(order)) issues.push('facture');
     if (!issues.length) return null;
+
     const client = order.client_label || order.client_name || order.client_nom || 'Client';
     const label = order.product_name || order.produit || order.id;
     const priority = (rest > 0 ? 100 : 0) + (!isDelivered(order) ? 20 : 0) + (!isInvoiced(order) ? 10 : 0) + rest;
     return {
       id: order.id,
       orderId: order.id,
-      title: label,
+      title: issues.includes('facture') && issues.length === 1 ? `Facture absente : ${order.id}` : label,
       client,
       detail: `${client} · ${issues.map((i) => (i === 'encaissement' ? `reste ${fmtCurrency(rest)}` : i === 'facture' ? 'sans facture' : 'à livrer')).join(' · ')}`,
       issues,
@@ -206,21 +261,6 @@ export function buildSummaryTodos(orders = [], payments = [], healthFindings = [
       tab: rest > 0 ? 'Clients' : 'Ventes',
     };
   }).filter(Boolean);
-
-  arr(healthFindings).slice(0, 2).forEach((finding) => {
-    items.push({
-      id: finding.id,
-      orderId: null,
-      title: finding.title,
-      client: '',
-      detail: finding.recommended_action || finding.description || '',
-      issues: ['ia'],
-      rest: 0,
-      priority: 50,
-      tab: 'Ventes',
-      finding,
-    });
-  });
 
   return items.sort((a, b) => b.priority - a.priority);
 }
