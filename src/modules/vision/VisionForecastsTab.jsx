@@ -12,7 +12,7 @@ export default function VisionForecastsTab({ data, onNavigate }) {
         <Stat label="Prévisions IA" value={fmtNumber(predictions.length)} tone={predictions.length ? 'warn' : 'good'} />
         <Stat label="Risques" value={fmtNumber(data.risks.length)} tone={data.risks.length ? 'warn' : 'good'} />
       </div>
-      <Section icon={LineChart} title="Prévisions IA" action={onNavigate ? <Btn onClick={() => onNavigate('assistant_erp')}>Hey Horizon</Btn> : null}>
+      <Section icon={LineChart} title="Prévisions IA" action={onNavigate ? <Btn onClick={() => onNavigate('elevage', { tab: 'Cycles' })}>Cycles production</Btn> : null}>
         {predictions.length ? predictions.map((p) => (
           <Row
             key={p.id}

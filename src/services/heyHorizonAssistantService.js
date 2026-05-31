@@ -156,13 +156,21 @@ const PRODUCTION_LABELS = {
 
 function buildPilotageRedirect({ module, tab, productionQuestion, label }, prefix = '') {
   const where = `${label}${tab ? ` → ${tab}` : ''}`;
-  return {
+  const result = {
     kind: 'redirect_pilotage',
     route: module,
     tab,
     productionQuestion,
     assistantText: `${prefix}Ouvre ${where}. Hey Horizon reste pour les actions terrain : vente, vaccin, stock, tâche…`,
   };
+  saveLocalRecommendation({
+    type: 'redirect_pilotage',
+    text: prefix.trim(),
+    module,
+    action: where,
+    source_engine: 'rules',
+  });
+  return result;
 }
 
 export async function logHeyHorizonValidationEvent(draft, result, onCreateBusinessEvent) {

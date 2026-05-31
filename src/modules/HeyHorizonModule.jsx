@@ -1,4 +1,4 @@
-import { Bot, CheckCircle2, ClipboardList, Mic, Send, Sparkles, Zap } from 'lucide-react';
+import { Bot, CheckCircle2, ClipboardList, Mic, Send, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import HeyHorizonDraftSummary from '../components/HeyHorizonDraftSummary.jsx';
@@ -7,7 +7,7 @@ import HorizonDraftPanel from '../components/HorizonDraftPanel.jsx';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import useHeyHorizonCommand from '../hooks/useHeyHorizonCommand.js';
 import { buildRecommendationsFromData, buildAssistantJournal, loadLocalRecommendations, saveLocalRecommendation } from '../services/aiRecommendationsService';
-import { applyOneClickRecommendation, createClientFollowUpTask } from '../services/heyHorizonRecommendationActions.js';
+import { createClientFollowUpTask } from '../services/heyHorizonRecommendationActions.js';
 import { runErpHealthEngine } from '../services/erpHealthEngine.js';
 import { isHeyHorizonLlmEnabled } from '../services/heyHorizonLlmService.js';
 import { launchProductionQuestion } from '../utils/productionNavigation.js';
@@ -80,28 +80,18 @@ function StrategicAnswerPanel({ answer, onNavigate, onRelanceClient, busyId, las
   );
 }
 
-function ProactiveRecommendationsPanel({ findings = [], onApply, busyId, onNavigate }) {
-  if (!findings.length) return null;
+function PilotageBanner({ count, onNavigate }) {
+  if (!count) return null;
   return (
-    <Section icon={Zap} title="Recommandations IA — one-click" action={<button type="button" onClick={() => onNavigate?.('centre_ia')} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black">Centre décisionnel</button>}>
-      <p className="mb-4 text-sm text-[#8a7456]">Le moteur ERP a détecté ces actions. Un clic crée la tâche/alerte ou ouvre le module concerné.</p>
-      <div className="space-y-2">
-        {findings.slice(0, 8).map((finding) => (
-          <div key={finding.id} className="flex flex-col gap-2 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <p className="font-black text-[#2f2415]">{finding.title}</p>
-              <p className="text-xs text-[#8a7456]">{finding.recommended_action || finding.description}</p>
-            </div>
-            <div className="flex flex-wrap gap-2 shrink-0">
-              <button type="button" disabled={busyId === finding.id} onClick={() => onApply(finding, 'navigate')} className="rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-xs font-black text-[#2f2415]">Ouvrir</button>
-              <button type="button" disabled={busyId === finding.id} onClick={() => onApply(finding, 'apply')} className="rounded-xl bg-[#22c55e] px-3 py-2 text-xs font-black text-[#052e16]">
-                {busyId === finding.id ? '…' : finding.auto_action === 'create_task' ? 'Créer tâche' : finding.auto_action === 'create_alert' ? 'Créer alerte' : 'Appliquer'}
-              </button>
-            </div>
-          </div>
-        ))}
+    <section className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="font-black text-[#2f2415]">{count} signal(aux) IA détecté(s)</p>
+        <p className="text-sm text-[#8a7456]">Recommandations complètes, prévisions et cycles dans le Centre décisionnel.</p>
       </div>
-    </Section>
+      <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'À traiter' })} className="rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white shrink-0">
+        Centre décisionnel →
+      </button>
+    </section>
   );
 }
 
@@ -208,27 +198,6 @@ export default function HeyHorizonModule({
     existingAlerts,
   }), [onNavigate, onCreateTask, onCreateAlert, onUpdateAlert, onCreateBusinessEvent, existingTasks, existingAlerts]);
 
-  const applyFinding = async (finding, mode = 'apply') => {
-    setBusyId(finding.id);
-    try {
-      if (mode === 'navigate') {
-        onNavigate?.(finding.module || finding.module_target || 'centre_ia');
-        return;
-      }
-      const result = await applyOneClickRecommendation(finding, actionHandlers);
-      if (result.createdTasks || result.createdAlerts) {
-        toast.success(`${result.createdTasks || 0} tâche(s), ${result.createdAlerts || 0} alerte(s) créées`);
-      } else if (result.navigated) {
-        toast.success('Module ouvert');
-      }
-      saveLocalRecommendation({ type: 'one_click', text: finding.title, module: finding.module, confidence_score: Math.round((finding.confidence_score || 0.85) * 100), action: finding.recommended_action });
-    } catch (e) {
-      toast.error(e.message || 'Action impossible');
-    } finally {
-      setBusyId(null);
-    }
-  };
-
   const relanceClient = async (row) => {
     setBusyId(row.orderId);
     try {
@@ -259,8 +228,8 @@ export default function HeyHorizonModule({
     <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-black text-amber-900">Pilotage production & stratégie</p><p className="text-sm text-amber-800">Bandes, cycles, objectifs CA, risques — pas ici.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => launchProductionQuestion({ questionId: 'new_layer_band', onNavigate })} className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white">Élevage → Cycles</button><button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'À traiter' })} className="rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-black text-amber-900">Centre décisionnel</button><button type="button" onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Performance' })} className="rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-black text-amber-900">Objectifs</button></div></section>
     <div className="grid grid-cols-2 gap-3 xl:grid-cols-7"><Stat label="Santé ERP" value={`${data.healthScore}/100`} tone={data.healthScore >= 75 ? 'good' : data.healthScore >= 50 ? 'warn' : 'bad'} /><Stat label="Stocks bas" value={fmtNumber(data.lowStocks.length)} tone={data.lowStocks.length ? 'warn' : 'good'} /><Stat label="Créances" value={fmtNumber(data.openReceivables)} tone={data.openReceivables ? 'warn' : 'good'} /><Stat label="Tâches ouvertes" value={fmtNumber(data.openTasks.length)} tone={data.openTasks.length ? 'warn' : 'good'} /><Stat label="Alertes" value={fmtNumber(data.openAlerts.length)} tone={data.openAlerts.length ? 'warn' : 'good'} /><Stat label="Preuves manquantes" value={fmtNumber(data.missingProof.length)} tone={data.missingProof.length ? 'warn' : 'good'} /><Stat label="Recommandations IA" value={fmtNumber(data.proactiveFindings.length)} tone={data.proactiveFindings.length ? 'warn' : 'good'} /></div>
     <AssistantERPInsights dataMap={enrichedDataMap} onNavigate={onNavigate} />
-    <ProactiveRecommendationsPanel findings={data.proactiveFindings} onApply={applyFinding} busyId={busyId} onNavigate={onNavigate} />
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="rounded-3xl border border-[#eadcc2] bg-[#fffdf8] p-4"><label className="text-xs font-black uppercase tracking-[0.2em] text-[#8a7456]">Demander à Hey Horizon</label><div className="mt-3 flex flex-col gap-3 lg:flex-row"><textarea value={command} onChange={(event) => setCommand(event.target.value)} rows={3} placeholder="Exemple : J’ai vendu 10 poulets à Aminata, livré et payé 65 000 FCFA" className="min-h-[96px] flex-1 rounded-2xl border border-[#d6c3a0] bg-white p-4 text-sm text-[#2f2415] outline-none focus:border-emerald-400" /><div className="flex lg:flex-col gap-2"><button type="button" onClick={() => runDraft()} className="rounded-2xl bg-[#22c55e] px-4 py-3 text-sm font-black text-[#052e16]"><Send size={16} className="inline mr-1" /> Préparer</button><button type="button" onClick={onOpenAssistant} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><Mic size={16} className="inline mr-1" /> Voix</button></div></div></div></section>
+    <PilotageBanner count={data.proactiveFindings.length} onNavigate={onNavigate} />
+    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="rounded-3xl border border-[#eadcc2] bg-[#fffdf8] p-4"><label className="text-xs font-black uppercase tracking-[0.2em] text-[#8a7456]">Action terrain</label><p className="mt-1 text-xs text-[#8a7456]">Questions stratégiques → redirection automatique vers Centre décisionnel ou Élevage Cycles.</p><div className="mt-3 flex flex-col gap-3 lg:flex-row"><textarea value={command} onChange={(event) => setCommand(event.target.value)} rows={3} placeholder="Exemple : J’ai vendu 10 poulets à Aminata, livré et payé 65 000 FCFA" className="min-h-[96px] flex-1 rounded-2xl border border-[#d6c3a0] bg-white p-4 text-sm text-[#2f2415] outline-none focus:border-emerald-400" /><div className="flex lg:flex-col gap-2"><button type="button" onClick={() => runDraft()} className="rounded-2xl bg-[#22c55e] px-4 py-3 text-sm font-black text-[#052e16]"><Send size={16} className="inline mr-1" /> Préparer</button><button type="button" onClick={onOpenAssistant} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><Mic size={16} className="inline mr-1" /> Voix</button></div></div></div></section>
     {strategic ? <StrategicAnswerPanel answer={strategic} onNavigate={onNavigate} onRelanceClient={relanceClient} busyId={busyId} lastQuery={lastQuery} lastSource={lastSource} onFeedback={(rating) => toast.success(rating === 'up' ? 'Merci pour le retour' : 'Retour enregistré — on améliorera la réponse')} /> : null}
     {draft ? (
       <Section icon={Sparkles} title="Brouillon Hey Horizon">
@@ -281,7 +250,7 @@ export default function HeyHorizonModule({
     ) : null}
     <AssistantERPQuickAnswers dataMap={enrichedDataMap} onNavigate={onNavigate} />
     <Section icon={Sparkles} title="Actions rapides terrain"><div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{QUICK_COMMANDS.map((item) => <button key={item.title} type="button" onClick={() => runDraft(item.text)} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left hover:bg-[#dcfce7]"><p className="font-black text-[#2f2415]">{item.title}</p><p className="mt-1 text-sm text-[#7d6a4a]">{item.text}</p><Pill tone="good">{item.target}</Pill></button>)}</div></Section>
-    <Section icon={ClipboardList} title="Informations utiles détectées"><div>{data.lowStocks.slice(0, 4).map((row) => <Row key={`stock-${row.id || label(row)}`} title={label(row)} detail="Stock sous seuil" value="Acheter" tone="warn" onClick={() => onNavigate?.('achats_stock')} />)}{data.missingProof.slice(0, 4).map((row) => <Row key={`proof-${row.id || label(row)}`} title={label(row)} detail="Justificatif manquant" value={fmtCurrency(amount(row))} tone="warn" onClick={() => onNavigate?.('documents_rapports')} />)}{data.aiRecommendations.slice(0, 4).map((row) => <Row key={row.id} title={row.title} detail={row.action_recommandee} value={`${row.confidence_score}%`} tone="warn" onClick={() => applyFinding({ id: row.id, title: row.title, module: row.module_target, recommended_action: row.action_recommandee, auto_action: row.auto_action, confidence_score: (row.confidence_score || 80) / 100 }, 'apply')} />)}{!data.lowStocks.length && !data.missingProof.length && !data.aiRecommendations.length ? <Empty label="Aucune priorité automatique détectée." /> : null}</div></Section>
+    <Section icon={ClipboardList} title="Priorités détectées (terrain)"><div>{data.lowStocks.slice(0, 3).map((row) => <Row key={`stock-${row.id || label(row)}`} title={label(row)} detail="Stock sous seuil" value="Acheter" tone="warn" onClick={() => onNavigate?.('achats_stock')} />)}{data.missingProof.slice(0, 3).map((row) => <Row key={`proof-${row.id || label(row)}`} title={label(row)} detail="Justificatif manquant" value={fmtCurrency(amount(row))} tone="warn" onClick={() => onNavigate?.('documents_rapports')} />)}{!data.lowStocks.length && !data.missingProof.length ? <Empty label="Aucune alerte terrain immédiate." /> : null}</div></Section>
     <Section icon={ClipboardList} title="Journal Hey Horizon" action={<button type="button" onClick={() => setJournalTab((v) => !v)} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black">{journalTab ? 'Masquer' : 'Afficher'}</button>}>{journalTab ? (journal.length ? journal.slice(0, 12).map((entry, idx) => <Row key={`${entry.saved_at}-${idx}`} title={entry.action || entry.text || 'Recommandation'} detail={`${entry.module || '—'} · ${entry.source === 'erp' ? 'ERP' : 'local'} · ${entry.saved_at ? new Date(entry.saved_at).toLocaleString('fr-FR') : '—'}`} value={entry.confidence_score ? `${entry.confidence_score}%` : entry.type === 'event' ? 'Event' : '—'} />) : <Empty label="Aucune activité enregistrée." />) : <Empty label="Journal local + événements métier assistant (tâches, validations, one-click)." />}</Section>
     <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm"><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Modules compris par Hey Horizon</p><div className="mt-3 flex flex-wrap gap-2">{MODULES.map((module) => <Pill key={module} tone="good"><CheckCircle2 size={13} className="inline mr-1" /> {module}</Pill>)}</div></section>
   </div>;

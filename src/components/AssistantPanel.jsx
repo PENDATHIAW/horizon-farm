@@ -40,7 +40,7 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate, onC
   const [terrainMode, setTerrainMode] = useState(false);
   const [query, setQuery] = useState('');
   const [isThinking, setIsThinking] = useState(false);
-  const [messages, setMessages] = useState([{ role: 'assistant', text: 'Hey Horizon est prêt. Clique Parler ou écris une action simple : vente, vaccin, œufs, stock, tâche, dépense…' }]);
+  const [messages, setMessages] = useState([{ role: 'assistant', text: 'Hey Horizon — actions terrain uniquement. Dis : vente, vaccin, stock, œufs, tâche, dépense. Pour bandes, objectifs ou risques, j’ouvre le Centre décisionnel.' }]);
   const silenceTimerRef = useRef(null);
   const lastHeardRef = useRef('');
   const speech = useSpeechSynthesis();
@@ -162,7 +162,7 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate, onC
     {panelOpen ? <aside className="fixed right-4 top-[72px] z-50 w-[min(470px,calc(100vw-2rem))] max-h-[calc(100vh-90px)] bg-white/96 backdrop-blur border border-[#d6c3a0] rounded-3xl shadow-2xl overflow-hidden max-md:top-auto max-md:bottom-[92px] max-md:right-3 max-md:left-3 max-md:w-auto max-md:max-h-[calc(100vh-170px)]">
       <div className="px-4 py-3 border-b border-[#d6c3a0] flex items-center gap-3 bg-[#fffdf8]">
         <div className="w-11 h-11 rounded-full bg-amber-100 text-[#9a6b12] flex items-center justify-center border border-amber-200 shadow-inner"><Sun size={22} /></div>
-        <div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap"><p className="font-black text-[#2f2415]">Hey Horizon</p><span className="rounded-full bg-[#2f2415] px-2 py-0.5 text-[10px] font-black text-white">Assistant global</span>{voice.listening ? <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700"><Ear size={10} className="inline" /> écoute</span> : null}</div><p className="text-xs text-[#8a7456]">Clique Parler ou écris une action. Horizon choisit le bon module.</p></div>
+        <div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap"><p className="font-black text-[#2f2415]">Hey Horizon</p><span className="rounded-full bg-[#2f2415] px-2 py-0.5 text-[10px] font-black text-white">Actions terrain</span>{voice.listening ? <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700"><Ear size={10} className="inline" /> écoute</span> : null}</div><p className="text-xs text-[#8a7456]">Vente, vaccin, stock… · Pilotage → Centre décisionnel</p></div>
         <button type="button" onClick={resetConversation} className="p-2 text-[#8a7456] hover:text-[#2f2415]" title="Nouvelle demande"><RefreshCw size={16} /></button>
         <button type="button" onClick={closePanel} className="p-2 text-[#8a7456] hover:text-[#2f2415]" title="Fermer"><X size={16} /></button>
       </div>
