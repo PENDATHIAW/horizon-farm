@@ -12,6 +12,9 @@ import VisionPerformanceTab from './vision/VisionPerformanceTab';
 import VisionPlansTab from './vision/VisionPlansTab';
 import VisionRentabiliteLotTab from './vision/VisionRentabiliteLotTab';
 import VisionReferentielPrixTab from './vision/VisionReferentielPrixTab';
+import VisionObjectifsGraphiquesTab from './vision/VisionObjectifsGraphiquesTab';
+import VisionCroissanceEconomiqueTab from './vision/VisionCroissanceEconomiqueTab';
+import VisionObjectifsEcartsTab from './vision/VisionObjectifsEcartsTab';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import HeyHorizonQuickAsk from '../components/HeyHorizonQuickAsk.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
@@ -28,9 +31,24 @@ const MODULE_COPY = {
   objectifs_croissance: {
     kicker: 'Pilotage stratégique',
     title: 'Objectifs & Croissance',
-    subtitle: 'Performance, prévisions, plans d\'activité et dossiers financeurs — vision long terme.',
+    subtitle: 'Écarts zootechniques vs souche, point mort dynamique et capacités bâtiments — lecture automatique sans saisie.',
   },
 };
+
+const objectifsTabProps = (props) => ({
+  lots: props.lots,
+  animaux: props.animaux,
+  cultures: props.cultures,
+  stocks: props.stocks,
+  alimentationLogs: props.alimentationLogs,
+  productionLogs: props.productionLogs,
+  salesOrders: props.salesOrdersAll || props.salesOrders,
+  payments: props.paymentsAll || props.payments,
+  transactions: props.transactionsAll || props.transactions,
+  sante: props.sante,
+  marketPrices: props.marketPrices,
+  onNavigate: props.onNavigate,
+});
 
 const decisionTabProps = (props) => ({
   lots: props.lots,
@@ -89,21 +107,10 @@ export default function VisionCroissanceModule(props) {
         : tab === 'Maraîchage' ? <VisionMaraichageTab {...dcProps} />
           : <VisionDecisionGraphiquesTab {...dcProps} />;
 
-  const objectifsContent = tab === 'Performance' ? <VisionPerformanceTab data={data} onNavigate={onNavigate} />
-    : tab === 'Opportunités' ? <VisionOpportunitiesTab data={data} onNavigate={onNavigate} />
-      : tab === 'Prévisions' ? <VisionForecastsTab data={data} onNavigate={onNavigate} />
-        : tab === 'Cycles' ? (
-          <VisionCyclesTab
-            dataMap={dataMap}
-            lots={props.lots}
-            animaux={props.animaux}
-            productionLogs={props.productionLogs || props.production_oeufs_logs}
-            onNavigate={onNavigate}
-          />
-        )
-          : tab === 'Plans' ? <VisionPlansTab data={data} onCreateBusinessPlan={onCreateBusinessPlan} onNavigate={onNavigate} />
-            : tab === 'Financeurs' ? <VisionFundingTab data={data} onNavigate={onNavigate} />
-              : <ModuleGraphiquesTab moduleId={moduleId} periodFiltered={props.periodFiltered} {...props} {...dataMap} onNavigate={onNavigate} />;
+  const ocProps = objectifsTabProps(props);
+  const objectifsContent = tab === 'Objectifs & Écarts Zootechniques' ? <VisionObjectifsEcartsTab {...ocProps} />
+    : tab === 'Croissance Économique & Capacités' ? <VisionCroissanceEconomiqueTab {...ocProps} />
+      : <VisionObjectifsGraphiquesTab {...ocProps} />;
 
   const content = moduleId === 'centre_ia' ? centreContent : objectifsContent;
 
@@ -123,7 +130,7 @@ export default function VisionCroissanceModule(props) {
           <div className="flex flex-col gap-2">
             <div className="rounded-2xl border border-[#eadcc2] bg-white px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé ERP </span><b className="text-[#2f2415]">{data.healthScore ?? data.globalScore}/100</b></div>
             {moduleId === 'centre_ia' && onNavigate ? (
-              <button type="button" onClick={() => onNavigate('objectifs_croissance', { tab: 'Performance' })} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-left text-sm text-[#2f2415] hover:bg-[#dcfce7]">
+              <button type="button" onClick={() => onNavigate('objectifs_croissance', { tab: 'Objectifs & Écarts Zootechniques' })} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-left text-sm text-[#2f2415] hover:bg-[#dcfce7]">
                 <span className="text-[#8a7456]">Pilotage long terme → </span><b>Objectifs & Croissance</b>
               </button>
             ) : null}
