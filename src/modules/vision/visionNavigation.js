@@ -12,6 +12,20 @@ export const VISION_MODULE_TABS = {
   centre_ia: 'À traiter',
 };
 
+const OBJECTIFS_TAB_ALIASES = {
+  Performance: 'Objectifs & Écarts',
+  Prévisions: 'Croissance économique & Capacités',
+  Plans: 'Croissance économique & Capacités',
+  Financeurs: 'Croissance économique & Capacités',
+  Graphiques: 'Tableau de bord graphique',
+};
+
+const CENTRE_TAB_ALIASES = {
+  Graphiques: 'Recommandations',
+  Cycles: 'Opportunités & cycles',
+  Opportunités: 'Opportunités & cycles',
+};
+
 export function navigateVision(onNavigate, module = '', tab = null) {
   if (!onNavigate || !module) return;
   if (tab) onNavigate(module, { tab });
@@ -45,10 +59,16 @@ export function navigateVisionPriority(onNavigate, item = {}) {
     navigateVisionFinding(onNavigate, item.finding);
     return;
   }
-  const module = item.navModule || item.sourceModule;
-  if (item.tab && ['Performance', 'Prévisions', 'Plans', 'Financeurs'].includes(item.tab)) {
-    navigateVision(onNavigate, 'objectifs_croissance', item.tab);
+  const strategicTabs = ['Performance', 'Prévisions', 'Plans', 'Financeurs', 'Objectifs & Écarts', 'Croissance économique & Capacités', 'Tableau de bord graphique'];
+  const centreTabs = ['Graphiques', 'Cycles', 'Opportunités', 'Recommandations', 'Opportunités & cycles', 'Historique'];
+  if (item.tab && strategicTabs.includes(item.tab)) {
+    navigateVision(onNavigate, 'objectifs_croissance', OBJECTIFS_TAB_ALIASES[item.tab] || item.tab);
     return;
   }
+  if (item.tab && centreTabs.includes(item.tab)) {
+    navigateVision(onNavigate, 'centre_ia', CENTRE_TAB_ALIASES[item.tab] || item.tab);
+    return;
+  }
+  const module = item.navModule || item.sourceModule;
   if (module) navigateVision(onNavigate, module, item.navTab || VISION_MODULE_TABS[module]);
 }
