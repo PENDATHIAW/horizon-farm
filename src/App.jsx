@@ -102,10 +102,29 @@ export default function App() {
   const periodLabel = useMemo(() => formatPeriodScopeLabel(periodScope), [periodScope]);
   const periodScopeKey = useMemo(() => JSON.stringify(periodScope), [periodScope]);
   const c = useCrudModules();
-  const crudFingerprint = useMemo(
-    () => CRUD_KEYS.map((key) => `${key}:${rows(c[key]).length}`).join('|'),
-    [c],
-  );
+  const crudFingerprint = useMemo(() => {
+    const workflowSignal = (key, moduleRows = []) => {
+      const list = arr(moduleRows);
+      if (key === 'sales_orders') {
+        const receivable = list.reduce((sum, row) => sum + Math.max(0, Number(row.reste_a_payer ?? row.remaining ?? 0)), 0);
+        const toDeliver = list.filter((row) => {
+          const status = String(row.statut_livraison || row.delivery_status || row.status_livraison || '').toLowerCase();
+          return status && !['livre', 'livré', 'recupere', 'récupéré', 'delivered', 'termine', 'terminé'].includes(status);
+        }).length;
+        return `${list.length}:${Math.round(receivable)}:${toDeliver}`;
+      }
+      if (key === 'payments') {
+        const totalPaid = list.reduce((sum, row) => sum + Number(row.montant ?? row.amount ?? row.montant_paye ?? 0), 0);
+        return `${list.length}:${Math.round(totalPaid)}`;
+      }
+      if (key === 'deliveries') {
+        const done = list.filter((row) => ['livree', 'livre', 'livré', 'delivered'].includes(String(row.statut || row.status || '').toLowerCase())).length;
+        return `${list.length}:${done}`;
+      }
+      return String(list.length);
+    };
+    return CRUD_KEYS.map((key) => `${key}:${workflowSignal(key, rows(c[key]))}`).join('|');
+  }, [c]);
   useEffect(() => {
     clearPeriodFilterCache();
   }, [crudFingerprint]);

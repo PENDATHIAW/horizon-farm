@@ -35,6 +35,35 @@ export function linkedPaymentsForOrders(orders = [], payments = []) {
   return activePayments(payments, orderIds);
 }
 
+export function enrichOrdersWithDeliveries(orders = [], deliveries = []) {
+  const byOrder = new Map();
+  arr(deliveries).forEach((row) => {
+    const id = String(row.order_id || row.sale_id || row.source_record_id || '');
+    if (id) byOrder.set(id, row);
+  });
+
+  return arr(orders).map((order) => {
+    if (isDelivered(order)) return order;
+    const delivery = byOrder.get(String(order.id));
+    if (!delivery) return order;
+
+    const recordStatus = lower(delivery.statut || delivery.status || '');
+    const mode = lower(delivery.mode_livraison || delivery.fulfillment_mode || '');
+    let commercial = '';
+    if (['livree', 'livre', 'livré', 'delivered'].includes(recordStatus) || mode === 'livraison') commercial = 'livre';
+    else if (['recupere', 'récupéré'].includes(recordStatus) || mode === 'recupere' || mode === 'récupéré') commercial = 'recupere';
+    else if (mode) commercial = mode;
+
+    if (!commercial) return order;
+    return {
+      ...order,
+      statut_livraison: commercial,
+      delivery_status: commercial,
+      status_livraison: commercial,
+    };
+  });
+}
+
 /** Vente clôturée = payée + livrée (ou statut terminal). */
 export function isSaleClosed(order = {}, payments = []) {
   if (['cloture', 'clôture', 'annule', 'annulé'].includes(lower(order.statut_commande || order.status))) return true;
