@@ -11,6 +11,7 @@ import VisionOpportunitiesTab from './vision/VisionOpportunitiesTab';
 import VisionPerformanceTab from './vision/VisionPerformanceTab';
 import VisionPlansTab from './vision/VisionPlansTab';
 import VisionRentabiliteLotTab from './vision/VisionRentabiliteLotTab';
+import VisionReferentielPrixTab from './vision/VisionReferentielPrixTab';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import HeyHorizonQuickAsk from '../components/HeyHorizonQuickAsk.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
@@ -35,6 +36,8 @@ const decisionTabProps = (props) => ({
   lots: props.lots,
   animaux: props.animaux,
   cultures: props.cultures,
+  clients: props.clients,
+  transactions: props.transactionsAll || props.transactions,
   stocks: props.stocks,
   alimentationLogs: props.alimentationLogs,
   productionLogs: props.productionLogs,
@@ -83,6 +86,7 @@ export default function VisionCroissanceModule(props) {
   const centreContent = tab === 'Rentabilité lots' ? <VisionRentabiliteLotTab {...dcProps} />
     : tab === 'Efficacité' ? <VisionEfficaciteTab {...dcProps} />
       : tab === 'Flux & stocks' ? <VisionFluxTab {...dcProps} />
+        : tab === 'Référentiel prix' ? <VisionReferentielPrixTab {...dcProps} />
         : tab === 'Maraîchage' ? <VisionMaraichageTab {...dcProps} />
           : <VisionDecisionGraphiquesTab {...dcProps} />;
 

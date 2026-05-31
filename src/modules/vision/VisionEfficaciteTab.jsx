@@ -1,11 +1,13 @@
 import { Activity } from 'lucide-react';
 import { fmtCurrency, fmtNumber, fmtPercent } from '../../utils/format';
 import { buildDecisionCenterData, BROILER_IC_TARGET } from './decisionCenterMetrics.js';
+import { buildVetPathologyMatrix } from './decisionAdvancedMetrics.js';
 import { Btn, DataRow, DataTable, Empty, Section, TabIntro, VisionKpi } from './visionUtils';
 
 export default function VisionEfficaciteTab({ lots, animaux, alimentationLogs, productionLogs, sante, veterinaires, onNavigate }) {
   const { efficacite, comparatifs } = buildDecisionCenterData({ lots, animaux, alimentationLogs, productionLogs, sante, veterinaires });
   const vetCompare = comparatifs?.veterinaires || { insights: [], rankings: [] };
+  const pathologyRows = buildVetPathologyMatrix({ sante, veterinaires, lots, animaux });
   const alertCount = efficacite.icAlerts.length + efficacite.layingAlerts.filter((a) => a.tone === 'bad').length + efficacite.gmqAlerts.filter((a) => a.tone === 'bad').length;
 
   return (
@@ -47,6 +49,23 @@ export default function VisionEfficaciteTab({ lots, animaux, alimentationLogs, p
       </Section>
 
       
+      
+      <Section icon={Activity} title="Performance vétérinaire par pathologie">
+        <p className="mb-3 text-xs text-[#8a7456]">Date · véto · coût intervention + médicaments · jours avant rétablissement · mortalité lot · coût réel (incl. opportunité).</p>
+        <DataTable columns={['Pathologie · cible', 'Date · véto', 'Coût · rétablissement', 'Pertes lot']}>
+          {pathologyRows.length ? pathologyRows.slice(0, 15).map((row) => (
+            <DataRow
+              key={row.id}
+              title={row.pathology}
+              detail={`${row.date || '—'} · ${row.vet} · ${row.target}`}
+              status={`${fmtCurrency(row.cost)} · ${row.recoveryDays !== null ? `${row.recoveryDays} j` : '—'} · coût réel ${fmtCurrency(row.realTotalCost)}${row.mortalityPct !== null ? ` · mort. ${fmtPercent(row.mortalityPct)}` : ''}`}
+              tone={row.tone}
+              onClick={() => onNavigate?.('elevage', { tab: 'Santé' })}
+            />
+          )) : <Empty>Renseignez diagnostic, véto, coût et statut santé après traitement sur vos interventions.</Empty>}
+        </DataTable>
+      </Section>
+
       <Section icon={Activity} title="Comparatif vétérinaires — coût & rétablissement">
         <p className="mb-3 text-xs text-[#8a7456]">Pour une même intervention, compare le coût moyen et la durée de rétablissement entre vétos.</p>
         <DataTable columns={['Intervention', 'Meilleur véto · coût', 'Comparaison', 'Statut']}>

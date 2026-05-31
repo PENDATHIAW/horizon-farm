@@ -1,6 +1,7 @@
 import { MODULE_TARGET_TABS } from '../../config/horizonVision.config.js';
 import { isOpportunityOpen } from '../commercial/commercialMetrics.js';
 import { buildDecisionCenterData } from './decisionCenterMetrics.js';
+import { buildAdvancedDecisionData } from './decisionAdvancedMetrics.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v = 0) => Number(v || 0);
@@ -32,7 +33,7 @@ export function resolveVisionTab(moduleId, requestedTab, onNavigate) {
 }
 
 const STRATEGIC_TABS = new Set(['Performance', 'Prévisions', 'Plans', 'Financeurs']);
-const OPERATIONAL_TABS = new Set(['Rentabilité lots', 'Efficacité', 'Flux & stocks', 'Maraîchage', 'Graphiques', 'À traiter', 'Risques', 'Opportunités', 'Cycles']);
+const OPERATIONAL_TABS = new Set(['Rentabilité lots', 'Efficacité', 'Flux & stocks', 'Référentiel prix', 'Maraîchage', 'Graphiques', 'À traiter', 'Risques', 'Opportunités', 'Cycles']);
 
 /** Ouvre l'onglet priorité sur le bon module (Centre vs Objectifs). */
 export function openVisionPriority(item = {}, moduleId = 'centre_ia', { setTab, onNavigate } = {}) {
@@ -83,6 +84,20 @@ export function buildVisionBadges(data = {}, moduleId = 'centre_ia', sourceProps
     if (dc.alertCounts.rentabilite > 0) tabs['Rentabilité lots'] = dc.alertCounts.rentabilite;
     if (dc.alertCounts.efficacite > 0) tabs.Efficacité = dc.alertCounts.efficacite;
     if (dc.alertCounts.flux > 0) tabs['Flux & stocks'] = dc.alertCounts.flux;
+    const adv = buildAdvancedDecisionData({
+      lots: data.lots,
+      animaux: data.animaux,
+      stocks: data.stocks,
+      alimentationLogs: sourceProps.alimentationLogs,
+      productionLogs: sourceProps.productionLogs,
+      salesOrders: sourceProps.salesOrdersAll || sourceProps.salesOrders,
+      clients: sourceProps.clients,
+      fournisseurs: sourceProps.fournisseurs,
+      transactions: sourceProps.transactionsAll || sourceProps.transactions,
+      sante: sourceProps.sante,
+      veterinaires: sourceProps.veterinaires,
+    });
+    if (adv.alertCount > 0) tabs['Référentiel prix'] = adv.alertCount;
   } else {
     if (unreliableMargins > 0) tabs.Performance = unreliableMargins;
     if (predictionsCount > 0) tabs.Prévisions = predictionsCount;
