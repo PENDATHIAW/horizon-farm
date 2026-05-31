@@ -76,6 +76,9 @@ export function buildVisionBadges(data = {}, moduleId = 'centre_ia', sourceProps
       sante: sourceProps.sante,
       businessEvents: sourceProps.businessEvents,
       marketPrices: sourceProps.marketPrices,
+      fournisseurs: sourceProps.fournisseurs,
+      veterinaires: sourceProps.veterinaires,
+      sante: sourceProps.sante,
     });
     if (dc.alertCounts.rentabilite > 0) tabs['Rentabilité lots'] = dc.alertCounts.rentabilite;
     if (dc.alertCounts.efficacite > 0) tabs.Efficacité = dc.alertCounts.efficacite;

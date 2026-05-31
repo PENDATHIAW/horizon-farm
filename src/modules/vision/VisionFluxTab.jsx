@@ -3,8 +3,9 @@ import { fmtCurrency, fmtNumber, fmtPercent } from '../../utils/format';
 import { buildDecisionCenterData, STOCK_CRITICAL_DAYS } from './decisionCenterMetrics.js';
 import { Btn, DataRow, DataTable, Empty, Section, TabIntro, VisionKpi } from './visionUtils';
 
-export default function VisionFluxTab({ lots, animaux, alimentationLogs, stocks, onNavigate }) {
-  const { flux } = buildDecisionCenterData({ lots, animaux, alimentationLogs, stocks });
+export default function VisionFluxTab({ lots, animaux, alimentationLogs, stocks, fournisseurs, onNavigate }) {
+  const { flux, comparatifs } = buildDecisionCenterData({ lots, animaux, alimentationLogs, stocks, fournisseurs });
+  const feedCompare = comparatifs?.aliments || { periodAlerts: [], supplierAlerts: [], supplierRankings: [] };
   const criticalStock = flux.stockAutonomy.filter((s) => s.tone === 'bad').length;
   const highMortality = flux.materialBalance.filter((m) => m.tone === 'bad').length;
 
@@ -35,6 +36,23 @@ export default function VisionFluxTab({ lots, animaux, alimentationLogs, stocks,
               onClick={() => onNavigate?.('achats_stock', { tab: 'Stock' })}
             />
           )) : <Empty>Aucun stock aliment détecté — créez vos silos dans Achats & Stock.</Empty>}
+        </DataTable>
+      </Section>
+
+      
+      <Section icon={Truck} title="Comparatif achats aliments — prix & fournisseurs">
+        <p className="mb-3 text-xs text-[#8a7456]">Détecte une hausse de prix vs la période précédente ou un fournisseur plus cher pour la même quantité d&apos;aliment.</p>
+        <DataTable columns={['Produit', 'Lecture comparative', 'Écart', 'Statut']}>
+          {[...feedCompare.periodAlerts, ...feedCompare.supplierAlerts].length ? [...feedCompare.periodAlerts, ...feedCompare.supplierAlerts].map((row) => (
+            <DataRow
+              key={row.id}
+              title={row.product}
+              detail={row.detail}
+              status={row.pctChange !== undefined ? `${row.pctChange > 0 ? '+' : ''}${row.pctChange.toFixed(1)}%` : `+${row.spreadPct?.toFixed(0) || '—'}%`}
+              tone={row.tone}
+              onClick={() => onNavigate?.('achats_stock', { tab: 'Fournisseurs' })}
+            />
+          )) : <Empty>Renseignez fournisseur, quantité et montant sur vos achats/consommations aliment pour comparer les prix.</Empty>}
         </DataTable>
       </Section>
 

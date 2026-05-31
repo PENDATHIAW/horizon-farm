@@ -419,6 +419,257 @@ function buildGraphiquesData({ lots, animaux, alimentationLogs, productionLogs, 
   return { avicoleDaily, broilerIC, cattleGMQ, siloLevels, maraichage: buildMaraichage({ lots, animaux, marketPrices }) };
 }
 
+
+function daysBetweenDates(start, end) {
+  const a = new Date(start || 0);
+  const b = new Date(end || 0);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return null;
+  return Math.max(0, Math.round((b - a) / 86400000));
+}
+
+function monthKeyFromDate(value) {
+  const d = new Date(value || 0);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function feedProductKey(log = {}) {
+  return low(log.produit || log.product_name || log.nom || log.categorie || log.category || 'aliment');
+}
+
+function feedSupplierName(log = {}, fournisseurs = []) {
+  const id = log.fournisseur_id || log.supplier_id;
+  const match = arr(fournisseurs).find((f) => String(f.id) === String(id));
+  return match?.nom || match?.name || log.fournisseur_nom || log.fournisseur || log.supplier_name || 'Fournisseur non renseigné';
+}
+
+function feedPricePerKg(log = {}) {
+  const qty = logQty(log);
+  const amount = n(log.montant_total ?? log.cout_total ?? log.total ?? log.montant ?? log.amount)
+    || n(log.prix_unitaire ?? log.unit_price ?? log.price) * qty;
+  if (qty > 0 && amount > 0) return amount / qty;
+  return n(log.prix_unitaire ?? log.unit_price ?? log.price);
+}
+
+function buildFeedComparisons({ alimentationLogs = [], fournisseurs = [] }) {
+  const purchases = arr(alimentationLogs)
+    .map((log) => {
+      const date = logDate(log);
+      const qty = logQty(log);
+      const pricePerKg = feedPricePerKg(log);
+      if (!date || qty <= 0 || pricePerKg <= 0) return null;
+      return {
+        id: log.id,
+        date,
+        qty,
+        pricePerKg,
+        amount: pricePerKg * qty,
+        product: feedProductKey(log),
+        supplier: feedSupplierName(log, fournisseurs),
+        category: low(log.categorie || log.category || ''),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const now = Date.now();
+  const ms30 = 30 * 86400000;
+  const current = purchases.filter((p) => now - new Date(p.date).getTime() <= ms30);
+  const previous = purchases.filter((p) => {
+    const age = now - new Date(p.date).getTime();
+    return age > ms30 && age <= ms30 * 2;
+  });
+
+  const periodAlerts = [];
+  const productKeys = [...new Set(purchases.map((p) => p.product))];
+  productKeys.forEach((product) => {
+    const cur = current.filter((p) => p.product === product);
+    const prev = previous.filter((p) => p.product === product);
+    if (!cur.length || !prev.length) return;
+    const curAvg = cur.reduce((s, p) => s + p.pricePerKg, 0) / cur.length;
+    const prevAvg = prev.reduce((s, p) => s + p.pricePerKg, 0) / prev.length;
+    if (prevAvg <= 0) return;
+    const pct = ((curAvg - prevAvg) / prevAvg) * 100;
+    if (Math.abs(pct) >= 5) {
+      periodAlerts.push({
+        id: `feed-period-${product}`,
+        product,
+        currentPrice: curAvg,
+        previousPrice: prevAvg,
+        pctChange: pct,
+        currentQty: cur.reduce((s, p) => s + p.qty, 0),
+        previousQty: prev.reduce((s, p) => s + p.qty, 0),
+        tone: pct > 10 ? 'bad' : pct > 5 ? 'warn' : 'good',
+        detail: pct > 0
+          ? `+${pct.toFixed(1)}% vs période précédente (${fmtPct(curAvg, prevAvg)}).`
+          : `${pct.toFixed(1)}% vs période précédente — prix en baisse.`,
+      });
+    }
+  });
+
+  const supplierByProduct = new Map();
+  purchases.forEach((p) => {
+    const key = p.product;
+    const map = supplierByProduct.get(key) || new Map();
+    const row = map.get(p.supplier) || { supplier: p.supplier, totalKg: 0, totalAmount: 0, count: 0 };
+    row.totalKg += p.qty;
+    row.totalAmount += p.amount;
+    row.count += 1;
+    map.set(p.supplier, row);
+    supplierByProduct.set(key, map);
+  });
+
+  const supplierRankings = [];
+  const supplierAlerts = [];
+  supplierByProduct.forEach((map, product) => {
+    const rows = [...map.values()]
+      .map((row) => ({
+        ...row,
+        avgPricePerKg: row.totalKg > 0 ? row.totalAmount / row.totalKg : 0,
+      }))
+      .filter((row) => row.avgPricePerKg > 0)
+      .sort((a, b) => a.avgPricePerKg - b.avgPricePerKg);
+    if (rows.length < 2) return;
+    supplierRankings.push({ product, rows });
+    const best = rows[0];
+    const worst = rows[rows.length - 1];
+    const spread = worst.avgPricePerKg > 0 ? ((worst.avgPricePerKg - best.avgPricePerKg) / best.avgPricePerKg) * 100 : 0;
+    if (spread >= 5) {
+      supplierAlerts.push({
+        id: `feed-supplier-${product}`,
+        product,
+        bestSupplier: best.supplier,
+        bestPrice: best.avgPricePerKg,
+        compareSupplier: worst.supplier,
+        comparePrice: worst.avgPricePerKg,
+        spreadPct: spread,
+        tone: spread > 15 ? 'bad' : 'warn',
+        detail: `${best.supplier} (${Math.round(best.avgPricePerKg)} F/kg) vs ${worst.supplier} (${Math.round(worst.avgPricePerKg)} F/kg) — écart ${spread.toFixed(0)}%.`,
+      });
+    }
+  });
+
+  return { purchases, periodAlerts, supplierRankings, supplierAlerts };
+}
+
+function fmtPct(cur, prev) {
+  return `${Math.round(cur)} vs ${Math.round(prev)} FCFA/kg`;
+}
+
+function interventionKey(row = {}) {
+  return low(row.type_intervention || row.type || row.nom || row.medicament || 'intervention');
+}
+
+function interventionLabel(row = {}) {
+  return row.nom || row.type_intervention || row.type || row.medicament || 'Intervention';
+}
+
+function vetNameOf(row = {}, veterinaires = []) {
+  if (row.vet) return row.vet;
+  const match = arr(veterinaires).find((v) => String(v.id) === String(row.vet_id || row.veterinaire_id));
+  return match?.nom || match?.name || 'Vétérinaire non renseigné';
+}
+
+function healthCost(row = {}) {
+  return n(row.cout ?? row.cout_intervention ?? row.montant ?? row.amount ?? row.montant_total);
+}
+
+function isHealthDone(row = {}) {
+  const st = low(row.statut || row.status);
+  return Boolean(row.effectuee) || ['fait', 'realise', 'réalisé', 'termine', 'terminé', 'done'].some((x) => st.includes(x));
+}
+
+function recoveryDaysOf(row = {}) {
+  const parsed = String(row.duree_traitement || '').match(/(\d+)/);
+  if (parsed) return n(parsed[1]);
+  const start = row.effectuee || row.date || row.prevue;
+  const end = row.prochain_controle || row.prochaine_date_calculee || row.prochaine_action;
+  const diff = daysBetweenDates(start, end);
+  if (diff !== null && diff > 0) return diff;
+  if (low(row.statut_sante_apres) === 'sain' && start) return 1;
+  return null;
+}
+
+function buildVetComparisons({ sante = [], veterinaires = [] }) {
+  const records = arr(sante)
+    .filter((row) => isHealthDone(row) && healthCost(row) > 0)
+    .map((row) => ({
+      id: row.id,
+      key: interventionKey(row),
+      label: interventionLabel(row),
+      vet: vetNameOf(row, veterinaires),
+      cost: healthCost(row),
+      recoveryDays: recoveryDaysOf(row),
+      target: row.target_summary || row.animal || row.related_id || '—',
+      recovered: low(row.statut_sante_apres) === 'sain',
+      date: row.effectuee || row.date || row.prevue,
+    }));
+
+  const byType = new Map();
+  records.forEach((row) => {
+    const bucket = byType.get(row.key) || [];
+    bucket.push(row);
+    byType.set(row.key, bucket);
+  });
+
+  const rankings = [];
+  const insights = [];
+
+  byType.forEach((rows, key) => {
+    const vetMap = new Map();
+    rows.forEach((row) => {
+      const prev = vetMap.get(row.vet) || { vet: row.vet, costs: [], recoveries: [], count: 0, recovered: 0 };
+      prev.costs.push(row.cost);
+      if (row.recoveryDays !== null) prev.recoveries.push(row.recoveryDays);
+      if (row.recovered) prev.recovered += 1;
+      prev.count += 1;
+      vetMap.set(row.vet, prev);
+    });
+    const vetRows = [...vetMap.values()]
+      .map((row) => ({
+        ...row,
+        avgCost: row.costs.length ? row.costs.reduce((s, v) => s + v, 0) / row.costs.length : 0,
+        avgRecovery: row.recoveries.length ? row.recoveries.reduce((s, v) => s + v, 0) / row.recoveries.length : null,
+        recoveryRate: row.count ? (row.recovered / row.count) * 100 : 0,
+      }))
+      .filter((row) => row.avgCost > 0)
+      .sort((a, b) => a.avgCost - b.avgCost);
+
+    if (vetRows.length < 2) return;
+    rankings.push({ interventionKey: key, label: rows[0]?.label || key, vets: vetRows });
+
+    const best = vetRows[0];
+    const compare = vetRows[vetRows.length - 1];
+    const costSave = compare.avgCost > 0 ? ((compare.avgCost - best.avgCost) / compare.avgCost) * 100 : 0;
+    const faster = best.avgRecovery !== null && compare.avgRecovery !== null && compare.avgRecovery > best.avgRecovery
+      ? compare.avgRecovery - best.avgRecovery
+      : null;
+
+    if (costSave >= 5 || (faster !== null && faster >= 2)) {
+      insights.push({
+        id: `vet-${key}`,
+        intervention: rows[0]?.label || key,
+        bestVet: best.vet,
+        bestCost: best.avgCost,
+        bestRecovery: best.avgRecovery,
+        compareVet: compare.vet,
+        compareCost: compare.avgCost,
+        compareRecovery: compare.avgRecovery,
+        costSavePct: costSave,
+        recoveryGainDays: faster,
+        tone: costSave > 20 ? 'good' : 'warn',
+        detail: [
+          costSave >= 5 ? `${best.vet} ~${costSave.toFixed(0)}% moins cher que ${compare.vet} pour la même intervention.` : null,
+          faster !== null && faster >= 2 ? `Rétablissement ~${Math.round(faster)} j plus rapide (${Math.round(best.avgRecovery)} j vs ${Math.round(compare.avgRecovery)} j).` : null,
+        ].filter(Boolean).join(' '),
+      });
+    }
+  });
+
+  return { records, rankings, insights };
+}
+
+
 export function buildDecisionCenterData(props = {}) {
   const lots = arr(props.lots);
   const animaux = arr(props.animaux);
@@ -430,6 +681,8 @@ export function buildDecisionCenterData(props = {}) {
   const healthEvents = arr(props.sante);
   const directCharges = arr(props.businessEvents);
   const marketPrices = arr(props.marketPrices);
+  const fournisseurs = arr(props.fournisseurs);
+  const veterinaires = arr(props.veterinaires);
 
   const lotRentabilite = buildLotRentabilite({ lots, alimentationLogs, productionLogs, salesOrders, payments, healthEvents, directCharges });
   const animalRentabilite = buildAnimalRentabilite({ animaux, alimentationLogs, salesOrders, vaccins: healthEvents, healthEvents, directCharges });
@@ -438,11 +691,15 @@ export function buildDecisionCenterData(props = {}) {
   const flux = buildFlux({ lots, animaux, alimentationLogs, stocks });
   const maraichage = buildMaraichage({ lots, animaux, marketPrices });
   const graphiques = buildGraphiquesData({ lots, animaux, alimentationLogs, productionLogs, stocks, flux, marketPrices });
+  const comparatifs = {
+    aliments: buildFeedComparisons({ alimentationLogs, fournisseurs }),
+    veterinaires: buildVetComparisons({ sante: healthEvents, veterinaires }),
+  };
 
   const alertCounts = {
     rentabilite: lotRentabilite.filter((r) => r.tone === 'bad').length + animalRentabilite.filter((r) => r.tone === 'bad').length,
-    efficacite: efficacite.icAlerts.length + efficacite.layingAlerts.filter((a) => a.tone === 'bad').length + efficacite.gmqAlerts.filter((a) => a.tone === 'bad').length,
-    flux: flux.stockAutonomy.filter((s) => s.tone === 'bad').length + flux.materialBalance.filter((m) => m.tone === 'bad').length,
+    efficacite: efficacite.icAlerts.length + efficacite.layingAlerts.filter((a) => a.tone === 'bad').length + efficacite.gmqAlerts.filter((a) => a.tone === 'bad').length + comparatifs.veterinaires.insights.filter((i) => i.tone === 'good').length,
+    flux: flux.stockAutonomy.filter((s) => s.tone === 'bad').length + flux.materialBalance.filter((m) => m.tone === 'bad').length + comparatifs.aliments.periodAlerts.filter((a) => a.tone !== 'good').length,
     maraichage: 0,
   };
 
@@ -452,6 +709,7 @@ export function buildDecisionCenterData(props = {}) {
     flux,
     maraichage,
     graphiques,
+    comparatifs,
     alertCounts,
   };
 }

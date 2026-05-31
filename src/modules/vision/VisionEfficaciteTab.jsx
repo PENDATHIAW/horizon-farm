@@ -3,8 +3,9 @@ import { fmtCurrency, fmtNumber, fmtPercent } from '../../utils/format';
 import { buildDecisionCenterData, BROILER_IC_TARGET } from './decisionCenterMetrics.js';
 import { Btn, DataRow, DataTable, Empty, Section, TabIntro, VisionKpi } from './visionUtils';
 
-export default function VisionEfficaciteTab({ lots, animaux, alimentationLogs, productionLogs, onNavigate }) {
-  const { efficacite } = buildDecisionCenterData({ lots, animaux, alimentationLogs, productionLogs });
+export default function VisionEfficaciteTab({ lots, animaux, alimentationLogs, productionLogs, sante, veterinaires, onNavigate }) {
+  const { efficacite, comparatifs } = buildDecisionCenterData({ lots, animaux, alimentationLogs, productionLogs, sante, veterinaires });
+  const vetCompare = comparatifs?.veterinaires || { insights: [], rankings: [] };
   const alertCount = efficacite.icAlerts.length + efficacite.layingAlerts.filter((a) => a.tone === 'bad').length + efficacite.gmqAlerts.filter((a) => a.tone === 'bad').length;
 
   return (
@@ -42,6 +43,23 @@ export default function VisionEfficaciteTab({ lots, animaux, alimentationLogs, p
               onClick={() => onNavigate?.('elevage', { tab: 'Production' })}
             />
           )) : <Empty>Ponte conforme aux standards souche — ou ajoutez des journaux de production œufs.</Empty>}
+        </DataTable>
+      </Section>
+
+      
+      <Section icon={Activity} title="Comparatif vétérinaires — coût & rétablissement">
+        <p className="mb-3 text-xs text-[#8a7456]">Pour une même intervention, compare le coût moyen et la durée de rétablissement entre vétos.</p>
+        <DataTable columns={['Intervention', 'Meilleur véto · coût', 'Comparaison', 'Statut']}>
+          {vetCompare.insights.length ? vetCompare.insights.map((row) => (
+            <DataRow
+              key={row.id}
+              title={row.intervention}
+              detail={row.detail}
+              status={`${fmtCurrency(row.bestCost)} vs ${fmtCurrency(row.compareCost)}${row.bestRecovery !== null ? ` · ${Math.round(row.bestRecovery)} j` : ''}`}
+              tone={row.tone}
+              onClick={() => onNavigate?.('elevage', { tab: 'Santé' })}
+            />
+          )) : <Empty>Enregistrez plusieurs interventions du même type avec véto, coût et statut santé après traitement.</Empty>}
         </DataTable>
       </Section>
 
