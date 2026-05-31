@@ -79,19 +79,19 @@ export default function LoginPage() {
       />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#063321]/72 via-transparent to-transparent" aria-hidden />
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-end px-4 pt-3 sm:px-8 sm:pt-4 lg:px-10 lg:pt-5">
+      <header className="relative z-30 flex shrink-0 justify-end px-4 pb-1 pt-3 sm:px-8 sm:pt-4 lg:px-10 lg:pt-5">
         <img
           src={brandLogo}
           alt="Horizon Farm — De la terre à l'horizon"
-          className="h-auto w-[9.5rem] object-contain sm:w-40 lg:w-[11rem] xl:w-48"
+          className="pointer-events-none h-12 w-auto max-w-[11rem] object-contain object-right sm:h-14 lg:h-16 xl:h-[4.5rem] xl:max-w-[13rem]"
           style={{
             filter:
               'drop-shadow(0 2px 6px rgba(6,51,33,0.45)) drop-shadow(0 0 1px rgba(255,255,255,0.85))',
           }}
         />
-      </div>
+      </header>
 
-      <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col">
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col">
         <section className="mx-auto grid w-full max-w-7xl flex-1 min-h-0 items-center gap-5 px-4 py-2 sm:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:gap-8 lg:px-8 xl:px-10">
           <div className="max-w-lg pt-2 lg:pt-0">
             <h1 className="sr-only">Horizon Farm ERP</h1>
