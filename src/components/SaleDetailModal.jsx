@@ -1,5 +1,14 @@
+import { useState } from 'react';
 import { AlertTriangle, CheckCircle, CreditCard, FileText, Package, ShoppingCart, Truck, X } from 'lucide-react';
 import { fmtCurrency, toDateInput } from '../utils/format';
+import DetailSheetTabs from './DetailSheetTabs';
+
+const SALE_TABS = [
+  { id: 'commande', label: 'Commande', icon: ShoppingCart },
+  { id: 'lignes', label: 'Lignes', icon: Package },
+  { id: 'livraison', label: 'Livraison', icon: Truck },
+  { id: 'impacts', label: 'Impacts & docs', icon: FileText },
+];
 
 const statusLabel = (value) => String(value || 'non renseigne').replace(/_/g, ' ');
 
@@ -96,6 +105,7 @@ export default function SaleDetailModal({
   onCancel,
   onOpenSource,
 }) {
+  const [tab, setTab] = useState('commande');
   if (!order) return null;
 
   const itemTotal = items.reduce((sum, item) => sum + Number(item.total || item.line_total || 0), 0);
@@ -135,7 +145,7 @@ export default function SaleDetailModal({
         </div>
 
         <div className="overflow-y-auto p-5">
-          <DetailSheetTabs tabs={saleTabs} defaultTab={tab} onChange={setTab}>
+          <DetailSheetTabs tabs={SALE_TABS} defaultTab={tab} onChange={setTab}>
             {(activeTab) => {
               if (activeTab.id === 'commande') {
                 return (
