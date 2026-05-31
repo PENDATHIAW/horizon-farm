@@ -15,6 +15,7 @@ import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine.js'
 import ObjectifsActivitesPanel from './ObjectifsActivitesPanel.jsx';
 import ObjectiveDecisionSummary from '../ObjectiveDecisionSummary.jsx';
 import ObjectiveSupplyPanel from './ObjectiveSupplyPanel.jsx';
+import PilotageContextStrip from '../centre/PilotageContextStrip.jsx';
 
 
 const EMPTY_ANALYTICS = {
@@ -130,6 +131,8 @@ export default function ObjectifsDecisionModule({
           </div>
         </div>
       </section>
+
+      <PilotageContextStrip dataMap={enrichedDataMap} onNavigate={onNavigate} />
 
       <div className="space-y-5">
         <ObjectifsActivitesPanel plan={growthPlan} onNavigate={onNavigate} />

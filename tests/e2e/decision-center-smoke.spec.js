@@ -35,6 +35,7 @@ test.describe('Centre décisionnel et Objectifs & Croissance', () => {
     await goToModule(page, 'Centre décisionnel');
     await page.getByRole('button', { name: /^Cycles$/i }).click();
     await expect(page.getByText(/vide sanitaire|QUAND LANCER|Prochaines fêtes/i).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/Magal|Gamou|Fin d'année/i).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('onglet À traiter propose Ignorer et Ouvrir', async ({ page }) => {

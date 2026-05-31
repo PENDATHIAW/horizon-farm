@@ -10,6 +10,11 @@ import {
 import { HORIZON_FARM_OFFICIAL_BP } from './horizonFarmOfficialBusinessPlan';
 import { buildTechnicalFarmingAlerts } from './technicalFarmingRules';
 import { buildAllMarketEvents, getUpcomingMarketEvents } from './marketEventCalendar.js';
+import {
+  buildFarmSupplyCoverage,
+  buildMonthlyDemandForecast,
+  findDemandCoverageForActivity,
+} from './farmDemandCoverageEngine.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const num = (value = 0) => Number(value || 0) || 0;
@@ -256,30 +261,64 @@ function commercialActionForActivity(activity, activityGoal = {}, capacity = {})
   };
 }
 
+function launchLeadDays(activity, leadTimes = {}) {
+  if (activity === 'poulets_chair') return leadTimes.poulets_chair || 40;
+  if (activity === 'bovins') return leadTimes.bovins || 90;
+  return Math.min(leadTimes.oeufs || 150, 45);
+}
+
+function nextMarketEventForActivity(events = [], activity, refDate = new Date()) {
+  const ref = dateOnly(refDate);
+  return arr(events)
+    .filter((event) => !event.skipLaunch && event.date >= ref && arr(event.activities).includes(activity))
+    .sort((a, b) => a.date - b.date)[0] || null;
+}
+
 export function buildGrowthRecommendations(dataMap = {}, options = {}) {
   return safeRun(() => {
+    const refDate = safeDate(options.date || new Date());
     const goals = buildGoalPerformance(dataMap, options);
     const capacity = buildProductionCapacity(dataMap);
+    const leadTimes = estimateLeadTimes(dataMap);
+    const events = buildAllMarketEvents(refDate, dataMap);
+    const demandForecast = buildMonthlyDemandForecast(dataMap, events, options);
+    const supplyCoverage = buildFarmSupplyCoverage(dataMap, demandForecast);
     const commercial = ['oeufs', 'poulets_chair', 'bovins'].map((activity) => {
       const activityGoal = arr(goals.activities).find((row) => row.activity === activity);
       const remaining = Number(activityGoal?.remaining || 0);
-      const priority = remaining > 0 ? 'haute' : 'moyenne';
+      const demandRow = findDemandCoverageForActivity(supplyCoverage, activity, refDate);
+      const nextEvent = nextMarketEventForActivity(events, activity, refDate);
+      const leadDays = launchLeadDays(activity, leadTimes);
+      const targetDate = nextEvent ? iso(nextEvent.date) : '';
+      const latestStart = nextEvent ? iso(addDays(nextEvent.date, -leadDays)) : '';
+      const supplyGap = Number(demandRow?.gapRevenue || 0);
+      const supplyCoverageRate = Number(demandRow?.coverageRate ?? 0);
+      const supplyStatus = demandRow?.coverageStatus || (supplyCoverageRate >= 100 ? 'couvert' : supplyCoverageRate >= 60 ? 'partiel' : 'insuffisant');
+      const priority = remaining > 0 || supplyStatus === 'insuffisant' ? 'haute' : 'moyenne';
       const action = commercialActionForActivity(activity, activityGoal, capacity);
+      const festivalHint = nextEvent ? ` Fenêtre ${nextEvent.label}${targetDate ? ` (${targetDate})` : ''}.` : '';
       return {
         id: `commercial-${activity}`,
         title: `Écart CA — ${activityLabels[activity]}`,
         activity,
         priority,
-        timing: action.timing,
-        recommendation: action.recommendation,
+        timing: nextEvent ? `${action.timing} · cible ${nextEvent.label}` : action.timing,
+        recommendation: `${action.recommendation}${festivalHint}`,
         should_recommend_investment: false,
         strategic: false,
         commercial_only: true,
-        demand_revenue: Number(activityGoal?.target || 0),
-        available_revenue: Number(activityGoal?.realized || 0),
-        gap_revenue: remaining,
-        coverage_rate: Number(activityGoal?.attainment || 0),
-        coverage_status: Number(activityGoal?.attainment || 0) >= 100 ? 'couvert' : remaining > 0 ? 'insuffisant' : 'partiel',
+        demand_level: demandRow?.demandLevel || 'normale',
+        demand_revenue: Number(demandRow?.revenueTarget || activityGoal?.target || 0),
+        available_revenue: Number(demandRow?.availableRevenue || activityGoal?.realized || 0),
+        gap_revenue: supplyGap || remaining,
+        gap_units: Number(demandRow?.gapUnits || 0),
+        coverage_rate: supplyCoverageRate,
+        coverage_status: supplyStatus,
+        ca_attainment: Number(activityGoal?.attainment || 0),
+        target_date: targetDate,
+        latest_start: latestStart,
+        event_label: nextEvent?.label || '',
+        event_note: nextEvent?.note || '',
       };
     });
     const technical = safeRun(() => buildTechnicalFarmingAlerts(dataMap).map(buildTechnicalRecommendation), []);
