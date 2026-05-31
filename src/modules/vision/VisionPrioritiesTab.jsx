@@ -3,10 +3,12 @@ import toast from 'react-hot-toast';
 import { AlertTriangle, BrainCircuit } from 'lucide-react';
 import { applyOneClickRecommendation } from '../../services/heyHorizonRecommendationActions.js';
 import { buildObjectiveActionTask } from '../../utils/objectivesWorkflows';
+import { openVisionPriority } from './visionMetrics.js';
 import { Empty, Row, Section, Stat } from './visionUtils';
 
 export default function VisionPrioritiesTab({
   data,
+  moduleId = 'centre_ia',
   setTab,
   onNavigate,
   onCreateTask,
@@ -92,7 +94,7 @@ export default function VisionPrioritiesTab({
       </Section>
       <Section icon={AlertTriangle} title="Ce qu'il faut traiter maintenant">
         {data.priorities.filter((p) => !p.isEngine).length ? data.priorities.filter((p) => !p.isEngine).slice(0, 10).map((r) => (
-          <Row key={r.id} title={r.title} detail={r.detail} tone={r.tone} onClick={() => setTab(r.tab || 'À traiter')} actions={<>
+          <Row key={r.id} title={r.title} detail={r.detail} tone={r.tone} onClick={() => openVisionPriority(r, moduleId, { setTab, onNavigate })} actions={<>
             <button type="button" onClick={() => onNavigate?.(r.sourceModule)} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Voir module</button>
             {onCreateTask ? <button type="button" onClick={() => createTask(r)} className="rounded-lg border border-emerald-300 px-2 py-1 text-xs font-black text-emerald-700">Créer tâche</button> : null}
             {onCreateAlert ? <button type="button" onClick={() => createAlert(r)} className="rounded-lg border border-amber-300 px-2 py-1 text-xs font-black text-amber-700">Créer alerte</button> : null}

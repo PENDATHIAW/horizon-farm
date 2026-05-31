@@ -1,5 +1,7 @@
 import { fmtCurrency, fmtNumber } from '../../utils/format';
 import { runErpHealthEngine } from '../../services/erpHealthEngine.js';
+import { filterRealOpenTasks } from '../../utils/healthFindingLabels.js';
+import { remainingForOrder } from '../../utils/salesStatuses.js';
 
 export const arr = (v) => (Array.isArray(v) ? v : []);
 export const low = (v) => String(v || '').toLowerCase();
@@ -116,7 +118,8 @@ export function buildVisionData(props = {}) {
   const docs = arr(documents).length ? arr(documents) : arr(dataMap.documents);
   const opps = [...arr(opportunities), ...arr(salesOpportunities), ...arr(dataMap.sales_opportunities)].filter(Boolean);
   const openAlerts = arr(alertes).length ? arr(alertes).filter(isOpen) : arr(dataMap.alertes_center || dataMap.alertes).filter(isOpen);
-  const openTasks = arr(taches).length ? arr(taches).filter(isOpen) : arr(dataMap.taches || dataMap.tasks).filter(isOpen);
+  const rawTasks = arr(taches).length ? arr(taches) : arr(dataMap.taches || dataMap.tasks);
+  const openTasks = filterRealOpenTasks(rawTasks.filter(isOpen));
   const income = tx.filter(isIncome).reduce((s, r) => s + amount(r), 0);
   const expenses = tx.filter((r) => isExpense(r) || (!isIncome(r) && amount(r) > 0)).reduce((s, r) => s + amount(r), 0);
   const salesAmount = sales.reduce((s, r) => s + amount(r), 0);
@@ -124,14 +127,14 @@ export function buildVisionData(props = {}) {
   const stockValue = allStocks.reduce((s, r) => s + stockQty(r) * n(r.prix_unitaire ?? r.unit_price ?? r.price), 0);
   const investmentValue = invest.reduce((s, r) => s + amount(r), 0);
   const missingProof = tx.filter((r) => amount(r) > 0 && !r.document_id && !r.proof_url && !r.justificatif_id).length;
-  const receivable = Math.max(0, salesAll.reduce((s, r) => s + amount(r), 0) - payAll.reduce((s, r) => s + amount(r), 0));
+  const receivable = salesAll.reduce((sum, order) => sum + remainingForOrder(order, payAll), 0);
   const grossMargin = income - expenses;
   const base = { animaux: allAnimals, lots: allLots, cultures: allCultures, stocks: allStocks, clients: allClients, sales, payments: pay, income, expenses, balance: income - expenses, margin: grossMargin, grossMargin, netMargin: grossMargin, salesAmount, collected, stockValue, investmentValue, receivable, estimatedValue: stockValue + investmentValue + Math.max(0, grossMargin), productionCount: allAnimals.length + allLots.length + allCultures.length, goals: [...plans, ...invest], opportunities: opps, documents: docs, missingProof, openAlerts, openTasks, debts: expenses, receivables: receivable, periodFiltered, periodLabel: props.periodLabel || '' };
   const risks = buildRisks(base);
   const priorities = [
     ...openAlerts.slice(0, 5).map((r) => ({ id: `a-${r.id || label(r)}`, title: label(r), detail: r.message || 'Alerte ouverte', value: 'Alerte', tone: 'warn', tab: 'Risques', sourceModule: r.module_source || 'activite_suivi', record: r })),
     ...openTasks.filter(isRisk).slice(0, 5).map((r) => ({ id: `t-${r.id || label(r)}`, title: label(r), detail: 'Tâche prioritaire', value: 'Action', tone: 'warn', tab: 'Risques', sourceModule: r.module_lie || 'activite_suivi', record: r })),
-    ...(missingProof ? [{ id: 'proofs', title: 'Preuves manquantes', detail: `${missingProof} justificatif(s)`, value: 'Financeurs', tone: 'warn', tab: 'Financeurs', sourceModule: 'documents_rapports' }] : []),
+    ...(missingProof ? [{ id: 'proofs', title: 'Preuves manquantes', detail: `${missingProof} justificatif(s)`, value: 'Financeurs', tone: 'warn', tab: 'Financeurs', navModule: 'objectifs_croissance', sourceModule: 'documents_rapports' }] : []),
     ...(grossMargin < 0 ? [{ id: 'cash', title: 'Trésorerie en tension', detail: 'Charges > recettes', value: 'Finance', tone: 'bad', tab: 'Risques', sourceModule: 'finance_pilotage' }] : []),
   ];
   const riskCount = risks.length;

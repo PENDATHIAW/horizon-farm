@@ -11,18 +11,20 @@ import VisionRisksTab from './vision/VisionRisksTab';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
+import { MODULE_TARGET_TABS } from '../config/horizonVision.config.js';
+import { buildVisionBadges, resolveVisionTab } from './vision/visionMetrics.js';
 import { buildVisionData } from './vision/visionUtils';
 
 const MODULE_COPY = {
   centre_ia: {
     kicker: 'Intelligence décisionnelle',
     title: 'Centre décisionnel',
-    subtitle: 'Signaux IA, performance, risques et opportunités — lecture actionnable sur toute la ferme.',
+    subtitle: 'Priorités du jour, risques, opportunités commerciales et cycles production — actions concrètes.',
   },
   objectifs_croissance: {
     kicker: 'Pilotage stratégique',
     title: 'Objectifs & Croissance',
-    subtitle: 'Priorités IA, performance, risques, opportunités, prévisions et dossiers financeurs.',
+    subtitle: 'Performance, prévisions, plans d\'activité et dossiers financeurs — vision long terme.',
   },
 };
 
@@ -42,14 +44,17 @@ export default function VisionCroissanceModule(props) {
     existingAlerts = [],
   } = props;
   const copy = MODULE_COPY[moduleId] || MODULE_COPY.objectifs_croissance;
-  const [tab, setTab] = useState(props.initialTab || 'À traiter');
+  const [tab, setTab] = useState(() => resolveVisionTab(moduleId, props.initialTab, null));
   const [persistedCount, setPersistedCount] = useState(null);
   const data = useMemo(() => buildVisionData(props), [props, dataMap]);
+  const badges = useMemo(() => buildVisionBadges(data, moduleId), [data, moduleId]);
   const aiCount = useMemo(() => data.healthFindings?.length || buildRecommendationsFromData(dataMap).length, [dataMap, data.healthFindings]);
 
   useEffect(() => {
-    if (props.initialTab) setTab(props.initialTab);
-  }, [props.initialTab]);
+    if (!props.initialTab) return;
+    const resolved = resolveVisionTab(moduleId, props.initialTab, onNavigate);
+    setTab(resolved);
+  }, [props.initialTab, moduleId, onNavigate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,6 +68,7 @@ export default function VisionCroissanceModule(props) {
 
   const priorityProps = {
     data,
+    moduleId,
     setTab,
     onNavigate,
     onCreateTask,
@@ -110,7 +116,7 @@ export default function VisionCroissanceModule(props) {
           </div>
         </div>
       </section>
-      <ModuleTabsBar moduleId={moduleId} active={tab} onChange={setTab} />
+      <ModuleTabsBar moduleId={moduleId} active={tab} onChange={setTab} tabBadges={badges.tabs} />
       {content}
     </div>
   );
