@@ -1,5 +1,5 @@
 import { generateSequentialId } from '../utils/ids.js';
-import { hasOpenTaskForHealthFinding } from '../utils/healthFindingLabels.js';
+import { hasOpenTaskForHealthFinding, sanitizeHealthTaskTitle } from '../utils/healthFindingLabels.js';
 import { buildTaskFromAlert, taskDedupeKey, alertDedupeKey, isTaskClosed, isAlertClosed } from '../utils/taskWorkflows.js';
 
 const PROCESSED_KEY = 'horizon-erp-health-auto-processed-v2';
@@ -60,9 +60,10 @@ function hasOpenAlertForFinding(alerts, finding) {
 }
 
 function buildTaskFromFinding(finding, tasks) {
+  const baseTitle = sanitizeHealthTaskTitle(finding.title || finding.description || 'Action IA');
   return {
     id: generateSequentialId('taches', tasks),
-    title: finding.title,
+    title: baseTitle,
     module_lie: MODULE_TO_TASK[finding.module] || finding.module || 'autre',
     entity_type: finding.category || 'finding',
     related_id: finding.source_records?.[0]?.id || finding.id,
@@ -165,6 +166,7 @@ export async function applyErpHealthAutoActions(report, {
   for (const finding of taskCandidates) {
     if (!finding?.id || processed.has(`task:${finding.id}`)) { skipped += 1; continue; }
     if (String(finding.id).startsWith('task-critical-')) { skipped += 1; continue; }
+    if (/^tâche critique\s*:/i.test(String(finding.title || ''))) { skipped += 1; continue; }
     if (hasOpenTaskForFinding(existingTasks, finding)) { processed.add(`task:${finding.id}`); skipped += 1; continue; }
 
     const task = buildTaskFromFinding(finding, existingTasks);

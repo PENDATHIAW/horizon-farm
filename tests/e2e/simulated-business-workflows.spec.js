@@ -916,6 +916,7 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(stripRepeatedPrefix(nested, 'Tâche critique')).toBe('Encaissement Poulets');
     expect(formatFindingLabel('Tâche critique', nested)).toBe('Tâche critique : Encaissement Poulets');
     expect(shouldSkipCriticalTaskFinding({ title: nested, source_module: 'erp_health_engine' })).toBe(true);
+    expect(shouldSkipCriticalTaskFinding({ title: 'Preuve manquante : Encaissement Poulets', source_module: 'erp_health_engine' })).toBe(true);
     expect(shouldSkipCriticalTaskFinding({ title: 'Vacciner lot A', priority: 'critique' })).toBe(false);
   });
 

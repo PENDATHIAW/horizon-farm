@@ -1,4 +1,4 @@
-import { formatFindingLabel, shouldSkipCriticalTaskFinding } from '../../utils/healthFindingLabels.js';
+import { formatFindingLabel, shouldSkipCriticalTaskFinding, isHealthMirrorNoiseTask } from '../../utils/healthFindingLabels.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const low = (v) => String(v || '').toLowerCase();
@@ -9,6 +9,7 @@ export function evaluateTaskAlertRules(taches = [], alertes = []) {
   arr(taches)
     .filter((t) => isOpen(t))
     .filter((t) => !shouldSkipCriticalTaskFinding(t))
+    .filter((t) => !isHealthMirrorNoiseTask(t))
     .filter((t) => t.priority === 'critique' || t.status === 'retard')
     .forEach((t) => {
       findings.push({

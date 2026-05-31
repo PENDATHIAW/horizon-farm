@@ -1,5 +1,11 @@
 import { runErpHealthEngine } from '../../services/erpHealthEngine.js';
-import { formatFindingLabel, shouldSkipCriticalTaskFinding, stripRepeatedPrefix } from '../../utils/healthFindingLabels.js';
+import {
+  formatFindingLabel,
+  formatTaskTitleForDisplay,
+  isHealthMirrorNoiseTask,
+  shouldSkipCriticalTaskFinding,
+  stripRepeatedPrefix,
+} from '../../utils/healthFindingLabels.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const low = (v) => String(v || '').toLowerCase();
@@ -8,6 +14,7 @@ const isLate = (r = {}) => ['retard', 'en_retard', 'overdue'].includes(low(r.sta
 const isCriticalAlert = (r = {}) => ['urgence', 'critique', 'critical'].includes(low(r.severity || r.gravite));
 const isCriticalTask = (r = {}) => ['critique', 'critical', 'urgent'].includes(low(r.priority || r.priorite));
 const isNewAlert = (r = {}) => ['nouvelle', 'new', 'ouverte'].includes(low(r.status || r.statut));
+const realTasks = (tasks = []) => arr(tasks).filter((t) => isOpen(t) && !isHealthMirrorNoiseTask(t));
 
 export function buildActiviteHealthSnapshot({ tasks = [], alertes = [], businessEvents = [] }) {
   const data = { taches: tasks, tasks, alertes_center: alertes, alertes, business_events: businessEvents };
@@ -75,16 +82,23 @@ export function aggregatePriorityQueue(tasks = [], alertes = []) {
   arr(alertes).filter((a) => isOpen(a) && isCriticalAlert(a)).forEach((a) => {
     queue.push({ id: `alert-${a.id}`, kind: 'alerte', title: a.title || 'Alerte critique', detail: a.action_recommandee || a.message, severity: 'critique', sourceId: a.id });
   });
-  arr(tasks).filter((t) => isOpen(t) && (isLate(t) || isCriticalTask(t))).forEach((t) => {
-    queue.push({ id: `task-${t.id}`, kind: 'tache', title: t.title || t.libelle || 'Tâche', detail: isLate(t) ? 'En retard' : 'Priorité critique', severity: isLate(t) ? 'retard' : 'critique', sourceId: t.id });
+  realTasks(tasks).filter((t) => isLate(t) || isCriticalTask(t)).forEach((t) => {
+    queue.push({
+      id: `task-${t.id}`,
+      kind: 'tache',
+      title: formatTaskTitleForDisplay(t),
+      detail: isLate(t) ? 'En retard' : 'Priorité critique',
+      severity: isLate(t) ? 'retard' : 'critique',
+      sourceId: t.id,
+    });
   });
   return queue.slice(0, 12);
 }
 
 export function countOpenByModule(alertes = [], tasks = []) {
   const map = {};
-  [...arr(alertes).filter(isOpen), ...arr(tasks).filter(isOpen)].forEach((row) => {
-    const mod = row.module_source || row.module || row.source_module || 'general';
+  [...arr(alertes).filter(isOpen), ...realTasks(tasks)].forEach((row) => {
+    const mod = row.module_source || row.module || row.source_module || row.module_lie || 'general';
     map[mod] = (map[mod] || 0) + 1;
   });
   return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 5);

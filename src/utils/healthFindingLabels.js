@@ -19,23 +19,37 @@ export function formatFindingLabel(prefix, value = '') {
   return `${prefix} : ${stripRepeatedPrefix(value, prefix)}`;
 }
 
+/** Libellé de base sans préfixes IA répétés. */
+export function sanitizeHealthTaskTitle(value = '') {
+  let title = stripRepeatedPrefix(String(value || '').trim(), 'Tâche critique');
+  title = stripRepeatedPrefix(title, 'Preuve manquante');
+  return title.trim();
+}
+
+const HEALTH_MIRROR_TITLE = /^(tâche critique|preuve manquante)\s*:/i;
+
 /** Tâche générée par le Health Engine — ne pas re-traiter comme nouvelle anomalie. */
 export function isHealthEngineMirrorTask(task = {}) {
   if (String(task.source_module || '') === 'erp_health_engine') return true;
+  if (String(task.source_module || '') === 'alertes' && String(task.source_record_id || '').startsWith('alert-')) return true;
   if (String(task.source_record_id || '').startsWith('task-critical-')) return true;
   if (String(task.source_record_id || '').startsWith('finance-no-proof-')) return true;
   if (String(task.action_key || '').startsWith('task-critical-')) return true;
+  if (String(task.task_dedupe_key || '').startsWith('finance-no-proof-')) return true;
 
   const title = String(task.title || '');
   if (/^(Tâche critique\s*:){2,}/i.test(title)) return true;
   if (/^(Preuve manquante\s*:){2,}/i.test(title)) return true;
+  if (HEALTH_MIRROR_TITLE.test(title) && String(task.source_module || '') !== 'taches') return true;
 
   return false;
 }
 
 export function shouldSkipCriticalTaskFinding(task = {}) {
   if (isHealthEngineMirrorTask(task)) return true;
-  if (String(task.title || '').trim().toLowerCase().startsWith('tâche critique :')) return true;
+  const title = String(task.title || '').trim().toLowerCase();
+  if (title.startsWith('tâche critique :')) return true;
+  if (title.startsWith('preuve manquante :')) return true;
   return false;
 }
 
@@ -48,11 +62,9 @@ export function isOpenTaskStatus(task = {}) {
 /** Tâche miroir IA ou bruit Health Engine — exclure des compteurs et priorités terrain. */
 export function isHealthMirrorNoiseTask(task = {}) {
   if (isHealthEngineMirrorTask(task)) return true;
-  if (String(task.source_module || '') === 'erp_health_engine') return true;
 
   const title = String(task.title || '').trim();
-  if (/^tâche critique\s*:/i.test(title)) return true;
-  if (/^preuve manquante\s*:/i.test(title) && String(task.source_module || '') === 'erp_health_engine') return true;
+  if (HEALTH_MIRROR_TITLE.test(title)) return true;
 
   return false;
 }
@@ -62,8 +74,7 @@ export function filterRealOpenTasks(tasks = []) {
 }
 
 export function formatTaskTitleForDisplay(task = {}, maxLen = 80) {
-  let title = stripRepeatedPrefix(String(task.title || task.nom || task.id || ''), 'Tâche critique');
-  title = stripRepeatedPrefix(title, 'Preuve manquante');
+  const title = sanitizeHealthTaskTitle(task.title || task.nom || task.id || '');
   if (title.length <= maxLen) return title;
   return `${title.slice(0, Math.max(0, maxLen - 1))}…`;
 }
@@ -71,7 +82,8 @@ export function formatTaskTitleForDisplay(task = {}, maxLen = 80) {
 export function hasOpenTaskForHealthFinding(tasks = [], finding = {}) {
   const key = finding?.id;
   const relatedId = finding?.source_records?.[0]?.id;
-  if (!key && !relatedId) return false;
+  const findingBase = sanitizeHealthTaskTitle(finding?.title || '').toLowerCase();
+  if (!key && !relatedId && !findingBase) return false;
 
   return arr(tasks).some((task) => {
     if (['termine', 'terminé', 'done', 'closed', 'resolu', 'résolu'].includes(String(task.status || task.statut || '').toLowerCase())) {
@@ -80,7 +92,10 @@ export function hasOpenTaskForHealthFinding(tasks = [], finding = {}) {
     if (key && (task.source_record_id === key || task.action_key === key || task.task_dedupe_key === key)) {
       return true;
     }
-    if (relatedId && String(task.related_id) === String(relatedId) && String(task.source_module) === 'erp_health_engine') {
+    if (relatedId && String(task.related_id) === String(relatedId) && ['erp_health_engine', 'alertes', 'finances'].includes(String(task.source_module || ''))) {
+      return true;
+    }
+    if (findingBase && sanitizeHealthTaskTitle(task.title || '').toLowerCase() === findingBase) {
       return true;
     }
     return false;

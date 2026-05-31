@@ -2,13 +2,13 @@ import {
   isHealthEngineMirrorTask,
   isHealthMirrorNoiseTask,
   isOpenTaskStatus,
-  stripRepeatedPrefix,
+  sanitizeHealthTaskTitle,
 } from './healthFindingLabels.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 
 function normalizedMirrorTitle(task = {}) {
-  return stripRepeatedPrefix(task.title || task.id || '', 'Tâche critique').toLowerCase();
+  return sanitizeHealthTaskTitle(task.title || task.id || '').toLowerCase();
 }
 
 /**
@@ -20,7 +20,8 @@ export function findDuplicateHealthMirrorTasks(tasks = []) {
   const groups = new Map();
 
   open.forEach((task) => {
-    const isMirror = isHealthEngineMirrorTask(task)
+    const isMirror = isHealthMirrorNoiseTask(task)
+      || isHealthEngineMirrorTask(task)
       || String(task.title || '').toLowerCase().includes('tâche critique : tâche critique');
     if (!isMirror) return;
 

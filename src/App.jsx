@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState, useTransition } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { MODULE_REGISTRY, NAV_MODULE_ORDER } from './config/modules.config';
 import { computeNavAlertCounts, navAlertFlags } from './services/erpHealthRules';
 import { scheduleErpHealthEngine, scheduleErpHealthOnCriticalChange } from './services/erpHealthEngine';
@@ -7,7 +7,7 @@ import { composeActionTraceShared, composeDecisionDataMap, composeInternalResour
 import { refreshAllModules, refreshSalesWorkflow } from './services/workflowRefresh';
 import { resolveCommercialTab, resolveElevageTab, resolveAchatsStockTab, resolveFinanceTab, resolveRouteModule, defaultTabForLegacyModule } from './utils/commercialNavigation';
 import { pruneHeavyLocalStorage } from './utils/safeLocalStorage';
-import { archiveHealthMirrorTasks } from './utils/pruneHealthMirrorTasks.js';
+import { archiveHealthMirrorTasks, findHealthMirrorTasksToArchive } from './utils/pruneHealthMirrorTasks.js';
 import AppNotificationManager from './components/AppNotificationManager';
 import ErpInterconnectionBridge from './components/ErpInterconnectionBridge';
 import AssistantPanel from './components/AssistantPanel';
@@ -102,6 +102,7 @@ export default function App() {
   const periodLabel = useMemo(() => formatPeriodScopeLabel(periodScope), [periodScope]);
   const periodScopeKey = useMemo(() => JSON.stringify(periodScope), [periodScope]);
   const c = useCrudModules();
+  const mirrorPruneBusy = useRef(false);
   const crudFingerprint = useMemo(() => {
     const workflowSignal = (key, moduleRows = []) => {
       const list = arr(moduleRows);
@@ -159,10 +160,13 @@ export default function App() {
   useEffect(() => { pruneHeavyLocalStorage(); }, []);
 
   useEffect(() => {
-    const flag = 'horizon-pruned-health-mirror-tasks-v2';
-    if (localStorage.getItem(flag) !== null || !rows(c.taches).length) return;
-    void archiveHealthMirrorTasks(rows(c.taches), c.taches.update).then((result) => {
-      localStorage.setItem(flag, String(result.closed || 0));
+    const tasks = rows(c.taches);
+    const mirrors = findHealthMirrorTasksToArchive(tasks);
+    if (!mirrors.length || typeof c.taches?.update !== 'function' || mirrorPruneBusy.current) return;
+
+    mirrorPruneBusy.current = true;
+    void archiveHealthMirrorTasks(tasks, c.taches.update).finally(() => {
+      mirrorPruneBusy.current = false;
     });
   }, [c.taches]);
 

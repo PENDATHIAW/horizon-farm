@@ -10,6 +10,7 @@ import { fmtNumber } from '../utils/format';
 import { allRows, rowsOf } from '../utils/moduleRows';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import { aggregatePriorityQueue, buildActiviteCoherenceRows, buildActiviteHealthSnapshot, countOpenByModule } from './activiteSuivi/activiteSuiviVisionHelpers.js';
+import { filterRealOpenTasks } from '../utils/healthFindingLabels.js';
 import AlertesCenterV2 from './AlertesCenterV2.jsx';
 import TachesV3 from './TachesV3.jsx';
 import TracabiliteV2 from './TracabiliteV2.jsx';
@@ -155,8 +156,8 @@ export default function ActiviteSuiviRecoveredModule(props) {
   const data = useMemo(() => {
     const openAlerts = alertes.filter(isOpen);
     const criticalAlerts = openAlerts.filter(isCriticalAlert);
-    const openTasks = tasks.filter(isOpen);
-    const lateTasks = tasks.filter(isLate);
+    const openTasks = filterRealOpenTasks(tasks);
+    const lateTasks = openTasks.filter(isLate);
     const healthSnap = buildActiviteHealthSnapshot({ tasks, alertes, businessEvents: eventsAll.length ? eventsAll : eventsPeriod });
     const coherenceRows = buildActiviteCoherenceRows(tasks, alertes);
     const priorityQueue = aggregatePriorityQueue(tasks, alertes);
