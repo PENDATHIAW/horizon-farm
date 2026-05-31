@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const brandLogo = '/brand-logo.png';
+const brandLogo = '/brand-logo-login.png';
 const farmBg = '/login-farm-bg.png';
 
 /** Piliers universels — toutes fermes, promesse Horizon Farm. */
@@ -94,8 +94,8 @@ export default function LoginPage() {
         <img
           src={brandLogo}
           alt="Horizon Farm"
-          className="h-auto w-28 object-contain mix-blend-multiply sm:w-32 lg:w-36 xl:w-40"
-          style={{ filter: 'drop-shadow(0 1px 2px rgba(255,255,255,0.35))' }}
+          className="h-auto w-28 object-contain sm:w-32 lg:w-36 xl:w-40"
+          style={{ filter: 'drop-shadow(0 2px 12px rgba(6,51,33,0.22))' }}
         />
       </div>
 
