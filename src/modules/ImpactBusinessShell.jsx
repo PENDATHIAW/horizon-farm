@@ -40,27 +40,44 @@ function DomainCard({ icon: Icon, title, status, state, impact, action }) {
   return <div className={`rounded-2xl border p-4 ${cls}`}><div className="flex items-start gap-3"><div className="rounded-xl bg-white/70 p-2"><Icon size={18} /></div><div className="min-w-0"><p className="font-black text-[#2f2415]">{title}</p><p className="mt-2 text-sm"><b>État :</b> {state}</p><p className="mt-1 text-sm"><b>Valeur :</b> {impact}</p><p className="mt-1 text-sm"><b>Action :</b> {action}</p></div></div></div>;
 }
 
+function pickRows(props, key, allKey, aliases = []) {
+  if (Array.isArray(props[allKey]) && props[allKey].length) return arr(props[allKey]);
+  const keys = [key, ...aliases];
+  for (const name of keys) {
+    if (Array.isArray(props[name]) && props[name].length) return arr(props[name]);
+  }
+  return [];
+}
+
 function computeImpactStats(props = {}) {
-  const salesOrders = arr(props.salesOrders || props.sales_orders);
-  const payments = arr(props.payments);
+  const salesOrdersAll = pickRows(props, 'salesOrders', 'salesOrdersAll', ['sales_orders']);
+  const salesOrdersPeriod = arr(props.salesOrders || props.sales_orders);
+  const paymentsAll = pickRows(props, 'payments', 'paymentsAll');
+  const paymentsPeriod = arr(props.payments);
+  const transactionsAll = pickRows(props, 'transactions', 'transactionsAll', ['finances']);
+  const transactionsPeriod = arr(props.transactions || props.finances);
+  const usePeriod = Boolean(props.periodFiltered) && salesOrdersPeriod.length + paymentsPeriod.length + transactionsPeriod.length > 0;
+  const salesOrders = usePeriod ? salesOrdersPeriod : salesOrdersAll;
+  const payments = usePeriod ? paymentsPeriod : paymentsAll;
+  const transactions = usePeriod ? transactionsPeriod : transactionsAll;
   const stocks = arr(props.stocks || props.stock);
   const sante = arr(props.sante || props.vaccins);
   const documents = arr(props.documents);
   const taches = arr(props.taches || props.tasks);
   const alertes = arr(props.alertes || props.alertes_center);
   const rapports = arr(props.rapports || props.reports);
-  const auditLogs = arr(props.auditLogs || props.audit_logs);
-  const businessEvents = arr(props.businessEvents || props.business_events);
+  const auditLogs = pickRows(props, 'auditLogs', 'auditLogsAll', ['audit_logs']);
+  const businessEvents = pickRows(props, 'businessEvents', 'businessEventsAll', ['business_events']);
+  const receivableOrders = salesOrdersAll;
   const animaux = arr(props.animaux);
   const lots = arr(props.lots || props.avicole);
   const cultures = arr(props.cultures);
-  const transactions = arr(props.transactions || props.finances);
   const ventesAvecMontant = salesOrders.filter((row) => amount(row) > 0).length;
   const ventesAvecReste = salesOrders.filter((row) => remaining(row) > 0).length;
   const paiementsEnregistres = payments.filter((row) => amount(row) > 0 || paid(row) > 0).length;
   const ca = salesOrders.reduce((sum, row) => sum + amount(row), 0);
   const paidTotal = payments.reduce((sum, row) => sum + Math.max(amount(row), paid(row)), 0);
-  const receivable = salesOrders.reduce((sum, row) => sum + remaining(row), 0);
+  const receivable = receivableOrders.reduce((sum, row) => sum + remaining(row), 0);
   const expenses = transactions.filter((row) => ['sortie', 'depense', 'dépense', 'charge', 'achat'].some((term) => lower(`${row.type || ''} ${row.categorie || ''}`).includes(term))).reduce((sum, row) => sum + amount(row), 0);
   const cashNet = paidTotal - expenses;
   const stockValue = stocks.reduce((sum, row) => sum + (Number(row.quantite || row.quantity || 0) || 0) * (Number(row.prix_unitaire || row.prixUnit || row.unit_price || row.price || 0) || 0), 0);

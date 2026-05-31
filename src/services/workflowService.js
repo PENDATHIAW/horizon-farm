@@ -1,5 +1,13 @@
 import { toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
+import { buildSaleWorkflowHandlers, runNewSaleSideEffects } from '../utils/saleSideEffects';
+import { financeIds } from '../utils/sideEffectIds';
+import { runPurchaseSideEffects, runStockLossSideEffects } from '../utils/purchaseSideEffects';
+import { runFeedingSideEffects } from '../utils/feedingSideEffects';
+import { runHealthSideEffects, runBiosecuritySideEffects } from '../utils/healthSideEffects';
+import { runEquipmentWorkflowSideEffects } from '../utils/equipmentSideEffects';
+import { runCultureHarvestSideEffects } from '../utils/cultureSideEffects';
+import { syncFinanceSideEffects } from './erpInterconnectionEngine';
 import { getFinanceActivityFromSale, getFinanceCategoryFromSale } from './financeSyncService';
 import { buildOpportunityClosedPatch, buildStructuredFarmImpact } from './erpInterconnectionRules';
 
@@ -141,7 +149,7 @@ export function prepareSaleWorkflow(payload = {}, context = {}) {
   const activity = saleActivity(order);
   const invoiceId = order.invoice_id || safeId('FAC', context.invoices);
   const paymentId = order.payment_id || safeId('PAI', context.payments);
-  const transactionId = order.transaction_id || safeId('TRX', context.transactions);
+  const transactionId = order.transaction_id || financeIds.paid(order.id || 'NEW', paymentId);
   const eventId = safeId('EVT', context.events);
   const documentId = safeId('DOC', context.documents);
   const client = arr(context.clients).find((candidate) => candidate.id === order.client_id);
@@ -305,33 +313,98 @@ export async function commitSaleWorkflow(preview, handlers = {}) {
   const paymentToRecord = toNumber(finalValue(p.fields.payment_to_record || p.fields.paid));
   const nextPaid = Math.min(amount || alreadyPaid + paymentToRecord, alreadyPaid + paymentToRecord);
   const remaining = Math.max(0, amount - nextPaid);
-  const activity = finalValue(p.fields.activity);
-  const category = finalValue(p.fields.category) || getFinanceCategoryFromSale(p.source_order || {});
   const records = p.records;
+  const order = p.source_order || {};
+  const orderId = order.id;
+  const ctx = handlers.context || {};
+  const paymentId = records.payment?.id || order.payment_id;
+  const invoiceId = records.invoice?.id || order.invoice_id;
 
-  records.order_patch = { ...records.order_patch, montant_paye: nextPaid, reste_a_payer: remaining, statut_paiement: paymentStatusOf(amount, nextPaid), statut_commande: orderStatusAfterPayment(p.source_order, amount, nextPaid), workflow_id: p.workflow_id };
-  records.invoice = { ...records.invoice, total_amount: amount, montant_total: amount, statut_facture: 'emise', invoice_status: 'emise', statut: 'emise', statut_paiement: records.order_patch.statut_paiement };
-  records.payment = { ...records.payment, montant: paymentToRecord, montant_paye: paymentToRecord, amount: paymentToRecord, date_paiement: records.payment.date_paiement || today() };
-  records.finance = { ...records.finance, montant: paymentToRecord, amount: paymentToRecord, activite: activity, categorie: category };
-  records.document = { ...records.document, montant: amount, invoice_id: records.invoice.id, order_id: p.source_order?.id || records.document.order_id, transaction_id: records.finance.id };
+  records.order_patch = {
+    ...records.order_patch,
+    montant_paye: nextPaid,
+    reste_a_payer: remaining,
+    statut_paiement: paymentStatusOf(amount, nextPaid),
+    statut_commande: orderStatusAfterPayment(order, amount, nextPaid),
+    workflow_id: p.workflow_id,
+    invoice_id: invoiceId,
+    side_effects_managed: true,
+  };
+  records.invoice = {
+    ...records.invoice,
+    total_amount: amount,
+    montant_total: amount,
+    statut_facture: 'emise',
+    invoice_status: 'emise',
+    statut: 'emise',
+    statut_paiement: records.order_patch.statut_paiement,
+  };
+  records.payment = {
+    ...records.payment,
+    id: paymentId,
+    montant: paymentToRecord,
+    montant_paye: paymentToRecord,
+    amount: paymentToRecord,
+    date_paiement: records.payment.date_paiement || today(),
+    side_effects_managed: true,
+    created_from: 'sale_workflow',
+  };
+  records.document = {
+    ...records.document,
+    montant: amount,
+    invoice_id: invoiceId,
+    order_id: orderId || records.document.order_id,
+    transaction_id: paymentToRecord > 0 ? financeIds.paid(orderId, paymentId) : records.document.transaction_id,
+  };
 
   await handlers.onCreateInvoice?.(records.invoice);
   if (paymentToRecord > 0) await handlers.onCreatePayment?.(records.payment);
-  if (paymentToRecord > 0) await handlers.onCreateFinanceTransaction?.(records.finance);
-  if (p.source_order?.id) await handlers.onUpdateOrder?.(p.source_order.id, records.order_patch);
-
-  const oppId = opportunityIdOf(p.source_order || {});
-  if (oppId && records.opportunity_patch) {
-    await handlers.onUpdateOpportunity?.(oppId, records.opportunity_patch);
-  }
-
-  if (p.source_order?.client_id && records.client_patch) await handlers.onUpdateClient?.(p.source_order.client_id, records.client_patch);
-  if (records.source_patch) await handlers.onUpdateSourceAsset?.(activity, records.source_patch.id, records.source_patch);
+  if (orderId) await handlers.onUpdateOrder?.(orderId, records.order_patch);
   await handlers.onCreateDocument?.(records.document);
-  await handlers.onCreateBusinessEvent?.(records.trace);
 
-  if (remaining > 0 && records.alert) {
-    await handlers.onCreateAlert?.({ ...records.alert, message: `${p.source_order?.product_name || p.source_order?.id}: ${remaining}`, remaining_amount: remaining });
+  const updatedOrder = { ...order, ...records.order_patch };
+  const clientRow = arr(ctx.clients).find((candidate) => candidate.id === order.client_id);
+  const clientLabel = clientRow?.nom || clientRow?.name || order.client_label || 'Client';
+  const skipSourceImpact = order.side_effects_managed === true || order.source_impact_applied === true;
+
+  await runNewSaleSideEffects({
+    order: updatedOrder,
+    orderId,
+    form: {
+      source_type: order.source_type,
+      source_id: order.source_id,
+      quantity: order.quantite ?? order.quantity,
+      payment_method: records.payment.moyen_paiement || records.payment.mode_paiement,
+      fulfillment_mode: order.fulfillment_mode || order.statut_livraison,
+      date: records.payment.date_paiement || order.date || today(),
+    },
+    paid: paymentToRecord,
+    remaining,
+    paymentId,
+    invoiceId,
+    productName: order.product_name || order.libelle,
+    clientLabel,
+    realClientId: order.client_id,
+    stocks: ctx.stocks || [],
+    lots: ctx.lots || [],
+    cultures: ctx.cultures || [],
+    animaux: ctx.animaux || [],
+    clients: ctx.clients || [],
+    salesOrders: ctx.salesOrders || ctx.sales_orders || [],
+    payments: paymentToRecord > 0 ? [...arr(ctx.payments), records.payment] : arr(ctx.payments),
+    transactions: ctx.transactions || [],
+    tasks: ctx.tasks || [],
+    alertes: ctx.alertes || [],
+    handlers: buildSaleWorkflowHandlers(handlers, ctx),
+    skipSourceImpact,
+  });
+
+  if (records.trace && handlers.onCreateBusinessEvent) {
+    await handlers.onCreateBusinessEvent({
+      ...records.trace,
+      linked_transaction_id: paymentToRecord > 0 ? financeIds.paid(orderId, paymentId) : records.trace.linked_transaction_id,
+      linked_invoice_id: invoiceId,
+    });
   }
 
   return { ok: true, saisies_evitees: p.workflow_meta?.saisies_evitees || 0, workflow_id: p.workflow_id };
@@ -355,11 +428,34 @@ export function preparePurchaseWorkflow(payload = {}, context = {}) {
 }
 
 export async function commitPurchaseWorkflow(preview, handlers = {}) {
-  await handlers.onCreateOrUpdateStock?.(preview.records.stock_patch);
-  await handlers.onCreateFinanceTransaction?.(preview.records.finance);
-  await handlers.onCreateDocument?.(preview.records.document);
-  await handlers.onCreateBusinessEvent?.(preview.records.trace);
-  return { ok: true, saisies_evitees: preview.workflow_meta?.saisies_evitees || 0 };
+  const p = structuredClone(preview);
+  const stockPatch = p.records.stock_patch || {};
+  const amount = toNumber(finalValue(p.fields?.amount) || stockPatch.montant);
+  const ctx = handlers.context || {};
+  const movementRef = p.workflow_id || String(stockPatch.last_movement_at || '').slice(0, 10) || today();
+
+  await handlers.onCreateOrUpdateStock?.({ ...stockPatch, side_effects_managed: true });
+
+  await runPurchaseSideEffects({
+    stockPatch,
+    stockRow: ctx.stocks?.find?.((row) => String(row.id) === String(stockPatch.id)) || stockPatch,
+    amount,
+    movementRef,
+    date: stockPatch.last_movement_at?.slice?.(0, 10) || today(),
+    transactions: ctx.transactions || [],
+    tasks: ctx.tasks || [],
+    alertes: ctx.alertes || [],
+    handlers: {
+      ...handlers,
+      existingDocuments: ctx.documents || [],
+    },
+    skipDocument: Boolean(p.records.document?.id),
+  });
+
+  if (p.records.document?.id) await handlers.onCreateDocument?.({ ...p.records.document, side_effects_managed: true });
+  if (p.records.trace) await handlers.onCreateBusinessEvent?.({ ...p.records.trace, side_effects_managed: true });
+
+  return { ok: true, saisies_evitees: p.workflow_meta?.saisies_evitees || 0, workflow_id: p.workflow_id };
 }
 
 export function prepareFeedingWorkflow(payload = {}, context = {}) {
@@ -392,11 +488,25 @@ export function prepareFeedingWorkflow(payload = {}, context = {}) {
 }
 
 export async function commitFeedingWorkflow(preview, handlers = {}) {
-  await handlers.onCreateAlimentation?.(preview.records.alimentation);
-  await handlers.onUpdateStockMovement?.(preview.records.stock_movement);
-  if (preview.records.finance) await handlers.onCreateFinanceTransaction?.(preview.records.finance);
-  await handlers.onCreateBusinessEvent?.(preview.records.trace);
-  return { ok: true, saisies_evitees: preview.workflow_meta?.saisies_evitees || 0 };
+  const p = structuredClone(preview);
+  const ctx = handlers.context || {};
+  const log = p.records.alimentation || {};
+  const stock = ctx.stocks?.find?.((row) => String(row.id) === String(log.stock_id)) || { id: log.stock_id };
+
+  await runFeedingSideEffects({
+    log,
+    stock,
+    stockMovement: p.records.stock_movement,
+    amount: toNumber(finalValue(p.fields?.cost) || log.montant_total),
+    transactions: ctx.transactions || [],
+    handlers,
+  });
+
+  if (p.records.trace && handlers.onCreateBusinessEvent) {
+    await handlers.onCreateBusinessEvent({ ...p.records.trace, side_effects_managed: true });
+  }
+
+  return { ok: true, saisies_evitees: p.workflow_meta?.saisies_evitees || 0, workflow_id: p.workflow_id };
 }
 
 export function prepareHealthWorkflow(payload = {}, context = {}) {
@@ -442,12 +552,21 @@ export function prepareHealthWorkflow(payload = {}, context = {}) {
 }
 
 export async function commitHealthWorkflow(preview, handlers = {}) {
-  await handlers.onUpdateHealth?.(preview.records.health_patch.id, preview.records.health_patch);
-  if (preview.records.stock_movement) await handlers.onUpdateStockMovement?.(preview.records.stock_movement);
-  if (preview.records.finance) await handlers.onCreateFinanceTransaction?.(preview.records.finance);
-  await handlers.onCreateTask?.(preview.records.task);
-  await handlers.onCreateBusinessEvent?.(preview.records.trace);
-  return { ok: true, saisies_evitees: preview.workflow_meta?.saisies_evitees || 0 };
+  const p = structuredClone(preview);
+  const ctx = handlers.context || {};
+  const health = p.records.health_patch || {};
+
+  await runHealthSideEffects({
+    health,
+    healthPatch: p.records.health_patch,
+    stockMovement: p.records.stock_movement,
+    cost: toNumber(finalValue(p.fields?.cost) || health.cout),
+    tasks: ctx.tasks || [],
+    transactions: ctx.transactions || [],
+    handlers,
+  });
+
+  return { ok: true, saisies_evitees: p.workflow_meta?.saisies_evitees || 0, workflow_id: p.workflow_id };
 }
 
 export function prepareBiosecurityWorkflow(payload = {}, context = {}) {
@@ -494,11 +613,20 @@ export async function commitBiosecurityWorkflow(preview, handlers = {}) {
   const existingTasks = arr(handlers.tasks || handlers.existingTasks || p.dedupe_context?.tasks);
   const skipAlert = existingAlerts.some((alert) => openStatus(alert) && (alert.alert_dedupe_key === p.records.alert.alert_dedupe_key || hasSimilarOpen([alert], p.records.alert.entity_id, dedupeText)));
   const skipTask = existingTasks.some((task) => openStatus(task) && (task.task_dedupe_key === p.records.task.task_dedupe_key || hasSameHealthFollowup([task], p.records.task) || hasSimilarOpen([task], p.records.task.related_id, dedupeText)));
-  if (!skipAlert) await handlers.onCreateAlert?.(p.records.alert);
-  if (!skipTask) await handlers.onCreateTask?.(p.records.task);
-  if (p.records.stock_movement) await handlers.onUpdateStockMovement?.(p.records.stock_movement);
-  if (p.records.document) await handlers.onCreateDocument?.(p.records.document);
-  if (!skipAlert || !skipTask) await handlers.onCreateBusinessEvent?.(p.records.trace);
+
+  await runBiosecuritySideEffects({
+    alert: p.records.alert,
+    task: p.records.task,
+    stockMovement: p.records.stock_movement,
+    document: p.records.document,
+    trace: p.records.trace,
+    alertes: existingAlerts,
+    tasks: existingTasks,
+    handlers,
+    skipAlert,
+    skipTask,
+  });
+
   return { ok: true, skipped_alert: skipAlert, skipped_task: skipTask, saisies_evitees: p.workflow_meta?.saisies_evitees || 0, workflow_id: p.workflow_id };
 }
 
@@ -516,10 +644,20 @@ export function prepareHarvestWorkflow(payload = {}, context = {}) {
 }
 
 export async function commitHarvestWorkflow(preview, handlers = {}) {
-  await handlers.onUpdateCulture?.(preview.records.culture_patch.id, preview.records.culture_patch);
-  await handlers.onCreateStock?.(preview.records.stock);
-  await handlers.onCreateBusinessEvent?.(preview.records.trace);
-  return { ok: true, saisies_evitees: preview.workflow_meta?.saisies_evitees || 0 };
+  const p = structuredClone(preview);
+  const ctx = handlers.context || {};
+  const culturePatch = p.records.culture_patch || {};
+
+  await runCultureHarvestSideEffects({
+    before: ctx.beforeCulture || {},
+    after: culturePatch,
+    stocks: ctx.stocks || [],
+    opportunities: ctx.opportunities || [],
+    transactions: ctx.transactions || [],
+    handlers,
+  });
+
+  return { ok: true, saisies_evitees: p.workflow_meta?.saisies_evitees || 0, workflow_id: p.workflow_id };
 }
 
 export function prepareInvestmentExecutionWorkflow(payload = {}, context = {}) {
@@ -537,11 +675,20 @@ export function prepareInvestmentExecutionWorkflow(payload = {}, context = {}) {
 }
 
 export async function commitInvestmentExecutionWorkflow(preview, handlers = {}) {
-  await handlers.onUpdateInvestment?.(preview.records.investment_patch.id, preview.records.investment_patch);
-  await handlers.onCreateFinanceTransaction?.(preview.records.finance);
-  await handlers.onCreateDocument?.(preview.records.document);
-  await handlers.onCreateBusinessEvent?.(preview.records.trace);
-  return { ok: true, saisies_evitees: preview.workflow_meta?.saisies_evitees || 0 };
+  const p = structuredClone(preview);
+  const investment = p.records.investment_patch || {};
+  const finance = p.records.finance || {};
+
+  await handlers.onUpdateInvestment?.(investment.id, { ...investment, side_effects_managed: true });
+  if (finance?.id) {
+    const financeRow = { ...finance, id: financeIds.investment(investment.id), side_effects_managed: true, created_from: 'investment_workflow' };
+    await handlers.onCreateFinanceTransaction?.(financeRow);
+    await syncFinanceSideEffects(financeRow, { handlers, document: p.records.document });
+  }
+  if (p.records.document) await handlers.onCreateDocument?.({ ...p.records.document, side_effects_managed: true });
+  if (p.records.trace) await handlers.onCreateBusinessEvent?.({ ...p.records.trace, side_effects_managed: true });
+
+  return { ok: true, saisies_evitees: p.workflow_meta?.saisies_evitees || 0, workflow_id: p.workflow_id };
 }
 
 export function prepareEquipmentWorkflow(payload = {}, context = {}) {
@@ -561,11 +708,21 @@ export function prepareEquipmentWorkflow(payload = {}, context = {}) {
 }
 
 export async function commitEquipmentWorkflow(preview, handlers = {}) {
-  await handlers.onUpdateEquipment?.(preview.records.equipment_patch.id, preview.records.equipment_patch);
-  await handlers.onCreateTask?.(preview.records.task);
-  await handlers.onCreateAlert?.(preview.records.alert);
-  if (preview.records.finance) await handlers.onCreateFinanceTransaction?.(preview.records.finance);
-  return { ok: true, saisies_evitees: preview.workflow_meta?.saisies_evitees || 0 };
+  const p = structuredClone(preview);
+  const ctx = handlers.context || {};
+  const equipmentPatch = p.records.equipment_patch || {};
+
+  await runEquipmentWorkflowSideEffects({
+    equipment: equipmentPatch,
+    equipmentPatch,
+    repairCost: toNumber(equipmentPatch.cout_reparation),
+    tasks: ctx.tasks || [],
+    alertes: ctx.alertes || [],
+    transactions: ctx.transactions || [],
+    handlers,
+  });
+
+  return { ok: true, saisies_evitees: p.workflow_meta?.saisies_evitees || 0, workflow_id: p.workflow_id };
 }
 
 export function prepareAlertActionWorkflow(payload = {}, context = {}) {

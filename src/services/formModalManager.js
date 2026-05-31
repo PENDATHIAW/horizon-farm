@@ -1,5 +1,7 @@
 /** Gestionnaire centralisé de modals/formulaires — remplace window.dispatchEvent('horizon-open-form'). */
 
+import { trackFormModalOpen } from './erpRules/surveillanceUxRules.js';
+
 const listeners = new Set();
 
 export function subscribeFormModal(handler) {
@@ -8,6 +10,7 @@ export function subscribeFormModal(handler) {
 }
 
 export function openFormModal({ module, draft = {} } = {}) {
+  trackFormModalOpen(module, draft?.form_type || draft?.intent_label || '');
   const detail = { module, draft, timestamp: Date.now() };
   listeners.forEach((handler) => {
     try { handler(detail); } catch { /* ignore */ }

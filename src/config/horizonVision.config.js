@@ -11,10 +11,11 @@ export const HORIZON_MISSION = [
 ];
 
 export const MODULE_TARGET_TABS = {
-  dashboard: ['Vue globale', 'Graphiques'],
+  dashboard: ['Résumé', 'Graphiques'],
   assistant_erp: ['Hey Horizon'],
-  objectifs_croissance: ['À traiter', 'Performance', 'Risques', 'Opportunités', 'Prévisions', 'Plans', 'Financeurs', 'Graphiques'],
-  elevage: ['Résumé', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Graphiques'],
+  objectifs_croissance: ['À traiter', 'Performance', 'Risques', 'Opportunités', 'Prévisions', 'Cycles', 'Plans', 'Financeurs', 'Graphiques'],
+  centre_ia: ['À traiter', 'Performance', 'Risques', 'Opportunités', 'Prévisions', 'Cycles', 'Graphiques'],
+  elevage: ['Résumé', 'Cycles', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Graphiques'],
   commercial: ['Résumé', 'Ventes', 'Clients', 'Opportunités', 'Graphiques'],
   achats_stock: ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Graphiques'],
   finance_pilotage: ['Résumé', 'Trésorerie', 'Créances', 'Dettes', 'Investissements', 'Rentabilité', 'Graphiques'],

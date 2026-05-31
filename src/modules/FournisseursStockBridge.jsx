@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import useCrudModule from '../hooks/useCrudModule';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
-import { buildSupplierReceptionWorkflow } from '../utils/supplierWorkflows';
+import { runSupplierReceptionSideEffects } from '../utils/supplierSideEffects';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const now = () => new Date().toISOString();
@@ -95,17 +95,32 @@ export default function FournisseursStockBridge({ suppliers = [], stocks = [], t
     const qty = reorderQty(stock);
     const task = existingTaskFor(supplier, stock, tasks);
     if (qty <= 0) return toast.error('Quantité à réceptionner non calculée');
-    const workflow = buildSupplierReceptionWorkflow({ supplier, stock, qty, unitPrice: unitPriceOf(stock), date: today() });
     try {
       setSavingKey(`receive:${key}`);
-      await onUpdateStock?.(stock.id, workflow.stockPatch);
-      await financesCrud.create?.(workflow.debtTransaction);
-      await documentsCrud.create?.(workflow.missingInvoiceDocument);
+      await runSupplierReceptionSideEffects({
+        supplier,
+        stock,
+        qty,
+        unitPrice: unitPriceOf(stock),
+        date: today(),
+        tasks,
+        alertes: [],
+        transactions: financesCrud.rows || [],
+        handlers: {
+          onUpdateStock,
+          onUpdateSupplier,
+          onCreateFinanceTransaction: financesCrud.create,
+          onCreateDocument: documentsCrud.create,
+          onCreateBusinessEvent,
+          onCreateTask,
+          onCreateAlert,
+          onUpdateTask: tasksCrud.update,
+          existingDocuments: documentsCrud.rows || [],
+        },
+      });
       if (task?.id) await tasksCrud.update?.(task.id, { status: 'termine', statut: 'termine', completed_at: now() });
-      await onUpdateSupplier?.(supplier.id, workflow.supplierPatch);
-      await onCreateBusinessEvent?.(workflow.event);
       await Promise.allSettled([onRefreshStock?.(), financesCrud.refresh?.(), documentsCrud.refresh?.(), tasksCrud.refresh?.(), onRefreshBusinessEvents?.(), onRefreshSuppliers?.()]);
-      toast.success('Réception enregistrée : stock augmenté, dette et preuve à joindre créées');
+      toast.success('Réception enregistrée : stock, dette, document et comptabilité synchronisés');
     } catch {
       toast.error('Réception fournisseur impossible');
     } finally {

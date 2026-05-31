@@ -84,6 +84,16 @@ export function buildCoherentOrderPatch(order = {}, payments = [], extraPatch = 
   return { ...extraPatch, montant_paye: paid, reste_a_payer: remaining, statut_paiement: paymentStatus, payment_status: paymentStatus, statut_commande: orderStatus, order_status: orderStatus, statut_livraison: deliveryStatus, delivery_status: deliveryStatus, statut_facture: invoiceStatus, invoice_status: invoiceStatus, relance_active: remaining > 0, statut_relance: remaining > 0 ? (order.statut_relance || 'a_relancer') : 'solde', creance: remaining };
 }
 
+export function findInvoicesForOrder(orderId = '', invoices = []) {
+  const target = clean(orderId);
+  if (!target) return [];
+  return arr(invoices).filter((invoice) => clean(invoice.order_id || invoice.sale_id || invoice.source_record_id || invoice.related_id) === target);
+}
+
+export function findInvoiceForOrder(orderId = '', invoices = []) {
+  return findInvoicesForOrder(orderId, invoices)[0] || null;
+}
+
 export function analyzeSalesIntegrity({ orders = [], payments = [], transactions = [], invoices = [] }) {
   return arr(orders).map((order) => {
     const id = clean(order.id);

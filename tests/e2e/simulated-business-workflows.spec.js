@@ -8,6 +8,10 @@ import { avicoleActiveCount, avicoleSickCount } from '../../src/utils/avicoleMet
 import { buildHealthCostTransaction, buildHealthFollowUp, buildHealthMissingProofDocument, buildHealthProofDocument } from '../../src/utils/healthWorkflows.js';
 import { buildClientReminderFollowUp, buildClientSalesSummary, canDeleteClient, normalizeClientFromSales } from '../../src/utils/clientWorkflows.js';
 import { buildSaleSourcePatch, capSalePayment } from '../../src/utils/salesWorkflows.js';
+import { findInvoicesForOrder } from '../../src/services/salesIntegrityService.js';
+import { recordSalePayment } from '../../src/utils/recordSalePayment.js';
+import { deleteSaleComplete } from '../../src/utils/salesDeleteWorkflow.js';
+import { calculateSalesMargin } from '../../src/utils/salesMarginEngine.js';
 import { buildSupplierDebtFollowUp, buildSupplierPaymentWorkflow, buildSupplierReceptionWorkflow } from '../../src/utils/supplierWorkflows.js';
 import { calculateSupplierSettlement } from '../../src/utils/supplierSettlement.js';
 import { transactionHasProof } from '../../src/utils/accountingProof.js';
@@ -337,6 +341,93 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     const sale = { id: 'CMD-OVERPAY-001', montant_total: 100000, montant_paye: 60000 };
     expect(capSalePayment(sale, [], 80000)).toBe(40000);
     expect(capSalePayment({ ...sale, montant_paye: 100000 }, [], 10000)).toBe(0);
+  });
+
+  test('parcours vente commercial : encaissement, facture sans doublon, suppression cascade', async () => {
+    const sale = { id: 'CMD-FLOW-001', montant_total: 100000, client_id: 'CLI-001', client_label: 'Mariama' };
+    const payments = [];
+    const invoices = [];
+    const documents = [];
+    const deliveries = [{ id: 'LIV-001', order_id: 'CMD-FLOW-001' }];
+    const transactions = [];
+    const deleted = { payments: [], invoices: [], deliveries: [], documents: [], finances: [], order: null };
+
+    const handlers = {
+      onCreatePayment: async (payload) => { payments.push(payload); return payload; },
+      onCreateFinanceTransaction: async (payload) => { transactions.push(payload); return payload; },
+      onUpdateOrder: async (id, patch) => Object.assign(sale, patch),
+      onDeletePayment: async (id) => { deleted.payments.push(id); },
+      onDeleteInvoice: async (id) => { deleted.invoices.push(id); },
+      onDeleteDelivery: async (id) => { deleted.deliveries.push(id); },
+      onDeleteDocument: async (id) => { deleted.documents.push(id); },
+      onDeleteFinanceTransaction: async (id) => { deleted.finances.push(id); },
+      onDeleteOrder: async (id) => { deleted.order = id; },
+    };
+
+    const firstPay = await recordSalePayment({ sale, requestedAmount: 40000, payments, transactions, handlers, paymentDate: '2026-05-26' });
+    expect(firstPay.skipped).toBeFalsy();
+    expect(payments).toHaveLength(1);
+    expect(transactions).toHaveLength(1);
+    expect(sale.reste_a_payer).toBe(60000);
+
+    const duplicatePay = await recordSalePayment({
+      sale,
+      requestedAmount: 40000,
+      payments,
+      transactions,
+      handlers,
+      paymentDate: '2026-05-26',
+      paymentId: firstPay.paymentId,
+    });
+    expect(duplicatePay.skipped).toBe(true);
+    expect(duplicatePay.reason).toBe('duplicate_payment');
+    expect(payments).toHaveLength(1);
+    expect(transactions).toHaveLength(1);
+
+    const tryOverBeforeSettle = await recordSalePayment({ sale, requestedAmount: 250000, payments, transactions, handlers, paymentDate: '2026-05-26' });
+    expect(tryOverBeforeSettle.skipped).toBe(true);
+    expect(tryOverBeforeSettle.reason).toBe('over_payment');
+    expect(tryOverBeforeSettle.remaining).toBe(60000);
+
+    const settle = await recordSalePayment({ sale, requestedAmount: 60000, payments, transactions, handlers, paymentDate: '2026-05-27' });
+    expect(settle.skipped).toBeFalsy();
+    expect(payments).toHaveLength(2);
+    expect(sale.reste_a_payer).toBe(0);
+
+    const overPay = await recordSalePayment({ sale, requestedAmount: 300000, payments, transactions, handlers, paymentDate: '2026-05-28' });
+    expect(overPay.skipped).toBe(true);
+    expect(['over_payment', 'already_settled']).toContain(overPay.reason);
+
+    invoices.push({ id: 'FAC-001', order_id: 'CMD-FLOW-001' }, { id: 'FAC-002', order_id: 'CMD-FLOW-001' });
+    expect(findInvoicesForOrder('CMD-FLOW-001', invoices)).toHaveLength(2);
+
+    documents.push({ id: 'DOC-001', entity_id: 'CMD-FLOW-001', invoice_id: 'FAC-001' });
+    transactions.push({ id: 'TRX-CREANCE', related_id: 'CMD-FLOW-001', type: 'entree', statut: 'impaye' });
+
+    const result = await deleteSaleComplete(sale, { payments, invoices, deliveries, documents, transactions, ...handlers });
+    expect(result.removed.payments).toBe(2);
+    expect(result.removed.invoices).toBe(2);
+    expect(result.removed.deliveries).toBe(1);
+    expect(result.removed.documents).toBe(1);
+    expect(result.removed.transactions).toBeGreaterThanOrEqual(1);
+    expect(deleted.order).toBe('CMD-FLOW-001');
+  });
+
+  test('marge vente liée lot, animal et stock', () => {
+    const lot = { id: 'LOT-001', type: 'chair', name: 'Lot chair', purchaseCost: 50000, initial_count: 100, current_count: 80 };
+    const animal = { id: 'BOV-001', nom: 'Boeuf test', purchase_price: 200000 };
+    const stock = { id: 'STK-001', produit: 'Viande abattue', quantite: 50, cout_revient_unitaire: 3500, categorie: 'viande' };
+    const feedLogs = [{ lot_id: 'LOT-001', cout_total: 30000 }];
+    const context = { lots: [lot], animaux: [animal], stocks: [stock], alimentationLogs: feedLogs, productionLogs: [], vaccins: [], businessEvents: [], payments: [] };
+
+    const lotSale = calculateSalesMargin({ id: 'CMD-LOT', source_module: 'avicole', source_id: 'LOT-001', product_name: 'Poulets chair', quantity: 10, unit_price: 8000, montant_total: 80000 }, context);
+    expect(lotSale.cout_source).not.toBe('cout_indisponible');
+
+    const stockSale = calculateSalesMargin({ id: 'CMD-STK', source_module: 'stock', source_id: 'STK-001', product_name: 'Viande abattue', quantity: 5, unit_price: 5000, montant_total: 25000 }, context);
+    expect(stockSale.cout_revient).toBe(17500);
+
+    const animalSale = calculateSalesMargin({ id: 'CMD-ANI', source_module: 'animal', source_id: 'BOV-001', product_name: 'Boeuf', quantity: 1, unit_price: 450000, montant_total: 450000 }, context);
+    expect(animalSale.source_label).toContain('Boeuf');
   });
 
   test('vente stock décrémente la source vendue', () => {

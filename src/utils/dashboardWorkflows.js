@@ -63,13 +63,13 @@ export function buildDashboardTodayActions(data = {}) {
   const weatherRisk = isWeatherRisk(data.meteo);
 
   return [
-    unpaidOrders.length ? { iconKey: 'money', category: 'Argent', title: 'Encaisser les ventes en attente', detail: `${unpaidOrders.length} vente(s), ${fmtCurrency(receivable)} à récupérer`, moduleKey: 'ventes', tone: 'red', priority: 10 } : null,
-    openAlerts.length ? { iconKey: 'alert', category: 'Urgences terrain', title: 'Traiter les alertes', detail: `${openAlerts.length} alerte(s) à regarder`, moduleKey: 'alertes', tone: 'red', priority: 20 } : null,
-    stockCritical.length ? { iconKey: 'stock', category: 'Stock', title: 'Revoir le stock faible', detail: `${stockCritical.length} produit(s) sous le seuil`, moduleKey: 'stock', tone: 'amber', priority: 30 } : null,
-    healthLate.length ? { iconKey: 'health', category: 'Santé', title: 'Rattraper les soins/vaccins', detail: `${healthLate.length} soin(s) ou vaccin(s) à faire`, moduleKey: 'sante', tone: 'amber', priority: 40 } : null,
+    unpaidOrders.length ? { iconKey: 'money', category: 'Argent', title: 'Encaisser les ventes en attente', detail: `${unpaidOrders.length} vente(s), ${fmtCurrency(receivable)} à récupérer`, moduleKey: 'commercial', tone: 'red', priority: 10 } : null,
+    openAlerts.length ? { iconKey: 'alert', category: 'Urgences terrain', title: 'Traiter les alertes', detail: `${openAlerts.length} alerte(s) à regarder`, moduleKey: 'activite_suivi', tone: 'red', priority: 20 } : null,
+    stockCritical.length ? { iconKey: 'stock', category: 'Stock', title: 'Revoir le stock faible', detail: `${stockCritical.length} produit(s) sous le seuil`, moduleKey: 'achats_stock', tone: 'amber', priority: 30 } : null,
+    healthLate.length ? { iconKey: 'health', category: 'Santé', title: 'Rattraper les soins/vaccins', detail: `${healthLate.length} soin(s) ou vaccin(s) à faire`, moduleKey: 'elevage', tone: 'amber', priority: 40 } : null,
     criticalSmart.length || weatherRisk ? { iconKey: 'smart', category: 'Smart Farm', title: 'Vérifier les capteurs et la météo', detail: weatherRisk ? 'Risque météo ou capteur critique à contrôler' : `${criticalSmart.length} équipement(s) connecté(s) à contrôler`, moduleKey: 'smartfarm', tone: 'amber', priority: 45 } : null,
-    openTasks.length ? { iconKey: 'task', category: 'Tâches', title: 'Terminer les tâches ouvertes', detail: `${openTasks.length} tâche(s) à suivre`, moduleKey: 'taches', tone: 'amber', priority: 50 } : null,
-    docsMissing.length ? { iconKey: 'document', category: 'Administratif', title: 'Ajouter les preuves / factures', detail: `${docsMissing.length} preuve(s) à compléter`, moduleKey: 'documents', tone: 'neutral', priority: 60 } : null,
+    openTasks.length ? { iconKey: 'task', category: 'Tâches', title: 'Terminer les tâches ouvertes', detail: `${openTasks.length} tâche(s) à suivre`, moduleKey: 'activite_suivi', tone: 'amber', priority: 50 } : null,
+    docsMissing.length ? { iconKey: 'document', category: 'Administratif', title: 'Ajouter les preuves / factures', detail: `${docsMissing.length} preuve(s) à compléter`, moduleKey: 'documents_rapports', tone: 'neutral', priority: 60 } : null,
     orphanPayments.length ? { iconKey: 'sync', category: 'Contrôle ERP', title: 'Vérifier les ventes supprimées', detail: `${orphanPayments.length} ancien(s) paiement(s) à contrôler`, moduleKey: 'sync_activity', tone: 'amber', priority: 70 } : null,
   ].filter(Boolean).sort((a, b) => a.priority - b.priority);
 }

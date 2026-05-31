@@ -1,76 +1,131 @@
-import { AlertTriangle, CreditCard, Receipt, TrendingUp } from 'lucide-react';
+import ChartsGrid from '../components/charts/ChartsGrid.jsx';
 import SmartEvolutionChart from '../components/charts/SmartEvolutionChart.jsx';
-import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
+import SmartPieChart from '../components/charts/SmartPieChart.jsx';
+import { monthKeyFromDate, monthLabelFromKey, resolveChartDate } from '../utils/chartDates';
+import { toNumber } from '../utils/format';
 import { paidForOrder, remainingForOrder } from '../utils/salesStatuses';
 import { summarizeSalesMargins } from '../utils/salesMarginEngine';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase();
 const amount = (row = {}) => toNumber(row.montant_total ?? row.total ?? row.amount ?? row.total_amount ?? row.montant ?? 0);
-const rowDate = (row = {}) => row.date_commande || row.order_date || row.date || row.created_at || row.updated_at;
 const paymentDate = (row = {}) => row.date_paiement || row.payment_date || row.date || row.created_at || row.updated_at;
-const paymentAmount = (row = {}) => toNumber(row.montant_paye ?? row.montant ?? row.amount ?? row.total ?? 0);
 const paymentOrderId = (row = {}) => String(row.order_id || row.sale_id || row.commande_id || row.related_id || row.source_record_id || '').trim();
-const status = (row = {}) => lower(row.statut_commande || row.order_status || row.statut || row.status || row.statut_paiement || row.payment_status);
-const isOpen = (row = {}) => !['annule', 'annulé', 'cancelled', 'paye', 'payé', 'paid', 'solde', 'soldé'].includes(status(row));
-const isConvertedOpportunity = (row = {}) => ['gagnee', 'gagnée', 'converted', 'convertie', 'commande'].includes(lower(row.status || row.statut));
 const isCancelledPayment = (row = {}) => ['annule', 'annulé', 'annulee', 'cancelled', 'supprime', 'supprimé', 'deleted'].includes(lower(row.statut || row.status));
 const hasMissingCost = (row = {}) => Boolean(row.cout_a_completer || row.margin_reliable === false || (amount(row) > 0 && toNumber(row.cout_revient ?? row.cout_direct) <= 0));
 const reliableMargin = (row = {}) => hasMissingCost(row) ? 0 : toNumber(row.marge_directe ?? row.marge_montant ?? row.marge ?? 0);
 
-function asDate(value) { const parsed = new Date(value); return Number.isNaN(parsed.getTime()) ? null : parsed; }
-function monthKey(value) { const date = asDate(value); if (!date) return 'Sans date'; return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; }
-function monthLabel(key) { if (key === 'Sans date') return key; const [year, month] = key.split('-'); return `${month}/${String(year).slice(-2)}`; }
-function ensure(map, key) { if (!map.has(key)) map.set(key, { key, mois: monthLabel(key), commandes: 0, encaisses: 0, impayes: 0, marge: 0, nb_commandes: 0, couts_incomplets: 0, ouvertes: 0, factures: 0, paiements: 0, livraisons: 0, opportunites: 0, converties: 0, panier_moyen: 0, taux_paiement: 0, taux_conversion: 0 }); return map.get(key); }
-function SmallMetric({ label, value, hint, danger = false }) { return <div className={`border rounded-xl p-3 ${danger ? 'bg-red-50 border-red-200' : 'bg-[#fffdf8] border-[#d6c3a0]'}`}><p className="text-xs text-[#8a7456]">{label}</p><p className={`text-xl font-black mt-1 ${danger ? 'text-red-600' : 'text-[#2f2415]'}`}>{value}</p>{hint ? <p className="text-xs text-[#8a7456] mt-1">{hint}</p> : null}</div>; }
-function activeLinkedPayments(rows = [], payments = []) { const orderIds = new Set(arr(rows).map((row) => String(row.id || '').trim()).filter(Boolean)); return arr(payments).filter((payment) => { if (isCancelledPayment(payment)) return false; const linkedOrderId = paymentOrderId(payment); return Boolean(linkedOrderId && orderIds.has(linkedOrderId)); }); }
+function ensure(map, key) { if (!map.has(key)) map.set(key, { key, mois: monthLabelFromKey(key), commandes: 0, encaisses: 0, impayes: 0, marge: 0, nb_commandes: 0, ouvertes: 0, converties: 0, taux_paiement: 0 }); return map.get(key); }
+function activeLinkedPayments(rows = [], payments = []) { const orderIds = new Set(arr(rows).map((row) => String(row.id || '').trim()).filter(Boolean)); return arr(payments).filter((payment) => !isCancelledPayment(payment) && paymentOrderId(payment) && orderIds.has(paymentOrderId(payment))); }
+
+function buildMarginContext(props = {}) {
+  return {
+    lots: props.lots || [],
+    animaux: props.animaux || [],
+    cultures: props.cultures || [],
+    stocks: props.stocks || [],
+    alimentationLogs: props.alimentationLogs || [],
+    productionLogs: props.productionLogs || [],
+    vaccins: props.vaccins || [],
+    businessEvents: props.businessEvents || [],
+    payments: props.payments || [],
+    transactions: props.transactions || [],
+  };
+}
 
 function buildMonthly({ rows = [], payments = [], opportunities = [], marginDetails = [] }) {
   const map = new Map();
+  let undatedOrders = 0;
   const linkedPayments = activeLinkedPayments(rows, payments);
   const marginMap = new Map(arr(marginDetails).map((row) => [String(row.id), row]));
   arr(rows).forEach((order) => {
-    const key = monthKey(rowDate(order));
+    const key = monthKeyFromDate(resolveChartDate(order));
+    if (!key) {
+      undatedOrders += 1;
+      return;
+    }
     const bucket = ensure(map, key);
     const enriched = marginMap.get(String(order.id)) || order;
-    const total = amount(enriched);
-    const paid = paidForOrder(order, linkedPayments);
-    const remaining = remainingForOrder(order, linkedPayments);
-    const missing = hasMissingCost(enriched);
-    bucket.commandes += total;
-    bucket.encaisses += paid;
-    bucket.impayes += remaining;
+    bucket.commandes += amount(enriched);
+    bucket.encaisses += paidForOrder(order, linkedPayments);
+    bucket.impayes += remainingForOrder(order, linkedPayments);
     bucket.marge += reliableMargin(enriched);
-    bucket.couts_incomplets += missing ? 1 : 0;
     bucket.nb_commandes += 1;
-    if (remaining > 0 || isOpen(order)) bucket.ouvertes += 1;
-    if (order.invoice_id || order.facture_id || lower(order.statut_facture).includes('emis') || lower(order.statut_facture).includes('émis')) bucket.factures += 1;
-    if (order.delivery_id || order.livraison_id || lower(order.statut_livraison).includes('livre') || lower(order.statut_livraison).includes('livré')) bucket.livraisons += 1;
+    if (remainingForOrder(order, linkedPayments) > 0) bucket.ouvertes += 1;
   });
-  linkedPayments.forEach((payment) => { const key = monthKey(paymentDate(payment)); const bucket = ensure(map, key); bucket.paiements += 1; });
-  arr(opportunities).forEach((opp) => { const key = monthKey(opp.created_at || opp.updated_at || opp.date); const bucket = ensure(map, key); bucket.opportunites += 1; if (isConvertedOpportunity(opp)) bucket.converties += 1; });
-  return [...map.values()].sort((a, b) => a.key.localeCompare(b.key)).map((row) => ({ ...row, panier_moyen: row.nb_commandes > 0 ? Number((row.commandes / row.nb_commandes).toFixed(0)) : 0, taux_paiement: row.commandes > 0 ? Number(((row.encaisses / row.commandes) * 100).toFixed(1)) : 0, taux_conversion: row.opportunites > 0 ? Number(((row.converties / row.opportunites) * 100).toFixed(1)) : 0 }));
+  arr(opportunities).forEach((opp) => {
+    const key = monthKeyFromDate(resolveChartDate(opp, [opp.created_at, opp.updated_at, opp.date]));
+    if (!key) return;
+    const bucket = ensure(map, key);
+    if (['gagnee', 'gagnée', 'converted', 'convertie', 'commande'].includes(lower(opp.status || opp.statut))) bucket.converties += 1;
+  });
+  return {
+    rows: [...map.values()].sort((a, b) => a.key.localeCompare(b.key)).map((row) => ({
+      ...row,
+      taux_paiement: row.commandes > 0 ? Number(((row.encaisses / row.commandes) * 100).toFixed(1)) : 0,
+    })),
+    undatedOrders,
+  };
 }
+
 function labels(rows) { return rows.map((row) => row.mois); }
 function values(rows, key) { return rows.map((row) => toNumber(row[key])); }
 
-export default function SalesEvolution({ rows = [], payments = [], opportunities = [], lots = [], animaux = [], cultures = [], stocks = [], alimentationLogs = [], productionLogs = [], vaccins = [], businessEvents = [], transactions = [], onNavigate }) {
+export default function SalesEvolution({
+  rows = [],
+  payments = [],
+  opportunities = [],
+  lots = [],
+  animaux = [],
+  cultures = [],
+  stocks = [],
+  alimentationLogs = [],
+  productionLogs = [],
+  vaccins = [],
+  businessEvents = [],
+  transactions = [],
+}) {
   const linkedPayments = activeLinkedPayments(rows, payments);
-  const marginSummary = summarizeSalesMargins(rows, { payments: linkedPayments, transactions, lots, animaux, cultures, stocks, alimentationLogs, productionLogs, vaccins, businessEvents });
-  const monthly = buildMonthly({ rows, payments: linkedPayments, opportunities, marginDetails: marginSummary.details });
+  const marginContext = buildMarginContext({
+    lots, animaux, cultures, stocks, alimentationLogs, productionLogs, vaccins, businessEvents, payments: linkedPayments, transactions,
+  });
+  const marginSummary = summarizeSalesMargins(rows, marginContext);
+  const { rows: monthly, undatedOrders } = buildMonthly({ rows, payments: linkedPayments, opportunities, marginDetails: marginSummary.details });
   const totalOrders = arr(rows).reduce((sum, row) => sum + amount(row), 0);
   const totalPaid = arr(rows).reduce((sum, row) => sum + paidForOrder(row, linkedPayments), 0);
   const totalRemaining = arr(rows).reduce((sum, row) => sum + remainingForOrder(row, linkedPayments), 0);
-  const totalMargin = marginSummary.margin;
-  const missingCost = marginSummary.missingCost;
-  const openOrders = arr(rows).filter((row) => remainingForOrder(row, linkedPayments) > 0 || isOpen(row));
-  const openOpportunities = arr(opportunities).filter((opp) => !['gagnee', 'gagnée', 'perdue', 'annulee', 'annulée', 'closed'].includes(lower(opp.status || opp.statut))).length;
-  const conversionRate = arr(rows).length + openOpportunities > 0 ? (arr(rows).length / (arr(rows).length + openOpportunities)) * 100 : 0;
-  const recoveryRate = totalOrders > 0 ? Number(((totalPaid / totalOrders) * 100).toFixed(1)) : 0;
-  const orphanPayments = arr(payments).filter((payment) => !isCancelledPayment(payment) && paymentOrderId(payment) && !linkedPayments.includes(payment)).length;
-  const last = monthly[monthly.length - 1];
-  const interpretation = !monthly.length ? 'Aucune vente datée exploitable pour le moment.' : missingCost > 0 ? `${fmtNumber(missingCost)} commande(s) ont un coût direct incomplet : la marge est neutralisée pour ces ventes.` : last.impayes > 0 ? `Dernier mois : ${fmtCurrency(last.impayes)} reste à encaisser.` : 'Dernier mois : ventes suivies et aucun impayé détecté sur la période.';
-  const priority = missingCost > 0 ? { module: 'stock', label: 'Compléter les coûts directs', icon: AlertTriangle } : totalRemaining > 0 ? { module: 'clients', label: 'Relancer les paiements', icon: AlertTriangle } : openOpportunities > 0 ? { module: 'ventes', label: 'Convertir les opportunités', icon: TrendingUp } : { module: 'ventes', label: 'Préparer les prochaines ventes', icon: CreditCard };
-  const PriorityIcon = priority.icon;
-  return <div className="space-y-5"><div className="bg-white border border-[#d6c3a0] rounded-2xl p-4"><div className="flex items-start gap-3 mb-4"><div className="w-10 h-10 rounded-xl bg-[#e8f7ef] text-emerald-600 flex items-center justify-center"><Receipt size={18} /></div><div><p className="font-black text-[#2f2415]">Évolution Ventes</p><p className="text-xs text-[#8a7456] mt-1">Commandes, encaissements, impayés, marge fiable et activité commerciale.</p></div></div>{orphanPayments ? <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800"><AlertTriangle size={14} className="inline" /> {orphanPayments} ancien(s) paiement(s) ne sont plus liés à une vente existante. Ils ne sont pas comptés dans les graphiques.</div> : null}{missingCost ? <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800"><AlertTriangle size={14} className="inline" /> {missingCost} commande(s) avec coût direct incomplet : marge non considérée comme fiable.</div> : null}<div className="grid grid-cols-2 lg:grid-cols-6 gap-3"><SmallMetric label="CA commandé" value={fmtCurrency(totalOrders)} hint={`${fmtNumber(arr(rows).length)} commande(s)`} /><SmallMetric label="Encaissé" value={fmtCurrency(totalPaid)} hint={`${recoveryRate}% paiement`} /><SmallMetric label="Impayés" value={fmtCurrency(totalRemaining)} hint={`${fmtNumber(openOrders.length)} commande(s) ouvertes`} danger={totalRemaining > 0} /><SmallMetric label="Marge fiable" value={fmtCurrency(totalMargin)} hint={missingCost ? `${fmtNumber(missingCost)} coût(s) incomplet(s)` : 'coûts directs retrouvés'} danger={totalMargin < 0 || missingCost > 0} /><SmallMetric label="Opportunités" value={fmtNumber(openOpportunities)} hint="à convertir" /><SmallMetric label="Conversion" value={`${conversionRate.toFixed(1)}%`} hint="commandes / potentiel" /></div></div><SmartEvolutionChart title="Ventes — performance commerciale" subtitle="CA, encaissé, impayés, marge fiable et taux de paiement." months={labels(monthly)} leftUnit="FCFA" rightUnit="%" series={[{ name: 'CA commandé', type: 'bar', unit: 'FCFA', data: values(monthly, 'commandes') }, { name: 'Encaissé', type: 'bar', unit: 'FCFA', data: values(monthly, 'encaisses') }, { name: 'Impayés', type: 'bar', unit: 'FCFA', data: values(monthly, 'impayes') }, { name: 'Marge fiable', type: 'bar', unit: 'FCFA', data: values(monthly, 'marge') }, { name: 'Taux paiement', type: 'line', axis: 'right', unit: '%', data: values(monthly, 'taux_paiement') }]} /><SmartEvolutionChart title="Ventes — activité commerciale" subtitle="Commandes, factures, paiements, livraisons, coûts incomplets et opportunités converties." months={labels(monthly)} leftUnit="" rightUnit="%" series={[{ name: 'Commandes créées', type: 'bar', data: values(monthly, 'nb_commandes') }, { name: 'Commandes ouvertes', type: 'bar', data: values(monthly, 'ouvertes') }, { name: 'Coûts incomplets', type: 'bar', data: values(monthly, 'couts_incomplets') }, { name: 'Factures', type: 'bar', data: values(monthly, 'factures') }, { name: 'Paiements', type: 'bar', data: values(monthly, 'paiements') }, { name: 'Livraisons', type: 'bar', data: values(monthly, 'livraisons') }, { name: 'Opportunités converties', type: 'bar', data: values(monthly, 'converties') }, { name: 'Taux conversion', type: 'line', axis: 'right', unit: '%', data: values(monthly, 'taux_conversion') }]} /><div className="bg-[#fffdf8] border border-[#d6c3a0] rounded-2xl p-4 text-sm text-[#7d6a4a] flex items-start gap-3"><TrendingUp size={18} className="text-[#9a6b12] mt-0.5" /><div><b className="text-[#2f2415]">Lecture rapide :</b> {interpretation}</div></div><div className={`${totalRemaining > 0 || openOpportunities > 0 || missingCost > 0 ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'} border rounded-2xl p-4 text-sm flex items-start justify-between gap-3`}><div className="flex items-start gap-2"><PriorityIcon size={18} className="mt-0.5" /><div><b>Action recommandée :</b> {priority.label}.</div></div><button type="button" onClick={() => onNavigate?.(priority.module)} className="shrink-0 rounded-xl bg-white/70 border border-current/10 px-3 py-1.5 text-xs font-bold">Ouvrir</button></div></div>;
+
+  return (
+    <ChartsGrid>
+      {undatedOrders > 0 ? (
+        <p className="col-span-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+          {undatedOrders} vente(s) sans date valide — exclue(s) des graphiques mensuels. Renseignez la date sur la fiche vente.
+        </p>
+      ) : null}
+      <SmartEvolutionChart moduleName="Ventes" compact title="CA commandé vs encaissé" subtitle="Histogramme — montants mensuels" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
+        { name: 'CA commandé', type: 'bar', unit: 'FCFA', data: values(monthly, 'commandes') },
+        { name: 'Encaissé', type: 'bar', unit: 'FCFA', data: values(monthly, 'encaisses') },
+      ]} />
+      <SmartEvolutionChart moduleName="Ventes" compact title="Impayés vs marge fiable" subtitle="Histogramme — reste à encaisser et marge" months={labels(monthly)} leftUnit="FCFA" rightUnit="" series={[
+        { name: 'Impayés', type: 'bar', unit: 'FCFA', data: values(monthly, 'impayes') },
+        { name: 'Marge fiable', type: 'bar', unit: 'FCFA', data: values(monthly, 'marge') },
+      ]} />
+      <SmartEvolutionChart moduleName="Ventes" compact title="Taux de paiement" subtitle="Courbe — % encaissé sur CA" months={labels(monthly)} leftUnit="%" rightUnit="" series={[
+        { name: 'Taux paiement', type: 'line', unit: '%', data: values(monthly, 'taux_paiement') },
+      ]} />
+      <SmartPieChart moduleName="Ventes" compact title="Répartition encaissements" subtitle="Camembert — payé vs reste à encaisser" unit="FCFA" items={[
+        { name: 'Encaissé', value: totalPaid },
+        { name: 'Impayés', value: totalRemaining },
+      ]} />
+      <SmartEvolutionChart moduleName="Ventes" compact title="Commandes ouvertes vs converties" subtitle="Histogramme — suivi pipeline" months={labels(monthly)} leftUnit="" rightUnit="" series={[
+        { name: 'Commandes ouvertes', type: 'bar', data: values(monthly, 'ouvertes') },
+        { name: 'Opport. converties', type: 'bar', data: values(monthly, 'converties') },
+      ]} />
+      <SmartPieChart moduleName="Ventes" compact title="Structure CA global" subtitle="Camembert — commandé / encaissé / impayés" unit="FCFA" items={[
+        { name: 'Encaissé', value: totalPaid },
+        { name: 'Impayés', value: totalRemaining },
+        { name: 'CA non encaissé partiel', value: Math.max(0, totalOrders - totalPaid - totalRemaining) },
+      ].filter((item) => item.value > 0)} />
+    </ChartsGrid>
+  );
 }

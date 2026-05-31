@@ -1,10 +1,24 @@
 export const AVICOLE_ACTIVITY_TYPES = ['Pondeuse', 'Chair'];
 
+const lotText = (lot = {}) => String(`${lot.type || ''} ${lot.type_lot || ''} ${lot.production_type || ''} ${lot.activity_type || ''} ${lot.categorie || ''} ${lot.name || ''} ${lot.nom || ''}`).trim().toLowerCase();
+
 export const isPondeuseLot = (lot = {}) =>
   lot.type === 'Pondeuse' || String(lot.type || '').toLowerCase() === 'pondeuse';
 
 export const isChairLot = (lot = {}) =>
   lot.type === 'Chair' || ['chair', 'poulet_chair'].includes(String(lot.type || '').toLowerCase());
+
+/** Chair vs pondeuses — tous lots confondus (texte + type). */
+export function resolveAvicoleLotKind(lot = {}) {
+  const text = lotText(lot);
+  if (isPondeuseLot(lot) || text.includes('pondeuse') || text.includes('ponte') || text.includes('oeuf') || text.includes('œuf')) {
+    return 'pondeuse';
+  }
+  if (isChairLot(lot) || text.includes('chair') || text.includes('broiler') || text.includes('poulet')) {
+    return 'chair';
+  }
+  return 'other';
+}
 
 export const filterLotsByActivity = (lots = [], activityType = 'Pondeuse') =>
   lots.filter((lot) => (activityType === 'Pondeuse' ? isPondeuseLot(lot) : isChairLot(lot)));

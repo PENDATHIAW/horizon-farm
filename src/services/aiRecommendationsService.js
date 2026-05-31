@@ -1,4 +1,5 @@
 import { computeErpAuditFindings } from './erpRules/index.js';
+import { runErpHealthEngine } from './erpHealthEngine.js';
 import { supabase } from '../lib/supabase.js';
 
 const STORAGE_KEY = 'horizon-ai-recommendations-journal';
@@ -18,13 +19,39 @@ export function saveLocalRecommendation(entry) {
   return journal;
 }
 
-/** Génère des recommandations depuis les règles métier (Phase 1). */
+const ASSISTANT_EVENT_PREFIXES = ['assistant_', 'hey_horizon'];
+
+/** Fusionne journal local + événements métier assistant_erp. */
+export function buildAssistantJournal({ localEntries = [], businessEvents = [] } = {}) {
+  const fromEvents = (Array.isArray(businessEvents) ? businessEvents : [])
+    .filter((evt) => {
+      const module = String(evt.module_source || evt.source_module || '');
+      const type = String(evt.event_type || '');
+      return module === 'assistant_erp' || ASSISTANT_EVENT_PREFIXES.some((prefix) => type.startsWith(prefix));
+    })
+    .map((evt) => ({
+      type: 'event',
+      action: evt.title || evt.event_type,
+      text: evt.description || evt.title,
+      module: evt.module_source || evt.entity_type,
+      confidence_score: null,
+      saved_at: evt.created_at || evt.event_date,
+      source: 'erp',
+    }));
+  const local = (Array.isArray(localEntries) ? localEntries : []).map((entry) => ({ ...entry, source: 'local' }));
+  return [...local, ...fromEvents]
+    .sort((a, b) => new Date(b.saved_at || 0).getTime() - new Date(a.saved_at || 0).getTime())
+    .slice(0, 24);
+}
+
+/** Génère des recommandations depuis le Health Engine (cohérence, risques, prédictions, UX). */
 export function buildRecommendationsFromData(data = {}) {
-  return computeErpAuditFindings(data).map((finding) => ({
+  const health = runErpHealthEngine(data);
+  return health.findings.slice(0, 50).map((finding) => ({
     id: finding.id,
     title: finding.title,
     summary: finding.description || '',
-    recommendation_type: finding.module,
+    recommendation_type: finding.category || finding.module,
     module_target: finding.module,
     priority: finding.severity,
     status: 'nouvelle',
@@ -33,20 +60,21 @@ export function buildRecommendationsFromData(data = {}) {
     confidence_score: Math.round((finding.confidence_score || 0.8) * 100),
     source_data: { source_records: finding.source_records || [] },
     created_by_ai: true,
+    auto_action: finding.auto_action,
   }));
 }
 
 /** Mappe un brouillon Hey Horizon vers openFormModal. */
 export function draftToFormRequest(draft = {}) {
   const typeMap = {
-    vente: { module: 'ventes', form_type: 'sale_record' },
-    achat_stock: { module: 'stock', form_type: 'stock_movement' },
-    elevage: { module: 'animaux', form_type: 'animal_action' },
-    maintenance: { module: 'equipements', form_type: 'maintenance' },
-    finance: { module: 'finances', form_type: 'finance_transaction' },
-    suivi: { module: 'taches', form_type: 'task' },
-    document: { module: 'documents', form_type: 'document' },
-    decision: { module: 'centre_ia', form_type: 'decision' },
+    vente: { module: 'commercial', form_type: 'sale_record' },
+    achat_stock: { module: 'achats_stock', form_type: 'stock_movement' },
+    elevage: { module: 'elevage', form_type: 'animal_action' },
+    maintenance: { module: 'rh', form_type: 'maintenance' },
+    finance: { module: 'finance_pilotage', form_type: 'finance_transaction' },
+    suivi: { module: 'activite_suivi', form_type: 'task' },
+    document: { module: 'documents_rapports', form_type: 'document' },
+    decision: { module: 'objectifs_croissance', form_type: 'decision' },
   };
   const mapped = typeMap[draft.type] || typeMap.decision;
   return {

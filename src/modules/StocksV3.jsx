@@ -17,7 +17,7 @@ import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId, makeId } from '../utils/ids';
 import { alimentationFields as buildAlimentationFields, normalizeAlimentationPayload } from '../utils/stockForms';
-import { buildStockLossFinanceTransaction } from '../utils/stockLossImpact';
+import { runStockLossSideEffects } from '../utils/purchaseSideEffects';
 import { applyStockMovement, buildStockCriticalFollowUp, hasOpenStockReorderTask } from '../utils/stockWorkflows';
 import StockFlowPanel from './StockFlowPanel.jsx';
 import StockReorderTasksBridge from './StockReorderTasksBridge.jsx';
@@ -143,7 +143,21 @@ export default function StocksV3({ rows = [], alimentationLogs = [], animaux = [
         const amount = qty * unitPrice(row);
         if (withFinance && amount > 0) {
           const preview = preparePurchaseWorkflow({ id: row.id, produit: row.produit, quantite: nextQty, quantite_recue: qty, prix_unitaire: unitPrice(row), montant: amount, fournisseur_id: row.fournisseur_id || '', source_record_id: row.id, last_movement_type: 'entree', last_movement_label: motif, last_movement_qty: qty, last_movement_at: new Date().toISOString(), statut: 'ok', stock_status: 'ok' }, { transactions: [], documents: documentsCrud.rows, events: businessEventsCrud.rows });
-          await commitPurchaseWorkflow(preview, { onCreateOrUpdateStock: (patch) => onUpdate?.(row.id, normalizeStock({ ...patch, quantite: nextQty, last_movement_label: motif })), onCreateFinanceTransaction, onCreateDocument: documentsCrud.create, onCreateBusinessEvent: rest.onCreateBusinessEvent || businessEventsCrud.create });
+          await commitPurchaseWorkflow(preview, {
+            context: {
+              stocks: rows,
+              transactions: rest.transactions || [],
+              tasks: taches,
+              alertes: alertesCrud.rows || [],
+              documents: documentsCrud.rows || [],
+            },
+            onCreateOrUpdateStock: (patch) => onUpdate?.(row.id, normalizeStock({ ...patch, quantite: nextQty, last_movement_label: motif })),
+            onCreateFinanceTransaction,
+            onCreateDocument: documentsCrud.create,
+            onCreateBusinessEvent: rest.onCreateBusinessEvent || businessEventsCrud.create,
+            onCreateTask,
+            onCreateAlert: onCreateAlert || alertesCrud.create,
+          });
         } else {
           await moveStock(row, 'entree', qty, motif);
           await (rest.onCreateBusinessEvent || businessEventsCrud.create)?.({ id: makeId('EVT'), event_type: 'reception_stock', module_source: 'stock', entity_type: 'stock', entity_id: row.id, title: `Réception stock ${productName(row)}`, description: `${qty} ${row.unite || ''} · ${motif}`, event_date: today(), severity: 'info' });
@@ -153,7 +167,14 @@ export default function StocksV3({ rows = [], alimentationLogs = [], animaux = [
       } else if (type === 'sortie') {
         if (isFood(row) && onCreateAlimentation) {
           const preview = prepareFeedingWorkflow({ id: generateSequentialId('alimentation_logs', alimentationLogs), date: today(), stock_id: row.id, categorie: row.activite_liee === 'avicole' ? 'pondeuse' : 'bovin', type_cible: 'categorie_animale', quantite: qty, unite: row.unite || 'kg', montant_total: qty * unitPrice(row), fournisseur_id: row.fournisseur_id || '', duree_jours: 1, notes: motif || `Sortie depuis stock ${row.produit}` }, { events: businessEventsCrud.rows });
-          await commitFeedingWorkflow(preview, { onCreateAlimentation, onUpdateStockMovement: () => moveStock(row, 'sortie', qty, motif), onCreateBusinessEvent: rest.onCreateBusinessEvent || businessEventsCrud.create });
+          await commitFeedingWorkflow(preview, {
+            context: { stocks: rows, transactions: rest.transactions || [] },
+            onCreateAlimentation,
+            onUpdateStockMovement: () => moveStock(row, 'sortie', qty, motif),
+            onUpdateStock: onUpdate,
+            onCreateFinanceTransaction,
+            onCreateBusinessEvent: rest.onCreateBusinessEvent || businessEventsCrud.create,
+          });
           await Promise.allSettled([onRefreshAlimentation?.(), onRefresh?.(), businessEventsCrud.refresh?.()]);
           toast.success('Aliment utilisé et coût lié');
         } else {
@@ -164,9 +185,15 @@ export default function StocksV3({ rows = [], alimentationLogs = [], animaux = [
         }
       } else if (type === 'perte') {
         await moveStock(row, 'perte', qty, motif);
-        const lossTransaction = buildStockLossFinanceTransaction(row, qty);
-        if (lossTransaction) await onCreateFinanceTransaction?.(lossTransaction);
-        await (rest.onCreateBusinessEvent || businessEventsCrud.create)?.({ id: makeId('EVT'), event_type: 'perte_stock', module_source: 'stock', entity_type: 'stock', entity_id: row.id, title: `Perte stock ${row.produit}`, description: `${qty} ${row.unite || ''} · ${motif}`, event_date: today(), severity: 'warning', amount: lossTransaction?.montant || qty * unitPrice(row), linked_finance_transaction_id: lossTransaction?.id || '' });
+        const lossFinance = await runStockLossSideEffects({
+          stock: row,
+          qty,
+          date: today(),
+          movementRef: `${today()}-${qty}`,
+          transactions: rest.transactions || [],
+          handlers: { onCreateFinanceTransaction },
+        });
+        await (rest.onCreateBusinessEvent || businessEventsCrud.create)?.({ id: makeId('EVT'), event_type: 'perte_stock', module_source: 'stock', entity_type: 'stock', entity_id: row.id, title: `Perte stock ${row.produit}`, description: `${qty} ${row.unite || ''} · ${motif}`, event_date: today(), severity: 'warning', amount: lossFinance?.montant || qty * unitPrice(row), linked_finance_transaction_id: lossFinance?.id || '', side_effects_managed: true });
         await Promise.allSettled([businessEventsCrud.refresh?.(), onRefreshFinances?.()]);
         toast.success('Perte stock enregistrée et tracée');
       }

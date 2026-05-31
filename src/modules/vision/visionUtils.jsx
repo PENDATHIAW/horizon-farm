@@ -1,4 +1,5 @@
 import { fmtCurrency, fmtNumber } from '../../utils/format';
+import { runErpHealthEngine } from '../../services/erpHealthEngine.js';
 
 export const arr = (v) => (Array.isArray(v) ? v : []);
 export const low = (v) => String(v || '').toLowerCase();
@@ -41,6 +42,46 @@ export function Btn({ children, onClick }) {
   return <button type="button" onClick={onClick} className="rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]">{children}</button>;
 }
 
+export function riskLevelLabel(level = '') {
+  const map = { critique: 'Critique', eleve: 'Élevé', haute: 'Élevé', moyen: 'Moyen', moyenne: 'Moyen', faible: 'Faible', basse: 'Faible' };
+  return map[low(level)] || level || '—';
+}
+
+function mapEngineRisk(r) {
+  const tone = r.level === 'critique' || r.level === 'eleve' ? 'bad' : r.level === 'moyen' ? 'warn' : 'good';
+  return {
+    id: r.id,
+    domain: r.domain || 'IA',
+    title: r.title,
+    cause: r.detail,
+    impact: `Indice ${r.score}/100`,
+    action: r.level === 'critique' ? 'Traiter immédiatement' : 'Surveiller',
+    module: r.module,
+    severity: riskLevelLabel(r.level),
+    probability: r.level === 'critique' || r.level === 'eleve' ? 'Élevée' : 'Moyenne',
+    financialImpact: '—',
+    owner: '—',
+    due: '—',
+    resolutionStatus: 'ouverte',
+    tone,
+    engineRisk: true,
+  };
+}
+
+function mapEnginePrediction(p) {
+  return {
+    id: p.id,
+    title: p.title,
+    description: p.description,
+    recommended_action: p.recommended_action,
+    module: p.module,
+    severity: p.severity,
+    days_left: p.days_left,
+    horizon: p.days_left != null ? `${p.days_left} j` : '—',
+    type: p.type,
+  };
+}
+
 export function buildRisks(data) {
   const risks = [];
   data.openAlerts.forEach((r) => risks.push({ id: `alert-${r.id || label(r)}`, domain: 'Alerte', title: label(r), cause: r.message || r.description || 'Alerte ouverte', impact: 'Risque opérationnel non clôturé', action: 'Traiter ou transformer en tâche', module: 'activite_suivi', severity: low(r.severity).includes('critique') ? 'Critique' : 'Moyenne', probability: 'Élevée', financialImpact: r.amount ? fmtCurrency(r.amount) : '—', owner: r.responsable || '—', due: dateOf(r), resolutionStatus: r.status || 'ouverte', tone: low(r.severity).includes('critique') ? 'bad' : 'warn' }));
@@ -55,14 +96,21 @@ export function buildRisks(data) {
 
 export function buildVisionData(props = {}) {
   const { dataMap = {}, animaux = [], lots = [], cultures = [], stocks = [], clients = [], salesOrders = [], payments = [], finances = [], transactions = [], investissements = [], businessPlans = [], documents = [], alertes = [], taches = [], opportunities = [], salesOpportunities = [] } = props;
+  const periodFiltered = Boolean(props.periodFiltered);
   const allAnimals = arr(animaux).length ? arr(animaux) : arr(dataMap.animaux);
   const allLots = arr(lots).length ? arr(lots) : arr(dataMap.lots || dataMap.avicole);
   const allCultures = arr(cultures).length ? arr(cultures) : arr(dataMap.cultures);
   const allStocks = arr(stocks).length ? arr(stocks) : arr(dataMap.stocks || dataMap.stock);
   const allClients = arr(clients).length ? arr(clients) : arr(dataMap.clients);
-  const sales = arr(salesOrders).length ? arr(salesOrders) : arr(dataMap.salesOrders || dataMap.sales_orders);
-  const pay = arr(payments).length ? arr(payments) : arr(dataMap.payments);
-  const tx = [...arr(finances), ...arr(transactions), ...arr(dataMap.finances), ...arr(dataMap.transactions)].filter(Boolean);
+  const salesPeriod = arr(salesOrders).length ? arr(salesOrders) : arr(dataMap.salesOrders || dataMap.sales_orders);
+  const salesAll = arr(props.salesOrdersAll).length ? arr(props.salesOrdersAll) : salesPeriod;
+  const sales = periodFiltered ? salesPeriod : salesAll;
+  const payPeriod = arr(payments).length ? arr(payments) : arr(dataMap.payments);
+  const payAll = arr(props.paymentsAll).length ? arr(props.paymentsAll) : payPeriod;
+  const pay = periodFiltered ? payPeriod : payAll;
+  const txPeriod = [...arr(finances), ...arr(transactions), ...arr(dataMap.finances), ...arr(dataMap.transactions)].filter(Boolean);
+  const txAll = arr(props.transactionsAll).length ? arr(props.transactionsAll) : txPeriod;
+  const tx = periodFiltered ? txPeriod : txAll;
   const plans = arr(businessPlans).length ? arr(businessPlans) : arr(dataMap.business_plans);
   const invest = arr(investissements).length ? arr(investissements) : arr(dataMap.investissements);
   const docs = arr(documents).length ? arr(documents) : arr(dataMap.documents);
@@ -76,9 +124,9 @@ export function buildVisionData(props = {}) {
   const stockValue = allStocks.reduce((s, r) => s + stockQty(r) * n(r.prix_unitaire ?? r.unit_price ?? r.price), 0);
   const investmentValue = invest.reduce((s, r) => s + amount(r), 0);
   const missingProof = tx.filter((r) => amount(r) > 0 && !r.document_id && !r.proof_url && !r.justificatif_id).length;
-  const receivable = Math.max(0, salesAmount - collected);
+  const receivable = Math.max(0, salesAll.reduce((s, r) => s + amount(r), 0) - payAll.reduce((s, r) => s + amount(r), 0));
   const grossMargin = income - expenses;
-  const base = { animaux: allAnimals, lots: allLots, cultures: allCultures, stocks: allStocks, clients: allClients, sales, payments: pay, income, expenses, balance: income - expenses, margin: grossMargin, grossMargin, netMargin: grossMargin, salesAmount, collected, stockValue, investmentValue, receivable, estimatedValue: stockValue + investmentValue + Math.max(0, grossMargin), productionCount: allAnimals.length + allLots.length + allCultures.length, goals: [...plans, ...invest], opportunities: opps, documents: docs, missingProof, openAlerts, openTasks, debts: expenses, receivables: receivable };
+  const base = { animaux: allAnimals, lots: allLots, cultures: allCultures, stocks: allStocks, clients: allClients, sales, payments: pay, income, expenses, balance: income - expenses, margin: grossMargin, grossMargin, netMargin: grossMargin, salesAmount, collected, stockValue, investmentValue, receivable, estimatedValue: stockValue + investmentValue + Math.max(0, grossMargin), productionCount: allAnimals.length + allLots.length + allCultures.length, goals: [...plans, ...invest], opportunities: opps, documents: docs, missingProof, openAlerts, openTasks, debts: expenses, receivables: receivable, periodFiltered, periodLabel: props.periodLabel || '' };
   const risks = buildRisks(base);
   const priorities = [
     ...openAlerts.slice(0, 5).map((r) => ({ id: `a-${r.id || label(r)}`, title: label(r), detail: r.message || 'Alerte ouverte', value: 'Alerte', tone: 'warn', tab: 'Risques', sourceModule: r.module_source || 'activite_suivi', record: r })),
@@ -88,5 +136,71 @@ export function buildVisionData(props = {}) {
   ];
   const riskCount = risks.length;
   const totalObjects = allAnimals.length + allLots.length + allCultures.length + openAlerts.length + openTasks.length + allStocks.length + 1;
-  return { ...base, priorities, risks, riskCount, globalScore: score(totalObjects - riskCount, totalObjects) };
+
+  const engineInput = {
+    ...dataMap,
+    animaux: allAnimals,
+    avicole: allLots,
+    lots: allLots,
+    cultures: allCultures,
+    stock: allStocks,
+    stocks: allStocks,
+    clients: allClients,
+    sales_orders: sales,
+    salesOrders: sales,
+    payments: pay,
+    finances: tx,
+    transactions: tx,
+    documents: docs,
+    alertes_center: openAlerts,
+    taches: openTasks,
+    business_plans: plans,
+    investissements: invest,
+    fournisseurs: arr(dataMap.fournisseurs),
+    sante: arr(dataMap.sante),
+    alimentation_logs: arr(dataMap.alimentation_logs),
+    production_oeufs_logs: arr(dataMap.production_oeufs_logs),
+  };
+  const health = runErpHealthEngine(engineInput);
+  const engineRisks = health.risks.map(mapEngineRisk);
+  const mergedRisks = [...engineRisks, ...risks.filter((r) => !engineRisks.some((e) => e.domain === r.domain && e.title === r.title))].slice(0, 50);
+  const predictions = health.predictions.map(mapEnginePrediction);
+  const enginePriorities = health.findings.slice(0, 12).map((f) => ({
+    id: f.id,
+    title: f.title,
+    detail: f.recommended_action || f.description || '—',
+    value: 'IA',
+    tone: f.severity === 'critique' || f.severity === 'haute' ? 'bad' : 'warn',
+    tab: 'À traiter',
+    sourceModule: f.module || 'objectifs_croissance',
+    finding: f,
+    isEngine: true,
+  }));
+  const mergedPriorities = [...enginePriorities, ...priorities.filter((p) => !enginePriorities.some((e) => e.id === p.id))].slice(0, 18);
+  const unreliableMargins = health.findings.filter((f) => f.category === 'rentabilite' || f.margin_reliable === false).length;
+  const iaOpportunities = health.findings
+    .filter((f) => f.recommended_action && !['critique', 'haute'].includes(f.severity))
+    .slice(0, 6)
+    .map((f) => ({
+      id: f.id,
+      title: f.title,
+      notes: f.recommended_action,
+      montant_estime: 0,
+      probability: Math.round((f.confidence_score || 0.8) * 100),
+      module: f.module,
+    }));
+
+  return {
+    ...base,
+    priorities: mergedPriorities,
+    risks: mergedRisks,
+    riskCount: mergedRisks.length,
+    globalScore: health.score || score(totalObjects - riskCount, totalObjects),
+    healthScore: health.score,
+    predictions,
+    healthFindings: health.findings,
+    engineRisks: health.risks,
+    unreliableMargins,
+    iaOpportunities,
+  };
 }

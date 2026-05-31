@@ -75,6 +75,8 @@ export const ROUTE_TO_MODULE = {
   rapports: 'documents_rapports',
   clients: 'commercial',
   fournisseurs: 'achats_stock',
+  sales_orders: 'commercial',
+  sales_opportunities: 'commercial',
 };
 
 export function moduleLabel(id) {

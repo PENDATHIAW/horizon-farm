@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { moduleSeedMap } from '../utils/mockData';
 import { normalizeByModule, normalizePayloadBeforeSave } from '../utils/normalize';
+import { safeLocalStorageSetJson } from '../utils/safeLocalStorage';
 import { isSimulatedDataModeEnabled } from '../utils/uiPreferences';
 
 const SIMULATION_SEED_VERSION = 'horizon-farm-bp-financeur-m7-v4';
@@ -37,12 +38,37 @@ const safeJson = (key, fallback) => {
   if (typeof localStorage === 'undefined') return fallback;
   try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); } catch { return fallback; }
 };
-const readSimulatedRows = (table) => safeJson(simulatedStorageKey(table), []);
-const writeSimulatedRows = (table, rows = []) => { if (typeof localStorage === 'undefined') return rows; localStorage.setItem(simulatedStorageKey(table), JSON.stringify(rows)); return rows; };
+const seedRowsForTable = (table) => {
+  const moduleKey = tableModuleMap[table] || table;
+  return JSON.parse(JSON.stringify(clonedModuleSeedMap[moduleKey] || []));
+};
+/** Ne conserve que les lignes créées/modifiées localement — pas la copie complète du seed. */
+const readSimulatedRows = (table) => {
+  const seedById = new Map(seedRowsForTable(table).map((row) => [String(row.id), row]));
+  let raw = safeJson(simulatedStorageKey(table), []);
+  if (!Array.isArray(raw)) raw = [];
+  if (raw.length > Math.max(40, seedById.size + 15)) {
+    raw = raw.filter((row) => {
+      const id = String(row?.id ?? '');
+      const seed = seedById.get(id);
+      if (!seed) return true;
+      return JSON.stringify(row) !== JSON.stringify(seed);
+    });
+    safeLocalStorageSetJson(simulatedStorageKey(table), raw);
+  }
+  return raw;
+};
+const writeSimulatedRows = (table, rows = []) => safeLocalStorageSetJson(simulatedStorageKey(table), rows);
 const readDeletedIds = (table) => new Set(safeJson(simulatedDeletedKey(table), []).map(String));
-const writeDeletedIds = (table, ids) => { if (typeof localStorage === 'undefined') return ids; localStorage.setItem(simulatedDeletedKey(table), JSON.stringify(Array.from(ids).map(String))); return ids; };
+const writeDeletedIds = (table, ids) => { safeLocalStorageSetJson(simulatedDeletedKey(table), Array.from(ids).map(String)); return ids; };
 const readRealDeletedIds = (table) => new Set(safeJson(realDeletedKey(table), []).map(String));
-const writeRealDeletedId = (table, id) => { if (typeof localStorage === 'undefined' || !id) return; const ids = readRealDeletedIds(table); ids.add(String(id)); localStorage.setItem(realDeletedKey(table), JSON.stringify(Array.from(ids))); };
+const writeRealDeletedId = (table, id) => {
+  if (typeof localStorage === 'undefined' || !id) return;
+  const ids = readRealDeletedIds(table);
+  ids.add(String(id));
+  const list = [...ids].slice(-500);
+  safeLocalStorageSetJson(realDeletedKey(table), list);
+};
 const readServerDeletedIds = async () => new Set();
 const filterRealDeletedRows = async (table, rows = [], idField = 'id') => {
   const localIds = readRealDeletedIds(table);
@@ -61,33 +87,32 @@ const getSimulatedTableRows = (table, idField = 'id') => {
   resetSimulatedLocalStateIfNeeded();
   const moduleKey = tableModuleMap[table] || table;
   const deletedIds = readDeletedIds(table);
-  const baseRows = JSON.parse(JSON.stringify(clonedModuleSeedMap[moduleKey] || [])).filter((row) => !deletedIds.has(String(row?.[idField] ?? row?.id)));
+  const baseRows = seedRowsForTable(table).filter((row) => !deletedIds.has(String(row?.[idField] ?? row?.id)));
   const localRows = readSimulatedRows(table).filter((row) => !deletedIds.has(String(row?.[idField] ?? row?.id)));
   return normalizeByModule(moduleKey, mergeById(baseRows, localRows, idField));
 };
 const createSimulatedRow = (table, payload = {}, idField = 'id') => {
   resetSimulatedLocalStateIfNeeded();
   const moduleKey = tableModuleMap[table] || table;
-  const rows = getSimulatedTableRows(table, idField);
   const record = normalizeByModule(moduleKey, [{ ...payload, [idField]: payload?.[idField] || payload?.id || `${table}-${Date.now()}` }])[0];
+  const id = String(record?.[idField] ?? record?.id);
   const deletedIds = readDeletedIds(table);
-  deletedIds.delete(String(record?.[idField] ?? record?.id));
+  deletedIds.delete(id);
   writeDeletedIds(table, deletedIds);
-  const next = mergeById(rows, [record], idField);
-  writeSimulatedRows(table, next);
+  const localRows = readSimulatedRows(table).filter((row) => String(row?.[idField] ?? row?.id) !== id);
+  writeSimulatedRows(table, [...localRows, record]);
   return record;
 };
 const updateSimulatedRow = (table, id, payload = {}, idField = 'id') => {
   resetSimulatedLocalStateIfNeeded();
   const moduleKey = tableModuleMap[table] || table;
-  const rows = getSimulatedTableRows(table, idField);
-  const previous = rows.find((row) => String(row?.[idField]) === String(id)) || {};
+  const previous = getSimulatedTableRows(table, idField).find((row) => String(row?.[idField]) === String(id)) || {};
   const record = normalizeByModule(moduleKey, [{ ...previous, ...payload, [idField]: id }])[0];
   const deletedIds = readDeletedIds(table);
   deletedIds.delete(String(id));
   writeDeletedIds(table, deletedIds);
-  const next = mergeById(rows, [record], idField);
-  writeSimulatedRows(table, next);
+  const localRows = readSimulatedRows(table).filter((row) => String(row?.[idField] ?? row?.id) !== String(id));
+  writeSimulatedRows(table, [...localRows, record]);
   return record;
 };
 const removeSimulatedRow = (table, id, idField = 'id') => {
@@ -95,8 +120,8 @@ const removeSimulatedRow = (table, id, idField = 'id') => {
   const deletedIds = readDeletedIds(table);
   deletedIds.add(String(id));
   writeDeletedIds(table, deletedIds);
-  const rows = getSimulatedTableRows(table, idField);
-  writeSimulatedRows(table, rows.filter((row) => String(row?.[idField]) !== String(id)));
+  const localRows = readSimulatedRows(table).filter((row) => String(row?.[idField] ?? row?.id) !== String(id));
+  writeSimulatedRows(table, localRows);
   return true;
 };
 

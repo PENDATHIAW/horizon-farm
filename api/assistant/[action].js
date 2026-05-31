@@ -1,10 +1,12 @@
 import askHandler from '../../lib/server/assistant/ask.js';
+import enhanceHandler from '../../lib/server/assistant/enhance.js';
 import intentHandler from '../../lib/server/assistant/intent.js';
 import summaryHandler from '../../lib/server/assistant/summary.js';
 import validateHandler from '../../lib/server/assistant/validate.js';
 
 const HANDLERS = {
   ask: askHandler,
+  enhance: enhanceHandler,
   intent: intentHandler,
   summary: summaryHandler,
   validate: validateHandler,

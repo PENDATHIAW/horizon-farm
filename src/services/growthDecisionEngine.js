@@ -1,4 +1,4 @@
-import { avicoleActiveCount } from '../utils/avicoleMetrics';
+import { resolvePeriodContext, rowMatchesMonthKeys } from '../utils/periodScope';
 import { HORIZON_FARM_OFFICIAL_BP } from './horizonFarmOfficialBusinessPlan';
 import { buildTechnicalFarmingAlerts } from './technicalFarmingRules';
 
@@ -119,12 +119,41 @@ export function buildGoalPerformance(dataMap = {}, options = {}) {
   return safeRun(() => {
     const date = safeDate(options.date || new Date());
     const annualTarget = num(options.annualTarget || dataMap?.growth_settings?.annual_ca_target || annualRevenueTarget);
-    const monthTarget = num(dataMap?.growth_settings?.monthly_targets?.[date.getMonth()] || monthlyRevenueTargets[date.getMonth()] || annualTarget / 12);
-    const currentMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    const sales = arr(dataMap.sales_orders || dataMap.salesOrders).filter((row) => monthOf(row) === currentMonth);
-    const payments = arr(dataMap.payments).filter((row) => monthOf(row) === currentMonth);
-    const finances = arr(dataMap.finances || dataMap.transactions).filter((row) => monthOf(row) === currentMonth);
-    const revenueRows = mergeRevenueRows(sales, buildFinanceRevenueOrders(dataMap, currentMonth));
+    const periodScope = options.periodScope;
+    const periodCtx = periodScope ? resolvePeriodContext(periodScope) : null;
+
+    let sales = arr(dataMap.sales_orders || dataMap.salesOrders);
+    let payments = arr(dataMap.payments);
+    let finances = arr(dataMap.finances || dataMap.transactions);
+    let monthTarget;
+    let currentMonth;
+
+    if (periodCtx?.mode === 'all') {
+      currentMonth = `${date.getFullYear()}`;
+      monthTarget = annualTarget;
+      sales = sales.filter((row) => String(monthOf(row)).startsWith(`${date.getFullYear()}-`));
+      payments = payments.filter((row) => String(monthOf(row)).startsWith(`${date.getFullYear()}-`));
+      finances = finances.filter((row) => String(monthOf(row)).startsWith(`${date.getFullYear()}-`));
+    } else if (periodCtx?.mode === 'months') {
+      const monthKeys = periodCtx.monthKeys || [];
+      currentMonth = periodCtx.isSingleMonth ? monthKeys[0] : 'period';
+      sales = sales.filter((row) => rowMatchesMonthKeys(row, monthKeys));
+      payments = payments.filter((row) => rowMatchesMonthKeys(row, monthKeys));
+      finances = finances.filter((row) => rowMatchesMonthKeys(row, monthKeys));
+      monthTarget = monthKeys.reduce((sum, key) => {
+        const month = Number(String(key || '').split('-')[1]) - 1;
+        return sum + num(dataMap?.growth_settings?.monthly_targets?.[month] || monthlyRevenueTargets[month] || annualTarget / 12);
+      }, 0);
+    } else {
+      currentMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      monthTarget = num(dataMap?.growth_settings?.monthly_targets?.[date.getMonth()] || monthlyRevenueTargets[date.getMonth()] || annualTarget / 12);
+      sales = sales.filter((row) => monthOf(row) === currentMonth);
+      payments = payments.filter((row) => monthOf(row) === currentMonth);
+      finances = finances.filter((row) => monthOf(row) === currentMonth);
+    }
+
+    const financeRevenue = finances.filter((row) => normalize(row.type).includes('entree')).map((row) => ({ ...row, montant_total: amount(row), product_name: row.libelle || row.description || row.categorie, source_type: row.source_type || row.module_lie || row.activite, source_id: row.source_id || row.related_id }));
+    const revenueRows = mergeRevenueRows(sales, financeRevenue);
     const activities = Object.entries(activityAnnualTargets).reduce((acc, [key, target]) => ({ ...acc, [key]: { activity: key, label: activityLabels[key], target: monthTarget * (target / Math.max(1, annualRevenueTarget)), realized: 0 } }), {});
     let genericAnimalsRealized = 0;
     revenueRows.forEach((order) => { const key = classifySaleActivity(order, dataMap); if (activities[key]) activities[key].realized += amount(order); else if (key === 'animaux') genericAnimalsRealized += amount(order); });

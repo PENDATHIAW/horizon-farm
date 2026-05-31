@@ -15,9 +15,9 @@ export const HORIZON_INTENT_CATALOG = {
 
   sale_record: {
     label: 'Vente / commande client',
-    primary_module: 'ventes',
-    form_type: 'sale_order',
-    impacted_modules: ['ventes', 'stock', 'clients', 'finances', 'tracabilite', 'centre_ia'],
+    primary_module: 'commercial',
+    form_type: 'sale_record',
+    impacted_modules: ['commercial', 'stock', 'clients', 'finances', 'tracabilite', 'centre_ia'],
     examples: [
       'Enregistre une vente de 15 tablettes d oeufs au client Mariama',
       'J ai vendu 3 moutons payes cash',
