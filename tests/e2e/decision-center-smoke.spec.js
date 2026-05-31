@@ -1,43 +1,28 @@
 import { expect, test } from '@playwright/test';
+import { goToModule, login } from './helpers.js';
 
-async function loginIfNeeded(page) {
-  await page.goto('/');
-  const loginButton = page.getByRole('button', { name: /se connecter/i });
-  if (!(await loginButton.isVisible().catch(() => false))) return;
-
-  const login = process.env.E2E_LOGIN || 'penda';
-  const password = process.env.E2E_PASSWORD || '';
-  await page.getByLabel(/email|login/i).fill(login);
-  await page.getByRole('textbox', { name: /mot de passe/i }).fill(password);
-  await loginButton.click();
-  await expect(page.getByText(/Horizon Farm|Accueil|Centre décisionnel/i).first()).toBeVisible({ timeout: 20_000 });
-}
-
-async function openNav(page, label) {
-  const item = page.getByRole('button', { name: new RegExp(label, 'i') }).first();
-  if (await item.isVisible().catch(() => false)) {
-    await item.click();
-    return;
-  }
-  await page.getByText(new RegExp(label, 'i')).first().click();
-}
+const hasCredentials = Boolean(process.env.E2E_LOGIN && process.env.E2E_PASSWORD);
 
 test.describe('Centre décisionnel et Objectifs & Croissance', () => {
-  test('affiche les blocs décisionnels clés', async ({ page }) => {
-    await loginIfNeeded(page);
+  test.skip(!hasCredentials, 'Variables E2E_LOGIN et E2E_PASSWORD requises');
 
-    await openNav(page, 'Centre décisionnel');
+  test('affiche les blocs décisionnels clés', async ({ page }) => {
+    await login(page);
+
+    await goToModule(page, 'Centre décisionnel');
     await expect(page.getByRole('heading', { name: /Centre décisionnel/i })).toBeVisible();
     await expect(page.getByText(/À traiter aujourd'hui|File du jour/i).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Exporter Excel$/i })).toBeVisible();
 
     await page.getByRole('button', { name: /^Recommandations$/i }).click();
     await expect(page.getByText(/Recommandations investissement & vente/i)).toBeVisible();
+    await expect(page.getByText(/Pourquoi Horizon recommande/i)).toBeVisible();
     await expect(page.getByText(/Calendrier commercial annuel/i)).toBeVisible();
 
     await page.getByRole('button', { name: /^Historique$/i }).click();
     await expect(page.getByText(/Historique des décisions/i)).toBeVisible();
 
-    await openNav(page, 'Objectifs');
+    await goToModule(page, 'Objectifs & Croissance');
     await expect(page.getByRole('heading', { name: /Objectifs & Croissance/i })).toBeVisible();
     await expect(page.getByText(/Objectifs par activité/i)).toBeVisible();
     await expect(page.getByText(/Demande, couverture & actions/i)).toBeVisible();
@@ -45,9 +30,16 @@ test.describe('Centre décisionnel et Objectifs & Croissance', () => {
   });
 
   test('onglet Cycles affiche le vide sanitaire', async ({ page }) => {
-    await loginIfNeeded(page);
-    await openNav(page, 'Centre décisionnel');
+    await login(page);
+    await goToModule(page, 'Centre décisionnel');
     await page.getByRole('button', { name: /^Cycles$/i }).click();
     await expect(page.getByText(/vide sanitaire|QUAND LANCER|lancer une bande/i).first()).toBeVisible({ timeout: 15_000 });
+  });
+
+  test('onglet À traiter propose Ignorer et Ouvrir', async ({ page }) => {
+    await login(page);
+    await goToModule(page, 'Centre décisionnel');
+    await expect(page.getByRole('button', { name: /^Ignorer$/i }).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('button', { name: /^Ouvrir$/i }).first()).toBeVisible();
   });
 });
