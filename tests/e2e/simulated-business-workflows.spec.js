@@ -34,7 +34,7 @@ import { buildSensitiveActionTrace, buildTraceCoverage, normalizeTraceEvent, rou
 import { auditErpInterconnections } from '../../src/utils/interconnectionAudit.js';
 import { buildSyncRepairTask, routeForSyncIssue, syncIssueActionLabel } from '../../src/utils/syncAuditWorkflows.js';
 import { buildSystemAuditEvent, canPerformSystemAction, isLastActiveAdmin, roleCanAccess, validateSystemResetConfirmation } from '../../src/utils/systemAccessWorkflows.js';
-import { buildDashboardTodayActions, sanitizeDashboardMetric } from '../../src/utils/dashboardWorkflows.js';
+import { stripRepeatedPrefix, formatFindingLabel, shouldSkipCriticalTaskFinding } from '../../src/utils/healthFindingLabels.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -909,6 +909,14 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(actions.map((action) => `${action.title} ${action.detail}`).join(' ')).not.toMatch(/undefined|null|NaN|\[object Object\]/i);
     expect(sanitizeDashboardMetric(Number.NaN, '0')).toBe('0');
     expect(sanitizeDashboardMetric('[object Object]', 'Non renseigné')).toBe('Non renseigné');
+  });
+
+  test('health findings ne dupliquent pas les préfixes Tâche critique / Preuve manquante', () => {
+    const nested = 'Tâche critique : Tâche critique : Encaissement Poulets';
+    expect(stripRepeatedPrefix(nested, 'Tâche critique')).toBe('Encaissement Poulets');
+    expect(formatFindingLabel('Tâche critique', nested)).toBe('Tâche critique : Encaissement Poulets');
+    expect(shouldSkipCriticalTaskFinding({ title: nested, source_module: 'erp_health_engine' })).toBe(true);
+    expect(shouldSkipCriticalTaskFinding({ title: 'Vacciner lot A', priority: 'critique' })).toBe(false);
   });
 
   test('interface masque les libellés techniques et garde les messages terrain', () => {

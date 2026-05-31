@@ -7,6 +7,7 @@ import { composeActionTraceShared, composeDecisionDataMap, composeInternalResour
 import { refreshAllModules, refreshSalesWorkflow } from './services/workflowRefresh';
 import { resolveCommercialTab, resolveElevageTab, resolveAchatsStockTab, resolveFinanceTab, resolveRouteModule, defaultTabForLegacyModule } from './utils/commercialNavigation';
 import { pruneHeavyLocalStorage } from './utils/safeLocalStorage';
+import { closeDuplicateHealthMirrorTasks } from './utils/pruneHealthMirrorTasks.js';
 import AppNotificationManager from './components/AppNotificationManager';
 import ErpInterconnectionBridge from './components/ErpInterconnectionBridge';
 import AssistantPanel from './components/AssistantPanel';
@@ -137,6 +138,14 @@ export default function App() {
   ), [decisionDataMapRaw, healthAutoActions]);
 
   useEffect(() => { pruneHeavyLocalStorage(); }, []);
+
+  useEffect(() => {
+    const flag = 'horizon-pruned-health-mirror-tasks-v1';
+    if (localStorage.getItem(flag) !== null || !rows(c.taches).length) return;
+    void closeDuplicateHealthMirrorTasks(rows(c.taches), c.taches.update).then((result) => {
+      localStorage.setItem(flag, String(result.closed || 0));
+    });
+  }, [c.taches]);
 
   useEffect(() => {
     const trigger = scheduleErpHealthOnCriticalChange(() => decisionDataMapRaw, null, healthAutoActions);

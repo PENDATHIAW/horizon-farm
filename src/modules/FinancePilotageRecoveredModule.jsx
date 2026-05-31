@@ -230,6 +230,7 @@ export default function FinancePilotageRecoveredModule(props) {
   const transactions = rowsOf(props.transactions || props.finances || props.rows, financesCrud, periodFiltered);
   const investments = rowsOf(props.investissements, investmentsCrud, periodFiltered);
   const businessPlans = rowsOf(props.businessPlans, businessPlansCrud, periodFiltered);
+  const tasks = rowsOf(props.taches, tasksCrud, periodFiltered);
   const data = useMemo(() => {
     const income = transactions.filter(isIncome).reduce((s, r) => s + amount(r), 0);
     const expenses = transactions.filter((r) => isExpense(r) || (!isIncome(r) && amount(r) > 0)).reduce((s, r) => s + amount(r), 0);
@@ -246,7 +247,7 @@ export default function FinancePilotageRecoveredModule(props) {
     const supplierPayables = suppliers.filter((r) => n(r.dettes ?? r.dette ?? r.solde) > 0).map((r) => ({ id: r.id, title: r.nom || r.name || 'Fournisseur', detail: 'Dette fournisseur', amount: n(r.dettes ?? r.dette ?? r.solde) }));
     const payables = [...txPayables, ...supplierPayables];
     const healthSnap = buildFinanceHealthSnapshot({ transactions, salesOrders: snapshotOrders, payments: snapshotPayments, investments, stocks: rowsOf(props.stocks, stockCrud, false) });
-    const coherenceRows = buildFinanceCoherenceRows(transactions, salesOrders, payments);
+    const coherenceRows = buildFinanceCoherenceRows(transactions, salesOrders, payments, tasks);
     const missingProofItems = aggregateMissingProofTransactions(transactions);
     const profitAlerts = healthSnap.findings.filter((f) => f.category === 'rentabilite' || /marge|rentab|charge|coût|cout/.test(low(`${f.title || ''} ${f.detail || ''}`)));
     return {
@@ -272,7 +273,7 @@ export default function FinancePilotageRecoveredModule(props) {
       healthPredictions: healthSnap.predictions,
       coherenceRows,
     };
-  }, [transactions, investments, salesOrders, salesOrdersAll, payments, paymentsAll, clients, suppliers, props.stocks, stockCrud]);
+  }, [transactions, investments, salesOrders, salesOrdersAll, payments, paymentsAll, clients, suppliers, tasks, props.stocks, stockCrud]);
   const actionHandlers = {
     onNavigate: props.onNavigate,
     onCreateTask: props.onCreateTask || tasksCrud.create,

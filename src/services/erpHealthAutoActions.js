@@ -1,7 +1,8 @@
 import { generateSequentialId } from '../utils/ids.js';
+import { hasOpenTaskForHealthFinding } from '../utils/healthFindingLabels.js';
 import { buildTaskFromAlert, taskDedupeKey, alertDedupeKey, isTaskClosed, isAlertClosed } from '../utils/taskWorkflows.js';
 
-const PROCESSED_KEY = 'horizon-erp-health-auto-processed-v1';
+const PROCESSED_KEY = 'horizon-erp-health-auto-processed-v2';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const today = () => new Date().toISOString().slice(0, 10);
@@ -50,8 +51,7 @@ function saveProcessed(set) {
 }
 
 function hasOpenTaskForFinding(tasks, finding) {
-  const key = finding.id;
-  return arr(tasks).some((t) => !isTaskClosed(t) && (taskDedupeKey(t) === key || t.action_key === key || t.source_record_id === key));
+  return hasOpenTaskForHealthFinding(tasks, finding);
 }
 
 function hasOpenAlertForFinding(alerts, finding) {
@@ -164,6 +164,7 @@ export async function applyErpHealthAutoActions(report, {
 
   for (const finding of taskCandidates) {
     if (!finding?.id || processed.has(`task:${finding.id}`)) { skipped += 1; continue; }
+    if (String(finding.id).startsWith('task-critical-')) { skipped += 1; continue; }
     if (hasOpenTaskForFinding(existingTasks, finding)) { processed.add(`task:${finding.id}`); skipped += 1; continue; }
 
     const task = buildTaskFromFinding(finding, existingTasks);

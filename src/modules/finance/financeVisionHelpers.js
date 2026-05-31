@@ -1,5 +1,6 @@
 import { runErpHealthEngine } from '../../services/erpHealthEngine.js';
 import { fmtCurrency } from '../../utils/format.js';
+import { formatFindingLabel, hasOpenTaskForHealthFinding, stripRepeatedPrefix } from '../../utils/healthFindingLabels.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v = 0) => Number(v || 0);
@@ -20,29 +21,30 @@ export function buildFinanceHealthSnapshot({ transactions = [], salesOrders = []
   };
 }
 
-export function buildFinanceCoherenceRows(transactions = [], salesOrders = [], payments = []) {
+export function buildFinanceCoherenceRows(transactions = [], salesOrders = [], payments = [], tasks = []) {
   const rows = [];
 
   arr(transactions).forEach((trx) => {
     const val = amount(trx);
     if (val > 0 && !hasProof(trx)) {
+      const finding = {
+        id: `finance-no-proof-${trx.id}`,
+        module: 'finance_pilotage',
+        severity: val > 50000 ? 'haute' : 'moyenne',
+        title: formatFindingLabel('Preuve manquante', trx.libelle || trx.title || trx.id),
+        description: `Transaction de ${val} FCFA sans justificatif`,
+        recommended_action: 'Attacher une preuve ou créer une tâche conformité',
+        confidence_score: 0.92,
+        auto_action: hasOpenTaskForHealthFinding(tasks, { id: `finance-no-proof-${trx.id}`, source_records: [{ id: trx.id }] }) ? null : 'create_task',
+      };
       rows.push({
         id: `proof-${trx.id}`,
         trxId: trx.id,
         type: 'preuve',
-        title: `Sans justificatif : ${trx.libelle || trx.title || trx.id}`,
+        title: `Sans justificatif : ${stripRepeatedPrefix(trx.libelle || trx.title || trx.id, 'Preuve manquante')}`,
         detail: fmtCurrency(val),
         value: val,
-        finding: {
-          id: `finance-no-proof-${trx.id}`,
-          module: 'finance_pilotage',
-          severity: val > 50000 ? 'haute' : 'moyenne',
-          auto_action: 'create_task',
-          title: `Preuve manquante : ${trx.libelle || trx.title || trx.id}`,
-          description: `Transaction de ${val} FCFA sans justificatif`,
-          recommended_action: 'Attacher une preuve ou créer une tâche conformité',
-          confidence_score: 0.92,
-        },
+        finding,
       });
     }
     if (isUnpaid(trx) && val > 0) {

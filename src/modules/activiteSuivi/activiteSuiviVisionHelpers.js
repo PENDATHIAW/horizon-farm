@@ -1,4 +1,5 @@
 import { runErpHealthEngine } from '../../services/erpHealthEngine.js';
+import { formatFindingLabel, shouldSkipCriticalTaskFinding, stripRepeatedPrefix } from '../../utils/healthFindingLabels.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const low = (v) => String(v || '').toLowerCase();
@@ -22,23 +23,23 @@ export function buildActiviteHealthSnapshot({ tasks = [], alertes = [], business
 export function buildActiviteCoherenceRows(tasks = [], alertes = []) {
   const rows = [];
 
-  arr(tasks).filter((t) => isOpen(t) && (isLate(t) || isCriticalTask(t))).forEach((t) => {
+  arr(tasks).filter((t) => isOpen(t) && !shouldSkipCriticalTaskFinding(t) && (isLate(t) || isCriticalTask(t))).forEach((t) => {
+    const finding = {
+      id: `task-critical-${t.id}`,
+      module: 'activite_suivi',
+      severity: 'haute',
+      title: formatFindingLabel('Tâche critique', t.title || t.id),
+      description: t.description || t.notes || 'À traiter en priorité',
+      recommended_action: 'Traiter ou réassigner',
+      confidence_score: 0.87,
+    };
     rows.push({
       id: `task-${t.id}`,
       taskId: t.id,
       type: isLate(t) ? 'retard' : 'critique',
-      title: t.title || t.libelle || `Tâche ${t.id}`,
+      title: stripRepeatedPrefix(t.title || t.libelle || `Tâche ${t.id}`, 'Tâche critique'),
       detail: isLate(t) ? 'En retard' : `Priorité ${t.priority || t.priorite || 'critique'}`,
-      finding: {
-        id: `task-critical-${t.id}`,
-        module: 'activite_suivi',
-        severity: 'haute',
-        auto_action: 'create_task',
-        title: `Tâche critique : ${t.title || t.id}`,
-        description: t.description || t.notes || 'À traiter en priorité',
-        recommended_action: 'Traiter ou réassigner',
-        confidence_score: 0.87,
-      },
+      finding,
     });
   });
 
