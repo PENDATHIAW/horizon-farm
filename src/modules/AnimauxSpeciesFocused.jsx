@@ -10,7 +10,6 @@ import EditModal from '../modals/EditModal';
 import DeleteModal from '../modals/DeleteModal';
 import BaseModal from '../modals/BaseModal';
 import { applyAnimalDecisionDefaults } from '../services/animalDecisionEngine';
-import { buildingField, resolveBuildingLabel, resolveSupplierName, supplierSelectField } from '../utils/decisionFormFields';
 import { generateSequentialId } from '../utils/ids';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
@@ -272,6 +271,7 @@ export function buildAnimalDetailAuditModel({ animal = {}, alimentationLogs = []
   return { g, costs, docs, sales, identityRows, historyRows };
 }
 function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vaccins = [], businessEvents = [], salesOrders = [], payments = [], transactions = [] }) {
+  const [tab, setTab] = useState('overview');
   if (!animal) return null;
   const g = growthInfo(animal);
   const costs = costBreakdown(animal, { alimentationLogs, vaccins, businessEvents, salesOrders, payments, transactions });
@@ -293,6 +293,7 @@ function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vacci
     ['Origine', animalOrigin(animal)],
     ['Statut actuel', statusOf(animal)],
     ['État de santé', healthOf(animal)],
+    ['Bâtiment / parc', animal.batiment || animal.nom_batiment || animal.localisation || locationOf(animal)],
     ['Localisation', locationOf(animal)],
   ];
   const historyRows = [
@@ -302,32 +303,84 @@ function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vacci
     ...sales.orders.map((item) => ({ date: eventDate(item), title: `Vente · ${fmtCurrency(orderAmount(item))}`, detail: fallbackText(item.client_name || item.client || item.status, 'Commande vente') })),
     ...linkedEvents.map((item) => ({ date: eventDate(item), title: eventTitle(item), detail: fallbackText(item.description || item.notes || item.status, 'Événement métier') })),
   ].filter((item) => item.title).sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).slice(0, 12);
-  return <BaseModal open={open} onClose={onClose} title={`Fiche ${animal.type || animal.espece || 'animal'} - ${physicalIdOf(animal)}`} size="5xl"><div className="space-y-5">
+
+  const animalTabs = [
+    { id: 'overview', label: 'Vue d\'ensemble', icon: LayoutGrid },
+    { id: 'croissance', label: 'Croissance', icon: TrendingUp },
+    { id: 'finance', label: 'Coûts & marge', icon: DollarSign },
+    { id: 'historique', label: 'Historique', icon: History },
+  ];
+
+  const hero = (
     <div className="rounded-3xl bg-[#2f2415] text-white p-5">
       <p className="text-xs uppercase tracking-widest text-[#c9a96a]">{fallbackText(animal.type || animal.espece, 'Espèce non renseignée')} · {fallbackText(animal.sexe === 'M' ? 'Mâle' : animal.sexe === 'F' ? 'Femelle' : animal.sexe)} · {isLocked(animal) ? 'Fiche verrouillée' : 'Actif'}</p>
       <h2 className="text-2xl font-black mt-1">{fallbackText(animal.name || animal.nom || physicalIdOf(animal))}</h2>
       <p className="mt-1 text-sm text-[#f4e6c8]">{locationOf(animal)} · {animalOrigin(animal)}</p>
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">{[['Poids entrée', entryWeightOf(animal) ? `${fmtNumber(entryWeightOf(animal))} kg` : 'Non renseigné'], ['Poids actuel', g.current ? `${fmtNumber(g.current)} kg` : 'Non renseigné'], ['Objectif', g.target ? `${fmtNumber(g.target)} kg` : 'À renseigner'], ['Progression', `${g.progress}%`], ['Prêt à vendre', g.status === 'pret' ? 'Oui' : 'Non']].map(([label, value]) => <div key={label} className="rounded-2xl bg-white/10 border border-white/10 p-3"><p className="text-xs text-[#f4e6c8]">{label}</p><p className="font-black text-white mt-1">{value}</p></div>)}</div>
     </div>
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <div className="lg:col-span-2 rounded-2xl border border-[#eadcc2] bg-white p-4">
-        <p className="font-black text-[#2f2415] mb-3">Identité complète</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{identityRows.map(([label, value]) => <div key={label} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="text-xs text-[#8a7456]">{label}</p><p className="font-black text-[#2f2415] mt-1">{fallbackText(value)}</p></div>)}</div>
+  );
+
+  return (
+    <BaseModal open={open} onClose={onClose} title={`Fiche ${animal.type || animal.espece || 'animal'} - ${physicalIdOf(animal)}`} size="5xl">
+      <div className="space-y-5">
+        {hero}
+        <DetailSheetTabs tabs={animalTabs} defaultTab={tab} onChange={setTab}>
+          {(activeTab) => {
+            if (activeTab.id === 'overview') {
+              return (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="lg:col-span-2 rounded-2xl border border-[#eadcc2] bg-white p-4">
+                    <p className="font-black text-[#2f2415] mb-3">Identité complète</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{identityRows.map(([label, value]) => <div key={label} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="text-xs text-[#8a7456]">{label}</p><p className="font-black text-[#2f2415] mt-1">{fallbackText(value)}</p></div>)}</div>
+                  </div>
+                  <div className="space-y-3">
+                    <MiniMetric label="Dernière pesée" value={dateLabel(g.lastDate)} />
+                    <MiniMetric label="Prochaine pesée" value={g.nextWeighing || 'Non planifiée'} danger={g.weighingStatus === 'retard'} />
+                    <MiniMetric label="Gain total" value={g.gain ? `${g.gain.toFixed(1)} kg` : 'À compléter'} />
+                    <MiniMetric label="Décision" value={g.decision} danger={g.weighingStatus === 'retard'} />
+                  </div>
+                </div>
+              );
+            }
+            if (activeTab.id === 'croissance') {
+              return (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="lg:col-span-2"><WeightCurve history={g.history} target={g.target} /></div>
+                  <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+                    <p className="font-black text-[#2f2415] mb-2">Notes terrain</p>
+                    <p className="text-sm text-[#7d6a4a] whitespace-pre-wrap">{fallbackText(animal.notes || animal.note || animal.commentaire)}</p>
+                  </div>
+                </div>
+              );
+            }
+            if (activeTab.id === 'finance') {
+              return (
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+                  <p className="font-black text-red-800 mb-1">Coût réel animal et marge</p>
+                  <p className="text-sm text-red-700 mb-3">Achat, alimentation, santé, frais directs, Finance, événements de charge et ventes liées à cette fiche.</p>
+                  {costs.warnings.length ? <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {costs.warnings.join(' ')}</div> : null}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">{[['Prix achat', costs.achat], ['Alimentation/coût lié', costs.alimentation], ['Soins/vaccins liés', costs.sante], ['Autres frais', costs.autres], ['Événements de charge', costs.evenements], ['Finance liée', costs.finance], ['Coût cumulé', costs.total], [saleLabel, costs.sale], ['Valeur estimée', salePrice(animal) || costs.sale], ['Marge', costs.marge], ['Payé', costs.paid], ['Reste à encaisser', costs.remaining], ['Commandes liées', costs.salesCount], ['Coût/kg', g.current > 0 ? costs.total / g.current : 0]].map(([label, value]) => <div key={label} className="rounded-xl bg-white border border-red-100 p-3"><p className="text-xs text-[#8a7456]">{label}</p><p className={`font-black mt-1 ${label === 'Marge' && value < 0 ? 'text-red-600' : 'text-[#2f2415]'}`}>{label === 'Commandes liées' ? fmtNumber(value || 0) : fmtCurrency(value || 0)}</p>{label === saleLabel ? <p className="mt-1 text-[11px] text-[#8a7456]">{costs.saleSource}</p> : null}</div>)}</div>
+                </div>
+              );
+            }
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+                  <p className="font-black text-[#2f2415] mb-2">Documents / photos</p>
+                  {docs.length ? <div className="space-y-2">{docs.map((doc, index) => <div key={`${doc.url || doc.title}-${index}`} className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2"><p className="text-sm font-black text-[#2f2415]">{fallbackText(doc.title || doc.nom || doc.type, 'Document animal')}</p><p className="text-xs text-[#8a7456] break-all">{fallbackText(doc.url || doc.file_url || doc.lien, 'Lien non renseigné')}</p></div>)}</div> : <p className="text-sm text-amber-700">Aucun document ou photo renseigné.</p>}
+                </div>
+                <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+                  <p className="font-black text-[#2f2415] mb-2">Historique de vie</p>
+                  <div className="space-y-2">{historyRows.map((item, index) => <div key={`${item.date || 'date'}-${item.title}-${index}`} className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2"><p className="text-xs text-[#8a7456]">{dateLabel(item.date)}</p><p className="font-black text-[#2f2415]">{item.title}</p><p className="text-xs text-[#8a7456]">{item.detail}</p></div>)}</div>
+                  {!historyRows.length ? <p className="text-sm text-amber-700">Aucun événement lié visible.</p> : null}
+                </div>
+              </div>
+            );
+          }}
+        </DetailSheetTabs>
       </div>
-      <div className="space-y-3">
-        <MiniMetric label="Dernière pesée" value={dateLabel(g.lastDate)} />
-        <MiniMetric label="Prochaine pesée" value={g.nextWeighing || 'Non planifiée'} danger={g.weighingStatus === 'retard'} />
-        <MiniMetric label="Gain total" value={g.gain ? `${g.gain.toFixed(1)} kg` : 'À compléter'} />
-        <MiniMetric label="Décision" value={g.decision} danger={g.weighingStatus === 'retard'} />
-      </div>
-    </div>
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4"><div className="lg:col-span-2"><WeightCurve history={g.history} target={g.target} /></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="font-black text-[#2f2415] mb-2">Notes terrain</p><p className="text-sm text-[#7d6a4a] whitespace-pre-wrap">{fallbackText(animal.notes || animal.note || animal.commentaire)}</p></div></div>
-    <div className="rounded-2xl border border-red-200 bg-red-50 p-4"><p className="font-black text-red-800 mb-1">Coût réel animal et marge</p><p className="text-sm text-red-700 mb-3">Achat, alimentation, santé, frais directs, Finance, événements de charge et ventes liées à cette fiche.</p>{costs.warnings.length ? <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {costs.warnings.join(' ')}</div> : null}<div className="grid grid-cols-2 lg:grid-cols-4 gap-2">{[['Prix achat', costs.achat], ['Alimentation/coût lié', costs.alimentation], ['Soins/vaccins liés', costs.sante], ['Autres frais', costs.autres], ['Événements de charge', costs.evenements], ['Finance liée', costs.finance], ['Coût cumulé', costs.total], [saleLabel, costs.sale], ['Valeur estimée', salePrice(animal) || costs.sale], ['Marge', costs.marge], ['Payé', costs.paid], ['Reste à encaisser', costs.remaining], ['Commandes liées', costs.salesCount], ['Coût/kg', g.current > 0 ? costs.total / g.current : 0]].map(([label, value]) => <div key={label} className="rounded-xl bg-white border border-red-100 p-3"><p className="text-xs text-[#8a7456]">{label}</p><p className={`font-black mt-1 ${label === 'Marge' && value < 0 ? 'text-red-600' : 'text-[#2f2415]'}`}>{label === 'Commandes liées' ? fmtNumber(value || 0) : fmtCurrency(value || 0)}</p>{label === saleLabel ? <p className="mt-1 text-[11px] text-[#8a7456]">{costs.saleSource}</p> : null}</div>)}</div></div>
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="font-black text-[#2f2415] mb-2">Documents / photos</p>{docs.length ? <div className="space-y-2">{docs.map((doc, index) => <div key={`${doc.url || doc.title}-${index}`} className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2"><p className="text-sm font-black text-[#2f2415]">{fallbackText(doc.title || doc.nom || doc.type, 'Document animal')}</p><p className="text-xs text-[#8a7456] break-all">{fallbackText(doc.url || doc.file_url || doc.lien, 'Lien non renseigné')}</p></div>)}</div> : <p className="text-sm text-amber-700">Aucun document ou photo renseigné.</p>}</div>
-      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="font-black text-[#2f2415] mb-2">Historique de vie</p><div className="space-y-2">{historyRows.map((item, index) => <div key={`${item.date || 'date'}-${item.title}-${index}`} className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2"><p className="text-xs text-[#8a7456]">{dateLabel(item.date)}</p><p className="font-black text-[#2f2415]">{item.title}</p><p className="text-xs text-[#8a7456]">{item.detail}</p></div>)}</div>{!historyRows.length ? <p className="text-sm text-amber-700">Aucun événement lié visible.</p> : null}</div>
-    </div>
-  </div></BaseModal>;
+    </BaseModal>
+  );
 }
 export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], alimentationLogs = [], vaccins = [], businessEvents = [], salesOrders = [], payments = [], transactions = [], loading, onCreate, onUpdate, onDelete, onRefresh }) {
   const [selected, setSelected] = useState(null); const [modal, setModal] = useState(null); const [saving, setSaving] = useState(false); const [filter, setFilter] = useState('tous');

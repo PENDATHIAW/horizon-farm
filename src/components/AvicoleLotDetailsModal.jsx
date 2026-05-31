@@ -1,8 +1,10 @@
-import { AlertTriangle } from 'lucide-react';
+import { useState } from 'react';
+import { AlertTriangle, BarChart3, BrainCircuit, DollarSign, LayoutGrid } from 'lucide-react';
 import toast from 'react-hot-toast';
 import BaseModal from '../modals/BaseModal';
 import Badge from './Badge';
 import Btn from './Btn';
+import DetailSheetTabs from './DetailSheetTabs';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { calculateLotMetrics } from '../utils/businessCalculations';
@@ -109,7 +111,15 @@ function livingAsProjection(living) {
   return { status: living.status, label: living.status?.replaceAll('_', ' ') || 'Suivi en cours', currentWeight: living.currentWeight || 0, targetWeight: living.livingTarget || living.defaultTargetWeight || 0, projectedWeight: living.projectedWeight || 0, targetDays: living.targetDays || 45, gainPerDay: living.adaptiveGainPerDay || living.realGainPerDay || 0, action: living.action, history: living.history || [] };
 }
 
+const AVICOLE_TABS = [
+  { id: 'overview', label: 'Vue d\'ensemble', icon: LayoutGrid },
+  { id: 'production', label: 'Production', icon: BarChart3 },
+  { id: 'decision', label: 'Décision', icon: BrainCircuit },
+  { id: 'finance', label: 'Coûts & marge', icon: DollarSign },
+];
+
 export default function AvicoleLotDetailsModal({ open, onClose, lot, productionLogs = [], alimentationLogs = [], opportunities = [], salesOrders = [], payments = [], transactions = [], businessEvents = [], onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateBusinessEvent, onRefreshBusinessEvents, onNavigate }) {
+  const [tab, setTab] = useState('overview');
   if (!lot) return <BaseModal open={open} onClose={onClose} title="Fiche lot avicole"><p className="text-[#8a7456]">Aucun lot sélectionné.</p></BaseModal>;
   const layer = isPondeuse(lot);
   const decision = buildAvicoleLotDecision(lot, productionLogs);
@@ -140,36 +150,108 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
     } catch (error) { toast.error(error.message || 'Création opportunité impossible'); }
   };
 
-  return <BaseModal open={open} onClose={onClose} title={`Fiche ${layer ? 'pondeuses' : 'poulets de chair'} · ${lot.name || lot.id}`}>
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-[#d6c3a0] bg-[#2f2415] p-4 text-white"><p className="text-xs uppercase tracking-[0.2em] text-[#c9a96a]">{layer ? 'Lot pondeuses' : 'Lot poulets de chair'}</p><h2 className="mt-1 text-2xl font-black">{lot.name || lot.id}</h2><p className="mt-1 text-sm text-[#f4e6c8]">{lot.type || 'Type non renseigné'} · {active} sujet(s) actif(s)</p><div className="mt-3 flex flex-wrap gap-2"><Badge status={lot.status || 'actif'} /><Badge status={lot.health_status || 'sain'} /><span className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-xs text-[#f4e6c8]">{livingTarget.status?.replaceAll('_', ' ') || decision.decision}</span></div></div>
-      <Section title="Situation du lot" note="Règle terrain : effectif actuel = initial - morts - vendus - pertes/sorties. Les malades restent présents et sont affichés à surveiller.">
-        <Field label="Effectif initial" value={fmtNumber(avicoleInitialCount(lot))} />
-        <Field label="Morts" value={fmtNumber(deadCount(lot))} />
-        <Field label="Malades / à surveiller" value={fmtNumber(sickCount(lot))} />
-        <Field label="Vendus / sortis" value={fmtNumber(avicoleSoldCount(lot) + avicoleOtherExitCount(lot))} />
-        <Field label="Effectif actuel calculé" value={fmtNumber(active)} />
-        <Field label="Effectif actuel enregistré" value={fmtNumber(avicoleRegisteredActiveCount(lot))} danger={avicoleHasCountMismatch(lot)}>{fmtNumber(avicoleRegisteredActiveCount(lot))}{avicoleHasCountMismatch(lot) ? <p className="mt-1 text-[11px] text-red-700">Incohérence : le calcul donne {fmtNumber(avicoleCalculatedActiveCount(lot))}.</p> : null}</Field>
-        <Field label="Date entrée" value={lot.date_debut || lot.entry_date || '-'} />
-        <Field label="Phase" value={lot.phase || '-'} />
-      </Section>
-      {layer ? <><PondeuseProductionPanel profile={ponteProfile} /><Section title="Objectif ponte vivant" note="Objectif calculé selon âge du lot, effectif actif, historique des ramassages, casses et baisse éventuelle de ponte."><Field label="Objectif initial" value={`${livingTarget.objectiveInitial || 0}%`} /><Field label="Objectif âge" value={`${livingTarget.ageExpectedPct || 0}%`} /><Field label="Objectif vivant" value={`${livingTarget.livingObjectivePct || 0}%`} /><Field label="Taux réel récent" value={`${livingTarget.realLayingPct || 0}%`} /><Field label="Œufs attendus / jour" value={eggTabletLabel(expectedEggsDay)} /><Field label="Œufs réels / jour" value={eggTabletLabel(recentEggsDay)} /><Field label="Écart / jour" value={`${gapEggsDay >= 0 ? '+' : ''}${eggTabletLabel(Math.abs(gapEggsDay))}`} /><Field label="Action IA" value={livingTarget.action} /></Section></> : <><WeightProjectionPanel title="Objectif poids vivant & vente" projection={growthProjection} /><Section title="Objectif poids vivant chair" note="L’objectif se recalcule après chaque pesée selon le gain moyen réel du lot."><Field label="Poids moyen actuel" value={livingTarget.currentWeight ? `${livingTarget.currentWeight} kg` : 'À renseigner via suivi'} /><Field label="Objectif initial" value={`${livingTarget.defaultTargetWeight || 0} kg`} /><Field label="Objectif vivant" value={`${livingTarget.livingTarget || 0} kg`} /><Field label="Projection J45" value={`${livingTarget.projectedWeight || 0} kg`} /><Field label="Gain réel / jour" value={`${livingTarget.realGainPerDay || 0} kg/j`} /><Field label="Prochaine pesée" value={livingTarget.nextWeighingDate || '-'} /><Field label="Rappel pesée J-1" value={reminderWeighingDate || '-'} /><Field label="Statut" value={livingTarget.status?.replaceAll('_', ' ') || '-'} /><Field label="Action IA" value={livingTarget.action} /></Section></>}
-      <SaleOpportunityGuardPanel guard={guard} />
-      <div className="flex flex-wrap gap-2 rounded-2xl border border-[#eadcc2] bg-white p-3"><Btn small onClick={confirmOpportunity}>{existingOpportunity ? 'Mettre à jour opportunité' : 'Confirmer opportunité de vente'}</Btn><Btn small variant="outline" onClick={() => onNavigate?.('ventes')}>Voir opportunités / ventes</Btn></div>
-      <Section title="Décision IA" note="Décision affichée, à valider par l’utilisateur avant création d’opportunité."><Field label="Décision" value={decision.decision} /><Field label="Priorité" value={decision.priority || '-'} /><Field label="Prochaine action" value={decision.nextWeighingDate || decision.reformStart || livingTarget.nextWeighingDate || '-'} /><Field label="Poids / ponte attendu" value={decision.expectedWeight ? `${decision.expectedWeight} kg` : decision.expectedEggsDay ? eggTabletLabel(decision.expectedEggsDay) : livingTarget.expectedEggsDay ? eggTabletLabel(livingTarget.expectedEggsDay) : '-'} /></Section>
-      <Section title="Coûts, ventes et marge consolidés" note="Achat, alimentation, événements de charge, transactions Finance, commandes, paiements et marge du lot.">
-        {finance.warnings.length ? <div className="md:col-span-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {finance.warnings.join(' ')}</div> : null}
-        <Field label="Coût achat bande" value={fmtCurrency(finance.achat)} />
-        <Field label="Alimentation calculée" value={fmtCurrency(finance.alimentation)} />
-        <Field label="Événements de charge" value={fmtCurrency(finance.eventCharges)} />
-        <Field label="Transactions Finance liées" value={fmtCurrency(finance.financeCharges)} />
-        <Field label="Coût total consolidé" value={fmtCurrency(finance.totalCost)} />
-        <Field label={finance.ordersCount > 0 ? 'Vente liée' : 'Vente estimée'} value={fmtCurrency(finance.revenue)}>{fmtCurrency(finance.revenue)}<p className="mt-1 text-[11px] text-[#8a7456]">{finance.revenueSource}</p></Field>
-        <Field label="Payé" value={fmtCurrency(finance.paid)} />
-        <Field label="Reste à encaisser" value={fmtCurrency(finance.remaining)} danger={finance.remaining > 0} />
-        <Field label="Commandes liées" value={fmtNumber(finance.ordersCount)} />
-        <Field label="Marge lot" value={fmtCurrency(finance.margin)} danger={finance.margin < 0} />
-      </Section>
+  const hero = (
+    <div className="rounded-2xl border border-[#d6c3a0] bg-[#2f2415] p-4 text-white">
+      <p className="text-xs uppercase tracking-[0.2em] text-[#c9a96a]">{layer ? 'Lot pondeuses' : 'Lot poulets de chair'}</p>
+      <h2 className="mt-1 text-2xl font-black">{lot.name || lot.id}</h2>
+      <p className="mt-1 text-sm text-[#f4e6c8]">{lot.type || 'Type non renseigné'} · {active} sujet(s) actif(s)</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Badge status={lot.status || 'actif'} />
+        <Badge status={lot.health_status || 'sain'} />
+        <span className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-xs text-[#f4e6c8]">{livingTarget.status?.replaceAll('_', ' ') || decision.decision}</span>
+      </div>
     </div>
-  </BaseModal>;
+  );
+
+  return (
+    <BaseModal open={open} onClose={onClose} title={`Fiche ${layer ? 'pondeuses' : 'poulets de chair'} · ${lot.name || lot.id}`}>
+      <div className="space-y-4">
+        {hero}
+        <DetailSheetTabs tabs={AVICOLE_TABS} defaultTab={tab} onChange={setTab}>
+          {(activeTab) => {
+            if (activeTab.id === 'overview') {
+              return (
+                <Section title="Situation du lot" note="Règle terrain : effectif actuel = initial - morts - vendus - pertes/sorties. Les malades restent présents et sont affichés à surveiller.">
+                  <Field label="Effectif initial" value={fmtNumber(avicoleInitialCount(lot))} />
+                  <Field label="Morts" value={fmtNumber(deadCount(lot))} />
+                  <Field label="Malades / à surveiller" value={fmtNumber(sickCount(lot))} />
+                  <Field label="Vendus / sortis" value={fmtNumber(avicoleSoldCount(lot) + avicoleOtherExitCount(lot))} />
+                  <Field label="Effectif actuel calculé" value={fmtNumber(active)} />
+                  <Field label="Effectif actuel enregistré" value={fmtNumber(avicoleRegisteredActiveCount(lot))} danger={avicoleHasCountMismatch(lot)}>{fmtNumber(avicoleRegisteredActiveCount(lot))}{avicoleHasCountMismatch(lot) ? <p className="mt-1 text-[11px] text-red-700">Incohérence : le calcul donne {fmtNumber(avicoleCalculatedActiveCount(lot))}.</p> : null}</Field>
+                  <Field label="Date entrée" value={lot.date_debut || lot.entry_date || '-'} />
+                  <Field label="Phase" value={lot.phase || '-'} />
+                  <Field label="Bâtiment" value={lot.nom_batiment || lot.batiment || lot.logement || '-'} />
+                  <Field label="Fournisseur poussins" value={lot.fournisseur_poussins || lot.fournisseur || '-'} />
+                </Section>
+              );
+            }
+            if (activeTab.id === 'production') {
+              return layer ? (
+                <>
+                  <PondeuseProductionPanel profile={ponteProfile} />
+                  <Section title="Objectif ponte vivant" note="Objectif calculé selon âge du lot, effectif actif, historique des ramassages, casses et baisse éventuelle de ponte.">
+                    <Field label="Objectif initial" value={`${livingTarget.objectiveInitial || 0}%`} />
+                    <Field label="Objectif âge" value={`${livingTarget.ageExpectedPct || 0}%`} />
+                    <Field label="Objectif vivant" value={`${livingTarget.livingObjectivePct || 0}%`} />
+                    <Field label="Taux réel récent" value={`${livingTarget.realLayingPct || 0}%`} />
+                    <Field label="Œufs attendus / jour" value={eggTabletLabel(expectedEggsDay)} />
+                    <Field label="Œufs réels / jour" value={eggTabletLabel(recentEggsDay)} />
+                    <Field label="Écart / jour" value={`${gapEggsDay >= 0 ? '+' : ''}${eggTabletLabel(Math.abs(gapEggsDay))}`} />
+                    <Field label="Action IA" value={livingTarget.action} />
+                  </Section>
+                </>
+              ) : (
+                <>
+                  <WeightProjectionPanel title="Objectif poids vivant & vente" projection={growthProjection} />
+                  <Section title="Objectif poids vivant chair" note="L’objectif se recalcule après chaque pesée selon le gain moyen réel du lot.">
+                    <Field label="Poids moyen actuel" value={livingTarget.currentWeight ? `${livingTarget.currentWeight} kg` : 'À renseigner via suivi'} />
+                    <Field label="Objectif initial" value={`${livingTarget.defaultTargetWeight || 0} kg`} />
+                    <Field label="Objectif vivant" value={`${livingTarget.livingTarget || 0} kg`} />
+                    <Field label="Projection J45" value={`${livingTarget.projectedWeight || 0} kg`} />
+                    <Field label="Gain réel / jour" value={`${livingTarget.realGainPerDay || 0} kg/j`} />
+                    <Field label="Prochaine pesée" value={livingTarget.nextWeighingDate || '-'} />
+                    <Field label="Rappel pesée J-1" value={reminderWeighingDate || '-'} />
+                    <Field label="Statut" value={livingTarget.status?.replaceAll('_', ' ') || '-'} />
+                    <Field label="Action IA" value={livingTarget.action} />
+                  </Section>
+                </>
+              );
+            }
+            if (activeTab.id === 'decision') {
+              return (
+                <>
+                  <SaleOpportunityGuardPanel guard={guard} />
+                  <div className="flex flex-wrap gap-2 rounded-2xl border border-[#eadcc2] bg-white p-3">
+                    <Btn small onClick={confirmOpportunity}>{existingOpportunity ? 'Mettre à jour opportunité' : 'Confirmer opportunité de vente'}</Btn>
+                    <Btn small variant="outline" onClick={() => onNavigate?.('ventes')}>Voir opportunités / ventes</Btn>
+                  </div>
+                  <Section title="Décision IA" note="Décision affichée, à valider par l’utilisateur avant création d’opportunité.">
+                    <Field label="Décision" value={decision.decision} />
+                    <Field label="Priorité" value={decision.priority || '-'} />
+                    <Field label="Prochaine action" value={decision.nextWeighingDate || decision.reformStart || livingTarget.nextWeighingDate || '-'} />
+                    <Field label="Poids / ponte attendu" value={decision.expectedWeight ? `${decision.expectedWeight} kg` : decision.expectedEggsDay ? eggTabletLabel(decision.expectedEggsDay) : livingTarget.expectedEggsDay ? eggTabletLabel(livingTarget.expectedEggsDay) : '-'} />
+                  </Section>
+                </>
+              );
+            }
+            return (
+              <Section title="Coûts, ventes et marge consolidés" note="Achat, alimentation, événements de charge, transactions Finance, commandes, paiements et marge du lot.">
+                {finance.warnings.length ? <div className="md:col-span-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {finance.warnings.join(' ')}</div> : null}
+                <Field label="Coût achat bande" value={fmtCurrency(finance.achat)} />
+                <Field label="Alimentation calculée" value={fmtCurrency(finance.alimentation)} />
+                <Field label="Événements de charge" value={fmtCurrency(finance.eventCharges)} />
+                <Field label="Transactions Finance liées" value={fmtCurrency(finance.financeCharges)} />
+                <Field label="Coût total consolidé" value={fmtCurrency(finance.totalCost)} />
+                <Field label={finance.ordersCount > 0 ? 'Vente liée' : 'Vente estimée'} value={fmtCurrency(finance.revenue)}>{fmtCurrency(finance.revenue)}<p className="mt-1 text-[11px] text-[#8a7456]">{finance.revenueSource}</p></Field>
+                <Field label="Payé" value={fmtCurrency(finance.paid)} />
+                <Field label="Reste à encaisser" value={fmtCurrency(finance.remaining)} danger={finance.remaining > 0} />
+                <Field label="Commandes liées" value={fmtNumber(finance.ordersCount)} />
+                <Field label="Marge lot" value={fmtCurrency(finance.margin)} danger={finance.margin < 0} />
+              </Section>
+            );
+          }}
+        </DetailSheetTabs>
+      </div>
+    </BaseModal>
+  );
 }
