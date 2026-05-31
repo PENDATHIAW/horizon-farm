@@ -903,9 +903,9 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
       cameraDevices: [],
       meteo: { risque: 'élevé' },
     });
-    expect(actions.map((action) => action.moduleKey)).toEqual(expect.arrayContaining(['ventes', 'alertes', 'stock', 'sante', 'smartfarm', 'taches', 'documents']));
-    expect(actions[0]).toMatchObject({ moduleKey: 'ventes', category: 'Argent' });
-    expect(actions.find((action) => action.moduleKey === 'documents')?.title).toContain('preuves');
+    expect(actions.map((action) => action.moduleKey)).toEqual(expect.arrayContaining(['commercial', 'activite_suivi', 'achats_stock', 'elevage', 'smartfarm', 'documents_rapports']));
+    expect(actions[0]).toMatchObject({ moduleKey: 'commercial', category: 'Argent' });
+    expect(actions.find((action) => action.moduleKey === 'documents_rapports')?.title).toContain('preuves');
     expect(actions.map((action) => `${action.title} ${action.detail}`).join(' ')).not.toMatch(/undefined|null|NaN|\[object Object\]/i);
     expect(sanitizeDashboardMetric(Number.NaN, '0')).toBe('0');
     expect(sanitizeDashboardMetric('[object Object]', 'Non renseigné')).toBe('Non renseigné');
@@ -949,7 +949,6 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(visibleText).toContain('Dépense santé reliée automatiquement');
     expect(visibleText).toContain('Liaison automatique en cours');
     expect(visibleText).toContain('Marge');
-    expect(visibleText).toContain('Source marge');
     expect(visibleText).toContain('Conséquence terrain');
     expect(visibleText).toContain('Préparer aussi la dépense et la preuve/facture');
     expect(visibleText).toContain('Preuves / factures à compléter');

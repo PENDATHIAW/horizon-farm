@@ -10,7 +10,7 @@ on:
       test_ref:
         description: 'Branche ou ref contenant les tests Playwright'
         required: true
-        default: 'feature/interconnexions-modules-riches-v2'
+        default: 'main'
 
 jobs:
   e2e:

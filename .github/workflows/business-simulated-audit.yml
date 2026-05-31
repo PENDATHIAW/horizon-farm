@@ -3,7 +3,7 @@ name: Horizon Farm - Audit métier simulé
 on:
   push:
     branches:
-      - feature/objectifs-croissance-centre-decisionnel
+      - main
   pull_request:
     branches:
       - main

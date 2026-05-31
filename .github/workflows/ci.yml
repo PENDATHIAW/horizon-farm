@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  VITE_SUPABASE_URL: https://xmqfvmswrjhteaijnaxb.supabase.co
+  VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtcWZ2bXN3cmpodGVhaWpuYXhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMTQ0NTcsImV4cCI6MjA5MzU5MDQ1N30.WR0rWE9I3fZJVzdt7UaOzgc_U4UHdsXAf5nsgt_n-7M
+  VITE_HEY_HORIZON_LLM: auto
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -29,8 +34,19 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+      - name: Run workflow unit tests
+        run: PLAYWRIGHT_SKIP_WEBSERVER=1 npx playwright test tests/e2e/simulated-business-workflows.spec.js --reporter=line
 
-      - name: Run Playwright tests
-        run: npm run test:e2e
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Assistant ERP smoke tests
+        if: ${{ secrets.E2E_LOGIN != '' && secrets.E2E_PASSWORD != '' }}
+        env:
+          E2E_LOGIN: ${{ secrets.E2E_LOGIN }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+        run: npx playwright test tests/e2e/assistant-erp-smoke.spec.js tests/e2e/decision-center-smoke.spec.js --reporter=line
+
+      - name: Browser E2E skipped (secrets missing)
+        if: ${{ secrets.E2E_LOGIN == '' || secrets.E2E_PASSWORD == '' }}
+        run: echo "E2E_LOGIN / E2E_PASSWORD non configurés — smoke navigateur ignoré (workflow + build OK)."

@@ -1,5 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const previewPort = 4173;
+const localBaseUrl = `http://127.0.0.1:${previewPort}`;
+const externalBaseUrl = process.env.E2E_BASE_URL?.trim();
+const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === '1';
+const useLocalPreview = !externalBaseUrl && !skipWebServer;
+
 export default defineConfig({
   testDir: './tests/e2e',
   timeout: 60_000,
@@ -11,7 +17,7 @@ export default defineConfig({
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
   ],
   use: {
-    baseURL: process.env.E2E_BASE_URL || 'http://localhost:5173',
+    baseURL: externalBaseUrl || localBaseUrl,
     headless: true,
     viewport: { width: 1440, height: 950 },
     ignoreHTTPSErrors: true,
@@ -22,4 +28,12 @@ export default defineConfig({
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
+  webServer: useLocalPreview
+    ? {
+        command: `npm run preview -- --port ${previewPort} --host 127.0.0.1`,
+        url: localBaseUrl,
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+      }
+    : undefined,
 });

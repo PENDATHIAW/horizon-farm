@@ -22,7 +22,8 @@ VITE_SUPABASE_ANON_KEY=votre_cle_anon_supabase
 1. Pousser sur GitHub
 2. Importer sur [vercel.com](https://vercel.com) — Framework : Vite
 3. Ajouter les variables d'environnement : `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY`
-4. Déployer → URL publique disponible
+4. **Hey Horizon LLM (optionnel)** : ajouter `OPENAI_API_KEY` (ou `HEY_HORIZON_LLM_API_KEY`) côté serveur — jamais en `VITE_*`. Garder `VITE_HEY_HORIZON_LLM=auto`.
+5. Déployer → URL publique disponible
 
 Le fichier `vercel.json` gère le SPA routing (rechargements de page sans 404).
 
@@ -92,7 +93,32 @@ Mot de passe: Mariemediatta10#
 ```bash
 npm run lint
 npm run build
+npm run test:e2e:workflows    # logique métier sans navigateur
+npm run test:e2e:smoke        # Hey Horizon + Centre décisionnel (nécessite E2E_LOGIN / E2E_PASSWORD)
 ```
+
+### CI GitHub
+
+Le workflow `.github/workflows/ci.yml` exécute lint, build et les tests workflow à chaque push sur `main`.
+
+Pour activer les smoke tests navigateur, ajouter dans **Settings → Secrets → Actions** :
+
+| Secret | Exemple |
+|--------|---------|
+| `E2E_LOGIN` | `penda` |
+| `E2E_PASSWORD` | mot de passe du compte test Supabase |
+
+Sans ces secrets, la CI reste verte (build + tests unitaires workflow).
+
+### Hey Horizon — clé OpenAI
+
+| Variable | Où | Rôle |
+|----------|-----|------|
+| `VITE_HEY_HORIZON_LLM` | `.env` / Vercel (build) | `auto` \| `on` \| `off` |
+| `OPENAI_API_KEY` | Vercel env **serveur** uniquement | Complète les commandes ambiguës via `/api/assistant/enhance` |
+| `HEY_HORIZON_LLM_MODEL` | Vercel (optionnel) | Défaut `gpt-4o-mini` |
+
+Vérification après déploiement : poser une question ambiguë dans Hey Horizon — si la clé est absente, les règles métier répondent seules ; si présente, le journal affiche `source_engine: llm`.
 
 Scenario de test conseille:
 

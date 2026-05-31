@@ -10,7 +10,8 @@ test.describe('Assistant ERP — Hey Horizon', () => {
 
     await expect(page.getByRole('heading', { name: /Hey Horizon/i })).toBeVisible();
     await expect(page.getByText(/Pilotage production & stratégie/i)).toBeVisible();
-    await expect(page.getByText(/Questions rapides/i)).toBeVisible();
+    await expect(page.getByText(/Indicateurs du jour/i)).toBeVisible();
+    await expect(page.getByText(/Actions rapides terrain/i)).toBeVisible();
 
     const textarea = page.getByPlaceholder(/J'ai vendu|J’ai vendu/i);
     await textarea.fill('Créer une vente de 5 poulets');
