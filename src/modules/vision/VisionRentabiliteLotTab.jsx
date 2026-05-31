@@ -34,6 +34,15 @@ export default function VisionRentabiliteLotTab({ lots, animaux, alimentationLog
               status={`${row.unitLabel} ${fmtCurrency(row.unitCost)} · MCA ${fmtCurrency(row.mca)}`}
               tone={row.tone}
               onClick={() => onNavigate?.('elevage', { tab: 'Avicole' })}
+              actions={row.recommendedAction ? (
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.(row.actionModule || 'elevage', { tab: row.actionTab || 'Avicole' })}
+                  className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black hover:bg-[#dcfce7]"
+                >
+                  {row.recommendedAction}
+                </button>
+              ) : null}
             />
           )) : <Empty>Aucun lot avicole — ajoutez des bandes chair ou pondeuses dans Élevage.</Empty>}
         </DataTable>
@@ -49,6 +58,15 @@ export default function VisionRentabiliteLotTab({ lots, animaux, alimentationLog
               status={`MCA ${fmtCurrency(row.mcaFlash ?? row.mca)} · Vente est. ${fmtCurrency(row.saleEstimate)}`}
               tone={row.tone}
               onClick={() => onNavigate?.('elevage', { tab: 'Animaux' })}
+              actions={row.recommendedAction ? (
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.(row.actionModule || 'elevage', { tab: row.actionTab || 'Animaux' })}
+                  className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black hover:bg-[#dcfce7]"
+                >
+                  {row.recommendedAction}
+                </button>
+              ) : null}
             />
           )) : <Empty>Aucun animal en embouche — renseignez broutards et rations dans Animaux.</Empty>}
         </DataTable>

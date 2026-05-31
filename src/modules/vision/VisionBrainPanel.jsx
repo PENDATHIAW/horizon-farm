@@ -14,8 +14,8 @@ function pickBrainDecision(data = {}) {
       tone: 'bad',
       title: 'Sécuriser maintenant',
       detail: criticalRisk.title,
-      action: 'Ouvrir les risques',
-      target: { type: 'tab', tab: 'Risques' },
+      action: 'Voir efficacité',
+      target: { type: 'tab', tab: 'Efficacité' },
     };
   }
   if ((data.receivable || 0) > 0) {
@@ -39,10 +39,10 @@ function pickBrainDecision(data = {}) {
   if (firstPriority) {
     return {
       tone: firstPriority.tone || 'warn',
-      title: 'Traiter la priorité du jour',
+      title: 'Traiter le signal prioritaire',
       detail: firstPriority.title,
       action: 'Voir priorité',
-      target: { type: 'tab', tab: firstPriority.tab || 'À traiter' },
+      target: { type: 'tab', tab: firstPriority.tab || 'Rentabilité lots' },
     };
   }
   if (firstOpportunity) {
@@ -97,7 +97,7 @@ export default function VisionBrainPanel({ data = {}, setTab, onNavigate }) {
       onNavigate?.(decision.target.module, { tab: decision.target.tab });
       return;
     }
-    setTab?.(decision.target?.tab || 'À traiter');
+    setTab?.(decision.target?.tab || 'Rentabilité lots');
   };
 
   return (
@@ -133,8 +133,8 @@ export default function VisionBrainPanel({ data = {}, setTab, onNavigate }) {
             value={fmtNumber(arr(data.risks).length)}
             detail={`${criticalRisks} risque(s) critique(s), ${data.missingProof || 0} preuve(s) manquante(s).`}
             tone={criticalRisks ? 'bad' : arr(data.risks).length ? 'warn' : 'good'}
-            action="Risques"
-            onClick={() => setTab?.('Risques')}
+            action="Efficacité"
+            onClick={() => setTab?.('Efficacité')}
           />
           <BrainLever
             icon={Sprout}

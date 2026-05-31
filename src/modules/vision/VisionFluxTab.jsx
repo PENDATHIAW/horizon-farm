@@ -34,6 +34,15 @@ export default function VisionFluxTab({ lots, animaux, alimentationLogs, stocks,
               status={`${row.daysLeft.toFixed(1)} jours`}
               tone={row.tone}
               onClick={() => onNavigate?.('achats_stock', { tab: 'Stock' })}
+              actions={row.recommendedAction ? (
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.(row.actionModule || 'achats_stock', { tab: row.actionTab || 'Stock' })}
+                  className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black hover:bg-[#dcfce7]"
+                >
+                  {row.recommendedAction}
+                </button>
+              ) : null}
             />
           )) : <Empty>Aucun stock aliment détecté — créez vos silos dans Achats & Stock.</Empty>}
         </DataTable>
@@ -81,6 +90,15 @@ export default function VisionFluxTab({ lots, animaux, alimentationLogs, stocks,
               status={`${fmtPercent(row.mortalityPct)} · Perte ${fmtCurrency(row.lossValue)}`}
               tone={row.tone}
               onClick={() => onNavigate?.('elevage', { tab: 'Avicole' })}
+              actions={row.recommendedAction ? (
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.(row.actionModule || 'elevage', { tab: row.actionTab || 'Avicole' })}
+                  className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black hover:bg-[#dcfce7]"
+                >
+                  {row.recommendedAction}
+                </button>
+              ) : null}
             />
           )) : <Empty>Aucun lot actif pour le bilan matière.</Empty>}
         </DataTable>

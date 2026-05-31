@@ -113,6 +113,9 @@ function buildLotRentabilite({ lots, alimentationLogs, productionLogs, salesOrde
       mortalityRate: safeDiv(avicoleDeadCount(lot), avicoleInitialCount(lot)) * 100,
       costComplete: cost.costComplete,
       tone: mca < 0 ? 'bad' : ic > BROILER_IC_TARGET.max && type === 'chair' ? 'warn' : 'good',
+      recommendedAction: mca < 0 ? 'Analyser coûts lot' : ic > BROILER_IC_TARGET.max && type === 'chair' ? 'Voir efficacité IC' : null,
+      actionModule: mca < 0 ? 'elevage' : 'centre_ia',
+      actionTab: mca < 0 ? 'Avicole' : 'Efficacité',
     };
   }).sort((a, b) => a.mca - b.mca);
 }
@@ -143,6 +146,9 @@ function buildAnimalRentabilite({ animaux, alimentationLogs, salesOrders, vaccin
       unitLabel: 'Coût / kg',
       costComplete: cost.costComplete,
       tone: mcaFlash < 0 ? 'bad' : cost.gmq < 400 ? 'warn' : 'good',
+      recommendedAction: mcaFlash < 0 ? 'Revoir coûts embouche' : cost.gmq < 400 ? 'Vérifier ration' : null,
+      actionModule: 'elevage',
+      actionTab: 'Animaux',
     };
   }).sort((a, b) => a.mcaFlash - b.mcaFlash);
 }
@@ -265,6 +271,9 @@ function buildFlux({ lots, animaux, alimentationLogs, stocks }) {
       qtyKg: qty,
       daysLeft,
       tone: daysLeft < STOCK_CRITICAL_DAYS ? 'bad' : daysLeft < 10 ? 'warn' : 'good',
+      recommendedAction: daysLeft < STOCK_CRITICAL_DAYS ? 'Commander aliment' : daysLeft < 10 ? 'Planifier achat' : null,
+      actionModule: 'achats_stock',
+      actionTab: daysLeft < STOCK_CRITICAL_DAYS ? 'Achats' : 'Stock',
     };
   });
   if (!feedStocks.length) {
@@ -309,6 +318,9 @@ function buildFlux({ lots, animaux, alimentationLogs, stocks }) {
       lossValue,
       mortalityPct: safeDiv(dead, initial) * 100,
       tone: safeDiv(dead, initial) > 0.04 ? 'bad' : 'good',
+      recommendedAction: safeDiv(dead, initial) > 0.04 ? 'Contrôler mortalité' : null,
+      actionModule: 'elevage',
+      actionTab: 'Avicole',
     };
   });
 

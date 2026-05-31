@@ -2,13 +2,13 @@ import { interpretHorizonCommand } from '../services/aiIntentEngine.js';
 
 const PILOTAGE_ROUTES = {
   money: { module: 'commercial', tab: 'Clients', label: 'Créances clients' },
-  alert: { module: 'centre_ia', tab: 'Risques', label: 'Risques' },
+  alert: { module: 'centre_ia', tab: 'Efficacité', label: 'Anomalies techniques' },
   stock: { module: 'achats_stock', tab: 'Stock', label: 'Stocks critiques' },
   health: { module: 'elevage', tab: 'Santé', label: 'Soins à traiter' },
   task: { module: 'activite_suivi', tab: 'Tâches', label: 'Tâches du jour' },
   document: { module: 'documents_rapports', tab: 'Preuves', label: 'Preuves manquantes' },
-  smart: { module: 'centre_ia', tab: 'À traiter', label: 'Priorités IA' },
-  sync: { module: 'centre_ia', tab: 'Risques', label: 'Risques' },
+  smart: { module: 'centre_ia', tab: 'Rentabilité lots', label: 'Rentabilité lots' },
+  sync: { module: 'centre_ia', tab: 'Flux & stocks', label: 'Flux & stocks' },
 };
 
 /** Suggestions Accueil → pilotage (objectifs, risques, cycles) — pas Hey Horizon. */

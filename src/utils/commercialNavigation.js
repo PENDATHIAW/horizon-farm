@@ -150,7 +150,7 @@ export function navigationOptionsForFinding(finding = {}) {
   }
   if (module === 'centre_ia' || module === 'objectifs_croissance') {
     const tabs = MODULE_TARGET_TABS[module] || [];
-    const fallback = module === 'centre_ia' ? 'À traiter' : 'Performance';
+    const fallback = module === 'centre_ia' ? 'Rentabilité lots' : 'Performance';
     const tab = tabs.includes(explicitTab) ? explicitTab : fallback;
     return { module, tab };
   }

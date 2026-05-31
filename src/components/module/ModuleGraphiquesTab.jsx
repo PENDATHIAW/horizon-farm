@@ -58,14 +58,14 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
           </section>
           <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
             <h2 className="text-sm font-black text-[#2f2415]">Stock & alertes</h2>
-            <p className="mt-1 text-xs text-[#8a7456]">Ruptures et tension inventaire — croiser avec l'onglet Risques.</p>
+            <p className="mt-1 text-xs text-[#8a7456]">Ruptures et tension inventaire — croiser avec l'onglet Flux & stocks.</p>
             <div className="mt-3">
               <StockEvolution rows={arr(props.stocks || props.stock)} onNavigate={onNavigate} />
             </div>
           </section>
           <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
             <h2 className="text-sm font-black text-[#2f2415]">Production avicole</h2>
-            <p className="mt-1 text-xs text-[#8a7456]">Lots et pontes — compléter l'onglet Cycles pour les décisions J+40.</p>
+            <p className="mt-1 text-xs text-[#8a7456]">Lots et pontes — compléter l'onglet Efficacité pour IC, ponte et GMQ.</p>
             <div className="mt-3">
               <AvicoleEvolution rows={arr(props.lots)} productionLogs={arr(props.productionLogs)} alimentationLogs={arr(props.alimentationLogs)} transactions={arr(props.transactions)} onNavigate={onNavigate} />
             </div>
