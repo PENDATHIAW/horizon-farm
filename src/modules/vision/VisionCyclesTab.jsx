@@ -31,7 +31,7 @@ export default function VisionCyclesTab({
     <div className="space-y-5">
       <TabIntro
         title="Cycles — QUAND LANCER une bande"
-        detail={`Prochaines fêtes : ${festivalLine}. Dates pivot de lancement, trésorerie, chaleur et vide sanitaire — une section = une décision.`}
+        detail={`Prochaines fêtes : ${festivalLine}. Chaque fête couvre bœufs, chair et œufs — dates pivot, trésorerie, chaleur et vide sanitaire.`}
         action={onNavigate ? <Btn onClick={() => onNavigate('elevage', { tab: 'Cycles' })}>Élevage → Cycles</Btn> : null}
       />
 
@@ -51,7 +51,7 @@ export default function VisionCyclesTab({
 
       {launchDecisions.filter((d) => d.eventLabel).length ? (
         <Section icon={CalendarRange} title="1. Calendrier marché — date limite de mise en place">
-          <p className="text-xs text-[#8a7456] mb-3">Acheter ou lancer la bande avant la date pivot pour être prêt à la fête.</p>
+          <p className="text-xs text-[#8a7456] mb-3">Préparer bœufs, poulets de chair et œufs avant chaque fête — une date pivot par produit.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {launchDecisions.filter((d) => d.eventLabel).map((d) => (
               <StrategicDecisionCard key={d.id} item={d} onNavigate={onNavigate} onCreateTask={onCreateTask} onCreateAlert={onCreateAlert} onRefreshTasks={onRefreshTasks} onRefreshAlertes={onRefreshAlertes} existingTasks={existingTasks} existingAlerts={existingAlerts} />

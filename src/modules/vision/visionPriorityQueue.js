@@ -2,7 +2,7 @@ import { getDismissedPriorityKeys, isPriorityDismissed } from '../../services/ce
 
 const MAINTENANCE_CATEGORIES = new Set(['audit_erp', 'surveillance_ux']);
 
-const CENTRE_TABS = new Set(['À traiter', 'Recommandations', 'Cycles', 'Risques', 'Historique']);
+const CENTRE_TABS = new Set(['À traiter', 'Recommandations', 'Cycles', 'Risques', 'Historique', 'Graphiques', 'Annexe']);
 
 const MODULE_LABELS = {
   centre_decisionnel: 'Centre décisionnel',

@@ -61,7 +61,7 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
             {strategicPlan.sellNow.map((item) => (
               <StrategicDecisionCard
                 key={item.id}
-                item={{ ...item, title: item.status, category: 'sell_now' }}
+                item={{ ...item, title: item.title || item.status, category: 'sell_now' }}
                 onNavigate={onNavigate}
                 onCreateTask={onCreateTask}
                 onCreateAlert={onCreateAlert}

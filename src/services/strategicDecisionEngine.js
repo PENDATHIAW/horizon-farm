@@ -30,6 +30,88 @@ const ITH_STRESS_THRESHOLD = 29;
 const STOCK_AUDIT_THRESHOLD_PCT = 10;
 const STOCK_AUDIT_CONSECUTIVE_DAYS = 3;
 const BFR_MIN_COVERAGE_PCT = 50;
+
+const FESTIVAL_LAUNCH_LINES = {
+  tabaski: [
+    { activity: 'bovins', cycleDays: BOVIN_CYCLE_DAYS, label: 'Bœufs / moutons', action: 'Acheter broutards ou finaliser les bêtes prêtes' },
+    { activity: 'poulets_chair', cycleDays: BROILER_CYCLE_DAYS, label: 'Poulets de chair', action: 'Lancer la bande chair' },
+    { activity: 'oeufs', cycleDays: 30, label: 'Œufs / tablettes', action: 'Monter précommandes et production œufs' },
+  ],
+  magal: [
+    { activity: 'bovins', cycleDays: BOVIN_CYCLE_DAYS, label: 'Bœufs / moutons', action: 'Acheter broutards ou finaliser les bêtes prêtes' },
+    { activity: 'poulets_chair', cycleDays: BROILER_CYCLE_DAYS, label: 'Poulets de chair', action: 'Lancer la bande chair' },
+    { activity: 'oeufs', cycleDays: 30, label: 'Œufs / tablettes', action: 'Monter précommandes et production œufs' },
+  ],
+  gamou: [
+    { activity: 'bovins', cycleDays: BOVIN_CYCLE_DAYS, label: 'Bœufs / moutons', action: 'Acheter broutards ou finaliser les bêtes prêtes' },
+    { activity: 'poulets_chair', cycleDays: BROILER_CYCLE_DAYS, label: 'Poulets de chair', action: 'Lancer la bande chair' },
+    { activity: 'oeufs', cycleDays: 30, label: 'Œufs / tablettes', action: 'Monter précommandes et production œufs' },
+  ],
+  korite: [
+    { activity: 'poulets_chair', cycleDays: BROILER_CYCLE_DAYS, label: 'Poulets de chair', action: 'Lancer la bande chair' },
+    { activity: 'oeufs', cycleDays: 30, label: 'Œufs / tablettes', action: 'Renforcer stock œufs et tablettes' },
+  ],
+  fin_annee: [
+    { activity: 'poulets_chair', cycleDays: BROILER_CYCLE_DAYS, label: 'Poulets de chair', action: 'Lancer la bande chair' },
+    { activity: 'oeufs', cycleDays: 30, label: 'Œufs / tablettes', action: 'Renforcer stock œufs' },
+    { activity: 'bovins', cycleDays: BOVIN_CYCLE_DAYS, label: 'Bœufs / moutons', action: 'Vérifier bêtes prêtes à la vente' },
+  ],
+};
+
+function speciesLabel(animal = {}) {
+  const raw = norm(`${animal.type || ''} ${animal.espece || ''} ${animal.categorie || ''}`);
+  if (raw.includes('bovin') || raw.includes('boeuf') || raw.includes('vache') || raw.includes('veau')) return 'Bovin embouche';
+  if (raw.includes('ovin') || raw.includes('mouton')) return 'Ovin';
+  if (raw.includes('caprin') || raw.includes('chevre')) return 'Caprin';
+  return 'Animal';
+}
+
+function animalDisplayName(animal = {}) {
+  const base = animal.name || animal.nom || animal.tag || animal.id;
+  const tag = animal.tag && String(animal.tag) !== String(base) ? ` (#${animal.tag})` : '';
+  return `${speciesLabel(animal)} ${base}${tag}`;
+}
+
+function bandeDisplayName(lot = {}) {
+  const workshop = inferWorkshopFromLot(lot);
+  const base = lot.name || lot.nom || lot.id;
+  if (workshop === 'pondeuses') return `Bande pondeuses ${base}`;
+  if (workshop === 'poulets_chair') return `Bande chair ${base}`;
+  return `Bande avicole ${base}`;
+}
+
+function hasActiveStockForLine(line = {}, dataMap = {}, eventDate = new Date()) {
+  const lots = arr(dataMap.avicole || dataMap.lots);
+  const animaux = arr(dataMap.animaux);
+  if (line.activity === 'bovins') {
+    return animaux.some((a) => norm(`${a.type || ''} ${a.espece || ''}`).includes('bovin')
+      && daysBetween(a.date_entree || a.created_at, eventDate) >= line.cycleDays - 15);
+  }
+  if (line.activity === 'poulets_chair') {
+    return lots.some((l) => inferWorkshopFromLot(l) === 'poulets_chair'
+      && daysBetween(l.date_debut || l.date_entree || l.created_at, eventDate) >= line.cycleDays - 10);
+  }
+  if (line.activity === 'oeufs') {
+    return lots.some((l) => {
+      const label = norm(`${l.type || ''} ${l.name || ''} ${l.nom || ''}`);
+      return (label.includes('pondeuse') || label.includes('oeuf')) && avicoleActiveCount(l) > 0;
+    });
+  }
+  return false;
+}
+
+function festivalKeyFromEvent(event = {}) {
+  const key = event.key || '';
+  if (key) return key;
+  const label = norm(event.label || '');
+  if (label.includes('tabaski')) return 'tabaski';
+  if (label.includes('magal')) return 'magal';
+  if (label.includes('gamou')) return 'gamou';
+  if (label.includes('korite')) return 'korite';
+  if (label.includes('fin') && label.includes('annee')) return 'fin_annee';
+  return '';
+}
+
 const FEED_PATTERNS = ['aliment', 'provende', 'feed', 'mais', 'son'];
 const logDate = (r = {}) => String(r.date || r.event_date || r.created_at || '').slice(0, 10);
 const lotIdOf = (r = {}) => String(r.lot_id || r.lot || r.cible_id || '');
@@ -136,17 +218,28 @@ export function evaluateSellNowDecisions(dataMap = {}, options = {}) {
     const coutRationJour = dailyFeedKgForEntity(animal, alimentationLogs, 'bovins') * feedPrice;
 
     if (gmqSmoothed > 0 && coutRationJour > 0 && gainValeurJour < coutRationJour) {
+      const displayName = animalDisplayName(animal);
       const item = {
         id: `sell-now-bovin-${animal.id}`,
+        animalId: animal.id,
+        entityId: animal.id,
+        entityType: 'animal',
         lotId: animal.id,
-        lotName: animal.name || animal.nom || animal.id,
+        lotName: displayName,
+        subjectLabel: displayName,
         type: 'bovins',
-        status: 'URGENCE VENTE : Maturité Économique Atteinte',
+        activity: 'bovins',
+        module: 'elevage',
+        navModule: 'elevage',
+        navTab: 'Animaux',
+        openLabel: 'Ouvrir animal',
+        status: `URGENCE VENTE — ${displayName}`,
+        title: `URGENCE VENTE — ${displayName}`,
         gainValeurJour: Math.round(gainValeurJour),
         coutRationJour: Math.round(coutRationJour),
         gmqSmoothedKg: Math.round(gmqSmoothed * 1000) / 1000,
         priority: 'critique',
-        message: `VENDRE MAINTENANT le lot Bovin ${animal.name || animal.nom || animal.id}. Le gain de valeur viande du jour (${Math.round(gainValeurJour)} FCFA) est inférieur au coût de sa ration (${Math.round(coutRationJour)} FCFA). Rester en élevage vous fait perdre de l'argent.`,
+        message: `VENDRE MAINTENANT ${displayName}. Le gain de valeur viande du jour (${Math.round(gainValeurJour)} FCFA) est inférieur au coût de sa ration (${Math.round(coutRationJour)} FCFA). Rester en embouche vous fait perdre de l'argent.`,
       };
       console.warn('[evaluateSellNowDecisions]', item);
       alerts.push(item);
@@ -160,16 +253,26 @@ export function evaluateSellNowDecisions(dataMap = {}, options = {}) {
     const coutRationJour = dailyFeedKgForEntity(lot, alimentationLogs, 'poulets_chair') * feedPrice;
 
     if (gmqSmoothed > 0 && coutRationJour > 0 && gainValeurJour < coutRationJour) {
+      const displayName = bandeDisplayName(lot);
       const item = {
         id: `sell-now-chair-${lot.id}`,
         lotId: lot.id,
-        lotName: lot.name || lot.nom || lot.id,
+        entityId: lot.id,
+        entityType: 'bande_chair',
+        lotName: displayName,
+        subjectLabel: displayName,
         type: 'poulets_chair',
-        status: 'URGENCE VENTE : Maturité Économique Atteinte',
+        activity: 'poulets_chair',
+        module: 'elevage',
+        navModule: 'elevage',
+        navTab: 'Avicole',
+        openLabel: 'Ouvrir bande',
+        status: `URGENCE VENTE — ${displayName}`,
+        title: `URGENCE VENTE — ${displayName}`,
         gainValeurJour: Math.round(gainValeurJour),
         coutRationJour: Math.round(coutRationJour),
         priority: 'critique',
-        message: `Le lot ${lot.name || lot.id} consomme plus de valeur alimentaire (${Math.round(coutRationJour)} FCFA/j) qu'il ne produit de valeur viande (${Math.round(gainValeurJour)} FCFA/j). Rentabilité négative. Vendre immédiatement.`,
+        message: `${displayName} consomme plus de valeur alimentaire (${Math.round(coutRationJour)} FCFA/j) qu'elle ne produit de valeur viande (${Math.round(gainValeurJour)} FCFA/j). Rentabilité négative. Vendre immédiatement.`,
       };
       console.warn('[evaluateSellNowDecisions]', item);
       alerts.push(item);
@@ -194,55 +297,64 @@ export function evaluateLaunchTimingDecisions(dataMap = {}, options = {}) {
   const cycleDecisions = [];
 
   events.forEach((event) => {
-    const label = norm(event.label);
-    const eventDate = event.date;
-    let cycleDays = BROILER_CYCLE_DAYS;
-    let activity = 'poulets_chair';
-    let placementMessage = '';
-
     if (event.skipLaunch) return;
+    const festKey = festivalKeyFromEvent(event);
+    const lines = FESTIVAL_LAUNCH_LINES[festKey];
+    if (!lines?.length) return;
 
-    if (label.includes('tabaski') || label.includes('magal') || label.includes('gamou')) {
-      cycleDays = BOVIN_CYCLE_DAYS;
-      activity = 'bovins';
-      placementMessage = `Pour vendre au prix fort à ${event.label}, achetez vos broutards au plus tard le`;
-    } else if (label.includes('korite') || label.includes('fin') || label.includes('annee') || label.includes('année')) {
-      cycleDays = BROILER_CYCLE_DAYS;
-      activity = 'poulets_chair';
-      placementMessage = `Pour cibler ${event.label} à J+${cycleDays}, lancez la bande au plus tard le`;
-    } else if (label.includes('ramadan')) {
-      return;
-    } else {
-      return;
-    }
+    const eventDate = event.date;
+    const activityLines = lines.map((line) => {
+      const pivotDate = addDays(eventDate, -line.cycleDays);
+      const pivotIso = iso(pivotDate);
+      const daysUntilPivot = daysBetween(refDate, pivotDate);
+      const hasActiveLot = hasActiveStockForLine(line, dataMap, eventDate);
+      return {
+        ...line,
+        pivotDate: pivotIso,
+        daysUntilPivot,
+        hasActiveLot,
+        priority: daysUntilPivot <= 0 && !hasActiveLot ? 'critique' : daysUntilPivot <= 14 ? 'haute' : 'moyenne',
+      };
+    });
 
-    const pivotDate = addDays(eventDate, -cycleDays);
-    const pivotIso = iso(pivotDate);
-    const daysUntilPivot = daysBetween(refDate, pivotDate);
+    const missing = activityLines.filter((line) => !line.hasActiveLot && line.daysUntilPivot <= 14);
+    const worst = activityLines.reduce((acc, line) => {
+      const rank = { critique: 3, haute: 2, moyenne: 1 };
+      return (rank[line.priority] || 0) > (rank[acc] || 0) ? line.priority : acc;
+    }, 'moyenne');
 
-    const hasActiveLot = activity === 'bovins'
-      ? animaux.some((a) => norm(`${a.type || ''} ${a.espece || ''}`).includes('bovin') && daysBetween(a.date_entree || a.created_at, eventDate) >= cycleDays - 15)
-      : lots.some((l) => inferWorkshopFromLot(l) === 'poulets_chair' && daysBetween(l.date_debut || l.date_entree || l.created_at, eventDate) >= cycleDays - 10);
+    const lineMessages = activityLines.map((line) => {
+      const suffix = line.daysUntilPivot <= 0 && !line.hasActiveLot
+        ? `(date pivot ${line.pivotDate} dépassée — rien en place)`
+        : `(pivot ${line.pivotDate}, cycle ${line.cycleDays} j)`;
+      return `${line.label} : ${line.action} ${suffix}`;
+    });
 
     const decision = {
       id: `launch-${event.id}`,
       eventLabel: event.label,
+      eventKey: festKey,
       eventDate: iso(eventDate),
-      pivotDate: pivotIso,
-      cycleDays,
-      activity,
-      daysUntilPivot,
-      hasActiveLot,
-      priority: daysUntilPivot <= 0 && !hasActiveLot ? 'critique' : daysUntilPivot <= 14 ? 'haute' : 'moyenne',
-      message: daysUntilPivot <= 0 && !hasActiveLot
-        ? `${placementMessage} ${pivotIso} (date dépassée !). Aucun lot ${activity} en place pour ${event.label}.`
-        : `${placementMessage} ${pivotIso} (cycle ${cycleDays} jours).`,
+      activityLines,
+      activities: activityLines.map((line) => line.activity),
+      pivotDate: activityLines.map((line) => line.pivotDate).join(' · '),
+      cycleDays: activityLines.map((line) => line.cycleDays).join('/'),
+      activity: activityLines.map((line) => line.activity).join(', '),
+      daysUntilPivot: Math.min(...activityLines.map((line) => line.daysUntilPivot)),
+      hasActiveLot: missing.length === 0,
+      priority: worst,
+      category: 'launch_timing',
+      module: 'centre_decisionnel',
+      navModule: 'centre_ia',
+      navTab: 'Cycles',
+      openLabel: 'Voir calendrier',
+      message: `Pour ${event.label}, vendre bœufs, poulets et œufs : ${lineMessages.join(' · ')}`,
     };
     cycleDecisions.push(decision);
 
-    if (daysUntilPivot <= 0 && !hasActiveLot) {
+    if (missing.some((line) => line.priority === 'critique')) {
       alerts.push({ ...decision, type: 'launch_deadline_missed' });
-    } else if (daysUntilPivot <= 14 && daysUntilPivot >= 0 && !hasActiveLot) {
+    } else if (missing.length) {
       alerts.push({ ...decision, type: 'launch_deadline_approaching' });
     }
   });
@@ -676,11 +788,14 @@ export function buildStrategicDecisionPlan(dataMap = {}, options = {}) {
     ...sellNow.map((a) => ({
       id: a.id,
       domain: 'Technico-économique',
-      title: a.status,
-      cause: `Gain ${a.gainValeurJour} FCFA/j < coût ${a.coutRationJour} FCFA/j`,
+      title: a.title || a.status,
+      cause: `${a.subjectLabel || a.lotName || 'Entité'} — gain ${a.gainValeurJour} FCFA/j < coût ${a.coutRationJour} FCFA/j`,
       impact: 'Perte nette si maintien en élevage',
       action: 'Vendre immédiatement',
-      module: 'elevage',
+      module: a.navModule || 'elevage',
+      navTab: a.navTab || (a.entityType === 'animal' ? 'Animaux' : 'Avicole'),
+      entityType: a.entityType,
+      entityId: a.entityId || a.animalId || a.lotId,
       severity: 'Critique',
       tone: 'bad',
       financialImpact: `${a.coutRationJour - a.gainValeurJour} FCFA/j`,

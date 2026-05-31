@@ -6,10 +6,10 @@ import {
 const arr = (v) => (Array.isArray(v) ? v : []);
 
 export const FESTIVAL_DEFINITIONS = [
-  { key: 'tabaski', label: 'Tabaski', activities: ['bovins', 'ovins'] },
+  { key: 'tabaski', label: 'Tabaski', activities: ['bovins', 'ovins', 'poulets_chair', 'oeufs'] },
   { key: 'korite', label: 'Korité', activities: ['poulets_chair', 'oeufs'] },
-  { key: 'magal', label: 'Magal', activities: ['bovins', 'ovins'] },
-  { key: 'gamou', label: 'Gamou', activities: ['bovins', 'ovins', 'poulets_chair'] },
+  { key: 'magal', label: 'Magal', activities: ['bovins', 'ovins', 'poulets_chair', 'oeufs'] },
+  { key: 'gamou', label: 'Gamou', activities: ['bovins', 'ovins', 'poulets_chair', 'oeufs'] },
   { key: 'fin_annee', label: "Fin d'année", activities: ['poulets_chair', 'oeufs', 'bovins', 'ovins'] },
   { key: 'ramadan', label: 'Ramadan', activities: ['poulets_chair', 'oeufs'], skipLaunch: true },
 ];

@@ -16,6 +16,9 @@ import ObjectifsActivitesPanel from './ObjectifsActivitesPanel.jsx';
 import ObjectiveDecisionSummary from '../ObjectiveDecisionSummary.jsx';
 import ObjectiveSupplyPanel from './ObjectiveSupplyPanel.jsx';
 import PilotageContextStrip from '../centre/PilotageContextStrip.jsx';
+import ObjectifsGraphiquesTab from './ObjectifsGraphiquesTab.jsx';
+import DecisionAnnexeTab from '../centre/DecisionAnnexeTab.jsx';
+import { buildObjectifsDecisionPlan } from '../../services/objectifsDecision/objectifsDecisionEngine.js';
 
 
 const EMPTY_ANALYTICS = {
@@ -33,10 +36,11 @@ const TAB_ALIASES = {
   Prévisions: 'Efficacité Technique',
   Plans: 'Flux & Équilibres',
   Financeurs: 'Flux & Équilibres',
-  Graphiques: 'Maraîchage & Diversification',
   'Objectifs & Écarts': 'Rentabilité Lot & Cycle',
   'Croissance économique & Capacités': 'Efficacité Technique',
-  'Tableau de bord graphique': 'Maraîchage & Diversification',
+  'Tableau de bord graphique': 'Graphiques',
+  Graphiques: 'Graphiques',
+  Annexe: 'Annexe',
 };
 
 function resolveTab(initial) {
@@ -93,6 +97,14 @@ export default function ObjectifsDecisionModule({
       return { goals: { activities: [] }, recommendations: [] };
     }
   }, [enrichedDataMap]);
+  const objectifsChartPlan = useMemo(() => {
+    try {
+      return buildObjectifsDecisionPlan(enrichedDataMap, { currentTemp: meteo?.temperature ?? meteo?.temp });
+    } catch (error) {
+      console.warn('[ObjectifsDecisionModule] chart plan fallback', error);
+      return { chartData: {} };
+    }
+  }, [enrichedDataMap, meteo]);
 
   const tabBadges = useMemo(() => ({
     'Efficacité Technique': (analytics.technical?.thermalAlerts?.length || 0)
@@ -106,7 +118,11 @@ export default function ObjectifsDecisionModule({
       ? <EfficaciteTechniqueTab analytics={analytics} onNavigate={onNavigate} />
       : tab === 'Flux & Équilibres'
         ? <FluxEquilibresTab analytics={analytics} onNavigate={onNavigate} />
-        : <MaraichageDiversificationTab analytics={analytics} />;
+        : tab === 'Graphiques'
+          ? <ObjectifsGraphiquesTab plan={objectifsChartPlan} />
+          : tab === 'Annexe'
+            ? <DecisionAnnexeTab moduleLabel="Objectifs & Croissance" />
+            : <MaraichageDiversificationTab analytics={analytics} />;
 
   return (
     <div className="space-y-6">

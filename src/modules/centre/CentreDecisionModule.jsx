@@ -12,6 +12,8 @@ import VisionCyclesTab from '../vision/VisionCyclesTab.jsx';
 import VisionRisksTab from '../vision/VisionRisksTab.jsx';
 import CentreRecommandationsTab from './CentreRecommandationsTab.jsx';
 import CentreHistoriqueTab from './CentreHistoriqueTab.jsx';
+import VisionDecisionGraphiquesTab from '../vision/VisionDecisionGraphiquesTab.jsx';
+import DecisionAnnexeTab from './DecisionAnnexeTab.jsx';
 import PilotageSettingsPanel from './PilotageSettingsPanel.jsx';
 import { mergePilotageIntoDataMap } from '../../services/pilotageSettingsService.js';
 import { syncStrategicAlertsToCenter } from '../../services/strategicAlertBridge.js';
@@ -35,7 +37,8 @@ const EMPTY_STRATEGIC_PLAN = {
 const TAB_IDS = MODULE_TARGET_TABS.centre_ia;
 
 const TAB_ALIASES = {
-  Graphiques: 'Recommandations',
+  Graphiques: 'Graphiques',
+  Annexe: 'Annexe',
   Opportunités: 'Cycles',
   'Opportunités & cycles': 'Cycles',
 };
@@ -208,7 +211,29 @@ export default function CentreDecisionModule({
               existingAlerts={props.existingAlerts}
             />
           )
-          : <CentreHistoriqueTab dataMap={enrichedDataMap} onNavigate={onNavigate} />;
+          : tab === 'Graphiques'
+            ? (
+              <VisionDecisionGraphiquesTab
+                lots={props.lots}
+                animaux={props.animaux}
+                cultures={props.cultures}
+                clients={props.clients}
+                transactions={props.transactionsAll || props.transactions}
+                stocks={props.stocks}
+                alimentationLogs={props.alimentationLogs}
+                productionLogs={props.productionLogs}
+                salesOrders={props.salesOrdersAll || props.salesOrders}
+                payments={props.paymentsAll || props.payments}
+                sante={props.sante}
+                businessEvents={props.businessEvents}
+                fournisseurs={props.fournisseurs}
+                marketPrices={props.marketPrices}
+                onNavigate={onNavigate}
+              />
+            )
+            : tab === 'Annexe'
+              ? <DecisionAnnexeTab moduleLabel="Centre décisionnel" />
+              : <CentreHistoriqueTab dataMap={enrichedDataMap} onNavigate={onNavigate} />;
 
   return (
     <div className="space-y-6">
@@ -218,7 +243,7 @@ export default function CentreDecisionModule({
             <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Intelligence décisionnelle</p>
             <h1 className="mt-1 text-3xl font-black text-[#2f2415]">Centre décisionnel</h1>
             <p className="mt-2 text-sm text-[#8a7456] max-w-3xl">
-              5 onglets distincts : priorités du jour · marge & ventes · lancer une bande (Cycles) · vendre (Risques) · historique.
+              7 onglets : priorités · recommandations · cycles · risques · historique · graphiques · annexe (méthode & calculs).
             </p>
             <HeyHorizonQuickAsk moduleKey="centre_ia" onNavigate={onNavigate} onOpenAssistant={onOpenAssistant} className="mt-2" />
             {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}

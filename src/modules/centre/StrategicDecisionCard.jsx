@@ -13,7 +13,12 @@ export function StrategicDecisionCard({ item, onNavigate, onCreateTask, onCreate
   return (
     <article className={`rounded-2xl border p-4 space-y-2 ${toneClass[priority] || toneClass.moyenne}`}>
       <div className="flex items-start justify-between gap-2">
+        <div>
         <p className="font-black text-[#2f2415] text-sm leading-tight">{item.title || item.status || item.eventLabel}</p>
+        {item.subjectLabel && item.subjectLabel !== (item.title || item.status) ? (
+          <p className="text-[11px] font-black text-emerald-800 mt-0.5">{item.subjectLabel}</p>
+        ) : null}
+      </div>
         <span className="shrink-0 rounded-full border border-current px-2 py-0.5 text-[10px] font-black uppercase">{priority}</span>
       </div>
       <p className="text-xs text-[#7d6a4a] leading-relaxed">{item.message || item.recommendation}</p>

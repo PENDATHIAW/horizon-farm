@@ -30,13 +30,14 @@ export function buildStrategicAlertPayloads(strategicPlan = {}) {
   const payloads = [];
 
   arr(strategicPlan.sellNow).forEach((item) => {
+    const entityType = item.entityType || (item.type === 'bovins' ? 'animal' : 'bande_chair');
     payloads.push({
-      ...basePayload({ ...item, category: 'sell_now', entity_type: 'lot', entity_id: item.lotId }),
+      ...basePayload({ ...item, category: 'sell_now', entity_type: entityType, entity_id: item.entityId || item.animalId || item.lotId }),
       id: item.id,
-      title: item.status || 'Urgence vente',
+      title: item.title || item.status || 'Urgence vente',
       message: item.message,
       severity: 'critique',
-      action_recommandee: 'Vendre immédiatement — rendement économique négatif.',
+      action_recommandee: `Vendre immédiatement ${item.subjectLabel || item.lotName || 'l\'entité concernée'} — rendement économique négatif.`,
       category: 'sell_now',
     });
   });
