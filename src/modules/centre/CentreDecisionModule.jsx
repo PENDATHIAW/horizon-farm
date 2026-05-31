@@ -166,7 +166,18 @@ export default function CentreDecisionModule({
   const content = tab === 'À traiter'
     ? <VisionPrioritiesTab {...priorityProps} />
     : tab === 'Recommandations'
-      ? <CentreRecommandationsTab plan={decisionPlan} onNavigate={onNavigate} onSwitchTab={setTab} />
+      ? (
+        <CentreRecommandationsTab
+          plan={decisionPlan}
+          dataMap={enrichedDataMap}
+          onNavigate={onNavigate}
+          onSwitchTab={setTab}
+          onCreateTask={props.onCreateTask}
+          onRefreshTasks={props.onRefreshTasks}
+          onCreateBusinessEvent={props.onCreateBusinessEvent}
+          onRefreshBusinessEvents={props.onRefreshBusinessEvents}
+        />
+      )
       : tab === 'Cycles'
         ? (
           <VisionCyclesTab

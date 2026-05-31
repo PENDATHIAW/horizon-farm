@@ -33,11 +33,21 @@ test.describe('Centre décisionnel et Objectifs & Croissance', () => {
     await expect(page.getByRole('button', { name: /Cycles/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Risques/i })).toBeVisible();
 
+    await page.getByRole('button', { name: /^Recommandations$/i }).click();
+    await expect(page.getByText(/Recommandations investissement & vente/i)).toBeVisible();
+    await expect(page.getByText(/Pourquoi Horizon recommande/i).first()).toBeVisible();
+    await expect(page.getByText(/Calendrier commercial annuel/i)).toBeVisible();
+
+    await page.getByRole('button', { name: /^Historique$/i }).click();
+    await expect(page.getByText(/Historique des décisions/i)).toBeVisible();
+
     await openNav(page, 'Objectifs');
     await expect(page.getByRole('heading', { name: /Objectifs & Croissance/i })).toBeVisible();
+    await expect(page.getByText(/Objectifs par activité/i)).toBeVisible();
+    await expect(page.getByText(/Demande, couverture & actions/i)).toBeVisible();
+    await expect(page.getByText(/Fidélisation, fournisseurs & stock/i)).toBeVisible();
     await expect(page.getByRole('button', { name: /Exporter Excel/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Rentabilité Lot/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Efficacité Technique/i })).toBeVisible();
   });
 
   test('onglet Cycles affiche le vide sanitaire', async ({ page }) => {

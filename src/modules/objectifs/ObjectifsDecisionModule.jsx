@@ -11,6 +11,11 @@ import CrossAnalyticsSections from './CrossAnalyticsSections.jsx';
 import Btn from '../../components/Btn.jsx';
 import { mergePilotageIntoDataMap } from '../../services/pilotageSettingsService.js';
 import { exportObjectifsAnalyticsExcel, exportObjectifsAnalyticsCsv } from '../../services/objectifsDecision/objectifsAnalyticsExport.js';
+import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine.js';
+import ObjectifsActivitesPanel from './ObjectifsActivitesPanel.jsx';
+import ObjectiveDecisionSummary from '../ObjectiveDecisionSummary.jsx';
+import ObjectiveSupplyPanel from './ObjectiveSupplyPanel.jsx';
+
 
 const EMPTY_ANALYTICS = {
   rentability: { lots: [], suppliers: [] },
@@ -79,6 +84,14 @@ export default function ObjectifsDecisionModule({
       return EMPTY_ANALYTICS;
     }
   }, [enrichedDataMap, meteo]);
+  const growthPlan = useMemo(() => {
+    try {
+      return buildDecisionCenterPlan(enrichedDataMap);
+    } catch (error) {
+      console.warn('[ObjectifsDecisionModule] growth plan fallback', error);
+      return { goals: { activities: [] }, recommendations: [] };
+    }
+  }, [enrichedDataMap]);
 
   const tabBadges = useMemo(() => ({
     'Efficacité Technique': (analytics.technical?.thermalAlerts?.length || 0)
