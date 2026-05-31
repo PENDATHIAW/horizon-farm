@@ -28,9 +28,11 @@ test.describe('Centre décisionnel et Objectifs & Croissance', () => {
 
     await openNav(page, 'Centre décisionnel');
     await expect(page.getByRole('heading', { name: /Centre décisionnel/i })).toBeVisible();
-    await expect(page.getByText(/QUAND vendre|QUAND lancer/i)).toBeVisible();
+    await expect(page.getByText(/QUAND vendre|QUAND lancer|5 onglets distincts/i)).toBeVisible();
     await expect(page.getByRole('button', { name: /Cycles/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Risques/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Recommandations/i })).toBeVisible();
+    await expect(page.getByText(/Paramètres pilotage/i)).toBeVisible();
 
     await openNav(page, 'Objectifs & Croissance');
     await expect(page.getByRole('heading', { name: /Objectifs & Croissance/i })).toBeVisible();
@@ -38,5 +40,14 @@ test.describe('Centre décisionnel et Objectifs & Croissance', () => {
     await expect(page.getByRole('button', { name: /Efficacité Technique/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Flux & Équilibres/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Maraîchage & Diversification/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Exporter Excel/i })).toBeVisible();
+  });
+
+  test('navigue vers Cycles et affiche le vide sanitaire', async ({ page }) => {
+    await loginIfNeeded(page);
+    await openNav(page, 'Centre décisionnel');
+    await page.getByRole('button', { name: /^Cycles$/i }).click();
+    await expect(page.getByText(/QUAND LANCER une bande|Cycles — QUAND LANCER/i)).toBeVisible();
+    await expect(page.getByText(/vide sanitaire/i).first()).toBeVisible();
   });
 });

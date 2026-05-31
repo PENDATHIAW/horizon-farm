@@ -6,39 +6,39 @@ const n = (v = 0) => Number(v || 0);
 const low = (v) => String(v || '').toLowerCase();
 const isClosedGoal = (row = {}) => ['termine', 'terminé', 'closed', 'clos', 'done'].includes(low(row.status || row.statut || row.state));
 
-const OBJECTIFS_TAB_ALIASES = {
-  Performance: 'Objectifs & Écarts',
-  Prévisions: 'Croissance économique & Capacités',
-  Plans: 'Croissance économique & Capacités',
-  Financeurs: 'Croissance économique & Capacités',
-  Graphiques: 'Tableau de bord graphique',
+const TAB_ALIASES = {
+  Performance: 'Rentabilité Lot & Cycle',
+  Prévisions: 'Efficacité Technique',
+  Plans: 'Flux & Équilibres',
+  Financeurs: 'Flux & Équilibres',
+  Graphiques: 'Recommandations',
+  Opportunités: 'Cycles',
+  'Opportunités & cycles': 'Cycles',
 };
 
-const CENTRE_TAB_ALIASES = {
-  Graphiques: 'Recommandations',
-  Cycles: 'Opportunités & cycles',
-  Opportunités: 'Opportunités & cycles',
-};
+const STRATEGIC_TABS = new Set([
+  'Rentabilité Lot & Cycle',
+  'Efficacité Technique',
+  'Flux & Équilibres',
+  'Maraîchage & Diversification',
+  'Performance',
+  'Prévisions',
+  'Plans',
+  'Financeurs',
+]);
+const OPERATIONAL_TABS = new Set(['À traiter', 'Recommandations', 'Risques', 'Cycles', 'Historique', 'Opportunités']);
 
 /** Onglet demandé → onglet valide pour ce module, ou redirection vers le module jumeau. */
 export function resolveVisionTab(moduleId, requestedTab, onNavigate) {
   const tabs = MODULE_TARGET_TABS[moduleId] || [];
   const fallback = tabs[0] || 'À traiter';
-  let normalizedTab = requestedTab;
-  if (moduleId === 'objectifs_croissance' && requestedTab) {
-    normalizedTab = OBJECTIFS_TAB_ALIASES[requestedTab] || requestedTab;
-  }
-  if (moduleId === 'centre_ia' && requestedTab) {
-    normalizedTab = CENTRE_TAB_ALIASES[requestedTab] || requestedTab;
-  }
-  if (!normalizedTab || tabs.includes(normalizedTab)) {
-    return normalizedTab && tabs.includes(normalizedTab) ? normalizedTab : fallback;
+  const mapped = requestedTab ? (TAB_ALIASES[requestedTab] || requestedTab) : null;
+  if (!mapped || tabs.includes(mapped)) {
+    return mapped && tabs.includes(mapped) ? mapped : fallback;
   }
   const sibling = moduleId === 'centre_ia' ? 'objectifs_croissance' : 'centre_ia';
   const siblingTabs = MODULE_TARGET_TABS[sibling] || [];
-  const siblingMapped = sibling === 'objectifs_croissance'
-    ? (OBJECTIFS_TAB_ALIASES[requestedTab] || requestedTab)
-    : (CENTRE_TAB_ALIASES[requestedTab] || requestedTab);
+  const siblingMapped = TAB_ALIASES[mapped] || mapped;
   if (siblingTabs.includes(siblingMapped)) {
     onNavigate?.(sibling, { tab: siblingMapped });
     return fallback;
@@ -46,32 +46,22 @@ export function resolveVisionTab(moduleId, requestedTab, onNavigate) {
   return fallback;
 }
 
-const STRATEGIC_TABS = new Set([
-  'Performance', 'Prévisions', 'Plans', 'Financeurs',
-  'Objectifs & Écarts', 'Croissance économique & Capacités', 'Tableau de bord graphique',
-]);
-const OPERATIONAL_TABS = new Set([
-  'À traiter', 'Risques', 'Opportunités', 'Cycles',
-  'Recommandations', 'Opportunités & cycles', 'Historique',
-]);
-
 /** Ouvre l'onglet priorité sur le bon module (Centre vs Objectifs). */
 export function openVisionPriority(item = {}, moduleId = 'centre_ia', { setTab, onNavigate } = {}) {
   const targetTab = item.tab || item.targetTab;
   const targetModule = item.navModule || item.sourceModule;
+  const mappedTab = targetTab ? (TAB_ALIASES[targetTab] || targetTab) : null;
 
-  if (targetTab && STRATEGIC_TABS.has(targetTab)) {
-    const mapped = OBJECTIFS_TAB_ALIASES[targetTab] || targetTab;
-    onNavigate?.('objectifs_croissance', { tab: mapped });
+  if (mappedTab && STRATEGIC_TABS.has(mappedTab)) {
+    onNavigate?.('objectifs_croissance', { tab: TAB_ALIASES[mappedTab] || mappedTab });
     return;
   }
-  if (targetTab && OPERATIONAL_TABS.has(targetTab)) {
-    const mapped = CENTRE_TAB_ALIASES[targetTab] || targetTab;
+  if (mappedTab && OPERATIONAL_TABS.has(mappedTab)) {
     const localTabs = MODULE_TARGET_TABS[moduleId] || [];
-    if (localTabs.includes(mapped)) {
-      setTab?.(mapped);
+    if (localTabs.includes(mappedTab)) {
+      setTab?.(mappedTab);
     } else {
-      onNavigate?.('centre_ia', { tab: mapped });
+      onNavigate?.('centre_ia', { tab: mappedTab });
     }
     return;
   }
@@ -92,14 +82,13 @@ export function buildVisionBadges(data = {}, moduleId = 'centre_ia') {
   if (moduleId === 'centre_ia') {
     if (treatCount > 0) tabs['À traiter'] = treatCount;
     if (risksCount > 0) tabs.Risques = criticalRisks || risksCount;
-    if (openOpportunities.length > 0) tabs['Opportunités & cycles'] = openOpportunities.length;
     const cycleSignals = n(data.criticalStockCount) + n(data.openAlertsCount);
-    if (cycleSignals > 0) tabs['Opportunités & cycles'] = (tabs['Opportunités & cycles'] || 0) + cycleSignals;
+    if (cycleSignals > 0) tabs.Cycles = cycleSignals;
   } else {
-    if (unreliableMargins > 0) tabs['Objectifs & Écarts'] = unreliableMargins;
-    if (predictionsCount > 0) tabs['Croissance économique & Capacités'] = predictionsCount;
-    if (openPlans > 0) tabs['Croissance économique & Capacités'] = (tabs['Croissance économique & Capacités'] || 0) + openPlans;
-    if (missingProof > 0) tabs['Croissance économique & Capacités'] = (tabs['Croissance économique & Capacités'] || 0) + missingProof;
+    if (unreliableMargins > 0) tabs['Rentabilité Lot & Cycle'] = unreliableMargins;
+    if (predictionsCount > 0) tabs['Efficacité Technique'] = predictionsCount;
+    if (openPlans > 0) tabs['Flux & Équilibres'] = openPlans;
+    if (missingProof > 0) tabs['Maraîchage & Diversification'] = missingProof;
   }
 
   return { tabs, treatCount, risksCount, openOpportunities: openOpportunities.length };
