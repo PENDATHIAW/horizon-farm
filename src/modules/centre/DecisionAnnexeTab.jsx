@@ -1,4 +1,4 @@
-import { BookOpen, Calculator, HelpCircle, List, Settings2 } from 'lucide-react';
+import { ArrowRight, BookOpen, Calculator, HelpCircle, List, Settings2 } from 'lucide-react';
 import {
   ACRONYM_GLOSSARY,
   DECISION_METHODOLOGY_SECTIONS,
@@ -6,8 +6,26 @@ import {
   buildAnnexeSnapshot,
   formulasGroupedByCategory,
 } from '../../services/decisionMethodology.js';
+import { resolveAnnexeLink } from '../../services/annexeNavigation.js';
 
-function ParamTable({ rows = [] }) {
+function WhereCell({ where, onNavigate }) {
+  const link = resolveAnnexeLink(where);
+  if (link && onNavigate) {
+    return (
+      <button
+        type="button"
+        onClick={() => onNavigate(link.module, { tab: link.tab })}
+        className="inline-flex items-center gap-1 text-left font-black text-emerald-800 hover:text-emerald-600 hover:underline"
+      >
+        {where}
+        <ArrowRight size={12} className="shrink-0" />
+      </button>
+    );
+  }
+  return <span>{where}</span>;
+}
+
+function ParamTable({ rows = [], onNavigate }) {
   if (!rows.length) return null;
   return (
     <div className="mt-3 overflow-x-auto rounded-xl border border-[#eadcc2]">
@@ -17,7 +35,7 @@ function ParamTable({ rows = [] }) {
             <th className="px-3 py-2">Information</th>
             <th className="px-3 py-2">Unité</th>
             <th className="px-3 py-2">Valeur habituelle</th>
-            <th className="px-3 py-2">Où le trouver dans l&apos;ERP</th>
+            <th className="px-3 py-2">Où le trouver (cliquer pour ouvrir)</th>
           </tr>
         </thead>
         <tbody>
@@ -26,7 +44,9 @@ function ParamTable({ rows = [] }) {
               <td className="px-3 py-2 font-black text-[#2f2415]">{row.label}</td>
               <td className="px-3 py-2 text-[#7d6a4a]">{row.unit}</td>
               <td className="px-3 py-2 text-[#7d6a4a]">{row.default}</td>
-              <td className="px-3 py-2 text-[#7d6a4a]">{row.where}</td>
+              <td className="px-3 py-2 text-[#7d6a4a]">
+                <WhereCell where={row.where} onNavigate={onNavigate} />
+              </td>
             </tr>
           ))}
         </tbody>
@@ -35,7 +55,7 @@ function ParamTable({ rows = [] }) {
   );
 }
 
-function FormulaBlock({ block }) {
+function FormulaBlock({ block, onNavigate }) {
   return (
     <section id={`annexe-${block.id}`} className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm scroll-mt-24">
       <p className="font-black text-[#2f2415] text-sm flex items-center gap-2">
@@ -49,7 +69,7 @@ function FormulaBlock({ block }) {
       <div className="mt-3 rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#2f2415] leading-relaxed whitespace-pre-wrap">
         {block.formula}
       </div>
-      <ParamTable rows={block.parameters} />
+      <ParamTable rows={block.parameters} onNavigate={onNavigate} />
       {block.outputs?.length ? (
         <p className="mt-3 text-xs text-[#7d6a4a]">
           <b className="text-[#2f2415]">Ce que vous voyez à l&apos;écran :</b>{' '}
@@ -64,6 +84,7 @@ export default function DecisionAnnexeTab({
   moduleLabel = 'Centre décisionnel',
   moduleId = 'centre_ia',
   dataMap = {},
+  onNavigate,
 }) {
   const grouped = formulasGroupedByCategory(moduleId);
   const snapshot = buildAnnexeSnapshot(dataMap);
@@ -78,7 +99,8 @@ export default function DecisionAnnexeTab({
         </p>
         <h2 className="text-xl font-black text-[#2f2415] mt-1">{moduleLabel} : guide en langage simple</h2>
         <p className="text-sm text-[#8a7456] mt-1">
-          {formulasCount} explications sans jargon technique. Commencez par le dictionnaire des sigles ci-dessous si un mot vous semble obscur (BFR, J+40, ITH…).
+          {formulasCount} explications sans jargon. Les lignes vertes dans « Où le trouver » ouvrent le bon module ERP en un clic
+          {onNavigate ? '' : ' (navigation indisponible dans cette vue)'}.
         </p>
       </section>
 
@@ -98,7 +120,22 @@ export default function DecisionAnnexeTab({
 
       <section className="rounded-2xl border border-[#eadcc2] bg-white p-4">
         <p className="font-black text-[#2f2415] text-sm flex items-center gap-2">
-          <Settings2 size={15} /> Vos réglages actuels (paramètres pilotage)
+          <Settings2 size={15} /> Vos réglages actuels
+        </p>
+        <p className="text-xs text-[#8a7456] mt-1">
+          Modifiables dans le bandeau « Paramètres pilotage » en haut du Centre décisionnel.
+          {onNavigate ? (
+            <>
+              {' '}
+              <button
+                type="button"
+                onClick={() => onNavigate('centre_ia', { tab: 'À traiter' })}
+                className="font-black text-emerald-800 hover:underline"
+              >
+                Aller au Centre →
+              </button>
+            </>
+          ) : null}
         </p>
         <div className="mt-3 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
           {snapshot.pilotage.map((row) => (
@@ -111,12 +148,6 @@ export default function DecisionAnnexeTab({
             </div>
           ))}
         </div>
-        <p className="mt-3 text-xs text-[#7d6a4a]">
-          Objectif annuel de ventes : <b>{String(snapshot.growthSettings.annual_ca_target)}</b> ·
-          Marge brute visée : <b>{snapshot.growthSettings.target_gross_margin_pct} %</b> ·
-          Marge nette visée : <b>{snapshot.growthSettings.target_net_margin_pct} %</b> ·
-          Clients VIP comptés pour la trésorerie : <b>{snapshot.growthSettings.vip_count}</b>
-        </p>
       </section>
 
       <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
@@ -152,7 +183,7 @@ export default function DecisionAnnexeTab({
               {categoryLabel[group.id] || group.label}
             </h3>
             {group.blocks.map((block) => (
-              <FormulaBlock key={block.id} block={block} />
+              <FormulaBlock key={block.id} block={block} onNavigate={onNavigate} />
             ))}
           </div>
         ))}
@@ -176,7 +207,7 @@ export default function DecisionAnnexeTab({
 
       <section className="rounded-2xl border border-[#eadcc2] bg-white p-4">
         <p className="font-black text-[#2f2415] text-sm">Dates des fêtes (calcul automatique)</p>
-        <p className="text-xs text-[#8a7456] mt-1">Vous pouvez les corriger dans Paramètres pilotage si la date locale diffère.</p>
+        <p className="text-xs text-[#8a7456] mt-1">Corrigibles dans Paramètres pilotage (Centre décisionnel).</p>
         <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
           {snapshot.festivals.map((fest) => (
             <div key={fest.key} className="rounded-xl border border-[#eadcc2] px-3 py-2 text-xs">
