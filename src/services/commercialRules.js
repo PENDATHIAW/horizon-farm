@@ -5,11 +5,46 @@
 import { evaluateSalesRules } from './erpRules/salesRules.js';
 import { analyzeSalesIntegrity } from './salesIntegrityService.js';
 import { invoiceRequired, isInvoiced, isSaleClosed, linkedPaymentsForOrders } from '../modules/commercial/commercialMetrics.js';
-import { remainingForOrder } from '../utils/salesStatuses.js';
+import { remainingForOrder, deliveryQuantity } from '../utils/salesStatuses.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
 export { evaluateSalesRules, analyzeSalesIntegrity, invoiceRequired, isInvoiced, isSaleClosed, linkedPaymentsForOrders, remainingForOrder };
+
+
+/** Statuts livraison cohérents : à livrer / partielle / livrée / annulée. */
+export function evaluateDeliveryRules(orders = []) {
+  const findings = [];
+  arr(orders).forEach((order) => {
+    const q = deliveryQuantity(order);
+    const raw = String(order.statut_livraison || order.delivery_status || '').toLowerCase();
+    if (q.remaining > 0 && ['livre', 'livree', 'livrée', 'recupere', 'récupéré'].includes(raw)) {
+      findings.push({
+        id: `comm-delivery-partial-${order.id}`,
+        module: 'commercial',
+        severity: 'moyenne',
+        category: 'commercial',
+        title: `Livraison incomplète : ${order.client_nom || order.id}`,
+        description: `${q.delivered}/${q.ordered} livré(s) — statut affiché « livré »`,
+        recommended_action: 'Passer en livraison partielle ou compléter la livraison',
+        confidence_score: 0.87,
+      });
+    }
+    if (['a_preparer', 'prete', 'prête'].includes(raw) && q.delivered > 0) {
+      findings.push({
+        id: `comm-delivery-status-${order.id}`,
+        module: 'commercial',
+        severity: 'basse',
+        category: 'commercial',
+        title: `Statut livraison à mettre à jour : ${order.id}`,
+        description: `${q.delivered} unité(s) livrée(s) mais statut « à préparer »`,
+        recommended_action: 'Mettre à jour le statut livraison',
+        confidence_score: 0.8,
+      });
+    }
+  });
+  return findings;
+}
 
 /** Audit commercial complet : règles + intégrité vente→paiement→finance→facture. */
 export function evaluateCommercialRules(data = {}) {
@@ -74,7 +109,7 @@ export function evaluateCommercialRules(data = {}) {
     }
   });
 
-  return [...ruleFindings, ...integrityFindings];
+  return [...ruleFindings, ...evaluateDeliveryRules(orders), ...integrityFindings];
 }
 
 export default evaluateCommercialRules;

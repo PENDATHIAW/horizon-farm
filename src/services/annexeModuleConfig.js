@@ -10,6 +10,7 @@ export const MODULE_ANNEXE_LABELS = {
   finance_pilotage: 'Finance & Pilotage',
   activite_suivi: 'Activité & Suivi',
   documents_rapports: 'Documents & Rapports',
+  smartfarm: 'Smart Farm',
 };
 
 /** Catégories de formules + blocs explicites par module. */
@@ -41,6 +42,10 @@ export const MODULE_ANNEXE_PRESETS = {
   documents_rapports: {
     categories: ['analytique', 'pilotage'],
     blockIds: [],
+  },
+  smartfarm: {
+    categories: ['pilotage', 'analytique', 'calendrier'],
+    blockIds: ['ith_heat', 'seasonality_weather', 'technical_farming'],
   },
 };
 

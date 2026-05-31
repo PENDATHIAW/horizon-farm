@@ -29,6 +29,7 @@ export const MODULE_TARGET_TABS = {
   activite_suivi: ['Résumé', 'Alertes', 'Tâches', 'Traçabilité', 'Graphiques', 'Annexe'],
   documents_rapports: ['Résumé', 'Bibliothèque', 'Preuves', 'Rapports', 'Exports', 'Modèles', 'Graphiques', 'Annexe'],
   rh: ['Résumé', 'Équipements', 'Maintenance', 'Affectations', 'Coûts', 'Documents', 'Graphiques'],
+  smartfarm: ['Résumé', 'Capteurs', 'Caméras', 'Graphiques', 'Annexe'],
   gestion_systeme: ['Vue admin', 'Utilisateurs', 'Paramètres', 'Sécurité', 'Sauvegardes', 'Réinitialisation', 'Audit'],
 };
 
@@ -51,5 +52,5 @@ export const DEV_RULES = {
 /** Ordre d'audit / correction module par module. */
 export const MODULE_AUDIT_ORDER = [
   'dashboard', 'assistant_erp', 'objectifs_croissance', 'elevage', 'commercial',
-  'achats_stock', 'finance_pilotage', 'activite_suivi', 'documents_rapports', 'rh', 'gestion_systeme',
+  'achats_stock', 'finance_pilotage', 'activite_suivi', 'documents_rapports', 'smartfarm', 'rh', 'gestion_systeme',
 ];

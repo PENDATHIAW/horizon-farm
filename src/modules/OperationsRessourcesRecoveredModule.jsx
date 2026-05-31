@@ -137,7 +137,7 @@ function MaintenanceHub({ data, setTab, smartProps, onSchedule, busyId }) {
         emptyLabel="Aucun équipement en maintenance."
       />
       <MaintenanceQueuePanel queue={data.maintenanceQueue} onSchedule={onSchedule} busyId={busyId} setTab={setTab} />
-      <SmartFarm {...smartProps} />
+      <SmartFarmEmbed {...smartProps} />
     </div>
   );
 }
