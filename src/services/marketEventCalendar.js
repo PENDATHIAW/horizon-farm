@@ -1,3 +1,8 @@
+import {
+  computeSenegalMarketFestivals,
+  getComputedFestivalDateList,
+} from './islamicCalendarEngine.js';
+
 const arr = (v) => (Array.isArray(v) ? v : []);
 
 export const FESTIVAL_DEFINITIONS = [
@@ -35,21 +40,7 @@ export function daysBetween(a, b) {
   return Math.ceil((dateOnly(b).getTime() - dateOnly(a).getTime()) / 86400000);
 }
 
-function makeDate(year, month, day) {
-  return new Date(year, month - 1, day);
-}
-
-/** Dates indicatives — remplacées par pilotage local ou market_calendar_events. */
-export function defaultFestivalDatesForYear(year) {
-  return {
-    tabaski: iso(makeDate(year, 6, 6)),
-    korite: iso(makeDate(year, 3, 20)),
-    magal: iso(makeDate(year, 9, 14)),
-    gamou: iso(makeDate(year, 10, 5)),
-    fin_annee: iso(makeDate(year, 12, 24)),
-    ramadan: iso(makeDate(year, 2, 17)),
-  };
-}
+const definitionByKey = Object.fromEntries(FESTIVAL_DEFINITIONS.map((row) => [row.key, row]));
 
 function pilotageEventsFromSettings(dataMap = {}) {
   const fd = dataMap.growth_settings?.festival_dates || {};
@@ -61,35 +52,41 @@ function pilotageEventsFromSettings(dataMap = {}) {
       label: row.label,
       date: safeDate(fd[row.key]),
       activities: row.activities,
-      note: 'Date pilotage local.',
+      note: 'Date ajustée manuellement (pilotage).',
       source: 'pilotage',
       skipLaunch: row.skipLaunch,
     }))
     .filter((event) => !Number.isNaN(event.date.getTime()));
 }
 
-function defaultEventsForYear(year, pilotageLabels = new Set()) {
-  const dates = defaultFestivalDatesForYear(year);
-  return FESTIVAL_DEFINITIONS
-    .filter((row) => !pilotageLabels.has(norm(row.label)))
-    .map((row) => ({
-      id: `${row.key}-${year}`,
-      key: row.key,
-      label: row.label,
-      date: safeDate(dates[row.key]),
-      activities: row.activities,
-      note: 'Date indicative — renseigner le pilotage local.',
-      source: 'default',
-      skipLaunch: row.skipLaunch,
-    }));
+function computedEventsFromEngine(referenceDate = new Date(), overriddenKeys = new Set()) {
+  const ref = safeDate(referenceDate);
+  const horizonDays = 540;
+
+  return getComputedFestivalDateList(ref, horizonDays)
+    .filter((event) => !overriddenKeys.has(event.key))
+    .map((event) => {
+      const def = definitionByKey[event.key] || {};
+      return {
+        id: `computed-${event.key}-${event.dateIso}`,
+        key: event.key,
+        label: def.label || event.label,
+        date: event.date,
+        activities: def.activities || [],
+        note: 'Date calculée automatiquement (calendrier hijri).',
+        source: 'computed',
+        skipLaunch: def.skipLaunch,
+      };
+    });
 }
 
 export function buildAllMarketEvents(referenceDate = new Date(), dataMap = {}) {
   const ref = safeDate(referenceDate);
+
   const customEvents = arr(dataMap.market_calendar_events || dataMap.marketCalendarEvents)
     .map((event) => ({
       id: event.id || event.code || event.nom,
-      key: event.code || norm(event.label || event.nom || event.title),
+      key: event.code || matchFestivalKey(event.label || event.nom || event.title) || norm(event.label || event.nom || event.title),
       label: event.label || event.nom || event.title,
       date: safeDate(event.date || event.target_date || event.date_cible),
       activities: arr(event.activities || event.activites || event.focus),
@@ -100,11 +97,21 @@ export function buildAllMarketEvents(referenceDate = new Date(), dataMap = {}) {
     .filter((event) => event.label && !Number.isNaN(event.date.getTime()));
 
   const pilotageEvents = pilotageEventsFromSettings(dataMap);
-  const pilotageLabels = new Set(pilotageEvents.map((event) => norm(event.label)));
-  const defaults = [ref.getFullYear(), ref.getFullYear() + 1]
-    .flatMap((year) => defaultEventsForYear(year, pilotageLabels));
+  const overriddenKeys = new Set([
+    ...customEvents.map((event) => event.key).filter(Boolean),
+    ...pilotageEvents.map((event) => event.key).filter(Boolean),
+  ]);
 
-  return [...customEvents, ...pilotageEvents, ...defaults]
+  const computedEvents = computedEventsFromEngine(ref, overriddenKeys);
+
+  const seen = new Set();
+  return [...customEvents, ...pilotageEvents, ...computedEvents]
+    .filter((event) => {
+      const token = `${event.key}:${iso(event.date)}`;
+      if (seen.has(token)) return false;
+      seen.add(token);
+      return true;
+    })
     .sort((a, b) => a.date - b.date);
 }
 
@@ -164,4 +171,33 @@ export function contextualizeSeasonalText(text = '', upcomingEvents = [], refDat
 export function matchFestivalKey(label = '') {
   const text = norm(label);
   return FESTIVAL_DEFINITIONS.find((fest) => text.includes(norm(fest.label)))?.key || null;
+}
+
+/** Dates calculées pour affichage UI (sans surcharge pilotage). */
+export function getAutoFestivalSchedule(referenceDate = new Date(), dataMap = {}) {
+  const ref = safeDate(referenceDate);
+  const pilotageKeys = new Set(
+    FESTIVAL_DEFINITIONS
+      .filter((row) => dataMap.growth_settings?.festival_dates?.[row.key])
+      .map((row) => row.key),
+  );
+
+  const computed = computeSenegalMarketFestivals(ref);
+  const upcoming = getUpcomingMarketEvents(ref, dataMap, { horizonDays: 400 });
+
+  return FESTIVAL_DEFINITIONS.map((fest) => {
+    const override = dataMap.growth_settings?.festival_dates?.[fest.key];
+    const nextAuto = upcoming.find((event) => event.key === fest.key && event.source === 'computed')
+      || computed.find((event) => event.key === fest.key && event.date >= dateOnly(ref));
+    const nextAny = upcoming.find((event) => event.key === fest.key);
+
+    return {
+      key: fest.key,
+      label: fest.label,
+      autoDate: nextAuto?.date ? iso(nextAuto.date) : (computed.find((e) => e.key === fest.key)?.dateIso || ''),
+      activeDate: nextAny ? iso(nextAny.date) : '',
+      overridden: Boolean(override),
+      overrideDate: override || '',
+    };
+  });
 }

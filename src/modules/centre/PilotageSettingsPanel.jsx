@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Settings2 } from 'lucide-react';
+import { CalendarDays, Settings2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Btn from '../../components/Btn';
+import { formatFestivalDateFr } from '../../services/islamicCalendarEngine.js';
+import { getAutoFestivalSchedule } from '../../services/marketEventCalendar.js';
 import {
   DEFAULT_PILOTAGE_SETTINGS,
   loadPilotageSettings,
@@ -14,17 +16,23 @@ const FESTIVAL_FIELDS = [
   { key: 'korite', label: 'Korité' },
   { key: 'magal', label: 'Magal' },
   { key: 'gamou', label: 'Gamou' },
-  { key: 'fin_annee', label: 'Fin d\'année' },
+  { key: 'fin_annee', label: "Fin d'année" },
   { key: 'ramadan', label: 'Ramadan' },
 ];
 
 export default function PilotageSettingsPanel({ clients = [], onChange }) {
   const [open, setOpen] = useState(false);
+  const [showOverrides, setShowOverrides] = useState(false);
   const [draft, setDraft] = useState(() => loadPilotageSettings());
 
   useEffect(() => {
     setDraft(loadPilotageSettings());
   }, [open]);
+
+  const autoSchedule = useMemo(
+    () => getAutoFestivalSchedule(new Date(), { growth_settings: draft }),
+    [draft, open],
+  );
 
   const vipOptions = useMemo(
     () => (clients || []).map((c) => ({
@@ -39,6 +47,13 @@ export default function PilotageSettingsPanel({ clients = [], onChange }) {
     ...prev,
     festival_dates: { ...prev.festival_dates, [key]: value },
   }));
+
+  const clearFestivalOverride = (key) => {
+    setDraft((prev) => ({
+      ...prev,
+      festival_dates: { ...prev.festival_dates, [key]: '' },
+    }));
+  };
 
   const toggleVip = (clientId) => {
     setDraft((prev) => {
@@ -59,7 +74,14 @@ export default function PilotageSettingsPanel({ clients = [], onChange }) {
 
   const reset = () => {
     setDraft({ ...DEFAULT_PILOTAGE_SETTINGS });
+    setShowOverrides(false);
   };
+
+  const nextFestivalsLine = autoSchedule
+    .filter((row) => row.autoDate)
+    .slice(0, 4)
+    .map((row) => `${row.label} ${formatFestivalDateFr(row.autoDate)}`)
+    .join(' · ');
 
   return (
     <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
@@ -68,9 +90,10 @@ export default function PilotageSettingsPanel({ clients = [], onChange }) {
           <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2">
             <Settings2 size={14} /> Paramètres pilotage
           </p>
-          <h3 className="text-lg font-black text-[#2f2415] mt-1">Dates fêtes, seuils et clients VIP</h3>
+          <h3 className="text-lg font-black text-[#2f2415] mt-1">Seuils, clients VIP et calendrier marché</h3>
           <p className="text-sm text-[#8a7456] mt-1">
-            Ces réglages alimentent les moteurs QUAND VENDRE / QUAND LANCER et le calcul BFR. Stockés localement sur cet appareil.
+            Le moteur calcule automatiquement Tabaski, Korité, Magal, Gamou et Ramadan (calendrier hijri).
+            Vous n&apos;avez rien à saisir — ajustez une date seulement si l&apos;annonce officielle diffère.
           </p>
         </div>
         <Btn variant="outline" onClick={() => setOpen((v) => !v)}>
@@ -78,22 +101,75 @@ export default function PilotageSettingsPanel({ clients = [], onChange }) {
         </Btn>
       </div>
 
+      {!open && nextFestivalsLine ? (
+        <p className="mt-3 text-xs text-[#8a7456] flex items-start gap-2">
+          <CalendarDays size={14} className="mt-0.5 shrink-0 text-emerald-700" />
+          <span><b className="text-[#2f2415]">Prochaines fêtes calculées :</b> {nextFestivalsLine}</span>
+        </p>
+      ) : null}
+
       {open ? (
         <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <fieldset className="space-y-3 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-            <legend className="px-2 text-sm font-black text-[#2f2415]">Dates pivot marché</legend>
-            {FESTIVAL_FIELDS.map(({ key, label }) => (
-              <label key={key} className="block text-xs text-[#8a7456]">
-                {label}
-                <input
-                  type="date"
-                  value={draft.festival_dates?.[key] || ''}
-                  onChange={(e) => updateFestival(key, e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-[#d6c3a0] px-3 py-2 text-sm text-[#2f2415]"
-                />
-              </label>
-            ))}
+          <fieldset className="space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 lg:col-span-2">
+            <legend className="px-2 text-sm font-black text-emerald-900 flex items-center gap-2">
+              <CalendarDays size={15} /> Dates pivot marché — calculées automatiquement
+            </legend>
+            <p className="text-xs text-emerald-800">
+              Ces dates alimentent Cycles (QUAND LANCER), Risques (QUAND VENDRE) et le calendrier commercial.
+            </p>
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+              {autoSchedule.map((row) => (
+                <div key={row.key} className="rounded-xl border border-emerald-200 bg-white px-3 py-2">
+                  <p className="text-xs font-black text-[#2f2415]">{row.label}</p>
+                  <p className="text-sm text-emerald-800 mt-0.5">
+                    {formatFestivalDateFr(row.overridden ? row.overrideDate : row.autoDate)}
+                  </p>
+                  {row.overridden ? (
+                    <p className="text-[10px] text-amber-700 mt-1">Ajustement manuel actif</p>
+                  ) : (
+                    <p className="text-[10px] text-[#8a7456] mt-1">Calendrier hijri</p>
+                  )}
+                </div>
+              ))}
+            </div>
+            <Btn variant="outline" small onClick={() => setShowOverrides((v) => !v)}>
+              {showOverrides ? 'Masquer les ajustements manuels' : 'Ajuster une date manuellement (optionnel)'}
+            </Btn>
           </fieldset>
+
+          {showOverrides ? (
+            <fieldset className="space-y-3 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 lg:col-span-2">
+              <legend className="px-2 text-sm font-black text-[#2f2415]">Ajustements manuels (optionnel)</legend>
+              <p className="text-xs text-[#8a7456]">
+                Laissez vide pour conserver le calcul automatique. Renseignez une date seulement si l&apos;annonce officielle locale diffère.
+              </p>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {FESTIVAL_FIELDS.map(({ key, label }) => (
+                  <div key={key} className="rounded-xl border border-[#eadcc2] bg-white p-3">
+                    <label className="block text-xs font-black text-[#2f2415]">{label}</label>
+                    <p className="text-[10px] text-[#8a7456] mt-0.5">
+                      Auto : {formatFestivalDateFr(autoSchedule.find((row) => row.key === key)?.autoDate)}
+                    </p>
+                    <input
+                      type="date"
+                      value={draft.festival_dates?.[key] || ''}
+                      onChange={(e) => updateFestival(key, e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-[#d6c3a0] px-3 py-2 text-sm text-[#2f2415]"
+                    />
+                    {draft.festival_dates?.[key] ? (
+                      <button
+                        type="button"
+                        onClick={() => clearFestivalOverride(key)}
+                        className="mt-2 text-[11px] font-black text-emerald-700"
+                      >
+                        Revenir au calcul auto
+                      </button>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </fieldset>
+          ) : null}
 
           <fieldset className="space-y-3 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
             <legend className="px-2 text-sm font-black text-[#2f2415]">Seuils opérationnels</legend>
@@ -118,10 +194,10 @@ export default function PilotageSettingsPanel({ clients = [], onChange }) {
             ))}
           </fieldset>
 
-          <fieldset className="space-y-2 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 lg:col-span-2">
+          <fieldset className="space-y-2 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
             <legend className="px-2 text-sm font-black text-[#2f2415]">Clients VIP (créances comptées dans le BFR)</legend>
             {vipOptions.length ? (
-              <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto">
                 {vipOptions.slice(0, 24).map((client) => {
                   const checked = (draft.vip_client_ids || []).includes(client.id);
                   return (
