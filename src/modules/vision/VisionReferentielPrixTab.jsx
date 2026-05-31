@@ -1,5 +1,4 @@
 import { BookMarked, TrendingUp } from 'lucide-react';
-import SmartEvolutionChart from '../../components/charts/SmartEvolutionChart.jsx';
 import { fmtCurrency, fmtNumber, fmtPercent } from '../../utils/format';
 import { buildAdvancedDecisionData } from './decisionAdvancedMetrics.js';
 import { buildDecisionCenterData } from './decisionCenterMetrics.js';
