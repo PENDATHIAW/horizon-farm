@@ -9,7 +9,7 @@ export const VISION_MODULE_TABS = {
   elevage: 'Résumé',
   documents_rapports: 'Preuves',
   objectifs_croissance: 'Performance',
-  centre_ia: 'À traiter',
+  centre_ia: 'Rentabilité lots',
 };
 
 export function navigateVision(onNavigate, module = '', tab = null) {
@@ -48,10 +48,6 @@ export function navigateVisionPriority(onNavigate, item = {}) {
   const module = item.navModule || item.sourceModule;
   if (item.tab && ['Performance', 'Prévisions', 'Plans', 'Financeurs'].includes(item.tab)) {
     navigateVision(onNavigate, 'objectifs_croissance', item.tab);
-    return;
-  }
-  if (item.tab && ['À traiter', 'Risques', 'Opportunités', 'Cycles'].includes(item.tab)) {
-    navigateVision(onNavigate, 'centre_ia', item.tab);
     return;
   }
   if (module) navigateVision(onNavigate, module, item.navTab || VISION_MODULE_TABS[module]);
