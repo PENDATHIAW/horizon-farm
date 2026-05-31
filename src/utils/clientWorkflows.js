@@ -88,6 +88,25 @@ export function normalizeClientFromSales(client = {}, salesOrders = [], payments
   };
 }
 
+/** Rétablit la liste clients si le CRUD est vide (seed effacé / localStorage corrompu). */
+export function resolveCommercialClients(clients = [], salesOrders = []) {
+  if (arr(clients).length) return arr(clients);
+  const byId = new Map();
+  arr(salesOrders).forEach((order) => {
+    const clientId = clean(order.client_id || order.customer_id);
+    if (!clientId || byId.has(clientId)) return;
+    const name = order.client_nom || order.customer_name || order.client_label || clientId;
+    byId.set(clientId, {
+      id: clientId,
+      nom: name,
+      name,
+      statut: 'actif',
+      status: 'actif',
+    });
+  });
+  return [...byId.values()];
+}
+
 export function canDeleteClient(client = {}, salesOrders = []) {
   return !arr(salesOrders).some((sale) => saleBelongsToClient(sale, client));
 }

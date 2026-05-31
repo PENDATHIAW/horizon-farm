@@ -4,7 +4,7 @@ import { normalizeByModule, normalizePayloadBeforeSave } from '../utils/normaliz
 import { safeLocalStorageSetJson } from '../utils/safeLocalStorage';
 import { isSimulatedDataModeEnabled } from '../utils/uiPreferences';
 
-const SIMULATION_SEED_VERSION = 'horizon-farm-bp-financeur-m7-v4';
+const SIMULATION_SEED_VERSION = 'horizon-farm-bp-financeur-m8-v5';
 const SIMULATION_VERSION_KEY = 'horizon_simulated_seed_version';
 
 const clonedModuleSeedMap = JSON.parse(JSON.stringify(moduleSeedMap || {}));

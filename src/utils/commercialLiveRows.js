@@ -1,4 +1,4 @@
-import { rowsOf } from './moduleRows.js';
+import { allRows, rowsOf } from './moduleRows.js';
 import { filterRowsByPeriodScope, isAllTimeScope, normalizePeriodScope } from './periodScope.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
@@ -26,7 +26,7 @@ export function resolveCommercialDataset({
   const paymentsLive = crudFirstRows(props.paymentsAll || props.payments, paymentsCrud, false);
   const deliveriesLive = crudFirstRows(props.deliveries, deliveriesCrud, false);
   const invoicesLive = crudFirstRows(props.invoices, invoicesCrud, false);
-  const clientsLive = crudFirstRows(props.clients, clientsCrud, false);
+  const clientsLive = allRows(props.clients, clientsCrud);
   const opportunitiesLive = crudFirstRows(props.opportunities, opportunitiesCrud, false);
   const applyPeriod = periodFiltered && !isAllTimeScope(scope);
 
@@ -37,7 +37,7 @@ export function resolveCommercialDataset({
     invoicesAll: invoicesLive,
     orders: applyPeriod ? filterRowsByPeriodScope(ordersLive, scope) : ordersLive,
     payments: applyPeriod ? filterRowsByPeriodScope(paymentsLive, scope) : paymentsLive,
-    clients: applyPeriod ? filterRowsByPeriodScope(clientsLive, scope) : clientsLive,
+    clients: clientsLive,
     opportunities: applyPeriod ? filterRowsByPeriodScope(opportunitiesLive, scope) : opportunitiesLive,
   };
 }

@@ -4,6 +4,7 @@ import { paidForOrder, remainingForOrder } from '../../utils/salesStatuses.js';
 import { summarizeSalesMargins } from '../../utils/salesMarginEngine.js';
 import { filterRowsByPeriodScope, isAllTimeScope, normalizePeriodScope, resolvePeriodContext } from '../../utils/periodScope.js';
 import {
+  activityMonthChartLabel,
   activityStartSourceLabel,
   buildActivityYearInputFromDataMap,
   planMonthIndexForKey,

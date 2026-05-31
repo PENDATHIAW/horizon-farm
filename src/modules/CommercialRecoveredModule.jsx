@@ -21,6 +21,7 @@ import {
   uniqueTodoCount,
 } from './commercial/commercialMetrics.js';
 import { resolveCommercialDataset } from '../utils/commercialLiveRows.js';
+import { resolveCommercialClients } from '../utils/clientWorkflows.js';
 import { rowsOf, allRows } from '../utils/moduleRows';
 import { CommercialKpi, CommercialModuleHeader, CommercialQuickActions, CommercialTodoRow, CommercialTopClients } from './commercial/CommercialShell.jsx';
 import CommercialOpportunitiesPanel from './commercial/CommercialOpportunitiesPanel.jsx';
@@ -160,7 +161,12 @@ export default function CommercialRecoveredModule(props) {
     invoicesCrud.rows,
   ]);
 
-  const { orders, ordersAll, payments, paymentsAll, deliveriesAll, invoicesAll, clients, opportunities } = live;
+  const { orders, ordersAll, payments, paymentsAll, deliveriesAll, invoicesAll, clients: clientsRaw, opportunities } = live;
+
+  const clients = useMemo(
+    () => resolveCommercialClients(clientsRaw, ordersAll),
+    [clientsRaw, ordersAll],
+  );
 
   const data = useMemo(() => {
     const enrichOpts = { deliveries: deliveriesAll, invoices: invoicesAll };

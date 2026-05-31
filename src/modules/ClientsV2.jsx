@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import CommercialClientsHero from './commercial/CommercialClientsHero.jsx';
-import { receivableFromOrders } from './commercial/commercialMetrics.js';
+import { clientsWithReceivableCount, receivableFromOrders } from './commercial/commercialMetrics.js';
 import Clients from './Clients.jsx';
 import TradeDocumentsHealth from './TradeDocumentsHealth.jsx';
 import ClientSalesHealthPanel from './ClientSalesHealthPanel.jsx';
@@ -14,7 +14,11 @@ export default function ClientsV2(props) {
   const [debtFilter, setDebtFilter] = useState(false);
 
   const receivable = useMemo(() => receivableFromOrders(salesOrders, payments), [salesOrders, payments]);
-  const debtCount = useMemo(() => rows.filter((client) => (client.reste_a_payer || client.creance_reelle || 0) > 0).length, [rows]);
+  const debtCount = useMemo(() => {
+    const fromRows = rows.filter((client) => (client.reste_a_payer || client.creance_reelle || 0) > 0).length;
+    if (fromRows > 0) return fromRows;
+    return clientsWithReceivableCount(salesOrders, payments);
+  }, [rows, salesOrders, payments]);
 
   const guardedUpdate = async (id, payload = {}) => {
     const current = rows.find((client) => String(client.id) === String(id));

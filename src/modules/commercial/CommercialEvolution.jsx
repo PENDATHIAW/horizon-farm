@@ -124,7 +124,7 @@ export default function CommercialEvolution(props) {
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <AttainmentKpi label="Mois en cours" {...data.kpis.month} />
           <AttainmentKpi label="Période ERP" {...data.kpis.period} />
-          <AttainmentKpi label="Année 1" hint={data.activityYear.year1Label.replace(/^Année 1\s*/, '')} {...data.kpis.annual} />
+          <AttainmentKpi label="Année 1" hint={(data.activityYear?.year1Label || '').replace(/^Année 1\s*/, '')} {...data.kpis.annual} />
         </div>
         <ChartsGrid>
           <SmartEvolutionChart
