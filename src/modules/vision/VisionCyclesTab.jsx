@@ -76,6 +76,24 @@ export default function VisionCyclesTab({
         </Section>
       ) : null}
 
+      {strategicPlan.transformation ? (
+        <Section icon={CalendarRange} title="5. Arbitrage transformation — œuf ou poussin ?">
+          <p className="text-xs text-[#8a7456] mb-3">
+            Compare la marge nette tablette d&apos;œufs vs poussin d&apos;un jour (électricité incubateur incluse).
+          </p>
+          <StrategicDecisionCard
+            item={{ ...strategicPlan.transformation, title: 'Incubation vs vente directe', category: 'transformation', module: 'elevage', navTab: 'Transformation' }}
+            onNavigate={onNavigate}
+            onCreateTask={onCreateTask}
+            onCreateAlert={onCreateAlert}
+            onRefreshTasks={onRefreshTasks}
+            onRefreshAlertes={onRefreshAlertes}
+            existingTasks={existingTasks}
+            existingAlerts={existingAlerts}
+          />
+        </Section>
+      ) : null}
+
       <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
         <summary className="cursor-pointer font-black text-[#2f2415] text-sm">Calendrier détaillé des lots (J+40 chair, J+90 bovins…)</summary>
         <div className="mt-4">
