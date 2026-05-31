@@ -75,7 +75,7 @@ export function VisionKpi({ label, value, tone = 'neutral', detail, onClick }) {
   );
 }
 
-export function DataRow({ title, subtitle, detail, status, tone = 'neutral', onClick, actions, columns = 4 }) {
+export function DataRow({ title, subtitle, detail, status, statusHint, tone = 'neutral', onClick, actions, columns = 4 }) {
   const gridCls = columns === 3 ? TABLE_GRID_3 : TABLE_GRID_4;
   return (
     <div className={`grid grid-cols-1 gap-2 border-b border-[#eadcc2]/70 px-4 py-3 last:border-b-0 ${gridCls} md:items-center`}>
@@ -83,9 +83,12 @@ export function DataRow({ title, subtitle, detail, status, tone = 'neutral', onC
         <span className="block">{title}</span>
         {subtitle ? <span className="mt-0.5 block text-xs font-semibold text-[#8a7456]">{subtitle}</span> : null}
       </button>
-      <span className="text-sm text-[#8a7456]">{detail}</span>
+      <span className="text-sm text-[#8a7456] leading-snug">{detail}</span>
       {columns === 4 ? (
-        <div className="flex items-center">{status ? <Pill tone={tone}>{status}</Pill> : <span className="text-xs text-[#8a7456]">—</span>}</div>
+        <div className="flex flex-col items-start gap-1">
+          {status ? <Pill tone={tone}>{status}</Pill> : <span className="text-xs text-[#8a7456]">—</span>}
+          {statusHint ? <span className="text-[10px] font-bold uppercase tracking-wide text-[#9a6b12]">{statusHint}</span> : null}
+        </div>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">{actions || (columns === 3 && status ? <Pill tone={tone}>{status}</Pill> : null)}</div>
     </div>

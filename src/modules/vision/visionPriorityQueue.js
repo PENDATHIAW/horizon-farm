@@ -1,5 +1,7 @@
 const MAINTENANCE_CATEGORIES = new Set(['audit_erp', 'surveillance_ux']);
 
+const CENTRE_TABS = new Set(['À traiter', 'Recommandations', 'Cycles', 'Risques', 'Historique']);
+
 const MODULE_LABELS = {
   centre_decisionnel: 'Centre décisionnel',
   activite_suivi: 'Activité & Suivi',
@@ -46,16 +48,75 @@ function isMaintenanceItem(item = {}) {
   return MAINTENANCE_CATEGORIES.has(cat);
 }
 
+function itemText(item = {}) {
+  return `${item.title || ''} ${item.detail || ''} ${item.finding?.recommended_action || ''} ${item.finding?.description || ''}`.toLowerCase();
+}
+
 function inferTab(item = {}) {
-  if (item.tab) return item.tab;
-  const text = `${item.title || ''} ${item.detail || ''}`.toLowerCase();
-  if (text.includes('lancement') || text.includes('vide sanitaire') || text.includes('tabaski') || text.includes('korite')) {
+  if (item.tab && CENTRE_TABS.has(item.tab)) return item.tab;
+
+  const text = itemText(item);
+
+  if (
+    text.includes('lancement')
+    || text.includes('vide sanitaire')
+    || text.includes('tabaski')
+    || text.includes('korite')
+    || text.includes('bande')
+    || text.includes(' ith')
+    || text.includes('ith ')
+  ) {
     return 'Cycles';
   }
-  if (text.includes('vendre') || text.includes('vente') || text.includes('trésorerie') || text.includes('tresorerie')) {
+
+  if (
+    text.includes('demande')
+    || text.includes('couverture')
+    || text.includes('écart ca')
+    || text.includes('ecart ca')
+    || text.includes('marge commerciale')
+    || text.includes('investissement')
+    || text.includes('business plan')
+  ) {
+    return 'Recommandations';
+  }
+
+  if (
+    text.includes('vendre')
+    || text.includes('surconsommation')
+    || text.includes('mortalité')
+    || text.includes('mortalite')
+    || item.kind === 'finance'
+    || text.includes('trésorerie')
+    || text.includes('tresorerie')
+    || text.includes('encaissement')
+  ) {
     return 'Risques';
   }
-  return item.navTab ? null : 'Risques';
+
+  if (item.kind === 'alerte' || item.kind === 'tache' || item.kind === 'preuve') return null;
+
+  return null;
+}
+
+function buildWhatToDo(item = {}) {
+  const action = item.finding?.recommended_action || item.record?.action_recommandee;
+  if (action && String(action).trim().length > 12) return String(action).trim();
+
+  switch (item.kind) {
+    case 'alerte':
+      return action || item.record?.message || 'Ouvrir l\'alerte, traiter ou transformer en tâche.';
+    case 'tache':
+      return item.record?.notes || item.record?.description || 'Exécuter ou clôturer la tâche urgente.';
+    case 'finance':
+      return 'Sécuriser la trésorerie : accélérer encaissements et contrôler les charges.';
+    case 'preuve':
+      return 'Rattacher les justificatifs manquants aux opérations.';
+    case 'ia':
+      return action || item.detail || 'Appliquer la recommandation IA ou ouvrir la source.';
+    default:
+      return item.detail || 'Consulter la source et décider.';
+  }
 }
 
 /** Une seule file sans doublon : alertes terrain d'abord, puis signaux IA complémentaires. */
@@ -71,14 +132,17 @@ export function buildActionQueue(items = []) {
     if (!key || seen.has(key)) return;
     seen.add(key);
 
+    const detail = raw.detail && raw.detail !== 'Alerte ouverte' && raw.detail !== 'Tâche prioritaire'
+      ? raw.detail
+      : (raw.finding?.recommended_action || raw.record?.action_recommandee || raw.record?.message || raw.detail || '—');
+
     const item = {
       ...raw,
       sourceLabel: raw.sourceLabel || moduleLabel(raw.sourceModule),
       priorityLabel: raw.priorityLabel || raw.value || 'À traiter',
-      detail: raw.detail && raw.detail !== 'Alerte ouverte' && raw.detail !== 'Tâche prioritaire'
-        ? raw.detail
-        : (raw.finding?.recommended_action || raw.record?.action_recommandee || raw.record?.message || raw.detail || '—'),
-      targetTab: inferTab(raw),
+      detail,
+      whatToDo: buildWhatToDo({ ...raw, detail }),
+      targetTab: inferTab({ ...raw, detail }),
     };
 
     if (isMaintenanceItem(item)) maintenance.push(item);
@@ -105,7 +169,6 @@ export function enrichOperationalPriorities(openAlerts = [], openTasks = [], ext
       priorityLabel: sev.includes('critique') ? 'Critique' : 'Alerte',
       tone: sev.includes('critique') ? 'bad' : 'warn',
       severity: sev.includes('critique') ? 'critique' : 'warning',
-      tab: 'Risques',
       kind: 'alerte',
       sourceModule: r.module_source || 'activite_suivi',
       sourceLabel: moduleLabel(r.module_source),
@@ -121,7 +184,6 @@ export function enrichOperationalPriorities(openAlerts = [], openTasks = [], ext
     value: 'Tâche',
     priorityLabel: String(r.priority || r.priorite || '').toLowerCase().includes('critique') ? 'Critique' : 'Tâche',
     tone: String(r.priority || r.priorite || '').toLowerCase().includes('critique') ? 'bad' : 'warn',
-    tab: 'Risques',
     kind: 'tache',
     sourceModule: r.module_lie || 'activite_suivi',
     sourceLabel: moduleLabel(r.module_lie),
@@ -139,7 +201,6 @@ export function enrichOperationalPriorities(openAlerts = [], openTasks = [], ext
       priorityLabel: f.severity === 'critique' || f.severity === 'haute' ? 'Analyse IA' : 'Conseil IA',
       tone: f.severity === 'critique' || f.severity === 'haute' ? 'bad' : 'warn',
       severity: f.severity,
-      tab: 'À traiter',
       kind: 'ia',
       sourceModule: f.module || 'centre_decisionnel',
       sourceLabel: moduleLabel(f.module),
