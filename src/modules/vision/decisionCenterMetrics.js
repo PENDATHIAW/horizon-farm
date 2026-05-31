@@ -175,13 +175,17 @@ function buildEfficacite({ lots, animaux, alimentationLogs, productionLogs }) {
     const weight = avgWeight(lot) * Math.max(1, avicoleActiveCount(lot));
     const ic = safeDiv(feedKg, weight);
     if (ic > BROILER_IC_TARGET.max || (ic > 0 && ic < BROILER_IC_TARGET.min * 0.8)) {
+      const icHigh = ic > BROILER_IC_TARGET.max;
       icAlerts.push({
         id: lot.id,
         label: lotLabel(lot),
         ic,
         target: `${BROILER_IC_TARGET.min}–${BROILER_IC_TARGET.max}`,
-        tone: ic > BROILER_IC_TARGET.max ? 'bad' : 'warn',
-        detail: ic > BROILER_IC_TARGET.max ? 'IC élevé — gaspillage aliment ou problème sanitaire probable.' : 'IC anormalement bas — vérifier les pesées.',
+        tone: icHigh ? 'bad' : 'warn',
+        detail: icHigh ? 'IC élevé — gaspillage aliment ou problème sanitaire probable.' : 'IC anormalement bas — vérifier les pesées.',
+        recommendedAction: icHigh ? 'Contrôler ration & santé' : 'Vérifier pesées du lot',
+        actionModule: 'elevage',
+        actionTab: 'Avicole',
       });
     }
   });
@@ -196,6 +200,7 @@ function buildEfficacite({ lots, animaux, alimentationLogs, productionLogs }) {
     const theoretical = theoreticalLayingRate(lot, ageWeeks);
     const deviation = realRate - theoretical;
     if (birds > 0 && Math.abs(deviation) > 8) {
+      const layingLow = deviation < 0;
       layingAlerts.push({
         id: lot.id,
         label: lotLabel(lot),
@@ -204,7 +209,10 @@ function buildEfficacite({ lots, animaux, alimentationLogs, productionLogs }) {
         deviation,
         ageWeeks,
         tone: deviation < -8 ? 'bad' : 'warn',
-        detail: deviation < 0 ? 'Ponte sous le standard souche — stress, maladie ou ration à contrôler.' : 'Ponte au-dessus du standard — vérifier comptage.',
+        detail: layingLow ? 'Ponte sous le standard souche — stress, maladie ou ration à contrôler.' : 'Ponte au-dessus du standard — vérifier comptage.',
+        recommendedAction: layingLow ? 'Contrôler ration & éclairage' : 'Vérifier comptage œufs',
+        actionModule: 'elevage',
+        actionTab: 'Production',
       });
     }
   });
@@ -227,6 +235,9 @@ function buildEfficacite({ lots, animaux, alimentationLogs, productionLogs }) {
         detail: optimal
           ? 'Le coût journalier dépasse le gain de valeur — vente recommandée.'
           : cost.gmq < 350 ? 'GMQ faible — ration ou santé à vérifier.' : 'Croissance conforme.',
+        recommendedAction: optimal ? 'Planifier la vente' : cost.gmq < 350 ? 'Vérifier ration & santé' : null,
+        actionModule: 'elevage',
+        actionTab: 'Animaux',
       });
     }
   });

@@ -14,6 +14,7 @@ import { generateSequentialId } from '../utils/ids';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { isActiveAnimalForFeeding } from '../utils/alimentation';
+import DetailSheetTabs from '../components/DetailSheetTabs.jsx';
 import AnimalHealthBridge from './AnimalHealthBridge.jsx';
 
 const arr = (v) => Array.isArray(v) ? v : [];

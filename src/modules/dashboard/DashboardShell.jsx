@@ -101,7 +101,7 @@ export function DashboardModuleHeader({
             ) : null}
             <button
               type="button"
-              onClick={() => onNavigate?.('centre_ia', { tab: 'À traiter' })}
+              onClick={() => onNavigate?.('centre_ia', { tab: 'Efficacité' })}
               className="inline-flex items-center gap-1 rounded-full border border-[#d6c3a0] bg-[#dcfce7] px-3 py-1.5 text-xs font-black text-[#14532d]"
             >
               <Target size={13} />
@@ -385,7 +385,7 @@ export function DashboardHealthStrip({ health = {}, onOpenFinding, onNavigate })
           <BrainCircuit size={16} className="text-[#9a6b12]" />
           <h2 className="text-sm font-black text-[#2f2415]">Pilotage IA (détail)</h2>
         </div>
-        <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'À traiter' })} className="text-xs font-black text-[#9a6b12]">
+        <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'Efficacité' })} className="text-xs font-black text-[#9a6b12]">
           Vision →
         </button>
       </div>

@@ -11,10 +11,10 @@ const PRESETS = {
     { label: 'Bande chair', questionId: 'new_chair_band', moduleId: 'elevage' },
   ],
   centre_ia: [
-    { label: 'À traiter', moduleId: 'centre_ia', tab: 'À traiter' },
-    { label: 'Risques', moduleId: 'centre_ia', tab: 'Risques' },
-    { label: 'Commercial', moduleId: 'commercial', tab: 'Opportunités' },
-    { label: 'Objectifs', moduleId: 'objectifs_croissance', tab: 'Performance' },
+    { label: 'Efficacité', moduleId: 'centre_ia', tab: 'Efficacité' },
+    { label: 'Rentabilité lots', moduleId: 'centre_ia', tab: 'Rentabilité lots' },
+    { label: 'Flux & stocks', moduleId: 'centre_ia', tab: 'Flux & stocks' },
+    { label: 'Référentiel prix', moduleId: 'centre_ia', tab: 'Référentiel prix' },
   ],
 };
 

@@ -2,7 +2,7 @@ import { Activity } from 'lucide-react';
 import { fmtCurrency, fmtNumber, fmtPercent } from '../../utils/format';
 import { buildDecisionCenterData, BROILER_IC_TARGET } from './decisionCenterMetrics.js';
 import { buildVetPathologyMatrix } from './decisionAdvancedMetrics.js';
-import { Btn, DataRow, DataTable, Empty, Section, TabIntro, VisionKpi } from './visionUtils';
+import { Btn, DataRow, DataTable, Empty, Section, TabIntro, VisionKpi, VISION_TABLE_COLS } from './visionUtils';
 
 export default function VisionEfficaciteTab({ lots, animaux, alimentationLogs, productionLogs, sante, veterinaires, onNavigate }) {
   const { efficacite, comparatifs } = buildDecisionCenterData({ lots, animaux, alimentationLogs, productionLogs, sante, veterinaires });
@@ -26,9 +26,25 @@ export default function VisionEfficaciteTab({ lots, animaux, alimentationLogs, p
 
       <Section icon={Activity} title="Indice de consommation (IC) — poulets de chair">
         <p className="mb-3 text-xs text-[#8a7456]">Formule : Total aliment (kg) ÷ Poids total vif (kg). Plus bas = plus rentable (idéal {BROILER_IC_TARGET.min}–{BROILER_IC_TARGET.max}).</p>
-        <DataTable columns={['Lot', 'IC · Cible', 'Diagnostic', 'Statut']}>
+        <DataTable columns={VISION_TABLE_COLS}>
           {efficacite.icAlerts.length ? efficacite.icAlerts.map((row) => (
-            <DataRow key={row.id} title={row.label} detail={row.detail} status={`IC ${row.ic.toFixed(2)} · cible ${row.target}`} tone={row.tone} onClick={() => onNavigate?.('elevage', { tab: 'Avicole' })} />
+            <DataRow
+              key={row.id}
+              title={row.label}
+              detail={row.detail}
+              status={`IC ${row.ic.toFixed(2)} · cible ${row.target}`}
+              tone={row.tone}
+              onClick={() => onNavigate?.('elevage', { tab: 'Avicole' })}
+              actions={row.recommendedAction ? (
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.(row.actionModule || 'elevage', { tab: row.actionTab || 'Avicole' })}
+                  className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black hover:bg-[#dcfce7]"
+                >
+                  {row.recommendedAction}
+                </button>
+              ) : null}
+            />
           )) : <Empty>Aucune anomalie IC détectée sur les lots chair actifs.</Empty>}
         </DataTable>
       </Section>
@@ -43,6 +59,15 @@ export default function VisionEfficaciteTab({ lots, animaux, alimentationLogs, p
               status={`${fmtPercent(row.realRate)} vs ${fmtPercent(row.theoretical)} · S${row.ageWeeks} · Δ ${row.deviation.toFixed(1)} pts`}
               tone={row.tone}
               onClick={() => onNavigate?.('elevage', { tab: 'Production' })}
+              actions={row.recommendedAction ? (
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.(row.actionModule || 'elevage', { tab: row.actionTab || 'Production' })}
+                  className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black hover:bg-[#dcfce7]"
+                >
+                  {row.recommendedAction}
+                </button>
+              ) : null}
             />
           )) : <Empty>Ponte conforme aux standards souche — ou ajoutez des journaux de production œufs.</Empty>}
         </DataTable>
@@ -93,6 +118,15 @@ export default function VisionEfficaciteTab({ lots, animaux, alimentationLogs, p
               status={`GMQ ${fmtNumber(row.gmq)} g · Alim ${fmtCurrency(row.dailyFeed)}/j · Gain ${fmtCurrency(row.dailyGainValue)}/j`}
               tone={row.tone}
               onClick={() => onNavigate?.('elevage', { tab: 'Animaux' })}
+              actions={row.recommendedAction ? (
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.(row.actionModule || 'elevage', { tab: row.actionTab || 'Animaux' })}
+                  className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black hover:bg-[#dcfce7]"
+                >
+                  {row.recommendedAction}
+                </button>
+              ) : null}
             />
           )) : <Empty>Ajoutez pesées et rations pour calculer le point de vente optimal par tête.</Empty>}
         </DataTable>
