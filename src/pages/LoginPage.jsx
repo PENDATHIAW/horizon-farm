@@ -4,7 +4,7 @@ import {
   Bell,
   Eye,
   EyeOff,
-  Layers,
+  LayoutGrid,
   Leaf,
   Lock,
   LogIn,
@@ -21,7 +21,7 @@ const FEATURES = [
   { icon: Leaf, title: 'Vision claire', detail: 'Toutes vos données au même endroit.' },
   { icon: Bell, title: 'Maîtrise des risques', detail: 'Alertes et décisions au bon moment.' },
   { icon: TrendingUp, title: 'Croissance durable', detail: 'Développez votre ferme sereinement.' },
-  { icon: Layers, title: 'Toutes vos filières', detail: 'Maraîchage, avicole, bovins, caprins, ovins…' },
+  { icon: LayoutGrid, title: 'Pilotage unifié', detail: 'Une seule plateforme pour toute l\'exploitation.' },
 ];
 
 const textShadow = '0 1px 14px rgba(255,248,239,0.92), 0 0 2px rgba(255,248,239,0.65)';
@@ -73,19 +73,21 @@ export default function LoginPage() {
         className="pointer-events-none absolute inset-0 bg-cover bg-no-repeat"
         style={{
           backgroundImage: `url(${farmBg})`,
-          backgroundPosition: 'center center',
+          backgroundPosition: '52% 44%',
         }}
         aria-hidden
       />
-      {/* Léger assombrissement bas pour le footer ; pas de voile blanc sur la photo */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#063321]/72 via-transparent to-transparent" aria-hidden />
 
-      <div className="pointer-events-none absolute right-4 top-4 z-20 sm:right-8 sm:top-5 lg:right-10 lg:top-6">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-end px-4 pt-3 sm:px-8 sm:pt-4 lg:px-10 lg:pt-5">
         <img
           src={brandLogo}
-          alt="Horizon Farm"
-          className="h-auto w-36 object-contain sm:w-40 lg:w-44 xl:w-48"
-          style={{ filter: 'drop-shadow(0 2px 10px rgba(255,255,255,0.45))' }}
+          alt="Horizon Farm — De la terre à l'horizon"
+          className="h-auto w-[9.5rem] object-contain sm:w-40 lg:w-[11rem] xl:w-48"
+          style={{
+            filter:
+              'drop-shadow(0 2px 6px rgba(6,51,33,0.45)) drop-shadow(0 0 1px rgba(255,255,255,0.85))',
+          }}
         />
       </div>
 
@@ -94,13 +96,7 @@ export default function LoginPage() {
           <div className="max-w-lg pt-2 lg:pt-0">
             <h1 className="sr-only">Horizon Farm ERP</h1>
             <p
-              className="text-[10px] font-bold uppercase tracking-[0.32em] text-[#c9851a] sm:text-xs"
-              style={{ textShadow }}
-            >
-              De la terre à l&apos;horizon
-            </p>
-            <p
-              className="mt-3 text-[1.7rem] font-black leading-[1.1] tracking-tight text-[#063321] sm:text-3xl lg:text-[2.25rem] xl:text-[2.65rem]"
+              className="text-[1.7rem] font-black leading-[1.1] tracking-tight text-[#063321] sm:text-3xl lg:text-[2.25rem] xl:text-[2.65rem]"
               style={{ textShadow }}
             >
               Pilotez votre ferme.
