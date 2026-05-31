@@ -191,6 +191,8 @@ export default function CentreDecisionModule({
             onCreateAlert={props.onCreateAlert}
             onRefreshTasks={props.onRefreshTasks}
             onRefreshAlertes={props.onRefreshAlertes}
+            existingTasks={props.existingTasks}
+            existingAlerts={props.existingAlerts}
           />
         )
         : tab === 'Risques'
@@ -204,6 +206,8 @@ export default function CentreDecisionModule({
               onRefreshTasks={props.onRefreshTasks}
               onCreateAlert={props.onCreateAlert}
               onRefreshAlertes={props.onRefreshAlertes}
+              existingTasks={props.existingTasks}
+              existingAlerts={props.existingAlerts}
             />
           )
           : <CentreHistoriqueTab dataMap={enrichedDataMap} onNavigate={onNavigate} />;

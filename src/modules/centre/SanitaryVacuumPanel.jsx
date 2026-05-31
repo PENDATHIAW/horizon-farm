@@ -5,7 +5,7 @@ import StrategicQuickActions from './StrategicQuickActions.jsx';
 /**
  * Explique le vide sanitaire et liste les actions concrètes par bâtiment.
  */
-export default function SanitaryVacuumPanel({ alerts = [], onNavigate, onCreateTask, onCreateAlert, onRefreshTasks, onRefreshAlertes }) {
+export default function SanitaryVacuumPanel({ alerts = [], onNavigate, onCreateTask, onCreateAlert, onRefreshTasks, onRefreshAlertes, existingTasks = [], existingAlerts = [] }) {
   const blocking = alerts.filter((a) => a.blocking);
 
   if (!blocking.length) {
@@ -66,6 +66,8 @@ export default function SanitaryVacuumPanel({ alerts = [], onNavigate, onCreateT
             onCreateAlert={onCreateAlert}
             onRefreshTasks={onRefreshTasks}
             onRefreshAlertes={onRefreshAlertes}
+            existingTasks={existingTasks}
+            existingAlerts={existingAlerts}
           />
         </article>
       ))}

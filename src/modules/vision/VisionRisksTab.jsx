@@ -1,43 +1,44 @@
 import { ShieldAlert, TrendingDown, Package, Wallet } from 'lucide-react';
 import { fmtCurrency, fmtNumber } from '../../utils/format';
 import { navigateVisionRisk } from './visionNavigation.js';
+import { runPriorityAlertAction, runPriorityTaskAction } from './visionPriorityActions.js';
 import StrategicDecisionCard from '../centre/StrategicDecisionCard.jsx';
 import { Btn, DataRow, DataTable, Empty, Pill, Section, TabIntro, VisionKpi, riskLevelLabel } from './visionUtils';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
-export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, strategicPlan = {} }) {
+export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, existingTasks = [], existingAlerts = [], strategicPlan = {} }) {
   const engineRisks = arr(data.engineRisks);
   const risks = arr(data.risks);
   const criticalCount = risks.filter((r) => r.tone === 'bad').length;
   const financeExposure = Math.max(0, -(data.treasuryResult ?? data.balance)) + (data.receivable || 0);
 
-  const createAlertFromRisk = async (risk) => {
-    if (!onCreateAlert) return;
-    await onCreateAlert({
-      title: `Risque : ${risk.title}`,
-      message: `${risk.cause} → ${risk.impact}`,
-      module_source: risk.module || 'centre_decisionnel',
-      entity_type: 'risk',
-      severity: risk.tone === 'bad' ? 'critique' : 'warning',
-      status: 'nouvelle',
-      action_recommandee: risk.action,
-      alert_dedupe_key: `centre_risque:${risk.id}:${risk.title}`,
-    });
-    await onRefreshAlertes?.();
+  const riskHandlers = {
+    onNavigate,
+    onCreateTask,
+    onCreateAlert,
+    onRefreshTasks,
+    onRefreshAlertes,
+    existingTasks,
+    existingAlerts,
+    setTab,
   };
 
-  const createTaskFromRisk = async (risk) => {
-    if (!onCreateTask) return;
-    await onCreateTask({
-      title: `Risque : ${risk.title}`,
-      description: `${risk.cause}. Action : ${risk.action}`,
-      module_lie: risk.module,
-      priority: risk.tone === 'bad' ? 'critique' : 'haute',
-      status: 'ouverte',
-    });
-    await onRefreshTasks?.();
-  };
+  const riskToItem = (risk) => ({
+    id: risk.id || `risk-${risk.title}`,
+    title: `Risque : ${risk.title}`,
+    detail: `${risk.cause || '—'} → ${risk.impact || risk.action || '—'}`,
+    message: `${risk.cause || ''} → ${risk.impact || ''}`.trim(),
+    tone: risk.tone,
+    sourceModule: risk.module || 'centre_decisionnel',
+    navModule: risk.module,
+    navTab: risk.navTab,
+    kind: 'ia',
+    alert_dedupe_key: `centre_risque:${risk.id}:${risk.title}`,
+  });
+
+  const createAlertFromRisk = (risk) => runPriorityAlertAction(riskToItem(risk), riskHandlers);
+  const createTaskFromRisk = (risk) => runPriorityTaskAction(riskToItem(risk), riskHandlers);
 
   return (
     <div className="space-y-5">

@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react';
-import toast from 'react-hot-toast';
 import { AlertTriangle, ListChecks } from 'lucide-react';
-import { applyOneClickRecommendation } from '../../services/heyHorizonRecommendationActions.js';
-import { buildObjectiveActionTask } from '../../utils/objectivesWorkflows';
 import { fmtCurrency } from '../../utils/format';
-import { openVisionPriority } from './visionMetrics.js';
-import { navigateVisionFinding, navigateVisionPriority as navFromItem } from './visionNavigation.js';
 import { buildActionQueue } from './visionPriorityQueue.js';
+import {
+  navigateFromPriorityItem,
+  runPriorityAlertAction,
+  runPriorityFindingAction,
+  runPriorityTaskAction,
+  runPriorityTreatedAction,
+} from './visionPriorityActions.js';
 import {
   Btn,
   DataRow,
@@ -45,78 +47,21 @@ export default function VisionPrioritiesTab({
     onCreateAlert,
     onUpdateAlert,
     onCreateBusinessEvent,
+    onRefreshTasks,
+    onRefreshAlertes,
     existingTasks,
     existingAlerts,
+    setTab,
+    moduleId,
   };
 
-  const openItem = (item) => {
-    if (item.targetTab && setTab) {
-      setTab(item.targetTab);
-      return;
-    }
-    if (item.isEngine && item.finding) {
-      navigateVisionFinding(onNavigate, item.finding);
-      return;
-    }
-    openVisionPriority(item, moduleId, { setTab, onNavigate });
-  };
-
-  const applyFinding = async (item) => {
-    if (!item.finding) return;
+  const withBusy = async (item, fn) => {
     setBusyId(item.id);
     try {
-      const result = await applyOneClickRecommendation(item.finding, actionHandlers);
-      if (result.createdTasks || result.createdAlerts) {
-        toast.success(`${result.createdTasks || 0} tâche(s), ${result.createdAlerts || 0} alerte(s)`);
-        await onRefreshTasks?.();
-        await onRefreshAlertes?.();
-      } else {
-        toast.success('Module ouvert');
-      }
-    } catch (e) {
-      toast.error(e.message || 'Action impossible');
+      await fn();
     } finally {
       setBusyId(null);
     }
-  };
-
-  const markTreated = async (item) => {
-    if (!onCreateBusinessEvent) return;
-    await onCreateBusinessEvent({
-      event_type: 'priorite_traitee',
-      module_source: moduleId,
-      entity_id: item.id,
-      title: `Priorité traitée : ${item.title}`,
-      event_date: new Date().toISOString().slice(0, 10),
-      severity: 'info',
-    });
-    toast.success('Priorité marquée comme traitée');
-  };
-
-  const createTask = async (item) => {
-    if (!onCreateTask) return;
-    const built = buildObjectiveActionTask({ label: item.title, activity: item.sourceModule || 'global' });
-    await onCreateTask({
-      ...built.task,
-      title: `Traiter : ${item.title}`,
-      notes: item.detail,
-    });
-    await onRefreshTasks?.();
-    toast.success('Tâche créée');
-  };
-
-  const createAlert = async (item) => {
-    if (!onCreateAlert) return;
-    await onCreateAlert({
-      title: item.title,
-      message: item.detail,
-      module_source: moduleId,
-      severity: item.tone === 'bad' ? 'critique' : 'warning',
-      status: 'nouvelle',
-      action_recommandee: item.detail || 'Voir Centre décisionnel',
-    });
-    await onRefreshAlertes?.();
-    toast.success('Alerte créée');
   };
 
   const renderActions = (item) => {
@@ -126,13 +71,23 @@ export default function VisionPrioritiesTab({
           <button
             type="button"
             disabled={busyId === item.id}
-            onClick={() => applyFinding(item)}
+            onClick={(event) => {
+              event.stopPropagation();
+              void withBusy(item, () => runPriorityFindingAction(item, actionHandlers));
+            }}
             className="rounded-lg bg-[#22c55e] px-2 py-1 text-xs font-black text-[#052e16] disabled:opacity-50"
           >
             {busyId === item.id ? '…' : item.finding?.auto_action === 'create_task' ? 'Créer tâche' : item.finding?.auto_action === 'create_alert' ? 'Créer alerte' : 'Appliquer'}
           </button>
-          <button type="button" onClick={() => navigateVisionFinding(onNavigate, item.finding)} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">
-            Voir source
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              navigateFromPriorityItem(item, actionHandlers);
+            }}
+            className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black"
+          >
+            Ouvrir
           </button>
         </>
       );
@@ -140,22 +95,55 @@ export default function VisionPrioritiesTab({
 
     return (
       <>
-        <button type="button" onClick={() => navFromItem(onNavigate, item)} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            navigateFromPriorityItem(item, actionHandlers);
+          }}
+          className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black"
+        >
           Ouvrir
         </button>
         {onCreateTask ? (
-          <button type="button" onClick={() => createTask(item)} className="rounded-lg border border-emerald-300 px-2 py-1 text-xs font-black text-emerald-700">
-            Tâche
+          <button
+            type="button"
+            disabled={busyId === item.id}
+            onClick={(event) => {
+              event.stopPropagation();
+              void withBusy(item, () => runPriorityTaskAction(item, actionHandlers));
+            }}
+            className="rounded-lg border border-emerald-300 px-2 py-1 text-xs font-black text-emerald-700 disabled:opacity-50"
+          >
+            {item.kind === 'tache' ? 'Voir tâche' : 'Tâche'}
           </button>
         ) : null}
-        {onCreateAlert && item.kind !== 'alerte' ? (
-          <button type="button" onClick={() => createAlert(item)} className="rounded-lg border border-amber-300 px-2 py-1 text-xs font-black text-amber-700">
-            Alerte
+        {onCreateAlert ? (
+          <button
+            type="button"
+            disabled={busyId === item.id}
+            onClick={(event) => {
+              event.stopPropagation();
+              void withBusy(item, () => runPriorityAlertAction(item, actionHandlers));
+            }}
+            className="rounded-lg border border-amber-300 px-2 py-1 text-xs font-black text-amber-700 disabled:opacity-50"
+          >
+            {item.kind === 'alerte' ? 'Voir alerte' : 'Alerte'}
           </button>
         ) : null}
-        <button type="button" onClick={() => markTreated(item)} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">
-          Traité
-        </button>
+        {onCreateBusinessEvent ? (
+          <button
+            type="button"
+            disabled={busyId === item.id}
+            onClick={(event) => {
+              event.stopPropagation();
+              void withBusy(item, () => runPriorityTreatedAction(item, actionHandlers));
+            }}
+            className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black disabled:opacity-50"
+          >
+            Traité
+          </button>
+        ) : null}
       </>
     );
   };
@@ -187,7 +175,7 @@ export default function VisionPrioritiesTab({
                 detail={item.detail}
                 status={item.priorityLabel}
                 tone={item.tone}
-                onClick={() => openItem(item)}
+                onClick={() => navigateFromPriorityItem(item, actionHandlers)}
                 actions={renderActions(item)}
               />
             ))}
@@ -214,7 +202,7 @@ export default function VisionPrioritiesTab({
                   detail={item.detail}
                   status="Technique"
                   tone="neutral"
-                  onClick={() => openItem(item)}
+                  onClick={() => navigateFromPriorityItem(item, actionHandlers)}
                   actions={renderActions(item)}
                 />
               ))}
