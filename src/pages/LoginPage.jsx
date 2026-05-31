@@ -74,11 +74,22 @@ export default function LoginPage() {
         className="pointer-events-none absolute inset-0 bg-cover bg-no-repeat"
         style={{
           backgroundImage: `url(${farmBg})`,
-          backgroundPosition: '52% 44%',
+          /* Panier d'œufs en bas à droite : cadrage remonté pour le garder au-dessus du footer */
+          backgroundPosition: '58% 34%',
         }}
         aria-hidden
       />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#063321]/72 via-transparent to-transparent" aria-hidden />
+      {/* Assombrissement bas : plus fort à gauche, léger en bas à droite (panier d'œufs) */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `
+            linear-gradient(to top, rgba(6,51,33,0.82) 0%, rgba(6,51,33,0.45) 7%, rgba(6,51,33,0.08) 14%, transparent 24%),
+            linear-gradient(to right, transparent 0%, transparent 62%, rgba(6,51,33,0.06) 100%)
+          `,
+        }}
+        aria-hidden
+      />
 
       <header className="relative z-30 flex shrink-0 justify-start px-4 pb-1 pt-3 sm:px-8 sm:pt-4 lg:px-10 lg:pt-5">
         <img
@@ -244,24 +255,32 @@ export default function LoginPage() {
           </div>
         </section>
 
-        <footer className="shrink-0 border-t border-white/10 bg-[#063321]/88 px-4 py-3 backdrop-blur-sm sm:px-6 lg:px-8 xl:px-10">
-          <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-4 gap-y-2 lg:grid-cols-4 lg:gap-4">
-            {FEATURES.map(({ icon: Icon, title, detail }) => (
-              <div key={title} className="flex items-center gap-2.5 text-white sm:gap-3">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/20 bg-white/10 sm:h-9 sm:w-9">
-                  <Icon size={16} className="sm:hidden" />
-                  <Icon size={17} className="hidden sm:block" />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-[11px] font-black leading-tight sm:text-xs">{title}</p>
-                  <p className="hidden text-[10px] leading-snug text-white/75 sm:block sm:text-[11px]">{detail}</p>
+        <footer
+          className="relative shrink-0 border-t border-white/10 px-4 py-2.5 backdrop-blur-[2px] sm:px-6 lg:px-8 xl:px-10"
+          style={{
+            background:
+              'linear-gradient(to right, rgba(6,51,33,0.92) 0%, rgba(6,51,33,0.9) 58%, rgba(6,51,33,0.52) 78%, rgba(6,51,33,0.12) 92%, transparent 100%)',
+          }}
+        >
+          <div className="mx-auto flex max-w-7xl flex-col gap-2 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
+            <div className="grid flex-1 grid-cols-2 gap-x-4 gap-y-2 lg:grid-cols-4 lg:gap-4">
+              {FEATURES.map(({ icon: Icon, title, detail }) => (
+                <div key={title} className="flex items-center gap-2.5 text-white sm:gap-3">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/20 bg-white/10 sm:h-9 sm:w-9">
+                    <Icon size={16} className="sm:hidden" />
+                    <Icon size={17} className="hidden sm:block" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black leading-tight sm:text-xs">{title}</p>
+                    <p className="hidden text-[10px] leading-snug text-white/75 sm:block sm:text-[11px]">{detail}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            <p className="shrink-0 text-center text-[9px] leading-relaxed text-white/55 sm:text-[10px] lg:pb-0.5 lg:text-right">
+              © {new Date().getFullYear()} {COPYRIGHT_HOLDER}. Tous droits réservés.
+            </p>
           </div>
-          <p className="mx-auto mt-2.5 max-w-7xl border-t border-white/10 pt-2 text-center text-[9px] leading-relaxed text-white/55 sm:text-[10px]">
-            © {new Date().getFullYear()} {COPYRIGHT_HOLDER}. Tous droits réservés.
-          </p>
         </footer>
       </div>
     </main>
