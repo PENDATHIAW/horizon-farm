@@ -168,7 +168,29 @@ export function buildRisks(data) {
 }
 
 export function buildVisionData(props = {}) {
-  const { dataMap = {}, animaux = [], lots = [], cultures = [], stocks = [], clients = [], salesOrders = [], payments = [], finances = [], transactions = [], investissements = [], businessPlans = [], documents = [], alertes = [], taches = [], opportunities = [], salesOpportunities = [] } = props;
+  const {
+    dataMap = {},
+    animaux = [],
+    lots = [],
+    cultures = [],
+    stocks = [],
+    clients = [],
+    salesOrders = [],
+    payments = [],
+    finances = [],
+    transactions = [],
+    investissements = [],
+    businessPlans = [],
+    documents = [],
+    alertes = [],
+    taches = [],
+    opportunities = [],
+    salesOpportunities = [],
+    deliveries = [],
+    invoices = [],
+    sante = [],
+    businessEvents = [],
+  } = props;
   const periodFiltered = Boolean(props.periodFiltered);
   const allAnimals = arr(animaux).length ? arr(animaux) : arr(dataMap.animaux);
   const allLots = arr(lots).length ? arr(lots) : arr(dataMap.lots || dataMap.avicole);

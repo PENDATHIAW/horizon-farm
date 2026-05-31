@@ -45,7 +45,6 @@ const decisionTabProps = (props) => ({
   payments: props.paymentsAll || props.payments,
   sante: props.sante,
   businessEvents: props.businessEvents,
-  sante: props.sante,
   veterinaires: props.veterinaires,
   fournisseurs: props.fournisseurs,
   marketPrices: props.marketPrices,
