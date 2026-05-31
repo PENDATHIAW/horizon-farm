@@ -10,6 +10,12 @@ const PRESETS = {
     { label: 'Nouvelle bande', questionId: 'new_layer_band', moduleId: 'elevage' },
     { label: 'Bande chair', questionId: 'new_chair_band', moduleId: 'elevage' },
   ],
+  centre_ia: [
+    { label: 'À traiter', moduleId: 'centre_ia', tab: 'À traiter' },
+    { label: 'Risques', moduleId: 'centre_ia', tab: 'Risques' },
+    { label: 'Cycles', moduleId: 'centre_ia', tab: 'Cycles' },
+    { label: 'Objectif mois', moduleId: 'objectifs_croissance', tab: 'Performance' },
+  ],
 };
 
 export default function HeyHorizonQuickAsk({

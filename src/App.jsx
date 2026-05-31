@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { MODULE_REGISTRY, NAV_MODULE_ORDER } from './config/modules.config';
+import { MODULE_TARGET_TABS } from './config/horizonVision.config.js';
 import { computeNavAlertCounts, navAlertFlags } from './services/erpHealthRules';
 import { scheduleErpHealthEngine, scheduleErpHealthOnCriticalChange } from './services/erpHealthEngine';
 import { trackNavOpen } from './services/erpRules/surveillanceUxRules.js';
@@ -73,9 +74,20 @@ export default function App() {
       return;
     }
     if (resolved === 'centre_ia' || resolved === 'objectifs_croissance') {
-      if (tab) {
-        if (resolved === 'centre_ia') setCentreTab(tab);
+      const validTabs = MODULE_TARGET_TABS[resolved] || [];
+      const sibling = resolved === 'centre_ia' ? 'objectifs_croissance' : 'centre_ia';
+      const siblingTabs = MODULE_TARGET_TABS[sibling] || [];
+      if (tab && !validTabs.includes(tab) && siblingTabs.includes(tab)) {
+        if (sibling === 'centre_ia') setCentreTab(tab);
         else setObjectifsTab(tab);
+        trackNavOpen(sibling);
+        setActiveState(sibling);
+        return;
+      }
+      if (tab) {
+        const safeTab = validTabs.includes(tab) ? tab : validTabs[0];
+        if (resolved === 'centre_ia') setCentreTab(safeTab);
+        else setObjectifsTab(safeTab);
       }
       if (options?.productionQuestion) {
         window.setTimeout(() => {

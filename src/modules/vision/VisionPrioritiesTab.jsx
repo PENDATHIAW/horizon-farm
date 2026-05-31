@@ -2,6 +2,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { AlertTriangle, BrainCircuit } from 'lucide-react';
 import { applyOneClickRecommendation } from '../../services/heyHorizonRecommendationActions.js';
+import { buildDecisionRecommendationTask } from '../../utils/decisionCenterWorkflows.js';
 import { buildObjectiveActionTask } from '../../utils/objectivesWorkflows';
 import { fmtCurrency } from '../../utils/format';
 import { openVisionPriority } from './visionMetrics.js';
@@ -72,8 +73,13 @@ export default function VisionPrioritiesTab({
 
   const createTask = async (item) => {
     if (!onCreateTask) return;
-    const built = buildObjectiveActionTask({ label: item.title, activity: item.sourceModule || 'global' });
+    const built = moduleId === 'centre_ia'
+      ? buildDecisionRecommendationTask({ ...item, recommendation: item.detail, source_module: item.sourceModule || item.navModule || 'centre_ia' })
+      : buildObjectiveActionTask({ label: item.title, activity: item.sourceModule || 'global' });
     await onCreateTask({ ...built.task, title: `Traiter : ${item.title}`, notes: item.detail });
+    if (moduleId === 'centre_ia' && built.event && onCreateBusinessEvent) {
+      await onCreateBusinessEvent(built.event);
+    }
     await onRefreshTasks?.();
     toast.success('Tâche créée');
   };

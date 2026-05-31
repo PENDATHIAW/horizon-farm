@@ -1,4 +1,5 @@
 import { ROUTE_TO_MODULE } from '../config/modules.config.js';
+import { MODULE_TARGET_TABS } from '../config/horizonVision.config.js';
 
 const lower = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
@@ -115,7 +116,7 @@ const SEARCH_KEY_TO_MODULE = {
   documents: { module: 'documents_rapports', tab: null },
   rapports: { module: 'documents_rapports', tab: null },
   investissements: { module: 'finance_pilotage', tab: 'Investissements' },
-  business_plans: { module: 'objectifs_croissance', tab: null },
+  business_plans: { module: 'objectifs_croissance', tab: 'Plans' },
 };
 
 /** Cible de navigation pour un résultat de recherche ERP (clé dataMap). */
@@ -147,28 +148,27 @@ export function navigationOptionsForFinding(finding = {}) {
   if (module === 'achats_stock') {
     return { module, tab: resolveAchatsStockTab(explicitTab || defaultTabForLegacyModule(rawModule) || 'Résumé') };
   }
+  if (module === 'centre_ia' || module === 'objectifs_croissance') {
+    const tabs = MODULE_TARGET_TABS[module] || [];
+    const fallback = module === 'centre_ia' ? 'À traiter' : 'Performance';
+    const tab = tabs.includes(explicitTab) ? explicitTab : fallback;
+    return { module, tab };
+  }
+  if (module === 'activite_suivi') {
+    const title = lower(`${finding.title || ''} ${finding.category || ''} ${finding.type || ''}`);
+    const tab = explicitTab || (title.includes('alerte') ? 'Alertes' : 'Tâches');
+    return { module, tab };
+  }
+  if (module === 'documents_rapports') {
+    return { module, tab: explicitTab || 'Preuves' };
+  }
   return { module, tab: explicitTab || null };
 }
 
 /** Bouton « Voir » dans un panneau IA multi-modules. */
 export function navigateForIaFinding(finding = {}, onNavigate) {
   if (!onNavigate) return;
-  const module = resolveRouteModule(finding.module || '');
-  if (module === 'commercial') {
-    onNavigate('commercial', { tab: resolveCommercialTab(finding.tab || 'Ventes') });
-    return;
-  }
-  if (module === 'finance_pilotage') {
-    onNavigate('finance_pilotage', { tab: resolveFinanceTab(finding.tab || 'Créances') });
-    return;
-  }
-  if (module === 'achats_stock') {
-    onNavigate('achats_stock', { tab: resolveAchatsStockTab(finding.tab || 'Stock') });
-    return;
-  }
-  if (module === 'elevage') {
-    onNavigate('elevage', { tab: resolveElevageTab(finding.tab || 'Résumé') });
-    return;
-  }
-  onNavigate(module || 'elevage');
+  const { module, tab } = navigationOptionsForFinding(finding);
+  if (tab) onNavigate(module || 'elevage', { tab });
+  else onNavigate(module || 'elevage');
 }

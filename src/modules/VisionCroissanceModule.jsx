@@ -12,7 +12,6 @@ import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import HeyHorizonQuickAsk from '../components/HeyHorizonQuickAsk.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
-import { MODULE_TARGET_TABS } from '../config/horizonVision.config.js';
 import { buildVisionBadges, resolveVisionTab } from './vision/visionMetrics.js';
 import { buildVisionData } from './vision/visionUtils';
 
@@ -51,6 +50,12 @@ export default function VisionCroissanceModule(props) {
   const badges = useMemo(() => buildVisionBadges(data, moduleId), [data, moduleId]);
   const aiCount = useMemo(() => data.healthFindings?.length || buildRecommendationsFromData(dataMap).length, [dataMap, data.healthFindings]);
 
+  const handleTabChange = (nextTab) => {
+    const resolved = resolveVisionTab(moduleId, nextTab, onNavigate);
+    setTab(resolved);
+    props.onTabChange?.(resolved);
+  };
+
   useEffect(() => {
     if (!props.initialTab) return;
     const resolved = resolveVisionTab(moduleId, props.initialTab, onNavigate);
@@ -70,7 +75,7 @@ export default function VisionCroissanceModule(props) {
   const priorityProps = {
     data,
     moduleId,
-    setTab,
+    setTab: handleTabChange,
     onNavigate,
     onCreateTask,
     onCreateAlert,
@@ -138,7 +143,7 @@ export default function VisionCroissanceModule(props) {
           </div>
         </div>
       </section>
-      <ModuleTabsBar moduleId={moduleId} active={tab} onChange={setTab} tabBadges={badges.tabs} />
+      <ModuleTabsBar moduleId={moduleId} active={tab} onChange={handleTabChange} tabBadges={badges.tabs} />
       {content}
     </div>
   );

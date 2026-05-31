@@ -50,5 +50,9 @@ export function navigateVisionPriority(onNavigate, item = {}) {
     navigateVision(onNavigate, 'objectifs_croissance', item.tab);
     return;
   }
+  if (item.tab && ['À traiter', 'Risques', 'Opportunités', 'Cycles'].includes(item.tab)) {
+    navigateVision(onNavigate, 'centre_ia', item.tab);
+    return;
+  }
   if (module) navigateVision(onNavigate, module, item.navTab || VISION_MODULE_TABS[module]);
 }

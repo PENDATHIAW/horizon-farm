@@ -8,6 +8,7 @@ const n = (v = 0) => Number(v || 0);
 const MODULE_DATA_KEYS = {
   dashboard: ['sales_orders', 'payments', 'finances', 'animaux', 'avicole', 'stock', 'taches', 'alertes_center'],
   assistant_erp: ['sales_orders', 'finances', 'stock', 'taches', 'alertes_center'],
+  centre_ia: ['sales_orders', 'payments', 'finances', 'stock', 'alertes_center', 'taches', 'business_events'],
   objectifs_croissance: ['sales_orders', 'finances', 'business_plans', 'investissements'],
   elevage: ['animaux', 'avicole', 'sante', 'alimentation_logs', 'production_oeufs_logs'],
   commercial: ['sales_orders', 'clients', 'payments', 'sales_opportunities'],

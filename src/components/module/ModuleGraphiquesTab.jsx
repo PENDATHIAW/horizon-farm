@@ -74,9 +74,42 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
       ), periodFiltered);
     case 'objectifs_croissance':
       return withChartPeriod((
-        <div className="space-y-4">
-          <FinanceEvolution rows={arr(props.transactions || props.finances)} payments={arr(props.payments)} salesOrders={arr(props.salesOrders)} onNavigate={onNavigate} />
-          <SalesEvolution rows={arr(props.salesOrders)} payments={arr(props.payments)} opportunities={arr(props.opportunities)} onNavigate={onNavigate} />
+        <div className="space-y-6">
+          <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
+            <h2 className="text-sm font-black text-[#2f2415]">Performance financière & objectifs</h2>
+            <p className="mt-1 text-xs text-[#8a7456]">Trésorerie, encaissements et trajectoire commerciale du plan de croissance.</p>
+            <div className="mt-3 space-y-4">
+              <FinanceEvolution rows={arr(props.transactions || props.finances)} payments={arr(props.payments)} salesOrders={arr(props.salesOrders)} onNavigate={onNavigate} />
+              <CommercialEvolution
+                rows={arr(props.salesOrders || props.rows)}
+                payments={arr(props.payments)}
+                opportunities={arr(props.opportunities)}
+                clients={arr(props.clients)}
+                lots={arr(props.lots)}
+                animaux={arr(props.animaux)}
+                cultures={arr(props.cultures)}
+                stocks={arr(props.stocks)}
+                alimentationLogs={arr(props.alimentationLogs)}
+                productionLogs={arr(props.productionLogs)}
+                vaccins={arr(props.vaccins || props.sante)}
+                businessEvents={arr(props.businessEvents)}
+                transactions={arr(props.transactions)}
+                businessPlans={arr(props.businessPlans)}
+                investissements={arr(props.investissements)}
+                periodFiltered={periodFiltered}
+                periodScope={props.periodScope}
+                onNavigate={onNavigate}
+              />
+            </div>
+          </section>
+          <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
+            <h2 className="text-sm font-black text-[#2f2415]">Investissements & pipeline financeur</h2>
+            <p className="mt-1 text-xs text-[#8a7456]">Lecture croisée des investissements, business plans et ventes à convertir.</p>
+            <div className="mt-3 space-y-4">
+              <InvestissementsEvolution rows={arr(props.investissements)} businessPlans={arr(props.businessPlans)} onNavigate={onNavigate} />
+              <SalesEvolution rows={arr(props.salesOrders)} payments={arr(props.payments)} opportunities={arr(props.opportunities)} onNavigate={onNavigate} />
+            </div>
+          </section>
         </div>
       ), periodFiltered);
     case 'elevage':
