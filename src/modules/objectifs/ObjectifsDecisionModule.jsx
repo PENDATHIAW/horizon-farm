@@ -121,7 +121,7 @@ export default function ObjectifsDecisionModule({
         : tab === 'Graphiques'
           ? <ObjectifsGraphiquesTab plan={objectifsChartPlan} />
           : tab === 'Annexe'
-            ? <DecisionAnnexeTab moduleLabel="Objectifs & Croissance" />
+            ? <DecisionAnnexeTab moduleLabel="Objectifs & Croissance" moduleId="objectifs_croissance" dataMap={enrichedDataMap} />
             : <MaraichageDiversificationTab analytics={analytics} />;
 
   return (

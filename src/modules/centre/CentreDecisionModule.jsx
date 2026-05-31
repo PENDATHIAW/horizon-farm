@@ -232,7 +232,7 @@ export default function CentreDecisionModule({
               />
             )
             : tab === 'Annexe'
-              ? <DecisionAnnexeTab moduleLabel="Centre décisionnel" />
+              ? <DecisionAnnexeTab moduleLabel="Centre décisionnel" moduleId="centre_ia" dataMap={enrichedDataMap} />
               : <CentreHistoriqueTab dataMap={enrichedDataMap} onNavigate={onNavigate} />;
 
   return (
