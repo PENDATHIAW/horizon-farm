@@ -15,12 +15,20 @@ const unitPriceOf = (row = {}) => toNumber(row.prixUnit ?? row.prixunit ?? row.p
 const quantityOf = (row = {}) => toNumber(row.quantite ?? row.quantity);
 const opportunityKey = (row = {}) => `stock:${clean(row.id)}`;
 const terminalStatuses = ['epuise', 'épuisé', 'bloque', 'bloqué', 'perime', 'périmé', 'retourne', 'retourné', 'a_retourner', 'non_conforme'];
-const sellableCategories = ['recolte', 'produit_fini', 'produits_recoltes', 'vente'];
+const sellableCategories = ['recolte', 'produit_fini', 'produits_recoltes', 'vente', 'fumier'];
+
+function isFumierStock(row = {}) {
+  const text = `${categoryOf(row)} ${activityOf(row)} ${clean(row.produit || row.name).toLowerCase()}`;
+  return text.includes('fumier');
+}
 
 function isSellableStock(row = {}) {
   const status = clean(row.statut || row.stock_status || row.status).toLowerCase();
   if (!row.id || quantityOf(row) <= 0 || terminalStatuses.includes(status)) return false;
-  return sellableCategories.some((value) => categoryOf(row).includes(value)) || activityOf(row) === 'vente' || Boolean(row.vendable || row.pret_a_la_vente || row.ready_for_sale || row.sale_ready);
+  return isFumierStock(row)
+    || sellableCategories.some((value) => categoryOf(row).includes(value))
+    || activityOf(row) === 'vente'
+    || Boolean(row.vendable || row.pret_a_la_vente || row.ready_for_sale || row.sale_ready);
 }
 
 function existingOpportunityFor(row, opportunities = []) {

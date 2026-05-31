@@ -52,11 +52,17 @@ function cultureReadyForSale(culture = {}) {
     && (Boolean(culture.pret_a_vendre || culture.ready_for_sale || culture.sale_ready) || ['recoltee', 'récoltée', 'pret_a_vendre', 'pret_a_la_vente'].includes(status));
 }
 
+function isFumierStock(stock = {}) {
+  const text = lower(`${stock.categorie || ''} ${stock.category || ''} ${stock.produit || ''} ${stock.name || ''}`);
+  return text.includes('fumier');
+}
+
 function stockReadyForSale(stock = {}) {
   const status = lower(stock.status || stock.statut || stock.sale_status);
   const qty = toNumber(stock.quantite ?? stock.quantity ?? stock.stock_disponible);
-  return clean(stock.id) && qty > 0 && !['reserve', 'réservé', 'bloque', 'bloqué', 'perime', 'périmé', 'epuise', 'épuisé'].includes(status)
-    && Boolean(stock.pret_a_vendre || stock.ready_for_sale || stock.sale_ready || stock.vendable);
+  if (!clean(stock.id) || qty <= 0 || ['reserve', 'réservé', 'bloque', 'bloqué', 'perime', 'périmé', 'epuise', 'épuisé'].includes(status)) return false;
+  if (isFumierStock(stock)) return true;
+  return Boolean(stock.pret_a_vendre || stock.ready_for_sale || stock.sale_ready || stock.vendable);
 }
 
 function persistedTargetStillActive(opp = {}, { lots = [], animaux = [], cultures = [], stocks = [] } = {}) {
