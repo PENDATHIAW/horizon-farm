@@ -3,6 +3,7 @@ import ProductionCycleDecisionPanel from '../ProductionCycleDecisionPanel.jsx';
 import StrategicDecisionCard from '../centre/StrategicDecisionCard.jsx';
 import SanitaryVacuumPanel from '../centre/SanitaryVacuumPanel.jsx';
 import { fmtNumber } from '../../utils/format';
+import { getNextFestivals, festivalLabelList } from '../../services/marketEventCalendar.js';
 import { Btn, Section, TabIntro, VisionKpi } from './visionUtils';
 
 export default function VisionCyclesTab({
@@ -23,12 +24,14 @@ export default function VisionCyclesTab({
   const heatDecision = strategicPlan.launch?.cycleDecisions?.find((d) => d.type === 'stress_thermique');
   const bfr = strategicPlan.bfr || {};
   const sanitary = strategicPlan.sanitary || [];
+  const upcomingFestivals = getNextFestivals(new Date(), dataMap, 5);
+  const festivalLine = festivalLabelList(upcomingFestivals).join(', ') || 'Magal, Gamou, fin d\'année';
 
   return (
     <div className="space-y-5">
       <TabIntro
         title="Cycles — QUAND LANCER une bande"
-        detail="Dates pivot (Tabaski, Korité), trésorerie, chaleur et vide sanitaire. Une section = une décision."
+        detail={`Prochaines fêtes : ${festivalLine}. Dates pivot de lancement, trésorerie, chaleur et vide sanitaire — une section = une décision.`}
         action={onNavigate ? <Btn onClick={() => onNavigate('elevage', { tab: 'Cycles' })}>Élevage → Cycles</Btn> : null}
       />
 

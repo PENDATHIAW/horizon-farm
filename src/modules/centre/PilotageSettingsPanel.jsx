@@ -13,6 +13,7 @@ const FESTIVAL_FIELDS = [
   { key: 'tabaski', label: 'Tabaski' },
   { key: 'korite', label: 'Korité' },
   { key: 'magal', label: 'Magal' },
+  { key: 'gamou', label: 'Gamou' },
   { key: 'fin_annee', label: 'Fin d\'année' },
   { key: 'ramadan', label: 'Ramadan' },
 ];

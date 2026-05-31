@@ -200,7 +200,9 @@ export function evaluateLaunchTimingDecisions(dataMap = {}, options = {}) {
     let activity = 'poulets_chair';
     let placementMessage = '';
 
-    if (label.includes('tabaski') || label.includes('magal')) {
+    if (event.skipLaunch) return;
+
+    if (label.includes('tabaski') || label.includes('magal') || label.includes('gamou')) {
       cycleDays = BOVIN_CYCLE_DAYS;
       activity = 'bovins';
       placementMessage = `Pour vendre au prix fort à ${event.label}, achetez vos broutards au plus tard le`;

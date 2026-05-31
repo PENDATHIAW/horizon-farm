@@ -15,12 +15,13 @@ test.describe('Centre décisionnel et Objectifs & Croissance', () => {
     await expect(page.getByRole('button', { name: /^Exporter Excel$/i })).toBeVisible();
 
     await page.getByRole('button', { name: /^Recommandations$/i }).click();
-    await expect(page.getByText(/Recommandations investissement & vente/i)).toBeVisible();
-    await expect(page.getByText(/Pourquoi Horizon recommande/i)).toBeVisible();
-    await expect(page.getByText(/Calendrier commercial annuel/i)).toBeVisible();
+    await expect(page.getByText(/Marge & demande clients/i)).toBeVisible();
+    await expect(page.getByText(/Que vendre et où agir côté commercial/i)).toBeVisible();
+    await expect(page.getByText(/Prochaines fenêtres/i).first()).toBeVisible();
 
     await page.getByRole('button', { name: /^Historique$/i }).click();
     await expect(page.getByText(/Historique des décisions/i)).toBeVisible();
+    await expect(page.getByText(/Calendrier commercial annuel/i)).toBeVisible();
 
     await goToModule(page, 'Objectifs & Croissance');
     await expect(page.getByRole('heading', { name: /Objectifs & Croissance/i })).toBeVisible();
@@ -29,11 +30,11 @@ test.describe('Centre décisionnel et Objectifs & Croissance', () => {
     await expect(page.getByText(/Fidélisation, fournisseurs & stock/i)).toBeVisible();
   });
 
-  test('onglet Cycles affiche le vide sanitaire', async ({ page }) => {
+  test('onglet Cycles affiche le vide sanitaire et les prochaines fêtes', async ({ page }) => {
     await login(page);
     await goToModule(page, 'Centre décisionnel');
     await page.getByRole('button', { name: /^Cycles$/i }).click();
-    await expect(page.getByText(/vide sanitaire|QUAND LANCER|lancer une bande/i).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/vide sanitaire|QUAND LANCER|Prochaines fêtes/i).first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('onglet À traiter propose Ignorer et Ouvrir', async ({ page }) => {

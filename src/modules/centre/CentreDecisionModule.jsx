@@ -113,8 +113,8 @@ export default function CentreDecisionModule({
       console.warn('[CentreDecisionModule] decision plan fallback', error);
     }
     const commercialRecommendations = (base.recommendations || [])
-      .filter((r) => !r.strategic && !r.technical_rule)
-      .slice(0, 5);
+      .filter((r) => r.commercial_only || (!r.strategic && !r.technical_rule && !r.should_recommend_investment))
+      .slice(0, 6);
     return {
       ...base,
       commercialRecommendations,
@@ -172,13 +172,8 @@ export default function CentreDecisionModule({
       ? (
         <CentreRecommandationsTab
           plan={decisionPlan}
-          dataMap={enrichedDataMap}
           onNavigate={onNavigate}
           onSwitchTab={setTab}
-          onCreateTask={props.onCreateTask}
-          onRefreshTasks={props.onRefreshTasks}
-          onCreateBusinessEvent={props.onCreateBusinessEvent}
-          onRefreshBusinessEvents={props.onRefreshBusinessEvents}
         />
       )
       : tab === 'Cycles'

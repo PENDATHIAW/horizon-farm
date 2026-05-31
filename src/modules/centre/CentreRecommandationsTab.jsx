@@ -1,41 +1,34 @@
-import AnnualCommercialCalendarPanel from '../AnnualCommercialCalendarPanel.jsx';
-import DecisionRecommendationCardCompact from '../DecisionRecommendationCardCompact.jsx';
 import CentreSimpleRecoCard from './CentreSimpleRecoCard.jsx';
 
 /**
- * Recommandations commerciales + investissement + calendrier annuel.
- * Le timing lancement / vente / vide sanitaire → onglets Cycles et Risques.
+ * Recommandations = marge, demande clients, écarts CA uniquement.
+ * Timing lancement / fêtes / vide sanitaire → onglets Cycles et Risques.
  */
 export default function CentreRecommandationsTab({
   plan = {},
-  dataMap = {},
   onNavigate,
   onSwitchTab,
-  onCreateTask,
-  onRefreshTasks,
-  onCreateBusinessEvent,
-  onRefreshBusinessEvents,
 }) {
-  const recommendations = (plan.commercialRecommendations || []).slice(0, 5);
-  const investmentRecos = (plan.recommendations || [])
-    .filter((r) => r.should_recommend_investment || r.technical_rule || r.strategic)
-    .slice(0, 4);
+  const commercialRecommendations = (plan.commercialRecommendations || []).slice(0, 6);
 
   return (
     <div className="space-y-5">
       <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm space-y-3">
         <div>
           <p className="text-xs uppercase tracking-widest text-[#9a6b12] font-black">Marge & demande clients</p>
-          <h3 className="text-lg font-black text-[#2f2415] mt-1">Où agir côté ventes et couverture de la demande ?</h3>
+          <h3 className="text-lg font-black text-[#2f2415] mt-1">Que vendre et où agir côté commercial ?</h3>
           <p className="text-sm text-[#8a7456] mt-1">
-            Ici : uniquement les écarts CA et actions commerciales. Pour <b>lancer une bande</b> ou le <b>vide sanitaire</b> → onglet <button type="button" onClick={() => onSwitchTab?.('Cycles')} className="font-black text-[#9a6b12] underline">Cycles</button>.
-            Pour <b>vendre un lot</b> → onglet <button type="button" onClick={() => onSwitchTab?.('Risques')} className="font-black text-[#9a6b12] underline">Risques</button>.
+            Ici : uniquement écarts de chiffre d&apos;affaires, clients et couverture de la demande.
+            Pour <b>lancer une bande</b> ou le <b>vide sanitaire</b> → onglet{' '}
+            <button type="button" onClick={() => onSwitchTab?.('Cycles')} className="font-black text-[#9a6b12] underline">Cycles</button>.
+            Pour <b>vendre un lot en urgence</b> → onglet{' '}
+            <button type="button" onClick={() => onSwitchTab?.('Risques')} className="font-black text-[#9a6b12] underline">Risques</button>.
           </p>
         </div>
 
-        {recommendations.length ? (
+        {commercialRecommendations.length ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {recommendations.map((item) => (
+            {commercialRecommendations.map((item) => (
               <CentreSimpleRecoCard key={item.id} item={item} onNavigate={onNavigate} />
             ))}
           </div>
@@ -46,36 +39,12 @@ export default function CentreRecommandationsTab({
         )}
       </section>
 
-      <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm space-y-4">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-[#9a6b12] font-black">Recommandations investissement & vente</p>
-          <h3 className="text-lg font-black text-[#2f2415] mt-1">Pourquoi Horizon recommande ça</h3>
-          <p className="text-sm text-[#8a7456] mt-1">Capacités, objectifs BP et alertes terrain — actions 1 clic vers tâches ou modules.</p>
-        </div>
-        {investmentRecos.length ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-            {investmentRecos.map((item) => (
-              <DecisionRecommendationCardCompact
-                key={item.id}
-                variant="light"
-                item={item}
-                dataMap={dataMap}
-                onNavigate={onNavigate}
-                onCreateTask={onCreateTask}
-                onRefreshTasks={onRefreshTasks}
-                onCreateBusinessEvent={onCreateBusinessEvent}
-                onRefreshBusinessEvents={onRefreshBusinessEvents}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-[#8a7456] rounded-xl border border-[#eadcc2] bg-white p-4">
-            Aucune recommandation investissement prioritaire pour le moment.
-          </p>
-        )}
-      </section>
-
-      <AnnualCommercialCalendarPanel />
+      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-xs text-[#7d6a4a]">
+        Les fêtes à venir (Magal, Gamou, fin d&apos;année…) et les dates limites de lancement sont dans l&apos;onglet{' '}
+        <button type="button" onClick={() => onSwitchTab?.('Cycles')} className="font-black text-[#9a6b12] underline">Cycles</button>.
+        Le calendrier saisonnier détaillé est dans{' '}
+        <button type="button" onClick={() => onSwitchTab?.('Historique')} className="font-black text-[#9a6b12] underline">Historique</button>.
+      </div>
     </div>
   );
 }

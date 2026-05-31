@@ -23,7 +23,7 @@ export default function CentreSimpleRecoCard({ item, onNavigate }) {
         onClick={() => onNavigate?.(isCommercial ? 'commercial' : (item.source_module || 'elevage'))}
         className="w-full"
       >
-        {isCommercial ? 'Voir Commercial' : 'Voir module source'}
+        {isCommercial ? 'Voir Commercial' : item.activity === 'bovins' ? 'Voir Animaux' : 'Voir module source'}
       </Btn>
     </article>
   );

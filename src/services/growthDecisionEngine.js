@@ -9,6 +9,7 @@ import {
 } from '../utils/activityYear.js';
 import { HORIZON_FARM_OFFICIAL_BP } from './horizonFarmOfficialBusinessPlan';
 import { buildTechnicalFarmingAlerts } from './technicalFarmingRules';
+import { buildAllMarketEvents, getUpcomingMarketEvents } from './marketEventCalendar.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const num = (value = 0) => Number(value || 0) || 0;
@@ -100,48 +101,8 @@ export function buildCommercialCalendar(date = new Date(), activityYear = null) 
 }
 
 
-function pilotageEventsFromSettings(dataMap = {}) {
-  const settings = dataMap.growth_settings || {};
-  const fd = settings.festival_dates || {};
-  const defs = [
-    { key: 'tabaski', label: 'Tabaski', activities: ['bovins'], note: 'Date pilotage local.' },
-    { key: 'korite', label: 'Korité', activities: ['poulets_chair', 'oeufs'], note: 'Date pilotage local.' },
-    { key: 'magal', label: 'Magal', activities: ['bovins'], note: 'Date pilotage local.' },
-    { key: 'fin_annee', label: 'Fin d\'année', activities: ['poulets_chair', 'oeufs', 'bovins'], note: 'Date pilotage local.' },
-    { key: 'ramadan', label: 'Ramadan', activities: ['poulets_chair', 'oeufs'], note: 'Date pilotage local.' },
-  ];
-  return defs
-    .filter((row) => fd[row.key])
-    .map((row) => ({
-      id: `pilotage-${row.key}-${fd[row.key]}`,
-      label: row.label,
-      date: safeDate(fd[row.key]),
-      activities: row.activities,
-      note: row.note,
-      source: 'pilotage',
-    }))
-    .filter((event) => !Number.isNaN(event.date.getTime()));
-}
-
-function defaultEventsForYear(year) {
-  return [
-    { id: `tabaski-${year}`, label: 'Tabaski', date: makeDate(year, 5, 27), activities: ['bovins'], note: 'Date indicative à remplacer par le calendrier officiel/local.' },
-    { id: `fin-annee-${year}`, label: 'Fin d’année', date: makeDate(year, 12, 24), activities: ['poulets_chair', 'oeufs', 'bovins'], note: 'Commandes groupées, restauration, familles.' },
-    { id: `ramadan-${year}`, label: 'Ramadan', date: makeDate(year, 2, 17), activities: ['poulets_chair', 'oeufs'], note: 'Date indicative.' },
-    { id: `korite-${year}`, label: 'Korité', date: makeDate(year, 3, 20), activities: ['poulets_chair', 'oeufs'], note: 'Date indicative.' },
-  ];
-}
 export function buildMarketEvents(referenceDate = new Date(), dataMap = {}) {
-  return safeRun(() => {
-    const ref = safeDate(referenceDate);
-    const customEvents = arr(dataMap.market_calendar_events || dataMap.marketCalendarEvents).map((event) => ({ id: event.id || event.code || event.nom, label: event.label || event.nom || event.title, date: safeDate(event.date || event.target_date || event.date_cible), activities: arr(event.activities || event.activites || event.focus), note: event.note || event.description || '', source: 'custom' })).filter((event) => event.label && !Number.isNaN(event.date.getTime()));
-    const pilotageEvents = pilotageEventsFromSettings(dataMap);
-    const pilotageLabels = new Set(pilotageEvents.map((event) => normalize(event.label)));
-    const defaults = [ref.getFullYear(), ref.getFullYear() + 1].flatMap(defaultEventsForYear)
-      .filter((event) => !pilotageLabels.has(normalize(event.label)))
-      .map((event) => ({ ...event, source: 'default' }));
-    return [...customEvents, ...pilotageEvents, ...defaults].filter((event) => event.date >= addDays(ref, -15) && event.date <= addDays(ref, 540)).sort((a, b) => a.date - b.date);
-  }, []);
+  return safeRun(() => getUpcomingMarketEvents(referenceDate, dataMap, { horizonDays: 540 }), []);
 }
 
 export function estimateLeadTimes(dataMap = {}) {
@@ -268,22 +229,61 @@ function priorityFromSeverity(severity = '') { const value = normalize(severity)
 function activityFromTechnicalAlert(alert = {}) { const text = normalize(`${alert.module_source || ''} ${alert.entity_type || ''} ${alert.title || ''} ${alert.message || ''}`); if (text.includes('pondeuse') || text.includes('oeuf')) return 'oeufs'; if (text.includes('chair') || text.includes('poulet')) return 'poulets_chair'; if (text.includes('bovin')) return 'bovins'; if (text.includes('ovin')) return 'ovins'; if (text.includes('caprin')) return 'caprins'; if (text.includes('animal')) return 'animaux'; if (text.includes('stock')) return 'stock'; if (text.includes('culture')) return 'cultures'; return 'global'; }
 function buildTechnicalRecommendation(alert = {}) { const activity = activityFromTechnicalAlert(alert); return { id: `technical-${alert.id || alert.decision_key || Math.random().toString(36).slice(2)}`, title: alert.title || 'Alerte technique', activity, priority: priorityFromSeverity(alert.severity), timing: alert.message || alert.description || '', recommendation: alert.action_recommandee || alert.recommendation || 'Vérifier et traiter cette alerte.', event_label: 'Technique', event_note: alert.message || '', target_date: alert.due_date || alert.event_date || '', timing_status: 'technical_alert', timing_status_label: 'Alerte technique', should_recommend_investment: false, demand_level: 'technique', coverage_status: 'technique', technical_alert: alert }; }
 
+function commercialActionForActivity(activity, activityGoal = {}, capacity = {}) {
+  const remaining = Number(activityGoal?.remaining || 0);
+  const gapText = remaining > 0 ? `${remaining.toLocaleString('fr-FR')} FCFA restants sur l'objectif.` : 'Objectif mensuel couvert ou proche.';
+  if (activity === 'oeufs') {
+    return {
+      recommendation: remaining > 0
+        ? `Relancer clients œufs/tablettes et précommandes — ${gapText}`
+        : `Maintenir les ventes régulières (≈ ${Math.round(capacity.tabletsDay || 0)} tablette(s)/j disponibles).`,
+      timing: remaining > 0 ? 'Accélérer encaissements œufs ce mois' : 'Consolider clients récurrents',
+    };
+  }
+  if (activity === 'poulets_chair') {
+    return {
+      recommendation: remaining > 0
+        ? `Écouler la chair disponible (restaurants, événements, détail) — ${gapText}`
+        : 'Sécuriser les clients restauration et détail pour la production en cours.',
+      timing: remaining > 0 ? 'Ventes chair prioritaires' : 'Fidélisation clients chair',
+    };
+  }
+  return {
+    recommendation: remaining > 0
+      ? `Vendre les lots prêts via bouchers, foirails et clients directs — ${gapText}`
+      : 'Vendre uniquement le bétail prêt ; pas de pression commerciale sur du stock immature.',
+    timing: remaining > 0 ? 'Ventes bétail prêt à encaisser' : 'Écoulement sélectif',
+  };
+}
+
 export function buildGrowthRecommendations(dataMap = {}, options = {}) {
   return safeRun(() => {
     const goals = buildGoalPerformance(dataMap, options);
     const capacity = buildProductionCapacity(dataMap);
-    const base = ['oeufs', 'poulets_chair', 'bovins'].map((activity) => {
+    const commercial = ['oeufs', 'poulets_chair', 'bovins'].map((activity) => {
       const activityGoal = arr(goals.activities).find((row) => row.activity === activity);
-      const priority = Number(activityGoal?.remaining || 0) > 0 ? 'haute' : 'moyenne';
-      const recommendation = activity === 'oeufs'
-        ? `Capacité estimée : ${Math.round(capacity.tabletsDay || 0)} tablette(s)/jour${capacity.layingRateKnown ? `, taux de ponte ${capacity.layingRate}%` : ', taux de ponte à renseigner par les logs'}.`
-        : activity === 'poulets_chair'
-          ? 'Piloter les bandes de 500 poussins : vente à J+40 puis roulement tous les 15 jours.'
-          : 'Respecter le pipeline bovins : M4 vend M1, M5 vend M2, M6 vend M3, puis vente/rachat mensuel.';
-      return { id: `goal-${activity}`, title: `Cap ${activityLabels[activity]}`, activity, priority, timing: `Reste à réaliser : ${(Number(activityGoal?.remaining || 0)).toLocaleString('fr-FR')} FCFA`, recommendation, should_recommend_investment: Number(activityGoal?.remaining || 0) > 0, demand_revenue: Number(activityGoal?.target || 0), available_revenue: Number(activityGoal?.realized || 0), gap_revenue: Number(activityGoal?.remaining || 0), coverage_rate: Number(activityGoal?.attainment || 0), coverage_status: Number(activityGoal?.attainment || 0) >= 100 ? 'couvert' : 'insuffisant', capacity };
+      const remaining = Number(activityGoal?.remaining || 0);
+      const priority = remaining > 0 ? 'haute' : 'moyenne';
+      const action = commercialActionForActivity(activity, activityGoal, capacity);
+      return {
+        id: `commercial-${activity}`,
+        title: `Écart CA — ${activityLabels[activity]}`,
+        activity,
+        priority,
+        timing: action.timing,
+        recommendation: action.recommendation,
+        should_recommend_investment: false,
+        strategic: false,
+        commercial_only: true,
+        demand_revenue: Number(activityGoal?.target || 0),
+        available_revenue: Number(activityGoal?.realized || 0),
+        gap_revenue: remaining,
+        coverage_rate: Number(activityGoal?.attainment || 0),
+        coverage_status: Number(activityGoal?.attainment || 0) >= 100 ? 'couvert' : remaining > 0 ? 'insuffisant' : 'partiel',
+      };
     });
     const technical = safeRun(() => buildTechnicalFarmingAlerts(dataMap).map(buildTechnicalRecommendation), []);
-    return [...base, ...technical].sort((a, b) => ({ haute: 3, moyenne: 2, basse: 1 }[b.priority] - { haute: 3, moyenne: 2, basse: 1 }[a.priority]));
+    return [...commercial, ...technical].sort((a, b) => ({ haute: 3, moyenne: 2, basse: 1 }[b.priority] - { haute: 3, moyenne: 2, basse: 1 }[a.priority]));
   }, []);
 }
 

@@ -5,6 +5,7 @@ export const DEFAULT_PILOTAGE_SETTINGS = {
     tabaski: '',
     korite: '',
     magal: '',
+    gamou: '',
     fin_annee: '',
     ramadan: '',
   },
