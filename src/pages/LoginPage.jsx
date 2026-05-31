@@ -16,6 +16,7 @@ import { useAuth } from '../context/AuthContext';
 
 const brandLogo = '/brand-logo-login.png';
 const farmBg = '/login-farm-bg.png';
+const COPYRIGHT_HOLDER = 'Horizon Farm';
 
 const FEATURES = [
   { icon: Leaf, title: 'Vision claire', detail: 'Toutes vos données au même endroit.' },
@@ -79,11 +80,11 @@ export default function LoginPage() {
       />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#063321]/72 via-transparent to-transparent" aria-hidden />
 
-      <header className="relative z-30 flex shrink-0 justify-end px-4 pb-1 pt-3 sm:px-8 sm:pt-4 lg:px-10 lg:pt-5">
+      <header className="relative z-30 flex shrink-0 justify-start px-4 pb-1 pt-3 sm:px-8 sm:pt-4 lg:px-10 lg:pt-5">
         <img
           src={brandLogo}
           alt="Horizon Farm — De la terre à l'horizon"
-          className="pointer-events-none h-12 w-auto max-w-[11rem] object-contain object-right sm:h-14 lg:h-16 xl:h-[4.5rem] xl:max-w-[13rem]"
+          className="pointer-events-none h-12 w-auto max-w-[11rem] object-contain object-left sm:h-14 lg:h-16 xl:h-[4.5rem] xl:max-w-[13rem]"
           style={{
             filter:
               'drop-shadow(0 2px 6px rgba(6,51,33,0.45)) drop-shadow(0 0 1px rgba(255,255,255,0.85))',
@@ -258,6 +259,9 @@ export default function LoginPage() {
               </div>
             ))}
           </div>
+          <p className="mx-auto mt-2.5 max-w-7xl border-t border-white/10 pt-2 text-center text-[9px] leading-relaxed text-white/55 sm:text-[10px]">
+            © {new Date().getFullYear()} {COPYRIGHT_HOLDER}. Tous droits réservés.
+          </p>
         </footer>
       </div>
     </main>
