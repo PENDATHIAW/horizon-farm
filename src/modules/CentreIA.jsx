@@ -1,5 +1,5 @@
-import VisionCroissanceModule from './VisionCroissanceModule.jsx';
+import CentreDecisionModule from './centre/CentreDecisionModule.jsx';
 
 export default function CentreIAModule(props) {
-  return <VisionCroissanceModule {...props} moduleId="centre_ia" />;
+  return <CentreDecisionModule {...props} />;
 }

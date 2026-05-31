@@ -2,10 +2,8 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { AlertTriangle, BrainCircuit } from 'lucide-react';
 import { applyOneClickRecommendation } from '../../services/heyHorizonRecommendationActions.js';
-import { buildDecisionRecommendationTask } from '../../utils/decisionCenterWorkflows.js';
 import { buildObjectiveActionTask } from '../../utils/objectivesWorkflows';
 import { fmtCurrency } from '../../utils/format';
-import VisionBrainPanel from './VisionBrainPanel.jsx';
 import { openVisionPriority } from './visionMetrics.js';
 import { navigateVisionFinding, navigateVisionPriority as navFromItem } from './visionNavigation.js';
 import { Btn, DataRow, DataTable, Empty, Section, TabIntro, VISION_TABLE_COLS, VisionKpi } from './visionUtils';
@@ -74,13 +72,8 @@ export default function VisionPrioritiesTab({
 
   const createTask = async (item) => {
     if (!onCreateTask) return;
-    const built = moduleId === 'centre_ia'
-      ? buildDecisionRecommendationTask({ ...item, recommendation: item.detail, source_module: item.sourceModule || item.navModule || 'centre_ia' })
-      : buildObjectiveActionTask({ label: item.title, activity: item.sourceModule || 'global' });
+    const built = buildObjectiveActionTask({ label: item.title, activity: item.sourceModule || 'global' });
     await onCreateTask({ ...built.task, title: `Traiter : ${item.title}`, notes: item.detail });
-    if (moduleId === 'centre_ia' && built.event && onCreateBusinessEvent) {
-      await onCreateBusinessEvent(built.event);
-    }
     await onRefreshTasks?.();
     toast.success('Tâche créée');
   };
@@ -101,7 +94,6 @@ export default function VisionPrioritiesTab({
 
   return (
     <div className="space-y-5">
-      {moduleId === 'centre_ia' ? <VisionBrainPanel data={data} setTab={setTab} onNavigate={onNavigate} /> : null}
       <TabIntro
         title="Priorités actionnables"
         detail={data.periodLabel ? `Lecture financière sur ${data.periodLabel} — créances sur l'historique complet.` : 'Signaux IA et alertes terrain à traiter en priorité.'}
@@ -112,7 +104,7 @@ export default function VisionPrioritiesTab({
         <VisionKpi label="Résultat trésorerie" value={fmtCurrency(data.treasuryResult ?? data.balance)} tone={(data.treasuryResult ?? data.balance) >= 0 ? 'good' : 'bad'} detail={data.periodFiltered ? 'Période active' : 'Cumul'} onClick={() => onNavigate?.('finance_pilotage', { tab: 'Trésorerie' })} />
         <VisionKpi label="À traiter" value={data.priorities.length} tone={data.priorities.length ? 'warn' : 'good'} detail={`${engineRows.length} IA · ${manualRows.length} terrain`} />
         <VisionKpi label="Créances" value={fmtCurrency(data.receivable)} tone={data.receivable ? 'warn' : 'good'} onClick={() => onNavigate?.('commercial', { tab: 'Clients' })} />
-        <VisionKpi label="Opportunités ouvertes" value={openOpps} tone={openOpps ? 'good' : 'neutral'} onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} />
+        <VisionKpi label="Opportunités ouvertes" value={openOpps} tone={openOpps ? 'good' : 'neutral'} onClick={() => setTab?.('Opportunités & cycles')} />
       </div>
       <Section icon={BrainCircuit} title="Recommandations IA — actions directes">
         {engineRows.length ? (

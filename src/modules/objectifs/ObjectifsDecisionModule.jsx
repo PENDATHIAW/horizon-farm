@@ -1,8 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import { MODULE_TARGET_TABS } from '../../config/horizonVision.config.js';
+import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine.js';
 import { buildObjectifsDecisionPlan } from '../../services/objectifsDecision/objectifsDecisionEngine.js';
+import ObjectiveDecisionSummary from '../ObjectiveDecisionSummary.jsx';
+import ObjectifsActivitesPanel from './ObjectifsActivitesPanel.jsx';
+import ObjectiveSupplyPanel from './ObjectiveSupplyPanel.jsx';
 import ObjectifsEcartsTab from './ObjectifsEcartsTab.jsx';
 import CroissanceCapacitesTab from './CroissanceCapacitesTab.jsx';
 import ObjectifsGraphiquesTab from './ObjectifsGraphiquesTab.jsx';
@@ -10,7 +14,13 @@ import ObjectifsGraphiquesTab from './ObjectifsGraphiquesTab.jsx';
 const TAB_IDS = MODULE_TARGET_TABS.objectifs_croissance;
 
 function resolveTab(initial) {
-  if (initial && TAB_IDS.includes(initial)) return initial;
+  const aliases = {
+    Performance: 'Objectifs & Écarts',
+    Prévisions: 'Croissance économique & Capacités',
+    Graphiques: 'Tableau de bord graphique',
+  };
+  const mapped = initial ? (aliases[initial] || initial) : null;
+  if (mapped && TAB_IDS.includes(mapped)) return mapped;
   return TAB_IDS[0];
 }
 
@@ -23,6 +33,11 @@ export default function ObjectifsDecisionModule({
 }) {
   const [tab, setTab] = useState(() => resolveTab(initialTab));
 
+  useEffect(() => {
+    if (!initialTab) return;
+    setTab(resolveTab(initialTab));
+  }, [initialTab]);
+
   const enrichedDataMap = useMemo(() => ({
     ...dataMap,
     animaux: props.animaux || dataMap.animaux,
@@ -31,6 +46,10 @@ export default function ObjectifsDecisionModule({
     production_oeufs_logs: props.productionLogs || dataMap.production_oeufs_logs,
     alimentation_logs: props.alimentationLogs || dataMap.alimentation_logs,
     sante: props.sante || dataMap.sante,
+    clients: props.clients || dataMap.clients,
+    fournisseurs: props.fournisseurs || dataMap.fournisseurs,
+    stock: props.stocks || dataMap.stock,
+    stocks: props.stocks || dataMap.stocks,
     sales_orders: props.salesOrdersAll || props.salesOrders || dataMap.sales_orders,
     salesOrders: props.salesOrdersAll || props.salesOrders || dataMap.sales_orders,
     payments: props.paymentsAll || props.payments || dataMap.payments,
@@ -46,6 +65,11 @@ export default function ObjectifsDecisionModule({
     [enrichedDataMap],
   );
 
+  const decisionPlan = useMemo(
+    () => buildDecisionCenterPlan(enrichedDataMap),
+    [enrichedDataMap],
+  );
+
   const tabBadges = useMemo(() => ({
     'Objectifs & Écarts': (plan.zootechnical?.filter((z) => z.alertLevel !== 'green').length || 0)
       + (plan.financial?.mispricingAlerts?.length || 0),
@@ -53,7 +77,14 @@ export default function ObjectifsDecisionModule({
   }), [plan]);
 
   const content = tab === 'Objectifs & Écarts'
-    ? <ObjectifsEcartsTab plan={plan} onNavigate={onNavigate} />
+    ? (
+      <div className="space-y-6">
+        <ObjectifsActivitesPanel plan={decisionPlan} onNavigate={onNavigate} />
+        <ObjectiveDecisionSummary plan={decisionPlan} onNavigate={onNavigate} />
+        <ObjectiveSupplyPanel dataMap={enrichedDataMap} onNavigate={onNavigate} />
+        <ObjectifsEcartsTab plan={plan} onNavigate={onNavigate} />
+      </div>
+    )
     : tab === 'Croissance économique & Capacités'
       ? <CroissanceCapacitesTab plan={plan} onNavigate={onNavigate} />
       : <ObjectifsGraphiquesTab plan={plan} />;
