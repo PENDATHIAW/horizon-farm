@@ -1,3 +1,5 @@
+import { getDismissedPriorityKeys, isPriorityDismissed } from '../../services/centrePriorityDismissService.js';
+
 const MAINTENANCE_CATEGORIES = new Set(['audit_erp', 'surveillance_ux']);
 
 const CENTRE_TABS = new Set(['À traiter', 'Recommandations', 'Cycles', 'Risques', 'Historique']);
@@ -120,7 +122,8 @@ function buildWhatToDo(item = {}) {
 }
 
 /** Une seule file sans doublon : alertes terrain d'abord, puis signaux IA complémentaires. */
-export function buildActionQueue(items = []) {
+export function buildActionQueue(items = [], { includeDismissed = false } = {}) {
+  const dismissed = includeDismissed ? new Set() : getDismissedPriorityKeys();
   const sorted = [...items].sort((a, b) => kindRank(a) - kindRank(b) || severityRank(a) - severityRank(b));
 
   const today = [];
@@ -130,6 +133,7 @@ export function buildActionQueue(items = []) {
   sorted.forEach((raw) => {
     const key = normalizePriorityTitle(raw.title);
     if (!key || seen.has(key)) return;
+    if (isPriorityDismissed(raw, dismissed)) return;
     seen.add(key);
 
     const detail = raw.detail && raw.detail !== 'Alerte ouverte' && raw.detail !== 'Tâche prioritaire'

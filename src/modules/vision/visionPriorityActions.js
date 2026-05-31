@@ -254,3 +254,20 @@ export async function runPriorityTreatedAction(item, handlers = {}) {
     return false;
   }
 }
+export async function runPriorityDismissAction(item, handlers = {}) {
+  const { onDismissPriority } = handlers;
+  try {
+    if (typeof onDismissPriority === 'function') {
+      onDismissPriority(item);
+    } else {
+      const { dismissPriorityItem } = await import('../../services/centrePriorityDismissService.js');
+      dismissPriorityItem(item);
+    }
+    toast.success('Masqué pour aujourd\'hui');
+    return true;
+  } catch (error) {
+    toast.error(error?.message || 'Impossible de masquer cet élément');
+    return false;
+  }
+}
+

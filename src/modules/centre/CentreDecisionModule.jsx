@@ -15,6 +15,9 @@ import CentreHistoriqueTab from './CentreHistoriqueTab.jsx';
 import PilotageSettingsPanel from './PilotageSettingsPanel.jsx';
 import { mergePilotageIntoDataMap } from '../../services/pilotageSettingsService.js';
 import { syncStrategicAlertsToCenter } from '../../services/strategicAlertBridge.js';
+import Btn from '../../components/Btn.jsx';
+import toast from 'react-hot-toast';
+import { exportCentreDecisionCsv, exportCentreDecisionExcel } from '../../services/centreDecisionExport.js';
 
 const EMPTY_STRATEGIC_PLAN = {
   sellNow: [],
@@ -226,6 +229,26 @@ export default function CentreDecisionModule({
             {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
           </div>
           <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Btn
+                variant="outline"
+                onClick={() => {
+                  exportCentreDecisionExcel({ data, decisionPlan, strategicPlan });
+                  toast.success('Export Excel Centre décisionnel généré');
+                }}
+              >
+                Exporter Excel
+              </Btn>
+              <Btn
+                variant="outline"
+                onClick={() => {
+                  exportCentreDecisionCsv({ data, decisionPlan, strategicPlan }, tab);
+                  toast.success(`Export CSV — onglet ${tab}`);
+                }}
+              >
+                Exporter CSV (onglet)
+              </Btn>
+            </div>
             <div className="rounded-2xl border border-[#eadcc2] bg-white px-4 py-3 text-sm">
               <span className="text-[#8a7456]">Urgences vente </span>
               <b className="text-[#2f2415]">{strategicPlan.sellNow?.length || 0}</b>

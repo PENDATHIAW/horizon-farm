@@ -2,12 +2,14 @@ import { useMemo, useState } from 'react';
 import { AlertTriangle, ListChecks } from 'lucide-react';
 import { fmtCurrency } from '../../utils/format';
 import { buildActionQueue } from './visionPriorityQueue.js';
+import { dismissPriorityItem } from '../../services/centrePriorityDismissService.js';
 import {
   navigateFromPriorityItem,
   runPriorityAlertAction,
   runPriorityFindingAction,
   runPriorityTaskAction,
   runPriorityTreatedAction,
+  runPriorityDismissAction,
 } from './visionPriorityActions.js';
 import {
   Btn,
@@ -41,9 +43,10 @@ export default function VisionPrioritiesTab({
   existingAlerts = [],
 }) {
   const [busyId, setBusyId] = useState(null);
+  const [dismissVersion, setDismissVersion] = useState(0);
   const { today, maintenance } = useMemo(
     () => buildActionQueue(data.priorities || []),
-    [data.priorities],
+    [data.priorities, dismissVersion],
   );
   const openOpps = data.openOpportunities?.length ?? 0;
   const relatedTabs = useMemo(
@@ -63,6 +66,10 @@ export default function VisionPrioritiesTab({
     existingAlerts,
     setTab,
     moduleId,
+    onDismissPriority: (item) => {
+      dismissPriorityItem(item);
+      setDismissVersion((value) => value + 1);
+    },
   };
 
   const withBusy = async (item, fn) => {
@@ -98,6 +105,17 @@ export default function VisionPrioritiesTab({
             className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black"
           >
             Ouvrir
+          </button>
+          <button
+            type="button"
+            disabled={busyId === item.id}
+            onClick={(event) => {
+              event.stopPropagation();
+              void withBusy(item, () => runPriorityDismissAction(item, actionHandlers));
+            }}
+            className="rounded-lg border border-slate-300 px-2 py-1 text-xs font-black text-slate-600 disabled:opacity-50"
+          >
+            Ignorer
           </button>
         </>
       );
@@ -141,6 +159,17 @@ export default function VisionPrioritiesTab({
             {item.kind === 'alerte' ? 'Voir alerte' : 'Alerte'}
           </button>
         ) : null}
+        <button
+          type="button"
+          disabled={busyId === item.id}
+          onClick={(event) => {
+            event.stopPropagation();
+            void withBusy(item, () => runPriorityDismissAction(item, actionHandlers));
+          }}
+          className="rounded-lg border border-slate-300 px-2 py-1 text-xs font-black text-slate-600 disabled:opacity-50"
+        >
+          Ignorer
+        </button>
         {onCreateBusinessEvent ? (
           <button
             type="button"

@@ -131,6 +131,12 @@ export default function ObjectifsDecisionModule({
         </div>
       </section>
 
+      <div className="space-y-5">
+        <ObjectifsActivitesPanel plan={growthPlan} onNavigate={onNavigate} />
+        <ObjectiveDecisionSummary plan={growthPlan} onNavigate={onNavigate} />
+        <ObjectiveSupplyPanel dataMap={enrichedDataMap} onNavigate={onNavigate} />
+      </div>
+
       <ModuleTabsBar moduleId="objectifs_croissance" active={tab} onChange={(next) => setTab(resolveTab(next))} tabBadges={tabBadges} />
       {content}
       <CrossAnalyticsSections cross={analytics.cross} />
