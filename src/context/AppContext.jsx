@@ -193,7 +193,7 @@ export function AppProvider({ children }) {
   const markLocalWrite = useCallback((moduleKey) => refreshScheduler.markLocalWrite(moduleKey), [refreshScheduler]);
 
   const refreshAllModules = useCallback(() => {
-    Object.keys(serviceMap).forEach((moduleKey) => refreshModule(moduleKey, { immediate: true }));
+    Object.keys(serviceMap).forEach((moduleKey) => refreshModule(moduleKey));
   }, [refreshModule]);
 
   const appendAnimalTraceStep = useCallback(async (animal, step) => { if (!animal?.id || !step) return; try { const traceId = `TRA-${animal.id}`; const traces = await tracabiliteService.getAll(); const existing = traces.find((trace) => trace.id === traceId || String(trace.animal || '').includes(animal.id)); if (existing) { const etapes = Array.isArray(existing.etapes) ? existing.etapes : []; const alreadyExists = etapes.some((item) => item.event_type === step.event_type && item.date === step.date && item.titre === step.titre); if (!alreadyExists) await tracabiliteService.update(existing.id, { etapes: [...etapes, step] }); } else { await tracabiliteService.create({ id: traceId, animal: getAnimalDisplayName(animal), type: animal.type || '', etapes: [step], margeFinale: 0, roi: 0 }); } await refreshModule('tracabilite'); } catch (error) { console.warn('Trace animal non enregistree', error.message); } }, [refreshModule]);

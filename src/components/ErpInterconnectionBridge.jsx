@@ -17,13 +17,12 @@ export default function ErpInterconnectionBridge({ cruds = {} }) {
   }, [cruds]);
 
   useEffect(() => {
-    if (!signature || ranRef.current === signature) return;
-    ranRef.current = signature;
     let cancelled = false;
+    const timer = window.setTimeout(() => {
+      if (cancelled || ranRef.current === signature) return;
+      ranRef.current = signature;
 
-    async function repair() {
-      if (cancelled) return;
-      await runErpInterconnectionRepair({
+      void runErpInterconnectionRepair({
         orders: rows(cruds.sales_orders),
         payments: rows(cruds.payments),
         finances: rows(cruds.finances),
@@ -50,11 +49,13 @@ export default function ErpInterconnectionBridge({ cruds = {} }) {
           onUpdateSupplier: cruds.fournisseurs?.update,
           onCreateBusinessEvent: cruds.business_events?.create,
         },
-      });
-    }
+      }).catch(() => {});
+    }, 5000);
 
-    repair().catch(() => {});
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [signature, cruds]);
 
   return null;

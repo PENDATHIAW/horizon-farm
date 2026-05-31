@@ -60,18 +60,31 @@ export default function useCrudModule(moduleKey) {
     refreshModule,
   } = useAppData();
 
+  const moduleRows = dataMap[moduleKey];
+  const loading = Boolean(loadingMap[moduleKey]);
+  const error = errorMap[moduleKey] || null;
+  const alimentationLogs = dataMap.alimentation_logs;
+  const productionLogs = dataMap.production_oeufs_logs;
+  const santeRows = dataMap.sante;
+
   return useMemo(
     () => {
-      const sourceRows = Array.isArray(dataMap[moduleKey]) ? dataMap[moduleKey] : [];
+      const sourceRows = Array.isArray(moduleRows) ? moduleRows : [];
       const filteredRows = filterDeletedRows(moduleKey, sourceRows);
-      const rows = enrichRows(moduleKey, filteredRows, dataMap);
+      const enrichmentMap = {
+        animaux: moduleKey === 'animaux' ? filteredRows : dataMap.animaux,
+        alimentation_logs: alimentationLogs,
+        vaccins: santeRows,
+        production_oeufs_logs: productionLogs,
+      };
+      const rows = enrichRows(moduleKey, filteredRows, enrichmentMap);
       const findExistingRow = (id) => filteredRows.find((row) => String(row?.id) === String(id));
       return {
         rows,
         rawRows: filteredRows,
         usingDemoRows: false,
-        loading: Boolean(loadingMap[moduleKey]),
-        error: errorMap[moduleKey] || null,
+        loading,
+        error,
         create: async (payload) => {
           if (payload?.__restoreDeleted && payload?.id) forgetDeletedId(moduleKey, payload.id);
           const { __restoreDeleted, ...safePayload } = payload || {};
@@ -85,6 +98,18 @@ export default function useCrudModule(moduleKey) {
         refresh: () => refreshModule(moduleKey, { immediate: true }),
       };
     },
-    [moduleKey, dataMap, loadingMap, errorMap, createRecord, updateRecord, deleteRecord, refreshModule]
+    [
+      moduleKey,
+      moduleRows,
+      loading,
+      error,
+      moduleKey === 'animaux' || moduleKey === 'avicole' ? alimentationLogs : null,
+      moduleKey === 'avicole' ? productionLogs : null,
+      moduleKey === 'animaux' ? santeRows : null,
+      createRecord,
+      updateRecord,
+      deleteRecord,
+      refreshModule,
+    ],
   );
 }

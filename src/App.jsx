@@ -113,10 +113,8 @@ export default function App() {
   const alertCounts = useMemo(() => computeNavAlertCounts(crudRowsMap(c)), [c]);
   const alertFlags = useMemo(() => navAlertFlags(alertCounts, online), [alertCounts, online]);
   const notifs = alertCounts.notifs + (online ? 0 : 1);
-  const refreshAll = async () => refreshAllModules(refreshModule);
-  const refreshSalesWorkflowFn = async () => refreshSalesWorkflow(c);
-  const actionTraceShared = composeActionTraceShared(c, online);
-  const internalResourcesShared = composeInternalResources(c);
+  const refreshAll = useCallback(async () => refreshAllModules(refreshModule), [refreshModule]);
+  const refreshSalesWorkflowFn = useCallback(async () => refreshSalesWorkflow(c), [c]);
   const decisionDataMapRaw = useMemo(
     () => composeDecisionDataMap({ crud: c, dataMap, liveMeteo }),
     [c, dataMap, liveMeteo],
@@ -143,8 +141,8 @@ export default function App() {
   useEffect(() => {
     const trigger = scheduleErpHealthOnCriticalChange(() => decisionDataMapRaw, null, healthAutoActions);
     trigger(decisionDataMapRaw);
-    return trigger(decisionDataMapRaw);
-  }, [decisionDataMapRaw, healthAutoActions]);
+    return () => trigger(decisionDataMapRaw);
+  }, [crudFingerprint, healthAutoActions, decisionDataMapRaw]);
 
   const navItems = useMemo(() => NAV_MODULE_ORDER.map((id) => ({
     id,
@@ -152,7 +150,7 @@ export default function App() {
     icon: MODULE_REGISTRY[id]?.icon,
     hasAlert: alertFlags[id],
   })), [alertFlags]);
-  const reportData = composeReportData(c);
+  const moduleProps = useMemo(() => {
   const syncActivityProps = { onRefreshAll: refreshAll, onFlushOffline: flushOfflineQueue, online, lastOnlineAt, dataMap, tasks: rows(c.taches), alertes: rows(c.alertes_center), businessEvents: rows(c.business_events), businessEventsAll: rows(c.business_events), auditLogs: rows(c.audit_logs), auditLogsAll: rows(c.audit_logs), auditLoading: c.audit_logs.loading, onRefreshAuditLogs: c.audit_logs.refresh, onNavigate: setActive, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onRefreshAlertes: c.alertes_center.refresh, onUpdateSalesOrder: c.sales_orders.update, onRefreshSalesOrders: c.sales_orders.refresh, onUpdateOpportunity: c.sales_opportunities.update, onRefreshOpportunities: c.sales_opportunities.refresh, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh };
   const shared = { onNavigate: setActive, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh };
   const bpCallbacks = {
@@ -163,7 +161,10 @@ export default function App() {
     onCreateBpLink: c.bp_links.create, onUpdateBpLink: c.bp_links.update, onDeleteBpLink: c.bp_links.remove, onRefreshBpLinks: c.bp_links.refresh,
     onCreateBpRisk: c.bp_risks.create, onUpdateBpRisk: c.bp_risks.update, onDeleteBpRisk: c.bp_risks.remove, onRefreshBpRisks: c.bp_risks.refresh,
   };
-  const moduleProps = {
+  const reportData = composeReportData(c);
+  const actionTraceShared = composeActionTraceShared(c, online);
+  const internalResourcesShared = composeInternalResources(c);
+  return {
     dashboard: { user, dataFingerprint: crudFingerprint, lotsData: rows(c.avicole), animaux: rows(c.animaux), vaccins: rows(c.sante), stocks: rows(c.stock), clients: rows(c.clients), cultures: rows(c.cultures), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), documents: rows(c.documents), alimentationLogs: rows(c.alimentation_logs), productionLogs: rows(c.production_oeufs_logs), opportunities: rows(c.sales_opportunities), taches: rows(c.taches), alertes: rows(c.alertes_center), equipements: rows(c.equipements), sensorDevices: rows(c.sensor_devices), cameraDevices: rows(c.camera_devices), businessEvents: rows(c.business_events), meteo: liveMeteo, onNavigate: setActive, onRefresh: refreshAll, onOpenAssistant: () => setAssistantOpen(true) },
     assistant_erp: {
       dataMap: decisionDataMapRaw,
@@ -440,10 +441,11 @@ export default function App() {
     sync: syncActivityProps,
     sync_activity: syncActivityProps,
   };
+  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, visionTab, commercialTab, elevageTab, achatsStockTab, financeTab, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue]);
 
   const activeModuleProps = useMemo(
     () => applyPeriodScopeToProps(moduleProps[active] || {}, periodScope, { cacheGeneration: crudFingerprint }),
-    [active, periodScopeKey, crudFingerprint, commercialTab, elevageTab, achatsStockTab, financeTab, visionTab],
+    [moduleProps, active, periodScopeKey, crudFingerprint, commercialTab, elevageTab, achatsStockTab, financeTab, visionTab, periodScope],
   );
   const scopedAssistantDataMap = useMemo(
     () => {

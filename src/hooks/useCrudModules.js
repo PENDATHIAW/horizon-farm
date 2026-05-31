@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import useCrudModule from './useCrudModule';
 
 export default function useCrudModules() {
@@ -39,7 +40,7 @@ export default function useCrudModules() {
   const payments = useCrudModule('payments');
   const sales_opportunities = useCrudModule('sales_opportunities');
 
-  return {
+  return useMemo(() => ({
     animaux,
     avicole,
     sante,
@@ -77,5 +78,43 @@ export default function useCrudModules() {
     invoices,
     payments,
     sales_opportunities,
-  };
+  }), [
+    animaux,
+    avicole,
+    sante,
+    veterinaires,
+    finances,
+    investissements,
+    business_plans,
+    bp_investment_lines,
+    bp_recurring_costs,
+    bp_revenue_projections,
+    bp_funding_sources,
+    bp_links,
+    bp_risks,
+    stock,
+    clients,
+    fournisseurs,
+    tracabilite,
+    cultures,
+    documents,
+    taches,
+    rapports,
+    equipements,
+    audit_logs,
+    alimentation_logs,
+    production_oeufs_logs,
+    sensor_devices,
+    camera_devices,
+    business_events,
+    alertes_center,
+    whatsapp_templates,
+    whatsapp_logs,
+    sales_orders,
+    sales_order_items,
+    deliveries,
+    invoices,
+    payments,
+    sales_opportunities,
+  ]);
 }
