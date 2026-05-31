@@ -1,7 +1,7 @@
 import { ShieldAlert } from 'lucide-react';
 import { fmtCurrency, fmtNumber } from '../../utils/format';
 import { navigateVisionRisk } from './visionNavigation.js';
-import { Btn, DataRow, DataTable, Empty, Pill, Section, TabIntro, VISION_TABLE_COLS, VisionKpi, riskLevelLabel } from './visionUtils';
+import { Btn, DataRow, DataTable, Empty, Pill, Section, TabIntro, VisionKpi, riskLevelLabel } from './visionUtils';
 
 export default function VisionRisksTab({ data, onNavigate, setTab, onCreateTask, onRefreshTasks }) {
   const engineRisks = data.engineRisks || [];

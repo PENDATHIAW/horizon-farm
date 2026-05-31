@@ -4,6 +4,7 @@ import { buildLotPivotContext } from './datePivotEngine.js';
 import { getBreedStock, inferWorkshopFromLot } from './breedStockReferential.js';
 import { buildSanitaryVacuumAlerts } from './objectifsDecisionEngine.js';
 import { checkThermalStress, calculateBiomassValue } from './predictiveAnalysisEngine.js';
+import { buildCrossAnalyticsPlan } from './crossAnalyticsEngine.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const num = (v = 0) => Number(v || 0) || 0;
@@ -309,6 +310,7 @@ export function buildLotAnalyticsPlan(dataMap = {}, options = {}) {
     technical: buildTechnicalEfficiencyAnalysis(dataMap, options),
     flux: buildFluxEquilibresAnalysis(dataMap),
     maraichage: buildMaraichageAnalysis(dataMap, options),
+    cross: buildCrossAnalyticsPlan(dataMap, options),
   };
 }
 

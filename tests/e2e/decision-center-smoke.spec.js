@@ -28,8 +28,9 @@ test.describe('Centre décisionnel et Objectifs & Croissance', () => {
 
     await openNav(page, 'Centre décisionnel');
     await expect(page.getByRole('heading', { name: /Centre décisionnel/i })).toBeVisible();
-    await expect(page.getByText(/Recommandations investissement/i)).toBeVisible();
-    await expect(page.getByText(/Historique des décisions/i)).toBeVisible();
+    await expect(page.getByText(/QUAND vendre|QUAND lancer/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /Cycles/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Risques/i })).toBeVisible();
 
     await openNav(page, 'Objectifs & Croissance');
     await expect(page.getByRole('heading', { name: /Objectifs & Croissance/i })).toBeVisible();

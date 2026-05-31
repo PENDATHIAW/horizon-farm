@@ -7,6 +7,7 @@ import RentabiliteLotCycleTab from './RentabiliteLotCycleTab.jsx';
 import EfficaciteTechniqueTab from './EfficaciteTechniqueTab.jsx';
 import FluxEquilibresTab from './FluxEquilibresTab.jsx';
 import MaraichageDiversificationTab from './MaraichageDiversificationTab.jsx';
+import CrossAnalyticsSections from './CrossAnalyticsSections.jsx';
 
 const TAB_IDS = MODULE_TARGET_TABS.objectifs_croissance;
 
@@ -98,6 +99,7 @@ export default function ObjectifsDecisionModule({
 
       <ModuleTabsBar moduleId="objectifs_croissance" active={tab} onChange={setTab} tabBadges={tabBadges} />
       {content}
+      <CrossAnalyticsSections cross={analytics.cross} />
     </div>
   );
 }

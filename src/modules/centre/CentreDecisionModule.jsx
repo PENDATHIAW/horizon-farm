@@ -4,9 +4,12 @@ import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import HeyHorizonQuickAsk from '../../components/HeyHorizonQuickAsk.jsx';
 import { MODULE_TARGET_TABS } from '../../config/horizonVision.config.js';
 import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine.js';
+import { buildStrategicDecisionPlan } from '../../services/strategicDecisionEngine.js';
 import { buildVisionBadges } from '../vision/visionMetrics.js';
 import { buildVisionData } from '../vision/visionUtils';
 import VisionPrioritiesTab from '../vision/VisionPrioritiesTab.jsx';
+import VisionCyclesTab from '../vision/VisionCyclesTab.jsx';
+import VisionRisksTab from '../vision/VisionRisksTab.jsx';
 import CentreRecommandationsTab from './CentreRecommandationsTab.jsx';
 import CentreHistoriqueTab from './CentreHistoriqueTab.jsx';
 
@@ -14,10 +17,8 @@ const TAB_IDS = MODULE_TARGET_TABS.centre_ia;
 
 const TAB_ALIASES = {
   Graphiques: 'Recommandations',
-  Cycles: 'Recommandations',
-  Opportunités: 'Recommandations',
-  'Opportunités & cycles': 'Recommandations',
-  Risques: 'À traiter',
+  Opportunités: 'Cycles',
+  'Opportunités & cycles': 'Cycles',
 };
 
 function resolveTab(initial) {
@@ -26,13 +27,14 @@ function resolveTab(initial) {
   return TAB_IDS[0];
 }
 
-/** Centre décisionnel léger : priorités, recommandations, historique — sans graphiques. */
+/** Centre décisionnel : priorités, recommandations, cycles (QUAND lancer), risques (QUAND vendre), historique. */
 export default function CentreDecisionModule({
   dataMap = {},
   onNavigate,
   initialTab,
   periodLabel = '',
   onOpenAssistant,
+  meteo,
   ...props
 }) {
   const [tab, setTab] = useState(() => resolveTab(initialTab));
@@ -41,7 +43,7 @@ export default function CentreDecisionModule({
     setTab(resolveTab(initialTab));
   }, [initialTab]);
 
-  const visionProps = useMemo(() => ({ ...props, dataMap, moduleId: 'centre_ia' }), [props, dataMap]);
+  const visionProps = useMemo(() => ({ ...props, dataMap, moduleId: 'centre_ia', meteo }), [props, dataMap, meteo]);
   const data = useMemo(() => buildVisionData(visionProps), [visionProps]);
   const badges = useMemo(() => buildVisionBadges(data, 'centre_ia'), [data]);
 
@@ -49,12 +51,42 @@ export default function CentreDecisionModule({
     ...dataMap,
     animaux: props.animaux || dataMap.animaux,
     avicole: props.lots || dataMap.avicole,
+    lots: props.lots || dataMap.avicole,
+    stocks: props.stocks || dataMap.stock || dataMap.stocks,
+    stock: props.stocks || dataMap.stock,
+    clients: props.clients || dataMap.clients,
+    sante: props.sante || dataMap.sante,
+    alimentation_logs: props.alimentationLogs || dataMap.alimentation_logs,
+    production_oeufs_logs: props.productionLogs || dataMap.production_oeufs_logs,
     sales_orders: props.salesOrdersAll || props.salesOrders || dataMap.sales_orders,
+    payments: props.paymentsAll || props.payments || dataMap.payments,
+    finances: props.transactionsAll || props.transactions || dataMap.finances,
     sales_opportunities: props.opportunities || dataMap.sales_opportunities,
     business_events: props.businessEvents || dataMap.business_events,
-  }), [dataMap, props]);
+    market_prices: props.marketPrices || dataMap.market_prices,
+    market_calendar_events: props.marketCalendarEvents || dataMap.market_calendar_events,
+    meteo: meteo || dataMap.meteo,
+  }), [dataMap, props, meteo]);
 
-  const decisionPlan = useMemo(() => buildDecisionCenterPlan(enrichedDataMap), [enrichedDataMap]);
+  const strategicPlan = useMemo(
+    () => buildStrategicDecisionPlan(enrichedDataMap, { meteo: meteo || dataMap.meteo }),
+    [enrichedDataMap, meteo, dataMap.meteo],
+  );
+
+  const decisionPlan = useMemo(() => {
+    const base = buildDecisionCenterPlan(enrichedDataMap);
+    return {
+      ...base,
+      recommendations: [...(strategicPlan.recommendations || []), ...(base.recommendations || [])],
+      strategic: strategicPlan,
+    };
+  }, [enrichedDataMap, strategicPlan]);
+
+  const tabBadges = useMemo(() => ({
+    ...badges.tabs,
+    Cycles: (strategicPlan.launch?.alerts?.length || 0) + (strategicPlan.launch?.cycleDecisions?.filter((d) => d.priority === 'critique').length || 0),
+    Risques: (strategicPlan.sellNow?.length || 0) + (strategicPlan.stockAudit?.alerts?.length || 0) + (strategicPlan.bfr?.blocked ? 1 : 0),
+  }), [badges.tabs, strategicPlan]);
 
   const priorityProps = {
     data,
@@ -71,11 +103,38 @@ export default function CentreDecisionModule({
     existingAlerts: props.existingAlerts,
   };
 
+  const risksData = useMemo(() => ({
+    ...data,
+    risks: [...(data.risks || []), ...(strategicPlan.risks || [])],
+  }), [data, strategicPlan.risks]);
+
   const content = tab === 'À traiter'
     ? <VisionPrioritiesTab {...priorityProps} />
     : tab === 'Recommandations'
       ? <CentreRecommandationsTab plan={decisionPlan} dataMap={enrichedDataMap} onNavigate={onNavigate} />
-      : <CentreHistoriqueTab dataMap={enrichedDataMap} onNavigate={onNavigate} />;
+      : tab === 'Cycles'
+        ? (
+          <VisionCyclesTab
+            dataMap={enrichedDataMap}
+            lots={props.lots}
+            animaux={props.animaux}
+            productionLogs={props.productionLogs}
+            strategicPlan={strategicPlan}
+            onNavigate={onNavigate}
+          />
+        )
+        : tab === 'Risques'
+          ? (
+            <VisionRisksTab
+              data={risksData}
+              strategicPlan={strategicPlan}
+              setTab={setTab}
+              onNavigate={onNavigate}
+              onCreateTask={props.onCreateTask}
+              onRefreshTasks={props.onRefreshTasks}
+            />
+          )
+          : <CentreHistoriqueTab dataMap={enrichedDataMap} onNavigate={onNavigate} />;
 
   return (
     <div className="space-y-6">
@@ -85,24 +144,28 @@ export default function CentreDecisionModule({
             <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Intelligence décisionnelle</p>
             <h1 className="mt-1 text-3xl font-black text-[#2f2415]">Centre décisionnel</h1>
             <p className="mt-2 text-sm text-[#8a7456] max-w-3xl">
-              3 onglets : traiter les priorités, lire les recommandations investissement/vente, suivre l&apos;historique. Analyses détaillées → Objectifs & Croissance.
+              QUAND vendre, QUAND lancer — croisement marché, calendrier religieux, ITH, BFR, audit stock et vide sanitaire. Tableaux détaillés → Objectifs & Croissance.
             </p>
             <HeyHorizonQuickAsk moduleKey="centre_ia" onNavigate={onNavigate} onOpenAssistant={onOpenAssistant} className="mt-2" />
             {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
           </div>
           <div className="flex flex-col gap-2">
             <div className="rounded-2xl border border-[#eadcc2] bg-white px-4 py-3 text-sm">
-              <span className="text-[#8a7456]">Priorités </span>
-              <b className="text-[#2f2415]">{data.priorities?.length || 0}</b>
+              <span className="text-[#8a7456]">Urgences vente </span>
+              <b className="text-[#2f2415]">{strategicPlan.sellNow?.length || 0}</b>
+            </div>
+            <div className="rounded-2xl border border-[#eadcc2] bg-white px-4 py-3 text-sm">
+              <span className="text-[#8a7456]">ITH actuel </span>
+              <b className="text-[#2f2415]">{strategicPlan.ith ?? '—'}</b>
             </div>
             <button type="button" onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Rentabilité Lot & Cycle' })} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-left text-sm hover:bg-[#dcfce7]">
-              <span className="text-[#8a7456]">Tableaux rentabilité & IC → </span><b>Objectifs & Croissance</b>
+              <span className="text-[#8a7456]">Croisements analytiques → </span><b>Objectifs & Croissance</b>
             </button>
           </div>
         </div>
       </section>
 
-      <ModuleTabsBar moduleId="centre_ia" active={tab} onChange={setTab} tabBadges={badges.tabs} />
+      <ModuleTabsBar moduleId="centre_ia" active={tab} onChange={setTab} tabBadges={tabBadges} />
       {content}
     </div>
   );
