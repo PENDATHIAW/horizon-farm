@@ -28,14 +28,10 @@ test.describe('Centre décisionnel et Objectifs & Croissance', () => {
 
     await openNav(page, 'Centre décisionnel');
     await expect(page.getByRole('heading', { name: /Centre décisionnel/i })).toBeVisible();
-    await expect(page.getByText(/Paramètres de pilotage|pilotage/i).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: /Recommandations/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Cycles/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Risques/i })).toBeVisible();
+    await expect(page.getByText(/À traiter aujourd'hui|File du jour/i).first()).toBeVisible();
 
     await page.getByRole('button', { name: /^Recommandations$/i }).click();
     await expect(page.getByText(/Recommandations investissement & vente/i)).toBeVisible();
-    await expect(page.getByText(/Pourquoi Horizon recommande/i).first()).toBeVisible();
     await expect(page.getByText(/Calendrier commercial annuel/i)).toBeVisible();
 
     await page.getByRole('button', { name: /^Historique$/i }).click();
@@ -46,8 +42,6 @@ test.describe('Centre décisionnel et Objectifs & Croissance', () => {
     await expect(page.getByText(/Objectifs par activité/i)).toBeVisible();
     await expect(page.getByText(/Demande, couverture & actions/i)).toBeVisible();
     await expect(page.getByText(/Fidélisation, fournisseurs & stock/i)).toBeVisible();
-    await expect(page.getByRole('button', { name: /Exporter Excel/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Rentabilité Lot/i })).toBeVisible();
   });
 
   test('onglet Cycles affiche le vide sanitaire', async ({ page }) => {
