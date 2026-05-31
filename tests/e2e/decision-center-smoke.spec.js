@@ -28,20 +28,14 @@ test.describe('Centre décisionnel et Objectifs & Croissance', () => {
 
     await openNav(page, 'Centre décisionnel');
     await expect(page.getByRole('heading', { name: /Centre décisionnel/i })).toBeVisible();
-    await expect(page.getByText(/Priorités actionnables/i)).toBeVisible();
-
-    await page.getByRole('button', { name: /Recommandations/i }).click();
-    await expect(page.getByText(/Recommandations investissement & vente/i)).toBeVisible();
-    await expect(page.getByText(/Pourquoi Horizon recommande ça/i).first()).toBeVisible();
-    await expect(page.getByText(/Calendrier commercial annuel/i)).toBeVisible();
-
-    await page.getByRole('button', { name: /Historique/i }).click();
+    await expect(page.getByText(/Recommandations investissement/i)).toBeVisible();
     await expect(page.getByText(/Historique des décisions/i)).toBeVisible();
 
     await openNav(page, 'Objectifs & Croissance');
     await expect(page.getByRole('heading', { name: /Objectifs & Croissance/i })).toBeVisible();
-    await expect(page.getByText(/Objectifs par activité/i)).toBeVisible();
-    await expect(page.getByText(/Demande, couverture & actions/i)).toBeVisible();
-    await expect(page.getByText(/Fidélisation, fournisseurs & stock/i)).toBeVisible();
+    await expect(page.getByText(/Rentabilité par lot et cycle/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /Efficacité Technique/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Flux & Équilibres/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Maraîchage & Diversification/i })).toBeVisible();
   });
 });

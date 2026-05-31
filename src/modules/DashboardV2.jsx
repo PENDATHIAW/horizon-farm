@@ -145,7 +145,7 @@ function Summary({ summary, health, simple, navigate, onOpenAssistant }) {
     <div className="space-y-5">
       <DashboardGoalsHero
         goal={summary.goal}
-        onOpenVision={() => navigate('objectifs_croissance', { tab: 'Performance' })}
+        onOpenVision={() => navigate('objectifs_croissance', { tab: 'Rentabilité Lot & Cycle' })}
         onOpenAssistant={onOpenAssistant}
         onNavigate={navigate}
       />
