@@ -1,5 +1,6 @@
 import DashboardEvolution from '../../modules/DashboardEvolution.jsx';
 import SalesEvolution from '../../modules/SalesEvolution.jsx';
+import CommercialEvolution from '../../modules/commercial/CommercialEvolution.jsx';
 import StockEvolution from '../../modules/StockEvolution.jsx';
 import FinanceEvolution from '../../modules/FinanceEvolution.jsx';
 import InvestissementsEvolution from '../../modules/InvestissementsEvolution.jsx';
@@ -55,7 +56,7 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
       ), periodFiltered);
     case 'commercial':
       return withChartPeriod((
-        <SalesEvolution
+        <CommercialEvolution
           rows={arr(props.salesOrders || props.rows)}
           payments={arr(props.payments)}
           opportunities={arr(props.opportunities)}
@@ -69,6 +70,8 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
           vaccins={arr(props.vaccins)}
           businessEvents={arr(props.businessEvents)}
           transactions={arr(props.transactions)}
+          periodFiltered={periodFiltered}
+          periodScope={props.periodScope}
           onNavigate={onNavigate}
         />
       ), periodFiltered);

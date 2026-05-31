@@ -249,7 +249,7 @@ export default function CommercialRecoveredModule(props) {
       {tab === 'Graphiques' ? (
         <ModuleGraphiquesTab
           moduleId="commercial"
-          salesOrders={data.orders}
+          salesOrders={enrichOrdersWithDeliveries(ordersAll, deliveriesAll)}
           payments={paymentsAll}
           opportunities={opportunities}
           clients={clients}
@@ -262,6 +262,7 @@ export default function CommercialRecoveredModule(props) {
           vaccins={rowsOf(props.vaccins || props.sante, santeCrud, pf)}
           businessEvents={rowsOf(props.businessEvents, eventsCrud, pf)}
           transactions={rowsOf(props.transactions, financesCrud, pf)}
+          periodScope={props.periodScope}
           periodFiltered={periodFiltered}
           onNavigate={props.onNavigate}
         />
