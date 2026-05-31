@@ -2,6 +2,7 @@ import { monthKeyFromDate, monthLabelFromKey, resolveChartDate } from '../../uti
 import { toNumber } from '../../utils/format.js';
 import { paidForOrder, remainingForOrder } from '../../utils/salesStatuses.js';
 import { summarizeSalesMargins } from '../../utils/salesMarginEngine.js';
+import { filterRowsByPeriodScope, isAllTimeScope, normalizePeriodScope, resolvePeriodContext } from '../../utils/periodScope.js';
 import {
   buildMonthlyFinancialTargets,
   defaultFinancialPlan,
@@ -74,19 +75,21 @@ export function buildMarginByActivity(rows = [], context = {}) {
     .sort((a, b) => b.value - a.value);
 }
 
-/** CA commandé et marge fiable par mois. */
-export function buildMonthlySalesAndMargin(rows = [], context = {}) {
+/** CA commandé, marge fiable et encaissé par mois. */
+export function buildMonthlySalesAndMargin(rows = [], context = {}, payments = []) {
   const marginSummary = summarizeSalesMargins(rows, context);
   const marginMap = new Map(marginSummary.details.map((row) => [String(row.id), row]));
+  const linked = activeLinkedPayments(rows, payments);
   const map = new Map();
 
   arr(rows).forEach((order) => {
     const key = orderMonthKey(order);
     if (!key) return;
     const enriched = marginMap.get(String(order.id)) || order;
-    const bucket = map.get(key) || { key, mois: monthLabelFromKey(key), ca: 0, marge: 0 };
+    const bucket = map.get(key) || { key, mois: monthLabelFromKey(key), ca: 0, marge: 0, encaisse: 0 };
     bucket.ca += amount(enriched);
     bucket.marge += reliableMargin(enriched);
+    bucket.encaisse += paidForOrder(order, linked);
     map.set(key, bucket);
   });
 
@@ -204,13 +207,22 @@ export function buildAttainmentKpis(rows = [], options = {}) {
 }
 
 export function buildCommercialChartDataset(props = {}) {
-  const rows = arr(props.rows || props.salesOrders);
+  const scope = normalizePeriodScope(props.periodScope);
+  let rows = arr(props.rows || props.salesOrders);
+  if (props.periodFiltered && !isAllTimeScope(scope)) {
+    rows = filterRowsByPeriodScope(rows, scope);
+  }
+
   const payments = activeLinkedPayments(rows, arr(props.payments));
   const context = buildMarginContext({ ...props, payments });
-  const monthly = buildMonthlySalesAndMargin(rows, context);
+  const monthly = buildMonthlySalesAndMargin(rows, context, payments);
   const marginByActivity = buildMarginByActivity(rows, context);
   const year = new Date().getFullYear();
-  const monthKeys = monthly.map((row) => row.key);
+  const periodContext = resolvePeriodContext(scope);
+  const monthKeys = props.periodFiltered && periodContext.monthKeys?.length
+    ? periodContext.monthKeys
+    : monthly.map((row) => row.key);
+
   const volumeVsTarget = buildVolumeVsTargetByActivity(rows, {
     year,
     monthKeys: props.periodFiltered ? monthKeys : [],
