@@ -8,7 +8,9 @@ import { calculateCultureMetricsWithLoss } from '../utils/lossAdjustedMetrics';
 import CultureOperationalHealthPanel from './CultureOperationalHealthPanel.jsx';
 import CulturesV3 from './CulturesV3.jsx';
 import CulturesEvolution from './CulturesEvolution.jsx';
+import ManureEconomyPanel from '../components/ManureEconomyPanel.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
+import { getRealCultureRows } from './CulturesTabActionsBridge.jsx';
 
 const toNumber = (value = 0) => Number(value || 0);
 const today = () => new Date().toISOString().slice(0, 10);
@@ -164,7 +166,7 @@ export default function CulturesV4(props) {
     <ManureEconomyPanel
       stocks={stocks}
       salesOrders={props.salesOrders || []}
-      cultures={adjustedRows}
+      cultures={getRealCultureRows(adjustedRows)}
       businessEvents={props.businessEvents || []}
       dataMap={dataMap}
     />

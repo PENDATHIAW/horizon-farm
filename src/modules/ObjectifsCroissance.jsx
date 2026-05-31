@@ -5,6 +5,8 @@ import { HORIZON_FARM_OFFICIAL_BP } from '../services/horizonFarmOfficialBusines
 import { buildDecisionCenterPlan } from '../services/growthDecisionEngine';
 import { fmtCurrency } from '../utils/format';
 import FinancialPlanLightPanel from './FinancialPlanLightPanel.jsx';
+import ObjectiveDecisionSummary from './ObjectiveDecisionSummary.jsx';
+import ObjectiveSupplyPanel from './ObjectiveSupplyPanel.jsx';
 
 export default function ObjectifsCroissance({ dataMap = {}, onNavigate }) {
   const plan = buildDecisionCenterPlan(dataMap);
@@ -22,6 +24,8 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate }) {
       />
 
       <GrowthPrioritySummary goal={goal} lateActivities={lateActivities} onNavigate={onNavigate} />
+
+      <ObjectiveDecisionSummary plan={plan} onNavigate={onNavigate} />
 
       <OfficialMonthlyGoalsPanel onNavigate={onNavigate} />
 
@@ -46,6 +50,8 @@ export default function ObjectifsCroissance({ dataMap = {}, onNavigate }) {
           {!(plan.goals?.activities || []).length ? <div className="col-span-full rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#8a7456]">Aucun objectif par activité disponible pour le moment.</div> : null}
         </div>
       </div>
+
+      <ObjectiveSupplyPanel dataMap={dataMap} onNavigate={onNavigate} />
 
       <div className="rounded-3xl border border-[#eadcc2] bg-[#fffdf8] p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>

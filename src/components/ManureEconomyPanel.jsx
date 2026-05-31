@@ -49,7 +49,7 @@ export default function ManureEconomyPanel({
         </p>
       </div>
 
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-relaxed text-emerald-900">
+      <div className={`rounded-2xl border p-4 text-sm leading-relaxed ${economy.hasCultures ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
         {formatManureEconomySummary(economy)}
       </div>
 

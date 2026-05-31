@@ -30,8 +30,19 @@ function soldSacsFromOrders(orders = [], dataMap = {}) {
     .reduce((sum, row) => sum + toNumber(row.quantity ?? row.quantite ?? 1), 0);
 }
 
+function isSupportCultureRecord(row = {}) {
+  const type = norm(row.record_type || row.type_fiche);
+  return ['parcelle', 'campagne', 'performance'].includes(type);
+}
+
+function countRealCultures(cultures = []) {
+  return arr(cultures).filter((row) => !isSupportCultureRecord(row)).length;
+}
+
 function engraisSacsFromCultures(cultures = []) {
-  return arr(cultures).reduce((sum, row) => sum + toNumber(row.cout_engrais), 0);
+  return arr(cultures)
+    .filter((row) => !isSupportCultureRecord(row))
+    .reduce((sum, row) => sum + toNumber(row.cout_engrais), 0);
 }
 
 function resolveEngraisSacPrice(stocks = [], cultures = []) {
@@ -71,11 +82,14 @@ export function computeManureFertilizerEconomy({
   const soldSacs = soldSacsFromOrders(salesOrders, dataMap);
   const producedSacs = Math.max(producedFromEvents, stockSacsQty + soldSacs);
   const internalSacs = Math.max(0, producedSacs - soldSacs);
-  const sacsEngraisEconomises = Math.round(internalSacs * MANURE_TO_FERTILIZER_SAC_RATIO);
+  const hasCultures = countRealCultures(cultures) > 0;
   const prixSacEngrais = resolveEngraisSacPrice(stocks, cultures);
-  const economieFcfa = Math.round(sacsEngraisEconomises * prixSacEngrais);
+  const sacsEngraisEconomises = hasCultures
+    ? Math.round(internalSacs * MANURE_TO_FERTILIZER_SAC_RATIO)
+    : 0;
+  const economieFcfa = hasCultures ? Math.round(sacsEngraisEconomises * prixSacEngrais) : 0;
   const coutEngraisBrut = engraisSacsFromCultures(cultures);
-  const coutEngraisNet = Math.max(0, coutEngraisBrut - economieFcfa);
+  const coutEngraisNet = hasCultures ? Math.max(0, coutEngraisBrut - economieFcfa) : coutEngraisBrut;
 
   return {
     producedSacs,
@@ -87,11 +101,16 @@ export function computeManureFertilizerEconomy({
     economieFcfa,
     coutEngraisBrut,
     coutEngraisNet,
+    hasCultures,
+    economieActive: hasCultures,
     hasRealProducedData: producedFromEvents > 0 || stockSacsQty > 0,
   };
 }
 
 export function formatManureEconomySummary(economy = {}) {
+  if (!economy.hasCultures) {
+    return 'Créez des cultures pour activer l’économie engrais liée au fumier. Le suivi fumier (collecte, stock, vente) reste disponible.';
+  }
   if (!economy.hasRealProducedData && economy.sacsEngraisEconomises <= 0) {
     return 'Enregistrez des sacs de fumier lors d’un nettoyage pour activer le suivi.';
   }
