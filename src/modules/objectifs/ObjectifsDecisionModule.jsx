@@ -8,6 +8,9 @@ import EfficaciteTechniqueTab from './EfficaciteTechniqueTab.jsx';
 import FluxEquilibresTab from './FluxEquilibresTab.jsx';
 import MaraichageDiversificationTab from './MaraichageDiversificationTab.jsx';
 import CrossAnalyticsSections from './CrossAnalyticsSections.jsx';
+import Btn from '../../components/Btn.jsx';
+import { mergePilotageIntoDataMap } from '../../services/pilotageSettingsService.js';
+import { exportObjectifsAnalyticsExcel } from '../../services/objectifsDecision/objectifsAnalyticsExport.js';
 
 const TAB_IDS = MODULE_TARGET_TABS.objectifs_croissance;
 
@@ -42,7 +45,7 @@ export default function ObjectifsDecisionModule({
     setTab(resolveTab(initialTab));
   }, [initialTab]);
 
-  const enrichedDataMap = useMemo(() => ({
+  const enrichedDataMap = useMemo(() => mergePilotageIntoDataMap({
     ...dataMap,
     animaux: props.animaux || dataMap.animaux,
     avicole: props.lots || dataMap.avicole || dataMap.lots,
@@ -91,9 +94,12 @@ export default function ObjectifsDecisionModule({
             </p>
             {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
           </div>
-          <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'À traiter' })} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-left text-sm hover:bg-[#dcfce7]">
-            <span className="text-[#8a7456]">Actions & recommandations → </span><b>Centre décisionnel</b>
-          </button>
+          <div className="flex flex-col gap-2">
+            <Btn variant="outline" onClick={() => exportObjectifsAnalyticsExcel(analytics)}>Exporter Excel</Btn>
+            <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'À traiter' })} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-left text-sm hover:bg-[#dcfce7]">
+              <span className="text-[#8a7456]">Actions & recommandations → </span><b>Centre décisionnel</b>
+            </button>
+          </div>
         </div>
       </section>
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import HeyHorizonQuickAsk from '../../components/HeyHorizonQuickAsk.jsx';
@@ -12,6 +12,9 @@ import VisionCyclesTab from '../vision/VisionCyclesTab.jsx';
 import VisionRisksTab from '../vision/VisionRisksTab.jsx';
 import CentreRecommandationsTab from './CentreRecommandationsTab.jsx';
 import CentreHistoriqueTab from './CentreHistoriqueTab.jsx';
+import PilotageSettingsPanel from './PilotageSettingsPanel.jsx';
+import { mergePilotageIntoDataMap } from '../../services/pilotageSettingsService.js';
+import { syncStrategicAlertsToCenter } from '../../services/strategicAlertBridge.js';
 
 const TAB_IDS = MODULE_TARGET_TABS.centre_ia;
 
@@ -38,6 +41,8 @@ export default function CentreDecisionModule({
   ...props
 }) {
   const [tab, setTab] = useState(() => resolveTab(initialTab));
+  const [pilotageVersion, setPilotageVersion] = useState(0);
+  const syncedPlanRef = useRef('');
 
   useEffect(() => {
     setTab(resolveTab(initialTab));
@@ -47,7 +52,7 @@ export default function CentreDecisionModule({
   const data = useMemo(() => buildVisionData(visionProps), [visionProps]);
   const badges = useMemo(() => buildVisionBadges(data, 'centre_ia'), [data]);
 
-  const enrichedDataMap = useMemo(() => ({
+  const enrichedDataMap = useMemo(() => mergePilotageIntoDataMap({
     ...dataMap,
     animaux: props.animaux || dataMap.animaux,
     avicole: props.lots || dataMap.avicole,
@@ -66,7 +71,7 @@ export default function CentreDecisionModule({
     market_prices: props.marketPrices || dataMap.market_prices,
     market_calendar_events: props.marketCalendarEvents || dataMap.market_calendar_events,
     meteo: meteo || dataMap.meteo,
-  }), [dataMap, props, meteo]);
+  }), [dataMap, props, meteo, pilotageVersion]);
 
   const strategicPlan = useMemo(
     () => buildStrategicDecisionPlan(enrichedDataMap, { meteo: meteo || dataMap.meteo }),
@@ -84,6 +89,24 @@ export default function CentreDecisionModule({
       strategic: strategicPlan,
     };
   }, [enrichedDataMap, strategicPlan]);
+
+  useEffect(() => {
+    const signature = JSON.stringify({
+      sell: strategicPlan.sellNow?.length,
+      bfr: strategicPlan.bfr?.blocked,
+      sanitary: (strategicPlan.sanitary || []).filter((s) => s.blocking).length,
+      stock: strategicPlan.stockAudit?.alerts?.length,
+      launch: strategicPlan.launch?.alerts?.length,
+    });
+    if (!props.onCreateAlert || signature === syncedPlanRef.current) return;
+    syncedPlanRef.current = signature;
+    syncStrategicAlertsToCenter({
+      strategicPlan,
+      existingAlerts: props.existingAlerts,
+      onCreateAlert: props.onCreateAlert,
+      onRefreshAlertes: props.onRefreshAlertes,
+    }).catch(() => undefined);
+  }, [strategicPlan, props.onCreateAlert, props.onRefreshAlertes, props.existingAlerts]);
 
   const tabBadges = useMemo(() => ({
     ...badges.tabs,
@@ -124,6 +147,10 @@ export default function CentreDecisionModule({
             productionLogs={props.productionLogs}
             strategicPlan={strategicPlan}
             onNavigate={onNavigate}
+            onCreateTask={props.onCreateTask}
+            onCreateAlert={props.onCreateAlert}
+            onRefreshTasks={props.onRefreshTasks}
+            onRefreshAlertes={props.onRefreshAlertes}
           />
         )
         : tab === 'Risques'
@@ -135,6 +162,8 @@ export default function CentreDecisionModule({
               onNavigate={onNavigate}
               onCreateTask={props.onCreateTask}
               onRefreshTasks={props.onRefreshTasks}
+              onCreateAlert={props.onCreateAlert}
+              onRefreshAlertes={props.onRefreshAlertes}
             />
           )
           : <CentreHistoriqueTab dataMap={enrichedDataMap} onNavigate={onNavigate} />;
@@ -168,6 +197,7 @@ export default function CentreDecisionModule({
         </div>
       </section>
 
+      <PilotageSettingsPanel clients={props.clients || dataMap.clients} onChange={() => setPilotageVersion((v) => v + 1)} />
       <ModuleTabsBar moduleId="centre_ia" active={tab} onChange={setTab} tabBadges={tabBadges} />
       {content}
     </div>

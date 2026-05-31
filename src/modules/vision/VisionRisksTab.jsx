@@ -1,9 +1,10 @@
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, TrendingDown, Package, Wallet } from 'lucide-react';
 import { fmtCurrency, fmtNumber } from '../../utils/format';
 import { navigateVisionRisk } from './visionNavigation.js';
+import StrategicDecisionCard from '../centre/StrategicDecisionCard.jsx';
 import { Btn, DataRow, DataTable, Empty, Pill, Section, TabIntro, VisionKpi, riskLevelLabel } from './visionUtils';
 
-export default function VisionRisksTab({ data, onNavigate, setTab, onCreateTask, onRefreshTasks }) {
+export default function VisionRisksTab({ data, onNavigate, setTab, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, strategicPlan = {} }) {
   const engineRisks = data.engineRisks || [];
   const criticalCount = data.risks.filter((r) => r.tone === 'bad').length;
   const financeExposure = Math.max(0, -(data.treasuryResult ?? data.balance)) + (data.receivable || 0);
@@ -34,6 +35,53 @@ export default function VisionRisksTab({ data, onNavigate, setTab, onCreateTask,
         <VisionKpi label="Exposition finance" value={fmtCurrency(financeExposure)} tone={financeExposure ? 'warn' : 'good'} onClick={() => onNavigate?.('finance_pilotage', { tab: 'Trésorerie' })} />
         <VisionKpi label="Preuves manquantes" value={fmtNumber(data.missingProof)} tone={data.missingProof ? 'warn' : 'good'} onClick={() => onNavigate?.('documents_rapports', { tab: 'Preuves' })} />
       </div>
+
+      {strategicPlan.sellNow?.length ? (
+        <Section icon={TrendingDown} title="Urgences vente — QUAND VENDRE">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {strategicPlan.sellNow.map((item) => (
+              <StrategicDecisionCard
+                key={item.id}
+                item={{ ...item, title: item.status, category: 'sell_now' }}
+                onNavigate={onNavigate}
+                onCreateTask={onCreateTask}
+                onCreateAlert={onCreateAlert}
+                onRefreshTasks={onRefreshTasks}
+                onRefreshAlertes={onRefreshAlertes}
+              />
+            ))}
+          </div>
+        </Section>
+      ) : null}
+      {strategicPlan.stockAudit?.alerts?.length ? (
+        <Section icon={Package} title="Audit stock aliment">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {strategicPlan.stockAudit.alerts.map((item) => (
+              <StrategicDecisionCard
+                key={item.id}
+                item={{ ...item, title: `Surconsommation ${item.building}`, message: item.message, category: 'stock_audit', module: 'achats_stock', navTab: 'Stock' }}
+                onNavigate={onNavigate}
+                onCreateTask={onCreateTask}
+                onCreateAlert={onCreateAlert}
+                onRefreshTasks={onRefreshTasks}
+                onRefreshAlertes={onRefreshAlertes}
+              />
+            ))}
+          </div>
+        </Section>
+      ) : null}
+      {strategicPlan.bfr?.blocked ? (
+        <Section icon={Wallet} title="Blocage BFR — trésorerie">
+          <StrategicDecisionCard
+            item={{ id: 'bfr-block', title: 'Lancement suspendu', message: strategicPlan.bfr.message, priority: 'critique', category: 'bfr', module: 'finance_pilotage', navTab: 'Trésorerie', coveragePct: strategicPlan.bfr.coveragePct }}
+            onNavigate={onNavigate}
+            onCreateTask={onCreateTask}
+            onCreateAlert={onCreateAlert}
+            onRefreshTasks={onRefreshTasks}
+            onRefreshAlertes={onRefreshAlertes}
+          />
+        </Section>
+      ) : null}
       {engineRisks.length ? (
         <Section icon={ShieldAlert} title="Matrice risques IA">
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">

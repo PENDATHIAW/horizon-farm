@@ -99,6 +99,30 @@ export function buildCommercialCalendar(date = new Date(), activityYear = null) 
   }, { current: null, next: [], year: [] });
 }
 
+
+function pilotageEventsFromSettings(dataMap = {}) {
+  const settings = dataMap.growth_settings || {};
+  const fd = settings.festival_dates || {};
+  const defs = [
+    { key: 'tabaski', label: 'Tabaski', activities: ['bovins'], note: 'Date pilotage local.' },
+    { key: 'korite', label: 'Korité', activities: ['poulets_chair', 'oeufs'], note: 'Date pilotage local.' },
+    { key: 'magal', label: 'Magal', activities: ['bovins'], note: 'Date pilotage local.' },
+    { key: 'fin_annee', label: 'Fin d\'année', activities: ['poulets_chair', 'oeufs', 'bovins'], note: 'Date pilotage local.' },
+    { key: 'ramadan', label: 'Ramadan', activities: ['poulets_chair', 'oeufs'], note: 'Date pilotage local.' },
+  ];
+  return defs
+    .filter((row) => fd[row.key])
+    .map((row) => ({
+      id: `pilotage-${row.key}-${fd[row.key]}`,
+      label: row.label,
+      date: safeDate(fd[row.key]),
+      activities: row.activities,
+      note: row.note,
+      source: 'pilotage',
+    }))
+    .filter((event) => !Number.isNaN(event.date.getTime()));
+}
+
 function defaultEventsForYear(year) {
   return [
     { id: `tabaski-${year}`, label: 'Tabaski', date: makeDate(year, 5, 27), activities: ['bovins'], note: 'Date indicative à remplacer par le calendrier officiel/local.' },
@@ -111,8 +135,12 @@ export function buildMarketEvents(referenceDate = new Date(), dataMap = {}) {
   return safeRun(() => {
     const ref = safeDate(referenceDate);
     const customEvents = arr(dataMap.market_calendar_events || dataMap.marketCalendarEvents).map((event) => ({ id: event.id || event.code || event.nom, label: event.label || event.nom || event.title, date: safeDate(event.date || event.target_date || event.date_cible), activities: arr(event.activities || event.activites || event.focus), note: event.note || event.description || '', source: 'custom' })).filter((event) => event.label && !Number.isNaN(event.date.getTime()));
-    const defaults = [ref.getFullYear(), ref.getFullYear() + 1].flatMap(defaultEventsForYear).map((event) => ({ ...event, source: 'default' }));
-    return [...customEvents, ...defaults].filter((event) => event.date >= addDays(ref, -15) && event.date <= addDays(ref, 540)).sort((a, b) => a.date - b.date);
+    const pilotageEvents = pilotageEventsFromSettings(dataMap);
+    const pilotageLabels = new Set(pilotageEvents.map((event) => normalize(event.label)));
+    const defaults = [ref.getFullYear(), ref.getFullYear() + 1].flatMap(defaultEventsForYear)
+      .filter((event) => !pilotageLabels.has(normalize(event.label)))
+      .map((event) => ({ ...event, source: 'default' }));
+    return [...customEvents, ...pilotageEvents, ...defaults].filter((event) => event.date >= addDays(ref, -15) && event.date <= addDays(ref, 540)).sort((a, b) => a.date - b.date);
   }, []);
 }
 

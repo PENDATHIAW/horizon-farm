@@ -12,6 +12,10 @@ export default function VisionCyclesTab({
   productionLogs = [],
   strategicPlan = {},
   onNavigate,
+  onCreateTask,
+  onCreateAlert,
+  onRefreshTasks,
+  onRefreshAlertes,
 }) {
   const launchDecisions = (strategicPlan.launch?.cycleDecisions || []).filter((d) => d.type !== 'stress_thermique' || d.priority === 'haute');
   const heatDecision = strategicPlan.launch?.cycleDecisions?.find((d) => d.type === 'stress_thermique');
@@ -45,25 +49,25 @@ export default function VisionCyclesTab({
           <p className="text-xs text-[#8a7456] mb-3">Acheter ou lancer la bande avant la date pivot pour être prêt à la fête.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {launchDecisions.filter((d) => d.eventLabel).map((d) => (
-              <StrategicDecisionCard key={d.id} item={d} onNavigate={onNavigate} />
+              <StrategicDecisionCard key={d.id} item={d} onNavigate={onNavigate} onCreateTask={onCreateTask} onCreateAlert={onCreateAlert} onRefreshTasks={onRefreshTasks} onRefreshAlertes={onRefreshAlertes} />
             ))}
           </div>
         </Section>
       ) : null}
 
       <Section icon={AlertTriangle} title="2. Vide sanitaire & historique pathologique">
-        <SanitaryVacuumPanel alerts={sanitary} onNavigate={onNavigate} />
+        <SanitaryVacuumPanel alerts={sanitary} onNavigate={onNavigate} onCreateTask={onCreateTask} onCreateAlert={onCreateAlert} onRefreshTasks={onRefreshTasks} onRefreshAlertes={onRefreshAlertes} />
       </Section>
 
       {heatDecision ? (
         <Section icon={Thermometer} title="3. Chaleur & ITH — ajuster le lancement">
-          <StrategicDecisionCard item={heatDecision} onNavigate={onNavigate} />
+          <StrategicDecisionCard item={heatDecision} onNavigate={onNavigate} onCreateTask={onCreateTask} onCreateAlert={onCreateAlert} onRefreshTasks={onRefreshTasks} onRefreshAlertes={onRefreshAlertes} />
         </Section>
       ) : null}
 
       {strategicPlan.scissors ? (
         <Section icon={Thermometer} title="4. Effet ciseau — stocker les intrants">
-          <StrategicDecisionCard item={{ ...strategicPlan.scissors, title: 'Achat groupé recommandé' }} onNavigate={onNavigate} />
+          <StrategicDecisionCard item={{ ...strategicPlan.scissors, title: 'Achat groupé recommandé' }} onNavigate={onNavigate} onCreateTask={onCreateTask} onCreateAlert={onCreateAlert} onRefreshTasks={onRefreshTasks} onRefreshAlertes={onRefreshAlertes} />
         </Section>
       ) : null}
 

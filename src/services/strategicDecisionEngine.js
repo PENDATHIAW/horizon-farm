@@ -36,6 +36,20 @@ const lotIdOf = (r = {}) => String(r.lot_id || r.lot || r.cible_id || '');
 const amount = (r = {}) => num(r.montant_total ?? r.total ?? r.amount ?? r.montant ?? r.montant_paye);
 const buildingOf = (r = {}) => r.batiment || r.building || r.nom_batiment || 'Bâtiment';
 
+function pilotageSettings(dataMap = {}) {
+  const s = dataMap.growth_settings || {};
+  return {
+    sanitaryMinDays: num(s.sanitary_min_days) || 10,
+    mortalityThresholdPct: num(s.mortality_threshold_pct) || 5,
+    extraVacuumDays: num(s.extra_vacuum_days) || 7,
+    bfrMinCoveragePct: num(s.bfr_min_coverage_pct) || BFR_MIN_COVERAGE_PCT,
+    ithStressThreshold: num(s.ith_stress_threshold) || ITH_STRESS_THRESHOLD,
+    vipClientIds: new Set(arr(s.vip_client_ids).map(String)),
+  };
+}
+
+
+
 function feedStandardKgPerBird(workshop, ageDays) {
   if (workshop === 'pondeuses') return ageDays > 150 ? 0.135 : 0.110;
   if (workshop === 'poulets_chair') {
@@ -168,6 +182,7 @@ export function evaluateSellNowDecisions(dataMap = {}, options = {}) {
 
 /** 2. ALGORITHME QUAND LANCER — calendrier religieux, climat, ITH. */
 export function evaluateLaunchTimingDecisions(dataMap = {}, options = {}) {
+  const ps = pilotageSettings(dataMap);
   const lots = arr(dataMap.avicole || dataMap.lots);
   const animaux = arr(dataMap.animaux);
   const meteo = options.meteo || dataMap.meteo || {};
@@ -236,7 +251,7 @@ export function evaluateLaunchTimingDecisions(dataMap = {}, options = {}) {
   const forecast = arr(meteo.forecast || options.weatherForecast || meteo.previsions);
 
   const hotDays = forecast.filter((f) => num(f.temp ?? f.temperature) >= HEAT_FORECAST_THRESHOLD).length;
-  const isHotSeason = hotDays >= 3 || temp >= HEAT_FORECAST_THRESHOLD || ith >= ITH_STRESS_THRESHOLD;
+  const isHotSeason = hotDays >= 3 || temp >= HEAT_FORECAST_THRESHOLD || ith >= ps.ithStressThreshold;
 
   if (isHotSeason) {
     const heatDecision = {
@@ -248,7 +263,7 @@ export function evaluateLaunchTimingDecisions(dataMap = {}, options = {}) {
       priority: 'haute',
       densityReductionPct: 15,
       delayDays: 14,
-      message: ith >= ITH_STRESS_THRESHOLD
+      message: ith >= ps.ithStressThreshold
         ? `ITH ${ith} (canicule). Décaler le lancement poulets de chair de 14 jours OU réduire la densité de 15% pour protéger la marge aliment.`
         : `Prévisions chaleur (${hotDays} j ≥ ${HEAT_FORECAST_THRESHOLD}°C). Envisager décalage lancement ou densité -15%.`,
     };
@@ -350,7 +365,8 @@ export function validateCycleBfrCoverage(dataMap = {}, options = {}) {
   const expenses = transactions.filter((t) => norm(t.type || t.categorie || '').includes('sortie')).reduce((s, t) => s + amount(t), 0);
   const treasury = income - expenses;
 
-  const vipClients = clients.filter((c) => norm(c.segment || c.type_client || c.categorie || '').includes('vip') || num(c.score_fidelite) >= 80);
+  const ps = pilotageSettings(dataMap);
+  const vipClients = clients.filter((c) => ps.vipClientIds.has(String(c.id)) || norm(c.segment || c.type_client || c.categorie || '').includes('vip') || num(c.score_fidelite) >= 80);
   const vipNames = new Set(vipClients.map((c) => String(c.id)));
   const in7days = addDays(new Date(), 7);
 
@@ -370,7 +386,7 @@ export function validateCycleBfrCoverage(dataMap = {}, options = {}) {
 
   const totalAvailable = Math.max(0, treasury) + vipReceivables;
   const coveragePct = coutEstimeCycle > 0 ? (totalAvailable / coutEstimeCycle) * 100 : 100;
-  const blocked = coveragePct < BFR_MIN_COVERAGE_PCT;
+  const blocked = coveragePct < ps.bfrMinCoveragePct;
 
   const feedAutonomyDays = (() => {
     const feedStock = stocks.filter((s) => FEED_PATTERNS.some((p) => norm(`${s.nom || ''}`).includes(p))).reduce((s, st) => s + num(st.quantite ?? st.quantity), 0);
@@ -392,7 +408,7 @@ export function validateCycleBfrCoverage(dataMap = {}, options = {}) {
     vipPending,
     plannedHeadcount,
     message: blocked
-      ? `Lancement suspendu : Trésorerie insuffisante pour garantir l'achat des aliments de la bande (couverture ${Math.round(coveragePct)}% < ${BFR_MIN_COVERAGE_PCT}%). Relancer d'abord les créances${vipPending.length ? ` des clients ${vipPending.map((v) => v.client).join(', ')}` : ' en souffrance'}.`
+      ? `Lancement suspendu : Trésorerie insuffisante pour garantir l'achat des aliments de la bande (couverture ${Math.round(coveragePct)}% < ${ps.bfrMinCoveragePct}%). Relancer d'abord les créances${vipPending.length ? ` des clients ${vipPending.map((v) => v.client).join(', ')}` : ' en souffrance'}.`
       : `Couverture BFR OK (${Math.round(coveragePct)}%) — trésorerie + créances VIP couvrent le cycle.`,
   };
 
@@ -447,8 +463,14 @@ function enrichSanitaryAlert(alert, refDate = new Date()) {
 
 /** Vide sanitaire prolongé si mortalité élevée sur bâtiment. */
 export function buildExtendedSanitaryAlerts(dataMap = {}) {
+  const ps = pilotageSettings(dataMap);
   const lots = arr(dataMap.avicole || dataMap.lots);
-  const baseAlerts = buildSanitaryVacuumAlerts(lots);
+  const baseAlerts = buildSanitaryVacuumAlerts(lots).map((alert) => ({
+    ...alert,
+    requiredDays: ps.sanitaryMinDays,
+    blocking: (alert.gapDays ?? alert.requiredDays ?? 0) < ps.sanitaryMinDays,
+    message: alert.message || `Vide sanitaire insuffisant dans ${alert.building}.`,
+  }));
   const alerts = [...baseAlerts];
 
   const byBuilding = new Map();
@@ -465,8 +487,8 @@ export function buildExtendedSanitaryAlerts(dataMap = {}) {
     const dead = avicoleDeadCount(lastClosed);
     const initial = avicoleInitialCount(lastClosed) || 1;
     const mortalityRate = (dead / initial) * 100;
-    if (mortalityRate > 5) {
-      const extraDays = 7;
+    if (mortalityRate > ps.mortalityThresholdPct) {
+      const extraDays = ps.extraVacuumDays;
       alerts.push({
         id: `sanitary-extended-${building}`,
         building,
@@ -570,7 +592,8 @@ export function buildStrategicDecisionPlan(dataMap = {}, options = {}) {
   const launch = evaluateLaunchTimingDecisions(dataMap, options);
   const stockAudit = auditFeedStockConsumption(dataMap, options);
   const bfr = validateCycleBfrCoverage(dataMap, options);
-  const sanitary = buildExtendedSanitaryAlerts(dataMap);
+  const refDate = options.referenceDate ? new Date(options.referenceDate) : new Date();
+  const sanitary = buildExtendedSanitaryAlerts(dataMap).map((alert) => enrichSanitaryAlert(alert, refDate));
   const scissors = buildScissorsEffectAlert(dataMap);
   const transformation = buildTransformationArbitrage(dataMap);
 
@@ -676,7 +699,7 @@ export function buildStrategicDecisionPlan(dataMap = {}, options = {}) {
       id: 'bfr-risk',
       domain: 'Finance',
       title: 'Trésorerie insuffisante pour lancer',
-      cause: `Couverture ${bfr.coveragePct}% < ${BFR_MIN_COVERAGE_PCT}%`,
+      cause: `Couverture ${bfr.coveragePct}% < ${pilotageSettings(dataMap).bfrMinCoveragePct}%`,
       impact: 'Rupture aliment possible en cours de cycle',
       action: 'Relancer créances VIP',
       module: 'finance_pilotage',

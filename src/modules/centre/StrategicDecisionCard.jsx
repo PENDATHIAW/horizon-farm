@@ -1,4 +1,5 @@
-import { fmtCurrency, fmtNumber } from '../../utils/format';
+import { fmtCurrency } from '../../utils/format';
+import StrategicQuickActions from './StrategicQuickActions.jsx';
 
 const toneClass = {
   critique: 'border-red-400 bg-red-50',
@@ -7,7 +8,7 @@ const toneClass = {
   orange: 'border-orange-300 bg-orange-50',
 };
 
-export function StrategicDecisionCard({ item, onNavigate }) {
+export function StrategicDecisionCard({ item, onNavigate, onCreateTask, onCreateAlert, onRefreshTasks, onRefreshAlertes }) {
   const priority = item.priority || item.severity || 'moyenne';
   return (
     <article className={`rounded-2xl border p-4 space-y-2 ${toneClass[priority] || toneClass.moyenne}`}>
@@ -26,11 +27,14 @@ export function StrategicDecisionCard({ item, onNavigate }) {
           {item.ith != null ? <span>ITH : <b>{item.ith}</b></span> : null}
         </div>
       ) : null}
-      {onNavigate && item.module ? (
-        <button type="button" onClick={() => onNavigate(item.module, { tab: item.navTab })} className="text-[10px] font-black text-[#9a6b12]">
-          Voir source →
-        </button>
-      ) : null}
+      <StrategicQuickActions
+        item={item}
+        onNavigate={onNavigate}
+        onCreateTask={onCreateTask}
+        onCreateAlert={onCreateAlert}
+        onRefreshTasks={onRefreshTasks}
+        onRefreshAlertes={onRefreshAlertes}
+      />
     </article>
   );
 }

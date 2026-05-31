@@ -1,10 +1,11 @@
 import { AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import Btn from '../../components/Btn';
+import StrategicQuickActions from './StrategicQuickActions.jsx';
 
 /**
  * Explique le vide sanitaire et liste les actions concrètes par bâtiment.
  */
-export default function SanitaryVacuumPanel({ alerts = [], onNavigate }) {
+export default function SanitaryVacuumPanel({ alerts = [], onNavigate, onCreateTask, onCreateAlert, onRefreshTasks, onRefreshAlertes }) {
   const blocking = alerts.filter((a) => a.blocking);
 
   if (!blocking.length) {
@@ -58,9 +59,14 @@ export default function SanitaryVacuumPanel({ alerts = [], onNavigate }) {
             {alert.earliestLaunchDate ? <span className="rounded-lg bg-white px-2 py-1">Lancement possible après : <b>{alert.earliestLaunchDate}</b></span> : null}
           </div>
 
-          <Btn small variant="outline" onClick={() => onNavigate?.('elevage', { tab: 'Avicole' })}>
-            Ouvrir lots — {alert.building}
-          </Btn>
+          <StrategicQuickActions
+            item={{ ...alert, category: 'sanitary', entity_type: 'batiment', entity_id: alert.building, module: 'elevage', navTab: 'Avicole' }}
+            onNavigate={onNavigate}
+            onCreateTask={onCreateTask}
+            onCreateAlert={onCreateAlert}
+            onRefreshTasks={onRefreshTasks}
+            onRefreshAlertes={onRefreshAlertes}
+          />
         </article>
       ))}
     </div>
