@@ -20,7 +20,7 @@ export default function SmartPieChart({
   subtitle,
   items = [],
   unit = 'FCFA',
-  height = 340,
+  height = 360,
   emptyText = 'Aucune donnée pour ce camembert.',
   moduleName = 'Module',
   reportPayload = {},
@@ -31,6 +31,7 @@ export default function SmartPieChart({
     [items],
   );
   const hasData = slices.length > 0;
+  const showSliceLabels = slices.length <= 4;
 
   const exportPdf = () => {
     exportModuleReportPdf({
@@ -62,14 +63,40 @@ export default function SmartPieChart({
       borderColor: '#d6c3a0',
       textStyle: { color: '#2f2415' },
     },
-    legend: { type: 'scroll', bottom: 0, textStyle: { color: '#5f4b2f', fontSize: 11 } },
+    legend: {
+      type: 'scroll',
+      orient: 'horizontal',
+      bottom: 0,
+      left: 'center',
+      width: '94%',
+      textStyle: { color: '#5f4b2f', fontSize: 10 },
+      itemGap: 10,
+    },
     series: [{
       type: 'pie',
-      radius: ['42%', '68%'],
-      center: ['50%', '52%'],
+      radius: showSliceLabels ? ['38%', '62%'] : ['42%', '66%'],
+      center: ['50%', showSliceLabels ? '46%' : '48%'],
       avoidLabelOverlap: true,
+      minShowLabelAngle: 8,
       itemStyle: { borderRadius: 8, borderColor: '#fffdf8', borderWidth: 2 },
-      label: { formatter: '{b}\n{d}%', fontSize: 11, color: '#2f2415' },
+      label: {
+        show: showSliceLabels,
+        formatter: '{b}\n{d}%',
+        fontSize: 10,
+        color: '#2f2415',
+        overflow: 'truncate',
+        width: 88,
+      },
+      labelLine: {
+        show: showSliceLabels,
+        length: 12,
+        length2: 10,
+        smooth: 0.2,
+      },
+      labelLayout: { hideOverlap: true, moveOverlap: 'shiftY' },
+      emphasis: {
+        label: { show: true, fontSize: 11, fontWeight: 700 },
+      },
       data: slices.map((item) => ({ name: item.name, value: item.value })),
     }],
   };
@@ -90,7 +117,7 @@ export default function SmartPieChart({
         <button type="button" onClick={exportPdf} className="rounded-xl bg-[#2f2415] px-3 py-1.5 text-[11px] font-bold text-white">Exporter PDF</button>
       </div>
       <ReactECharts option={option} style={{ height, width: '100%' }} notMerge lazyUpdate />
-      {!compact ? <p className="mt-2 text-[11px] text-[#8a7456]">Camembert : répartition relative des montants ou volumes.</p> : null}
+      {!compact && !showSliceLabels ? <p className="mt-2 text-[11px] text-[#8a7456]">Survolez une part ou consultez la légende pour le détail.</p> : null}
     </div>
   );
 }

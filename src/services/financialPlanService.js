@@ -117,6 +117,26 @@ export function buildMonthlyFinancialTargets(plan = defaultFinancialPlan, year =
   });
 }
 
+/** Objectifs mensuels calés sur l'Année 1 d'activité (M1 = mois de démarrage). */
+export function buildActivityYearFinancialTargets(plan = defaultFinancialPlan, year1MonthKeys = []) {
+  return arr(year1MonthKeys).map((monthCode, index) => {
+    const revenueTarget = plan.revenueLines.reduce((sum, line) => sum + num(line.monthly?.[index]), 0);
+    const variableCosts = plan.variableCostLines.reduce((sum, line) => sum + num(line.monthlyBudget), 0);
+    const fixedCosts = plan.fixedCostLines.reduce((sum, line) => sum + num(line.monthlyBudget), 0);
+    const salaries = plan.salaryLines.reduce((sum, line) => sum + num(line.monthlyBudget), 0);
+    return {
+      planMonth: index + 1,
+      monthCode,
+      revenueTarget,
+      variableCosts,
+      fixedCosts,
+      salaries,
+      costTarget: variableCosts + fixedCosts + salaries,
+      marginTarget: revenueTarget - variableCosts - fixedCosts - salaries,
+    };
+  });
+}
+
 export function buildFinancialPlanVsActual(dataMap = {}, plan = defaultFinancialPlan, options = {}) {
   const year = options.year || currentYear();
   const month = options.month || new Date().getMonth() + 1;

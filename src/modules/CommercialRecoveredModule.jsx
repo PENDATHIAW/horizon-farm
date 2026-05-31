@@ -128,6 +128,8 @@ export default function CommercialRecoveredModule(props) {
   const alimentationCrud = useCrudModule('alimentation_logs');
   const productionCrud = useCrudModule('production_oeufs_logs');
   const santeCrud = useCrudModule('sante');
+  const businessPlansCrud = useCrudModule('business_plans');
+  const investissementsCrud = useCrudModule('investissements');
   const periodFiltered = Boolean(props.periodFiltered);
   const live = useMemo(() => resolveCommercialDataset({
     props,
@@ -262,6 +264,8 @@ export default function CommercialRecoveredModule(props) {
           vaccins={rowsOf(props.vaccins || props.sante, santeCrud, pf)}
           businessEvents={rowsOf(props.businessEvents, eventsCrud, pf)}
           transactions={rowsOf(props.transactions, financesCrud, pf)}
+          businessPlans={rowsOf(props.businessPlans, businessPlansCrud, false)}
+          investissements={rowsOf(props.investissements, investissementsCrud, false)}
           periodScope={props.periodScope}
           periodFiltered={periodFiltered}
           onNavigate={props.onNavigate}

@@ -15,7 +15,7 @@ function ChartSection({ title, question, children }) {
   );
 }
 
-function AttainmentKpi({ label, actual, target, attainment }) {
+function AttainmentKpi({ label, hint, actual, target, attainment }) {
   const tone = attainment >= 100
     ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
     : attainment >= 75
@@ -24,6 +24,7 @@ function AttainmentKpi({ label, actual, target, attainment }) {
   return (
     <div className={`rounded-2xl border p-4 ${tone}`}>
       <p className="text-[11px] font-bold uppercase tracking-wide opacity-80">{label}</p>
+      {hint ? <p className="mt-0.5 text-[10px] font-medium normal-case opacity-75">{hint}</p> : null}
       <p className="mt-1 text-2xl font-black">{attainment}%</p>
       <p className="mt-1 text-xs">{actual.toLocaleString('fr-FR')} / {target.toLocaleString('fr-FR')} FCFA</p>
     </div>
@@ -37,6 +38,15 @@ export default function CommercialEvolution(props) {
 
   return (
     <div className="space-y-6">
+      <p className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-2 text-sm text-[#5f4b2f]">
+        <span className="font-bold text-[#2f2415]">Année 1 d&apos;activité</span>
+        {' — '}
+        démarrage {new Date(data.activityYear.startDate).toLocaleDateString('fr-FR')}
+        {' · '}
+        {data.activityYear.year1Label}
+        {' · '}
+        objectifs calés sur 12 mois après le démarrage (BP Investissements à terme).
+      </p>
       {data.undatedOrders > 0 ? (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
           {data.undatedOrders} vente(s) sans date — exclue(s) des graphiques mensuels.
@@ -52,6 +62,8 @@ export default function CommercialEvolution(props) {
             subtitle="Histogramme — CA commandé et marge directe fiable par mois"
             months={monthlyLabels}
             leftUnit="FCFA"
+            legendBottom
+            height={420}
             series={[
               { name: 'CA commandé', type: 'bar', unit: 'FCFA', data: data.monthly.map((row) => row.ca) },
               { name: 'Marge fiable', type: 'bar', unit: 'FCFA', data: data.monthly.map((row) => row.marge) },
@@ -74,10 +86,13 @@ export default function CommercialEvolution(props) {
           <SmartEvolutionChart
             moduleName="Commercial"
             compact
+            categoryAxis
+            legendBottom
             title="Volumes réalisés vs objectifs"
             subtitle="Histogramme — quantités vendues vs plan prévisionnel par activité"
             months={activityLabels}
             leftUnit=""
+            height={440}
             series={[
               { name: 'Volume réalisé', type: 'bar', data: data.volumeVsTarget.map((row) => row.actualQty) },
               { name: 'Objectif volume', type: 'bar', data: data.volumeVsTarget.map((row) => row.targetQty) },
@@ -86,10 +101,13 @@ export default function CommercialEvolution(props) {
           <SmartEvolutionChart
             moduleName="Commercial"
             compact
+            categoryAxis
+            legendBottom
             title="CA par activité vs objectif"
             subtitle="Histogramme — CA réalisé vs objectif CA par activité"
             months={activityLabels}
             leftUnit="FCFA"
+            height={440}
             series={[
               { name: 'CA réalisé', type: 'bar', unit: 'FCFA', data: data.volumeVsTarget.map((row) => row.actualCa) },
               { name: 'Objectif CA', type: 'bar', unit: 'FCFA', data: data.volumeVsTarget.map((row) => row.targetCa) },
@@ -102,32 +120,38 @@ export default function CommercialEvolution(props) {
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <AttainmentKpi label="Mois en cours" {...data.kpis.month} />
           <AttainmentKpi label="Période ERP" {...data.kpis.period} />
-          <AttainmentKpi label="Annuel" {...data.kpis.annual} />
+          <AttainmentKpi label="Année 1" hint={data.activityYear.year1Label.replace(/^Année 1\s*/, '')} {...data.kpis.annual} />
         </div>
         <ChartsGrid>
           <SmartEvolutionChart
             moduleName="Commercial"
             compact
+            legendBottom
             title="CA réalisé vs objectif mensuel"
-            subtitle="Histogramme CA + courbe taux d'atteinte %"
+            subtitle="Histogramme CA + courbe taux d'atteinte % (Année 1)"
             months={data.targetAttainment.map((row) => row.mois)}
             leftUnit="FCFA"
             rightUnit="%"
+            height={440}
             series={[
               { name: 'CA réalisé', type: 'bar', unit: 'FCFA', data: data.targetAttainment.map((row) => row.realise) },
               { name: 'Objectif CA', type: 'bar', unit: 'FCFA', data: data.targetAttainment.map((row) => row.objectif) },
-              { name: 'Taux d\'atteinte', type: 'line', unit: '%', axis: 'right', data: data.targetAttainment.map((row) => row.attainment) },
+              { name: 'Taux d\'atteinte', type: 'line', unit: '%', axis: 'right', color: '#c53030', showLabels: true, data: data.targetAttainment.map((row) => row.attainment) },
             ]}
           />
           <SmartEvolutionChart
             moduleName="Commercial"
             compact
+            categoryAxis
+            legendBottom
             title="Taux d'atteinte par activité"
             subtitle="Courbe — % objectif CA atteint par activité"
             months={activityLabels}
             leftUnit="%"
+            height={400}
+            showValueLabels
             series={[
-              { name: 'Taux atteinte CA', type: 'line', unit: '%', data: data.volumeVsTarget.map((row) => row.attainmentCa) },
+              { name: 'Taux atteinte CA', type: 'line', unit: '%', color: '#2b6cb0', data: data.volumeVsTarget.map((row) => row.attainmentCa) },
             ]}
           />
         </ChartsGrid>
@@ -149,10 +173,12 @@ export default function CommercialEvolution(props) {
           <SmartEvolutionChart
             moduleName="Commercial"
             compact
+            legendBottom
             title="CA mensuel"
             subtitle="Histogramme — chiffre d'affaires commandé par mois"
             months={monthlyLabels}
             leftUnit="FCFA"
+            height={400}
             series={[
               { name: 'CA mensuel', type: 'bar', unit: 'FCFA', data: data.monthly.map((row) => row.ca) },
             ]}

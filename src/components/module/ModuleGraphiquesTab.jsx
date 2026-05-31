@@ -70,6 +70,8 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
           vaccins={arr(props.vaccins)}
           businessEvents={arr(props.businessEvents)}
           transactions={arr(props.transactions)}
+          businessPlans={arr(props.businessPlans)}
+          investissements={arr(props.investissements)}
           periodFiltered={periodFiltered}
           periodScope={props.periodScope}
           onNavigate={onNavigate}

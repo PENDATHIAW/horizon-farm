@@ -254,6 +254,8 @@ export default function App() {
       vaccins: rows(c.sante),
       businessEvents: rows(c.business_events),
       transactions: rows(c.finances),
+      businessPlans: rows(c.business_plans),
+      investissements: rows(c.investissements),
       documents: rows(c.documents),
       alertes: rows(c.alertes_center),
       onNavigate: navigateModule,

@@ -4,7 +4,12 @@ import { paidForOrder, remainingForOrder } from '../../utils/salesStatuses.js';
 import { summarizeSalesMargins } from '../../utils/salesMarginEngine.js';
 import { filterRowsByPeriodScope, isAllTimeScope, normalizePeriodScope, resolvePeriodContext } from '../../utils/periodScope.js';
 import {
-  buildMonthlyFinancialTargets,
+  activityMonthChartLabel,
+  planMonthIndexForKey,
+  resolveActivityYearContext,
+} from '../../utils/activityYear.js';
+import {
+  buildActivityYearFinancialTargets,
   defaultFinancialPlan,
   detectRevenueActivity,
 } from '../../services/financialPlanService.js';
@@ -60,6 +65,18 @@ function buildMarginContext(props = {}) {
   };
 }
 
+function resolveTargetMonthKeys(options = {}) {
+  const { activityYear, monthKeys = [], periodFiltered = false } = options;
+  const year1Keys = activityYear?.year1MonthKeys || [];
+  if (!year1Keys.length) return [];
+
+  if (periodFiltered && monthKeys.length) {
+    return monthKeys.filter((key) => activityYear.year1MonthSet.has(key));
+  }
+
+  return activityYear.visibleMonthKeys?.length ? activityYear.visibleMonthKeys : year1Keys;
+}
+
 /** Marge fiable agrégée par activité (camembert). */
 export function buildMarginByActivity(rows = [], context = {}) {
   const marginSummary = summarizeSalesMargins(rows, context);
@@ -96,20 +113,19 @@ export function buildMonthlySalesAndMargin(rows = [], context = {}, payments = [
   return [...map.values()].sort((a, b) => a.key.localeCompare(b.key));
 }
 
-/** Volumes réalisés vs objectifs par activité (période = mois filtrés ou année). */
+/** Volumes réalisés vs objectifs par activité (Année 1 d'activité). */
 export function buildVolumeVsTargetByActivity(rows = [], options = {}) {
   const plan = options.plan || defaultFinancialPlan;
-  const year = options.year || new Date().getFullYear();
-  const monthKeys = new Set(arr(options.monthKeys));
-  const useMonthFilter = monthKeys.size > 0;
+  const activityYear = options.activityYear || resolveActivityYearContext(options);
+  const targetMonthKeys = resolveTargetMonthKeys({ activityYear, monthKeys: options.monthKeys, periodFiltered: options.periodFiltered });
   const dataMap = { animaux: options.animaux || [], cultures: options.cultures || [] };
 
   return plan.revenueLines.map((line) => {
     const activity = line.activity;
     const activityOrders = arr(rows).filter((order) => {
       const key = orderMonthKey(order);
-      if (!key || !String(key).startsWith(String(year))) return false;
-      if (useMonthFilter && !monthKeys.has(key)) return false;
+      if (!key || !activityYear.year1MonthSet.has(key)) return false;
+      if (targetMonthKeys.length && !targetMonthKeys.includes(key)) return false;
       return detectRevenueActivity(order, dataMap) === activity;
     });
 
@@ -118,9 +134,9 @@ export function buildVolumeVsTargetByActivity(rows = [], options = {}) {
 
     let targetQty = 0;
     let targetCa = 0;
-    const monthIndexes = useMonthFilter
-      ? [...monthKeys].map((key) => Number(String(key).slice(5, 7)) - 1)
-      : Array.from({ length: 12 }, (_, index) => index);
+    const monthIndexes = targetMonthKeys.length
+      ? targetMonthKeys.map((key) => planMonthIndexForKey(key, activityYear.year1MonthKeys)).filter((index) => index !== null)
+      : activityYear.year1MonthKeys.map((_, index) => index);
 
     monthIndexes.forEach((index) => {
       targetQty += toNumber(line.monthlyQty?.[index]);
@@ -144,21 +160,23 @@ export function buildVolumeVsTargetByActivity(rows = [], options = {}) {
   }).filter((row) => row.targetQty > 0 || row.targetCa > 0 || row.actualQty > 0 || row.actualCa > 0);
 }
 
-/** CA réalisé vs objectif mensuel + taux d'atteinte. */
+/** CA réalisé vs objectif mensuel + taux d'atteinte (Année 1). */
 export function buildMonthlyTargetAttainment(rows = [], options = {}) {
   const plan = options.plan || defaultFinancialPlan;
-  const year = options.year || new Date().getFullYear();
-  const monthTargets = buildMonthlyFinancialTargets(plan, year);
-  const dataMap = { animaux: options.animaux || [], cultures: options.cultures || [] };
+  const activityYear = options.activityYear || resolveActivityYearContext(options);
+  const targetMonthKeys = resolveTargetMonthKeys({ activityYear, monthKeys: options.monthKeys, periodFiltered: options.periodFiltered });
+  const monthTargets = buildActivityYearFinancialTargets(plan, activityYear.year1MonthKeys);
+  const targetMap = new Map(monthTargets.map((row) => [row.monthCode, row]));
 
-  return monthTargets.map((target) => {
+  return targetMonthKeys.map((monthCode) => {
+    const target = targetMap.get(monthCode) || { revenueTarget: 0, planMonth: planMonthIndexForKey(monthCode, activityYear.year1MonthKeys) + 1 };
     const actual = arr(rows)
-      .filter((order) => orderMonthKey(order) === target.monthCode)
+      .filter((order) => orderMonthKey(order) === monthCode)
       .reduce((sum, order) => sum + amount(order), 0);
     const attainment = target.revenueTarget > 0 ? Number(((actual / target.revenueTarget) * 100).toFixed(1)) : 0;
     return {
-      key: target.monthCode,
-      mois: monthLabelFromKey(target.monthCode),
+      key: monthCode,
+      mois: activityMonthChartLabel(monthCode, activityYear.year1MonthKeys),
       objectif: target.revenueTarget,
       realise: actual,
       attainment,
@@ -166,43 +184,58 @@ export function buildMonthlyTargetAttainment(rows = [], options = {}) {
   });
 }
 
-/** KPIs d'atteinte : mois courant, période filtrée, annuel. */
+/** KPIs d'atteinte : mois courant, période filtrée, Année 1. */
 export function buildAttainmentKpis(rows = [], options = {}) {
   const plan = options.plan || defaultFinancialPlan;
-  const year = options.year || new Date().getFullYear();
+  const activityYear = options.activityYear || resolveActivityYearContext(options);
   const monthKeys = arr(options.monthKeys);
-  const currentMonth = options.currentMonth || new Date().getMonth() + 1;
-  const monthTargets = buildMonthlyFinancialTargets(plan, year);
-  const currentTarget = monthTargets[currentMonth - 1]?.revenueTarget || 0;
-  const currentCode = `${year}-${String(currentMonth).padStart(2, '0')}`;
+  const monthTargets = buildActivityYearFinancialTargets(plan, activityYear.year1MonthKeys);
+  const targetMap = new Map(monthTargets.map((row) => [row.monthCode, row]));
 
   const sumActual = (keys) => arr(rows)
     .filter((order) => keys.includes(orderMonthKey(order)))
     .reduce((sum, order) => sum + amount(order), 0);
 
-  const sumTarget = (indexes) => indexes.reduce((sum, index) => sum + toNumber(monthTargets[index]?.revenueTarget), 0);
+  const sumTarget = (keys) => keys.reduce((sum, key) => sum + toNumber(targetMap.get(key)?.revenueTarget), 0);
 
+  const currentCode = activityYear.nowKey && activityYear.year1MonthSet.has(activityYear.nowKey)
+    ? activityYear.nowKey
+    : activityYear.visibleMonthKeys[activityYear.visibleMonthKeys.length - 1];
+  const currentTarget = targetMap.get(currentCode)?.revenueTarget || 0;
   const monthActual = sumActual([currentCode]);
   const monthAttainment = currentTarget > 0 ? Math.round((monthActual / currentTarget) * 100) : 0;
 
-  const periodMonthIndexes = monthKeys.length
-    ? monthKeys.map((key) => Number(String(key).slice(5, 7)) - 1)
-    : monthTargets.map((_, index) => index);
-  const periodKeys = monthKeys.length ? monthKeys : monthTargets.map((row) => row.monthCode);
+  const periodKeys = monthKeys.length
+    ? monthKeys.filter((key) => activityYear.year1MonthSet.has(key))
+    : activityYear.visibleMonthKeys;
   const periodActual = sumActual(periodKeys);
-  const periodTarget = sumTarget(periodMonthIndexes);
+  const periodTarget = sumTarget(periodKeys);
   const periodAttainment = periodTarget > 0 ? Math.round((periodActual / periodTarget) * 100) : 0;
 
-  const annualTarget = plan.revenueLines.reduce((sum, line) => sum + toNumber(line.annualRevenue), 0);
-  const annualActual = arr(rows)
-    .filter((order) => String(orderMonthKey(order) || '').startsWith(String(year)))
-    .reduce((sum, order) => sum + amount(order), 0);
+  const annualKeys = activityYear.year1MonthKeys;
+  const annualTarget = sumTarget(annualKeys);
+  const annualActual = sumActual(annualKeys);
   const annualAttainment = annualTarget > 0 ? Math.round((annualActual / annualTarget) * 100) : 0;
 
   return {
-    month: { label: monthLabelFromKey(currentCode), actual: monthActual, target: currentTarget, attainment: monthAttainment },
-    period: { label: monthKeys.length ? `${monthKeys.length} mois` : 'Année', actual: periodActual, target: periodTarget, attainment: periodAttainment },
-    annual: { label: String(year), actual: annualActual, target: annualTarget, attainment: annualAttainment },
+    month: {
+      label: activityMonthChartLabel(currentCode, activityYear.year1MonthKeys),
+      actual: monthActual,
+      target: currentTarget,
+      attainment: monthAttainment,
+    },
+    period: {
+      label: monthKeys.length ? `${periodKeys.length} mois` : 'Période visible',
+      actual: periodActual,
+      target: periodTarget,
+      attainment: periodAttainment,
+    },
+    annual: {
+      label: activityYear.year1Label,
+      actual: annualActual,
+      target: annualTarget,
+      attainment: annualAttainment,
+    },
   };
 }
 
@@ -213,27 +246,35 @@ export function buildCommercialChartDataset(props = {}) {
     rows = filterRowsByPeriodScope(rows, scope);
   }
 
+  const activityYear = resolveActivityYearContext({
+    businessPlans: props.businessPlans,
+    investissements: props.investissements,
+    lots: props.lots,
+    animaux: props.animaux,
+    salesOrders: arr(props.rows || props.salesOrders),
+  });
+
   const payments = activeLinkedPayments(rows, arr(props.payments));
   const context = buildMarginContext({ ...props, payments });
   const monthly = buildMonthlySalesAndMargin(rows, context, payments);
   const marginByActivity = buildMarginByActivity(rows, context);
-  const year = new Date().getFullYear();
   const periodContext = resolvePeriodContext(scope);
   const monthKeys = props.periodFiltered && periodContext.monthKeys?.length
     ? periodContext.monthKeys
     : monthly.map((row) => row.key);
 
-  const volumeVsTarget = buildVolumeVsTargetByActivity(rows, {
-    year,
+  const sharedOptions = {
+    activityYear,
     monthKeys: props.periodFiltered ? monthKeys : [],
+    periodFiltered: props.periodFiltered,
     animaux: props.animaux,
     cultures: props.cultures,
-  });
-  const targetAttainment = buildMonthlyTargetAttainment(rows, { year, animaux: props.animaux, cultures: props.cultures });
+  };
+
+  const volumeVsTarget = buildVolumeVsTargetByActivity(rows, sharedOptions);
+  const targetAttainment = buildMonthlyTargetAttainment(rows, sharedOptions);
   const kpis = buildAttainmentKpis(rows, {
-    year,
-    monthKeys: props.periodFiltered ? monthKeys : [],
-    currentMonth: new Date().getMonth() + 1,
+    ...sharedOptions,
   });
 
   const totalPaid = rows.reduce((sum, row) => sum + paidForOrder(row, payments), 0);
@@ -245,6 +286,7 @@ export function buildCommercialChartDataset(props = {}) {
     volumeVsTarget,
     targetAttainment,
     kpis,
+    activityYear,
     totalPaid,
     totalRemaining,
     undatedOrders: rows.filter((order) => !orderMonthKey(order)).length,
