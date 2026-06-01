@@ -19,7 +19,6 @@ import useLiveWeather from './hooks/useLiveWeather';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import usePeriodScope from './hooks/usePeriodScope';
 import AppLayout from './layouts/AppLayout';
-import ProductionUpdateBanner from './components/ProductionUpdateBanner.jsx';
 import { applyPeriodScopeToDataMap, applyPeriodScopeToProps } from './utils/applyPeriodScope';
 import { enrichAssistantDataMap } from './utils/assistantDataMap.js';
 import { clearPeriodFilterCache } from './utils/periodFilterCache';
@@ -514,5 +513,6 @@ export default function App() {
     <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={scopedAssistantDataMap} onNavigate={setActive} onCreateBusinessEvent={c.business_events.create} />
     <ErpInterconnectionBridge cruds={c} />
     <AppNotificationManager />
+    <AppVersionBadge />
   </AppLayout>;
 }
