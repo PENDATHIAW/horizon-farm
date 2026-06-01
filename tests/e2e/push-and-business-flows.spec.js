@@ -29,9 +29,12 @@ test.describe('Push notifications (logique métier)', () => {
   });
 
   test('service worker et routes push API sont présents', () => {
-    expect(readFileSync('public/sw.js', 'utf8')).toContain('push');
-    expect(readFileSync('api/push/[action].js', 'utf8')).toContain('send');
+    expect(readFileSync('public/push-sw.js', 'utf8')).toContain('push');
+    expect(readFileSync('public/push-sw.js', 'utf8')).toContain('/api/push/latest-alert');
+    expect(readFileSync('api/push/send.js', 'utf8')).toContain('send');
+    expect(readFileSync('api/push/latest-alert.js', 'utf8')).toContain('latest-alert');
     expect(readFileSync('lib/server/push/latest-alert.js', 'utf8')).toContain('normalizeAlert');
+    expect(readFileSync('supabase/migrations/20260510020000_create_push_subscriptions.sql', 'utf8')).toContain('push_subscriptions');
   });
 });
 

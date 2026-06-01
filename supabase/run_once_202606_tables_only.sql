@@ -1,5 +1,10 @@
 -- Partie A : tables + colonnes (sans fonction PL/pgSQL)
 -- Exécuter en premier si le fichier complet échoue.
+--
+-- PREREQUIS PUSH PWA : si push_subscriptions n'existe pas encore, exécuter d'abord :
+--   supabase/run_once_202605_push_subscriptions.sql
+-- (migration source : supabase/migrations/20260510020000_create_push_subscriptions.sql)
+
 
 
 -- ---------------------------------------------------------------------------
