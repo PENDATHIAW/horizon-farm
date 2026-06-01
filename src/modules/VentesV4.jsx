@@ -9,7 +9,6 @@ import { paidForOrder, remainingForOrder } from '../utils/salesStatuses';
 import { isDelivered, isSaleClosed, linkedPaymentsForOrders, saleAmount } from './commercial/commercialMetrics.js';
 import SalesFollowUpPanel from './SalesFollowUpPanel.jsx';
 import SalesWorkflowHealth from './SalesWorkflowHealth.jsx';
-import SalesWorkflowRepairPanel from './SalesWorkflowRepairPanel.jsx';
 import { SaleModal } from './VentesTerrainV3.jsx';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -168,7 +167,28 @@ export default function VentesV4(props) {
     {modalOpen ? <SaleModal props={props} prefill={modalDraft} onClose={closeSale} onDone={onSaleDone} /> : null}
 
     {!embedded ? (
-      <AdminFold><SalesWorkflowHealth orders={props.rows || []} payments={payments} transactions={props.transactions || []} invoices={props.invoicesList || props.invoices || []} deliveries={props.deliveriesList || props.deliveries || []} stocks={props.stocks || []} lots={props.lots || []} animaux={props.animaux || []} cultures={props.cultures || []} onNavigate={props.onNavigate} /></AdminFold>
+      <AdminFold>
+        <div className="space-y-4">
+          <SalesWorkflowRepairPanel
+            {...props}
+            paymentsList={payments}
+            transactions={props.transactions || []}
+            invoicesList={props.invoicesList || props.invoices || []}
+            onCreateFinanceTransaction={props.onCreateFinanceTransaction}
+            onUpdateOpportunity={props.onUpdateOpportunity}
+            onCreateDocument={props.onCreateDocument}
+            onUpdateAnimal={props.onUpdateAnimal}
+            onRefreshFinances={props.onRefreshFinances}
+            onRefreshPayments={props.onRefreshPayments}
+            onRefreshInvoices={props.onRefreshInvoices}
+            onRefreshDocuments={props.onRefreshDocuments}
+            onRefreshOpportunities={props.onRefreshOpportunities}
+            onRefreshAnimals={props.onRefreshAnimals}
+            onRefreshWorkflow={props.onRefreshWorkflow}
+          />
+          <SalesWorkflowHealth orders={props.rows || []} payments={payments} transactions={props.transactions || []} invoices={props.invoicesList || props.invoices || []} deliveries={props.deliveriesList || props.deliveries || []} stocks={props.stocks || []} lots={props.lots || []} animaux={props.animaux || []} cultures={props.cultures || []} onNavigate={props.onNavigate} />
+        </div>
+      </AdminFold>
     ) : null}
   </div>;
 }
