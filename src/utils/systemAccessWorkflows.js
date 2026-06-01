@@ -15,10 +15,24 @@ export function roleCanAccess(role = 'visiteur', moduleKey = '') {
   return permissions.includes('*') || permissions.includes(moduleKey);
 }
 
+const ACTION_PERMISSIONS = {
+  admin: ['*'],
+  manager: ['voir', 'créer', 'modifier', 'exporter', 'valider'],
+  comptable: ['voir', 'créer', 'modifier', 'exporter', 'payer'],
+  employe: ['voir', 'créer'],
+  veterinaire: ['voir', 'créer', 'modifier'],
+  visiteur: ['voir'],
+};
+
 export function canPerformSystemAction(role = 'visiteur', action = 'voir') {
   if (role === 'admin') return true;
-  if (action === 'voir') return true;
-  return false;
+  const allowed = ACTION_PERMISSIONS[role] || ACTION_PERMISSIONS.visiteur;
+  return allowed.includes('*') || allowed.includes(action);
+}
+
+export function roleCanPerformModuleAction(role = 'visiteur', moduleKey = '', action = 'voir') {
+  if (!roleCanAccess(role, moduleKey)) return false;
+  return canPerformSystemAction(role, action);
 }
 
 export function isLastActiveAdmin(target = {}, users = []) {

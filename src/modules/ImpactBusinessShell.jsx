@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle2, CreditCard, FileText, HeartPulse, Package,
 import { fmtCurrency } from '../utils/format';
 import ImpactDecisionBridge from './ImpactDecisionBridge.jsx';
 import ImpactCommercialValue from './ImpactCommercialValue.jsx';
+import ImpactBusinessEventsPanel from './ImpactBusinessEventsPanel.jsx';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase();
@@ -118,6 +119,7 @@ function OverviewTab({ stats, props }) {
   ];
   return <div className="space-y-4">
     <ImpactDecisionBridge {...props} />
+    <ImpactBusinessEventsPanel businessEvents={props.businessEvents || props.businessEventsAll || []} onNavigate={props.onNavigate} />
     <ImpactCommercialValue {...props} />
     <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5"><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Valeur concrète</p><h2 className="mt-1 text-xl font-black text-[#2f2415]">Ce que l’ERP a permis de maîtriser</h2><p className="mt-1 text-sm text-[#8a7456]">On ne parle pas seulement de modules : on voit ce qui est suivi, prouvé, récupérable et maîtrisé.</p></div>
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3"><StatCard icon={CreditCard} title="Argent maîtrisé" value={fmtCurrency(stats.paidTotal)} detail={`${fmtCurrency(stats.receivable)} reste à récupérer`} tone={stats.receivable > 0 ? 'warning' : 'good'} /><StatCard icon={TrendingUp} title="Cash net visible" value={fmtCurrency(stats.cashNet)} detail="encaissements moins dépenses enregistrées" tone={stats.cashNet >= 0 ? 'good' : 'danger'} /><StatCard icon={Package} title="Stock valorisé" value={fmtCurrency(stats.stockValue)} detail={`${stats.stockCritical} produit(s) sous le seuil`} tone={stats.stockCritical ? 'warning' : 'good'} /><StatCard icon={FileText} title="Preuves disponibles" value={stats.proofTotal} detail="documents et rapports classés" tone={stats.proofTotal ? 'good' : 'warning'} /></div>

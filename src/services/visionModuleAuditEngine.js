@@ -19,6 +19,10 @@ const MODULE_DATA_KEYS = {
   documents_rapports: ['documents', 'rapports', 'finances'],
   rh: ['equipements', 'finances', 'documents'],
   gestion_systeme: ['audit_logs'],
+  smartfarm: ['sensor_devices', 'camera_devices', 'alertes_center'],
+  sync_activity: ['audit_logs'],
+  impact_business: ['business_events', 'documents', 'finances'],
+  centre_ia: ['sales_orders', 'finances', 'alertes_center', 'business_events'],
 };
 
 function scoreFromIssues(issues) {
@@ -68,6 +72,8 @@ export function runVisionModuleAudit(data = {}) {
     if (moduleId === 'finance_pilotage' && !arr(data.business_plans).length) lost.push('Business plan non alimenté pour dossiers financeurs');
     if (moduleId === 'documents_rapports' && !arr(data.documents).length) lost.push('Bibliothèque documentaire vide');
     if (moduleId === 'elevage' && !arr(data.production_oeufs_logs).length && arr(data.avicole).length) lost.push('Production œufs non saisie malgré lots avicoles');
+    if (moduleId === 'smartfarm' && !arr(data.sensor_devices).length && !arr(data.camera_devices).length) lost.push('Smart Farm sans capteur ni caméra configuré');
+    if (moduleId === 'impact_business' && !arr(data.business_events).length) lost.push('Impacts métier non structurés');
 
     const redundancies = [];
     if (moduleId === 'objectifs_croissance' && MODULE_REGISTRY.centre_ia) redundancies.push('Centre décisionnel parallèle — vérifier non-duplication des recommandations');

@@ -18,11 +18,13 @@ export const MODULE_TARGET_TABS = {
   elevage: ['Résumé', 'Cycles', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Graphiques'],
   commercial: ['Résumé', 'Ventes', 'Clients', 'Opportunités', 'Graphiques'],
   achats_stock: ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Graphiques'],
-  finance_pilotage: ['Résumé', 'Trésorerie', 'Créances', 'Dettes', 'Investissements', 'Rentabilité', 'Graphiques'],
+  finance_pilotage: ['Résumé', 'Trésorerie', 'Rapprochement', 'Créances', 'Dettes', 'Investissements', 'Rentabilité', 'Graphiques'],
   activite_suivi: ['Résumé', 'Alertes', 'Tâches', 'Traçabilité', 'Graphiques'],
   documents_rapports: ['Résumé', 'Bibliothèque', 'Preuves', 'Rapports', 'Exports', 'Modèles', 'Graphiques'],
   rh: ['Résumé', 'Équipements', 'Maintenance', 'Affectations', 'Coûts', 'Documents', 'Graphiques'],
   gestion_systeme: ['Vue admin', 'Utilisateurs', 'Paramètres', 'Sécurité', 'Sauvegardes', 'Réinitialisation', 'Audit'],
+  smartfarm: ['Résumé', 'Capteurs', 'Caméras', 'Annexe', 'Graphiques'],
+  impact_business: ['Valeur concrète', 'Dossier banque / partenaire', 'À mieux maîtriser'],
 };
 
 export const INTERCONNECTIONS = {
@@ -44,5 +46,5 @@ export const DEV_RULES = {
 /** Ordre d'audit / correction module par module. */
 export const MODULE_AUDIT_ORDER = [
   'dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance', 'elevage', 'commercial',
-  'achats_stock', 'finance_pilotage', 'activite_suivi', 'sync_activity', 'documents_rapports', 'rh', 'gestion_systeme',
+  'achats_stock', 'finance_pilotage', 'activite_suivi', 'sync_activity', 'smartfarm', 'impact_business', 'documents_rapports', 'rh', 'gestion_systeme',
 ];

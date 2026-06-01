@@ -9,6 +9,8 @@ import {
   findOrderForPayment,
   isOpportunityClosed,
 } from './erpInterconnectionRules';
+import { auditEggProductionStockGaps, syncEggStockFromProduction } from './eggStockSyncService.js';
+import { syncRhPayrollToFinance } from './rhPayrollFinanceSyncService.js';
 import { syncBusinessChargesToFinance } from './businessChargeSyncService.js';
 import { syncSupplierDebtsToFinance } from './supplierDebtSyncService.js';
 
@@ -81,6 +83,8 @@ export async function reconcileLegacyData({ data = {}, actions = {} } = {}) {
     health_impacts_structured: 0,
     business_charges_synced: 0,
     supplier_debts_synced: 0,
+    egg_stock_synced: 0,
+    rh_payroll_synced: 0,
     skipped: 0,
     errors: [],
   };
@@ -186,6 +190,45 @@ export async function reconcileLegacyData({ data = {}, actions = {} } = {}) {
   } catch (error) {
     summary.errors.push(`supplier debts: ${error.message}`);
   }
+
+  const eggAudit = auditEggProductionStockGaps(data);
+  if (eggAudit.missing) {
+    const latest = arr(data.production_oeufs_logs).slice(0, 1)[0];
+    if (latest && actions.onCreateStock && actions.onUpdateStock) {
+      try {
+        await syncEggStockFromProduction({
+          stockCrud: {
+            rows: arr(data.stock),
+            create: actions.onCreateStock,
+            update: actions.onUpdateStock,
+            refresh: actions.onRefreshStock,
+          },
+          log: latest,
+        });
+        summary.egg_stock_synced += 1;
+      } catch (error) {
+        summary.errors.push(`egg stock: ${error.message}`);
+      }
+    }
+  }
+
+  try {
+    const payrollSync = await syncRhPayrollToFinance({
+      data,
+      handlers: {
+        onCreateFinanceTransaction: actions.onCreateFinanceTransaction,
+        onCreateDocument: actions.onCreateDocument,
+        onCreateBusinessEvent: actions.onCreateBusinessEvent,
+        onRefreshFinances: actions.onRefreshFinances,
+        onRefreshDocuments: actions.onRefreshDocuments,
+        onRefreshBusinessEvents: actions.onRefreshBusinessEvents,
+      },
+    });
+    summary.rh_payroll_synced = payrollSync.created || 0;
+  } catch (error) {
+    summary.errors.push(`rh payroll: ${error.message}`);
+  }
+
 
   return summary;
 }
