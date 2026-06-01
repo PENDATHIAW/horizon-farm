@@ -13,7 +13,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 const brandLogo = '/brand-logo-transparent.png';
-const farmBg = '/login-hero-maraichage-preview.jpg';
+const farmBg = '/login-hero-maraichage-v2-preview.jpg';
 
 const FEATURES = [
   {
@@ -89,20 +89,26 @@ export default function LoginPage() {
         className="pointer-events-none absolute inset-0 bg-cover bg-no-repeat"
         style={{
           backgroundImage: `url(${farmBg})`,
-          backgroundPosition: '50% 42%',
+          backgroundPosition: '22% 62%',
         }}
         aria-hidden
       />
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: 'linear-gradient(90deg, rgba(255,248,239,0.94) 0%, rgba(255,248,239,0.78) 34%, rgba(255,248,239,0.28) 50%, rgba(255,248,239,0.08) 58%, transparent 68%)',
+          background: 'linear-gradient(125deg, rgba(255,248,239,0.9) 0%, rgba(255,248,239,0.55) 26%, rgba(255,248,239,0.12) 42%, transparent 52%)',
         }}
         aria-hidden
       />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#063321]/60 via-transparent to-transparent" aria-hidden />
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-28 sm:h-32"
+        style={{
+          background: 'linear-gradient(to top, rgba(6,51,33,0.72), transparent)',
+        }}
+        aria-hidden
+      />
 
-      <header className="absolute right-0 top-0 z-20 px-4 pt-2 sm:px-6 sm:pt-3 lg:px-8 xl:px-10">
+      <header className="absolute left-0 top-0 z-20 px-4 pt-2 sm:px-6 sm:pt-3 lg:px-8 xl:px-10">
         <img
           src={brandLogo}
           alt="Horizon Farm"
@@ -111,7 +117,7 @@ export default function LoginPage() {
       </header>
 
       <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col">
-        <section className="mx-auto grid w-full max-w-7xl flex-1 min-h-0 items-center gap-6 px-4 pb-3 pt-10 sm:gap-8 sm:px-6 sm:pt-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:px-8 lg:pt-14 xl:px-10">
+        <section className="mx-auto grid w-full max-w-7xl flex-1 min-h-0 items-center gap-6 px-4 pb-3 pt-16 sm:gap-8 sm:px-6 sm:pt-[4.5rem] lg:grid-cols-[1fr_340px] lg:gap-8 lg:px-8 lg:pt-20 xl:px-10">
           <div className="max-w-xl">
             <h1 className="sr-only">Horizon Farm ERP</h1>
             <p className="text-[1.65rem] font-black leading-[1.12] tracking-tight text-[#063321] sm:text-3xl lg:text-[2.15rem] xl:text-4xl">
