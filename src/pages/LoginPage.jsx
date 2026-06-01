@@ -73,7 +73,7 @@ export default function LoginPage() {
           src={HERO.jpg['2x']}
           alt=""
           className="h-full w-full object-cover"
-          style={{ objectPosition: '38% center' }}
+          style={{ objectPosition: '42% center' }}
           draggable={false}
           decoding="async"
           fetchPriority="high"
