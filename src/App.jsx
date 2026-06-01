@@ -338,6 +338,8 @@ export default function App() {
       onRefreshAlertes: c.alertes_center.refresh,
       existingTasks: rows(c.taches),
       existingAlerts: rows(c.alertes_center),
+      onCreateFinanceTransaction: c.finances.create,
+      onRefreshFinances: c.finances.refresh,
     },
     finance_pilotage: {
       initialTab: financeTab,

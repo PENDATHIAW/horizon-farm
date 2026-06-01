@@ -10,6 +10,7 @@ import {
   isOpportunityClosed,
 } from './erpInterconnectionRules';
 import { syncBusinessChargesToFinance } from './businessChargeSyncService.js';
+import { syncSupplierDebtsToFinance } from './supplierDebtSyncService.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value = '') => String(value || '').trim().toLowerCase();
@@ -79,6 +80,7 @@ export async function reconcileLegacyData({ data = {}, actions = {} } = {}) {
     sold_animals_linked: 0,
     health_impacts_structured: 0,
     business_charges_synced: 0,
+    supplier_debts_synced: 0,
     skipped: 0,
     errors: [],
   };
@@ -172,6 +174,18 @@ export async function reconcileLegacyData({ data = {}, actions = {} } = {}) {
     summary.errors.push(`business charges: ${error.message}`);
   }
 
+  try {
+    const supplierSync = await syncSupplierDebtsToFinance({
+      data,
+      handlers: {
+        onCreateFinanceTransaction: actions.onCreateFinanceTransaction,
+        onRefreshFinances: actions.onRefreshFinances,
+      },
+    });
+    summary.supplier_debts_synced = supplierSync.created || 0;
+  } catch (error) {
+    summary.errors.push(`supplier debts: ${error.message}`);
+  }
 
   return summary;
 }
