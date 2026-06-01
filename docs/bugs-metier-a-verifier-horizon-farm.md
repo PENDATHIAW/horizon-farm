@@ -11,29 +11,19 @@ Objectif : lister les anomalies métier observées en test manuel et à corriger
 
 ## Observation test manuel — priorité immédiate
 
-**Statut global : [À corriger avant nouvelles fonctionnalités]**
+**Statut global : [Corrections en cours — commits mai 2026]**
 
 Pendant les tests, plusieurs anomalies montrent que certaines interconnexions s’affichent mais ne sont pas encore totalement fiables.
 
-À traiter en priorité :
+État après correctifs récents :
 
 ```txt
-1. Animal ou lot confirmé prêt à la vente
-   → la fiche revient à “non” après retour/refresh.
-
-2. Animal ou lot confirmé prêt à la vente
-   → aucune opportunité visible dans Ventes > Opportunités de vente.
-
-3. Workflow ventes / encaissement
-   → des commandes déjà encaissées restent visibles dans le workflow,
-   parfois avec un montant à 0.
-
-4. Clients & WhatsApp
-   → un client soldé à 0 reste encore “à relancer”.
-
-5. Avicole
-   → des lots avec effectif incohérent ou à 0 restent affichés comme actifs.
-   → le tableau affiche parfois un effectif différent du calcul de la fiche.
+1. Animal ou lot confirmé prêt à la vente → [Traité] persistance + merge payload.
+2. Prêt à la vente → opportunité Ventes → [Traité] clés unifiées animaux:/avicole:.
+3. Workflow ventes / encaissement → [Traité] file séparée isOpenForPayment.
+4. Clients & WhatsApp relance → [Traité] recalcul créance + bouton Relancer conditionnel.
+5. Avicole effectif → [Traité] recalcul depuis sources + lots à 0 hors vue active.
+6. Cultures récolte/stock/vente → [À revoir] prochaine passe.
 ```
 
 Règle métier :
@@ -45,16 +35,16 @@ Elle est validée seulement si l’état persiste, si le module lié est réelle
 
 Critères de correction obligatoires :
 
-- [ ] vérifier la persistance après retour fiche, refresh et changement de module ;
-- [ ] vérifier que l’opportunité est bien créée ou mise à jour dans la table réellement lue par Ventes ;
-- [ ] vérifier que le workflow encaissement filtre les commandes avec reste à payer `> 0` ;
-- [ ] vérifier qu’une commande/payée soldée ne propose jamais une action montant `0` ;
-- [ ] vérifier que Clients & WhatsApp recalcule le reste dû depuis les paiements réels ;
-- [ ] vérifier que le statut `à relancer` disparaît dès que le reste dû client vaut `0` ;
-- [ ] vérifier que les alertes/tâches de relance liées sont clôturées ou masquées ;
+- [x] vérifier la persistance après retour fiche, refresh et changement de module ;
+- [x] vérifier que l’opportunité est bien créée ou mise à jour dans la table réellement lue par Ventes ;
+- [x] vérifier que le workflow encaissement filtre les commandes avec reste à payer `> 0` ;
+- [x] vérifier qu’une commande/payée soldée ne propose jamais une action montant `0` ;
+- [x] vérifier que Clients & WhatsApp recalcule le reste dû depuis les paiements réels ;
+- [x] vérifier que le statut `à relancer` disparaît dès que le reste dû client vaut `0` ;
+- [x] vérifier que les alertes/tâches de relance liées sont clôturées ou masquées ;
 - [ ] vérifier les doublons après double clic, refresh ou revalidation ;
-- [ ] vérifier les calculs Avicole : effectif initial, morts, volés, vendus, réformés, autres sorties, malades, effectif actuel ;
-- [ ] ajouter ou mettre à jour les tests e2e correspondants.
+- [x] vérifier les calculs Avicole : effectif initial, morts, volés, vendus, réformés, autres sorties, malades, effectif actuel ;
+- [x] ajouter ou mettre à jour les tests e2e correspondants.
 
 ---
 

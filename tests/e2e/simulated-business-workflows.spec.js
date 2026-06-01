@@ -4,7 +4,7 @@ import { buildCalculatedCycleDates } from '../../src/services/productionCycleDat
 import { computeFinanceCash } from '../../src/utils/financeCash.js';
 import { normalizeLot, normalizeProductionOeufsLog } from '../../src/utils/normalize.js';
 import { applyStockMovement, buildStockCriticalFollowUp } from '../../src/utils/stockWorkflows.js';
-import { avicoleActiveCount, avicoleSickCount } from '../../src/utils/avicoleMetrics.js';
+import { avicoleActiveCount, avicoleHasActiveBirds, avicoleSickCount } from '../../src/utils/avicoleMetrics.js';
 import { buildHealthCostTransaction, buildHealthFollowUp, buildHealthMissingProofDocument, buildHealthProofDocument } from '../../src/utils/healthWorkflows.js';
 import { buildClientReminderFollowUp, buildClientSalesSummary, canDeleteClient, normalizeClientFromSales } from '../../src/utils/clientWorkflows.js';
 import { buildSaleSourcePatch, capSalePayment } from '../../src/utils/salesWorkflows.js';
@@ -217,6 +217,23 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(lot.current_count).toBe(85);
     expect(lot.effectif_actuel).toBe(85);
     expect(avicoleSickCount(lot)).toBe(3);
+  });
+
+  test('lot avicole à effectif 0 exclu des workflows actifs', () => {
+    const lot = normalizeLot({
+      id: 'LOT-CLOSED-001',
+      type: 'Chair',
+      initial_count: 500,
+      mortality: 18,
+      vols: 2,
+      vendus: 480,
+      reformes: 0,
+      sorties: 0,
+      current_count: 0,
+      effectif_actuel: 0,
+    });
+    expect(avicoleActiveCount(lot)).toBe(0);
+    expect(avicoleHasActiveBirds(lot)).toBe(false);
   });
 
   test('cycles avicoles ne dupliquent pas les lots et ne classent pas les pondeuses en chair', () => {

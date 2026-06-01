@@ -1,4 +1,5 @@
 ﻿import { toNumber } from './format';
+import { avicoleCalculatedActiveCount, avicoleInitialCount } from './avicoleMetrics';
 const DATE_KEY_RE = /(^date($|_)|_date$|_at$|date_|debut|fin|naissance|achat|vente|deces|vol_detecte|intervention|recolte|prevue|prochaine|livraison|paiement|facture|recorded_at|sent_at|detected_at|event_date|last_seen_at)/i;
 const NUMBER_KEY_RE = /(montant|amount|quantite|quantity|prix|price|cout|cost|frais|charge|ca_|marge|margin|roi|score|note|total|solde|seuil|surface|poids|weight|count|nombre|duree|cycle|age|taux|pct|percent|valeur|gain|perte|remise|paye|reste|budget|capacite|production|rendement|niveau|battery|distance|latitude|longitude|initial|current|mortality|malades|vols|vendus|reformes|sorties)/i;
 const UI_FIELD_RE = /(_view$|_label$|_display$|^preview_|^calculated_|^computed_|^ui_)/i;
@@ -83,13 +84,27 @@ export const normalizeLot = (lot = {}) => {
   const saleReady = isSaleReadyRecord(lot);
   const normalizedStatus = ['sain', 'malade'].includes(lot.status) ? 'actif' : (lot.status || lot.statut || 'actif');
   const finalStatus = saleReady && !['vendu', 'perdu', 'archive', 'archivé'].includes(String(normalizedStatus).toLowerCase()) ? 'pret_a_la_vente' : normalizedStatus;
-  const initial = toNumber(lot.initial_count ?? lot.effectif_initial ?? lot.effectif_depart ?? lot.nombre_initial ?? lot.effectif ?? lot.nombre ?? lot.quantite);
+  const initial = avicoleInitialCount(lot);
   const dead = toNumber(lot.mortality ?? lot.mortalite ?? lot.morts ?? lot.dead_count ?? lot.deaths ?? lot.pertes_mortalite);
   const stolen = toNumber(lot.vols ?? lot.voles ?? lot.stolen);
   const sold = toNumber(lot.vendus ?? lot.sold_count ?? lot.sold);
+  const slaughtered = toNumber(lot.abattus ?? lot.slaughtered ?? lot.transformes ?? lot.transformés ?? lot.sujets_abattus);
   const reformed = toNumber(lot.reformes ?? lot.reformed_count ?? lot.reformed);
   const exits = toNumber(lot.sorties ?? lot.autres_sorties ?? lot.sorties_autres ?? lot.other_exits);
-  const calculatedCurrent = Math.max(0, initial - dead - stolen - sold - reformed - exits);
+  const exitBase = {
+    ...lot,
+    initial_count: initial,
+    effectif_initial: initial,
+    mortality: dead,
+    morts: dead,
+    vols: stolen,
+    vendus: sold,
+    sold_count: sold,
+    abattus: slaughtered,
+    reformes: reformed,
+    sorties: exits,
+  };
+  const calculatedCurrent = avicoleCalculatedActiveCount(exitBase);
   return {
     ...lot,
     productionJour: toNumber(lot.productionJour ?? lot.productionjour ?? lot.production_jour),
@@ -105,6 +120,7 @@ export const normalizeLot = (lot = {}) => {
     vols: stolen,
     vendus: sold,
     sold_count: sold,
+    abattus: slaughtered,
     reformes: reformed,
     sorties: exits,
     current_count: initial > 0 ? calculatedCurrent : toNumber(lot.current_count ?? lot.effectif_actuel),
@@ -326,6 +342,27 @@ export const normalizeVeterinaire = (veterinaire = {}) => ({
   favorite: Boolean(veterinaire.favorite),
 });
 
+export const normalizeSalesOpportunity = (opp = {}) => {
+  const sourceModule = opp.source_module || opp.created_from || (String(opp.source_type || '').includes('animal') ? 'animaux' : String(opp.source_type || '').includes('avicole') || String(opp.source_type || '').includes('lot') ? 'avicole' : '');
+  const sourceId = opp.source_id || opp.related_id || opp.entity_id || opp.lot_id || opp.animal_id || '';
+  const rawKey = opp.opportunity_key || opp.dedupe_key || (sourceModule && sourceId ? `${sourceModule}:${sourceId}` : '');
+  const opportunityKey = String(rawKey).replace(/^animal-sale:/, 'animaux:').replace(/^avicole-sale:/, 'avicole:');
+  const estimated = toNumber(opp.estimated_value ?? opp.estimated_amount ?? opp.montant_estime);
+  const status = opp.status || opp.statut || 'ouverte';
+  return {
+    ...opp,
+    opportunity_key: opportunityKey,
+    dedupe_key: opportunityKey || opp.dedupe_key,
+    source_module: sourceModule,
+    source_id: sourceId,
+    estimated_value: estimated,
+    estimated_amount: estimated,
+    montant_estime: estimated,
+    status,
+    statut: status,
+  };
+};
+
 export const normalizeByModule = (moduleKey, rows) => {
   if (moduleKey === 'animaux') return rows.map(normalizeAnimal);
   if (moduleKey === 'avicole') return normalizeLots(rows);
@@ -337,5 +374,6 @@ export const normalizeByModule = (moduleKey, rows) => {
   if (moduleKey === 'tracabilite') return rows.map(normalizeTracabilite);
   if (moduleKey === 'fournisseurs') return rows.map(normalizeFournisseur);
   if (moduleKey === 'veterinaires') return rows.map(normalizeVeterinaire);
+  if (moduleKey === 'sales_opportunities') return rows.map(normalizeSalesOpportunity);
   return rows;
 };
