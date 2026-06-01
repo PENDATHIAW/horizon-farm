@@ -128,42 +128,6 @@ function buildFindings(data) {
     business_impact: 'Marge et résultat artificiellement trop élevés.', linked_modules: ['Finances', 'Comptabilité', 'Animaux', 'Avicole', 'Cultures', 'Santé'], correction_lot: 'Lot 1 · Fiabilité financière et CA',
   });
 
-
-  const suppliers = arr(data.fournisseurs);
-  const supplierDebtGaps = suppliers.filter((supplier) => {
-    const debt = n(supplier.dettes ?? supplier.dette ?? supplier.solde_du ?? supplier.montant_du);
-    if (debt <= 0) return false;
-    return !finances.some((row) => {
-      const text = clean(`${row.type || ''} ${row.categorie || ''} ${row.libelle || ''} ${row.module_lie || ''}`);
-      const isOut = text.includes('sortie') || text.includes('depense') || text.includes('dépense') || text.includes('charge');
-      const linked = String(row.supplier_id || row.fournisseur_id || row.related_id || '') === String(supplier.id || '');
-      return isOut && (linked || text.includes('fournisseur'));
-    });
-  });
-  if (supplierDebtGaps.length) addFinding(findings, {
-    module: 'Fournisseurs', zone: 'Dettes', element: `${supplierDebtGaps.length} fournisseur(s)`, type: 'workflow', severity: 'bloquant', status: 'detecte',
-    title: 'Dettes fournisseurs sans ligne Finance', detail: `${supplierDebtGaps.length} fournisseur(s) ont une dette sans reste à payer visible en Finances.`,
-    probable_cause: 'Réception ou achat enregistré côté fournisseur sans écriture comptable liée.', expected_fix: 'Créer automatiquement une sortie Finance impayée liée au fournisseur.',
-    business_impact: 'Dettes sous-estimées, trésorerie et comptabilité faussées.', linked_modules: ['Fournisseurs', 'Finances', 'Comptabilité', 'Achats'], correction_lot: 'Lot 7 · Pilotage & opérations',
-  });
-
-  const auditLogs = arr(data.audit_logs);
-  const businessEvents = arr(data.business_events);
-  if (businessEvents.length >= 5 && auditLogs.length === 0) addFinding(findings, {
-    module: 'Sync', zone: 'Journal audit', element: 'audit_logs vide', type: 'workflow', severity: 'majeur', status: 'detecte',
-    title: 'Activité métier sans journal audit', detail: 'Des événements métier existent mais aucun log audit n’est retrouvé.',
-    probable_cause: 'Journal audit non alimenté ou filtré hors période.', expected_fix: 'Alimenter audit_logs depuis les actions sensibles et afficher le journal dans Sync.',
-    business_impact: 'Traçabilité admin et conformité affaiblies.', linked_modules: ['Sync', 'Gestion système', 'Activité'], correction_lot: 'Lot 7 · Pilotage & opérations',
-  });
-
-  const orphanDocs = documents.filter((doc) => !doc.module_source && !doc.source_module && !doc.related_id && !doc.entity_id).length;
-  if (orphanDocs) addFinding(findings, {
-    module: 'Documents', zone: 'Bibliothèque', element: `${orphanDocs} document(s)`, type: 'document', severity: 'majeur', status: 'detecte',
-    title: 'Documents sans source métier', detail: `${orphanDocs} document(s) ne sont rattachés à aucun module ou fiche.`,
-    probable_cause: 'Import ou création manuelle sans lien module_source/related_id.', expected_fix: 'Relier chaque document à sa source (vente, santé, achat, RH…).',
-    business_impact: 'Preuves difficiles à retrouver pour financeurs et contrôles.', linked_modules: ['Documents', 'Finances', 'Ventes', 'Santé'], correction_lot: 'Lot 7 · Pilotage & opérations',
-  });
-
   return sortAuditFindings(findings);
 }
 
@@ -223,16 +187,13 @@ function totalFixed(summary = {}) {
   return Number(summary.payments_finance_created || 0)
     + Number(summary.invoices_documents_created || 0)
     + Number(summary.opportunities_closed || 0)
-    + Number(summary.sold_animals_linked || 0)
-    + Number(summary.health_impacts_structured || 0)
-    + Number(summary.business_charges_synced || 0)
-    + Number(summary.supplier_debts_synced || 0);
+    + Number(summary.sold_animals_linked || 0);
 }
 
 export default function GitHubAuditRoadmapPanel() {
   const [busy, setBusy] = useState(false);
   const [lastResult, setLastResult] = useState(null);
-  const keys = Array.from(new Set([...auditRequiredDataKeys, 'invoices', 'documents', 'sales_opportunities', 'payments', 'finances', 'sales_orders', 'animaux', 'avicole', 'cultures', 'sante', 'fournisseurs', 'audit_logs', 'business_events']));
+  const keys = Array.from(new Set([...auditRequiredDataKeys, 'invoices', 'documents', 'sales_opportunities', 'payments', 'finances', 'sales_orders', 'animaux', 'avicole', 'cultures', 'sante']));
   const crud = Object.fromEntries(keys.map((key) => [key, useCrudModule(key)]));
   const data = Object.fromEntries(keys.map((key) => [key, arr(crud[key]?.rows)]));
   const modulesAudited = auditManifest.length;
@@ -253,13 +214,21 @@ export default function GitHubAuditRoadmapPanel() {
         data: beforeData,
         actions: {
           onCreateFinanceTransaction: crud.finances?.create,
+          onRefreshFinances: crud.finances?.refresh,
           onCreateDocument: crud.documents?.create,
+          onRefreshDocuments: crud.documents?.refresh,
+          onCreateBusinessEvent: crud.business_events?.create,
+          onRefreshBusinessEvents: crud.business_events?.refresh,
+          onUpdateHealth: crud.sante?.update,
           onUpdateOpportunity: crud.sales_opportunities?.update,
           onUpdateAnimal: crud.animaux?.update,
+          onCreateStock: crud.stock?.create,
+          onUpdateStock: crud.stock?.update,
+          onRefreshStock: crud.stock?.refresh,
         },
       });
       const fixed = totalFixed(reconciliation);
-      if (fixed > 0) await refreshKeys(['finances', 'documents', 'sales_opportunities', 'animaux', 'payments', 'sales_orders']);
+      if (fixed > 0) await refreshKeys(['finances', 'documents', 'sales_opportunities', 'animaux', 'payments', 'sales_orders', 'stock', 'sante', 'business_events']);
       const latestData = readData();
       const latestFindings = buildFindings(latestData);
       const latestCoverage = buildAuditInspectionCoverage();
