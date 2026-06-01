@@ -1,6 +1,88 @@
 -- Partie A : tables + colonnes (sans fonction PL/pgSQL)
 -- Exécuter en premier si le fichier complet échoue.
 
+
+-- ---------------------------------------------------------------------------
+-- 0. Bootstrap minimal (si table companies / fonctions RLS absentes)
+-- ---------------------------------------------------------------------------
+
+create extension if not exists pgcrypto;
+
+create table if not exists public.companies (
+  id uuid primary key default gen_random_uuid(),
+  name text not null default 'Horizon Farm',
+  slug text unique,
+  status text not null default 'active',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create or replace function public.current_profile_role()
+returns text
+language plpgsql
+stable
+security definer
+set search_path = public
+as $current_profile_role$
+begin
+  if auth.uid() is null then
+    return 'visiteur';
+  end if;
+  if to_regclass('public.profiles') is not null then
+    return coalesce(
+      (select p.role from public.profiles p where p.id = auth.uid() limit 1),
+      'admin'
+    );
+  end if;
+  return 'admin';
+end;
+$current_profile_role$;
+
+create or replace function public.current_company_id()
+returns uuid
+language plpgsql
+stable
+security definer
+set search_path = public
+as $current_company_id$
+begin
+  if to_regclass('public.profiles') is not null then
+    return (select p.company_id from public.profiles p where p.id = auth.uid() limit 1);
+  end if;
+  return null;
+end;
+$current_company_id$;
+
+create or replace function public.can_read_erp()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select public.current_profile_role() in ('admin','manager','employe','veterinaire','comptable');
+$$;
+
+create or replace function public.can_write_erp()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select public.current_profile_role() in ('admin','manager','employe','veterinaire','comptable');
+$$;
+
+create or replace function public.can_admin_erp()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select public.current_profile_role() = 'admin';
+$$;
+
 alter table public.alertes_center
   add column if not exists push_status text,
   add column if not exists push_notified_at timestamptz,
@@ -117,7 +199,7 @@ create table if not exists public.stock_movements (
   notes text,
   movement_date date not null default current_date,
   created_at timestamptz not null default now(),
-  company_id uuid references public.companies(id) on delete set null
+  company_id uuid
 );
 
 create index if not exists stock_movements_stock_id_idx on public.stock_movements(stock_id);
