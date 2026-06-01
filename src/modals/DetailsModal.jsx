@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import BaseModal from './BaseModal';
 import Badge from '../components/Badge';
+import FicheTabsBar from '../components/FicheTabsBar.jsx';
 import { fmtCurrency, fmtNumber, titleize } from '../utils/format';
 
 const HIDDEN_KEYS = new Set([
@@ -96,6 +97,19 @@ const isMoneyKey = (key) =>
 
 const isDateKey = (key) => /(date|created_at|updated_at|echeance|deadline|due)/i.test(key);
 
+const isTechnicalKey = (key) =>
+  /(battery|stream|url|latitude|longitude|distance|sensor|camera|zone|location|type|status|statut|health|online|source|module|verified|favorite)/i.test(key);
+
+const isNoteKey = (key) => /(note|description|comment|recommendation|objectif)/i.test(key);
+
+const bucketForKey = (key) => {
+  if (SYSTEM_KEYS.has(key)) return 'suivi';
+  if (isMoneyKey(key)) return 'finances';
+  if (isTechnicalKey(key)) return 'technique';
+  if (isNoteKey(key)) return 'notes';
+  return 'general';
+};
+
 const formatValue = (key, value) => {
   if (typeof value === 'boolean') return value ? 'Oui' : 'Non';
   if (isDateKey(key) && value) {
@@ -127,17 +141,34 @@ const Field = ({ item }) => {
 };
 
 export default function DetailsModal({ open, onClose, title, data }) {
-  const { visibleEntries, systemEntries } = useMemo(() => {
-    if (!data) return { visibleEntries: [], systemEntries: [] };
+  const [tab, setTab] = useState('general');
 
-    const entries = Object.entries(data)
-      .filter(([key, value]) => !HIDDEN_KEYS.has(key) && isUserVisibleValue(value));
+  useEffect(() => {
+    if (open) setTab('general');
+  }, [open, data?.id]);
 
-    return {
-      visibleEntries: entries.filter(([key]) => !SYSTEM_KEYS.has(key)).map(([key, value]) => ({ key, value })),
-      systemEntries: entries.filter(([key]) => SYSTEM_KEYS.has(key)).map(([key, value]) => ({ key, value })),
-    };
+  const grouped = useMemo(() => {
+    if (!data) return { general: [], technique: [], finances: [], notes: [], suivi: [] };
+
+    const buckets = { general: [], technique: [], finances: [], notes: [], suivi: [] };
+    Object.entries(data)
+      .filter(([key, value]) => !HIDDEN_KEYS.has(key) && isUserVisibleValue(value))
+      .forEach(([key, value]) => {
+        buckets[bucketForKey(key)].push({ key, value });
+      });
+    return buckets;
   }, [data]);
+
+  const tabs = useMemo(() => {
+    const list = [{ id: 'general', label: 'Général' }];
+    if (grouped.technique.length) list.push({ id: 'technique', label: 'Technique' });
+    if (grouped.finances.length) list.push({ id: 'finances', label: 'Finances' });
+    if (grouped.notes.length) list.push({ id: 'notes', label: 'Notes' });
+    if (grouped.suivi.length) list.push({ id: 'suivi', label: 'Suivi' });
+    return list;
+  }, [grouped]);
+
+  const activeEntries = grouped[tab] || grouped.general;
 
   return (
     <BaseModal open={open} onClose={onClose} title={title || 'Details'}>
@@ -145,20 +176,12 @@ export default function DetailsModal({ open, onClose, title, data }) {
         <p className="text-[#8a7456]">Aucune donnée.</p>
       ) : (
         <div className="space-y-4">
+          {tabs.length > 1 ? <FicheTabsBar tabs={tabs} active={tab} onChange={setTab} /> : null}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {visibleEntries.length ? visibleEntries.map((item) => <Field key={item.key} item={item} />) : (
-              <p className="text-sm text-[#8a7456]">Aucune information metier utile a afficher.</p>
+            {activeEntries.length ? activeEntries.map((item) => <Field key={item.key} item={item} />) : (
+              <p className="text-sm text-[#8a7456]">Aucune information dans cet onglet.</p>
             )}
           </div>
-
-          {systemEntries.length ? (
-            <details className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4">
-              <summary className="cursor-pointer text-sm font-bold text-[#2f2415]">Informations de suivi</summary>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                {systemEntries.map((item) => <Field key={item.key} item={item} />)}
-              </div>
-            </details>
-          ) : null}
         </div>
       )}
     </BaseModal>

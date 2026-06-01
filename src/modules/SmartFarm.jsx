@@ -1,1 +1,1 @@
-export { default } from './OperationsRessourcesModule';
+export { default } from './SmartFarmRecoveredModule.jsx';

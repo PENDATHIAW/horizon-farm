@@ -15,7 +15,7 @@ import { aggregateMaintenanceQueue, buildRhCoherenceRows, buildRhHealthSnapshot,
 import RHPeopleTeams from './RHPeopleTeams.jsx';
 import EquipementsV2 from './EquipementsV2.jsx';
 import RhPayrollFinanceSyncPanel from './RhPayrollFinanceSyncPanel.jsx';
-import SmartFarm from './SmartFarm.jsx';
+import SmartFarmPanel from './SmartFarmPanel.jsx';
 
 const arr = (v) => Array.isArray(v) ? v : [];
 const low = (v) => String(v || '').toLowerCase();
@@ -139,7 +139,7 @@ function MaintenanceHub({ data, setTab, smartProps, onSchedule, busyId }) {
         emptyLabel="Aucun équipement en maintenance."
       />
       <MaintenanceQueuePanel queue={data.maintenanceQueue} onSchedule={onSchedule} busyId={busyId} setTab={setTab} />
-      <SmartFarm {...smartProps} />
+      <SmartFarmPanel {...smartProps} section="full" />
     </div>
   );
 }
