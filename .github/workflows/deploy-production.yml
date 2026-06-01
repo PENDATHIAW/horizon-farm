@@ -20,12 +20,15 @@ jobs:
           DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
         run: |
           if [ -z "$DEPLOY_HOOK" ]; then
-            echo "::warning::VERCEL_DEPLOY_HOOK_URL absent — créez un Deploy Hook Production dans Vercel → Settings → Git → Deploy Hooks, puis ajoutez l'URL en secret GitHub."
-          else
-            echo "Déclenchement du déploiement Production Vercel…"
-            curl -fsS -X POST "$DEPLOY_HOOK"
-            echo "Deploy Hook appelé avec succès."
+            echo "::error::VERCEL_DEPLOY_HOOK_URL manquant — la prod horizon-farm.vercel.app reste bloquée sur l'ancien build."
+            echo "Vercel → horizon-farm → Settings → Git → Deploy Hooks → Create Hook (Production, branche main)"
+            echo "Puis ajoutez l'URL en secret GitHub VERCEL_DEPLOY_HOOK_URL"
+            echo "Ou : Deployments → dernier build ✅ → Promote to Production"
+            exit 1
           fi
+          echo "Déclenchement du déploiement Production Vercel…"
+          curl -fsS -X POST "$DEPLOY_HOOK"
+          echo "Deploy Hook appelé avec succès."
 
       - uses: actions/setup-node@v4
         with:

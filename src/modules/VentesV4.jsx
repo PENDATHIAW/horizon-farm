@@ -169,24 +169,8 @@ export default function VentesV4(props) {
     {!embedded ? (
       <AdminFold>
         <div className="space-y-4">
-          <SalesWorkflowRepairPanel
-            {...props}
-            paymentsList={payments}
-            transactions={props.transactions || []}
-            invoicesList={props.invoicesList || props.invoices || []}
-            onCreateFinanceTransaction={props.onCreateFinanceTransaction}
-            onUpdateOpportunity={props.onUpdateOpportunity}
-            onCreateDocument={props.onCreateDocument}
-            onUpdateAnimal={props.onUpdateAnimal}
-            onRefreshFinances={props.onRefreshFinances}
-            onRefreshPayments={props.onRefreshPayments}
-            onRefreshInvoices={props.onRefreshInvoices}
-            onRefreshDocuments={props.onRefreshDocuments}
-            onRefreshOpportunities={props.onRefreshOpportunities}
-            onRefreshAnimals={props.onRefreshAnimals}
-            onRefreshWorkflow={props.onRefreshWorkflow}
-          />
           <SalesWorkflowHealth orders={props.rows || []} payments={payments} transactions={props.transactions || []} invoices={props.invoicesList || props.invoices || []} deliveries={props.deliveriesList || props.deliveries || []} stocks={props.stocks || []} lots={props.lots || []} animaux={props.animaux || []} cultures={props.cultures || []} onNavigate={props.onNavigate} />
+          <SalesWorkflowRepairPanel {...props} paymentsList={payments} />
         </div>
       </AdminFold>
     ) : null}
