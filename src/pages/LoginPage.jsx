@@ -9,18 +9,37 @@ import {
   LineChart,
   Lock,
   Mail,
-  UserPlus,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const brandLogo = '/brand-logo-transparent.svg';
-const farmBg = '/login-hero-full.jpg';
+const farmBg = '/login-hero-maraichage-preview.jpg';
 
 const FEATURES = [
-  { icon: Leaf, title: 'Vision claire', detail: 'Toutes vos données au même endroit.' },
-  { icon: Bell, title: 'Maîtrise des risques', detail: 'Alertes et décisions au bon moment.' },
-  { icon: LineChart, title: 'Croissance durable', detail: 'Développez votre ferme sereinement.' },
-  { icon: Grid3x3, title: 'Pilotage unifié', detail: 'Une seule plateforme pour toute l\'exploitation.' },
+  {
+    icon: Leaf,
+    title: 'Vision claire',
+    detail: 'Toutes vos données au même endroit.',
+    explanation: 'Un tableau de bord unique pour suivre élevage, cultures, ventes et trésorerie sans changer d\'outil.',
+  },
+  {
+    icon: Bell,
+    title: 'Maîtrise des risques',
+    detail: 'Alertes et décisions au bon moment.',
+    explanation: 'Soyez prévenu avant une rupture de stock, une anomalie sanitaire ou un écart de marge.',
+  },
+  {
+    icon: LineChart,
+    title: 'Croissance durable',
+    detail: 'Développez votre ferme sereinement.',
+    explanation: 'Fixez vos objectifs mensuels et mesurez vos progrès activité par activité.',
+  },
+  {
+    icon: Grid3x3,
+    title: 'Pilotage unifié',
+    detail: 'Une seule plateforme pour toute l\'exploitation.',
+    explanation: 'Animaux, aviculture, maraîchage, achats et finances pilotés depuis le même espace.',
+  },
 ];
 
 export default function LoginPage() {
@@ -70,7 +89,7 @@ export default function LoginPage() {
         className="pointer-events-none absolute inset-0 bg-cover bg-no-repeat"
         style={{
           backgroundImage: `url(${farmBg})`,
-          backgroundPosition: '38% 38%',
+          backgroundPosition: '50% 42%',
         }}
         aria-hidden
       />
@@ -83,15 +102,17 @@ export default function LoginPage() {
       />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#063321]/60 via-transparent to-transparent" aria-hidden />
 
-      <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col">
-        <section className="mx-auto grid w-full max-w-7xl flex-1 min-h-0 items-center gap-6 px-4 pt-1 pb-3 sm:gap-8 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:px-8 xl:px-10">
-          <div className="max-w-xl -mt-1 lg:-mt-3">
-            <img
-              src={brandLogo}
-              alt="Horizon Farm"
-              className="mb-3 h-auto w-36 object-contain sm:w-40 lg:mb-4 lg:w-44"
-            />
+      <header className="absolute right-0 top-0 z-20 px-4 pt-2 sm:px-6 sm:pt-3 lg:px-8 xl:px-10">
+        <img
+          src={brandLogo}
+          alt="Horizon Farm"
+          className="h-auto w-28 object-contain drop-shadow-sm sm:w-32 lg:w-36"
+        />
+      </header>
 
+      <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col">
+        <section className="mx-auto grid w-full max-w-7xl flex-1 min-h-0 items-center gap-6 px-4 pb-3 pt-10 sm:gap-8 sm:px-6 sm:pt-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:px-8 lg:pt-14 xl:px-10">
+          <div className="max-w-xl">
             <h1 className="sr-only">Horizon Farm ERP</h1>
             <p className="text-[1.65rem] font-black leading-[1.12] tracking-tight text-[#063321] sm:text-3xl lg:text-[2.15rem] xl:text-4xl">
               Pilotez votre ferme.
@@ -113,19 +134,44 @@ export default function LoginPage() {
               onSubmit={handleSubmit}
               className="rounded-3xl border border-[#e8dcc8] bg-white p-4 shadow-2xl shadow-[#063321]/12 sm:p-5"
             >
-              <div className="mb-4 text-center">
-                <span className="mx-auto mb-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#e8f5ea] text-[#1f7a2f]">
-                  <Leaf size={18} />
-                </span>
-                <h2 className="font-serif text-xl font-black text-[#063321] sm:text-2xl">
-                  {mode === 'signup' ? 'Créer un compte' : 'Connexion'}
-                </h2>
-                <p className="mt-0.5 text-[11px] text-[#6b7f72] sm:text-xs">
-                  {mode === 'signup'
-                    ? 'Rejoignez Horizon Farm en quelques étapes'
-                    : 'Accédez à votre espace Horizon Farm'}
-                </p>
+              <div
+                className="mb-4 flex rounded-xl border border-[#d6e3d8] bg-[#f3faf4] p-1"
+                role="tablist"
+                aria-label="Connexion ou inscription"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === 'login'}
+                  onClick={() => setMode('login')}
+                  className={`flex-1 rounded-lg py-2 text-xs font-black transition sm:text-sm ${
+                    mode === 'login'
+                      ? 'bg-white text-[#063321] shadow-sm'
+                      : 'text-[#6b7f72] hover:text-[#063321]'
+                  }`}
+                >
+                  Se connecter
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === 'signup'}
+                  onClick={() => setMode('signup')}
+                  className={`flex-1 rounded-lg py-2 text-xs font-black transition sm:text-sm ${
+                    mode === 'signup'
+                      ? 'bg-white text-[#063321] shadow-sm'
+                      : 'text-[#6b7f72] hover:text-[#063321]'
+                  }`}
+                >
+                  S&apos;inscrire
+                </button>
               </div>
+
+              <p className="mb-4 text-center text-[11px] text-[#6b7f72] sm:text-xs">
+                {mode === 'signup'
+                  ? 'Créez votre accès Horizon Farm en quelques secondes.'
+                  : 'Retrouvez votre espace de pilotage agricole.'}
+              </p>
 
               {mode === 'signup' ? (
                 <div className="mb-2.5">
@@ -217,41 +263,31 @@ export default function LoginPage() {
                 <Leaf size={16} />
                 {loading ? 'Traitement…' : mode === 'signup' ? 'Créer mon compte' : 'Se connecter'}
               </button>
-
-              <div className="my-3 flex items-center gap-2">
-                <div className="h-px flex-1 bg-[#e2ebe4]" />
-                <span className="text-[9px] font-semibold uppercase tracking-wider text-[#8aa393]">ou</span>
-                <div className="h-px flex-1 bg-[#e2ebe4]" />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setMode(mode === 'signup' ? 'login' : 'signup')}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#1f7a2f] bg-white py-2 text-sm font-black text-[#1f7a2f] transition hover:bg-[#f3faf4]"
-              >
-                <UserPlus size={16} />
-                {mode === 'signup' ? 'Se connecter' : 'Créer un compte'}
-              </button>
             </form>
           </div>
         </section>
 
-        <footer className="shrink-0 bg-[#063321] px-4 py-3 sm:px-6 lg:px-8 xl:px-10">
-          <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-4 gap-y-2 lg:grid-cols-4 lg:gap-4">
-            {FEATURES.map(({ icon: Icon, title, detail }) => (
-              <div key={title} className="flex items-center gap-2.5 text-white sm:gap-3">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/20 bg-white/10 sm:h-9 sm:w-9">
-                  <Icon size={16} className="sm:hidden" />
-                  <Icon size={17} className="hidden sm:block" />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-[11px] font-black leading-tight sm:text-xs">{title}</p>
-                  <p className="hidden text-[10px] leading-snug text-white/75 sm:block sm:text-[11px]">{detail}</p>
+        <footer className="shrink-0 bg-[#063321] px-4 py-4 sm:px-6 lg:px-8 xl:px-10">
+          <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+            {FEATURES.map(({ icon: Icon, title, detail, explanation }) => (
+              <div key={title} className="text-white">
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/20 bg-white/10 sm:h-9 sm:w-9">
+                    <Icon size={16} className="sm:hidden" />
+                    <Icon size={17} className="hidden sm:block" />
+                  </span>
+                  <p className="text-xs font-black leading-tight sm:text-sm">{title}</p>
                 </div>
+                <p className="mt-1.5 pl-[2.625rem] text-[11px] font-semibold leading-snug text-white/90 sm:pl-[2.875rem] sm:text-xs">
+                  {detail}
+                </p>
+                <p className="mt-1 pl-[2.625rem] text-[10px] leading-relaxed text-white/70 sm:pl-[2.875rem] sm:text-[11px]">
+                  {explanation}
+                </p>
               </div>
             ))}
           </div>
-          <p className="mx-auto mt-3 max-w-7xl text-right text-[10px] text-white/50">© 2026 Horizon Farm. Tous droits réservés.</p>
+          <p className="mx-auto mt-4 max-w-7xl text-right text-[10px] text-white/50">© 2026 Horizon Farm. Tous droits réservés.</p>
         </footer>
       </div>
     </main>
