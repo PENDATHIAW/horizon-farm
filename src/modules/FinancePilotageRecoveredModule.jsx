@@ -2,6 +2,7 @@ import { BarChart3, BrainCircuit, PiggyBank, Wallet, Zap } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
+import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
 import ModuleListHub from '../components/module/ModuleListHub.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
@@ -267,11 +268,6 @@ export default function FinancePilotageRecoveredModule(props) {
       payables,
       payableAmount: payables.reduce((s, r) => s + r.amount, 0) + supplierDebt,
       supplierDebt,
-      payments: snapshotPayments,
-      salesOrders: snapshotOrders,
-      transactions,
-      onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create,
-      onRefreshFinances: props.onRefreshFinances || financesCrud.refresh,
       profitAlerts,
       healthScore: healthSnap.score,
       healthFindings: healthSnap.findings,
