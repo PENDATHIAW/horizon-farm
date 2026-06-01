@@ -1,6 +1,5 @@
-import { computeErpAuditFindings } from './erpRules/index.js';
-import { evaluateCoherenceRules } from './erpRules/coherenceRules.js';
-import { evaluateRiskRules } from './erpRules/riskRules.js';
+import { runErpAuditEngine } from './erpAuditEngine.js';
+import { runRiskEngine } from './riskEngine.js';
 import { evaluatePredictiveRules } from './erpRules/predictiveRules.js';
 import { evaluateProfitabilityRules } from './erpRules/profitabilityRules.js';
 import { evaluateSurveillanceUxRules } from './erpRules/surveillanceUxRules.js';
@@ -23,23 +22,23 @@ function toRecommendation(finding) {
     status: 'nouvelle',
     action_recommandee: finding.recommended_action,
     confidence_score: Math.round((finding.confidence_score || 0.85) * 100),
-    source_data: { source_records: finding.source_records || [] },
+    source_data: { source_records: finding.source_records || [], issue_key: finding.issue_key },
+    issue_key: finding.issue_key,
     created_by_ai: true,
   };
 }
 
 /** Moteur ERP Health — détecte, explique, propose, suit. */
 export function runErpHealthEngine(data = {}) {
-  const audit = computeErpAuditFindings(data);
-  const coherence = evaluateCoherenceRules(data);
-  const risks = evaluateRiskRules(data);
+  const auditReport = runErpAuditEngine(data);
+  const riskReport = runRiskEngine({ ...data, auditReport });
+  const audit = auditReport.findings;
   const predictions = evaluatePredictiveRules(data);
   const profitability = evaluateProfitabilityRules(data);
   const uxSurveillance = evaluateSurveillanceUxRules();
   const uxAudit = evaluateErpUxAuditRules();
 
-  // computeErpAuditFindings already includes coherence and profitability rules.
-  const findings = [...audit, ...uxSurveillance, ...uxAudit, ...predictions.map((p) => ({
+  const findings = [...audit, ...profitability, ...uxSurveillance, ...uxAudit, ...predictions.map((p) => ({
     ...p,
     category: 'predictive',
     recommended_action: p.recommended_action,
@@ -55,7 +54,10 @@ export function runErpHealthEngine(data = {}) {
   const report = {
     score,
     findings,
-    risks,
+    risks: riskReport.domainRisks,
+    issueGroups: riskReport.issueGroups,
+    operationalPriorities: riskReport.operationalPriorities,
+    auditReport,
     predictions,
     recommendations,
     autoTasks,
@@ -63,11 +65,13 @@ export function runErpHealthEngine(data = {}) {
     counts: {
       total: findings.length,
       critical,
-      coherence: coherence.length,
-      risks: risks.filter((r) => r.level === 'critique' || r.level === 'eleve').length,
+      coherence: auditReport.counts.interconnection,
+      risks: riskReport.counts.criticalGroups,
+      issueGroups: riskReport.counts.groups,
       predictions: predictions.length,
       unreliableMargins: profitability.length,
       ux: uxSurveillance.length + uxAudit.length,
+      coverageGaps: auditReport.counts.coverageGaps,
     },
     generated_at: new Date().toISOString(),
   };

@@ -4,7 +4,6 @@ import { filterRealOpenTasks } from '../../utils/healthFindingLabels.js';
 import { remainingForOrder } from '../../utils/salesStatuses.js';
 import { computeFinancePeriodSummary } from '../dashboard/dashboardMetrics.js';
 import { isOpportunityOpen, saleAmount } from '../commercial/commercialMetrics.js';
-import { enrichOperationalPriorities } from './visionPriorityQueue.js';
 
 export const arr = (v) => (Array.isArray(v) ? v : []);
 export const low = (v) => String(v || '').toLowerCase();
@@ -48,7 +47,7 @@ export function Btn({ children, onClick }) {
 }
 
 export const VISION_TABLE_COLS = ['Sujet', 'Détail', 'Statut', 'Actions'];
-export const PRIORITY_TABLE_COLS = ['Sujet', 'Que faire', 'Priorité', 'Actions'];
+export const PRIORITY_TABLE_COLS = ['Priorité', 'Détail', 'Statut', 'Actions'];
 export const VISION_TABLE_COLS_3 = ['Sujet', 'Détail', 'Actions'];
 
 const TABLE_GRID_4 = 'md:grid-cols-[minmax(160px,1.1fr)_minmax(180px,2fr)_minmax(96px,0.75fr)_auto]';
@@ -75,20 +74,14 @@ export function VisionKpi({ label, value, tone = 'neutral', detail, onClick }) {
   );
 }
 
-export function DataRow({ title, subtitle, detail, status, statusHint, tone = 'neutral', onClick, actions, columns = 4 }) {
+export function DataRow({ title, detail, status, tone = 'neutral', onClick, actions, columns = 4 }) {
   const gridCls = columns === 3 ? TABLE_GRID_3 : TABLE_GRID_4;
   return (
     <div className={`grid grid-cols-1 gap-2 border-b border-[#eadcc2]/70 px-4 py-3 last:border-b-0 ${gridCls} md:items-center`}>
-      <button type="button" onClick={onClick} className="text-left font-black text-[#2f2415] hover:text-emerald-700">
-        <span className="block">{title}</span>
-        {subtitle ? <span className="mt-0.5 block text-xs font-semibold text-[#8a7456]">{subtitle}</span> : null}
-      </button>
-      <span className="text-sm text-[#8a7456] leading-snug">{detail}</span>
+      <button type="button" onClick={onClick} className="text-left font-black text-[#2f2415] hover:text-emerald-700">{title}</button>
+      <span className="text-sm text-[#8a7456]">{detail}</span>
       {columns === 4 ? (
-        <div className="flex flex-col items-start gap-1">
-          {status ? <Pill tone={tone}>{status}</Pill> : <span className="text-xs text-[#8a7456]">—</span>}
-          {statusHint ? <span className="text-[10px] font-bold uppercase tracking-wide text-[#9a6b12]">{statusHint}</span> : null}
-        </div>
+        <div className="flex items-center">{status ? <Pill tone={tone}>{status}</Pill> : <span className="text-xs text-[#8a7456]">—</span>}</div>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">{actions || (columns === 3 && status ? <Pill tone={tone}>{status}</Pill> : null)}</div>
     </div>
@@ -208,9 +201,11 @@ export function buildVisionData(props = {}) {
   const grossMargin = income - expenses;
   const base = { animaux: allAnimals, lots: allLots, cultures: allCultures, stocks: allStocks, clients: allClients, sales, payments: pay, income, expenses, balance: income - expenses, treasuryResult, encaisseDisplay, financePeriods, margin: grossMargin, grossMargin, netMargin: grossMargin, salesAmount, collected, stockValue, investmentValue, receivable, estimatedValue: stockValue + investmentValue + Math.max(0, grossMargin), productionCount: allAnimals.length + allLots.length + allCultures.length, goals: [...plans, ...invest], opportunities: opps, openOpportunities, pipelineTotal, documents: docs, missingProof, openAlerts, openTasks, debts: expenses, receivables: receivable, periodFiltered, periodLabel: props.periodLabel || '', openAlertsCount: openAlerts.length, openTasksCount: openTasks.length, criticalStockCount: allStocks.filter((r) => stockThreshold(r) > 0 && stockQty(r) <= stockThreshold(r)).length };
   const risks = buildRisks(base);
-  const manualExtras = [
-    ...(missingProof ? [{ id: 'proofs', title: 'Preuves manquantes', detail: `${missingProof} justificatif(s) à rattacher`, value: 'Preuve', priorityLabel: 'Preuve', tone: 'warn', tab: 'Financeurs', navModule: 'objectifs_croissance', sourceModule: 'documents_rapports', kind: 'preuve' }] : []),
-    ...(grossMargin < 0 || treasuryResult < 0 ? [{ id: 'cash', title: 'Trésorerie en tension', detail: periodFiltered ? 'Encaissements inférieurs aux charges sur la période.' : 'Résultat cumulé négatif — sécuriser la trésorerie.', value: 'Finance', priorityLabel: 'Finance', tone: 'bad', tab: 'Risques', sourceModule: 'finance_pilotage', navTab: 'Trésorerie', kind: 'finance' }] : []),
+  const priorities = [
+    ...openAlerts.slice(0, 5).map((r) => ({ id: `a-${r.id || label(r)}`, title: label(r), detail: r.message || 'Alerte ouverte', value: 'Alerte', tone: 'warn', tab: 'Risques', sourceModule: r.module_source || 'activite_suivi', record: r })),
+    ...openTasks.filter(isRisk).slice(0, 5).map((r) => ({ id: `t-${r.id || label(r)}`, title: label(r), detail: 'Tâche prioritaire', value: 'Action', tone: 'warn', tab: 'Risques', sourceModule: r.module_lie || 'activite_suivi', record: r })),
+    ...(missingProof ? [{ id: 'proofs', title: 'Preuves manquantes', detail: `${missingProof} justificatif(s)`, value: 'Financeurs', tone: 'warn', tab: 'Financeurs', navModule: 'objectifs_croissance', sourceModule: 'documents_rapports' }] : []),
+    ...(grossMargin < 0 || treasuryResult < 0 ? [{ id: 'cash', title: 'Trésorerie en tension', detail: periodFiltered ? 'Encaissements < charges sur la période' : 'Résultat cumulé négatif', value: 'Finance', tone: 'bad', tab: 'Risques', sourceModule: 'finance_pilotage', navTab: 'Trésorerie' }] : []),
   ];
   const riskCount = risks.length;
   const totalObjects = allAnimals.length + allLots.length + allCultures.length + openAlerts.length + openTasks.length + allStocks.length + 1;
@@ -239,22 +234,37 @@ export function buildVisionData(props = {}) {
     alimentation_logs: arr(dataMap.alimentation_logs),
     production_oeufs_logs: arr(dataMap.production_oeufs_logs),
   };
-  let health = { score: 100, risks: [], findings: [], predictions: [] };
-  try {
-    health = runErpHealthEngine(engineInput) || health;
-  } catch (error) {
-    console.warn('[buildVisionData] ERP health fallback', error);
-  }
-  const engineRisks = arr(health.risks).map(mapEngineRisk);
+  const health = runErpHealthEngine(engineInput);
+  const kpiEngines = runKpiEngine(engineInput, { module: props.moduleId || 'centre_ia', periodScope: props.periodScope || {} });
+  const engineRisks = health.risks.map(mapEngineRisk);
   const mergedRisks = [...engineRisks, ...risks.filter((r) => !engineRisks.some((e) => e.domain === r.domain && e.title === r.title))].slice(0, 50);
-  const predictions = arr(health.predictions).map(mapEnginePrediction);
-  const mergedPriorities = enrichOperationalPriorities(
-    openAlerts,
-    openTasks.filter(isRisk),
-    arr(health.findings),
-  ).concat(manualExtras);
-  const unreliableMargins = arr(health.findings).filter((f) => f.category === 'rentabilite' || f.margin_reliable === false).length;
-  const iaOpportunities = arr(health.findings)
+  const predictions = health.predictions.map(mapEnginePrediction);
+  const groupedPriorities = (health.operationalPriorities || []).map((group) => ({
+    id: group.id || group.issue_key,
+    issue_key: group.issue_key,
+    title: group.title,
+    detail: `${group.detail || group.action || '—'} · ${group.linkedCount || 0} lien(s)`,
+    value: group.linkedCount > 1 ? 'Groupe' : 'Priorité',
+    tone: group.tone || 'warn',
+    tab: group.tab || 'À traiter',
+    sourceModule: group.module,
+    isGrouped: true,
+    isEngine: true,
+  }));
+  const enginePriorities = health.findings.slice(0, 12).map((f) => ({
+    id: f.id,
+    title: f.title,
+    detail: f.recommended_action || f.description || '—',
+    value: 'IA',
+    tone: f.severity === 'critique' || f.severity === 'haute' ? 'bad' : 'warn',
+    tab: 'À traiter',
+    sourceModule: f.module || 'objectifs_croissance',
+    finding: f,
+    isEngine: true,
+  }));
+  const mergedPriorities = [...groupedPriorities, ...enginePriorities, ...priorities.filter((p) => !enginePriorities.some((e) => e.id === p.id) && !groupedPriorities.some((g) => g.issue_key && g.issue_key === p.id))].slice(0, 18);
+  const unreliableMargins = health.findings.filter((f) => f.category === 'rentabilite' || f.margin_reliable === false).length;
+  const iaOpportunities = health.findings
     .filter((f) => f.recommended_action && !['critique', 'haute'].includes(f.severity))
     .slice(0, 6)
     .map((f) => ({
@@ -274,8 +284,10 @@ export function buildVisionData(props = {}) {
     globalScore: health.score || score(totalObjects - riskCount, totalObjects),
     healthScore: health.score,
     predictions,
-    healthFindings: arr(health.findings),
-    engineRisks: arr(health.risks),
+    healthFindings: health.findings,
+    issueGroups: health.issueGroups || [],
+    kpiEngines,
+    engineRisks: health.risks,
     unreliableMargins,
     iaOpportunities,
   };

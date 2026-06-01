@@ -1,39 +1,34 @@
-/**
- * Règles période globale : quelles données sont filtrées par mois vs cumul global.
- * Complète applyPeriodScope.js — référence pour modules et Annexe.
- */
+/** Règle période globale ERP — quelles données sont filtrées vs cumul global. */
+export const MODULE_PERIOD_RULES = {
+  sales_orders: { filtered: true, reason: 'KPI commercial période' },
+  payments: { filtered: true, reason: 'Encaissements période' },
+  finances: { filtered: true, reason: 'Résultat période' },
+  production_oeufs_logs: { filtered: true, reason: 'Performance période' },
+  taches: { filtered: 'mixed', reason: 'Période sauf ouvertes critiques' },
+  documents: { filtered: 'mixed', reason: 'Période avec accès global' },
+  stock: { filtered: false, reason: 'État présent' },
+  clients: { filtered: false, reason: 'Référentiel global' },
+  fournisseurs: { filtered: false, reason: 'Référentiel global' },
+  creances_clients: { filtered: 'mixed', reason: 'Total global + mouvement période' },
+  dettes_fournisseurs: { filtered: 'mixed', reason: 'Total global + mouvement période' },
+  animaux: { filtered: false, reason: 'Historique global' },
+  avicole: { filtered: false, reason: 'Cycle global' },
+  alertes_center: { filtered: false, reason: 'Alertes ouvertes restent visibles' },
+  business_plans: { filtered: false, reason: 'Données stratégiques' },
+  investissements: { filtered: 'mixed', reason: 'Liste globale + dépenses période' },
+};
 
-/** Données qui restent en cumul global même quand une période est sélectionnée. */
-export const PERIOD_ALWAYS_GLOBAL = [
-  { key: 'stocks', label: 'Stock actuel', reason: 'Inventaire physique du jour' },
-  { key: 'clients', label: 'Clients', reason: 'Référentiel complet' },
-  { key: 'animaux', label: 'Animaux actifs', reason: 'Effectif courant' },
-  { key: 'lots', label: 'Lots avicoles', reason: 'Bandes en cours' },
-  { key: 'fournisseurs', label: 'Fournisseurs', reason: 'Solde cumulé' },
-  { key: 'salesOrdersAll', label: 'Créances totales', reason: 'Reste à payer global client' },
-  { key: 'paymentsAll', label: 'Encaissements cumulés', reason: 'Comparaison KPI Accueil' },
-  { key: 'transactionsAll', label: 'Finances cumulées', reason: 'Trésorerie globale' },
-  { key: 'businessPlans', label: 'Business plan', reason: 'Vision stratégique' },
-  { key: 'investissements', label: 'Investissements', reason: 'Patrimoine' },
-];
-
-/** Données filtrées par période sélectionnée. */
-export const PERIOD_FILTERED = [
-  { key: 'salesOrders', label: 'Ventes du mois', modules: ['commercial', 'dashboard', 'finance_pilotage'] },
-  { key: 'payments', label: 'Encaissements du mois', modules: ['finance_pilotage', 'dashboard'] },
-  { key: 'transactions', label: 'Dépenses du mois', modules: ['finance_pilotage', 'dashboard'] },
-  { key: 'productionLogs', label: 'Ponte du mois', modules: ['elevage', 'dashboard'] },
-  { key: 'taches', label: 'Tâches du mois', modules: ['activite_suivi'] },
-  { key: 'alertes', label: 'Alertes ouvertes', modules: ['activite_suivi', 'centre_ia'], note: 'Ouvertes = non filtrées par date de clôture' },
-  { key: 'documents', label: 'Documents récents', modules: ['documents_rapports'] },
-];
-
-export function isGlobalDataKey(key = '') {
-  return PERIOD_ALWAYS_GLOBAL.some((row) => row.key === key);
+export function shouldFilterByPeriod(datasetKey = '') {
+  const rule = MODULE_PERIOD_RULES[datasetKey];
+  if (!rule) return true;
+  return rule.filtered === true;
 }
 
-export function filteredDataKeysForModule(moduleId = '') {
-  return PERIOD_FILTERED.filter((row) => !moduleId || row.modules?.includes(moduleId)).map((row) => row.key);
+export function isGlobalDataset(datasetKey = '') {
+  const rule = MODULE_PERIOD_RULES[datasetKey];
+  return rule?.filtered === false;
 }
 
-export default { PERIOD_ALWAYS_GLOBAL, PERIOD_FILTERED };
+export function periodRuleLabel(datasetKey = '') {
+  return MODULE_PERIOD_RULES[datasetKey]?.reason || 'Filtré par période par défaut';
+}

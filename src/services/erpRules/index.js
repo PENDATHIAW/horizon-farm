@@ -12,7 +12,7 @@ import { evaluateModuleDataCoverage } from '../moduleDataCoverageAudit.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
-/** Phase 1 — audit automatique sans IA générative. */
+/** Phase 1 — audit automatique sans IA générative. Préférer runErpAuditEngine pour l'audit complet. */
 export function computeErpAuditFindings(data = {}) {
   return [
     ...evaluateStockRules(arr(data.stock || data.stocks)),
@@ -23,6 +23,7 @@ export function computeErpAuditFindings(data = {}) {
     ...evaluateTaskAlertRules(arr(data.taches || data.tasks), arr(data.alertes_center || data.alertes)),
     ...evaluateCoherenceRules(data),
     ...evaluateProfitabilityRules(data),
+    ...evaluateModuleDataCoverage(data).findings,
   ].sort((a, b) => {
     const rank = { critique: 0, haute: 1, moyenne: 2, basse: 3 };
     return (rank[a.severity] ?? 9) - (rank[b.severity] ?? 9);
