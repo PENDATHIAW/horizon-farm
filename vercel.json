@@ -6,6 +6,6 @@
     { "source": "/(.*)", "destination": "/" }
   ],
   "crons": [
-    { "path": "/api/push/dispatch-alerts", "schedule": "0 7 * * *" }
+    { "path": "/api/cron/check-alerts", "schedule": "*/5 * * * *" }
   ]
 }
