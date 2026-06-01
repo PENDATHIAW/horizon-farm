@@ -132,6 +132,12 @@ export default function Dashboard({
     payments,
     fournisseurs,
     stocks,
+    animaux,
+    lots: lotsData,
+    cultures,
+    sante: vaccins,
+    alimentationLogs,
+    businessEvents,
   });
 
   const unifiedOpportunities = deriveSalesOpportunities({

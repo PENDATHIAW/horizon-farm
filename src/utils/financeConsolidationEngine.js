@@ -41,6 +41,26 @@ function deriveBusinessCharges({ animaux = [], lots = [], cultures = [], stocks 
   const total = animalTotal + lotTotal + cultureTotal + stockPurchases + healthTotal + alimentationTotal + investmentTotal + supplierDebt + eventCharges;
   return { animaux: animalTotal, avicole: lotTotal, cultures: cultureTotal, stockAchats: stockPurchases, sante: healthTotal, alimentation: alimentationTotal, investissements: investmentTotal, dettesFournisseurs: supplierDebt, evenements: eventCharges, total, details: { animaux: animalBreakdown, avicole: lotBreakdown, cultures: cultureBreakdown } };
 }
+
+export { deriveBusinessCharges };
+
+/** Entrée unifiée pour consolidateFinance depuis les props module. */
+export function buildConsolidationInput(props = {}) {
+  return {
+    transactions: arr(props.transactions || props.finances || props.rows),
+    salesOrders: arr(props.salesOrders),
+    payments: arr(props.payments),
+    fournisseurs: arr(props.fournisseurs),
+    stocks: arr(props.stocks || props.stock),
+    animaux: arr(props.animaux),
+    lots: arr(props.lots || props.avicole),
+    cultures: arr(props.cultures),
+    sante: arr(props.sante || props.vaccins),
+    alimentationLogs: arr(props.alimentationLogs),
+    investissements: arr(props.investissements),
+    businessEvents: arr(props.businessEvents),
+  };
+}
 function expenseCoverageRatio(txExpenses = 0, derivedTotal = 0) { if (derivedTotal <= 0) return txExpenses > 0 ? 1 : 0; return Math.min(1, txExpenses / derivedTotal); }
 function reconcileCharges({ txExpenses = 0, derivedCharges = {} }) { const derivedTotal = toNumber(derivedCharges.total); if (txExpenses <= 0) return { chargesMetier: derivedTotal, chargesComptabilisees: 0, chargesDeriveesNonComptabilisees: derivedTotal, coverageRatio: 0, mode: 'derived_only' }; if (derivedTotal <= 0) return { chargesMetier: txExpenses, chargesComptabilisees: txExpenses, chargesDeriveesNonComptabilisees: 0, coverageRatio: 1, mode: 'finance_only' }; const coverageRatio = expenseCoverageRatio(txExpenses, derivedTotal); const nonAccounted = Math.max(0, derivedTotal - txExpenses); return { chargesMetier: txExpenses + nonAccounted, chargesComptabilisees: txExpenses, chargesDeriveesNonComptabilisees: nonAccounted, coverageRatio, mode: nonAccounted > 0 ? 'finance_plus_unposted_derived' : 'finance_covers_derived' }; }
 export function paymentsForOrder(order = {}, payments = []) { const orderId = String(order.id || ''); return arr(payments).filter((payment) => !isCancelled(payment) && String(paymentOrderId(payment) || '') === orderId); }

@@ -2,12 +2,14 @@ import {
   buildDocumentFromInvoice,
   buildFinanceFromPayment,
   buildOpportunityClosedPatch,
+  buildStructuredFarmImpact,
   documentExistsForInvoice,
   financeExistsForPayment,
   findOrderForOpportunity,
   findOrderForPayment,
   isOpportunityClosed,
 } from './erpInterconnectionRules';
+import { syncBusinessChargesToFinance } from './businessChargeSyncService.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value = '') => String(value || '').trim().toLowerCase();
@@ -75,6 +77,8 @@ export async function reconcileLegacyData({ data = {}, actions = {} } = {}) {
     invoices_documents_created: 0,
     opportunities_closed: 0,
     sold_animals_linked: 0,
+    health_impacts_structured: 0,
+    business_charges_synced: 0,
     skipped: 0,
     errors: [],
   };
@@ -86,6 +90,7 @@ export async function reconcileLegacyData({ data = {}, actions = {} } = {}) {
   const documents = arr(data.documents);
   const opportunities = arr(data.sales_opportunities);
   const animals = arr(data.animaux);
+  const healthRows = arr(data.sante);
 
   for (const payment of payments) {
     const order = findOrderForPayment(payment, orders);
@@ -142,6 +147,31 @@ export async function reconcileLegacyData({ data = {}, actions = {} } = {}) {
       summary.errors.push(`animal ${animal.id}: ${error.message}`);
     }
   }
+
+  for (const row of healthRows.filter((item) => amount(item) > 0 && !item.impact_structured)) {
+    try {
+      if (actions.onUpdateHealth) {
+        await actions.onUpdateHealth(row.id, buildStructuredFarmImpact(row));
+        summary.health_impacts_structured += 1;
+      } else summary.skipped += 1;
+    } catch (error) {
+      summary.errors.push(`health impact ${row.id}: ${error.message}`);
+    }
+  }
+
+  try {
+    const chargeSync = await syncBusinessChargesToFinance({
+      data,
+      handlers: {
+        onCreateFinanceTransaction: actions.onCreateFinanceTransaction,
+        onRefreshFinances: actions.onRefreshFinances,
+      },
+    });
+    summary.business_charges_synced = chargeSync.created || 0;
+  } catch (error) {
+    summary.errors.push(`business charges: ${error.message}`);
+  }
+
 
   return summary;
 }

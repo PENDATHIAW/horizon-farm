@@ -217,6 +217,7 @@ export default function GitHubAuditRoadmapPanel() {
           onCreateDocument: crud.documents?.create,
           onUpdateOpportunity: crud.sales_opportunities?.update,
           onUpdateAnimal: crud.animaux?.update,
+          onUpdateHealth: crud.sante?.update,
         },
       });
       const fixed = totalFixed(reconciliation);
