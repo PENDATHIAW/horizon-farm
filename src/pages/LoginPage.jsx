@@ -1,8 +1,51 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff, Lock, LogIn, RotateCcw, User, UserPlus } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo';
 import { useAuth } from '../context/AuthContext';
+import { currentAppScriptSrc, isStaleAppBundle, purgeStalePwaCache } from '../services/pwa.js';
+
+function LoginBuildInfo() {
+  const [buildSha, setBuildSha] = useState('');
+  const stale = isStaleAppBundle();
+  const scriptSrc = currentAppScriptSrc();
+
+  useEffect(() => {
+    fetch('/api/build-info', { cache: 'no-store' })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((info) => setBuildSha(info?.sha?.slice(0, 7) || ''))
+      .catch(() => {});
+  }, []);
+
+  const handlePurge = async () => {
+    try {
+      await purgeStalePwaCache({ reload: true });
+    } catch {
+      toast.error('Impossible de vider le cache');
+    }
+  };
+
+  if (!buildSha && !stale && !scriptSrc) return null;
+
+  return (
+    <div className={`mt-4 rounded-xl border px-4 py-3 text-xs ${stale ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-[#eadcc2] bg-[#fffdf8] text-[#8a7456]'}`}>
+      {stale ? (
+        <div className="space-y-2">
+          <p className="font-black">Votre navigateur affiche une ancienne version ({scriptSrc || 'bundle inconnu'}).</p>
+          <p>Cela peut arriver même sans installer l&apos;app — le cache navigateur ou un service worker peut conserver l&apos;ancien code.</p>
+          <button type="button" onClick={handlePurge} className="rounded-lg bg-[#2f2415] px-3 py-2 text-[11px] font-black text-white">
+            Forcer la mise à jour
+          </button>
+        </div>
+      ) : (
+        <p>
+          Version serveur <span className="font-black text-[#2f2415]">{buildSha || '…'}</span>
+          {scriptSrc ? <span className="block mt-1 font-mono text-[10px] opacity-80">{scriptSrc}</span> : null}
+        </p>
+      )}
+    </div>
+  );
+}
 
 export default function LoginPage() {
   const { signIn, signUp, resetPassword, remember, setRemember } = useAuth();
