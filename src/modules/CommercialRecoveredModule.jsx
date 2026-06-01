@@ -22,19 +22,23 @@ import {
 } from './commercial/commercialMetrics.js';
 import { resolveCommercialDataset } from '../utils/commercialLiveRows.js';
 import { resolveCommercialClients } from '../utils/clientWorkflows.js';
+import { applyOneClickRecommendation } from '../services/heyHorizonRecommendationActions.js';
 import { rowsOf, allRows } from '../utils/moduleRows';
 import { CommercialKpi, CommercialModuleHeader, CommercialQuickActions, CommercialTodoRow, CommercialTopClients } from './commercial/CommercialShell.jsx';
 import CommercialOpportunitiesPanel from './commercial/CommercialOpportunitiesPanel.jsx';
+import CommercialInsightPanel from './commercial/CommercialInsightPanel.jsx';
+import CommercialDeliverySyncPanel from './CommercialDeliverySyncPanel.jsx';
 import VentesV3 from './VentesV3';
 import ClientsReadable from './ClientsReadable';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
-function Summary({ data, setTab, onNewSale, repairProps }) {
+function Summary({ data, setTab, onNewSale, onApplyFinding, onNavigate, busyId, deliveryProps }) {
   const todos = data.summaryTodos.slice(0, 6);
   return (
     <div className="space-y-5">
-      <SalesWorkflowRepairPanel {...repairProps} />
+      <CommercialInsightPanel findings={data.healthFindings} predictions={data.healthPredictions} coherenceRows={data.coherenceRows} onApplyFinding={onApplyFinding} onNavigate={onNavigate} setTab={setTab} busyId={busyId} />
+      <CommercialDeliverySyncPanel {...deliveryProps} setTab={setTab} />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <CommercialKpi label="Encaissé" value={fmtCurrency(data.collected)} tone="good" onClick={() => setTab('Graphiques')} />
         <CommercialKpi label="Créances" value={fmtCurrency(data.receivable)} tone={data.receivable ? 'warn' : 'good'} onClick={() => setTab('Clients')} />
@@ -93,6 +97,7 @@ function Summary({ data, setTab, onNewSale, repairProps }) {
 export default function CommercialRecoveredModule(props) {
   const [tab, setTab] = useState(() => resolveCommercialTab(props.initialTab));
   const [pendingSaleDraft, setPendingSaleDraft] = useState(null);
+  const [busyId, setBusyId] = useState(null);
 
   useEffect(() => {
     if (props.initialTab) setTab(resolveCommercialTab(props.initialTab));
@@ -259,10 +264,44 @@ export default function CommercialRecoveredModule(props) {
 
   const todoBadge = data.todoCount;
 
+  const applyFinding = async (finding) => {
+    setBusyId(finding.id);
+    try {
+      const result = await applyOneClickRecommendation(finding, {
+        onNavigate: props.onNavigate,
+        onCreateTask: props.onCreateTask || tasksCrud.create,
+        onCreateAlert: props.onCreateAlert || alertsCrud.create,
+        onUpdateAlert: props.onUpdateAlert || alertsCrud.update,
+        existingTasks: rowsOf(props.existingTasks || props.tasks, tasksCrud, false),
+        existingAlerts: rowsOf(props.alertes, alertsCrud, false),
+      });
+      if (result.createdTasks || result.createdAlerts) toast.success('Action IA créée');
+      else setTab('Ventes');
+    } catch (error) {
+      toast.error(error.message || 'Erreur');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const deliveryProps = {
+    orders: enrichCommercialOrders(ordersAll, { deliveries: deliveriesAll, invoices: invoicesAll }),
+    payments: paymentsAll,
+    deliveries: deliveriesAll,
+    invoices: invoicesAll,
+    onUpdateOrder: props.onUpdate || ordersCrud.update,
+    onCreateDelivery: props.onCreateDelivery || deliveriesCrud.create,
+    onUpdateDelivery: props.onUpdateDelivery || deliveriesCrud.update,
+    onCreateTask: props.onCreateTask || tasksCrud.create,
+    onUpdateTask: props.onUpdateTask || tasksCrud.update,
+    tasks: rowsOf(props.tasks || props.existingTasks, tasksCrud, false),
+    onRefreshWorkflow: refreshWorkflow,
+  };
+
   return (
     <div className="space-y-4">
       <CommercialModuleHeader tab={tab} setTab={setTab} healthScore={data.healthScore} periodLabel={props.periodLabel} onNavigate={props.onNavigate} onOpenAssistant={props.onOpenAssistant} badges={{ receivable: data.receivable, todo: todoBadge, tabs: { Ventes: data.openSalesCount, Clients: data.clientsDebtCount, Opportunités: data.openOpportunities.length } }} />
-      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onNewSale={openNewSale} /> : null}
+      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onNewSale={openNewSale} onApplyFinding={applyFinding} onNavigate={props.onNavigate} busyId={busyId} deliveryProps={deliveryProps} /> : null}
       {tab === 'Ventes' ? <VentesV3 {...salesProps} /> : null}
       {tab === 'Clients' ? <ClientsReadable {...clientProps} /> : null}
       {tab === 'Opportunités' ? <CommercialOpportunitiesPanel opportunities={data.openOpportunities} clients={clients} salesOrders={data.orders} setTab={setTab} onWhatsAppLog={logOpportunityWhatsApp} onConvertSale={convertOpportunityToSale} /> : null}

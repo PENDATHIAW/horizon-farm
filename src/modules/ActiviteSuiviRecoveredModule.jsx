@@ -14,6 +14,7 @@ import { filterRealOpenTasks } from '../utils/healthFindingLabels.js';
 import AlertesCenterV2 from './AlertesCenterV2.jsx';
 import TachesV3 from './TachesV3.jsx';
 import TracabiliteV2 from './TracabiliteV2.jsx';
+import AlertTaskBridgePanel from './AlertTaskBridgePanel.jsx';
 
 const arr = (v) => Array.isArray(v) ? v : [];
 const low = (v) => String(v || '').toLowerCase();
@@ -87,7 +88,7 @@ function PriorityQueuePanel({ queue = [], onResolveAlert, busyId, setTab }) {
   );
 }
 
-function Summary({ data, setTab, onApply, onResolveAlert, busyId }) {
+function Summary({ data, setTab, onApply, onResolveAlert, busyId, bridgeProps }) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-8">
@@ -101,6 +102,7 @@ function Summary({ data, setTab, onApply, onResolveAlert, busyId }) {
         <Stat label="Événements" value={fmtNumber(data.events.length)} />
       </div>
       <ActiviteIaPanel findings={data.healthFindings} predictions={data.healthPredictions} onApply={onApply} busyId={busyId} setTab={setTab} />
+      <AlertTaskBridgePanel {...bridgeProps} />
       <PriorityQueuePanel queue={data.priorityQueue} onResolveAlert={onResolveAlert} busyId={busyId} setTab={setTab} />
       <CoherencePanel rows={data.coherenceRows} onApply={onApply} busyId={busyId} setTab={setTab} />
       {data.moduleBreakdown.length ? (
@@ -214,6 +216,17 @@ export default function ActiviteSuiviRecoveredModule(props) {
     }
   };
   const shared = { ...props, alertes, tasks, rows: tasks, businessEvents: eventsAll.length ? eventsAll : eventsPeriod, events: eventsAll.length ? eventsAll : eventsPeriod, auditLogs: auditLogsAll, animaux: rowsOf(props.animaux, animalsCrud, false), lots: rowsOf(props.lots, lotsCrud, false), avicole: rowsOf(props.lots, lotsCrud, false), sante: rowsOf(props.sante || props.vaccins, santeCrud, false), stocks: rowsOf(props.stocks, stockCrud, false), cultures: rowsOf(props.cultures, culturesCrud, false), sensorDevices: rowsOf(props.sensorDevices, sensorsCrud, false), whatsappTemplates: rowsOf(props.whatsappTemplates, whatsappTemplatesCrud, false), whatsappLogs: rowsOf(props.whatsappLogs, whatsappLogsCrud, false), onCreate: props.onCreateTask || tasksCrud.create, onUpdate: props.onUpdateTask || tasksCrud.update, onDelete: props.onDeleteTask || tasksCrud.remove, onRefresh: props.onRefreshTasks || tasksCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onUpdateAlert: props.onUpdateAlert || alertsCrud.update, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: props.onNavigate };
+  const bridgeProps = {
+    alertes,
+    tasks,
+    onCreateTask: props.onCreateTask || tasksCrud.create,
+    onUpdateTask: props.onUpdateTask || tasksCrud.update,
+    onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh,
+    onUpdateAlert: props.onUpdateAlert || alertsCrud.update,
+    onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh,
+    onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create,
+    onNavigate: props.onNavigate,
+  };
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
@@ -228,7 +241,7 @@ export default function ActiviteSuiviRecoveredModule(props) {
         </div>
       </section>
       <Tabs active={tab} onChange={setTab} />
-      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onResolveAlert={resolveAlert} busyId={busyId} /> : tab === 'Alertes' ? <AlertesCenterV2 {...shared} onUpdate={shared.onUpdateAlert} onRefresh={shared.onRefreshAlertes} /> : tab === 'Tâches' ? <TachesV3 {...shared} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="activite_suivi" onNavigate={props.onNavigate} /> : tab === 'Traçabilité' ? <TracabiliteV2 {...shared} rows={traceRows} onCreate={props.onCreateTrace || traceCrud.create} onUpdate={props.onUpdateTrace || traceCrud.update} onDelete={props.onDeleteTrace || traceCrud.remove} onRefresh={props.onRefreshTrace || traceCrud.refresh} /> : <ModuleGraphiquesTab moduleId="activite_suivi" taches={tasks} alertes={alertes} onNavigate={props.onNavigate} />}
+      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onResolveAlert={resolveAlert} busyId={busyId} bridgeProps={bridgeProps} /> : tab === 'Alertes' ? <AlertesCenterV2 {...shared} onUpdate={shared.onUpdateAlert} onRefresh={shared.onRefreshAlertes} /> : tab === 'Tâches' ? <TachesV3 {...shared} /> : tab === 'Traçabilité' ? <TracabiliteV2 {...shared} rows={traceRows} onCreate={props.onCreateTrace || traceCrud.create} onUpdate={props.onUpdateTrace || traceCrud.update} onDelete={props.onDeleteTrace || traceCrud.remove} onRefresh={props.onRefreshTrace || traceCrud.refresh} /> : <ModuleGraphiquesTab moduleId="activite_suivi" taches={tasks} alertes={alertes} onNavigate={props.onNavigate} />}
     </div>
   );
 }

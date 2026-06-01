@@ -1,21 +1,29 @@
 import ActionTraceHealth from './ActionTraceHealth.jsx';
 import Tracabilite from './Tracabilite.jsx';
+import AdminTraceCoveragePanel from './AdminTraceCoveragePanel.jsx';
 import { buildTraceCoverage } from '../utils/traceabilityWorkflows';
+import { mergeAuditLogsIntoTraceFeed } from '../services/traceAuditFeedService';
 import { AlertTriangle, CheckCircle2, ExternalLink, GitBranch } from 'lucide-react';
 import Btn from '../components/Btn';
+import { useMemo } from 'react';
 
 export default function TracabiliteV2(props) {
-  const coverage = buildTraceCoverage(props.events || []);
+  const mergedEvents = useMemo(
+    () => mergeAuditLogsIntoTraceFeed(props.events || [], props.auditLogs || []),
+    [props.events, props.auditLogs],
+  );
+  const coverage = buildTraceCoverage(mergedEvents);
   return <div className="space-y-6">
     <ActionTraceHealth
       tasks={props.tasks || []}
       alertes={props.alertes || []}
-      events={props.events || []}
+      events={mergedEvents}
       online={props.online ?? true}
       onNavigate={props.onNavigate}
     />
+    <AdminTraceCoveragePanel events={mergedEvents} auditLogs={props.auditLogs || []} onNavigate={props.onNavigate} />
     <TraceCoveragePanel coverage={coverage} onNavigate={props.onNavigate} />
-    <Tracabilite {...props} />
+    <Tracabilite {...props} events={mergedEvents} />
   </div>;
 }
 

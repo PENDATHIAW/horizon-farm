@@ -10,6 +10,8 @@ import { fmtCurrency, fmtNumber } from '../utils/format';
 import { rowsOf } from '../utils/moduleRows';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import { aggregateMissingProofItems, buildDocumentsCoherenceRows, buildDocumentsHealthSnapshot } from './documents/documentsVisionHelpers.js';
+import { filterDocumentsByQuery } from '../services/documentsOrphanSyncService.js';
+import DocumentsOrphanSyncPanel from './DocumentsOrphanSyncPanel.jsx';
 
 const arr = (v) => Array.isArray(v) ? v : [];
 const low = (v) => String(v || '').toLowerCase();
@@ -74,7 +76,7 @@ function CoherencePanel({ rows = [], onApply, busyId, setTab, onNavigate }) {
   );
 }
 
-function Summary({ data, setTab, onApply, onAttachProof, busyId, onNavigate }) {
+function Summary({ data, setTab, onApply, onAttachProof, busyId, onNavigate, actionHandlers }) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-8">
@@ -88,6 +90,7 @@ function Summary({ data, setTab, onApply, onAttachProof, busyId, onNavigate }) {
         <Stat label="Médias" value={fmtNumber(data.media.length)} />
       </div>
       <DocumentsIaPanel findings={data.healthFindings} predictions={data.healthPredictions} onApply={onApply} busyId={busyId} onNavigate={onNavigate} setTab={setTab} />
+      <DocumentsOrphanSyncPanel documents={data.documents} onApply={onApply} busyId={busyId} setTab={setTab} onNavigate={onNavigate} actionHandlers={actionHandlers} />
       <CoherencePanel rows={data.coherenceRows} onApply={onApply} busyId={busyId} setTab={setTab} onNavigate={onNavigate} />
       <Section icon={ClipboardList} title="Priorités documentaires" action={<Button onClick={() => setTab('Preuves')}>Voir preuves</Button>}>
         {data.priorities.length ? data.priorities.map((item) => (
@@ -109,14 +112,15 @@ function Summary({ data, setTab, onApply, onAttachProof, busyId, onNavigate }) {
   );
 }
 
-function Library({ data, selected, setSelected }) {
-  const row = selected || data.documents[0];
+function Library({ data, selected, setSelected, query, setQuery }) {
+  const filtered = useMemo(() => filterDocumentsByQuery(data.documents, query), [data.documents, query]);
+  const row = selected || filtered[0] || data.documents[0];
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_420px]">
-      <Section icon={FolderOpen} title="Bibliothèque">
-        {data.documents.length ? data.documents.slice(0, 16).map((doc) => (
+      <Section icon={FolderOpen} title="Bibliothèque" action={<div className="relative w-full max-w-xs"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8a7456]" /><input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher document…" className="w-full rounded-xl border border-[#d6c3a0] bg-[#fffdf8] py-2 pl-9 pr-3 text-sm" /></div>}>
+        {filtered.length ? filtered.slice(0, 24).map((doc) => (
           <Row key={doc.id || labelOf(doc)} title={labelOf(doc)} detail={`${typeOf(doc)} · ${dateOf(doc)} · ${detailOf(doc)}`} value={docIsProof(doc) ? 'Preuve' : docIsReport(doc) ? 'Rapport' : 'Doc'} tone={docIsProof(doc) ? 'good' : 'neutral'} onClick={() => setSelected(doc)} />
-        )) : <Empty label="Aucun document." />}
+        )) : <Empty label={query ? 'Aucun document pour cette recherche.' : 'Aucun document.'} />}
       </Section>
       <Section icon={Search} title="Fiche document">
         <div className="space-y-3">{row ? <><Field label="Document" value={labelOf(row)} /><Field label="Type" value={typeOf(row)} /><Field label="Date" value={dateOf(row)} /><Field label="Origine" value={row.module_source || row.related_type || '—'} /><Field label="Détail" value={detailOf(row)} /></> : <Empty label="Aucun document sélectionné." />}</div>
@@ -200,6 +204,7 @@ function Templates({ data }) {
 export default function DocumentsRapportsModule(props) {
   const [tab, setTab] = useState('Résumé');
   const [selectedDocument, setSelectedDocument] = useState(null);
+  const [libraryQuery, setLibraryQuery] = useState('');
   const [busyId, setBusyId] = useState(null);
   const docsCrud = useCrudModule('documents');
   const financesCrud = useCrudModule('finances');
@@ -298,7 +303,7 @@ export default function DocumentsRapportsModule(props) {
       setBusyId(null);
     }
   };
-  const content = tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onAttachProof={attachProof} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Bibliothèque' ? <Library data={data} selected={selectedDocument} setSelected={setSelectedDocument} /> : tab === 'Preuves' ? <Proofs data={data} onNavigate={props.onNavigate} onAttachProof={attachProof} busyId={busyId} /> : tab === 'Rapports' ? <Reports data={data} /> : tab === 'Exports' ? <Exports data={data} onNavigate={props.onNavigate} /> : tab === 'Modèles' ? <Templates data={data} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="documents_rapports" dataMap={{ documents: data.documents, finances: data.transactions }} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="documents_rapports" periodFiltered={periodFiltered} transactions={data.transactions} finances={data.transactions} clients={data.clients} salesOrders={data.salesOrders} payments={data.payments} onNavigate={props.onNavigate} />;
+  const content = tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onAttachProof={attachProof} busyId={busyId} onNavigate={props.onNavigate} actionHandlers={actionHandlers} /> : tab === 'Bibliothèque' ? <Library data={data} selected={selectedDocument} setSelected={setSelectedDocument} query={libraryQuery} setQuery={setLibraryQuery} /> : tab === 'Preuves' ? <Proofs data={data} onNavigate={props.onNavigate} onAttachProof={attachProof} busyId={busyId} /> : tab === 'Rapports' ? <Reports data={data} /> : tab === 'Exports' ? <Exports data={data} onNavigate={props.onNavigate} /> : tab === 'Modèles' ? <Templates data={data} /> : <ModuleGraphiquesTab moduleId="documents_rapports" periodFiltered={periodFiltered} transactions={data.transactions} finances={data.transactions} clients={data.clients} salesOrders={data.salesOrders} payments={data.payments} onNavigate={props.onNavigate} />;
   return (
     <div className="space-y-6">
       <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
