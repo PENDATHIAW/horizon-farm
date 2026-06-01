@@ -18,8 +18,9 @@ import AvicoleV10 from './AvicoleV10';
 import ElevageProductionPanel from './elevage/ElevageProductionPanel.jsx';
 import ElevageTransformationPanel from './elevage/ElevageTransformationPanel.jsx';
 import ElevageAlimentationPanel from './elevage/ElevageAlimentationPanel.jsx';
-import ElevageSantePanel from './elevage/ElevageSantePanel.jsx';
 import ElevageCyclesPanel from './elevage/ElevageCyclesPanel.jsx';
+import ElevageSantePanel from './elevage/ElevageSantePanel.jsx';
+import ElevageReproductionPanel from './elevage/ElevageReproductionPanel.jsx';
 import { ELEVAGE_ACTION_GRID, ELEVAGE_STAT_GRID, ElevageActionCard, ElevageLogRow, ElevageSection, ElevageStatCard } from './elevage/elevageUi.jsx';
 import './elevage/elevage.module.css';
 
@@ -160,40 +161,25 @@ function TransformationHub({ data, setTab, onNavigate, animalProps, avicoleProps
   );
 }
 function FeedingHub({ data, setTab, onNavigate, animalProps, avicoleProps }) {
-  const recent = data.feedLogs.slice(0, 8);
   return (
     <ElevageAlimentationPanel
       data={data}
       setTab={setTab}
       animalProps={animalProps}
       avicoleProps={avicoleProps}
-      recent={recent}
-      stats={[
-        { label: 'Sorties aliment', value: fmtNumber(data.feedLogs.length) },
-        { label: 'Coût cumulé', value: `${Math.round(data.feedCost).toLocaleString('fr-FR')} F`, tone: 'warn' },
-        { label: 'Stock aliment', value: fmtNumber(data.feedStocks.length), tone: data.feedStocks.length ? 'good' : 'warn' },
-        { label: 'Prévisions IA', value: fmtNumber(data.healthPredictions.length), tone: data.healthPredictions.length ? 'warn' : 'good' },
-      ]}
+      onNavigate={onNavigate}
     />
   );
 }
-function ReproductionHub({ data, setTab }) {
+function ReproductionHub({ data, setTab, animalProps, horizonDraft, onCloseDraft }) {
   return (
-    <BusinessHub
-      title="Reproduction"
-      intro="Saillies, gestations, mises bas et naissances — branchées sur les fiches Animaux existantes (mode naissance / reproduction interne)."
-      stats={[
-        { label: 'Femelles', value: fmtNumber(data.females) },
-        { label: 'Naissances', value: fmtNumber(data.birthLikeEvents), tone: 'good' },
-        { label: 'Événements', value: fmtNumber(data.livestockEvents.length) },
-        { label: 'À suivre', value: fmtNumber(data.females) > data.birthLikeEvents ? data.females - data.birthLikeEvents : 0, tone: 'warn' },
-      ]}
-    >
-      <ActionCard title="+ Naissance / mise bas" text="Ouvre la fiche animal en mode naissance sur la ferme avec mère et portée." onClick={() => emitHorizonForm('animaux', 'animal_create', 'Naissance / mise bas', { date: today(), mode_acquisition: 'naissance_ferme' })} />
-      <ActionCard title="+ Reproduction interne" text="Enregistrer un animal issu de reproduction interne avec lien mère/père." onClick={() => emitHorizonForm('animaux', 'animal_create', 'Reproduction interne', { date: today(), mode_acquisition: 'reproduction_interne' })} />
-      <ActionCard title="Voir femelles reproductrices" text="Consulter statut reproduction, mère, père et notes sur les fiches Animaux." onClick={() => setTab('Animaux')} />
-      <ActionCard title="Historique naissances" text="Événements métier naissance / mise bas / portée déjà enregistrés." onClick={() => setTab('Animaux')} />
-    </BusinessHub>
+    <ElevageReproductionPanel
+      data={data}
+      setTab={setTab}
+      animalProps={animalProps}
+      horizonDraft={horizonDraft}
+      onCloseDraft={onCloseDraft}
+    />
   );
 }
 
@@ -234,8 +220,10 @@ export default function ElevageRecoveredModule(props) {
         window.setTimeout(() => document.getElementById('hey-horizon-animal-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
         return;
       }
-      if (module === 'stock' && draft?.draft_fields?.category === 'alimentation') {
-        setTab('Alimentation');
+      if (module === 'animaux' && draft?.form_type === 'animal_creation') {
+        setTab('Reproduction');
+        setHorizonDraft(draft);
+        window.setTimeout(() => document.getElementById('hey-horizon-animal-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
       }
     };
     window.addEventListener('horizon-open-form', handler);
@@ -311,7 +299,7 @@ export default function ElevageRecoveredModule(props) {
   };
   const handleTabChange = (next) => {
     setTab(next);
-    if (!['Production', 'Transformation', 'Alimentation', 'Santé'].includes(next)) setHorizonDraft(null);
+    if (!['Production', 'Transformation', 'Reproduction'].includes(next)) setHorizonDraft(null);
   };
   const applyFinding = async (finding) => {
     setBusyId(finding.id);
@@ -336,11 +324,12 @@ export default function ElevageRecoveredModule(props) {
       lots={lots}
       animaux={animals}
       productionLogs={productionLogs}
+      alimentationLogs={feedLogs}
       feedLogs={feedLogs}
-      onNavigate={props.onNavigate}
       animalProps={animalProps}
       avicoleProps={avicoleProps}
+      onNavigate={props.onNavigate}
     />
-  ) : tab === 'Résumé' ? <Summary data={data} setTab={handleTabChange} onApply={applyFinding} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Animaux' ? <AnimauxV2 {...animalProps} /> : tab === 'Avicole' ? <AvicoleV10 {...avicoleProps} /> : tab === 'Alimentation' ? <FeedingHub data={data} setTab={handleTabChange} onNavigate={props.onNavigate} animalProps={animalProps} avicoleProps={avicoleProps} /> : tab === 'Santé' ? <ElevageSantePanel data={data} healthProps={healthProps} setTab={handleTabChange} /> : tab === 'Reproduction' ? <ReproductionHub data={data} setTab={handleTabChange} /> : tab === 'Production' ? <ProductionHub data={data} setTab={handleTabChange} onNavigate={props.onNavigate} animalProps={animalProps} avicoleProps={avicoleProps} horizonDraft={horizonDraft} onCloseDraft={() => setHorizonDraft(null)} /> : tab === 'Transformation' ? <TransformationHub data={data} setTab={handleTabChange} onNavigate={props.onNavigate} animalProps={animalProps} avicoleProps={avicoleProps} horizonDraft={horizonDraft} onCloseDraft={() => setHorizonDraft(null)} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="elevage" dataMap={{ ...props.dataMap, animaux: animals, lots, production_oeufs_logs: productionLogs, alimentation_logs: feedLogs, stock: stocks }} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="elevage" periodFiltered={periodFiltered} lots={lots} animaux={animals} productionLogs={productionLogs} alimentationLogs={feedLogs} transactions={rowsOf(props.transactions, financesCrud, periodFiltered)} salesOrders={salesOrders} onNavigate={props.onNavigate} />;
+  ) : tab === 'Résumé' ? <Summary data={data} setTab={handleTabChange} onApply={applyFinding} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Animaux' ? <AnimauxV2 {...animalProps} /> : tab === 'Avicole' ? <AvicoleV10 {...avicoleProps} /> : tab === 'Alimentation' ? <FeedingHub data={data} setTab={handleTabChange} onNavigate={props.onNavigate} animalProps={animalProps} avicoleProps={avicoleProps} /> : tab === 'Santé' ? <ElevageSantePanel healthProps={healthProps} onNavigate={props.onNavigate} /> : tab === 'Reproduction' ? <ReproductionHub data={data} setTab={handleTabChange} animalProps={animalProps} horizonDraft={horizonDraft} onCloseDraft={() => setHorizonDraft(null)} /> : tab === 'Production' ? <ProductionHub data={data} setTab={handleTabChange} onNavigate={props.onNavigate} animalProps={animalProps} avicoleProps={avicoleProps} horizonDraft={horizonDraft} onCloseDraft={() => setHorizonDraft(null)} /> : tab === 'Transformation' ? <TransformationHub data={data} setTab={handleTabChange} onNavigate={props.onNavigate} animalProps={animalProps} avicoleProps={avicoleProps} horizonDraft={horizonDraft} onCloseDraft={() => setHorizonDraft(null)} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="elevage" dataMap={{ ...props.dataMap, animaux: animals, lots, production_oeufs_logs: productionLogs, alimentation_logs: feedLogs, stock: stocks }} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="elevage" periodFiltered={periodFiltered} lots={lots} animaux={animals} productionLogs={productionLogs} alimentationLogs={feedLogs} transactions={rowsOf(props.transactions, financesCrud, periodFiltered)} salesOrders={salesOrders} onNavigate={props.onNavigate} />;
   return <div className="elevage-module space-y-6"><section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm sm:p-6"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 flex-1"><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Élevage</h1><p className="mt-1 text-sm leading-relaxed text-[#8a7456]">Animaux, avicole, alimentation, santé, reproduction, transformation — IA proactive et rentabilité fiable.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}<HeyHorizonQuickAsk moduleKey="elevage" onNavigate={props.onNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" /></div><div className="shrink-0 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé module </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div></div></section><Tabs active={tab} onChange={handleTabChange} />{content}</div>;
 }

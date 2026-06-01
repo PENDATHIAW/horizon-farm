@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowRight, BarChart3, Bird, CheckCircle2, ChevronDown, ClipboardList, Drumstick, Egg, HeartPulse, Info, PackageCheck, Scissors, Utensils, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, BarChart3, Bird, ChevronDown, ClipboardList, Drumstick, Egg, HeartPulse, Info, PackageCheck, Scissors, Sprout, Utensils } from 'lucide-react';
 import toast from 'react-hot-toast';
 import MiniMetricCard from '../components/MiniMetricCard.jsx';
 import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard.jsx';
@@ -171,25 +171,18 @@ export default function AvicoleV10(props) {
       <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4"><ActivityEntryCard active={activity === 'pondeuse'} icon={Egg} title="Pondeuses" rows={pondeuses} productionLogs={productionLogs} action="Ouvrir" onClick={() => setActivity('pondeuse')} /><ActivityEntryCard active={activity === 'chair'} icon={Drumstick} title="Poulets de chair" rows={chair} productionLogs={productionLogs} action="Ouvrir" onClick={() => setActivity('chair')} /></div>
     </div>
 
-    {!embedInElevage ? <AvicoleCycleHealthPanel rows={rows} productionLogs={productionLogs} alimentationLogs={props.alimentationLogs || []} onNavigate={props.onNavigate} /> : (
-      <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm sm:p-6">
-        <p className="text-sm font-black text-[#2f2415]">Pilotage, alimentation & santé</p>
-        <p className="mt-1 text-sm leading-relaxed text-[#8a7456]">Cycles de vente, aliment du jour et alertes mortalité sont dans les onglets dédiés.</p>
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-          {props.onElevageTabChange ? <button type="button" onClick={() => props.onElevageTabChange('Cycles')} className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><ClipboardList size={15} className="shrink-0" /> Cycles lots → Cycles</button> : null}
-          {props.onElevageTabChange ? <button type="button" onClick={() => props.onElevageTabChange('Alimentation')} className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><Utensils size={15} className="shrink-0" /> Aliment & charges → Alimentation</button> : null}
-          {props.onElevageTabChange ? <button type="button" onClick={() => props.onElevageTabChange('Santé')} className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><HeartPulse size={15} className="shrink-0" /> Santé lots → Santé <ArrowRight size={14} className="shrink-0" /></button> : null}
-        </div>
-      </section>
-    )}
+    {!embedInElevage ? <AvicoleCycleHealthPanel rows={rows} productionLogs={productionLogs} alimentationLogs={props.alimentationLogs || []} onNavigate={props.onNavigate} /> : null}
     <AvicoleSaleReadinessBridge rows={activeScopedRows} opportunities={scopedOpportunities} onUpdate={wrappedUpdate} onRefresh={props.onRefresh} onCreateOpportunity={props.onCreateOpportunity} onUpdateOpportunity={props.onUpdateOpportunity} onRefreshOpportunities={props.onRefreshOpportunities} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} />
     {embedInElevage ? (
-      <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm">
-        <p className="text-sm font-black text-[#2f2415]">Production & transformation</p>
-        <p className="mt-1 text-sm text-[#8a7456]">Journal de ponte, abattage chair et mortalité sont dans les onglets dédiés.</p>
+      <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm sm:p-6">
+        <p className="text-sm font-black text-[#2f2415]">Autres onglets métier</p>
+        <p className="mt-1 text-sm leading-relaxed text-[#8a7456]">Production, transformation, cycles, alimentation et santé ont leurs propres espaces.</p>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-          {props.onElevageTabChange ? <button type="button" onClick={() => props.onElevageTabChange('Production')} className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415] sm:flex-none sm:justify-start"><Egg size={15} className="shrink-0" /> <span className="break-words text-left">Ramassage œufs → Production</span> <ArrowRight size={14} className="shrink-0" /></button> : null}
-          {props.onElevageTabChange ? <button type="button" onClick={() => props.onElevageTabChange('Transformation')} className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415] sm:flex-none sm:justify-start"><Scissors size={15} className="shrink-0" /> <span className="break-words text-left">Abattage / mortalité → Transformation</span> <ArrowRight size={14} className="shrink-0" /></button> : null}
+          {props.onElevageTabChange ? <button type="button" onClick={() => props.onElevageTabChange('Production')} className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><Egg size={15} className="shrink-0" /> Ramassage œufs <ArrowRight size={14} /></button> : null}
+          {props.onElevageTabChange ? <button type="button" onClick={() => props.onElevageTabChange('Transformation')} className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><Scissors size={15} className="shrink-0" /> Abattage / mortalité <ArrowRight size={14} /></button> : null}
+          {props.onElevageTabChange ? <button type="button" onClick={() => props.onElevageTabChange('Cycles')} className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><Sprout size={15} className="shrink-0" /> Cycles & ventes <ArrowRight size={14} /></button> : null}
+          {props.onElevageTabChange ? <button type="button" onClick={() => props.onElevageTabChange('Alimentation')} className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><Utensils size={15} className="shrink-0" /> Alimentation & charges <ArrowRight size={14} /></button> : null}
+          {props.onElevageTabChange ? <button type="button" onClick={() => props.onElevageTabChange('Santé')} className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><HeartPulse size={15} className="shrink-0" /> Santé <ArrowRight size={14} /></button> : null}
         </div>
       </section>
     ) : null}
