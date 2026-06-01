@@ -90,6 +90,10 @@ test('roadmap: panneaux UI branchés dans modules actifs', () => {
   expect(alertes).toContain('IssueProblemFichePanel');
   const sync = readFileSync('src/modules/SyncERPModule.jsx', 'utf8');
   expect(sync).toContain('IssueProblemFichePanel');
+  const gestion = readFileSync('src/modules/GestionSystemeUnified.jsx', 'utf8');
+  expect(gestion).toContain('IssueProblemFichePanel');
+  const equipements = readFileSync('src/modules/Equipements.jsx', 'utf8');
+  expect(equipements).toContain('EquipementsSmartFarmBridge');
   const ventes = readFileSync('src/modules/VentesV4.jsx', 'utf8');
   expect(ventes).toContain('SalesWorkflowRepairPanel');
 });

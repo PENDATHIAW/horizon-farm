@@ -5,7 +5,6 @@ import { fmtCurrency } from '../utils/format';
 import EquipementsMaintenanceBridge from './EquipementsMaintenanceBridge.jsx';
 import EquipementsQuickActionsBridge from './EquipementsQuickActionsBridge.jsx';
 import EquipementsEvolution from './EquipementsEvolution.jsx';
-import EquipementsSmartFarmBridge from './EquipementsSmartFarmBridge.jsx';
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
@@ -85,6 +84,13 @@ export default function Equipements(props) {
       <ModuleSection icon={BarChart3} title="Évolution du matériel" subtitle="Disponibilité, pannes, maintenances, carburant et coût réel par équipement.">
         <EquipementsEvolution rows={rows} tasks={props.tasks || []} onNavigate={props.onNavigate} />
       </ModuleSection>
+
+      <EquipementsSmartFarmBridge
+        rows={rows}
+        sensors={props.sensorDevices || []}
+        cameras={props.cameraDevices || []}
+        onNavigate={props.onNavigate}
+      />
     </div>
   );
 }

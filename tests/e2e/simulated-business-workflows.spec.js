@@ -35,6 +35,7 @@ import { auditErpInterconnections } from '../../src/utils/interconnectionAudit.j
 import { buildSyncRepairTask, routeForSyncIssue, syncIssueActionLabel } from '../../src/utils/syncAuditWorkflows.js';
 import { buildSystemAuditEvent, canPerformSystemAction, isLastActiveAdmin, roleCanAccess, validateSystemResetConfirmation } from '../../src/utils/systemAccessWorkflows.js';
 import { stripRepeatedPrefix, formatFindingLabel, shouldSkipCriticalTaskFinding } from '../../src/utils/healthFindingLabels.js';
+import { buildDashboardTodayActions, sanitizeDashboardMetric } from '../../src/utils/dashboardWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
