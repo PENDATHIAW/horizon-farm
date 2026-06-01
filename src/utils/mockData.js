@@ -107,6 +107,7 @@ export const moduleSeedMap = {
   finances: transactionsSeed,
   investissements: investissementsSeed,
   stock: stocksSeed,
+  stock_movements: [],
   stocks: stocksSeed,
   clients: clientsSeed,
   fournisseurs: fournisseursSeed,

@@ -98,6 +98,15 @@ function exportPdf(summary, draft) {
   y = section(doc, '13. Reporting financeur', draft.reporting, y);
   y = section(doc, '14. Risques et réponses', draft.risk, y);
   y = section(doc, '15. Pièces à joindre', draft.attachments, y);
+  if (options.proofs?.length) {
+    if (y > 220) { doc.addPage(); y = 24; }
+    autoTable(doc, { startY: y, head: [['Preuve ERP', 'Module', 'Lié']], body: options.proofs.slice(0, 12).map((row) => [row.title, row.module, row.linked ? 'Oui' : 'Non']), theme: 'grid', headStyles: { fillColor: [138, 116, 86], textColor: 255 }, styles: { fontSize: 7.2, cellPadding: 2 } });
+    y = doc.lastAutoTable.finalY + 8;
+  }
+  if (options.checklist?.length) {
+    if (y > 220) { doc.addPage(); y = 24; }
+    y = section(doc, 'Annexe — Checklist conformité', options.checklist.map((row) => `${row.ok ? 'OK' : 'À corriger'} · ${row.item} · ${row.value}`).join('\n'), y);
+  }
   const pages = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pages; i += 1) { doc.setPage(i); doc.setFontSize(8); doc.setTextColor(125, 106, 74); doc.text(`Horizon Farm · dossier financement · ${i}/${pages}`, 105, 288, { align: 'center' }); }
   doc.save(`dossier-financement-${f.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-horizon-farm-${today()}.pdf`);

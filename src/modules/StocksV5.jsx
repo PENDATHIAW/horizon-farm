@@ -1,5 +1,7 @@
 import useCrudModule from '../hooks/useCrudModule';
 import { makeId } from '../utils/ids';
+import { persistStockMovement } from '../services/stockMovementHelpers';
+import StockMovementsPanel from './StockMovementsPanel.jsx';
 import StocksV4 from './StocksV4.jsx';
 
 const n = (value = 0) => Number(value || 0) || 0;
@@ -11,7 +13,14 @@ const stockMovementKey = (id, date = today()) => `stock-movement:${id}:${date}`;
 
 export default function StocksV5(props) {
   const eventsCrud = useCrudModule('business_events');
+  const movementsCrud = useCrudModule('stock_movements');
   const rows = props.rows || [];
+  const movements = props.stockMovements || movementsCrud.rows || [];
+
+  const movementHandlers = {
+    onCreateStockMovement: props.onCreateStockMovement || movementsCrud.create,
+    onRefreshStockMovements: props.onRefreshStockMovements || movementsCrud.refresh,
+  };
 
   const createMovementEvent = async (before = {}, after = {}, patch = {}) => {
     const oldQty = qtyOf(before);
@@ -23,8 +32,9 @@ export default function StocksV5(props) {
     const type = isLoss ? 'perte' : delta > 0 ? 'entree' : 'sortie';
     const qty = Math.abs(delta);
     const date = String(patch.date || patch.last_movement_date || today()).slice(0, 10);
+    const eventId = makeId('EVT');
     await (props.onCreateBusinessEvent || eventsCrud.create)?.({
-      id: makeId('EVT'),
+      id: eventId,
       event_type: `stock_mouvement_${type}`,
       module_source: 'stock',
       module: 'stock',
@@ -46,6 +56,7 @@ export default function StocksV5(props) {
       dedupe_key: `${stockMovementKey(after.id, date)}:${newQty}`,
       saisies_evitees: 1,
     });
+    await persistStockMovement({ before, after, patch, linkedEventId: eventId, handlers: movementHandlers });
     await (props.onRefreshBusinessEvents || eventsCrud.refresh)?.();
   };
 
@@ -61,5 +72,10 @@ export default function StocksV5(props) {
     if (qtyOf(payload) > 0) await createMovementEvent({ id: payload.id, quantite: 0, quantity: 0, stock: 0 }, payload, { last_movement_type: 'entree', notes: 'Création stock' });
   };
 
-  return <StocksV4 {...props} rows={rows} onCreate={guardedCreate} onUpdate={guardedUpdate} onCreateBusinessEvent={props.onCreateBusinessEvent || eventsCrud.create} onRefreshBusinessEvents={props.onRefreshBusinessEvents || eventsCrud.refresh} />;
+  return (
+    <div className="space-y-4">
+      <StocksV4 {...props} rows={rows} onCreate={guardedCreate} onUpdate={guardedUpdate} onCreateBusinessEvent={props.onCreateBusinessEvent || eventsCrud.create} onRefreshBusinessEvents={props.onRefreshBusinessEvents || eventsCrud.refresh} />
+      <StockMovementsPanel movements={movements} />
+    </div>
+  );
 }
