@@ -1,5 +1,6 @@
 import { toNumber } from './format';
 import { avicoleActiveCount, avicoleHasActiveBirds } from './avicoleMetrics';
+import { isSaleReady } from './saleReadiness';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value) => String(value || '').trim();
@@ -17,8 +18,16 @@ export function isOpenSalesOpportunity(row = {}) {
   return openStatuses.includes(status) || !status;
 }
 
+export function normalizeLegacyOpportunityKey(key = '') {
+  const direct = clean(key);
+  if (!direct) return '';
+  if (direct.startsWith('animal-sale:')) return direct.replace('animal-sale:', 'animaux:');
+  if (direct.startsWith('avicole-sale:')) return direct.replace('avicole-sale:', 'avicole:');
+  return direct;
+}
+
 export function salesOpportunityKey(row = {}) {
-  const direct = clean(row.opportunity_key);
+  const direct = normalizeLegacyOpportunityKey(row.opportunity_key || row.dedupe_key);
   if (direct) return direct;
   const module = clean(row.source_module || row.created_from || row.module_source);
   const sourceId = clean(row.source_id || row.related_id || row.entity_id);
@@ -34,15 +43,13 @@ export function salesOpportunityAmount(row = {}) {
 
 function lotReadyForSale(lot = {}) {
   if (!clean(lot.id) || !avicoleHasActiveBirds(lot)) return false;
-  const status = lower(lot.status || lot.statut);
-  return Boolean(lot.pret_vente_confirme || lot.pret_a_la_vente || lot.ready_for_sale || lot.sale_ready)
-    || ['pret_a_la_vente', 'pret_a_vendre', 'pret_a_vendre_reforme', 'a_reformer'].includes(status);
+  return isSaleReady(lot);
 }
 
 function animalReadyForSale(animal = {}) {
   const status = lower(animal.status || animal.statut || animal.sale_status);
   return clean(animal.id) && !['vendu', 'decede', 'décédé', 'sorti', 'annule', 'mort', 'vole', 'volé'].includes(status)
-    && Boolean(animal.pret_vente_confirme || animal.pret_a_la_vente || animal.ready_for_sale || animal.sale_ready || ['pret_a_la_vente', 'pret_a_vendre'].includes(status));
+    && isSaleReady(animal);
 }
 
 function cultureReadyForSale(culture = {}) {

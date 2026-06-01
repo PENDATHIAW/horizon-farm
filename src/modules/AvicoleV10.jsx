@@ -7,6 +7,9 @@ import { buildAvicoleLotDecision } from '../services/avicoleDecisionEngine';
 import { fmtNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { avicoleActiveCount, avicoleHasActiveBirds } from '../utils/avicoleMetrics';
+import { isSaleReady, saleOpportunityKey } from '../utils/saleReadiness';
+import { buildPersistedOpportunityPayload, findOpportunityForSource, mergeSaleReadySavePayload } from '../utils/saleReadyWorkflow';
+import AvicoleSaleReadinessBridge from './AvicoleSaleReadinessBridge.jsx';
 import AvicoleBase from './AvicoleBase.jsx';
 import AvicoleCycleHealthPanel from './AvicoleCycleHealthPanel.jsx';
 import AvicoleEvolution from './AvicoleEvolution.jsx';
@@ -37,14 +40,8 @@ const isLossClosedLot = (lot = {}) => ['perdu', 'perdu_mortalite', 'cloture_pert
 const draftActionToActivity = (draft = {}) => draft.form_type === 'egg_production' || norm(draft.raw_input).includes('pondeuse') || norm(draft.raw_input).includes('oeuf') || norm(draft.raw_input).includes('tablette') ? 'pondeuse' : 'chair';
 const draftActionLabel = (formType = '') => formType === 'egg_production' ? 'Ramassage œufs' : formType === 'poultry_mortality' ? 'Mortalité' : 'Clôture / réforme';
 const statusOf = (row = {}) => norm(row.status || row.statut || '');
-const isReadyForSale = (lot = {}) => {
-  const status = statusOf(lot);
-  const decision = buildAvicoleLotDecision(lot, []);
-  const progress = Number(decision?.progress || 0);
-  return Boolean(lot.pret_vente_confirme || lot.ready_for_sale || lot.sale_ready || lot.ready_to_sell || lot.pret_a_la_vente || lot.pret_vente_recommande || status === 'pret_a_la_vente' || status === 'pret_vente' || status === 'pret a vendre' || (isChair(lot) && progress >= 100));
-};
+const isReadyForSale = (lot = {}) => isSaleReady(lot);
 const estimatedAmount = (lot = {}) => num(lot.prix_vente_reel ?? lot.sale_price ?? lot.prix_vente ?? lot.prix_vente_estime ?? lot.valeur_estimee ?? lot.valeur_marche);
-const opportunityDedupeKey = (lot = {}) => `avicole-sale:${lot.id || lot.lot_id || ''}`;
 const eggsOpportunityKey = (lot = {}, date = today()) => `avicole-eggs:${lot.id || lot.lot_id || ''}:${date}`;
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
@@ -146,16 +143,31 @@ export default function AvicoleV10(props) {
 
   const createOrReactivateLotOpportunity = async (lot = {}, source = 'lot prêt à vendre') => {
     if (!lot?.id || !isReadyForSale(lot) || !avicoleHasActiveBirds(lot)) return;
-    const dedupeKey = opportunityDedupeKey(lot);
-    const existing = opportunities.find((opp) => String(opp.opportunity_key || opp.dedupe_key || opp.source_record_id || opp.source_id || '') === dedupeKey || (String(opp.source_module || opp.created_from || '').includes('avicole') && String(opp.source_id || opp.entity_id || opp.lot_id || '') === String(lot.id)));
+    const existing = findOpportunityForSource(opportunities, 'avicole', lot.id);
     const qty = currentOf(lot);
     const amount = estimatedAmount(lot);
     const productName = isChair(lot) ? `Poulets de chair · ${labelOf(lot)}` : `Lot pondeuses · ${labelOf(lot)}`;
-    const payload = { opportunity_key: dedupeKey, dedupe_key: dedupeKey, title: `Vente ${productName}`, libelle: `Vente ${productName}`, source_module: 'avicole', created_from: 'avicole', source_type: isChair(lot) ? 'poulets_chair' : 'lot_pondeuses', entity_type: 'lot_avicole', source_id: lot.id, entity_id: lot.id, lot_id: lot.id, product_name: productName, produit: productName, quantity: qty, quantite: qty, unite: 'tête', unit: 'tête', montant_estime: amount, estimated_amount: amount, valeur_estimee: amount, status: 'ouverte', statut: 'ouverte', priority: 'haute', date: today(), notes: `${source} · effectif disponible ${qty}` };
+    const payload = buildPersistedOpportunityPayload({
+      sourceModule: 'avicole',
+      sourceType: isChair(lot) ? 'poulets_chair' : 'lot_pondeuses',
+      sourceId: lot.id,
+      title: `Vente ${productName}`,
+      productName,
+      quantity: qty,
+      unit: 'tête',
+      unitPrice: qty > 0 ? amount / qty : amount,
+      amount,
+      notes: `${source} · effectif disponible ${qty}`,
+      priority: 'haute',
+      extra: {
+        entity_type: 'lot_avicole',
+        lot_id: lot.id,
+      },
+    });
     if (existing?.id) await props.onUpdateOpportunity?.(existing.id, { ...payload, status: 'ouverte', statut: 'ouverte', updated_at: new Date().toISOString() });
     else await props.onCreateOpportunity?.({ id: makeId('OPP'), ...payload });
     await props.onRefreshOpportunities?.();
-    await props.onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'opportunite_vente_avicole', module_source: 'avicole', entity_type: 'lot_avicole', entity_id: lot.id, title: `Opportunité vente créée · ${labelOf(lot)}`, description: `${productName} prêt à vendre. Opportunité disponible dans Ventes.`, event_date: today(), severity: 'info', amount, linked_opportunity_key: dedupeKey, saisies_evitees: 1 });
+    await props.onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'opportunite_vente_avicole', module_source: 'avicole', entity_type: 'lot_avicole', entity_id: lot.id, title: `Opportunité vente créée · ${labelOf(lot)}`, description: `${productName} prêt à vendre. Opportunité disponible dans Ventes.`, event_date: today(), severity: 'info', amount, linked_opportunity_key: saleOpportunityKey('avicole', lot.id), saisies_evitees: 1 });
     await props.onRefreshBusinessEvents?.();
   };
   const createOrReactivateEggOpportunity = async (lot = {}, eggs = 0, date = today(), note = '') => {
@@ -184,7 +196,7 @@ export default function AvicoleV10(props) {
   };
 
   const wrappedCreate = async (payload) => { await props.onCreate?.(payload); await createMortalityEvent({}, payload, 'création lot avicole'); await createOrReactivateLotOpportunity(payload, 'création lot prêt à vendre'); };
-  const wrappedUpdate = async (id, payload) => { const before = (props.rows || []).find((lot) => String(lot.id) === String(id)) || {}; const after = { ...before, ...payload, id }; await props.onUpdate?.(id, payload); await createMortalityEvent(before, after, 'modification fiche lot'); if (!isReadyForSale(before) && isReadyForSale(after)) await createOrReactivateLotOpportunity(after, 'lot marqué prêt à vendre'); };
+  const wrappedUpdate = async (id, payload) => { const before = (props.rows || []).find((lot) => String(lot.id) === String(id)) || {}; const restored = mergeSaleReadySavePayload(before, payload); const after = { ...before, ...restored, id }; await props.onUpdate?.(id, restored); await createMortalityEvent(before, after, 'modification fiche lot'); if (!isReadyForSale(before) && isReadyForSale(after)) await createOrReactivateLotOpportunity(after, 'lot marqué prêt à vendre'); };
   const scopedOpportunities = opportunities.filter((op) => activity === 'pondeuse' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('oeuf') || norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('pondeuse') : activity === 'chair' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('chair') : true);
   const operationalProps = { ...props, activity, lockActivity: true, rows: activeScopedRows, productionLogs: scopedProductionLogs, salesOrders, payments, transactions, businessEvents, onCreate: wrappedCreate, onUpdate: wrappedUpdate, opportunities: scopedOpportunities };
   const historyProps = { ...props, activity, lockActivity: true, rows: scopedRows, productionLogs: scopedProductionLogs, salesOrders, payments, transactions, businessEvents, onCreate: wrappedCreate, onUpdate: wrappedUpdate, opportunities: scopedOpportunities };
@@ -201,6 +213,7 @@ export default function AvicoleV10(props) {
     </div>
 
     <AvicoleCycleHealthPanel rows={rows} productionLogs={productionLogs} alimentationLogs={props.alimentationLogs || []} onNavigate={props.onNavigate} />
+    <AvicoleSaleReadinessBridge rows={activeScopedRows} opportunities={scopedOpportunities} onUpdate={wrappedUpdate} onRefresh={props.onRefresh} onCreateOpportunity={props.onCreateOpportunity} onUpdateOpportunity={props.onUpdateOpportunity} onRefreshOpportunities={props.onRefreshOpportunities} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} />
     {activity === 'pondeuse' ? <LayerHelpBanner /> : null}
     <div className="objective-card-grid grid grid-cols-1 gap-4">{activity === 'pondeuse' ? <ObjectivePerformanceCard dataMap={dataMap} activity="oeufs" title="Objectif œufs / pondeuses" compact onNavigate={props.onNavigate} /> : <ObjectivePerformanceCard dataMap={dataMap} activity="poulets_chair" title="Objectif poulets de chair" compact onNavigate={props.onNavigate} />}</div>
     <ModuleSection icon={PackageCheck} title={`Lots actifs · ${selectedLabel}`} subtitle={`${historicalScopedRows.length} lot(s) en historique.`}><AvicoleBase {...operationalProps} /></ModuleSection>

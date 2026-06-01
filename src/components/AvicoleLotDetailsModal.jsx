@@ -6,7 +6,8 @@ import Badge from './Badge';
 import Btn from './Btn';
 import FicheTabsBar from './FicheTabsBar.jsx';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
-import { makeId } from '../utils/ids';
+import { buildPersistedOpportunityPayload } from '../utils/saleReadyWorkflow';
+import { saleReadyPatch } from '../utils/saleReadiness';
 import { calculateLotMetrics } from '../utils/businessCalculations';
 import { buildAvicoleLotDecision } from '../services/avicoleDecisionEngine';
 import { computeAvicoleLivingTarget } from '../services/avicoleLivingTargets';
@@ -111,7 +112,7 @@ function livingAsProjection(living) {
   return { status: living.status, label: living.status?.replaceAll('_', ' ') || 'Suivi en cours', currentWeight: living.currentWeight || 0, targetWeight: living.livingTarget || living.defaultTargetWeight || 0, projectedWeight: living.projectedWeight || 0, targetDays: living.targetDays || 45, gainPerDay: living.adaptiveGainPerDay || living.realGainPerDay || 0, action: living.action, history: living.history || [] };
 }
 
-export default function AvicoleLotDetailsModal({ open, onClose, lot, productionLogs = [], alimentationLogs = [], opportunities = [], salesOrders = [], payments = [], transactions = [], businessEvents = [], onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateBusinessEvent, onRefreshBusinessEvents, onNavigate }) {
+export default function AvicoleLotDetailsModal({ open, onClose, lot, productionLogs = [], alimentationLogs = [], opportunities = [], salesOrders = [], payments = [], transactions = [], businessEvents = [], onUpdate, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateBusinessEvent, onRefreshBusinessEvents, onRefresh, onNavigate }) {
   const [tab, setTab] = useState('situation');
 
   useEffect(() => {
@@ -138,13 +139,27 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
     if (!onCreateOpportunity && !onUpdateOpportunity) return toast.error('Création opportunité non disponible pour ce module');
     const title = layer ? `Réforme / vente pondeuses : ${lot.name || lot.id}` : `Poulets de chair prêts : ${lot.name || lot.id}`;
     const unitPrice = Number(lot.prix_vente_estime || lot.prix_unitaire_vente || (layer ? 2500 : 3500)) || 0;
-    const payload = { opportunity_key: `avicole:${lot.id}`, source_module: 'avicole', source_type: layer ? 'lot_pondeuses' : 'lot_chair', source_id: lot.id, related_id: lot.id, title, product_name: `${lot.name || lot.id} · ${lot.type || 'Avicole'}`, quantity: active, unit: layer ? 'sujet reforme' : 'sujet', unit_price: unitPrice, estimated_amount: active * unitPrice, status: 'ouverte', statut: 'ouverte', priority: decision.priority || 'moyenne', notes: `${decision.decision || 'Opportunité confirmée'} · ${livingTarget.action}`, created_from: 'avicole_lot_details', updated_at: new Date().toISOString() };
+    const payload = buildPersistedOpportunityPayload({
+      sourceModule: 'avicole',
+      sourceType: layer ? 'lot_pondeuses' : 'lot_chair',
+      sourceId: lot.id,
+      title,
+      productName: `${lot.name || lot.id} · ${lot.type || 'Avicole'}`,
+      quantity: active,
+      unit: layer ? 'sujet reforme' : 'sujet',
+      unitPrice,
+      amount: active * unitPrice,
+      notes: `${decision.decision || 'Opportunité confirmée'} · ${livingTarget.action}`,
+      priority: decision.priority || 'moyenne',
+      extra: { created_from: 'avicole_lot_details' },
+    });
     try {
+      await onUpdate?.(lot.id, saleReadyPatch(lot));
       if (existingOpportunity?.id && onUpdateOpportunity) { await onUpdateOpportunity(existingOpportunity.id, payload); toast.success('Opportunité existante mise à jour'); }
       else if (!existingOpportunity?.id && onCreateOpportunity) { await onCreateOpportunity({ id: makeId('OPP'), ...payload, created_at: new Date().toISOString() }); toast.success('Opportunité de vente créée'); }
       else { toast.error('Opportunité existante détectée, mais modification indisponible'); return; }
       await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: existingOpportunity?.id ? 'opportunite_vente_mise_a_jour' : 'opportunite_vente_creee', module_source: 'avicole', entity_type: 'lot_avicole', entity_id: lot.id, source_id: lot.id, related_id: lot.id, title, description: payload.notes, event_date: today(), severity: 'info', saisies_evitees: 2 });
-      await Promise.allSettled([onRefreshOpportunities?.(), onRefreshBusinessEvents?.()]);
+      await Promise.allSettled([onRefresh?.(), onRefreshOpportunities?.(), onRefreshBusinessEvents?.()]);
     } catch (error) { toast.error(error.message || 'Création opportunité impossible'); }
   };
 

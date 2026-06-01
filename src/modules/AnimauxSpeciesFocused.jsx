@@ -11,6 +11,7 @@ import EditModal from '../modals/EditModal';
 import DeleteModal from '../modals/DeleteModal';
 import BaseModal from '../modals/BaseModal';
 import { applyAnimalDecisionDefaults } from '../services/animalDecisionEngine';
+import { isSaleReady, saleReadyPatch } from '../utils/saleReadiness';
 import { generateSequentialId } from '../utils/ids';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
@@ -232,6 +233,7 @@ const editFields = [
   { key: 'prix_vente_estime', label: 'Prix vente estimé', type: 'number' },
   { key: 'section_status', label: 'Statut et preuves', type: 'section' },
   { key: 'status', label: 'Statut vente / présence', type: 'select', options: [{ value: 'actif', label: 'Actif' }, { value: 'pret_a_la_vente', label: 'Prêt à vendre' }, { value: 'vendu', label: 'Vendu' }, { value: 'mort', label: 'Mort' }, { value: 'perdu', label: 'Perdu' }, { value: 'vole', label: 'Volé' }, { value: 'sorti', label: 'Sorti' }] },
+  { key: 'pret_vente_confirme', label: 'Prêt à la vente confirmé', type: 'checkbox' },
   { key: 'health_status', label: 'Santé', type: 'select', options: [{ value: 'sain', label: 'Sain' }, { value: 'a_surveiller', label: 'À surveiller' }, { value: 'malade', label: 'Malade' }, { value: 'sous_traitement', label: 'Sous traitement' }] },
   { key: 'photo_url', label: 'Photo animal', type: 'image', fullWidth: true },
   { key: 'documents_text', label: 'Documents / preuves (un lien ou nom par ligne)', type: 'textarea', rows: 3, fullWidth: true },
@@ -368,7 +370,8 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
     const lastWeighing = payload.date_derniere_pesee || existing.date_derniere_pesee || entryDate;
     if (current > 0 && lastWeighing && !history.some((h) => h.date === lastWeighing && Math.round(h.poids * 10) === Math.round(current * 10))) history.push({ date: lastWeighing, poids: current, note: existing.id ? 'Nouvelle pesée' : 'Première pesée' });
     const nextWeighing = ['vendu', 'mort', 'perdu', 'vole', 'volé', 'sorti'].includes(clean(payload.status || payload.statut || existing.status || existing.statut)) ? '' : addDays(lastWeighing, 15);
-    return applyAnimalDecisionDefaults({
+    return (() => {
+      const defaults = applyAnimalDecisionDefaults({
       ...existing,
       ...payload,
       id: payload.id || existing.id || physicalCode,
@@ -398,6 +401,9 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
       purchase_cost: toNumber(payload.purchase_cost ?? payload.prix_achat ?? existing.purchase_cost),
       prix_vente_estime: toNumber(payload.prix_vente_estime ?? existing.prix_vente_estime),
     }, existing);
+      const merged = { ...existing, ...defaults };
+      return isSaleReady(merged) ? { ...defaults, ...saleReadyPatch(merged) } : defaults;
+    })();
   };
   const submitCreate = async (payload) => { try { setSaving(true); await onCreate?.(prepare(payload)); await onRefresh?.(); toast.success(`${species} ajouté`); setModal(null); } catch (error) { toast.error(error.message || 'Création impossible'); } finally { setSaving(false); } };
   const submitEdit = async (payload) => { if (!selected) return; if (isLocked(selected)) return toast.error('Fiche verrouillée : animal vendu/perdu/mort'); try { setSaving(true); await onUpdate?.(selected.id, prepare(payload, selected)); await onRefresh?.(); toast.success(`${species} modifié`); setModal(null); } catch (error) { toast.error(error.message || 'Modification impossible'); } finally { setSaving(false); } };
