@@ -13,13 +13,7 @@ import { fmtCurrency } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
 import { getResponsibleOptions, resolveResponsibleLabel } from '../utils/rhDirectory';
 import { buildTaskFromAlert } from '../utils/taskWorkflows';
-import {
-  isPushSupported as isPushSupportedService,
-  getExistingSubscription,
-  subscribeToPushNotifications,
-  unsubscribeFromPushNotifications,
-  sendTestPushNotification,
-} from '../services/pushNotifications';
+import IssueProblemFichePanel from './IssueProblemFichePanel.jsx';
 
 const ALERT_CONFIG_KEY = 'horizon_farm_alert_config_v1';
 const SEVERITY_ORDER = { urgence: 0, critique: 1, warning: 2, info: 3 };
@@ -63,7 +57,7 @@ function Filter({ label, values, active, setActive }) {
   return <div className="flex flex-wrap gap-2"><span className="text-xs text-[#8a7456] self-center">{label}:</span>{values.map((value) => <button key={value} type="button" onClick={() => setActive(value)} className={`px-3 py-1.5 rounded-lg text-xs capitalize font-medium transition-all ${active === value ? 'bg-[#2f2415] text-white' : 'bg-[#fffdf8] border border-[#d6c3a0] text-[#8a7456] hover:border-[#b6975f]'}`}>{value === 'tous' ? 'Tous' : label === 'Urgence' ? severityLabel(value) : label === 'Espace' ? moduleLabel(value) : statusLabel(value)}</button>)}</div>;
 }
 
-export default function AlertesCenter({ alertes = [], transactions = [], animaux = [], lots = [], stocks = [], cultures = [], clients = [], fournisseurs = [], equipements = [], sensorDevices = [], loading, onCreate, onUpdate, onDelete, onRefresh, onSendWhatsApp, onCreateTask, onRefreshTasks, onNavigate }) {
+export default function AlertesCenter({ alertes = [], taches = [], businessEvents = [], salesOrders = [], payments = [], transactions = [], animaux = [], lots = [], stocks = [], cultures = [], clients = [], fournisseurs = [], equipements = [], sensorDevices = [], loading, onCreate, onUpdate, onDelete, onRefresh, onSendWhatsApp, onCreateTask, onRefreshTasks, onNavigate }) {
   const [severityFilter, setSeverityFilter] = useState('tous');
   const [statusFilter, setStatusFilter] = useState('tous');
   const [moduleFilter, setModuleFilter] = useState('tous');
@@ -73,11 +67,6 @@ export default function AlertesCenter({ alertes = [], transactions = [], animaux
   const [saving, setSaving] = useState(false);
   const [sendingId, setSendingId] = useState('');
   const [config, setConfig] = useState(loadConfig);
-  const [pushBusy, setPushBusy] = useState(false);
-  const [pushError, setPushError] = useState('');
-  const [pushSupported, setPushSupported] = useState(false);
-  const [pushPermission, setPushPermission] = useState('default');
-  const [pushSubscribed, setPushSubscribed] = useState(false);
   const readyToastKeyRef = useRef('');
   const responsibleOptions = useMemo(() => [{ value: 'OWNER', label: `${config.ownerName || 'Propriétaire'} · WhatsApp propriétaire` }, ...getResponsibleOptions({ moduleKey: '' })], [config.ownerName]);
   const formContext = useMemo(() => ({ animaux, lots, stocks, cultures, transactions, clients, fournisseurs, equipements, sensorDevices }), [animaux, lots, stocks, cultures, transactions, clients, fournisseurs, equipements, sensorDevices]);
@@ -109,21 +98,6 @@ export default function AlertesCenter({ alertes = [], transactions = [], animaux
     const urgent = allAlerts.find((a) => shouldAutoNotify(a, config));
     toast(`WhatsApp prêt pour ${autoNotifyCount} alerte(s), dont : ${urgent?.title || 'alerte urgente'}`);
   }, [autoNotifyCount, config.autoWhatsApp, config.ownerWhatsapp, allAlerts, config]);
-
-  useEffect(() => {
-    const supported = isPushSupportedService();
-    setPushSupported(Boolean(supported));
-    if (!supported) return;
-    try { setPushPermission(Notification.permission || 'default'); } catch { setPushPermission('default'); }
-    (async () => {
-      try {
-        const sub = await getExistingSubscription();
-        setPushSubscribed(Boolean(sub?.endpoint));
-      } catch {
-        setPushSubscribed(false);
-      }
-    })();
-  }, []);
 
   const createTaskFromAlert = async (alert) => {
     if (!onCreateTask || alert.task_intent !== 'a_creer') return;
@@ -181,6 +155,7 @@ export default function AlertesCenter({ alertes = [], transactions = [], animaux
     <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-2.5 flex flex-wrap items-center gap-2 text-sm text-amber-700 font-medium"><span>ℹ️</span><span>WhatsApp prépare le message. Tu gardes la main avant l’envoi.</span>{autoNotifyCount > 0 ? <button type="button" onClick={sendAllUrgent} className="ml-auto rounded-lg bg-amber-600 px-3 py-1 text-white text-xs">Préparer {autoNotifyCount} urgence(s)</button> : null}</div>
     <SectionHeader title="Centre d’alertes" sub="Problèmes à traiter, actions terrain et notifications équipe" actions={<><Btn icon={Settings} variant="outline" small onClick={() => setModal('config')}>Configuration</Btn><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Actualiser</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Nouvelle alerte</Btn></>} />
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4"><KpiCard icon={Bell} label="Alertes ouvertes" value={allAlerts.length} color="bg-sky-500/20 text-sky-400" /><KpiCard icon={Bell} label="Nouvelles" value={nouvellesCount} color={nouvellesCount > 0 ? 'bg-amber-500/20 text-amber-500' : 'bg-gray-100 text-gray-400'} /><KpiCard icon={AlertTriangle} label="Urgentes" value={critiquesCount} color={critiquesCount > 0 ? 'bg-red-500/20 text-red-500' : 'bg-gray-100 text-gray-400'} /><KpiCard icon={Zap} label="WhatsApp prêt" value={autoNotifyCount} color={autoNotifyCount > 0 ? 'bg-red-500/20 text-red-500' : 'bg-gray-100 text-gray-400'} /></div>
+    <IssueProblemFichePanel alertes={allAlerts} taches={taches} businessEvents={businessEvents} salesOrders={salesOrders} payments={payments} onNavigate={onNavigate} />
     <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4 space-y-3"><div className="relative"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8a7456]" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher..." className="w-full pl-8 pr-3 py-2 text-sm border border-[#d6c3a0] rounded-xl bg-[#fffdf8] text-[#2f2415] focus:outline-none focus:border-[#c9a96a]" /></div><Filter label="Urgence" values={['tous', 'info', 'warning', 'critique', 'urgence']} active={severityFilter} setActive={setSeverityFilter} /><Filter label="Statut" values={['tous', 'nouvelle', 'lue', 'traitee']} active={statusFilter} setActive={setStatusFilter} />{modules.length > 0 ? <Filter label="Espace" values={['tous', ...modules]} active={moduleFilter} setActive={setModuleFilter} /> : null}</div>
     {loading && <div className="bg-white border border-[#d6c3a0] rounded-2xl p-8 text-center text-[#8a7456]">Chargement...</div>}
     {!loading && filtered.length === 0 && <div className="bg-white border border-[#d6c3a0] rounded-2xl p-16 text-center"><CheckCircle size={56} className="mx-auto mb-4 text-emerald-400" /><p className="text-lg font-bold text-[#2f2415]">Aucune alerte active</p><p className="text-sm text-[#8a7456] mt-1">Tout est sous contrôle.</p></div>}
@@ -188,6 +163,5 @@ export default function AlertesCenter({ alertes = [], transactions = [], animaux
     <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={alertFormFields} initialValues={{ id: generateSequentialId('alertes', alertes), severity: 'info', status: 'nouvelle', responsable: config.defaultRecipient, module_source: 'autre', create_task: 'non' }} autoId={() => generateSequentialId('alertes', alertes)} loading={saving} title="Nouvelle alerte" submitLabel="Créer" />
     <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={handleDelete} itemLabel={selected?.title || ''} loading={saving} />
     {modal === 'config' ? <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-2xl border border-[#d6c3a0] p-5 w-full max-w-lg space-y-4"><div className="flex items-center justify-between"><h3 className="font-black text-[#2f2415]">Configuration alertes</h3><button type="button" onClick={() => setModal(null)}><X size={18} /></button></div><label className="block text-sm"><span className="text-[#8a7456]">Nom propriétaire</span><input className="mt-1 w-full rounded-lg border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2" value={config.ownerName} onChange={(e) => setConfig((prev) => ({ ...prev, ownerName: e.target.value }))} /></label><label className="block text-sm"><span className="text-[#8a7456]">WhatsApp propriétaire</span><input className="mt-1 w-full rounded-lg border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2" placeholder="Ex: 221785890153" value={config.ownerWhatsapp} onChange={(e) => setConfig((prev) => ({ ...prev, ownerWhatsapp: e.target.value }))} /></label><label className="flex items-center gap-2 text-sm text-[#2f2415]"><input type="checkbox" checked={config.autoWhatsApp} onChange={(e) => setConfig((prev) => ({ ...prev, autoWhatsApp: e.target.checked }))} /> Préparer WhatsApp pour critiques/urgences</label><label className="flex items-center gap-2 text-sm text-[#2f2415]"><input type="checkbox" checked={config.notifyOwnerOnUrgency} onChange={(e) => setConfig((prev) => ({ ...prev, notifyOwnerOnUrgency: e.target.checked }))} /> Toujours me notifier sur urgence/critique</label><label className="block text-sm"><span className="text-[#8a7456]">Destinataire par défaut</span><select className="mt-1 w-full rounded-lg border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2" value={config.defaultRecipient} onChange={(e) => setConfig((prev) => ({ ...prev, defaultRecipient: e.target.value }))}>{responsibleOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><p className="text-xs text-[#8a7456]">Les urgences peuvent préparer un message WhatsApp pour toi ou l’équipe. L’ERP garde le statut et le destinataire.</p><Btn onClick={saveAlertConfig}>Sauvegarder</Btn></div></div> : null}
-    {modal === 'config' ? <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-2xl border border-[#d6c3a0] p-5 w-full max-w-lg space-y-4"><div className="flex items-center justify-between"><h3 className="font-black text-[#2f2415]">Configuration alertes</h3><button type="button" onClick={() => setModal(null)}><X size={18} /></button></div><label className="block text-sm"><span className="text-[#8a7456]">Nom propriétaire</span><input className="mt-1 w-full rounded-lg border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2" value={config.ownerName} onChange={(e) => setConfig((prev) => ({ ...prev, ownerName: e.target.value }))} /></label><label className="block text-sm"><span className="text-[#8a7456]">WhatsApp propriétaire</span><input className="mt-1 w-full rounded-lg border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2" placeholder="Ex: 221785890153" value={config.ownerWhatsapp} onChange={(e) => setConfig((prev) => ({ ...prev, ownerWhatsapp: e.target.value }))} /></label><label className="flex items-center gap-2 text-sm text-[#2f2415]"><input type="checkbox" checked={config.autoWhatsApp} onChange={(e) => setConfig((prev) => ({ ...prev, autoWhatsApp: e.target.checked }))} /> Préparer WhatsApp pour critiques/urgences</label><label className="flex items-center gap-2 text-sm text-[#2f2415]"><input type="checkbox" checked={config.notifyOwnerOnUrgency} onChange={(e) => setConfig((prev) => ({ ...prev, notifyOwnerOnUrgency: e.target.checked }))} /> Toujours me notifier sur urgence/critique</label><label className="block text-sm"><span className="text-[#8a7456]">Destinataire par défaut</span><select className="mt-1 w-full rounded-lg border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2" value={config.defaultRecipient} onChange={(e) => setConfig((prev) => ({ ...prev, defaultRecipient: e.target.value }))}>{responsibleOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2"><p className="font-black text-[#2f2415] text-sm">Notifications push</p><p className="text-xs text-[#8a7456]">{!pushSupported ? 'Non supporté sur ce navigateur.' : pushPermission === 'denied' ? 'Permission refusée par le navigateur.' : pushPermission === 'default' ? 'Permission non demandée.' : pushSubscribed ? 'Notifications activées (abonnement enregistré).' : 'Notifications désactivées (aucun abonnement actif).'}</p>{pushError ? <p className="text-xs text-red-700">{pushError}</p> : null}<div className="flex flex-wrap gap-2"><Btn disabled={pushBusy || !pushSupported} onClick={async () => { try { setPushBusy(true); setPushError(''); await subscribeToPushNotifications({ userId: 'owner', label: 'Appareil Horizon Farm', channels: ['urgence', 'critique'] }); const sub = await getExistingSubscription(); setPushSubscribed(Boolean(sub?.endpoint)); } catch (e) { setPushError(e?.message || 'Activation push impossible'); } finally { setPushBusy(false); } }}>Activer</Btn><Btn disabled={pushBusy || !pushSupported} variant="outline" onClick={async () => { try { setPushBusy(true); setPushError(''); await unsubscribeFromPushNotifications({}); setPushSubscribed(false); } catch (e) { setPushError(e?.message || 'Désactivation push impossible'); } finally { setPushBusy(false); } }}>Désactiver</Btn><Btn disabled={pushBusy || !pushSupported} variant="outline" onClick={async () => { try { setPushBusy(true); setPushError(''); await sendTestPushNotification({ title: 'Horizon Farm', body: 'Notification push de test.', severity: 'critique', module: 'alertes' }); } catch (e) { setPushError(e?.message || 'Test push impossible'); } finally { setPushBusy(false); } }}>Tester</Btn></div><p className="text-[11px] text-[#8a7456]">Sur iPhone/iPad, installe Horizon Farm sur l’écran d’accueil, ouvre l’application installée, puis autorise les notifications.</p></div><p className="text-xs text-[#8a7456]">Les urgences peuvent préparer un message WhatsApp pour toi ou l’équipe. L’ERP garde le statut et le destinataire.</p><Btn onClick={saveAlertConfig}>Sauvegarder</Btn></div></div> : null}
   </div>;
 }

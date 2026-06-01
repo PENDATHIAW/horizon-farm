@@ -2,6 +2,7 @@ import { ClipboardList, FileSearch, RefreshCw, ScrollText, ShieldCheck, Wifi, Wi
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import ErpAuditPanel from './ErpAuditPanel.jsx';
 import GitHubAuditRoadmapPanel from './GitHubAuditRoadmapPanel.jsx';
+import IssueProblemFichePanel from './IssueProblemFichePanel.jsx';
 
 const arr = (v) => Array.isArray(v) ? v : [];
 const open = (r = {}) => !['termine', 'terminé', 'done', 'closed', 'clos', 'résolu', 'resolu'].includes(String(r.status || r.statut || '').toLowerCase());
@@ -28,6 +29,8 @@ export default function SyncERPModule({
   businessEventsAll = [],
   auditLogs = [],
   auditLogsAll = [],
+  salesOrders = [],
+  payments = [],
   onRefreshAll,
   onFlushOffline,
   onNavigate,
@@ -48,7 +51,7 @@ export default function SyncERPModule({
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Synchronisation</p>
             <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Activité & Sync ERP</h1>
-            <p className="mt-1 text-sm text-[#8a7456]">Suivre l&apos;état de connexion, les actions en attente, le journal audit et les derniers événements.</p>
+            <p className="mt-1 text-sm text-[#8a7456]">Suivre connexion, journal audit, fiches problème et événements métier.</p>
             {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
           </div>
           <div className="flex flex-wrap gap-2">
@@ -64,6 +67,7 @@ export default function SyncERPModule({
         <Stat label="Alertes" value={openAlerts.length} tone={openAlerts.length ? 'warn' : 'good'} />
         <Stat label="Logs audit" value={auditCount} tone={auditCount ? 'good' : 'warn'} />
       </div>
+      <IssueProblemFichePanel alertes={alertes} taches={tasks} businessEvents={activityFeed} salesOrders={salesOrders} payments={payments} onNavigate={onNavigate} />
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
         <h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]">{online ? <Wifi size={20} /> : <WifiOff size={20} />} État de synchronisation</h2>
         <div className="mt-4 space-y-1">
@@ -77,18 +81,11 @@ export default function SyncERPModule({
         <h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><ScrollText size={20} /> Journal audit</h2>
         <div className="mt-4">
           {recentLogs.length ? recentLogs.map((log) => (
-            <Row
-              key={log.id || `${log.module}-${log.created_at}`}
-              title={labelOf(log)}
-              detail={`${log.module || log.module_source || '—'} · ${log.actor || log.user || 'système'} · ${log.created_at || log.date || '—'}`}
-              value={log.status || log.action || 'log'}
-            />
+            <Row key={log.id || `${log.module}-${log.created_at}`} title={labelOf(log)} detail={`${log.module || log.module_source || '—'} · ${log.actor || log.user || 'système'} · ${log.created_at || log.date || '—'}`} value={log.status || log.action || 'log'} />
           )) : (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
-              Aucun log audit visible. Les actions sensibles (ventes, finances, suppressions) doivent alimenter ce journal.
-              {onNavigate ? (
-                <button type="button" onClick={() => onNavigate('gestion_systeme', { tab: 'Audit' })} className="ml-2 rounded-lg border border-amber-300 px-2 py-1 text-xs font-black">Gestion système → Audit</button>
-              ) : null}
+              Aucun log audit visible.
+              {onNavigate ? <button type="button" onClick={() => onNavigate('gestion_systeme', { tab: 'Audit' })} className="ml-2 rounded-lg border border-amber-300 px-2 py-1 text-xs font-black">Gestion système → Audit</button> : null}
             </div>
           )}
         </div>
@@ -103,13 +100,13 @@ export default function SyncERPModule({
       </section>
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
         <h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><FileSearch size={20} /> Audit inter-modules</h2>
-        <p className="text-sm text-[#8a7456]">Générer la feuille de route GitHub et parcourir le manifest audit ERP depuis Sync.</p>
+        <p className="text-sm text-[#8a7456]">Feuille de route GitHub et manifest audit ERP.</p>
         <GitHubAuditRoadmapPanel />
         <ErpAuditPanel />
       </section>
       <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
         <h2 className="flex items-center gap-2 font-black text-emerald-800"><ShieldCheck size={18} /> Règle utilisateur</h2>
-        <p className="mt-1 text-sm text-emerald-800">Vérifiez connexion, journal audit et anomalies avant clôture de journée. Les détails techniques restent regroupés ici pour ne pas alourdir l&apos;usage quotidien.</p>
+        <p className="mt-1 text-sm text-emerald-800">Vérifiez connexion, fiches problème et journal audit avant clôture de journée.</p>
       </section>
     </div>
   );

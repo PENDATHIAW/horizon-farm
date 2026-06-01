@@ -5,6 +5,7 @@ import { fmtCurrency } from '../utils/format';
 import EquipementsMaintenanceBridge from './EquipementsMaintenanceBridge.jsx';
 import EquipementsQuickActionsBridge from './EquipementsQuickActionsBridge.jsx';
 import EquipementsEvolution from './EquipementsEvolution.jsx';
+import EquipementsSmartFarmBridge from './EquipementsSmartFarmBridge.jsx';
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
