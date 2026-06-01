@@ -1,11 +1,13 @@
 name: Deploy Production (Vercel)
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
   group: deploy-production
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -13,23 +15,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Trigger Vercel Production (Deploy Hook)
+        env:
+          DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "::warning::VERCEL_DEPLOY_HOOK_URL absent — créez un Deploy Hook Production dans Vercel → Settings → Git → Deploy Hooks, puis ajoutez l'URL en secret GitHub."
+          else
+            echo "Déclenchement du déploiement Production Vercel…"
+            curl -fsS -X POST "$DEPLOY_HOOK"
+            echo "Deploy Hook appelé avec succès."
+          fi
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
 
-      - run: npm ci
-      - run: npm run build
-
-      - name: Deploy to Vercel Production
+      - name: Deploy via Vercel CLI (fallback)
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
           if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
-            echo "Secrets Vercel absents — déploiement GitHub Actions ignoré (intégration Vercel GitHub utilisée)."
+            echo "Secrets Vercel CLI absents — fallback CLI ignoré."
             exit 0
           fi
+          npm ci
+          npm run build
           npx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
-          npx vercel@latest deploy --prod --token="$VERCEL_TOKEN"
+          npx vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN"
