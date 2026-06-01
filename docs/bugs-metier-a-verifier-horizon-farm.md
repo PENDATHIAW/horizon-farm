@@ -23,7 +23,7 @@ Pendant les tests, plusieurs anomalies montrent que certaines interconnexions s�
 3. Workflow ventes / encaissement → [Traité] file séparée isOpenForPayment.
 4. Clients & WhatsApp relance → [Traité] recalcul créance + bouton Relancer conditionnel.
 5. Avicole effectif → [Traité] recalcul depuis sources + lots à 0 hors vue active.
-6. Cultures récolte/stock/vente → [À revoir] prochaine passe.
+6. Cultures récolte/stock/vente → [Traité] clés unifiées cultures:, sync récolte sans doublon.
 ```
 
 Règle métier :
@@ -42,7 +42,7 @@ Critères de correction obligatoires :
 - [x] vérifier que Clients & WhatsApp recalcule le reste dû depuis les paiements réels ;
 - [x] vérifier que le statut `à relancer` disparaît dès que le reste dû client vaut `0` ;
 - [x] vérifier que les alertes/tâches de relance liées sont clôturées ou masquées ;
-- [ ] vérifier les doublons après double clic, refresh ou revalidation ;
+- [x] vérifier les doublons après double clic, refresh ou revalidation ;
 - [x] vérifier les calculs Avicole : effectif initial, morts, volés, vendus, réformés, autres sorties, malades, effectif actuel ;
 - [x] ajouter ou mettre à jour les tests e2e correspondants.
 
@@ -383,7 +383,7 @@ Une action avec montant `0` ne doit pas apparaître dans un workflow d’encaiss
 
 ## 6. Cultures — récolte / stock / vente à auditer comme Animaux et Avicole
 
-**Statut : [À revoir] prioritaire**
+**Statut : [Traité] mai 2026**
 
 ### Observation à surveiller
 

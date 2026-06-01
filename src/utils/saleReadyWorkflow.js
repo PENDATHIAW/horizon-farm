@@ -69,6 +69,7 @@ export function findOpportunityForSource(opportunities = [], sourceModule, sourc
     key,
     key.replace(/^animaux:/, 'animal-sale:'),
     key.replace(/^avicole:/, 'avicole-sale:'),
+    key.replace(/^cultures:/, 'culture-sale:'),
   ];
   return (Array.isArray(opportunities) ? opportunities : []).find((opp) => {
     const oppKey = clean(opp.opportunity_key || opp.dedupe_key || '');

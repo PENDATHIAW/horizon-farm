@@ -28,6 +28,7 @@ export default function CulturesRecoveredModule(props) {
       stocks,
       opportunities,
       transactions: rowsOf(props.transactions || props.finances, financesCrud, periodFiltered),
+      businessEvents: rowsOf(props.businessEvents, eventsCrud, periodFiltered),
       source,
       handlers: {
         onCreateStock: props.onCreateStock || stockCrud.create,

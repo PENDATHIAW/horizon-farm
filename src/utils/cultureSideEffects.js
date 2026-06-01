@@ -43,6 +43,7 @@ export async function runCultureHarvestSideEffects({
   stocks = [],
   opportunities = [],
   transactions = [],
+  businessEvents = [],
   source = 'fiche culture',
   date = '',
   handlers = {},
@@ -74,12 +75,18 @@ export async function runCultureHarvestSideEffects({
   }
 
   if (workflow.event && handlers.onCreateBusinessEvent) {
-    await handlers.onCreateBusinessEvent({ ...workflow.event, side_effects_managed: true });
+    const cultureId = clean(after.id);
+    const alreadyLogged = arr(businessEvents).some((row) => clean(row.entity_id || row.source_id) === cultureId
+      && ['recolte_culture_disponible', 'recolte_culture'].includes(clean(row.event_type)));
+    if (!alreadyLogged) {
+      await handlers.onCreateBusinessEvent({ ...workflow.event, side_effects_managed: true });
+    }
   }
 
   if (handlers.onCreateTrace && after.id) {
+    const traceId = `TRA-CULTURE-${after.id}`;
     await handlers.onCreateTrace?.({
-      id: `TRA-CULTURE-${after.id}`,
+      id: traceId,
       type: 'culture',
       source_id: after.id,
       source_module: 'cultures',

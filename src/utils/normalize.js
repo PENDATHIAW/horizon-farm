@@ -346,7 +346,7 @@ export const normalizeSalesOpportunity = (opp = {}) => {
   const sourceModule = opp.source_module || opp.created_from || (String(opp.source_type || '').includes('animal') ? 'animaux' : String(opp.source_type || '').includes('avicole') || String(opp.source_type || '').includes('lot') ? 'avicole' : '');
   const sourceId = opp.source_id || opp.related_id || opp.entity_id || opp.lot_id || opp.animal_id || '';
   const rawKey = opp.opportunity_key || opp.dedupe_key || (sourceModule && sourceId ? `${sourceModule}:${sourceId}` : '');
-  const opportunityKey = String(rawKey).replace(/^animal-sale:/, 'animaux:').replace(/^avicole-sale:/, 'avicole:');
+  const opportunityKey = String(rawKey).replace(/^animal-sale:/, 'animaux:').replace(/^avicole-sale:/, 'avicole:').replace(/^culture-sale:/, 'cultures:');
   const estimated = toNumber(opp.estimated_value ?? opp.estimated_amount ?? opp.montant_estime);
   const status = opp.status || opp.statut || 'ouverte';
   return {

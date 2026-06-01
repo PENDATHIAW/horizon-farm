@@ -7,15 +7,25 @@ const clean = (value = '') => String(value || '').trim();
 const norm = (value = '') => clean(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 export const cultureLabel = (row = {}) => row.nom || row.name || row.type || row.culture || row.parcelle || row.id || 'Culture';
-export const cultureHarvestQty = (row = {}) => toNumber(row.quantite_recoltee ?? row.recolte ?? row.production_recoltee ?? row.rendement_reel ?? row.quantite_disponible);
+export const cultureHarvestQty = (row = {}) => toNumber(row.quantite_recoltee ?? row.recolte ?? row.production_recoltee ?? row.rendement_reel);
+export const cultureSoldQty = (row = {}) => toNumber(row.quantite_vendue ?? row.quantity_sold ?? row.vendue);
+export const cultureAvailableQty = (row = {}) => {
+  const explicit = toNumber(row.quantite_disponible ?? row.quantity_available ?? row.stock_recolte);
+  if (explicit > 0) return explicit;
+  const harvested = cultureHarvestQty(row);
+  if (harvested <= 0) return 0;
+  return Math.max(0, harvested - cultureSoldQty(row));
+};
 export const cultureHarvestUnit = (row = {}) => row.unite_recolte || row.unite || row.unit || 'kg';
 export const cultureUnitPrice = (row = {}) => toNumber(row.prix_vente_estime ?? row.prix_vente ?? row.prix_vente_unitaire ?? row.prix_unitaire ?? row.unit_price);
 export const cultureStockKey = (row = {}) => `culture-stock:${row.id || cultureLabel(row)}`;
-export const cultureOpportunityKey = (row = {}) => `culture-sale:${row.id || cultureLabel(row)}`;
+export const cultureOpportunityKey = (row = {}) => `cultures:${row.id || cultureLabel(row)}`;
 
 export function isCultureHarvestReady(row = {}) {
   const status = norm(row.statut || row.status || row.phase || '');
-  return cultureHarvestQty(row) > 0 || ['recolte', 'recoltee', 'pret_a_vendre', 'pret_vente', 'pret a vendre'].some((word) => status.includes(norm(word)));
+  return cultureHarvestQty(row) > 0 || cultureAvailableQty(row) > 0
+    || Boolean(row.vendable || row.pret_a_la_vente || row.ready_for_sale || row.sale_ready)
+    || ['recolte', 'recoltee', 'pret_a_vendre', 'pret_vente', 'pret a vendre'].some((word) => status.includes(norm(word)));
 }
 
 export function findCultureStock(stocks = [], culture = {}) {
@@ -25,18 +35,23 @@ export function findCultureStock(stocks = [], culture = {}) {
 }
 
 export function findCultureOpportunity(opportunities = [], culture = {}) {
-  const key = cultureOpportunityKey(culture);
-  return opportunities.find((opp) => String(opp.opportunity_key || opp.dedupe_key || opp.source_record_id || opp.source_id || '') === key
-    || (String(opp.source_module || opp.created_from || '').includes('cultures') && String(opp.source_id || opp.entity_id || opp.culture_id || '') === String(culture.id)));
+  const keys = new Set([cultureOpportunityKey(culture), `culture-sale:${culture.id || ''}`].filter(Boolean));
+  return opportunities.find((opp) => {
+    const oppKey = String(opp.opportunity_key || opp.dedupe_key || opp.source_record_id || '');
+    if (keys.has(oppKey)) return true;
+    return (String(opp.source_module || opp.created_from || '').includes('cultures')
+      && String(opp.source_id || opp.entity_id || opp.culture_id || '') === String(culture.id));
+  });
 }
 
 export function buildCultureHarvestWorkflow({ before = {}, after = {}, stocks = [], opportunities = [], source = 'fiche culture', date = today() }) {
   if (!after?.id || !isCultureHarvestReady(after)) return null;
   const qty = cultureHarvestQty(after);
   if (qty <= 0) return null;
+  const saleQty = cultureAvailableQty(after);
   const unit = cultureHarvestUnit(after);
   const price = cultureUnitPrice(after);
-  const amount = price > 0 ? price * qty : toNumber(after.valeur_recolte_estimee || after.montant_estime);
+  const amount = price > 0 ? price * (saleQty > 0 ? saleQty : qty) : toNumber(after.valeur_recolte_estimee || after.montant_estime);
   const stockKey = cultureStockKey(after);
   const opportunityKey = cultureOpportunityKey(after);
   const name = `Récolte ${cultureLabel(after)}`;
@@ -76,8 +91,8 @@ export function buildCultureHarvestWorkflow({ before = {}, after = {}, stocks = 
     culture_id: after.id,
     product_name: name,
     produit: name,
-    quantity: qty,
-    quantite: qty,
+    quantity: saleQty > 0 ? saleQty : qty,
+    quantite: saleQty > 0 ? saleQty : qty,
     unite: unit,
     unit,
     unit_price: price,
@@ -85,8 +100,8 @@ export function buildCultureHarvestWorkflow({ before = {}, after = {}, stocks = 
     montant_estime: amount,
     estimated_amount: amount,
     valeur_estimee: amount,
-    status: 'ouverte',
-    statut: 'ouverte',
+    status: saleQty > 0 ? 'ouverte' : 'fermee',
+    statut: saleQty > 0 ? 'ouverte' : 'fermee',
     priority: 'haute',
     date: after.date_recolte || date,
     notes: `Récolte disponible à vendre · ${qty} ${unit}`,

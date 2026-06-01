@@ -1,5 +1,6 @@
 import { toNumber } from './format';
 import { avicoleActiveCount, avicoleHasActiveBirds } from './avicoleMetrics';
+import { cultureAvailableQty, cultureUnitPrice } from './cultureWorkflows';
 import { isSaleReady } from './saleReadiness';
 
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -23,6 +24,7 @@ export function normalizeLegacyOpportunityKey(key = '') {
   if (!direct) return '';
   if (direct.startsWith('animal-sale:')) return direct.replace('animal-sale:', 'animaux:');
   if (direct.startsWith('avicole-sale:')) return direct.replace('avicole-sale:', 'avicole:');
+  if (direct.startsWith('culture-sale:')) return direct.replace('culture-sale:', 'cultures:');
   return direct;
 }
 
@@ -54,9 +56,10 @@ function animalReadyForSale(animal = {}) {
 
 function cultureReadyForSale(culture = {}) {
   const status = lower(culture.status || culture.statut || culture.sale_status);
-  const qty = toNumber(culture.quantite_recoltee ?? culture.recolte_disponible ?? culture.stock_recolte ?? culture.quantity_available);
+  const qty = cultureAvailableQty(culture);
   return clean(culture.id) && qty > 0 && !['vendue', 'vendu', 'perdu', 'annulee', 'annulée'].includes(status)
-    && (Boolean(culture.pret_a_vendre || culture.ready_for_sale || culture.sale_ready) || ['recoltee', 'récoltée', 'pret_a_vendre', 'pret_a_la_vente'].includes(status));
+    && (Boolean(culture.vendable || culture.pret_a_vendre || culture.ready_for_sale || culture.sale_ready)
+      || ['recolte', 'recoltee', 'récoltée', 'pret_a_vendre', 'pret_a_la_vente'].includes(status));
 }
 
 function stockReadyForSale(stock = {}) {
@@ -119,9 +122,9 @@ function animalOpportunity(animal = {}) {
 }
 
 function cultureOpportunity(culture = {}) {
-  const qty = toNumber(culture.quantite_recoltee ?? culture.recolte_disponible ?? culture.stock_recolte ?? culture.quantity_available);
-  const unitPrice = toNumber(culture.prix_vente_prevu || culture.prix_vente_estime || culture.sale_price || culture.prix_unitaire_vente);
-  return { id: `DERIVED-CULTURE-${culture.id}`, opportunity_key: `cultures:${culture.id}`, source_module: 'cultures', source_type: 'culture', source_id: culture.id, related_id: culture.id, title: `Récolte prête à vendre: ${culture.nom || culture.name || culture.id}`, product_name: culture.nom || culture.name || culture.id, quantity: qty, unit: culture.unite || culture.unit || 'kg', unit_price: unitPrice, estimated_amount: Math.max(0, qty * unitPrice), status: 'ouverte', statut: 'ouverte', is_derived: true, created_from: 'cultures', notes: 'Source prête à convertir détectée depuis le module Cultures.' };
+  const qty = cultureAvailableQty(culture);
+  const unitPrice = cultureUnitPrice(culture) || toNumber(culture.prix_vente_prevu || culture.prix_vente_estime || culture.sale_price || culture.prix_unitaire_vente);
+  return { id: `DERIVED-CULTURE-${culture.id}`, opportunity_key: `cultures:${culture.id}`, source_module: 'cultures', source_type: 'recolte_culture', source_id: culture.id, related_id: culture.id, title: `Récolte prête à vendre: ${culture.nom || culture.name || culture.id}`, product_name: culture.nom || culture.name || culture.id, quantity: qty, quantite: qty, unit: culture.unite_recolte || culture.unite || culture.unit || 'kg', unit_price: unitPrice, estimated_amount: Math.max(0, qty * unitPrice), status: 'ouverte', statut: 'ouverte', is_derived: true, created_from: 'cultures', notes: 'Source prête à convertir détectée depuis le module Cultures.' };
 }
 
 function stockOpportunity(stock = {}) {
