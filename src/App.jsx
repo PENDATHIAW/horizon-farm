@@ -19,6 +19,7 @@ import useLiveWeather from './hooks/useLiveWeather';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import usePeriodScope from './hooks/usePeriodScope';
 import AppLayout from './layouts/AppLayout';
+import ProductionUpdateBanner from './components/ProductionUpdateBanner.jsx';
 import { applyPeriodScopeToDataMap, applyPeriodScopeToProps } from './utils/applyPeriodScope';
 import { enrichAssistantDataMap } from './utils/assistantDataMap.js';
 import { clearPeriodFilterCache } from './utils/periodFilterCache';
@@ -508,13 +509,10 @@ export default function App() {
   if (!user) return <LoginPage />;
   const ActiveModule = MODULES[active] || MODULES.dashboard;
 
-  return <>
-    <ProductionUpdateBanner />
-    <AppLayout navItems={navItems} active={active} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => setAssistantOpen(true)} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange}>
-      <ErrorBoundary title="Module indisponible"><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...activeModuleProps} periodLabel={periodLabel} /></Suspense></ErrorBoundary>
-      <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={scopedAssistantDataMap} onNavigate={setActive} onCreateBusinessEvent={c.business_events.create} />
-      <ErpInterconnectionBridge cruds={c} />
-      <AppNotificationManager />
-    </AppLayout>
-  </>;
+  return <AppLayout navItems={navItems} active={active} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => setAssistantOpen(true)} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange}>
+    <ErrorBoundary title="Module indisponible"><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...activeModuleProps} periodLabel={periodLabel} /></Suspense></ErrorBoundary>
+    <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={scopedAssistantDataMap} onNavigate={setActive} onCreateBusinessEvent={c.business_events.create} />
+    <ErpInterconnectionBridge cruds={c} />
+    <AppNotificationManager />
+  </AppLayout>;
 }
