@@ -3,8 +3,22 @@ import toast from 'react-hot-toast';
 import { Eye, EyeOff, Lock, LogIn, Mail, Shield, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-/** Image officielle — logo, textes et footer déjà intégrés */
-const loginHero = '/login-hero-official.jpg';
+/** Image officielle — versions 1x/2x/3x pour écrans larges et Retina */
+const HERO = {
+  jpg: {
+    '1x': '/login-hero-official.jpg',
+    '2x': '/login-hero-official-2x.jpg',
+    '3x': '/login-hero-official-3x.jpg',
+  },
+  webp: {
+    '1x': '/login-hero-official.webp',
+    '2x': '/login-hero-official-2x.webp',
+    '3x': '/login-hero-official-3x.webp',
+  },
+};
+
+const heroSrcSet = (formats) =>
+  `${formats['1x']} 1024w, ${formats['2x']} 2048w, ${formats['3x']} 3072w`;
 
 export default function LoginPage() {
   const { signIn, signUp, resetPassword, remember, setRemember } = useAuth();
@@ -51,14 +65,20 @@ export default function LoginPage() {
     <main className="relative h-dvh w-full overflow-hidden">
       <h1 className="sr-only">Horizon Farm ERP — Connexion</h1>
 
-      {/* Plein écran — pas de bandes latérales */}
-      <img
-        src={loginHero}
-        alt=""
-        className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover"
-        style={{ objectPosition: '38% center' }}
-        draggable={false}
-      />
+      {/* Plein écran — srcset 2x/3x pour éviter le flou d'agrandissement */}
+      <picture className="pointer-events-none absolute inset-0 block h-full w-full select-none">
+        <source type="image/webp" srcSet={heroSrcSet(HERO.webp)} sizes="100vw" />
+        <source type="image/jpeg" srcSet={heroSrcSet(HERO.jpg)} sizes="100vw" />
+        <img
+          src={HERO.jpg['2x']}
+          alt=""
+          className="h-full w-full object-cover"
+          style={{ objectPosition: '38% center' }}
+          draggable={false}
+          decoding="async"
+          fetchPriority="high"
+        />
+      </picture>
 
       {/*
         Formulaire sur la grange / le pré (centre-droit),
