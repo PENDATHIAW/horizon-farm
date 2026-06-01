@@ -1,4 +1,4 @@
-import { BarChart3, Beef, ChevronDown, ClipboardList, PackageCheck, Scale, Scissors, X } from 'lucide-react';
+import { ArrowRight, BarChart3, Beef, ChevronDown, ClipboardList, Egg, HeartPulse, PackageCheck, Scissors, Utensils } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard.jsx';
@@ -12,6 +12,7 @@ import AnimalSlaughterStockBridge from './AnimalSlaughterStockBridge.jsx';
 import AnimauxEvolution from './AnimauxEvolution.jsx';
 import AnimauxSpeciesFocused from './AnimauxSpeciesFocused.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
+import HeyHorizonAnimalCard from './HeyHorizonAnimalCard.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
 
 const toNumber = (value = 0) => Number(value || 0);
@@ -34,59 +35,15 @@ const isReadyForSale = (row = {}) => isSaleReady(row);
 const estimatedSaleAmount = (row = {}) => toNumber(row.prix_vente_reel ?? row.sale_price ?? row.prix_vente ?? row.prix_vente_estime_auto ?? row.prix_vente_estime ?? row.valeur_estimee ?? row.valeur_marche);
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
-  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
+  return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4 sm:p-6 min-w-0"><div className="min-w-0"><p className="flex items-center gap-2 text-lg font-black text-[#2f2415] break-words"><Icon size={20} className="shrink-0" /> {title}</p>{subtitle ? <p className="mt-1 text-sm leading-relaxed text-[#8a7456] break-words">{subtitle}</p> : null}</div>{children}</section>;
 }
 function CollapsibleSection({ icon: Icon, title, subtitle, defaultOpen = false, children }) {
   const [open, setOpen] = useState(defaultOpen);
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm overflow-hidden"><button type="button" onClick={() => setOpen((value) => !value)} className="flex min-h-[64px] w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-[#fffdf8]"><span><span className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</span>{subtitle ? <span className="mt-1 block text-sm text-[#8a7456]">{subtitle}</span> : null}</span><ChevronDown size={20} className={`shrink-0 text-[#8a7456] transition-transform ${open ? 'rotate-180' : ''}`} /></button>{open ? <div className="border-t border-[#eadcc2] p-5">{children}</div> : null}</section>;
 }
 
-function HeyHorizonAnimalCard({ draft, rows, species, onCreate, onUpdate, onCreateBusinessEvent, onRefresh, onRefreshBusinessEvents, onClose }) {
-  const fields = draft?.draft_fields || {};
-  const formType = draft?.form_type;
-  const [targetId, setTargetId] = useState(targetFrom(draft));
-  const [weight, setWeight] = useState(fields.weight_kg || '');
-  const [date, setDate] = useState(fields.date || today());
-  const [status, setStatus] = useState(fields.status || 'mort');
-  const [name, setName] = useState(fields.name || '');
-  const [type, setType] = useState(speciesFromType(fields.type || species));
-  const [note, setNote] = useState(fields.notes || draft?.raw_input || '');
-  const [saving, setSaving] = useState(false);
-  const animal = useMemo(() => findAnimal(targetId, rows), [targetId, rows]);
-  const title = formType === 'animal_weighing' ? 'Pesée animal' : formType === 'animal_loss' ? 'Incident / sortie animal' : 'Création animal';
-  const submit = async () => {
-    try {
-      setSaving(true);
-      if (formType === 'animal_creation') {
-        const id = fields.id || makeId(type === 'Ovin' ? 'OVI' : type === 'Caprin' ? 'CAP' : 'BOV');
-        await onCreate?.({ id, boucle_numero: id, name: name || id, nom: name || id, type, espece: type, status: 'actif', statut: 'actif', health_status: 'sain', date_entree_ferme: date, date_derniere_pesee: date, poids: toNumber(weight), poids_entree: toNumber(weight), notes: note, source_module: 'hey_horizon' });
-        await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'creation_animal', module_source: 'animaux', entity_type: 'animal', entity_id: id, title: `Animal créé · ${id}`, description: note, event_date: date, severity: 'info' });
-      } else {
-        if (!targetId) throw new Error('Animal obligatoire');
-        const patch = formType === 'animal_weighing'
-          ? { poids: toNumber(weight), poids_actuel: toNumber(weight), date_derniere_pesee: date, last_weight: toNumber(weight), last_weight_date: date, notes_pesee: note }
-          : { status, statut: status, date_deces: status === 'mort' ? date : undefined, date_sortie: date, cause_deces: note, notes_sortie: note };
-        await onUpdate?.(animal?.id || targetId, patch);
-        await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: formType === 'animal_weighing' ? 'pesee_animal' : 'perte_animal', module_source: 'animaux', entity_type: 'animal', entity_id: animal?.id || targetId, source_id: animal?.id || targetId, title: `${title} · ${targetId}`, description: note || draft?.raw_input || '', event_date: date, severity: formType === 'animal_loss' ? 'critical' : 'info', amount: formType === 'animal_loss' ? lossValueOf(animal || {}) : 0 });
-      }
-      await Promise.allSettled([onRefresh?.(), onRefreshBusinessEvents?.()]);
-      toast.success(`${title} enregistrée`);
-      onClose?.();
-    } catch (error) { toast.error(error.message || 'Action animal impossible'); } finally { setSaving(false); }
-  };
-  return <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm space-y-4">
-    <div className="flex items-start justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-emerald-700 font-black flex items-center gap-2"><Scale size={15} /> Fiche animal</p><h3 className="mt-1 text-xl font-black text-[#2f2415]">{title}</h3></div><button type="button" onClick={onClose} className="rounded-full border border-emerald-200 bg-white p-2 text-emerald-700"><X size={16} /></button></div>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-      {formType === 'animal_creation' ? <><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Espèce</span><select value={type} onChange={(e) => setType(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm"><option>Bovin</option><option>Ovin</option><option>Caprin</option></select></label><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Nom / repère</span><input value={name} onChange={(e) => setName(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label></> : <label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Animal</span><select value={targetId} onChange={(e) => setTargetId(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm"><option value={targetId}>{animal ? `${labelOf(animal)} · ${targetId}` : targetId || 'Choisir'}</option>{rows.filter((row) => String(row.id) !== String(targetId)).map((row) => <option key={row.id} value={row.id}>{labelOf(row)} · {row.id}</option>)}</select></label>}
-      {formType === 'animal_loss' ? <label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Statut</span><select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm"><option value="mort">Mort</option><option value="perdu">Perdu</option><option value="vole">Volé</option></select></label> : <label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Poids kg</span><input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label>}
-      <label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Date</span><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label>
-      <label className="space-y-1 md:col-span-3"><span className="text-xs font-bold text-emerald-800">Note</span><input value={note} onChange={(e) => setNote(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label>
-    </div>
-    <div className="flex justify-end"><button type="button" onClick={submit} disabled={saving} className="rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60">{saving ? 'Validation...' : 'Valider'}</button></div>
-  </section>;
-}
-
 export default function AnimauxV2(props) {
+  const embedInElevage = Boolean(props.embedInElevage);
   const [species, setSpecies] = useState('Bovin');
   const [horizonDraft, setHorizonDraft] = useState(null);
   const salesOrdersCrud = useCrudModule('sales_orders');
@@ -115,6 +72,7 @@ export default function AnimauxV2(props) {
         return;
       }
       if (event.detail?.module === 'animaux' && ['animal_weighing', 'animal_loss', 'animal_creation'].includes(draft?.form_type)) {
+        if (embedInElevage && ['animal_weighing', 'animal_loss'].includes(draft?.form_type)) return;
         setHorizonDraft(draft);
         const wanted = draft?.draft_fields?.type ? speciesFromType(draft.draft_fields.type) : species;
         setSpecies(wanted);
@@ -123,7 +81,7 @@ export default function AnimauxV2(props) {
     };
     window.addEventListener('horizon-open-form', handler);
     return () => window.removeEventListener('horizon-open-form', handler);
-  }, [species, props.rows]);
+  }, [species, props.rows, embedInElevage]);
 
   const counts = useMemo(() => countAnimalsBySpecies(props.rows || []), [props.rows]);
   const speciesRows = useMemo(() => filterAnimalsBySpecies(props.rows || [], species), [props.rows, species]);
@@ -186,15 +144,38 @@ export default function AnimauxV2(props) {
   const selectedActivity = speciesActivityMap[species] || 'bovins';
   const commonWorkflowProps = { salesOrders, payments, transactions, deliveriesList: deliveries, deliveries, businessEvents, opportunities, onCreateBusinessEvent: props.onCreateBusinessEvent || businessEventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || businessEventsCrud.refresh, onUpdateBusinessEvent: props.onUpdateBusinessEvent || businessEventsCrud.update, onDeleteBusinessEvent: props.onDeleteBusinessEvent || businessEventsCrud.remove, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh };
 
-  return <div id="animaux-module-root" className="space-y-6 animaux-mobile-structured"><style>{`@media (max-width: 640px){.animaux-mobile-structured .rounded-2xl{border-radius:18px}.animaux-mobile-structured table{font-size:12px}.animaux-mobile-structured th,.animaux-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.animaux-mobile-structured .text-2xl{font-size:1.35rem}.animaux-mobile-structured .grid{gap:.75rem}.animaux-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
+  return <div id="animaux-module-root" className={`space-y-6 ${embedInElevage ? 'elevage-module animaux-mobile-structured' : 'animaux-mobile-structured'}`}><style>{`@media (max-width: 640px){.animaux-mobile-structured .rounded-2xl{border-radius:18px}.animaux-mobile-structured table{font-size:12px}.animaux-mobile-structured th,.animaux-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.animaux-mobile-structured .text-2xl{font-size:1.35rem}.animaux-mobile-structured .grid{gap:.75rem}.animaux-mobile-structured .overflow-x-auto{max-width:100%}}`}</style>
     {horizonDraft ? <div id="hey-horizon-animal-card"><HeyHorizonAnimalCard draft={horizonDraft} rows={props.rows || []} species={species} onCreate={wrapCreate} onUpdate={wrapUpdate} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} onClose={() => setHorizonDraft(null)} /></div> : null}
-    <ModuleSection icon={Beef} title="Cheptel"><div className="grid grid-cols-1 md:grid-cols-3 gap-3">{ANIMAL_SPECIES_TABS.map((tab) => <button key={tab} type="button" onClick={() => setSpecies(tab)} className={`rounded-2xl border px-4 py-3 text-left transition-all ${species === tab ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}><p className="text-xs uppercase tracking-wide">Espèce</p><p className="font-black">{tab}s</p><p className="text-xs opacity-75">{counts[tab] || 0} animaux · {filterAnimalsBySpecies(props.rows || [], tab).filter(isOperationalAnimal).length} actifs</p></button>)}</div></ModuleSection>
-    <AnimalCycleHealthPanel rows={props.rows || []} alimentationLogs={props.alimentationLogs || []} vaccins={props.vaccins || []} salesOrders={salesOrders} onNavigate={props.onNavigate} />
+    <ModuleSection icon={Beef} title="Cheptel"><div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">{ANIMAL_SPECIES_TABS.map((tab) => <button key={tab} type="button" onClick={() => setSpecies(tab)} className={`min-w-0 rounded-2xl border px-4 py-4 text-left transition-all ${species === tab ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}><p className="text-xs uppercase tracking-wide">Espèce</p><p className="font-black break-words">{tab}s</p><p className="text-xs opacity-75 break-words">{counts[tab] || 0} animaux · {filterAnimalsBySpecies(props.rows || [], tab).filter(isOperationalAnimal).length} actifs</p></button>)}</div></ModuleSection>
+    {!embedInElevage ? <AnimalCycleHealthPanel rows={props.rows || []} alimentationLogs={props.alimentationLogs || []} vaccins={props.vaccins || []} salesOrders={salesOrders} onNavigate={props.onNavigate} /> : (
+      <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm sm:p-6">
+        <p className="text-sm font-black text-[#2f2415]">Pilotage, alimentation & santé</p>
+        <p className="mt-1 text-sm leading-relaxed text-[#8a7456]">Cycles de vente, distributions et alertes santé sont dans les onglets dédiés.</p>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          {props.onElevageTabChange ? <button type="button" onClick={() => props.onElevageTabChange('Cycles')} className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><ClipboardList size={15} className="shrink-0" /> Cycles bovins → Cycles</button> : null}
+          {props.onElevageTabChange ? <button type="button" onClick={() => props.onElevageTabChange('Alimentation')} className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><Utensils size={15} className="shrink-0" /> Aliment & charges → Alimentation</button> : null}
+          {props.onElevageTabChange ? <button type="button" onClick={() => props.onElevageTabChange('Santé')} className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><HeartPulse size={15} className="shrink-0" /> Soins & vaccins → Santé <ArrowRight size={14} className="shrink-0" /></button> : null}
+        </div>
+      </section>
+    )}
     <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4"><p className="text-xs uppercase tracking-[0.2em] text-[#9a6b12] font-black">Espèce active</p><p className="mt-1 text-xl font-black text-[#2f2415]">{species}s</p><p className="mt-1 text-sm text-[#8a7456]">{activeSpeciesRows.length} actif(s) · {historicalSpeciesRows.length} en historique</p></div>
     <ObjectivePerformanceCard dataMap={dataMap} activity={selectedActivity} title={`Objectif ${species}s`} compact onNavigate={props.onNavigate} />
     <ModuleSection icon={PackageCheck} title={`${species}s`} subtitle={`${historicalSpeciesRows.length} animal(aux) en historique.`}><AnimauxSpeciesFocused {...props} {...commonWorkflowProps} species={species} rows={activeSpeciesRows} onCreate={wrapCreate} onUpdate={wrapUpdate} /></ModuleSection>
-    <ModuleSection icon={Scissors} title="Transformation et stock"><AnimalSlaughterStockBridge rows={activeSpeciesRows} alimentationLogs={props.alimentationLogs || []} vaccins={props.vaccins || []} businessEvents={businessEvents} onUpdate={props.onUpdate} onRefresh={props.onRefresh} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} /></ModuleSection>
-    <ModuleSection icon={PackageCheck} title="Charges directes"><DirectChargesBridge title={`Charges directes ${species.toLowerCase()}s`} targetType="animaux" targets={activeSpeciesRows} businessEvents={businessEvents} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onUpdateBusinessEvent={props.onUpdateBusinessEvent || businessEventsCrud.update} onDeleteBusinessEvent={props.onDeleteBusinessEvent || businessEventsCrud.remove} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} /></ModuleSection>
+    {embedInElevage ? (
+      <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm">
+        <p className="text-sm font-black text-[#2f2415]">Production & transformation</p>
+        <p className="mt-1 text-sm text-[#8a7456]">Pesées, abattage et sorties animaux sont gérés dans les onglets dédiés.</p>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          {props.onElevageTabChange ? <button type="button" onClick={() => props.onElevageTabChange('Production')} className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415] sm:flex-none sm:justify-start"><Egg size={15} className="shrink-0" /> <span className="break-words text-left">Pesées → Production</span> <ArrowRight size={14} className="shrink-0" /></button> : null}
+          {props.onElevageTabChange ? <button type="button" onClick={() => props.onElevageTabChange('Transformation')} className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415] sm:flex-none sm:justify-start"><Scissors size={15} className="shrink-0" /> <span className="break-words text-left">Abattage / sorties → Transformation</span> <ArrowRight size={14} className="shrink-0" /></button> : null}
+        </div>
+      </section>
+    ) : (
+      <ModuleSection icon={Scissors} title="Transformation et stock"><AnimalSlaughterStockBridge rows={activeSpeciesRows} alimentationLogs={props.alimentationLogs || []} vaccins={props.vaccins || []} businessEvents={businessEvents} onUpdate={props.onUpdate} onRefresh={props.onRefresh} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} /></ModuleSection>
+    )}
+    {!embedInElevage ? (
+      <ModuleSection icon={PackageCheck} title="Charges directes"><DirectChargesBridge title={`Charges directes ${species.toLowerCase()}s`} targetType="animaux" targets={activeSpeciesRows} businessEvents={businessEvents} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onUpdateBusinessEvent={props.onUpdateBusinessEvent || businessEventsCrud.update} onDeleteBusinessEvent={props.onDeleteBusinessEvent || businessEventsCrud.remove} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} /></ModuleSection>
+    ) : null}
     <CollapsibleSection icon={ClipboardList} title={`Cycle et historique · ${species}s`} defaultOpen={false}><LifecycleHistoryPanel mode="animaux" rows={speciesRows} salesOrders={salesOrders} deliveries={deliveries} businessEvents={businessEvents} /></CollapsibleSection>
     <CollapsibleSection icon={BarChart3} title={`Évolution · ${species}s`} defaultOpen={false}><AnimauxEvolution rows={speciesRows} alimentationLogs={props.alimentationLogs || []} vaccins={props.vaccins || []} businessEvents={businessEvents} opportunities={opportunities} salesOrders={salesOrders} payments={payments} transactions={transactions} onNavigate={props.onNavigate} /></CollapsibleSection>
   </div>;

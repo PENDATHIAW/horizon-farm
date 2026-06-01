@@ -1,11 +1,11 @@
 import { MODULE_TARGET_TABS } from '../../config/horizonVision.config.js';
 
-export default function ModuleTabsBar({ moduleId, active, onChange, tabBadges = {} }) {
+export default function ModuleTabsBar({ moduleId, active, onChange, tabBadges = {}, wrap = false }) {
   const tabs = MODULE_TARGET_TABS[moduleId] || [];
   if (!tabs.length) return null;
   return (
-    <div className="overflow-x-auto">
-      <div className="flex min-w-max gap-2 rounded-2xl border border-[#d6c3a0] bg-white p-2">
+    <div className={wrap ? '' : 'overflow-x-auto'}>
+      <div className={`flex gap-2 rounded-2xl border border-[#d6c3a0] bg-white p-2 ${wrap ? 'flex-wrap' : 'min-w-max'}`}>
         {tabs.map((tab) => {
           const badge = tabBadges[tab];
           return (

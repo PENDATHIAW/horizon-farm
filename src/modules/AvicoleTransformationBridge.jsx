@@ -53,7 +53,7 @@ export default function AvicoleTransformationBridge({ rows = [], alimentationLog
 
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
     <div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Drumstick size={20} /> Abattage / transformation avicole</p><p className="mt-1 text-sm text-[#8a7456]">Transforme un lot de chair en stock viande avec coût/kg réel.</p></div>
-    <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-6 xl:grid-cols-11 gap-2 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3">
+    <form onSubmit={submit} className="hf-form-grid grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
       <Field label="Lot chair"><Select value={form.lot_id || ''} onChange={(e) => update('lot_id', e.target.value)}><option value="">Choisir</option>{lots.map((lot, index) => <option key={`${lot.id || 'lot'}-${index}`} value={lot.id}>{lotLabel(lot)} · {fmtNumber(avicoleActiveCount(lot))} actifs</option>)}</Select></Field>
       <Field label="Date"><Input type="date" value={form.date || ''} onChange={(e) => update('date', e.target.value)} /></Field>
       <Field label="Sujets abattus"><Input type="number" min="0" value={form.sujets_abattus || ''} onChange={(e) => update('sujets_abattus', e.target.value)} /></Field>
@@ -64,7 +64,7 @@ export default function AvicoleTransformationBridge({ rows = [], alimentationLog
       <Field label="Emballage"><Input type="number" min="0" value={form.frais_emballage || ''} onChange={(e) => update('frais_emballage', e.target.value)} /></Field>
       <Field label="Transport"><Input type="number" min="0" value={form.frais_transport || ''} onChange={(e) => update('frais_transport', e.target.value)} /></Field>
       <Field label="Autres"><Input type="number" min="0" value={form.autres_frais || ''} onChange={(e) => update('autres_frais', e.target.value)} /></Field>
-      <div className="flex items-end"><button type="submit" className="inline-flex items-center gap-2 rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-bold text-white"><Plus size={14} /> Ajouter</button></div>
+      <div className="hf-form-actions flex flex-wrap items-end gap-2"><button type="submit" className="inline-flex items-center gap-2 rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-bold text-white"><Plus size={14} /> Ajouter</button></div>
     </form>
     <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a]">Prévision coût/kg : <b className="text-[#2f2415]">{unitKg ? fmtCurrency(unitKg) : '—'}</b> · frais transformation : <b>{fmtCurrency(extra)}</b></div>
   </section>;
