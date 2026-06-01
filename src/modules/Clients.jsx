@@ -223,7 +223,7 @@ export default function Clients({ rows = [], loading, salesOrders = [], payments
                     )}
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-1 justify-end">
-                    <Btn variant="amber" small icon={MessageCircle} onClick={() => relanceCreance(client)}>Relancer</Btn>
+                    {hasDebt ? <Btn variant="amber" small icon={MessageCircle} onClick={() => relanceCreance(client)}>Relancer</Btn> : <Btn variant="whatsapp" small icon={MessageCircle} onClick={() => openContact(client, messageFor(client), 'Contacter le client')}>WhatsApp</Btn>}
                     <Btn variant="outline" small icon={UserRound} onClick={() => openProfile(client)} />
                     <Btn variant="outline" small icon={Edit} onClick={() => { setSelected(client); setModal('edit'); }} />
                     <Btn variant="outline" small icon={Trash2} onClick={() => { setSelected(client); setModal('delete'); }} />

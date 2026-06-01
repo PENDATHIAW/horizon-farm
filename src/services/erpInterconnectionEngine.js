@@ -83,7 +83,12 @@ export async function syncSaleTraceFromOrder(order = {}, { clientLabel = 'Client
 export async function resolveSaleTasksOnPayment({ sale = {}, payments = [], tasks = [], handlers = {} } = {}) {
   const remaining = remainingForOrder(sale, payments);
   if (remaining > 0 || !handlers.onUpdateTask) return null;
-  const related = arr(tasks).filter((task) => clean(task.related_id || task.source_record_id || task.entity_id) === clean(sale.id));
+  const saleId = clean(sale.id);
+  const related = arr(tasks).filter((task) => {
+    const linked = clean(task.related_id || task.source_record_id || task.entity_id);
+    const routine = clean(task.routine_key || '');
+    return linked === saleId || routine === `relance-credit-${saleId}`;
+  });
   await Promise.allSettled(related.map((task) => handlers.onUpdateTask(task.id, {
     status: 'termine',
     statut: 'termine',
