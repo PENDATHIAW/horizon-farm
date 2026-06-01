@@ -9,6 +9,7 @@ import { resolveCommercialTab, resolveElevageTab, resolveAchatsStockTab, resolve
 import { pruneHeavyLocalStorage } from './utils/safeLocalStorage';
 import { archiveHealthMirrorTasks, findHealthMirrorTasksToArchive } from './utils/pruneHealthMirrorTasks.js';
 import AppNotificationManager from './components/AppNotificationManager';
+import AppVersionBadge from './components/AppVersionBadge.jsx';
 import ErpInterconnectionBridge from './components/ErpInterconnectionBridge';
 import AssistantPanel from './components/AssistantPanel';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -513,6 +514,5 @@ export default function App() {
     <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={scopedAssistantDataMap} onNavigate={setActive} onCreateBusinessEvent={c.business_events.create} />
     <ErpInterconnectionBridge cruds={c} />
     <AppNotificationManager />
-    <AppVersionBadge />
   </AppLayout>;
 }
