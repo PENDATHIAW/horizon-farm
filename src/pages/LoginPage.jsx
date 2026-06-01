@@ -89,21 +89,14 @@ export default function LoginPage() {
         className="pointer-events-none absolute inset-0 bg-cover bg-no-repeat"
         style={{
           backgroundImage: `url(${farmBg})`,
-          backgroundPosition: '22% 62%',
+          backgroundPosition: '28% 50%',
         }}
         aria-hidden
       />
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: 'linear-gradient(125deg, rgba(255,248,239,0.9) 0%, rgba(255,248,239,0.55) 26%, rgba(255,248,239,0.12) 42%, transparent 52%)',
-        }}
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-28 sm:h-32"
-        style={{
-          background: 'linear-gradient(to top, rgba(6,51,33,0.72), transparent)',
+          background: 'linear-gradient(125deg, rgba(255,248,239,0.88) 0%, rgba(255,248,239,0.5) 24%, rgba(255,248,239,0.1) 40%, transparent 50%)',
         }}
         aria-hidden
       />
@@ -117,7 +110,7 @@ export default function LoginPage() {
       </header>
 
       <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col">
-        <section className="mx-auto grid w-full max-w-7xl flex-1 min-h-0 items-center gap-6 px-4 pb-3 pt-16 sm:gap-8 sm:px-6 sm:pt-[4.5rem] lg:grid-cols-[1fr_340px] lg:gap-8 lg:px-8 lg:pt-20 xl:px-10">
+        <section className="mx-auto grid w-full max-w-7xl flex-1 min-h-0 items-start gap-5 px-4 pb-2 pt-14 sm:gap-6 sm:px-6 sm:pt-16 lg:grid-cols-[1fr_340px] lg:gap-8 lg:px-8 lg:pt-[4.25rem] xl:px-10">
           <div className="max-w-xl">
             <h1 className="sr-only">Horizon Farm ERP</h1>
             <p className="text-[1.65rem] font-black leading-[1.12] tracking-tight text-[#063321] sm:text-3xl lg:text-[2.15rem] xl:text-4xl">
@@ -273,27 +266,30 @@ export default function LoginPage() {
           </div>
         </section>
 
-        <footer className="shrink-0 bg-[#063321] px-4 py-4 sm:px-6 lg:px-8 xl:px-10">
-          <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+        <div className="h-14 shrink-0 sm:h-[4.5rem]" aria-hidden />
+
+        <footer className="relative z-10 shrink-0 border-t border-[#063321]/20 bg-[#063321]/88 px-3 py-2 backdrop-blur-[1px] sm:px-5 lg:px-8 xl:px-10">
+          <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-3 gap-y-2 lg:grid-cols-4 lg:gap-x-4">
             {FEATURES.map(({ icon: Icon, title, detail, explanation }) => (
               <div key={title} className="text-white">
-                <div className="flex items-center gap-2.5 sm:gap-3">
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/20 bg-white/10 sm:h-9 sm:w-9">
-                    <Icon size={16} className="sm:hidden" />
-                    <Icon size={17} className="hidden sm:block" />
+                <div className="flex items-start gap-2">
+                  <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/20 bg-white/10">
+                    <Icon size={14} />
                   </span>
-                  <p className="text-xs font-black leading-tight sm:text-sm">{title}</p>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black leading-tight sm:text-[11px]">{title}</p>
+                    <p className="mt-0.5 text-[9px] font-semibold leading-snug text-white/85 sm:text-[10px]">
+                      {detail}
+                    </p>
+                    <p className="mt-0.5 hidden text-[9px] leading-snug text-white/65 xl:block">
+                      {explanation}
+                    </p>
+                  </div>
                 </div>
-                <p className="mt-1.5 pl-[2.625rem] text-[11px] font-semibold leading-snug text-white/90 sm:pl-[2.875rem] sm:text-xs">
-                  {detail}
-                </p>
-                <p className="mt-1 pl-[2.625rem] text-[10px] leading-relaxed text-white/70 sm:pl-[2.875rem] sm:text-[11px]">
-                  {explanation}
-                </p>
               </div>
             ))}
           </div>
-          <p className="mx-auto mt-4 max-w-7xl text-right text-[10px] text-white/50">© 2026 Horizon Farm. Tous droits réservés.</p>
+          <p className="mx-auto mt-1.5 max-w-7xl text-right text-[9px] text-white/45">© 2026 Horizon Farm. Tous droits réservés.</p>
         </footer>
       </div>
     </main>
