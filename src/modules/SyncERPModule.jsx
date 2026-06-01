@@ -78,6 +78,8 @@ export default function SyncERPModule({
         <h2 className="flex items-center gap-2 font-black text-emerald-800"><ShieldCheck size={18} /> Règle utilisateur</h2>
         <p className="mt-1 text-sm text-emerald-800">Ce module sert à vérifier si les données sont à jour. Les détails techniques restent masqués pour ne pas compliquer l’usage quotidien.</p>
       </section>
+      <ErpAuditPanel />
+      <GitHubAuditRoadmapPanel />
     </div>
   );
 }

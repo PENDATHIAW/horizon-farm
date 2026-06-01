@@ -14,7 +14,7 @@ import { getRhDirectory } from '../utils/rhDirectory';
 import { aggregateMaintenanceQueue, buildRhCoherenceRows, buildRhHealthSnapshot, computePayrollSummary } from './rh/rhVisionHelpers.js';
 import RHPeopleTeams from './RHPeopleTeams.jsx';
 import EquipementsV2 from './EquipementsV2.jsx';
-import SmartFarm from './SmartFarm.jsx';
+import SmartFarmEmbed from './smartfarm/SmartFarmEmbed.jsx';
 
 const arr = (v) => Array.isArray(v) ? v : [];
 const low = (v) => String(v || '').toLowerCase();

@@ -1,6 +1,6 @@
 import { syncFinanceSideEffects, closeOpportunityForOrder, syncSaleTraceFromOrder, resolveSaleTasksOnPayment } from '../services/erpInterconnectionEngine';
 import { getFinanceActivityFromSale, getFinanceCategoryFromSale } from '../services/financeSyncService';
-import { buildClientReminderFollowUp, buildClientSalesSummary } from './clientWorkflows';
+import { buildClientReminderFollowUp, buildClientSalesSummary, resolveClientReminderFollowUp } from './clientWorkflows';
 import { buildClientReceivablePatch } from './recordSalePayment';
 import { buildReverseSaleSourcePatch, buildSaleSourcePatch } from './salesWorkflows';
 import { remainingForOrder } from './salesStatuses';
@@ -244,8 +244,18 @@ export async function syncClientFromSale({
     last_order_date: date || today(),
   };
   await handlers.onUpdateClient?.(clientId, payload);
+  const client = arr(clients).find((row) => String(row.id) === String(clientId));
+  const summary = buildClientSalesSummary(client || { id: clientId }, salesOrders, payments);
   if (num(patch.reste_a_payer) > 0) {
     await applyClientReminderIfNeeded({ clientId, clients, salesOrders, payments, handlers, alertes });
+  } else if (client) {
+    await resolveClientReminderFollowUp({
+      client,
+      summary,
+      tasks: handlers.existingTasks || [],
+      alertes,
+      handlers,
+    });
   }
   return payload;
 }
@@ -485,7 +495,7 @@ export async function runPaymentSideEffects({
         salesOrders,
         payments,
         date: today(),
-        handlers,
+        handlers: { ...handlers, existingTasks: tasks },
         alertes,
       });
     } catch (error) {

@@ -15,10 +15,27 @@ test('buildClientSalesSummary calcule reste à payer depuis paiements', () => {
   assert.equal(summary.status, 'a_jour');
 });
 
-test('client payé ne reste pas à relancer', () => {
+test('client payé clôture les relances ouvertes', async () => {
   const client = { id: 'CLI-2', nom: 'Beta' };
-  const summary = buildClientSalesSummary(client, [{ id: 'CMD-2', client_id: 'CLI-2', montant_total: 10000 }], [{ id: 'PAY-2', order_id: 'CMD-2', montant: 10000 }]);
-  assert.equal(resolveClientReminderFollowUp(client, summary)?.key, 'client_receivable:CLI-2');
+  const key = 'client_receivable:CLI-2';
+  const tasks = [{ id: 'TSK-1', task_dedupe_key: key, status: 'a_faire', related_id: 'CLI-2', title: 'Relancer Beta' }];
+  const alertes = [{ id: 'ALT-1', alert_dedupe_key: key, status: 'nouvelle', entity_id: 'CLI-2' }];
+  let closedTask = false;
+  let closedAlert = false;
+  const result = await resolveClientReminderFollowUp({
+    client,
+    summary: { resteAPayer: 0 },
+    tasks,
+    alertes,
+    handlers: {
+      onUpdateTask: async () => { closedTask = true; },
+      onUpdateAlert: async () => { closedAlert = true; },
+    },
+  });
+  assert.equal(result.closedTasks, 1);
+  assert.equal(result.closedAlerts, 1);
+  assert.ok(closedTask);
+  assert.ok(closedAlert);
 });
 
 test('saleBelongsToClient matche par client_id', () => {
