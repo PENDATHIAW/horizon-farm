@@ -576,6 +576,18 @@ Objectif : rendre les workflows fiables même avec réseau instable.
 
 ## Journal des avancées
 
+### 2026-06-01
+
+[Traité] Chaîne Cultures récolte → stock → vente + dossier financeur PDF.
+
+- Clé opportunité culture unifiée (`culture-sale:{id}`) dans TabActions, SaleOpportunityBridge et dérivation ventes.
+- Récolte via `CulturesWorkflowBridge` délègue aux side effects `CulturesRecoveredModule` (stock + opportunité auto).
+- Vente stock liée à une culture synchronise aussi la fiche culture (`applySourceImpactFromSale`).
+- `financeurReportService` : KPI officiels + checklist conformité + export PDF branché dans `RapportsV2`.
+- Tests : `cultureSaleSync`, `financeurReport`, scénario workflow vente stock→culture.
+
+[À faire] Normaliser `issue_key` Supabase, rapprochement banque/caisse, RBAC serveur, opportunité auto Animaux.
+
 ### 2026-05-09
 
 [En cours] PR #2 — Interconnexions ERP et statuts ventes.
@@ -599,24 +611,6 @@ Déjà observé :
 [Traité] Ajout d’une règle de qualité fonctionnelle : un bloc n’est pas terminé parce qu’il s’affiche, il doit être cohérent, testable, interconnecté, sans message technique visible, sans doublon et vérifiable dans les modules liés.
 
 [À tester] Stabilisation Santé & Biosécurité : les listes périmètre/cible ne proposent plus d’entités invalides, les champs dépendants sont réinitialisés, les IDs liés sont enrichis à la création, le bouton Valider est protégé pendant l’enregistrement, et les messages utilisateur sont plus métier.
-
-### 2026-05-31
-
-[Traité] PR #7 — Moteurs audit ERP transversaux :
-
-- `src/services/kpiEngine/` — KPI central (CA, encaissements, stock, ponte, croissance, dashboard) ;
-- `src/services/erpAuditEngine.js` — audit inter-modules (vente/paiement, animal vendu, document orphelin, équipement sans tâche) ;
-- `src/services/riskEngine.js` + `issueKey.js` — regroupement alertes/tâches/findings/IA par `issue_key` ;
-- `src/services/dataSourcesOfTruth.js`, `modulePeriodRules.js`, `moduleDataCoverageAudit.js` ;
-- `src/services/workflows/` — ventes, achats, stock, santé, volaille (prêt vente → opportunité), documents, tâches/alertes, équipements ;
-- Intégration Centre/Objectifs via `visionUtils.jsx` et `erpHealthEngine.js` ;
-- Auto-opportunité commerciale à la confirmation prêt vente (`AvicoleBase.jsx`) ;
-- Doc : `docs/audit-complet-erp-modules-interconnexions.md` ;
-- Tests unitaires : `tests/unit/*.test.js` (`npm run test:unit`).
-
-[À tester] Normalisation `issue_key` en base Supabase (alertes, tâches, ai_recommendations).
-
-[À faire] Cultures workflow complet (récolte → stock → vente), rapports financeur PDF, E2E vente soldée / client sans relance.
 
 ---
 

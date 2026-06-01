@@ -152,6 +152,15 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(result.event).toMatchObject({ event_type: 'recolte_culture_disponible', entity_id: 'CULT-TOMATE-001' });
   });
 
+  test('vente stock récolte synchronise la fiche culture', () => {
+    const stock = { id: 'STK-RECOLTE-001', quantite: 40, culture_id: 'CULT-TOMATE-001' };
+    const culture = { id: 'CULT-TOMATE-001', quantite_disponible: 40, quantite_vendue: 0, revenu_reel: 0 };
+    const stockPlan = buildSaleSourcePatch({ sourceType: 'stock', sourceRow: stock, quantity: 15, total: 13500, orderId: 'CMD-CULT-STOCK-001' });
+    const culturePlan = buildSaleSourcePatch({ sourceType: 'culture', sourceRow: culture, quantity: 15, total: 13500, orderId: 'CMD-CULT-STOCK-001' });
+    expect(stockPlan).toMatchObject({ module: 'stock', id: 'STK-RECOLTE-001', patch: { quantite: 25 } });
+    expect(culturePlan).toMatchObject({ module: 'culture', id: 'CULT-TOMATE-001', patch: { quantite_disponible: 25, quantite_vendue: 15, revenu_reel: 13500 } });
+  });
+
   test('vente soldée bloque les encaissements supplémentaires', () => {
     const sale = { id: 'CMD001', montant_total: 100000, montant_paye: 100000, client_id: 'CLI001' };
     const payments = [];

@@ -1,5 +1,6 @@
 import { toNumber } from './format';
 import { avicoleActiveCount, avicoleHasActiveBirds } from './avicoleMetrics';
+import { cultureOpportunityKey } from './cultureWorkflows.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value) => String(value || '').trim();
@@ -52,17 +53,11 @@ function cultureReadyForSale(culture = {}) {
     && (Boolean(culture.pret_a_vendre || culture.ready_for_sale || culture.sale_ready) || ['recoltee', 'récoltée', 'pret_a_vendre', 'pret_a_la_vente'].includes(status));
 }
 
-function isFumierStock(stock = {}) {
-  const text = lower(`${stock.categorie || ''} ${stock.category || ''} ${stock.produit || ''} ${stock.name || ''}`);
-  return text.includes('fumier');
-}
-
 function stockReadyForSale(stock = {}) {
   const status = lower(stock.status || stock.statut || stock.sale_status);
   const qty = toNumber(stock.quantite ?? stock.quantity ?? stock.stock_disponible);
-  if (!clean(stock.id) || qty <= 0 || ['reserve', 'réservé', 'bloque', 'bloqué', 'perime', 'périmé', 'epuise', 'épuisé'].includes(status)) return false;
-  if (isFumierStock(stock)) return true;
-  return Boolean(stock.pret_a_vendre || stock.ready_for_sale || stock.sale_ready || stock.vendable);
+  return clean(stock.id) && qty > 0 && !['reserve', 'réservé', 'bloque', 'bloqué', 'perime', 'périmé', 'epuise', 'épuisé'].includes(status)
+    && Boolean(stock.pret_a_vendre || stock.ready_for_sale || stock.sale_ready || stock.vendable);
 }
 
 function persistedTargetStillActive(opp = {}, { lots = [], animaux = [], cultures = [], stocks = [] } = {}) {
@@ -120,7 +115,7 @@ function animalOpportunity(animal = {}) {
 function cultureOpportunity(culture = {}) {
   const qty = toNumber(culture.quantite_recoltee ?? culture.recolte_disponible ?? culture.stock_recolte ?? culture.quantity_available);
   const unitPrice = toNumber(culture.prix_vente_prevu || culture.prix_vente_estime || culture.sale_price || culture.prix_unitaire_vente);
-  return { id: `DERIVED-CULTURE-${culture.id}`, opportunity_key: `cultures:${culture.id}`, source_module: 'cultures', source_type: 'culture', source_id: culture.id, related_id: culture.id, title: `Récolte prête à vendre: ${culture.nom || culture.name || culture.id}`, product_name: culture.nom || culture.name || culture.id, quantity: qty, unit: culture.unite || culture.unit || 'kg', unit_price: unitPrice, estimated_amount: Math.max(0, qty * unitPrice), status: 'ouverte', statut: 'ouverte', is_derived: true, created_from: 'cultures', notes: 'Source prête à convertir détectée depuis le module Cultures.' };
+  return { id: `DERIVED-CULTURE-${culture.id}`, opportunity_key: cultureOpportunityKey(culture), source_module: 'cultures', source_type: 'culture', source_id: culture.id, related_id: culture.id, title: `Récolte prête à vendre: ${culture.nom || culture.name || culture.id}`, product_name: culture.nom || culture.name || culture.id, quantity: qty, unit: culture.unite || culture.unit || 'kg', unit_price: unitPrice, estimated_amount: Math.max(0, qty * unitPrice), status: 'ouverte', statut: 'ouverte', is_derived: true, created_from: 'cultures', notes: 'Source prête à convertir détectée depuis le module Cultures.' };
 }
 
 function stockOpportunity(stock = {}) {

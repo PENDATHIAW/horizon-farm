@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
+import { cultureOpportunityKey } from '../utils/cultureWorkflows.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const today = () => new Date().toISOString().slice(0, 10);
@@ -25,10 +26,9 @@ const isSellable = (row = {}) => {
   const status = clean(row.statut || row.status || '').toLowerCase();
   return availableQty(row) > 0 && !['perdu', 'annule', 'annulé', 'archive', 'vendu'].includes(status);
 };
-const opportunityKey = (row = {}) => `cultures:${clean(row.id)}`;
 function existingOpportunityFor(row, opportunities = []) {
   const id = clean(row.id);
-  return arr(opportunities).find((opp) => clean(opp.opportunity_key) === opportunityKey(row))
+  return arr(opportunities).find((opp) => clean(opp.opportunity_key) === cultureOpportunityKey(row))
     || arr(opportunities).find((opp) => clean(opp.source_module) === 'cultures' && clean(opp.source_id || opp.related_id) === id);
 }
 
@@ -48,7 +48,7 @@ export default function CulturesSaleOpportunityBridge({ rows = [], opportunities
       const qty = availableQty(row);
       const unitPrice = unitPriceOf(row);
       const payload = {
-        opportunity_key: opportunityKey(row),
+        opportunity_key: cultureOpportunityKey(row),
         source_module: 'cultures',
         source_type: 'culture',
         source_id: row.id,

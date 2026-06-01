@@ -1,6 +1,6 @@
 import { syncFinanceSideEffects, closeOpportunityForOrder, syncSaleTraceFromOrder, resolveSaleTasksOnPayment } from '../services/erpInterconnectionEngine';
 import { getFinanceActivityFromSale, getFinanceCategoryFromSale } from '../services/financeSyncService';
-import { buildClientReminderFollowUp, buildClientSalesSummary, resolveClientReminderFollowUp } from './clientWorkflows';
+import { buildClientReminderFollowUp, buildClientSalesSummary } from './clientWorkflows';
 import { buildClientReceivablePatch } from './recordSalePayment';
 import { buildReverseSaleSourcePatch, buildSaleSourcePatch } from './salesWorkflows';
 import { remainingForOrder } from './salesStatuses';
@@ -131,7 +131,7 @@ function resolveSourceRow(sourceType, sourceId, { stocks = [], lots = [], cultur
   return null;
 }
 
-/** Décrémente stock / lot / animal / culture vendu. */
+/** Décrémente stock / lot / animal / culture vendu. Si vente stock liée à une culture, met aussi à jour la fiche culture. */
 export async function applySourceImpactFromSale({
   handlers = {},
   sourceType,
@@ -160,7 +160,24 @@ export async function applySourceImpactFromSale({
   });
   if (!patchPlan?.id) return null;
 
-  if (patchPlan.module === 'stock') await handlers.onUpdateStock?.(patchPlan.id, patchPlan.patch);
+  if (patchPlan.module === 'stock') {
+    await handlers.onUpdateStock?.(patchPlan.id, patchPlan.patch);
+    const cultureId = sourceRow?.culture_id || (String(sourceRow?.source_module || '').includes('culture') ? sourceRow?.source_id || sourceRow?.related_id : null);
+    if (cultureId) {
+      const cultureRow = arr(cultures).find((row) => String(row.id) === String(cultureId)) || { id: cultureId };
+      const culturePlan = buildSaleSourcePatch({
+        sourceType: 'culture',
+        sourceRow: cultureRow,
+        quantity,
+        total,
+        date,
+        orderId,
+        clientId,
+        saleKind,
+      });
+      if (culturePlan?.id) await handlers.onUpdateCulture?.(culturePlan.id, culturePlan.patch);
+    }
+  }
   if (patchPlan.module === 'lot_avicole') await handlers.onUpdateLot?.(patchPlan.id, patchPlan.patch);
   if (patchPlan.module === 'animal') await handlers.onUpdateAnimal?.(patchPlan.id, patchPlan.patch);
   if (patchPlan.module === 'culture') await handlers.onUpdateCulture?.(patchPlan.id, patchPlan.patch);
@@ -207,21 +224,6 @@ async function applyClientReminderIfNeeded({ clientId, clients, salesOrders, pay
   return followUp;
 }
 
-async function resolveClientReminderIfNeeded({ clientId, clients, salesOrders, payments, handlers, alertes = [], tasks = [] }) {
-  if (!clientId) return null;
-  const client = arr(clients).find((row) => String(row.id) === String(clientId));
-  if (!client) return null;
-  const summary = buildClientSalesSummary(client, salesOrders, payments);
-  const resolved = resolveClientReminderFollowUp(client, summary);
-  if (!resolved) return null;
-  const key = clean(resolved.key);
-  const relatedTasks = arr(tasks).filter((row) => clean(row.task_dedupe_key || row.routine_key || row.action_key) === key);
-  const relatedAlerts = arr(alertes).filter((row) => clean(row.alert_dedupe_key || row.id) === key || relatedTasks.some((t) => clean(t.id) === clean(row.linked_task_id)));
-  await Promise.allSettled(relatedTasks.map((task) => handlers.onUpdateTask?.(task.id, resolved.taskPatch)));
-  await Promise.allSettled(relatedAlerts.map((alert) => handlers.onUpdateAlert?.(alert.id, resolved.alertPatch)));
-  return resolved;
-}
-
 /** Met à jour le client (créances, totaux, dernière commande). */
 export async function syncClientFromSale({
   clientId,
@@ -244,8 +246,6 @@ export async function syncClientFromSale({
   await handlers.onUpdateClient?.(clientId, payload);
   if (num(patch.reste_a_payer) > 0) {
     await applyClientReminderIfNeeded({ clientId, clients, salesOrders, payments, handlers, alertes });
-  } else {
-    await resolveClientReminderIfNeeded({ clientId, clients, salesOrders, payments, handlers, alertes, tasks: handlers.existingTasks || [] });
   }
   return payload;
 }
