@@ -3,15 +3,15 @@ import toast from 'react-hot-toast';
 import { Eye, EyeOff, Lock, LogIn, Mail, Shield, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-/** Mockup 1024×768 — zone carte blanchie dans login-design-bg.png */
-const loginBackground = '/login-design-bg.png';
+/** Image officielle user — logo, textes et footer déjà intégrés (1024×768) */
+const loginHero = '/login-hero-official.jpg';
 
-/** Position carte login calée sur le mockup (660,103)→(977,518) px */
-const CARD = {
-  top: '13.41%',
-  right: '4.59%',
-  width: '30.96%',
-  height: '54.04%',
+/** Zone formulaire à droite — au-dessus du footer, sans masquer le coucher de soleil */
+const FORM_ZONE = {
+  top: '15%',
+  right: '5.5%',
+  width: '28.5%',
+  maxHeight: '58%',
 };
 
 export default function LoginPage() {
@@ -59,6 +59,7 @@ export default function LoginPage() {
     <main className="relative flex h-dvh w-full items-center justify-center overflow-hidden bg-[#1a2f1a]">
       <h1 className="sr-only">Horizon Farm ERP — Connexion</h1>
 
+      {/* Image entière 4:3 — horizon toujours visible, jamais recadré */}
       <div
         className="relative shrink-0"
         style={{
@@ -67,19 +68,20 @@ export default function LoginPage() {
         }}
       >
         <img
-          src={loginBackground}
+          src={loginHero}
           alt=""
           className="pointer-events-none block h-full w-full select-none object-cover object-center"
           draggable={false}
         />
 
+        {/* Seul ajout React : formulaire compact à droite */}
         <form
           onSubmit={handleSubmit}
-          className="absolute flex flex-col overflow-y-auto px-[6%] py-[5%]"
-          style={CARD}
+          className="absolute flex flex-col overflow-y-auto rounded-2xl border border-white/70 bg-white p-4 shadow-2xl shadow-black/20 sm:p-5"
+          style={FORM_ZONE}
         >
           <div
-            className="mb-[5%] flex shrink-0 rounded-lg border border-[#e5ebe6] bg-[#f4f7f4] p-[3%]"
+            className="mb-3 flex shrink-0 rounded-xl border border-[#d6e3d8] bg-[#f3faf4] p-1"
             role="tablist"
             aria-label="Connexion ou inscription"
           >
@@ -88,8 +90,10 @@ export default function LoginPage() {
               role="tab"
               aria-selected={mode === 'login'}
               onClick={() => setMode('login')}
-              className={`flex flex-1 items-center justify-center gap-1 rounded-md py-[6%] text-[clamp(8px,1.4vmin,12px)] font-bold transition ${
-                mode === 'login' ? 'bg-white text-[#063321] shadow-sm' : 'text-[#6b7f72]'
+              className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 text-[clamp(9px,1.3vmin,12px)] font-bold transition ${
+                mode === 'login'
+                  ? 'border-b-2 border-[#063321] bg-white text-[#063321] shadow-sm'
+                  : 'text-[#6b7f72] hover:text-[#063321]'
               }`}
             >
               <LogIn size={13} className="shrink-0" />
@@ -100,8 +104,10 @@ export default function LoginPage() {
               role="tab"
               aria-selected={mode === 'signup'}
               onClick={() => setMode('signup')}
-              className={`flex flex-1 items-center justify-center gap-1 rounded-md py-[6%] text-[clamp(8px,1.4vmin,12px)] font-bold transition ${
-                mode === 'signup' ? 'bg-white text-[#063321] shadow-sm' : 'text-[#6b7f72]'
+              className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 text-[clamp(9px,1.3vmin,12px)] font-bold transition ${
+                mode === 'signup'
+                  ? 'border-b-2 border-[#063321] bg-white text-[#063321] shadow-sm'
+                  : 'text-[#6b7f72] hover:text-[#063321]'
               }`}
             >
               <Users size={13} className="shrink-0" />
@@ -110,32 +116,32 @@ export default function LoginPage() {
           </div>
 
           {mode === 'signup' ? (
-            <div className="mb-[4%] shrink-0">
-              <label htmlFor="fullName" className="mb-1 block text-[clamp(8px,1.3vmin,11px)] font-semibold text-[#063321]">
+            <div className="mb-2.5 shrink-0">
+              <label htmlFor="fullName" className="mb-0.5 block text-[clamp(8px,1.2vmin,11px)] font-semibold text-[#063321]">
                 Nom complet
               </label>
               <input
                 id="fullName"
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
-                className="w-full rounded-lg border border-[#d6e3d8] bg-[#fafcf9] px-2 py-1.5 text-[clamp(9px,1.4vmin,13px)] outline-none focus:border-[#1f7a2f]"
+                className="w-full rounded-lg border border-[#d6e3d8] bg-[#fafcf9] px-2.5 py-1.5 text-[clamp(9px,1.3vmin,13px)] outline-none focus:border-[#063321]"
                 placeholder="Nom et prénom"
                 autoComplete="name"
               />
             </div>
           ) : null}
 
-          <div className="mb-[4%] shrink-0">
-            <label htmlFor="login" className="mb-1 block text-[clamp(8px,1.3vmin,11px)] font-semibold text-[#063321]">
+          <div className="mb-2.5 shrink-0">
+            <label htmlFor="login" className="mb-0.5 block text-[clamp(8px,1.2vmin,11px)] font-semibold text-[#063321]">
               Email
             </label>
             <div className="relative">
-              <Mail size={13} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[#8aa393]" />
+              <Mail size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8aa393]" />
               <input
                 id="login"
                 value={login}
                 onChange={(event) => setLogin(event.target.value)}
-                className="w-full rounded-lg border border-[#d6e3d8] bg-[#fafcf9] py-1.5 pl-7 pr-2 text-[clamp(9px,1.4vmin,13px)] outline-none focus:border-[#1f7a2f]"
+                className="w-full rounded-lg border border-[#d6e3d8] bg-[#fafcf9] py-1.5 pl-7 pr-2 text-[clamp(9px,1.3vmin,13px)] outline-none focus:border-[#063321]"
                 placeholder="penda"
                 autoComplete="username"
                 required
@@ -143,18 +149,18 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="mb-[4%] shrink-0">
-            <label htmlFor="password" className="mb-1 block text-[clamp(8px,1.3vmin,11px)] font-semibold text-[#063321]">
+          <div className="mb-2.5 shrink-0">
+            <label htmlFor="password" className="mb-0.5 block text-[clamp(8px,1.2vmin,11px)] font-semibold text-[#063321]">
               Mot de passe
             </label>
             <div className="relative">
-              <Lock size={13} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[#8aa393]" />
+              <Lock size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8aa393]" />
               <input
                 id="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 type={showPassword ? 'text' : 'password'}
-                className="w-full rounded-lg border border-[#d6e3d8] bg-[#fafcf9] py-1.5 pl-7 pr-7 text-[clamp(9px,1.4vmin,13px)] outline-none focus:border-[#1f7a2f]"
+                className="w-full rounded-lg border border-[#d6e3d8] bg-[#fafcf9] py-1.5 pl-7 pr-7 text-[clamp(9px,1.3vmin,13px)] outline-none focus:border-[#063321]"
                 placeholder="Entrez votre mot de passe"
                 autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
                 required
@@ -171,9 +177,9 @@ export default function LoginPage() {
           </div>
 
           {mode === 'login' ? (
-            <div className="mb-[5%] flex shrink-0 items-center justify-between gap-1 text-[clamp(7px,1.2vmin,10px)]">
+            <div className="mb-3 flex shrink-0 items-center justify-between gap-1 text-[clamp(7px,1.1vmin,10px)]">
               <label className="flex items-center gap-1 text-[#4a6358]">
-                <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} className="accent-[#1f7a2f]" />
+                <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} className="accent-[#063321]" />
                 Se souvenir de moi
               </label>
               <button type="button" onClick={handleResetPassword} className="font-semibold text-[#1f7a2f] hover:underline">
@@ -185,14 +191,14 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex w-full shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#063321] py-2 text-[clamp(9px,1.4vmin,13px)] font-bold text-white transition hover:bg-[#0a4a28] disabled:opacity-60"
+            className="flex w-full shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#063321] py-2 text-[clamp(9px,1.3vmin,13px)] font-bold text-white transition hover:bg-[#0a4a28] disabled:opacity-60"
           >
             <LogIn size={13} />
             {loading ? 'Traitement…' : mode === 'signup' ? 'Créer mon compte' : 'Se connecter'}
           </button>
 
           {mode === 'login' ? (
-            <p className="mt-auto flex shrink-0 items-start gap-1.5 border-t border-[#e8ebe8] pt-[5%] text-[clamp(6px,1.1vmin,9px)] leading-snug text-[#6b7f72]">
+            <p className="mt-auto flex shrink-0 items-start gap-1.5 border-t border-[#e8ebe8] pt-3 text-[clamp(6px,1vmin,9px)] leading-snug text-[#6b7f72]">
               <Shield size={11} className="mt-0.5 shrink-0 text-[#1f7a2f]" />
               <span>
                 <span className="font-bold text-[#063321]">Accès sécurisé</span>
