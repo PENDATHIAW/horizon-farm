@@ -27,6 +27,7 @@ function migrationFiles() {
 
 async function verifyRemote() {
   const checks = [
+    { label: 'push_subscriptions', url: `${supabaseUrl}/rest/v1/push_subscriptions?select=id&limit=1` },
     { label: 'push_status', url: `${supabaseUrl}/rest/v1/alertes_center?select=push_status&limit=1` },
     { label: 'stock_movements', url: `${supabaseUrl}/rest/v1/stock_movements?select=id&limit=1` },
     { label: 'module_role_permissions', url: `${supabaseUrl}/rest/v1/module_role_permissions?select=id&limit=1` },
