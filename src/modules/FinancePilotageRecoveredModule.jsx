@@ -2,7 +2,6 @@ import { BarChart3, BrainCircuit, PiggyBank, Wallet, Zap } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
-import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
 import ModuleListHub from '../components/module/ModuleListHub.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
@@ -316,7 +315,7 @@ export default function FinancePilotageRecoveredModule(props) {
         </div>
       </section>
       <Tabs active={tab} onChange={setTab} />
-      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Trésorerie' ? <FinancesV12 {...financeProps} /> : tab === 'Créances' ? <CreancesPanel data={data} onNavigate={props.onNavigate} /> : tab === 'Dettes' ? <DettesPanel data={data} onNavigate={props.onNavigate} /> : tab === 'Investissements' ? <InvestissementsV9 {...investmentProps} /> : tab === 'Rentabilité' ? <RentabilitePanel data={data} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="finance_pilotage" transactions={transactions} payments={payments} salesOrders={salesOrders} investissements={investments} businessPlans={businessPlans} onNavigate={props.onNavigate} />}
+      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Trésorerie' ? <FinancesV12 {...financeProps} /> : tab === 'Rapprochement' ? <FinanceReconciliationPanel payments={payments} salesOrders={salesOrders} transactions={transactions} onCreateFinanceTransaction={props.onCreateFinanceTransaction || financesCrud.create} onRefreshFinances={props.onRefreshFinances || financesCrud.refresh} /> : tab === 'Créances' ? <CreancesPanel data={data} onNavigate={props.onNavigate} /> : tab === 'Dettes' ? <DettesPanel data={data} onNavigate={props.onNavigate} /> : tab === 'Investissements' ? <InvestissementsV9 {...investmentProps} /> : tab === 'Rentabilité' ? <RentabilitePanel data={data} onNavigate={props.onNavigate} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="finance_pilotage" dataMap={{ finances: transactions, payments, sales_orders: salesOrders }} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="finance_pilotage" transactions={transactions} payments={payments} salesOrders={salesOrders} investissements={investments} businessPlans={businessPlans} onNavigate={props.onNavigate} />}
     </div>
   );
 }

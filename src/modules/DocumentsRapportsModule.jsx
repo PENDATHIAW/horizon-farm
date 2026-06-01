@@ -88,7 +88,6 @@ function Summary({ data, setTab, onApply, onAttachProof, busyId, onNavigate }) {
         <Stat label="Médias" value={fmtNumber(data.media.length)} />
       </div>
       <DocumentsIaPanel findings={data.healthFindings} predictions={data.healthPredictions} onApply={onApply} busyId={busyId} onNavigate={onNavigate} setTab={setTab} />
-      <DocumentsOrphanSyncPanel documents={data.documents} onApply={onApply} busyId={busyId} setTab={setTab} onNavigate={onNavigate} actionHandlers={actionHandlers} />
       <CoherencePanel rows={data.coherenceRows} onApply={onApply} busyId={busyId} setTab={setTab} onNavigate={onNavigate} />
       <Section icon={ClipboardList} title="Priorités documentaires" action={<Button onClick={() => setTab('Preuves')}>Voir preuves</Button>}>
         {data.priorities.length ? data.priorities.map((item) => (
@@ -299,7 +298,7 @@ export default function DocumentsRapportsModule(props) {
       setBusyId(null);
     }
   };
-  const content = tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onAttachProof={attachProof} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Bibliothèque' ? <Library data={data} selected={selectedDocument} setSelected={setSelectedDocument} /> : tab === 'Preuves' ? <Proofs data={data} onNavigate={props.onNavigate} onAttachProof={attachProof} busyId={busyId} /> : tab === 'Rapports' ? <Reports data={data} /> : tab === 'Exports' ? <Exports data={data} onNavigate={props.onNavigate} /> : tab === 'Modèles' ? <Templates data={data} /> : <ModuleGraphiquesTab moduleId="documents_rapports" periodFiltered={periodFiltered} transactions={data.transactions} finances={data.transactions} clients={data.clients} salesOrders={data.salesOrders} payments={data.payments} onNavigate={props.onNavigate} />;
+  const content = tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onAttachProof={attachProof} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Bibliothèque' ? <Library data={data} selected={selectedDocument} setSelected={setSelectedDocument} /> : tab === 'Preuves' ? <Proofs data={data} onNavigate={props.onNavigate} onAttachProof={attachProof} busyId={busyId} /> : tab === 'Rapports' ? <Reports data={data} /> : tab === 'Exports' ? <Exports data={data} onNavigate={props.onNavigate} /> : tab === 'Modèles' ? <Templates data={data} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="documents_rapports" dataMap={{ documents: data.documents, finances: data.transactions, sales_orders: data.salesOrders, payments: data.payments }} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="documents_rapports" periodFiltered={periodFiltered} transactions={data.transactions} finances={data.transactions} clients={data.clients} salesOrders={data.salesOrders} payments={data.payments} onNavigate={props.onNavigate} />;
   return (
     <div className="space-y-6">
       <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">

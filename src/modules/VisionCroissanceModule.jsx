@@ -107,6 +107,7 @@ export default function VisionCroissanceModule(props) {
             )
             : tab === 'Plans' ? <VisionPlansTab data={data} onCreateBusinessPlan={onCreateBusinessPlan} onNavigate={onNavigate} />
               : tab === 'Financeurs' ? <VisionFundingTab data={data} onNavigate={onNavigate} />
+                : tab === 'Annexe' ? <ModuleAnnexeTab moduleId={moduleId} dataMap={dataMap} onNavigate={onNavigate} />
                 : <ModuleGraphiquesTab moduleId={moduleId} periodFiltered={props.periodFiltered} {...props} {...dataMap} onNavigate={onNavigate} />;
 
   return (
