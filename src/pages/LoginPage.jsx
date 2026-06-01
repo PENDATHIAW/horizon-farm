@@ -13,8 +13,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const brandLogo = '/brand-logo.svg';
-const farmBg = '/login-hero-full.jpg';
+const brandLogo = '/brand-logo.png';
+const farmBg = '/login-farm-bg.png';
 
 const FEATURES = [
   { icon: Leaf, title: 'Vision claire', detail: 'Toutes vos données au même endroit.' },
@@ -70,38 +70,43 @@ export default function LoginPage() {
         className="pointer-events-none absolute inset-0 bg-cover bg-no-repeat"
         style={{
           backgroundImage: `url(${farmBg})`,
-          backgroundPosition: 'center center',
+          backgroundPosition: '68% 22%',
         }}
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-black/5"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: 'linear-gradient(90deg, rgba(255,248,239,0.92) 0%, rgba(255,248,239,0.72) 38%, rgba(255,248,239,0.22) 58%, transparent 74%)',
+        }}
         aria-hidden
       />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#063321]/70 via-transparent to-transparent" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#063321]/60 via-transparent to-transparent" aria-hidden />
 
       <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col">
         <section className="mx-auto grid w-full max-w-7xl flex-1 min-h-0 items-center gap-6 px-4 py-3 sm:gap-8 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:px-8 xl:px-10">
           <div className="max-w-xl">
-            <div className="mb-4 inline-flex rounded-2xl border border-white/30 bg-white/95 p-3 shadow-lg backdrop-blur-sm">
-              <img src={brandLogo} alt="Horizon Farm" className="h-16 w-auto object-contain sm:h-20" />
-            </div>
+            <img
+              src={brandLogo}
+              alt="Horizon Farm"
+              className="mb-4 h-auto w-40 object-contain sm:w-44 lg:mb-5 lg:w-48"
+            />
 
             <h1 className="sr-only">Horizon Farm ERP</h1>
-            <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#E8A317] sm:text-xs">
+            <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#c9851a] sm:text-xs">
               De la terre à l&apos;horizon
             </p>
-            <p className="mt-2 text-[1.65rem] font-black leading-[1.12] tracking-tight text-[#7CB342] sm:text-3xl lg:text-[2.15rem] xl:text-4xl">
+            <p className="mt-2 text-[1.65rem] font-black leading-[1.12] tracking-tight text-[#063321] sm:text-3xl lg:text-[2.15rem] xl:text-4xl">
               Pilotez votre ferme.
             </p>
-            <p className="mt-1 text-[1.65rem] font-black leading-[1.12] tracking-tight text-[#E8A317] sm:text-3xl lg:text-[2.15rem] xl:text-4xl">
+            <p className="mt-1 text-[1.65rem] font-black leading-[1.12] tracking-tight text-[#c9851a] sm:text-3xl lg:text-[2.15rem] xl:text-4xl">
               Anticipez vos risques.
             </p>
-            <p className="mt-1 text-[1.65rem] font-black leading-[1.12] tracking-tight text-[#7CB342] sm:text-3xl lg:text-[2.15rem] xl:text-4xl">
+            <p className="mt-1 text-[1.65rem] font-black leading-[1.12] tracking-tight text-[#063321] sm:text-3xl lg:text-[2.15rem] xl:text-4xl">
               Développez votre croissance.
             </p>
 
-            <p className="mt-4 max-w-lg text-sm leading-relaxed text-white/90 sm:text-base sm:leading-7">
+            <p className="mt-3 max-w-md text-xs leading-5 text-[#2f4a3a] sm:text-sm sm:leading-6 lg:mt-4">
               De la terre nourricière à l&apos;horizon de votre prospérité — cultivez, élevez, bâtissez et faites grandir votre ferme avec sérénité.
             </p>
           </div>
@@ -109,7 +114,7 @@ export default function LoginPage() {
           <div className="mx-auto w-full max-w-[20rem] sm:max-w-sm lg:max-w-[21rem] xl:max-w-sm">
             <form
               onSubmit={handleSubmit}
-              className="rounded-3xl border border-white/70 bg-white/94 p-4 shadow-2xl shadow-[#063321]/10 backdrop-blur-sm sm:p-5"
+              className="rounded-3xl border border-[#e8dcc8] bg-white p-4 shadow-2xl shadow-[#063321]/12 sm:p-5"
             >
               <div className="mb-4 text-center">
                 <span className="mx-auto mb-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#e8f5ea] text-[#1f7a2f]">
@@ -234,7 +239,7 @@ export default function LoginPage() {
           </div>
         </section>
 
-        <footer className="shrink-0 bg-[#063321]/90 px-4 py-3 backdrop-blur-sm sm:px-6 lg:px-8 xl:px-10">
+        <footer className="shrink-0 bg-[#063321] px-4 py-3 sm:px-6 lg:px-8 xl:px-10">
           <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-4 gap-y-2 lg:grid-cols-4 lg:gap-4">
             {FEATURES.map(({ icon: Icon, title, detail }) => (
               <div key={title} className="flex items-center gap-2.5 text-white sm:gap-3">

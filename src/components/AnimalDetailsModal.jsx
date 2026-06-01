@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import BaseModal from '../modals/BaseModal';
 import Badge from './Badge';
 import Btn from './Btn';
+import FicheTabsBar from './FicheTabsBar.jsx';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { buildGrowthSummary } from '../utils/animalGrowth';
 import { acquisitionLabel, calculateAge, getAnimalBirthDate, getParentLabel, reproductionStatusLabel } from '../utils/animalLifecycle';
@@ -34,8 +35,28 @@ const healthEventsSummary = (items = []) => {
   return items.map((item) => `${item.nom || item.type || 'Intervention'} (${item.statut || item.status || 'suivi'})`).join(', ');
 };
 
+const INTERNAL_TABS = [
+  { id: 'identite', label: 'Identité' },
+  { id: 'croissance', label: 'Croissance' },
+  { id: 'sante', label: 'Santé' },
+  { id: 'finances', label: 'Finances' },
+  { id: 'reproduction', label: 'Reproduction' },
+  { id: 'trace', label: 'Traçabilité' },
+];
+
 export default function AnimalDetailsModal({ open, onClose, animal, metrics, animals = [], vaccins = [], opportunities = [], onOpenTrace, onAddDocument }) {
   const [view, setView] = useState('interne');
+  const [tab, setTab] = useState('identite');
+
+  useEffect(() => {
+    if (!open) return;
+    setTab('identite');
+    setView('interne');
+  }, [open, animal?.id]);
+
+  const internalTabs = useMemo(() => (
+    animal?.sexe === 'F' ? INTERNAL_TABS : INTERNAL_TABS.filter((item) => item.id !== 'reproduction')
+  ), [animal?.sexe]);
 
   if (!animal) {
     return (
@@ -111,46 +132,82 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
           </div>
         ) : (
           <div className="space-y-4">
-            <Section title="Identite">
-              <Field label="ID / Tag" value={animal.tag || animal.id} />
-              <Field label="Age calcule" value={age.label} />
-              <Field label="Poids" value={`${fmtNumber(animal.poids || 0)} kg`} />
-              <Field label="Etat sanitaire"><Badge status={animal.health_status || 'sain'} /></Field>
-            </Section>
+            <FicheTabsBar tabs={internalTabs} active={tab} onChange={setTab} />
 
-            <Section title="Croissance & engraissement">
-              <Field label="Statut croissance" value={growth.label} />
-              <Field label="Poids initial suivi" value={growth.first ? `${growth.first.poids} kg le ${growth.first.date}` : 'Non renseigne'} />
-              <Field label="Poids actuel / derniere pesee" value={growth.last ? `${growth.last.poids} kg le ${growth.last.date}` : `${fmtNumber(animal.poids || 0)} kg`} />
-              <Field label="Gain total" value={growth.history.length >= 2 ? `${growth.gain.toFixed(1)} kg` : 'Suivi a completer'} />
-              <Field label="Gain moyen / jour" value={growth.history.length >= 2 ? `${growth.averageDailyGain.toFixed(2)} kg/jour` : 'Non calculable'} />
-              <Field label="Derniere progression" value={growth.previous ? `${growth.recentGain.toFixed(1)} kg sur ${growth.recentDays} jour(s)` : 'Ajouter une nouvelle pesee'} />
-              <Field label="Cout alimentation / kg gagne" value={growth.gain > 0 ? fmtCurrency((metrics.feedingCost || 0) / growth.gain) : 'Non calculable'} />
-              <Field label="Recommandation" value={growth.recommendation} />
-            </Section>
+            {tab === 'identite' ? (
+              <>
+                <Section title="Identite">
+                  <Field label="ID / Tag" value={animal.tag || animal.id} />
+                  <Field label="Age calcule" value={age.label} />
+                  <Field label="Poids" value={`${fmtNumber(animal.poids || 0)} kg`} />
+                  <Field label="Etat sanitaire"><Badge status={animal.health_status || 'sain'} /></Field>
+                </Section>
+                <Section title="Origine / Acquisition">
+                  <Field label="Mode acquisition" value={acquisitionLabel(animal.mode_acquisition || 'achat')} />
+                  <Field label="Date achat" value={animal.date_achat || 'Non applicable'} />
+                  <Field label="Date naissance" value={animal.date_naissance || animal.naissance || 'Non renseignee'} />
+                  <Field label="Date entree ferme" value={animal.date_entree_ferme || '-'} />
+                  <Field label="Fournisseur / vendeur" value={animal.fournisseur_vendeur || '-'} />
+                  <Field label="Mere" value={getParentLabel(animals, animal.mere_id)} />
+                  <Field label="Pere" value={getParentLabel(animals, animal.pere_id)} />
+                  <Field label="Portee" value={animal.portee_id || '-'} />
+                </Section>
+                {(sold || lossStatus) ? (
+                  <Section title="Situation administrative">
+                    <Field label="Statut administratif"><Badge status={animal.status || 'actif'} /></Field>
+                    <Field label="Date vente" value={animal.date_vente || '-'} />
+                    <Field label="Client" value={animal.client_id || '-'} />
+                    <Field label="Date deces" value={animal.date_deces || '-'} />
+                    <Field label="Cause deces" value={animal.cause_deces || '-'} />
+                    <Field label="Date vol detecte" value={animal.date_vol_detecte || '-'} />
+                    <Field label="Lieu vol" value={animal.lieu_vol || '-'} />
+                    <Field label="Date reforme" value={animal.date_reforme || '-'} />
+                    <Field label="Motif reforme" value={animal.motif_reforme || '-'} />
+                  </Section>
+                ) : null}
+              </>
+            ) : null}
 
-            <WeightProjectionPanel title="Projection croissance & vente" projection={projection} />
-            <SaleOpportunityGuardPanel guard={opportunityGuard} />
+            {tab === 'croissance' ? (
+              <>
+                <Section title="Croissance & engraissement">
+                  <Field label="Statut croissance" value={growth.label} />
+                  <Field label="Poids initial suivi" value={growth.first ? `${growth.first.poids} kg le ${growth.first.date}` : 'Non renseigne'} />
+                  <Field label="Poids actuel / derniere pesee" value={growth.last ? `${growth.last.poids} kg le ${growth.last.date}` : `${fmtNumber(animal.poids || 0)} kg`} />
+                  <Field label="Gain total" value={growth.history.length >= 2 ? `${growth.gain.toFixed(1)} kg` : 'Suivi a completer'} />
+                  <Field label="Gain moyen / jour" value={growth.history.length >= 2 ? `${growth.averageDailyGain.toFixed(2)} kg/jour` : 'Non calculable'} />
+                  <Field label="Derniere progression" value={growth.previous ? `${growth.recentGain.toFixed(1)} kg sur ${growth.recentDays} jour(s)` : 'Ajouter une nouvelle pesee'} />
+                  <Field label="Cout alimentation / kg gagne" value={growth.gain > 0 ? fmtCurrency((metrics.feedingCost || 0) / growth.gain) : 'Non calculable'} />
+                  <Field label="Recommandation" value={growth.recommendation} />
+                </Section>
+                <WeightProjectionPanel title="Projection croissance & vente" projection={projection} />
+                <SaleOpportunityGuardPanel guard={opportunityGuard} />
+              </>
+            ) : null}
 
-            <Section title="Origine / Acquisition">
-              <Field label="Mode acquisition" value={acquisitionLabel(animal.mode_acquisition || 'achat')} />
-              <Field label="Date achat" value={animal.date_achat || 'Non applicable'} />
-              <Field label="Date naissance" value={animal.date_naissance || animal.naissance || 'Non renseignee'} />
-              <Field label="Date entree ferme" value={animal.date_entree_ferme || '-'} />
-              <Field label="Fournisseur / vendeur" value={animal.fournisseur_vendeur || '-'} />
-              <Field label="Mere" value={getParentLabel(animals, animal.mere_id)} />
-              <Field label="Pere" value={getParentLabel(animals, animal.pere_id)} />
-              <Field label="Portee" value={animal.portee_id || '-'} />
-            </Section>
+            {tab === 'sante' ? (
+              <Section title="Sante — lecture depuis module Santé">
+                <Field label="Frais santé / soins calculés" value={fmtCurrency(metrics.healthCost)} />
+                <Field label="Suivi Santé lié" value={healthEventsSummary(relatedVaccins)} />
+                <Field label="Score sanitaire calculé" value={`${metrics.healthScore.toFixed(0)}%`} />
+                <Field label="Source des données" value="Module Santé, vaccins, soins, vétérinaire et événements liés" />
+              </Section>
+            ) : null}
 
-            <Section title="Sante — lecture depuis module Santé">
-              <Field label="Frais santé / soins calculés" value={fmtCurrency(metrics.healthCost)} />
-              <Field label="Suivi Santé lié" value={healthEventsSummary(relatedVaccins)} />
-              <Field label="Score sanitaire calculé" value={`${metrics.healthScore.toFixed(0)}%`} />
-              <Field label="Source des données" value="Module Santé, vaccins, soins, vétérinaire et événements liés" />
-            </Section>
+            {tab === 'finances' ? (
+              <Section title="Finances internes">
+                <Field label="Prix achat" value={fmtCurrency(metrics.purchaseCost)} />
+                <Field label="Alimentation calculee" value={metrics.feedingCost > 0 ? fmtCurrency(metrics.feedingCost) : '0 FCFA / non renseigne'} />
+                <Field label="Frais sante / soins" value={fmtCurrency(metrics.healthCost)} />
+                <Field label="Autres frais" value={fmtCurrency(metrics.otherCosts || 0)} />
+                <Field label="Cout total calcule" value={fmtCurrency(metrics.totalCost)} />
+                <Field label="Prix vente reel" value={sold ? fmtCurrency(metrics.salePrice) : 'Non vendu'} />
+                <Field label="Marge / perte" value={metrics.margin === null ? 'En cours' : fmtCurrency(metrics.margin)} />
+                <Field label="ROI" value={metrics.marginRate ? `${metrics.marginRate.toFixed(1)}%` : 'Non calculable'} />
+              </Section>
+            ) : null}
 
-            {animal.sexe === 'F' ? (
+            {tab === 'reproduction' && animal.sexe === 'F' ? (
               <Section title="Reproduction">
                 <Field label="En gestation" value={animal.en_gestation ? 'Oui' : 'Non'} />
                 <Field label="Date debut gestation" value={animal.date_debut_gestation || '-'} />
@@ -161,41 +218,18 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
               </Section>
             ) : null}
 
-            <Section title="Finances internes">
-              <Field label="Prix achat" value={fmtCurrency(metrics.purchaseCost)} />
-              <Field label="Alimentation calculee" value={metrics.feedingCost > 0 ? fmtCurrency(metrics.feedingCost) : '0 FCFA / non renseigne'} />
-              <Field label="Frais sante / soins" value={fmtCurrency(metrics.healthCost)} />
-              <Field label="Autres frais" value={fmtCurrency(metrics.otherCosts || 0)} />
-              <Field label="Cout total calcule" value={fmtCurrency(metrics.totalCost)} />
-              <Field label="Prix vente reel" value={sold ? fmtCurrency(metrics.salePrice) : 'Non vendu'} />
-              <Field label="Marge / perte" value={metrics.margin === null ? 'En cours' : fmtCurrency(metrics.margin)} />
-              <Field label="ROI" value={metrics.marginRate ? `${metrics.marginRate.toFixed(1)}%` : 'Non calculable'} />
-            </Section>
-
-            {(sold || lossStatus) ? (
-              <Section title="Situation administrative">
-                <Field label="Statut administratif"><Badge status={animal.status || 'actif'} /></Field>
-                <Field label="Date vente" value={animal.date_vente || '-'} />
-                <Field label="Client" value={animal.client_id || '-'} />
-                <Field label="Date deces" value={animal.date_deces || '-'} />
-                <Field label="Cause deces" value={animal.cause_deces || '-'} />
-                <Field label="Date vol detecte" value={animal.date_vol_detecte || '-'} />
-                <Field label="Lieu vol" value={animal.lieu_vol || '-'} />
-                <Field label="Date reforme" value={animal.date_reforme || '-'} />
-                <Field label="Motif reforme" value={animal.motif_reforme || '-'} />
+            {tab === 'trace' ? (
+              <Section title="Tracabilite & Documents">
+                <Field label="Derniers evenements" value="Alimentes par la tracabilite metier / business_events" />
+                <Field label="Documents lies" value="Factures, certificats, ordonnances et photos lies a venir ici" />
+                <div className="md:col-span-2 flex gap-2 flex-wrap">
+                  <Btn variant="outline" small onClick={onOpenTrace}>Voir tracabilite complete</Btn>
+                  <Btn small onClick={onAddDocument}>Ajouter document</Btn>
+                </div>
               </Section>
             ) : null}
           </div>
         )}
-
-        <Section title="Tracabilite & Documents">
-          <Field label="Derniers evenements" value="Alimentes par la tracabilite metier / business_events" />
-          <Field label="Documents lies" value="Factures, certificats, ordonnances et photos lies a venir ici" />
-          <div className="md:col-span-2 flex gap-2 flex-wrap">
-            <Btn variant="outline" small onClick={onOpenTrace}>Voir tracabilite complete</Btn>
-            <Btn small onClick={onAddDocument}>Ajouter document</Btn>
-          </div>
-        </Section>
       </div>
     </BaseModal>
   );
