@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const brandLogo = '/brand-logo-transparent.svg';
+const brandLogo = '/brand-logo-transparent.png';
 const farmBg = '/login-hero-maraichage-preview.jpg';
 
 const FEATURES = [
@@ -106,7 +106,7 @@ export default function LoginPage() {
         <img
           src={brandLogo}
           alt="Horizon Farm"
-          className="h-auto w-28 object-contain drop-shadow-sm sm:w-32 lg:w-36"
+          className="h-auto w-36 object-contain drop-shadow-md sm:w-44 lg:w-52 xl:w-56"
         />
       </header>
 
