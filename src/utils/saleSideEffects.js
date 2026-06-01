@@ -1,6 +1,6 @@
 import { syncFinanceSideEffects, closeOpportunityForOrder, syncSaleTraceFromOrder, resolveSaleTasksOnPayment } from '../services/erpInterconnectionEngine';
 import { getFinanceActivityFromSale, getFinanceCategoryFromSale } from '../services/financeSyncService';
-import { buildClientReminderFollowUp, buildClientSalesSummary } from './clientWorkflows';
+import { buildClientReminderFollowUp, buildClientSalesSummary, resolveClientReminderFollowUp } from './clientWorkflows';
 import { buildClientReceivablePatch } from './recordSalePayment';
 import { buildReverseSaleSourcePatch, buildSaleSourcePatch } from './salesWorkflows';
 import { remainingForOrder } from './salesStatuses';
@@ -207,6 +207,21 @@ async function applyClientReminderIfNeeded({ clientId, clients, salesOrders, pay
   return followUp;
 }
 
+async function resolveClientReminderIfNeeded({ clientId, clients, salesOrders, payments, handlers, alertes = [], tasks = [] }) {
+  if (!clientId) return null;
+  const client = arr(clients).find((row) => String(row.id) === String(clientId));
+  if (!client) return null;
+  const summary = buildClientSalesSummary(client, salesOrders, payments);
+  const resolved = resolveClientReminderFollowUp(client, summary);
+  if (!resolved) return null;
+  const key = clean(resolved.key);
+  const relatedTasks = arr(tasks).filter((row) => clean(row.task_dedupe_key || row.routine_key || row.action_key) === key);
+  const relatedAlerts = arr(alertes).filter((row) => clean(row.alert_dedupe_key || row.id) === key || relatedTasks.some((t) => clean(t.id) === clean(row.linked_task_id)));
+  await Promise.allSettled(relatedTasks.map((task) => handlers.onUpdateTask?.(task.id, resolved.taskPatch)));
+  await Promise.allSettled(relatedAlerts.map((alert) => handlers.onUpdateAlert?.(alert.id, resolved.alertPatch)));
+  return resolved;
+}
+
 /** Met à jour le client (créances, totaux, dernière commande). */
 export async function syncClientFromSale({
   clientId,
@@ -229,6 +244,8 @@ export async function syncClientFromSale({
   await handlers.onUpdateClient?.(clientId, payload);
   if (num(patch.reste_a_payer) > 0) {
     await applyClientReminderIfNeeded({ clientId, clients, salesOrders, payments, handlers, alertes });
+  } else {
+    await resolveClientReminderIfNeeded({ clientId, clients, salesOrders, payments, handlers, alertes, tasks: handlers.existingTasks || [] });
   }
   return payload;
 }

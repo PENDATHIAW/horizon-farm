@@ -73,3 +73,20 @@ export function orphanSmartFarmDevices(equipements = [], sensors = [], cameras =
 }
 
 export default buildEquipmentSmartFarmSummary;
+
+
+/** Champs capteur/caméra avec select équipement dynamique. */
+export function buildSmartFarmDeviceFields(baseFields = [], equipements = []) {
+  const eqOptions = [
+    { value: '', label: '— Aucun —' },
+    ...arr(equipements).map((eq) => ({
+      value: clean(eq.id),
+      label: `${nameOf(eq, eq.id)} · ${eq.zone || eq.type || 'équipement'}`,
+    })).filter((row) => row.value),
+  ];
+  return arr(baseFields).map((field) => (
+    field.key === 'equipment_id'
+      ? { ...field, type: 'select', options: () => eqOptions }
+      : field
+  ));
+}

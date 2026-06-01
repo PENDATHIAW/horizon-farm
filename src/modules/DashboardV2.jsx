@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
+import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
 import { readUiSettings } from '../utils/uiPreferences';
 import { readPeriodScope } from '../utils/periodScope';
 import { fmtCurrency, fmtNumber } from '../utils/format';
@@ -339,6 +340,21 @@ export default function DashboardV2(props) {
 
       {tab === 'Résumé' ? (
         <Summary summary={summary} health={health} simple={simple} navigate={navigate} onOpenAssistant={props.onOpenAssistant} />
+      ) : tab === 'Annexe' ? (
+        <ModuleAnnexeTab
+          moduleId="dashboard"
+          dataMap={{
+            sales_orders: props.salesOrdersAll || props.salesOrders,
+            payments: props.paymentsAll || props.payments,
+            finances: props.transactions,
+            stock: props.stocks,
+            avicole: props.lotsData,
+            animaux: props.animaux,
+            production_oeufs_logs: props.productionLogs,
+            clients: props.clients,
+          }}
+          onNavigate={navigate}
+        />
       ) : (
         <GraphiquesSection props={props} navigate={navigate} periodFiltered={props.periodFiltered} />
       )}

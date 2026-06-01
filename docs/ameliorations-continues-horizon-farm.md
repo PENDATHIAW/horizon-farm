@@ -576,6 +576,22 @@ Objectif : rendre les workflows fiables même avec réseau instable.
 
 ## Journal des avancées
 
+
+### 2026-05-31 — PR #7 complétion audit & CRM
+
+[Traité] Onglet **Annexe** branché sur Accueil (Dashboard) et Commercial.
+
+[Traité] **CRM Clients** : créances unifiées via `salesStatuses` + `buildClientSalesSummary` ; segmentation « À relancer » alignée sur dette réelle ; bouton Relancer masqué si créance = 0 ; clôture auto tâches/alertes relance après paiement complet.
+
+[Traité] **Commercial** : mode Encaisser masqué si reste = 0 ; `SaleDetailModal` recalcule reste depuis paiements.
+
+[Traité] **Élevage avicole** : `prepareLot` préserve `pret_vente_confirme` ; `normalize.js` reconnaît `pret_confirme`.
+
+[Traité] **Smart Farm ↔ Équipements** : select « Équipement lié » dynamique sur capteurs/caméras.
+
+[À tester] Parcours e2e : vente soldée → plus d'encaissement proposé ; client soldé → plus « à relancer ».
+
+
 ### 2026-05-09
 
 [En cours] PR #2 — Interconnexions ERP et statuts ventes.

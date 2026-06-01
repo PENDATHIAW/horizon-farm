@@ -9,6 +9,7 @@ import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import useCrudModule from '../../hooks/useCrudModule.js';
 import { syncSmartFarmCriticalSignals } from '../../services/smartFarmAlertSync.js';
+import { buildSmartFarmDeviceFields } from '../../services/equipmentSmartFarmBridge.js';
 import { MODULE_FORM_FIELDS } from '../../utils/constants.js';
 import { fmtNumber } from '../../utils/format.js';
 import { rowsOf } from '../../utils/moduleRows.js';
@@ -44,7 +45,7 @@ function Summary({ data, setTab }) {
         </div>
       </div>
       <SmartFarmEquipmentBridge
-        equipements={arr(props.equipements)}
+        equipements={data.equipements || []}
         sensors={data.sensors}
         cameras={data.cameras}
         onNavigate={data.onNavigate}
@@ -122,6 +123,7 @@ export default function SmartFarmRecoveredModule(props) {
     return {
       sensors,
       cameras,
+      equipements: arr(props.equipements),
       criticalCount,
       zoneCount: zones.size,
       onNavigate: props.onNavigate,
@@ -136,7 +138,11 @@ export default function SmartFarmRecoveredModule(props) {
         ...handlers,
       },
     };
-  }, [sensors, cameras, tasks, props.meteo, props.online, props.onNavigate]);
+  }, [sensors, cameras, tasks, props.meteo, props.online, props.onNavigate, props.equipements]);
+
+  const equipements = arr(props.equipements);
+  const sensorFields = useMemo(() => buildSmartFarmDeviceFields(MODULE_FORM_FIELDS.sensor_devices, equipements), [equipements]);
+  const cameraFields = useMemo(() => buildSmartFarmDeviceFields(MODULE_FORM_FIELDS.camera_devices, equipements), [equipements]);
 
   const sensorProps = {
     rows: sensors,
@@ -166,7 +172,7 @@ export default function SmartFarmRecoveredModule(props) {
       moduleKey="sensor_devices"
       title="Capteurs terrain"
       sub="Température, humidité, eau, mouvement — reliés aux alertes Centre"
-      fields={MODULE_FORM_FIELDS.sensor_devices}
+      fields={sensorFields}
       columns={['id', 'name', 'type', 'zone', 'equipment_id', 'status', 'value', 'battery_level']}
       addLabel="Ajouter capteur"
       exportTitle="Capteurs Smart Farm"
@@ -181,7 +187,7 @@ export default function SmartFarmRecoveredModule(props) {
       moduleKey="camera_devices"
       title="Caméras terrain"
       sub="Entrée, poulailler, magasin — surveillance et preuves"
-      fields={MODULE_FORM_FIELDS.camera_devices}
+      fields={cameraFields}
       columns={['id', 'name', 'zone', 'equipment_id', 'type', 'status']}
       addLabel="Ajouter caméra"
       exportTitle="Caméras Smart Farm"

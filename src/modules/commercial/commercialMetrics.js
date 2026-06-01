@@ -134,8 +134,17 @@ export function receivableFromOrders(orders = [], payments = []) {
   return arr(orders).reduce((sum, order) => sum + remainingForOrder(order, linked), 0);
 }
 
+export function isPaymentClosed(order = {}, payments = []) {
+  const linked = linkedPaymentsForOrders([order], payments);
+  return remainingForOrder(order, linked) <= 0;
+}
+
 export function openSalesCount(orders = [], payments = []) {
   return arr(orders).filter((order) => !isSaleClosed(order, payments)).length;
+}
+
+export function openPaymentCount(orders = [], payments = []) {
+  return arr(orders).filter((order) => isPaymentClosed(order, payments) === false && saleAmount(order) > 0).length;
 }
 
 export function buildCommercialCoherenceRows(orders = [], payments = []) {
@@ -220,7 +229,7 @@ export function buildClientLedger(clients = [], orders = [], payments = []) {
   const linked = linkedPaymentsForOrders(orders, payments);
   const rows = arr(clients).map((client) => {
     const id = cleanStr(client.id);
-    const clientOrders = arr(orders).filter((order) => orderClientId(order) === id);
+    const clientOrders = arr(orders).filter((order) => saleBelongsToClient(order, client));
     const ca = clientOrders.reduce((sum, order) => sum + saleAmount(order), 0);
     const paid = clientOrders.reduce((sum, order) => sum + paidForOrder(order, linked), 0);
     const remaining = clientOrders.reduce((sum, order) => sum + remainingForOrder(order, linked), 0);
