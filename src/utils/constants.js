@@ -18,6 +18,7 @@
   bp_versions: { label: 'Versions BP', table: 'bp_versions', idField: 'id', idPrefix: 'BPVER' },
   bp_lines_history: { label: 'Historique lignes BP', table: 'bp_lines_history', idField: 'id', idPrefix: 'BPHIST' },
   stock: { label: 'Stock', table: 'stocks', idField: 'id', idPrefix: 'STK' },
+  stock_movements: { label: 'Mouvements stock', table: 'stock_movements', idField: 'id', idPrefix: 'STKMVT' },
   clients: { label: 'Clients', table: 'clients', idField: 'id', idPrefix: 'CLI' },
   fournisseurs: { label: 'Fournisseurs', table: 'fournisseurs', idField: 'id', idPrefix: 'FOU' },
   tracabilite: { label: 'Tracabilite', table: 'tracabilite', idField: 'id', idPrefix: 'TRA' },

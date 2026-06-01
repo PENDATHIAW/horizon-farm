@@ -6,6 +6,7 @@ import { makeId } from '../utils/ids';
 import BpKpiHealth from './BpKpiHealth.jsx';
 import FinanceAccountingHealth from './FinanceAccountingHealth.jsx';
 import FinanceCashPilotPanel from './FinanceCashPilotPanel.jsx';
+import FinanceReconciliationPanel from './FinanceReconciliationPanel.jsx';
 import FinancesV11 from './FinancesV11.jsx';
 
 const today = () => new Date().toISOString().slice(0, 10);

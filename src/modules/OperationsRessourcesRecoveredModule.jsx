@@ -14,6 +14,7 @@ import { getRhDirectory } from '../utils/rhDirectory';
 import { aggregateMaintenanceQueue, buildRhCoherenceRows, buildRhHealthSnapshot, computePayrollSummary } from './rh/rhVisionHelpers.js';
 import RHPeopleTeams from './RHPeopleTeams.jsx';
 import EquipementsV2 from './EquipementsV2.jsx';
+import RhPayrollFinanceSyncPanel from './RhPayrollFinanceSyncPanel.jsx';
 import SmartFarm from './SmartFarm.jsx';
 
 const arr = (v) => Array.isArray(v) ? v : [];
@@ -86,7 +87,7 @@ function MaintenanceQueuePanel({ queue = [], onSchedule, busyId, setTab }) {
   );
 }
 
-function Summary({ data, setTab, onApply, onSchedule, busyId }) {
+function Summary({ data, setTab, onApply, onSchedule, busyId, payrollHandlers = {} }) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-8">
@@ -100,6 +101,7 @@ function Summary({ data, setTab, onApply, onSchedule, busyId }) {
         <Stat label="Documents" value={fmtNumber(data.documents.length)} />
       </div>
       <RhIaPanel findings={data.healthFindings} predictions={data.healthPredictions} onApply={onApply} busyId={busyId} setTab={setTab} />
+      <RhPayrollFinanceSyncPanel team={data.team} transactions={data.transactions} {...payrollHandlers} />
       <MaintenanceQueuePanel queue={data.maintenanceQueue} onSchedule={onSchedule} busyId={busyId} setTab={setTab} />
       <CoherencePanel rows={data.coherenceRows} onApply={onApply} busyId={busyId} setTab={setTab} />
       <Section icon={Bell} title="Parcours ressources">
@@ -355,7 +357,14 @@ export default function OperationsRessourcesRecoveredModule(props) {
         </div>
       </section>
       <Tabs active={tab} onChange={setTab} />
-      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onSchedule={scheduleMaintenance} busyId={busyId} />
+      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onSchedule={scheduleMaintenance} busyId={busyId} payrollHandlers={{
+        onCreateFinanceTransaction: shared.onCreateFinanceTransaction,
+        onCreateDocument: shared.onCreateDocument,
+        onCreateBusinessEvent: shared.onCreateBusinessEvent,
+        onRefreshFinances: shared.onRefreshFinances,
+        onRefreshDocuments: shared.onRefreshDocuments,
+        onRefreshBusinessEvents: shared.onRefreshBusinessEvents,
+      }} />
         : tab === 'Équipements' ? <EquipementsV2 {...eqProps} />
           : tab === 'Maintenance' ? <MaintenanceHub data={data} setTab={setTab} smartProps={smartProps} onSchedule={scheduleMaintenance} busyId={busyId} />
             : tab === 'Affectations' ? <RHPeopleTeams {...rhProps} />

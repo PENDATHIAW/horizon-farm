@@ -2,6 +2,7 @@ import { createSupabaseCrudService } from './baseSupabaseService';
 import { syncPaymentToFinance, syncSalesOrderToFinance } from './financeSyncService';
 import { documentsService } from './documentsService';
 import { makeId } from '../utils/ids';
+import { buildIssueKey } from './issueLinkingService';
 
 const rawSalesOrdersService = createSupabaseCrudService('sales_orders');
 const rawInvoicesService = createSupabaseCrudService('invoices');
@@ -51,12 +52,27 @@ const normalizeOrderStatus = (order = {}) => {
   else if (paid > 0 && ['brouillon', '', 'draft'].includes(currentOrderStatus)) orderStatus = 'confirme';
   else if (!currentOrderStatus || currentOrderStatus === 'brouillon') orderStatus = total > 0 ? 'enregistree' : 'brouillon';
 
+  const sourceModule = clean(order.source_module || order.module_source || order.created_from || 'ventes');
+  const sourceRecordId = clean(order.source_record_id || order.source_id || order.related_id || order.id || '');
+  const issueKey = clean(order.issue_key) || buildIssueKey({
+    domain: 'sales_order',
+    sourceModule,
+    sourceRecordId: sourceRecordId || 'unknown',
+    kind: order.type_document || order.type || 'commande',
+  });
+
   return {
     ...order,
     statut_commande: orderStatus,
     statut_paiement: payment,
     montant_paye: paid,
     reste_a_payer: Math.max(0, total - paid),
+    issue_key: issueKey,
+    source_module: sourceModule,
+    source_record_id: sourceRecordId,
+    related_module: clean(order.related_module || 'sales_orders'),
+    related_record_id: clean(order.related_record_id || order.id || sourceRecordId || ''),
+    origin_type: clean(order.origin_type || 'manual'),
   };
 };
 
@@ -69,18 +85,42 @@ const normalizeInvoicePayload = (invoice = {}) => {
   if (statutFacture === 'envoyée') statutFacture = 'envoyee';
   if (statutFacture === 'annulée') statutFacture = 'annulee';
 
+  const sourceModule = clean(invoice.source_module || invoice.module_source || 'sales_orders');
+  const sourceRecordId = clean(invoice.source_record_id || invoice.order_id || invoice.sale_id || invoice.related_id || invoice.id || '');
+  const issueKey = clean(invoice.issue_key) || buildIssueKey({
+    domain: 'invoice',
+    sourceModule,
+    sourceRecordId: sourceRecordId || 'unknown',
+    kind: invoice.numero_facture || invoice.id || 'facture',
+  });
+
   return {
     ...invoice,
     statut_facture: statutFacture,
     invoice_status: statutFacture,
     statut: statutFacture,
     date_emission: invoice.date_emission || invoice.date || today(),
+    issue_key: issueKey,
+    source_module: sourceModule,
+    source_record_id: sourceRecordId,
+    related_module: clean(invoice.related_module || 'sales_orders'),
+    related_record_id: clean(invoice.related_record_id || invoice.order_id || invoice.sale_id || sourceRecordId || ''),
+    origin_type: clean(invoice.origin_type || 'workflow'),
   };
 };
 
 const normalizePaymentPayload = (payment = {}) => {
   const amount = toNumber(payment.montant_paye ?? payment.montant ?? payment.amount ?? payment.paid_amount);
   const date = payment.date_paiement || payment.date || payment.paid_at || today();
+  const sourceModule = clean(payment.source_module || payment.module_source || 'sales_orders');
+  const sourceRecordId = clean(payment.source_record_id || payment.order_id || payment.sale_id || payment.related_id || payment.id || '');
+  const issueKey = clean(payment.issue_key) || buildIssueKey({
+    domain: 'payment',
+    sourceModule,
+    sourceRecordId: sourceRecordId || 'unknown',
+    kind: payment.reference || payment.id || 'encaissement',
+  });
+
   return {
     ...payment,
     montant_paye: amount,
@@ -89,6 +129,12 @@ const normalizePaymentPayload = (payment = {}) => {
     date_paiement: date,
     date: payment.date || date,
     statut: payment.statut || 'paye',
+    issue_key: issueKey,
+    source_module: sourceModule,
+    source_record_id: sourceRecordId,
+    related_module: clean(payment.related_module || 'sales_orders'),
+    related_record_id: clean(payment.related_record_id || payment.order_id || payment.sale_id || sourceRecordId || ''),
+    origin_type: clean(payment.origin_type || 'workflow'),
   };
 };
 
@@ -172,6 +218,17 @@ const syncInvoiceToDocument = async (invoice = {}) => {
       status: 'genere',
       description: `Document facture généré automatiquement pour la vente ${orderId || invoice.id}`,
       generated_from_invoice_at: now(),
+      issue_key: clean(invoice.issue_key) || buildIssueKey({
+        domain: 'invoice_document',
+        sourceModule: 'invoices',
+        sourceRecordId: clean(invoice.id) || 'unknown',
+        kind: invoice.numero_facture || 'document',
+      }),
+      source_module: clean(invoice.source_module || 'invoices'),
+      source_record_id: clean(invoice.source_record_id || invoice.id || ''),
+      related_module: 'sales_orders',
+      related_record_id: clean(orderId || invoice.id || ''),
+      origin_type: 'workflow',
     };
     if (existing?.id) return await documentsService.update(existing.id, payload);
     return await documentsService.create(payload);

@@ -66,3 +66,37 @@ export function formatMargin(row) {
   if (!row.reliable) return 'Non fiable';
   return fmtCurrency(row.margin);
 }
+
+export function computeLotMarginWithRollup(lot = {}, context = {}) {
+  const rollup = rollupLotCosts(lot, context);
+  if (rollup.reliable) {
+    return {
+      id: rollup.id,
+      name: rollup.name,
+      reliable: true,
+      cost: rollup.cost,
+      revenue: rollup.revenue,
+      margin: rollup.margin,
+      missing: [],
+      rollup: true,
+    };
+  }
+  return { ...computeLotMargin(lot), rollup: false };
+}
+
+export function computeAnimalMarginWithRollup(animal = {}, context = {}) {
+  const rollup = rollupAnimalCosts(animal, context);
+  if (rollup.reliable) {
+    return {
+      id: rollup.id,
+      name: rollup.name,
+      reliable: true,
+      cost: rollup.cost,
+      revenue: rollup.revenue,
+      margin: rollup.margin,
+      missing: [],
+      rollup: true,
+    };
+  }
+  return { ...computeAnimalMargin(animal), rollup: false };
+}

@@ -1,4 +1,4 @@
-import { toNumber } from './format';
+import { toNumber } from './format.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value) => String(value || '').trim().toLowerCase();

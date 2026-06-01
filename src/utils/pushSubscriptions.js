@@ -20,7 +20,7 @@ export function getPublicVapidKey() {
 
 export async function registerPushServiceWorker() {
   if (!pushSupported()) throw new Error('Notifications push non supportées sur cet appareil');
-  return navigator.serviceWorker.register('/push-sw.js');
+  return navigator.serviceWorker.register('/sw.js');
 }
 
 export async function getPushRegistration() {

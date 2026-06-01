@@ -84,6 +84,13 @@ export default function Equipements(props) {
       <ModuleSection icon={BarChart3} title="Évolution du matériel" subtitle="Disponibilité, pannes, maintenances, carburant et coût réel par équipement.">
         <EquipementsEvolution rows={rows} tasks={props.tasks || []} onNavigate={props.onNavigate} />
       </ModuleSection>
+
+      <EquipementsSmartFarmBridge
+        rows={rows}
+        sensors={props.sensorDevices || []}
+        cameras={props.cameraDevices || []}
+        onNavigate={props.onNavigate}
+      />
     </div>
   );
 }

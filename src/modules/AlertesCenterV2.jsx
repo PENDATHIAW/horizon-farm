@@ -1,5 +1,6 @@
 import ActionTraceHealth from './ActionTraceHealth.jsx';
 import AlertTaskBridgePanel from './AlertTaskBridgePanel.jsx';
+import IssueProblemFichePanel from './IssueProblemFichePanel.jsx';
 import AlertesCenterTechnical from './AlertesCenterTechnical.jsx';
 import { buildCalculatedCycleDates } from '../services/productionCycleDates';
 
@@ -104,6 +105,7 @@ export default function AlertesCenterV2(props) {
 
   const nextProps = { ...props, alertes, tasks, onUpdate: guardedUpdateAlert, onUpdateTask: guardedUpdateTask };
   return <div className="space-y-6">
+    <IssueProblemFichePanel alertes={alertes} taches={tasks} businessEvents={props.businessEvents || []} salesOrders={props.salesOrders || []} payments={props.payments || []} onNavigate={props.onNavigate} />
     <AlertTaskBridgePanel alertes={alertes} tasks={tasks} onCreateTask={props.onCreateTask} onRefreshTasks={props.onRefreshTasks} onUpdateAlert={guardedUpdateAlert} onRefreshAlertes={props.onRefresh} onNavigate={props.onNavigate} />
     <ActionTraceHealth tasks={tasks} alertes={alertes} events={props.businessEvents || []} online={props.online ?? true} onNavigate={props.onNavigate} />
     <AlertesCenterTechnical {...nextProps} />

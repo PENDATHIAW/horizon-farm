@@ -52,6 +52,7 @@ import {
   salesOrdersService,
 } from '../services/salesService';
 import { whatsappLogsService, whatsappTemplatesService } from '../services/whatsappService';
+import { stockMovementsCrud } from '../services/stockMovementsService';
 import { supabase } from '../lib/supabase';
 import { clearOfflineQueue, enqueueOfflineMutation, isBrowserOffline, readOfflineQueue, saveOfflineQueue } from '../services/offlineQueueService';
 

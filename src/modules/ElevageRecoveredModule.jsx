@@ -171,7 +171,8 @@ export default function ElevageRecoveredModule(props) {
     const feedCost = feedLogs.reduce((s, row) => s + Number(row.cout_total || row.cost || row.montant || 0), 0);
     const recentMortality = lots.reduce((s, lot) => s + Number(lot.mortality || 0), 0) + businessEvents.filter((row) => /mort|perte|deces|décès/.test(lower(`${row.event_type || ''} ${row.title || ''}`))).length;
     const lotsToSell = lots.filter((row) => ['pret_vente', 'prêt vente', 'a_vendre', 'à vendre', 'maturite', 'maturité'].some((x) => lower(`${row.status || ''} ${row.statut || ''} ${row.notes || ''}`).includes(x)));
-    const lotMargins = [...lots.map(computeLotMargin), ...animals.filter((a) => !isClosedAnimal(a)).slice(0, 5).map(computeAnimalMargin)].sort((a, b) => {
+    const marginContext = { alimentationLogs: feedLogs, vaccins: health, salesOrders, lots, animaux: animals };
+    const lotMargins = [...lots.map((lot) => computeLotMarginWithRollup(lot, marginContext)), ...animals.filter((a) => !isClosedAnimal(a)).slice(0, 5).map((animal) => computeAnimalMarginWithRollup(animal, marginContext))].sort((a, b) => {
       if (a.reliable && !b.reliable) return -1;
       if (!a.reliable && b.reliable) return 1;
       return (a.margin ?? 0) - (b.margin ?? 0);

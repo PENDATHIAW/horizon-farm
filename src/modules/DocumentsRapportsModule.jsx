@@ -88,6 +88,7 @@ function Summary({ data, setTab, onApply, onAttachProof, busyId, onNavigate }) {
         <Stat label="Médias" value={fmtNumber(data.media.length)} />
       </div>
       <DocumentsIaPanel findings={data.healthFindings} predictions={data.healthPredictions} onApply={onApply} busyId={busyId} onNavigate={onNavigate} setTab={setTab} />
+      <DocumentsOrphanSyncPanel documents={data.documents} onApply={onApply} busyId={busyId} setTab={setTab} onNavigate={onNavigate} actionHandlers={actionHandlers} />
       <CoherencePanel rows={data.coherenceRows} onApply={onApply} busyId={busyId} setTab={setTab} onNavigate={onNavigate} />
       <Section icon={ClipboardList} title="Priorités documentaires" action={<Button onClick={() => setTab('Preuves')}>Voir preuves</Button>}>
         {data.priorities.length ? data.priorities.map((item) => (
