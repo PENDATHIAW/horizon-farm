@@ -1,15 +1,5 @@
--- =============================================================================
--- Horizon Farm — 6 migrations 202606 (à exécuter UNE SEULE FOIS dans Supabase)
--- Dashboard → SQL Editor → New query → coller TOUT ce fichier → Run
---
--- Si erreur "syntax error at or near for" : le SQL Editor a découpé le script.
---   → Exécutez d'abord run_once_202606_tables_only.sql
---   → Puis run_once_202606_trigger_only.sql (en entier, sans rien sélectionner)
--- =============================================================================
-
--- ---------------------------------------------------------------------------
--- 1/6 — Champs push sur alertes_center
--- ---------------------------------------------------------------------------
+-- Partie A : tables + colonnes (sans fonction PL/pgSQL)
+-- Exécuter en premier si le fichier complet échoue.
 
 alter table public.alertes_center
   add column if not exists push_status text,
@@ -18,93 +8,8 @@ alter table public.alertes_center
   add column if not exists push_notification_count integer not null default 0,
   add column if not exists last_push_attempt_at timestamptz;
 
-create index if not exists idx_alertes_center_push_notified_at
-  on public.alertes_center(push_notified_at);
-
-create index if not exists idx_alertes_center_push_status
-  on public.alertes_center(push_status);
-
--- ---------------------------------------------------------------------------
--- 2/6 — Trigger push (version finale 20260601002000)
--- IMPORTANT : exécuter ce bloc en une seule fois (ne pas couper sur les ;)
--- ---------------------------------------------------------------------------
-
-create extension if not exists pg_net with schema extensions;
-
-create or replace function public.dispatch_push_on_critical_alert()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $dispatch_push$
-declare
-  app_url text;
-  cron_secret text;
-  payload jsonb;
-  alert_severity text;
-  alert_status text;
-  alert_module text;
-begin
-  payload := to_jsonb(new);
-
-  alert_severity := lower(coalesce(payload->>'severity', payload->>'gravite', ''));
-  alert_status := lower(coalesce(payload->>'status', payload->>'statut', 'nouvelle'));
-  alert_module := lower(coalesce(payload->>'module_source', payload->>'module', 'alertes'));
-
-  if alert_status <> 'nouvelle' then
-    return new;
-  end if;
-
-  if new.push_notified_at is not null then
-    return new;
-  end if;
-
-  if alert_severity in ('urgence', 'critique') then
-    null;
-  elsif alert_module in (
-    'stock', 'avicole', 'animaux', 'sante', 'smartfarm', 'equipements',
-    'finances', 'clients', 'documents', 'documents_rapports', 'taches', 'ventes'
-  ) then
-    null;
-  else
-    return new;
-  end if;
-
-  select value into app_url from public.system_settings where key = 'APP_PUBLIC_URL' limit 1;
-  select value into cron_secret from public.system_settings where key = 'CRON_SECRET' limit 1;
-
-  if app_url is null or length(trim(app_url)) = 0 then
-    return new;
-  end if;
-
-  perform net.http_post(
-    url := trim(trailing '/' from app_url) || '/api/push/send-alert',
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' || coalesce(cron_secret, '')
-    ),
-    body := jsonb_build_object(
-      'source', 'supabase_alert_trigger',
-      'alert_id', payload->>'id'
-    )
-  );
-
-  return new;
-exception when others then
-  return new;
-end;
-$dispatch_push$;
-
-drop trigger if exists trg_dispatch_push_on_critical_alert on public.alertes_center;
-
-create trigger trg_dispatch_push_on_critical_alert
-after insert on public.alertes_center
-for each row
-execute function public.dispatch_push_on_critical_alert();
-
--- ---------------------------------------------------------------------------
--- 3/6 — Colonnes issue_key / source / related
--- ---------------------------------------------------------------------------
+create index if not exists idx_alertes_center_push_notified_at on public.alertes_center(push_notified_at);
+create index if not exists idx_alertes_center_push_status on public.alertes_center(push_status);
 
 alter table if exists public.alertes_center
   add column if not exists issue_key text,
@@ -197,10 +102,6 @@ create index if not exists idx_sales_orders_issue_key on public.sales_orders(iss
 create index if not exists idx_payments_issue_key on public.payments(issue_key);
 create index if not exists idx_stock_issue_key on public.stock(issue_key);
 
--- ---------------------------------------------------------------------------
--- 4/6 — Table stock_movements + RLS
--- ---------------------------------------------------------------------------
-
 create table if not exists public.stock_movements (
   id text primary key,
   stock_id text not null,
@@ -240,10 +141,6 @@ create policy stock_movements_update on public.stock_movements
   for update to authenticated
   using (public.can_write_erp() and (public.can_admin_erp() or company_id is null or company_id = public.current_company_id()))
   with check (public.can_write_erp() and (public.can_admin_erp() or company_id is null or company_id = public.current_company_id()));
-
--- ---------------------------------------------------------------------------
--- 5/6 — module_role_permissions + RBAC
--- ---------------------------------------------------------------------------
 
 create table if not exists public.module_role_permissions (
   id text primary key,
