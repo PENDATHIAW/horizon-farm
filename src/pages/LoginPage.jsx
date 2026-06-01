@@ -13,7 +13,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 const brandLogo = '/brand-logo-transparent.png';
-const farmBg = '/login-hero-maraichage-v2-preview.jpg';
+const farmBg = '/login-hero-user-final.png';
 
 const FEATURES = [
   {
