@@ -3,6 +3,7 @@ import { moduleSeedMap } from '../utils/mockData';
 import { normalizeByModule, normalizePayloadBeforeSave } from '../utils/normalize';
 import { safeLocalStorageSetJson } from '../utils/safeLocalStorage';
 import { isSimulatedDataModeEnabled } from '../utils/uiPreferences';
+import { enrichLinkedFields } from './issueLinkingService';
 
 const SIMULATION_SEED_VERSION = 'horizon-farm-bp-financeur-m8-v5';
 const SIMULATION_VERSION_KEY = 'horizon_simulated_seed_version';
@@ -139,7 +140,8 @@ const enrichWorkflowPayload = (payload = {}, table = '') => {
 };
 const toDbPayload = (payload = {}, table = '') => {
   const generated = GENERATED_COLUMNS[table] || [];
-  const enriched = enrichWorkflowPayload(payload, table);
+  const linked = enrichLinkedFields(table, payload);
+  const enriched = enrichWorkflowPayload(linked, table);
   const mapped = Object.fromEntries(Object.entries(enriched).filter(([key]) => !generated.includes(dbKeyMap[key] || key)).map(([key, value]) => [dbKeyMap[key] || key, value]));
   return normalizePayloadBeforeSave(mapped);
 };

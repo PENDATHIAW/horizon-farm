@@ -1,6 +1,7 @@
 import { computeErpAuditFindings } from './erpRules/index.js';
 import { runErpHealthEngine } from './erpHealthEngine.js';
 import { supabase } from '../lib/supabase.js';
+import { buildIssueKey } from './issueLinkingService.js';
 
 const STORAGE_KEY = 'horizon-ai-recommendations-journal';
 
@@ -48,6 +49,12 @@ export function buildAssistantJournal({ localEntries = [], businessEvents = [] }
 export function buildRecommendationsFromData(data = {}) {
   const health = runErpHealthEngine(data);
   return health.findings.slice(0, 50).map((finding) => ({
+    issue_key: finding.issue_key || buildIssueKey({
+      domain: finding.category || finding.module || 'ia_reco',
+      sourceModule: finding.module || finding.source_records?.[0]?.type || 'assistant_erp',
+      sourceRecordId: finding.source_records?.[0]?.id || finding.id || 'unknown',
+      kind: finding.recommended_action || finding.title || 'recommendation',
+    }),
     id: finding.id,
     title: finding.title,
     summary: finding.description || '',
@@ -59,6 +66,11 @@ export function buildRecommendationsFromData(data = {}) {
     action_recommandee: finding.recommended_action,
     confidence_score: Math.round((finding.confidence_score || 0.8) * 100),
     source_data: { source_records: finding.source_records || [] },
+    source_module: finding.module || finding.source_records?.[0]?.type || 'assistant_erp',
+    source_record_id: finding.source_records?.[0]?.id || finding.id || '',
+    related_module: finding.module || 'assistant_erp',
+    related_record_id: finding.source_records?.[0]?.id || finding.id || '',
+    origin_type: 'ia_suggestion',
     created_by_ai: true,
     auto_action: finding.auto_action,
   }));

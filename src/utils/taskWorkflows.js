@@ -1,4 +1,5 @@
 import { generateSequentialId, makeId } from './ids';
+import { buildIssueKey } from '../services/issueLinkingService';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value = '') => String(value || '').trim();
@@ -45,6 +46,12 @@ export function buildTaskFromAlert(alert = {}, rows = [], date = today()) {
   const key = alertDedupeKey(alert);
   const title = alert.title || alert.message || 'Action alerte';
   const checklist = normalizeTaskChecklist(alert.checklist || alert.action_recommandee || alert.message || '', title);
+  const issueKey = clean(alert.issue_key) || buildIssueKey({
+    domain: 'alert_task',
+    sourceModule: alert.source_module || alert.module_source || alert.module || 'alertes',
+    sourceRecordId: alert.source_record_id || alert.entity_id || alert.id || 'unknown',
+    kind: alert.action_recommandee || alert.title || 'action',
+  });
   return {
     task: {
       id,
@@ -60,6 +67,11 @@ export function buildTaskFromAlert(alert = {}, rows = [], date = today()) {
       checklist,
       source_module: 'alertes',
       source_record_id: alert.id,
+      issue_key: issueKey,
+      related_module: alert.module_source || alert.module || 'alertes',
+      related_record_id: alert.entity_id || alert.id || '',
+      workflow_id: clean(alert.workflow_id) || null,
+      origin_type: clean(alert.origin_type) || 'workflow',
       action_key: alert.action_recommandee || alert.title || 'action',
       alert_dedupe_key: key,
       task_dedupe_key: key,
@@ -77,6 +89,13 @@ export function buildTaskFromAlert(alert = {}, rows = [], date = today()) {
       severity: alert.severity || 'info',
       linked_task_id: id,
       linked_alert_id: alert.id,
+      issue_key: issueKey,
+      source_module: 'alertes',
+      source_record_id: alert.id || '',
+      related_module: alert.module_source || alert.module || 'alertes',
+      related_record_id: alert.entity_id || alert.id || '',
+      workflow_id: clean(alert.workflow_id) || null,
+      origin_type: 'workflow',
       saisies_evitees: 2,
     },
   };
