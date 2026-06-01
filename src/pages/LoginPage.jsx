@@ -13,8 +13,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const brandLogo = '/brand-logo.png';
-const farmBg = '/login-farm-bg.png';
+const brandLogo = '/brand-logo-transparent.svg';
+const farmBg = '/login-hero-full.jpg';
 
 const FEATURES = [
   { icon: Leaf, title: 'Vision claire', detail: 'Toutes vos données au même endroit.' },
@@ -70,33 +70,30 @@ export default function LoginPage() {
         className="pointer-events-none absolute inset-0 bg-cover bg-no-repeat"
         style={{
           backgroundImage: `url(${farmBg})`,
-          backgroundPosition: '68% 22%',
+          backgroundPosition: '38% 38%',
         }}
         aria-hidden
       />
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: 'linear-gradient(90deg, rgba(255,248,239,0.92) 0%, rgba(255,248,239,0.72) 38%, rgba(255,248,239,0.22) 58%, transparent 74%)',
+          background: 'linear-gradient(90deg, rgba(255,248,239,0.94) 0%, rgba(255,248,239,0.78) 34%, rgba(255,248,239,0.28) 50%, rgba(255,248,239,0.08) 58%, transparent 68%)',
         }}
         aria-hidden
       />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#063321]/60 via-transparent to-transparent" aria-hidden />
 
       <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col">
-        <section className="mx-auto grid w-full max-w-7xl flex-1 min-h-0 items-center gap-6 px-4 py-3 sm:gap-8 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:px-8 xl:px-10">
-          <div className="max-w-xl">
+        <section className="mx-auto grid w-full max-w-7xl flex-1 min-h-0 items-center gap-6 px-4 pt-1 pb-3 sm:gap-8 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:px-8 xl:px-10">
+          <div className="max-w-xl -mt-1 lg:-mt-3">
             <img
               src={brandLogo}
               alt="Horizon Farm"
-              className="mb-4 h-auto w-40 object-contain sm:w-44 lg:mb-5 lg:w-48"
+              className="mb-3 h-auto w-36 object-contain sm:w-40 lg:mb-4 lg:w-44"
             />
 
             <h1 className="sr-only">Horizon Farm ERP</h1>
-            <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#c9851a] sm:text-xs">
-              De la terre à l&apos;horizon
-            </p>
-            <p className="mt-2 text-[1.65rem] font-black leading-[1.12] tracking-tight text-[#063321] sm:text-3xl lg:text-[2.15rem] xl:text-4xl">
+            <p className="text-[1.65rem] font-black leading-[1.12] tracking-tight text-[#063321] sm:text-3xl lg:text-[2.15rem] xl:text-4xl">
               Pilotez votre ferme.
             </p>
             <p className="mt-1 text-[1.65rem] font-black leading-[1.12] tracking-tight text-[#c9851a] sm:text-3xl lg:text-[2.15rem] xl:text-4xl">
