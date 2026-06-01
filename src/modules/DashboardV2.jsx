@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
+import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
+import { auditFinanceReconciliation } from '../services/financeReconciliationService.js';
 import { readUiSettings } from '../utils/uiPreferences';
 import { readPeriodScope } from '../utils/periodScope';
 import { fmtCurrency, fmtNumber } from '../utils/format';
@@ -88,9 +91,14 @@ function buildHealthData(props = {}) {
   };
 }
 
-function Summary({ summary, health, simple, navigate, onOpenAssistant }) {
+function Summary({ summary, health, simple, navigate, onOpenAssistant, payments = [], transactions = [], salesOrders = [] }) {
   const actions = summary.actions.slice(0, simple ? 4 : 8);
   const heyHorizonSuggestions = buildDashboardPilotageSuggestions(summary.actions, summary.goal);
+  const financeAudit = useMemo(() => auditFinanceReconciliation({
+    payments,
+    finances: transactions,
+    sales_orders: salesOrders,
+  }), [payments, transactions, salesOrders]);
   const sideCards = [];
 
   if (summary.receivable > 0) {
@@ -150,6 +158,25 @@ function Summary({ summary, health, simple, navigate, onOpenAssistant }) {
         onNavigate={navigate}
       />
       <DashboardHeyHorizonStrip suggestions={heyHorizonSuggestions} onNavigate={navigate} onOpenAssistant={onOpenAssistant} />
+
+      {financeAudit.paymentGaps.length ? (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <p className="flex items-center gap-2 text-sm font-black text-amber-900">
+            <AlertTriangle size={16} />
+            {financeAudit.paymentGaps.length} paiement(s) sans écriture Finances
+          </p>
+          <p className="mt-1 text-xs text-amber-800">
+            Écart caisse / trésorerie : {fmtCurrency(financeAudit.delta)} — le CA et le résultat peuvent être faussés.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('finance_pilotage', { tab: 'Rapprochement' })}
+            className="mt-3 rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white"
+          >
+            Rapprocher dans Finance →
+          </button>
+        </section>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
         <DashboardKpi
@@ -336,7 +363,26 @@ export default function DashboardV2(props) {
       />
 
       {tab === 'Résumé' ? (
-        <Summary summary={summary} health={health} simple={simple} navigate={navigate} onOpenAssistant={props.onOpenAssistant} />
+        <Summary
+          summary={summary}
+          health={health}
+          simple={simple}
+          navigate={navigate}
+          onOpenAssistant={props.onOpenAssistant}
+          payments={props.paymentsAll || props.payments}
+          transactions={props.transactions}
+          salesOrders={props.salesOrdersAll || props.salesOrders}
+        />
+      ) : tab === 'Annexe' ? (
+        <ModuleAnnexeTab
+          moduleId="dashboard"
+          dataMap={{
+            sales_orders: props.salesOrdersAll || props.salesOrders,
+            payments: props.paymentsAll || props.payments,
+            finances: props.transactions,
+          }}
+          onNavigate={props.onNavigate}
+        />
       ) : (
         <GraphiquesSection props={props} navigate={navigate} periodFiltered={props.periodFiltered} />
       )}
