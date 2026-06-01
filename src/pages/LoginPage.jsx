@@ -3,22 +3,12 @@ import toast from 'react-hot-toast';
 import { Eye, EyeOff, Lock, LogIn, Mail, Shield, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-/** Image officielle — versions 1x/2x/3x pour écrans larges et Retina */
+/** Image officielle HD 2560×1440 — PNG local + WebP optimisés */
 const HERO = {
-  jpg: {
-    '1x': '/login-hero-official.jpg',
-    '2x': '/login-hero-official-2x.jpg',
-    '3x': '/login-hero-official-3x.jpg',
-  },
-  webp: {
-    '1x': '/login-hero-official.webp',
-    '2x': '/login-hero-official-2x.webp',
-    '3x': '/login-hero-official-3x.webp',
-  },
+  png: '/login-hero-official.png',
+  webp: '/login-hero-official.webp',
+  webp1920: '/login-hero-official-1920.webp',
 };
-
-const heroSrcSet = (formats) =>
-  `${formats['1x']} 1024w, ${formats['2x']} 2048w, ${formats['3x']} 3072w`;
 
 export default function LoginPage() {
   const { signIn, signUp, resetPassword, remember, setRemember } = useAuth();
@@ -65,12 +55,15 @@ export default function LoginPage() {
     <main className="relative h-dvh w-full overflow-hidden">
       <h1 className="sr-only">Horizon Farm ERP — Connexion</h1>
 
-      {/* Plein écran — srcset 2x/3x pour éviter le flou d'agrandissement */}
+      {/* Plein écran — PNG 2560×1440 natif, WebP pour chargement rapide */}
       <picture className="pointer-events-none absolute inset-0 block h-full w-full select-none">
-        <source type="image/webp" srcSet={heroSrcSet(HERO.webp)} sizes="100vw" />
-        <source type="image/jpeg" srcSet={heroSrcSet(HERO.jpg)} sizes="100vw" />
+        <source
+          type="image/webp"
+          srcSet={`${HERO.webp1920} 1920w, ${HERO.webp} 2560w`}
+          sizes="100vw"
+        />
         <img
-          src={HERO.jpg['2x']}
+          src={HERO.png}
           alt=""
           className="h-full w-full object-cover"
           style={{ objectPosition: '42% center' }}
