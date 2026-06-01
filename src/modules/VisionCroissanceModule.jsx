@@ -10,6 +10,7 @@ import VisionPrioritiesTab from './vision/VisionPrioritiesTab';
 import VisionRisksTab from './vision/VisionRisksTab';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import HeyHorizonQuickAsk from '../components/HeyHorizonQuickAsk.jsx';
+import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import { MODULE_TARGET_TABS } from '../config/horizonVision.config.js';

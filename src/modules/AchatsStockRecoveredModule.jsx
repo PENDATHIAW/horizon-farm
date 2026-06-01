@@ -1,6 +1,7 @@
 import { BrainCircuit, Handshake, PackageCheck, ShoppingBag, Warehouse, Zap } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleListHub from '../components/module/ModuleListHub.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';

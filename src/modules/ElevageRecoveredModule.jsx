@@ -1,6 +1,7 @@
 import { Beef, Bird, BrainCircuit, HeartPulse, LayoutDashboard, Milk, PackageCheck, Sprout, Utensils, Zap } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
