@@ -1,5 +1,5 @@
-import { fmtCurrency } from '../../utils/format';
-import { paidForOrder, remainingForOrder } from '../../utils/salesStatuses';
+import { fmtCurrency } from '../../utils/format.js';
+import { paidForOrder, remainingForOrder } from '../../utils/salesStatuses.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v = 0) => Number(v || 0);
