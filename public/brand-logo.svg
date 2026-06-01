@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" fill="none">
+  <rect width="320" height="120" rx="8" fill="#fff"/>
+  <circle cx="160" cy="38" r="22" fill="#E8A317"/>
+  <path d="M118 52h84v4c-28 18-56 18-84 0v-4z" fill="#2D5016"/>
+  <path d="M100 56c20 14 40 20 60 20s40-6 60-20l-8 28H108l-8-28z" fill="#3D7A1E"/>
+  <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
+  <text x="160" y="108" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" letter-spacing="2" fill="#5a7a4a">DE LA TERRE À L&apos;HORIZON</text>
+</svg>

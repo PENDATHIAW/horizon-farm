@@ -19,7 +19,7 @@ const sizeMap = {
 
 export default function BrandLogo({ variant = 'sidebar', showText = false, className = '' }) {
   const styles = sizeMap[variant] || sizeMap.sidebar;
-  const logoSrc = variant === 'compact' ? '/brand-icon-192.png' : '/brand-logo.png';
+  const logoSrc = variant === 'compact' ? '/brand-logo.svg' : '/brand-logo.svg';
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
