@@ -1,13 +1,12 @@
-/** Ouvre Élevage ou Centre décisionnel sur l'onglet Cycles avec une question présélectionnée. */
+/** Ouvre Élevage → Cycles avec une question présélectionnée (source opérationnelle unique). */
 export function launchProductionQuestion({
   questionId,
-  moduleId = 'elevage',
   onNavigate,
 } = {}) {
-  onNavigate?.(moduleId, { tab: 'Cycles', productionQuestion: questionId });
+  onNavigate?.('elevage', { tab: 'Cycles', productionQuestion: questionId });
   window.setTimeout(() => {
     window.dispatchEvent(new CustomEvent('horizon-production-question', {
-      detail: { questionId, moduleId },
+      detail: { questionId, moduleId: 'elevage' },
     }));
   }, 280);
 }

@@ -21,7 +21,7 @@ const MODULE_COPY = {
   centre_ia: {
     kicker: 'Intelligence décisionnelle',
     title: 'Centre décisionnel',
-    subtitle: 'Priorités du jour, risques, opportunités commerciales et cycles production — actions concrètes.',
+    subtitle: 'Priorités du jour, risques, opportunités — synthèse cycles (détail opérationnel dans Élevage → Cycles).',
   },
   objectifs_croissance: {
     kicker: 'Pilotage stratégique',

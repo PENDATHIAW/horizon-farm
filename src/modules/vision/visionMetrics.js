@@ -1,5 +1,6 @@
 import { MODULE_TARGET_TABS } from '../../config/horizonVision.config.js';
 import { isOpportunityOpen } from '../commercial/commercialMetrics.js';
+import { buildCycleOverview } from '../elevage/cycleSummary.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v = 0) => Number(v || 0);
@@ -61,7 +62,7 @@ export function buildVisionBadges(data = {}, moduleId = 'centre_ia') {
     if (treatCount > 0) tabs['À traiter'] = treatCount;
     if (risksCount > 0) tabs.Risques = criticalRisks || risksCount;
     if (openOpportunities.length > 0) tabs.Opportunités = openOpportunities.length;
-    const cycleSignals = n(data.criticalStockCount) + n(data.openAlertsCount);
+    const cycleSignals = n(data.cycleWarningCount) || (n(data.criticalStockCount) + n(data.openAlertsCount));
     if (cycleSignals > 0) tabs.Cycles = cycleSignals;
   } else {
     if (unreliableMargins > 0) tabs.Performance = unreliableMargins;
