@@ -41,12 +41,12 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run Assistant ERP smoke tests
-        if: ${{ secrets.E2E_LOGIN != '' && secrets.E2E_PASSWORD != '' }}
         env:
           E2E_LOGIN: ${{ secrets.E2E_LOGIN }}
           E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
-        run: npx playwright test tests/e2e/assistant-erp-smoke.spec.js tests/e2e/decision-center-smoke.spec.js --reporter=line
-
-      - name: Browser E2E skipped (secrets missing)
-        if: ${{ secrets.E2E_LOGIN == '' || secrets.E2E_PASSWORD == '' }}
-        run: echo "E2E_LOGIN / E2E_PASSWORD non configurés — smoke navigateur ignoré (workflow + build OK)."
+        run: |
+          if [ -z "$E2E_LOGIN" ] || [ -z "$E2E_PASSWORD" ]; then
+            echo "E2E_LOGIN / E2E_PASSWORD non configurés — smoke navigateur ignoré."
+            exit 0
+          fi
+          npx playwright test tests/e2e/assistant-erp-smoke.spec.js tests/e2e/decision-center-smoke.spec.js --reporter=line

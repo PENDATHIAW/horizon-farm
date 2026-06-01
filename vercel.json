@@ -1,11 +1,14 @@
 {
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
   "rewrites": [
     { "source": "/api/erp-read", "destination": "/api/erp/read" },
     { "source": "/api/erp-action", "destination": "/api/erp/action" },
     { "source": "/api/erp-ai-audit", "destination": "/api/erp/audit" },
-    { "source": "/(.*)", "destination": "/" }
+    { "source": "/((?!api/).*)", "destination": "/" }
   ],
   "crons": [
-    { "path": "/api/cron/check-alerts", "schedule": "*/5 * * * *" }
+    { "path": "/api/push/dispatch-alerts", "schedule": "0 7 * * *" }
   ]
 }
