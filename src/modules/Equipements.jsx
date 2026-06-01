@@ -40,6 +40,12 @@ export default function Equipements(props) {
       </ModuleSection>
 
       <ModuleSection icon={Settings} title="Parc matériel" subtitle="Machines, incubateurs, pompes, groupes, véhicules et équipements de production.">
+        <EquipementsSmartFarmBridge
+          rows={rows}
+          sensors={props.sensors || []}
+          cameras={props.cameras || []}
+          onNavigate={props.onNavigate}
+        />
         <GenericCrudModule
           {...props}
           moduleKey="equipements"

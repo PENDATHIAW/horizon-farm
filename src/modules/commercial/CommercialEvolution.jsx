@@ -1,8 +1,13 @@
+import { useMemo, useState } from 'react';
 import ChartsGrid from '../../components/charts/ChartsGrid.jsx';
 import SmartEvolutionChart from '../../components/charts/SmartEvolutionChart.jsx';
 import SmartPieChart from '../../components/charts/SmartPieChart.jsx';
 import { buildCommercialChartDataset } from './commercialChartMetrics.js';
+import { applyCommercialChartFilters, buildCommercialFilterOptions } from './commercialChartFilters.js';
+import CommercialChartFiltersBar from './CommercialChartFiltersBar.jsx';
 import { activityStartSourceLabel } from '../../utils/activityYear.js';
+
+const arr = (v) => (Array.isArray(v) ? v : []);
 
 function ChartSection({ title, question, children }) {
   return (
@@ -33,12 +38,31 @@ function AttainmentKpi({ label, hint, actual, target, attainment }) {
 }
 
 export default function CommercialEvolution(props) {
-  const data = buildCommercialChartDataset(props);
+  const [filters, setFilters] = useState({ clientId: '', activityKey: '', productName: '' });
+  const baseRows = arr(props.rows || props.salesOrders);
+  const filterOptions = useMemo(
+    () => buildCommercialFilterOptions({ salesOrders: baseRows, clients: props.clients }),
+    [baseRows, props.clients],
+  );
+  const filteredProps = useMemo(
+    () => applyCommercialChartFilters(props, filters),
+    [props, filters, baseRows.length],
+  );
+  const data = useMemo(() => buildCommercialChartDataset(filteredProps), [filteredProps]);
   const monthlyLabels = data.monthly.map((row) => row.mois);
   const activityLabels = data.volumeVsTarget.map((row) => row.label);
 
   return (
     <div className="space-y-6">
+      <CommercialChartFiltersBar
+        options={filterOptions}
+        filters={filters}
+        onChange={setFilters}
+        periodLabel={props.periodLabel || ''}
+        filteredCount={arr(filteredProps.rows).length}
+        totalCount={baseRows.length}
+      />
+
       <p className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-2 text-sm text-[#5f4b2f]">
         <span className="font-bold text-[#2f2415]">Année 1 d&apos;activité</span>
         {' — '}

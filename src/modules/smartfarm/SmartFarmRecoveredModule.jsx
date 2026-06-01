@@ -14,6 +14,7 @@ import { fmtNumber } from '../../utils/format.js';
 import { rowsOf } from '../../utils/moduleRows.js';
 import { isSmartFarmDeviceCritical } from '../../utils/smartFarmWorkflows.js';
 import SmartFarmEmbed from './SmartFarmEmbed.jsx';
+import SmartFarmEquipmentBridge from './SmartFarmEquipmentBridge.jsx';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
@@ -42,6 +43,12 @@ function Summary({ data, setTab }) {
           <p className="mt-1 text-xl font-black text-[#2f2415]">{fmtNumber(data.zoneCount)}</p>
         </div>
       </div>
+      <SmartFarmEquipmentBridge
+        equipements={arr(props.equipements)}
+        sensors={data.sensors}
+        cameras={data.cameras}
+        onNavigate={data.onNavigate}
+      />
       <SmartFarmEmbed {...data.embedProps} />
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => setTab('Capteurs')} className="rounded-xl border border-[#d6c3a0] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">Gérer capteurs</button>
@@ -160,7 +167,7 @@ export default function SmartFarmRecoveredModule(props) {
       title="Capteurs terrain"
       sub="Température, humidité, eau, mouvement — reliés aux alertes Centre"
       fields={MODULE_FORM_FIELDS.sensor_devices}
-      columns={['id', 'name', 'type', 'zone', 'status', 'value', 'battery_level']}
+      columns={['id', 'name', 'type', 'zone', 'equipment_id', 'status', 'value', 'battery_level']}
       addLabel="Ajouter capteur"
       exportTitle="Capteurs Smart Farm"
       kpis={[
@@ -175,7 +182,7 @@ export default function SmartFarmRecoveredModule(props) {
       title="Caméras terrain"
       sub="Entrée, poulailler, magasin — surveillance et preuves"
       fields={MODULE_FORM_FIELDS.camera_devices}
-      columns={['id', 'name', 'zone', 'type', 'status']}
+      columns={['id', 'name', 'zone', 'equipment_id', 'type', 'status']}
       addLabel="Ajouter caméra"
       exportTitle="Caméras Smart Farm"
       kpis={[]}
