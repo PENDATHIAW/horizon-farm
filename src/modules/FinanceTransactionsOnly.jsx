@@ -15,6 +15,12 @@ import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
 import {
+  classifyOperationalChargeRedirect,
+  enrichFinanceTransaction,
+  isManualExceptionFinanceTransaction,
+  ORIGIN_TYPES,
+} from '../utils/financeTransactionMeta';
+import {
   buildStockReceptionFromFinanceTransaction,
   financeTransactionHasStockLink,
   isStockableFinanceTransaction,
@@ -87,10 +93,16 @@ export default function FinanceTransactionsOnly({
   const [selected, setSelected] = useState(null);
   const [modal, setModal] = useState(null);
   const [saving, setSaving] = useState(false);
-  const validRows = useMemo(() => arr(rows).filter(hasAmount), [rows]);
+  const validRows = useMemo(() => arr(rows).filter((row) => hasAmount(row) && isManualExceptionFinanceTransaction(row)), [rows]);
   const financeFormFields = useMemo(() => buildFields(businessPlans), [businessPlans]);
 
-  const guardStockable = (payload) => {
+  const guardOperationalCharge = (payload) => {
+    const redirect = classifyOperationalChargeRedirect(payload);
+    if (redirect?.block) {
+      toast.error(redirect.message);
+      onNavigate?.(redirect.module, redirect.tab ? { tab: redirect.tab } : undefined);
+      return false;
+    }
     if (!isBlockedStockablePurchase(payload)) return true;
     toast.error('Les achats stockables se saisissent dans Achats & Stock → Réception achat (pas en finance).');
     onNavigate?.('achats_stock', { tab: 'Stock' });
@@ -98,7 +110,7 @@ export default function FinanceTransactionsOnly({
   };
 
   const save = async (action, message, payload) => {
-    if (payload && !guardStockable(payload)) return;
+    if (payload && !guardOperationalCharge(payload)) return;
     try {
       setSaving(true);
       await action();
@@ -159,7 +171,7 @@ export default function FinanceTransactionsOnly({
 
   return <div className="space-y-4">
     <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-      Les <b>achats stockables</b> (intrants, aliments, matériel…) doivent être enregistrés via <b>Achats & Stock → Réception achat</b>. La finance est créée automatiquement. Ici : autres écritures et réparation historique (bouton entrée stock).
+      Les <b>achats stockables</b> (intrants, aliments, matériel…) doivent être enregistrés via <b>Achats & Stock → Réception achat</b>. La finance est créée automatiquement. Ici : frais divers et ajustements manuels. Santé / stock / paie : modules source. Rapprochement pour l’historique.
     </div>
     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
       <div>
@@ -177,7 +189,14 @@ export default function FinanceTransactionsOnly({
     <CreateModal
       open={modal === 'create'}
       onClose={() => setModal(null)}
-      onSubmit={(payload) => save(() => onCreate?.({ ...payload, statut: payload.statut || 'paye' }), 'Ligne finance ajoutée', payload)}
+      onSubmit={(payload) => save(
+        () => onCreate?.(enrichFinanceTransaction(
+          { ...payload, statut: payload.statut || 'paye' },
+          { origin_type: ORIGIN_TYPES.MANUAL, source_module: 'finances', source_record_id: payload.id || '' },
+        )),
+        'Ligne finance exceptionnelle ajoutée',
+        payload,
+      )}
       fields={financeFormFields}
       initialValues={{ id: generateSequentialId('finances', rows), type: 'entree', date: today(), statut: 'paye', paiement: 'Wave' }}
       autoId={() => generateSequentialId('finances', rows)}

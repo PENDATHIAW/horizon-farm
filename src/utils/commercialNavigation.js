@@ -46,6 +46,7 @@ const tabAliases = {
   creances: 'Créances',
   dettes: 'Dettes',
   tresorerie: 'Trésorerie',
+  rapprochement: 'Rapprochement',
   investissements: 'Investissements',
   rentabilite: 'Rentabilité',
   alertes: 'Alertes',

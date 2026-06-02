@@ -5,6 +5,7 @@ import useCrudModule from '../hooks/useCrudModule';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { consolidateFinance } from '../utils/financeConsolidationEngine';
 import FinanceTransactionsOnly from './FinanceTransactionsOnly.jsx';
+import FinanceTreasuryView from './finance/FinanceTreasuryView.jsx';
 import FinancialPlanLightPanel from './FinancialPlanLightPanel.jsx';
 import OwnerSalaryRecommendationPanel from './OwnerSalaryRecommendationPanel.jsx';
 

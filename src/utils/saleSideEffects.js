@@ -79,7 +79,7 @@ export function buildReceivableFinanceRow({
 } = {}) {
   const value = num(amount);
   if (value <= 0) return null;
-  return {
+  return enrichFinanceTransaction({
     id: financeIds.receivable(orderId),
     type: 'entree',
     libelle: `Créance client ${orderId} - ${clientLabel}`,
@@ -100,7 +100,10 @@ export function buildReceivableFinanceRow({
     transaction_origin: 'automatique',
     side_effects_managed: true,
     created_from: 'sale_side_effects',
-  };
+  }, {
+    origin_type: ORIGIN_TYPES.WORKFLOW,
+    issue_suffix: 'creance',
+  });
 }
 
 export function buildReceivableAlertRow({ orderId, clientLabel = 'Client', amount = 0, productName = 'Vente' } = {}) {

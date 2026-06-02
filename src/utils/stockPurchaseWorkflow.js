@@ -275,6 +275,8 @@ export function prepareStockPurchaseWorkflow(payload = {}, context = {}) {
         finance_repair_transaction_id: payload.finance_repair_transaction_id || '',
         proof_url: payload.proof_url || payload.file_url || '',
         document_id: payload.document_id || '',
+        transaction_origin: 'automatique',
+        origin_type: 'workflow',
         side_effects_managed: true,
         created_from: 'stock_purchase_workflow',
       },

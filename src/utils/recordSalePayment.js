@@ -5,6 +5,7 @@ import { buildCoherentOrderPatch, findExistingFinanceForPayment, findExistingPay
 import { remainingForOrder } from './salesStatuses';
 import { capSalePayment } from './salesWorkflows';
 import { financeIds, runPaymentSideEffects } from './saleSideEffects';
+import { enrichFinanceTransaction, ORIGIN_TYPES } from './financeTransactionMeta.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value = '') => String(value || '').trim();

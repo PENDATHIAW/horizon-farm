@@ -11,19 +11,18 @@ export const HORIZON_MISSION = [
 ];
 
 export const MODULE_TARGET_TABS = {
-  dashboard: ['Résumé', 'Graphiques', 'Annexe'],
+  dashboard: ['Résumé', 'Graphiques'],
   assistant_erp: ['Hey Horizon'],
-  objectifs_croissance: ['Performance', 'Prévisions', 'Plans', 'Financeurs', 'Annexe', 'Graphiques'],
-  centre_ia: ['À traiter', 'Risques', 'Opportunités', 'Cycles', 'Annexe', 'Graphiques'],
-  elevage: ['Résumé', 'Cycles', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Annexe', 'Graphiques'],
-  commercial: ['Résumé', 'Ventes', 'Clients', 'Opportunités', 'Annexe', 'Graphiques'],
-  achats_stock: ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Annexe', 'Graphiques'],
+  objectifs_croissance: ['Performance', 'Prévisions', 'Plans', 'Financeurs', 'Graphiques'],
+  centre_ia: ['À traiter', 'Risques', 'Opportunités', 'Cycles', 'Graphiques'],
+  elevage: ['Résumé', 'Cycles', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Graphiques'],
+  commercial: ['Résumé', 'Ventes', 'Clients', 'Opportunités', 'Graphiques'],
+  achats_stock: ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Graphiques'],
   finance_pilotage: ['Résumé', 'Trésorerie', 'Rapprochement', 'Créances', 'Dettes', 'Investissements', 'Rentabilité', 'Annexe', 'Graphiques'],
-  activite_suivi: ['Résumé', 'Alertes', 'Tâches', 'Traçabilité', 'Annexe', 'Graphiques'],
-  documents_rapports: ['Résumé', 'Bibliothèque', 'Preuves', 'Rapports', 'Exports', 'Modèles', 'Annexe', 'Graphiques'],
+  activite_suivi: ['Résumé', 'Alertes', 'Tâches', 'Traçabilité', 'Graphiques'],
+  documents_rapports: ['Résumé', 'Bibliothèque', 'Preuves', 'Rapports', 'Exports', 'Modèles', 'Graphiques'],
   rh: ['Résumé', 'Équipements', 'Maintenance', 'Affectations', 'Coûts', 'Documents', 'Graphiques'],
   gestion_systeme: ['Vue admin', 'Utilisateurs', 'Paramètres', 'Sécurité', 'Sauvegardes', 'Réinitialisation', 'Audit'],
-  smartfarm: ['Résumé', 'Capteurs', 'Caméras', 'Annexe', 'Graphiques'],
 };
 
 export const INTERCONNECTIONS = {
@@ -31,7 +30,6 @@ export const INTERCONNECTIONS = {
   achat: ['achats_stock', 'finance_pilotage', 'documents_rapports', 'activite_suivi', 'objectifs_croissance'],
   mortalite: ['elevage', 'finance_pilotage', 'objectifs_croissance', 'activite_suivi'],
   ponte: ['elevage', 'achats_stock', 'commercial', 'objectifs_croissance'],
-  recolte: ['cultures', 'achats_stock', 'commercial', 'objectifs_croissance'],
 };
 
 export const IA_ENGINES = [
