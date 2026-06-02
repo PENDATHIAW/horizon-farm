@@ -25,6 +25,7 @@ export const ELEVAGE_TABS = ['Résumé', 'Cycles', 'Animaux', 'Avicole', 'Alimen
 export const ACHATS_STOCK_TABS = ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Graphiques'];
 export const COMMERCIAL_TABS = ['Résumé', 'Ventes', 'Clients', 'Opportunités', 'Graphiques'];
 export const FINANCE_TABS = ['Résumé', 'Trésorerie', 'Rapprochement', 'Créances', 'Dettes', 'Investissements', 'Rentabilité', 'Annexe', 'Graphiques'];
+export const ACTIVITE_SUIVI_TABS = ['Résumé', 'Alertes', 'Tâches', 'Traçabilité', 'Annexe', 'Graphiques'];
 
 const tabAliases = {
   avicole: 'Avicole',
@@ -47,6 +48,12 @@ const tabAliases = {
   tresorerie: 'Trésorerie',
   investissements: 'Investissements',
   rentabilite: 'Rentabilité',
+  alertes: 'Alertes',
+  taches: 'Tâches',
+  tache: 'Tâches',
+  tasks: 'Tâches',
+  tracabilite: 'Traçabilité',
+  trace: 'Traçabilité',
 };
 
 export function resolveElevageTab(value = '') {
@@ -73,6 +80,12 @@ export function resolveFinanceTab(value = '') {
   return tabAliases[lower(tab)] || 'Résumé';
 }
 
+export function resolveActiviteSuiviTab(value = '') {
+  const tab = String(value || '').trim();
+  if (ACTIVITE_SUIVI_TABS.includes(tab)) return tab;
+  return tabAliases[lower(tab)] || 'Résumé';
+}
+
 /** Résout un identifiant legacy (ventes, finances, stock…) vers le grand module ERP. */
 export function resolveRouteModule(moduleId = '') {
   return ROUTE_TO_MODULE[moduleId] || moduleId;
@@ -92,6 +105,9 @@ export function defaultTabForLegacyModule(moduleId = '') {
   if (moduleId === 'investissements') return 'Investissements';
   if (moduleId === 'payments') return 'Créances';
   if (moduleId === 'invoices' || moduleId === 'deliveries') return 'Ventes';
+  if (moduleId === 'taches' || moduleId === 'tasks') return 'Tâches';
+  if (moduleId === 'alertes_center' || moduleId === 'alertes') return 'Alertes';
+  if (moduleId === 'tracabilite') return 'Traçabilité';
   return null;
 }
 
@@ -147,6 +163,9 @@ export function navigationOptionsForFinding(finding = {}) {
   if (module === 'achats_stock') {
     return { module, tab: resolveAchatsStockTab(explicitTab || defaultTabForLegacyModule(rawModule) || 'Résumé') };
   }
+  if (module === 'activite_suivi') {
+    return { module, tab: resolveActiviteSuiviTab(explicitTab || defaultTabForLegacyModule(rawModule) || 'Résumé') };
+  }
   return { module, tab: explicitTab || null };
 }
 
@@ -168,6 +187,10 @@ export function navigateForIaFinding(finding = {}, onNavigate) {
   }
   if (module === 'elevage') {
     onNavigate('elevage', { tab: resolveElevageTab(finding.tab || 'Résumé') });
+    return;
+  }
+  if (module === 'activite_suivi') {
+    onNavigate('activite_suivi', { tab: resolveActiviteSuiviTab(finding.tab || 'Tâches') });
     return;
   }
   onNavigate(module || 'elevage');
