@@ -5,7 +5,7 @@ import { toNumber } from '../utils/format';
 import { isActiveAnimalForFeeding } from '../utils/alimentation';
 import { buildGrowthSummary } from '../utils/animalGrowth';
 import { getAnimalSaleReadiness, calculateAnimalSalePricing } from '../utils/animalSalePricing';
-import { summarizeAnimalCosts } from '../utils/costEngine';
+import { summarizeUnifiedFarmCosts } from '../services/unifiedCostService.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase();
@@ -49,7 +49,7 @@ function values(rows, key) { return rows.map((row) => toNumber(row[key])); }
 function labels(rows) { return rows.map((row) => row.mois); }
 export default function AnimauxEvolution({ rows = [], alimentationLogs = [], vaccins = [], opportunities = [], businessEvents = [], salesOrders = [], payments = [], transactions = [], onNavigate }) {
   const animals = arr(rows);
-  const costSummary = summarizeAnimalCosts({ rows: animals, alimentationLogs, vaccins, slaughterEvents: businessEvents, directCharges: businessEvents, healthEvents: businessEvents, defaultPricePerKg: 0 });
+  const costSummary = summarizeUnifiedFarmCosts({ animaux: animals, alimentationLogs, vaccins, healthEvents: businessEvents, directCharges: businessEvents }).animaux;
   const details = costDetailMap(costSummary);
   const costDetails = animals.map((animal) => detailFor(animal, details));
   const complete = costDetails.filter((item) => item.costComplete);

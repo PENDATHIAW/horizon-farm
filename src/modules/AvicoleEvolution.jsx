@@ -4,7 +4,7 @@ import SmartPieChart from '../components/charts/SmartPieChart.jsx';
 import { toNumber } from '../utils/format';
 import { filterLotsByActivity } from '../utils/avicoleActivity';
 import { avicoleActiveCount, avicoleDeadCount, avicoleSickCount } from '../utils/avicoleMetrics';
-import { summarizeAvicoleCosts } from '../utils/costEngine';
+import { summarizeUnifiedFarmCosts } from '../services/unifiedCostService.js';
 
 const EGGS_PER_TABLET = 30;
 const DEFAULT_LAYING_DAYS = 540;
@@ -157,7 +157,7 @@ export default function AvicoleEvolution({ rows = [], productionLogs = [], alime
   const showPonte = ponteRows.length > 0;
   const linkedAlimentationLogs = arr(alimentationLogs).filter((log) => matchesActivity(log, activeLotIds, ['avicole', 'aliment', 'ponte', 'pondeuse', 'chair', 'poulet']));
   const linkedBusinessEvents = arr(businessEvents).filter((event) => matchesActivity(event, activeLotIds, ['avicole', 'sante', 'charge', 'chair', 'poulet', 'ponte', 'pondeuse', 'oeuf', 'emballage', 'tablette', 'plateau', 'alvéole', 'chauffage', 'litiere', 'litière']));
-  const costs = summarizeAvicoleCosts({ rows: activeRows, alimentationLogs: linkedAlimentationLogs, productionLogs, slaughterEvents: linkedBusinessEvents, directCharges: linkedBusinessEvents, healthEvents: linkedBusinessEvents, defaultPricePerKg: 0 });
+  const costs = summarizeUnifiedFarmCosts({ lots: activeRows, alimentationLogs: linkedAlimentationLogs, productionLogs, healthEvents: linkedBusinessEvents, directCharges: linkedBusinessEvents }).avicole;
   const chairCostDetails = costs.details.filter((item) => item.type === 'chair');
   const pondeuseCostDetails = costs.details.filter((item) => item.type === 'ponte');
   const totalSellableFromLogs = arr(productionLogs).filter((log) => matchesActivity(log, ponteIds, ['oeuf', 'ponte', 'pondeuse'])).reduce((sum, log) => sum + Math.max(0, eggs(log) - broken(log)), 0);

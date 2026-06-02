@@ -1,7 +1,7 @@
 import { Calculator, Wallet } from 'lucide-react';
 import useCrudModule from '../hooks/useCrudModule';
 import { allocateOverheadToEntities, applyOperatingMargin } from '../services/operatingMarginService';
-import { calculateAvicoleLotCost } from '../utils/costEngine';
+import { calculateUnifiedLotCost } from '../services/unifiedCostService.js';
 import { calculateCultureMetrics } from '../utils/businessCalculations';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 
@@ -21,7 +21,7 @@ function Card({ label, value, hint, danger = false }) {
 
 function directCostFor({ mode, row, alimentationLogs, productionLogs, businessEvents }) {
   if (mode === 'avicole') {
-    return calculateAvicoleLotCost({ lot: row, alimentationLogs, productionLogs, directCharges: businessEvents, healthEvents: businessEvents, slaughterEvents: businessEvents });
+    return calculateUnifiedLotCost({ lot: row, alimentationLogs, productionLogs, directCharges: businessEvents, healthEvents: businessEvents, slaughterEvents: businessEvents }).raw;
   }
   const metrics = calculateCultureMetrics(row);
   return {
