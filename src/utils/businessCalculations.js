@@ -1,6 +1,6 @@
-import { getCalculatedAnimalFeedingCost, getLotFeedingCategory } from './alimentation';
-import { validateAnimalPayload } from './animalValidation';
-import { toNumber } from './format';
+import { getCalculatedAnimalFeedingCost, getLotFeedingCategory } from './alimentation.js';
+import { validateAnimalPayload } from './animalValidation.js';
+import { toNumber } from './format.js';
 
 const EGGS_PER_TABLET = 30;
 const clamp = (value, min = 0, max = 100) => Math.min(max, Math.max(min, Number(value || 0)));

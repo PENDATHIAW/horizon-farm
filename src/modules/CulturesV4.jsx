@@ -162,7 +162,7 @@ export default function CulturesV4(props) {
     <CultureOperationalHealthPanel rows={adjustedRows} salesOrders={props.salesOrders || []} onNavigate={props.onNavigate} />
     <ObjectivePerformanceCard dataMap={dataMap} activity="cultures" title="Objectif & Performance cultures" onNavigate={props.onNavigate} />
     <ModuleSection icon={Package} title="Intrants & météo" subtitle="Relie les cultures au stock disponible, aux seuils d’intrants et au contexte météo."><CultureInputsWeatherPanel stocks={stocks} meteo={meteo} weatherLoading={liveWeatherLoading} onNavigate={props.onNavigate} /></ModuleSection>
-    <ModuleSection icon={Sprout} title="Gestion des cultures" subtitle="Parcelles, campagnes, coûts, récoltes, marge et risques."><CulturesV3 {...adjustedProps} onCreate={wrappedCreate} onUpdate={wrappedUpdate} /></ModuleSection>
+    <ModuleSection icon={Sprout} title="Gestion des cultures" subtitle="Parcelles, campagnes, coûts, récoltes, marge et risques."><CulturesV3 {...adjustedProps} harvestPanel={props.harvestPanel} onCreate={wrappedCreate} onUpdate={wrappedUpdate} /></ModuleSection>
     <ModuleSection icon={ClipboardList} title="Cycle et historique cultures" subtitle="Entrées, sorties, ventes, pertes, récoltes et événements importants."><LifecycleHistoryPanel mode="cultures" rows={adjustedRows} salesOrders={props.salesOrders || []} deliveries={props.deliveriesList || props.deliveries || []} businessEvents={props.businessEvents || []} /></ModuleSection>
     <ModuleSection icon={BarChart3} title="Évolution cultures" subtitle="Rendement, coûts, récoltes, ventes, pertes et valeur."><CulturesEvolution rows={adjustedRows} onNavigate={props.onNavigate} /></ModuleSection>
   </div>;

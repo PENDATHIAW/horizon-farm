@@ -1,5 +1,5 @@
-import { ACCOUNTING_ACCOUNTS_SEED, buildDraftEntryFromTransaction } from '../utils/accounting';
-import { safeLocalStorageGet, safeLocalStorageSetJson } from '../utils/safeLocalStorage';
+import { ACCOUNTING_ACCOUNTS_SEED, buildDraftEntryFromTransaction } from '../utils/accounting.js';
+import { safeLocalStorageGet, safeLocalStorageSetJson } from '../utils/safeLocalStorage.js';
 
 const ENTRIES_KEY = 'hf_accounting_entries';
 const LINES_KEY = 'hf_accounting_entry_lines';

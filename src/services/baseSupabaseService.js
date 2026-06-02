@@ -1,9 +1,9 @@
-import { supabase } from '../lib/supabase';
-import { moduleSeedMap } from '../utils/mockData';
-import { normalizeByModule, normalizePayloadBeforeSave } from '../utils/normalize';
-import { safeLocalStorageSetJson } from '../utils/safeLocalStorage';
-import { isSimulatedDataModeEnabled } from '../utils/uiPreferences';
-import { enrichLinkedFields } from './issueLinkingService';
+import { supabase } from '../lib/supabase.js';
+import { moduleSeedMap } from '../utils/mockData.js';
+import { normalizeByModule, normalizePayloadBeforeSave } from '../utils/normalize.js';
+import { safeLocalStorageSetJson } from '../utils/safeLocalStorage.js';
+import { isSimulatedDataModeEnabled } from '../utils/uiPreferences.js';
+import { enrichLinkedFields } from './issueLinkingService.js';
 
 const SIMULATION_SEED_VERSION = 'horizon-farm-bp-financeur-m8-v5';
 const SIMULATION_VERSION_KEY = 'horizon_simulated_seed_version';

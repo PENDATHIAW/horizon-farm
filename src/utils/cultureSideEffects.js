@@ -1,13 +1,13 @@
-import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine';
+import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine.js';
 import {
   buildCultureHarvestWorkflow,
   buildCultureInputUsageWorkflow,
   buildCultureLossWorkflow,
   cultureHarvestQty,
   cultureUnitPrice,
-} from './cultureWorkflows';
-import { financeIds } from './sideEffectIds';
-import { toNumber } from './format';
+} from './cultureWorkflows.js';
+import { financeIds } from './sideEffectIds.js';
+import { toNumber } from './format.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();

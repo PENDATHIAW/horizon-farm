@@ -1,12 +1,12 @@
-import { syncFinanceSideEffects, closeOpportunityForOrder, syncSaleTraceFromOrder, resolveSaleTasksOnPayment } from '../services/erpInterconnectionEngine';
-import { getFinanceActivityFromSale, getFinanceCategoryFromSale } from '../services/financeSyncService';
-import { buildClientReminderFollowUp, buildClientSalesSummary } from './clientWorkflows';
-import { buildClientReceivablePatch } from './recordSalePayment';
-import { buildReverseSaleSourcePatch, buildSaleSourcePatch } from './salesWorkflows';
-import { remainingForOrder } from './salesStatuses';
-import { financeIds } from './sideEffectIds';
-import { makeId } from './ids';
-import { toNumber } from './format';
+import { syncFinanceSideEffects, closeOpportunityForOrder, syncSaleTraceFromOrder, resolveSaleTasksOnPayment } from '../services/erpInterconnectionEngine.js';
+import { getFinanceActivityFromSale, getFinanceCategoryFromSale } from '../services/financeSyncService.js';
+import { buildClientReminderFollowUp, buildClientSalesSummary } from './clientWorkflows.js';
+import { buildClientReceivablePatch } from './recordSalePayment.js';
+import { buildReverseSaleSourcePatch, buildSaleSourcePatch } from './salesWorkflows.js';
+import { remainingForOrder } from './salesStatuses.js';
+import { financeIds } from './sideEffectIds.js';
+import { makeId } from './ids.js';
+import { toNumber } from './format.js';
 
 export { financeIds };
 

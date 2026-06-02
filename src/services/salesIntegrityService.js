@@ -1,5 +1,5 @@
-import { toNumber } from '../utils/format';
-import { paidForOrder, remainingForOrder, normalizePaymentStatus, normalizeOrderStatus, normalizeDeliveryStatus, normalizeInvoiceStatus } from '../utils/salesStatuses';
+import { toNumber } from '../utils/format.js';
+import { paidForOrder, remainingForOrder, normalizePaymentStatus, normalizeOrderStatus, normalizeDeliveryStatus, normalizeInvoiceStatus } from '../utils/salesStatuses.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value) => String(value || '').trim();

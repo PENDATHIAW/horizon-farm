@@ -1,5 +1,5 @@
-﻿import { toNumber } from './format';
-import { avicoleCalculatedActiveCount, avicoleInitialCount } from './avicoleMetrics';
+﻿import { toNumber } from './format.js';
+import { avicoleCalculatedActiveCount, avicoleInitialCount } from './avicoleMetrics.js';
 const DATE_KEY_RE = /(^date($|_)|_date$|_at$|date_|debut|fin|naissance|achat|vente|deces|vol_detecte|intervention|recolte|prevue|prochaine|livraison|paiement|facture|recorded_at|sent_at|detected_at|event_date|last_seen_at)/i;
 const NUMBER_KEY_RE = /(montant|amount|quantite|quantity|prix|price|cout|cost|frais|charge|ca_|marge|margin|roi|score|note|total|solde|seuil|surface|poids|weight|count|nombre|duree|cycle|age|taux|pct|percent|valeur|gain|perte|remise|paye|reste|budget|capacite|production|rendement|niveau|battery|distance|latitude|longitude|initial|current|mortality|malades|vols|vendus|reformes|sorties)/i;
 const UI_FIELD_RE = /(_view$|_label$|_display$|^preview_|^calculated_|^computed_|^ui_)/i;
