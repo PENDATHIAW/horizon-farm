@@ -32,6 +32,7 @@ export function buildHealthFinanceRow({ health = {}, amount = 0, date = '' } = {
     statut: 'paye',
     side_effects_managed: true,
     created_from: 'health_side_effects',
+    issue_key: health.issue_key || `elevage:sante:${healthId}`,
     ...buildStructuredFarmImpact({ ...health, cout: value }),
   };
 }

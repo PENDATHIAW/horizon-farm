@@ -13,7 +13,7 @@ const isClosedAnimal = (row = {}) => {
   return ['vendu', 'mort', 'vole', 'volé', 'perdu', 'abattu', 'cloture', 'clôture', 'sorti'].some((word) => status.includes(word));
 };
 
-export default function ElevageAlimentationPanel({ data, setTab, animalProps, avicoleProps, onNavigate }) {
+export default function ElevageAlimentationPanel({ data, setTab, animalProps, avicoleProps, onNavigate, onOpenWorkflow }) {
   const activeAnimals = useMemo(() => (animalProps.rows || []).filter((row) => !isClosedAnimal(row)), [animalProps.rows]);
   const activeLots = useMemo(() => (avicoleProps.rows || []).filter(avicoleHasActiveBirds), [avicoleProps.rows]);
   const recent = (data.feedLogs || []).slice(0, 8);
@@ -29,7 +29,7 @@ export default function ElevageAlimentationPanel({ data, setTab, animalProps, av
 
       <ElevageSection title="Actions rapides" subtitle="Distribution depuis le stock et réapprovisionnement.">
         <div className={ELEVAGE_ACTION_GRID}>
-          <ElevageActionCard title="+ Distribution aliment" text="Mouvement stock / consommation liée au cheptel ou aux lots." onClick={() => emitHorizonForm('stock', 'stock_movement', 'Distribution aliment', { date: today(), category: 'alimentation' })} />
+          <ElevageActionCard title="+ Distribution aliment" text="Sortie stock, coût lot/animal, finance et alerte seuil." onClick={() => (onOpenWorkflow ? onOpenWorkflow('feeding') : emitHorizonForm('stock', 'stock_movement', 'Distribution aliment', { date: today(), category: 'alimentation' }))} />
           <ElevageActionCard title="Acheter aliment" text="Réapprovisionnement Achats & Stock." onClick={() => onNavigate?.('achats_stock')} />
           <ElevageActionCard title="Voir consommation lots" text="Historique et effectifs avicole." onClick={() => setTab('Avicole')} />
         </div>

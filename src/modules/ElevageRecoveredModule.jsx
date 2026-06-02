@@ -12,11 +12,14 @@ import { rowsOf } from '../utils/moduleRows';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import HeyHorizonQuickAsk from '../components/HeyHorizonQuickAsk.jsx';
 import { resolveElevageTab, navigateForIaFinding } from '../utils/commercialNavigation';
+import { avicoleHasActiveBirds } from '../utils/avicoleMetrics.js';
 import { buildElevageHealthSnapshot, computeLotMargin, computeAnimalMargin, formatMargin } from './elevage/elevageVisionHelpers.js';
 import AnimauxV2 from './AnimauxV2';
 import AvicoleV10 from './AvicoleV10';
 import ElevageProductionPanel from './elevage/ElevageProductionPanel.jsx';
 import ElevageTransformationPanel from './elevage/ElevageTransformationPanel.jsx';
+import ElevageWorkflowPanels, { buildElevageHandlers, useElevageWorkflowContext } from './elevage/ElevageWorkflowPanels.jsx';
+import ElevageRepairPanel from './elevage/ElevageRepairPanel.jsx';
 import ElevageAlimentationPanel from './elevage/ElevageAlimentationPanel.jsx';
 import ElevageCyclesPanel from './elevage/ElevageCyclesPanel.jsx';
 import ElevageSantePanel from './elevage/ElevageSantePanel.jsx';
@@ -122,7 +125,7 @@ function Summary({ data, setTab, onApply, busyId, onNavigate }) {
     </ElevageSection>
   </div>;
 }
-function ProductionHub({ data, setTab, onNavigate, animalProps, avicoleProps, horizonDraft, onCloseDraft }) {
+function ProductionHub({ data, setTab, onNavigate, animalProps, avicoleProps, horizonDraft, onCloseDraft, onOpenWorkflow }) {
   const recent = data.productionLogs.slice(0, 8);
   return (
     <ElevageProductionPanel
@@ -132,6 +135,7 @@ function ProductionHub({ data, setTab, onNavigate, animalProps, avicoleProps, ho
       avicoleProps={avicoleProps}
       horizonDraft={horizonDraft}
       onCloseDraft={onCloseDraft}
+      onOpenWorkflow={onOpenWorkflow}
       recent={recent}
       stats={[
         { label: 'Ramassages', value: fmtNumber(data.productionLogs.length), tone: 'good' },
@@ -142,7 +146,7 @@ function ProductionHub({ data, setTab, onNavigate, animalProps, avicoleProps, ho
     />
   );
 }
-function TransformationHub({ data, setTab, onNavigate, animalProps, avicoleProps, horizonDraft, onCloseDraft }) {
+function TransformationHub({ data, setTab, onNavigate, animalProps, avicoleProps, horizonDraft, onCloseDraft, onOpenWorkflow }) {
   return (
     <ElevageTransformationPanel
       data={data}
@@ -151,6 +155,7 @@ function TransformationHub({ data, setTab, onNavigate, animalProps, avicoleProps
       avicoleProps={avicoleProps}
       horizonDraft={horizonDraft}
       onCloseDraft={onCloseDraft}
+      onOpenWorkflow={onOpenWorkflow}
       stats={[
         { label: 'Animaux sortis', value: fmtNumber(data.closedAnimals) },
         { label: 'Mortalité lots', value: fmtNumber(data.recentMortality), tone: data.recentMortality ? 'warn' : 'good' },
@@ -160,7 +165,7 @@ function TransformationHub({ data, setTab, onNavigate, animalProps, avicoleProps
     />
   );
 }
-function FeedingHub({ data, setTab, onNavigate, animalProps, avicoleProps }) {
+function FeedingHub({ data, setTab, onNavigate, animalProps, avicoleProps, onOpenWorkflow }) {
   return (
     <ElevageAlimentationPanel
       data={data}
@@ -168,6 +173,7 @@ function FeedingHub({ data, setTab, onNavigate, animalProps, avicoleProps }) {
       animalProps={animalProps}
       avicoleProps={avicoleProps}
       onNavigate={onNavigate}
+      onOpenWorkflow={onOpenWorkflow}
     />
   );
 }
@@ -187,6 +193,7 @@ export default function ElevageRecoveredModule(props) {
   const [tab, setTab] = useState(() => resolveElevageTab(props.initialTab));
   const [busyId, setBusyId] = useState(null);
   const [horizonDraft, setHorizonDraft] = useState(null);
+  const [workflowModal, setWorkflowModal] = useState(null);
 
   useEffect(() => {
     if (props.initialTab) setTab(resolveElevageTab(props.initialTab));
@@ -317,6 +324,48 @@ export default function ElevageRecoveredModule(props) {
   const shared = { onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: props.onNavigate, embedInElevage: true, onElevageTabChange: handleTabChange };
   const animalProps = { rows: animals, alimentationLogs: feedLogs, vaccins: health, salesOrders, payments: rowsOf(props.payments, paymentsCrud, periodFiltered), opportunities, businessEvents, onCreate: props.onCreateAnimal || animauxCrud.create, onUpdate: props.onUpdateAnimal || animauxCrud.update, onDelete: props.onDeleteAnimal || animauxCrud.remove, onRefresh: props.onRefreshAnimals || animauxCrud.refresh, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, ...shared };
   const avicoleProps = { rows: lots, transactions: rowsOf(props.transactions, financesCrud, periodFiltered), alimentationLogs: feedLogs, productionLogs, opportunities, businessEvents, onCreate: props.onCreateLot || avicoleCrud.create, onUpdate: props.onUpdateLot || avicoleCrud.update, onDelete: props.onDeleteLot || avicoleCrud.remove, onRefresh: props.onRefreshLots || avicoleCrud.refresh, onCreateProduction: props.onCreateProduction || productionCrud.create, onUpdateProduction: props.onUpdateProduction || productionCrud.update, onDeleteProduction: props.onDeleteProduction || productionCrud.remove, onRefreshProduction: props.onRefreshProduction || productionCrud.refresh, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, ...shared };
+  const workflowContext = useElevageWorkflowContext({
+    lots,
+    animaux: animals,
+    stocks,
+    transactions: rowsOf(props.transactions, financesCrud, periodFiltered),
+    tasks: rowsOf(props.tasks, tasksCrud, false),
+    alertes: rowsOf(props.alertes, alertsCrud, false),
+    businessEvents,
+    alimentationLogs: feedLogs,
+    productionLogs,
+    sante: health,
+  });
+  const workflowHandlers = buildElevageHandlers({
+    onCreateAlimentation: feedCrud.create,
+    onUpdateStock: stockCrud.update,
+    onCreateFinanceTransaction: financesCrud.create,
+    onCreateBusinessEvent: eventsCrud.create,
+    onCreateHealth: santeCrud.create,
+    onUpdateHealth: santeCrud.update,
+    onUpdateLot: avicoleCrud.update,
+    onUpdateAnimal: animauxCrud.update,
+    onCreateTask: tasksCrud.create,
+    onCreateAlert: alertsCrud.create,
+    onCreateDocument: documentsCrud.create,
+    onCreateProduction: productionCrud.create,
+  });
+  const refreshWorkflowData = async () => {
+    await Promise.allSettled([
+      feedCrud.refresh?.(),
+      stockCrud.refresh?.(),
+      santeCrud.refresh?.(),
+      avicoleCrud.refresh?.(),
+      animauxCrud.refresh?.(),
+      productionCrud.refresh?.(),
+      financesCrud.refresh?.(),
+      eventsCrud.refresh?.(),
+      tasksCrud.refresh?.(),
+      alertsCrud.refresh?.(),
+    ]);
+  };
+  const openWorkflow = (name) => setWorkflowModal(name);
+  const pondeuseLots = lots.filter(isPondeuse);
   const healthProps = { rows: health, vets: rowsOf(props.veterinaires, vetsCrud, false), animaux: animals, lots, stocks, transactions: rowsOf(props.transactions, financesCrud, periodFiltered), documents: rowsOf(props.documents, documentsCrud, periodFiltered), tasks: rowsOf(props.tasks, tasksCrud, false), alertes: rowsOf(props.alertes, alertsCrud, false), onCreate: props.onCreateHealth || santeCrud.create, onUpdate: props.onUpdateHealth || santeCrud.update, onDelete: props.onDeleteHealth || santeCrud.remove, onRefresh: props.onRefreshHealth || santeCrud.refresh, onCreateVet: props.onCreateVet || vetsCrud.create, onUpdateVet: props.onUpdateVet || vetsCrud.update, onDeleteVet: props.onDeleteVet || vetsCrud.remove, onRefreshVets: props.onRefreshVets || vetsCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onUpdateAlert: props.onUpdateAlert || alertsCrud.update, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateDocument: props.onCreateDocument || documentsCrud.create, onRefreshDocuments: props.onRefreshDocuments || documentsCrud.refresh, onNavigate: props.onNavigate };
   const content = tab === 'Cycles' ? (
     <ElevageCyclesPanel
@@ -327,6 +376,37 @@ export default function ElevageRecoveredModule(props) {
       onNavigate={props.onNavigate}
       setTab={handleTabChange}
     />
-  ) : tab === 'Résumé' ? <Summary data={data} setTab={handleTabChange} onApply={applyFinding} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Animaux' ? <AnimauxV2 {...animalProps} /> : tab === 'Avicole' ? <AvicoleV10 {...avicoleProps} /> : tab === 'Alimentation' ? <FeedingHub data={data} setTab={handleTabChange} onNavigate={props.onNavigate} animalProps={animalProps} avicoleProps={avicoleProps} /> : tab === 'Santé' ? <ElevageSantePanel healthProps={healthProps} onNavigate={props.onNavigate} /> : tab === 'Reproduction' ? <ReproductionHub data={data} setTab={handleTabChange} animalProps={animalProps} horizonDraft={horizonDraft} onCloseDraft={() => setHorizonDraft(null)} /> : tab === 'Production' ? <ProductionHub data={data} setTab={handleTabChange} onNavigate={props.onNavigate} animalProps={animalProps} avicoleProps={avicoleProps} horizonDraft={horizonDraft} onCloseDraft={() => setHorizonDraft(null)} /> : tab === 'Transformation' ? <TransformationHub data={data} setTab={handleTabChange} onNavigate={props.onNavigate} animalProps={animalProps} avicoleProps={avicoleProps} horizonDraft={horizonDraft} onCloseDraft={() => setHorizonDraft(null)} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="elevage" dataMap={{ ...props.dataMap, animaux: animals, lots, production_oeufs_logs: productionLogs, alimentation_logs: feedLogs, stock: stocks }} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="elevage" periodFiltered={periodFiltered} lots={lots} animaux={animals} productionLogs={productionLogs} alimentationLogs={feedLogs} transactions={rowsOf(props.transactions, financesCrud, periodFiltered)} salesOrders={salesOrders} onNavigate={props.onNavigate} />;
-  return <div className="elevage-module space-y-6"><section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm sm:p-6"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 flex-1"><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Élevage</h1><p className="mt-1 text-sm leading-relaxed text-[#8a7456]">Animaux, avicole, alimentation, santé, reproduction, transformation — IA proactive et rentabilité fiable.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}<HeyHorizonQuickAsk moduleKey="elevage" onNavigate={props.onNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" /></div><div className="shrink-0 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé module </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div></div></section><Tabs active={tab} onChange={handleTabChange} />{content}</div>;
+  ) : tab === 'Résumé' ? <Summary data={data} setTab={handleTabChange} onApply={applyFinding} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Animaux' ? <AnimauxV2 {...animalProps} /> : tab === 'Avicole' ? <AvicoleV10 {...avicoleProps} /> : tab === 'Alimentation' ? <FeedingHub data={data} setTab={handleTabChange} onNavigate={props.onNavigate} animalProps={animalProps} avicoleProps={avicoleProps} onOpenWorkflow={openWorkflow} /> : tab === 'Santé' ? <ElevageSantePanel healthProps={healthProps} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} /> : tab === 'Reproduction' ? <ReproductionHub data={data} setTab={handleTabChange} animalProps={animalProps} horizonDraft={horizonDraft} onCloseDraft={() => setHorizonDraft(null)} /> : tab === 'Production' ? <ProductionHub data={data} setTab={handleTabChange} onNavigate={props.onNavigate} animalProps={animalProps} avicoleProps={avicoleProps} horizonDraft={horizonDraft} onCloseDraft={() => setHorizonDraft(null)} onOpenWorkflow={openWorkflow} /> : tab === 'Transformation' ? <TransformationHub data={data} setTab={handleTabChange} onNavigate={props.onNavigate} animalProps={animalProps} avicoleProps={avicoleProps} horizonDraft={horizonDraft} onCloseDraft={() => setHorizonDraft(null)} onOpenWorkflow={openWorkflow} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="elevage" dataMap={{ ...props.dataMap, animaux: animals, lots, production_oeufs_logs: productionLogs, alimentation_logs: feedLogs, stock: stocks }} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="elevage" periodFiltered={periodFiltered} lots={lots} animaux={animals} productionLogs={productionLogs} alimentationLogs={feedLogs} transactions={rowsOf(props.transactions, financesCrud, periodFiltered)} salesOrders={salesOrders} onNavigate={props.onNavigate} />;
+  return <div className="elevage-module space-y-6"><section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm sm:p-6"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 flex-1"><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Élevage</h1><p className="mt-1 text-sm leading-relaxed text-[#8a7456]">Animaux, avicole, alimentation, santé, reproduction, transformation — IA proactive et rentabilité fiable.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}<HeyHorizonQuickAsk moduleKey="elevage" onNavigate={props.onNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" /></div><div className="shrink-0 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé module </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div></div></section><ElevageRepairPanel
+        alimentationLogs={feedLogs}
+        sante={health}
+        lots={lots}
+        animaux={animals}
+        stocks={stocks}
+        productionLogs={productionLogs}
+        transactions={rowsOf(props.transactions, financesCrud, periodFiltered)}
+        tasks={rowsOf(props.tasks, tasksCrud, false)}
+        alertes={rowsOf(props.alertes, alertsCrud, false)}
+        businessEvents={businessEvents}
+        salesOrders={salesOrders}
+        onCreateAlert={alertsCrud.create}
+        onCreateTask={tasksCrud.create}
+        onCreateFinanceTransaction={financesCrud.create}
+        onCreateBusinessEvent={eventsCrud.create}
+        onRefresh={refreshWorkflowData}
+      />
+      <Tabs active={tab} onChange={handleTabChange} />
+      {content}
+      <ElevageWorkflowPanels
+        activeModal={workflowModal}
+        onClose={() => setWorkflowModal(null)}
+        context={workflowContext}
+        handlers={workflowHandlers}
+        feedStocks={data.feedStocks}
+        lots={lots.filter(avicoleHasActiveBirds)}
+        animaux={animals.filter((a) => !isClosedAnimal(a))}
+        pondeuseLots={pondeuseLots}
+        onSuccess={refreshWorkflowData}
+      />
+    </div>;
 }
