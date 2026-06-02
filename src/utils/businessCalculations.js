@@ -194,14 +194,15 @@ export const calculateLotSaleReadiness = (lot = {}, metrics = calculateLotMetric
   return { score, status: score >= 86 ? 'recommande_pret' : score >= 65 ? 'presque_pret' : 'non_pret', recommended: score >= 86, reason: criteria.filter((item) => item.ok).map((item) => item.label).join(', '), missing: criteria.filter((item) => !item.ok).map((item) => item.label), ageDays: age, expectedEndDate: expectedEnd };
 };
 
-export const calculateAnimalMetrics = ({ animal = {}, animals = [], feedingLogs = [], vaccins = [] } = {}) => {
+export const calculateAnimalMetrics = ({ animal = {}, animals = [], feedingLogs = [], vaccins = [], healthEvents = [], directCharges = [] } = {}) => {
   const validation = validateAnimalPayload(animal);
-  const feedingCost = getCalculatedAnimalFeedingCost({ animal, feedingLogs, animals });
-  const healthCost = Math.max(0, toNumber(animal.frais_sante ?? animal.sante));
-  const otherCosts = Math.max(0, toNumber(animal.autres_frais));
-  const purchaseCost = Math.max(0, toNumber(animal.purchase_cost ?? animal.prix_achat ?? animal.cout_achat));
+  const unified = calculateUnifiedAnimalCost({ animal, alimentationLogs: feedingLogs, vaccins, healthEvents, directCharges });
+  const feedingCost = unified.feedingCost;
+  const healthCost = unified.healthCost;
+  const otherCosts = unified.otherCost;
+  const purchaseCost = unified.purchaseCost;
+  const totalCost = unified.totalCost;
   const salePrice = Math.max(0, toNumber(animal.prix_vente_reel ?? animal.sale_price ?? animal.prix_vente ?? animal.prix_vente_estime));
-  const totalCost = purchaseCost + feedingCost + healthCost + otherCosts;
   const margin = salePrice > 0 ? salePrice - totalCost : null;
   const relatedVaccins = vaccins.filter((vaccin) => String(vaccin.animal || '').includes(animal.id) || String(vaccin.animal || '').includes(animal.tag));
   const overdueVaccines = relatedVaccins.filter((vaccin) => vaccin.statut === 'retard').length;

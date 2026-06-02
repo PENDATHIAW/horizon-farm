@@ -1,8 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { BrainCircuit, Lightbulb, ShoppingCart, Users } from 'lucide-react';
-import { applyOneClickRecommendation } from '../services/heyHorizonRecommendationActions.js';
-import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import useCrudModule from '../hooks/useCrudModule';
 import { buildSaleFormFromOpportunity } from '../utils/saleFormDraft';
@@ -28,49 +25,15 @@ import { resolveCommercialClients } from '../utils/clientWorkflows.js';
 import { rowsOf, allRows } from '../utils/moduleRows';
 import { CommercialKpi, CommercialModuleHeader, CommercialQuickActions, CommercialTodoRow, CommercialTopClients } from './commercial/CommercialShell.jsx';
 import CommercialOpportunitiesPanel from './commercial/CommercialOpportunitiesPanel.jsx';
-import CommercialInsightPanel from './commercial/CommercialInsightPanel.jsx';
-import { COMMERCIAL_ACTION_GRID, CommercialSection } from './commercial/commercialUi.jsx';
-import VentesV4 from './VentesV4';
+import VentesV3 from './VentesV3';
 import ClientsReadable from './ClientsReadable';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
-function Summary({ data, setTab, onNewSale, onNavigate, onApplyFinding, busyId }) {
+function Summary({ data, setTab, onNewSale }) {
   const todos = data.summaryTodos.slice(0, 6);
   return (
     <div className="space-y-5">
-      <CommercialSection title="Parcours commercial" subtitle="Encaissements et livraisons sur Ventes · créances sur Clients · pipeline sur Opportunités · analyses IA sur Centre décisionnel.">
-        <div className={COMMERCIAL_ACTION_GRID}>
-          <button type="button" onClick={onNewSale} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left hover:bg-[#dcfce7] transition min-w-0">
-            <ShoppingCart size={16} className="text-[#9a6b12] mb-2" aria-hidden="true" />
-            <b className="block text-[#2f2415]">Nouvelle vente</b>
-            <p className="mt-1 text-sm text-[#8a7456]">Formulaire guidé 5 étapes</p>
-          </button>
-          <button type="button" onClick={() => setTab('Ventes')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left hover:bg-[#dcfce7] transition min-w-0">
-            <ShoppingCart size={16} className="text-[#9a6b12] mb-2" aria-hidden="true" />
-            <b className="block text-[#2f2415]">À encaisser / livrer</b>
-            <p className="mt-1 text-sm text-[#8a7456]">{data.openSalesCount} vente(s) ouverte(s)</p>
-          </button>
-          <button type="button" onClick={() => setTab('Clients')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left hover:bg-[#dcfce7] transition min-w-0">
-            <Users size={16} className="text-[#9a6b12] mb-2" aria-hidden="true" />
-            <b className="block text-[#2f2415]">Clients & créances</b>
-            <p className="mt-1 text-sm text-[#8a7456]">{fmtCurrency(data.receivable)} à recouvrer</p>
-          </button>
-          <button type="button" onClick={() => setTab('Opportunités')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left hover:bg-[#dcfce7] transition min-w-0">
-            <Lightbulb size={16} className="text-[#9a6b12] mb-2" aria-hidden="true" />
-            <b className="block text-[#2f2415]">Opportunités</b>
-            <p className="mt-1 text-sm text-[#8a7456]">{data.openOpportunities.length} en pipeline</p>
-          </button>
-          {onNavigate ? (
-            <button type="button" onClick={() => onNavigate('centre_ia', { tab: 'Opportunités' })} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left hover:bg-[#dcfce7] transition min-w-0">
-              <BrainCircuit size={16} className="text-[#9a6b12] mb-2" aria-hidden="true" />
-              <b className="block text-[#2f2415]">Centre décisionnel</b>
-              <p className="mt-1 text-sm text-[#8a7456]">Synthèse pipeline & IA</p>
-            </button>
-          ) : null}
-        </div>
-      </CommercialSection>
-
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <CommercialKpi label="Encaissé" value={fmtCurrency(data.collected)} tone="good" onClick={() => setTab('Graphiques')} />
         <CommercialKpi label="Créances" value={fmtCurrency(data.receivable)} tone={data.receivable ? 'warn' : 'good'} onClick={() => setTab('Clients')} />
@@ -122,16 +85,6 @@ function Summary({ data, setTab, onNewSale, onNavigate, onApplyFinding, busyId }
           <CommercialTopClients rows={data.topClients} setTab={setTab} />
         </div>
       </div>
-
-      <CommercialInsightPanel
-        findings={data.healthFindings}
-        predictions={data.healthPredictions}
-        coherenceRows={data.coherenceRows}
-        onApplyFinding={onApplyFinding}
-        onNavigate={onNavigate}
-        setTab={setTab}
-        busyId={busyId}
-      />
     </div>
   );
 }
@@ -139,7 +92,6 @@ function Summary({ data, setTab, onNewSale, onNavigate, onApplyFinding, busyId }
 export default function CommercialRecoveredModule(props) {
   const [tab, setTab] = useState(() => resolveCommercialTab(props.initialTab));
   const [pendingSaleDraft, setPendingSaleDraft] = useState(null);
-  const [busyId, setBusyId] = useState(null);
 
   useEffect(() => {
     if (props.initialTab) setTab(resolveCommercialTab(props.initialTab));
@@ -306,60 +258,14 @@ export default function CommercialRecoveredModule(props) {
 
   const todoBadge = data.todoCount;
 
-  const actionHandlers = {
-    onNavigate: props.onNavigate,
-    onCreateTask: props.onCreateTask || tasksCrud.create,
-    onCreateAlert: props.onCreateAlert || alertsCrud.create,
-    onUpdateAlert: props.onUpdateAlert || alertsCrud.update,
-    onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create,
-    existingTasks: rowsOf(props.existingTasks || props.tasks, tasksCrud, false),
-    existingAlerts: rowsOf(props.existingAlerts || props.alertes, alertsCrud, false),
-  };
-
-  const applyFinding = async (finding) => {
-    setBusyId(finding.id);
-    try {
-      const result = await applyOneClickRecommendation(finding, actionHandlers);
-      if (result.createdTasks || result.createdAlerts) toast.success('Action IA créée');
-      else toast.success('Module ouvert');
-    } catch (e) {
-      toast.error(e.message || 'Erreur');
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const lots = rowsOf(props.lots, lotsCrud, false);
-  const animaux = rowsOf(props.animals || props.animaux, animalsCrud, false);
-
   return (
-    <div className="commercial-module space-y-4">
+    <div className="space-y-4">
       <CommercialModuleHeader tab={tab} setTab={setTab} healthScore={data.healthScore} periodLabel={props.periodLabel} onNavigate={props.onNavigate} onOpenAssistant={props.onOpenAssistant} badges={{ receivable: data.receivable, todo: todoBadge, tabs: { Ventes: data.openSalesCount, Clients: data.clientsDebtCount, Opportunités: data.openOpportunities.length } }} />
-      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onNewSale={openNewSale} onNavigate={props.onNavigate} onApplyFinding={applyFinding} busyId={busyId} /> : null}
-      {tab === 'Ventes' ? <VentesV4 {...salesProps} /> : null}
+      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onNewSale={openNewSale} /> : null}
+      {tab === 'Ventes' ? <VentesV3 {...salesProps} /> : null}
       {tab === 'Clients' ? <ClientsReadable {...clientProps} /> : null}
-      {tab === 'Opportunités' ? (
-        <CommercialOpportunitiesPanel
-          opportunities={data.openOpportunities}
-          clients={clients}
-          salesOrders={data.orders}
-          lots={lots}
-          animaux={animaux}
-          setTab={setTab}
-          onWhatsAppLog={logOpportunityWhatsApp}
-          onConvertSale={convertOpportunityToSale}
-          onUpdateLot={props.onUpdateLot || lotsCrud.update}
-          onRefreshLots={props.onRefreshLots || lotsCrud.refresh}
-          onUpdateAnimal={props.onUpdateAnimal || animalsCrud.update}
-          onRefreshAnimals={props.onRefreshAnimals || animalsCrud.refresh}
-          onCreateOpportunity={props.onCreateOpportunity || opportunitiesCrud.create}
-          onUpdateOpportunity={props.onUpdateOpportunity || opportunitiesCrud.update}
-          onRefreshOpportunities={props.onRefreshOpportunities || opportunitiesCrud.refresh}
-          onCreateBusinessEvent={props.onCreateBusinessEvent || eventsCrud.create}
-          onRefreshBusinessEvents={props.onRefreshBusinessEvents || eventsCrud.refresh}
-        />
-      ) : null}
-      {tab === 'Annexe' ? <ModuleAnnexeTab moduleId="commercial" dataMap={{ sales_orders: ordersAll, payments: paymentsAll, clients }} onNavigate={props.onNavigate} /> : null}
+      {tab === 'Opportunités' ? <CommercialOpportunitiesPanel opportunities={data.openOpportunities} clients={clients} salesOrders={data.orders} setTab={setTab} onWhatsAppLog={logOpportunityWhatsApp} onConvertSale={convertOpportunityToSale} /> : null}
+      {tab === 'Annexe' ? <ModuleAnnexeTab moduleId="commercial" onNavigate={props.onNavigate} /> : null}
       {tab === 'Graphiques' ? (
         <ModuleGraphiquesTab
           moduleId="commercial"
@@ -367,8 +273,8 @@ export default function CommercialRecoveredModule(props) {
           payments={paymentsAll}
           opportunities={opportunities}
           clients={clients}
-          lots={lots}
-          animaux={animaux}
+          lots={rowsOf(props.lots, lotsCrud, false)}
+          animaux={rowsOf(props.animals || props.animaux, animalsCrud, false)}
           cultures={rowsOf(props.cultures, culturesCrud, false)}
           stocks={rowsOf(props.stocks, stockCrud, false)}
           alimentationLogs={rowsOf(props.alimentationLogs, alimentationCrud, pf)}

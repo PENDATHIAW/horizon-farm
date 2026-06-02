@@ -32,9 +32,12 @@ function stockPurchaseCost(item = {}) {
   const isRealEntry = ['achat', 'entree_stock', 'entrée_stock', 'approvisionnement', 'reception', 'réception'].some((word) => movement.includes(word));
   return isRealEntry ? stockValueOf(item) : 0;
 }
-function deriveBusinessCharges({ animaux = [], lots = [], cultures = [], stocks = [], fournisseurs = [], sante = [], alimentationLogs = [], investissements = [], businessEvents = [] } = {}) {
+function deriveBusinessCharges({ animaux = [], lots = [], cultures = [], stocks = [], fournisseurs = [], sante = [], alimentationLogs = [], productionLogs = [], investissements = [], businessEvents = [] } = {}) {
   const animalBreakdown = arr(animaux).map(animalCosts); const lotBreakdown = arr(lots).map(lotCosts); const cultureBreakdown = arr(cultures).map(cultureCosts);
-  const animalTotal = animalBreakdown.reduce((sum, item) => sum + item.total, 0); const lotTotal = lotBreakdown.reduce((sum, item) => sum + item.total, 0); const cultureTotal = cultureBreakdown.reduce((sum, item) => sum + item.total, 0);
+  const animalFieldTotal = animalBreakdown.reduce((sum, item) => sum + item.total, 0); const lotFieldTotal = lotBreakdown.reduce((sum, item) => sum + item.total, 0); const cultureTotal = cultureBreakdown.reduce((sum, item) => sum + item.total, 0);
+  const unified = summarizeUnifiedFarmCosts({ animaux, lots, alimentationLogs, productionLogs, vaccins: sante, healthEvents: businessEvents, directCharges: businessEvents });
+  const animalTotal = mergeFieldAndUnifiedTotals(animalFieldTotal, unified.animaux.totalCost);
+  const lotTotal = mergeFieldAndUnifiedTotals(lotFieldTotal, unified.avicole.totalCost);
   const stockPurchases = arr(stocks).reduce((sum, item) => sum + stockPurchaseCost(item), 0);
   const healthTotal = arr(sante).reduce((sum, row) => sum + healthCost(row), 0); const alimentationTotal = arr(alimentationLogs).reduce((sum, row) => sum + firstPositive(row.cout, row.coût, row.montant, row.amount, row.total, row.cout_total), 0); const investmentTotal = arr(investissements).reduce((sum, row) => sum + investmentCost(row), 0); const supplierDebt = arr(fournisseurs).reduce((sum, supplier) => sum + firstPositive(supplier.dettes, supplier.dette, supplier.solde_du, supplier.montant_du), 0);
   const eventCharges = arr(businessEvents).reduce((sum, event) => { if (isLossEvent(event)) return sum; const kind = clean(`${event.type_evenement || ''} ${event.event_type || ''} ${event.title || ''} ${event.description || ''}`); const looksLikeCost = ['charge', 'cout', 'coût', 'depense', 'dépense', 'maintenance', 'sante', 'santé', 'aliment', 'investissement'].some((word) => kind.includes(word)); return sum + (looksLikeCost ? eventAmount(event) : 0); }, 0);
