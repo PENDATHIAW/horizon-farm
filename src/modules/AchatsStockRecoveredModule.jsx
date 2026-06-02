@@ -185,7 +185,7 @@ export default function AchatsStockRecoveredModule(props) {
       (trx) => !stocks.some((s) => String(s.last_purchase_id || s.source_id) === String(trx.id)) && trx.stock_impact !== true && n(trx.montant ?? trx.amount) > 0,
     );
     const healthSnap = buildAchatsStockHealthSnapshot({ stocks, suppliers, transactions, feedLogs });
-    const coherenceRows = buildAchatsStockCoherenceRows(stocks, transactions, suppliers);
+    const coherenceRows = buildAchatsStockCoherenceRows(stocks, transactions, suppliers, arr(props.lots), arr(props.animaux), cultures);
     const supplierDebts = aggregateSupplierDebts(suppliers);
     const summaryTodos = buildAchatsStockSummaryTodos({ lowStock, purchasesWithoutStock, supplierDebts });
     return {

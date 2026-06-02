@@ -1,5 +1,6 @@
 import { runErpHealthEngine } from '../../services/erpHealthEngine.js';
 import { fmtCurrency } from '../../utils/format.js';
+import { buildProductionCoherenceAlerts } from '../../utils/productionStockCatalog.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v = 0) => Number(v || 0);
@@ -22,7 +23,7 @@ export function buildAchatsStockHealthSnapshot({ stocks = [], suppliers = [], tr
   };
 }
 
-export function buildAchatsStockCoherenceRows(stocks = [], transactions = [], suppliers = []) {
+export function buildAchatsStockCoherenceRows(stocks = [], transactions = [], suppliers = [], lots = [], animaux = [], cultures = []) {
   const rows = [];
   const purchases = arr(transactions).filter(isPurchaseTx);
 
@@ -96,6 +97,25 @@ export function buildAchatsStockCoherenceRows(stocks = [], transactions = [], su
         },
       });
     }
+  });
+
+  buildProductionCoherenceAlerts({ stocks, lots, animaux, cultures }).forEach((alert) => {
+    rows.push({
+      id: alert.id,
+      type: 'production_stock',
+      title: alert.title,
+      detail: alert.detail,
+      finding: {
+        id: alert.id,
+        module: alert.module || 'achats_stock',
+        severity: alert.severity === 'red' ? 'haute' : 'moyenne',
+        auto_action: 'create_alert',
+        title: alert.title,
+        description: alert.detail,
+        recommended_action: alert.module === 'cultures' ? 'Ouvrir Cultures' : 'Ouvrir Élevage',
+        confidence_score: alert.severity === 'red' ? 0.9 : 0.82,
+      },
+    });
   });
 
   return rows.sort((a, b) => (b.value || 0) - (a.value || 0));

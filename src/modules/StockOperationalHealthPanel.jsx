@@ -6,6 +6,7 @@ import {
   isCommerciallyBlocked,
   requiresDlc,
 } from '../utils/stockFreshProduct';
+import { buildProductionCoherenceAlerts } from '../utils/productionStockCatalog';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value = '') => String(value || '').trim();
@@ -33,6 +34,7 @@ export default function StockOperationalHealthPanel({
   rows = [],
   lots = [],
   animaux = [],
+  cultures = [],
   alimentationLogs = [],
   onNavigate,
   onFreezeProduct,
@@ -50,8 +52,9 @@ export default function StockOperationalHealthPanel({
   const blackDlc = dlcAlerts.filter((item) => item.level === 'black');
 
   const feedAlerts = buildFeedCoherenceAlerts({ stocks, lots });
+  const productionAlerts = buildProductionCoherenceAlerts({ stocks, lots, animaux, cultures });
 
-  const hasCritical = critical.length || orangeDlc.length || redDlc.length || blackDlc.length || feedAlerts.length;
+  const hasCritical = critical.length || orangeDlc.length || redDlc.length || blackDlc.length || feedAlerts.length || productionAlerts.length;
   if (!hasCritical) {
     return (
       <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
@@ -128,6 +131,23 @@ export default function StockOperationalHealthPanel({
               detail={isCommerciallyBlocked(row) ? 'Statut bloqué pour la vente · enregistrer rebut' : 'DLC dépassée'}
               actionLabel="Déclarer rebut"
               onAction={() => onNavigate?.('achats_stock', { tab: 'Stock' })}
+            />
+          ))}
+        </div>
+      ) : null}
+
+
+      {productionAlerts.length ? (
+        <div className="space-y-2">
+          <p className="text-xs font-black uppercase text-[#8a7456]">Production → stock</p>
+          {productionAlerts.slice(0, 5).map((alert) => (
+            <AlertCard
+              key={alert.id}
+              tone={alert.severity === 'red' ? 'red' : 'orange'}
+              title={alert.title}
+              detail={alert.detail}
+              actionLabel={alert.module === 'cultures' ? 'Cultures' : 'Élevage'}
+              onAction={() => onNavigate?.(alert.module, alert.tab ? { tab: alert.tab } : undefined)}
             />
           ))}
         </div>

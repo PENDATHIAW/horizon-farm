@@ -29,16 +29,16 @@ export default function ElevageAlimentationPanel({ data, setTab, animalProps, av
       </div>
 
 
-      <ElevageFeedingDistribution
+      <div id="elevage-feeding-form"><ElevageFeedingDistribution
         stocks={data.stocks || []}
         lots={avicoleProps.rows || []}
         animaux={animalProps.rows || []}
         handlers={feedingHandlers}
-      />
+      /></div>
 
       <ElevageSection title="Actions rapides" subtitle="Distribution depuis le stock et réapprovisionnement.">
         <div className={ELEVAGE_ACTION_GRID}>
-          <ElevageActionCard title="+ Distribution aliment" text="Mouvement stock / consommation liée au cheptel ou aux lots." onClick={() => emitHorizonForm('stock', 'stock_movement', 'Distribution aliment', { date: today(), category: 'alimentation' })} />
+          <ElevageActionCard title="+ Distribution aliment" text="Formulaire ci-dessus — seule saisie qui retire le stock aliment." onClick={() => document.getElementById('elevage-feeding-form')?.scrollIntoView({ behavior: 'smooth' })} />
           <ElevageActionCard title="Acheter aliment" text="Réapprovisionnement Achats & Stock." onClick={() => onNavigate?.('achats_stock')} />
           <ElevageActionCard title="Voir consommation lots" text="Historique et effectifs avicole." onClick={() => setTab('Avicole')} />
         </div>

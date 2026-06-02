@@ -5,6 +5,7 @@ import useCrudModule from '../hooks/useCrudModule';
 import { calculateCultureMetrics } from '../utils/businessCalculations';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
+import { buildHarvestStockPayload } from '../services/livestockStockBridge';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const today = () => new Date().toISOString().slice(0, 10);
@@ -46,29 +47,21 @@ export default function CultureHarvestStockBridge({ rows = [], businessEvents = 
     const event = { ...form, id, culture_id: culture.id, related_id: culture.id, target_id: culture.id, target_type: 'cultures', type_evenement: 'recolte_culture charge_directe', event_type: 'recolte_culture', source_module: 'cultures_recolte', module_lie: 'cultures', title: `Récolte: ${label(culture)}`, message: `${fmtNumber(qty)} ${form.unite || 'kg'} · frais ${fmtCurrency(extra)}`, montant: extra, cout: extra, cout_total: extra, cout_revient_unitaire_recolte: Number(unitCost.toFixed(2)), event_date: form.date || today(), date: form.date || today() };
     await onCreateBusinessEvent?.(event);
     if (form.destination !== 'perte') {
-      await stockCrud.create?.({
-        id: makeId('STKREC'),
+      const harvestPayload = buildHarvestStockPayload({
         produit: `Récolte ${label(culture)}`,
-        categorie: 'produit_recolte',
-        activite_liee: 'cultures',
-        quantite: Number(qty.toFixed(2)),
+        categorie: 'recolte_vegetale',
+        quantite: qty,
         unite: form.unite || 'kg',
-        prixUnit: Number(unitCost.toFixed(2)),
-        prixunit: Number(unitCost.toFixed(2)),
-        prix_unitaire: Number(unitCost.toFixed(2)),
-        cout_revient_unitaire: Number(unitCost.toFixed(2)),
-        cout_unitaire_calcule: Number(unitCost.toFixed(2)),
-        statut: form.destination === 'vente_directe' ? 'reserve' : 'ok',
-        stock_status: form.destination === 'vente_directe' ? 'reserve' : 'ok',
-        source_module: 'cultures',
-        source_record_id: culture.id,
-        linked_event_id: id,
-        origine_label: label(culture),
-        last_movement_type: 'entree_recolte_culture',
-        last_movement_qty: Number(qty.toFixed(2)),
-        last_movement_at: new Date().toISOString(),
-        notes: `Stock issu de récolte · coût ${Number(unitCost.toFixed(2))}/${form.unite || 'kg'}`,
+        unitCost,
+        sourceRecordId: culture.id,
+        eventId: id,
+        origineLabel: label(culture),
       });
+      if (form.destination === 'vente_directe') {
+        harvestPayload.statut = 'reserve';
+        harvestPayload.stock_status = 'reserve';
+      }
+      await stockCrud.create?.(harvestPayload);
     }
     await onUpdate?.(culture.id, { quantite_recoltee: form.destination === 'perte' ? toNumber(culture.quantite_recoltee) : toNumber(culture.quantite_recoltee) + qty, production_reelle: form.destination === 'perte' ? toNumber(culture.production_reelle) : toNumber(culture.production_reelle) + qty, pertes_recolte: form.destination === 'perte' ? toNumber(culture.pertes_recolte) + qty : toNumber(culture.pertes_recolte), date_derniere_recolte: form.date || today(), cout_recolte: toNumber(culture.cout_recolte) + extra, cout_revient_unitaire_recolte: Number(unitCost.toFixed(2)), statut: form.destination === 'perte' ? culture.statut : form.destination === 'vente_directe' ? culture.statut : 'recolte' });
     await Promise.allSettled([stockCrud.refresh?.(), onRefresh?.(), onRefreshBusinessEvents?.()]);

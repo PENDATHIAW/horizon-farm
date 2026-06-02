@@ -66,7 +66,7 @@ export const MODULE_ANNEXE_PRESETS = {
       'cost_animal', 'cost_avicole', 'cost_layer_tablet', 'mca_rentabilite',
       'stock_audit', 'flux_silo', 'vet_comparison',
     ],
-    intro: 'Performance des bandes et animaux : ponte, croissance, chaleur, coûts aliment et vide sanitaire.',
+    intro: 'Cycle biologique : ponte, chair, animaux, alimentation et transformation — les quantités physiques et DLC sont dans Achats & Stock.',
     showPilotage: false,
     showFestivals: true,
     methodologyIds: ['quand-vendre', 'quand-lancer', 'zootechnical', 'stock_audit', 'couts'],
@@ -90,13 +90,17 @@ export const MODULE_ANNEXE_PRESETS = {
   achats_stock: {
     blockIds: [
       'stock_audit', 'flux_silo', 'flux_occupation', 'feed_inflation', 'feed_supplier_ranking',
-      'shrinkage', 'cost_animal', 'cost_avicole',
+      'shrinkage', 'cost_animal', 'cost_avicole', 'cost_layer_tablet',
+      'transformation_arbitrage', 'maraichage_biomass', 'maraichage_sandbox',
     ],
-    intro: 'Suivi silos, coulage aliment, fournisseurs et pertes de stock — tout ce qui touche aux achats.',
+    intro: 'Stock physique : silos, pertes, DLC, ponts production (œufs, viande chair, viande animaux, récoltes) et coûts d’approvisionnement.',
     showPilotage: false,
     showFestivals: false,
-    methodologyIds: ['stock_audit', 'couts'],
-    glossaryTerms: ['IC (indice consommation)', 'Effet ciseau', 'Couverture %'],
+    methodologyIds: ['stock_audit', 'couts', 'zootechnical'],
+    glossaryTerms: [
+      'IC (indice consommation)', 'Effet ciseau', 'Couverture %', 'Taux de ponte',
+      '1 tablette = 30 œufs', 'DLC / lot stock',
+    ],
   },
   finance_pilotage: {
     blockIds: [

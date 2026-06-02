@@ -31,6 +31,7 @@ export const INTERCONNECTIONS = {
   achat: ['achats_stock', 'finance_pilotage', 'documents_rapports', 'activite_suivi', 'objectifs_croissance'],
   mortalite: ['elevage', 'finance_pilotage', 'objectifs_croissance', 'activite_suivi'],
   ponte: ['elevage', 'achats_stock', 'commercial', 'objectifs_croissance'],
+  recolte: ['cultures', 'achats_stock', 'commercial', 'objectifs_croissance'],
 };
 
 export const IA_ENGINES = [

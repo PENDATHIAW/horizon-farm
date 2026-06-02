@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import useCrudModule from '../hooks/useCrudModule';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
+import { buildHarvestStockPayload } from '../services/livestockStockBridge';
 import { calculateCultureMetrics } from '../utils/businessCalculations';
 
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -148,26 +149,21 @@ export default function CulturesWorkflowBridge({ rows = [], onUpdate, onRefresh 
       const stockId = makeId('STK');
       const docId = makeId('DOC');
       const revenue = qty * unitPrice;
-      await stockCrud.create?.({
-        id: stockId,
+      const harvestPayload = buildHarvestStockPayload({
         produit: `Récolte ${cultureName(row)}`,
-        categorie: 'recolte',
+        categorie: 'recolte_vegetale',
         quantite: qty,
         unite: unit,
-        prixunit: unitPrice,
-        prixUnit: unitPrice,
-        valeur_stock: revenue,
-        activite_liee: 'cultures',
-        module_lie: 'cultures',
-        related_id: row.id,
-        culture_id: row.id,
-        parcelle: parcelName(row),
-        campagne: campaignName(row),
-        source_module: 'cultures',
-        source_record_id: row.id,
-        date_reception: today(),
-        statut: 'disponible',
+        unitCost: unitPrice,
+        sourceRecordId: row.id,
+        eventId: makeId('EVT'),
+        origineLabel: cultureName(row),
       });
+      harvestPayload.id = stockId;
+      harvestPayload.valeur_stock = revenue;
+      harvestPayload.parcelle = parcelName(row);
+      harvestPayload.campagne = campaignName(row);
+      await stockCrud.create?.(harvestPayload);
       await documentsCrud.create?.({
         id: docId,
         title: `Récolte ${cultureName(row)}`,
