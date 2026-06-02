@@ -258,7 +258,7 @@ export function buildSummaryTodos(orders = [], payments = [], _healthFindings = 
       issues,
       rest,
       priority,
-      tab: rest > 0 ? 'Clients' : 'Ventes',
+      tab: 'Ventes',
     };
   }).filter(Boolean);
 

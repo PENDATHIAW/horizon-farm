@@ -58,7 +58,7 @@ export function CommercialModuleHeader({ tab, setTab, healthScore, badges = {}, 
           {badges.todo > 0 ? <span className="rounded-full border border-[#eadcc2] bg-white px-3 py-1 text-xs font-black text-[#2f2415]">{badges.todo} à traiter</span> : null}
         </div>
       </div>
-      <ModuleTabsBar moduleId="commercial" active={tab} onChange={setTab} tabBadges={badges.tabs || {}} />
+      <ModuleTabsBar moduleId="commercial" active={tab} onChange={setTab} tabBadges={badges.tabs || {}} wrap />
     </div>
   );
 }

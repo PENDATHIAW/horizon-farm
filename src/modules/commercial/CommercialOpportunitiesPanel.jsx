@@ -5,6 +5,7 @@ import Btn from '../../components/Btn';
 import { fmtCurrency } from '../../utils/format';
 import { saleAmount } from './commercialMetrics.js';
 import ClientContactModal from './ClientContactModal.jsx';
+import CommercialSaleReadinessPanel from './CommercialSaleReadinessPanel.jsx';
 import { matchOpportunityToClients, opportunityMessageForClient } from './commercialOpportunityMatching.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
@@ -39,7 +40,25 @@ function OpportunityCard({ row, match, onConvert, onContactClient, onContactAll 
   );
 }
 
-export default function CommercialOpportunitiesPanel({ opportunities = [], clients = [], salesOrders = [], setTab, onWhatsAppLog, onConvertSale, salesProps = {} }) {
+export default function CommercialOpportunitiesPanel({
+  opportunities = [],
+  clients = [],
+  salesOrders = [],
+  lots = [],
+  animaux = [],
+  setTab,
+  onWhatsAppLog,
+  onConvertSale,
+  onUpdateLot,
+  onRefreshLots,
+  onUpdateAnimal,
+  onRefreshAnimals,
+  onCreateOpportunity,
+  onUpdateOpportunity,
+  onRefreshOpportunities,
+  onCreateBusinessEvent,
+  onRefreshBusinessEvents,
+}) {
   const [contact, setContact] = useState(null);
 
   const enriched = useMemo(() => arr(opportunities).map((row) => ({
@@ -91,6 +110,21 @@ export default function CommercialOpportunitiesPanel({ opportunities = [], clien
 
   return (
     <div className="space-y-4">
+      <CommercialSaleReadinessPanel
+        lots={lots}
+        animaux={animaux}
+        opportunities={opportunities}
+        onUpdateLot={onUpdateLot}
+        onRefreshLots={onRefreshLots}
+        onUpdateAnimal={onUpdateAnimal}
+        onRefreshAnimals={onRefreshAnimals}
+        onCreateOpportunity={onCreateOpportunity}
+        onUpdateOpportunity={onUpdateOpportunity}
+        onRefreshOpportunities={onRefreshOpportunities}
+        onCreateBusinessEvent={onCreateBusinessEvent}
+        onRefreshBusinessEvents={onRefreshBusinessEvents}
+      />
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[11px] font-black uppercase tracking-wide text-[#8a7456]">Pipeline</p>

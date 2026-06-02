@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowRight, BarChart3, Bird, ChevronDown, ClipboardList, Drumstick, Egg, HeartPulse, Info, PackageCheck, Scissors, Sprout, Utensils } from 'lucide-react';
+import { AlertTriangle, ArrowRight, BarChart3, Bird, ChevronDown, ClipboardList, Drumstick, Egg, HeartPulse, Info, PackageCheck, Scissors, ShoppingCart, Sprout, Utensils } from 'lucide-react';
 import toast from 'react-hot-toast';
 import MiniMetricCard from '../components/MiniMetricCard.jsx';
 import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard.jsx';
@@ -172,7 +172,7 @@ export default function AvicoleV10(props) {
     </div>
 
     {!embedInElevage ? <AvicoleCycleHealthPanel rows={rows} productionLogs={productionLogs} alimentationLogs={props.alimentationLogs || []} onNavigate={props.onNavigate} /> : null}
-    <AvicoleSaleReadinessBridge rows={activeScopedRows} opportunities={scopedOpportunities} onUpdate={wrappedUpdate} onRefresh={props.onRefresh} onCreateOpportunity={props.onCreateOpportunity} onUpdateOpportunity={props.onUpdateOpportunity} onRefreshOpportunities={props.onRefreshOpportunities} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} />
+    {!embedInElevage ? <AvicoleSaleReadinessBridge rows={activeScopedRows} opportunities={scopedOpportunities} onUpdate={wrappedUpdate} onRefresh={props.onRefresh} onCreateOpportunity={props.onCreateOpportunity} onUpdateOpportunity={props.onUpdateOpportunity} onRefreshOpportunities={props.onRefreshOpportunities} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} /> : null}
     {embedInElevage ? (
       <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm sm:p-6">
         <p className="text-sm font-black text-[#2f2415]">Autres onglets métier</p>
@@ -183,6 +183,7 @@ export default function AvicoleV10(props) {
           {props.onElevageTabChange ? <button type="button" onClick={() => props.onElevageTabChange('Cycles')} className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><Sprout size={15} className="shrink-0" /> Cycles & ventes <ArrowRight size={14} /></button> : null}
           {props.onElevageTabChange ? <button type="button" onClick={() => props.onElevageTabChange('Alimentation')} className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><Utensils size={15} className="shrink-0" /> Alimentation & charges <ArrowRight size={14} /></button> : null}
           {props.onElevageTabChange ? <button type="button" onClick={() => props.onElevageTabChange('Santé')} className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><HeartPulse size={15} className="shrink-0" /> Santé <ArrowRight size={14} /></button> : null}
+          {props.onNavigate ? <button type="button" onClick={() => props.onNavigate('commercial', { tab: 'Opportunités' })} className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><ShoppingCart size={15} className="shrink-0" /> Prêt à vendre · Commercial <ArrowRight size={14} /></button> : null}
         </div>
       </section>
     ) : null}

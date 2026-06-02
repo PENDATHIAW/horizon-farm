@@ -36,9 +36,9 @@ export default function CommercialInsightPanel({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-[11px] font-black uppercase tracking-wide text-[#9a6b12] flex items-center gap-1"><Bot size={14} /> Pilotage IA Commercial</p>
-          <p className="text-sm text-[#8a7456] mt-1">Recommandations, risques et liens vers les modules concernés.</p>
+          <p className="text-sm text-[#8a7456] mt-1">Signaux terrain — analyses complètes et pipeline global sur Centre décisionnel · Opportunités.</p>
         </div>
-        <button type="button" onClick={() => onNavigate?.('centre_ia')} className="text-xs font-black text-[#9a6b12] underline">Centre IA →</button>
+        <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'Opportunités' })} className="text-xs font-black text-[#9a6b12] underline">Centre décisionnel →</button>
       </div>
 
       {topFindings.length ? (
