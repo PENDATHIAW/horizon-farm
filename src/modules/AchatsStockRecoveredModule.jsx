@@ -17,6 +17,7 @@ import AchatsStockMovementsPanel from './achatsStock/AchatsStockMovementsPanel.j
 import AchatsStockPurchasesPanel from './achatsStock/AchatsStockPurchasesPanel.jsx';
 import AchatsStockSupplierDebtsPanel from './achatsStock/AchatsStockSupplierDebtsPanel.jsx';
 import { buildAchatsStockSummaryTodos, uniqueTodoCount } from './achatsStock/achatsStockMetrics.js';
+import StockProductionSourcesPanel from './achatsStock/StockProductionSourcesPanel.jsx';
 import {
   ACHATS_STOCK_ACTION_GRID,
   ACHATS_STOCK_STAT_GRID,
@@ -138,6 +139,7 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate }) {
 function StockTab({ stockProps, lowStock }) {
   return (
     <div className="space-y-4">
+      <StockProductionSourcesPanel rows={stockProps.rows || []} onNavigate={stockProps.onNavigate} />
       {lowStock.length ? <AchatsStockLowStockPanel items={lowStock} /> : null}
       <StocksV5 {...stockProps} />
     </div>
@@ -162,6 +164,7 @@ export default function AchatsStockRecoveredModule(props) {
   }, [props.initialTab]);
 
   const stockCrud = useCrudModule('stock');
+  const culturesCrud = useCrudModule('cultures');
   const suppliersCrud = useCrudModule('fournisseurs');
   const financesCrud = useCrudModule('finances');
   const feedCrud = useCrudModule('alimentation_logs');
@@ -267,6 +270,7 @@ export default function AchatsStockRecoveredModule(props) {
     alimentationLogs: feedLogs,
     animaux: arr(props.animaux),
     lots: arr(props.lots),
+    cultures,
     fournisseurs: suppliers,
     opportunities: rowsOf(props.opportunities, opportunitiesCrud, periodFiltered),
     taches: rowsOf(props.taches, tasksCrud, false),

@@ -4,34 +4,6 @@ import { EGG_STOCK_CATEGORY, EGG_STOCK_PRODUCT } from '../services/livestockStoc
 const arr = (value) => (Array.isArray(value) ? value : []);
 const lower = (value) => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-/** Les 4 domaines métier de l’ERP (production biologique → stock physique → commercial → finance). */
-export const ERP_OPERATIONAL_PILLARS = [
-  {
-    id: 'production',
-    label: 'Production',
-    detail: 'Élevage (animaux, lots, œufs, abattage) et Cultures (récoltes). Cycle de vie et quantités produites.',
-    modules: ['elevage', 'cultures'],
-  },
-  {
-    id: 'stock',
-    label: 'Stock physique',
-    detail: 'Inventaire, DLC, lots, seuils, achats fournisseurs. Seule source de vérité des quantités vendables.',
-    modules: ['achats_stock'],
-  },
-  {
-    id: 'commercial',
-    label: 'Commercial',
-    detail: 'Ventes, clients, opportunités — décrémente le stock ou les compteurs lots/cultures.',
-    modules: ['commercial'],
-  },
-  {
-    id: 'finance',
-    label: 'Finance & pilotage',
-    detail: 'Trésorerie, marges, dettes — alimenté par achats, alimentation et ventes.',
-    modules: ['finance_pilotage'],
-  },
-];
-
 const MEAT_AVICOLE_CATS = new Set(['produit_fini_viande_avicole', 'produit_fini_viande_frais']);
 const MEAT_ANIMAL_CATS = new Set([
   'produit_fini_viande_bovine_boeuf',
