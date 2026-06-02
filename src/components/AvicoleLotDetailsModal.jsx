@@ -9,6 +9,7 @@ import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { saleOpportunityKey } from '../utils/saleReadiness';
 import { recommendAvicoleLotPrice } from '../services/salePricingEngine.js';
+import SalePricingSummaryCard from './SalePricingSummaryCard.jsx';
 import { calculateLotMetrics } from '../utils/businessCalculations';
 import { buildAvicoleLotDecision } from '../services/avicoleDecisionEngine';
 import { computeAvicoleLivingTarget } from '../services/avicoleLivingTargets';
@@ -155,6 +156,12 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
   return <BaseModal open={open} onClose={onClose} title={`Fiche ${layer ? 'pondeuses' : 'poulets de chair'} · ${lot.name || lot.id}`}>
     <div className="space-y-4">
       <div className="rounded-2xl border border-[#d6c3a0] bg-[#2f2415] p-4 text-white"><p className="text-xs uppercase tracking-[0.2em] text-[#c9a96a]">{layer ? 'Lot pondeuses' : 'Lot poulets de chair'}</p><h2 className="mt-1 text-2xl font-black">{lot.name || lot.id}</h2><p className="mt-1 text-sm text-[#f4e6c8]">{lot.type || 'Type non renseigné'} · {active} sujet(s) actif(s)</p><div className="mt-3 flex flex-wrap gap-2"><Badge status={lot.status || 'actif'} /><Badge status={lot.health_status || 'sain'} /><span className="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-xs text-[#f4e6c8]">{livingTarget.status?.replaceAll('_', ' ') || decision.decision}</span></div></div>
+
+      <SalePricingSummaryCard
+        variant="avicole_lot"
+        salePricing={salePricing}
+        onOpenFinances={() => setTab('finances')}
+      />
 
       <FicheTabsBar
         tabs={[

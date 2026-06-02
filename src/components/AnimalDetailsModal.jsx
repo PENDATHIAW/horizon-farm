@@ -8,6 +8,7 @@ import { buildGrowthSummary } from '../utils/animalGrowth';
 import { acquisitionLabel, calculateAge, getAnimalBirthDate, getParentLabel, reproductionStatusLabel } from '../utils/animalLifecycle';
 import { projectGrowth, saleOpportunityGuard } from '../services/growthProjectionService';
 import { recommendAnimalSalePrice } from '../services/salePricingEngine.js';
+import SalePricingSummaryCard from './SalePricingSummaryCard.jsx';
 import AnimalWeightCurve from './AnimalWeightCurve.jsx';
 import { Lock } from 'lucide-react';
 import { buildAnimalWeighingProfile, isAnimalLocked, weighingStatusLabel } from '../utils/animalWeighing.js';
@@ -146,6 +147,13 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
         ) : (
           <div className="space-y-4">
             <FicheTabsBar tabs={internalTabs} active={tab} onChange={setTab} />
+            {view === 'interne' ? (
+              <SalePricingSummaryCard
+                variant="animal"
+                salePricing={salePricing}
+                onOpenFinances={() => setTab('finances')}
+              />
+            ) : null}
 
             {tab === 'identite' ? (
               <>
