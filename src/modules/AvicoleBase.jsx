@@ -12,7 +12,6 @@ import CreateModal from '../modals/CreateModal';
 import DeleteModal from '../modals/DeleteModal';
 import EditModal from '../modals/EditModal';
 import { applyAvicoleDecisionDefaults, buildAvicoleLotDecision } from '../services/avicoleDecisionEngine';
-import { isSaleReady, saleReadyPatch } from '../utils/saleReadiness';
 import { MODULE_FORM_FIELDS } from '../utils/constants';
 import { addDays, addMonths, enrichAvicoleFieldsForDecision } from '../utils/decisionFormFields';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
@@ -21,7 +20,8 @@ import { generateSequentialId } from '../utils/ids';
 import { calculateLotMetrics } from '../utils/businessCalculations';
 import { filterLotsByActivity } from '../utils/avicoleActivity';
 import { avicoleActiveCount, avicoleCalculatedActiveCount, avicoleDeadCount, avicoleExitReason, avicoleHasActiveBirds, avicoleHasCountMismatch, avicoleInitialCount, avicoleOtherExitCount, avicoleRegisteredActiveCount, avicoleSickCount, avicoleSoldCount, avicoleStatusFor } from '../utils/avicoleMetrics';
-import { ELEVAGE_KPI_GRID } from './elevage/elevageUi.jsx';
+import { isSaleReady, mergeSaleReadiness } from '../utils/saleReadiness';
+import { getResponsibleOptions, resolveResponsibleLabel } from '../utils/rhDirectory';
 
 const EGGS_PER_TABLET = 30;
 const DEFAULT_SALE_TARGET_WEIGHT = 1.5;
@@ -66,7 +66,7 @@ function phaseFor(lot = {}) { if (!hasActiveBirds(lot)) return exitReasonLabel(l
 function decisionColor(decision = {}) { if (decision.priority === 'haute') return 'red'; if (decision.priority === 'moyenne') return 'amber'; return 'gray'; }
 function computePurchaseFields(payload = {}, existing = {}) { const initial = Math.max(0, toNumber(payload.initial_count ?? payload.effectif_initial ?? existing.initial_count ?? existing.effectif_initial)); const crateSize = toNumber(payload.poussins_par_caisse ?? existing.poussins_par_caisse) || DEFAULT_CHICK_CRATE_SIZE; const cratePrice = toNumber(payload.prix_caisse_poussins ?? payload.cout_caisse_poussins ?? existing.prix_caisse_poussins ?? existing.cout_caisse_poussins) || DEFAULT_CHICK_CRATE_PRICE; const totalInput = toNumber(payload.cout_total_achat ?? payload.cout_achat_bande ?? payload.purchase_cost ?? payload.cout_poussins ?? payload.cout_achat); const unitInput = toNumber(payload.prix_unitaire_sujet ?? payload.unit_cost ?? payload.cout_unitaire_poussin); const defaultUnit = crateSize > 0 ? cratePrice / crateSize : DEFAULT_CHICK_CRATE_PRICE / DEFAULT_CHICK_CRATE_SIZE; const unit = totalInput > 0 && initial > 0 ? totalInput / initial : unitInput > 0 ? unitInput : defaultUnit; const total = totalInput > 0 ? totalInput : initial > 0 ? unit * initial : 0; return { initial, crateSize, cratePrice, unit: Number(unit.toFixed(2)), total: Number(total.toFixed(0)) }; }
 
-export default function AvicoleBase({ rows = [], alimentationLogs = [], productionLogs = [], opportunities = [], salesOrders = [], payments = [], transactions = [], businessEvents = [], loading, onCreate, onUpdate, onDelete, onRefresh, onCreateProduction, onRefreshProduction, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateBusinessEvent, onRefreshBusinessEvents, onNavigate, activity = 'pondeuse', lockActivity = false, embedInElevage = false }) {
+export default function AvicoleBase({ rows = [], alimentationLogs = [], productionLogs = [], opportunities = [], salesOrders = [], payments = [], transactions = [], businessEvents = [], loading, onCreate, onUpdate, onDelete, onRefresh, onCreateProduction, onRefreshProduction, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateBusinessEvent, onRefreshBusinessEvents, onNavigate, activity = 'pondeuse', lockActivity = false }) {
   const [tab, setTab] = useState(activityToTab(activity));
   const [modal, setModal] = useState(null);
   const [selected, setSelected] = useState(null);
@@ -150,8 +150,7 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
 
   const prepareLot = (payload, existing = {}) => {
     const base = { ...existing, ...payload };
-    const initial = avicoleInitialCount(base);
-    const current = initial > 0 ? avicoleCalculatedActiveCount(base) : avicoleRegisteredActiveCount(base);
+    const current = activeCount(base);
     const isNewLot = !existing?.id;
     const purchase = computePurchaseFields(payload, existing);
     const savedEntryWeight = entryWeight(existing);
@@ -170,9 +169,7 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
     const reformTargetMonth = toNumber(payload.age_reforme_cible_mois ?? existing.age_reforme_cible_mois) || 18;
     const nextBase = { ...base, current_count: current, effectif_actuel: current };
     const prepared = { ...payload, type: lotType, initial_count: purchase.initial || toNumber(payload.initial_count), effectif_initial: purchase.initial || toNumber(payload.initial_count), current_count: current, effectif_actuel: current, cout_total_achat: purchase.total, cout_achat_bande: purchase.total, purchase_cost: purchase.total, cout_poussins: purchase.total, prix_unitaire_sujet: purchase.unit, unit_cost: purchase.unit, cout_unitaire_poussin: purchase.unit, poussins_par_caisse: purchase.crateSize, prix_caisse_poussins: purchase.cratePrice, weight_entry: nextEntryWeight, poids_moyen_entree: nextEntryWeight, poids_objectif_vente: nextTargetWeight, poids_objectif: nextTargetWeight, objectif_poids_moyen: nextTargetWeight, target_weight: nextTargetWeight, weight_avg: nextCurrentWeight, average_weight: nextCurrentWeight, last_weight_avg: nextCurrentWeight, poids_moyen_actuel: nextCurrentWeight, date_pesee_entree: entryDate, date_derniere_pesee: currentDate, frequence_pesee_jours: weighingFrequency, date_prochaine_pesee_recommandee: nextWeighing, rappel_pesee: lotType === 'Chair' && nextWeighing ? addDays(nextWeighing, -1) : '', date_rappel_pesee: lotType === 'Chair' && nextWeighing ? addDays(nextWeighing, -1) : '', age_reforme_recommandee_mois: reformStartMonth, age_reforme_cible_mois: reformTargetMonth, date_debut_reforme_recommandee: lotType === 'Pondeuse' ? (payload.date_debut_reforme_recommandee || addMonths(start, reformStartMonth)) : '', date_reforme_cible: lotType === 'Pondeuse' ? (payload.date_reforme_cible || addMonths(start, reformTargetMonth)) : '', status: current <= 0 ? avicoleExitReason(nextBase) : statusFor(nextBase), phase: current <= 0 ? exitReasonLabel(nextBase) : (payload.phase || phaseFor({ ...payload, current_count: current, poids_moyen_actuel: nextCurrentWeight, poids_objectif_vente: nextTargetWeight, date_debut: start })), date_debut: start, entry_date: payload.entry_date || payload.date_debut || existing.entry_date || existing.date_debut || today() };
-    const defaults = applyAvicoleDecisionDefaults(prepared, existing, productionLogs);
-    const merged = { ...existing, ...defaults };
-    return isSaleReady(merged) ? { ...defaults, ...saleReadyPatch(merged) } : defaults;
+    return applyAvicoleDecisionDefaults(prepared, existing, productionLogs);
   };
 
   const submitCreate = async (payload) => { try { setSaving(true); await onCreate?.(prepareLot(payload)); toast.success('Lot avicole ajouté avec suivi prérempli'); setModal(null); } catch (e) { toast.error(e.message || 'Création impossible'); } finally { setSaving(false); } };
@@ -195,14 +192,13 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
   ];
 
   return <div className="space-y-6"><SectionHeader title="Gestion avicole" sub={`${tab === 'Pondeuse' ? 'Pondeuses' : 'Poulets de chair'} uniquement`} actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Actualiser</Btn><Btn icon={Download} variant="outline" small onClick={exportRows}>Exporter</Btn>{tab === 'Pondeuse' ? <Btn icon={Plus} small onClick={() => setModal('eggs')} disabled={!pondeusesDisponibles.length}>Ramassage œufs</Btn> : null}<Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter {tab === 'Pondeuse' ? 'lot pondeuses' : 'lot chair'}</Btn></>} />
-    <div className={embedInElevage ? ELEVAGE_KPI_GRID : 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6'}><KpiCard icon={Plus} label="Effectif actif" value={fmtNumber(totalEffectif)} color="bg-emerald-500/20 text-emerald-500" /><KpiCard icon={Plus} label="Morts" value={fmtNumber(morts)} color="bg-red-500/20 text-red-500" /><KpiCard icon={Plus} label="Malades" value={fmtNumber(malades)} color="bg-amber-500/20 text-amber-500" /><KpiCard icon={Plus} label="Actions IA" value={actionsIa} color="bg-sky-500/20 text-sky-500" /><KpiCard icon={Plus} label={tab === 'Pondeuse' ? 'Réforme 17+ mois' : chairKpiLabel} value={tab === 'Pondeuse' ? aReformer : chairKpiValue} color={tab === 'Pondeuse' ? 'bg-red-500/20 text-red-500' : 'bg-emerald-500/20 text-emerald-500'} /><KpiCard icon={Plus} label="Coût alim." value={fmtCurrency(coutAlim)} color="bg-purple-500/20 text-purple-500" /></div>
+    <div className="grid grid-cols-2 lg:grid-cols-6 gap-4"><KpiCard icon={Plus} label="Effectif actif" value={fmtNumber(totalEffectif)} color="bg-emerald-500/20 text-emerald-500" /><KpiCard icon={Plus} label="Morts" value={fmtNumber(morts)} color="bg-red-500/20 text-red-500" /><KpiCard icon={Plus} label="Malades" value={fmtNumber(malades)} color="bg-amber-500/20 text-amber-500" /><KpiCard icon={Plus} label="Actions IA" value={actionsIa} color="bg-sky-500/20 text-sky-500" /><KpiCard icon={Plus} label={tab === 'Pondeuse' ? 'Réforme 17+ mois' : chairKpiLabel} value={tab === 'Pondeuse' ? aReformer : chairKpiValue} color={tab === 'Pondeuse' ? 'bg-red-500/20 text-red-500' : 'bg-emerald-500/20 text-emerald-500'} /><KpiCard icon={Plus} label="Coût alim." value={fmtCurrency(coutAlim)} color="bg-purple-500/20 text-purple-500" /></div>
     <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-xs text-[#8a7456]">Lots clôturés: {inactiveLots.length} · Achat actif: {fmtCurrency(coutAchat)} · Règle effectif: initial - morts - vendus - pertes/sorties. Les malades restent dans l’effectif et sont affichés comme à surveiller.</div>
-    <DataTable title={tab === 'Pondeuse' ? 'Lots pondeuses actifs' : 'Lots poulets de chair actifs'} rows={activeLots} columns={columns} loading={loading} initialSortKey="date_debut" searchPlaceholder="Rechercher un lot..." />
-    {inactiveLots.length ? <DataTable title={`Lots clôturés ou à effectif nul (${inactiveLots.length})`} rows={inactiveLots} columns={columns} loading={loading} initialSortKey="date_debut" searchPlaceholder="Rechercher un lot clôturé..." /> : null}
+    <DataTable title={tab === 'Pondeuse' ? 'Lots pondeuses' : 'Lots poulets de chair'} rows={filteredByActivity} columns={columns} loading={loading} initialSortKey="date_debut" searchPlaceholder="Rechercher un lot..." />
     <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={createFields} initialValues={initialLot} loading={saving} title={tab === 'Pondeuse' ? 'Ajouter lot pondeuses' : 'Ajouter lot poulets de chair'} submitLabel="Ajouter" />
     <CreateModal open={modal === 'eggs'} onClose={() => setModal(null)} onSubmit={submitEggEntry} fields={eggFields} initialValues={initialEggEntry} loading={saving} title="Ramassage œufs" submitLabel="Enregistrer" />
     <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={editFields} initialValues={selected || {}} loading={saving} title="Modifier / suivre le lot" submitLabel="Enregistrer" />
     <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={confirmDelete} itemLabel={selected?.name || selected?.id || ''} loading={saving} />
-    <AvicoleLotDetailsModal open={modal === 'details'} onClose={() => setModal(null)} lot={selected} productionLogs={productionLogs} alimentationLogs={alimentationLogs} opportunities={opportunities} salesOrders={salesOrders} payments={payments} transactions={transactions} businessEvents={businessEvents} onUpdate={onUpdate} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} onRefresh={onRefresh} onNavigate={onNavigate} />
+    <AvicoleLotDetailsModal open={modal === 'details'} onClose={() => setModal(null)} lot={selected} productionLogs={productionLogs} alimentationLogs={alimentationLogs} opportunities={opportunities} salesOrders={salesOrders} payments={payments} transactions={transactions} businessEvents={businessEvents} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} onNavigate={onNavigate} />
   </div>;
 }

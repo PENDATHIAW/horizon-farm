@@ -1,10 +1,10 @@
-import { paidForOrder, remainingForOrder } from '../utils/salesStatuses.js';
-import { linkedPaymentsForOrders, saleAmount } from '../modules/commercial/commercialMetrics.js';
+import { buildClientSalesSummary } from '../utils/clientWorkflows';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const num = (value = 0) => Number(value || 0);
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-const amount = (row = {}) => saleAmount(row) || num(row.montant_total ?? row.total_ttc ?? row.total_amount ?? row.total ?? row.amount ?? row.montant ?? 0);
+const amount = (row = {}) => num(row.montant_total ?? row.total_ttc ?? row.total_amount ?? row.total ?? row.amount ?? row.montant ?? 0);
+const paid = (row = {}) => num(row.montant_paye ?? row.paid_amount ?? row.amount_paid ?? row.montant ?? 0);
 const paymentAmount = (row = {}) => num(row.montant_paye ?? row.montant ?? row.amount ?? row.paid_amount ?? 0);
 const paymentOrderId = (row = {}) => row.order_id || row.sale_id || row.source_record_id || row.related_id;
 
@@ -128,12 +128,12 @@ function matchPayments(client = {}, orders = [], payments = []) {
 
 export function buildClientSegment(client = {}, dataMap = {}) {
   const orders = matchClientOrders(client, dataMap.sales_orders || dataMap.salesOrders || []);
-  const allPayments = dataMap.payments || [];
-  const linked = linkedPaymentsForOrders(orders, allPayments);
-  const payments = matchPayments(client, orders, allPayments);
+  const payments = matchPayments(client, orders, dataMap.payments || []);
   const ca = orders.reduce((sum, order) => sum + amount(order), 0);
-  const paidTotal = orders.reduce((sum, order) => sum + paidForOrder(order, linked), 0);
-  const receivable = orders.reduce((sum, order) => sum + remainingForOrder(order, linked), 0);
+  const paidFromOrders = orders.reduce((sum, order) => sum + paid(order), 0);
+  const paidFromPayments = payments.reduce((sum, payment) => sum + paymentAmount(payment), 0);
+  const paidTotal = Math.min(ca, Math.max(paidFromOrders, paidFromPayments));
+  const receivable = Math.max(0, ca - paidTotal);
   const lastOrder = [...orders].sort((a, b) => String(b.date || b.created_at || '').localeCompare(String(a.date || a.created_at || '')))[0];
   const lastOrderDate = lastOrder?.date || lastOrder?.created_at || client.derniereCommande || client.derniere_commande;
   const inactivityDays = daysSince(lastOrderDate);

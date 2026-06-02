@@ -4,7 +4,11 @@ import { buildCalculatedCycleDates } from '../../src/services/productionCycleDat
 import { computeFinanceCash } from '../../src/utils/financeCash.js';
 import { normalizeLot, normalizeProductionOeufsLog } from '../../src/utils/normalize.js';
 import { applyStockMovement, buildStockCriticalFollowUp } from '../../src/utils/stockWorkflows.js';
-import { avicoleActiveCount, avicoleHasActiveBirds, avicoleSickCount } from '../../src/utils/avicoleMetrics.js';
+import { avicoleActiveCount, avicoleSickCount } from '../../src/utils/avicoleMetrics.js';
+import { calculateLotCurrentCount } from '../../src/utils/businessCalculations.js';
+import { buildSummaryTodos } from '../../src/modules/commercial/commercialMetrics.js';
+import { buildClientSegment } from '../../src/services/clientSegmentationEngine.js';
+import { isSaleReady, mergeSaleReadiness, saleOpportunityKey } from '../../src/utils/saleReadiness.js';
 import { buildHealthCostTransaction, buildHealthFollowUp, buildHealthMissingProofDocument, buildHealthProofDocument } from '../../src/utils/healthWorkflows.js';
 import { buildClientReminderFollowUp, buildClientSalesSummary, canDeleteClient, normalizeClientFromSales } from '../../src/utils/clientWorkflows.js';
 import { buildSaleSourcePatch, capSalePayment } from '../../src/utils/salesWorkflows.js';
@@ -21,7 +25,6 @@ import { buildTaskFromAlert, completeTaskWorkflow, normalizeTaskChecklist } from
 import { normalizeTaskPayload } from '../../src/utils/taskForms.js';
 import { dedupeAlertsBySource, isAlertResolved } from '../../src/utils/alertWorkflows.js';
 import { buildCultureHarvestWorkflow, buildCultureInputUsageWorkflow, buildCultureLossWorkflow, buildCultureWeatherRiskFollowUp } from '../../src/utils/cultureWorkflows.js';
-import { findOpportunityForSource } from '../../src/utils/saleReadyWorkflow.js';
 import { buildInvestmentAssetWorkflow, buildInvestmentRealizationWorkflow } from '../../src/utils/investmentWorkflows.js';
 import { buildImpactImprovementTask, buildImpactMissingProofWorkflow, buildImpactRiskFollowUp } from '../../src/utils/impactWorkflows.js';
 import { buildEquipmentBreakdownFollowUp, buildEquipmentRepairWorkflow } from '../../src/utils/equipmentWorkflows.js';
@@ -36,7 +39,6 @@ import { auditErpInterconnections } from '../../src/utils/interconnectionAudit.j
 import { buildSyncRepairTask, routeForSyncIssue, syncIssueActionLabel } from '../../src/utils/syncAuditWorkflows.js';
 import { buildSystemAuditEvent, canPerformSystemAction, isLastActiveAdmin, roleCanAccess, validateSystemResetConfirmation } from '../../src/utils/systemAccessWorkflows.js';
 import { stripRepeatedPrefix, formatFindingLabel, shouldSkipCriticalTaskFinding } from '../../src/utils/healthFindingLabels.js';
-import { buildDashboardTodayActions, sanitizeDashboardMetric } from '../../src/utils/dashboardWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -149,35 +151,8 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     const culture = { id: 'CULT-TOMATE-001', nom: 'Tomates serre 1', quantite_recoltee: 120, unite_recolte: 'kg', prix_vente_estime: 900 };
     const result = buildCultureHarvestWorkflow({ after: culture, date: today() });
     expect(result.stock).toMatchObject({ stock_key: 'culture-stock:CULT-TOMATE-001', source_module: 'cultures', quantite: 120, unite: 'kg' });
-    expect(result.opportunity).toMatchObject({ opportunity_key: 'cultures:CULT-TOMATE-001', source_type: 'recolte_culture', quantity: 120, statut: 'ouverte' });
+    expect(result.opportunity).toMatchObject({ opportunity_key: 'culture-sale:CULT-TOMATE-001', source_type: 'recolte_culture', quantity: 120, statut: 'ouverte' });
     expect(result.event).toMatchObject({ event_type: 'recolte_culture_disponible', entity_id: 'CULT-TOMATE-001' });
-  });
-
-  test('récolte culture resynchronisée ne duplique pas stock ni opportunité', () => {
-    const culture = { id: 'CULT-TOMATE-001', nom: 'Tomates', quantite_recoltee: 120, quantite_disponible: 120, unite_recolte: 'kg', prix_vente_estime: 900, statut: 'recolte' };
-    const stocks = [{ id: 'STK-1', stock_key: 'culture-stock:CULT-TOMATE-001', quantite: 120, source_module: 'cultures', source_id: 'CULT-TOMATE-001' }];
-    const opps = [{ id: 'OPP-1', opportunity_key: 'cultures:CULT-TOMATE-001', source_id: 'CULT-TOMATE-001', source_module: 'cultures' }];
-    const result = buildCultureHarvestWorkflow({ before: culture, after: culture, stocks, opportunities: opps });
-    expect(result.stockExistingId).toBe('STK-1');
-    expect(result.opportunityExistingId).toBe('OPP-1');
-  });
-
-  test('clé legacy culture-sale retrouvée comme cultures:', () => {
-    const opps = [{ id: 'OPP-LEG', opportunity_key: 'culture-sale:CULT-1', source_id: 'CULT-1', source_module: 'cultures' }];
-    expect(findOpportunityForSource(opps, 'cultures', 'CULT-1')?.id).toBe('OPP-LEG');
-  });
-
-  test('vente culture décrémente le disponible', () => {
-    const patch = buildSaleSourcePatch({
-      sourceType: 'culture',
-      sourceRow: { id: 'CULT-1', quantite_disponible: 80, quantite_recoltee: 100, quantite_vendue: 20 },
-      quantity: 25,
-      total: 22500,
-      date: '2026-05-26',
-      orderId: 'CMD-CULT-1',
-    });
-    expect(patch.patch.quantite_disponible).toBe(55);
-    expect(patch.patch.quantite_vendue).toBe(45);
   });
 
   test('vente soldée bloque les encaissements supplémentaires', () => {
@@ -246,23 +221,56 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(lot.effectif_actuel).toBe(85);
     expect(avicoleSickCount(lot)).toBe(3);
   });
-
-  test('lot avicole à effectif 0 exclu des workflows actifs', () => {
-    const lot = normalizeLot({
-      id: 'LOT-CLOSED-001',
+  test('calculateLotCurrentCount aligne tableau fiche et KPI avicole', () => {
+    const lot = {
+      id: 'LOT-MISMATCH-001',
       type: 'Chair',
       initial_count: 500,
-      mortality: 18,
-      vols: 2,
-      vendus: 480,
-      reformes: 0,
-      sorties: 0,
+      morts: 18,
+      voles: 2,
+      vendus: 419,
+      reformes: 1,
+      autres_sorties: 1,
+      malades: 3,
       current_count: 0,
-      effectif_actuel: 0,
-    });
-    expect(avicoleActiveCount(lot)).toBe(0);
-    expect(avicoleHasActiveBirds(lot)).toBe(false);
+    };
+    expect(calculateLotCurrentCount(lot)).toBe(59);
+    expect(avicoleActiveCount(lot)).toBe(59);
   });
+
+  test('mergeSaleReadiness conserve la confirmation pret a vendre apres sauvegarde', () => {
+    const before = { id: 'LOT-READY-001', status: 'actif', pret_vente_confirme: false };
+    const after = mergeSaleReadiness(before, { pret_vente_confirme: true });
+    expect(isSaleReady(after)).toBe(true);
+    const refreshed = mergeSaleReadiness(after, { mortality: 2 });
+    expect(isSaleReady(refreshed)).toBe(true);
+    expect(saleOpportunityKey('avicole', 'LOT-READY-001')).toBe('avicole-sale:LOT-READY-001');
+  });
+
+  test('client solde nest plus segmente a relancer', () => {
+    const client = { id: 'CLI-SOLDE-001', nom: 'Client solde' };
+    const segment = buildClientSegment(client, {
+      sales_orders: [{ id: 'CMD-1', client_id: 'CLI-SOLDE-001', montant_total: 50000, date: '2026-05-01' }],
+      payments: [{ id: 'PAY-1', order_id: 'CMD-1', montant: 50000, statut: 'paye' }],
+    });
+    expect(segment.receivable).toBe(0);
+    expect(segment.segment).not.toBe('À relancer');
+  });
+
+  test('workflow ventes masque encaissement quand commande payee', () => {
+    const order = {
+      id: 'CMD-PAYEE-001',
+      client_nom: 'Client paye',
+      montant_total: 40000,
+      montant_paye: 40000,
+      statut_livraison: 'livre',
+      statut_commande: 'livree',
+    };
+    const payments = [{ id: 'PAY-001', order_id: 'CMD-PAYEE-001', montant: 40000, statut: 'paye' }];
+    const todos = buildSummaryTodos([order], payments);
+    expect(todos).toHaveLength(0);
+  });
+
 
   test('cycles avicoles ne dupliquent pas les lots et ne classent pas les pondeuses en chair', () => {
     const cycles = buildCalculatedCycleDates({

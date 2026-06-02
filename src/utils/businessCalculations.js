@@ -1,5 +1,6 @@
 import { getCalculatedAnimalFeedingCost, getLotFeedingCategory } from './alimentation';
 import { validateAnimalPayload } from './animalValidation';
+import { avicoleCalculatedActiveCount } from './avicoleMetrics';
 import { toNumber } from './format';
 
 const EGGS_PER_TABLET = 30;
@@ -43,11 +44,7 @@ const addMonthsToDate = (value, months) => { if (!value) return ''; const date =
 export const isLayerLot = (lot = {}) => ['pondeuse', 'pondeuses'].includes(clean(lot.type)) || lot.type === 'Pondeuse';
 export const isBroilerLot = (lot = {}) => ['chair', 'poulet_chair', 'poulets_chair'].includes(clean(lot.type)) || lot.type === 'Chair';
 
-export const calculateLotCurrentCount = (lot = {}) => {
-  const initial = toNumber(lot.initial_count ?? lot.effectif_initial);
-  const losses = toNumber(lot.mortality) + toNumber(lot.vols) + toNumber(lot.vendus) + toNumber(lot.reformes) + toNumber(lot.sorties);
-  return Math.max(0, initial - losses);
-};
+export const calculateLotCurrentCount = (lot = {}) => avicoleCalculatedActiveCount(lot);
 
 export const getLotDefaultCycle = (lot = {}) => {
   if (isLayerLot(lot)) return { value: 18, unit: 'mois' };
