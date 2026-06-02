@@ -1,10 +1,8 @@
 import { fmtCurrency, fmtNumber } from '../../utils/format';
 import { runErpHealthEngine } from '../../services/erpHealthEngine.js';
 import { filterRealOpenTasks } from '../../utils/healthFindingLabels.js';
-import { remainingForOrder } from '../../utils/salesStatuses.js';
-import { computeFinancePeriodSummary } from '../dashboard/dashboardMetrics.js';
+import { computeSharedPilotageFinanceKpis } from '../../utils/objectifsCroissanceWorkflow.js';
 import { isOpportunityOpen, saleAmount } from '../commercial/commercialMetrics.js';
-import { buildCycleOverview } from '../elevage/cycleSummary.js';
 
 export const arr = (v) => (Array.isArray(v) ? v : []);
 export const low = (v) => String(v || '').toLowerCase();
@@ -182,26 +180,37 @@ export function buildVisionData(props = {}) {
   const invest = arr(investissements).length ? arr(investissements) : arr(dataMap.investissements);
   const docs = arr(documents).length ? arr(documents) : arr(dataMap.documents);
   const opps = [...arr(opportunities), ...arr(salesOpportunities), ...arr(dataMap.sales_opportunities)].filter(Boolean);
-  const openOpportunities = opps.filter(isOpportunityOpen);
+  const openOpportunities = opps.filter(isOpportunityOpen).map((row) => ({
+    ...row,
+    source_module: row.source_module || 'commercial',
+    opportunity_id: row.id || row.opportunity_id,
+  }));
   const pipelineTotal = openOpportunities.reduce((sum, row) => sum + saleAmount(row), 0);
-  const financePeriods = computeFinancePeriodSummary(pay, tx, props.periodScope || {});
-  const treasuryResult = periodFiltered ? financePeriods.resultatPeriod : financePeriods.resultatAllTime;
-  const encaisseDisplay = periodFiltered ? financePeriods.encaissePeriod : financePeriods.encaisseAllTime;
+  const sharedFinance = computeSharedPilotageFinanceKpis({
+    salesOrders: salesPeriod,
+    salesOrdersAll: salesAll,
+    payments: payPeriod,
+    paymentsAll: payAll,
+    transactions: tx,
+    periodScope: props.periodScope || {},
+    periodFiltered,
+  });
+  const financePeriods = sharedFinance.financePeriods;
+  const treasuryResult = sharedFinance.treasuryResult;
+  const encaisseDisplay = sharedFinance.encaisse;
   const openAlerts = arr(alertes).length ? arr(alertes).filter(isOpen) : arr(dataMap.alertes_center || dataMap.alertes).filter(isOpen);
   const rawTasks = arr(taches).length ? arr(taches) : arr(dataMap.taches || dataMap.tasks);
   const openTasks = filterRealOpenTasks(rawTasks.filter(isOpen));
   const income = tx.filter(isIncome).reduce((s, r) => s + amount(r), 0);
-  const expenses = tx.filter((r) => isExpense(r) || (!isIncome(r) && amount(r) > 0)).reduce((s, r) => s + amount(r), 0);
-  const salesAmount = sales.reduce((s, r) => s + amount(r), 0);
-  const collected = pay.reduce((s, r) => s + amount(r), 0);
+  const expenses = sharedFinance.expenses;
+  const salesAmount = sharedFinance.salesAmount;
+  const collected = encaisseDisplay;
   const stockValue = allStocks.reduce((s, r) => s + stockQty(r) * n(r.prix_unitaire ?? r.unit_price ?? r.price), 0);
   const investmentValue = invest.reduce((s, r) => s + amount(r), 0);
   const missingProof = tx.filter((r) => amount(r) > 0 && !r.document_id && !r.proof_url && !r.justificatif_id).length;
-  const receivable = salesAll.reduce((sum, order) => sum + remainingForOrder(order, payAll), 0);
-  const grossMargin = income - expenses;
-  const productionLogs = arr(props.productionLogs).length ? arr(props.productionLogs) : arr(dataMap.production_oeufs_logs || dataMap.productionLogs);
-  const cycleOverview = buildCycleOverview({ lots: allLots, animaux: allAnimals, productionLogs, dataMap });
-  const base = { animaux: allAnimals, lots: allLots, cultures: allCultures, stocks: allStocks, clients: allClients, sales, payments: pay, income, expenses, balance: income - expenses, treasuryResult, encaisseDisplay, financePeriods, margin: grossMargin, grossMargin, netMargin: grossMargin, salesAmount, collected, stockValue, investmentValue, receivable, estimatedValue: stockValue + investmentValue + Math.max(0, grossMargin), productionCount: allAnimals.length + allLots.length + allCultures.length, goals: [...plans, ...invest], opportunities: opps, openOpportunities, pipelineTotal, documents: docs, missingProof, openAlerts, openTasks, debts: expenses, receivables: receivable, periodFiltered, periodLabel: props.periodLabel || '', openAlertsCount: openAlerts.length, openTasksCount: openTasks.length, criticalStockCount: allStocks.filter((r) => stockThreshold(r) > 0 && stockQty(r) <= stockThreshold(r)).length, cycleWarningCount: cycleOverview.warningCount, cycleLateCount: cycleOverview.lateCount, cycleDueSoonCount: cycleOverview.dueSoonCount };
+  const receivable = sharedFinance.receivable;
+  const grossMargin = sharedFinance.grossMargin;
+  const base = { animaux: allAnimals, lots: allLots, cultures: allCultures, stocks: allStocks, clients: allClients, sales, payments: pay, income, expenses, balance: income - expenses, treasuryResult, encaisseDisplay, financePeriods, margin: grossMargin, grossMargin, netMargin: grossMargin, salesAmount, collected, stockValue, investmentValue, receivable, estimatedValue: stockValue + investmentValue + Math.max(0, grossMargin), productionCount: allAnimals.length + allLots.length + allCultures.length, goals: [...plans, ...invest], opportunities: opps, openOpportunities, pipelineTotal, documents: docs, missingProof, openAlerts, openTasks, debts: expenses, receivables: receivable, periodFiltered, periodLabel: props.periodLabel || '', openAlertsCount: openAlerts.length, openTasksCount: openTasks.length, criticalStockCount: allStocks.filter((r) => stockThreshold(r) > 0 && stockQty(r) <= stockThreshold(r)).length };
   const risks = buildRisks(base);
   const priorities = [
     ...openAlerts.slice(0, 5).map((r) => ({ id: `a-${r.id || label(r)}`, title: label(r), detail: r.message || 'Alerte ouverte', value: 'Alerte', tone: 'warn', tab: 'Risques', sourceModule: r.module_source || 'activite_suivi', record: r })),

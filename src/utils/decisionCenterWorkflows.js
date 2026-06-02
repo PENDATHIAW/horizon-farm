@@ -1,4 +1,4 @@
-import { makeId } from './ids';
+import { makeId } from './ids.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const clean = (value = '') => String(value || '').trim();

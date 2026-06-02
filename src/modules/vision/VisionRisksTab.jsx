@@ -1,23 +1,57 @@
+import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { ShieldAlert } from 'lucide-react';
+import { buildRiskFollowUpAlert, buildRiskFollowUpTask } from '../../utils/centreDecisionWorkflow.js';
 import { fmtCurrency, fmtNumber } from '../../utils/format';
 import { navigateVisionRisk } from './visionNavigation.js';
 import { Btn, DataRow, DataTable, Empty, Pill, Section, TabIntro, VISION_TABLE_COLS, VisionKpi, riskLevelLabel } from './visionUtils';
 
-export default function VisionRisksTab({ data, onNavigate, setTab, onCreateTask, onRefreshTasks }) {
+export default function VisionRisksTab({
+  data,
+  onNavigate,
+  setTab,
+  onCreateTask,
+  onCreateAlert,
+  onCreateBusinessEvent,
+  onRefreshTasks,
+  onRefreshAlertes,
+}) {
+  const [busyId, setBusyId] = useState(null);
   const engineRisks = data.engineRisks || [];
   const criticalCount = data.risks.filter((r) => r.tone === 'bad').length;
   const financeExposure = Math.max(0, -(data.treasuryResult ?? data.balance)) + (data.receivable || 0);
 
   const createTaskFromRisk = async (risk) => {
     if (!onCreateTask) return;
-    await onCreateTask({
-      title: `Risque : ${risk.title}`,
-      description: `${risk.cause}. Action : ${risk.action}`,
-      module_lie: risk.module,
-      priority: risk.tone === 'bad' ? 'critique' : 'haute',
-      status: 'ouverte',
-    });
-    await onRefreshTasks?.();
+    setBusyId(risk.id);
+    try {
+      const built = buildRiskFollowUpTask(risk);
+      if (!built?.task) throw new Error('Impossible de construire la tâche');
+      await onCreateTask(built.task);
+      if (built.event && onCreateBusinessEvent) await onCreateBusinessEvent(built.event);
+      await onRefreshTasks?.();
+      toast.success('Tâche créée avec source');
+    } catch (e) {
+      toast.error(e.message || 'Création impossible');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const createAlertFromRisk = async (risk) => {
+    if (!onCreateAlert) return;
+    setBusyId(`${risk.id}-alert`);
+    try {
+      const built = buildRiskFollowUpAlert(risk);
+      await onCreateAlert(built.alert);
+      if (built.event && onCreateBusinessEvent) await onCreateBusinessEvent(built.event);
+      await onRefreshAlertes?.();
+      toast.success('Alerte créée avec source');
+    } catch (e) {
+      toast.error(e.message || 'Création impossible');
+    } finally {
+      setBusyId(null);
+    }
   };
 
   return (
@@ -65,7 +99,8 @@ export default function VisionRisksTab({ data, onNavigate, setTab, onCreateTask,
                 actions={<>
                   <Pill tone={r.tone}>{r.resolutionStatus}</Pill>
                   <button type="button" onClick={() => navigateVisionRisk(onNavigate, r)} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Voir source</button>
-                  {onCreateTask ? <button type="button" onClick={() => createTaskFromRisk(r)} className="rounded-lg border border-emerald-300 px-2 py-1 text-xs font-black text-emerald-700">Tâche</button> : null}
+                  {onCreateTask ? <button type="button" disabled={busyId === r.id} onClick={() => createTaskFromRisk(r)} className="rounded-lg border border-emerald-300 px-2 py-1 text-xs font-black text-emerald-700 disabled:opacity-50">Tâche</button> : null}
+                  {onCreateAlert ? <button type="button" disabled={busyId === `${r.id}-alert`} onClick={() => createAlertFromRisk(r)} className="rounded-lg border border-amber-300 px-2 py-1 text-xs font-black text-amber-700 disabled:opacity-50">Alerte</button> : null}
                 </>}
               />
             ))}

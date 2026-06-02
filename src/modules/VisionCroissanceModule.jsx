@@ -8,9 +8,9 @@ import VisionPerformanceTab from './vision/VisionPerformanceTab';
 import VisionPlansTab from './vision/VisionPlansTab';
 import VisionPrioritiesTab from './vision/VisionPrioritiesTab';
 import VisionRisksTab from './vision/VisionRisksTab';
+import PilotageIntegrityPanel from './vision/PilotageIntegrityPanel.jsx';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import HeyHorizonQuickAsk from '../components/HeyHorizonQuickAsk.jsx';
-import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import { MODULE_TARGET_TABS } from '../config/horizonVision.config.js';
@@ -21,7 +21,7 @@ const MODULE_COPY = {
   centre_ia: {
     kicker: 'Intelligence décisionnelle',
     title: 'Centre décisionnel',
-    subtitle: 'Priorités du jour, risques, opportunités — synthèse cycles (détail opérationnel dans Élevage → Cycles).',
+    subtitle: 'Priorités du jour, risques, opportunités commerciales et cycles production — actions concrètes.',
   },
   objectifs_croissance: {
     kicker: 'Pilotage stratégique',
@@ -50,6 +50,13 @@ export default function VisionCroissanceModule(props) {
   const [persistedCount, setPersistedCount] = useState(null);
   const data = useMemo(() => buildVisionData(props), [props, dataMap]);
   const badges = useMemo(() => buildVisionBadges(data, moduleId), [data, moduleId]);
+  const pilotageAudit = useMemo(() => analyzePilotageIntegrity({
+    visionData: data,
+    props,
+    tasks: existingTasks,
+    alerts: existingAlerts,
+    opportunities: props.opportunities || data.openOpportunities,
+  }), [data, props, existingTasks, existingAlerts]);
   const aiCount = useMemo(() => data.healthFindings?.length || buildRecommendationsFromData(dataMap).length, [dataMap, data.healthFindings]);
 
   useEffect(() => {
@@ -92,10 +99,21 @@ export default function VisionCroissanceModule(props) {
           setTab={setTab}
           onNavigate={onNavigate}
           onCreateTask={onCreateTask}
+          onCreateAlert={onCreateAlert}
+          onCreateBusinessEvent={onCreateBusinessEvent}
           onRefreshTasks={onRefreshTasks}
+          onRefreshAlertes={onRefreshAlertes}
         />
       )
-        : tab === 'Opportunités' ? <VisionOpportunitiesTab data={data} onNavigate={onNavigate} />
+        : tab === 'Opportunités' ? (
+          <VisionOpportunitiesTab
+            data={data}
+            onNavigate={onNavigate}
+            onCreateTask={onCreateTask}
+            onCreateBusinessEvent={onCreateBusinessEvent}
+            onRefreshTasks={onRefreshTasks}
+          />
+        )
           : tab === 'Prévisions' ? <VisionForecastsTab data={data} onNavigate={onNavigate} />
             : tab === 'Cycles' ? (
               <VisionCyclesTab
@@ -108,7 +126,6 @@ export default function VisionCroissanceModule(props) {
             )
             : tab === 'Plans' ? <VisionPlansTab data={data} onCreateBusinessPlan={onCreateBusinessPlan} onNavigate={onNavigate} />
               : tab === 'Financeurs' ? <VisionFundingTab data={data} onNavigate={onNavigate} />
-                : tab === 'Annexe' ? <ModuleAnnexeTab moduleId={moduleId} dataMap={dataMap} onNavigate={onNavigate} />
                 : <ModuleGraphiquesTab moduleId={moduleId} periodFiltered={props.periodFiltered} {...props} {...dataMap} onNavigate={onNavigate} />;
 
   return (
@@ -141,6 +158,7 @@ export default function VisionCroissanceModule(props) {
         </div>
       </section>
       <ModuleTabsBar moduleId={moduleId} active={tab} onChange={setTab} tabBadges={badges.tabs} />
+      {pilotageAudit.gapCount ? <PilotageIntegrityPanel audit={pilotageAudit} onNavigate={onNavigate} compact={moduleId === 'objectifs_croissance'} /> : null}
       {content}
     </div>
   );
