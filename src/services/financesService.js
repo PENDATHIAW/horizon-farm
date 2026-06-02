@@ -1,4 +1,4 @@
-﻿import { createSupabaseCrudService } from './baseSupabaseService';
+﻿import { createSupabaseCrudService } from './baseSupabaseService.js';
 
 export const financesService = createSupabaseCrudService('transactions');
 

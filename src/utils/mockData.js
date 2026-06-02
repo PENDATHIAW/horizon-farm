@@ -1,5 +1,5 @@
-import { buildWeatherAnalysis } from './weather';
-import { horizonFarmSimulationSeed } from './horizonFarmSimulationSeed';
+import { buildWeatherAnalysis } from './weather.js';
+import { horizonFarmSimulationSeed } from './horizonFarmSimulationSeed.js';
 
 const readableCategory = (value = '') => {
   const key = String(value || '').toLowerCase();

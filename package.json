@@ -13,6 +13,7 @@
     "test:e2e:smoke": "playwright test tests/e2e/assistant-erp-smoke.spec.js tests/e2e/decision-center-smoke.spec.js",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report playwright-report",
+    "test:unit:ressources": "node --test tests/unit/ressourcesWorkflow.test.js",
     "test:unit": "node --test tests/unit/*.test.js",
     "test:e2e:roadmap": "PLAYWRIGHT_SKIP_WEBSERVER=1 playwright test tests/e2e/roadmap-completion.spec.js",
     "test:e2e:push-business": "PLAYWRIGHT_SKIP_WEBSERVER=1 playwright test tests/e2e/push-and-business-flows.spec.js",

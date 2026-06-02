@@ -6,12 +6,12 @@ import {
   buildStructuredFarmImpact,
   findOrderForOpportunity,
   isOpportunityClosed,
-} from './erpInterconnectionRules';
-import { syncFinanceTransactionToAccounting, linkDocumentToAccounting } from './accountingSyncService';
-import { financeIds } from '../utils/sideEffectIds';
-import { remainingForOrder } from '../utils/salesStatuses';
-import { makeId } from '../utils/ids';
-import { makeInterconnectionEvent } from '../utils/moduleInterconnections';
+} from './erpInterconnectionRules.js';
+import { syncFinanceTransactionToAccounting, linkDocumentToAccounting } from './accountingSyncService.js';
+import { financeIds } from '../utils/sideEffectIds.js';
+import { remainingForOrder } from '../utils/salesStatuses.js';
+import { makeId } from '../utils/ids.js';
+import { makeInterconnectionEvent } from '../utils/moduleInterconnections.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();

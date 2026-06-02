@@ -1,6 +1,6 @@
-import { toNumber } from '../utils/format';
-import { makeId } from '../utils/ids';
-import { getFinanceActivityFromSale, getFinanceCategoryFromSale } from './financeSyncService';
+import { toNumber } from '../utils/format.js';
+import { makeId } from '../utils/ids.js';
+import { getFinanceActivityFromSale, getFinanceCategoryFromSale } from './financeSyncService.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value = '') => String(value || '').trim().toLowerCase();
