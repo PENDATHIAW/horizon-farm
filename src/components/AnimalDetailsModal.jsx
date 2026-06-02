@@ -8,6 +8,9 @@ import { buildGrowthSummary } from '../utils/animalGrowth';
 import { acquisitionLabel, calculateAge, getAnimalBirthDate, getParentLabel, reproductionStatusLabel } from '../utils/animalLifecycle';
 import { projectGrowth, saleOpportunityGuard } from '../services/growthProjectionService';
 import { recommendAnimalSalePrice } from '../services/salePricingEngine.js';
+import AnimalWeightCurve from './AnimalWeightCurve.jsx';
+import { Lock } from 'lucide-react';
+import { buildAnimalWeighingProfile, isAnimalLocked, weighingStatusLabel } from '../utils/animalWeighing.js';
 import { SaleOpportunityGuardPanel, WeightProjectionPanel } from './GrowthProjectionPanel';
 
 const Section = ({ title, children }) => (
@@ -73,12 +76,20 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
   const opportunityGuard = saleOpportunityGuard(animal, 'animal', opportunities);
   const relatedVaccins = vaccins.filter((vaccin) => String(vaccin.animal || '').includes(animal.id) || String(vaccin.animal || '').includes(animal.tag));
   const salePricing = recommendAnimalSalePrice({ animal, alimentationLogs, vaccins: relatedVaccins, marketPrices });
+  const weighing = buildAnimalWeighingProfile(animal);
+  const locked = isAnimalLocked(animal);
   const sold = animal.status === 'vendu';
   const lossStatus = ['mort', 'vole', 'reforme'].includes(animal.status);
 
   return (
     <BaseModal open={open} onClose={onClose} title={`${view === 'acheteur' ? 'Fiche acheteur' : 'Fiche interne'} - ${animal.id}`}>
       <div className="space-y-4">
+        {locked ? (
+          <div className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-800 flex items-center gap-2">
+            <Lock size={16} />
+            Fiche verrouillée — animal {animal.status || animal.statut}. Pesées et modifications métier bloquées.
+          </div>
+        ) : null}
         <div className="flex flex-col md:flex-row gap-4 rounded-2xl border border-[#d6c3a0] bg-[#2f2415] p-4 text-white">
           <div className="h-28 w-28 rounded-2xl bg-white/10 border border-white/20 overflow-hidden flex items-center justify-center shrink-0">
             {animal.photo_url ? <img src={animal.photo_url} alt={animal.name} className="h-full w-full object-cover" /> : <span className="text-3xl font-black text-[#c9a96a]">{animal.type?.[0] || 'A'}</span>}
@@ -172,6 +183,16 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
 
             {tab === 'croissance' ? (
               <>
+                <Section title="Calendrier pesées (J+15 / rappel J-1)" note="Pesée tous les 15 jours après la dernière pesée enregistrée. Rappel la veille.">
+                  <Field label="Dernière pesée" value={weighing.lastDate || 'Non renseignée'} />
+                  <Field label="Prochaine pesée (J+15)" value={weighing.nextWeighing || (locked ? '—' : 'Non planifiée')} />
+                  <Field label="Rappel J-1" value={weighing.reminderDate || '—'} />
+                  <Field label="Statut pesée" value={weighingStatusLabel(weighing.weighingStatus)} />
+                  <Field label="Objectif poids" value={weighing.target ? `${fmtNumber(weighing.target)} kg` : 'À renseigner'} />
+                  <Field label="Progression objectif" value={`${weighing.progress}%`} />
+                  <Field label="Décision terrain" value={weighing.decision} />
+                </Section>
+                <AnimalWeightCurve history={weighing.history} target={weighing.target} />
                 <Section title="Croissance & engraissement">
                   <Field label="Statut croissance" value={growth.label} />
                   <Field label="Poids initial suivi" value={growth.first ? `${growth.first.poids} kg le ${growth.first.date}` : 'Non renseigne'} />
@@ -183,7 +204,7 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
                   <Field label="Recommandation" value={growth.recommendation} />
                 </Section>
                 <WeightProjectionPanel title="Projection croissance & vente" projection={projection} />
-                <SaleOpportunityGuardPanel guard={opportunityGuard} />
+                {!locked ? <SaleOpportunityGuardPanel guard={opportunityGuard} /> : null}
               </>
             ) : null}
 

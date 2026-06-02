@@ -9,7 +9,7 @@ import KpiCard from '../components/KpiCard';
 import SectionHeader from '../components/SectionHeader';
 import CreateModal from '../modals/CreateModal';
 import DeleteModal from '../modals/DeleteModal';
-import DetailsModal from '../modals/DetailsModal';
+import CultureFicheModal from '../components/CultureFicheModal.jsx';
 import EditModal from '../modals/EditModal';
 import { applyCultureDecisionDefaults, buildCultureDecisionProfile } from '../services/cultureDecisionEngine';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
@@ -138,6 +138,7 @@ export default function CulturesV3({ rows = [], stocks = [], opportunities = [],
   };
   const submitEdit = async (payload) => {
     if (!selected) return;
+    if (['vendue', 'vendu', 'perdu', 'sinistre'].includes(String(selected.statut || selected.status || '').toLowerCase())) return toast.error('Fiche culture verrouillée');
     try { setSaving(true); await onUpdate?.(selected.id, applyCultureDecisionDefaults(payload, selected)); toast.success('Fiche modifiée · décision recalculée'); setModal(null); } catch (error) { toast.error(error.message || 'Modification impossible'); } finally { setSaving(false); }
   };
   const submitDelete = async () => {
@@ -164,7 +165,7 @@ export default function CulturesV3({ rows = [], stocks = [], opportunities = [],
     { key: 'marge', label: 'Marge', sortable: true, render: (row) => <span className={marginOf(row) >= 0 ? 'text-emerald-600 font-bold' : 'text-red-500 font-bold'}>{fmtCurrency(marginOf(row))}</span> },
     { key: 'decision_ia', label: 'Décision IA', render: (row) => { const decision = buildCultureDecisionProfile(row); return <Badge color={decision.priority === 'haute' ? 'red' : 'amber'}>{decision.decision}</Badge>; } },
     { key: 'statut', label: 'Statut', render: (row) => <Badge status={row.statut || 'planifiee'} /> },
-    { key: 'actions', label: 'Actions', render: (row) => <div className="flex gap-1"><ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected({ ...row, horizon_decision: buildCultureDecisionProfile(row) }); setModal('details'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(row); setModal('edit'); }} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(row); setModal('delete'); }} /></div> },
+    { key: 'actions', label: 'Actions', render: (row) => <div className="flex gap-1"><ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected({ ...row, horizon_decision: buildCultureDecisionProfile(row) }); setModal('details'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(row); setModal('edit'); }} disabled={['vendue','vendu','perdu','sinistre'].includes(String(row.statut || row.status || '').toLowerCase())} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(row); setModal('delete'); }} /></div> },
   ];
   const aggregateColumns = [
     { key: 'nom', label: 'Nom', sortable: true, render: (row) => <span className="font-black text-[#2f2415]">{row.nom}</span> },
@@ -174,7 +175,7 @@ export default function CulturesV3({ rows = [], stocks = [], opportunities = [],
     { key: 'revenu', label: 'Revenu', render: (row) => fmtCurrency(row.revenu) },
     { key: 'marge', label: 'Marge', render: (row) => <span className={toNumber(row.marge) >= 0 ? 'text-emerald-600 font-bold' : 'text-red-500 font-bold'}>{fmtCurrency(row.marge)}</span> },
     { key: 'risques', label: 'Risques', sortable: true, render: (row) => row.risques ?? '—' },
-    { key: 'actions', label: 'Actions', render: (row) => isSupportRecord(row) ? <div className="flex gap-1"><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(row); setModal('edit'); }} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(row); setModal('delete'); }} /></div> : <span className="text-xs text-[#8a7456]">Auto</span> },
+    { key: 'actions', label: 'Actions', render: (row) => isSupportRecord(row) ? <div className="flex gap-1"><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(row); setModal('edit'); }} disabled={['vendue','vendu','perdu','sinistre'].includes(String(row.statut || row.status || '').toLowerCase())} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(row); setModal('delete'); }} /></div> : <span className="text-xs text-[#8a7456]">Auto</span> },
   ];
 
   return <div className="space-y-6">
@@ -189,7 +190,7 @@ export default function CulturesV3({ rows = [], stocks = [], opportunities = [],
     {tab === 'Performance' ? <DataTable title="Performance cultures" rows={performanceRows} columns={cultureColumns} loading={loading} initialSortKey="nom" searchPlaceholder="Rechercher performance..." /> : null}
     {tab === 'Parcelles' ? <DataTable title="Parcelles" rows={parcelles} columns={aggregateColumns} loading={loading} initialSortKey="nom" /> : null}
     {tab === 'Campagnes' ? <DataTable title="Campagnes" rows={campagnes} columns={aggregateColumns} loading={loading} initialSortKey="nom" /> : null}
-    <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, cout_total_calcule: costOf(selected), revenu_calcule: revenueOf(selected), marge_calculee: marginOf(selected), score_sante_calcule: healthOf(selected), horizon_decision: selected.horizon_decision || buildCultureDecisionProfile(selected) } : selected} title="Fiche culture" />
+    <CultureFicheModal open={modal === 'details'} onClose={() => setModal(null)} culture={selected ? { ...selected, cout_total_calcule: costOf(selected), revenu_calcule: revenueOf(selected), marge_calculee: marginOf(selected), score_sante_calcule: healthOf(selected), horizon_decision: selected.horizon_decision || buildCultureDecisionProfile(selected) } : selected} />
     <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={CULTURE_FIELDS} initialValues={applyCultureDecisionDefaults({ id: generateSequentialId('cultures', rows), record_type: 'culture', statut: 'planifiee', localisation: 'Thiès / Médina Fall', date_debut_campagne: today(), unite_surface: 'm²', unite_recolte: 'kg' })} autoId={() => generateSequentialId('cultures', rows)} loading={saving} title="Ajouter culture" submitLabel="Ajouter" />
     <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={CULTURE_FIELDS} initialValues={selected || {}} loading={saving} title="Modifier fiche" submitLabel="Enregistrer" />
     <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected?.nom || selected?.id || ''} loading={saving} />

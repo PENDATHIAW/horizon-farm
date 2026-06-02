@@ -17,6 +17,8 @@ import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { isActiveAnimalForFeeding } from '../utils/alimentation';
 import AnimalHealthBridge from './AnimalHealthBridge.jsx';
+import AnimalWeightCurve from '../components/AnimalWeightCurve.jsx';
+import { buildAnimalWeighingProfile, isAnimalLocked, addDaysIso, WEIGHING_INTERVAL_DAYS } from '../utils/animalWeighing.js';
 import { recommendAnimalSalePrice } from '../services/salePricingEngine.js';
 
 const arr = (v) => Array.isArray(v) ? v : [];
@@ -27,7 +29,7 @@ const amount = (r = {}) => toNumber(r.montant ?? r.amount ?? r.total ?? r.montan
 const orderAmount = (r = {}) => toNumber(r.montant_total ?? r.total ?? r.amount ?? r.total_amount ?? r.ca ?? r.ca_total ?? 0);
 const paymentAmount = (r = {}) => toNumber(r.montant_paye ?? r.montant ?? r.amount ?? r.paid_amount ?? 0);
 const statusOf = (r = {}) => r.status || r.statut || 'actif';
-const isLocked = (r = {}) => ['vendu', 'mort', 'vole', 'volé', 'perdu'].includes(clean(statusOf(r)));
+const isLocked = isAnimalLocked;
 const healthOf = (r = {}) => r.health_status || r.sante || r.status_sante || 'sain';
 const physicalIdOf = (r = {}) => r.boucle_numero || r.qr_code || r.tag || r.id;
 const weightOf = (r = {}) => toNumber(r.poids_actuel ?? r.poids ?? r.weight ?? r.current_weight ?? r.last_weight);
@@ -129,28 +131,8 @@ function parseHistory(raw) {
   return [];
 }
 function growthInfo(row = {}) {
-  const history = parseHistory(row.poids_history || row.weight_history || row.historique_poids);
-  const entryDate = row.date_poids_entree || row.date_entree_ferme || row.date_achat || today();
-  const lastDate = row.date_derniere_pesee || row.last_weighing_date || today();
-  const entryWeight = entryWeightOf(row);
-  const currentWeight = weightOf(row);
-  if (entryWeight > 0 && !history.some((x) => x.date === entryDate)) history.unshift({ date: entryDate, poids: entryWeight, note: 'Entrée ferme' });
-  if (currentWeight > 0 && !history.some((x) => x.date === lastDate && Math.round(x.poids * 10) === Math.round(currentWeight * 10))) history.push({ date: lastDate, poids: currentWeight, note: 'Dernière pesée' });
-  history.sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  const first = history[0];
-  const last = history[history.length - 1];
-  const current = toNumber(last?.poids || currentWeight);
-  const target = targetWeightOf(row);
-  const progress = target > 0 ? Math.round((current / target) * 100) : 0;
-  const gain = first && last ? last.poids - first.poids : 0;
-  const days = Math.max(1, Math.round((new Date(last?.date || today()) - new Date(first?.date || today())) / 86400000) || 1);
-  const gainDay = first && last ? gain / days : 0;
-  const nextWeighing = isLocked(row) ? '' : addDays(lastDate, 15);
-  const reminderDate = nextWeighing ? addDays(nextWeighing, -1) : '';
-  const weighingStatus = isLocked(row) ? 'verrouille' : nextWeighing < today() ? 'retard' : reminderDate <= today() ? 'j-1' : 'planifie';
-  const status = clean(statusOf(row)) === 'vendu' ? 'vendu' : progress >= 100 || row.ready_to_sell || clean(statusOf(row)) === 'pret_a_la_vente' ? 'pret' : progress >= 90 ? 'presque' : progress > 0 && progress < 75 ? 'retard' : 'normal';
-  const decision = status === 'vendu' ? 'Animal vendu : fiche verrouillée' : status === 'pret' ? 'Créer / exécuter opportunité de vente' : status === 'presque' ? 'Peser puis vendre si marge OK' : status === 'retard' ? 'Revoir ration, santé et coût journalier' : weighingStatus === 'j-1' ? 'Pesée à préparer demain' : 'Continuer le suivi normal';
-  return { history, current, target, progress, gain, gainDay, status, decision, lastDate, nextWeighing, reminderDate, weighingStatus };
+  const profile = buildAnimalWeighingProfile(row);
+  return { ...profile, gainDay: profile.gainPerDay, status: profile.saleStatus };
 }
 function linkedSales(animal = {}, salesOrders = [], payments = []) {
   const orders = arr(salesOrders).filter((order) => !['annule', 'annulee', 'cancelled'].includes(clean(order.statut || order.status)) && matchAnimal(order, animal));
@@ -242,39 +224,7 @@ const editFields = [
 ];
 function MiniMetric({ label, value, danger = false }) { return <div className={`rounded-2xl border p-4 ${danger ? 'border-red-200 bg-red-50' : 'border-[#eadcc2] bg-white'}`}><p className="text-xs uppercase tracking-wide text-[#8a7456]">{label}</p><p className={`mt-2 text-xl font-black ${danger ? 'text-red-600' : 'text-[#2f2415]'}`}>{value}</p></div>; }
 function ProgressBar({ value }) { const pct = Math.max(0, Math.min(100, Number(value || 0))); return <div className="min-w-[120px]"><div className="h-2 rounded-full bg-[#eadcc2] overflow-hidden"><div className="h-full rounded-full bg-[#2f2415]" style={{ width: `${pct}%` }} /></div><p className="mt-1 text-xs font-bold text-[#2f2415]">{Math.round(value || 0)}%</p></div>; }
-function WeightCurve({ history = [], target = 0 }) { const points = history.filter((p) => p.poids > 0); if (points.length < 2) return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-6 text-center text-sm text-[#8a7456]">Ajoute au moins deux pesées pour afficher une courbe fiable.</div>; const values = points.map((p) => p.poids).concat(target ? [target] : []); const min = Math.min(...values) * 0.96; const max = Math.max(...values) * 1.04; const w = 640; const h = 220; const pad = 32; const x = (i) => pad + (i * (w - pad * 2)) / Math.max(1, points.length - 1); const y = (v) => h - pad - ((v - min) / Math.max(1, max - min)) * (h - pad * 2); const d = points.map((p, i) => `${i ? 'L' : 'M'} ${x(i)} ${y(p.poids)}`).join(' '); const targetY = target ? y(target) : null; return <div className="rounded-2xl border border-[#eadcc2] bg-white p-4"><p className="font-black text-[#2f2415] flex items-center gap-2 mb-3"><LineChart size={16} /> Courbe d’évolution du poids</p><svg viewBox={`0 0 ${w} ${h}`} className="w-full h-56"><line x1={pad} y1={h - pad} x2={w - pad} y2={h - pad} stroke="#eadcc2" /><line x1={pad} y1={pad} x2={pad} y2={h - pad} stroke="#eadcc2" />{targetY ? <line x1={pad} y1={targetY} x2={w - pad} y2={targetY} stroke="#c9a96a" strokeDasharray="6 6" /> : null}<path d={d} fill="none" stroke="#2f2415" strokeWidth="4" strokeLinecap="round" />{points.map((p, i) => <g key={`${p.date}-${i}`}><circle cx={x(i)} cy={y(p.poids)} r="5" fill="#2f2415" /><text x={x(i)} y={y(p.poids) - 10} textAnchor="middle" fontSize="12" fill="#2f2415">{p.poids}kg</text><text x={x(i)} y={h - 10} textAnchor="middle" fontSize="11" fill="#8a7456">{String(p.date).slice(5)}</text></g>)}</svg></div>; }
-export function buildAnimalDetailAuditModel({ animal = {}, alimentationLogs = [], vaccins = [], businessEvents = [], salesOrders = [], payments = [], transactions = [] } = {}) {
-  const g = growthInfo(animal);
-  const costs = costBreakdown(animal, { alimentationLogs, vaccins, businessEvents, salesOrders, payments, transactions });
-  const docs = animalDocuments(animal);
-  const linkedHealth = arr(vaccins).filter((item) => matchAnimal(item, animal));
-  const linkedFeed = arr(alimentationLogs).filter((item) => matchAnimal(item, animal));
-  const linkedEvents = arr(businessEvents).filter((item) => matchAnimal(item, animal));
-  const sales = linkedSales(animal, salesOrders, payments);
-  const salePricing = recommendAnimalSalePrice({ animal, alimentationLogs, vaccins: linkedHealth, marketPrices });
-  const identityRows = [
-    ['Identifiant / boucle', physicalIdOf(animal)],
-    ['Nom / repère', animal.name || animal.nom],
-    ['Espèce', animal.type || animal.espece],
-    ['Sexe', animal.sexe === 'M' ? 'Mâle' : animal.sexe === 'F' ? 'Femelle' : animal.sexe],
-    ['Race', animal.race],
-    ['Âge', ageLabel(animal)],
-    ['Date naissance', dateLabel(animal.date_naissance || animal.birth_date)],
-    ['Date entrée', dateLabel(animal.date_entree_ferme || animal.date_achat)],
-    ['Origine', animalOrigin(animal)],
-    ['Statut actuel', statusOf(animal)],
-    ['État de santé', healthOf(animal)],
-    ['Localisation', locationOf(animal)],
-  ];
-  const historyRows = [
-    ...g.history.map((item) => ({ date: item.date, title: `Pesée ${fmtNumber(item.poids)} kg`, detail: item.note || 'Pesée terrain' })),
-    ...linkedHealth.map((item) => ({ date: eventDate(item) || item.date_prevue || item.date_realisation, title: `Santé · ${fallbackText(item.type_soin || item.type_intervention || item.nom, 'Soin')}`, detail: fallbackText(item.produit || item.notes || item.status, 'Suivi santé') })),
-    ...linkedFeed.map((item) => ({ date: eventDate(item), title: `Alimentation · ${fmtNumber(toNumber(item.quantite ?? item.quantity))} ${item.unite || 'kg'}`, detail: fallbackText(item.produit || item.notes, 'Sortie alimentation') })),
-    ...sales.orders.map((item) => ({ date: eventDate(item), title: `Vente · ${fmtCurrency(orderAmount(item))}`, detail: fallbackText(item.client_name || item.client || item.status, 'Commande vente') })),
-    ...linkedEvents.map((item) => ({ date: eventDate(item), title: eventTitle(item), detail: fallbackText(item.description || item.notes || item.status, 'Événement métier') })),
-  ].filter((item) => item.title).sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).slice(0, 12);
-  return { g, costs, docs, sales, identityRows, historyRows };
-}
+
 function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vaccins = [], businessEvents = [], salesOrders = [], payments = [], transactions = [], marketPrices = [] }) {
   const [tab, setTab] = useState('identite');
   useEffect(() => { if (open) setTab('identite'); }, [open, animal?.id]);
@@ -336,7 +286,7 @@ function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vacci
 
     {tab === 'croissance' ? (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2"><WeightCurve history={g.history} target={g.target} /></div>
+        <div className="lg:col-span-2"><AnimalWeightCurve history={g.history} target={g.target} /></div>
         <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="font-black text-[#2f2415] mb-2">Notes terrain</p><p className="text-sm text-[#7d6a4a] whitespace-pre-wrap">{fallbackText(animal.notes || animal.note || animal.commentaire)}</p></div>
       </div>
     ) : null}
@@ -374,7 +324,7 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
     const documents = documentsText ? parseDocuments(documentsText) : parseDocuments(existing.documents || existing.docs || existing.pieces_jointes);
     const lastWeighing = payload.date_derniere_pesee || existing.date_derniere_pesee || entryDate;
     if (current > 0 && lastWeighing && !history.some((h) => h.date === lastWeighing && Math.round(h.poids * 10) === Math.round(current * 10))) history.push({ date: lastWeighing, poids: current, note: existing.id ? 'Nouvelle pesée' : 'Première pesée' });
-    const nextWeighing = ['vendu', 'mort', 'perdu', 'vole', 'volé', 'sorti'].includes(clean(payload.status || payload.statut || existing.status || existing.statut)) ? '' : addDays(lastWeighing, 15);
+    const nextWeighing = ['vendu', 'mort', 'perdu', 'vole', 'volé', 'sorti'].includes(clean(payload.status || payload.statut || existing.status || existing.statut)) ? '' : addDaysIso(lastWeighing, WEIGHING_INTERVAL_DAYS);
     return (() => {
       const defaults = applyAnimalDecisionDefaults({
       ...existing,
@@ -395,7 +345,7 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
       date_poids_entree: payload.date_poids_entree || existing.date_poids_entree || entryDate,
       date_derniere_pesee: lastWeighing,
       prochaine_pesee: nextWeighing,
-      rappel_pesee: nextWeighing ? addDays(nextWeighing, -1) : '',
+      rappel_pesee: nextWeighing ? addDaysIso(nextWeighing, -1) : '',
       poids_entree: entryWeight,
       poids: current,
       poids_actuel: current,
