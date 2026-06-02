@@ -8,6 +8,7 @@ import HeyHorizonAvicoleCard from '../HeyHorizonAvicoleCard.jsx';
 import { ELEVAGE_ACTION_GRID, ELEVAGE_STAT_GRID, ElevageActionCard, ElevageLogRow, ElevageSection, ElevageStatCard } from './elevageUi.jsx';
 import { useAnimalWorkflowHandlers } from './useAnimalWorkflowHandlers.js';
 import { useAvicoleWorkflowHandlers } from './useAvicoleWorkflowHandlers.js';
+import useCrudModule from '../../hooks/useCrudModule';
 
 function LayerHelpBanner() {
   return (
@@ -23,6 +24,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 export default function ElevageProductionPanel({ data, setTab, animalProps, avicoleProps, horizonDraft, onCloseDraft, stats, recent }) {
   const activeLots = useMemo(() => (avicoleProps.rows || []).filter(avicoleHasActiveBirds), [avicoleProps.rows]);
   const { wrapUpdate } = useAnimalWorkflowHandlers({ props: animalProps, species: 'Bovin', opportunities: avicoleProps.opportunities || [] });
+  const stockCrud = useCrudModule('stock');
   const { createOrReactivateEggOpportunity } = useAvicoleWorkflowHandlers({ props: avicoleProps, opportunities: avicoleProps.opportunities || [] });
 
   const showAnimalWeighing = horizonDraft?.form_type === 'animal_weighing';
@@ -50,7 +52,7 @@ export default function ElevageProductionPanel({ data, setTab, animalProps, avic
 
       {showEggProduction ? (
         <div id="hey-horizon-avicole-card">
-          <HeyHorizonAvicoleCard draft={horizonDraft} rows={activeLots} onUpdate={avicoleProps.onUpdate} onCreateProduction={avicoleProps.onCreateProduction} onRefreshProduction={avicoleProps.onRefreshProduction} onCreateBusinessEvent={avicoleProps.onCreateBusinessEvent} onRefresh={avicoleProps.onRefresh} onRefreshBusinessEvents={avicoleProps.onRefreshBusinessEvents} onClose={onCloseDraft} onCreateEggOpportunity={createOrReactivateEggOpportunity} />
+          <HeyHorizonAvicoleCard draft={horizonDraft} rows={activeLots} stockCrud={stockCrud} onUpdate={avicoleProps.onUpdate} onCreateProduction={avicoleProps.onCreateProduction} onRefreshProduction={avicoleProps.onRefreshProduction} onCreateBusinessEvent={avicoleProps.onCreateBusinessEvent} onRefresh={avicoleProps.onRefresh} onRefreshBusinessEvents={avicoleProps.onRefreshBusinessEvents} onClose={onCloseDraft} onCreateEggOpportunity={createOrReactivateEggOpportunity} />
         </div>
       ) : null}
 
