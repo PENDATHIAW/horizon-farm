@@ -21,7 +21,7 @@ function equipmentRisk(row = {}) {
 const moduleLabel = (key) => MODULE_LABELS[key] || String(key || '').replace(/_/g, ' ') || 'Ferme';
 
 export default function DashboardOperationsBridge({ opportunities = [], lots = [], animaux = [], cultures = [], stocks = [], taches = [], alertes = [], equipements = [], businessEvents = [], onNavigate }) {
-  const openOpportunities = deriveSalesOpportunities({ opportunities, lots, animaux, cultures, stocks });
+  const openOpportunities = deriveSalesOpportunities({ opportunities, lots, animaux, cultures, stocks, alimentationLogs, productionLogs, vaccins, marketPrices });
   const openTasks = arr(taches).filter(isTaskOpen);
   const openAlerts = arr(alertes).filter(isAlertOpen);
   const equipmentAlerts = arr(equipements).filter(equipmentRisk);

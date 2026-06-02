@@ -40,7 +40,7 @@ export function recommendAnimalSalePrice({ animal, alimentationLogs = [], vaccin
     marketPrice: market?.price || null,
     readiness,
     pricing,
-    alerts: margin < unified.totalCost * (settings.defaultTargetMarginPct / 100) ? ['Marge sous objectif — revoir prix ou coûts.'] : [],
+    alerts: margin < 0 ? ['Prix recommandé sous le coût total — ne pas vendre sans ajuster.'] : margin < unified.totalCost * (settings.defaultTargetMarginPct / 100) ? ['Marge sous objectif — revoir prix ou coûts.'] : [],
   };
 }
 

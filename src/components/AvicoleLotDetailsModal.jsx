@@ -113,7 +113,7 @@ function livingAsProjection(living) {
   return { status: living.status, label: living.status?.replaceAll('_', ' ') || 'Suivi en cours', currentWeight: living.currentWeight || 0, targetWeight: living.livingTarget || living.defaultTargetWeight || 0, projectedWeight: living.projectedWeight || 0, targetDays: living.targetDays || 45, gainPerDay: living.adaptiveGainPerDay || living.realGainPerDay || 0, action: living.action, history: living.history || [] };
 }
 
-export default function AvicoleLotDetailsModal({ open, onClose, lot, productionLogs = [], alimentationLogs = [], opportunities = [], salesOrders = [], payments = [], transactions = [], businessEvents = [], onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateBusinessEvent, onRefreshBusinessEvents, onNavigate }) {
+export default function AvicoleLotDetailsModal({ open, onClose, lot, productionLogs = [], alimentationLogs = [], opportunities = [], salesOrders = [], payments = [], transactions = [], businessEvents = [], onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateBusinessEvent, onRefreshBusinessEvents, onNavigate, marketPrices = [] }) {
   const [tab, setTab] = useState('situation');
 
   useEffect(() => {
@@ -136,7 +136,7 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
   const recentEggsDay = toNumber(livingTarget.recentDailyEggs || decision.avgEggsDay || 0);
   const gapEggsDay = toNumber(livingTarget.gapEggsDay || recentEggsDay - expectedEggsDay);
 
-  const salePricing = recommendAvicoleLotPrice({ lot, alimentationLogs, productionLogs });
+  const salePricing = recommendAvicoleLotPrice({ lot, alimentationLogs, productionLogs, marketPrices });
 
   const confirmOpportunity = async () => {
     if (!onCreateOpportunity && !onUpdateOpportunity) return toast.error('Création opportunité non disponible pour ce module');
@@ -233,7 +233,12 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
           <Field label="Payé" value={fmtCurrency(finance.paid)} />
           <Field label="Reste à encaisser" value={fmtCurrency(finance.remaining)} danger={finance.remaining > 0} />
           <Field label="Commandes liées" value={fmtNumber(finance.ordersCount)} />
+          <Field label="Prix unitaire recommande" value={fmtCurrency(salePricing.recommendedUnitPrice)} />
+          <Field label="Prix total recommande" value={fmtCurrency(salePricing.recommendedTotalPrice)} />
+          <Field label="Plancher unitaire (cout)" value={fmtCurrency(salePricing.minimumUnitPrice)} />
+          <Field label="Prix marche observe" value={salePricing.marketPrice ? fmtCurrency(salePricing.marketPrice) : 'Non renseigne'} />
           <Field label="Marge lot" value={fmtCurrency(finance.margin)} danger={finance.margin < 0} />
+          {salePricing.alerts?.length ? <div className="md:col-span-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{salePricing.alerts.join(' ')}</div> : null}
         </Section>
       ) : null}
     </div>

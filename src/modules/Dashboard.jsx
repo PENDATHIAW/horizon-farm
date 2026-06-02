@@ -140,6 +140,10 @@ export default function Dashboard({
     animaux,
     cultures,
     stocks,
+    alimentationLogs,
+    productionLogs,
+    vaccins,
+    marketPrices: props.marketPrices || [],
   });
 
   const monthlyActivity = useMemo(
