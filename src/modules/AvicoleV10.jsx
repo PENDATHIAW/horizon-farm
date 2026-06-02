@@ -7,8 +7,10 @@ import { buildAvicoleLotDecision } from '../services/avicoleDecisionEngine';
 import { fmtNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { avicoleActiveCount, avicoleHasActiveBirds } from '../utils/avicoleMetrics';
+import { mergeSaleReadiness, saleOpportunityKey, shouldSyncSaleOpportunity } from '../utils/saleReadiness';
 import AvicoleBase from './AvicoleBase.jsx';
 import AvicoleCycleHealthPanel from './AvicoleCycleHealthPanel.jsx';
+import AvicoleSaleReadinessBridge from './AvicoleSaleReadinessBridge.jsx';
 import AvicoleEvolution from './AvicoleEvolution.jsx';
 import AvicoleJournalsBridge from './AvicoleJournalsBridge.jsx';
 import AvicoleTransformationBridge from './AvicoleTransformationBridge.jsx';
@@ -183,8 +185,20 @@ export default function AvicoleV10(props) {
     } catch (error) { console.warn('Perte avicole non consignée en événement', error); }
   };
 
-  const wrappedCreate = async (payload) => { await props.onCreate?.(payload); await createMortalityEvent({}, payload, 'création lot avicole'); await createOrReactivateLotOpportunity(payload, 'création lot prêt à vendre'); };
-  const wrappedUpdate = async (id, payload) => { const before = (props.rows || []).find((lot) => String(lot.id) === String(id)) || {}; const after = { ...before, ...payload, id }; await props.onUpdate?.(id, payload); await createMortalityEvent(before, after, 'modification fiche lot'); if (!isReadyForSale(before) && isReadyForSale(after)) await createOrReactivateLotOpportunity(after, 'lot marqué prêt à vendre'); };
+  const wrappedCreate = async (payload) => {
+    const prepared = mergeSaleReadiness({}, payload);
+    await props.onCreate?.(prepared);
+    await createMortalityEvent({}, prepared, 'création lot avicole');
+    if (shouldSyncSaleOpportunity({}, prepared)) await createOrReactivateLotOpportunity(prepared, 'création lot prêt à vendre');
+  };
+  const wrappedUpdate = async (id, payload) => {
+    const before = (props.rows || []).find((lot) => String(lot.id) === String(id)) || {};
+    const mergedPayload = mergeSaleReadiness(before, payload);
+    const after = { ...before, ...mergedPayload, id };
+    await props.onUpdate?.(id, mergedPayload);
+    await createMortalityEvent(before, after, 'modification fiche lot');
+    if (shouldSyncSaleOpportunity(before, after)) await createOrReactivateLotOpportunity(after, 'lot marqué prêt à vendre');
+  };
   const scopedOpportunities = opportunities.filter((op) => activity === 'pondeuse' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('oeuf') || norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('pondeuse') : activity === 'chair' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('chair') : true);
   const operationalProps = { ...props, activity, lockActivity: true, rows: activeScopedRows, productionLogs: scopedProductionLogs, salesOrders, payments, transactions, businessEvents, onCreate: wrappedCreate, onUpdate: wrappedUpdate, opportunities: scopedOpportunities };
   const historyProps = { ...props, activity, lockActivity: true, rows: scopedRows, productionLogs: scopedProductionLogs, salesOrders, payments, transactions, businessEvents, onCreate: wrappedCreate, onUpdate: wrappedUpdate, opportunities: scopedOpportunities };
@@ -201,6 +215,7 @@ export default function AvicoleV10(props) {
     </div>
 
     <AvicoleCycleHealthPanel rows={rows} productionLogs={productionLogs} alimentationLogs={props.alimentationLogs || []} onNavigate={props.onNavigate} />
+    <AvicoleSaleReadinessBridge rows={activeScopedRows} opportunities={scopedOpportunities} onUpdate={wrappedUpdate} onRefresh={props.onRefresh} onCreateOpportunity={props.onCreateOpportunity} onUpdateOpportunity={props.onUpdateOpportunity} onRefreshOpportunities={props.onRefreshOpportunities} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} />
     {activity === 'pondeuse' ? <LayerHelpBanner /> : null}
     <div className="objective-card-grid grid grid-cols-1 gap-4">{activity === 'pondeuse' ? <ObjectivePerformanceCard dataMap={dataMap} activity="oeufs" title="Objectif œufs / pondeuses" compact onNavigate={props.onNavigate} /> : <ObjectivePerformanceCard dataMap={dataMap} activity="poulets_chair" title="Objectif poulets de chair" compact onNavigate={props.onNavigate} />}</div>
     <ModuleSection icon={PackageCheck} title={`Lots actifs · ${selectedLabel}`} subtitle={`${historicalScopedRows.length} lot(s) en historique.`}><AvicoleBase {...operationalProps} /></ModuleSection>

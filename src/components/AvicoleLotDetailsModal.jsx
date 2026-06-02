@@ -105,7 +105,8 @@ function consolidatedLotFinance({ lot, metrics, layer, active, businessEvents = 
   if (!sales.orders.length && revenue <= 0) warnings.push('Aucune vente liée ou estimation de vente pour ce lot.');
   return { achat, alimentation, eventCharges, financeCharges, totalCost, revenue, revenueSource, paid: sales.paid, remaining: sales.orders.length ? sales.remaining : 0, ordersCount: sales.orders.length, margin: revenue - totalCost, warnings };
 }
-const existingOpportunityFor = (lot = {}, opportunities = []) => opportunities.find((opp) => String(opp.source_id || opp.entity_id || opp.related_id || '') === String(lot.id) && !['converti', 'converted', 'annule', 'annulé', 'ignore', 'ignoré', 'perdu', 'cloture', 'clôturé'].some((status) => clean(opp.status || opp.statut).includes(status)));
+const existingOpportunityFor = (lot = {}, opportunities = []) => findSaleOpportunity({ sourceModule: 'avicole', id: lotId(lot), opportunities })
+  || opportunities.find((opp) => String(opp.source_id || opp.entity_id || opp.related_id || '') === String(lot.id) && !['converti', 'converted', 'annule', 'annulé', 'ignore', 'ignoré', 'perdu', 'cloture', 'clôturé'].some((status) => clean(opp.status || opp.statut).includes(status)));
 function livingAsProjection(living) {
   return { status: living.status, label: living.status?.replaceAll('_', ' ') || 'Suivi en cours', currentWeight: living.currentWeight || 0, targetWeight: living.livingTarget || living.defaultTargetWeight || 0, projectedWeight: living.projectedWeight || 0, targetDays: living.targetDays || 45, gainPerDay: living.adaptiveGainPerDay || living.realGainPerDay || 0, action: living.action, history: living.history || [] };
 }
