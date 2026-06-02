@@ -3,7 +3,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { fmtCurrency } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { buildSaleFormFromDraft } from '../utils/saleFormDraft';
-import { runNewSaleSideEffects } from '../utils/saleSideEffects';
+import {
+  buildCommercialSaleRecords,
+  commitCommercialSale,
+  SALE_PRODUCT_TYPES,
+  validateCommercialSaleForm,
+} from '../utils/commercialSaleWorkflow';
 import { DELIVERY_HINT, isMeatStock, saleSourceHint } from '../utils/saleSourceHints';
 
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -12,7 +17,7 @@ const num = (value = 0) => Number(value || 0) || 0;
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 const WALK_IN = 'client_passage';
 const paymentMethods = [{ value: 'especes', label: 'Espèces' }, { value: 'wave', label: 'Wave' }, { value: 'orange_money', label: 'Orange Money' }, { value: 'virement', label: 'Virement' }, { value: 'cheque', label: 'Chèque' }];
-const productTypes = { lot_avicole: 'Avicole', animal: 'Animal', stock: 'Stock vendable', culture: 'Culture / récolte', autre: 'Autre vente' };
+const productTypes = { lot_avicole: 'Lot avicole', animal: 'Animal', stock: 'Stock', culture: 'Culture / récolte', service: 'Prestation / service', autre: 'Autre vente' };
 const blockedStockWords = ['aliment', 'vaccin', 'medicament', 'médicament', 'antibiotique', 'desinfectant', 'désinfectant', 'veterinaire', 'vétérinaire'];
 const clientName = (clients = [], id) => id === WALK_IN ? 'Client de passage' : arr(clients).find((c) => String(c.id) === String(id))?.nom || arr(clients).find((c) => String(c.id) === String(id))?.name || id || 'Client';
 const isSellableStock = (stock = {}) => stock.is_sellable === true || stock.vendable === true || !blockedStockWords.some((word) => norm(`${stock.produit || ''} ${stock.nom || ''} ${stock.categorie || ''}`).includes(norm(word)));
@@ -39,13 +44,14 @@ const STEPS = [
 const defaultForm = () => ({
   date: today(), client_id: WALK_IN, source_type: 'lot_avicole', source_id: '', product_name: '',
   quantity: 1, unit: 'tête', unit_price: 0, payment_status: 'paye', paid_amount: '', payment_method: 'especes',
-  fulfillment_mode: 'recupere', delivery_fee: 0, invoice_issued: true, notes: '', opportunity_id: '',
+  fulfillment_mode: 'recupere', delivery_fee: 0, invoice_issued: true, notes: '', opportunity_id: '', lines: [],
 });
 
 function buildOptions(type, props) {
   if (type === 'lot_avicole') return arr(props.lots).filter((lot) => !['vendu', 'termine', 'terminé', 'perdu'].includes(norm(lot.status || lot.statut))).map((lot) => ({ value: lot.id, label: `${lot.id} · ${isPondeuseLot(lot) ? 'Œufs / pondeuses' : 'Poulets chair'} · ${lotActiveCount(lot)} disponible(s)`, qty: lotActiveCount(lot), price: num(lot.prix_vente_prevu ?? lot.prix_unitaire_vente ?? lot.prix_tablette ?? lot.prix_plateau), name: isPondeuseLot(lot) ? `Œufs · ${lot.name || lot.nom || lot.id}` : `${lot.id} · Poulets chair`, unit: isPondeuseLot(lot) ? 'tablette' : 'tête', sale_kind: isPondeuseLot(lot) ? 'oeufs_tablettes' : 'chair' })).filter((o) => o.qty > 0);
   if (type === 'animal') return arr(props.animaux).filter((a) => !['vendu', 'mort', 'vole', 'volé'].includes(norm(a.status || a.statut))).map((a) => ({ value: a.id, label: `${a.id} · ${a.name || a.type || a.espece || 'Animal'}`, qty: 1, price: num(a.prix_vente_estime || a.sale_price || a.prix_vente), name: a.name || a.nom || a.id, unit: 'tête', sale_kind: 'animal' }));
   if (type === 'stock') return arr(props.stocks).filter((s) => num(s.quantite) > 0 && isSellableStock(s)).map((s) => ({ value: s.id, label: `${s.produit || s.nom || s.id}${isMeatStock(s) ? ' · viande abattue' : ''} · ${s.quantite} ${s.unite || ''}`, qty: num(s.quantite), price: num(s.prixunit || s.prixUnit || s.prix_unitaire || s.cout_revient_unitaire), name: s.produit || s.nom || s.id, unit: s.unite || 'unité', sale_kind: 'stock', sourceRow: s }));
+  if (type === 'service') return [];
   if (type === 'culture') return arr(props.cultures).filter((c) => num(c.quantite_disponible ?? c.quantite_recoltee) > 0).map((c) => ({ value: c.id, label: `${c.culture || c.nom || c.id} · ${c.quantite_disponible ?? c.quantite_recoltee} ${c.unite || 'kg'}`, qty: num(c.quantite_disponible ?? c.quantite_recoltee), price: num(c.prix_vente_kg), name: c.culture || c.nom || c.id, unit: c.unite || 'kg', sale_kind: 'culture' }));
   return [];
 }
@@ -114,19 +120,21 @@ export function SaleModal({ props, onClose, onDone, prefill = null }) {
   const changeSource = (id) => { const option = options.find((o) => String(o.value) === String(id)); setForm((prev) => ({ ...prev, source_id: id, product_name: option?.name || '', unit: option?.unit || defaultUnitForType(prev.source_type), unit_price: option?.price || 0, quantity: 1 })); };
   const validateStep = (targetStep = step) => {
     if (targetStep >= 0) {
-      if (form.source_type !== 'autre' && !form.source_id) return 'Choisis le produit vendu.';
+      if (form.source_type !== SALE_PRODUCT_TYPES.OTHER && form.source_type !== SALE_PRODUCT_TYPES.SERVICE && !form.source_id) {
+        return 'Choisis le produit vendu.';
+      }
       if (!form.product_name) return 'Libellé produit obligatoire.';
-      if (num(form.quantity) <= 0) return 'Quantité invalide.';
-      if (form.source_type !== 'autre' && selected && num(form.quantity) > num(selected.qty)) return `Quantité disponible : ${selected.qty} ${form.unit}.`;
-      if (num(form.unit_price) <= 0) return 'Prix unitaire obligatoire.';
+      if (form.source_type !== SALE_PRODUCT_TYPES.OTHER && form.source_type !== SALE_PRODUCT_TYPES.SERVICE && selected && num(form.quantity) > num(selected.qty)) {
+        return `Quantité disponible : ${selected.qty} ${form.unit}.`;
+      }
     }
     if (targetStep >= 1) {
       if (!form.client_id) return 'Choisis un client ou Client de passage.';
       if (!form.date) return 'Date obligatoire.';
     }
     if (targetStep >= 3) {
-      if (form.client_id === WALK_IN && form.payment_status !== 'paye') return 'Client de passage uniquement si la vente est payée totalement.';
-      if (form.payment_status === 'partiel' && (paid <= 0 || paid >= grandTotal)) return 'Pour un paiement partiel, le montant payé doit être inférieur au total et supérieur à 0.';
+      const msg = validateCommercialSaleForm(form, { walkInOnlyPaid: true });
+      if (msg) return msg;
     }
     return '';
   };
@@ -141,45 +149,50 @@ export function SaleModal({ props, onClose, onDone, prefill = null }) {
     try {
       setSaving(true);
       const orderId = makeId('CMD');
-      const invoiceId = form.invoice_issued ? makeId('FAC') : '';
-      const paymentId = paid > 0 ? makeId('PAY') : '';
-      const realClientId = form.client_id === WALK_IN ? '' : form.client_id;
-      const productName = form.product_name;
-      const isEggSale = selected?.sale_kind === 'oeufs_tablettes' || form.unit === 'tablette';
-      const orderPayload = { id: orderId, date: form.date, client_id: realClientId, client_type: form.client_id === WALK_IN ? 'passage' : 'client', client_label: clientName(props.clients, form.client_id), type_document: 'commande', statut_commande: orderStatus(form.fulfillment_mode), statut_livraison: deliveryStatus(form.fulfillment_mode), fulfillment_mode: form.fulfillment_mode, statut_paiement: form.payment_status, montant_ht: productTotal, frais_livraison: deliveryFee, delivery_fee: deliveryFee, montant_total: grandTotal, montant_paye: paid, reste_a_payer: remaining, moyen_paiement: paid > 0 ? form.payment_method : '', payment_method: paid > 0 ? form.payment_method : '', invoice_id: invoiceId, invoice_status: form.invoice_issued ? 'emise' : 'non_emise', facture_emise: form.invoice_issued, source_type: form.source_type, source_module: form.source_type === 'lot_avicole' ? 'avicole' : form.source_type, source_id: form.source_id || null, product_name: productName, source_label: productName, quantity: num(form.quantity), unit: form.unit, unite: form.unit, sale_kind: selected?.sale_kind || form.source_type, eggs_per_unit: isEggSale ? EGGS_PER_TABLET : undefined, eggs_quantity: isEggSale ? num(form.quantity) * EGGS_PER_TABLET : undefined, unit_price: num(form.unit_price), notes: form.notes || null, opportunity_id: form.opportunity_id || '', converted_opportunity_id: form.opportunity_id || '', created_from: 'vente_terrain_guidee', side_effects_managed: true };
-      await props.onCreate?.(orderPayload);
-      await props.onCreateItem?.({ id: makeId('CMDI'), order_id: orderId, source_type: form.source_type, source_module: orderPayload.source_module, source_id: form.source_id || null, product_name: productName, quantity: num(form.quantity), unit: form.unit, unite: form.unit, unit_price: num(form.unit_price), total: productTotal, line_total: productTotal, sale_kind: orderPayload.sale_kind, available_quantity_snapshot: selected?.qty ?? null });
-      await props.onCreateDelivery?.({ id: makeId('LIV'), order_id: orderId, date_livraison: form.date, statut: deliveryStatus(form.fulfillment_mode), status: deliveryStatus(form.fulfillment_mode), mode_livraison: form.fulfillment_mode, fulfillment_mode: form.fulfillment_mode, frais_livraison: deliveryFee, delivery_fee: deliveryFee, destinataire: clientName(props.clients, form.client_id), client_id: realClientId, notes: form.fulfillment_mode === 'a_livrer' ? 'Livraison à planifier automatiquement dans Tâches.' : deliveryFee > 0 ? `Frais livraison : ${fmtCurrency(deliveryFee)}` : '' });
-      if (form.invoice_issued) {
-        await props.onCreateInvoice?.({ id: invoiceId, order_id: orderId, numero_facture: `FAC-${orderId.slice(-6)}`, date_facture: form.date, montant_total: grandTotal, statut: 'emise', invoice_status: 'emise' });
-        await props.onCreateDocument?.({ id: makeId('DOC'), title: `Facture FAC-${orderId.slice(-6)}`, document_category: 'facture', module_source: 'ventes', entity_type: 'commande', entity_id: orderId, related_id: orderId, invoice_id: invoiceId, status: 'emise', amount: grandTotal });
-      }
-      if (paid > 0) {
-        await props.onCreatePayment?.({ id: paymentId, order_id: orderId, sale_id: orderId, source_record_id: orderId, client_id: realClientId, invoice_id: invoiceId, date_paiement: form.date, date: form.date, montant: paid, montant_paye: paid, amount: paid, moyen_paiement: form.payment_method, mode_paiement: form.payment_method, statut: 'paye', created_from: 'vente_terrain_guidee', side_effects_managed: true });
-      }
       const clientLabel = clientName(props.clients, form.client_id);
-      await runNewSaleSideEffects({
-        order: orderPayload,
-        orderId,
+      const records = buildCommercialSaleRecords({
         form,
-        paid,
-        remaining,
-        paymentId,
-        invoiceId,
-        productName,
+        orderId,
         clientLabel,
-        realClientId,
+        selectedMeta: selected,
+      });
+      await commitCommercialSale(records, {
+        onCreateOrder: props.onCreate,
+        onCreateItem: props.onCreateItem,
+        onCreateDelivery: props.onCreateDelivery,
+        onCreateInvoice: props.onCreateInvoice,
+        onCreateDocument: props.onCreateDocument,
+        onCreatePayment: props.onCreatePayment,
+        onCreateBusinessEvent: props.onCreateBusinessEvent,
+        onRefreshWorkflow: props.onRefreshWorkflow,
+        onUpdateStock: props.onUpdateStock,
+        onUpdateLot: props.onUpdateLot,
+        onUpdateAnimal: props.onUpdateAnimal,
+        onUpdateCulture: props.onUpdateCulture,
+        onCreateFinanceTransaction: props.onCreateFinanceTransaction,
+        onUpdateFinanceTransaction: props.onUpdateFinanceTransaction,
+        onUpdateClient: props.onUpdateClient,
+        onCreateTask: props.onCreateTask,
+        onCreateAlert: props.onCreateAlert,
+        onUpdateOpportunity: props.onUpdateOpportunity,
+        onCreateTrace: props.onCreateTrace,
+        opportunities: props.opportunities || [],
+        existingTraces: props.traces || props.tracabilite || [],
+      }, {
+        form,
+        clientLabel,
         selected,
         stocks: props.stocks,
         lots: props.lots,
         cultures: props.cultures,
         animaux: props.animaux,
         clients: props.clients,
-        salesOrders: [...arr(props.rows), orderPayload],
-        payments: paid > 0 ? [...arr(props.paymentsList || props.payments), { id: paymentId, order_id: orderId, client_id: realClientId, montant: paid }] : arr(props.paymentsList || props.payments),
+        salesOrders: props.rows,
+        payments: props.paymentsList || props.payments,
+        transactions: props.transactions || [],
         tasks: props.tasks || props.existingTasks || [],
         alertes: props.alertes || [],
-        handlers: {
+        sideEffectHandlers: {
           onUpdateStock: props.onUpdateStock,
           onUpdateLot: props.onUpdateLot,
           onUpdateAnimal: props.onUpdateAnimal,
@@ -191,19 +204,16 @@ export function SaleModal({ props, onClose, onDone, prefill = null }) {
           onCreateAlert: props.onCreateAlert,
           onUpdateOpportunity: props.onUpdateOpportunity,
           onCreateTrace: props.onCreateTrace,
-          onUpdateTrace: props.onUpdateTrace,
           opportunities: props.opportunities || [],
           existingTraces: props.traces || props.tracabilite || [],
         },
       });
-      await props.onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'vente_directe', module_source: 'ventes', entity_type: 'commande', entity_id: orderId, title: `Vente ${productName} - ${fmtCurrency(grandTotal)}`, description: `${clientName(props.clients, form.client_id)} · ${form.payment_status}${deliveryFee > 0 ? ` · livraison ${fmtCurrency(deliveryFee)}` : ''}`, amount: grandTotal, event_date: form.date, linked_sale_id: orderId, linked_invoice_id: invoiceId || null, linked_transaction_id: paymentId || null, source_type: form.source_type, source_id: form.source_id || '', sale_kind: selected?.sale_kind || form.source_type, severity: 'info' });
-      void props.onRefreshWorkflow?.();
       onDone?.(orderId);
     } catch (err) { setError(err.message || 'Enregistrement impossible.'); } finally { setSaving(false); }
   };
 
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3"><div className="w-full max-w-3xl max-h-[94vh] overflow-y-auto rounded-3xl border border-[#eadcc2] bg-white shadow-2xl"><div className="flex items-start justify-between border-b border-[#eadcc2] p-5"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Nouvelle vente</p><h2 className="text-xl font-black text-[#2f2415]">{STEPS[step].title}</h2><p className="text-sm text-[#8a7456] mt-1">Renseigne la vente puis valide.</p></div><button type="button" onClick={onClose} aria-label="Fermer"><X size={18} /></button></div><form onSubmit={submit} className="p-5 space-y-4"><Stepper step={step} />{error ? <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
-    {step === 0 ? <div className="space-y-4"><div className="grid grid-cols-2 md:grid-cols-5 gap-2">{Object.entries(productTypes).map(([key, label]) => <button key={key} type="button" onClick={() => changeType(key)} className={`min-h-[44px] rounded-xl border px-3 py-2 text-xs font-black ${form.source_type === key ? 'border-[#2f2415] bg-[#2f2415] text-white' : 'border-[#eadcc2] bg-[#fffdf8] text-[#8a7456]'}`}>{label}</button>)}</div><SourceHintBanner hint={sourceHint} />{form.source_type !== 'autre' ? <label className="space-y-1 block"><span className="text-xs font-bold text-[#8a7456]">Produit vendu *</span><select value={form.source_id} onChange={(e) => changeSource(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"><option value="">— sélectionner —</option>{options.map((o) => <option key={`${o.value}-${o.sale_kind}`} value={o.value}>{o.label}</option>)}</select>{selected ? <span className="text-xs text-[#8a7456]">Disponible : {selected.qty} {selected.unit}</span> : null}</label> : null}<Input label="Libellé produit vendu *" value={form.product_name} onChange={(v) => set('product_name', v)} /><div className="grid grid-cols-1 md:grid-cols-3 gap-3"><Input label="Quantité *" type="number" value={form.quantity} onChange={(v) => set('quantity', v)} disabled={form.source_type === 'animal'} /><Input label="Unité" value={form.unit} onChange={(v) => set('unit', v)} disabled={form.source_type === 'animal'} /><Input label="Prix unitaire *" type="number" value={form.unit_price} onChange={(v) => set('unit_price', v)} /></div></div> : null}
+    {step === 0 ? <div className="space-y-4"><div className="grid grid-cols-2 md:grid-cols-5 gap-2">{Object.entries(productTypes).map(([key, label]) => <button key={key} type="button" onClick={() => changeType(key)} className={`min-h-[44px] rounded-xl border px-3 py-2 text-xs font-black ${form.source_type === key ? 'border-[#2f2415] bg-[#2f2415] text-white' : 'border-[#eadcc2] bg-[#fffdf8] text-[#8a7456]'}`}>{label}</button>)}</div><SourceHintBanner hint={sourceHint} />{form.source_type !== 'autre' && form.source_type !== 'service' ? <label className="space-y-1 block"><span className="text-xs font-bold text-[#8a7456]">Produit vendu *</span><select value={form.source_id} onChange={(e) => changeSource(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"><option value="">— sélectionner —</option>{options.map((o) => <option key={`${o.value}-${o.sale_kind}`} value={o.value}>{o.label}</option>)}</select>{selected ? <span className="text-xs text-[#8a7456]">Disponible : {selected.qty} {selected.unit}</span> : null}</label> : null}<Input label="Libellé produit vendu *" value={form.product_name} onChange={(v) => set('product_name', v)} /><div className="grid grid-cols-1 md:grid-cols-3 gap-3"><Input label="Quantité *" type="number" value={form.quantity} onChange={(v) => set('quantity', v)} disabled={form.source_type === 'animal'} /><Input label="Unité" value={form.unit} onChange={(v) => set('unit', v)} disabled={form.source_type === 'animal'} /><Input label="Prix unitaire *" type="number" value={form.unit_price} onChange={(v) => set('unit_price', v)} /></div></div> : null}
     {step === 1 ? <div className="grid grid-cols-1 md:grid-cols-2 gap-3"><Select label="Client *" value={form.client_id} onChange={(v) => set('client_id', v)} options={[{ value: WALK_IN, label: 'Client de passage — paiement comptant uniquement' }, ...arr(props.clients).map((c) => ({ value: c.id, label: c.nom || c.name || c.id }))]} empty="Choisir un client" /><Input label="Date *" type="date" value={form.date} onChange={(v) => set('date', v)} /></div> : null}
     {step === 2 ? <div className="space-y-3"><div className="grid grid-cols-1 md:grid-cols-2 gap-3"><Select label="Retrait / livraison" value={form.fulfillment_mode} onChange={setFulfillment} options={[{ value: 'recupere', label: 'Récupéré sur place (0 FCFA livraison)' }, { value: 'livraison', label: 'Livré au client maintenant' }, { value: 'a_livrer', label: 'À livrer plus tard' }]} /><Select label="Facture" value={form.invoice_issued ? 'emise' : 'non_emise'} onChange={(v) => set('invoice_issued', v === 'emise')} options={[{ value: 'emise', label: 'Facture émise automatiquement' }, { value: 'non_emise', label: 'Pas de facture' }]} /></div>{deliveryModeNeedsFee(form.fulfillment_mode) ? <Input label="Frais de livraison (FCFA) — laisser 0 si offerte" type="number" value={form.delivery_fee} onChange={(v) => set('delivery_fee', v)} /> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-3 text-sm text-[#8a7456]">Retrait sur place : livraison <b>0 FCFA</b> — non incluse dans le total ni dans la marge.</div>}<div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-3 text-xs text-[#7d6a4a]">{DELIVERY_HINT}</div><label className="space-y-1 block"><span className="text-xs font-bold text-[#8a7456]">Notes</span><textarea rows={2} value={form.notes} onChange={(e) => set('notes', e.target.value)} className="w-full rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm" /></label><div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a]">Total produits : <b>{fmtCurrency(productTotal)}</b>{deliveryFee > 0 ? <> · Livraison : <b>{fmtCurrency(deliveryFee)}</b></> : null} · Total commande : <b>{fmtCurrency(grandTotal)}</b></div></div> : null}
     {step === 3 ? <div className="space-y-3"><div className="grid grid-cols-1 md:grid-cols-3 gap-3"><Select label="Paiement" value={form.payment_status} onChange={(v) => set('payment_status', v)} options={[{ value: 'paye', label: 'Payé totalement' }, { value: 'partiel', label: 'Paiement partiel' }, { value: 'non_paye', label: 'Crédit / à encaisser' }]} />{form.payment_status === 'partiel' ? <Input label="Montant payé" type="number" value={form.paid_amount} onChange={(v) => set('paid_amount', v)} /> : null}{form.payment_status !== 'non_paye' ? <Select label="Moyen paiement" value={form.payment_method} onChange={(v) => set('payment_method', v)} options={paymentMethods} /> : null}</div><div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><p className="text-xs text-emerald-700">Total commande (produits + livraison)</p><p className="text-2xl font-black text-emerald-700">{fmtCurrency(grandTotal)}</p><p className="text-xs text-emerald-700">Produits : {fmtCurrency(productTotal)}{deliveryFee > 0 ? ` · Livraison : ${fmtCurrency(deliveryFee)}` : ''}</p><p className="text-xs text-emerald-700">Payé : {fmtCurrency(paid)} · Reste : {fmtCurrency(remaining)}</p></div></div> : null}

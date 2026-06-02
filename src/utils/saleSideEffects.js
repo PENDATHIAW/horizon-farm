@@ -7,6 +7,7 @@ import { remainingForOrder } from './salesStatuses';
 import { financeIds } from './sideEffectIds';
 import { makeId } from './ids';
 import { toNumber } from './format';
+import { enrichFinanceTransaction, ORIGIN_TYPES } from './financeTransactionMeta.js';
 
 export { financeIds };
 
@@ -43,7 +44,7 @@ export function buildPaidFinanceRow({
 } = {}) {
   const value = num(amount);
   if (value <= 0) return null;
-  return {
+  return enrichFinanceTransaction({
     id: financeIds.paid(orderId, paymentId),
     type: 'entree',
     libelle: `${remaining > 0 ? 'Acompte' : 'Encaissement'} ${orderId} - ${clientLabel}`,
@@ -66,7 +67,10 @@ export function buildPaidFinanceRow({
     transaction_origin: 'automatique',
     side_effects_managed: true,
     created_from: 'sale_side_effects',
-  };
+  }, {
+    origin_type: ORIGIN_TYPES.WORKFLOW,
+    issue_suffix: paymentId || 'encaissement',
+  });
 }
 
 export function buildReceivableFinanceRow({
@@ -100,10 +104,7 @@ export function buildReceivableFinanceRow({
     transaction_origin: 'automatique',
     side_effects_managed: true,
     created_from: 'sale_side_effects',
-  }, {
-    origin_type: ORIGIN_TYPES.WORKFLOW,
-    issue_suffix: 'creance',
-  });
+  }, { origin_type: ORIGIN_TYPES.WORKFLOW, issue_suffix: 'creance' });
 }
 
 export function buildReceivableAlertRow({ orderId, clientLabel = 'Client', amount = 0, productName = 'Vente' } = {}) {

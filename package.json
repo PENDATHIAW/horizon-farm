@@ -14,6 +14,7 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report playwright-report",
     "test:unit:finance": "npx vite-node tests/unit/financePilotage.test.js",
+    "test:unit:commercial": "npx vite-node tests/unit/commercialSaleWorkflow.test.js",
     "check": "npm run lint && npm run build && npm run test:e2e"
   },
   "dependencies": {
