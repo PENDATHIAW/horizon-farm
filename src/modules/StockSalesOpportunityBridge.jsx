@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
+import { isCommerciallyBlocked } from '../utils/stockFreshProduct';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const now = () => new Date().toISOString();
@@ -19,7 +20,7 @@ const sellableCategories = ['recolte', 'produit_fini', 'produits_recoltes', 'ven
 
 function isSellableStock(row = {}) {
   const status = clean(row.statut || row.stock_status || row.status).toLowerCase();
-  if (!row.id || quantityOf(row) <= 0 || terminalStatuses.includes(status)) return false;
+  if (!row.id || quantityOf(row) <= 0 || terminalStatuses.includes(status) || isCommerciallyBlocked(row)) return false;
   return sellableCategories.some((value) => categoryOf(row).includes(value)) || activityOf(row) === 'vente' || Boolean(row.vendable || row.pret_a_la_vente || row.ready_for_sale || row.sale_ready);
 }
 

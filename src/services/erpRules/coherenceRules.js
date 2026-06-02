@@ -6,6 +6,7 @@ import {
   linkedPaymentsForOrders,
 } from '../../modules/commercial/commercialMetrics.js';
 import { remainingForOrder } from '../../utils/salesStatuses.js';
+import { buildFeedCoherenceAlerts } from '../../utils/stockFreshProduct.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v = 0) => Number(v || 0);
@@ -65,6 +66,20 @@ export function evaluateCoherenceRules(data = {}) {
   if (recentEggs > 0 && !feedLogs.length && !stocks.some((s) => /aliment|feed|provende/i.test(String(s.produit || s.nom || '')))) {
     findings.push({ id: 'coh-eggs-no-feed-stock', module: 'elevage', severity: 'moyenne', category: 'coherence', title: 'Ponte sans stock aliment visible', description: 'Production d\'œufs sans trace aliment/stock', recommended_action: 'Vérifier consommation et stock aliment', confidence_score: 0.8, auto_action: 'create_alert' });
   }
+
+  buildFeedCoherenceAlerts({ stocks, lots }).forEach((alert) => {
+    findings.push({
+      id: alert.id,
+      module: 'elevage',
+      severity: alert.severity === 'red' ? 'haute' : 'moyenne',
+      category: 'coherence',
+      title: alert.title,
+      description: alert.detail,
+      recommended_action: 'Distribuer ou réapprovisionner l’aliment',
+      confidence_score: alert.severity === 'red' ? 0.9 : 0.82,
+      auto_action: 'create_alert',
+    });
+  });
 
   return findings;
 }

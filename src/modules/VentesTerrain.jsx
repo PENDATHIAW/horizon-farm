@@ -2,6 +2,8 @@ import { CheckCircle2, CreditCard, Eye, FileText, Plus, RefreshCw, ShoppingCart,
 import { useMemo, useState } from 'react';
 import { fmtCurrency } from '../utils/format';
 import { makeId } from '../utils/ids';
+import useCrudModule from '../hooks/useCrudModule';
+import { deductEggStockForSale } from '../services/livestockStockBridge';
 
 const EGGS_PER_TABLET = 30;
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -66,6 +68,7 @@ const getSourceOption = (type, sourceId, props) => buildOptions(type, props).fin
 const getSourceLabel = (type, sourceId, props) => getSourceOption(type, sourceId, props)?.name || sourceId || '';
 
 function SimpleSaleModal({ props, prefill, onClose, onDone }) {
+  const stockCrud = useCrudModule('stock');
   const initialType = prefill?.source_type === 'lot' ? 'lot_avicole' : (prefill?.source_type || 'lot_avicole');
   const [form, setForm] = useState({ date: today(), client_id: prefill?.client_id || '', source_type: initialType, source_id: prefill?.source_id || '', product_name: prefill?.product_name || '', quantity: prefill?.quantity || 1, unit: prefill?.unit || defaultUnitForType(initialType), unit_price: prefill?.unit_price || 0, discount: 0, payment_status: 'paye', paid_amount: '', payment_method: 'especes', fulfillment_mode: 'recupere', delivery_fee: 0, invoice_issued: true, notes: prefill?.notes || '' });
   const [fiche, setFiche] = useState(null);
@@ -105,7 +108,7 @@ function SimpleSaleModal({ props, prefill, onClose, onDone }) {
       const orderPayload = { id: orderId, date: form.date, client_id: form.client_id || null, type_document: 'commande', statut_commande: 'livre', statut_livraison: form.fulfillment_mode === 'livraison' ? 'livre' : 'recupere', fulfillment_mode: form.fulfillment_mode, statut_paiement: form.payment_status, montant_ht: productTotal, remise: num(form.discount), frais_livraison: deliveryFee, delivery_fee: deliveryFee, montant_total: grandTotal, montant_paye: paidAmount, reste_a_payer: remaining, moyen_paiement: paidAmount > 0 ? form.payment_method : '', payment_method: paidAmount > 0 ? form.payment_method : '', invoice_id: invoiceId, invoice_status: form.invoice_issued ? 'emise' : 'non_emise', facture_emise: form.invoice_issued, source_type: form.source_type, source_module: form.source_type === 'lot_avicole' ? 'avicole' : form.source_type, source_id: form.source_id || null, source_label: productName, product_name: productName, quantity: num(form.quantity), unit: form.unit, unite: form.unit, eggs_per_unit: sourceOption?.sale_kind === 'oeufs_tablettes' ? EGGS_PER_TABLET : undefined, eggs_quantity: sourceOption?.sale_kind === 'oeufs_tablettes' ? num(form.quantity) * EGGS_PER_TABLET : undefined, sale_kind: sourceOption?.sale_kind || form.source_type, unit_price: num(form.unit_price), notes: form.notes || null, opportunity_id: prefill?.opportunity_id || '' };
       await props.onCreate?.(orderPayload);
       await props.onCreateItem?.({ id: makeId('CMDI'), order_id: orderId, source_type: form.source_type, source_module: orderPayload.source_module, source_id: form.source_id || null, item_type: form.source_type, product_name: productName, label: productName, quantity: num(form.quantity), unit: form.unit, unite: form.unit, eggs_per_unit: orderPayload.eggs_per_unit, eggs_quantity: orderPayload.eggs_quantity, sale_kind: orderPayload.sale_kind, unit_price: num(form.unit_price), discount: num(form.discount), total: productTotal, line_total: productTotal, available_quantity_snapshot: form.source_type === 'autre' ? null : getAvailable(form.source_type, form.source_id, props) });
-      await applySourceImpact({ props, form, total: productTotal, sourceOption });
+      await applySourceImpact({ props, form, total: productTotal, sourceOption, stockCrud });
       await props.onCreateDelivery?.({ id: deliveryId, order_id: orderId, date_livraison: form.date, statut: 'livre', mode_livraison: form.fulfillment_mode, fulfillment_mode: form.fulfillment_mode, frais_livraison: deliveryFee, destinataire: clientName(props.clients, form.client_id), notes: form.fulfillment_mode === 'livraison' ? 'Livré le jour de la vente' : 'Récupéré par le client' });
       if (form.invoice_issued) {
         await props.onCreateInvoice?.({ id: invoiceId, order_id: orderId, numero_facture: `FAC-${orderId.slice(-6)}`, date_facture: form.date, montant_total: grandTotal, statut: 'emise', invoice_status: 'emise' });
@@ -126,7 +129,7 @@ function SimpleSaleModal({ props, prefill, onClose, onDone }) {
 }
 function Input({ label, value, onChange, type = 'text', disabled = false }) { return <label className="space-y-1 block"><span className="text-xs font-bold text-[#8a7456]">{label}</span><input disabled={disabled} type={type} value={value || ''} onChange={(e) => onChange(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm disabled:opacity-60" /></label>; }
 function Select({ label, value, onChange, options = [], empty }) { return <label className="space-y-1 block"><span className="text-xs font-bold text-[#8a7456]">{label}</span><select value={value || ''} onChange={(e) => onChange(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm">{empty !== undefined ? <option value="">{empty}</option> : null}{options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></label>; }
-async function applySourceImpact({ props, form, total, sourceOption }) {
+async function applySourceImpact({ props, form, total, sourceOption, stockCrud }) {
   const qty = num(form.quantity);
   if (!form.source_id || form.source_type === 'autre' || qty <= 0) return;
   if (form.source_type === 'stock') { const stock = arr(props.stocks).find((s) => String(s.id) === String(form.source_id)); if (stock) await props.onUpdateStock?.(form.source_id, { quantite: Math.max(0, num(stock.quantite) - qty) }); }
@@ -135,6 +138,11 @@ async function applySourceImpact({ props, form, total, sourceOption }) {
     if (!lot) return;
     if (sourceOption?.sale_kind === 'oeufs_tablettes' || isPondeuseLot(lot)) {
       await props.onUpdateLot?.(form.source_id, { tablettes_vendues: num(lot.tablettes_vendues ?? lot.tablets_sold) + qty, oeufs_vendus: num(lot.oeufs_vendus ?? lot.eggs_sold) + qty * EGGS_PER_TABLET, derniere_vente_oeufs: form.date });
+      try {
+        await deductEggStockForSale({ stockCrud, lotId: form.source_id, tabletsSold: qty, date: form.date });
+      } catch (error) {
+        console.warn('Déduction stock œufs impossible', error);
+      }
       return;
     }
     const current = lotActiveCount(lot);

@@ -160,7 +160,7 @@ function TransformationHub({ data, setTab, onNavigate, animalProps, avicoleProps
     />
   );
 }
-function FeedingHub({ data, setTab, onNavigate, animalProps, avicoleProps }) {
+function FeedingHub({ data, setTab, onNavigate, animalProps, avicoleProps, feedingHandlers }) {
   return (
     <ElevageAlimentationPanel
       data={data}
@@ -168,6 +168,7 @@ function FeedingHub({ data, setTab, onNavigate, animalProps, avicoleProps }) {
       animalProps={animalProps}
       avicoleProps={avicoleProps}
       onNavigate={onNavigate}
+      feedingHandlers={feedingHandlers}
     />
   );
 }
@@ -314,6 +315,18 @@ export default function ElevageRecoveredModule(props) {
     }
   };
 
+
+  const feedingHandlers = {
+    onUpdateStock: props.onUpdateStock || stockCrud.update,
+    onCreateAlimentation: props.onCreateAlimentation || feedCrud.create,
+    onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create,
+    onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create,
+    onRefreshStock: props.onRefreshStock || stockCrud.refresh,
+    onRefreshAlimentation: props.onRefreshAlimentation || feedCrud.refresh,
+    onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh,
+    onRefreshFinances: props.onRefreshFinances || financesCrud.refresh,
+  };
+
   const shared = { onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: props.onNavigate, embedInElevage: true, onElevageTabChange: handleTabChange };
   const animalProps = { rows: animals, alimentationLogs: feedLogs, vaccins: health, salesOrders, payments: rowsOf(props.payments, paymentsCrud, periodFiltered), opportunities, businessEvents, onCreate: props.onCreateAnimal || animauxCrud.create, onUpdate: props.onUpdateAnimal || animauxCrud.update, onDelete: props.onDeleteAnimal || animauxCrud.remove, onRefresh: props.onRefreshAnimals || animauxCrud.refresh, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, ...shared };
   const avicoleProps = { rows: lots, transactions: rowsOf(props.transactions, financesCrud, periodFiltered), alimentationLogs: feedLogs, productionLogs, opportunities, businessEvents, onCreate: props.onCreateLot || avicoleCrud.create, onUpdate: props.onUpdateLot || avicoleCrud.update, onDelete: props.onDeleteLot || avicoleCrud.remove, onRefresh: props.onRefreshLots || avicoleCrud.refresh, onCreateProduction: props.onCreateProduction || productionCrud.create, onUpdateProduction: props.onUpdateProduction || productionCrud.update, onDeleteProduction: props.onDeleteProduction || productionCrud.remove, onRefreshProduction: props.onRefreshProduction || productionCrud.refresh, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, ...shared };
@@ -327,6 +340,6 @@ export default function ElevageRecoveredModule(props) {
       onNavigate={props.onNavigate}
       setTab={handleTabChange}
     />
-  ) : tab === 'Résumé' ? <Summary data={data} setTab={handleTabChange} onApply={applyFinding} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Animaux' ? <AnimauxV2 {...animalProps} /> : tab === 'Avicole' ? <AvicoleV10 {...avicoleProps} /> : tab === 'Alimentation' ? <FeedingHub data={data} setTab={handleTabChange} onNavigate={props.onNavigate} animalProps={animalProps} avicoleProps={avicoleProps} /> : tab === 'Santé' ? <ElevageSantePanel healthProps={healthProps} onNavigate={props.onNavigate} /> : tab === 'Reproduction' ? <ReproductionHub data={data} setTab={handleTabChange} animalProps={animalProps} horizonDraft={horizonDraft} onCloseDraft={() => setHorizonDraft(null)} /> : tab === 'Production' ? <ProductionHub data={data} setTab={handleTabChange} onNavigate={props.onNavigate} animalProps={animalProps} avicoleProps={avicoleProps} horizonDraft={horizonDraft} onCloseDraft={() => setHorizonDraft(null)} /> : tab === 'Transformation' ? <TransformationHub data={data} setTab={handleTabChange} onNavigate={props.onNavigate} animalProps={animalProps} avicoleProps={avicoleProps} horizonDraft={horizonDraft} onCloseDraft={() => setHorizonDraft(null)} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="elevage" dataMap={{ ...props.dataMap, animaux: animals, lots, production_oeufs_logs: productionLogs, alimentation_logs: feedLogs, stock: stocks }} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="elevage" periodFiltered={periodFiltered} lots={lots} animaux={animals} productionLogs={productionLogs} alimentationLogs={feedLogs} transactions={rowsOf(props.transactions, financesCrud, periodFiltered)} salesOrders={salesOrders} onNavigate={props.onNavigate} />;
+  ) : tab === 'Résumé' ? <Summary data={data} setTab={handleTabChange} onApply={applyFinding} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Animaux' ? <AnimauxV2 {...animalProps} /> : tab === 'Avicole' ? <AvicoleV10 {...avicoleProps} /> : tab === 'Alimentation' ? <FeedingHub data={data} setTab={handleTabChange} onNavigate={props.onNavigate} animalProps={animalProps} avicoleProps={avicoleProps} feedingHandlers={feedingHandlers} /> : tab === 'Santé' ? <ElevageSantePanel healthProps={healthProps} onNavigate={props.onNavigate} /> : tab === 'Reproduction' ? <ReproductionHub data={data} setTab={handleTabChange} animalProps={animalProps} horizonDraft={horizonDraft} onCloseDraft={() => setHorizonDraft(null)} /> : tab === 'Production' ? <ProductionHub data={data} setTab={handleTabChange} onNavigate={props.onNavigate} animalProps={animalProps} avicoleProps={avicoleProps} horizonDraft={horizonDraft} onCloseDraft={() => setHorizonDraft(null)} /> : tab === 'Transformation' ? <TransformationHub data={data} setTab={handleTabChange} onNavigate={props.onNavigate} animalProps={animalProps} avicoleProps={avicoleProps} horizonDraft={horizonDraft} onCloseDraft={() => setHorizonDraft(null)} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="elevage" dataMap={{ ...props.dataMap, animaux: animals, lots, production_oeufs_logs: productionLogs, alimentation_logs: feedLogs, stock: stocks }} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="elevage" periodFiltered={periodFiltered} lots={lots} animaux={animals} productionLogs={productionLogs} alimentationLogs={feedLogs} transactions={rowsOf(props.transactions, financesCrud, periodFiltered)} salesOrders={salesOrders} onNavigate={props.onNavigate} />;
   return <div className="elevage-module space-y-6"><section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm sm:p-6"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 flex-1"><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Élevage</h1><p className="mt-1 text-sm leading-relaxed text-[#8a7456]">Animaux, avicole, alimentation, santé, reproduction, transformation — IA proactive et rentabilité fiable.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}<HeyHorizonQuickAsk moduleKey="elevage" onNavigate={props.onNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" /></div><div className="shrink-0 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé module </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div></div></section><Tabs active={tab} onChange={handleTabChange} />{content}</div>;
 }

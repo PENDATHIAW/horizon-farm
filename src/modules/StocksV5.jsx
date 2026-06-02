@@ -64,12 +64,12 @@ export default function StocksV5(props) {
     const before = rows.find((row) => String(row.id) === String(id)) || {};
     const after = { ...before, ...patch, id };
     await props.onUpdate?.(id, patch);
-    await createMovementEvent(before, after, patch);
+    if (!patch.skip_stock_movement_event) await createMovementEvent(before, after, patch);
   };
 
   const guardedCreate = async (payload = {}) => {
     await props.onCreate?.(payload);
-    if (qtyOf(payload) > 0) await createMovementEvent({ id: payload.id, quantite: 0, quantity: 0, stock: 0 }, payload, { last_movement_type: 'entree', notes: 'Création stock' });
+    if (qtyOf(payload) > 0 && !payload.skip_stock_movement_event) await createMovementEvent({ id: payload.id, quantite: 0, quantity: 0, stock: 0 }, payload, { last_movement_type: 'entree', notes: 'Création stock' });
   };
 
   return (

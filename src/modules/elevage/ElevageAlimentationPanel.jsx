@@ -4,6 +4,7 @@ import { avicoleHasActiveBirds } from '../../utils/avicoleMetrics';
 import { fmtNumber } from '../../utils/format';
 import { emitHorizonForm } from '../../services/formModalManager';
 import DirectChargesBridge from '../DirectChargesBridge.jsx';
+import ElevageFeedingDistribution from './ElevageFeedingDistribution.jsx';
 import { ELEVAGE_ACTION_GRID, ELEVAGE_STAT_GRID, ElevageActionCard, ElevageLogRow, ElevageSection, ElevageStatCard } from './elevageUi.jsx';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -13,7 +14,7 @@ const isClosedAnimal = (row = {}) => {
   return ['vendu', 'mort', 'vole', 'volé', 'perdu', 'abattu', 'cloture', 'clôture', 'sorti'].some((word) => status.includes(word));
 };
 
-export default function ElevageAlimentationPanel({ data, setTab, animalProps, avicoleProps, onNavigate }) {
+export default function ElevageAlimentationPanel({ data, setTab, animalProps, avicoleProps, onNavigate, feedingHandlers = {} }) {
   const activeAnimals = useMemo(() => (animalProps.rows || []).filter((row) => !isClosedAnimal(row)), [animalProps.rows]);
   const activeLots = useMemo(() => (avicoleProps.rows || []).filter(avicoleHasActiveBirds), [avicoleProps.rows]);
   const recent = (data.feedLogs || []).slice(0, 8);
@@ -26,6 +27,14 @@ export default function ElevageAlimentationPanel({ data, setTab, animalProps, av
         <ElevageStatCard label="Stock aliment" value={fmtNumber(data.feedStocks?.length || 0)} tone={data.feedStocks?.length ? 'good' : 'warn'} />
         <ElevageStatCard label="Cibles actives" value={fmtNumber(activeAnimals.length + activeLots.length)} tone="good" />
       </div>
+
+
+      <ElevageFeedingDistribution
+        stocks={data.stocks || []}
+        lots={avicoleProps.rows || []}
+        animaux={animalProps.rows || []}
+        handlers={feedingHandlers}
+      />
 
       <ElevageSection title="Actions rapides" subtitle="Distribution depuis le stock et réapprovisionnement.">
         <div className={ELEVAGE_ACTION_GRID}>

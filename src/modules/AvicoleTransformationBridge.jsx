@@ -6,6 +6,7 @@ import { calculateAvicoleLotCost } from '../utils/costEngine';
 import { avicoleActiveCount } from '../utils/avicoleMetrics';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
+import { buildMeatStockPayload } from '../services/livestockStockBridge';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const today = () => new Date().toISOString().slice(0, 10);
@@ -43,7 +44,22 @@ export default function AvicoleTransformationBridge({ rows = [], alimentationLog
     await onCreateBusinessEvent?.(event);
     if (form.destination !== 'perte') {
       const produit = `Viande poulet ${lotLabel(selectedLot)}`;
-      await stockCrud.create?.({ id: makeId('STKCHICK'), produit, categorie: 'produit_fini_viande_avicole', activite_liee: 'avicole', quantite: Number(weight.toFixed(2)), unite: 'kg', prixUnit: Number(unitKg.toFixed(2)), prixunit: Number(unitKg.toFixed(2)), prix_unitaire: Number(unitKg.toFixed(2)), cout_revient_unitaire: Number(unitKg.toFixed(2)), cout_unitaire_calcule: Number(unitKg.toFixed(2)), statut: form.destination === 'vente_directe' ? 'reserve' : 'ok', stock_status: form.destination === 'vente_directe' ? 'reserve' : 'ok', source_module: 'avicole', source_record_id: selectedLot.id, linked_event_id: id, origine_label: lotLabel(selectedLot), last_movement_type: 'entree_abattage_avicole', last_movement_qty: Number(weight.toFixed(2)), last_movement_at: new Date().toISOString(), notes: `Viande issue abattage lot · coût ${Number(unitKg.toFixed(2))}/kg` });
+      const meatPayload = buildMeatStockPayload({
+        produit,
+        categorie: 'produit_fini_viande_avicole',
+        quantite: weight,
+        unitCost: unitKg,
+        sourceModule: 'avicole',
+        sourceRecordId: selectedLot.id,
+        eventId: id,
+        origineLabel: lotLabel(selectedLot),
+        emplacement: 'Chambre froide 1',
+      });
+      if (form.destination === 'vente_directe') {
+        meatPayload.statut = 'reserve';
+        meatPayload.stock_status = 'reserve';
+      }
+      await stockCrud.create?.(meatPayload);
     }
     await onUpdate?.(selectedLot.id, { vendus: toNumber(selectedLot.vendus) + subjects, sujets_abattus: toNumber(selectedLot.sujets_abattus) + subjects, last_slaughter_date: form.date || today(), cout_revient_viande_kg: Number(unitKg.toFixed(2)) });
     await Promise.allSettled([stockCrud.refresh?.(), onRefresh?.(), onRefreshBusinessEvents?.()]);

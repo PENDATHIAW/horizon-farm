@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import useCrudModule from '../hooks/useCrudModule';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
+import { buildMeatStockPayload } from '../services/livestockStockBridge';
 import { calculateAnimalCost } from '../utils/costEngine';
 
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -40,11 +41,26 @@ async function upsertMeatStock({ stockCrud, produit, categorie, quantityDelta, a
     const nextQty = Math.max(0, previousQty + delta);
     const previousUnit = toNumber(existing.cout_revient_unitaire ?? existing.prixUnit ?? existing.prixunit ?? existing.prix_unitaire);
     const weightedUnit = delta > 0 && nextQty > 0 ? ((previousQty * previousUnit) + (delta * costUnit)) / nextQty : previousUnit;
-    await stockCrud.update?.(existing.id, { quantite: Number(nextQty.toFixed(2)), prixUnit: Number(weightedUnit.toFixed(2)), prixunit: Number(weightedUnit.toFixed(2)), prix_unitaire: Number(weightedUnit.toFixed(2)), cout_revient_unitaire: Number(weightedUnit.toFixed(2)), cout_unitaire_calcule: Number(weightedUnit.toFixed(2)), statut: nextQty <= 0 ? 'epuise' : 'ok', stock_status: nextQty <= 0 ? 'epuise' : 'ok', last_movement_type: delta > 0 ? 'entree_abattage_animal' : 'correction_abattage_animal', last_movement_qty: Number(delta.toFixed(2)), last_movement_at: new Date().toISOString(), linked_event_id: event.id });
+    await stockCrud.update?.(existing.id, { skip_stock_movement_event: true, quantite: Number(nextQty.toFixed(2)), prixUnit: Number(weightedUnit.toFixed(2)), prixunit: Number(weightedUnit.toFixed(2)), prix_unitaire: Number(weightedUnit.toFixed(2)), cout_revient_unitaire: Number(weightedUnit.toFixed(2)), cout_unitaire_calcule: Number(weightedUnit.toFixed(2)), statut: nextQty <= 0 ? 'epuise' : 'ok', stock_status: nextQty <= 0 ? 'epuise' : 'ok', last_movement_type: delta > 0 ? 'entree_abattage_animal' : 'correction_abattage_animal', last_movement_qty: Number(delta.toFixed(2)), last_movement_at: new Date().toISOString(), linked_event_id: event.id });
     await stockCrud.refresh?.(); return;
   }
   if (delta < 0) return;
-  await stockCrud.create?.({ id: makeId('STKVIANDE'), produit, categorie, activite_liee: 'animaux', quantite: Number(delta.toFixed(2)), unite: 'kg', seuil: 0, stock_max: 0, prixUnit: Number(costUnit.toFixed(2)), prixunit: Number(costUnit.toFixed(2)), prix_unitaire: Number(costUnit.toFixed(2)), cout_revient_unitaire: Number(costUnit.toFixed(2)), cout_unitaire_calcule: Number(costUnit.toFixed(2)), statut: event.destination === 'vente_directe' ? 'reserve' : 'ok', stock_status: event.destination === 'vente_directe' ? 'reserve' : 'ok', source_module: 'animaux', source_record_id: animal.id, origine_label: `${animal.type || 'Animal'} ${animal.name || animal.tag || animal.id}`, linked_event_id: event.id, date_derniere_reception: event.date || today(), last_movement_type: 'entree_abattage_animal', last_movement_qty: Number(delta.toFixed(2)), last_movement_at: new Date().toISOString(), notes: `Stock viande issu de l’abattage animal · coût ${Number(costUnit.toFixed(2))}/kg` });
+  const meatPayload = buildMeatStockPayload({
+    produit,
+    categorie,
+    quantite: delta,
+    unitCost: costUnit,
+    sourceModule: 'animaux',
+    sourceRecordId: animal.id,
+    eventId: event.id,
+    origineLabel: `${animal.type || 'Animal'} ${animal.name || animal.tag || animal.id}`,
+    date: event.date || today(),
+  });
+  if (event.destination === 'vente_directe') {
+    meatPayload.statut = 'reserve';
+    meatPayload.stock_status = 'reserve';
+  }
+  await stockCrud.create?.(meatPayload);
   await stockCrud.refresh?.();
 }
 

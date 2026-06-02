@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Calculator, CheckCircle2, History, Package, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
+import { DEFAULT_FEEDING_RULES, calculateFeedingPlan } from '../services/feedingCostEngine';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').toLowerCase();
@@ -16,13 +17,6 @@ const logTargetId = (row = {}) => String(row.cible_id || row.lot_id || row.anima
 const logCost = (row = {}) => toNumber(row.montant_total ?? row.cout_total ?? row.amount ?? row.montant);
 const logQty = (row = {}) => toNumber(row.quantite ?? row.quantity ?? row.qty);
 
-const DEFAULT_RULES = {
-  chair: { label: 'Poulets de chair', dailyKg: 0.1, days: 35, note: 'Base pratique : env. 7 sacs / 100 sujets / 35 jours' },
-  pondeuse: { label: 'Pondeuses', dailyKg: 0.135, days: 30, note: '120 à 150 g/jour, valeur par défaut 135 g' },
-  bovin: { label: 'Bovins', dailyKg: 4.5, days: 90, note: '3 à 6 kg/jour concentré, valeur moyenne 4,5 kg' },
-  ovin: { label: 'Ovins', dailyKg: 0.75, days: 90, note: '0,5 à 1 kg/jour, valeur moyenne 0,75 kg' },
-  caprin: { label: 'Caprins', dailyKg: 0.6, days: 90, note: '0,4 à 0,8 kg/jour, valeur moyenne 0,6 kg' },
-};
 
 function Field({ label, children }) {
   return <label className="space-y-1 text-xs font-bold text-[#8a7456]"><span>{label}</span>{children}</label>;
@@ -46,11 +40,11 @@ export default function StockFeedingCostPlanner({ rows = [], animaux = [], lots 
     target_id: lots[0]?.id || '',
     categorie: 'chair',
     subjects: 100,
-    days: DEFAULT_RULES.chair.days,
-    dailyKg: DEFAULT_RULES.chair.dailyKg,
+    days: DEFAULT_FEEDING_RULES.chair.days,
+    dailyKg: DEFAULT_FEEDING_RULES.chair.dailyKg,
     sacKg: 50,
   });
-  const rule = DEFAULT_RULES[form.categorie] || DEFAULT_RULES.chair;
+  const rule = DEFAULT_FEEDING_RULES[form.categorie] || DEFAULT_FEEDING_RULES.chair;
   const selectedStock = foodStocks.find((item) => item.id === form.stock_id) || foodStocks[0];
   const targetRows = form.target_type === 'animal' ? arr(animaux) : arr(lots);
   const selectedTarget = targetRows.find((item) => item.id === form.target_id) || targetRows[0];
@@ -58,15 +52,8 @@ export default function StockFeedingCostPlanner({ rows = [], animaux = [], lots 
   const days = Math.max(1, toNumber(form.days));
   const dailyKg = Math.max(0, toNumber(form.dailyKg));
   const sacKg = Math.max(1, toNumber(form.sacKg));
-  const totalKg = subjects * days * dailyKg;
-  const sacsNeeded = totalKg / sacKg;
-  const pricePerKg = lower(selectedStock?.unite).includes('sac') ? unitPrice(selectedStock) / toNumber(selectedStock?.poids_sac_kg || selectedStock?.sac_kg || sacKg || 50) : unitPrice(selectedStock);
-  const totalCost = totalKg * pricePerKg;
-  const costPerSubject = subjects ? totalCost / subjects : 0;
-  const costPerSubjectDay = subjects && days ? totalCost / subjects / days : 0;
-  const availableKg = selectedStock ? stockKg(selectedStock) : 0;
-  const coverageDays = subjects && dailyKg ? availableKg / (subjects * dailyKg) : 0;
-  const missingKg = Math.max(0, totalKg - availableKg);
+  const plan = calculateFeedingPlan({ stock: selectedStock, subjects, days, dailyKg, sacKg });
+  const { totalKg, totalCost, costPerSubject, costPerSubjectDay, availableKg, coverageDays, missingKg, sacsNeeded } = plan;
   const missingSacs = missingKg / sacKg;
   const targetHistory = useMemo(() => {
     if (!selectedTarget?.id) return [];
@@ -79,7 +66,7 @@ export default function StockFeedingCostPlanner({ rows = [], animaux = [], lots 
   const historyCostPerSubject = subjects ? historyTotalCost / subjects : 0;
 
   const updateCategory = (categorie) => {
-    const next = DEFAULT_RULES[categorie] || DEFAULT_RULES.chair;
+    const next = DEFAULT_FEEDING_RULES[categorie] || DEFAULT_FEEDING_RULES.chair;
     setForm((prev) => ({ ...prev, categorie, days: next.days, dailyKg: next.dailyKg }));
   };
   const updateTargetType = (target_type) => {
@@ -111,7 +98,7 @@ export default function StockFeedingCostPlanner({ rows = [], animaux = [], lots 
       <div className="rounded-2xl bg-[#2f2415] px-4 py-3 text-white"><p className="text-xs opacity-80">Coût aliment / sujet</p><p className="text-xl font-black">{fmtCurrency(costPerSubject)}</p></div>
     </div>
 
-    <div className="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-8 gap-2 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3"><Field label="Stock aliment"><Select value={form.stock_id || selectedStock?.id || ''} onChange={(e) => setForm((prev) => ({ ...prev, stock_id: e.target.value }))}><option value="">Choisir</option>{foodStocks.map((stock) => <option key={stock.id} value={stock.id}>{stock.produit} · {fmtNumber(stock.quantite)} {stock.unite || ''} · {fmtCurrency(unitPrice(stock))}</option>)}</Select></Field><Field label="Cible"><Select value={form.target_type} onChange={(e) => updateTargetType(e.target.value)}><option value="lot">Lot avicole</option><option value="animal">Animal</option></Select></Field><Field label="Lot / animal"><Select value={form.target_id || selectedTarget?.id || ''} onChange={(e) => setForm((prev) => ({ ...prev, target_id: e.target.value }))}><option value="">Choisir</option>{targetRows.map((row) => <option key={row.id} value={row.id}>{targetName(row)}</option>)}</Select></Field><Field label="Catégorie"><Select value={form.categorie} onChange={(e) => updateCategory(e.target.value)}>{Object.entries(DEFAULT_RULES).map(([key, item]) => <option key={key} value={key}>{item.label}</option>)}</Select></Field><Field label="Nombre sujets"><Input type="number" min="0" value={form.subjects} onChange={(e) => setForm((prev) => ({ ...prev, subjects: e.target.value }))} /></Field><Field label="Durée"><Input type="number" min="1" value={form.days} onChange={(e) => setForm((prev) => ({ ...prev, days: e.target.value }))} /></Field><Field label="Kg / sujet / jour"><Input type="number" step="0.001" min="0" value={form.dailyKg} onChange={(e) => setForm((prev) => ({ ...prev, dailyKg: e.target.value }))} /></Field><Field label="Poids sac"><Input type="number" min="1" value={form.sacKg} onChange={(e) => setForm((prev) => ({ ...prev, sacKg: e.target.value }))} /></Field></div>
+    <div className="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-8 gap-2 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3"><Field label="Stock aliment"><Select value={form.stock_id || selectedStock?.id || ''} onChange={(e) => setForm((prev) => ({ ...prev, stock_id: e.target.value }))}><option value="">Choisir</option>{foodStocks.map((stock) => <option key={stock.id} value={stock.id}>{stock.produit} · {fmtNumber(stock.quantite)} {stock.unite || ''} · {fmtCurrency(unitPrice(stock))}</option>)}</Select></Field><Field label="Cible"><Select value={form.target_type} onChange={(e) => updateTargetType(e.target.value)}><option value="lot">Lot avicole</option><option value="animal">Animal</option></Select></Field><Field label="Lot / animal"><Select value={form.target_id || selectedTarget?.id || ''} onChange={(e) => setForm((prev) => ({ ...prev, target_id: e.target.value }))}><option value="">Choisir</option>{targetRows.map((row) => <option key={row.id} value={row.id}>{targetName(row)}</option>)}</Select></Field><Field label="Catégorie"><Select value={form.categorie} onChange={(e) => updateCategory(e.target.value)}>{Object.entries(DEFAULT_FEEDING_RULES).map(([key, item]) => <option key={key} value={key}>{item.label}</option>)}</Select></Field><Field label="Nombre sujets"><Input type="number" min="0" value={form.subjects} onChange={(e) => setForm((prev) => ({ ...prev, subjects: e.target.value }))} /></Field><Field label="Durée"><Input type="number" min="1" value={form.days} onChange={(e) => setForm((prev) => ({ ...prev, days: e.target.value }))} /></Field><Field label="Kg / sujet / jour"><Input type="number" step="0.001" min="0" value={form.dailyKg} onChange={(e) => setForm((prev) => ({ ...prev, dailyKg: e.target.value }))} /></Field><Field label="Poids sac"><Input type="number" min="1" value={form.sacKg} onChange={(e) => setForm((prev) => ({ ...prev, sacKg: e.target.value }))} /></Field></div>
 
     <div className="grid grid-cols-2 lg:grid-cols-6 gap-3"><Mini label="Besoin total" value={`${fmtNumber(totalKg)} kg`} hint={`${sacsNeeded.toFixed(1)} sacs de ${sacKg} kg`} /><Mini label="Stock disponible" value={`${fmtNumber(availableKg)} kg`} hint={selectedStock?.produit || 'Aucun stock'} danger={availableKg < totalKg} /><Mini label="Couverture" value={`${coverageDays.toFixed(1)} j`} hint="avec ce stock" danger={coverageDays < days} /><Mini label="Manquant" value={`${fmtNumber(missingKg)} kg`} hint={`${missingSacs.toFixed(1)} sacs`} danger={missingKg > 0} /><Mini label="Coût aliment" value={fmtCurrency(totalCost)} hint={`Prix kg estimé ${fmtCurrency(pricePerKg)}`} /><Mini label="Coût/jour/sujet" value={fmtCurrency(costPerSubjectDay)} hint="aliment seulement" /></div>
 

@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { avicoleActiveCount } from '../utils/avicoleMetrics';
 import { fmtNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
+import { buildEggProductionPayload, syncEggStockFromLogs } from '../services/livestockStockBridge';
 
 const num = (value = 0) => Number(value || 0);
 const today = () => new Date().toISOString().slice(0, 10);
@@ -12,7 +13,7 @@ const currentOf = (lot = {}) => avicoleActiveCount(lot);
 const mortalityOf = (lot = {}) => num(lot.mortality ?? lot.morts ?? lot.dead_count);
 const draftActionLabel = (formType = '') => formType === 'egg_production' ? 'Ramassage œufs' : formType === 'poultry_mortality' ? 'Mortalité' : 'Clôture / réforme';
 
-export default function HeyHorizonAvicoleCard({ draft, rows, onUpdate, onCreateProduction, onRefreshProduction, onCreateBusinessEvent, onRefresh, onRefreshBusinessEvents, onClose, onCreateEggOpportunity }) {
+export default function HeyHorizonAvicoleCard({ draft, rows, stockCrud, onUpdate, onCreateProduction, onRefreshProduction, onCreateBusinessEvent, onRefresh, onRefreshBusinessEvents, onClose, onCreateEggOpportunity }) {
   const fields = draft?.draft_fields || {};
   const formType = draft?.form_type;
   const [lotId, setLotId] = useState(fields.lot_id || rows[0]?.id || '');
@@ -30,8 +31,26 @@ export default function HeyHorizonAvicoleCard({ draft, rows, onUpdate, onCreateP
       setSaving(true);
       if (formType === 'egg_production') {
         const eggs = num(quantity);
-        const tablettes = Math.floor(eggs / 30);
-        await onCreateProduction?.({ id: makeId('PONTE'), lot_id: lot.id, related_id: lot.id, date, oeufs_produits: eggs, oeufs_casses: 0, oeufs_vendables: eggs, oeufs: eggs, eggs_count: eggs, tablettes, tablettes_vendables: tablettes, plateaux: tablettes, oeufs_restants: eggs % 30, oeufs_reliquat: eggs % 30, oeufs_par_tablette: 30, unite_vente: 'tablette', type_evenement: 'ramassage_oeufs', source_module: 'hey_horizon', source_record_id: lot.id, notes: note });
+        const eggPayload = buildEggProductionPayload({
+          form: {
+            id: makeId('PONTE'),
+            lot_id: lot.id,
+            date,
+            oeufs_produits: eggs,
+            oeufs_casses: 0,
+            source_module: 'hey_horizon',
+            notes: note,
+          },
+          lot,
+        });
+        await onCreateProduction?.(eggPayload);
+        if (stockCrud) {
+          try {
+            await syncEggStockFromLogs({ stockCrud, log: eggPayload });
+          } catch (error) {
+            console.warn('Stock œufs non synchronisé', error);
+          }
+        }
         try { await onCreateEggOpportunity?.(lot, eggs, date, note || draft?.raw_input || ''); } catch (error) { console.warn('Opportunité œufs non créée', error); toast.error('Ramassage enregistré, opportunité œufs à vérifier'); }
         try { await onRefreshProduction?.(); } catch (error) { console.warn('Rafraîchissement production impossible', error); }
       } else if (formType === 'poultry_mortality') {
