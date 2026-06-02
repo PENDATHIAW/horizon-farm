@@ -1,4 +1,4 @@
-import { getFarmCostSettings } from './farmCostSettings.js';
+import { getAnimalSalePricePerKg, getFarmCostSettings, resolveAnimalSpeciesKey } from './farmCostSettings.js';
 import { calculateUnifiedAnimalCost, calculateUnifiedLotCost } from './unifiedCostService.js';
 import { calculateAnimalSalePricing, getAnimalSaleReadiness } from '../utils/animalSalePricing.js';
 import { toNumber } from '../utils/format';
@@ -22,15 +22,34 @@ function broilerPriceByWeight(weightKg, settings) {
 
 export function recommendAnimalSalePrice({ animal, alimentationLogs = [], vaccins = [], healthEvents = [], marketPrices = [] } = {}) {
   const settings = getFarmCostSettings();
-  const unified = calculateUnifiedAnimalCost({ animal, alimentationLogs, vaccins, healthEvents });
-  const pricing = calculateAnimalSalePricing({ animal: { ...animal, marge_cible_pct: animal.marge_cible_pct || settings.defaultTargetMarginPct }, metrics: { totalCost: unified.totalCost } });
-  const readiness = getAnimalSaleReadiness({ animal, metrics: { totalCost: unified.totalCost } });
-  const market = latestMarketPrice(marketPrices, animal.type || animal.espece || 'bovin');
-  const marketFloor = market?.price && unified.raw?.kg > 0 ? toNumber(market.price) * unified.raw.kg : toNumber(market?.price);
+  const speciesKey = resolveAnimalSpeciesKey(animal);
+  const configuredPricePerKg = getAnimalSalePricePerKg(speciesKey, settings);
+  const enrichedAnimal = {
+    ...animal,
+    marge_cible_pct: animal.marge_cible_pct || animal.target_margin_rate || settings.defaultTargetMarginPct,
+    prix_kg_estime: toNumber(animal.prix_kg_estime || animal.market_price_per_kg) || configuredPricePerKg,
+  };
+  const unified = calculateUnifiedAnimalCost({ animal: enrichedAnimal, alimentationLogs, vaccins, healthEvents });
+  const effectiveWeight = toNumber(animal.poids ?? animal.poids_actuel ?? animal.current_weight ?? unified.raw?.kg);
+  const pricing = calculateAnimalSalePricing({ animal: enrichedAnimal, metrics: { totalCost: unified.totalCost } });
+  const readiness = getAnimalSaleReadiness({ animal: enrichedAnimal, metrics: { totalCost: unified.totalCost } });
+  const market = latestMarketPrice(marketPrices, animal.type || animal.espece || speciesKey);
+  const marketPerKg = toNumber(market?.price);
+  const marketFloor = marketPerKg > 0 && effectiveWeight > 0 ? marketPerKg * effectiveWeight : marketPerKg;
   const recommended = Math.max(pricing.recommendedSalePrice, marketFloor || 0);
   const margin = recommended - unified.totalCost;
+  const alerts = [];
+  if (recommended <= 0) {
+    alerts.push('Renseigner le poids et les coûts (achat/alimentation) ou les prix/kg dans l’onglet Annexe pour obtenir un prix proposé.');
+  } else if (margin < 0) {
+    alerts.push('Prix recommandé sous le coût total — ne pas vendre sans ajuster.');
+  } else if (unified.totalCost > 0 && margin < unified.totalCost * (settings.defaultTargetMarginPct / 100)) {
+    alerts.push('Marge sous objectif — revoir prix ou coûts.');
+  }
   return {
     entityType: 'animal',
+    speciesKey,
+    configuredPricePerKg,
     totalCost: unified.totalCost,
     recommendedPrice: recommended,
     minimumPrice: pricing.minimumAcceptablePrice,
@@ -40,7 +59,7 @@ export function recommendAnimalSalePrice({ animal, alimentationLogs = [], vaccin
     marketPrice: market?.price || null,
     readiness,
     pricing,
-    alerts: margin < 0 ? ['Prix recommandé sous le coût total — ne pas vendre sans ajuster.'] : margin < unified.totalCost * (settings.defaultTargetMarginPct / 100) ? ['Marge sous objectif — revoir prix ou coûts.'] : [],
+    alerts,
   };
 }
 

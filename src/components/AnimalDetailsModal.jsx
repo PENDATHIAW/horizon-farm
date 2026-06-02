@@ -229,6 +229,7 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
                 <Field label="Frais sante / soins" value={fmtCurrency(metrics.healthCost)} />
                 <Field label="Autres frais" value={fmtCurrency(metrics.otherCosts || 0)} />
                 <Field label="Cout total unifie" value={fmtCurrency(salePricing.totalCost || metrics.totalCost)} />
+                <Field label="Prix/kg Annexe (espèce)" value={salePricing.configuredPricePerKg ? `${fmtCurrency(salePricing.configuredPricePerKg)} / kg (${salePricing.speciesKey || '—'})` : 'Non configuré'} />
                 <Field label="Prix vente recommande" value={fmtCurrency(salePricing.recommendedPrice)} />
                 <Field label="Plancher acceptable" value={fmtCurrency(salePricing.minimumPrice)} />
                 <Field label="Prix marche observe" value={salePricing.marketPrice ? fmtCurrency(salePricing.marketPrice) : 'Non renseigne'} />

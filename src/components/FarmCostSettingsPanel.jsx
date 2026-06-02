@@ -41,6 +41,10 @@ export default function FarmCostSettingsPanel({ compact = false }) {
     ...prev,
     broilerPriceByWeight: { ...prev.broilerPriceByWeight, [key]: Number(value) || 0 },
   }));
+  const updateAnimalSaleKg = (key, value) => setDraft((prev) => ({
+    ...prev,
+    animalSalePricePerKg: { ...prev.animalSalePricePerKg, [key]: Number(value) || 0 },
+  }));
 
   const save = async () => {
     setSaving(true);
@@ -110,6 +114,18 @@ export default function FarmCostSettingsPanel({ compact = false }) {
               })}
             </tbody>
           </table>
+        </div>
+      </section>
+
+
+      <section className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+        <p className="text-sm font-black text-[#2f2415] mb-1">Prix de vente suggérés — élevage (FCFA / kg)</p>
+        <p className="text-xs text-[#8a7456] mb-3">Proposés sur chaque fiche animal (Bovin, Ovin, Caprin) quand aucun prix/kg n’est saisi sur l’animal. Le moteur prend le max(coût + marge, poids × prix/kg Annexe, marché).</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <NumberField label="Défaut (autres)" value={draft.animalSalePricePerKg?.default} onChange={(v) => updateAnimalSaleKg('default', v)} suffix="FCFA/kg" />
+          <NumberField label="Bovin" value={draft.animalSalePricePerKg?.bovin} onChange={(v) => updateAnimalSaleKg('bovin', v)} suffix="FCFA/kg" />
+          <NumberField label="Ovin" value={draft.animalSalePricePerKg?.ovin} onChange={(v) => updateAnimalSaleKg('ovin', v)} suffix="FCFA/kg" />
+          <NumberField label="Caprin" value={draft.animalSalePricePerKg?.caprin} onChange={(v) => updateAnimalSaleKg('caprin', v)} suffix="FCFA/kg" />
         </div>
       </section>
 

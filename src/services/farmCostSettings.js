@@ -22,8 +22,32 @@ export const DEFAULT_FARM_COST_SETTINGS = {
     at1_7: 3500,
     at2_0: 4000,
   },
+  /** Prix de vente suggérés élevage (FCFA/kg) — utilisés si la fiche animal n'a pas de prix/kg. */
+  animalSalePricePerKg: {
+    default: 3000,
+    bovin: 2800,
+    ovin: 4500,
+    caprin: 5000,
+  },
   updatedAt: null,
 };
+
+const cleanSpecies = (value) => String(value || '').trim().toLowerCase();
+
+/** Mappe type / espèce fiche animal → clé paramètres (bovin, ovin, caprin). */
+export function resolveAnimalSpeciesKey(animal = {}) {
+  const text = cleanSpecies(animal.type || animal.espece || animal.species || animal.espece_label);
+  if (text.includes('bovin') || text.includes('vache') || text.includes('taureau') || text === 'boeuf') return 'bovin';
+  if (text.includes('ovin') || text.includes('mouton') || text.includes('brebis')) return 'ovin';
+  if (text.includes('caprin') || text.includes('chevre') || text.includes('chèvre') || text.includes('bouc')) return 'caprin';
+  return 'default';
+}
+
+export function getAnimalSalePricePerKg(speciesKey, settings = getFarmCostSettings()) {
+  const map = settings?.animalSalePricePerKg || DEFAULT_FARM_COST_SETTINGS.animalSalePricePerKg;
+  const key = speciesKey && map[speciesKey] != null ? speciesKey : 'default';
+  return Number(map[key] ?? map.default ?? 0) || 0;
+}
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
@@ -45,6 +69,14 @@ export function normalizeFarmCostSettings(raw = {}) {
     broilerPriceByWeight: {
       ...base.broilerPriceByWeight,
       ...(raw.broilerPriceByWeight || {}),
+    },
+    animalSalePricePerKg: {
+      ...base.animalSalePricePerKg,
+      ...(raw.animalSalePricePerKg || {}),
+      default: Number(raw.animalSalePricePerKg?.default ?? base.animalSalePricePerKg.default) || base.animalSalePricePerKg.default,
+      bovin: Number(raw.animalSalePricePerKg?.bovin ?? base.animalSalePricePerKg.bovin) || base.animalSalePricePerKg.bovin,
+      ovin: Number(raw.animalSalePricePerKg?.ovin ?? base.animalSalePricePerKg.ovin) || base.animalSalePricePerKg.ovin,
+      caprin: Number(raw.animalSalePricePerKg?.caprin ?? base.animalSalePricePerKg.caprin) || base.animalSalePricePerKg.caprin,
     },
   };
 }
