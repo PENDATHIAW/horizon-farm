@@ -18,7 +18,8 @@
     "test:e2e:push-business": "PLAYWRIGHT_SKIP_WEBSERVER=1 playwright test tests/e2e/push-and-business-flows.spec.js",
     "db:migrate": "bash scripts/apply_supabase_migrations.sh",
     "db:migrate:verify": "node scripts/apply_supabase_migrations.mjs",
-    "check": "npm run lint && npm run build && npm run test:e2e"
+    "check": "npm run lint && npm run build && npm run test:e2e",
+    "test:unit:anti-duplication": "node --test tests/unit/antiDuplicationAudit.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.3",
