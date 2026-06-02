@@ -54,7 +54,7 @@ export function computeAnimalMargin(animal = {}, context = {}) {
     alimentationLogs: context.alimentationLogs || context.feedLogs || [],
     vaccins: context.vaccins || context.healthEvents || [],
     healthEvents: context.healthEvents || [],
-    directCharges: context.directCharges || [],
+    directCharges: context.directCharges || context.businessEvents || [],
   });
   const revenue = n(animal.prix_vente ?? animal.sale_price ?? animal.revenu ?? animal.prix_vente_reel);
   const missing = [];

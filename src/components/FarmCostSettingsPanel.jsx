@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Calculator, RotateCcw, Save } from 'lucide-react';
+import { Calculator, Cloud, CloudOff, RotateCcw, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Btn from './Btn';
+import useFarmCostSettings from '../hooks/useFarmCostSettings.js';
 import { fmtCurrency, fmtNumber } from '../utils/format';
-import { getFarmCostSettings, resetFarmCostSettings, saveFarmCostSettings } from '../services/farmCostSettings.js';
 import { UNIFIED_COST_FORMULA } from '../services/unifiedCostService.js';
 
 const SPECIES_KEYS = ['bovin', 'ovin', 'caprin', 'chair', 'ponte'];
@@ -21,13 +21,13 @@ function NumberField({ label, value, onChange, step = 'any', suffix = '' }) {
 }
 
 export default function FarmCostSettingsPanel({ compact = false }) {
-  const [draft, setDraft] = useState(() => getFarmCostSettings());
+  const { settings, loading, synced, save: persist, reset: resetRemote } = useFarmCostSettings();
+  const [draft, setDraft] = useState(settings);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const sync = () => setDraft(getFarmCostSettings());
-    window.addEventListener('horizon-farm-cost-settings-changed', sync);
-    return () => window.removeEventListener('horizon-farm-cost-settings-changed', sync);
-  }, []);
+    setDraft(settings);
+  }, [settings]);
 
   const updateRoot = (key, value) => setDraft((prev) => ({ ...prev, [key]: value }));
   const updateFeeding = (species, key, value) => setDraft((prev) => ({
@@ -42,13 +42,20 @@ export default function FarmCostSettingsPanel({ compact = false }) {
     broilerPriceByWeight: { ...prev.broilerPriceByWeight, [key]: Number(value) || 0 },
   }));
 
-  const save = () => {
-    saveFarmCostSettings(draft);
-    toast.success('Paramètres coûts enregistrés — tous les écrans utilisent ce moteur unifié');
+  const save = async () => {
+    setSaving(true);
+    try {
+      await persist(draft);
+      toast.success(synced ? 'Paramètres enregistrés (cloud + appareil)' : 'Paramètres enregistrés localement — cloud indisponible');
+    } catch {
+      toast.error('Échec de la sauvegarde');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const reset = () => {
-    const next = resetFarmCostSettings();
+  const reset = async () => {
+    const next = await resetRemote();
     setDraft(next);
     toast.success('Paramètres réinitialisés aux valeurs ERP');
   };
@@ -60,6 +67,10 @@ export default function FarmCostSettingsPanel({ compact = false }) {
           <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><Calculator size={14} /> Moteur de coût unifié</p>
           <h3 className="mt-1 text-lg font-black text-[#2f2415]">Rations et prix par défaut</h3>
           <p className="mt-1 text-sm text-[#8a7456]">Ces réglages alimentent Animaux, Avicole, Ventes et Finance avec le même coût total partout.</p>
+          <p className="mt-2 flex items-center gap-2 text-xs">
+            {synced ? <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 font-bold text-emerald-800"><Cloud size={12} /> Synchronisé Supabase</span> : <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 font-bold text-amber-800"><CloudOff size={12} /> Mode local uniquement</span>}
+            {loading ? <span className="text-[#8a7456]">Chargement…</span> : null}
+          </p>
           <p className="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">{UNIFIED_COST_FORMULA}</p>
         </div>
       ) : null}
@@ -114,8 +125,8 @@ export default function FarmCostSettingsPanel({ compact = false }) {
       </section>
 
       <div className="flex flex-wrap gap-2">
-        <Btn icon={Save} small onClick={save}>Enregistrer les paramètres</Btn>
-        <Btn icon={RotateCcw} variant="outline" small onClick={reset}>Réinitialiser</Btn>
+        <Btn icon={Save} small onClick={save} disabled={saving || loading}>{saving ? 'Enregistrement…' : 'Enregistrer les paramètres'}</Btn>
+        <Btn icon={RotateCcw} variant="outline" small onClick={reset} disabled={saving || loading}>Réinitialiser</Btn>
         {draft.updatedAt ? <span className="self-center text-xs text-[#8a7456]">Dernière sauvegarde : {new Date(draft.updatedAt).toLocaleString('fr-FR')}</span> : null}
       </div>
 

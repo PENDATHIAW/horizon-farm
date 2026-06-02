@@ -6,10 +6,10 @@ import { trackNavOpen } from './services/erpRules/surveillanceUxRules.js';
 import { composeActionTraceShared, composeDecisionDataMap, composeInternalResources, composeReportData } from './services/moduleDataComposer';
 import { refreshAllModules, refreshSalesWorkflow } from './services/workflowRefresh';
 import { resolveCommercialTab, resolveElevageTab, resolveAchatsStockTab, resolveFinanceTab, resolveRouteModule, defaultTabForLegacyModule } from './utils/commercialNavigation';
+import { farmCostSettingsService } from './services/farmCostSettingsService';
 import { pruneHeavyLocalStorage } from './utils/safeLocalStorage';
 import { archiveHealthMirrorTasks, findHealthMirrorTasksToArchive } from './utils/pruneHealthMirrorTasks.js';
 import AppNotificationManager from './components/AppNotificationManager';
-import AppVersionBadge from './components/AppVersionBadge.jsx';
 import ErpInterconnectionBridge from './components/ErpInterconnectionBridge';
 import AssistantPanel from './components/AssistantPanel';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -45,9 +45,8 @@ export default function App() {
   const [objectifsTab, setObjectifsTab] = useState('Performance');
   const [achatsStockTab, setAchatsStockTab] = useState('Résumé');
   const [financeTab, setFinanceTab] = useState('Résumé');
-  const [smartfarmTab, setSmartfarmTab] = useState('Résumé');
   const navigateModule = useCallback((moduleId, options = {}) => {
-    const tab = options?.tab || options?.commercialTab || options?.elevageTab || options?.achatsStockTab || options?.financeTab || options?.smartfarmTab;
+    const tab = options?.tab || options?.commercialTab || options?.elevageTab || options?.achatsStockTab || options?.financeTab;
     const resolved = resolveRouteModule(moduleId);
 
     if (resolved === 'commercial') {
@@ -72,12 +71,6 @@ export default function App() {
       setFinanceTab(resolveFinanceTab(tab || defaultTabForLegacyModule(moduleId) || 'Résumé'));
       trackNavOpen('finance_pilotage');
       setActiveState('finance_pilotage');
-      return;
-    }
-    if (resolved === 'smartfarm') {
-      if (tab) setSmartfarmTab(tab);
-      trackNavOpen('smartfarm');
-      setActiveState('smartfarm');
       return;
     }
     if (resolved === 'centre_ia' || resolved === 'objectifs_croissance') {
@@ -463,7 +456,7 @@ export default function App() {
     },
     rapports: { ...base('rapports'), data: reportData, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, ...shared },
     equipements: { ...base('equipements'), ...internalResourcesShared, tasks: rows(c.taches), alertes: rows(c.alertes_center), onCreateTask: c.taches.create, onUpdateTask: c.taches.update, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onCreateFinanceTransaction: c.finances.create, onRefreshFinances: c.finances.refresh, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, ...shared },
-    audit_logs: syncActivityProps, smartfarm: { initialTab: smartfarmTab, meteo: liveMeteo, online, dataMap: decisionDataMapRaw, sensors: rows(c.sensor_devices), cameras: rows(c.camera_devices), tasks: rows(c.taches), sensorLoading: c.sensor_devices.loading, cameraLoading: c.camera_devices.loading, onCreateSensor: c.sensor_devices.create, onUpdateSensor: c.sensor_devices.update, onDeleteSensor: c.sensor_devices.remove, onRefreshSensors: c.sensor_devices.refresh, onCreateCamera: c.camera_devices.create, onUpdateCamera: c.camera_devices.update, onDeleteCamera: c.camera_devices.remove, onRefreshCameras: c.camera_devices.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onRefreshAlertes: c.alertes_center.refresh, onNavigate: setActive, ...shared },
+    audit_logs: syncActivityProps, smartfarm: { meteo: liveMeteo, online, sensors: rows(c.sensor_devices), cameras: rows(c.camera_devices), tasks: rows(c.taches), sensorLoading: c.sensor_devices.loading, cameraLoading: c.camera_devices.loading, onCreateSensor: c.sensor_devices.create, onUpdateSensor: c.sensor_devices.update, onDeleteSensor: c.sensor_devices.remove, onRefreshSensors: c.sensor_devices.refresh, onCreateCamera: c.camera_devices.create, onUpdateCamera: c.camera_devices.update, onDeleteCamera: c.camera_devices.remove, onRefreshCameras: c.camera_devices.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onRefreshAlertes: c.alertes_center.refresh, ...shared },
     gestion_systeme: {
       ...internalResourcesShared,
       alertes: rows(c.alertes_center),
@@ -487,11 +480,11 @@ export default function App() {
     sync: syncActivityProps,
     sync_activity: syncActivityProps,
   };
-  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, achatsStockTab, financeTab, smartfarmTab, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue]);
+  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, achatsStockTab, financeTab, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue]);
 
   const activeModuleProps = useMemo(
     () => applyPeriodScopeToProps(moduleProps[active] || {}, periodScope, { cacheGeneration: crudFingerprint }),
-    [moduleProps, active, periodScopeKey, crudFingerprint, commercialTab, elevageTab, achatsStockTab, financeTab, smartfarmTab, centreTab, objectifsTab, periodScope],
+    [moduleProps, active, periodScopeKey, crudFingerprint, commercialTab, elevageTab, achatsStockTab, financeTab, centreTab, objectifsTab, periodScope],
   );
   const scopedAssistantDataMap = useMemo(
     () => {
@@ -517,7 +510,7 @@ export default function App() {
   const ActiveModule = MODULES[active] || MODULES.dashboard;
 
   return <AppLayout navItems={navItems} active={active} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => setAssistantOpen(true)} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange}>
-    <ErrorBoundary moduleName={MODULE_REGISTRY[active]?.label || active} resetKey={active} onBackToDashboard={() => setActive('dashboard')}><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...activeModuleProps} periodLabel={periodLabel} /></Suspense></ErrorBoundary>
+    <ErrorBoundary title="Module indisponible"><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...activeModuleProps} periodLabel={periodLabel} /></Suspense></ErrorBoundary>
     <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={scopedAssistantDataMap} onNavigate={setActive} onCreateBusinessEvent={c.business_events.create} />
     <ErpInterconnectionBridge cruds={c} />
     <AppNotificationManager />

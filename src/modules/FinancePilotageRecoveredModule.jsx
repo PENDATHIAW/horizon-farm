@@ -1,8 +1,8 @@
 import { BarChart3, BrainCircuit, PiggyBank, Wallet, Zap } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
+import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleListHub from '../components/module/ModuleListHub.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
