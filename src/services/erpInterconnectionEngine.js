@@ -6,7 +6,7 @@ import {
   buildStructuredFarmImpact,
   findOrderForOpportunity,
   isOpportunityClosed,
-} from './erpInterconnectionRules';
+} from './erpInterconnectionRules.js';
 import { syncFinanceTransactionToAccounting, linkDocumentToAccounting } from './accountingSyncService';
 import { financeIds } from '../utils/sideEffectIds';
 import { remainingForOrder } from '../utils/salesStatuses';
@@ -83,12 +83,7 @@ export async function syncSaleTraceFromOrder(order = {}, { clientLabel = 'Client
 export async function resolveSaleTasksOnPayment({ sale = {}, payments = [], tasks = [], handlers = {} } = {}) {
   const remaining = remainingForOrder(sale, payments);
   if (remaining > 0 || !handlers.onUpdateTask) return null;
-  const saleId = clean(sale.id);
-  const related = arr(tasks).filter((task) => {
-    const linked = clean(task.related_id || task.source_record_id || task.entity_id);
-    const routine = clean(task.routine_key || '');
-    return linked === saleId || routine === `relance-credit-${saleId}`;
-  });
+  const related = arr(tasks).filter((task) => clean(task.related_id || task.source_record_id || task.entity_id) === clean(sale.id));
   await Promise.allSettled(related.map((task) => handlers.onUpdateTask(task.id, {
     status: 'termine',
     statut: 'termine',

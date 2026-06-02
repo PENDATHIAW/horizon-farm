@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Download, Edit, Eye, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Download, Edit, Eye, Package, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ActionIconButton from '../components/ActionIconButton';
@@ -9,10 +9,16 @@ import CreateModal from '../modals/CreateModal';
 import DeleteModal from '../modals/DeleteModal';
 import DetailsModal from '../modals/DetailsModal';
 import EditModal from '../modals/EditModal';
+import { emitHorizonForm } from '../services/formModalManager';
 import { MODULE_FORM_FIELDS } from '../utils/constants';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
+import {
+  buildStockReceptionFromFinanceTransaction,
+  financeTransactionHasStockLink,
+  isStockableFinanceTransaction,
+} from '../utils/stockPurchaseWorkflow';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const amount = (row = {}) => toNumber(row.montant ?? row.amount ?? row.total ?? row.montant_total ?? 0);
@@ -20,6 +26,7 @@ const hasAmount = (row = {}) => Math.abs(amount(row)) > 0;
 const status = (row = {}) => String(row.statut ?? row.status ?? 'paye').toLowerCase();
 const isIn = (row = {}) => String(row.type || '').toLowerCase() === 'entree';
 const today = () => new Date().toISOString().slice(0, 10);
+const lower = (value) => String(value || '').trim().toLowerCase();
 
 const activityLabels = {
   animaux: 'Animaux',
@@ -53,14 +60,45 @@ function buildFields(businessPlans = []) {
   });
 }
 
-export default function FinanceTransactionsOnly({ rows = [], loading, onCreate, onUpdate, onDelete, onRefresh, businessPlans = [] }) {
+function isBlockedStockablePurchase(payload = {}) {
+  if (isIn(payload)) return false;
+  const probe = {
+    ...payload,
+    type: 'sortie',
+    libelle: payload.libelle || payload.label || '',
+    categorie: payload.categorie || payload.category || '',
+    module_lie: payload.module_lie || '',
+    source_module: payload.source_module || '',
+  };
+  return isStockableFinanceTransaction(probe);
+}
+
+export default function FinanceTransactionsOnly({
+  rows = [],
+  stocks = [],
+  loading,
+  onCreate,
+  onUpdate,
+  onDelete,
+  onRefresh,
+  businessPlans = [],
+  onNavigate,
+}) {
   const [selected, setSelected] = useState(null);
   const [modal, setModal] = useState(null);
   const [saving, setSaving] = useState(false);
   const validRows = useMemo(() => arr(rows).filter(hasAmount), [rows]);
   const financeFormFields = useMemo(() => buildFields(businessPlans), [businessPlans]);
 
-  const save = async (action, message) => {
+  const guardStockable = (payload) => {
+    if (!isBlockedStockablePurchase(payload)) return true;
+    toast.error('Les achats stockables se saisissent dans Achats & Stock → Réception achat (pas en finance).');
+    onNavigate?.('achats_stock', { tab: 'Stock' });
+    return false;
+  };
+
+  const save = async (action, message, payload) => {
+    if (payload && !guardStockable(payload)) return;
     try {
       setSaving(true);
       await action();
@@ -72,6 +110,16 @@ export default function FinanceTransactionsOnly({ rows = [], loading, onCreate, 
     } finally {
       setSaving(false);
     }
+  };
+
+  const repairStockEntry = (row) => {
+    emitHorizonForm(
+      'stock',
+      'stock_purchase',
+      'Créer entrée stock depuis cette dépense',
+      buildStockReceptionFromFinanceTransaction(row, stocks),
+    );
+    onNavigate?.('achats_stock', { tab: 'Stock' });
   };
 
   const doExports = () => {
@@ -90,14 +138,33 @@ export default function FinanceTransactionsOnly({ rows = [], loading, onCreate, 
     { key: 'montant', label: 'Montant', sortable: true, render: (row) => <span className={`font-black ${isIn(row) ? 'text-emerald-600' : 'text-red-500'}`}>{isIn(row) ? '+' : '-'}{fmtCurrency(amount(row))}</span> },
     { key: 'statut', label: 'Statut', sortable: true, render: (row) => <Badge status={row.statut || row.status || 'paye'} /> },
     { key: 'paiement', label: 'Paiement', sortable: true },
-    { key: 'actions', label: 'Actions', render: (row) => <div className="flex gap-1"><ActionIconButton icon={Eye} color="sky" title="Voir" onClick={() => { setSelected(row); setModal('details'); }} /><ActionIconButton icon={Edit} color="amber" title="Modifier" onClick={() => { setSelected(row); setModal('edit'); }} /><ActionIconButton icon={Trash2} color="red" title="Supprimer" onClick={() => { setSelected(row); setModal('delete'); }} /></div> },
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (row) => {
+        const showRepair = !isIn(row) && isStockableFinanceTransaction(row) && !financeTransactionHasStockLink(row, stocks);
+        return (
+          <div className="flex flex-wrap gap-1">
+            {showRepair ? (
+              <ActionIconButton icon={Package} color="emerald" title="Créer entrée stock depuis cette dépense" onClick={() => repairStockEntry(row)} />
+            ) : null}
+            <ActionIconButton icon={Eye} color="sky" title="Voir" onClick={() => { setSelected(row); setModal('details'); }} />
+            <ActionIconButton icon={Edit} color="amber" title="Modifier" onClick={() => { setSelected(row); setModal('edit'); }} />
+            <ActionIconButton icon={Trash2} color="red" title="Supprimer" onClick={() => { setSelected(row); setModal('delete'); }} />
+          </div>
+        );
+      },
+    },
   ];
 
   return <div className="space-y-4">
+    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+      Les <b>achats stockables</b> (intrants, aliments, matériel…) doivent être enregistrés via <b>Achats & Stock → Réception achat</b>. La finance est créée automatiquement. Ici : autres écritures et réparation historique (bouton entrée stock).
+    </div>
     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
       <div>
         <p className="font-black text-[#2f2415]">Lignes finance manuelles</p>
-        <p className="text-sm text-[#8a7456]">Table des saisies manuelles uniquement. Les dépenses et coûts suivis sont affichés dans la synthèse au-dessus.</p>
+        <p className="text-sm text-[#8a7456]">Table des saisies manuelles uniquement. La synthèse des dépenses est au-dessus.</p>
       </div>
       <div className="flex flex-wrap gap-2">
         <Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Actualiser</Btn>
@@ -107,8 +174,29 @@ export default function FinanceTransactionsOnly({ rows = [], loading, onCreate, 
     </div>
     <DataTable title="Lignes finance" rows={validRows} columns={columns} loading={loading} initialSortKey="date" searchPlaceholder="Rechercher libellé, catégorie, activité..." />
     <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected} title="Détail ligne finance" />
-    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={(payload) => save(() => onCreate?.({ ...payload, statut: payload.statut || 'paye' }), 'Ligne finance ajoutée')} fields={financeFormFields} initialValues={{ id: generateSequentialId('finances', rows), type: 'entree', date: today(), statut: 'paye', paiement: 'Wave' }} autoId={() => generateSequentialId('finances', rows)} uploadFolder="finances" loading={saving} title="Ajouter argent reçu / dépensé" submitLabel="Ajouter" />
-    <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={(payload) => selected && save(() => onUpdate?.(selected.id, payload), 'Ligne finance modifiée')} fields={financeFormFields} initialValues={selected || {}} uploadFolder="finances" loading={saving} title="Modifier ligne finance" submitLabel="Enregistrer" />
+    <CreateModal
+      open={modal === 'create'}
+      onClose={() => setModal(null)}
+      onSubmit={(payload) => save(() => onCreate?.({ ...payload, statut: payload.statut || 'paye' }), 'Ligne finance ajoutée', payload)}
+      fields={financeFormFields}
+      initialValues={{ id: generateSequentialId('finances', rows), type: 'entree', date: today(), statut: 'paye', paiement: 'Wave' }}
+      autoId={() => generateSequentialId('finances', rows)}
+      uploadFolder="finances"
+      loading={saving}
+      title="Ajouter argent reçu / dépensé"
+      submitLabel="Ajouter"
+    />
+    <EditModal
+      open={modal === 'edit'}
+      onClose={() => setModal(null)}
+      onSubmit={(payload) => selected && save(() => onUpdate?.(selected.id, payload), 'Ligne finance modifiée', payload)}
+      fields={financeFormFields}
+      initialValues={selected || {}}
+      uploadFolder="finances"
+      loading={saving}
+      title="Modifier ligne finance"
+      submitLabel="Enregistrer"
+    />
     <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={() => selected && save(() => onDelete?.(selected.id), 'Ligne finance supprimée')} itemLabel={selected ? `${selected.libelle || selected.id}` : ''} loading={saving} />
   </div>;
 }

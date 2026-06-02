@@ -4,12 +4,10 @@ import toast from 'react-hot-toast';
 import { toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import StockOperationalHealthPanel from './StockOperationalHealthPanel.jsx';
+import StockPurchaseReceptionForm from './StockPurchaseReceptionForm.jsx';
 import StocksV3 from './StocksV3.jsx';
 import StockEvolution from './StockEvolution.jsx';
-import StockFeedingElevageHint from './achatsStock/StockFeedingElevageHint.jsx';
-import { applyFeedingDistribution } from '../services/feedingCostEngine';
-import { transferFreezeStock } from '../services/livestockStockBridge';
-import useCrudModule from '../hooks/useCrudModule';
+import StockFeedingCostPlanner from './StockFeedingCostPlanner.jsx';
 
 const lower = (value) => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const today = () => new Date().toISOString().slice(0, 10);
@@ -111,11 +109,20 @@ function HeyHorizonStockCard({ draft, rows, onUpdate, onCreateFinanceTransaction
 
 export default function StocksV4(props) {
   const [horizonDraft, setHorizonDraft] = useState(null);
+  const [purchaseDraft, setPurchaseDraft] = useState(null);
+  const openPurchase = (fields = {}) => setPurchaseDraft({ form_type: 'stock_purchase', intent_label: 'Réception achat stock', draft_fields: { date: today(), ...fields } });
   useEffect(() => {
     const handler = (event) => {
       const draft = event.detail?.draft;
-      if (event.detail?.module === 'stock' && ['stock_purchase', 'stock_movement'].includes(draft?.form_type)) {
+      if (event.detail?.module !== 'stock' || !draft?.form_type) return;
+      if (draft.form_type === 'stock_purchase') {
+        setPurchaseDraft(draft);
+        setHorizonDraft(null);
+        return;
+      }
+      if (draft.form_type === 'stock_movement') {
         setHorizonDraft(draft);
+        setPurchaseDraft(null);
         window.setTimeout(() => document.getElementById('hey-horizon-stock-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
       }
     };
@@ -134,28 +141,28 @@ export default function StocksV4(props) {
   }, [props]);
 
   const applyFeedingPlan = useCallback(async (plan = {}) => {
-    await applyFeedingDistribution(plan, {
-      onUpdateStock: props.onUpdate,
-      onCreateAlimentation: props.onCreateAlimentation,
-      onCreateFinanceTransaction: props.onCreateFinanceTransaction,
-      onCreateBusinessEvent: props.onCreateBusinessEvent,
-      onRefreshStock: props.onRefresh,
-      onRefreshAlimentation: props.onRefreshAlimentation,
-      onRefreshBusinessEvents: props.onRefreshBusinessEvents,
-      onRefreshFinances: props.onRefreshFinances,
-    });
+    const stock = plan.stock;
+    const target = plan.target;
+    const totalKg = toNumber(plan.totalKg);
+    const totalCost = toNumber(plan.totalCost);
+    if (!stock?.id) throw new Error('Choisis d’abord l’aliment à utiliser');
+    if (!target?.id) throw new Error('Choisis le lot ou l’animal concerné');
+    if (totalKg <= 0) throw new Error('Quantité alimentation invalide');
+    if (stockKg(stock) < totalKg) throw new Error('Stock aliment insuffisant pour appliquer ce plan');
+
+    const logId = makeId('ALIM');
+    const trxId = makeId('TRX');
+    const targetType = plan.targetType === 'animal' ? 'animal' : 'lot_avicole';
+    const nextQty = nextStockQtyAfterKg(stock, totalKg);
+    const date = plan.date || today();
+    const amount = Number(totalCost.toFixed(0));
+
+    await props.onUpdate?.(stock.id, { quantite: Number(nextQty.toFixed(3)), last_movement_type: 'sortie_alimentation', last_movement_label: `Alimentation ${targetLabel(target)}`, last_movement_qty: Number(totalKg.toFixed(3)), last_movement_at: new Date().toISOString(), linked_alimentation_log_id: logId, linked_finance_transaction_id: amount > 0 ? trxId : '' });
+    await props.onCreateAlimentation?.({ id: logId, date, stock_id: stock.id, produit: stock.produit || stock.name || stock.id, type_cible: targetType, cible_id: target.id, lot_id: targetType === 'lot_avicole' ? target.id : '', animal_id: targetType === 'animal' ? target.id : '', quantite: Number(totalKg.toFixed(3)), unite: 'kg', prix_unitaire: totalKg > 0 ? Number((totalCost / totalKg).toFixed(2)) : 0, montant_total: amount, cout_total: amount, sujets: toNumber(plan.subjects), jours: toNumber(plan.days), ration_kg_jour: toNumber(plan.dailyKg), cout_par_sujet: Number(toNumber(plan.costPerSubject).toFixed(0)), cout_par_sujet_jour: Number(toNumber(plan.costPerSubjectDay).toFixed(0)), source_module: 'stock', source_record_id: stock.id, linked_finance_transaction_id: amount > 0 ? trxId : '', notes: `Plan alimentation appliqué à ${targetLabel(target)}` });
+    if (amount > 0) await props.onCreateFinanceTransaction?.({ id: trxId, type: 'sortie', libelle: `Alimentation ${targetLabel(target)} - ${stock.produit || stock.name || stock.id}`, montant: amount, amount, date, categorie: 'Alimentation', module_lie: 'stock', related_id: stock.id, stock_id: stock.id, alimentation_log_id: logId, source_module: 'stock', source_record_id: stock.id, source_type: targetType, source_id: target.id, target_type: targetType, target_id: target.id, activite: activityForFeeding(plan.targetType, target), statut: 'paye', notes: 'Dépense alimentation créée depuis Stock.' });
+    await props.onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'alimentation_plan_applique', module_source: 'stock', entity_type: targetType, entity_id: target.id, title: `Alimentation ${targetLabel(target)}`, description: `${Number(totalKg.toFixed(2))} kg · coût ${amount}`, event_date: date, severity: 'info', amount, linked_stock_id: stock.id, linked_alimentation_log_id: logId, linked_finance_transaction_id: amount > 0 ? trxId : '', saisies_evitees: 4 });
+    await Promise.allSettled([props.onRefresh?.(), props.onRefreshAlimentation?.(), props.onRefreshBusinessEvents?.(), props.onRefreshFinances?.()]);
   }, [props]);
 
-  const stockCrud = useCrudModule('stock');
-  const handleFreezeProduct = useCallback(async (row) => {
-    try {
-      await transferFreezeStock({ stockCrud, row });
-      await props.onRefresh?.();
-      toast.success(`${row.produit || row.id} transféré au congélateur`);
-    } catch (error) {
-      toast.error(error.message || 'Congélation impossible');
-    }
-  }, [stockCrud, props]);
-
-  return <div className="space-y-6 stock-mobile-structured"><style>{`@media (max-width: 640px){.stock-mobile-structured .rounded-2xl{border-radius:18px}.stock-mobile-structured table{font-size:12px}.stock-mobile-structured th,.stock-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.stock-mobile-structured .text-2xl{font-size:1.35rem}.stock-mobile-structured .grid{gap:.75rem}.stock-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>{horizonDraft ? <div id="hey-horizon-stock-card"><HeyHorizonStockCard draft={horizonDraft} rows={props.rows || []} onUpdate={updateWithLossHistory} onCreateFinanceTransaction={props.onCreateFinanceTransaction} onCreateAlimentation={props.onCreateAlimentation} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefresh={props.onRefresh} onRefreshAlimentation={props.onRefreshAlimentation} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onRefreshFinances={props.onRefreshFinances} onClose={() => setHorizonDraft(null)} /></div> : null}<StockOperationalHealthPanel rows={props.rows || []} lots={props.lots || []} animaux={props.animaux || []} cultures={props.cultures || []} alimentationLogs={props.alimentationLogs || []} onNavigate={props.onNavigate} onFreezeProduct={handleFreezeProduct} /><ModuleSection icon={Package} title="Stock courant" subtitle="Produits, quantités, seuils, entrées, sorties et pertes suivies."><StocksV3 {...props} onUpdate={updateWithLossHistory} /></ModuleSection><ModuleSection icon={Utensils} title="Alimentation" subtitle="Simulateur de ration — distribution réelle dans Élevage › Alimentation."><StockFeedingElevageHint rows={props.rows || []} animaux={props.animaux || []} lots={props.lots || []} alimentationLogs={props.alimentationLogs || []} onNavigate={props.onNavigate} /></ModuleSection><CollapsibleSection icon={BarChart3} title="Évolution stock" subtitle="Graphes et historique des entrées, sorties, consommations et alertes." defaultOpen={false}><StockEvolution rows={props.rows || []} alimentationLogs={props.alimentationLogs || []} onNavigate={props.onNavigate} /></CollapsibleSection></div>;
+  return <div className="space-y-6 stock-mobile-structured"><style>{`@media (max-width: 640px){.stock-mobile-structured .rounded-2xl{border-radius:18px}.stock-mobile-structured table{font-size:12px}.stock-mobile-structured th,.stock-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.stock-mobile-structured .text-2xl{font-size:1.35rem}.stock-mobile-structured .grid{gap:.75rem}.stock-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>{purchaseDraft ? <StockPurchaseReceptionForm initialDraft={purchaseDraft} title={purchaseDraft.intent_label || 'Réception achat stock'} stocks={props.rows || []} fournisseurs={props.fournisseurs || []} transactions={props.transactions || []} documents={props.documents || []} alertes={props.alertes || []} taches={props.taches || []} animaux={props.animaux || []} lots={props.lots || []} cultures={props.cultures || []} onClose={() => setPurchaseDraft(null)} onCreateStock={props.onCreate} onUpdateStock={props.onUpdate} onCreateFinanceTransaction={props.onCreateFinanceTransaction} onCreateDocument={props.onCreateDocument} onCreateBusinessEvent={props.onCreateBusinessEvent} onUpdateSupplier={props.onUpdateSupplier} onUpdateFinanceTransaction={props.onUpdateFinanceTransaction} onUpdateAlert={props.onUpdateAlert} onRefresh={props.onRefresh} onRefreshFinances={props.onRefreshFinances} onRefreshSuppliers={props.onRefreshSuppliers} onRefreshBusinessEvents={props.onRefreshBusinessEvents} /> : null}{horizonDraft ? <div id="hey-horizon-stock-card"><HeyHorizonStockCard draft={horizonDraft} rows={props.rows || []} onUpdate={updateWithLossHistory} onCreateFinanceTransaction={props.onCreateFinanceTransaction} onCreateAlimentation={props.onCreateAlimentation} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefresh={props.onRefresh} onRefreshAlimentation={props.onRefreshAlimentation} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onRefreshFinances={props.onRefreshFinances} onClose={() => setHorizonDraft(null)} /></div> : null}<StockOperationalHealthPanel rows={props.rows || []} alimentationLogs={props.alimentationLogs || []} onNavigate={props.onNavigate} /><ModuleSection icon={Package} title="Stock courant" subtitle="Produits, quantités, seuils, entrées, sorties et pertes suivies."><StocksV3 {...props} onUpdate={updateWithLossHistory} onOpenPurchaseReception={openPurchase} /></ModuleSection><ModuleSection icon={Utensils} title="Alimentation des animaux et lots" subtitle="Calculer une ration, retirer le stock utilisé et suivre le coût sans double saisie."><StockFeedingCostPlanner rows={props.rows || []} animaux={props.animaux || []} lots={props.lots || []} alimentationLogs={props.alimentationLogs || []} onOpenUseFood={applyFeedingPlan} /></ModuleSection><CollapsibleSection icon={BarChart3} title="Évolution stock" subtitle="Graphes et historique des entrées, sorties, consommations et alertes." defaultOpen={false}><StockEvolution rows={props.rows || []} alimentationLogs={props.alimentationLogs || []} onNavigate={props.onNavigate} /></CollapsibleSection></div>;
 }
