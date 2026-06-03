@@ -5,6 +5,8 @@ import { fmtCurrency, toNumber } from '../utils/format';
 import { getRhDirectory, RH_TEAMS, saveRhDirectory } from '../utils/rhDirectory';
 import { buildRhSalaryWorkflow } from '../utils/rhWorkflows';
 import RHPeopleTeams from './RHPeopleTeams.jsx';
+import { createImpactJournal, finalizeImpactJournal, IMPACT_KEYS, instrumentHandlers, markImpactCreated, markImpactNa, OPERATION_EXPECTATIONS, OPERATION_TYPES } from '../utils/workflowImpactJournal';
+import { showWorkflowImpactToast } from '../utils/workflowImpactToast';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const payroll = (p = {}) => {
@@ -44,9 +46,12 @@ function RhPriorityPayments({ onCreateFinanceTransaction, onRefreshFinances, onC
     try {
       setSavingId(person.id);
       const workflow = buildRhSalaryWorkflow({ person, teams, amount: m.net, date: today() });
-      await onCreateFinanceTransaction?.(workflow.financeTransaction);
-      await onCreateDocument?.(workflow.document);
-      await onCreateBusinessEvent?.(workflow.event);
+      const journal = createImpactJournal(OPERATION_TYPES.PAIE, workflow.financeTransaction.id);
+      const tracked = instrumentHandlers({ onCreateFinanceTransaction, onCreateDocument, onCreateBusinessEvent }, journal);
+      await tracked.onCreateFinanceTransaction?.(workflow.financeTransaction);
+      await tracked.onCreateDocument?.(workflow.document);
+      await tracked.onCreateBusinessEvent?.(workflow.event);
+      markImpactNa(journal, IMPACT_KEYS.TASK_ALERT, 'Aucune tâche RH supplémentaire');
       const next = saveRhDirectory({
         ...directory,
         people: (directory.people || []).map((item) => item.id === person.id ? { ...item, ...workflow.personPatch } : item),

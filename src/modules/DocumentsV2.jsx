@@ -8,6 +8,8 @@ import { buildDocumentProofFollowUp } from '../utils/documentWorkflows';
 import useCrudModule from '../hooks/useCrudModule';
 import DocumentControlPanel from './DocumentControlPanel.jsx';
 import Documents from './Documents.jsx';
+import { createImpactJournal, finalizeImpactJournal, IMPACT_KEYS, instrumentHandlers, markImpactCreated, markImpactNa, OPERATION_EXPECTATIONS, OPERATION_TYPES } from '../utils/workflowImpactJournal';
+import { showWorkflowImpactToast } from '../utils/workflowImpactToast';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 
@@ -39,15 +41,27 @@ async function createDocFromTransaction(tx, props, setSavingId) {
       date_document: tx.date || new Date().toISOString().slice(0, 10),
       notes: `Preuve à joindre pour ${tx.libelle || tx.id} · ${fmtCurrency(tx.montant)}`,
     };
-    await props.onCreate?.(doc);
+    const journal = createImpactJournal(OPERATION_TYPES.LIAISON_DOCUMENT, doc.id);
+    const tracked = instrumentHandlers({
+      onCreate: props.onCreate,
+      onCreateTask: props.onCreateTask,
+      onCreateAlert: props.onCreateAlert,
+    }, journal);
+    await tracked.onCreate?.(doc);
     const followUp = buildDocumentProofFollowUp({ document: doc, transaction: tx });
     if (followUp) {
-      await props.onCreateTask?.(followUp.task);
-      await props.onCreateAlert?.(followUp.alert);
+      await tracked.onCreateTask?.(followUp.task);
+      await tracked.onCreateAlert?.(followUp.alert);
+    } else {
+      markImpactNa(journal, IMPACT_KEYS.TASK_ALERT, 'Relance preuve non requise');
     }
+    markImpactNa(journal, IMPACT_KEYS.BUSINESS_EVENT, 'Traçabilité gérée par la transaction');
+    markImpactNa(journal, IMPACT_KEYS.FINANCE, 'Transaction déjà enregistrée');
+    markImpactNa(journal, IMPACT_KEYS.STOCK_UPDATED, 'Non applicable');
+    markImpactNa(journal, IMPACT_KEYS.STOCK_MOVEMENT, 'Non applicable');
     await props.onRefresh?.();
     await Promise.allSettled([props.onRefreshTasks?.(), props.onRefreshAlertes?.()]);
-    toast.success('Fiche preuve créée');
+    showWorkflowImpactToast(finalizeImpactJournal(journal, OPERATION_EXPECTATIONS[OPERATION_TYPES.LIAISON_DOCUMENT]));
   } catch {
     toast.error('Création de preuve impossible');
   } finally {

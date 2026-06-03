@@ -552,21 +552,21 @@ export function prepareHealthWorkflow(payload = {}, context = {}) {
 }
 
 export async function commitHealthWorkflow(preview, handlers = {}) {
-  const p = structuredClone(preview);
-  const ctx = handlers.context || {};
-  const health = p.records.health_patch || {};
-
-  await runHealthSideEffects({
-    health,
-    healthPatch: p.records.health_patch,
-    stockMovement: p.records.stock_movement,
-    cost: toNumber(finalValue(p.fields?.cost) || health.cout),
-    tasks: ctx.tasks || [],
-    transactions: ctx.transactions || [],
+  return commitWithImpactJournal({
+    operationType: OPERATION_TYPES.SOIN_VACCIN,
+    issueKey: preview.workflow_id,
     handlers,
+    run: async (tracked, journal) => {
+      const p = structuredClone(preview);
+      const ctx = handlers.context || {};
+      const health = p.records.health_patch || {};
+      const cost = toNumber(finalValue(p.fields?.cost) || health.cout);
+      await runHealthSideEffects({ health, healthPatch: p.records.health_patch, stockMovement: p.records.stock_movement, cost, tasks: ctx.tasks || [], transactions: ctx.transactions || [], handlers: tracked });
+      if (!p.records.stock_movement?.stock_id) markImpactNa(journal, IMPACT_KEYS.STOCK_MOVEMENT, 'Aucun produit stock consommé');
+      if (cost <= 0) markImpactNa(journal, IMPACT_KEYS.FINANCE, 'Intervention sans coût');
+      return { ok: true, saisies_evitees: p.workflow_meta?.saisies_evitees || 0, workflow_id: p.workflow_id };
+    },
   });
-
-  return { ok: true, saisies_evitees: p.workflow_meta?.saisies_evitees || 0, workflow_id: p.workflow_id };
 }
 
 export function prepareBiosecurityWorkflow(payload = {}, context = {}) {
