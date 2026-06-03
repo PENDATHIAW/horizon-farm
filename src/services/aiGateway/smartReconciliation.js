@@ -7,6 +7,7 @@ import {
   createAiActionDraft,
   TARGET_WORKFLOWS,
 } from './aiActionDrafts.js';
+import { reconciliationWouldDuplicate } from '../../utils/financeReconciliation.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();
@@ -60,29 +61,38 @@ export function proposeReconciliationDraft({
 
   const candidateTx = arr(transactions).find((t) => paymentMatchesTransaction(payment, t));
   const ambiguous = arr(transactions).filter((t) => paymentMatchesTransaction(payment, t)).length > 1;
+  const hasExistingPayment = Boolean(clean(payment.id));
+  const targetWorkflow = hasExistingPayment
+    ? TARGET_WORKFLOWS.FINANCE_RECONCILIATION
+    : TARGET_WORKFLOWS.SALE_PAYMENT;
 
   const warnings = [];
   if (ambiguous) {
     warnings.push('Plusieurs écritures possibles : choisissez la bonne avant validation.');
   }
-  if (!candidateTx && amount > 0) {
+  if (!candidateTx && amount > 0 && !hasExistingPayment) {
     warnings.push('Aucune écriture finance exacte ; l\'encaissement passera par recordSalePayment.');
+  }
+  if (hasExistingPayment && reconciliationWouldDuplicate('payment_without_finance', { payment, transactions })) {
+    warnings.push('Une ligne finance existe déjà pour ce paiement.');
   }
 
   return createAiActionDraft({
     intent: 'payment_reconciliation',
-    confidence: ambiguous ? 0.42 : missing.length ? 0.5 : candidateTx ? 0.9 : 0.72,
+    confidence: ambiguous ? 0.42 : missing.length ? 0.5 : candidateTx ? 0.9 : hasExistingPayment ? 0.88 : 0.72,
     source: AI_DRAFT_SOURCES.RECONCILIATION,
     draft: {
       payment,
       sale: { ...sale, id: saleId },
+      order: { ...sale, id: saleId },
       requestedAmount: amount,
-      paymentMethod: payment.mode || payment.payment_method || 'especes',
-      paymentDate: payment.date || payment.paid_at,
+      paymentMethod: payment.mode || payment.payment_method || payment.moyen_paiement || 'especes',
+      paymentDate: payment.date || payment.paid_at || payment.date_paiement,
       context: { transactions, clients, salesOrders },
       suggested_transaction_id: candidateTx?.id || null,
+      recon_row_kind: 'payment_without_finance',
     },
-    target_workflow: TARGET_WORKFLOWS.SALE_PAYMENT,
+    target_workflow: targetWorkflow,
     required_validation: true,
     missing_fields: missing,
     warnings,
@@ -111,4 +121,83 @@ export function proposeReconciliationDraftsForOrphans({
       transactions,
     });
   });
+}
+
+/**
+ * Propose un brouillon IA à partir d'une ligne d'écart rapprochement (lecture seule).
+ */
+export function proposeReconciliationDraftFromRow(row = {}, context = {}) {
+  const transactions = arr(context.transactions);
+  const salesOrders = arr(context.salesOrders);
+
+  if (row.kind === 'payment_without_finance') {
+    const draft = proposeReconciliationDraft({
+      payment: row.payment,
+      sale: row.order,
+      transactions,
+      salesOrders,
+    });
+    return {
+      ...draft,
+      draft: {
+        ...draft.draft,
+        recon_row_id: row.id,
+        recon_row_kind: row.kind,
+      },
+    };
+  }
+
+  if (row.kind === 'finance_without_payment') {
+    return createAiActionDraft({
+      intent: 'finance_without_payment',
+      confidence: 0.7,
+      source: AI_DRAFT_SOURCES.RECONCILIATION,
+      draft: {
+        transaction: row.transaction,
+        orderId: row.orderId,
+        recon_row_id: row.id,
+        recon_row_kind: row.kind,
+        recommended_action: 'Ouvrir Commercial pour lier ou enregistrer le paiement vente.',
+      },
+      target_workflow: TARGET_WORKFLOWS.OPEN_FORM,
+      required_validation: true,
+      warnings: ['Aucune écriture finance automatique — redirection vers Commercial.'],
+      status: 'awaiting_validation',
+    });
+  }
+
+  if (row.kind === 'stockable_without_stock') {
+    return createAiActionDraft({
+      intent: 'stockable_without_stock',
+      confidence: 0.74,
+      source: AI_DRAFT_SOURCES.RECONCILIATION,
+      draft: {
+        transaction: row.transaction,
+        recon_row_id: row.id,
+        recon_row_kind: row.kind,
+        recommended_action: 'Passer par Achats & Stock → réception achat (formulaire prérempli).',
+      },
+      target_workflow: TARGET_WORKFLOWS.OPEN_FORM,
+      required_validation: true,
+      warnings: ['La dépense stockable doit créer une entrée stock via le workflow achat.'],
+      status: 'awaiting_validation',
+    });
+  }
+
+  return null;
+}
+
+/**
+ * Brouillons IA pour les écarts rapprochement visibles (max N).
+ */
+export function proposeReconciliationDraftsFromRows({
+  rows = [],
+  transactions = [],
+  salesOrders = [],
+  limit = 8,
+} = {}) {
+  return arr(rows)
+    .slice(0, limit)
+    .map((row) => proposeReconciliationDraftFromRow(row, { transactions, salesOrders }))
+    .filter(Boolean);
 }

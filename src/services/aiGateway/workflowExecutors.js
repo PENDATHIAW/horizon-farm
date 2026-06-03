@@ -17,6 +17,7 @@ import { commitCultureHarvest } from '../../utils/culturesWorkflow.js';
 import { commitStockPurchaseWorkflow } from '../../utils/stockPurchaseWorkflow.js';
 import { commitCommercialSale } from '../../utils/commercialSaleWorkflow.js';
 import { recordSalePayment } from '../../utils/recordSalePayment.js';
+import { commitFinanceReconciliationRepair } from '../../utils/financeReconciliation.js';
 import { TARGET_WORKFLOWS } from './aiActionDrafts.js';
 import { ALLOWED_WORKFLOW_EXECUTORS } from './aiSafetyGuard.js';
 
@@ -34,6 +35,7 @@ export const WORKFLOW_EXECUTOR_MAP = {
   [TARGET_WORKFLOWS.SALE_PAYMENT]: recordSalePayment,
   [TARGET_WORKFLOWS.EQUIPMENT]: commitEquipmentWorkflow,
   [TARGET_WORKFLOWS.ALERT_ACTION]: commitAlertActionWorkflow,
+  [TARGET_WORKFLOWS.FINANCE_RECONCILIATION]: commitFinanceReconciliationRepair,
 };
 
 export function resolveWorkflowExecutor(targetWorkflow = '') {
