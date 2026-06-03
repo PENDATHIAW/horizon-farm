@@ -93,6 +93,7 @@ export default function VisionOpportunitiesTab({
                 actions={<>
                   <button type="button" onClick={() => openCommercialOpportunity(r)} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Gérer</button>
                   <button type="button" disabled={busyId === (r.id || label(r))} onClick={() => createRecommendation(r)} className="rounded-lg border border-emerald-300 px-2 py-1 text-xs font-black text-emerald-700 disabled:opacity-50">Recommandation</button>
+
                 </>}
               />
             ))}
