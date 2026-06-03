@@ -3,6 +3,7 @@ import { Calculator, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { fmtCurrency, fmtNumber, toNumber } from '../../utils/format';
 import { DEFAULT_FEEDING_RULES, calculateFeedingPlan, applyFeedingDistribution } from '../../services/feedingCostEngine';
+import useWorkflowSubmit from '../../hooks/useWorkflowSubmit';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const lower = (value) => String(value || '').toLowerCase();
@@ -39,7 +40,7 @@ export default function ElevageFeedingDistribution({
   const activeLots = useMemo(() => arr(lots).filter((lot) => activeLotCount(lot) > 0), [lots]);
   const activeAnimals = useMemo(() => arr(animaux).filter((a) => !['vendu', 'mort', 'abattu'].includes(lower(a.status || a.statut))), [animaux]);
 
-  const [saving, setSaving] = useState(false);
+  const { submit: workflowSubmit, busy: workflowBusy } = useWorkflowSubmit();
   const [form, setForm] = useState({
     stock_id: foodStocks[0]?.id || '',
     target_type: 'lot',
@@ -68,8 +69,8 @@ export default function ElevageFeedingDistribution({
     e.preventDefault();
     if (!selectedStock || !selectedTarget) return toast.error('Stock aliment et cible obligatoires');
     if (totalKg <= 0) return toast.error('Quantité en kg obligatoire');
-    try {
-      setSaving(true);
+    const feedKey = `feeding-elevage:${selectedStock.id}:${selectedTarget.id}:${form.date || today()}:${totalKg}`;
+    await workflowSubmit(feedKey, async () => {
       const costPlan = calculateFeedingPlan({ stock: selectedStock, subjects: 1, days: 1, dailyKg: totalKg });
       await applyFeedingDistribution({
         stock: selectedStock,
@@ -88,11 +89,7 @@ export default function ElevageFeedingDistribution({
       }, handlers);
       toast.success(`Distribution enregistrée · ${fmtNumber(totalKg)} kg · ${fmtCurrency(costPlan.totalCost)}`);
       setForm((prev) => ({ ...prev, kg: '', notes: '' }));
-    } catch (error) {
-      toast.error(error.message || 'Distribution impossible');
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
   if (!foodStocks.length) {
@@ -128,8 +125,8 @@ export default function ElevageFeedingDistribution({
         </Field>
         <Field label="Date"><Input type="date" value={form.date} onChange={(e) => setForm((p) => ({ ...p, date: e.target.value }))} /></Field>
         <div className="flex items-end">
-          <button type="submit" disabled={saving} className="w-full rounded-xl bg-[#2f2415] text-white px-3 py-2 text-sm font-black disabled:opacity-60">
-            <CheckCircle2 size={14} className="inline" /> {saving ? '…' : 'Distribuer'}
+          <button type="submit" disabled={workflowBusy} className="w-full rounded-xl bg-[#2f2415] text-white px-3 py-2 text-sm font-black disabled:opacity-60">
+            <CheckCircle2 size={14} className="inline" /> {workflowBusy ? '…' : 'Distribuer'}
           </button>
         </div>
       </form>

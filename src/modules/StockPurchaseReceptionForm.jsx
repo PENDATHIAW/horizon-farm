@@ -1,6 +1,7 @@
 import { Package, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import useWorkflowSubmit from '../hooks/useWorkflowSubmit';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
 import {
@@ -84,7 +85,7 @@ export default function StockPurchaseReceptionForm({
   const [proofUrl, setProofUrl] = useState(mapped.proof_url);
   const [notes, setNotes] = useState(mapped.notes);
   const [entryKind, setEntryKind] = useState(mapped.entry_kind);
-  const [saving, setSaving] = useState(false);
+  const { submit: workflowSubmit, busy: workflowBusy } = useWorkflowSubmit();
   const repairTxId = mapped.finance_repair_transaction_id;
 
   useEffect(() => {
@@ -119,7 +120,7 @@ export default function StockPurchaseReceptionForm({
 
   const selectedStock = stocks.find((row) => String(row.id) === String(stockId));
 
-  const submit = async () => {
+  const handleSubmit = async () => {
     const payload = {
       id: stockId || undefined,
       stock_id: stockId || undefined,
@@ -150,8 +151,7 @@ export default function StockPurchaseReceptionForm({
       toast.error(validation.errors.join(' · '));
       return;
     }
-    try {
-      setSaving(true);
+    await workflowSubmit(`stock-purchase:${stockId || "new"}:${date}:${n(quantite)}`, async () => {
       const context = { stocks, suppliers: fournisseurs, transactions, documents, events: [], workflows: [] };
       const preview = prepareStockPurchaseWorkflow(payload, context);
       if (!preview.records.is_create && !stockId && preview.records.stock_patch?.id) {
@@ -186,11 +186,7 @@ export default function StockPurchaseReceptionForm({
       ]);
       toast.success(repairTxId ? 'Entrée stock créée depuis la dépense finance' : 'Réception achat enregistrée');
       onClose?.();
-    } catch (error) {
-      toast.error(error.message || 'Réception impossible');
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
   if (!open) return null;
@@ -419,11 +415,11 @@ export default function StockPurchaseReceptionForm({
           </button>
           <button
             type="button"
-            onClick={submit}
-            disabled={saving}
+            onClick={handleSubmit}
+            disabled={workflowBusy}
             className="min-h-[44px] rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60"
           >
-            {saving ? 'Enregistrement…' : 'Valider réception'}
+            {workflowBusy ? 'Enregistrement…' : 'Valider réception'}
           </button>
         </div>
       </div>

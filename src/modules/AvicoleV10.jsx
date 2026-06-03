@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, BarChart3, Bird, CheckCircle2, ChevronDown, ClipboardList, Drumstick, Egg, Info, PackageCheck, Scissors, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import useWorkflowSubmit from '../hooks/useWorkflowSubmit';
 import MiniMetricCard from '../components/MiniMetricCard.jsx';
 import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard.jsx';
 import { buildAvicoleLotDecision } from '../services/avicoleDecisionEngine';
@@ -79,15 +80,14 @@ function HeyHorizonAvicoleCard({ draft, rows, onUpdate, onCreateProduction, onRe
   const [quantity, setQuantity] = useState(fields.eggs_count || fields.quantity || '');
   const [date, setDate] = useState(fields.date || today());
   const [note, setNote] = useState(fields.notes || draft?.raw_input || '');
-  const [saving, setSaving] = useState(false);
+  const { submit: workflowSubmit, busy: workflowBusy } = useWorkflowSubmit();
   const lot = rows.find((item) => String(item.id) === String(lotId)) || rows[0] || {};
   const actionLabel = draftActionLabel(formType);
   const nextCount = formType === 'poultry_mortality' || formType === 'poultry_close' ? Math.max(0, currentOf(lot) - num(quantity)) : currentOf(lot);
   const submit = async () => {
     if (!lot?.id) return toast.error('Lot obligatoire');
     if (formType !== 'poultry_close' && num(quantity) <= 0) return toast.error('Quantité obligatoire');
-    try {
-      setSaving(true);
+    await workflowSubmit(`${formType}:${lotId}:${date}:${quantity}`, async () => {
       if (formType === 'egg_production') {
         const eggs = num(quantity);
         const tablettes = Math.floor(eggs / 30);
@@ -106,13 +106,13 @@ function HeyHorizonAvicoleCard({ draft, rows, onUpdate, onCreateProduction, onRe
       await Promise.allSettled([onRefresh?.(), onRefreshBusinessEvents?.()]);
       toast.success(`${actionLabel} enregistré`);
       onClose?.();
-    } catch (error) { toast.error(error.message || 'Action avicole impossible'); } finally { setSaving(false); }
+    });
   };
   return <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm space-y-4">
     <div className="flex items-start justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-emerald-700 font-black flex items-center gap-2"><CheckCircle2 size={15} /> Fiche avicole</p><h3 className="mt-1 text-xl font-black text-[#2f2415]">{actionLabel}</h3></div><button type="button" onClick={onClose} className="rounded-full border border-emerald-200 bg-white p-2 text-emerald-700"><X size={16} /></button></div>
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3"><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Lot</span><select value={lotId} onChange={(e) => setLotId(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm">{rows.map((item) => <option key={item.id} value={item.id}>{labelOf(item)} · {item.id} · {fmtNumber(currentOf(item))} actif(s)</option>)}</select></label><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">{formType === 'egg_production' ? 'Œufs' : 'Quantité'}</span><input type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-xs font-bold text-emerald-800">Date</span><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label><label className="space-y-1 md:col-span-3"><span className="text-xs font-bold text-emerald-800">Note</span><input value={note} onChange={(e) => setNote(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" /></label></div>
     <div className="rounded-xl border border-emerald-200 bg-white p-3 text-sm text-emerald-800">{formType === 'egg_production' ? <>Tablettes : <b>{Math.floor(num(quantity) / 30)}</b></> : <>Effectif après action : <b>{fmtNumber(nextCount)}</b></>}</div>
-    <div className="flex justify-end"><button type="button" onClick={submit} disabled={saving} className="rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60">{saving ? 'Validation...' : 'Valider'}</button></div>
+    <div className="flex justify-end"><button type="button" onClick={submit} disabled={workflowBusy} className="rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60">{workflowBusy ? 'Validation...' : 'Valider'}</button></div>
   </section>;
 }
 

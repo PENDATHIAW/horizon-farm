@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Edit, Egg, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import useWorkflowSubmit from '../hooks/useWorkflowSubmit';
 import useCrudModule from '../hooks/useCrudModule';
 import { fmtNumber, toNumber } from '../utils/format';
 import { filterLotsByActivity } from '../utils/avicoleActivity';
@@ -50,6 +51,7 @@ function EggJournal({ rows, productionLogs, stockCrud, onCreateProduction, onUpd
   const logs = useMemo(() => arr(productionLogs).filter((log) => isEggLog(log) && linkedToLot(log, pondeuseIds)).sort((a, b) => String(b.date || b.created_at).localeCompare(String(a.date || a.created_at))), [productionLogs, pondeuseIds]);
   const initial = { id: `PROD-${Date.now()}`, lot_id: pondeuses[0]?.id || '', date: today(), heure_ramassage: '', oeufs_produits: '', oeufs_casses: 0, responsable: '', notes: '' };
   const [form, setForm] = useState(initial);
+  const { submit: workflowSubmit, busy: workflowBusy } = useWorkflowSubmit();
   if (!pondeuses.length) return null;
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -63,11 +65,15 @@ function EggJournal({ rows, productionLogs, stockCrud, onCreateProduction, onUpd
     if (broken > produced) return toast.error('Les œufs cassés ne peuvent pas dépasser le total');
     const sellable = sellableEggs(form);
     const payload = buildEggProductionPayload({ form, lot, previousId: editing?.id });
-    if (editing) await onUpdateProduction?.(editing.id, payload);
-    else await onCreateProduction?.(payload);
+    const eggKey = `egg-journal:${lot.id}:${form.date}:${produced}`;
+    const result = await workflowSubmit(eggKey, async () => {
+      if (editing) await onUpdateProduction?.(editing.id, payload);
+      else await onCreateProduction?.(payload);
     await syncWithoutBlocking(() => syncEggStockFromLogs({ stockCrud, log: payload, previousLog: editing }), 'Stock œufs/tablettes non synchronisé');
     await syncWithoutBlocking(() => onRefreshProduction?.(), 'Rafraîchissement production indisponible');
     toast.success(editing ? `Ramassage modifié · ${tabletLabel(sellable)}` : `Ramassage enregistré · ${tabletLabel(sellable)}`);
+    });
+    if (result?.skipped && result.reason === 'in_flight') return;
     setEditing(null);
     setForm(initial);
   };
@@ -95,7 +101,7 @@ function EggJournal({ rows, productionLogs, stockCrud, onCreateProduction, onUpd
         <Field label="Œufs ramassés"><Input type="number" min="0" value={form.oeufs_produits || ''} onChange={(e) => update('oeufs_produits', e.target.value)} /></Field>
         <Field label="Cassés"><Input type="number" min="0" value={form.oeufs_casses || 0} onChange={(e) => update('oeufs_casses', e.target.value)} /></Field>
         <Field label="Vendables"><Input readOnly value={`${fmtNumber(sellableEggs(form))} œufs · ${tabletLabel(sellableEggs(form))}`} /></Field>
-        <div className="flex items-end gap-2"><ActionButton type="submit" icon={editing ? Save : Plus}>{editing ? 'Modifier' : 'Ajouter'}</ActionButton>{editing ? <ActionButton icon={X} onClick={() => { setEditing(null); setForm(initial); }}>Annuler</ActionButton> : null}</div>
+        <div className="flex items-end gap-2"><ActionButton type="submit" icon={editing ? Save : Plus} disabled={workflowBusy}>{workflowBusy ? '…' : (editing ? 'Modifier' : 'Ajouter')}</ActionButton>{editing ? <ActionButton icon={X} onClick={() => { setEditing(null); setForm(initial); }}>Annuler</ActionButton> : null}</div>
       </form>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">

@@ -6,6 +6,7 @@ import { makeId } from '../utils/ids';
 import { runEquipmentBreakdownSideEffects, runEquipmentRepairSideEffects } from '../utils/equipmentSideEffects';
 import { financeIds } from '../utils/sideEffectIds';
 import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine';
+import useWorkflowSubmit from '../hooks/useWorkflowSubmit';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const now = () => new Date().toISOString();
@@ -30,8 +31,8 @@ function Modal({ title, action, rows, form, setForm, onClose, onSubmit, saving }
 
 export default function EquipementsQuickActionsBridge({ rows = [], tasks = [], alertes = [], onUpdate, onRefresh, onCreateTask, onUpdateTask, onRefreshTasks, onCreateAlert, onUpdateAlert, onRefreshAlertes, onCreateFinanceTransaction, onRefreshFinances, onCreateDocument, onRefreshDocuments, onCreateBusinessEvent, onRefreshBusinessEvents }) {
   const [action, setAction] = useState('');
-  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({});
+  const { submit: workflowSubmit, busy: workflowBusy } = useWorkflowSubmit();
   const usableRows = useMemo(() => arr(rows).filter((row) => row?.id && (activeStatuses.has(clean(row.status || row.statut)) || !row.status)), [rows]);
   const open = (kind) => { setAction(kind); setForm({ equipment_id: usableRows[0]?.id || '', date: today(), priority: kind === 'panne' ? 'critique' : 'haute' }); };
   const close = () => { setAction(''); setForm({}); };
@@ -40,8 +41,8 @@ export default function EquipementsQuickActionsBridge({ rows = [], tasks = [], a
   const submit = async () => {
     if (!selected) return toast.error('Choisis un équipement');
     const amount = toNumber(form.amount);
-    try {
-      setSaving(true);
+    const actionKey = `equipment:${action}:${selected.id}:${form.date || today()}`;
+    await workflowSubmit(actionKey, async () => {
       if (action === 'panne') {
         await runEquipmentBreakdownSideEffects({
           equipment: selected,
@@ -88,16 +89,12 @@ export default function EquipementsQuickActionsBridge({ rows = [], tasks = [], a
       }
       await Promise.allSettled([onRefresh?.(), onRefreshTasks?.(), onRefreshAlertes?.(), onRefreshFinances?.(), onRefreshDocuments?.(), onRefreshBusinessEvents?.()]);
       close();
-    } catch (error) {
-      toast.error(error.message || 'Action équipement impossible');
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
   return (
     <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
-      {action ? <Modal title={action === 'panne' ? 'Déclarer une panne' : action === 'maintenance' ? 'Programmer une maintenance' : action === 'repair' ? 'Marquer réparé' : 'Saisir carburant'} action={action} rows={usableRows} form={form} setForm={setForm} onClose={close} onSubmit={submit} saving={saving} /> : null}
+      {action ? <Modal title={action === 'panne' ? 'Déclarer une panne' : action === 'maintenance' ? 'Programmer une maintenance' : action === 'repair' ? 'Marquer réparé' : 'Saisir carburant'} action={action} rows={usableRows} form={form} setForm={setForm} onClose={close} onSubmit={submit} saving={workflowBusy} /> : null}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Actions rapides</p><h3 className="font-black text-[#2f2415]">Équipements</h3><p className="text-sm text-[#8a7456] mt-1">Déclarer un événement sans modifier toute la fiche.</p></div><div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]">{usableRows.length} équipement(s)</div></div>
       {usableRows.length ? <div className="grid grid-cols-1 md:grid-cols-4 gap-2"><button type="button" className="rounded-xl border border-red-200 bg-red-50 p-3 text-left text-red-700" onClick={() => open('panne')}><AlertTriangle size={16} /> <b className="block mt-1">Déclarer panne</b><span className="text-xs">Tâche + alerte + trace</span></button><button type="button" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-left text-amber-700" onClick={() => open('maintenance')}><Wrench size={16} /> <b className="block mt-1">Programmer maintenance</b><span className="text-xs">Date + coût + Finance</span></button><button type="button" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-left text-emerald-700" onClick={() => open('repair')}><Wrench size={16} /> <b className="block mt-1">Marquer réparé</b><span className="text-xs">Clôture + preuve</span></button><button type="button" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-left text-emerald-700" onClick={() => open('fuel')}><Fuel size={16} /> <b className="block mt-1">Saisir carburant</b><span className="text-xs">Finance + coût équipement</span></button></div> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]">Aucun équipement disponible.</div>}
     </div>

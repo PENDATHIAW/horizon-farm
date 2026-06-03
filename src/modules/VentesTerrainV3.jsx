@@ -10,6 +10,7 @@ import {
   validateCommercialSaleForm,
 } from '../utils/commercialSaleWorkflow';
 import { DELIVERY_HINT, isMeatStock, saleSourceHint } from '../utils/saleSourceHints';
+import useWorkflowSubmit from '../hooks/useWorkflowSubmit';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const today = () => new Date().toISOString().slice(0, 10);
@@ -94,7 +95,7 @@ export function SaleModal({ props, onClose, onDone, prefill = null }) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(() => (prefill ? { ...defaultForm(), ...buildSaleFormFromDraft(prefill, props) } : defaultForm()));
   const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
+  const { submit: workflowSubmit, busy: workflowBusy } = useWorkflowSubmit();
   const options = useMemo(() => buildOptions(form.source_type, props), [form.source_type, props]);
   const selected = options.find((o) => String(o.value) === String(form.source_id));
   const productTotal = Math.max(0, num(form.quantity) * num(form.unit_price));
@@ -143,12 +144,13 @@ export function SaleModal({ props, onClose, onDone, prefill = null }) {
 
   const submit = async (event) => {
     event.preventDefault();
-    if (saving) return;
+    if (workflowBusy) return;
     const message = validateStep(3);
     if (message) { setError(message); return; }
     try {
-      setSaving(true);
       const orderId = makeId('CMD');
+      const saleKey = `sale:${orderId}:${form.client_id}:${form.date}`;
+      const result = await workflowSubmit(saleKey, async () => {
       const clientLabel = clientName(props.clients, form.client_id);
       const records = buildCommercialSaleRecords({
         form,
@@ -209,7 +211,9 @@ export function SaleModal({ props, onClose, onDone, prefill = null }) {
         },
       });
       onDone?.(orderId);
-    } catch (err) { setError(err.message || 'Enregistrement impossible.'); } finally { setSaving(false); }
+      });
+      if (result?.skipped && result.reason === 'in_flight') return;
+    } catch (err) { setError(err.message || 'Enregistrement impossible.'); }
   };
 
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3"><div className="w-full max-w-3xl max-h-[94vh] overflow-y-auto rounded-3xl border border-[#eadcc2] bg-white shadow-2xl"><div className="flex items-start justify-between border-b border-[#eadcc2] p-5"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Nouvelle vente</p><h2 className="text-xl font-black text-[#2f2415]">{STEPS[step].title}</h2><p className="text-sm text-[#8a7456] mt-1">Renseigne la vente puis valide.</p></div><button type="button" onClick={onClose} aria-label="Fermer"><X size={18} /></button></div><form onSubmit={submit} className="p-5 space-y-4"><Stepper step={step} />{error ? <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
@@ -218,7 +222,7 @@ export function SaleModal({ props, onClose, onDone, prefill = null }) {
     {step === 2 ? <div className="space-y-3"><div className="grid grid-cols-1 md:grid-cols-2 gap-3"><Select label="Retrait / livraison" value={form.fulfillment_mode} onChange={setFulfillment} options={[{ value: 'recupere', label: 'Récupéré sur place (0 FCFA livraison)' }, { value: 'livraison', label: 'Livré au client maintenant' }, { value: 'a_livrer', label: 'À livrer plus tard' }]} /><Select label="Facture" value={form.invoice_issued ? 'emise' : 'non_emise'} onChange={(v) => set('invoice_issued', v === 'emise')} options={[{ value: 'emise', label: 'Facture émise automatiquement' }, { value: 'non_emise', label: 'Pas de facture' }]} /></div>{deliveryModeNeedsFee(form.fulfillment_mode) ? <Input label="Frais de livraison (FCFA) — laisser 0 si offerte" type="number" value={form.delivery_fee} onChange={(v) => set('delivery_fee', v)} /> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-3 text-sm text-[#8a7456]">Retrait sur place : livraison <b>0 FCFA</b> — non incluse dans le total ni dans la marge.</div>}<div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-3 text-xs text-[#7d6a4a]">{DELIVERY_HINT}</div><label className="space-y-1 block"><span className="text-xs font-bold text-[#8a7456]">Notes</span><textarea rows={2} value={form.notes} onChange={(e) => set('notes', e.target.value)} className="w-full rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm" /></label><div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a]">Total produits : <b>{fmtCurrency(productTotal)}</b>{deliveryFee > 0 ? <> · Livraison : <b>{fmtCurrency(deliveryFee)}</b></> : null} · Total commande : <b>{fmtCurrency(grandTotal)}</b></div></div> : null}
     {step === 3 ? <div className="space-y-3"><div className="grid grid-cols-1 md:grid-cols-3 gap-3"><Select label="Paiement" value={form.payment_status} onChange={(v) => set('payment_status', v)} options={[{ value: 'paye', label: 'Payé totalement' }, { value: 'partiel', label: 'Paiement partiel' }, { value: 'non_paye', label: 'Crédit / à encaisser' }]} />{form.payment_status === 'partiel' ? <Input label="Montant payé" type="number" value={form.paid_amount} onChange={(v) => set('paid_amount', v)} /> : null}{form.payment_status !== 'non_paye' ? <Select label="Moyen paiement" value={form.payment_method} onChange={(v) => set('payment_method', v)} options={paymentMethods} /> : null}</div><div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><p className="text-xs text-emerald-700">Total commande (produits + livraison)</p><p className="text-2xl font-black text-emerald-700">{fmtCurrency(grandTotal)}</p><p className="text-xs text-emerald-700">Produits : {fmtCurrency(productTotal)}{deliveryFee > 0 ? ` · Livraison : ${fmtCurrency(deliveryFee)}` : ''}</p><p className="text-xs text-emerald-700">Payé : {fmtCurrency(paid)} · Reste : {fmtCurrency(remaining)}</p></div></div> : null}
     {step === 4 ? <ImpactSummary form={form} selected={selected} clients={props.clients} productTotal={productTotal} deliveryFee={deliveryFee} grandTotal={grandTotal} paid={paid} remaining={remaining} /> : null}
-    <div className="flex justify-between gap-2 pt-2"><button type="button" onClick={step === 0 ? onClose : prev} className="min-h-[44px] rounded-xl border border-[#eadcc2] px-4 py-2 text-sm font-bold text-[#8a7456]">{step === 0 ? 'Annuler' : 'Retour'}</button>{step < STEPS.length - 1 ? <button type="button" onClick={next} className="min-h-[44px] rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white">Continuer</button> : <button type="submit" disabled={saving} className="min-h-[44px] rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60">{saving ? 'Enregistrement...' : 'Valider la vente et appliquer les impacts'}</button>}</div></form></div></div>;
+    <div className="flex justify-between gap-2 pt-2"><button type="button" onClick={step === 0 ? onClose : prev} className="min-h-[44px] rounded-xl border border-[#eadcc2] px-4 py-2 text-sm font-bold text-[#8a7456]">{step === 0 ? 'Annuler' : 'Retour'}</button>{step < STEPS.length - 1 ? <button type="button" onClick={next} className="min-h-[44px] rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white">Continuer</button> : <button type="submit" disabled={workflowBusy} className="min-h-[44px] rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60">{workflowBusy ? 'Enregistrement...' : 'Valider la vente et appliquer les impacts'}</button>}</div></form></div></div>;
 }
 
 export default function VentesTerrainV3(props) {

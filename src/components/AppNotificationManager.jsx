@@ -4,6 +4,7 @@ import { buildTechnicalFarmingAlerts } from '../services/technicalFarmingRules';
 import { notifyAlerts, notificationPermission, requestNotificationPermission, shouldNotifyAlert } from '../utils/appNotifications';
 import { isDeletedRecord } from '../utils/deletedRecords';
 import { pushSetupStatus, sendTestPush, subscribeDeviceToPush } from '../utils/pushSubscriptions';
+import useWorkflowSubmit from '../hooks/useWorkflowSubmit';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase();
@@ -87,7 +88,7 @@ function buildDerivedAlerts(dataMap = {}) {
 }
 
 export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
-  const [busy, setBusy] = useState(false);
+  const { submit: workflowSubmit, busy: workflowBusy } = useWorkflowSubmit();
   const [hidden, setHidden] = useState(() => wasBannerHidden());
   const iosNeedsInstall = isIOSDevice() && !isStandaloneApp();
   const alerts = useMemo(() => {
@@ -123,26 +124,27 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
   }, [alerts, iosNeedsInstall]);
 
   const enableLocal = async () => {
-    if (iosNeedsInstall) {
-      toast.error(IOS_INSTALL_HELP);
-      return;
-    }
-    const permission = await requestNotificationPermission();
-    if (permission === 'granted') {
-      toast.success('Notifications activées');
-      await notifyAlerts(alerts.slice(0, 3));
-      hideBannerForever();
-      setHidden(true);
-    } else if (permission === 'denied') {
-      toast.error('Notifications bloquées par le navigateur.');
-    } else {
-      toast.error('Notifications non disponibles ici.');
-    }
+    await workflowSubmit('push-enable-local', async () => {
+      if (iosNeedsInstall) {
+        toast.error(IOS_INSTALL_HELP);
+        return;
+      }
+      const permission = await requestNotificationPermission();
+      if (permission === 'granted') {
+        toast.success('Notifications activées');
+        await notifyAlerts(alerts.slice(0, 3));
+        hideBannerForever();
+        setHidden(true);
+      } else if (permission === 'denied') {
+        toast.error('Notifications bloquées par le navigateur.');
+      } else {
+        toast.error('Notifications non disponibles ici.');
+      }
+    });
   };
 
   const enableAdvanced = async () => {
-    try {
-      setBusy(true);
+    await workflowSubmit('push-enable-advanced', async () => {
       if (iosNeedsInstall) throw new Error(IOS_INSTALL_HELP);
       if (!pushStatus.supported) throw new Error('Push non supporté ici.');
       if (!pushStatus.ready) throw new Error('Configuration push manquante.');
@@ -151,11 +153,9 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
       toast.success('Notifications avancées activées');
       hideBannerForever();
       setHidden(true);
-    } catch (error) {
+    }).catch((error) => {
       toast.error(error.message || 'Activation impossible');
-    } finally {
-      setBusy(false);
-    }
+    });
   };
 
   const dismiss = () => {
@@ -169,8 +169,8 @@ export default function AppNotificationManager({ dataMap = {}, onNavigate }) {
       <p className="text-sm font-black">Notifications</p>
       <p className="text-xs text-[#f4e6c8]">Recevoir les alertes critiques sur cet appareil.</p>
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={enableLocal} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-white/15">Activer</button>
-        <button type="button" disabled={busy} onClick={enableAdvanced} className="rounded-full bg-[#c9a96a] px-3 py-1.5 text-xs font-bold text-[#2f2415] disabled:opacity-60">{busy ? 'Activation...' : 'Mode avancé'}</button>
+        <button type="button" disabled={workflowBusy} onClick={enableLocal} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-white/15 disabled:opacity-60">{workflowBusy ? 'Activation...' : 'Activer'}</button>
+        <button type="button" disabled={workflowBusy} onClick={enableAdvanced} className="rounded-full bg-[#c9a96a] px-3 py-1.5 text-xs font-bold text-[#2f2415] disabled:opacity-60">{workflowBusy ? 'Activation...' : 'Mode avancé'}</button>
         <button type="button" onClick={dismiss} className="rounded-full border border-white/20 px-3 py-1.5 text-xs font-bold">Plus tard</button>
       </div>
       {iosNeedsInstall ? <p className="text-[11px] text-amber-200">Sur iPhone : Safari → Partager → Ajouter à l’écran d’accueil.</p> : null}
