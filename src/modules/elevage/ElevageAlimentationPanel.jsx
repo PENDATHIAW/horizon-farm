@@ -14,7 +14,7 @@ const isClosedAnimal = (row = {}) => {
   return ['vendu', 'mort', 'vole', 'volé', 'perdu', 'abattu', 'cloture', 'clôture', 'sorti'].some((word) => status.includes(word));
 };
 
-export default function ElevageAlimentationPanel({ data, setTab, animalProps, avicoleProps, onNavigate, onOpenWorkflow }) {
+export default function ElevageAlimentationPanel({ data, setTab, animalProps, avicoleProps, onNavigate, onOpenWorkflow, feedingHandlers = {} }) {
   const activeAnimals = useMemo(() => (animalProps.rows || []).filter((row) => !isClosedAnimal(row)), [animalProps.rows]);
   const activeLots = useMemo(() => (avicoleProps.rows || []).filter(avicoleHasActiveBirds), [avicoleProps.rows]);
   const recent = (data.feedLogs || []).slice(0, 8);

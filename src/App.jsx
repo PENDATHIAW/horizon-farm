@@ -511,7 +511,7 @@ export default function App() {
   const ActiveModule = MODULES[active] || MODULES.dashboard;
 
   return <AppLayout navItems={navItems} active={active} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => setAssistantOpen(true)} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange}>
-    <ErrorBoundary title="Module indisponible"><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...activeModuleProps} periodLabel={periodLabel} /></Suspense></ErrorBoundary>
+    <ErrorBoundary moduleName={active} resetKey={active} onBackToDashboard={() => setActive('dashboard')}><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...activeModuleProps} periodLabel={periodLabel} /></Suspense></ErrorBoundary>
     <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={scopedAssistantDataMap} onNavigate={setActive} onCreateBusinessEvent={c.business_events.create} />
     <ErpInterconnectionBridge cruds={c} />
     <AppNotificationManager />
