@@ -12,22 +12,53 @@ import AnimauxEvolution from '../../modules/AnimauxEvolution.jsx';
 import ClientsEvolution from '../../modules/ClientsEvolution.jsx';
 
 import { ChartPeriodContext } from '../charts/chartPeriodContext';
+import { ChartExplainContext } from '../charts/chartExplainContext.jsx';
+import { CHART_EXPLAIN_MODULES } from '../../services/aiGateway/chartExplainService.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
-function withChartPeriod(content, periodFiltered) {
+function buildExplainContext(moduleId, props = {}) {
+  if (!CHART_EXPLAIN_MODULES.has(moduleId)) return null;
+  return {
+    enabled: true,
+    moduleId,
+    onNavigate: props.onNavigate,
+    stocks: arr(props.stocks || props.stock),
+    salesOrders: arr(props.salesOrders || props.rows),
+    payments: arr(props.payments),
+    transactions: arr(props.transactions || props.finances),
+    sante: arr(props.sante),
+    vaccins: arr(props.vaccins || props.sante),
+    businessEvents: arr(props.businessEvents),
+    taches: arr(props.taches || props.tasks),
+    alertes: arr(props.alertes),
+    productionLogs: arr(props.productionLogs || props.production_oeufs_logs),
+    alimentationLogs: arr(props.alimentationLogs || props.alimentation_logs),
+  };
+}
+
+function withChartPeriod(content, periodFiltered, explainContext) {
+  const wrapped = explainContext ? (
+    <ChartExplainContext.Provider value={explainContext}>
+      {content}
+    </ChartExplainContext.Provider>
+  ) : content;
+
   return (
     <ChartPeriodContext.Provider value={{ lockControls: Boolean(periodFiltered) }}>
-      {content}
+      {wrapped}
     </ChartPeriodContext.Provider>
   );
 }
 
 export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props }) {
   const onNavigate = props.onNavigate;
+  const explainContext = buildExplainContext(moduleId, { ...props, onNavigate });
+  const wrap = (content) => withChartPeriod(content, periodFiltered, explainContext);
+
   switch (moduleId) {
     case 'dashboard':
-      return withChartPeriod((
+      return wrap((
         <DashboardEvolution
           salesOrders={arr(props.salesOrders)}
           payments={arr(props.payments)}
@@ -38,9 +69,9 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
           alertes={arr(props.alertes)}
           onNavigate={onNavigate}
         />
-      ), periodFiltered);
+      ));
     case 'centre_ia':
-      return withChartPeriod((
+      return wrap((
         <div className="space-y-6">
           <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
             <h2 className="text-sm font-black text-[#2f2415]">Trésorerie & encaissements</h2>
@@ -71,23 +102,23 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
             </div>
           </section>
         </div>
-      ), periodFiltered);
+      ));
     case 'objectifs_croissance':
-      return withChartPeriod((
+      return wrap((
         <div className="space-y-4">
           <FinanceEvolution rows={arr(props.transactions || props.finances)} payments={arr(props.payments)} salesOrders={arr(props.salesOrders)} onNavigate={onNavigate} />
           <SalesEvolution rows={arr(props.salesOrders)} payments={arr(props.payments)} opportunities={arr(props.opportunities)} onNavigate={onNavigate} />
         </div>
-      ), periodFiltered);
+      ));
     case 'elevage':
-      return withChartPeriod((
+      return wrap((
         <div className="space-y-4">
           <AvicoleEvolution rows={arr(props.lots)} productionLogs={arr(props.productionLogs)} alimentationLogs={arr(props.alimentationLogs)} transactions={arr(props.transactions)} onNavigate={onNavigate} />
           <AnimauxEvolution rows={arr(props.animaux)} alimentationLogs={arr(props.alimentationLogs)} salesOrders={arr(props.salesOrders)} payments={arr(props.payments)} onNavigate={onNavigate} />
         </div>
-      ), periodFiltered);
+      ));
     case 'commercial':
-      return withChartPeriod((
+      return wrap((
         <CommercialEvolution
           rows={arr(props.salesOrders || props.rows)}
           payments={arr(props.payments)}
@@ -108,32 +139,32 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
           periodScope={props.periodScope}
           onNavigate={onNavigate}
         />
-      ), periodFiltered);
+      ));
     case 'achats_stock':
-      return withChartPeriod((
+      return wrap((
         <div className="space-y-4">
           <StockEvolution rows={arr(props.stocks || props.rows)} alimentationLogs={arr(props.alimentationLogs)} onNavigate={onNavigate} />
           <FournisseursEvolution rows={arr(props.fournisseurs)} transactions={arr(props.transactions)} onNavigate={onNavigate} />
         </div>
-      ), periodFiltered);
+      ));
     case 'finance_pilotage':
-      return withChartPeriod((
+      return wrap((
         <div className="space-y-4">
           <FinanceEvolution rows={arr(props.transactions || props.finances || props.rows)} payments={arr(props.payments)} salesOrders={arr(props.salesOrders)} onNavigate={onNavigate} />
           <InvestissementsEvolution rows={arr(props.investissements)} businessPlans={arr(props.businessPlans)} onNavigate={onNavigate} />
         </div>
-      ), periodFiltered);
+      ));
     case 'activite_suivi':
-      return withChartPeriod(<TachesEvolution rows={arr(props.taches || props.tasks)} onNavigate={onNavigate} />, periodFiltered);
+      return wrap(<TachesEvolution rows={arr(props.taches || props.tasks)} onNavigate={onNavigate} />);
     case 'documents_rapports':
-      return withChartPeriod((
+      return wrap((
         <div className="space-y-4">
           <FinanceEvolution rows={arr(props.transactions || props.finances)} onNavigate={onNavigate} />
           <ClientsEvolution rows={arr(props.clients)} salesOrders={arr(props.salesOrders)} payments={arr(props.payments)} onNavigate={onNavigate} />
         </div>
-      ), periodFiltered);
+      ));
     case 'rh':
-      return withChartPeriod(<EquipementsEvolution rows={arr(props.equipements)} transactions={arr(props.transactions)} onNavigate={onNavigate} />, periodFiltered);
+      return wrap(<EquipementsEvolution rows={arr(props.equipements)} transactions={arr(props.transactions)} onNavigate={onNavigate} />);
     default:
       return (
         <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-5 text-sm text-[#8a7456]">

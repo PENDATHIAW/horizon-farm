@@ -1,28 +1,20 @@
 import { CheckCircle2, Package, Tag } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
+import { fmtCurrency, fmtNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
-import { isCommerciallyBlocked } from '../utils/stockFreshProduct';
+import {
+  isSellableStock,
+  productNameOf as productName,
+  quantityOf,
+  unitPriceOf,
+} from '../utils/sellableStock';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const now = () => new Date().toISOString();
 const today = () => now().slice(0, 10);
 const clean = (value) => String(value || '').trim();
-const productName = (row = {}) => row.produit || row.nom || row.name || row.id || 'Stock';
-const categoryOf = (row = {}) => clean(row.categorie || row.category).toLowerCase();
-const activityOf = (row = {}) => clean(row.activite_liee || row.activity || row.module_lie).toLowerCase();
-const unitPriceOf = (row = {}) => toNumber(row.prixUnit ?? row.prixunit ?? row.prix_unitaire ?? row.unit_price ?? row.prix_vente_unitaire);
-const quantityOf = (row = {}) => toNumber(row.quantite ?? row.quantity);
 const opportunityKey = (row = {}) => `stock:${clean(row.id)}`;
-const terminalStatuses = ['epuise', 'épuisé', 'bloque', 'bloqué', 'perime', 'périmé', 'retourne', 'retourné', 'a_retourner', 'non_conforme'];
-const sellableCategories = ['recolte', 'produit_fini', 'produits_recoltes', 'vente'];
-
-function isSellableStock(row = {}) {
-  const status = clean(row.statut || row.stock_status || row.status).toLowerCase();
-  if (!row.id || quantityOf(row) <= 0 || terminalStatuses.includes(status) || isCommerciallyBlocked(row)) return false;
-  return sellableCategories.some((value) => categoryOf(row).includes(value)) || activityOf(row) === 'vente' || Boolean(row.vendable || row.pret_a_la_vente || row.ready_for_sale || row.sale_ready);
-}
 
 function existingOpportunityFor(row, opportunities = []) {
   const id = clean(row.id);

@@ -1,6 +1,9 @@
 import { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { exportModuleReportPdf } from '../../utils/moduleReportExports';
+import ChartExplainPanel from './ChartExplainPanel.jsx';
+import { useChartExplainContext } from './chartExplainContext.jsx';
+import { buildChartExplainPayload } from '../../services/aiGateway/chartExplainService.js';
 
 const defaultPalette = ['#b7791f', '#2f855a', '#2b6cb0', '#c53030', '#805ad5', '#dd6b20', '#319795', '#4a5568'];
 
@@ -26,11 +29,25 @@ export default function SmartPieChart({
   reportPayload = {},
   compact = true,
 }) {
+  const explainCtx = useChartExplainContext();
   const slices = useMemo(
     () => (items || []).filter((item) => Number(item.value || 0) > 0).slice(0, 8),
     [items],
   );
   const hasData = slices.length > 0;
+
+  const explainPayload = useMemo(() => {
+    if (!explainCtx.enabled || !hasData) return null;
+    return buildChartExplainPayload({
+      title,
+      subtitle,
+      items: slices,
+      unit,
+      moduleName,
+      periodLabel: 'Répartition affichée',
+      chartKind: 'pie',
+    });
+  }, [explainCtx.enabled, hasData, title, subtitle, slices, unit, moduleName]);
   const showSliceLabels = slices.length <= 4;
 
   const exportPdf = () => {
@@ -118,6 +135,7 @@ export default function SmartPieChart({
       </div>
       <ReactECharts option={option} style={{ height, width: '100%' }} notMerge lazyUpdate />
       {!compact && !showSliceLabels ? <p className="mt-2 text-[11px] text-[#8a7456]">Survolez une part ou consultez la légende pour le détail.</p> : null}
+      {explainPayload ? <ChartExplainPanel payload={explainPayload} /> : null}
     </div>
   );
 }

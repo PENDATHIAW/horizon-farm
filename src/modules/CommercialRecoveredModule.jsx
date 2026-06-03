@@ -342,6 +342,7 @@ export default function CommercialRecoveredModule(props) {
         <CommercialOpportunitiesPanel
           opportunities={data.openOpportunities}
           clients={clients}
+          stocks={rowsOf(props.stocks, stockCrud, false)}
           salesOrders={data.orders}
           lots={lots}
           animaux={animaux}

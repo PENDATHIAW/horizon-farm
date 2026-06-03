@@ -267,7 +267,7 @@ export default function ActiviteSuiviRecoveredModule(props) {
           {workflowBridge(true, true)}
           <TachesV3 {...shared} />
         </div>
-      ) : tab === 'Traçabilité' ? <TracabiliteV2 {...shared} rows={traceRows} onCreate={props.onCreateTrace || traceCrud.create} onUpdate={props.onUpdateTrace || traceCrud.update} onDelete={props.onDeleteTrace || traceCrud.remove} onRefresh={props.onRefreshTrace || traceCrud.refresh} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="activite_suivi" dataMap={{ alertes_center: alertes, taches: tasks, business_events: rowsOf(props.businessEvents, eventsCrud, periodFiltered) }} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="activite_suivi" taches={tasks} alertes={alertes} onNavigate={props.onNavigate} />}
+      ) : tab === 'Traçabilité' ? <TracabiliteV2 {...shared} rows={traceRows} onCreate={props.onCreateTrace || traceCrud.create} onUpdate={props.onUpdateTrace || traceCrud.update} onDelete={props.onDeleteTrace || traceCrud.remove} onRefresh={props.onRefreshTrace || traceCrud.refresh} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="activite_suivi" dataMap={{ alertes_center: alertes, taches: tasks, business_events: rowsOf(props.businessEvents, eventsCrud, periodFiltered) }} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="activite_suivi" taches={tasks} alertes={alertes} businessEvents={rowsOf(props.businessEvents, eventsCrud, periodFiltered)} onNavigate={props.onNavigate} />}
     </div>
   );
 }

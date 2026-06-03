@@ -2,6 +2,9 @@ import { useMemo, useState } from 'react';
 import { ChartPeriodContext, useChartPeriodContext } from './chartPeriodContext';
 import ReactECharts from 'echarts-for-react';
 import { exportModuleReportPdf } from '../../utils/moduleReportExports';
+import ChartExplainPanel from './ChartExplainPanel.jsx';
+import { useChartExplainContext } from './chartExplainContext.jsx';
+import { buildChartExplainPayload } from '../../services/aiGateway/chartExplainService.js';
 
 const formatCompact = (value, unit = '') => {
   const number = Number(value || 0);
@@ -105,6 +108,7 @@ export default function SmartEvolutionChart({
   legendBottom = false,
 }) {
   const { lockControls } = useChartPeriodContext();
+  const explainCtx = useChartExplainContext();
   const years = useMemo(() => uniqueYears(months), [months]);
   const [filter, setFilter] = useState({ mode: 'all', year: years[0] || new Date().getFullYear(), month: 1, day: '', start: '', end: '' });
 
@@ -115,6 +119,21 @@ export default function SmartEvolutionChart({
 
   const hasData = Array.isArray(filtered.months) && filtered.months.length > 0 && filtered.series.some((serie) => Array.isArray(serie.data) && serie.data.some((value) => Number(value || 0) !== 0));
   const periodLabel = filter.mode === 'all' ? 'Toutes les périodes' : filter.mode === 'year' ? `Année ${filter.year}` : filter.mode === 'month' ? `${filter.year}-${String(filter.month).padStart(2, '0')}` : filter.mode === 'day' ? filter.day : `${filter.start || 'début'} → ${filter.end || 'fin'}`;
+
+  const explainPayload = useMemo(() => {
+    if (!explainCtx.enabled || !hasData) return null;
+    return buildChartExplainPayload({
+      title,
+      subtitle,
+      months: filtered.months,
+      series: filtered.series,
+      leftUnit,
+      rightUnit,
+      moduleName,
+      periodLabel,
+      chartKind: 'evolution',
+    });
+  }, [explainCtx.enabled, hasData, title, subtitle, filtered.months, filtered.series, leftUnit, rightUnit, moduleName, periodLabel]);
 
   const rotate = xLabelRotate ?? (categoryAxis ? 28 : filtered.months.length > 8 ? 24 : 0);
   const chartHeight = height || (categoryAxis ? 430 : rotate ? 420 : 400);
@@ -216,7 +235,14 @@ export default function SmartEvolutionChart({
 
   const Controls = lockControls ? null : <div className="mb-3 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3"><div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs"><select value={filter.mode} onChange={(e) => setFilter((prev) => ({ ...prev, mode: e.target.value }))} className="rounded-xl border border-[#d6c3a0] bg-white px-2 py-2 text-[#2f2415]"><option value="all">Toutes périodes</option><option value="year">Année</option><option value="month">Mois</option><option value="day">Jour</option><option value="range">Période</option></select>{(filter.mode === 'year' || filter.mode === 'month') ? <select value={filter.year} onChange={(e) => setFilter((prev) => ({ ...prev, year: e.target.value }))} className="rounded-xl border border-[#d6c3a0] bg-white px-2 py-2 text-[#2f2415]">{(years.length ? years : [new Date().getFullYear()]).map((year) => <option key={year} value={year}>{year}</option>)}</select> : null}{filter.mode === 'month' ? <input type="number" min="1" max="12" value={filter.month} onChange={(e) => setFilter((prev) => ({ ...prev, month: e.target.value }))} className="rounded-xl border border-[#d6c3a0] bg-white px-2 py-2 text-[#2f2415]" /> : null}{filter.mode === 'day' ? <input type="date" value={filter.day} onChange={(e) => setFilter((prev) => ({ ...prev, day: e.target.value }))} className="rounded-xl border border-[#d6c3a0] bg-white px-2 py-2 text-[#2f2415]" /> : null}{filter.mode === 'range' ? <input type="date" value={filter.start} onChange={(e) => setFilter((prev) => ({ ...prev, start: e.target.value }))} className="rounded-xl border border-[#d6c3a0] bg-white px-2 py-2 text-[#2f2415]" /> : null}{filter.mode === 'range' ? <input type="date" value={filter.end} onChange={(e) => setFilter((prev) => ({ ...prev, end: e.target.value }))} className="rounded-xl border border-[#d6c3a0] bg-white px-2 py-2 text-[#2f2415]" /> : null}<button type="button" onClick={() => setFilter({ mode: 'all', year: years[0] || new Date().getFullYear(), month: 1, day: '', start: '', end: '' })} className="rounded-xl border border-[#d6c3a0] bg-white px-2 py-2 font-bold text-[#2f2415]">Réinitialiser</button><button type="button" onClick={exportPdf} className="rounded-xl bg-[#2f2415] px-2 py-2 font-bold text-white">Exporter PDF</button></div><p className="mt-2 text-[11px] text-[#8a7456]">Période active : {periodLabel}</p></div>;
 
-  if (!hasData) return <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4">{Controls}<p className="font-black text-[#2f2415]">{title}</p>{subtitle ? <p className="text-xs text-[#8a7456] mt-1">{subtitle}</p> : null}<div className="h-64 mt-4 rounded-xl bg-[#fffdf8] border border-[#eadcc2] flex items-center justify-center text-sm text-[#8a7456]">{emptyText}</div></div>;
+  if (!hasData) return <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4">{Controls}<p className="font-black text-[#2f2415]">{title}</p>{subtitle ? <p className="text-xs text-[#8a7456] mt-1">{subtitle}</p> : null}<div className="h-64 mt-4 rounded-xl bg-[#fffdf8] border border-[#eadcc2] flex items-center justify-center text-sm text-[#8a7456]">{emptyText}</div>{explainPayload ? <ChartExplainPanel payload={explainPayload} disabled /> : null}</div>;
 
-  return <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4 shadow-sm">{Controls}<ReactECharts option={option} style={{ height: chartHeight, width: '100%' }} notMerge lazyUpdate />{!compact ? <p className="mt-2 text-[11px] text-[#8a7456]">Astuce : clique sur la légende pour masquer/afficher une série, puis utilise le zoom en bas pour affiner l’affichage.</p> : null}</div>;
+  return (
+    <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4 shadow-sm">
+      {Controls}
+      <ReactECharts option={option} style={{ height: chartHeight, width: '100%' }} notMerge lazyUpdate />
+      {!compact ? <p className="mt-2 text-[11px] text-[#8a7456]">Astuce : clique sur la légende pour masquer/afficher une série, puis utilise le zoom en bas pour affiner l’affichage.</p> : null}
+      {explainPayload ? <ChartExplainPanel payload={explainPayload} /> : null}
+    </div>
+  );
 }

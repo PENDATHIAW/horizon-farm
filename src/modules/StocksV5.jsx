@@ -2,6 +2,8 @@ import useCrudModule from '../hooks/useCrudModule';
 import { makeId } from '../utils/ids';
 import { persistStockMovement } from '../services/stockMovementHelpers';
 import StockMovementsPanel from './StockMovementsPanel.jsx';
+import StockSalesOpportunityBridge from './StockSalesOpportunityBridge.jsx';
+import SellableStockPublicationBridge from './commercial/SellableStockPublicationBridge.jsx';
 import StocksV4 from './StocksV4.jsx';
 
 const n = (value = 0) => Number(value || 0) || 0;
@@ -75,6 +77,18 @@ export default function StocksV5(props) {
   return (
     <div className="space-y-4">
       <StocksV4 {...props} rows={rows} onCreate={guardedCreate} onUpdate={guardedUpdate} onCreateBusinessEvent={props.onCreateBusinessEvent || eventsCrud.create} onRefreshBusinessEvents={props.onRefreshBusinessEvents || eventsCrud.refresh} />
+      <SellableStockPublicationBridge rows={rows} />
+      <StockSalesOpportunityBridge
+        rows={rows}
+        opportunities={props.opportunities}
+        onUpdate={guardedUpdate}
+        onRefresh={props.onRefresh}
+        onCreateOpportunity={props.onCreateOpportunity}
+        onUpdateOpportunity={props.onUpdateOpportunity}
+        onRefreshOpportunities={props.onRefreshOpportunities}
+        onCreateBusinessEvent={props.onCreateBusinessEvent || eventsCrud.create}
+        onRefreshBusinessEvents={props.onRefreshBusinessEvents || eventsCrud.refresh}
+      />
       <StockMovementsPanel movements={movements} />
     </div>
   );

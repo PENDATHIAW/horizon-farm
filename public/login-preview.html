@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Prévisualisation login v2 — Horizon Farm</title>
+  <title>Prévisualisation login — Horizon Farm (reproduction code)</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Georgia, 'Times New Roman', serif; color: #063321; background: #111; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #111; }
 
     .banner {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
@@ -16,49 +16,42 @@
 
     main {
       position: relative; min-height: 100vh; display: flex; flex-direction: column;
-      padding-top: 44px;
+      padding-top: 44px; overflow: hidden;
     }
 
     .bg {
       position: absolute; inset: 0;
-      background-image: url('/login-hero-maraichage-v2-preview.jpg');
-      background-size: cover;
-      background-position: 22% 62%;
-      background-repeat: no-repeat;
+      background: url('/login-hero-full.jpg') 38% 58% / cover no-repeat;
     }
 
-    .grad-h {
+    .grad-l {
       position: absolute; inset: 0;
-      background: linear-gradient(125deg,
-        rgba(255,248,239,0.9) 0%,
-        rgba(255,248,239,0.55) 26%,
-        rgba(255,248,239,0.12) 42%,
-        transparent 52%);
+      background: linear-gradient(105deg,
+        rgba(8,30,18,0.72) 0%,
+        rgba(8,30,18,0.35) 38%,
+        rgba(8,30,18,0.08) 58%,
+        transparent 72%);
     }
 
-    .grad-v {
-      position: absolute; left: 0; right: 0; bottom: 0; height: 128px;
-      background: linear-gradient(to top, rgba(6,51,33,0.72), transparent);
+    .grad-b {
+      position: absolute; left: 0; right: 0; bottom: 0; height: 144px;
+      background: linear-gradient(to top, rgba(6,51,33,0.55), transparent);
     }
 
     .logo-header {
-      position: absolute; left: 0; top: 0; z-index: 20;
+      position: absolute; left: 0; top: 44px; z-index: 20;
       padding: 8px 16px 0;
     }
 
-    .logo-header img {
-      width: 140px; height: auto; object-fit: contain;
-      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15));
-    }
-
-    @media (min-width: 640px) { .logo-header img { width: 168px; } }
-    @media (min-width: 1024px) { .logo-header { padding: 10px 28px 0; } .logo-header img { width: 200px; } }
+    .logo-header img { width: 128px; height: auto; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.35)); }
+    @media (min-width: 640px) { .logo-header img { width: 160px; } }
+    @media (min-width: 1024px) { .logo-header { padding: 12px 32px 0; } .logo-header img { width: 192px; } }
 
     .content {
       position: relative; z-index: 2; flex: 1;
       display: grid; align-items: center;
       max-width: 1280px; width: 100%; margin: 0 auto;
-      padding: 72px 20px 88px;
+      padding: 80px 16px 16px;
       grid-template-columns: 1fr;
       gap: 24px;
     }
@@ -66,28 +59,33 @@
     @media (min-width: 1024px) {
       .content {
         grid-template-columns: 1fr 340px;
-        gap: 32px;
-        padding: 80px 32px 88px;
+        gap: 40px;
+        padding: 88px 32px 16px;
       }
     }
 
-    .hero { max-width: 480px; }
+    .hero h2 {
+      font-size: clamp(1.75rem, 4.5vw, 2.4rem);
+      font-weight: 900; line-height: 1.1; letter-spacing: -0.02em;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.45);
+    }
 
-    .hero h1 { font-size: clamp(1.65rem, 4vw, 2.35rem); font-weight: 900; line-height: 1.12; }
-    .hero .orange { color: #c9851a; }
-    .hero .green { color: #063321; }
+    .hero .white { color: #fff; }
+    .hero .gold { color: #e8b84a; }
+
     .hero p.desc {
-      margin-top: 12px; max-width: 400px; font-size: 14px; line-height: 1.6;
-      color: #2f4a3a; font-family: system-ui, sans-serif;
+      margin-top: 16px; max-width: 420px; font-size: 15px; line-height: 1.65;
+      color: rgba(255,255,255,0.9); text-shadow: 0 1px 4px rgba(0,0,0,0.4);
     }
 
     .card {
       max-width: 340px; margin: 0 auto; width: 100%;
-      background: rgba(255,255,255,0.97); border-radius: 24px;
-      border: 1px solid #e8dcc8; padding: 20px;
-      box-shadow: 0 20px 50px rgba(6,51,33,0.18);
-      font-family: system-ui, sans-serif;
+      background: #fff; border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.6); padding: 20px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.25);
     }
+
+    @media (min-width: 1024px) { .card { margin: 0; justify-self: end; } }
 
     .tabs {
       display: flex; border-radius: 12px; border: 1px solid #d6e3d8;
@@ -96,61 +94,89 @@
 
     .tabs button {
       flex: 1; border: none; background: transparent; border-radius: 8px;
-      padding: 8px; font-size: 13px; font-weight: 800; cursor: pointer; color: #6b7f72;
+      padding: 8px; font-size: 13px; font-weight: 700; cursor: pointer; color: #6b7f72;
     }
 
-    .tabs button.active { background: #fff; color: #063321; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .tabs button.active {
+      background: #fff; color: #063321;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border-bottom: 2px solid #063321;
+    }
 
-    .field { margin-bottom: 10px; }
-    .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 13px; font-weight: 600; color: #063321; margin-bottom: 4px; }
     .field input {
       width: 100%; padding: 8px 12px; border-radius: 12px;
       border: 1px solid #d6e3d8; background: #fafcf9; font-size: 14px;
     }
 
+    .row { display: flex; justify-content: space-between; align-items: center; font-size: 11px; margin-bottom: 16px; color: #4a6358; }
+    .row a { color: #1f7a2f; font-weight: 600; text-decoration: none; }
+
     .btn {
       width: 100%; padding: 10px; border-radius: 12px; border: none;
-      background: #1f7a2f; color: #fff; font-weight: 800; font-size: 14px; margin-top: 8px;
+      background: #063321; color: #fff; font-weight: 700; font-size: 14px;
     }
 
+    .secure {
+      margin-top: 16px; padding-top: 16px; border-top: 1px solid #e8ebe8;
+      font-size: 11px; color: #6b7f72; line-height: 1.45;
+    }
+
+    .secure strong { color: #063321; }
+
     footer {
-      position: relative; z-index: 2; background: #063321; color: #fff;
-      padding: 14px 24px 16px; font-family: system-ui, sans-serif;
+      position: relative; z-index: 2; flex-shrink: 0;
+      background: rgba(6,51,33,0.92); color: #fff;
+      padding: 12px 16px 10px; border-top: 1px solid rgba(6,51,33,0.3);
     }
 
     footer .grid {
       max-width: 1280px; margin: 0 auto;
-      display: grid; grid-template-columns: 1fr; gap: 14px;
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 16px;
     }
 
-    @media (min-width: 640px) { footer .grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (min-width: 1024px) { footer .grid { grid-template-columns: repeat(4, 1fr); } }
+    @media (min-width: 1024px) { footer .grid { grid-template-columns: repeat(4, 1fr); gap: 16px 24px; } }
 
-    footer .title { font-size: 12px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
-    footer .detail { margin-top: 6px; padding-left: 28px; font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.9); }
-    footer .expl { margin-top: 4px; padding-left: 28px; font-size: 10px; line-height: 1.45; color: rgba(255,255,255,0.7); }
-    footer .copy { max-width: 1280px; margin: 14px auto 0; text-align: right; font-size: 10px; color: rgba(255,255,255,0.5); }
-
-    .compare {
-      position: relative; z-index: 2; background: #fffdf8; border-top: 3px solid #1f7a2f;
-      padding: 24px; font-family: system-ui, sans-serif;
+    footer .pillar { display: flex; gap: 10px; }
+    footer .icon {
+      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+      display: grid; place-items: center;
+      border: 1px solid rgba(201,133,26,0.4);
+      background: rgba(201,133,26,0.15);
+      color: #e8b84a; font-size: 14px;
     }
 
-    .compare h3 { font-size: 16px; margin-bottom: 8px; color: #063321; }
-    .compare img { width: 100%; max-width: 960px; border-radius: 12px; border: 1px solid #d6c3a0; }
-    .compare ul { margin-top: 12px; font-size: 13px; color: #5c4a32; line-height: 1.6; max-width: 720px; }
-    .compare li { margin-bottom: 4px; }
+    footer .title { font-size: 12px; font-weight: 800; }
+    footer .detail { margin-top: 2px; font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.9); }
+    footer .expl { margin-top: 2px; font-size: 10px; line-height: 1.4; color: rgba(255,255,255,0.7); display: none; }
+    @media (min-width: 1024px) { footer .expl { display: block; } }
+
+    footer .copy {
+      max-width: 1280px; margin: 8px auto 0; text-align: center;
+      font-size: 10px; color: rgba(255,255,255,0.5);
+    }
+
+    .validate {
+      position: relative; z-index: 2; background: #fffdf8;
+      border-top: 3px solid #063321; padding: 24px 20px 32px;
+      font-family: system-ui, sans-serif;
+    }
+
+    .validate h3 { font-size: 16px; color: #063321; margin-bottom: 8px; }
+    .validate p { font-size: 14px; color: #2f4a3a; line-height: 1.6; max-width: 640px; }
+    .validate .ok { margin-top: 12px; padding: 12px 16px; background: #f3faf4; border-radius: 12px; border: 1px solid #d6e3d8; font-size: 13px; }
   </style>
 </head>
 <body>
   <div class="banner">
-    ⚠️ PRÉVISUALISATION v2 — rien n’est déployé. Validez avant mise en production.
+    ⚠️ PRÉVISUALISATION — reproduction 100 % en code (pas de mockup PNG). Validez avant déploiement.
   </div>
 
   <main>
     <div class="bg" aria-hidden="true"></div>
-    <div class="grad-h" aria-hidden="true"></div>
-    <div class="grad-v" aria-hidden="true"></div>
+    <div class="grad-l" aria-hidden="true"></div>
+    <div class="grad-b" aria-hidden="true"></div>
 
     <header class="logo-header">
       <img src="/brand-logo-transparent.png" alt="Horizon Farm" />
@@ -158,9 +184,9 @@
 
     <section class="content">
       <div class="hero">
-        <h1 class="green">Pilotez votre ferme.</h1>
-        <h1 class="orange">Anticipez vos risques.</h1>
-        <h1 class="green">Développez votre croissance.</h1>
+        <h2 class="white">Pilotez votre ferme.</h2>
+        <h2 class="gold">Anticipez vos risques.</h2>
+        <h2 class="white">Développez votre croissance.</h2>
         <p class="desc">
           De la terre nourricière à l'horizon de votre prospérité — cultivez, élevez, bâtissez et faites grandir votre ferme avec sérénité.
         </p>
@@ -172,50 +198,62 @@
           <button type="button">S'inscrire</button>
         </div>
         <div class="field"><label>Email</label><input value="penda" readonly /></div>
-        <div class="field"><label>Mot de passe</label><input type="password" value="••••••" readonly /></div>
+        <div class="field"><label>Mot de passe</label><input type="password" placeholder="Entrez votre mot de passe" readonly /></div>
+        <div class="row">
+          <label><input type="checkbox" checked /> Se souvenir de moi</label>
+          <a href="#">Mot de passe oublié ?</a>
+        </div>
         <button class="btn" type="button">Se connecter</button>
+        <p class="secure"><strong>Accès sécurisé</strong> — Vos données sont protégées et confidentielles.</p>
       </div>
     </section>
 
     <footer>
       <div class="grid">
-        <div>
-          <p class="title">🌿 Vision claire</p>
-          <p class="detail">Toutes vos données au même endroit.</p>
-          <p class="expl">Un tableau de bord unique pour élevage, cultures, ventes et trésorerie.</p>
+        <div class="pillar">
+          <span class="icon">📊</span>
+          <div>
+            <p class="title">Vision claire</p>
+            <p class="detail">Toutes vos données au même endroit.</p>
+            <p class="expl">Un tableau de bord unique pour élevage, cultures, ventes et trésorerie sans changer d'outil.</p>
+          </div>
         </div>
-        <div>
-          <p class="title">🔔 Maîtrise des risques</p>
-          <p class="detail">Alertes et décisions au bon moment.</p>
-          <p class="expl">Prévenu avant rupture de stock, anomalie sanitaire ou écart de marge.</p>
+        <div class="pillar">
+          <span class="icon">🛡</span>
+          <div>
+            <p class="title">Maîtrise des risques</p>
+            <p class="detail">Alertes et décisions au bon moment.</p>
+            <p class="expl">Soyez prévenu avant une rupture de stock, une anomalie sanitaire ou un écart de marge.</p>
+          </div>
         </div>
-        <div>
-          <p class="title">📈 Croissance durable</p>
-          <p class="detail">Développez votre ferme sereinement.</p>
-          <p class="expl">Objectifs mensuels et progrès activité par activité.</p>
+        <div class="pillar">
+          <span class="icon">🌿</span>
+          <div>
+            <p class="title">Croissance durable</p>
+            <p class="detail">Développez votre ferme sereinement.</p>
+            <p class="expl">Fixez vos objectifs mensuels et mesurez vos progrès activité par activité.</p>
+          </div>
         </div>
-        <div>
-          <p class="title">⊞ Pilotage unifié</p>
-          <p class="detail">Une seule plateforme pour toute l'exploitation.</p>
-          <p class="expl">Animaux, aviculture, maraîchage, achats et finances au même endroit.</p>
+        <div class="pillar">
+          <span class="icon">👥</span>
+          <div>
+            <p class="title">Pilotage unifié</p>
+            <p class="detail">Une seule plateforme pour toute l'exploitation.</p>
+            <p class="expl">Animaux, aviculture, maraîchage, achats et finances pilotés depuis le même espace.</p>
+          </div>
         </div>
       </div>
-      <p class="copy">© 2026 Horizon Farm. Tous droits réservés.</p>
+      <p class="copy">🍃 © 2026 Horizon Farm. Tous droits réservés.</p>
     </footer>
   </main>
 
-  <section class="compare">
-    <h3>Image brute v2 (sans dégradé)</h3>
-    <img src="/login-hero-maraichage-v2-preview.jpg" alt="Fond login v2" />
-    <ul>
-      <li>✅ Paniers d'œufs visibles en bas à gauche</li>
-      <li>✅ Moutons, chèvres, vache et poules <strong>en train de brouter</strong> (tête baissée)</li>
-      <li>✅ Animaux regroupés à <strong>gauche / centre-gauche</strong> — la droite reste dégagée pour le formulaire</li>
-      <li>✅ Logo officiel en <strong>haut à gauche</strong></li>
-    </ul>
-    <p style="margin-top:12px;font-size:13px;color:#5c4a32;">
-      Répondez <strong>« validé »</strong> pour activer sur la page login, ou indiquez ce qu'il faut encore ajuster.
-    </p>
+  <section class="validate">
+    <h3>Comment valider</h3>
+    <p>Cette page reproduit le design en HTML/CSS pur + photo <code>login-hero-full.jpg</code>. La page React (<code>LoginPage.jsx</code>) utilise le même rendu.</p>
+    <div class="ok">
+      ✅ Logo en haut à gauche &nbsp;·&nbsp; ✅ Textes blanc/or &nbsp;·&nbsp; ✅ Carte login à droite &nbsp;·&nbsp; ✅ Bouton vert foncé &nbsp;·&nbsp; ✅ Accès sécurisé &nbsp;·&nbsp; ✅ 4 piliers footer &nbsp;·&nbsp; ✅ Photo ferme (grange, animaux, coucher de soleil)
+    </div>
+    <p style="margin-top:12px;">Répondez <strong>« validé »</strong> pour déployer, ou listez ce qu'il faut ajuster (cadrage photo, taille texte, couleurs…).</p>
   </section>
 </body>
 </html>

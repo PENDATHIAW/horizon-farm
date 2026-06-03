@@ -13,6 +13,8 @@ import { isHeyHorizonLlmEnabled } from '../services/heyHorizonLlmService.js';
 import { countOpenReceivables, enrichAssistantDataMap } from '../utils/assistantDataMap.js';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { filterRealOpenTasks } from '../utils/healthFindingLabels.js';
+import HeyHorizonVoiceDraftsPanel from '../components/HeyHorizonVoiceDraftsPanel.jsx';
+import { processContextualVoiceInput } from '../services/aiGateway/contextualVoiceService.js';
 import AssistantERPInsights from './AssistantERPInsights.jsx';
 import AssistantERPQuickAnswers from './AssistantERPQuickAnswers.jsx';
 
@@ -25,10 +27,12 @@ const isLowStock = (row = {}) => n(row.quantite ?? row.quantity ?? row.stock) <=
 const label = (row = {}) => row.title || row.nom || row.name || row.libelle || row.produit || row.id || 'Élément';
 
 const QUICK_COMMANDS = [
+  { title: 'Ramassage œufs', text: "J'ai ramassé 15 tablettes d'œufs", target: 'Élevage' },
+  { title: 'Isolement sanitaire', text: "J'ai isolé 3 poulets malades dans le lot 2", target: 'Élevage' },
+  { title: 'Vente cash', text: "J'ai vendu 10 poulets à 4500 FCFA chacun, payé cash", target: 'Commercial' },
+  { title: 'Distribution aliment', text: "J'ai distribué 2 sacs d'aliment au lot chair 3", target: 'Élevage' },
   { title: 'Vente complète', text: 'Créer une vente de 10 poulets, livrée et payée en espèces', target: 'Commercial' },
   { title: 'Achat aliment', text: 'J\'ai acheté 10 sacs d\'aliments à 18500 le sac', target: 'Achats & Stock' },
-  { title: 'Vaccin / soin', text: 'J\'ai vacciné le lot pondeuses A', target: 'Élevage' },
-  { title: 'Ramassage œufs', text: 'J\'ai ramassé 120 œufs ce matin', target: 'Élevage' },
   { title: 'Mortalité lot', text: 'Mortalité de 5 sujets sur le lot chair B', target: 'Élevage' },
   { title: 'Dépense', text: 'Ajouter une dépense de 25000 FCFA carburant', target: 'Finance & Pilotage' },
   { title: 'Tâche', text: 'Créer une tâche nettoyage poulailler demain', target: 'Activité & Suivi' },
@@ -119,6 +123,8 @@ export default function HeyHorizonModule({
   const [busyId, setBusyId] = useState(null);
   const [lastQuery, setLastQuery] = useState('');
   const [lastSource, setLastSource] = useState('rules');
+  const [voiceResult, setVoiceResult] = useState(null);
+  const [voiceBusy, setVoiceBusy] = useState(false);
   const enrichedDataMap = useMemo(
     () => enrichAssistantDataMap(dataMap, {
       salesOrdersAll,
@@ -138,6 +144,7 @@ export default function HeyHorizonModule({
     updateDraftField,
     cancelDraft,
     validateDraft,
+    loadDraft,
   } = useHeyHorizonCommand({ dataMap: enrichedDataMap, onNavigate, allowWeakDraft: true, onCreateBusinessEvent });
   const data = useMemo(() => {
     const stocks = arr(dataMap.stock || dataMap.stocks);
@@ -165,17 +172,61 @@ export default function HeyHorizonModule({
     [draft, strategic, businessEvents, businessEventsAll],
   );
 
-  const runDraft = async (text = command) => {
-    const query = text || command;
-    if (!String(query || '').trim()) return;
+  const runVoiceParse = async (text = command) => {
+    const query = String(text || command || '').trim();
+    if (!query) return;
     setCommand(query);
     setLastQuery(query);
-    const result = await runCommand(query, { autoOpenForm: true, navigateOnDraft: false });
-    setLastSource(result?.source || 'rules');
-    if (result?.kind === 'error') toast.error(result.assistantText);
-    if (result?.kind === 'redirect_pilotage' && result.assistantText) {
-      toast.success(result.assistantText.slice(0, 140));
+    setVoiceBusy(true);
+    setVoiceResult(null);
+    try {
+      const parsed = await processContextualVoiceInput({
+        phrase: query,
+        dataMap: enrichedDataMap,
+        handlers: { onCreateBusinessEvent },
+      });
+      parsed.onPhrase = runVoiceParse;
+      setVoiceResult(parsed);
+      setLastSource('voice_context');
+      if (parsed.clarify && !parsed.drafts?.length) {
+        toast(parsed.clarify, { icon: '⚠️' });
+        return;
+      }
+      if (!parsed.drafts?.length && !parsed.clarify) {
+        const fallback = await runCommand(query, { autoOpenForm: false, navigateOnDraft: false });
+        setLastSource(fallback?.source || 'rules');
+        return;
+      }
+      if (parsed.drafts?.length) {
+        const primary = parsed.primaryDraft;
+        if (primary?.draft?.legacy_hey) {
+          loadDraft(primary.draft.legacy_hey);
+        } else if (primary) {
+          loadDraft({
+            status: primary.status,
+            intent: primary.intent,
+            confidence: primary.confidence,
+            raw_input: query,
+            primary_module: primary.draft?.primary_module,
+            form_type: primary.draft?.form_type,
+            draft_fields: primary.draft?.fields || primary.draft?.draft_fields || {},
+            missing_fields: primary.missing_fields || [],
+            warnings: primary.warnings || [],
+            requires_validation: true,
+            impacted_modules: primary.draft?.impacted_modules || [],
+          });
+        }
+        toast.success(`${parsed.drafts.length} brouillon(s) préparé(s) — validez avant enregistrement.`);
+      }
+    } catch (e) {
+      toast.error(e.message || 'Analyse vocale impossible');
+    } finally {
+      setVoiceBusy(false);
     }
+  };
+
+  const runDraft = async (text = command) => {
+    await runVoiceParse(text || command);
   };
 
   useEffect(() => {
@@ -228,7 +279,13 @@ export default function HeyHorizonModule({
     <div className="grid grid-cols-2 gap-3 xl:grid-cols-7"><Stat label="Santé ERP" value={`${data.healthScore}/100`} tone={data.healthScore >= 75 ? 'good' : data.healthScore >= 50 ? 'warn' : 'bad'} /><Stat label="Stocks bas" value={fmtNumber(data.lowStocks.length)} tone={data.lowStocks.length ? 'warn' : 'good'} /><Stat label="Créances" value={fmtNumber(data.openReceivables)} tone={data.openReceivables ? 'warn' : 'good'} /><Stat label="Tâches ouvertes" value={fmtNumber(data.openTasks.length)} tone={data.openTasks.length ? 'warn' : 'good'} /><Stat label="Alertes" value={fmtNumber(data.openAlerts.length)} tone={data.openAlerts.length ? 'warn' : 'good'} /><Stat label="Preuves manquantes" value={fmtNumber(data.missingProof.length)} tone={data.missingProof.length ? 'warn' : 'good'} /><Stat label="Recommandations IA" value={fmtNumber(data.proactiveFindings.length)} tone={data.proactiveFindings.length ? 'warn' : 'good'} /></div>
     <AssistantERPInsights dataMap={enrichedDataMap} onNavigate={onNavigate} />
     <PilotageBanner count={data.proactiveFindings.length} onNavigate={onNavigate} />
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="rounded-3xl border border-[#eadcc2] bg-[#fffdf8] p-4"><label className="text-xs font-black uppercase tracking-[0.2em] text-[#8a7456]">Action terrain</label><p className="mt-1 text-xs text-[#8a7456]">Questions stratégiques → redirection automatique vers Centre décisionnel ou Élevage Cycles.</p><div className="mt-3 flex flex-col gap-3 lg:flex-row"><textarea value={command} onChange={(event) => setCommand(event.target.value)} rows={3} placeholder="Exemple : J’ai vendu 10 poulets à Aminata, livré et payé 65 000 FCFA" className="min-h-[96px] flex-1 rounded-2xl border border-[#d6c3a0] bg-white p-4 text-sm text-[#2f2415] outline-none focus:border-emerald-400" /><div className="flex lg:flex-col gap-2"><button type="button" onClick={() => runDraft()} className="rounded-2xl bg-[#22c55e] px-4 py-3 text-sm font-black text-[#052e16]"><Send size={16} className="inline mr-1" /> Préparer</button><button type="button" onClick={onOpenAssistant} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><Mic size={16} className="inline mr-1" /> Voix</button></div></div></div></section>
+    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="rounded-3xl border border-[#eadcc2] bg-[#fffdf8] p-4"><label className="text-xs font-black uppercase tracking-[0.2em] text-[#8a7456]">Action terrain</label><p className="mt-1 text-xs text-[#8a7456]">Questions stratégiques → redirection automatique vers Centre décisionnel ou Élevage Cycles.</p><div className="mt-3 flex flex-col gap-3 lg:flex-row"><textarea value={command} onChange={(event) => setCommand(event.target.value)} rows={3} placeholder="Exemple : J’ai vendu 10 poulets à Aminata, livré et payé 65 000 FCFA" className="min-h-[96px] flex-1 rounded-2xl border border-[#d6c3a0] bg-white p-4 text-sm text-[#2f2415] outline-none focus:border-emerald-400" /><div className="flex lg:flex-col gap-2"><button type="button" disabled={voiceBusy} onClick={() => runDraft()} className="rounded-2xl bg-[#22c55e] px-4 py-3 text-sm font-black text-[#052e16] disabled:opacity-50"><Send size={16} className="inline mr-1" /> {voiceBusy ? 'Analyse…' : 'Préparer'}</button><button type="button" onClick={onOpenAssistant} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415]"><Mic size={16} className="inline mr-1" /> Panneau</button></div></div></div></section>
+    <HeyHorizonVoiceDraftsPanel
+      voiceResult={voiceResult}
+      onNavigate={onNavigate}
+      onCreateBusinessEvent={onCreateBusinessEvent}
+      onDismiss={() => { setVoiceResult(null); cancelDraft(); }}
+    />
     {strategic ? <StrategicAnswerPanel answer={strategic} onNavigate={onNavigate} onRelanceClient={relanceClient} busyId={busyId} lastQuery={lastQuery} lastSource={lastSource} onFeedback={(rating) => toast.success(rating === 'up' ? 'Merci pour le retour' : 'Retour enregistré — on améliorera la réponse')} /> : null}
     {draft ? (
       <Section icon={Sparkles} title="Brouillon Hey Horizon">

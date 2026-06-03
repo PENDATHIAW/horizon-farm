@@ -20,7 +20,7 @@ export const MODULE_TARGET_TABS = {
   achats_stock: ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Annexe', 'Graphiques'],
   finance_pilotage: ['Résumé', 'Trésorerie', 'Rapprochement', 'Créances', 'Dettes', 'Investissements', 'Rentabilité', 'Annexe', 'Graphiques'],
   activite_suivi: ['Résumé', 'Alertes', 'Tâches', 'Traçabilité', 'Annexe', 'Graphiques'],
-  documents_rapports: ['Résumé', 'Bibliothèque', 'Preuves', 'Rapports', 'Exports', 'Modèles', 'Annexe', 'Graphiques'],
+  documents_rapports: ['Résumé', 'Scanner IA', 'Bibliothèque', 'Preuves', 'Rapports', 'Exports', 'Modèles', 'Annexe', 'Graphiques'],
   rh: ['Résumé', 'Équipements', 'Maintenance', 'Affectations', 'Coûts', 'Documents', 'Graphiques'],
   smartfarm: ['Résumé', 'Capteurs', 'Caméras', 'Annexe', 'Graphiques'],
   gestion_systeme: ['Vue admin', 'Utilisateurs', 'Paramètres', 'Sécurité', 'Sauvegardes', 'Réinitialisation', 'Audit'],

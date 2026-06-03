@@ -14,6 +14,7 @@ import { rowsOf } from '../utils/moduleRows';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import { aggregateMissingProofItems, buildDocumentsCoherenceRows, buildDocumentsHealthSnapshot } from './documents/documentsVisionHelpers.js';
 import DocumentsWorkflowBridge from './documents/DocumentsWorkflowBridge.jsx';
+import DocumentScannerPanel from './documents/DocumentScannerPanel.jsx';
 import { isDocumentOrphan } from '../utils/documentsWorkflow.js';
 
 const arr = (v) => Array.isArray(v) ? v : [];
@@ -103,8 +104,9 @@ function Summary({ data, setTab, onApply, onAttachProof, busyId, onNavigate }) {
         )) : <Empty label="Aucune priorité documentaire." />}
       </Section>
       <Section icon={FolderOpen} title="Parcours documents">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-          <button type="button" onClick={() => { emitHorizonForm('documents', 'supplier_invoice', 'Joindre facture', { date: new Date().toISOString().slice(0, 10) }); setTab('Bibliothèque'); }} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">+ Document</b><p className="mt-1 text-sm text-[#8a7456]">Facture, reçu, preuve.</p></button>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
+          <button type="button" onClick={() => setTab('Scanner IA')} className="rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">Scanner IA</b><p className="mt-1 text-sm text-[#8a7456]">Facture, ordonnance, reçu, BL.</p></button>
+          <button type="button" onClick={() => { emitHorizonForm('documents', 'supplier_invoice', 'Joindre facture', { date: new Date().toISOString().slice(0, 10) }); setTab('Bibliothèque'); }} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">+ Document</b><p className="mt-1 text-sm text-[#8a7456]">Joindre preuve manuelle.</p></button>
           <button type="button" onClick={() => setTab('Bibliothèque')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Bibliothèque</b><p className="mt-1 text-sm text-[#8a7456]">Tous les fichiers.</p></button>
           <button type="button" onClick={() => setTab('Exports')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Exports</b><p className="mt-1 text-sm text-[#8a7456]">Dossier financeur PDF.</p></button>
           <button type="button" onClick={() => setTab('Modèles')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Modèles</b><p className="mt-1 text-sm text-[#8a7456]">Reçus et fiches types.</p></button>
@@ -298,6 +300,38 @@ export default function DocumentsRapportsModule(props) {
       onOpenProofsTab={() => setTab('Preuves')}
     />
   );
+  const stocksRows = data.stocks;
+  const fournisseursRows = data.fournisseurs;
+  const scannerContext = useMemo(() => ({
+    fournisseurs: fournisseursRows,
+    suppliers: fournisseursRows,
+    stocks: stocksRows,
+    animaux: data.animaux,
+    lots: data.lots,
+    transactions: data.transactions,
+    payments: data.payments,
+    salesOrders: data.salesOrders,
+    documents: data.documents,
+    workflows: businessEvents,
+  }), [fournisseursRows, stocksRows, data.animaux, data.lots, data.transactions, data.payments, data.salesOrders, data.documents, businessEvents]);
+  const scannerHandlers = useMemo(() => ({
+    onCreateStock: props.onCreateStock || stockCrud.create,
+    onUpdateStock: props.onUpdateStock || stockCrud.update,
+    onCreateOrUpdateStock: props.onCreateOrUpdateStock,
+    onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create,
+    onUpdateFinanceTransaction: props.onUpdateFinanceTransaction || financesCrud.update,
+    onCreateDocument: props.onCreateDocument || docsCrud.create,
+    onUpdateDocument: props.onUpdateDocument || docsCrud.update,
+    onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create,
+    onUpdateSupplier: props.onUpdateSupplier || props.onUpdateFournisseur,
+    onCreateHealth: props.onCreateHealth || props.onCreateSante || santeCrud.create,
+    onUpdateHealth: props.onUpdateHealth || props.onUpdateSante || santeCrud.update,
+    onCreateTask: props.onCreateTask || tasksCrud.create,
+    onUpdateAlert: props.onUpdateAlert || alertsCrud.update,
+    existingDocuments: data.documents,
+    existingAlerts: rowsOf(props.existingAlerts, alertsCrud),
+    existingTasks: rowsOf(props.existingTasks, tasksCrud),
+  }), [props, stockCrud, financesCrud, docsCrud, eventsCrud, santeCrud, tasksCrud, alertsCrud, data.documents]);
   const actionHandlers = {
     onNavigate: props.onNavigate,
     onCreateTask: props.onCreateTask || tasksCrud.create,
@@ -335,6 +369,16 @@ export default function DocumentsRapportsModule(props) {
       <Summary data={data} setTab={setTab} onApply={applyFinding} onAttachProof={attachProof} busyId={busyId} onNavigate={props.onNavigate} />
       {workflowBridge(true, true)}
     </div>
+  ) : tab === 'Scanner IA' ? (
+    <DocumentScannerPanel
+      context={scannerContext}
+      handlers={scannerHandlers}
+      onSuccess={() => {
+        docsCrud.refresh?.();
+        stockCrud.refresh?.();
+        financesCrud.refresh?.();
+      }}
+    />
   ) : tab === 'Bibliothèque' ? (
     <div className="space-y-4">
       {workflowBridge(true, false)}

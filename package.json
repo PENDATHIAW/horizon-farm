@@ -33,6 +33,11 @@
     "test:unit:module-smoke": "npx vite-node tests/unit/moduleImportSmoke.test.js",
     "test:unit:annexe-tabs": "node --test tests/unit/annexeTabsConfig.test.js",
     "test:unit:bp-concretisation": "npx vite-node tests/unit/bpLineConcretization.test.js",
+    "test:unit:ai-gateway": "node --test tests/unit/aiGateway.test.js",
+    "test:unit:document-scanner": "node --test tests/unit/documentScanner.test.js",
+    "test:unit:contextual-voice": "node --test tests/unit/contextualVoice.test.js",
+    "test:unit:chart-explain": "node --test tests/unit/chartExplain.test.js",
+    "test:unit:sales-publication": "npx vite-node tests/unit/salesPublication.test.js",
     "db:migrate": "bash scripts/apply_supabase_migrations.sh",
     "db:migrate:verify": "node scripts/apply_supabase_migrations.mjs",
     "check": "npm run lint && npm run build && npm run test:e2e"

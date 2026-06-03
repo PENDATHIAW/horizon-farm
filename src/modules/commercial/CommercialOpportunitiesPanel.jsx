@@ -6,6 +6,7 @@ import { fmtCurrency } from '../../utils/format';
 import { saleAmount } from './commercialMetrics.js';
 import ClientContactModal from './ClientContactModal.jsx';
 import CommercialSaleReadinessPanel from './CommercialSaleReadinessPanel.jsx';
+import SellableStockPublicationBridge from './SellableStockPublicationBridge.jsx';
 import { matchOpportunityToClients, opportunityMessageForClient } from './commercialOpportunityMatching.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
@@ -43,6 +44,7 @@ function OpportunityCard({ row, match, onConvert, onContactClient, onContactAll 
 export default function CommercialOpportunitiesPanel({
   opportunities = [],
   clients = [],
+  stocks = [],
   salesOrders = [],
   lots = [],
   animaux = [],
@@ -123,6 +125,13 @@ export default function CommercialOpportunitiesPanel({
         onRefreshOpportunities={onRefreshOpportunities}
         onCreateBusinessEvent={onCreateBusinessEvent}
         onRefreshBusinessEvents={onRefreshBusinessEvents}
+      />
+
+      <SellableStockPublicationBridge
+        rows={stocks}
+        title="Stock vendable — publications IA"
+        subtitle="Messages WhatsApp, Facebook, SMS et offres promo (DLC urgente) sans envoi automatique."
+        onWhatsAppLog={onWhatsAppLog}
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

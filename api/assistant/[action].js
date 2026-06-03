@@ -3,6 +3,7 @@ import enhanceHandler from '../../lib/server/assistant/enhance.js';
 import intentHandler from '../../lib/server/assistant/intent.js';
 import summaryHandler from '../../lib/server/assistant/summary.js';
 import validateHandler from '../../lib/server/assistant/validate.js';
+import documentOcrHandler from '../../lib/server/assistant/documentOcr.js';
 
 const HANDLERS = {
   ask: askHandler,
@@ -10,6 +11,7 @@ const HANDLERS = {
   intent: intentHandler,
   summary: summaryHandler,
   validate: validateHandler,
+  'document-ocr': documentOcrHandler,
 };
 
 export default async function handler(req, res) {
