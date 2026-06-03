@@ -50,7 +50,7 @@ export default function VisionOpportunitiesTab({ data, onNavigate }) {
                 onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })}
                 actions={<>
                   <button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Gérer</button>
-                  <button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} className="rounded-lg bg-[#22c55e] px-2 py-1 text-xs font-black text-[#052e16]">Convertir vente</button>
+                  <button type="button" onClick={() => redirectToSource(onNavigate, 'vente_commercial_finance', { tab: 'Ventes' })} className="rounded-lg border border-emerald-300 px-2 py-1 text-xs font-black text-emerald-700">Ouvrir Commercial</button>
                 </>}
               />
             ))}
