@@ -102,7 +102,7 @@ export function buildHorizonFarmBusinessPlan() {
 }
 
 export function buildHorizonFarmBpLine(line, businessPlanId) {
-  return { id: makeId('BPLI'), business_plan_id: businessPlanId, ...line, total: Number(line.quantite || 0) * Number(line.prix_unitaire || 0), statut: 'prevu', source_module: 'investissements', source_business_plan: HORIZON_FARM_BP_NAME };
+  return { id: makeId('BPLI'), business_plan_id: businessPlanId, ...line, total: Number(line.quantite || 0) * Number(line.prix_unitaire || 0), statut: 'a_concretiser', status: 'a_concretiser', source_module: 'investissements', source_business_plan: HORIZON_FARM_BP_NAME };
 }
 
 export function buildHorizonFarmMonthlyCost(cost, businessPlanId) {

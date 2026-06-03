@@ -71,7 +71,7 @@ export default function AnimauxV2(props) {
         window.setTimeout(() => document.getElementById('animaux-module-root')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
         return;
       }
-      if (event.detail?.module === 'animaux' && ['animal_weighing', 'animal_loss', 'animal_creation'].includes(draft?.form_type)) {
+      if (event.detail?.module === 'animaux' && ['animal_weighing', 'animal_loss', 'animal_creation', 'animal_create'].includes(draft?.form_type)) {
         if (embedInElevage && ['animal_weighing', 'animal_loss', 'animal_creation'].includes(draft?.form_type)) return;
         setHorizonDraft(draft);
         const wanted = draft?.draft_fields?.type ? speciesFromType(draft.draft_fields.type) : species;

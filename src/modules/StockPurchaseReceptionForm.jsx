@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import useWorkflowSubmit from '../hooks/useWorkflowSubmit';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
+import { dispatchBpLineCompleted } from '../utils/bpLineConcretization';
 import {
   ENTRY_KINDS,
   PAYMENT_STATUS,
@@ -37,6 +38,8 @@ function mapDraftFields(draft = {}) {
     notes: f.notes || draft.raw_input || '',
     entry_kind: f.entry_kind || ENTRY_KINDS.ACHAT_STOCKABLE,
     finance_repair_transaction_id: f.finance_repair_transaction_id || '',
+    bp_line_id: f.bp_line_id || '',
+    business_plan_id: f.business_plan_id || '',
   };
 }
 
@@ -87,6 +90,7 @@ export default function StockPurchaseReceptionForm({
   const [entryKind, setEntryKind] = useState(mapped.entry_kind);
   const { submit: workflowSubmit, busy: workflowBusy } = useWorkflowSubmit();
   const repairTxId = mapped.finance_repair_transaction_id;
+  const bpLineId = mapped.bp_line_id;
 
   useEffect(() => {
     const m = mapDraftFields(initialDraft || {});
@@ -144,6 +148,8 @@ export default function StockPurchaseReceptionForm({
       notes,
       entry_kind: entryKind,
       finance_repair_transaction_id: repairTxId,
+      bp_line_id: bpLineId,
+      business_plan_id: mapped.business_plan_id,
       last_movement_label: notes || (entryKind === ENTRY_KINDS.ACHAT_STOCKABLE ? 'Réception achat stock' : 'Entrée stock'),
     };
     const validation = validateStockPurchasePayload(payload);
@@ -185,6 +191,17 @@ export default function StockPurchaseReceptionForm({
         onRefreshBusinessEvents?.(),
       ]);
       toast.success(repairTxId ? 'Entrée stock créée depuis la dépense finance' : 'Réception achat enregistrée');
+      if (bpLineId) {
+        const stockRef = preview.records.stock_patch?.id || stockId || payload.id;
+        dispatchBpLineCompleted({
+          bp_line_id: bpLineId,
+          assetModule: 'stock',
+          assetId: stockRef,
+          amount: n(montantPaye) || n(quantite) * n(prixUnitaire),
+          date,
+          source: 'stock_purchase',
+        });
+      }
       onClose?.();
     });
   };

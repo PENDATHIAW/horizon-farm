@@ -1,5 +1,5 @@
 import { AlertTriangle, Calendar, CheckCircle2, Download, Edit, Eye, Leaf, Plus, RefreshCw, Sprout, Trash2, TrendingUp } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ActionIconButton from '../components/ActionIconButton';
 import Badge from '../components/Badge';
@@ -13,6 +13,7 @@ import DetailsModal from '../modals/DetailsModal';
 import EditModal from '../modals/EditModal';
 import { applyCultureDecisionDefaults, buildCultureDecisionProfile } from '../services/cultureDecisionEngine';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
+import { dispatchBpLineCompleted, mergeBpDraftIntoInitial } from '../utils/bpLineConcretization';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
 import { calculateCultureMetrics } from '../utils/businessCalculations';
@@ -113,7 +114,20 @@ export default function CulturesV3({ rows = [], stocks = [], opportunities = [],
   const [tab, setTab] = useState('Vue d’ensemble');
   const [selected, setSelected] = useState(null);
   const [modal, setModal] = useState(null);
+  const [bpCreateDraft, setBpCreateDraft] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const handler = (event) => {
+      const draft = event.detail?.draft;
+      if (event.detail?.module !== 'cultures') return;
+      if (!['culture_create', 'bp_concretization'].includes(draft?.form_type)) return;
+      setBpCreateDraft(draft?.draft_fields || {});
+      setModal('create');
+    };
+    window.addEventListener('horizon-open-form', handler);
+    return () => window.removeEventListener('horizon-open-form', handler);
+  }, []);
 
   const realRows = useMemo(() => getRealCultureRows(rows), [rows]);
   const parcellesAuto = useMemo(() => aggregate(realRows, parcelKey), [realRows]);
@@ -134,7 +148,28 @@ export default function CulturesV3({ rows = [], stocks = [], opportunities = [],
   }, [realRows]);
 
   const submitCreate = async (payload) => {
-    try { setSaving(true); await onCreate?.({ ...applyCultureDecisionDefaults(payload), record_type: 'culture' }); toast.success('Culture ajoutée · décision Horizon proposée'); setModal(null); } catch (error) { toast.error(error.message || 'Création impossible'); } finally { setSaving(false); }
+    try {
+      setSaving(true);
+      const prepared = { ...applyCultureDecisionDefaults(payload), record_type: 'culture' };
+      await onCreate?.(prepared);
+      if (prepared.bp_line_id) {
+        dispatchBpLineCompleted({
+          bp_line_id: prepared.bp_line_id,
+          assetModule: 'cultures',
+          assetId: prepared.id,
+          amount: toNumber(prepared.budget_prevu ?? prepared.cout_total_reel),
+          date: prepared.date_debut_campagne || prepared.date_semis || today(),
+          source: 'culture_create',
+        });
+      }
+      toast.success('Culture ajoutée · décision Horizon proposée');
+      setModal(null);
+      setBpCreateDraft(null);
+    } catch (error) {
+      toast.error(error.message || 'Création impossible');
+    } finally {
+      setSaving(false);
+    }
   };
   const submitEdit = async (payload) => {
     if (!selected) return;
@@ -191,7 +226,7 @@ export default function CulturesV3({ rows = [], stocks = [], opportunities = [],
     {tab === 'Parcelles' ? <DataTable title="Parcelles" rows={parcelles} columns={aggregateColumns} loading={loading} initialSortKey="nom" /> : null}
     {tab === 'Campagnes' ? <DataTable title="Campagnes" rows={campagnes} columns={aggregateColumns} loading={loading} initialSortKey="nom" /> : null}
     <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, cout_total_calcule: costOf(selected), revenu_calcule: revenueOf(selected), marge_calculee: marginOf(selected), score_sante_calcule: healthOf(selected), horizon_decision: selected.horizon_decision || buildCultureDecisionProfile(selected) } : selected} title="Fiche culture" />
-    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={CULTURE_FIELDS} initialValues={applyCultureDecisionDefaults({ id: generateSequentialId('cultures', rows), record_type: 'culture', statut: 'planifiee', localisation: 'Thiès / Médina Fall', date_debut_campagne: today(), unite_surface: 'm²', unite_recolte: 'kg' })} autoId={() => generateSequentialId('cultures', rows)} loading={saving} title="Ajouter culture" submitLabel="Ajouter" />
+    <CreateModal open={modal === 'create'} onClose={() => { setModal(null); setBpCreateDraft(null); }} onSubmit={submitCreate} fields={CULTURE_FIELDS} initialValues={mergeBpDraftIntoInitial(applyCultureDecisionDefaults({ id: generateSequentialId('cultures', rows), record_type: 'culture', statut: 'planifiee', localisation: 'Thiès / Médina Fall', date_debut_campagne: today(), unite_surface: 'm²', unite_recolte: 'kg' }), bpCreateDraft)} autoId={() => generateSequentialId('cultures', rows)} loading={saving} title={bpCreateDraft ? 'Concrétiser investissement BP · culture' : 'Ajouter culture'} submitLabel={bpCreateDraft ? 'Concrétiser' : 'Ajouter'} />
     <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={CULTURE_FIELDS} initialValues={selected || {}} loading={saving} title="Modifier fiche" submitLabel="Enregistrer" />
     <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected?.nom || selected?.id || ''} loading={saving} />
   </div>;

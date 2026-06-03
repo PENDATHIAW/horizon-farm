@@ -1,5 +1,6 @@
 import { Download, Edit, Eye, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { dispatchBpLineCompleted, mergeBpDraftIntoInitial } from '../utils/bpLineConcretization';
 import toast from 'react-hot-toast';
 import useWorkflowSubmit from '../hooks/useWorkflowSubmit';
 import { runEggProductionSideEffects } from '../utils/livestockSideEffects';
@@ -73,11 +74,27 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
   const [tab, setTab] = useState(activityToTab(activity));
   const [modal, setModal] = useState(null);
   const [selected, setSelected] = useState(null);
+  const [bpCreateDraft, setBpCreateDraft] = useState(null);
   const [saving, setSaving] = useState(false);
   const { submit: workflowSubmit, busy: workflowBusy } = useWorkflowSubmit();
   const isSaving = saving || workflowBusy;
 
   useEffect(() => { setTab(activityToTab(activity)); }, [activity, lockActivity]);
+
+  useEffect(() => {
+    const handler = (event) => {
+      const draft = event.detail?.draft;
+      if (event.detail?.module !== 'avicole') return;
+      if (!['lot_create', 'bp_concretization'].includes(draft?.form_type)) return;
+      const fields = draft?.draft_fields || {};
+      const lotTab = fields.type === 'Chair' || fields.type_lot === 'chair' ? 'Chair' : 'Pondeuse';
+      setTab(lotTab);
+      setBpCreateDraft(fields);
+      setModal('create');
+    };
+    window.addEventListener('horizon-open-form', handler);
+    return () => window.removeEventListener('horizon-open-form', handler);
+  }, []);
 
   const filteredByActivity = useMemo(() => filterLotsByActivity(rows, tab), [rows, tab]);
   const activeLots = useMemo(() => filteredByActivity.filter(hasActiveBirds), [filteredByActivity]);
@@ -177,7 +194,30 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
     return applyAvicoleDecisionDefaults(prepared, existing, productionLogs);
   };
 
-  const submitCreate = async (payload) => { try { setSaving(true); await onCreate?.(prepareLot(payload)); toast.success('Lot avicole ajouté avec suivi prérempli'); setModal(null); } catch (e) { toast.error(e.message || 'Création impossible'); } finally { setSaving(false); } };
+  const submitCreate = async (payload) => {
+    try {
+      setSaving(true);
+      const prepared = prepareLot(payload);
+      await onCreate?.(prepared);
+      if (prepared.bp_line_id) {
+        dispatchBpLineCompleted({
+          bp_line_id: prepared.bp_line_id,
+          assetModule: 'avicole',
+          assetId: prepared.id,
+          amount: purchaseTotalOf(prepared) || prepared.cout_total_achat || prepared.purchase_cost,
+          date: prepared.date_debut || prepared.entry_date || today(),
+          source: 'avicole_lot_create',
+        });
+      }
+      toast.success('Lot avicole ajouté avec suivi prérempli');
+      setModal(null);
+      setBpCreateDraft(null);
+    } catch (e) {
+      toast.error(e.message || 'Création impossible');
+    } finally {
+      setSaving(false);
+    }
+  };
   const submitEdit = async (payload) => { if (!selected) return; try { setSaving(true); await onUpdate?.(selected.id, prepareLot(payload, selected)); toast.success('Lot mis à jour'); setModal(null); await onRefresh?.(); } catch (e) { toast.error(e.message || 'Modification impossible'); } finally { setSaving(false); } };
   const confirmDelete = async () => { if (!selected) return; try { setSaving(true); await onDelete?.(selected.id); toast.success('Lot supprimé'); setModal(null); await onRefresh?.(); } catch (e) { toast.error(e.message || 'Suppression impossible'); } finally { setSaving(false); } };
   const submitEggEntry = async (payload) => { const lot = pondeusesDisponibles.find((item) => item.id === payload.lot_id); if (!lot) return toast.error('Choisir un lot pondeuse actif'); const eggCount = toNumber(payload.oeufs_produits); const brokenCount = Math.max(0, toNumber(payload.oeufs_casses)); if (eggCount <= 0) return toast.error('Saisir un nombre d’œufs supérieur à 0'); if (brokenCount > eggCount) return toast.error('Les casses ne peuvent pas dépasser les œufs ramassés'); const sellableEggs = Math.max(0, eggCount - brokenCount); const tablet = tabletsFromEggs(sellableEggs); try { const eggKey = `egg-production:${lot.id}:${payload.date || today()}`; const result = await workflowSubmit(eggKey, async () => { const productionResult = await runEggProductionSideEffects({ lot, payload: { ...payload, lot_id: lot.id, lot_name: lot.name || lot.id, date: payload.date || today(), oeufs_produits: eggCount, oeufs_casses: brokenCount, oeufs_vendables: sellableEggs, tablettes: tablet.tablettes, tablettes_vendables: tablet.tablettes, plateaux: tablet.tablettes, oeufs_restants: tablet.oeufs_restants, oeufs_reliquat: tablet.oeufs_restants, oeufs_par_tablette: EGGS_PER_TABLET, unite_vente: 'tablette', responsable_label: resolveResponsibleLabel(payload.responsable), module_lie: 'avicole', related_id: lot.id, source_module: 'avicole', type_evenement: 'ramassage_oeufs' }, existingLogs: productionLogs || [], handlers: { onCreateProduction } }); if (productionResult.skipped) { toast.success('Ramassage déjà enregistré pour ce lot et cette date'); setModal(null); return; } await onRefreshProduction?.(); toast.success(`${tablet.tablettes} tablette(s) vendable(s) · ${tablet.oeufs_restants} œuf(s) restants`); setModal(null); }); if (result?.skipped && result.reason === 'in_flight') return; } catch (e) { toast.error(e.message || 'Ajout ramassage impossible'); } };
@@ -200,7 +240,7 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
     <div className="grid grid-cols-2 lg:grid-cols-6 gap-4"><KpiCard icon={Plus} label="Effectif actif" value={fmtNumber(totalEffectif)} color="bg-emerald-500/20 text-emerald-500" /><KpiCard icon={Plus} label="Morts" value={fmtNumber(morts)} color="bg-red-500/20 text-red-500" /><KpiCard icon={Plus} label="Malades" value={fmtNumber(malades)} color="bg-amber-500/20 text-amber-500" /><KpiCard icon={Plus} label="Actions IA" value={actionsIa} color="bg-sky-500/20 text-sky-500" /><KpiCard icon={Plus} label={tab === 'Pondeuse' ? 'Réforme 17+ mois' : chairKpiLabel} value={tab === 'Pondeuse' ? aReformer : chairKpiValue} color={tab === 'Pondeuse' ? 'bg-red-500/20 text-red-500' : 'bg-emerald-500/20 text-emerald-500'} /><KpiCard icon={Plus} label="Coût alim." value={fmtCurrency(coutAlim)} color="bg-purple-500/20 text-purple-500" /></div>
     <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-xs text-[#8a7456]">Lots clôturés: {inactiveLots.length} · Achat actif: {fmtCurrency(coutAchat)} · Règle effectif: initial - morts - vendus - pertes/sorties. Les malades restent dans l’effectif et sont affichés comme à surveiller.</div>
     <DataTable title={tab === 'Pondeuse' ? 'Lots pondeuses' : 'Lots poulets de chair'} rows={filteredByActivity} columns={columns} loading={loading} initialSortKey="date_debut" searchPlaceholder="Rechercher un lot..." />
-    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={createFields} initialValues={initialLot} loading={saving} title={tab === 'Pondeuse' ? 'Ajouter lot pondeuses' : 'Ajouter lot poulets de chair'} submitLabel="Ajouter" />
+    <CreateModal open={modal === 'create'} onClose={() => { setModal(null); setBpCreateDraft(null); }} onSubmit={submitCreate} fields={createFields} initialValues={mergeBpDraftIntoInitial(initialLot, bpCreateDraft)} loading={saving} title={bpCreateDraft ? 'Concrétiser investissement BP · lot avicole' : tab === 'Pondeuse' ? 'Ajouter lot pondeuses' : 'Ajouter lot poulets de chair'} submitLabel={bpCreateDraft ? 'Concrétiser' : 'Ajouter'} />
     <CreateModal open={modal === 'eggs'} onClose={() => setModal(null)} onSubmit={submitEggEntry} fields={eggFields} initialValues={initialEggEntry} loading={isSaving} title="Ramassage œufs" submitLabel="Enregistrer" />
     <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={editFields} initialValues={selected || {}} loading={saving} title="Modifier / suivre le lot" submitLabel="Enregistrer" />
     <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={confirmDelete} itemLabel={selected?.name || selected?.id || ''} loading={saving} />

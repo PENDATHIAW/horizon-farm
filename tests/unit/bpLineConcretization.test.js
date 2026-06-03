@@ -1,0 +1,85 @@
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  BP_LINE_STATUS,
+  bpLineAmount,
+  buildBpLineConcretizationRoute,
+  buildBpLineCompletionWorkflow,
+  canConcretizeBpLine,
+  computeBpInvestmentTotals,
+  launchBpLineConcretization,
+  normalizeBpLineStatus,
+} from '../../src/utils/bpLineConcretization.js';
+
+describe('bpLineConcretization', () => {
+  it('normalise les statuts legacy vers a_concretiser / concretise / annulee', () => {
+    assert.equal(normalizeBpLineStatus({ statut: 'prevu' }), BP_LINE_STATUS.A_CONCRETISER);
+    assert.equal(normalizeBpLineStatus({ statut: 'effectif' }), BP_LINE_STATUS.CONCRETISE);
+    assert.equal(normalizeBpLineStatus({ statut: 'annulé' }), BP_LINE_STATUS.ANNULEE);
+    assert.equal(normalizeBpLineStatus({ asset_id: 'LOTP-1' }), BP_LINE_STATUS.CONCRETISE);
+  });
+
+  it('calcule prévu, concrétisé, annulé et reste', () => {
+    const totals = computeBpInvestmentTotals([
+      { id: '1', quantite: 3000, prix_unitaire: 900, statut: 'a_concretiser' },
+      { id: '2', quantite: 1, prix_unitaire: 500000, statut: 'concretise' },
+      { id: '3', quantite: 1, prix_unitaire: 100000, statut: 'annulee' },
+    ]);
+    assert.equal(totals.prevu, 2700000 + 500000 + 100000);
+    assert.equal(totals.concretise, 500000);
+    assert.equal(totals.annule, 100000);
+    assert.equal(totals.reste, 2700000);
+  });
+
+  it('route 3000 pondeuses vers Élevage / Avicole lot_create', () => {
+    const line = {
+      id: 'BPLI-1',
+      business_plan_id: 'BP-HORIZON-FARM',
+      designation: '3000 poussins pondeuses',
+      quantite: 3000,
+      prix_unitaire: 900,
+      total: 2700000,
+      statut: 'a_concretiser',
+    };
+    const route = buildBpLineConcretizationRoute(line);
+    assert.ok(route);
+    assert.equal(route.navigate.module, 'elevage');
+    assert.equal(route.navigate.tab, 'Avicole');
+    assert.equal(route.form.module, 'avicole');
+    assert.equal(route.form.form_type, 'lot_create');
+    assert.equal(route.form.draft_fields.initial_count, 3000);
+    assert.equal(route.form.draft_fields.bp_line_id, 'BPLI-1');
+    assert.ok(canConcretizeBpLine(line));
+    assert.equal(bpLineAmount(line), 2700000);
+  });
+
+  it('launchBpLineConcretization appelle onNavigate', () => {
+    const calls = [];
+    const previousWindow = globalThis.window;
+    globalThis.window = {
+      setTimeout: (fn) => { fn(); return 0; },
+      sessionStorage: { setItem() {}, removeItem() {} },
+      dispatchEvent() {},
+    };
+    try {
+      const result = launchBpLineConcretization(
+        { id: 'BPLI-2', designation: '500 poussins chair', quantite: 500, prix_unitaire: 700, statut: 'a_concretiser' },
+        { onNavigate: (module, options) => calls.push({ module, options }) },
+      );
+      assert.equal(result.ok, true);
+      assert.equal(calls[0]?.module, 'elevage');
+      assert.equal(calls[0]?.options?.tab, 'Avicole');
+    } finally {
+      globalThis.window = previousWindow;
+    }
+  });
+
+  it('buildBpLineCompletionWorkflow marque la ligne concrétisée avec finance', () => {
+    const line = { id: 'BPLI-3', designation: 'Pompe irrigation', quantite: 1, prix_unitaire: 250000, business_plan_id: 'BP-HORIZON-FARM' };
+    const workflow = buildBpLineCompletionWorkflow(line, { assetModule: 'equipements', assetId: 'EQP-1', amount: 250000, date: '2026-06-01' });
+    assert.equal(workflow.linePatch.statut, BP_LINE_STATUS.CONCRETISE);
+    assert.equal(workflow.linePatch.asset_id, 'EQP-1');
+    assert.equal(workflow.financeTransaction.montant, 250000);
+    assert.equal(workflow.event.event_type, 'bp_ligne_concretisee');
+  });
+});

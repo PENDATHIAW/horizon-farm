@@ -203,6 +203,14 @@ export default function ElevageRecoveredModule(props) {
     const handler = (event) => {
       const draft = event.detail?.draft;
       const module = event.detail?.module;
+      if (module === 'avicole' && draft?.form_type === 'lot_create') {
+        setTab('Avicole');
+        return;
+      }
+      if (module === 'animaux' && draft?.form_type === 'animal_create') {
+        setTab('Animaux');
+        return;
+      }
       if (module === 'avicole' && draft?.form_type === 'egg_production') {
         setTab('Production');
         setHorizonDraft(draft);
