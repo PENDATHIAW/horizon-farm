@@ -14,6 +14,7 @@ import { rowsOf, allRows } from '../utils/moduleRows';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import AntiDuplicationNotice from '../components/AntiDuplicationNotice.jsx';
 import { openCommercialSale, openDocumentProofFromTransaction, openFinanceCharge, openStockPurchase } from '../utils/antiDuplicationGuard.js';
+
 import FinancesV12 from './FinancesV12';
 import InvestissementsV9 from './InvestissementsV9';
 import FinanceReconciliationPanel from './finance/FinanceReconciliationPanel.jsx';
@@ -182,6 +183,7 @@ function Summary({ data, setTab, onApply, busyId, onNavigate }) {
       <AntiDuplicationNotice pairId="vente_commercial_finance" onNavigate={onNavigate} compact />
       <AntiDuplicationNotice pairId="charge_vs_stock" onNavigate={onNavigate} compact className="mt-2" />
       <AntiDuplicationNotice pairId="document_vs_preuve" onNavigate={onNavigate} compact className="mt-2" />
+
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
         <h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><BarChart3 size={20} /> Workflows financiers récupérés</h2>
         <p className="mt-2 text-sm leading-relaxed text-[#8a7456]">Finance & Pilotage remet les anciens moteurs : saisie finance Hey Horizon, trésorerie, santé comptable, preuves, business plan, paiement d'investissement, création d'actifs, documents et événements métier.</p>

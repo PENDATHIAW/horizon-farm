@@ -13,6 +13,7 @@ import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import { aggregateSupplierDebts, buildAchatsStockCoherenceRows, buildAchatsStockHealthSnapshot } from './achatsStock/achatsStockVisionHelpers.js';
 import { resolveAchatsStockTab, navigateForIaFinding } from '../utils/commercialNavigation';
 import AntiDuplicationNotice from '../components/AntiDuplicationNotice.jsx';
+
 import StocksV5 from './StocksV5';
 import FournisseursReadable from './FournisseursReadable';
 
@@ -171,6 +172,7 @@ function MouvementsHub({ data, onNavigate }) {
       onNavigate={onNavigate}
     />
     </div>
+
   );
 }
 

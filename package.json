@@ -4,6 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "name": "vite-react-starter",
+    "version": "0.0.0",
+    "type": "module",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
@@ -20,9 +23,10 @@
     "test:e2e:push-business": "PLAYWRIGHT_SKIP_WEBSERVER=1 playwright test tests/e2e/push-and-business-flows.spec.js",
     "db:migrate": "bash scripts/apply_supabase_migrations.sh",
     "db:migrate:verify": "node scripts/apply_supabase_migrations.mjs",
-    "check": "npm run lint && npm run build && npm run test:e2e"
+    "check": "npm run lint && npm run build && npm run test:e2e",
+    "test:unit:commercial": "npx vite-node tests/unit/commercialSaleWorkflow.test.js"
   },
-"dependencies": {
+  "dependencies": {
     "@supabase/supabase-js": "^2.105.3",
     "echarts": "^6.0.0",
     "echarts-for-react": "^3.0.2",
@@ -46,6 +50,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
+    "pg": "^8.21.0",
     "tailwindcss": "^4.2.4",
     "vite": "^8.0.10"
   }
