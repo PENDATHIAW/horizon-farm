@@ -1,4 +1,5 @@
 import { BarChart3 } from 'lucide-react';
+import AntiDuplicationNotice from '../../components/AntiDuplicationNotice.jsx';
 import { fmtCurrency, fmtNumber } from '../../utils/format';
 import { Btn, DataRow, DataTable, Empty, Section, TabIntro, VisionKpi } from './visionUtils';
 
@@ -8,6 +9,7 @@ export default function VisionPerformanceTab({ data, onNavigate }) {
 
   return (
     <div className="space-y-5">
+      <AntiDuplicationNotice pairId="rentabilite_finance_elevage" onNavigate={onNavigate} actionLabel="Finance → Rentabilité" className="mb-2" />
       <TabIntro
         title="Performance & rentabilité"
         detail={data.periodLabel ? `Indicateurs sur ${data.periodLabel} — créances calculées sur l'historique complet des ventes.` : 'Vue consolidée CA, encaissements, charges et créances.'}

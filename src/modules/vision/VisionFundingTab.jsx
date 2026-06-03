@@ -1,5 +1,7 @@
 import { Scale } from 'lucide-react';
 import { fmtCurrency, fmtNumber } from '../../utils/format';
+import AntiDuplicationNotice from '../../components/AntiDuplicationNotice.jsx';
+import { openFinanceurReport } from '../../utils/antiDuplicationGuard.js';
 import { dateOf, Empty, label, Row, Section, Stat } from './visionUtils';
 
 export default function VisionFundingTab({ data, onNavigate }) {
@@ -12,11 +14,12 @@ export default function VisionFundingTab({ data, onNavigate }) {
         <Stat label="Preuves manquantes" value={fmtNumber(data.missingProof)} tone={data.missingProof ? 'warn' : 'good'} />
       </div>
       <Section icon={Scale} title="Dossier financeur">
+        <AntiDuplicationNotice pairId="financeur_documents_objectifs" onNavigate={onNavigate} actionLabel="Générer dans Rapports" className="mb-4" />
         <Row title="Résumé exploitation" detail={`${fmtNumber(data.animaux.length)} animaux · ${fmtNumber(data.lots.length)} lots · ${fmtNumber(data.cultures.length)} cultures`} value="Actif" tone="good" onClick={() => onNavigate?.('elevage')} />
         <Row title="Chiffres clés" detail={`CA ${fmtCurrency(data.salesAmount)} · marge ${fmtCurrency(data.grossMargin)} · trésorerie ${fmtCurrency(data.balance)}`} value="Pilotage" onClick={() => onNavigate?.('finance_pilotage')} />
         <Row title="Preuves & justificatifs" detail={`${fmtNumber(data.documents.length)} doc(s) · ${fmtNumber(data.missingProof)} manquant(s)`} value={data.missingProof ? 'À compléter' : 'OK'} tone={data.missingProof ? 'warn' : 'good'} onClick={() => onNavigate?.('documents_rapports')} />
         <Row title="Risques maîtrisés" detail={`${fmtNumber(data.risks.filter((r) => r.tone !== 'bad').length)} risque(s) modéré(s)`} value={`${fmtNumber(data.risks.filter((r) => r.tone === 'bad').length)} critique(s)`} tone={data.risks.some((r) => r.tone === 'bad') ? 'warn' : 'good'} onClick={() => onNavigate?.('objectifs_croissance')} />
-        <Row title="Export dossier PDF" detail="DER, FONGIP, BNDE, CNCAS — générateur dossier financeur" value="PDF" onClick={() => onNavigate?.('rapports')} />
+        <Row title="Export dossier PDF" detail="DER, FONGIP, BNDE, CNCAS — générateur dossier financeur" value="PDF" onClick={() => openFinanceurReport(onNavigate)} />
         {data.documents.length ? data.documents.slice(0, 6).map((r) => (
           <Row key={r.id || label(r)} title={label(r)} detail={`${r.type || r.categorie || 'Document'} · ${dateOf(r)}`} value="Doc" />
         )) : null}

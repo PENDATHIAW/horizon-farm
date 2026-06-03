@@ -18,6 +18,7 @@ import RessourcesMaintenancePanel from './ressources/RessourcesMaintenancePanel.
 import RessourcesPayrollPanel from './ressources/RessourcesPayrollPanel.jsx';
 import RessourcesRepairPanel from './ressources/RessourcesRepairPanel.jsx';
 
+
 const arr = (v) => Array.isArray(v) ? v : [];
 const low = (v) => String(v || '').toLowerCase();
 const n = (v = 0) => Number(v || 0);
@@ -107,7 +108,7 @@ function Summary({ data, setTab, onApply, onSchedule, busyId }) {
       <Section icon={Bell} title="Parcours ressources">
         <p className="text-sm text-[#8a7456]">Équipements, maintenance, affectations, coûts et documents interconnectés avec finance et activité.</p>
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
-          <button type="button" onClick={() => { emitHorizonForm('equipements', 'equipment_action', 'Maintenance équipement', { date: new Date().toISOString().slice(0, 10), action_type: 'maintenance' }); setTab('Équipements'); }} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">+ Maintenance</b><p className="mt-1 text-sm text-[#8a7456]">Panne ou entretien.</p></button>
+          <button type="button" onClick={() => openEquipementsMaintenance(onNavigate)} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">+ Maintenance</b><p className="mt-1 text-sm text-[#8a7456]">Panne ou entretien.</p></button>
           {['Équipements', 'Maintenance', 'Affectations', 'Coûts', 'Documents'].map((label) => (
             <button key={label} type="button" onClick={() => setTab(label)} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left font-black text-[#2f2415]">{label}</button>
           ))}
@@ -121,9 +122,10 @@ function MaintenanceHub({ data, setTab, maintenancePanel, onSchedule, busyId }) 
   return (
     <div className="space-y-5">
       {maintenancePanel}
+
       <ModuleListHub
         title="Maintenance & pannes"
-        intro="Équipements en maintenance, hors service ou capteurs offline."
+        intro="File d'attente lecture seule — interventions dans le module Équipements."
         stats={[
           { label: 'À maintenir', value: fmtNumber(data.equipmentRisk.length), tone: data.equipmentRisk.length ? 'warn' : 'good' },
           { label: 'Sans tâche', value: fmtNumber(data.maintenanceQueue.length), tone: data.maintenanceQueue.length ? 'warn' : 'good' },
@@ -135,11 +137,12 @@ function MaintenanceHub({ data, setTab, maintenancePanel, onSchedule, busyId }) 
           title: row.nom || row.name || row.libelle || 'Équipement',
           detail: `${row.status || row.statut || row.etat || '—'} · maintenance`,
           value: row.type || row.categorie || 'Équipement',
-          onClick: () => setTab('Équipements'),
+          onClick: () => openEquipementsMaintenance(onNavigate),
         }))}
         emptyLabel="Aucun équipement en maintenance."
       />
       <MaintenanceQueuePanel queue={data.maintenanceQueue} onSchedule={onSchedule} busyId={busyId} setTab={setTab} />
+
     </div>
   );
 }
@@ -436,6 +439,7 @@ export default function OperationsRessourcesRecoveredModule(props) {
           : tab === 'Maintenance' ? <MaintenanceHub data={data} setTab={setTab} maintenancePanel={maintenancePanel} onSchedule={scheduleMaintenance} busyId={busyId} />
             : tab === 'Affectations' ? <RHPeopleTeams {...rhProps} workflowContext={workflowContext} workflowHandlers={workflowHandlers} onPayrollSuccess={refreshWorkflow} />
               : tab === 'Coûts' ? <CostsHub data={data} onNavigate={props.onNavigate} payrollPanel={payrollPanel} />
+
                 : tab === 'Documents' ? <DocumentsHub data={data} onNavigate={props.onNavigate} />
                   : <ModuleGraphiquesTab moduleId="rh" periodFiltered={periodFiltered} equipements={equipment} transactions={transactions} onNavigate={props.onNavigate} />}
     </div>
