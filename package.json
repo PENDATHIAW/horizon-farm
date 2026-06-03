@@ -19,6 +19,7 @@
     "db:migrate": "bash scripts/apply_supabase_migrations.sh",
     "db:migrate:verify": "node scripts/apply_supabase_migrations.mjs",
     "check": "npm run lint && npm run build && npm run test:e2e",
+    "test:unit:anti-duplication": "node --test tests/unit/antiDuplicationAudit.test.js",
     "test:unit:elevage": "npx vite-node tests/unit/elevageBroilerScenario.test.js"
   },
   "dependencies": {
