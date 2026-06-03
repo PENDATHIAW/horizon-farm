@@ -23,6 +23,7 @@ import ElevageAlimentationPanel from './elevage/ElevageAlimentationPanel.jsx';
 import ElevageCyclesPanel from './elevage/ElevageCyclesPanel.jsx';
 import ElevageSantePanel from './elevage/ElevageSantePanel.jsx';
 import ElevageReproductionPanel from './elevage/ElevageReproductionPanel.jsx';
+import { useElevageWorkflowContext, buildElevageHandlers } from './elevage/ElevageWorkflowPanels.jsx';
 import { ELEVAGE_ACTION_GRID, ELEVAGE_STAT_GRID, ElevageActionCard, ElevageLogRow, ElevageSection, ElevageStatCard } from './elevage/elevageUi.jsx';
 import './elevage/elevage.module.css';
 

@@ -16,6 +16,7 @@ import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import { MODULE_TARGET_TABS } from '../config/horizonVision.config.js';
 import { buildVisionBadges, resolveVisionTab } from './vision/visionMetrics.js';
 import { buildVisionData } from './vision/visionUtils';
+import { analyzePilotageIntegrity } from '../utils/pilotageIntegrity.js';
 
 const MODULE_COPY = {
   centre_ia: {
