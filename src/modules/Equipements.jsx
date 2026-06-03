@@ -5,6 +5,7 @@ import { fmtCurrency } from '../utils/format';
 import EquipementsMaintenanceBridge from './EquipementsMaintenanceBridge.jsx';
 import EquipementsQuickActionsBridge from './EquipementsQuickActionsBridge.jsx';
 import EquipementsEvolution from './EquipementsEvolution.jsx';
+import AntiDuplicationNotice from '../components/AntiDuplicationNotice.jsx';
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4"><div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</p>{subtitle ? <p className="mt-1 text-sm text-[#8a7456]">{subtitle}</p> : null}</div>{children}</section>;
@@ -17,6 +18,8 @@ export default function Equipements(props) {
     <div className="space-y-6 equipements-mobile-structured">
       <style>{`@media (max-width: 640px){.equipements-mobile-structured .rounded-2xl{border-radius:18px}.equipements-mobile-structured table{font-size:12px}.equipements-mobile-structured th,.equipements-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.equipements-mobile-structured .text-2xl{font-size:1.35rem}.equipements-mobile-structured .grid{gap:.75rem}.equipements-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
 
+      <AntiDuplicationNotice pairId="maintenance_rh_equipements" compact className="mb-2" />
+      <AntiDuplicationNotice pairId="capteurs_smartfarm_equipements" onNavigate={props.onNavigate} actionLabel="Smart Farm (capteurs)" compact className="mb-2" />
       <ModuleSection icon={Zap} title="Actions terrain équipements" subtitle="Déclarer une panne, programmer une maintenance ou saisir le carburant d’un matériel.">
         <EquipementsQuickActionsBridge
           rows={rows}
@@ -84,13 +87,6 @@ export default function Equipements(props) {
       <ModuleSection icon={BarChart3} title="Évolution du matériel" subtitle="Disponibilité, pannes, maintenances, carburant et coût réel par équipement.">
         <EquipementsEvolution rows={rows} tasks={props.tasks || []} onNavigate={props.onNavigate} />
       </ModuleSection>
-
-      <EquipementsSmartFarmBridge
-        rows={rows}
-        sensors={props.sensorDevices || []}
-        cameras={props.cameraDevices || []}
-        onNavigate={props.onNavigate}
-      />
     </div>
   );
 }

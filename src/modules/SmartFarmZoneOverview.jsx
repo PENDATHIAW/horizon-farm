@@ -62,7 +62,7 @@ export default function SmartFarmZoneOverview({ sensors = [], cameras = [], mete
         <Mini icon={CloudSun} label="Météo" value={weatherText} danger={weatherRisk !== 'stable'} />
       </div>
       {!online ? <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"><WifiOff size={14} className="inline" /> Hors ligne : données locales conservées.</div> : null}
-      <div className="mt-3 flex flex-wrap gap-2"><Btn small variant="outline" onClick={() => onCreateSensor?.()}>Ajouter capteur</Btn><Btn small variant="outline" onClick={() => onCreateCamera?.()}>Ajouter caméra</Btn></div>
+      <div className="mt-3 flex flex-wrap gap-2">{onCreateSensor ? <Btn small variant="outline" onClick={() => onCreateSensor?.()}>Ajouter capteur</Btn> : null}{onCreateCamera ? <Btn small variant="outline" onClick={() => onCreateCamera?.()}>Ajouter caméra</Btn> : null}</div>
     </article>
 
     <article className="rounded-2xl border border-[#eadcc2] bg-white p-4 xl:col-span-2">

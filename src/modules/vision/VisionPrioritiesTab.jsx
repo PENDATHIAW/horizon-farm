@@ -4,6 +4,7 @@ import { AlertTriangle, BrainCircuit } from 'lucide-react';
 import { applyOneClickRecommendation } from '../../services/heyHorizonRecommendationActions.js';
 import { buildObjectiveActionTask } from '../../utils/objectivesWorkflows';
 import { fmtCurrency } from '../../utils/format';
+import { redirectToSource, shouldBlockInlineAlertCreation } from '../../utils/antiDuplicationGuard.js';
 import { openVisionPriority } from './visionMetrics.js';
 import { navigateVisionFinding, navigateVisionPriority as navFromItem } from './visionNavigation.js';
 import { Btn, DataRow, DataTable, Empty, Section, TabIntro, VISION_TABLE_COLS, VisionKpi } from './visionUtils';
@@ -78,18 +79,21 @@ export default function VisionPrioritiesTab({
     toast.success('Tâche créée');
   };
 
-  const createAlert = async (item) => {
+  const openAlertsSource = (item) => {
+    if (shouldBlockInlineAlertCreation(moduleId)) {
+      redirectToSource(onNavigate, 'alertes_centre_activite');
+      toast.success('Alertes gérées dans Activité & Suivi');
+      return;
+    }
     if (!onCreateAlert) return;
-    await onCreateAlert({
+    onCreateAlert({
       title: item.title,
       message: item.detail,
       module_source: moduleId,
       severity: item.tone === 'bad' ? 'critique' : 'warning',
       status: 'nouvelle',
       action_recommandee: item.detail || 'Voir Centre décisionnel',
-    });
-    await onRefreshAlertes?.();
-    toast.success('Alerte créée');
+    }).then(() => onRefreshAlertes?.()).then(() => toast.success('Alerte créée'));
   };
 
   return (
@@ -142,7 +146,7 @@ export default function VisionPrioritiesTab({
                 actions={<>
                   <button type="button" onClick={() => navFromItem(onNavigate, r)} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Voir source</button>
                   {onCreateTask ? <button type="button" onClick={() => createTask(r)} className="rounded-lg border border-emerald-300 px-2 py-1 text-xs font-black text-emerald-700">Tâche</button> : null}
-                  {onCreateAlert ? <button type="button" onClick={() => createAlert(r)} className="rounded-lg border border-amber-300 px-2 py-1 text-xs font-black text-amber-700">Alerte</button> : null}
+                  {onCreateAlert ? <button type="button" onClick={() => openAlertsSource(r)} className="rounded-lg border border-amber-300 px-2 py-1 text-xs font-black text-amber-700">Activité & Suivi</button> : null}
                   <button type="button" onClick={() => markTreated(r)} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Traité</button>
                 </>}
               />
