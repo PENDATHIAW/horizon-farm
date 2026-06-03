@@ -459,6 +459,8 @@ export default function App() {
     taches: { ...base('taches'), ...actionTraceShared, alertes: rows(c.alertes_center), animaux: rows(c.animaux), lots: rows(c.avicole), stocks: rows(c.stock), sensorDevices: rows(c.sensor_devices), onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, ...shared },
     rh: {
       ...internalResourcesShared,
+      transactions: rows(c.finances),
+      documents: rows(c.documents),
       alertes: rows(c.alertes_center),
       onNavigate: setActive,
       onRefresh: refreshAll,

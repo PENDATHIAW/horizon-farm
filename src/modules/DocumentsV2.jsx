@@ -4,7 +4,8 @@ import toast from 'react-hot-toast';
 import { documentLinkedToTransaction, transactionHasProof } from '../utils/accountingProof';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
-import { buildDocumentProofFollowUp } from '../utils/documentWorkflows';
+import { runDocumentLinkSideEffects } from '../utils/documentWorkflows';
+import { documentIds } from '../utils/sideEffectIds';
 import useCrudModule from '../hooks/useCrudModule';
 import DocumentControlPanel from './DocumentControlPanel.jsx';
 import Documents from './Documents.jsx';
@@ -21,8 +22,10 @@ async function createDocFromTransaction(tx, props, setSavingId) {
   if ((props.rows || []).some((doc) => documentLinkedToTransaction(doc, tx))) return toast.success('Fiche preuve / facture déjà ouverte');
   try {
     setSavingId(tx.id);
+    const docId = documentIds.transactionLink(tx.id);
+    const existingDoc = (props.rows || []).some((row) => String(row.id) === String(docId));
     const doc = {
-      id: generateSequentialId('documents', props.rows || []),
+      id: docId,
       title: `Preuve / facture ${tx.libelle || tx.id}`,
       document_category: tx.type === 'entree' ? 'recu' : 'facture',
       module_source: 'finances',
@@ -39,15 +42,21 @@ async function createDocFromTransaction(tx, props, setSavingId) {
       date_document: tx.date || new Date().toISOString().slice(0, 10),
       notes: `Preuve à joindre pour ${tx.libelle || tx.id} · ${fmtCurrency(tx.montant)}`,
     };
-    await props.onCreate?.(doc);
-    const followUp = buildDocumentProofFollowUp({ document: doc, transaction: tx });
-    if (followUp) {
-      await props.onCreateTask?.(followUp.task);
-      await props.onCreateAlert?.(followUp.alert);
-    }
+    const linkResult = await runDocumentLinkSideEffects({
+      transaction: tx,
+      document: doc,
+      tasks: props.tasks || [],
+      alertes: props.alertes || [],
+      existingDocuments: props.rows || [],
+      handlers: {
+        onCreateDocument: props.onCreate,
+        onCreateTask: props.onCreateTask,
+        onCreateAlert: props.onCreateAlert,
+      },
+    });
     await props.onRefresh?.();
     await Promise.allSettled([props.onRefreshTasks?.(), props.onRefreshAlertes?.()]);
-    toast.success('Fiche preuve créée');
+    toast.success(existingDoc ? 'Fiche preuve déjà créée' : 'Fiche preuve créée');
   } catch {
     toast.error('Création de preuve impossible');
   } finally {

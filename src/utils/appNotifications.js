@@ -55,7 +55,12 @@ export function shouldNotifyAlert(alert = {}, settings = getNotificationSettings
 }
 
 export function appNotificationKey(alert = {}) {
-  return `${alert.id || alert.entity_id || 'alert'}:${alert.severity || ''}:${alert.status || 'nouvelle'}`;
+  return clean(
+    alert.issue_key
+    || alert.alert_dedupe_key
+    || alert.idempotency_key
+    || `${alert.id || alert.entity_id || 'alert'}:${alert.severity || ''}:${alert.status || 'nouvelle'}`,
+  );
 }
 
 export function getNotificationHistory() {
@@ -81,7 +86,6 @@ export function markNotified(alert = {}, extra = {}) {
   const history = getNotificationHistory();
   const entry = {
     key: appNotificationKey(alert),
-    issue_key: alert.issue_key || '',
     alert_id: alert.id,
     title: alert.title || 'Alerte Horizon Farm',
     severity: alert.severity || 'info',

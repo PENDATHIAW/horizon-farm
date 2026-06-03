@@ -6,6 +6,7 @@ import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard.jsx
 import { buildAvicoleLotDecision } from '../services/avicoleDecisionEngine';
 import { fmtNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
+import { runMortalitySideEffects } from '../utils/livestockSideEffects';
 import { avicoleActiveCount, avicoleHasActiveBirds } from '../utils/avicoleMetrics';
 import AvicoleBase from './AvicoleBase.jsx';
 import AvicoleCycleHealthPanel from './AvicoleCycleHealthPanel.jsx';
@@ -180,7 +181,16 @@ export default function AvicoleV10(props) {
     if (!mortalityIncreased && !valueIncreased && !becameClosed) return;
     const delta = Math.max(0, mortalityOf(after) - mortalityOf(before));
     try {
-      await props.onCreateBusinessEvent?.({ id: `EVT-AVI-${Date.now()}`, module: 'avicole', source_type: 'lot_avicole', source_id: after.id, title: `Pertes lot avicole · ${after.name || after.nom || after.id}`, description: [`Type: ${after.type || after.categorie || activity}`, `Morts: ${mortalityOf(before)} → ${mortalityOf(after)}${delta ? ` (+${delta})` : ''}`, `Taux morts: ${mortalityRateOf(after)}%`, `Effectif actif: ${avicoleActiveCount(after)}`, `Valeur estimée: ${lossValueOf(before)} → ${lossValueOf(after)}`].join('\n'), severity: isLossClosedLot(after) || mortalityRateOf(after) >= 5 ? 'critique' : 'warning', status: 'nouveau', date: today(), type_evenement: 'perte_avicole', montant: Math.max(0, lossValueOf(after) - lossValueOf(before)) || lossValueOf(after) });
+      const description = [`Type: ${after.type || after.categorie || activity}`, `Morts: ${mortalityOf(before)} → ${mortalityOf(after)}${delta ? ` (+${delta})` : ''}`, `Taux morts: ${mortalityRateOf(after)}%`, `Effectif actif: ${avicoleActiveCount(after)}`, `Valeur estimée: ${lossValueOf(before)} → ${lossValueOf(after)}`, source].join('\n');
+      await runMortalitySideEffects({
+        lot: after,
+        before,
+        after,
+        source: description,
+        delta,
+        businessEvents,
+        handlers: { onCreateBusinessEvent: props.onCreateBusinessEvent },
+      });
       await props.onRefreshBusinessEvents?.();
     } catch (error) { console.warn('Perte avicole non consignée en événement', error); }
   };

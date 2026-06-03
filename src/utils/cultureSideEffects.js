@@ -1,13 +1,14 @@
-import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine.js';
+import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine';
 import {
   buildCultureHarvestWorkflow,
   buildCultureInputUsageWorkflow,
   buildCultureLossWorkflow,
   cultureHarvestQty,
   cultureUnitPrice,
-} from './cultureWorkflows.js';
-import { financeIds } from './sideEffectIds.js';
-import { toNumber } from './format.js';
+} from './cultureWorkflows';
+import { financeIds } from './sideEffectIds';
+import { attachIdempotency, buildIdempotencyKey, WORKFLOW_TYPES } from './workflowDedupe';
+import { toNumber } from './format';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();
@@ -43,7 +44,6 @@ export async function runCultureHarvestSideEffects({
   stocks = [],
   opportunities = [],
   transactions = [],
-  businessEvents = [],
   source = 'fiche culture',
   date = '',
   handlers = {},
@@ -75,18 +75,12 @@ export async function runCultureHarvestSideEffects({
   }
 
   if (workflow.event && handlers.onCreateBusinessEvent) {
-    const cultureId = clean(after.id);
-    const alreadyLogged = arr(businessEvents).some((row) => clean(row.entity_id || row.source_id) === cultureId
-      && ['recolte_culture_disponible', 'recolte_culture'].includes(clean(row.event_type)));
-    if (!alreadyLogged) {
-      await handlers.onCreateBusinessEvent({ ...workflow.event, side_effects_managed: true });
-    }
+    await handlers.onCreateBusinessEvent({ ...workflow.event, side_effects_managed: true });
   }
 
   if (handlers.onCreateTrace && after.id) {
-    const traceId = `TRA-CULTURE-${after.id}`;
     await handlers.onCreateTrace?.({
-      id: traceId,
+      id: `TRA-CULTURE-${after.id}`,
       type: 'culture',
       source_id: after.id,
       source_module: 'cultures',

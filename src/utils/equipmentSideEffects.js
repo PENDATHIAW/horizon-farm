@@ -1,12 +1,12 @@
-import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine.js';
+import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine';
 import {
   buildEquipmentBreakdownFollowUp,
   buildEquipmentRepairWorkflow,
   findOpenEquipmentAlert,
   findOpenEquipmentTask,
-} from './equipmentWorkflows.js';
-import { alertIds, documentIds, financeIds } from './sideEffectIds.js';
-import { toNumber } from './format.js';
+} from './equipmentWorkflows';
+import { alertIds, documentIds, financeIds } from './sideEffectIds';
+import { toNumber } from './format';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();
@@ -90,8 +90,14 @@ export async function runEquipmentRepairSideEffects({
     await syncFinanceSideEffects(exists || workflow.financeTransaction, { handlers, document: workflow.document });
   }
 
-  if (workflow.document && handlers.onCreateDocument) await handlers.onCreateDocument(workflow.document);
-  if (workflow.event && handlers.onCreateBusinessEvent) await handlers.onCreateBusinessEvent(workflow.event);
+  if (workflow.document && handlers.onCreateDocument) {
+    const docExists = arr(handlers.existingDocuments || []).some((row) => clean(row.id) === clean(workflow.document.id));
+    if (!docExists) await handlers.onCreateDocument(workflow.document);
+  }
+  if (workflow.event && handlers.onCreateBusinessEvent) {
+    const eventExists = arr(handlers.existingBusinessEvents || []).some((row) => clean(row.linked_transaction_id) === clean(workflow.financeTransaction?.id));
+    if (!eventExists) await handlers.onCreateBusinessEvent(workflow.event);
+  }
   return workflow;
 }
 

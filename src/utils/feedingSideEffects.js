@@ -1,6 +1,7 @@
 import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine';
 import { financeIds } from './sideEffectIds';
 import { applyStockMovement } from './stockWorkflows';
+import { attachIdempotency, buildIdempotencyKey, findByRecordId, WORKFLOW_TYPES } from './workflowDedupe';
 import { toNumber } from './format';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
@@ -30,7 +31,6 @@ export function buildFeedingFinanceRow({ log = {}, stock = {}, amount = 0, date 
     statut: 'paye',
     side_effects_managed: true,
     created_from: 'feeding_side_effects',
-    issue_key: log.issue_key || `elevage:alimentation:${logId}`,
   };
 }
 
@@ -40,29 +40,49 @@ export async function runFeedingSideEffects({
   stockMovement = null,
   amount = 0,
   transactions = [],
+  businessEvents = [],
+  existingLogs = [],
   handlers = {},
   skipFinance = false,
 } = {}) {
+  const logId = clean(log.id);
   if (log?.id) {
-    await handlers.onCreateAlimentation?.({
-      ...log,
-      side_effects_managed: true,
-      created_from: log.created_from || 'feeding_side_effects',
-      issue_key: log.issue_key,
-    });
+    const existingLog = findByRecordId(existingLogs, logId);
+    if (!existingLog) {
+      await handlers.onCreateAlimentation?.(attachIdempotency({
+        ...log,
+        side_effects_managed: true,
+        created_from: log.created_from || 'feeding_side_effects',
+      }, buildIdempotencyKey({
+        workflowType: WORKFLOW_TYPES.FEEDING,
+        sourceModule: 'alimentation',
+        sourceRecordId: logId,
+      }), { workflowType: WORKFLOW_TYPES.FEEDING, sourceModule: 'alimentation', sourceRecordId: logId }));
+    }
   }
 
   if (stockMovement && handlers.onUpdateStockMovement) {
     await handlers.onUpdateStockMovement(stockMovement);
   } else if (stock?.id && num(stockMovement?.qty ?? log.quantite) > 0) {
+    const movementRef = clean(log.id || stockMovement?.ref || log.date || today());
     const movement = applyStockMovement(stock, {
       type: 'sortie',
       qty: num(stockMovement?.qty ?? log.quantite),
       motif: log.notes || 'Alimentation',
       date: log.date || today(),
+      movementRef,
+      idempotencyKey: buildIdempotencyKey({
+        workflowType: WORKFLOW_TYPES.STOCK_EXIT,
+        sourceModule: 'alimentation',
+        sourceRecordId: logId || stock.id,
+        movementRef,
+      }),
     });
     await handlers.onUpdateStock?.(stock.id, movement.stock);
-    if (handlers.onCreateBusinessEvent && movement.event) await handlers.onCreateBusinessEvent(movement.event);
+    if (handlers.onCreateBusinessEvent && movement.event) {
+      const eventExists = arr(businessEvents).some((row) => clean(row.id) === clean(movement.event.id));
+      if (!eventExists) await handlers.onCreateBusinessEvent(movement.event);
+    }
   }
 
   const financeAmount = num(amount || log.montant_total);

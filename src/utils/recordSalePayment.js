@@ -1,10 +1,11 @@
-import { buildClientSalesSummary } from './clientWorkflows.js';
-import { makeId } from './ids.js';
-import { toNumber } from './format.js';
-import { buildCoherentOrderPatch, findExistingFinanceForPayment, findExistingPayment } from '../services/salesIntegrityService.js';
-import { remainingForOrder } from './salesStatuses.js';
-import { capSalePayment } from './salesWorkflows.js';
-import { financeIds, runPaymentSideEffects } from './saleSideEffects.js';
+import { buildClientSalesSummary } from './clientWorkflows';
+import { makeId } from './ids';
+import { toNumber } from './format';
+import { buildCoherentOrderPatch, findExistingFinanceForPayment, findExistingPayment } from '../services/salesIntegrityService';
+import { remainingForOrder } from './salesStatuses';
+import { capSalePayment } from './salesWorkflows';
+import { financeIds, runPaymentSideEffects } from './saleSideEffects';
+import { buildIdempotencyKey, WORKFLOW_TYPES } from './workflowDedupe';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value = '') => String(value || '').trim();
@@ -95,6 +96,12 @@ export async function recordSalePayment({
 
   const payId = paymentId || makeId('PAY');
   const date = paymentDate || new Date().toISOString().slice(0, 10);
+  const idempotencyKey = buildIdempotencyKey({
+    workflowType: WORKFLOW_TYPES.PAYMENT,
+    sourceModule: 'ventes',
+    sourceRecordId: sale.id,
+    movementRef: `${payId}:${cappedAmount}:${date}:${paymentMethod}`,
+  });
 
   const paymentRow = {
     id: payId,
@@ -113,6 +120,8 @@ export async function recordSalePayment({
     statut: 'paye',
     created_from: 'record_sale_payment',
     side_effects_managed: true,
+    idempotency_key: idempotencyKey,
+    issue_key: idempotencyKey,
   };
 
   await onCreatePayment?.(paymentRow);
@@ -150,6 +159,8 @@ export async function recordSalePayment({
       transaction_origin: 'automatique',
       created_from: 'record_sale_payment',
       side_effects_managed: true,
+      idempotency_key: idempotencyKey,
+      issue_key: idempotencyKey,
     });
   }
 
