@@ -81,6 +81,7 @@ export function markNotified(alert = {}, extra = {}) {
   const history = getNotificationHistory();
   const entry = {
     key: appNotificationKey(alert),
+    issue_key: alert.issue_key || '',
     alert_id: alert.id,
     title: alert.title || 'Alerte Horizon Farm',
     severity: alert.severity || 'info',
