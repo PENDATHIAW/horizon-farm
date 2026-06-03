@@ -4,6 +4,7 @@ import { buildClientReminderFollowUp, buildClientSalesSummary } from './clientWo
 import { buildClientReceivablePatch } from './recordSalePayment.js';
 import { buildReverseSaleSourcePatch, buildSaleSourcePatch } from './salesWorkflows.js';
 import { remainingForOrder } from './salesStatuses.js';
+import { enrichFinanceTransaction, ORIGIN_TYPES } from './financeTransactionMeta.js';
 import { financeIds } from './sideEffectIds.js';
 import { makeId } from './ids.js';
 import { toNumber } from './format.js';
