@@ -21,7 +21,7 @@ function LayerHelpBanner() {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-export default function ElevageProductionPanel({ data, setTab, animalProps, avicoleProps, horizonDraft, onCloseDraft, stats, recent }) {
+export default function ElevageProductionPanel({ data, setTab, animalProps, avicoleProps, horizonDraft, onCloseDraft, stats, recent, onOpenWorkflow }) {
   const activeLots = useMemo(() => (avicoleProps.rows || []).filter(avicoleHasActiveBirds), [avicoleProps.rows]);
   const { wrapUpdate } = useAnimalWorkflowHandlers({ props: animalProps, species: 'Bovin', opportunities: avicoleProps.opportunities || [] });
   const stockCrud = useCrudModule('stock');
@@ -38,7 +38,7 @@ export default function ElevageProductionPanel({ data, setTab, animalProps, avic
 
       <ElevageSection title="Actions rapides">
         <div className={ELEVAGE_ACTION_GRID}>
-          <ElevageActionCard title="+ Ramassage œufs" text="Saisie Hey Horizon avec date du jour." onClick={() => emitHorizonForm('avicole', 'egg_production', 'Ramassage œufs', { date: today() })} />
+          <ElevageActionCard title="+ Ramassage œufs" text="Production, entrée stock œufs et traçabilité." onClick={() => (onOpenWorkflow ? onOpenWorkflow('eggs') : emitHorizonForm('avicole', 'egg_production', 'Ramassage œufs', { date: today() }))} />
           <ElevageActionCard title="+ Pesée animal" text="Enregistrer le poids d'un animal du cheptel." onClick={() => emitHorizonForm('animaux', 'animal_weighing', 'Pesée animal', { date: today() })} />
           <ElevageActionCard title="Stock œufs / aliment" text="Voir l'impact sur Achats & Stock." onClick={() => animalProps.onNavigate?.('achats_stock')} />
         </div>

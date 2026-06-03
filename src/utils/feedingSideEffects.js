@@ -30,6 +30,7 @@ export function buildFeedingFinanceRow({ log = {}, stock = {}, amount = 0, date 
     statut: 'paye',
     side_effects_managed: true,
     created_from: 'feeding_side_effects',
+    issue_key: log.issue_key || `elevage:alimentation:${logId}`,
   };
 }
 
@@ -47,6 +48,7 @@ export async function runFeedingSideEffects({
       ...log,
       side_effects_managed: true,
       created_from: log.created_from || 'feeding_side_effects',
+      issue_key: log.issue_key,
     });
   }
 

@@ -17,7 +17,7 @@ const isClosedAnimal = (row = {}) => {
   return ['vendu', 'mort', 'vole', 'volé', 'perdu', 'abattu', 'cloture', 'clôture', 'sorti'].some((word) => status.includes(word));
 };
 
-export default function ElevageTransformationPanel({ data, setTab, animalProps, avicoleProps, horizonDraft, onCloseDraft, stats }) {
+export default function ElevageTransformationPanel({ data, setTab, animalProps, avicoleProps, horizonDraft, onCloseDraft, stats, onOpenWorkflow }) {
   const activeAnimals = useMemo(() => (animalProps.rows || []).filter((row) => !isClosedAnimal(row)), [animalProps.rows]);
   const activeLots = useMemo(() => (avicoleProps.rows || []).filter(avicoleHasActiveBirds), [avicoleProps.rows]);
   const { wrapUpdate } = useAnimalWorkflowHandlers({ props: animalProps, species: 'Bovin', opportunities: avicoleProps.opportunities || [] });
@@ -37,9 +37,9 @@ export default function ElevageTransformationPanel({ data, setTab, animalProps, 
         subtitle="Abattage, réforme, mortalité et sorties — impact effectif, stock viande et rentabilité."
       >
         <div className={ELEVAGE_ACTION_GRID}>
-          <ElevageActionCard title="+ Mortalité lot avicole" text="Déclarer mortalité avec impact effectif." onClick={() => emitHorizonForm('avicole', 'poultry_mortality', 'Mortalité lot', { date: today() })} />
+          <ElevageActionCard title="+ Mortalité lot avicole" text="Effectif, perte économique, alerte et traçabilité." onClick={() => (onOpenWorkflow ? onOpenWorkflow('mortality') : emitHorizonForm('avicole', 'poultry_mortality', 'Mortalité lot', { date: today() }))} />
           <ElevageActionCard title="+ Sortie / abattage animal" text="Perte, sortie ou abattage côté cheptel." onClick={() => emitHorizonForm('animaux', 'animal_loss', 'Sortie / abattage animal', { date: today() })} />
-          <ElevageActionCard title="+ Clôturer lot" text="Réforme ou clôture avicole." onClick={() => emitHorizonForm('avicole', 'poultry_close', 'Clôture / réforme avicole', { date: today() })} />
+          <ElevageActionCard title="+ Prêt vente / réforme" text="Statut lot, document sanitaire, rentabilité." onClick={() => (onOpenWorkflow ? onOpenWorkflow('transform') : emitHorizonForm('avicole', 'poultry_close', 'Clôture / réforme avicole', { date: today() }))} />
           <ElevageActionCard title="Lots à vendre" text={`${data.lotsToSell?.length || 0} lot(s) — Commercial.`} onClick={() => animalProps.onNavigate?.('commercial', { tab: 'Ventes' })} />
         </div>
       </ElevageSection>
