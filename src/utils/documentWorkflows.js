@@ -1,5 +1,7 @@
 import { toNumber } from './format.js';
 import { makeId } from './ids.js';
+import { documentIds } from './sideEffectIds.js';
+import { attachIdempotency, buildIdempotencyKey, findByRecordId, hasOpenDedupeRecord, WORKFLOW_TYPES } from './workflowDedupe.js';
 
 const clean = (value = '') => String(value || '').trim();
 const lower = (value = '') => clean(value).toLowerCase();
@@ -54,4 +56,39 @@ export function buildDocumentProofFollowUp({ document = {}, transaction = {}, da
       linked_task_id: taskId,
     },
   };
+}
+
+export async function runDocumentLinkSideEffects({
+  transaction = {},
+  document = {},
+  tasks = [],
+  alertes = [],
+  existingDocuments = [],
+  handlers = {},
+} = {}) {
+  const docId = document.id || documentIds.transactionLink(transaction.id);
+  const idempotencyKey = buildIdempotencyKey({
+    workflowType: WORKFLOW_TYPES.DOCUMENT_LINK,
+    sourceModule: 'finances',
+    sourceRecordId: transaction.id,
+  });
+  const existingDoc = findByRecordId(existingDocuments, docId);
+  if (!existingDoc) {
+    await handlers.onCreateDocument?.(attachIdempotency({
+      ...document,
+      id: docId,
+      transaction_id: transaction.id,
+      finance_id: transaction.id,
+    }, idempotencyKey, { workflowType: WORKFLOW_TYPES.DOCUMENT_LINK, sourceModule: 'finances', sourceRecordId: transaction.id }));
+  }
+  const followUp = buildDocumentProofFollowUp({ document: existingDoc || { ...document, id: docId }, transaction });
+  if (followUp) {
+    if (!hasOpenDedupeRecord(tasks, followUp.key) && handlers.onCreateTask) {
+      await handlers.onCreateTask?.(followUp.task);
+    }
+    if (!hasOpenDedupeRecord(alertes, followUp.key) && handlers.onCreateAlert) {
+      await handlers.onCreateAlert?.(followUp.alert);
+    }
+  }
+  return { documentId: docId, idempotencyKey, followUp };
 }

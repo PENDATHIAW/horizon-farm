@@ -12,6 +12,7 @@ const saleIdOf = (row = {}) => clean(row.order_id || row.sale_id || row.source_r
 const paymentAmount = (row = {}) => toNumber(row.montant_paye ?? row.montant ?? row.amount ?? row.paid_amount);
 const orderTotal = (row = {}) => toNumber(row.montant_total ?? row.total ?? row.amount ?? row.total_amount ?? row.montant);
 const isCancelled = (row = {}) => ['annule', 'annulé', 'annulee', 'cancelled', 'rejete', 'rejeté'].includes(lower(row.statut || row.status));
+const isCompletedTask = (row = {}) => ['termine', 'terminé', 'done', 'closed', 'clos'].includes(lower(row.status || row.statut));
 const financePaymentId = (row = {}) => clean(row.payment_id || row.paiement_id || row.source_payment_id);
 const financeSaleId = (row = {}) => clean(row.related_id || row.source_record_id || row.order_id || row.sale_id || row.commande_id);
 const financeAmount = (row = {}) => toNumber(row.montant ?? row.amount);

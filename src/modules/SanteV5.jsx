@@ -64,7 +64,6 @@ async function markDone(healthItem, props) {
       props.onRefreshBusinessEvents?.(),
     ]);
 
-    toast.success(`Soin validé · ${preview.workflow_meta?.saisies_evitees || 0} saisies évitées`);
   } catch (error) {
     toast.error(error.message || 'Validation santé impossible');
   }

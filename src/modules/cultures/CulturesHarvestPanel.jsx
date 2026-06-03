@@ -1,6 +1,7 @@
 import { PackageCheck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import useWorkflowSubmit from '../../hooks/useWorkflowSubmit';
 import { calculateCultureMetrics } from '../../utils/businessCalculations';
 import { fmtCurrency, fmtNumber, toNumber } from '../../utils/format';
 import { commitCultureHarvest } from '../../utils/culturesWorkflow.js';
@@ -37,7 +38,7 @@ export default function CulturesHarvestPanel({
     notes: '',
   };
   const [form, setForm] = useState(initial);
-  const [busy, setBusy] = useState(false);
+  const { submit: workflowSubmit, busy: workflowBusy } = useWorkflowSubmit();
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const culture = cultures.find((c) => c.id === form.culture_id);
@@ -49,16 +50,17 @@ export default function CulturesHarvestPanel({
 
   const submit = async (e) => {
     e.preventDefault();
+    const harvestKey = `harvest:${form.culture_id}:${form.date}:${form.quantite_recoltee}`;
     try {
-      setBusy(true);
-      await commitCultureHarvest({ form, context, handlers });
-      toast.success('Récolte enregistrée — stock vendable et traçabilité à jour');
-      setForm(initial);
-      await onSuccess?.();
+      const result = await workflowSubmit(harvestKey, async () => {
+        await commitCultureHarvest({ form, context, handlers });
+        toast.success('Récolte enregistrée — stock vendable et traçabilité à jour');
+        setForm(initial);
+        await onSuccess?.();
+      });
+      if (result?.skipped && result.reason === 'in_flight') return;
     } catch (err) {
       toast.error(err.message || 'Récolte impossible');
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -78,7 +80,7 @@ export default function CulturesHarvestPanel({
         <div className="md:col-span-1"><Field label="Frais récolte"><input type="number" className={inputCls} value={form.frais_recolte} onChange={(e) => update('frais_recolte', e.target.value)} /></Field></div>
         <div className="md:col-span-1"><Field label="Transport"><input type="number" className={inputCls} value={form.frais_transport} onChange={(e) => update('frais_transport', e.target.value)} /></Field></div>
         <div className="md:col-span-1"><Field label="Conditionnement"><input type="number" className={inputCls} value={form.frais_conditionnement} onChange={(e) => update('frais_conditionnement', e.target.value)} /></Field></div>
-        <div className="md:col-span-2 flex items-end"><button type="submit" disabled={busy} className="w-full rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{busy ? '…' : 'Enregistrer la récolte'}</button></div>
+        <div className="md:col-span-2 flex items-end"><button type="submit" disabled={workflowBusy} className="w-full rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{workflowBusy ? '…' : 'Enregistrer la récolte'}</button></div>
       </form>
       <p className="text-sm text-[#7d6a4a]">Coût de revient estimé : <b>{unitCost ? fmtCurrency(unitCost) : '—'}</b> / {form.unite} · frais saisis : <b>{fmtNumber(extra)} F</b></p>
     </section>

@@ -2,9 +2,7 @@ import { Bell, Database, Eye, FileText, History, Layers, LogOut, RefreshCw, Sett
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { applyUiSettingsToDocument, DEFAULT_UI_SETTINGS, isDemoModeEnabled, readUiSettings, setDemoMode, UI_SETTINGS_KEY, writeUiSettings } from '../utils/uiPreferences';
-
-const NOTIFICATION_BANNER_HIDDEN_KEY = 'horizon-farm-notification-banner-hidden';
-const IGNORED_AUDIT_KEY = 'horizon_farm_ignored_interconnection_issues';
+import { JUSTIFIED_EXCEPTION_STORAGE_KEY, LEGACY_IGNORED_INTERCONNECTION_KEY } from '../utils/justifiedExceptionRules.js';
 
 function removeMatchingLocalStorage(prefixes = []) {
   if (typeof localStorage === 'undefined') return 0;
