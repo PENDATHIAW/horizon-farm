@@ -81,7 +81,7 @@ export default function VisionPrioritiesTab({
     toast.success('Tâche créée avec source');
   };
 
-  const openAlertsSource = (item) => {
+  const openAlertsSource = async (item) => {
     if (shouldBlockInlineAlertCreation(moduleId)) {
       redirectToSource(onNavigate, 'alertes_centre_activite');
       toast.success('Alertes gérées dans Activité & Suivi');
