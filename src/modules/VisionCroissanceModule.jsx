@@ -11,6 +11,7 @@ import VisionRisksTab from './vision/VisionRisksTab';
 import PilotageIntegrityPanel from './vision/PilotageIntegrityPanel.jsx';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import HeyHorizonQuickAsk from '../components/HeyHorizonQuickAsk.jsx';
+import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import { MODULE_TARGET_TABS } from '../config/horizonVision.config.js';
@@ -127,6 +128,7 @@ export default function VisionCroissanceModule(props) {
             )
             : tab === 'Plans' ? <VisionPlansTab data={data} onCreateBusinessPlan={onCreateBusinessPlan} onNavigate={onNavigate} />
               : tab === 'Financeurs' ? <VisionFundingTab data={data} onNavigate={onNavigate} />
+                : tab === 'Annexe' ? <ModuleAnnexeTab moduleId={moduleId} dataMap={dataMap} onNavigate={onNavigate} />
                 : <ModuleGraphiquesTab moduleId={moduleId} periodFiltered={props.periodFiltered} {...props} {...dataMap} onNavigate={onNavigate} />;
 
   return (

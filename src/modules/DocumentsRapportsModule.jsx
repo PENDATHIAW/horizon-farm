@@ -1,6 +1,7 @@
 import { BarChart3, BrainCircuit, ClipboardList, Download, FileText, FolderOpen, Search, ShieldCheck, Zap } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
@@ -344,7 +345,7 @@ export default function DocumentsRapportsModule(props) {
       {workflowBridge(false, true)}
       <Proofs data={data} onNavigate={props.onNavigate} onAttachProof={attachProof} busyId={busyId} />
     </div>
-  ) : tab === 'Rapports' ? <Reports data={data} /> : tab === 'Exports' ? <Exports data={data} onNavigate={props.onNavigate} /> : tab === 'Modèles' ? <Templates data={data} /> : <ModuleGraphiquesTab moduleId="documents_rapports" periodFiltered={periodFiltered} transactions={data.transactions} finances={data.transactions} clients={data.clients} salesOrders={data.salesOrders} payments={data.payments} onNavigate={props.onNavigate} />;
+  ) : tab === 'Rapports' ? <Reports data={data} /> : tab === 'Exports' ? <Exports data={data} onNavigate={props.onNavigate} /> : tab === 'Modèles' ? <Templates data={data} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="documents_rapports" dataMap={{ documents: data.documents, finances: data.transactions, sales_orders: data.salesOrders, payments: data.payments }} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="documents_rapports" periodFiltered={periodFiltered} transactions={data.transactions} finances={data.transactions} clients={data.clients} salesOrders={data.salesOrders} payments={data.payments} onNavigate={props.onNavigate} />;
 
   return (
     <div className="space-y-6">

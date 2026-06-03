@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import useCrudModule from '../hooks/useCrudModule';
 import { rowsOf } from '../utils/moduleRows';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
+import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import SmartFarmZoneOverview from './SmartFarmZoneOverview.jsx';
@@ -126,6 +127,18 @@ export default function SmartFarmRecoveredModule(props) {
             {cameras.length} caméra(s) enregistrée(s).
           </div>
         </div>
+      ) : null}
+      {tab === 'Annexe' ? (
+        <ModuleAnnexeTab
+          moduleId="smartfarm"
+          dataMap={{
+            ...props.dataMap,
+            sensor_devices: sensors,
+            camera_devices: cameras,
+            smartfarm_events: props.dataMap?.smartfarm_events || [],
+          }}
+          onNavigate={props.onNavigate}
+        />
       ) : null}
       {tab === 'Graphiques' ? (
         <ModuleGraphiquesTab

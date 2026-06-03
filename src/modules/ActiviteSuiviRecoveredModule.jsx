@@ -1,6 +1,7 @@
 import { Bell, BrainCircuit, ClipboardList, GitBranch, ListTodo, Zap } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
@@ -266,7 +267,7 @@ export default function ActiviteSuiviRecoveredModule(props) {
           {workflowBridge(true, true)}
           <TachesV3 {...shared} />
         </div>
-      ) : tab === 'Traçabilité' ? <TracabiliteV2 {...shared} rows={traceRows} onCreate={props.onCreateTrace || traceCrud.create} onUpdate={props.onUpdateTrace || traceCrud.update} onDelete={props.onDeleteTrace || traceCrud.remove} onRefresh={props.onRefreshTrace || traceCrud.refresh} /> : <ModuleGraphiquesTab moduleId="activite_suivi" taches={tasks} alertes={alertes} onNavigate={props.onNavigate} />}
+      ) : tab === 'Traçabilité' ? <TracabiliteV2 {...shared} rows={traceRows} onCreate={props.onCreateTrace || traceCrud.create} onUpdate={props.onUpdateTrace || traceCrud.update} onDelete={props.onDeleteTrace || traceCrud.remove} onRefresh={props.onRefreshTrace || traceCrud.refresh} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="activite_suivi" dataMap={{ alertes_center: alertes, taches: tasks, business_events: rowsOf(props.businessEvents, eventsCrud, periodFiltered) }} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="activite_suivi" taches={tasks} alertes={alertes} onNavigate={props.onNavigate} />}
     </div>
   );
 }
