@@ -5,8 +5,9 @@ import { buildCoherentOrderPatch, findExistingFinanceForPayment, findExistingPay
 import { remainingForOrder } from './salesStatuses';
 import { capSalePayment } from './salesWorkflows';
 import { financeIds, runPaymentSideEffects } from './saleSideEffects';
-import { createImpactJournal, finalizeImpactJournal, IMPACT_KEYS, instrumentHandlers, markImpactCreated, markImpactNa, OPERATION_EXPECTATIONS, OPERATION_TYPES } from './workflowImpactJournal';
+import { createImpactJournal, finalizeImpactJournal, IMPACT_KEYS, instrumentHandlers, markImpactNa, OPERATION_EXPECTATIONS, OPERATION_TYPES } from './workflowImpactJournal';
 import { showWorkflowImpactToast } from './workflowImpactToast';
+import { buildIdempotencyKey, WORKFLOW_TYPES } from './workflowDedupe';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value = '') => String(value || '').trim();
@@ -99,6 +100,12 @@ export async function recordSalePayment({
   const date = paymentDate || new Date().toISOString().slice(0, 10);
   const journal = createImpactJournal(OPERATION_TYPES.PAIEMENT, payId);
   const tracked = instrumentHandlers(handlers, journal);
+  const idempotencyKey = buildIdempotencyKey({
+    workflowType: WORKFLOW_TYPES.PAYMENT,
+    sourceModule: 'ventes',
+    sourceRecordId: sale.id,
+    movementRef: `${payId}:${cappedAmount}:${date}:${paymentMethod}`,
+  });
 
   const paymentRow = {
     id: payId,
@@ -117,6 +124,8 @@ export async function recordSalePayment({
     statut: 'paye',
     created_from: 'record_sale_payment',
     side_effects_managed: true,
+    idempotency_key: idempotencyKey,
+    issue_key: idempotencyKey,
   };
 
   await tracked.onCreatePayment?.(paymentRow);
@@ -154,6 +163,8 @@ export async function recordSalePayment({
       transaction_origin: 'automatique',
       created_from: 'record_sale_payment',
       side_effects_managed: true,
+      idempotency_key: idempotencyKey,
+      issue_key: idempotencyKey,
     });
   }
 

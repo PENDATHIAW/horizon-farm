@@ -29,6 +29,7 @@
     "test:unit:workflow-impact": "node tests/unit/workflowImpactJournal.test.js",
     "test:unit:justified-exceptions": "node tests/unit/justifiedExceptionStore.test.js",
     "test:unit:guided-repairs": "node --test tests/unit/syncGuidedRepairActions.test.js",
+    "test:unit:idempotency": "node --test tests/unit/workflowIdempotency.test.js",
     "db:migrate": "bash scripts/apply_supabase_migrations.sh",
     "db:migrate:verify": "node scripts/apply_supabase_migrations.mjs",
     "check": "npm run lint && npm run build && npm run test:e2e"

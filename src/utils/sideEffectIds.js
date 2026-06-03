@@ -14,9 +14,15 @@ export const financeIds = {
   supplierPayment: (supplierId, ref = '') => `TRX-PAY-FOUR-${clean(supplierId)}${ref ? `-${clean(ref)}` : ''}`,
   stockLoss: (stockId, ref = '') => `TRX-PERTE-${clean(stockId)}${ref ? `-${clean(ref)}` : ''}`,
   cultureHarvest: (cultureId) => `TRX-RECOLTE-${clean(cultureId)}`,
-  cultureExpense: (cultureId, expenseId = '') => `TRX-CULT-DEP-${clean(cultureId)}${expenseId ? `-${clean(expenseId)}` : ''}`,
-  rhPayroll: (personId, period = '') => `TRX-PAIE-${clean(personId)}${period ? `-${clean(period)}` : ''}`,
   investment: (investmentId) => `TRX-INV-${clean(investmentId)}`,
+  payroll: (personId, period = '') => `TRX-RH-${clean(personId)}-${clean(period)}`,
+};
+
+export const eventIds = {
+  stockMovement: (stockId, ref = '') => `EVT-STK-${clean(stockId)}${ref ? `-${clean(ref)}` : ''}`,
+  mortality: (lotId, date, delta = '') => `EVT-MORT-${clean(lotId)}-${clean(date)}${delta !== '' && delta !== undefined ? `-${clean(delta)}` : ''}`,
+  eggProduction: (lotId, date) => `PROD-${clean(lotId)}-${clean(date)}`,
+  businessEvent: (type, sourceModule, sourceRecordId, ref = '') => `EVT-${clean(type)}-${clean(sourceModule)}-${clean(sourceRecordId)}${ref ? `-${clean(ref)}` : ''}`,
 };
 
 export const documentIds = {
@@ -25,8 +31,7 @@ export const documentIds = {
   supplierPayment: (supplierId, ref = '') => `DOC-PAY-FOUR-${clean(supplierId)}${ref ? `-${clean(ref)}` : ''}`,
   equipmentRepair: (equipmentId) => `DOC-EQP-${clean(equipmentId)}`,
   healthProof: (healthId) => `DOC-SANTE-${clean(healthId)}`,
-  cultureExpense: (cultureId, expenseId = '') => `DOC-CULT-DEP-${clean(cultureId)}${expenseId ? `-${clean(expenseId)}` : ''}`,
-  rhPayroll: (personId, period = '') => `DOC-PAIE-${clean(personId)}${period ? `-${clean(period)}` : ''}`,
+  transactionLink: (transactionId) => `DOC-LINK-${clean(transactionId)}`,
 };
 
 export const alertIds = {

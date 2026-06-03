@@ -1,6 +1,7 @@
 import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine';
 import { buildStructuredFarmImpact } from '../services/erpInterconnectionRules';
-import { documentIds, financeIds } from './sideEffectIds';
+import { documentIds, eventIds, financeIds } from './sideEffectIds';
+import { attachIdempotency, buildIdempotencyKey, findByRecordId, WORKFLOW_TYPES } from './workflowDedupe';
 import { toNumber } from './format';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
@@ -32,7 +33,6 @@ export function buildHealthFinanceRow({ health = {}, amount = 0, date = '' } = {
     statut: 'paye',
     side_effects_managed: true,
     created_from: 'health_side_effects',
-    issue_key: health.issue_key || `elevage:sante:${healthId}`,
     ...buildStructuredFarmImpact({ ...health, cout: value }),
   };
 }
@@ -89,7 +89,15 @@ export async function runHealthSideEffects({
   }
 
   if (handlers.onCreateBusinessEvent) {
-    await handlers.onCreateBusinessEvent({
+    const eventId = eventIds.businessEvent('sante', 'sante', healthId, today());
+    if (findByRecordId(handlers.existingBusinessEvents || [], eventId)) return { healthId, cost: financeAmount };
+    const idempotencyKey = buildIdempotencyKey({
+      workflowType: WORKFLOW_TYPES.HEALTH,
+      sourceModule: 'sante',
+      sourceRecordId: healthId,
+    });
+    await handlers.onCreateBusinessEvent(attachIdempotency({
+      id: eventId,
       event_type: 'sante',
       module_source: 'sante',
       entity_id: healthId,
@@ -98,7 +106,7 @@ export async function runHealthSideEffects({
       severity: 'info',
       side_effects_managed: true,
       ...structured,
-    });
+    }, idempotencyKey, { workflowType: WORKFLOW_TYPES.HEALTH, sourceModule: 'sante', sourceRecordId: healthId }));
   }
 
   return { healthId, cost: financeAmount };

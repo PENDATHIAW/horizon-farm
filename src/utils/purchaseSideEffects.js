@@ -1,6 +1,7 @@
 import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine';
 import { buildStockCriticalFollowUp, hasOpenStockReorderTask, stockProductName, stockQuantity } from './stockWorkflows';
 import { alertIds, documentIds, financeIds } from './sideEffectIds';
+import { attachIdempotency, buildIdempotencyKey, WORKFLOW_TYPES } from './workflowDedupe';
 import { toNumber } from './format';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
@@ -128,8 +129,14 @@ export async function runPurchaseSideEffects({
       stock: mergedStock,
     });
     if (financeRow) {
+      const idempotencyKey = buildIdempotencyKey({
+        workflowType: WORKFLOW_TYPES.PURCHASE,
+        sourceModule: 'stock',
+        sourceRecordId: stockId,
+        movementRef: movementRef || date || today(),
+      });
       const exists = arr(transactions).find((row) => clean(row.id) === clean(financeRow.id));
-      if (!exists) await handlers.onCreateFinanceTransaction?.(financeRow);
+      if (!exists) await handlers.onCreateFinanceTransaction?.(attachIdempotency(financeRow, idempotencyKey, { workflowType: WORKFLOW_TYPES.PURCHASE, sourceModule: 'stock', sourceRecordId: stockId }));
       await syncFinanceSideEffects(exists || financeRow, { handlers });
     }
   }

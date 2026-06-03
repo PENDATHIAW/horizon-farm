@@ -1,5 +1,7 @@
-import { toNumber } from './format.js';
-import { makeId } from './ids.js';
+import { toNumber } from './format';
+import { makeId } from './ids';
+import { eventIds } from './sideEffectIds';
+import { attachIdempotency, buildIdempotencyKey, WORKFLOW_TYPES } from './workflowDedupe';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const clean = (value) => String(value || '').trim();
@@ -31,6 +33,15 @@ export function applyStockMovement(row = {}, movement = {}) {
   const unit = row.unite || row.unit || '';
   const eventType = type === 'entree' ? 'reception_stock' : type === 'perte' ? 'perte_stock' : 'sortie_stock';
   const value = qty * stockUnitPrice(row);
+  const movementRef = clean(movement.movementRef || movement.ref || movement.motif || movement.label || movement.date || today());
+  const idempotencyKey = movement.idempotencyKey || buildIdempotencyKey({
+    workflowType: type === 'entree' ? WORKFLOW_TYPES.PURCHASE : WORKFLOW_TYPES.STOCK_EXIT,
+    sourceModule: 'stock',
+    sourceRecordId: row.id,
+    targetAction: type,
+    movementRef: `${movementRef}:${qty}`,
+  });
+  const eventId = movement.eventId || eventIds.stockMovement(row.id, `${type}:${movementRef}:${qty}`);
   return {
     stock: {
       ...row,
@@ -41,9 +52,10 @@ export function applyStockMovement(row = {}, movement = {}) {
       last_movement_type: type,
       last_movement_label: movement.motif || movement.label || '',
       last_movement_qty: qty,
+      last_movement_ref: movementRef,
     },
-    event: {
-      id: makeId('EVT'),
+    event: attachIdempotency({
+      id: eventId,
       event_type: eventType,
       module_source: 'stock',
       entity_type: 'stock',
@@ -55,7 +67,8 @@ export function applyStockMovement(row = {}, movement = {}) {
       quantity: qty,
       amount: value,
       linked_stock_id: row.id,
-    },
+      event_dedupe_key: idempotencyKey,
+    }, idempotencyKey, { workflowType: WORKFLOW_TYPES.STOCK_EXIT, sourceModule: 'stock', sourceRecordId: row.id }),
   };
 }
 
