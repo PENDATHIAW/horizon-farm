@@ -17,6 +17,7 @@ import {
   readJustifiedExceptions,
 } from '../utils/justifiedExceptionStore.js';
 import { buildSyncRepairTask, routeForSyncIssue, syncIssueActionLabel, syncIssueReadableTitle } from '../utils/syncAuditWorkflows';
+import { executeGuidedRepairAction, getGuidedRepairActions } from '../utils/syncGuidedRepairActions.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const issueKey = buildInterconnectionIssueKey;
@@ -93,11 +94,49 @@ async function repairIssue(issue, props) {
 }
 
 function IssueActions({ issue, props, onJustify }) {
-  const [busy, setBusy] = useState(false);
-  const available = canRepair(issue, props);
-  const label = repairLabel(issue);
-  const runRepair = async () => { try { setBusy(true); const result = await repairIssue(issue, props); await props.onRefreshAll?.(); toast.success(result); } catch (error) { toast.error(error.message || 'Action impossible'); } finally { setBusy(false); } };
-  return <div className="flex flex-wrap gap-1"><button type="button" disabled={!available || busy} onClick={runRepair} className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-700 disabled:opacity-40"><Wrench size={12} className="inline" /> {busy ? 'Action...' : label}</button><button type="button" onClick={() => props.onNavigate?.(routeForSyncIssue(issue))} className="rounded-full border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-black text-sky-700">Ouvrir source</button><button type="button" disabled={busy} onClick={() => onJustify(issue)} className="rounded-full border border-violet-200 bg-violet-50 px-2 py-1 text-[11px] font-black text-violet-700 disabled:opacity-40"><ShieldCheck size={12} className="inline" /> Exception justifiée</button></div>;
+  const [busy, setBusy] = useState(null);
+  const guidedActions = getGuidedRepairActions(issue, props);
+  const fallbackLabel = repairLabel(issue);
+  const fallbackAvailable = canRepair(issue, props);
+  const runGuided = async (action) => {
+    try {
+      setBusy(action.id);
+      const result = await executeGuidedRepairAction(issue, action.id, props);
+      await createRepairTrace(props, issue, result);
+      await props.onRefreshAll?.();
+      toast.success(result);
+    } catch (error) {
+      toast.error(error.message || 'Action impossible');
+    } finally {
+      setBusy(null);
+    }
+  };
+  const runFallback = async () => {
+    try {
+      setBusy('fallback');
+      const result = await repairIssue(issue, props);
+      await props.onRefreshAll?.();
+      toast.success(result);
+    } catch (error) {
+      toast.error(error.message || 'Action impossible');
+    } finally {
+      setBusy(null);
+    }
+  };
+  return <div className="flex flex-wrap gap-1">
+    {guidedActions.length ? guidedActions.map((action) => (
+      <button key={action.id} type="button" disabled={busy === action.id} onClick={() => runGuided(action)} className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-700 disabled:opacity-40">
+        <Wrench size={12} className="inline" /> {busy === action.id ? 'Action...' : action.label}
+      </button>
+    )) : (
+      <button type="button" disabled={!fallbackAvailable || busy === 'fallback'} onClick={runFallback} className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-700 disabled:opacity-40">
+        <Wrench size={12} className="inline" /> {busy === 'fallback' ? 'Action...' : fallbackLabel}
+      </button>
+    )}
+    <button type="button" onClick={() => props.onNavigate?.(routeForSyncIssue(issue))} className="rounded-full border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-black text-sky-700">Ouvrir source</button>
+    <button type="button" disabled={Boolean(busy)} onClick={() => onJustify?.(issue)} className="rounded-full border border-violet-200 bg-violet-50 px-2 py-1 text-[11px] font-black text-violet-700 disabled:opacity-40"><ShieldCheck size={12} className="inline" /> Exception justifiée</button>
+  </div>;
+}
 }
 
 function InterconnectionAudit(props) {

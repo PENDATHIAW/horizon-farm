@@ -36,7 +36,11 @@ export function syncIssueReadableTitle(issue = {}) {
     .replace('Un paiement n’est lié à aucune vente.', 'Paiement sans vente liée.')
     .replace('Un encaissement de vente n’apparaît pas encore dans les finances.', 'Paiement absent des finances.')
     .replace('Une opportunité déjà vendue est encore ouverte.', 'Opportunité déjà vendue encore ouverte.')
-    .replace('Un document est lié à un élément qui n’existe plus.', 'Document lié à une fiche introuvable.');
+    .replace('Un document est lié à un élément qui n’existe plus.', 'Document orphelin.')
+    .replace('Un document n’est lié à aucune dépense, vente ou paiement.', 'Document orphelin.')
+    .replace('Une dépense stockable n’a pas encore d’entrée stock associée.', 'Dépense stockable sans entrée stock.')
+    .replace('Une alimentation n’a pas encore de sortie stock enregistrée.', 'Alimentation sans sortie stock.')
+    .replace('Une alerte reste ouverte alors que la tâche associée est terminée.', 'Alerte avec tâche terminée.');
 }
 
 export function buildSyncRepairTask(issue = {}, options = {}) {
