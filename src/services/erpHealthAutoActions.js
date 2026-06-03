@@ -1,6 +1,8 @@
 import { generateSequentialId } from '../utils/ids.js';
 import { hasOpenTaskForHealthFinding, sanitizeHealthTaskTitle } from '../utils/healthFindingLabels.js';
 import { buildTaskFromAlert, taskDedupeKey, alertDedupeKey, isTaskClosed, isAlertClosed } from '../utils/taskWorkflows.js';
+import { isIssueJustified } from '../utils/justifiedExceptionStore.js';
+import { buildHealthFindingIssueKey } from '../utils/justifiedExceptionRules.js';
 
 const PROCESSED_KEY = 'horizon-erp-health-auto-processed-v2';
 

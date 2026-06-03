@@ -1,16 +1,25 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { AlertTriangle, CheckCircle2, GitBranch, History, Wifi, Wrench } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, GitBranch, History, ShieldCheck, Wifi, Wrench } from 'lucide-react';
+import JustifiedExceptionModal from '../components/workflow/JustifiedExceptionModal.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import AuditLogs from './AuditLogs.jsx';
 import Sync from './Sync.jsx';
 import { auditErpInterconnections } from '../utils/interconnectionAudit';
+import {
+  buildInterconnectionIssueKey,
+  JUSTIFIED_EXCEPTION_TYPES,
+} from '../utils/justifiedExceptionRules.js';
+import {
+  buildJustifiedExceptionAuditEvent,
+  filterJustifiedIssues,
+  markJustifiedException,
+  readJustifiedExceptions,
+} from '../utils/justifiedExceptionStore.js';
 import { buildSyncRepairTask, routeForSyncIssue, syncIssueActionLabel, syncIssueReadableTitle } from '../utils/syncAuditWorkflows';
 
-const ignoredKey = 'horizon_farm_ignored_interconnection_issues';
 const today = () => new Date().toISOString().slice(0, 10);
-const issueKey = (issue = {}) => `${issue.flow || 'erp'}:${issue.module || 'module'}:${issue.row_id || 'row'}:${issue.linked_id || ''}:${issue.message || ''}`;
-const readIgnored = () => { try { return new Set(JSON.parse(localStorage.getItem(ignoredKey) || '[]').map(String)); } catch { return new Set(); } };
-const writeIgnored = (set) => { try { localStorage.setItem(ignoredKey, JSON.stringify([...set])); } catch { /* noop */ } };
+const issueKey = buildInterconnectionIssueKey;
 const amountOf = (row = {}) => Number(row.montant_total ?? row.total ?? row.amount ?? row.total_amount ?? row.montant ?? 0) || 0;
 const paymentAmount = (row = {}) => Number(row.montant_paye ?? row.montant ?? row.amount ?? row.paid_amount ?? 0) || 0;
 const saleIdOf = (row = {}) => String(row.order_id || row.sale_id || row.source_record_id || row.related_id || row.commande_id || '').trim();
@@ -77,33 +86,77 @@ async function repairIssue(issue, props) {
     await createRepairTrace(props, issue, 'Tâche créée');
     return 'Tâche créée';
   }
-  await props.onCreateAlert?.({ id: makeRepairId('ALERT'), title: 'Point à vérifier', message: issue.message || 'Un point demande ton attention.', module_source: issue.module || 'sync_activity', entity_type: issue.module || 'erp_issue', entity_id: issue.row_id || issue.linked_id || '', severity: issue.severity === 'critical' ? 'critique' : 'warning', status: 'nouvelle', action_recommandee: 'Vérifier et corriger ce point.' });
+  await props.onCreateAlert?.({ id: makeRepairId('ALERT'), title: 'Point à vérifier', message: issue.message || 'Un point demande ton attention.', module_source: issue.module || 'sync_activity', entity_type: issue.module || 'erp_issue', entity_id: issue.row_id || issue.linked_id || '', severity: issue.severity === 'critical' ? 'critique' : 'warning', status: 'nouvelle', action_recommandee: 'Vérifier et corriger ce point.', alert_dedupe_key: issueKey(issue) });
   await props.onRefreshAlertes?.();
   await createRepairTrace(props, issue, 'Alerte créée');
   return 'Alerte créée';
 }
 
-function IssueActions({ issue, props, onIgnored }) {
+function IssueActions({ issue, props, onJustify }) {
   const [busy, setBusy] = useState(false);
   const available = canRepair(issue, props);
   const label = repairLabel(issue);
   const runRepair = async () => { try { setBusy(true); const result = await repairIssue(issue, props); await props.onRefreshAll?.(); toast.success(result); } catch (error) { toast.error(error.message || 'Action impossible'); } finally { setBusy(false); } };
-  return <div className="flex flex-wrap gap-1"><button type="button" disabled={!available || busy} onClick={runRepair} className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-700 disabled:opacity-40"><Wrench size={12} className="inline" /> {busy ? 'Action...' : label}</button><button type="button" onClick={() => props.onNavigate?.(routeForSyncIssue(issue))} className="rounded-full border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-black text-sky-700">Ouvrir source</button><button type="button" disabled={busy} onClick={() => onIgnored(issue)} className="rounded-full border border-[#eadcc2] bg-white px-2 py-1 text-[11px] font-black text-[#8a7456] disabled:opacity-40">Masquer</button></div>;
+  return <div className="flex flex-wrap gap-1"><button type="button" disabled={!available || busy} onClick={runRepair} className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-700 disabled:opacity-40"><Wrench size={12} className="inline" /> {busy ? 'Action...' : label}</button><button type="button" onClick={() => props.onNavigate?.(routeForSyncIssue(issue))} className="rounded-full border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-black text-sky-700">Ouvrir source</button><button type="button" disabled={busy} onClick={() => onJustify(issue)} className="rounded-full border border-violet-200 bg-violet-50 px-2 py-1 text-[11px] font-black text-violet-700 disabled:opacity-40"><ShieldCheck size={12} className="inline" /> Exception justifiée</button></div>;
 }
 
 function InterconnectionAudit(props) {
   const { dataMap = {} } = props;
-  const [ignored, setIgnored] = useState(readIgnored);
+  const { user } = useAuth();
+  const [exceptionVersion, setExceptionVersion] = useState(0);
+  const [pendingIssue, setPendingIssue] = useState(null);
+  const [savingException, setSavingException] = useState(false);
   const audit = auditErpInterconnections(dataMap);
-  const visibleIssues = useMemo(() => audit.issues.filter((issue) => !ignored.has(issueKey(issue))), [audit.issues, ignored]);
+  const justifiedRows = useMemo(() => readJustifiedExceptions(), [exceptionVersion]);
+  const activeJustifiedCount = useMemo(() => justifiedRows.filter((row) => row.active !== false && row.type_exception === JUSTIFIED_EXCEPTION_TYPES.INTERCONNECTION).length, [justifiedRows]);
+  const visibleIssues = useMemo(() => filterJustifiedIssues(audit.issues, issueKey), [audit.issues, exceptionVersion]);
   const visibleAudit = { ...audit, issues: visibleIssues, issueCount: visibleIssues.length, criticalCount: visibleIssues.filter((issue) => issue.severity === 'critical').length };
-  const ignoreIssue = async (issue) => { const next = new Set(ignored); next.add(issueKey(issue)); setIgnored(next); writeIgnored(next); await createRepairTrace(props, issue, 'Point masqué'); toast.success('Point masqué'); };
-  const restoreIgnored = () => { setIgnored(new Set()); writeIgnored(new Set()); toast.success('Points masqués réaffichés'); };
+
+  useEffect(() => {
+    const refresh = () => setExceptionVersion((value) => value + 1);
+    window.addEventListener('horizon-farm-justified-exceptions-changed', refresh);
+    return () => window.removeEventListener('horizon-farm-justified-exceptions-changed', refresh);
+  }, []);
+
+  const submitJustifiedException = async ({ raison, commentaire }) => {
+    if (!pendingIssue) return;
+    try {
+      setSavingException(true);
+      const key = issueKey(pendingIssue);
+      const exception = markJustifiedException({
+        issue_key: key,
+        raison,
+        commentaire,
+        utilisateur: user?.email || user?.user_metadata?.full_name || 'utilisateur',
+        source_module: pendingIssue.module || 'sync_activity',
+        source_record_id: String(pendingIssue.row_id || pendingIssue.linked_id || ''),
+        type_exception: JUSTIFIED_EXCEPTION_TYPES.INTERCONNECTION,
+      });
+      const event = buildJustifiedExceptionAuditEvent(exception);
+      await props.onCreateBusinessEvent?.({ id: makeRepairId('EVT'), ...event });
+      await props.onRefreshBusinessEvents?.();
+      setPendingIssue(null);
+      toast.success('Exception justifiée enregistrée');
+    } catch (error) {
+      toast.error(error.message || 'Enregistrement impossible');
+    } finally {
+      setSavingException(false);
+    }
+  };
+
   return <ModuleSection icon={GitBranch} title="Vérifications importantes" subtitle="Un résumé simple des points qui demandent ton attention.">
     <div className="grid grid-cols-1 md:grid-cols-4 gap-3"><div className={`rounded-2xl border p-4 ${visibleAudit.issueCount === 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}><p className="text-xs uppercase tracking-wide text-[#8a7456]">État général</p><p className={`mt-2 text-xl font-black ${visibleAudit.issueCount === 0 ? 'text-emerald-700' : 'text-amber-800'}`}>{visibleAudit.issueCount === 0 ? 'Tout va bien' : 'À revoir'}</p></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs uppercase tracking-wide text-[#8a7456]">Vérifications</p><p className="mt-2 text-xl font-black text-[#2f2415]">{audit.flows.length}</p></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs uppercase tracking-wide text-[#8a7456]">À regarder</p><p className="mt-2 text-xl font-black text-[#2f2415]">{visibleAudit.issueCount}</p></div><div className="rounded-2xl border border-red-100 bg-red-50 p-4"><p className="text-xs uppercase tracking-wide text-red-700">Urgents</p><p className="mt-2 text-xl font-black text-red-700">{visibleAudit.criticalCount}</p></div></div>
-    {ignored.size ? <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#8a7456]"><span>{ignored.size} point(s) masqué(s).</span><button type="button" onClick={restoreIgnored} className="rounded-full border border-[#d6c3a0] px-3 py-1 text-xs font-bold text-[#2f2415]">Réafficher</button></div> : null}
+    {activeJustifiedCount ? <div className="flex items-center justify-between gap-3 rounded-2xl border border-violet-200 bg-violet-50 p-3 text-sm text-violet-800"><span><ShieldCheck size={14} className="inline" /> {activeJustifiedCount} exception(s) justifiée(s) masquée(s) des alertes actives (visible dans l’audit système).</span><button type="button" onClick={() => props.onNavigate?.('gestion_systeme')} className="rounded-full border border-violet-300 bg-white px-3 py-1 text-xs font-bold text-violet-800">Voir audit</button></div> : null}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">{audit.flows.map((flow) => <FlowCard key={flow.id} flow={flow} />)}</div>
-    {visibleAudit.issueCount === 0 ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><CheckCircle2 size={16} className="inline" /> Aucun point important à corriger pour le moment.</div> : <div className="overflow-x-auto rounded-2xl border border-amber-200"><table className="min-w-full text-sm"><thead><tr className="border-b border-amber-100 bg-amber-50 text-left text-xs uppercase text-amber-800"><th className="py-2 px-3">Sujet</th><th className="py-2 px-3">Espace</th><th className="py-2 px-3">Élément</th><th className="py-2 px-3">Lien</th><th className="py-2 px-3">Détail</th><th className="py-2 px-3">Actions</th></tr></thead><tbody>{visibleAudit.issues.slice(0, 40).map((issue, index) => <tr key={`${issue.module}-${issue.row_id}-${index}`} className="border-b border-amber-100"><td className="py-2 px-3 text-xs font-bold text-[#8a7456]">{audit.flows.find((flow) => flow.id === issue.flow)?.label || issue.flow || 'À vérifier'}</td><td className="py-2 px-3 font-bold text-[#2f2415]"><AlertTriangle size={14} className="inline text-amber-600" /> {issue.module}</td><td className="py-2 px-3">{issue.row_id || '—'}</td><td className="py-2 px-3">{issue.linked_id || '—'}</td><td className="py-2 px-3 text-[#8a7456]">{syncIssueReadableTitle(issue)}</td><td className="py-2 px-3"><IssueActions issue={issue} props={props} onIgnored={ignoreIssue} /></td></tr>)}</tbody></table>{visibleAudit.issues.length > 40 ? <p className="p-3 text-xs text-[#8a7456]">{visibleAudit.issues.length - 40} autre(s) point(s) masqué(s). Traite d’abord les urgents.</p> : null}</div>}
+    {visibleAudit.issueCount === 0 ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><CheckCircle2 size={16} className="inline" /> Aucun point important à corriger pour le moment.</div> : <div className="overflow-x-auto rounded-2xl border border-amber-200"><table className="min-w-full text-sm"><thead><tr className="border-b border-amber-100 bg-amber-50 text-left text-xs uppercase text-amber-800"><th className="py-2 px-3">Sujet</th><th className="py-2 px-3">Espace</th><th className="py-2 px-3">Élément</th><th className="py-2 px-3">Lien</th><th className="py-2 px-3">Détail</th><th className="py-2 px-3">Actions</th></tr></thead><tbody>{visibleAudit.issues.slice(0, 40).map((issue, index) => <tr key={`${issue.module}-${issue.row_id}-${index}`} className="border-b border-amber-100"><td className="py-2 px-3 text-xs font-bold text-[#8a7456]">{audit.flows.find((flow) => flow.id === issue.flow)?.label || issue.flow || 'À vérifier'}</td><td className="py-2 px-3 font-bold text-[#2f2415]"><AlertTriangle size={14} className="inline text-amber-600" /> {issue.module}</td><td className="py-2 px-3">{issue.row_id || '—'}</td><td className="py-2 px-3">{issue.linked_id || '—'}</td><td className="py-2 px-3 text-[#8a7456]">{syncIssueReadableTitle(issue)}</td><td className="py-2 px-3"><IssueActions issue={issue} props={props} onJustify={setPendingIssue} /></td></tr>)}</tbody></table>{visibleAudit.issues.length > 40 ? <p className="p-3 text-xs text-[#8a7456]">{visibleAudit.issues.length - 40} autre(s) point(s) à traiter. Traite d’abord les urgents.</p> : null}</div>}
+    <JustifiedExceptionModal
+      open={Boolean(pendingIssue)}
+      onClose={() => setPendingIssue(null)}
+      onSubmit={submitJustifiedException}
+      issueLabel={pendingIssue ? syncIssueReadableTitle(pendingIssue) : 'Écart détecté'}
+      issueDetail={pendingIssue?.message || ''}
+      busy={savingException}
+    />
   </ModuleSection>;
 }
 

@@ -1,1 +1,1 @@
-export { default } from './SyncERPModule';
+export { default } from './SyncActivityCenter';
