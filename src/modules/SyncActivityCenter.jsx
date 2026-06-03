@@ -137,7 +137,6 @@ function IssueActions({ issue, props, onJustify }) {
     <button type="button" disabled={Boolean(busy)} onClick={() => onJustify?.(issue)} className="rounded-full border border-violet-200 bg-violet-50 px-2 py-1 text-[11px] font-black text-violet-700 disabled:opacity-40"><ShieldCheck size={12} className="inline" /> Exception justifiée</button>
   </div>;
 }
-}
 
 function InterconnectionAudit(props) {
   const { dataMap = {} } = props;
