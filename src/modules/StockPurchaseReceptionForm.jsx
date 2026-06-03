@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import useWorkflowSubmit from '../hooks/useWorkflowSubmit';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
-import { dispatchBpLineCompleted } from '../utils/bpLineConcretization';
+import { dispatchBpLineCompleted, dispatchBpCostCompleted } from '../utils/bpLineConcretization';
 import {
   ENTRY_KINDS,
   PAYMENT_STATUS,
@@ -39,6 +39,7 @@ function mapDraftFields(draft = {}) {
     entry_kind: f.entry_kind || ENTRY_KINDS.ACHAT_STOCKABLE,
     finance_repair_transaction_id: f.finance_repair_transaction_id || '',
     bp_line_id: f.bp_line_id || '',
+    bp_cost_id: f.bp_cost_id || '',
     business_plan_id: f.business_plan_id || '',
   };
 }
@@ -91,6 +92,7 @@ export default function StockPurchaseReceptionForm({
   const { submit: workflowSubmit, busy: workflowBusy } = useWorkflowSubmit();
   const repairTxId = mapped.finance_repair_transaction_id;
   const bpLineId = mapped.bp_line_id;
+  const bpCostId = mapped.bp_cost_id;
 
   useEffect(() => {
     const m = mapDraftFields(initialDraft || {});
@@ -149,6 +151,7 @@ export default function StockPurchaseReceptionForm({
       entry_kind: entryKind,
       finance_repair_transaction_id: repairTxId,
       bp_line_id: bpLineId,
+      bp_cost_id: bpCostId,
       business_plan_id: mapped.business_plan_id,
       last_movement_label: notes || (entryKind === ENTRY_KINDS.ACHAT_STOCKABLE ? 'Réception achat stock' : 'Entrée stock'),
     };
@@ -191,7 +194,19 @@ export default function StockPurchaseReceptionForm({
         onRefreshBusinessEvents?.(),
       ]);
       toast.success(repairTxId ? 'Entrée stock créée depuis la dépense finance' : 'Réception achat enregistrée');
-      if (bpLineId) {
+      if (bpCostId) {
+        const stockRef = preview.records.stock_patch?.id || stockId || payload.id;
+        dispatchBpCostCompleted({
+          bp_cost_id: bpCostId,
+          finance_transaction_id: preview.records.finance_transaction?.id || '',
+          assetModule: 'stock',
+          assetId: stockRef,
+          amount: n(montantPaye) || n(quantite) * n(prixUnitaire),
+          date,
+          targetModule: 'achats_stock',
+          source: 'stock_purchase',
+        });
+      } else if (bpLineId) {
         const stockRef = preview.records.stock_patch?.id || stockId || payload.id;
         dispatchBpLineCompleted({
           bp_line_id: bpLineId,

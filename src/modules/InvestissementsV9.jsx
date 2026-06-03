@@ -5,16 +5,24 @@ import EditModal from '../modals/EditModal';
 import { HORIZON_FARM_OFFICIAL_BP } from '../services/horizonFarmOfficialBusinessPlan';
 import { HORIZON_FARM_BP_ID, HORIZON_FARM_BP_NAME, HORIZON_FARM_INVESTMENT_LINES, HORIZON_FARM_MONTHLY_COSTS, HORIZON_FARM_REVENUE_PROJECTIONS, buildHorizonFarmBpLine, buildHorizonFarmBusinessPlan, buildHorizonFarmMonthlyCost, buildHorizonFarmProjection } from '../services/horizonFarmBusinessPlanSeed';
 import {
+  BP_COST_COMPLETED_EVENT,
   BP_LINE_COMPLETED_EVENT,
   BP_LINE_STATUS,
   BP_LINE_STATUS_OPTIONS,
+  bpCostAmount,
+  bpCostModuleRoute,
   bpLineAmount,
   bpLineStatusLabel,
+  buildBpCostCompletionWorkflow,
   buildBpLineCompletionWorkflow,
   buildBpLineStatusPatch,
+  canConcretizeBpCost,
   canConcretizeBpLine,
+  computeBpCostTotals,
   computeBpInvestmentTotals,
+  isBpCostEditable,
   isBpLineEditable,
+  launchBpCostConcretization,
   launchBpLineConcretization,
   normalizeBpLineStatus,
 } from '../utils/bpLineConcretization';
@@ -97,7 +105,7 @@ async function syncBp(props, { silent = false, force = false } = {}) {
     }
     for (const official of HORIZON_FARM_MONTHLY_COSTS) {
       const found = currentCosts.find((r) => key(r) === key(official));
-      if (found?.id) await props.onUpdateBpRecurringCost?.(found.id, { ...official, frequence: 'mensuelle' });
+      if (found?.id) await props.onUpdateBpRecurringCost?.(found.id, { ...official, frequence: 'mensuelle', statut: found.statut || BP_LINE_STATUS.A_CONCRETISER });
       else await props.onCreateBpRecurringCost?.(buildHorizonFarmMonthlyCost(official, planId));
     }
     for (const official of HORIZON_FARM_REVENUE_PROJECTIONS) {
@@ -109,6 +117,22 @@ async function syncBp(props, { silent = false, force = false } = {}) {
     if (!silent) toast.success('Plan officiel rechargé');
   } catch (e) {
     if (!silent) toast.error(e.message || 'Rechargement impossible');
+  }
+}
+
+async function finalizeBpCostCompletion(detail, props) {
+  const cost = arr(props.bpRecurringCosts).find((row) => String(row.id) === String(detail?.bp_cost_id || detail?.bp_line_id));
+  if (!cost?.id) return;
+  const workflow = buildBpCostCompletionWorkflow(cost, detail);
+  try {
+    if (workflow.financeTransaction && !cost.linked_finance_transaction_id) await props.onCreateFinanceTransaction?.(workflow.financeTransaction);
+    if (workflow.proofDocument && !cost.proof_document_id) await props.onCreateDocument?.(workflow.proofDocument);
+    await props.onUpdateBpRecurringCost?.(cost.id, workflow.linePatch);
+    if (workflow.event?.title) await props.onCreateBusinessEvent?.(workflow.event);
+    await Promise.allSettled([props.onRefreshFinances?.(), props.onRefreshDocuments?.(), props.onRefreshBpRecurringCosts?.(), props.onRefreshBusinessEvents?.()]);
+    toast.success(`Charge concrétisée · ${cost.designation || cost.id}`);
+  } catch (error) {
+    toast.error(error.message || 'Mise à jour charge impossible');
   }
 }
 
@@ -139,11 +163,13 @@ export default function InvestissementsV9(props) {
   const planId = plan?.id || HORIZON_FARM_BP_ID;
   const dbLines = dedupe(arr(props.bpInvestmentLines).filter((r) => String(r.business_plan_id || planId) === String(planId)));
   const lines = dbLines.length ? dbLines : HORIZON_FARM_INVESTMENT_LINES.map((r, i) => ({ id: `off-${i}`, ...r, statut: BP_LINE_STATUS.A_CONCRETISER }));
-  const costs = dedupe(arr(props.bpRecurringCosts).filter((r) => String(r.business_plan_id || planId) === String(planId))).length ? dedupe(arr(props.bpRecurringCosts).filter((r) => String(r.business_plan_id || planId) === String(planId))) : HORIZON_FARM_MONTHLY_COSTS.map((r, i) => ({ id: `cost-${i}`, ...r }));
+  const costs = dedupe(arr(props.bpRecurringCosts).filter((r) => String(r.business_plan_id || planId) === String(planId))).length ? dedupe(arr(props.bpRecurringCosts).filter((r) => String(r.business_plan_id || planId) === String(planId))) : HORIZON_FARM_MONTHLY_COSTS.map((r, i) => ({ id: `cost-${i}`, ...r, statut: BP_LINE_STATUS.A_CONCRETISER }));
   const projections = arr(props.bpRevenueProjections).filter((r) => String(r.business_plan_id || planId) === String(planId) && !isArchived(r)).length ? arr(props.bpRevenueProjections).filter((r) => String(r.business_plan_id || planId) === String(planId) && !isArchived(r)) : HORIZON_FARM_REVENUE_PROJECTIONS.map((r, i) => ({ id: `rev-${i}`, ...r }));
 
   const totals = useMemo(() => computeBpInvestmentTotals(lines), [lines]);
+  const costTotals = useMemo(() => computeBpCostTotals(costs), [costs]);
   const pendingLines = useMemo(() => lines.filter((line) => canConcretizeBpLine(line) && investmentAssetKind(line)), [lines]);
+  const pendingCosts = useMemo(() => costs.filter((cost) => canConcretizeBpCost(cost)), [costs]);
   const monthCosts = costs.reduce((s, r) => s + monthly(r), 0);
   const annualRevenue = projections.reduce((s, r) => s + revenue(r), 0) || HORIZON_FARM_OFFICIAL_BP.revenue.annualTotal;
   let balance = -totals.prevu;
@@ -161,13 +187,20 @@ export default function InvestissementsV9(props) {
   useEffect(() => {
     if (seedAttempted.current) return;
     seedAttempted.current = true;
-    if (!plan || !dbLines.length) syncBp(props, { silent: true });
-  }, [plan, dbLines.length]);
+    if (!plan || !dbLines.length || !dedupe(arr(props.bpRecurringCosts).filter((r) => String(r.business_plan_id || planId) === String(planId))).length) {
+      syncBp(props, { silent: true });
+    }
+  }, [plan, dbLines.length, planId, props.bpRecurringCosts]);
 
   useEffect(() => {
-    const handler = (event) => finalizeBpLineCompletion(event.detail || {}, props);
-    window.addEventListener(BP_LINE_COMPLETED_EVENT, handler);
-    return () => window.removeEventListener(BP_LINE_COMPLETED_EVENT, handler);
+    const onLine = (event) => finalizeBpLineCompletion(event.detail || {}, props);
+    const onCost = (event) => finalizeBpCostCompletion(event.detail || {}, props);
+    window.addEventListener(BP_LINE_COMPLETED_EVENT, onLine);
+    window.addEventListener(BP_COST_COMPLETED_EVENT, onCost);
+    return () => {
+      window.removeEventListener(BP_LINE_COMPLETED_EVENT, onLine);
+      window.removeEventListener(BP_COST_COMPLETED_EVENT, onCost);
+    };
   }, [props]);
 
   const openConcretization = (line) => {
@@ -177,11 +210,29 @@ export default function InvestissementsV9(props) {
     toast.success(`Ouverture ${MODULE_LABELS[kind] || kind}…`);
   };
 
+  const openCostConcretization = (cost) => {
+    const result = launchBpCostConcretization(cost, { onNavigate: props.onNavigate });
+    if (!result.ok) return toast.error('Cette charge ne peut pas encore être ouverte dans un module.');
+    const route = bpCostModuleRoute(cost);
+    toast.success(`Ouverture ${route.label}…`);
+  };
+
   const updateLineStatus = async (line, status) => {
     if (!isBpLineEditable(line)) return toast.error('Ligne en lecture seule');
     try {
       await props.onUpdateBpInvestmentLine?.(line.id, buildBpLineStatusPatch(status));
       await props.onRefreshBpInvestmentLines?.();
+      toast.success(`Statut · ${bpLineStatusLabel(status)}`);
+    } catch (error) {
+      toast.error(error.message || 'Statut impossible');
+    }
+  };
+
+  const updateCostStatus = async (cost, status) => {
+    if (!isBpCostEditable(cost)) return toast.error('Charge en lecture seule');
+    try {
+      await props.onUpdateBpRecurringCost?.(cost.id, buildBpLineStatusPatch(status));
+      await props.onRefreshBpRecurringCosts?.();
       toast.success(`Statut · ${bpLineStatusLabel(status)}`);
     } catch (error) {
       toast.error(error.message || 'Statut impossible');
@@ -254,9 +305,29 @@ export default function InvestissementsV9(props) {
   const costColumns = [
     { label: 'Charge', key: 'designation' },
     { label: 'Par mois', render: (r) => money(monthly(r)) },
+    { label: 'Déjà fait', render: (r) => money(r.montant_reel) },
+    {
+      label: 'Où ça va',
+      render: (r) => bpCostModuleRoute(r).label || '—',
+    },
+    {
+      label: 'Statut',
+      render: (r) => {
+        const status = normalizeBpLineStatus(r);
+        if (!isBpCostEditable(r)) return <span className="text-[#8a7456]">{bpLineStatusLabel(status)}</span>;
+        return <select value={status} onChange={(e) => updateCostStatus(r, e.target.value)} className="rounded-lg border border-[#eadcc2] bg-white px-2 py-1 text-xs font-bold text-[#2f2415]">{BP_LINE_STATUS_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</select>;
+      },
+    },
     {
       label: '',
-      render: (r) => isBpLineEditable(r) ? <button type="button" onClick={() => setEditCost(r)} className="rounded-lg border border-[#eadcc2] px-2 py-1 text-xs font-black text-[#2f2415]"><Edit3 size={12} className="inline" /> Modifier</button> : null,
+      render: (r) => {
+        if (!isBpCostEditable(r)) return null;
+        const canDo = canConcretizeBpCost(r);
+        return <div className="flex flex-wrap gap-1 justify-end">
+          {canDo ? <button type="button" onClick={() => openCostConcretization(r)} className="rounded-lg bg-[#2f2415] px-3 py-1.5 text-xs font-black text-white">Concrétiser</button> : null}
+          <button type="button" onClick={() => setEditCost(r)} className="rounded-lg border border-[#eadcc2] px-2 py-1 text-xs font-black text-[#2f2415]"><Edit3 size={12} className="inline" /> Modifier</button>
+        </div>;
+      },
     },
   ];
 
@@ -290,9 +361,18 @@ export default function InvestissementsV9(props) {
         </button>)}
         {pendingLines.length > 6 ? <p className="text-xs text-[#8a7456]">+ {pendingLines.length - 6} autre(s) ligne(s) dans l’onglet Mes investissements.</p> : null}
       </div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><CheckCircle2 size={16} className="inline" /> Rien en attente pour l’instant — toutes les lignes éligibles sont traitées ou annulées.</div>}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+      {pendingCosts.length ? <div className="space-y-2">
+        <p className="text-sm font-black text-[#2f2415]">Charges à concrétiser ({pendingCosts.length})</p>
+        {pendingCosts.slice(0, 6).map((cost) => <button type="button" key={cost.id} onClick={() => openCostConcretization(cost)} className="flex w-full items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-left hover:border-sky-400">
+          <span><b className="text-[#2f2415]">{cost.designation}</b><span className="ml-2 text-sm text-[#8a7456]">{money(monthly(cost))}/mois · {bpCostModuleRoute(cost).label}</span></span>
+          <span className="flex items-center gap-1 text-xs font-black text-sky-800">Concrétiser <ArrowRight size={14} /></span>
+        </button>)}
+        {pendingCosts.length > 6 ? <p className="text-xs text-[#8a7456]">+ {pendingCosts.length - 6} autre(s) charge(s) dans l’onglet Charges mensuelles.</p> : null}
+      </div> : null}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
         <Kpi label="Lignes d’investissement" value={String(lines.length)} />
-        <Kpi label="Charges / mois" value={money(monthCosts)} />
+        <Kpi label="Charges / mois (prévu)" value={money(costTotals.prevu || monthCosts)} />
+        <Kpi label="Charges concrétisées" value={money(costTotals.concretise)} tone="good" />
         <Kpi label="CA prévu an 1" value={money(annualRevenue)} />
       </div>
     </Section> : null}
@@ -302,7 +382,14 @@ export default function InvestissementsV9(props) {
       <Table rows={lines} columns={lineColumns} />
     </Section> : null}
 
-    {tab === 'charges' ? <Section icon={Coins} title="Charges mensuelles" subtitle="Loyer, salaires, aliments, etc. — prévisionnel du BP.">
+    {tab === 'charges' ? <Section icon={Coins} title="Charges mensuelles" subtitle="Aliments, loyers, salaires… — concrétisez vers le module métier ou la trésorerie.">
+      <HelpSteps />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Kpi label="Prévu / mois" value={money(costTotals.prevu)} />
+        <Kpi label="Concrétisé" value={money(costTotals.concretise)} tone="good" />
+        <Kpi label="Annulé" value={money(costTotals.annule)} tone="bad" />
+        <Kpi label="Reste" value={money(costTotals.reste)} tone="warn" />
+      </div>
       <Table rows={costs} columns={costColumns} />
     </Section> : null}
 

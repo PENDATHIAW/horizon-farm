@@ -24,10 +24,10 @@ import { showWorkflowImpactToast } from '../utils/workflowImpactToast';
 import AvicoleBase from './AvicoleBase.jsx';
 import AvicoleCycleHealthPanel from './AvicoleCycleHealthPanel.jsx';
 import AvicoleEvolution from './AvicoleEvolution.jsx';
-import AvicoleJournalsBridge from './AvicoleJournalsBridge.jsx';
 import AvicoleTransformationBridge from './AvicoleTransformationBridge.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
+import { emitHorizonForm } from '../services/formModalManager.js';
 
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const num = (value = 0) => Number(value || 0);
@@ -68,8 +68,8 @@ function CollapsibleSection({ icon: Icon, title, subtitle, defaultOpen = false, 
   const [open, setOpen] = useState(defaultOpen);
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm overflow-hidden"><button type="button" onClick={() => setOpen((value) => !value)} className="flex min-h-[64px] w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-[#fffdf8]"><span><span className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} aria-hidden="true" /> {title}</span>{subtitle ? <span className="mt-1 block text-sm text-[#8a7456]">{subtitle}</span> : null}</span><ChevronDown size={20} className={`shrink-0 text-[#8a7456] transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" /></button>{open ? <div className="border-t border-[#eadcc2] p-5">{children}</div> : null}</section>;
 }
-function LayerHelpBanner() {
-  return <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><p className="flex items-center gap-2 font-black text-amber-900"><Info size={17} aria-hidden="true" /> Journal de ponte</p><p className="mt-2 leading-relaxed">La production d’œufs se saisit dans <b>Ramassage œufs / Journal de ponte</b>. Les tablettes sont calculées sur la base de <b>30 œufs = 1 tablette</b>.</p></div>;
+function LayerHelpBanner({ onNavigate }) {
+  return <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><p className="flex items-center gap-2 font-black text-amber-900"><Info size={17} aria-hidden="true" /> Production d&apos;œufs</p><p className="mt-2 leading-relaxed">Le ramassage se fait dans <b>Élevage → Production</b> (journal, entrée stock, traçabilité). Ici : lots, effectifs, alimentation et décisions avicole.</p>{onNavigate ? <button type="button" onClick={() => onNavigate('elevage', { tab: 'Production' })} className="mt-3 rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white">Ouvrir Production</button> : null}</div>;
 }
 function ActivityEntryCard({ icon: Icon, active, title, rows = [], productionLogs = [], action, onClick }) {
   const activeRows = rows.filter(avicoleHasActiveBirds);
@@ -147,7 +147,14 @@ export default function AvicoleV10(props) {
   useEffect(() => {
     const handler = (event) => {
       const draft = event.detail?.draft;
-      if (event.detail?.module === 'avicole' && ['egg_production', 'poultry_mortality', 'poultry_close'].includes(draft?.form_type)) {
+      if (event.detail?.module === 'avicole' && draft?.form_type === 'egg_production') {
+        props.onNavigate?.('elevage', { tab: 'Production' });
+        window.setTimeout(() => {
+          emitHorizonForm('avicole', 'egg_production', draft.intent_label || 'Ramassage œufs', draft.draft_fields || draft.fields || {});
+        }, 420);
+        return;
+      }
+      if (event.detail?.module === 'avicole' && ['poultry_mortality', 'poultry_close'].includes(draft?.form_type)) {
         setActivity(draftActionToActivity(draft));
         setHorizonDraft(draft);
         window.setTimeout(() => document.getElementById('hey-horizon-avicole-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
@@ -155,7 +162,7 @@ export default function AvicoleV10(props) {
     };
     window.addEventListener('horizon-open-form', handler);
     return () => window.removeEventListener('horizon-open-form', handler);
-  }, []);
+  }, [props.onNavigate]);
 
   const createOrReactivateLotOpportunity = async (lot = {}, source = 'lot prêt à vendre') => {
     if (!lot?.id || !isReadyForSale(lot) || !avicoleHasActiveBirds(lot)) return;
@@ -208,14 +215,14 @@ export default function AvicoleV10(props) {
   const wrappedCreate = async (payload) => { await props.onCreate?.(payload); await createMortalityEvent({}, payload, 'création lot avicole'); await createOrReactivateLotOpportunity(payload, 'création lot prêt à vendre'); };
   const wrappedUpdate = async (id, payload) => { const before = (props.rows || []).find((lot) => String(lot.id) === String(id)) || {}; const after = { ...before, ...payload, id }; await props.onUpdate?.(id, payload); await createMortalityEvent(before, after, 'modification fiche lot'); if (!isReadyForSale(before) && isReadyForSale(after)) await createOrReactivateLotOpportunity(after, 'lot marqué prêt à vendre'); };
   const scopedOpportunities = opportunities.filter((op) => activity === 'pondeuse' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('oeuf') || norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('pondeuse') : activity === 'chair' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('chair') : true);
-  const operationalProps = { ...props, activity, lockActivity: true, rows: activeScopedRows, productionLogs: scopedProductionLogs, salesOrders, payments, transactions, businessEvents, onCreate: wrappedCreate, onUpdate: wrappedUpdate, opportunities: scopedOpportunities };
+  const operationalProps = { ...props, activity, lockActivity: true, hideEggCapture: true, rows: activeScopedRows, productionLogs: scopedProductionLogs, salesOrders, payments, transactions, businessEvents, onCreate: wrappedCreate, onUpdate: wrappedUpdate, opportunities: scopedOpportunities };
   const historyProps = { ...props, activity, lockActivity: true, rows: scopedRows, productionLogs: scopedProductionLogs, salesOrders, payments, transactions, businessEvents, onCreate: wrappedCreate, onUpdate: wrappedUpdate, opportunities: scopedOpportunities };
   const dataMap = { sales_orders: salesOrders, payments, finances: transactions, avicole: activeScopedRows, production_oeufs_logs: scopedProductionLogs, alimentation_logs: props.alimentationLogs || [], business_events: businessEvents };
   const selectedLabel = activity === 'pondeuse' ? 'Pondeuses' : 'Poulets de chair';
 
   return <div className="space-y-6 avicole-mobile-final">
     <style>{`.avicole-mobile-final .objective-card-grid{align-items:stretch}@media(max-width:640px){.avicole-mobile-final .rounded-2xl{border-radius:18px}.avicole-mobile-final table{font-size:12px}.avicole-mobile-final th,.avicole-mobile-final td{padding-left:10px!important;padding-right:10px!important}.avicole-mobile-final .text-2xl{font-size:1.35rem}.avicole-mobile-final .grid{gap:.75rem}.avicole-mobile-final .overflow-x-auto{max-width:100vw}}`}</style>
-    {horizonDraft ? <div id="hey-horizon-avicole-card"><HeyHorizonAvicoleCard draft={horizonDraft} rows={activeScopedRows} onUpdate={wrappedUpdate} onCreateProduction={props.onCreateProduction} onRefreshProduction={props.onRefreshProduction} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onClose={() => setHorizonDraft(null)} onCreateEggOpportunity={createOrReactivateEggOpportunity} /></div> : null}
+    {horizonDraft && horizonDraft.form_type !== 'egg_production' ? <div id="hey-horizon-avicole-card"><HeyHorizonAvicoleCard draft={horizonDraft} rows={activeScopedRows} onUpdate={wrappedUpdate} onCreateProduction={props.onCreateProduction} onRefreshProduction={props.onRefreshProduction} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onClose={() => setHorizonDraft(null)} onCreateEggOpportunity={createOrReactivateEggOpportunity} /></div> : null}
     <div className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm">
       <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><Bird size={15} aria-hidden="true" /> Avicole</p>
       <h2 className="mt-1 text-2xl font-black text-[#2f2415]">{selectedLabel}</h2>
@@ -223,10 +230,10 @@ export default function AvicoleV10(props) {
     </div>
 
     <AvicoleCycleHealthPanel rows={rows} productionLogs={productionLogs} alimentationLogs={props.alimentationLogs || []} onNavigate={props.onNavigate} />
-    {activity === 'pondeuse' ? <LayerHelpBanner /> : null}
+    {activity === 'pondeuse' ? <LayerHelpBanner onNavigate={props.onNavigate} /> : null}
     <div className="objective-card-grid grid grid-cols-1 gap-4">{activity === 'pondeuse' ? <ObjectivePerformanceCard dataMap={dataMap} activity="oeufs" title="Objectif œufs / pondeuses" compact onNavigate={props.onNavigate} /> : <ObjectivePerformanceCard dataMap={dataMap} activity="poulets_chair" title="Objectif poulets de chair" compact onNavigate={props.onNavigate} />}</div>
     <ModuleSection icon={PackageCheck} title={`Lots actifs · ${selectedLabel}`} subtitle={`${historicalScopedRows.length} lot(s) en historique.`}><AvicoleBase {...operationalProps} /></ModuleSection>
-    {activity === 'pondeuse' ? <ModuleSection icon={Egg} title="Journal de ponte et charges"><AvicoleJournalsBridge {...operationalProps} rows={activeScopedRows} productionLogs={scopedProductionLogs} businessEvents={businessEvents} /><DirectChargesBridge title="Charges directes pondeuses" targetType="avicole" targets={activeScopedRows} businessEvents={businessEvents} onCreateBusinessEvent={props.onCreateBusinessEvent} onUpdateBusinessEvent={props.onUpdateBusinessEvent} onDeleteBusinessEvent={props.onDeleteBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} /></ModuleSection> : null}
+    {activity === 'pondeuse' ? <ModuleSection icon={Egg} title="Charges directes pondeuses"><DirectChargesBridge title="Charges directes pondeuses" targetType="avicole" targets={activeScopedRows} businessEvents={businessEvents} onCreateBusinessEvent={props.onCreateBusinessEvent} onUpdateBusinessEvent={props.onUpdateBusinessEvent} onDeleteBusinessEvent={props.onDeleteBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} /></ModuleSection> : null}
     {activity === 'chair' ? <ModuleSection icon={Scissors} title="Transformation et stock"><AvicoleTransformationBridge {...operationalProps} rows={activeScopedRows} alimentationLogs={props.alimentationLogs || []} productionLogs={scopedProductionLogs} businessEvents={businessEvents} /></ModuleSection> : null}
     <CollapsibleSection icon={ClipboardList} title={`Cycle et historique · ${selectedLabel}`} defaultOpen={false}><LifecycleHistoryPanel mode="avicole" rows={scopedRows} salesOrders={salesOrders} deliveries={props.deliveriesList || props.deliveries || []} businessEvents={businessEvents} /></CollapsibleSection>
     <CollapsibleSection icon={BarChart3} title={`Évolution · ${selectedLabel}`} defaultOpen={false}><AvicoleEvolution rows={scopedRows} productionLogs={scopedProductionLogs} alimentationLogs={props.alimentationLogs || []} businessEvents={businessEvents} salesOrders={salesOrders} payments={payments} transactions={transactions} opportunities={historyProps.opportunities || []} onNavigate={props.onNavigate} /></CollapsibleSection>

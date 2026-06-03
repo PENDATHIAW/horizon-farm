@@ -277,6 +277,157 @@ function dedupeLinks(links = []) {
   });
 }
 
+function sumEggsInWindow(logs = [], daysBack = 7) {
+  const end = Date.now();
+  const start = end - daysBack * 86400000;
+  const prevStart = start - daysBack * 86400000;
+  let recent = 0;
+  let previous = 0;
+  arr(logs).forEach((row) => {
+    const ts = new Date(String(row.date || row.created_at || '').slice(0, 10)).getTime();
+    if (Number.isNaN(ts)) return;
+    const qty = n(row.oeufs_produits ?? row.eggs_count ?? row.oeufs);
+    if (ts >= start && ts <= end) recent += qty;
+    else if (ts >= prevStart && ts < start) previous += qty;
+  });
+  return { recent, previous, delta: previous > 0 ? Math.round(((recent - previous) / previous) * 100) : (recent > 0 ? 100 : 0) };
+}
+
+function buildOperationalSignals({ topics, context = {}, labels = [], last, prev, unit, delta, trend, seriesName = '' }) {
+  const signals = [];
+  const push = (signal) => {
+    if (signal?.label) signals.push(signal);
+  };
+
+  if (topics.ponte) {
+    const eggWindow = sumEggsInWindow(context.productionLogs, 7);
+    if (eggWindow.recent > 0 || eggWindow.previous > 0) {
+      push({
+        label: 'Ramassages 7 j',
+        value: `${fmt(eggWindow.recent, 'œufs')} (sem. préc. ${fmt(eggWindow.previous, 'œufs')})`,
+        severity: eggWindow.delta <= -12 ? 'warn' : 'info',
+        action: eggWindow.delta <= -12 ? 'Vérifier alimentation et santé des pondeuses' : 'Continuer le suivi quotidien',
+        moduleId: 'elevage',
+        tab: 'Production',
+        linkLabel: 'Saisir / voir ramassages',
+      });
+    }
+    const lowFeed = feedLowStocks(arr(context.stocks));
+    if (lowFeed.length) {
+      const names = lowFeed.slice(0, 2).map(stockLabel).join(', ');
+      push({
+        label: 'Aliment sous seuil',
+        value: names,
+        severity: 'critique',
+        action: `Commander ou réceptionner : ${names}`,
+        moduleId: 'achats_stock',
+        tab: 'Stock',
+        linkLabel: 'Passer commande stock',
+      });
+    }
+  }
+
+  if (topics.stock) {
+    const low = arr(context.stocks).filter(isLowStock);
+    low.slice(0, 3).forEach((row) => {
+      push({
+        label: 'Rupture imminente',
+        value: `${stockLabel(row)} · ${fmt(n(row.quantite ?? row.quantity), row.unite || 'u')} restant(s)`,
+        severity: 'critique',
+        action: 'Lancer une réception achat ou ajuster le seuil',
+        moduleId: 'achats_stock',
+        tab: 'Stock',
+        linkLabel: 'Réception achat',
+      });
+    });
+  }
+
+  if (topics.vente) {
+    const openOrders = arr(context.salesOrders).filter((row) => {
+      const st = lower(row.statut || row.status);
+      return st && !['livre', 'livrée', 'delivered', 'paye', 'payé', 'closed'].includes(st);
+    });
+    if (openOrders.length) {
+      const total = openOrders.reduce((s, row) => s + n(row.montant_total ?? row.total ?? row.amount), 0);
+      push({
+        label: 'Commandes ouvertes',
+        value: `${openOrders.length} · ${fmt(total, 'FCFA')} potentiel`,
+        severity: trend === 'baisse' ? 'warn' : 'info',
+        action: 'Relancer livraison ou encaissement',
+        moduleId: 'commercial',
+        tab: 'Ventes',
+        linkLabel: 'Voir ventes en cours',
+      });
+    }
+  }
+
+  if (topics.finance) {
+    const missingProof = arr(context.transactions).filter((row) => !row.document_id && !row.preuve_id);
+    if (missingProof.length) {
+      push({
+        label: 'Preuves manquantes',
+        value: `${missingProof.length} mouvement(s) sans justificatif`,
+        severity: 'warn',
+        action: 'Joindre factures / reçus sur les lignes concernées',
+        moduleId: 'documents_rapports',
+        tab: null,
+        linkLabel: 'Compléter preuves',
+      });
+    }
+  }
+
+  if (topics.tache) {
+    const late = arr(context.taches).filter((row) => lower(row.status || row.statut) === 'retard');
+    if (late.length) {
+      push({
+        label: 'Tâches en retard',
+        value: `${late.length} action(s)`,
+        severity: 'critique',
+        action: 'Traiter ou replanifier les tâches en retard',
+        moduleId: 'activite_suivi',
+        tab: 'Tâches',
+        linkLabel: 'Ouvrir les tâches',
+      });
+    }
+  }
+
+  if (topics.sante) {
+    const openCare = openHealthRecords(arr(context.sante), arr(context.vaccins));
+    if (openCare.length) {
+      push({
+        label: 'Soins à clôturer',
+        value: `${openCare.length} intervention(s)`,
+        severity: 'warn',
+        action: 'Planifier ou clôturer les soins en cours',
+        moduleId: 'elevage',
+        tab: 'Santé',
+        linkLabel: 'Suivi sanitaire',
+      });
+    }
+  }
+
+  if (delta != null && Math.abs(delta) >= 10 && seriesName) {
+    push({
+      label: 'Variation mesurée',
+      value: `${seriesName} : ${fmt(prev, unit)} → ${fmt(last, unit)} (${delta > 0 ? '+' : ''}${delta} %)`,
+      severity: Math.abs(delta) >= 20 ? 'warn' : 'info',
+      action: trend === 'baisse' ? 'Identifier la cause terrain cette semaine' : 'Capitaliser sur la dynamique positive',
+      moduleId: '',
+      tab: null,
+      linkLabel: '',
+    });
+  }
+
+  return signals.slice(0, 5);
+}
+
+function buildPriorityAction(signals = [], links = []) {
+  const critical = signals.find((s) => s.severity === 'critique');
+  if (critical?.action) return critical;
+  if (signals[0]?.action) return signals[0];
+  if (links[0]) return { label: 'Action suggérée', action: links[0].label, moduleId: links[0].moduleId, tab: links[0].tab, linkLabel: links[0].label };
+  return null;
+}
 function buildSummary({ title, seriesName, last, prev, unit, delta, trend, periodLabel, causes }) {
   const parts = [];
   const metricLabel = seriesName || title;
@@ -326,6 +477,19 @@ export function explainChartCurve({
     trend,
   });
 
+  const operational_signals = buildOperationalSignals({
+    topics,
+    context,
+    labels,
+    last,
+    prev,
+    unit: unit || primary.unit || '',
+    delta,
+    trend,
+    seriesName: primary.name,
+  });
+  const priority_action = buildPriorityAction(operational_signals, links);
+
   const summary = buildSummary({
     title,
     seriesName: primary.name,
@@ -350,6 +514,8 @@ export function explainChartCurve({
     confidence,
     confidence_label: confidenceLabel(confidence),
     recommended_actions: actions,
+    operational_signals,
+    priority_action,
     module_links: links,
     metrics: { last, previous: prev, delta_percent: delta, trend },
     interpretation_only: true,

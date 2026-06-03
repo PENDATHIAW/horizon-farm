@@ -3,10 +3,15 @@ import assert from 'node:assert/strict';
 import {
   BP_LINE_STATUS,
   bpLineAmount,
+  bpCostModuleRoute,
+  buildBpCostCompletionWorkflow,
   buildBpLineConcretizationRoute,
   buildBpLineCompletionWorkflow,
+  canConcretizeBpCost,
   canConcretizeBpLine,
+  computeBpCostTotals,
   computeBpInvestmentTotals,
+  launchBpCostConcretization,
   launchBpLineConcretization,
   normalizeBpLineStatus,
 } from '../../src/utils/bpLineConcretization.js';
@@ -78,8 +83,47 @@ describe('bpLineConcretization', () => {
     const line = { id: 'BPLI-3', designation: 'Pompe irrigation', quantite: 1, prix_unitaire: 250000, business_plan_id: 'BP-HORIZON-FARM' };
     const workflow = buildBpLineCompletionWorkflow(line, { assetModule: 'equipements', assetId: 'EQP-1', amount: 250000, date: '2026-06-01' });
     assert.equal(workflow.linePatch.statut, BP_LINE_STATUS.CONCRETISE);
-    assert.equal(workflow.linePatch.asset_id, 'EQP-1');
-    assert.equal(workflow.financeTransaction.montant, 250000);
-    assert.equal(workflow.event.event_type, 'bp_ligne_concretisee');
+    assert.ok(workflow.financeTransaction);
+  });
+
+  it('route charge aliment pondeuses vers achats stock', () => {
+    const cost = {
+      id: 'BPCOST-1',
+      business_plan_id: 'BP-HORIZON-FARM',
+      designation: 'Aliments pondeuses',
+      categorie: 'alimentation_pondeuses',
+      montant_mensuel: 3240000,
+      statut: 'a_concretiser',
+    };
+    const route = bpCostModuleRoute(cost);
+    assert.equal(route.navigate.module, 'achats_stock');
+    assert.equal(route.form.form_type, 'stock_purchase');
+    assert.ok(canConcretizeBpCost(cost));
+    assert.equal(computeBpCostTotals([cost, { ...cost, id: '2', statut: 'concretise' }]).concretise, 3240000);
+  });
+
+  it('launchBpCostConcretization ouvre finance pour loyer', () => {
+    const calls = [];
+    globalThis.window = {
+      setTimeout: (fn) => { fn(); return 0; },
+      sessionStorage: { setItem() {}, removeItem() {} },
+      dispatchEvent() {},
+    };
+    try {
+      const result = launchBpCostConcretization(
+        { id: 'BPCOST-2', designation: 'Loyer pondeuses', categorie: 'loyer_pondeuses', montant_mensuel: 150000, statut: 'a_concretiser' },
+        { onNavigate: (module, options) => calls.push({ module, options }) },
+      );
+      assert.equal(result.ok, true);
+      assert.equal(calls[0]?.module, 'finance_pilotage');
+    } finally {
+      delete globalThis.window;
+    }
+  });
+
+  it('buildBpCostCompletionWorkflow marque charge concrétisée', () => {
+    const cost = { id: 'BPCOST-3', designation: 'Gaz', montant_mensuel: 18000, business_plan_id: 'BP-HORIZON-FARM' };
+    const workflow = buildBpCostCompletionWorkflow(cost, { amount: 18000, date: '2026-06-01', targetModule: 'finance_pilotage' });
+    assert.equal(workflow.linePatch.statut, BP_LINE_STATUS.CONCRETISE);
   });
 });

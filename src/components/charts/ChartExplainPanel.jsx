@@ -67,6 +67,57 @@ export default function ChartExplainPanel({ payload, disabled = false }) {
             <>
               <p className="font-semibold leading-relaxed">{insight.summary}</p>
 
+              {insight.priority_action?.action ? (
+                <div className="rounded-xl border border-[#2f2415]/20 bg-[#2f2415] p-3 text-white">
+                  <p className="text-[11px] font-black uppercase tracking-wide text-[#ffd86b]">Action prioritaire terrain</p>
+                  <p className="mt-1 text-sm font-bold">{insight.priority_action.action}</p>
+                  {insight.priority_action.moduleId ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (insight.priority_action.tab) ctx.onNavigate?.(insight.priority_action.moduleId, { tab: insight.priority_action.tab });
+                        else ctx.onNavigate?.(insight.priority_action.moduleId);
+                      }}
+                      className="mt-2 inline-flex items-center gap-1 rounded-lg bg-white px-3 py-1.5 text-[11px] font-black text-[#2f2415]"
+                    >
+                      <ExternalLink size={12} />
+                      {insight.priority_action.linkLabel || 'Ouvrir le module'}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {insight.operational_signals?.length ? (
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-wide text-[#9a6b12]">Signaux opérationnels</p>
+                  <div className="mt-2 space-y-2">
+                    {insight.operational_signals.map((signal) => (
+                      <div key={`${signal.label}-${signal.value}`} className={`rounded-xl border p-3 text-xs ${signal.severity === 'critique' ? 'border-red-200 bg-red-50 text-red-900' : signal.severity === 'warn' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-[#eadcc2] bg-white text-[#2f2415]'}`}>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <p className="font-black">{signal.label}</p>
+                            <p className="mt-0.5">{signal.value}</p>
+                            {signal.action ? <p className="mt-1 text-[11px] opacity-90">{signal.action}</p> : null}
+                          </div>
+                          {signal.moduleId ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (signal.tab) ctx.onNavigate?.(signal.moduleId, { tab: signal.tab });
+                                else ctx.onNavigate?.(signal.moduleId);
+                              }}
+                              className="shrink-0 rounded-lg border border-current/20 bg-white/80 px-2 py-1 text-[11px] font-bold"
+                            >
+                              {signal.linkLabel || 'Agir'}
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               {insight.probable_causes?.length ? (
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-wide text-[#9a6b12]">Causes probables</p>

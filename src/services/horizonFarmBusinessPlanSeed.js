@@ -106,7 +106,7 @@ export function buildHorizonFarmBpLine(line, businessPlanId) {
 }
 
 export function buildHorizonFarmMonthlyCost(cost, businessPlanId) {
-  return { id: makeId('BPCOST'), business_plan_id: businessPlanId, ...cost, frequence: 'mensuelle', source_module: 'investissements', source_business_plan: HORIZON_FARM_BP_NAME };
+  return { id: makeId('BPCOST'), business_plan_id: businessPlanId, ...cost, frequence: 'mensuelle', statut: 'a_concretiser', status: 'a_concretiser', source_module: 'investissements', source_business_plan: HORIZON_FARM_BP_NAME };
 }
 
 export function buildHorizonFarmProjection(projection, businessPlanId) {

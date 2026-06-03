@@ -37,6 +37,7 @@ test('baisse ponte + rupture aliment + soins ouverts', () => {
   assert.equal(insight.interpretation_only, true);
   assert.ok(insight.confidence >= 0.6);
   assert.ok(insight.module_links.some((l) => l.moduleId === 'achats_stock'));
+  assert.ok(Array.isArray(insight.operational_signals));
 });
 
 test('proposeChartExplainDraft reste insight only', () => {

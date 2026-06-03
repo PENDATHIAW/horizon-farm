@@ -2,6 +2,7 @@ import { CheckCircle2, CreditCard, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import useCrudModule from '../hooks/useCrudModule';
+import { dispatchBpCostCompleted } from '../utils/bpLineConcretization.js';
 import { makeId } from '../utils/ids';
 import BpKpiHealth from './BpKpiHealth.jsx';
 import FinanceAccountingHealth from './FinanceAccountingHealth.jsx';
@@ -15,13 +16,14 @@ const kindLabel = (type = '') => type === 'entree' ? 'Argent reçu' : 'Argent d�
 
 function HeyHorizonFinanceCard({ draft, onCreate, onCreateBusinessEvent, onRefresh, onRefreshBusinessEvents, onClose }) {
   const fields = draft?.draft_fields || {};
-  const [type, setType] = useState(fields.transaction_type || 'sortie');
-  const [amount, setAmount] = useState(fields.amount || fields.payment_amount || '');
-  const [label, setLabel] = useState(fields.label || draft?.raw_input || '');
-  const [category, setCategory] = useState(fields.category || 'general');
+  const [type, setType] = useState(fields.transaction_type || fields.type || 'sortie');
+  const [amount, setAmount] = useState(fields.amount || fields.payment_amount || fields.montant || '');
+  const [label, setLabel] = useState(fields.label || fields.libelle || draft?.raw_input || '');
+  const [category, setCategory] = useState(fields.category || fields.categorie || 'general');
   const [date, setDate] = useState(fields.date || today());
-  const [paymentStatus, setPaymentStatus] = useState(fields.payment_status === 'credit' ? 'a_payer' : 'paye');
-  const [note, setNote] = useState(fields.notes || '');
+  const [paymentStatus, setPaymentStatus] = useState(fields.payment_status === 'credit' || fields.statut === 'a_payer' ? 'a_payer' : 'paye');
+  const [note, setNote] = useState(fields.notes || fields.description || '');
+  const bpCostId = fields.bp_cost_id || fields.bp_line_id || '';
   const [saving, setSaving] = useState(false);
   const submit = async () => {
     if (num(amount) <= 0) return toast.error('Montant obligatoire');
@@ -29,7 +31,17 @@ function HeyHorizonFinanceCard({ draft, onCreate, onCreateBusinessEvent, onRefre
     try {
       setSaving(true);
       const id = makeId('TRX');
-      await onCreate?.({ id, type, transaction_type: type, libelle: label.trim(), label: label.trim(), montant: num(amount), amount: num(amount), date, categorie: category, category, statut: paymentStatus, module_lie: 'finances', source_module: 'hey_horizon', created_from: 'hey_horizon', notes: note || draft?.raw_input || '' });
+      await onCreate?.({ id, type, transaction_type: type, libelle: label.trim(), label: label.trim(), montant: num(amount), amount: num(amount), date, categorie: category, category, statut: paymentStatus, module_lie: 'finances', source_module: bpCostId ? 'investissements' : 'hey_horizon', created_from: bpCostId ? 'business_plan_charge' : 'hey_horizon', bp_cost_id: bpCostId || '', business_plan_id: fields.business_plan_id || '', notes: note || draft?.raw_input || '' });
+      if (bpCostId) {
+        dispatchBpCostCompleted({
+          bp_cost_id: bpCostId,
+          finance_transaction_id: id,
+          amount: num(amount),
+          date,
+          targetModule: 'finance_pilotage',
+          source: 'finance_entry',
+        });
+      }
       await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'finance_hey_horizon', module_source: 'finances', entity_type: 'transaction', entity_id: id, title: `${kindLabel(type)} · ${num(amount).toLocaleString('fr-FR')} FCFA`, description: note || label, event_date: date, severity: type === 'sortie' ? 'info' : 'success', amount: num(amount), saisies_evitees: 2 });
       await Promise.allSettled([onRefresh?.(), onRefreshBusinessEvents?.()]);
       toast.success(`${kindLabel(type)} créée depuis Hey Horizon`);

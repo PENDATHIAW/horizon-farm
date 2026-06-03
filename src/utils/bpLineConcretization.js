@@ -3,6 +3,7 @@ import { toNumber } from './format.js';
 import { investmentAmount, investmentAssetKind, investmentLabel, buildInvestmentRealizationWorkflow } from './investmentWorkflows.js';
 
 export const BP_LINE_COMPLETED_EVENT = 'horizon-bp-line-completed';
+export const BP_COST_COMPLETED_EVENT = 'horizon-bp-cost-completed';
 
 export const BP_LINE_STATUS = {
   A_CONCRETISER: 'a_concretiser',
@@ -37,6 +38,222 @@ export function bpLineStatusLabel(status = '') {
 
 export function isBpLineEditable(line = {}) {
   return Boolean(line?.id) && !String(line.id).startsWith('off-') && !String(line.id).startsWith('cost-') && !String(line.id).startsWith('rev-');
+}
+
+export function isBpCostEditable(cost = {}) {
+  return Boolean(cost?.id) && !String(cost.id).startsWith('cost-') && !String(cost.id).startsWith('rev-');
+}
+
+export const bpCostAmount = (cost = {}) => toNumber(cost.montant_reel ?? cost.montant_mensuel ?? cost.amount ?? cost.montant);
+
+export function bpCostLabel(cost = {}) {
+  return cost.designation || cost.libelle || cost.nom || cost.name || cost.id || 'Charge BP';
+}
+
+export function bpCostModuleRoute(cost = {}) {
+  const text = lower(`${cost.designation || ''} ${cost.categorie || ''}`);
+  const amount = bpCostAmount(cost);
+  const date = today();
+  const baseFields = {
+    bp_cost_id: cost.id,
+    bp_line_id: cost.id,
+    business_plan_id: cost.business_plan_id || '',
+    source_module: 'investissements',
+    source_record_id: cost.id,
+    source: 'business_plan_charge',
+    montant: amount,
+    montant_mensuel: amount,
+  };
+
+  if (/poussin.*chair|cartons poussins|poussins_chair/.test(text)) {
+    return {
+      label: 'Élevage / Avicole',
+      navigate: { module: 'elevage', tab: 'Avicole' },
+      form: {
+        module: 'avicole',
+        form_type: 'lot_create',
+        intent_label: `Concrétiser charge · ${bpCostLabel(cost)}`,
+        draft_fields: {
+          ...baseFields,
+          type: 'Chair',
+          type_lot: 'chair',
+          initial_count: 500,
+          cout_total_achat: amount,
+          prix_unitaire_sujet: Math.round(amount / 500) || 700,
+          purchase_cost: amount,
+          name: bpCostLabel(cost),
+          date_debut: date,
+          date_entree: date,
+        },
+      },
+    };
+  }
+  if (/achat.*bovin|achat bœuf|achat boeuf/.test(text)) {
+    return {
+      label: 'Élevage / Animaux',
+      navigate: { module: 'elevage', tab: 'Animaux' },
+      form: {
+        module: 'animaux',
+        form_type: 'animal_create',
+        intent_label: `Concrétiser charge · ${bpCostLabel(cost)}`,
+        draft_fields: {
+          ...baseFields,
+          espece: 'Bovin',
+          type: 'Bovin',
+          mode_acquisition: 'achat',
+          quantite: 5,
+          purchase_cost: Math.round(amount / 5) || amount,
+          cout_achat: amount,
+          date: date,
+          date_achat: date,
+          name: bpCostLabel(cost),
+        },
+      },
+    };
+  }
+  if (/vaccin|prophylaxie|sante|santé/.test(text)) {
+    return {
+      label: 'Élevage / Santé',
+      navigate: { module: 'elevage', tab: 'Santé' },
+      form: {
+        module: 'sante',
+        form_type: 'health_action',
+        intent_label: `Concrétiser charge · ${bpCostLabel(cost)}`,
+        draft_fields: {
+          ...baseFields,
+          action_type: 'vaccin',
+          produit: bpCostLabel(cost),
+          cout: amount,
+          montant: amount,
+          date,
+        },
+      },
+    };
+  }
+  if (/aliment|feed|son|mais|maïs|fourrage|litiere|litière|emballage|gaz/.test(text)) {
+    const produit = bpCostLabel(cost);
+    return {
+      label: 'Achats / Stock',
+      navigate: { module: 'achats_stock', tab: 'Stock' },
+      form: {
+        module: 'stock',
+        form_type: 'stock_purchase',
+        intent_label: `Concrétiser charge · ${produit}`,
+        draft_fields: {
+          ...baseFields,
+          produit,
+          name: produit,
+          quantite: 1,
+          unite: 'lot',
+          prixUnit: amount,
+          prix_unitaire: amount,
+          montant: amount,
+          date,
+        },
+      },
+    };
+  }
+  return {
+    label: 'Finance / Trésorerie',
+    navigate: { module: 'finance_pilotage', tab: 'Trésorerie' },
+    form: {
+      module: 'finance',
+      form_type: 'finance_entry',
+      intent_label: `Concrétiser charge · ${bpCostLabel(cost)}`,
+      draft_fields: {
+        ...baseFields,
+        type: 'sortie',
+        categorie: cost.categorie || 'charge_bp',
+        libelle: bpCostLabel(cost),
+        description: `Charge BP mensuelle · ${bpCostLabel(cost)}`,
+        statut: 'a_payer',
+        date,
+      },
+    },
+  };
+}
+
+export function canConcretizeBpCost(cost = {}) {
+  if (!isBpCostEditable(cost)) return false;
+  if (normalizeBpLineStatus(cost) !== BP_LINE_STATUS.A_CONCRETISER) return false;
+  if (cost.linked_finance_transaction_id || cost.realization_key) return false;
+  return bpCostAmount(cost) > 0;
+}
+
+export function computeBpCostTotals(costs = []) {
+  const rows = Array.isArray(costs) ? costs : [];
+  let prevu = 0;
+  let concretise = 0;
+  let annule = 0;
+  let reste = 0;
+  rows.forEach((cost) => {
+    const amount = bpCostAmount(cost);
+    const status = normalizeBpLineStatus(cost);
+    prevu += amount;
+    if (status === BP_LINE_STATUS.ANNULEE) annule += amount;
+    else if (status === BP_LINE_STATUS.CONCRETISE) concretise += amount;
+    else reste += amount;
+  });
+  return { prevu, concretise, annule, reste, count: rows.length };
+}
+
+export function buildBpCostConcretizationRoute(cost = {}) {
+  return bpCostModuleRoute(cost);
+}
+
+export function launchBpCostConcretization(cost = {}, { onNavigate } = {}) {
+  const route = buildBpCostConcretizationRoute(cost);
+  if (!route?.form) return { ok: false, reason: 'no_route' };
+  if (typeof window !== 'undefined') {
+    window.sessionStorage.setItem('horizon_bp_pending_cost', JSON.stringify({ id: cost.id, business_plan_id: cost.business_plan_id || '' }));
+  }
+  if (onNavigate) {
+    const { module, tab } = route.navigate;
+    if (tab) onNavigate(module, module === 'elevage' ? { tab } : { tab });
+    else onNavigate(module);
+  }
+  window.setTimeout(() => {
+    emitHorizonForm(route.form.module, route.form.form_type, route.form.intent_label, route.form.draft_fields);
+  }, 380);
+  return { ok: true, route };
+}
+
+export function buildBpCostCompletionWorkflow(cost = {}, result = {}) {
+  const amount = toNumber(result.amount ?? bpCostAmount(cost));
+  const date = result.date || today();
+  const finance = buildInvestmentRealizationWorkflow(
+    { ...cost, designation: bpCostLabel(cost) },
+    { amount, date, proofThreshold: 50000 },
+  );
+  const linePatch = {
+    ...(finance?.linePatch || {}),
+    statut: BP_LINE_STATUS.CONCRETISE,
+    status: BP_LINE_STATUS.CONCRETISE,
+    montant_reel: amount,
+    date_realisation: date,
+    realized_at: now(),
+    linked_finance_transaction_id: finance?.financeTransaction?.id || result.finance_transaction_id || '',
+    concretized_at: now(),
+    concretization_source: result.source || 'module_metier',
+    target_module: result.targetModule || result.target_module || '',
+  };
+  return {
+    linePatch,
+    financeTransaction: finance?.financeTransaction || null,
+    proofDocument: finance?.proofDocument || null,
+    event: {
+      ...(finance?.event || {}),
+      event_type: 'bp_charge_concretisee',
+      title: `Charge BP concrétisée · ${bpCostLabel(cost)}`,
+      description: `${amount} FCFA · ${result.targetModule || result.target_module || 'module métier'}`.trim(),
+    },
+  };
+}
+
+export function dispatchBpCostCompleted(detail = {}) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(BP_COST_COMPLETED_EVENT, { detail }));
+  window.sessionStorage.removeItem('horizon_bp_pending_cost');
 }
 
 export function canConcretizeBpLine(line = {}) {
