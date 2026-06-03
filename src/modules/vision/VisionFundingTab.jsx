@@ -1,4 +1,6 @@
 import { Scale } from 'lucide-react';
+import AntiDuplicationNotice from '../../components/AntiDuplicationNotice.jsx';
+import { openFinanceurReport } from '../../utils/antiDuplicationGuard.js';
 import { navigateObjectifsTarget } from '../../utils/objectifsCroissanceNavigation.js';
 import { fmtCurrency, fmtNumber } from '../../utils/format';
 import { dateOf, Empty, label, Row, Section, Stat, Btn } from './visionUtils';
@@ -13,6 +15,7 @@ export default function VisionFundingTab({ data, onNavigate }) {
         <Stat label="Documents" value={fmtNumber(data.documents.length)} />
         <Stat label="Preuves manquantes" value={fmtNumber(data.missingProof)} tone={data.missingProof ? 'warn' : 'good'} />
       </div>
+      <AntiDuplicationNotice pairId="financeur_documents_objectifs" onNavigate={onNavigate} actionLabel="Générer dans Rapports" className="mb-4" />
       <Section
         icon={Scale}
         title="Dossier financeur"

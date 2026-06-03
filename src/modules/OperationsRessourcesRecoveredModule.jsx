@@ -17,6 +17,8 @@ import EquipementsV2 from './EquipementsV2.jsx';
 import RessourcesMaintenancePanel from './ressources/RessourcesMaintenancePanel.jsx';
 import RessourcesPayrollPanel from './ressources/RessourcesPayrollPanel.jsx';
 import RessourcesRepairPanel from './ressources/RessourcesRepairPanel.jsx';
+import AntiDuplicationNotice from '../components/AntiDuplicationNotice.jsx';
+import { openEquipementsMaintenance, openSmartFarmCapteurs } from '../utils/antiDuplicationGuard.js';
 
 
 const arr = (v) => Array.isArray(v) ? v : [];
@@ -118,9 +120,10 @@ function Summary({ data, setTab, onApply, onSchedule, busyId }) {
   );
 }
 
-function MaintenanceHub({ data, setTab, maintenancePanel, onSchedule, busyId }) {
+function MaintenanceHub({ data, setTab, maintenancePanel, onSchedule, busyId, onNavigate }) {
   return (
     <div className="space-y-5">
+      <AntiDuplicationNotice pairId="maintenance_rh_equipements" onNavigate={onNavigate} compact />
       {maintenancePanel}
 
       <ModuleListHub

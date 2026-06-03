@@ -83,11 +83,16 @@ function MissingProofPanel({ items = [], setTab }) {
   return (
     <Section icon={Wallet} title="Transactions sans justificatif">
       {items.slice(0, 6).map((row) => (
-        <button key={row.id} type="button" onClick={() => setTab('Trésorerie')} className="flex w-full items-center justify-between border-b border-[#eadcc2]/70 py-3 text-left last:border-b-0 hover:bg-[#fffdf8]">
-          <span><b className="text-[#2f2415]">{row.title}</b><p className="text-xs text-[#8a7456]">{String(row.date || '—').slice(0, 10)}</p></span>
-          <span className="text-sm font-black text-amber-700">{fmtCurrency(row.amount)}</span>
-        </button>
-
+        <div key={row.id} className="flex flex-col gap-2 border-b border-[#eadcc2]/70 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
+          <button type="button" onClick={() => setTab('Trésorerie')} className="text-left">
+            <b className="text-[#2f2415]">{row.title}</b>
+            <p className="text-xs text-[#8a7456]">{String(row.date || '—').slice(0, 10)}</p>
+          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-black text-amber-700">{fmtCurrency(row.amount)}</span>
+            <button type="button" onClick={() => openDocumentProofFromTransaction(row.trxId || row.id, row.title)} className="rounded-lg bg-[#22c55e] px-2 py-1 text-xs font-black text-[#052e16]">Joindre preuve</button>
+          </div>
+        </div>
       ))}
     </Section>
   );
@@ -188,7 +193,9 @@ function Summary({ data, setTab, onApply, busyId, onNavigate }) {
         <h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><BarChart3 size={20} /> Workflows financiers récupérés</h2>
         <p className="mt-2 text-sm leading-relaxed text-[#8a7456]">Finance & Pilotage remet les anciens moteurs : saisie finance Hey Horizon, trésorerie, santé comptable, preuves, business plan, paiement d'investissement, création d'actifs, documents et événements métier.</p>
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
-          <button type="button" onClick={() => { emitHorizonForm('finances', 'finance_entry', 'Nouvelle écriture', { date: new Date().toISOString().slice(0, 10) }); setTab('Trésorerie'); }} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">+ Écriture</b><p className="mt-1 text-sm text-[#8a7456]">Recette ou dépense avec preuve.</p></button>
+          <button type="button" onClick={() => openFinanceCharge({ setTab })} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">+ Charge</b><p className="mt-1 text-sm text-[#8a7456]">Dépense générale (hors achat stock / vente).</p></button>
+          <button type="button" onClick={() => openStockPurchase({ onNavigate, setTab: () => onNavigate?.('achats_stock', { tab: 'Stock' }) })} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">→ Achat stock</b><p className="mt-1 text-sm text-[#8a7456]">Réception fournisseur — module Achats & Stock.</p></button>
+          <button type="button" onClick={() => openCommercialSale(onNavigate)} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">→ Nouvelle vente</b><p className="mt-1 text-sm text-[#8a7456]">Saisie vente dans Commercial.</p></button>
           <button type="button" onClick={() => setTab('Trésorerie')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Trésorerie</b><p className="mt-1 text-sm text-[#8a7456]">Recettes, dépenses, preuves.</p></button>
           <button type="button" onClick={() => setTab('Créances')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Créances</b><p className="mt-1 text-sm text-[#8a7456]">Restes à encaisser.</p></button>
           <button type="button" onClick={() => setTab('Dettes')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Dettes</b><p className="mt-1 text-sm text-[#8a7456]">Charges à payer.</p></button>

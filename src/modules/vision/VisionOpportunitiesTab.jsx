@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { TrendingUp } from 'lucide-react';
 import { buildOpportunityFollowUpTask, navigateFromPilotageItem } from '../../utils/centreDecisionWorkflow.js';
 import { fmtCurrency } from '../../utils/format';
+import { redirectToSource } from '../../utils/antiDuplicationGuard.js';
 import { dateOf, label, Btn, DataRow, DataTable, Empty, Section, TabIntro, VisionKpi } from './visionUtils';
 
 export default function VisionOpportunitiesTab({

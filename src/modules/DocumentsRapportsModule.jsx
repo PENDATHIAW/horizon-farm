@@ -144,7 +144,7 @@ function Proofs({ data, onNavigate, onAttachProof, busyId }) {
             <button type="button" onClick={() => onNavigate?.('finance_pilotage')} className="text-left"><b className="text-[#2f2415]">{labelOf(row)}</b><p className="text-xs text-[#8a7456]">{dateOf(row)} · preuve à joindre</p></button>
             <div className="flex gap-2">
               <span className="text-sm font-black text-amber-700">{fmtCurrency(amountOf(row))}</span>
-              <button type="button" disabled={busyId === row.id} onClick={() => onAttachProof?.({ id: row.id, title: labelOf(row), amount: amountOf(row) })} className="rounded-lg bg-[#22c55e] px-2 py-1 text-xs font-black text-[#052e16] disabled:opacity-50">{busyId === row.id ? '…' : 'Tâche'}</button>
+              <button type="button" disabled={busyId === row.id} onClick={() => onAttachProof?.({ id: row.id, title: labelOf(row), amount: amountOf(row) })} className="rounded-lg bg-[#22c55e] px-2 py-1 text-xs font-black text-[#052e16] disabled:opacity-50">{busyId === row.id ? '…' : 'Joindre preuve'}</button>
             </div>
           </div>
         )) : <Empty label="Aucune preuve manquante détectée." />}

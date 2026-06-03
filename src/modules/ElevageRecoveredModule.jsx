@@ -14,6 +14,7 @@ import HeyHorizonQuickAsk from '../components/HeyHorizonQuickAsk.jsx';
 import { resolveElevageTab, navigateForIaFinding } from '../utils/commercialNavigation';
 import { avicoleHasActiveBirds } from '../utils/avicoleMetrics.js';
 import { buildElevageHealthSnapshot, computeLotMargin, computeAnimalMargin, formatMargin } from './elevage/elevageVisionHelpers.js';
+import AntiDuplicationNotice from '../components/AntiDuplicationNotice.jsx';
 import AnimauxV2 from './AnimauxV2';
 import AvicoleV10 from './AvicoleV10';
 import ElevageProductionPanel from './elevage/ElevageProductionPanel.jsx';
@@ -110,6 +111,7 @@ function Summary({ data, setTab, onApply, busyId, onNavigate }) {
       <Stat label="Coût alim." value={`${Math.round(data.feedCost).toLocaleString('fr-FR')} F`} tone="warn" />
     </div>
     <ElevageIaPanel findings={data.healthFindings} predictions={data.healthPredictions} onApply={onApply} busyId={busyId} onNavigate={onNavigate} />
+    <AntiDuplicationNotice pairId="rentabilite_finance_elevage" onNavigate={onNavigate} actionLabel="Finance → Rentabilité" className="mb-2" />
     <RentabilitySection lotMargins={data.lotMargins} onNavigate={onNavigate} />
     <ElevageSection title="Parcours métier" subtitle="Production, transformation, alimentation, reproduction et santé — sans dupliquer Animaux/Avicole.">
       <div className={ELEVAGE_ACTION_GRID}>
