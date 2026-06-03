@@ -13,7 +13,12 @@ import CreateModal from '../modals/CreateModal';
 import DeleteModal from '../modals/DeleteModal';
 import DetailsModal from '../modals/DetailsModal';
 import EditModal from '../modals/EditModal';
-import { commitFeedingWorkflow, commitPurchaseWorkflow, prepareFeedingWorkflow, preparePurchaseWorkflow } from '../services/workflowService';
+import { commitFeedingWorkflow, prepareFeedingWorkflow } from '../services/workflowService';
+import {
+  ENTRY_KINDS,
+  commitStockPurchaseWorkflow,
+  prepareStockPurchaseWorkflow,
+} from '../utils/stockPurchaseWorkflow';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId, makeId } from '../utils/ids';
@@ -73,31 +78,31 @@ function stockFields(fournisseurs = []) {
     { key: 'notes', label: 'Notes', type: 'text', fullWidth: true },
   ];
 }
-function MovementModal({ row, type, defaultQty = 1, saving, onClose, onConfirm }) {
+function MovementModal({ row, type, defaultQty = 1, saving, onClose, onConfirm, onOpenPurchaseReception }) {
   const [qty, setQty] = useState(String(Math.max(1, Math.round(defaultQty || 1))));
-  const [motif, setMotif] = useState(type === 'entree' ? 'Réception fournisseur' : type === 'perte' ? 'Perte constatée' : isFood(row) ? 'Alimentation animaux/lots' : 'Sortie stock');
-  const [withFinance, setWithFinance] = useState(type === 'entree');
+  const [motif, setMotif] = useState(type === 'entree' ? 'Ajustement / don / stock initial' : type === 'perte' ? 'Perte constatée' : isFood(row) ? 'Alimentation animaux/lots' : 'Sortie stock');
+  const [entryKind, setEntryKind] = useState(ENTRY_KINDS.CORRECTION);
   const [error, setError] = useState('');
   const quantity = toNumber(qty);
   const current = toNumber(row?.quantite);
   const next = type === 'entree' ? current + quantity : Math.max(0, current - quantity);
   const amount = quantity * unitPrice(row);
-  const title = type === 'entree' ? 'Réceptionner du stock' : type === 'perte' ? 'Déclarer une perte' : isFood(row) ? 'Utiliser aliment' : 'Utiliser / sortir du stock';
+  const title = type === 'entree' ? 'Entrée stock (sans achat)' : type === 'perte' ? 'Déclarer une perte' : isFood(row) ? 'Utiliser aliment' : 'Utiliser / sortir du stock';
   const impacts = [
     type === 'entree' ? `Stock augmenté : ${fmtNumber(current)} → ${fmtNumber(next)} ${row?.unite || ''}` : `Stock diminué : ${fmtNumber(current)} → ${fmtNumber(next)} ${row?.unite || ''}`,
-    type === 'entree' ? 'Réception stock historisée.' : type === 'perte' ? 'Perte tracée en événement métier.' : isFood(row) ? 'Alimentation liée et coût affecté si applicable.' : 'Sortie stock tracée en événement métier.',
+    type === 'entree' ? 'Entrée sans écriture finance (initial, don ou correction).' : type === 'perte' ? 'Perte tracée en événement métier.' : isFood(row) ? 'Alimentation liée et coût affecté si applicable.' : 'Sortie stock tracée en événement métier.',
     type !== 'entree' && next <= toNumber(row?.seuil) ? 'Alerte stock critique créée si le seuil est atteint.' : 'Seuil stock vérifié automatiquement.',
-    type === 'entree' && withFinance && amount > 0 ? 'Dépense et preuve/facture seront préparées avec cette entrée.' : 'Aucune dépense séparée ne sera créée.',
+    type === 'entree' ? 'Achat fournisseur : bouton « Réception achat ».' : 'Aucune dépense séparée ne sera créée.',
   ];
   const confirm = () => {
     if (quantity <= 0) return setError('Quantité invalide.');
     if (type !== 'entree' && quantity > current) return setError(`Stock insuffisant : ${fmtNumber(current)} ${row?.unite || ''} disponible(s).`);
-    onConfirm?.({ qty: quantity, motif, withFinance, amount });
+    onConfirm?.({ qty: quantity, motif, entryKind, amount });
   };
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3"><div className="w-full max-w-xl rounded-3xl border border-[#eadcc2] bg-white shadow-2xl"><div className="flex items-start justify-between border-b border-[#eadcc2] p-5"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Mouvement stock</p><h2 className="text-xl font-black text-[#2f2415]">{title}</h2><p className="mt-1 text-sm text-[#8a7456]">{productName(row)} · Disponible {fmtNumber(current)} {row?.unite || ''}</p></div><button type="button" onClick={onClose} aria-label="Fermer"><X size={18} /></button></div><div className="p-5 space-y-4">{error ? <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}<div className="grid grid-cols-1 md:grid-cols-2 gap-3"><label className="space-y-1"><span className="text-xs font-bold text-[#8a7456]">Quantité</span><input type="number" value={qty} onChange={(e) => setQty(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-xs font-bold text-[#8a7456]">Motif</span><input value={motif} onChange={(e) => setMotif(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm" /></label></div>{type === 'entree' ? <label className="flex items-center gap-2 rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#2f2415]"><input type="checkbox" checked={withFinance} onChange={(e) => setWithFinance(e.target.checked)} /> Préparer aussi la dépense et la preuve/facture si le prix est renseigné</label> : null}<div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><p className="text-xs uppercase tracking-widest font-black text-emerald-700">Résumé avant validation</p><p className="mt-1 text-lg font-black text-emerald-800">Nouvelle quantité : {fmtNumber(next)} {row?.unite || ''}</p><p className="text-sm text-emerald-800">Valeur estimée du mouvement : {fmtCurrency(amount)}</p></div><div className="grid grid-cols-1 md:grid-cols-2 gap-2">{impacts.map((impact) => <div key={impact} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a]"><CheckCircle size={14} className="inline text-emerald-600" /> {impact}</div>)}</div><div className="flex justify-end gap-2"><button type="button" onClick={onClose} className="min-h-[44px] rounded-xl border border-[#eadcc2] px-4 py-2 text-sm font-bold text-[#8a7456]">Annuler</button><button type="button" onClick={confirm} disabled={saving} className="min-h-[44px] rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60">{saving ? 'Validation...' : 'Valider le mouvement'}</button></div></div></div></div>;
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3"><div className="w-full max-w-xl rounded-3xl border border-[#eadcc2] bg-white shadow-2xl"><div className="flex items-start justify-between border-b border-[#eadcc2] p-5"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Mouvement stock</p><h2 className="text-xl font-black text-[#2f2415]">{title}</h2><p className="mt-1 text-sm text-[#8a7456]">{productName(row)} · Disponible {fmtNumber(current)} {row?.unite || ''}</p></div><button type="button" onClick={onClose} aria-label="Fermer"><X size={18} /></button></div><div className="p-5 space-y-4">{error ? <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}{type === 'entree' ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Achat fournisseur : <button type="button" className="font-black underline" onClick={() => { onClose?.(); onOpenPurchaseReception?.({ stock_id: row?.id, produit: productName(row) }); }}>Réception achat</button></div> : null}<div className="grid grid-cols-1 md:grid-cols-2 gap-3"><label className="space-y-1"><span className="text-xs font-bold text-[#8a7456]">Quantité</span><input type="number" value={qty} onChange={(e) => setQty(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm" /></label><label className="space-y-1"><span className="text-xs font-bold text-[#8a7456]">Motif</span><input value={motif} onChange={(e) => setMotif(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm" /></label>{type === 'entree' ? <label className="space-y-1 md:col-span-2"><span className="text-xs font-bold text-[#8a7456]">Nature</span><select value={entryKind} onChange={(e) => setEntryKind(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"><option value={ENTRY_KINDS.STOCK_INITIAL}>Stock initial</option><option value={ENTRY_KINDS.DON}>Don</option><option value={ENTRY_KINDS.CORRECTION}>Correction</option></select></label> : null}</div><div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><p className="text-xs uppercase tracking-widest font-black text-emerald-700">Résumé avant validation</p><p className="mt-1 text-lg font-black text-emerald-800">Nouvelle quantité : {fmtNumber(next)} {row?.unite || ''}</p><p className="text-sm text-emerald-800">Valeur estimée du mouvement : {fmtCurrency(amount)}</p></div><div className="grid grid-cols-1 md:grid-cols-2 gap-2">{impacts.map((impact) => <div key={impact} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a]"><CheckCircle size={14} className="inline text-emerald-600" /> {impact}</div>)}</div><div className="flex justify-end gap-2"><button type="button" onClick={onClose} className="min-h-[44px] rounded-xl border border-[#eadcc2] px-4 py-2 text-sm font-bold text-[#8a7456]">Annuler</button><button type="button" onClick={confirm} disabled={saving} className="min-h-[44px] rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60">{saving ? 'Validation...' : 'Valider le mouvement'}</button></div></div></div></div>;
 }
 
-export default function StocksV3({ rows = [], alimentationLogs = [], animaux = [], lots = [], fournisseurs = [], opportunities = [], taches = [], loading, onCreate, onUpdate, onDelete, onRefresh, onCreateAlimentation, onUpdateAlimentation, onDeleteAlimentation, onRefreshAlimentation, onCreateFinanceTransaction, onRefreshFinances, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateTask, onUpdateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, ...rest }) {
+export default function StocksV3({ rows = [], alimentationLogs = [], animaux = [], lots = [], fournisseurs = [], opportunities = [], taches = [], loading, onCreate, onUpdate, onDelete, onRefresh, onCreateAlimentation, onUpdateAlimentation, onDeleteAlimentation, onRefreshAlimentation, onCreateFinanceTransaction, onRefreshFinances, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateTask, onUpdateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, onOpenPurchaseReception, onUpdateSupplier, ...rest }) {
   const [selected, setSelected] = useState(null);
   const [selectedAlim, setSelectedAlim] = useState(null);
   const [modal, setModal] = useState(null);
@@ -134,39 +139,42 @@ export default function StocksV3({ rows = [], alimentationLogs = [], animaux = [
     return next;
   };
   const openMovement = (row, type) => setMovement({ row, type, defaultQty: type === 'entree' ? (stockMetrics(row).suggestedOrderQty || 1) : 1 });
-  const confirmMovement = async ({ qty, motif, withFinance }) => {
+  const confirmMovement = async ({ qty, motif, entryKind }) => {
     const row = movement?.row;
     const type = movement?.type;
     if (!row) return;
     const movementKey = `stock-movement:${row.id}:${type}:${qty}:${today()}`;
     await workflowSubmit(movementKey, async () => {
       if (type === 'entree') {
-        const current = toNumber(row.quantite);
-        const nextQty = current + qty;
-        const amount = qty * unitPrice(row);
-        if (withFinance && amount > 0) {
-          const preview = preparePurchaseWorkflow({ id: row.id, produit: row.produit, quantite: nextQty, quantite_recue: qty, prix_unitaire: unitPrice(row), montant: amount, fournisseur_id: row.fournisseur_id || '', source_record_id: row.id, last_movement_type: 'entree', last_movement_label: motif, last_movement_qty: qty, last_movement_at: new Date().toISOString(), statut: 'ok', stock_status: 'ok' }, { transactions: [], documents: documentsCrud.rows, events: businessEventsCrud.rows });
-          await commitPurchaseWorkflow(preview, {
-            context: {
-              stocks: rows,
-              transactions: rest.transactions || [],
-              tasks: taches,
-              alertes: alertesCrud.rows || [],
-              documents: documentsCrud.rows || [],
-            },
-            onCreateOrUpdateStock: (patch) => onUpdate?.(row.id, normalizeStock({ ...patch, quantite: nextQty, last_movement_label: motif })),
-            onCreateFinanceTransaction,
-            onCreateDocument: documentsCrud.create,
-            onCreateBusinessEvent: rest.onCreateBusinessEvent || businessEventsCrud.create,
-            onCreateTask,
-            onCreateAlert: onCreateAlert || alertesCrud.create,
-          });
-        } else {
-          await moveStock(row, 'entree', qty, motif);
-          await (rest.onCreateBusinessEvent || businessEventsCrud.create)?.({ id: makeId('EVT'), event_type: 'reception_stock', module_source: 'stock', entity_type: 'stock', entity_id: row.id, title: `Réception stock ${productName(row)}`, description: `${qty} ${row.unite || ''} · ${motif}`, event_date: today(), severity: 'info' });
-        }
-        await Promise.allSettled([onRefresh?.(), onRefreshFinances?.(), documentsCrud.refresh?.(), businessEventsCrud.refresh?.()]);
-        toast.success('Réception stock enregistrée');
+        const preview = prepareStockPurchaseWorkflow({
+          id: row.id,
+          produit: row.produit,
+          quantite_recue: qty,
+          prix_unitaire: 0,
+          montant: 0,
+          entry_kind: entryKind || ENTRY_KINDS.CORRECTION,
+          fournisseur_id: row.fournisseur_id || '',
+          date: today(),
+          notes: motif,
+          destination: 'stock_general',
+        }, { stocks: rows, suppliers: fournisseurs, transactions: rest.transactions || [], documents: documentsCrud.rows });
+        await commitStockPurchaseWorkflow(preview, {
+          context: { stocks: rows, transactions: rest.transactions || [], tasks: taches, alertes: alertesCrud.rows || [], documents: documentsCrud.rows || [] },
+          existingDocuments: documentsCrud.rows || [],
+          existingAlerts: alertesCrud.rows || [],
+          onCreateOrUpdateStock: (patch) => onUpdate?.(patch.id, normalizeStock(patch)),
+          onUpdateStock: (id, patch) => onUpdate?.(id, normalizeStock(patch)),
+          onCreateFinanceTransaction,
+          onCreateDocument: documentsCrud.create,
+          onCreateBusinessEvent: rest.onCreateBusinessEvent || businessEventsCrud.create,
+          onCreateTask,
+          onCreateAlert: onCreateAlert || alertesCrud.create,
+          onUpdateSupplier,
+          onUpdateFinanceTransaction: rest.onUpdateFinanceTransaction,
+          onUpdateAlert: (id, patch) => alertesCrud.update?.(id, patch),
+        });
+        await Promise.allSettled([onRefresh?.(), businessEventsCrud.refresh?.()]);
+        toast.success('Entrée stock enregistrée (sans finance)');
       } else if (type === 'sortie') {
         if (isFood(row) && onCreateAlimentation) {
           const preview = prepareFeedingWorkflow({ id: generateSequentialId('alimentation_logs', alimentationLogs), date: today(), stock_id: row.id, categorie: row.activite_liee === 'avicole' ? 'pondeuse' : 'bovin', type_cible: 'categorie_animale', quantite: qty, unite: row.unite || 'kg', montant_total: qty * unitPrice(row), fournisseur_id: row.fournisseur_id || '', duree_jours: 1, notes: motif || `Sortie depuis stock ${row.produit}` }, { events: businessEventsCrud.rows });
@@ -179,6 +187,7 @@ export default function StocksV3({ rows = [], alimentationLogs = [], animaux = [
             onCreateBusinessEvent: rest.onCreateBusinessEvent || businessEventsCrud.create,
           });
           await Promise.allSettled([onRefreshAlimentation?.(), onRefresh?.(), businessEventsCrud.refresh?.()]);
+          toast.success('Aliment utilisé et coût lié');
         } else {
           await moveStock(row, 'sortie', qty, motif);
           await (rest.onCreateBusinessEvent || businessEventsCrud.create)?.({ id: makeId('EVT'), event_type: 'sortie_stock', module_source: 'stock', entity_type: 'stock', entity_id: row.id, title: `Sortie stock ${row.produit}`, description: `${qty} ${row.unite || ''} · ${motif}`, event_date: today(), severity: 'info' });
@@ -233,3 +242,4 @@ export default function StocksV3({ rows = [], alimentationLogs = [], animaux = [
   ];
   const doExports = () => { const enrichedRows = rows.map((p) => ({ ...p, ...stockMetrics(p), valeur_estimee: valueOf(p) })); exportToCsv({ rows: enrichedRows, fileName: 'stocks.csv' }); exportToExcel({ rows: enrichedRows, fileName: 'stocks.xlsx', sheetName: 'Stocks' }); exportToPdf({ rows: enrichedRows, title: 'Stock', fileName: 'stocks.pdf' }); toast.success('Exports stock générés'); };
   return <div className="space-y-6"><StockStatusPanel rows={rows} onUpdate={onUpdate} onCreateBusinessEvent={rest.onCreateBusinessEvent || businessEventsCrud.create} onRefresh={onRefresh} /><StockFlowPanel rows={rows} onUpdate={onUpdate} onCreateBusinessEvent={rest.onCreateBusinessEvent || businessEventsCrud.create} onCreateFinanceTransaction={onCreateFinanceTransaction} onRefreshFinances={onRefreshFinances} /><StockReorderTasksBridge rows={rows} taches={taches} fournisseurs={fournisseurs} onCreateTask={onCreateTask} onUpdateTask={onUpdateTask} onRefreshTasks={onRefreshTasks} onCreateAlert={onCreateAlert || alertesCrud.create} onRefreshAlertes={onRefreshAlertes || alertesCrud.refresh} onCreateBusinessEvent={rest.onCreateBusinessEvent || businessEventsCrud.create} onRefreshBusinessEvents={rest.onRefreshBusinessEvents || businessEventsCrud.refresh} /><StockSalesOpportunityBridge rows={rows} opportunities={opportunities} onUpdate={onUpdate} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onCreateBusinessEvent={rest.onCreateBusinessEvent || businessEventsCrud.create} onRefreshBusinessEvents={rest.onRefreshBusinessEvents || businessEventsCrud.refresh} /><SectionHeader title="Inventaire" sub="Stock réel : achats, livraisons, consommations, pertes, retours et coûts liés aux activités" actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Actualiser</Btn><Btn icon={Plus} small onClick={() => onOpenPurchaseReception?.({ date: today() })}>Réception achat</Btn><Btn icon={Plus} variant="outline" small onClick={() => { setSelected(null); setModal('create'); }}>Créer fiche stock</Btn><Btn icon={Package} variant="outline" small onClick={() => { setSelectedAlim(null); setModal('createAlim'); }}>Utiliser aliment</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Rapport</Btn></>} /><div className="grid grid-cols-1 md:grid-cols-3 gap-4"><KpiCard icon={Package} label="Valeur totale stock" value={fmtCurrency(valeurTotale)} /><KpiCard icon={AlertTriangle} label="Produits sous seuil" value={critiques.length} /><KpiCard icon={CheckCircle} label="Produits OK" value={rows.length - critiques.length} /></div><DataTable title="Inventaire" rows={rows} columns={columns} loading={loading} initialSortKey="produit" searchPlaceholder="Rechercher stock..." /><DataTable title="Alimentation liée au stock" rows={alimentationLogs || []} columns={alimColumns} loading={loading} initialSortKey="date" searchPlaceholder="Rechercher alimentation..." />{movement ? <MovementModal row={movement.row} type={movement.type} defaultQty={movement.defaultQty} saving={isSaving} onClose={() => setMovement(null)} onConfirm={confirmMovement} onOpenPurchaseReception={onOpenPurchaseReception} /> : null}<DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, ...stockMetrics(selected), valeur_estimee: valueOf(selected) } : selected} title="Détail stock" /><CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={stockFormFields} initialValues={{ id: generateSequentialId('stock', rows), quantite: 0, seuil: 0, stock_max: 0, statut: 'ok', unite: 'kg', categorie: 'aliment_betail', activite_liee: 'animaux' }} autoId={() => generateSequentialId('stock', rows)} loading={isSaving} title="Créer / réceptionner stock" submitLabel="Enregistrer" /><EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={stockFormFields} initialValues={selected || {}} loading={isSaving} title="Modifier stock" submitLabel="Enregistrer" /><DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected ? `${selected.produit}` : ''} loading={isSaving} /><DetailsModal open={modal === 'detailsAlim'} onClose={() => setModal(null)} data={selectedAlim} title="Détail alimentation" /><CreateModal open={modal === 'createAlim'} onClose={() => setModal(null)} onSubmit={submitCreateAlimentation} fields={alimFormFields} initialValues={{ id: generateSequentialId('alimentation_logs', alimentationLogs), date: today(), stock_id: '__manual__', categorie: 'bovin', type_cible: 'categorie_animale', duree_jours: 1, unite: 'kg' }} autoId={() => generateSequentialId('alimentation_logs', alimentationLogs)} loading={isSaving} title="Utiliser aliment depuis le stock" submitLabel="Enregistrer" /><EditModal open={modal === 'editAlim'} onClose={() => setModal(null)} onSubmit={async (rawPayload) => { if (!selectedAlim) return; try { setSaving(true); const payload = normalizeAlimentationPayload(rawPayload); await onUpdateAlimentation?.(selectedAlim.id, payload); await onRefreshAlimentation?.(); toast.success('Alimentation modifiée'); setModal(null); } catch (e) { toast.error(e.message || 'Modification impossible'); } finally { setSaving(false); } }} fields={alimFormFields} initialValues={selectedAlim || {}} loading={isSaving} title="Modifier utilisation alimentation" submitLabel="Enregistrer" /><DeleteModal open={modal === 'deleteAlim'} onClose={() => setModal(null)} onConfirm={async () => { if (!selectedAlim) return; try { setSaving(true); await onDeleteAlimentation?.(selectedAlim.id); await onRefreshAlimentation?.(); toast.success('Alimentation supprimée'); setModal(null); } catch (e) { toast.error(e.message || 'Suppression impossible'); } finally { setSaving(false); } }} itemLabel={selectedAlim ? `${selectedAlim.categorie} ${selectedAlim.date}` : ''} loading={isSaving} /></div>;
+}
