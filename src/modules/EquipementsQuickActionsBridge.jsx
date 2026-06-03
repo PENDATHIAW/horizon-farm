@@ -6,6 +6,18 @@ import { makeId } from '../utils/ids';
 import { runEquipmentBreakdownSideEffects, runEquipmentRepairSideEffects } from '../utils/equipmentSideEffects';
 import { financeIds } from '../utils/sideEffectIds';
 import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine';
+import {
+  createImpactJournal,
+  finalizeImpactJournal,
+  IMPACT_KEYS,
+  instrumentHandlers,
+  markImpactCreated,
+  markImpactNa,
+  OPERATION_EXPECTATIONS,
+  OPERATION_TYPES,
+
+} from '../utils/workflowImpactJournal';
+import { showWorkflowImpactToast } from '../utils/workflowImpactToast';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const now = () => new Date().toISOString();

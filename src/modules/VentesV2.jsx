@@ -318,12 +318,6 @@ async function commitPreview(preview, props, setPreview) {
 
     await refreshRelated(props);
 
-    toast.success(
-      existingPayment || existingFinance
-        ? 'Vente sécurisée sans doublon'
-        : 'Vente validée et informations mises à jour'
-    );
-
     setPreview(null);
   } catch (error) {
     toast.error(error.message || 'Validation de la vente impossible');

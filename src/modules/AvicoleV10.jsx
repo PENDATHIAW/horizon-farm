@@ -7,6 +7,18 @@ import { buildAvicoleLotDecision } from '../services/avicoleDecisionEngine';
 import { fmtNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { avicoleActiveCount, avicoleHasActiveBirds } from '../utils/avicoleMetrics';
+import {
+  createImpactJournal,
+  finalizeImpactJournal,
+  IMPACT_KEYS,
+  instrumentHandlers,
+  markImpactCreated,
+  markImpactNa,
+  OPERATION_EXPECTATIONS,
+  OPERATION_TYPES,
+
+} from '../utils/workflowImpactJournal';
+import { showWorkflowImpactToast } from '../utils/workflowImpactToast';
 import AvicoleBase from './AvicoleBase.jsx';
 import AvicoleCycleHealthPanel from './AvicoleCycleHealthPanel.jsx';
 import AvicoleEvolution from './AvicoleEvolution.jsx';
@@ -14,7 +26,6 @@ import AvicoleJournalsBridge from './AvicoleJournalsBridge.jsx';
 import AvicoleTransformationBridge from './AvicoleTransformationBridge.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
-import useCrudModule from '../hooks/useCrudModule';
 
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const num = (value = 0) => Number(value || 0);
@@ -118,7 +129,6 @@ function HeyHorizonAvicoleCard({ draft, rows, onUpdate, onCreateProduction, onRe
 export default function AvicoleV10(props) {
   const [activity, setActivity] = useState('pondeuse');
   const [horizonDraft, setHorizonDraft] = useState(null);
-  const stockCrud = useCrudModule('stock');
   const rows = uniqueRowsById(props.rows || []);
   const productionLogs = props.productionLogs || [];
   const salesOrders = props.salesOrders || [];
@@ -195,7 +205,7 @@ export default function AvicoleV10(props) {
 
   return <div className="space-y-6 avicole-mobile-final">
     <style>{`.avicole-mobile-final .objective-card-grid{align-items:stretch}@media(max-width:640px){.avicole-mobile-final .rounded-2xl{border-radius:18px}.avicole-mobile-final table{font-size:12px}.avicole-mobile-final th,.avicole-mobile-final td{padding-left:10px!important;padding-right:10px!important}.avicole-mobile-final .text-2xl{font-size:1.35rem}.avicole-mobile-final .grid{gap:.75rem}.avicole-mobile-final .overflow-x-auto{max-width:100vw}}`}</style>
-    {horizonDraft ? <div id="hey-horizon-avicole-card"><HeyHorizonAvicoleCard draft={horizonDraft} rows={activeScopedRows} stockCrud={stockCrud} onUpdate={wrappedUpdate} onCreateProduction={props.onCreateProduction} onRefreshProduction={props.onRefreshProduction} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onClose={() => setHorizonDraft(null)} onCreateEggOpportunity={createOrReactivateEggOpportunity} /></div> : null}
+    {horizonDraft ? <div id="hey-horizon-avicole-card"><HeyHorizonAvicoleCard draft={horizonDraft} rows={activeScopedRows} onUpdate={wrappedUpdate} onCreateProduction={props.onCreateProduction} onRefreshProduction={props.onRefreshProduction} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onClose={() => setHorizonDraft(null)} onCreateEggOpportunity={createOrReactivateEggOpportunity} /></div> : null}
     <div className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm">
       <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><Bird size={15} aria-hidden="true" /> Avicole</p>
       <h2 className="mt-1 text-2xl font-black text-[#2f2415]">{selectedLabel}</h2>

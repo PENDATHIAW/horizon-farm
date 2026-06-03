@@ -1,10 +1,12 @@
-import { buildClientSalesSummary } from './clientWorkflows.js';
-import { makeId } from './ids.js';
-import { toNumber } from './format.js';
-import { buildCoherentOrderPatch, findExistingFinanceForPayment, findExistingPayment } from '../services/salesIntegrityService.js';
-import { remainingForOrder } from './salesStatuses.js';
-import { capSalePayment } from './salesWorkflows.js';
-import { financeIds, runPaymentSideEffects } from './saleSideEffects.js';
+import { buildClientSalesSummary } from './clientWorkflows';
+import { makeId } from './ids';
+import { toNumber } from './format';
+import { buildCoherentOrderPatch, findExistingFinanceForPayment, findExistingPayment } from '../services/salesIntegrityService';
+import { remainingForOrder } from './salesStatuses';
+import { capSalePayment } from './salesWorkflows';
+import { financeIds, runPaymentSideEffects } from './saleSideEffects';
+import { createImpactJournal, finalizeImpactJournal, IMPACT_KEYS, instrumentHandlers, markImpactCreated, markImpactNa, OPERATION_EXPECTATIONS, OPERATION_TYPES } from './workflowImpactJournal';
+import { showWorkflowImpactToast } from './workflowImpactToast';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value = '') => String(value || '').trim();
@@ -95,6 +97,8 @@ export async function recordSalePayment({
 
   const payId = paymentId || makeId('PAY');
   const date = paymentDate || new Date().toISOString().slice(0, 10);
+  const journal = createImpactJournal(OPERATION_TYPES.PAIEMENT, payId);
+  const tracked = instrumentHandlers(handlers, journal);
 
   const paymentRow = {
     id: payId,
@@ -115,7 +119,7 @@ export async function recordSalePayment({
     side_effects_managed: true,
   };
 
-  await onCreatePayment?.(paymentRow);
+  await tracked.onCreatePayment?.(paymentRow);
 
   const nextPayments = payments.some((row) => clean(row.id) === payId) ? payments : [...payments, paymentRow];
 
@@ -129,7 +133,7 @@ export async function recordSalePayment({
   });
 
   if (!existingFinance && onCreateFinanceTransaction) {
-    await onCreateFinanceTransaction({
+    await tracked.onCreateFinanceTransaction({
       id: financeIds.paid(sale.id, payId),
       type: 'entree',
       libelle: `Encaissement ${sale.id} - ${sale.client_label || sale.client_name || 'Client'}`,
@@ -170,5 +174,10 @@ export async function recordSalePayment({
     console.warn('Effets encaissement partiels', error?.message || error);
   }
 
-  return { paymentId: payId, amount: cappedAmount, remaining: Math.max(0, remaining - cappedAmount), requested, skipped: false };
+  markImpactNa(journal, IMPACT_KEYS.DOCUMENT, 'Facture gérée par la vente');
+  markImpactNa(journal, IMPACT_KEYS.STOCK_UPDATED, 'Non applicable pour un paiement');
+  markImpactNa(journal, IMPACT_KEYS.STOCK_MOVEMENT, 'Non applicable pour un paiement');
+  const impactJournal = finalizeImpactJournal(journal, OPERATION_EXPECTATIONS[OPERATION_TYPES.PAIEMENT]);
+  if (handlers.showImpactToast !== false) showWorkflowImpactToast(impactJournal);
+  return { paymentId: payId, amount: cappedAmount, remaining: Math.max(0, remaining - cappedAmount), requested, skipped: false, impactJournal };
 }
