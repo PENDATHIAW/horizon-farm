@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, BarChart3, CheckCircle2, Coins, Edit3, FileSpreadsheet, Link2, RefreshCw, ShieldCheck, Wallet } from 'lucide-react';
+import { AlertTriangle, ArrowRight, BarChart3, CheckCircle2, Coins, Edit3, FileSpreadsheet, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import EditModal from '../modals/EditModal';
@@ -19,7 +19,7 @@ import {
   normalizeBpLineStatus,
 } from '../utils/bpLineConcretization';
 import { fmtCurrency, toNumber } from '../utils/format';
-import { buildInvestmentAssetWorkflow, buildInvestmentRealizationWorkflow, investmentAmount, investmentAssetKind, investmentLabel } from '../utils/investmentWorkflows';
+import { investmentAssetKind, investmentLabel } from '../utils/investmentWorkflows';
 import FinancialPlanPanel from './FinancialPlanPanel.jsx';
 import InvestmentQualityControl from './InvestmentQualityControl.jsx';
 
@@ -34,6 +34,8 @@ const monthly = (r = {}) => toNumber(r.montant_mensuel || r.amount || r.montant)
 const revenue = (r = {}) => toNumber(r.ca_estime || r.revenue || r.montant);
 const charges = (r = {}) => toNumber(r.charges_estimees || r.charges);
 const dedupe = (rows = []) => [...arr(rows).filter((r) => !isArchived(r)).reduce((m, r) => m.set(key(r), r), new Map()).values()];
+
+const MODULE_LABELS = { avicole: 'Élevage / Avicole', animal: 'Élevage / Animaux', culture: 'Cultures', stock: 'Achats / Stock', equipement: 'Équipements', equipements: 'Équipements' };
 
 const INVESTMENT_EDIT_FIELDS = [
   { key: 'designation', label: 'Poste', type: 'text', required: true },
@@ -63,11 +65,23 @@ function Table({ rows, columns }) {
   return <div className="overflow-x-auto rounded-2xl border border-[#eadcc2]"><table className="w-full min-w-[760px] text-sm"><thead><tr className="bg-[#fffdf8] text-left text-xs uppercase text-[#8a7456]">{columns.map((c) => <th key={c.label} className="px-3 py-2">{c.label}</th>)}</tr></thead><tbody>{rows.map((r, i) => <tr key={r.id || i} className="border-t border-[#eadcc2]">{columns.map((c) => <td key={c.label} className="px-3 py-2 align-top">{c.render ? c.render(r, i) : (r[c.key] ?? '—')}</td>)}</tr>)}{!rows.length ? <tr><td colSpan={columns.length} className="px-3 py-6 text-center text-[#8a7456]">Aucune ligne.</td></tr> : null}</tbody></table></div>;
 }
 
+function HelpSteps() {
+  return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#5c4a32] space-y-3">
+    <p className="font-black text-[#2f2415]">Comment ça marche ?</p>
+    <ol className="space-y-2 list-decimal list-inside leading-relaxed">
+      <li><b>Prévu</b> — le BP dit ce que tu comptes acheter (ex. 3000 pondeuses).</li>
+      <li><b>Concrétiser</b> — quand tu le fais vraiment, clique le bouton : l’ERP t’ouvre le bon module (Avicole, Animaux…) avec la fiche déjà remplie.</li>
+      <li><b>Suivi</b> — une fois validé, la ligne passe en « concrétisé » et les montants prévu / fait / reste se mettent à jour.</li>
+    </ol>
+    <p className="text-xs text-[#8a7456]">Tu peux aussi marquer une ligne « annulée » si tu renonces à cette dépense.</p>
+  </div>;
+}
+
 async function syncBp(props, { silent = false, force = false } = {}) {
   try {
     const existing = arr(props.businessPlans).find(isBp);
     if (existing?.id && !force && arr(props.bpInvestmentLines).some((r) => String(r.business_plan_id) === String(existing.id))) {
-      if (!silent) toast.success('BP déjà présent dans la base');
+      if (!silent) toast.success('Plan déjà chargé');
       return;
     }
     const plan = existing?.id ? { ...buildHorizonFarmBusinessPlan(), id: existing.id } : buildHorizonFarmBusinessPlan();
@@ -92,9 +106,9 @@ async function syncBp(props, { silent = false, force = false } = {}) {
       else await props.onCreateBpRevenueProjection?.(buildHorizonFarmProjection(official, planId));
     }
     await Promise.allSettled([props.onRefreshBusinessPlans?.(), props.onRefreshBpInvestmentLines?.(), props.onRefreshBpRecurringCosts?.(), props.onRefreshBpRevenueProjections?.()]);
-    if (!silent) toast.success('Source officielle resynchronisée');
+    if (!silent) toast.success('Plan officiel rechargé');
   } catch (e) {
-    if (!silent) toast.error(e.message || 'Synchronisation impossible');
+    if (!silent) toast.error(e.message || 'Rechargement impossible');
   }
 }
 
@@ -108,83 +122,14 @@ async function finalizeBpLineCompletion(detail, props) {
     await props.onUpdateBpInvestmentLine?.(line.id, workflow.linePatch);
     if (workflow.event?.title) await props.onCreateBusinessEvent?.(workflow.event);
     await Promise.allSettled([props.onRefreshFinances?.(), props.onRefreshDocuments?.(), props.onRefreshBpInvestmentLines?.(), props.onRefreshBusinessEvents?.()]);
-    toast.success(`Ligne BP concrétisée · ${investmentLabel(line)}`);
+    toast.success(`C’est fait · ${investmentLabel(line)}`);
   } catch (error) {
-    toast.error(error.message || 'Mise à jour BP impossible');
+    toast.error(error.message || 'Mise à jour impossible');
   }
-}
-
-async function realizeInvestment(line, props) {
-  const workflow = buildInvestmentRealizationWorkflow(line);
-  if (!workflow) return toast.error('Montant investissement invalide');
-  if (line.linked_finance_transaction_id || line.realization_key) return toast.error('Cette ligne est déjà réalisée.');
-  try {
-    await props.onCreateFinanceTransaction?.(workflow.financeTransaction);
-    await props.onCreateDocument?.(workflow.proofDocument);
-    await props.onUpdateBpInvestmentLine?.(line.id, { ...workflow.linePatch, ...buildBpLineStatusPatch(BP_LINE_STATUS.CONCRETISE) });
-    await props.onCreateBusinessEvent?.(workflow.event);
-    await Promise.allSettled([props.onRefreshFinances?.(), props.onRefreshDocuments?.(), props.onRefreshBpInvestmentLines?.(), props.onRefreshBusinessEvents?.()]);
-    toast.success('Investissement payé, finance et preuve préparées');
-  } catch (error) {
-    toast.error(error.message || 'Paiement investissement impossible');
-  }
-}
-
-async function createAssetFromInvestment(line, props) {
-  const workflow = buildInvestmentAssetWorkflow(line);
-  if (!workflow) return toast.error(line.asset_id ? 'Actif déjà créé pour cette ligne.' : 'Cette ligne ne correspond pas encore à un actif automatique.');
-  const createByModule = { avicole: props.onCreateLot, animal: props.onCreateAnimal, culture: props.onCreateCulture, equipements: props.onCreateEquipement, stock: props.onCreateStock };
-  const refreshByModule = { avicole: props.onRefreshLots, animal: props.onRefreshAnimals, culture: props.onRefreshCultures, equipements: props.onRefreshEquipements, stock: props.onRefreshStock };
-  const creator = createByModule[workflow.module];
-  if (!creator) return toast.error(`Création ${workflow.module} non disponible dans ce module.`);
-  try {
-    for (const payload of workflow.payloads) await creator(payload);
-    await props.onUpdateBpInvestmentLine?.(line.id, { ...workflow.linePatch, ...buildBpLineStatusPatch(BP_LINE_STATUS.CONCRETISE) });
-    await props.onCreateBusinessEvent?.(workflow.event);
-    await Promise.allSettled([refreshByModule[workflow.module]?.(), props.onRefreshBpInvestmentLines?.(), props.onRefreshBusinessEvents?.()]);
-    toast.success('Actif métier créé et relié au BP');
-  } catch (error) {
-    toast.error(error.message || 'Création actif impossible');
-  }
-}
-
-function InvestmentTerrainActions({ lines = [], props }) {
-  const actionable = lines.filter((line) => isBpLineEditable(line));
-  const officialOnly = !actionable.length;
-  const realisable = actionable.filter((line) => normalizeBpLineStatus(line) === BP_LINE_STATUS.A_CONCRETISER && !line.linked_finance_transaction_id && !line.realization_key && investmentAmount(line) > 0);
-  const assetReady = actionable.filter((line) => (line.linked_finance_transaction_id || normalizeBpLineStatus(line) === BP_LINE_STATUS.CONCRETISE) && !line.asset_id && !line.asset_created_at && investmentAssetKind(line));
-  const toConcretize = actionable.filter((line) => canConcretizeBpLine(line) && investmentAssetKind(line));
-
-  const openConcretization = (line) => {
-    const result = launchBpLineConcretization(line, { onNavigate: props.onNavigate });
-    if (!result.ok) return toast.error('Cette ligne ne peut pas encore être concrétisée dans un module métier.');
-    toast.success(`Ouverture ${investmentAssetKind(line) || 'module'} · complétez la fiche puis validez`);
-  };
-
-  return <Section icon={Wallet} title="Actions terrain investissement" subtitle="Concrétiser une ligne ouvre le module métier concerné (Avicole, Animaux, Cultures, Stock…). Finance, preuve et lien BP suivent après validation.">
-    {officialOnly ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><AlertTriangle size={16} className="inline" /> Chargement du BP en cours ou lignes encore en lecture seule. Les lignes officielles deviennent modifiables dès qu’elles sont en base.</div> : null}
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
-      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 xl:col-span-1">
-        <p className="font-black text-[#2f2415]">Concrétiser dans le métier</p>
-        <p className="mt-1 text-sm text-[#8a7456]">Ex. 3000 pondeuses → Élevage / Avicole avec le formulaire « nouvelle bande » prérempli.</p>
-        <div className="mt-3 space-y-2">{toConcretize.slice(0, 8).map((line) => <button type="button" key={line.id} onClick={() => openConcretization(line)} className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm hover:border-emerald-400"><ArrowRight size={14} className="inline text-emerald-700" /> <b className="text-[#2f2415]">{investmentLabel(line)}</b><span className="ml-2 text-[#8a7456]">{money(totalLine(line))} · {investmentAssetKind(line)}</span></button>)}{!toConcretize.length ? <p className="rounded-xl border border-[#eadcc2] bg-white px-3 py-2 text-sm text-[#8a7456]">Aucune ligne éligible à la concrétisation guidée.</p> : null}</div>
-      </div>
-      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <p className="font-black text-[#2f2415]">Marquer une dépense réalisée</p>
-        <p className="mt-1 text-sm text-[#8a7456]">Crée une sortie Finance et une preuve sans passer par le module métier.</p>
-        <div className="mt-3 space-y-2">{realisable.slice(0, 6).map((line) => <button type="button" key={line.id} onClick={() => realizeInvestment(line, props)} className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-left text-sm hover:border-[#9a6b12]"><b className="text-[#2f2415]">{investmentLabel(line)}</b><span className="ml-2 text-[#8a7456]">{money(investmentAmount(line))}</span></button>)}{!realisable.length ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Aucune ligne en attente de paiement.</p> : null}</div>
-      </div>
-      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <p className="font-black text-[#2f2415]">Créer l’actif automatiquement</p>
-        <p className="mt-1 text-sm text-[#8a7456]">Raccourci sans formulaire métier, après paiement enregistré.</p>
-        <div className="mt-3 space-y-2">{assetReady.slice(0, 6).map((line) => <button type="button" key={line.id} onClick={() => createAssetFromInvestment(line, props)} className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-left text-sm hover:border-[#9a6b12]"><Link2 size={14} className="inline text-[#9a6b12]" /> <b className="text-[#2f2415]">{investmentLabel(line)}</b><span className="ml-2 text-[#8a7456]">vers {investmentAssetKind(line)}</span></button>)}{!assetReady.length ? <p className="rounded-xl border border-[#eadcc2] bg-white px-3 py-2 text-sm text-[#8a7456]">Aucun actif en attente.</p> : null}</div>
-      </div>
-    </div>
-  </Section>;
 }
 
 export default function InvestissementsV9(props) {
-  const [tab, setTab] = useState('bp');
+  const [tab, setTab] = useState('overview');
   const [editLine, setEditLine] = useState(null);
   const [editCost, setEditCost] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -198,11 +143,20 @@ export default function InvestissementsV9(props) {
   const projections = arr(props.bpRevenueProjections).filter((r) => String(r.business_plan_id || planId) === String(planId) && !isArchived(r)).length ? arr(props.bpRevenueProjections).filter((r) => String(r.business_plan_id || planId) === String(planId) && !isArchived(r)) : HORIZON_FARM_REVENUE_PROJECTIONS.map((r, i) => ({ id: `rev-${i}`, ...r }));
 
   const totals = useMemo(() => computeBpInvestmentTotals(lines), [lines]);
+  const pendingLines = useMemo(() => lines.filter((line) => canConcretizeBpLine(line) && investmentAssetKind(line)), [lines]);
   const monthCosts = costs.reduce((s, r) => s + monthly(r), 0);
   const annualRevenue = projections.reduce((s, r) => s + revenue(r), 0) || HORIZON_FARM_OFFICIAL_BP.revenue.annualTotal;
   let balance = -totals.prevu;
   const amort = projections.slice().sort((a, b) => toNumber(a.mois_index) - toNumber(b.mois_index)).map((r, i) => { const marge = revenue(r) - charges(r); balance += marge; return { ...r, mois: r.mois_index || i + 1, marge, balance, pct: Math.max(0, Math.min(100, ((totals.prevu + balance) / Math.max(1, totals.prevu)) * 100)) }; });
-  const tabs = [['bp', 'BP Horizon Farm'], ['actions', 'Actions terrain'], ['plan', 'Prévu vs réel'], ['budget', 'Investissements'], ['charges', 'Charges'], ['amort', 'Amortissements'], ['revenus', 'Revenus'], ['controle', 'Contrôle']];
+
+  const tabs = [
+    ['overview', 'Vue d’ensemble'],
+    ['budget', 'Mes investissements'],
+    ['charges', 'Charges mensuelles'],
+    ['plan', 'Suivi réel'],
+    ['previsions', 'Prévisions'],
+    ['controle', 'Contrôle'],
+  ];
 
   useEffect(() => {
     if (seedAttempted.current) return;
@@ -215,6 +169,13 @@ export default function InvestissementsV9(props) {
     window.addEventListener(BP_LINE_COMPLETED_EVENT, handler);
     return () => window.removeEventListener(BP_LINE_COMPLETED_EVENT, handler);
   }, [props]);
+
+  const openConcretization = (line) => {
+    const result = launchBpLineConcretization(line, { onNavigate: props.onNavigate });
+    if (!result.ok) return toast.error('Cette ligne ne peut pas encore être ouverte dans un module.');
+    const kind = investmentAssetKind(line);
+    toast.success(`Ouverture ${MODULE_LABELS[kind] || kind}…`);
+  };
 
   const updateLineStatus = async (line, status) => {
     if (!isBpLineEditable(line)) return toast.error('Ligne en lecture seule');
@@ -234,7 +195,7 @@ export default function InvestissementsV9(props) {
       const patch = { ...payload, total: toNumber(payload.quantite) * toNumber(payload.prix_unitaire), updated_at: new Date().toISOString() };
       await props.onUpdateBpInvestmentLine?.(editLine.id, patch);
       await props.onRefreshBpInvestmentLines?.();
-      toast.success('Ligne investissement mise à jour');
+      toast.success('Ligne mise à jour');
       setEditLine(null);
     } catch (error) {
       toast.error(error.message || 'Enregistrement impossible');
@@ -260,11 +221,15 @@ export default function InvestissementsV9(props) {
 
   const lineColumns = [
     { label: 'Poste', key: 'designation' },
-    { label: 'Catégorie', key: 'categorie' },
-    { label: 'Quantité', render: (r) => `${r.quantite || ''} ${r.unite || ''}` },
-    { label: 'Prix unitaire', render: (r) => money(r.prix_unitaire) },
-    { label: 'Total', render: (r) => money(totalLine(r)) },
-    { label: 'Réel', render: (r) => money(r.montant_reel) },
+    { label: 'Montant prévu', render: (r) => money(totalLine(r)) },
+    { label: 'Déjà fait', render: (r) => money(r.montant_reel) },
+    {
+      label: 'Où ça va',
+      render: (r) => {
+        const kind = investmentAssetKind(r);
+        return kind ? (MODULE_LABELS[kind] || kind) : '—';
+      },
+    },
     {
       label: 'Statut',
       render: (r) => {
@@ -274,22 +239,24 @@ export default function InvestissementsV9(props) {
       },
     },
     {
-      label: 'Actions',
+      label: '',
       render: (r) => {
-        if (!isBpLineEditable(r)) return '—';
-        return <div className="flex flex-wrap gap-1"><button type="button" onClick={() => setEditLine(r)} className="rounded-lg border border-[#eadcc2] px-2 py-1 text-xs font-black text-[#2f2415]"><Edit3 size={12} className="inline" /> Modifier</button>{canConcretizeBpLine(r) && investmentAssetKind(r) ? <button type="button" onClick={() => { const result = launchBpLineConcretization(r, { onNavigate: props.onNavigate }); if (result.ok) toast.success('Module métier ouvert'); else toast.error('Concrétisation indisponible'); }} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-black text-emerald-800">Concrétiser</button> : null}</div>;
+        if (!isBpLineEditable(r)) return null;
+        const canDo = canConcretizeBpLine(r) && investmentAssetKind(r);
+        return <div className="flex flex-wrap gap-1 justify-end">
+          {canDo ? <button type="button" onClick={() => openConcretization(r)} className="rounded-lg bg-[#2f2415] px-3 py-1.5 text-xs font-black text-white">Concrétiser</button> : null}
+          <button type="button" onClick={() => setEditLine(r)} className="rounded-lg border border-[#eadcc2] px-2 py-1 text-xs font-black text-[#2f2415]"><Edit3 size={12} className="inline" /> Modifier</button>
+        </div>;
       },
     },
   ];
 
   const costColumns = [
     { label: 'Charge', key: 'designation' },
-    { label: 'Catégorie', key: 'categorie' },
-    { label: 'Mensuel', render: (r) => money(monthly(r)) },
-    { label: 'Fréquence', key: 'frequence' },
+    { label: 'Par mois', render: (r) => money(monthly(r)) },
     {
-      label: 'Actions',
-      render: (r) => isBpLineEditable(r) ? <button type="button" onClick={() => setEditCost(r)} className="rounded-lg border border-[#eadcc2] px-2 py-1 text-xs font-black text-[#2f2415]"><Edit3 size={12} className="inline" /> Modifier</button> : '—',
+      label: '',
+      render: (r) => isBpLineEditable(r) ? <button type="button" onClick={() => setEditCost(r)} className="rounded-lg border border-[#eadcc2] px-2 py-1 text-xs font-black text-[#2f2415]"><Edit3 size={12} className="inline" /> Modifier</button> : null,
     },
   ];
 
@@ -297,52 +264,58 @@ export default function InvestissementsV9(props) {
     <div className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Investissements & Business Plan</p>
+          <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Business Plan</p>
           <h2 className="mt-1 text-2xl font-black text-[#2f2415]">{plan?.nom || HORIZON_FARM_BP_NAME}</h2>
-          <p className="mt-1 text-sm text-[#8a7456]">Modifiez les lignes, choisissez « à concrétiser », « concrétisé » ou « annulée », puis ouvrez le module métier pour matérialiser l’investissement. Le prévu / réalisé / reste se recalcule automatiquement.</p>
+          <p className="mt-1 text-sm text-[#8a7456]">Ce que tu prévois d’investir, ce que tu as déjà fait, et ce qu’il reste.</p>
         </div>
-        <button type="button" onClick={() => syncBp(props, { force: true })} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#7d6a4a]"><RefreshCw size={16} className="inline" /> Resynchroniser source officielle</button>
+        <button type="button" onClick={() => syncBp(props, { force: true })} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-2 text-xs font-black text-[#7d6a4a]"><RefreshCw size={14} className="inline" /> Recharger le plan Excel</button>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
-        <Kpi label="Prévu total" value={money(totals.prevu)} />
-        <Kpi label="Concrétisé" value={money(totals.concretise)} tone="good" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Kpi label="Prévu" value={money(totals.prevu)} />
+        <Kpi label="Déjà fait" value={money(totals.concretise)} tone="good" />
         <Kpi label="Annulé" value={money(totals.annule)} tone="bad" />
-        <Kpi label="Reste à concrétiser" value={money(totals.reste)} tone="warn" />
-        <Kpi label="CA prévu année 1" value={money(annualRevenue)} />
+        <Kpi label="Reste à faire" value={money(totals.reste)} tone="warn" />
       </div>
-      {!plan ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><AlertTriangle size={16} className="inline" /> Initialisation silencieuse du BP Horizon Farm…</div> : null}
     </div>
 
     <div className="flex flex-wrap gap-2 rounded-3xl border border-[#d6c3a0] bg-white p-3">{tabs.map(([k, label]) => <button key={k} type="button" onClick={() => setTab(k)} className={`rounded-2xl px-4 py-2 text-sm font-black ${tab === k ? 'bg-[#2f2415] text-white' : 'bg-[#fffdf8] text-[#7d6a4a] border border-[#eadcc2]'}`}>{label}</button>)}</div>
 
-    {tab === 'bp' ? <Section icon={FileSpreadsheet} title="BP Horizon Farm" subtitle="Suivi prévu vs concrétisé vs annulé.">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <Kpi label="Lignes investissement" value={`${lines.length}`} />
-        <Kpi label="Concrétisées" value={money(totals.concretise)} tone="good" />
-        <Kpi label="Reste" value={money(totals.reste)} tone="warn" />
-        <Kpi label="Charges mensuelles" value={money(monthCosts)} />
+    {tab === 'overview' ? <Section icon={FileSpreadsheet} title="Vue d’ensemble" subtitle="Le BP Horizon Farm en bref.">
+      <HelpSteps />
+      {pendingLines.length ? <div className="space-y-2">
+        <p className="text-sm font-black text-[#2f2415]">À faire maintenant ({pendingLines.length})</p>
+        {pendingLines.slice(0, 6).map((line) => <button type="button" key={line.id} onClick={() => openConcretization(line)} className="flex w-full items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-left hover:border-emerald-400">
+          <span><b className="text-[#2f2415]">{investmentLabel(line)}</b><span className="ml-2 text-sm text-[#8a7456]">{money(totalLine(line))}</span></span>
+          <span className="flex items-center gap-1 text-xs font-black text-emerald-800">Concrétiser <ArrowRight size={14} /></span>
+        </button>)}
+        {pendingLines.length > 6 ? <p className="text-xs text-[#8a7456]">+ {pendingLines.length - 6} autre(s) ligne(s) dans l’onglet Mes investissements.</p> : null}
+      </div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><CheckCircle2 size={16} className="inline" /> Rien en attente pour l’instant — toutes les lignes éligibles sont traitées ou annulées.</div>}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+        <Kpi label="Lignes d’investissement" value={String(lines.length)} />
+        <Kpi label="Charges / mois" value={money(monthCosts)} />
+        <Kpi label="CA prévu an 1" value={money(annualRevenue)} />
       </div>
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><CheckCircle2 size={16} className="inline" /> Source : Plan-financier-previsionnel HORIZON FARM(4).xlsx · statut par défaut <b>à concrétiser</b>. Le bouton « Concrétiser » ouvre le module adapté (Avicole pour les pondeuses, etc.).</div>
     </Section> : null}
 
-    {tab === 'actions' ? <InvestmentTerrainActions lines={lines} props={props} /> : null}
-    {tab === 'plan' ? <FinancialPlanPanel {...props} /> : null}
-
-    {tab === 'budget' ? <Section icon={FileSpreadsheet} title="Budget d’investissement" subtitle="Édition inline, statut et concrétisation guidée vers les modules métier.">
+    {tab === 'budget' ? <Section icon={Coins} title="Mes investissements" subtitle="Modifie une ligne, change son statut, ou clique Concrétiser pour passer à l’action.">
+      <HelpSteps />
       <Table rows={lines} columns={lineColumns} />
     </Section> : null}
 
-    {tab === 'charges' ? <Section icon={Coins} title="Charges récurrentes" subtitle="Charges mensuelles modifiables du BP.">
+    {tab === 'charges' ? <Section icon={Coins} title="Charges mensuelles" subtitle="Loyer, salaires, aliments, etc. — prévisionnel du BP.">
       <Table rows={costs} columns={costColumns} />
     </Section> : null}
 
-    {tab === 'amort' ? <Section icon={BarChart3} title="Amortissements" subtitle="Solde d’investissement récupéré progressivement avec la marge prévisionnelle."><Table rows={amort} columns={[{ label: 'Mois', render: (r) => `M${r.mois}` }, { label: 'CA', render: (r) => money(revenue(r)) }, { label: 'Charges', render: (r) => money(charges(r)) }, { label: 'Marge', render: (r) => money(r.marge) }, { label: 'Solde', render: (r) => money(r.balance) }, { label: 'Amorti', render: (r) => `${Number(r.pct || 0).toFixed(0)}%` }]} /></Section> : null}
+    {tab === 'plan' ? <FinancialPlanPanel {...props} /> : null}
 
-    {tab === 'revenus' ? <Section icon={BarChart3} title="Prévisions de revenus" subtitle="CA, charges et marge mensuelle issus du BP."><Table rows={projections} columns={[{ label: 'Mois', key: 'mois_index' }, { label: 'CA estimé', render: (r) => money(revenue(r)) }, { label: 'Charges', render: (r) => money(charges(r)) }, { label: 'Marge', render: (r) => money(revenue(r) - charges(r)) }, { label: 'Notes', key: 'notes' }]} /></Section> : null}
+    {tab === 'previsions' ? <>
+      <Section icon={BarChart3} title="Revenus prévus" subtitle="Chiffre d’affaires mensuel du BP."><Table rows={projections} columns={[{ label: 'Mois', key: 'mois_index' }, { label: 'CA', render: (r) => money(revenue(r)) }, { label: 'Charges', render: (r) => money(charges(r)) }, { label: 'Marge', render: (r) => money(revenue(r) - charges(r)) }]} /></Section>
+      <Section icon={BarChart3} title="Remboursement investissement" subtitle="Combien l’activité remonte le coût de départ, mois par mois."><Table rows={amort} columns={[{ label: 'Mois', render: (r) => `M${r.mois}` }, { label: 'Marge', render: (r) => money(r.marge) }, { label: 'Solde', render: (r) => money(r.balance) }, { label: 'Récupéré', render: (r) => `${Number(r.pct || 0).toFixed(0)}%` }]} /></Section>
+    </> : null}
 
-    {tab === 'controle' ? <Section icon={ShieldCheck} title="Contrôle qualité" subtitle="Cohérence BP, lignes, financement, transactions et actifs métier."><InvestmentQualityControl rows={props.rows || []} businessPlans={props.businessPlans || []} bpInvestmentLines={props.bpInvestmentLines || []} bpFundingSources={props.bpFundingSources || []} transactions={props.transactions || []} lots={props.lots || []} animaux={props.animaux || []} cultures={props.cultures || []} /></Section> : null}
+    {tab === 'controle' ? <Section icon={ShieldCheck} title="Contrôle" subtitle="Vérifications techniques pour les admins."><InvestmentQualityControl rows={props.rows || []} businessPlans={props.businessPlans || []} bpInvestmentLines={props.bpInvestmentLines || []} bpFundingSources={props.bpFundingSources || []} transactions={props.transactions || []} lots={props.lots || []} animaux={props.animaux || []} cultures={props.cultures || []} /></Section> : null}
 
-    <EditModal open={Boolean(editLine)} onClose={() => setEditLine(null)} onSubmit={saveLineEdit} fields={INVESTMENT_EDIT_FIELDS} initialValues={editLine || {}} loading={saving} title="Modifier ligne investissement" submitLabel="Enregistrer" />
-    <EditModal open={Boolean(editCost)} onClose={() => setEditCost(null)} onSubmit={saveCostEdit} fields={COST_EDIT_FIELDS} initialValues={editCost || {}} loading={saving} title="Modifier charge récurrente" submitLabel="Enregistrer" />
+    <EditModal open={Boolean(editLine)} onClose={() => setEditLine(null)} onSubmit={saveLineEdit} fields={INVESTMENT_EDIT_FIELDS} initialValues={editLine || {}} loading={saving} title="Modifier la ligne" submitLabel="Enregistrer" />
+    <EditModal open={Boolean(editCost)} onClose={() => setEditCost(null)} onSubmit={saveCostEdit} fields={COST_EDIT_FIELDS} initialValues={editCost || {}} loading={saving} title="Modifier la charge" submitLabel="Enregistrer" />
   </div>;
 }
