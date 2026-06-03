@@ -5,7 +5,9 @@ import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
 import { emitHorizonForm } from '../services/formModalManager';
-import { applyOneClickRecommendation, createMissingProofTask } from '../services/heyHorizonRecommendationActions.js';
+import { applyOneClickRecommendation } from '../services/heyHorizonRecommendationActions.js';
+import { openDocumentProofFromTransaction } from '../utils/antiDuplicationGuard.js';
+import AntiDuplicationNotice from '../components/AntiDuplicationNotice.jsx';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { rowsOf } from '../utils/moduleRows';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
@@ -95,7 +97,7 @@ function Summary({ data, setTab, onApply, onAttachProof, busyId, onNavigate }) {
         {data.priorities.length ? data.priorities.map((item) => (
           <div key={item.id} className="flex flex-col gap-2 border-b border-[#eadcc2]/70 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
             <button type="button" onClick={() => setTab('Preuves')} className="text-left"><b className="text-[#2f2415]">{item.title}</b><p className="text-xs text-[#8a7456]">{item.detail}</p></button>
-            <button type="button" disabled={busyId === item.id} onClick={() => onAttachProof?.(item)} className="rounded-lg bg-[#22c55e] px-2 py-1 text-xs font-black text-[#052e16] disabled:opacity-50">{busyId === item.id ? '…' : 'Créer tâche preuve'}</button>
+            <button type="button" disabled={busyId === item.id} onClick={() => onAttachProof?.(item)} className="rounded-lg bg-[#22c55e] px-2 py-1 text-xs font-black text-[#052e16] disabled:opacity-50">{busyId === item.id ? '…' : 'Joindre preuve'}</button>
           </div>
         )) : <Empty label="Aucune priorité documentaire." />}
       </Section>
@@ -319,13 +321,8 @@ export default function DocumentsRapportsModule(props) {
   const attachProof = async (item) => {
     setBusyId(item.id);
     try {
-      await createMissingProofTask({
-        transactionLabel: item.title,
-        amount: fmtCurrency(item.amount),
-        transactionId: item.trxId || item.id,
-        handlers: actionHandlers,
-      });
-      toast.success(`Tâche preuve créée pour ${item.title}`);
+      openDocumentProofFromTransaction(item.trxId || item.id, item.title);
+      toast.success(`Formulaire document ouvert pour ${item.title}`);
     } catch (e) {
       toast.error(e.message || 'Erreur');
     } finally {
@@ -348,6 +345,7 @@ export default function DocumentsRapportsModule(props) {
       <Proofs data={data} onNavigate={props.onNavigate} onAttachProof={attachProof} busyId={busyId} />
     </div>
   ) : tab === 'Rapports' ? <Reports data={data} /> : tab === 'Exports' ? <Exports data={data} onNavigate={props.onNavigate} /> : tab === 'Modèles' ? <Templates data={data} /> : <ModuleGraphiquesTab moduleId="documents_rapports" periodFiltered={periodFiltered} transactions={data.transactions} finances={data.transactions} clients={data.clients} salesOrders={data.salesOrders} payments={data.payments} onNavigate={props.onNavigate} />;
+
   return (
     <div className="space-y-6">
       <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
@@ -365,6 +363,7 @@ export default function DocumentsRapportsModule(props) {
           </div>
         </div>
       </div>
+      <AntiDuplicationNotice pairId="document_vs_preuve" onNavigate={props.onNavigate} compact className="mb-2" />
       <Tabs active={tab} onChange={setTab} />
       {content}
     </div>
