@@ -2,7 +2,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { AlertTriangle, BrainCircuit } from 'lucide-react';
 import { applyOneClickRecommendation } from '../../services/heyHorizonRecommendationActions.js';
-import { buildObjectiveActionTask } from '../../utils/objectivesWorkflows';
+import { buildPriorityFollowUpAlert, buildPriorityFollowUpTask } from '../../utils/centreDecisionWorkflow.js';
 import { fmtCurrency } from '../../utils/format';
 import { redirectToSource, shouldBlockInlineAlertCreation } from '../../utils/antiDuplicationGuard.js';
 import { openVisionPriority } from './visionMetrics.js';
@@ -73,27 +73,26 @@ export default function VisionPrioritiesTab({
 
   const createTask = async (item) => {
     if (!onCreateTask) return;
-    const built = buildObjectiveActionTask({ label: item.title, activity: item.sourceModule || 'global' });
-    await onCreateTask({ ...built.task, title: `Traiter : ${item.title}`, notes: item.detail });
+    const built = buildPriorityFollowUpTask(item);
+    if (!built?.task) return;
+    await onCreateTask(built.task);
+    if (built.event && onCreateBusinessEvent) await onCreateBusinessEvent(built.event);
     await onRefreshTasks?.();
-    toast.success('Tâche créée');
+    toast.success('Tâche créée avec source');
   };
 
-  const openAlertsSource = (item) => {
+  const openAlertsSource = async (item) => {
     if (shouldBlockInlineAlertCreation(moduleId)) {
       redirectToSource(onNavigate, 'alertes_centre_activite');
       toast.success('Alertes gérées dans Activité & Suivi');
       return;
     }
     if (!onCreateAlert) return;
-    onCreateAlert({
-      title: item.title,
-      message: item.detail,
-      module_source: moduleId,
-      severity: item.tone === 'bad' ? 'critique' : 'warning',
-      status: 'nouvelle',
-      action_recommandee: item.detail || 'Voir Centre décisionnel',
-    }).then(() => onRefreshAlertes?.()).then(() => toast.success('Alerte créée'));
+    const built = buildPriorityFollowUpAlert(item);
+    await onCreateAlert(built.alert);
+    await onRefreshAlertes?.();
+    toast.success('Alerte créée avec source');
+
   };
 
   return (

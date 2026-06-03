@@ -53,7 +53,8 @@
     "vite": "^8.0.10",
     "test:unit:cultures": "node --test tests/unit/culturesWorkflow.test.js",
     "test:unit:documents": "node --test tests/unit/documentsWorkflow.test.js",
-    "test:unit:activite": "node --test tests/unit/activiteSuiviWorkflow.test.js"
+    "test:unit:activite": "node --test tests/unit/activiteSuiviWorkflow.test.js",
+    "test:unit:centre": "node --test tests/unit/centreObjectifsWorkflow.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.3",
