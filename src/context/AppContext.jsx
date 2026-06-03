@@ -100,6 +100,7 @@ const serviceMap = {
   invoices: invoicesService,
   payments: paymentsService,
   sales_opportunities: salesOpportunitiesService,
+  stock_movements: stockMovementsCrud,
 };
 
 const clone = (value) => JSON.parse(JSON.stringify(value || []));

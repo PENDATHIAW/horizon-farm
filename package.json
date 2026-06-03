@@ -30,6 +30,7 @@
     "test:unit:justified-exceptions": "node tests/unit/justifiedExceptionStore.test.js",
     "test:unit:guided-repairs": "npx vite-node tests/unit/syncGuidedRepairActions.test.js",
     "test:unit:idempotency": "node --test tests/unit/workflowIdempotency.test.js",
+    "test:unit:module-smoke": "npx vite-node tests/unit/moduleImportSmoke.test.js",
     "db:migrate": "bash scripts/apply_supabase_migrations.sh",
     "db:migrate:verify": "node scripts/apply_supabase_migrations.mjs",
     "check": "npm run lint && npm run build && npm run test:e2e"
