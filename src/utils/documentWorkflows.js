@@ -1,5 +1,5 @@
-import { toNumber } from './format';
-import { makeId } from './ids';
+import { toNumber } from './format.js';
+import { makeId } from './ids.js';
 
 const clean = (value = '') => String(value || '').trim();
 const lower = (value = '') => clean(value).toLowerCase();
