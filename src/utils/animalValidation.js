@@ -1,4 +1,4 @@
-import { toNumber } from './format';
+import { toNumber } from './format.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const cleanDate = (value) => String(value || '').slice(0, 10);

@@ -1,5 +1,5 @@
-import { toNumber } from './format';
-import { paidForOrder, remainingForOrder } from './salesStatuses';
+import { toNumber } from './format.js';
+import { paidForOrder, remainingForOrder } from './salesStatuses.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 

@@ -1,4 +1,4 @@
-import { toNumber } from './format';
+import { toNumber } from './format.js';
 
 export const AVICOLE_TERMINAL_STATUSES = [
   'vendu_totalement',

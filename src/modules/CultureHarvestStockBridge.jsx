@@ -3,29 +3,34 @@ import { PackageCheck, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useCrudModule from '../hooks/useCrudModule';
 import { calculateCultureMetrics } from '../utils/businessCalculations';
+import { commitCultureHarvest } from '../utils/culturesWorkflow.js';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
-import { makeId } from '../utils/ids';
-import { buildHarvestStockPayload } from '../services/livestockStockBridge';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const today = () => new Date().toISOString().slice(0, 10);
 const label = (row = {}) => row.nom || row.type || row.id || 'Culture';
 const fees = (row = {}) => toNumber(row.frais_recolte) + toNumber(row.frais_transport) + toNumber(row.frais_conditionnement) + toNumber(row.frais_main_oeuvre) + toNumber(row.autres_frais);
-const lower = (value) => String(value || '').toLowerCase();
-const eventTargetId = (row = {}) => String(row.target_id || row.related_id || row.entity_id || row.source_record_id || row.culture_id || row.cible_id || '');
-const eventAmount = (row = {}) => toNumber(row.montant ?? row.amount ?? row.cout ?? row.cost ?? row.cout_total ?? row.total_cost ?? row.total ?? row.montant_total);
-const isCultureCharge = (row = {}) => {
-  const text = lower(`${row.type_intervention || ''} ${row.type_evenement || ''} ${row.event_type || ''} ${row.type || ''} ${row.categorie || ''} ${row.category || ''} ${row.title || ''} ${row.libelle || ''}`);
-  const source = lower(`${row.target_type || ''} ${row.type_cible || ''} ${row.module_lie || ''} ${row.source_module || ''}`);
-  return source.includes('culture') || text.includes('culture') || text.includes('engrais') || text.includes('semence') || text.includes('irrigation') || text.includes('phyto') || text.includes('traitement') || text.includes('recolte') || text.includes('récolte') || text.includes('charge_directe');
-};
-const linkedCultureCharges = (events = [], cultureId) => arr(events).filter((event) => isCultureCharge(event) && eventTargetId(event) === String(cultureId)).reduce((sum, event) => sum + eventAmount(event), 0);
 
 function Field({ label: fieldLabel, children }) { return <label className="text-xs font-bold text-[#8a7456] space-y-1"><span>{fieldLabel}</span>{children}</label>; }
 function Input(props) { return <input {...props} className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm text-[#2f2415] outline-none focus:border-[#9a6b12]" />; }
 function Select(props) { return <select {...props} className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm text-[#2f2415] outline-none focus:border-[#9a6b12]" />; }
 
-export default function CultureHarvestStockBridge({ rows = [], businessEvents = [], onUpdate, onRefresh, onCreateBusinessEvent, onRefreshBusinessEvents }) {
+export default function CultureHarvestStockBridge({
+  rows = [],
+  stocks = [],
+  opportunities = [],
+  transactions = [],
+  businessEvents = [],
+  onUpdate,
+  onRefresh,
+  onCreateBusinessEvent,
+  onRefreshBusinessEvents,
+  onCreateStock,
+  onUpdateStock,
+  onCreateOpportunity,
+  onUpdateOpportunity,
+  onCreateFinanceTransaction,
+}) {
   const stockCrud = useCrudModule('stock');
   const cultures = useMemo(() => arr(rows), [rows]);
   const initial = { culture_id: cultures[0]?.id || '', date: today(), quantite_recoltee: '', unite: 'kg', destination: 'stock', frais_recolte: 0, frais_transport: 0, frais_conditionnement: 0, frais_main_oeuvre: 0, autres_frais: 0, notes: '' };
@@ -35,42 +40,43 @@ export default function CultureHarvestStockBridge({ rows = [], businessEvents = 
   const qty = toNumber(form.quantite_recoltee);
   const extra = fees(form);
   const metrics = culture ? calculateCultureMetrics(culture) : null;
-  const existingCharges = culture ? linkedCultureCharges(businessEvents, culture.id) : 0;
-  const baseCost = culture ? (toNumber(culture.cout_total_reel) || metrics.costTotal) : 0;
-  const unitCost = qty > 0 ? (baseCost + existingCharges + extra) / qty : 0;
+  const unitCost = qty > 0 && culture ? ((toNumber(culture.cout_total_reel) || metrics.costTotal) + extra) / qty : 0;
 
   const submit = async (e) => {
     e.preventDefault();
     if (!culture) return toast.error('Choisir une culture');
     if (qty <= 0) return toast.error('Saisir une quantité récoltée');
-    const id = makeId('RECOLTE');
-    const event = { ...form, id, culture_id: culture.id, related_id: culture.id, target_id: culture.id, target_type: 'cultures', type_evenement: 'recolte_culture charge_directe', event_type: 'recolte_culture', source_module: 'cultures_recolte', module_lie: 'cultures', title: `Récolte: ${label(culture)}`, message: `${fmtNumber(qty)} ${form.unite || 'kg'} · frais ${fmtCurrency(extra)}`, montant: extra, cout: extra, cout_total: extra, cout_revient_unitaire_recolte: Number(unitCost.toFixed(2)), event_date: form.date || today(), date: form.date || today() };
-    await onCreateBusinessEvent?.(event);
-    if (form.destination !== 'perte') {
-      const harvestPayload = buildHarvestStockPayload({
-        produit: `Récolte ${label(culture)}`,
-        categorie: 'recolte_vegetale',
-        quantite: qty,
-        unite: form.unite || 'kg',
-        unitCost,
-        sourceRecordId: culture.id,
-        eventId: id,
-        origineLabel: label(culture),
+    try {
+      await commitCultureHarvest({
+        form: { ...form, culture_id: culture.id, quantite_recoltee: qty },
+        context: {
+          cultures,
+          stocks: stocks.length ? stocks : stockCrud.rows || [],
+          opportunities,
+          transactions,
+          businessEvents,
+        },
+        handlers: {
+          onUpdateCulture: onUpdate,
+          onCreateHarvestRecord: onCreateBusinessEvent,
+          onCreateBusinessEvent,
+          onCreateStock: onCreateStock || stockCrud.create,
+          onUpdateStock: onUpdateStock || stockCrud.update,
+          onCreateOpportunity,
+          onUpdateOpportunity,
+          onCreateFinanceTransaction,
+        },
       });
-      if (form.destination === 'vente_directe') {
-        harvestPayload.statut = 'reserve';
-        harvestPayload.stock_status = 'reserve';
-      }
-      await stockCrud.create?.(harvestPayload);
+      await Promise.allSettled([stockCrud.refresh?.(), onRefresh?.(), onRefreshBusinessEvents?.()]);
+      toast.success(form.destination === 'perte' ? 'Récolte perdue enregistrée' : 'Récolte → stock vendable enregistrée');
+      setForm(initial);
+    } catch (err) {
+      toast.error(err.message || 'Récolte impossible');
     }
-    await onUpdate?.(culture.id, { quantite_recoltee: form.destination === 'perte' ? toNumber(culture.quantite_recoltee) : toNumber(culture.quantite_recoltee) + qty, production_reelle: form.destination === 'perte' ? toNumber(culture.production_reelle) : toNumber(culture.production_reelle) + qty, pertes_recolte: form.destination === 'perte' ? toNumber(culture.pertes_recolte) + qty : toNumber(culture.pertes_recolte), date_derniere_recolte: form.date || today(), cout_recolte: toNumber(culture.cout_recolte) + extra, cout_revient_unitaire_recolte: Number(unitCost.toFixed(2)), statut: form.destination === 'perte' ? culture.statut : form.destination === 'vente_directe' ? culture.statut : 'recolte' });
-    await Promise.allSettled([stockCrud.refresh?.(), onRefresh?.(), onRefreshBusinessEvents?.()]);
-    toast.success(form.destination === 'perte' ? 'Récolte perdue enregistrée sans stock' : 'Récolte enregistrée, stock créé avec coût de revient');
-    setForm(initial);
   };
 
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
-    <div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><PackageCheck size={20} /> Récolte vers stock</p><p className="mt-1 text-sm text-[#8a7456]">Crée un stock récolte avec coût de revient réel, frais de récolte et conditionnement.</p></div>
+    <div><p className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><PackageCheck size={20} /> Récolte vers stock</p><p className="mt-1 text-sm text-[#8a7456]">Workflow unifié : journal récolte, entrée stock, mouvement, disponibilité commerciale.</p></div>
     <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-6 xl:grid-cols-11 gap-2 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3">
       <Field label="Culture"><Select value={form.culture_id || ''} onChange={(e) => update('culture_id', e.target.value)}><option value="">Choisir</option>{cultures.map((item) => <option key={item.id} value={item.id}>{label(item)}</option>)}</Select></Field>
       <Field label="Date"><Input type="date" value={form.date || ''} onChange={(e) => update('date', e.target.value)} /></Field>
@@ -84,6 +90,6 @@ export default function CultureHarvestStockBridge({ rows = [], businessEvents = 
       <Field label="Autres"><Input type="number" min="0" value={form.autres_frais || ''} onChange={(e) => update('autres_frais', e.target.value)} /></Field>
       <div className="flex items-end"><button type="submit" className="inline-flex items-center gap-2 rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-bold text-white"><Plus size={14} /> Ajouter</button></div>
     </form>
-    <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a]">Prévision coût de revient : <b className="text-[#2f2415]">{unitCost ? fmtCurrency(unitCost) : '—'}/{form.unite || 'kg'}</b> · frais récolte : <b>{fmtCurrency(extra)}</b> · charges existantes : <b>{fmtCurrency(existingCharges)}</b></div>
+    <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a]">Prévision coût de revient : <b className="text-[#2f2415]">{unitCost ? fmtCurrency(unitCost) : '—'}</b>/{form.unite || 'kg'} · frais : <b>{fmtCurrency(extra)}</b></div>
   </section>;
 }

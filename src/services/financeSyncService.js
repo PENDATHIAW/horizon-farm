@@ -1,5 +1,5 @@
-import { makeId } from '../utils/ids';
-import { financesService } from './financesService';
+import { makeId } from '../utils/ids.js';
+import { financesService } from './financesService.js';
 
 const paymentMethodMap = {
   especes: 'Cash',

@@ -1,5 +1,5 @@
-import { toNumber } from './format';
-import { makeId } from './ids';
+import { toNumber } from './format.js';
+import { makeId } from './ids.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value = '') => String(value || '').trim();

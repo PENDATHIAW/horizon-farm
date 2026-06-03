@@ -1,11 +1,10 @@
-import { buildClientSalesSummary } from './clientWorkflows';
-import { makeId } from './ids';
-import { toNumber } from './format';
-import { buildCoherentOrderPatch, findExistingFinanceForPayment, findExistingPayment } from '../services/salesIntegrityService';
-import { remainingForOrder } from './salesStatuses';
-import { capSalePayment } from './salesWorkflows';
-import { financeIds, runPaymentSideEffects } from './saleSideEffects';
-import { enrichFinanceTransaction, ORIGIN_TYPES } from './financeTransactionMeta.js';
+import { buildClientSalesSummary } from './clientWorkflows.js';
+import { makeId } from './ids.js';
+import { toNumber } from './format.js';
+import { buildCoherentOrderPatch, findExistingFinanceForPayment, findExistingPayment } from '../services/salesIntegrityService.js';
+import { remainingForOrder } from './salesStatuses.js';
+import { capSalePayment } from './salesWorkflows.js';
+import { financeIds, runPaymentSideEffects } from './saleSideEffects.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value = '') => String(value || '').trim();
