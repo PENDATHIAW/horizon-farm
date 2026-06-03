@@ -6,7 +6,8 @@ import KpiCard from '../components/KpiCard';
 import SectionHeader from '../components/SectionHeader';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { getRhDirectory, RH_MODULES, RH_ROLES, RH_TEAMS, saveRhDirectory } from '../utils/rhDirectory';
-import { buildRhAbsenceFollowUp, buildRhAssignedTask, buildRhSalaryWorkflow } from '../utils/rhWorkflows';
+import { buildRhAbsenceFollowUp, buildRhAssignedTask } from '../utils/rhWorkflows';
+import { commitRhPayroll } from '../utils/ressourcesWorkflow.js';
 import RHCostCenterPanel from './RHCostCenterPanel.jsx';
 
 const today = () => new Date().toISOString().slice(0, 10);

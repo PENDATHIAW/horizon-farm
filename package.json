@@ -16,6 +16,7 @@
     "test:e2e:smoke": "playwright test tests/e2e/assistant-erp-smoke.spec.js tests/e2e/decision-center-smoke.spec.js",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report playwright-report",
+    "test:unit:ressources": "node --test tests/unit/ressourcesWorkflow.test.js",
     "test:unit": "node --test tests/unit/*.test.js",
     "test:unit:finance": "npx vite-node tests/unit/financePilotage.test.js",
     "test:unit:anti-duplication": "node --test tests/unit/antiDuplicationAudit.test.js",

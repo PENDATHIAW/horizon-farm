@@ -1,12 +1,12 @@
-import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine';
+import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine.js';
 import {
   buildEquipmentBreakdownFollowUp,
   buildEquipmentRepairWorkflow,
   findOpenEquipmentAlert,
   findOpenEquipmentTask,
-} from './equipmentWorkflows';
-import { alertIds, documentIds, financeIds } from './sideEffectIds';
-import { toNumber } from './format';
+} from './equipmentWorkflows.js';
+import { alertIds, documentIds, financeIds } from './sideEffectIds.js';
+import { toNumber } from './format.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();

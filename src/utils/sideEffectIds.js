@@ -14,7 +14,7 @@ export const financeIds = {
   supplierPayment: (supplierId, ref = '') => `TRX-PAY-FOUR-${clean(supplierId)}${ref ? `-${clean(ref)}` : ''}`,
   stockLoss: (stockId, ref = '') => `TRX-PERTE-${clean(stockId)}${ref ? `-${clean(ref)}` : ''}`,
   cultureHarvest: (cultureId) => `TRX-RECOLTE-${clean(cultureId)}`,
-  cultureExpense: (cultureId, ref = '') => `TRX-DEP-CULT-${clean(cultureId)}${ref ? `-${clean(ref)}` : ''}`,
+  rhPayroll: (personId, period = '') => `TRX-PAIE-${clean(personId)}${period ? `-${clean(period)}` : ''}`,
   investment: (investmentId) => `TRX-INV-${clean(investmentId)}`,
 };
 
@@ -24,7 +24,7 @@ export const documentIds = {
   supplierPayment: (supplierId, ref = '') => `DOC-PAY-FOUR-${clean(supplierId)}${ref ? `-${clean(ref)}` : ''}`,
   equipmentRepair: (equipmentId) => `DOC-EQP-${clean(equipmentId)}`,
   healthProof: (healthId) => `DOC-SANTE-${clean(healthId)}`,
-  cultureExpense: (cultureId, ref = '') => `DOC-DEP-CULT-${clean(cultureId)}${ref ? `-${clean(ref)}` : ''}`,
+  rhPayroll: (personId, period = '') => `DOC-PAIE-${clean(personId)}${period ? `-${clean(period)}` : ''}`,
 };
 
 export const alertIds = {

@@ -1,88 +1,140 @@
-import { Tractor } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
+import { useMemo, useState } from 'react';
+import useCrudModule from '../hooks/useCrudModule';
+import { rowsOf } from '../utils/moduleRows';
+import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
-import { MODULE_TARGET_TABS } from '../config/horizonVision.config.js';
-import { fmtNumber } from '../utils/format';
-import SmartFarmPanel from './SmartFarmPanel.jsx';
+import SmartFarmZoneOverview from './SmartFarmZoneOverview.jsx';
+import SmartFarmDevicePanel from './ressources/SmartFarmDevicePanel.jsx';
+import RessourcesRepairPanel from './ressources/RessourcesRepairPanel.jsx';
+import { getRhDirectory } from '../utils/rhDirectory';
 
-const tabs = MODULE_TARGET_TABS.smartfarm || ['Résumé', 'Capteurs', 'Caméras', 'Annexe', 'Graphiques'];
-
-function resolveSmartFarmTab(value = '') {
-  const raw = String(value || '').trim();
-  if (tabs.includes(raw)) return raw;
-  const lower = raw.toLowerCase();
-  if (lower.includes('capteur') || lower.includes('sensor')) return 'Capteurs';
-  if (lower.includes('cam')) return 'Caméras';
-  if (lower.includes('annexe')) return 'Annexe';
-  if (lower.includes('graph')) return 'Graphiques';
-  return 'Résumé';
-}
+const arr = (value) => (Array.isArray(value) ? value : []);
 
 export default function SmartFarmRecoveredModule(props) {
-  const [tab, setTab] = useState(() => resolveSmartFarmTab(props.initialTab));
+  const [tab, setTab] = useState('Résumé');
+  const periodFiltered = Boolean(props.periodFiltered);
+  const sensorCrud = useCrudModule('sensor_devices');
+  const cameraCrud = useCrudModule('camera_devices');
+  const eqCrud = useCrudModule('equipements');
+  const tasksCrud = useCrudModule('taches');
+  const alertsCrud = useCrudModule('alertes_center');
+  const eventsCrud = useCrudModule('business_events');
+  const financesCrud = useCrudModule('finances');
+  const docsCrud = useCrudModule('documents');
 
-  useEffect(() => {
-    if (props.initialTab) setTab(resolveSmartFarmTab(props.initialTab));
-  }, [props.initialTab]);
+  const sensors = rowsOf(props.sensors || props.sensorDevices, sensorCrud, false);
+  const cameras = rowsOf(props.cameras || props.cameraDevices, cameraCrud, false);
+  const equipment = rowsOf(props.equipements, eqCrud, false);
+  const tasks = rowsOf(props.tasks || props.taches, tasksCrud, false);
+  const alertes = rowsOf(props.alertes, alertsCrud, false);
+  const businessEvents = rowsOf(props.businessEvents, eventsCrud, periodFiltered);
+  const transactions = rowsOf(props.transactions || props.finances, financesCrud, periodFiltered);
+  const documents = rowsOf(props.documents, docsCrud, periodFiltered);
+  const people = getRhDirectory().people || [];
 
-  const sensors = props.sensors || [];
-  const cameras = props.cameras || [];
-  const offlineCount = useMemo(
-    () => [...sensors, ...cameras].filter((row) => ['offline', 'hors_ligne', 'hors service', 'panne'].includes(String(row.status || row.statut || '').toLowerCase())).length,
-    [sensors, cameras],
+  const workflowContext = useMemo(() => ({
+    sensors,
+    cameras,
+    equipment,
+    tasks,
+    alertes,
+    transactions,
+    documents,
+    businessEvents,
+    people,
+    teams: getRhDirectory().teams || [],
+  }), [sensors, cameras, equipment, tasks, alertes, transactions, documents, businessEvents]);
+
+  const workflowHandlers = {
+    onUpdateSensor: props.onUpdateSensor || sensorCrud.update,
+    onUpdateCamera: props.onUpdateCamera || cameraCrud.update,
+    onUpdateEquipment: props.onUpdateEquipment || eqCrud.update,
+    onCreateTask: props.onCreateTask || tasksCrud.create,
+    onCreateAlert: props.onCreateAlert || alertsCrud.create,
+    onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create,
+    onCreateTrace: props.onCreateTrace,
+  };
+
+  const refreshWorkflow = async () => {
+    await Promise.allSettled([
+      sensorCrud.refresh?.(),
+      cameraCrud.refresh?.(),
+      eqCrud.refresh?.(),
+      tasksCrud.refresh?.(),
+      alertsCrud.refresh?.(),
+      eventsCrud.refresh?.(),
+    ]);
+  };
+
+  const devicePanel = (
+    <SmartFarmDevicePanel
+      sensors={sensors}
+      cameras={cameras}
+      context={workflowContext}
+      handlers={workflowHandlers}
+      onSuccess={refreshWorkflow}
+    />
   );
-
-  const panelProps = { ...props, embedded: true };
 
   return (
     <div className="space-y-6">
+      <RessourcesRepairPanel
+        equipment={equipment}
+        sensors={sensors}
+        cameras={cameras}
+        tasks={tasks}
+        alertes={alertes}
+        transactions={transactions}
+        documents={documents}
+        people={people}
+        businessEvents={businessEvents}
+        onRefresh={refreshWorkflow}
+      />
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Terrain connecté</p>
-            <h1 className="mt-1 flex items-center gap-2 text-2xl font-black text-[#2f2415]">
-              <Tractor size={22} /> Smart Farm
-            </h1>
-            <p className="mt-1 text-sm text-[#8a7456]">Capteurs, caméras, météo et signaux terrain — pilotage à distance.</p>
-          </div>
-          <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm">
-            <span className="text-[#8a7456]">Capteurs </span>
-            <b className="text-[#2f2415]">{fmtNumber(sensors.length)}</b>
-            <span className="mx-2 text-[#d6c3a0]">·</span>
-            <span className="text-[#8a7456]">Caméras </span>
-            <b className="text-[#2f2415]">{fmtNumber(cameras.length)}</b>
-            {offlineCount ? (
-              <>
-                <span className="mx-2 text-[#d6c3a0]">·</span>
-                <b className="text-amber-700">{offlineCount} hors ligne</b>
-              </>
-            ) : null}
-          </div>
-        </div>
-        <div className="mt-4">
-          <ModuleTabsBar moduleId="smartfarm" active={tab} onChange={setTab} tabBadges={{ Capteurs: sensors.length, Caméras: cameras.length }} />
-        </div>
+        <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Terrain connecté</p>
+        <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Smart Farm</h1>
+        <p className="mt-1 text-sm text-[#8a7456]">Capteurs, caméras, signaux offline et impacts automatiques.</p>
+        {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
       </section>
-
-      {tab === 'Résumé' ? <SmartFarmPanel {...panelProps} section="resume" /> : null}
-      {tab === 'Capteurs' ? <SmartFarmPanel {...panelProps} section="capteurs" /> : null}
-      {tab === 'Caméras' ? <SmartFarmPanel {...panelProps} section="cameras" /> : null}
-      {tab === 'Annexe' ? (
-        <ModuleAnnexeTab
-          moduleId="smartfarm"
-          dataMap={{
-            ...props.dataMap,
-            sensor_devices: sensors,
-            camera_devices: cameras,
-            smartfarm_events: props.dataMap?.smartfarm_events || [],
-          }}
-          onNavigate={props.onNavigate}
-        />
+      <ModuleTabsBar moduleId="smartfarm" active={tab} onChange={setTab} />
+      {tab === 'Résumé' ? (
+        <div className="space-y-4">
+          <SmartFarmZoneOverview
+            sensors={sensors}
+            cameras={cameras}
+            meteo={props.meteo}
+            online={props.online}
+            onCreateSensor={props.onCreateSensor || sensorCrud.create}
+            onCreateCamera={props.onCreateCamera || cameraCrud.create}
+          />
+          {devicePanel}
+        </div>
+      ) : null}
+      {tab === 'Capteurs' ? (
+        <div className="space-y-4">
+          {devicePanel}
+          <div className="rounded-2xl border border-[#eadcc2] bg-white p-4 text-sm text-[#7d6a4a]">
+            {sensors.length} capteur(s) enregistré(s).
+          </div>
+        </div>
+      ) : null}
+      {tab === 'Caméras' ? (
+        <div className="space-y-4">
+          {devicePanel}
+          <div className="rounded-2xl border border-[#eadcc2] bg-white p-4 text-sm text-[#7d6a4a]">
+            {cameras.length} caméra(s) enregistrée(s).
+          </div>
+        </div>
       ) : null}
       {tab === 'Graphiques' ? (
-        <ModuleGraphiquesTab moduleId="smartfarm" sensors={sensors} cameras={cameras} meteo={props.meteo} />
+        <ModuleGraphiquesTab
+          moduleId="smartfarm"
+          periodFiltered={periodFiltered}
+          equipements={equipment}
+          transactions={transactions}
+          onNavigate={props.onNavigate}
+        />
       ) : null}
     </div>
   );
