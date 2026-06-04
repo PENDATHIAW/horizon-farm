@@ -135,8 +135,6 @@ export function buildForumPack(profile = {}, { audienceKey = 'investisseur_prive
 /** Payload pour exportModuleReportPdf (rapports impact / financier). */
 export function forumPackToExportPayload(pack = {}) {
   const k = pack.profile?.keyFigures || {};
-  const labels = ['Indicateur'];
-  const series = [{ name: 'Valeur', values: [], unit: '' }];
 
   const rows = pack.packType?.id === 'rapport_impact'
     ? [

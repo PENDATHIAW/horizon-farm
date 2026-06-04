@@ -59,13 +59,14 @@ function StatMini({ label, value }) {
   );
 }
 
-function audienceIcon(id) {
-  if (id === 'banque') return Landmark;
-  if (id === 'ong_subvention' || id === 'femmes_entrepreneures') return Heart;
-  if (id === 'salon_agricole') return Sparkles;
-  if (id === 'partenaire_technique') return Building2;
-  return Briefcase;
-}
+const AUDIENCE_ICONS = {
+  banque: Landmark,
+  ong_subvention: Heart,
+  femmes_entrepreneures: Heart,
+  salon_agricole: Sparkles,
+  partenaire_technique: Building2,
+  default: Briefcase,
+};
 
 export default function InvestisseursForumsModule(props) {
   const [tab, setTab] = useState('project');
@@ -106,7 +107,7 @@ export default function InvestisseursForumsModule(props) {
   };
 
   const k = profile.keyFigures || {};
-  const AudienceIcon = audienceIcon(audienceKey);
+  const AudienceIcon = AUDIENCE_ICONS[audienceKey] || AUDIENCE_ICONS.default;
 
   return (
     <div className="space-y-6">

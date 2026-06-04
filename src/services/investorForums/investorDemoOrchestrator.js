@@ -112,7 +112,6 @@ function summarizeDraft(draft = {}) {
 function buildWhatsAppImpacts(message, parsed, primaryFields = {}) {
   const qty = Number(primaryFields.quantity || primaryFields.quantite || 20);
   const total = Number(primaryFields.montant_total || primaryFields.payment_amount || primaryFields.montant_paye || 70000);
-  const unitPrice = qty > 0 ? Math.round(total / qty) : 3500;
 
   return [
     {
