@@ -6,15 +6,30 @@ export const BP_LINE_COMPLETED_EVENT = 'horizon-bp-line-completed';
 export const BP_COST_COMPLETED_EVENT = 'horizon-bp-cost-completed';
 
 export const BP_LINE_STATUS = {
+  PREVU: 'prevu',
   A_CONCRETISER: 'a_concretiser',
+  EN_COURS: 'en_cours',
+  CONCRETISE_PARTIEL: 'concretise_partiel',
   CONCRETISE: 'concretise',
+  REPORTE: 'reporte',
+  ANNULE: 'annule',
   ANNULEE: 'annulee',
+  REMPLACE: 'remplace',
+  A_JUSTIFIER: 'a_justifier',
+  BLOQUE: 'bloque',
 };
 
 export const BP_LINE_STATUS_OPTIONS = [
+  { value: BP_LINE_STATUS.PREVU, label: 'Prévu' },
   { value: BP_LINE_STATUS.A_CONCRETISER, label: 'À concrétiser' },
+  { value: BP_LINE_STATUS.EN_COURS, label: 'En cours' },
+  { value: BP_LINE_STATUS.CONCRETISE_PARTIEL, label: 'Concrétisé partiellement' },
   { value: BP_LINE_STATUS.CONCRETISE, label: 'Concrétisé' },
-  { value: BP_LINE_STATUS.ANNULEE, label: 'Annulée' },
+  { value: BP_LINE_STATUS.REPORTE, label: 'Reporté' },
+  { value: BP_LINE_STATUS.ANNULE, label: 'Annulé' },
+  { value: BP_LINE_STATUS.REMPLACE, label: 'Remplacé' },
+  { value: BP_LINE_STATUS.A_JUSTIFIER, label: 'À justifier' },
+  { value: BP_LINE_STATUS.BLOQUE, label: 'Bloqué' },
 ];
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -25,10 +40,20 @@ export const bpLineAmount = (line = {}) => toNumber(line.total) || toNumber(line
 
 export function normalizeBpLineStatus(line = {}) {
   const raw = lower(line.statut || line.status || '');
-  if (['annule', 'annulee', 'annulé', 'archive', 'archivé'].includes(raw)) return BP_LINE_STATUS.ANNULEE;
-  if (line.asset_id || line.asset_created_at || line.linked_finance_transaction_id || line.realization_key) return BP_LINE_STATUS.CONCRETISE;
+  if (['bloque', 'blocked'].includes(raw)) return BP_LINE_STATUS.BLOQUE;
+  if (['a_justifier', 'a justifier'].includes(raw)) return BP_LINE_STATUS.A_JUSTIFIER;
+  if (['remplace', 'remplacé'].includes(raw)) return BP_LINE_STATUS.REMPLACE;
+  if (['reporte', 'reporté'].includes(raw)) return BP_LINE_STATUS.REPORTE;
+  if (['annule', 'annulee', 'annulé', 'archive', 'archivé'].includes(raw)) return BP_LINE_STATUS.ANNULE;
+  if (['en_cours', 'en cours'].includes(raw)) return BP_LINE_STATUS.EN_COURS;
+  if (['concretise_partiel', 'concrétisé partiellement', 'partiel'].includes(raw)) return BP_LINE_STATUS.CONCRETISE_PARTIEL;
+  const prevu = Number(line.montant_prevu ?? bpLineAmount(line)) || 0;
+  const paye = Number(line.montant_paye ?? line.montant_reel ?? 0) || 0;
+  if (paye > 0 && prevu > 0 && paye < prevu - 0.5) return BP_LINE_STATUS.CONCRETISE_PARTIEL;
+  if (line.asset_id || line.asset_created_at || (line.linked_finance_transaction_id && paye >= prevu - 0.5)) return BP_LINE_STATUS.CONCRETISE;
   if (['concretise', 'concrétisé', 'effectif', 'lie_metier', 'realise', 'réalisé'].includes(raw)) return BP_LINE_STATUS.CONCRETISE;
-  if (['a_concretiser', 'a concrétiser', 'prevu', 'prévu', 'source officielle', 'planifie', 'planifié'].includes(raw)) return BP_LINE_STATUS.A_CONCRETISER;
+  if (['prevu', 'prévu', 'source officielle'].includes(raw)) return BP_LINE_STATUS.PREVU;
+  if (['a_concretiser', 'a concrétiser', 'planifie', 'planifié'].includes(raw)) return BP_LINE_STATUS.A_CONCRETISER;
   return BP_LINE_STATUS.A_CONCRETISER;
 }
 
@@ -190,7 +215,7 @@ export function computeBpCostTotals(costs = []) {
     const amount = bpCostAmount(cost);
     const status = normalizeBpLineStatus(cost);
     prevu += amount;
-    if (status === BP_LINE_STATUS.ANNULEE) annule += amount;
+    if (status === BP_LINE_STATUS.ANNULE || status === BP_LINE_STATUS.ANNULEE) annule += amount;
     else if (status === BP_LINE_STATUS.CONCRETISE) concretise += amount;
     else reste += amount;
   });
@@ -258,7 +283,8 @@ export function dispatchBpCostCompleted(detail = {}) {
 
 export function canConcretizeBpLine(line = {}) {
   if (!isBpLineEditable(line)) return false;
-  if (normalizeBpLineStatus(line) !== BP_LINE_STATUS.A_CONCRETISER) return false;
+  const status = normalizeBpLineStatus(line);
+  if ([BP_LINE_STATUS.ANNULE, BP_LINE_STATUS.REMPLACE, BP_LINE_STATUS.BLOQUE, BP_LINE_STATUS.CONCRETISE].includes(status)) return false;
   if (line.asset_id || line.asset_created_at) return false;
   return bpLineAmount(line) > 0;
 }
@@ -273,7 +299,7 @@ export function computeBpInvestmentTotals(lines = []) {
     const amount = bpLineAmount(line);
     const status = normalizeBpLineStatus(line);
     prevu += amount;
-    if (status === BP_LINE_STATUS.ANNULEE) annule += amount;
+    if (status === BP_LINE_STATUS.ANNULE || status === BP_LINE_STATUS.ANNULEE) annule += amount;
     else if (status === BP_LINE_STATUS.CONCRETISE) concretise += amount;
     else reste += amount;
   });
@@ -291,6 +317,7 @@ export function buildBpLineStatusPatch(status = BP_LINE_STATUS.A_CONCRETISER) {
 export function buildBpLineConcretizationRoute(line = {}) {
   const kind = investmentAssetKind(line);
   const label = investmentLabel(line);
+  const text = lower(`${label} ${line.categorie || ''} ${line.nature || ''}`);
   const qty = Math.max(1, Math.round(toNumber(line.quantite) || 1));
   const unitCost = toNumber(line.prix_unitaire) || bpLineAmount(line) / qty;
   const total = bpLineAmount(line);
@@ -301,7 +328,86 @@ export function buildBpLineConcretizationRoute(line = {}) {
     source_module: 'investissements',
     source_record_id: line.id,
     source: 'business_plan',
+    issue_key: line.issue_key || '',
+    source_bp_sheet: line.source_bp_sheet || '',
+    source_bp_line: line.source_bp_line || '',
   };
+
+  if (/tresorerie|fonds de roulement initial|cash depart/.test(text) || line.nature === 'tresorerie_depart') {
+    return {
+      navigate: { module: 'finance_pilotage', tab: 'Trésorerie' },
+      form: {
+        module: 'finance',
+        form_type: 'finance_entry',
+        intent_label: `Trésorerie de départ · ${label}`,
+        draft_fields: {
+          ...baseFields,
+          type: 'entree',
+          categorie: 'tresorerie_depart',
+          libelle: label,
+          montant: total,
+          date,
+          statut: 'encaisse',
+        },
+      },
+    };
+  }
+
+  if (/stock de matieres|stock de départ|stock initial|stock_depart/.test(text) || line.nature === 'stock_initial') {
+    return {
+      navigate: { module: 'achats_stock', tab: 'Stock' },
+      form: {
+        module: 'stock',
+        form_type: 'stock_purchase',
+        intent_label: `Stock initial · ${label}`,
+        draft_fields: {
+          ...baseFields,
+          produit: label,
+          name: label,
+          quantite: qty,
+          montant: total,
+          prixUnit: unitCost,
+          date,
+        },
+      },
+    };
+  }
+
+  if (/amortissement|amortissable/.test(text) || line.nature === 'investissement_amortissable') {
+    return {
+      navigate: { module: 'finance_pilotage', tab: 'Rentabilité' },
+      form: {
+        module: 'finance',
+        form_type: 'finance_entry',
+        intent_label: `Amortissement BP · ${label}`,
+        draft_fields: {
+          ...baseFields,
+          type: 'sortie',
+          categorie: 'amortissement',
+          libelle: label,
+          montant: total,
+          date,
+        },
+      },
+    };
+  }
+
+  if (/papier|administratif|communication|creation entreprise|site/.test(text)) {
+    return {
+      navigate: { module: 'documents_rapports', tab: 'Bibliothèque' },
+      form: {
+        module: 'documents',
+        form_type: 'document_upload',
+        intent_label: `Justificatif BP · ${label}`,
+        draft_fields: {
+          ...baseFields,
+          title: label,
+          montant: total,
+          date,
+        },
+      },
+    };
+  }
 
   if (kind === 'avicole') {
     const isChair = lower(label).includes('chair') || lower(label).includes('poulet');

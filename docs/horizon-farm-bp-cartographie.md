@@ -405,7 +405,19 @@ Statut : à intégrer dans Finances prévisionnelles et Centre décisionnel.
 
 ---
 
-## 17. Statut global
+## 18. Répartition ERP (import multi-onglets)
+
+Règle centrale : **Finance > Investissements = lignes actionnables uniquement**.
+
+| Onglet xlsx | Module(s) ERP | Visible Investissements |
+|---|---|---|
+| Hypothèses | Objectifs, Commercial, Finance charges, RH, Achats | Non |
+| Périodicité revenus | Objectifs, Commercial, Élevage, Trésorerie | Non |
+| Données à saisir | Investissements (démarrage), Financeurs, Finance, RH… | Partiel (besoins, stock, trésorerie, amort.) |
+| Plan à imprimer | Documents, Objectifs financeurs, Synthèse Finance | Non (lecture seule) |
+
+Implémentation : `src/services/bpImport/` (`bpSheetMapping.js`, `bpImportDispatcher.js`).
+
 
 Le BP intégré actuellement est partiel. La présente cartographie confirme que les éléments suivants doivent encore être intégrés ou corrigés :
 

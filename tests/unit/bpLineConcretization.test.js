@@ -17,10 +17,10 @@ import {
 } from '../../src/utils/bpLineConcretization.js';
 
 describe('bpLineConcretization', () => {
-  it('normalise les statuts legacy vers a_concretiser / concretise / annulee', () => {
-    assert.equal(normalizeBpLineStatus({ statut: 'prevu' }), BP_LINE_STATUS.A_CONCRETISER);
+  it('normalise les statuts legacy vers le registre étendu', () => {
+    assert.equal(normalizeBpLineStatus({ statut: 'prevu' }), BP_LINE_STATUS.PREVU);
     assert.equal(normalizeBpLineStatus({ statut: 'effectif' }), BP_LINE_STATUS.CONCRETISE);
-    assert.equal(normalizeBpLineStatus({ statut: 'annulé' }), BP_LINE_STATUS.ANNULEE);
+    assert.equal(normalizeBpLineStatus({ statut: 'annulé' }), BP_LINE_STATUS.ANNULE);
     assert.equal(normalizeBpLineStatus({ asset_id: 'LOTP-1' }), BP_LINE_STATUS.CONCRETISE);
   });
 

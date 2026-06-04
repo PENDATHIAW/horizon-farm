@@ -1,9 +1,9 @@
 import {
   HORIZON_FARM_OFFICIAL_BP,
-  getOfficialMonthlyCosts,
-  getOfficialMonthlyRevenueProjections,
-  getOfficialStartupInvestmentLines,
-} from './horizonFarmOfficialBusinessPlan';
+} from './horizonFarmOfficialBusinessPlan.js';
+import { dispatchOfficialBpImport } from './bpImport/bpImportDispatcher.js';
+import { BP_LINE_STATUS } from '../utils/bpLineConcretization.js';
+import { BP_TARGET_MODULES } from './bpImport/bpSheetMapping.js';
 
 const now = () => new Date().toISOString();
 const makeId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`;
@@ -14,9 +14,13 @@ const startupLine = (category) => HORIZON_FARM_OFFICIAL_BP.startupNeeds.lines.fi
 export const HORIZON_FARM_BP_ID = 'BP-HORIZON-FARM';
 export const HORIZON_FARM_BP_NAME = 'Business Plan Horizon Farm';
 
-export const HORIZON_FARM_INVESTMENT_LINES = getOfficialStartupInvestmentLines();
-export const HORIZON_FARM_MONTHLY_COSTS = getOfficialMonthlyCosts();
-export const HORIZON_FARM_REVENUE_PROJECTIONS = getOfficialMonthlyRevenueProjections();
+const _bpDispatched = dispatchOfficialBpImport(HORIZON_FARM_BP_ID);
+
+export const HORIZON_FARM_INVESTMENT_LINES = _bpDispatched.investmentLines.filter((line) => line.display_in_investissements !== false);
+export const HORIZON_FARM_MONTHLY_COSTS = _bpDispatched.recurringCosts;
+export const HORIZON_FARM_REVENUE_PROJECTIONS = _bpDispatched.revenueProjections;
+export const HORIZON_FARM_FUNDING_SOURCES = _bpDispatched.fundingSources;
+export const HORIZON_FARM_BP_DISTRIBUTION = _bpDispatched.distributionSummary;
 
 const oeufsRevenue = activity('oeufs');
 const chairRevenue = activity('poulets_chair');
@@ -71,15 +75,16 @@ export const HORIZON_FARM_OPERATIONAL_CYCLES = {
 };
 
 export function buildHorizonFarmBusinessPlan() {
+  const dispatched = dispatchOfficialBpImport(HORIZON_FARM_BP_ID);
   return {
     id: HORIZON_FARM_BP_ID,
     nom: HORIZON_FARM_BP_NAME,
     title: HORIZON_FARM_BP_NAME,
     statut: 'brouillon_actif',
-    source_module: 'investissements',
+    source_module: BP_TARGET_MODULES.INVESTISSEMENTS,
     source_document: HORIZON_FARM_OFFICIAL_BP.sourceDocument,
     activite: 'ferme_mixte',
-    description: 'Business plan Horizon Farm issu du fichier financier officiel. Les chiffres proviennent de la source unique horizonFarmOfficialBusinessPlan : besoins, financement, charges, CA, BFR, trésorerie, prévisionnel et hypothèses opérationnelles validées.',
+    description: 'Business plan Horizon Farm — import réparti par onglet xlsx vers les modules ERP (Investissements = lignes actionnables uniquement).',
     identite_projet: HORIZON_FARM_OFFICIAL_BP.identity,
     besoin_demarrage_total: HORIZON_FARM_OFFICIAL_BP.startupNeeds.officialTotal,
     financement_total: HORIZON_FARM_OFFICIAL_BP.funding.officialTotal,
@@ -96,19 +101,67 @@ export function buildHorizonFarmBusinessPlan() {
     tresorerie_mensuelle_previsionnelle: HORIZON_FARM_OFFICIAL_BP.forecast.monthlyCashYear1,
     hypotheses_cycles: HORIZON_FARM_OPERATIONAL_CYCLES,
     alertes_integration: HORIZON_FARM_OFFICIAL_BP.integrationWarnings,
+    bp_rapport_synthese: dispatched.reportSnapshot,
+    ...dispatched.planMetadata,
     duree_cycle_mois: 12,
     created_at: now(),
   };
 }
 
+export function getHorizonFarmBpSyncPayload(businessPlanId = HORIZON_FARM_BP_ID) {
+  return dispatchOfficialBpImport(businessPlanId);
+}
+
 export function buildHorizonFarmBpLine(line, businessPlanId) {
-  return { id: makeId('BPLI'), business_plan_id: businessPlanId, ...line, total: Number(line.quantite || 0) * Number(line.prix_unitaire || 0), statut: 'a_concretiser', status: 'a_concretiser', source_module: 'investissements', source_business_plan: HORIZON_FARM_BP_NAME };
+  const total = Number(line.total ?? line.montant_prevu ?? (Number(line.quantite || 0) * Number(line.prix_unitaire || 0)));
+  return {
+    id: makeId('BPLI'),
+    business_plan_id: businessPlanId,
+    ...line,
+    total,
+    montant_prevu: line.montant_prevu ?? total,
+    montant_engage: line.montant_engage ?? 0,
+    montant_paye: line.montant_paye ?? 0,
+    reste_a_realiser: line.reste_a_realiser ?? total,
+    statut: line.statut || BP_LINE_STATUS.A_CONCRETISER,
+    status: line.status || BP_LINE_STATUS.A_CONCRETISER,
+    module_source: line.module_source || BP_TARGET_MODULES.INVESTISSEMENTS,
+    source_business_plan: HORIZON_FARM_BP_NAME,
+  };
 }
 
 export function buildHorizonFarmMonthlyCost(cost, businessPlanId) {
-  return { id: makeId('BPCOST'), business_plan_id: businessPlanId, ...cost, frequence: 'mensuelle', statut: 'a_concretiser', status: 'a_concretiser', source_module: 'investissements', source_business_plan: HORIZON_FARM_BP_NAME };
+  return {
+    id: makeId('BPCOST'),
+    business_plan_id: businessPlanId,
+    ...cost,
+    frequence: cost.frequence || 'mensuelle',
+    statut: cost.statut || BP_LINE_STATUS.A_CONCRETISER,
+    status: cost.status || BP_LINE_STATUS.A_CONCRETISER,
+    module_source: cost.module_source || BP_TARGET_MODULES.INVESTISSEMENTS,
+    source_business_plan: HORIZON_FARM_BP_NAME,
+    display_in_investissements: false,
+  };
 }
 
 export function buildHorizonFarmProjection(projection, businessPlanId) {
-  return { id: makeId('BPPREV'), business_plan_id: businessPlanId, ...projection, source_module: 'investissements', source_business_plan: HORIZON_FARM_BP_NAME };
+  return {
+    id: makeId('BPPREV'),
+    business_plan_id: businessPlanId,
+    ...projection,
+    module_source: projection.module_source || BP_TARGET_MODULES.OBJECTIFS_CROISSANCE,
+    source_business_plan: HORIZON_FARM_BP_NAME,
+    display_in_investissements: false,
+  };
+}
+
+export function buildHorizonFarmFundingSource(funding, businessPlanId) {
+  return {
+    id: funding.id || makeId('BPFUND'),
+    business_plan_id: businessPlanId,
+    ...funding,
+    statut: funding.statut || BP_LINE_STATUS.PREVU,
+    source_business_plan: HORIZON_FARM_BP_NAME,
+    display_in_investissements: false,
+  };
 }
