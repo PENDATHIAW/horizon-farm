@@ -15,6 +15,7 @@ import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import { aggregateMissingProofItems, buildDocumentsCoherenceRows, buildDocumentsHealthSnapshot } from './documents/documentsVisionHelpers.js';
 import DocumentsWorkflowBridge from './documents/DocumentsWorkflowBridge.jsx';
 import DocumentScannerPanel from './documents/DocumentScannerPanel.jsx';
+import InvoiceOcrIntelligentPanel from './documents/InvoiceOcrIntelligentPanel.jsx';
 import { isDocumentOrphan } from '../utils/documentsWorkflow.js';
 
 const arr = (v) => Array.isArray(v) ? v : [];
@@ -106,6 +107,7 @@ function Summary({ data, setTab, onApply, onAttachProof, busyId, onNavigate }) {
       <Section icon={FolderOpen} title="Parcours documents">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
           <button type="button" onClick={() => setTab('Scanner IA')} className="rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">Scanner IA</b><p className="mt-1 text-sm text-[#8a7456]">Facture, ordonnance, reçu, BL.</p></button>
+          <button type="button" onClick={() => setTab('OCR Intelligent')} className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-left"><b className="text-[#2f2415]">OCR Intelligent</b><p className="mt-1 text-sm text-[#8a7456]">Diagnostic marge & trésorerie.</p></button>
           <button type="button" onClick={() => { emitHorizonForm('documents', 'supplier_invoice', 'Joindre facture', { date: new Date().toISOString().slice(0, 10) }); setTab('Bibliothèque'); }} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">+ Document</b><p className="mt-1 text-sm text-[#8a7456]">Joindre preuve manuelle.</p></button>
           <button type="button" onClick={() => setTab('Bibliothèque')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Bibliothèque</b><p className="mt-1 text-sm text-[#8a7456]">Tous les fichiers.</p></button>
           <button type="button" onClick={() => setTab('Exports')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Exports</b><p className="mt-1 text-sm text-[#8a7456]">Dossier financeur PDF.</p></button>
@@ -314,6 +316,14 @@ export default function DocumentsRapportsModule(props) {
     documents: data.documents,
     workflows: businessEvents,
   }), [fournisseursRows, stocksRows, data.animaux, data.lots, data.transactions, data.payments, data.salesOrders, data.documents, businessEvents]);
+  const ocrDataMap = useMemo(() => ({
+    ...scannerContext,
+    finances: data.transactions,
+    stock: stocksRows,
+    sales_orders: data.salesOrders,
+    business_events: businessEvents,
+    alimentation_logs: arr(props.alimentationLogs),
+  }), [scannerContext, data.transactions, stocksRows, data.salesOrders, businessEvents, props.alimentationLogs]);
   const scannerHandlers = useMemo(() => ({
     onCreateStock: props.onCreateStock || stockCrud.create,
     onUpdateStock: props.onUpdateStock || stockCrud.update,
@@ -373,6 +383,18 @@ export default function DocumentsRapportsModule(props) {
     <DocumentScannerPanel
       context={scannerContext}
       handlers={scannerHandlers}
+      onSuccess={() => {
+        docsCrud.refresh?.();
+        stockCrud.refresh?.();
+        financesCrud.refresh?.();
+      }}
+    />
+  ) : tab === 'OCR Intelligent' ? (
+    <InvoiceOcrIntelligentPanel
+      context={scannerContext}
+      dataMap={ocrDataMap}
+      handlers={scannerHandlers}
+      onNavigate={props.onNavigate}
       onSuccess={() => {
         docsCrud.refresh?.();
         stockCrud.refresh?.();
