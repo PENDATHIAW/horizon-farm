@@ -42,7 +42,7 @@
     "test:unit:investisseurs-forums": "npx vite-node tests/unit/investisseursForums.test.js",
     "test:unit:investisseur-demo": "npx vite-node tests/unit/investisseurDemo.test.js",
     "test:unit:ocr-intelligent": "npx vite-node tests/unit/ocrIntelligentHorizon.test.js",
-    "test:unit:ai-gateway": "node --test tests/unit/aiGateway.test.js",
+    "test:unit:ai-gateway": "npx vite-node tests/unit/aiGateway.test.js",
     "test:unit:document-scanner": "node --test tests/unit/documentScanner.test.js",
     "test:unit:contextual-voice": "node --test tests/unit/contextualVoice.test.js",
     "test:unit:chart-explain": "node --test tests/unit/chartExplain.test.js",
