@@ -4,8 +4,8 @@
  * Option : parseBpExcelWorkbook() pour import fichier direct.
  */
 
-import * as XLSX from 'xlsx';
 import { HORIZON_FARM_OFFICIAL_BP } from '../horizonFarmOfficialBusinessPlan.js';
+import { parseBpExcelWorkbookToOfficialBp } from './bpExcelParser.js';
 import {
   BP_LINE_NATURE,
   BP_SHEET_KEYS,
@@ -221,34 +221,22 @@ export function dispatchOfficialBpImport(businessPlanId = '', bp = HORIZON_FARM_
 }
 
 /**
- * Parse un classeur xlsx BP — retourne les noms d'onglets détectés + métadonnées brutes.
- * La répartition ERP utilise dispatchOfficialBpImport() sur la source officielle JS
- * tant que le parsing cellule-à-cellule n'est pas branché sur ce fichier.
+ * Parse un classeur xlsx BP — détection onglets + métadonnées brutes (sans dispatch).
  */
-export function parseBpExcelWorkbook(arrayBuffer) {
-  const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
-  const sheetNames = workbook.SheetNames || [];
-  const normalized = sheetNames.map((name) => name.trim().toLowerCase());
-  const detect = (patterns) => sheetNames.find((_, i) => patterns.some((p) => normalized[i]?.includes(p)));
-
-  return {
-    sheetNames,
-    detected: {
-      hypotheses: detect(['hypoth', 'hypothe']),
-      periodicite: detect(['period', 'périod', 'revenu']),
-      donnees: detect(['donn', 'saisir']),
-      plan: detect(['imprim', 'plan fin']),
-    },
-    rowCounts: Object.fromEntries(sheetNames.map((name) => {
-      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[name], { defval: '' });
-      return [name, rows.length];
-    })),
-    note: 'Import fichier : structure détectée. Répartition ERP via dispatchOfficialBpImport sur source officielle synchronisée.',
-  };
+export function parseBpExcelWorkbook(arrayBuffer, fileName = '') {
+  const { parsedMeta } = parseBpExcelWorkbookToOfficialBp(arrayBuffer, fileName);
+  return parsedMeta;
 }
 
-export function buildBpImportFromExcel(arrayBuffer, businessPlanId = '') {
-  const parsed = parseBpExcelWorkbook(arrayBuffer);
-  const dispatched = dispatchOfficialBpImport(businessPlanId);
-  return { parsed, ...dispatched };
+/**
+ * Import fichier xlsx : parse cellule-à-cellule puis répartit vers les modules ERP.
+ */
+export function buildBpImportFromExcel(arrayBuffer, businessPlanId = '', fileName = '') {
+  const { bp, parsedMeta } = parseBpExcelWorkbookToOfficialBp(arrayBuffer, fileName);
+  const dispatched = dispatchOfficialBpImport(businessPlanId, bp);
+  return {
+    parsed: parsedMeta,
+    sourceBp: bp,
+    ...dispatched,
+  };
 }

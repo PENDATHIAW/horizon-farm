@@ -108,8 +108,8 @@ export function buildHorizonFarmBusinessPlan() {
   };
 }
 
-export function getHorizonFarmBpSyncPayload(businessPlanId = HORIZON_FARM_BP_ID) {
-  return dispatchOfficialBpImport(businessPlanId);
+export function getHorizonFarmBpSyncPayload(businessPlanId = HORIZON_FARM_BP_ID, bpOverride = null) {
+  return dispatchOfficialBpImport(businessPlanId, bpOverride || HORIZON_FARM_OFFICIAL_BP);
 }
 
 export function buildHorizonFarmBpLine(line, businessPlanId) {

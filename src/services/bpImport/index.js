@@ -14,3 +14,5 @@ export {
   parseBpExcelWorkbook,
   buildBpImportFromExcel,
 } from './bpImportDispatcher.js';
+
+export { parseBpExcelWorkbookToOfficialBp } from './bpExcelParser.js';

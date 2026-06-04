@@ -34,6 +34,7 @@
     "test:unit:annexe-tabs": "node --test tests/unit/annexeTabsConfig.test.js",
     "test:unit:bp-concretisation": "npx vite-node tests/unit/bpLineConcretization.test.js",
     "test:unit:bp-import": "npx vite-node tests/unit/bpImportDispatch.test.js",
+    "test:unit:bp-excel": "npx vite-node tests/unit/bpExcelParser.test.js",
     "test:unit:ai-gateway": "node --test tests/unit/aiGateway.test.js",
     "test:unit:document-scanner": "node --test tests/unit/documentScanner.test.js",
     "test:unit:contextual-voice": "node --test tests/unit/contextualVoice.test.js",

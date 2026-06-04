@@ -86,17 +86,27 @@ function HelpSteps() {
   </div>;
 }
 
-async function syncBp(props, { silent = false, force = false } = {}) {
+async function syncBp(props, { silent = false, force = false, payload: externalPayload = null } = {}) {
   try {
     const existing = arr(props.businessPlans).find(isBp);
-    if (existing?.id && !force && arr(props.bpInvestmentLines).some((r) => String(r.business_plan_id) === String(existing.id))) {
+    if (existing?.id && !force && !externalPayload && arr(props.bpInvestmentLines).some((r) => String(r.business_plan_id) === String(existing.id))) {
       if (!silent) toast.success('Plan déjà chargé');
       return;
     }
-    const plan = existing?.id ? { ...buildHorizonFarmBusinessPlan(), id: existing.id } : buildHorizonFarmBusinessPlan();
+    const planBase = externalPayload?.sourceBp
+      ? {
+        ...buildHorizonFarmBusinessPlan(),
+        identite_projet: externalPayload.sourceBp.identity,
+        besoin_demarrage_total: externalPayload.sourceBp.startupNeeds?.officialTotal,
+        financement_total: externalPayload.sourceBp.funding?.officialTotal,
+        source_document: externalPayload.sourceBp.sourceDocument,
+        bp_import_version: '2.1',
+      }
+      : buildHorizonFarmBusinessPlan();
+    const plan = existing?.id ? { ...planBase, id: existing.id } : planBase;
     if (existing?.id) await props.onUpdateBusinessPlan?.(existing.id, plan); else await props.onCreateBusinessPlan?.(plan);
     const planId = plan.id;
-    const payload = getHorizonFarmBpSyncPayload(planId);
+    const payload = externalPayload || getHorizonFarmBpSyncPayload(planId);
     const currentLines = arr(props.bpInvestmentLines).filter((r) => String(r.business_plan_id) === String(planId));
     const currentCosts = arr(props.bpRecurringCosts).filter((r) => String(r.business_plan_id) === String(planId));
     const currentProj = arr(props.bpRevenueProjections).filter((r) => String(r.business_plan_id) === String(planId));
@@ -210,9 +220,9 @@ export default function InvestissementsV9(props) {
     if (!file) return;
     try {
       const buffer = await file.arrayBuffer();
-      buildBpImportFromExcel(buffer, planId);
-      await syncBp(props, { force: true });
-      toast.success(`Fichier ${file.name} — structure détectée, répartition ERP appliquée.`);
+      const imported = buildBpImportFromExcel(buffer, planId, file.name);
+      await syncBp(props, { force: true, payload: imported });
+      toast.success(`Fichier ${file.name} — ${imported.parsed?.counts?.startupLines ?? imported.investmentLines?.length ?? 0} lignes démarrage parsées, répartition ERP appliquée.`);
     } catch (error) {
       toast.error(error.message || 'Import Excel impossible');
     }
