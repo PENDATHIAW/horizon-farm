@@ -39,6 +39,7 @@
     "test:unit:hey-horizon-vocal": "npx vite-node tests/unit/heyHorizonVocal.test.js",
     "test:unit:horizon-advisor": "npx vite-node tests/unit/horizonAdvisor.test.js",
     "test:unit:horizon-forecast": "npx vite-node tests/unit/horizonForecast.test.js",
+    "test:unit:investisseurs-forums": "npx vite-node tests/unit/investisseursForums.test.js",
     "test:unit:ocr-intelligent": "npx vite-node tests/unit/ocrIntelligentHorizon.test.js",
     "test:unit:ai-gateway": "node --test tests/unit/aiGateway.test.js",
     "test:unit:document-scanner": "node --test tests/unit/documentScanner.test.js",

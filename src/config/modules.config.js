@@ -17,6 +17,7 @@ export const MODULE_REGISTRY = {
   activite_suivi: { label: 'Activité & Suivi', icon: ClipboardList, group: 'metier' },
   documents_rapports: { label: 'Documents & Rapports', icon: FolderOpen, group: 'metier' },
   impact_business: { label: 'Impact & Valeur', icon: Scale, group: 'pilotage' },
+  investisseurs_forums: { label: 'Investisseurs & Forums', icon: Handshake, group: 'pilotage' },
   cultures: { label: 'Cultures', icon: Sprout, group: 'metier' },
   rh: { label: 'RH & Équipe', icon: UserCog, group: 'operations' },
   equipements: { label: 'Équipements', icon: Wrench, group: 'operations' },
@@ -56,7 +57,7 @@ export const SALES_WORKFLOW_KEYS = [
 export const NAV_MODULE_ORDER = [
   'dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance',
   'elevage', 'commercial', 'achats_stock', 'finance_pilotage',
-  'activite_suivi', 'documents_rapports', 'impact_business',
+  'activite_suivi', 'documents_rapports', 'impact_business', 'investisseurs_forums',
   'cultures', 'rh', 'equipements', 'smartfarm', 'sync_activity', 'gestion_systeme',
 ];
 

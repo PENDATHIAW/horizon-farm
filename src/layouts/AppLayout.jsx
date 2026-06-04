@@ -16,7 +16,7 @@ const safeWeather = (value = {}) => ({ temp: value?.temp ?? '-', apparentTemp: v
 const formatDateTime = () => new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' }).format(new Date());
 
 const NAV_GROUPS = [
-  { key: 'pilotage', label: 'Pilotage', ids: ['dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance', 'impact_business'] },
+  { key: 'pilotage', label: 'Pilotage', ids: ['dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance', 'impact_business', 'investisseurs_forums'] },
   { key: 'production', label: 'Production', ids: ['elevage', 'cultures'] },
   { key: 'commerce', label: 'Commerce', ids: ['commercial', 'achats_stock'] },
   { key: 'finance', label: 'Finance', ids: ['finance_pilotage'] },
@@ -28,7 +28,7 @@ const NAV_GROUPS = [
 function collapseNavItems(navItems = []) {
   const opsIds = new Set(['rh', 'equipements', 'smartfarm']);
   const opsItems = navItems.filter((item) => opsIds.has(item.id));
-  const collapsed = navItems.filter((item) => !['impact_business', 'equipements', 'smartfarm'].includes(item.id));
+  const collapsed = navItems.filter((item) => !['impact_business', 'investisseurs_forums', 'equipements', 'smartfarm'].includes(item.id));
   return collapsed.map((item) => {
     if (item.id === 'centre_ia') return { ...item, label: 'Centre décisionnel' };
     if (item.id === 'rh') return { ...item, label: 'Opérations & Ressources', icon: UserCog, hasAlert: opsItems.some((entry) => entry.hasAlert) };

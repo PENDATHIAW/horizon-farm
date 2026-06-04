@@ -34,6 +34,7 @@ export const HEY_HORIZON_MODULE_LABELS = {
   alertes: 'Activité & Suivi',
   sync_activity: 'Vérifications',
   impact_business: 'Impact & Valeur',
+  investisseurs_forums: 'Investisseurs & Forums',
   fournisseurs: 'Achats & Stock',
   tracabilite: 'Traçabilité',
   centre_ia: 'Centre décisionnel',
