@@ -10,6 +10,7 @@ import { computeForumReadinessScore } from '../services/investorForums/forumRead
 import { adaptProfileForAudience, FORUM_AUDIENCES } from '../services/investorForums/forumAudienceAdapter.js';
 import { buildForumPack, exportForumPackPdf, FORUM_PACK_TYPES } from '../services/investorForums/forumPackBuilder.js';
 import { fmtCurrency } from '../utils/format.js';
+import InvestisseurDemoPanel from './InvestisseurDemoPanel.jsx';
 
 const SECTIONS = [
   { id: 'project', label: 'Résumé du projet', icon: Target },
@@ -22,6 +23,7 @@ const SECTIONS = [
   { id: 'risks', label: 'Risques & mitigation', icon: ShieldAlert },
   { id: 'score', label: 'Score préparation', icon: Sparkles },
   { id: 'export', label: 'Génération dossier', icon: Download },
+  { id: 'demo', label: 'Démo investisseur', icon: Sparkles },
 ];
 
 function TabButton({ active, children, onClick }) {
@@ -314,6 +316,8 @@ export default function InvestisseursForumsModule(props) {
           <p className="text-sm text-[#8a7456]">{adapted.callToAction}</p>
         </div>
       )}
+
+      {tab === 'demo' && <InvestisseurDemoPanel />}
     </div>
   );
 }
