@@ -10,6 +10,7 @@ import {
   reconciliationWouldDuplicate,
 } from '../../utils/financeReconciliation';
 import { buildStockReceptionFromFinanceTransaction } from '../../utils/stockPurchaseWorkflow';
+import AiReconciliationPanel from './AiReconciliationPanel.jsx';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 
@@ -88,8 +89,23 @@ export default function FinanceReconciliationPanel({
     );
   }
 
+  const aiCoveredRowIds = useMemo(() => {
+    const paymentRows = rows.filter((row) => row.kind === 'payment_without_finance').map((row) => row.id);
+    return new Set(paymentRows);
+  }, [rows]);
+
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
+    <div className="space-y-4">
+      <AiReconciliationPanel
+        rows={rows}
+        transactions={transactions}
+        salesOrders={salesOrders}
+        stocks={stocks}
+        onCreateFinanceTransaction={onCreateFinanceTransaction}
+        onRefreshFinances={onRefreshFinances}
+        onNavigate={onNavigate}
+      />
+      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
       <div className="flex items-start gap-2">
         <Wallet className="text-[#9a6b12] shrink-0" size={22} />
         <div>
@@ -115,15 +131,20 @@ export default function FinanceReconciliationPanel({
                 <p className="text-xs text-[#8a7456] mt-1">{row.detail}</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                {row.kind === 'payment_without_finance' ? (
+                {row.kind === 'payment_without_finance' && !aiCoveredRowIds.has(row.id) ? (
                   <Btn
                     icon={Plus}
                     small
                     disabled={busyId === row.id}
                     onClick={() => createFinanceFromPayment(row)}
                   >
-                    {busyId === row.id ? '…' : 'Créer finance'}
+                    {busyId === row.id ? '…' : 'Créer finance (manuel)'}
                   </Btn>
+                ) : null}
+                {row.kind === 'payment_without_finance' && aiCoveredRowIds.has(row.id) ? (
+                  <span className="text-[11px] text-violet-700 font-semibold self-center">
+                    Proposition IA disponible ci-dessus
+                  </span>
                 ) : null}
                 {row.kind === 'finance_without_payment' ? (
                   <Btn icon={Link2} small variant="outline" onClick={() => linkToSale(row)}>
@@ -142,5 +163,6 @@ export default function FinanceReconciliationPanel({
       </div>
       <p className="text-xs text-[#8a7456]">{rows.length} écart(s) à traiter</p>
     </section>
+    </div>
   );
 }

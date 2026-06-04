@@ -19,6 +19,7 @@ export const TARGET_WORKFLOWS = {
   DOCUMENT_LINK: 'commitDocumentLink',
   EQUIPMENT: 'commitEquipmentWorkflow',
   ALERT_ACTION: 'commitAlertActionWorkflow',
+  FINANCE_RECONCILIATION: 'commitFinanceReconciliationRepair',
   INSIGHT_ONLY: 'insight_only',
   OPEN_FORM: 'open_form',
 };

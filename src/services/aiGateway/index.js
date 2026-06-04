@@ -59,6 +59,8 @@ export {
 export {
   findUnmatchedPayments,
   proposeReconciliationDraft,
+  proposeReconciliationDraftFromRow,
+  proposeReconciliationDraftsFromRows,
   proposeReconciliationDraftsForOrphans,
 } from './smartReconciliation.js';
 
@@ -80,7 +82,7 @@ export {
 export { journalizeVoiceParse } from './heyHorizonVoiceJournal.js';
 export { gatewayDraftToFormRequest, gatewayDraftToLegacyHeyDraft } from './gatewayFormBridge.js';
 
-import { markDraftValidated } from './aiActionDrafts.js';
+import { markDraftValidated, TARGET_WORKFLOWS } from './aiActionDrafts.js';
 import {
   assertNoDirectDatabaseWrite,
   validateDraftForExecution,
@@ -132,6 +134,14 @@ export async function executeValidatedDraft(draft = {}, handlers = {}) {
     let result;
     if (draft.target_workflow === 'recordSalePayment') {
       result = await executor({ ...payload, handlers });
+    } else if (draft.target_workflow === TARGET_WORKFLOWS.FINANCE_RECONCILIATION) {
+      result = await executor({
+        payment: payload.payment,
+        order: payload.order || payload.sale,
+        sale: payload.sale,
+        transactions: payload.context?.transactions || [],
+        handlers,
+      });
     } else if (draft.target_workflow === 'commitDocumentLink') {
       result = await executor({ form: payload.form || payload, context, handlers });
     } else if (draft.target_workflow === 'commitCultureHarvest') {

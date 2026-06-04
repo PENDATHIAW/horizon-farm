@@ -178,4 +178,37 @@ export function reconciliationWouldDuplicate(kind = '', ctx = {}) {
   return false;
 }
 
+/**
+ * Workflow rapprochement — crée la ligne finance manquante pour un paiement existant.
+ * Seule voie d'écriture autorisée pour les brouillons IA de rapprochement.
+ */
+export async function commitFinanceReconciliationRepair({
+  payment = {},
+  order = {},
+  sale = {},
+  transactions = [],
+  handlers = {},
+} = {}) {
+  const resolvedOrder = order?.id ? order : sale;
+  if (reconciliationWouldDuplicate('payment_without_finance', { payment, transactions })) {
+    return { skipped: true, reason: 'duplicate', ok: false };
+  }
+  const built = buildFinanceFromPaymentRepair({
+    payment,
+    order: resolvedOrder,
+    transactions,
+  });
+  if (built.duplicate) {
+    return { skipped: true, reason: 'duplicate', existing: built.existing, ok: false };
+  }
+  if (!built.row) {
+    return { skipped: true, reason: 'invalid', ok: false };
+  }
+  if (!handlers.onCreateFinanceTransaction) {
+    return { skipped: true, reason: 'no_handler', ok: false };
+  }
+  await handlers.onCreateFinanceTransaction(built.row);
+  return { ok: true, financeId: built.row.id, paymentId: clean(payment.id) };
+}
+
 export { financeIds };

@@ -19,7 +19,8 @@ import {
   executeValidatedDraft,
   validateAiDraftByUser,
 } from '../../src/services/aiGateway/index.js';
-import { proposeReconciliationDraft } from '../../src/services/aiGateway/smartReconciliation.js';
+import { proposeReconciliationDraft, proposeReconciliationDraftFromRow } from '../../src/services/aiGateway/smartReconciliation.js';
+import { commitFinanceReconciliationRepair } from '../../src/utils/financeReconciliation.js';
 import { proposeDocumentLinkDraft } from '../../src/services/aiGateway/documentUnderstanding.js';
 import { generateChartInsightDraft } from '../../src/services/aiGateway/chartInsightGenerator.js';
 
@@ -60,8 +61,8 @@ test('confiance faible impose validation obligatoire', () => {
 
 test('données ambiguës demandent confirmation', () => {
   const draft = proposeReconciliationDraft({
-    payment: { id: 'PAY-1', montant: 5000 },
-    sale: {},
+    payment: { id: 'PAY-1', montant: 5000, order_id: 'ORD-1' },
+    sale: { id: 'ORD-1' },
     transactions: [
       { id: 'TX-1', montant: 5000 },
       { id: 'TX-2', montant: 5000 },
@@ -72,6 +73,69 @@ test('données ambiguës demandent confirmation', () => {
   const safety = assessDraftSafety(draft);
   assert.equal(safety.needsConfirmation, true);
   assert.equal(validateDraftForExecution(draft).ok, false);
+});
+
+test('paiement existant sans finance cible le workflow rapprochement', () => {
+  const draft = proposeReconciliationDraft({
+    payment: { id: 'PAY-2', montant: 12000, order_id: 'ORD-9' },
+    sale: { id: 'ORD-9', client_nom: 'Client A' },
+    transactions: [],
+  });
+  assert.equal(draft.target_workflow, TARGET_WORKFLOWS.FINANCE_RECONCILIATION);
+  assert.equal(draft.required_validation, true);
+});
+
+test('proposeReconciliationDraftFromRow mappe les écarts rapprochement', () => {
+  const paymentDraft = proposeReconciliationDraftFromRow(
+    {
+      id: 'recon-pay-1',
+      kind: 'payment_without_finance',
+      payment: { id: 'PAY-1', montant: 5000, order_id: 'ORD-1' },
+      order: { id: 'ORD-1' },
+    },
+    { transactions: [] },
+  );
+  assert.equal(paymentDraft.target_workflow, TARGET_WORKFLOWS.FINANCE_RECONCILIATION);
+  assert.equal(paymentDraft.draft.recon_row_id, 'recon-pay-1');
+
+  const openDraft = proposeReconciliationDraftFromRow(
+    {
+      id: 'recon-fin-1',
+      kind: 'finance_without_payment',
+      orderId: 'ORD-2',
+      transaction: { id: 'TX-1', montant: 3000 },
+    },
+    { transactions: [] },
+  );
+  assert.equal(openDraft.target_workflow, TARGET_WORKFLOWS.OPEN_FORM);
+});
+
+test('commitFinanceReconciliationRepair passe par onCreateFinanceTransaction', async () => {
+  let created = null;
+  const result = await commitFinanceReconciliationRepair({
+    payment: { id: 'PAY-3', montant_paye: 8000, order_id: 'ORD-3', date_paiement: '2026-01-10' },
+    order: { id: 'ORD-3', client_nom: 'Client B' },
+    transactions: [],
+    handlers: {
+      onCreateFinanceTransaction: async (row) => {
+        created = row;
+      },
+    },
+  });
+  assert.equal(result.ok, true);
+  assert.ok(created);
+  assert.equal(created.payment_id, 'PAY-3');
+});
+
+test('commitFinanceReconciliationRepair refuse les doublons', async () => {
+  const result = await commitFinanceReconciliationRepair({
+    payment: { id: 'PAY-4', montant_paye: 5000, order_id: 'ORD-4' },
+    order: { id: 'ORD-4' },
+    transactions: [{ id: 'TX-9', payment_id: 'PAY-4', montant: 5000, order_id: 'ORD-4', type: 'entree' }],
+    handlers: { onCreateFinanceTransaction: async () => {} },
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'duplicate');
 });
 
 test('document incomplet : champs manquants et confirmation', () => {
@@ -159,6 +223,7 @@ test('registre workflows autorise uniquement les commits métier connus', () => 
   assert.ok(ALLOWED_WORKFLOW_EXECUTORS.has(TARGET_WORKFLOWS.PURCHASE));
   assert.ok(ALLOWED_WORKFLOW_EXECUTORS.has(TARGET_WORKFLOWS.DOCUMENT_LINK));
   assert.ok(ALLOWED_WORKFLOW_EXECUTORS.has(TARGET_WORKFLOWS.SALE_PAYMENT));
+  assert.ok(ALLOWED_WORKFLOW_EXECUTORS.has(TARGET_WORKFLOWS.FINANCE_RECONCILIATION));
   assert.ok(!ALLOWED_WORKFLOW_EXECUTORS.has('supabaseRawInsert'));
   assert.ok(FORBIDDEN_DIRECT_HANDLER_KEYS.includes('onCreateFinanceTransaction'));
 });
