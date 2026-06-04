@@ -1,5 +1,18 @@
 import { ArrowRight, Handshake, Landmark, PiggyBank, TrendingUp } from 'lucide-react';
 import { useMemo } from 'react';
+import toast from 'react-hot-toast';
+import {
+  BP_LINE_STATUS_OPTIONS,
+  bpCostAmount,
+  bpCostLabel,
+  bpLineStatusLabel,
+  buildBpCostConcretizationRoute,
+  buildBpLineStatusPatch,
+  canConcretizeBpCost,
+  isBpCostEditable,
+  launchBpCostConcretization,
+  normalizeBpLineStatus,
+} from '../../utils/bpLineConcretization.js';
 import { HORIZON_FARM_OFFICIAL_BP } from '../../services/horizonFarmOfficialBusinessPlan.js';
 import { getInvestorReadySummary } from '../../services/heyHorizonCore/index.js';
 import { fmtCurrency } from '../../utils/format.js';
@@ -151,11 +164,45 @@ export function BpFundingFinanceurPanel({ bpFundingSources = [], besoinsTotal = 
   );
 }
 
-/** Tableau charges récurrentes BP (hors lignes actionnables Investissements). */
-export function BpMonthlyCostsPanel({ costs = [] }) {
+const MODULE_LABELS = {
+  finance_pilotage: 'Finance & Pilotage',
+  rh: 'RH',
+  achats_stock: 'Achats & Stock',
+  commercial: 'Commercial',
+  objectifs_croissance: 'Objectifs & Croissance',
+};
+
+/** Tableau charges récurrentes BP avec statut et concrétisation (comme les lignes investissement). */
+export function BpMonthlyCostsPanel({
+  costs = [],
+  costTotals = {},
+  onNavigate,
+  onUpdateBpRecurringCost,
+  onRefreshBpRecurringCosts,
+  needsSync = false,
+  onRequestSync,
+}) {
   const rows = arr(costs);
   const monthlyTotal = rows.reduce((s, r) => s + n(r.montant_mensuel ?? r.amount ?? r.montant), 0);
   const annualTotal = rows.reduce((s, r) => s + n(r.montant_annuel ?? r.annual ?? (n(r.montant_mensuel ?? r.amount) * 12)), 0);
+
+  const updateCostStatus = async (cost, status) => {
+    if (!isBpCostEditable(cost)) return toast.error('Resynchronisez le BP pour modifier cette charge.');
+    try {
+      await onUpdateBpRecurringCost?.(cost.id, buildBpLineStatusPatch(status));
+      await onRefreshBpRecurringCosts?.();
+      toast.success(`Statut · ${bpLineStatusLabel(status)}`);
+    } catch (error) {
+      toast.error(error.message || 'Statut impossible');
+    }
+  };
+
+  const openCostConcretization = (cost) => {
+    const result = launchBpCostConcretization(cost, { onNavigate });
+    if (!result.ok) return toast.error('Cette charge ne peut pas encore être ouverte dans un module.');
+    const mod = result.route?.navigate?.module;
+    toast.success(`Ouverture ${MODULE_LABELS[mod] || mod || 'module'}…`);
+  };
 
   return (
     <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
@@ -164,40 +211,96 @@ export function BpMonthlyCostsPanel({ costs = [] }) {
           <PiggyBank size={20} />
           Charges mensuelles BP
         </p>
-        <p className="mt-1 text-sm text-[#8a7456]">Charges récurrentes importées depuis l’onglet Hypothèses — pilotées aussi dans Finance et RH.</p>
+        <p className="mt-1 text-sm text-[#8a7456]">
+          Chaque ligne peut être concrétisée vers Finance, RH ou Achats — comme les investissements actionnables.
+        </p>
       </div>
-      <div className="grid grid-cols-2 gap-3 max-w-md">
+
+      {needsSync ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="font-black">Charges en lecture seule</p>
+          <p className="mt-1">Cliquez <b>Resynchroniser le BP officiel</b> en haut pour enregistrer les lignes et activer Concrétiser / Modifier le statut.</p>
+          {onRequestSync ? (
+            <button type="button" onClick={onRequestSync} className="mt-3 rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white">
+              Resynchroniser maintenant
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-xs text-[#8a7456]">Total mensuel</p>
-          <p className="mt-1 text-lg font-black text-[#2f2415]">{fmtCurrency(monthlyTotal)}</p>
+          <p className="text-xs text-[#8a7456]">Prévu (mensuel)</p>
+          <p className="mt-1 text-lg font-black text-[#2f2415]">{fmtCurrency(costTotals.prevu ?? monthlyTotal)}</p>
         </div>
         <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-          <p className="text-xs text-[#8a7456]">Total annuel estimé</p>
-          <p className="mt-1 text-lg font-black text-[#2f2415]">{fmtCurrency(annualTotal || monthlyTotal * 12)}</p>
+          <p className="text-xs text-[#8a7456]">Concrétisé</p>
+          <p className="mt-1 text-lg font-black text-emerald-700">{fmtCurrency(costTotals.concretise ?? 0)}</p>
+        </div>
+        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+          <p className="text-xs text-[#8a7456]">Reste</p>
+          <p className="mt-1 text-lg font-black text-amber-700">{fmtCurrency(costTotals.reste ?? monthlyTotal)}</p>
+        </div>
+        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+          <p className="text-xs text-[#8a7456]">Lignes</p>
+          <p className="mt-1 text-lg font-black text-[#2f2415]">{String(costTotals.count ?? rows.length)}</p>
         </div>
       </div>
+
       <div className="overflow-x-auto rounded-2xl border border-[#eadcc2]">
-        <table className="w-full min-w-[640px] text-sm">
+        <table className="w-full min-w-[900px] text-sm">
           <thead>
             <tr className="bg-[#fffdf8] text-left text-xs uppercase text-[#8a7456]">
               <th className="px-3 py-2">Poste</th>
-              <th className="px-3 py-2">Catégorie</th>
+              <th className="px-3 py-2">Module cible</th>
               <th className="px-3 py-2 text-right">Mensuel</th>
-              <th className="px-3 py-2 text-right">Annuel</th>
+              <th className="px-3 py-2 text-right">Réalisé</th>
+              <th className="px-3 py-2">Statut</th>
+              <th className="px-3 py-2" />
             </tr>
           </thead>
           <tbody>
-            {rows.slice(0, 40).map((r, i) => (
-              <tr key={r.id || i} className="border-t border-[#eadcc2]">
-                <td className="px-3 py-2 font-bold text-[#2f2415]">{r.designation || r.nom || '—'}</td>
-                <td className="px-3 py-2 text-[#8a7456]">{r.categorie || r.category || '—'}</td>
-                <td className="px-3 py-2 text-right">{fmtCurrency(n(r.montant_mensuel ?? r.amount))}</td>
-                <td className="px-3 py-2 text-right">{fmtCurrency(n(r.montant_annuel ?? r.annual ?? n(r.montant_mensuel ?? r.amount) * 12))}</td>
-              </tr>
-            ))}
+            {rows.map((r, i) => {
+              const status = normalizeBpLineStatus(r);
+              const canDo = canConcretizeBpCost(r) && buildBpCostConcretizationRoute(r);
+              return (
+                <tr key={r.id || i} className="border-t border-[#eadcc2]">
+                  <td className="px-3 py-2 font-bold text-[#2f2415]">{bpCostLabel(r)}</td>
+                  <td className="px-3 py-2 text-[#8a7456]">{MODULE_LABELS[r.module_cible] || r.module_cible || '—'}</td>
+                  <td className="px-3 py-2 text-right">{fmtCurrency(bpCostAmount(r))}</td>
+                  <td className="px-3 py-2 text-right">{fmtCurrency(r.montant_reel ?? 0)}</td>
+                  <td className="px-3 py-2">
+                    {isBpCostEditable(r) ? (
+                      <select
+                        value={status}
+                        onChange={(e) => updateCostStatus(r, e.target.value)}
+                        className="rounded-lg border border-[#eadcc2] bg-white px-2 py-1 text-xs font-bold text-[#2f2415]"
+                      >
+                        {BP_LINE_STATUS_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="text-[#8a7456]">{bpLineStatusLabel(status)}</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    {canDo ? (
+                      <button
+                        type="button"
+                        onClick={() => openCostConcretization(r)}
+                        className="rounded-lg bg-[#2f2415] px-3 py-1.5 text-xs font-black text-white"
+                      >
+                        Concrétiser
+                      </button>
+                    ) : null}
+                  </td>
+                </tr>
+              );
+            })}
             {!rows.length ? (
               <tr>
-                <td colSpan={4} className="px-3 py-6 text-center text-[#8a7456]">Aucune charge BP — importez ou synchronisez le plan.</td>
+                <td colSpan={6} className="px-3 py-6 text-center text-[#8a7456]">Aucune charge BP — resynchronisez le plan officiel.</td>
               </tr>
             ) : null}
           </tbody>

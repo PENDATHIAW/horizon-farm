@@ -6,18 +6,25 @@ import { HORIZON_FARM_OFFICIAL_BP } from '../services/horizonFarmOfficialBusines
 import { HORIZON_FARM_BP_ID, HORIZON_FARM_BP_NAME, HORIZON_FARM_BP_DISTRIBUTION, HORIZON_FARM_FUNDING_SOURCES, HORIZON_FARM_INVESTMENT_LINES, HORIZON_FARM_MONTHLY_COSTS, HORIZON_FARM_REVENUE_PROJECTIONS, buildHorizonFarmBpLine, buildHorizonFarmBusinessPlan, buildHorizonFarmFundingSource, buildHorizonFarmMonthlyCost, buildHorizonFarmProjection, getHorizonFarmBpSyncPayload } from '../services/horizonFarmBusinessPlanSeed';
 import { BP_SHEET_MAPPING, isInvestissementsActionableLine, buildBpImportFromExcel } from '../services/bpImport';
 import {
+  BP_COST_COMPLETED_EVENT,
   BP_LINE_COMPLETED_EVENT,
   BP_LINE_STATUS,
   BP_LINE_STATUS_OPTIONS,
+  bpCostLabel,
   bpLineAmount,
   bpLineStatusLabel,
+  buildBpCostCompletionWorkflow,
+  buildBpCostConcretizationRoute,
   buildBpLineConcretizationRoute,
   buildBpLineCompletionWorkflow,
   buildBpLineStatusPatch,
+  canConcretizeBpCost,
   canConcretizeBpLine,
   computeBpCostTotals,
   computeBpInvestmentTotals,
+  isBpCostEditable,
   isBpLineEditable,
+  launchBpCostConcretization,
   launchBpLineConcretization,
   normalizeBpLineStatus,
 } from '../utils/bpLineConcretization';
@@ -153,6 +160,31 @@ async function syncBp(props, { silent = false, force = false, payload: externalP
   }
 }
 
+async function finalizeBpCostCompletion(detail, props) {
+  const cost = arr(props.bpRecurringCosts).find((row) => String(row.id) === String(detail?.bp_line_id || detail?.bp_cost_id));
+  if (!cost?.id) return;
+  const workflow = buildBpCostCompletionWorkflow(cost, detail);
+  try {
+    if (workflow.financeTransaction && !cost.linked_finance_transaction_id) {
+      await props.onCreateFinanceTransaction?.(workflow.financeTransaction);
+    }
+    if (workflow.proofDocument && !cost.proof_document_id) {
+      await props.onCreateDocument?.(workflow.proofDocument);
+    }
+    await props.onUpdateBpRecurringCost?.(cost.id, workflow.linePatch);
+    if (workflow.event?.title) await props.onCreateBusinessEvent?.(workflow.event);
+    await Promise.allSettled([
+      props.onRefreshFinances?.(),
+      props.onRefreshDocuments?.(),
+      props.onRefreshBpRecurringCosts?.(),
+      props.onRefreshBusinessEvents?.(),
+    ]);
+    toast.success(`Charge enregistrée · ${bpCostLabel(cost)}`);
+  } catch (error) {
+    toast.error(error.message || 'Mise à jour charge impossible');
+  }
+}
+
 async function finalizeBpLineCompletion(detail, props) {
   const line = arr(props.bpInvestmentLines).find((row) => String(row.id) === String(detail?.bp_line_id));
   if (!line?.id) return;
@@ -173,6 +205,7 @@ export default function InvestissementsV9(props) {
   const [tab, setTab] = useState('overview');
   const [editLine, setEditLine] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [showExcelImport, setShowExcelImport] = useState(false);
   const seedAttempted = useRef(false);
 
   const plan = useMemo(() => arr(props.businessPlans).find(isBp) || null, [props.businessPlans]);
@@ -186,6 +219,9 @@ export default function InvestissementsV9(props) {
   const totals = useMemo(() => computeBpInvestmentTotals(lines), [lines]);
   const costTotals = useMemo(() => computeBpCostTotals(costs), [costs]);
   const pendingLines = useMemo(() => lines.filter((line) => canConcretizeBpLine(line) && buildBpLineConcretizationRoute(line)), [lines]);
+  const pendingCosts = useMemo(() => costs.filter((cost) => canConcretizeBpCost(cost) && buildBpCostConcretizationRoute(cost)), [costs]);
+  const costsNeedDbSync = useMemo(() => costs.some((cost) => !isBpCostEditable(cost)), [costs]);
+  const dbCostsCount = dedupe(arr(props.bpRecurringCosts).filter((r) => String(r.business_plan_id || planId) === String(planId))).length;
   const monthCosts = costs.reduce((s, r) => s + monthly(r), 0);
   const annualRevenue = projections.reduce((s, r) => s + revenue(r), 0) || HORIZON_FARM_OFFICIAL_BP.revenue.annualTotal;
 
@@ -212,9 +248,12 @@ export default function InvestissementsV9(props) {
 
   useEffect(() => {
     const onLine = (event) => finalizeBpLineCompletion(event.detail || {}, props);
+    const onCost = (event) => finalizeBpCostCompletion(event.detail || {}, props);
     window.addEventListener(BP_LINE_COMPLETED_EVENT, onLine);
+    window.addEventListener(BP_COST_COMPLETED_EVENT, onCost);
     return () => {
       window.removeEventListener(BP_LINE_COMPLETED_EVENT, onLine);
+      window.removeEventListener(BP_COST_COMPLETED_EVENT, onCost);
     };
   }, [props]);
 
@@ -307,8 +346,16 @@ export default function InvestissementsV9(props) {
           <p className="mt-1 text-sm text-[#8a7456]">Lignes d’investissement actionnables uniquement — le reste du BP est réparti vers Finance, RH, Commercial, Objectifs…</p>
         </div>
         <div className="flex flex-col gap-2 sm:items-end">
-          <button type="button" onClick={() => syncBp(props, { force: true })} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-2 text-xs font-black text-[#7d6a4a]"><RefreshCw size={14} className="inline" /> Importer / resynchroniser BP</button>
-          <button type="button" onClick={() => fileInputRef.current?.click()} className="rounded-2xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white"><FileSpreadsheet size={14} className="inline" /> Charger fichier Excel</button>
+          <button type="button" onClick={() => syncBp(props, { force: true })} className="rounded-2xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white"><RefreshCw size={14} className="inline" /> Resynchroniser le BP officiel</button>
+          <button type="button" onClick={() => setShowExcelImport((v) => !v)} className="text-xs font-bold text-[#8a7456] underline-offset-2 hover:underline">
+            {showExcelImport ? 'Masquer import Excel' : 'Autre fichier Excel (optionnel)'}
+          </button>
+          {showExcelImport ? (
+            <>
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-2 text-xs font-black text-[#7d6a4a]"><FileSpreadsheet size={14} className="inline" /> Choisir un .xlsx</button>
+              <p className="text-[11px] text-[#8a7456] max-w-xs text-right">Utile seulement si vous avez une version Excel plus récente que le BP intégré.</p>
+            </>
+          ) : null}
           <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => importExcelFile(e.target.files?.[0])} />
         </div>
       </div>
@@ -330,8 +377,17 @@ export default function InvestissementsV9(props) {
           <span><b className="text-[#2f2415]">{investmentLabel(line)}</b><span className="ml-2 text-sm text-[#8a7456]">{money(totalLine(line))}</span></span>
           <span className="flex items-center gap-1 text-xs font-black text-emerald-800">Concrétiser <ArrowRight size={14} /></span>
         </button>)}
-        {pendingLines.length > 6 ? <p className="text-xs text-[#8a7456]">+ {pendingLines.length - 6} autre(s) ligne(s) dans l’onglet Lignes actionnables.</p> : null}
+        {pendingLines.length > 6 ? <p className="text-xs text-[#8a7456]">+ {pendingLines.length - 6} autre(s) ligne(s) dans l’onglet Mes investissements.</p> : null}
       </div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><CheckCircle2 size={16} className="inline" /> Rien en attente — toutes les lignes éligibles sont traitées ou annulées.</div>}
+      {costsNeedDbSync ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><b>Charges BP :</b> resynchronisez le plan pour activer les boutons Concrétiser sur les charges ({dbCostsCount ? `${dbCostsCount} en base` : 'aperçu seul'}).</div> : null}
+      {pendingCosts.length ? <div className="space-y-2">
+        <p className="text-sm font-black text-[#2f2415]">Charges à concrétiser ({pendingCosts.length})</p>
+        {pendingCosts.slice(0, 4).map((cost) => <button type="button" key={cost.id} onClick={() => { setTab('costs'); window.setTimeout(() => launchBpCostConcretization(cost, { onNavigate: props.onNavigate }), 120); }} className="flex w-full items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-left hover:border-sky-400">
+          <span><b className="text-[#2f2415]">{bpCostLabel(cost)}</b><span className="ml-2 text-sm text-[#8a7456]">{money(bpCostAmount(cost))}/mois</span></span>
+          <span className="flex items-center gap-1 text-xs font-black text-sky-800">Concrétiser <ArrowRight size={14} /></span>
+        </button>)}
+        {pendingCosts.length > 4 ? <p className="text-xs text-[#8a7456]">+ {pendingCosts.length - 4} dans l’onglet Charges mensuelles.</p> : null}
+      </div> : null}
       <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#5c4a32]">
         <p className="font-black text-[#2f2415]">Répartition du BP (4 onglets xlsx)</p>
         <ul className="mt-2 space-y-1 text-xs">
@@ -356,7 +412,17 @@ export default function InvestissementsV9(props) {
 
     {tab === 'funding' ? <BpFundingFinanceurPanel bpFundingSources={fundingSources.length ? fundingSources : undefined} besoinsTotal={totals.prevu} /> : null}
 
-    {tab === 'costs' ? <BpMonthlyCostsPanel costs={costs} /> : null}
+    {tab === 'costs' ? (
+      <BpMonthlyCostsPanel
+        costs={costs}
+        costTotals={costTotals}
+        onNavigate={props.onNavigate}
+        onUpdateBpRecurringCost={props.onUpdateBpRecurringCost}
+        onRefreshBpRecurringCosts={props.onRefreshBpRecurringCosts}
+        needsSync={costsNeedDbSync}
+        onRequestSync={() => syncBp(props, { force: true })}
+      />
+    ) : null}
 
     {tab === 'forecasts' ? <BpRevenueForecastsPanel projections={projections} /> : null}
 
