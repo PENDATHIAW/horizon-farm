@@ -1,6 +1,12 @@
 import { Download, Edit, Eye, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { dispatchBpLineCompleted, mergeBpDraftIntoInitial } from '../utils/bpLineConcretization';
+import {
+  clearBpPendingForm,
+  dispatchBpCostCompleted,
+  dispatchBpLineCompleted,
+  mergeBpDraftIntoInitial,
+  readBpPendingForm,
+} from '../utils/bpLineConcretization';
 import toast from 'react-hot-toast';
 import useWorkflowSubmit from '../hooks/useWorkflowSubmit';
 import { runEggProductionSideEffects } from '../utils/livestockSideEffects';
@@ -81,16 +87,24 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
 
   useEffect(() => { setTab(activityToTab(activity)); }, [activity, lockActivity]);
 
+  const openBpLotForm = (draft) => {
+    if (!draft || !['lot_create', 'bp_concretization'].includes(draft?.form_type)) return;
+    const fields = draft?.draft_fields || {};
+    const lotTab = fields.type === 'Chair' || fields.type_lot === 'chair' ? 'Chair' : 'Pondeuse';
+    setTab(lotTab);
+    setBpCreateDraft(fields);
+    setModal('create');
+    clearBpPendingForm();
+  };
+
   useEffect(() => {
+    const pending = readBpPendingForm();
+    if (pending?.module === 'avicole' && pending.form_type === 'lot_create') {
+      openBpLotForm({ form_type: pending.form_type, draft_fields: pending.draft_fields });
+    }
     const handler = (event) => {
-      const draft = event.detail?.draft;
       if (event.detail?.module !== 'avicole') return;
-      if (!['lot_create', 'bp_concretization'].includes(draft?.form_type)) return;
-      const fields = draft?.draft_fields || {};
-      const lotTab = fields.type === 'Chair' || fields.type_lot === 'chair' ? 'Chair' : 'Pondeuse';
-      setTab(lotTab);
-      setBpCreateDraft(fields);
-      setModal('create');
+      openBpLotForm(event.detail?.draft);
     };
     window.addEventListener('horizon-open-form', handler);
     return () => window.removeEventListener('horizon-open-form', handler);
@@ -199,7 +213,17 @@ export default function AvicoleBase({ rows = [], alimentationLogs = [], producti
       setSaving(true);
       const prepared = prepareLot(payload);
       await onCreate?.(prepared);
-      if (prepared.bp_line_id) {
+      if (prepared.bp_cost_id) {
+        dispatchBpCostCompleted({
+          bp_cost_id: prepared.bp_cost_id,
+          assetModule: 'avicole',
+          assetId: prepared.id,
+          amount: purchaseTotalOf(prepared) || prepared.cout_total_achat || prepared.purchase_cost,
+          date: prepared.date_debut || prepared.entry_date || today(),
+          targetModule: 'elevage',
+          source: 'avicole_lot_create',
+        });
+      } else if (prepared.bp_line_id) {
         dispatchBpLineCompleted({
           bp_line_id: prepared.bp_line_id,
           assetModule: 'avicole',

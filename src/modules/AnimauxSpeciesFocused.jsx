@@ -11,7 +11,13 @@ import EditModal from '../modals/EditModal';
 import DeleteModal from '../modals/DeleteModal';
 import BaseModal from '../modals/BaseModal';
 import { applyAnimalDecisionDefaults } from '../services/animalDecisionEngine';
-import { dispatchBpLineCompleted, mergeBpDraftIntoInitial } from '../utils/bpLineConcretization';
+import {
+  clearBpPendingForm,
+  dispatchBpCostCompleted,
+  dispatchBpLineCompleted,
+  mergeBpDraftIntoInitial,
+  readBpPendingForm,
+} from '../utils/bpLineConcretization';
 import { isSaleReady, saleReadyPatch } from '../utils/saleReadiness';
 import { generateSequentialId } from '../utils/ids';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
@@ -359,13 +365,21 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
   const summary = useMemo(() => { const active = normalizedRows.filter((row) => isActiveAnimalForFeeding(row)); const ready = normalizedRows.filter((row) => growthInfo(row).status === 'pret'); const late = normalizedRows.filter((row) => growthInfo(row).weighingStatus === 'retard'); const sold = normalizedRows.filter((row) => clean(statusOf(row)) === 'vendu'); const sick = normalizedRows.filter((row) => ['malade', 'sous_traitement', 'blesse', 'blessé', 'a_surveiller'].includes(clean(healthOf(row)))); const costRows = normalizedRows.map((row) => costBreakdown(row, { alimentationLogs, vaccins, businessEvents, salesOrders, payments, transactions })); const invested = costRows.reduce((sum, item) => sum + item.total, 0); const revenue = costRows.reduce((sum, item) => sum + item.sale, 0); const avgWeight = active.length ? active.reduce((sum, row) => sum + weightOf(row), 0) / Math.max(1, active.filter((row) => weightOf(row) > 0).length) : 0; return { active, ready, late, sold, sick, invested, revenue, margin: revenue - invested, avgWeight }; }, [normalizedRows, alimentationLogs, vaccins, businessEvents, salesOrders, payments, transactions]);
   const initialValues = useMemo(() => { const physicalCode = defaultPhysicalCode(species, normalizedRows); const date = today(); return applyAnimalDecisionDefaults({ id: physicalCode || generateSequentialId('animaux', normalizedRows, { type: species }), tag: physicalCode, boucle_numero: physicalCode, qr_code: physicalCode, type: species, espece: species, status: 'actif', health_status: 'sain', mode_acquisition: 'achat', origine: '', localisation: '', race: '', date_achat: date, date_entree_ferme: date, date_poids_entree: date, date_derniere_pesee: date, sexe: 'F', poids_entree: 0, poids: 0, poids_cible: 0, purchase_cost: 0, documents_text: '', photo_url: '' }); }, [normalizedRows, species]);
 
+  const openBpAnimalForm = (draft) => {
+    if (!draft || !['animal_create', 'bp_concretization'].includes(draft?.form_type)) return;
+    setBpCreateDraft(draft?.draft_fields || {});
+    setModal('create');
+    clearBpPendingForm();
+  };
+
   useEffect(() => {
+    const pending = readBpPendingForm();
+    if (pending?.module === 'animaux' && pending.form_type === 'animal_create') {
+      openBpAnimalForm({ form_type: pending.form_type, draft_fields: pending.draft_fields });
+    }
     const handler = (event) => {
-      const draft = event.detail?.draft;
       if (event.detail?.module !== 'animaux') return;
-      if (!['animal_create', 'bp_concretization'].includes(draft?.form_type)) return;
-      setBpCreateDraft(draft?.draft_fields || {});
-      setModal('create');
+      openBpAnimalForm(event.detail?.draft);
     };
     window.addEventListener('horizon-open-form', handler);
     return () => window.removeEventListener('horizon-open-form', handler);
@@ -423,7 +437,17 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
       setSaving(true);
       const prepared = prepare(payload);
       await onCreate?.(prepared);
-      if (prepared.bp_line_id) {
+      if (prepared.bp_cost_id) {
+        dispatchBpCostCompleted({
+          bp_cost_id: prepared.bp_cost_id,
+          assetModule: 'animaux',
+          assetId: prepared.id,
+          amount: toNumber(prepared.purchase_cost ?? prepared.prix_achat),
+          date: prepared.date_achat || prepared.date_entree_ferme || today(),
+          targetModule: 'elevage',
+          source: 'animaux_create',
+        });
+      } else if (prepared.bp_line_id) {
         dispatchBpLineCompleted({
           bp_line_id: prepared.bp_line_id,
           assetModule: 'animaux',

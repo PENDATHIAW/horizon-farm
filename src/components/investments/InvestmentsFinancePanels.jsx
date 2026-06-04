@@ -5,6 +5,8 @@ import {
   BP_LINE_STATUS_OPTIONS,
   bpCostAmount,
   bpCostLabel,
+  BP_LINE_STATUS,
+  bpCostPlannedAmount,
   bpLineStatusLabel,
   buildBpCostConcretizationRoute,
   buildBpLineStatusPatch,
@@ -188,6 +190,13 @@ export function BpMonthlyCostsPanel({
 
   const updateCostStatus = async (cost, status) => {
     if (!isBpCostEditable(cost)) return toast.error('Resynchronisez le BP pour modifier cette charge.');
+    const current = normalizeBpLineStatus(cost);
+    if (status !== current && [BP_LINE_STATUS.A_CONCRETISER, BP_LINE_STATUS.CONCRETISE_PARTIEL, BP_LINE_STATUS.EN_COURS].includes(status)) {
+      const partial = status === BP_LINE_STATUS.CONCRETISE_PARTIEL;
+      const result = launchBpCostConcretization(cost, { onNavigate, partial });
+      if (!result.ok) return toast.error('Impossible d’ouvrir la fiche de cette charge.');
+      return;
+    }
     try {
       await onUpdateBpRecurringCost?.(cost.id, buildBpLineStatusPatch(status));
       await onRefreshBpRecurringCosts?.();
@@ -197,11 +206,11 @@ export function BpMonthlyCostsPanel({
     }
   };
 
-  const openCostConcretization = (cost) => {
-    const result = launchBpCostConcretization(cost, { onNavigate });
+  const openCostConcretization = (cost, { partial = false } = {}) => {
+    const result = launchBpCostConcretization(cost, { onNavigate, partial });
     if (!result.ok) return toast.error('Cette charge ne peut pas encore être ouverte dans un module.');
     const mod = result.route?.navigate?.module;
-    toast.success(`Ouverture ${MODULE_LABELS[mod] || mod || 'module'}…`);
+    toast.success(`Ouverture fiche · ${MODULE_LABELS[mod] || mod || 'module'}…`);
   };
 
   return (
@@ -253,8 +262,9 @@ export function BpMonthlyCostsPanel({
             <tr className="bg-[#fffdf8] text-left text-xs uppercase text-[#8a7456]">
               <th className="px-3 py-2">Poste</th>
               <th className="px-3 py-2">Module cible</th>
-              <th className="px-3 py-2 text-right">Mensuel</th>
-              <th className="px-3 py-2 text-right">Réalisé</th>
+              <th className="px-3 py-2 text-right">Prévu</th>
+              <th className="px-3 py-2 text-right">Payé</th>
+              <th className="px-3 py-2 text-right">Reste</th>
               <th className="px-3 py-2">Statut</th>
               <th className="px-3 py-2" />
             </tr>
@@ -263,12 +273,14 @@ export function BpMonthlyCostsPanel({
             {rows.map((r, i) => {
               const status = normalizeBpLineStatus(r);
               const canDo = canConcretizeBpCost(r) && buildBpCostConcretizationRoute(r);
+              const isPartial = status === BP_LINE_STATUS.CONCRETISE_PARTIEL;
               return (
                 <tr key={r.id || i} className="border-t border-[#eadcc2]">
                   <td className="px-3 py-2 font-bold text-[#2f2415]">{bpCostLabel(r)}</td>
                   <td className="px-3 py-2 text-[#8a7456]">{MODULE_LABELS[r.module_cible] || r.module_cible || '—'}</td>
-                  <td className="px-3 py-2 text-right">{fmtCurrency(bpCostAmount(r))}</td>
-                  <td className="px-3 py-2 text-right">{fmtCurrency(r.montant_reel ?? 0)}</td>
+                  <td className="px-3 py-2 text-right">{fmtCurrency(bpCostPlannedAmount(r))}</td>
+                  <td className="px-3 py-2 text-right">{fmtCurrency(r.montant_paye ?? r.montant_reel ?? 0)}</td>
+                  <td className="px-3 py-2 text-right">{fmtCurrency(r.reste_a_realiser ?? Math.max(0, bpCostPlannedAmount(r) - n(r.montant_paye ?? r.montant_reel)))}</td>
                   <td className="px-3 py-2">
                     {isBpCostEditable(r) ? (
                       <select
@@ -288,10 +300,10 @@ export function BpMonthlyCostsPanel({
                     {canDo ? (
                       <button
                         type="button"
-                        onClick={() => openCostConcretization(r)}
+                        onClick={() => openCostConcretization(r, { partial: isPartial })}
                         className="rounded-lg bg-[#2f2415] px-3 py-1.5 text-xs font-black text-white"
                       >
-                        Concrétiser
+                        {isPartial ? 'Compléter' : 'Concrétiser'}
                       </button>
                     ) : null}
                   </td>

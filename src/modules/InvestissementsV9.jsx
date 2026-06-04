@@ -382,7 +382,7 @@ export default function InvestissementsV9(props) {
       {costsNeedDbSync ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><b>Charges BP :</b> resynchronisez le plan pour activer les boutons Concrétiser sur les charges ({dbCostsCount ? `${dbCostsCount} en base` : 'aperçu seul'}).</div> : null}
       {pendingCosts.length ? <div className="space-y-2">
         <p className="text-sm font-black text-[#2f2415]">Charges à concrétiser ({pendingCosts.length})</p>
-        {pendingCosts.slice(0, 4).map((cost) => <button type="button" key={cost.id} onClick={() => { setTab('costs'); window.setTimeout(() => launchBpCostConcretization(cost, { onNavigate: props.onNavigate }), 120); }} className="flex w-full items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-left hover:border-sky-400">
+        {pendingCosts.slice(0, 4).map((cost) => <button type="button" key={cost.id} onClick={() => launchBpCostConcretization(cost, { onNavigate: props.onNavigate })} className="flex w-full items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-left hover:border-sky-400">
           <span><b className="text-[#2f2415]">{bpCostLabel(cost)}</b><span className="ml-2 text-sm text-[#8a7456]">{money(bpCostAmount(cost))}/mois</span></span>
           <span className="flex items-center gap-1 text-xs font-black text-sky-800">Concrétiser <ArrowRight size={14} /></span>
         </button>)}

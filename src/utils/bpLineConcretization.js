@@ -4,6 +4,57 @@ import { investmentAmount, investmentAssetKind, investmentLabel, buildInvestment
 
 export const BP_LINE_COMPLETED_EVENT = 'horizon-bp-line-completed';
 export const BP_COST_COMPLETED_EVENT = 'horizon-bp-cost-completed';
+export const BP_PENDING_FORM_KEY = 'horizon_bp_pending_form';
+
+/** Module cible du formulaire (finance → finances pour FinancesV12). */
+export function normalizeBpFormModule(module = '') {
+  const key = lower(module);
+  if (key === 'finance' || key === 'finance_pilotage') return 'finances';
+  return module;
+}
+
+/** Ouvre la fiche préremplie avec plusieurs tentatives (modules lazy-loaded). */
+export function emitBpConcretizationForm(route = {}, { retries = [80, 350, 800, 1400] } = {}) {
+  if (!route?.form || typeof window === 'undefined') return;
+  const module = normalizeBpFormModule(route.form.module);
+  const { form_type, intent_label, draft_fields } = route.form;
+  try {
+    window.sessionStorage.setItem(BP_PENDING_FORM_KEY, JSON.stringify({
+      module,
+      form_type,
+      intent_label,
+      draft_fields,
+      navigate: route.navigate || null,
+      ts: Date.now(),
+    }));
+  } catch { /* ignore */ }
+  retries.forEach((delay) => {
+    window.setTimeout(() => {
+      emitHorizonForm(module, form_type, intent_label, draft_fields);
+    }, delay);
+  });
+}
+
+export function readBpPendingForm() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(BP_PENDING_FORM_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (Date.now() - Number(parsed.ts || 0) > 1000 * 60 * 30) {
+      window.sessionStorage.removeItem(BP_PENDING_FORM_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function clearBpPendingForm() {
+  if (typeof window === 'undefined') return;
+  window.sessionStorage.removeItem(BP_PENDING_FORM_KEY);
+}
 
 export const BP_LINE_STATUS = {
   PREVU: 'prevu',
@@ -182,7 +233,7 @@ export function bpCostModuleRoute(cost = {}) {
     label: 'Finance / Trésorerie',
     navigate: { module: 'finance_pilotage', tab: 'Trésorerie' },
     form: {
-      module: 'finance',
+      module: 'finances',
       form_type: 'finance_entry',
       intent_label: `Concrétiser charge · ${bpCostLabel(cost)}`,
       draft_fields: {
@@ -200,9 +251,17 @@ export function bpCostModuleRoute(cost = {}) {
 
 export function canConcretizeBpCost(cost = {}) {
   if (!isBpCostEditable(cost)) return false;
-  if (normalizeBpLineStatus(cost) !== BP_LINE_STATUS.A_CONCRETISER) return false;
-  if (cost.linked_finance_transaction_id || cost.realization_key) return false;
+  const status = normalizeBpLineStatus(cost);
+  if ([BP_LINE_STATUS.ANNULE, BP_LINE_STATUS.BLOQUE, BP_LINE_STATUS.REMPLACE].includes(status)) return false;
+  if (status === BP_LINE_STATUS.CONCRETISE && cost.linked_finance_transaction_id) return false;
+  if (![BP_LINE_STATUS.A_CONCRETISER, BP_LINE_STATUS.EN_COURS, BP_LINE_STATUS.CONCRETISE_PARTIEL, BP_LINE_STATUS.PREVU].includes(status)) {
+    return false;
+  }
   return bpCostAmount(cost) > 0;
+}
+
+export function bpCostPlannedAmount(cost = {}) {
+  return toNumber(cost.montant_prevu ?? cost.montant_mensuel ?? cost.amount ?? cost.montant) || bpCostAmount(cost);
 }
 
 export function computeBpCostTotals(costs = []) {
@@ -212,12 +271,16 @@ export function computeBpCostTotals(costs = []) {
   let annule = 0;
   let reste = 0;
   rows.forEach((cost) => {
-    const amount = bpCostAmount(cost);
+    const planned = bpCostPlannedAmount(cost);
+    const paid = toNumber(cost.montant_paye ?? cost.montant_reel ?? 0);
     const status = normalizeBpLineStatus(cost);
-    prevu += amount;
-    if (status === BP_LINE_STATUS.ANNULE || status === BP_LINE_STATUS.ANNULEE) annule += amount;
-    else if (status === BP_LINE_STATUS.CONCRETISE) concretise += amount;
-    else reste += amount;
+    prevu += planned;
+    if (status === BP_LINE_STATUS.ANNULE || status === BP_LINE_STATUS.ANNULEE) annule += planned;
+    else if (status === BP_LINE_STATUS.CONCRETISE) concretise += paid || planned;
+    else if (status === BP_LINE_STATUS.CONCRETISE_PARTIEL) {
+      concretise += paid;
+      reste += Math.max(0, planned - paid);
+    } else reste += Math.max(0, planned - paid);
   });
   return { prevu, concretise, annule, reste, count: rows.length };
 }
@@ -226,41 +289,74 @@ export function buildBpCostConcretizationRoute(cost = {}) {
   return bpCostModuleRoute(cost);
 }
 
-export function launchBpCostConcretization(cost = {}, { onNavigate } = {}) {
+export function launchBpCostConcretization(cost = {}, { onNavigate, partial = false } = {}) {
   const route = buildBpCostConcretizationRoute(cost);
   if (!route?.form) return { ok: false, reason: 'no_route' };
+  const planned = bpCostPlannedAmount(cost);
+  const alreadyPaid = toNumber(cost.montant_paye ?? cost.montant_reel ?? 0);
+  const draftFields = {
+    ...route.form.draft_fields,
+    montant_prevu: planned,
+    montant_paye: alreadyPaid,
+    concretization_mode: partial || normalizeBpLineStatus(cost) === BP_LINE_STATUS.CONCRETISE_PARTIEL ? 'partiel' : 'complet',
+  };
+  if (partial && alreadyPaid > 0) {
+    draftFields.montant = Math.max(0, planned - alreadyPaid);
+    draftFields.amount = draftFields.montant;
+  }
+  const enrichedRoute = {
+    ...route,
+    form: {
+      ...route.form,
+      intent_label: partial
+        ? `Concrétisation partielle · ${bpCostLabel(cost)}`
+        : route.form.intent_label,
+      draft_fields: draftFields,
+    },
+  };
   if (typeof window !== 'undefined') {
-    window.sessionStorage.setItem('horizon_bp_pending_cost', JSON.stringify({ id: cost.id, business_plan_id: cost.business_plan_id || '' }));
+    window.sessionStorage.setItem('horizon_bp_pending_cost', JSON.stringify({
+      id: cost.id,
+      business_plan_id: cost.business_plan_id || '',
+      partial: Boolean(partial),
+    }));
   }
   if (onNavigate) {
     const { module, tab } = route.navigate;
     if (tab) onNavigate(module, module === 'elevage' ? { tab } : { tab });
     else onNavigate(module);
   }
-  window.setTimeout(() => {
-    emitHorizonForm(route.form.module, route.form.form_type, route.form.intent_label, route.form.draft_fields);
-  }, 380);
-  return { ok: true, route };
+  emitBpConcretizationForm(enrichedRoute);
+  return { ok: true, route: enrichedRoute };
 }
 
 export function buildBpCostCompletionWorkflow(cost = {}, result = {}) {
-  const amount = toNumber(result.amount ?? bpCostAmount(cost));
+  const planned = bpCostPlannedAmount(cost);
+  const previousPaid = toNumber(cost.montant_paye ?? cost.montant_reel ?? 0);
+  const increment = toNumber(result.amount ?? bpCostAmount(cost));
+  const amount = result.cumulative === false ? increment : previousPaid + increment;
   const date = result.date || today();
+  const isPartial = amount > 0 && amount < planned - 0.5;
+  const status = isPartial ? BP_LINE_STATUS.CONCRETISE_PARTIEL : BP_LINE_STATUS.CONCRETISE;
   const finance = buildInvestmentRealizationWorkflow(
     { ...cost, designation: bpCostLabel(cost) },
-    { amount, date, proofThreshold: 50000 },
+    { amount: increment > 0 ? increment : amount, date, proofThreshold: 50000 },
   );
   const linePatch = {
     ...(finance?.linePatch || {}),
-    statut: BP_LINE_STATUS.CONCRETISE,
-    status: BP_LINE_STATUS.CONCRETISE,
+    statut: status,
+    status,
+    montant_prevu: planned,
+    montant_paye: amount,
     montant_reel: amount,
+    reste_a_realiser: Math.max(0, planned - amount),
     date_realisation: date,
     realized_at: now(),
-    linked_finance_transaction_id: finance?.financeTransaction?.id || result.finance_transaction_id || '',
+    linked_finance_transaction_id: finance?.financeTransaction?.id || result.finance_transaction_id || cost.linked_finance_transaction_id || '',
     concretized_at: now(),
     concretization_source: result.source || 'module_metier',
     target_module: result.targetModule || result.target_module || '',
+    concretization_partial: isPartial,
   };
   return {
     linePatch,
@@ -269,8 +365,10 @@ export function buildBpCostCompletionWorkflow(cost = {}, result = {}) {
     event: {
       ...(finance?.event || {}),
       event_type: 'bp_charge_concretisee',
-      title: `Charge BP concrétisée · ${bpCostLabel(cost)}`,
-      description: `${amount} FCFA · ${result.targetModule || result.target_module || 'module métier'}`.trim(),
+      title: isPartial
+        ? `Charge BP partielle · ${bpCostLabel(cost)}`
+        : `Charge BP concrétisée · ${bpCostLabel(cost)}`,
+      description: `${amount} / ${planned} FCFA · ${result.targetModule || result.target_module || 'module métier'}`.trim(),
     },
   };
 }
@@ -538,9 +636,7 @@ export function launchBpLineConcretization(line = {}, { onNavigate } = {}) {
     if (tab) onNavigate(module, module === 'elevage' ? { tab } : { tab });
     else onNavigate(module);
   }
-  window.setTimeout(() => {
-    emitHorizonForm(route.form.module, route.form.form_type, route.form.intent_label, route.form.draft_fields);
-  }, 380);
+  emitBpConcretizationForm(route);
   return { ok: true, route };
 }
 

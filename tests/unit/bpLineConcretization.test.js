@@ -126,4 +126,12 @@ describe('bpLineConcretization', () => {
     const workflow = buildBpCostCompletionWorkflow(cost, { amount: 18000, date: '2026-06-01', targetModule: 'finance_pilotage' });
     assert.equal(workflow.linePatch.statut, BP_LINE_STATUS.CONCRETISE);
   });
+
+  it('buildBpCostCompletionWorkflow gère la concrétisation partielle', () => {
+    const cost = { id: 'BPCOST-4', designation: 'Loyer', montant_mensuel: 100000, business_plan_id: 'BP-HORIZON-FARM' };
+    const workflow = buildBpCostCompletionWorkflow(cost, { amount: 40000, date: '2026-06-01', targetModule: 'finance_pilotage' });
+    assert.equal(workflow.linePatch.statut, BP_LINE_STATUS.CONCRETISE_PARTIEL);
+    assert.equal(workflow.linePatch.montant_paye, 40000);
+    assert.equal(workflow.linePatch.reste_a_realiser, 60000);
+  });
 });
