@@ -35,6 +35,7 @@ import {
   DashboardSnapshotCard,
   DashboardTodoRow,
 } from './dashboard/DashboardShell.jsx';
+import HorizonAdvisorPanel from './HorizonAdvisorPanel.jsx';
 
 const firstValue = (...values) => values.find((value) => value !== undefined && value !== null && String(value).trim() !== '');
 const formatDateTime = () => new Intl.DateTimeFormat('fr-FR', {
@@ -88,10 +89,27 @@ function buildHealthData(props = {}) {
     production_oeufs_logs: props.productionLogs,
     clients: props.clients,
     fournisseurs: props.fournisseurs,
+    documents: props.documents,
+    meteo: props.meteo,
+    sensors: props.sensorDevices || props.sensors,
+    cameras: props.cameraDevices || props.cameras,
+    business_events: props.businessEvents || props.business_events,
+    smartfarm_events: props.smartfarmEvents || props.smartfarm_events,
   };
 }
 
-function Summary({ summary, health, simple, navigate, onOpenAssistant, payments = [], transactions = [], salesOrders = [] }) {
+function Summary({
+  summary,
+  health,
+  simple,
+  navigate,
+  onOpenAssistant,
+  payments = [],
+  transactions = [],
+  salesOrders = [],
+  advisorDataMap = {},
+  advisorHandlers = {},
+}) {
   const actions = summary.actions.slice(0, simple ? 4 : 8);
   const heyHorizonSuggestions = buildDashboardPilotageSuggestions(summary.actions, summary.goal);
   const financeAudit = useMemo(() => auditFinanceReconciliation({
@@ -158,6 +176,15 @@ function Summary({ summary, health, simple, navigate, onOpenAssistant, payments 
         onNavigate={navigate}
       />
       <DashboardHeyHorizonStrip suggestions={heyHorizonSuggestions} onNavigate={navigate} onOpenAssistant={onOpenAssistant} />
+
+      <HorizonAdvisorPanel
+        dataMap={advisorDataMap}
+        moduleId="dashboard"
+        compact
+        limit={6}
+        onNavigate={navigate}
+        {...advisorHandlers}
+      />
 
       {financeAudit.paymentGaps.length ? (
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
@@ -372,6 +399,17 @@ export default function DashboardV2(props) {
           payments={props.paymentsAll || props.payments}
           transactions={props.transactions}
           salesOrders={props.salesOrdersAll || props.salesOrders}
+          advisorDataMap={buildHealthData(props)}
+          advisorHandlers={{
+            onCreateTask: props.onCreateTask,
+            onCreateAlert: props.onCreateAlert,
+            onUpdateAlert: props.onUpdateAlert,
+            onCreateBusinessEvent: props.onCreateBusinessEvent,
+            onRefreshTasks: props.onRefreshTasks,
+            onRefreshAlertes: props.onRefreshAlertes,
+            existingTasks: props.taches,
+            existingAlerts: props.alertes,
+          }}
         />
       ) : tab === 'Annexe' ? (
         <ModuleAnnexeTab

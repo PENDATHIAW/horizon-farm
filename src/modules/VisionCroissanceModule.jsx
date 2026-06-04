@@ -9,6 +9,7 @@ import VisionPlansTab from './vision/VisionPlansTab';
 import VisionPrioritiesTab from './vision/VisionPrioritiesTab';
 import VisionRisksTab from './vision/VisionRisksTab';
 import PilotageIntegrityPanel from './vision/PilotageIntegrityPanel.jsx';
+import HorizonAdvisorPanel from './HorizonAdvisorPanel.jsx';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import HeyHorizonQuickAsk from '../components/HeyHorizonQuickAsk.jsx';
 import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
@@ -93,7 +94,27 @@ export default function VisionCroissanceModule(props) {
   };
 
   const content = tab === 'À traiter'
-    ? <VisionPrioritiesTab {...priorityProps} />
+    ? (
+      <div className="space-y-5">
+        {moduleId === 'centre_ia' ? (
+          <HorizonAdvisorPanel
+            dataMap={dataMap}
+            moduleId={moduleId}
+            limit={10}
+            onNavigate={onNavigate}
+            onCreateTask={onCreateTask}
+            onCreateAlert={onCreateAlert}
+            onUpdateAlert={onUpdateAlert}
+            onCreateBusinessEvent={onCreateBusinessEvent}
+            onRefreshTasks={onRefreshTasks}
+            onRefreshAlertes={onRefreshAlertes}
+            existingTasks={existingTasks}
+            existingAlerts={existingAlerts}
+          />
+        ) : null}
+        <VisionPrioritiesTab {...priorityProps} />
+      </div>
+    )
     : tab === 'Performance' ? <VisionPerformanceTab data={data} onNavigate={onNavigate} />
       : tab === 'Risques' ? (
         <VisionRisksTab
