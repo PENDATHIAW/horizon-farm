@@ -1,0 +1,107 @@
+/**
+ * Fusion profil auto (ERP) + contenu manuel éditable — ne modifie jamais keyFigures / investorReady.
+ */
+
+const arr = (value) => (Array.isArray(value) ? value : []);
+const lines = (text = '') => String(text || '').split('\n').map((l) => l.trim()).filter(Boolean);
+
+export const EMPTY_MANUAL_CONTENT = {
+  project_pitch: '',
+  founder_name: '',
+  founder_role: '',
+  founder_highlights: '',
+  location: '',
+  project_status: '',
+  activities_notes: '',
+  needs_notes: '',
+  impact_securite: '',
+  impact_emplois: '',
+  impact_femmes: '',
+  impact_formalisation: '',
+  impact_community: '',
+  risks_notes: '',
+  objectives_6m: '',
+  objectives_12m: '',
+  objectives_3y: '',
+  audience_messages: {},
+  dossier_status: 'brouillon',
+};
+
+export function manualContentFromRow(row = {}) {
+  const raw = row?.manual_content || row?.manualContent || {};
+  return { ...EMPTY_MANUAL_CONTENT, ...(typeof raw === 'object' ? raw : {}) };
+}
+
+/**
+ * @param {object} autoProfile — buildInvestorForumProfile()
+ * @param {object} manual — contenu éditable uniquement
+ */
+export function mergeInvestorForumProfile(autoProfile = {}, manual = {}) {
+  const m = { ...EMPTY_MANUAL_CONTENT, ...manual };
+  const merged = {
+    ...autoProfile,
+    readOnly: false,
+    manualContent: m,
+    dossierStatus: m.dossier_status || 'brouillon',
+    objectives: {
+      sixMonths: m.objectives_6m || '',
+      twelveMonths: m.objectives_12m || '',
+      threeYears: m.objectives_3y || '',
+    },
+    projectSummary: {
+      ...autoProfile.projectSummary,
+      pitch: m.project_pitch || autoProfile.projectSummary?.pitch,
+      location: m.location || autoProfile.projectSummary?.location,
+      legalStatus: m.project_status || autoProfile.projectSummary?.legalStatus,
+      activities: m.activities_notes
+        ? lines(m.activities_notes)
+        : autoProfile.projectSummary?.activities,
+    },
+    founderProfile: {
+      ...autoProfile.founderProfile,
+      name: m.founder_name || autoProfile.founderProfile?.name,
+      role: m.founder_role || autoProfile.founderProfile?.role,
+      highlights: m.founder_highlights
+        ? lines(m.founder_highlights)
+        : autoProfile.founderProfile?.highlights,
+    },
+    socialImpact: {
+      ...autoProfile.socialImpact,
+      securite_alimentaire: m.impact_securite || autoProfile.socialImpact?.securite_alimentaire,
+      emplois_prevus: m.impact_emplois ? m.impact_emplois : autoProfile.socialImpact?.emplois_prevus,
+      femmes_jeunes: m.impact_femmes || autoProfile.socialImpact?.femmes_jeunes,
+      formalisation: m.impact_formalisation || autoProfile.socialImpact?.formalisation,
+      community: m.impact_community || autoProfile.socialImpact?.community,
+    },
+    needsSought: mergeNeeds(autoProfile.needsSought, m.needs_notes),
+    risksMitigation: mergeRisks(autoProfile.risksMitigation, m.risks_notes),
+    audienceMessages: m.audience_messages || {},
+  };
+
+  return merged;
+}
+
+function mergeNeeds(autoNeeds = [], notes = '') {
+  const extra = lines(notes).map((line, index) => ({
+    id: `manual-need-${index}`,
+    label: line.split('—')[0]?.trim() || line.slice(0, 60),
+    detail: line.includes('—') ? line.split('—').slice(1).join('—').trim() : line,
+    priority: 'moyenne',
+  }));
+  if (!extra.length) return autoNeeds;
+  return [...extra, ...arr(autoNeeds)].slice(0, 12);
+}
+
+function mergeRisks(autoRisks = [], notes = '') {
+  const extra = lines(notes).map((line, index) => ({
+    id: `manual-risk-${index}`,
+    label: line.split('→')[0]?.trim() || line.slice(0, 60),
+    detail: line,
+    mitigation: line.includes('→') ? line.split('→').slice(1).join('→').trim() : 'Plan de mitigation à documenter',
+    severity: 'info',
+  }));
+  if (!extra.length) return autoRisks;
+  return [...extra, ...arr(autoRisks)].slice(0, 12);
+}
+
+export default mergeInvestorForumProfile;

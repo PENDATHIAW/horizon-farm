@@ -1,63 +1,51 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Bot, Briefcase, Building2, Download, FileText, Handshake, Heart, Landmark,
-  Lightbulb, ShieldAlert, Sparkles, Target, TrendingUp, Users,
+  Bot, Briefcase, Building2, CheckCircle2, Download, Eye, FileText, Handshake, Heart,
+  History, Landmark, Lightbulb, Pencil, Save, ShieldAlert, Sparkles, Target, Trash2,
+  TrendingUp, Users, X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import { buildInvestorForumProfile, HORIZON_FARM_TAGLINE } from '../services/investorForums/investorProfileService.js';
 import { computeForumReadinessScore } from '../services/investorForums/forumReadinessScore.js';
 import { adaptProfileForAudience, FORUM_AUDIENCES } from '../services/investorForums/forumAudienceAdapter.js';
-import { buildForumPack, exportForumPackPdf, FORUM_PACK_TYPES } from '../services/investorForums/forumPackBuilder.js';
+import {
+  buildForumPack, downloadForumPackPdf, FORUM_PACK_TYPES, renderForumPackPdfBlob,
+} from '../services/investorForums/forumPackBuilder.js';
+import {
+  deleteInvestorForumExport,
+  listInvestorForumExports,
+  loadInvestorForumProfile,
+  readExportBlob,
+  saveInvestorForumExport,
+  saveInvestorForumProfile,
+} from '../services/investorForums/investorForumStorageService.js';
+import {
+  EMPTY_MANUAL_CONTENT,
+  manualContentFromRow,
+  mergeInvestorForumProfile,
+} from '../services/investorForums/mergeInvestorForumProfile.js';
 import { fmtCurrency } from '../utils/format.js';
 import InvestisseurDemoPanel from './InvestisseurDemoPanel.jsx';
 
-const SECTIONS = [
-  { id: 'project', label: 'Résumé du projet', icon: Target },
-  { id: 'founder', label: 'Profil fondatrice', icon: Users },
-  { id: 'activities', label: 'Activités', icon: Briefcase },
-  { id: 'figures', label: 'Chiffres clés', icon: TrendingUp },
-  { id: 'impact', label: 'Impact social', icon: Heart },
-  { id: 'ai', label: 'Innovation IA', icon: Bot },
-  { id: 'needs', label: 'Besoins recherchés', icon: Lightbulb },
-  { id: 'risks', label: 'Risques & mitigation', icon: ShieldAlert },
-  { id: 'score', label: 'Score préparation', icon: Sparkles },
-  { id: 'export', label: 'Génération dossier', icon: Download },
+const MAIN_TABS = [
+  { id: 'preparation', label: 'Préparation', icon: CheckCircle2 },
+  { id: 'dossier', label: 'Dossier', icon: FileText },
+  { id: 'preview', label: 'Aperçu dossier', icon: Eye },
+  { id: 'export', label: 'Documents exportables', icon: Download },
+  { id: 'history', label: 'Historique', icon: History },
   { id: 'demo', label: 'Démo investisseur', icon: Sparkles },
 ];
 
-function TabButton({ active, children, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-xl px-3 py-2 text-xs font-bold border whitespace-nowrap ${active ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#7d6a4a] border-[#d6c3a0]'}`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function Panel({ title, icon: Icon, children }) {
-  return (
-    <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-      <p className="flex items-center gap-2 font-black text-[#2f2415]">
-        {Icon ? <Icon size={18} /> : null}
-        {title}
-      </p>
-      <div className="mt-3 space-y-2 text-sm text-[#7d6a4a]">{children}</div>
-    </div>
-  );
-}
-
-function StatMini({ label, value }) {
-  return (
-    <div className="rounded-xl border border-[#eadcc2] bg-white p-3">
-      <p className="text-[10px] uppercase tracking-widest font-black text-[#8a7456]">{label}</p>
-      <p className="mt-1 font-black text-[#2f2415] break-words">{value}</p>
-    </div>
-  );
-}
+const DOSSIER_SECTIONS = [
+  { id: 'project', label: 'Résumé', icon: Target },
+  { id: 'founder', label: 'Fondatrice', icon: Users },
+  { id: 'figures', label: 'Chiffres', icon: TrendingUp },
+  { id: 'impact', label: 'Impact', icon: Heart },
+  { id: 'needs', label: 'Besoins', icon: Lightbulb },
+  { id: 'risks', label: 'Risques', icon: ShieldAlert },
+  { id: 'objectives', label: 'Objectifs', icon: Target },
+];
 
 const AUDIENCE_ICONS = {
   banque: Landmark,
@@ -68,12 +56,96 @@ const AUDIENCE_ICONS = {
   default: Briefcase,
 };
 
-export default function InvestisseursForumsModule(props) {
-  const [tab, setTab] = useState('project');
-  const [audienceKey, setAudienceKey] = useState('investisseur_prive');
-  const [exportBusy, setExportBusy] = useState(null);
+const DOSSIER_STATUS_OPTIONS = [
+  { id: 'brouillon', label: 'Brouillon' },
+  { id: 'en_cours', label: 'En cours' },
+  { id: 'pret', label: 'Prêt' },
+];
 
-  const profile = useMemo(
+function TabButton({ active, children, onClick, Icon }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold border whitespace-nowrap transition-colors ${active ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#7d6a4a] border-[#d6c3a0] hover:border-[#2f2415]/40'}`}
+    >
+      {Icon ? <Icon size={14} /> : null}
+      {children}
+    </button>
+  );
+}
+
+function Card({ title, icon: Icon, children, className = '' }) {
+  return (
+    <div className={`rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 shadow-sm ${className}`}>
+      <p className="flex items-center gap-2 font-black text-[#2f2415]">
+        {Icon ? <Icon size={18} /> : null}
+        {title}
+      </p>
+      <div className="mt-3 space-y-2 text-sm text-[#7d6a4a]">{children}</div>
+    </div>
+  );
+}
+
+function StatMini({ label, value, auto }) {
+  return (
+    <div className="rounded-xl border border-[#eadcc2] bg-white p-3">
+      <p className="text-[10px] uppercase tracking-widest font-black text-[#8a7456] flex items-center justify-between gap-2">
+        <span>{label}</span>
+        {auto ? <span className="text-[9px] text-emerald-700 font-bold">ERP</span> : null}
+      </p>
+      <p className="mt-1 font-black text-[#2f2415] break-words">{value}</p>
+    </div>
+  );
+}
+
+function Field({ label, value, editing, onChange, rows = 3, hint }) {
+  if (!editing) {
+    return (
+      <div>
+        <p className="text-[10px] uppercase tracking-widest font-black text-[#8a7456]">{label}</p>
+        <p className="mt-1 whitespace-pre-wrap">{value || '—'}</p>
+      </div>
+    );
+  }
+  const Tag = rows > 1 ? 'textarea' : 'input';
+  return (
+    <label className="block">
+      <span className="text-[10px] uppercase tracking-widest font-black text-[#8a7456]">{label}</span>
+      {hint ? <span className="block text-[10px] text-[#a08a6a] mt-0.5">{hint}</span> : null}
+      <Tag
+        className="mt-1 w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm text-[#2f2415] focus:border-[#2f2415] focus:outline-none"
+        rows={rows > 1 ? rows : undefined}
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </label>
+  );
+}
+
+function PreviewSection({ section }) {
+  return (
+    <div className="rounded-xl border border-[#eadcc2] bg-white p-4">
+      <p className="font-black text-[#2f2415]">{section.title}</p>
+      <p className="mt-2 text-sm text-[#7d6a4a] whitespace-pre-wrap">{section.body}</p>
+    </div>
+  );
+}
+
+export default function InvestisseursForumsModule(props) {
+  const [mainTab, setMainTab] = useState('preparation');
+  const [dossierSection, setDossierSection] = useState('project');
+  const [audienceKey, setAudienceKey] = useState('investisseur_prive');
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [exportBusy, setExportBusy] = useState(null);
+  const [previewPackType, setPreviewPackType] = useState('fiche_projet');
+  const [profileRow, setProfileRow] = useState(null);
+  const [manualDraft, setManualDraft] = useState({ ...EMPTY_MANUAL_CONTENT });
+  const [exportHistory, setExportHistory] = useState([]);
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  const autoProfile = useMemo(
     () => buildInvestorForumProfile({
       crud: props.crud || {},
       dataMap: props.dataMap || props,
@@ -82,23 +154,103 @@ export default function InvestisseursForumsModule(props) {
     [props],
   );
 
-  const readiness = useMemo(() => computeForumReadinessScore(profile), [profile]);
-  const adapted = useMemo(() => adaptProfileForAudience(profile, audienceKey), [profile, audienceKey]);
+  const profile = useMemo(
+    () => mergeInvestorForumProfile(autoProfile, manualDraft),
+    [autoProfile, manualDraft],
+  );
 
-  const exportPack = async (packType) => {
+  const readiness = useMemo(
+    () => computeForumReadinessScore(profile, { exportCount: exportHistory.length }),
+    [profile, exportHistory.length],
+  );
+
+  const adapted = useMemo(
+    () => adaptProfileForAudience(profile, audienceKey),
+    [profile, audienceKey],
+  );
+
+  const previewPack = useMemo(
+    () => buildForumPack(profile, { audienceKey, packType: previewPackType }),
+    [profile, audienceKey, previewPackType],
+  );
+
+  const loadStorage = useCallback(async () => {
+    const row = await loadInvestorForumProfile();
+    setProfileRow(row);
+    setManualDraft(manualContentFromRow(row));
+    const history = await listInvestorForumExports();
+    setExportHistory(history);
+  }, []);
+
+  useEffect(() => { loadStorage(); }, [loadStorage]);
+
+  useEffect(() => () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
+
+  const patchManual = (patch) => setManualDraft((prev) => ({ ...prev, ...patch }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const row = await saveInvestorForumProfile(manualDraft, manualDraft.dossier_status);
+      setProfileRow(row);
+      setManualDraft(manualContentFromRow(row));
+      setEditing(false);
+      toast.success('Dossier enregistré');
+    } catch (error) {
+      toast.error(error.message || 'Enregistrement impossible');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const runExport = async (packType, { download = true, saveToDocuments = false, preview = false } = {}) => {
     setExportBusy(packType);
     try {
       const pack = buildForumPack(profile, { audienceKey, packType });
-      exportForumPackPdf(pack);
-      await props.onCreateDocument?.({
-        title: pack.title,
-        document_category: 'dossier_forum',
-        module_source: 'investisseurs_forums',
-        status: 'genere',
-        generated_at: new Date().toISOString(),
+      const { blob, filename } = renderForumPackPdfBlob(pack);
+
+      if (preview) {
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        const url = URL.createObjectURL(blob);
+        setPreviewUrl(url);
+        window.open(url, '_blank', 'noopener');
+        setMainTab('preview');
+        setPreviewPackType(packType);
+      }
+
+      if (download) downloadForumPackPdf(pack);
+
+      const saved = await saveInvestorForumExport({
+        packType,
+        audienceKey,
+        documentTitle: pack.title,
+        filename,
+        blob,
       });
-      await props.onRefreshDocuments?.();
-      toast.success(`${pack.packType.label} exporté`);
+      setExportHistory((prev) => [saved, ...prev.filter((e) => e.id !== saved.id)].slice(0, 50));
+
+      if (saveToDocuments && props.onCreateDocument) {
+        const dataUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        });
+        await props.onCreateDocument({
+          title: pack.title,
+          document_category: 'dossier_forum',
+          module_source: 'investisseurs_forums',
+          status: 'genere',
+          file_url: typeof dataUrl === 'string' && dataUrl.length < 500000 ? dataUrl : undefined,
+          notes: `Export ${packType} · ${adapted.audience.label} · ${filename}`,
+          generated_at: new Date().toISOString(),
+        });
+        await props.onRefreshDocuments?.();
+        toast.success('Enregistré dans Documents & Rapports');
+      } else if (download) {
+        toast.success(`${pack.packType.label} généré`);
+      }
     } catch (error) {
       toast.error(error.message || 'Export impossible');
     } finally {
@@ -106,22 +258,35 @@ export default function InvestisseursForumsModule(props) {
     }
   };
 
+  const downloadHistoryItem = (item) => {
+    const data = readExportBlob(item.id);
+    if (!data) {
+      toast.error('Fichier introuvable — regénérez le document');
+      return;
+    }
+    const anchor = document.createElement('a');
+    anchor.href = data;
+    anchor.download = item.filename || 'export.pdf';
+    anchor.click();
+  };
+
   const k = profile.keyFigures || {};
   const AudienceIcon = AUDIENCE_ICONS[audienceKey] || AUDIENCE_ICONS.default;
+  const audienceMessage = manualDraft.audience_messages?.[audienceKey] ?? '';
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div>
+    <div className="space-y-6 pb-8">
+      <section className="rounded-3xl border border-[#d6c3a0] bg-gradient-to-br from-white to-[#fffdf8] p-5 shadow-md">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
             <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black flex items-center gap-2">
               <Handshake size={16} />
               Investisseurs & Forums
             </p>
-            <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Dossier présentable Horizon Farm</h1>
+            <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Espace préparation de dossier</h1>
             <p className="mt-2 text-sm text-[#8a7456] max-w-3xl italic">{HORIZON_FARM_TAGLINE}</p>
             <p className="mt-1 text-sm text-[#8a7456] max-w-3xl">
-              Présente et adapte les données réelles ERP pour investisseurs, banques, ONG, salons et partenaires — sans recalculer Finance ni Rapports.
+              Chiffres lus depuis Finance / Commercial / Stock / Élevage — textes stratégiques éditables et exportables.
             </p>
             {props.periodLabel ? (
               <div className="mt-2">
@@ -129,15 +294,68 @@ export default function InvestisseursForumsModule(props) {
               </div>
             ) : null}
           </div>
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 min-w-[200px]">
-            <p className="text-xs font-black text-emerald-800">Score de préparation</p>
-            <p className="text-3xl font-black text-[#2f2415]">{readiness.score}/100</p>
-            <p className="text-xs text-emerald-800">{readiness.label}</p>
+          <div className="flex flex-wrap gap-2 shrink-0">
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 min-w-[140px]">
+              <p className="text-xs font-black text-emerald-800">Score préparation</p>
+              <p className="text-3xl font-black text-[#2f2415]">{readiness.score}/100</p>
+              <p className="text-xs text-emerald-800">{readiness.label}</p>
+            </div>
+            <div className="rounded-2xl border border-[#eadcc2] bg-white p-4 min-w-[140px]">
+              <p className="text-xs font-black text-[#8a7456]">Statut dossier</p>
+              <p className="text-lg font-black text-[#2f2415]">{readiness.dossier_status_label}</p>
+              {editing ? (
+                <select
+                  className="mt-2 w-full rounded-lg border border-[#d6c3a0] text-xs"
+                  value={manualDraft.dossier_status}
+                  onChange={(e) => patchManual({ dossier_status: e.target.value })}
+                >
+                  {DOSSIER_STATUS_OPTIONS.map((opt) => (
+                    <option key={opt.id} value={opt.id}>{opt.label}</option>
+                  ))}
+                </select>
+              ) : null}
+            </div>
           </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {!editing ? (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-bold text-white"
+            >
+              <Pencil size={14} />
+              Modifier le dossier
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleSave}
+                className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-60"
+              >
+                <Save size={14} />
+                {saving ? 'Enregistrement…' : 'Enregistrer'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setManualDraft(manualContentFromRow(profileRow));
+                  setEditing(false);
+                }}
+                className="inline-flex items-center gap-2 rounded-xl border border-[#d6c3a0] bg-white px-4 py-2 text-xs font-bold text-[#7d6a4a]"
+              >
+                <X size={14} />
+                Annuler
+              </button>
+            </>
+          )}
         </div>
       </section>
 
-      <div className="rounded-2xl border border-[#eadcc2] bg-white p-4 space-y-3">
+      <div className="rounded-2xl border border-[#eadcc2] bg-white p-4 space-y-3 shadow-sm">
         <p className="text-xs font-black uppercase tracking-widest text-[#8a7456] flex items-center gap-2">
           <AudienceIcon size={14} />
           Adapter selon la cible
@@ -154,171 +372,283 @@ export default function InvestisseursForumsModule(props) {
             </button>
           ))}
         </div>
-        <p className="text-sm text-[#7d6a4a]">
-          <b>Angle :</b> {adapted.audience.angle}
-        </p>
-        <p className="text-sm text-[#2f2415] rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-          {adapted.executiveSummary}
-        </p>
+        {editing ? (
+          <Field
+            label="Texte personnalisé pour cette cible"
+            value={audienceMessage}
+            editing
+            rows={3}
+            hint="Remplace le résumé exécutif automatique pour l'export PDF de cette cible."
+            onChange={(value) => patchManual({
+              audience_messages: { ...manualDraft.audience_messages, [audienceKey]: value },
+            })}
+          />
+        ) : (
+          <>
+            <p className="text-sm text-[#7d6a4a]"><b>Angle :</b> {adapted.audience.angle}</p>
+            <p className="text-sm text-[#2f2415] rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
+              {adapted.executiveSummary}
+            </p>
+          </>
+        )}
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">
-        {SECTIONS.map((section) => (
-          <TabButton key={section.id} active={tab === section.id} onClick={() => setTab(section.id)}>
-            {section.label}
+        {MAIN_TABS.map((tab) => (
+          <TabButton
+            key={tab.id}
+            active={mainTab === tab.id}
+            onClick={() => setMainTab(tab.id)}
+            Icon={tab.icon}
+          >
+            {tab.label}
           </TabButton>
         ))}
       </div>
 
-      {tab === 'project' && (
-        <Panel title="Résumé du projet" icon={Target}>
-          <p className="font-black text-[#2f2415]">{profile.projectSummary?.title}</p>
-          <p className="mt-2">{profile.projectSummary?.pitch}</p>
-          <p className="mt-2"><b>Statut juridique :</b> {profile.projectSummary?.legalStatus}</p>
-          <p className="mt-1"><b>Localisation :</b> {profile.projectSummary?.location}</p>
-          <ul className="mt-3 list-disc pl-5 space-y-1">
-            {(profile.projectSummary?.activities || []).map((item) => <li key={item}>{item}</li>)}
-          </ul>
-        </Panel>
-      )}
-
-      {tab === 'founder' && (
-        <Panel title="Profil fondatrice" icon={Users}>
-          <p className="text-xl font-black text-[#2f2415]">{profile.founderProfile?.name}</p>
-          <p className="mt-1">{profile.founderProfile?.role}</p>
-          <ul className="mt-3 space-y-2">
-            {(profile.founderProfile?.highlights || []).map((item) => (
-              <li key={item} className="rounded-xl border border-[#eadcc2] bg-white p-3">{item}</li>
-            ))}
-          </ul>
-        </Panel>
-      )}
-
-      {tab === 'activities' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {(profile.activities || []).map((act) => (
-            <div key={act.id} className={`rounded-2xl border p-4 ${act.status === 'actif' ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'}`}>
-              <p className="font-black text-[#2f2415]">{act.label}</p>
-              <p className="text-xs mt-1 uppercase font-black">{act.status === 'actif' ? 'Actif ERP' : 'Planifié BP'}</p>
-              <p className="mt-2 text-sm">{act.detail}</p>
+      {mainTab === 'preparation' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Card title="Checklist de préparation" icon={CheckCircle2}>
+            <p className="text-xs text-[#8a7456] mb-2">
+              {readiness.prep_ok_count}/{readiness.prep_total} éléments complétés
+            </p>
+            <div className="space-y-2">
+              {readiness.preparation.map((item) => (
+                <div
+                  key={item.id}
+                  className={`rounded-xl border p-3 text-sm flex items-center gap-2 ${item.ok ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'}`}
+                >
+                  <span className="font-black">{item.ok ? '✓' : '○'}</span>
+                  <span>{item.label}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
-
-      {tab === 'figures' && (
-        <div className="space-y-4">
-          <p className="text-sm text-[#8a7456]">Chiffres lus depuis Hey Horizon AI Core — pas de recalcul Finance parallèle.</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <StatMini label="CA ERP" value={fmtCurrency(k.ca_erp)} />
-            <StatMini label="Encaissements" value={fmtCurrency(k.encaissements)} />
-            <StatMini label="Trésorerie" value={fmtCurrency(k.resultat_tresorerie)} />
-            <StatMini label="Créances" value={fmtCurrency(k.creances)} />
-            <StatMini label="Valeur stock" value={fmtCurrency(k.valeur_stock)} />
-            <StatMini label="CA BP annuel" value={fmtCurrency(k.ca_bp_annuel)} />
-            <StatMini label="Besoin BP" value={fmtCurrency(k.besoin_bp)} />
-            <StatMini label="Score santé ERP" value={`${k.health_score || 0}/100`} />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {adapted.highlights.map((h) => (
-              <StatMini key={h.label} label={h.label} value={h.value} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {tab === 'impact' && (
-        <Panel title="Impact social" icon={Heart}>
-          <p><b>Sécurité alimentaire :</b> {profile.socialImpact?.securite_alimentaire}</p>
-          <p className="mt-2"><b>Emplois prévus BP :</b> {profile.socialImpact?.emplois_prevus}</p>
-          <p className="mt-2"><b>Femmes & jeunes :</b> {profile.socialImpact?.femmes_jeunes}</p>
-          <p className="mt-2"><b>Formalisation :</b> {profile.socialImpact?.formalisation}</p>
-          <p className="mt-2"><b>Communauté :</b> {profile.socialImpact?.community}</p>
-        </Panel>
-      )}
-
-      {tab === 'ai' && (
-        <Panel title="Innovation IA" icon={Bot}>
-          <p className="font-black text-[#2f2415]">{profile.aiInnovation?.headline}</p>
-          <p className="mt-2">{profile.aiInnovation?.differentiator}</p>
-          <ul className="mt-3 list-disc pl-5 space-y-1">
-            {(profile.aiInnovation?.modules || []).map((m) => <li key={m}>{m}</li>)}
-          </ul>
-        </Panel>
-      )}
-
-      {tab === 'needs' && (
-        <div className="space-y-2">
-          {(profile.needsSought || []).map((need) => (
-            <div key={need.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 flex justify-between gap-3">
-              <div>
-                <p className="font-black text-[#2f2415]">{need.label}</p>
-                <p className="text-sm mt-1">{need.detail}</p>
-              </div>
-              <span className="text-[10px] font-black uppercase shrink-0">{need.priority}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {tab === 'risks' && (
-        <div className="space-y-2">
-          {adapted.adaptedRisks.map((risk) => (
-            <div key={risk.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-              <p className="font-black text-[#2f2415]">{risk.label}</p>
-              <p className="text-sm mt-1">{risk.detail}</p>
-              <p className="text-sm mt-2 text-emerald-800"><b>Mitigation :</b> {risk.mitigation}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {tab === 'score' && (
-        <div className="space-y-4">
-          <Panel title="Score de préparation forum" icon={Sparkles}>
+            {readiness.prep_missing.length ? (
+              <p className="mt-3 text-sm text-amber-800">
+                <b>À compléter :</b> {readiness.prep_missing.join(' · ')}
+              </p>
+            ) : null}
+          </Card>
+          <Card title="Score ERP & données auto" icon={Sparkles}>
             <p className="text-2xl font-black text-[#2f2415]">{readiness.score}/100 — {readiness.label}</p>
             <p className="mt-2">{readiness.summary}</p>
-            <p className="mt-2 text-xs">Base investisseur Core : {readiness.base_investor_score}/100 · Checklist : {readiness.checklist_score}/100</p>
-          </Panel>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {readiness.checklist.map((item) => (
-              <div key={item.id} className={`rounded-xl border p-3 text-sm ${item.ok ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'}`}>
-                <p className="font-black">{item.ok ? '✓' : '○'} {item.label}</p>
-              </div>
-            ))}
-          </div>
-          {readiness.missing.length ? (
-            <p className="text-sm text-amber-800"><b>À compléter :</b> {readiness.missing.join(' · ')}</p>
-          ) : null}
+            <p className="mt-2 text-xs">
+              Core {readiness.base_investor_score}/100 · Checklist ERP {readiness.checklist_score}/100
+            </p>
+            <div className="mt-3 grid grid-cols-1 gap-2">
+              {readiness.checklist.slice(0, 6).map((item) => (
+                <div key={item.id} className={`text-xs rounded-lg px-2 py-1 ${item.ok ? 'text-emerald-800' : 'text-amber-800'}`}>
+                  {item.ok ? '✓' : '○'} {item.label}
+                </div>
+              ))}
+            </div>
+          </Card>
         </div>
       )}
 
-      {tab === 'export' && (
+      {mainTab === 'dossier' && (
         <div className="space-y-4">
-          <Panel title="Génération dossier" icon={FileText}>
-            <p>Exports PDF — réutilise l&apos;architecture Rapports module pour rapports impact/financier ; dossiers multi-sections pour investisseur et subvention.</p>
-            <p className="mt-2 text-xs text-[#8a7456]">Cible active : {adapted.audience.label}</p>
-          </Panel>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {DOSSIER_SECTIONS.map((s) => (
+              <TabButton key={s.id} active={dossierSection === s.id} onClick={() => setDossierSection(s.id)} Icon={s.icon}>
+                {s.label}
+              </TabButton>
+            ))}
+          </div>
+
+          {dossierSection === 'project' && (
+            <Card title="Résumé du projet" icon={Target}>
+              <Field label="Résumé / pitch" value={editing ? manualDraft.project_pitch : profile.projectSummary?.pitch} editing={editing} rows={4} onChange={(v) => patchManual({ project_pitch: v })} />
+              <Field label="Localisation" value={editing ? manualDraft.location : profile.projectSummary?.location} editing={editing} rows={1} onChange={(v) => patchManual({ location: v })} />
+              <Field label="Statut du projet" value={editing ? manualDraft.project_status : profile.projectSummary?.legalStatus} editing={editing} rows={1} onChange={(v) => patchManual({ project_status: v })} />
+              <Field label="Activités (une par ligne)" value={editing ? manualDraft.activities_notes : (profile.projectSummary?.activities || []).join('\n')} editing={editing} rows={4} onChange={(v) => patchManual({ activities_notes: v })} />
+            </Card>
+          )}
+
+          {dossierSection === 'founder' && (
+            <Card title="Profil fondatrice" icon={Users}>
+              <Field label="Nom" value={editing ? manualDraft.founder_name : profile.founderProfile?.name} editing={editing} rows={1} onChange={(v) => patchManual({ founder_name: v })} />
+              <Field label="Rôle" value={editing ? manualDraft.founder_role : profile.founderProfile?.role} editing={editing} rows={1} onChange={(v) => patchManual({ founder_role: v })} />
+              <Field label="Points clés (une par ligne)" value={editing ? manualDraft.founder_highlights : (profile.founderProfile?.highlights || []).join('\n')} editing={editing} rows={5} onChange={(v) => patchManual({ founder_highlights: v })} />
+            </Card>
+          )}
+
+          {dossierSection === 'figures' && (
+            <div className="space-y-3">
+              <p className="text-sm text-[#8a7456]">Chiffres en lecture seule — source Hey Horizon AI Core (pas de recalcul Finance).</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <StatMini label="CA ERP" value={fmtCurrency(k.ca_erp)} auto />
+                <StatMini label="Encaissements" value={fmtCurrency(k.encaissements)} auto />
+                <StatMini label="Trésorerie" value={fmtCurrency(k.resultat_tresorerie)} auto />
+                <StatMini label="Créances" value={fmtCurrency(k.creances)} auto />
+                <StatMini label="Valeur stock" value={fmtCurrency(k.valeur_stock)} auto />
+                <StatMini label="CA BP annuel" value={fmtCurrency(k.ca_bp_annuel)} auto />
+                <StatMini label="Besoin BP" value={fmtCurrency(k.besoin_bp)} auto />
+                <StatMini label="Score santé" value={`${k.health_score || 0}/100`} auto />
+              </div>
+            </div>
+          )}
+
+          {dossierSection === 'impact' && (
+            <Card title="Impact social" icon={Heart}>
+              <Field label="Sécurité alimentaire" value={editing ? manualDraft.impact_securite : profile.socialImpact?.securite_alimentaire} editing={editing} rows={2} onChange={(v) => patchManual({ impact_securite: v })} />
+              <Field label="Emplois" value={editing ? manualDraft.impact_emplois : String(profile.socialImpact?.emplois_prevus || '')} editing={editing} rows={1} onChange={(v) => patchManual({ impact_emplois: v })} />
+              <Field label="Femmes & jeunes" value={editing ? manualDraft.impact_femmes : profile.socialImpact?.femmes_jeunes} editing={editing} rows={2} onChange={(v) => patchManual({ impact_femmes: v })} />
+              <Field label="Formalisation" value={editing ? manualDraft.impact_formalisation : profile.socialImpact?.formalisation} editing={editing} rows={2} onChange={(v) => patchManual({ impact_formalisation: v })} />
+              <Field label="Communauté" value={editing ? manualDraft.impact_community : profile.socialImpact?.community} editing={editing} rows={2} onChange={(v) => patchManual({ impact_community: v })} />
+            </Card>
+          )}
+
+          {dossierSection === 'needs' && (
+            <Card title="Besoins recherchés" icon={Lightbulb}>
+              <Field label="Besoins (une ligne par besoin, option « label — détail »)" value={editing ? manualDraft.needs_notes : (profile.needsSought || []).map((n) => `${n.label} — ${n.detail}`).join('\n')} editing={editing} rows={6} onChange={(v) => patchManual({ needs_notes: v })} />
+              {!editing && (
+                <div className="mt-3 space-y-2">
+                  {(profile.needsSought || []).map((need) => (
+                    <div key={need.id} className="rounded-xl border border-[#eadcc2] bg-white p-3 flex justify-between gap-3">
+                      <div>
+                        <p className="font-black text-[#2f2415]">{need.label}</p>
+                        <p className="text-sm mt-1">{need.detail}</p>
+                      </div>
+                      <span className="text-[10px] font-black uppercase shrink-0">{need.priority}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
+
+          {dossierSection === 'risks' && (
+            <Card title="Risques & mitigation" icon={ShieldAlert}>
+              <Field label="Risques (format « risque → mitigation », une par ligne)" value={editing ? manualDraft.risks_notes : (profile.risksMitigation || []).map((r) => `${r.label} → ${r.mitigation}`).join('\n')} editing={editing} rows={6} onChange={(v) => patchManual({ risks_notes: v })} />
+            </Card>
+          )}
+
+          {dossierSection === 'objectives' && (
+            <Card title="Objectifs" icon={Target}>
+              <Field label="6 mois" value={editing ? manualDraft.objectives_6m : profile.objectives?.sixMonths} editing={editing} rows={3} onChange={(v) => patchManual({ objectives_6m: v })} />
+              <Field label="12 mois" value={editing ? manualDraft.objectives_12m : profile.objectives?.twelveMonths} editing={editing} rows={3} onChange={(v) => patchManual({ objectives_12m: v })} />
+              <Field label="3 ans" value={editing ? manualDraft.objectives_3y : profile.objectives?.threeYears} editing={editing} rows={3} onChange={(v) => patchManual({ objectives_3y: v })} />
+            </Card>
+          )}
+        </div>
+      )}
+
+      {mainTab === 'preview' && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-xs font-black text-[#8a7456]">Type de document :</span>
             {Object.values(FORUM_PACK_TYPES).map((pack) => (
               <button
                 key={pack.id}
                 type="button"
-                disabled={exportBusy === pack.id}
-                onClick={() => exportPack(pack.id)}
-                className="rounded-2xl border border-[#d6c3a0] bg-white p-4 text-left hover:border-[#2f2415] disabled:opacity-60"
+                onClick={() => setPreviewPackType(pack.id)}
+                className={`rounded-lg px-2 py-1 text-xs font-bold border ${previewPackType === pack.id ? 'bg-[#2f2415] text-white' : 'bg-white border-[#d6c3a0]'}`}
               >
+                {pack.label}
+              </button>
+            ))}
+          </div>
+          <Card title={`Aperçu — ${previewPack.title}`} icon={Eye}>
+            <p className="text-xs text-[#8a7456]">Contenu exact exporté dans le PDF (cible : {adapted.audience.label})</p>
+            <div className="mt-4 space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+              {previewPack.sections.map((section) => (
+                <PreviewSection key={section.title} section={section} />
+              ))}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button type="button" className="rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-bold text-white" onClick={() => runExport(previewPackType, { download: false, preview: true })}>
+                Prévisualiser PDF
+              </button>
+              <button type="button" className="rounded-xl border border-[#d6c3a0] px-4 py-2 text-xs font-bold" onClick={() => runExport(previewPackType, { download: true })}>
+                Télécharger
+              </button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {mainTab === 'export' && (
+        <div className="space-y-4">
+          <Card title="Documents exportables" icon={FileText}>
+            <p>Générez des PDF téléchargeables pour investisseurs, banques, ONG et forums. Les chiffres proviennent de l&apos;ERP ; les textes de votre dossier éditable.</p>
+            <p className="mt-2 text-xs text-[#8a7456]">Cible active : {adapted.audience.label}</p>
+          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {Object.values(FORUM_PACK_TYPES).map((pack) => (
+              <div key={pack.id} className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm flex flex-col">
                 <Download size={18} className="text-[#2f2415]" />
                 <p className="mt-2 font-black text-[#2f2415]">{pack.label}</p>
-                <p className="text-xs text-[#8a7456] mt-1">PDF · {adapted.audience.label}</p>
-              </button>
+                <p className="text-xs text-[#8a7456] mt-1 flex-1">PDF · {adapted.audience.label}</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <button type="button" disabled={exportBusy === pack.id} onClick={() => runExport(pack.id, { download: true })} className="rounded-lg bg-[#2f2415] px-2 py-1.5 text-[10px] font-bold text-white disabled:opacity-60">
+                    Générer PDF
+                  </button>
+                  <button type="button" disabled={exportBusy === pack.id} onClick={() => runExport(pack.id, { download: true })} className="rounded-lg border border-[#d6c3a0] px-2 py-1.5 text-[10px] font-bold disabled:opacity-60">
+                    Télécharger
+                  </button>
+                  <button type="button" disabled={exportBusy === pack.id} onClick={() => runExport(pack.id, { download: true, saveToDocuments: true })} className="rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1.5 text-[10px] font-bold text-emerald-900 disabled:opacity-60">
+                    → Documents
+                  </button>
+                  <button type="button" disabled={exportBusy === pack.id} onClick={() => runExport(pack.id, { preview: true, download: false })} className="rounded-lg border border-[#d6c3a0] px-2 py-1.5 text-[10px] font-bold disabled:opacity-60">
+                    Prévisualiser
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
           <p className="text-sm text-[#8a7456]">{adapted.callToAction}</p>
         </div>
       )}
 
-      {tab === 'demo' && <InvestisseurDemoPanel />}
+      {mainTab === 'history' && (
+        <Card title="Historique des dossiers générés" icon={History}>
+          {exportHistory.length === 0 ? (
+            <p className="text-sm">Aucun export pour le moment. Générez un document depuis l&apos;onglet Documents exportables.</p>
+          ) : (
+            <div className="space-y-2">
+              {exportHistory.map((item) => (
+                <div key={item.id} className="rounded-xl border border-[#eadcc2] bg-white p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <p className="font-black text-[#2f2415]">{item.document_title || item.filename}</p>
+                    <p className="text-xs text-[#8a7456] mt-1">
+                      {new Date(item.created_at).toLocaleString('fr-FR')} · {FORUM_AUDIENCES[item.audience_key]?.label || item.audience_key} · {FORUM_PACK_TYPES[item.pack_type]?.label || item.pack_type}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button type="button" onClick={() => downloadHistoryItem(item)} className="inline-flex items-center gap-1 rounded-lg border border-[#d6c3a0] px-3 py-1.5 text-xs font-bold">
+                      <Download size={12} />
+                      Télécharger
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await deleteInvestorForumExport(item.id);
+                        setExportHistory((prev) => prev.filter((e) => e.id !== item.id));
+                        toast.success('Export supprimé');
+                      }}
+                      className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-800"
+                    >
+                      <Trash2 size={12} />
+                      Supprimer
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
+
+      {mainTab === 'demo' && <InvestisseurDemoPanel />}
+
+      <div className="rounded-xl border border-dashed border-[#d6c3a0] bg-[#fffdf8]/80 p-3 text-xs text-[#8a7456] flex items-start gap-2">
+        <Bot size={14} className="shrink-0 mt-0.5" />
+        <span>
+          Innovation IA : {profile.aiInnovation?.headline}. Les modules Finance, Rapports et Impact ne sont pas recalculés ici.
+          {profileRow?.updated_at ? ` Dernière sauvegarde : ${new Date(profileRow.updated_at).toLocaleString('fr-FR')}.` : ''}
+        </span>
+      </div>
     </div>
   );
 }

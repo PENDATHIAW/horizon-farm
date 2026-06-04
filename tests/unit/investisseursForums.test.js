@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 
 import { composeDecisionDataMap } from '../../src/services/moduleDataComposer.js';
 import { buildInvestorForumProfile, HORIZON_FARM_TAGLINE } from '../../src/services/investorForums/investorProfileService.js';
-import { computeForumReadinessScore } from '../../src/services/investorForums/forumReadinessScore.js';
+import { computeForumReadinessScore, PREPARATION_CHECKLIST } from '../../src/services/investorForums/forumReadinessScore.js';
 import { adaptProfileForAudience, FORUM_AUDIENCES } from '../../src/services/investorForums/forumAudienceAdapter.js';
-import { buildForumPack, forumPackToExportPayload, FORUM_PACK_TYPES } from '../../src/services/investorForums/forumPackBuilder.js';
+import { buildForumPack, forumPackToExportPayload, FORUM_PACK_TYPES, renderForumPackPdfBlob } from '../../src/services/investorForums/forumPackBuilder.js';
+import { mergeInvestorForumProfile, EMPTY_MANUAL_CONTENT } from '../../src/services/investorForums/mergeInvestorForumProfile.js';
 
 const emptyCrud = {};
 const sampleCrud = {
@@ -63,6 +64,37 @@ test('buildForumPack et payload export', () => {
   const payload = forumPackToExportPayload(pack);
   assert.equal(payload.module, 'Investisseurs & Forums');
   assert.ok(payload.labels.length > 0);
+});
+
+test('mergeInvestorForumProfile conserve keyFigures auto', () => {
+  const profile = buildInvestorForumProfile({ crud: sampleCrud, dataMap: composeDecisionDataMap({ crud: sampleCrud, dataMap: {} }) });
+  const caBefore = profile.keyFigures.ca_erp;
+  const merged = mergeInvestorForumProfile(profile, {
+    ...EMPTY_MANUAL_CONTENT,
+    project_pitch: 'Pitch personnalisé Horizon Farm pour investisseurs.',
+    location: 'Thiès, Sénégal',
+  });
+  assert.equal(merged.keyFigures.ca_erp, caBefore);
+  assert.ok(merged.projectSummary.pitch.includes('Pitch personnalisé'));
+  assert.equal(merged.projectSummary.location, 'Thiès, Sénégal');
+});
+
+test('computeForumReadinessScore inclut checklist préparation', () => {
+  const profile = mergeInvestorForumProfile(
+    buildInvestorForumProfile({ crud: sampleCrud, dataMap: composeDecisionDataMap({ crud: sampleCrud, dataMap: {} }) }),
+    { ...EMPTY_MANUAL_CONTENT, project_pitch: 'Résumé long du projet pour les forums internationaux.' },
+  );
+  const readiness = computeForumReadinessScore(profile, { exportCount: 1 });
+  assert.ok(readiness.preparation.length >= PREPARATION_CHECKLIST.length);
+  assert.ok(readiness.prep_ok_count >= 1);
+});
+
+test('renderForumPackPdfBlob produit un blob', () => {
+  const profile = buildInvestorForumProfile({ crud: sampleCrud, dataMap: composeDecisionDataMap({ crud: sampleCrud, dataMap: {} }) });
+  const pack = buildForumPack(profile, { packType: 'fiche_projet' });
+  const { blob, filename } = renderForumPackPdfBlob(pack);
+  assert.ok(blob);
+  assert.ok(filename.endsWith('.pdf'));
 });
 
 test('FORUM_AUDIENCES couvre les cibles demandées', () => {

@@ -137,9 +137,10 @@ function buildHighlights(profile, audience) {
  */
 export function adaptProfileForAudience(profile = {}, audienceKey = 'investisseur_prive') {
   const audience = FORUM_AUDIENCES[audienceKey] || FORUM_AUDIENCES.investisseur_prive;
+  const customMessage = profile.audienceMessages?.[audienceKey] || profile.audienceMessages?.[audience.id];
   return {
     audience,
-    executiveSummary: buildExecutiveSummary(profile, audience),
+    executiveSummary: customMessage || buildExecutiveSummary(profile, audience),
     highlights: buildHighlights(profile, audience),
     recommendedSections: audience.emphasis,
     adaptedNeeds: arr(profile.needsSought).slice(0, 5),

@@ -5,7 +5,7 @@
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { exportModuleReportPdf, saveModuleReportExport } from '../../utils/moduleReportExports.js';
+import { buildModuleReportPdf, exportModuleReportPdf, saveModuleReportExport } from '../../utils/moduleReportExports.js';
 import { fmtCurrency } from '../../utils/format.js';
 import { HORIZON_FARM_TAGLINE, INVESTOR_FORUMS_SOURCE } from './investorProfileService.js';
 import { adaptProfileForAudience, FORUM_AUDIENCES } from './forumAudienceAdapter.js';
@@ -34,6 +34,13 @@ function packAudienceKey(packType, audienceKey) {
 }
 
 function sectionBody(profile, adapted, readiness) {
+  const obj = profile.objectives || {};
+  const objectiveBlock = [
+    obj.sixMonths ? `6 mois : ${obj.sixMonths}` : '',
+    obj.twelveMonths ? `12 mois : ${obj.twelveMonths}` : '',
+    obj.threeYears ? `3 ans : ${obj.threeYears}` : '',
+  ].filter(Boolean).join('\n');
+
   return [
     { title: 'Résumé du projet', body: adapted.executiveSummary || profile.tagline },
     { title: 'Profil fondatrice', body: `${profile.founderProfile?.name || '—'} — ${profile.founderProfile?.role || ''}. ${arr(profile.founderProfile?.highlights).join(' · ')}` },
@@ -43,6 +50,7 @@ function sectionBody(profile, adapted, readiness) {
     { title: 'Innovation IA', body: `${profile.aiInnovation?.headline}. ${arr(profile.aiInnovation?.modules).join(' · ')}` },
     { title: 'Besoins recherchés', body: arr(profile.needsSought).map((n) => `${n.label} — ${n.detail}`).join('\n') },
     { title: 'Risques & mitigation', body: arr(adapted.adaptedRisks).map((r) => `${r.label} → ${r.mitigation}`).join('\n') },
+    { title: 'Objectifs', body: objectiveBlock || 'Objectifs à préciser dans le dossier.' },
     { title: 'Score de préparation', body: `${readiness.score}/100 — ${readiness.label}. ${readiness.summary}` },
   ];
 }
@@ -167,21 +175,38 @@ export function forumPackToExportPayload(pack = {}) {
   };
 }
 
-/** Export PDF — dossiers multi-pages ou rapports module. */
-export function exportForumPackPdf(pack = {}) {
+/** Génère le blob PDF (téléchargement, aperçu, historique). */
+export function renderForumPackPdfBlob(pack = {}) {
   if (pack.packType?.useModuleReport) {
-    return exportModuleReportPdf(forumPackToExportPayload(pack));
+    const { doc, filename } = buildModuleReportPdf(forumPackToExportPayload(pack));
+    return { blob: doc.output('blob'), filename, doc };
   }
-
   const { doc, filename } = buildDossierPdf(pack);
-  doc.save(filename);
-  return saveModuleReportExport({
+  return { blob: doc.output('blob'), filename, doc };
+}
+
+/** Télécharge le PDF côté navigateur. */
+export function downloadForumPackPdf(pack = {}) {
+  const { blob, filename } = renderForumPackPdfBlob(pack);
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+  saveModuleReportExport({
     module: 'Investisseurs & Forums',
     title: pack.title,
     period: 'Toutes les périodes',
     filename,
     summary: pack.subtitle,
   });
+  return { blob, filename };
+}
+
+/** Export PDF — dossiers multi-pages ou rapports module (legacy). */
+export function exportForumPackPdf(pack = {}) {
+  return downloadForumPackPdf(pack);
 }
 
 export default buildForumPack;
