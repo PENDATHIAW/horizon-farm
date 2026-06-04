@@ -32,6 +32,7 @@ export const AI_DRAFT_SOURCES = {
   COMMERCIAL: 'commercial_content',
   RECONCILIATION: 'smart_reconciliation',
   HEALTH_ENGINE: 'erp_health_engine',
+  WHATSAPP: 'whatsapp_horizon',
   MANUAL: 'manual',
 };
 

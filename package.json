@@ -36,6 +36,7 @@
     "test:unit:bp-import": "npx vite-node tests/unit/bpImportDispatch.test.js",
     "test:unit:bp-excel": "npx vite-node tests/unit/bpExcelParser.test.js",
     "test:unit:hey-horizon-core": "npx vite-node tests/unit/heyHorizonCore.test.js",
+    "test:unit:whatsapp-horizon": "npx vite-node tests/unit/whatsappHorizon.test.js",
     "test:unit:ai-gateway": "node --test tests/unit/aiGateway.test.js",
     "test:unit:document-scanner": "node --test tests/unit/documentScanner.test.js",
     "test:unit:contextual-voice": "node --test tests/unit/contextualVoice.test.js",
