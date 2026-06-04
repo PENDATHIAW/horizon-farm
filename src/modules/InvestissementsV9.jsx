@@ -23,6 +23,12 @@ import {
 } from '../utils/bpLineConcretization';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { investmentAssetKind, investmentLabel } from '../utils/investmentWorkflows';
+import {
+  BpFundingFinanceurPanel,
+  BpMonthlyCostsPanel,
+  BpRevenueForecastsPanel,
+  InvestmentsInvestorBridge,
+} from '../components/investments/InvestmentsFinancePanels.jsx';
 import FinancialPlanPanel from './FinancialPlanPanel.jsx';
 import InvestmentQualityControl from './InvestmentQualityControl.jsx';
 
@@ -185,11 +191,15 @@ export default function InvestissementsV9(props) {
 
   const tabs = [
     ['overview', 'Vue d’ensemble'],
-    ['budget', 'Lignes actionnables'],
-    ['repartition', 'Répartition BP'],
+    ['budget', 'Mes investissements'],
+    ['funding', 'Financement'],
+    ['costs', 'Charges mensuelles'],
     ['plan', 'Suivi réel'],
+    ['forecasts', 'Prévisions'],
+    ['repartition', 'Répartition BP'],
     ['controle', 'Contrôle'],
   ];
+  const fundingSources = dedupe(arr(props.bpFundingSources).filter((r) => String(r.business_plan_id || planId) === String(planId)));
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -287,6 +297,8 @@ export default function InvestissementsV9(props) {
   ];
 
   return <div className="space-y-5 investissements-mobile-structured">
+    <InvestmentsInvestorBridge {...props} onNavigate={props.onNavigate} />
+
     <div className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
         <div>
@@ -337,10 +349,16 @@ export default function InvestissementsV9(props) {
       </div>
     </Section> : null}
 
-    {tab === 'budget' ? <Section icon={Coins} title="Lignes actionnables BP" subtitle="Besoins de démarrage, équipements, stock initial, trésorerie de départ, amortissements — pas les charges ni revenus du BP.">
+    {tab === 'budget' ? <Section icon={Coins} title="Mes investissements" subtitle="Besoins de démarrage, équipements, stock initial, trésorerie de départ — lignes actionnables à concrétiser.">
       <HelpSteps />
       <Table rows={lines} columns={lineColumns} />
     </Section> : null}
+
+    {tab === 'funding' ? <BpFundingFinanceurPanel bpFundingSources={fundingSources.length ? fundingSources : undefined} besoinsTotal={totals.prevu} /> : null}
+
+    {tab === 'costs' ? <BpMonthlyCostsPanel costs={costs} /> : null}
+
+    {tab === 'forecasts' ? <BpRevenueForecastsPanel projections={projections} /> : null}
 
     {tab === 'repartition' ? <Section icon={FileSpreadsheet} title="Mapping des 4 onglets Excel" subtitle="Chaque onglet alimente le bon module ERP — Investissements n’affiche que les lignes actionnables.">
       {BP_SHEET_MAPPING.map((sheet) => <div key={sheet.key} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-2">
