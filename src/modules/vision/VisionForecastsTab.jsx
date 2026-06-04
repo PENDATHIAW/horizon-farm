@@ -1,11 +1,20 @@
 import { LineChart } from 'lucide-react';
 import { fmtCurrency, fmtNumber } from '../../utils/format';
+import HorizonForecastPanel from '../HorizonForecastPanel.jsx';
 import { Btn, Empty, Row, Section, Stat } from './visionUtils';
 
-export default function VisionForecastsTab({ data, onNavigate }) {
+export default function VisionForecastsTab({ data, dataMap = {}, moduleId = 'objectifs_croissance', onNavigate, onCreateTask, onCreateBusinessEvent, onRefreshTasks }) {
   const predictions = data.predictions || [];
   return (
     <div className="space-y-5">
+      <HorizonForecastPanel
+        dataMap={dataMap}
+        moduleId={moduleId}
+        onNavigate={onNavigate}
+        onCreateTask={onCreateTask}
+        onCreateBusinessEvent={onCreateBusinessEvent}
+        onRefreshTasks={onRefreshTasks}
+      />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Stat label="Solde actuel" value={fmtCurrency(data.balance)} tone={data.balance >= 0 ? 'good' : 'bad'} />
         <Stat label="À encaisser" value={fmtCurrency(data.receivable)} tone={data.receivable ? 'warn' : 'good'} />

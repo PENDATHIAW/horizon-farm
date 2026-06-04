@@ -137,7 +137,17 @@ export default function VisionCroissanceModule(props) {
             onRefreshTasks={onRefreshTasks}
           />
         )
-          : tab === 'Prévisions' ? <VisionForecastsTab data={data} onNavigate={onNavigate} />
+          : tab === 'Prévisions' ? (
+            <VisionForecastsTab
+              data={data}
+              dataMap={dataMap}
+              moduleId={moduleId}
+              onNavigate={onNavigate}
+              onCreateTask={onCreateTask}
+              onCreateBusinessEvent={onCreateBusinessEvent}
+              onRefreshTasks={onRefreshTasks}
+            />
+          )
             : tab === 'Cycles' ? (
               <VisionCyclesTab
                 dataMap={dataMap}
