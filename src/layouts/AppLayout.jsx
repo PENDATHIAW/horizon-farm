@@ -28,7 +28,7 @@ const NAV_GROUPS = [
 function collapseNavItems(navItems = []) {
   const opsIds = new Set(['rh', 'equipements', 'smartfarm']);
   const opsItems = navItems.filter((item) => opsIds.has(item.id));
-  const collapsed = navItems.filter((item) => !['impact_business', 'investisseurs_forums', 'equipements', 'smartfarm'].includes(item.id));
+  const collapsed = navItems.filter((item) => !['equipements', 'smartfarm'].includes(item.id));
   return collapsed.map((item) => {
     if (item.id === 'centre_ia') return { ...item, label: 'Centre décisionnel' };
     if (item.id === 'rh') return { ...item, label: 'Opérations & Ressources', icon: UserCog, hasAlert: opsItems.some((entry) => entry.hasAlert) };

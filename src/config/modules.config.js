@@ -69,6 +69,7 @@ export const ROUTE_TO_MODULE = {
   sante: 'elevage',
   finances: 'finance_pilotage',
   investissements: 'finance_pilotage',
+  investisseurs_forums: 'investisseurs_forums',
   alertes: 'activite_suivi',
   taches: 'activite_suivi',
   tracabilite: 'activite_suivi',
