@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Bot, Briefcase, Building2, CheckCircle2, Download, Eye, FileText, Handshake, Heart,
-  History, Landmark, Lightbulb, Pencil, Save, ShieldAlert, Sparkles, Target, Trash2,
-  TrendingUp, Users, X,
+  Bot, Briefcase, Building2, CheckCircle2, Download, Eye, FileText, FolderOpen, Handshake, Heart,
+  History, Landmark, Lightbulb, Pencil, Play, Save, ShieldAlert, Sparkles, Target, Trash2,
+  TrendingUp, Users, X, Zap,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
@@ -27,23 +27,27 @@ import {
 } from '../services/investorForums/mergeInvestorForumProfile.js';
 import { fmtCurrency } from '../utils/format.js';
 import InvestisseurDemoPanel from './InvestisseurDemoPanel.jsx';
+import InvestorDossierLibrary from '../components/investorForums/InvestorDossierLibrary.jsx';
 
 const MAIN_TABS = [
   { id: 'preparation', label: 'Préparation', icon: CheckCircle2 },
   { id: 'dossier', label: 'Dossier', icon: FileText },
+  { id: 'library', label: 'Documents du dossier', icon: FolderOpen },
   { id: 'preview', label: 'Aperçu dossier', icon: Eye },
-  { id: 'export', label: 'Documents exportables', icon: Download },
+  { id: 'export', label: 'Exports PDF', icon: Download },
   { id: 'history', label: 'Historique', icon: History },
   { id: 'demo', label: 'Démo investisseur', icon: Sparkles },
 ];
 
 const DOSSIER_SECTIONS = [
   { id: 'project', label: 'Résumé', icon: Target },
+  { id: 'vision', label: 'Vision & mission', icon: Sparkles },
   { id: 'founder', label: 'Fondatrice', icon: Users },
   { id: 'figures', label: 'Chiffres', icon: TrendingUp },
   { id: 'impact', label: 'Impact', icon: Heart },
   { id: 'needs', label: 'Besoins', icon: Lightbulb },
   { id: 'risks', label: 'Risques', icon: ShieldAlert },
+  { id: 'ai', label: 'Innovation IA', icon: Bot },
   { id: 'objectives', label: 'Objectifs', icon: Target },
 ];
 
@@ -61,6 +65,33 @@ const DOSSIER_STATUS_OPTIONS = [
   { id: 'en_cours', label: 'En cours' },
   { id: 'pret', label: 'Prêt' },
 ];
+
+function StatusBadge({ badge, tone }) {
+  const cls = tone === 'ready'
+    ? 'bg-emerald-600 text-white border-emerald-700'
+    : tone === 'progress'
+      ? 'bg-amber-500 text-white border-amber-600'
+      : 'bg-[#8a7456] text-white border-[#6d5a42]';
+  return (
+    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-widest ${cls}`}>
+      {badge}
+    </span>
+  );
+}
+
+function ProgressBar({ percent }) {
+  return (
+    <div className="w-full">
+      <div className="flex justify-between text-[10px] font-black text-[#8a7456] mb-1">
+        <span>Progression dossier</span>
+        <span>{percent}%</span>
+      </div>
+      <div className="h-2 rounded-full bg-[#eadcc2]/60 overflow-hidden">
+        <div className="h-full rounded-full bg-gradient-to-r from-[#2f2415] to-emerald-600 transition-all" style={{ width: `${percent}%` }} />
+      </div>
+    </div>
+  );
+}
 
 function TabButton({ active, children, onClick, Icon }) {
   return (
@@ -144,6 +175,8 @@ export default function InvestisseursForumsModule(props) {
   const [manualDraft, setManualDraft] = useState({ ...EMPTY_MANUAL_CONTENT });
   const [exportHistory, setExportHistory] = useState([]);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [dossierFileCount, setDossierFileCount] = useState(0);
+  const [demoCompleted, setDemoCompleted] = useState(false);
 
   const autoProfile = useMemo(
     () => buildInvestorForumProfile({
@@ -160,8 +193,12 @@ export default function InvestisseursForumsModule(props) {
   );
 
   const readiness = useMemo(
-    () => computeForumReadinessScore(profile, { exportCount: exportHistory.length }),
-    [profile, exportHistory.length],
+    () => computeForumReadinessScore(profile, {
+      exportCount: exportHistory.length,
+      dossierFileCount,
+      demoCompleted,
+    }),
+    [profile, exportHistory.length, dossierFileCount, demoCompleted],
   );
 
   const adapted = useMemo(
@@ -258,6 +295,20 @@ export default function InvestisseursForumsModule(props) {
     }
   };
 
+  const handleScoreAction = (action = {}) => {
+    if (action.navigate) {
+      props.onNavigate?.(action.navigate);
+      return;
+    }
+    if (action.tab) setMainTab(action.tab);
+    if (action.section) setDossierSection(action.section);
+    if (action.edit) setEditing(true);
+  };
+
+  const generateMonDossier = () => runExport('dossier_investisseur', { download: true });
+
+  const prepareDemo = () => setMainTab('demo');
+
   const downloadHistoryItem = (item) => {
     const data = readExportBlob(item.id);
     if (!data) {
@@ -284,6 +335,9 @@ export default function InvestisseursForumsModule(props) {
               Investisseurs & Forums
             </p>
             <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Espace préparation de dossier</h1>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <StatusBadge badge={readiness.badge} tone={readiness.badge_tone} />
+            </div>
             <p className="mt-2 text-sm text-[#8a7456] max-w-3xl italic">{HORIZON_FARM_TAGLINE}</p>
             <p className="mt-1 text-sm text-[#8a7456] max-w-3xl">
               Chiffres lus depuis Finance / Commercial / Stock / Élevage — textes stratégiques éditables et exportables.
@@ -318,7 +372,28 @@ export default function InvestisseursForumsModule(props) {
           </div>
         </div>
 
+        <div className="mt-4 max-w-xl">
+          <ProgressBar percent={readiness.progress_percent} />
+        </div>
+
         <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={Boolean(exportBusy)}
+            onClick={generateMonDossier}
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-black text-white shadow-md disabled:opacity-60"
+          >
+            <Download size={16} />
+            Générer mon dossier
+          </button>
+          <button
+            type="button"
+            onClick={prepareDemo}
+            className="inline-flex items-center gap-2 rounded-xl border-2 border-violet-300 bg-violet-50 px-5 py-2.5 text-sm font-black text-violet-900"
+          >
+            <Play size={16} />
+            Préparer une démo investisseur
+          </button>
           {!editing ? (
             <button
               type="button"
@@ -326,7 +401,7 @@ export default function InvestisseursForumsModule(props) {
               className="inline-flex items-center gap-2 rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-bold text-white"
             >
               <Pencil size={14} />
-              Modifier le dossier
+              Modifier
             </button>
           ) : (
             <>
@@ -407,7 +482,42 @@ export default function InvestisseursForumsModule(props) {
       </div>
 
       {mainTab === 'preparation' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="space-y-4">
+          <Card title={`Pourquoi ${readiness.score}/100 ?`} icon={Sparkles} className="border-[#d6c3a0]">
+            <p className="text-sm">{readiness.explanation}</p>
+            <p className="mt-2 text-sm">{readiness.summary}</p>
+            <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs font-black uppercase text-emerald-800 mb-2">Éléments remplis</p>
+                <div className="space-y-1">
+                  {readiness.breakdown.filled.slice(0, 8).map((item) => (
+                    <p key={`${item.id}-${item.label}`} className="text-xs text-emerald-900">✓ {item.label}</p>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase text-amber-800 mb-2">Éléments manquants & actions</p>
+                <div className="space-y-2">
+                  {readiness.recommended_actions.map((action) => (
+                    <div key={action.id} className="rounded-xl border border-amber-200 bg-amber-50 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-black text-[#2f2415]">{action.label}</p>
+                        <p className="text-xs text-[#8a7456]">{action.hint}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleScoreAction(action)}
+                        className="shrink-0 rounded-lg bg-[#2f2415] px-3 py-1.5 text-[10px] font-bold text-white"
+                      >
+                        Compléter
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card title="Checklist de préparation" icon={CheckCircle2}>
             <p className="text-xs text-[#8a7456] mb-2">
               {readiness.prep_ok_count}/{readiness.prep_total} éléments complétés
@@ -416,10 +526,14 @@ export default function InvestisseursForumsModule(props) {
               {readiness.preparation.map((item) => (
                 <div
                   key={item.id}
-                  className={`rounded-xl border p-3 text-sm flex items-center gap-2 ${item.ok ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'}`}
+                  className={`rounded-xl border p-3 text-sm flex items-center justify-between gap-2 ${item.ok ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'}`}
                 >
-                  <span className="font-black">{item.ok ? '✓' : '○'}</span>
-                  <span>{item.label}</span>
+                  <span><span className="font-black">{item.ok ? '✓' : '○'}</span> {item.label}</span>
+                  {!item.ok && item.action ? (
+                    <button type="button" onClick={() => handleScoreAction(item.action)} className="text-[10px] font-bold underline shrink-0">
+                      Compléter
+                    </button>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -443,7 +557,15 @@ export default function InvestisseursForumsModule(props) {
               ))}
             </div>
           </Card>
+          </div>
         </div>
+      )}
+
+      {mainTab === 'library' && (
+        <InvestorDossierLibrary
+          erpDocuments={props.documents || []}
+          onRefresh={(count) => setDossierFileCount(count)}
+        />
       )}
 
       {mainTab === 'dossier' && (
@@ -462,6 +584,13 @@ export default function InvestisseursForumsModule(props) {
               <Field label="Localisation" value={editing ? manualDraft.location : profile.projectSummary?.location} editing={editing} rows={1} onChange={(v) => patchManual({ location: v })} />
               <Field label="Statut du projet" value={editing ? manualDraft.project_status : profile.projectSummary?.legalStatus} editing={editing} rows={1} onChange={(v) => patchManual({ project_status: v })} />
               <Field label="Activités (une par ligne)" value={editing ? manualDraft.activities_notes : (profile.projectSummary?.activities || []).join('\n')} editing={editing} rows={4} onChange={(v) => patchManual({ activities_notes: v })} />
+            </Card>
+          )}
+
+          {dossierSection === 'vision' && (
+            <Card title="Vision & mission" icon={Sparkles}>
+              <Field label="Vision" value={editing ? manualDraft.vision : profile.projectSummary?.vision} editing={editing} rows={4} onChange={(v) => patchManual({ vision: v })} />
+              <Field label="Mission" value={editing ? manualDraft.mission : profile.projectSummary?.mission} editing={editing} rows={4} onChange={(v) => patchManual({ mission: v })} />
             </Card>
           )}
 
@@ -521,6 +650,14 @@ export default function InvestisseursForumsModule(props) {
           {dossierSection === 'risks' && (
             <Card title="Risques & mitigation" icon={ShieldAlert}>
               <Field label="Risques (format « risque → mitigation », une par ligne)" value={editing ? manualDraft.risks_notes : (profile.risksMitigation || []).map((r) => `${r.label} → ${r.mitigation}`).join('\n')} editing={editing} rows={6} onChange={(v) => patchManual({ risks_notes: v })} />
+            </Card>
+          )}
+
+          {dossierSection === 'ai' && (
+            <Card title="Innovation IA" icon={Bot}>
+              <Field label="Titre / headline" value={editing ? manualDraft.ai_headline : profile.aiInnovation?.headline} editing={editing} rows={2} onChange={(v) => patchManual({ ai_headline: v })} />
+              <Field label="Différenciateur" value={editing ? manualDraft.ai_differentiator : profile.aiInnovation?.differentiator} editing={editing} rows={3} onChange={(v) => patchManual({ ai_differentiator: v })} />
+              <Field label="Modules IA (une par ligne)" value={editing ? manualDraft.ai_modules : (profile.aiInnovation?.modules || []).join('\n')} editing={editing} rows={5} onChange={(v) => patchManual({ ai_modules: v })} />
             </Card>
           )}
 
@@ -640,7 +777,9 @@ export default function InvestisseursForumsModule(props) {
         </Card>
       )}
 
-      {mainTab === 'demo' && <InvestisseurDemoPanel />}
+      {mainTab === 'demo' && (
+        <InvestisseurDemoPanel onDemoProgress={(count) => setDemoCompleted(count >= 4)} />
+      )}
 
       <div className="rounded-xl border border-dashed border-[#d6c3a0] bg-[#fffdf8]/80 p-3 text-xs text-[#8a7456] flex items-start gap-2">
         <Bot size={14} className="shrink-0 mt-0.5" />

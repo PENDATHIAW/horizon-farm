@@ -7,6 +7,8 @@ const lines = (text = '') => String(text || '').split('\n').map((l) => l.trim())
 
 export const EMPTY_MANUAL_CONTENT = {
   project_pitch: '',
+  vision: '',
+  mission: '',
   founder_name: '',
   founder_role: '',
   founder_highlights: '',
@@ -23,6 +25,9 @@ export const EMPTY_MANUAL_CONTENT = {
   objectives_6m: '',
   objectives_12m: '',
   objectives_3y: '',
+  ai_headline: '',
+  ai_differentiator: '',
+  ai_modules: '',
   audience_messages: {},
   dossier_status: 'brouillon',
 };
@@ -51,6 +56,8 @@ export function mergeInvestorForumProfile(autoProfile = {}, manual = {}) {
     projectSummary: {
       ...autoProfile.projectSummary,
       pitch: m.project_pitch || autoProfile.projectSummary?.pitch,
+      vision: m.vision || autoProfile.projectSummary?.vision || '',
+      mission: m.mission || autoProfile.projectSummary?.mission || '',
       location: m.location || autoProfile.projectSummary?.location,
       legalStatus: m.project_status || autoProfile.projectSummary?.legalStatus,
       activities: m.activities_notes
@@ -75,6 +82,14 @@ export function mergeInvestorForumProfile(autoProfile = {}, manual = {}) {
     },
     needsSought: mergeNeeds(autoProfile.needsSought, m.needs_notes),
     risksMitigation: mergeRisks(autoProfile.risksMitigation, m.risks_notes),
+    aiInnovation: {
+      ...autoProfile.aiInnovation,
+      headline: m.ai_headline || autoProfile.aiInnovation?.headline,
+      differentiator: m.ai_differentiator || autoProfile.aiInnovation?.differentiator,
+      modules: m.ai_modules
+        ? lines(m.ai_modules)
+        : autoProfile.aiInnovation?.modules,
+    },
     audienceMessages: m.audience_messages || {},
   };
 

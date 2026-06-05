@@ -279,6 +279,44 @@ export async function runInvestorDemoScenario(scenarioId, dataMap = buildInvesto
   }
 }
 
+/** Parcours visuel 4 colonnes pour la démo investisseur. */
+export function buildInvestorDemoFlow(result = {}) {
+  if (result.id === 'whatsapp_horizon') {
+    return [
+      { key: 'input', label: 'Donnée de départ', body: result.message, tone: 'neutral' },
+      { key: 'ai', label: 'Traitement IA', body: result.summary || 'Analyse NLP + génération brouillons', tone: 'primary' },
+      { key: 'erp', label: 'Impact ERP', body: (result.impacts || []).map((i) => `${i.label} : ${i.detail}`).join('\n'), tone: 'warn' },
+      { key: 'investor', label: 'Résultat investisseur', body: result.headline || 'Vente terrain capturée sans ressaisie — traçabilité et rapidité.', tone: 'good' },
+    ];
+  }
+  if (result.id === 'ocr_intelligent') {
+    return [
+      { key: 'input', label: 'Donnée de départ', body: `${result.invoice?.fournisseur} · ${money(result.invoice?.montant_total)}`, tone: 'neutral' },
+      { key: 'ai', label: 'Traitement IA', body: result.headline || 'OCR + comparaison prix + diagnostic marge', tone: 'primary' },
+      { key: 'erp', label: 'Impact ERP', body: (result.bullets || []).slice(0, 3).join('\n') || 'Brouillon achat/stock/dépense proposé', tone: 'warn' },
+      { key: 'investor', label: 'Résultat investisseur', body: result.recommendation || 'Maîtrise des coûts et marges en temps réel.', tone: 'good' },
+    ];
+  }
+  if (result.id === 'hey_horizon_brief') {
+    return [
+      { key: 'input', label: 'Donnée de départ', body: result.phrase, tone: 'neutral' },
+      { key: 'ai', label: 'Traitement IA', body: result.headline || 'Brief vocal hebdomadaire', tone: 'primary' },
+      { key: 'erp', label: 'Impact ERP', body: (result.sections || []).slice(0, 4).map((s) => `${s.label} : ${s.value || s.detail}`).join('\n'), tone: 'warn' },
+      { key: 'investor', label: 'Résultat investisseur', body: 'Pilotage quotidien sans tableur — décisions fondatrice accélérées.', tone: 'good' },
+    ];
+  }
+  if (result.id === 'horizon_forecast') {
+    const m = result.metrics || {};
+    return [
+      { key: 'input', label: 'Donnée de départ', body: result.phrase, tone: 'neutral' },
+      { key: 'ai', label: 'Traitement IA', body: result.headline || 'Simulation Forecast Engine', tone: 'primary' },
+      { key: 'erp', label: 'Impact ERP', body: `ROI ${m.roiPercent != null ? `${Math.round(m.roiPercent)}%` : '—'} · Trésorerie ${money(m.treasuryNeed)} · Marge ${money(m.estimatedMargin)}`, tone: 'warn' },
+      { key: 'investor', label: 'Résultat investisseur', body: `Recommandation : ${result.recommendation || 'Décision chiffrée avant investissement.'}`, tone: 'good' },
+    ];
+  }
+  return [];
+}
+
 /** Lance les 4 scénarios en séquence (preview). */
 export async function runFullInvestorDemo(dataMap = buildInvestorDemoDataMap()) {
   const steps = [];

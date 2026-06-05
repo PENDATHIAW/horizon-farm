@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import {
   INVESTOR_DEMO_MODE_LABEL,
   INVESTOR_DEMO_SCENARIOS,
+  buildInvestorDemoFlow,
   runFullInvestorDemo,
   runInvestorDemoScenario,
 } from '../services/investorForums/investorDemoOrchestrator.js';
@@ -185,7 +186,31 @@ function ScenarioResult({ result }) {
 
 const money = (value) => fmtCurrency(Number(value || 0));
 
-export default function InvestisseurDemoPanel() {
+function DemoFlowGrid({ result }) {
+  const steps = buildInvestorDemoFlow(result);
+  if (!steps.length) return null;
+  const toneCls = {
+    neutral: 'border-[#eadcc2] bg-white',
+    primary: 'border-violet-200 bg-violet-50',
+    warn: 'border-amber-200 bg-amber-50',
+    good: 'border-emerald-200 bg-emerald-50',
+  };
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+      {steps.map((step, index) => (
+        <div key={step.key} className={`rounded-xl border p-3 ${toneCls[step.tone] || toneCls.neutral}`}>
+          <p className="text-[10px] font-black uppercase tracking-widest text-[#8a7456] flex items-center gap-1">
+            <span className="rounded-full bg-[#2f2415] text-white w-5 h-5 inline-flex items-center justify-center text-[10px]">{index + 1}</span>
+            {step.label}
+          </p>
+          <p className="mt-2 text-sm text-[#2f2415] whitespace-pre-wrap">{step.body}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function InvestisseurDemoPanel({ onDemoProgress }) {
   const [activeStep, setActiveStep] = useState(0);
   const [results, setResults] = useState({});
   const [running, setRunning] = useState(null);
@@ -202,6 +227,7 @@ export default function InvestisseurDemoPanel() {
     try {
       const result = await runInvestorDemoScenario(scenario.id);
       setResults((prev) => ({ ...prev, [scenario.id]: result }));
+      onDemoProgress?.(Object.keys({ ...results, [scenario.id]: result }).length);
       return result;
     } catch (error) {
       toast.error(error.message || 'Démo impossible');
@@ -218,6 +244,7 @@ export default function InvestisseurDemoPanel() {
       const full = await runFullInvestorDemo();
       const mapped = Object.fromEntries(full.steps.map((step) => [step.id, step]));
       setResults(mapped);
+      onDemoProgress?.(scenarios.length);
       toast.success('Démo complète prête');
     } catch (error) {
       toast.error(error.message || 'Démo impossible');
@@ -315,6 +342,7 @@ export default function InvestisseurDemoPanel() {
 
         {currentResult ? (
           <>
+            <DemoFlowGrid result={currentResult} />
             <ScenarioResult result={currentResult} />
             <p className="flex items-center gap-2 text-xs text-emerald-800">
               <ShieldCheck size={14} />

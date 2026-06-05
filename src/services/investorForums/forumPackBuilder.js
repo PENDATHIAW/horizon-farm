@@ -43,6 +43,8 @@ function sectionBody(profile, adapted, readiness) {
 
   return [
     { title: 'Résumé du projet', body: adapted.executiveSummary || profile.tagline },
+    { title: 'Vision', body: profile.projectSummary?.vision || 'Vision à préciser.' },
+    { title: 'Mission', body: profile.projectSummary?.mission || 'Mission à préciser.' },
     { title: 'Profil fondatrice', body: `${profile.founderProfile?.name || '—'} — ${profile.founderProfile?.role || ''}. ${arr(profile.founderProfile?.highlights).join(' · ')}` },
     { title: 'Activités', body: arr(profile.activities).map((a) => `${a.label} : ${a.detail}`).join('\n') },
     { title: 'Chiffres clés', body: `CA ERP ${money(profile.keyFigures?.ca_erp)} · Encaissements ${money(profile.keyFigures?.encaissements)} · Trésorerie ${money(profile.keyFigures?.resultat_tresorerie)} · CA BP ${money(profile.keyFigures?.ca_bp_annuel)}` },

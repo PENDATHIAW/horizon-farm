@@ -73,10 +73,13 @@ test('mergeInvestorForumProfile conserve keyFigures auto', () => {
     ...EMPTY_MANUAL_CONTENT,
     project_pitch: 'Pitch personnalisé Horizon Farm pour investisseurs.',
     location: 'Thiès, Sénégal',
+    vision: 'Devenir la référence avicole-bovine pilotée par la donnée au Sénégal.',
+    mission: 'Produire localement avec traçabilité ERP et impact social mesurable.',
   });
   assert.equal(merged.keyFigures.ca_erp, caBefore);
   assert.ok(merged.projectSummary.pitch.includes('Pitch personnalisé'));
   assert.equal(merged.projectSummary.location, 'Thiès, Sénégal');
+  assert.ok(merged.projectSummary.vision.includes('référence'));
 });
 
 test('computeForumReadinessScore inclut checklist préparation', () => {
