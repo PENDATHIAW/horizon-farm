@@ -352,6 +352,7 @@ export function buildBpCostCompletionWorkflow(cost = {}, result = {}) {
     reste_a_realiser: Math.max(0, planned - amount),
     date_realisation: date,
     realized_at: now(),
+    linked_record_id: result.linked_record_id || result.assetId || result.asset_id || cost.linked_record_id || '',
     linked_finance_transaction_id: finance?.financeTransaction?.id || result.finance_transaction_id || cost.linked_finance_transaction_id || '',
     concretized_at: now(),
     concretization_source: result.source || 'module_metier',
@@ -690,12 +691,14 @@ export function buildBpLineCompletionWorkflow(line = {}, result = {}) {
     montant_reel: amount,
     date_realisation: date,
     realized_at: now(),
+    linked_record_id: assetId || line.linked_record_id || '',
     asset_module: assetModule,
     asset_id: assetId,
     asset_created_at: now(),
     asset_status: 'cree',
     concretized_at: now(),
     concretization_source: result.source || 'module_metier',
+    issue_key: result.issue_key || line.issue_key || finance?.event?.id || '',
   };
   return {
     linePatch,
