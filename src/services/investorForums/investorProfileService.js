@@ -11,7 +11,7 @@ import {
 } from '../heyHorizonCore/index.js';
 import { HORIZON_FARM_OFFICIAL_BP } from '../horizonFarmOfficialBusinessPlan.js';
 
-export const HORIZON_FARM_TAGLINE = 'Horizon Farm : une ferme avicole et bovine pilotée par la donnée, pensée pour les réalités agricoles africaines.';
+export const HORIZON_FARM_TAGLINE = 'Horizon Farm est une entreprise agricole intégrée qui combine élevage, agriculture, technologies numériques et intelligence artificielle afin de construire un modèle agricole moderne, rentable, durable et reproductible en Afrique.';
 
 export const INVESTOR_FORUMS_SOURCE = 'investisseurs_forums';
 
@@ -176,7 +176,7 @@ export function buildInvestorForumProfile({ crud = {}, dataMap = {}, liveMeteo =
     projectSummary: {
       title: official.identity?.projectName || 'HORIZON FARM',
       tagline: HORIZON_FARM_TAGLINE,
-      pitch: `${HORIZON_FARM_TAGLINE} Production intégrée : œufs, poulets de chair, embouche bovine et cultures. Pilotage quotidien via ERP Horizon Farm.`,
+      pitch: `${HORIZON_FARM_TAGLINE} Entreprise agricole intégrée pilotée par Horizon Farm ERP et Hey Horizon AI.`,
       legalStatus: official.identity?.legalStatus || 'À préciser',
       location: normalizedMap.farm_location || 'Sénégal · site à préciser',
       activities: ['Aviculture pondeuses', 'Poulets de chair', 'Embouche bovine', 'Cultures', 'Commercialisation structurée'],

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Bot, Briefcase, Building2, CheckCircle2, Download, Eye, FileText, FolderOpen, Handshake, Heart,
-  History, Landmark, Lightbulb, Pencil, Play, Save, ShieldAlert, Sparkles, Target, Trash2,
+  History, Landmark, LayoutDashboard, Lightbulb, Pencil, Play, Save, ShieldAlert, Sparkles, Target, Trash2,
   TrendingUp, Users, X, Zap,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -28,11 +28,26 @@ import {
 import { fmtCurrency } from '../utils/format.js';
 import InvestisseurDemoPanel from './InvestisseurDemoPanel.jsx';
 import InvestorDossierLibrary from '../components/investorForums/InvestorDossierLibrary.jsx';
+import InvestorCrmPanel from '../components/investorForums/InvestorCrmPanel.jsx';
+import {
+  InvestorFounderSection,
+  InvestorKpiSection,
+  InvestorObjectivesSection,
+  InvestorRoomHero,
+  InvestorScoreSection,
+  InvestorSeekingSection,
+  InvestorTimelineSection,
+  InvestorVisionMissionSection,
+  InvestorWhyInvestSection,
+} from '../components/investorForums/InvestorRoomPanels.jsx';
+import { applyInvestorRoomDefaults } from '../services/investorForums/investorRoomDefaults.js';
 
 const MAIN_TABS = [
+  { id: 'room', label: 'Investor Room', icon: LayoutDashboard },
   { id: 'preparation', label: 'Préparation', icon: CheckCircle2 },
   { id: 'dossier', label: 'Dossier', icon: FileText },
-  { id: 'library', label: 'Documents du dossier', icon: FolderOpen },
+  { id: 'library', label: 'Data Room', icon: FolderOpen },
+  { id: 'crm', label: 'CRM', icon: Users },
   { id: 'preview', label: 'Aperçu dossier', icon: Eye },
   { id: 'export', label: 'Exports PDF', icon: Download },
   { id: 'history', label: 'Historique', icon: History },
@@ -164,7 +179,7 @@ function PreviewSection({ section }) {
 }
 
 export default function InvestisseursForumsModule(props) {
-  const [mainTab, setMainTab] = useState('preparation');
+  const [mainTab, setMainTab] = useState('room');
   const [dossierSection, setDossierSection] = useState('project');
   const [audienceKey, setAudienceKey] = useState('investisseur_prive');
   const [editing, setEditing] = useState(false);
@@ -214,7 +229,7 @@ export default function InvestisseursForumsModule(props) {
   const loadStorage = useCallback(async () => {
     const row = await loadInvestorForumProfile();
     setProfileRow(row);
-    setManualDraft(manualContentFromRow(row));
+    setManualDraft(applyInvestorRoomDefaults(manualContentFromRow(row)));
     const history = await listInvestorForumExports();
     setExportHistory(history);
   }, []);
@@ -326,21 +341,21 @@ export default function InvestisseursForumsModule(props) {
   const audienceMessage = manualDraft.audience_messages?.[audienceKey] ?? '';
 
   return (
-    <div className="space-y-6 pb-8">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-gradient-to-br from-white to-[#fffdf8] p-5 shadow-md">
+    <div className="space-y-6 pb-8 bg-gradient-to-b from-slate-50/80 to-white min-h-full">
+      <section className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black flex items-center gap-2">
+            <p className="text-xs uppercase tracking-[0.25em] text-teal-700 font-black flex items-center gap-2">
               <Handshake size={16} />
               Investisseurs & Forums
             </p>
-            <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Espace préparation de dossier</h1>
+            <h1 className="mt-1 text-2xl font-black text-slate-900">Investor Room · Data Room professionnelle</h1>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <StatusBadge badge={readiness.badge} tone={readiness.badge_tone} />
             </div>
-            <p className="mt-2 text-sm text-[#8a7456] max-w-3xl italic">{HORIZON_FARM_TAGLINE}</p>
-            <p className="mt-1 text-sm text-[#8a7456] max-w-3xl">
-              Chiffres lus depuis Finance / Commercial / Stock / Élevage — textes stratégiques éditables et exportables.
+            <p className="mt-2 text-sm text-slate-600 max-w-3xl">{HORIZON_FARM_TAGLINE}</p>
+            <p className="mt-1 text-sm text-slate-500 max-w-3xl">
+              Convaincre investisseurs, banques, ONG, incubateurs et forums — chiffres ERP + contenus éditables + exports PDF.
             </p>
             {props.periodLabel ? (
               <div className="mt-2">
@@ -468,7 +483,7 @@ export default function InvestisseursForumsModule(props) {
         )}
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="flex gap-2 overflow-x-auto pb-1 sticky top-0 z-10 bg-gradient-to-b from-slate-50/95 to-transparent py-2">
         {MAIN_TABS.map((tab) => (
           <TabButton
             key={tab.id}
@@ -480,6 +495,30 @@ export default function InvestisseursForumsModule(props) {
           </TabButton>
         ))}
       </div>
+
+      {mainTab === 'room' && (
+        <div className="space-y-6">
+          <InvestorRoomHero
+            profile={profile}
+            readiness={readiness}
+            dossierFileCount={dossierFileCount}
+            exportCount={exportHistory.length}
+            editing={editing}
+            manualDraft={manualDraft}
+            onPatch={patchManual}
+          />
+          <InvestorScoreSection readiness={readiness} onAction={handleScoreAction} />
+          <InvestorFounderSection profile={profile} editing={editing} manualDraft={manualDraft} onPatch={patchManual} />
+          <InvestorVisionMissionSection profile={profile} editing={editing} manualDraft={manualDraft} onPatch={patchManual} />
+          <InvestorWhyInvestSection profile={profile} editing={editing} manualDraft={manualDraft} onPatch={patchManual} />
+          <InvestorSeekingSection profile={profile} editing={editing} manualDraft={manualDraft} onPatch={patchManual} />
+          <InvestorObjectivesSection profile={profile} editing={editing} manualDraft={manualDraft} onPatch={patchManual} />
+          <InvestorKpiSection profile={profile} readiness={readiness} />
+          <InvestorTimelineSection profile={profile} editing={editing} manualDraft={manualDraft} onPatch={patchManual} />
+        </div>
+      )}
+
+      {mainTab === 'crm' && <InvestorCrmPanel />}
 
       {mainTab === 'preparation' && (
         <div className="space-y-4">
@@ -598,6 +637,7 @@ export default function InvestisseursForumsModule(props) {
             <Card title="Profil fondatrice" icon={Users}>
               <Field label="Nom" value={editing ? manualDraft.founder_name : profile.founderProfile?.name} editing={editing} rows={1} onChange={(v) => patchManual({ founder_name: v })} />
               <Field label="Rôle" value={editing ? manualDraft.founder_role : profile.founderProfile?.role} editing={editing} rows={1} onChange={(v) => patchManual({ founder_role: v })} />
+              <Field label="Récit fondatrice" value={editing ? manualDraft.founder_story : profile.founderProfile?.story} editing={editing} rows={5} onChange={(v) => patchManual({ founder_story: v })} />
               <Field label="Points clés (une par ligne)" value={editing ? manualDraft.founder_highlights : (profile.founderProfile?.highlights || []).join('\n')} editing={editing} rows={5} onChange={(v) => patchManual({ founder_highlights: v })} />
             </Card>
           )}
@@ -778,7 +818,7 @@ export default function InvestisseursForumsModule(props) {
       )}
 
       {mainTab === 'demo' && (
-        <InvestisseurDemoPanel onDemoProgress={(count) => setDemoCompleted(count >= 4)} />
+        <InvestisseurDemoPanel onDemoProgress={(count) => setDemoCompleted(count >= 5)} />
       )}
 
       <div className="rounded-xl border border-dashed border-[#d6c3a0] bg-[#fffdf8]/80 p-3 text-xs text-[#8a7456] flex items-start gap-2">

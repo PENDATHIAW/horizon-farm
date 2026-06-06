@@ -7,6 +7,7 @@ import { computeForumReadinessScore, PREPARATION_CHECKLIST } from '../../src/ser
 import { adaptProfileForAudience, FORUM_AUDIENCES } from '../../src/services/investorForums/forumAudienceAdapter.js';
 import { buildForumPack, forumPackToExportPayload, FORUM_PACK_TYPES, renderForumPackPdfBlob } from '../../src/services/investorForums/forumPackBuilder.js';
 import { mergeInvestorForumProfile, EMPTY_MANUAL_CONTENT } from '../../src/services/investorForums/mergeInvestorForumProfile.js';
+import { applyInvestorRoomDefaults } from '../../src/services/investorForums/investorRoomDefaults.js';
 
 const emptyCrud = {};
 const sampleCrud = {
@@ -100,6 +101,21 @@ test('renderForumPackPdfBlob produit un blob', () => {
   assert.ok(filename.endsWith('.pdf'));
 });
 
+test('applyInvestorRoomDefaults remplit champs vides sans écraser', () => {
+  const filled = applyInvestorRoomDefaults({ ...EMPTY_MANUAL_CONTENT, vision: 'Vision custom conservée.' });
+  assert.equal(filled.vision, 'Vision custom conservée.');
+  assert.ok(filled.mission.length > 20);
+  assert.ok(Array.isArray(filled.why_invest) && filled.why_invest.length >= 10);
+  assert.ok(filled.timeline.length >= 3);
+});
+
+test('mergeInvestorForumProfile expose investorRoom et founder story', () => {
+  const profile = buildInvestorForumProfile({ crud: sampleCrud, dataMap: composeDecisionDataMap({ crud: sampleCrud, dataMap: {} }) });
+  const merged = mergeInvestorForumProfile(profile, applyInvestorRoomDefaults(EMPTY_MANUAL_CONTENT));
+  assert.ok(merged.investorRoom?.whyInvest?.length >= 10);
+  assert.ok(merged.founderProfile?.story?.includes('Penda'));
+});
+
 test('FORUM_AUDIENCES couvre les cibles demandées', () => {
   assert.ok(FORUM_AUDIENCES.investisseur_prive);
   assert.ok(FORUM_AUDIENCES.banque);
@@ -108,5 +124,8 @@ test('FORUM_AUDIENCES couvre les cibles demandées', () => {
   assert.ok(FORUM_AUDIENCES.partenaire_technique);
   assert.ok(FORUM_PACK_TYPES.fiche_projet);
   assert.ok(FORUM_PACK_TYPES.dossier_investisseur);
+  assert.ok(FORUM_PACK_TYPES.dossier_banque);
+  assert.ok(FORUM_PACK_TYPES.dossier_ong);
+  assert.ok(FORUM_PACK_TYPES.one_pager);
   assert.ok(FORUM_PACK_TYPES.pitch_deck);
 });

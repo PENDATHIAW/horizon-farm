@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Download, FilePlus2, Link2, Paperclip, Trash2 } from 'lucide-react';
+import { Download, Eye, FilePlus2, Link2, Paperclip, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
   addInvestorForumDocument,
@@ -15,6 +15,11 @@ function downloadDataUrl(dataUrl, filename) {
   anchor.href = dataUrl;
   anchor.download = filename || 'document';
   anchor.click();
+}
+
+function previewDataUrl(dataUrl) {
+  if (!dataUrl) return;
+  window.open(dataUrl, '_blank', 'noopener');
 }
 
 export default function InvestorDossierLibrary({ erpDocuments = [], onRefresh }) {
@@ -92,13 +97,13 @@ export default function InvestorDossierLibrary({ erpDocuments = [], onRefresh })
 
   return (
     <div className="space-y-5">
-      <section className="rounded-2xl border border-[#eadcc2] bg-white p-5 shadow-sm">
-        <p className="flex items-center gap-2 font-black text-[#2f2415]">
+      <section className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-5 shadow-sm">
+        <p className="flex items-center gap-2 font-black text-slate-900">
           <Paperclip size={18} />
-          Documents du dossier
+          Data Room — Documents du dossier
         </p>
-        <p className="mt-2 text-sm text-[#8a7456]">
-          Business plan, photos, devis, factures, justificatifs, captures ERP, rapports et attestations — pièces jointes au dossier investisseur.
+        <p className="mt-2 text-sm text-slate-600">
+          Business plan, prévisionnel, CV, présentation ERP, captures, rapports, photos, administratif, contrats, devis et attestations — upload, aperçu, versionning et téléchargement.
         </p>
 
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -178,20 +183,31 @@ export default function InvestorDossierLibrary({ erpDocuments = [], onRefresh })
                       <p className="font-black text-[#2f2415]">{file.title}</p>
                       <p className="text-xs text-[#8a7456] mt-0.5">
                         {categoryLabel(file.category)} · {file.filename}
+                        {file.version_label ? ` · ${file.version_label}` : ''}
                         {file.erp_document_id ? ' · ERP' : ''}
                         {file.created_at ? ` · ${new Date(file.created_at).toLocaleDateString('fr-FR')}` : ''}
                       </p>
                     </div>
                     <div className="flex gap-2 shrink-0">
                       {blob ? (
-                        <button
-                          type="button"
-                          onClick={() => downloadDataUrl(blob, file.filename)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-[#d6c3a0] px-3 py-1.5 text-xs font-bold"
-                        >
-                          <Download size={12} />
-                          Télécharger
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => previewDataUrl(blob)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold"
+                          >
+                            <Eye size={12} />
+                            Aperçu
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => downloadDataUrl(blob, file.filename)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-[#d6c3a0] px-3 py-1.5 text-xs font-bold"
+                          >
+                            <Download size={12} />
+                            Télécharger
+                          </button>
+                        </>
                       ) : null}
                       <button
                         type="button"
