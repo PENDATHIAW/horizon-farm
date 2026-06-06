@@ -8,9 +8,7 @@ import {
   BP_LINE_STATUS,
   bpCostPlannedAmount,
   bpLineStatusLabel,
-  buildBpCostConcretizationRoute,
   buildBpLineStatusPatch,
-  canConcretizeBpCost,
   isBpCostEditable,
   launchBpCostConcretization,
   normalizeBpLineStatus,
@@ -18,6 +16,7 @@ import {
 import { HORIZON_FARM_OFFICIAL_BP } from '../../services/horizonFarmOfficialBusinessPlan.js';
 import { getInvestorReadySummary } from '../../services/heyHorizonCore/index.js';
 import { fmtCurrency } from '../../utils/format.js';
+import BpLineActionsMenu from './BpLineActionsMenu.jsx';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v) => Number(v || 0);
@@ -121,7 +120,7 @@ export function BpDistributionNav({
       </div>
       <p className="text-[11px] text-[#8a7456] flex items-center gap-1">
         <FileText size={12} />
-        Actions disponibles sur chaque ligne : Concrétiser · Modifier · Reporter · Annuler · Lier opération réelle
+        Actions disponibles sur chaque ligne : Concrétiser · Compléter · Joindre preuve · Voir opération — menu « … » pour réparer une liaison exceptionnelle.
       </p>
     </section>
   );
@@ -267,7 +266,8 @@ export function BpMonthlyCostsPanel({
   onRefreshBpRecurringCosts,
   needsSync = false,
   onRequestSync,
-  onLinkFinance,
+  transactions = [],
+  onLineAction,
 }) {
   const rows = arr(costs);
   const monthlyTotal = rows.reduce((s, r) => s + n(r.montant_mensuel ?? r.amount ?? r.montant), 0);
@@ -282,24 +282,6 @@ export function BpMonthlyCostsPanel({
       if (!result.ok) return toast.error('Impossible d’ouvrir la fiche de cette charge.');
       return;
     }
-    try {
-      await onUpdateBpRecurringCost?.(cost.id, buildBpLineStatusPatch(status));
-      await onRefreshBpRecurringCosts?.();
-      toast.success(`Statut · ${bpLineStatusLabel(status)}`);
-    } catch (error) {
-      toast.error(error.message || 'Statut impossible');
-    }
-  };
-
-  const openCostConcretization = (cost, { partial = false } = {}) => {
-    const result = launchBpCostConcretization(cost, { onNavigate, partial });
-    if (!result.ok) return toast.error('Cette charge ne peut pas encore être ouverte dans un module.');
-    const mod = result.route?.navigate?.module;
-    toast.success(`Ouverture fiche · ${MODULE_LABELS[mod] || mod || 'module'}…`);
-  };
-
-  const quickStatus = async (cost, status) => {
-    if (!isBpCostEditable(cost)) return toast.error('Resynchronisez le BP pour modifier cette charge.');
     try {
       await onUpdateBpRecurringCost?.(cost.id, buildBpLineStatusPatch(status));
       await onRefreshBpRecurringCosts?.();
@@ -368,8 +350,6 @@ export function BpMonthlyCostsPanel({
           <tbody>
             {rows.map((r, i) => {
               const status = normalizeBpLineStatus(r);
-              const canDo = canConcretizeBpCost(r) && buildBpCostConcretizationRoute(r);
-              const isPartial = status === BP_LINE_STATUS.CONCRETISE_PARTIEL;
               return (
                 <tr key={r.id || i} className="border-t border-[#eadcc2]">
                   <td className="px-3 py-2 font-bold text-[#2f2415]">{bpCostLabel(r)}</td>
@@ -393,24 +373,13 @@ export function BpMonthlyCostsPanel({
                     )}
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <div className="flex flex-wrap gap-1 justify-end">
-                      {canDo ? (
-                        <button
-                          type="button"
-                          onClick={() => openCostConcretization(r, { partial: isPartial })}
-                          className="rounded-lg bg-[#2f2415] px-2 py-1 text-[10px] font-black text-white"
-                        >
-                          {isPartial ? 'Compléter' : 'Concrétiser'}
-                        </button>
-                      ) : null}
-                      {isBpCostEditable(r) ? (
-                        <>
-                          <button type="button" onClick={() => quickStatus(r, BP_LINE_STATUS.REPORTE)} className="rounded-lg border border-[#eadcc2] px-2 py-1 text-[10px] font-bold">Reporter</button>
-                          <button type="button" onClick={() => quickStatus(r, BP_LINE_STATUS.ANNULE)} className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-bold text-red-800">Annuler</button>
-                          <button type="button" onClick={() => onLinkFinance?.(r)} className="rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-[10px] font-bold text-sky-900">Lier op.</button>
-                        </>
-                      ) : null}
-                    </div>
+                    <BpLineActionsMenu
+                      line={r}
+                      kind="cost"
+                      transactions={transactions}
+                      onAction={onLineAction}
+                      compact
+                    />
                   </td>
                 </tr>
               );

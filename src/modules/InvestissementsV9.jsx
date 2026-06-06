@@ -41,6 +41,13 @@ import {
 } from '../components/investments/InvestmentsFinancePanels.jsx';
 import FinancialPlanPanel from './FinancialPlanPanel.jsx';
 import InvestmentQualityControl from './InvestmentQualityControl.jsx';
+import BpLineActionsMenu, { useBpLineActionHandlers } from '../components/investments/BpLineActionsMenu.jsx';
+import { openDocumentProofFromTransaction } from '../utils/antiDuplicationGuard.js';
+import {
+  auditBpLineLinkage,
+  buildBpFinanceRepairPatch,
+  navigateToLinkedOperation,
+} from '../utils/bpLineLinkage.js';
 
 const arr = (v) => Array.isArray(v) ? v : [];
 const low = (v = '') => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -182,7 +189,10 @@ async function finalizeBpCostCompletion(detail, props) {
       props.onRefreshBpRecurringCosts?.(),
       props.onRefreshBusinessEvents?.(),
     ]);
-    toast.success(`Charge enregistrée · ${bpCostLabel(cost)}`);
+    const merged = { ...cost, ...workflow.linePatch };
+    const audit = auditBpLineLinkage(merged, { kind: 'cost' });
+    if (audit.linkageIssue) toast.error(audit.linkageMessage || 'Opération créée mais non liée — réparer la liaison.', { duration: 6000 });
+    else toast.success(`Charge enregistrée · ${bpCostLabel(cost)}`);
   } catch (error) {
     toast.error(error.message || 'Mise à jour charge impossible');
   }
@@ -198,7 +208,10 @@ async function finalizeBpLineCompletion(detail, props) {
     await props.onUpdateBpInvestmentLine?.(line.id, workflow.linePatch);
     if (workflow.event?.title) await props.onCreateBusinessEvent?.(workflow.event);
     await Promise.allSettled([props.onRefreshFinances?.(), props.onRefreshDocuments?.(), props.onRefreshBpInvestmentLines?.(), props.onRefreshBusinessEvents?.()]);
-    toast.success(`C’est fait · ${investmentLabel(line)}`);
+    const merged = { ...line, ...workflow.linePatch };
+    const audit = auditBpLineLinkage(merged, { kind: 'investment' });
+    if (audit.linkageIssue) toast.error(audit.linkageMessage || 'Opération créée mais non liée — réparer la liaison.', { duration: 6000 });
+    else toast.success(`C’est fait · ${investmentLabel(line)}`);
   } catch (error) {
     toast.error(error.message || 'Mise à jour impossible');
   }
@@ -294,14 +307,86 @@ export default function InvestissementsV9(props) {
   const linkLineFinance = (line) => {
     const result = launchBpFinanceLink(line, { onNavigate: props.onNavigate });
     if (!result.ok) return toast.error('Liaison finance impossible pour cette ligne.');
-    toast.success(result.linked ? 'Opération déjà liée — Trésorerie ouverte' : 'Fiche finance préparée — validez dans Trésorerie');
+    toast.success(result.linked ? 'Trésorerie ouverte — opération déjà liée' : 'Réparation avancée — validez la fiche Trésorerie');
   };
+
+  const repairAutoLink = async (line, transaction, kind = 'investment') => {
+    if (!transaction?.id) return toast.error('Aucune opération probable trouvée');
+    const patch = buildBpFinanceRepairPatch(line, transaction);
+    try {
+      if (kind === 'cost') {
+        await props.onUpdateBpRecurringCost?.(line.id, patch);
+        await props.onRefreshBpRecurringCosts?.();
+      } else {
+        await props.onUpdateBpInvestmentLine?.(line.id, patch);
+        await props.onRefreshBpInvestmentLines?.();
+      }
+      toast.success('Liaison réparée automatiquement');
+    } catch (error) {
+      toast.error(error.message || 'Réparation impossible');
+    }
+  };
+
+  const handleLineAction = useBpLineActionHandlers({
+    onConcretize: (line, ctx) => {
+      if (ctx.kind === 'cost') openCostConcretization(line);
+      else openConcretization(line);
+    },
+    onComplete: (line, ctx) => {
+      if (ctx.kind === 'cost') openCostConcretization(line, { partial: true });
+      else openConcretization(line);
+    },
+    onEdit: (line) => setEditLine(line),
+    onStatusChange: (line, status, ctx) => {
+      if (ctx?.kind === 'cost') updateCostStatus(line, status);
+      else updateLineStatus(line, status);
+    },
+    onNavigate: props.onNavigate,
+    onLinkRepair: linkLineFinance,
+    onAutoLinkRepair: (line, trx, ctx) => repairAutoLink(line, trx, ctx.kind),
+    onJoinProof: (line) => {
+      const trxId = line.linked_finance_transaction_id || line.transaction_id;
+      if (!trxId) return toast.error('Aucune opération finance à justifier');
+      openDocumentProofFromTransaction(trxId, investmentLabel(line));
+    },
+    onViewOperation: (line, ctx) => {
+      navigateToLinkedOperation(line, { onNavigate: props.onNavigate, kind: ctx.kind });
+    },
+  });
+
+  const brokenLinks = useMemo(() => {
+    const rows = [
+      ...lines.map((line) => ({ line, kind: 'investment', audit: auditBpLineLinkage(line, { kind: 'investment' }) })),
+      ...costs.map((cost) => ({ line: cost, kind: 'cost', audit: auditBpLineLinkage(cost, { kind: 'cost' }) })),
+    ];
+    return rows.filter((row) => row.audit.linkageIssue);
+  }, [lines, costs]);
+
+  const transactions = arr(props.transactions);
 
   const distributionStats = {
     chargesLabel: `${costTotals.count || costs.length} lignes · ${money(costTotals.prevu || monthCosts)}/mois`,
     fundingLabel: `${fundingSources.length || HORIZON_FARM_FUNDING_SOURCES.length} sources`,
     revenueLabel: money(annualRevenue),
     planLabel: `${lines.length} invest. actionnables`,
+  };
+
+  const updateCostStatus = async (cost, status) => {
+    if (!isBpCostEditable(cost)) return toast.error('Resynchronisez le BP pour modifier cette charge.');
+    try {
+      await props.onUpdateBpRecurringCost?.(cost.id, buildBpLineStatusPatch(status));
+      await props.onRefreshBpRecurringCosts?.();
+      toast.success(`Statut · ${bpLineStatusLabel(status)}`);
+    } catch (error) {
+      toast.error(error.message || 'Statut impossible');
+    }
+  };
+
+  const openCostConcretization = (cost, { partial = false } = {}) => {
+    const result = launchBpCostConcretization(cost, { onNavigate: props.onNavigate, partial });
+    if (!result.ok) return toast.error('Cette charge ne peut pas encore être ouverte dans un module.');
+    const mod = result.route?.navigate?.module;
+    toast.success(`Ouverture fiche · ${MODULE_LABELS[mod] || mod || 'module'}…`);
   };
 
   const saveLineEdit = async (payload) => {
@@ -340,17 +425,14 @@ export default function InvestissementsV9(props) {
     },
     {
       label: '',
-      render: (r) => {
-        if (!isBpLineEditable(r)) return null;
-        const canDo = canConcretizeBpLine(r) && buildBpLineConcretizationRoute(r);
-        return <div className="flex flex-wrap gap-1 justify-end">
-          {canDo ? <button type="button" onClick={() => openConcretization(r)} className="rounded-lg bg-[#2f2415] px-2 py-1 text-[10px] font-black text-white">Concrétiser</button> : null}
-          <button type="button" onClick={() => setEditLine(r)} className="rounded-lg border border-[#eadcc2] px-2 py-1 text-[10px] font-black text-[#2f2415]">Modifier</button>
-          <button type="button" onClick={() => updateLineStatus(r, BP_LINE_STATUS.REPORTE)} className="rounded-lg border border-[#eadcc2] px-2 py-1 text-[10px] font-bold">Reporter</button>
-          <button type="button" onClick={() => updateLineStatus(r, BP_LINE_STATUS.ANNULE)} className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-bold text-red-800">Annuler</button>
-          <button type="button" onClick={() => linkLineFinance(r)} className="rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-[10px] font-bold text-sky-900">Lier op.</button>
-        </div>;
-      },
+      render: (r) => (
+        <BpLineActionsMenu
+          line={r}
+          kind="investment"
+          transactions={transactions}
+          onAction={handleLineAction}
+        />
+      ),
     },
   ];
 
@@ -407,11 +489,33 @@ export default function InvestissementsV9(props) {
       {costsNeedDbSync ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><b>Charges BP :</b> resynchronisez le plan pour activer les boutons Concrétiser sur les charges ({dbCostsCount ? `${dbCostsCount} en base` : 'aperçu seul'}).</div> : null}
       {pendingCosts.length ? <div className="space-y-2">
         <p className="text-sm font-black text-[#2f2415]">Charges à concrétiser ({pendingCosts.length})</p>
-        {pendingCosts.slice(0, 4).map((cost) => <button type="button" key={cost.id} onClick={() => launchBpCostConcretization(cost, { onNavigate: props.onNavigate })} className="flex w-full items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-left hover:border-sky-400">
+        {pendingCosts.slice(0, 4).map((cost) => <button type="button" key={cost.id} onClick={() => openCostConcretization(cost)} className="flex w-full items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-left hover:border-sky-400">
           <span><b className="text-[#2f2415]">{bpCostLabel(cost)}</b><span className="ml-2 text-sm text-[#8a7456]">{money(bpCostAmount(cost))}/mois</span></span>
           <span className="flex items-center gap-1 text-xs font-black text-sky-800">Concrétiser <ArrowRight size={14} /></span>
         </button>)}
         {pendingCosts.length > 4 ? <p className="text-xs text-[#8a7456]">+ {pendingCosts.length - 4} dans l’onglet Charges mensuelles.</p> : null}
+      </div> : null}
+      {brokenLinks.length ? <div className="rounded-2xl border border-red-200 bg-red-50 p-4 space-y-2">
+        <p className="flex items-center gap-2 text-sm font-black text-red-800">
+          <AlertTriangle size={16} />
+          Opération créée mais non liée — réparer la liaison ({brokenLinks.length})
+        </p>
+        {brokenLinks.slice(0, 5).map(({ line, kind, audit }) => (
+          <div key={`${kind}-${line.id}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-red-200 bg-white px-3 py-2">
+            <span className="text-sm">
+              <b className="text-[#2f2415]">{kind === 'cost' ? bpCostLabel(line) : investmentLabel(line)}</b>
+              <span className="ml-2 text-xs text-red-700">{audit.linkageMessage}</span>
+            </span>
+            <BpLineActionsMenu
+              line={line}
+              kind={kind}
+              transactions={transactions}
+              onAction={handleLineAction}
+              compact
+            />
+          </div>
+        ))}
+        {brokenLinks.length > 5 ? <p className="text-xs text-red-700">+ {brokenLinks.length - 5} autre(s) liaison(s) à réparer dans les onglets concernés.</p> : null}
       </div> : null}
       <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#5c4a32]">
         <p className="font-black text-[#2f2415]">Répartition du BP (4 onglets xlsx)</p>
@@ -446,7 +550,8 @@ export default function InvestissementsV9(props) {
         onRefreshBpRecurringCosts={props.onRefreshBpRecurringCosts}
         needsSync={costsNeedDbSync}
         onRequestSync={() => syncBp(props, { force: true })}
-        onLinkFinance={linkLineFinance}
+        transactions={transactions}
+        onLineAction={(actionId, ctx) => handleLineAction(actionId, { ...ctx, kind: 'cost' })}
       />
     ) : null}
 
