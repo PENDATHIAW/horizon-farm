@@ -12,6 +12,12 @@ export const EMPTY_MANUAL_CONTENT = {
   founder_name: '',
   founder_role: '',
   founder_highlights: '',
+  founder_story: '',
+  founder_cv: '',
+  founder_education: '',
+  founder_experience: '',
+  founder_skills: '',
+  founder_photo_url: '',
   location: '',
   project_status: '',
   activities_notes: '',
@@ -28,6 +34,10 @@ export const EMPTY_MANUAL_CONTENT = {
   ai_headline: '',
   ai_differentiator: '',
   ai_modules: '',
+  why_invest: [],
+  seeking: {},
+  timeline: [],
+  field_priorities: {},
   audience_messages: {},
   dossier_status: 'brouillon',
 };
@@ -71,6 +81,18 @@ export function mergeInvestorForumProfile(autoProfile = {}, manual = {}) {
       highlights: m.founder_highlights
         ? lines(m.founder_highlights)
         : autoProfile.founderProfile?.highlights,
+      story: m.founder_story || '',
+      cv: m.founder_cv || '',
+      education: m.founder_education || '',
+      experience: m.founder_experience || '',
+      skills: m.founder_skills || '',
+      photoUrl: m.founder_photo_url || '',
+    },
+    investorRoom: {
+      whyInvest: arr(m.why_invest),
+      seeking: m.seeking && typeof m.seeking === 'object' ? m.seeking : {},
+      timeline: arr(m.timeline),
+      fieldPriorities: m.field_priorities && typeof m.field_priorities === 'object' ? m.field_priorities : {},
     },
     socialImpact: {
       ...autoProfile.socialImpact,

@@ -8,6 +8,7 @@ import { parseInvoiceOcrText, INVOICE_OCR_DEMO_SAMPLES } from '../ocrIntelligent
 import { analyzeMarginImpact } from '../ocrIntelligent/marginImpactAnalyzer.js';
 import { buildWeeklyFarmBrief } from '../heyHorizonVoice/farmBriefService.js';
 import { buildForecastReport } from '../horizonForecast/forecastReportBuilder.js';
+import { buildDailyAdvisorRecommendations } from '../horizonAdvisor/advisorService.js';
 import { horizonFarmSimulationSeed } from '../../utils/horizonFarmSimulationSeed.js';
 import { fmtCurrency } from '../../utils/format.js';
 
@@ -48,12 +49,22 @@ export const INVESTOR_DEMO_SCENARIOS = [
   {
     id: 'horizon_forecast',
     order: 4,
-    title: 'Horizon Forecast',
+    title: 'Forecast Engine',
     subtitle: 'Simulation lancement poussins · ROI · trésorerie',
     icon: 'forecast',
     inputLabel: 'Question',
     inputText: 'Puis-je lancer 1 000 poussins le mois prochain ?',
     narrative: 'Avant d\'investir, Horizon simule coûts, marge, besoin de trésorerie et risques — décision éclairée.',
+  },
+  {
+    id: 'horizon_advisor',
+    order: 5,
+    title: 'Horizon Advisor',
+    subtitle: 'Recommandations priorisées · actions ERP · impact financier',
+    icon: 'advisor',
+    inputLabel: 'Contexte',
+    inputText: 'Quelles actions prioritaires pour sécuriser trésorerie et production cette semaine ?',
+    narrative: 'Horizon Advisor agrège santé ERP, stocks, créances et alertes pour proposer des actions concrètes — sans écriture automatique.',
   },
 ];
 
@@ -263,6 +274,43 @@ export function runHorizonForecastDemo(dataMap = buildInvestorDemoDataMap()) {
   };
 }
 
+export function runHorizonAdvisorDemo(dataMap = buildInvestorDemoDataMap()) {
+  const phrase = INVESTOR_DEMO_SCENARIOS[4].inputText;
+  const report = buildDailyAdvisorRecommendations(dataMap, { limit: 6 });
+  const top = report.recommendations?.[0];
+  const financialImpact = report.recommendations
+    ?.filter((r) => /trésorerie|créance|stock|marge|coût|vente/i.test(`${r.title} ${r.summary}`))
+    .slice(0, 3)
+    .map((r) => ({ label: r.title, detail: r.recommended_action, urgency: r.urgency }));
+
+  return {
+    id: 'horizon_advisor',
+    readOnly: true,
+    demoMode: true,
+    title: 'Horizon Advisor',
+    phrase,
+    headline: top?.title || 'Recommandations priorisées du jour',
+    summary: top?.summary || 'Analyse croisée ERP : santé, stocks, créances, production et documents.',
+    recommendations: (report.recommendations || []).slice(0, 5).map((r) => ({
+      id: r.id,
+      title: r.title,
+      action: r.recommended_action,
+      urgency: r.urgency,
+      module: r.module,
+      confidence: r.confidence_score,
+    })),
+    financialImpact: financialImpact?.length ? financialImpact : [{
+      label: 'Pilotage décisionnel',
+      detail: 'Actions priorisées pour sécuriser trésorerie et production',
+      urgency: 'elevee',
+    }],
+    businessValue: 'Décisions quotidiennes accélérées — moins de pertes, meilleure trésorerie, dossier investisseur crédible.',
+    healthScore: report.health_score,
+    counts: report.counts,
+    validationNote: 'Brouillons tâches/alertes — validation Penda requise.',
+  };
+}
+
 /** Exécute un scénario par id. */
 export async function runInvestorDemoScenario(scenarioId, dataMap = buildInvestorDemoDataMap()) {
   switch (scenarioId) {
@@ -274,6 +322,8 @@ export async function runInvestorDemoScenario(scenarioId, dataMap = buildInvesto
       return runHeyHorizonBriefDemo(dataMap);
     case 'horizon_forecast':
       return runHorizonForecastDemo(dataMap);
+    case 'horizon_advisor':
+      return runHorizonAdvisorDemo(dataMap);
     default:
       throw new Error(`Scénario démo inconnu : ${scenarioId}`);
   }
@@ -314,10 +364,18 @@ export function buildInvestorDemoFlow(result = {}) {
       { key: 'investor', label: 'Résultat investisseur', body: `Recommandation : ${result.recommendation || 'Décision chiffrée avant investissement.'}`, tone: 'good' },
     ];
   }
+  if (result.id === 'horizon_advisor') {
+    return [
+      { key: 'input', label: 'Entrée', body: result.phrase, tone: 'neutral' },
+      { key: 'ai', label: 'Analyse', body: (result.recommendations || []).slice(0, 3).map((r) => `${r.title} (${r.urgency})`).join('\n') || result.summary, tone: 'primary' },
+      { key: 'erp', label: 'Résultat', body: (result.recommendations || []).slice(0, 3).map((r) => r.action).join('\n'), tone: 'warn' },
+      { key: 'investor', label: 'Valeur business', body: `${result.businessValue}\nImpact financier : ${(result.financialImpact || []).map((f) => f.label).join(' · ')}`, tone: 'good' },
+    ];
+  }
   return [];
 }
 
-/** Lance les 4 scénarios en séquence (preview). */
+/** Lance les scénarios en séquence (preview). */
 export async function runFullInvestorDemo(dataMap = buildInvestorDemoDataMap()) {
   const steps = [];
   for (const scenario of INVESTOR_DEMO_SCENARIOS) {

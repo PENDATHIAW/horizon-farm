@@ -18,6 +18,7 @@ const SCENARIO_ICONS = {
   ocr_intelligent: ScanLine,
   hey_horizon_brief: Mic,
   horizon_forecast: Calculator,
+  horizon_advisor: Bot,
 };
 
 function DemoBanner() {
@@ -177,6 +178,34 @@ function ScenarioResult({ result }) {
             </ul>
           </ResultCard>
         ) : null}
+      </div>
+    );
+  }
+
+  if (result.id === 'horizon_advisor') {
+    return (
+      <div className="space-y-4">
+        <ResultCard title={result.headline} tone="primary">
+          <p className="italic text-[#7d6a4a]">« {result.phrase} »</p>
+          <p className="mt-2">{result.summary}</p>
+          <p className="mt-2 text-xs">Score santé ERP : {result.healthScore}/100</p>
+        </ResultCard>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {(result.recommendations || []).map((rec) => (
+            <ResultCard key={rec.id} title={rec.title} tone={rec.urgency === 'elevee' ? 'warn' : 'neutral'}>
+              <p>{rec.action}</p>
+              <p className="mt-1 text-[10px] text-[#8a7456]">{rec.module} · confiance {rec.confidence}%</p>
+            </ResultCard>
+          ))}
+        </div>
+        <ResultCard title="Impact financier & valeur business" tone="good">
+          <ul className="space-y-1">
+            {(result.financialImpact || []).map((item) => (
+              <li key={item.label}><b>{item.label}</b> — {item.detail}</li>
+            ))}
+          </ul>
+          <p className="mt-2 font-black">{result.businessValue}</p>
+        </ResultCard>
       </div>
     );
   }

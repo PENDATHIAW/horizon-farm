@@ -13,9 +13,12 @@ import { computeForumReadinessScore } from './forumReadinessScore.js';
 
 export const FORUM_PACK_TYPES = {
   fiche_projet: { id: 'fiche_projet', label: 'Fiche projet 1 page', pages: 1, format: 'portrait' },
+  one_pager: { id: 'one_pager', label: 'One Pager', pages: 1, format: 'portrait' },
   dossier_investisseur: { id: 'dossier_investisseur', label: 'Dossier investisseur', pages: 'multi', format: 'portrait' },
+  dossier_banque: { id: 'dossier_banque', label: 'Dossier banque', pages: 'multi', format: 'portrait' },
+  dossier_ong: { id: 'dossier_ong', label: 'Dossier ONG', pages: 'multi', format: 'portrait' },
   dossier_subvention: { id: 'dossier_subvention', label: 'Dossier subvention', pages: 'multi', format: 'portrait' },
-  pitch_deck: { id: 'pitch_deck', label: 'Pitch deck résumé', pages: 'multi', format: 'landscape' },
+  pitch_deck: { id: 'pitch_deck', label: 'Pitch deck', pages: 'multi', format: 'landscape' },
   rapport_impact: { id: 'rapport_impact', label: 'Rapport impact', pages: 1, format: 'landscape', useModuleReport: true },
   rapport_financier: { id: 'rapport_financier', label: 'Rapport financier simplifié', pages: 1, format: 'landscape', useModuleReport: true },
 };
@@ -27,10 +30,21 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 function packAudienceKey(packType, audienceKey) {
   if (packType === 'dossier_subvention') return 'ong_subvention';
+  if (packType === 'dossier_banque') return 'banque';
+  if (packType === 'dossier_ong') return 'ong_subvention';
   if (packType === 'dossier_investisseur') return audienceKey === 'banque' ? 'banque' : 'investisseur_prive';
   if (packType === 'rapport_impact') return 'ong_subvention';
   if (packType === 'rapport_financier') return 'banque';
+  if (packType === 'one_pager') return audienceKey || 'investisseur_prive';
   return audienceKey || 'investisseur_prive';
+}
+
+function resolvePackDefinition(packType) {
+  if (packType === 'one_pager') return FORUM_PACK_TYPES.one_pager;
+  if (packType === 'dossier_banque' || packType === 'dossier_ong') {
+    return FORUM_PACK_TYPES[packType] || FORUM_PACK_TYPES.dossier_investisseur;
+  }
+  return FORUM_PACK_TYPES[packType] || FORUM_PACK_TYPES.fiche_projet;
 }
 
 function sectionBody(profile, adapted, readiness) {
@@ -119,7 +133,7 @@ function buildDossierPdf(pack) {
  * Construit un pack exportable.
  */
 export function buildForumPack(profile = {}, { audienceKey = 'investisseur_prive', packType = 'fiche_projet' } = {}) {
-  const packDef = FORUM_PACK_TYPES[packType] || FORUM_PACK_TYPES.fiche_projet;
+  const packDef = resolvePackDefinition(packType);
   const resolvedAudienceKey = packAudienceKey(packType, audienceKey);
   const adapted = adaptProfileForAudience(profile, resolvedAudienceKey);
   const readiness = computeForumReadinessScore(profile);

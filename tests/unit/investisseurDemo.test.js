@@ -51,7 +51,14 @@ test('runHorizonForecastDemo simule 1000 poussins', () => {
   assert.ok(result.recommendation);
 });
 
-test('runFullInvestorDemo enchaîne 4 scénarios', async () => {
+test('runHorizonAdvisorDemo produit recommandations', async () => {
+  const result = await runInvestorDemoScenario('horizon_advisor');
+  assert.equal(result.id, 'horizon_advisor');
+  assert.equal(result.readOnly, true);
+  assert.ok(Array.isArray(result.recommendations));
+});
+
+test('runFullInvestorDemo enchaîne tous les scénarios', async () => {
   const full = await runFullInvestorDemo();
   assert.equal(full.demoMode, true);
   assert.equal(full.steps.length, INVESTOR_DEMO_SCENARIOS.length);

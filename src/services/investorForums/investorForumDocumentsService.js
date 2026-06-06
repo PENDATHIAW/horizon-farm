@@ -9,15 +9,19 @@ const DOCS_LOCAL_KEY = 'horizon_investor_forum_documents';
 const BLOB_PREFIX = 'horizon_investor_dossier_file:';
 
 export const DOSSIER_FILE_CATEGORIES = [
-  { id: 'business_plan', label: 'Business plan' },
-  { id: 'photos', label: 'Photos de la ferme' },
+  { id: 'business_plan', label: 'Business Plan' },
+  { id: 'previsionnel', label: 'Prévisionnel financier' },
+  { id: 'cv_fondatrice', label: 'CV fondatrice' },
+  { id: 'presentation_erp', label: 'Présentation ERP' },
+  { id: 'captures_erp', label: 'Captures ERP' },
+  { id: 'rapports_financiers', label: 'Rapports financiers' },
+  { id: 'photos', label: 'Photos exploitation' },
+  { id: 'administratif', label: 'Documents administratifs' },
+  { id: 'contrats', label: 'Contrats' },
   { id: 'devis', label: 'Devis' },
   { id: 'factures', label: 'Factures' },
   { id: 'justificatifs', label: 'Justificatifs' },
-  { id: 'captures_erp', label: 'Captures ERP' },
-  { id: 'rapports_financiers', label: 'Rapports financiers' },
   { id: 'attestations', label: 'Attestations' },
-  { id: 'administratif', label: 'Documents administratifs' },
   { id: 'autre', label: 'Autre' },
 ];
 
@@ -92,6 +96,7 @@ export async function addInvestorForumDocument({
   erpDocumentId,
   notes,
   fileBlob,
+  versionLabel,
 }) {
   const ownerId = await currentOwnerId();
   const id = `doc-${Date.now()}`;
@@ -106,6 +111,10 @@ export async function addInvestorForumDocument({
     });
   }
 
+  const existing = await listInvestorForumDocuments();
+  const sameTitle = existing.filter((d) => d.category === category && d.title === (title || filename));
+  const computedVersion = versionLabel || (sameTitle.length ? `v${sameTitle.length + 1}` : 'v1');
+
   if (dataUrl && dataUrl.length < 2_000_000) {
     storeDossierFileBlob(id, dataUrl);
   }
@@ -119,6 +128,7 @@ export async function addInvestorForumDocument({
     file_url: dataUrl && dataUrl.length < 500_000 ? dataUrl : null,
     erp_document_id: erpDocumentId || null,
     notes: notes || null,
+    version_label: computedVersion,
     created_at: new Date().toISOString(),
   };
 
