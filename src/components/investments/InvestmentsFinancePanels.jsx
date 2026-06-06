@@ -1,4 +1,4 @@
-import { ArrowRight, Handshake, Landmark, PiggyBank, TrendingUp } from 'lucide-react';
+import { ArrowRight, FileText, Handshake, Landmark, PiggyBank, TrendingUp } from 'lucide-react';
 import { useMemo } from 'react';
 import toast from 'react-hot-toast';
 import {
@@ -41,6 +41,90 @@ function buildCoreDataMap(props = {}) {
     fournisseurs: arr(props.fournisseurs),
     documents: arr(props.documents),
   };
+}
+
+/** Guide visuel — où trouver charges, financements, prévisions et plan financier. */
+export function BpDistributionNav({
+  onSelectTab,
+  onNavigate,
+  stats = {},
+}) {
+  const cards = [
+    {
+      id: 'costs',
+      title: 'Charges BP',
+      subtitle: 'Hors investissements actionnables — concrétiser vers Finance, RH, Achats',
+      tab: 'costs',
+      stat: stats.chargesLabel || '—',
+    },
+    {
+      id: 'funding',
+      title: 'Financements',
+      subtitle: 'Besoins, ressources, écart et amortissement',
+      tab: 'funding',
+      stat: stats.fundingLabel || '—',
+    },
+    {
+      id: 'forecasts',
+      title: 'Revenus & prévisions',
+      subtitle: 'CA mensuel BP — comparer avec Suivi réel et Objectifs',
+      tab: 'forecasts',
+      stat: stats.revenueLabel || '—',
+    },
+    {
+      id: 'plan',
+      title: 'Suivi réel',
+      subtitle: 'Prévu vs réalisé sur le BP',
+      tab: 'plan',
+      stat: stats.planLabel || 'Prévu / réel',
+    },
+    {
+      id: 'documents',
+      title: 'Plan financier à imprimer',
+      subtitle: 'Synthèse lecture seule — Documents & Rapports',
+      external: 'documents_rapports',
+      stat: 'PDF / export',
+    },
+  ];
+
+  return (
+    <section className="rounded-3xl border border-[#d6c3a0] bg-gradient-to-br from-[#fffdf8] to-white p-5 shadow-sm space-y-3">
+      <div>
+        <p className="text-xs font-black uppercase tracking-widest text-[#8a7456]">Répartition BP visible</p>
+        <p className="mt-1 text-sm text-[#7d6a4a]">
+          Investissements = lignes actionnables uniquement. Charges, financements et prévisions ont leurs onglets dédiés ci-dessous.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+        {cards.map((card) => (
+          <button
+            key={card.id}
+            type="button"
+            onClick={() => {
+              if (card.external) {
+                onNavigate?.(card.external);
+                return;
+              }
+              onSelectTab?.(card.tab);
+            }}
+            className="rounded-2xl border border-[#eadcc2] bg-white p-4 text-left hover:border-[#2f2415]/40 transition-colors"
+          >
+            <p className="font-black text-[#2f2415] text-sm">{card.title}</p>
+            <p className="mt-1 text-[11px] text-[#8a7456] leading-snug">{card.subtitle}</p>
+            <p className="mt-2 text-xs font-bold text-emerald-800">{card.stat}</p>
+            <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-black text-[#2f2415]">
+              {card.external ? 'Ouvrir Documents' : 'Voir l’onglet'}
+              <ArrowRight size={12} />
+            </span>
+          </button>
+        ))}
+      </div>
+      <p className="text-[11px] text-[#8a7456] flex items-center gap-1">
+        <FileText size={12} />
+        Actions disponibles sur chaque ligne : Concrétiser · Modifier · Reporter · Annuler · Lier opération réelle
+      </p>
+    </section>
+  );
 }
 
 /** Pont Finance → module Investisseurs & Forums (lecture seule, pas de duplication). */
@@ -183,6 +267,7 @@ export function BpMonthlyCostsPanel({
   onRefreshBpRecurringCosts,
   needsSync = false,
   onRequestSync,
+  onLinkFinance,
 }) {
   const rows = arr(costs);
   const monthlyTotal = rows.reduce((s, r) => s + n(r.montant_mensuel ?? r.amount ?? r.montant), 0);
@@ -211,6 +296,17 @@ export function BpMonthlyCostsPanel({
     if (!result.ok) return toast.error('Cette charge ne peut pas encore être ouverte dans un module.');
     const mod = result.route?.navigate?.module;
     toast.success(`Ouverture fiche · ${MODULE_LABELS[mod] || mod || 'module'}…`);
+  };
+
+  const quickStatus = async (cost, status) => {
+    if (!isBpCostEditable(cost)) return toast.error('Resynchronisez le BP pour modifier cette charge.');
+    try {
+      await onUpdateBpRecurringCost?.(cost.id, buildBpLineStatusPatch(status));
+      await onRefreshBpRecurringCosts?.();
+      toast.success(`Statut · ${bpLineStatusLabel(status)}`);
+    } catch (error) {
+      toast.error(error.message || 'Statut impossible');
+    }
   };
 
   return (
@@ -297,15 +393,24 @@ export function BpMonthlyCostsPanel({
                     )}
                   </td>
                   <td className="px-3 py-2 text-right">
-                    {canDo ? (
-                      <button
-                        type="button"
-                        onClick={() => openCostConcretization(r, { partial: isPartial })}
-                        className="rounded-lg bg-[#2f2415] px-3 py-1.5 text-xs font-black text-white"
-                      >
-                        {isPartial ? 'Compléter' : 'Concrétiser'}
-                      </button>
-                    ) : null}
+                    <div className="flex flex-wrap gap-1 justify-end">
+                      {canDo ? (
+                        <button
+                          type="button"
+                          onClick={() => openCostConcretization(r, { partial: isPartial })}
+                          className="rounded-lg bg-[#2f2415] px-2 py-1 text-[10px] font-black text-white"
+                        >
+                          {isPartial ? 'Compléter' : 'Concrétiser'}
+                        </button>
+                      ) : null}
+                      {isBpCostEditable(r) ? (
+                        <>
+                          <button type="button" onClick={() => quickStatus(r, BP_LINE_STATUS.REPORTE)} className="rounded-lg border border-[#eadcc2] px-2 py-1 text-[10px] font-bold">Reporter</button>
+                          <button type="button" onClick={() => quickStatus(r, BP_LINE_STATUS.ANNULE)} className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-bold text-red-800">Annuler</button>
+                          <button type="button" onClick={() => onLinkFinance?.(r)} className="rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-[10px] font-bold text-sky-900">Lier op.</button>
+                        </>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               );
