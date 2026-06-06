@@ -190,6 +190,19 @@ function Summary({ data, setTab, onApply, busyId, onNavigate }) {
       <AntiDuplicationNotice pairId="charge_vs_stock" onNavigate={onNavigate} compact className="mt-2" />
       <AntiDuplicationNotice pairId="document_vs_preuve" onNavigate={onNavigate} compact className="mt-2" />
 
+      <section className="rounded-3xl border border-teal-200 bg-gradient-to-br from-teal-50/40 to-white p-5 shadow-sm">
+        <h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><PiggyBank size={20} /> Répartition Business Plan</h2>
+        <p className="mt-2 text-sm text-[#7d6a4a] leading-relaxed">
+          Les charges BP, financements et prévisions ne sont pas toutes dans Investissements — seules les lignes actionnables y restent.
+          Onglets dédiés : Financement · Charges mensuelles · Prévisions · Suivi réel. Plan financier à imprimer → Documents & Rapports.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button type="button" onClick={() => setTab('Investissements')} className="rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white">Investissements & BP</button>
+          <button type="button" onClick={() => onNavigate?.('documents_rapports')} className="rounded-xl border border-[#d6c3a0] bg-white px-4 py-2 text-xs font-black text-[#2f2415]">Plan financier · Documents</button>
+          <button type="button" onClick={() => onNavigate?.('investisseurs_forums')} className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-900">Dossier investisseur</button>
+        </div>
+      </section>
+
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
         <h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><BarChart3 size={20} /> Workflows financiers récupérés</h2>
         <p className="mt-2 text-sm leading-relaxed text-[#8a7456]">Finance & Pilotage remet les anciens moteurs : saisie finance Hey Horizon, trésorerie, santé comptable, preuves, business plan, paiement d'investissement, création d'actifs, documents et événements métier.</p>

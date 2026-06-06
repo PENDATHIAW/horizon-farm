@@ -10,6 +10,7 @@ import {
   BP_LINE_COMPLETED_EVENT,
   BP_LINE_STATUS,
   BP_LINE_STATUS_OPTIONS,
+  bpCostAmount,
   bpCostLabel,
   bpLineAmount,
   bpLineStatusLabel,
@@ -26,6 +27,7 @@ import {
   isBpLineEditable,
   launchBpCostConcretization,
   launchBpLineConcretization,
+  launchBpFinanceLink,
   normalizeBpLineStatus,
 } from '../utils/bpLineConcretization';
 import { fmtCurrency, toNumber } from '../utils/format';
@@ -34,6 +36,7 @@ import {
   BpFundingFinanceurPanel,
   BpMonthlyCostsPanel,
   BpRevenueForecastsPanel,
+  BpDistributionNav,
   InvestmentsInvestorBridge,
 } from '../components/investments/InvestmentsFinancePanels.jsx';
 import FinancialPlanPanel from './FinancialPlanPanel.jsx';
@@ -288,6 +291,19 @@ export default function InvestissementsV9(props) {
     }
   };
 
+  const linkLineFinance = (line) => {
+    const result = launchBpFinanceLink(line, { onNavigate: props.onNavigate });
+    if (!result.ok) return toast.error('Liaison finance impossible pour cette ligne.');
+    toast.success(result.linked ? 'Opération déjà liée — Trésorerie ouverte' : 'Fiche finance préparée — validez dans Trésorerie');
+  };
+
+  const distributionStats = {
+    chargesLabel: `${costTotals.count || costs.length} lignes · ${money(costTotals.prevu || monthCosts)}/mois`,
+    fundingLabel: `${fundingSources.length || HORIZON_FARM_FUNDING_SOURCES.length} sources`,
+    revenueLabel: money(annualRevenue),
+    planLabel: `${lines.length} invest. actionnables`,
+  };
+
   const saveLineEdit = async (payload) => {
     if (!editLine?.id) return;
     setSaving(true);
@@ -328,8 +344,11 @@ export default function InvestissementsV9(props) {
         if (!isBpLineEditable(r)) return null;
         const canDo = canConcretizeBpLine(r) && buildBpLineConcretizationRoute(r);
         return <div className="flex flex-wrap gap-1 justify-end">
-          {canDo ? <button type="button" onClick={() => openConcretization(r)} className="rounded-lg bg-[#2f2415] px-3 py-1.5 text-xs font-black text-white">Concrétiser</button> : null}
-          <button type="button" onClick={() => setEditLine(r)} className="rounded-lg border border-[#eadcc2] px-2 py-1 text-xs font-black text-[#2f2415]"><Edit3 size={12} className="inline" /> Modifier</button>
+          {canDo ? <button type="button" onClick={() => openConcretization(r)} className="rounded-lg bg-[#2f2415] px-2 py-1 text-[10px] font-black text-white">Concrétiser</button> : null}
+          <button type="button" onClick={() => setEditLine(r)} className="rounded-lg border border-[#eadcc2] px-2 py-1 text-[10px] font-black text-[#2f2415]">Modifier</button>
+          <button type="button" onClick={() => updateLineStatus(r, BP_LINE_STATUS.REPORTE)} className="rounded-lg border border-[#eadcc2] px-2 py-1 text-[10px] font-bold">Reporter</button>
+          <button type="button" onClick={() => updateLineStatus(r, BP_LINE_STATUS.ANNULE)} className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-bold text-red-800">Annuler</button>
+          <button type="button" onClick={() => linkLineFinance(r)} className="rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-[10px] font-bold text-sky-900">Lier op.</button>
         </div>;
       },
     },
@@ -337,6 +356,12 @@ export default function InvestissementsV9(props) {
 
   return <div className="space-y-5 investissements-mobile-structured">
     <InvestmentsInvestorBridge {...props} onNavigate={props.onNavigate} />
+
+    <BpDistributionNav
+      onSelectTab={setTab}
+      onNavigate={props.onNavigate}
+      stats={distributionStats}
+    />
 
     <div className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
@@ -421,6 +446,7 @@ export default function InvestissementsV9(props) {
         onRefreshBpRecurringCosts={props.onRefreshBpRecurringCosts}
         needsSync={costsNeedDbSync}
         onRequestSync={() => syncBp(props, { force: true })}
+        onLinkFinance={linkLineFinance}
       />
     ) : null}
 

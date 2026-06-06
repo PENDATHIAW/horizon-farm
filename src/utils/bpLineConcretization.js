@@ -640,6 +640,43 @@ export function launchBpLineConcretization(line = {}, { onNavigate } = {}) {
   return { ok: true, route };
 }
 
+/** Ouvre Trésorerie avec fiche préremplie pour lier une opération finance réelle à une ligne BP. */
+export function launchBpFinanceLink(line = {}, { onNavigate } = {}) {
+  if (line.linked_finance_transaction_id) {
+    onNavigate?.('finance_pilotage', { tab: 'Trésorerie' });
+    return { ok: true, linked: true };
+  }
+  const label = investmentLabel(line) || bpCostLabel(line);
+  const amount = bpLineAmount(line) || bpCostAmount(line);
+  const route = {
+    navigate: { module: 'finance_pilotage', tab: 'Trésorerie' },
+    form: {
+      module: 'finances',
+      form_type: 'finance_entry',
+      intent_label: `Lier opération · ${label}`,
+      draft_fields: {
+        bp_line_id: line.id,
+        bp_cost_id: line.bp_cost_id || line.id,
+        business_plan_id: line.business_plan_id || '',
+        source_module: 'investissements',
+        source_record_id: line.id,
+        type: 'sortie',
+        categorie: line.categorie || 'investissement',
+        libelle: label,
+        montant: amount,
+        date: today(),
+        statut: 'paye',
+      },
+    },
+  };
+  if (typeof window !== 'undefined') {
+    window.sessionStorage.setItem('horizon_bp_pending_line', JSON.stringify({ id: line.id, business_plan_id: line.business_plan_id || '' }));
+  }
+  onNavigate?.('finance_pilotage', { tab: 'Trésorerie' });
+  emitBpConcretizationForm(route);
+  return { ok: true, route };
+}
+
 export function buildBpLineCompletionWorkflow(line = {}, result = {}) {
   const amount = toNumber(result.amount ?? bpLineAmount(line));
   const date = result.date || today();
