@@ -1,4 +1,4 @@
-import { HORIZON_FARM_OFFICIAL_BP } from './horizonFarmOfficialBusinessPlan';
+import { HORIZON_FARM_OFFICIAL_BP } from './horizonFarmOfficialBusinessPlan.js';
 import {
   activityMonthChartLabel,
   buildActivityYearInputFromDataMap,

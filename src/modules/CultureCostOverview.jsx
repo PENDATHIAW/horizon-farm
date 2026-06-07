@@ -68,6 +68,15 @@ export default function CultureCostOverview({ rows = [], businessEvents = [], he
       <Card label="Marge culture" value={fmtCurrency(totals.marge)} danger={totals.marge < 0} />
     </div>
 
+    <ManureEconomyPanel
+      stocks={stocks}
+      salesOrders={salesOrders}
+      cultures={rows}
+      businessEvents={allEvents}
+      dataMap={dataMap}
+      compact
+    />
+
     <div className="overflow-x-auto rounded-2xl border border-[#eadcc2]">
       <table className="min-w-full text-sm">
         <thead><tr className="border-b border-[#eadcc2] bg-[#fffdf8] text-left text-xs uppercase text-[#8a7456]"><th className="py-2 px-3">Culture</th><th className="py-2 px-3">Surface</th><th className="py-2 px-3">Récolte</th><th className="py-2 px-3">Coût total</th><th className="py-2 px-3">Traitements</th><th className="py-2 px-3">Charges directes</th><th className="py-2 px-3">Coût/kg</th><th className="py-2 px-3">Coût/m²</th></tr></thead>

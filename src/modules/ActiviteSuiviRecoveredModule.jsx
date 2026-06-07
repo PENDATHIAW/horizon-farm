@@ -1,7 +1,6 @@
 import { Bell, BrainCircuit, ClipboardList, GitBranch, ListTodo, Zap } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
@@ -11,8 +10,6 @@ import { fmtNumber } from '../utils/format';
 import { allRows, rowsOf } from '../utils/moduleRows';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import { aggregatePriorityQueue, buildActiviteCoherenceRows, buildActiviteHealthSnapshot, countOpenByModule } from './activiteSuivi/activiteSuiviVisionHelpers.js';
-import ActiviteWorkflowBridge from './activiteSuivi/ActiviteWorkflowBridge.jsx';
-import { enrichRecommendationPatch } from '../utils/activiteSuiviWorkflow.js';
 import { filterRealOpenTasks } from '../utils/healthFindingLabels.js';
 import AlertesCenterV2 from './AlertesCenterV2.jsx';
 import TachesV3 from './TachesV3.jsx';
@@ -145,8 +142,6 @@ export default function ActiviteSuiviRecoveredModule(props) {
   const sensorsCrud = useCrudModule('sensor_devices');
   const whatsappTemplatesCrud = useCrudModule('whatsapp_templates');
   const whatsappLogsCrud = useCrudModule('whatsapp_logs');
-  const financesCrud = useCrudModule('finances');
-  const documentsCrud = useCrudModule('documents');
   const periodFiltered = Boolean(props.periodFiltered);
   const alertes = rowsOf(props.alertes, alertsCrud, false);
   const tasks = rowsOf(props.taches || props.tasks, tasksCrud, false);
@@ -158,15 +153,12 @@ export default function ActiviteSuiviRecoveredModule(props) {
   const auditLogsAll = allRows(props.auditLogsAll, auditCrud).length
     ? allRows(props.auditLogsAll, auditCrud)
     : rowsOf(props.auditLogs, auditCrud, periodFiltered);
-  const documents = rowsOf(props.documents, documentsCrud, periodFiltered);
-  const transactions = rowsOf(props.transactions || props.finances, financesCrud, periodFiltered);
   const data = useMemo(() => {
     const openAlerts = alertes.filter(isOpen);
     const criticalAlerts = openAlerts.filter(isCriticalAlert);
     const openTasks = filterRealOpenTasks(tasks);
     const lateTasks = openTasks.filter(isLate);
     const healthSnap = buildActiviteHealthSnapshot({ tasks, alertes, businessEvents: eventsAll.length ? eventsAll : eventsPeriod });
-    const recommendations = healthSnap.findings.map((finding) => enrichRecommendationPatch(finding));
     const coherenceRows = buildActiviteCoherenceRows(tasks, alertes);
     const priorityQueue = aggregatePriorityQueue(tasks, alertes);
     const moduleBreakdown = countOpenByModule(alertes, tasks);
@@ -182,24 +174,8 @@ export default function ActiviteSuiviRecoveredModule(props) {
       coherenceRows,
       priorityQueue,
       moduleBreakdown,
-      recommendations,
-      documents,
-      transactions,
     };
-  }, [alertes, tasks, eventsAll, eventsPeriod, documents, transactions]);
-  const workflowBridge = (showGaps = true, showFiches = true) => (
-    <ActiviteWorkflowBridge
-      props={props}
-      alertes={alertes}
-      tasks={tasks}
-      recommendations={data.recommendations}
-      businessEvents={data.events}
-      documents={documents}
-      transactions={transactions}
-      showGaps={showGaps}
-      showFiches={showFiches}
-    />
-  );
+  }, [alertes, tasks, eventsAll, eventsPeriod]);
   const actionHandlers = {
     onNavigate: props.onNavigate,
     onCreateTask: props.onCreateTask || tasksCrud.create,
@@ -252,22 +228,7 @@ export default function ActiviteSuiviRecoveredModule(props) {
         </div>
       </section>
       <Tabs active={tab} onChange={setTab} />
-      {tab === 'Résumé' ? (
-        <div className="space-y-5">
-          <Summary data={data} setTab={setTab} onApply={applyFinding} onResolveAlert={resolveAlert} busyId={busyId} />
-          {workflowBridge(true, true)}
-        </div>
-      ) : tab === 'Alertes' ? (
-        <div className="space-y-4">
-          {workflowBridge(true, false)}
-          <AlertesCenterV2 {...shared} onUpdate={shared.onUpdateAlert} onRefresh={shared.onRefreshAlertes} />
-        </div>
-      ) : tab === 'Tâches' ? (
-        <div className="space-y-4">
-          {workflowBridge(true, true)}
-          <TachesV3 {...shared} />
-        </div>
-      ) : tab === 'Traçabilité' ? <TracabiliteV2 {...shared} rows={traceRows} onCreate={props.onCreateTrace || traceCrud.create} onUpdate={props.onUpdateTrace || traceCrud.update} onDelete={props.onDeleteTrace || traceCrud.remove} onRefresh={props.onRefreshTrace || traceCrud.refresh} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="activite_suivi" dataMap={{ alertes_center: alertes, taches: tasks, business_events: rowsOf(props.businessEvents, eventsCrud, periodFiltered) }} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="activite_suivi" taches={tasks} alertes={alertes} businessEvents={rowsOf(props.businessEvents, eventsCrud, periodFiltered)} onNavigate={props.onNavigate} />}
+      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onResolveAlert={resolveAlert} busyId={busyId} /> : tab === 'Alertes' ? <AlertesCenterV2 {...shared} onUpdate={shared.onUpdateAlert} onRefresh={shared.onRefreshAlertes} /> : tab === 'Tâches' ? <TachesV3 {...shared} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="activite_suivi" onNavigate={props.onNavigate} /> : tab === 'Traçabilité' ? <TracabiliteV2 {...shared} rows={traceRows} onCreate={props.onCreateTrace || traceCrud.create} onUpdate={props.onUpdateTrace || traceCrud.update} onDelete={props.onDeleteTrace || traceCrud.remove} onRefresh={props.onRefreshTrace || traceCrud.refresh} /> : <ModuleGraphiquesTab moduleId="activite_suivi" taches={tasks} alertes={alertes} onNavigate={props.onNavigate} />}
     </div>
   );
 }

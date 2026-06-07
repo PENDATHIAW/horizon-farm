@@ -10,16 +10,11 @@ import { applyOneClickRecommendation, createMaintenanceTask } from '../services/
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { rowsOf } from '../utils/moduleRows';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
-import { getRhDirectory, saveRhDirectory } from '../utils/rhDirectory';
+import { getRhDirectory } from '../utils/rhDirectory';
 import { aggregateMaintenanceQueue, buildRhCoherenceRows, buildRhHealthSnapshot, computePayrollSummary } from './rh/rhVisionHelpers.js';
 import RHPeopleTeams from './RHPeopleTeams.jsx';
 import EquipementsV2 from './EquipementsV2.jsx';
-import RessourcesMaintenancePanel from './ressources/RessourcesMaintenancePanel.jsx';
-import RessourcesPayrollPanel from './ressources/RessourcesPayrollPanel.jsx';
-import RessourcesRepairPanel from './ressources/RessourcesRepairPanel.jsx';
-import AntiDuplicationNotice from '../components/AntiDuplicationNotice.jsx';
-import { openEquipementsMaintenance, openSmartFarmCapteurs } from '../utils/antiDuplicationGuard.js';
-
+import SmartFarm from './SmartFarm.jsx';
 
 const arr = (v) => Array.isArray(v) ? v : [];
 const low = (v) => String(v || '').toLowerCase();
@@ -110,7 +105,7 @@ function Summary({ data, setTab, onApply, onSchedule, busyId }) {
       <Section icon={Bell} title="Parcours ressources">
         <p className="text-sm text-[#8a7456]">Équipements, maintenance, affectations, coûts et documents interconnectés avec finance et activité.</p>
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
-          <button type="button" onClick={() => openEquipementsMaintenance(onNavigate)} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">+ Maintenance</b><p className="mt-1 text-sm text-[#8a7456]">Panne ou entretien.</p></button>
+          <button type="button" onClick={() => { emitHorizonForm('equipements', 'equipment_action', 'Maintenance équipement', { date: new Date().toISOString().slice(0, 10), action_type: 'maintenance' }); setTab('Équipements'); }} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">+ Maintenance</b><p className="mt-1 text-sm text-[#8a7456]">Panne ou entretien.</p></button>
           {['Équipements', 'Maintenance', 'Affectations', 'Coûts', 'Documents'].map((label) => (
             <button key={label} type="button" onClick={() => setTab(label)} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left font-black text-[#2f2415]">{label}</button>
           ))}
@@ -120,15 +115,12 @@ function Summary({ data, setTab, onApply, onSchedule, busyId }) {
   );
 }
 
-function MaintenanceHub({ data, setTab, maintenancePanel, onSchedule, busyId, onNavigate }) {
+function MaintenanceHub({ data, setTab, smartProps, onSchedule, busyId }) {
   return (
     <div className="space-y-5">
-      <AntiDuplicationNotice pairId="maintenance_rh_equipements" onNavigate={onNavigate} compact />
-      {maintenancePanel}
-
       <ModuleListHub
         title="Maintenance & pannes"
-        intro="File d'attente lecture seule — interventions dans le module Équipements."
+        intro="Équipements en maintenance, hors service ou capteurs offline."
         stats={[
           { label: 'À maintenir', value: fmtNumber(data.equipmentRisk.length), tone: data.equipmentRisk.length ? 'warn' : 'good' },
           { label: 'Sans tâche', value: fmtNumber(data.maintenanceQueue.length), tone: data.maintenanceQueue.length ? 'warn' : 'good' },
@@ -140,20 +132,18 @@ function MaintenanceHub({ data, setTab, maintenancePanel, onSchedule, busyId, on
           title: row.nom || row.name || row.libelle || 'Équipement',
           detail: `${row.status || row.statut || row.etat || '—'} · maintenance`,
           value: row.type || row.categorie || 'Équipement',
-          onClick: () => openEquipementsMaintenance(onNavigate),
+          onClick: () => setTab('Équipements'),
         }))}
         emptyLabel="Aucun équipement en maintenance."
       />
       <MaintenanceQueuePanel queue={data.maintenanceQueue} onSchedule={onSchedule} busyId={busyId} setTab={setTab} />
-
+      <SmartFarmEmbed {...smartProps} />
     </div>
   );
 }
 
-function CostsHub({ data, onNavigate, payrollPanel }) {
+function CostsHub({ data, onNavigate }) {
   return (
-    <div className="space-y-5">
-      {payrollPanel}
     <ModuleListHub
       title="Coûts ressources"
       intro="Dépenses liées aux équipements, maintenance et personnel."
@@ -173,7 +163,6 @@ function CostsHub({ data, onNavigate, payrollPanel }) {
       emptyLabel="Aucun coût ressource enregistré."
       onNavigate={onNavigate}
     />
-    </div>
   );
 }
 
@@ -352,79 +341,8 @@ export default function OperationsRessourcesRecoveredModule(props) {
   };
   const eqProps = { ...shared, rows: equipment, onCreate: props.onCreateEquipment || eqCrud.create, onUpdate: props.onUpdateEquipment || eqCrud.update, onDelete: props.onDeleteEquipment || eqCrud.remove, onRefresh: props.onRefreshEquipment || eqCrud.refresh };
 
-  const workflowContext = useMemo(() => ({
-    equipment,
-    sensors,
-    cameras,
-    people: team,
-    teams: getRhDirectory().teams || [],
-    tasks,
-    alertes,
-    transactions,
-    documents: allDocuments,
-    businessEvents: rowsOf(props.businessEvents, eventsCrud, periodFiltered),
-  }), [equipment, sensors, cameras, team, tasks, alertes, transactions, allDocuments, props.businessEvents, eventsCrud, periodFiltered]);
-
-  const workflowHandlers = {
-    onUpdateEquipment: props.onUpdateEquipment || eqCrud.update,
-    onCreateTask: shared.onCreateTask,
-    onUpdateTask: shared.onUpdateTask,
-    onCreateAlert: shared.onCreateAlert,
-    onUpdateAlert: shared.onUpdateAlert,
-    onCreateFinanceTransaction: shared.onCreateFinanceTransaction,
-    onCreateDocument: shared.onCreateDocument,
-    onCreateBusinessEvent: shared.onCreateBusinessEvent,
-    onCreateTrace: props.onCreateTrace,
-    onPersistPeople: async (nextPeople) => {
-      saveRhDirectory({ people: nextPeople, teams: getRhDirectory().teams || [] });
-      setDirectoryPeople(nextPeople);
-      window.dispatchEvent(new Event('horizon-farm-rh-updated'));
-    },
-  };
-
-  const refreshWorkflow = async () => {
-    await Promise.allSettled([
-      eqCrud.refresh?.(),
-      tasksCrud.refresh?.(),
-      alertsCrud.refresh?.(),
-      financesCrud.refresh?.(),
-      docsCrud.refresh?.(),
-      eventsCrud.refresh?.(),
-    ]);
-  };
-
-  const maintenancePanel = (
-    <RessourcesMaintenancePanel
-      equipment={equipment}
-      context={workflowContext}
-      handlers={workflowHandlers}
-      onSuccess={refreshWorkflow}
-    />
-  );
-
-  const payrollPanel = (
-    <RessourcesPayrollPanel
-      people={team}
-      context={workflowContext}
-      handlers={workflowHandlers}
-      onSuccess={refreshWorkflow}
-    />
-  );
-
   return (
     <div className="space-y-6">
-      <RessourcesRepairPanel
-        equipment={equipment}
-        sensors={sensors}
-        cameras={cameras}
-        tasks={tasks}
-        alertes={alertes}
-        transactions={transactions}
-        documents={allDocuments}
-        people={team}
-        businessEvents={workflowContext.businessEvents}
-        onRefresh={refreshWorkflow}
-      />
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -439,10 +357,9 @@ export default function OperationsRessourcesRecoveredModule(props) {
       <Tabs active={tab} onChange={setTab} />
       {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onSchedule={scheduleMaintenance} busyId={busyId} />
         : tab === 'Équipements' ? <EquipementsV2 {...eqProps} />
-          : tab === 'Maintenance' ? <MaintenanceHub data={data} setTab={setTab} maintenancePanel={maintenancePanel} onSchedule={scheduleMaintenance} busyId={busyId} />
-            : tab === 'Affectations' ? <RHPeopleTeams {...rhProps} workflowContext={workflowContext} workflowHandlers={workflowHandlers} onPayrollSuccess={refreshWorkflow} />
-              : tab === 'Coûts' ? <CostsHub data={data} onNavigate={props.onNavigate} payrollPanel={payrollPanel} />
-
+          : tab === 'Maintenance' ? <MaintenanceHub data={data} setTab={setTab} smartProps={smartProps} onSchedule={scheduleMaintenance} busyId={busyId} />
+            : tab === 'Affectations' ? <RHPeopleTeams {...rhProps} />
+              : tab === 'Coûts' ? <CostsHub data={data} onNavigate={props.onNavigate} />
                 : tab === 'Documents' ? <DocumentsHub data={data} onNavigate={props.onNavigate} />
                   : <ModuleGraphiquesTab moduleId="rh" periodFiltered={periodFiltered} equipements={equipment} transactions={transactions} onNavigate={props.onNavigate} />}
     </div>

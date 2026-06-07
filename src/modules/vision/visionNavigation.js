@@ -8,8 +8,8 @@ export const VISION_MODULE_TABS = {
   achats_stock: 'Stock',
   elevage: 'Résumé',
   documents_rapports: 'Preuves',
-  objectifs_croissance: 'Performance',
-  centre_ia: 'Rentabilité lots',
+  objectifs_croissance: 'Rentabilité Lot & Cycle',
+  centre_ia: 'À traiter',
 };
 
 export function navigateVision(onNavigate, module = '', tab = null) {

@@ -576,6 +576,18 @@ Objectif : rendre les workflows fiables même avec réseau instable.
 
 ## Journal des avancées
 
+### 2026-06-01
+
+[Traité] Chaîne Cultures récolte → stock → vente + dossier financeur PDF.
+
+- Clé opportunité culture unifiée (`culture-sale:{id}`) dans TabActions, SaleOpportunityBridge et dérivation ventes.
+- Récolte via `CulturesWorkflowBridge` délègue aux side effects `CulturesRecoveredModule` (stock + opportunité auto).
+- Vente stock liée à une culture synchronise aussi la fiche culture (`applySourceImpactFromSale`).
+- `financeurReportService` : KPI officiels + checklist conformité + export PDF branché dans `RapportsV2`.
+- Tests : `cultureSaleSync`, `financeurReport`, scénario workflow vente stock→culture.
+
+[À faire] Normaliser `issue_key` Supabase, rapprochement banque/caisse, RBAC serveur, opportunité auto Animaux.
+
 ### 2026-05-09
 
 [En cours] PR #2 — Interconnexions ERP et statuts ventes.

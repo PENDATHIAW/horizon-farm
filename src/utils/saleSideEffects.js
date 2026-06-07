@@ -135,7 +135,7 @@ function resolveSourceRow(sourceType, sourceId, { stocks = [], lots = [], cultur
   return null;
 }
 
-/** Décrémente stock / lot / animal / culture vendu. */
+/** Décrémente stock / lot / animal / culture vendu. Si vente stock liée à une culture, met aussi à jour la fiche culture. */
 export async function applySourceImpactFromSale({
   handlers = {},
   sourceType,
@@ -164,7 +164,24 @@ export async function applySourceImpactFromSale({
   });
   if (!patchPlan?.id) return null;
 
-  if (patchPlan.module === 'stock') await handlers.onUpdateStock?.(patchPlan.id, patchPlan.patch);
+  if (patchPlan.module === 'stock') {
+    await handlers.onUpdateStock?.(patchPlan.id, patchPlan.patch);
+    const cultureId = sourceRow?.culture_id || (String(sourceRow?.source_module || '').includes('culture') ? sourceRow?.source_id || sourceRow?.related_id : null);
+    if (cultureId) {
+      const cultureRow = arr(cultures).find((row) => String(row.id) === String(cultureId)) || { id: cultureId };
+      const culturePlan = buildSaleSourcePatch({
+        sourceType: 'culture',
+        sourceRow: cultureRow,
+        quantity,
+        total,
+        date,
+        orderId,
+        clientId,
+        saleKind,
+      });
+      if (culturePlan?.id) await handlers.onUpdateCulture?.(culturePlan.id, culturePlan.patch);
+    }
+  }
   if (patchPlan.module === 'lot_avicole') await handlers.onUpdateLot?.(patchPlan.id, patchPlan.patch);
   if (patchPlan.module === 'animal') await handlers.onUpdateAnimal?.(patchPlan.id, patchPlan.patch);
   if (patchPlan.module === 'culture') await handlers.onUpdateCulture?.(patchPlan.id, patchPlan.patch);

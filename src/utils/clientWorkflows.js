@@ -1,5 +1,6 @@
 import { toNumber } from './format.js';
 import { makeId } from './ids.js';
+import { paidForOrder, remainingForOrder } from './salesStatuses.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value = '') => String(value || '').trim();
@@ -31,11 +32,11 @@ export function saleBelongsToClient(sale = {}, client = {}) {
   return cKeys.some((key) => sKeys.includes(key));
 }
 
+const isCancelledPayment = (payment = {}) => ['annule', 'annulé', 'annulee', 'cancelled', 'supprime', 'supprimé'].includes(lower(payment.statut || payment.status));
+
 export function paidForSale(sale = {}, payments = []) {
-  const linked = arr(payments)
-    .filter((payment) => paymentOrderId(payment) === String(sale.id))
-    .reduce((sum, payment) => sum + paymentValue(payment), 0);
-  return Math.max(toNumber(sale.montant_paye || sale.paid_amount || sale.amount_paid), linked);
+  const active = arr(payments).filter((payment) => !isCancelledPayment(payment));
+  return paidForOrder(sale, active);
 }
 
 export function buildClientSalesSummary(client = {}, salesOrders = [], payments = []) {
@@ -46,10 +47,13 @@ export function buildClientSalesSummary(client = {}, salesOrders = [], payments 
     const orderId = paymentOrderId(payment);
     return (orderId && orderIds.has(orderId)) || clientIds.includes(paymentClientId(payment));
   });
+  const activePayments = arr(payments).filter((payment) => !isCancelledPayment(payment));
   const enrichedOrders = orders.map((order) => {
     const total = saleTotal(order);
-    const paid = Math.min(total, paidForSale(order, payments));
-    const remaining = Math.max(0, total - paid);
+    const linked = activePayments.filter((payment) => paymentOrderId(payment) === String(order.id));
+    const pool = linked.length ? linked : activePayments;
+    const paid = Math.min(total, paidForSale(order, pool));
+    const remaining = Math.max(0, remainingForOrder(order, pool));
     return { ...order, total, paid, remaining, paymentStatus: remaining <= 0 ? 'paye' : paid > 0 ? 'partiel' : 'non_paye' };
   });
   const totalAchete = enrichedOrders.reduce((sum, order) => sum + order.total, 0);
@@ -158,5 +162,16 @@ export function buildClientReminderFollowUp(client = {}, summary = buildClientSa
       linked_task_id: taskId,
       amount: summary.resteAPayer,
     },
+  };
+}
+
+/** Clôture tâches/alertes relance client quand créance = 0. */
+export function resolveClientReminderFollowUp(client = {}, summary = buildClientSalesSummary(client)) {
+  if (toNumber(summary.resteAPayer) > 0) return null;
+  const key = clientReceivableKey(client);
+  return {
+    key,
+    taskPatch: { status: 'termine', statut: 'termine', completed_at: new Date().toISOString() },
+    alertPatch: { status: 'resolue', statut: 'resolue' },
   };
 }

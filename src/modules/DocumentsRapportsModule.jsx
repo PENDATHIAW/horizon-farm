@@ -1,22 +1,15 @@
 import { BarChart3, BrainCircuit, ClipboardList, Download, FileText, FolderOpen, Search, ShieldCheck, Zap } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
 import { emitHorizonForm } from '../services/formModalManager';
-import { applyOneClickRecommendation } from '../services/heyHorizonRecommendationActions.js';
-import { openDocumentProofFromTransaction } from '../utils/antiDuplicationGuard.js';
-import AntiDuplicationNotice from '../components/AntiDuplicationNotice.jsx';
+import { applyOneClickRecommendation, createMissingProofTask } from '../services/heyHorizonRecommendationActions.js';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { rowsOf } from '../utils/moduleRows';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import { aggregateMissingProofItems, buildDocumentsCoherenceRows, buildDocumentsHealthSnapshot } from './documents/documentsVisionHelpers.js';
-import DocumentsWorkflowBridge from './documents/DocumentsWorkflowBridge.jsx';
-import DocumentScannerPanel from './documents/DocumentScannerPanel.jsx';
-import InvoiceOcrIntelligentPanel from './documents/InvoiceOcrIntelligentPanel.jsx';
-import { isDocumentOrphan } from '../utils/documentsWorkflow.js';
 
 const arr = (v) => Array.isArray(v) ? v : [];
 const low = (v) => String(v || '').toLowerCase();
@@ -100,15 +93,13 @@ function Summary({ data, setTab, onApply, onAttachProof, busyId, onNavigate }) {
         {data.priorities.length ? data.priorities.map((item) => (
           <div key={item.id} className="flex flex-col gap-2 border-b border-[#eadcc2]/70 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
             <button type="button" onClick={() => setTab('Preuves')} className="text-left"><b className="text-[#2f2415]">{item.title}</b><p className="text-xs text-[#8a7456]">{item.detail}</p></button>
-            <button type="button" disabled={busyId === item.id} onClick={() => onAttachProof?.(item)} className="rounded-lg bg-[#22c55e] px-2 py-1 text-xs font-black text-[#052e16] disabled:opacity-50">{busyId === item.id ? '…' : 'Joindre preuve'}</button>
+            <button type="button" disabled={busyId === item.id} onClick={() => onAttachProof?.(item)} className="rounded-lg bg-[#22c55e] px-2 py-1 text-xs font-black text-[#052e16] disabled:opacity-50">{busyId === item.id ? '…' : 'Créer tâche preuve'}</button>
           </div>
         )) : <Empty label="Aucune priorité documentaire." />}
       </Section>
       <Section icon={FolderOpen} title="Parcours documents">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
-          <button type="button" onClick={() => setTab('Scanner IA')} className="rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">Scanner IA</b><p className="mt-1 text-sm text-[#8a7456]">Facture, ordonnance, reçu, BL.</p></button>
-          <button type="button" onClick={() => setTab('OCR Intelligent')} className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-left"><b className="text-[#2f2415]">OCR Intelligent</b><p className="mt-1 text-sm text-[#8a7456]">Diagnostic marge & trésorerie.</p></button>
-          <button type="button" onClick={() => { emitHorizonForm('documents', 'supplier_invoice', 'Joindre facture', { date: new Date().toISOString().slice(0, 10) }); setTab('Bibliothèque'); }} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">+ Document</b><p className="mt-1 text-sm text-[#8a7456]">Joindre preuve manuelle.</p></button>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+          <button type="button" onClick={() => { emitHorizonForm('documents', 'supplier_invoice', 'Joindre facture', { date: new Date().toISOString().slice(0, 10) }); setTab('Bibliothèque'); }} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">+ Document</b><p className="mt-1 text-sm text-[#8a7456]">Facture, reçu, preuve.</p></button>
           <button type="button" onClick={() => setTab('Bibliothèque')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Bibliothèque</b><p className="mt-1 text-sm text-[#8a7456]">Tous les fichiers.</p></button>
           <button type="button" onClick={() => setTab('Exports')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Exports</b><p className="mt-1 text-sm text-[#8a7456]">Dossier financeur PDF.</p></button>
           <button type="button" onClick={() => setTab('Modèles')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Modèles</b><p className="mt-1 text-sm text-[#8a7456]">Reçus et fiches types.</p></button>
@@ -124,11 +115,11 @@ function Library({ data, selected, setSelected }) {
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_420px]">
       <Section icon={FolderOpen} title="Bibliothèque">
         {data.documents.length ? data.documents.slice(0, 16).map((doc) => (
-          <Row key={doc.id || labelOf(doc)} title={labelOf(doc)} detail={`${typeOf(doc)} · ${dateOf(doc)} · ${detailOf(doc)}`} value={isDocumentOrphan(doc) ? 'Orphelin' : docIsProof(doc) ? 'Preuve' : docIsReport(doc) ? 'Rapport' : 'Doc'} tone={isDocumentOrphan(doc) ? 'warn' : docIsProof(doc) ? 'good' : 'neutral'} onClick={() => setSelected(doc)} />
+          <Row key={doc.id || labelOf(doc)} title={labelOf(doc)} detail={`${typeOf(doc)} · ${dateOf(doc)} · ${detailOf(doc)}`} value={docIsProof(doc) ? 'Preuve' : docIsReport(doc) ? 'Rapport' : 'Doc'} tone={docIsProof(doc) ? 'good' : 'neutral'} onClick={() => setSelected(doc)} />
         )) : <Empty label="Aucun document." />}
       </Section>
       <Section icon={Search} title="Fiche document">
-        <div className="space-y-3">{row ? <><Field label="Document" value={labelOf(row)} /><Field label="Type" value={typeOf(row)} /><Field label="Date" value={dateOf(row)} /><Field label="Origine" value={row.source_module || row.module_source || row.related_type || '—'} /><Field label="Lien source" value={row.source_record_id || row.transaction_id || row.order_id || '—'} /><Field label="Détail" value={detailOf(row)} /></> : <Empty label="Aucun document sélectionné." />}</div>
+        <div className="space-y-3">{row ? <><Field label="Document" value={labelOf(row)} /><Field label="Type" value={typeOf(row)} /><Field label="Date" value={dateOf(row)} /><Field label="Origine" value={row.module_source || row.related_type || '—'} /><Field label="Détail" value={detailOf(row)} /></> : <Empty label="Aucun document sélectionné." />}</div>
       </Section>
     </div>
   );
@@ -149,7 +140,7 @@ function Proofs({ data, onNavigate, onAttachProof, busyId }) {
             <button type="button" onClick={() => onNavigate?.('finance_pilotage')} className="text-left"><b className="text-[#2f2415]">{labelOf(row)}</b><p className="text-xs text-[#8a7456]">{dateOf(row)} · preuve à joindre</p></button>
             <div className="flex gap-2">
               <span className="text-sm font-black text-amber-700">{fmtCurrency(amountOf(row))}</span>
-              <button type="button" disabled={busyId === row.id} onClick={() => onAttachProof?.({ id: row.id, title: labelOf(row), amount: amountOf(row) })} className="rounded-lg bg-[#22c55e] px-2 py-1 text-xs font-black text-[#052e16] disabled:opacity-50">{busyId === row.id ? '…' : 'Joindre preuve'}</button>
+              <button type="button" disabled={busyId === row.id} onClick={() => onAttachProof?.({ id: row.id, title: labelOf(row), amount: amountOf(row) })} className="rounded-lg bg-[#22c55e] px-2 py-1 text-xs font-black text-[#052e16] disabled:opacity-50">{busyId === row.id ? '…' : 'Tâche'}</button>
             </div>
           </div>
         )) : <Empty label="Aucune preuve manquante détectée." />}
@@ -217,22 +208,12 @@ export default function DocumentsRapportsModule(props) {
   const eventsCrud = useCrudModule('business_events');
   const salesCrud = useCrudModule('sales_orders');
   const paymentsCrud = useCrudModule('payments');
-  const invoicesCrud = useCrudModule('invoices');
-  const stockCrud = useCrudModule('stock');
-  const santeCrud = useCrudModule('sante');
-  const equipementsCrud = useCrudModule('equipements');
-  const culturesCrud = useCrudModule('cultures');
   const periodFiltered = Boolean(props.periodFiltered);
   const documents = rowsOf(props.documents, docsCrud, periodFiltered);
   const transactions = rowsOf(props.transactions || props.finances, financesCrud, periodFiltered);
   const salesOrders = rowsOf(props.salesOrders, salesCrud, periodFiltered);
   const payments = rowsOf(props.payments, paymentsCrud, periodFiltered);
   const businessEvents = rowsOf(props.businessEvents, eventsCrud, periodFiltered);
-  const invoices = rowsOf(props.invoices, invoicesCrud, periodFiltered);
-  const stocks = rowsOf(props.stocks, stockCrud, periodFiltered);
-  const healthRecords = rowsOf(props.sante || props.vaccins, santeCrud, periodFiltered);
-  const equipment = rowsOf(props.equipements, equipementsCrud, periodFiltered);
-  const culturesRows = rowsOf(props.cultures, culturesCrud, periodFiltered);
   const data = useMemo(() => {
     const docs = [...documents, ...arr(props.rapports), ...arr(props.reports)].filter(Boolean);
     const tx = transactions.length ? transactions : [];
@@ -248,7 +229,6 @@ export default function DocumentsRapportsModule(props) {
     const coveredModules = [...new Set(docs.map((d) => d.module_source || d.module || d.related_type).filter(Boolean))];
     const healthSnap = buildDocumentsHealthSnapshot({ documents: docs, transactions: tx, salesOrders });
     const coherenceRows = buildDocumentsCoherenceRows(docs, tx, salesOrders);
-    const orphanCount = docs.filter(isDocumentOrphan).length;
     const priorities = missingProofItems.slice(0, 8).map((row) => ({ id: `proof-${row.id}`, title: row.title, detail: `${String(row.date || '—').slice(0, 10)} · justificatif manquant`, amount: row.amount, trxId: row.id }));
     const history = [...docs, ...businessEvents].sort((a, b) => String(dateOf(b)).localeCompare(String(dateOf(a))));
     return {
@@ -268,80 +248,19 @@ export default function DocumentsRapportsModule(props) {
       healthFindings: healthSnap.findings,
       healthPredictions: healthSnap.predictions,
       coherenceRows,
-      orphanCount,
       transactions: tx,
       salesOrders,
       payments,
-      invoices,
-      healthRecords,
-      equipment,
       animaux: arr(props.animaux),
       lots: arr(props.lots),
-      cultures: culturesRows.length ? culturesRows : arr(props.cultures),
-      stocks: stocks.length ? stocks : arr(props.stocks),
+      cultures: arr(props.cultures),
+      stocks: arr(props.stocks),
       clients: arr(props.clients),
       fournisseurs: arr(props.fournisseurs),
       businessPlans: arr(props.businessPlans),
       investissements: arr(props.investissements),
     };
-  }, [documents, props.rapports, props.reports, transactions, salesOrders, payments, invoices, stocks, healthRecords, equipment, culturesRows, props.animaux, props.lots, props.cultures, props.stocks, props.clients, props.fournisseurs, props.businessPlans, props.investissements, businessEvents]);
-  const workflowBridge = (compact, showGaps = true) => (
-    <DocumentsWorkflowBridge
-      props={props}
-      documents={data.documents}
-      transactions={data.transactions}
-      salesOrders={data.salesOrders}
-      payments={data.payments}
-      invoices={data.invoices}
-      stocks={data.stocks}
-      healthRecords={data.healthRecords}
-      equipment={data.equipment}
-      cultures={data.cultures}
-      compact={compact}
-      showGaps={showGaps}
-      onOpenProofsTab={() => setTab('Preuves')}
-    />
-  );
-  const stocksRows = data.stocks;
-  const fournisseursRows = data.fournisseurs;
-  const scannerContext = useMemo(() => ({
-    fournisseurs: fournisseursRows,
-    suppliers: fournisseursRows,
-    stocks: stocksRows,
-    animaux: data.animaux,
-    lots: data.lots,
-    transactions: data.transactions,
-    payments: data.payments,
-    salesOrders: data.salesOrders,
-    documents: data.documents,
-    workflows: businessEvents,
-  }), [fournisseursRows, stocksRows, data.animaux, data.lots, data.transactions, data.payments, data.salesOrders, data.documents, businessEvents]);
-  const ocrDataMap = useMemo(() => ({
-    ...scannerContext,
-    finances: data.transactions,
-    stock: stocksRows,
-    sales_orders: data.salesOrders,
-    business_events: businessEvents,
-    alimentation_logs: arr(props.alimentationLogs),
-  }), [scannerContext, data.transactions, stocksRows, data.salesOrders, businessEvents, props.alimentationLogs]);
-  const scannerHandlers = useMemo(() => ({
-    onCreateStock: props.onCreateStock || stockCrud.create,
-    onUpdateStock: props.onUpdateStock || stockCrud.update,
-    onCreateOrUpdateStock: props.onCreateOrUpdateStock,
-    onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create,
-    onUpdateFinanceTransaction: props.onUpdateFinanceTransaction || financesCrud.update,
-    onCreateDocument: props.onCreateDocument || docsCrud.create,
-    onUpdateDocument: props.onUpdateDocument || docsCrud.update,
-    onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create,
-    onUpdateSupplier: props.onUpdateSupplier || props.onUpdateFournisseur,
-    onCreateHealth: props.onCreateHealth || props.onCreateSante || santeCrud.create,
-    onUpdateHealth: props.onUpdateHealth || props.onUpdateSante || santeCrud.update,
-    onCreateTask: props.onCreateTask || tasksCrud.create,
-    onUpdateAlert: props.onUpdateAlert || alertsCrud.update,
-    existingDocuments: data.documents,
-    existingAlerts: rowsOf(props.existingAlerts, alertsCrud),
-    existingTasks: rowsOf(props.existingTasks, tasksCrud),
-  }), [props, stockCrud, financesCrud, docsCrud, eventsCrud, santeCrud, tasksCrud, alertsCrud, data.documents]);
+  }, [documents, props.rapports, props.reports, transactions, salesOrders, payments, props.animaux, props.lots, props.cultures, props.stocks, props.clients, props.fournisseurs, props.businessPlans, props.investissements, businessEvents]);
   const actionHandlers = {
     onNavigate: props.onNavigate,
     onCreateTask: props.onCreateTask || tasksCrud.create,
@@ -366,53 +285,20 @@ export default function DocumentsRapportsModule(props) {
   const attachProof = async (item) => {
     setBusyId(item.id);
     try {
-      openDocumentProofFromTransaction(item.trxId || item.id, item.title);
-      toast.success(`Formulaire document ouvert pour ${item.title}`);
+      await createMissingProofTask({
+        transactionLabel: item.title,
+        amount: fmtCurrency(item.amount),
+        transactionId: item.trxId || item.id,
+        handlers: actionHandlers,
+      });
+      toast.success(`Tâche preuve créée pour ${item.title}`);
     } catch (e) {
       toast.error(e.message || 'Erreur');
     } finally {
       setBusyId(null);
     }
   };
-  const content = tab === 'Résumé' ? (
-    <div className="space-y-5">
-      <Summary data={data} setTab={setTab} onApply={applyFinding} onAttachProof={attachProof} busyId={busyId} onNavigate={props.onNavigate} />
-      {workflowBridge(true, true)}
-    </div>
-  ) : tab === 'Scanner IA' ? (
-    <DocumentScannerPanel
-      context={scannerContext}
-      handlers={scannerHandlers}
-      onSuccess={() => {
-        docsCrud.refresh?.();
-        stockCrud.refresh?.();
-        financesCrud.refresh?.();
-      }}
-    />
-  ) : tab === 'OCR Intelligent' ? (
-    <InvoiceOcrIntelligentPanel
-      context={scannerContext}
-      dataMap={ocrDataMap}
-      handlers={scannerHandlers}
-      onNavigate={props.onNavigate}
-      onSuccess={() => {
-        docsCrud.refresh?.();
-        stockCrud.refresh?.();
-        financesCrud.refresh?.();
-      }}
-    />
-  ) : tab === 'Bibliothèque' ? (
-    <div className="space-y-4">
-      {workflowBridge(true, false)}
-      <Library data={data} selected={selectedDocument} setSelected={setSelectedDocument} />
-    </div>
-  ) : tab === 'Preuves' ? (
-    <div className="space-y-5">
-      {workflowBridge(false, true)}
-      <Proofs data={data} onNavigate={props.onNavigate} onAttachProof={attachProof} busyId={busyId} />
-    </div>
-  ) : tab === 'Rapports' ? <Reports data={data} /> : tab === 'Exports' ? <Exports data={data} onNavigate={props.onNavigate} /> : tab === 'Modèles' ? <Templates data={data} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="documents_rapports" dataMap={{ documents: data.documents, finances: data.transactions, sales_orders: data.salesOrders, payments: data.payments }} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="documents_rapports" periodFiltered={periodFiltered} transactions={data.transactions} finances={data.transactions} clients={data.clients} salesOrders={data.salesOrders} payments={data.payments} onNavigate={props.onNavigate} />;
-
+  const content = tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onAttachProof={attachProof} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Bibliothèque' ? <Library data={data} selected={selectedDocument} setSelected={setSelectedDocument} /> : tab === 'Preuves' ? <Proofs data={data} onNavigate={props.onNavigate} onAttachProof={attachProof} busyId={busyId} /> : tab === 'Rapports' ? <Reports data={data} /> : tab === 'Exports' ? <Exports data={data} onNavigate={props.onNavigate} /> : tab === 'Modèles' ? <Templates data={data} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="documents_rapports" dataMap={{ documents: data.documents, finances: data.transactions }} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="documents_rapports" periodFiltered={periodFiltered} transactions={data.transactions} finances={data.transactions} clients={data.clients} salesOrders={data.salesOrders} payments={data.payments} onNavigate={props.onNavigate} />;
   return (
     <div className="space-y-6">
       <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
@@ -430,7 +316,6 @@ export default function DocumentsRapportsModule(props) {
           </div>
         </div>
       </div>
-      <AntiDuplicationNotice pairId="document_vs_preuve" onNavigate={props.onNavigate} compact className="mb-2" />
       <Tabs active={tab} onChange={setTab} />
       {content}
     </div>

@@ -1,6 +1,6 @@
-import { toNumber } from './format';
-import { calculateAnimalCost, calculateAvicoleLotCost, calculateLayerTabletSaleCost } from './costEngine';
-import { deliveryFeeOf } from './saleQuantityLabel';
+import { toNumber } from './format.js';
+import { calculateAnimalCost, calculateAvicoleLotCost, calculateLayerTabletSaleCost } from './costEngine.js';
+import { deliveryFeeOf } from './saleQuantityLabel.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value) => String(value || '').trim();

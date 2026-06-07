@@ -1,7 +1,6 @@
-import { BrainCircuit, Handshake, PackageCheck, ShoppingBag, Warehouse, Zap } from 'lucide-react';
+import { BrainCircuit, Handshake, PackageCheck, ShoppingBag, Truck, Warehouse, Zap } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleListHub from '../components/module/ModuleListHub.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
@@ -11,10 +10,10 @@ import { applyOneClickRecommendation, createSupplierFollowUpTask } from '../serv
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { rowsOf } from '../utils/moduleRows';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
+import { listSoucheOptions } from '../config/soucheReferential.js';
+import { validateBuildingCapacityForChickOrder } from '../services/objectifsGrowthEngine.js';
 import { aggregateSupplierDebts, buildAchatsStockCoherenceRows, buildAchatsStockHealthSnapshot } from './achatsStock/achatsStockVisionHelpers.js';
 import { resolveAchatsStockTab, navigateForIaFinding } from '../utils/commercialNavigation';
-import AntiDuplicationNotice from '../components/AntiDuplicationNotice.jsx';
-
 import StocksV5 from './StocksV5';
 import FournisseursReadable from './FournisseursReadable';
 
@@ -106,24 +105,125 @@ function LowStockPanel({ items = [], setTab }) {
   );
 }
 
-function AchatsHub({ data, onNavigate, setTab, onRepairPurchase }) {
-  const orphanPurchases = data.purchasesWithoutStock || [];
+
+function buildingOptions(lots = []) {
+  const map = new Map();
+  arr(lots).forEach((lot) => {
+    const id = lot.batiment || lot.nom_batiment || lot.logement;
+    if (!id) return;
+    map.set(id, lot.nom_batiment || lot.logement || id);
+  });
+  return [...map.entries()].map(([value, label]) => ({ value, label }));
+}
+
+function ChickOrderPanel({ lots = [], onNavigate }) {
+  const buildings = useMemo(() => buildingOptions(lots), [lots]);
+  const defaultDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 14);
+    return d.toISOString().slice(0, 10);
+  }, []);
+  const [form, setForm] = useState({
+    building: buildings[0]?.value || '',
+    plannedStartDate: defaultDate,
+    typeLot: 'Chair',
+    quantity: 200,
+    codeSouche: 'cobb-500',
+  });
+
+  useEffect(() => {
+    if (buildings.length && !buildings.some((b) => b.value === form.building)) {
+      setForm((prev) => ({ ...prev, building: buildings[0].value }));
+    }
+  }, [buildings, form.building]);
+
+  const soucheOptions = useMemo(() => {
+    const activity = form.typeLot === 'Pondeuse' ? 'pondeuse' : 'chair';
+    return listSoucheOptions().filter((opt) => opt.activity === activity);
+  }, [form.typeLot]);
+
+  useEffect(() => {
+    if (soucheOptions.length && !soucheOptions.some((opt) => opt.value === form.codeSouche)) {
+      setForm((prev) => ({ ...prev, codeSouche: soucheOptions[0].value }));
+    }
+  }, [soucheOptions, form.codeSouche]);
+
+  const submitOrder = () => {
+    if (!form.building || !form.plannedStartDate) {
+      toast.error('Bâtiment et date de mise en place requis.');
+      return;
+    }
+    const check = validateBuildingCapacityForChickOrder({
+      lots,
+      building: form.building,
+      plannedStartDate: form.plannedStartDate,
+    });
+    if (!check.ok) {
+      toast.error(check.message || 'Capacité bâtiment saturée.');
+      return;
+    }
+    toast.success('Capacité validée — créez le lot dans Élevage › Avicole.');
+    onNavigate?.('elevage', {
+      tab: 'Avicole',
+      draft: {
+        type: form.typeLot,
+        batiment: form.building,
+        date_mise_en_place: form.plannedStartDate,
+        date_debut: form.plannedStartDate,
+        code_souche: form.codeSouche,
+        initial_count: form.quantity,
+        effectif_initial: form.quantity,
+      },
+    });
+  };
+
+  return (
+    <Section icon={Truck} title="Commande poussins — contrôle capacité bâtiment">
+      <p className="mb-3 text-sm text-[#8a7456]">Vérifie le vide sanitaire 10 jours avant validation. Bloque la commande si le bâtiment est encore occupé ou en quarantaine.</p>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <label className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm">
+          <span className="text-xs text-[#8a7456]">Bâtiment</span>
+          <select value={form.building} onChange={(e) => setForm((prev) => ({ ...prev, building: e.target.value }))} className="mt-1 w-full rounded-lg border border-[#d6c3a0] px-2 py-1 font-black text-[#2f2415]">
+            {buildings.length ? buildings.map((b) => <option key={b.value} value={b.value}>{b.label}</option>) : <option value="">Aucun bâtiment</option>}
+          </select>
+        </label>
+        <label className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm">
+          <span className="text-xs text-[#8a7456]">Date pivot J-0</span>
+          <input type="date" value={form.plannedStartDate} onChange={(e) => setForm((prev) => ({ ...prev, plannedStartDate: e.target.value }))} className="mt-1 w-full rounded-lg border border-[#d6c3a0] px-2 py-1 font-black text-[#2f2415]" />
+        </label>
+        <label className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm">
+          <span className="text-xs text-[#8a7456]">Type de bande</span>
+          <select value={form.typeLot} onChange={(e) => setForm((prev) => ({ ...prev, typeLot: e.target.value }))} className="mt-1 w-full rounded-lg border border-[#d6c3a0] px-2 py-1 font-black text-[#2f2415]">
+            <option value="Chair">Poulets de chair</option>
+            <option value="Pondeuse">Pondeuses</option>
+          </select>
+        </label>
+        <label className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm">
+          <span className="text-xs text-[#8a7456]">Souche référentiel</span>
+          <select value={form.codeSouche} onChange={(e) => setForm((prev) => ({ ...prev, codeSouche: e.target.value }))} className="mt-1 w-full rounded-lg border border-[#d6c3a0] px-2 py-1 font-black text-[#2f2415]">
+            {soucheOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+          </select>
+        </label>
+        <label className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm">
+          <span className="text-xs text-[#8a7456]">Effectif commandé</span>
+          <input type="number" min={1} value={form.quantity} onChange={(e) => setForm((prev) => ({ ...prev, quantity: Number(e.target.value || 0) }))} className="mt-1 w-full rounded-lg border border-[#d6c3a0] px-2 py-1 font-black text-[#2f2415]" />
+        </label>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button type="button" onClick={submitOrder} className="rounded-xl bg-[#22c55e] px-4 py-2 text-xs font-black text-[#052e16]">Valider capacité & préparer lot</button>
+        <button type="button" onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Croissance Économique & Capacités' })} className="rounded-xl border border-[#d6c3a0] bg-white px-4 py-2 text-xs font-black text-[#2f2415]">Voir alertes capacité</button>
+      </div>
+    </Section>
+  );
+}
+
+function AchatsHub({ data, lots, onNavigate, setTab }) {
   return (
     <div className="space-y-4">
+      <ChickOrderPanel lots={lots} onNavigate={onNavigate} />
       <div className="flex justify-end">
         <button type="button" onClick={() => { emitHorizonForm('stock', 'stock_purchase', 'Nouvel achat stock', { date: new Date().toISOString().slice(0, 10) }); setTab('Stock'); }} className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white">+ Achat stock</button>
       </div>
-      {orphanPurchases.length ? (
-        <Section icon={ShoppingBag} title="Achats finance sans entrée stock (réparation)">
-          <p className="mb-3 text-sm text-[#8a7456]">Les nouveaux achats stockables se saisissent dans Stock. Corrigez ici l&apos;historique seulement.</p>
-          {orphanPurchases.slice(0, 8).map((row) => (
-            <div key={row.id} className="flex flex-col gap-2 border-b border-[#eadcc2]/70 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
-              <div><b className="text-[#2f2415]">{row.libelle || row.id}</b><p className="text-xs text-[#8a7456]">{row.date} · {fmtCurrency(n(row.montant ?? row.amount))}</p></div>
-              <button type="button" onClick={() => onRepairPurchase?.(row)} className="rounded-lg border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-black text-amber-900">Créer entrée stock depuis cette dépense</button>
-            </div>
-          ))}
-        </Section>
-      ) : null}
       <ModuleListHub
       title="Achats & approvisionnements"
       intro="Mouvements d'achat détectés dans la finance et liés au stock."
@@ -151,11 +251,9 @@ function AchatsHub({ data, onNavigate, setTab, onRepairPurchase }) {
 function MouvementsHub({ data, onNavigate }) {
   const movements = [...data.feedLogs, ...data.stockEvents].sort((a, b) => String(b.date || b.created_at || '').localeCompare(String(a.date || a.created_at || '')));
   return (
-    <div className="space-y-4">
-      <AntiDuplicationNotice pairId="stock_vs_mouvements" onNavigate={onNavigate} actionLabel="Saisir dans Stock" />
-      <ModuleListHub
+    <ModuleListHub
       title="Mouvements stock & alimentation"
-      intro="Historique lecture seule — saisie des entrées/sorties dans l'onglet Stock."
+      intro="Entrées, sorties, distributions aliment et événements stock."
       stats={[
         { label: 'Mouvements', value: fmtNumber(movements.length) },
         { label: 'Sorties aliment', value: fmtNumber(data.feedLogs.length) },
@@ -172,14 +270,13 @@ function MouvementsHub({ data, onNavigate }) {
       emptyLabel="Aucun mouvement enregistré."
       onNavigate={onNavigate}
     />
-    </div>
-
   );
 }
 
-function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate }) {
+function Summary({ data, lots, setTab, onApply, onRelance, busyId, onNavigate }) {
   return (
     <div className="space-y-5">
+      <ChickOrderPanel lots={lots} onNavigate={onNavigate} />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-8">
         <Stat label="Santé stock" value={`${data.healthScore}/100`} tone={data.healthScore >= 75 ? 'good' : 'warn'} />
         <Stat label="Produits stock" value={fmtNumber(data.stocks.length)} />
@@ -203,7 +300,6 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate }) {
           <button type="button" onClick={() => setTab('Mouvements')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Mouvements</b><p className="mt-1 text-sm text-[#8a7456]">Historique aliment & stock.</p></button>
           <button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">Commercial</b><p className="mt-1 text-sm text-[#8a7456]">Vendre stock / opportunités détectées.</p></button>
         </div>
-
       </Section>
     </div>
   );
@@ -295,8 +391,7 @@ export default function AchatsStockRecoveredModule(props) {
       setBusyId(null);
     }
   };
-  const stockProps = { rows: stocks, alimentationLogs: feedLogs, animaux: arr(props.animaux), lots: arr(props.lots), cultures: arr(props.cultures), transactions, documents: rowsOf(props.documents, documentsCrud, periodFiltered), alertes: rowsOf(props.alertes, alertsCrud, false), fournisseurs: suppliers, opportunities: rowsOf(props.opportunities, opportunitiesCrud, periodFiltered), taches: rowsOf(props.taches, tasksCrud, false), onCreate: props.onCreateStock || stockCrud.create, onUpdate: props.onUpdateStock || stockCrud.update, onDelete: props.onDeleteStock || stockCrud.remove, onRefresh: props.onRefreshStock || stockCrud.refresh, onCreateAlimentation: props.onCreateAlimentation || feedCrud.create, onUpdateAlimentation: props.onUpdateAlimentation || feedCrud.update, onDeleteAlimentation: props.onDeleteAlimentation || feedCrud.remove, onRefreshAlimentation: props.onRefreshAlimentation || feedCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onUpdateSupplier: props.onUpdateSupplier || suppliersCrud.update, onRefreshSuppliers: props.onRefreshSuppliers || suppliersCrud.refresh, onUpdateFinanceTransaction: props.onUpdateFinanceTransaction || financesCrud.update, onCreateDocument: props.onCreateDocument || documentsCrud.create, onNavigate: props.onNavigate };
-
+  const stockProps = { rows: stocks, alimentationLogs: feedLogs, animaux: arr(props.animaux), lots: arr(props.lots), fournisseurs: suppliers, opportunities: rowsOf(props.opportunities, opportunitiesCrud, periodFiltered), taches: rowsOf(props.taches, tasksCrud, false), onCreate: props.onCreateStock || stockCrud.create, onUpdate: props.onUpdateStock || stockCrud.update, onDelete: props.onDeleteStock || stockCrud.remove, onRefresh: props.onRefreshStock || stockCrud.refresh, onCreateAlimentation: props.onCreateAlimentation || feedCrud.create, onUpdateAlimentation: props.onUpdateAlimentation || feedCrud.update, onDeleteAlimentation: props.onDeleteAlimentation || feedCrud.remove, onRefreshAlimentation: props.onRefreshAlimentation || feedCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: props.onNavigate };
   const supplierProps = { rows: suppliers, stocks, tasks: rowsOf(props.tasks, tasksCrud, false), transactions, finances: transactions, documents: rowsOf(props.documents, documentsCrud, periodFiltered), onCreate: props.onCreateSupplier || suppliersCrud.create, onUpdate: props.onUpdateSupplier || suppliersCrud.update, onDelete: props.onDeleteSupplier || suppliersCrud.remove, onRefresh: props.onRefreshSuppliers || suppliersCrud.refresh, onUpdateStock: props.onUpdateStock || stockCrud.update, onRefreshStock: props.onRefreshStock || stockCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: props.onNavigate };
   return (
     <div className="space-y-6">
@@ -312,8 +407,7 @@ export default function AchatsStockRecoveredModule(props) {
         </div>
       </section>
       <Tabs active={tab} onChange={setTab} />
-      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onRelance={relanceSupplier} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Stock' ? <StocksV5 {...stockProps} /> : tab === 'Achats' ? <AchatsHub data={data} onNavigate={props.onNavigate} setTab={setTab} onRepairPurchase={(tx) => { emitHorizonForm('stock', 'stock_purchase', 'Créer entrée stock depuis cette dépense', buildStockReceptionFromFinanceTransaction(tx, stocks)); setTab('Stock'); }} /> : tab === 'Fournisseurs' ? <FournisseursReadable {...supplierProps} /> : tab === 'Mouvements' ? <MouvementsHub data={data} onNavigate={props.onNavigate} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="achats_stock" dataMap={{ stock: stocks, alimentation_logs: feedLogs, fournisseurs: suppliers }} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="achats_stock" periodFiltered={periodFiltered} stocks={stocks} alimentationLogs={feedLogs} fournisseurs={suppliers} transactions={transactions} onNavigate={props.onNavigate} />}
-
+      {tab === 'Résumé' ? <Summary data={data} lots={arr(props.lots)} setTab={setTab} onApply={applyFinding} onRelance={relanceSupplier} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Stock' ? <StocksV5 {...stockProps} /> : tab === 'Achats' ? <AchatsHub data={data} lots={arr(props.lots)} onNavigate={props.onNavigate} setTab={setTab} /> : tab === 'Fournisseurs' ? <FournisseursReadable {...supplierProps} /> : tab === 'Mouvements' ? <MouvementsHub data={data} onNavigate={props.onNavigate} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="achats_stock" dataMap={{ stock: stocks, alimentation_logs: feedLogs, fournisseurs: suppliers }} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="achats_stock" periodFiltered={periodFiltered} stocks={stocks} alimentationLogs={feedLogs} fournisseurs={suppliers} transactions={transactions} onNavigate={props.onNavigate} />}
     </div>
   );
 }

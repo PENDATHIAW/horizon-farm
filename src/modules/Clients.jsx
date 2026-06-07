@@ -121,7 +121,7 @@ export default function Clients({ rows = [], loading, salesOrders = [], payments
     const list = rows.filter((client) => {
       const summary = salesSummaryFor(client);
       const segment = segmentFor(client);
-      const statusOk = statusFilter === 'tous' || statusFilter === segment.segment || (statusFilter === 'a_relancer' ? summary.resteAPayer > 0 : ((client.statut || summary.status || 'actif') === statusFilter || summary.status === statusFilter));
+      const statusOk = statusFilter === 'tous' || (statusFilter === 'À relancer' ? summary.resteAPayer > 0 : statusFilter === 'a_relancer' ? summary.resteAPayer > 0 : statusFilter === segment.segment ? (segment.segment !== 'À relancer' || summary.resteAPayer > 0) : ((client.statut || summary.status || 'actif') === statusFilter || summary.status === statusFilter));
       const searchOk = !query || [client.nom, client.tel, client.whatsapp, client.email, client.type, client.prefs, segment.segment, segment.channel].some((value) => String(value || '').toLowerCase().includes(query));
       return statusOk && searchOk;
     });
@@ -158,7 +158,11 @@ export default function Clients({ rows = [], loading, salesOrders = [], payments
   const proposeOpportunity = (client, opportunity, message) => openContact(client, message, `Proposer — ${clientName(client)}`);
   const relanceCreance = (client) => {
     const summary = salesSummaryFor(client);
-    openContact(client, relanceMessageForClient(client, summary), summary.resteAPayer > 0 ? 'Relancer — créance' : 'Relancer le client');
+    if (summary.resteAPayer <= 0) {
+      openContact(client, messageFor(client), 'Contacter le client');
+      return;
+    }
+    openContact(client, relanceMessageForClient(client, summary), 'Relancer — créance');
   };
   const openMaps = (client) => { const query = encodeURIComponent(buildSenegalMapQuery(client, 'client Dakar Senegal')); window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank', 'noopener,noreferrer'); };
 
@@ -223,7 +227,7 @@ export default function Clients({ rows = [], loading, salesOrders = [], payments
                     )}
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-1 justify-end">
-                    {hasDebt ? <Btn variant="amber" small icon={MessageCircle} onClick={() => relanceCreance(client)}>Relancer</Btn> : <Btn variant="whatsapp" small icon={MessageCircle} onClick={() => openContact(client, messageFor(client), 'Contacter le client')}>WhatsApp</Btn>}
+                    {hasDebt ? <Btn variant="amber" small icon={MessageCircle} onClick={() => relanceCreance(client)}>Relancer</Btn> : null}
                     <Btn variant="outline" small icon={UserRound} onClick={() => openProfile(client)} />
                     <Btn variant="outline" small icon={Edit} onClick={() => { setSelected(client); setModal('edit'); }} />
                     <Btn variant="outline" small icon={Trash2} onClick={() => { setSelected(client); setModal('delete'); }} />

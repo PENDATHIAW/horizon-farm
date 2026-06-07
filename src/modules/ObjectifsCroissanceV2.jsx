@@ -1,5 +1,5 @@
-import VisionCroissanceModule from './VisionCroissanceModule.jsx';
+import ObjectifsDecisionModule from './objectifs/ObjectifsDecisionModule.jsx';
 
 export default function ObjectifsCroissanceModule(props) {
-  return <VisionCroissanceModule {...props} moduleId="objectifs_croissance" />;
+  return <ObjectifsDecisionModule {...props} />;
 }

@@ -21,10 +21,15 @@ export default function EquipementsSmartFarmBridge({
           </p>
           <p className="text-xs text-[#8a7456]">Reliez un capteur à un équipement via le champ « Équipement lié » dans Smart Farm.</p>
         </div>
-        <button type="button" onClick={() => onNavigate?.('smartfarm', { tab: 'Capteurs' })} className="text-xs font-black text-emerald-800">
+        <button
+          type="button"
+          onClick={() => onNavigate?.('smartfarm', { tab: 'Capteurs' })}
+          className="text-xs font-black text-emerald-800"
+        >
           Ouvrir Smart Farm →
         </button>
       </div>
+
       {linked.length ? (
         <div className="space-y-2">
           {linked.slice(0, 6).map(({ equipment, sensors: ss, cameras: cc, totalDevices }) => (
@@ -46,6 +51,7 @@ export default function EquipementsSmartFarmBridge({
           Aucun capteur lié aux équipements. Renseignez « Équipement lié » sur un capteur Smart Farm ou alignez la zone.
         </p>
       )}
+
       {orphans.length ? (
         <p className="text-xs text-[#8a7456]">
           {orphans.length} capteur/caméra sans équipement correspondant — à relier dans Smart Farm.

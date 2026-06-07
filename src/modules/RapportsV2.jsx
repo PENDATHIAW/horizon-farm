@@ -82,7 +82,13 @@ function HorizonFinancingFileCard({ draft, data, onCreateDocument, onRefreshDocu
       });
       await onCreateBusinessEvent?.({ id: makeId('EVT'), event_type: 'dossier_financeur_prepare', module_source: 'rapports', entity_type: 'document', entity_id: id, title: `Dossier financeur préparé · ${financier}`, description: sections.join('\n'), event_date: today(), severity: 'info', amount: Number(amount || 0), saisies_evitees: 6 });
       await Promise.allSettled([onRefreshDocuments?.(), onRefreshBusinessEvents?.()]);
-      toast.success(`Dossier ${financier} préparé`);
+      exportFinanceurReportPdf(data, {
+        financier,
+        businessPlanLabel: selectedBp ? bpLabel(selectedBp) : 'Business Plan Horizon Farm',
+        amountRequested: Number(amount || 0),
+        purpose,
+      });
+      toast.success(`Dossier ${financier} préparé et PDF téléchargé`);
       onClose?.();
     } catch (error) { toast.error(error.message || 'Création dossier financeur impossible'); } finally { setSaving(false); }
   };

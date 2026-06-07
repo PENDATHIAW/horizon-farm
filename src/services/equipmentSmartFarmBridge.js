@@ -1,4 +1,4 @@
-/** Relie équipements matériels ↔ capteurs / caméras Smart Farm. */
+/** Relie équipements matériels ↔ capteurs / caméras Smart Farm (sans doublon de fiches). */
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const clean = (v) => String(v || '').trim();
@@ -12,6 +12,7 @@ function nameOf(row = {}, fallback = '') {
   return clean(row.name || row.nom || fallback);
 }
 
+/** Capteurs / caméras liés à un équipement (equipment_id explicite ou zone/nom proche). */
 export function devicesForEquipment(equipment = {}, sensors = [], cameras = []) {
   const eqId = clean(equipment.id);
   const eqZone = zoneOf(equipment);
@@ -32,6 +33,7 @@ export function devicesForEquipment(equipment = {}, sensors = [], cameras = []) 
   };
 }
 
+/** Équipement lié à un capteur ou une caméra. */
 export function equipmentForDevice(device = {}, equipements = []) {
   const linkedId = clean(device.equipment_id);
   if (linkedId) {
@@ -48,6 +50,7 @@ export function equipmentForDevice(device = {}, equipements = []) {
   }) || null;
 }
 
+/** Résumé par équipement pour panneau UI. */
 export function buildEquipmentSmartFarmSummary(equipements = [], sensors = [], cameras = []) {
   return arr(equipements).map((equipment) => {
     const linked = devicesForEquipment(equipment, sensors, cameras);
@@ -60,6 +63,7 @@ export function buildEquipmentSmartFarmSummary(equipements = [], sensors = [], c
   }).sort((a, b) => b.totalDevices - a.totalDevices || nameOf(a.equipment).localeCompare(nameOf(b.equipment), 'fr'));
 }
 
+/** Capteurs/caméras orphelins (sans équipement correspondant). */
 export function orphanSmartFarmDevices(equipements = [], sensors = [], cameras = []) {
   const orphans = [];
   [...arr(sensors).map((d) => ({ ...d, kind: 'capteur' })), ...arr(cameras).map((d) => ({ ...d, kind: 'camera' }))].forEach((device) => {
@@ -69,3 +73,20 @@ export function orphanSmartFarmDevices(equipements = [], sensors = [], cameras =
 }
 
 export default buildEquipmentSmartFarmSummary;
+
+
+/** Champs capteur/caméra avec select équipement dynamique. */
+export function buildSmartFarmDeviceFields(baseFields = [], equipements = []) {
+  const eqOptions = [
+    { value: '', label: '— Aucun —' },
+    ...arr(equipements).map((eq) => ({
+      value: clean(eq.id),
+      label: `${nameOf(eq, eq.id)} · ${eq.zone || eq.type || 'équipement'}`,
+    })).filter((row) => row.value),
+  ];
+  return arr(baseFields).map((field) => (
+    field.key === 'equipment_id'
+      ? { ...field, type: 'select', options: () => eqOptions }
+      : field
+  ));
+}

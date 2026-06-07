@@ -24,7 +24,7 @@ const EXPLICIT_DATE_KEYS = new Set([
   'last_visit',
   'next_visit',
 ]);
-const SALE_READY_VALUES = new Set(['true', 'oui', 'yes', '1', 'pret', 'prêt', 'prete', 'prête', 'pret_a_la_vente', 'pret_a_vendre', 'pret_a_vendre_reforme', 'a_reformer', 'confirme', 'confirmé']);
+const SALE_READY_VALUES = new Set(['true', 'oui', 'yes', '1', 'pret', 'prêt', 'prete', 'prête', 'pret_a_la_vente', 'pret_a_vendre', 'pret_a_vendre_reforme', 'pret_confirme', 'a_reformer', 'confirme', 'confirmé']);
 const saleReadyValue = (value) => value === true || SALE_READY_VALUES.has(String(value || '').trim().toLowerCase());
 const isSaleReadyRecord = (record = {}) => Boolean(
   saleReadyValue(record.pret_vente_confirme) ||

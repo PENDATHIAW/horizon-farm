@@ -78,8 +78,6 @@ function askSalePrice(row, qty) {
 }
 
 export default function CulturesWorkflowBridge({ rows = [], onUpdate, onRefresh }) {
-  const stockCrud = useCrudModule('stock');
-  const documentsCrud = useCrudModule('documents');
   const alertesCrud = useCrudModule('alertes_center');
   const tachesCrud = useCrudModule('taches');
   const eventsCrud = useCrudModule('business_events');

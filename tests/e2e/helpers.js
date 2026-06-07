@@ -55,7 +55,7 @@ export async function login(page) {
   await page.goto('/');
   await expect(page.getByText(/Horizon Farm ERP/i)).toBeVisible({ timeout: 20_000 });
   await page.getByLabel(/Login/i).fill(USER_LOGIN);
-  await page.getByLabel(/Mot de passe/i).fill(USER_PASSWORD);
+  await page.getByRole('textbox', { name: /mot de passe/i }).fill(USER_PASSWORD);
   await page.getByRole('button', { name: /Se connecter/i }).click();
   await expect(page.getByText(/Accueil/i).first()).toBeVisible({ timeout: 25_000 });
   await waitForAppReady(page);

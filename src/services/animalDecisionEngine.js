@@ -155,19 +155,9 @@ export function applyAnimalDecisionDefaults(payload = {}, existing = {}) {
     raison_pesee_recommandee: profile.reason,
     decision_apres_pesee_view: profile.decision,
     delai_cible_vente_jours: profile.targetDelay,
-    pret_vente_recommande: closed ? false : Boolean(payload.pret_vente_recommande ?? existing.pret_vente_recommande),
-    pret_vente_confirme: closed ? false : Boolean(
-      payload.pret_vente_confirme ??
-      existing.pret_vente_confirme ??
-      payload.pret_a_la_vente ??
-      existing.pret_a_la_vente ??
-      ['pret_a_la_vente', 'pret_a_vendre'].includes(status)
-    ),
-    sale_readiness_status: closed ? profile.readiness : (
-      (payload.pret_vente_confirme ?? existing.pret_vente_confirme ?? ['pret_a_la_vente', 'pret_a_vendre'].includes(status))
-        ? 'confirme'
-        : (payload.sale_readiness_status ?? existing.sale_readiness_status)
-    ),
+    pret_vente_recommande: closed ? false : payload.pret_vente_recommande,
+    pret_vente_confirme: closed ? false : (payload.pret_vente_confirme ?? existing.pret_vente_confirme ?? false),
+    sale_readiness_status: closed ? profile.readiness : payload.sale_readiness_status,
     valeur_perte_estimee: lossClosed ? num(payload.valeur_perte_estimee ?? existing.valeur_perte_estimee ?? profile.lossValue) : payload.valeur_perte_estimee,
     alerte_cash_immobilise_view: closed ? 'Suivi clôturé' : profile.ageDays > profile.targetDelay ? `Alerte: ${profile.ageDays} jours en ferme, objectif ${profile.targetDelay} jours` : 'OK',
   };

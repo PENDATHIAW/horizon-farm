@@ -9,6 +9,12 @@ import {
 } from '../utils/activityYear.js';
 import { HORIZON_FARM_OFFICIAL_BP } from './horizonFarmOfficialBusinessPlan';
 import { buildTechnicalFarmingAlerts } from './technicalFarmingRules';
+import { buildAllMarketEvents, getUpcomingMarketEvents } from './marketEventCalendar.js';
+import {
+  buildFarmSupplyCoverage,
+  buildMonthlyDemandForecast,
+  findDemandCoverageForActivity,
+} from './farmDemandCoverageEngine.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const num = (value = 0) => Number(value || 0) || 0;
@@ -99,21 +105,9 @@ export function buildCommercialCalendar(date = new Date(), activityYear = null) 
   }, { current: null, next: [], year: [] });
 }
 
-function defaultEventsForYear(year) {
-  return [
-    { id: `tabaski-${year}`, label: 'Tabaski', date: makeDate(year, 5, 27), activities: ['bovins'], note: 'Date indicative à remplacer par le calendrier officiel/local.' },
-    { id: `fin-annee-${year}`, label: 'Fin d’année', date: makeDate(year, 12, 24), activities: ['poulets_chair', 'oeufs', 'bovins'], note: 'Commandes groupées, restauration, familles.' },
-    { id: `ramadan-${year}`, label: 'Ramadan', date: makeDate(year, 2, 17), activities: ['poulets_chair', 'oeufs'], note: 'Date indicative.' },
-    { id: `korite-${year}`, label: 'Korité', date: makeDate(year, 3, 20), activities: ['poulets_chair', 'oeufs'], note: 'Date indicative.' },
-  ];
-}
+
 export function buildMarketEvents(referenceDate = new Date(), dataMap = {}) {
-  return safeRun(() => {
-    const ref = safeDate(referenceDate);
-    const customEvents = arr(dataMap.market_calendar_events || dataMap.marketCalendarEvents).map((event) => ({ id: event.id || event.code || event.nom, label: event.label || event.nom || event.title, date: safeDate(event.date || event.target_date || event.date_cible), activities: arr(event.activities || event.activites || event.focus), note: event.note || event.description || '', source: 'custom' })).filter((event) => event.label && !Number.isNaN(event.date.getTime()));
-    const defaults = [ref.getFullYear(), ref.getFullYear() + 1].flatMap(defaultEventsForYear).map((event) => ({ ...event, source: 'default' }));
-    return [...customEvents, ...defaults].filter((event) => event.date >= addDays(ref, -15) && event.date <= addDays(ref, 540)).sort((a, b) => a.date - b.date);
-  }, []);
+  return safeRun(() => getUpcomingMarketEvents(referenceDate, dataMap, { horizonDays: 540 }), []);
 }
 
 export function estimateLeadTimes(dataMap = {}) {
@@ -240,22 +234,95 @@ function priorityFromSeverity(severity = '') { const value = normalize(severity)
 function activityFromTechnicalAlert(alert = {}) { const text = normalize(`${alert.module_source || ''} ${alert.entity_type || ''} ${alert.title || ''} ${alert.message || ''}`); if (text.includes('pondeuse') || text.includes('oeuf')) return 'oeufs'; if (text.includes('chair') || text.includes('poulet')) return 'poulets_chair'; if (text.includes('bovin')) return 'bovins'; if (text.includes('ovin')) return 'ovins'; if (text.includes('caprin')) return 'caprins'; if (text.includes('animal')) return 'animaux'; if (text.includes('stock')) return 'stock'; if (text.includes('culture')) return 'cultures'; return 'global'; }
 function buildTechnicalRecommendation(alert = {}) { const activity = activityFromTechnicalAlert(alert); return { id: `technical-${alert.id || alert.decision_key || Math.random().toString(36).slice(2)}`, title: alert.title || 'Alerte technique', activity, priority: priorityFromSeverity(alert.severity), timing: alert.message || alert.description || '', recommendation: alert.action_recommandee || alert.recommendation || 'Vérifier et traiter cette alerte.', event_label: 'Technique', event_note: alert.message || '', target_date: alert.due_date || alert.event_date || '', timing_status: 'technical_alert', timing_status_label: 'Alerte technique', should_recommend_investment: false, demand_level: 'technique', coverage_status: 'technique', technical_alert: alert }; }
 
+function commercialActionForActivity(activity, activityGoal = {}, capacity = {}) {
+  const remaining = Number(activityGoal?.remaining || 0);
+  const gapText = remaining > 0 ? `${remaining.toLocaleString('fr-FR')} FCFA restants sur l'objectif.` : 'Objectif mensuel couvert ou proche.';
+  if (activity === 'oeufs') {
+    return {
+      recommendation: remaining > 0
+        ? `Relancer clients œufs/tablettes et précommandes — ${gapText}`
+        : `Maintenir les ventes régulières (≈ ${Math.round(capacity.tabletsDay || 0)} tablette(s)/j disponibles).`,
+      timing: remaining > 0 ? 'Accélérer encaissements œufs ce mois' : 'Consolider clients récurrents',
+    };
+  }
+  if (activity === 'poulets_chair') {
+    return {
+      recommendation: remaining > 0
+        ? `Écouler la chair disponible (restaurants, événements, détail) — ${gapText}`
+        : 'Sécuriser les clients restauration et détail pour la production en cours.',
+      timing: remaining > 0 ? 'Ventes chair prioritaires' : 'Fidélisation clients chair',
+    };
+  }
+  return {
+    recommendation: remaining > 0
+      ? `Vendre les lots prêts via bouchers, foirails et clients directs — ${gapText}`
+      : 'Vendre uniquement le bétail prêt ; pas de pression commerciale sur du stock immature.',
+    timing: remaining > 0 ? 'Ventes bétail prêt à encaisser' : 'Écoulement sélectif',
+  };
+}
+
+function launchLeadDays(activity, leadTimes = {}) {
+  if (activity === 'poulets_chair') return leadTimes.poulets_chair || 40;
+  if (activity === 'bovins') return leadTimes.bovins || 90;
+  return Math.min(leadTimes.oeufs || 150, 45);
+}
+
+function nextMarketEventForActivity(events = [], activity, refDate = new Date()) {
+  const ref = dateOnly(refDate);
+  return arr(events)
+    .filter((event) => !event.skipLaunch && event.date >= ref && arr(event.activities).includes(activity))
+    .sort((a, b) => a.date - b.date)[0] || null;
+}
+
 export function buildGrowthRecommendations(dataMap = {}, options = {}) {
   return safeRun(() => {
+    const refDate = safeDate(options.date || new Date());
     const goals = buildGoalPerformance(dataMap, options);
     const capacity = buildProductionCapacity(dataMap);
-    const base = ['oeufs', 'poulets_chair', 'bovins'].map((activity) => {
+    const leadTimes = estimateLeadTimes(dataMap);
+    const events = buildAllMarketEvents(refDate, dataMap);
+    const demandForecast = buildMonthlyDemandForecast(dataMap, events, options);
+    const supplyCoverage = buildFarmSupplyCoverage(dataMap, demandForecast);
+    const commercial = ['oeufs', 'poulets_chair', 'bovins'].map((activity) => {
       const activityGoal = arr(goals.activities).find((row) => row.activity === activity);
-      const priority = Number(activityGoal?.remaining || 0) > 0 ? 'haute' : 'moyenne';
-      const recommendation = activity === 'oeufs'
-        ? `Capacité estimée : ${Math.round(capacity.tabletsDay || 0)} tablette(s)/jour${capacity.layingRateKnown ? `, taux de ponte ${capacity.layingRate}%` : ', taux de ponte à renseigner par les logs'}.`
-        : activity === 'poulets_chair'
-          ? 'Piloter les bandes de 500 poussins : vente à J+40 puis roulement tous les 15 jours.'
-          : 'Respecter le pipeline bovins : M4 vend M1, M5 vend M2, M6 vend M3, puis vente/rachat mensuel.';
-      return { id: `goal-${activity}`, title: `Cap ${activityLabels[activity]}`, activity, priority, timing: `Reste à réaliser : ${(Number(activityGoal?.remaining || 0)).toLocaleString('fr-FR')} FCFA`, recommendation, should_recommend_investment: Number(activityGoal?.remaining || 0) > 0, demand_revenue: Number(activityGoal?.target || 0), available_revenue: Number(activityGoal?.realized || 0), gap_revenue: Number(activityGoal?.remaining || 0), coverage_rate: Number(activityGoal?.attainment || 0), coverage_status: Number(activityGoal?.attainment || 0) >= 100 ? 'couvert' : 'insuffisant', capacity };
+      const remaining = Number(activityGoal?.remaining || 0);
+      const demandRow = findDemandCoverageForActivity(supplyCoverage, activity, refDate);
+      const nextEvent = nextMarketEventForActivity(events, activity, refDate);
+      const leadDays = launchLeadDays(activity, leadTimes);
+      const targetDate = nextEvent ? iso(nextEvent.date) : '';
+      const latestStart = nextEvent ? iso(addDays(nextEvent.date, -leadDays)) : '';
+      const supplyGap = Number(demandRow?.gapRevenue || 0);
+      const supplyCoverageRate = Number(demandRow?.coverageRate ?? 0);
+      const supplyStatus = demandRow?.coverageStatus || (supplyCoverageRate >= 100 ? 'couvert' : supplyCoverageRate >= 60 ? 'partiel' : 'insuffisant');
+      const priority = remaining > 0 || supplyStatus === 'insuffisant' ? 'haute' : 'moyenne';
+      const action = commercialActionForActivity(activity, activityGoal, capacity);
+      const festivalHint = nextEvent ? ` Fenêtre ${nextEvent.label}${targetDate ? ` (${targetDate})` : ''}.` : '';
+      return {
+        id: `commercial-${activity}`,
+        title: `Écart CA — ${activityLabels[activity]}`,
+        activity,
+        priority,
+        timing: nextEvent ? `${action.timing} · cible ${nextEvent.label}` : action.timing,
+        recommendation: `${action.recommendation}${festivalHint}`,
+        should_recommend_investment: false,
+        strategic: false,
+        commercial_only: true,
+        demand_level: demandRow?.demandLevel || 'normale',
+        demand_revenue: Number(demandRow?.revenueTarget || activityGoal?.target || 0),
+        available_revenue: Number(demandRow?.availableRevenue || activityGoal?.realized || 0),
+        gap_revenue: supplyGap || remaining,
+        gap_units: Number(demandRow?.gapUnits || 0),
+        coverage_rate: supplyCoverageRate,
+        coverage_status: supplyStatus,
+        ca_attainment: Number(activityGoal?.attainment || 0),
+        target_date: targetDate,
+        latest_start: latestStart,
+        event_label: nextEvent?.label || '',
+        event_note: nextEvent?.note || '',
+      };
     });
     const technical = safeRun(() => buildTechnicalFarmingAlerts(dataMap).map(buildTechnicalRecommendation), []);
-    return [...base, ...technical].sort((a, b) => ({ haute: 3, moyenne: 2, basse: 1 }[b.priority] - { haute: 3, moyenne: 2, basse: 1 }[a.priority]));
+    return [...commercial, ...technical].sort((a, b) => ({ haute: 3, moyenne: 2, basse: 1 }[b.priority] - { haute: 3, moyenne: 2, basse: 1 }[a.priority]));
   }, []);
 }
 

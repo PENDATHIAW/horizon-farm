@@ -2,7 +2,7 @@
 
 import { DEFAULT_PILOTAGE_SETTINGS, normalizePilotageSettings } from './pilotageSettingsService.js';
 import { HIJRI_FESTIVAL_RULES } from './islamicCalendarEngine.js';
-import { annexePresetForModule, annexeMethodologyIdsForModule, annexeGlossaryTermsForModule } from './annexeModuleConfig.js';
+import { annexePresetForModule } from './annexeModuleConfig.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
@@ -731,28 +731,11 @@ export function buildAnnexeSnapshot(dataMap = {}) {
 
 export function formulasForModule(moduleId = 'centre_ia') {
   const preset = annexePresetForModule(moduleId);
-  if (preset?.blockIds?.length) {
-    const ids = new Set(preset.blockIds);
-    const order = new Map(preset.blockIds.map((id, index) => [id, index]));
-    return FORMULA_BLOCKS
-      .filter((block) => ids.has(block.id))
-      .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+  if (preset) {
+    const ids = new Set(preset.blockIds || []);
+    return FORMULA_BLOCKS.filter((block) => preset.categories.includes(block.category) || ids.has(block.id));
   }
-  return FORMULA_BLOCKS.filter((block) => block.modules?.includes(moduleId));
-}
-
-export function methodologySectionsForModule(moduleId = 'centre_ia') {
-  const ids = annexeMethodologyIdsForModule(moduleId);
-  if (ids === null) return DECISION_METHODOLOGY_SECTIONS;
-  const allowed = new Set(ids);
-  return DECISION_METHODOLOGY_SECTIONS.filter((section) => allowed.has(section.id));
-}
-
-export function glossaryForModule(moduleId = 'centre_ia') {
-  const terms = annexeGlossaryTermsForModule(moduleId);
-  if (terms === null) return ACRONYM_GLOSSARY;
-  const allowed = new Set(terms);
-  return ACRONYM_GLOSSARY.filter((row) => allowed.has(row.term));
+  return FORMULA_BLOCKS.filter((block) => block.modules.includes(moduleId));
 }
 
 export function formulasGroupedByCategory(moduleId = 'centre_ia') {

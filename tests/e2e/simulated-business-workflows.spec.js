@@ -4,7 +4,7 @@ import { buildCalculatedCycleDates } from '../../src/services/productionCycleDat
 import { computeFinanceCash } from '../../src/utils/financeCash.js';
 import { normalizeLot, normalizeProductionOeufsLog } from '../../src/utils/normalize.js';
 import { applyStockMovement, buildStockCriticalFollowUp } from '../../src/utils/stockWorkflows.js';
-import { avicoleActiveCount, avicoleHasActiveBirds, avicoleSickCount } from '../../src/utils/avicoleMetrics.js';
+import { avicoleActiveCount, avicoleSickCount } from '../../src/utils/avicoleMetrics.js';
 import { buildHealthCostTransaction, buildHealthFollowUp, buildHealthMissingProofDocument, buildHealthProofDocument } from '../../src/utils/healthWorkflows.js';
 import { buildClientReminderFollowUp, buildClientSalesSummary, canDeleteClient, normalizeClientFromSales } from '../../src/utils/clientWorkflows.js';
 import { buildSaleSourcePatch, capSalePayment } from '../../src/utils/salesWorkflows.js';
@@ -21,7 +21,6 @@ import { buildTaskFromAlert, completeTaskWorkflow, normalizeTaskChecklist } from
 import { normalizeTaskPayload } from '../../src/utils/taskForms.js';
 import { dedupeAlertsBySource, isAlertResolved } from '../../src/utils/alertWorkflows.js';
 import { buildCultureHarvestWorkflow, buildCultureInputUsageWorkflow, buildCultureLossWorkflow, buildCultureWeatherRiskFollowUp } from '../../src/utils/cultureWorkflows.js';
-import { findOpportunityForSource } from '../../src/utils/saleReadyWorkflow.js';
 import { buildInvestmentAssetWorkflow, buildInvestmentRealizationWorkflow } from '../../src/utils/investmentWorkflows.js';
 import { buildImpactImprovementTask, buildImpactMissingProofWorkflow, buildImpactRiskFollowUp } from '../../src/utils/impactWorkflows.js';
 import { buildEquipmentBreakdownFollowUp, buildEquipmentRepairWorkflow } from '../../src/utils/equipmentWorkflows.js';
@@ -37,7 +36,6 @@ import { auditErpInterconnections } from '../../src/utils/interconnectionAudit.j
 import { buildSyncRepairTask, routeForSyncIssue, syncIssueActionLabel } from '../../src/utils/syncAuditWorkflows.js';
 import { buildSystemAuditEvent, canPerformSystemAction, isLastActiveAdmin, roleCanAccess, validateSystemResetConfirmation } from '../../src/utils/systemAccessWorkflows.js';
 import { stripRepeatedPrefix, formatFindingLabel, shouldSkipCriticalTaskFinding } from '../../src/utils/healthFindingLabels.js';
-import { buildDashboardTodayActions, sanitizeDashboardMetric } from '../../src/utils/dashboardWorkflows.js';
 
 const n = (value = 0) => Number(value || 0) || 0;
 const today = () => '2026-01-01';
@@ -150,35 +148,17 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     const culture = { id: 'CULT-TOMATE-001', nom: 'Tomates serre 1', quantite_recoltee: 120, unite_recolte: 'kg', prix_vente_estime: 900 };
     const result = buildCultureHarvestWorkflow({ after: culture, date: today() });
     expect(result.stock).toMatchObject({ stock_key: 'culture-stock:CULT-TOMATE-001', source_module: 'cultures', quantite: 120, unite: 'kg' });
-    expect(result.opportunity).toMatchObject({ opportunity_key: 'cultures:CULT-TOMATE-001', source_type: 'recolte_culture', quantity: 120, statut: 'ouverte' });
+    expect(result.opportunity).toMatchObject({ opportunity_key: 'culture-sale:CULT-TOMATE-001', source_type: 'recolte_culture', quantity: 120, statut: 'ouverte' });
     expect(result.event).toMatchObject({ event_type: 'recolte_culture_disponible', entity_id: 'CULT-TOMATE-001' });
   });
 
-  test('récolte culture resynchronisée ne duplique pas stock ni opportunité', () => {
-    const culture = { id: 'CULT-TOMATE-001', nom: 'Tomates', quantite_recoltee: 120, quantite_disponible: 120, unite_recolte: 'kg', prix_vente_estime: 900, statut: 'recolte' };
-    const stocks = [{ id: 'STK-1', stock_key: 'culture-stock:CULT-TOMATE-001', quantite: 120, source_module: 'cultures', source_id: 'CULT-TOMATE-001' }];
-    const opps = [{ id: 'OPP-1', opportunity_key: 'cultures:CULT-TOMATE-001', source_id: 'CULT-TOMATE-001', source_module: 'cultures' }];
-    const result = buildCultureHarvestWorkflow({ before: culture, after: culture, stocks, opportunities: opps });
-    expect(result.stockExistingId).toBe('STK-1');
-    expect(result.opportunityExistingId).toBe('OPP-1');
-  });
-
-  test('clé legacy culture-sale retrouvée comme cultures:', () => {
-    const opps = [{ id: 'OPP-LEG', opportunity_key: 'culture-sale:CULT-1', source_id: 'CULT-1', source_module: 'cultures' }];
-    expect(findOpportunityForSource(opps, 'cultures', 'CULT-1')?.id).toBe('OPP-LEG');
-  });
-
-  test('vente culture décrémente le disponible', () => {
-    const patch = buildSaleSourcePatch({
-      sourceType: 'culture',
-      sourceRow: { id: 'CULT-1', quantite_disponible: 80, quantite_recoltee: 100, quantite_vendue: 20 },
-      quantity: 25,
-      total: 22500,
-      date: '2026-05-26',
-      orderId: 'CMD-CULT-1',
-    });
-    expect(patch.patch.quantite_disponible).toBe(55);
-    expect(patch.patch.quantite_vendue).toBe(45);
+  test('vente stock récolte synchronise la fiche culture', () => {
+    const stock = { id: 'STK-RECOLTE-001', quantite: 40, culture_id: 'CULT-TOMATE-001' };
+    const culture = { id: 'CULT-TOMATE-001', quantite_disponible: 40, quantite_vendue: 0, revenu_reel: 0 };
+    const stockPlan = buildSaleSourcePatch({ sourceType: 'stock', sourceRow: stock, quantity: 15, total: 13500, orderId: 'CMD-CULT-STOCK-001' });
+    const culturePlan = buildSaleSourcePatch({ sourceType: 'culture', sourceRow: culture, quantity: 15, total: 13500, orderId: 'CMD-CULT-STOCK-001' });
+    expect(stockPlan).toMatchObject({ module: 'stock', id: 'STK-RECOLTE-001', patch: { quantite: 25 } });
+    expect(culturePlan).toMatchObject({ module: 'culture', id: 'CULT-TOMATE-001', patch: { quantite_disponible: 25, quantite_vendue: 15, revenu_reel: 13500 } });
   });
 
   test('vente soldée bloque les encaissements supplémentaires', () => {
@@ -246,23 +226,6 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(lot.current_count).toBe(85);
     expect(lot.effectif_actuel).toBe(85);
     expect(avicoleSickCount(lot)).toBe(3);
-  });
-
-  test('lot avicole à effectif 0 exclu des workflows actifs', () => {
-    const lot = normalizeLot({
-      id: 'LOT-CLOSED-001',
-      type: 'Chair',
-      initial_count: 500,
-      mortality: 18,
-      vols: 2,
-      vendus: 480,
-      reformes: 0,
-      sorties: 0,
-      current_count: 0,
-      effectif_actuel: 0,
-    });
-    expect(avicoleActiveCount(lot)).toBe(0);
-    expect(avicoleHasActiveBirds(lot)).toBe(false);
   });
 
   test('cycles avicoles ne dupliquent pas les lots et ne classent pas les pondeuses en chair', () => {

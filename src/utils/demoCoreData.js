@@ -1,7 +1,7 @@
 const day = (n = 0) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
 
-const lot = { id: 'DEMO_LOT_01', name: 'Lot chair demo 45j', type: 'Chair', initial_count: 120, current_count: 92, mortality: 3, vendus: 25, prix_vente_prevu: 3500, cout_poussins: 120000, status: 'vendu_partiellement', date_debut: day(-45) };
-const animal = { id: 'DEMO_BOV_01', tag: 'BOV-DEMO-01', name: 'Taureau demo', type: 'Bovin', sexe: 'M', poids: 310, purchase_cost: 260000, status: 'vendu', health_status: 'sain', prix_vente_reel: 390000, client_id: 'DEMO_CLI_RELANCE', date_vente: day(-1) };
+const lot = { id: 'DEMO_LOT_01', name: 'Lot chair demo 45j', type: 'Chair', initial_count: 120, current_count: 92, mortality: 3, vendus: 25, prix_vente_prevu: 3500, cout_poussins: 120000, status: 'vendu_partiellement', date_debut: day(-45), date_mise_en_place: day(-45), code_souche: 'cobb-500', batiment: 'poulailler_demo', poids_history: [{ date: day(-45), poids: 0.04 }, { date: day(-20), poids: 0.95 }, { date: day(-5), poids: 1.48 }] };
+const animal = { id: 'DEMO_BOV_01', tag: 'BOV-DEMO-01', name: 'Taureau demo', type: 'Bovin', sexe: 'M', poids: 310, purchase_cost: 260000, status: 'vendu', health_status: 'sain', prix_vente_reel: 390000, client_id: 'DEMO_CLI_RELANCE', date_vente: day(-1), date_mise_en_place: day(-90), date_entree_ferme: day(-90), code_souche: 'goba' };
 const culture = { id: 'DEMO_CULT_01', nom: 'Tomates demo Parcelle A', type: 'Tomates', parcelle: 'Parcelle A', surface: 600, quantite_recoltee: 600, quantite_disponible: 420, cout_semences: 35000, cout_engrais: 80000, cout_eau: 25000, cout_main_oeuvre: 90000, cout_traitement: 20000, revenu_reel: 180000, statut: 'recolte', score_sante: 88 };
 
 export const DEMO_CORE_DATA = {
