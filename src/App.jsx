@@ -217,6 +217,33 @@ export default function App() {
       onCreateAlert: c.alertes_center.create,
       onUpdateAlert: c.alertes_center.update,
       onCreateBusinessEvent: c.business_events.create,
+      onCreateWhatsappLog: c.whatsapp_logs.create,
+      whatsappWorkflowHandlers: {
+        onCreatePayment: c.payments.create,
+        onUpdatePayment: c.payments.update,
+        onCreateInvoice: c.invoices.create,
+        onUpdateOrder: c.sales_orders.update,
+        onCreateFinanceTransaction: c.finances.create,
+        onUpdateFinanceTransaction: c.finances.update,
+        onCreateDocument: c.documents.create,
+        onCreateBusinessEvent: c.business_events.create,
+        onCreateAlert: c.alertes_center.create,
+        onUpdateAlert: c.alertes_center.update,
+        onCreateTask: c.taches.create,
+        onUpdateClient: c.clients.update,
+        onCreateOrUpdateStock: async (row) => {
+          const stocks = rows(c.stock);
+          const existing = stocks.find((s) => String(s.id) === String(row.id));
+          if (existing) return c.stock.update(row.id, row);
+          return c.stock.create(row);
+        },
+        onUpdateStock: c.stock.update,
+        onCreateStock: c.stock.create,
+        onUpdateLot: c.avicole.update,
+        onUpdateAnimal: c.animaux.update,
+        onCreateTrace: c.tracabilite.create,
+        onUpdateOpportunity: c.sales_opportunities.update,
+      },
       existingTasks: rows(c.taches),
       existingAlerts: rows(c.alertes_center),
       businessEvents: rows(c.business_events),
