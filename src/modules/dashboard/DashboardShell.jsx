@@ -1,4 +1,4 @@
-import { ArrowRight, Bot, BrainCircuit, MapPin, Settings2, Target } from 'lucide-react';
+import { ArrowRight, Bot, BrainCircuit, CheckCircle2, Circle, CloudSun, MapPin, Settings2, Target, TrendingUp } from 'lucide-react';
 import { MODULE_REGISTRY } from '../../config/modules.config';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
@@ -79,31 +79,261 @@ const STARTUP_CHECKLIST = [
   { id: 'objectifs', label: 'Configurer les objectifs', module: 'objectifs_croissance', tab: 'Performance' },
 ];
 
-export function DashboardStartupPanel({ onNavigate }) {
+export function DashboardStartupPanel({ onNavigate, journey = null }) {
+  const steps = journey?.steps?.length ? journey.steps : STARTUP_CHECKLIST.map((item, index) => ({
+    id: item.id,
+    step: index + 1,
+    label: item.label,
+    hint: '',
+    module: item.module,
+    tab: item.tab,
+    completed: false,
+  }));
+  const completedCount = journey?.completedCount ?? 0;
+  const total = journey?.total ?? steps.length;
+  const progressPct = journey?.progressPct ?? 0;
+  const nextStep = journey?.nextStep;
+
   return (
     <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm md:p-6">
       <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#9a6b12]">Premiers pas</p>
       <h2 className="mt-1 text-xl font-black text-[#2f2415]">Projet en phase de lancement</h2>
       <p className="mt-2 text-sm text-[#8a7456]">
-        Votre exploitation démarre. Suivez cette checklist pour alimenter l&apos;ERP et activer le pilotage.
+        Parcours progressif — {completedCount}/{total} étape(s) validée(s).
       </p>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#eadcc2]/60">
+        <div className="h-full rounded-full bg-[#22c55e] transition-all" style={{ width: `${Math.min(100, progressPct)}%` }} />
+      </div>
+      {nextStep && !nextStep.completed ? (
+        <button
+          type="button"
+          onClick={() => onNavigate?.(nextStep.module, { tab: nextStep.tab })}
+          className="mt-4 flex w-full items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-left transition hover:bg-emerald-100/80"
+        >
+          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-black text-white">
+            {nextStep.step}
+          </span>
+          <span className="min-w-0">
+            <b className="block text-sm text-[#2f2415]">Prochaine étape : {nextStep.label}</b>
+            {nextStep.hint ? <span className="mt-0.5 block text-xs text-emerald-900/80">{nextStep.hint}</span> : null}
+          </span>
+          <ArrowRight size={16} className="ml-auto shrink-0 text-emerald-800" />
+        </button>
+      ) : null}
       <ul className="mt-4 space-y-2">
-        {STARTUP_CHECKLIST.map((item) => (
+        {steps.map((item) => (
           <li key={item.id}>
             <button
               type="button"
               onClick={() => onNavigate?.(item.module, { tab: item.tab })}
-              className="flex w-full items-center gap-3 rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-left transition hover:border-[#c9a96a] hover:bg-white"
+              className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition hover:bg-white ${item.completed ? 'border-emerald-200 bg-emerald-50/60' : 'border-[#eadcc2] bg-[#fffdf8] hover:border-[#c9a96a]'}`}
             >
-              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border border-[#d6c3a0] text-xs font-black text-[#8a7456]" aria-hidden="true">
-                □
+              {item.completed ? (
+                <CheckCircle2 size={18} className="shrink-0 text-emerald-600" aria-hidden="true" />
+              ) : (
+                <Circle size={18} className="shrink-0 text-[#8a7456]" aria-hidden="true" />
+              )}
+              <span className="min-w-0">
+                <span className="block text-xs font-bold uppercase tracking-wide text-[#8a7456]">Étape {item.step}</span>
+                <span className="text-sm font-black text-[#2f2415]">{item.label}</span>
               </span>
-              <span className="text-sm font-black text-[#2f2415]">{item.label}</span>
               <ArrowRight size={14} className="ml-auto shrink-0 text-[#9a6b12]" />
             </button>
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+export function DashboardPrioritiesPanel({ priorities = [], onOpen }) {
+  if (!priorities.length) {
+    return (
+      <section className="rounded-3xl border border-emerald-200 bg-emerald-50/70 p-5 shadow-sm">
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-800">Mes priorités</p>
+        <h2 className="mt-1 text-lg font-black text-[#2f2415]">Rien d&apos;urgent aujourd&apos;hui</h2>
+        <p className="mt-2 text-sm text-emerald-900/80">L&apos;exploitation est à jour sur les points critiques.</p>
+      </section>
+    );
+  }
+  return (
+    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#9a6b12]">Mes priorités</p>
+          <h2 className="mt-1 text-lg font-black text-[#2f2415]">Que dois-je faire aujourd&apos;hui ?</h2>
+        </div>
+        <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-800">
+          {priorities.length} action{priorities.length > 1 ? 's' : ''}
+        </span>
+      </div>
+      <div className="space-y-2">
+        {priorities.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onOpen?.(item)}
+            className={`flex w-full items-start justify-between gap-3 rounded-2xl border p-3 text-left text-sm transition ${item.tone === 'red' ? 'border-red-200 bg-red-50 hover:bg-red-100/70' : 'border-amber-200 bg-amber-50 hover:bg-amber-100/70'}`}
+          >
+            <span className="min-w-0">
+              <b className="text-[#2f2415]">{item.title}</b>
+              {item.detail ? <span className="mt-1 block text-xs opacity-80">{item.detail}</span> : null}
+            </span>
+            <ArrowRight size={14} className="mt-1 shrink-0 text-[#9a6b12]" />
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function DashboardNarrativePanel({ narrative = {} }) {
+  if (!narrative.lines?.length) return null;
+  return (
+    <section className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 shadow-sm">
+      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#9a6b12]">{narrative.title || 'Synthèse'}</p>
+      <ul className="mt-3 space-y-2 text-sm text-[#2f2415]">
+        {narrative.lines.map((line) => (
+          <li key={line} className="flex gap-2">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#c9a96a]" aria-hidden="true" />
+            <span>{line}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+export function DashboardFarmOverviewPanel({ overview = {}, onNavigate }) {
+  const cards = [overview.aviculture, overview.bovins, overview.cultures].filter(Boolean);
+  if (!cards.length) return null;
+  const navMap = {
+    aviculture: ['elevage', { tab: 'Résumé' }],
+    bovins: ['elevage', { tab: 'Animaux' }],
+    cultures: ['cultures', { tab: 'Résumé' }],
+  };
+  return (
+    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#9a6b12]">Exploitation agricole</p>
+      <h2 className="mt-1 text-lg font-black text-[#2f2415]">Aviculture · Bovins · Cultures</h2>
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {cards.map((card) => {
+          const [module, opts] = navMap[card === overview.aviculture ? 'aviculture' : card === overview.bovins ? 'bovins' : 'cultures'] || ['elevage', { tab: 'Résumé' }];
+          const value = card === overview.aviculture
+            ? `${Number(card.birds || 0).toLocaleString('fr-FR')} sujet(s)`
+            : card === overview.bovins
+              ? `${Number(card.count || 0).toLocaleString('fr-FR')} animal(aux)`
+              : `${Number(card.parcels || 0).toLocaleString('fr-FR')} parcelle(s)`;
+          return (
+            <button
+              key={card.label}
+              type="button"
+              onClick={() => onNavigate?.(module, opts)}
+              className={`rounded-2xl border p-4 text-left transition hover:bg-white ${card.hasData ? 'border-[#eadcc2] bg-[#fffdf8] hover:border-[#c9a96a]' : 'border-amber-200 bg-amber-50/60 hover:bg-amber-50'}`}
+            >
+              <p className="text-[11px] font-bold uppercase tracking-wide text-[#8a7456]">{card.label}</p>
+              <p className="mt-1 text-xl font-black text-[#2f2415]">{value}</p>
+              <p className="mt-1 text-xs text-[#8a7456]">{card.detail}</p>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+export function DashboardExploitationScorePanel({ exploitation = {}, onNavigate }) {
+  const tone = exploitation.score >= 80 ? 'good' : exploitation.score >= 60 ? 'warn' : 'bad';
+  const toneCls = tone === 'good' ? 'text-emerald-700 border-emerald-200 bg-emerald-50' : tone === 'warn' ? 'text-amber-700 border-amber-200 bg-amber-50' : 'text-red-700 border-red-200 bg-red-50';
+  return (
+    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#9a6b12]">Score exploitation</p>
+          <h2 className="mt-1 text-lg font-black text-[#2f2415]">{exploitation.label || 'Pilotage global'}</h2>
+        </div>
+        <div className={`rounded-2xl border px-4 py-2 text-center ${toneCls}`}>
+          <p className="text-2xl font-black">{exploitation.score ?? '—'}/100</p>
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+        {(exploitation.dimensions || []).map((row) => (
+          <div key={row.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-2 text-center">
+            <p className="text-[10px] font-bold uppercase text-[#8a7456]">{row.label}</p>
+            <p className="mt-1 text-sm font-black text-[#2f2415]">{row.score}</p>
+          </div>
+        ))}
+      </div>
+      {exploitation.weakPoints?.length ? (
+        <p className="mt-3 text-xs text-[#8a7456]">
+          Points faibles : {exploitation.weakPoints.join(' · ')}
+        </p>
+      ) : null}
+      <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'Efficacité' })} className="mt-3 text-xs font-black text-[#9a6b12]">
+        Détail pilotage IA →
+      </button>
+    </section>
+  );
+}
+
+export function DashboardInvestorStrip({ investor = {}, onNavigate }) {
+  const tone = investor.score >= 80 ? 'border-emerald-200 bg-emerald-50/70' : investor.score >= 55 ? 'border-amber-200 bg-amber-50/70' : 'border-[#eadcc2] bg-[#fffdf8]';
+  return (
+    <section className={`rounded-2xl border p-4 shadow-sm ${tone}`}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-[#9a6b12]">
+            <TrendingUp size={14} />
+            Préparation investisseur
+          </p>
+          <h2 className="mt-1 text-base font-black text-[#2f2415]">
+            {investor.label || 'Dossier'} — {investor.score ?? 0}/100
+          </h2>
+          <p className="mt-1 text-xs text-[#8a7456]">
+            Activité, croissance et niveau de préparation en un coup d&apos;œil.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Financeurs' })}
+          className="min-h-[44px] shrink-0 rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white"
+        >
+          Préparer le dossier
+        </button>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {(investor.checks || []).map((check) => (
+          <span
+            key={check.id}
+            className={`rounded-full border px-2.5 py-1 text-[10px] font-black ${check.ok ? 'border-emerald-200 bg-white text-emerald-800' : 'border-amber-200 bg-white text-amber-800'}`}
+          >
+            {check.ok ? '✓' : '○'} {check.label}
+          </span>
+        ))}
+      </div>
+      {investor.gaps?.length ? (
+        <p className="mt-2 text-xs text-[#8a7456]">À renforcer : {investor.gaps.join(' · ')}</p>
+      ) : null}
+    </section>
+  );
+}
+
+export function DashboardWeatherStrip({ weather = {} }) {
+  if (!weather.dashboardStrip && !weather.loading) return null;
+  return (
+    <section className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4 shadow-sm">
+      <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-sky-900">
+        <CloudSun size={14} />
+        Météo terrain
+      </p>
+      <p className="mt-2 text-sm font-black text-[#2f2415]">
+        {weather.loading ? 'Chargement météo…' : `${weather.temp ?? '—'}°C · ${weather.condition || 'Conditions stables'}`}
+      </p>
+      {weather.riskLevel && weather.riskLevel !== 'stable' ? (
+        <p className="mt-1 text-xs text-amber-800">{weather.impact || 'Surveiller abreuvement et ventilation.'}</p>
+      ) : (
+        <p className="mt-1 text-xs text-sky-900/80">Données partagées avec l&apos;en-tête ERP (useLiveWeather).</p>
+      )}
     </section>
   );
 }

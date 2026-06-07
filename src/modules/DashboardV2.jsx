@@ -20,6 +20,15 @@ import {
   formatResultatDetail,
   formatStockDetail,
 } from './dashboard/dashboardMetrics';
+import {
+  buildDashboardInvestorReadiness,
+  buildDashboardNarrative,
+  buildDashboardPriorities,
+  buildDashboardStartupJourney,
+  buildDashboardWeatherReport,
+  buildExploitationScore,
+  buildFarmOverview,
+} from './dashboard/dashboardPilotage';
 import { navigateForDashboardAction, navigateForDashboardFinding } from './dashboard/dashboardNavigation';
 import { dashboardGreeting } from './dashboard/dashboardGreeting';
 import {
@@ -33,6 +42,12 @@ import {
   DashboardSnapshotCard,
   DashboardStartupPanel,
   DashboardTodoRow,
+  DashboardPrioritiesPanel,
+  DashboardNarrativePanel,
+  DashboardFarmOverviewPanel,
+  DashboardExploitationScorePanel,
+  DashboardInvestorStrip,
+  DashboardWeatherStrip,
 } from './dashboard/DashboardShell.jsx';
 
 const firstValue = (...values) => values.find((value) => value !== undefined && value !== null && String(value).trim() !== '');
@@ -90,15 +105,17 @@ function buildHealthData(props = {}) {
   };
 }
 
-function Summary({ summary, health, simple, navigate, onOpenAssistant }) {
+function Summary({ summary, health, simple, navigate, onOpenAssistant, pilotage, weatherReport, onOpenPriority }) {
   const actions = summary.actions.slice(0, simple ? 4 : 8);
   const heyHorizonSuggestions = buildDashboardPilotageSuggestions(summary.actions, summary.goal);
   const sideCards = [];
 
   if (summary.startupMode) {
     return (
-      <div className="space-y-5">
-        <DashboardStartupPanel onNavigate={navigate} />
+      <div className="space-y-5 dashboard-v2-mobile">
+        <DashboardStartupPanel onNavigate={navigate} journey={pilotage.startupJourney} />
+        <DashboardNarrativePanel narrative={pilotage.narrative} />
+        <DashboardFarmOverviewPanel overview={pilotage.farmOverview} onNavigate={navigate} />
         <DashboardQuickActions onNavigate={navigate} />
         <DashboardModuleNav modules={DASHBOARD_MODULES} onNavigate={navigate} />
         {actions.length ? (
@@ -171,7 +188,15 @@ function Summary({ summary, health, simple, navigate, onOpenAssistant }) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 dashboard-v2-mobile">
+      <DashboardPrioritiesPanel priorities={pilotage.priorities} onOpen={onOpenPriority} />
+      <DashboardNarrativePanel narrative={pilotage.narrative} />
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <DashboardExploitationScorePanel exploitation={pilotage.exploitation} onNavigate={navigate} />
+        <DashboardInvestorStrip investor={pilotage.investor} onNavigate={navigate} />
+      </div>
+      <DashboardFarmOverviewPanel overview={pilotage.farmOverview} onNavigate={navigate} />
+      <DashboardWeatherStrip weather={weatherReport} />
       <DashboardGoalsHero
         goal={summary.goal}
         onOpenVision={() => navigate('objectifs_croissance', { tab: 'Performance' })}
@@ -261,8 +286,9 @@ function Summary({ summary, health, simple, navigate, onOpenAssistant }) {
           />
         ) : null}
         <DashboardKpi
-          label="Alertes"
+          label="Alertes ouvertes"
           value={fmtNumber(summary.alertesOuvertes)}
+          detail={summary.alertesOuvertes ? 'Consulter Activité & Suivi' : 'Aucune alerte ouverte'}
           scopeLabel="Global"
           tone={summary.alertesOuvertes ? 'warn' : 'good'}
           onClick={() => navigate('activite_suivi', { tab: 'Alertes' })}
@@ -376,6 +402,7 @@ export default function DashboardV2(props) {
     sensorDevices,
     cameraDevices,
     meteo,
+    weatherLoading,
     businessPlans,
     investissements,
     farm,
@@ -473,6 +500,8 @@ export default function DashboardV2(props) {
     sensorDevices,
     cameraDevices,
     meteo,
+    weatherLoading,
+    fournisseurs,
     businessPlans,
     investissements,
     farm,
@@ -500,6 +529,8 @@ export default function DashboardV2(props) {
     sensorDevices,
     cameraDevices,
     meteo,
+    weatherLoading,
+    fournisseurs,
     businessPlans,
     investissements,
     farm,
@@ -510,6 +541,39 @@ export default function DashboardV2(props) {
     () => buildDashboardSummary(summaryProps, periodScope),
     [summaryProps, periodScope],
   );
+
+  const pilotageProps = useMemo(() => ({
+    ...summaryProps,
+    salesOrdersAll: salesOrdersAll || salesOrders,
+    paymentsAll: paymentsAll || payments,
+    transactionsAll: transactionsAll || transactions,
+  }), [summaryProps, salesOrdersAll, salesOrders, paymentsAll, payments, transactionsAll, transactions]);
+
+  const pilotage = useMemo(() => ({
+    priorities: buildDashboardPriorities(summary, pilotageProps, health),
+    narrative: buildDashboardNarrative(summary, pilotageProps),
+    startupJourney: buildDashboardStartupJourney(pilotageProps, summary),
+    exploitation: buildExploitationScore(summary, health, pilotageProps),
+    investor: buildDashboardInvestorReadiness(pilotageProps),
+    farmOverview: buildFarmOverview(summary),
+  }), [summary, pilotageProps, health]);
+
+  const weatherReport = useMemo(
+    () => buildDashboardWeatherReport(meteo, weatherLoading),
+    [meteo, weatherLoading],
+  );
+
+  const openPriority = (item) => {
+    if (item.finding) {
+      navigateForDashboardFinding(item.finding, navigate);
+      return;
+    }
+    if (item.moduleKey) {
+      navigate(item.moduleKey, item.tab ? { tab: item.tab } : undefined);
+      return;
+    }
+    if (item.action) navigateForDashboardAction(item.action, navigate);
+  };
 
   const toggleExpert = () => {
     const next = { ...settings, complexity: simple ? 'expert' : 'simple' };
@@ -524,7 +588,15 @@ export default function DashboardV2(props) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 dashboard-v2-root">
+      <style>{`
+        @media (max-width: 640px) {
+          .dashboard-v2-mobile .grid.grid-cols-2 { grid-template-columns: 1fr; }
+          .dashboard-v2-mobile .text-xl { font-size: 1.15rem; }
+          .dashboard-v2-mobile .text-2xl { font-size: 1.35rem; }
+          .dashboard-v2-mobile .text-3xl { font-size: 1.5rem; }
+        }
+      `}</style>
       <DashboardModuleHeader
         tab={tab}
         setTab={setTab}
@@ -541,7 +613,16 @@ export default function DashboardV2(props) {
       />
 
       {tab === 'Résumé' ? (
-        <Summary summary={summary} health={health} simple={simple} navigate={navigate} onOpenAssistant={onOpenAssistant} />
+        <Summary
+          summary={summary}
+          health={health}
+          simple={simple}
+          navigate={navigate}
+          onOpenAssistant={onOpenAssistant}
+          pilotage={pilotage}
+          weatherReport={weatherReport}
+          onOpenPriority={openPriority}
+        />
       ) : (
         <GraphiquesSection props={props} navigate={navigate} periodFiltered={periodFiltered} />
       )}
