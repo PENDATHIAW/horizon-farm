@@ -2,6 +2,7 @@ import ChartsGrid from '../components/charts/ChartsGrid.jsx';
 import SmartEvolutionChart from '../components/charts/SmartEvolutionChart.jsx';
 import SmartPieChart from '../components/charts/SmartPieChart.jsx';
 import { toNumber } from '../utils/format';
+import { filterRowsByPeriodScope, isAllTimeScope, normalizePeriodScope } from '../utils/periodScope';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase();
@@ -24,28 +25,68 @@ function monthKey(value) { const date = asDate(value); if (!date) return 'Sans d
 function monthLabel(key) { if (key === 'Sans date') return key; const [year, month] = key.split('-'); return `${month}/${String(year).slice(-2)}`; }
 function ensureMonth(map, key) { if (!map.has(key)) map.set(key, { key, mois: monthLabel(key), commandes: 0, encaissements: 0, depenses: 0, marge: 0, oeufs: 0, pertes_oeufs: 0, alertes: 0, taches: 0, stock_critique: 0, taux_marge: 0, taux_perte_oeufs: 0 }); return map.get(key); }
 
-function buildMonthly({ salesOrders = [], payments = [], transactions = [], productionLogs = [], alertes = [], taches = [], stocks = [] }) {
+function buildMonthly({
+  salesOrders = [],
+  payments = [],
+  transactions = [],
+  productionLogs = [],
+  alertes = [],
+  taches = [],
+  stocks = [],
+  periodScope = {},
+}) {
+  const scope = normalizePeriodScope(periodScope);
+  const scopedAlertes = isAllTimeScope(scope) ? arr(alertes) : filterRowsByPeriodScope(alertes, scope);
+  const scopedTaches = isAllTimeScope(scope) ? arr(taches) : filterRowsByPeriodScope(taches, scope);
+  const scopedStocks = isAllTimeScope(scope) ? arr(stocks) : filterRowsByPeriodScope(stocks, scope);
+
   const map = new Map();
   arr(salesOrders).forEach((row) => { ensureMonth(map, monthKey(rowDate(row))).commandes += orderAmount(row); });
   arr(payments).forEach((row) => { ensureMonth(map, monthKey(rowDate(row))).encaissements += paymentAmount(row); });
   arr(transactions).forEach((row) => { const b = ensureMonth(map, monthKey(rowDate(row))); if (isRevenue(row)) b.encaissements += amount(row); if (isExpense(row)) b.depenses += amount(row); });
   arr(productionLogs).forEach((row) => { const b = ensureMonth(map, monthKey(rowDate(row))); b.oeufs += eggCount(row); b.pertes_oeufs += brokenEggs(row); });
-  arr(alertes).filter(isCriticalAlert).forEach((row) => { ensureMonth(map, monthKey(rowDate(row))).alertes += 1; });
-  arr(taches).filter(isLateTask).forEach((row) => { ensureMonth(map, monthKey(rowDate(row))).taches += 1; });
-  arr(stocks).filter(isStockCritical).forEach((row) => { ensureMonth(map, monthKey(rowDate(row))).stock_critique += 1; });
-  return [...map.values()].sort((a, b) => a.key.localeCompare(b.key)).map((row) => ({
+  scopedAlertes.filter(isCriticalAlert).forEach((row) => { ensureMonth(map, monthKey(rowDate(row))).alertes += 1; });
+  scopedTaches.filter(isLateTask).forEach((row) => { ensureMonth(map, monthKey(rowDate(row))).taches += 1; });
+  scopedStocks.filter(isStockCritical).forEach((row) => { ensureMonth(map, monthKey(rowDate(row))).stock_critique += 1; });
+
+  let monthly = [...map.values()].sort((a, b) => a.key.localeCompare(b.key)).map((row) => ({
     ...row,
     marge: row.encaissements - row.depenses,
     taux_marge: row.encaissements > 0 ? Number((((row.encaissements - row.depenses) / row.encaissements) * 100).toFixed(1)) : 0,
     taux_perte_oeufs: row.oeufs > 0 ? Number(((row.pertes_oeufs / row.oeufs) * 100).toFixed(1)) : 0,
   }));
+
+  if (!isAllTimeScope(scope)) {
+    const monthSet = new Set(scope.monthKeys);
+    monthly = monthly.filter((row) => monthSet.has(row.key));
+  }
+
+  return monthly;
 }
 
 function values(rows, key) { return rows.map((row) => toNumber(row[key])); }
 function labels(rows) { return rows.map((row) => row.mois); }
 
-export default function DashboardEvolution({ salesOrders = [], payments = [], transactions = [], productionLogs = [], stocks = [], taches = [], alertes = [] }) {
-  const monthly = buildMonthly({ salesOrders, payments, transactions, productionLogs, alertes, taches, stocks });
+export default function DashboardEvolution({
+  salesOrders = [],
+  payments = [],
+  transactions = [],
+  productionLogs = [],
+  stocks = [],
+  taches = [],
+  alertes = [],
+  periodScope = {},
+}) {
+  const monthly = buildMonthly({
+    salesOrders,
+    payments,
+    transactions,
+    productionLogs,
+    alertes,
+    taches,
+    stocks,
+    periodScope,
+  });
   const totalEnc = monthly.reduce((s, r) => s + r.encaissements, 0);
   const totalDep = monthly.reduce((s, r) => s + r.depenses, 0);
 

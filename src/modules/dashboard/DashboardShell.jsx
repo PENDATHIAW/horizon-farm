@@ -37,13 +37,18 @@ export function DashboardQuickActions({ onNavigate }) {
   );
 }
 
-export function DashboardKpi({ label, value, tone = 'neutral', onClick, detail, delta }) {
+export function DashboardKpi({ label, value, tone = 'neutral', onClick, detail, delta, scopeLabel = '' }) {
   const toneCls = tone === 'good' ? 'text-emerald-700' : tone === 'warn' ? 'text-amber-700' : tone === 'bad' ? 'text-red-600' : 'text-[#2f2415]';
   const deltaCls = String(delta || '').startsWith('+')
     ? 'text-emerald-700'
     : String(delta || '').startsWith('-')
       ? 'text-red-600'
       : 'text-[#8a7456]';
+  const scopeCls = scopeLabel === 'Période'
+    ? 'border-sky-200 bg-sky-50 text-sky-800'
+    : scopeLabel === 'Cumul'
+      ? 'border-violet-200 bg-violet-50 text-violet-800'
+      : 'border-[#eadcc2] bg-[#fffdf8] text-[#8a7456]';
   const Tag = onClick ? 'button' : 'div';
   return (
     <Tag
@@ -51,11 +56,55 @@ export function DashboardKpi({ label, value, tone = 'neutral', onClick, detail, 
       onClick={onClick}
       className={`rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left ${onClick ? 'transition hover:border-[#c9a96a] hover:bg-white' : ''}`}
     >
-      <p className="text-[11px] font-bold uppercase tracking-wide text-[#8a7456]">{label}</p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-[#8a7456]">{label}</p>
+        {scopeLabel ? (
+          <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${scopeCls}`}>
+            {scopeLabel}
+          </span>
+        ) : null}
+      </div>
       <p className={`mt-1 text-xl font-black ${toneCls}`}>{value}</p>
       {detail ? <p className="mt-2 text-[10px] font-medium leading-snug text-[#8a7456]">{detail}</p> : null}
       {delta ? <p className={`mt-1 text-[10px] font-semibold ${deltaCls}`}>{delta}</p> : null}
     </Tag>
+  );
+}
+
+const STARTUP_CHECKLIST = [
+  { id: 'stock', label: 'Configurer le stock initial', module: 'achats_stock', tab: 'Stock' },
+  { id: 'bande', label: 'Créer la première bande', module: 'elevage', tab: 'Cycles' },
+  { id: 'animaux', label: 'Ajouter les premiers animaux', module: 'elevage', tab: 'Résumé' },
+  { id: 'vente', label: 'Enregistrer la première vente', module: 'commercial', tab: 'Ventes' },
+  { id: 'objectifs', label: 'Configurer les objectifs', module: 'objectifs_croissance', tab: 'Performance' },
+];
+
+export function DashboardStartupPanel({ onNavigate }) {
+  return (
+    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm md:p-6">
+      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#9a6b12]">Premiers pas</p>
+      <h2 className="mt-1 text-xl font-black text-[#2f2415]">Projet en phase de lancement</h2>
+      <p className="mt-2 text-sm text-[#8a7456]">
+        Votre exploitation démarre. Suivez cette checklist pour alimenter l&apos;ERP et activer le pilotage.
+      </p>
+      <ul className="mt-4 space-y-2">
+        {STARTUP_CHECKLIST.map((item) => (
+          <li key={item.id}>
+            <button
+              type="button"
+              onClick={() => onNavigate?.(item.module, { tab: item.tab })}
+              className="flex w-full items-center gap-3 rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-left transition hover:border-[#c9a96a] hover:bg-white"
+            >
+              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border border-[#d6c3a0] text-xs font-black text-[#8a7456]" aria-hidden="true">
+                □
+              </span>
+              <span className="text-sm font-black text-[#2f2415]">{item.label}</span>
+              <ArrowRight size={14} className="ml-auto shrink-0 text-[#9a6b12]" />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

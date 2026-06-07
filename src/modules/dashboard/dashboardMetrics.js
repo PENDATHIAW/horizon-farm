@@ -1,6 +1,7 @@
 import { buildDecisionCenterPlan, annualRevenueTarget, monthlyRevenueTargets } from '../../services/growthDecisionEngine';
 import { filterRealOpenTasks } from '../../utils/healthFindingLabels.js';
 import { remainingForOrder } from '../../utils/salesStatuses';
+import { buildConsolidationInput, consolidateFinance } from '../../utils/financeConsolidationEngine';
 import { openSalesCount } from '../commercial/commercialMetrics';
 import { buildDashboardTodayActions } from '../../utils/dashboardWorkflows';
 import { avicoleActiveCount, avicoleHasActiveBirds } from '../../utils/avicoleMetrics';
@@ -141,6 +142,59 @@ export function formatStockDetail(summary = {}) {
   const parts = [`${available} en stock`];
   if (low > 0) parts.unshift(`${low} sous seuil`);
   return parts.join(' · ');
+}
+
+/** Cultures — parcelles, surface et fiches actives (sans alourdir le Dashboard). */
+export function computeCultureSummary(cultures = []) {
+  const rows = arr(cultures);
+  const parcelRecords = rows.filter((row) => cultureRecordType(row) === 'parcelle' && isActiveParcelRecord(row));
+  const activeCultureRows = rows.filter(
+    (row) => cultureRecordType(row) === 'culture'
+      && !['termine', 'terminé', 'perdu', 'archive', 'archivé'].includes(lower(row.statut || row.status)),
+  );
+
+  let parcelCount = parcelRecords.length;
+  if (!parcelCount) {
+    const parcelKeys = new Set();
+    activeCultureRows.forEach((row) => {
+      const label = parcelLabel(row);
+      if (label && !label.toLowerCase().includes('non renseign')) parcelKeys.add(lower(label));
+    });
+    parcelCount = parcelKeys.size;
+  }
+
+  const surfaceM2 = Math.round(computeFarmParcelSurfaceM2(rows));
+  const activeCultures = activeCultureRows.length;
+
+  return {
+    parcelCount,
+    surfaceM2,
+    activeCultures,
+    hasData: parcelCount > 0 || activeCultures > 0 || surfaceM2 > 0,
+  };
+}
+
+export function formatCultureDetail(summary = {}) {
+  const parts = [];
+  if (Number(summary.parcelCount || 0) > 0) parts.push(`${Number(summary.parcelCount).toLocaleString('fr-FR')} parcelle(s)`);
+  if (Number(summary.activeCultures || 0) > 0) parts.push(`${Number(summary.activeCultures).toLocaleString('fr-FR')} culture(s) active(s)`);
+  if (Number(summary.surfaceM2 || 0) > 0) parts.push(`${Number(summary.surfaceM2).toLocaleString('fr-FR')} m²`);
+  return parts.length ? parts.join(' · ') : 'Configurer les parcelles';
+}
+
+/** Phase de lancement — aucune activité commerciale, stock, production ou encaissement. */
+export function isDashboardStartupMode(props = {}) {
+  const salesAll = arr(props.salesOrdersAll?.length ? props.salesOrdersAll : props.salesOrders);
+  const paymentsAll = arr(props.paymentsAll?.length ? props.paymentsAll : props.payments);
+  const stocks = arr(props.stocks);
+  const productionLogs = arr(props.productionLogs);
+
+  const hasSales = salesAll.some((row) => money(row) > 0);
+  const hasPayments = paymentsAll.some((row) => paid(row) > 0);
+  const hasStock = stocks.some((row) => stockQty(row) > 0);
+  const hasProduction = productionLogs.some((row) => eggsFromProductionLog(row) > 0);
+
+  return !hasSales && !hasPayments && !hasStock && !hasProduction;
 }
 
 const EGGS_PER_TABLET = 30;
@@ -428,6 +482,17 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
   const resultat = financePeriods.resultatPeriod;
   const depenses = financePeriods.depensesPeriod;
   const receivable = salesAll.reduce((sum, order) => sum + remainingForOrder(order, paymentsAll), 0);
+  const openSales = openSalesCount(salesAll, paymentsAll);
+  const transactionsAll = arr(props.transactionsAll?.length ? props.transactionsAll : props.transactions);
+  const financeConsolidated = consolidateFinance(buildConsolidationInput({
+    ...props,
+    salesOrders: salesAll,
+    payments: paymentsAll,
+    transactions: transactionsAll,
+  }));
+  const cashNet = financeConsolidated.cashNet;
+  const cultureSummary = computeCultureSummary(cultures);
+  const startupMode = isDashboardStartupMode(props);
   const stockBas = stocks.filter(isCriticalStock).length;
   const stockSummary = computeStockSummary(stocks);
   const tachesOuvertes = filterRealOpenTasks(taches).length;
@@ -470,6 +535,10 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
     depenses,
     resultat,
     receivable,
+    openSales,
+    cashNet,
+    cultureSummary,
+    startupMode,
     stockBas,
     stockSummary,
     tachesOuvertes,

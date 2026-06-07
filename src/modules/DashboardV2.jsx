@@ -4,12 +4,13 @@ import { readUiSettings } from '../utils/uiPreferences';
 import { readPeriodScope } from '../utils/periodScope';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { sanitizeDashboardMetric } from '../utils/dashboardWorkflows';
-import { buildDashboardPilotageSuggestions, launchHeyHorizonAssistant, launchPilotageSuggestion } from '../utils/dashboardHeyHorizon.js';
-import { runErpHealthEngine, loadLastHealthEngineSnapshot } from '../services/erpHealthEngine';
+import { buildDashboardPilotageSuggestions } from '../utils/dashboardHeyHorizon.js';
+import { getDashboardHealthReport } from './dashboard/dashboardHealthCache';
 import {
   buildDashboardSummary,
   DASHBOARD_MODULES,
   DASHBOARD_MODULE_LABELS,
+  formatCultureDetail,
   formatEggProductionDetail,
   formatEggProductionDelta,
   formatEncaisseDetail,
@@ -30,6 +31,7 @@ import {
   DashboardModuleNav,
   DashboardQuickActions,
   DashboardSnapshotCard,
+  DashboardStartupPanel,
   DashboardTodoRow,
 } from './dashboard/DashboardShell.jsx';
 
@@ -92,6 +94,33 @@ function Summary({ summary, health, simple, navigate, onOpenAssistant }) {
   const actions = summary.actions.slice(0, simple ? 4 : 8);
   const heyHorizonSuggestions = buildDashboardPilotageSuggestions(summary.actions, summary.goal);
   const sideCards = [];
+
+  if (summary.startupMode) {
+    return (
+      <div className="space-y-5">
+        <DashboardStartupPanel onNavigate={navigate} />
+        <DashboardQuickActions onNavigate={navigate} />
+        <DashboardModuleNav modules={DASHBOARD_MODULES} onNavigate={navigate} />
+        {actions.length ? (
+          <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
+            <h2 className="text-sm font-black text-[#2f2415]">À traiter aujourd&apos;hui</h2>
+            <div className="mt-3 space-y-2">
+              {actions.map((action) => (
+                <DashboardTodoRow
+                  key={`${action.moduleKey}-${action.title}`}
+                  title={sanitizeDashboardMetric(action.title, 'Action')}
+                  detail={sanitizeDashboardMetric(action.detail, '')}
+                  moduleLabel={DASHBOARD_MODULE_LABELS[action.moduleKey] || action.category || 'Ouvrir'}
+                  tone={action.tone === 'red' ? 'red' : action.tone === 'amber' ? 'amber' : 'neutral'}
+                  onOpen={() => navigateForDashboardAction(action, navigate)}
+                />
+              ))}
+            </div>
+          </section>
+        ) : null}
+      </div>
+    );
+  }
 
   if (summary.receivable > 0) {
     sideCards.push(
@@ -156,6 +185,7 @@ function Summary({ summary, health, simple, navigate, onOpenAssistant }) {
           label="CA période"
           value={fmtCurrency(summary.ca)}
           detail="Commandes sur la période ERP"
+          scopeLabel="Période"
           tone="good"
           onClick={() => navigate('commercial', { tab: 'Graphiques' })}
         />
@@ -163,6 +193,7 @@ function Summary({ summary, health, simple, navigate, onOpenAssistant }) {
           label="Ventes ouvertes"
           value={fmtNumber(summary.openSales)}
           detail="Non clôturées (paiement ou livraison)"
+          scopeLabel="Cumul"
           tone={summary.openSales ? 'warn' : 'good'}
           onClick={() => navigate('commercial', { tab: 'Ventes' })}
         />
@@ -171,6 +202,7 @@ function Summary({ summary, health, simple, navigate, onOpenAssistant }) {
           value={fmtCurrency(summary.encaisse)}
           detail={formatEncaisseDetail(summary.financePeriods)}
           delta={formatEncaisseDelta(summary.financePeriods)}
+          scopeLabel="Période"
           tone="good"
           onClick={() => navigate('finance_pilotage', { tab: 'Trésorerie' })}
         />
@@ -179,32 +211,67 @@ function Summary({ summary, health, simple, navigate, onOpenAssistant }) {
           value={fmtCurrency(summary.resultat)}
           detail={formatResultatDetail(summary.financePeriods)}
           delta={formatResultatDelta(summary.financePeriods)}
+          scopeLabel="Période"
           tone={summary.resultat >= 0 ? 'good' : 'bad'}
           onClick={() => navigate('finance_pilotage', { tab: 'Trésorerie' })}
         />
-        <DashboardKpi label="Créances" value={fmtCurrency(summary.receivable)} tone={summary.receivable ? 'warn' : 'good'} onClick={() => navigate('commercial', { tab: 'Clients' })} />
+        <DashboardKpi
+          label="Trésorerie disponible"
+          value={fmtCurrency(summary.cashNet)}
+          detail="Disponibilité financière cumulée"
+          scopeLabel="Cumul"
+          tone={summary.cashNet >= 0 ? 'good' : 'bad'}
+          onClick={() => navigate('finance_pilotage', { tab: 'Trésorerie' })}
+        />
+        <DashboardKpi
+          label="Créances"
+          value={fmtCurrency(summary.receivable)}
+          detail="Reste à encaisser sur toutes les ventes"
+          scopeLabel="Cumul"
+          tone={summary.receivable ? 'warn' : 'good'}
+          onClick={() => navigate('commercial', { tab: 'Clients' })}
+        />
         <DashboardKpi
           label="Stock"
           value={fmtNumber(summary.stockSummary?.totalProducts ?? 0)}
           detail={formatStockDetail(summary.stockSummary)}
+          scopeLabel="Global"
           tone={summary.stockSummary?.lowStockCount ? 'warn' : 'good'}
           onClick={() => navigate('achats_stock', { tab: 'Stock' })}
         />
+        {summary.cultureSummary?.hasData ? (
+          <DashboardKpi
+            label="Cultures"
+            value={`${fmtNumber(summary.cultureSummary.parcelCount)} parcelle(s)`}
+            detail={formatCultureDetail(summary.cultureSummary)}
+            scopeLabel="Global"
+            tone="good"
+            onClick={() => navigate('cultures', { tab: 'Résumé' })}
+          />
+        ) : null}
         {(summary.eggProduction?.eggsAllTime > 0 || summary.eggProduction?.eggsPeriod > 0 || summary.headcount?.effectifPondeuses > 0) ? (
           <DashboardKpi
             label="Ponte"
             value={fmtNumber(summary.production)}
             detail={formatEggProductionDetail(summary.eggProduction)}
             delta={formatEggProductionDelta(summary.eggProduction)}
+            scopeLabel="Période"
             tone="good"
             onClick={() => navigate('elevage', { tab: 'Production' })}
           />
         ) : null}
-        <DashboardKpi label="Alertes" value={fmtNumber(summary.alertesOuvertes)} tone={summary.alertesOuvertes ? 'warn' : 'good'} onClick={() => navigate('activite_suivi', { tab: 'Alertes' })} />
+        <DashboardKpi
+          label="Alertes"
+          value={fmtNumber(summary.alertesOuvertes)}
+          scopeLabel="Global"
+          tone={summary.alertesOuvertes ? 'warn' : 'good'}
+          onClick={() => navigate('activite_suivi', { tab: 'Alertes' })}
+        />
         <DashboardKpi
           label="Effectifs"
           value={fmtNumber(summary.effectifs)}
           detail={formatFarmHeadcountDetail(summary.headcount)}
+          scopeLabel="Global"
           onClick={() => navigate('elevage', { tab: 'Résumé' })}
         />
       </div>
@@ -294,13 +361,10 @@ export default function DashboardV2(props) {
   const dateTime = useMemo(formatDateTime, []);
   const greeting = useMemo(() => dashboardGreeting(props), [props.user, props.displayUser, props.userName, props.username]);
 
-  const health = useMemo(() => {
-    const report = runErpHealthEngine(buildHealthData(props));
-    const snap = loadLastHealthEngineSnapshot();
-    if (snap?.autoExecution) report.autoExecution = snap.autoExecution;
-    if (snap?.counts?.ux != null && report.counts) report.counts.ux = snap.counts.ux;
-    return report;
-  }, [props.dataFingerprint]);
+  const health = useMemo(
+    () => getDashboardHealthReport(props.dataFingerprint, () => buildHealthData(props)),
+    [props.dataFingerprint],
+  );
 
   const summary = useMemo(
     () => buildDashboardSummary(props, periodScope),

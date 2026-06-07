@@ -36,6 +36,7 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
           stocks={arr(props.stocks)}
           taches={arr(props.taches)}
           alertes={arr(props.alertes)}
+          periodScope={props.periodScope}
           onNavigate={onNavigate}
         />
       ), periodFiltered);
