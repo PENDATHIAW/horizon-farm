@@ -1,6 +1,5 @@
 import { toNumber } from './format';
 import { avicoleActiveCount, avicoleHasActiveBirds } from './avicoleMetrics';
-import { cultureOpportunityKey } from './cultureWorkflows.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value) => String(value || '').trim();
@@ -20,9 +19,13 @@ export function isOpenSalesOpportunity(row = {}) {
 
 export function salesOpportunityKey(row = {}) {
   const direct = clean(row.opportunity_key);
-  if (direct) return direct;
+  if (direct) {
+    if (direct.startsWith('animaux:')) return direct.replace(/^animaux:/, 'animal-sale:');
+    return direct;
+  }
   const module = clean(row.source_module || row.created_from || row.module_source);
   const sourceId = clean(row.source_id || row.related_id || row.entity_id);
+  if (module === 'animaux' && sourceId) return `animal-sale:${sourceId}`;
   if (module && sourceId) return `${module}:${sourceId}`;
   return clean(row.id);
 }
@@ -109,13 +112,13 @@ function lotOpportunity(lot = {}) {
 
 function animalOpportunity(animal = {}) {
   const unitPrice = toNumber(animal.prix_vente_prevu || animal.prix_vente_estime || animal.sale_price || animal.prix_unitaire_vente);
-  return { id: `DERIVED-ANIMAL-${animal.id}`, opportunity_key: `animaux:${animal.id}`, source_module: 'animaux', source_type: 'animal', source_id: animal.id, related_id: animal.id, title: `Animal prêt à vendre: ${animal.name || animal.nom || animal.id}`, product_name: `${animal.name || animal.nom || animal.id} · ${animal.type || 'Animal'}`, quantity: 1, unit: 'tete', unit_price: unitPrice, estimated_amount: unitPrice, status: 'ouverte', statut: 'ouverte', is_derived: true, created_from: 'animaux', notes: 'Source prête à convertir détectée depuis le module Animaux.' };
+  return { id: `DERIVED-ANIMAL-${animal.id}`, opportunity_key: `animal-sale:${animal.id}`, source_module: 'animaux', source_type: 'animal', source_id: animal.id, related_id: animal.id, title: `Animal prêt à vendre: ${animal.name || animal.nom || animal.id}`, product_name: `${animal.name || animal.nom || animal.id} · ${animal.type || 'Animal'}`, quantity: 1, unit: 'tete', unit_price: unitPrice, estimated_amount: unitPrice, status: 'ouverte', statut: 'ouverte', is_derived: true, created_from: 'animaux', notes: 'Source prête à convertir détectée depuis le module Animaux.' };
 }
 
 function cultureOpportunity(culture = {}) {
   const qty = toNumber(culture.quantite_recoltee ?? culture.recolte_disponible ?? culture.stock_recolte ?? culture.quantity_available);
   const unitPrice = toNumber(culture.prix_vente_prevu || culture.prix_vente_estime || culture.sale_price || culture.prix_unitaire_vente);
-  return { id: `DERIVED-CULTURE-${culture.id}`, opportunity_key: cultureOpportunityKey(culture), source_module: 'cultures', source_type: 'culture', source_id: culture.id, related_id: culture.id, title: `Récolte prête à vendre: ${culture.nom || culture.name || culture.id}`, product_name: culture.nom || culture.name || culture.id, quantity: qty, unit: culture.unite || culture.unit || 'kg', unit_price: unitPrice, estimated_amount: Math.max(0, qty * unitPrice), status: 'ouverte', statut: 'ouverte', is_derived: true, created_from: 'cultures', notes: 'Source prête à convertir détectée depuis le module Cultures.' };
+  return { id: `DERIVED-CULTURE-${culture.id}`, opportunity_key: `cultures:${culture.id}`, source_module: 'cultures', source_type: 'culture', source_id: culture.id, related_id: culture.id, title: `Récolte prête à vendre: ${culture.nom || culture.name || culture.id}`, product_name: culture.nom || culture.name || culture.id, quantity: qty, unit: culture.unite || culture.unit || 'kg', unit_price: unitPrice, estimated_amount: Math.max(0, qty * unitPrice), status: 'ouverte', statut: 'ouverte', is_derived: true, created_from: 'cultures', notes: 'Source prête à convertir détectée depuis le module Cultures.' };
 }
 
 function stockOpportunity(stock = {}) {

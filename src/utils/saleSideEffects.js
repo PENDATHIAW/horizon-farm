@@ -1,13 +1,12 @@
-import { syncFinanceSideEffects, closeOpportunityForOrder, syncSaleTraceFromOrder, resolveSaleTasksOnPayment } from '../services/erpInterconnectionEngine.js';
-import { getFinanceActivityFromSale, getFinanceCategoryFromSale } from '../services/financeSyncService.js';
-import { buildClientReminderFollowUp, buildClientSalesSummary } from './clientWorkflows.js';
-import { buildClientReceivablePatch } from './recordSalePayment.js';
-import { buildReverseSaleSourcePatch, buildSaleSourcePatch } from './salesWorkflows.js';
-import { remainingForOrder } from './salesStatuses.js';
-import { enrichFinanceTransaction, ORIGIN_TYPES } from './financeTransactionMeta.js';
-import { financeIds } from './sideEffectIds.js';
-import { makeId } from './ids.js';
-import { toNumber } from './format.js';
+import { syncFinanceSideEffects, closeOpportunityForOrder, syncSaleTraceFromOrder, resolveSaleTasksOnPayment } from '../services/erpInterconnectionEngine';
+import { getFinanceActivityFromSale, getFinanceCategoryFromSale } from '../services/financeSyncService';
+import { buildClientReminderFollowUp, buildClientSalesSummary, resolveClientReminderFollowUp } from './clientWorkflows';
+import { buildClientReceivablePatch } from './recordSalePayment';
+import { buildReverseSaleSourcePatch, buildSaleSourcePatch } from './salesWorkflows';
+import { remainingForOrder } from './salesStatuses';
+import { financeIds } from './sideEffectIds';
+import { makeId } from './ids';
+import { toNumber } from './format';
 
 export { financeIds };
 
@@ -44,7 +43,7 @@ export function buildPaidFinanceRow({
 } = {}) {
   const value = num(amount);
   if (value <= 0) return null;
-  return enrichFinanceTransaction({
+  return {
     id: financeIds.paid(orderId, paymentId),
     type: 'entree',
     libelle: `${remaining > 0 ? 'Acompte' : 'Encaissement'} ${orderId} - ${clientLabel}`,
@@ -67,10 +66,7 @@ export function buildPaidFinanceRow({
     transaction_origin: 'automatique',
     side_effects_managed: true,
     created_from: 'sale_side_effects',
-  }, {
-    origin_type: ORIGIN_TYPES.WORKFLOW,
-    issue_suffix: paymentId || 'encaissement',
-  });
+  };
 }
 
 export function buildReceivableFinanceRow({
@@ -83,7 +79,7 @@ export function buildReceivableFinanceRow({
 } = {}) {
   const value = num(amount);
   if (value <= 0) return null;
-  return enrichFinanceTransaction({
+  return {
     id: financeIds.receivable(orderId),
     type: 'entree',
     libelle: `Créance client ${orderId} - ${clientLabel}`,
@@ -104,7 +100,7 @@ export function buildReceivableFinanceRow({
     transaction_origin: 'automatique',
     side_effects_managed: true,
     created_from: 'sale_side_effects',
-  }, { origin_type: ORIGIN_TYPES.WORKFLOW, issue_suffix: 'creance' });
+  };
 }
 
 export function buildReceivableAlertRow({ orderId, clientLabel = 'Client', amount = 0, productName = 'Vente' } = {}) {
@@ -248,8 +244,18 @@ export async function syncClientFromSale({
     last_order_date: date || today(),
   };
   await handlers.onUpdateClient?.(clientId, payload);
+  const client = arr(clients).find((row) => String(row.id) === String(clientId));
+  const summary = buildClientSalesSummary(client || { id: clientId }, salesOrders, payments);
   if (num(patch.reste_a_payer) > 0) {
     await applyClientReminderIfNeeded({ clientId, clients, salesOrders, payments, handlers, alertes });
+  } else if (client) {
+    await resolveClientReminderFollowUp({
+      client,
+      summary,
+      tasks: handlers.existingTasks || [],
+      alertes,
+      handlers,
+    });
   }
   return payload;
 }
@@ -489,7 +495,7 @@ export async function runPaymentSideEffects({
         salesOrders,
         payments,
         date: today(),
-        handlers,
+        handlers: { ...handlers, existingTasks: tasks },
         alertes,
       });
     } catch (error) {

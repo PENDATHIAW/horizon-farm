@@ -47,7 +47,6 @@ export function Btn({ children, onClick }) {
 }
 
 export const VISION_TABLE_COLS = ['Sujet', 'Détail', 'Statut', 'Actions'];
-export const PRIORITY_TABLE_COLS = ['Priorité', 'Détail', 'Statut', 'Actions'];
 export const VISION_TABLE_COLS_3 = ['Sujet', 'Détail', 'Actions'];
 
 const TABLE_GRID_4 = 'md:grid-cols-[minmax(160px,1.1fr)_minmax(180px,2fr)_minmax(96px,0.75fr)_auto]';
@@ -235,22 +234,10 @@ export function buildVisionData(props = {}) {
     production_oeufs_logs: arr(dataMap.production_oeufs_logs),
   };
   const health = runErpHealthEngine(engineInput);
-  const kpiEngines = runKpiEngine(engineInput, { module: props.moduleId || 'centre_ia', periodScope: props.periodScope || {} });
+  const decisionPlan = buildDecisionCenterPlan(engineInput);
   const engineRisks = health.risks.map(mapEngineRisk);
   const mergedRisks = [...engineRisks, ...risks.filter((r) => !engineRisks.some((e) => e.domain === r.domain && e.title === r.title))].slice(0, 50);
   const predictions = health.predictions.map(mapEnginePrediction);
-  const groupedPriorities = (health.operationalPriorities || []).map((group) => ({
-    id: group.id || group.issue_key,
-    issue_key: group.issue_key,
-    title: group.title,
-    detail: `${group.detail || group.action || '—'} · ${group.linkedCount || 0} lien(s)`,
-    value: group.linkedCount > 1 ? 'Groupe' : 'Priorité',
-    tone: group.tone || 'warn',
-    tab: group.tab || 'À traiter',
-    sourceModule: group.module,
-    isGrouped: true,
-    isEngine: true,
-  }));
   const enginePriorities = health.findings.slice(0, 12).map((f) => ({
     id: f.id,
     title: f.title,
@@ -262,7 +249,7 @@ export function buildVisionData(props = {}) {
     finding: f,
     isEngine: true,
   }));
-  const mergedPriorities = [...groupedPriorities, ...enginePriorities, ...priorities.filter((p) => !enginePriorities.some((e) => e.id === p.id) && !groupedPriorities.some((g) => g.issue_key && g.issue_key === p.id))].slice(0, 18);
+  const mergedPriorities = [...enginePriorities, ...priorities.filter((p) => !enginePriorities.some((e) => e.id === p.id))].slice(0, 18);
   const unreliableMargins = health.findings.filter((f) => f.category === 'rentabilite' || f.margin_reliable === false).length;
   const iaOpportunities = health.findings
     .filter((f) => f.recommended_action && !['critique', 'haute'].includes(f.severity))
@@ -285,10 +272,9 @@ export function buildVisionData(props = {}) {
     healthScore: health.score,
     predictions,
     healthFindings: health.findings,
-    issueGroups: health.issueGroups || [],
-    kpiEngines,
     engineRisks: health.risks,
     unreliableMargins,
     iaOpportunities,
+    decisionPlan,
   };
 }

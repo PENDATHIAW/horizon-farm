@@ -2,12 +2,17 @@ import {
   buildDocumentFromInvoice,
   buildFinanceFromPayment,
   buildOpportunityClosedPatch,
+  buildStructuredFarmImpact,
   documentExistsForInvoice,
   financeExistsForPayment,
   findOrderForOpportunity,
   findOrderForPayment,
   isOpportunityClosed,
 } from './erpInterconnectionRules';
+import { auditEggProductionStockGaps, syncEggStockFromProduction } from './eggStockSyncService.js';
+import { syncRhPayrollToFinance } from './rhPayrollFinanceSyncService.js';
+import { syncBusinessChargesToFinance } from './businessChargeSyncService.js';
+import { syncSupplierDebtsToFinance } from './supplierDebtSyncService.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value = '') => String(value || '').trim().toLowerCase();
@@ -75,6 +80,11 @@ export async function reconcileLegacyData({ data = {}, actions = {} } = {}) {
     invoices_documents_created: 0,
     opportunities_closed: 0,
     sold_animals_linked: 0,
+    health_impacts_structured: 0,
+    business_charges_synced: 0,
+    supplier_debts_synced: 0,
+    egg_stock_synced: 0,
+    rh_payroll_synced: 0,
     skipped: 0,
     errors: [],
   };
@@ -86,6 +96,7 @@ export async function reconcileLegacyData({ data = {}, actions = {} } = {}) {
   const documents = arr(data.documents);
   const opportunities = arr(data.sales_opportunities);
   const animals = arr(data.animaux);
+  const healthRows = arr(data.sante);
 
   for (const payment of payments) {
     const order = findOrderForPayment(payment, orders);
@@ -142,6 +153,82 @@ export async function reconcileLegacyData({ data = {}, actions = {} } = {}) {
       summary.errors.push(`animal ${animal.id}: ${error.message}`);
     }
   }
+
+  for (const row of healthRows.filter((item) => amount(item) > 0 && !item.impact_structured)) {
+    try {
+      if (actions.onUpdateHealth) {
+        await actions.onUpdateHealth(row.id, buildStructuredFarmImpact(row));
+        summary.health_impacts_structured += 1;
+      } else summary.skipped += 1;
+    } catch (error) {
+      summary.errors.push(`health impact ${row.id}: ${error.message}`);
+    }
+  }
+
+  try {
+    const chargeSync = await syncBusinessChargesToFinance({
+      data,
+      handlers: {
+        onCreateFinanceTransaction: actions.onCreateFinanceTransaction,
+        onRefreshFinances: actions.onRefreshFinances,
+      },
+    });
+    summary.business_charges_synced = chargeSync.created || 0;
+  } catch (error) {
+    summary.errors.push(`business charges: ${error.message}`);
+  }
+
+  try {
+    const supplierSync = await syncSupplierDebtsToFinance({
+      data,
+      handlers: {
+        onCreateFinanceTransaction: actions.onCreateFinanceTransaction,
+        onRefreshFinances: actions.onRefreshFinances,
+      },
+    });
+    summary.supplier_debts_synced = supplierSync.created || 0;
+  } catch (error) {
+    summary.errors.push(`supplier debts: ${error.message}`);
+  }
+
+  const eggAudit = auditEggProductionStockGaps(data);
+  if (eggAudit.missing) {
+    const latest = arr(data.production_oeufs_logs).slice(0, 1)[0];
+    if (latest && actions.onCreateStock && actions.onUpdateStock) {
+      try {
+        await syncEggStockFromProduction({
+          stockCrud: {
+            rows: arr(data.stock),
+            create: actions.onCreateStock,
+            update: actions.onUpdateStock,
+            refresh: actions.onRefreshStock,
+          },
+          log: latest,
+        });
+        summary.egg_stock_synced += 1;
+      } catch (error) {
+        summary.errors.push(`egg stock: ${error.message}`);
+      }
+    }
+  }
+
+  try {
+    const payrollSync = await syncRhPayrollToFinance({
+      data,
+      handlers: {
+        onCreateFinanceTransaction: actions.onCreateFinanceTransaction,
+        onCreateDocument: actions.onCreateDocument,
+        onCreateBusinessEvent: actions.onCreateBusinessEvent,
+        onRefreshFinances: actions.onRefreshFinances,
+        onRefreshDocuments: actions.onRefreshDocuments,
+        onRefreshBusinessEvents: actions.onRefreshBusinessEvents,
+      },
+    });
+    summary.rh_payroll_synced = payrollSync.created || 0;
+  } catch (error) {
+    summary.errors.push(`rh payroll: ${error.message}`);
+  }
+
 
   return summary;
 }

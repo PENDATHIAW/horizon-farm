@@ -9,13 +9,11 @@ import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import useCrudModule from '../../hooks/useCrudModule.js';
 import { syncSmartFarmCriticalSignals } from '../../services/smartFarmAlertSync.js';
-import { buildSmartFarmDeviceFields } from '../../services/equipmentSmartFarmBridge.js';
 import { MODULE_FORM_FIELDS } from '../../utils/constants.js';
 import { fmtNumber } from '../../utils/format.js';
 import { rowsOf } from '../../utils/moduleRows.js';
 import { isSmartFarmDeviceCritical } from '../../utils/smartFarmWorkflows.js';
 import SmartFarmEmbed from './SmartFarmEmbed.jsx';
-import SmartFarmEquipmentBridge from './SmartFarmEquipmentBridge.jsx';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
@@ -44,12 +42,6 @@ function Summary({ data, setTab }) {
           <p className="mt-1 text-xl font-black text-[#2f2415]">{fmtNumber(data.zoneCount)}</p>
         </div>
       </div>
-      <SmartFarmEquipmentBridge
-        equipements={data.equipements || []}
-        sensors={data.sensors}
-        cameras={data.cameras}
-        onNavigate={data.onNavigate}
-      />
       <SmartFarmEmbed {...data.embedProps} />
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => setTab('Capteurs')} className="rounded-xl border border-[#d6c3a0] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">Gérer capteurs</button>
@@ -123,7 +115,6 @@ export default function SmartFarmRecoveredModule(props) {
     return {
       sensors,
       cameras,
-      equipements: arr(props.equipements),
       criticalCount,
       zoneCount: zones.size,
       onNavigate: props.onNavigate,
@@ -138,11 +129,7 @@ export default function SmartFarmRecoveredModule(props) {
         ...handlers,
       },
     };
-  }, [sensors, cameras, tasks, props.meteo, props.online, props.onNavigate, props.equipements]);
-
-  const equipements = arr(props.equipements);
-  const sensorFields = useMemo(() => buildSmartFarmDeviceFields(MODULE_FORM_FIELDS.sensor_devices, equipements), [equipements]);
-  const cameraFields = useMemo(() => buildSmartFarmDeviceFields(MODULE_FORM_FIELDS.camera_devices, equipements), [equipements]);
+  }, [sensors, cameras, tasks, props.meteo, props.online, props.onNavigate]);
 
   const sensorProps = {
     rows: sensors,
@@ -172,8 +159,8 @@ export default function SmartFarmRecoveredModule(props) {
       moduleKey="sensor_devices"
       title="Capteurs terrain"
       sub="Température, humidité, eau, mouvement — reliés aux alertes Centre"
-      fields={sensorFields}
-      columns={['id', 'name', 'type', 'zone', 'equipment_id', 'status', 'value', 'battery_level']}
+      fields={MODULE_FORM_FIELDS.sensor_devices}
+      columns={['id', 'name', 'type', 'zone', 'status', 'value', 'battery_level']}
       addLabel="Ajouter capteur"
       exportTitle="Capteurs Smart Farm"
       kpis={[
@@ -187,8 +174,8 @@ export default function SmartFarmRecoveredModule(props) {
       moduleKey="camera_devices"
       title="Caméras terrain"
       sub="Entrée, poulailler, magasin — surveillance et preuves"
-      fields={cameraFields}
-      columns={['id', 'name', 'zone', 'equipment_id', 'type', 'status']}
+      fields={MODULE_FORM_FIELDS.camera_devices}
+      columns={['id', 'name', 'zone', 'type', 'status']}
       addLabel="Ajouter caméra"
       exportTitle="Caméras Smart Farm"
       kpis={[]}

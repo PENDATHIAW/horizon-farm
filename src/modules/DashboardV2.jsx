@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
-import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
 import { readUiSettings } from '../utils/uiPreferences';
 import { readPeriodScope } from '../utils/periodScope';
 import { fmtCurrency, fmtNumber } from '../utils/format';
@@ -154,6 +153,20 @@ function Summary({ summary, health, simple, navigate, onOpenAssistant }) {
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
         <DashboardKpi
+          label="CA période"
+          value={fmtCurrency(summary.ca)}
+          detail="Commandes sur la période ERP"
+          tone="good"
+          onClick={() => navigate('commercial', { tab: 'Graphiques' })}
+        />
+        <DashboardKpi
+          label="Ventes ouvertes"
+          value={fmtNumber(summary.openSales)}
+          detail="Non clôturées (paiement ou livraison)"
+          tone={summary.openSales ? 'warn' : 'good'}
+          onClick={() => navigate('commercial', { tab: 'Ventes' })}
+        />
+        <DashboardKpi
           label="Encaissé"
           value={fmtCurrency(summary.encaisse)}
           detail={formatEncaisseDetail(summary.financePeriods)}
@@ -289,8 +302,6 @@ export default function DashboardV2(props) {
     return report;
   }, [props.dataFingerprint]);
 
-  const heyFindings = useMemo(() => (health.findings || []).slice(0, 3), [health.findings]);
-
   const summary = useMemo(
     () => buildDashboardSummary(props, periodScope),
     [
@@ -340,21 +351,6 @@ export default function DashboardV2(props) {
 
       {tab === 'Résumé' ? (
         <Summary summary={summary} health={health} simple={simple} navigate={navigate} onOpenAssistant={props.onOpenAssistant} />
-      ) : tab === 'Annexe' ? (
-        <ModuleAnnexeTab
-          moduleId="dashboard"
-          dataMap={{
-            sales_orders: props.salesOrdersAll || props.salesOrders,
-            payments: props.paymentsAll || props.payments,
-            finances: props.transactions,
-            stock: props.stocks,
-            avicole: props.lotsData,
-            animaux: props.animaux,
-            production_oeufs_logs: props.productionLogs,
-            clients: props.clients,
-          }}
-          onNavigate={navigate}
-        />
       ) : (
         <GraphiquesSection props={props} navigate={navigate} periodFiltered={props.periodFiltered} />
       )}

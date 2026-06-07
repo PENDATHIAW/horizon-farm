@@ -14,7 +14,8 @@ import { getRhDirectory } from '../utils/rhDirectory';
 import { aggregateMaintenanceQueue, buildRhCoherenceRows, buildRhHealthSnapshot, computePayrollSummary } from './rh/rhVisionHelpers.js';
 import RHPeopleTeams from './RHPeopleTeams.jsx';
 import EquipementsV2 from './EquipementsV2.jsx';
-import SmartFarm from './SmartFarm.jsx';
+import SmartFarmEmbed from './smartfarm/SmartFarmEmbed.jsx';
+import RhPayrollFinanceSyncPanel from './RhPayrollFinanceSyncPanel.jsx';
 
 const arr = (v) => Array.isArray(v) ? v : [];
 const low = (v) => String(v || '').toLowerCase();
@@ -142,8 +143,10 @@ function MaintenanceHub({ data, setTab, smartProps, onSchedule, busyId }) {
   );
 }
 
-function CostsHub({ data, onNavigate }) {
+function CostsHub({ data, onNavigate, rhProps }) {
   return (
+    <div className="space-y-5">
+    <RhPayrollFinanceSyncPanel {...rhProps} team={data.team} />
     <ModuleListHub
       title="Coûts ressources"
       intro="Dépenses liées aux équipements, maintenance et personnel."
@@ -163,6 +166,7 @@ function CostsHub({ data, onNavigate }) {
       emptyLabel="Aucun coût ressource enregistré."
       onNavigate={onNavigate}
     />
+    </div>
   );
 }
 
@@ -359,7 +363,7 @@ export default function OperationsRessourcesRecoveredModule(props) {
         : tab === 'Équipements' ? <EquipementsV2 {...eqProps} />
           : tab === 'Maintenance' ? <MaintenanceHub data={data} setTab={setTab} smartProps={smartProps} onSchedule={scheduleMaintenance} busyId={busyId} />
             : tab === 'Affectations' ? <RHPeopleTeams {...rhProps} />
-              : tab === 'Coûts' ? <CostsHub data={data} onNavigate={props.onNavigate} />
+              : tab === 'Coûts' ? <CostsHub data={data} onNavigate={props.onNavigate} rhProps={rhProps} />
                 : tab === 'Documents' ? <DocumentsHub data={data} onNavigate={props.onNavigate} />
                   : <ModuleGraphiquesTab moduleId="rh" periodFiltered={periodFiltered} equipements={equipment} transactions={transactions} onNavigate={props.onNavigate} />}
     </div>

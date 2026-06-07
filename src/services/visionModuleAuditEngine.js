@@ -8,16 +8,21 @@ const n = (v = 0) => Number(v || 0);
 const MODULE_DATA_KEYS = {
   dashboard: ['sales_orders', 'payments', 'finances', 'animaux', 'avicole', 'stock', 'taches', 'alertes_center'],
   assistant_erp: ['sales_orders', 'finances', 'stock', 'taches', 'alertes_center'],
-  centre_ia: ['sales_orders', 'payments', 'finances', 'stock', 'alertes_center', 'taches', 'business_events'],
+  centre_ia: ['sales_orders', 'finances', 'alertes_center', 'business_events', 'taches'],
   objectifs_croissance: ['sales_orders', 'finances', 'business_plans', 'investissements'],
   elevage: ['animaux', 'avicole', 'sante', 'alimentation_logs', 'production_oeufs_logs'],
   commercial: ['sales_orders', 'clients', 'payments', 'sales_opportunities'],
   achats_stock: ['stock', 'fournisseurs', 'finances', 'alimentation_logs'],
   finance_pilotage: ['finances', 'payments', 'investissements', 'business_plans'],
   activite_suivi: ['alertes_center', 'taches', 'tracabilite', 'business_events'],
+  sync_activity: ['audit_logs', 'business_events', 'taches', 'alertes_center'],
   documents_rapports: ['documents', 'rapports', 'finances'],
   rh: ['equipements', 'finances', 'documents'],
   gestion_systeme: ['audit_logs'],
+  smartfarm: ['sensor_devices', 'camera_devices', 'alertes_center'],
+  sync_activity: ['audit_logs'],
+  impact_business: ['business_events', 'documents', 'finances'],
+  centre_ia: ['sales_orders', 'finances', 'alertes_center', 'business_events'],
 };
 
 function scoreFromIssues(issues) {
@@ -67,6 +72,8 @@ export function runVisionModuleAudit(data = {}) {
     if (moduleId === 'finance_pilotage' && !arr(data.business_plans).length) lost.push('Business plan non alimenté pour dossiers financeurs');
     if (moduleId === 'documents_rapports' && !arr(data.documents).length) lost.push('Bibliothèque documentaire vide');
     if (moduleId === 'elevage' && !arr(data.production_oeufs_logs).length && arr(data.avicole).length) lost.push('Production œufs non saisie malgré lots avicoles');
+    if (moduleId === 'smartfarm' && !arr(data.sensor_devices).length && !arr(data.camera_devices).length) lost.push('Smart Farm sans capteur ni caméra configuré');
+    if (moduleId === 'impact_business' && !arr(data.business_events).length) lost.push('Impacts métier non structurés');
 
     const redundancies = [];
     if (moduleId === 'objectifs_croissance' && MODULE_REGISTRY.centre_ia) redundancies.push('Centre décisionnel parallèle — vérifier non-duplication des recommandations');

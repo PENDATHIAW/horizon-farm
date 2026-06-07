@@ -34,7 +34,7 @@ export default function DocumentsOrphanSyncPanel({ documents = [], onApply, busy
         <div>
           <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><Link2 size={15} /> Documents orphelins</p>
           <h3 className="text-xl font-black text-[#2f2415] mt-1">Rattacher les fichiers sans source métier</h3>
-          <p className="text-sm text-[#8a7456] mt-1">Factures, reçus ou pièces déposées sans lien vente, finance ou module d&apos;origine.</p>
+          <p className="text-sm text-[#8a7456] mt-1">Factures, reçus ou pièces déposées sans lien vente, finance ou module d’origine.</p>
         </div>
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{summary.label}</div>
       </div>

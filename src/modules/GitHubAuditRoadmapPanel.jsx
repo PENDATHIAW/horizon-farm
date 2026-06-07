@@ -214,13 +214,21 @@ export default function GitHubAuditRoadmapPanel() {
         data: beforeData,
         actions: {
           onCreateFinanceTransaction: crud.finances?.create,
+          onRefreshFinances: crud.finances?.refresh,
           onCreateDocument: crud.documents?.create,
+          onRefreshDocuments: crud.documents?.refresh,
+          onCreateBusinessEvent: crud.business_events?.create,
+          onRefreshBusinessEvents: crud.business_events?.refresh,
+          onUpdateHealth: crud.sante?.update,
           onUpdateOpportunity: crud.sales_opportunities?.update,
           onUpdateAnimal: crud.animaux?.update,
+          onCreateStock: crud.stock?.create,
+          onUpdateStock: crud.stock?.update,
+          onRefreshStock: crud.stock?.refresh,
         },
       });
       const fixed = totalFixed(reconciliation);
-      if (fixed > 0) await refreshKeys(['finances', 'documents', 'sales_opportunities', 'animaux', 'payments', 'sales_orders']);
+      if (fixed > 0) await refreshKeys(['finances', 'documents', 'sales_opportunities', 'animaux', 'payments', 'sales_orders', 'stock', 'sante', 'business_events']);
       const latestData = readData();
       const latestFindings = buildFindings(latestData);
       const latestCoverage = buildAuditInspectionCoverage();

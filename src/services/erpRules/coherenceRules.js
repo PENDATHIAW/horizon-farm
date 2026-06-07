@@ -59,7 +59,7 @@ export function evaluateCoherenceRules(data = {}) {
   });
 
   const recentEggs = eggLogs.slice(0, 7).reduce((s, r) => s + n(r.oeufs_produits ?? r.eggs_count), 0);
-  const eggStock = stocks.filter((s) => /oeuf|egg|plateau/i.test(String(s.produit || s.nom || '')));
+  const eggStock = stocks.filter((s) => s.categorie === 'produit_fini_oeufs' || /oeuf|egg|plateau|tablette/i.test(String(s.produit || s.nom || '')));
   if (recentEggs > 0 && !eggStock.length) {
     findings.push({ id: 'coh-eggs-no-stock', module: 'elevage', severity: 'moyenne', category: 'coherence', title: 'Ponte sans impact stock œufs', description: `${recentEggs} œuf(s) produits sans ligne stock œufs`, recommended_action: 'Mettre à jour stock production œufs', confidence_score: 0.86, auto_action: 'create_alert' });
   }

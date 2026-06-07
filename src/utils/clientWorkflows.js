@@ -1,6 +1,5 @@
 import { toNumber } from './format.js';
 import { makeId } from './ids.js';
-import { paidForOrder, remainingForOrder } from './salesStatuses.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value = '') => String(value || '').trim();
@@ -32,11 +31,11 @@ export function saleBelongsToClient(sale = {}, client = {}) {
   return cKeys.some((key) => sKeys.includes(key));
 }
 
-const isCancelledPayment = (payment = {}) => ['annule', 'annulé', 'annulee', 'cancelled', 'supprime', 'supprimé'].includes(lower(payment.statut || payment.status));
-
 export function paidForSale(sale = {}, payments = []) {
-  const active = arr(payments).filter((payment) => !isCancelledPayment(payment));
-  return paidForOrder(sale, active);
+  const linked = arr(payments)
+    .filter((payment) => paymentOrderId(payment) === String(sale.id))
+    .reduce((sum, payment) => sum + paymentValue(payment), 0);
+  return Math.max(toNumber(sale.montant_paye || sale.paid_amount || sale.amount_paid), linked);
 }
 
 export function buildClientSalesSummary(client = {}, salesOrders = [], payments = []) {
@@ -47,13 +46,10 @@ export function buildClientSalesSummary(client = {}, salesOrders = [], payments 
     const orderId = paymentOrderId(payment);
     return (orderId && orderIds.has(orderId)) || clientIds.includes(paymentClientId(payment));
   });
-  const activePayments = arr(payments).filter((payment) => !isCancelledPayment(payment));
   const enrichedOrders = orders.map((order) => {
     const total = saleTotal(order);
-    const linked = activePayments.filter((payment) => paymentOrderId(payment) === String(order.id));
-    const pool = linked.length ? linked : activePayments;
-    const paid = Math.min(total, paidForSale(order, pool));
-    const remaining = Math.max(0, remainingForOrder(order, pool));
+    const paid = Math.min(total, paidForSale(order, payments));
+    const remaining = Math.max(0, total - paid);
     return { ...order, total, paid, remaining, paymentStatus: remaining <= 0 ? 'paye' : paid > 0 ? 'partiel' : 'non_paye' };
   });
   const totalAchete = enrichedOrders.reduce((sum, order) => sum + order.total, 0);
@@ -115,6 +111,42 @@ export function canDeleteClient(client = {}, salesOrders = []) {
   return !arr(salesOrders).some((sale) => saleBelongsToClient(sale, client));
 }
 
+
+const isOpenTask = (row = {}) => !['termine', 'terminé', 'done', 'closed', 'clos'].includes(lower(row.status || row.statut));
+const isOpenAlert = (row = {}) => !['traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée', 'closed'].includes(lower(row.status || row.statut));
+const isClientReminderRow = (row = {}, client = {}, key = '') => {
+  const rowKey = clean(row.task_dedupe_key || row.action_key || row.routine_key || row.alert_dedupe_key);
+  if (rowKey && rowKey === clean(key)) return true;
+  const linked = clean(row.related_id || row.entity_id || row.source_record_id);
+  if (linked !== clean(client.id)) return false;
+  const text = lower(`${row.title || ''} ${row.message || ''} ${row.notes || ''}`);
+  return /relancer|relance|encaisser|creance|créance/.test(text);
+};
+
+/** Clôture tâches/alertes de relance quand le client est soldé. */
+export async function resolveClientReminderFollowUp({
+  client = {},
+  summary = buildClientSalesSummary(client),
+  tasks = [],
+  alertes = [],
+  handlers = {},
+} = {}) {
+  if (toNumber(summary.resteAPayer) > 0) return { closedTasks: 0, closedAlerts: 0 };
+  const key = clientReceivableKey(client);
+  const relatedTasks = arr(tasks).filter((task) => isOpenTask(task) && isClientReminderRow(task, client, key));
+  const relatedAlerts = arr(alertes).filter((alert) => isOpenAlert(alert) && isClientReminderRow(alert, client, key));
+  await Promise.allSettled(relatedTasks.map((task) => handlers.onUpdateTask?.(task.id, {
+    status: 'termine',
+    statut: 'termine',
+    completed_at: new Date().toISOString(),
+  })));
+  await Promise.allSettled(relatedAlerts.map((alert) => handlers.onUpdateAlert?.(alert.id, {
+    status: 'resolue',
+    statut: 'resolue',
+  })));
+  return { closedTasks: relatedTasks.length, closedAlerts: relatedAlerts.length };
+}
+
 export function buildClientReminderFollowUp(client = {}, summary = buildClientSalesSummary(client)) {
   if (toNumber(summary.resteAPayer) <= 0) return null;
   const key = clientReceivableKey(client);
@@ -162,16 +194,5 @@ export function buildClientReminderFollowUp(client = {}, summary = buildClientSa
       linked_task_id: taskId,
       amount: summary.resteAPayer,
     },
-  };
-}
-
-/** Clôture tâches/alertes relance client quand créance = 0. */
-export function resolveClientReminderFollowUp(client = {}, summary = buildClientSalesSummary(client)) {
-  if (toNumber(summary.resteAPayer) > 0) return null;
-  const key = clientReceivableKey(client);
-  return {
-    key,
-    taskPatch: { status: 'termine', statut: 'termine', completed_at: new Date().toISOString() },
-    alertPatch: { status: 'resolue', statut: 'resolue' },
   };
 }

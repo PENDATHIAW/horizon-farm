@@ -8,7 +8,7 @@ const num = (value) => toNumber(value);
 const today = () => new Date().toISOString().slice(0, 10);
 
 function paymentAmount(row = {}) {
-  return num(row.montant_paye ?? row.montant ?? row.amount ?? row.total);
+  return num(row.montant ?? row.amount ?? row.total);
 }
 
 function financeAmount(row = {}) {
@@ -78,7 +78,6 @@ export async function syncPaymentsToFinance({ data = {}, handlers = {} } = {}) {
     await handlers.onCreateFinanceTransaction({
       ...row,
       id: makeId('TRX'),
-      date: gap.payment.date_paiement || gap.payment.date || today(),
       source_record_id: gap.dedupeKey,
       transaction_origin: 'payment_reconciliation_sync',
       created_from: 'payment_reconciliation_sync',
