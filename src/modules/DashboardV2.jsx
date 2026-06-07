@@ -178,7 +178,7 @@ function Summary({ summary, health, simple, navigate, onOpenAssistant }) {
         onOpenAssistant={onOpenAssistant}
         onNavigate={navigate}
       />
-      <DashboardHeyHorizonStrip suggestions={heyHorizonSuggestions} onNavigate={navigate} onOpenAssistant={onOpenAssistant} />
+      <DashboardHeyHorizonStrip suggestions={heyHorizonSuggestions} onNavigate={navigate} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
         <DashboardKpi
@@ -353,35 +353,162 @@ function GraphiquesSection({ props, navigate, periodFiltered }) {
 }
 
 export default function DashboardV2(props) {
+  const {
+    dataFingerprint,
+    salesOrders,
+    salesOrdersAll,
+    payments,
+    paymentsAll,
+    transactions,
+    transactionsAll,
+    productionLogs,
+    stocks,
+    taches,
+    alertes,
+    animaux,
+    lotsData,
+    lots,
+    cultures,
+    documents,
+    alimentationLogs,
+    vaccins,
+    sante,
+    sensorDevices,
+    cameraDevices,
+    meteo,
+    businessPlans,
+    investissements,
+    farm,
+    ferme,
+    clients,
+    fournisseurs,
+    periodScope: periodScopeProp,
+    periodLabel,
+    periodFiltered,
+    onNavigate,
+    onOpenAssistant,
+    user,
+    displayUser,
+    userName,
+    username,
+  } = props;
+
   const [tab, setTab] = useState('Résumé');
   const settings = useUiSettings();
-  const periodScope = props.periodScope || readPeriodScope();
-  const periodScopeKey = useMemo(() => JSON.stringify(periodScope), [periodScope]);
+  const periodScope = periodScopeProp || readPeriodScope();
   const simple = settings.complexity !== 'expert';
-  const dateTime = useMemo(formatDateTime, []);
-  const greeting = useMemo(() => dashboardGreeting(props), [props.user, props.displayUser, props.userName, props.username]);
+  const dateTime = useMemo(() => formatDateTime(), []);
+  const greetingProps = useMemo(() => ({
+    user,
+    displayUser,
+    userName,
+    username,
+  }), [user, displayUser, userName, username]);
+  const greeting = useMemo(() => dashboardGreeting(greetingProps), [greetingProps]);
 
+  const healthData = useMemo(
+    () => buildHealthData({
+      salesOrdersAll,
+      salesOrders,
+      paymentsAll,
+      payments,
+      transactions,
+      stocks,
+      animaux,
+      lotsData,
+      lots,
+      vaccins,
+      sante,
+      taches,
+      alertes,
+      alimentationLogs,
+      productionLogs,
+      clients,
+      fournisseurs,
+    }),
+    [
+      salesOrdersAll,
+      salesOrders,
+      paymentsAll,
+      payments,
+      transactions,
+      stocks,
+      animaux,
+      lotsData,
+      lots,
+      vaccins,
+      sante,
+      taches,
+      alertes,
+      alimentationLogs,
+      productionLogs,
+      clients,
+      fournisseurs,
+    ],
+  );
   const health = useMemo(
-    () => getDashboardHealthReport(props.dataFingerprint, () => buildHealthData(props)),
-    [props.dataFingerprint],
+    () => getDashboardHealthReport(dataFingerprint, () => healthData),
+    [dataFingerprint, healthData],
   );
 
+  const summaryProps = useMemo(() => ({
+    salesOrders,
+    salesOrdersAll,
+    payments,
+    paymentsAll,
+    transactions,
+    transactionsAll,
+    stocks,
+    taches,
+    alertes,
+    animaux,
+    lotsData,
+    lots,
+    cultures,
+    productionLogs,
+    documents,
+    alimentationLogs,
+    vaccins,
+    sante,
+    sensorDevices,
+    cameraDevices,
+    meteo,
+    businessPlans,
+    investissements,
+    farm,
+    ferme,
+    clients,
+  }), [
+    salesOrders,
+    salesOrdersAll,
+    payments,
+    paymentsAll,
+    transactions,
+    transactionsAll,
+    stocks,
+    taches,
+    alertes,
+    animaux,
+    lotsData,
+    lots,
+    cultures,
+    productionLogs,
+    documents,
+    alimentationLogs,
+    vaccins,
+    sante,
+    sensorDevices,
+    cameraDevices,
+    meteo,
+    businessPlans,
+    investissements,
+    farm,
+    ferme,
+    clients,
+  ]);
   const summary = useMemo(
-    () => buildDashboardSummary(props, periodScope),
-    [
-      periodScopeKey,
-      props.dataFingerprint,
-      props.salesOrders,
-      props.payments,
-      props.transactions,
-      props.productionLogs,
-      props.stocks,
-      props.taches,
-      props.alertes,
-      props.animaux,
-      props.lotsData,
-      props.cultures,
-    ],
+    () => buildDashboardSummary(summaryProps, periodScope),
+    [summaryProps, periodScope],
   );
 
   const toggleExpert = () => {
@@ -391,9 +518,9 @@ export default function DashboardV2(props) {
   };
 
   const navigate = (moduleKey, options) => {
-    if (typeof props.onNavigate !== 'function') return;
-    if (options?.tab) props.onNavigate(moduleKey, options);
-    else props.onNavigate(moduleKey);
+    if (typeof onNavigate !== 'function') return;
+    if (options?.tab) onNavigate(moduleKey, options);
+    else onNavigate(moduleKey);
   };
 
   return (
@@ -410,13 +537,13 @@ export default function DashboardV2(props) {
         simple={simple}
         onToggleExpert={toggleExpert}
         onNavigate={navigate}
-        periodLabel={props.periodLabel}
+        periodLabel={periodLabel}
       />
 
       {tab === 'Résumé' ? (
-        <Summary summary={summary} health={health} simple={simple} navigate={navigate} onOpenAssistant={props.onOpenAssistant} />
+        <Summary summary={summary} health={health} simple={simple} navigate={navigate} onOpenAssistant={onOpenAssistant} />
       ) : (
-        <GraphiquesSection props={props} navigate={navigate} periodFiltered={props.periodFiltered} />
+        <GraphiquesSection props={props} navigate={navigate} periodFiltered={periodFiltered} />
       )}
     </div>
   );

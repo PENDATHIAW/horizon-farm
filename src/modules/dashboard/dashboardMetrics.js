@@ -199,23 +199,8 @@ export function isDashboardStartupMode(props = {}) {
 
 const EGGS_PER_TABLET = 30;
 
-function asDate(value) {
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function monthKeyFromValue(value) {
-  const date = asDate(value);
-  if (!date) return null;
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-}
-
 function resolvePeriodContextLocal(scope = {}) {
   return resolvePeriodContext(scope);
-}
-
-function rowDateValue(row = {}) {
-  return row.date || row.date_paiement || row.payment_date || row.date_commande || row.order_date || row.created_at || '';
 }
 
 export function formatMonthDelta(delta, { unit = '', formatValue = (value) => String(value) } = {}) {
@@ -377,7 +362,6 @@ const isCriticalStock = (row = {}) => {
   const threshold = stockThreshold(row);
   return threshold > 0 && stockQty(row) <= threshold;
 };
-const isOpenTask = (row = {}) => !['termine', 'terminé', 'done', 'closed'].includes(lower(row.status || row.statut));
 const isOpenAlert = (row = {}) => !['traitee', 'traitée', 'resolue', 'résolue', 'fermee', 'fermée'].includes(lower(row.status || row.statut));
 
 function dashboardMonthTarget(monthKey, activityYear, annualTarget = annualRevenueTarget) {

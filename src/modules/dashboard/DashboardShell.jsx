@@ -4,7 +4,7 @@ import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import { openFormModal } from '../../services/formModalManager';
 import { launchHeyHorizonAssistant, launchPilotageSuggestion } from '../../utils/dashboardHeyHorizon.js';
-import { fmtCurrency, fmtNumber } from '../../utils/format';
+import { fmtCurrency } from '../../utils/format';
 
 export function DashboardQuickActions({ onNavigate }) {
   const openNewSale = () => {
@@ -205,7 +205,7 @@ export function DashboardModuleNav({ modules = [], onNavigate }) {
   );
 }
 
-export function DashboardHeyHorizonStrip({ suggestions = [], onNavigate, onOpenAssistant }) {
+export function DashboardHeyHorizonStrip({ suggestions = [], onNavigate }) {
   if (!suggestions.length) return null;
   return (
     <section className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 shadow-sm">
