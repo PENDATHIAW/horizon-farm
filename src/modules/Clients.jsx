@@ -121,7 +121,7 @@ export default function Clients({ rows = [], loading, salesOrders = [], payments
     const list = rows.filter((client) => {
       const summary = salesSummaryFor(client);
       const segment = segmentFor(client);
-      const statusOk = statusFilter === 'tous' || (statusFilter === 'À relancer' ? summary.resteAPayer > 0 : statusFilter === 'a_relancer' ? summary.resteAPayer > 0 : statusFilter === segment.segment ? (segment.segment !== 'À relancer' || summary.resteAPayer > 0) : ((client.statut || summary.status || 'actif') === statusFilter || summary.status === statusFilter));
+      const statusOk = statusFilter === 'tous' || statusFilter === segment.segment || (statusFilter === 'a_relancer' ? summary.resteAPayer > 0 : ((client.statut || summary.status || 'actif') === statusFilter || summary.status === statusFilter));
       const searchOk = !query || [client.nom, client.tel, client.whatsapp, client.email, client.type, client.prefs, segment.segment, segment.channel].some((value) => String(value || '').toLowerCase().includes(query));
       return statusOk && searchOk;
     });
@@ -158,11 +158,7 @@ export default function Clients({ rows = [], loading, salesOrders = [], payments
   const proposeOpportunity = (client, opportunity, message) => openContact(client, message, `Proposer — ${clientName(client)}`);
   const relanceCreance = (client) => {
     const summary = salesSummaryFor(client);
-    if (summary.resteAPayer <= 0) {
-      openContact(client, messageFor(client), 'Contacter le client');
-      return;
-    }
-    openContact(client, relanceMessageForClient(client, summary), 'Relancer — créance');
+    openContact(client, relanceMessageForClient(client, summary), summary.resteAPayer > 0 ? 'Relancer — créance' : 'Relancer le client');
   };
   const openMaps = (client) => { const query = encodeURIComponent(buildSenegalMapQuery(client, 'client Dakar Senegal')); window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank', 'noopener,noreferrer'); };
 
@@ -227,7 +223,7 @@ export default function Clients({ rows = [], loading, salesOrders = [], payments
                     )}
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-1 justify-end">
-                    {hasDebt ? <Btn variant="amber" small icon={MessageCircle} onClick={() => relanceCreance(client)}>Relancer</Btn> : null}
+                    <Btn variant="amber" small icon={MessageCircle} onClick={() => relanceCreance(client)}>Relancer</Btn>
                     <Btn variant="outline" small icon={UserRound} onClick={() => openProfile(client)} />
                     <Btn variant="outline" small icon={Edit} onClick={() => { setSelected(client); setModal('edit'); }} />
                     <Btn variant="outline" small icon={Trash2} onClick={() => { setSelected(client); setModal('delete'); }} />
@@ -242,7 +238,7 @@ export default function Clients({ rows = [], loading, salesOrders = [], payments
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{loading ? Array.from({ length: 4 }).map((_, index) => <div key={index} className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5"><div className="h-20 bg-[#d6c3a0]/60 animate-pulse rounded" /></div>) : filteredRows.map((client) => { const metrics = metricsFor(client); const summary = salesSummaryFor(client); const segment = segmentFor(client); return <div key={client.id} className="bg-[#ffffff] border border-[#d6c3a0] rounded-2xl p-5 hover:border-[#b6975f] transition-all"><div className="flex items-start justify-between mb-3 gap-3"><div className="flex items-center gap-3">{client.photo_url ? <img src={client.photo_url} alt={client.nom} className="w-10 h-10 rounded-full object-cover border border-[#d6c3a0]" /> : <div className="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center text-sky-400 font-bold">{client.nom?.[0] || 'C'}</div>}<div><p className="font-bold text-[#2f2415]">{client.nom}</p><p className="text-xs text-[#8a7456]">{segment.channel} · {client.prefs || 'besoin à qualifier'}</p></div></div><div className="text-right space-y-1"><SegmentBadge segment={segment.segment} /><div className="flex items-center justify-end gap-1 text-amber-400"><Star size={12} fill="currentColor" /><span className="text-sm font-semibold">{segment.loyaltyScore}%</span></div></div></div><div className="grid grid-cols-2 gap-3 mb-4"><CardMetric label="CA ventes" value={fmtCurrency(summary.totalAchete)} /><CardMetric label="Payé" value={fmtCurrency(summary.totalPaye)} /><CardMetric label="Commandes" value={summary.orders.length} /><CardMetric label="Reste à payer" value={fmtCurrency(summary.resteAPayer)} alert={summary.resteAPayer > 0} /><CardMetric label="Panier moyen" value={fmtCurrency(segment.averageBasket)} /><CardMetric label="Paiement" value={`${segment.paymentRate}%`} /></div><div className="rounded-xl bg-[#fffdf8] border border-[#eadcc2] p-3 mb-3"><p className="text-xs font-black text-[#2f2415]">Action fidélisation</p><p className="text-xs text-[#7d6a4a] mt-1">{segment.action}</p></div><div className="flex items-center gap-2 text-sm text-[#7d6a4a] mb-3"><Phone size={12} />{client.tel}</div><div className="flex gap-2 flex-wrap"><Btn variant="outline" small icon={Eye} onClick={() => { setSelected(client); setModal('details'); }}>Fiche</Btn><Btn variant="outline" small icon={Phone} onClick={() => window.open(`tel:${client.tel}`)}>Appeler</Btn><Btn variant="whatsapp" small icon={MessageCircle} onClick={() => openWhatsApp(client)}>WhatsApp</Btn>{summary.resteAPayer > 0 ? <Btn variant="amber" small icon={FileText} onClick={() => relanceCreance(client)}>Relancer</Btn> : null}<Btn variant="outline" small icon={MapPin} onClick={() => openMaps(client)}>Itinéraire</Btn><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(client); setModal('edit'); }} /><ActionIconButton icon={AlertTriangle} title="Supprimer" color="red" onClick={() => { setSelected(client); setModal('delete'); }} /></div></div>; })}</div>
       )}
-      <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, ...metricsFor(selected), ...segmentFor(selected), commandes_erp: salesSummaryFor(selected).orders.length, commandes_ouvertes: salesSummaryFor(selected).openOrders.length, total_achete_ventes: salesSummaryFor(selected).totalAchete, total_paye_ventes: salesSummaryFor(selected).totalPaye, reste_a_payer_ventes: salesSummaryFor(selected).resteAPayer, derniere_commande_vente: salesSummaryFor(selected).derniereCommandeVente || '-', paiements_enregistres: salesSummaryFor(selected).clientPayments.length } : selected} title="Fiche client" />
+      <ClientFicheModal open={modal === 'details'} onClose={() => setModal(null)} client={selected} metrics={selected ? metricsFor(selected) : {}} salesSummary={selected ? salesSummaryFor(selected) : {}} segment={selected ? segmentFor(selected) : {}} />
       <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={clientFields} initialValues={initialClient} autoId={() => generateSequentialId('clients', rows)} uploadFolder="clients" loading={saving} title="Ajouter client" submitLabel="Ajouter" />
       <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={clientFields} initialValues={selected || {}} uploadFolder="clients" loading={saving} title="Modifier client" submitLabel="Enregistrer" />
       <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected ? `${selected.nom}` : ''} loading={saving} />

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import useCrudModule from '../hooks/useCrudModule';
 import { buildSaleFormFromOpportunity } from '../utils/saleFormDraft';
@@ -265,7 +266,6 @@ export default function CommercialRecoveredModule(props) {
       {tab === 'Ventes' ? <VentesV3 {...salesProps} /> : null}
       {tab === 'Clients' ? <ClientsReadable {...clientProps} /> : null}
       {tab === 'Opportunités' ? <CommercialOpportunitiesPanel opportunities={data.openOpportunities} clients={clients} salesOrders={data.orders} setTab={setTab} onWhatsAppLog={logOpportunityWhatsApp} onConvertSale={convertOpportunityToSale} /> : null}
-      {tab === 'Annexe' ? <ModuleAnnexeTab moduleId="commercial" onNavigate={props.onNavigate} /> : null}
       {tab === 'Graphiques' ? (
         <ModuleGraphiquesTab
           moduleId="commercial"

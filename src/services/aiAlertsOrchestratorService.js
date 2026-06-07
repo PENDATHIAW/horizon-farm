@@ -5,6 +5,10 @@ const rows = (dataMap, key) => (Array.isArray(dataMap?.[key]) ? dataMap[key] : [
 export const buildAlertsInputFromDataMap = (dataMap = {}, extra = {}) => ({
   existingAlerts: rows(dataMap, 'alertes_center'),
   lots: rows(dataMap, 'avicole'),
+  animaux: rows(dataMap, 'animaux'),
+  opportunities: rows(dataMap, 'sales_opportunities'),
+  cultures: rows(dataMap, 'cultures'),
+  vaccins: rows(dataMap, 'sante'),
   productionLogs: rows(dataMap, 'production_oeufs_logs'),
   alimentationLogs: rows(dataMap, 'alimentation_logs'),
   stocks: rows(dataMap, 'stock'),

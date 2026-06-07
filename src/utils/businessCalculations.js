@@ -1,6 +1,6 @@
 import { getCalculatedAnimalFeedingCost, getLotFeedingCategory } from './alimentation';
 import { validateAnimalPayload } from './animalValidation';
-import { avicoleCalculatedActiveCount } from './avicoleMetrics';
+import { calculateUnifiedAnimalCost, calculateUnifiedLotCost, mapUnifiedToLotMetricsFields } from '../services/unifiedCostService.js';
 import { toNumber } from './format';
 
 const EGGS_PER_TABLET = 30;
@@ -44,7 +44,11 @@ const addMonthsToDate = (value, months) => { if (!value) return ''; const date =
 export const isLayerLot = (lot = {}) => ['pondeuse', 'pondeuses'].includes(clean(lot.type)) || lot.type === 'Pondeuse';
 export const isBroilerLot = (lot = {}) => ['chair', 'poulet_chair', 'poulets_chair'].includes(clean(lot.type)) || lot.type === 'Chair';
 
-export const calculateLotCurrentCount = (lot = {}) => avicoleCalculatedActiveCount(lot);
+export const calculateLotCurrentCount = (lot = {}) => {
+  const initial = toNumber(lot.initial_count ?? lot.effectif_initial);
+  const losses = toNumber(lot.mortality) + toNumber(lot.vols) + toNumber(lot.vendus) + toNumber(lot.reformes) + toNumber(lot.sorties);
+  return Math.max(0, initial - losses);
+};
 
 export const getLotDefaultCycle = (lot = {}) => {
   if (isLayerLot(lot)) return { value: 18, unit: 'mois' };
@@ -109,7 +113,7 @@ export const enrichProductionEggLogs = ({ logs = [], lots = [] }) => logs.map((l
   return { ...log, lot_name: lot.name || log.lot_id, lot_type: lot.type || '', effectif_actuel: currentCount, oeufs_vendables: sellableEggs, tablettes: converted.tablets, tablettes_vendables: converted.tablets, plateaux: converted.tablets, oeufs_restants: converted.remainingEggs, oeufs_reliquat: converted.remainingEggs, oeufs_par_tablette: EGGS_PER_TABLET, unite_vente: 'tablette', taux_ponte_calcule: currentCount > 0 ? (eggsProduced / currentCount) * 100 : toNumber(log.taux_ponte) };
 });
 
-export const calculateLotMetrics = ({ lot = {}, feedingLogs = [], productionLogs = [] } = {}) => {
+export const calculateLotMetrics = ({ lot = {}, feedingLogs = [], productionLogs = [], healthEvents = [], directCharges = [] } = {}) => {
   const initial = Math.max(0, toNumber(lot.initial_count ?? lot.effectif_initial));
   const current = calculateLotCurrentCount(lot);
   const mortality = Math.max(0, toNumber(lot.mortality));
@@ -118,16 +122,23 @@ export const calculateLotMetrics = ({ lot = {}, feedingLogs = [], productionLogs
   const vendus = Math.max(0, toNumber(lot.vendus));
   const reformes = Math.max(0, toNumber(lot.reformes));
   const sorties = Math.max(0, toNumber(lot.sorties));
-  const healthCost = Math.max(0, toNumber(lot.frais_sante ?? lot.sante ?? lot.cout_sante ?? lot.health_cost));
-  const otherCosts = Math.max(0, toNumber(lot.autres_frais ?? lot.frais_directs ?? lot.other_costs));
-  const chickCost = Math.max(0, purchaseCostOfLot(lot));
+  const fieldHealthCost = Math.max(0, toNumber(lot.frais_sante ?? lot.sante ?? lot.cout_sante ?? lot.health_cost));
+  const fieldOtherCosts = Math.max(0, toNumber(lot.autres_frais ?? lot.frais_directs ?? lot.other_costs));
+  const fieldChickCost = Math.max(0, purchaseCostOfLot(lot));
   const expectedSalePrice = Math.max(0, toNumber(lot.prix_vente_prevu ?? lot.prix_vente_estime ?? lot.estimated_sale_price));
   const realSalePrice = Math.max(0, toNumber(lot.prix_vente_reel ?? lot.sale_price));
   const category = getLotFeedingCategory(lot);
   const lotFeedingLogs = feedingLogs.filter((log) => isLinkedToLot(log, lot, category));
-  const feedingCost = lotFeedingLogs.reduce((sum, log) => sum + money(log), 0);
+  const fieldFeedingCost = lotFeedingLogs.reduce((sum, log) => sum + money(log), 0);
   const feedKg = lotFeedingLogs.reduce((sum, log) => sum + feedKgOfLog(log), 0);
   const coveredDays = lotFeedingLogs.reduce((sum, log) => sum + Math.max(0, toNumber(log.duree_jours ?? log.days)), 0);
+  const unified = calculateUnifiedLotCost({ lot, alimentationLogs: feedingLogs, productionLogs, healthEvents, directCharges });
+  const mapped = mapUnifiedToLotMetricsFields(unified);
+  const useUnified = mapped.totalCost > 0;
+  const feedingCost = useUnified ? mapped.feedingCost : fieldFeedingCost;
+  const healthCost = useUnified ? mapped.healthCost : fieldHealthCost;
+  const otherCosts = useUnified ? mapped.otherCosts : fieldOtherCosts;
+  const chickCost = useUnified ? mapped.chickCost : fieldChickCost;
   const eggMetrics = calculateEggProductionMetrics({ lot, productionLogs });
   const productionJour = isLayerLot(lot) ? eggMetrics.todayEggs : Math.max(0, toNumber(lot.productionJour ?? lot.productionjour));
   const losses = mortality + vols + vendus + reformes + sorties;
@@ -139,7 +150,7 @@ export const calculateLotMetrics = ({ lot = {}, feedingLogs = [], productionLogs
   const autoHealthScore = clamp(100 - mortalityRate * 2 - morbidityRate * 2.5 - theftRate * 1.5);
   const scoreSante = toNumber(lot.scoresSante ?? lot.scores_sante) || healthBaseScore[lot.health_status] || autoHealthScore;
   const grossRevenue = realSalePrice > 0 ? realSalePrice * Math.max(vendus, current || 1) : saleEstimateOfLot(lot, current) || expectedSalePrice * current;
-  const totalCosts = feedingCost + healthCost + otherCosts + chickCost;
+  const totalCosts = useUnified ? mapped.totalCosts : fieldFeedingCost + fieldHealthCost + fieldOtherCosts + fieldChickCost;
   const estimatedMargin = toNumber(lot.marge) || grossRevenue - totalCosts;
   const costPerHead = current > 0 ? feedingCost / current : 0;
   const costPerHeadPerDay = current > 0 && coveredDays > 0 ? feedingCost / current / coveredDays : 0;
@@ -150,7 +161,7 @@ export const calculateLotMetrics = ({ lot = {}, feedingLogs = [], productionLogs
   const weightGainPerHeadKg = isBroilerLot(lot) ? Math.max(0, currentWeightKg - entryWeightKg) : 0;
   const totalLiveWeightGainKg = weightGainPerHeadKg * Math.max(0, current);
   const feedConversionIndex = isBroilerLot(lot) && totalLiveWeightGainKg > 0 ? feedKg / totalLiveWeightGainKg : 0;
-  return { currentCount: current, losses, feedingCost, feedKg, feedConversionIndex, indiceConsommation: feedConversionIndex, weightGainPerHeadKg, totalLiveWeightGainKg, healthCost, otherCosts, chickCost, totalCosts, totalCost: totalCosts, survivalRate, mortalityRate, morbidityRate, theftRate, layingRate, scoreSante, estimatedMargin, marginEstimated: estimatedMargin, marginReal: realSalePrice > 0 ? grossRevenue - totalCosts : 0, grossRevenue, costPerHead, costPerHeadPerDay, totalCostPerHead, marginPerHead, productionPerHead: current > 0 ? productionJour / current : 0, eggMetrics, isLayer: isLayerLot(lot), isBroiler: isBroilerLot(lot), linkedFeedingLogs: lotFeedingLogs };
+  return { currentCount: current, losses, feedingCost, feedKg, feedConversionIndex, indiceConsommation: feedConversionIndex, weightGainPerHeadKg, totalLiveWeightGainKg, healthCost, otherCosts, chickCost, totalCosts, totalCost: totalCosts, survivalRate, mortalityRate, morbidityRate, theftRate, layingRate, scoreSante, estimatedMargin, marginEstimated: estimatedMargin, marginReal: realSalePrice > 0 ? grossRevenue - totalCosts : 0, grossRevenue, costPerHead, costPerHeadPerDay, totalCostPerHead, marginPerHead, productionPerHead: current > 0 ? productionJour / current : 0, eggMetrics, isLayer: isLayerLot(lot), isBroiler: isBroilerLot(lot), linkedFeedingLogs: lotFeedingLogs, costSource: mapped.costSource, costComplete: mapped.costComplete };
 };
 
 export const suggestLotPhase = (lot = {}, metrics = calculateLotMetrics({ lot })) => {

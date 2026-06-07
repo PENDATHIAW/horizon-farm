@@ -1,6 +1,6 @@
 import { Beef, History, Wallet } from 'lucide-react';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
-import { calculateAnimalCost } from '../utils/costEngine';
+import { calculateUnifiedAnimalCost } from '../services/unifiedCostService.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const animalLabel = (row = {}) => row.name || row.tag || row.id || 'Animal';
@@ -20,7 +20,7 @@ function CostCard({ label, value, hint, danger = false }) {
 export default function AnimalCostOverview({ rows = [], alimentationLogs = [], vaccins = [], businessEvents = [] }) {
   const activeRows = arr(rows).filter((animal) => animal?.id && !['vendu', 'mort', 'vole', 'volé', 'abattu', 'abattue'].includes(String(animal.status || '').toLowerCase()));
   const details = activeRows.map((animal) => {
-    const cost = calculateAnimalCost({ animal, alimentationLogs, vaccins, directCharges: businessEvents, slaughterEvents: businessEvents });
+    const cost = calculateUnifiedAnimalCost({ animal, alimentationLogs, vaccins, directCharges: businessEvents, slaughterEvents: businessEvents }).raw;
     const revenue = animalRevenue(animal);
     const directMargin = revenue - cost.totalCost;
     return { animal, cost, revenue, directMargin, directMarginPct: revenue > 0 ? (directMargin / revenue) * 100 : 0 };

@@ -1,5 +1,4 @@
 import { ROUTE_TO_MODULE } from '../config/modules.config.js';
-import { MODULE_TARGET_TABS } from '../config/horizonVision.config.js';
 
 const lower = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
@@ -22,10 +21,10 @@ export function moduleForSaleSource(order = {}) {
   return { module: 'commercial', label: 'Commercial', tab: 'Ventes' };
 }
 
-export const ELEVAGE_TABS = ['Résumé', 'Cycles', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Graphiques'];
-export const ACHATS_STOCK_TABS = ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Graphiques'];
-export const COMMERCIAL_TABS = ['Résumé', 'Ventes', 'Clients', 'Opportunités', 'Graphiques'];
-export const FINANCE_TABS = ['Résumé', 'Trésorerie', 'Créances', 'Dettes', 'Investissements', 'Rentabilité', 'Graphiques'];
+export const ELEVAGE_TABS = ['Résumé', 'Cycles', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Annexe', 'Graphiques'];
+export const ACHATS_STOCK_TABS = ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Annexe', 'Graphiques'];
+export const COMMERCIAL_TABS = ['Résumé', 'Ventes', 'Clients', 'Opportunités', 'Annexe', 'Graphiques'];
+export const FINANCE_TABS = ['Résumé', 'Trésorerie', 'Créances', 'Dettes', 'Investissements', 'Rentabilité', 'Annexe', 'Graphiques'];
 
 const tabAliases = {
   avicole: 'Avicole',
@@ -48,6 +47,10 @@ const tabAliases = {
   tresorerie: 'Trésorerie',
   investissements: 'Investissements',
   rentabilite: 'Rentabilité',
+  annexe: 'Annexe',
+  couts: 'Annexe',
+  cout: 'Annexe',
+  parametres: 'Annexe',
 };
 
 export function resolveElevageTab(value = '') {
@@ -71,6 +74,12 @@ export function resolveCommercialTab(value = '') {
 export function resolveFinanceTab(value = '') {
   const tab = String(value || '').trim();
   if (FINANCE_TABS.includes(tab)) return tab;
+  return tabAliases[lower(tab)] || 'Résumé';
+}
+
+export function resolveActiviteSuiviTab(value = '') {
+  const tab = String(value || '').trim();
+  if (ACTIVITE_SUIVI_TABS.includes(tab)) return tab;
   return tabAliases[lower(tab)] || 'Résumé';
 }
 
@@ -116,7 +125,7 @@ const SEARCH_KEY_TO_MODULE = {
   documents: { module: 'documents_rapports', tab: null },
   rapports: { module: 'documents_rapports', tab: null },
   investissements: { module: 'finance_pilotage', tab: 'Investissements' },
-  business_plans: { module: 'objectifs_croissance', tab: 'Plans' },
+  business_plans: { module: 'objectifs_croissance', tab: null },
 };
 
 /** Cible de navigation pour un résultat de recherche ERP (clé dataMap). */
@@ -148,27 +157,28 @@ export function navigationOptionsForFinding(finding = {}) {
   if (module === 'achats_stock') {
     return { module, tab: resolveAchatsStockTab(explicitTab || defaultTabForLegacyModule(rawModule) || 'Résumé') };
   }
-  if (module === 'centre_ia' || module === 'objectifs_croissance') {
-    const tabs = MODULE_TARGET_TABS[module] || [];
-    const fallback = module === 'centre_ia' ? 'Rentabilité lots' : 'Performance';
-    const tab = tabs.includes(explicitTab) ? explicitTab : fallback;
-    return { module, tab };
-  }
-  if (module === 'activite_suivi') {
-    const title = lower(`${finding.title || ''} ${finding.category || ''} ${finding.type || ''}`);
-    const tab = explicitTab || (title.includes('alerte') ? 'Alertes' : 'Tâches');
-    return { module, tab };
-  }
-  if (module === 'documents_rapports') {
-    return { module, tab: explicitTab || 'Preuves' };
-  }
   return { module, tab: explicitTab || null };
 }
 
 /** Bouton « Voir » dans un panneau IA multi-modules. */
 export function navigateForIaFinding(finding = {}, onNavigate) {
   if (!onNavigate) return;
-  const { module, tab } = navigationOptionsForFinding(finding);
-  if (tab) onNavigate(module || 'elevage', { tab });
-  else onNavigate(module || 'elevage');
+  const module = resolveRouteModule(finding.module || '');
+  if (module === 'commercial') {
+    onNavigate('commercial', { tab: resolveCommercialTab(finding.tab || 'Ventes') });
+    return;
+  }
+  if (module === 'finance_pilotage') {
+    onNavigate('finance_pilotage', { tab: resolveFinanceTab(finding.tab || 'Créances') });
+    return;
+  }
+  if (module === 'achats_stock') {
+    onNavigate('achats_stock', { tab: resolveAchatsStockTab(finding.tab || 'Stock') });
+    return;
+  }
+  if (module === 'elevage') {
+    onNavigate('elevage', { tab: resolveElevageTab(finding.tab || 'Résumé') });
+    return;
+  }
+  onNavigate(module || 'elevage');
 }

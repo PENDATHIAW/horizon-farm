@@ -77,14 +77,11 @@ const currentCount = (lot = {}) => {
 const getWeight = (lot = {}) => toNumber(lot.weight_avg ?? lot.poids_moyen);
 const getWeight30 = (lot = {}) => toNumber(lot.poids_moyen_30j ?? lot.weight_day30 ?? lot.poids_30j ?? lot.poids_j30);
 
-function suggestedBroilerPrice(lot = {}) {
+function suggestedBroilerPrice(lot = {}, alimentationLogs = [], productionLogs = [], marketPrices = []) {
   const configured = toNumber(lot.prix_vente_reel || lot.prix_vente_prevu || lot.sale_price || lot.prix_unitaire);
   if (configured > 0) return clampBroilerPrice(configured);
-  const weight = getWeight(lot);
-  if (weight >= 2) return 4000;
-  if (weight >= 1.7) return 3500;
-  if (weight >= 1.5) return 3000;
-  return 2500;
+  const pricing = recommendAvicoleLotPrice({ lot, alimentationLogs, productionLogs, marketPrices });
+  return clampBroilerPrice(pricing.recommendedUnitPrice);
 }
 
 function phaseForLot(lot = {}, metrics = {}) {
@@ -128,7 +125,7 @@ function productionMetricsForLot(lot = {}, productionLogs = []) {
   return { latestDate, eggsToday, brokenToday, validEggs, layingRate };
 }
 
-function metricsForLot(lot = {}, alimentationLogs = [], productionLogs = []) {
+function metricsForLot(lot = {}, alimentationLogs = [], productionLogs = [], marketPrices = []) {
   const count = currentCount(lot);
   const feedingCost = feedingCostForLot(lot, alimentationLogs);
   const healthCost = toNumber(lot.frais_sante ?? lot.sante);
@@ -142,7 +139,7 @@ function metricsForLot(lot = {}, alimentationLogs = [], productionLogs = []) {
   const production = productionMetricsForLot(lot, productionLogs);
 
   let unitPrice = 0;
-  if (isChairLot(lot)) unitPrice = suggestedBroilerPrice(lot);
+  if (isChairLot(lot)) unitPrice = suggestedBroilerPrice(lot, alimentationLogs, productionLogs, marketPrices);
   else if (isPondeuseLot(lot)) unitPrice = clampLayerPrice(lot.prix_vente_reel || lot.prix_vente_prevu || lot.sale_price || lot.valeur_residuelle);
   else unitPrice = toNumber(lot.prix_vente_reel || lot.prix_vente_prevu || lot.sale_price);
 
@@ -277,8 +274,8 @@ function Metric({ label, value }) {
   return <div className="bg-[#fffdf8] rounded-xl p-3 border border-[#d6c3a0]"><p className="text-xs text-[#8a7456]">{label}</p><p className="font-bold text-[#2f2415]">{value}</p></div>;
 }
 
-function enrichedLot(lot, alimentationLogs, productionLogs) {
-  const metrics = metricsForLot(lot, alimentationLogs, productionLogs);
+function enrichedLot(lot, alimentationLogs, productionLogs, marketPrices = []) {
+  const metrics = metricsForLot(lot, alimentationLogs, productionLogs, marketPrices);
   const decision = saleDecision(lot, metrics);
   return { ...lot, metrics, decision };
 }
@@ -318,7 +315,7 @@ function sumRows(rows = []) {
 }
 
 export default function AvicoleFinal({
-  rows = [], alimentationLogs = [], productionLogs = [], loading = false,
+  rows = [], alimentationLogs = [], productionLogs = [], marketPrices = [], loading = false,
   onCreate, onUpdate, onDelete, onRefresh,
   onCreateProduction, onUpdateProduction, onDeleteProduction, onRefreshProduction,
   onCreateOpportunity,
@@ -335,7 +332,7 @@ export default function AvicoleFinal({
   const activityRows = useMemo(() => filterLotsByActivity(allRows, activityType), [allRows, activityType]);
   const pondeuseRows = useMemo(() => filterLotsByActivity(allRows, 'Pondeuse'), [allRows]);
   const chairRows = useMemo(() => filterLotsByActivity(allRows, 'Chair'), [allRows]);
-  const enrichedRows = useMemo(() => activityRows.map((lot) => enrichedLot(lot, alimentationLogs, productionLogs)), [activityRows, alimentationLogs, productionLogs]);
+  const enrichedRows = useMemo(() => activityRows.map((lot) => enrichedLot(lot, alimentationLogs, productionLogs, marketPrices)), [activityRows, alimentationLogs, productionLogs, marketPrices]);
   const productionRows = useMemo(() => buildDailyProductionRows(productionLogs, allRows), [productionLogs, allRows]);
   const latestDate = productionRows[0]?.date || todayIso();
   const latestProduction = sumRows(productionRows.filter((row) => row.date === latestDate));
@@ -360,7 +357,7 @@ export default function AvicoleFinal({
     const age = getAgeDays(form);
     const normalized = { ...form, age_poulailler_view: formatAge(age) };
     if (isChairLot(normalized)) {
-      const price = suggestedBroilerPrice(normalized);
+      const price = suggestedBroilerPrice(normalized, alimentationLogs, productionLogs, marketPrices);
       normalized.prix_vente_prevu = price;
       normalized.sale_price = price;
       normalized.prix_unitaire = price;

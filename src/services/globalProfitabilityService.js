@@ -61,8 +61,8 @@ function manualFinanceBuckets(transactions = []) {
   return { buckets, rowsByBucket };
 }
 
-export function computeGlobalProfitability({ transactions = [], salesOrders = [], payments = [], businessEvents = [], animaux = [], lots = [], cultures = [], stocks = [], sante = [], alimentationLogs = [], fournisseurs = [], investissements = [], equipements = [] } = {}) {
-  const finance = consolidateFinance({ transactions, salesOrders, payments, fournisseurs, stocks, animaux, lots, cultures, sante, alimentationLogs, investissements, equipements, businessEvents });
+export function computeGlobalProfitability({ transactions = [], salesOrders = [], payments = [], businessEvents = [], animaux = [], lots = [], cultures = [], stocks = [], sante = [], alimentationLogs = [], productionLogs = [], fournisseurs = [], investissements = [], equipements = [] } = {}) {
+  const finance = consolidateFinance({ transactions, salesOrders, payments, fournisseurs, stocks, animaux, lots, cultures, sante, alimentationLogs, productionLogs, investissements, equipements, businessEvents });
   const manual = manualFinanceBuckets(transactions);
   const detail = finance.chargesDeriveesDetail || {};
   const buckets = {

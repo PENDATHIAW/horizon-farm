@@ -7,6 +7,11 @@ import { fmtCurrency, fmtNumber } from '../utils/format';
 import { buildGrowthSummary } from '../utils/animalGrowth';
 import { acquisitionLabel, calculateAge, getAnimalBirthDate, getParentLabel, reproductionStatusLabel } from '../utils/animalLifecycle';
 import { projectGrowth, saleOpportunityGuard } from '../services/growthProjectionService';
+import { recommendAnimalSalePrice } from '../services/salePricingEngine.js';
+import SalePricingSummaryCard from './SalePricingSummaryCard.jsx';
+import AnimalWeightCurve from './AnimalWeightCurve.jsx';
+import { Lock } from 'lucide-react';
+import { buildAnimalWeighingProfile, isAnimalLocked, weighingStatusLabel } from '../utils/animalWeighing.js';
 import { SaleOpportunityGuardPanel, WeightProjectionPanel } from './GrowthProjectionPanel';
 
 const Section = ({ title, children }) => (
@@ -44,7 +49,7 @@ const INTERNAL_TABS = [
   { id: 'trace', label: 'Traçabilité' },
 ];
 
-export default function AnimalDetailsModal({ open, onClose, animal, metrics, animals = [], vaccins = [], opportunities = [], onOpenTrace, onAddDocument }) {
+export default function AnimalDetailsModal({ open, onClose, animal, metrics, animals = [], vaccins = [], alimentationLogs = [], marketPrices = [], opportunities = [], onOpenTrace, onAddDocument }) {
   const [view, setView] = useState('interne');
   const [tab, setTab] = useState('identite');
 
@@ -71,12 +76,21 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
   const projection = projectGrowth(animal, { targetDays: Number(animal.delai_cible_jours || 90) || 90 });
   const opportunityGuard = saleOpportunityGuard(animal, 'animal', opportunities);
   const relatedVaccins = vaccins.filter((vaccin) => String(vaccin.animal || '').includes(animal.id) || String(vaccin.animal || '').includes(animal.tag));
+  const salePricing = recommendAnimalSalePrice({ animal, alimentationLogs, vaccins: relatedVaccins, marketPrices });
+  const weighing = buildAnimalWeighingProfile(animal);
+  const locked = isAnimalLocked(animal);
   const sold = animal.status === 'vendu';
   const lossStatus = ['mort', 'vole', 'reforme'].includes(animal.status);
 
   return (
     <BaseModal open={open} onClose={onClose} title={`${view === 'acheteur' ? 'Fiche acheteur' : 'Fiche interne'} - ${animal.id}`}>
       <div className="space-y-4">
+        {locked ? (
+          <div className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-800 flex items-center gap-2">
+            <Lock size={16} />
+            Fiche verrouillée — animal {animal.status || animal.statut}. Pesées et modifications métier bloquées.
+          </div>
+        ) : null}
         <div className="flex flex-col md:flex-row gap-4 rounded-2xl border border-[#d6c3a0] bg-[#2f2415] p-4 text-white">
           <div className="h-28 w-28 rounded-2xl bg-white/10 border border-white/20 overflow-hidden flex items-center justify-center shrink-0">
             {animal.photo_url ? <img src={animal.photo_url} alt={animal.name} className="h-full w-full object-cover" /> : <span className="text-3xl font-black text-[#c9a96a]">{animal.type?.[0] || 'A'}</span>}
@@ -133,6 +147,13 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
         ) : (
           <div className="space-y-4">
             <FicheTabsBar tabs={internalTabs} active={tab} onChange={setTab} />
+            {view === 'interne' ? (
+              <SalePricingSummaryCard
+                variant="animal"
+                salePricing={salePricing}
+                onOpenFinances={() => setTab('finances')}
+              />
+            ) : null}
 
             {tab === 'identite' ? (
               <>
@@ -170,6 +191,16 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
 
             {tab === 'croissance' ? (
               <>
+                <Section title="Calendrier pesées (J+15 / rappel J-1)" note="Pesée tous les 15 jours après la dernière pesée enregistrée. Rappel la veille.">
+                  <Field label="Dernière pesée" value={weighing.lastDate || 'Non renseignée'} />
+                  <Field label="Prochaine pesée (J+15)" value={weighing.nextWeighing || (locked ? '—' : 'Non planifiée')} />
+                  <Field label="Rappel J-1" value={weighing.reminderDate || '—'} />
+                  <Field label="Statut pesée" value={weighingStatusLabel(weighing.weighingStatus)} />
+                  <Field label="Objectif poids" value={weighing.target ? `${fmtNumber(weighing.target)} kg` : 'À renseigner'} />
+                  <Field label="Progression objectif" value={`${weighing.progress}%`} />
+                  <Field label="Décision terrain" value={weighing.decision} />
+                </Section>
+                <AnimalWeightCurve history={weighing.history} target={weighing.target} />
                 <Section title="Croissance & engraissement">
                   <Field label="Statut croissance" value={growth.label} />
                   <Field label="Poids initial suivi" value={growth.first ? `${growth.first.poids} kg le ${growth.first.date}` : 'Non renseigne'} />
@@ -181,7 +212,7 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
                   <Field label="Recommandation" value={growth.recommendation} />
                 </Section>
                 <WeightProjectionPanel title="Projection croissance & vente" projection={projection} />
-                <SaleOpportunityGuardPanel guard={opportunityGuard} />
+                {!locked ? <SaleOpportunityGuardPanel guard={opportunityGuard} /> : null}
               </>
             ) : null}
 
@@ -196,13 +227,24 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
 
             {tab === 'finances' ? (
               <Section title="Finances internes">
+                {salePricing.alerts?.length ? (
+                  <div className="md:col-span-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                    {salePricing.alerts.join(' ')}
+                  </div>
+                ) : null}
                 <Field label="Prix achat" value={fmtCurrency(metrics.purchaseCost)} />
                 <Field label="Alimentation calculee" value={metrics.feedingCost > 0 ? fmtCurrency(metrics.feedingCost) : '0 FCFA / non renseigne'} />
                 <Field label="Frais sante / soins" value={fmtCurrency(metrics.healthCost)} />
                 <Field label="Autres frais" value={fmtCurrency(metrics.otherCosts || 0)} />
-                <Field label="Cout total calcule" value={fmtCurrency(metrics.totalCost)} />
+                <Field label="Cout total unifie" value={fmtCurrency(salePricing.totalCost || metrics.totalCost)} />
+                <Field label="Prix/kg Annexe (espèce)" value={salePricing.configuredPricePerKg ? `${fmtCurrency(salePricing.configuredPricePerKg)} / kg (${salePricing.speciesKey || '—'})` : 'Non configuré'} />
+                <Field label="Prix vente recommande" value={fmtCurrency(salePricing.recommendedPrice)} />
+                <Field label="Plancher acceptable" value={fmtCurrency(salePricing.minimumPrice)} />
+                <Field label="Prix marche observe" value={salePricing.marketPrice ? fmtCurrency(salePricing.marketPrice) : 'Non renseigne'} />
+                <Field label="Marge estimee" value={fmtCurrency(salePricing.margin)} />
+                <Field label="Taux marge estime" value={`${salePricing.marginRate?.toFixed?.(1) || 0}%`} />
                 <Field label="Prix vente reel" value={sold ? fmtCurrency(metrics.salePrice) : 'Non vendu'} />
-                <Field label="Marge / perte" value={metrics.margin === null ? 'En cours' : fmtCurrency(metrics.margin)} />
+                <Field label="Marge / perte realisee" value={metrics.margin === null ? 'En cours' : fmtCurrency(metrics.margin)} />
                 <Field label="ROI" value={metrics.marginRate ? `${metrics.marginRate.toFixed(1)}%` : 'Non calculable'} />
               </Section>
             ) : null}

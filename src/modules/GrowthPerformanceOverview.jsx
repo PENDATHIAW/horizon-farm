@@ -1,5 +1,5 @@
 import { AlertTriangle, BarChart3, CheckCircle2, Leaf, Scale, TrendingUp } from 'lucide-react';
-import { calculateAnimalCost, calculateAvicoleLotCost } from '../utils/costEngine';
+import { calculateUnifiedAnimalCost, calculateUnifiedLotCost } from '../services/unifiedCostService.js';
 import { calculateCultureMetrics } from '../utils/businessCalculations';
 import { avicoleActiveCount, avicoleDeadCount } from '../utils/avicoleMetrics';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
@@ -67,7 +67,7 @@ function avicoleRows({ rows, alimentationLogs, productionLogs, businessEvents })
     const weight = animalWeight(lot);
     const entry = entryWeight(lot);
     const goal = targetWeight(lot, lot.type === 'Chair' ? 1.5 : 0);
-    const cost = calculateAvicoleLotCost({ lot, alimentationLogs, productionLogs, directCharges: businessEvents, healthEvents: businessEvents, slaughterEvents: businessEvents });
+    const cost = calculateUnifiedLotCost({ lot, alimentationLogs, productionLogs, directCharges: businessEvents, healthEvents: businessEvents, slaughterEvents: businessEvents }).raw;
     const mortalityRate = initial ? (dead / initial) * 100 : 0;
     const progression = goal > 0 && weight > 0 ? Math.min(120, (weight / goal) * 100) : 0;
     const gain = weight > 0 && entry > 0 ? weight - entry : 0;
@@ -90,7 +90,7 @@ function animalRows({ rows, alimentationLogs, vaccins, businessEvents }) {
     const goal = targetWeight(animal, 0);
     const gain = weight > 0 && entry > 0 ? weight - entry : 0;
     const gmq = age > 0 && gain > 0 ? gain / age : 0;
-    const cost = calculateAnimalCost({ animal, alimentationLogs, vaccins, healthEvents: businessEvents, directCharges: businessEvents, slaughterEvents: businessEvents });
+    const cost = calculateUnifiedAnimalCost({ animal, alimentationLogs, vaccins, healthEvents: businessEvents, directCharges: businessEvents, slaughterEvents: businessEvents }).raw;
     const progression = goal > 0 && weight > 0 ? Math.min(120, (weight / goal) * 100) : 0;
     const health = lower(animal.health_status || animal.statut_sante || animal.etat_sante);
     if (isTerminalStatus(animal)) {

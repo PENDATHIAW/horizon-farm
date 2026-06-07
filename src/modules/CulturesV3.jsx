@@ -1,5 +1,5 @@
 import { AlertTriangle, Calendar, CheckCircle2, Download, Edit, Eye, Leaf, Plus, RefreshCw, Sprout, Trash2, TrendingUp } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ActionIconButton from '../components/ActionIconButton';
 import Badge from '../components/Badge';
@@ -9,11 +9,10 @@ import KpiCard from '../components/KpiCard';
 import SectionHeader from '../components/SectionHeader';
 import CreateModal from '../modals/CreateModal';
 import DeleteModal from '../modals/DeleteModal';
-import DetailsModal from '../modals/DetailsModal';
+import CultureFicheModal from '../components/CultureFicheModal.jsx';
 import EditModal from '../modals/EditModal';
 import { applyCultureDecisionDefaults, buildCultureDecisionProfile } from '../services/cultureDecisionEngine';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
-import { dispatchBpLineCompleted, mergeBpDraftIntoInitial } from '../utils/bpLineConcretization';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
 import { calculateCultureMetrics } from '../utils/businessCalculations';
@@ -21,7 +20,7 @@ import CulturesWorkflowBridge from './CulturesWorkflowBridge.jsx';
 import CulturesSaleOpportunityBridge from './CulturesSaleOpportunityBridge.jsx';
 import CulturesTabActionsBridge, { getRealCultureRows } from './CulturesTabActionsBridge.jsx';
 
-const tabs = ['Vue d’ensemble', 'Cultures', 'Récolte', 'Parcelles', 'Campagnes', 'Performance'];
+const tabs = ['Vue d’ensemble', 'Cultures', 'Parcelles', 'Campagnes', 'Performance'];
 const today = () => new Date().toISOString().slice(0, 10);
 const recordType = (row = {}) => String(row.record_type || row.type_fiche || 'culture').toLowerCase();
 const isSupportRecord = (row = {}) => ['parcelle', 'campagne', 'performance'].includes(recordType(row));
@@ -110,24 +109,11 @@ function SummaryCard({ title, rows = [], empty, render, tone = 'neutral' }) {
   return <div className={`rounded-2xl border p-4 ${cls}`}><p className="font-black text-[#2f2415]">{title}</p><div className="mt-3 space-y-2 text-sm">{rows.length ? rows.map((row) => <div key={row.id} className="rounded-xl bg-white/60 px-3 py-2">{render(row)}</div>) : <div className="rounded-xl bg-white/60 px-3 py-2">{empty}</div>}</div></div>;
 }
 
-export default function CulturesV3({ rows = [], stocks = [], opportunities = [], loading, harvestPanel = null, onCreate, onUpdate, onDelete, onRefresh, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateStock, onUpdateStock, onRefreshStock, onCreateBusinessEvent, onRefreshBusinessEvents, onCreateFinanceTransaction }) {
+export default function CulturesV3({ rows = [], stocks = [], opportunities = [], loading, onCreate, onUpdate, onDelete, onRefresh, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onUpdateStock, onRefreshStock, onCreateBusinessEvent, onRefreshBusinessEvents }) {
   const [tab, setTab] = useState('Vue d’ensemble');
   const [selected, setSelected] = useState(null);
   const [modal, setModal] = useState(null);
-  const [bpCreateDraft, setBpCreateDraft] = useState(null);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    const handler = (event) => {
-      const draft = event.detail?.draft;
-      if (event.detail?.module !== 'cultures') return;
-      if (!['culture_create', 'bp_concretization'].includes(draft?.form_type)) return;
-      setBpCreateDraft(draft?.draft_fields || {});
-      setModal('create');
-    };
-    window.addEventListener('horizon-open-form', handler);
-    return () => window.removeEventListener('horizon-open-form', handler);
-  }, []);
 
   const realRows = useMemo(() => getRealCultureRows(rows), [rows]);
   const parcellesAuto = useMemo(() => aggregate(realRows, parcelKey), [realRows]);
@@ -148,31 +134,11 @@ export default function CulturesV3({ rows = [], stocks = [], opportunities = [],
   }, [realRows]);
 
   const submitCreate = async (payload) => {
-    try {
-      setSaving(true);
-      const prepared = { ...applyCultureDecisionDefaults(payload), record_type: 'culture' };
-      await onCreate?.(prepared);
-      if (prepared.bp_line_id) {
-        dispatchBpLineCompleted({
-          bp_line_id: prepared.bp_line_id,
-          assetModule: 'cultures',
-          assetId: prepared.id,
-          amount: toNumber(prepared.budget_prevu ?? prepared.cout_total_reel),
-          date: prepared.date_debut_campagne || prepared.date_semis || today(),
-          source: 'culture_create',
-        });
-      }
-      toast.success('Culture ajoutée · décision Horizon proposée');
-      setModal(null);
-      setBpCreateDraft(null);
-    } catch (error) {
-      toast.error(error.message || 'Création impossible');
-    } finally {
-      setSaving(false);
-    }
+    try { setSaving(true); await onCreate?.({ ...applyCultureDecisionDefaults(payload), record_type: 'culture' }); toast.success('Culture ajoutée · décision Horizon proposée'); setModal(null); } catch (error) { toast.error(error.message || 'Création impossible'); } finally { setSaving(false); }
   };
   const submitEdit = async (payload) => {
     if (!selected) return;
+    if (['vendue', 'vendu', 'perdu', 'sinistre'].includes(String(selected.statut || selected.status || '').toLowerCase())) return toast.error('Fiche culture verrouillée');
     try { setSaving(true); await onUpdate?.(selected.id, applyCultureDecisionDefaults(payload, selected)); toast.success('Fiche modifiée · décision recalculée'); setModal(null); } catch (error) { toast.error(error.message || 'Modification impossible'); } finally { setSaving(false); }
   };
   const submitDelete = async () => {
@@ -199,7 +165,7 @@ export default function CulturesV3({ rows = [], stocks = [], opportunities = [],
     { key: 'marge', label: 'Marge', sortable: true, render: (row) => <span className={marginOf(row) >= 0 ? 'text-emerald-600 font-bold' : 'text-red-500 font-bold'}>{fmtCurrency(marginOf(row))}</span> },
     { key: 'decision_ia', label: 'Décision IA', render: (row) => { const decision = buildCultureDecisionProfile(row); return <Badge color={decision.priority === 'haute' ? 'red' : 'amber'}>{decision.decision}</Badge>; } },
     { key: 'statut', label: 'Statut', render: (row) => <Badge status={row.statut || 'planifiee'} /> },
-    { key: 'actions', label: 'Actions', render: (row) => <div className="flex gap-1"><ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected({ ...row, horizon_decision: buildCultureDecisionProfile(row) }); setModal('details'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(row); setModal('edit'); }} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(row); setModal('delete'); }} /></div> },
+    { key: 'actions', label: 'Actions', render: (row) => <div className="flex gap-1"><ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected({ ...row, horizon_decision: buildCultureDecisionProfile(row) }); setModal('details'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(row); setModal('edit'); }} disabled={['vendue','vendu','perdu','sinistre'].includes(String(row.statut || row.status || '').toLowerCase())} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(row); setModal('delete'); }} /></div> },
   ];
   const aggregateColumns = [
     { key: 'nom', label: 'Nom', sortable: true, render: (row) => <span className="font-black text-[#2f2415]">{row.nom}</span> },
@@ -209,7 +175,7 @@ export default function CulturesV3({ rows = [], stocks = [], opportunities = [],
     { key: 'revenu', label: 'Revenu', render: (row) => fmtCurrency(row.revenu) },
     { key: 'marge', label: 'Marge', render: (row) => <span className={toNumber(row.marge) >= 0 ? 'text-emerald-600 font-bold' : 'text-red-500 font-bold'}>{fmtCurrency(row.marge)}</span> },
     { key: 'risques', label: 'Risques', sortable: true, render: (row) => row.risques ?? '—' },
-    { key: 'actions', label: 'Actions', render: (row) => isSupportRecord(row) ? <div className="flex gap-1"><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(row); setModal('edit'); }} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(row); setModal('delete'); }} /></div> : <span className="text-xs text-[#8a7456]">Auto</span> },
+    { key: 'actions', label: 'Actions', render: (row) => isSupportRecord(row) ? <div className="flex gap-1"><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(row); setModal('edit'); }} disabled={['vendue','vendu','perdu','sinistre'].includes(String(row.statut || row.status || '').toLowerCase())} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(row); setModal('delete'); }} /></div> : <span className="text-xs text-[#8a7456]">Auto</span> },
   ];
 
   return <div className="space-y-6">
@@ -217,16 +183,15 @@ export default function CulturesV3({ rows = [], stocks = [], opportunities = [],
     <CulturesWorkflowBridge rows={realRows} onUpdate={onUpdate} onRefresh={onRefresh} />
     <CulturesSaleOpportunityBridge rows={realRows} opportunities={opportunities} onUpdate={onUpdate} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} />
     <div className="flex flex-wrap gap-2">{tabs.map((item) => <button type="button" key={item} onClick={() => setTab(item)} className={`rounded-xl border px-4 py-2 text-sm font-semibold ${tab === item ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}>{item}</button>)}</div>
-    <CulturesTabActionsBridge tab={tab} rows={rows} stocks={stocks} opportunities={opportunities} onCreate={onCreate} onUpdate={onUpdate} onDelete={onDelete} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onCreateStock={onCreateStock} onUpdateStock={onUpdateStock} onRefreshStock={onRefreshStock} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} onCreateFinanceTransaction={onCreateFinanceTransaction} />
+    <CulturesTabActionsBridge tab={tab} rows={rows} stocks={stocks} opportunities={opportunities} onCreate={onCreate} onUpdate={onUpdate} onDelete={onDelete} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onUpdateStock={onUpdateStock} onRefreshStock={onRefreshStock} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} />
     <div className="grid grid-cols-2 lg:grid-cols-6 gap-4"><KpiCard icon={Sprout} label="Cultures" value={realRows.length} /><KpiCard icon={Leaf} label="Surface" value={`${fmtNumber(analytics.totalSurface)} m²`} /><KpiCard icon={TrendingUp} label="Revenu" value={fmtCurrency(analytics.totalRevenue)} /><KpiCard icon={TrendingUp} label="Marge" value={fmtCurrency(analytics.totalMargin)} /><KpiCard icon={AlertTriangle} label="Risques IA" value={analytics.risks} /><KpiCard icon={Calendar} label="Récoltes prêtes" value={analytics.readyForSale} /></div>
-    {tab === 'Récolte' ? harvestPanel : null}
-        {tab === 'Vue d’ensemble' ? <OperationalSummary analytics={analytics} realRows={realRows} /> : null}
+    {tab === 'Vue d’ensemble' ? <OperationalSummary analytics={analytics} realRows={realRows} /> : null}
     {['Vue d’ensemble', 'Cultures'].includes(tab) ? <DataTable title="Cultures" rows={realRows} columns={cultureColumns} loading={loading} initialSortKey="nom" searchPlaceholder="Rechercher culture, parcelle, campagne..." /> : null}
     {tab === 'Performance' ? <DataTable title="Performance cultures" rows={performanceRows} columns={cultureColumns} loading={loading} initialSortKey="nom" searchPlaceholder="Rechercher performance..." /> : null}
     {tab === 'Parcelles' ? <DataTable title="Parcelles" rows={parcelles} columns={aggregateColumns} loading={loading} initialSortKey="nom" /> : null}
     {tab === 'Campagnes' ? <DataTable title="Campagnes" rows={campagnes} columns={aggregateColumns} loading={loading} initialSortKey="nom" /> : null}
-    <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, cout_total_calcule: costOf(selected), revenu_calcule: revenueOf(selected), marge_calculee: marginOf(selected), score_sante_calcule: healthOf(selected), horizon_decision: selected.horizon_decision || buildCultureDecisionProfile(selected) } : selected} title="Fiche culture" />
-    <CreateModal open={modal === 'create'} onClose={() => { setModal(null); setBpCreateDraft(null); }} onSubmit={submitCreate} fields={CULTURE_FIELDS} initialValues={mergeBpDraftIntoInitial(applyCultureDecisionDefaults({ id: generateSequentialId('cultures', rows), record_type: 'culture', statut: 'planifiee', localisation: 'Thiès / Médina Fall', date_debut_campagne: today(), unite_surface: 'm²', unite_recolte: 'kg' }), bpCreateDraft)} autoId={() => generateSequentialId('cultures', rows)} loading={saving} title={bpCreateDraft ? 'Concrétiser investissement BP · culture' : 'Ajouter culture'} submitLabel={bpCreateDraft ? 'Concrétiser' : 'Ajouter'} />
+    <CultureFicheModal open={modal === 'details'} onClose={() => setModal(null)} culture={selected ? { ...selected, cout_total_calcule: costOf(selected), revenu_calcule: revenueOf(selected), marge_calculee: marginOf(selected), score_sante_calcule: healthOf(selected), horizon_decision: selected.horizon_decision || buildCultureDecisionProfile(selected) } : selected} />
+    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={CULTURE_FIELDS} initialValues={applyCultureDecisionDefaults({ id: generateSequentialId('cultures', rows), record_type: 'culture', statut: 'planifiee', localisation: 'Thiès / Médina Fall', date_debut_campagne: today(), unite_surface: 'm²', unite_recolte: 'kg' })} autoId={() => generateSequentialId('cultures', rows)} loading={saving} title="Ajouter culture" submitLabel="Ajouter" />
     <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={CULTURE_FIELDS} initialValues={selected || {}} loading={saving} title="Modifier fiche" submitLabel="Enregistrer" />
     <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected?.nom || selected?.id || ''} loading={saving} />
   </div>;

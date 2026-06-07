@@ -1,6 +1,7 @@
 import { buildOperationalForecast } from './aiForecastService';
 import { detectFarmAnomalies } from './aiAnomalyService';
 import { buildPondeusesIntelligence } from './aiPondeusesService';
+import { buildSalePricingIntelligence } from './aiSalePricingService.js';
 
 const asRows = (rows) => (Array.isArray(rows) ? rows : []);
 
@@ -195,6 +196,51 @@ export const buildPondeusesAlerts = ({
   return alerts;
 };
 
+
+export const buildSalePricingAlerts = ({
+  lots = [],
+  animaux = [],
+  opportunities = [],
+  cultures = [],
+  stocks = [],
+  alimentationLogs = [],
+  productionLogs = [],
+  vaccins = [],
+  marketPrices = [],
+  meteo = null,
+  existingAlerts = [],
+} = {}) => {
+  const alerts = [];
+  const intelligence = buildSalePricingIntelligence({
+    lots,
+    animaux,
+    opportunities,
+    cultures,
+    stocks,
+    alimentationLogs,
+    productionLogs,
+    vaccins,
+    marketPrices,
+    meteo,
+  });
+
+  intelligence.recommendations.forEach((rec) => {
+    pushAlert(alerts, {
+      title: rec.title,
+      message: rec.summary,
+      module_source: rec.module_target || 'ventes',
+      entity_type: rec.entity_type || 'sale_pricing',
+      entity_id: rec.entity_id || null,
+      severity: rec.priority === 'critique' ? 'critique' : rec.priority === 'haute' ? 'warning' : 'info',
+      action_recommandee: rec.action_recommandee,
+      confidence_score: rec.confidence_score ?? 70,
+      source_data: rec,
+    }, existingAlerts);
+  });
+
+  return alerts;
+};
+
 export const buildAnomalyAlerts = ({
   stocks = [],
   lots = [],
@@ -234,8 +280,12 @@ export const buildAnomalyAlerts = ({
 export const buildIntelligentAlerts = ({
   existingAlerts = [],
   lots = [],
+  animaux = [],
+  opportunities = [],
+  cultures = [],
   productionLogs = [],
   alimentationLogs = [],
+  vaccins = [],
   stocks = [],
   marketPrices = [],
   salesOrders = [],
@@ -251,6 +301,7 @@ export const buildIntelligentAlerts = ({
     ...buildSmartFarmAlerts({ smartfarmEvents, existingAlerts }),
     ...buildForecastAlerts({ stocks, alimentationLogs, productionLogs, salesOrders, payments, transactions, existingAlerts }),
     ...buildPondeusesAlerts({ lots, productionLogs, alimentationLogs, stocks, marketPrices, meteo, existingAlerts }),
+    ...buildSalePricingAlerts({ lots, animaux, opportunities, cultures, stocks, alimentationLogs, productionLogs, vaccins, marketPrices, meteo, existingAlerts }),
     ...buildAnomalyAlerts({ stocks, lots, productionLogs, alimentationLogs, transactions, payments, invoices, sensors, cameras, smartfarmEvents, existingAlerts }),
   ];
 
