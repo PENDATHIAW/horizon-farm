@@ -1,5 +1,5 @@
-import { fmtCurrency } from '../../utils/format.js';
-import { paidForOrder, remainingForOrder } from '../../utils/salesStatuses.js';
+import { fmtCurrency } from '../../utils/format';
+import { paidForOrder, remainingForOrder } from '../../utils/salesStatuses';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v = 0) => Number(v || 0);
@@ -249,8 +249,9 @@ export function buildSummaryTodos(orders = [], payments = [], _healthFindings = 
     if (isSaleClosed(order, linked)) return null;
 
     const rest = remainingForOrder(order, linked);
+    const paymentStatus = normalizePaymentStatus(order, linked);
     const issues = [];
-    if (rest > 0) issues.push('encaissement');
+    if (rest > 0 && paymentStatus !== 'paye') issues.push('encaissement');
     if (!isDelivered(order)) issues.push('livraison');
     if (invoiceRequired(order) && !isInvoiced(order)) issues.push('facture');
     if (!issues.length) return null;
@@ -267,7 +268,7 @@ export function buildSummaryTodos(orders = [], payments = [], _healthFindings = 
       issues,
       rest,
       priority,
-      tab: 'Ventes',
+      tab: rest > 0 ? 'Clients' : 'Ventes',
     };
   }).filter(Boolean);
 

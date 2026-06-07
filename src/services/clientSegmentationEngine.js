@@ -1,4 +1,5 @@
-import { buildClientSalesSummary, saleBelongsToClient } from '../utils/clientWorkflows.js';
+import { buildClientSalesSummary } from '../utils/clientWorkflows';
+
 const arr = (value) => (Array.isArray(value) ? value : []);
 const num = (value = 0) => Number(value || 0);
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -126,13 +127,13 @@ function matchPayments(client = {}, orders = [], payments = []) {
 }
 
 export function buildClientSegment(client = {}, dataMap = {}) {
-  const salesOrders = dataMap.sales_orders || dataMap.salesOrders || [];
-  const payments = dataMap.payments || [];
-  const orders = arr(salesOrders).filter((order) => saleBelongsToClient(order, client) && !['annule', 'annulee', 'cancelled'].includes(norm(order.statut || order.status || order.statut_commande || '')));
-  const summary = buildClientSalesSummary(client, salesOrders, payments);
-  const ca = summary.totalAchete;
-  const paidTotal = summary.totalPaye;
-  const receivable = summary.resteAPayer;
+  const orders = matchClientOrders(client, dataMap.sales_orders || dataMap.salesOrders || []);
+  const payments = matchPayments(client, orders, dataMap.payments || []);
+  const ca = orders.reduce((sum, order) => sum + amount(order), 0);
+  const paidFromOrders = orders.reduce((sum, order) => sum + paid(order), 0);
+  const paidFromPayments = payments.reduce((sum, payment) => sum + paymentAmount(payment), 0);
+  const paidTotal = Math.min(ca, Math.max(paidFromOrders, paidFromPayments));
+  const receivable = Math.max(0, ca - paidTotal);
   const lastOrder = [...orders].sort((a, b) => String(b.date || b.created_at || '').localeCompare(String(a.date || a.created_at || '')))[0];
   const lastOrderDate = lastOrder?.date || lastOrder?.created_at || client.derniereCommande || client.derniere_commande;
   const inactivityDays = daysSince(lastOrderDate);

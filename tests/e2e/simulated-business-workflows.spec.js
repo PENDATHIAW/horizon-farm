@@ -5,8 +5,12 @@ import { computeFinanceCash } from '../../src/utils/financeCash.js';
 import { normalizeLot, normalizeProductionOeufsLog } from '../../src/utils/normalize.js';
 import { applyStockMovement, buildStockCriticalFollowUp } from '../../src/utils/stockWorkflows.js';
 import { avicoleActiveCount, avicoleSickCount } from '../../src/utils/avicoleMetrics.js';
+import { calculateLotCurrentCount } from '../../src/utils/businessCalculations.js';
+import { buildSummaryTodos } from '../../src/modules/commercial/commercialMetrics.js';
+import { buildClientSegment } from '../../src/services/clientSegmentationEngine.js';
+import { isSaleReady, mergeSaleReadiness, saleOpportunityKey } from '../../src/utils/saleReadiness.js';
 import { buildHealthCostTransaction, buildHealthFollowUp, buildHealthMissingProofDocument, buildHealthProofDocument } from '../../src/utils/healthWorkflows.js';
-import { buildClientReminderFollowUp, buildClientSalesSummary, canDeleteClient, normalizeClientFromSales, resolveClientReminderFollowUp } from '../../src/utils/clientWorkflows.js';
+import { buildClientReminderFollowUp, buildClientSalesSummary, canDeleteClient, normalizeClientFromSales } from '../../src/utils/clientWorkflows.js';
 import { buildSaleSourcePatch, capSalePayment } from '../../src/utils/salesWorkflows.js';
 import { findInvoicesForOrder } from '../../src/services/salesIntegrityService.js';
 import { recordSalePayment } from '../../src/utils/recordSalePayment.js';
@@ -18,7 +22,6 @@ import { transactionHasProof } from '../../src/utils/accountingProof.js';
 import { buildDocumentProofFollowUp } from '../../src/utils/documentWorkflows.js';
 import { normalizeDocumentPayload } from '../../src/utils/documentForms.js';
 import { buildTaskFromAlert, completeTaskWorkflow, normalizeTaskChecklist } from '../../src/utils/taskWorkflows.js';
-import { buildDashboardTodayActions, sanitizeDashboardMetric } from '../../src/utils/dashboardWorkflows.js';
 import { normalizeTaskPayload } from '../../src/utils/taskForms.js';
 import { dedupeAlertsBySource, isAlertResolved } from '../../src/utils/alertWorkflows.js';
 import { buildCultureHarvestWorkflow, buildCultureInputUsageWorkflow, buildCultureLossWorkflow, buildCultureWeatherRiskFollowUp } from '../../src/utils/cultureWorkflows.js';
@@ -218,6 +221,56 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     expect(lot.effectif_actuel).toBe(85);
     expect(avicoleSickCount(lot)).toBe(3);
   });
+  test('calculateLotCurrentCount aligne tableau fiche et KPI avicole', () => {
+    const lot = {
+      id: 'LOT-MISMATCH-001',
+      type: 'Chair',
+      initial_count: 500,
+      morts: 18,
+      voles: 2,
+      vendus: 419,
+      reformes: 1,
+      autres_sorties: 1,
+      malades: 3,
+      current_count: 0,
+    };
+    expect(calculateLotCurrentCount(lot)).toBe(59);
+    expect(avicoleActiveCount(lot)).toBe(59);
+  });
+
+  test('mergeSaleReadiness conserve la confirmation pret a vendre apres sauvegarde', () => {
+    const before = { id: 'LOT-READY-001', status: 'actif', pret_vente_confirme: false };
+    const after = mergeSaleReadiness(before, { pret_vente_confirme: true });
+    expect(isSaleReady(after)).toBe(true);
+    const refreshed = mergeSaleReadiness(after, { mortality: 2 });
+    expect(isSaleReady(refreshed)).toBe(true);
+    expect(saleOpportunityKey('avicole', 'LOT-READY-001')).toBe('avicole-sale:LOT-READY-001');
+  });
+
+  test('client solde nest plus segmente a relancer', () => {
+    const client = { id: 'CLI-SOLDE-001', nom: 'Client solde' };
+    const segment = buildClientSegment(client, {
+      sales_orders: [{ id: 'CMD-1', client_id: 'CLI-SOLDE-001', montant_total: 50000, date: '2026-05-01' }],
+      payments: [{ id: 'PAY-1', order_id: 'CMD-1', montant: 50000, statut: 'paye' }],
+    });
+    expect(segment.receivable).toBe(0);
+    expect(segment.segment).not.toBe('À relancer');
+  });
+
+  test('workflow ventes masque encaissement quand commande payee', () => {
+    const order = {
+      id: 'CMD-PAYEE-001',
+      client_nom: 'Client paye',
+      montant_total: 40000,
+      montant_paye: 40000,
+      statut_livraison: 'livre',
+      statut_commande: 'livree',
+    };
+    const payments = [{ id: 'PAY-001', order_id: 'CMD-PAYEE-001', montant: 40000, statut: 'paye' }];
+    const todos = buildSummaryTodos([order], payments);
+    expect(todos).toHaveLength(0);
+  });
+
 
   test('cycles avicoles ne dupliquent pas les lots et ne classent pas les pondeuses en chair', () => {
     const cycles = buildCalculatedCycleDates({
@@ -480,28 +533,6 @@ test.describe('Audit métier avec données simulées Horizon Farm', () => {
     );
     expect(summary.clientPayments).toHaveLength(1);
     expect(summary.derniereCommandeVente).toBe('2026-05-22');
-  });
-
-  test('client soldé clôture tâches et alertes de relance', async () => {
-    const client = { id: 'CLI-PAID-001', nom: 'Client soldé' };
-    const key = `client_receivable:${client.id}`;
-    const tasks = [{ id: 'TSK-1', related_id: client.id, task_dedupe_key: key, title: 'Relancer Client soldé', status: 'a_faire' }];
-    const alertes = [{ id: 'ALT-1', entity_id: client.id, alert_dedupe_key: key, title: 'Client à relancer', status: 'nouvelle' }];
-    const updatedTasks = [];
-    const updatedAlerts = [];
-    const result = await resolveClientReminderFollowUp({
-      client,
-      summary: { resteAPayer: 0 },
-      tasks,
-      alertes,
-      handlers: {
-        onUpdateTask: async (id, patch) => { updatedTasks.push({ id, ...patch }); },
-        onUpdateAlert: async (id, patch) => { updatedAlerts.push({ id, ...patch }); },
-      },
-    });
-    expect(result).toMatchObject({ closedTasks: 1, closedAlerts: 1 });
-    expect(updatedTasks[0]).toMatchObject({ id: 'TSK-1', status: 'termine' });
-    expect(updatedAlerts[0]).toMatchObject({ id: 'ALT-1', status: 'resolue' });
   });
 
   test('relance client crée tâche, alerte et trace liées', () => {

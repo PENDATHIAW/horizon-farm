@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle, DollarSign, Download, Edit, Eye, History, LayoutGrid, LineChart, Lock, Plus, QrCode, RefreshCw, Trash2, TrendingUp } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Download, Edit, Eye, LineChart, Lock, Plus, QrCode, RefreshCw, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Btn from '../components/Btn';
@@ -14,9 +14,7 @@ import { generateSequentialId } from '../utils/ids';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { isActiveAnimalForFeeding } from '../utils/alimentation';
-import { animalAgeDateLabel, animalAgeDateValue, formatAnimalAge } from '../utils/ageDisplay.js';
-import { acquisitionLabel, ACQUISITION_OPTIONS } from '../utils/animalLifecycle.js';
-import DetailSheetTabs from '../components/DetailSheetTabs.jsx';
+import { isSaleReady, mergeSaleReadiness } from '../utils/saleReadiness';
 import AnimalHealthBridge from './AnimalHealthBridge.jsx';
 
 const arr = (v) => Array.isArray(v) ? v : [];
@@ -41,7 +39,18 @@ const fallbackText = (value, fallback = 'Non renseigné') => {
   return text && !['undefined', 'null', 'nan', '[object object]'].includes(text.toLowerCase()) ? text : fallback;
 };
 const dateLabel = (value) => fallbackText(value, 'Non renseignée');
-const ageLabel = (row = {}) => formatAnimalAge(row);
+const ageLabel = (row = {}) => {
+  const birth = row.date_naissance || row.birth_date;
+  const rawAge = row.age || row.age_label;
+  if (rawAge) return fallbackText(rawAge);
+  if (!birth) return 'Non renseigné';
+  const date = new Date(birth);
+  if (Number.isNaN(date.getTime())) return 'Non renseigné';
+  const months = Math.max(0, Math.floor((Date.now() - date.getTime()) / 2629800000));
+  if (months < 1) return 'Moins d’un mois';
+  if (months < 24) return `${months} mois`;
+  return `${Math.floor(months / 12)} an(s) ${months % 12 ? `${months % 12} mois` : ''}`.trim();
+};
 const animalOrigin = (row = {}) => fallbackText(row.origine || row.fournisseur_vendeur || row.source || row.mode_acquisition);
 const locationOf = (row = {}) => fallbackText(row.localisation || row.emplacement || row.parc || row.enclos);
 function parseDocuments(raw) {
@@ -179,7 +188,6 @@ function statusBadge(status) {
   const label = { vendu: 'Vendu', pret: 'Prêt vente', presque: 'Presque prêt', retard: 'En retard', normal: 'Normal' }[status] || status;
   return <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-black ${map[status] || map.normal}`}>{label}</span>;
 }
-const birthMode = (form = {}) => ['naissance_ferme', 'reproduction_interne'].includes(form.mode_acquisition);
 function buildCreateFields() { return [
   { key: 'id', label: 'ID animal', type: 'text', required: true },
   { key: 'boucle_numero', label: 'N° boucle terrain', type: 'text', required: true },
@@ -187,17 +195,17 @@ function buildCreateFields() { return [
   { key: 'name', label: 'Nom / repère', type: 'text', required: true },
   { key: 'race', label: 'Race', type: 'text' },
   { key: 'sexe', label: 'Sexe', type: 'select', required: true, options: [{ value: 'F', label: 'Femelle' }, { value: 'M', label: 'Mâle' }] },
-  { key: 'mode_acquisition', label: 'Mode acquisition', type: 'select', required: true, options: ACQUISITION_OPTIONS.filter((o) => o.value !== 'autre') },
-  { key: 'date_naissance', label: 'Date de naissance', type: 'date', required: true, showWhen: birthMode },
-  { key: 'date_entree_ferme', label: 'Date entrée en ferme', type: 'date', required: true, showWhen: (form) => !birthMode(form) },
-  { key: 'date_achat', label: 'Date achat', type: 'date', required: true, showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat' },
-  { key: 'origine', label: 'Origine / vendeur', type: 'text', showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat' },
+  { key: 'date_naissance', label: 'Date naissance', type: 'date' },
+  { key: 'mode_acquisition', label: 'Mode acquisition', type: 'select', required: true, options: [{ value: 'achat', label: 'Achat' }, { value: 'naissance_ferme', label: 'Naissance ferme' }, { value: 'don', label: 'Don / autre' }] },
+  { key: 'origine', label: 'Origine / vendeur', type: 'text' },
   { key: 'localisation', label: 'Localisation / enclos', type: 'text' },
+  { key: 'date_entree_ferme', label: 'Date entrée ferme', type: 'date', required: true },
+  { key: 'date_achat', label: 'Date achat', type: 'date' },
   { key: 'poids_entree', label: 'Poids entrée ferme (kg)', type: 'number', required: true },
   { key: 'poids', label: 'Poids actuel / 1ère pesée (kg)', type: 'number', required: true },
   { key: 'date_derniere_pesee', label: 'Date dernière pesée', type: 'date', required: true },
   { key: 'poids_cible', label: 'Poids cible vente proposé (kg, ajustable)', type: 'number', required: true },
-  { key: 'purchase_cost', label: 'Prix achat / valeur entrée', type: 'number', required: true, showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat' },
+  { key: 'purchase_cost', label: 'Prix achat / valeur entrée', type: 'number', required: true },
   { key: 'prix_vente_estime', label: 'Prix vente estimé', type: 'number' },
   { key: 'health_status', label: 'Santé', type: 'select', required: true, options: [{ value: 'sain', label: 'Sain' }, { value: 'a_surveiller', label: 'À surveiller' }, { value: 'malade', label: 'Malade' }] },
   { key: 'photo_url', label: 'Photo animal', type: 'image', fullWidth: true },
@@ -210,11 +218,8 @@ const editFields = [
   { key: 'name', label: 'Nom / repère', type: 'text', required: true },
   { key: 'race', label: 'Race', type: 'text' },
   { key: 'sexe', label: 'Sexe', type: 'select', options: [{ value: 'F', label: 'Femelle' }, { value: 'M', label: 'Mâle' }] },
-  { key: 'mode_acquisition', label: 'Mode acquisition', type: 'select', options: ACQUISITION_OPTIONS.filter((o) => o.value !== 'autre') },
-  { key: 'date_naissance', label: 'Date de naissance', type: 'date', showWhen: birthMode },
-  { key: 'date_entree_ferme', label: 'Date entrée en ferme', type: 'date', showWhen: (form) => !birthMode(form) },
-  { key: 'date_achat', label: 'Date achat', type: 'date', showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat' },
-  { key: 'origine', label: 'Origine / vendeur', type: 'text', showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat' },
+  { key: 'date_naissance', label: 'Date naissance', type: 'date' },
+  { key: 'origine', label: 'Origine / vendeur', type: 'text' },
   { key: 'localisation', label: 'Localisation / enclos', type: 'text' },
   { key: 'section_growth', label: 'Suivi croissance', type: 'section', description: 'Une nouvelle pesée recalcule automatiquement la prochaine pesée à J+15 et le rappel à J-1.' },
   { key: 'poids_entree', label: 'Poids entrée ferme (kg)', type: 'number' },
@@ -249,11 +254,9 @@ export function buildAnimalDetailAuditModel({ animal = {}, alimentationLogs = []
     ['Espèce', animal.type || animal.espece],
     ['Sexe', animal.sexe === 'M' ? 'Mâle' : animal.sexe === 'F' ? 'Femelle' : animal.sexe],
     ['Race', animal.race],
-    ['Date naissance', dateLabel(animal.date_naissance || animal.birth_date || animal.naissance)],
-    ['Date entrée', dateLabel(animal.date_entree_ferme || animal.date_achat || animal.date_entree)],
-    ['Mode acquisition', acquisitionLabel(animal.mode_acquisition || 'achat')],
-    [animalAgeDateLabel(animal), dateLabel(animalAgeDateValue(animal))],
     ['Âge', ageLabel(animal)],
+    ['Date naissance', dateLabel(animal.date_naissance || animal.birth_date)],
+    ['Date entrée', dateLabel(animal.date_entree_ferme || animal.date_achat)],
     ['Origine', animalOrigin(animal)],
     ['Statut actuel', statusOf(animal)],
     ['État de santé', healthOf(animal)],
@@ -269,7 +272,6 @@ export function buildAnimalDetailAuditModel({ animal = {}, alimentationLogs = []
   return { g, costs, docs, sales, identityRows, historyRows };
 }
 function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vaccins = [], businessEvents = [], salesOrders = [], payments = [], transactions = [] }) {
-  const [tab, setTab] = useState('overview');
   if (!animal) return null;
   const g = growthInfo(animal);
   const costs = costBreakdown(animal, { alimentationLogs, vaccins, businessEvents, salesOrders, payments, transactions });
@@ -285,15 +287,12 @@ function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vacci
     ['Espèce', animal.type || animal.espece],
     ['Sexe', animal.sexe === 'M' ? 'Mâle' : animal.sexe === 'F' ? 'Femelle' : animal.sexe],
     ['Race', animal.race],
-    ['Date naissance', dateLabel(animal.date_naissance || animal.birth_date || animal.naissance)],
-    ['Date entrée', dateLabel(animal.date_entree_ferme || animal.date_achat || animal.date_entree)],
-    ['Mode acquisition', acquisitionLabel(animal.mode_acquisition || 'achat')],
-    [animalAgeDateLabel(animal), dateLabel(animalAgeDateValue(animal))],
     ['Âge', ageLabel(animal)],
+    ['Date naissance', dateLabel(animal.date_naissance || animal.birth_date)],
+    ['Date entrée', dateLabel(animal.date_entree_ferme || animal.date_achat)],
     ['Origine', animalOrigin(animal)],
     ['Statut actuel', statusOf(animal)],
     ['État de santé', healthOf(animal)],
-    ['Bâtiment / parc', animal.batiment || animal.nom_batiment || animal.localisation || locationOf(animal)],
     ['Localisation', locationOf(animal)],
   ];
   const historyRows = [
@@ -303,84 +302,32 @@ function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vacci
     ...sales.orders.map((item) => ({ date: eventDate(item), title: `Vente · ${fmtCurrency(orderAmount(item))}`, detail: fallbackText(item.client_name || item.client || item.status, 'Commande vente') })),
     ...linkedEvents.map((item) => ({ date: eventDate(item), title: eventTitle(item), detail: fallbackText(item.description || item.notes || item.status, 'Événement métier') })),
   ].filter((item) => item.title).sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).slice(0, 12);
-
-  const animalTabs = [
-    { id: 'overview', label: 'Vue d\'ensemble', icon: LayoutGrid },
-    { id: 'croissance', label: 'Croissance', icon: TrendingUp },
-    { id: 'finance', label: 'Coûts & marge', icon: DollarSign },
-    { id: 'historique', label: 'Historique', icon: History },
-  ];
-
-  const hero = (
+  return <BaseModal open={open} onClose={onClose} title={`Fiche ${animal.type || animal.espece || 'animal'} - ${physicalIdOf(animal)}`} size="5xl"><div className="space-y-5">
     <div className="rounded-3xl bg-[#2f2415] text-white p-5">
       <p className="text-xs uppercase tracking-widest text-[#c9a96a]">{fallbackText(animal.type || animal.espece, 'Espèce non renseignée')} · {fallbackText(animal.sexe === 'M' ? 'Mâle' : animal.sexe === 'F' ? 'Femelle' : animal.sexe)} · {isLocked(animal) ? 'Fiche verrouillée' : 'Actif'}</p>
       <h2 className="text-2xl font-black mt-1">{fallbackText(animal.name || animal.nom || physicalIdOf(animal))}</h2>
-      <p className="mt-1 text-sm text-[#f4e6c8]">{locationOf(animal)} · {animalOrigin(animal)} · {formatAnimalAge(animal)}</p>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-4">{[['Poids entrée', entryWeightOf(animal) ? `${fmtNumber(entryWeightOf(animal))} kg` : 'Non renseigné'], ['Poids actuel', g.current ? `${fmtNumber(g.current)} kg` : 'Non renseigné'], ['Objectif', g.target ? `${fmtNumber(g.target)} kg` : 'À renseigner'], ['Âge', formatAnimalAge(animal)], ['Progression', `${g.progress}%`], ['Prêt à vendre', g.status === 'pret' ? 'Oui' : 'Non']].map(([label, value]) => <div key={label} className="rounded-2xl bg-white/10 border border-white/10 p-3"><p className="text-xs text-[#f4e6c8]">{label}</p><p className="font-black text-white mt-1">{value}</p></div>)}</div>
+      <p className="mt-1 text-sm text-[#f4e6c8]">{locationOf(animal)} · {animalOrigin(animal)}</p>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">{[['Poids entrée', entryWeightOf(animal) ? `${fmtNumber(entryWeightOf(animal))} kg` : 'Non renseigné'], ['Poids actuel', g.current ? `${fmtNumber(g.current)} kg` : 'Non renseigné'], ['Objectif', g.target ? `${fmtNumber(g.target)} kg` : 'À renseigner'], ['Progression', `${g.progress}%`], ['Prêt à vendre', g.status === 'pret' ? 'Oui' : 'Non']].map(([label, value]) => <div key={label} className="rounded-2xl bg-white/10 border border-white/10 p-3"><p className="text-xs text-[#f4e6c8]">{label}</p><p className="font-black text-white mt-1">{value}</p></div>)}</div>
     </div>
-  );
-
-  return (
-    <BaseModal open={open} onClose={onClose} title={`Fiche ${animal.type || animal.espece || 'animal'} - ${physicalIdOf(animal)}`} size="5xl">
-      <div className="space-y-5">
-        {hero}
-        <DetailSheetTabs tabs={animalTabs} defaultTab={tab} onChange={setTab}>
-          {(activeTab) => {
-            if (activeTab.id === 'overview') {
-              return (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <div className="lg:col-span-2 rounded-2xl border border-[#eadcc2] bg-white p-4">
-                    <p className="font-black text-[#2f2415] mb-3">Identité complète</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{identityRows.map(([label, value]) => <div key={label} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="text-xs text-[#8a7456]">{label}</p><p className="font-black text-[#2f2415] mt-1">{fallbackText(value)}</p></div>)}</div>
-                  </div>
-                  <div className="space-y-3">
-                    <MiniMetric label="Dernière pesée" value={dateLabel(g.lastDate)} />
-                    <MiniMetric label="Prochaine pesée" value={g.nextWeighing || 'Non planifiée'} danger={g.weighingStatus === 'retard'} />
-                    <MiniMetric label="Gain total" value={g.gain ? `${g.gain.toFixed(1)} kg` : 'À compléter'} />
-                    <MiniMetric label="Décision" value={g.decision} danger={g.weighingStatus === 'retard'} />
-                  </div>
-                </div>
-              );
-            }
-            if (activeTab.id === 'croissance') {
-              return (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <div className="lg:col-span-2"><WeightCurve history={g.history} target={g.target} /></div>
-                  <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-                    <p className="font-black text-[#2f2415] mb-2">Notes terrain</p>
-                    <p className="text-sm text-[#7d6a4a] whitespace-pre-wrap">{fallbackText(animal.notes || animal.note || animal.commentaire)}</p>
-                  </div>
-                </div>
-              );
-            }
-            if (activeTab.id === 'finance') {
-              return (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
-                  <p className="font-black text-red-800 mb-1">Coût réel animal et marge</p>
-                  <p className="text-sm text-red-700 mb-3">Achat, alimentation, santé, frais directs, Finance, événements de charge et ventes liées à cette fiche.</p>
-                  {costs.warnings.length ? <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {costs.warnings.join(' ')}</div> : null}
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">{[['Prix achat', costs.achat], ['Alimentation/coût lié', costs.alimentation], ['Soins/vaccins liés', costs.sante], ['Autres frais', costs.autres], ['Événements de charge', costs.evenements], ['Finance liée', costs.finance], ['Coût cumulé', costs.total], [saleLabel, costs.sale], ['Valeur estimée', salePrice(animal) || costs.sale], ['Marge', costs.marge], ['Payé', costs.paid], ['Reste à encaisser', costs.remaining], ['Commandes liées', costs.salesCount], ['Coût/kg', g.current > 0 ? costs.total / g.current : 0]].map(([label, value]) => <div key={label} className="rounded-xl bg-white border border-red-100 p-3"><p className="text-xs text-[#8a7456]">{label}</p><p className={`font-black mt-1 ${label === 'Marge' && value < 0 ? 'text-red-600' : 'text-[#2f2415]'}`}>{label === 'Commandes liées' ? fmtNumber(value || 0) : fmtCurrency(value || 0)}</p>{label === saleLabel ? <p className="mt-1 text-[11px] text-[#8a7456]">{costs.saleSource}</p> : null}</div>)}</div>
-                </div>
-              );
-            }
-            return (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-                  <p className="font-black text-[#2f2415] mb-2">Documents / photos</p>
-                  {docs.length ? <div className="space-y-2">{docs.map((doc, index) => <div key={`${doc.url || doc.title}-${index}`} className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2"><p className="text-sm font-black text-[#2f2415]">{fallbackText(doc.title || doc.nom || doc.type, 'Document animal')}</p><p className="text-xs text-[#8a7456] break-all">{fallbackText(doc.url || doc.file_url || doc.lien, 'Lien non renseigné')}</p></div>)}</div> : <p className="text-sm text-amber-700">Aucun document ou photo renseigné.</p>}
-                </div>
-                <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-                  <p className="font-black text-[#2f2415] mb-2">Historique de vie</p>
-                  <div className="space-y-2">{historyRows.map((item, index) => <div key={`${item.date || 'date'}-${item.title}-${index}`} className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2"><p className="text-xs text-[#8a7456]">{dateLabel(item.date)}</p><p className="font-black text-[#2f2415]">{item.title}</p><p className="text-xs text-[#8a7456]">{item.detail}</p></div>)}</div>
-                  {!historyRows.length ? <p className="text-sm text-amber-700">Aucun événement lié visible.</p> : null}
-                </div>
-              </div>
-            );
-          }}
-        </DetailSheetTabs>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="lg:col-span-2 rounded-2xl border border-[#eadcc2] bg-white p-4">
+        <p className="font-black text-[#2f2415] mb-3">Identité complète</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{identityRows.map(([label, value]) => <div key={label} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="text-xs text-[#8a7456]">{label}</p><p className="font-black text-[#2f2415] mt-1">{fallbackText(value)}</p></div>)}</div>
       </div>
-    </BaseModal>
-  );
+      <div className="space-y-3">
+        <MiniMetric label="Dernière pesée" value={dateLabel(g.lastDate)} />
+        <MiniMetric label="Prochaine pesée" value={g.nextWeighing || 'Non planifiée'} danger={g.weighingStatus === 'retard'} />
+        <MiniMetric label="Gain total" value={g.gain ? `${g.gain.toFixed(1)} kg` : 'À compléter'} />
+        <MiniMetric label="Décision" value={g.decision} danger={g.weighingStatus === 'retard'} />
+      </div>
+    </div>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4"><div className="lg:col-span-2"><WeightCurve history={g.history} target={g.target} /></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="font-black text-[#2f2415] mb-2">Notes terrain</p><p className="text-sm text-[#7d6a4a] whitespace-pre-wrap">{fallbackText(animal.notes || animal.note || animal.commentaire)}</p></div></div>
+    <div className="rounded-2xl border border-red-200 bg-red-50 p-4"><p className="font-black text-red-800 mb-1">Coût réel animal et marge</p><p className="text-sm text-red-700 mb-3">Achat, alimentation, santé, frais directs, Finance, événements de charge et ventes liées à cette fiche.</p>{costs.warnings.length ? <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {costs.warnings.join(' ')}</div> : null}<div className="grid grid-cols-2 lg:grid-cols-4 gap-2">{[['Prix achat', costs.achat], ['Alimentation/coût lié', costs.alimentation], ['Soins/vaccins liés', costs.sante], ['Autres frais', costs.autres], ['Événements de charge', costs.evenements], ['Finance liée', costs.finance], ['Coût cumulé', costs.total], [saleLabel, costs.sale], ['Valeur estimée', salePrice(animal) || costs.sale], ['Marge', costs.marge], ['Payé', costs.paid], ['Reste à encaisser', costs.remaining], ['Commandes liées', costs.salesCount], ['Coût/kg', g.current > 0 ? costs.total / g.current : 0]].map(([label, value]) => <div key={label} className="rounded-xl bg-white border border-red-100 p-3"><p className="text-xs text-[#8a7456]">{label}</p><p className={`font-black mt-1 ${label === 'Marge' && value < 0 ? 'text-red-600' : 'text-[#2f2415]'}`}>{label === 'Commandes liées' ? fmtNumber(value || 0) : fmtCurrency(value || 0)}</p>{label === saleLabel ? <p className="mt-1 text-[11px] text-[#8a7456]">{costs.saleSource}</p> : null}</div>)}</div></div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="font-black text-[#2f2415] mb-2">Documents / photos</p>{docs.length ? <div className="space-y-2">{docs.map((doc, index) => <div key={`${doc.url || doc.title}-${index}`} className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2"><p className="text-sm font-black text-[#2f2415]">{fallbackText(doc.title || doc.nom || doc.type, 'Document animal')}</p><p className="text-xs text-[#8a7456] break-all">{fallbackText(doc.url || doc.file_url || doc.lien, 'Lien non renseigné')}</p></div>)}</div> : <p className="text-sm text-amber-700">Aucun document ou photo renseigné.</p>}</div>
+      <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="font-black text-[#2f2415] mb-2">Historique de vie</p><div className="space-y-2">{historyRows.map((item, index) => <div key={`${item.date || 'date'}-${item.title}-${index}`} className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2"><p className="text-xs text-[#8a7456]">{dateLabel(item.date)}</p><p className="font-black text-[#2f2415]">{item.title}</p><p className="text-xs text-[#8a7456]">{item.detail}</p></div>)}</div>{!historyRows.length ? <p className="text-sm text-amber-700">Aucun événement lié visible.</p> : null}</div>
+    </div>
+  </div></BaseModal>;
 }
 export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], alimentationLogs = [], vaccins = [], businessEvents = [], salesOrders = [], payments = [], transactions = [], loading, onCreate, onUpdate, onDelete, onRefresh }) {
   const [selected, setSelected] = useState(null); const [modal, setModal] = useState(null); const [saving, setSaving] = useState(false); const [filter, setFilter] = useState('tous');
@@ -391,11 +338,7 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
   const initialValues = useMemo(() => { const physicalCode = defaultPhysicalCode(species, normalizedRows); const date = today(); return applyAnimalDecisionDefaults({ id: physicalCode || generateSequentialId('animaux', normalizedRows, { type: species }), tag: physicalCode, boucle_numero: physicalCode, qr_code: physicalCode, type: species, espece: species, status: 'actif', health_status: 'sain', mode_acquisition: 'achat', origine: '', localisation: '', race: '', date_achat: date, date_entree_ferme: date, date_poids_entree: date, date_derniere_pesee: date, sexe: 'F', poids_entree: 0, poids: 0, poids_cible: 0, purchase_cost: 0, documents_text: '', photo_url: '' }); }, [normalizedRows, species]);
   const prepare = (payload = {}, existing = {}) => {
     const physicalCode = payload.boucle_numero || payload.qr_code || existing.boucle_numero || existing.qr_code || defaultPhysicalCode(species, normalizedRows);
-    const acquisition = payload.mode_acquisition || existing.mode_acquisition || 'achat';
-    const isBirth = ['naissance_ferme', 'reproduction_interne'].includes(acquisition);
-    const entryDate = isBirth
-      ? (payload.date_naissance || existing.date_naissance || payload.date_entree_ferme || existing.date_entree_ferme || today())
-      : (payload.date_entree_ferme || payload.date_achat || existing.date_entree_ferme || existing.date_achat || today());
+    const entryDate = payload.date_entree_ferme || payload.date_achat || existing.date_entree_ferme || today();
     const textHistory = payload.poids_history_text;
     const documentsText = payload.documents_text;
     const current = toNumber(payload.poids ?? payload.poids_actuel ?? existing.poids ?? existing.poids_actuel ?? payload.poids_entree);
@@ -421,10 +364,7 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
       localisation: payload.localisation || existing.localisation || existing.emplacement || '',
       health_status: payload.health_status || payload.sante || existing.health_status || 'sain',
       status: payload.status || payload.statut || existing.status || 'actif',
-      mode_acquisition: acquisition,
-      date_naissance: isBirth ? entryDate : (payload.date_naissance || existing.date_naissance || ''),
-      date_entree_ferme: isBirth ? (payload.date_entree_ferme || existing.date_entree_ferme || entryDate) : entryDate,
-      date_achat: acquisition === 'achat' ? (payload.date_achat || existing.date_achat || entryDate) : '',
+      date_entree_ferme: entryDate,
       date_poids_entree: payload.date_poids_entree || existing.date_poids_entree || entryDate,
       date_derniere_pesee: lastWeighing,
       prochaine_pesee: nextWeighing,

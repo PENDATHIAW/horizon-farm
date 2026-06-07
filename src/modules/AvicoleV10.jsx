@@ -7,15 +7,15 @@ import { buildAvicoleLotDecision } from '../services/avicoleDecisionEngine';
 import { fmtNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { avicoleActiveCount, avicoleHasActiveBirds } from '../utils/avicoleMetrics';
+import { mergeSaleReadiness, saleOpportunityKey, shouldSyncSaleOpportunity } from '../utils/saleReadiness';
 import AvicoleBase from './AvicoleBase.jsx';
 import AvicoleCycleHealthPanel from './AvicoleCycleHealthPanel.jsx';
+import AvicoleSaleReadinessBridge from './AvicoleSaleReadinessBridge.jsx';
 import AvicoleEvolution from './AvicoleEvolution.jsx';
 import AvicoleJournalsBridge from './AvicoleJournalsBridge.jsx';
 import AvicoleTransformationBridge from './AvicoleTransformationBridge.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
-import useCrudModule from '../hooks/useCrudModule';
-import { syncEggStockFromProduction } from '../services/eggStockSyncService.js';
 
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const num = (value = 0) => Number(value || 0);
@@ -46,7 +46,7 @@ const isReadyForSale = (lot = {}) => {
   return Boolean(lot.pret_vente_confirme || lot.ready_for_sale || lot.sale_ready || lot.ready_to_sell || lot.pret_a_la_vente || lot.pret_vente_recommande || status === 'pret_a_la_vente' || status === 'pret_vente' || status === 'pret a vendre' || (isChair(lot) && progress >= 100));
 };
 const estimatedAmount = (lot = {}) => num(lot.prix_vente_reel ?? lot.sale_price ?? lot.prix_vente ?? lot.prix_vente_estime ?? lot.valeur_estimee ?? lot.valeur_marche);
-const opportunityDedupeKey = (lot = {}) => `avicole-sale:${lot.id || lot.lot_id || ''}`;
+const opportunityDedupeKey = (lot = {}) => saleOpportunityKey('avicole', lot.id || lot.lot_id || '');
 const eggsOpportunityKey = (lot = {}, date = today()) => `avicole-eggs:${lot.id || lot.lot_id || ''}:${date}`;
 
 function ModuleSection({ icon: Icon, title, subtitle, children }) {
@@ -72,7 +72,7 @@ function ActivityEntryCard({ icon: Icon, active, title, rows = [], productionLog
     <div className={`mt-3 rounded-xl border p-3 text-xs leading-relaxed ${active ? 'border-white/15 bg-white/10 text-white/80' : urgent ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>{urgent ? `${urgent} action(s) prioritaire(s).` : 'Aucune urgence.'}</div>
   </button>;
 }
-function HeyHorizonAvicoleCard({ draft, rows, onUpdate, onCreateProduction, onRefreshProduction, onCreateBusinessEvent, onRefresh, onRefreshBusinessEvents, onClose, onCreateEggOpportunity, stockCrud }) {
+function HeyHorizonAvicoleCard({ draft, rows, onUpdate, onCreateProduction, onRefreshProduction, onCreateBusinessEvent, onRefresh, onRefreshBusinessEvents, onClose, onCreateEggOpportunity }) {
   const fields = draft?.draft_fields || {};
   const formType = draft?.form_type;
   const [lotId, setLotId] = useState(fields.lot_id || rows[0]?.id || '');
@@ -91,9 +91,7 @@ function HeyHorizonAvicoleCard({ draft, rows, onUpdate, onCreateProduction, onRe
       if (formType === 'egg_production') {
         const eggs = num(quantity);
         const tablettes = Math.floor(eggs / 30);
-        const payload = { id: makeId('PONTE'), lot_id: lot.id, lot_name: lot.name || lot.nom || lot.id, related_id: lot.id, date, oeufs_produits: eggs, oeufs_casses: 0, oeufs_vendables: eggs, oeufs: eggs, eggs_count: eggs, tablettes, tablettes_vendables: tablettes, plateaux: tablettes, oeufs_restants: eggs % 30, oeufs_reliquat: eggs % 30, oeufs_par_tablette: 30, unite_vente: 'tablette', type_evenement: 'ramassage_oeufs', source_module: 'hey_horizon', source_record_id: lot.id, notes: note };
-        await onCreateProduction?.(payload);
-        try { await syncEggStockFromProduction({ stockCrud, log: payload }); } catch (error) { console.warn('Stock œufs non synchronisé', error); toast.error('Ramassage enregistré, stock œufs à vérifier'); }
+        await onCreateProduction?.({ id: makeId('PONTE'), lot_id: lot.id, related_id: lot.id, date, oeufs_produits: eggs, oeufs_casses: 0, oeufs_vendables: eggs, oeufs: eggs, eggs_count: eggs, tablettes, tablettes_vendables: tablettes, plateaux: tablettes, oeufs_restants: eggs % 30, oeufs_reliquat: eggs % 30, oeufs_par_tablette: 30, unite_vente: 'tablette', type_evenement: 'ramassage_oeufs', source_module: 'hey_horizon', source_record_id: lot.id, notes: note });
         try { await onCreateEggOpportunity?.(lot, eggs, date, note || draft?.raw_input || ''); } catch (error) { console.warn('Opportunité œufs non créée', error); toast.error('Ramassage enregistré, opportunité œufs à vérifier'); }
         try { await onRefreshProduction?.(); } catch (error) { console.warn('Rafraîchissement production impossible', error); }
       } else if (formType === 'poultry_mortality') {
@@ -119,7 +117,6 @@ function HeyHorizonAvicoleCard({ draft, rows, onUpdate, onCreateProduction, onRe
 }
 
 export default function AvicoleV10(props) {
-  const stockCrud = useCrudModule('stock');
   const [activity, setActivity] = useState('pondeuse');
   const [horizonDraft, setHorizonDraft] = useState(null);
   const rows = uniqueRowsById(props.rows || []);
@@ -188,8 +185,20 @@ export default function AvicoleV10(props) {
     } catch (error) { console.warn('Perte avicole non consignée en événement', error); }
   };
 
-  const wrappedCreate = async (payload) => { await props.onCreate?.(payload); await createMortalityEvent({}, payload, 'création lot avicole'); await createOrReactivateLotOpportunity(payload, 'création lot prêt à vendre'); };
-  const wrappedUpdate = async (id, payload) => { const before = (props.rows || []).find((lot) => String(lot.id) === String(id)) || {}; const after = { ...before, ...payload, id }; await props.onUpdate?.(id, payload); await createMortalityEvent(before, after, 'modification fiche lot'); if (!isReadyForSale(before) && isReadyForSale(after)) await createOrReactivateLotOpportunity(after, 'lot marqué prêt à vendre'); };
+  const wrappedCreate = async (payload) => {
+    const prepared = mergeSaleReadiness({}, payload);
+    await props.onCreate?.(prepared);
+    await createMortalityEvent({}, prepared, 'création lot avicole');
+    if (shouldSyncSaleOpportunity({}, prepared)) await createOrReactivateLotOpportunity(prepared, 'création lot prêt à vendre');
+  };
+  const wrappedUpdate = async (id, payload) => {
+    const before = (props.rows || []).find((lot) => String(lot.id) === String(id)) || {};
+    const mergedPayload = mergeSaleReadiness(before, payload);
+    const after = { ...before, ...mergedPayload, id };
+    await props.onUpdate?.(id, mergedPayload);
+    await createMortalityEvent(before, after, 'modification fiche lot');
+    if (shouldSyncSaleOpportunity(before, after)) await createOrReactivateLotOpportunity(after, 'lot marqué prêt à vendre');
+  };
   const scopedOpportunities = opportunities.filter((op) => activity === 'pondeuse' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('oeuf') || norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('pondeuse') : activity === 'chair' ? norm(`${op.title || ''} ${op.source_type || ''} ${op.type || ''}`).includes('chair') : true);
   const operationalProps = { ...props, activity, lockActivity: true, rows: activeScopedRows, productionLogs: scopedProductionLogs, salesOrders, payments, transactions, businessEvents, onCreate: wrappedCreate, onUpdate: wrappedUpdate, opportunities: scopedOpportunities };
   const historyProps = { ...props, activity, lockActivity: true, rows: scopedRows, productionLogs: scopedProductionLogs, salesOrders, payments, transactions, businessEvents, onCreate: wrappedCreate, onUpdate: wrappedUpdate, opportunities: scopedOpportunities };
@@ -198,7 +207,7 @@ export default function AvicoleV10(props) {
 
   return <div className="space-y-6 avicole-mobile-final">
     <style>{`.avicole-mobile-final .objective-card-grid{align-items:stretch}@media(max-width:640px){.avicole-mobile-final .rounded-2xl{border-radius:18px}.avicole-mobile-final table{font-size:12px}.avicole-mobile-final th,.avicole-mobile-final td{padding-left:10px!important;padding-right:10px!important}.avicole-mobile-final .text-2xl{font-size:1.35rem}.avicole-mobile-final .grid{gap:.75rem}.avicole-mobile-final .overflow-x-auto{max-width:100vw}}`}</style>
-    {horizonDraft ? <div id="hey-horizon-avicole-card"><HeyHorizonAvicoleCard draft={horizonDraft} rows={activeScopedRows} onUpdate={wrappedUpdate} onCreateProduction={props.onCreateProduction} onRefreshProduction={props.onRefreshProduction} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onClose={() => setHorizonDraft(null)} onCreateEggOpportunity={createOrReactivateEggOpportunity} stockCrud={stockCrud} /></div> : null}
+    {horizonDraft ? <div id="hey-horizon-avicole-card"><HeyHorizonAvicoleCard draft={horizonDraft} rows={activeScopedRows} onUpdate={wrappedUpdate} onCreateProduction={props.onCreateProduction} onRefreshProduction={props.onRefreshProduction} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onClose={() => setHorizonDraft(null)} onCreateEggOpportunity={createOrReactivateEggOpportunity} /></div> : null}
     <div className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm">
       <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><Bird size={15} aria-hidden="true" /> Avicole</p>
       <h2 className="mt-1 text-2xl font-black text-[#2f2415]">{selectedLabel}</h2>
@@ -206,6 +215,7 @@ export default function AvicoleV10(props) {
     </div>
 
     <AvicoleCycleHealthPanel rows={rows} productionLogs={productionLogs} alimentationLogs={props.alimentationLogs || []} onNavigate={props.onNavigate} />
+    <AvicoleSaleReadinessBridge rows={activeScopedRows} opportunities={scopedOpportunities} onUpdate={wrappedUpdate} onRefresh={props.onRefresh} onCreateOpportunity={props.onCreateOpportunity} onUpdateOpportunity={props.onUpdateOpportunity} onRefreshOpportunities={props.onRefreshOpportunities} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} />
     {activity === 'pondeuse' ? <LayerHelpBanner /> : null}
     <div className="objective-card-grid grid grid-cols-1 gap-4">{activity === 'pondeuse' ? <ObjectivePerformanceCard dataMap={dataMap} activity="oeufs" title="Objectif œufs / pondeuses" compact onNavigate={props.onNavigate} /> : <ObjectivePerformanceCard dataMap={dataMap} activity="poulets_chair" title="Objectif poulets de chair" compact onNavigate={props.onNavigate} />}</div>
     <ModuleSection icon={PackageCheck} title={`Lots actifs · ${selectedLabel}`} subtitle={`${historicalScopedRows.length} lot(s) en historique.`}><AvicoleBase {...operationalProps} /></ModuleSection>
