@@ -1,8 +1,7 @@
-import { AlertTriangle, CheckCircle, Download, Edit, Eye, LineChart, Lock, Plus, QrCode, RefreshCw, Trash2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, CheckCircle, DollarSign, Download, Edit, Eye, History, LayoutGrid, LineChart, Lock, Plus, QrCode, RefreshCw, Trash2, TrendingUp } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Btn from '../components/Btn';
-import FicheTabsBar from '../components/FicheTabsBar.jsx';
 import KpiCard from '../components/KpiCard';
 import SectionHeader from '../components/SectionHeader';
 import ActionIconButton from '../components/ActionIconButton';
@@ -11,18 +10,13 @@ import EditModal from '../modals/EditModal';
 import DeleteModal from '../modals/DeleteModal';
 import BaseModal from '../modals/BaseModal';
 import { applyAnimalDecisionDefaults } from '../services/animalDecisionEngine';
-import {
-  clearBpPendingForm,
-  dispatchBpCostCompleted,
-  dispatchBpLineCompleted,
-  mergeBpDraftIntoInitial,
-  readBpPendingForm,
-} from '../utils/bpLineConcretization';
-import { isSaleReady, saleReadyPatch } from '../utils/saleReadiness';
 import { generateSequentialId } from '../utils/ids';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { isActiveAnimalForFeeding } from '../utils/alimentation';
+import { animalAgeDateLabel, animalAgeDateValue, formatAnimalAge } from '../utils/ageDisplay.js';
+import { acquisitionLabel, ACQUISITION_OPTIONS } from '../utils/animalLifecycle.js';
+import DetailSheetTabs from '../components/DetailSheetTabs.jsx';
 import AnimalHealthBridge from './AnimalHealthBridge.jsx';
 
 const arr = (v) => Array.isArray(v) ? v : [];
@@ -47,18 +41,7 @@ const fallbackText = (value, fallback = 'Non renseigné') => {
   return text && !['undefined', 'null', 'nan', '[object object]'].includes(text.toLowerCase()) ? text : fallback;
 };
 const dateLabel = (value) => fallbackText(value, 'Non renseignée');
-const ageLabel = (row = {}) => {
-  const birth = row.date_naissance || row.birth_date;
-  const rawAge = row.age || row.age_label;
-  if (rawAge) return fallbackText(rawAge);
-  if (!birth) return 'Non renseigné';
-  const date = new Date(birth);
-  if (Number.isNaN(date.getTime())) return 'Non renseigné';
-  const months = Math.max(0, Math.floor((Date.now() - date.getTime()) / 2629800000));
-  if (months < 1) return 'Moins d’un mois';
-  if (months < 24) return `${months} mois`;
-  return `${Math.floor(months / 12)} an(s) ${months % 12 ? `${months % 12} mois` : ''}`.trim();
-};
+const ageLabel = (row = {}) => formatAnimalAge(row);
 const animalOrigin = (row = {}) => fallbackText(row.origine || row.fournisseur_vendeur || row.source || row.mode_acquisition);
 const locationOf = (row = {}) => fallbackText(row.localisation || row.emplacement || row.parc || row.enclos);
 function parseDocuments(raw) {
@@ -196,6 +179,7 @@ function statusBadge(status) {
   const label = { vendu: 'Vendu', pret: 'Prêt vente', presque: 'Presque prêt', retard: 'En retard', normal: 'Normal' }[status] || status;
   return <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-black ${map[status] || map.normal}`}>{label}</span>;
 }
+const birthMode = (form = {}) => ['naissance_ferme', 'reproduction_interne'].includes(form.mode_acquisition);
 function buildCreateFields() { return [
   { key: 'id', label: 'ID animal', type: 'text', required: true },
   { key: 'boucle_numero', label: 'N° boucle terrain', type: 'text', required: true },
@@ -203,17 +187,17 @@ function buildCreateFields() { return [
   { key: 'name', label: 'Nom / repère', type: 'text', required: true },
   { key: 'race', label: 'Race', type: 'text' },
   { key: 'sexe', label: 'Sexe', type: 'select', required: true, options: [{ value: 'F', label: 'Femelle' }, { value: 'M', label: 'Mâle' }] },
-  { key: 'date_naissance', label: 'Date naissance', type: 'date' },
-  { key: 'mode_acquisition', label: 'Mode acquisition', type: 'select', required: true, options: [{ value: 'achat', label: 'Achat' }, { value: 'naissance_ferme', label: 'Naissance ferme' }, { value: 'don', label: 'Don / autre' }] },
-  { key: 'origine', label: 'Origine / vendeur', type: 'text' },
+  { key: 'mode_acquisition', label: 'Mode acquisition', type: 'select', required: true, options: ACQUISITION_OPTIONS.filter((o) => o.value !== 'autre') },
+  { key: 'date_naissance', label: 'Date de naissance', type: 'date', required: true, showWhen: birthMode },
+  { key: 'date_entree_ferme', label: 'Date entrée en ferme', type: 'date', required: true, showWhen: (form) => !birthMode(form) },
+  { key: 'date_achat', label: 'Date achat', type: 'date', required: true, showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat' },
+  { key: 'origine', label: 'Origine / vendeur', type: 'text', showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat' },
   { key: 'localisation', label: 'Localisation / enclos', type: 'text' },
-  { key: 'date_entree_ferme', label: 'Date entrée ferme', type: 'date', required: true },
-  { key: 'date_achat', label: 'Date achat', type: 'date' },
   { key: 'poids_entree', label: 'Poids entrée ferme (kg)', type: 'number', required: true },
   { key: 'poids', label: 'Poids actuel / 1ère pesée (kg)', type: 'number', required: true },
   { key: 'date_derniere_pesee', label: 'Date dernière pesée', type: 'date', required: true },
   { key: 'poids_cible', label: 'Poids cible vente proposé (kg, ajustable)', type: 'number', required: true },
-  { key: 'purchase_cost', label: 'Prix achat / valeur entrée', type: 'number', required: true },
+  { key: 'purchase_cost', label: 'Prix achat / valeur entrée', type: 'number', required: true, showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat' },
   { key: 'prix_vente_estime', label: 'Prix vente estimé', type: 'number' },
   { key: 'health_status', label: 'Santé', type: 'select', required: true, options: [{ value: 'sain', label: 'Sain' }, { value: 'a_surveiller', label: 'À surveiller' }, { value: 'malade', label: 'Malade' }] },
   { key: 'photo_url', label: 'Photo animal', type: 'image', fullWidth: true },
@@ -226,8 +210,11 @@ const editFields = [
   { key: 'name', label: 'Nom / repère', type: 'text', required: true },
   { key: 'race', label: 'Race', type: 'text' },
   { key: 'sexe', label: 'Sexe', type: 'select', options: [{ value: 'F', label: 'Femelle' }, { value: 'M', label: 'Mâle' }] },
-  { key: 'date_naissance', label: 'Date naissance', type: 'date' },
-  { key: 'origine', label: 'Origine / vendeur', type: 'text' },
+  { key: 'mode_acquisition', label: 'Mode acquisition', type: 'select', options: ACQUISITION_OPTIONS.filter((o) => o.value !== 'autre') },
+  { key: 'date_naissance', label: 'Date de naissance', type: 'date', showWhen: birthMode },
+  { key: 'date_entree_ferme', label: 'Date entrée en ferme', type: 'date', showWhen: (form) => !birthMode(form) },
+  { key: 'date_achat', label: 'Date achat', type: 'date', showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat' },
+  { key: 'origine', label: 'Origine / vendeur', type: 'text', showWhen: (form) => (form.mode_acquisition || 'achat') === 'achat' },
   { key: 'localisation', label: 'Localisation / enclos', type: 'text' },
   { key: 'section_growth', label: 'Suivi croissance', type: 'section', description: 'Une nouvelle pesée recalcule automatiquement la prochaine pesée à J+15 et le rappel à J-1.' },
   { key: 'poids_entree', label: 'Poids entrée ferme (kg)', type: 'number' },
@@ -240,7 +227,6 @@ const editFields = [
   { key: 'prix_vente_estime', label: 'Prix vente estimé', type: 'number' },
   { key: 'section_status', label: 'Statut et preuves', type: 'section' },
   { key: 'status', label: 'Statut vente / présence', type: 'select', options: [{ value: 'actif', label: 'Actif' }, { value: 'pret_a_la_vente', label: 'Prêt à vendre' }, { value: 'vendu', label: 'Vendu' }, { value: 'mort', label: 'Mort' }, { value: 'perdu', label: 'Perdu' }, { value: 'vole', label: 'Volé' }, { value: 'sorti', label: 'Sorti' }] },
-  { key: 'pret_vente_confirme', label: 'Prêt à la vente confirmé', type: 'checkbox' },
   { key: 'health_status', label: 'Santé', type: 'select', options: [{ value: 'sain', label: 'Sain' }, { value: 'a_surveiller', label: 'À surveiller' }, { value: 'malade', label: 'Malade' }, { value: 'sous_traitement', label: 'Sous traitement' }] },
   { key: 'photo_url', label: 'Photo animal', type: 'image', fullWidth: true },
   { key: 'documents_text', label: 'Documents / preuves (un lien ou nom par ligne)', type: 'textarea', rows: 3, fullWidth: true },
@@ -263,9 +249,11 @@ export function buildAnimalDetailAuditModel({ animal = {}, alimentationLogs = []
     ['Espèce', animal.type || animal.espece],
     ['Sexe', animal.sexe === 'M' ? 'Mâle' : animal.sexe === 'F' ? 'Femelle' : animal.sexe],
     ['Race', animal.race],
+    ['Date naissance', dateLabel(animal.date_naissance || animal.birth_date || animal.naissance)],
+    ['Date entrée', dateLabel(animal.date_entree_ferme || animal.date_achat || animal.date_entree)],
+    ['Mode acquisition', acquisitionLabel(animal.mode_acquisition || 'achat')],
+    [animalAgeDateLabel(animal), dateLabel(animalAgeDateValue(animal))],
     ['Âge', ageLabel(animal)],
-    ['Date naissance', dateLabel(animal.date_naissance || animal.birth_date)],
-    ['Date entrée', dateLabel(animal.date_entree_ferme || animal.date_achat)],
     ['Origine', animalOrigin(animal)],
     ['Statut actuel', statusOf(animal)],
     ['État de santé', healthOf(animal)],
@@ -281,8 +269,7 @@ export function buildAnimalDetailAuditModel({ animal = {}, alimentationLogs = []
   return { g, costs, docs, sales, identityRows, historyRows };
 }
 function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vaccins = [], businessEvents = [], salesOrders = [], payments = [], transactions = [] }) {
-  const [tab, setTab] = useState('identite');
-  useEffect(() => { if (open) setTab('identite'); }, [open, animal?.id]);
+  const [tab, setTab] = useState('overview');
   if (!animal) return null;
   const g = growthInfo(animal);
   const costs = costBreakdown(animal, { alimentationLogs, vaccins, businessEvents, salesOrders, payments, transactions });
@@ -298,12 +285,15 @@ function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vacci
     ['Espèce', animal.type || animal.espece],
     ['Sexe', animal.sexe === 'M' ? 'Mâle' : animal.sexe === 'F' ? 'Femelle' : animal.sexe],
     ['Race', animal.race],
+    ['Date naissance', dateLabel(animal.date_naissance || animal.birth_date || animal.naissance)],
+    ['Date entrée', dateLabel(animal.date_entree_ferme || animal.date_achat || animal.date_entree)],
+    ['Mode acquisition', acquisitionLabel(animal.mode_acquisition || 'achat')],
+    [animalAgeDateLabel(animal), dateLabel(animalAgeDateValue(animal))],
     ['Âge', ageLabel(animal)],
-    ['Date naissance', dateLabel(animal.date_naissance || animal.birth_date)],
-    ['Date entrée', dateLabel(animal.date_entree_ferme || animal.date_achat)],
     ['Origine', animalOrigin(animal)],
     ['Statut actuel', statusOf(animal)],
     ['État de santé', healthOf(animal)],
+    ['Bâtiment / parc', animal.batiment || animal.nom_batiment || animal.localisation || locationOf(animal)],
     ['Localisation', locationOf(animal)],
   ];
   const historyRows = [
@@ -313,80 +303,99 @@ function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vacci
     ...sales.orders.map((item) => ({ date: eventDate(item), title: `Vente · ${fmtCurrency(orderAmount(item))}`, detail: fallbackText(item.client_name || item.client || item.status, 'Commande vente') })),
     ...linkedEvents.map((item) => ({ date: eventDate(item), title: eventTitle(item), detail: fallbackText(item.description || item.notes || item.status, 'Événement métier') })),
   ].filter((item) => item.title).sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).slice(0, 12);
-  return <BaseModal open={open} onClose={onClose} title={`Fiche ${animal.type || animal.espece || 'animal'} - ${physicalIdOf(animal)}`} size="5xl"><div className="space-y-5">
+
+  const animalTabs = [
+    { id: 'overview', label: 'Vue d\'ensemble', icon: LayoutGrid },
+    { id: 'croissance', label: 'Croissance', icon: TrendingUp },
+    { id: 'finance', label: 'Coûts & marge', icon: DollarSign },
+    { id: 'historique', label: 'Historique', icon: History },
+  ];
+
+  const hero = (
     <div className="rounded-3xl bg-[#2f2415] text-white p-5">
       <p className="text-xs uppercase tracking-widest text-[#c9a96a]">{fallbackText(animal.type || animal.espece, 'Espèce non renseignée')} · {fallbackText(animal.sexe === 'M' ? 'Mâle' : animal.sexe === 'F' ? 'Femelle' : animal.sexe)} · {isLocked(animal) ? 'Fiche verrouillée' : 'Actif'}</p>
       <h2 className="text-2xl font-black mt-1">{fallbackText(animal.name || animal.nom || physicalIdOf(animal))}</h2>
-      <p className="mt-1 text-sm text-[#f4e6c8]">{locationOf(animal)} · {animalOrigin(animal)}</p>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">{[['Poids entrée', entryWeightOf(animal) ? `${fmtNumber(entryWeightOf(animal))} kg` : 'Non renseigné'], ['Poids actuel', g.current ? `${fmtNumber(g.current)} kg` : 'Non renseigné'], ['Objectif', g.target ? `${fmtNumber(g.target)} kg` : 'À renseigner'], ['Progression', `${g.progress}%`], ['Prêt à vendre', g.status === 'pret' ? 'Oui' : 'Non']].map(([label, value]) => <div key={label} className="rounded-2xl bg-white/10 border border-white/10 p-3"><p className="text-xs text-[#f4e6c8]">{label}</p><p className="font-black text-white mt-1">{value}</p></div>)}</div>
+      <p className="mt-1 text-sm text-[#f4e6c8]">{locationOf(animal)} · {animalOrigin(animal)} · {formatAnimalAge(animal)}</p>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-4">{[['Poids entrée', entryWeightOf(animal) ? `${fmtNumber(entryWeightOf(animal))} kg` : 'Non renseigné'], ['Poids actuel', g.current ? `${fmtNumber(g.current)} kg` : 'Non renseigné'], ['Objectif', g.target ? `${fmtNumber(g.target)} kg` : 'À renseigner'], ['Âge', formatAnimalAge(animal)], ['Progression', `${g.progress}%`], ['Prêt à vendre', g.status === 'pret' ? 'Oui' : 'Non']].map(([label, value]) => <div key={label} className="rounded-2xl bg-white/10 border border-white/10 p-3"><p className="text-xs text-[#f4e6c8]">{label}</p><p className="font-black text-white mt-1">{value}</p></div>)}</div>
     </div>
+  );
 
-    <FicheTabsBar tabs={[{ id: 'identite', label: 'Identité' }, { id: 'croissance', label: 'Croissance' }, { id: 'finances', label: 'Finances & marge' }, { id: 'historique', label: 'Documents & historique' }]} active={tab} onChange={setTab} />
-
-    {tab === 'identite' ? (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 rounded-2xl border border-[#eadcc2] bg-white p-4">
-          <p className="font-black text-[#2f2415] mb-3">Identité complète</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{identityRows.map(([label, value]) => <div key={label} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="text-xs text-[#8a7456]">{label}</p><p className="font-black text-[#2f2415] mt-1">{fallbackText(value)}</p></div>)}</div>
-        </div>
-        <div className="space-y-3">
-          <MiniMetric label="Dernière pesée" value={dateLabel(g.lastDate)} />
-          <MiniMetric label="Prochaine pesée" value={g.nextWeighing || 'Non planifiée'} danger={g.weighingStatus === 'retard'} />
-          <MiniMetric label="Gain total" value={g.gain ? `${g.gain.toFixed(1)} kg` : 'À compléter'} />
-          <MiniMetric label="Décision" value={g.decision} danger={g.weighingStatus === 'retard'} />
-        </div>
+  return (
+    <BaseModal open={open} onClose={onClose} title={`Fiche ${animal.type || animal.espece || 'animal'} - ${physicalIdOf(animal)}`} size="5xl">
+      <div className="space-y-5">
+        {hero}
+        <DetailSheetTabs tabs={animalTabs} defaultTab={tab} onChange={setTab}>
+          {(activeTab) => {
+            if (activeTab.id === 'overview') {
+              return (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="lg:col-span-2 rounded-2xl border border-[#eadcc2] bg-white p-4">
+                    <p className="font-black text-[#2f2415] mb-3">Identité complète</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{identityRows.map(([label, value]) => <div key={label} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="text-xs text-[#8a7456]">{label}</p><p className="font-black text-[#2f2415] mt-1">{fallbackText(value)}</p></div>)}</div>
+                  </div>
+                  <div className="space-y-3">
+                    <MiniMetric label="Dernière pesée" value={dateLabel(g.lastDate)} />
+                    <MiniMetric label="Prochaine pesée" value={g.nextWeighing || 'Non planifiée'} danger={g.weighingStatus === 'retard'} />
+                    <MiniMetric label="Gain total" value={g.gain ? `${g.gain.toFixed(1)} kg` : 'À compléter'} />
+                    <MiniMetric label="Décision" value={g.decision} danger={g.weighingStatus === 'retard'} />
+                  </div>
+                </div>
+              );
+            }
+            if (activeTab.id === 'croissance') {
+              return (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="lg:col-span-2"><WeightCurve history={g.history} target={g.target} /></div>
+                  <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+                    <p className="font-black text-[#2f2415] mb-2">Notes terrain</p>
+                    <p className="text-sm text-[#7d6a4a] whitespace-pre-wrap">{fallbackText(animal.notes || animal.note || animal.commentaire)}</p>
+                  </div>
+                </div>
+              );
+            }
+            if (activeTab.id === 'finance') {
+              return (
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+                  <p className="font-black text-red-800 mb-1">Coût réel animal et marge</p>
+                  <p className="text-sm text-red-700 mb-3">Achat, alimentation, santé, frais directs, Finance, événements de charge et ventes liées à cette fiche.</p>
+                  {costs.warnings.length ? <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {costs.warnings.join(' ')}</div> : null}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">{[['Prix achat', costs.achat], ['Alimentation/coût lié', costs.alimentation], ['Soins/vaccins liés', costs.sante], ['Autres frais', costs.autres], ['Événements de charge', costs.evenements], ['Finance liée', costs.finance], ['Coût cumulé', costs.total], [saleLabel, costs.sale], ['Valeur estimée', salePrice(animal) || costs.sale], ['Marge', costs.marge], ['Payé', costs.paid], ['Reste à encaisser', costs.remaining], ['Commandes liées', costs.salesCount], ['Coût/kg', g.current > 0 ? costs.total / g.current : 0]].map(([label, value]) => <div key={label} className="rounded-xl bg-white border border-red-100 p-3"><p className="text-xs text-[#8a7456]">{label}</p><p className={`font-black mt-1 ${label === 'Marge' && value < 0 ? 'text-red-600' : 'text-[#2f2415]'}`}>{label === 'Commandes liées' ? fmtNumber(value || 0) : fmtCurrency(value || 0)}</p>{label === saleLabel ? <p className="mt-1 text-[11px] text-[#8a7456]">{costs.saleSource}</p> : null}</div>)}</div>
+                </div>
+              );
+            }
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+                  <p className="font-black text-[#2f2415] mb-2">Documents / photos</p>
+                  {docs.length ? <div className="space-y-2">{docs.map((doc, index) => <div key={`${doc.url || doc.title}-${index}`} className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2"><p className="text-sm font-black text-[#2f2415]">{fallbackText(doc.title || doc.nom || doc.type, 'Document animal')}</p><p className="text-xs text-[#8a7456] break-all">{fallbackText(doc.url || doc.file_url || doc.lien, 'Lien non renseigné')}</p></div>)}</div> : <p className="text-sm text-amber-700">Aucun document ou photo renseigné.</p>}
+                </div>
+                <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+                  <p className="font-black text-[#2f2415] mb-2">Historique de vie</p>
+                  <div className="space-y-2">{historyRows.map((item, index) => <div key={`${item.date || 'date'}-${item.title}-${index}`} className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2"><p className="text-xs text-[#8a7456]">{dateLabel(item.date)}</p><p className="font-black text-[#2f2415]">{item.title}</p><p className="text-xs text-[#8a7456]">{item.detail}</p></div>)}</div>
+                  {!historyRows.length ? <p className="text-sm text-amber-700">Aucun événement lié visible.</p> : null}
+                </div>
+              </div>
+            );
+          }}
+        </DetailSheetTabs>
       </div>
-    ) : null}
-
-    {tab === 'croissance' ? (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2"><WeightCurve history={g.history} target={g.target} /></div>
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="font-black text-[#2f2415] mb-2">Notes terrain</p><p className="text-sm text-[#7d6a4a] whitespace-pre-wrap">{fallbackText(animal.notes || animal.note || animal.commentaire)}</p></div>
-      </div>
-    ) : null}
-
-    {tab === 'finances' ? (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-4"><p className="font-black text-red-800 mb-1">Coût réel animal et marge</p><p className="text-sm text-red-700 mb-3">Achat, alimentation, santé, frais directs, Finance, événements de charge et ventes liées à cette fiche.</p>{costs.warnings.length ? <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {costs.warnings.join(' ')}</div> : null}<div className="grid grid-cols-2 lg:grid-cols-4 gap-2">{[['Prix achat', costs.achat], ['Alimentation/coût lié', costs.alimentation], ['Soins/vaccins liés', costs.sante], ['Autres frais', costs.autres], ['Événements de charge', costs.evenements], ['Finance liée', costs.finance], ['Coût cumulé', costs.total], [saleLabel, costs.sale], ['Valeur estimée', salePrice(animal) || costs.sale], ['Marge', costs.marge], ['Payé', costs.paid], ['Reste à encaisser', costs.remaining], ['Commandes liées', costs.salesCount], ['Coût/kg', g.current > 0 ? costs.total / g.current : 0]].map(([label, value]) => <div key={label} className="rounded-xl bg-white border border-red-100 p-3"><p className="text-xs text-[#8a7456]">{label}</p><p className={`font-black mt-1 ${label === 'Marge' && value < 0 ? 'text-red-600' : 'text-[#2f2415]'}`}>{label === 'Commandes liées' ? fmtNumber(value || 0) : fmtCurrency(value || 0)}</p>{label === saleLabel ? <p className="mt-1 text-[11px] text-[#8a7456]">{costs.saleSource}</p> : null}</div>)}</div></div>
-    ) : null}
-
-    {tab === 'historique' ? (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="font-black text-[#2f2415] mb-2">Documents / photos</p>{docs.length ? <div className="space-y-2">{docs.map((doc, index) => <div key={`${doc.url || doc.title}-${index}`} className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2"><p className="text-sm font-black text-[#2f2415]">{fallbackText(doc.title || doc.nom || doc.type, 'Document animal')}</p><p className="text-xs text-[#8a7456] break-all">{fallbackText(doc.url || doc.file_url || doc.lien, 'Lien non renseigné')}</p></div>)}</div> : <p className="text-sm text-amber-700">Aucun document ou photo renseigné.</p>}</div>
-        <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="font-black text-[#2f2415] mb-2">Historique de vie</p><div className="space-y-2">{historyRows.map((item, index) => <div key={`${item.date || 'date'}-${item.title}-${index}`} className="rounded-xl bg-white border border-[#eadcc2] px-3 py-2"><p className="text-xs text-[#8a7456]">{dateLabel(item.date)}</p><p className="font-black text-[#2f2415]">{item.title}</p><p className="text-xs text-[#8a7456]">{item.detail}</p></div>)}</div>{!historyRows.length ? <p className="text-sm text-amber-700">Aucun événement lié visible.</p> : null}</div>
-      </div>
-    ) : null}
-  </div></BaseModal>;
+    </BaseModal>
+  );
 }
 export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], alimentationLogs = [], vaccins = [], businessEvents = [], salesOrders = [], payments = [], transactions = [], loading, onCreate, onUpdate, onDelete, onRefresh }) {
-  const [selected, setSelected] = useState(null); const [modal, setModal] = useState(null); const [bpCreateDraft, setBpCreateDraft] = useState(null); const [saving, setSaving] = useState(false); const [filter, setFilter] = useState('tous');
+  const [selected, setSelected] = useState(null); const [modal, setModal] = useState(null); const [saving, setSaving] = useState(false); const [filter, setFilter] = useState('tous');
   const createFields = useMemo(() => buildCreateFields(species), [species]); const deriveCreateValues = useMemo(() => deriveCreateValuesForSpecies(species), [species]);
   const normalizedRows = useMemo(() => arr(rows).map((row) => ({ ...row, type: row.type || species, espece: row.espece || species })), [rows, species]);
   const filtered = useMemo(() => normalizedRows.filter((row) => { const g = growthInfo(row); if (filter === 'tous') return true; if (filter === 'actifs') return isActiveAnimalForFeeding(row); if (filter === 'prets') return g.status === 'pret'; if (filter === 'retard') return g.status === 'retard' || g.weighingStatus === 'retard'; if (filter === 'vendus') return clean(statusOf(row)) === 'vendu'; if (filter === 'surveillance') return ['malade', 'sous_traitement', 'blesse', 'blessé', 'a_surveiller'].includes(clean(healthOf(row))); return true; }), [normalizedRows, filter]);
   const summary = useMemo(() => { const active = normalizedRows.filter((row) => isActiveAnimalForFeeding(row)); const ready = normalizedRows.filter((row) => growthInfo(row).status === 'pret'); const late = normalizedRows.filter((row) => growthInfo(row).weighingStatus === 'retard'); const sold = normalizedRows.filter((row) => clean(statusOf(row)) === 'vendu'); const sick = normalizedRows.filter((row) => ['malade', 'sous_traitement', 'blesse', 'blessé', 'a_surveiller'].includes(clean(healthOf(row)))); const costRows = normalizedRows.map((row) => costBreakdown(row, { alimentationLogs, vaccins, businessEvents, salesOrders, payments, transactions })); const invested = costRows.reduce((sum, item) => sum + item.total, 0); const revenue = costRows.reduce((sum, item) => sum + item.sale, 0); const avgWeight = active.length ? active.reduce((sum, row) => sum + weightOf(row), 0) / Math.max(1, active.filter((row) => weightOf(row) > 0).length) : 0; return { active, ready, late, sold, sick, invested, revenue, margin: revenue - invested, avgWeight }; }, [normalizedRows, alimentationLogs, vaccins, businessEvents, salesOrders, payments, transactions]);
   const initialValues = useMemo(() => { const physicalCode = defaultPhysicalCode(species, normalizedRows); const date = today(); return applyAnimalDecisionDefaults({ id: physicalCode || generateSequentialId('animaux', normalizedRows, { type: species }), tag: physicalCode, boucle_numero: physicalCode, qr_code: physicalCode, type: species, espece: species, status: 'actif', health_status: 'sain', mode_acquisition: 'achat', origine: '', localisation: '', race: '', date_achat: date, date_entree_ferme: date, date_poids_entree: date, date_derniere_pesee: date, sexe: 'F', poids_entree: 0, poids: 0, poids_cible: 0, purchase_cost: 0, documents_text: '', photo_url: '' }); }, [normalizedRows, species]);
-
-  const openBpAnimalForm = (draft) => {
-    if (!draft || !['animal_create', 'bp_concretization'].includes(draft?.form_type)) return;
-    setBpCreateDraft(draft?.draft_fields || {});
-    setModal('create');
-    clearBpPendingForm();
-  };
-
-  useEffect(() => {
-    const pending = readBpPendingForm();
-    if (pending?.module === 'animaux' && pending.form_type === 'animal_create') {
-      openBpAnimalForm({ form_type: pending.form_type, draft_fields: pending.draft_fields });
-    }
-    const handler = (event) => {
-      if (event.detail?.module !== 'animaux') return;
-      openBpAnimalForm(event.detail?.draft);
-    };
-    window.addEventListener('horizon-open-form', handler);
-    return () => window.removeEventListener('horizon-open-form', handler);
-  }, []);
   const prepare = (payload = {}, existing = {}) => {
     const physicalCode = payload.boucle_numero || payload.qr_code || existing.boucle_numero || existing.qr_code || defaultPhysicalCode(species, normalizedRows);
-    const entryDate = payload.date_entree_ferme || payload.date_achat || existing.date_entree_ferme || today();
+    const acquisition = payload.mode_acquisition || existing.mode_acquisition || 'achat';
+    const isBirth = ['naissance_ferme', 'reproduction_interne'].includes(acquisition);
+    const entryDate = isBirth
+      ? (payload.date_naissance || existing.date_naissance || payload.date_entree_ferme || existing.date_entree_ferme || today())
+      : (payload.date_entree_ferme || payload.date_achat || existing.date_entree_ferme || existing.date_achat || today());
     const textHistory = payload.poids_history_text;
     const documentsText = payload.documents_text;
     const current = toNumber(payload.poids ?? payload.poids_actuel ?? existing.poids ?? existing.poids_actuel ?? payload.poids_entree);
@@ -397,8 +406,7 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
     const lastWeighing = payload.date_derniere_pesee || existing.date_derniere_pesee || entryDate;
     if (current > 0 && lastWeighing && !history.some((h) => h.date === lastWeighing && Math.round(h.poids * 10) === Math.round(current * 10))) history.push({ date: lastWeighing, poids: current, note: existing.id ? 'Nouvelle pesée' : 'Première pesée' });
     const nextWeighing = ['vendu', 'mort', 'perdu', 'vole', 'volé', 'sorti'].includes(clean(payload.status || payload.statut || existing.status || existing.statut)) ? '' : addDays(lastWeighing, 15);
-    return (() => {
-      const defaults = applyAnimalDecisionDefaults({
+    return applyAnimalDecisionDefaults({
       ...existing,
       ...payload,
       id: payload.id || existing.id || physicalCode,
@@ -413,7 +421,10 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
       localisation: payload.localisation || existing.localisation || existing.emplacement || '',
       health_status: payload.health_status || payload.sante || existing.health_status || 'sain',
       status: payload.status || payload.statut || existing.status || 'actif',
-      date_entree_ferme: entryDate,
+      mode_acquisition: acquisition,
+      date_naissance: isBirth ? entryDate : (payload.date_naissance || existing.date_naissance || ''),
+      date_entree_ferme: isBirth ? (payload.date_entree_ferme || existing.date_entree_ferme || entryDate) : entryDate,
+      date_achat: acquisition === 'achat' ? (payload.date_achat || existing.date_achat || entryDate) : '',
       date_poids_entree: payload.date_poids_entree || existing.date_poids_entree || entryDate,
       date_derniere_pesee: lastWeighing,
       prochaine_pesee: nextWeighing,
@@ -428,47 +439,10 @@ export default function AnimauxSpeciesFocused({ species = 'Bovin', rows = [], al
       purchase_cost: toNumber(payload.purchase_cost ?? payload.prix_achat ?? existing.purchase_cost),
       prix_vente_estime: toNumber(payload.prix_vente_estime ?? existing.prix_vente_estime),
     }, existing);
-      const merged = { ...existing, ...defaults };
-      return isSaleReady(merged) ? { ...defaults, ...saleReadyPatch(merged) } : defaults;
-    })();
   };
-  const submitCreate = async (payload) => {
-    try {
-      setSaving(true);
-      const prepared = prepare(payload);
-      await onCreate?.(prepared);
-      if (prepared.bp_cost_id) {
-        dispatchBpCostCompleted({
-          bp_cost_id: prepared.bp_cost_id,
-          assetModule: 'animaux',
-          assetId: prepared.id,
-          amount: toNumber(prepared.purchase_cost ?? prepared.prix_achat),
-          date: prepared.date_achat || prepared.date_entree_ferme || today(),
-          targetModule: 'elevage',
-          source: 'animaux_create',
-        });
-      } else if (prepared.bp_line_id) {
-        dispatchBpLineCompleted({
-          bp_line_id: prepared.bp_line_id,
-          assetModule: 'animaux',
-          assetId: prepared.id,
-          amount: toNumber(prepared.purchase_cost ?? prepared.prix_achat),
-          date: prepared.date_achat || prepared.date_entree_ferme || today(),
-          source: 'animaux_create',
-        });
-      }
-      await onRefresh?.();
-      toast.success(`${species} ajouté`);
-      setModal(null);
-      setBpCreateDraft(null);
-    } catch (error) {
-      toast.error(error.message || 'Création impossible');
-    } finally {
-      setSaving(false);
-    }
-  };
+  const submitCreate = async (payload) => { try { setSaving(true); await onCreate?.(prepare(payload)); await onRefresh?.(); toast.success(`${species} ajouté`); setModal(null); } catch (error) { toast.error(error.message || 'Création impossible'); } finally { setSaving(false); } };
   const submitEdit = async (payload) => { if (!selected) return; if (isLocked(selected)) return toast.error('Fiche verrouillée : animal vendu/perdu/mort'); try { setSaving(true); await onUpdate?.(selected.id, prepare(payload, selected)); await onRefresh?.(); toast.success(`${species} modifié`); setModal(null); } catch (error) { toast.error(error.message || 'Modification impossible'); } finally { setSaving(false); } };
   const submitDelete = async () => { if (!selected) return; try { setSaving(true); await onDelete?.(selected.id); await onRefresh?.(); toast.success(`${species} supprimé`); setModal(null); } catch (error) { toast.error(error.message || 'Suppression impossible'); } finally { setSaving(false); } };
   const exportRows = () => { const exportable = filtered.map((row) => { const g = growthInfo(row); const costs = costBreakdown(row, { alimentationLogs, vaccins, businessEvents, salesOrders, payments, transactions }); return { ...row, poids_actuel_calcule: g.current, poids_cible_calcule: g.target, prochaine_pesee_calculee: g.nextWeighing, rappel_pesee_calcule: g.reminderDate, cout_total_calcule: costs.total, finance_liee_calculee: costs.finance, vente_calculee: costs.sale, paye_calcule: costs.paid, reste_a_encaisser_calcule: costs.remaining, marge_calculee: costs.marge }; }); exportToCsv({ rows: exportable, fileName: `animaux-${species}.csv` }); exportToExcel({ rows: exportable, fileName: `animaux-${species}.xlsx`, sheetName: species }); exportToPdf({ rows: exportable, title: `Liste ${speciesPlural(species)}`, fileName: `animaux-${species}.pdf` }); toast.success('Exports générés'); };
-  return <div className="space-y-6"><SectionHeader title={`Gestion des ${speciesPlural(species)}`} sub="Fiches animaux : identité, pesées J+15/J-1, coûts, santé, Finance, vente liée et marge." actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Actualiser</Btn><Btn icon={Download} variant="outline" small onClick={exportRows}>Exporter</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter {species}</Btn></>} /><AnimalHealthBridge rows={normalizedRows} alimentationLogs={alimentationLogs} vaccins={vaccins} onUpdate={onUpdate} onRefresh={onRefresh} /><div className="grid grid-cols-2 lg:grid-cols-5 gap-4"><button onClick={() => setFilter('actifs')}><KpiCard icon={CheckCircle} label="Actifs" value={summary.active.length} color="bg-emerald-500/20 text-emerald-400" /></button><button onClick={() => setFilter('prets')}><KpiCard icon={CheckCircle} label="Prêts vente" value={summary.ready.length} color="bg-amber-500/20 text-amber-500" /></button><button onClick={() => setFilter('retard')}><KpiCard icon={AlertTriangle} label="Pesées en retard" value={summary.late.length} color="bg-red-500/20 text-red-500" /></button><button onClick={() => setFilter('vendus')}><KpiCard icon={Lock} label="Vendus/verrouillés" value={summary.sold.length} color="bg-sky-500/20 text-sky-500" /></button><button onClick={() => setFilter('surveillance')}><KpiCard icon={AlertTriangle} label="À surveiller" value={summary.sick.length} color="bg-red-500/20 text-red-500" /></button></div><div className="grid grid-cols-2 lg:grid-cols-4 gap-4"><MiniMetric label="Coût total cheptel" value={fmtCurrency(summary.invested)} /><MiniMetric label="Revenus liés/estimés" value={fmtCurrency(summary.revenue)} /><MiniMetric label="Marge suivie" value={fmtCurrency(summary.margin)} danger={summary.margin < 0} /><MiniMetric label="Poids moyen" value={`${summary.avgWeight.toFixed(1)} kg`} /></div><div className="flex flex-wrap gap-2">{['tous', 'actifs', 'prets', 'retard', 'vendus', 'surveillance'].map((item) => <button key={item} type="button" onClick={() => setFilter(item)} className={`px-3 py-2 rounded-lg text-sm capitalize ${filter === item ? 'bg-[#2f2415] text-white font-semibold' : 'bg-white border border-[#d6c3a0] text-[#8a7456]'}`}>{item === 'prets' ? 'prêts vente' : item}</button>)}</div><div className="rounded-3xl border border-[#d6c3a0] bg-white overflow-hidden"><div className="px-5 py-4 border-b border-[#eadcc2]"><p className="font-black text-[#2f2415]">Liste {speciesPlural(species)}</p><p className="text-sm text-[#8a7456]">Les infos importantes sont visibles ici. La courbe complète est dans la fiche.</p></div><div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-[#fffdf8] text-xs uppercase tracking-wide text-[#8a7456]"><tr><th className="px-4 py-3 text-left">Animal</th><th className="px-4 py-3 text-left">Poids</th><th className="px-4 py-3 text-left">Objectif</th><th className="px-4 py-3 text-left">Progression</th><th className="px-4 py-3 text-left">Pesée</th><th className="px-4 py-3 text-left">Santé</th><th className="px-4 py-3 text-left">Statut</th><th className="px-4 py-3 text-right">Coût / marge</th><th className="px-4 py-3 text-right">Actions</th></tr></thead><tbody>{filtered.map((row) => { const g = growthInfo(row); const costs = costBreakdown(row, { alimentationLogs, vaccins, businessEvents, salesOrders, payments, transactions }); return <tr key={row.id} className="border-t border-[#eadcc2] hover:bg-[#fffdf8]"><td className="px-4 py-3"><div className="flex items-center gap-2"><QrCode size={14} className="text-emerald-700" /><div><p className="font-black text-[#2f2415]">{row.name || row.nom || physicalIdOf(row)}</p><p className="text-xs text-[#8a7456]">{physicalIdOf(row)} · {species}</p></div></div></td><td className="px-4 py-3 font-black text-[#2f2415]">{fmtNumber(g.current)} kg</td><td className="px-4 py-3 text-[#7d6a4a]">{g.target ? `${fmtNumber(g.target)} kg` : 'À renseigner'}</td><td className="px-4 py-3"><ProgressBar value={g.progress} /></td><td className="px-4 py-3"><p className={g.weighingStatus === 'retard' ? 'font-black text-red-600' : 'text-[#7d6a4a]'}>{g.nextWeighing || '—'}</p><p className="text-xs text-amber-700">Rappel {g.reminderDate || '—'}</p></td><td className="px-4 py-3 text-[#7d6a4a]">{healthOf(row)}</td><td className="px-4 py-3">{isLocked(row) ? <span className="inline-flex items-center gap-1 text-slate-700 font-bold"><Lock size={13} /> {statusOf(row)}</span> : statusBadge(g.status)}</td><td className="px-4 py-3 text-right"><p className="font-bold text-[#2f2415]">{fmtCurrency(costs.total)}</p><p className={`text-xs font-black ${costs.marge >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>{fmtCurrency(costs.marge)}</p>{costs.finance > 0 ? <p className="text-[11px] text-[#8a7456]">Finance {fmtCurrency(costs.finance)}</p> : null}</td><td className="px-4 py-3"><div className="flex justify-end gap-1"><ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected(row); setModal('details'); }} />{!isLocked(row) ? <ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(row); setModal('edit'); }} /> : null}<ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(row); setModal('delete'); }} /></div></td></tr>; })}{!filtered.length ? <tr><td colSpan={9} className="px-4 py-8 text-center text-[#8a7456]">Aucun animal pour ce filtre.</td></tr> : null}</tbody></table></div></div><AnimalDetailModal open={modal === 'details'} onClose={() => setModal(null)} animal={selected} alimentationLogs={alimentationLogs} vaccins={vaccins} businessEvents={businessEvents} salesOrders={salesOrders} payments={payments} transactions={transactions} /><CreateModal open={modal === 'create'} onClose={() => { setModal(null); setBpCreateDraft(null); }} onSubmit={submitCreate} fields={createFields} initialValues={mergeBpDraftIntoInitial(initialValues, bpCreateDraft)} deriveValues={deriveCreateValues} loading={saving} title={bpCreateDraft ? 'Concrétiser investissement BP · animal' : `Ajouter ${species}`} submitLabel={bpCreateDraft ? 'Concrétiser' : 'Ajouter'} /><EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={editFields} initialValues={selected ? { ...selected, poids_history_text: parseHistory(selected.poids_history || selected.weight_history || selected.historique_poids).map((p) => `${p.date} | ${p.poids}${p.note ? ` | ${p.note}` : ''}`).join('\n') } : {}} loading={saving} title={`Modifier ${species}`} submitLabel="Enregistrer" /><DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected ? selected.name || selected.nom || selected.id : ''} loading={saving} /></div>;
+  return <div className="space-y-6"><SectionHeader title={`Gestion des ${speciesPlural(species)}`} sub="Fiches animaux : identité, pesées J+15/J-1, coûts, santé, Finance, vente liée et marge." actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Actualiser</Btn><Btn icon={Download} variant="outline" small onClick={exportRows}>Exporter</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter {species}</Btn></>} /><AnimalHealthBridge rows={normalizedRows} alimentationLogs={alimentationLogs} vaccins={vaccins} onUpdate={onUpdate} onRefresh={onRefresh} /><div className="grid grid-cols-2 lg:grid-cols-5 gap-4"><button onClick={() => setFilter('actifs')}><KpiCard icon={CheckCircle} label="Actifs" value={summary.active.length} color="bg-emerald-500/20 text-emerald-400" /></button><button onClick={() => setFilter('prets')}><KpiCard icon={CheckCircle} label="Prêts vente" value={summary.ready.length} color="bg-amber-500/20 text-amber-500" /></button><button onClick={() => setFilter('retard')}><KpiCard icon={AlertTriangle} label="Pesées en retard" value={summary.late.length} color="bg-red-500/20 text-red-500" /></button><button onClick={() => setFilter('vendus')}><KpiCard icon={Lock} label="Vendus/verrouillés" value={summary.sold.length} color="bg-sky-500/20 text-sky-500" /></button><button onClick={() => setFilter('surveillance')}><KpiCard icon={AlertTriangle} label="À surveiller" value={summary.sick.length} color="bg-red-500/20 text-red-500" /></button></div><div className="grid grid-cols-2 lg:grid-cols-4 gap-4"><MiniMetric label="Coût total cheptel" value={fmtCurrency(summary.invested)} /><MiniMetric label="Revenus liés/estimés" value={fmtCurrency(summary.revenue)} /><MiniMetric label="Marge suivie" value={fmtCurrency(summary.margin)} danger={summary.margin < 0} /><MiniMetric label="Poids moyen" value={`${summary.avgWeight.toFixed(1)} kg`} /></div><div className="flex flex-wrap gap-2">{['tous', 'actifs', 'prets', 'retard', 'vendus', 'surveillance'].map((item) => <button key={item} type="button" onClick={() => setFilter(item)} className={`px-3 py-2 rounded-lg text-sm capitalize ${filter === item ? 'bg-[#2f2415] text-white font-semibold' : 'bg-white border border-[#d6c3a0] text-[#8a7456]'}`}>{item === 'prets' ? 'prêts vente' : item}</button>)}</div><div className="rounded-3xl border border-[#d6c3a0] bg-white overflow-hidden"><div className="px-5 py-4 border-b border-[#eadcc2]"><p className="font-black text-[#2f2415]">Liste {speciesPlural(species)}</p><p className="text-sm text-[#8a7456]">Les infos importantes sont visibles ici. La courbe complète est dans la fiche.</p></div><div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-[#fffdf8] text-xs uppercase tracking-wide text-[#8a7456]"><tr><th className="px-4 py-3 text-left">Animal</th><th className="px-4 py-3 text-left">Poids</th><th className="px-4 py-3 text-left">Objectif</th><th className="px-4 py-3 text-left">Progression</th><th className="px-4 py-3 text-left">Pesée</th><th className="px-4 py-3 text-left">Santé</th><th className="px-4 py-3 text-left">Statut</th><th className="px-4 py-3 text-right">Coût / marge</th><th className="px-4 py-3 text-right">Actions</th></tr></thead><tbody>{filtered.map((row) => { const g = growthInfo(row); const costs = costBreakdown(row, { alimentationLogs, vaccins, businessEvents, salesOrders, payments, transactions }); return <tr key={row.id} className="border-t border-[#eadcc2] hover:bg-[#fffdf8]"><td className="px-4 py-3"><div className="flex items-center gap-2"><QrCode size={14} className="text-emerald-700" /><div><p className="font-black text-[#2f2415]">{row.name || row.nom || physicalIdOf(row)}</p><p className="text-xs text-[#8a7456]">{physicalIdOf(row)} · {species}</p></div></div></td><td className="px-4 py-3 font-black text-[#2f2415]">{fmtNumber(g.current)} kg</td><td className="px-4 py-3 text-[#7d6a4a]">{g.target ? `${fmtNumber(g.target)} kg` : 'À renseigner'}</td><td className="px-4 py-3"><ProgressBar value={g.progress} /></td><td className="px-4 py-3"><p className={g.weighingStatus === 'retard' ? 'font-black text-red-600' : 'text-[#7d6a4a]'}>{g.nextWeighing || '—'}</p><p className="text-xs text-amber-700">Rappel {g.reminderDate || '—'}</p></td><td className="px-4 py-3 text-[#7d6a4a]">{healthOf(row)}</td><td className="px-4 py-3">{isLocked(row) ? <span className="inline-flex items-center gap-1 text-slate-700 font-bold"><Lock size={13} /> {statusOf(row)}</span> : statusBadge(g.status)}</td><td className="px-4 py-3 text-right"><p className="font-bold text-[#2f2415]">{fmtCurrency(costs.total)}</p><p className={`text-xs font-black ${costs.marge >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>{fmtCurrency(costs.marge)}</p>{costs.finance > 0 ? <p className="text-[11px] text-[#8a7456]">Finance {fmtCurrency(costs.finance)}</p> : null}</td><td className="px-4 py-3"><div className="flex justify-end gap-1"><ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected(row); setModal('details'); }} />{!isLocked(row) ? <ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(row); setModal('edit'); }} /> : null}<ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(row); setModal('delete'); }} /></div></td></tr>; })}{!filtered.length ? <tr><td colSpan={9} className="px-4 py-8 text-center text-[#8a7456]">Aucun animal pour ce filtre.</td></tr> : null}</tbody></table></div></div><AnimalDetailModal open={modal === 'details'} onClose={() => setModal(null)} animal={selected} alimentationLogs={alimentationLogs} vaccins={vaccins} businessEvents={businessEvents} salesOrders={salesOrders} payments={payments} transactions={transactions} /><CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={createFields} initialValues={initialValues} deriveValues={deriveCreateValues} loading={saving} title={`Ajouter ${species}`} submitLabel="Ajouter" /><EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={editFields} initialValues={selected ? { ...selected, poids_history_text: parseHistory(selected.poids_history || selected.weight_history || selected.historique_poids).map((p) => `${p.date} | ${p.poids}${p.note ? ` | ${p.note}` : ''}`).join('\n') } : {}} loading={saving} title={`Modifier ${species}`} submitLabel="Enregistrer" /><DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected ? selected.name || selected.nom || selected.id : ''} loading={saving} /></div>;
 }

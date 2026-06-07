@@ -1,0 +1,136 @@
+import { Activity } from 'lucide-react';
+import { fmtCurrency, fmtNumber, fmtPercent } from '../../utils/format';
+import { buildDecisionCenterData, BROILER_IC_TARGET } from './decisionCenterMetrics.js';
+import { buildVetPathologyMatrix } from './decisionAdvancedMetrics.js';
+import { Btn, DataRow, DataTable, Empty, Section, TabIntro, VisionKpi, VISION_TABLE_COLS } from './visionUtils';
+
+export default function VisionEfficaciteTab({ lots, animaux, alimentationLogs, productionLogs, sante, veterinaires, onNavigate }) {
+  const { efficacite, comparatifs } = buildDecisionCenterData({ lots, animaux, alimentationLogs, productionLogs, sante, veterinaires });
+  const vetCompare = comparatifs?.veterinaires || { insights: [], rankings: [] };
+  const pathologyRows = buildVetPathologyMatrix({ sante, veterinaires, lots, animaux });
+  const alertCount = efficacite.icAlerts.length + efficacite.layingAlerts.filter((a) => a.tone === 'bad').length + efficacite.gmqAlerts.filter((a) => a.tone === 'bad').length;
+
+  return (
+    <div className="space-y-5">
+      <TabIntro
+        title="Efficacité technique & conversion"
+        detail="Croisement rationnement (stocks) et performance (croissance, ponte) — détecter les baisses avant qu'elles ne coûtent cher."
+        action={onNavigate ? <Btn onClick={() => onNavigate('achats_stock', { tab: 'Stock' })}>Stock aliments →</Btn> : null}
+      />
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <VisionKpi label="Alertes IC chair" value={fmtNumber(efficacite.icAlerts.length)} tone={efficacite.icAlerts.length ? 'warn' : 'good'} detail={`Cible ${BROILER_IC_TARGET.min}–${BROILER_IC_TARGET.max}`} />
+        <VisionKpi label="Écarts ponte" value={fmtNumber(efficacite.layingAlerts.length)} tone={efficacite.layingAlerts.some((a) => a.tone === 'bad') ? 'bad' : 'good'} detail="Réel vs théorique souche" />
+        <VisionKpi label="GMQ à surveiller" value={fmtNumber(efficacite.gmqAlerts.length)} tone={efficacite.gmqAlerts.some((a) => a.tone === 'bad') ? 'bad' : 'good'} detail="Point de vente optimal" />
+        <VisionKpi label="Signaux actifs" value={fmtNumber(alertCount)} tone={alertCount ? 'bad' : 'good'} />
+      </div>
+
+      <Section icon={Activity} title="Indice de consommation (IC) — poulets de chair">
+        <p className="mb-3 text-xs text-[#8a7456]">Formule : Total aliment (kg) ÷ Poids total vif (kg). Plus bas = plus rentable (idéal {BROILER_IC_TARGET.min}–{BROILER_IC_TARGET.max}).</p>
+        <DataTable columns={VISION_TABLE_COLS}>
+          {efficacite.icAlerts.length ? efficacite.icAlerts.map((row) => (
+            <DataRow
+              key={row.id}
+              title={row.label}
+              detail={row.detail}
+              status={`IC ${row.ic.toFixed(2)} · cible ${row.target}`}
+              tone={row.tone}
+              onClick={() => onNavigate?.('elevage', { tab: 'Avicole' })}
+              actions={row.recommendedAction ? (
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.(row.actionModule || 'elevage', { tab: row.actionTab || 'Avicole' })}
+                  className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black hover:bg-[#dcfce7]"
+                >
+                  {row.recommendedAction}
+                </button>
+              ) : null}
+            />
+          )) : <Empty>Aucune anomalie IC détectée sur les lots chair actifs.</Empty>}
+        </DataTable>
+      </Section>
+
+      <Section icon={Activity} title="Courbe de ponte — réel vs théorique (pondeuses)">
+        <DataTable columns={['Lot', 'Taux réel · théorique', 'Écart · âge', 'Statut']}>
+          {efficacite.layingAlerts.length ? efficacite.layingAlerts.map((row) => (
+            <DataRow
+              key={row.id}
+              title={row.label}
+              detail={row.detail}
+              status={`${fmtPercent(row.realRate)} vs ${fmtPercent(row.theoretical)} · S${row.ageWeeks} · Δ ${row.deviation.toFixed(1)} pts`}
+              tone={row.tone}
+              onClick={() => onNavigate?.('elevage', { tab: 'Production' })}
+              actions={row.recommendedAction ? (
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.(row.actionModule || 'elevage', { tab: row.actionTab || 'Production' })}
+                  className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black hover:bg-[#dcfce7]"
+                >
+                  {row.recommendedAction}
+                </button>
+              ) : null}
+            />
+          )) : <Empty>Ponte conforme aux standards souche — ou ajoutez des journaux de production œufs.</Empty>}
+        </DataTable>
+      </Section>
+
+      
+      
+      <Section icon={Activity} title="Performance vétérinaire par pathologie">
+        <p className="mb-3 text-xs text-[#8a7456]">Date · véto · coût intervention + médicaments · jours avant rétablissement · mortalité lot · coût réel (incl. opportunité).</p>
+        <DataTable columns={['Pathologie · cible', 'Date · véto', 'Coût · rétablissement', 'Pertes lot']}>
+          {pathologyRows.length ? pathologyRows.slice(0, 15).map((row) => (
+            <DataRow
+              key={row.id}
+              title={row.pathology}
+              detail={`${row.date || '—'} · ${row.vet} · ${row.target}`}
+              status={`${fmtCurrency(row.cost)} · ${row.recoveryDays !== null ? `${row.recoveryDays} j` : '—'} · coût réel ${fmtCurrency(row.realTotalCost)}${row.mortalityPct !== null ? ` · mort. ${fmtPercent(row.mortalityPct)}` : ''}`}
+              tone={row.tone}
+              onClick={() => onNavigate?.('elevage', { tab: 'Santé' })}
+            />
+          )) : <Empty>Renseignez diagnostic, véto, coût et statut santé après traitement sur vos interventions.</Empty>}
+        </DataTable>
+      </Section>
+
+      <Section icon={Activity} title="Comparatif vétérinaires — coût & rétablissement">
+        <p className="mb-3 text-xs text-[#8a7456]">Pour une même intervention, compare le coût moyen et la durée de rétablissement entre vétos.</p>
+        <DataTable columns={['Intervention', 'Meilleur véto · coût', 'Comparaison', 'Statut']}>
+          {vetCompare.insights.length ? vetCompare.insights.map((row) => (
+            <DataRow
+              key={row.id}
+              title={row.intervention}
+              detail={row.detail}
+              status={`${fmtCurrency(row.bestCost)} vs ${fmtCurrency(row.compareCost)}${row.bestRecovery !== null ? ` · ${Math.round(row.bestRecovery)} j` : ''}`}
+              tone={row.tone}
+              onClick={() => onNavigate?.('elevage', { tab: 'Santé' })}
+            />
+          )) : <Empty>Enregistrez plusieurs interventions du même type avec véto, coût et statut santé après traitement.</Empty>}
+        </DataTable>
+      </Section>
+
+      <Section icon={Activity} title="GMQ vs coût du jour — embouche bovine">
+        <p className="mb-3 text-xs text-[#8a7456]">Quand le coût alimentaire journalier dépasse le gain de valeur (GMQ × prix/kg), l'animal a atteint son poids optimal de vente.</p>
+        <DataTable columns={['Animal', 'GMQ · coût/j', 'Gain valeur/j', 'Statut']}>
+          {efficacite.gmqAlerts.length ? efficacite.gmqAlerts.map((row) => (
+            <DataRow
+              key={row.id}
+              title={row.label}
+              detail={row.detail}
+              status={`GMQ ${fmtNumber(row.gmq)} g · Alim ${fmtCurrency(row.dailyFeed)}/j · Gain ${fmtCurrency(row.dailyGainValue)}/j`}
+              tone={row.tone}
+              onClick={() => onNavigate?.('elevage', { tab: 'Animaux' })}
+              actions={row.recommendedAction ? (
+                <button
+                  type="button"
+                  onClick={() => onNavigate?.(row.actionModule || 'elevage', { tab: row.actionTab || 'Animaux' })}
+                  className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black hover:bg-[#dcfce7]"
+                >
+                  {row.recommendedAction}
+                </button>
+              ) : null}
+            />
+          )) : <Empty>Ajoutez pesées et rations pour calculer le point de vente optimal par tête.</Empty>}
+        </DataTable>
+      </Section>
+    </div>
+  );
+}

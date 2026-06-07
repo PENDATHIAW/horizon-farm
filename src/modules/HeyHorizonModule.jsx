@@ -93,7 +93,7 @@ function PilotageBanner({ count, onNavigate }) {
         <p className="font-black text-[#2f2415]">{count} signal(aux) IA détecté(s)</p>
         <p className="text-sm text-[#8a7456]">Recommandations complètes, prévisions et cycles dans le Centre décisionnel.</p>
       </div>
-      <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'À traiter' })} className="rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white shrink-0">
+      <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'Efficacité' })} className="rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white shrink-0">
         Centre décisionnel →
       </button>
     </section>

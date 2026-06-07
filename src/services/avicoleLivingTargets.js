@@ -17,6 +17,8 @@ const PONDEUSE_DEFAULTS = {
   collectionMaxGapDays: 1,
 };
 
+import { lotAgeReferenceDate } from '../utils/ageDisplay.js';
+
 const normalize = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 export function addDays(date, days) {
@@ -35,7 +37,8 @@ export function daysBetween(startDate, endDate) {
 }
 
 export function ageDays(lot = {}) {
-  return daysBetween(lot.date_debut || lot.entry_date || lot.date_entree, new Date().toISOString().slice(0, 10));
+  const { days } = lotAgeReferenceDate(lot);
+  return days ?? 0;
 }
 
 export function ageMonths(lot = {}) {

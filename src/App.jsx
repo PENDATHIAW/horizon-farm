@@ -40,7 +40,7 @@ export default function App() {
   const [active, setActiveState] = useState('dashboard');
   const [commercialTab, setCommercialTab] = useState('Résumé');
   const [elevageTab, setElevageTab] = useState('Résumé');
-  const [centreTab, setCentreTab] = useState('À traiter');
+  const [centreTab, setCentreTab] = useState('Rentabilité lots');
   const [objectifsTab, setObjectifsTab] = useState('Performance');
   const [achatsStockTab, setAchatsStockTab] = useState('Résumé');
   const [financeTab, setFinanceTab] = useState('Résumé');

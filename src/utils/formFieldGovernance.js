@@ -85,9 +85,10 @@ const OVERRIDES = {
     severity: { required: true },
   },
   alimentation_logs: {
+    date: { required: true },
+    produit: { required: true },
     categorie: { required: true },
     type_cible: { required: true },
-    cible_id: { required: true },
     quantite: { required: true },
     unite: { type: 'select', options: UNIT_OPTIONS, required: true },
     fournisseur_id: { required: true },

@@ -1,4 +1,5 @@
 import { ROUTE_TO_MODULE } from '../config/modules.config.js';
+import { MODULE_TARGET_TABS } from '../config/horizonVision.config.js';
 
 const lower = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
@@ -24,8 +25,7 @@ export function moduleForSaleSource(order = {}) {
 export const ELEVAGE_TABS = ['Résumé', 'Cycles', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Graphiques'];
 export const ACHATS_STOCK_TABS = ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Graphiques'];
 export const COMMERCIAL_TABS = ['Résumé', 'Ventes', 'Clients', 'Opportunités', 'Graphiques'];
-export const FINANCE_TABS = ['Résumé', 'Trésorerie', 'Rapprochement', 'Créances', 'Dettes', 'Investissements', 'Rentabilité', 'Annexe', 'Graphiques'];
-export const ACTIVITE_SUIVI_TABS = ['Résumé', 'Alertes', 'Tâches', 'Traçabilité', 'Annexe', 'Graphiques'];
+export const FINANCE_TABS = ['Résumé', 'Trésorerie', 'Créances', 'Dettes', 'Investissements', 'Rentabilité', 'Graphiques'];
 
 const tabAliases = {
   avicole: 'Avicole',
@@ -46,15 +46,8 @@ const tabAliases = {
   creances: 'Créances',
   dettes: 'Dettes',
   tresorerie: 'Trésorerie',
-  rapprochement: 'Rapprochement',
   investissements: 'Investissements',
   rentabilite: 'Rentabilité',
-  alertes: 'Alertes',
-  taches: 'Tâches',
-  tache: 'Tâches',
-  tasks: 'Tâches',
-  tracabilite: 'Traçabilité',
-  trace: 'Traçabilité',
 };
 
 export function resolveElevageTab(value = '') {
@@ -81,12 +74,6 @@ export function resolveFinanceTab(value = '') {
   return tabAliases[lower(tab)] || 'Résumé';
 }
 
-export function resolveActiviteSuiviTab(value = '') {
-  const tab = String(value || '').trim();
-  if (ACTIVITE_SUIVI_TABS.includes(tab)) return tab;
-  return tabAliases[lower(tab)] || 'Résumé';
-}
-
 /** Résout un identifiant legacy (ventes, finances, stock…) vers le grand module ERP. */
 export function resolveRouteModule(moduleId = '') {
   return ROUTE_TO_MODULE[moduleId] || moduleId;
@@ -106,9 +93,6 @@ export function defaultTabForLegacyModule(moduleId = '') {
   if (moduleId === 'investissements') return 'Investissements';
   if (moduleId === 'payments') return 'Créances';
   if (moduleId === 'invoices' || moduleId === 'deliveries') return 'Ventes';
-  if (moduleId === 'taches' || moduleId === 'tasks') return 'Tâches';
-  if (moduleId === 'alertes_center' || moduleId === 'alertes') return 'Alertes';
-  if (moduleId === 'tracabilite') return 'Traçabilité';
   return null;
 }
 
@@ -132,7 +116,7 @@ const SEARCH_KEY_TO_MODULE = {
   documents: { module: 'documents_rapports', tab: null },
   rapports: { module: 'documents_rapports', tab: null },
   investissements: { module: 'finance_pilotage', tab: 'Investissements' },
-  business_plans: { module: 'objectifs_croissance', tab: null },
+  business_plans: { module: 'objectifs_croissance', tab: 'Plans' },
 };
 
 /** Cible de navigation pour un résultat de recherche ERP (clé dataMap). */
@@ -164,8 +148,19 @@ export function navigationOptionsForFinding(finding = {}) {
   if (module === 'achats_stock') {
     return { module, tab: resolveAchatsStockTab(explicitTab || defaultTabForLegacyModule(rawModule) || 'Résumé') };
   }
+  if (module === 'centre_ia' || module === 'objectifs_croissance') {
+    const tabs = MODULE_TARGET_TABS[module] || [];
+    const fallback = module === 'centre_ia' ? 'Rentabilité lots' : 'Performance';
+    const tab = tabs.includes(explicitTab) ? explicitTab : fallback;
+    return { module, tab };
+  }
   if (module === 'activite_suivi') {
-    return { module, tab: resolveActiviteSuiviTab(explicitTab || defaultTabForLegacyModule(rawModule) || 'Résumé') };
+    const title = lower(`${finding.title || ''} ${finding.category || ''} ${finding.type || ''}`);
+    const tab = explicitTab || (title.includes('alerte') ? 'Alertes' : 'Tâches');
+    return { module, tab };
+  }
+  if (module === 'documents_rapports') {
+    return { module, tab: explicitTab || 'Preuves' };
   }
   return { module, tab: explicitTab || null };
 }
@@ -173,26 +168,7 @@ export function navigationOptionsForFinding(finding = {}) {
 /** Bouton « Voir » dans un panneau IA multi-modules. */
 export function navigateForIaFinding(finding = {}, onNavigate) {
   if (!onNavigate) return;
-  const module = resolveRouteModule(finding.module || '');
-  if (module === 'commercial') {
-    onNavigate('commercial', { tab: resolveCommercialTab(finding.tab || 'Ventes') });
-    return;
-  }
-  if (module === 'finance_pilotage') {
-    onNavigate('finance_pilotage', { tab: resolveFinanceTab(finding.tab || 'Créances') });
-    return;
-  }
-  if (module === 'achats_stock') {
-    onNavigate('achats_stock', { tab: resolveAchatsStockTab(finding.tab || 'Stock') });
-    return;
-  }
-  if (module === 'elevage') {
-    onNavigate('elevage', { tab: resolveElevageTab(finding.tab || 'Résumé') });
-    return;
-  }
-  if (module === 'activite_suivi') {
-    onNavigate('activite_suivi', { tab: resolveActiviteSuiviTab(finding.tab || 'Tâches') });
-    return;
-  }
-  onNavigate(module || 'elevage');
+  const { module, tab } = navigationOptionsForFinding(finding);
+  if (tab) onNavigate(module || 'elevage', { tab });
+  else onNavigate(module || 'elevage');
 }

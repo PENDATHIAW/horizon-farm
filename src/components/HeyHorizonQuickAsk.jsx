@@ -10,6 +10,12 @@ const PRESETS = {
     { label: 'Nouvelle bande', questionId: 'new_layer_band', moduleId: 'elevage' },
     { label: 'Bande chair', questionId: 'new_chair_band', moduleId: 'elevage' },
   ],
+  centre_ia: [
+    { label: 'Efficacité', moduleId: 'centre_ia', tab: 'Efficacité' },
+    { label: 'Rentabilité lots', moduleId: 'centre_ia', tab: 'Rentabilité lots' },
+    { label: 'Flux & stocks', moduleId: 'centre_ia', tab: 'Flux & stocks' },
+    { label: 'Référentiel prix', moduleId: 'centre_ia', tab: 'Référentiel prix' },
+  ],
 };
 
 export default function HeyHorizonQuickAsk({
@@ -41,6 +47,15 @@ export default function HeyHorizonQuickAsk({
           {item.label}
         </button>
       ))}
+      {onOpenAssistant ? (
+        <button
+          type="button"
+          onClick={onOpenAssistant}
+          className="rounded-full border border-[#d6c3a0] bg-white px-3 py-1 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]"
+        >
+          Demander
+        </button>
+      ) : null}
     </div>
   );
 }

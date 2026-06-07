@@ -6,6 +6,7 @@ import { Btn, DataRow, DataTable, Empty, Section, TabIntro, VisionKpi } from './
 export default function VisionPerformanceTab({ data, onNavigate }) {
   const treasury = data.treasuryResult ?? data.balance;
   const encaisse = data.encaisseDisplay ?? data.collected;
+  const goal = data.growthGoal || {};
 
   return (
     <div className="space-y-5">
@@ -17,11 +18,13 @@ export default function VisionPerformanceTab({ data, onNavigate }) {
       />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <VisionKpi label="Chiffre d'affaires" value={fmtCurrency(data.salesAmount)} tone="good" onClick={() => onNavigate?.('commercial', { tab: 'Résumé' })} />
+        <VisionKpi label="Objectif période" value={fmtCurrency(goal.monthTarget || 0)} tone={(goal.attainment || 0) >= 100 ? 'good' : 'warn'} detail={`${fmtNumber(goal.attainment || 0)}% atteint`} onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Plans' })} />
+        <VisionKpi label="Reste à réaliser" value={fmtCurrency(goal.remaining || 0)} tone={goal.remaining ? 'warn' : 'good'} detail="Business plan officiel" onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Prévisions' })} />
         <VisionKpi label="Encaissements" value={fmtCurrency(encaisse)} tone="good" detail={data.periodFiltered ? 'Période' : 'Cumul'} onClick={() => onNavigate?.('finance_pilotage', { tab: 'Trésorerie' })} />
         <VisionKpi label="Résultat trésorerie" value={fmtCurrency(treasury)} tone={treasury >= 0 ? 'good' : 'bad'} onClick={() => onNavigate?.('finance_pilotage', { tab: 'Trésorerie' })} />
-        <VisionKpi label="Créances" value={fmtCurrency(data.receivable)} tone={data.receivable ? 'warn' : 'good'} onClick={() => onNavigate?.('commercial', { tab: 'Clients' })} />
       </div>
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <VisionKpi label="Créances" value={fmtCurrency(data.receivable)} tone={data.receivable ? 'warn' : 'good'} onClick={() => onNavigate?.('commercial', { tab: 'Clients' })} />
         <VisionKpi label="Charges" value={fmtCurrency(data.expenses)} tone="warn" />
         <VisionKpi label="Marge comptable" value={fmtCurrency(data.grossMargin)} tone={data.grossMargin >= 0 ? 'good' : 'bad'} />
         <VisionKpi label="Marges non fiables" value={fmtNumber(data.unreliableMargins || 0)} tone={data.unreliableMargins ? 'warn' : 'good'} />

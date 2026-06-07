@@ -145,10 +145,12 @@ export function buildInitialAnimalEntry({ id, type = 'Bovin', date, existing = {
 export function enrichAnimalEntryPayload(payload = {}) {
   const type = payload.type || 'Bovin';
   const defaults = getAnimalSpeciesDefaults(type);
-  const entryDate = payload.date_poids_entree || payload.date_entree_ferme || payload.date_achat || new Date().toISOString().slice(0, 10);
-  const entryWeight = num(payload.poids_entree || payload.poids);
   const acquisition = payload.mode_acquisition || defaults.defaultAcquisition;
   const isBirth = ['naissance_ferme', 'reproduction_interne'].includes(acquisition);
+  const entryDate = isBirth
+    ? (payload.date_naissance || payload.date_poids_entree || payload.date_entree_ferme || new Date().toISOString().slice(0, 10))
+    : (payload.date_poids_entree || payload.date_entree_ferme || payload.date_achat || new Date().toISOString().slice(0, 10));
+  const entryWeight = num(payload.poids_entree || payload.poids);
   const baseHistory = normalizeWeightHistory(payload.poids_history);
   const weightHistory = entryWeight > 0 && !baseHistory.some((item) => item.date === entryDate && item.poids === entryWeight)
     ? [{ date: entryDate, poids: entryWeight, note: 'Poids entrée ferme' }, ...baseHistory]

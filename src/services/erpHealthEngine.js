@@ -40,7 +40,8 @@ export function runErpHealthEngine(data = {}) {
   const uxSurveillance = evaluateSurveillanceUxRules();
   const uxAudit = evaluateErpUxAuditRules();
 
-  const findings = [...audit, ...coherence, ...profitability, ...uxSurveillance, ...uxAudit, ...predictions.map((p) => ({
+  // computeErpAuditFindings already includes coherence and profitability rules.
+  const findings = [...audit, ...uxSurveillance, ...uxAudit, ...predictions.map((p) => ({
     ...p,
     category: 'predictive',
     recommended_action: p.recommended_action,

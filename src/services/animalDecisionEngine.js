@@ -61,7 +61,11 @@ export function buildAnimalDecisionProfile(animal = {}) {
   const health = norm(animal.health_status || animal.sante || 'sain');
   const currentWeight = num(animal.poids_actuel ?? animal.poids ?? animal.weight);
   const entryWeight = num(animal.poids_entree ?? animal.weight_entry ?? animal.poids_initial) || currentWeight;
-  const entryDate = animal.date_poids_entree || animal.date_entree_ferme || animal.date_achat || animal.created_at || today();
+  const acquisition = animal.mode_acquisition || 'achat';
+  const isBirth = ['naissance_ferme', 'reproduction_interne'].includes(acquisition);
+  const entryDate = isBirth
+    ? (animal.date_naissance || animal.birth_date || animal.date_poids_entree || animal.date_entree_ferme || today())
+    : (animal.date_poids_entree || animal.date_entree_ferme || animal.date_achat || animal.created_at || today());
   const lastWeighingDate = animal.date_derniere_pesee || animal.date_poids_entree || entryDate;
   const ageDays = daysSince(entryDate);
   const targetDelay = num(animal.delai_cible_vente_jours) || profile.targetDelay;

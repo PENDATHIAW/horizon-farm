@@ -29,6 +29,7 @@ import { buildRhAbsenceFollowUp, buildRhAssignedTask, buildRhSalaryWorkflow } fr
 import { buildReportGenerationWorkflow, buildReportScheduleTask } from '../../src/utils/reportWorkflows.js';
 import { buildSmartFarmDeviceFollowUp, isSmartFarmDeviceCritical, smartDeviceSource } from '../../src/utils/smartFarmWorkflows.js';
 import { interpretHorizonCommand } from '../../src/services/aiIntentEngine.js';
+import { buildDashboardTodayActions, sanitizeDashboardMetric } from '../../src/utils/dashboardWorkflows.js';
 import { buildDecisionRecommendationTask } from '../../src/utils/decisionCenterWorkflows.js';
 import { buildObjectiveActionTask, buildObjectiveStatus } from '../../src/utils/objectivesWorkflows.js';
 import { buildSensitiveActionTrace, buildTraceCoverage, normalizeTraceEvent, routeForTrace } from '../../src/utils/traceabilityWorkflows.js';
