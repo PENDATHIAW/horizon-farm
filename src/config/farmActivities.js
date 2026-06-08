@@ -170,6 +170,42 @@ export function getFarmModuleAdaptation(farm = {}) {
   };
 }
 
+/** Message d’adaptation activité — Phase 3. */
+export function getFarmActivityNotice(moduleId = '', farm = {}, filteringEnabled = false) {
+  if (!filteringEnabled || !farm?.id || !moduleId) return null;
+  const activities = normalizeFarmActivities(farm.activity_type);
+  if (activities.includes('mixte')) return null;
+
+  const notices = {
+    cultures: {
+      module: 'cultures',
+      activity: 'cultures',
+      message: 'Cette ferme n’a pas d’activité cultures activée. Les données affichées concernent uniquement les fermes compatibles.',
+    },
+    elevage: {
+      module: 'elevage',
+      activities: ['aviculture_pondeuses', 'poulets_chair', 'embouche_bovine', 'ovins', 'caprins'],
+      message: 'Cette ferme n’a pas d’activité élevage activée. Vérifiez les activités configurées sur la ferme.',
+    },
+    smartfarm: {
+      module: 'smartfarm',
+      activity: 'smart_farm',
+      message: 'Cette ferme n’a pas Smart Farm activé.',
+    },
+  };
+
+  const rule = notices[moduleId];
+  if (!rule) return null;
+
+  if (rule.activity && !activities.includes(rule.activity)) {
+    return rule.message;
+  }
+  if (rule.activities && !rule.activities.some((entry) => activities.includes(entry))) {
+    return rule.message;
+  }
+  return null;
+}
+
 export const FARM_ACCESS_ROLES = Object.freeze([
   'super_admin',
   'direction',

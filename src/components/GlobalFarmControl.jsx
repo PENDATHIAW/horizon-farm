@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Building2, ChevronDown } from 'lucide-react';
 import {
+  canSelectAllFarmsScope,
   formatFarmScopeLabel,
   normalizeFarmScope,
   shouldShowFarmSelector,
@@ -10,6 +11,7 @@ export default function GlobalFarmControl({
   farmScope = {},
   accessibleFarms = [],
   onChange,
+  user = null,
 }) {
   const [open, setOpen] = useState(false);
   const farms = useMemo(
@@ -17,6 +19,7 @@ export default function GlobalFarmControl({
     [accessibleFarms],
   );
   const multiFarm = shouldShowFarmSelector(farms);
+  const allowAllFarms = canSelectAllFarmsScope(user);
   const normalizedScope = useMemo(
     () => normalizeFarmScope(farmScope, farms),
     [farmScope, farms],
@@ -66,15 +69,17 @@ export default function GlobalFarmControl({
               role="listbox"
               className="absolute left-0 top-full z-30 mt-2 min-w-[240px] rounded-2xl border border-[#d1e5d1] bg-white p-2 shadow-2xl"
             >
-              <button
-                type="button"
-                role="option"
-                aria-selected={normalizedScope.mode === 'all'}
-                onClick={() => commitNow({ mode: 'all' })}
-                className={`w-full rounded-xl px-3 py-2 text-left text-xs font-semibold ${normalizedScope.mode === 'all' ? 'bg-[#22c55e] text-[#052e16]' : 'text-[#052e16] hover:bg-[#dcfce7]'}`}
-              >
-                Toutes les fermes
-              </button>
+              {allowAllFarms ? (
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={normalizedScope.mode === 'all'}
+                  onClick={() => commitNow({ mode: 'all' })}
+                  className={`w-full rounded-xl px-3 py-2 text-left text-xs font-semibold ${normalizedScope.mode === 'all' ? 'bg-[#22c55e] text-[#052e16]' : 'text-[#052e16] hover:bg-[#dcfce7]'}`}
+                >
+                  Toutes les fermes
+                </button>
+              ) : null}
               {farms.map((farm) => (
                 <button
                   key={farm.id}

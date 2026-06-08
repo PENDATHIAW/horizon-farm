@@ -100,6 +100,7 @@ export function shouldShowFarmSelector(accessibleFarms = []) {
 /** Filtrage actif uniquement si explicitement activé (Phase 2 — pas de régression mono-ferme). */
 export function isFarmScopeFilteringEnabled(options = {}) {
   if (options.forceFilter === true) return true;
+  if (options.filteringEnabled === true) return true;
   if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ENABLE_FARM_FILTER === 'true') {
     return true;
   }
@@ -155,4 +156,11 @@ export function resolveFarmContext(scope = {}, accessibleFarms = []) {
     multiFarmEnabled: shouldShowFarmSelector(farms),
     filteringEnabled: isFarmScopeFilteringEnabled(),
   };
+}
+
+const ALL_FARMS_ROLES = new Set(['admin', 'manager', 'comptable']);
+
+export function canSelectAllFarmsScope(user = {}) {
+  const role = String(user?.role || user?.user_metadata?.role || user?.profile?.role || '').toLowerCase();
+  return ALL_FARMS_ROLES.has(role);
 }

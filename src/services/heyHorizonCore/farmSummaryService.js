@@ -1,5 +1,6 @@
 import { computeFarmHeadcount } from '../../modules/dashboard/dashboardMetrics.js';
-import { arr, metaBase, pickRows, textOrMissing } from './coreUtils.js';
+import { metaBase, pickRows, textOrMissing } from './coreUtils.js';
+import { formatFarmScopeLabel, normalizeFarmScope } from '../../utils/farmScope.js';
 
 /**
  * Synthèse exploitation — effectifs, surfaces, entités présentes dans le dataMap.
@@ -14,10 +15,19 @@ export function getFarmSummary(dataMap = {}) {
   const businessPlans = pickRows(dataMap, 'business_plans');
   const investissements = pickRows(dataMap, 'investissements');
   const meteo = dataMap.meteo ?? null;
+  const farmScope = normalizeFarmScope(dataMap.farmScope || {}, dataMap.accessibleFarms || []);
+  const activeFarm = dataMap.activeFarm || null;
 
   return {
     ...metaBase({ module: 'farm' }),
-    farm_name: textOrMissing(dataMap.farm_name || dataMap.project_name, 'Non renseigné'),
+    farm_name: textOrMissing(activeFarm?.name || dataMap.farm_name || dataMap.project_name, 'Non renseigné'),
+    farm_scope: {
+      mode: farmScope.mode,
+      farm_id: farmScope.farmId || null,
+      farm_ids: farmScope.farmIds || [],
+      label: formatFarmScopeLabel(farmScope, dataMap.accessibleFarms || []),
+    },
+    activity_type: activeFarm?.activity_type || ['mixte'],
     headcount: {
       total: headcount.total,
       active_animals: headcount.activeAnimals,
@@ -54,6 +64,7 @@ export function getFarmSummary(dataMap = {}) {
       filtered: Boolean(dataMap.periodFiltered),
       scope: dataMap.periodScope ?? null,
     },
+    farm_filtered: Boolean(dataMap.farmFiltered),
   };
 }
 
