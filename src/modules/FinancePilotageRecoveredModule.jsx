@@ -34,19 +34,28 @@ import {
   isFinanceStartupMode,
   TREASURY_LABELS,
 } from '../utils/financePilotageCore.js';
+import FinanceDemoBanner from './finance/FinanceDemoBanner.jsx';
+import FinanceDataQualityPanel from './finance/FinanceDataQualityPanel.jsx';
 import {
   buildCashFlowForecast,
   buildExecutiveFinancialSituation,
   buildFinanceExportPayload,
-  buildFinanceHeyHorizonQuestions,
   buildFinanceReconciliationView,
-  buildFinanceSmartAlerts,
   buildFinanceStartupJourneyV2,
-  buildFinancingView,
-  buildMultiFarmFinanceContext,
   buildPayablesAging,
   buildReceivablesAging,
 } from '../utils/financePilotageV2.js';
+import {
+  buildAdvancedMultiFarmContext,
+  buildFinanceAlertsV3,
+  buildFinanceDataQuality,
+  buildFinanceDemoPresentation,
+  buildFinanceDirectExports,
+  buildFinanceHeyHorizonQuestionsV3,
+  buildFinancingSimulator,
+  buildFinancingViewV3,
+  readFinanceSimulatorParams,
+} from '../utils/financePilotageV3.js';
 
 const arr = (v) => Array.isArray(v) ? v : [];
 const n = (v = 0) => Number(v || 0);
@@ -211,16 +220,21 @@ function Summary({
   startupJourney = null,
   heyHorizonQuestions = [],
   exportPayload = null,
+  directExports = null,
+  dataQuality = null,
+  financeDemo = null,
   onOpenAssistant,
 }) {
   return (
     <div className="space-y-5">
+      <FinanceDemoBanner demo={financeDemo} />
       <FinanceExecutiveSituationPanel situation={executiveSituation} onNavigateTab={setTab} />
+      <FinanceDataQualityPanel dataQuality={dataQuality} onNavigateTab={setTab} />
       <FinanceAlertsPanel alerts={financeAlerts} onNavigateTab={setTab} />
       <FinanceMultiFarmPanel multiFarm={multiFarm} />
       {startupMode ? <FinanceStartupPanel journey={startupJourney} onNavigate={onNavigate} setTab={setTab} /> : null}
       <FinanceHeyHorizonStrip questions={heyHorizonQuestions} onNavigate={onNavigate} onOpenAssistant={onOpenAssistant} />
-      <FinanceExportsPanel exportPayload={exportPayload} />
+      <FinanceExportsPanel exportPayload={directExports || exportPayload} directOnly />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-8">
         <Stat label="Santé finance" value={`${data.healthScore}/100`} tone={data.healthScore >= 75 ? 'good' : 'warn'} />
         <Stat label={TREASURY_LABELS.treasuryAvailable} value={fmtCurrency(data.treasuryAvailable)} tone={data.treasuryAvailable >= 0 ? 'good' : 'bad'} />
@@ -254,6 +268,7 @@ function Summary({
 export default function FinancePilotageRecoveredModule(props) {
   const [tab, setTab] = useState(() => resolveFinanceTab(props.initialTab));
   const [busyId, setBusyId] = useState(null);
+  const [simulatorParams, setSimulatorParams] = useState(() => readFinanceSimulatorParams());
 
   useEffect(() => {
     if (props.initialTab) setTab(resolveFinanceTab(props.initialTab));
@@ -396,23 +411,39 @@ export default function FinancePilotageRecoveredModule(props) {
     () => buildCashFlowForecast(consolidationProps, v2Options),
     [consolidationProps, v2Options],
   );
+  const v3Options = useMemo(() => ({
+    ...v2Options,
+    loanParams: simulatorParams,
+  }), [v2Options, simulatorParams]);
+
+  const financingPropsBundle = useMemo(() => ({
+    ...consolidationProps,
+    businessPlans: rowsOf(props.businessPlans, businessPlansCrud),
+    bpInvestmentLines: rowsOf(props.bpInvestmentLines, bpInvestmentLinesCrud),
+    bpRecurringCosts: rowsOf(props.bpRecurringCosts, bpRecurringCostsCrud),
+    bpFundingSources: rowsOf(props.bpFundingSources, bpFundingSourcesCrud),
+    documents: rowsOf(props.documents, documentsCrud),
+  }), [consolidationProps, props.businessPlans, props.bpInvestmentLines, props.bpRecurringCosts, props.bpFundingSources, props.documents, businessPlansCrud, bpInvestmentLinesCrud, bpRecurringCostsCrud, bpFundingSourcesCrud, documentsCrud]);
+
   const financingView = useMemo(
-    () => buildFinancingView({
-      ...consolidationProps,
-      businessPlans: rowsOf(props.businessPlans, businessPlansCrud),
-      bpInvestmentLines: rowsOf(props.bpInvestmentLines, bpInvestmentLinesCrud),
-      bpRecurringCosts: rowsOf(props.bpRecurringCosts, bpRecurringCostsCrud),
-      bpFundingSources: rowsOf(props.bpFundingSources, bpFundingSourcesCrud),
-      documents: rowsOf(props.documents, documentsCrud),
-    }, v2Options),
-    [consolidationProps, props.businessPlans, props.bpInvestmentLines, props.bpRecurringCosts, props.bpFundingSources, props.documents, v2Options, businessPlansCrud, bpInvestmentLinesCrud, bpRecurringCostsCrud, bpFundingSourcesCrud, documentsCrud],
+    () => buildFinancingViewV3(financingPropsBundle, v3Options),
+    [financingPropsBundle, v3Options],
   );
+  const financingSimulator = useMemo(
+    () => buildFinancingSimulator(financingPropsBundle, v3Options, simulatorParams),
+    [financingPropsBundle, v3Options, simulatorParams],
+  );
+  const dataQuality = useMemo(
+    () => buildFinanceDataQuality(financingPropsBundle, v3Options),
+    [financingPropsBundle, v3Options],
+  );
+  const financeDemo = useMemo(() => buildFinanceDemoPresentation(), []);
   const reconciliationView = useMemo(
     () => buildFinanceReconciliationView({ ...consolidationProps, tasks }, v2Options),
     [consolidationProps, tasks, v2Options],
   );
   const multiFarm = useMemo(
-    () => buildMultiFarmFinanceContext(consolidationProps, v2Options),
+    () => buildAdvancedMultiFarmContext(consolidationProps, v2Options),
     [consolidationProps, v2Options],
   );
   const startupJourney = useMemo(
@@ -425,15 +456,24 @@ export default function FinancePilotageRecoveredModule(props) {
     [consolidationProps, props.documents, props.businessPlans, props.bpFundingSources, documentsCrud, businessPlansCrud, bpFundingSourcesCrud],
   );
   const financeAlerts = useMemo(
-    () => buildFinanceSmartAlerts(consolidationProps, v2Options),
-    [consolidationProps, v2Options],
+    () => buildFinanceAlertsV3(financingPropsBundle, v3Options, {
+      enhancedCapacity: financingView.repayment,
+      dataQuality,
+      financing: financingView,
+      loanParams: simulatorParams,
+    }),
+    [financingPropsBundle, v3Options, financingView, dataQuality, simulatorParams],
   );
   const exportPayload = useMemo(
     () => buildFinanceExportPayload(consolidationProps, v2Options),
     [consolidationProps, v2Options],
   );
+  const directExports = useMemo(
+    () => buildFinanceDirectExports(financingPropsBundle, v3Options),
+    [financingPropsBundle, v3Options],
+  );
   const heyHorizonQuestions = useMemo(
-    () => buildFinanceHeyHorizonQuestions(v2Options),
+    () => buildFinanceHeyHorizonQuestionsV3(v2Options),
     [v2Options],
   );
   const showFarmInSchedule = (props.accessibleFarms || []).filter((farm) => farm.status !== 'archived').length > 1
@@ -583,6 +623,9 @@ export default function FinancePilotageRecoveredModule(props) {
           startupJourney={startupJourney}
           heyHorizonQuestions={heyHorizonQuestions}
           exportPayload={exportPayload}
+          directExports={directExports}
+          dataQuality={dataQuality}
+          financeDemo={financeDemo}
           onOpenAssistant={props.onOpenAssistant}
         />
       ) : tab === 'Trésorerie' ? (
@@ -598,11 +641,16 @@ export default function FinancePilotageRecoveredModule(props) {
           <FinanceCashFlowForecastPanel forecast={cashFlowForecast} />
         </div>
       ) : tab === 'Financement' ? (
-        <FinanceFinancingPanel
-          financing={financingView}
-          onNavigate={props.onNavigate}
-          onOpenBankExport={() => props.onNavigate?.('documents_rapports', { tab: 'Rapports' })}
-        />
+        <div className="space-y-5">
+          <FinanceDemoBanner demo={financeDemo} />
+          <FinanceFinancingPanel
+            financing={financingView}
+            simulator={financingSimulator}
+            directExports={directExports}
+            onNavigate={props.onNavigate}
+            onSimulatorParamsChange={setSimulatorParams}
+          />
+        </div>
       ) : tab === 'Réconciliation' ? (
         <FinanceReconciliationPanel
           reconciliationView={reconciliationView}
@@ -637,6 +685,9 @@ export default function FinancePilotageRecoveredModule(props) {
           startupJourney={startupJourney}
           heyHorizonQuestions={heyHorizonQuestions}
           exportPayload={exportPayload}
+          directExports={directExports}
+          dataQuality={dataQuality}
+          financeDemo={financeDemo}
           onOpenAssistant={props.onOpenAssistant}
         />
       )}

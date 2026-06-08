@@ -20,6 +20,7 @@
     "test:unit:finance": "npx vite-node tests/unit/financePilotage.test.js",
     "test:unit:finance-v1": "npx vite-node tests/unit/financePilotageV1.test.js",
     "test:unit:finance-v2": "npx vite-node tests/unit/financePilotageV2.test.js",
+    "test:unit:finance-v3": "npx vite-node tests/unit/financePilotageV3.test.js",
     "test:unit:anti-duplication": "node --test tests/unit/antiDuplicationAudit.test.js",
     "test:unit:commercial": "npx vite-node tests/unit/commercialSaleWorkflow.test.js",
     "test:unit:elevage": "npx vite-node tests/unit/elevageBroilerScenario.test.js",

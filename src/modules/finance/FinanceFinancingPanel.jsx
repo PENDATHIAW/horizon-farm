@@ -1,11 +1,15 @@
-import { Banknote, ExternalLink, FileText } from 'lucide-react';
+import { Banknote, ExternalLink } from 'lucide-react';
 import { fmtCurrency } from '../../utils/format';
+import FinanceExportsPanel from './FinanceExportsPanel.jsx';
+import FinanceFinancingSimulatorPanel from './FinanceFinancingSimulatorPanel.jsx';
 import FinanceRepaymentCapacityPanel from './FinanceRepaymentCapacityPanel.jsx';
 
 export default function FinanceFinancingPanel({
   financing = null,
+  simulator = null,
+  directExports = null,
   onNavigate,
-  onOpenBankExport,
+  onSimulatorParamsChange,
 }) {
   if (!financing) return null;
 
@@ -60,11 +64,10 @@ export default function FinanceFinancingPanel({
           </button>
           <button
             type="button"
-            onClick={() => onOpenBankExport?.()}
-            className="inline-flex items-center gap-1 rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white"
+            onClick={() => onNavigate?.('documents_rapports', { tab: 'Rapports' })}
+            className="inline-flex items-center gap-1 rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-xs font-black text-[#8a7456] hover:bg-[#fffdf8]"
           >
-            <FileText size={14} />
-            Export dossier banque
+            Dossier banque complet (Documents)
           </button>
         </div>
 
@@ -75,7 +78,15 @@ export default function FinanceFinancingPanel({
         </p>
       </section>
 
+      <FinanceFinancingSimulatorPanel
+        simulator={simulator}
+        defaultAmount={financing.soughtFunding}
+        onParamsChange={onSimulatorParamsChange}
+      />
+
       <FinanceRepaymentCapacityPanel capacity={financing.repayment} />
+
+      <FinanceExportsPanel exportPayload={directExports} directOnly compact />
     </div>
   );
 }
