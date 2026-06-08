@@ -291,7 +291,7 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loadi
         })}
       </div>
 
-      <DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, ...metricsFor(selected), ...summaryFor(selected), ...profileFor(selected) } : selected} title="Fiche fournisseur" />
+      <FournisseurFicheModal open={modal === 'details'} onClose={() => setModal(null)} supplier={selected} metrics={selected ? metricsFor(selected) : {}} summary={selected ? summaryFor(selected) : {}} profile={selected ? profileFor(selected) : {}} />
       <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={MODULE_FORM_FIELDS.fournisseurs} initialValues={supplierInitialValues(rows)} autoId={() => generateSequentialId('fournisseurs', rows)} uploadFolder="fournisseurs" loading={saving} title="Ajouter fournisseur" submitLabel="Ajouter" />
       <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={MODULE_FORM_FIELDS.fournisseurs} initialValues={selected || {}} loading={saving} title="Modifier fournisseur" submitLabel="Enregistrer" />
       <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected ? `${selected.nom}` : ''} loading={saving} />
