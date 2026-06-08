@@ -25,6 +25,8 @@ for (const moduleId of MODULES_WITH_ANNEXE) {
   });
 }
 
-test('finance_pilotage conserve Rapprochement', () => {
-  assert.ok(MODULE_TARGET_TABS.finance_pilotage.includes('Rapprochement'));
+test('finance_pilotage inclut Échéancier avant Investissements', () => {
+  const tabs = MODULE_TARGET_TABS.finance_pilotage;
+  assert.ok(tabs.includes('Échéancier'));
+  assert.ok(tabs.indexOf('Échéancier') < tabs.indexOf('Investissements'));
 });

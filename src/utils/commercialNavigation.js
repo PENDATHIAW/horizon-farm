@@ -24,7 +24,7 @@ export function moduleForSaleSource(order = {}) {
 export const ELEVAGE_TABS = ['Résumé', 'Cycles', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Annexe', 'Graphiques'];
 export const ACHATS_STOCK_TABS = ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Annexe', 'Graphiques'];
 export const COMMERCIAL_TABS = ['Résumé', 'Ventes', 'Clients', 'Opportunités', 'Annexe', 'Graphiques'];
-export const FINANCE_TABS = ['Résumé', 'Trésorerie', 'Créances', 'Dettes', 'Investissements', 'Rentabilité', 'Annexe', 'Graphiques'];
+export const FINANCE_TABS = ['Résumé', 'Trésorerie', 'Créances', 'Dettes', 'Échéancier', 'Investissements', 'Rentabilité', 'Annexe', 'Graphiques'];
 
 const tabAliases = {
   avicole: 'Avicole',
