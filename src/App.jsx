@@ -51,6 +51,8 @@ export default function App() {
   const [objectifsTab, setObjectifsTab] = useState('Performance');
   const [achatsStockTab, setAchatsStockTab] = useState('Résumé');
   const [financeTab, setFinanceTab] = useState('Résumé');
+  const [gestionSystemeTab, setGestionSystemeTab] = useState('Vue admin');
+  const [farmsPanelAction, setFarmsPanelAction] = useState(null);
   const navigateModule = useCallback((moduleId, options = {}) => {
     const tab = options?.tab || options?.commercialTab || options?.elevageTab || options?.achatsStockTab || options?.financeTab;
     const resolved = resolveRouteModule(moduleId);
@@ -77,6 +79,13 @@ export default function App() {
       setFinanceTab(resolveFinanceTab(tab || defaultTabForLegacyModule(moduleId) || 'Résumé'));
       trackNavOpen('finance_pilotage');
       setActiveState('finance_pilotage');
+      return;
+    }
+    if (resolved === 'gestion_systeme') {
+      if (tab) setGestionSystemeTab(tab);
+      if (options?.farmsAction) setFarmsPanelAction(options.farmsAction);
+      trackNavOpen('gestion_systeme');
+      setActiveState('gestion_systeme');
       return;
     }
     if (resolved === 'centre_ia' || resolved === 'objectifs_croissance') {
@@ -115,6 +124,21 @@ export default function App() {
   const handleFarmScopeChange = useCallback((next) => {
     startPeriodTransition(() => setFarmScope(next));
   }, [setFarmScope]);
+  const refreshAccessibleFarms = useCallback(async () => {
+    if (!user?.id) return;
+    const farms = await farmsService.loadAccessibleFarms(user.id);
+    setAccessibleFarms(farms);
+  }, [user]);
+  const handleManageFarms = useCallback(() => {
+    setGestionSystemeTab('Fermes');
+    setFarmsPanelAction(null);
+    setActiveState('gestion_systeme');
+  }, []);
+  const handleFarmActivityAction = useCallback(() => {
+    setGestionSystemeTab('Fermes');
+    setFarmsPanelAction('edit');
+    setActiveState('gestion_systeme');
+  }, []);
   useEffect(() => {
     if (!user?.id) return undefined;
     let cancelled = false;
@@ -518,6 +542,12 @@ export default function App() {
     audit_logs: syncActivityProps, smartfarm: { meteo: liveMeteo, online, sensors: rows(c.sensor_devices), cameras: rows(c.camera_devices), tasks: rows(c.taches), sensorLoading: c.sensor_devices.loading, cameraLoading: c.camera_devices.loading, onCreateSensor: c.sensor_devices.create, onUpdateSensor: c.sensor_devices.update, onDeleteSensor: c.sensor_devices.remove, onRefreshSensors: c.sensor_devices.refresh, onCreateCamera: c.camera_devices.create, onUpdateCamera: c.camera_devices.update, onDeleteCamera: c.camera_devices.remove, onRefreshCameras: c.camera_devices.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onRefreshAlertes: c.alertes_center.refresh, ...shared },
     gestion_systeme: {
       ...internalResourcesShared,
+      initialTab: gestionSystemeTab,
+      onTabChange: setGestionSystemeTab,
+      accessibleFarms,
+      companyId: user?.user_metadata?.company_id || user?.company_id || null,
+      onFarmsChanged: refreshAccessibleFarms,
+      farmsPanelAction,
       alertes: rows(c.alertes_center),
       businessEvents: rows(c.business_events),
       businessEventsAll: rows(c.business_events),
@@ -539,7 +569,7 @@ export default function App() {
     sync: syncActivityProps,
     sync_activity: syncActivityProps,
   };
-  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, achatsStockTab, financeTab, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue]);
+  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, achatsStockTab, financeTab, gestionSystemeTab, farmsPanelAction, accessibleFarms, refreshAccessibleFarms, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue]);
 
   const activeModuleProps = useMemo(
     () => applyFarmScopeToProps(
@@ -576,8 +606,8 @@ export default function App() {
   if (!user) return <LoginPage />;
   const ActiveModule = MODULES[active] || MODULES.dashboard;
 
-  return <AppLayout navItems={navItems} active={active} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => setAssistantOpen(true)} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange} farmScope={normalizeFarmScope(farmScope, accessibleFarms)} accessibleFarms={accessibleFarms} onFarmScopeChange={handleFarmScopeChange} activeFarm={activeFarm}>
-    <FarmActivityNotice message={activeModuleProps.farmActivityNotice} farmName={activeFarm?.name} />
+  return <AppLayout navItems={navItems} active={active} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => setAssistantOpen(true)} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange} farmScope={normalizeFarmScope(farmScope, accessibleFarms)} accessibleFarms={accessibleFarms} onFarmScopeChange={handleFarmScopeChange} activeFarm={activeFarm} onManageFarms={handleManageFarms}>
+    <FarmActivityNotice message={activeModuleProps.farmActivityNotice} farmName={activeFarm?.name} actionLabel={activeModuleProps.farmActivityNoticeDetail?.actionLabel} onAction={activeModuleProps.farmActivityNoticeDetail ? handleFarmActivityAction : undefined} />
     <ErrorBoundary title="Module indisponible"><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...activeModuleProps} periodLabel={periodLabel} farmScopeLabel={formatFarmScopeLabel(farmScope, accessibleFarms)} /></Suspense></ErrorBoundary>
     <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={scopedAssistantDataMap} onNavigate={setActive} onCreateBusinessEvent={c.business_events.create} />
     <ErpInterconnectionBridge cruds={c} />

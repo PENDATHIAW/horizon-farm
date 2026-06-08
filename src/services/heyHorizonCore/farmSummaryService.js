@@ -1,6 +1,12 @@
 import { computeFarmHeadcount } from '../../modules/dashboard/dashboardMetrics.js';
 import { metaBase, pickRows, textOrMissing } from './coreUtils.js';
 import { formatFarmScopeLabel, normalizeFarmScope } from '../../utils/farmScope.js';
+import {
+  getFarmAlerts,
+  getFarmHeyHorizonTopics,
+  getFarmKpis,
+  getFarmQuickActions,
+} from '../../config/farmAdaptation.js';
 
 /**
  * Synthèse exploitation — effectifs, surfaces, entités présentes dans le dataMap.
@@ -28,6 +34,10 @@ export function getFarmSummary(dataMap = {}) {
       label: formatFarmScopeLabel(farmScope, dataMap.accessibleFarms || []),
     },
     activity_type: activeFarm?.activity_type || ['mixte'],
+    activity_topics: getFarmHeyHorizonTopics(activeFarm, farmScope),
+    activity_kpis: getFarmKpis(activeFarm, farmScope).map((entry) => entry.label),
+    activity_alerts: getFarmAlerts(activeFarm),
+    activity_quick_actions: getFarmQuickActions(activeFarm).map((entry) => entry.label),
     headcount: {
       total: headcount.total,
       active_animals: headcount.activeAnimals,

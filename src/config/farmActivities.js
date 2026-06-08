@@ -170,40 +170,48 @@ export function getFarmModuleAdaptation(farm = {}) {
   };
 }
 
-/** Message d’adaptation activité — Phase 3. */
-export function getFarmActivityNotice(moduleId = '', farm = {}, filteringEnabled = false) {
+/** Message d’adaptation activité — Phase 3/4. */
+export function getFarmActivityNoticeDetail(moduleId = '', farm = {}, filteringEnabled = false) {
   if (!filteringEnabled || !farm?.id || !moduleId) return null;
   const activities = normalizeFarmActivities(farm.activity_type);
   if (activities.includes('mixte')) return null;
 
   const notices = {
     cultures: {
-      module: 'cultures',
-      activity: 'cultures',
-      message: 'Cette ferme n’a pas d’activité cultures activée. Les données affichées concernent uniquement les fermes compatibles.',
+      moduleId: 'cultures',
+      activityKey: 'cultures',
+      message: 'Cette ferme n’a pas d’activité cultures activée.',
+      actionLabel: 'Activer l’activité cultures pour cette ferme',
     },
     elevage: {
-      module: 'elevage',
-      activities: ['aviculture_pondeuses', 'poulets_chair', 'embouche_bovine', 'ovins', 'caprins'],
-      message: 'Cette ferme n’a pas d’activité élevage activée. Vérifiez les activités configurées sur la ferme.',
+      moduleId: 'elevage',
+      activityKeys: ['aviculture_pondeuses', 'poulets_chair', 'embouche_bovine', 'ovins', 'caprins'],
+      message: 'Cette ferme n’a pas d’activité élevage activée.',
+      actionLabel: 'Activer une activité élevage',
     },
     smartfarm: {
-      module: 'smartfarm',
-      activity: 'smart_farm',
+      moduleId: 'smartfarm',
+      activityKey: 'smart_farm',
       message: 'Cette ferme n’a pas Smart Farm activé.',
+      actionLabel: 'Activer Smart Farm pour cette ferme',
     },
   };
 
   const rule = notices[moduleId];
   if (!rule) return null;
 
-  if (rule.activity && !activities.includes(rule.activity)) {
-    return rule.message;
+  if (rule.activityKey && !activities.includes(rule.activityKey)) {
+    return rule;
   }
-  if (rule.activities && !rule.activities.some((entry) => activities.includes(entry))) {
-    return rule.message;
+  if (rule.activityKeys && !rule.activityKeys.some((entry) => activities.includes(entry))) {
+    return rule;
   }
   return null;
+}
+
+/** Compatibilité Phase 3 — retourne le message texte uniquement. */
+export function getFarmActivityNotice(moduleId = '', farm = {}, filteringEnabled = false) {
+  return getFarmActivityNoticeDetail(moduleId, farm, filteringEnabled)?.message || null;
 }
 
 export const FARM_ACCESS_ROLES = Object.freeze([

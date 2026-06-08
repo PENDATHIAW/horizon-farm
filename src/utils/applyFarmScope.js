@@ -1,4 +1,4 @@
-import { getFarmActivityNotice } from '../config/farmActivities.js';
+import { getFarmActivityNotice, getFarmActivityNoticeDetail } from '../config/farmActivities.js';
 import {
   filterRowsByFarmScope,
   formatFarmScopeLabel,
@@ -253,6 +253,7 @@ export function applyFarmScopeToProps(props = {}, scope = {}, options = {}) {
     activeFarm,
     accessibleFarms,
     farmActivityNotice: getFarmActivityNotice(moduleId, activeFarm, filtering),
+    farmActivityNoticeDetail: getFarmActivityNoticeDetail(moduleId, activeFarm, filtering),
   };
 
   if (!filtering) return base;
