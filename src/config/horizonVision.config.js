@@ -16,7 +16,7 @@ export const MODULE_TARGET_TABS = {
   objectifs_croissance: ['Performance', 'Prévisions', 'Plans', 'Financeurs', 'Graphiques'],
   centre_ia: ['À traiter', 'Risques', 'Opportunités', 'Cycles', 'Graphiques'],
   elevage: ['Résumé', 'Cycles', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Annexe', 'Graphiques'],
-  commercial: ['Résumé', 'Ventes', 'Clients', 'Opportunités', 'Annexe', 'Graphiques'],
+  commercial: ['Résumé', 'Ventes', 'Clients', 'Livraisons', 'Abonnements', 'Relances', 'Opportunités', 'Pilotage', 'Annexe', 'Graphiques'],
   achats_stock: ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Annexe', 'Graphiques'],
   finance_pilotage: ['Résumé', 'Trésorerie', 'Créances', 'Dettes', 'Échéancier', 'Financement', 'Réconciliation', 'Investissements', 'Rentabilité', 'Annexe', 'Graphiques'],
   activite_suivi: ['Résumé', 'Alertes', 'Tâches', 'Traçabilité', 'Graphiques'],

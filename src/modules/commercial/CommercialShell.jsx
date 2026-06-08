@@ -19,8 +19,10 @@ export function CommercialQuickActions({ setTab, onNewSale }) {
       <button type="button" onClick={() => { onNewSale?.() || setTab('Ventes'); }} className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white">
         <Plus size={16} /> Nouvelle vente
       </button>
-      <button type="button" onClick={() => setTab('Ventes')} className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">Ventes ouvertes</button>
+      <button type="button" onClick={() => setTab('Ventes')} className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">Devis & ventes</button>
+      <button type="button" onClick={() => setTab('Livraisons')} className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">Livraisons</button>
       <button type="button" onClick={() => setTab('Clients')} className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">Clients & créances</button>
+      <button type="button" onClick={() => setTab('Relances')} className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">Relances</button>
     </div>
   );
 }

@@ -1,11 +1,9 @@
 import { Bot } from 'lucide-react';
 import { launchProductionQuestion } from '../utils/productionNavigation.js';
+import { commercialHeyHorizonPresets, launchCommercialHeyHorizonQuestion } from '../utils/commercialHeyHorizon.js';
 
 const PRESETS = {
-  commercial: [
-    { label: 'Créances', moduleId: 'commercial', tab: 'Clients' },
-    { label: 'Objectif mois', moduleId: 'objectifs_croissance', tab: 'Rentabilité Lot & Cycle' },
-  ],
+  commercial: commercialHeyHorizonPresets(),
   elevage: [
     { label: 'Nouvelle bande', questionId: 'new_layer_band', moduleId: 'elevage' },
     { label: 'Bande chair', questionId: 'new_chair_band', moduleId: 'elevage' },
@@ -27,14 +25,18 @@ export default function HeyHorizonQuickAsk({
       </span>
       {items.map((item) => (
         <button
-          key={item.label}
+          key={item.id || item.label}
           type="button"
           onClick={() => {
+            if (moduleKey === 'commercial' && item.query) {
+              launchCommercialHeyHorizonQuestion({ questionId: item.id, onNavigate, onOpenAssistant });
+              return;
+            }
             if (item.questionId) {
               launchProductionQuestion({ questionId: item.questionId, moduleId: item.moduleId, onNavigate });
               return;
             }
-            onNavigate?.(item.moduleId, { tab: item.tab });
+            onNavigate?.(item.moduleId, { tab: item.tab, heyHorizonQuery: item.query });
           }}
           className="rounded-full border border-[#eadcc2] bg-[#fffdf8] px-3 py-1 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]"
         >

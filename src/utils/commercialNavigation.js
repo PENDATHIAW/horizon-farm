@@ -23,7 +23,8 @@ export function moduleForSaleSource(order = {}) {
 
 export const ELEVAGE_TABS = ['Résumé', 'Cycles', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Annexe', 'Graphiques'];
 export const ACHATS_STOCK_TABS = ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Annexe', 'Graphiques'];
-export const COMMERCIAL_TABS = ['Résumé', 'Ventes', 'Clients', 'Opportunités', 'Annexe', 'Graphiques'];
+export const COMMERCIAL_TABS = ['Résumé', 'Ventes', 'Clients', 'Livraisons', 'Abonnements', 'Relances', 'Opportunités', 'Pilotage', 'Annexe', 'Graphiques'];
+export const ACTIVITE_SUIVI_TABS = ['Résumé', 'Alertes', 'Tâches', 'Traçabilité', 'Graphiques'];
 export const FINANCE_TABS = ['Résumé', 'Trésorerie', 'Créances', 'Dettes', 'Échéancier', 'Financement', 'Réconciliation', 'Investissements', 'Rentabilité', 'Annexe', 'Graphiques'];
 
 const tabAliases = {
@@ -34,7 +35,17 @@ const tabAliases = {
   fournisseurs: 'Fournisseurs',
   mouvements: 'Mouvements',
   ventes: 'Ventes',
+  devis: 'Ventes',
   clients: 'Clients',
+  prospects: 'Clients',
+  livraisons: 'Livraisons',
+  livraison: 'Livraisons',
+  abonnements: 'Abonnements',
+  abonnement: 'Abonnements',
+  relances: 'Relances',
+  relance: 'Relances',
+  pilotage: 'Pilotage',
+  reconciliation: 'Pilotage',
   opportunites: 'Opportunités',
   opportunities: 'Opportunités',
   graphiques: 'Graphiques',
@@ -101,7 +112,8 @@ export function defaultTabForLegacyModule(moduleId = '') {
   if (moduleId === 'finances') return 'Trésorerie';
   if (moduleId === 'investissements') return 'Investissements';
   if (moduleId === 'payments') return 'Créances';
-  if (moduleId === 'invoices' || moduleId === 'deliveries') return 'Ventes';
+  if (moduleId === 'invoices') return 'Ventes';
+  if (moduleId === 'deliveries') return 'Livraisons';
   return null;
 }
 
@@ -110,7 +122,7 @@ const SEARCH_KEY_TO_MODULE = {
   sales_order_items: { module: 'commercial', tab: 'Ventes' },
   sales_opportunities: { module: 'commercial', tab: 'Opportunités' },
   invoices: { module: 'commercial', tab: 'Ventes' },
-  deliveries: { module: 'commercial', tab: 'Ventes' },
+  deliveries: { module: 'commercial', tab: 'Livraisons' },
   clients: { module: 'commercial', tab: 'Clients' },
   payments: { module: 'finance_pilotage', tab: 'Créances' },
   finances: { module: 'finance_pilotage', tab: 'Trésorerie' },
