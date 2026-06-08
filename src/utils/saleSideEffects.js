@@ -5,6 +5,8 @@ import { buildClientReceivablePatch } from './recordSalePayment';
 import { buildReverseSaleSourcePatch, buildSaleSourcePatch } from './salesWorkflows';
 import { remainingForOrder } from './salesStatuses';
 import { financeIds } from './sideEffectIds';
+import { enrichFinanceWithOrderFarmId } from './commercialFarmScope.js';
+import { isStockableSourceType } from './commercialStockValidation.js';
 import { makeId } from './ids';
 import { toNumber } from './format';
 
@@ -40,10 +42,11 @@ export function buildPaidFinanceRow({
   invoiceId = '',
   order = {},
   remaining = 0,
+  farmId = null,
 } = {}) {
   const value = num(amount);
   if (value <= 0) return null;
-  return {
+  return enrichFinanceWithOrderFarmId({
     id: financeIds.paid(orderId, paymentId),
     type: 'entree',
     libelle: `${remaining > 0 ? 'Acompte' : 'Encaissement'} ${orderId} - ${clientLabel}`,
@@ -66,7 +69,7 @@ export function buildPaidFinanceRow({
     transaction_origin: 'automatique',
     side_effects_managed: true,
     created_from: 'sale_side_effects',
-  };
+  }, order, farmId);
 }
 
 export function buildReceivableFinanceRow({
@@ -76,10 +79,11 @@ export function buildReceivableFinanceRow({
   amount = 0,
   date = '',
   order = {},
+  farmId = null,
 } = {}) {
   const value = num(amount);
   if (value <= 0) return null;
-  return {
+  return enrichFinanceWithOrderFarmId({
     id: financeIds.receivable(orderId),
     type: 'entree',
     libelle: `Créance client ${orderId} - ${clientLabel}`,
@@ -100,10 +104,10 @@ export function buildReceivableFinanceRow({
     transaction_origin: 'automatique',
     side_effects_managed: true,
     created_from: 'sale_side_effects',
-  };
+  }, order, farmId);
 }
 
-export function buildReceivableAlertRow({ orderId, clientLabel = 'Client', amount = 0, productName = 'Vente' } = {}) {
+export function buildReceivableAlertRow({ orderId, clientLabel = 'Client', amount = 0, productName = 'Vente', farmId = null } = {}) {
   const value = num(amount);
   if (value <= 0) return null;
   return {
@@ -119,6 +123,7 @@ export function buildReceivableAlertRow({ orderId, clientLabel = 'Client', amoun
     action_recommandee: 'Encaisser ou relancer le client depuis Commercial',
     alert_dedupe_key: `creance-vente-${orderId}`,
     side_effects_managed: true,
+    ...(farmId ? { farm_id: farmId } : {}),
   };
 }
 
@@ -182,6 +187,62 @@ export async function applySourceImpactFromSale({
   if (patchPlan.module === 'animal') await handlers.onUpdateAnimal?.(patchPlan.id, patchPlan.patch);
   if (patchPlan.module === 'culture') await handlers.onUpdateCulture?.(patchPlan.id, patchPlan.patch);
   return patchPlan;
+}
+
+/** Impact stock sur toutes les lignes commande (idempotent par ligne). */
+export async function applySourceImpactFromSaleLines({
+  handlers = {},
+  orderItems = [],
+  order = {},
+  orderId = '',
+  date = '',
+  clientId = '',
+  stocks = [],
+  lots = [],
+  cultures = [],
+  animaux = [],
+} = {}) {
+  const applied = [];
+  const skipped = [];
+
+  for (const item of arr(orderItems)) {
+    if (item.source_impact_applied === true) {
+      skipped.push(item.id);
+      continue;
+    }
+
+    const sourceType = item.source_type;
+    const sourceId = item.source_id;
+    if (!isStockableSourceType(sourceType) || !sourceId) {
+      skipped.push(item.id);
+      continue;
+    }
+
+    const patchPlan = await applySourceImpactFromSale({
+      handlers,
+      sourceType,
+      sourceId,
+      quantity: num(item.quantity),
+      total: num(item.line_total ?? item.total),
+      date,
+      orderId,
+      clientId,
+      saleKind: item.sale_kind,
+      stocks,
+      lots,
+      cultures,
+      animaux,
+    });
+
+    if (patchPlan?.id) {
+      applied.push(item.id);
+      if (handlers.onUpdateItem && item.id) {
+        await handlers.onUpdateItem(item.id, { source_impact_applied: true, source_impact_at: new Date().toISOString() });
+      }
+    }
+  }
+
+  return { applied, skipped };
 }
 
 /** Restitue stock / lot / animal / culture après suppression vente. */
@@ -303,6 +364,7 @@ export async function ensureDeliveryTask({
   fulfillmentMode = '',
   tasks = [],
   handlers = {},
+  farmId = null,
 } = {}) {
   const mode = lower(fulfillmentMode);
   if (mode !== 'a_livrer' && mode !== 'a livrer') return null;
@@ -320,6 +382,7 @@ export async function ensureDeliveryTask({
     status: 'a_faire',
     routine_key: `livraison-vente-${orderId}`,
     checklist: 'Préparer le produit; confirmer adresse/téléphone; marquer livré dans Commercial.',
+    ...(farmId ? { farm_id: farmId } : {}),
   };
   await handlers.onCreateTask?.(task);
   return task;
@@ -354,6 +417,7 @@ export function buildSaleWorkflowHandlers(handlers = {}, context = {}) {
 export async function runNewSaleSideEffects({
   order = {},
   orderId = '',
+  orderItems = [],
   form = {},
   paid = 0,
   remaining = 0,
@@ -362,6 +426,7 @@ export async function runNewSaleSideEffects({
   productName = '',
   clientLabel = 'Client',
   realClientId = '',
+  farmId = null,
   selected = null,
   stocks = [],
   lots = [],
@@ -377,26 +442,36 @@ export async function runNewSaleSideEffects({
   skipSourceImpact = false,
 } = {}) {
   const date = form.date || order.date || today();
-  const qty = num(form.quantity ?? order.quantity);
+  const resolvedFarmId = farmId || order.farm_id || null;
+  const lines = arr(orderItems).length
+    ? orderItems
+    : [{
+      source_type: form.source_type || order.source_type,
+      source_id: form.source_id || order.source_id,
+      quantity: num(form.quantity ?? order.quantity),
+      line_total: num(order.montant_ht ?? order.montant_total) - num(order.frais_livraison ?? order.delivery_fee),
+      sale_kind: selected?.sale_kind || order.sale_kind,
+      source_impact_applied: order.source_impact_applied === true,
+    }];
 
   if (!skipSourceImpact) {
-    await applySourceImpactFromSale({
-    handlers,
-    sourceType: form.source_type || order.source_type,
-    sourceId: form.source_id || order.source_id,
-    quantity: qty,
-    total: num(order.montant_ht ?? order.montant_total) - num(order.frais_livraison ?? order.delivery_fee),
-    date,
-    orderId,
-    clientId: realClientId,
-    saleKind: selected?.sale_kind || order.sale_kind,
-    stocks,
-    lots,
-    cultures,
-    animaux,
+    const impact = await applySourceImpactFromSaleLines({
+      handlers,
+      orderItems: lines,
+      order,
+      orderId,
+      date,
+      clientId: realClientId,
+      stocks,
+      lots,
+      cultures,
+      animaux,
     });
-    if (handlers.onUpdateOrder && orderId) {
-      await handlers.onUpdateOrder(orderId, { source_impact_applied: true });
+    if (handlers.onUpdateOrder && orderId && impact.applied.length > 0) {
+      await handlers.onUpdateOrder(orderId, {
+        source_impact_applied: true,
+        source_impact_lines: impact.applied.length,
+      });
     }
   }
 
@@ -412,6 +487,7 @@ export async function runNewSaleSideEffects({
       invoiceId,
       order,
       remaining,
+      farmId: resolvedFarmId,
     });
     if (paidFinance) {
       const existingPaid = arr(transactions).find((row) => clean(row.id) === clean(paidFinance.id));
@@ -428,6 +504,7 @@ export async function runNewSaleSideEffects({
       amount: remaining,
       date,
       order,
+      farmId: resolvedFarmId,
     });
     if (receivableFinance) {
       const existingReceivable = arr(transactions).find((row) => clean(row.id) === clean(receivableFinance.id));
@@ -435,7 +512,13 @@ export async function runNewSaleSideEffects({
       await syncFinanceSideEffects(existingReceivable || receivableFinance, { handlers });
     }
 
-    const alertRow = buildReceivableAlertRow({ orderId, clientLabel, amount: remaining, productName: productName || order.product_name });
+    const alertRow = buildReceivableAlertRow({
+      orderId,
+      clientLabel,
+      amount: remaining,
+      productName: productName || order.product_name,
+      farmId: resolvedFarmId,
+    });
     const alertExists = arr(alertes).some((row) => clean(row.alert_dedupe_key) === clean(alertRow?.alert_dedupe_key));
     if (alertRow && !alertExists) await handlers.onCreateAlert?.(alertRow);
   }
@@ -463,6 +546,7 @@ export async function runNewSaleSideEffects({
     fulfillmentMode: form.fulfillment_mode || order.fulfillment_mode,
     tasks,
     handlers,
+    farmId: resolvedFarmId,
   });
 
   await closeOpportunityForOrder(order, handlers.opportunities || [], handlers);

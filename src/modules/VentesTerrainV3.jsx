@@ -6,6 +6,7 @@ import { buildSaleFormFromDraft } from '../utils/saleFormDraft';
 import {
   buildCommercialSaleRecords,
   commitCommercialSale,
+  prepareCommercialSaleCommit,
   SALE_PRODUCT_TYPES,
   validateCommercialSaleForm,
 } from '../utils/commercialSaleWorkflow';
@@ -134,7 +135,16 @@ export function SaleModal({ props, onClose, onDone, prefill = null }) {
       if (!form.date) return 'Date obligatoire.';
     }
     if (targetStep >= 3) {
-      const msg = validateCommercialSaleForm(form, { walkInOnlyPaid: true });
+      const msg = validateCommercialSaleForm(form, {
+        walkInOnlyPaid: true,
+        farmScope: props.farmScope,
+        accessibleFarms: props.accessibleFarms,
+        activeFarm: props.activeFarm,
+        stocks: props.stocks,
+        lots: props.lots,
+        cultures: props.cultures,
+        animaux: props.animaux,
+      });
       if (msg) return msg;
     }
     return '';
@@ -152,15 +162,19 @@ export function SaleModal({ props, onClose, onDone, prefill = null }) {
       const saleKey = `sale:${orderId}:${form.client_id}:${form.date}`;
       const result = await workflowSubmit(saleKey, async () => {
       const clientLabel = clientName(props.clients, form.client_id);
-      const records = buildCommercialSaleRecords({
+      const { records } = prepareCommercialSaleCommit({
         form,
         orderId,
         clientLabel,
         selectedMeta: selected,
+        farmScope: props.farmScope,
+        accessibleFarms: props.accessibleFarms,
+        activeFarm: props.activeFarm,
       });
       await commitCommercialSale(records, {
         onCreateOrder: props.onCreate,
         onCreateItem: props.onCreateItem,
+        onUpdateItem: props.onUpdateItem,
         onCreateDelivery: props.onCreateDelivery,
         onCreateInvoice: props.onCreateInvoice,
         onCreateDocument: props.onCreateDocument,
@@ -199,6 +213,7 @@ export function SaleModal({ props, onClose, onDone, prefill = null }) {
           onUpdateLot: props.onUpdateLot,
           onUpdateAnimal: props.onUpdateAnimal,
           onUpdateCulture: props.onUpdateCulture,
+          onUpdateItem: props.onUpdateItem,
           onCreateFinanceTransaction: props.onCreateFinanceTransaction,
           onUpdateFinanceTransaction: props.onUpdateFinanceTransaction,
           onUpdateClient: props.onUpdateClient,

@@ -7,6 +7,12 @@ import { makeId } from './ids.js';
 import { toNumber } from './format.js';
 import { runNewSaleSideEffects } from './saleSideEffects.js';
 import { financeIds } from './sideEffectIds.js';
+import {
+  buildCommercialFarmContext,
+  stampFarmIdOnCommercialRecords,
+  validateCommercialSaleFarmContext,
+} from './commercialFarmScope.js';
+import { validateSaleStockAvailability } from './commercialStockValidation.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();
@@ -128,6 +134,27 @@ export function validateCommercialSaleForm(form = {}, options = {}) {
   if (options.walkInOnlyPaid && form.client_id === 'client_passage' && paymentStatus !== PAYMENT_STATUS.PAYE) {
     return 'Client de passage : vente payée totalement uniquement.';
   }
+
+  const farmContext = options.farmContext || buildCommercialFarmContext(
+    options.farmScope,
+    options.accessibleFarms,
+    options.activeFarm,
+    { forceFilter: options.filteringEnabled === true },
+  );
+  const farmCheck = validateCommercialSaleFarmContext(farmContext, options.farm_id || form.farm_id);
+  if (!farmCheck.ok) return farmCheck.message;
+
+  const stockError = validateSaleStockAvailability(form, {
+    stocks: options.stocks || [],
+    lots: options.lots || [],
+    cultures: options.cultures || [],
+    animaux: options.animaux || [],
+  }, {
+    warnOnUnknownAvailability: options.warnOnUnknownAvailability === true,
+    strictSourceRequired: options.strictSourceRequired === true,
+  });
+  if (stockError) return stockError;
+
   return '';
 }
 
@@ -138,6 +165,8 @@ export function buildCommercialSaleRecords({
   paymentId = '',
   clientLabel = 'Client',
   selectedMeta = null,
+  farmId = null,
+  lineMetaBySource = null,
 } = {}) {
   const id = orderId || makeId('CMD');
   const issueKey = buildSaleIssueKey(id);
@@ -193,27 +222,38 @@ export function buildCommercialSaleRecords({
     source_record_id: id,
   };
 
-  const items = lines.map((line, index) => ({
-    id: makeId('CMDI'),
-    order_id: id,
-    source_type: line.source_type,
-    source_module: resolveSourceModule(line.source_type),
-    source_id: line.source_id || null,
-    source_record_id: id,
-    product_name: line.product_name,
-    quantity: line.quantity,
-    unit: line.unit,
-    unite: line.unit,
-    unit_price: line.unit_price,
-    total: line.line_total,
-    line_total: line.line_total,
-    sale_kind: line.sale_kind || line.source_type,
-    line_index: index + 1,
-    issue_key: `${issueKey}:line:${index + 1}`,
-    available_quantity_snapshot: selectedMeta?.qty ?? null,
-    side_effects_managed: true,
-    created_from: 'commercial_sale_workflow',
-  }));
+  const metaForLine = (line) => {
+    const key = `${line.source_type || ''}:${line.source_id || ''}`;
+    if (lineMetaBySource?.[key]) return lineMetaBySource[key];
+    if (lines.length === 1 && selectedMeta) return selectedMeta;
+    return null;
+  };
+
+  const items = lines.map((line, index) => {
+    const meta = metaForLine(line);
+    return {
+      id: makeId('CMDI'),
+      order_id: id,
+      source_type: line.source_type,
+      source_module: resolveSourceModule(line.source_type),
+      source_id: line.source_id || null,
+      source_record_id: id,
+      product_name: line.product_name,
+      quantity: line.quantity,
+      unit: line.unit,
+      unite: line.unit,
+      unit_price: line.unit_price,
+      total: line.line_total,
+      line_total: line.line_total,
+      sale_kind: line.sale_kind || line.source_type,
+      line_index: index + 1,
+      issue_key: `${issueKey}:line:${index + 1}`,
+      available_quantity_snapshot: meta?.qty ?? null,
+      source_impact_applied: false,
+      side_effects_managed: true,
+      created_from: 'commercial_sale_workflow',
+    };
+  });
 
   const delivery = {
     id: makeId('LIV'),
@@ -318,7 +358,7 @@ export function buildCommercialSaleRecords({
     created_from: 'commercial_sale_workflow',
   };
 
-  return {
+  const records = {
     order,
     items,
     delivery,
@@ -330,7 +370,50 @@ export function buildCommercialSaleRecords({
     paid,
     remaining,
     primaryLine: primary,
+    farmId: farmId || null,
   };
+
+  return stampFarmIdOnCommercialRecords(records, farmId);
+}
+
+/** Prépare records + farm_id avant persistance. */
+export function prepareCommercialSaleCommit({
+  form = {},
+  orderId = '',
+  clientLabel = 'Client',
+  selectedMeta = null,
+  farmScope = {},
+  accessibleFarms = [],
+  activeFarm = null,
+  explicitFarmId = '',
+} = {}) {
+  const farmContext = buildCommercialFarmContext(farmScope, accessibleFarms, activeFarm);
+  const requestedFarmId = clean(explicitFarmId || form.farm_id);
+
+  if (farmContext.filteringEnabled) {
+    const farmCheck = validateCommercialSaleFarmContext(farmContext, requestedFarmId);
+    if (!farmCheck.ok) {
+      throw new Error(farmCheck.message);
+    }
+    const records = buildCommercialSaleRecords({
+      form,
+      orderId,
+      clientLabel,
+      selectedMeta,
+      farmId: farmCheck.farmId,
+    });
+    return { records, farmContext, farmId: farmCheck.farmId };
+  }
+
+  const farmId = requestedFarmId || resolveCommercialSaleFarmId(farmContext) || null;
+  const records = buildCommercialSaleRecords({
+    form,
+    orderId,
+    clientLabel,
+    selectedMeta,
+    farmId,
+  });
+  return { records, farmContext, farmId };
 }
 
 /** Persiste commande + lignes + livraison + facture + paiement puis effets métier. */
@@ -345,6 +428,8 @@ export async function commitCommercialSale(records, handlers = {}, context = {})
     onCreateBusinessEvent,
     onRefreshWorkflow,
   } = handlers;
+
+  const farmId = records.farmId || records.order?.farm_id || null;
 
   await onCreateOrder?.(records.order);
   for (const item of records.items) {
@@ -362,8 +447,10 @@ export async function commitCommercialSale(records, handlers = {}, context = {})
   await runNewSaleSideEffects({
     order: records.order,
     orderId: records.order.id,
+    orderItems: records.items || [],
     form: {
       ...form,
+      lines: normalizeSaleLines(form),
       source_type: records.primaryLine.source_type,
       source_id: records.primaryLine.source_id,
       quantity: records.primaryLine.quantity,
@@ -378,6 +465,7 @@ export async function commitCommercialSale(records, handlers = {}, context = {})
     productName: records.order.product_name,
     clientLabel,
     realClientId: records.order.client_id,
+    farmId,
     selected: context.selected,
     stocks: context.stocks || [],
     lots: context.lots || [],
@@ -407,6 +495,7 @@ export function buildFinanceRowForSalePayment({ payment = {}, order = {} } = {})
   const orderId = clean(payment.order_id || payment.sale_id || order.id);
   const payId = clean(payment.id);
   const amt = num(payment.montant ?? payment.amount ?? payment.montant_paye);
+  const farmId = order.farm_id || payment.farm_id || null;
   return enrichFinanceTransaction({
     id: financeIds.paid(orderId, payId),
     type: 'entree',
@@ -429,5 +518,6 @@ export function buildFinanceRowForSalePayment({ payment = {}, order = {} } = {})
     side_effects_managed: true,
     created_from: 'commercial_sale_repair',
     issue_key: buildSaleIssueKey(orderId, `payment:${payId}`),
+    ...(farmId ? { farm_id: farmId } : {}),
   }, { origin_type: ORIGIN_TYPES.WORKFLOW });
 }

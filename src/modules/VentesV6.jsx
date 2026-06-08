@@ -56,6 +56,9 @@ export default function VentesV6(props) {
         },
         alertes: props.alertes || [],
         tasks: props.tasks || props.existingTasks || [],
+        farmScope: props.farmScope,
+        accessibleFarms: props.accessibleFarms,
+        activeFarm: props.activeFarm,
       });
 
       if (result?.skipped && result.reason === 'already_settled') {

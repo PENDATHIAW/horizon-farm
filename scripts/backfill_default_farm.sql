@@ -40,14 +40,59 @@ begin
   update public.sales_orders set farm_id = default_farm_id where farm_id is null;
   get diagnostics updated_sales = row_count;
 
+  update public.sales_order_items soi
+  set farm_id = coalesce(so.farm_id, default_farm_id)
+  from public.sales_orders so
+  where soi.order_id = so.id
+    and soi.farm_id is null;
+
+  update public.deliveries d
+  set farm_id = coalesce(so.farm_id, default_farm_id)
+  from public.sales_orders so
+  where d.order_id = so.id
+    and d.farm_id is null;
+
+  update public.invoices i
+  set farm_id = coalesce(so.farm_id, default_farm_id)
+  from public.sales_orders so
+  where i.order_id = so.id
+    and i.farm_id is null;
+
+  update public.payments p
+  set farm_id = coalesce(so.farm_id, default_farm_id)
+  from public.sales_orders so
+  where p.order_id = so.id
+    and p.farm_id is null;
+
+  update public.payments set farm_id = default_farm_id where farm_id is null and order_id is null;
+
+  update public.finances f
+  set farm_id = coalesce(so.farm_id, default_farm_id)
+  from public.sales_orders so
+  where f.order_id = so.id
+    and f.farm_id is null;
+
+  update public.finances f
+  set farm_id = coalesce(p.farm_id, so.farm_id, default_farm_id)
+  from public.payments p
+  left join public.sales_orders so on so.id = p.order_id
+  where f.payment_id = p.id
+    and f.farm_id is null;
+
   update public.finances set farm_id = default_farm_id where farm_id is null;
   get diagnostics updated_finances = row_count;
 
-  update public.cultures set farm_id = default_farm_id where farm_id is null;
-  get diagnostics updated_cultures = row_count;
+  update public.business_events be
+  set farm_id = coalesce(so.farm_id, default_farm_id)
+  from public.sales_orders so
+  where be.entity_id = so.id
+    and be.farm_id is null;
 
   update public.business_events set farm_id = default_farm_id where farm_id is null;
   get diagnostics updated_events = row_count;
+
+  update public.cultures set farm_id = default_farm_id where farm_id is null;
+  get diagnostics updated_cultures = row_count;
 
   raise notice 'Backfill terminé — animals: %, lots: %, stocks: %, sales_orders: %, finances: %, cultures: %, business_events: %',
     updated_animals,

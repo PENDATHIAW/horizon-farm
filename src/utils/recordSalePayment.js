@@ -5,6 +5,12 @@ import { buildCoherentOrderPatch, findExistingFinanceForPayment, findExistingPay
 import { remainingForOrder } from './salesStatuses';
 import { capSalePayment } from './salesWorkflows';
 import { financeIds, runPaymentSideEffects } from './saleSideEffects';
+import {
+  buildCommercialFarmContext,
+  enrichFinanceWithOrderFarmId,
+  enrichPaymentWithFarmId,
+  validateCommercialSaleFarmContext,
+} from './commercialFarmScope.js';
 import { createImpactJournal, finalizeImpactJournal, IMPACT_KEYS, instrumentHandlers, markImpactNa, OPERATION_EXPECTATIONS, OPERATION_TYPES } from './workflowImpactJournal';
 import { showWorkflowImpactToast } from './workflowImpactToast';
 import { buildIdempotencyKey, WORKFLOW_TYPES } from './workflowDedupe';
@@ -48,6 +54,9 @@ export async function recordSalePayment({
   alertes = [],
   tasks = [],
   handlers = {},
+  farmScope = {},
+  accessibleFarms = [],
+  activeFarm = null,
 } = {}) {
   const {
     onCreatePayment,
@@ -98,16 +107,9 @@ export async function recordSalePayment({
 
   const payId = paymentId || makeId('PAY');
   const date = paymentDate || new Date().toISOString().slice(0, 10);
-  const journal = createImpactJournal(OPERATION_TYPES.PAIEMENT, payId);
-  const tracked = instrumentHandlers(handlers, journal);
-  const idempotencyKey = buildIdempotencyKey({
-    workflowType: WORKFLOW_TYPES.PAYMENT,
-    sourceModule: 'ventes',
-    sourceRecordId: sale.id,
-    movementRef: `${payId}:${cappedAmount}:${date}:${paymentMethod}`,
-  });
+  const farmContext = buildCommercialFarmContext(farmScope, accessibleFarms, activeFarm);
 
-  const paymentRow = {
+  const paymentRow = enrichPaymentWithFarmId({
     id: payId,
     order_id: sale.id,
     sale_id: sale.id,
@@ -124,13 +126,37 @@ export async function recordSalePayment({
     statut: 'paye',
     created_from: 'record_sale_payment',
     side_effects_managed: true,
+  }, {
+    payment: { order_id: sale.id },
+    order: sale,
+    farmContext,
+  });
+
+  if (!paymentRow.farm_id && farmContext.filteringEnabled && !sale.id) {
+    const check = validateCommercialSaleFarmContext(farmContext);
+    if (!check.ok) {
+      return { skipped: true, reason: 'requires_farm', message: check.message };
+    }
+  }
+
+  const journal = createImpactJournal(OPERATION_TYPES.PAIEMENT, payId);
+  const tracked = instrumentHandlers(handlers, journal);
+  const idempotencyKey = buildIdempotencyKey({
+    workflowType: WORKFLOW_TYPES.PAYMENT,
+    sourceModule: 'ventes',
+    sourceRecordId: sale.id,
+    movementRef: `${payId}:${cappedAmount}:${date}:${paymentMethod}`,
+  });
+
+  const finalPaymentRow = {
+    ...paymentRow,
     idempotency_key: idempotencyKey,
     issue_key: idempotencyKey,
   };
 
-  await tracked.onCreatePayment?.(paymentRow);
+  await tracked.onCreatePayment?.(finalPaymentRow);
 
-  const nextPayments = payments.some((row) => clean(row.id) === payId) ? payments : [...payments, paymentRow];
+  const nextPayments = payments.some((row) => clean(row.id) === payId) ? payments : [...payments, finalPaymentRow];
 
   const existingFinance = findExistingFinanceForPayment({
     orderId: sale.id,
@@ -142,7 +168,7 @@ export async function recordSalePayment({
   });
 
   if (!existingFinance && onCreateFinanceTransaction) {
-    await tracked.onCreateFinanceTransaction({
+    await tracked.onCreateFinanceTransaction(enrichFinanceWithOrderFarmId({
       id: financeIds.paid(sale.id, payId),
       type: 'entree',
       libelle: `Encaissement ${sale.id} - ${sale.client_label || sale.client_name || 'Client'}`,
@@ -165,7 +191,7 @@ export async function recordSalePayment({
       side_effects_managed: true,
       idempotency_key: idempotencyKey,
       issue_key: idempotencyKey,
-    });
+    }, sale, paymentRow.farm_id || sale.farm_id));
   }
 
   await onUpdateOrder?.(sale.id, buildCoherentOrderPatch(sale, nextPayments, {}));
