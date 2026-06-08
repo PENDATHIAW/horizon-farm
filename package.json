@@ -26,7 +26,7 @@
     "test:unit:documents": "node --test tests/unit/documentsWorkflow.test.js",
     "test:unit:activite": "node --test tests/unit/activiteSuiviWorkflow.test.js",
     "test:unit:centre": "node --test tests/unit/centreObjectifsWorkflow.test.js",
-    "test:unit:dashboard": "npx vite-node tests/unit/dashboardPilotage.test.js && npx vite-node tests/unit/dashboardMetrics.test.js && npx vite-node tests/unit/dashboardHealthCache.test.js",
+    "test:unit:dashboard": "npx vite-node tests/unit/dashboardPilotage.test.js && npx vite-node tests/unit/dashboardMetrics.test.js && npx vite-node tests/unit/dashboardHealthCache.test.js && npx vite-node tests/unit/dashboardV3.test.js",
     "test:unit:farm-scope": "node --test tests/unit/farmScope.test.js tests/unit/farmScopePhase3.test.js tests/unit/farmScopePhase4.test.js tests/unit/farmScopePhase5.test.js",
     "test:unit:workflow-quality": "npx vite-node tests/unit/workflowQualityAudit.test.js",
     "test:unit:workflow-impact": "node tests/unit/workflowImpactJournal.test.js",

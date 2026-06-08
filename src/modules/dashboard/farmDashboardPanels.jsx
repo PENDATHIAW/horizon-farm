@@ -168,11 +168,20 @@ export function FarmLocationGrid({ cards = [], onNavigate }) {
               <Building2 size={16} className="text-[#9a6b12] shrink-0" />
             </div>
             <p className="mt-2 text-xs text-[#8a7456]">{card.activities}</p>
+            <p className="mt-1 text-xs text-[#8a7456]">Statut : {card.status || 'active'}</p>
+            {card.weatherTemp != null ? (
+              <p className="mt-2 text-xs text-sky-800">{card.weatherTemp}°C · {card.weatherCondition || 'Conditions stables'}</p>
+            ) : null}
             <p className="mt-1 text-xs text-[#8a7456]">
               {card.latitude != null && card.longitude != null
                 ? `GPS ${card.latitude}, ${card.longitude}`
                 : 'Coordonnées à renseigner'}
             </p>
+            {card.mainAlerts?.length ? (
+              <ul className="mt-2 space-y-0.5 text-[10px] text-amber-800">
+                {card.mainAlerts.slice(0, 2).map((entry) => <li key={entry}>• {entry}</li>)}
+              </ul>
+            ) : null}
             <div className="mt-3 flex items-center justify-between text-xs">
               <span className="font-bold text-[#2f2415]">Score {card.score ?? '—'}/100</span>
               <span className="text-[#8a7456]">{card.alerts} alerte(s)</span>
