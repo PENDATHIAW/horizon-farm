@@ -13,6 +13,7 @@ export const MOVEMENT_SOURCE_TYPES = {
   FEEDING: 'consommation_elevage',
   HEALTH: 'consommation_sante',
   PACKAGING: 'consommation_emballage',
+  EGG_PRODUCTION: 'entree_production_oeufs',
   CULTURE: 'consommation_cultures',
   LOSS: 'perte',
   CORRECTION: 'correction',

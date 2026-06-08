@@ -164,8 +164,9 @@ test('V3 — commitElevageEggProduction emballage tracé', async () => {
   });
   assert.equal(productions.length, 1);
   assert.equal(productions[0].packaging_stock_id, 'STK-PACK');
-  assert.equal(movements.length, 1);
-  assert.equal(movements[0].metadata.movement_kind, MOVEMENT_SOURCE_TYPES.PACKAGING);
+  const packaging = movements.find((m) => m.metadata?.movement_kind === MOVEMENT_SOURCE_TYPES.PACKAGING);
+  assert.ok(packaging);
+  assert.ok(movements.some((m) => m.metadata?.movement_kind === MOVEMENT_SOURCE_TYPES.EGG_PRODUCTION));
 });
 
 test('V3 — commitElevageEggProduction gap emballage sans bloquer', async () => {

@@ -15,6 +15,9 @@ export const FARM_SCOPED_CREATE_MODULES = new Set([
   'finances',
   'cultures',
   'business_events',
+  'alimentation_logs',
+  'production_oeufs_logs',
+  'sante',
 ]);
 
 export const CREATE_REQUIRES_FARM_ERROR = 'CREATE_REQUIRES_FARM';

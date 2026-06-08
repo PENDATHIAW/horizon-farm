@@ -10,6 +10,12 @@ import { runCultureHarvestSideEffects } from '../utils/cultureSideEffects';
 import { syncFinanceSideEffects } from './erpInterconnectionEngine';
 import { getFinanceActivityFromSale, getFinanceCategoryFromSale } from './financeSyncService';
 import { buildOpportunityClosedPatch, buildStructuredFarmImpact } from './erpInterconnectionRules';
+import {
+  commitWithImpactJournal,
+  IMPACT_KEYS,
+  markImpactNa,
+  OPERATION_TYPES,
+} from '../utils/workflowImpactJournal';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const today = () => new Date().toISOString().slice(0, 10);

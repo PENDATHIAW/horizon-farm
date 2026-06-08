@@ -2,7 +2,6 @@ import { runErpHealthEngine } from '../../services/erpHealthEngine.js';
 import { calculateUnifiedAnimalCost, calculateUnifiedLotCost } from '../../services/unifiedCostService.js';
 import { fmtCurrency } from '../../utils/format.js';
 
-const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v = 0) => Number(v || 0);
 const label = (r = {}) => r.name || r.nom || r.title || r.id || '—';
 
@@ -45,6 +44,13 @@ export function computeLotMargin(lot = {}, context = {}) {
     margin: revenue > 0 ? revenue - unified.totalCost : null,
     missing,
     costSource: unified.costSource,
+    feedingCost: unified.feedCostUsed ?? unified.realFeedCost ?? 0,
+    healthCost: unified.healthCost ?? 0,
+    mortalityCost: n(lot.valeur_perte_estimee ?? lot.perte_estimee),
+    costPerEgg: unified.costPerEggWithoutPackaging ?? unified.costPerEgg ?? null,
+    costPerTablet: unified.packagingUnitCost ? (unified.costPerEggWithoutPackaging || 0) * 30 : null,
+    costPerChicken: unified.costPerLiveSubject ?? unified.costPerSellableSubject ?? null,
+    costPerKg: unified.costPerKg ?? null,
   };
 }
 
@@ -71,10 +77,26 @@ export function computeAnimalMargin(animal = {}, context = {}) {
     margin: revenue > 0 ? revenue - unified.totalCost : null,
     missing,
     costSource: unified.costSource,
+    feedingCost: unified.feedingCost ?? 0,
+    healthCost: unified.healthCost ?? 0,
+    costPerKg: unified.costPerKg ?? null,
   };
 }
 
+export function formatMarginDetail(row = {}) {
+  if (row.reliable) return fmtCurrency(row.margin);
+  const parts = [];
+  if (row.missing?.length) parts.push(`manque : ${row.missing.join(', ')}`);
+  if (!row.revenue && row.cost > 0) parts.push('revenu non renseigné');
+  if (parts.length) return `Rentabilité non fiable : ${parts.join(' · ')}`;
+  return 'Rentabilité non fiable : alimentation ou santé non renseignée.';
+}
+
 export function formatMargin(row) {
-  if (!row.reliable) return 'Non fiable';
-  return fmtCurrency(row.margin);
+  return formatMarginDetail(row);
+}
+
+export function formatUnitCost(value, unitLabel = '') {
+  if (value == null || !Number(value)) return '—';
+  return `${fmtCurrency(value)}${unitLabel ? ` / ${unitLabel}` : ''}`;
 }

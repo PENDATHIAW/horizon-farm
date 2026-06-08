@@ -8,6 +8,7 @@ import {
   commitElevageHealth,
   commitElevageMortality,
   commitElevageTransformation,
+  commitElevageWeighing,
 } from '../../utils/elevageWorkflow.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -80,6 +81,7 @@ export function buildElevageHandlers(props = {}) {
     onCreateAlert: props.onCreateAlert,
     onCreateDocument: props.onCreateDocument,
     onCreateProduction: props.onCreateProduction,
+    onCreateWeightRecord: props.onCreateWeightRecord,
   };
 }
 
@@ -101,6 +103,7 @@ export default function ElevageWorkflowPanels({
   const [mortality, setMortality] = useState({ date: today(), lot_id: lots[0]?.id || '', quantite: '', notes: '' });
   const [eggs, setEggs] = useState({ date: today(), lot_id: pondeuseLots[0]?.id || '', oeufs_produits: '', oeufs_casses: '', packaging_stock_id: '', packaging_qty: '' });
   const [transform, setTransform] = useState({ date: today(), lot_id: lots[0]?.id || '', kind: 'pret_vente', notes: '' });
+  const [weighing, setWeighing] = useState({ date: today(), lot_id: lots[0]?.id || '', animal_id: '', poids: '', unite: 'kg', notes: '' });
 
   const medStocks = useMemo(() => arr(context.stocks).filter((r) => /vaccin|medic|médic|antibio|vitamin/i.test(`${r.produit || ''} ${r.categorie || ''}`)), [context.stocks]);
   const packagingStocks = useMemo(() => arr(context.stocks).filter((r) => /emballage|alveole|alvéole|tablette|plateau|carton|caisse/i.test(`${r.produit || ''} ${r.nom || ''} ${r.categorie || ''}`)), [context.stocks]);
@@ -211,6 +214,35 @@ export default function ElevageWorkflowPanels({
         </Field>
         <Field label="Lot"><select className={inputCls} value={transform.lot_id} onChange={(e) => setTransform({ ...transform, lot_id: e.target.value })} required><option value="">—</option>{lots.map((l) => <option key={l.id} value={l.id}>{l.name || l.id}</option>)}</select></Field>
         <Field label="Notes"><input className={inputCls} value={transform.notes} onChange={(e) => setTransform({ ...transform, notes: e.target.value })} /></Field>
+      </Modal>
+
+      <Modal open={activeModal === 'weighing'} title="Pesée — Élevage" onClose={onClose} busy={busy} onSubmit={() => run(() => commitElevageWeighing({
+        form: { ...weighing, id: makeId('PES'), poids: num(weighing.poids) },
+        context,
+        handlers,
+      }).then((result) => {
+        if (result.targetWeight) {
+          toast.success(result.onTarget ? 'Poids atteint ou proche de la cible' : 'Pesée enregistrée — suivi croissance');
+        } else {
+          toast.success('Pesée enregistrée');
+        }
+      }))}>
+        <Field label="Date"><input type="date" className={inputCls} value={weighing.date} onChange={(e) => setWeighing({ ...weighing, date: e.target.value })} /></Field>
+        <Field label="Lot avicole">
+          <select className={inputCls} value={weighing.lot_id} onChange={(e) => setWeighing({ ...weighing, lot_id: e.target.value, animal_id: '' })}>
+            <option value="">—</option>
+            {lots.map((l) => <option key={l.id} value={l.id}>{l.name || l.nom || l.id}</option>)}
+          </select>
+        </Field>
+        <Field label="Animal">
+          <select className={inputCls} value={weighing.animal_id} onChange={(e) => setWeighing({ ...weighing, animal_id: e.target.value, lot_id: '' })}>
+            <option value="">—</option>
+            {animaux.map((a) => <option key={a.id} value={a.id}>{a.nom || a.name || a.id}</option>)}
+          </select>
+        </Field>
+        <Field label="Poids"><input type="number" min="0" step="0.01" className={inputCls} value={weighing.poids} onChange={(e) => setWeighing({ ...weighing, poids: e.target.value })} required /></Field>
+        <Field label="Unité"><input className={inputCls} value={weighing.unite} onChange={(e) => setWeighing({ ...weighing, unite: e.target.value })} /></Field>
+        <Field label="Commentaire"><input className={inputCls} value={weighing.notes} onChange={(e) => setWeighing({ ...weighing, notes: e.target.value })} /></Field>
       </Modal>
     </>
   );

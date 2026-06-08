@@ -33,6 +33,12 @@ export function eggPackagingConsumptionDedupeKey(logId = '', stockId = '') {
   return `stock-mvt:egg-pack:${clean(logId)}:${clean(stockId)}`;
 }
 
+export function eggProductionStockDedupeKey(logId = '', stockId = '') {
+  return `stock-mvt:egg-prod:${clean(logId)}:${clean(stockId)}`;
+}
+
+export const EGG_STOCK_GAP_MESSAGE = 'Production enregistrée. Pour suivre le stock d\'œufs, rattachez un article stock œufs/tablettes.';
+
 export const HEALTH_CONSUMPTION_GAP_MESSAGE = 'Consommation santé non rattachée au stock : stock_id absent.';
 export const EGG_PACKAGING_GAP_MESSAGE = 'Pour tracer les emballages, rattacher un article stock emballage à cette production.';
 
@@ -187,6 +193,51 @@ export function buildHealthConsumptionMovementPayload({
       intervention_type: healthRecord.type_intervention || healthRecord.intervention_family || '',
       animal_id: animalId,
       lot_id: lotId,
+    },
+  };
+}
+
+/** Payload mouvement entrée stock œufs depuis production_oeufs_logs. */
+export function buildEggProductionStockMovementPayload({
+  log = {},
+  stock = {},
+  sellableEggs = 0,
+  beforeQty = 0,
+  afterQty = 0,
+  farmId = null,
+} = {}) {
+  const stockId = clean(stock.id);
+  const logId = clean(log.id);
+  const qty = n(sellableEggs);
+  if (!stockId || !logId || qty <= 0) return null;
+
+  const movementRef = `egg-prod:${logId}:${stockId}`;
+  const dedupeKey = eggProductionStockDedupeKey(logId, stockId);
+  const motif = `Production œufs · lot ${clean(log.lot_id) || '—'}`;
+
+  return {
+    stock_id: stockId,
+    movement_type: 'entree',
+    quantity: qty,
+    unit: stock.unite || stock.unit || 'oeuf',
+    stock_before: beforeQty,
+    stock_after: afterQty,
+    stock_delta: afterQty - beforeQty,
+    source_module: CONSUMPTION_SOURCE_MODULES.ELEVAGE,
+    source_record_id: logId,
+    linked_event_id: '',
+    notes: motif,
+    movement_date: String(log.date || today()).slice(0, 10),
+    farm_id: farmId || stock.farm_id || log.farm_id || null,
+    dedupe_key: dedupeKey,
+    movement_ref: movementRef,
+    metadata: {
+      movement_kind: MOVEMENT_SOURCE_TYPES.EGG_PRODUCTION,
+      motif,
+      sens: 'entree',
+      lot_id: clean(log.lot_id),
+      production_log_id: logId,
+      oeufs_vendables: qty,
     },
   };
 }

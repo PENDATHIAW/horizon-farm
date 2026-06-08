@@ -18,6 +18,8 @@ const PONDEUSE_DEFAULTS = {
 };
 
 import { lotAgeReferenceDate } from '../utils/ageDisplay.js';
+import { resolveElevageThresholds } from '../utils/elevageThresholds.js';
+import { computeOfficialLayingRate } from '../utils/elevageLayingRate.js';
 
 const normalize = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
@@ -145,13 +147,18 @@ export function computePondeuseLivingTarget(lot = {}, productionLogs = []) {
   const ageExpectedPct = expectedPontePctByAge(months, lot);
   const recentLogs = logs.slice(-7);
   const recentDailyEggs = recentLogs.length ? recentLogs.reduce((sum, log) => sum + log.dailyEggs, 0) / recentLogs.length : 0;
-  const realLayingPct = active > 0 && recentDailyEggs > 0 ? Math.round((recentDailyEggs / active) * 100) : 0;
+  const latestLog = logs[logs.length - 1];
+  const officialDaily = latestLog
+    ? computeOfficialLayingRate({ eggsProduced: latestLog.eggs, activeLayers: active })
+    : computeOfficialLayingRate({ eggsProduced: 0, activeLayers: active });
+  const realLayingPct = officialDaily.calculable ? officialDaily.rate : (active > 0 && recentDailyEggs > 0 ? Math.round((recentDailyEggs / active) * 100) : 0);
   const livingObjectivePct = realLayingPct > 0 ? Math.round((ageExpectedPct * 0.7) + (realLayingPct * 0.3)) : ageExpectedPct;
   const expectedEggsDay = Math.round(active * livingObjectivePct / 100);
   const gapEggsDay = recentDailyEggs ? Math.round(recentDailyEggs - expectedEggsDay) : 0;
   const today = new Date().toISOString().slice(0, 10);
   const daysSinceCollection = last?.end ? daysBetween(last.end, today) : null;
   const missingCollection = daysSinceCollection === null || daysSinceCollection > PONDEUSE_DEFAULTS.collectionMaxGapDays;
+  const thresholds = resolveElevageThresholds();
   const status = (() => {
     if (!active) return 'effectif_a_renseigner';
     if (!logs.length) return 'ramassage_a_renseigner';
@@ -159,7 +166,7 @@ export function computePondeuseLivingTarget(lot = {}, productionLogs = []) {
     if (months >= PONDEUSE_DEFAULTS.reformTargetMonths) return 'reforme_cible';
     if (months >= PONDEUSE_DEFAULTS.reformStartMonths) return 'preparer_reforme';
     if (realLayingPct && realLayingPct < livingObjectivePct - 12) return 'baisse_ponte';
-    if (last?.brokenRate > 5) return 'casses_elevees';
+    if (last?.brokenRate >= thresholds.eggBreakAlertPct) return 'casses_elevees';
     return 'ponte_normale';
   })();
   const action = (() => {
@@ -172,7 +179,7 @@ export function computePondeuseLivingTarget(lot = {}, productionLogs = []) {
     if (status === 'casses_elevees') return 'Réduire les casses : ramassage plus fréquent, pondoirs, manipulation et qualité coquille.';
     return 'Ponte conforme : sécuriser clients œufs et limiter les casses.';
   })();
-  return { type: 'pondeuse', active, months, objectiveInitial, ageExpectedPct, livingObjectivePct, expectedEggsDay, recentDailyEggs: Number(recentDailyEggs.toFixed(1)), realLayingPct, gapEggsDay, last, logs, missingCollection, daysSinceCollection, status, action, reformStartMonths: PONDEUSE_DEFAULTS.reformStartMonths, reformTargetMonths: PONDEUSE_DEFAULTS.reformTargetMonths };
+  return { type: 'pondeuse', active, months, objectiveInitial, ageExpectedPct, livingObjectivePct, expectedEggsDay, recentDailyEggs: Number(recentDailyEggs.toFixed(1)), realLayingPct, officialLayingRate: officialDaily, gapEggsDay, last, logs, missingCollection, daysSinceCollection, status, action, reformStartMonths: PONDEUSE_DEFAULTS.reformStartMonths, reformTargetMonths: PONDEUSE_DEFAULTS.reformTargetMonths };
 }
 
 export function computeAvicoleLivingTarget(lot = {}, productionLogs = []) {
