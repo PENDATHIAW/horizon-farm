@@ -2,6 +2,16 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Archive, Building2, Edit3, Plus, Star, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatFarmActivitiesLabel } from '../../config/farmAdaptation.js';
+import { buildAllFarmsDashboardContext } from '../../utils/farmConsolidation.js';
+import {
+  FarmComparisonTable,
+  FarmDemoModeBanner,
+  FarmLocationGrid,
+} from '../dashboard/farmDashboardPanels.jsx';
+import {
+  isFarmDemoModeEnabled,
+  setFarmDemoModeEnabled,
+} from '../../utils/farmDemoMode.js';
 import {
   buildFarmUpdateFromDraft,
   cloneFarmCreationDraft,
@@ -56,11 +66,15 @@ export default function FarmsManagementPanel({
   accessibleFarms = [],
   onFarmsChanged,
   initialAction = null,
+  farmComparisonData = null,
+  onManageFarms,
+  onNavigate,
 }) {
   const [farms, setFarms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [wizardOpen, setWizardOpen] = useState(() => initialAction === 'create');
   const [editFarm, setEditFarm] = useState(null);
+  const [demoModeEnabled, setDemoModeEnabled] = useState(() => isFarmDemoModeEnabled());
   const canManage = canManageFarms(user);
 
   useEffect(() => {
@@ -95,6 +109,13 @@ export default function FarmsManagementPanel({
     [farms],
   );
   const monoFarm = activeFarms.length <= 1;
+  const comparisonContext = useMemo(() => {
+    if (!farmComparisonData || activeFarms.length <= 1) return null;
+    return buildAllFarmsDashboardContext(activeFarms, {
+      ...farmComparisonData,
+      accessibleFarms: activeFarms,
+    });
+  }, [farmComparisonData, activeFarms]);
 
   const handleArchive = async (farm) => {
     if (farm.id === DEFAULT_FARM_ID) {
@@ -145,6 +166,30 @@ export default function FarmsManagementPanel({
 
   return (
     <div className="space-y-5">
+      <FarmDemoModeBanner
+        enabled={demoModeEnabled}
+        onToggle={() => {
+          setFarmDemoModeEnabled(false);
+          setDemoModeEnabled(false);
+          window.location.reload();
+        }}
+      />
+      {!demoModeEnabled && monoFarm && canManage ? (
+        <div className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-900 flex flex-wrap items-center justify-between gap-2">
+          <span>Activer le mode démo multi-fermes pour présenter consolidation et comparaison sans modifier vos données réelles.</span>
+          <button
+            type="button"
+            onClick={() => {
+              setFarmDemoModeEnabled(true);
+              setDemoModeEnabled(true);
+              window.location.reload();
+            }}
+            className="rounded-lg border border-violet-300 bg-white px-3 py-1 text-xs font-black"
+          >
+            Activer démo
+          </button>
+        </div>
+      ) : null}
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
@@ -234,6 +279,43 @@ export default function FarmsManagementPanel({
           ))}
         </div>
       )}
+
+      {comparisonContext ? (
+        <>
+          <section className="rounded-3xl border border-[#22c55e]/30 bg-gradient-to-br from-[#f0fdf4] to-white p-5 shadow-sm">
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-800">Comparaison multi-fermes</p>
+            <h2 className="mt-1 text-lg font-black text-[#2f2415]">Performance par ferme</h2>
+            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {comparisonContext.bestFarm ? (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                  <p className="text-xs font-black uppercase text-emerald-800">Meilleure ferme</p>
+                  <p className="mt-1 font-black text-[#2f2415]">{comparisonContext.bestFarm.name}</p>
+                </div>
+              ) : null}
+              {comparisonContext.riskiestFarm ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                  <p className="text-xs font-black uppercase text-amber-800">Plus à risque</p>
+                  <p className="mt-1 font-black text-[#2f2415]">{comparisonContext.riskiestFarm.name}</p>
+                </div>
+              ) : null}
+              {comparisonContext.mostAlertsFarm ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+                  <p className="text-xs font-black uppercase text-red-800">Plus d&apos;alertes</p>
+                  <p className="mt-1 font-black text-[#2f2415]">{comparisonContext.mostAlertsFarm.name}</p>
+                </div>
+              ) : null}
+              {comparisonContext.launchingFarms?.length ? (
+                <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4">
+                  <p className="text-xs font-black uppercase text-violet-800">En lancement</p>
+                  <p className="mt-1 font-black text-[#2f2415]">{comparisonContext.launchingFarms.map((farm) => farm.name).join(', ')}</p>
+                </div>
+              ) : null}
+            </div>
+            <FarmComparisonTable rows={comparisonContext.comparisonRows} onNavigate={onNavigate} className="mt-4" />
+          </section>
+          <FarmLocationGrid cards={comparisonContext.locationCards} onNavigate={onNavigate} />
+        </>
+      ) : null}
 
       {!canManage ? (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">

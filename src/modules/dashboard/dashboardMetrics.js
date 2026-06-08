@@ -1,13 +1,13 @@
-import { buildDecisionCenterPlan, annualRevenueTarget, monthlyRevenueTargets } from '../../services/growthDecisionEngine';
+import { buildDecisionCenterPlan, annualRevenueTarget, monthlyRevenueTargets } from '../../services/growthDecisionEngine.js';
 import { filterRealOpenTasks } from '../../utils/healthFindingLabels.js';
-import { remainingForOrder } from '../../utils/salesStatuses';
-import { buildConsolidationInput, consolidateFinance } from '../../utils/financeConsolidationEngine';
-import { openSalesCount } from '../commercial/commercialMetrics';
-import { buildDashboardTodayActions } from '../../utils/dashboardWorkflows';
-import { avicoleActiveCount, avicoleHasActiveBirds } from '../../utils/avicoleMetrics';
-import { resolveAvicoleLotKind } from '../../utils/avicoleActivity';
-import { toNumber, fmtCurrency } from '../../utils/format';
-import { formatPeriodScopeLabel, normalizePeriodScope, resolvePeriodContext, rowMatchesMonthKeys, monthKeyFromRow } from '../../utils/periodScope';
+import { remainingForOrder } from '../../utils/salesStatuses.js';
+import { buildConsolidationInput, consolidateFinance } from '../../utils/financeConsolidationEngine.js';
+import { openSalesCount } from '../commercial/commercialMetrics.js';
+import { buildDashboardTodayActions } from '../../utils/dashboardWorkflows.js';
+import { avicoleActiveCount, avicoleHasActiveBirds } from '../../utils/avicoleMetrics.js';
+import { resolveAvicoleLotKind } from '../../utils/avicoleActivity.js';
+import { toNumber, fmtCurrency } from '../../utils/format.js';
+import { formatPeriodScopeLabel, normalizePeriodScope, resolvePeriodContext, rowMatchesMonthKeys, monthKeyFromRow } from '../../utils/periodScope.js';
 import {
   monthTargetForKey,
   resolveActivityYearContext,

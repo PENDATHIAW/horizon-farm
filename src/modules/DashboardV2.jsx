@@ -32,6 +32,21 @@ import {
 import { navigateForDashboardAction, navigateForDashboardFinding } from './dashboard/dashboardNavigation';
 import { dashboardGreeting } from './dashboard/dashboardGreeting';
 import {
+  buildActivityKpiCards,
+  buildAdaptedAlertsPanel,
+  buildAllFarmsDashboardContext,
+  resolveQuickActionsForScope,
+} from '../utils/farmConsolidation.js';
+import {
+  DashboardAllFarmsPanel,
+  DashboardActivityKpiStrip,
+  DashboardAdaptedAlertsPanel,
+  DashboardAdaptedQuickActions,
+  FarmDemoModeBanner,
+  FarmLocationGrid,
+} from './dashboard/farmDashboardPanels.jsx';
+import { isFarmDemoModeEnabled, setFarmDemoModeEnabled } from '../utils/farmDemoMode.js';
+import {
   DashboardGoalsHero,
   DashboardHealthStrip,
   DashboardHeyHorizonStrip,
@@ -105,7 +120,26 @@ function buildHealthData(props = {}) {
   };
 }
 
-function Summary({ summary, health, simple, navigate, onOpenAssistant, pilotage, weatherReport, onOpenPriority }) {
+function Summary({
+  summary,
+  health,
+  simple,
+  navigate,
+  onOpenAssistant,
+  pilotage,
+  weatherReport,
+  onOpenPriority,
+  farmScope = {},
+  activeFarm = null,
+  accessibleFarms = [],
+  allFarmsContext = null,
+  activityKpiCards = [],
+  quickActions = [],
+  adaptedAlerts = [],
+  onManageFarms,
+  demoModeEnabled = false,
+  onToggleDemoMode,
+}) {
   const actions = summary.actions.slice(0, simple ? 4 : 8);
   const heyHorizonSuggestions = buildDashboardPilotageSuggestions(summary.actions, summary.goal);
   const sideCards = [];
@@ -189,8 +223,19 @@ function Summary({ summary, health, simple, navigate, onOpenAssistant, pilotage,
 
   return (
     <div className="space-y-5 dashboard-v2-mobile">
+      <FarmDemoModeBanner enabled={demoModeEnabled} onToggle={onToggleDemoMode} />
+      {allFarmsContext ? (
+        <DashboardAllFarmsPanel context={allFarmsContext} onNavigate={navigate} onManageFarms={onManageFarms} />
+      ) : null}
+      {allFarmsContext?.locationCards?.length ? (
+        <FarmLocationGrid cards={allFarmsContext.locationCards} onNavigate={navigate} />
+      ) : null}
       <DashboardPrioritiesPanel priorities={pilotage.priorities} onOpen={onOpenPriority} />
+      {adaptedAlerts.length ? <DashboardAdaptedAlertsPanel alerts={adaptedAlerts} /> : null}
       <DashboardNarrativePanel narrative={pilotage.narrative} />
+      {!allFarmsContext && activityKpiCards.length ? (
+        <DashboardActivityKpiStrip cards={activityKpiCards} farmName={activeFarm?.name} />
+      ) : null}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <DashboardExploitationScorePanel exploitation={pilotage.exploitation} onNavigate={navigate} />
         <DashboardInvestorStrip investor={pilotage.investor} onNavigate={navigate} />
@@ -205,6 +250,7 @@ function Summary({ summary, health, simple, navigate, onOpenAssistant, pilotage,
       />
       <DashboardHeyHorizonStrip suggestions={heyHorizonSuggestions} onNavigate={navigate} />
 
+      {!allFarmsContext ? (
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
         <DashboardKpi
           label="CA période"
@@ -301,8 +347,13 @@ function Summary({ summary, health, simple, navigate, onOpenAssistant, pilotage,
           onClick={() => navigate('elevage', { tab: 'Résumé' })}
         />
       </div>
+      ) : null}
 
-      <DashboardQuickActions onNavigate={navigate} />
+      {quickActions.length ? (
+        <DashboardAdaptedQuickActions actions={quickActions} onNavigate={navigate} />
+      ) : (
+        <DashboardQuickActions onNavigate={navigate} />
+      )}
       <DashboardModuleNav modules={DASHBOARD_MODULES} onNavigate={navigate} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
@@ -418,7 +469,19 @@ export default function DashboardV2(props) {
     displayUser,
     userName,
     username,
+    farmScope = {},
+    activeFarm = null,
+    accessibleFarms = [],
+    farmComparisonData = null,
+    onManageFarms,
   } = props;
+
+  const [demoModeEnabled, setDemoModeEnabled] = useState(() => isFarmDemoModeEnabled());
+  useEffect(() => {
+    const handler = (event) => setDemoModeEnabled(Boolean(event.detail?.enabled));
+    window.addEventListener('horizon-farm-demo-mode-changed', handler);
+    return () => window.removeEventListener('horizon-farm-demo-mode-changed', handler);
+  }, []);
 
   const [tab, setTab] = useState('Résumé');
   const settings = useUiSettings();
@@ -563,6 +626,67 @@ export default function DashboardV2(props) {
     [meteo, weatherLoading],
   );
 
+  const comparisonSource = useMemo(() => farmComparisonData || {
+    salesOrdersAll: salesOrdersAll || salesOrders,
+    paymentsAll: paymentsAll || payments,
+    transactionsAll: transactionsAll || transactions,
+    stocks,
+    alertes,
+    taches,
+    animaux,
+    lotsData: lotsData || lots,
+    cultures,
+    productionLogs,
+    businessPlans,
+    investissements,
+    sensorDevices,
+    cameraDevices,
+    meteo,
+    accessibleFarms,
+  }, [
+    farmComparisonData,
+    salesOrdersAll,
+    salesOrders,
+    paymentsAll,
+    payments,
+    transactionsAll,
+    transactions,
+    stocks,
+    alertes,
+    taches,
+    animaux,
+    lotsData,
+    lots,
+    cultures,
+    productionLogs,
+    businessPlans,
+    investissements,
+    sensorDevices,
+    cameraDevices,
+    meteo,
+    accessibleFarms,
+  ]);
+
+  const allFarmsContext = useMemo(() => {
+    if (farmScope?.mode !== 'all') return null;
+    return buildAllFarmsDashboardContext(accessibleFarms, comparisonSource);
+  }, [farmScope?.mode, accessibleFarms, comparisonSource]);
+
+  const activityKpiCards = useMemo(() => {
+    if (farmScope?.mode === 'all' || !activeFarm?.id) return [];
+    return buildActivityKpiCards(activeFarm, summary, comparisonSource);
+  }, [farmScope?.mode, activeFarm, summary, comparisonSource]);
+
+  const quickActions = useMemo(
+    () => resolveQuickActionsForScope(activeFarm, farmScope, accessibleFarms),
+    [activeFarm, farmScope, accessibleFarms],
+  );
+
+  const adaptedAlerts = useMemo(
+    () => buildAdaptedAlertsPanel(activeFarm, farmScope, comparisonSource, allFarmsContext),
+    [activeFarm, farmScope, comparisonSource, allFarmsContext],
+  );
+
   const openPriority = (item) => {
     if (item.finding) {
       navigateForDashboardFinding(item.finding, navigate);
@@ -622,6 +746,20 @@ export default function DashboardV2(props) {
           pilotage={pilotage}
           weatherReport={weatherReport}
           onOpenPriority={openPriority}
+          farmScope={farmScope}
+          activeFarm={activeFarm}
+          accessibleFarms={accessibleFarms}
+          allFarmsContext={allFarmsContext}
+          activityKpiCards={activityKpiCards}
+          quickActions={quickActions}
+          adaptedAlerts={adaptedAlerts}
+          onManageFarms={onManageFarms}
+          demoModeEnabled={demoModeEnabled}
+          onToggleDemoMode={() => {
+            setFarmDemoModeEnabled(false);
+            setDemoModeEnabled(false);
+            window.location.reload();
+          }}
         />
       ) : (
         <GraphiquesSection props={props} navigate={navigate} periodFiltered={periodFiltered} />

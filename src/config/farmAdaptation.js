@@ -246,4 +246,44 @@ export function formatFarmActivitiesLabel(activityTypes = []) {
   return activities.map(getActivityLabel).join(', ') || '—';
 }
 
+/** Réordonne les onglets — activités prioritaires en premier (Phase 5). */
+const MODULE_TAB_PRIORITY = Object.freeze({
+  elevage: {
+    aviculture_pondeuses: ['Avicole', 'Production', 'Alimentation', 'Santé', 'Résumé'],
+    poulets_chair: ['Avicole', 'Production', 'Alimentation', 'Transformation', 'Résumé'],
+    embouche_bovine: ['Animaux', 'Santé', 'Alimentation', 'Résumé'],
+    ovins: ['Animaux', 'Santé', 'Alimentation'],
+    caprins: ['Animaux', 'Santé', 'Alimentation'],
+  },
+  cultures: {
+    cultures: ['Résumé', 'Graphiques'],
+    maraichage: ['Résumé', 'Graphiques'],
+  },
+});
+
+export function sortModuleTabsForFarm(moduleId = '', tabs = [], farm = {}) {
+  const list = arr(tabs);
+  if (!list.length || !farm?.id) return list;
+  const activities = normalizeFarmActivities(farm.activity_type);
+  const priorityByActivity = MODULE_TAB_PRIORITY[moduleId] || {};
+  let preferred = [];
+  activities.forEach((activity) => {
+    const next = priorityByActivity[activity] || [];
+    preferred = [...preferred, ...next.filter((tab) => !preferred.includes(tab))];
+  });
+  if (!preferred.length) {
+    const rules = mergeActivityRules(farm.activity_type);
+    preferred = rules.enableTabs[moduleId] || [];
+  }
+  if (!preferred.length) return list;
+  return [...list].sort((a, b) => {
+    const ai = preferred.indexOf(a);
+    const bi = preferred.indexOf(b);
+    if (ai === -1 && bi === -1) return list.indexOf(a) - list.indexOf(b);
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+}
+
 export { FARM_ADAPTIVE_MODULES, FARM_COMMON_MODULES, MODULE_LABELS };

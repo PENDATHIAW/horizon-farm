@@ -41,6 +41,8 @@ export default function GlobalFarmControl({
 
   const label = formatFarmScopeLabel(normalizedScope, farms);
   const activitiesLabel = selectedFarm ? formatFarmActivitiesLabel(selectedFarm.activity_type) : 'Consolidation multi-fermes';
+  const statusLabel = selectedFarm?.status === 'paused' ? 'En pause' : selectedFarm?.status === 'archived' ? 'Archivée' : selectedFarm ? 'Active' : null;
+  const statusTone = selectedFarm?.status === 'paused' ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800';
 
   if (!multiFarm) {
     return (
@@ -118,6 +120,9 @@ export default function GlobalFarmControl({
           ) : null}
         </div>
         <span className="text-[11px] text-[#6b8a6b]">{activitiesLabel}</span>
+        {statusLabel ? (
+          <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${statusTone}`}>{statusLabel}</span>
+        ) : null}
         {canManage && onManageFarms ? (
           <button type="button" onClick={onManageFarms} className="inline-flex items-center gap-1 rounded-full border border-[#d1e5d1] bg-white px-3 py-1 text-[11px] font-bold text-[#052e16] hover:bg-[#dcfce7]">
             <Settings2 size={12} />
