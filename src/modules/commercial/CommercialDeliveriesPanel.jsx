@@ -1,0 +1,113 @@
+import { Truck, CheckCircle2, Clock, AlertTriangle, FileText } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { fmtCurrency } from '../../utils/format';
+import {
+  buildCommercialDeliveryQueue,
+  buildDeliveryProofPatch,
+  deliveryProofMessage,
+  DELIVERY_STATUS_LABELS,
+} from '../../utils/commercialDeliveries.js';
+
+const arr = (value) => (Array.isArray(value) ? value : []);
+
+export default function CommercialDeliveriesPanel({
+  deliveries = [],
+  orders = [],
+  clients = [],
+  documents = [],
+  onUpdateDelivery,
+  onCreateDocument,
+  onRefreshWorkflow,
+}) {
+  const queue = buildCommercialDeliveryQueue({ deliveries, orders, clients, documents });
+
+  const markDelivered = async (row) => {
+    await onUpdateDelivery?.(row.id, {
+      statut: 'livree',
+      status: 'livree',
+      delivery_status: 'livree',
+      date_reelle: new Date().toISOString().slice(0, 10),
+    });
+    toast.success('Livraison marquée livrée');
+    await onRefreshWorkflow?.();
+  };
+
+  const addProof = async (row) => {
+    const note = window.prompt('Note / preuve livraison (signature texte, confirmation...)');
+    if (note == null) return;
+    const patch = buildDeliveryProofPatch({ note, clientConfirmed: true });
+    await onUpdateDelivery?.(row.id, patch);
+    if (onCreateDocument) {
+      await onCreateDocument({
+        title: `Preuve livraison ${row.orderId}`,
+        document_category: 'preuve_livraison',
+        module_source: 'commercial',
+        entity_id: row.orderId,
+        order_id: row.orderId,
+        related_id: row.orderId,
+        notes: note,
+      });
+    }
+    toast.success('Preuve enregistrée');
+    await onRefreshWorkflow?.();
+  };
+
+  const Section = ({ title, rows, tone = 'neutral' }) => {
+    if (!rows.length) return null;
+    const border = tone === 'warn' ? 'border-amber-200 bg-amber-50/40' : tone === 'good' ? 'border-emerald-200 bg-emerald-50/40' : 'border-[#eadcc2] bg-white';
+    return (
+      <section className={`rounded-2xl border p-4 ${border}`}>
+        <p className="text-sm font-black text-[#2f2415] mb-3">{title} ({rows.length})</p>
+        <div className="space-y-2">
+          {rows.slice(0, 8).map((row) => (
+            <div key={row.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 flex flex-col md:flex-row md:items-center justify-between gap-2">
+              <div>
+                <p className="font-black text-[#2f2415]">{row.orderId} · {row.clientName}</p>
+                <p className="text-xs text-[#8a7456]">
+                  {DELIVERY_STATUS_LABELS[row.status] || row.statusLabel}
+                  {row.plannedDate ? ` · prévu ${row.plannedDate}` : ''}
+                  {row.address ? ` · ${row.address}` : ''}
+                  {row.fee > 0 ? ` · ${fmtCurrency(row.fee)}` : ' · livraison offerte'}
+                </p>
+                <p className="text-[11px] text-[#8a7456] mt-1">{deliveryProofMessage(row.delivery)}</p>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {row.status !== 'livree' ? (
+                  <button type="button" onClick={() => markDelivered(row)} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-800">
+                    Marquer livrée
+                  </button>
+                ) : null}
+                <button type="button" onClick={() => addProof(row)} className="rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-black text-sky-800">
+                  Ajouter preuve
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4">
+        <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><Truck size={14} /> Livraisons terrain</p>
+        <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
+          <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><Clock size={14} className="text-[#9a6b12]" /><p className="font-black">{queue.toPrepare.length}</p><p className="text-xs text-[#8a7456]">À préparer</p></div>
+          <div className="rounded-xl border border-sky-200 bg-sky-50 p-3"><Truck size={14} className="text-sky-700" /><p className="font-black">{queue.inProgress.length}</p><p className="text-xs text-sky-800">En cours</p></div>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><CheckCircle2 size={14} className="text-emerald-700" /><p className="font-black">{queue.delivered.length}</p><p className="text-xs text-emerald-800">Livrées</p></div>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3"><AlertTriangle size={14} className="text-amber-700" /><p className="font-black">{queue.late.length}</p><p className="text-xs text-amber-800">En retard</p></div>
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3"><FileText size={14} className="text-red-700" /><p className="font-black">{queue.withoutProof.length}</p><p className="text-xs text-red-800">Sans preuve</p></div>
+        </div>
+      </section>
+      <Section title="À préparer" rows={queue.toPrepare} />
+      <Section title="En cours" rows={queue.inProgress} tone="neutral" />
+      <Section title="En retard" rows={queue.late} tone="warn" />
+      <Section title="Livrées sans preuve" rows={queue.withoutProof} tone="warn" />
+      <Section title="Livrées" rows={queue.delivered} tone="good" />
+      {!queue.all.length ? (
+        <p className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-6 text-center text-sm text-[#8a7456]">Aucune livraison enregistrée — créez une vente avec livraison.</p>
+      ) : null}
+    </div>
+  );
+}

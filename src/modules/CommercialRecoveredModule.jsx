@@ -24,7 +24,9 @@ import { resolveCommercialDataset } from '../utils/commercialLiveRows.js';
 import { resolveCommercialClients } from '../utils/clientWorkflows.js';
 import { buildConsolidatedCommercialKpis } from '../utils/commercialKpiConsolidated.js';
 import { buildCommercialReconciliationRows } from '../utils/commercialReconciliation.js';
-import { buildCommercialRelanceRows } from '../utils/commercialRelances.js';
+import { buildScheduledRelanceRows } from '../utils/commercialScheduledRelances.js';
+import { buildCommercialDeliveryQueue } from '../utils/commercialDeliveries.js';
+import { readAllCommercialSubscriptions, subscriptionsToPrepare } from '../utils/commercialSubscriptions.js';
 import { buildCommercialStartupJourney, isCommercialStartupMode } from '../utils/commercialStartup.js';
 import { buildWhatsAppLogPayload, WHATSAPP_STATUSES } from '../utils/whatsappCommercial.js';
 import { listSellableStocks } from '../utils/sellableStock.js';
@@ -35,6 +37,13 @@ import CommercialOpportunitiesPanel from './commercial/CommercialOpportunitiesPa
 import CommercialQuotesPanel from './commercial/CommercialQuotesPanel.jsx';
 import CommercialReconciliationPanel from './commercial/CommercialReconciliationPanel.jsx';
 import CommercialRelancesPanel from './commercial/CommercialRelancesPanel.jsx';
+import CommercialDeliveriesPanel from './commercial/CommercialDeliveriesPanel.jsx';
+import CommercialSubscriptionsPanel from './commercial/CommercialSubscriptionsPanel.jsx';
+import CommercialProspectsPanel from './commercial/CommercialProspectsPanel.jsx';
+import CommercialSegmentsPanel from './commercial/CommercialSegmentsPanel.jsx';
+import CommercialScheduledRelancesPanel from './commercial/CommercialScheduledRelancesPanel.jsx';
+import CommercialPilotagePanel from './commercial/CommercialPilotagePanel.jsx';
+import CommercialMobileToolbar from './commercial/CommercialMobileToolbar.jsx';
 import CommercialStartupPanel from './commercial/CommercialStartupPanel.jsx';
 import VentesV3 from './VentesV3';
 import ClientsReadable from './ClientsReadable';
@@ -233,6 +242,7 @@ export default function CommercialRecoveredModule(props) {
   const culturesRows = rowsOf(props.cultures, culturesCrud, false);
   const documentsRows = rowsOf(props.documents, docsCrud, pf);
   const alertRows = rowsOf(props.alertes, alertsCrud, false);
+  const taskRows = rowsOf(props.tasks || props.existingTasks, tasksCrud, false);
   const sellableStocks = useMemo(() => listSellableStocks(stockRows, 50), [stockRows]);
 
   const refreshWorkflow = props.onRefreshWorkflow || (async () => Promise.allSettled([
@@ -251,8 +261,12 @@ export default function CommercialRecoveredModule(props) {
     onCreateDocument: props.onCreateDocument || docsCrud.create,
     onCreatePayment: props.onCreatePayment || paymentsCrud.create,
     onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create,
+    onUpdateDelivery: props.onUpdateDelivery || deliveriesCrud.update,
+    onUpdateClient: props.onUpdateClient || clientsCrud.update,
+    onCreateClient: props.onCreateClient || clientsCrud.create,
+    onCreateTask: props.onCreateTask || tasksCrud.create,
     onRefreshWorkflow: refreshWorkflow,
-  }), [props.onCreate, props.onCreateItem, props.onUpdate, props.onCreateDelivery, props.onCreateInvoice, props.onCreateDocument, props.onCreatePayment, props.onCreateBusinessEvent, refreshWorkflow]);
+  }), [props.onCreate, props.onCreateItem, props.onUpdate, props.onCreateDelivery, props.onCreateInvoice, props.onCreateDocument, props.onCreatePayment, props.onCreateBusinessEvent, props.onUpdateDelivery, props.onUpdateClient, props.onCreateClient, props.onCreateTask, refreshWorkflow]);
 
   const data = useMemo(() => {
     const enrichOpts = { deliveries: deliveriesAll, invoices: invoicesAll };
@@ -297,12 +311,21 @@ export default function CommercialRecoveredModule(props) {
       lots: lotsRows,
       alertes: alertRows,
     });
-    const relanceRows = buildCommercialRelanceRows({
+    const relanceRows = buildScheduledRelanceRows({
       clients,
       orders: snapshotOrders,
       payments: snapshotPayments,
       whatsappLogs: whatsappLogRows,
+      tasks: taskRows,
     });
+    const deliveryQueue = buildCommercialDeliveryQueue({
+      deliveries: deliveriesAll,
+      orders: snapshotOrders,
+      clients,
+      documents: documentsRows,
+    });
+    const subscriptions = readAllCommercialSubscriptions(clients);
+    const subscriptionsDue = subscriptionsToPrepare(subscriptions);
     const startupJourney = buildCommercialStartupJourney({
       clients,
       salesOrders: snapshotOrders,
@@ -330,6 +353,12 @@ export default function CommercialRecoveredModule(props) {
       consolidatedKpis,
       reconciliationRows,
       relanceRows,
+      deliveryQueue,
+      subscriptions,
+      subscriptionsDue,
+      deliveries: deliveriesAll,
+      invoices: invoicesAll,
+      tasks: taskRows,
       startupJourney,
       startupMode: isCommercialStartupMode({
         clients,
@@ -354,18 +383,24 @@ export default function CommercialRecoveredModule(props) {
   }, [
     orders, ordersAll, payments, paymentsAll, deliveriesAll, invoicesAll, clients, opportunities,
     orderItemRows, transactionRows, documentsRows, stockRows, animauxRows, lotsRows, culturesRows,
-    alertRows, whatsappLogRows, sellableStocks, workflowHandlers, props.periodScope, props.farmScope,
+    alertRows, whatsappLogRows, taskRows, sellableStocks, workflowHandlers, props.periodScope, props.farmScope,
     props.accessibleFarms, props.activeFarm,
   ]);
 
-  const openNewSale = () => {
-    setPendingSaleDraft({ form_type: 'sale_record', date: new Date().toISOString().slice(0, 10) });
+  const openNewSale = (draft = null) => {
+    setPendingSaleDraft(draft || { form_type: 'sale_record', date: new Date().toISOString().slice(0, 10) });
     setTab('Ventes');
   };
 
   const traceRows = allRows(props.tracabiliteAll, traceCrud).length ? allRows(props.tracabiliteAll, traceCrud) : rowsOf(props.tracabilite, traceCrud, pf);
   const salesProps = { embedded: true, rows: data.orders, clients, initialSaleDraft: pendingSaleDraft, onConsumeSaleDraft: () => setPendingSaleDraft(null), orderItems: orderItemRows, deliveriesList: deliveriesAll.length ? deliveriesAll : rowsOf(props.deliveries, deliveriesCrud, pf), invoicesList: rowsOf(props.invoices, invoicesCrud, pf), paymentsList: paymentsAll, payments: paymentsAll, opportunities, tasks: rowsOf(props.tasks || props.existingTasks, tasksCrud, false), existingTasks: rowsOf(props.existingTasks || props.tasks, tasksCrud, false), animaux: animauxRows, lots: lotsRows, cultures: culturesRows, stocks: stockRows, alimentationLogs: rowsOf(props.alimentationLogs, alimentationCrud, pf), productionLogs: rowsOf(props.productionLogs, productionCrud, pf), vaccins: rowsOf(props.vaccins || props.sante, santeCrud, pf), transactions: transactionRows, businessEvents: rowsOf(props.businessEvents, eventsCrud, pf), documents: documentsRows, alertes: alertRows, farmScope: props.farmScope, accessibleFarms: props.accessibleFarms, activeFarm: props.activeFarm, onCreate: workflowHandlers.onCreateOrder, onUpdate: workflowHandlers.onUpdateOrder, onDelete: props.onDelete || ordersCrud.remove, onRefresh: props.onRefresh || ordersCrud.refresh, onCreateItem: workflowHandlers.onCreateItem, onUpdateItem: props.onUpdateItem || itemsCrud.update, onDeleteItem: props.onDeleteItem || itemsCrud.remove, onCreateDelivery: workflowHandlers.onCreateDelivery, onUpdateDelivery: props.onUpdateDelivery || deliveriesCrud.update, onDeleteDelivery: props.onDeleteDelivery || deliveriesCrud.remove, onRefreshDeliveries: props.onRefreshDeliveries || deliveriesCrud.refresh, onCreateInvoice: workflowHandlers.onCreateInvoice, onUpdateInvoice: props.onUpdateInvoice || invoicesCrud.update, onDeleteInvoice: props.onDeleteInvoice || invoicesCrud.remove, onRefreshInvoices: props.onRefreshInvoices || invoicesCrud.refresh, onCreatePayment: workflowHandlers.onCreatePayment, onUpdatePayment: props.onUpdatePayment || paymentsCrud.update, onDeletePayment: props.onDeletePayment || paymentsCrud.remove, onRefreshPayments: props.onRefreshPayments || paymentsCrud.refresh, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onDeleteOpportunity: props.onDeleteOpportunity || opportunitiesCrud.remove, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, onUpdateAnimal: props.onUpdateAnimal || animalsCrud.update, onRefreshAnimals: props.onRefreshAnimals || animalsCrud.refresh, onUpdateLot: props.onUpdateLot || lotsCrud.update, onRefreshLots: props.onRefreshLots || lotsCrud.refresh, onUpdateCulture: props.onUpdateCulture || culturesCrud.update, onRefreshCultures: props.onRefreshCultures || culturesCrud.refresh, onUpdateStock: props.onUpdateStock || stockCrud.update, onRefreshStocks: props.onRefreshStocks || stockCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onUpdateFinanceTransaction: props.onUpdateFinanceTransaction || financesCrud.update, onDeleteFinanceTransaction: props.onDeleteFinanceTransaction || financesCrud.remove, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateTrace: props.onCreateTrace || traceCrud.create, onUpdateTrace: props.onUpdateTrace || traceCrud.update, onRefreshTrace: props.onRefreshTrace || traceCrud.refresh, traces: traceRows, onCreateBusinessEvent: workflowHandlers.onCreateBusinessEvent, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onCreateDocument: workflowHandlers.onCreateDocument, onUpdateDocument: props.onUpdateDocument || docsCrud.update, onDeleteDocument: props.onDeleteDocument || docsCrud.remove, onRefreshDocuments: props.onRefreshDocuments || docsCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onUpdateAlert: props.onUpdateAlert || alertsCrud.update, onDeleteAlert: props.onDeleteAlert || alertsCrud.remove, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onDeleteTask: props.onDeleteTask || tasksCrud.remove, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onUpdateClient: props.onUpdateClient || clientsCrud.update, onRefreshClients: props.onRefreshClients || clientsCrud.refresh, onRefreshWorkflow: refreshWorkflow, onNavigate: props.onNavigate };
   const clientProps = { embedded: true, rows: clients, salesOrders: enrichCommercialOrders(ordersAll, { deliveries: deliveriesAll, invoices: invoicesAll }), payments: paymentsAll, opportunities: data.openOpportunities, transactions: transactionRows, whatsappLogs: whatsappLogRows, onCreateWhatsappLog: whatsappLogsCrud.create, onUpdateWhatsappLog: whatsappLogsCrud.update, onRefreshWhatsappLogs: whatsappLogsCrud.refresh, onCreate: props.onCreateClient || clientsCrud.create, onUpdate: props.onUpdateClient || clientsCrud.update, onDelete: props.onDeleteClient || clientsCrud.remove, onRefresh: props.onRefreshClients || clientsCrud.refresh, onNavigate: props.onNavigate };
+  const panelCommon = {
+    farmScope: props.farmScope,
+    accessibleFarms: props.accessibleFarms,
+    activeFarm: props.activeFarm,
+    onRefreshWorkflow: refreshWorkflow,
+  };
 
   const logOpportunityWhatsApp = async (client, message) => {
     const payload = buildWhatsAppLogPayload({
@@ -423,10 +458,18 @@ export default function CommercialRecoveredModule(props) {
   };
 
   const todoBadge = data.todoCount;
+  const tabBadges = {
+    Ventes: data.openSalesCount,
+    Clients: data.clientsDebtCount,
+    Livraisons: data.deliveryQueue?.late?.length || 0,
+    Abonnements: data.subscriptionsDue?.length || 0,
+    Relances: data.relanceRows?.length || 0,
+    Opportunités: data.openOpportunities.length,
+  };
 
   return (
     <div className="space-y-4">
-      <CommercialModuleHeader tab={tab} setTab={setTab} healthScore={data.healthScore} periodLabel={props.periodLabel} onNavigate={props.onNavigate} onOpenAssistant={props.onOpenAssistant} badges={{ receivable: data.receivable, todo: todoBadge, tabs: { Ventes: data.openSalesCount, Clients: data.clientsDebtCount, Opportunités: data.openOpportunities.length } }} />
+      <CommercialModuleHeader tab={tab} setTab={setTab} healthScore={data.healthScore} periodLabel={props.periodLabel} onNavigate={props.onNavigate} onOpenAssistant={props.onOpenAssistant} badges={{ receivable: data.receivable, todo: todoBadge, tabs: tabBadges }} />
       {tab === 'Résumé' ? (
         <Summary
           data={data}
@@ -438,8 +481,54 @@ export default function CommercialRecoveredModule(props) {
         />
       ) : null}
       {tab === 'Ventes' ? <VentesV3 {...salesProps} /> : null}
-      {tab === 'Clients' ? <ClientsReadable {...clientProps} /> : null}
+      {tab === 'Clients' ? (
+        <div className="space-y-4">
+          <ClientsReadable {...clientProps} />
+          <CommercialSegmentsPanel clients={clients} orders={data.ordersAll} payments={data.paymentsAll} relanceRows={data.relanceRows} />
+          <CommercialProspectsPanel
+            clients={clients}
+            onCreateClient={workflowHandlers.onCreateClient}
+            onUpdateClient={workflowHandlers.onUpdateClient}
+            onCreateOrder={workflowHandlers.onCreateOrder}
+            onCreateItem={workflowHandlers.onCreateItem}
+            onRefreshWorkflow={refreshWorkflow}
+            onNewQuote={() => setTab('Ventes')}
+            {...panelCommon}
+          />
+        </div>
+      ) : null}
+      {tab === 'Livraisons' ? (
+        <CommercialDeliveriesPanel
+          deliveries={deliveriesAll}
+          orders={data.ordersAll}
+          clients={clients}
+          documents={documentsRows}
+          onUpdateDelivery={workflowHandlers.onUpdateDelivery}
+          onCreateDocument={workflowHandlers.onCreateDocument}
+          onRefreshWorkflow={refreshWorkflow}
+        />
+      ) : null}
+      {tab === 'Abonnements' ? (
+        <CommercialSubscriptionsPanel
+          clients={clients}
+          onUpdateClient={workflowHandlers.onUpdateClient}
+          onNewSale={openNewSale}
+          activeFarm={props.activeFarm}
+        />
+      ) : null}
+      {tab === 'Relances' ? (
+        <CommercialScheduledRelancesPanel
+          rows={data.relanceRows}
+          onCreateTask={workflowHandlers.onCreateTask}
+          onRefreshTasks={props.onRefreshTasks || tasksCrud.refresh}
+          onOpenClient={openClientTab}
+          onPrepareWhatsApp={prepareRelanceWhatsApp}
+        />
+      ) : null}
       {tab === 'Opportunités' ? <CommercialOpportunitiesPanel opportunities={data.openOpportunities} clients={clients} salesOrders={data.orders} setTab={setTab} onWhatsAppLog={logOpportunityWhatsApp} onConvertSale={convertOpportunityToSale} /> : null}
+      {tab === 'Pilotage' ? (
+        <CommercialPilotagePanel data={data} setTab={setTab} periodLabel={props.periodLabel} />
+      ) : null}
       {tab === 'Annexe' ? (
         <CommercialAnnexeTab
           documents={documentsRows}
@@ -473,6 +562,13 @@ export default function CommercialRecoveredModule(props) {
           onNavigate={props.onNavigate}
         />
       ) : null}
+      <CommercialMobileToolbar
+        onNewSale={() => openNewSale()}
+        setTab={setTab}
+        onCollect={() => setTab('Ventes')}
+        onDeliver={() => setTab('Livraisons')}
+        onRelance={() => setTab('Relances')}
+      />
     </div>
   );
 }
