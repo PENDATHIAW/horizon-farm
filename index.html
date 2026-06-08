@@ -11,35 +11,7 @@
     <meta name="apple-mobile-web-app-title" content="Horizon Farm" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Horizon Farm ERP</title>
-    <script>
-      (function () {
-        var stale = ['index-DrX_eSIh', 'index-DU6ne3u9', 'index-C6b11YcK', 'index-CC7OqkEB', 'index-CORKCWhl'];
-        function purgeIfStale() {
-          var el = document.querySelector('script[src*="/assets/index-"]');
-          var src = (el && el.getAttribute('src')) || '';
-          if (!stale.some(function (m) { return src.indexOf(m) > -1; })) return;
-          var done = function () { window.location.reload(); };
-          var step = Promise.resolve();
-          if ('serviceWorker' in navigator) {
-            step = step.then(function () {
-              return navigator.serviceWorker.getRegistrations().then(function (regs) {
-                return Promise.all(regs.map(function (r) { return r.unregister(); }));
-              });
-            });
-          }
-          if ('caches' in window) {
-            step = step.then(function () {
-              return caches.keys().then(function (keys) {
-                return Promise.all(keys.map(function (k) { return caches.delete(k); }));
-              });
-            });
-          }
-          step.then(done).catch(done);
-        }
-        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', purgeIfStale);
-        else purgeIfStale();
-      })();
-    </script>
+    <script src="/stale-bundle-guard.js"></script>
   </head>
   <body>
     <div id="root"></div>

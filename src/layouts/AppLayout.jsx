@@ -17,7 +17,7 @@ const safeWeather = (value = {}) => ({ temp: value?.temp ?? '-', apparentTemp: v
 const formatDateTime = () => new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' }).format(new Date());
 
 const NAV_GROUPS = [
-  { key: 'pilotage', label: 'Pilotage', ids: ['dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance', 'impact_business', 'investisseurs_forums'] },
+  { key: 'pilotage', label: 'Pilotage', ids: ['dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance', 'investisseurs_forums'] },
   { key: 'production', label: 'Production', ids: ['elevage', 'cultures'] },
   { key: 'commerce', label: 'Commerce', ids: ['commercial', 'achats_stock'] },
   { key: 'finance', label: 'Finance', ids: ['finance_pilotage'] },

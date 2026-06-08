@@ -1,5 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { MODULE_REGISTRY, NAV_MODULE_ORDER } from './config/modules.config';
+import { MODULE_ENTRY_POINTS, resolveActiveModuleId } from './config/moduleEntryPoints';
+import { lazyWithRetry } from './utils/lazyWithRetry';
 import { computeNavAlertCounts, navAlertFlags } from './services/erpHealthRules';
 import { scheduleErpHealthEngine, scheduleErpHealthOnCriticalChange } from './services/erpHealthEngine';
 import { trackNavOpen } from './services/erpRules/surveillanceUxRules.js';
@@ -34,12 +36,9 @@ import { clearPeriodFilterCache } from './utils/periodFilterCache';
 import { formatPeriodScopeLabel, isAllTimeScope, normalizePeriodScope } from './utils/periodScope';
 import LoginPage from './pages/LoginPage';
 
-const MODULES = {
-  dashboard: lazy(() => import('./modules/DashboardV2')), assistant_erp: lazy(() => import('./modules/AssistantERPV2')), centre_ia: lazy(() => import('./modules/CentreIA')), objectifs_croissance: lazy(() => import('./modules/ObjectifsCroissanceV2')),
-  elevage: lazy(() => import('./modules/ElevageModule')), commercial: lazy(() => import('./modules/CommercialModule')), achats_stock: lazy(() => import('./modules/AchatsStockModule')), finance_pilotage: lazy(() => import('./modules/FinancePilotageModule')), activite_suivi: lazy(() => import('./modules/ActiviteSuiviModule')), documents_rapports: lazy(() => import('./modules/DocumentsRapportsModule')), animaux: lazy(() => import('./modules/AnimauxV2')), avicole: lazy(() => import('./modules/AvicoleV10')), sante: lazy(() => import('./modules/SanteV8')), finances: lazy(() => import('./modules/FinancesV12')), comptabilite: lazy(() => import('./modules/ComptabiliteV7')), investissements: lazy(() => import('./modules/InvestissementsV9')), impact_business: lazy(() => import('./modules/ImpactBusiness')), investisseurs_forums: lazy(() => import('./modules/InvestisseursForumsModule.jsx')), stock: lazy(() => import('./modules/StocksV5')),
-  clients: lazy(() => import('./modules/ClientsReadable')), fournisseurs: lazy(() => import('./modules/FournisseursReadable')), tracabilite: lazy(() => import('./modules/TracabiliteV2')), alertes: lazy(() => import('./modules/AlertesCenterV2')), cultures: lazy(() => import('./modules/CulturesV5')), smartfarm: lazy(() => import('./modules/SmartFarm')), ventes: lazy(() => import('./modules/VentesV3')), documents: lazy(() => import('./modules/DocumentsV2')), taches: lazy(() => import('./modules/TachesV3')),
-  rh: lazy(() => import('./modules/RHV2')), rapports: lazy(() => import('./modules/RapportsV2')), equipements: lazy(() => import('./modules/EquipementsV2')), sync: lazy(() => import('./modules/SyncActivityCenterV2')), sync_activity: lazy(() => import('./modules/SyncActivityCenterV2')), audit_logs: lazy(() => import('./modules/SyncActivityCenterV2')), gestion_systeme: lazy(() => import('./modules/GestionSystemeV2')),
-};
+const MODULES = Object.fromEntries(
+  Object.entries(MODULE_ENTRY_POINTS).map(([id, loader]) => [id, lazy(() => lazyWithRetry(loader))]),
+);
 const CRUD_KEYS = ['animaux','avicole','sante','veterinaires','finances','investissements','business_plans','bp_investment_lines','bp_recurring_costs','bp_revenue_projections','bp_funding_sources','bp_links','bp_risks','stock','clients','fournisseurs','tracabilite','cultures','documents','taches','rapports','equipements','audit_logs','alimentation_logs','production_oeufs_logs','sensor_devices','camera_devices','business_events','alertes_center','whatsapp_templates','whatsapp_logs','sales_orders','sales_order_items','deliveries','invoices','payments','sales_opportunities'];
 const rows = (crud) => crud?.rows || [];
 const arr = (value) => (Array.isArray(value) ? value : []);
@@ -608,9 +607,9 @@ export default function App() {
 
   const activeModuleProps = useMemo(
     () => applyFarmScopeToProps(
-      applyPeriodScopeToProps(moduleProps[active] || {}, periodScope, { cacheGeneration: crudFingerprint }),
+      applyPeriodScopeToProps(moduleProps[resolveActiveModuleId(active)] || moduleProps[active] || {}, periodScope, { cacheGeneration: crudFingerprint }),
       farmScope,
-      { accessibleFarms: effectiveAccessibleFarms, activeFarm, moduleId: active },
+      { accessibleFarms: effectiveAccessibleFarms, activeFarm, moduleId: resolveActiveModuleId(active) },
     ),
     [moduleProps, active, periodScopeKey, crudFingerprint, commercialTab, elevageTab, achatsStockTab, financeTab, centreTab, objectifsTab, periodScope, farmScope, effectiveAccessibleFarms, activeFarm],
   );
@@ -640,15 +639,16 @@ export default function App() {
 
   if (authLoading) return <div className="min-h-screen bg-[#f6efe2] flex items-center justify-center text-[#2f2415] font-black">Chargement Horizon Farm...</div>;
   if (!user) return <LoginPage />;
-  const ActiveModule = MODULES[active] || MODULES.dashboard;
+  const resolvedActive = resolveActiveModuleId(active);
+  const ActiveModule = MODULES[resolvedActive] || MODULES.dashboard;
 
-  const activeModuleLabel = MODULE_REGISTRY[active]?.label || active;
+  const activeModuleLabel = MODULE_REGISTRY[resolvedActive]?.label || MODULE_REGISTRY[active]?.label || resolvedActive;
 
   return <>
     <ProductionUpdateBanner />
-    <AppLayout navItems={navItems} active={active} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => setAssistantOpen(true)} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange} farmScope={normalizeFarmScope(farmScope, effectiveAccessibleFarms)} accessibleFarms={effectiveAccessibleFarms} onFarmScopeChange={handleFarmScopeChange} activeFarm={activeFarm} onManageFarms={handleManageFarms}>
+    <AppLayout navItems={navItems} active={resolvedActive} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => setAssistantOpen(true)} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange} farmScope={normalizeFarmScope(farmScope, effectiveAccessibleFarms)} accessibleFarms={effectiveAccessibleFarms} onFarmScopeChange={handleFarmScopeChange} activeFarm={activeFarm} onManageFarms={handleManageFarms}>
     <FarmActivityNotice message={activeModuleProps.farmActivityNotice} farmName={activeFarm?.name} actionLabel={activeModuleProps.farmActivityNoticeDetail?.actionLabel} onAction={activeModuleProps.farmActivityNoticeDetail ? handleFarmActivityAction : undefined} />
-    <ErrorBoundary moduleName={activeModuleLabel} resetKey={active} onBackToDashboard={() => setActive('dashboard')}><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...activeModuleProps} periodLabel={periodLabel} farmScopeLabel={formatFarmScopeLabel(farmScope, effectiveAccessibleFarms)} /></Suspense></ErrorBoundary>
+    <ErrorBoundary moduleName={activeModuleLabel} resetKey={resolvedActive} onBackToDashboard={() => setActive('dashboard')}><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...activeModuleProps} periodLabel={periodLabel} farmScopeLabel={formatFarmScopeLabel(farmScope, effectiveAccessibleFarms)} /></Suspense></ErrorBoundary>
     <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={scopedAssistantDataMap} onNavigate={setActive} onCreateBusinessEvent={c.business_events.create} />
     <ErpInterconnectionBridge cruds={c} />
     <AppNotificationManager />

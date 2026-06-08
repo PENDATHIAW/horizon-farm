@@ -8,9 +8,11 @@ import ChatPage from './pages/ChatPage';
 import ChatLoginPage from './pages/ChatLoginPage';
 import { registerServiceWorker } from './services/pwa';
 import { initFormModalBridge } from './services/formModalManager';
+import { installChunkLoadRecovery } from './utils/lazyWithRetry';
 import './index.css';
 
 registerServiceWorker();
+installChunkLoadRecovery();
 initFormModalBridge();
 
 function ToastGuard() {
