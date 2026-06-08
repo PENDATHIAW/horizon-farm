@@ -36,7 +36,7 @@
     "test:unit:guided-repairs": "npx vite-node tests/unit/syncGuidedRepairActions.test.js",
     "test:unit:idempotency": "node --test tests/unit/workflowIdempotency.test.js",
     "test:unit:module-smoke": "npx vite-node tests/unit/moduleImportSmoke.test.js",
-    "test:unit:render-smoke": "npx vite-node tests/unit/moduleRenderSmoke.test.js && npx vite-node tests/unit/moduleMissingImports.test.js && node --test tests/unit/farmAdaptationNull.test.js",
+    "test:unit:render-smoke": "npx vite-node tests/unit/moduleRenderSmoke.test.js && npx vite-node tests/unit/moduleMissingImports.test.js && npx vite-node tests/unit/investorRoomPanels.test.js && node --test tests/unit/farmAdaptationNull.test.js",
     "test:unit:annexe-tabs": "node --test tests/unit/annexeTabsConfig.test.js",
     "test:unit:bp-concretisation": "npx vite-node tests/unit/bpLineConcretization.test.js",
     "test:unit:bp-import": "npx vite-node tests/unit/bpImportDispatch.test.js",

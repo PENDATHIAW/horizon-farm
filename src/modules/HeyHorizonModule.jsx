@@ -163,9 +163,14 @@ export default function HeyHorizonModule({
     const openAlerts = alertes.filter(open);
     const missingProof = finances.filter((row) => amount(row) > 0 && !row.document_id && !row.proof_url && !row.justificatif_id);
     const aiRecommendations = buildRecommendationsFromData(enrichedDataMap);
-    const health = runErpHealthEngine(enrichedDataMap);
-    const proactiveFindings = health.findings.filter((f) => f.recommended_action).slice(0, 12);
-    return { stocks, finances, tasks, alertes, documents, lowStocks, openReceivables, openTasks, openAlerts, missingProof, aiRecommendations, proactiveFindings, healthScore: health.score };
+    let health = { score: 75, findings: [] };
+    try {
+      health = runErpHealthEngine(enrichedDataMap);
+    } catch (error) {
+      console.warn('Hey Horizon: analyse santé ERP indisponible', error?.message || error);
+    }
+    const proactiveFindings = (health.findings || []).filter((f) => f.recommended_action).slice(0, 12);
+    return { stocks, finances, tasks, alertes, documents, lowStocks, openReceivables, openTasks, openAlerts, missingProof, aiRecommendations, proactiveFindings, healthScore: health.score ?? 75 };
   }, [dataMap, enrichedDataMap]);
   const journal = useMemo(
     () => buildAssistantJournal({
