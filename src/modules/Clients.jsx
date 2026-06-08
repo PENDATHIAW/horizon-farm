@@ -19,6 +19,11 @@ import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { fmtCurrency } from '../utils/format';
 import { generateSequentialId, makeId } from '../utils/ids';
 import { openWhatsAppApp } from '../utils/contactActions';
+import {
+  buildWhatsAppLogPayload,
+  WHATSAPP_STATUSES,
+  whatsAppStatusLabel,
+} from '../utils/whatsappCommercial.js';
 import { buildSenegalMapQuery } from '../utils/location';
 import { calculateClientMetrics } from '../utils/businessCalculations';
 import ClientsEvolution from './ClientsEvolution.jsx';
@@ -146,11 +151,60 @@ export default function Clients({ rows = [], loading, salesOrders = [], payments
   const doExports = () => { const enrichedRows = filteredRows.map((client) => ({ ...client, ...metricsFor(client), ...salesSummaryFor(client), ...segmentFor(client) })); exportToCsv({ rows: enrichedRows, fileName: 'clients.csv' }); exportToExcel({ rows: enrichedRows, fileName: 'clients.xlsx', sheetName: 'Clients' }); exportToPdf({ rows: enrichedRows, title: 'Clients', fileName: 'clients.pdf' }); toast.success('Exports clients générés'); };
   const toggleAutomation = async (key) => { try { await automations.toggle(key); toast.success('Automatisation sauvegardée'); } catch (error) { toast.error(error.message || 'Sauvegarde impossible'); } };
   const messageFor = (client) => { const summary = salesSummaryFor(client); const segment = segmentFor(client); if (summary.resteAPayer > 0) return `Bonjour ${clientName(client)}, sauf erreur, il reste ${fmtCurrency(summary.resteAPayer)} à régler sur vos commandes Horizon Farm. Merci.`; if (segment.segment === 'VIP / Gros acheteur') return `Bonjour ${clientName(client)}, Horizon Farm peut vous réserver une disponibilité prioritaire. Souhaitez-vous préparer une précommande ?`; if (segment.segment === 'Dormant') return `Bonjour ${clientName(client)}, nous aimerions reprendre contact avec vous. Souhaitez-vous recevoir nos disponibilités Horizon Farm ?`; return `Bonjour ${clientName(client)}, souhaitez-vous renouveler votre commande Horizon Farm ?`; };
-  const logWhatsApp = async (client, message, reason = 'relance_client') => { await whatsappLogsCrud.create?.({ id: makeId('WALOG'), client_id: client.id, recipient: clientPhone(client), message, status: 'prepare', provider: 'whatsapp', reason, sent_at: new Date().toISOString(), dedupe_key: `${clientReceivableKey(client)}:${reason}:${today()}` }); await whatsappLogsCrud.refresh?.(); };
+  const logWhatsApp = async (client, message, reason = 'relance_client', links = {}) => {
+    const logId = makeId('WALOG');
+    const payload = buildWhatsAppLogPayload({
+      client,
+      message,
+      reason,
+      status: WHATSAPP_STATUSES.PREPARE,
+      logId,
+      orderId: links.orderId || '',
+      invoiceId: links.invoiceId || '',
+      quoteId: links.quoteId || '',
+      paymentId: links.paymentId || '',
+    });
+    await whatsappLogsCrud.create?.({
+      ...payload,
+      dedupe_key: `${clientReceivableKey(client)}:${reason}:${today()}`,
+    });
+    await whatsappLogsCrud.refresh?.();
+    return logId;
+  };
+  const markWhatsAppOpened = async (logId) => {
+    if (!logId) return;
+    await whatsappLogsCrud.update?.(logId, {
+      status: WHATSAPP_STATUSES.OPENED,
+      opened_at: new Date().toISOString(),
+      delivery_confirmed: false,
+      api_confirmed: false,
+    });
+    await whatsappLogsCrud.refresh?.();
+  };
+  const markWhatsAppSent = async (logId) => {
+    if (!logId) return;
+    await whatsappLogsCrud.update?.(logId, {
+      status: WHATSAPP_STATUSES.SENT_MANUAL,
+      manual_send_confirmed: true,
+      sent_confirmed_at: new Date().toISOString(),
+      delivery_confirmed: false,
+      api_confirmed: false,
+    });
+    await whatsappLogsCrud.refresh?.();
+    toast.success(`WhatsApp marqué : ${whatsAppStatusLabel(WHATSAPP_STATUSES.SENT_MANUAL)}`);
+  };
   const openWhatsApp = async (client) => {
     const message = messageFor(client);
-    try { await logWhatsApp(client, message, salesSummaryFor(client).resteAPayer > 0 ? 'relance_creance' : 'relance_renouvellement'); } catch (error) { console.warn(error.message); }
-    await openWhatsAppApp({ phone: clientPhone(client), message, fallbackWeb: true });
+    let logId = '';
+    try {
+      logId = await logWhatsApp(client, message, salesSummaryFor(client).resteAPayer > 0 ? 'relance_creance' : 'relance_renouvellement');
+    } catch (error) { console.warn(error.message); }
+    try {
+      await openWhatsAppApp({ phone: clientPhone(client), message, fallbackWeb: true });
+      await markWhatsAppOpened(logId);
+    } catch (error) {
+      console.warn(error.message);
+    }
   };
   const openContact = (client, message, title = 'Contacter le client') => setContactModal({ client, message, title });
   const openProfile = (client) => setProfileClient(client);
@@ -248,7 +302,9 @@ export default function Clients({ rows = [], loading, salesOrders = [], payments
         client={contactModal?.client}
         title={contactModal?.title}
         defaultMessage={contactModal?.message || ''}
-        onWhatsAppLog={(client, message) => logWhatsApp(client, message, salesSummaryFor(client).resteAPayer > 0 ? 'relance_creance' : 'relance_renouvellement')}
+        onWhatsAppLog={async (client, message) => logWhatsApp(client, message, salesSummaryFor(client).resteAPayer > 0 ? 'relance_creance' : 'relance_renouvellement')}
+        onWhatsAppOpened={markWhatsAppOpened}
+        onMarkWhatsAppSent={markWhatsAppSent}
       />
       <ClientProfileModal
         open={Boolean(profileClient)}

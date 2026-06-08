@@ -12,6 +12,12 @@ import {
 } from '../utils/commercialSaleWorkflow';
 import { DELIVERY_HINT, isMeatStock, saleSourceHint } from '../utils/saleSourceHints';
 import useWorkflowSubmit from '../hooks/useWorkflowSubmit';
+import { buildSellableStockSaleOptions } from '../utils/sellableStock.js';
+import {
+  applyCommercialDiscounts,
+  buildPricingSummary,
+  enrichSaleFormWithClientPricing,
+} from '../utils/commercialPricing.js';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const today = () => new Date().toISOString().slice(0, 10);
@@ -20,9 +26,8 @@ const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').
 const WALK_IN = 'client_passage';
 const paymentMethods = [{ value: 'especes', label: 'Espèces' }, { value: 'wave', label: 'Wave' }, { value: 'orange_money', label: 'Orange Money' }, { value: 'virement', label: 'Virement' }, { value: 'cheque', label: 'Chèque' }];
 const productTypes = { lot_avicole: 'Lot avicole', animal: 'Animal', stock: 'Stock', culture: 'Culture / récolte', service: 'Prestation / service', autre: 'Autre vente' };
-const blockedStockWords = ['aliment', 'vaccin', 'medicament', 'médicament', 'antibiotique', 'desinfectant', 'désinfectant', 'veterinaire', 'vétérinaire'];
 const clientName = (clients = [], id) => id === WALK_IN ? 'Client de passage' : arr(clients).find((c) => String(c.id) === String(id))?.nom || arr(clients).find((c) => String(c.id) === String(id))?.name || id || 'Client';
-const isSellableStock = (stock = {}) => stock.is_sellable === true || stock.vendable === true || !blockedStockWords.some((word) => norm(`${stock.produit || ''} ${stock.nom || ''} ${stock.categorie || ''}`).includes(norm(word)));
+const clientRow = (clients = [], id) => arr(clients).find((c) => String(c.id) === String(id)) || null;
 const lotText = (lot = {}) => norm(`${lot.type || ''} ${lot.type_lot || ''} ${lot.name || ''} ${lot.nom || ''}`);
 const isPondeuseLot = (lot = {}) => ['pondeuse', 'ponte', 'oeuf', 'œuf'].some((word) => lotText(lot).includes(word));
 const lotActiveCount = (lot = {}) => num(lot.current_count ?? lot.effectif_actuel ?? lot.active_count ?? lot.effectif_restant ?? lot.initial_count ?? lot.effectif_initial);
@@ -45,14 +50,14 @@ const STEPS = [
 
 const defaultForm = () => ({
   date: today(), client_id: WALK_IN, source_type: 'lot_avicole', source_id: '', product_name: '',
-  quantity: 1, unit: 'tête', unit_price: 0, payment_status: 'paye', paid_amount: '', payment_method: 'especes',
+  quantity: 1, unit: 'tête', unit_price: 0, discount_pct: 0, discount_amount: 0, payment_status: 'paye', paid_amount: '', payment_method: 'especes',
   fulfillment_mode: 'recupere', delivery_fee: 0, invoice_issued: true, notes: '', opportunity_id: '', lines: [],
 });
 
 function buildOptions(type, props) {
   if (type === 'lot_avicole') return arr(props.lots).filter((lot) => !['vendu', 'termine', 'terminé', 'perdu'].includes(norm(lot.status || lot.statut))).map((lot) => ({ value: lot.id, label: `${lot.id} · ${isPondeuseLot(lot) ? 'Œufs / pondeuses' : 'Poulets chair'} · ${lotActiveCount(lot)} disponible(s)`, qty: lotActiveCount(lot), price: num(lot.prix_vente_prevu ?? lot.prix_unitaire_vente ?? lot.prix_tablette ?? lot.prix_plateau), name: isPondeuseLot(lot) ? `Œufs · ${lot.name || lot.nom || lot.id}` : `${lot.id} · Poulets chair`, unit: isPondeuseLot(lot) ? 'tablette' : 'tête', sale_kind: isPondeuseLot(lot) ? 'oeufs_tablettes' : 'chair' })).filter((o) => o.qty > 0);
   if (type === 'animal') return arr(props.animaux).filter((a) => !['vendu', 'mort', 'vole', 'volé'].includes(norm(a.status || a.statut))).map((a) => ({ value: a.id, label: `${a.id} · ${a.name || a.type || a.espece || 'Animal'}`, qty: 1, price: num(a.prix_vente_estime || a.sale_price || a.prix_vente), name: a.name || a.nom || a.id, unit: 'tête', sale_kind: 'animal' }));
-  if (type === 'stock') return arr(props.stocks).filter((s) => num(s.quantite) > 0 && isSellableStock(s)).map((s) => ({ value: s.id, label: `${s.produit || s.nom || s.id}${isMeatStock(s) ? ' · viande abattue' : ''} · ${s.quantite} ${s.unite || ''}`, qty: num(s.quantite), price: num(s.prixunit || s.prixUnit || s.prix_unitaire || s.cout_revient_unitaire), name: s.produit || s.nom || s.id, unit: s.unite || 'unité', sale_kind: 'stock', sourceRow: s }));
+  if (type === 'stock') return buildSellableStockSaleOptions(props.stocks, { meatChecker: isMeatStock });
   if (type === 'service') return [];
   if (type === 'culture') return arr(props.cultures).filter((c) => num(c.quantite_disponible ?? c.quantite_recoltee) > 0).map((c) => ({ value: c.id, label: `${c.culture || c.nom || c.id} · ${c.quantite_disponible ?? c.quantite_recoltee} ${c.unite || 'kg'}`, qty: num(c.quantite_disponible ?? c.quantite_recoltee), price: num(c.prix_vente_kg), name: c.culture || c.nom || c.id, unit: c.unite || 'kg', sale_kind: 'culture' }));
   return [];
@@ -99,7 +104,18 @@ export function SaleModal({ props, onClose, onDone, prefill = null }) {
   const { submit: workflowSubmit, busy: workflowBusy } = useWorkflowSubmit();
   const options = useMemo(() => buildOptions(form.source_type, props), [form.source_type, props]);
   const selected = options.find((o) => String(o.value) === String(form.source_id));
-  const productTotal = Math.max(0, num(form.quantity) * num(form.unit_price));
+  const selectedClient = clientRow(props.clients, form.client_id);
+  const pricing = useMemo(() => buildPricingSummary(form, {
+    client: form.client_id !== WALK_IN ? selectedClient : null,
+    sourceRow: selected?.sourceRow || selected,
+  }), [form, selected, selectedClient]);
+  const linePricing = useMemo(() => applyCommercialDiscounts({
+    unitPrice: form.unit_price,
+    quantity: form.quantity,
+    discountPct: form.discount_pct,
+    discountAmount: form.discount_amount,
+  }), [form.unit_price, form.quantity, form.discount_pct, form.discount_amount]);
+  const productTotal = linePricing.lineTotal;
   const deliveryFee = deliveryModeNeedsFee(form.fulfillment_mode) ? Math.max(0, num(form.delivery_fee)) : 0;
   const grandTotal = productTotal + deliveryFee;
   const paid = form.payment_status === 'paye' ? grandTotal : form.payment_status === 'partiel' ? num(form.paid_amount) : 0;
@@ -119,7 +135,33 @@ export function SaleModal({ props, onClose, onDone, prefill = null }) {
   const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
   const setFulfillment = (mode) => setForm((prev) => ({ ...prev, fulfillment_mode: mode, delivery_fee: deliveryModeNeedsFee(mode) ? prev.delivery_fee : 0 }));
   const changeType = (type) => setForm((prev) => ({ ...prev, source_type: type, source_id: '', product_name: '', quantity: 1, unit: defaultUnitForType(type), unit_price: 0 }));
-  const changeSource = (id) => { const option = options.find((o) => String(o.value) === String(id)); setForm((prev) => ({ ...prev, source_id: id, product_name: option?.name || '', unit: option?.unit || defaultUnitForType(prev.source_type), unit_price: option?.price || 0, quantity: 1 })); };
+  const changeSource = (id) => {
+    const option = options.find((o) => String(o.value) === String(id));
+    const base = {
+      source_id: id,
+      product_name: option?.name || '',
+      unit: option?.unit || defaultUnitForType(form.source_type),
+      unit_price: option?.price || 0,
+      quantity: 1,
+    };
+    const enriched = enrichSaleFormWithClientPricing(base, {
+      client: form.client_id !== WALK_IN ? selectedClient : null,
+      sourceRow: option?.sourceRow || option,
+    });
+    setForm((prev) => ({ ...prev, ...enriched }));
+  };
+  useEffect(() => {
+    if (form.client_id === WALK_IN || !form.source_id) return;
+    const option = options.find((o) => String(o.value) === String(form.source_id));
+    if (!option) return;
+    const enriched = enrichSaleFormWithClientPricing(form, {
+      client: selectedClient,
+      sourceRow: option?.sourceRow || option,
+    });
+    if (enriched.unit_price !== form.unit_price || enriched.discount_pct !== form.discount_pct) {
+      setForm((prev) => ({ ...prev, unit_price: enriched.unit_price, discount_pct: enriched.discount_pct ?? prev.discount_pct, discount_amount: enriched.discount_amount ?? prev.discount_amount }));
+    }
+  }, [form.client_id, form.source_id, options, selectedClient]);
   const validateStep = (targetStep = step) => {
     if (targetStep >= 0) {
       if (form.source_type !== SALE_PRODUCT_TYPES.OTHER && form.source_type !== SALE_PRODUCT_TYPES.SERVICE && !form.source_id) {
@@ -232,7 +274,7 @@ export function SaleModal({ props, onClose, onDone, prefill = null }) {
   };
 
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3"><div className="w-full max-w-3xl max-h-[94vh] overflow-y-auto rounded-3xl border border-[#eadcc2] bg-white shadow-2xl"><div className="flex items-start justify-between border-b border-[#eadcc2] p-5"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Nouvelle vente</p><h2 className="text-xl font-black text-[#2f2415]">{STEPS[step].title}</h2><p className="text-sm text-[#8a7456] mt-1">Renseigne la vente puis valide.</p></div><button type="button" onClick={onClose} aria-label="Fermer"><X size={18} /></button></div><form onSubmit={submit} className="p-5 space-y-4"><Stepper step={step} />{error ? <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div> : null}
-    {step === 0 ? <div className="space-y-4"><div className="grid grid-cols-2 md:grid-cols-5 gap-2">{Object.entries(productTypes).map(([key, label]) => <button key={key} type="button" onClick={() => changeType(key)} className={`min-h-[44px] rounded-xl border px-3 py-2 text-xs font-black ${form.source_type === key ? 'border-[#2f2415] bg-[#2f2415] text-white' : 'border-[#eadcc2] bg-[#fffdf8] text-[#8a7456]'}`}>{label}</button>)}</div><SourceHintBanner hint={sourceHint} />{form.source_type !== 'autre' && form.source_type !== 'service' ? <label className="space-y-1 block"><span className="text-xs font-bold text-[#8a7456]">Produit vendu *</span><select value={form.source_id} onChange={(e) => changeSource(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"><option value="">— sélectionner —</option>{options.map((o) => <option key={`${o.value}-${o.sale_kind}`} value={o.value}>{o.label}</option>)}</select>{selected ? <span className="text-xs text-[#8a7456]">Disponible : {selected.qty} {selected.unit}</span> : null}</label> : null}<Input label="Libellé produit vendu *" value={form.product_name} onChange={(v) => set('product_name', v)} /><div className="grid grid-cols-1 md:grid-cols-3 gap-3"><Input label="Quantité *" type="number" value={form.quantity} onChange={(v) => set('quantity', v)} disabled={form.source_type === 'animal'} /><Input label="Unité" value={form.unit} onChange={(v) => set('unit', v)} disabled={form.source_type === 'animal'} /><Input label="Prix unitaire *" type="number" value={form.unit_price} onChange={(v) => set('unit_price', v)} /></div></div> : null}
+    {step === 0 ? <div className="space-y-4"><div className="grid grid-cols-2 md:grid-cols-5 gap-2">{Object.entries(productTypes).map(([key, label]) => <button key={key} type="button" onClick={() => changeType(key)} className={`min-h-[44px] rounded-xl border px-3 py-2 text-xs font-black ${form.source_type === key ? 'border-[#2f2415] bg-[#2f2415] text-white' : 'border-[#eadcc2] bg-[#fffdf8] text-[#8a7456]'}`}>{label}</button>)}</div><SourceHintBanner hint={sourceHint} />{form.source_type !== 'autre' && form.source_type !== 'service' ? <label className="space-y-1 block"><span className="text-xs font-bold text-[#8a7456]">Produit vendu *</span><select value={form.source_id} onChange={(e) => changeSource(e.target.value)} className="w-full min-h-[44px] rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm"><option value="">— sélectionner —</option>{options.map((o) => <option key={`${o.value}-${o.sale_kind}`} value={o.value}>{o.label}</option>)}</select>{selected ? <span className="text-xs text-[#8a7456]">Disponible : {selected.qty} {selected.unit}</span> : null}</label> : null}<Input label="Libellé produit vendu *" value={form.product_name} onChange={(v) => set('product_name', v)} /><div className="grid grid-cols-1 md:grid-cols-3 gap-3"><Input label="Quantité *" type="number" value={form.quantity} onChange={(v) => set('quantity', v)} disabled={form.source_type === 'animal'} /><Input label="Unité" value={form.unit} onChange={(v) => set('unit', v)} disabled={form.source_type === 'animal'} /><Input label="Prix unitaire *" type="number" value={form.unit_price} onChange={(v) => set('unit_price', v)} /></div><div className="grid grid-cols-1 md:grid-cols-2 gap-3"><Input label="Remise (%)" type="number" value={form.discount_pct} onChange={(v) => set('discount_pct', v)} /><Input label="Remise (FCFA)" type="number" value={form.discount_amount} onChange={(v) => set('discount_amount', v)} /></div>{form.client_id !== WALK_IN ? <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-3 text-sm text-sky-900"><p className="font-black text-xs uppercase tracking-wide">Prix client</p><p>Prix défaut : {fmtCurrency(form.unit_price)} · Remise : {fmtCurrency(linePricing.discountApplied)} · Final : <b>{fmtCurrency(linePricing.lineTotal)}</b>{pricing.margin?.margin != null ? <> · Marge estimée : {fmtCurrency(pricing.margin.margin)} ({pricing.margin.marginPct}%)</> : null}</p></div> : null}</div> : null}
     {step === 1 ? <div className="grid grid-cols-1 md:grid-cols-2 gap-3"><Select label="Client *" value={form.client_id} onChange={(v) => set('client_id', v)} options={[{ value: WALK_IN, label: 'Client de passage — paiement comptant uniquement' }, ...arr(props.clients).map((c) => ({ value: c.id, label: c.nom || c.name || c.id }))]} empty="Choisir un client" /><Input label="Date *" type="date" value={form.date} onChange={(v) => set('date', v)} /></div> : null}
     {step === 2 ? <div className="space-y-3"><div className="grid grid-cols-1 md:grid-cols-2 gap-3"><Select label="Retrait / livraison" value={form.fulfillment_mode} onChange={setFulfillment} options={[{ value: 'recupere', label: 'Récupéré sur place (0 FCFA livraison)' }, { value: 'livraison', label: 'Livré au client maintenant' }, { value: 'a_livrer', label: 'À livrer plus tard' }]} /><Select label="Facture" value={form.invoice_issued ? 'emise' : 'non_emise'} onChange={(v) => set('invoice_issued', v === 'emise')} options={[{ value: 'emise', label: 'Facture émise automatiquement' }, { value: 'non_emise', label: 'Pas de facture' }]} /></div>{deliveryModeNeedsFee(form.fulfillment_mode) ? <Input label="Frais de livraison (FCFA) — laisser 0 si offerte" type="number" value={form.delivery_fee} onChange={(v) => set('delivery_fee', v)} /> : <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-3 text-sm text-[#8a7456]">Retrait sur place : livraison <b>0 FCFA</b> — non incluse dans le total ni dans la marge.</div>}<div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-3 text-xs text-[#7d6a4a]">{DELIVERY_HINT}</div><label className="space-y-1 block"><span className="text-xs font-bold text-[#8a7456]">Notes</span><textarea rows={2} value={form.notes} onChange={(e) => set('notes', e.target.value)} className="w-full rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-sm" /></label><div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a]">Total produits : <b>{fmtCurrency(productTotal)}</b>{deliveryFee > 0 ? <> · Livraison : <b>{fmtCurrency(deliveryFee)}</b></> : null} · Total commande : <b>{fmtCurrency(grandTotal)}</b></div></div> : null}
     {step === 3 ? <div className="space-y-3"><div className="grid grid-cols-1 md:grid-cols-3 gap-3"><Select label="Paiement" value={form.payment_status} onChange={(v) => set('payment_status', v)} options={[{ value: 'paye', label: 'Payé totalement' }, { value: 'partiel', label: 'Paiement partiel' }, { value: 'non_paye', label: 'Crédit / à encaisser' }]} />{form.payment_status === 'partiel' ? <Input label="Montant payé" type="number" value={form.paid_amount} onChange={(v) => set('paid_amount', v)} /> : null}{form.payment_status !== 'non_paye' ? <Select label="Moyen paiement" value={form.payment_method} onChange={(v) => set('payment_method', v)} options={paymentMethods} /> : null}</div><div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><p className="text-xs text-emerald-700">Total commande (produits + livraison)</p><p className="text-2xl font-black text-emerald-700">{fmtCurrency(grandTotal)}</p><p className="text-xs text-emerald-700">Produits : {fmtCurrency(productTotal)}{deliveryFee > 0 ? ` · Livraison : ${fmtCurrency(deliveryFee)}` : ''}</p><p className="text-xs text-emerald-700">Payé : {fmtCurrency(paid)} · Reste : {fmtCurrency(remaining)}</p></div></div> : null}
