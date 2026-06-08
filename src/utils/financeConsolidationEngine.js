@@ -61,6 +61,7 @@ export function buildConsolidationInput(props = {}) {
     cultures: arr(props.cultures),
     sante: arr(props.sante || props.vaccins),
     alimentationLogs: arr(props.alimentationLogs),
+    productionLogs: arr(props.productionLogs || props.production_oeufs_logs),
     investissements: arr(props.investissements),
     businessEvents: arr(props.businessEvents),
   };
