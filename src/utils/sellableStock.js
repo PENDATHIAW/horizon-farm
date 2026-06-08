@@ -59,3 +59,23 @@ export function isSellableStock(row = {}) {
 export function listSellableStocks(rows = [], limit = 12) {
   return arr(rows).filter(isSellableStock).slice(0, limit);
 }
+
+/** Options vente unifiées pour Commercial / Stock / Opportunités. */
+export function buildSellableStockSaleOptions(stocks = [], { meatChecker = null } = {}) {
+  return arr(stocks)
+    .filter(isSellableStock)
+    .map((row) => {
+      const isMeat = typeof meatChecker === 'function' ? meatChecker(row) : false;
+      return {
+        value: row.id,
+        label: `${productNameOf(row)}${isMeat ? ' · viande abattue' : ''} · ${quantityOf(row)} ${unitOf(row)}`,
+        qty: quantityOf(row),
+        price: unitPriceOf(row) || unitCostOf(row),
+        name: productNameOf(row),
+        unit: unitOf(row),
+        sale_kind: 'stock',
+        sourceRow: row,
+      };
+    })
+    .filter((o) => o.qty > 0);
+}

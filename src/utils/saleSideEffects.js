@@ -7,6 +7,7 @@ import { remainingForOrder } from './salesStatuses';
 import { financeIds } from './sideEffectIds';
 import { enrichFinanceWithOrderFarmId } from './commercialFarmScope.js';
 import { isStockableSourceType } from './commercialStockValidation.js';
+import { planStockMovementFromSaleLine } from './stockMovementBridge.js';
 import { makeId } from './ids';
 import { toNumber } from './format';
 
@@ -236,8 +237,15 @@ export async function applySourceImpactFromSaleLines({
 
     if (patchPlan?.id) {
       applied.push(item.id);
+      const movementPlan = planStockMovementFromSaleLine({ orderItem: item, order, patchPlan });
       if (handlers.onUpdateItem && item.id) {
-        await handlers.onUpdateItem(item.id, { source_impact_applied: true, source_impact_at: new Date().toISOString() });
+        await handlers.onUpdateItem(item.id, {
+          source_impact_applied: true,
+          source_impact_at: new Date().toISOString(),
+          stock_movement_planned: movementPlan.movement,
+          stock_movement_ready: movementPlan.ready,
+          stock_movement_note: movementPlan.note,
+        });
       }
     }
   }
