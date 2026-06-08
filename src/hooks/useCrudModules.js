@@ -39,6 +39,7 @@ export default function useCrudModules() {
   const invoices = useCrudModule('invoices');
   const payments = useCrudModule('payments');
   const sales_opportunities = useCrudModule('sales_opportunities');
+  const stock_movements = useCrudModule('stock_movements');
 
   return useMemo(() => ({
     animaux,
@@ -78,6 +79,7 @@ export default function useCrudModules() {
     invoices,
     payments,
     sales_opportunities,
+    stock_movements,
   }), [
     animaux,
     avicole,
@@ -116,5 +118,6 @@ export default function useCrudModules() {
     invoices,
     payments,
     sales_opportunities,
+    stock_movements,
   ]);
 }
