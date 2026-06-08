@@ -623,6 +623,29 @@ export function buildBpLineConcretizationRoute(line = {}) {
     };
   }
 
+  const moduleTarget = lower(line.module_cible || '');
+  if (moduleTarget === 'achats_stock' || moduleTarget === 'stock') {
+    return {
+      navigate: { module: 'achats_stock', tab: 'Stock' },
+      form: {
+        module: 'stock',
+        form_type: 'stock_purchase',
+        intent_label: `Concrétiser · ${label}`,
+        draft_fields: {
+          ...baseFields,
+          produit: label,
+          name: label,
+          quantite: qty,
+          unite: line.unite || 'unité',
+          prixUnit: unitCost,
+          prix_unitaire: unitCost,
+          montant: total,
+          date,
+        },
+      },
+    };
+  }
+
   return null;
 }
 

@@ -298,26 +298,38 @@ export default function InvestissementsV9(props) {
     };
   }, [props]);
 
-  const openConcretization = async (line) => {
-    let target = line;
-    if (!isBpLineEditable(line)) {
-      try {
-        const syncResult = await syncBp(props, { force: true });
-        target = syncResult?.resolveLine?.(line)
-          || arr(props.bpInvestmentLines).find((row) => key(row) === key(line))
-          || null;
-        if (!target?.id || String(target.id).startsWith('off-')) {
-          return toast.error('Synchronisation BP requise — réessayez ou cliquez « Resynchroniser le BP officiel ».');
-        }
-      } catch {
-        return toast.error('Synchronisation BP impossible — vérifiez votre connexion.');
-      }
+  const ensureEditableInvestmentLine = async (line) => {
+    if (isBpLineEditable(line)) return line;
+    const syncResult = await syncBp(props, { force: true });
+    const synced = syncResult?.resolveLine?.(line)
+      || arr(props.bpInvestmentLines).find((row) => key(row) === key(line));
+    if (!synced?.id || String(synced.id).startsWith('off-')) {
+      throw new Error('Synchronisation BP requise — réessayez ou cliquez « Resynchroniser le BP officiel ».');
     }
-    const result = launchBpLineConcretization(target, { onNavigate: props.onNavigate });
-    if (!result.ok) return toast.error('Cette ligne ne peut pas encore être ouverte dans un module.');
-    const route = buildBpLineConcretizationRoute(target);
-    const mod = route?.navigate?.module;
-    toast.success(`Ouverture ${MODULE_LABELS[mod] || mod || 'module'}…`);
+    return synced;
+  };
+
+  const ensureEditableCostLine = async (cost) => {
+    if (isBpCostEditable(cost)) return cost;
+    await syncBp(props, { force: true });
+    const synced = arr(props.bpRecurringCosts).find((row) => key(row) === key(cost));
+    if (!synced?.id || String(synced.id).startsWith('cost-')) {
+      throw new Error('Synchronisation BP requise pour les charges.');
+    }
+    return synced;
+  };
+
+  const openConcretization = async (line) => {
+    try {
+      const target = await ensureEditableInvestmentLine(line);
+      const result = launchBpLineConcretization(target, { onNavigate: props.onNavigate });
+      if (!result.ok) return toast.error('Cette ligne ne peut pas encore être ouverte dans un module.');
+      const route = buildBpLineConcretizationRoute(target);
+      const mod = route?.navigate?.module;
+      toast.success(`Ouverture ${MODULE_LABELS[mod] || mod || 'module'}…`);
+    } catch (error) {
+      toast.error(error.message || 'Synchronisation BP impossible — vérifiez votre connexion.');
+    }
   };
 
   const importExcelFile = async (file) => {
@@ -366,7 +378,7 @@ export default function InvestissementsV9(props) {
     }
   };
 
-  const handleLineAction = useBpLineActionHandlers({
+  const dispatchLineAction = useBpLineActionHandlers({
     onConcretize: (line, ctx) => {
       if (ctx.kind === 'cost') openCostConcretization(line);
       else openConcretization(line);
@@ -392,6 +404,24 @@ export default function InvestissementsV9(props) {
       navigateToLinkedOperation(line, { onNavigate: props.onNavigate, kind: ctx.kind });
     },
   });
+
+  const handleLineAction = async (actionId, ctx = {}) => {
+    const kind = ctx.kind || 'investment';
+    const syncActions = new Set(['concretize', 'complete', 'edit', 'postpone', 'cancel']);
+    const needsSync = kind === 'cost' ? !isBpCostEditable(ctx.line) : !isBpLineEditable(ctx.line);
+    if (needsSync && syncActions.has(actionId)) {
+      try {
+        const synced = kind === 'cost'
+          ? await ensureEditableCostLine(ctx.line)
+          : await ensureEditableInvestmentLine(ctx.line);
+        dispatchLineAction(actionId, { ...ctx, line: synced });
+      } catch (error) {
+        toast.error(error.message || 'Action impossible');
+      }
+      return;
+    }
+    dispatchLineAction(actionId, ctx);
+  };
 
   const brokenLinks = useMemo(() => {
     const rows = [
@@ -464,27 +494,15 @@ export default function InvestissementsV9(props) {
     },
     {
       label: 'Action',
-      render: (r) => {
-        if (isPendingBpLine(r) && !isBpLineEditable(r)) {
-          return (
-            <button
-              type="button"
-              onClick={() => openConcretization(r)}
-              className="rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1 text-[10px] font-black text-emerald-800 hover:border-emerald-500"
-            >
-              Concrétiser
-            </button>
-          );
-        }
-        return (
-          <BpLineActionsMenu
-            line={r}
-            kind="investment"
-            transactions={transactions}
-            onAction={handleLineAction}
-          />
-        );
-      },
+      render: (r) => (
+        <BpLineActionsMenu
+          line={r}
+          kind="investment"
+          transactions={transactions}
+          onAction={handleLineAction}
+          allowPreviewActions={!isBpLineEditable(r) && isPendingBpLine(r)}
+        />
+      ),
     },
   ];
 

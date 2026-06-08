@@ -16,6 +16,8 @@ export function investmentAssetKind(line = {}) {
   if (text.includes('culture') || text.includes('poivron') || text.includes('maraichage') || text.includes('maraîchage') || text.includes('champ')) return 'culture';
   if (text.includes('pompe') || text.includes('forage') || text.includes('irrigation') || text.includes('materiel') || text.includes('matériel') || text.includes('machine')) return 'equipement';
   if (text.includes('stock') || text.includes('aliment') || text.includes('semence') || text.includes('engrais')) return 'stock';
+  if (text.includes('abreuvoir') || text.includes('mangeoire') || text.includes('plateau') || text.includes('bache') || text.includes('bâche') || text.includes('radiant')) return 'stock';
+  if (lower(line.module_cible || '') === 'achats_stock' || lower(line.nature || '') === 'materiel') return 'stock';
   return '';
 }
 

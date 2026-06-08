@@ -26,10 +26,12 @@ export default function BpLineActionsMenu({
   transactions = [],
   onAction,
   compact = false,
+  allowPreviewActions = false,
 }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
   const { linkage, primary, repair, editable } = resolveBpLineActions(line, { kind, transactions });
+  const showPreviewMenu = allowPreviewActions && !editable && !linkage.showViewOperation;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -40,12 +42,31 @@ export default function BpLineActionsMenu({
     return () => document.removeEventListener('mousedown', close);
   }, [open]);
 
-  if (!editable && !linkage.showViewOperation) return null;
+  if (!editable && !linkage.showViewOperation && !showPreviewMenu) return null;
 
   const run = (actionId, extra = {}) => {
     setOpen(false);
     onAction?.(actionId, { line, kind, ...extra });
   };
+
+  if (showPreviewMenu) {
+    return (
+      <div className={`flex flex-wrap gap-1 justify-end ${compact ? '' : 'min-w-[200px]'}`}>
+        <button type="button" onClick={() => run('concretize')} className={`rounded-lg border px-2 py-1 text-[10px] font-black ${toneCls.primary}`}>
+          Concrétiser
+        </button>
+        <button type="button" onClick={() => run('edit')} className={`rounded-lg border px-2 py-1 text-[10px] font-black ${toneCls.secondary}`}>
+          Modifier
+        </button>
+        <button type="button" onClick={() => run('postpone')} className={`rounded-lg border px-2 py-1 text-[10px] font-black ${toneCls.warn}`}>
+          Reporter
+        </button>
+        <button type="button" onClick={() => run('cancel')} className={`rounded-lg border px-2 py-1 text-[10px] font-black ${toneCls.danger}`}>
+          Annuler
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex flex-col items-end gap-1 ${compact ? '' : 'min-w-[200px]'}`} ref={menuRef}>
