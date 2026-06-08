@@ -18,6 +18,15 @@ import ProfitabilityStatement from './ProfitabilityStatement.jsx';
 import FinanceAnnexePanel from './finance/FinanceAnnexePanel.jsx';
 import FinanceSchedulePanel from './finance/FinanceSchedulePanel.jsx';
 import FinanceStartupPanel from './finance/FinanceStartupPanel.jsx';
+import FinanceExecutiveSituationPanel from './finance/FinanceExecutiveSituationPanel.jsx';
+import FinanceAgingPanel from './finance/FinanceAgingPanel.jsx';
+import FinanceCashFlowForecastPanel from './finance/FinanceCashFlowForecastPanel.jsx';
+import FinanceAlertsPanel from './finance/FinanceAlertsPanel.jsx';
+import FinanceMultiFarmPanel from './finance/FinanceMultiFarmPanel.jsx';
+import FinanceFinancingPanel from './finance/FinanceFinancingPanel.jsx';
+import FinanceReconciliationPanel from './finance/FinanceReconciliationPanel.jsx';
+import FinanceExportsPanel from './finance/FinanceExportsPanel.jsx';
+import FinanceHeyHorizonStrip from './finance/FinanceHeyHorizonStrip.jsx';
 import {
   buildFinanceSchedule,
   buildOfficialTreasuryView,
@@ -25,6 +34,19 @@ import {
   isFinanceStartupMode,
   TREASURY_LABELS,
 } from '../utils/financePilotageCore.js';
+import {
+  buildCashFlowForecast,
+  buildExecutiveFinancialSituation,
+  buildFinanceExportPayload,
+  buildFinanceHeyHorizonQuestions,
+  buildFinanceReconciliationView,
+  buildFinanceSmartAlerts,
+  buildFinanceStartupJourneyV2,
+  buildFinancingView,
+  buildMultiFarmFinanceContext,
+  buildPayablesAging,
+  buildReceivablesAging,
+} from '../utils/financePilotageV2.js';
 
 const arr = (v) => Array.isArray(v) ? v : [];
 const n = (v = 0) => Number(v || 0);
@@ -176,10 +198,29 @@ function RentabilitePanel({ profitability = null, consolidationProps = {} }) {
     </div>
   );
 }
-function Summary({ data, setTab, onApply, busyId, onNavigate, startupMode = false }) {
+function Summary({
+  data,
+  setTab,
+  onApply,
+  busyId,
+  onNavigate,
+  startupMode = false,
+  executiveSituation = null,
+  financeAlerts = [],
+  multiFarm = null,
+  startupJourney = null,
+  heyHorizonQuestions = [],
+  exportPayload = null,
+  onOpenAssistant,
+}) {
   return (
     <div className="space-y-5">
-      {startupMode ? <FinanceStartupPanel onNavigate={onNavigate} setTab={setTab} /> : null}
+      <FinanceExecutiveSituationPanel situation={executiveSituation} onNavigateTab={setTab} />
+      <FinanceAlertsPanel alerts={financeAlerts} onNavigateTab={setTab} />
+      <FinanceMultiFarmPanel multiFarm={multiFarm} />
+      {startupMode ? <FinanceStartupPanel journey={startupJourney} onNavigate={onNavigate} setTab={setTab} /> : null}
+      <FinanceHeyHorizonStrip questions={heyHorizonQuestions} onNavigate={onNavigate} onOpenAssistant={onOpenAssistant} />
+      <FinanceExportsPanel exportPayload={exportPayload} />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-8">
         <Stat label="Santé finance" value={`${data.healthScore}/100`} tone={data.healthScore >= 75 ? 'good' : 'warn'} />
         <Stat label={TREASURY_LABELS.treasuryAvailable} value={fmtCurrency(data.treasuryAvailable)} tone={data.treasuryAvailable >= 0 ? 'good' : 'bad'} />
@@ -326,9 +367,74 @@ export default function FinancePilotageRecoveredModule(props) {
   }, [consolidationProps, transactions, investments, salesOrders, salesOrdersAll, payments, paymentsAll, clients, suppliers, tasks, stocks]);
   const startupMode = useMemo(() => isFinanceStartupMode(consolidationProps), [consolidationProps]);
   const profitability = useMemo(() => buildProfitabilityView(consolidationProps), [consolidationProps]);
+  const v2Options = useMemo(() => ({
+    accessibleFarms: props.accessibleFarms || [],
+    farmScope: props.farmScope,
+    periodLabel: props.periodLabel,
+    bpRecurringCosts: rowsOf(props.bpRecurringCosts, bpRecurringCostsCrud),
+    bpFundingSources: rowsOf(props.bpFundingSources, bpFundingSourcesCrud),
+    tasks,
+  }), [props.accessibleFarms, props.farmScope, props.periodLabel, props.bpRecurringCosts, props.bpFundingSources, tasks, bpRecurringCostsCrud, bpFundingSourcesCrud]);
+
   const schedule = useMemo(
-    () => buildFinanceSchedule(consolidationProps, { accessibleFarms: props.accessibleFarms || [] }),
-    [consolidationProps, props.accessibleFarms],
+    () => buildFinanceSchedule(consolidationProps, v2Options),
+    [consolidationProps, v2Options],
+  );
+  const executiveSituation = useMemo(
+    () => buildExecutiveFinancialSituation(consolidationProps, v2Options),
+    [consolidationProps, v2Options],
+  );
+  const receivablesAging = useMemo(
+    () => buildReceivablesAging(consolidationProps, v2Options),
+    [consolidationProps, v2Options],
+  );
+  const payablesAging = useMemo(
+    () => buildPayablesAging(consolidationProps, v2Options),
+    [consolidationProps, v2Options],
+  );
+  const cashFlowForecast = useMemo(
+    () => buildCashFlowForecast(consolidationProps, v2Options),
+    [consolidationProps, v2Options],
+  );
+  const financingView = useMemo(
+    () => buildFinancingView({
+      ...consolidationProps,
+      businessPlans: rowsOf(props.businessPlans, businessPlansCrud),
+      bpInvestmentLines: rowsOf(props.bpInvestmentLines, bpInvestmentLinesCrud),
+      bpRecurringCosts: rowsOf(props.bpRecurringCosts, bpRecurringCostsCrud),
+      bpFundingSources: rowsOf(props.bpFundingSources, bpFundingSourcesCrud),
+      documents: rowsOf(props.documents, documentsCrud),
+    }, v2Options),
+    [consolidationProps, props.businessPlans, props.bpInvestmentLines, props.bpRecurringCosts, props.bpFundingSources, props.documents, v2Options, businessPlansCrud, bpInvestmentLinesCrud, bpRecurringCostsCrud, bpFundingSourcesCrud, documentsCrud],
+  );
+  const reconciliationView = useMemo(
+    () => buildFinanceReconciliationView({ ...consolidationProps, tasks }, v2Options),
+    [consolidationProps, tasks, v2Options],
+  );
+  const multiFarm = useMemo(
+    () => buildMultiFarmFinanceContext(consolidationProps, v2Options),
+    [consolidationProps, v2Options],
+  );
+  const startupJourney = useMemo(
+    () => buildFinanceStartupJourneyV2({
+      ...consolidationProps,
+      documents: rowsOf(props.documents, documentsCrud),
+      businessPlans: rowsOf(props.businessPlans, businessPlansCrud),
+      bpFundingSources: rowsOf(props.bpFundingSources, bpFundingSourcesCrud),
+    }),
+    [consolidationProps, props.documents, props.businessPlans, props.bpFundingSources, documentsCrud, businessPlansCrud, bpFundingSourcesCrud],
+  );
+  const financeAlerts = useMemo(
+    () => buildFinanceSmartAlerts(consolidationProps, v2Options),
+    [consolidationProps, v2Options],
+  );
+  const exportPayload = useMemo(
+    () => buildFinanceExportPayload(consolidationProps, v2Options),
+    [consolidationProps, v2Options],
+  );
+  const heyHorizonQuestions = useMemo(
+    () => buildFinanceHeyHorizonQuestions(v2Options),
+    [v2Options],
   );
   const showFarmInSchedule = (props.accessibleFarms || []).filter((farm) => farm.status !== 'archived').length > 1
     || props.farmScope?.mode === 'all';
@@ -464,7 +570,21 @@ export default function FinancePilotageRecoveredModule(props) {
       </section>
       <Tabs active={tab} onChange={setTab} />
       {tab === 'Résumé' ? (
-        <Summary data={data} setTab={setTab} onApply={applyFinding} busyId={busyId} onNavigate={props.onNavigate} startupMode={startupMode} />
+        <Summary
+          data={data}
+          setTab={setTab}
+          onApply={applyFinding}
+          busyId={busyId}
+          onNavigate={props.onNavigate}
+          startupMode={startupMode}
+          executiveSituation={executiveSituation}
+          financeAlerts={financeAlerts}
+          multiFarm={multiFarm}
+          startupJourney={startupJourney}
+          heyHorizonQuestions={heyHorizonQuestions}
+          exportPayload={exportPayload}
+          onOpenAssistant={props.onOpenAssistant}
+        />
       ) : tab === 'Trésorerie' ? (
         <FinancesV12 {...financeProps} />
       ) : tab === 'Créances' ? (
@@ -472,7 +592,29 @@ export default function FinancePilotageRecoveredModule(props) {
       ) : tab === 'Dettes' ? (
         <DettesPanel data={data} onNavigate={props.onNavigate} />
       ) : tab === 'Échéancier' ? (
-        <FinanceSchedulePanel schedule={schedule} showFarm={showFarmInSchedule} />
+        <div className="space-y-5">
+          <FinanceSchedulePanel schedule={schedule} showFarm={showFarmInSchedule} />
+          <FinanceAgingPanel receivablesAging={receivablesAging} payablesAging={payablesAging} showFarm={showFarmInSchedule} />
+          <FinanceCashFlowForecastPanel forecast={cashFlowForecast} />
+        </div>
+      ) : tab === 'Financement' ? (
+        <FinanceFinancingPanel
+          financing={financingView}
+          onNavigate={props.onNavigate}
+          onOpenBankExport={() => props.onNavigate?.('documents_rapports', { tab: 'Rapports' })}
+        />
+      ) : tab === 'Réconciliation' ? (
+        <FinanceReconciliationPanel
+          reconciliationView={reconciliationView}
+          transactions={transactions}
+          payments={paymentsAll.length ? paymentsAll : payments}
+          salesOrders={salesOrdersAll.length ? salesOrdersAll : salesOrders}
+          stocks={stocks}
+          onCreateFinanceTransaction={props.onCreateFinanceTransaction || financesCrud.create}
+          onRefreshFinances={props.onRefreshFinances || financesCrud.refresh}
+          onNavigate={props.onNavigate}
+          setTab={setTab}
+        />
       ) : tab === 'Investissements' ? (
         <InvestissementsV9 {...investmentProps} />
       ) : tab === 'Rentabilité' ? (
@@ -482,7 +624,21 @@ export default function FinancePilotageRecoveredModule(props) {
       ) : tab === 'Graphiques' ? (
         <ModuleGraphiquesTab moduleId="finance_pilotage" transactions={transactions} payments={payments} salesOrders={salesOrders} investissements={investments} businessPlans={businessPlans} onNavigate={props.onNavigate} />
       ) : (
-        <Summary data={data} setTab={setTab} onApply={applyFinding} busyId={busyId} onNavigate={props.onNavigate} startupMode={startupMode} />
+        <Summary
+          data={data}
+          setTab={setTab}
+          onApply={applyFinding}
+          busyId={busyId}
+          onNavigate={props.onNavigate}
+          startupMode={startupMode}
+          executiveSituation={executiveSituation}
+          financeAlerts={financeAlerts}
+          multiFarm={multiFarm}
+          startupJourney={startupJourney}
+          heyHorizonQuestions={heyHorizonQuestions}
+          exportPayload={exportPayload}
+          onOpenAssistant={props.onOpenAssistant}
+        />
       )}
     </div>
   );
