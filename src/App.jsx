@@ -19,8 +19,12 @@ import useCrudModules from './hooks/useCrudModules';
 import useLiveWeather from './hooks/useLiveWeather';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import usePeriodScope from './hooks/usePeriodScope';
+import useFarmScope from './hooks/useFarmScope';
 import AppLayout from './layouts/AppLayout';
+import { applyFarmScopeToProps } from './utils/applyFarmScope';
 import { applyPeriodScopeToDataMap, applyPeriodScopeToProps } from './utils/applyPeriodScope';
+import { farmsService, getDefaultFarmRecord } from './services/farmsService';
+import { normalizeFarmScope, resolveFarmContext } from './utils/farmScope';
 import { enrichAssistantDataMap } from './utils/assistantDataMap.js';
 import { clearPeriodFilterCache } from './utils/periodFilterCache';
 import { formatPeriodScopeLabel, isAllTimeScope, normalizePeriodScope } from './utils/periodScope';
@@ -99,11 +103,32 @@ export default function App() {
   const { dataMap, refreshModule, flushOfflineQueue } = useAppData();
   const { online, lastOnlineAt } = useOnlineStatus();
   const { weather: liveMeteo, loading: weatherLoading, source: weatherSource } = useLiveWeather();
+  const [accessibleFarms, setAccessibleFarms] = useState(() => farmsService.getCachedAccessibleFarms());
+  const [farmScope, setFarmScope] = useFarmScope(accessibleFarms);
   const [periodScope, setPeriodScope] = usePeriodScope();
   const [, startPeriodTransition] = useTransition();
   const handlePeriodScopeChange = useCallback((next) => {
     startPeriodTransition(() => setPeriodScope(next));
   }, [setPeriodScope]);
+  const handleFarmScopeChange = useCallback((next) => {
+    startPeriodTransition(() => setFarmScope(next));
+  }, [setFarmScope]);
+  useEffect(() => {
+    if (!user?.id) return undefined;
+    let cancelled = false;
+    (async () => {
+      const farms = await farmsService.loadAccessibleFarms(user.id);
+      if (cancelled) return;
+      setAccessibleFarms(farms);
+      await farmsService.ensureDefaultFarm(user.id, user?.user_metadata?.company_id || user?.company_id || null);
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id, user?.user_metadata?.company_id, user?.company_id]);
+  const farmContext = useMemo(
+    () => resolveFarmContext(farmScope, accessibleFarms),
+    [farmScope, accessibleFarms],
+  );
+  const activeFarm = farmContext.activeFarm || getDefaultFarmRecord(accessibleFarms);
   const periodLabel = useMemo(() => formatPeriodScopeLabel(periodScope), [periodScope]);
   const periodScopeKey = useMemo(() => JSON.stringify(periodScope), [periodScope]);
   const c = useCrudModules();
@@ -510,8 +535,12 @@ export default function App() {
   }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, achatsStockTab, financeTab, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue]);
 
   const activeModuleProps = useMemo(
-    () => applyPeriodScopeToProps(moduleProps[active] || {}, periodScope, { cacheGeneration: crudFingerprint }),
-    [moduleProps, active, periodScopeKey, crudFingerprint, commercialTab, elevageTab, achatsStockTab, financeTab, centreTab, objectifsTab, periodScope],
+    () => applyFarmScopeToProps(
+      applyPeriodScopeToProps(moduleProps[active] || {}, periodScope, { cacheGeneration: crudFingerprint }),
+      farmScope,
+      { accessibleFarms, activeFarm },
+    ),
+    [moduleProps, active, periodScopeKey, crudFingerprint, commercialTab, elevageTab, achatsStockTab, financeTab, centreTab, objectifsTab, periodScope, farmScope, accessibleFarms, activeFarm],
   );
   const scopedAssistantDataMap = useMemo(
     () => {
@@ -536,7 +565,7 @@ export default function App() {
   if (!user) return <LoginPage />;
   const ActiveModule = MODULES[active] || MODULES.dashboard;
 
-  return <AppLayout navItems={navItems} active={active} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => setAssistantOpen(true)} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange}>
+  return <AppLayout navItems={navItems} active={active} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => setAssistantOpen(true)} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange} farmScope={normalizeFarmScope(farmScope, accessibleFarms)} accessibleFarms={accessibleFarms} onFarmScopeChange={handleFarmScopeChange} activeFarm={activeFarm}>
     <ErrorBoundary title="Module indisponible"><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...activeModuleProps} periodLabel={periodLabel} /></Suspense></ErrorBoundary>
     <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={scopedAssistantDataMap} onNavigate={setActive} onCreateBusinessEvent={c.business_events.create} />
     <ErpInterconnectionBridge cruds={c} />
