@@ -38,7 +38,7 @@
     "test:unit:module-smoke": "npx vite-node tests/unit/moduleImportSmoke.test.js",
     "test:unit:render-smoke": "npx vite-node tests/unit/moduleRenderSmoke.test.js && node --test tests/unit/farmAdaptationNull.test.js",
     "test:unit:annexe-tabs": "node --test tests/unit/annexeTabsConfig.test.js",
-    "test:unit:achats-stock": "npx vite-node tests/unit/stockPurchaseWorkflow.test.js && npx vite-node tests/unit/achatsStockV1P0.test.js",
+    "test:unit:achats-stock": "npx vite-node tests/unit/stockPurchaseWorkflow.test.js && npx vite-node tests/unit/achatsStockV1P0.test.js && npx vite-node tests/unit/achatsStockV2.test.js",
     "test:unit:bp-concretisation": "npx vite-node tests/unit/bpLineConcretization.test.js",
     "test:unit:bp-import": "npx vite-node tests/unit/bpImportDispatch.test.js",
     "test:unit:bp-excel": "npx vite-node tests/unit/bpExcelParser.test.js",

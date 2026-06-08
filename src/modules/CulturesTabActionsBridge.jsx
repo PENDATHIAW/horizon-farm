@@ -2,6 +2,7 @@ import { AlertTriangle, CheckCircle2, Edit, Leaf, PackagePlus, Plus, Sprout, Tra
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { buildCultureInputUsageWorkflow, buildCultureLossWorkflow, cultureOpportunityKey } from '../utils/cultureWorkflows.js';
+import { runCultureInputSideEffects } from '../utils/cultureSideEffects.js';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId, makeId } from '../utils/ids';
 
@@ -40,7 +41,7 @@ function ActionCard({ icon: Icon, title, desc, onClick }) { return <button type=
 function RowButton({ children, onClick, disabled }) { return <button type="button" disabled={disabled} onClick={onClick} className="text-xs font-bold text-emerald-700 disabled:opacity-60">{children}</button>; }
 export function getRealCultureRows(rows = []) { return arr(rows).filter((row) => !isSupportRecord(row)); }
 
-export default function CulturesTabActionsBridge({ tab, rows = [], stocks = [], opportunities = [], onCreate, onUpdate, onDelete, onRefresh, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateStock, onUpdateStock, onRefreshStock, onCreateBusinessEvent, onRefreshBusinessEvents, onCreateFinanceTransaction }) {
+export default function CulturesTabActionsBridge({ tab, rows = [], stocks = [], stockMovements = [], opportunities = [], onCreate, onUpdate, onDelete, onRefresh, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onCreateStock, onUpdateStock, onRefreshStock, onCreateStockMovement, onRefreshStockMovements, onCreateBusinessEvent, onRefreshBusinessEvents, onCreateFinanceTransaction }) {
   const [modal, setModal] = useState('');
   const [values, setValues] = useState({});
   const [saving, setSaving] = useState(false);
@@ -74,10 +75,22 @@ export default function CulturesTabActionsBridge({ tab, rows = [], stocks = [], 
     if (toNumber(values.quantite) > stockQty(stock)) return toast.error(`Stock insuffisant : ${fmtNumber(stockQty(stock))} ${stock.unite || ''} disponible(s)`);
     try {
       setSaving(true);
-      await onUpdateStock?.(stock.id, workflow.stockPatch);
-      await onUpdate?.(culture.id, workflow.culturePatch);
-      await onCreateBusinessEvent?.(workflow.event);
-      await Promise.allSettled([onRefresh?.(), onRefreshStock?.(), onRefreshBusinessEvents?.()]);
+      await runCultureInputSideEffects({
+        culture,
+        stock,
+        qty: values.quantite,
+        motif: values.motif || 'Intrant culture',
+        date: values.date || today(),
+        handlers: {
+          onUpdateStock,
+          onUpdateCulture: onUpdate,
+          onCreateBusinessEvent,
+          onCreateStockMovement,
+          onRefreshStockMovements,
+          existingStockMovements: stockMovements,
+        },
+      });
+      await Promise.allSettled([onRefresh?.(), onRefreshStock?.(), onRefreshStockMovements?.(), onRefreshBusinessEvents?.()]);
       toast.success('Intrant utilisé et stock mis à jour');
       setModal('');
     } catch (error) {

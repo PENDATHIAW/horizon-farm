@@ -499,7 +499,11 @@ export async function commitFeedingWorkflow(preview, handlers = {}) {
     stockMovement: p.records.stock_movement,
     amount: toNumber(finalValue(p.fields?.cost) || log.montant_total),
     transactions: ctx.transactions || [],
-    handlers,
+    businessEvents: ctx.businessEvents || [],
+    handlers: {
+      ...handlers,
+      existingStockMovements: handlers.existingStockMovements || ctx.stockMovements || [],
+    },
   });
 
   if (p.records.trace && handlers.onCreateBusinessEvent) {

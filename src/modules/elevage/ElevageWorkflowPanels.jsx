@@ -59,6 +59,7 @@ export function useElevageWorkflowContext(props = {}) {
     alimentationLogs: arr(props.alimentationLogs),
     productionLogs: arr(props.productionLogs),
     sante: arr(props.sante),
+    stockMovements: arr(props.stockMovements),
   }), [props]);
 }
 
@@ -66,6 +67,9 @@ export function buildElevageHandlers(props = {}) {
   return {
     onCreateAlimentation: props.onCreateAlimentation,
     onUpdateStock: props.onUpdateStock,
+    onCreateStockMovement: props.onCreateStockMovement,
+    onRefreshStockMovements: props.onRefreshStockMovements,
+    existingStockMovements: arr(props.stockMovements),
     onCreateFinanceTransaction: props.onCreateFinanceTransaction,
     onCreateBusinessEvent: props.onCreateBusinessEvent,
     onCreateHealth: props.onCreateHealth,
