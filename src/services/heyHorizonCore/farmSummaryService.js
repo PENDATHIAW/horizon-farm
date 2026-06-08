@@ -1,12 +1,7 @@
 import { computeFarmHeadcount } from '../../modules/dashboard/dashboardMetrics.js';
 import { metaBase, pickRows, textOrMissing } from './coreUtils.js';
 import { formatFarmScopeLabel, normalizeFarmScope } from '../../utils/farmScope.js';
-import {
-  getFarmAlerts,
-  getFarmHeyHorizonTopics,
-  getFarmKpis,
-  getFarmQuickActions,
-} from '../../config/farmAdaptation.js';
+import { buildHeyHorizonFarmContext } from '../../utils/farmConsolidation.js';
 
 /**
  * Synthèse exploitation — effectifs, surfaces, entités présentes dans le dataMap.
@@ -23,6 +18,12 @@ export function getFarmSummary(dataMap = {}) {
   const meteo = dataMap.meteo ?? null;
   const farmScope = normalizeFarmScope(dataMap.farmScope || {}, dataMap.accessibleFarms || []);
   const activeFarm = dataMap.activeFarm || null;
+  const phase5 = buildHeyHorizonFarmContext({
+    ...dataMap,
+    farmScope,
+    activeFarm,
+    accessibleFarms: dataMap.accessibleFarms || [],
+  });
 
   return {
     ...metaBase({ module: 'farm' }),
@@ -34,10 +35,15 @@ export function getFarmSummary(dataMap = {}) {
       label: formatFarmScopeLabel(farmScope, dataMap.accessibleFarms || []),
     },
     activity_type: activeFarm?.activity_type || ['mixte'],
-    activity_topics: getFarmHeyHorizonTopics(activeFarm, farmScope),
-    activity_kpis: getFarmKpis(activeFarm, farmScope).map((entry) => entry.label),
-    activity_alerts: getFarmAlerts(activeFarm),
-    activity_quick_actions: getFarmQuickActions(activeFarm).map((entry) => entry.label),
+    activity_topics: phase5.suggested_questions?.length
+      ? phase5.suggested_questions
+      : [],
+    activity_kpis: phase5.activity_kpis || [],
+    activity_alerts: phase5.activity_alerts || [],
+    activity_quick_actions: phase5.activity_quick_actions || [],
+    farms_summary: phase5.farms_summary || null,
+    comparison_summary: phase5.comparison_summary || null,
+    suggested_questions: phase5.suggested_questions || [],
     headcount: {
       total: headcount.total,
       active_animals: headcount.activeAnimals,

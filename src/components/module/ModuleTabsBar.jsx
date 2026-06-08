@@ -1,7 +1,9 @@
 import { MODULE_TARGET_TABS } from '../../config/horizonVision.config.js';
+import { sortModuleTabsForFarm } from '../../config/farmAdaptation.js';
 
-export default function ModuleTabsBar({ moduleId, active, onChange, tabBadges = {}, wrap = false }) {
-  const tabs = MODULE_TARGET_TABS[moduleId] || [];
+export default function ModuleTabsBar({ moduleId, active, onChange, tabBadges = {}, wrap = false, activeFarm = null }) {
+  const rawTabs = MODULE_TARGET_TABS[moduleId] || [];
+  const tabs = sortModuleTabsForFarm(moduleId, rawTabs, activeFarm);
   if (!tabs.length) return null;
   return (
     <div className={wrap ? '' : 'overflow-x-auto'}>
