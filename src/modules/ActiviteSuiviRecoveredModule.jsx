@@ -11,7 +11,7 @@ import { allRows, rowsOf } from '../utils/moduleRows';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import { aggregatePriorityQueue, buildActiviteCoherenceRows, buildActiviteHealthSnapshot, countOpenByModule } from './activiteSuivi/activiteSuiviVisionHelpers.js';
 import { filterRealOpenTasks } from '../utils/healthFindingLabels.js';
-import AlertesCenterV2 from './AlertesCenterV2.jsx';
+import AlertesCenterV3 from './AlertesCenterV3.jsx';
 import TachesV3 from './TachesV3.jsx';
 import TracabiliteV2 from './TracabiliteV2.jsx';
 import AlertTaskBridgePanel from './AlertTaskBridgePanel.jsx';
@@ -241,7 +241,7 @@ export default function ActiviteSuiviRecoveredModule(props) {
         </div>
       </section>
       <Tabs active={tab} onChange={setTab} />
-      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onResolveAlert={resolveAlert} busyId={busyId} bridgeProps={bridgeProps} /> : tab === 'Alertes' ? <AlertesCenterV2 {...shared} onUpdate={shared.onUpdateAlert} onRefresh={shared.onRefreshAlertes} /> : tab === 'Tâches' ? <TachesV3 {...shared} /> : tab === 'Traçabilité' ? <TracabiliteV2 {...shared} rows={traceRows} onCreate={props.onCreateTrace || traceCrud.create} onUpdate={props.onUpdateTrace || traceCrud.update} onDelete={props.onDeleteTrace || traceCrud.remove} onRefresh={props.onRefreshTrace || traceCrud.refresh} /> : <ModuleGraphiquesTab moduleId="activite_suivi" taches={tasks} alertes={alertes} onNavigate={props.onNavigate} />}
+      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onResolveAlert={resolveAlert} busyId={busyId} bridgeProps={bridgeProps} /> : tab === 'Alertes' ? <AlertesCenterV3 {...shared} onUpdate={shared.onUpdateAlert} onRefresh={shared.onRefreshAlertes} onUpdateTask={shared.onUpdateTask} onRefreshTasks={shared.onRefreshTasks} tasks={tasks} /> : tab === 'Tâches' ? <TachesV3 {...shared} /> : tab === 'Traçabilité' ? <TracabiliteV2 {...shared} rows={traceRows} onCreate={props.onCreateTrace || traceCrud.create} onUpdate={props.onUpdateTrace || traceCrud.update} onDelete={props.onDeleteTrace || traceCrud.remove} onRefresh={props.onRefreshTrace || traceCrud.refresh} /> : <ModuleGraphiquesTab moduleId="activite_suivi" taches={tasks} alertes={alertes} onNavigate={props.onNavigate} />}
     </div>
   );
 }

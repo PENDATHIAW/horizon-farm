@@ -13,7 +13,7 @@ import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import { getRhDirectory } from '../utils/rhDirectory';
 import { aggregateMaintenanceQueue, buildRhCoherenceRows, buildRhHealthSnapshot, computePayrollSummary } from './rh/rhVisionHelpers.js';
 import RHPeopleTeams from './RHPeopleTeams.jsx';
-import EquipementsV2 from './EquipementsV2.jsx';
+import EquipementsV3 from './EquipementsV3.jsx';
 import SmartFarmEmbed from './smartfarm/SmartFarmEmbed.jsx';
 import RhPayrollFinanceSyncPanel from './RhPayrollFinanceSyncPanel.jsx';
 
@@ -360,7 +360,7 @@ export default function OperationsRessourcesRecoveredModule(props) {
       </section>
       <Tabs active={tab} onChange={setTab} />
       {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onSchedule={scheduleMaintenance} busyId={busyId} />
-        : tab === 'Équipements' ? <EquipementsV2 {...eqProps} />
+        : tab === 'Équipements' ? <EquipementsV3 {...eqProps} />
           : tab === 'Maintenance' ? <MaintenanceHub data={data} setTab={setTab} smartProps={smartProps} onSchedule={scheduleMaintenance} busyId={busyId} />
             : tab === 'Affectations' ? <RHPeopleTeams {...rhProps} />
               : tab === 'Coûts' ? <CostsHub data={data} onNavigate={props.onNavigate} rhProps={rhProps} />
