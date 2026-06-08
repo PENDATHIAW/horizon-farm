@@ -16,7 +16,7 @@ import { commitFeedingWorkflow, commitPurchaseWorkflow, prepareFeedingWorkflow, 
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId, makeId } from '../utils/ids';
-import { alimentationFields as buildAlimentationFields, normalizeAlimentationPayload } from '../utils/stockForms';
+import { alimentationFields as buildAlimentationFields, deriveAlimentationValues, normalizeAlimentationPayload } from '../utils/stockForms';
 import { runStockLossSideEffects } from '../utils/purchaseSideEffects';
 import { applyStockMovement, buildStockCriticalFollowUp, hasOpenStockReorderTask } from '../utils/stockWorkflows';
 import StockFlowPanel from './StockFlowPanel.jsx';

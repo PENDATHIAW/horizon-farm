@@ -4,6 +4,7 @@ import { MODULE_FORM_FIELDS } from '../utils/constants';
 import { fmtCurrency } from '../utils/format';
 import EquipementsMaintenanceBridge from './EquipementsMaintenanceBridge.jsx';
 import EquipementsQuickActionsBridge from './EquipementsQuickActionsBridge.jsx';
+import EquipementsSmartFarmBridge from './EquipementsSmartFarmBridge.jsx';
 import EquipementsEvolution from './EquipementsEvolution.jsx';
 import AntiDuplicationNotice from '../components/AntiDuplicationNotice.jsx';
 

@@ -54,6 +54,13 @@ const low = (v = '') => String(v || '').toLowerCase().normalize('NFD').replace(/
 const isBp = (bp = {}) => String(bp.id || '') === HORIZON_FARM_BP_ID || low(bp.nom || bp.name || bp.title).includes('horizon farm');
 const isArchived = (r = {}) => ['annule', 'annulé', 'archive', 'archivé'].includes(low(r.statut || r.status));
 const key = (r = {}) => low(r.designation || r.name || r.nom || r.title || r.id);
+
+function isPendingBpLine(line = {}) {
+  const status = normalizeBpLineStatus(line);
+  if ([BP_LINE_STATUS.ANNULE, BP_LINE_STATUS.REMPLACE, BP_LINE_STATUS.BLOQUE, BP_LINE_STATUS.CONCRETISE].includes(status)) return false;
+  if (line.asset_id || line.asset_created_at) return false;
+  return Boolean(buildBpLineConcretizationRoute(line)) && bpLineAmount(line) > 0;
+}
 const money = (v) => fmtCurrency(Number(v || 0));
 const totalLine = (r = {}) => bpLineAmount(r);
 const monthly = (r = {}) => toNumber(r.montant_mensuel || r.amount || r.montant);
@@ -114,7 +121,7 @@ async function syncBp(props, { silent = false, force = false, payload: externalP
     const existing = arr(props.businessPlans).find(isBp);
     if (existing?.id && !force && !externalPayload && arr(props.bpInvestmentLines).some((r) => String(r.business_plan_id) === String(existing.id))) {
       if (!silent) toast.success('Plan déjà chargé');
-      return;
+      return { planId: existing.id, syncedLines: arr(props.bpInvestmentLines).filter((r) => String(r.business_plan_id) === String(existing.id)) };
     }
     const planBase = externalPayload?.sourceBp
       ? {
@@ -134,12 +141,19 @@ async function syncBp(props, { silent = false, force = false, payload: externalP
     const currentCosts = arr(props.bpRecurringCosts).filter((r) => String(r.business_plan_id) === String(planId));
     const currentProj = arr(props.bpRevenueProjections).filter((r) => String(r.business_plan_id) === String(planId));
     const currentFunding = arr(props.bpFundingSources).filter((r) => String(r.business_plan_id) === String(planId));
+    const syncedLineByKey = new Map();
 
     for (const official of payload.investmentLines.filter((line) => isInvestissementsActionableLine(line))) {
       const found = currentLines.find((r) => key(r) === key(official));
       const patch = { ...official, total: totalLine(official), statut: found?.statut || BP_LINE_STATUS.A_CONCRETISER, display_in_investissements: true };
-      if (found?.id) await props.onUpdateBpInvestmentLine?.(found.id, patch);
-      else await props.onCreateBpInvestmentLine?.(buildHorizonFarmBpLine(official, planId));
+      if (found?.id) {
+        await props.onUpdateBpInvestmentLine?.(found.id, patch);
+        syncedLineByKey.set(key(official), { ...found, ...patch, id: found.id, business_plan_id: planId });
+      } else {
+        const created = await props.onCreateBpInvestmentLine?.(buildHorizonFarmBpLine(official, planId));
+        const row = created?.id ? { ...patch, ...created, business_plan_id: planId } : { ...patch, id: created?.id, business_plan_id: planId };
+        if (row?.id) syncedLineByKey.set(key(official), row);
+      }
     }
     for (const official of payload.recurringCosts) {
       const found = currentCosts.find((r) => key(r) === key(official));
@@ -165,8 +179,14 @@ async function syncBp(props, { silent = false, force = false, payload: externalP
       props.onRefreshBpFundingSources?.(),
     ]);
     if (!silent) toast.success('BP importé et réparti par onglet xlsx');
+    return {
+      planId,
+      syncedLines: [...syncedLineByKey.values()],
+      resolveLine: (line) => syncedLineByKey.get(key(line)) || null,
+    };
   } catch (e) {
     if (!silent) toast.error(e.message || 'Rechargement impossible');
+    throw e;
   }
 }
 
@@ -234,9 +254,11 @@ export default function InvestissementsV9(props) {
 
   const totals = useMemo(() => computeBpInvestmentTotals(lines), [lines]);
   const costTotals = useMemo(() => computeBpCostTotals(costs), [costs]);
-  const pendingLines = useMemo(() => lines.filter((line) => canConcretizeBpLine(line) && buildBpLineConcretizationRoute(line)), [lines]);
+  const pendingLines = useMemo(() => lines.filter(isPendingBpLine), [lines]);
   const pendingCosts = useMemo(() => costs.filter((cost) => canConcretizeBpCost(cost) && buildBpCostConcretizationRoute(cost)), [costs]);
+  const linesNeedDbSync = useMemo(() => lines.some((line) => !isBpLineEditable(line)), [lines]);
   const costsNeedDbSync = useMemo(() => costs.some((cost) => !isBpCostEditable(cost)), [costs]);
+  const dbLinesCount = dbLines.length;
   const dbCostsCount = dedupe(arr(props.bpRecurringCosts).filter((r) => String(r.business_plan_id || planId) === String(planId))).length;
   const monthCosts = costs.reduce((s, r) => s + monthly(r), 0);
   const annualRevenue = projections.reduce((s, r) => s + revenue(r), 0) || HORIZON_FARM_OFFICIAL_BP.revenue.annualTotal;
@@ -258,7 +280,10 @@ export default function InvestissementsV9(props) {
     if (seedAttempted.current) return;
     seedAttempted.current = true;
     if (!plan || !dbLines.length || !dedupe(arr(props.bpRecurringCosts).filter((r) => String(r.business_plan_id || planId) === String(planId))).length) {
-      syncBp(props, { silent: true });
+      syncBp(props, { silent: true }).catch((error) => {
+        console.warn('BP sync auto', error);
+        toast.error('BP non synchronisé — cliquez « Resynchroniser le BP officiel » pour activer Concrétiser.', { duration: 6000 });
+      });
     }
   }, [plan, dbLines.length, planId, props.bpRecurringCosts]);
 
@@ -273,10 +298,24 @@ export default function InvestissementsV9(props) {
     };
   }, [props]);
 
-  const openConcretization = (line) => {
-    const result = launchBpLineConcretization(line, { onNavigate: props.onNavigate });
+  const openConcretization = async (line) => {
+    let target = line;
+    if (!isBpLineEditable(line)) {
+      try {
+        const syncResult = await syncBp(props, { force: true });
+        target = syncResult?.resolveLine?.(line)
+          || arr(props.bpInvestmentLines).find((row) => key(row) === key(line))
+          || null;
+        if (!target?.id || String(target.id).startsWith('off-')) {
+          return toast.error('Synchronisation BP requise — réessayez ou cliquez « Resynchroniser le BP officiel ».');
+        }
+      } catch {
+        return toast.error('Synchronisation BP impossible — vérifiez votre connexion.');
+      }
+    }
+    const result = launchBpLineConcretization(target, { onNavigate: props.onNavigate });
     if (!result.ok) return toast.error('Cette ligne ne peut pas encore être ouverte dans un module.');
-    const route = buildBpLineConcretizationRoute(line);
+    const route = buildBpLineConcretizationRoute(target);
     const mod = route?.navigate?.module;
     toast.success(`Ouverture ${MODULE_LABELS[mod] || mod || 'module'}…`);
   };
@@ -424,15 +463,28 @@ export default function InvestissementsV9(props) {
       },
     },
     {
-      label: '',
-      render: (r) => (
-        <BpLineActionsMenu
-          line={r}
-          kind="investment"
-          transactions={transactions}
-          onAction={handleLineAction}
-        />
-      ),
+      label: 'Action',
+      render: (r) => {
+        if (isPendingBpLine(r) && !isBpLineEditable(r)) {
+          return (
+            <button
+              type="button"
+              onClick={() => openConcretization(r)}
+              className="rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1 text-[10px] font-black text-emerald-800 hover:border-emerald-500"
+            >
+              Concrétiser
+            </button>
+          );
+        }
+        return (
+          <BpLineActionsMenu
+            line={r}
+            kind="investment"
+            transactions={transactions}
+            onAction={handleLineAction}
+          />
+        );
+      },
     },
   ];
 
@@ -487,6 +539,7 @@ export default function InvestissementsV9(props) {
         {pendingLines.length > 6 ? <p className="text-xs text-[#8a7456]">+ {pendingLines.length - 6} autre(s) ligne(s) dans l’onglet Mes investissements.</p> : null}
       </div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><CheckCircle2 size={16} className="inline" /> Rien en attente — toutes les lignes éligibles sont traitées ou annulées.</div>}
       {costsNeedDbSync ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><b>Charges BP :</b> resynchronisez le plan pour activer les boutons Concrétiser sur les charges ({dbCostsCount ? `${dbCostsCount} en base` : 'aperçu seul'}).</div> : null}
+      {linesNeedDbSync ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><b>Investissements BP :</b> lignes en aperçu intégré — cliquez <b>Concrétiser</b> sur une ligne (sync automatique) ou « Resynchroniser le BP officiel » ({dbLinesCount ? `${dbLinesCount} en base` : 'aucune en base'}).</div> : null}
       {pendingCosts.length ? <div className="space-y-2">
         <p className="text-sm font-black text-[#2f2415]">Charges à concrétiser ({pendingCosts.length})</p>
         {pendingCosts.slice(0, 4).map((cost) => <button type="button" key={cost.id} onClick={() => openCostConcretization(cost)} className="flex w-full items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-left hover:border-sky-400">
@@ -536,6 +589,7 @@ export default function InvestissementsV9(props) {
 
     {tab === 'budget' ? <Section icon={Coins} title="Mes investissements" subtitle="Besoins de démarrage, équipements, stock initial, trésorerie de départ — lignes actionnables à concrétiser.">
       <HelpSteps />
+      {linesNeedDbSync ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><b>Aperçu BP :</b> les boutons <b>Concrétiser</b> synchronisent le plan puis ouvrent le module cible ({dbLinesCount ? `${dbLinesCount} ligne(s) déjà en base` : 'aucune ligne en base pour l’instant'}).</div> : null}
       <Table rows={lines} columns={lineColumns} />
     </Section> : null}
 
