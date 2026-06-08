@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
+import useSpeechSynthesis from '../hooks/useSpeechSynthesis.js';
 import { readUiSettings } from '../utils/uiPreferences';
 import { readPeriodScope } from '../utils/periodScope';
 import { fmtCurrency, fmtNumber } from '../utils/format';
@@ -64,6 +65,23 @@ import {
   DashboardInvestorStrip,
   DashboardWeatherStrip,
 } from './dashboard/DashboardShell.jsx';
+import {
+  buildPremiumExecutiveBrief,
+  buildTemporalComparisons,
+  buildExploitationDynamics,
+  buildDashboardQuickQuestions,
+  buildPresentationModeData,
+  buildSingleFarmLocationCard,
+  isSpeechSynthesisSupported,
+} from './dashboard/dashboardV3.js';
+import {
+  DashboardPremiumBriefPanel,
+  DashboardTemporalComparisonPanel,
+  DashboardDynamicsScorePanel,
+  DashboardHeyHorizonQuickAskStrip,
+  DashboardPresentationOverlay,
+  DashboardFarmLocationPremiumCard,
+} from './dashboard/dashboardV3Panels.jsx';
 
 const firstValue = (...values) => values.find((value) => value !== undefined && value !== null && String(value).trim() !== '');
 const formatDateTime = () => new Intl.DateTimeFormat('fr-FR', {
@@ -139,15 +157,50 @@ function Summary({
   onManageFarms,
   demoModeEnabled = false,
   onToggleDemoMode,
+  v3 = null,
 }) {
+  const [presentationOpen, setPresentationOpen] = useState(false);
+  const speech = useSpeechSynthesis({ lang: 'fr-FR' });
+  const speechSupported = isSpeechSynthesisSupported();
+  const handleSpeak = useCallback((text) => {
+    if (!text) return;
+    speech.speak(text, { force: true });
+  }, [speech]);
+
   const actions = summary.actions.slice(0, simple ? 4 : 8);
   const heyHorizonSuggestions = buildDashboardPilotageSuggestions(summary.actions, summary.goal);
   const sideCards = [];
 
+  const briefPanel = v3?.brief ? (
+    <DashboardPremiumBriefPanel
+      brief={v3.brief}
+      onSpeak={handleSpeak}
+      speaking={speech.speaking}
+      speechSupported={speechSupported}
+      speechError={speech.lastError}
+      onOpenPresentation={() => setPresentationOpen(true)}
+    />
+  ) : null;
+
+  const presentationOverlay = (
+    <DashboardPresentationOverlay
+      open={presentationOpen}
+      data={v3?.presentation}
+      onClose={() => setPresentationOpen(false)}
+      onNavigate={navigate}
+    />
+  );
+
   if (summary.startupMode) {
     return (
-      <div className="space-y-5 dashboard-v2-mobile">
+      <div className="space-y-5 dashboard-v2-mobile dashboard-v3-mobile">
+        {presentationOverlay}
+        {briefPanel}
         <DashboardStartupPanel onNavigate={navigate} journey={pilotage.startupJourney} />
+        <DashboardPrioritiesPanel priorities={pilotage.priorities} onOpen={onOpenPriority} />
+        {v3?.quickQuestions?.length ? (
+          <DashboardHeyHorizonQuickAskStrip questions={v3.quickQuestions} onOpenAssistant={onOpenAssistant} onNavigate={navigate} />
+        ) : null}
         <DashboardNarrativePanel narrative={pilotage.narrative} />
         <DashboardFarmOverviewPanel overview={pilotage.farmOverview} onNavigate={navigate} />
         <DashboardQuickActions onNavigate={navigate} />
@@ -222,16 +275,26 @@ function Summary({
   }
 
   return (
-    <div className="space-y-5 dashboard-v2-mobile">
+    <div className="space-y-5 dashboard-v2-mobile dashboard-v3-mobile">
+      {presentationOverlay}
       <FarmDemoModeBanner enabled={demoModeEnabled} onToggle={onToggleDemoMode} />
+      {briefPanel}
+      <DashboardPrioritiesPanel priorities={pilotage.priorities} onOpen={onOpenPriority} />
+      {quickActions.length ? <DashboardAdaptedQuickActions actions={quickActions} onNavigate={navigate} /> : <DashboardQuickActions onNavigate={navigate} />}
+      {v3?.quickQuestions?.length ? (
+        <DashboardHeyHorizonQuickAskStrip questions={v3.quickQuestions} onOpenAssistant={onOpenAssistant} onNavigate={navigate} />
+      ) : null}
       {allFarmsContext ? (
         <DashboardAllFarmsPanel context={allFarmsContext} onNavigate={navigate} onManageFarms={onManageFarms} />
       ) : null}
       {allFarmsContext?.locationCards?.length ? (
         <FarmLocationGrid cards={allFarmsContext.locationCards} onNavigate={navigate} />
+      ) : v3?.locationCard ? (
+        <DashboardFarmLocationPremiumCard card={v3.locationCard} />
       ) : null}
-      <DashboardPrioritiesPanel priorities={pilotage.priorities} onOpen={onOpenPriority} />
       {adaptedAlerts.length ? <DashboardAdaptedAlertsPanel alerts={adaptedAlerts} /> : null}
+      {v3?.dynamics ? <DashboardDynamicsScorePanel dynamics={v3.dynamics} /> : null}
+      {v3?.comparisons?.length ? <DashboardTemporalComparisonPanel comparisons={v3.comparisons} /> : null}
       <DashboardNarrativePanel narrative={pilotage.narrative} />
       {!allFarmsContext && activityKpiCards.length ? (
         <DashboardActivityKpiStrip cards={activityKpiCards} farmName={activeFarm?.name} />
@@ -251,7 +314,7 @@ function Summary({
       <DashboardHeyHorizonStrip suggestions={heyHorizonSuggestions} onNavigate={navigate} />
 
       {!allFarmsContext ? (
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="dashboard-v3-kpi-grid grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
         <DashboardKpi
           label="CA période"
           value={fmtCurrency(summary.ca)}
@@ -349,11 +412,6 @@ function Summary({
       </div>
       ) : null}
 
-      {quickActions.length ? (
-        <DashboardAdaptedQuickActions actions={quickActions} onNavigate={navigate} />
-      ) : (
-        <DashboardQuickActions onNavigate={navigate} />
-      )}
       <DashboardModuleNav modules={DASHBOARD_MODULES} onNavigate={navigate} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
@@ -687,6 +745,55 @@ export default function DashboardV2(props) {
     [activeFarm, farmScope, comparisonSource, allFarmsContext],
   );
 
+  const v3 = useMemo(() => {
+    const comparisons = buildTemporalComparisons(pilotageProps);
+    const dynamics = buildExploitationDynamics(summary, comparisons, pilotageProps);
+    const brief = buildPremiumExecutiveBrief({
+      displayName: displayUserOf(props),
+      summary,
+      priorities: pilotage.priorities,
+      farmScope,
+      activeFarm,
+      accessibleFarms,
+      demoMode: demoModeEnabled,
+      dynamics,
+      props: pilotageProps,
+    });
+    const locationCard = farmScope?.mode !== 'all' && activeFarm?.id
+      ? buildSingleFarmLocationCard(activeFarm, { ...summary, exploitationScore: pilotage.exploitation?.score }, meteo, adaptedAlerts)
+      : null;
+    const quickQuestions = buildDashboardQuickQuestions(farmScope, accessibleFarms, {
+      ...pilotageProps,
+      activeFarm,
+    });
+    const presentation = buildPresentationModeData({
+      displayName: displayUserOf(props),
+      summary,
+      pilotage,
+      brief,
+      comparisons,
+      dynamics,
+      farmScope,
+      activeFarm,
+      accessibleFarms,
+      allFarmsContext,
+      demoMode: demoModeEnabled,
+      locationCard,
+    });
+    return { brief, comparisons, dynamics, quickQuestions, locationCard, presentation };
+  }, [
+    summary,
+    pilotage,
+    pilotageProps,
+    farmScope,
+    activeFarm,
+    accessibleFarms,
+    allFarmsContext,
+    demoModeEnabled,
+    meteo,
+    adaptedAlerts,
+  ]);
+
   const openPriority = (item) => {
     if (item.finding) {
       navigateForDashboardFinding(item.finding, navigate);
@@ -716,6 +823,8 @@ export default function DashboardV2(props) {
       <style>{`
         @media (max-width: 640px) {
           .dashboard-v2-mobile .grid.grid-cols-2 { grid-template-columns: 1fr; }
+          .dashboard-v3-mobile .dashboard-v3-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .dashboard-v3-mobile .dashboard-v3-kpi-grid > *:nth-child(n+7) { display: none; }
           .dashboard-v2-mobile .text-xl { font-size: 1.15rem; }
           .dashboard-v2-mobile .text-2xl { font-size: 1.35rem; }
           .dashboard-v2-mobile .text-3xl { font-size: 1.5rem; }
@@ -760,6 +869,7 @@ export default function DashboardV2(props) {
             setDemoModeEnabled(false);
             window.location.reload();
           }}
+          v3={v3}
         />
       ) : (
         <GraphiquesSection props={props} navigate={navigate} periodFiltered={periodFiltered} />
