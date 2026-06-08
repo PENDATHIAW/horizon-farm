@@ -72,7 +72,7 @@ function ActivityEntryCard({ icon: Icon, active, title, rows = [], productionLog
     <div className={`mt-3 rounded-xl border p-3 text-xs leading-relaxed ${active ? 'border-white/15 bg-white/10 text-white/80' : urgent ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>{urgent ? `${urgent} action(s) prioritaire(s).` : 'Aucune urgence.'}</div>
   </button>;
 }
-function HeyHorizonAvicoleCard({ draft, rows, onUpdate, onCreateProduction, onRefreshProduction, onCreateBusinessEvent, onRefresh, onRefreshBusinessEvents, onClose, onCreateEggOpportunity }) {
+function HeyHorizonAvicoleCard({ draft, rows, onUpdate, onCreateProduction, onCommitEggProduction, onRefreshProduction, onCreateBusinessEvent, onRefresh, onRefreshBusinessEvents, onClose, onCreateEggOpportunity }) {
   const fields = draft?.draft_fields || {};
   const formType = draft?.form_type;
   const [lotId, setLotId] = useState(fields.lot_id || rows[0]?.id || '');
@@ -90,10 +90,15 @@ function HeyHorizonAvicoleCard({ draft, rows, onUpdate, onCreateProduction, onRe
       setSaving(true);
       if (formType === 'egg_production') {
         const eggs = num(quantity);
-        const tablettes = Math.floor(eggs / 30);
-        await onCreateProduction?.({ id: makeId('PONTE'), lot_id: lot.id, related_id: lot.id, date, oeufs_produits: eggs, oeufs_casses: 0, oeufs_vendables: eggs, oeufs: eggs, eggs_count: eggs, tablettes, tablettes_vendables: tablettes, plateaux: tablettes, oeufs_restants: eggs % 30, oeufs_reliquat: eggs % 30, oeufs_par_tablette: 30, unite_vente: 'tablette', type_evenement: 'ramassage_oeufs', source_module: 'hey_horizon', source_record_id: lot.id, notes: note });
-        try { await onCreateEggOpportunity?.(lot, eggs, date, note || draft?.raw_input || ''); } catch (error) { console.warn('Opportunité œufs non créée', error); toast.error('Ramassage enregistré, opportunité œufs à vérifier'); }
-        try { await onRefreshProduction?.(); } catch (error) { console.warn('Rafraîchissement production impossible', error); }
+        if (onCommitEggProduction) {
+          await onCommitEggProduction({ lot_id: lot.id, date, oeufs_produits: eggs, oeufs_casses: 0, notes: note, source_module: 'hey_horizon', source_record_id: lot.id });
+          try { await onCreateEggOpportunity?.(lot, eggs, date, note || draft?.raw_input || ''); } catch (error) { console.warn('Opportunité œufs non créée', error); toast.error('Ramassage enregistré, opportunité œufs à vérifier'); }
+        } else {
+          const tablettes = Math.floor(eggs / 30);
+          await onCreateProduction?.({ id: makeId('PONTE'), lot_id: lot.id, related_id: lot.id, date, oeufs_produits: eggs, oeufs_casses: 0, oeufs_vendables: eggs, oeufs: eggs, eggs_count: eggs, tablettes, tablettes_vendables: tablettes, plateaux: tablettes, oeufs_restants: eggs % 30, oeufs_reliquat: eggs % 30, oeufs_par_tablette: 30, unite_vente: 'tablette', type_evenement: 'ramassage_oeufs', source_module: 'hey_horizon', source_record_id: lot.id, notes: note });
+          try { await onCreateEggOpportunity?.(lot, eggs, date, note || draft?.raw_input || ''); } catch (error) { console.warn('Opportunité œufs non créée', error); toast.error('Ramassage enregistré, opportunité œufs à vérifier'); }
+          try { await onRefreshProduction?.(); } catch (error) { console.warn('Rafraîchissement production impossible', error); }
+        }
       } else if (formType === 'poultry_mortality') {
         const newMortality = mortalityOf(lot) + num(quantity);
         await onUpdate?.(lot.id, { mortality: newMortality, morts: newMortality, current_count: nextCount, effectif_actuel: nextCount, status: nextCount === 0 ? 'perdu_mortalite' : (lot.status || lot.statut || 'actif'), statut: nextCount === 0 ? 'perdu_mortalite' : (lot.statut || lot.status || 'actif'), last_event_date: date, last_health_note: note });
@@ -207,7 +212,7 @@ export default function AvicoleV10(props) {
 
   return <div className="space-y-6 avicole-mobile-final">
     <style>{`.avicole-mobile-final .objective-card-grid{align-items:stretch}@media(max-width:640px){.avicole-mobile-final .rounded-2xl{border-radius:18px}.avicole-mobile-final table{font-size:12px}.avicole-mobile-final th,.avicole-mobile-final td{padding-left:10px!important;padding-right:10px!important}.avicole-mobile-final .text-2xl{font-size:1.35rem}.avicole-mobile-final .grid{gap:.75rem}.avicole-mobile-final .overflow-x-auto{max-width:100vw}}`}</style>
-    {horizonDraft ? <div id="hey-horizon-avicole-card"><HeyHorizonAvicoleCard draft={horizonDraft} rows={activeScopedRows} onUpdate={wrappedUpdate} onCreateProduction={props.onCreateProduction} onRefreshProduction={props.onRefreshProduction} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onClose={() => setHorizonDraft(null)} onCreateEggOpportunity={createOrReactivateEggOpportunity} /></div> : null}
+    {horizonDraft ? <div id="hey-horizon-avicole-card"><HeyHorizonAvicoleCard draft={horizonDraft} rows={activeScopedRows} onUpdate={wrappedUpdate} onCreateProduction={props.onCreateProduction} onCommitEggProduction={props.onCommitEggProduction} onRefreshProduction={props.onRefreshProduction} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onClose={() => setHorizonDraft(null)} onCreateEggOpportunity={createOrReactivateEggOpportunity} /></div> : null}
     <div className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm">
       <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><Bird size={15} aria-hidden="true" /> Avicole</p>
       <h2 className="mt-1 text-2xl font-black text-[#2f2415]">{selectedLabel}</h2>
