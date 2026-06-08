@@ -1,5 +1,6 @@
 import { fmtCurrency, fmtNumber } from '../../utils/format';
 import { runErpHealthEngine } from '../../services/erpHealthEngine.js';
+import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine.js';
 import { filterRealOpenTasks } from '../../utils/healthFindingLabels.js';
 import { remainingForOrder } from '../../utils/salesStatuses.js';
 import { computeFinancePeriodSummary } from '../dashboard/dashboardMetrics.js';

@@ -14,6 +14,11 @@ import {
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 
+/** `null` ne déclenche pas la valeur par défaut des paramètres — normaliser explicitement. */
+function safeFarm(farm) {
+  return farm && typeof farm === 'object' ? farm : {};
+}
+
 export const ACTIVITY_KPI_DEFINITIONS = Object.freeze({
   aviculture_pondeuses: [
     { key: 'lay_rate', label: 'Taux de ponte' },
@@ -142,8 +147,9 @@ export function getActivityLabel(activityKey = '') {
 }
 
 export function getFarmKpis(farm = {}, scope = {}) {
+  const f = safeFarm(farm);
   if (scope?.mode === 'all') return [...ALL_FARMS_KPI];
-  const activities = normalizeFarmActivities(farm.activity_type);
+  const activities = normalizeFarmActivities(f.activity_type);
   if (activities.includes('mixte')) {
     return Object.values(ACTIVITY_KPI_DEFINITIONS).flat().slice(0, 8);
   }
@@ -160,7 +166,8 @@ export function getFarmKpis(farm = {}, scope = {}) {
 }
 
 export function getFarmAlerts(farm = {}) {
-  const activities = normalizeFarmActivities(farm.activity_type);
+  const f = safeFarm(farm);
+  const activities = normalizeFarmActivities(f.activity_type);
   const alerts = new Set(COMMON_FINANCE_ALERTS);
   if (activities.includes('mixte')) {
     Object.values(ACTIVITY_ALERT_DEFINITIONS).flat().forEach((entry) => alerts.add(entry));
@@ -179,7 +186,8 @@ export function getFarmAlerts(farm = {}) {
 }
 
 export function getFarmQuickActions(farm = {}) {
-  const activities = normalizeFarmActivities(farm.activity_type);
+  const f = safeFarm(farm);
+  const activities = normalizeFarmActivities(f.activity_type);
   if (activities.includes('mixte')) {
     return Object.values(ACTIVITY_QUICK_ACTIONS).flat().slice(0, 10);
   }
@@ -196,10 +204,11 @@ export function getFarmQuickActions(farm = {}) {
 }
 
 export function getFarmHeyHorizonTopics(farm = {}, scope = {}) {
+  const f = safeFarm(farm);
   if (scope?.mode === 'all') {
     return ['synthèse globale', 'comparaison fermes', 'ferme la plus à risque', 'ferme la plus performante'];
   }
-  const activities = normalizeFarmActivities(farm.activity_type);
+  const activities = normalizeFarmActivities(f.activity_type);
   if (activities.includes('aviculture_pondeuses') || activities.includes('poulets_chair')) {
     return ['ponte', 'lots', 'alimentation', 'mortalité', 'ventes œufs'];
   }
