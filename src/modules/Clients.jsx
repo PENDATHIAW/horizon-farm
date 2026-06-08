@@ -2,6 +2,7 @@ import { AlertTriangle, Download, DollarSign, Edit, Eye, FileText, Lightbulb, Ma
 import { useMemo, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import ActionIconButton from '../components/ActionIconButton';
+import ClientFicheModal from '../components/ClientFicheModal.jsx';
 import Btn from '../components/Btn';
 import KpiCard from '../components/KpiCard';
 import SectionHeader from '../components/SectionHeader';
