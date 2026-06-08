@@ -1,4 +1,4 @@
-const CACHE_NAME = 'horizon-farm-v6';
+const CACHE_NAME = 'horizon-farm-v7';
 const APP_SHELL = ['/manifest.webmanifest', '/brand-icon-192.png', '/brand-icon-512.png', '/brand-logo.png'];
 
 const isAssetRequest = (url) => /\/assets\//.test(url.pathname) || url.pathname.endsWith('.js') || url.pathname.endsWith('.css');

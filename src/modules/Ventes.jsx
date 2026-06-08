@@ -1,1 +1,1 @@
-export { default } from './VentesV3.jsx';
+export { default } from './VentesV5.jsx';

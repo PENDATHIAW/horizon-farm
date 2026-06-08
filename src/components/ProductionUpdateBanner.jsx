@@ -1,20 +1,13 @@
 import { useEffect, useState } from 'react';
+import { currentBuildSha, isStaleAppBundle, purgeStalePwaCache } from '../services/pwa';
 
-const STALE_SCRIPT_MARKERS = ['index-DrX_eSIh.js'];
 const LIVE_APP_URL = 'https://horizon-farm-git-main-pendathiaws-projects.vercel.app';
-
-function currentScriptMarker() {
-  const script = document.querySelector('script[src*="/assets/index-"]');
-  const src = script?.getAttribute('src') || '';
-  return STALE_SCRIPT_MARKERS.find((marker) => src.includes(marker)) || '';
-}
 
 export default function ProductionUpdateBanner() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const stale = currentScriptMarker();
-    if (stale) {
+    if (isStaleAppBundle()) {
       setVisible(true);
       return;
     }
@@ -23,6 +16,11 @@ export default function ProductionUpdateBanner() {
       .then((response) => (response.ok ? response.json() : null))
       .then((info) => {
         if (!info?.sha || info.sha === 'local') return;
+        const embedded = currentBuildSha();
+        if (embedded !== 'dev' && embedded !== info.sha) {
+          setVisible(true);
+          return;
+        }
         const seen = localStorage.getItem('horizon-farm-build-sha');
         if (seen && seen !== info.sha) setVisible(true);
         localStorage.setItem('horizon-farm-build-sha', info.sha);
@@ -32,15 +30,7 @@ export default function ProductionUpdateBanner() {
 
   if (!visible) return null;
 
-  const reload = () => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then((regs) => Promise.all(regs.map((reg) => reg.unregister()))).finally(() => {
-        window.location.reload();
-      });
-      return;
-    }
-    window.location.reload();
-  };
+  const reload = () => purgeStalePwaCache({ reload: true });
 
   return (
     <div className="fixed inset-x-0 top-0 z-[100] border-b border-amber-300 bg-amber-50 px-4 py-3 shadow-lg">
@@ -48,7 +38,7 @@ export default function ProductionUpdateBanner() {
         <div>
           <p className="text-sm font-black text-amber-950">Mise à jour Horizon Farm disponible</p>
           <p className="text-xs text-amber-900">
-            Cette version est ancienne (onglets annexes et correctifs récents absents). Ouvrez la version à jour ou rechargez après promotion Vercel Production.
+            Cette version est ancienne ou mélange d&apos;anciens fichiers JS (modules qui plantent). Rechargez pour obtenir la version à jour.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

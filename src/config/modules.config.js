@@ -1,6 +1,6 @@
 import {
   BarChart3, Beef, Bell, Bot, BrainCircuit, Calculator, ClipboardList, DollarSign,
-  FolderOpen, Goal, Handshake, LayoutDashboard, PiggyBank, Scale, Settings, ShoppingCart,
+  FolderOpen, Goal, Handshake, LayoutDashboard, PiggyBank, Settings, ShoppingCart,
   Sprout, Sun, Tractor, UserCog, Warehouse, Wifi, Wrench,
 } from 'lucide-react';
 
@@ -16,7 +16,7 @@ export const MODULE_REGISTRY = {
   finance_pilotage: { label: 'Finance & Pilotage', icon: DollarSign, group: 'metier' },
   activite_suivi: { label: 'Activité & Suivi', icon: ClipboardList, group: 'metier' },
   documents_rapports: { label: 'Documents & Rapports', icon: FolderOpen, group: 'metier' },
-  impact_business: { label: 'Impact & Valeur', icon: Scale, group: 'pilotage' },
+  impact_business: { label: 'Investisseurs & Forums', icon: Handshake, group: 'pilotage', deprecated: true },
   investisseurs_forums: { label: 'Investisseurs & Forums', icon: Handshake, group: 'pilotage' },
   cultures: { label: 'Cultures', icon: Sprout, group: 'metier' },
   rh: { label: 'RH & Équipe', icon: UserCog, group: 'operations' },
@@ -57,7 +57,7 @@ export const SALES_WORKFLOW_KEYS = [
 export const NAV_MODULE_ORDER = [
   'dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance',
   'elevage', 'commercial', 'achats_stock', 'finance_pilotage',
-  'activite_suivi', 'documents_rapports', 'impact_business', 'investisseurs_forums',
+  'activite_suivi', 'documents_rapports', 'investisseurs_forums',
   'cultures', 'rh', 'equipements', 'smartfarm', 'sync_activity', 'gestion_systeme',
 ];
 
@@ -70,6 +70,7 @@ export const ROUTE_TO_MODULE = {
   finances: 'finance_pilotage',
   investissements: 'finance_pilotage',
   investisseurs_forums: 'investisseurs_forums',
+  impact_business: 'investisseurs_forums',
   alertes: 'activite_suivi',
   taches: 'activite_suivi',
   tracabilite: 'activite_suivi',

@@ -45,7 +45,7 @@ import CommercialScheduledRelancesPanel from './commercial/CommercialScheduledRe
 import CommercialPilotagePanel from './commercial/CommercialPilotagePanel.jsx';
 import CommercialMobileToolbar from './commercial/CommercialMobileToolbar.jsx';
 import CommercialStartupPanel from './commercial/CommercialStartupPanel.jsx';
-import VentesV3 from './VentesV3';
+import VentesV5 from './VentesV5.jsx';
 import ClientsReadable from './ClientsReadable';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
@@ -480,7 +480,7 @@ export default function CommercialRecoveredModule(props) {
           onPrepareRelanceWhatsApp={prepareRelanceWhatsApp}
         />
       ) : null}
-      {tab === 'Ventes' ? <VentesV3 {...salesProps} /> : null}
+      {tab === 'Ventes' ? <VentesV5 {...salesProps} /> : null}
       {tab === 'Clients' ? (
         <div className="space-y-4">
           <ClientsReadable {...clientProps} />
