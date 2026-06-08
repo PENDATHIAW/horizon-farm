@@ -1,9 +1,22 @@
+/**
+ * CHEMIN D'ACHAT CANONIQUE (Achats & Stock V1 P0)
+ * Besoin / fournisseur → réception achat (StockPurchaseReceptionForm)
+ * → entrée stock → document justificatif → finance / dette fournisseur
+ * → business_event → stock_movement → alerte / tâche si nécessaire.
+ *
+ * Tous les bridges (fournisseur, OCR, WhatsApp, finance repair) doivent appeler
+ * prepareStockPurchaseWorkflow + commitStockPurchaseWorkflow pour produire la même structure.
+ */
 import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine.js';
+import { persistStockMovement } from '../services/stockMovementHelpers.js';
 import { buildStockCriticalFollowUp, isStockCritical, stockReorderKey, stockUnitPrice } from './stockWorkflows.js';
 import { runPurchaseSideEffects } from './purchaseSideEffects.js';
+import { buildSupplierDebtPatchWithFarm, defaultFarmIdForLegacy } from './supplierDebtByFarm.js';
 import { alertIds, documentIds, financeIds } from './sideEffectIds.js';
 import { makeId } from './ids.js';
 import { toNumber } from './format.js';
+
+export const CANONICAL_PURCHASE_ENTRY = 'StockPurchaseReceptionForm';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();
@@ -138,7 +151,12 @@ function stockProductName(row = {}) {
   return row.produit || row.name || row.nom || row.libelle || 'Produit';
 }
 
-function buildStockRowPatch({ existing = null, payload = {}, amounts = {}, movementRef = '' }) {
+function resolveWorkflowFarmId(payload = {}, context = {}) {
+  return clean(payload.farm_id || payload.farmId || context.farmId || context.activeFarm?.id)
+    || defaultFarmIdForLegacy(context.accessibleFarms);
+}
+
+function buildStockRowPatch({ existing = null, payload = {}, amounts = {}, movementRef = '', farmId = null }) {
   const qtyReceived = amounts.qty;
   const currentQty = existing ? num(existing.quantite ?? existing.quantity) : 0;
   const nextQty = payload.replace_quantity != null
@@ -173,6 +191,7 @@ function buildStockRowPatch({ existing = null, payload = {}, amounts = {}, movem
     issue_key: buildStockPurchaseIssueKey(stockId, movementRef),
     workflow_id: movementRef,
     side_effects_managed: true,
+    farm_id: farmId || existing?.farm_id || payload.farm_id || null,
     ...destination,
   };
 }
@@ -184,7 +203,8 @@ export function prepareStockPurchaseWorkflow(payload = {}, context = {}) {
   const workflowId = payload.workflow_id || safeWorkflowId(context);
   const movementRef = workflowId;
   const existing = findStockRow(context, payload);
-  const stockPatch = buildStockRowPatch({ existing, payload, amounts, movementRef });
+  const farmId = resolveWorkflowFarmId(payload, context);
+  const stockPatch = buildStockRowPatch({ existing, payload, amounts, movementRef, farmId });
   const issueKey = buildStockPurchaseIssueKey(stockPatch.id, movementRef);
   const productName = stockProductName(stockPatch);
   const skipFinance = [ENTRY_KINDS.STOCK_INITIAL, ENTRY_KINDS.DON, ENTRY_KINDS.CORRECTION].includes(entryKind)
@@ -192,7 +212,6 @@ export function prepareStockPurchaseWorkflow(payload = {}, context = {}) {
     || amounts.paidAmount <= 0;
   const supplierId = clean(stockPatch.fournisseur_id);
   const supplier = supplierId ? arr(context.suppliers).find((row) => clean(row.id) === supplierId) : null;
-  const currentDebt = supplier ? num(supplier.dettes ?? supplier.dette ?? supplier.solde) : 0;
   const financeId = financeIds.purchase(stockPatch.id, movementRef);
   const docId = documentIds.purchase(stockPatch.id, movementRef);
 
@@ -253,6 +272,7 @@ export function prepareStockPurchaseWorkflow(payload = {}, context = {}) {
         linked_transaction_id: skipFinance ? '' : financeId,
         issue_key: issueKey,
         side_effects_managed: true,
+        farm_id: farmId,
       },
       finance: skipFinance ? null : {
         id: financeId,
@@ -279,6 +299,7 @@ export function prepareStockPurchaseWorkflow(payload = {}, context = {}) {
         origin_type: 'workflow',
         side_effects_managed: true,
         created_from: 'stock_purchase_workflow',
+        farm_id: farmId,
       },
       document: payload.document_payload || (payload.proof_url || payload.file_url ? {
         id: docId,
@@ -295,9 +316,7 @@ export function prepareStockPurchaseWorkflow(payload = {}, context = {}) {
       } : null),
       supplier_patch: amounts.remaining > 0 && supplierId ? {
         id: supplierId,
-        dettes: currentDebt + amounts.remaining,
-        dette: currentDebt + amounts.remaining,
-        last_purchase_at: now(),
+        ...buildSupplierDebtPatchWithFarm(supplier || { id: supplierId }, amounts.remaining, farmId, defaultFarmIdForLegacy(context.accessibleFarms)),
       } : null,
       finance_repair_patch: payload.finance_repair_transaction_id ? {
         id: payload.finance_repair_transaction_id,
@@ -343,6 +362,9 @@ export async function commitStockPurchaseWorkflow(preview = {}, handlers = {}) {
   const records = p.records || {};
   const stockPatch = records.stock_patch || {};
   const ctx = handlers.context || {};
+  const existingRow = arr(ctx.stocks).find((row) => clean(row.id) === clean(stockPatch.id)) || null;
+  const beforeQty = existingRow ? num(existingRow.quantite ?? existingRow.quantity) : 0;
+  const afterQty = num(stockPatch.quantite ?? stockPatch.quantity);
   const amounts = {
     total: num(p.fields?.amount?.final_value ?? p.fields?.amount?.auto_value),
     paidAmount: num(p.fields?.paid?.final_value ?? p.fields?.paid?.auto_value),
@@ -357,11 +379,36 @@ export async function commitStockPurchaseWorkflow(preview = {}, handlers = {}) {
     await handlers.onCreateOrUpdateStock({ ...stockPatch, side_effects_managed: true });
   }
 
+  let linkedMovementEventId = '';
   if (records.movement_event && handlers.onCreateBusinessEvent) {
     await handlers.onCreateBusinessEvent(records.movement_event);
+    linkedMovementEventId = records.movement_event.id;
   }
   if (records.business_event && handlers.onCreateBusinessEvent) {
     await handlers.onCreateBusinessEvent(records.business_event);
+  }
+
+  if (handlers.onCreateStockMovement && amounts.qty > 0) {
+    await persistStockMovement({
+      before: { id: stockPatch.id, quantite: beforeQty },
+      after: { ...stockPatch, quantite: afterQty, quantity: afterQty },
+      patch: {
+        last_movement_type: 'entree',
+        source_module: 'stock',
+        source_record_id: stockPatch.id,
+        last_movement_label: records.movement?.motif || stockPatch.last_movement_label,
+        movement_ref: p.workflow_id,
+        dedupe_key: records.movement_event?.dedupe_key || movementDedupeKey(stockPatch.id, p.workflow_id, 'entree'),
+        created_from: 'stock_purchase_workflow',
+        date: records.movement?.date,
+      },
+      linkedEventId: linkedMovementEventId,
+      farmId: stockPatch.farm_id,
+      movementRef: p.workflow_id,
+      dedupeKey: records.movement_event?.dedupe_key,
+      handlers,
+      existingMovements: handlers.existingStockMovements || ctx.stock_movements,
+    });
   }
 
   if (records.supplier_patch && handlers.onUpdateSupplier) {
@@ -427,7 +474,7 @@ export async function commitStockPurchaseWorkflow(preview = {}, handlers = {}) {
 }
 
 /** Brouillon de réparation : créer entrée stock depuis une dépense finance historique. */
-export function buildStockReceptionFromFinanceTransaction(tx = {}, stocks = []) {
+export function buildStockReceptionFromFinanceTransaction(tx = {}) {
   const amount = num(tx.montant ?? tx.amount);
   return {
     entry_kind: ENTRY_KINDS.ACHAT_STOCKABLE,

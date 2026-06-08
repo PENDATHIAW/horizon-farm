@@ -1,6 +1,7 @@
 import { runErpHealthEngine } from '../../services/erpHealthEngine.js';
 import { fmtCurrency } from '../../utils/format.js';
 import { buildProductionCoherenceAlerts } from '../../utils/productionStockCatalog.js';
+import { aggregateSupplierDebtsForScope } from '../../utils/supplierDebtByFarm.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v = 0) => Number(v || 0);
@@ -121,7 +122,10 @@ export function buildAchatsStockCoherenceRows(stocks = [], transactions = [], su
   return rows.sort((a, b) => (b.value || 0) - (a.value || 0));
 }
 
-export function aggregateSupplierDebts(suppliers = []) {
+export function aggregateSupplierDebts(suppliers = [], transactions = [], farmScope = {}, accessibleFarms = []) {
+  if (transactions.length || farmScope?.mode) {
+    return aggregateSupplierDebtsForScope(suppliers, transactions, farmScope, accessibleFarms);
+  }
   return arr(suppliers)
     .map((sup) => {
       const debt = supplierDebt(sup);
@@ -131,4 +135,8 @@ export function aggregateSupplierDebts(suppliers = []) {
     })
     .filter(Boolean)
     .sort((a, b) => b.total - a.total);
+}
+
+export function isAchatsStockStartupMode({ stocks = [], suppliers = [], purchases = [] } = {}) {
+  return !arr(stocks).length && !arr(suppliers).length && !arr(purchases).length;
 }

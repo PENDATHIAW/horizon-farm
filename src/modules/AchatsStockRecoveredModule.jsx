@@ -1,8 +1,9 @@
-import { BrainCircuit, Handshake, PackageCheck, ShoppingBag, Warehouse, Zap } from 'lucide-react';
+import { BrainCircuit, Handshake, PackageCheck, Warehouse, Zap } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import ModuleAnnexeTab from '../components/module/ModuleAnnexeTab.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
+import AchatsStockAnnexeTab from './achatsStock/AchatsStockAnnexeTab.jsx';
+import AchatsStockStartupPanel from './achatsStock/AchatsStockStartupPanel.jsx';
 import ModuleListHub from '../components/module/ModuleListHub.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
@@ -11,7 +12,13 @@ import { applyOneClickRecommendation, createSupplierFollowUpTask } from '../serv
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { rowsOf } from '../utils/moduleRows';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
-import { aggregateSupplierDebts, buildAchatsStockCoherenceRows, buildAchatsStockHealthSnapshot } from './achatsStock/achatsStockVisionHelpers.js';
+import {
+  aggregateSupplierDebts,
+  buildAchatsStockCoherenceRows,
+  buildAchatsStockHealthSnapshot,
+  isAchatsStockStartupMode,
+} from './achatsStock/achatsStockVisionHelpers.js';
+import { formatSupplierDebtDetail } from '../utils/supplierDebtByFarm.js';
 import { resolveAchatsStockTab, navigateForIaFinding } from '../utils/commercialNavigation';
 import StocksV5 from './StocksV5';
 import FournisseursReadable from './FournisseursReadable';
@@ -82,7 +89,7 @@ function SupplierDebtPanel({ suppliers = [], onRelance, busyId, setTab }) {
     <Section icon={Handshake} title="Fournisseurs à payer">
       {suppliers.slice(0, 6).map((s) => (
         <div key={s.id || s.name} className="flex flex-col gap-2 border-b border-[#eadcc2]/70 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
-          <button type="button" onClick={() => setTab('Fournisseurs')} className="text-left"><b className="text-[#2f2415]">{s.name}</b><p className="text-xs text-[#8a7456]">Dette {fmtCurrency(s.total)}</p></button>
+          <button type="button" onClick={() => setTab('Fournisseurs')} className="text-left"><b className="text-[#2f2415]">{s.name}</b><p className="text-xs text-[#8a7456]">Dette {formatSupplierDebtDetail(s)}</p></button>
           <button type="button" disabled={busyId === (s.id || s.name)} onClick={() => onRelance?.(s)} className="rounded-lg bg-[#22c55e] px-2 py-1 text-xs font-black text-[#052e16] disabled:opacity-50">{busyId === (s.id || s.name) ? '…' : 'Créer tâche paiement'}</button>
         </div>
       ))}
@@ -135,21 +142,39 @@ function AchatsHub({ data, onNavigate, setTab }) {
 }
 
 function MouvementsHub({ data, onNavigate }) {
-  const movements = [...data.feedLogs, ...data.stockEvents].sort((a, b) => String(b.date || b.created_at || '').localeCompare(String(a.date || a.created_at || '')));
+  const ledgerRows = (data.stockMovements || []).map((row) => ({
+    id: row.id,
+    date: row.movement_date || row.created_at,
+    title: `${row.movement_type === 'entree' ? 'Entrée' : row.movement_type === 'perte' ? 'Perte' : 'Sortie'} · ${row.stock_id}`,
+    detail: `${row.source_module || 'stock'} · ${row.metadata?.movement_kind || row.notes || 'Mouvement'}`,
+    quantite: row.quantity,
+    type: row.movement_type,
+    sortKey: row.movement_date || row.created_at,
+  }));
+  const legacyRows = [...data.feedLogs, ...data.stockEvents].map((row) => ({
+    id: row.id || `${row.date}-${row.produit || row.libelle}`,
+    date: row.date || row.created_at,
+    title: row.produit || row.name || row.libelle || row.title || 'Mouvement',
+    detail: `${row.type || row.categorie || row.event_type || 'Stock'}`,
+    quantite: row.quantite ?? row.quantity,
+    type: row.type || row.event_type,
+    sortKey: row.date || row.created_at,
+  }));
+  const movements = [...ledgerRows, ...legacyRows].sort((a, b) => String(b.sortKey || '').localeCompare(String(a.sortKey || '')));
   return (
     <ModuleListHub
       title="Mouvements stock & alimentation"
-      intro="Entrées, sorties, distributions aliment et événements stock."
+      intro="Journal stock_movements, distributions aliment et événements métier."
       stats={[
         { label: 'Mouvements', value: fmtNumber(movements.length) },
-        { label: 'Sorties aliment', value: fmtNumber(data.feedLogs.length) },
+        { label: 'Ledger stock', value: fmtNumber(data.stockMovements.length) },
         { label: 'Sous seuil', value: fmtNumber(data.lowStock.length), tone: data.lowStock.length ? 'warn' : 'good' },
         { label: 'Valeur stock', value: fmtCurrency(data.stockValue) },
       ]}
       rows={movements.map((row) => ({
-        id: row.id || `${row.date}-${row.produit || row.libelle}`,
-        title: row.produit || row.name || row.libelle || row.title || 'Mouvement',
-        detail: `${row.date || row.created_at || '—'} · ${row.type || row.categorie || row.event_type || 'Stock'}`,
+        id: row.id,
+        title: row.title,
+        detail: `${String(row.date || '—').slice(0, 10)} · ${row.detail}`,
         value: row.quantite != null ? `${row.quantite} u.` : undefined,
         module: 'achats_stock',
       }))}
@@ -159,9 +184,10 @@ function MouvementsHub({ data, onNavigate }) {
   );
 }
 
-function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate }) {
+function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate, startupMode = false }) {
   return (
     <div className="space-y-5">
+      {startupMode ? <AchatsStockStartupPanel setTab={setTab} onNavigate={onNavigate} /> : null}
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-8">
         <Stat label="Santé stock" value={`${data.healthScore}/100`} tone={data.healthScore >= 75 ? 'good' : 'warn'} />
         <Stat label="Produits stock" value={fmtNumber(data.stocks.length)} />
@@ -202,6 +228,7 @@ export default function AchatsStockRecoveredModule(props) {
   const financesCrud = useCrudModule('finances');
   const feedCrud = useCrudModule('alimentation_logs');
   const eventsCrud = useCrudModule('business_events');
+  const movementsCrud = useCrudModule('stock_movements');
   const opportunitiesCrud = useCrudModule('sales_opportunities');
   const tasksCrud = useCrudModule('taches');
   const alertsCrud = useCrudModule('alertes_center');
@@ -212,6 +239,8 @@ export default function AchatsStockRecoveredModule(props) {
   const transactions = rowsOf(props.transactions || props.finances, financesCrud, periodFiltered);
   const feedLogs = rowsOf(props.alimentationLogs, feedCrud, periodFiltered);
   const businessEvents = rowsOf(props.businessEvents, eventsCrud, periodFiltered);
+  const stockMovements = rowsOf(props.stockMovements, movementsCrud, false);
+  const documents = rowsOf(props.documents, documentsCrud, periodFiltered);
   const data = useMemo(() => {
     const purchases = transactions.filter(isPurchaseTx);
     const stockEvents = businessEvents.filter((r) => /stock|aliment|mouvement|reception|réception/.test(low(`${r.event_type || ''} ${r.title || ''} ${r.module_source || ''}`)));
@@ -219,12 +248,15 @@ export default function AchatsStockRecoveredModule(props) {
     const purchasesWithoutStock = purchases.filter((trx) => !stocks.some((s) => String(s.last_purchase_id || s.source_id) === String(trx.id)) && trx.stock_impact !== true && n(trx.montant ?? trx.amount) > 0);
     const healthSnap = buildAchatsStockHealthSnapshot({ stocks, suppliers, transactions, feedLogs });
     const coherenceRows = buildAchatsStockCoherenceRows(stocks, transactions, suppliers);
-    const supplierDebts = aggregateSupplierDebts(suppliers);
+    const supplierDebts = aggregateSupplierDebts(suppliers, transactions, props.farmScope, props.accessibleFarms);
+    const startupMode = isAchatsStockStartupMode({ stocks, suppliers, purchases });
     return {
       stocks,
       suppliers,
       feedLogs,
       stockEvents,
+      stockMovements,
+      startupMode,
       stockValue: stocks.reduce((s, r) => s + valueOf(r), 0),
       lowStock,
       feedStocks: stocks.filter(isFeed),
@@ -238,7 +270,7 @@ export default function AchatsStockRecoveredModule(props) {
       coherenceRows,
       supplierDebts,
     };
-  }, [stocks, suppliers, transactions, feedLogs, businessEvents]);
+  }, [stocks, suppliers, transactions, feedLogs, businessEvents, stockMovements, props.farmScope, props.accessibleFarms]);
   const actionHandlers = {
     onNavigate: props.onNavigate,
     onCreateTask: props.onCreateTask || tasksCrud.create,
@@ -276,7 +308,7 @@ export default function AchatsStockRecoveredModule(props) {
       setBusyId(null);
     }
   };
-  const stockProps = { rows: stocks, alimentationLogs: feedLogs, animaux: arr(props.animaux), lots: arr(props.lots), fournisseurs: suppliers, opportunities: rowsOf(props.opportunities, opportunitiesCrud, periodFiltered), taches: rowsOf(props.taches, tasksCrud, false), onCreate: props.onCreateStock || stockCrud.create, onUpdate: props.onUpdateStock || stockCrud.update, onDelete: props.onDeleteStock || stockCrud.remove, onRefresh: props.onRefreshStock || stockCrud.refresh, onCreateAlimentation: props.onCreateAlimentation || feedCrud.create, onUpdateAlimentation: props.onUpdateAlimentation || feedCrud.update, onDeleteAlimentation: props.onDeleteAlimentation || feedCrud.remove, onRefreshAlimentation: props.onRefreshAlimentation || feedCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: props.onNavigate };
+  const stockProps = { rows: stocks, stockMovements, alimentationLogs: feedLogs, animaux: arr(props.animaux), lots: arr(props.lots), fournisseurs: suppliers, opportunities: rowsOf(props.opportunities, opportunitiesCrud, periodFiltered), taches: rowsOf(props.taches, tasksCrud, false), onCreate: props.onCreateStock || stockCrud.create, onUpdate: props.onUpdateStock || stockCrud.update, onDelete: props.onDeleteStock || stockCrud.remove, onRefresh: props.onRefreshStock || stockCrud.refresh, onCreateStockMovement: props.onCreateStockMovement || movementsCrud.create, onRefreshStockMovements: props.onRefreshStockMovements || movementsCrud.refresh, onCreateAlimentation: props.onCreateAlimentation || feedCrud.create, onUpdateAlimentation: props.onUpdateAlimentation || feedCrud.update, onDeleteAlimentation: props.onDeleteAlimentation || feedCrud.remove, onRefreshAlimentation: props.onRefreshAlimentation || feedCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: props.onNavigate, accessibleFarms: props.accessibleFarms, farmScope: props.farmScope };
   const supplierProps = { rows: suppliers, stocks, tasks: rowsOf(props.tasks, tasksCrud, false), transactions, finances: transactions, documents: rowsOf(props.documents, documentsCrud, periodFiltered), onCreate: props.onCreateSupplier || suppliersCrud.create, onUpdate: props.onUpdateSupplier || suppliersCrud.update, onDelete: props.onDeleteSupplier || suppliersCrud.remove, onRefresh: props.onRefreshSuppliers || suppliersCrud.refresh, onUpdateStock: props.onUpdateStock || stockCrud.update, onRefreshStock: props.onRefreshStock || stockCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: props.onNavigate };
   return (
     <div className="space-y-6">
@@ -292,7 +324,21 @@ export default function AchatsStockRecoveredModule(props) {
         </div>
       </section>
       <Tabs active={tab} onChange={setTab} />
-      {tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} onRelance={relanceSupplier} busyId={busyId} onNavigate={props.onNavigate} /> : tab === 'Stock' ? <StocksV5 {...stockProps} /> : tab === 'Achats' ? <AchatsHub data={data} onNavigate={props.onNavigate} setTab={setTab} /> : tab === 'Fournisseurs' ? <FournisseursReadable {...supplierProps} /> : tab === 'Mouvements' ? <MouvementsHub data={data} onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="achats_stock" periodFiltered={periodFiltered} stocks={stocks} alimentationLogs={feedLogs} fournisseurs={suppliers} transactions={transactions} onNavigate={props.onNavigate} />}
+      {tab === 'Résumé' ? (
+        <Summary data={data} setTab={setTab} onApply={applyFinding} onRelance={relanceSupplier} busyId={busyId} onNavigate={props.onNavigate} startupMode={data.startupMode} />
+      ) : tab === 'Stock' ? (
+        <StocksV5 {...stockProps} />
+      ) : tab === 'Achats' ? (
+        <AchatsHub data={data} onNavigate={props.onNavigate} setTab={setTab} />
+      ) : tab === 'Fournisseurs' ? (
+        <FournisseursReadable {...supplierProps} />
+      ) : tab === 'Mouvements' ? (
+        <MouvementsHub data={data} onNavigate={props.onNavigate} />
+      ) : tab === 'Annexe' ? (
+        <AchatsStockAnnexeTab documents={documents} onNavigate={props.onNavigate} />
+      ) : (
+        <ModuleGraphiquesTab moduleId="achats_stock" periodFiltered={periodFiltered} stocks={stocks} alimentationLogs={feedLogs} fournisseurs={suppliers} transactions={transactions} onNavigate={props.onNavigate} />
+      )}
     </div>
   );
 }

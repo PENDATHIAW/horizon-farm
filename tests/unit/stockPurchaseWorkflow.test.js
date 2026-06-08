@@ -42,6 +42,7 @@ describe('stockPurchaseWorkflow', () => {
     assert.equal(preview.records.finance, null);
     assert.ok(preview.records.supplier_patch);
     assert.equal(preview.records.supplier_patch.dettes, 11000);
+    assert.ok(preview.records.movement_event?.dedupe_key);
   });
 
   it('achat partiel prépare finance partielle et dette restante', () => {

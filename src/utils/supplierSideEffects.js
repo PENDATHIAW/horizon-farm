@@ -3,8 +3,15 @@ import {
   buildSupplierDebtFollowUp,
   buildSupplierPaymentWorkflow,
   buildSupplierReceptionWorkflow,
+  stockProductName,
   supplierDebtKey,
 } from './supplierWorkflows';
+import {
+  commitStockPurchaseWorkflow,
+  ENTRY_KINDS,
+  PAYMENT_STATUS,
+  prepareStockPurchaseWorkflow,
+} from './stockPurchaseWorkflow.js';
 import { documentIds, financeIds } from './sideEffectIds';
 import { runPurchaseSideEffects } from './purchaseSideEffects';
 import { toNumber } from './format';
@@ -85,7 +92,37 @@ export async function runSupplierReceptionSideEffects({
   alertes = [],
   transactions = [],
   handlers = {},
+  useCanonicalPurchase = true,
 } = {}) {
+  const amount = num(qty) * num(unitPrice ?? stock.prixUnit ?? stock.prix_unitaire ?? stock.unit_price);
+  if (useCanonicalPurchase !== false && amount > 0) {
+    const payload = {
+      id: stock.id,
+      stock_id: stock.id,
+      produit: stockProductName(stock),
+      quantite: qty,
+      quantite_recue: qty,
+      prix_unitaire: unitPrice,
+      statut_paiement: PAYMENT_STATUS.A_PAYER,
+      fournisseur_id: supplier.id,
+      farm_id: stock.farm_id || supplier.farm_id,
+      date: date || today(),
+      notes: `Réception fournisseur — ${supplier.nom || supplier.name || supplier.id}`,
+      entry_kind: ENTRY_KINDS.ACHAT_STOCKABLE,
+    };
+    const preview = prepareStockPurchaseWorkflow(payload, {
+      stocks: [stock],
+      suppliers: [supplier],
+      transactions,
+      accessibleFarms: handlers.accessibleFarms,
+    });
+    if (preview.issue_key && arr(transactions).some((tx) => clean(tx.issue_key) === clean(preview.issue_key))) {
+      return preview;
+    }
+    await commitStockPurchaseWorkflow(preview, { ...handlers, context: { stocks: [stock], transactions, tasks, alertes } });
+    return preview;
+  }
+
   const raw = buildSupplierReceptionWorkflow({ supplier, stock, qty, unitPrice, date: date || today() });
   const workflow = applyDeterministicSupplierReception(raw, supplier, stock);
 
