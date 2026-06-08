@@ -20,11 +20,13 @@ import useLiveWeather from './hooks/useLiveWeather';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import usePeriodScope from './hooks/usePeriodScope';
 import useFarmScope from './hooks/useFarmScope';
+import useFarmScopedCrud from './hooks/useFarmScopedCrud';
 import AppLayout from './layouts/AppLayout';
-import { applyFarmScopeToProps } from './utils/applyFarmScope';
+import { applyFarmScopeToDataMap, applyFarmScopeToProps } from './utils/applyFarmScope';
+import FarmActivityNotice from './components/FarmActivityNotice';
 import { applyPeriodScopeToDataMap, applyPeriodScopeToProps } from './utils/applyPeriodScope';
 import { farmsService, getDefaultFarmRecord } from './services/farmsService';
-import { normalizeFarmScope, resolveFarmContext } from './utils/farmScope';
+import { formatFarmScopeLabel, normalizeFarmScope, resolveFarmContext } from './utils/farmScope';
 import { enrichAssistantDataMap } from './utils/assistantDataMap.js';
 import { clearPeriodFilterCache } from './utils/periodFilterCache';
 import { formatPeriodScopeLabel, isAllTimeScope, normalizePeriodScope } from './utils/periodScope';
@@ -131,7 +133,8 @@ export default function App() {
   const activeFarm = farmContext.activeFarm || getDefaultFarmRecord(accessibleFarms);
   const periodLabel = useMemo(() => formatPeriodScopeLabel(periodScope), [periodScope]);
   const periodScopeKey = useMemo(() => JSON.stringify(periodScope), [periodScope]);
-  const c = useCrudModules();
+  const cRaw = useCrudModules();
+  const c = useFarmScopedCrud(cRaw, farmScope, accessibleFarms, activeFarm);
   const mirrorPruneBusy = useRef(false);
   const crudFingerprint = useMemo(() => {
     const workflowSignal = (key, moduleRows = []) => {
@@ -167,8 +170,12 @@ export default function App() {
   const refreshAll = useCallback(async () => refreshAllModules(refreshModule), [refreshModule]);
   const refreshSalesWorkflowFn = useCallback(async () => refreshSalesWorkflow(c), [c]);
   const decisionDataMapRaw = useMemo(
-    () => composeDecisionDataMap({ crud: c, dataMap, liveMeteo }),
-    [c, dataMap, liveMeteo],
+    () => applyFarmScopeToDataMap(
+      composeDecisionDataMap({ crud: c, dataMap, liveMeteo }),
+      farmScope,
+      { accessibleFarms, activeFarm },
+    ),
+    [c, dataMap, liveMeteo, farmScope, accessibleFarms, activeFarm],
   );
 
   const healthAutoActions = useMemo(() => (data) => ({
@@ -538,7 +545,7 @@ export default function App() {
     () => applyFarmScopeToProps(
       applyPeriodScopeToProps(moduleProps[active] || {}, periodScope, { cacheGeneration: crudFingerprint }),
       farmScope,
-      { accessibleFarms, activeFarm },
+      { accessibleFarms, activeFarm, moduleId: active },
     ),
     [moduleProps, active, periodScopeKey, crudFingerprint, commercialTab, elevageTab, achatsStockTab, financeTab, centreTab, objectifsTab, periodScope, farmScope, accessibleFarms, activeFarm],
   );
@@ -548,17 +555,21 @@ export default function App() {
       const base = periodActive
         ? applyPeriodScopeToDataMap(dataMap, periodScope, crudFingerprint)
         : dataMap;
-      if (!assistantOpen) return base;
-      return enrichAssistantDataMap(base, {
+      const farmScoped = applyFarmScopeToDataMap(base, farmScope, { accessibleFarms, activeFarm });
+      if (!assistantOpen) return farmScoped;
+      return enrichAssistantDataMap(farmScoped, {
         salesOrdersAll: rows(c.sales_orders),
         paymentsAll: rows(c.payments),
         transactionsAll: rows(c.finances),
         periodFiltered: periodActive,
         periodScope: normalizePeriodScope(periodScope),
         periodLabel: formatPeriodScopeLabel(periodScope),
+        farmScope: normalizeFarmScope(farmScope, accessibleFarms),
+        farmScopeLabel: formatFarmScopeLabel(farmScope, accessibleFarms),
+        activeFarm,
       });
     },
-    [assistantOpen, dataMap, periodScopeKey, crudFingerprint, periodScope, c.sales_orders, c.payments, c.finances],
+    [assistantOpen, dataMap, periodScopeKey, crudFingerprint, periodScope, farmScope, accessibleFarms, activeFarm, c.sales_orders, c.payments, c.finances],
   );
 
   if (authLoading) return <div className="min-h-screen bg-[#f6efe2] flex items-center justify-center text-[#2f2415] font-black">Chargement Horizon Farm...</div>;
@@ -566,7 +577,8 @@ export default function App() {
   const ActiveModule = MODULES[active] || MODULES.dashboard;
 
   return <AppLayout navItems={navItems} active={active} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => setAssistantOpen(true)} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange} farmScope={normalizeFarmScope(farmScope, accessibleFarms)} accessibleFarms={accessibleFarms} onFarmScopeChange={handleFarmScopeChange} activeFarm={activeFarm}>
-    <ErrorBoundary title="Module indisponible"><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...activeModuleProps} periodLabel={periodLabel} /></Suspense></ErrorBoundary>
+    <FarmActivityNotice message={activeModuleProps.farmActivityNotice} farmName={activeFarm?.name} />
+    <ErrorBoundary title="Module indisponible"><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...activeModuleProps} periodLabel={periodLabel} farmScopeLabel={formatFarmScopeLabel(farmScope, accessibleFarms)} /></Suspense></ErrorBoundary>
     <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={scopedAssistantDataMap} onNavigate={setActive} onCreateBusinessEvent={c.business_events.create} />
     <ErpInterconnectionBridge cruds={c} />
     <AppNotificationManager />
