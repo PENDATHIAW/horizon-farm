@@ -231,7 +231,7 @@ export function resolveQuickActionsForScope(farm = null, scope = {}, accessibleF
   if (scope?.mode === 'all' && shouldShowFarmSelector(accessibleFarms)) {
     return [...ALL_FARMS_QUICK_ACTIONS];
   }
-  return getFarmQuickActions(farm);
+  return getFarmQuickActions(farm || {});
 }
 
 export function buildActivityKpiCards(farm = {}, summary = {}, dataProps = {}) {
@@ -295,7 +295,7 @@ export function buildAdaptedAlertsPanel(farm = null, scope = {}, dataProps = {},
       comparison.totals.cashNet < 0 ? 'Trésorerie consolidée négative' : null,
     ].filter(Boolean);
   }
-  return getFarmAlerts(farm);
+  return getFarmAlerts(farm || {});
 }
 
 export function buildHeyHorizonFarmContext(dataMap = {}) {

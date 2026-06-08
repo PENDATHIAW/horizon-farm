@@ -46,6 +46,11 @@ const TAB_ALIASES = {
   'À traiter': 'À traiter',
   Risques: 'Risques',
   Cycles: 'Cycles',
+  /** Legacy — ancien onglet « Efficacité » (Objectifs / Vision) */
+  Efficacité: 'À traiter',
+  'Efficacité Technique': 'Recommandations',
+  Priorités: 'À traiter',
+  'Priorités & risques': 'À traiter',
 };
 
 function resolveTab(initial) {

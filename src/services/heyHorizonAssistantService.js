@@ -143,7 +143,7 @@ const PILOTAGE_REDIRECTS = {
   lot_profitability: { module: 'elevage', tab: 'Cycles', productionQuestion: 'reform_lot', label: 'Élevage → Cycles' },
   margin_drop: { module: 'finance_pilotage', tab: 'Rentabilité', label: 'Finance & Pilotage' },
   equipment_cost: { module: 'rh', tab: 'Coûts', label: 'Opérations & Ressources' },
-  monthly_risks: { module: 'centre_ia', tab: 'Efficacité', label: 'Centre décisionnel' },
+  monthly_risks: { module: 'centre_ia', tab: 'À traiter', label: 'Centre décisionnel' },
 };
 
 const PRODUCTION_LABELS = {
