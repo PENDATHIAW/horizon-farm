@@ -18,8 +18,12 @@ import {
   avicoleDeadCount,
   avicoleInitialCount,
 } from './avicoleMetrics.js';
-import { runFeedingSideEffects } from './feedingSideEffects.js';
-import { runHealthSideEffects, buildHealthProofDocument } from './healthSideEffects.js';
+import { runHealthStockConsumptionSideEffects, buildHealthProofDocument } from './healthSideEffects.js';
+import {
+  buildEggPackagingConsumptionPayload,
+  EGG_PACKAGING_GAP_MESSAGE,
+  persistConsumptionMovement,
+} from './stockConsumptionBridge.js';
 import {
   commitFeedingWorkflow,
   commitHealthWorkflow,
@@ -343,13 +347,27 @@ export async function commitElevageHealth({ form = {}, context = {}, handlers = 
 
   if (clean(form.stock_id) && num(form.quantite_stock) > 0 && handlers.onUpdateStock) {
     const stock = arr(context.stocks).find((row) => clean(row.id) === clean(form.stock_id));
-    const qty = num(form.quantite_stock);
+    const qtyUsed = num(form.quantite_stock);
     if (stock) {
-      const movement = applyStockMovement(stock, { type: 'sortie', qty, motif: `Soin ${health.nom}`, date: health.date });
+      const beforeQty = num(stock.quantite ?? stock.quantity);
+      const movement = applyStockMovement(stock, { type: 'sortie', qty: qtyUsed, motif: `Soin ${health.nom}`, date: health.date });
+      const afterQty = num(movement.stock?.quantite ?? movement.stock?.quantity ?? (beforeQty - qtyUsed));
       await handlers.onUpdateStock(stock.id, movement.stock);
+      await runHealthStockConsumptionSideEffects({
+        healthRecord: { ...health, stock_id: form.stock_id, quantite_utilisee: qtyUsed, product_source: 'stock' },
+        stock,
+        qty: qtyUsed,
+        beforeQty,
+        afterQty,
+        handlers: {
+          onCreateStockMovement: handlers.onCreateStockMovement,
+          onRefreshStockMovements: handlers.onRefreshStockMovements,
+          existingStockMovements: handlers.existingStockMovements || arr(context.stockMovements),
+        },
+      });
     }
-  } else if (!clean(form.stock_id) && cost > 0 && num(form.quantite_stock) > 0) {
-    // écart potentiel : produit déclaré sans stock_id
+  } else if (!clean(form.stock_id) && num(form.quantite_stock) > 0) {
+    // écart documenté : produit déclaré sans stock_id
   }
 
   if (clean(form.lot_id) && handlers.onUpdateLot) {
@@ -490,6 +508,11 @@ export async function commitElevageEggProduction({ form = {}, context = {}, hand
     side_effects_managed: true,
   };
 
+  const packagingStockId = clean(form.packaging_stock_id);
+  const packagingQty = num(form.packaging_qty) > 0 ? num(form.packaging_qty) : (tablet.tablettes > 0 ? tablet.tablettes : 0);
+  if (packagingStockId) log.packaging_stock_id = packagingStockId;
+  if (packagingQty > 0) log.packaging_qty = packagingQty;
+
   await handlers.onCreateProduction?.(log);
 
   const eggStock = findEggStockRow(context.stocks);
@@ -511,6 +534,55 @@ export async function commitElevageEggProduction({ form = {}, context = {}, hand
     }
   }
 
+  let packagingGap = null;
+  if (packagingQty > 0 && packagingStockId && handlers.onUpdateStock) {
+    const packagingStock = arr(context.stocks).find((row) => clean(row.id) === packagingStockId);
+    if (packagingStock) {
+      const beforePkg = num(packagingStock.quantite ?? packagingStock.quantity);
+      const pkgMovement = applyStockMovement(packagingStock, {
+        type: 'sortie',
+        qty: packagingQty,
+        motif: `Emballage ramassage ${form.lot_id}`,
+        date: log.date,
+      });
+      const afterPkg = num(pkgMovement.stock?.quantite ?? pkgMovement.stock?.quantity ?? (beforePkg - packagingQty));
+      await handlers.onUpdateStock(packagingStock.id, pkgMovement.stock);
+      if (handlers.onCreateStockMovement) {
+        const payload = buildEggPackagingConsumptionPayload({
+          log,
+          stock: packagingStock,
+          qty: packagingQty,
+          beforeQty: beforePkg,
+          afterQty: afterPkg,
+          farmId: packagingStock.farm_id || log.farm_id,
+        });
+        if (payload) {
+          await persistConsumptionMovement({
+            before: { id: packagingStock.id, quantite: beforePkg },
+            after: { id: packagingStock.id, quantite: afterPkg, unite: packagingStock.unite || packagingStock.unit, farm_id: payload.farm_id },
+            patch: {
+              source_module: payload.source_module,
+              source_record_id: payload.source_record_id,
+              movement_ref: payload.movement_ref,
+              dedupe_key: payload.dedupe_key,
+              notes: payload.notes,
+            },
+            payload,
+            handlers: {
+              onCreateStockMovement: handlers.onCreateStockMovement,
+              onRefreshStockMovements: handlers.onRefreshStockMovements,
+              existingStockMovements: handlers.existingStockMovements || arr(context.stockMovements),
+            },
+            existingMovements: handlers.existingStockMovements || arr(context.stockMovements),
+          });
+        }
+      }
+    }
+  } else if (packagingQty > 0 && !packagingStockId) {
+    packagingGap = EGG_PACKAGING_GAP_MESSAGE;
+    log.packaging_gap_noted = true;
+  }
+
   await handlers.onCreateBusinessEvent?.({
     id: makeId('EVT'),
     event_type: 'production_oeufs',
@@ -525,7 +597,7 @@ export async function commitElevageEggProduction({ form = {}, context = {}, hand
     side_effects_managed: true,
   });
 
-  return { ok: true, logId, issueKey, sellable, tablet };
+  return { ok: true, logId, issueKey, sellable, tablet, packagingGap };
 }
 
 /**

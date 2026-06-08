@@ -29,6 +29,13 @@ export function healthConsumptionDedupeKey(healthId = '', stockId = '') {
   return `stock-mvt:sante:${clean(healthId)}:${clean(stockId)}`;
 }
 
+export function eggPackagingConsumptionDedupeKey(logId = '', stockId = '') {
+  return `stock-mvt:egg-pack:${clean(logId)}:${clean(stockId)}`;
+}
+
+export const HEALTH_CONSUMPTION_GAP_MESSAGE = 'Consommation santé non rattachée au stock : stock_id absent.';
+export const EGG_PACKAGING_GAP_MESSAGE = 'Pour tracer les emballages, rattacher un article stock emballage à cette production.';
+
 function resolveFeedingSourceModule(log = {}) {
   const module = clean(log.source_module);
   if (module === 'elevage' || module === 'cultures') return module;
@@ -154,6 +161,8 @@ export function buildHealthConsumptionMovementPayload({
   const movementRef = healthId || `sante:${stockId}:${healthRecord.date || today()}`;
   const dedupeKey = healthConsumptionDedupeKey(healthId, stockId);
   const motif = clean(healthRecord.nom || healthRecord.medicament) || 'Consommation santé';
+  const animalId = clean(healthRecord.animal_id || (healthRecord.module_lie === 'animaux' ? healthRecord.related_id : ''));
+  const lotId = clean(healthRecord.lot_id || (healthRecord.module_lie === 'avicole' ? healthRecord.related_id : ''));
 
   return {
     stock_id: stockId,
@@ -167,15 +176,62 @@ export function buildHealthConsumptionMovementPayload({
     source_record_id: healthId || stockId,
     linked_event_id: '',
     notes: motif,
-    movement_date: String(healthRecord.date || healthRecord.effectuee || today()).slice(0, 10),
+    movement_date: String(healthRecord.date || healthRecord.effectuee || healthRecord.prevue || today()).slice(0, 10),
     farm_id: farmId || stock.farm_id || healthRecord.farm_id || null,
     dedupe_key: dedupeKey,
     movement_ref: movementRef,
     metadata: {
-      movement_kind: MOVEMENT_SOURCE_TYPES.FEEDING,
+      movement_kind: MOVEMENT_SOURCE_TYPES.HEALTH,
       motif,
       sens: 'sortie',
-      intervention_type: healthRecord.type_intervention || '',
+      intervention_type: healthRecord.type_intervention || healthRecord.intervention_family || '',
+      animal_id: animalId,
+      lot_id: lotId,
+    },
+  };
+}
+
+/** Payload mouvement sortie emballage lié à production_oeufs_logs. */
+export function buildEggPackagingConsumptionPayload({
+  log = {},
+  stock = {},
+  qty = 0,
+  beforeQty = 0,
+  afterQty = 0,
+  farmId = null,
+} = {}) {
+  const stockId = clean(stock.id || log.packaging_stock_id);
+  const logId = clean(log.id);
+  const usedQty = n(qty);
+  if (!stockId || !logId || usedQty <= 0) return null;
+
+  const movementRef = `egg-pack:${logId}:${stockId}`;
+  const dedupeKey = eggPackagingConsumptionDedupeKey(logId, stockId);
+  const motif = `Emballage production œufs · lot ${clean(log.lot_id) || '—'}`;
+
+  return {
+    stock_id: stockId,
+    movement_type: 'sortie',
+    quantity: usedQty,
+    unit: stock.unite || stock.unit || 'u',
+    stock_before: beforeQty,
+    stock_after: afterQty,
+    stock_delta: afterQty - beforeQty,
+    source_module: CONSUMPTION_SOURCE_MODULES.ELEVAGE,
+    source_record_id: logId,
+    linked_event_id: '',
+    notes: motif,
+    movement_date: String(log.date || today()).slice(0, 10),
+    farm_id: farmId || stock.farm_id || log.farm_id || null,
+    dedupe_key: dedupeKey,
+    movement_ref: movementRef,
+    metadata: {
+      movement_kind: MOVEMENT_SOURCE_TYPES.PACKAGING,
+      motif,
+      sens: 'sortie',
+      lot_id: clean(log.lot_id),
+      production_log_id: logId,
+      packaging_type: clean(log.packaging_type) || 'tablette',
     },
   };
 }
@@ -225,10 +281,17 @@ export async function persistConsumptionMovement({
  */
 export const CONSUMPTION_GAPS = [
   {
+    id: 'health_without_stock_id',
+    module: 'sante',
+    description: HEALTH_CONSUMPTION_GAP_MESSAGE,
+    status: 'documented',
+  },
+  {
     id: 'egg_packaging_without_stock',
     module: 'elevage',
-    description: 'Emballages œufs sans lien stock_id dans production_oeufs_logs',
-    status: 'documented',
+    description: EGG_PACKAGING_GAP_MESSAGE,
+    status: 'partial',
+    note: 'Branché si packaging_stock_id renseigné sur production_oeufs_logs',
   },
   {
     id: 'hey_horizon_direct_exit',

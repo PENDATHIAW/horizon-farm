@@ -11,6 +11,8 @@ export const MOVEMENT_SOURCE_TYPES = {
   MANUAL_EXIT: 'sortie_manuelle',
   SALE: 'vente_commercial',
   FEEDING: 'consommation_elevage',
+  HEALTH: 'consommation_sante',
+  PACKAGING: 'consommation_emballage',
   CULTURE: 'consommation_cultures',
   LOSS: 'perte',
   CORRECTION: 'correction',
@@ -25,6 +27,7 @@ function resolveMovementType(patch = {}, delta = 0) {
   if (last.includes('perte')) return MOVEMENT_SOURCE_TYPES.LOSS;
   if (last.includes('correction') || last.includes('ajustement')) return MOVEMENT_SOURCE_TYPES.CORRECTION;
   if (patch.source_module === 'ventes' || patch.created_from === 'sale_side_effects') return MOVEMENT_SOURCE_TYPES.SALE;
+  if (patch.source_module === 'sante') return MOVEMENT_SOURCE_TYPES.HEALTH;
   if (patch.source_module === 'alimentation' || patch.source_module === 'elevage') return MOVEMENT_SOURCE_TYPES.FEEDING;
   if (patch.source_module === 'cultures') return MOVEMENT_SOURCE_TYPES.CULTURE;
   if (patch.created_from === 'stock_purchase_workflow') return MOVEMENT_SOURCE_TYPES.PURCHASE_RECEPTION;
@@ -64,6 +67,13 @@ export function buildStockMovementPayload({
     sourceModule: patch.source_module || after.source_module,
   }));
 
+  const baseMetadata = {
+    movement_kind: resolveMovementType(patch, delta),
+    motif: patch.last_movement_label || patch.notes || '',
+    sens: type === 'entree' ? 'entree' : type === 'perte' ? 'ajustement' : 'sortie',
+  };
+  const extraMetadata = patch.metadata && typeof patch.metadata === 'object' ? patch.metadata : {};
+
   return {
     id: makeId('STKMVT'),
     stock_id: after.id,
@@ -76,16 +86,12 @@ export function buildStockMovementPayload({
     source_module: patch.source_module || after.source_module || 'stock',
     source_record_id: patch.source_record_id || after.source_record_id || after.linked_event_id || '',
     linked_event_id: linkedEventId || patch.linked_event_id || '',
-    notes: patch.last_movement_note || patch.notes || patch.last_movement_label || '',
+    notes: patch.last_movement_note || patch.notes || patch.last_movement_label || extraMetadata.motif || '',
     movement_date: date,
     farm_id: resolvedFarm,
     dedupe_key: resolvedDedupe,
     movement_ref: resolvedRef,
-    metadata: {
-      movement_kind: resolveMovementType(patch, delta),
-      motif: patch.last_movement_label || patch.notes || '',
-      sens: type === 'entree' ? 'entree' : type === 'perte' ? 'ajustement' : 'sortie',
-    },
+    metadata: { ...baseMetadata, ...extraMetadata },
     created_at: new Date().toISOString(),
   };
 }

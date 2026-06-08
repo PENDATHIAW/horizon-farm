@@ -13,6 +13,7 @@ export const ACHATS_STOCK_PANEL_STATUS = {
   AchatsStockTransferPanel: { status: 'wired', tab: 'Stock' },
   StockProductionSourcesPanel: { status: 'wired', tab: 'Stock' },
   StockFeedingElevageHint: { status: 'wired', tab: 'Stock', note: 'Remplace distribution inline — renvoie vers Élevage' },
+  AchatsStockDataQualityPanel: { status: 'wired', tab: 'Résumé', note: 'V3 — écarts données stock explicites' },
   achatsStockUi: { status: 'shared', note: 'Composants UI partagés' },
   achatsStockMetrics: { status: 'shared', note: 'Todos + coherenceRowTab' },
 };

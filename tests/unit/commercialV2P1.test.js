@@ -317,7 +317,7 @@ describe('Commercial V2 P1 — stock_movements futur', () => {
       patchPlan: { id: 'STK-1', module: 'stock' },
     });
     assert.equal(plan.ready, true);
-    assert.equal(plan.movement.status, 'planned');
+    assert.equal(plan.movement.status, 'ready');
     assert.match(plan.movement.movement_ref, /sale:CMD-1/);
   });
 
