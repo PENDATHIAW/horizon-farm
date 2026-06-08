@@ -1,3 +1,5 @@
+import { mergeSimulationScenarios } from './horizonFarmSimulationScenarios.js';
+
 const DAY = 86400000;
 const dateDaysAgo = (days) => new Date(Date.now() - days * DAY).toISOString().slice(0, 10);
 const dateDaysFromNow = (days) => new Date(Date.now() + days * DAY).toISOString().slice(0, 10);
