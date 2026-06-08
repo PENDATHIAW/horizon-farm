@@ -99,10 +99,11 @@ export default function ElevageWorkflowPanels({
   const [feeding, setFeeding] = useState({ date: today(), stock_id: feedStocks[0]?.id || '', lot_id: '', animal_id: '', quantite: '', notes: '' });
   const [health, setHealth] = useState({ date: today(), lot_id: '', animal_id: '', nom: '', cout: '', stock_id: '', quantite_stock: '', date_rappel: '', delai_sanitaire_fin: '' });
   const [mortality, setMortality] = useState({ date: today(), lot_id: lots[0]?.id || '', quantite: '', notes: '' });
-  const [eggs, setEggs] = useState({ date: today(), lot_id: pondeuseLots[0]?.id || '', oeufs_produits: '', oeufs_casses: '' });
+  const [eggs, setEggs] = useState({ date: today(), lot_id: pondeuseLots[0]?.id || '', oeufs_produits: '', oeufs_casses: '', packaging_stock_id: '', packaging_qty: '' });
   const [transform, setTransform] = useState({ date: today(), lot_id: lots[0]?.id || '', kind: 'pret_vente', notes: '' });
 
   const medStocks = useMemo(() => arr(context.stocks).filter((r) => /vaccin|medic|médic|antibio|vitamin/i.test(`${r.produit || ''} ${r.categorie || ''}`)), [context.stocks]);
+  const packagingStocks = useMemo(() => arr(context.stocks).filter((r) => /emballage|alveole|alvéole|tablette|plateau|carton|caisse/i.test(`${r.produit || ''} ${r.nom || ''} ${r.categorie || ''}`)), [context.stocks]);
 
   const run = async (fn) => {
     try {
@@ -174,14 +175,25 @@ export default function ElevageWorkflowPanels({
       </Modal>
 
       <Modal open={activeModal === 'eggs'} title="Ramassage œufs — Élevage" onClose={onClose} busy={busy} onSubmit={() => run(() => commitElevageEggProduction({
-        form: { ...eggs, id: makeId('PROD'), oeufs_produits: num(eggs.oeufs_produits), oeufs_casses: num(eggs.oeufs_casses) },
+        form: { ...eggs, id: makeId('PROD'), oeufs_produits: num(eggs.oeufs_produits), oeufs_casses: num(eggs.oeufs_casses), packaging_qty: num(eggs.packaging_qty) },
         context,
         handlers,
-      })).then(() => toast.success('Production enregistrée'))}>
+      }).then((result) => {
+        if (result.packagingGap) toast(result.packagingGap, { icon: 'ℹ️' });
+        toast.success('Production enregistrée');
+      }))}>
         <Field label="Date"><input type="date" className={inputCls} value={eggs.date} onChange={(e) => setEggs({ ...eggs, date: e.target.value })} /></Field>
         <Field label="Lot pondeuse"><select className={inputCls} value={eggs.lot_id} onChange={(e) => setEggs({ ...eggs, lot_id: e.target.value })} required><option value="">Choisir…</option>{pondeuseLots.map((l) => <option key={l.id} value={l.id}>{l.name || l.id}</option>)}</select></Field>
         <Field label="Œufs ramassés"><input type="number" className={inputCls} value={eggs.oeufs_produits} onChange={(e) => setEggs({ ...eggs, oeufs_produits: e.target.value })} required /></Field>
         <Field label="Cassés"><input type="number" className={inputCls} value={eggs.oeufs_casses} onChange={(e) => setEggs({ ...eggs, oeufs_casses: e.target.value })} /></Field>
+        <Field label="Emballage (stock, optionnel)">
+          <select className={inputCls} value={eggs.packaging_stock_id} onChange={(e) => setEggs({ ...eggs, packaging_stock_id: e.target.value })}>
+            <option value="">— Sans traçabilité emballage —</option>
+            {packagingStocks.map((s) => <option key={s.id} value={s.id}>{s.produit || s.nom || s.id}</option>)}
+          </select>
+        </Field>
+        <Field label="Qté emballages consommés (optionnel, défaut = tablettes)"><input type="number" min="0" className={inputCls} value={eggs.packaging_qty} onChange={(e) => setEggs({ ...eggs, packaging_qty: e.target.value })} placeholder="Auto si vide" /></Field>
+        <p className="text-xs text-[#8a7456]">Pour tracer les emballages, rattacher un article stock emballage à cette production.</p>
       </Modal>
 
       <Modal open={activeModal === 'transform'} title="Transformation — Élevage" onClose={onClose} busy={busy} onSubmit={() => run(() => commitElevageTransformation({

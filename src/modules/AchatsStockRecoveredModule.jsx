@@ -10,8 +10,10 @@ import AchatsStockLowStockPanel from './achatsStock/AchatsStockLowStockPanel.jsx
 import AchatsStockSupplierDebtsPanel from './achatsStock/AchatsStockSupplierDebtsPanel.jsx';
 import AchatsStockExpiryPanel from './achatsStock/AchatsStockExpiryPanel.jsx';
 import AchatsStockTransferPanel from './achatsStock/AchatsStockTransferPanel.jsx';
+import AchatsStockDataQualityPanel from './achatsStock/AchatsStockDataQualityPanel.jsx';
 import StockProductionSourcesPanel from './achatsStock/StockProductionSourcesPanel.jsx';
 import StockFeedingElevageHint from './achatsStock/StockFeedingElevageHint.jsx';
+import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection.jsx';
 import { ACHATS_STOCK_STAT_GRID, AchatsStockKpi, AchatsStockSection } from './achatsStock/achatsStockUi.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
@@ -22,6 +24,7 @@ import { rowsOf } from '../utils/moduleRows';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import { buildExpirySnapshot, buildExpiryLossPatch } from '../utils/stockExpiry.js';
 import { summarizeStockValuation } from '../utils/stockValuation.js';
+import { buildStockDataQualitySnapshot } from '../utils/stockDataQuality.js';
 import {
   aggregateSupplierDebts,
   buildAchatsStockCoherenceRows,
@@ -50,6 +53,7 @@ function Tabs({ active, onChange }) {
 }
 
 function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate, onMarkExpiry, showStartup = false }) {
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const iaFindings = [...(data.stockIaRecs || []), ...(data.healthFindings || [])].slice(0, 6);
 
   return (
@@ -66,32 +70,16 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate, onMarkE
         <AchatsStockStartupPanel progress={data.startupProgress} setTab={setTab} onNavigate={onNavigate} />
       ) : null}
 
-      <AchatsStockSection title="Vue d'ensemble" subtitle="KPI essentiels — détail dans les onglets dédiés.">
+      <AchatsStockSection title="Vue d'ensemble" subtitle="6 KPI essentiels — détail dans les onglets dédiés.">
         <div className={ACHATS_STOCK_STAT_GRID}>
           <AchatsStockKpi label="Santé stock" value={`${data.healthScore}/100`} tone={data.healthScore >= 75 ? 'good' : 'warn'} onClick={() => setTab('Stock')} />
           <AchatsStockKpi label="Produits" value={fmtNumber(data.stocks.length)} onClick={() => setTab('Stock')} />
           <AchatsStockKpi label="Valeur stock" value={fmtCurrency(data.valuation?.totalValue || data.stockValue)} onClick={() => setTab('Stock')} />
           <AchatsStockKpi label="Sous seuil" value={fmtNumber(data.lowStock.length)} tone={data.lowStock.length ? 'warn' : 'good'} onClick={() => setTab('Achats')} />
           <AchatsStockKpi label="Dettes" value={fmtCurrency(data.debt)} tone={data.debt ? 'warn' : 'good'} onClick={() => setTab('Fournisseurs')} />
-          <AchatsStockKpi label="Mouvements ledger" value={fmtNumber(data.stockMovements.length)} onClick={() => setTab('Mouvements')} />
           <AchatsStockKpi label="Péremption" value={fmtNumber(data.expiry?.soon?.length || 0)} tone={data.expiry?.soon?.length ? 'warn' : 'good'} onClick={() => setTab('Stock')} />
-          <AchatsStockKpi label="CMUP calculable" value={`${data.valuation?.calculableCount || 0}/${data.valuation?.totalCount || 0}`} onClick={() => setTab('Stock')} />
         </div>
       </AchatsStockSection>
-
-      <AchatsStockInsightPanel
-        findings={iaFindings}
-        predictions={data.healthPredictions}
-        coherenceRows={data.coherenceRows}
-        onApplyFinding={onApply}
-        onNavigate={onNavigate}
-        setTab={setTab}
-        busyId={busyId}
-      />
-
-      <AchatsStockLowStockPanel items={data.lowStock} compact />
-      <AchatsStockSupplierDebtsPanel suppliers={data.supplierDebts} onRelance={onRelance} busyId={busyId} />
-      <AchatsStockExpiryPanel expiry={data.expiry} setTab={setTab} onNavigate={onNavigate} onMarkLoss={onMarkExpiry} busyId={busyId} />
 
       <AchatsStockSection title="Parcours rapide" subtitle="Actions terrain les plus fréquentes.">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -101,6 +89,30 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate, onMarkE
           <button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">Commercial</b><p className="mt-1 text-sm text-[#8a7456]">Vendre stock disponible.</p></button>
         </div>
       </AchatsStockSection>
+
+      <AchatsStockDataQualityPanel snapshot={data.dataQuality} compact />
+
+      <CollapsibleAdvancedSection
+        eyebrow="Analyse avancée"
+        title="Détails stock & cohérence"
+        description={`IA, seuils, dettes, péremption · ${fmtNumber(data.stockMovements.length)} mouvements ledger · CMUP ${data.valuation?.calculableCount || 0}/${data.valuation?.totalCount || 0}`}
+        open={advancedOpen}
+        onToggle={() => setAdvancedOpen((v) => !v)}
+      >
+        <AchatsStockInsightPanel
+          findings={iaFindings}
+          predictions={data.healthPredictions}
+          coherenceRows={data.coherenceRows}
+          onApplyFinding={onApply}
+          onNavigate={onNavigate}
+          setTab={setTab}
+          busyId={busyId}
+        />
+        <AchatsStockLowStockPanel items={data.lowStock} compact />
+        <AchatsStockSupplierDebtsPanel suppliers={data.supplierDebts} onRelance={onRelance} busyId={busyId} />
+        <AchatsStockExpiryPanel expiry={data.expiry} setTab={setTab} onNavigate={onNavigate} onMarkLoss={onMarkExpiry} busyId={busyId} />
+        <AchatsStockDataQualityPanel snapshot={data.dataQuality} />
+      </CollapsibleAdvancedSection>
     </div>
   );
 }
@@ -108,6 +120,7 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate, onMarkE
 export default function AchatsStockRecoveredModule(props) {
   const [tab, setTab] = useState(() => resolveAchatsStockTab(props.initialTab));
   const [busyId, setBusyId] = useState(null);
+  const [stockAdvancedOpen, setStockAdvancedOpen] = useState(false);
 
   // Sync navigation externe (même pattern que Commercial / Élevage)
   useEffect(() => {
@@ -135,6 +148,8 @@ export default function AchatsStockRecoveredModule(props) {
   const businessEvents = rowsOf(props.businessEvents, eventsCrud, periodFiltered);
   const stockMovements = rowsOf(props.stockMovements, movementsCrud, false);
   const documents = rowsOf(props.documents, documentsCrud, periodFiltered);
+  const santeRecords = rowsOf(props.sante || props.vaccins, null, false);
+  const productionLogs = rowsOf(props.productionLogs, null, false);
 
   const data = useMemo(() => {
     const purchases = transactions.filter(isPurchaseTx);
@@ -168,6 +183,14 @@ export default function AchatsStockRecoveredModule(props) {
       lowStock,
       supplierDebts,
     });
+    const dataQuality = buildStockDataQualitySnapshot({
+      stocks,
+      stockMovements,
+      santeRecords,
+      productionLogs,
+      suppliers,
+      transactions,
+    });
 
     return {
       stocks,
@@ -193,8 +216,9 @@ export default function AchatsStockRecoveredModule(props) {
       healthPredictions: healthSnap.predictions,
       coherenceRows,
       supplierDebts,
+      dataQuality,
     };
-  }, [stocks, suppliers, transactions, feedLogs, businessEvents, stockMovements, documents, props.farmScope, props.accessibleFarms]);
+  }, [stocks, suppliers, transactions, feedLogs, businessEvents, stockMovements, documents, santeRecords, productionLogs, props.farmScope, props.accessibleFarms]);
 
   const actionHandlers = {
     onNavigate: props.onNavigate,
@@ -351,18 +375,26 @@ export default function AchatsStockRecoveredModule(props) {
       ) : tab === 'Stock' ? (
         <div className="space-y-4">
           <StocksV5 {...stockProps} />
-          <StockProductionSourcesPanel rows={stocks} onNavigate={props.onNavigate} />
-          <StockFeedingElevageHint rows={stocks} lots={arr(props.lots)} animaux={arr(props.animaux)} onNavigate={props.onNavigate} />
-          <AchatsStockTransferPanel
-            stocks={stocks}
-            accessibleFarms={props.accessibleFarms || []}
-            farmScope={props.farmScope}
-            onUpdateStock={props.onUpdateStock || stockCrud.update}
-            onCreateStockMovement={props.onCreateStockMovement || movementsCrud.create}
-            onCreateBusinessEvent={props.onCreateBusinessEvent || eventsCrud.create}
-            onRefreshStockMovements={props.onRefreshStockMovements || movementsCrud.refresh}
-            existingMovements={stockMovements}
-          />
+          <CollapsibleAdvancedSection
+            eyebrow="Compléments stock"
+            title="Transferts, sources & Élevage"
+            description="Panels optionnels — le détail opérationnel reste dans StocksV5."
+            open={stockAdvancedOpen}
+            onToggle={() => setStockAdvancedOpen((v) => !v)}
+          >
+            <StockProductionSourcesPanel rows={stocks} onNavigate={props.onNavigate} />
+            <StockFeedingElevageHint rows={stocks} lots={arr(props.lots)} animaux={arr(props.animaux)} onNavigate={props.onNavigate} />
+            <AchatsStockTransferPanel
+              stocks={stocks}
+              accessibleFarms={props.accessibleFarms || []}
+              farmScope={props.farmScope}
+              onUpdateStock={props.onUpdateStock || stockCrud.update}
+              onCreateStockMovement={props.onCreateStockMovement || movementsCrud.create}
+              onCreateBusinessEvent={props.onCreateBusinessEvent || eventsCrud.create}
+              onRefreshStockMovements={props.onRefreshStockMovements || movementsCrud.refresh}
+              existingMovements={stockMovements}
+            />
+          </CollapsibleAdvancedSection>
         </div>
       ) : tab === 'Achats' ? (
         <AchatsStockPurchasesPanel data={data} onNavigate={props.onNavigate} setTab={setTab} onRelance={relanceSupplier} busyId={busyId} />
