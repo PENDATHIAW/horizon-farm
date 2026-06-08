@@ -13,6 +13,7 @@ import AppNotificationManager from './components/AppNotificationManager';
 import ErpInterconnectionBridge from './components/ErpInterconnectionBridge';
 import AssistantPanel from './components/AssistantPanel';
 import ErrorBoundary from './components/ErrorBoundary';
+import ProductionUpdateBanner from './components/ProductionUpdateBanner';
 import { useAuth } from './context/AuthContext';
 import { useAppData } from './context/AppContext';
 import useCrudModules from './hooks/useCrudModules';
@@ -35,7 +36,7 @@ import LoginPage from './pages/LoginPage';
 
 const MODULES = {
   dashboard: lazy(() => import('./modules/DashboardV2')), assistant_erp: lazy(() => import('./modules/AssistantERPV2')), centre_ia: lazy(() => import('./modules/CentreIA')), objectifs_croissance: lazy(() => import('./modules/ObjectifsCroissanceV2')),
-  elevage: lazy(() => import('./modules/ElevageModule')), commercial: lazy(() => import('./modules/CommercialModule')), achats_stock: lazy(() => import('./modules/AchatsStockModule')), finance_pilotage: lazy(() => import('./modules/FinancePilotageModule')), activite_suivi: lazy(() => import('./modules/ActiviteSuiviModule')), documents_rapports: lazy(() => import('./modules/DocumentsRapportsModule')), animaux: lazy(() => import('./modules/AnimauxV2')), avicole: lazy(() => import('./modules/AvicoleV10')), sante: lazy(() => import('./modules/SanteV8')), finances: lazy(() => import('./modules/FinancesV12')), comptabilite: lazy(() => import('./modules/ComptabiliteV7')), investissements: lazy(() => import('./modules/InvestissementsV9')), impact_business: lazy(() => import('./modules/ImpactBusiness')), stock: lazy(() => import('./modules/StocksV5')),
+  elevage: lazy(() => import('./modules/ElevageModule')), commercial: lazy(() => import('./modules/CommercialModule')), achats_stock: lazy(() => import('./modules/AchatsStockModule')), finance_pilotage: lazy(() => import('./modules/FinancePilotageModule')), activite_suivi: lazy(() => import('./modules/ActiviteSuiviModule')), documents_rapports: lazy(() => import('./modules/DocumentsRapportsModule')), animaux: lazy(() => import('./modules/AnimauxV2')), avicole: lazy(() => import('./modules/AvicoleV10')), sante: lazy(() => import('./modules/SanteV8')), finances: lazy(() => import('./modules/FinancesV12')), comptabilite: lazy(() => import('./modules/ComptabiliteV7')), investissements: lazy(() => import('./modules/InvestissementsV9')), impact_business: lazy(() => import('./modules/ImpactBusiness')), investisseurs_forums: lazy(() => import('./modules/InvestisseursForumsModule.jsx')), stock: lazy(() => import('./modules/StocksV5')),
   clients: lazy(() => import('./modules/ClientsReadable')), fournisseurs: lazy(() => import('./modules/FournisseursReadable')), tracabilite: lazy(() => import('./modules/TracabiliteV2')), alertes: lazy(() => import('./modules/AlertesCenterV2')), cultures: lazy(() => import('./modules/CulturesV5')), smartfarm: lazy(() => import('./modules/SmartFarm')), ventes: lazy(() => import('./modules/VentesV3')), documents: lazy(() => import('./modules/DocumentsV2')), taches: lazy(() => import('./modules/TachesV3')),
   rh: lazy(() => import('./modules/RHV2')), rapports: lazy(() => import('./modules/RapportsV2')), equipements: lazy(() => import('./modules/EquipementsV2')), sync: lazy(() => import('./modules/SyncActivityCenterV2')), sync_activity: lazy(() => import('./modules/SyncActivityCenterV2')), audit_logs: lazy(() => import('./modules/SyncActivityCenterV2')), gestion_systeme: lazy(() => import('./modules/GestionSystemeV2')),
 };
@@ -49,7 +50,7 @@ export default function App() {
   const [commercialTab, setCommercialTab] = useState('Résumé');
   const [elevageTab, setElevageTab] = useState('Résumé');
   const [centreTab, setCentreTab] = useState('À traiter');
-  const [objectifsTab, setObjectifsTab] = useState('Performance');
+  const [objectifsTab, setObjectifsTab] = useState('Rentabilité Lot & Cycle');
   const [achatsStockTab, setAchatsStockTab] = useState('Résumé');
   const [financeTab, setFinanceTab] = useState('Résumé');
   const [gestionSystemeTab, setGestionSystemeTab] = useState('Vue admin');
@@ -111,7 +112,7 @@ export default function App() {
   const setActive = navigateModule;
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [assistantOpen, setAssistantOpen] = useState(false);
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, loading: authLoading, signOut, canAccess } = useAuth();
   const { dataMap, refreshModule, flushOfflineQueue } = useAppData();
   const { online, lastOnlineAt } = useOnlineStatus();
   const { weather: liveMeteo, loading: weatherLoading, source: weatherSource } = useLiveWeather();
@@ -259,12 +260,14 @@ export default function App() {
     return () => trigger(decisionDataMapRaw);
   }, [crudFingerprint, healthAutoActions, decisionDataMapRaw]);
 
-  const navItems = useMemo(() => NAV_MODULE_ORDER.map((id) => ({
+  const navItems = useMemo(() => NAV_MODULE_ORDER
+    .filter((id) => canAccess(id))
+    .map((id) => ({
     id,
     label: MODULE_REGISTRY[id]?.label || id,
     icon: MODULE_REGISTRY[id]?.icon,
     hasAlert: alertFlags[id],
-  })), [alertFlags]);
+  })), [alertFlags, canAccess]);
   const moduleProps = useMemo(() => {
   const syncActivityProps = { onRefreshAll: refreshAll, onFlushOffline: flushOfflineQueue, online, lastOnlineAt, dataMap, tasks: rows(c.taches), alertes: rows(c.alertes_center), businessEvents: rows(c.business_events), businessEventsAll: rows(c.business_events), auditLogs: rows(c.audit_logs), auditLogsAll: rows(c.audit_logs), auditLoading: c.audit_logs.loading, onRefreshAuditLogs: c.audit_logs.refresh, onNavigate: setActive, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onRefreshAlertes: c.alertes_center.refresh, onUpdateSalesOrder: c.sales_orders.update, onRefreshSalesOrders: c.sales_orders.refresh, onUpdateOpportunity: c.sales_opportunities.update, onRefreshOpportunities: c.sales_opportunities.refresh, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh };
   const shared = { onNavigate: setActive, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh };
@@ -536,6 +539,7 @@ export default function App() {
     comptabilite: { transactions: rows(c.finances), finances: rows(c.finances), salesOrders: rows(c.sales_orders), payments: rows(c.payments), clients: rows(c.clients), fournisseurs: rows(c.fournisseurs), stocks: rows(c.stock), animaux: rows(c.animaux), lots: rows(c.avicole), cultures: rows(c.cultures), sante: rows(c.sante), investissements: rows(c.investissements), equipements: rows(c.equipements), documents: rows(c.documents), onRefreshFinances: c.finances.refresh, onNavigate: setActive },
     investissements: { ...base('investissements'), businessPlans: rows(c.business_plans), bpInvestmentLines: rows(c.bp_investment_lines), bpRecurringCosts: rows(c.bp_recurring_costs), bpRevenueProjections: rows(c.bp_revenue_projections), bpFundingSources: rows(c.bp_funding_sources), bpLinks: rows(c.bp_links), bpRisks: rows(c.bp_risks), transactions: rows(c.finances), lots: rows(c.avicole), animaux: rows(c.animaux), cultures: rows(c.cultures), onCreateBusinessPlan: c.business_plans.create, onUpdateBusinessPlan: c.business_plans.update, onDeleteBusinessPlan: c.business_plans.remove, onRefreshBusinessPlans: c.business_plans.refresh, ...bpCallbacks, onCreateFinanceTransaction: c.finances.create, onRefreshFinances: c.finances.refresh, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, onCreateLot: c.avicole.create, onRefreshLots: c.avicole.refresh, onCreateAnimal: c.animaux.create, onRefreshAnimals: c.animaux.refresh, onCreateCulture: c.cultures.create, onRefreshCultures: c.cultures.refresh, onCreateEquipement: c.equipements.create, onRefreshEquipements: c.equipements.refresh, onCreateStock: c.stock.create, onRefreshStock: c.stock.refresh, ...shared },
     impact_business: { animaux: rows(c.animaux), lots: rows(c.avicole), productionLogs: rows(c.production_oeufs_logs), sante: rows(c.sante), stocks: rows(c.stock), transactions: rows(c.finances), transactionsAll: rows(c.finances), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), alertes: rows(c.alertes_center), taches: rows(c.taches), documents: rows(c.documents), whatsappLogs: rows(c.whatsapp_logs), businessEvents: rows(c.business_events), businessEventsAll: rows(c.business_events), auditLogs: rows(c.audit_logs), auditLogsAll: rows(c.audit_logs), cultures: rows(c.cultures), clients: rows(c.clients), fournisseurs: rows(c.fournisseurs), investissements: rows(c.investissements), businessPlans: rows(c.business_plans), alimentationLogs: rows(c.alimentation_logs), onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, onCreateAlert: c.alertes_center.create, onRefreshAlertes: c.alertes_center.refresh, ...shared },
+    investisseurs_forums: { dataMap: decisionDataMapRaw, crud: c, meteo: liveMeteo, documents: rows(c.documents), animaux: rows(c.animaux), lots: rows(c.avicole), cultures: rows(c.cultures), stocks: rows(c.stock), clients: rows(c.clients), fournisseurs: rows(c.fournisseurs), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), businessPlans: rows(c.business_plans), investissements: rows(c.investissements), businessEvents: rows(c.business_events), alertes: rows(c.alertes_center), onNavigate: setActive, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, ...shared },
     stock: { ...base('stock'), alimentationLogs: rows(c.alimentation_logs), animaux: rows(c.animaux), lots: rows(c.avicole), fournisseurs: rows(c.fournisseurs), opportunities: rows(c.sales_opportunities), taches: rows(c.taches), onCreateAlimentation: c.alimentation_logs.create, onUpdateAlimentation: c.alimentation_logs.update, onDeleteAlimentation: c.alimentation_logs.remove, onRefreshAlimentation: c.alimentation_logs.refresh, onCreateFinanceTransaction: c.finances.create, onRefreshFinances: c.finances.refresh, onCreateOpportunity: c.sales_opportunities.create, onUpdateOpportunity: c.sales_opportunities.update, onRefreshOpportunities: c.sales_opportunities.refresh, onCreateTask: c.taches.create, onUpdateTask: c.taches.update, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onRefreshAlertes: c.alertes_center.refresh, ...shared },
     clients: { ...base('clients'), salesOrders: rows(c.sales_orders), payments: rows(c.payments), transactions: rows(c.finances), onNavigate: setActive },
     fournisseurs: { ...base('fournisseurs'), stocks: rows(c.stock), tasks: rows(c.taches), transactions: rows(c.finances), finances: rows(c.finances), documents: rows(c.documents), onUpdateStock: c.stock.update, onRefreshStock: c.stock.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onRefreshAlertes: c.alertes_center.refresh, ...shared },
@@ -638,11 +642,15 @@ export default function App() {
   if (!user) return <LoginPage />;
   const ActiveModule = MODULES[active] || MODULES.dashboard;
 
-  return <AppLayout navItems={navItems} active={active} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => setAssistantOpen(true)} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange} farmScope={normalizeFarmScope(farmScope, effectiveAccessibleFarms)} accessibleFarms={effectiveAccessibleFarms} onFarmScopeChange={handleFarmScopeChange} activeFarm={activeFarm} onManageFarms={handleManageFarms}>
+  const activeModuleLabel = MODULE_REGISTRY[active]?.label || active;
+
+  return <>
+    <ProductionUpdateBanner />
+    <AppLayout navItems={navItems} active={active} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => setAssistantOpen(true)} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange} farmScope={normalizeFarmScope(farmScope, effectiveAccessibleFarms)} accessibleFarms={effectiveAccessibleFarms} onFarmScopeChange={handleFarmScopeChange} activeFarm={activeFarm} onManageFarms={handleManageFarms}>
     <FarmActivityNotice message={activeModuleProps.farmActivityNotice} farmName={activeFarm?.name} actionLabel={activeModuleProps.farmActivityNoticeDetail?.actionLabel} onAction={activeModuleProps.farmActivityNoticeDetail ? handleFarmActivityAction : undefined} />
-    <ErrorBoundary title="Module indisponible"><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...activeModuleProps} periodLabel={periodLabel} farmScopeLabel={formatFarmScopeLabel(farmScope, effectiveAccessibleFarms)} /></Suspense></ErrorBoundary>
+    <ErrorBoundary moduleName={activeModuleLabel} resetKey={active} onBackToDashboard={() => setActive('dashboard')}><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...activeModuleProps} periodLabel={periodLabel} farmScopeLabel={formatFarmScopeLabel(farmScope, effectiveAccessibleFarms)} /></Suspense></ErrorBoundary>
     <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={scopedAssistantDataMap} onNavigate={setActive} onCreateBusinessEvent={c.business_events.create} />
     <ErpInterconnectionBridge cruds={c} />
     <AppNotificationManager />
-  </AppLayout>;
+  </AppLayout></>;
 }

@@ -41,6 +41,11 @@ const TAB_ALIASES = {
   Annexe: 'Annexe',
   Opportunités: 'Cycles',
   'Opportunités & cycles': 'Cycles',
+  Recommandations: 'Recommandations',
+  Historique: 'Historique',
+  'À traiter': 'À traiter',
+  Risques: 'Risques',
+  Cycles: 'Cycles',
 };
 
 function resolveTab(initial) {

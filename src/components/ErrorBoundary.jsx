@@ -39,10 +39,10 @@ export default class ErrorBoundary extends Component {
           <div className="mx-auto mb-4 w-14 h-14 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center">
             <AlertTriangle size={28} />
           </div>
-          <p className="text-xs uppercase tracking-[0.2em] text-red-500 font-black">Module protege</p>
-          <h2 className="mt-2 text-2xl font-black text-[#2f2415]">Le module {moduleName} a rencontre une erreur</h2>
+          <p className="text-xs uppercase tracking-[0.2em] text-red-500 font-black">Erreur module</p>
+          <h2 className="mt-2 text-2xl font-black text-[#2f2415]">Le module {moduleName} a rencontré une erreur</h2>
           <p className="mt-2 text-sm text-[#7d6a4a]">
-            Horizon Farm evite la page blanche. Tu peux revenir au tableau de bord ou recharger ce module.
+            Horizon Farm évite la page blanche. Tu peux revenir au tableau de bord ou recharger ce module.
           </p>
 
           {isDev ? (

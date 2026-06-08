@@ -61,7 +61,11 @@ const tabAliases = {
   annexe: 'Annexe',
   couts: 'Annexe',
   cout: 'Annexe',
-  parametres: 'Annexe',
+  alertes: 'Alertes',
+  taches: 'Tâches',
+  tracabilite: 'Traçabilité',
+  activite: 'Résumé',
+  suivi: 'Résumé',
 };
 
 export function resolveElevageTab(value = '') {

@@ -41,11 +41,17 @@ const TAB_ALIASES = {
   'Tableau de bord graphique': 'Graphiques',
   Graphiques: 'Graphiques',
   Annexe: 'Annexe',
+  'Rentabilité Lot & Cycle': 'Rentabilité Lot & Cycle',
+  'Efficacité Technique': 'Efficacité Technique',
+  'Flux & Équilibres': 'Flux & Équilibres',
+  'Maraîchage & Diversification': 'Maraîchage & Diversification',
 };
 
 function resolveTab(initial) {
-  const mapped = initial ? (TAB_ALIASES[initial] || initial) : null;
-  if (mapped && TAB_IDS.includes(mapped)) return mapped;
+  const raw = String(initial || '').trim();
+  if (!raw) return TAB_IDS[0];
+  const mapped = TAB_ALIASES[raw] || raw;
+  if (TAB_IDS.includes(mapped)) return mapped;
   return TAB_IDS[0];
 }
 
