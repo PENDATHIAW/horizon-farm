@@ -10,6 +10,7 @@ import { emitHorizonForm } from '../services/formModalManager';
 import { applyOneClickRecommendation } from '../services/heyHorizonRecommendationActions.js';
 import { fmtNumber } from '../utils/format';
 import { commitElevageEggProduction } from '../utils/elevageWorkflow.js';
+import { aggregateSummaryLayingRate, formatOfficialLayingRate } from '../utils/elevageLayingRate.js';
 import { rowsOf } from '../utils/moduleRows';
 import VisionCyclesTab from './vision/VisionCyclesTab.jsx';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
@@ -100,16 +101,16 @@ function Summary({ data, setTab, onApply, busyId, onNavigate, onOpenWorkflow, sh
         <ActionCard title="Enregistrer ponte" text="Ramassage œufs avec entrée stock si configurée." onClick={() => onOpenWorkflow?.('eggs')} />
         <ActionCard title="Enregistrer mortalité" text="Impact effectif lot et alertes seuil." onClick={() => onOpenWorkflow?.('mortality')} />
         <ActionCard title="Enregistrer santé" text="Soin, vaccin, rappel et consommation stock." onClick={() => onOpenWorkflow?.('health')} />
-        <ActionCard title="Enregistrer poids" text="Suivi croissance sur fiches Animaux / Avicole." onClick={() => setTab(data.lots.length ? 'Avicole' : 'Animaux')} />
+        <ActionCard title="Enregistrer poids" text="Pesée lot ou animal avec historique." onClick={() => onOpenWorkflow?.('weighing')} />
         <ActionCard title="Vendre / préparer vente" text="Lots prêts, opportunités Commercial." onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
       </div>
     </section>
     <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
       <Stat label="Santé élevage" value={`${data.healthScore}/100`} tone={data.healthScore >= 75 ? 'good' : 'warn'} />
+      <Stat label="Taux de ponte" value={data.layingRateLabel} tone={data.layingRateCalculable ? 'good' : 'warn'} />
       <Stat label="Animaux actifs" value={fmtNumber(data.activeAnimals)} />
       <Stat label="Production 7 j" value={fmtNumber(data.eggs7d)} tone="good" />
       <Stat label="Mortalité" value={fmtNumber(data.recentMortality)} tone={data.recentMortality ? 'warn' : 'good'} />
-      <Stat label="Soins retard" value={fmtNumber(data.healthLate)} tone={data.healthLate ? 'warn' : 'good'} />
       <Stat label="Coût alim." value={`${Math.round(data.feedCost).toLocaleString('fr-FR')} F`} tone="warn" />
     </div>
     <CollapsibleAdvancedSection
@@ -121,6 +122,7 @@ function Summary({ data, setTab, onApply, busyId, onNavigate, onOpenWorkflow, sh
     >
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
         <Stat label="Lots pondeuses" value={fmtNumber(data.pondeuses)} tone="good" />
+        <Stat label="Soins retard" value={fmtNumber(data.healthLate)} tone={data.healthLate ? 'warn' : 'good'} />
         <Stat label="Marges fiables" value={fmtNumber(data.reliableMargins)} tone="good" />
         <Stat label="Marges masquées" value={fmtNumber(data.unreliableMargins)} tone={data.unreliableMargins ? 'warn' : 'good'} />
         <Stat label="Signaux IA" value={fmtNumber(data.healthFindings.length)} tone={data.healthFindings.length ? 'warn' : 'good'} />
@@ -239,6 +241,7 @@ export default function ElevageRecoveredModule(props) {
     const reliableMargins = lotMargins.filter((r) => r.reliable).length;
     const unreliableMargins = lotMargins.filter((r) => !r.reliable).length;
     const healthSnap = buildElevageHealthSnapshot({ animaux: animals, lots, feedLogs, productionLogs, stocks, sante: health });
+    const layingSummary = aggregateSummaryLayingRate(lots, productionLogs, 7);
     return {
       animals, lots, health, productionLogs, feedLogs, stocks, opportunities, salesOrders, businessEvents,
       activeAnimals: animals.filter((row) => !isClosedAnimal(row)).length,
@@ -263,6 +266,9 @@ export default function ElevageRecoveredModule(props) {
         return buildElevageTransformationRows({ animals, lots, salesOrders, businessEvents, payments: trPayments }).filter((row) => row.kind === 'vente').length;
       })(),
       healthPredictions: healthSnap.predictions,
+      layingRateLabel: formatOfficialLayingRate(layingSummary),
+      layingRateCalculable: layingSummary.calculable,
+      layingRate: layingSummary.rate,
     };
   }, [animals, lots, health, productionLogs, feedLogs, stocks, opportunities, salesOrders, businessEvents, props.payments, paymentsCrud, periodFiltered]);
 
@@ -296,6 +302,7 @@ export default function ElevageRecoveredModule(props) {
     onCreateAlert: props.onCreateAlert || alertsCrud.create,
     onCreateDocument: props.onCreateDocument || documentsCrud.create,
     onCreateProduction: props.onCreateProduction || productionCrud.create,
+    onCreateWeightRecord: props.onCreateWeightRecord,
   });
 
   const refreshAfterWorkflow = useCallback(async () => {

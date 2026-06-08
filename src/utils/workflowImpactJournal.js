@@ -159,6 +159,34 @@ export function instrumentHandlers(handlers = {}, journal, options = {}) {
   return wrapped;
 }
 
+/**
+ * Exécute un workflow avec journal d'impacts instrumenté (handlers tracés + finalize).
+ */
+export async function commitWithImpactJournal({
+  operationType,
+  issueKey = '',
+  handlers = {},
+  run,
+  expectations,
+  showImpactToast,
+} = {}) {
+  if (typeof run !== 'function') throw new Error('commitWithImpactJournal: run handler requis');
+  const journal = createImpactJournal(operationType, issueKey);
+  const tracked = instrumentHandlers(handlers, journal);
+  const result = await run(tracked, journal);
+  const exp = expectations || OPERATION_EXPECTATIONS[operationType] || {};
+  const impactJournal = finalizeImpactJournal(journal, exp);
+  if (showImpactToast !== false && handlers.showImpactToast !== false) {
+    try {
+      const { showWorkflowImpactToast } = await import('./workflowImpactToast.js');
+      showWorkflowImpactToast(impactJournal);
+    } catch {
+      // toast optionnel (tests / environnements sans UI)
+    }
+  }
+  return { ...(result || {}), impactJournal };
+}
+
 export function finalizeImpactJournal(journal, expectations = {}) {
   const next = { ...journal, impacts: { ...journal.impacts } };
   const applicable = expectations.applicable || Object.values(IMPACT_KEYS).filter((key) => key !== IMPACT_KEYS.ISSUE_KEY);
