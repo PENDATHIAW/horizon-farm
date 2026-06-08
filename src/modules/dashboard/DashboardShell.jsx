@@ -276,6 +276,54 @@ export function DashboardExploitationScorePanel({ exploitation = {}, onNavigate 
   );
 }
 
+export function DashboardInvestorCompactStrip({ investor = {}, onNavigate, onExpand }) {
+  const score = investor.score ?? 0;
+  const toneCls = score >= 80 ? 'text-emerald-800' : score >= 55 ? 'text-amber-800' : 'text-[#2f2415]';
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3">
+      <p className={`text-sm font-black ${toneCls}`}>
+        Préparation investisseur : {score}%
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {onExpand ? (
+          <button type="button" onClick={onExpand} className="min-h-[40px] rounded-xl border border-[#d6c3a0] bg-white px-3 py-1.5 text-xs font-black text-[#2f2415]">
+            Voir le détail
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Financeurs' })}
+          className="min-h-[40px] rounded-xl bg-[#2f2415] px-3 py-1.5 text-xs font-black text-white"
+        >
+          Investisseurs &amp; Forums
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function DashboardExploitationScoreCompact({ exploitation = {}, onNavigate }) {
+  const score = exploitation.score ?? 0;
+  const tone = score >= 80 ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : score >= 60 ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-red-200 bg-red-50 text-red-800';
+  return (
+    <section className={`rounded-2xl border p-4 shadow-sm ${tone}`}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] opacity-80">État général</p>
+          <h2 className="mt-0.5 text-base font-black">{exploitation.label || 'Pilotage global'}</h2>
+          {exploitation.weakPoints?.length ? (
+            <p className="mt-1 text-xs opacity-80">À surveiller : {exploitation.weakPoints.slice(0, 2).join(' · ')}</p>
+          ) : null}
+        </div>
+        <p className="text-3xl font-black">{score}/100</p>
+      </div>
+      <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'À traiter' })} className="mt-2 text-xs font-black underline opacity-80">
+        Détail pilotage →
+      </button>
+    </section>
+  );
+}
+
 export function DashboardInvestorStrip({ investor = {}, onNavigate }) {
   const tone = investor.score >= 80 ? 'border-emerald-200 bg-emerald-50/70' : investor.score >= 55 ? 'border-amber-200 bg-amber-50/70' : 'border-[#eadcc2] bg-[#fffdf8]';
   return (

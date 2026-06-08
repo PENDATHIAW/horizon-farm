@@ -40,6 +40,7 @@ import {
 } from '../utils/farmConsolidation.js';
 import {
   DashboardAllFarmsPanel,
+  DashboardAllFarmsCompactPanel,
   DashboardActivityKpiStrip,
   DashboardAdaptedAlertsPanel,
   DashboardAdaptedQuickActions,
@@ -47,6 +48,7 @@ import {
   FarmLocationGrid,
 } from './dashboard/farmDashboardPanels.jsx';
 import { isFarmDemoModeEnabled, setFarmDemoModeEnabled } from '../utils/farmDemoMode.js';
+import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection.jsx';
 import {
   DashboardGoalsHero,
   DashboardHealthStrip,
@@ -62,9 +64,12 @@ import {
   DashboardNarrativePanel,
   DashboardFarmOverviewPanel,
   DashboardExploitationScorePanel,
+  DashboardExploitationScoreCompact,
   DashboardInvestorStrip,
+  DashboardInvestorCompactStrip,
   DashboardWeatherStrip,
 } from './dashboard/DashboardShell.jsx';
+import { ESSENTIAL_KPI_LIMIT } from './dashboard/dashboardAccueilLayout.js';
 import {
   buildPremiumExecutiveBrief,
   buildTemporalComparisons,
@@ -104,6 +109,172 @@ function displayUserOf(props = {}) {
   if (!raw) return 'Exploitant';
   const text = String(raw).trim();
   return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function EssentialKpiGrid({ summary, navigate, className = '' }) {
+  const stockCritical = summary.stockSummary?.lowStockCount ?? summary.stockBas ?? 0;
+  const productionValue = summary.production > 0
+    ? fmtNumber(summary.production)
+    : summary.cultureSummary?.hasData
+      ? `${fmtNumber(summary.cultureSummary.parcelCount)} parcelle(s)`
+      : fmtNumber(summary.effectifs);
+
+  const kpis = [
+    {
+      key: 'cashNet',
+      label: 'Trésorerie disponible',
+      value: fmtCurrency(summary.cashNet),
+      detail: 'Disponibilité financière cumulée',
+      scopeLabel: 'Cumul',
+      tone: summary.cashNet >= 0 ? 'good' : 'bad',
+      onClick: () => navigate('finance_pilotage', { tab: 'Trésorerie' }),
+    },
+    {
+      key: 'ca',
+      label: 'CA période',
+      value: fmtCurrency(summary.ca),
+      detail: 'Commandes sur la période ERP',
+      scopeLabel: 'Période',
+      tone: 'good',
+      onClick: () => navigate('commercial', { tab: 'Graphiques' }),
+    },
+    {
+      key: 'receivable',
+      label: 'Créances à relancer',
+      value: fmtCurrency(summary.receivable),
+      detail: 'Reste à encaisser',
+      scopeLabel: 'Cumul',
+      tone: summary.receivable ? 'warn' : 'good',
+      onClick: () => navigate('commercial', { tab: 'Clients' }),
+    },
+    {
+      key: 'stock',
+      label: 'Stock critique',
+      value: fmtNumber(stockCritical),
+      detail: formatStockDetail(summary.stockSummary),
+      scopeLabel: 'Global',
+      tone: stockCritical ? 'warn' : 'good',
+      onClick: () => navigate('achats_stock', { tab: 'Stock' }),
+    },
+    {
+      key: 'production',
+      label: summary.cultureSummary?.hasData && !summary.production ? 'Production / cultures' : 'Production',
+      value: productionValue,
+      detail: summary.eggProduction?.eggsPeriod > 0
+        ? formatEggProductionDetail(summary.eggProduction)
+        : formatCultureDetail(summary.cultureSummary),
+      scopeLabel: 'Période',
+      tone: 'good',
+      onClick: () => navigate(summary.cultureSummary?.hasData && !summary.production ? 'cultures' : 'elevage', {
+        tab: summary.cultureSummary?.hasData && !summary.production ? 'Résumé' : 'Production',
+      }),
+    },
+    {
+      key: 'alertes',
+      label: 'Alertes urgentes',
+      value: fmtNumber(summary.alertesOuvertes),
+      detail: summary.alertesOuvertes ? 'Consulter Activité & Suivi' : 'Aucune alerte ouverte',
+      scopeLabel: 'Global',
+      tone: summary.alertesOuvertes ? 'warn' : 'good',
+      onClick: () => navigate('activite_suivi', { tab: 'Alertes' }),
+    },
+  ].slice(0, ESSENTIAL_KPI_LIMIT);
+
+  return (
+    <div className={`dashboard-v3-kpi-grid grid grid-cols-2 gap-3 lg:grid-cols-3 ${className}`}>
+      {kpis.map((kpi) => (
+        <DashboardKpi key={kpi.key} {...kpi} />
+      ))}
+    </div>
+  );
+}
+
+function SecondaryKpiGrid({ summary, navigate }) {
+  const items = [
+    {
+      key: 'openSales',
+      show: true,
+      props: {
+        label: 'Ventes ouvertes',
+        value: fmtNumber(summary.openSales),
+        detail: 'Non clôturées',
+        scopeLabel: 'Cumul',
+        tone: summary.openSales ? 'warn' : 'good',
+        onClick: () => navigate('commercial', { tab: 'Ventes' }),
+      },
+    },
+    {
+      key: 'encaisse',
+      show: true,
+      props: {
+        label: 'Encaissé',
+        value: fmtCurrency(summary.encaisse),
+        detail: formatEncaisseDetail(summary.financePeriods),
+        delta: formatEncaisseDelta(summary.financePeriods),
+        scopeLabel: 'Période',
+        tone: 'good',
+        onClick: () => navigate('finance_pilotage', { tab: 'Trésorerie' }),
+      },
+    },
+    {
+      key: 'resultat',
+      show: true,
+      props: {
+        label: 'Résultat',
+        value: fmtCurrency(summary.resultat),
+        detail: formatResultatDetail(summary.financePeriods),
+        delta: formatResultatDelta(summary.financePeriods),
+        scopeLabel: 'Période',
+        tone: summary.resultat >= 0 ? 'good' : 'bad',
+        onClick: () => navigate('finance_pilotage', { tab: 'Trésorerie' }),
+      },
+    },
+    {
+      key: 'cultures',
+      show: summary.cultureSummary?.hasData,
+      props: {
+        label: 'Cultures',
+        value: `${fmtNumber(summary.cultureSummary?.parcelCount ?? 0)} parcelle(s)`,
+        detail: formatCultureDetail(summary.cultureSummary),
+        scopeLabel: 'Global',
+        tone: 'good',
+        onClick: () => navigate('cultures', { tab: 'Résumé' }),
+      },
+    },
+    {
+      key: 'ponte',
+      show: summary.eggProduction?.eggsAllTime > 0 || summary.eggProduction?.eggsPeriod > 0,
+      props: {
+        label: 'Ponte',
+        value: fmtNumber(summary.production),
+        detail: formatEggProductionDetail(summary.eggProduction),
+        delta: formatEggProductionDelta(summary.eggProduction),
+        scopeLabel: 'Période',
+        tone: 'good',
+        onClick: () => navigate('elevage', { tab: 'Production' }),
+      },
+    },
+    {
+      key: 'effectifs',
+      show: true,
+      props: {
+        label: 'Effectifs',
+        value: fmtNumber(summary.effectifs),
+        detail: formatFarmHeadcountDetail(summary.headcount),
+        scopeLabel: 'Global',
+        onClick: () => navigate('elevage', { tab: 'Résumé' }),
+      },
+    },
+  ].filter((row) => row.show);
+
+  if (!items.length) return null;
+  return (
+    <div className="dashboard-v3-kpi-grid grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
+      {items.map((row) => (
+        <DashboardKpi key={row.key} {...row.props} />
+      ))}
+    </div>
+  );
 }
 
 function useUiSettings() {
@@ -147,9 +318,7 @@ function Summary({
   pilotage,
   weatherReport,
   onOpenPriority,
-  farmScope = {},
   activeFarm = null,
-  accessibleFarms = [],
   allFarmsContext = null,
   activityKpiCards = [],
   quickActions = [],
@@ -160,6 +329,12 @@ function Summary({
   v3 = null,
 }) {
   const [presentationOpen, setPresentationOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [multiFarmsOpen, setMultiFarmsOpen] = useState(false);
+  const [investorOpen, setInvestorOpen] = useState(false);
+  const [heyHorizonOpen, setHeyHorizonOpen] = useState(false);
+  const [exploitationOpen, setExploitationOpen] = useState(false);
+  const [suiviOpen, setSuiviOpen] = useState(false);
   const speech = useSpeechSynthesis({ lang: 'fr-FR' });
   const speechSupported = isSpeechSynthesisSupported();
   const handleSpeak = useCallback((text) => {
@@ -274,199 +449,189 @@ function Summary({
     );
   }
 
+  const quickActionsBlock = quickActions.length
+    ? <DashboardAdaptedQuickActions actions={quickActions} onNavigate={navigate} />
+    : <DashboardQuickActions onNavigate={navigate} />;
+
   return (
-    <div className="space-y-5 dashboard-v2-mobile dashboard-v3-mobile">
+    <div className="space-y-5 dashboard-v2-mobile dashboard-v3-mobile dashboard-accueil-root">
       {presentationOverlay}
       <FarmDemoModeBanner enabled={demoModeEnabled} onToggle={onToggleDemoMode} />
-      {briefPanel}
-      <DashboardPrioritiesPanel priorities={pilotage.priorities} onOpen={onOpenPriority} />
-      {quickActions.length ? <DashboardAdaptedQuickActions actions={quickActions} onNavigate={navigate} /> : <DashboardQuickActions onNavigate={navigate} />}
-      {v3?.quickQuestions?.length ? (
-        <DashboardHeyHorizonQuickAskStrip questions={v3.quickQuestions} onOpenAssistant={onOpenAssistant} onNavigate={navigate} />
-      ) : null}
-      {allFarmsContext ? (
-        <DashboardAllFarmsPanel context={allFarmsContext} onNavigate={navigate} onManageFarms={onManageFarms} />
-      ) : null}
-      {allFarmsContext?.locationCards?.length ? (
-        <FarmLocationGrid cards={allFarmsContext.locationCards} onNavigate={navigate} />
-      ) : v3?.locationCard ? (
-        <DashboardFarmLocationPremiumCard card={v3.locationCard} />
-      ) : null}
-      {adaptedAlerts.length ? <DashboardAdaptedAlertsPanel alerts={adaptedAlerts} /> : null}
-      {v3?.dynamics ? <DashboardDynamicsScorePanel dynamics={v3.dynamics} /> : null}
-      {v3?.comparisons?.length ? <DashboardTemporalComparisonPanel comparisons={v3.comparisons} /> : null}
-      <DashboardNarrativePanel narrative={pilotage.narrative} />
-      {!allFarmsContext && activityKpiCards.length ? (
-        <DashboardActivityKpiStrip cards={activityKpiCards} farmName={activeFarm?.name} />
-      ) : null}
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <DashboardExploitationScorePanel exploitation={pilotage.exploitation} onNavigate={navigate} />
-        <DashboardInvestorStrip investor={pilotage.investor} onNavigate={navigate} />
-      </div>
-      <DashboardFarmOverviewPanel overview={pilotage.farmOverview} onNavigate={navigate} />
-      <DashboardWeatherStrip weather={weatherReport} />
-      <DashboardGoalsHero
-        goal={summary.goal}
-        onOpenVision={() => navigate('objectifs_croissance', { tab: 'Performance' })}
-        onOpenAssistant={onOpenAssistant}
-        onNavigate={navigate}
-      />
-      <DashboardHeyHorizonStrip suggestions={heyHorizonSuggestions} onNavigate={navigate} />
 
-      {!allFarmsContext ? (
-      <div className="dashboard-v3-kpi-grid grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
-        <DashboardKpi
-          label="CA période"
-          value={fmtCurrency(summary.ca)}
-          detail="Commandes sur la période ERP"
-          scopeLabel="Période"
-          tone="good"
-          onClick={() => navigate('commercial', { tab: 'Graphiques' })}
-        />
-        <DashboardKpi
-          label="Ventes ouvertes"
-          value={fmtNumber(summary.openSales)}
-          detail="Non clôturées (paiement ou livraison)"
-          scopeLabel="Cumul"
-          tone={summary.openSales ? 'warn' : 'good'}
-          onClick={() => navigate('commercial', { tab: 'Ventes' })}
-        />
-        <DashboardKpi
-          label="Encaissé"
-          value={fmtCurrency(summary.encaisse)}
-          detail={formatEncaisseDetail(summary.financePeriods)}
-          delta={formatEncaisseDelta(summary.financePeriods)}
-          scopeLabel="Période"
-          tone="good"
-          onClick={() => navigate('finance_pilotage', { tab: 'Trésorerie' })}
-        />
-        <DashboardKpi
-          label="Résultat"
-          value={fmtCurrency(summary.resultat)}
-          detail={formatResultatDetail(summary.financePeriods)}
-          delta={formatResultatDelta(summary.financePeriods)}
-          scopeLabel="Période"
-          tone={summary.resultat >= 0 ? 'good' : 'bad'}
-          onClick={() => navigate('finance_pilotage', { tab: 'Trésorerie' })}
-        />
-        <DashboardKpi
-          label="Trésorerie disponible"
-          value={fmtCurrency(summary.cashNet)}
-          detail="Disponibilité financière cumulée"
-          scopeLabel="Cumul"
-          tone={summary.cashNet >= 0 ? 'good' : 'bad'}
-          onClick={() => navigate('finance_pilotage', { tab: 'Trésorerie' })}
-        />
-        <DashboardKpi
-          label="Créances"
-          value={fmtCurrency(summary.receivable)}
-          detail="Reste à encaisser sur toutes les ventes"
-          scopeLabel="Cumul"
-          tone={summary.receivable ? 'warn' : 'good'}
-          onClick={() => navigate('commercial', { tab: 'Clients' })}
-        />
-        <DashboardKpi
-          label="Stock"
-          value={fmtNumber(summary.stockSummary?.totalProducts ?? 0)}
-          detail={formatStockDetail(summary.stockSummary)}
-          scopeLabel="Global"
-          tone={summary.stockSummary?.lowStockCount ? 'warn' : 'good'}
-          onClick={() => navigate('achats_stock', { tab: 'Stock' })}
-        />
-        {summary.cultureSummary?.hasData ? (
-          <DashboardKpi
-            label="Cultures"
-            value={`${fmtNumber(summary.cultureSummary.parcelCount)} parcelle(s)`}
-            detail={formatCultureDetail(summary.cultureSummary)}
-            scopeLabel="Global"
-            tone="good"
-            onClick={() => navigate('cultures', { tab: 'Résumé' })}
-          />
-        ) : null}
-        {(summary.eggProduction?.eggsAllTime > 0 || summary.eggProduction?.eggsPeriod > 0 || summary.headcount?.effectifPondeuses > 0) ? (
-          <DashboardKpi
-            label="Ponte"
-            value={fmtNumber(summary.production)}
-            detail={formatEggProductionDetail(summary.eggProduction)}
-            delta={formatEggProductionDelta(summary.eggProduction)}
-            scopeLabel="Période"
-            tone="good"
-            onClick={() => navigate('elevage', { tab: 'Production' })}
-          />
-        ) : null}
-        <DashboardKpi
-          label="Alertes ouvertes"
-          value={fmtNumber(summary.alertesOuvertes)}
-          detail={summary.alertesOuvertes ? 'Consulter Activité & Suivi' : 'Aucune alerte ouverte'}
-          scopeLabel="Global"
-          tone={summary.alertesOuvertes ? 'warn' : 'good'}
-          onClick={() => navigate('activite_suivi', { tab: 'Alertes' })}
-        />
-        <DashboardKpi
-          label="Effectifs"
-          value={fmtNumber(summary.effectifs)}
-          detail={formatFarmHeadcountDetail(summary.headcount)}
-          scopeLabel="Global"
-          onClick={() => navigate('elevage', { tab: 'Résumé' })}
-        />
-      </div>
-      ) : null}
-
-      <DashboardModuleNav modules={DASHBOARD_MODULES} onNavigate={navigate} />
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-        <section className="lg:col-span-3 rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <div>
-              <h2 className="text-sm font-black text-[#2f2415]">À traiter aujourd&apos;hui</h2>
-              <p className="text-[11px] text-[#8a7456]">Une seule liste — argent, stock, santé, tâches.</p>
-            </div>
-            {summary.todoCount > actions.length ? (
-              <button type="button" onClick={() => navigate('activite_suivi', { tab: 'Résumé' })} className="text-xs font-black text-[#9a6b12]">
-                Tout voir →
-              </button>
-            ) : null}
+      <div className="flex flex-col gap-5 dashboard-accueil-primary">
+        <div className="order-1">{briefPanel}</div>
+        <div className="order-2">
+          <DashboardPrioritiesPanel priorities={pilotage.priorities} onOpen={onOpenPriority} />
+        </div>
+        {!allFarmsContext ? (
+          <div className="order-4 md:order-3">
+            <EssentialKpiGrid summary={summary} navigate={navigate} />
           </div>
-          {actions.length ? (
-            <div className="space-y-2">
-              {actions.map((action) => (
-                <DashboardTodoRow
-                  key={`${action.moduleKey}-${action.title}`}
-                  title={sanitizeDashboardMetric(action.title, 'Action')}
-                  detail={sanitizeDashboardMetric(action.detail, '')}
-                  moduleLabel={DASHBOARD_MODULE_LABELS[action.moduleKey] || action.category || 'Ouvrir'}
-                  tone={action.tone === 'red' ? 'red' : action.tone === 'amber' ? 'amber' : 'neutral'}
-                  onOpen={() => navigateForDashboardAction(action, navigate)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-6 text-center text-sm text-emerald-800">
-              Rien d&apos;urgent — l&apos;exploitation est à jour.
-            </div>
-          )}
-        </section>
-
-        <div className="lg:col-span-2 space-y-4">
-          {sideCards.length ? sideCards : (
-            <DashboardSnapshotCard
-              label="Effectifs"
-              value={`${fmtNumber(summary.effectifs)} sujet(s)`}
-              detail={formatFarmHeadcountDetail(summary.headcount)}
-              tone="good"
-              onClick={() => navigate('elevage', { tab: 'Résumé' })}
+        ) : null}
+        <div className="order-3 md:order-4">{quickActionsBlock}</div>
+        <div className="order-5 space-y-3">
+          <DashboardExploitationScoreCompact exploitation={pilotage.exploitation} onNavigate={navigate} />
+          {allFarmsContext ? (
+            <DashboardAllFarmsCompactPanel
+              context={allFarmsContext}
+              onExpand={() => setMultiFarmsOpen(true)}
+              onManageFarms={onManageFarms}
             />
-          )}
+          ) : null}
+          <DashboardInvestorCompactStrip
+            investor={pilotage.investor}
+            onNavigate={navigate}
+            onExpand={() => setInvestorOpen(true)}
+          />
         </div>
       </div>
 
-      {!simple ? (
-        <DashboardHealthStrip
-          health={health}
-          onNavigate={navigate}
-          onOpenFinding={(finding) => navigateForDashboardFinding(finding, navigate)}
-        />
+      {(v3?.dynamics || v3?.comparisons?.length || adaptedAlerts.length) ? (
+        <CollapsibleAdvancedSection
+          eyebrow="Analyse"
+          title="Analyse avancée"
+          description="Comparaisons temporelles, dynamique et alertes détaillées."
+          open={advancedOpen}
+          onToggle={() => setAdvancedOpen((value) => !value)}
+        >
+          {v3?.dynamics ? <DashboardDynamicsScorePanel dynamics={v3.dynamics} /> : null}
+          {v3?.comparisons?.length ? <DashboardTemporalComparisonPanel comparisons={v3.comparisons} /> : null}
+          {adaptedAlerts.length ? <DashboardAdaptedAlertsPanel alerts={adaptedAlerts} /> : null}
+        </CollapsibleAdvancedSection>
       ) : null}
+
+      {allFarmsContext ? (
+        <CollapsibleAdvancedSection
+          eyebrow="Groupe"
+          title="Multi-fermes"
+          description="Consolidation, comparaison et localisation des fermes."
+          open={multiFarmsOpen}
+          onToggle={() => setMultiFarmsOpen((value) => !value)}
+        >
+          <DashboardAllFarmsPanel context={allFarmsContext} onNavigate={navigate} onManageFarms={onManageFarms} />
+          {allFarmsContext.locationCards?.length ? (
+            <FarmLocationGrid cards={allFarmsContext.locationCards} onNavigate={navigate} />
+          ) : null}
+        </CollapsibleAdvancedSection>
+      ) : null}
+
+      <CollapsibleAdvancedSection
+        eyebrow="Financeurs"
+        title="Investisseur"
+        description="Score, checklist et préparation du dossier."
+        open={investorOpen}
+        onToggle={() => setInvestorOpen((value) => !value)}
+      >
+        <DashboardInvestorStrip investor={pilotage.investor} onNavigate={navigate} />
+      </CollapsibleAdvancedSection>
+
+      {(v3?.quickQuestions?.length || heyHorizonSuggestions.length) ? (
+        <CollapsibleAdvancedSection
+          eyebrow="Assistant"
+          title="Hey Horizon"
+          description="Questions rapides et suggestions de pilotage."
+          open={heyHorizonOpen}
+          onToggle={() => setHeyHorizonOpen((value) => !value)}
+        >
+          {v3?.quickQuestions?.length ? (
+            <DashboardHeyHorizonQuickAskStrip
+              questions={v3.quickQuestions}
+              onOpenAssistant={onOpenAssistant}
+              onNavigate={navigate}
+              maxVisible={3}
+              compact
+            />
+          ) : null}
+          <DashboardHeyHorizonStrip suggestions={heyHorizonSuggestions} onNavigate={navigate} />
+        </CollapsibleAdvancedSection>
+      ) : null}
+
+      <CollapsibleAdvancedSection
+        eyebrow="Exploitation"
+        title="Exploitation & objectifs"
+        description="Synthèse narrative, activités, météo et objectifs."
+        open={exploitationOpen}
+        onToggle={() => setExploitationOpen((value) => !value)}
+      >
+        <DashboardNarrativePanel narrative={pilotage.narrative} />
+        {!allFarmsContext && activityKpiCards.length ? (
+          <DashboardActivityKpiStrip cards={activityKpiCards} farmName={activeFarm?.name} />
+        ) : null}
+        <DashboardFarmOverviewPanel overview={pilotage.farmOverview} onNavigate={navigate} />
+        <DashboardWeatherStrip weather={weatherReport} />
+        {v3?.locationCard ? <DashboardFarmLocationPremiumCard card={v3.locationCard} /> : null}
+        <DashboardGoalsHero
+          goal={summary.goal}
+          onOpenVision={() => navigate('objectifs_croissance', { tab: 'Performance' })}
+          onOpenAssistant={onOpenAssistant}
+          onNavigate={navigate}
+        />
+        {!allFarmsContext ? <SecondaryKpiGrid summary={summary} navigate={navigate} /> : null}
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <DashboardExploitationScorePanel exploitation={pilotage.exploitation} onNavigate={navigate} />
+        </div>
+      </CollapsibleAdvancedSection>
+
+      <CollapsibleAdvancedSection
+        eyebrow="Suivi"
+        title="À traiter & modules"
+        description="Actions du jour, raccourcis et pilotage IA détaillé."
+        open={suiviOpen}
+        onToggle={() => setSuiviOpen((value) => !value)}
+      >
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+          <section className="lg:col-span-3 rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div>
+                <h2 className="text-sm font-black text-[#2f2415]">À traiter aujourd&apos;hui</h2>
+                <p className="text-[11px] text-[#8a7456]">Une seule liste — argent, stock, santé, tâches.</p>
+              </div>
+              {summary.todoCount > actions.length ? (
+                <button type="button" onClick={() => navigate('activite_suivi', { tab: 'Résumé' })} className="text-xs font-black text-[#9a6b12]">
+                  Tout voir →
+                </button>
+              ) : null}
+            </div>
+            {actions.length ? (
+              <div className="space-y-2">
+                {actions.map((action) => (
+                  <DashboardTodoRow
+                    key={`${action.moduleKey}-${action.title}`}
+                    title={sanitizeDashboardMetric(action.title, 'Action')}
+                    detail={sanitizeDashboardMetric(action.detail, '')}
+                    moduleLabel={DASHBOARD_MODULE_LABELS[action.moduleKey] || action.category || 'Ouvrir'}
+                    tone={action.tone === 'red' ? 'red' : action.tone === 'amber' ? 'amber' : 'neutral'}
+                    onOpen={() => navigateForDashboardAction(action, navigate)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-6 text-center text-sm text-emerald-800">
+                Rien d&apos;urgent — l&apos;exploitation est à jour.
+              </div>
+            )}
+          </section>
+          <div className="lg:col-span-2 space-y-4">
+            {sideCards.length ? sideCards : (
+              <DashboardSnapshotCard
+                label="Effectifs"
+                value={`${fmtNumber(summary.effectifs)} sujet(s)`}
+                detail={formatFarmHeadcountDetail(summary.headcount)}
+                tone="good"
+                onClick={() => navigate('elevage', { tab: 'Résumé' })}
+              />
+            )}
+          </div>
+        </div>
+        <DashboardModuleNav modules={DASHBOARD_MODULES} onNavigate={navigate} />
+        {!simple ? (
+          <DashboardHealthStrip
+            health={health}
+            onNavigate={navigate}
+            onOpenFinding={(finding) => navigateForDashboardFinding(finding, navigate)}
+          />
+        ) : null}
+      </CollapsibleAdvancedSection>
     </div>
   );
 }
@@ -824,7 +989,7 @@ export default function DashboardV2(props) {
         @media (max-width: 640px) {
           .dashboard-v2-mobile .grid.grid-cols-2 { grid-template-columns: 1fr; }
           .dashboard-v3-mobile .dashboard-v3-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-          .dashboard-v3-mobile .dashboard-v3-kpi-grid > *:nth-child(n+7) { display: none; }
+          .dashboard-accueil-primary .dashboard-v3-kpi-grid > *:nth-child(n+5) { display: none; }
           .dashboard-v2-mobile .text-xl { font-size: 1.15rem; }
           .dashboard-v2-mobile .text-2xl { font-size: 1.35rem; }
           .dashboard-v2-mobile .text-3xl { font-size: 1.5rem; }
@@ -855,9 +1020,7 @@ export default function DashboardV2(props) {
           pilotage={pilotage}
           weatherReport={weatherReport}
           onOpenPriority={openPriority}
-          farmScope={farmScope}
           activeFarm={activeFarm}
-          accessibleFarms={accessibleFarms}
           allFarmsContext={allFarmsContext}
           activityKpiCards={activityKpiCards}
           quickActions={quickActions}
