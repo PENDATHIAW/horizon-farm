@@ -9,6 +9,11 @@ export default function FinanceAlertsPanel({ alerts = [], onNavigateTab }) {
     );
   }
 
+  const toneFor = (severity) => {
+    if (severity === 'bad' || severity === 'warn') return severity === 'bad' ? 'text-red-700' : 'text-amber-800';
+    return 'text-sky-800';
+  };
+
   return (
     <section className="rounded-3xl border border-amber-200 bg-amber-50/50 p-5">
       <div className="flex items-center gap-2">
@@ -24,7 +29,7 @@ export default function FinanceAlertsPanel({ alerts = [], onNavigateTab }) {
               className="flex w-full items-start justify-between gap-3 rounded-xl border border-amber-200 bg-white px-3 py-2 text-left hover:bg-amber-50"
             >
               <div>
-                <p className={`text-sm font-black ${alert.severity === 'bad' ? 'text-red-700' : 'text-amber-800'}`}>{alert.message}</p>
+                <p className={`text-sm font-black ${toneFor(alert.severity)}`}>{alert.message}</p>
                 <p className="text-xs text-[#8a7456]">{alert.action}</p>
               </div>
               <span className="shrink-0 text-xs font-black text-[#9a6b12]">Voir</span>
