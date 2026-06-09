@@ -48,6 +48,7 @@ import {
   FarmLocationGrid,
 } from './dashboard/farmDashboardPanels.jsx';
 import { isFarmDemoModeEnabled, setFarmDemoModeEnabled } from '../utils/farmDemoMode.js';
+import { resolveDashboardTab } from '../utils/commercialNavigation.js';
 import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection.jsx';
 import {
   DashboardGoalsHero,
@@ -706,7 +707,13 @@ export default function DashboardV2(props) {
     return () => window.removeEventListener('horizon-farm-demo-mode-changed', handler);
   }, []);
 
-  const [tab, setTab] = useState('Résumé');
+  const [tab, setTab] = useState(() => resolveDashboardTab(props.initialTab));
+  useEffect(() => {
+    if (props.initialTab) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- navigation pilotée par props.initialTab
+      setTab(resolveDashboardTab(props.initialTab));
+    }
+  }, [props.initialTab]);
   const settings = useUiSettings();
   const periodScope = periodScopeProp || readPeriodScope();
   const simple = settings.complexity !== 'expert';

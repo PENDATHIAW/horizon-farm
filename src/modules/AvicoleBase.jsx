@@ -23,6 +23,7 @@ import { recommendAvicoleLotPrice } from '../services/salePricingEngine.js';
 import { filterLotsByActivity } from '../utils/avicoleActivity';
 import { avicoleActiveCount, avicoleCalculatedActiveCount, avicoleDeadCount, avicoleExitReason, avicoleHasActiveBirds, avicoleHasCountMismatch, avicoleInitialCount, avicoleOtherExitCount, avicoleRegisteredActiveCount, avicoleSickCount, avicoleSoldCount, avicoleStatusFor } from '../utils/avicoleMetrics';
 import { ELEVAGE_KPI_GRID } from './elevage/elevageUi.jsx';
+import { getResponsibleOptions, resolveResponsibleLabel } from '../utils/rhDirectory';
 
 const EGGS_PER_TABLET = 30;
 const DEFAULT_SALE_TARGET_WEIGHT = 1.5;

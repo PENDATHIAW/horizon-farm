@@ -16,6 +16,7 @@ import RHPeopleTeams from './RHPeopleTeams.jsx';
 import EquipementsV3 from './EquipementsV3.jsx';
 import SmartFarmEmbed from './smartfarm/SmartFarmEmbed.jsx';
 import RhPayrollFinanceSyncPanel from './RhPayrollFinanceSyncPanel.jsx';
+import { resolveRhTab } from '../utils/commercialNavigation.js';
 
 const arr = (v) => Array.isArray(v) ? v : [];
 const low = (v) => String(v || '').toLowerCase();
@@ -194,7 +195,13 @@ function DocumentsHub({ data, onNavigate }) {
 }
 
 export default function OperationsRessourcesRecoveredModule(props) {
-  const [tab, setTab] = useState('Résumé');
+  const [tab, setTab] = useState(() => resolveRhTab(props.initialTab));
+  useEffect(() => {
+    if (props.initialTab) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- navigation pilotée par props.initialTab
+      setTab(resolveRhTab(props.initialTab));
+    }
+  }, [props.initialTab]);
   const [busyId, setBusyId] = useState(null);
   const [directoryPeople, setDirectoryPeople] = useState(() => getRhDirectory().people || []);
   const rhCrud = useCrudModule('rh');

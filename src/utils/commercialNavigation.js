@@ -98,6 +98,50 @@ export function resolveActiviteSuiviTab(value = '') {
   return tabAliases[lower(tab)] || 'Résumé';
 }
 
+export const DOCUMENTS_RAPPORTS_TABS = ['Résumé', 'Bibliothèque', 'Preuves', 'Rapports', 'Exports', 'Modèles', 'Graphiques'];
+export const RH_TABS = ['Résumé', 'Équipements', 'Maintenance', 'Affectations', 'Coûts', 'Documents', 'Graphiques'];
+export const SMARTFARM_TABS = ['Résumé', 'Capteurs', 'Caméras', 'Annexe', 'Graphiques'];
+export const CULTURES_TABS = ['Vue d\u2019ensemble', 'Cultures', 'Parcelles', 'Campagnes', 'Performance'];
+export const DASHBOARD_TABS = ['Résumé', 'Graphiques'];
+export const INVESTISSEURS_TABS = ['room', 'preparation', 'dossier', 'library', 'crm', 'preview', 'export', 'history', 'demo'];
+
+export function resolveDocumentsTab(value = '') {
+  const tab = String(value || '').trim();
+  if (DOCUMENTS_RAPPORTS_TABS.includes(tab)) return tab;
+  return tabAliases[lower(tab)] || 'Résumé';
+}
+
+export function resolveRhTab(value = '') {
+  const tab = String(value || '').trim();
+  if (RH_TABS.includes(tab)) return tab;
+  return tabAliases[lower(tab)] || 'Résumé';
+}
+
+export function resolveSmartFarmTab(value = '') {
+  const tab = String(value || '').trim();
+  if (SMARTFARM_TABS.includes(tab)) return tab;
+  return tabAliases[lower(tab)] || 'Résumé';
+}
+
+export function resolveCulturesTab(value = '') {
+  const tab = String(value || '').trim();
+  if (CULTURES_TABS.includes(tab)) return tab;
+  if (lower(tab) === 'resume') return 'Vue d\u2019ensemble';
+  return tabAliases[lower(tab)] || 'Vue d\u2019ensemble';
+}
+
+export function resolveDashboardTab(value = '') {
+  const tab = String(value || '').trim();
+  if (DASHBOARD_TABS.includes(tab)) return tab;
+  return tabAliases[lower(tab)] || 'Résumé';
+}
+
+export function resolveInvestisseursTab(value = '') {
+  const tab = String(value || '').trim();
+  if (INVESTISSEURS_TABS.includes(tab)) return tab;
+  return tabAliases[lower(tab)] || 'room';
+}
+
 /** Résout un identifiant legacy (ventes, finances, stock…) vers le grand module ERP. */
 export function resolveRouteModule(moduleId = '') {
   return ROUTE_TO_MODULE[moduleId] || moduleId;

@@ -1,5 +1,5 @@
 import { BarChart3, BrainCircuit, ClipboardList, Download, FileText, FolderOpen, Search, ShieldCheck, Zap } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
@@ -12,6 +12,7 @@ import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import { aggregateMissingProofItems, buildDocumentsCoherenceRows, buildDocumentsHealthSnapshot } from './documents/documentsVisionHelpers.js';
 import { filterDocumentsByQuery } from '../services/documentsOrphanSyncService.js';
 import DocumentsOrphanSyncPanel from './DocumentsOrphanSyncPanel.jsx';
+import { resolveDocumentsTab } from '../utils/commercialNavigation.js';
 
 const arr = (v) => Array.isArray(v) ? v : [];
 const low = (v) => String(v || '').toLowerCase();
@@ -202,7 +203,13 @@ function Templates({ data }) {
 }
 
 export default function DocumentsRapportsModule(props) {
-  const [tab, setTab] = useState('Résumé');
+  const [tab, setTab] = useState(() => resolveDocumentsTab(props.initialTab));
+  useEffect(() => {
+    if (props.initialTab) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- navigation pilotée par props.initialTab
+      setTab(resolveDocumentsTab(props.initialTab));
+    }
+  }, [props.initialTab]);
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [libraryQuery, setLibraryQuery] = useState('');
   const [busyId, setBusyId] = useState(null);

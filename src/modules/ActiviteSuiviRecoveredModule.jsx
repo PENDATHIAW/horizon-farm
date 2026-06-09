@@ -1,5 +1,5 @@
 import { Bell, BrainCircuit, ClipboardList, GitBranch, ListTodo, Zap } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
@@ -15,6 +15,7 @@ import AlertesCenterV3 from './AlertesCenterV3.jsx';
 import TachesV3 from './TachesV3.jsx';
 import TracabiliteV2 from './TracabiliteV2.jsx';
 import AlertTaskBridgePanel from './AlertTaskBridgePanel.jsx';
+import { resolveActiviteSuiviTab } from '../utils/commercialNavigation.js';
 
 const arr = (v) => Array.isArray(v) ? v : [];
 const low = (v) => String(v || '').toLowerCase();
@@ -129,7 +130,13 @@ function Summary({ data, setTab, onApply, onResolveAlert, busyId, bridgeProps })
 }
 
 export default function ActiviteSuiviRecoveredModule(props) {
-  const [tab, setTab] = useState('Résumé');
+  const [tab, setTab] = useState(() => resolveActiviteSuiviTab(props.initialTab));
+  useEffect(() => {
+    if (props.initialTab) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- navigation pilotée par props.initialTab
+      setTab(resolveActiviteSuiviTab(props.initialTab));
+    }
+  }, [props.initialTab]);
   const [busyId, setBusyId] = useState(null);
   const alertsCrud = useCrudModule('alertes_center');
   const tasksCrud = useCrudModule('taches');

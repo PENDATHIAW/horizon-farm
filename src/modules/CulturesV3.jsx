@@ -1,5 +1,5 @@
 import { AlertTriangle, Calendar, CheckCircle2, Download, Edit, Eye, Leaf, Plus, RefreshCw, Sprout, Trash2, TrendingUp } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import ActionIconButton from '../components/ActionIconButton';
 import Badge from '../components/Badge';
@@ -109,8 +109,21 @@ function SummaryCard({ title, rows = [], empty, render, tone = 'neutral' }) {
   return <div className={`rounded-2xl border p-4 ${cls}`}><p className="font-black text-[#2f2415]">{title}</p><div className="mt-3 space-y-2 text-sm">{rows.length ? rows.map((row) => <div key={row.id} className="rounded-xl bg-white/60 px-3 py-2">{render(row)}</div>) : <div className="rounded-xl bg-white/60 px-3 py-2">{empty}</div>}</div></div>;
 }
 
-export default function CulturesV3({ rows = [], stocks = [], stockMovements = [], opportunities = [], loading, onCreate, onUpdate, onDelete, onRefresh, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onUpdateStock, onRefreshStock, onCreateStockMovement, onRefreshStockMovements, onCreateBusinessEvent, onRefreshBusinessEvents }) {
-  const [tab, setTab] = useState('Vue d’ensemble');
+export default function CulturesV3({ rows = [], stocks = [], stockMovements = [], opportunities = [], loading, onCreate, onUpdate, onDelete, onRefresh, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onUpdateStock, onRefreshStock, onCreateStockMovement, onRefreshStockMovements, onCreateBusinessEvent, onRefreshBusinessEvents, initialTab }) {
+  const [tab, setTab] = useState(() => {
+    const tabs = ['Vue d\u2019ensemble', 'Cultures', 'Parcelles', 'Campagnes', 'Performance'];
+    const t = String(initialTab || '').trim();
+    return tabs.includes(t) ? t : 'Vue d\u2019ensemble';
+  });
+  useEffect(() => {
+    if (!initialTab) return;
+    const tabs = ['Vue d\u2019ensemble', 'Cultures', 'Parcelles', 'Campagnes', 'Performance'];
+    const t = String(initialTab).trim();
+    if (tabs.includes(t)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- navigation pilotée par props.initialTab
+      setTab(t);
+    }
+  }, [initialTab]);
   const [selected, setSelected] = useState(null);
   const [modal, setModal] = useState(null);
   const [saving, setSaving] = useState(false);
