@@ -1,7 +1,8 @@
-import { Beef, ChevronDown, Drumstick, Egg, Factory } from 'lucide-react';
-import { useState } from 'react';
+import { Beef, ChevronDown, Drumstick, Egg, Factory, Sparkles } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { fmtCurrency, fmtNumber, fmtPercent } from '../../utils/format';
 import { navigateToEggStock } from '../../utils/productionNavigation.js';
+import { diagnoseElevageEntity, pickDefaultDiagnosticTarget } from '../../utils/elevageLotDiagnostic.js';
 import { ELEVAGE_KPI_GRID, ElevageStatCard } from './elevageUi.jsx';
 
 function ActionCard({ title, text, onClick }) {
@@ -60,6 +61,9 @@ function toneFromMortality(rate) {
 
 export default function ProductionHub({
   snapshot = {},
+  lots = [],
+  animaux = [],
+  marginContext = {},
   setTab,
   onNavigate,
   onOpenWorkflow,
@@ -69,6 +73,15 @@ export default function ProductionHub({
   const bovins = snapshot.bovins || {};
   const transform = snapshot.transformation || {};
   const perf = snapshot.performance || {};
+
+  const defaultTarget = useMemo(() => pickDefaultDiagnosticTarget({ lots, animaux }), [lots, animaux]);
+  const [diagnostic, setDiagnostic] = useState(null);
+
+  const runDiagnostic = () => {
+    const pick = defaultTarget;
+    if (!pick) return;
+    setDiagnostic(diagnoseElevageEntity(pick.entity, { lots, marginContext }));
+  };
 
   const heroKpis = [
     {
@@ -124,6 +137,27 @@ export default function ProductionHub({
             <ElevageStatCard key={kpi.label} label={kpi.label} value={kpi.value} tone={kpi.tone} />
           ))}
         </div>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            disabled={!defaultTarget}
+            onClick={runDiagnostic}
+            className="min-h-[48px] inline-flex items-center gap-2 rounded-xl bg-[#2f2415] px-4 text-sm font-black text-white disabled:opacity-50"
+          >
+            <Sparkles size={16} /> Analyser ce lot
+          </button>
+        </div>
+        {diagnostic ? (
+          <div className={`rounded-xl border p-4 text-sm ${diagnostic.reliable ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
+            <b>{diagnostic.title}</b>
+            <p className="mt-2">{diagnostic.causeText}</p>
+            {diagnostic.tips?.length ? (
+              <ul className="mt-2 list-disc pl-4 text-xs">
+                {diagnostic.tips.map((t) => <li key={t}>{t}</li>)}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
       </section>
 
       <CollapsibleBlock

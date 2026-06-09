@@ -1,4 +1,4 @@
-import { AlertTriangle, Beef, Bird, Building2, CalendarRange, CheckCircle2, Drumstick, Egg, ShoppingCart } from 'lucide-react';
+import { AlertTriangle, Beef, Building2, CalendarRange, CheckCircle2, Drumstick, Egg, ShoppingCart } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import ProductionQuestionsPanel from '../../components/ProductionQuestionsPanel.jsx';
 import { emitHorizonForm } from '../../services/formModalManager';
@@ -318,31 +318,66 @@ export default function ElevageCyclesPanel({
         </div>
       </details>
 
-      <ElevageSection title="Actions rapides" subtitle="Lancer une bande, préparer une vente ou consulter les fiches sources.">
+      <ElevageSection title="Planification — actions" subtitle="Pas de création directe ici : planifier ouvre Avicole/Animaux pré-rempli (une seule création officielle).">
         <div className={ELEVAGE_ACTION_GRID}>
           <ElevageActionCard
             icon={Drumstick}
-            title="+ Lot chair"
-            text="Créer une bande poulets de chair avec date d'entrée."
-            onClick={() => emitHorizonForm('avicole', 'lot_create', 'Nouvelle bande chair', { type_lot: 'chair', date_entree: today() })}
+            title="Planifier lot chair"
+            text="Ouvre Avicole avec formulaire lot chair pré-rempli — pas de double création."
+            onClick={() => {
+              setTab?.('Avicole');
+              window.setTimeout(() => {
+                emitHorizonForm('avicole', 'lot_create', 'Planifier bande chair', { type_lot: 'chair', date_entree: today(), planning_only: true });
+              }, 120);
+            }}
           />
           <ElevageActionCard
             icon={Egg}
-            title="+ Bande pondeuse"
-            text="Lancer ou renouveler une bande pondeuse."
-            onClick={() => emitHorizonForm('avicole', 'lot_create', 'Nouvelle bande pondeuse', { type_lot: 'pondeuse', date_entree: today() })}
+            title="Planifier bande pondeuse"
+            text="Ouvre Avicole avec bande pondeuse pré-remplie."
+            onClick={() => {
+              setTab?.('Avicole');
+              window.setTimeout(() => {
+                emitHorizonForm('avicole', 'lot_create', 'Planifier bande pondeuse', { type_lot: 'pondeuse', date_entree: today(), planning_only: true });
+              }, 120);
+            }}
           />
           <ElevageActionCard
             icon={Beef}
-            title="+ Bovin / embouche"
-            text="Enregistrer un animal avec date d'entrée pour le cycle J+90."
-            onClick={() => emitHorizonForm('animaux', 'animal_create', 'Nouveau bovin', { date: today(), espece: 'Bovin' })}
+            title="Planifier embouche"
+            text="Ouvre Animaux — fiche bovin avec date d'entrée J+90."
+            onClick={() => {
+              setTab?.('Animaux');
+              window.setTimeout(() => {
+                emitHorizonForm('animaux', 'animal_create', 'Planifier embouche', { date: today(), espece: 'Bovin', planning_only: true });
+              }, 120);
+            }}
           />
-          <ElevageActionCard icon={ShoppingCart} title="Préparer vente" text="Opportunités et commandes commerciales." onClick={() => onNavigate?.('ventes')} />
-          <ElevageActionCard icon={Bird} title="Fiches Avicole" text={`${broilers.length} chair · ${layers.length} pondeuses actives.`} onClick={() => setTab?.('Avicole')} />
-          <ElevageActionCard icon={Beef} title="Fiches Animaux" text={`${activeAnimals.length} tête(s) suivie(s).`} onClick={() => setTab?.('Animaux')} />
+          <ElevageActionCard icon={ShoppingCart} title="Préparer vente" text="Commercial pré-rempli — validation humaine obligatoire." onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
         </div>
+        {v1Kpis.lateCount > 0 ? (
+          <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
+            <b>{v1Kpis.lateCount} lot(s)/cycle(s) en retard</b> — prioriser les lignes en retard dans le tableau ci-dessous.
+          </p>
+        ) : null}
       </ElevageSection>
+
+      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Météo & croissance (prévision)</summary>
+        <div className="mt-3 text-sm text-[#7d6a4a]">
+          {meteo?.temperature != null || meteo?.temp != null ? (
+            <p>
+              Température actuelle : <b>{meteo.temperature ?? meteo.temp}°</b>
+              {meteo.humidity != null ? ` · Humidité ${meteo.humidity}%` : ''}
+              {meteo.conditions ? ` · ${meteo.conditions}` : ''}
+            </p>
+          ) : (
+            <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+              Données météo non disponibles pour cette ferme — connectez Smart Farm ou vérifiez le module Centre IA.
+            </p>
+          )}
+        </div>
+      </details>
 
       <ElevageSection title="Échéances prioritaires (30 jours)" subtitle="Vue unifiée chair, bovins et réforme pondeuses — triée par date cible.">
         <PriorityTable rows={priorityRows} setTab={setTab} />
