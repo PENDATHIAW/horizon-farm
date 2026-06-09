@@ -36,6 +36,10 @@ import AvicoleTransformationBridge from './AvicoleTransformationBridge.jsx';
 import AnimauxV2 from './AnimauxV2';
 import AvicoleV10 from './AvicoleV10';
 import SanteV8 from './SanteV8';
+import {
+  openElevageHealthForm,
+  scrollToHealthInterventionForm,
+} from '../utils/elevageHealthNavigation.js';
 
 const lower = (value) => String(value || '').toLowerCase();
 const isClosedAnimal = (row = {}) => ['vendu', 'mort', 'vole', 'volé', 'perdu', 'abattu', 'cloture', 'clôture', 'sorti'].some((word) => lower(row.status || row.statut).includes(word));
@@ -130,7 +134,7 @@ function Summary({
         <ActionCard title="Enregistrer alimentation" text="Distribution liée au stock et au lot." onClick={() => onOpenWorkflow?.('feeding')} />
         <ActionCard title="Enregistrer ponte" text="Ramassage œufs avec entrée stock si configurée." onClick={() => onOpenWorkflow?.('eggs')} />
         <ActionCard title="Enregistrer mortalité" text="Impact effectif lot et alertes seuil." onClick={() => onOpenWorkflow?.('mortality')} />
-        <ActionCard title="Enregistrer santé" text="Soin, vaccin, rappel et consommation stock." onClick={() => onOpenWorkflow?.('health')} />
+        <ActionCard title="Enregistrer santé" text="Formulaire complet : intervention, preuve, stock, coût et rappel." onClick={() => onOpenWorkflow?.('health')} />
         <ActionCard title="Enregistrer poids" text="Pesée lot ou animal avec historique." onClick={() => onOpenWorkflow?.('weighing')} />
         <ActionCard title="Vendre / préparer vente" text="Lots prêts, opportunités Commercial." onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
       </div>
@@ -210,6 +214,7 @@ export default function ElevageRecoveredModule(props) {
   const [tab, setTab] = useState(() => resolveElevageTab(props.initialTab));
   const [busyId, setBusyId] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
+  const [healthDraft, setHealthDraft] = useState(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [profitabilityOpen, setProfitabilityOpen] = useState(false);
 
@@ -389,7 +394,30 @@ export default function ElevageRecoveredModule(props) {
     return result;
   }, [workflowContext, elevageHandlers, refreshAfterWorkflow]);
 
-  const openWorkflow = useCallback((modal) => setActiveModal(modal), []);
+  const clearHealthDraft = useCallback(() => setHealthDraft(null), []);
+
+  const openWorkflow = useCallback((modal, context = {}) => {
+    if (modal === 'health') {
+      openElevageHealthForm({
+        setTab,
+        setHealthDraft,
+        context: {
+          animalId: context.animalId || context.animal_id,
+          lotId: context.lotId || context.lot_id,
+          typeIntervention: context.typeIntervention || context.type_intervention,
+          date: context.date,
+          nom: context.nom,
+          notes: context.notes,
+        },
+        onAfterOpen: () => {
+          scrollToHealthInterventionForm();
+          toast.success('Intervention santé — formulaire complet ouvert');
+        },
+      });
+      return;
+    }
+    setActiveModal(modal);
+  }, []);
   const closeWorkflow = useCallback(() => setActiveModal(null), []);
 
   const startupProgress = useMemo(() => buildElevageStartupProgress({
@@ -438,7 +466,7 @@ export default function ElevageRecoveredModule(props) {
   const shared = { onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: props.onNavigate };
   const animalProps = { rows: animals, alimentationLogs: feedLogs, vaccins: health, salesOrders, payments: rowsOf(props.payments, paymentsCrud, periodFiltered), opportunities, businessEvents, onCreate: props.onCreateAnimal || animauxCrud.create, onUpdate: props.onUpdateAnimal || animauxCrud.update, onDelete: props.onDeleteAnimal || animauxCrud.remove, onRefresh: props.onRefreshAnimals || animauxCrud.refresh, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, ...shared };
   const avicoleProps = { rows: lots, transactions: rowsOf(props.transactions, financesCrud, periodFiltered), alimentationLogs: feedLogs, productionLogs, stocks, stockMovements, opportunities, businessEvents, onCreate: props.onCreateLot || avicoleCrud.create, onUpdate: props.onUpdateLot || avicoleCrud.update, onDelete: props.onDeleteLot || avicoleCrud.remove, onRefresh: props.onRefreshLots || avicoleCrud.refresh, onCreateProduction: props.onCreateProduction || productionCrud.create, onUpdateProduction: props.onUpdateProduction || productionCrud.update, onDeleteProduction: props.onDeleteProduction || productionCrud.remove, onRefreshProduction: props.onRefreshProduction || productionCrud.refresh, onCommitEggProduction: commitEggProduction, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, onUpdateStock: props.onUpdateStock || stockCrud.update, onCreateStockMovement: props.onCreateStockMovement || movementsCrud.create, onRefreshStockMovements: props.onRefreshStockMovements || movementsCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, ...shared };
-  const healthProps = { rows: health, vets: rowsOf(props.veterinaires, vetsCrud, false), animaux: animals, lots, stocks, transactions: rowsOf(props.transactions, financesCrud, periodFiltered), documents: rowsOf(props.documents, documentsCrud, periodFiltered), tasks: rowsOf(props.tasks, tasksCrud, false), alertes: rowsOf(props.alertes, alertsCrud, false), onCreate: props.onCreateHealth || santeCrud.create, onUpdate: props.onUpdateHealth || santeCrud.update, onDelete: props.onDeleteHealth || santeCrud.remove, onRefresh: props.onRefreshHealth || santeCrud.refresh, onCreateVet: props.onCreateVet || vetsCrud.create, onUpdateVet: props.onUpdateVet || vetsCrud.update, onDeleteVet: props.onDeleteVet || vetsCrud.remove, onRefreshVets: props.onRefreshVets || vetsCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onUpdateAlert: props.onUpdateAlert || alertsCrud.update, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateDocument: props.onCreateDocument || documentsCrud.create, onRefreshDocuments: props.onRefreshDocuments || documentsCrud.refresh, onNavigate: props.onNavigate };
+  const healthProps = { rows: health, vets: rowsOf(props.veterinaires, vetsCrud, false), animaux: animals, lots, stocks, transactions: rowsOf(props.transactions, financesCrud, periodFiltered), documents: rowsOf(props.documents, documentsCrud, periodFiltered), tasks: rowsOf(props.tasks, tasksCrud, false), alertes: rowsOf(props.alertes, alertsCrud, false), healthDraft, onClearHealthDraft: clearHealthDraft, onCreate: props.onCreateHealth || santeCrud.create, onUpdate: props.onUpdateHealth || santeCrud.update, onDelete: props.onDeleteHealth || santeCrud.remove, onRefresh: props.onRefreshHealth || santeCrud.refresh, onCreateVet: props.onCreateVet || vetsCrud.create, onUpdateVet: props.onUpdateVet || vetsCrud.update, onDeleteVet: props.onDeleteVet || vetsCrud.remove, onRefreshVets: props.onRefreshVets || vetsCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onUpdateAlert: props.onUpdateAlert || alertsCrud.update, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateDocument: props.onCreateDocument || documentsCrud.create, onRefreshDocuments: props.onRefreshDocuments || documentsCrud.refresh, onNavigate: props.onNavigate };
   const content = tab === 'Cycles' ? (
     <VisionCyclesTab
       dataMap={{ ...props.dataMap, animaux: animals, lots, production_oeufs_logs: productionLogs, alimentation_logs: feedLogs, stock: stocks }}
