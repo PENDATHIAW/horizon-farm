@@ -13,7 +13,7 @@ import AvicoleCycleHealthPanel from './AvicoleCycleHealthPanel.jsx';
 import AvicoleSaleReadinessBridge from './AvicoleSaleReadinessBridge.jsx';
 import AvicoleEvolution from './AvicoleEvolution.jsx';
 import AvicoleJournalsBridge from './AvicoleJournalsBridge.jsx';
-import AvicoleTransformationBridge from './AvicoleTransformationBridge.jsx';
+import PrepareTransformationPanel from './elevage/PrepareTransformationPanel.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
 
@@ -225,7 +225,7 @@ export default function AvicoleV10(props) {
     <div className="objective-card-grid grid grid-cols-1 gap-4">{activity === 'pondeuse' ? <ObjectivePerformanceCard dataMap={dataMap} activity="oeufs" title="Objectif œufs / pondeuses" compact onNavigate={props.onNavigate} /> : <ObjectivePerformanceCard dataMap={dataMap} activity="poulets_chair" title="Objectif poulets de chair" compact onNavigate={props.onNavigate} />}</div>
     <ModuleSection icon={PackageCheck} title={`Lots actifs · ${selectedLabel}`} subtitle={`${historicalScopedRows.length} lot(s) en historique.`}><AvicoleBase {...operationalProps} /></ModuleSection>
     {activity === 'pondeuse' ? <ModuleSection icon={Egg} title="Journal de ponte et charges"><AvicoleJournalsBridge {...operationalProps} rows={activeScopedRows} productionLogs={scopedProductionLogs} businessEvents={businessEvents} /><DirectChargesBridge title="Charges directes pondeuses" targetType="avicole" targets={activeScopedRows} businessEvents={businessEvents} onCreateBusinessEvent={props.onCreateBusinessEvent} onUpdateBusinessEvent={props.onUpdateBusinessEvent} onDeleteBusinessEvent={props.onDeleteBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} /></ModuleSection> : null}
-    {activity === 'chair' ? <ModuleSection icon={Scissors} title="Transformation et stock"><AvicoleTransformationBridge {...operationalProps} rows={activeScopedRows} alimentationLogs={props.alimentationLogs || []} productionLogs={scopedProductionLogs} businessEvents={businessEvents} /></ModuleSection> : null}
+    {activity === 'chair' ? <ModuleSection icon={Scissors} title="Préparer transformation" subtitle="Canal officiel : onglet Transformation."><PrepareTransformationPanel mode="lot" activity="chair" rows={activeScopedRows} onPrepareTransformation={props.onPrepareTransformation} /></ModuleSection> : null}
     <CollapsibleSection icon={ClipboardList} title={`Cycle et historique · ${selectedLabel}`} defaultOpen={false}><LifecycleHistoryPanel mode="avicole" rows={scopedRows} salesOrders={salesOrders} deliveries={props.deliveriesList || props.deliveries || []} businessEvents={businessEvents} /></CollapsibleSection>
     <CollapsibleSection icon={BarChart3} title={`Évolution · ${selectedLabel}`} defaultOpen={false}><AvicoleEvolution rows={scopedRows} productionLogs={scopedProductionLogs} alimentationLogs={props.alimentationLogs || []} businessEvents={businessEvents} salesOrders={salesOrders} payments={payments} transactions={transactions} opportunities={historyProps.opportunities || []} onNavigate={props.onNavigate} /></CollapsibleSection>
   </div>;

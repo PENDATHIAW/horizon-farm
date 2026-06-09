@@ -1,0 +1,481 @@
+/**
+ * Canal officiel transformation — vivant → produit fini (stock, traçabilité, coût de revient).
+ */
+
+import { makeId } from './ids.js';
+import { toNumber } from './format.js';
+import { buildMeatStockPayload } from '../services/livestockStockBridge.js';
+import { calculateUnifiedAnimalCost, calculateUnifiedLotCost } from '../services/unifiedCostService.js';
+import { avicoleActiveCount } from './avicoleMetrics.js';
+import { applyStockMovement, stockQuantity } from './stockWorkflows.js';
+import {
+  blockSanitaryAction,
+  findActiveWithdrawals,
+  SANITARY_ACTIONS,
+} from './sanitaryWithdrawal.js';
+import {
+  buildElevageIssueKey,
+  ELEVAGE_DOMAINS,
+} from './elevageWorkflow.js';
+import { resolveElevageLogFarmId, stampElevageLogFarmId } from './elevageFarmScope.js';
+
+const arr = (value) => (Array.isArray(value) ? value : []);
+const clean = (value) => String(value || '').trim();
+const lower = (value) => clean(value).toLowerCase();
+const num = (value) => toNumber(value);
+const today = () => new Date().toISOString().slice(0, 10);
+
+export const TRANSFORM_TYPES = [
+  { value: 'abattage', label: 'Abattage' },
+  { value: 'reforme', label: 'Réforme' },
+  { value: 'sortie_vente_vivant', label: 'Sortie vente vivant' },
+  { value: 'transformation_viande', label: 'Transformation viande' },
+  { value: 'autre', label: 'Autre' },
+];
+
+export const PRODUIT_FINI_TYPES = [
+  { value: 'viande_fraiche', label: 'Viande fraîche' },
+  { value: 'carcasse', label: 'Carcasse' },
+  { value: 'pieces', label: 'Pièces' },
+  { value: 'autre', label: 'Autre' },
+];
+
+const lowerNorm = (value = '') => lower(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+export function meatProductForAnimal(animal = {}, ageClass = '') {
+  const type = lowerNorm(animal.type);
+  const sexe = lowerNorm(animal.sexe);
+  const name = lowerNorm(`${animal.name || ''} ${animal.race || ''} ${animal.categorie || ''}`);
+  const age = lowerNorm(ageClass || animal.age_class || animal.classe_age || '');
+  if (type.includes('caprin') || name.includes('chevre')) return { produit: 'Viande de chèvre', categorie: 'produit_fini_viande_caprine' };
+  if (type.includes('ovin') || name.includes('mouton') || name.includes('agneau')) {
+    if (age.includes('jeune') || age.includes('agneau') || name.includes('agneau')) {
+      return { produit: 'Viande d’agneau', categorie: 'produit_fini_viande_ovine_agneau' };
+    }
+    return { produit: 'Viande de mouton', categorie: 'produit_fini_viande_ovine' };
+  }
+  if (type.includes('bovin') || name.includes('boeuf') || name.includes('vache') || name.includes('veau')) {
+    if (age.includes('veau') || name.includes('veau')) {
+      return { produit: 'Viande de veau', categorie: 'produit_fini_viande_bovine_veau' };
+    }
+    if (sexe === 'f' || sexe.includes('femelle') || name.includes('vache')) {
+      return { produit: 'Viande de vache', categorie: 'produit_fini_viande_bovine_vache' };
+    }
+    return { produit: 'Viande de bœuf', categorie: 'produit_fini_viande_bovine_boeuf' };
+  }
+  return { produit: 'Viande animale', categorie: 'produit_fini_viande_animale' };
+}
+
+export function transformationFees(form = {}) {
+  return num(form.frais_abattage) + num(form.frais_decoupe) + num(form.frais_emballage)
+    + num(form.frais_transport) + num(form.autres_frais);
+}
+
+export function computeCarcassYield(poidsVif = 0, poidsCarcasse = 0) {
+  const live = num(poidsVif);
+  const carcass = num(poidsCarcasse);
+  if (live <= 0 || carcass <= 0) return null;
+  return Number(((carcass / live) * 100).toFixed(1));
+}
+
+export function computeTransformationCosting({
+  form = {},
+  animal = null,
+  lot = null,
+  alimentationLogs = [],
+  productionLogs = [],
+  healthRows = [],
+  businessEvents = [],
+} = {}) {
+  const effectif = Math.max(1, num(form.effectif || form.sujets_concernes) || 1);
+  const transformFees = transformationFees(form);
+  const pertes = num(form.pertes);
+
+  let base = null;
+  if (animal) {
+    base = calculateUnifiedAnimalCost({
+      animal,
+      alimentationLogs,
+      vaccins: healthRows,
+      healthEvents: healthRows,
+      directCharges: businessEvents,
+      slaughterEvents: businessEvents,
+    });
+  } else if (lot) {
+    base = calculateUnifiedLotCost({
+      lot,
+      alimentationLogs,
+      productionLogs,
+      healthEvents: healthRows,
+      directCharges: businessEvents,
+      slaughterEvents: businessEvents,
+    });
+  }
+
+  const purchase = base ? num(base.purchaseCost) : 0;
+  const feed = base ? num(base.feedingCost) : 0;
+  const health = base ? num(base.healthCost) : 0;
+  const otherDirect = base ? num(base.otherCost) : 0;
+  const incomplete = base ? Boolean(base.costMissing || !base.costComplete) : true;
+  const warnings = base ? [...arr(base.warnings)] : ['Données de coût absentes'];
+
+  const activeLotCount = lot ? Math.max(1, avicoleActiveCount(lot)) : 1;
+  const share = animal ? 1 : effectif / activeLotCount;
+  const allocatedBase = (purchase + feed + health + otherDirect) * share;
+  const totalCost = allocatedBase + transformFees + pertes;
+  const qtyKg = num(form.quantite_produit || form.poids_carcasse || form.poids_produit_fini);
+  const costPerKg = qtyKg > 0 ? totalCost / qtyKg : 0;
+  const salePrice = num(form.prix_vente_estime || animal?.prix_vente || lot?.prix_vente);
+  const margin = salePrice > 0 && qtyKg > 0 ? (salePrice * qtyKg) - totalCost : null;
+
+  return {
+    purchaseCost: purchase * share,
+    feedCost: feed * share,
+    healthCost: health * share,
+    otherDirectCost: otherDirect * share,
+    transformFees,
+    pertes,
+    totalCost: Number(totalCost.toFixed(2)),
+    costPerKg: Number(costPerKg.toFixed(2)),
+    marginEstimee: margin != null ? Number(margin.toFixed(2)) : null,
+    incomplete,
+    warnings,
+    costMessage: incomplete
+      ? 'Coût de revient partiel : certaines données alimentation, santé ou achat sont manquantes.'
+      : '',
+  };
+}
+
+function stockKey(produit, sourceRecordId) {
+  return `${lowerNorm(produit)}::${sourceRecordId}`;
+}
+
+async function upsertMeatStock({
+  stocks = [],
+  onCreateStock,
+  onUpdateStock,
+  produit,
+  categorie,
+  quantityDelta,
+  sourceModule,
+  sourceRecordId,
+  unitCost,
+  eventId,
+  origineLabel,
+  emplacement,
+  dlc,
+  farmId,
+  transformationId,
+}) {
+  const delta = num(quantityDelta);
+  if (!delta || delta <= 0) return { stockId: '', created: false };
+
+  const existing = arr(stocks).find((row) =>
+    stockKey(row.produit, row.source_record_id || row.origine_id) === stockKey(produit, sourceRecordId),
+  );
+
+  if (existing && onUpdateStock) {
+    const previousQty = stockQuantity(existing);
+    const nextQty = previousQty + delta;
+    const previousUnit = num(existing.cout_revient_unitaire ?? existing.prix_unitaire ?? existing.prixUnit);
+    const weightedUnit = nextQty > 0
+      ? ((previousQty * previousUnit) + (delta * num(unitCost))) / nextQty
+      : previousUnit;
+    await onUpdateStock(existing.id, {
+      quantite: Number(nextQty.toFixed(2)),
+      prixUnit: Number(weightedUnit.toFixed(2)),
+      prixunit: Number(weightedUnit.toFixed(2)),
+      prix_unitaire: Number(weightedUnit.toFixed(2)),
+      cout_revient_unitaire: Number(weightedUnit.toFixed(2)),
+      last_movement_type: 'entree_transformation',
+      last_movement_label: 'Transformation officielle',
+      last_movement_qty: Number(delta.toFixed(2)),
+      last_movement_at: new Date().toISOString(),
+      linked_event_id: eventId,
+      linked_transformation_id: transformationId,
+      source_type: 'transformation',
+      farm_id: farmId || existing.farm_id,
+    });
+    return { stockId: existing.id, created: false };
+  }
+
+  if (!onCreateStock) return { stockId: '', created: false };
+
+  const payload = buildMeatStockPayload({
+    produit,
+    categorie,
+    quantite: delta,
+    unitCost,
+    sourceModule,
+    sourceRecordId,
+    eventId,
+    origineLabel,
+    emplacement,
+    date: today(),
+  });
+  payload.id = makeId('STKVIANDE');
+  payload.source_module = 'elevage';
+  payload.source_type = 'transformation';
+  payload.linked_transformation_id = transformationId;
+  payload.farm_id = farmId || '';
+  if (dlc) payload.date_peremption = dlc;
+  await onCreateStock(payload);
+  return { stockId: payload.id, created: true, stockRow: payload };
+}
+
+export function validateOfficialTransformationForm(form = {}) {
+  if (!clean(form.animal_id) && !clean(form.lot_id)) return 'Animal ou lot obligatoire.';
+  if (!clean(form.transform_type)) return 'Type de transformation obligatoire.';
+  if (!form.confirmed) return 'Confirmation humaine obligatoire avant validation.';
+  const qty = num(form.quantite_produit || form.poids_carcasse);
+  if (form.destination !== 'perte' && form.create_stock && qty <= 0) {
+    return 'Quantité produit fini ou poids carcasse obligatoire pour créer le stock.';
+  }
+  if (form.sanitary_override && !clean(form.sanitary_override_reason)) {
+    return 'Justification obligatoire pour une dérogation sanitaire.';
+  }
+  return '';
+}
+
+/**
+ * Commit officiel — une seule voie pour créer stock viande après validation.
+ */
+export async function commitOfficialTransformation({
+  form = {},
+  context = {},
+  handlers = {},
+} = {}) {
+  const err = validateOfficialTransformationForm(form);
+  if (err) throw new Error(err);
+
+  const animalId = clean(form.animal_id);
+  const lotId = clean(form.lot_id);
+  const animal = animalId ? arr(context.animaux).find((a) => clean(a.id) === animalId) : null;
+  const lot = lotId ? arr(context.lots).find((l) => clean(l.id) === lotId) : null;
+
+  if (!form.sanitary_override) {
+    const block = blockSanitaryAction({
+      healthRows: context.health || context.sante || [],
+      action: SANITARY_ACTIONS.TRANSFORM,
+      animalId,
+      lotId,
+    });
+    if (block.blocked) throw new Error(block.message);
+  }
+
+  const transformId = clean(form.id) || makeId('TRF');
+  const transformType = clean(form.transform_type) || 'abattage';
+  const date = form.date || today();
+  const issueKey = buildElevageIssueKey(ELEVAGE_DOMAINS.TRANSFORM, transformId, transformType);
+  const farmId = resolveElevageLogFarmId({ form, context });
+
+  const costing = computeTransformationCosting({
+    form,
+    animal,
+    lot,
+    alimentationLogs: context.alimentationLogs || context.feedLogs || [],
+    productionLogs: context.productionLogs || [],
+    healthRows: context.health || context.sante || [],
+    businessEvents: context.businessEvents || [],
+  });
+
+  const effectif = num(form.effectif || form.sujets_concernes);
+  const poidsCarcasse = num(form.poids_carcasse || form.quantite_produit);
+  const produitType = clean(form.produit_fini_type) || 'viande_fraiche';
+  const destination = clean(form.destination) || 'stock';
+
+  let produitNom = clean(form.produit_fini_nom);
+  let categorie = clean(form.categorie_stock) || 'produit_fini_viande_frais';
+  if (!produitNom && animal) {
+    const p = meatProductForAnimal(animal, form.age_class);
+    produitNom = p.produit;
+    categorie = p.categorie;
+  }
+  if (!produitNom && lot) produitNom = `Viande poulet ${lot.name || lot.nom || lot.id}`;
+  if (!produitNom) produitNom = 'Viande transformée';
+
+  const record = stampElevageLogFarmId({
+    id: transformId,
+    date,
+    transform_type: transformType,
+    kind: transformType,
+    animal_id: animalId,
+    lot_id: lotId,
+    source_type: animalId ? 'animal' : 'lot_avicole',
+    effectif,
+    poids_vif: num(form.poids_vif),
+    poids_carcasse: poidsCarcasse,
+    rendement_carcasse: computeCarcassYield(form.poids_vif, poidsCarcasse),
+    pertes: num(form.pertes),
+    frais_abattage: num(form.frais_abattage),
+    frais_decoupe: num(form.frais_decoupe),
+    frais_emballage: num(form.frais_emballage),
+    frais_transport: num(form.frais_transport),
+    autres_frais: num(form.autres_frais),
+    produit_fini_type: produitType,
+    produit_fini_nom: produitNom,
+    quantite_produit: poidsCarcasse,
+    unite: clean(form.unite) || 'kg',
+    emplacement: clean(form.emplacement) || 'Chambre froide 1',
+    dlc: clean(form.dlc || form.date_limite_consommation),
+    cout_revient_total: costing.totalCost,
+    cout_revient_kg: costing.costPerKg,
+    cout_incomplet: costing.incomplete,
+    responsable: clean(form.responsable),
+    notes: clean(form.notes),
+    statut: clean(form.statut) || 'valide',
+    destination,
+    sanitary_override: Boolean(form.sanitary_override),
+    sanitary_override_reason: clean(form.sanitary_override_reason),
+    issue_key: issueKey,
+    source_module: 'elevage',
+    source_type: 'transformation',
+    side_effects_managed: true,
+    created_from: 'transformation_official',
+  }, farmId);
+
+  const eventPayload = {
+    id: makeId('EVT'),
+    event_type: `transformation_${transformType}`,
+    module_source: 'elevage',
+    entity_type: lotId ? 'lot_avicole' : 'animal',
+    entity_id: lotId || animalId,
+    related_id: transformId,
+    source_record_id: transformId,
+    title: `Transformation · ${transformType}`,
+    description: `${produitNom} · ${poidsCarcasse} kg · coût revient ${costing.costPerKg}/kg`,
+    event_date: date,
+    date,
+    montant: costing.transformFees,
+    cout: costing.totalCost,
+    cout_revient_viande_kg: costing.costPerKg,
+    issue_key: issueKey,
+    farm_id: farmId,
+    side_effects_managed: true,
+    sanitary_override: record.sanitary_override,
+    sanitary_override_reason: record.sanitary_override_reason,
+  };
+
+  if (handlers.onCreateBusinessEvent) await handlers.onCreateBusinessEvent(eventPayload);
+
+  if (lotId && handlers.onUpdateLot) {
+    const nextActive = Math.max(0, avicoleActiveCount(lot) - (effectif || avicoleActiveCount(lot)));
+    const statusMap = { abattage: 'abattu', reforme: 'reforme', sortie_vente_vivant: 'pret_vente', pret_vente: 'pret_vente' };
+    const status = statusMap[transformType] || form.statut_lot || 'pret_vente';
+    await handlers.onUpdateLot(lotId, {
+      current_count: transformType === 'pret_vente' || transformType === 'sortie_vente_vivant'
+        ? avicoleActiveCount(lot)
+        : nextActive,
+      effectif_actuel: transformType === 'pret_vente' || transformType === 'sortie_vente_vivant'
+        ? avicoleActiveCount(lot)
+        : nextActive,
+      vendus: num(lot.vendus) + (effectif || 0),
+      sujets_abattus: num(lot.sujets_abattus) + (effectif || 0),
+      status,
+      statut: status,
+      date_sortie: date,
+      last_slaughter_date: date,
+      cout_revient_viande_kg: costing.costPerKg,
+    });
+  }
+
+  if (animalId && handlers.onUpdateAnimal) {
+    const animalStatus = transformType === 'abattage' || transformType === 'reforme' ? 'abattu' : 'pret_vente';
+    await handlers.onUpdateAnimal(animalId, {
+      status: animalStatus,
+      statut: animalStatus,
+      date_abattage: transformType === 'abattage' ? date : animal?.date_abattage,
+      date_sortie: date,
+      poids_carcasse: poidsCarcasse,
+      produit_stock: produitNom,
+      cout_revient_viande_kg: costing.costPerKg,
+    });
+  }
+
+  let stockId = '';
+  let stockCreated = false;
+
+  if (form.create_stock && destination !== 'perte' && poidsCarcasse > 0) {
+    const sourceModule = animalId ? 'animaux' : 'avicole';
+    const sourceRecordId = animalId || lotId;
+    const stockResult = await upsertMeatStock({
+      stocks: context.stocks || [],
+      onCreateStock: handlers.onCreateStock,
+      onUpdateStock: handlers.onUpdateStock,
+      produit: produitNom,
+      categorie,
+      quantityDelta: poidsCarcasse,
+      sourceModule,
+      sourceRecordId,
+      unitCost: costing.costPerKg,
+      eventId: eventPayload.id,
+      origineLabel: animal ? (animal.name || animal.tag || animalId) : (lot?.name || lot?.nom || lotId),
+      emplacement: record.emplacement,
+      dlc: record.dlc,
+      farmId,
+      transformationId: transformId,
+    });
+    stockId = stockResult.stockId || '';
+    stockCreated = stockResult.created;
+
+    if (stockId && handlers.onCreateStockMovement) {
+      await handlers.onCreateStockMovement({
+        id: makeId('MVT'),
+        stock_id: stockId,
+        type: 'entree',
+        quantite: poidsCarcasse,
+        unite: record.unite,
+        motif: `Transformation ${transformType} · ${transformId}`,
+        date,
+        source_module: 'elevage',
+        source_type: 'transformation',
+        source_record_id: transformId,
+        issue_key: issueKey,
+        farm_id: farmId,
+      });
+    }
+  }
+
+  const proofUrl = clean(form.preuve_url || form.certificat_url);
+  const photoData = clean(form.preuve_photo_data);
+  if ((proofUrl || photoData) && handlers.onCreateDocument) {
+    const docCategory = /certificat|sanitaire/i.test(form.preuve_type || '')
+      ? 'certificat_sanitaire'
+      : 'transformation';
+    await handlers.onCreateDocument({
+      id: makeId('DOC'),
+      title: clean(form.document_title) || `Transformation ${transformType}`,
+      document_category: docCategory,
+      module_source: 'elevage',
+      entity_type: 'transformation',
+      entity_id: transformId,
+      related_id: transformId,
+      animal_id: animalId,
+      lot_id: lotId,
+      file_url: proofUrl || '',
+      preuve_photo_data: photoData || '',
+      issue_key: issueKey,
+      farm_id: farmId,
+      side_effects_managed: true,
+      created_from: 'transformation_official',
+    });
+  }
+
+  const activeWithdrawals = findActiveWithdrawals(context.health || context.sante || []);
+  const sanitaryActive = activeWithdrawals.some((row) =>
+    (animalId && clean(row.animal_id) === animalId)
+    || (lotId && clean(row.lot_id) === lotId),
+  );
+
+  return {
+    ok: true,
+    transformId,
+    issueKey,
+    stockId,
+    stockCreated,
+    costing,
+    record,
+    commercialBlocked: sanitaryActive && !form.sanitary_override,
+    prixPlancher: costing.costPerKg > 0 ? Number((costing.costPerKg * 1.15).toFixed(2)) : null,
+  };
+}

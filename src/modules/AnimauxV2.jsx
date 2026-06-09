@@ -7,7 +7,7 @@ import { makeId } from '../utils/ids';
 import { ANIMAL_SPECIES_TABS, countAnimalsBySpecies, filterAnimalsBySpecies, restoreSpeciesOnAnimalPayload } from '../utils/animalSpecies';
 import { mergeSaleReadiness, shouldSyncSaleOpportunity } from '../utils/saleReadiness';
 import AnimalCycleHealthPanel from './AnimalCycleHealthPanel.jsx';
-import AnimalSlaughterStockBridge from './AnimalSlaughterStockBridge.jsx';
+import PrepareTransformationPanel from './elevage/PrepareTransformationPanel.jsx';
 import AnimauxEvolution from './AnimauxEvolution.jsx';
 import AnimauxSpeciesFocused from './AnimauxSpeciesFocused.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
@@ -207,7 +207,7 @@ export default function AnimauxV2(props) {
     <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4"><p className="text-xs uppercase tracking-[0.2em] text-[#9a6b12] font-black">Espèce active</p><p className="mt-1 text-xl font-black text-[#2f2415]">{species}s</p><p className="mt-1 text-sm text-[#8a7456]">{activeSpeciesRows.length} actif(s) · {historicalSpeciesRows.length} en historique</p></div>
     <ObjectivePerformanceCard dataMap={dataMap} activity={selectedActivity} title={`Objectif ${species}s`} compact onNavigate={props.onNavigate} />
     <ModuleSection icon={PackageCheck} title={`${species}s`} subtitle={`${historicalSpeciesRows.length} animal(aux) en historique.`}><AnimauxSpeciesFocused {...props} {...commonWorkflowProps} species={species} rows={activeSpeciesRows} onCreate={wrapCreate} onUpdate={wrapUpdate} /></ModuleSection>
-    <ModuleSection icon={Scissors} title="Transformation et stock"><AnimalSlaughterStockBridge rows={activeSpeciesRows} alimentationLogs={props.alimentationLogs || []} vaccins={props.vaccins || []} businessEvents={businessEvents} onUpdate={props.onUpdate} onRefresh={props.onRefresh} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} /></ModuleSection>
+    <ModuleSection icon={Scissors} title="Préparer transformation" subtitle="Canal officiel : onglet Transformation."><PrepareTransformationPanel mode="animal" rows={activeSpeciesRows} onPrepareTransformation={props.onPrepareTransformation} /></ModuleSection>
     <ModuleSection icon={PackageCheck} title="Charges directes"><DirectChargesBridge title={`Charges directes ${species.toLowerCase()}s`} targetType="animaux" targets={activeSpeciesRows} businessEvents={businessEvents} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onUpdateBusinessEvent={props.onUpdateBusinessEvent || businessEventsCrud.update} onDeleteBusinessEvent={props.onDeleteBusinessEvent || businessEventsCrud.remove} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} /></ModuleSection>
     <CollapsibleSection icon={ClipboardList} title={`Cycle et historique · ${species}s`} defaultOpen={false}><LifecycleHistoryPanel mode="animaux" rows={speciesRows} salesOrders={salesOrders} deliveries={deliveries} businessEvents={businessEvents} /></CollapsibleSection>
     <CollapsibleSection icon={BarChart3} title={`Évolution · ${species}s`} defaultOpen={false}><AnimauxEvolution rows={speciesRows} alimentationLogs={props.alimentationLogs || []} vaccins={props.vaccins || []} businessEvents={businessEvents} opportunities={opportunities} salesOrders={salesOrders} payments={payments} transactions={transactions} onNavigate={props.onNavigate} /></CollapsibleSection>
