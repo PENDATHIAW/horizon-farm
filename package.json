@@ -38,6 +38,7 @@
     "test:unit:module-smoke": "npx vite-node tests/unit/moduleImportSmoke.test.js",
     "test:unit:render-smoke": "npx vite-node tests/unit/moduleRenderSmoke.test.js && npx vite-node tests/unit/appModuleProps.test.js && node --test tests/unit/farmAdaptationNull.test.js",
     "test:unit:commercial-simulated": "npx vite-node tests/unit/commercialSimulatedMode.test.js",
+    "test:unit:commercial-subscriptions": "npx vite-node tests/unit/commercialSubscriptionsPanel.test.js",
     "test:unit:stability": "npx vite-node tests/unit/moduleStabilityRegression.test.js && npx vite-node tests/unit/financeInvestissementsRegression.test.js && npx vite-node tests/unit/moduleRenderWithProvider.vite.test.js && npx vite-node tests/unit/commercialModuleTabsRegression.test.js && npx vite-node tests/unit/commercialSimulatedMode.test.js && npx vite-node tests/unit/moduleTabsStability.test.js && npx vite-node tests/unit/bpExcelProtection.test.js",
     "test:unit:module-tabs-stability": "npx vite-node tests/unit/moduleTabsStability.test.js",
     "test:unit:bp-excel-protection": "npx vite-node tests/unit/bpExcelProtection.test.js",
