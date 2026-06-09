@@ -51,12 +51,17 @@ export default function App() {
   const [centreTab, setCentreTab] = useState('À traiter');
   const [objectifsTab, setObjectifsTab] = useState('Rentabilité Lot & Cycle');
   const [achatsStockTab, setAchatsStockTab] = useState('Résumé');
+  const [achatsStockContext, setAchatsStockContext] = useState(null);
   const [financeTab, setFinanceTab] = useState('Résumé');
   const [gestionSystemeTab, setGestionSystemeTab] = useState('Vue admin');
   const [farmsPanelAction, setFarmsPanelAction] = useState(null);
   const navigateModule = useCallback((moduleId, options = {}) => {
     const tab = options?.tab || options?.commercialTab || options?.elevageTab || options?.achatsStockTab || options?.financeTab;
     const resolved = resolveRouteModule(moduleId);
+
+    if (resolved !== 'achats_stock') {
+      setAchatsStockContext(null);
+    }
 
     if (resolved === 'commercial') {
       setCommercialTab(resolveCommercialTab(tab || defaultTabForLegacyModule(moduleId) || 'Résumé'));
@@ -72,6 +77,15 @@ export default function App() {
     }
     if (resolved === 'achats_stock') {
       setAchatsStockTab(resolveAchatsStockTab(tab || defaultTabForLegacyModule(moduleId) || 'Résumé'));
+      if (options.stockContext || options.searchContext || options.contextMessage) {
+        setAchatsStockContext({
+          stockContext: options.stockContext || null,
+          searchContext: options.searchContext || null,
+          contextMessage: options.contextMessage || null,
+        });
+      } else if (!options.preserveStockContext) {
+        setAchatsStockContext(null);
+      }
       trackNavOpen('achats_stock');
       setActiveState('achats_stock');
       return;
@@ -432,6 +446,8 @@ export default function App() {
     },
     achats_stock: {
       initialTab: achatsStockTab,
+      stockNavigationContext: achatsStockContext,
+      onClearStockNavigationContext: () => setAchatsStockContext(null),
       stocks: rows(c.stock),
       fournisseurs: rows(c.fournisseurs),
       suppliers: rows(c.fournisseurs),
@@ -628,7 +644,7 @@ export default function App() {
     sync: syncActivityProps,
     sync_activity: syncActivityProps,
   };
-  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, achatsStockTab, financeTab, gestionSystemeTab, farmsPanelAction, accessibleFarms, effectiveAccessibleFarms, refreshAccessibleFarms, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue, handleManageFarms, farmComparisonData]);
+  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, achatsStockTab, achatsStockContext, financeTab, gestionSystemeTab, farmsPanelAction, accessibleFarms, effectiveAccessibleFarms, refreshAccessibleFarms, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue, handleManageFarms, farmComparisonData]);
 
   const activeModuleProps = useMemo(
     () => applyFarmScopeToProps(

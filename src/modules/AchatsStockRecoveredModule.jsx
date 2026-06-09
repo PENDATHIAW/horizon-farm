@@ -13,6 +13,7 @@ import AchatsStockTransferPanel from './achatsStock/AchatsStockTransferPanel.jsx
 import AchatsStockDataQualityPanel from './achatsStock/AchatsStockDataQualityPanel.jsx';
 import StockProductionSourcesPanel from './achatsStock/StockProductionSourcesPanel.jsx';
 import StockFeedingElevageHint from './achatsStock/StockFeedingElevageHint.jsx';
+import StockNavigationContextBanner from './achatsStock/StockNavigationContextBanner.jsx';
 import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection.jsx';
 import { ACHATS_STOCK_STAT_GRID, AchatsStockKpi, AchatsStockSection } from './achatsStock/achatsStockUi.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
@@ -374,6 +375,13 @@ export default function AchatsStockRecoveredModule(props) {
         />
       ) : tab === 'Stock' ? (
         <div className="space-y-4">
+          <StockNavigationContextBanner
+            stockContext={props.stockNavigationContext?.stockContext}
+            searchContext={props.stockNavigationContext?.searchContext}
+            contextMessage={props.stockNavigationContext?.contextMessage}
+            stocks={stocks}
+            onClear={props.onClearStockNavigationContext}
+          />
           <StocksV5 {...stockProps} />
           <CollapsibleAdvancedSection
             eyebrow="Compléments stock"
