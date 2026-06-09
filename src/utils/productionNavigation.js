@@ -54,6 +54,10 @@ export function stockRowMatchesContext(row = {}, stockContext = '') {
   if (ctx === 'aliment' || ctx === 'feed') return kind === 'aliment';
   if (ctx === 'viande_avicole') return kind === 'viande_avicole';
   if (ctx === 'viande_animale' || ctx === 'viande') return kind === 'viande_animale';
+  if (ctx === 'sante' || ctx === 'medicament' || ctx === 'vaccin' || ctx === 'veterinaire') {
+    const hay = `${row.produit || ''} ${row.nom || ''} ${row.categorie || ''} ${row.category || ''}`.toLowerCase();
+    return /vaccin|medic|médic|antibio|vitamin|vermifuge|soin|veterinaire|vétérinaire|traitement|desinfectant|désinfectant/.test(hay);
+  }
   return false;
 }
 

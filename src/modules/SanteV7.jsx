@@ -101,7 +101,7 @@ export default function SanteV7(props) {
     <HealthOperationalPanel rows={props.rows || []} stocks={stocks} transactions={transactions} animaux={animaux} lots={lots} onNavigate={props.onNavigate} />
 
     <ModuleSection icon={HeartPulse} title="Soins et vaccins" subtitle="Créer et suivre les soins, vaccins, visites vétérinaires et actions de prévention. La fiche s’adapte au type d’intervention choisi.">
-      <SafeHealthBlock title="Soins et vaccins"><SanteSmartInterventions {...props} {...healthInterconnectionProps} /></SafeHealthBlock>
+      <SafeHealthBlock title="Soins et vaccins"><SanteSmartInterventions {...props} {...healthInterconnectionProps} healthDraft={props.healthDraft} onClearHealthDraft={props.onClearHealthDraft} /></SafeHealthBlock>
     </ModuleSection>
 
     <ModuleSection icon={ShieldCheck} title="Contrôle santé" subtitle="Voir les soins en retard, les produits utilisés et les points à vérifier.">
