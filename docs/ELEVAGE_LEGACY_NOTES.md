@@ -27,7 +27,7 @@ Ces fichiers existent dans `src/modules/elevage/` mais ne sont **pas** importés
 | `ElevageAlimentationPanel.jsx` | Orphelin | Hub inline `FeedingHub` dans `ElevageRecoveredModule` |
 | `ElevageRepairPanel.jsx` | Orphelin | Workflows + intégrité ERP |
 | `ElevageProductionPanel.jsx` | Orphelin | Hub inline `ProductionHub` |
-| `ElevageCyclesPanel.jsx` | Orphelin | `VisionCyclesTab` |
+| `ElevageCyclesPanel.jsx` | **Canonique** onglet Cycles Élevage | `VisionCyclesTab` (Centre IA seul) |
 | `ElevageSantePanel.jsx` | Orphelin | `SanteV8` direct |
 | `ElevageReproductionPanel.jsx` | Orphelin | Hub inline `ReproductionHub` |
 | `ElevageTransformationPanel.jsx` | Orphelin | Hub inline `TransformationHub` + bridges |
