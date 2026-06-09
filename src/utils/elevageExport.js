@@ -7,6 +7,7 @@ import { buildElevageActivityPnl, formatActivityPnlRow } from './elevageActivity
 import { buildElevageCostAwareInsights } from './elevageIaInsights.js';
 import { fmtCurrency, fmtNumber } from './format.js';
 import { buildReproductionKpis } from './reproductionMetrics.js';
+import { buildCycleInvestorPipeline } from './cycleMetrics.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
@@ -53,6 +54,7 @@ export function buildElevageInvestorReport({
     businessEvents,
     periodStart: weekAgo,
   });
+  const cyclesPipeline = buildCycleInvestorPipeline({ lots, animaux, horizonDays: 90 });
 
   return {
     title: 'Synthèse Élevage Horizon Farm',
@@ -69,9 +71,11 @@ export function buildElevageInvestorReport({
       `Femelles : ${reproduction.females}`,
       `Gestantes : ${reproduction.gestantes}`,
       `Naissances 7j : ${reproduction.birthEvents}`,
+      `Sorties cycles 90j : ${cyclesPipeline.totalUpcoming}`,
     ].join(' · '),
     pnl,
     insights: insights.slice(0, 10),
+    cyclesPipeline,
     kpis: {
       lots: lots.length,
       animaux: animaux.length,
@@ -83,6 +87,8 @@ export function buildElevageInvestorReport({
       reproductionFemales: reproduction.females,
       reproductionGestantes: reproduction.gestantes,
       reproductionBirths7d: reproduction.birthEvents,
+      cyclesUpcoming90d: cyclesPipeline.totalUpcoming,
+      cyclesLate: cyclesPipeline.lateCount,
     },
     rows: [
       ...pnl.activities.map((a) => ({
@@ -96,6 +102,12 @@ export function buildElevageInvestorReport({
         label: i.title,
         value: i.severity || 'info',
         detail: i.description || '',
+      })),
+      ...cyclesPipeline.upcomingExits.map((row) => ({
+        section: 'Pipeline cycles',
+        label: `${row.type} · ${row.label}`,
+        value: row.targetDate,
+        detail: `J+${row.cycleDays} · ${fmtNumber(row.quantity)} sujet(s)`,
       })),
     ],
   };
@@ -122,7 +134,19 @@ export function exportElevageInvestorPdf(report = {}, fileName = '') {
           ['Femelles reproductrices', String(report.kpis?.reproductionFemales ?? 0)],
           ['Gestantes', String(report.kpis?.reproductionGestantes ?? 0)],
           ['Naissances 7 j', fmtNumber(report.kpis?.reproductionBirths7d)],
+          ['Sorties cycles 90 j', fmtNumber(report.kpis?.cyclesUpcoming90d)],
+          ['Cycles en retard', fmtNumber(report.kpis?.cyclesLate)],
         ],
+      },
+      {
+        title: 'Prochaines sorties (cycles)',
+        columns: ['Entité', 'Type', 'Date cible', 'Quantité'],
+        rows: (report.cyclesPipeline?.upcomingExits || []).map((row) => [
+          row.label,
+          row.type,
+          row.targetDate,
+          fmtNumber(row.quantity),
+        ]),
       },
       {
         title: 'P&L par activité',

@@ -12,7 +12,8 @@ import { fmtNumber } from '../utils/format';
 import { commitElevageEggProduction } from '../utils/elevageWorkflow.js';
 import { aggregateSummaryLayingRate, formatOfficialLayingRate } from '../utils/elevageLayingRate.js';
 import { rowsOf } from '../utils/moduleRows';
-import VisionCyclesTab from './vision/VisionCyclesTab.jsx';
+import ElevageCyclesPanel from './elevage/ElevageCyclesPanel.jsx';
+import { shouldHandleProductionQuestionEvent } from '../utils/elevageCyclesNavigation.js';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import HeyHorizonQuickAsk from '../components/HeyHorizonQuickAsk.jsx';
 import { resolveElevageTab, navigateForIaFinding } from '../utils/commercialNavigation';
@@ -204,10 +205,24 @@ export default function ElevageRecoveredModule(props) {
   const [reproductionHorizonDraft, setReproductionHorizonDraft] = useState(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [profitabilityOpen, setProfitabilityOpen] = useState(false);
+  const [cyclesProductionQuestion, setCyclesProductionQuestion] = useState(null);
 
   useEffect(() => {
     if (props.initialTab) setTab(resolveElevageTab(props.initialTab));
   }, [props.initialTab]);
+
+  useEffect(() => {
+    const handler = (event) => {
+      const detail = event.detail || {};
+      if (!shouldHandleProductionQuestionEvent(detail)) return;
+      if (detail.moduleId === 'elevage' || !detail.moduleId) {
+        setTab('Cycles');
+        if (detail.questionId) setCyclesProductionQuestion(detail.questionId);
+      }
+    };
+    window.addEventListener('horizon-production-question', handler);
+    return () => window.removeEventListener('horizon-production-question', handler);
+  }, []);
 
   useEffect(() => {
     const handler = (event) => {
@@ -502,13 +517,38 @@ export default function ElevageRecoveredModule(props) {
   const animalProps = { rows: animals, alimentationLogs: feedLogs, vaccins: health, salesOrders, payments: rowsOf(props.payments, paymentsCrud, periodFiltered), opportunities, businessEvents, onCreate: props.onCreateAnimal || animauxCrud.create, onUpdate: props.onUpdateAnimal || animauxCrud.update, onDelete: props.onDeleteAnimal || animauxCrud.remove, onRefresh: props.onRefreshAnimals || animauxCrud.refresh, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, ...shared };
   const avicoleProps = { rows: lots, transactions: rowsOf(props.transactions, financesCrud, periodFiltered), alimentationLogs: feedLogs, productionLogs, stocks, stockMovements, opportunities, businessEvents, onCreate: props.onCreateLot || avicoleCrud.create, onUpdate: props.onUpdateLot || avicoleCrud.update, onDelete: props.onDeleteLot || avicoleCrud.remove, onRefresh: props.onRefreshLots || avicoleCrud.refresh, onCreateProduction: props.onCreateProduction || productionCrud.create, onUpdateProduction: props.onUpdateProduction || productionCrud.update, onDeleteProduction: props.onDeleteProduction || productionCrud.remove, onRefreshProduction: props.onRefreshProduction || productionCrud.refresh, onCommitEggProduction: commitEggProduction, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, onUpdateStock: props.onUpdateStock || stockCrud.update, onCreateStockMovement: props.onCreateStockMovement || movementsCrud.create, onRefreshStockMovements: props.onRefreshStockMovements || movementsCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, ...shared };
   const healthProps = { rows: health, vets: rowsOf(props.veterinaires, vetsCrud, false), animaux: animals, lots, stocks, transactions: rowsOf(props.transactions, financesCrud, periodFiltered), documents: rowsOf(props.documents, documentsCrud, periodFiltered), tasks: rowsOf(props.tasks, tasksCrud, false), alertes: rowsOf(props.alertes, alertsCrud, false), healthDraft, onClearHealthDraft: clearHealthDraft, onCreate: props.onCreateHealth || santeCrud.create, onUpdate: props.onUpdateHealth || santeCrud.update, onDelete: props.onDeleteHealth || santeCrud.remove, onRefresh: props.onRefreshHealth || santeCrud.refresh, onCreateVet: props.onCreateVet || vetsCrud.create, onUpdateVet: props.onUpdateVet || vetsCrud.update, onDeleteVet: props.onDeleteVet || vetsCrud.remove, onRefreshVets: props.onRefreshVets || vetsCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onUpdateAlert: props.onUpdateAlert || alertsCrud.update, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateDocument: props.onCreateDocument || documentsCrud.create, onRefreshDocuments: props.onRefreshDocuments || documentsCrud.refresh, onNavigate: props.onNavigate };
+  const cyclesDataMap = useMemo(
+    () => ({
+      ...props.dataMap,
+      animaux: animals,
+      lots,
+      avicole: lots,
+      production_oeufs_logs: productionLogs,
+      productionLogs,
+      alimentation_logs: feedLogs,
+      stock: stocks,
+      stocks,
+      sales_orders: salesOrders,
+      finances: rowsOf(props.transactions, financesCrud, periodFiltered),
+      sante: health,
+    }),
+    [props.dataMap, animals, lots, productionLogs, feedLogs, stocks, salesOrders, props.transactions, financesCrud, periodFiltered, health],
+  );
+
   const content = tab === 'Cycles' ? (
-    <VisionCyclesTab
-      dataMap={{ ...props.dataMap, animaux: animals, lots, production_oeufs_logs: productionLogs, alimentation_logs: feedLogs, stock: stocks }}
+    <ElevageCyclesPanel
+      dataMap={cyclesDataMap}
       lots={lots}
       animaux={animals}
       productionLogs={productionLogs}
+      alertes={rowsOf(props.alertes, alertsCrud, false)}
       onNavigate={props.onNavigate}
+      setTab={setTab}
+      farmScopeLabel={props.farmScopeLabel}
+      farmScope={props.farmScope}
+      farmFiltered={props.farmFiltered}
+      initialProductionQuestion={cyclesProductionQuestion}
+      meteo={props.meteo}
     />
   ) : tab === 'Résumé' ? (
     <Summary

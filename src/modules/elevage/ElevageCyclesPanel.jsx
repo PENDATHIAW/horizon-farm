@@ -1,11 +1,18 @@
-import { AlertTriangle, Beef, Bird, CheckCircle2, Drumstick, Egg, ShoppingCart } from 'lucide-react';
-import { useMemo } from 'react';
+import { AlertTriangle, Beef, Bird, Building2, CalendarRange, CheckCircle2, Drumstick, Egg, ShoppingCart } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
 import ProductionQuestionsPanel from '../../components/ProductionQuestionsPanel.jsx';
 import { emitHorizonForm } from '../../services/formModalManager';
+import { buildStrategicDecisionPlan } from '../../services/strategicDecisionEngine.js';
+import { getNextFestivals, festivalLabelList } from '../../services/marketEventCalendar.js';
 import ProductionCycleDecisionPanel from '../ProductionCycleDecisionPanel.jsx';
 import { fmtNumber } from '../../utils/format';
+import {
+  buildCycleAlertsForPanel,
+  buildCycleV1Kpis,
+} from '../../utils/cycleMetrics.js';
 import { buildCycleOverview, daysUntil, mortalityRate } from './cycleSummary.js';
 import { ELEVAGE_ACTION_GRID, ELEVAGE_STAT_GRID, ElevageActionCard, ElevageSection, ElevageStatCard } from './elevageUi.jsx';
+import { isAllFarmsScope } from '../../utils/farmScope.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -21,6 +28,25 @@ function CycleStatusBadge({ targetDate }) {
   if (days < 0) return <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-black text-red-800">En retard ({Math.abs(days)} j)</span>;
   if (days <= 10) return <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-black text-amber-800">Dans {days} j</span>;
   return <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-black text-emerald-700">Dans {days} j</span>;
+}
+
+function FarmScopeBadge({ farmScopeLabel = '', farmScope = {}, farmFiltered = false }) {
+  const allFarms = isAllFarmsScope(farmScope);
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-900">
+        <Building2 size={13} aria-hidden="true" />
+        {farmScopeLabel || (allFarms ? 'Toutes les fermes' : 'Ferme active')}
+      </span>
+      {allFarms ? (
+        <span className="text-xs text-[#8a7456]">Vue consolidée — stratégie groupe via Centre décisionnel.</span>
+      ) : farmFiltered ? (
+        <span className="text-xs text-[#8a7456]">Données filtrées pour la ferme sélectionnée.</span>
+      ) : (
+        <span className="text-xs text-amber-800">Filtre ferme non actif — vérifiez le sélecteur global.</span>
+      )}
+    </div>
+  );
 }
 
 function PriorityTable({ rows, setTab }) {
@@ -81,17 +107,76 @@ function PriorityTable({ rows, setTab }) {
   );
 }
 
+function CycleAlertsList({ alerts = [], onNavigate }) {
+  if (!alerts.length) {
+    return (
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+        <CheckCircle2 size={15} className="inline mr-1" aria-hidden="true" />
+        Aucune alerte cycle urgente — les rappels J+40 / J+90 sont synchronisés avec le centre Alertes.
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      {alerts.slice(0, 8).map((alert) => (
+        <div
+          key={alert.id || alert.title}
+          className={`rounded-xl border p-3 text-sm ${alert.severity === 'critique' ? 'border-red-200 bg-red-50 text-red-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}
+        >
+          <p className="font-black">{alert.title}</p>
+          <p className="mt-1 text-xs leading-relaxed">{alert.message}</p>
+        </div>
+      ))}
+      {onNavigate ? (
+        <button
+          type="button"
+          onClick={() => onNavigate('activite_suivi', { tab: 'Alertes' })}
+          className="text-xs font-black text-[#9a6b12] underline"
+        >
+          Ouvrir toutes les alertes ERP →
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 export default function ElevageCyclesPanel({
-  dataMap,
+  dataMap = {},
   lots = [],
   animaux = [],
   productionLogs = [],
+  alertes = [],
   onNavigate,
   setTab,
+  farmScopeLabel = '',
+  farmScope = {},
+  farmFiltered = false,
+  initialProductionQuestion = null,
+  meteo,
 }) {
-  const overview = useMemo(
-    () => buildCycleOverview({ lots, animaux, productionLogs, dataMap }),
-    [lots, animaux, productionLogs, dataMap],
+  const enrichedDataMap = useMemo(
+    () => ({
+      ...dataMap,
+      lots,
+      avicole: lots,
+      animaux,
+      production_oeufs_logs: productionLogs,
+      productionLogs,
+    }),
+    [dataMap, lots, animaux, productionLogs],
+  );
+
+  const strategicPlan = useMemo(() => {
+    try {
+      return buildStrategicDecisionPlan(enrichedDataMap, { meteo: meteo || dataMap.meteo });
+    } catch {
+      return {};
+    }
+  }, [enrichedDataMap, meteo, dataMap.meteo]);
+
+  const v1Kpis = useMemo(
+    () => buildCycleV1Kpis({ lots, animaux, productionLogs, dataMap: enrichedDataMap, strategicPlan }),
+    [lots, animaux, productionLogs, enrichedDataMap, strategicPlan],
   );
 
   const {
@@ -101,13 +186,17 @@ export default function ElevageCyclesPanel({
     broilers,
     priorityRows,
     mortalityAlerts,
-    nextTarget,
-    lateCount,
-    dueSoonCount,
     warningCount,
     cycleDays,
-    decisions,
-  } = overview;
+  } = v1Kpis.overview;
+
+  const cycleAlerts = useMemo(
+    () => buildCycleAlertsForPanel({ lots: activeLots, animaux: activeAnimals, alertes }),
+    [activeLots, activeAnimals, alertes],
+  );
+
+  const upcomingFestivals = getNextFestivals(new Date(), enrichedDataMap, 3);
+  const festivalLine = festivalLabelList(upcomingFestivals).join(', ') || 'Magal, Gamou, fin d\'année';
 
   const cycleNavigate = (module, opts) => {
     if (module === 'elevage' && opts?.tab && setTab) {
@@ -125,13 +214,25 @@ export default function ElevageCyclesPanel({
     onNavigate?.(module, opts);
   };
 
+  useEffect(() => {
+    if (initialProductionQuestion) {
+      window.dispatchEvent(
+        new CustomEvent('horizon-production-question', {
+          detail: { questionId: initialProductionQuestion, moduleId: 'elevage' },
+        }),
+      );
+    }
+  }, [initialProductionQuestion]);
+
   return (
     <div className="space-y-5">
       <ElevageSection
         title="Cycles & bandes"
-        subtitle={`Pilotage opérationnel — chair J+${cycleDays.chair}, bovins J+${cycleDays.bovins}, réforme pondeuses J+${cycleDays.pondeusesReformWatch}. Synthèse décisionnelle et performance financière : Centre décisionnel et Objectifs & Croissance.`}
+        subtitle={`Centre opérationnel — chair J+${cycleDays.chair}, bovins J+${cycleDays.bovins}, réforme pondeuses J+${cycleDays.pondeusesReformWatch}. Stratégie marché : Centre décisionnel.`}
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <FarmScopeBadge farmScopeLabel={farmScopeLabel} farmScope={farmScope} farmFiltered={farmFiltered} />
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mt-3">
           {warningCount ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
               <AlertTriangle size={15} className="inline mr-1" aria-hidden="true" />
@@ -144,22 +245,78 @@ export default function ElevageCyclesPanel({
             </div>
           )}
           {onNavigate ? (
-            <button type="button" onClick={() => onNavigate('centre_ia', { tab: 'Cycles' })} className="shrink-0 rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]">
-              Centre décisionnel → Cycles
+            <button
+              type="button"
+              onClick={() => onNavigate('centre_ia', { tab: 'Cycles' })}
+              className="shrink-0 rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]"
+            >
+              Centre décisionnel → Stratégie cycles
             </button>
           ) : null}
         </div>
 
         <div className={ELEVAGE_STAT_GRID}>
-          <ElevageStatCard label="Lots actifs" value={fmtNumber(activeLots.length)} tone="good" />
-          <ElevageStatCard label="Animaux actifs" value={fmtNumber(activeAnimals.length)} />
-          <ElevageStatCard label="Échéances ≤10 j" value={fmtNumber(dueSoonCount)} tone={dueSoonCount ? 'warn' : 'good'} />
-          <ElevageStatCard label="En retard" value={fmtNumber(lateCount)} tone={lateCount ? 'bad' : 'good'} />
-          <ElevageStatCard label="Prochaine échéance" value={nextTarget} tone={lateCount ? 'warn' : 'neutral'} />
-          <ElevageStatCard label="Pondeuses actives" value={fmtNumber(layers.length)} tone="good" />
-          <ElevageStatCard label="Décisions IA" value={fmtNumber(decisions.length)} tone={decisions.length ? 'warn' : 'neutral'} />
+          <ElevageStatCard label="Échéances ≤10 j" value={fmtNumber(v1Kpis.dueSoonCount)} tone={v1Kpis.dueSoonCount ? 'warn' : 'good'} />
+          <ElevageStatCard label="Cycles en retard" value={fmtNumber(v1Kpis.lateCount)} tone={v1Kpis.lateCount ? 'bad' : 'good'} />
+          <ElevageStatCard
+            label="Prochaine sortie"
+            value={v1Kpis.nextExitDate === '—' ? '—' : `${v1Kpis.nextExitDate}`}
+            tone={v1Kpis.lateCount ? 'warn' : 'neutral'}
+          />
+          <ElevageStatCard label="Lots actifs" value={fmtNumber(v1Kpis.activeLotsCount)} tone="good" />
+          <ElevageStatCard
+            label="Taux de ponte (7 j)"
+            value={v1Kpis.layingRateLabel}
+            tone={v1Kpis.layingRateCalculable ? 'good' : 'warn'}
+          />
+          <ElevageStatCard
+            label="Blocage lancement"
+            value={v1Kpis.launchBlockLabel}
+            tone={v1Kpis.launchBlocked ? 'bad' : 'good'}
+          />
         </div>
+        {v1Kpis.nextExitLabel !== '—' ? (
+          <p className="text-xs text-[#8a7456] mt-2">
+            Prochaine sortie : <b className="text-[#2f2415]">{v1Kpis.nextExitLabel}</b>
+          </p>
+        ) : null}
       </ElevageSection>
+
+      <ElevageSection title="Alertes cycles" subtitle="Rappels J+40 / J+90 / réforme — source AlertesCenter, affichés ici pour action terrain.">
+        <CycleAlertsList alerts={cycleAlerts} onNavigate={onNavigate} />
+      </ElevageSection>
+
+      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+        <summary className="cursor-pointer font-black text-[#2f2415] text-sm flex items-center gap-2">
+          <CalendarRange size={16} className="text-[#9a6b12]" />
+          Stratégie lancement (synthèse) — fêtes : {festivalLine}
+        </summary>
+        <div className="mt-3 space-y-2 text-sm text-[#7d6a4a]">
+          {v1Kpis.launchBlocked ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-red-900">
+              <b>Lancement suspendu ou à risque :</b>
+              <ul className="mt-1 list-disc pl-4 text-xs">
+                {v1Kpis.launch.messages.map((msg) => (
+                  <li key={msg}>{msg}</li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-emerald-900 text-xs">
+              Aucun blocage BFR ou vide sanitaire détecté pour ce scope. Calendrier marché complet → Centre décisionnel.
+            </p>
+          )}
+          {onNavigate ? (
+            <button
+              type="button"
+              onClick={() => onNavigate('centre_ia', { tab: 'Cycles' })}
+              className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white"
+            >
+              Ouvrir la stratégie complète (Centre IA)
+            </button>
+          ) : null}
+        </div>
+      </details>
 
       <ElevageSection title="Actions rapides" subtitle="Lancer une bande, préparer une vente ou consulter les fiches sources.">
         <div className={ELEVAGE_ACTION_GRID}>
@@ -206,16 +363,24 @@ export default function ElevageCyclesPanel({
         </div>
       ) : null}
 
-      <ProductionQuestionsPanel dataMap={{ ...dataMap, lots: activeLots, animaux: activeAnimals, productionLogs }} onNavigate={cycleNavigate} />
-
-      <ProductionCycleDecisionPanel
-        dataMap={{ ...dataMap, lots: activeLots, animaux: activeAnimals, productionLogs }}
-        lots={activeLots}
-        animaux={activeAnimals}
-        productionLogs={productionLogs}
+      <ProductionQuestionsPanel
+        dataMap={{ ...enrichedDataMap, lots: activeLots, animaux: activeAnimals, productionLogs }}
         onNavigate={cycleNavigate}
-        embedInElevage
       />
+
+      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+        <summary className="cursor-pointer font-black text-[#2f2415] text-sm">Calendrier détaillé des lots (J+40 chair, J+90 bovins…)</summary>
+        <div className="mt-4">
+          <ProductionCycleDecisionPanel
+            dataMap={enrichedDataMap}
+            lots={activeLots}
+            animaux={activeAnimals}
+            productionLogs={productionLogs}
+            onNavigate={cycleNavigate}
+            embedInElevage
+          />
+        </div>
+      </details>
     </div>
   );
 }
