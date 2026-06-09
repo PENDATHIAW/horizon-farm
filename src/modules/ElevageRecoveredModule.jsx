@@ -20,6 +20,13 @@ import { buildElevageHealthSnapshot, computeLotMargin, computeAnimalMargin, form
 import { buildElevageStartupProgress, isElevageStartupMode } from './elevage/elevageStartupHelpers.js';
 import ElevageStartupPanel from './elevage/ElevageStartupPanel.jsx';
 import ElevageWorkflowPanels, { buildElevageHandlers, useElevageWorkflowContext } from './elevage/ElevageWorkflowPanels.jsx';
+import ElevageActivityPnlPanel from './elevage/ElevageActivityPnlPanel.jsx';
+import ElevageProfitabilityKpis from './elevage/ElevageProfitabilityKpis.jsx';
+import ElevageInsightPanel from './elevage/ElevageInsightPanel.jsx';
+import ElevageMobileToolbar from './elevage/ElevageMobileToolbar.jsx';
+import { buildElevageActivityPnl, isBovinAnimal, isChairLot, isPondeuseLot } from '../utils/elevageActivityPnl.js';
+import { buildElevageCostAwareInsights } from '../utils/elevageIaInsights.js';
+import { buildElevageInvestorReport, exportElevageInvestorPdf } from '../utils/elevageExport.js';
 import { buildElevageTransformationRows } from '../utils/elevageTransformationJournal.js';
 import ElevageTransformationJournal from '../components/ElevageTransformationJournal.jsx';
 import AnimalSlaughterStockBridge from './AnimalSlaughterStockBridge.jsx';
@@ -90,10 +97,31 @@ function RentabilitySection({ lotMargins = [], onNavigate }) {
   );
 }
 function BusinessHub({ title, intro, stats, children, extra }) { return <div className="space-y-5"><div className="grid grid-cols-2 gap-3 xl:grid-cols-4">{stats.map((s) => <Stat key={s.label} {...s} />)}</div>{extra}<section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><h2 className="text-lg font-black text-[#2f2415]">{title}</h2><p className="mt-2 text-sm leading-relaxed text-[#8a7456]">{intro}</p><div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">{children}</div></section></div>; }
-function Summary({ data, setTab, onApply, busyId, onNavigate, onOpenWorkflow, showStartup, startupProgress, advancedOpen, onToggleAdvanced }) {
+function Summary({
+  data, setTab, onApply, busyId, onNavigate, onOpenWorkflow, showStartup, startupProgress,
+  advancedOpen, onToggleAdvanced, profitabilityOpen, onToggleProfitability, onExport,
+}) {
   return <div className="space-y-5">
     {showStartup ? <ElevageStartupPanel progress={startupProgress} setTab={setTab} onNavigate={onNavigate} onOpenWorkflow={onOpenWorkflow} /> : null}
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+    <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
+      <Stat label="Santé élevage" value={`${data.healthScore}/100`} tone={data.healthScore >= 75 ? 'good' : 'warn'} />
+      <Stat label="Taux de ponte" value={data.layingRateLabel} tone={data.layingRateCalculable ? 'good' : 'warn'} />
+      <Stat label="Animaux actifs" value={fmtNumber(data.activeAnimals)} />
+      <Stat label="Production 7 j" value={fmtNumber(data.eggs7d)} tone="good" />
+      <Stat label="Mortalité" value={fmtNumber(data.recentMortality)} tone={data.recentMortality ? 'warn' : 'good'} />
+      <Stat label="Coût alim." value={`${Math.round(data.feedCost).toLocaleString('fr-FR')} F`} tone="warn" />
+    </div>
+    <ElevageInsightPanel insights={data.costAwareInsights} onApplyFinding={onApply} onNavigate={onNavigate} busyId={busyId} />
+    <ElevageActivityPnlPanel pnl={data.activityPnl} onExport={onExport} />
+    <ElevageProfitabilityKpis
+      pondeuseLots={data.pondeuseLots}
+      chairLots={data.chairLots}
+      bovins={data.bovins}
+      context={data.marginContext}
+      open={profitabilityOpen}
+      onToggle={onToggleProfitability}
+    />
+    <section className="hidden md:block rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
       <h2 className="text-lg font-black text-[#2f2415]">Actions terrain</h2>
       <p className="mt-2 text-sm leading-relaxed text-[#8a7456]">Saisies fiables avec impacts stock, finance et traçabilité.</p>
       <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -105,18 +133,10 @@ function Summary({ data, setTab, onApply, busyId, onNavigate, onOpenWorkflow, sh
         <ActionCard title="Vendre / préparer vente" text="Lots prêts, opportunités Commercial." onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
       </div>
     </section>
-    <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
-      <Stat label="Santé élevage" value={`${data.healthScore}/100`} tone={data.healthScore >= 75 ? 'good' : 'warn'} />
-      <Stat label="Taux de ponte" value={data.layingRateLabel} tone={data.layingRateCalculable ? 'good' : 'warn'} />
-      <Stat label="Animaux actifs" value={fmtNumber(data.activeAnimals)} />
-      <Stat label="Production 7 j" value={fmtNumber(data.eggs7d)} tone="good" />
-      <Stat label="Mortalité" value={fmtNumber(data.recentMortality)} tone={data.recentMortality ? 'warn' : 'good'} />
-      <Stat label="Coût alim." value={`${Math.round(data.feedCost).toLocaleString('fr-FR')} F`} tone="warn" />
-    </div>
     <CollapsibleAdvancedSection
       eyebrow="Analyse avancée"
-      title="Rentabilité, IA et détails"
-      description="KPI complémentaires, surveillance IA et marges lots — replié par défaut."
+      title="Détails marges et signaux ERP"
+      description="Marges par lot, prédictions ERP — replié par défaut."
       open={advancedOpen}
       onToggle={onToggleAdvanced}
     >
@@ -125,7 +145,6 @@ function Summary({ data, setTab, onApply, busyId, onNavigate, onOpenWorkflow, sh
         <Stat label="Soins retard" value={fmtNumber(data.healthLate)} tone={data.healthLate ? 'warn' : 'good'} />
         <Stat label="Marges fiables" value={fmtNumber(data.reliableMargins)} tone="good" />
         <Stat label="Marges masquées" value={fmtNumber(data.unreliableMargins)} tone={data.unreliableMargins ? 'warn' : 'good'} />
-        <Stat label="Signaux IA" value={fmtNumber(data.healthFindings.length)} tone={data.healthFindings.length ? 'warn' : 'good'} />
         <Stat label="Lots à vendre" value={fmtNumber(data.lotsToSell.length)} tone={data.lotsToSell.length ? 'warn' : 'good'} />
         <Stat label="Sorties aliment" value={fmtNumber(data.feedLogs.length)} />
       </div>
@@ -194,6 +213,7 @@ export default function ElevageRecoveredModule(props) {
   const [busyId, setBusyId] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [profitabilityOpen, setProfitabilityOpen] = useState(false);
 
   useEffect(() => {
     if (props.initialTab) setTab(resolveElevageTab(props.initialTab));
@@ -242,6 +262,24 @@ export default function ElevageRecoveredModule(props) {
     const unreliableMargins = lotMargins.filter((r) => !r.reliable).length;
     const healthSnap = buildElevageHealthSnapshot({ animaux: animals, lots, feedLogs, productionLogs, stocks, sante: health });
     const layingSummary = aggregateSummaryLayingRate(lots, productionLogs, 7);
+    const activityPnl = buildElevageActivityPnl({
+      lots,
+      animaux: animals,
+      feedLogs,
+      productionLogs,
+      healthEvents: health,
+      businessEvents,
+      salesOrders,
+    });
+    const costAwareInsights = buildElevageCostAwareInsights({
+      lots,
+      animaux: animals,
+      feedLogs,
+      productionLogs,
+      healthEvents: health,
+      stocks,
+      findings: healthSnap.findings,
+    });
     return {
       animals, lots, health, productionLogs, feedLogs, stocks, opportunities, salesOrders, businessEvents,
       activeAnimals: animals.filter((row) => !isClosedAnimal(row)).length,
@@ -269,6 +307,12 @@ export default function ElevageRecoveredModule(props) {
       layingRateLabel: formatOfficialLayingRate(layingSummary),
       layingRateCalculable: layingSummary.calculable,
       layingRate: layingSummary.rate,
+      activityPnl,
+      costAwareInsights,
+      marginContext,
+      pondeuseLots: lots.filter(isPondeuseLot),
+      chairLots: lots.filter(isChairLot),
+      bovins: animals.filter(isBovinAnimal),
     };
   }, [animals, lots, health, productionLogs, feedLogs, stocks, opportunities, salesOrders, businessEvents, props.payments, paymentsCrud, periodFiltered]);
 
@@ -390,7 +434,39 @@ export default function ElevageRecoveredModule(props) {
       productionLogs={productionLogs}
       onNavigate={props.onNavigate}
     />
-  ) : tab === 'Résumé' ? <Summary data={data} setTab={setTab} onApply={applyFinding} busyId={busyId} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} showStartup={showStartup} startupProgress={startupProgress} advancedOpen={advancedOpen} onToggleAdvanced={() => setAdvancedOpen((v) => !v)} /> : tab === 'Animaux' ? <AnimauxV2 {...animalProps} /> : tab === 'Avicole' ? <AvicoleV10 {...avicoleProps} /> : tab === 'Alimentation' ? <FeedingHub data={data} setTab={setTab} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} /> : tab === 'Santé' ? <SanteV8 {...healthProps} /> : tab === 'Reproduction' ? <ReproductionHub data={data} setTab={setTab} /> : tab === 'Production' ? <ProductionHub data={data} setTab={setTab} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} /> : tab === 'Transformation' ? <TransformationHub data={data} setTab={setTab} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} animalBridgeProps={animalProps} avicoleBridgeProps={avicoleProps} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="elevage" onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="elevage" periodFiltered={periodFiltered} lots={lots} animaux={animals} productionLogs={productionLogs} alimentationLogs={feedLogs} transactions={rowsOf(props.transactions, financesCrud, periodFiltered)} salesOrders={salesOrders} onNavigate={props.onNavigate} />;
+  ) : tab === 'Résumé' ? (
+    <Summary
+      data={data}
+      setTab={setTab}
+      onApply={applyFinding}
+      busyId={busyId}
+      onNavigate={props.onNavigate}
+      onOpenWorkflow={openWorkflow}
+      showStartup={showStartup}
+      startupProgress={startupProgress}
+      advancedOpen={advancedOpen}
+      onToggleAdvanced={() => setAdvancedOpen((v) => !v)}
+      profitabilityOpen={profitabilityOpen}
+      onToggleProfitability={() => setProfitabilityOpen((v) => !v)}
+      onExport={() => {
+        const report = buildElevageInvestorReport({
+          lots,
+          animaux: animals,
+          feedLogs,
+          productionLogs,
+          healthEvents: health,
+          stocks,
+          businessEvents,
+          salesOrders,
+          findings: data.healthFindings,
+          periodLabel: props.periodLabel,
+          farmLabel: props.activeFarm?.name,
+        });
+        exportElevageInvestorPdf(report);
+        toast.success('Rapport Élevage généré');
+      }}
+    />
+  ) : tab === 'Animaux' ? <AnimauxV2 {...animalProps} /> : tab === 'Avicole' ? <AvicoleV10 {...avicoleProps} /> : tab === 'Alimentation' ? <FeedingHub data={data} setTab={setTab} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} /> : tab === 'Santé' ? <SanteV8 {...healthProps} /> : tab === 'Reproduction' ? <ReproductionHub data={data} setTab={setTab} /> : tab === 'Production' ? <ProductionHub data={data} setTab={setTab} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} /> : tab === 'Transformation' ? <TransformationHub data={data} setTab={setTab} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} animalBridgeProps={animalProps} avicoleBridgeProps={avicoleProps} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="elevage" onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="elevage" periodFiltered={periodFiltered} lots={lots} animaux={animals} productionLogs={productionLogs} alimentationLogs={feedLogs} transactions={rowsOf(props.transactions, financesCrud, periodFiltered)} salesOrders={salesOrders} onNavigate={props.onNavigate} />;
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Élevage</h1><p className="mt-1 text-sm text-[#8a7456]">Animaux, avicole, alimentation, santé, reproduction, transformation — IA proactive et rentabilité fiable.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}<HeyHorizonQuickAsk moduleKey="elevage" onNavigate={props.onNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" /></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé module </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div></div></section>
@@ -407,6 +483,7 @@ export default function ElevageRecoveredModule(props) {
         pondeuseLots={pondeuseLots}
         onSuccess={refreshAfterWorkflow}
       />
+      <ElevageMobileToolbar onOpenWorkflow={openWorkflow} onNavigate={props.onNavigate} />
     </div>
   );
 }
