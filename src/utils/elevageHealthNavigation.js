@@ -84,3 +84,55 @@ export function navigateToHealthStock(onNavigate) {
     contextMessage: HEALTH_STOCK_CONTEXT_MESSAGE,
   });
 }
+
+const lower = (value) => String(value || '').toLowerCase().trim();
+
+/**
+ * Brouillon SanteV6 depuis scan ordonnance (fusion matrice — pas d’auto-commit).
+ */
+export function buildHealthInterventionDraftFromScan(fields = {}, proofMeta = {}) {
+  const typeMap = {
+    vaccin: 'vaccination',
+    vaccination: 'vaccination',
+    curatif: 'curatif',
+    traitement: 'curatif',
+    antibiotic: 'curatif',
+    antibiotique: 'curatif',
+    deparasitage: 'deparasitage',
+    vermifuge: 'deparasitage',
+    urgence: 'urgence',
+  };
+  const rawType = lower(fields.type_soin || fields.type_intervention || 'curatif');
+  const typeIntervention = typeMap[rawType] || 'curatif';
+
+  const draft = buildHealthInterventionDraft({
+    animalId: fields.animal_id,
+    lotId: fields.lot_id,
+    typeIntervention,
+    date: fields.date || fields.effectuee,
+    nom: fields.nom || fields.vaccin || fields.medicament,
+    notes: fields.notes || fields.preuve_texte || '',
+  });
+
+  draft.source = 'ordonnance_scan';
+  draft.medicament = fields.vaccin || fields.medicament || draft.nom || '';
+  draft.dosage = fields.dose || fields.dosage || '';
+  if (fields.cout != null) draft.cout = fields.cout;
+  if (fields.delai_sanitaire_fin || fields.withdrawal_until) {
+    draft.delai_sanitaire_fin = fields.delai_sanitaire_fin || fields.withdrawal_until;
+  }
+  if (fields.duree_traitement) draft.duree_traitement = fields.duree_traitement;
+  if (fields.rappel_jours) {
+    draft.periodicite = 'personnalisee';
+    draft.frequence_valeur = String(fields.rappel_jours);
+    draft.frequence_unite = 'jours';
+  }
+
+  const proofUrl = proofMeta.proof_url || proofMeta.file_url || '';
+  if (proofUrl) {
+    draft.preuve_url = proofUrl;
+    draft.preuve_type = 'ordonnance_photo';
+  }
+
+  return draft;
+}
