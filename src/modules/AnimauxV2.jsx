@@ -117,6 +117,10 @@ export default function AnimauxV2(props) {
         window.setTimeout(() => document.getElementById('animaux-module-root')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
         return;
       }
+      const birthModes = ['naissance_ferme', 'reproduction_interne'];
+      const mode = String(draft?.draft_fields?.mode_acquisition || '').toLowerCase();
+      const birthCreation = draft?.form_type === 'animal_creation' && birthModes.includes(mode);
+      if (birthCreation) return;
       if (event.detail?.module === 'animaux' && ['animal_weighing', 'animal_loss', 'animal_creation'].includes(draft?.form_type)) {
         setHorizonDraft(draft);
         const wanted = draft?.draft_fields?.type ? speciesFromType(draft.draft_fields.type) : species;

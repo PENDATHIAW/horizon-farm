@@ -6,6 +6,7 @@ import { exportModuleReportPdf } from './moduleReportExports.js';
 import { buildElevageActivityPnl, formatActivityPnlRow } from './elevageActivityPnl.js';
 import { buildElevageCostAwareInsights } from './elevageIaInsights.js';
 import { fmtCurrency, fmtNumber } from './format.js';
+import { buildReproductionKpis } from './reproductionMetrics.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
@@ -47,6 +48,11 @@ export function buildElevageInvestorReport({
     .reduce((s, r) => s + Number(r.oeufs_produits || r.eggs_count || 0), 0);
   const mortality = arr(lots).reduce((s, l) => s + Number(l.mortality || l.morts || 0), 0);
   const feedCost = arr(feedLogs).reduce((s, r) => s + Number(r.montant_total || r.cout_total || 0), 0);
+  const reproduction = buildReproductionKpis({
+    animaux,
+    businessEvents,
+    periodStart: weekAgo,
+  });
 
   return {
     title: 'Synthèse Élevage Horizon Farm',
@@ -60,6 +66,9 @@ export function buildElevageInvestorReport({
       `Coût alimentation : ${fmtCurrency(feedCost)}`,
       `Activités suivies : ${pnl.activities.length}`,
       `Alertes IA : ${insights.length}`,
+      `Femelles : ${reproduction.females}`,
+      `Gestantes : ${reproduction.gestantes}`,
+      `Naissances 7j : ${reproduction.birthEvents}`,
     ].join(' · '),
     pnl,
     insights: insights.slice(0, 10),
@@ -71,6 +80,9 @@ export function buildElevageInvestorReport({
       feedCost,
       healthEvents: healthEvents.length,
       feedLogs: feedLogs.length,
+      reproductionFemales: reproduction.females,
+      reproductionGestantes: reproduction.gestantes,
+      reproductionBirths7d: reproduction.birthEvents,
     },
     rows: [
       ...pnl.activities.map((a) => ({
@@ -107,6 +119,9 @@ export function exportElevageInvestorPdf(report = {}, fileName = '') {
           ['Mortalité', fmtNumber(report.kpis?.mortality)],
           ['Coût alimentation', fmtCurrency(report.kpis?.feedCost)],
           ['Événements santé', String(report.kpis?.healthEvents ?? 0)],
+          ['Femelles reproductrices', String(report.kpis?.reproductionFemales ?? 0)],
+          ['Gestantes', String(report.kpis?.reproductionGestantes ?? 0)],
+          ['Naissances 7 j', fmtNumber(report.kpis?.reproductionBirths7d)],
         ],
       },
       {
