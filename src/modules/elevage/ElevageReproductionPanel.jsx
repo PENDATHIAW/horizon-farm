@@ -83,7 +83,14 @@ export default function ElevageReproductionPanel({
         </section>
       ) : null}
 
-      <ElevageSection title="Workflows officiels" subtitle="Saillie, gestation et mise bas — centre métier Reproduction (sans doublon Animaux).">
+      <ElevageSection
+        title="Workflows officiels"
+        subtitle="Saillie, gestation et mise bas — deux chemins distincts pour la naissance (voir encadré)."
+      >
+        <p className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
+          <b>Naissance : quel bouton ?</b> — <b>Workflow portée</b> : scan mère, N jeunes créés automatiquement, gestation close, événement métier.
+          <b> Fiche jeune (1 animal)</b> : un seul animal à identifier (boucle, sexe) — sans création automatique de portée ni clôture gestation.
+        </p>
         <div className={ELEVAGE_ACTION_GRID}>
           <ElevageActionCard
             title="+ Saillie"
@@ -96,13 +103,13 @@ export default function ElevageReproductionPanel({
             onClick={() => onOpenReproductionWorkflow?.('gestation')}
           />
           <ElevageActionCard
-            title="+ Mise bas / naissance"
-            text="Portée, scan mère, jeunes et document."
+            title="+ Workflow portée (mise bas)"
+            text="Terrain : scan mère, jeunes créés en lot, alertes et document portée."
             onClick={() => onOpenReproductionWorkflow?.('mise_bas')}
           />
           <ElevageActionCard
-            title="+ Naissance / mise bas (fiche)"
-            text="Enregistrer une portée avec lien mère — formulaire guidé."
+            title="+ Fiche jeune (1 animal)"
+            text="Manuel : un jeune seul — identification, lien mère, pas de workflow portée."
             onClick={() => openBirthDraft({ date: today() })}
           />
           <ElevageActionCard
@@ -122,9 +129,9 @@ export default function ElevageReproductionPanel({
             onClick={() => setPerformancesOpen(true)}
           />
           <ElevageActionCard
-            title="+ Document reproduction"
-            text="Photo portée, carnet ou preuve liée à la reproduction."
-            onClick={() => emitHorizonForm('elevage', 'reproduction_document', 'Document reproduction', { date: today() })}
+            title="+ Preuve reproduction"
+            text="Photo ou carnet rattaché à une mère — persisté module documents."
+            onClick={() => emitHorizonForm('elevage', 'reproduction_document', 'Preuve reproduction', { date: today() })}
           />
         </div>
       </ElevageSection>
