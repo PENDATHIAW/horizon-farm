@@ -153,3 +153,39 @@ export function shouldRouteDraftToReproduction(detail = {}) {
   if (module === 'animaux' && REPRODUCTION_FORM_TYPES.has(formType)) return true;
   return false;
 }
+
+/** Preuve reproduction persistée (photo ou lien) — liée mère + module reproduction. */
+export function buildReproductionProofDocument({
+  id,
+  title,
+  animalId,
+  porteeId,
+  date,
+  notes,
+  preuve_photo_data,
+  preuve_file_name,
+  preuve_mime_type,
+  document_category = 'reproduction',
+} = {}) {
+  const file = preuve_photo_data || '';
+  const motherId = animalId || '';
+  return {
+    id,
+    title: title || 'Preuve reproduction',
+    document_category,
+    module_source: 'reproduction',
+    entity_type: motherId ? 'animal' : 'reproduction',
+    entity_id: motherId || id,
+    animal_id: motherId || undefined,
+    portee_id: porteeId || undefined,
+    related_id: motherId || id,
+    date,
+    notes,
+    file_url: file || undefined,
+    file_name: preuve_file_name || (file ? `preuve-repro-${motherId || id}.jpg` : undefined),
+    mime_type: preuve_mime_type || (file ? 'image/*' : undefined),
+    status: file ? 'fourni' : 'manquant',
+    verification_status: file ? 'a_verifier' : 'preuve_manquante',
+    storage_mode: file ? 'photo_upload' : 'metadata_only',
+  };
+}

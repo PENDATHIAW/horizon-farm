@@ -1,4 +1,4 @@
-import { Camera, X } from 'lucide-react';
+import { Camera, Upload, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { enrichAnimalEntryPayload } from '../../services/animalEntryDefaults.js';
@@ -11,6 +11,7 @@ import {
   isFemaleAnimal,
   predictDueDate,
   speciesKey,
+  buildReproductionProofDocument,
 } from '../../utils/reproductionMetrics.js';
 import { REPRODUCTION_TERRAIN_BANNER, REPRODUCTION_WORKFLOW_FORM_ID } from '../../utils/elevageReproductionNavigation.js';
 import { ELEVAGE_FORM_GRID } from './elevageUi.jsx';
@@ -62,6 +63,11 @@ export default function ReproductionWorkflowForm({
   const [porteeSize, setPorteeSize] = useState(String(fields.portee_size || 1));
   const [scanValue, setScanValue] = useState('');
   const [documentTitle, setDocumentTitle] = useState(fields.document_title || 'Photo portée');
+  const [proofPhoto, setProofPhoto] = useState({
+    preuve_photo_data: fields.preuve_photo_data || '',
+    preuve_file_name: fields.preuve_file_name || '',
+    preuve_mime_type: fields.preuve_mime_type || '',
+  });
   const [saving, setSaving] = useState(false);
 
   const selectedFemale = animaux.find((row) => String(row.id) === String(animalId)) || null;
@@ -256,42 +262,119 @@ export default function ReproductionWorkflowForm({
     workflow === 'saillie'
       ? 'Saillie'
       : workflow === 'mise_bas'
-        ? 'Mise bas / naissance'
+        ? 'Workflow portée (mise bas)'
         : 'Déclaration gestation';
+
+  const handleProofFile = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setProofPhoto({
+        preuve_photo_data: String(reader.result || ''),
+        preuve_file_name: file.name,
+        preuve_mime_type: file.type,
+      });
+    };
+    reader.readAsDataURL(file);
+  };
 
   if (formType === 'reproduction_document') {
     return (
       <section id={REPRODUCTION_WORKFLOW_FORM_ID} className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-widest text-emerald-700 font-black">Document reproduction</p>
+            <p className="text-xs uppercase tracking-widest text-emerald-700 font-black">Preuve reproduction</p>
             <h3 className="mt-1 text-xl font-black text-[#2f2415]">Joindre preuve</h3>
+            <p className="mt-1 text-sm text-emerald-800">Mère obligatoire · photo stockée dans Documents · lien animal + module reproduction.</p>
           </div>
           <button type="button" onClick={onClose} className="rounded-full border border-emerald-200 bg-white p-2 text-emerald-700"><X size={16} /></button>
         </div>
-        <label className="space-y-1 block">
-          <span className="text-xs font-bold text-emerald-800">Titre</span>
-          <input value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
-        </label>
+        <div className={ELEVAGE_FORM_GRID}>
+          <label className="space-y-1">
+            <span className="text-xs font-bold text-emerald-800">Mère (obligatoire)</span>
+            <select
+              value={animalId}
+              onChange={(e) => setAnimalId(e.target.value)}
+              className="w-full min-h-[48px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm"
+            >
+              <option value="">Choisir la mère</option>
+              {females.map((row) => (
+                <option key={row.id} value={row.id}>{labelOf(row)} · {row.id}</option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs font-bold text-emerald-800">Date</span>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
+          </label>
+          <label className="space-y-1 md:col-span-2">
+            <span className="text-xs font-bold text-emerald-800">Titre</span>
+            <input value={documentTitle} onChange={(e) => setDocumentTitle(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
+          </label>
+          <label className="space-y-1 md:col-span-2">
+            <span className="text-xs font-bold text-emerald-800">Notes</span>
+            <input value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full min-h-[48px] rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm" />
+          </label>
+        </div>
+        <div className="space-y-2">
+          <span className="text-xs font-bold text-emerald-800">Photo preuve</span>
+          <label className="flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-emerald-300 bg-white px-3 py-4 text-sm font-bold text-emerald-800 hover:bg-emerald-50">
+            <Upload size={18} /> Prendre / importer une photo
+            <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleProofFile(e.target.files?.[0])} />
+          </label>
+          {proofPhoto.preuve_photo_data ? (
+            <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-white p-2">
+              <img src={proofPhoto.preuve_photo_data} alt="preuve" className="h-14 w-14 rounded-lg object-cover" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold text-emerald-800">{proofPhoto.preuve_file_name || 'Photo ajoutée'}</p>
+                <p className="text-xs text-emerald-700">Stockée avec le document reproduction.</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-amber-800 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+              <Camera size={13} className="inline mr-1" /> Sans photo : métadonnée seule (preuve_manquante).
+            </p>
+          )}
+        </div>
         <div className="flex justify-end">
           <button
             type="button"
             disabled={saving}
             onClick={async () => {
+              if (!animalId) {
+                toast.error('Sélectionnez la mère reproductrice');
+                return;
+              }
               setSaving(true);
               try {
-                await onCreateDocument?.({
-                  id: makeId('DOC'),
+                const docId = makeId('DOC');
+                const payload = buildReproductionProofDocument({
+                  id: docId,
                   title: documentTitle,
-                  document_category: 'reproduction',
-                  module_source: 'reproduction',
-                  entity_type: 'animal',
-                  entity_id: animalId || undefined,
+                  animalId,
                   date,
                   notes,
+                  preuve_photo_data: proofPhoto.preuve_photo_data,
+                  preuve_file_name: proofPhoto.preuve_file_name,
+                  preuve_mime_type: proofPhoto.preuve_mime_type,
                 });
-                await onRefreshDocuments?.();
-                toast.success('Document reproduction rattaché');
+                await onCreateDocument?.(payload);
+                await onCreateBusinessEvent?.({
+                  id: makeId('EVT'),
+                  event_type: 'document_reproduction',
+                  module_source: 'reproduction',
+                  entity_type: 'animal',
+                  entity_id: animalId,
+                  title: `Preuve reproduction · ${animalId}`,
+                  description: `${documentTitle}${notes ? ` — ${notes}` : ''}`,
+                  event_date: date,
+                  severity: 'info',
+                });
+                await Promise.allSettled([
+                  onRefreshDocuments?.(),
+                  onRefreshBusinessEvents?.(),
+                ]);
+                toast.success(proofPhoto.preuve_photo_data ? 'Preuve reproduction rattachée' : 'Métadonnée reproduction enregistrée');
                 onClose?.();
               } catch {
                 toast.error('Document impossible');
@@ -299,7 +382,7 @@ export default function ReproductionWorkflowForm({
                 setSaving(false);
               }
             }}
-            className="rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60"
+            className="min-h-[48px] rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60"
           >
             {saving ? '…' : 'Rattacher'}
           </button>
@@ -392,7 +475,7 @@ export default function ReproductionWorkflowForm({
             onClick={() => onOpenBirthDraft({ animalId, date, notes, portee_size: porteeSize })}
             className="min-h-[48px] rounded-xl border border-emerald-300 bg-white px-4 text-sm font-black text-emerald-800"
           >
-            Formulaire naissance détaillé
+            Fiche jeune (1 animal)
           </button>
         ) : null}
         <button type="button" onClick={submit} disabled={saving} className="min-h-[48px] rounded-xl bg-[#2f2415] px-5 py-2 text-sm font-black text-white disabled:opacity-60">

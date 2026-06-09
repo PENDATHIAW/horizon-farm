@@ -1,13 +1,15 @@
-import { Beef, Drumstick, Egg, Factory } from 'lucide-react';
-import { fmtCurrency, fmtNumber } from '../../utils/format';
+import { Beef, ChevronDown, Drumstick, Egg, Factory } from 'lucide-react';
+import { useState } from 'react';
+import { fmtCurrency, fmtNumber, fmtPercent } from '../../utils/format';
 import { navigateToEggStock } from '../../utils/productionNavigation.js';
+import { ELEVAGE_KPI_GRID, ElevageStatCard } from './elevageUi.jsx';
 
 function ActionCard({ title, text, onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left transition hover:bg-[#dcfce7]"
+      className="min-h-[48px] rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left transition hover:bg-[#dcfce7]"
     >
       <b className="text-[#2f2415]">{title}</b>
       <p className="mt-1 text-sm text-[#8a7456]">{text}</p>
@@ -15,37 +17,45 @@ function ActionCard({ title, text, onClick }) {
   );
 }
 
-function ProductionBlock({ icon: Icon, title, intro, stats = [], empty, actions, children }) {
+function CollapsibleBlock({ icon: Icon, title, intro, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">
-      <div>
-        <h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]">
-          <Icon size={20} aria-hidden="true" />
-          {title}
-        </h2>
-        <p className="mt-1 text-sm leading-relaxed text-[#8a7456]">{intro}</p>
-      </div>
-      {stats.length ? (
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-          {stats.map((s) => (
-            <div key={s.label} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3">
-              <p className="text-xs text-[#8a7456]">{s.label}</p>
-              <p className={`mt-1 text-lg font-black ${s.tone === 'good' ? 'text-emerald-600' : s.tone === 'warn' ? 'text-amber-600' : 'text-[#2f2415]'}`}>
-                {s.value}
-              </p>
-            </div>
-          ))}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full min-h-[48px] items-start justify-between gap-3 text-left"
+      >
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]">
+            <Icon size={20} aria-hidden="true" />
+            {title}
+          </h2>
+          <p className="mt-1 text-sm leading-relaxed text-[#8a7456]">{intro}</p>
         </div>
-      ) : null}
-      {empty ? <p className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#8a7456]">{empty}</p> : null}
-      {children}
-      {actions?.length ? (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {actions}
-        </div>
-      ) : null}
+        <ChevronDown
+          size={20}
+          className={`shrink-0 text-[#8a7456] transition-transform ${open ? 'rotate-180' : ''}`}
+          aria-hidden="true"
+        />
+      </button>
+      {open ? children : null}
     </section>
   );
+}
+
+function toneFromBreakRate(rate) {
+  if (!rate) return 'good';
+  if (rate > 8) return 'bad';
+  if (rate > 4) return 'warn';
+  return 'good';
+}
+
+function toneFromMortality(rate) {
+  if (!rate) return 'good';
+  if (rate > 5) return 'bad';
+  if (rate > 2) return 'warn';
+  return 'good';
 }
 
 export default function ProductionHub({
@@ -58,6 +68,40 @@ export default function ProductionHub({
   const chair = snapshot.chair || {};
   const bovins = snapshot.bovins || {};
   const transform = snapshot.transformation || {};
+  const perf = snapshot.performance || {};
+
+  const heroKpis = [
+    {
+      label: 'Œufs vendables (7 j)',
+      value: fmtNumber(perf.sellableEggs7d ?? eggs.sellable7d),
+      tone: (perf.sellableEggs7d ?? eggs.sellable7d) > 0 ? 'good' : 'warn',
+    },
+    {
+      label: 'Taux casse (7 j)',
+      value: perf.eggBreakRate7d ? fmtPercent(perf.eggBreakRate7d) : '—',
+      tone: toneFromBreakRate(perf.eggBreakRate7d),
+    },
+    {
+      label: 'IC chair (€/kg)',
+      value: perf.chairCostPerKgAvg > 0 ? fmtCurrency(perf.chairCostPerKgAvg) : '—',
+      tone: perf.chairCostPerKgAvg > 0 ? 'neutral' : 'warn',
+    },
+    {
+      label: 'GMQ bovins',
+      value: perf.bovinGmqAvg > 0 ? `${fmtNumber(perf.bovinGmqAvg)} g/j` : '—',
+      tone: perf.bovinGmqAvg > 0 ? 'good' : 'warn',
+    },
+    {
+      label: 'Stock viande (kg)',
+      value: perf.meatStockKg > 0 ? fmtNumber(perf.meatStockKg) : '—',
+      tone: perf.meatStockKg > 0 ? 'good' : 'warn',
+    },
+    {
+      label: 'Marge technique',
+      value: perf.technicalMarginLabel || '—',
+      tone: perf.technicalMarginTotal > 0 ? 'good' : perf.technicalMarginTotal != null ? 'warn' : 'neutral',
+    },
+  ];
 
   return (
     <div className="space-y-5 production-hub-mobile">
@@ -67,56 +111,39 @@ export default function ProductionHub({
         }
       `}</style>
 
-      <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm">
-        <h2 className="text-lg font-black text-[#2f2415]">Production animale</h2>
-        <p className="mt-2 text-sm leading-relaxed text-[#8a7456]">
-          Œufs, poulets de chair, bovins et transformation — produits issus de l&apos;élevage uniquement.
-          Les aliments, emballages, vaccins et médicaments sont des intrants suivis dans{' '}
-          <b>Achats &amp; Stock</b> (via Alimentation ou Santé).
-        </p>
-        <p className="mt-2 text-xs text-[#8a7456]">
-          La production végétale (cultures, récoltes) est suivie dans le module <b>Cultures</b> ou le Dashboard global.
-        </p>
-        <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
-          <div className="rounded-2xl border border-[#eadcc2] bg-white p-3">
-            <p className="text-xs text-[#8a7456]">Œufs vendables (7 j)</p>
-            <p className="mt-1 text-lg font-black text-emerald-700">{fmtNumber(eggs.sellable7d)}</p>
-          </div>
-          <div className="rounded-2xl border border-[#eadcc2] bg-white p-3">
-            <p className="text-xs text-[#8a7456]">Lots chair actifs</p>
-            <p className="mt-1 text-lg font-black text-[#2f2415]">{fmtNumber(chair.activeLots)}</p>
-          </div>
-          <div className="rounded-2xl border border-[#eadcc2] bg-white p-3">
-            <p className="text-xs text-[#8a7456]">Bovins actifs</p>
-            <p className="mt-1 text-lg font-black text-[#2f2415]">{fmtNumber(bovins.activeCount)}</p>
-          </div>
-          <div className="rounded-2xl border border-[#eadcc2] bg-white p-3">
-            <p className="text-xs text-[#8a7456]">Stock viande (kg)</p>
-            <p className="mt-1 text-lg font-black text-[#2f2415]">{transform.meatStockKg > 0 ? fmtNumber(transform.meatStockKg) : '—'}</p>
-          </div>
+      <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm space-y-4">
+        <div>
+          <h2 className="text-lg font-black text-[#2f2415]">Performances & rendements</h2>
+          <p className="mt-2 text-sm leading-relaxed text-[#8a7456]">
+            Œufs, lait/viande, rendement, indice de consommation et rentabilité technique — données issues d&apos;Alimentation, Avicole, Animaux et Transformation.
+            Le registre cheptel et les lots sont sur <b>Animaux</b> et <b>Avicole</b>.
+          </p>
+        </div>
+        <div className={ELEVAGE_KPI_GRID}>
+          {heroKpis.map((kpi) => (
+            <ElevageStatCard key={kpi.label} label={kpi.label} value={kpi.value} tone={kpi.tone} />
+          ))}
         </div>
       </section>
 
-      <ProductionBlock
+      <CollapsibleBlock
         icon={Egg}
-        title="Œufs & tablettes"
-        intro="Ramassages, casses, vendables et stock produit par les pondeuses."
-        stats={[
-          { label: 'Produits (7 j)', value: fmtNumber(eggs.produced7d), tone: 'good' },
-          { label: 'Cassés (7 j)', value: fmtNumber(eggs.broken7d), tone: eggs.broken7d ? 'warn' : 'good' },
-          { label: 'Vendables (7 j)', value: fmtNumber(eggs.sellable7d), tone: 'good' },
-          { label: 'Tablettes est.', value: fmtNumber(eggs.tablettesEst), tone: 'good' },
-          { label: 'Stock œufs', value: eggs.stockLines ? `${fmtNumber(eggs.stockQty)} (${eggs.stockLines} ligne(s))` : '—' },
-        ]}
-        empty={!eggs.produced7d && !eggs.stockLines ? 'Aucun ramassage sur 7 jours — enregistrez un ramassage pour suivre la ponte.' : null}
-        actions={[
-          <ActionCard key="egg-log" title="Enregistrer ramassage" text="Workflow officiel — log, stock œufs, emballage optionnel." onClick={() => onOpenWorkflow?.('eggs')} />,
-          <ActionCard key="egg-stock" title="Stock œufs & tablettes" text="Voir les œufs produits, les tablettes disponibles et les mouvements de stock liés à la ponte." onClick={() => navigateToEggStock(onNavigate)} />,
-          eggs.eggOpportunities ? (
-            <ActionCard key="egg-sales" title="Ventes œufs / tablettes" text={`${eggs.eggOpportunities} opportunité(s) Commercial liée(s) aux œufs.`} onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} />
-          ) : null,
-        ].filter(Boolean)}
+        title="Œufs & rendement ponte"
+        intro="Ramassages, casses, coût/œuf et taux de ponte — pas le registre pondeuses."
+        defaultOpen
       >
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          {[
+            { label: 'Produits (7 j)', value: fmtNumber(eggs.produced7d), tone: 'good' },
+            { label: 'Vendables (7 j)', value: fmtNumber(eggs.sellable7d), tone: 'good' },
+            { label: 'Coût / œuf', value: perf.costPerEggAvg > 0 ? fmtCurrency(perf.costPerEggAvg) : '—', tone: perf.costPerEggAvg > 0 ? 'neutral' : 'warn' },
+            { label: 'Taux ponte moy.', value: perf.layingRateAvg > 0 ? fmtPercent(perf.layingRateAvg) : '—', tone: perf.layingRateAvg > 0 ? 'good' : 'warn' },
+            { label: 'Tablettes est.', value: fmtNumber(eggs.tablettesEst), tone: 'good' },
+            { label: 'Marge œufs', value: perf.eggMarginAvg != null ? fmtCurrency(perf.eggMarginAvg) : '—', tone: perf.eggMarginAvg > 0 ? 'good' : 'warn' },
+          ].map((s) => (
+            <ElevageStatCard key={s.label} label={s.label} value={s.value} tone={s.tone} />
+          ))}
+        </div>
         {eggs.recentLogs?.length ? (
           <div className="space-y-1">
             <p className="text-xs font-black uppercase tracking-wide text-[#8a7456]">Derniers ramassages</p>
@@ -127,30 +154,40 @@ export default function ProductionHub({
               </div>
             ))}
           </div>
-        ) : null}
-      </ProductionBlock>
+        ) : (
+          <p className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#8a7456]">
+            Aucun ramassage sur 7 jours — enregistrez un ramassage pour suivre la ponte.
+          </p>
+        )}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <ActionCard key="egg-log" title="Enregistrer ramassage" text="Workflow officiel — log, stock œufs." onClick={() => onOpenWorkflow?.('eggs')} />
+          <ActionCard key="egg-stock" title="Stock œufs & tablettes" text="Voir stock produit (Achats & Stock)." onClick={() => navigateToEggStock(onNavigate)} />
+          {eggs.eggOpportunities ? (
+            <ActionCard key="egg-sales" title="Ventes œufs / tablettes" text={`${eggs.eggOpportunities} opportunité(s) Commercial.`} onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} />
+          ) : null}
+          <ActionCard key="avicole-pondeuses" title="Registre pondeuses" text="Lots et effectifs — onglet Avicole." onClick={() => setTab('Avicole')} />
+        </div>
+      </CollapsibleBlock>
 
-      <ProductionBlock
+      <CollapsibleBlock
         icon={Drumstick}
-        title="Poulets de chair"
-        intro="Bandes actives, poids, mortalité et lots prêts ou proches de la vente."
-        stats={[
-          { label: 'Lots actifs', value: fmtNumber(chair.activeLots) },
-          { label: 'Prêts / proches vente', value: fmtNumber(chair.readyLots), tone: chair.readyLots ? 'good' : 'warn' },
-          { label: 'Poids moyen', value: chair.avgWeight > 0 ? `${chair.avgWeight.toFixed(2)} kg` : '—' },
-          { label: 'Mortalité moy.', value: chair.avgMortality ? fmtNumber(chair.avgMortality) : '—', tone: chair.avgMortality > 40 ? 'warn' : 'good' },
-        ]}
-        empty={!chair.hasData ? 'Aucun lot chair actif pour le moment.' : null}
-        actions={[
-          <ActionCard key="chair-lots" title="Voir lots chair" text="Fiches avicole, effectifs, pesées et historique." onClick={() => setTab('Avicole')} />,
-          chair.readyLots > 0 ? (
-            <ActionCard key="chair-sale" title="Préparer vente" text={`${chair.readyLots} lot(s) prêt(s) ou proche(s) de la vente.`} onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
-          ) : null,
-          <ActionCard key="chair-transform" title="Voir transformation" text="Abattage avicole et stock viande." onClick={() => setTab('Transformation')} />,
-        ].filter(Boolean)}
+        title="Chair — rendement & IC"
+        intro="Poids, mortalité, coût/kg et marge — lots prêts vente en lecture seule."
       >
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          {[
+            { label: 'Poids moyen', value: chair.avgWeight > 0 ? `${chair.avgWeight.toFixed(2)} kg` : '—', tone: chair.avgWeight > 0 ? 'good' : 'warn' },
+            { label: 'Mortalité moy.', value: chair.avgMortality ? fmtNumber(chair.avgMortality) : '—', tone: toneFromMortality(perf.chairMortalityRateAvg) },
+            { label: 'IC (€/kg)', value: perf.chairCostPerKgAvg > 0 ? fmtCurrency(perf.chairCostPerKgAvg) : '—', tone: perf.chairCostPerKgAvg > 0 ? 'neutral' : 'warn' },
+            { label: 'Prêts vente', value: fmtNumber(chair.readyLots), tone: chair.readyLots ? 'good' : 'warn' },
+            { label: 'Marge chair', value: perf.chairMarginAvg != null ? fmtCurrency(perf.chairMarginAvg) : '—', tone: perf.chairMarginAvg > 0 ? 'good' : 'warn' },
+          ].map((s) => (
+            <ElevageStatCard key={s.label} label={s.label} value={s.value} tone={s.tone} />
+          ))}
+        </div>
         {chair.readyList?.length ? (
           <ul className="space-y-1 text-sm">
+            <p className="text-xs font-black uppercase tracking-wide text-[#8a7456]">Échéances vente (lecture)</p>
             {chair.readyList.map((lot) => (
               <li key={lot.id} className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-900">
                 <b>{lot.name}</b> · {fmtNumber(lot.effectif)} actifs
@@ -159,28 +196,34 @@ export default function ProductionHub({
             ))}
           </ul>
         ) : null}
-      </ProductionBlock>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <ActionCard key="chair-lots" title="Registre lots chair" text="Fiches Avicole — effectifs, pesées." onClick={() => setTab('Avicole')} />
+          {chair.readyLots > 0 ? (
+            <ActionCard key="chair-sale" title="Préparer vente" text={`${chair.readyLots} lot(s) prêt(s).`} onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
+          ) : null}
+          <ActionCard key="chair-transform" title="Transformation viande" text="Abattage avicole et stock." onClick={() => setTab('Transformation')} />
+        </div>
+      </CollapsibleBlock>
 
-      <ProductionBlock
+      <CollapsibleBlock
         icon={Beef}
-        title="Bovins / embouche"
-        intro="Animaux actifs, poids, GMQ et proximité du poids cible."
-        stats={[
-          { label: 'Actifs', value: fmtNumber(bovins.activeCount) },
-          { label: 'Proches poids cible', value: fmtNumber(bovins.nearTargetCount), tone: bovins.nearTargetCount ? 'good' : 'warn' },
-          { label: 'Poids moyen', value: bovins.avgWeight > 0 ? `${bovins.avgWeight.toFixed(0)} kg` : '—' },
-        ]}
-        empty={!bovins.hasData ? 'Aucun bovin actif enregistré.' : null}
-        actions={[
-          <ActionCard key="bov-animaux" title="Voir animaux" text="Cheptel bovins, pesées et coûts." onClick={() => setTab('Animaux')} />,
-          bovins.nearTargetCount > 0 ? (
-            <ActionCard key="bov-sale" title="Préparer vente" text={`${bovins.nearTargetCount} animal(aux) proche(s) du poids cible.`} onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
-          ) : null,
-          <ActionCard key="bov-transform" title="Voir transformation" text="Abattage animal et stock viande." onClick={() => setTab('Transformation')} />,
-        ].filter(Boolean)}
+        title="Bovins — GMQ & rentabilité"
+        intro="Gain quotidien, coût/kg et marge — pas le registre cheptel."
       >
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          {[
+            { label: 'GMQ moyen', value: perf.bovinGmqAvg > 0 ? `${fmtNumber(perf.bovinGmqAvg)} g/j` : '—', tone: perf.bovinGmqAvg > 0 ? 'good' : 'warn' },
+            { label: 'Poids moyen', value: bovins.avgWeight > 0 ? `${bovins.avgWeight.toFixed(0)} kg` : '—', tone: bovins.avgWeight > 0 ? 'good' : 'warn' },
+            { label: 'Coût / kg', value: perf.bovinCostPerKgAvg > 0 ? fmtCurrency(perf.bovinCostPerKgAvg) : '—', tone: perf.bovinCostPerKgAvg > 0 ? 'neutral' : 'warn' },
+            { label: 'Proches cible', value: fmtNumber(bovins.nearTargetCount), tone: bovins.nearTargetCount ? 'good' : 'warn' },
+            { label: 'Marge bovins', value: perf.bovinMarginAvg != null ? fmtCurrency(perf.bovinMarginAvg) : '—', tone: perf.bovinMarginAvg > 0 ? 'good' : 'warn' },
+          ].map((s) => (
+            <ElevageStatCard key={s.label} label={s.label} value={s.value} tone={s.tone} />
+          ))}
+        </div>
         {bovins.nearTargetList?.length ? (
           <ul className="space-y-1 text-sm">
+            <p className="text-xs font-black uppercase tracking-wide text-[#8a7456]">Proches poids cible</p>
             {bovins.nearTargetList.map((k) => (
               <li key={k.id} className="rounded-lg border border-[#eadcc2] bg-[#fffdf8] px-3 py-2">
                 <b>{k.name}</b>
@@ -191,32 +234,31 @@ export default function ProductionHub({
               </li>
             ))}
           </ul>
-        ) : !bovins.hasData ? null : (
-          <p className="text-sm text-[#8a7456]">Aucun bovin proche du poids cible.</p>
-        )}
-      </ProductionBlock>
+        ) : null}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <ActionCard key="bov-animaux" title="Registre bovins" text="Cheptel, pesées — onglet Animaux." onClick={() => setTab('Animaux')} />
+          {bovins.nearTargetCount > 0 ? (
+            <ActionCard key="bov-sale" title="Préparer vente" text={`${bovins.nearTargetCount} animal(aux) proche(s) cible.`} onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
+          ) : null}
+          <ActionCard key="bov-transform" title="Transformation viande" text="Abattage animal et stock." onClick={() => setTab('Transformation')} />
+        </div>
+      </CollapsibleBlock>
 
-      <ProductionBlock
+      <CollapsibleBlock
         icon={Factory}
-        title="Transformation / viande"
-        intro="Abattages, sorties récentes, stock viande et documents sanitaires."
-        stats={[
-          { label: 'Sorties récentes', value: fmtNumber(transform.recentCount) },
-          { label: 'Stock viande (kg)', value: transform.meatStockKg > 0 ? fmtNumber(transform.meatStockKg) : '—', tone: transform.meatStockKg ? 'good' : 'warn' },
-          { label: 'Lignes stock viande', value: fmtNumber(transform.meatStockLines) },
-          { label: 'Docs sanitaires', value: fmtNumber(transform.sanitaryDocs?.length || 0) },
-        ]}
-        empty={!transform.hasData ? 'Aucune transformation enregistrée.' : null}
-        actions={[
-          <ActionCard key="tr-hub" title="Voir transformation" text="Journal ventes, abattages, mortalités." onClick={() => setTab('Transformation')} />,
-          transform.meatStockKg > 0 ? (
-            <ActionCard key="tr-stock" title="Voir stock viande" text="Produits finis issus de l'abattage." onClick={() => onNavigate?.('achats_stock', { tab: 'Stock', stockContext: 'viande', contextMessage: 'Stock viande produit par l\'élevage (avicole ou animaux).' })} />
-          ) : null,
-          transform.sanitaryDocs?.length ? (
-            <ActionCard key="tr-docs" title="Documents sanitaires" text="Certificats et preuves liés aux sorties." onClick={() => onNavigate?.('documents_rapports')} />
-          ) : null,
-        ].filter(Boolean)}
+        title="Viande & transformation"
+        intro="Sorties récentes, stock viande produit et documents sanitaires."
       >
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          {[
+            { label: 'Sorties récentes', value: fmtNumber(transform.recentCount), tone: transform.recentCount ? 'good' : 'warn' },
+            { label: 'Stock viande (kg)', value: transform.meatStockKg > 0 ? fmtNumber(transform.meatStockKg) : '—', tone: transform.meatStockKg ? 'good' : 'warn' },
+            { label: 'Lignes stock', value: fmtNumber(transform.meatStockLines) },
+            { label: 'Docs sanitaires', value: fmtNumber(transform.sanitaryDocs?.length || 0) },
+          ].map((s) => (
+            <ElevageStatCard key={s.label} label={s.label} value={s.value} tone={s.tone || 'neutral'} />
+          ))}
+        </div>
         {transform.recent?.length ? (
           <ul className="space-y-1 text-sm">
             {transform.recent.map((row) => (
@@ -226,8 +268,19 @@ export default function ProductionHub({
               </li>
             ))}
           </ul>
-        ) : null}
-      </ProductionBlock>
+        ) : (
+          <p className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#8a7456]">Aucune transformation enregistrée.</p>
+        )}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <ActionCard key="tr-hub" title="Journal transformation" text="Abattages, mortalités, ventes." onClick={() => setTab('Transformation')} />
+          {transform.meatStockKg > 0 ? (
+            <ActionCard key="tr-stock" title="Stock viande" text="Produits finis issus abattage." onClick={() => onNavigate?.('achats_stock', { tab: 'Stock', stockContext: 'viande', contextMessage: 'Stock viande produit par l\'élevage (avicole ou animaux).' })} />
+          ) : null}
+          {transform.sanitaryDocs?.length ? (
+            <ActionCard key="tr-docs" title="Documents sanitaires" text="Certificats liés aux sorties." onClick={() => onNavigate?.('documents_rapports')} />
+          ) : null}
+        </div>
+      </CollapsibleBlock>
     </div>
   );
 }

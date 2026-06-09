@@ -32,17 +32,17 @@ test('Production — carte "Stock œufs & tablettes" présente', () => {
   assert.match(productionHubSrc, /Stock œufs & tablettes/);
 });
 
-test('Production — sections métier équilibrées', () => {
-  assert.match(productionHubSrc, /Œufs & tablettes/);
-  assert.match(productionHubSrc, /Poulets de chair/);
-  assert.match(productionHubSrc, /Bovins \/ embouche/);
-  assert.match(productionHubSrc, /Transformation \/ viande/);
+test('Production — sections métier orientées rendement', () => {
+  assert.match(productionHubSrc, /Œufs & rendement ponte/);
+  assert.match(productionHubSrc, /Chair — rendement/);
+  assert.match(productionHubSrc, /Bovins — GMQ/);
+  assert.match(productionHubSrc, /Viande & transformation/);
 });
 
 test('Production — aliments non affichés comme production principale', () => {
   assert.doesNotMatch(productionHubSrc, /Aliments & emballages/);
   assert.doesNotMatch(productionHubSrc, /Stock aliment/);
-  assert.match(productionHubSrc, /intrants/);
+  assert.match(productionHubSrc, /Alimentation/);
 });
 
 test('navigateToEggStock — contexte Achats & Stock Stock', () => {
