@@ -18,7 +18,7 @@ import {
   INVESTISSEURS_TABS,
 } from '../../../src/utils/commercialNavigation.js';
 import { SIMULATED_DATA_MODE_KEY } from '../../../src/utils/uiPreferences.js';
-import { moduleSeedMap } from '../../../src/utils/mockData.js';
+import { horizonFarmSimulationSeed } from '../../../src/utils/horizonFarmSimulationSeed.js';
 
 const ERROR_PATTERN = /ERREUR MODULE|is not defined|useAppData must be used|cannot read properties of undefined|useApp must be used/i;
 
@@ -82,7 +82,7 @@ export function buildBaseProps(overrides = {}) {
 }
 
 export function buildSimulatedProps(overrides = {}) {
-  const m = moduleSeedMap;
+  const m = horizonFarmSimulationSeed;
   return buildBaseProps({
     animaux: m.animaux || [],
     lots: m.avicole || m.lots || [],
@@ -91,7 +91,14 @@ export function buildSimulatedProps(overrides = {}) {
     fournisseurs: m.fournisseurs || [],
     cultures: m.cultures || [],
     salesOrders: m.sales_orders || [],
+    salesOrdersAll: m.sales_orders || [],
+    orderItems: m.sales_order_items || [],
+    payments: m.payments || [],
+    paymentsAll: m.payments || [],
+    deliveries: m.deliveries || [],
+    invoices: m.invoices || [],
     transactions: m.finances || [],
+    transactionsAll: m.finances || [],
     documents: m.documents || [],
     taches: m.taches || [],
     alertes: m.alertes_center || [],
@@ -102,16 +109,17 @@ export function buildSimulatedProps(overrides = {}) {
     businessEvents: m.business_events || [],
     sensors: m.sensor_devices || [],
     cameras: m.camera_devices || [],
+    rows: m.sales_orders || [],
     ...overrides,
   });
 }
 
-export function withSimulatedMode(enabled, fn) {
+export async function withSimulatedMode(enabled, fn) {
   const prev = globalThis.localStorage.getItem(SIMULATED_DATA_MODE_KEY);
   if (enabled) globalThis.localStorage.setItem(SIMULATED_DATA_MODE_KEY, '1');
   else globalThis.localStorage.removeItem(SIMULATED_DATA_MODE_KEY);
   try {
-    return fn();
+    return await fn();
   } finally {
     if (prev === null) globalThis.localStorage.removeItem(SIMULATED_DATA_MODE_KEY);
     else globalThis.localStorage.setItem(SIMULATED_DATA_MODE_KEY, prev);

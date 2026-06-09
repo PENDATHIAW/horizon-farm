@@ -31,19 +31,22 @@ export function writeUiSettings(settings = {}) {
 }
 
 export function isSimulatedDataModeEnabled() {
-  if (typeof window === 'undefined') return false;
-  const params = new URLSearchParams(window.location.search || '');
-  if (params.get('simulated') === '1' || params.get('demo') === '1') {
-    window.localStorage.setItem(SIMULATED_DATA_MODE_KEY, '1');
-    window.localStorage.setItem(DEMO_MODE_KEY, '1');
+  const storage = typeof window !== 'undefined' ? window.localStorage : globalThis.localStorage;
+  if (!storage) return false;
+  const params = typeof window !== 'undefined' && window.location
+    ? new URLSearchParams(window.location.search || '')
+    : null;
+  if (params?.get('simulated') === '1' || params?.get('demo') === '1') {
+    storage.setItem(SIMULATED_DATA_MODE_KEY, '1');
+    storage.setItem(DEMO_MODE_KEY, '1');
     return true;
   }
-  if (params.get('simulated') === '0' || params.get('demo') === '0') {
-    window.localStorage.removeItem(SIMULATED_DATA_MODE_KEY);
-    window.localStorage.removeItem(DEMO_MODE_KEY);
+  if (params?.get('simulated') === '0' || params?.get('demo') === '0') {
+    storage.removeItem(SIMULATED_DATA_MODE_KEY);
+    storage.removeItem(DEMO_MODE_KEY);
     return false;
   }
-  return window.localStorage.getItem(SIMULATED_DATA_MODE_KEY) === '1' || window.localStorage.getItem(DEMO_MODE_KEY) === '1';
+  return storage.getItem(SIMULATED_DATA_MODE_KEY) === '1' || storage.getItem(DEMO_MODE_KEY) === '1';
 }
 
 export function setSimulatedDataMode(enabled) {
