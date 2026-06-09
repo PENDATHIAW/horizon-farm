@@ -24,6 +24,8 @@ import ElevageActivityPnlPanel from './elevage/ElevageActivityPnlPanel.jsx';
 import ElevageProfitabilityKpis from './elevage/ElevageProfitabilityKpis.jsx';
 import ElevageInsightPanel from './elevage/ElevageInsightPanel.jsx';
 import ElevageMobileToolbar from './elevage/ElevageMobileToolbar.jsx';
+import ProductionHub from './elevage/ProductionHub.jsx';
+import { buildProductionHubSnapshot } from '../utils/productionHubMetrics.js';
 import { buildElevageActivityPnl, isBovinAnimal, isChairLot, isPondeuseLot } from '../utils/elevageActivityPnl.js';
 import { buildElevageCostAwareInsights } from '../utils/elevageIaInsights.js';
 import { buildElevageInvestorReport, exportElevageInvestorPdf } from '../utils/elevageExport.js';
@@ -153,10 +155,6 @@ function Summary({
     </CollapsibleAdvancedSection>
     <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><h2 className="text-lg font-black text-[#2f2415]">Parcours métier</h2><p className="mt-2 text-sm leading-relaxed text-[#8a7456]">Production, transformation, alimentation, reproduction et santé — sans dupliquer Animaux/Avicole.</p><div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6"><ActionCard title="Cycles & bandes" text="Quand lancer, réformer, vendre." onClick={() => setTab('Cycles')} /><ActionCard title="Production" text="Œufs, ponte, rendements." onClick={() => setTab('Production')} /><ActionCard title="Transformation" text="Abattage, réforme, mortalité." onClick={() => setTab('Transformation')} /><ActionCard title="Alimentation" text="Distribution et consommation." onClick={() => setTab('Alimentation')} /><ActionCard title="Reproduction" text="Naissances et gestations." onClick={() => setTab('Reproduction')} /><ActionCard title="Santé" text="Soins, vaccins, alertes." onClick={() => setTab('Santé')} /></div></section>
   </div>;
-}
-function ProductionHub({ data, setTab, onNavigate, onOpenWorkflow }) {
-  const recent = data.productionLogs.slice(0, 8);
-  return <BusinessHub title="Production" intro="Œufs, ponte, croissance et rendements — workflow officiel avec entrée stock." stats={[{ label: 'Ramassages', value: fmtNumber(data.productionLogs.length), tone: 'good' }, { label: 'Lots pondeuses', value: fmtNumber(data.pondeuses), tone: 'good' }, { label: 'Lots chair', value: fmtNumber(data.chair) }, { label: '7 derniers jours', value: fmtNumber(data.eggs7d), tone: 'good' }]} extra={recent.length ? <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><h3 className="font-black text-[#2f2415]">Derniers ramassages</h3>{recent.map((row) => <LogRow key={row.id || row.date} title={String(row.date || row.created_at || '—').slice(0, 10)} detail={row.lot_nom || row.lot_id || 'Lot'} value={`${fmtNumber(row.oeufs_produits || row.eggs_count || 0)} œufs`} />)}</section> : null}><ActionCard title="+ Ramassage œufs" text="Workflow officiel — log, stock œufs, emballage." onClick={() => onOpenWorkflow?.('eggs')} /><ActionCard title="Production avicole" text="Ponte, chair, mortalité, historique." onClick={() => setTab('Avicole')} /><ActionCard title="Stock œufs / aliment" text="Impact ponte sur stock — Achats & Stock." onClick={() => onNavigate?.('achats_stock')} /></BusinessHub>;
 }
 function TransformationHub({ data, setTab, onNavigate, onOpenWorkflow, animalBridgeProps, avicoleBridgeProps }) {
   const salesCount = data.transformationSalesCount ?? data.transformationRows?.filter((r) => r.kind === 'vente').length ?? 0;
@@ -313,8 +311,23 @@ export default function ElevageRecoveredModule(props) {
       pondeuseLots: lots.filter(isPondeuseLot),
       chairLots: lots.filter(isChairLot),
       bovins: animals.filter(isBovinAnimal),
+      productionSnapshot: buildProductionHubSnapshot({
+        lots,
+        animaux: animals,
+        productionLogs,
+        stocks,
+        feedLogs,
+        healthEvents: health,
+        transformationRows: (() => {
+          const trPayments = rowsOf(props.payments, paymentsCrud, periodFiltered);
+          return buildElevageTransformationRows({ animals, lots, salesOrders, businessEvents, payments: trPayments });
+        })(),
+        documents: rowsOf(props.documents, documentsCrud, periodFiltered),
+        opportunities,
+        marginContext: { feedLogs, alimentationLogs: feedLogs, productionLogs, healthEvents: health, businessEvents },
+      }),
     };
-  }, [animals, lots, health, productionLogs, feedLogs, stocks, opportunities, salesOrders, businessEvents, props.payments, paymentsCrud, periodFiltered]);
+  }, [animals, lots, health, productionLogs, feedLogs, stocks, opportunities, salesOrders, businessEvents, props.payments, props.documents, paymentsCrud, documentsCrud, periodFiltered]);
 
   const workflowContext = useElevageWorkflowContext({
     lots,
@@ -466,7 +479,7 @@ export default function ElevageRecoveredModule(props) {
         toast.success('Rapport Élevage généré');
       }}
     />
-  ) : tab === 'Animaux' ? <AnimauxV2 {...animalProps} /> : tab === 'Avicole' ? <AvicoleV10 {...avicoleProps} /> : tab === 'Alimentation' ? <FeedingHub data={data} setTab={setTab} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} /> : tab === 'Santé' ? <SanteV8 {...healthProps} /> : tab === 'Reproduction' ? <ReproductionHub data={data} setTab={setTab} /> : tab === 'Production' ? <ProductionHub data={data} setTab={setTab} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} /> : tab === 'Transformation' ? <TransformationHub data={data} setTab={setTab} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} animalBridgeProps={animalProps} avicoleBridgeProps={avicoleProps} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="elevage" onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="elevage" periodFiltered={periodFiltered} lots={lots} animaux={animals} productionLogs={productionLogs} alimentationLogs={feedLogs} transactions={rowsOf(props.transactions, financesCrud, periodFiltered)} salesOrders={salesOrders} onNavigate={props.onNavigate} />;
+  ) : tab === 'Animaux' ? <AnimauxV2 {...animalProps} /> : tab === 'Avicole' ? <AvicoleV10 {...avicoleProps} /> : tab === 'Alimentation' ? <FeedingHub data={data} setTab={setTab} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} /> : tab === 'Santé' ? <SanteV8 {...healthProps} /> : tab === 'Reproduction' ? <ReproductionHub data={data} setTab={setTab} /> : tab === 'Production' ? <ProductionHub snapshot={data.productionSnapshot} setTab={setTab} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} /> : tab === 'Transformation' ? <TransformationHub data={data} setTab={setTab} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} animalBridgeProps={animalProps} avicoleBridgeProps={avicoleProps} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="elevage" onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="elevage" periodFiltered={periodFiltered} lots={lots} animaux={animals} productionLogs={productionLogs} alimentationLogs={feedLogs} transactions={rowsOf(props.transactions, financesCrud, periodFiltered)} salesOrders={salesOrders} onNavigate={props.onNavigate} />;
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Élevage</h1><p className="mt-1 text-sm text-[#8a7456]">Animaux, avicole, alimentation, santé, reproduction, transformation — IA proactive et rentabilité fiable.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}<HeyHorizonQuickAsk moduleKey="elevage" onNavigate={props.onNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" /></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé module </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div></div></section>

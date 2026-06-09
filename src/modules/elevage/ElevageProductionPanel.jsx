@@ -21,7 +21,7 @@ function LayerHelpBanner() {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-export default function ElevageProductionPanel({ data, setTab, animalProps, avicoleProps, horizonDraft, onCloseDraft, stats, recent, onOpenWorkflow }) {
+export default function ElevageProductionPanel({ setTab, animalProps, avicoleProps, horizonDraft, onCloseDraft, stats, recent, onOpenWorkflow }) {
   const activeLots = useMemo(() => (avicoleProps.rows || []).filter(avicoleHasActiveBirds), [avicoleProps.rows]);
   const { wrapUpdate } = useAnimalWorkflowHandlers({ props: animalProps, species: 'Bovin', opportunities: avicoleProps.opportunities || [] });
   const stockCrud = useCrudModule('stock');
@@ -40,7 +40,7 @@ export default function ElevageProductionPanel({ data, setTab, animalProps, avic
         <div className={ELEVAGE_ACTION_GRID}>
           <ElevageActionCard title="+ Ramassage œufs" text="Production, entrée stock œufs et traçabilité." onClick={() => (onOpenWorkflow ? onOpenWorkflow('eggs') : emitHorizonForm('avicole', 'egg_production', 'Ramassage œufs', { date: today() }))} />
           <ElevageActionCard title="+ Pesée animal" text="Enregistrer le poids d'un animal du cheptel." onClick={() => emitHorizonForm('animaux', 'animal_weighing', 'Pesée animal', { date: today() })} />
-          <ElevageActionCard title="Stock œufs / aliment" text="Voir l'impact sur Achats & Stock." onClick={() => animalProps.onNavigate?.('achats_stock')} />
+          <ElevageActionCard title="Stock œufs & tablettes" text="Voir les œufs produits et tablettes dans Achats & Stock." onClick={() => animalProps.onNavigate?.('achats_stock', { tab: 'Stock', stockContext: 'oeufs', contextMessage: 'Stock généré par la production d\'œufs.' })} />
         </div>
       </ElevageSection>
 
@@ -85,7 +85,7 @@ export default function ElevageProductionPanel({ data, setTab, animalProps, avic
         <div className={ELEVAGE_ACTION_GRID}>
           <ElevageActionCard icon={Egg} title="Lots pondeuses" text="Voir fiches et effectifs avicole." onClick={() => setTab('Avicole')} />
           <ElevageActionCard icon={Scale} title="Pesées animaux" text="Cheptel bovin, ovin, caprin." onClick={() => setTab('Animaux')} />
-          <ElevageActionCard icon={Milk} title="Stock œufs / aliment" text="Achats & Stock." onClick={() => animalProps.onNavigate?.('achats_stock')} />
+          <ElevageActionCard icon={Milk} title="Stock œufs & tablettes" text="Achats & Stock — produits de ponte." onClick={() => animalProps.onNavigate?.('achats_stock', { tab: 'Stock', stockContext: 'oeufs' })} />
         </div>
       </ElevageSection>
     </div>
