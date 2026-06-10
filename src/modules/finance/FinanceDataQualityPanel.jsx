@@ -13,7 +13,11 @@ export default function FinanceDataQualityPanel({ dataQuality = null, onNavigate
         </div>
       </div>
 
-      {dataQuality.empty ? (
+      {dataQuality.insufficientData ? (
+        <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          En attente de données — les contrôles qualité s'activent après la première vente, paiement ou dépense.
+        </p>
+      ) : dataQuality.empty ? (
         <p className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           Vos calculs financiers s'appuient sur des données suffisamment complètes.
         </p>

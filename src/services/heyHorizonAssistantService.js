@@ -2,6 +2,7 @@ import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase.js';
 import { interpretHorizonCommand, updateHorizonDraft } from './aiIntentEngine.js';
 import { detectStrategicQuery } from './heyHorizonStrategicAnswers.js';
+import { detectFinancePilotageQuery, buildFinancePilotageAnswer } from './heyHorizonFinanceAnswers.js';
 import { detectProductionQuestion } from './productionStrategicAnswers.js';
 import { saveLocalRecommendation } from './aiRecommendationsService.js';
 import { interpretVoiceCommand } from './voiceCommands.js';
@@ -243,6 +244,31 @@ export function processHeyHorizonCommand(rawText = '', { dataMap = {}, currentDr
   const cleaned = normalizeHeyHorizonText(rawText);
   if (!cleaned) {
     return { kind: 'empty', assistantText: 'Je suis prêt. Dis-moi l’action à faire : vaccin, vente, stock, œufs, tâche…' };
+  }
+  const financeQueryType = detectFinancePilotageQuery(rawText);
+  if (financeQueryType) {
+    const strategic = buildFinancePilotageAnswer(financeQueryType, dataMap);
+    saveLocalRecommendation({
+      type: 'finance_qa',
+      text: rawText,
+      module: 'finance_pilotage',
+      confidence_score: strategic.confidence,
+      action: strategic.title,
+      source_engine: 'finance_rules',
+    });
+    return {
+      kind: 'strategic',
+      strategic,
+      draft: null,
+      assistantText: strategic.summary,
+      journalEntry: {
+        type: 'finance_qa',
+        text: rawText,
+        module: 'finance_pilotage',
+        confidence_score: strategic.confidence,
+        action: strategic.title,
+      },
+    };
   }
   const productionType = detectProductionQuestion(rawText);
   if (productionType) {
