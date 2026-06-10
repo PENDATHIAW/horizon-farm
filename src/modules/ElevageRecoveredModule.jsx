@@ -479,7 +479,18 @@ export default function ElevageRecoveredModule(props) {
         toast.success('Rapport Élevage généré');
       }}
     />
-  ) : tab === 'Animaux' ? <AnimauxV2 {...animalProps} /> : tab === 'Avicole' ? <AvicoleV10 {...avicoleProps} /> : tab === 'Alimentation' ? <FeedingHub data={data} setTab={setTab} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} /> : tab === 'Santé' ? <SanteV8 {...healthProps} /> : tab === 'Reproduction' ? <ReproductionHub data={data} setTab={setTab} /> : tab === 'Production' ? <ProductionHub snapshot={data.productionSnapshot} setTab={setTab} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} /> : tab === 'Transformation' ? <TransformationHub data={data} setTab={setTab} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} animalBridgeProps={animalProps} avicoleBridgeProps={avicoleProps} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="elevage" onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="elevage" periodFiltered={periodFiltered} lots={lots} animaux={animals} productionLogs={productionLogs} alimentationLogs={feedLogs} transactions={rowsOf(props.transactions, financesCrud, periodFiltered)} salesOrders={salesOrders} onNavigate={props.onNavigate} />;
+  ) : tab === 'Animaux' ? <AnimauxV2 {...animalProps} /> : tab === 'Avicole' ? <AvicoleV10 {...avicoleProps} /> : tab === 'Alimentation' ? <FeedingHub data={data} setTab={setTab} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} /> : tab === 'Santé' ? <SanteV8 {...healthProps} /> : tab === 'Reproduction' ? <ReproductionHub data={data} setTab={setTab} /> : tab === 'Production' ? (
+        <ProductionHub
+          snapshot={data.productionSnapshot}
+          lots={lots}
+          animaux={animals}
+          marginContext={data.marginContext}
+          transformationRows={data.transformationRows}
+          setTab={setTab}
+          onNavigate={props.onNavigate}
+          onOpenWorkflow={openWorkflow}
+        />
+      ) : tab === 'Transformation' ? <TransformationHub data={data} setTab={setTab} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} animalBridgeProps={animalProps} avicoleBridgeProps={avicoleProps} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="elevage" onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="elevage" periodFiltered={periodFiltered} lots={lots} animaux={animals} productionLogs={productionLogs} alimentationLogs={feedLogs} transactions={rowsOf(props.transactions, financesCrud, periodFiltered)} salesOrders={salesOrders} onNavigate={props.onNavigate} />;
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Élevage</h1><p className="mt-1 text-sm text-[#8a7456]">Animaux, avicole, alimentation, santé, reproduction, transformation — IA proactive et rentabilité fiable.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}<HeyHorizonQuickAsk moduleKey="elevage" onNavigate={props.onNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" /></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé module </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div></div></section>

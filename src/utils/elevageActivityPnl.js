@@ -27,7 +27,8 @@ export function isBovinAnimal(row = {}) {
 }
 
 export function isOvinAnimal(row = {}) {
-  return animalLabel(row).includes('ovin') || animalLabel(row).includes('mouton');
+  const l = animalLabel(row);
+  return (l.includes('ovin') && !l.includes('bovin')) || l.includes('mouton');
 }
 
 export function isCaprinAnimal(row = {}) {

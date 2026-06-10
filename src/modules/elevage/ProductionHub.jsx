@@ -1,6 +1,8 @@
 import { Beef, Drumstick, Egg, Factory } from 'lucide-react';
 import { fmtCurrency, fmtNumber } from '../../utils/format';
 import { navigateToEggStock } from '../../utils/productionNavigation.js';
+import { PRODUCTION_FINANCE_LABELS, PRODUCTION_FINANCE_SOURCE } from '../../utils/productionFinancialTruth.js';
+import ProductionDiagnosticPanel from './ProductionDiagnosticPanel.jsx';
 
 function ActionCard({ title, text, onClick }) {
   return (
@@ -50,6 +52,10 @@ function ProductionBlock({ icon: Icon, title, intro, stats = [], empty, actions,
 
 export default function ProductionHub({
   snapshot = {},
+  lots = [],
+  animaux = [],
+  marginContext = {},
+  transformationRows = [],
   setTab,
   onNavigate,
   onOpenWorkflow,
@@ -77,6 +83,10 @@ export default function ProductionHub({
         <p className="mt-2 text-xs text-[#8a7456]">
           La production végétale (cultures, récoltes) est suivie dans le module <b>Cultures</b> ou le Dashboard global.
         </p>
+        <p className="mt-3 rounded-xl border border-[#eadcc2] bg-white px-3 py-2 text-xs text-[#8a7456]">
+          <b className="text-[#2f2415]">{PRODUCTION_FINANCE_LABELS.marginGross}</b> = {PRODUCTION_FINANCE_LABELS.revenue} − {PRODUCTION_FINANCE_LABELS.costTotal}.
+          {PRODUCTION_FINANCE_LABELS.marginNote}. Source : {PRODUCTION_FINANCE_SOURCE}
+        </p>
         <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
           <div className="rounded-2xl border border-[#eadcc2] bg-white p-3">
             <p className="text-xs text-[#8a7456]">Œufs vendables (7 j)</p>
@@ -96,6 +106,14 @@ export default function ProductionHub({
           </div>
         </div>
       </section>
+
+      <ProductionDiagnosticPanel
+        lots={lots}
+        animaux={animaux}
+        transformationRows={transformationRows}
+        meatStockKg={transform.meatStockKg}
+        marginContext={marginContext}
+      />
 
       <ProductionBlock
         icon={Egg}
@@ -187,7 +205,7 @@ export default function ProductionHub({
                 {k.weight > 0 ? ` · ${k.weight} kg` : ''}
                 {k.targetWeight > 0 ? ` / cible ${k.targetWeight} kg` : ''}
                 {k.gmq ? ` · GMQ ${fmtNumber(k.gmq)} g/j` : ''}
-                {k.reliable && k.margin != null ? ` · marge ${fmtCurrency(k.margin)}` : ''}
+                {k.reliable && k.margin != null ? ` · ${PRODUCTION_FINANCE_LABELS.marginGross} ${fmtCurrency(k.margin)}` : ''}
               </li>
             ))}
           </ul>
