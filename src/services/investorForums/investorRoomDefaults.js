@@ -150,10 +150,17 @@ export function applyInvestorRoomDefaults(manual = {}) {
   fill('ai_differentiator', 'Une entreprise agricole avec son propre ERP et modules IA : pas seulement une ferme, un modèle reproductible.');
   fill('ai_modules', 'WhatsApp Horizon · OCR Intelligent · Brief vocal · Forecast Engine · Horizon Advisor');
 
-  if (!m.why_invest?.length) m.why_invest = DEFAULT_WHY_INVEST;
+  if (!Array.isArray(m.why_invest) || !m.why_invest.length) m.why_invest = DEFAULT_WHY_INVEST.map((card) => ({ ...card }));
   if (!m.seeking || typeof m.seeking !== 'object') m.seeking = { ...DEFAULT_SEEKING };
   else m.seeking = { ...DEFAULT_SEEKING, ...m.seeking };
-  if (!m.timeline?.length) m.timeline = DEFAULT_TIMELINE;
+  if (!Array.isArray(m.timeline) || !m.timeline.length) {
+    m.timeline = DEFAULT_TIMELINE.map((year) => ({ ...year, items: [...(year.items || [])] }));
+  } else {
+    m.timeline = m.timeline.map((year) => ({
+      ...year,
+      items: Array.isArray(year?.items) ? year.items : [],
+    }));
+  }
   if (!m.field_priorities || typeof m.field_priorities !== 'object') {
     m.field_priorities = { ...DEFAULT_FIELD_PRIORITIES };
   }

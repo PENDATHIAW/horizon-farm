@@ -17,6 +17,8 @@ const TIMELINE_STATUS = {
   realise: { label: 'Réalisé', cls: 'bg-emerald-100 text-emerald-900 border-emerald-200' },
 };
 
+const asArray = (value, fallback = []) => (Array.isArray(value) ? value : fallback);
+
 function formatKpiValue(item) {
   if (item.format === 'money') return fmtCurrency(Number(item.value || 0));
   if (item.format === 'count') return `${Number(item.value || 0).toLocaleString('fr-FR')}${item.suffix || ''}`;
@@ -172,7 +174,8 @@ export function InvestorVisionMissionSection({ profile, editing, manualDraft, on
 }
 
 export function InvestorWhyInvestSection({ profile, editing, manualDraft, onPatch }) {
-  const cards = (editing ? manualDraft.why_invest : profile.investorRoom?.whyInvest) || DEFAULT_WHY_INVEST;
+  const rawCards = editing ? manualDraft.why_invest : profile.investorRoom?.whyInvest;
+  const cards = asArray(rawCards).length ? asArray(rawCards) : DEFAULT_WHY_INVEST;
   return (
     <RoomCard title="Pourquoi investir ?" icon={TrendingUp}>
       <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -288,7 +291,10 @@ export function InvestorKpiSection({ profile, readiness }) {
 }
 
 export function InvestorTimelineSection({ profile, editing, manualDraft, onPatch }) {
-  const timeline = (editing ? manualDraft.timeline : profile.investorRoom?.timeline) || DEFAULT_TIMELINE;
+  const rawTimeline = editing ? manualDraft.timeline : profile.investorRoom?.timeline;
+  const timeline = asArray(rawTimeline).length
+    ? asArray(rawTimeline).map((year) => ({ ...year, items: asArray(year?.items) }))
+    : DEFAULT_TIMELINE;
   const cycleStatus = (yearIndex, itemIndex) => {
     const statuses = ['a_faire', 'en_cours', 'realise'];
     const current = timeline[yearIndex]?.items?.[itemIndex]?.status || 'a_faire';
@@ -296,7 +302,7 @@ export function InvestorTimelineSection({ profile, editing, manualDraft, onPatch
     const next = statuses[(idx + 1) % statuses.length];
     const nextTimeline = timeline.map((year, yi) => (yi !== yearIndex ? year : {
       ...year,
-      items: year.items.map((item, ii) => (ii !== itemIndex ? item : { ...item, status: next })),
+      items: asArray(year.items).map((item, ii) => (ii !== itemIndex ? item : { ...item, status: next })),
     }));
     onPatch?.({ timeline: nextTimeline });
   };
