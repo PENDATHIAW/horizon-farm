@@ -46,7 +46,7 @@ export function buildFinancePilotageInput(props = {}) {
 export function buildOfficialTreasuryView(props = {}) {
   const input = buildFinancePilotageInput(props);
   const finance = consolidateFinance(input);
-  const payables = n(finance.dettesFournisseurs);
+  const payables = n(finance.payablesTotal ?? finance.dettesFournisseurs);
   const treasuryAvailable = n(finance.cashNet);
   const receivables = n(finance.creancesReelles);
   const netPosition = treasuryAvailable + receivables - payables;
@@ -252,6 +252,7 @@ export function buildProfitabilityView(props = {}) {
       commercial: profit.caTotal,
     },
     marginRate: profit.caTotal > 0 ? Number(((profit.operatingResult / profit.caTotal) * 100).toFixed(1)) : null,
+    operatingMarginLabel: 'Taux résultat opérationnel',
   };
 }
 

@@ -190,7 +190,7 @@ export default function FinanceReconciliationPanel({
                         ) : null}
                         {row.kind === 'payment_without_finance' && aiCoveredRowIds.has(row.id) ? (
                           <span className="text-[11px] text-violet-700 font-semibold self-center">
-                            Proposition IA disponible ci-dessus
+                            Signaux métier disponibles ci-dessus
                           </span>
                         ) : null}
                         {row.kind === 'finance_without_payment' ? (

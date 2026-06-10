@@ -65,6 +65,7 @@ const isIncome = (r = {}) => ['entree', 'entrée', 'income', 'recette', 'vente']
 const isExpense = (r = {}) => ['sortie', 'expense', 'depense', 'dépense', 'achat', 'charge'].includes(low(r.type || r.nature || r.sens || r.transaction_type));
 const isUnpaid = (r = {}) => ['impaye', 'impayé', 'partiel', 'a_payer', 'à payer', 'due', 'unpaid'].includes(low(r.statut || r.status || r.payment_status));
 const isReceivable = (r = {}) => isUnpaid(r) && (['vente', 'client', 'recette'].some((x) => low(`${r.type || ''} ${r.categorie || ''} ${r.libelle || ''}`).includes(x)) || r.client_id);
+const isSalesLikeReceivable = (r = {}) => ['vente', 'ventes', 'client', 'clients'].some((key) => low(`${r.categorie || ''} ${r.module_lie || ''} ${r.source_module || ''} ${r.libelle || ''}`).includes(key)) || r.client_id || r.order_id || r.sale_id;
 const isPayable = (r = {}) => isUnpaid(r) && (['achat', 'fournisseur', 'depense', 'dépense', 'charge'].some((x) => low(`${r.type || ''} ${r.categorie || ''} ${r.libelle || ''}`).includes(x)) || r.fournisseur_id);
 const remainingOf = (order = {}, payments = []) => Math.max(0, n(order.montant_total ?? order.total ?? order.amount) - n(order.montant_paye ?? order.paid_amount) - payments.filter((p) => String(p.order_id || p.sale_id) === String(order.id)).reduce((s, p) => s + n(p.montant ?? p.amount), 0));
 
@@ -80,7 +81,7 @@ function Section({ icon: Icon, title, children }) {
 function FinanceIaPanel({ findings = [], predictions = [], onApply, busyId, onNavigate }) {
   if (!findings.length && !predictions.length) return null;
   return (
-    <Section icon={BrainCircuit} title="Surveillance IA finance">
+    <Section icon={BrainCircuit} title="Signaux métier finance">
       <p className="mb-3 text-sm text-[#8a7456]">Trésorerie, preuves, créances, dettes et rentabilité croisées avec le reste de l'ERP.</p>
       <div className="space-y-2">
         {findings.slice(0, 6).map((f) => (
@@ -193,13 +194,13 @@ function RentabilitePanel({ profitability = null, consolidationProps = {} }) {
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
         <h2 className="text-lg font-black text-[#2f2415]">Rentabilité par activité</h2>
         <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Stat label="Rentabilité globale" value={fmtCurrency(profit.operatingResult)} tone={profit.operatingResult >= 0 ? 'good' : 'bad'} />
+          <Stat label="Résultat opérationnel" value={fmtCurrency(profit.operatingResult)} tone={profit.operatingResult >= 0 ? 'good' : 'bad'} />
           <Stat label="Aviculture" value={fmtCurrency(activityBreakdown.aviculture)} />
           <Stat label="Bovins / animaux" value={fmtCurrency(activityBreakdown.bovins)} />
           <Stat label="Cultures" value={fmtCurrency(activityBreakdown.cultures)} />
           <Stat label="CA commercial" value={fmtCurrency(activityBreakdown.commercial)} tone="good" />
           <Stat label="Marge brute activités" value={fmtCurrency(profit.grossActivityMargin)} tone={profit.grossActivityMargin >= 0 ? 'good' : 'bad'} />
-          <Stat label="Taux de marge" value={marginRate != null ? `${marginRate} %` : '—'} />
+          <Stat label="Taux résultat opérationnel" value={marginRate != null ? `${marginRate} %` : '—'} />
           <Stat label="Charges structure" value={fmtCurrency(profit.structureCharges)} tone="warn" />
         </div>
       </section>
@@ -243,7 +244,7 @@ function Summary({
         <Stat label={TREASURY_LABELS.netPosition} value={fmtCurrency(data.netPosition)} tone={data.netPosition >= 0 ? 'good' : 'bad'} />
         <Stat label={TREASURY_LABELS.realMargin} value={fmtCurrency(data.realMargin)} tone={data.realMargin >= 0 ? 'good' : 'bad'} />
         <Stat label="Sans preuve" value={fmtNumber(data.missingProof)} tone={data.missingProof ? 'warn' : 'good'} />
-        <Stat label="Signaux IA" value={fmtNumber(data.healthFindings.length)} tone={data.healthFindings.length ? 'warn' : 'good'} />
+        <Stat label="Signaux métier" value={fmtNumber(data.healthFindings.length)} tone={data.healthFindings.length ? 'warn' : 'good'} />
       </div>
       <FinanceIaPanel findings={data.healthFindings} predictions={data.healthPredictions} onApply={onApply} busyId={busyId} onNavigate={onNavigate} />
       <MissingProofPanel items={data.missingProofItems} setTab={setTab} />
@@ -293,6 +294,7 @@ export default function FinancePilotageRecoveredModule(props) {
   const culturesCrud = useCrudModule('cultures');
   const equipementsCrud = useCrudModule('equipements');
   const stockCrud = useCrudModule('stock');
+  const stockMovementsCrud = useCrudModule('stock_movements');
   const santeCrud = useCrudModule('sante');
   const alimentationCrud = useCrudModule('alimentation_logs');
   const productionCrud = useCrudModule('production_oeufs_logs');
@@ -303,6 +305,7 @@ export default function FinancePilotageRecoveredModule(props) {
   const lots = rowsOf(props.lots || props.lotsData, lotsCrud, false);
   const cultures = rowsOf(props.cultures, culturesCrud, false);
   const stocks = rowsOf(props.stocks, stockCrud, false);
+  const stockMovements = rowsOf(props.stockMovements, stockMovementsCrud, false);
   const sante = rowsOf(props.sante || props.vaccins, santeCrud, periodFiltered);
   const alimentationLogs = rowsOf(props.alimentationLogs, alimentationCrud, periodFiltered);
   const productionLogs = rowsOf(props.productionLogs, productionCrud, periodFiltered);
@@ -325,6 +328,7 @@ export default function FinancePilotageRecoveredModule(props) {
     lots,
     cultures,
     stocks,
+    stockMovements,
     sante,
     alimentationLogs,
     productionLogs,
@@ -334,7 +338,7 @@ export default function FinancePilotageRecoveredModule(props) {
     transactionsAll: transactions,
     salesOrdersAll: salesOrdersAll.length ? salesOrdersAll : salesOrders,
     paymentsAll: paymentsAll.length ? paymentsAll : payments,
-  }), [transactions, salesOrders, salesOrdersAll, payments, paymentsAll, animaux, lots, cultures, stocks, sante, alimentationLogs, productionLogs, suppliers, investments, businessEvents]);
+  }), [transactions, salesOrders, salesOrdersAll, payments, paymentsAll, animaux, lots, cultures, stocks, stockMovements, sante, alimentationLogs, productionLogs, suppliers, investments, businessEvents]);
 
   const data = useMemo(() => {
     const treasury = buildOfficialTreasuryView(consolidationProps);
@@ -342,13 +346,41 @@ export default function FinancePilotageRecoveredModule(props) {
     const missingProof = transactions.filter((r) => amount(r) > 0 && !hasProof(r)).length;
     const snapshotOrders = salesOrdersAll.length ? salesOrdersAll : salesOrders;
     const snapshotPayments = paymentsAll.length ? paymentsAll : payments;
-    const orderReceivables = snapshotOrders.map((order) => ({ id: order.id, title: order.client_nom || order.customer_name || 'Vente', detail: `${order.date || order.created_at || '—'} · commande`, amount: remainingOf(order, snapshotPayments) })).filter((row) => row.amount > 0);
-    const txReceivables = transactions.filter(isReceivable).map((row) => ({ id: row.id, title: row.libelle || row.title || 'Créance', detail: `${row.date || row.created_at || '—'} · finance`, amount: amount(row) }));
+    const consolidated = treasury.finance || {};
+    const orderReceivables = arr(consolidated.orderSettlements)
+      .filter((item) => n(item.remaining) > 0)
+      .map((item) => ({
+        id: item.order?.id,
+        title: item.order?.client_nom || item.order?.customer_name || 'Vente',
+        detail: `${item.order?.date || item.order?.created_at || '—'} · commande`,
+        amount: n(item.remaining),
+      }));
+    const txReceivables = transactions
+      .filter(isReceivable)
+      .filter((row) => !isSalesLikeReceivable(row))
+      .map((row) => ({
+        id: row.id,
+        title: row.libelle || row.title || 'Créance',
+        detail: `${row.date || row.created_at || '—'} · finance`,
+        amount: amount(row),
+      }));
     const receivables = [...orderReceivables, ...txReceivables];
-    const supplierDebt = suppliers.reduce((s, r) => s + n(r.dettes ?? r.dette ?? r.solde ?? r.balance), 0);
-    const txPayables = transactions.filter(isPayable).map((row) => ({ id: row.id, title: row.libelle || row.title || 'Dette', detail: `${row.date || row.created_at || '—'} · finance`, amount: amount(row) }));
-    const supplierPayables = suppliers.filter((r) => n(r.dettes ?? r.dette ?? r.solde) > 0).map((r) => ({ id: r.id, title: r.nom || r.name || 'Fournisseur', detail: 'Dette fournisseur', amount: n(r.dettes ?? r.dette ?? r.solde) }));
-    const payables = [...txPayables, ...supplierPayables];
+    const supplierDebt = n(consolidated.dettesFournisseurs);
+    const txPayables = transactions.filter(isPayable).map((row) => ({
+      id: row.id,
+      title: row.libelle || row.title || 'Dette',
+      detail: `${row.date || row.created_at || '—'} · charge à payer`,
+      amount: amount(row),
+    }));
+    const supplierPayables = suppliers
+      .filter((r) => n(r.dettes ?? r.dette ?? r.solde) > 0)
+      .map((r) => ({
+        id: r.id,
+        title: r.nom || r.name || 'Fournisseur',
+        detail: 'Dette fournisseur (passif)',
+        amount: n(r.dettes ?? r.dette ?? r.solde),
+      }));
+    const payables = [...supplierPayables, ...txPayables];
     const healthSnap = buildFinanceHealthSnapshot({ transactions, salesOrders: snapshotOrders, payments: snapshotPayments, investments, stocks });
     const coherenceRows = buildFinanceCoherenceRows(transactions, salesOrders, payments, tasks);
     const missingProofItems = aggregateMissingProofTransactions(transactions);
@@ -368,9 +400,9 @@ export default function FinancePilotageRecoveredModule(props) {
       clients,
       suppliers,
       receivables,
-      receivableAmount: treasury.receivables || receivables.reduce((s, r) => s + r.amount, 0),
+      receivableAmount: treasury.receivables,
       payables,
-      payableAmount: treasury.payables || payables.reduce((s, r) => s + r.amount, 0) + supplierDebt,
+      payableAmount: treasury.payables,
       supplierDebt,
       profitAlerts,
       healthScore: healthSnap.score,
@@ -491,7 +523,7 @@ export default function FinancePilotageRecoveredModule(props) {
     setBusyId(finding.id);
     try {
       const result = await applyOneClickRecommendation(finding, actionHandlers);
-      if (result.createdTasks || result.createdAlerts) toast.success('Action IA créée');
+      if (result.createdTasks || result.createdAlerts) toast.success('Action métier créée');
       else {
         toast.success('Module ouvert');
         const target = navigationOptionsForFinding(finding);
@@ -519,6 +551,7 @@ export default function FinancePilotageRecoveredModule(props) {
     lots,
     cultures,
     stocks,
+    stockMovements,
     sante,
     alimentationLogs,
     productionLogs,
@@ -602,7 +635,7 @@ export default function FinancePilotageRecoveredModule(props) {
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Pilotage</p>
             <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Finance & Pilotage</h1>
-            <p className="mt-1 text-sm text-[#8a7456]">Trésorerie, créances, dettes — cohérence IA preuves et rentabilité.</p>
+            <p className="mt-1 text-sm text-[#8a7456]">Trésorerie, créances, dettes — signaux métier, preuves et rentabilité.</p>
             {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
           </div>
           <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div>

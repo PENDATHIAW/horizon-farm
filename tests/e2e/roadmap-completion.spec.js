@@ -80,7 +80,7 @@ test('roadmap: panneaux UI branchés dans modules actifs', () => {
     'src/modules/IssueProblemFichePanel.jsx',
     'src/modules/RhPayrollFinanceSyncPanel.jsx',
     'src/modules/EquipementsSmartFarmBridge.jsx',
-    'src/modules/FinanceReconciliationPanel.jsx',
+    'src/modules/finance/FinanceReconciliationPanel.jsx',
     'src/modules/DocumentsOrphanSyncPanel.jsx',
   ];
   files.forEach((file) => {

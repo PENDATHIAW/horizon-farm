@@ -465,8 +465,6 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
   const encaisse = financePeriods.encaissePeriod;
   const resultat = financePeriods.resultatPeriod;
   const depenses = financePeriods.depensesPeriod;
-  const receivable = salesAll.reduce((sum, order) => sum + remainingForOrder(order, paymentsAll), 0);
-  const openSales = openSalesCount(salesAll, paymentsAll);
   const transactionsAll = arr(props.transactionsAll?.length ? props.transactionsAll : props.transactions);
   const financeConsolidated = consolidateFinance(buildConsolidationInput({
     ...props,
@@ -475,6 +473,9 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
     transactions: transactionsAll,
   }));
   const cashNet = financeConsolidated.cashNet;
+  const receivable = financeConsolidated.creancesReelles;
+  const payables = financeConsolidated.payablesTotal ?? financeConsolidated.dettesFournisseurs;
+  const openSales = openSalesCount(salesAll, paymentsAll);
   const cultureSummary = computeCultureSummary(cultures);
   const startupMode = isDashboardStartupMode(props);
   const stockBas = stocks.filter(isCriticalStock).length;
@@ -519,6 +520,7 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
     depenses,
     resultat,
     receivable,
+    payables,
     openSales,
     cashNet,
     cultureSummary,
