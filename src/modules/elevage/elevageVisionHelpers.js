@@ -84,12 +84,13 @@ export function computeAnimalMargin(animal = {}, context = {}) {
 }
 
 export function formatMarginDetail(row = {}) {
+  const marginLabel = 'Marge brute technique';
   if (row.reliable) return fmtCurrency(row.margin);
   const parts = [];
   if (row.missing?.length) parts.push(`manque : ${row.missing.join(', ')}`);
   if (!row.revenue && row.cost > 0) parts.push('revenu non renseigné');
-  if (parts.length) return `Rentabilité non fiable : ${parts.join(' · ')}`;
-  return 'Rentabilité non fiable : alimentation ou santé non renseignée.';
+  if (parts.length) return `${marginLabel} non fiable : ${parts.join(' · ')}`;
+  return `${marginLabel} non fiable : alimentation ou santé non renseignée.`;
 }
 
 export function formatMargin(row) {

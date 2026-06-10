@@ -9,7 +9,9 @@ import TachesEvolution from '../../modules/TachesEvolution.jsx';
 import EquipementsEvolution from '../../modules/EquipementsEvolution.jsx';
 import AvicoleEvolution from '../../modules/AvicoleEvolution.jsx';
 import AnimauxEvolution from '../../modules/AnimauxEvolution.jsx';
+import CulturesEvolution from '../../modules/CulturesEvolution.jsx';
 import ClientsEvolution from '../../modules/ClientsEvolution.jsx';
+import { buildElevageChartNarratives } from '../../utils/elevageChartNarratives.js';
 
 import { ChartPeriodContext } from '../charts/chartPeriodContext';
 
@@ -81,8 +83,22 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
         </div>
       ), periodFiltered);
     case 'elevage':
+      const chartNarratives = buildElevageChartNarratives({
+        lots: arr(props.lots),
+        animaux: arr(props.animaux),
+        productionLogs: arr(props.productionLogs),
+        alimentationLogs: arr(props.alimentationLogs),
+      });
       return withChartPeriod((
         <div className="space-y-4">
+          {chartNarratives.length ? (
+            <section className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4 space-y-2">
+              <h2 className="text-sm font-black text-[#2f2415]">Lecture des courbes</h2>
+              {chartNarratives.map((line) => (
+                <p key={line} className="text-sm text-[#7d6a4a]">{line}</p>
+              ))}
+            </section>
+          ) : null}
           <AvicoleEvolution rows={arr(props.lots)} productionLogs={arr(props.productionLogs)} alimentationLogs={arr(props.alimentationLogs)} transactions={arr(props.transactions)} onNavigate={onNavigate} />
           <AnimauxEvolution rows={arr(props.animaux)} alimentationLogs={arr(props.alimentationLogs)} salesOrders={arr(props.salesOrders)} payments={arr(props.payments)} onNavigate={onNavigate} />
         </div>
@@ -136,6 +152,8 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
       ), periodFiltered);
     case 'rh':
       return withChartPeriod(<EquipementsEvolution rows={arr(props.equipements)} transactions={arr(props.transactions)} onNavigate={onNavigate} />, periodFiltered);
+    case 'cultures':
+      return withChartPeriod(<CulturesEvolution rows={arr(props.cultures)} onNavigate={onNavigate} />, periodFiltered);
     default:
       return (
         <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-5 text-sm text-[#8a7456]">

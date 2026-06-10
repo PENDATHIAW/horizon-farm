@@ -18,22 +18,40 @@ Document de référence pour éviter les imports obsolètes sans suppression bru
 
 **Règle :** tout nouveau code Élevage doit passer par `ElevageRecoveredModule` ou les utilitaires V3 ci-dessus.
 
-## Panels orphelins (non montés — NE PAS MODIFIER sans vérifier)
+## Panels legacy supprimés (POST-GEL P1-08)
 
-Ces fichiers existent dans `src/modules/elevage/` mais ne sont **pas** importés par `ElevageRecoveredModule` :
+Les panels orphelins suivants ont été retirés — ne pas réintroduire :
 
-| Fichier | Statut | Remplacé par |
-|---------|--------|--------------|
-| `ElevageAlimentationPanel.jsx` | Orphelin | Hub inline `FeedingHub` dans `ElevageRecoveredModule` |
-| `ElevageRepairPanel.jsx` | Orphelin | Workflows + intégrité ERP |
-| `ElevageProductionPanel.jsx` | Orphelin | Hub inline `ProductionHub` |
-| `ElevageCyclesPanel.jsx` | Orphelin | `VisionCyclesTab` |
-| `ElevageSantePanel.jsx` | Orphelin | `SanteV8` direct |
-| `ElevageReproductionPanel.jsx` | Orphelin | Hub inline `ReproductionHub` |
-| `ElevageTransformationPanel.jsx` | Orphelin | Hub inline `TransformationHub` + bridges |
-| `ElevageFeedingDistribution.jsx` | Orphelin | `ElevageWorkflowPanels` (modal feeding) |
+| Fichier supprimé | Remplacé par |
+|------------------|--------------|
+| `ElevageAlimentationPanel.jsx` | Hub inline `FeedingHub` dans `ElevageRecoveredModule` |
+| `ElevageFeedingDistribution.jsx` | `ElevageWorkflowPanels` (modal feeding) |
+| `ElevageRepairPanel.jsx` | Workflows + intégrité ERP |
+| `ElevageProductionPanel.jsx` | Hub inline `ProductionHub` |
+| `ElevageSantePanel.jsx` | `SanteV8` direct |
+| `ElevageReproductionPanel.jsx` | Hub inline `ReproductionHub` |
+| `ElevageTransformationPanel.jsx` | Hub inline `TransformationHub` + bridges |
 
-**Règle :** ne pas étendre ces panels. Si une fonctionnalité est demandée, l'implémenter dans le module canonique ou un utilitaire V3.
+| Fichier conservé | Rôle |
+|------------------|------|
+| `ElevageCyclesPanel.jsx` | **Canonique** onglet Cycles Élevage (`VisionCyclesTab` reste pour Centre IA / Vision) |
+
+**Règle :** toute évolution passe par le module canonique ou un utilitaire V3.
+
+## Multi-fermes (`VITE_ENABLE_FARM_FILTER`)
+
+Source : `src/utils/farmScope.js` → `isFarmScopeFilteringEnabled()`, `filterRowsByFarmScope()`.
+
+| Comportement | Détail |
+|--------------|--------|
+| Filtrage actif | Uniquement si `VITE_ENABLE_FARM_FILTER=true` (build) ou `forceFilter` / `filteringEnabled` explicite |
+| Par défaut (mono-ferme) | Pas de filtrage — toutes les lignes visibles (régression zéro) |
+| Lignes sans `farm_id` | Toujours visibles même avec filtre actif |
+| Scope « toutes les fermes » | `mode: 'all'` — aucun filtre par ferme |
+
+Zones Élevage vérifiées POST-GEL P1-09 (KPI, Production, Résumé, Cycles) : données passent par `periodFiltered` / `farmScope` du module parent quand le filtre est activé ; sans flag, comportement identique à mono-ferme.
+
+Stamp création logs : `resolveElevageLogFarmId` + migration `20260607120000_elevage_logs_farm_id.sql`.
 
 ## Alias Avicole V2–V9 (ne pas importer directement)
 
@@ -108,3 +126,11 @@ Stamp création : `resolveElevageLogFarmId` + `FARM_SCOPED_CREATE_MODULES` (`ali
 | `tests/unit/elevageV3.test.js` | P&L activité, KPIs, IA, export |
 | `tests/unit/elevageBroilerScenario.test.js` | Scénario chair bout-en-bout |
 | `tests/unit/moduleTabsStability.test.js` | Tous onglets Élevage (dont simulé) |
+| `tests/unit/elevagePostGelP1.test.js` | Corrections POST-GEL P1 (marge, santé, reproduction, voix) |
+| `tests/unit/elevageProductionHub.test.js` | Hub Production V2 (œufs, chair, bovins, ovins, caprins) |
+
+## Vérité financière unique (POST-GEL P1-01)
+
+Libellé canonique : **Marge brute technique** = Revenus − coût de production unifié ERP.
+
+Source : `src/utils/productionFinancialTruth.js` (`MARGIN_GROSS_DEFINITION`, `PRODUCTION_FINANCE_LABELS`).

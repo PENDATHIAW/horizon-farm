@@ -1,4 +1,4 @@
-import { BarChart3, Beef, ChevronDown, ClipboardList, PackageCheck, Scale, Scissors, X } from 'lucide-react';
+import { BarChart3, Beef, ChevronDown, ClipboardList, PackageCheck, Scale, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard.jsx';
@@ -7,11 +7,13 @@ import { makeId } from '../utils/ids';
 import { ANIMAL_SPECIES_TABS, countAnimalsBySpecies, filterAnimalsBySpecies, restoreSpeciesOnAnimalPayload } from '../utils/animalSpecies';
 import { mergeSaleReadiness, shouldSyncSaleOpportunity } from '../utils/saleReadiness';
 import AnimalCycleHealthPanel from './AnimalCycleHealthPanel.jsx';
-import PrepareTransformationPanel from './elevage/PrepareTransformationPanel.jsx';
 import AnimauxEvolution from './AnimauxEvolution.jsx';
 import AnimauxSpeciesFocused from './AnimauxSpeciesFocused.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
+import AnimalScanBar from '../components/elevage/AnimalScanBar.jsx';
+import { calculateUnifiedAnimalCost } from '../services/unifiedCostService.js';
+import { fmtCurrency } from '../utils/format';
 
 const toNumber = (value = 0) => Number(value || 0);
 const today = () => new Date().toISOString().slice(0, 10);
@@ -117,6 +119,10 @@ export default function AnimauxV2(props) {
         window.setTimeout(() => document.getElementById('animaux-module-root')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
         return;
       }
+      const birthModes = ['naissance_ferme', 'reproduction_interne'];
+      const mode = String(draft?.draft_fields?.mode_acquisition || '').toLowerCase();
+      const birthCreation = draft?.form_type === 'animal_creation' && birthModes.includes(mode);
+      if (birthCreation) return;
       if (event.detail?.module === 'animaux' && ['animal_weighing', 'animal_loss', 'animal_creation'].includes(draft?.form_type)) {
         setHorizonDraft(draft);
         const wanted = draft?.draft_fields?.type ? speciesFromType(draft.draft_fields.type) : species;
@@ -200,14 +206,37 @@ export default function AnimauxV2(props) {
   const selectedActivity = speciesActivityMap[species] || 'bovins';
   const commonWorkflowProps = { salesOrders, payments, transactions, deliveriesList: deliveries, deliveries, businessEvents, opportunities, onCreateBusinessEvent: props.onCreateBusinessEvent || businessEventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || businessEventsCrud.refresh, onUpdateBusinessEvent: props.onUpdateBusinessEvent || businessEventsCrud.update, onDeleteBusinessEvent: props.onDeleteBusinessEvent || businessEventsCrud.remove, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh };
 
+  const valorisationSample = useMemo(() => {
+    const sample = activeSpeciesRows[0];
+    if (!sample) return null;
+    const unified = calculateUnifiedAnimalCost({
+      animal: sample,
+      alimentationLogs: props.alimentationLogs || [],
+      vaccins: props.vaccins || [],
+    });
+    return { name: sample.name || sample.nom || sample.id, total: unified.totalCost };
+  }, [activeSpeciesRows, props.alimentationLogs, props.vaccins]);
+
   return <div id="animaux-module-root" className="space-y-6 animaux-mobile-structured"><style>{`@media (max-width: 640px){.animaux-mobile-structured .rounded-2xl{border-radius:18px}.animaux-mobile-structured table{font-size:12px}.animaux-mobile-structured th,.animaux-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.animaux-mobile-structured .text-2xl{font-size:1.35rem}.animaux-mobile-structured .grid{gap:.75rem}.animaux-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
+    <AnimalScanBar
+      animaux={props.rows || []}
+      label="Scan boucle / photo → fiche animal"
+      onSelectAnimal={(animal) => {
+        setSpecies(speciesFromType(animal.espece || animal.type || species));
+        window.setTimeout(() => document.getElementById('animaux-module-root')?.scrollIntoView({ behavior: 'smooth' }), 80);
+      }}
+    />
+    {valorisationSample?.total > 0 ? (
+      <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+        Valorisation (moteur Finance) · <b>{valorisationSample.name}</b> : coût unifié {fmtCurrency(valorisationSample.total)} — aligné Rentabilité Finance.
+      </p>
+    ) : null}
     {horizonDraft ? <div id="hey-horizon-animal-card"><HeyHorizonAnimalCard draft={horizonDraft} rows={props.rows || []} species={species} onCreate={wrapCreate} onUpdate={wrapUpdate} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} onClose={() => setHorizonDraft(null)} /></div> : null}
     <ModuleSection icon={Beef} title="Cheptel"><div className="grid grid-cols-1 md:grid-cols-3 gap-3">{ANIMAL_SPECIES_TABS.map((tab) => <button key={tab} type="button" onClick={() => setSpecies(tab)} className={`rounded-2xl border px-4 py-3 text-left transition-all ${species === tab ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}><p className="text-xs uppercase tracking-wide">Espèce</p><p className="font-black">{tab}s</p><p className="text-xs opacity-75">{counts[tab] || 0} animaux · {filterAnimalsBySpecies(props.rows || [], tab).filter(isOperationalAnimal).length} actifs</p></button>)}</div></ModuleSection>
     <AnimalCycleHealthPanel rows={props.rows || []} alimentationLogs={props.alimentationLogs || []} vaccins={props.vaccins || []} salesOrders={salesOrders} onNavigate={props.onNavigate} />
     <div className="rounded-2xl border border-[#d6c3a0] bg-white p-4"><p className="text-xs uppercase tracking-[0.2em] text-[#9a6b12] font-black">Espèce active</p><p className="mt-1 text-xl font-black text-[#2f2415]">{species}s</p><p className="mt-1 text-sm text-[#8a7456]">{activeSpeciesRows.length} actif(s) · {historicalSpeciesRows.length} en historique</p></div>
     <ObjectivePerformanceCard dataMap={dataMap} activity={selectedActivity} title={`Objectif ${species}s`} compact onNavigate={props.onNavigate} />
     <ModuleSection icon={PackageCheck} title={`${species}s`} subtitle={`${historicalSpeciesRows.length} animal(aux) en historique.`}><AnimauxSpeciesFocused {...props} {...commonWorkflowProps} species={species} rows={activeSpeciesRows} onCreate={wrapCreate} onUpdate={wrapUpdate} /></ModuleSection>
-    <ModuleSection icon={Scissors} title="Préparer transformation" subtitle="Canal officiel : onglet Transformation."><PrepareTransformationPanel mode="animal" rows={activeSpeciesRows} onPrepareTransformation={props.onPrepareTransformation} /></ModuleSection>
     <ModuleSection icon={PackageCheck} title="Charges directes"><DirectChargesBridge title={`Charges directes ${species.toLowerCase()}s`} targetType="animaux" targets={activeSpeciesRows} businessEvents={businessEvents} onCreateBusinessEvent={props.onCreateBusinessEvent || businessEventsCrud.create} onUpdateBusinessEvent={props.onUpdateBusinessEvent || businessEventsCrud.update} onDeleteBusinessEvent={props.onDeleteBusinessEvent || businessEventsCrud.remove} onRefreshBusinessEvents={props.onRefreshBusinessEvents || businessEventsCrud.refresh} /></ModuleSection>
     <CollapsibleSection icon={ClipboardList} title={`Cycle et historique · ${species}s`} defaultOpen={false}><LifecycleHistoryPanel mode="animaux" rows={speciesRows} salesOrders={salesOrders} deliveries={deliveries} businessEvents={businessEvents} /></CollapsibleSection>
     <CollapsibleSection icon={BarChart3} title={`Évolution · ${species}s`} defaultOpen={false}><AnimauxEvolution rows={speciesRows} alimentationLogs={props.alimentationLogs || []} vaccins={props.vaccins || []} businessEvents={businessEvents} opportunities={opportunities} salesOrders={salesOrders} payments={payments} transactions={transactions} onNavigate={props.onNavigate} /></CollapsibleSection>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, BarChart3, Bird, CheckCircle2, ChevronDown, ClipboardList, Drumstick, Egg, Info, PackageCheck, Scissors, X } from 'lucide-react';
+import { AlertTriangle, BarChart3, Bird, CheckCircle2, ChevronDown, ClipboardList, Drumstick, Egg, Info, PackageCheck, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import MiniMetricCard from '../components/MiniMetricCard.jsx';
 import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard.jsx';
@@ -12,8 +12,6 @@ import AvicoleBase from './AvicoleBase.jsx';
 import AvicoleCycleHealthPanel from './AvicoleCycleHealthPanel.jsx';
 import AvicoleSaleReadinessBridge from './AvicoleSaleReadinessBridge.jsx';
 import AvicoleEvolution from './AvicoleEvolution.jsx';
-import AvicoleJournalsBridge from './AvicoleJournalsBridge.jsx';
-import PrepareTransformationPanel from './elevage/PrepareTransformationPanel.jsx';
 import DirectChargesBridge from './DirectChargesBridge.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
 
@@ -212,6 +210,9 @@ export default function AvicoleV10(props) {
 
   return <div className="space-y-6 avicole-mobile-final">
     <style>{`.avicole-mobile-final .objective-card-grid{align-items:stretch}@media(max-width:640px){.avicole-mobile-final .rounded-2xl{border-radius:18px}.avicole-mobile-final table{font-size:12px}.avicole-mobile-final th,.avicole-mobile-final td{padding-left:10px!important;padding-right:10px!important}.avicole-mobile-final .text-2xl{font-size:1.35rem}.avicole-mobile-final .grid{gap:.75rem}.avicole-mobile-final .overflow-x-auto{max-width:100vw}}`}</style>
+    <section className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
+      <b>Commande vocale</b> — ex. « 12 tablettes ramassées » ou « 2 poulets morts » : draft Avicole ouvert, <b>validation humaine obligatoire</b> avant enregistrement.
+    </section>
     {horizonDraft ? <div id="hey-horizon-avicole-card"><HeyHorizonAvicoleCard draft={horizonDraft} rows={activeScopedRows} onUpdate={wrappedUpdate} onCreateProduction={props.onCreateProduction} onCommitEggProduction={props.onCommitEggProduction} onRefreshProduction={props.onRefreshProduction} onCreateBusinessEvent={props.onCreateBusinessEvent} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onClose={() => setHorizonDraft(null)} onCreateEggOpportunity={createOrReactivateEggOpportunity} /></div> : null}
     <div className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm">
       <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><Bird size={15} aria-hidden="true" /> Avicole</p>
@@ -224,8 +225,11 @@ export default function AvicoleV10(props) {
     {activity === 'pondeuse' ? <LayerHelpBanner /> : null}
     <div className="objective-card-grid grid grid-cols-1 gap-4">{activity === 'pondeuse' ? <ObjectivePerformanceCard dataMap={dataMap} activity="oeufs" title="Objectif œufs / pondeuses" compact onNavigate={props.onNavigate} /> : <ObjectivePerformanceCard dataMap={dataMap} activity="poulets_chair" title="Objectif poulets de chair" compact onNavigate={props.onNavigate} />}</div>
     <ModuleSection icon={PackageCheck} title={`Lots actifs · ${selectedLabel}`} subtitle={`${historicalScopedRows.length} lot(s) en historique.`}><AvicoleBase {...operationalProps} /></ModuleSection>
-    {activity === 'pondeuse' ? <ModuleSection icon={Egg} title="Journal de ponte et charges"><AvicoleJournalsBridge {...operationalProps} rows={activeScopedRows} productionLogs={scopedProductionLogs} businessEvents={businessEvents} /><DirectChargesBridge title="Charges directes pondeuses" targetType="avicole" targets={activeScopedRows} businessEvents={businessEvents} onCreateBusinessEvent={props.onCreateBusinessEvent} onUpdateBusinessEvent={props.onUpdateBusinessEvent} onDeleteBusinessEvent={props.onDeleteBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} /></ModuleSection> : null}
-    {activity === 'chair' ? <ModuleSection icon={Scissors} title="Préparer transformation" subtitle="Canal officiel : onglet Transformation."><PrepareTransformationPanel mode="lot" activity="chair" rows={activeScopedRows} onPrepareTransformation={props.onPrepareTransformation} /></ModuleSection> : null}
+    {activity === 'pondeuse' ? (
+      <ModuleSection icon={PackageCheck} title="Charges directes pondeuses">
+        <DirectChargesBridge title="Charges directes pondeuses" targetType="avicole" targets={activeScopedRows} businessEvents={businessEvents} onCreateBusinessEvent={props.onCreateBusinessEvent} onUpdateBusinessEvent={props.onUpdateBusinessEvent} onDeleteBusinessEvent={props.onDeleteBusinessEvent} onRefreshBusinessEvents={props.onRefreshBusinessEvents} />
+      </ModuleSection>
+    ) : null}
     <CollapsibleSection icon={ClipboardList} title={`Cycle et historique · ${selectedLabel}`} defaultOpen={false}><LifecycleHistoryPanel mode="avicole" rows={scopedRows} salesOrders={salesOrders} deliveries={props.deliveriesList || props.deliveries || []} businessEvents={businessEvents} /></CollapsibleSection>
     <CollapsibleSection icon={BarChart3} title={`Évolution · ${selectedLabel}`} defaultOpen={false}><AvicoleEvolution rows={scopedRows} productionLogs={scopedProductionLogs} alimentationLogs={props.alimentationLogs || []} businessEvents={businessEvents} salesOrders={salesOrders} payments={payments} transactions={transactions} opportunities={historyProps.opportunities || []} onNavigate={props.onNavigate} /></CollapsibleSection>
   </div>;

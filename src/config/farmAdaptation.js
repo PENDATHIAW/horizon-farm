@@ -265,8 +265,8 @@ const MODULE_TAB_PRIORITY = Object.freeze({
     caprins: ['Animaux', 'Santé', 'Alimentation'],
   },
   cultures: {
-    cultures: ['Résumé', 'Graphiques'],
-    maraichage: ['Résumé', 'Graphiques'],
+    cultures: ['Pilotage', 'Parcelles & Cultures', 'Récoltes', 'Intrants & Météo', 'Graphiques'],
+    maraichage: ['Pilotage', 'Parcelles & Cultures', 'Récoltes', 'Intrants & Météo', 'Santé & Protection', 'Graphiques'],
   },
 });
 
