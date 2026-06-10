@@ -6,7 +6,9 @@ import { WHATSAPP_DEMO_MESSAGES } from '../../src/services/whatsappHorizon/whats
 import {
   analyzeWhatsAppMessage,
   validateWhatsAppDraft,
+  executeWhatsAppDraft,
 } from '../../src/services/whatsappHorizon/whatsappDraftService.js';
+import { isHotelTerminusInvestorOrder } from '../../src/services/whatsappHorizon/whatsappInvestorOrder.js';
 import { AI_DRAFT_SOURCES, TARGET_WORKFLOWS } from '../../src/services/aiGateway/aiActionDrafts.js';
 import { validateDraftForExecution } from '../../src/services/aiGateway/aiSafetyGuard.js';
 
@@ -26,6 +28,11 @@ const payments = [
   { id: 'PAY-1', order_id: 'CMD-001', montant: 45000, montant_paye: 45000 },
 ];
 
+const terminusStocks = [
+  { id: 'STK-OEUFS', produit: 'Plateaux œufs', prix_vente_unitaire: 3500, quantite: 200 },
+  { id: 'STK-POULET', produit: 'Poulet chair', prix_vente_unitaire: 4500, quantite: 100 },
+];
+
 const dataMap = {
   lots,
   avicole: lots,
@@ -35,6 +42,12 @@ const dataMap = {
   payments,
   paymentsAll: payments,
   stock: [{ id: 'STK-ALI', produit: 'aliment', quantite: 50 }],
+};
+
+const terminusDataMap = {
+  ...dataMap,
+  stock: terminusStocks,
+  stocks: terminusStocks,
 };
 
 test('detectWhatsAppScenario distingue encaissement, livraison, mortalité', () => {
@@ -124,4 +137,44 @@ test('aucune écriture directe : brouillon seul sans user_validated', () => {
   const parsed = parseWhatsAppCommand(WHATSAPP_DEMO_MESSAGES[0].text, dataMap);
   assert.notEqual(parsed.drafts[0].user_validated, true);
   assert.equal(parsed.drafts[0].required_validation, true);
+});
+
+test('Hôtel Terminus → brouillon commitCommercialSale multi-lignes', () => {
+  const msg = WHATSAPP_DEMO_MESSAGES.find((m) => m.id === 'demo-hotel-terminus').text;
+  assert.equal(isHotelTerminusInvestorOrder(msg), true);
+  const result = parseWhatsAppCommand(msg, terminusDataMap);
+  assert.equal(result.scenario, 'investor_hotel_order');
+  const primary = result.drafts[0];
+  assert.equal(primary.target_workflow, TARGET_WORKFLOWS.COMMERCIAL_SALE);
+  assert.equal(primary.intent, 'investor_hotel_order');
+  const lines = primary.draft?.fields?.lines || [];
+  assert.equal(lines.length, 2);
+  assert.equal(primary.draft?.fields?.payment_method, 'virement');
+  assert.equal(primary.draft?.fields?.payment_status, 'credit');
+});
+
+test('Hôtel Terminus exécution → commitCommercialSale via handlers', async () => {
+  const msg = WHATSAPP_DEMO_MESSAGES.find((m) => m.id === 'demo-hotel-terminus').text;
+  const parsed = parseWhatsAppCommand(msg, terminusDataMap);
+  const validated = validateWhatsAppDraft(parsed.drafts[0], { confirmCreateClient: true });
+  const created = { orders: [], items: [], clients: [], events: [] };
+  const handlers = {
+    onCreateClient: async (row) => {
+      created.clients.push(row);
+      return row;
+    },
+    onCreateOrder: async (row) => { created.orders.push(row); return row; },
+    onCreateItem: async (row) => { created.items.push(row); return row; },
+    onCreateDelivery: async () => ({}),
+    onCreateInvoice: async () => ({}),
+    onCreateDocument: async () => ({}),
+    onCreatePayment: async () => null,
+    onCreateBusinessEvent: async (row) => { created.events.push(row); return row; },
+  };
+  const result = await executeWhatsAppDraft(validated, { handlers, dataMap: terminusDataMap });
+  assert.equal(result.ok, true);
+  assert.equal(result.workflow, TARGET_WORKFLOWS.COMMERCIAL_SALE);
+  assert.equal(created.orders.length, 1);
+  assert.equal(created.items.length, 2);
+  assert.ok(created.clients.some((c) => /terminus/i.test(c.nom || c.name || '')));
 });

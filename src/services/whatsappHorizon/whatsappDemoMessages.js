@@ -35,8 +35,10 @@ export const WHATSAPP_DEMO_MESSAGES = [
   },
   {
     id: 'demo-hotel-terminus',
-    label: 'Commande Hôtel Terminus (investisseur)',
+    label: 'Commande Hôtel Terminus (investisseur — pipeline commitCommercialSale)',
     module: 'Commercial',
+    pipeline: 'commitCommercialSale',
+    executionNote: 'Message démo ; exécution bout-en-bout après validation utilisateur (multi-lignes, créance virement).',
     text: 'Bonjour, ici Hôtel Terminus. Je commande 50 plateaux d\'œufs et 30 kg de poulets. Facturez-moi, paiement par virement.',
   },
 ];

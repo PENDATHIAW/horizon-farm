@@ -7,6 +7,9 @@ import { fmtCurrency } from './format.js';
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v) => Number(v || 0);
 
+/** Génération auto des relances ; envoi WhatsApp toujours manuel (anti-faux envoi). */
+export const COMMERCIAL_RELANCE_WHATSAPP_POLICY = 'manual_send_only';
+
 export const RELANCE_LEVELS = [
   { key: 'j2', label: 'J+2', days: 2, tone: 'courtois' },
   { key: 'j7', label: 'J+7', days: 7, tone: 'professionnel' },
@@ -107,6 +110,8 @@ export function buildScheduledRelancePlan({
         }),
         tone: level.tone,
         priority: level.key === 'j15' ? 'Urgent' : level.key === 'j7' ? 'Prioritaire' : 'Normal',
+        sendPolicy: channel === 'whatsapp' ? COMMERCIAL_RELANCE_WHATSAPP_POLICY : 'channel_default',
+        requiresManualSend: channel === 'whatsapp',
       };
     }),
   );

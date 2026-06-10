@@ -6,6 +6,34 @@ const crud = createSupabaseCrudService('business_events');
 
 export const businessEventsService = crud;
 
+/** Idempotence — évite double business_event sur même issue_key. */
+export function findDuplicateBusinessEvent(row = {}, events = []) {
+  const issueKey = clean(row.issue_key);
+  const entityId = clean(row.entity_id || row.source_record_id);
+  const eventType = lower(row.event_type || '');
+  const module = lower(row.module_source || row.source_module || '');
+
+  return arr(events).find((existing) => {
+    if (issueKey && clean(existing.issue_key) === issueKey) return true;
+    if (
+      eventType
+      && module
+      && entityId
+      && lower(existing.event_type || '') === eventType
+      && lower(existing.module_source || existing.source_module || '') === module
+      && clean(existing.entity_id || existing.source_record_id) === entityId
+      && clean(existing.linked_sale_id) === clean(row.linked_sale_id)
+    ) {
+      return true;
+    }
+    return false;
+  }) || null;
+}
+
+const arr = (v) => (Array.isArray(v) ? v : []);
+const clean = (v) => String(v || '').trim();
+const lower = (v) => clean(v).toLowerCase();
+
 export const createBusinessEvent = async ({
   event_type,
   module_source,
@@ -26,6 +54,8 @@ export const createBusinessEvent = async ({
   related_record_id = '',
   workflow_id = null,
   origin_type = 'system',
+  existingEvents = [],
+  skipDuplicate = true,
 }) => {
   try {
     const sourceModuleValue = source_module || module_source || 'system';
@@ -36,6 +66,21 @@ export const createBusinessEvent = async ({
       sourceRecordId: sourceRecordIdValue || 'unknown',
       kind: title || event_type || 'event',
     });
+
+    const payload = {
+      event_type,
+      module_source,
+      entity_type,
+      entity_id,
+      issue_key: issueKeyValue,
+      linked_sale_id,
+    };
+
+    if (skipDuplicate) {
+      const dup = findDuplicateBusinessEvent(payload, existingEvents);
+      if (dup) return dup;
+    }
+
     return await crud.create({
       id: makeId('EVT'),
       event_type,

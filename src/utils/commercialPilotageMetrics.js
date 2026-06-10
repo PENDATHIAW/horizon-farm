@@ -90,7 +90,8 @@ export function buildCommercialObjectivesView(orders = [], chartOptions = {}) {
   const dayOfMonth = now.getDate();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const dailyPace = dayOfMonth > 0 ? actual / dayOfMonth : 0;
-  const projection = Math.round(dailyPace * daysInMonth);
+  const projectionLinear = Math.round(dailyPace * daysInMonth);
+  const projectionMethod = 'linear_no_seasonality';
 
   return {
     label: month.label || 'Mois courant',
@@ -98,8 +99,10 @@ export function buildCommercialObjectivesView(orders = [], chartOptions = {}) {
     actual,
     remaining,
     attainment: month.attainment ?? (target > 0 ? Math.round((actual / target) * 100) : 0),
-    projectionEndOfMonth: projection,
-    onTrack: projection >= target,
+    projectionEndOfMonth: projectionLinear,
+    projectionLinear,
+    projectionMethod,
+    onTrack: projectionLinear >= target,
     source: 'buildMonthlyTargetAttainment',
   };
 }

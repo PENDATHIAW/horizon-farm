@@ -22,6 +22,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 export const WHATSAPP_WORKFLOW_LABELS = {
   [TARGET_WORKFLOWS.SALE]: 'Vente (commitSaleWorkflow)',
+  [TARGET_WORKFLOWS.COMMERCIAL_SALE]: 'Vente commercial (commitCommercialSale)',
   [TARGET_WORKFLOWS.PURCHASE]: 'Achat stock (commitPurchaseWorkflow)',
   [TARGET_WORKFLOWS.STOCK_PURCHASE]: 'Réception stock',
   [TARGET_WORKFLOWS.SALE_PAYMENT]: 'Encaissement (recordSalePayment)',
@@ -109,8 +110,12 @@ export async function analyzeWhatsAppMessage({
  */
 export function validateWhatsAppDraft(draft = {}, meta = {}) {
   if (!draft?.id) throw new Error('Brouillon WhatsApp invalide.');
-  if (arr(draft.missing_fields).length > 0) {
-    throw new Error(`Complétez les champs manquants : ${draft.missing_fields.join(', ')}`);
+  let missing = arr(draft.missing_fields);
+  if (meta.confirmCreateClient) {
+    missing = missing.filter((field) => field !== 'confirm_create_client');
+  }
+  if (missing.length > 0) {
+    throw new Error(`Complétez les champs manquants : ${missing.join(', ')}`);
   }
   const validated = markDraftValidated(draft, { userId: meta.userId || 'whatsapp_demo_user' });
   validated.required_validation = false;
@@ -234,6 +239,75 @@ export async function executeWhatsAppDraft(draft = {}, { handlers = {}, dataMap 
       const preview = prepareSaleWorkflow(order, context);
       const result = await commitSaleWorkflow(preview, workflowHandlers);
       await journalizeWhatsAppEvent({ message: draft.raw_input, status: 'executed', draft, handlers, meta: { workflow } });
+      return { ok: true, workflow, result };
+    }
+
+    if (workflow === TARGET_WORKFLOWS.COMMERCIAL_SALE) {
+      const { prepareCommercialSaleCommit, commitCommercialSale } = await import('../../utils/commercialSaleWorkflow.js');
+      const { buildClientPayloadFromDraft } = await import('./whatsappInvestorOrder.js');
+      const fields = draft.draft?.fields || {};
+      let form = { ...fields };
+      let clients = [...context.clients];
+
+      if (fields.create_client) {
+        const clientPayload = buildClientPayloadFromDraft(draft);
+        if (clientPayload) {
+          if (typeof handlers.onCreateClient === 'function') {
+            const created = await handlers.onCreateClient(clientPayload);
+            const clientId = created?.id || clientPayload.id;
+            form = { ...form, client_id: clientId };
+            clients = [...clients, created || { ...clientPayload, id: clientId }];
+          } else {
+            form = { ...form, client_id: clientPayload.id };
+            clients = [...clients, clientPayload];
+          }
+        }
+      }
+
+      const orderId = form.order_id || makeId('CMD');
+      const clientLabel = form.client_label || fields.client_label || 'Client';
+      const { records } = prepareCommercialSaleCommit({ form, orderId, clientLabel });
+
+      const saleHandlers = {
+        ...handlers,
+        onCreateOrder: handlers.onCreateOrder,
+        onCreateItem: handlers.onCreateItem,
+        onCreateDelivery: handlers.onCreateDelivery,
+        onCreateInvoice: handlers.onCreateInvoice,
+        onCreateDocument: handlers.onCreateDocument,
+        onCreatePayment: handlers.onCreatePayment,
+        onCreateBusinessEvent: handlers.onCreateBusinessEvent,
+        onRefreshWorkflow: handlers.onRefreshWorkflow,
+        onUpdateStock: handlers.onUpdateStock,
+        onUpdateLot: handlers.onUpdateLot,
+        onUpdateAnimal: handlers.onUpdateAnimal,
+        onUpdateCulture: handlers.onUpdateCulture,
+        onCreateFinanceTransaction: handlers.onCreateFinanceTransaction,
+        onUpdateFinanceTransaction: handlers.onUpdateFinanceTransaction,
+        onUpdateClient: handlers.onUpdateClient,
+        onCreateTask: handlers.onCreateTask,
+        onCreateAlert: handlers.onCreateAlert,
+        onUpdateOpportunity: handlers.onUpdateOpportunity,
+        onCreateTrace: handlers.onCreateTrace,
+      };
+
+      const result = await commitCommercialSale(records, saleHandlers, {
+        form,
+        clientLabel,
+        stocks: context.stocks,
+        lots: context.lots,
+        cultures: context.cultures,
+        animaux: context.animaux,
+        clients,
+        salesOrders: context.salesOrders,
+        payments: context.payments,
+        transactions: context.transactions,
+        tasks: context.tasks,
+        alertes: context.alertes,
+        sideEffectHandlers: saleHandlers,
+      });
+
+      await journalizeWhatsAppEvent({ message: draft.raw_input, status: 'executed', draft, handlers, meta: { workflow, orderId: result?.orderId } });
       return { ok: true, workflow, result };
     }
 

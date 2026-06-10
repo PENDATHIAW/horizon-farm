@@ -12,6 +12,10 @@ import {
 } from '../aiGateway/aiActionDrafts.js';
 import { proposePaymentDraft } from '../aiGateway/commercialContentGenerator.js';
 import { remainingForOrder } from '../../utils/salesStatuses.js';
+import {
+  isHotelTerminusInvestorOrder,
+  buildHotelTerminusOrderDraft,
+} from './whatsappInvestorOrder.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();
@@ -381,6 +385,10 @@ export function parseWhatsAppCommand(message = '', dataMap = {}) {
   const raw = clean(message);
   if (!raw) {
     return { drafts: [], clarify: 'Message vide — saisissez une action terrain.', phrase: raw, scenario: 'empty' };
+  }
+
+  if (isHotelTerminusInvestorOrder(raw)) {
+    return buildHotelTerminusOrderDraft(raw, dataMap);
   }
 
   const scenario = detectWhatsAppScenario(raw);

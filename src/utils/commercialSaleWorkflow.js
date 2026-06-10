@@ -11,6 +11,7 @@ import {
   buildCommercialFarmContext,
   stampFarmIdOnCommercialRecords,
   validateCommercialSaleFarmContext,
+  resolveCommercialSaleFarmId,
 } from './commercialFarmScope.js';
 import { validateSaleStockAvailability } from './commercialStockValidation.js';
 
