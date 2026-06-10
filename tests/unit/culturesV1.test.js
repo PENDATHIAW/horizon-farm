@@ -10,6 +10,12 @@ import { resolveCulturesTab } from '../../src/utils/culturesNavigation.js';
 const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const recovered = readFileSync(join(root, 'src/modules/CulturesRecoveredModule.jsx'), 'utf8');
 const workflowBridge = readFileSync(join(root, 'src/modules/CulturesWorkflowBridge.jsx'), 'utf8');
+const tabActionsBridge = readFileSync(join(root, 'src/modules/CulturesTabActionsBridge.jsx'), 'utf8');
+const culturesV3 = readFileSync(join(root, 'src/modules/CulturesV3.jsx'), 'utf8');
+const parcellesHub = readFileSync(join(root, 'src/modules/cultures/CulturesParcellesHub.jsx'), 'utf8');
+const santeHub = readFileSync(join(root, 'src/modules/cultures/CulturesSanteHub.jsx'), 'utf8');
+const recoltesHub = readFileSync(join(root, 'src/modules/cultures/CulturesRecoltesHub.jsx'), 'utf8');
+const intrantsHub = readFileSync(join(root, 'src/modules/cultures/CulturesIntrantsHub.jsx'), 'utf8');
 
 test('Cultures V1 — 10 onglets cible dans horizonVision', () => {
   const tabs = MODULE_TARGET_TABS.cultures;
@@ -37,4 +43,43 @@ test('CulturesRecoveredModule — shell ModuleTabsBar + hubs', () => {
 test('CulturesWorkflowBridge — pas de récolte prompt (workflow officiel Récoltes)', () => {
   assert.doesNotMatch(workflowBridge, /registerHarvest/);
   assert.doesNotMatch(workflowBridge, /stockCrud/);
+});
+
+test('P0-1 — récolte unique via commitCultureHarvest (pas saveHarvest)', () => {
+  assert.doesNotMatch(tabActionsBridge, /saveHarvest/);
+  assert.doesNotMatch(tabActionsBridge, /Ajouter récolte/);
+  assert.match(recoltesHub, /commitCultureHarvest/);
+  assert.match(recoltesHub, /CulturesHarvestPanel/);
+});
+
+test('P0-2 — intrants uniquement via Intrants & Météo', () => {
+  assert.match(intrantsHub, /actionsMode="input"/);
+  assert.doesNotMatch(parcellesHub, /actionsMode/);
+  assert.match(culturesV3, /embeddedMode \? null : <CulturesTabActionsBridge/);
+  const showMain = tabActionsBridge.match(/\{showMain \?[\s\S]*?\} : null\}\{showInputOnly/)?.[0] || '';
+  assert.doesNotMatch(showMain, /Utiliser intrant/);
+});
+
+test('P0-3 — pertes uniquement via Santé & Protection', () => {
+  assert.match(santeHub, /actionsMode="loss"/);
+  const showMain = tabActionsBridge.match(/\{showMain \?[\s\S]*?\} : null\}\{showInputOnly/)?.[0] || '';
+  assert.doesNotMatch(showMain, /Déclarer perte/);
+});
+
+test('P0-4 — opportunités uniquement via Récoltes', () => {
+  assert.doesNotMatch(tabActionsBridge, /Confirmer vendable/);
+  assert.doesNotMatch(tabActionsBridge, /createOpportunity/);
+  assert.match(recoltesHub, /CulturesSaleOpportunityBridge/);
+});
+
+test('P0-5 — pas de promesse caméra IA non implémentée', () => {
+  assert.doesNotMatch(santeHub, /Diagnostic caméra IA/);
+  assert.doesNotMatch(santeHub, /caméra/);
+});
+
+test('P0-6 — mode intégré Parcelles sans sous-onglets V3', () => {
+  assert.match(parcellesHub, /embeddedMode/);
+  assert.match(culturesV3, /embeddedMode \? null : <div className="flex flex-wrap gap-2"/);
+  assert.match(culturesV3, /embeddedMode \? <>\s*<DataTable title="Cultures"/s);
+  assert.match(culturesV3, /<DataTable title="Parcelles"/);
 });
