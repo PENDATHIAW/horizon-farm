@@ -8,20 +8,40 @@ import ClientContactModal from './ClientContactModal.jsx';
 import CommercialSaleReadinessPanel from './CommercialSaleReadinessPanel.jsx';
 import SellableStockPublicationBridge from './SellableStockPublicationBridge.jsx';
 import { matchOpportunityToClients, opportunityMessageForClient } from './commercialOpportunityMatching.js';
+import { mergeCommercialOpportunities, formatOpportunityUrgencyLabel } from '../../utils/commercialAutoOpportunities.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
+const urgencyTone = (urgency = '') => {
+  if (urgency === 'critique') return 'bg-red-100 text-red-900 border-red-200';
+  if (urgency === 'haute') return 'bg-amber-100 text-amber-900 border-amber-200';
+  return 'bg-sky-50 text-sky-900 border-sky-200';
+};
+
 function OpportunityCard({ row, match, onConvert, onContactClient, onContactAll }) {
   const amount = saleAmount(row) || row.estimated_value || row.montant_estime || 0;
+  const qty = row.quantity ?? row.quantite;
   return (
     <article className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-2 min-w-0">
           <Lightbulb size={16} className="text-[#9a6b12] shrink-0 mt-0.5" />
           <div className="min-w-0">
-            <b className="text-[#2f2415]">{row.title || row.libelle || row.product_name || 'Opportunité'}</b>
+            <div className="flex flex-wrap items-center gap-2">
+              <b className="text-[#2f2415]">{row.title || row.libelle || row.product_name || 'Opportunité'}</b>
+              {row.urgency ? (
+                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black uppercase ${urgencyTone(row.urgency)}`}>
+                  {formatOpportunityUrgencyLabel(row.urgency)}
+                </span>
+              ) : null}
+              {row.auto_generated ? (
+                <span className="rounded-full border border-[#eadcc2] px-2 py-0.5 text-[10px] font-black text-[#8a7456]">Auto</span>
+              ) : null}
+            </div>
             <p className="mt-1 text-sm font-bold text-[#9a6b12]">{match.label}</p>
+            {qty ? <p className="text-xs text-[#8a7456]">Qté {qty} {row.unit || ''}</p> : null}
             {row.reason ? <p className="mt-1 text-xs text-[#8a7456] line-clamp-2">{row.reason}</p> : null}
+            {row.recommendation ? <p className="mt-1 text-xs font-bold text-[#2f2415]">IA : {row.recommendation}</p> : null}
           </div>
         </div>
         <span className="shrink-0 text-lg font-black text-emerald-700">{fmtCurrency(amount)}</span>
@@ -43,10 +63,12 @@ function OpportunityCard({ row, match, onConvert, onContactClient, onContactAll 
 
 export default function CommercialOpportunitiesPanel({
   opportunities = [],
+  autoOpportunities = [],
   clients = [],
   stocks = [],
   salesOrders = [],
   lots = [],
+  cultures = [],
   animaux = [],
   setTab,
   onWhatsAppLog,
@@ -63,10 +85,15 @@ export default function CommercialOpportunitiesPanel({
 }) {
   const [contact, setContact] = useState(null);
 
-  const enriched = useMemo(() => arr(opportunities).map((row) => ({
+  const mergedOpportunities = useMemo(
+    () => mergeCommercialOpportunities(opportunities, autoOpportunities),
+    [opportunities, autoOpportunities],
+  );
+
+  const enriched = useMemo(() => arr(mergedOpportunities).map((row) => ({
     row,
     match: matchOpportunityToClients(row, clients, salesOrders),
-  })), [opportunities, clients, salesOrders]);
+  })), [mergedOpportunities, clients, salesOrders]);
 
   const pipeline = enriched.reduce((sum, { row }) => sum + saleAmount(row), 0);
 
@@ -138,7 +165,7 @@ export default function CommercialOpportunitiesPanel({
         <div>
           <p className="text-[11px] font-black uppercase tracking-wide text-[#8a7456]">Pipeline</p>
           <p className="text-2xl font-black text-[#2f2415]">{fmtCurrency(pipeline)}</p>
-          <p className="text-sm text-[#8a7456]">{opportunities.length} opportunité(s) · clients ciblés automatiquement</p>
+          <p className="text-sm text-[#8a7456]">{mergedOpportunities.length} opportunité(s) · stock, cultures, élevage — clients ciblés automatiquement</p>
         </div>
         <button type="button" onClick={openDirectSale} className="min-h-[44px] rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white">+ Vente directe</button>
       </div>
