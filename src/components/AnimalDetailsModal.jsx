@@ -3,11 +3,12 @@ import BaseModal from '../modals/BaseModal';
 import Badge from './Badge';
 import Btn from './Btn';
 import FicheTabsBar from './FicheTabsBar.jsx';
-import { fmtCurrency, fmtNumber } from '../utils/format';
+import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { buildGrowthSummary } from '../utils/animalGrowth';
 import { acquisitionLabel, calculateAge, getAnimalBirthDate, getParentLabel, reproductionStatusLabel } from '../utils/animalLifecycle';
 import { projectGrowth, saleOpportunityGuard } from '../services/growthProjectionService';
 import { recommendAnimalSalePrice } from '../services/salePricingEngine.js';
+import { buildAnimalProposedSaleDisplay, PROPOSED_PRICE_MARGIN_LABEL, ERP_REVENUE_LABEL } from '../utils/salePricePresentation.js';
 import SalePricingSummaryCard from './SalePricingSummaryCard.jsx';
 import AnimalWeightCurve from './AnimalWeightCurve.jsx';
 import { Lock } from 'lucide-react';
@@ -77,6 +78,13 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
   const opportunityGuard = saleOpportunityGuard(animal, 'animal', opportunities);
   const relatedVaccins = vaccins.filter((vaccin) => String(vaccin.animal || '').includes(animal.id) || String(vaccin.animal || '').includes(animal.tag));
   const salePricing = recommendAnimalSalePrice({ animal, alimentationLogs, vaccins: relatedVaccins, marketPrices });
+  const erpCosts = {
+    total: salePricing.totalCost || metrics.totalCost,
+    sale: metrics.salePrice || toNumber(animal.prix_vente_estime ?? animal.prix_vente),
+    marge: metrics.margin,
+    saleSource: metrics.salePrice > 0 ? 'revenu fiche' : '',
+  };
+  const proposed = buildAnimalProposedSaleDisplay(salePricing, erpCosts);
   const weighing = buildAnimalWeighingProfile(animal);
   const locked = isAnimalLocked(animal);
   const sold = animal.status === 'vendu';
@@ -151,6 +159,10 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
               <SalePricingSummaryCard
                 variant="animal"
                 salePricing={salePricing}
+                pricingBasis={proposed.pricingBasis}
+                marginOnProposed={proposed.marginOnProposed}
+                marginSource={proposed.marginSource}
+                ficheDivergeNote={proposed.ficheDivergeNote}
                 onOpenFinances={() => setTab('finances')}
               />
             ) : null}
@@ -238,11 +250,14 @@ export default function AnimalDetailsModal({ open, onClose, animal, metrics, ani
                 <Field label="Autres frais" value={fmtCurrency(metrics.otherCosts || 0)} />
                 <Field label="Cout total unifie" value={fmtCurrency(salePricing.totalCost || metrics.totalCost)} />
                 <Field label="Prix/kg Annexe (espèce)" value={salePricing.configuredPricePerKg ? `${fmtCurrency(salePricing.configuredPricePerKg)} / kg (${salePricing.speciesKey || '—'})` : 'Non configuré'} />
-                <Field label="Prix vente recommande" value={fmtCurrency(salePricing.recommendedPrice)} />
-                <Field label="Plancher acceptable" value={fmtCurrency(salePricing.minimumPrice)} />
+                <Field label="Prix proposé (moteur)" value={fmtCurrency(proposed.proposedPrice)} />
+                <Field label="Base du calcul" value={proposed.pricingBasis || '—'} />
+                <Field label="Plancher acceptable" value={fmtCurrency(proposed.minimumPrice || salePricing.minimumPrice)} />
                 <Field label="Prix marche observe" value={salePricing.marketPrice ? fmtCurrency(salePricing.marketPrice) : 'Non renseigne'} />
-                <Field label="Marge estimee" value={fmtCurrency(salePricing.margin)} />
-                <Field label="Taux marge estime" value={`${salePricing.marginRate?.toFixed?.(1) || 0}%`} />
+                <Field label={PROPOSED_PRICE_MARGIN_LABEL} value={proposed.marginOnProposed != null ? fmtCurrency(proposed.marginOnProposed) : '—'} />
+                <Field label="Taux marge sur prix proposé" value={salePricing.marginRate ? `${salePricing.marginRate.toFixed(1)}%` : '—'} />
+                <Field label={ERP_REVENUE_LABEL} value={erpCosts.sale > 0 ? fmtCurrency(erpCosts.sale) : 'Non renseigne'} />
+                <Field label="Marge brute technique (revenu fiche)" value={erpCosts.marge != null ? fmtCurrency(erpCosts.marge) : '—'} />
                 <Field label="Prix vente reel" value={sold ? fmtCurrency(metrics.salePrice) : 'Non vendu'} />
                 <Field label="Marge / perte realisee" value={metrics.margin === null ? 'En cours' : fmtCurrency(metrics.margin)} />
                 <Field label="ROI" value={metrics.marginRate ? `${metrics.marginRate.toFixed(1)}%` : 'Non calculable'} />
