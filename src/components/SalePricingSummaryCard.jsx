@@ -1,5 +1,6 @@
 import { Tag } from 'lucide-react';
 import { fmtCurrency } from '../utils/format';
+import { PRODUCTION_FINANCE_LABELS } from '../utils/productionFinancialTruth.js';
 
 /**
  * Bandeau prix de vente proposé — visible sur toutes les fiches (pas seulement l’onglet Finances).
@@ -9,6 +10,9 @@ export default function SalePricingSummaryCard({
   salePricing,
   onOpenFinances,
   compact = false,
+  /** Marge brute technique (revenu fiche − coût unifié) — alignée liste Animaux */
+  marginGross = undefined,
+  marginSource = '',
 }) {
   if (!salePricing) return null;
 
@@ -17,6 +21,12 @@ export default function SalePricingSummaryCard({
   const unitPrice = isLot ? salePricing.recommendedUnitPrice : null;
   const minimum = isLot ? salePricing.minimumUnitPrice : salePricing.minimumPrice;
   const hasPrice = Number(recommended) > 0;
+  const useTechnicalMargin = variant === 'animal' && marginGross !== undefined;
+  const marginLabel = useTechnicalMargin ? PRODUCTION_FINANCE_LABELS.marginGross : 'Marge estimée';
+  const marginDisplay = useTechnicalMargin
+    ? (marginGross != null ? fmtCurrency(marginGross) : '—')
+    : (hasPrice ? fmtCurrency(salePricing.margin) : '—');
+  const marginNegative = useTechnicalMargin ? Number(marginGross) < 0 : salePricing.margin < 0;
 
   return (
     <section
@@ -55,10 +65,13 @@ export default function SalePricingSummaryCard({
               <p className="font-black text-[#2f2415]">{fmtCurrency(salePricing.totalCost || 0)}</p>
             </div>
             <div className="rounded-xl bg-white/80 border border-emerald-200/60 px-3 py-2">
-              <p className="text-[10px] uppercase text-[#8a7456]">Marge estimée</p>
-              <p className={`font-black ${salePricing.margin < 0 ? 'text-red-600' : 'text-emerald-800'}`}>
-                {hasPrice ? fmtCurrency(salePricing.margin) : '—'}
+              <p className="text-[10px] uppercase text-[#8a7456]">{marginLabel}</p>
+              <p className={`font-black ${marginNegative ? 'text-red-600' : 'text-emerald-800'}`}>
+                {marginDisplay}
               </p>
+              {useTechnicalMargin && marginSource ? (
+                <p className="text-[10px] text-[#8a7456] mt-0.5">{marginSource}</p>
+              ) : null}
             </div>
           </div>
         ) : null}
