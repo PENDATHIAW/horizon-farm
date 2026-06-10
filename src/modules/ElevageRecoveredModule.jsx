@@ -29,6 +29,11 @@ import { buildElevageCostAwareInsights } from '../utils/elevageIaInsights.js';
 import { buildElevageInvestorReport, exportElevageInvestorPdf } from '../utils/elevageExport.js';
 import { buildElevageTransformationRows } from '../utils/elevageTransformationJournal.js';
 import ElevageTransformationJournal from '../components/ElevageTransformationJournal.jsx';
+import TransformationOfficialForm from './elevage/TransformationOfficialForm.jsx';
+import {
+  openElevageTransformationForm,
+  scrollToTransformationForm,
+} from '../utils/elevageTransformationNavigation.js';
 import AnimalSlaughterStockBridge from './AnimalSlaughterStockBridge.jsx';
 import AvicoleTransformationBridge from './AvicoleTransformationBridge.jsx';
 import AnimauxV2 from './AnimauxV2';
@@ -192,7 +197,7 @@ function ReproductionHub({ data, setTab, onOpenReproductionWorkflow }) {
     </div>
   );
 }
-function TransformationHub({ data, setTab, onNavigate, onOpenWorkflow, animalBridgeProps, avicoleBridgeProps, healthBlocks }) {
+function TransformationHub({ data, setTab, onNavigate, onOpenWorkflow, onPrepareTransformation, transformationFormProps, animalBridgeProps, avicoleBridgeProps, healthBlocks }) {
   const salesCount = data.transformationSalesCount ?? data.transformationRows?.filter((r) => r.kind === 'vente').length ?? 0;
   const sampleAnimal = data.animals?.find((a) => !isClosedAnimal(a));
   const costSample = sampleAnimal
@@ -224,7 +229,7 @@ function TransformationHub({ data, setTab, onNavigate, onOpenWorkflow, animalBri
       ) : null}
       <BusinessHub
         title="Transformation"
-        intro="Ventes animaux et lots avicole, abattages, réformes et mortalités — journal centralisé."
+        intro="Canal officiel abattage / conversion vivant → produit fini. Journal, coût de revient et stock viande après validation."
         stats={[
           { label: 'Ventes journalisées', value: fmtNumber(salesCount), tone: salesCount ? 'good' : 'warn' },
           { label: 'Animaux sortis', value: fmtNumber(data.closedAnimals) },
@@ -232,12 +237,14 @@ function TransformationHub({ data, setTab, onNavigate, onOpenWorkflow, animalBri
           { label: 'Lignes journal', value: fmtNumber(data.transformationRows?.length || 0) },
         ]}
       >
+        <ActionCard title="+ Nouvelle transformation" text="Formulaire officiel — abattage, réforme, produit fini." onClick={() => onPrepareTransformation?.({ transformType: 'abattage' })} />
         <ActionCard title="+ Mortalité lot avicole" text="Workflow officiel — effectif, alertes, perte finance." onClick={() => onOpenWorkflow?.('mortality')} />
         <ActionCard title="+ Sortie / abattage animal" text="Journal d’abattage animal → stock viande (section ci-dessous)." onClick={scrollToAbattage} />
         <ActionCard title="+ Clôturer lot" text="Réforme, prêt vente ou abattage lot." onClick={() => onOpenWorkflow?.('transform')} />
         <ActionCard title="Préparer vente" text="Ouvre Commercial pré-rempli — jamais vente auto." onClick={prepareSale} />
         <ActionCard title="Lots à vendre" text={`${data.lotsToSell.length} lot(s) matures.`} onClick={() => setTab('Avicole')} />
       </BusinessHub>
+      {transformationFormProps ? <TransformationOfficialForm {...transformationFormProps} /> : null}
       <ElevageTransformationJournal rows={data.transformationRows || []} onOpenCommercial={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
       {animalBridgeProps ? (
         <div id="elevage-animal-slaughter-bridge">
@@ -253,6 +260,7 @@ export default function ElevageRecoveredModule(props) {
   const [busyId, setBusyId] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
   const [healthDraft, setHealthDraft] = useState(null);
+  const [transformationDraft, setTransformationDraft] = useState(null);
   const [reproductionHorizonDraft, setReproductionHorizonDraft] = useState(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [profitabilityOpen, setProfitabilityOpen] = useState(false);
@@ -485,7 +493,26 @@ export default function ElevageRecoveredModule(props) {
   }, [workflowContext, elevageHandlers, refreshAfterWorkflow]);
 
   const clearHealthDraft = useCallback(() => setHealthDraft(null), []);
+  const clearTransformationDraft = useCallback(() => setTransformationDraft(null), []);
   const clearReproductionDraft = useCallback(() => setReproductionHorizonDraft(null), []);
+
+  const onPrepareTransformation = useCallback((context = {}) => {
+    openElevageTransformationForm({
+      setTab,
+      setTransformationDraft,
+      context: {
+        animalId: context.animalId || context.animal_id,
+        lotId: context.lotId || context.lot_id,
+        transformType: context.transformType || context.kind || 'abattage',
+        activity: context.activity,
+        notes: context.notes,
+      },
+      onAfterOpen: () => {
+        scrollToTransformationForm();
+        toast.success('Transformation — formulaire officiel ouvert');
+      },
+    });
+  }, []);
 
   const onOpenReproductionWorkflow = useCallback((workflow = 'gestation', context = {}) => {
     openElevageReproductionForm({
@@ -551,22 +578,15 @@ export default function ElevageRecoveredModule(props) {
       return;
     }
     if (modal === 'transform') {
-      const block = blockSanitaryAction({
-        healthRows: health,
-        action: SANITARY_ACTIONS.TRANSFORM,
-        animalId: context.animalId || context.animal_id,
+      onPrepareTransformation({
         lotId: context.lotId || context.lot_id,
+        animalId: context.animalId || context.animal_id,
+        transformType: context.kind || context.transformType || 'abattage',
       });
-      if (block.blocked) {
-        if (!confirmSanitaryOverride(block.message)) {
-          toast.error(block.message);
-          return;
-        }
-        toast('Exception terrain — transformation avec délai sanitaire actif', { icon: '⚠️' });
-      }
+      return;
     }
     openWorkflowModal(modal);
-  }, [health, confirmSanitaryOverride, openWorkflowModal]);
+  }, [onPrepareTransformation, openWorkflowModal]);
   const closeWorkflow = useCallback(() => setActiveModal(null), []);
 
   const startupProgress = useMemo(() => buildElevageStartupProgress({
@@ -612,7 +632,32 @@ export default function ElevageRecoveredModule(props) {
     }
   };
 
-  const shared = { onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: guardedNavigate };
+  const shared = { onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: guardedNavigate, onPrepareTransformation };
+
+  const transformationHandlers = {
+    onCreateStock: props.onCreateStock || stockCrud.create,
+    onUpdateStock: props.onUpdateStock || stockCrud.update,
+    onCreateStockMovement: props.onCreateStockMovement || movementsCrud.create,
+    onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create,
+    onCreateDocument: props.onCreateDocument || documentsCrud.create,
+    onUpdateLot: props.onUpdateLot || avicoleCrud.update,
+    onUpdateAnimal: props.onUpdateAnimal || animauxCrud.update,
+  };
+
+  const transformationFormProps = {
+    transformationDraft,
+    onClearDraft: clearTransformationDraft,
+    animaux: animals,
+    lots,
+    stocks,
+    healthRows: health,
+    alimentationLogs: feedLogs,
+    productionLogs,
+    businessEvents,
+    handlers: transformationHandlers,
+    onNavigate: guardedNavigate,
+    onSuccess: refreshAfterWorkflow,
+  };
   const animalProps = { rows: animals, alimentationLogs: feedLogs, vaccins: health, salesOrders, payments: rowsOf(props.payments, paymentsCrud, periodFiltered), opportunities, businessEvents, onCreate: props.onCreateAnimal || animauxCrud.create, onUpdate: props.onUpdateAnimal || animauxCrud.update, onDelete: props.onDeleteAnimal || animauxCrud.remove, onRefresh: props.onRefreshAnimals || animauxCrud.refresh, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, ...shared };
   const avicoleProps = { rows: lots, transactions: rowsOf(props.transactions, financesCrud, periodFiltered), alimentationLogs: feedLogs, productionLogs, stocks, stockMovements, opportunities, businessEvents, onCreate: props.onCreateLot || avicoleCrud.create, onUpdate: props.onUpdateLot || avicoleCrud.update, onDelete: props.onDeleteLot || avicoleCrud.remove, onRefresh: props.onRefreshLots || avicoleCrud.refresh, onCreateProduction: props.onCreateProduction || productionCrud.create, onUpdateProduction: props.onUpdateProduction || productionCrud.update, onDeleteProduction: props.onDeleteProduction || productionCrud.remove, onRefreshProduction: props.onRefreshProduction || productionCrud.refresh, onCommitEggProduction: commitEggProduction, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, onUpdateStock: props.onUpdateStock || stockCrud.update, onCreateStockMovement: props.onCreateStockMovement || movementsCrud.create, onRefreshStockMovements: props.onRefreshStockMovements || movementsCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, ...shared };
   const healthProps = { rows: health, vets: rowsOf(props.veterinaires, vetsCrud, false), animaux: animals, lots, stocks, transactions: rowsOf(props.transactions, financesCrud, periodFiltered), documents: rowsOf(props.documents, documentsCrud, periodFiltered), tasks: rowsOf(props.tasks, tasksCrud, false), alertes: rowsOf(props.alertes, alertsCrud, false), healthDraft, onClearHealthDraft: clearHealthDraft, onCreate: props.onCreateHealth || santeCrud.create, onUpdate: props.onUpdateHealth || santeCrud.update, onDelete: props.onDeleteHealth || santeCrud.remove, onRefresh: props.onRefreshHealth || santeCrud.refresh, onCreateVet: props.onCreateVet || vetsCrud.create, onUpdateVet: props.onUpdateVet || vetsCrud.update, onDeleteVet: props.onDeleteVet || vetsCrud.remove, onRefreshVets: props.onRefreshVets || vetsCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onUpdateAlert: props.onUpdateAlert || alertsCrud.update, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateDocument: props.onCreateDocument || documentsCrud.create, onRefreshDocuments: props.onRefreshDocuments || documentsCrud.refresh, onNavigate: guardedNavigate };
@@ -707,6 +752,8 @@ export default function ElevageRecoveredModule(props) {
       setTab={setTab}
       onNavigate={guardedNavigate}
       onOpenWorkflow={openWorkflow}
+      onPrepareTransformation={onPrepareTransformation}
+      transformationFormProps={transformationFormProps}
       animalBridgeProps={animalProps}
       avicoleBridgeProps={avicoleProps}
       healthBlocks={evaluateElevageHealthBlocks({ healthRows: health })}
