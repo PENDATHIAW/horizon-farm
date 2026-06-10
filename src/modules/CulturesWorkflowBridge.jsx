@@ -3,7 +3,6 @@ import toast from 'react-hot-toast';
 import useCrudModule from '../hooks/useCrudModule';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
-import { buildHarvestStockPayload } from '../services/livestockStockBridge';
 import { calculateCultureMetrics } from '../utils/businessCalculations';
 
 const arr = (value) => Array.isArray(value) ? value : [];
@@ -51,30 +50,6 @@ function riskForCulture(row = {}) {
     high: score < 65 || statut === 'perdu' || loss > expected * 0.25,
     readyToHarvest: harvestIn !== null && harvestIn <= 7 && harvestIn >= -3 && harvested <= 0,
   };
-}
-
-function askHarvestQty(row, fallback) {
-  const raw = window.prompt(`Récolte ${cultureName(row)}\nParcelle: ${parcelName(row)}\nCampagne: ${campaignName(row)}\nQuantité récoltée:`, String(Math.max(1, Math.round(fallback || expectedHarvest(row) || 1))));
-  if (raw === null) return null;
-  const qty = toNumber(raw);
-  if (qty <= 0) {
-    toast.error('Quantité invalide');
-    return null;
-  }
-  return qty;
-}
-
-function askUnit(row) {
-  const raw = window.prompt('Unité récolte', row.unite_recolte || row.unite_production || 'kg');
-  if (raw === null) return null;
-  return raw.trim() || 'kg';
-}
-
-function askSalePrice(row, qty) {
-  const suggested = qty > 0 ? Math.round(revenueOf(row) / qty || 0) : 0;
-  const raw = window.prompt('Prix unitaire estimé pour le stock récolte', String(suggested || row.prix_unitaire_estime || 0));
-  if (raw === null) return null;
-  return toNumber(raw);
 }
 
 export default function CulturesWorkflowBridge({ rows = [], onUpdate, onRefresh }) {
@@ -136,71 +111,6 @@ export default function CulturesWorkflowBridge({ rows = [], onUpdate, onRefresh 
     }
   };
 
-  const registerHarvest = async (row) => {
-    const qty = askHarvestQty(row, expectedHarvest(row));
-    if (!qty) return;
-    const unit = askUnit(row);
-    if (!unit) return;
-    const unitPrice = askSalePrice(row, qty);
-    if (unitPrice === null) return;
-    try {
-      const stockId = makeId('STK');
-      const docId = makeId('DOC');
-      const revenue = qty * unitPrice;
-      const harvestPayload = buildHarvestStockPayload({
-        produit: `Récolte ${cultureName(row)}`,
-        categorie: 'recolte_vegetale',
-        quantite: qty,
-        unite: unit,
-        unitCost: unitPrice,
-        sourceRecordId: row.id,
-        eventId: makeId('EVT'),
-        origineLabel: cultureName(row),
-      });
-      harvestPayload.id = stockId;
-      harvestPayload.valeur_stock = revenue;
-      harvestPayload.parcelle = parcelName(row);
-      harvestPayload.campagne = campaignName(row);
-      await stockCrud.create?.(harvestPayload);
-      await documentsCrud.create?.({
-        id: docId,
-        title: `Récolte ${cultureName(row)}`,
-        document_category: 'recolte',
-        module_source: 'cultures',
-        entity_type: 'culture',
-        entity_id: row.id,
-        related_id: row.id,
-        notes: `${fmtNumber(qty)} ${unit} · ${parcelName(row)} · ${campaignName(row)}`,
-      });
-      await eventsCrud.create?.({
-        id: makeId('EVT'),
-        event_type: 'recolte_culture',
-        module_source: 'cultures',
-        entity_type: 'culture',
-        entity_id: row.id,
-        title: `Récolte ${cultureName(row)}`,
-        description: `${fmtNumber(qty)} ${unit} vers stock ${stockId}`,
-        event_date: today(),
-        severity: 'info',
-        linked_document_id: docId,
-        linked_stock_id: stockId,
-        saisies_evitees: 5,
-      });
-      await onUpdate?.(row.id, {
-        quantite_recoltee: toNumber(row.quantite_recoltee) + qty,
-        revenu_estime: revenueOf(row) || revenue,
-        revenu_reel: toNumber(row.revenu_reel) || revenue,
-        statut: 'recolte',
-        last_harvest_stock_id: stockId,
-        last_harvest_at: now(),
-      });
-      await Promise.allSettled([stockCrud.refresh?.(), documentsCrud.refresh?.(), eventsCrud.refresh?.(), onRefresh?.()]);
-      toast.success('Récolte enregistrée et stock créé');
-    } catch (error) {
-      toast.error(error.message || 'Récolte impossible');
-    }
-  };
-
   return (
     <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
@@ -224,7 +134,7 @@ export default function CulturesWorkflowBridge({ rows = [], onUpdate, onRefresh 
               <div key={row.id} className="rounded-xl border border-emerald-200 bg-white p-3">
                 <p className="font-bold text-[#2f2415]">{cultureName(row)}</p>
                 <p className="text-xs text-[#8a7456] mt-1">{parcelName(row)} · prévu {fmtNumber(risk.expected)}</p>
-                <button type="button" className="mt-3 text-sm font-bold text-emerald-700" onClick={() => registerHarvest(row)}>Enregistrer récolte</button>
+                <p className="mt-2 text-xs text-emerald-800">Récolte → onglet <b>Récoltes</b> (workflow officiel).</p>
               </div>
             ))}
           </div>

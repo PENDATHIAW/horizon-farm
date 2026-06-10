@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { ROUTE_TO_MODULE } from '../config/modules.config';
 import { supabase } from '../lib/supabase';
 import { DEMO_MODE_KEY, SIMULATED_DATA_MODE_KEY, setSimulatedDataMode } from '../utils/uiPreferences';
 
@@ -12,9 +13,23 @@ const PROFILES_TABLE_ENABLED = import.meta.env.VITE_ENABLE_PROFILES_TABLE === 't
 
 const DEFAULT_SIMULATED_ROLES = ['visiteur', 'employe', 'veterinaire', 'comptable'];
 
+const LEGACY_KEYS_BY_GRAND_MODULE = Object.entries(ROUTE_TO_MODULE).reduce((acc, [legacy, grand]) => {
+  if (!acc[grand]) acc[grand] = [];
+  acc[grand].push(legacy);
+  return acc;
+}, {});
+
 export const ERP_MODULE_PERMISSIONS = [
   'dashboard',
   'assistant_erp',
+  'centre_ia',
+  'objectifs_croissance',
+  'elevage',
+  'commercial',
+  'achats_stock',
+  'finance_pilotage',
+  'activite_suivi',
+  'documents_rapports',
   'animaux',
   'avicole',
   'sante',
@@ -284,7 +299,9 @@ export function AuthProvider({ children }) {
 
   const canAccess = useCallback((moduleKey) => {
     const permissions = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.visiteur;
-    return permissions.includes('*') || permissions.includes(moduleKey);
+    if (permissions.includes('*') || permissions.includes(moduleKey)) return true;
+    const legacyKeys = LEGACY_KEYS_BY_GRAND_MODULE[moduleKey] || [];
+    return legacyKeys.some((key) => permissions.includes(key));
   }, [role]);
 
   const value = useMemo(

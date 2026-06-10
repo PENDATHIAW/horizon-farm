@@ -30,7 +30,7 @@ export default function HeyHorizonVoiceDraftsPanel({
 
   const drafts = voiceResult?.drafts || [];
   const clarify = voiceResult?.clarify || '';
-  const validatable = getValidatableDrafts(voiceResult);
+  const validatable = voiceResult ? getValidatableDrafts(voiceResult) : [];
 
   const startListening = useCallback(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;

@@ -1,14 +1,15 @@
+import { useState } from 'react';
 import { RefreshCw, Plus, PauseCircle, PlayCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { fmtCurrency } from '../../utils/format';
 import {
   buildSubscriptionOrderDraft,
-  buildSubscriptionRecord,
   readAllCommercialSubscriptions,
   subscriptionsToPrepare,
   upsertClientSubscription,
   SUBSCRIPTION_STATUSES,
 } from '../../utils/commercialSubscriptions.js';
+import CommercialSubscriptionFormModal from './CommercialSubscriptionFormModal.jsx';
 
 export default function CommercialSubscriptionsPanel({
   clients = [],
@@ -16,24 +17,13 @@ export default function CommercialSubscriptionsPanel({
   onNewSale,
   activeFarm,
 }) {
+  const [formOpen, setFormOpen] = useState(false);
+  const [formSession, setFormSession] = useState(0);
   const subscriptions = readAllCommercialSubscriptions(clients);
   const toPrepare = subscriptionsToPrepare(subscriptions);
 
-  const createSample = async () => {
-    const client = clients.find((c) => c.id && (c.nom || c.name));
-    if (!client) return toast.error('Créez d\'abord un client.');
-    const sub = buildSubscriptionRecord({
-      client,
-      productName: 'Œufs tablettes',
-      quantity: 5,
-      unit: 'tablette',
-      frequency: 'weekly',
-      plannedDay: 'vendredi',
-      unitPrice: 3000,
-      farmId: activeFarm?.id,
-    });
-    await onUpdateClient?.(client.id, upsertClientSubscription(client, sub));
-    toast.success('Abonnement créé');
+  const saveSubscription = async (client, subscription) => {
+    await onUpdateClient?.(client.id, upsertClientSubscription(client, subscription));
   };
 
   const toggleStatus = async (sub, status) => {
@@ -54,9 +44,18 @@ export default function CommercialSubscriptionsPanel({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><RefreshCw size={14} /> Abonnements</p>
-            <p className="text-sm text-[#8a7456]">Commandes récurrentes — génération manuelle avec validation.</p>
+            <p className="text-sm text-[#8a7456]">Commandes récurrentes — création via formulaire, génération manuelle avec validation.</p>
           </div>
-          <button type="button" onClick={createSample} className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white"><Plus size={12} className="inline" /> Nouvel abonnement</button>
+          <button
+            type="button"
+            onClick={() => {
+              setFormSession((value) => value + 1);
+              setFormOpen(true);
+            }}
+            className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white"
+          >
+            <Plus size={12} className="inline" /> Nouvel abonnement
+          </button>
         </div>
         {toPrepare.length ? (
           <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
@@ -95,6 +94,15 @@ export default function CommercialSubscriptionsPanel({
           ))}
         </div>
       )}
+
+      <CommercialSubscriptionFormModal
+        key={formSession}
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        clients={clients}
+        activeFarm={activeFarm}
+        onSave={saveSubscription}
+      />
     </div>
   );
 }

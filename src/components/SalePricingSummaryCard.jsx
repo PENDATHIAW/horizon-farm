@@ -1,14 +1,20 @@
 import { Tag } from 'lucide-react';
 import { fmtCurrency } from '../utils/format';
+import { PROPOSED_PRICE_MARGIN_LABEL, SALE_PRICE_HELP_ANIMAL, SALE_PRICE_HELP_AVICOLE } from '../utils/salePricePresentation.js';
 
 /**
  * Bandeau prix de vente proposé — visible sur toutes les fiches (pas seulement l’onglet Finances).
+ * Marge affichée = prix proposé − coût unifié (alignée liste Animaux / Avicole).
  */
 export default function SalePricingSummaryCard({
   variant = 'animal',
   salePricing,
   onOpenFinances,
   compact = false,
+  pricingBasis = '',
+  marginOnProposed = undefined,
+  marginSource = '',
+  ficheDivergeNote = '',
 }) {
   if (!salePricing) return null;
 
@@ -17,6 +23,10 @@ export default function SalePricingSummaryCard({
   const unitPrice = isLot ? salePricing.recommendedUnitPrice : null;
   const minimum = isLot ? salePricing.minimumUnitPrice : salePricing.minimumPrice;
   const hasPrice = Number(recommended) > 0;
+  const basis = pricingBasis || salePricing.pricingBasis || '';
+  const marginValue = marginOnProposed !== undefined ? marginOnProposed : salePricing.margin;
+  const marginLabel = marginSource || 'prix proposé − coût unifié';
+  const helpText = isLot ? SALE_PRICE_HELP_AVICOLE : SALE_PRICE_HELP_ANIMAL;
 
   return (
     <section
@@ -43,6 +53,9 @@ export default function SalePricingSummaryCard({
               {salePricing.speciesKey ? ` (${salePricing.speciesKey})` : ''}
             </p>
           ) : null}
+          {basis ? (
+            <p className="text-xs text-[#7d6a4a] mt-1">Calcul : {basis}</p>
+          ) : null}
         </div>
         {!compact ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm min-w-[200px]">
@@ -55,14 +68,22 @@ export default function SalePricingSummaryCard({
               <p className="font-black text-[#2f2415]">{fmtCurrency(salePricing.totalCost || 0)}</p>
             </div>
             <div className="rounded-xl bg-white/80 border border-emerald-200/60 px-3 py-2">
-              <p className="text-[10px] uppercase text-[#8a7456]">Marge estimée</p>
-              <p className={`font-black ${salePricing.margin < 0 ? 'text-red-600' : 'text-emerald-800'}`}>
-                {hasPrice ? fmtCurrency(salePricing.margin) : '—'}
+              <p className="text-[10px] uppercase text-[#8a7456]">{PROPOSED_PRICE_MARGIN_LABEL}</p>
+              <p className={`font-black ${Number(marginValue) < 0 ? 'text-red-600' : 'text-emerald-800'}`}>
+                {hasPrice && marginValue != null ? fmtCurrency(marginValue) : '—'}
               </p>
+              {hasPrice ? (
+                <p className="text-[10px] text-[#8a7456] mt-0.5">{marginLabel}</p>
+              ) : null}
             </div>
           </div>
         ) : null}
       </div>
+      {ficheDivergeNote ? (
+        <p className="mt-3 text-sm text-amber-900 rounded-xl border border-amber-200 bg-amber-100/80 px-3 py-2">
+          {ficheDivergeNote}
+        </p>
+      ) : null}
       {salePricing.alerts?.length ? (
         <p className="mt-3 text-sm text-amber-900 rounded-xl border border-amber-200 bg-amber-100/80 px-3 py-2">
           {salePricing.alerts.join(' ')}
@@ -72,6 +93,9 @@ export default function SalePricingSummaryCard({
         <p className="mt-2 text-xs text-amber-900">
           Complétez poids, achat/alimentation ou les prix/kg dans l’onglet Annexe. Détail dans Finances.
         </p>
+      ) : null}
+      {!compact ? (
+        <p className="mt-2 text-[11px] text-[#7d6a4a] leading-snug">{helpText}</p>
       ) : null}
       {onOpenFinances ? (
         <button

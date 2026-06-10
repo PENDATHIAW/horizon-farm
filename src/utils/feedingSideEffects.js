@@ -3,13 +3,17 @@ import { financeIds } from './sideEffectIds';
 import { applyStockMovement } from './stockWorkflows';
 import { attachIdempotency, buildIdempotencyKey, findByRecordId, WORKFLOW_TYPES } from './workflowDedupe';
 import { toNumber } from './format';
+import {
+  buildFeedingConsumptionMovementPayload,
+  persistConsumptionMovement,
+} from './stockConsumptionBridge.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();
 const today = () => new Date().toISOString().slice(0, 10);
 const num = (value) => toNumber(value);
 
-export function buildFeedingFinanceRow({ log = {}, stock = {}, amount = 0, date = '' } = {}) {
+export function buildFeedingFinanceRow({ log = {}, amount = 0, date = '' } = {}) {
   const value = num(amount);
   const logId = clean(log.id);
   if (value <= 0 || !logId) return null;
@@ -61,13 +65,18 @@ export async function runFeedingSideEffects({
     }
   }
 
+  const qtyUsed = num(stockMovement?.qty ?? log.quantite);
+  const beforeQty = num(stock.quantite ?? stock.quantity ?? stock.stock);
+  let afterQty = beforeQty;
+
   if (stockMovement && handlers.onUpdateStockMovement) {
     await handlers.onUpdateStockMovement(stockMovement);
-  } else if (stock?.id && num(stockMovement?.qty ?? log.quantite) > 0) {
+    afterQty = Math.max(0, beforeQty - qtyUsed);
+  } else if (stock?.id && qtyUsed > 0) {
     const movementRef = clean(log.id || stockMovement?.ref || log.date || today());
     const movement = applyStockMovement(stock, {
       type: 'sortie',
-      qty: num(stockMovement?.qty ?? log.quantite),
+      qty: qtyUsed,
       motif: log.notes || 'Alimentation',
       date: log.date || today(),
       movementRef,
@@ -78,10 +87,37 @@ export async function runFeedingSideEffects({
         movementRef,
       }),
     });
+    afterQty = num(movement.stock?.quantite ?? movement.stock?.quantity ?? (beforeQty - qtyUsed));
     await handlers.onUpdateStock?.(stock.id, movement.stock);
     if (handlers.onCreateBusinessEvent && movement.event) {
       const eventExists = arr(businessEvents).some((row) => clean(row.id) === clean(movement.event.id));
       if (!eventExists) await handlers.onCreateBusinessEvent(movement.event);
+    }
+  }
+
+  if (stock?.id && qtyUsed > 0 && handlers.onCreateStockMovement) {
+    const consumptionPayload = buildFeedingConsumptionMovementPayload({
+      log,
+      stock: { ...stock, quantite: afterQty, quantity: afterQty },
+      beforeQty,
+      afterQty,
+      farmId: stock.farm_id || log.farm_id,
+    });
+    if (consumptionPayload) {
+      await persistConsumptionMovement({
+        before: { id: stock.id, quantite: beforeQty },
+        after: { id: stock.id, quantite: afterQty, unite: stock.unite || stock.unit, farm_id: consumptionPayload.farm_id },
+        patch: {
+          source_module: consumptionPayload.source_module,
+          source_record_id: consumptionPayload.source_record_id,
+          movement_ref: consumptionPayload.movement_ref,
+          dedupe_key: consumptionPayload.dedupe_key,
+          notes: consumptionPayload.notes,
+        },
+        payload: consumptionPayload,
+        handlers,
+        existingMovements: handlers.existingStockMovements || [],
+      });
     }
   }
 

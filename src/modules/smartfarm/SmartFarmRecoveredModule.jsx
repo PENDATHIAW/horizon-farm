@@ -14,6 +14,7 @@ import { fmtNumber } from '../../utils/format.js';
 import { rowsOf } from '../../utils/moduleRows.js';
 import { isSmartFarmDeviceCritical } from '../../utils/smartFarmWorkflows.js';
 import SmartFarmEmbed from './SmartFarmEmbed.jsx';
+import { resolveSmartFarmTab } from '../../utils/commercialNavigation.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
@@ -54,7 +55,13 @@ function Summary({ data, setTab }) {
 }
 
 export default function SmartFarmRecoveredModule(props) {
-  const [tab, setTab] = useState('Résumé');
+  const [tab, setTab] = useState(() => resolveSmartFarmTab(props.initialTab));
+  useEffect(() => {
+    if (props.initialTab) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- navigation pilotée par props.initialTab
+      setTab(resolveSmartFarmTab(props.initialTab));
+    }
+  }, [props.initialTab]);
   const sensorCrud = useCrudModule('sensor_devices');
   const cameraCrud = useCrudModule('camera_devices');
   const tasksCrud = useCrudModule('taches');

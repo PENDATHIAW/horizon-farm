@@ -1,5 +1,6 @@
 import { fmtCurrency } from '../../utils/format';
-import { paidForOrder, remainingForOrder } from '../../utils/salesStatuses';
+import { saleBelongsToClient } from '../../utils/clientWorkflows.js';
+import { normalizePaymentStatus, paidForOrder, remainingForOrder } from '../../utils/salesStatuses';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v = 0) => Number(v || 0);

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
+import { resolveInvestisseursTab } from '../utils/commercialNavigation.js';
 import { buildInvestorForumProfile, HORIZON_FARM_TAGLINE } from '../services/investorForums/investorProfileService.js';
 import { computeForumReadinessScore } from '../services/investorForums/forumReadinessScore.js';
 import { adaptProfileForAudience, FORUM_AUDIENCES } from '../services/investorForums/forumAudienceAdapter.js';
@@ -179,7 +180,13 @@ function PreviewSection({ section }) {
 }
 
 export default function InvestisseursForumsModule(props) {
-  const [mainTab, setMainTab] = useState('room');
+  const [mainTab, setMainTab] = useState(() => resolveInvestisseursTab(props.initialTab));
+  useEffect(() => {
+    if (props.initialTab) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- navigation pilotée par props.initialTab
+      setMainTab(resolveInvestisseursTab(props.initialTab));
+    }
+  }, [props.initialTab]);
   const [dossierSection, setDossierSection] = useState('project');
   const [audienceKey, setAudienceKey] = useState('investisseur_prive');
   const [editing, setEditing] = useState(false);

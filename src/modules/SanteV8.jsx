@@ -209,5 +209,26 @@ export default function SanteV8(props) {
     await ensureHealthFinance(before, after);
   };
 
-  return <SanteV7 {...props} tasks={tasks} alertes={alertes} transactions={transactions} documents={documents} onCreate={onCreate} onUpdate={onUpdate} onCreateTask={props.onCreateTask || tasksCrud.create} onUpdateTask={props.onUpdateTask || tasksCrud.update} onRefreshTasks={props.onRefreshTasks || tasksCrud.refresh} onCreateAlert={props.onCreateAlert || alertsCrud.create} onUpdateAlert={props.onUpdateAlert || alertsCrud.update} onRefreshAlertes={props.onRefreshAlertes || alertsCrud.refresh} onCreateFinanceTransaction={props.onCreateFinanceTransaction || financesCrud.create} onRefreshFinances={props.onRefreshFinances || financesCrud.refresh} onCreateDocument={props.onCreateDocument || documentsCrud.create} onRefreshDocuments={props.onRefreshDocuments || documentsCrud.refresh} onCreateBusinessEvent={props.onCreateBusinessEvent || eventsCrud.create} onRefreshBusinessEvents={props.onRefreshBusinessEvents || eventsCrud.refresh} />;
+  const healthBlocks = props.healthBlocks || {};
+  const sanitaryAlerts = props.sanitaryAlerts || [];
+
+  return (
+    <div className="space-y-5">
+      {healthBlocks.blocked ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+          <b>Blocage vente / transformation actif</b>
+          <p className="mt-1 text-xs">{healthBlocks.messages?.join(' ') || 'Interventions sanitaires en retard.'}</p>
+        </div>
+      ) : null}
+      {sanitaryAlerts.length ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-2">
+          <p className="text-xs font-black uppercase text-amber-900">Alertes sanitaires</p>
+          {sanitaryAlerts.map((a) => (
+            <p key={a.id || a.title} className="text-sm text-amber-900"><b>{a.title}</b> — {a.message}</p>
+          ))}
+        </div>
+      ) : null}
+      <SanteV7 {...props} tasks={tasks} alertes={alertes} transactions={transactions} documents={documents} healthDraft={props.healthDraft} onClearHealthDraft={props.onClearHealthDraft} onCreate={onCreate} onUpdate={onUpdate} onCreateTask={props.onCreateTask || tasksCrud.create} onUpdateTask={props.onUpdateTask || tasksCrud.update} onRefreshTasks={props.onRefreshTasks || tasksCrud.refresh} onCreateAlert={props.onCreateAlert || alertsCrud.create} onUpdateAlert={props.onUpdateAlert || alertsCrud.update} onRefreshAlertes={props.onRefreshAlertes || alertsCrud.refresh} onCreateFinanceTransaction={props.onCreateFinanceTransaction || financesCrud.create} onRefreshFinances={props.onRefreshFinances || financesCrud.refresh} onCreateDocument={props.onCreateDocument || documentsCrud.create} onRefreshDocuments={props.onRefreshDocuments || documentsCrud.refresh} onCreateBusinessEvent={props.onCreateBusinessEvent || eventsCrud.create} onRefreshBusinessEvents={props.onRefreshBusinessEvents || eventsCrud.refresh} />
+    </div>
+  );
 }

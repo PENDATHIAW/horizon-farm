@@ -10,6 +10,12 @@ import { runCultureHarvestSideEffects } from '../utils/cultureSideEffects';
 import { syncFinanceSideEffects } from './erpInterconnectionEngine';
 import { getFinanceActivityFromSale, getFinanceCategoryFromSale } from './financeSyncService';
 import { buildOpportunityClosedPatch, buildStructuredFarmImpact } from './erpInterconnectionRules';
+import {
+  commitWithImpactJournal,
+  IMPACT_KEYS,
+  markImpactNa,
+  OPERATION_TYPES,
+} from '../utils/workflowImpactJournal';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const today = () => new Date().toISOString().slice(0, 10);
@@ -499,7 +505,11 @@ export async function commitFeedingWorkflow(preview, handlers = {}) {
     stockMovement: p.records.stock_movement,
     amount: toNumber(finalValue(p.fields?.cost) || log.montant_total),
     transactions: ctx.transactions || [],
-    handlers,
+    businessEvents: ctx.businessEvents || [],
+    handlers: {
+      ...handlers,
+      existingStockMovements: handlers.existingStockMovements || ctx.stockMovements || [],
+    },
   });
 
   if (p.records.trace && handlers.onCreateBusinessEvent) {

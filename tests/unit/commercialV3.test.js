@@ -12,10 +12,13 @@ import {
 import {
   buildSubscriptionOrderDraft,
   buildSubscriptionRecord,
+  buildSubscriptionRecordFromForm,
   computeNextOrderDate,
+  hasDuplicateSubscription,
   readAllCommercialSubscriptions,
   subscriptionsToPrepare,
   upsertClientSubscription,
+  validateSubscriptionForm,
   SUBSCRIPTION_STATUSES,
 } from '../../src/utils/commercialSubscriptions.js';
 import {
@@ -171,6 +174,34 @@ describe('Commercial V3 — abonnements', () => {
   it('prochaine commande calculée selon fréquence', () => {
     assert.match(computeNextOrderDate({ frequency: 'weekly' }), /^\d{4}-\d{2}-\d{2}$/);
     assert.match(computeNextOrderDate({ frequency: 'biweekly' }), /^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('formulaire abonnement — validation et anti-doublon', () => {
+    const form = {
+      clientId: client.id,
+      productName: 'Œufs tablettes',
+      quantity: 5,
+      unit: 'tablette',
+      unitPrice: 3000,
+      frequency: 'weekly',
+      plannedDay: 'vendredi',
+      startDate: '2026-06-01',
+      endDate: '',
+      status: SUBSCRIPTION_STATUSES.ACTIVE,
+      notes: 'Livraison matin',
+    };
+    assert.deepEqual(validateSubscriptionForm(form), []);
+    const record = buildSubscriptionRecordFromForm(form, [client]);
+    assert.equal(record.client_id, client.id);
+    assert.equal(record.start_date, '2026-06-01');
+    assert.equal(hasDuplicateSubscription(client, record), false);
+    const patch = upsertClientSubscription(client, record);
+    assert.equal(hasDuplicateSubscription({ ...client, ...patch }, record), true);
+  });
+
+  it('formulaire abonnement — champs obligatoires manquants', () => {
+    const errors = validateSubscriptionForm({ clientId: '', productName: '', quantity: 0, unit: '', unitPrice: -1, frequency: '', startDate: '' });
+    assert.ok(errors.length >= 4);
   });
 });
 

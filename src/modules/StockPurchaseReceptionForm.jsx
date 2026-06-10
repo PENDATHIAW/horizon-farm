@@ -66,10 +66,15 @@ export default function StockPurchaseReceptionForm({
   onUpdateSupplier,
   onUpdateFinanceTransaction,
   onUpdateAlert,
+  onCreateStockMovement,
+  onRefreshStockMovements,
   onRefresh,
   onRefreshFinances,
   onRefreshSuppliers,
   onRefreshBusinessEvents,
+  stockMovements = [],
+  accessibleFarms = [],
+  farmScope = {},
 }) {
   const mapped = useMemo(() => mapDraftFields(initialDraft || {}), [initialDraft]);
   const [stockId, setStockId] = useState(mapped.stock_id);
@@ -161,15 +166,30 @@ export default function StockPurchaseReceptionForm({
       return;
     }
     await workflowSubmit(`stock-purchase:${stockId || "new"}:${date}:${n(quantite)}`, async () => {
-      const context = { stocks, suppliers: fournisseurs, transactions, documents, events: [], workflows: [] };
+      const context = {
+        stocks,
+        suppliers: fournisseurs,
+        transactions,
+        documents,
+        stock_movements: stockMovements,
+        events: [],
+        workflows: [],
+        accessibleFarms,
+        farmScope,
+        activeFarm: accessibleFarms?.find((f) => f.id === farmScope?.farmId) || null,
+      };
       const preview = prepareStockPurchaseWorkflow(payload, context);
       if (!preview.records.is_create && !stockId && preview.records.stock_patch?.id) {
         payload.id = preview.records.stock_patch.id;
       }
       await commitStockPurchaseWorkflow(preview, {
-        context: { stocks, transactions, tasks: taches, alertes, documents },
+        context: { stocks, transactions, tasks: taches, alertes, documents, stock_movements: stockMovements },
         existingDocuments: documents,
         existingAlerts: alertes,
+        existingStockMovements: stockMovements,
+        onCreateStockMovement,
+        onRefreshStockMovements,
+        accessibleFarms,
         onCreateStock: async (row) => {
           const id = row.id || generateSequentialId('stock', stocks);
           await onCreateStock?.({ ...row, id });

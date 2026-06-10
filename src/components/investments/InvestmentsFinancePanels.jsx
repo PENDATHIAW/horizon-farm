@@ -8,6 +8,7 @@ import {
   BP_LINE_STATUS,
   bpCostPlannedAmount,
   bpLineStatusLabel,
+  buildBpCostConcretizationRoute,
   buildBpLineStatusPatch,
   isBpCostEditable,
   launchBpCostConcretization,
@@ -378,6 +379,7 @@ export function BpMonthlyCostsPanel({
                       kind="cost"
                       transactions={transactions}
                       onAction={onLineAction}
+                      allowPreviewActions={!isBpCostEditable(r) && Boolean(buildBpCostConcretizationRoute(r))}
                       compact
                     />
                   </td>

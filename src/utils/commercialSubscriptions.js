@@ -28,6 +28,14 @@ export const FREQUENCY_LABELS = {
   mensuel: 'Mensuel',
 };
 
+export const SUBSCRIPTION_FREQUENCY_OPTIONS = [
+  { value: 'weekly', label: 'Hebdomadaire' },
+  { value: 'monthly', label: 'Mensuel' },
+  { value: 'daily', label: 'Quotidien' },
+  { value: 'biweekly', label: 'Tous les 2 jours' },
+  { value: 'custom', label: 'Autre' },
+];
+
 function subscriptionsOf(client = {}) {
   const terms = readClientCommercialTerms(client);
   return arr(client.commercial_subscriptions || terms.subscriptions || client.abonnements);
@@ -63,6 +71,8 @@ export function normalizeSubscription(sub = {}, client = {}) {
     status,
     statusLabel: status === SUBSCRIPTION_STATUSES.ACTIVE ? 'Actif' : status === SUBSCRIPTION_STATUSES.SUSPENDED ? 'Suspendu' : 'Arrêté',
     nextOrderDate: sub.next_order_date || sub.prochaine_commande || computeNextOrderDate(sub),
+    startDate: sub.start_date || sub.date_debut || '',
+    endDate: sub.end_date || sub.date_fin || '',
     notes: sub.notes || '',
     raw: sub,
     client,
@@ -96,9 +106,16 @@ export function buildSubscriptionRecord({
   farmId = null,
   sourceType = 'stock',
   sourceId = '',
+  startDate = '',
+  endDate = '',
+  status = SUBSCRIPTION_STATUSES.ACTIVE,
+  notes = '',
+  id = '',
 } = {}) {
+  const recordId = id || makeId('ABO');
+  const start = startDate || new Date().toISOString().slice(0, 10);
   return {
-    id: makeId('ABO'),
+    id: recordId,
     client_id: client.id,
     client_name: client.nom || client.name,
     product_name: productName,
@@ -111,11 +128,62 @@ export function buildSubscriptionRecord({
     unit_price: unitPrice,
     discount_pct: discountPct,
     farm_id: farmId || rowFarmId(client),
-    status: SUBSCRIPTION_STATUSES.ACTIVE,
-    statut: SUBSCRIPTION_STATUSES.ACTIVE,
-    next_order_date: computeNextOrderDate({ frequency }),
+    status,
+    statut: status,
+    start_date: start,
+    end_date: endDate || '',
+    next_order_date: computeNextOrderDate({ frequency, start_date: start }, start),
+    notes,
     created_at: new Date().toISOString(),
   };
+}
+
+export function hasDuplicateSubscription(client = {}, subscription = {}, excludeId = '') {
+  const product = lower(subscription.product_name || subscription.productName);
+  const freq = lower(subscription.frequency || subscription.frequence);
+  const day = lower(subscription.planned_day || subscription.plannedDay || subscription.jour_prevu);
+  if (!product) return false;
+  return subscriptionsOf(client).some((row) => {
+    if (excludeId && String(row.id) === String(excludeId)) return false;
+    const rowStatus = lower(row.status || row.statut || SUBSCRIPTION_STATUSES.ACTIVE);
+    if (rowStatus === SUBSCRIPTION_STATUSES.STOPPED) return false;
+    return lower(row.product_name || row.produit) === product
+      && lower(row.frequency || row.frequence) === freq
+      && lower(row.planned_day || row.jour_prevu || '') === day;
+  });
+}
+
+export function validateSubscriptionForm(form = {}) {
+  const errors = [];
+  if (!clean(form.clientId)) errors.push('Sélectionnez un client.');
+  if (!clean(form.productName)) errors.push('Indiquez le produit ou l\'article.');
+  if (num(form.quantity) <= 0) errors.push('La quantité doit être supérieure à 0.');
+  if (!clean(form.unit)) errors.push('Indiquez l\'unité.');
+  if (num(form.unitPrice) < 0) errors.push('Le prix unitaire ne peut pas être négatif.');
+  if (!clean(form.frequency)) errors.push('Choisissez une fréquence.');
+  if (!clean(form.startDate)) errors.push('Indiquez la date de début.');
+  if (form.endDate && form.startDate && form.endDate < form.startDate) {
+    errors.push('La date de fin doit être postérieure à la date de début.');
+  }
+  return errors;
+}
+
+export function buildSubscriptionRecordFromForm(form = {}, clients = []) {
+  const client = arr(clients).find((row) => String(row.id) === String(form.clientId)) || {};
+  return buildSubscriptionRecord({
+    client,
+    productName: clean(form.productName),
+    quantity: num(form.quantity),
+    unit: clean(form.unit) || 'unité',
+    frequency: clean(form.frequency) || 'weekly',
+    plannedDay: clean(form.plannedDay),
+    unitPrice: num(form.unitPrice),
+    farmId: form.farmId || rowFarmId(client),
+    startDate: clean(form.startDate),
+    endDate: clean(form.endDate),
+    status: clean(form.status) || SUBSCRIPTION_STATUSES.ACTIVE,
+    notes: clean(form.notes),
+  });
 }
 
 export function upsertClientSubscription(client = {}, subscription = {}) {

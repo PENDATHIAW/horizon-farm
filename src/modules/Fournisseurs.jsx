@@ -13,6 +13,7 @@ import { MODULE_FORM_FIELDS } from '../utils/constants';
 import CreateModal from '../modals/CreateModal';
 import EditModal from '../modals/EditModal';
 import DeleteModal from '../modals/DeleteModal';
+import DetailsModal from '../modals/DetailsModal';
 import FournisseurFicheModal from '../components/FournisseurFicheModal.jsx';
 import { calculateSupplierMetrics } from '../utils/businessCalculations';
 import { calculateSupplierSettlement } from '../utils/supplierSettlement';

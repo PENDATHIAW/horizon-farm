@@ -2,6 +2,7 @@ import { AlertTriangle, Download, DollarSign, Edit, Eye, FileText, Lightbulb, Ma
 import { useMemo, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import ActionIconButton from '../components/ActionIconButton';
+import ClientFicheModal from '../components/ClientFicheModal.jsx';
 import Btn from '../components/Btn';
 import KpiCard from '../components/KpiCard';
 import SectionHeader from '../components/SectionHeader';
@@ -10,7 +11,6 @@ import useAutomationSettings from '../hooks/useAutomationSettings';
 import useCrudModule from '../hooks/useCrudModule';
 import CreateModal from '../modals/CreateModal';
 import DeleteModal from '../modals/DeleteModal';
-import ClientFicheModal from '../components/ClientFicheModal.jsx';
 import EditModal from '../modals/EditModal';
 import { buildClientSegmentation, buildClientSegment } from '../services/clientSegmentationEngine';
 import { buildClientSalesSummary as buildClientSalesSummaryFromWorkflows, canDeleteClient } from '../utils/clientWorkflows';

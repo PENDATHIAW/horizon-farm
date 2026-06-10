@@ -7,8 +7,11 @@ import {
   cultureUnitPrice,
 } from './cultureWorkflows';
 import { financeIds } from './sideEffectIds';
-import { attachIdempotency, buildIdempotencyKey, WORKFLOW_TYPES } from './workflowDedupe';
 import { toNumber } from './format';
+import {
+  buildCultureConsumptionMovementPayload,
+  persistConsumptionMovement,
+} from './stockConsumptionBridge.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();
@@ -110,11 +113,44 @@ export async function runCultureInputSideEffects({
   const workflow = buildCultureInputUsageWorkflow({ culture, stock, qty, motif, date: date || today() });
   if (!workflow) return null;
 
+  const beforeQty = num(stock.quantite ?? stock.quantity);
+  const afterQty = num(workflow.stockPatch.quantite ?? workflow.stockPatch.quantity);
+
   await handlers.onUpdateStock?.(stock.id, workflow.stockPatch);
   await handlers.onUpdateCulture?.(culture.id, workflow.culturePatch);
   if (workflow.event && handlers.onCreateBusinessEvent) {
     await handlers.onCreateBusinessEvent({ ...workflow.event, side_effects_managed: true });
   }
+
+  if (handlers.onCreateStockMovement) {
+    const consumptionPayload = buildCultureConsumptionMovementPayload({
+      culture,
+      stock: { ...stock, quantite: afterQty, quantity: afterQty },
+      qty,
+      beforeQty,
+      afterQty,
+      motif,
+      date: date || today(),
+      farmId: stock.farm_id || culture.farm_id,
+    });
+    if (consumptionPayload) {
+      await persistConsumptionMovement({
+        before: { id: stock.id, quantite: beforeQty },
+        after: { id: stock.id, quantite: afterQty, unite: stock.unite || stock.unit, farm_id: consumptionPayload.farm_id },
+        patch: {
+          source_module: consumptionPayload.source_module,
+          source_record_id: consumptionPayload.source_record_id,
+          movement_ref: consumptionPayload.movement_ref,
+          dedupe_key: consumptionPayload.dedupe_key,
+          notes: consumptionPayload.notes,
+        },
+        payload: consumptionPayload,
+        handlers,
+        existingMovements: handlers.existingStockMovements || [],
+      });
+    }
+  }
+
   return workflow;
 }
 

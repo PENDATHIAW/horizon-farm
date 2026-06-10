@@ -23,6 +23,19 @@ export const MODULE_TARGET_TABS = {
   documents_rapports: ['Résumé', 'Bibliothèque', 'Preuves', 'Rapports', 'Exports', 'Modèles', 'Graphiques'],
   rh: ['Résumé', 'Équipements', 'Maintenance', 'Affectations', 'Coûts', 'Documents', 'Graphiques'],
   gestion_systeme: ['Vue admin', 'Utilisateurs', 'Fermes', 'Paramètres', 'Sécurité', 'Sauvegardes', 'Réinitialisation', 'Audit'],
+  smartfarm: ['Résumé', 'Capteurs', 'Caméras', 'Annexe', 'Graphiques'],
+  cultures: [
+    'Pilotage',
+    'Cycles',
+    'Parcelles & Cultures',
+    'Intrants & Météo',
+    'Santé & Protection',
+    'Récoltes',
+    'Transformation',
+    'Économie circulaire',
+    'Annexe',
+    'Graphiques',
+  ],
 };
 
 export const INTERCONNECTIONS = {

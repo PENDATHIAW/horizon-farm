@@ -20,12 +20,21 @@ const linkedToLot = (row = {}, lotIds = new Set()) => {
   return Boolean(id && lotIds.has(id));
 };
 
+async function syncWithoutBlocking(fn, message) {
+  try {
+    await fn?.();
+  } catch (error) {
+    console.warn(message, error);
+    toast.error(message);
+  }
+}
+
 function Field({ label, children }) { return <label className="text-xs font-bold text-[#8a7456] space-y-1"><span>{label}</span>{children}</label>; }
 function Input(props) { return <input {...props} className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm text-[#2f2415] outline-none focus:border-[#9a6b12]" />; }
 function Select(props) { return <select {...props} className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm text-[#2f2415] outline-none focus:border-[#9a6b12]" />; }
 function ActionButton({ children, onClick, icon: Icon, danger = false, type = 'button', disabled = false }) { return <button type={type} disabled={disabled} onClick={onClick} className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold ${danger ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-[#fffdf8] text-[#2f2415] border border-[#d6c3a0]'} disabled:opacity-50`}><Icon size={14} />{children}</button>; }
 
-function EggJournal({ rows, productionLogs, stockCrud, onCreateProduction, onUpdateProduction, onDeleteProduction, onRefreshProduction }) {
+function EggJournal({ rows, productionLogs, stockCrud, onCreateProduction, onCommitEggProduction, onUpdateProduction, onDeleteProduction, onRefreshProduction }) {
   const [editing, setEditing] = useState(null);
   const pondeuses = useMemo(() => filterLotsByActivity(rows, 'Pondeuse').filter((lot) => activeCount(lot) > 0), [rows]);
   const pondeuseIds = useMemo(() => new Set(pondeuses.map((lot) => String(lot.id))), [pondeuses]);
@@ -45,8 +54,15 @@ function EggJournal({ rows, productionLogs, stockCrud, onCreateProduction, onUpd
     const sellable = Math.max(0, produced - broken);
     const converted = tabletsFromEggs(sellable);
     const payload = { ...form, id: form.id || `PROD-${Date.now()}`, lot_id: lot.id, lot_name: lot.name || lot.id, date: form.date || today(), oeufs_produits: produced, oeufs_casses: broken, oeufs_vendables: sellable, tablettes: converted.tablettes, tablettes_vendables: converted.tablettes, plateaux: converted.tablettes, oeufs_restants: converted.oeufs_restants, oeufs_reliquat: converted.oeufs_restants, oeufs_par_tablette: 30, unite_vente: 'tablette', type_evenement: 'ramassage_oeufs', source_module: 'avicole', related_id: lot.id };
-    if (editing) await onUpdateProduction?.(editing.id, payload); else await onCreateProduction?.(payload);
-    await syncWithoutBlocking(() => syncEggStockFromProduction({ stockCrud, log: payload, previousLog: editing }), 'Stock œufs/tablettes non synchronisé');
+    if (editing) {
+      await onUpdateProduction?.(editing.id, payload);
+      await syncWithoutBlocking(() => syncEggStockFromProduction({ stockCrud, log: payload, previousLog: editing }), 'Stock œufs/tablettes non synchronisé');
+    } else if (onCommitEggProduction) {
+      await onCommitEggProduction({ ...payload, heure_ramassage: form.heure_ramassage, responsable: form.responsable, notes: form.notes });
+    } else {
+      await onCreateProduction?.(payload);
+      await syncWithoutBlocking(() => syncEggStockFromProduction({ stockCrud, log: payload, previousLog: editing }), 'Stock œufs/tablettes non synchronisé');
+    }
     await syncWithoutBlocking(() => onRefreshProduction?.(), 'Rafraîchissement production indisponible');
     toast.success(editing ? `Ramassage modifié · ${tabletLabelShared(sellable)}` : `Ramassage enregistré · ${tabletLabelShared(sellable)}`);
     setEditing(null); setForm(initial);
