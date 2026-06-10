@@ -44,7 +44,6 @@ const n = (v = 0) => Number(v || 0);
 const low = (v) => String(v || '').toLowerCase();
 const qty = (r = {}) => n(r.quantite ?? r.quantity ?? r.stock);
 const threshold = (r = {}) => n(r.seuil ?? r.threshold ?? r.stock_min ?? r.minimum_stock);
-const valueOf = (r = {}) => qty(r) * n(r.prix_unitaire ?? r.unit_price ?? r.price ?? r.cout_unitaire);
 const isFeed = (r = {}) => /aliment|feed|provende|son|mais|maïs|foin|fourrage/.test(low(`${r.produit || r.name || r.nom || ''} ${r.categorie || r.category || ''}`));
 const isPurchaseTx = (r = {}) => /achat|stock|fournisseur|approvisionnement|reception|réception/.test(low(`${r.type || ''} ${r.categorie || ''} ${r.category || ''} ${r.libelle || ''} ${r.title || ''} ${r.module_lie || ''} ${r.source_module || ''}`));
 const supplierDebt = (r = {}) => n(r.dettes ?? r.dette ?? r.solde ?? r.balance ?? r.reste_a_payer);
@@ -96,7 +95,7 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate, onMarkE
       <CollapsibleAdvancedSection
         eyebrow="Analyse avancée"
         title="Détails stock & cohérence"
-        description={`IA, seuils, dettes, péremption · ${fmtNumber(data.stockMovements.length)} mouvements ledger · CMUP ${data.valuation?.calculableCount || 0}/${data.valuation?.totalCount || 0}`}
+        description={`Signaux métier, seuils, dettes, péremption · ${fmtNumber(data.stockMovements.length)} mouvements ledger · CMUP ${data.valuation?.calculableCount || 0}/${data.valuation?.totalCount || 0}`}
         open={advancedOpen}
         onToggle={() => setAdvancedOpen((v) => !v)}
       >
@@ -205,7 +204,7 @@ export default function AchatsStockRecoveredModule(props) {
       valuation,
       expiry,
       stockIaRecs,
-      stockValue: valuation.totalValue || stocks.reduce((s, r) => s + valueOf(r), 0),
+      stockValue: valuation.totalValue,
       lowStock,
       feedStocks: stocks.filter(isFeed),
       purchases,
@@ -235,7 +234,7 @@ export default function AchatsStockRecoveredModule(props) {
     setBusyId(finding.id);
     try {
       const result = await applyOneClickRecommendation(finding, actionHandlers);
-      if (result.createdTasks || result.createdAlerts) toast.success('Action IA créée');
+      if (result.createdTasks || result.createdAlerts) toast.success('Action métier créée');
       else { toast.success('Module ouvert'); setTab('Stock'); }
     } catch (e) {
       toast.error(e.message || 'Erreur');
@@ -290,6 +289,8 @@ export default function AchatsStockRecoveredModule(props) {
   const stockProps = {
     rows: stocks,
     stockMovements,
+    transactions,
+    documents,
     alimentationLogs: feedLogs,
     animaux: arr(props.animaux),
     lots: arr(props.lots),

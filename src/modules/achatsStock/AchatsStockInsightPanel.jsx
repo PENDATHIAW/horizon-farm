@@ -14,7 +14,7 @@ const MODULE_LINKS = [
   { key: 'commercial', label: 'Commercial', tab: 'Opportunités', hint: 'Vendre stock / produits finis' },
   { key: 'finance_pilotage', label: 'Finance', tab: 'Dépenses', hint: 'Achats, paiements fournisseurs' },
   { key: 'documents_rapports', label: 'Documents', hint: 'Factures & bons de livraison' },
-  { key: 'centre_ia', label: 'Centre IA', tab: 'Risques', hint: 'Analyses stock & fournisseurs' },
+  { key: 'centre_ia', label: 'Centre décisionnel', tab: 'Risques', hint: 'Analyses stock & fournisseurs' },
 ];
 
 export default function AchatsStockInsightPanel({
@@ -37,10 +37,10 @@ export default function AchatsStockInsightPanel({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-[11px] font-black uppercase tracking-wide text-[#9a6b12] flex items-center gap-1">
-            <Bot size={14} /> Pilotage IA stock & achats
+            <Bot size={14} /> Signaux métier stock & achats
           </p>
           <p className="text-sm text-[#8a7456] mt-1">
-            Signaux terrain — analyses complètes et risques globaux sur Centre décisionnel.
+            Analyse automatique (règles métier) — risques globaux sur le Centre décisionnel.
           </p>
         </div>
         <button

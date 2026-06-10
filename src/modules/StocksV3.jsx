@@ -12,33 +12,57 @@ import CreateModal from '../modals/CreateModal';
 import DeleteModal from '../modals/DeleteModal';
 import DetailsModal from '../modals/DetailsModal';
 import EditModal from '../modals/EditModal';
-import { commitFeedingWorkflow, commitPurchaseWorkflow, prepareFeedingWorkflow, preparePurchaseWorkflow } from '../services/workflowService';
+import { commitFeedingWorkflow, prepareFeedingWorkflow } from '../services/workflowService';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId, makeId } from '../utils/ids';
 import { alimentationFields as buildAlimentationFields, deriveAlimentationValues, normalizeAlimentationPayload } from '../utils/stockForms';
 import { runStockLossSideEffects } from '../utils/purchaseSideEffects';
+import {
+  commitStockPurchaseWorkflow,
+  PAYMENT_STATUS,
+  prepareStockPurchaseWorkflow,
+} from '../utils/stockPurchaseWorkflow.js';
+import { computeWeightedAverageCost, summarizeStockValuation } from '../utils/stockValuation.js';
 import { applyStockMovement, buildStockCriticalFollowUp, hasOpenStockReorderTask } from '../utils/stockWorkflows';
 import StockFlowPanel from './StockFlowPanel.jsx';
 import StockReorderTasksBridge from './StockReorderTasksBridge.jsx';
-import StockSalesOpportunityBridge from './StockSalesOpportunityBridge.jsx';
 import StockStatusPanel from './StockStatusPanel.jsx';
 
 const today = () => new Date().toISOString().slice(0, 10);
-const unitPrice = (row = {}) => toNumber(row.prixUnit ?? row.prixunit ?? row.prix_unitaire);
-const valueOf = (row = {}) => toNumber(row.quantite) * unitPrice(row);
+const fallbackUnitPrice = (row = {}) => toNumber(row.prixUnit ?? row.prixunit ?? row.prix_unitaire);
+const stockValuation = (row = {}, movements = [], transactions = []) => computeWeightedAverageCost(row, movements, transactions);
+const displayUnitPrice = (row = {}, movements = [], transactions = []) => {
+  const v = stockValuation(row, movements, transactions);
+  if (v.calculable && v.avgCost != null) return v.avgCost;
+  if (v.lastPrice != null && v.lastPrice > 0) return v.lastPrice;
+  return fallbackUnitPrice(row);
+};
+const displayValue = (row = {}, movements = [], transactions = []) => {
+  const v = stockValuation(row, movements, transactions);
+  if (v.stockValue > 0) return v.stockValue;
+  return toNumber(row.quantite) * displayUnitPrice(row, movements, transactions);
+};
 const categoryOf = (row = {}) => String(row.categorie || row.category || '').toLowerCase();
 const isFood = (row = {}) => categoryOf(row).includes('aliment');
 const statusOf = (row = {}) => row.statut || row.stock_status || (toNumber(row.quantite) <= 0 ? 'epuise' : 'ok');
 const productName = (row = {}) => row.produit || row.name || row.nom || row.id || 'Produit';
-const stockMetrics = (row = {}) => {
+const stockMetrics = (row = {}, movements = [], transactions = []) => {
   const quantity = toNumber(row.quantite);
   const threshold = toNumber(row.seuil);
   const maxQty = toNumber(row.stock_max ?? row.quantite_max ?? row.max_stock);
   const critical = threshold > 0 ? quantity <= threshold : false;
   const suggestedOrderQty = maxQty > 0 ? Math.max(0, maxQty - quantity) : Math.max(0, threshold - quantity);
   const coverageRatio = threshold > 0 ? quantity / threshold : 0;
-  return { quantity, threshold, critical, suggestedOrderQty, coverageRatio, value: valueOf(row), unitPrice: unitPrice(row) };
+  return {
+    quantity,
+    threshold,
+    critical,
+    suggestedOrderQty,
+    coverageRatio,
+    value: displayValue(row, movements, transactions),
+    unitPrice: displayUnitPrice(row, movements, transactions),
+  };
 };
 
 const STOCK_CATEGORIES = [
@@ -59,7 +83,6 @@ function stockFields(fournisseurs = []) {
     { key: 'unite', label: 'Unité', type: 'select', options: ['kg', 'sac', 'dose', 'litre', 'bidon', 'boite', 'unité', 'lot', 'm', 'm²', 'ha'] },
     { key: 'seuil', label: 'Seuil minimum', type: 'number' },
     { key: 'stock_max', label: 'Stock cible / maximum', type: 'number' },
-    { key: 'prixUnit', label: 'Prix unitaire', type: 'number' },
     { key: 'section_suivi', label: 'Fournisseur & statut', type: 'section' },
     { key: 'statut', label: 'Statut stock', type: 'select', options: STATUS_OPTIONS },
     { key: 'fournisseur_id', label: 'Fournisseur', type: 'select', options: fournisseurs.map((f) => ({ value: f.id, label: f.nom || f.name || f.id })), emptyLabel: 'Aucun fournisseur disponible' },
@@ -72,7 +95,7 @@ function stockFields(fournisseurs = []) {
     { key: 'notes', label: 'Notes', type: 'text', fullWidth: true },
   ];
 }
-function MovementModal({ row, type, defaultQty = 1, saving, onClose, onConfirm }) {
+function MovementModal({ row, type, defaultQty = 1, unitPriceEstimate = 0, saving, onClose, onConfirm }) {
   const [qty, setQty] = useState(String(Math.max(1, Math.round(defaultQty || 1))));
   const [motif, setMotif] = useState(type === 'entree' ? 'Réception fournisseur' : type === 'perte' ? 'Perte constatée' : isFood(row) ? 'Alimentation animaux/lots' : 'Sortie stock');
   const [withFinance, setWithFinance] = useState(type === 'entree');
@@ -80,7 +103,7 @@ function MovementModal({ row, type, defaultQty = 1, saving, onClose, onConfirm }
   const quantity = toNumber(qty);
   const current = toNumber(row?.quantite);
   const next = type === 'entree' ? current + quantity : Math.max(0, current - quantity);
-  const amount = quantity * unitPrice(row);
+  const amount = quantity * toNumber(unitPriceEstimate);
   const title = type === 'entree' ? 'Réceptionner du stock' : type === 'perte' ? 'Déclarer une perte' : isFood(row) ? 'Utiliser aliment' : 'Utiliser / sortir du stock';
   const impacts = [
     type === 'entree' ? `Stock augmenté : ${fmtNumber(current)} → ${fmtNumber(next)} ${row?.unite || ''}` : `Stock diminué : ${fmtNumber(current)} → ${fmtNumber(next)} ${row?.unite || ''}`,
@@ -105,12 +128,30 @@ export default function StocksV3({ rows = [], alimentationLogs = [], animaux = [
   const documentsCrud = useCrudModule('documents');
   const alertesCrud = useCrudModule('alertes_center');
   const businessEventsCrud = useCrudModule('business_events');
-  const valeurTotale = useMemo(() => rows.reduce((sum, product) => sum + valueOf(product), 0), [rows]);
-  const critiques = useMemo(() => rows.filter((product) => stockMetrics(product).critical), [rows]);
+  const stockMovements = rest.stockMovements || [];
+  const transactions = rest.transactions || [];
+  const valeurTotale = useMemo(
+    () => summarizeStockValuation(rows, stockMovements, transactions).totalValue,
+    [rows, stockMovements, transactions],
+  );
+  const critiques = useMemo(() => rows.filter((product) => stockMetrics(product, stockMovements, transactions).critical), [rows, stockMovements, transactions]);
   const stockFormFields = useMemo(() => stockFields(fournisseurs), [fournisseurs]);
   const alimFormFields = useMemo(() => buildAlimentationFields({ stocks: rows, animaux, lots, fournisseurs, isFood }), [rows, animaux, lots, fournisseurs]);
   const deriveAlimValues = useMemo(() => deriveAlimentationValues({ stocks: rows, fournisseurs }), [rows, fournisseurs]);
-  const normalizeStock = (payload) => ({ ...payload, stock_status: payload.statut || payload.stock_status || (toNumber(payload.quantite) <= 0 ? 'epuise' : 'ok'), statut: payload.statut || payload.stock_status || (toNumber(payload.quantite) <= 0 ? 'epuise' : 'ok'), source_module: payload.source_module || 'stock' });
+  const stripManualPrice = (payload = {}) => {
+    const next = { ...payload };
+    delete next.prixUnit;
+    delete next.prixunit;
+    delete next.prix_unitaire;
+    delete next.unit_price;
+    return next;
+  };
+  const normalizeStock = (payload) => ({
+    ...payload,
+    stock_status: payload.statut || payload.stock_status || (toNumber(payload.quantite) <= 0 ? 'epuise' : 'ok'),
+    statut: payload.statut || payload.stock_status || (toNumber(payload.quantite) <= 0 ? 'epuise' : 'ok'),
+    source_module: payload.source_module || 'stock',
+  });
   const createStockFollowUpIfNeeded = async (row, nextQty) => {
     const followUp = buildStockCriticalFollowUp({ ...row, quantite: nextQty }, nextQty);
     if (!followUp || hasOpenStockReorderTask(row, taches)) return;
@@ -119,8 +160,8 @@ export default function StocksV3({ rows = [], alimentationLogs = [], animaux = [
     await (rest.onCreateBusinessEvent || businessEventsCrud.create)?.({ ...followUp.event, linked_task_id: followUp.task.id });
     await Promise.allSettled([onRefreshTasks?.(), onRefreshAlertes?.(), businessEventsCrud.refresh?.()]);
   };
-  const submitCreate = async (payload) => { try { setSaving(true); const normalized = normalizeStock(payload); await onCreate?.(normalized); await createStockFollowUpIfNeeded(normalized, toNumber(normalized.quantite)); toast.success('Stock créé / réceptionné'); setModal(null); } catch (error) { toast.error(error.message || 'Erreur création stock'); } finally { setSaving(false); } };
-  const submitEdit = async (payload) => { if (!selected) return; try { setSaving(true); const normalized = normalizeStock(payload); await onUpdate?.(selected.id, normalized); await createStockFollowUpIfNeeded({ ...selected, ...normalized }, toNumber(normalized.quantite)); toast.success('Stock modifié'); setModal(null); } catch (error) { toast.error(error.message || 'Erreur modification stock'); } finally { setSaving(false); } };
+  const submitCreate = async (payload) => { try { setSaving(true); const normalized = normalizeStock(stripManualPrice(payload)); await onCreate?.(normalized); await createStockFollowUpIfNeeded(normalized, toNumber(normalized.quantite)); toast.success('Stock créé — utilisez Réception pour le prix d\'achat'); setModal(null); } catch (error) { toast.error(error.message || 'Erreur création stock'); } finally { setSaving(false); } };
+  const submitEdit = async (payload) => { if (!selected) return; try { setSaving(true); const normalized = normalizeStock(stripManualPrice(payload)); await onUpdate?.(selected.id, normalized); await createStockFollowUpIfNeeded({ ...selected, ...normalized }, toNumber(normalized.quantite)); toast.success('Stock modifié'); setModal(null); } catch (error) { toast.error(error.message || 'Erreur modification stock'); } finally { setSaving(false); } };
   const submitDelete = async () => { if (!selected) return; try { setSaving(true); await onDelete?.(selected.id); toast.success('Stock supprimé'); setModal(null); } catch (error) { toast.error(error.message || 'Erreur suppression stock'); } finally { setSaving(false); } };
   const moveStock = async (row, type, qty, motif = '') => {
     const current = toNumber(row.quantite);
@@ -131,7 +172,30 @@ export default function StocksV3({ rows = [], alimentationLogs = [], animaux = [
     await createStockFollowUpIfNeeded(row, next);
     return next;
   };
-  const openMovement = (row, type) => setMovement({ row, type, defaultQty: type === 'entree' ? (stockMetrics(row).suggestedOrderQty || 1) : 1 });
+  const openMovement = (row, type) => {
+    if (type === 'entree' && rest.onOpenPurchaseReception) {
+      rest.onOpenPurchaseReception({
+        form_type: 'stock_purchase',
+        intent_label: 'Réception achat stock',
+        draft_fields: {
+          date: today(),
+          stock_id: row.id,
+          produit: row.produit,
+          quantite: stockMetrics(row, stockMovements, transactions).suggestedOrderQty || 1,
+          unite: row.unite || 'kg',
+          prix_unitaire: displayUnitPrice(row, stockMovements, transactions) || fallbackUnitPrice(row),
+          fournisseur_id: row.fournisseur_id || '',
+        },
+      });
+      return;
+    }
+    setMovement({
+      row,
+      type,
+      defaultQty: type === 'entree' ? (stockMetrics(row, stockMovements, transactions).suggestedOrderQty || 1) : 1,
+      unitPriceEstimate: displayUnitPrice(row, stockMovements, transactions),
+    });
+  };
   const confirmMovement = async ({ qty, motif, withFinance }) => {
     const row = movement?.row;
     const type = movement?.type;
@@ -139,35 +203,58 @@ export default function StocksV3({ rows = [], alimentationLogs = [], animaux = [
     try {
       setSaving(true);
       if (type === 'entree') {
-        const current = toNumber(row.quantite);
-        const nextQty = current + qty;
-        const amount = qty * unitPrice(row);
+        const unitCost = displayUnitPrice(row, stockMovements, transactions) || fallbackUnitPrice(row);
+        const amount = qty * unitCost;
         if (withFinance && amount > 0) {
-          const preview = preparePurchaseWorkflow({ id: row.id, produit: row.produit, quantite: nextQty, quantite_recue: qty, prix_unitaire: unitPrice(row), montant: amount, fournisseur_id: row.fournisseur_id || '', source_record_id: row.id, last_movement_type: 'entree', last_movement_label: motif, last_movement_qty: qty, last_movement_at: new Date().toISOString(), statut: 'ok', stock_status: 'ok' }, { transactions: [], documents: documentsCrud.rows, events: businessEventsCrud.rows });
-          await commitPurchaseWorkflow(preview, {
+          const preview = prepareStockPurchaseWorkflow({
+            id: row.id,
+            stock_id: row.id,
+            produit: row.produit,
+            quantite: qty,
+            quantite_recue: qty,
+            prix_unitaire: unitCost,
+            fournisseur_id: row.fournisseur_id || '',
+            statut_paiement: PAYMENT_STATUS.PAYE,
+            date: today(),
+            notes: motif || 'Réception achat stock',
+          }, {
+            stocks: rows,
+            suppliers: fournisseurs,
+            transactions,
+            stock_movements: stockMovements,
+            documents: documentsCrud.rows,
+            workflows: [],
+          });
+          await commitStockPurchaseWorkflow(preview, {
             context: {
               stocks: rows,
-              transactions: rest.transactions || [],
+              transactions,
               tasks: taches,
               alertes: alertesCrud.rows || [],
               documents: documentsCrud.rows || [],
+              stock_movements: stockMovements,
             },
-            onCreateOrUpdateStock: (patch) => onUpdate?.(row.id, normalizeStock({ ...patch, quantite: nextQty, last_movement_label: motif })),
+            existingDocuments: documentsCrud.rows || [],
+            existingAlerts: alertesCrud.rows || [],
+            existingStockMovements: stockMovements,
+            onUpdateStock: (id, patch) => onUpdate?.(id, normalizeStock({ ...patch, last_movement_label: motif })),
             onCreateFinanceTransaction,
             onCreateDocument: documentsCrud.create,
             onCreateBusinessEvent: rest.onCreateBusinessEvent || businessEventsCrud.create,
             onCreateTask,
             onCreateAlert: onCreateAlert || alertesCrud.create,
+            onCreateStockMovement: rest.onCreateStockMovement,
+            onRefreshStockMovements: rest.onRefreshStockMovements,
           });
         } else {
           await moveStock(row, 'entree', qty, motif);
           await (rest.onCreateBusinessEvent || businessEventsCrud.create)?.({ id: makeId('EVT'), event_type: 'reception_stock', module_source: 'stock', entity_type: 'stock', entity_id: row.id, title: `Réception stock ${productName(row)}`, description: `${qty} ${row.unite || ''} · ${motif}`, event_date: today(), severity: 'info' });
         }
-        await Promise.allSettled([onRefresh?.(), onRefreshFinances?.(), documentsCrud.refresh?.(), businessEventsCrud.refresh?.()]);
+        await Promise.allSettled([onRefresh?.(), onRefreshFinances?.(), documentsCrud.refresh?.(), businessEventsCrud.refresh?.(), rest.onRefreshStockMovements?.()]);
         toast.success('Réception stock enregistrée');
       } else if (type === 'sortie') {
         if (isFood(row) && onCreateAlimentation) {
-          const preview = prepareFeedingWorkflow({ id: generateSequentialId('alimentation_logs', alimentationLogs), date: today(), stock_id: row.id, categorie: row.activite_liee === 'avicole' ? 'pondeuse' : 'bovin', type_cible: 'categorie_animale', quantite: qty, unite: row.unite || 'kg', montant_total: qty * unitPrice(row), fournisseur_id: row.fournisseur_id || '', duree_jours: 1, notes: motif || `Sortie depuis stock ${row.produit}` }, { events: businessEventsCrud.rows });
+          const preview = prepareFeedingWorkflow({ id: generateSequentialId('alimentation_logs', alimentationLogs), date: today(), stock_id: row.id, categorie: row.activite_liee === 'avicole' ? 'pondeuse' : 'bovin', type_cible: 'categorie_animale', quantite: qty, unite: row.unite || 'kg', montant_total: qty * displayUnitPrice(row, stockMovements, transactions), fournisseur_id: row.fournisseur_id || '', duree_jours: 1, notes: motif || `Sortie depuis stock ${row.produit}` }, { events: businessEventsCrud.rows });
           await commitFeedingWorkflow(preview, {
             context: { stocks: rows, transactions: rest.transactions || [] },
             onCreateAlimentation,
@@ -194,7 +281,7 @@ export default function StocksV3({ rows = [], alimentationLogs = [], animaux = [
           transactions: rest.transactions || [],
           handlers: { onCreateFinanceTransaction },
         });
-        await (rest.onCreateBusinessEvent || businessEventsCrud.create)?.({ id: makeId('EVT'), event_type: 'perte_stock', module_source: 'stock', entity_type: 'stock', entity_id: row.id, title: `Perte stock ${row.produit}`, description: `${qty} ${row.unite || ''} · ${motif}`, event_date: today(), severity: 'warning', amount: lossFinance?.montant || qty * unitPrice(row), linked_finance_transaction_id: lossFinance?.id || '', side_effects_managed: true });
+        await (rest.onCreateBusinessEvent || businessEventsCrud.create)?.({ id: makeId('EVT'), event_type: 'perte_stock', module_source: 'stock', entity_type: 'stock', entity_id: row.id, title: `Perte stock ${row.produit}`, description: `${qty} ${row.unite || ''} · ${motif}`, event_date: today(), severity: 'warning', amount: lossFinance?.montant || qty * displayUnitPrice(row, stockMovements, transactions), linked_finance_transaction_id: lossFinance?.id || '', side_effects_managed: true });
         await Promise.allSettled([businessEventsCrud.refresh?.(), onRefreshFinances?.()]);
         toast.success('Perte stock enregistrée et tracée');
       }
@@ -205,14 +292,15 @@ export default function StocksV3({ rows = [], alimentationLogs = [], animaux = [
       setSaving(false);
     }
   };
-  const submitCreateAlimentation = async (rawPayload) => { try { setSaving(true); const payload = normalizeAlimentationPayload(rawPayload); const stock = rows.find((r) => r.id === payload.stock_id); const qty = toNumber(payload.quantite); if (stock && qty > toNumber(stock.quantite)) throw new Error(`Stock insuffisant : ${fmtNumber(stock.quantite)} ${stock.unite || ''} disponible(s)`); const normalized = { ...payload, montant_total: toNumber(payload.montant_total) || (stock ? qty * unitPrice(stock) : 0), unite: payload.unite || stock?.unite || 'kg', duree_jours: payload.duree_jours || 1, source_module: 'stock', source_record_id: payload.stock_id || '' }; if (stock && qty > 0) { const preview = prepareFeedingWorkflow(normalized, { events: businessEventsCrud.rows }); await commitFeedingWorkflow(preview, { onCreateAlimentation, onUpdateStockMovement: () => moveStock(stock, 'sortie', qty, 'Utilisation alimentation'), onCreateBusinessEvent: rest.onCreateBusinessEvent || businessEventsCrud.create }); await businessEventsCrud.refresh?.(); } else { await onCreateAlimentation?.(normalized); } await onRefreshAlimentation?.(); await onRefresh?.(); toast.success('Utilisation alimentation enregistrée et liée'); setModal(null); } catch (error) { toast.error(error.message || 'Erreur alimentation'); } finally { setSaving(false); } };
+  const submitCreateAlimentation = async (rawPayload) => { try { setSaving(true); const payload = normalizeAlimentationPayload(rawPayload); const stock = rows.find((r) => r.id === payload.stock_id); const qty = toNumber(payload.quantite); if (stock && qty > toNumber(stock.quantite)) throw new Error(`Stock insuffisant : ${fmtNumber(stock.quantite)} ${stock.unite || ''} disponible(s)`); const normalized = { ...payload, montant_total: toNumber(payload.montant_total) || (stock ? qty * displayUnitPrice(stock, stockMovements, transactions) : 0), unite: payload.unite || stock?.unite || 'kg', duree_jours: payload.duree_jours || 1, source_module: 'stock', source_record_id: payload.stock_id || '' }; if (stock && qty > 0) { const preview = prepareFeedingWorkflow(normalized, { events: businessEventsCrud.rows }); await commitFeedingWorkflow(preview, { onCreateAlimentation, onUpdateStockMovement: () => moveStock(stock, 'sortie', qty, 'Utilisation alimentation'), onCreateBusinessEvent: rest.onCreateBusinessEvent || businessEventsCrud.create }); await businessEventsCrud.refresh?.(); } else { await onCreateAlimentation?.(normalized); } await onRefreshAlimentation?.(); await onRefresh?.(); toast.success('Utilisation alimentation enregistrée et liée'); setModal(null); } catch (error) { toast.error(error.message || 'Erreur alimentation'); } finally { setSaving(false); } };
 
   const columns = [
-    { key: 'produit', label: 'Produit', sortable: true, render: (p) => <span className="text-[#2f2415] font-semibold">{p.produit}</span> }, { key: 'categorie', label: 'Catégorie', sortable: true, render: (p) => STOCK_CATEGORIES.find((c) => c.value === p.categorie)?.label || p.categorie || '—' }, { key: 'activite_liee', label: 'Activité liée', sortable: true, render: (p) => p.activite_liee || '—' }, { key: 'quantite', label: 'Quantité', sortable: true, render: (p) => <span className={stockMetrics(p).critical ? 'text-red-500 font-bold' : 'text-emerald-500 font-bold'}>{fmtNumber(stockMetrics(p).quantity)}</span> }, { key: 'unite', label: 'Unité', sortable: true }, { key: 'seuil', label: 'Seuil min.', sortable: true, render: (p) => fmtNumber(p.seuil) }, { key: 'prixUnit', label: 'Prix unit.', sortable: true, render: (p) => fmtCurrency(unitPrice(p)) }, { key: 'valeur', label: 'Valeur estimée', sortable: true, render: (p) => <span className="text-[#2f2415] font-semibold">{fmtCurrency(valueOf(p))}</span> }, { key: 'statut', label: 'Statut', sortable: true, render: (p) => <Badge status={statusOf(p)} /> }, { key: 'suggestion', label: 'À commander', render: (p) => stockMetrics(p).suggestedOrderQty > 0 ? <span className="text-amber-600 font-semibold">{fmtNumber(stockMetrics(p).suggestedOrderQty)} {p.unite || ''}</span> : <span className="text-emerald-600">OK</span> }, { key: 'actions', label: 'Actions', render: (p) => <div className="flex gap-1"><ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected(p); setModal('details'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(p); setModal('edit'); }} /><ActionIconButton icon={Plus} title="Réceptionner" color="emerald" onClick={() => openMovement(p, 'entree')} /><ActionIconButton icon={Package} title="Utiliser" color="amber" onClick={() => openMovement(p, 'sortie')} /><ActionIconButton icon={AlertTriangle} title="Perte" color="red" onClick={() => openMovement(p, 'perte')} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(p); setModal('delete'); }} /></div> },
+    { key: 'produit', label: 'Produit', sortable: true, render: (p) => <span className="text-[#2f2415] font-semibold">{p.produit}</span> }, { key: 'categorie', label: 'Catégorie', sortable: true, render: (p) => STOCK_CATEGORIES.find((c) => c.value === p.categorie)?.label || p.categorie || '—' }, { key: 'activite_liee', label: 'Activité liée', sortable: true, render: (p) => p.activite_liee || '—' }, { key: 'quantite', label: 'Quantité', sortable: true, render: (p) => <span className={stockMetrics(p, stockMovements, transactions).critical ? 'text-red-500 font-bold' : 'text-emerald-500 font-bold'}>{fmtNumber(stockMetrics(p, stockMovements, transactions).quantity)}</span> }, { key: 'unite', label: 'Unité', sortable: true }, { key: 'seuil', label: 'Seuil min.', sortable: true, render: (p) => fmtNumber(p.seuil) }, { key: 'prixUnit', label: 'CMUP / dernier achat', sortable: true, render: (p) => fmtCurrency(displayUnitPrice(p, stockMovements, transactions)) }, { key: 'valeur', label: 'Valeur (CMUP)', sortable: true, render: (p) => <span className="text-[#2f2415] font-semibold">{fmtCurrency(displayValue(p, stockMovements, transactions))}</span> }, { key: 'statut', label: 'Statut', sortable: true, render: (p) => <Badge status={statusOf(p)} /> }, { key: 'suggestion', label: 'À commander', render: (p) => stockMetrics(p, stockMovements, transactions).suggestedOrderQty > 0 ? <span className="text-amber-600 font-semibold">{fmtNumber(stockMetrics(p, stockMovements, transactions).suggestedOrderQty)} {p.unite || ''}</span> : <span className="text-emerald-600">OK</span> }, { key: 'actions', label: 'Actions', render: (p) => <div className="flex gap-1"><ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelected(p); setModal('details'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelected(p); setModal('edit'); }} /><ActionIconButton icon={Plus} title="Réceptionner" color="emerald" onClick={() => openMovement(p, 'entree')} /><ActionIconButton icon={Package} title="Utiliser" color="amber" onClick={() => openMovement(p, 'sortie')} /><ActionIconButton icon={AlertTriangle} title="Perte" color="red" onClick={() => openMovement(p, 'perte')} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelected(p); setModal('delete'); }} /></div> },
   ];
   const alimColumns = [
     { key: 'date', label: 'Date', sortable: true }, { key: 'produit', label: 'Produit', render: (r) => r.produit || rows.find((s) => s.id === r.stock_id)?.produit || '—' }, { key: 'stock_id', label: 'Stock', render: (r) => rows.find((s) => s.id === r.stock_id)?.produit || r.stock_id || 'manuel' }, { key: 'categorie', label: 'Catégorie animale', sortable: true }, { key: 'cible_id', label: 'Concerné', render: (r) => r.cible_id || r.type_cible || '—' }, { key: 'quantite', label: 'Quantité', render: (r) => `${fmtNumber(r.quantite)} ${r.unite || ''}`.trim() }, { key: 'prix_unitaire', label: 'Prix unit.', render: (r) => fmtCurrency(r.prix_unitaire) }, { key: 'montant_total', label: 'Coût lié', render: (r) => fmtCurrency(r.montant_total) }, { key: 'duree_jours', label: 'Durée', render: (r) => `${r.duree_jours || 1} j` }, { key: 'actions', label: 'Actions', render: (r) => <div className="flex gap-1"><ActionIconButton icon={Eye} title="Voir" color="sky" onClick={() => { setSelectedAlim(r); setModal('detailsAlim'); }} /><ActionIconButton icon={Edit} title="Modifier" color="amber" onClick={() => { setSelectedAlim(r); setModal('editAlim'); }} /><ActionIconButton icon={Trash2} title="Supprimer" color="red" onClick={() => { setSelectedAlim(r); setModal('deleteAlim'); }} /></div> },
   ];
-  const doExports = () => { const enrichedRows = rows.map((p) => ({ ...p, ...stockMetrics(p), valeur_estimee: valueOf(p) })); exportToCsv({ rows: enrichedRows, fileName: 'stocks.csv' }); exportToExcel({ rows: enrichedRows, fileName: 'stocks.xlsx', sheetName: 'Stocks' }); exportToPdf({ rows: enrichedRows, title: 'Stock', fileName: 'stocks.pdf' }); toast.success('Exports stock générés'); };
-  return <div className="space-y-6"><StockStatusPanel rows={rows} onUpdate={onUpdate} onCreateBusinessEvent={rest.onCreateBusinessEvent || businessEventsCrud.create} onRefresh={onRefresh} /><StockFlowPanel rows={rows} onUpdate={onUpdate} onCreateBusinessEvent={rest.onCreateBusinessEvent || businessEventsCrud.create} onCreateFinanceTransaction={onCreateFinanceTransaction} onRefreshFinances={onRefreshFinances} /><StockReorderTasksBridge rows={rows} taches={taches} fournisseurs={fournisseurs} onCreateTask={onCreateTask} onUpdateTask={onUpdateTask} onRefreshTasks={onRefreshTasks} onCreateAlert={onCreateAlert || alertesCrud.create} onRefreshAlertes={onRefreshAlertes || alertesCrud.refresh} onCreateBusinessEvent={rest.onCreateBusinessEvent || businessEventsCrud.create} onRefreshBusinessEvents={rest.onRefreshBusinessEvents || businessEventsCrud.refresh} /><StockSalesOpportunityBridge rows={rows} opportunities={opportunities} onUpdate={onUpdate} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onCreateBusinessEvent={rest.onCreateBusinessEvent || businessEventsCrud.create} onRefreshBusinessEvents={rest.onRefreshBusinessEvents || businessEventsCrud.refresh} /><SectionHeader title="Inventaire" sub="Stock réel : achats, livraisons, consommations, pertes, retours et coûts liés aux activités" actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Actualiser</Btn><Btn icon={Plus} small onClick={() => { setSelected(null); setModal('create'); }}>Créer / réceptionner stock</Btn><Btn icon={Package} variant="outline" small onClick={() => { setSelectedAlim(null); setModal('createAlim'); }}>Utiliser aliment</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Rapport</Btn></>} /><div className="grid grid-cols-1 md:grid-cols-3 gap-4"><KpiCard icon={Package} label="Valeur totale stock" value={fmtCurrency(valeurTotale)} /><KpiCard icon={AlertTriangle} label="Produits sous seuil" value={critiques.length} /><KpiCard icon={CheckCircle} label="Produits OK" value={rows.length - critiques.length} /></div><DataTable title="Inventaire" rows={rows} columns={columns} loading={loading} initialSortKey="produit" searchPlaceholder="Rechercher stock..." /><DataTable title="Alimentation liée au stock" rows={alimentationLogs || []} columns={alimColumns} loading={loading} initialSortKey="date" searchPlaceholder="Rechercher alimentation..." />{movement ? <MovementModal row={movement.row} type={movement.type} defaultQty={movement.defaultQty} saving={saving} onClose={() => setMovement(null)} onConfirm={confirmMovement} /> : null}<DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, ...stockMetrics(selected), valeur_estimee: valueOf(selected) } : selected} title="Détail stock" /><CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={stockFormFields} initialValues={{ id: generateSequentialId('stock', rows), quantite: 0, seuil: 0, stock_max: 0, statut: 'ok', unite: 'kg', categorie: 'aliment_betail', activite_liee: 'animaux' }} autoId={() => generateSequentialId('stock', rows)} loading={saving} title="Créer / réceptionner stock" submitLabel="Enregistrer" /><EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={stockFormFields} initialValues={selected || {}} loading={saving} title="Modifier stock" submitLabel="Enregistrer" /><DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected ? `${selected.produit}` : ''} loading={saving} /><DetailsModal open={modal === 'detailsAlim'} onClose={() => setModal(null)} data={selectedAlim} title="Détail alimentation" /><CreateModal open={modal === 'createAlim'} onClose={() => setModal(null)} onSubmit={submitCreateAlimentation} fields={alimFormFields} deriveValues={deriveAlimValues} initialValues={{ id: generateSequentialId('alimentation_logs', alimentationLogs), date: today(), stock_id: '__manual__', categorie: 'bovin', type_cible: 'categorie_animale', duree_jours: 1, unite: 'kg' }} autoId={() => generateSequentialId('alimentation_logs', alimentationLogs)} loading={saving} title="Utiliser aliment depuis le stock" submitLabel="Enregistrer" /><EditModal open={modal === 'editAlim'} onClose={() => setModal(null)} onSubmit={async (rawPayload) => { if (!selectedAlim) return; try { setSaving(true); const payload = normalizeAlimentationPayload(rawPayload, { stocks: rows, fournisseurs }); await onUpdateAlimentation?.(selectedAlim.id, payload); await onRefreshAlimentation?.(); toast.success('Alimentation modifiée'); setModal(null); } catch (e) { toast.error(e.message || 'Modification impossible'); } finally { setSaving(false); } }} fields={alimFormFields} deriveValues={deriveAlimValues} initialValues={selectedAlim || {}} loading={saving} title="Modifier utilisation alimentation" submitLabel="Enregistrer" /><DeleteModal open={modal === 'deleteAlim'} onClose={() => setModal(null)} onConfirm={async () => { if (!selectedAlim) return; try { setSaving(true); await onDeleteAlimentation?.(selectedAlim.id); await onRefreshAlimentation?.(); toast.success('Alimentation supprimée'); setModal(null); } catch (e) { toast.error(e.message || 'Suppression impossible'); } finally { setSaving(false); } }} itemLabel={selectedAlim ? `${selectedAlim.categorie} ${selectedAlim.date}` : ''} loading={saving} /></div>;
+  const doExports = () => { const enrichedRows = rows.map((p) => ({ ...p, ...stockMetrics(p, stockMovements, transactions), valeur_estimee: displayValue(p, stockMovements, transactions), cmup: displayUnitPrice(p, stockMovements, transactions) })); exportToCsv({ rows: enrichedRows, fileName: 'stocks.csv' }); exportToExcel({ rows: enrichedRows, fileName: 'stocks.xlsx', sheetName: 'Stocks' }); exportToPdf({ rows: enrichedRows, title: 'Stock', fileName: 'stocks.pdf' }); toast.success('Exports stock générés'); };
+  const openPurchaseReception = () => rest.onOpenPurchaseReception?.({ form_type: 'stock_purchase', intent_label: 'Réception achat stock', draft_fields: { date: today() } }) || setModal('create');
+  return <div className="space-y-6"><StockStatusPanel rows={rows} onUpdate={onUpdate} onCreateBusinessEvent={rest.onCreateBusinessEvent || businessEventsCrud.create} onRefresh={onRefresh} /><StockFlowPanel rows={rows} onUpdate={onUpdate} onCreateBusinessEvent={rest.onCreateBusinessEvent || businessEventsCrud.create} onCreateFinanceTransaction={onCreateFinanceTransaction} onRefreshFinances={onRefreshFinances} /><StockReorderTasksBridge rows={rows} taches={taches} fournisseurs={fournisseurs} onCreateTask={onCreateTask} onUpdateTask={onUpdateTask} onRefreshTasks={onRefreshTasks} onCreateAlert={onCreateAlert || alertesCrud.create} onRefreshAlertes={onRefreshAlertes || alertesCrud.refresh} onCreateBusinessEvent={rest.onCreateBusinessEvent || businessEventsCrud.create} onRefreshBusinessEvents={rest.onRefreshBusinessEvents || businessEventsCrud.refresh} /><SectionHeader title="Inventaire" sub="Valorisation CMUP — réception achat via le formulaire canonique" actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Actualiser</Btn><Btn icon={Plus} small onClick={openPurchaseReception}>Réception achat</Btn><Btn icon={Package} variant="outline" small onClick={() => { setSelected(null); setModal('create'); }}>Créer fiche stock</Btn><Btn icon={Package} variant="outline" small onClick={() => { setSelectedAlim(null); setModal('createAlim'); }}>Utiliser aliment</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Rapport</Btn></>} /><div className="grid grid-cols-1 md:grid-cols-3 gap-4"><KpiCard icon={Package} label="Valeur totale (CMUP)" value={fmtCurrency(valeurTotale)} /><KpiCard icon={AlertTriangle} label="Produits sous seuil" value={critiques.length} /><KpiCard icon={CheckCircle} label="Produits OK" value={rows.length - critiques.length} /></div><DataTable title="Inventaire" rows={rows} columns={columns} loading={loading} initialSortKey="produit" searchPlaceholder="Rechercher stock..." /><DataTable title="Alimentation liée au stock" rows={alimentationLogs || []} columns={alimColumns} loading={loading} initialSortKey="date" searchPlaceholder="Rechercher alimentation..." />{movement ? <MovementModal row={movement.row} type={movement.type} defaultQty={movement.defaultQty} unitPriceEstimate={movement.unitPriceEstimate} saving={saving} onClose={() => setMovement(null)} onConfirm={confirmMovement} /> : null}<DetailsModal open={modal === 'details'} onClose={() => setModal(null)} data={selected ? { ...selected, ...stockMetrics(selected, stockMovements, transactions), cmup: displayUnitPrice(selected, stockMovements, transactions), valeur_estimee: displayValue(selected, stockMovements, transactions) } : selected} title="Détail stock" /><CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={stockFormFields} initialValues={{ id: generateSequentialId('stock', rows), quantite: 0, seuil: 0, stock_max: 0, statut: 'ok', unite: 'kg', categorie: 'aliment_betail', activite_liee: 'animaux' }} autoId={() => generateSequentialId('stock', rows)} loading={saving} title="Créer fiche stock (sans prix — utiliser Réception achat)" submitLabel="Enregistrer" /><EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={stockFormFields} initialValues={selected || {}} loading={saving} title="Modifier stock" submitLabel="Enregistrer" /><DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected ? `${selected.produit}` : ''} loading={saving} /><DetailsModal open={modal === 'detailsAlim'} onClose={() => setModal(null)} data={selectedAlim} title="Détail alimentation" /><CreateModal open={modal === 'createAlim'} onClose={() => setModal(null)} onSubmit={submitCreateAlimentation} fields={alimFormFields} deriveValues={deriveAlimValues} initialValues={{ id: generateSequentialId('alimentation_logs', alimentationLogs), date: today(), stock_id: '__manual__', categorie: 'bovin', type_cible: 'categorie_animale', duree_jours: 1, unite: 'kg' }} autoId={() => generateSequentialId('alimentation_logs', alimentationLogs)} loading={saving} title="Utiliser aliment depuis le stock" submitLabel="Enregistrer" /><EditModal open={modal === 'editAlim'} onClose={() => setModal(null)} onSubmit={async (rawPayload) => { if (!selectedAlim) return; try { setSaving(true); const payload = normalizeAlimentationPayload(rawPayload, { stocks: rows, fournisseurs }); await onUpdateAlimentation?.(selectedAlim.id, payload); await onRefreshAlimentation?.(); toast.success('Alimentation modifiée'); setModal(null); } catch (e) { toast.error(e.message || 'Modification impossible'); } finally { setSaving(false); } }} fields={alimFormFields} deriveValues={deriveAlimValues} initialValues={selectedAlim || {}} loading={saving} title="Modifier utilisation alimentation" submitLabel="Enregistrer" /><DeleteModal open={modal === 'deleteAlim'} onClose={() => setModal(null)} onConfirm={async () => { if (!selectedAlim) return; try { setSaving(true); await onDeleteAlimentation?.(selectedAlim.id); await onRefreshAlimentation?.(); toast.success('Alimentation supprimée'); setModal(null); } catch (e) { toast.error(e.message || 'Suppression impossible'); } finally { setSaving(false); } }} itemLabel={selectedAlim ? `${selectedAlim.categorie} ${selectedAlim.date}` : ''} loading={saving} /></div>;
 }

@@ -1,7 +1,7 @@
-import { toNumber } from './format';
-import { makeId } from './ids';
-import { eventIds } from './sideEffectIds';
-import { attachIdempotency, buildIdempotencyKey, WORKFLOW_TYPES } from './workflowDedupe';
+import { toNumber } from './format.js';
+import { makeId } from './ids.js';
+import { eventIds } from './sideEffectIds.js';
+import { attachIdempotency, buildIdempotencyKey, WORKFLOW_TYPES } from './workflowDedupe.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const clean = (value) => String(value || '').trim();
