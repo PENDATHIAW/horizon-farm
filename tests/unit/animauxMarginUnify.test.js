@@ -16,7 +16,13 @@ test('Animaux liste — colonnes marge unifiée ERP', () => {
   assert.doesNotMatch(src, /label="Marge suivie"/);
 });
 
-test('Animaux liste — marge = revenu − coût unifié (pas plancher seul)', () => {
+test('Animaux liste — marge ERP fiche dans costBreakdown', () => {
   assert.match(src, /revenueOfAnimal/);
   assert.match(src, /revenue > 0 \? revenue - total : null/);
+});
+
+test('Animaux liste — colonne marge alignée au prix proposé commercial', () => {
+  assert.match(src, /buildAnimalProposedSaleDisplay/);
+  assert.match(src, /PROPOSED_PRICE_MARGIN_LABEL/);
+  assert.match(src, /rowProposed\.marginOnProposed/);
 });
