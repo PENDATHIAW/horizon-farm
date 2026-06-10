@@ -28,10 +28,13 @@ Les panels orphelins suivants ont été retirés — ne pas réintroduire :
 | `ElevageFeedingDistribution.jsx` | `ElevageWorkflowPanels` (modal feeding) |
 | `ElevageRepairPanel.jsx` | Workflows + intégrité ERP |
 | `ElevageProductionPanel.jsx` | Hub inline `ProductionHub` |
-| `ElevageCyclesPanel.jsx` | `VisionCyclesTab` |
 | `ElevageSantePanel.jsx` | `SanteV8` direct |
 | `ElevageReproductionPanel.jsx` | Hub inline `ReproductionHub` |
 | `ElevageTransformationPanel.jsx` | Hub inline `TransformationHub` + bridges |
+
+| Fichier conservé | Rôle |
+|------------------|------|
+| `ElevageCyclesPanel.jsx` | **Canonique** onglet Cycles Élevage (`VisionCyclesTab` reste pour Centre IA / Vision) |
 
 **Règle :** toute évolution passe par le module canonique ou un utilitaire V3.
 

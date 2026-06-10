@@ -2,7 +2,7 @@
  * Saisie vocale contextuelle — une phrase → un ou plusieurs brouillons à valider.
  */
 
-import { interpretHorizonCommand } from '../aiIntentEngine.js';
+import { interpretHorizonCommand, interpretHorizonAnimalBirthDraft } from '../aiIntentEngine.js';
 import {
   AI_DRAFT_SOURCES,
   createAiActionDraft,
@@ -323,7 +323,9 @@ export function parseContextualVoicePhrase(phrase = '', dataMap = {}) {
     legacy = buildFeedingLegacyDraft(raw, dataMap);
   } else if (scenario === 'isolation_health') {
     legacy = buildIsolationHealthLegacy(raw, dataMap);
-  } else if (['animal_weighing', 'animal_loss', 'animal_birth'].includes(scenario)) {
+  } else if (scenario === 'animal_birth') {
+    legacy = interpretHorizonAnimalBirthDraft(raw, dataMap);
+  } else if (['animal_weighing', 'animal_loss'].includes(scenario)) {
     legacy = interpretHorizonCommand(raw, dataMap);
   } else {
     legacy = interpretHorizonCommand(raw, dataMap);

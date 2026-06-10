@@ -84,7 +84,7 @@ export function buildElevageHandlers(props = {}) {
   };
 }
 
-/** Modales workflow Élevage — activeModal: feeding | health | mortality | eggs | transform | null */
+/** Modales workflow Élevage — activeModal: feeding | mortality | eggs | transform | weighing | null (santé → onglet Santé / SanteV6) */
 export default function ElevageWorkflowPanels({
   activeModal,
   onClose,
