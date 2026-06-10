@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { filterAchatsStockAnnexeDocuments } from '../../src/utils/achatsStockAnnexeFilter.js';
 import {
   aggregateSupplierDebtsForScope,
@@ -21,6 +22,7 @@ import {
 import { planStockMovementFromSaleLine } from '../../src/utils/stockMovementBridge.js';
 import { isAchatsStockStartupMode } from '../../src/modules/achatsStock/achatsStockVisionHelpers.js';
 import { resolveAchatsStockTab } from '../../src/utils/commercialNavigation.js';
+import { summarizeStockValuation } from '../../src/utils/stockValuation.js';
 
 const FARM_A = { id: 'farm-a', name: 'Horizon Farm' };
 const FARM_B = { id: 'farm-b', name: 'Site Thiès' };
@@ -148,6 +150,39 @@ test('P0-04 — buildSupplierDebtPatchWithFarm conserve global et par ferme', ()
 test('P0-05 — mode démarrage minimal', () => {
   assert.equal(isAchatsStockStartupMode({ stocks: [], suppliers: [], purchases: [] }), true);
   assert.equal(isAchatsStockStartupMode({ stocks: [{ id: 'S1' }], suppliers: [], purchases: [] }), false);
+});
+
+test('P0-01 — StocksV3 sans commitPurchaseWorkflow (vérité unique achat)', () => {
+  const src = readFileSync('src/modules/StocksV3.jsx', 'utf8');
+  assert.equal(src.includes('commitPurchaseWorkflow'), false);
+  assert.ok(src.includes('commitStockPurchaseWorkflow'));
+});
+
+test('P0-03 — une seule instance StockSalesOpportunityBridge (StocksV5)', () => {
+  const v3 = readFileSync('src/modules/StocksV3.jsx', 'utf8');
+  const v5 = readFileSync('src/modules/StocksV5.jsx', 'utf8');
+  assert.equal(v3.includes('StockSalesOpportunityBridge'), false);
+  assert.ok(v5.includes('StockSalesOpportunityBridge'));
+});
+
+test('P0-02 — summarizeStockValuation cohérent avec CMUP', () => {
+  const stocks = [{ id: 'STK-1', produit: 'Aliment', quantite: 10, prixUnit: 100 }];
+  const movements = [{
+    stock_id: 'STK-1',
+    movement_type: 'entree',
+    quantity: 10,
+    metadata: { unit_cost: 200, movement_kind: 'reception_achat' },
+    movement_date: '2026-06-01',
+  }];
+  const summary = summarizeStockValuation(stocks, movements, []);
+  assert.equal(summary.calculableCount, 1);
+  assert.equal(summary.totalValue, 2000);
+});
+
+test('P0-04 — libellés IA honnêtes dans InsightPanel', () => {
+  const panel = readFileSync('src/modules/achatsStock/AchatsStockInsightPanel.jsx', 'utf8');
+  assert.equal(panel.includes('Pilotage IA stock'), false);
+  assert.ok(panel.includes('Signaux métier'));
 });
 
 test('Commercial V3 — planStockMovementFromSaleLine prêt à persister', () => {

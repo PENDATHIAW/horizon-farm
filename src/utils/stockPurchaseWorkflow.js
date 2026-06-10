@@ -11,6 +11,7 @@ import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine.js'
 import { persistStockMovement } from '../services/stockMovementHelpers.js';
 import { buildStockCriticalFollowUp, isStockCritical, stockReorderKey, stockUnitPrice } from './stockWorkflows.js';
 import { runPurchaseSideEffects } from './purchaseSideEffects.js';
+import { appendStockTraceStep } from './stockTraceSideEffects.js';
 import { buildSupplierDebtPatchWithFarm, defaultFarmIdForLegacy } from './supplierDebtByFarm.js';
 import { alertIds, documentIds, financeIds } from './sideEffectIds.js';
 import { makeId } from './ids.js';
@@ -461,6 +462,29 @@ export async function commitStockPurchaseWorkflow(preview = {}, handlers = {}) {
       handlers,
       skipFinance: true,
       skipDocument: true,
+    });
+  }
+
+  if (amounts.qty > 0) {
+    await appendStockTraceStep({
+      stock: stockPatch,
+      eventType: 'reception_achat',
+      titre: 'Réception stock',
+      details: `${amounts.qty} ${stockPatch.unite || ''} · ${stockProductName(stockPatch)}`,
+      montant: amounts.total,
+      date: records.movement?.date || stockPatch.last_movement_at?.slice?.(0, 10) || today(),
+      handlers,
+    });
+  }
+  if (amounts.paidAmount > 0 && clean(stockPatch.fournisseur_id)) {
+    await appendStockTraceStep({
+      stock: stockPatch,
+      eventType: 'paiement_fournisseur',
+      titre: 'Paiement fournisseur',
+      details: `${amounts.paidAmount.toLocaleString('fr-FR')} FCFA`,
+      montant: amounts.paidAmount,
+      date: records.finance?.date || today(),
+      handlers,
     });
   }
 

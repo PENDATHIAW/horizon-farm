@@ -93,6 +93,9 @@ export default function AchatsStockMovementsPanel({ data, onNavigate, setTab, ac
 
   return (
     <div className="space-y-4 achats-stock-mobile">
+      <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+        <b>Lecture seule</b> — les saisies (réception, sortie, perte) se font dans l&apos;onglet <b>Stock</b>.
+      </div>
       <AchatsStockSection title="Où agir ?" subtitle="Ledger stock_movements prioritaire · événements legacy distingués.">
         <div className={ACHATS_STOCK_ACTION_GRID}>
           <AchatsStockActionCard icon={PackageCheck} title="Stock & mouvements" text="Entrées, sorties, pertes et valorisation inventaire." onClick={() => setTab?.('Stock')} />

@@ -5,6 +5,7 @@
 import { makeId } from './ids.js';
 import { toNumber } from './format.js';
 import { persistStockMovement, MOVEMENT_SOURCE_TYPES } from '../services/stockMovementHelpers.js';
+import { appendStockTraceStep } from './stockTraceSideEffects.js';
 
 const clean = (value) => String(value || '').trim();
 const n = (value) => toNumber(value);
@@ -216,6 +217,15 @@ export async function commitFarmTransfer({
       metadata: { status: TRANSFER_STATUS.COMPLETED, movement_kind: MOVEMENT_SOURCE_TYPES.MANUAL_ENTRY },
     });
   }
+
+  await appendStockTraceStep({
+    stock,
+    eventType: 'transfert_inter_fermes',
+    titre: 'Transfert inter-fermes',
+    details: `${qty} ${transfer.unit || stock.unite || ''} · ${transfer.source_farm_id} → ${transfer.dest_farm_id}`,
+    date: transfer.date || today(),
+    handlers,
+  });
 
   return { ok: true, transfer: { ...transfer, status: TRANSFER_STATUS.COMPLETED } };
 }
