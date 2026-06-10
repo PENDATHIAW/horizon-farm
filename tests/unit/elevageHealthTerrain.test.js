@@ -8,6 +8,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const readSrc = (rel) => readFileSync(join(__dirname, '..', '..', rel), 'utf8');
 import {
   buildHealthInterventionDraft,
+  buildHealthInterventionDraftFromScan,
   HEALTH_INTERVENTION_FORM_ID,
   HEALTH_TERRAIN_BANNER,
   navigateToHealthStock,
@@ -37,7 +38,23 @@ describe('elevageHealthTerrain — canal officiel', () => {
     assert.match(src, /healthDraft/);
     assert.match(src, /FileInput/);
     assert.match(src, /interventionTypes/);
+    assert.match(src, /delai_sanitaire_fin/);
+    assert.match(src, /buildSanitaryWithdrawalAlert/);
     assert.equal(HEALTH_INTERVENTION_FORM_ID, 'elevage-health-intervention-form');
+  });
+
+  it('ElevageRecoveredModule garde vente et transformation sous délai sanitaire', () => {
+    const src = readSrc('src/modules/ElevageRecoveredModule.jsx');
+    assert.match(src, /blockSanitaryAction/);
+    assert.match(src, /SanitaryWithdrawalBanner/);
+    assert.match(src, /guardedNavigate/);
+  });
+
+  it('scanner ordonnance fusionne vers brouillon SanteV6 si preferHealthForm', () => {
+    const src = readSrc('src/services/aiGateway/documentScannerExecute.js');
+    assert.match(src, /healthFormDraft/);
+    assert.match(src, /preferHealthForm/);
+    assert.match(src, /buildHealthInterventionDraftFromScan/);
   });
 });
 
@@ -99,5 +116,20 @@ describe('elevageHealthTerrain — stock et preuves', () => {
       validateElevageHealthForm({ nom: 'Vaccin', lot_id: 'L1', cout: 500 }),
       '',
     );
+  });
+
+  it('scan ordonnance produit un brouillon curatif avec délai', () => {
+    const draft = buildHealthInterventionDraftFromScan({
+      type_soin: 'curatif',
+      nom: 'Oxytétra',
+      animal_id: 'A-1',
+      delai_sanitaire_fin: '2099-06-01',
+      dose: '5 ml',
+    }, { proof_url: 'https://example.com/ord.pdf' });
+    assert.equal(draft.type_intervention, 'curatif');
+    assert.equal(draft.target_detail, 'animal:A-1');
+    assert.equal(draft.delai_sanitaire_fin, '2099-06-01');
+    assert.equal(draft.preuve_url, 'https://example.com/ord.pdf');
+    assert.equal(draft.source, 'ordonnance_scan');
   });
 });

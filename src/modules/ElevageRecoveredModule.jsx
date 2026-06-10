@@ -8,7 +8,7 @@ import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
 import { emitHorizonForm } from '../services/formModalManager';
 import { applyOneClickRecommendation } from '../services/heyHorizonRecommendationActions.js';
-import { fmtNumber } from '../utils/format';
+import { fmtCurrency, fmtNumber } from '../utils/format';
 import { MARGIN_GROSS_DEFINITION, PRODUCTION_FINANCE_LABELS } from '../utils/productionFinancialTruth.js';
 import { commitElevageEggProduction } from '../utils/elevageWorkflow.js';
 import { aggregateSummaryLayingRate, formatOfficialLayingRate } from '../utils/elevageLayingRate.js';
@@ -34,10 +34,16 @@ import AvicoleTransformationBridge from './AvicoleTransformationBridge.jsx';
 import AnimauxV2 from './AnimauxV2';
 import AvicoleV10 from './AvicoleV10';
 import SanteV8 from './SanteV8';
+import SanitaryWithdrawalBanner from './elevage/SanitaryWithdrawalBanner.jsx';
 import {
   openElevageHealthForm,
   scrollToHealthInterventionForm,
 } from '../utils/elevageHealthNavigation.js';
+import {
+  blockSanitaryAction,
+  findActiveWithdrawals,
+  SANITARY_ACTIONS,
+} from '../utils/sanitaryWithdrawal.js';
 import {
   openElevageReproductionForm,
   scrollToReproductionWorkflowForm,
@@ -45,7 +51,6 @@ import {
 import { buildReproductionKpis } from '../utils/reproductionMetrics.js';
 import { evaluateElevageHealthBlocks, buildSanitaryAlertsPanel } from '../utils/elevageHealthBlocks.js';
 import { buildTransformationCostBreakdown } from '../utils/elevageTransformationCost.js';
-import { fmtCurrency } from '../utils/format';
 
 const lower = (value) => String(value || '').toLowerCase();
 const isClosedAnimal = (row = {}) => ['vendu', 'mort', 'vole', 'volé', 'perdu', 'abattu', 'cloture', 'clôture', 'sorti'].some((word) => lower(row.status || row.statut).includes(word));
@@ -495,6 +500,36 @@ export default function ElevageRecoveredModule(props) {
     });
   }, []);
 
+  const openWorkflowModal = useCallback((modal) => {
+    setActiveModal(modal);
+  }, []);
+
+  const confirmSanitaryOverride = useCallback((message) => {
+    if (typeof window === 'undefined') return false;
+    return window.confirm(
+      `${message}\n\nException terrain : confirmer pour continuer malgré le délai sanitaire actif ?`,
+    );
+  }, []);
+
+  const guardedNavigate = useCallback((module, opts = {}) => {
+    if (module === 'commercial') {
+      const block = blockSanitaryAction({
+        healthRows: health,
+        action: SANITARY_ACTIONS.SALE,
+        animalId: opts.animalId || opts.animal_id,
+        lotId: opts.lotId || opts.lot_id,
+      });
+      if (block.blocked) {
+        if (!confirmSanitaryOverride(block.message)) {
+          toast.error(block.message);
+          return;
+        }
+        toast('Exception terrain — vente avec délai sanitaire actif', { icon: '⚠️' });
+      }
+    }
+    props.onNavigate?.(module, opts);
+  }, [health, props.onNavigate, confirmSanitaryOverride]);
+
   const openWorkflow = useCallback((modal, context = {}) => {
     if (modal === 'health') {
       openElevageHealthForm({
@@ -515,8 +550,23 @@ export default function ElevageRecoveredModule(props) {
       });
       return;
     }
-    setActiveModal(modal);
-  }, []);
+    if (modal === 'transform') {
+      const block = blockSanitaryAction({
+        healthRows: health,
+        action: SANITARY_ACTIONS.TRANSFORM,
+        animalId: context.animalId || context.animal_id,
+        lotId: context.lotId || context.lot_id,
+      });
+      if (block.blocked) {
+        if (!confirmSanitaryOverride(block.message)) {
+          toast.error(block.message);
+          return;
+        }
+        toast('Exception terrain — transformation avec délai sanitaire actif', { icon: '⚠️' });
+      }
+    }
+    openWorkflowModal(modal);
+  }, [health, confirmSanitaryOverride, openWorkflowModal]);
   const closeWorkflow = useCallback(() => setActiveModal(null), []);
 
   const startupProgress = useMemo(() => buildElevageStartupProgress({
@@ -541,7 +591,7 @@ export default function ElevageRecoveredModule(props) {
   const pondeuseLots = useMemo(() => lots.filter(isPondeuse), [lots]);
 
   const actionHandlers = {
-    onNavigate: props.onNavigate,
+    onNavigate: guardedNavigate,
     onCreateTask: props.onCreateTask || tasksCrud.create,
     onCreateAlert: props.onCreateAlert || alertsCrud.create,
     onUpdateAlert: props.onUpdateAlert || alertsCrud.update,
@@ -562,10 +612,10 @@ export default function ElevageRecoveredModule(props) {
     }
   };
 
-  const shared = { onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: props.onNavigate };
+  const shared = { onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: guardedNavigate };
   const animalProps = { rows: animals, alimentationLogs: feedLogs, vaccins: health, salesOrders, payments: rowsOf(props.payments, paymentsCrud, periodFiltered), opportunities, businessEvents, onCreate: props.onCreateAnimal || animauxCrud.create, onUpdate: props.onUpdateAnimal || animauxCrud.update, onDelete: props.onDeleteAnimal || animauxCrud.remove, onRefresh: props.onRefreshAnimals || animauxCrud.refresh, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, ...shared };
   const avicoleProps = { rows: lots, transactions: rowsOf(props.transactions, financesCrud, periodFiltered), alimentationLogs: feedLogs, productionLogs, stocks, stockMovements, opportunities, businessEvents, onCreate: props.onCreateLot || avicoleCrud.create, onUpdate: props.onUpdateLot || avicoleCrud.update, onDelete: props.onDeleteLot || avicoleCrud.remove, onRefresh: props.onRefreshLots || avicoleCrud.refresh, onCreateProduction: props.onCreateProduction || productionCrud.create, onUpdateProduction: props.onUpdateProduction || productionCrud.update, onDeleteProduction: props.onDeleteProduction || productionCrud.remove, onRefreshProduction: props.onRefreshProduction || productionCrud.refresh, onCommitEggProduction: commitEggProduction, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, onUpdateStock: props.onUpdateStock || stockCrud.update, onCreateStockMovement: props.onCreateStockMovement || movementsCrud.create, onRefreshStockMovements: props.onRefreshStockMovements || movementsCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, ...shared };
-  const healthProps = { rows: health, vets: rowsOf(props.veterinaires, vetsCrud, false), animaux: animals, lots, stocks, transactions: rowsOf(props.transactions, financesCrud, periodFiltered), documents: rowsOf(props.documents, documentsCrud, periodFiltered), tasks: rowsOf(props.tasks, tasksCrud, false), alertes: rowsOf(props.alertes, alertsCrud, false), healthDraft, onClearHealthDraft: clearHealthDraft, onCreate: props.onCreateHealth || santeCrud.create, onUpdate: props.onUpdateHealth || santeCrud.update, onDelete: props.onDeleteHealth || santeCrud.remove, onRefresh: props.onRefreshHealth || santeCrud.refresh, onCreateVet: props.onCreateVet || vetsCrud.create, onUpdateVet: props.onUpdateVet || vetsCrud.update, onDeleteVet: props.onDeleteVet || vetsCrud.remove, onRefreshVets: props.onRefreshVets || vetsCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onUpdateAlert: props.onUpdateAlert || alertsCrud.update, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateDocument: props.onCreateDocument || documentsCrud.create, onRefreshDocuments: props.onRefreshDocuments || documentsCrud.refresh, onNavigate: props.onNavigate };
+  const healthProps = { rows: health, vets: rowsOf(props.veterinaires, vetsCrud, false), animaux: animals, lots, stocks, transactions: rowsOf(props.transactions, financesCrud, periodFiltered), documents: rowsOf(props.documents, documentsCrud, periodFiltered), tasks: rowsOf(props.tasks, tasksCrud, false), alertes: rowsOf(props.alertes, alertsCrud, false), healthDraft, onClearHealthDraft: clearHealthDraft, onCreate: props.onCreateHealth || santeCrud.create, onUpdate: props.onUpdateHealth || santeCrud.update, onDelete: props.onDeleteHealth || santeCrud.remove, onRefresh: props.onRefreshHealth || santeCrud.refresh, onCreateVet: props.onCreateVet || vetsCrud.create, onUpdateVet: props.onUpdateVet || vetsCrud.update, onDeleteVet: props.onDeleteVet || vetsCrud.remove, onRefreshVets: props.onRefreshVets || vetsCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onUpdateAlert: props.onUpdateAlert || alertsCrud.update, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateDocument: props.onCreateDocument || documentsCrud.create, onRefreshDocuments: props.onRefreshDocuments || documentsCrud.refresh, onNavigate: guardedNavigate };
   const cyclesDataMap = useMemo(
     () => ({
       ...props.dataMap,
@@ -591,7 +641,7 @@ export default function ElevageRecoveredModule(props) {
       animaux={animals}
       productionLogs={productionLogs}
       alertes={rowsOf(props.alertes, alertsCrud, false)}
-      onNavigate={props.onNavigate}
+      onNavigate={guardedNavigate}
       setTab={setTab}
       farmScopeLabel={props.farmScopeLabel}
       farmScope={props.farmScope}
@@ -605,7 +655,7 @@ export default function ElevageRecoveredModule(props) {
       setTab={setTab}
       onApply={applyFinding}
       busyId={busyId}
-      onNavigate={props.onNavigate}
+      onNavigate={guardedNavigate}
       onOpenWorkflow={openWorkflow}
       showStartup={showStartup}
       startupProgress={startupProgress}
@@ -638,7 +688,7 @@ export default function ElevageRecoveredModule(props) {
       }
     />
   ) : tab === 'Animaux' ? <AnimauxV2 {...animalProps} /> : tab === 'Avicole' ? <AvicoleV10 {...avicoleProps} /> : tab === 'Alimentation' ? (
-    <FeedingHub data={data} setTab={setTab} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} />
+    <FeedingHub data={data} setTab={setTab} onNavigate={guardedNavigate} onOpenWorkflow={openWorkflow} />
   ) : tab === 'Santé' ? <SanteV8 {...healthProps} healthBlocks={evaluateElevageHealthBlocks({ healthRows: health })} sanitaryAlerts={buildSanitaryAlertsPanel(health)} /> : tab === 'Reproduction' ? (
     <ReproductionHub data={data} setTab={setTab} onOpenReproductionWorkflow={onOpenReproductionWorkflow} />
   ) : tab === 'Production' ? (
@@ -648,14 +698,14 @@ export default function ElevageRecoveredModule(props) {
       animaux={animals}
       marginContext={data.marginContext}
       setTab={setTab}
-      onNavigate={props.onNavigate}
+      onNavigate={guardedNavigate}
       onOpenWorkflow={openWorkflow}
     />
   ) : tab === 'Transformation' ? (
     <TransformationHub
       data={data}
       setTab={setTab}
-      onNavigate={props.onNavigate}
+      onNavigate={guardedNavigate}
       onOpenWorkflow={openWorkflow}
       animalBridgeProps={animalProps}
       avicoleBridgeProps={avicoleProps}
@@ -666,7 +716,7 @@ export default function ElevageRecoveredModule(props) {
       documents={rowsOf(props.documents, documentsCrud, periodFiltered)}
       animaux={animals}
       lots={lots}
-      onNavigate={props.onNavigate}
+      onNavigate={guardedNavigate}
     />
   ) : (
     <ModuleGraphiquesTab
@@ -678,13 +728,14 @@ export default function ElevageRecoveredModule(props) {
       alimentationLogs={feedLogs}
       transactions={rowsOf(props.transactions, financesCrud, periodFiltered)}
       salesOrders={salesOrders}
-      onNavigate={props.onNavigate}
+      onNavigate={guardedNavigate}
     />
   );
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Élevage</h1><p className="mt-1 text-sm text-[#8a7456]">Animaux, avicole, alimentation, santé, reproduction, transformation — IA proactive et rentabilité fiable.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}<HeyHorizonQuickAsk moduleKey="elevage" onNavigate={props.onNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" /></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé module </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div></div></section>
+      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Élevage</h1><p className="mt-1 text-sm text-[#8a7456]">Animaux, avicole, alimentation, santé, reproduction, transformation — IA proactive et rentabilité fiable.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}<HeyHorizonQuickAsk moduleKey="elevage" onNavigate={guardedNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" /></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé module </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div></div></section>
       <Tabs active={tab} onChange={setTab} activeFarm={props.activeFarm} />
+      {findActiveWithdrawals(health).length ? <SanitaryWithdrawalBanner healthRows={health} /> : null}
       {content}
       <ElevageWorkflowPanels
         activeModal={activeModal}
@@ -697,7 +748,7 @@ export default function ElevageRecoveredModule(props) {
         pondeuseLots={pondeuseLots}
         onSuccess={refreshAfterWorkflow}
       />
-      <ElevageMobileToolbar onOpenWorkflow={openWorkflow} onNavigate={props.onNavigate} />
+      <ElevageMobileToolbar onOpenWorkflow={openWorkflow} onNavigate={guardedNavigate} />
     </div>
   );
 }

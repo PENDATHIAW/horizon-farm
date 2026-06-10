@@ -10,6 +10,7 @@ import {
   guardWorkflowExecutor,
 } from './aiSafetyGuard.js';
 import { recordSalePayment } from '../../utils/recordSalePayment.js';
+import { buildHealthInterventionDraftFromScan } from '../../utils/elevageHealthNavigation.js';
 import { commitElevageHealth, validateElevageHealthForm } from '../../utils/elevageWorkflow.js';
 import {
   commitStockPurchaseWorkflow,
@@ -98,6 +99,16 @@ export async function executeScannerDraft(draft = {}, handlers = {}, context = {
 
     if (scannerType === SCANNER_DOC_TYPES.VET_PRESCRIPTION) {
       const healthPayload = buildHealthPayloadFromScan({ ...fields, ...payload }, proofMeta);
+      if (handlers.preferHealthForm || handlers.onHealthScanDraft) {
+        const draft = buildHealthInterventionDraftFromScan(
+          { ...fields, ...payload, ...healthPayload },
+          proofMeta,
+        );
+        if (handlers.onHealthScanDraft) {
+          await handlers.onHealthScanDraft(draft);
+        }
+        return { ok: true, workflow: 'healthFormDraft', draft, requiresHealthForm: true };
+      }
       const err = validateElevageHealthForm(healthPayload);
       if (err) return { ok: false, error: err };
       const result = await commitElevageHealth({
