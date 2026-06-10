@@ -1,6 +1,5 @@
 import toast from 'react-hot-toast';
 import { fmtCurrency } from '../../utils/format';
-import CommercialReconciliationPanel from './CommercialReconciliationPanel.jsx';
 import CommercialInvestorInsights from './CommercialInvestorInsights.jsx';
 import { buildCommercialInvestorReport, exportCommercialInvestorPdf } from '../../utils/commercialExport.js';
 import { buildCommercialPilotageBundle } from '../../utils/commercialPilotageMetrics.js';
@@ -119,7 +118,9 @@ export default function CommercialPilotagePanel({
           </button>
         </div>
       </section>
-      <CommercialReconciliationPanel rows={data.reconciliationRows} setTab={setTab} />
+      <p className="text-xs text-[#8a7456]">
+        Écarts de réconciliation : consultez l&apos;onglet Résumé (panneau dédié) ou Finance → Réconciliation.
+      </p>
     </div>
   );
 }

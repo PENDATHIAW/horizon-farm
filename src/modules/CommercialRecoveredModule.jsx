@@ -37,7 +37,7 @@ import CommercialAnnexeTab from './commercial/CommercialAnnexeTab.jsx';
 import CommercialOpportunitiesPanel from './commercial/CommercialOpportunitiesPanel.jsx';
 import CommercialQuotesPanel from './commercial/CommercialQuotesPanel.jsx';
 import CommercialReconciliationPanel from './commercial/CommercialReconciliationPanel.jsx';
-import CommercialRelancesPanel from './commercial/CommercialRelancesPanel.jsx';
+import CommercialRelancesTeaser from './commercial/CommercialRelancesTeaser.jsx';
 import CommercialDeliveriesPanel from './commercial/CommercialDeliveriesPanel.jsx';
 import CommercialSubscriptionsPanel from './commercial/CommercialSubscriptionsPanel.jsx';
 import CommercialProspectsPanel from './commercial/CommercialProspectsPanel.jsx';
@@ -51,7 +51,7 @@ import ClientsReadable from './ClientsReadable';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
-function Summary({ data, setTab, onNewSale, onNavigate, onOpenClient, onPrepareRelanceWhatsApp }) {
+function Summary({ data, setTab, onNewSale, onNavigate, onOpenClient }) {
   const todos = data.summaryTodos.slice(0, 6);
   const kpis = data.consolidatedKpis;
   const showStartup = data.startupJourney?.isEmpty || (data.startupJourney?.completed ?? 0) < 3;
@@ -99,11 +99,7 @@ function Summary({ data, setTab, onNewSale, onNavigate, onOpenClient, onPrepareR
 
       <CommercialReconciliationPanel rows={data.reconciliationRows} setTab={setTab} />
 
-      <CommercialRelancesPanel
-        rows={data.relanceRows}
-        onOpenClient={onOpenClient}
-        onPrepareWhatsApp={onPrepareRelanceWhatsApp}
-      />
+      <CommercialRelancesTeaser rows={data.relanceRows} setTab={setTab} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <section className="lg:col-span-3 rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
@@ -504,7 +500,6 @@ export default function CommercialRecoveredModule(props) {
           onNewSale={openNewSale}
           onNavigate={props.onNavigate}
           onOpenClient={openClientTab}
-          onPrepareRelanceWhatsApp={prepareRelanceWhatsApp}
         />
       ) : null}
       {tab === 'Ventes' ? <VentesV5 {...salesProps} /> : null}

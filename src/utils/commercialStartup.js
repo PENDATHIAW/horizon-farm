@@ -53,9 +53,9 @@ export function buildCommercialStartupJourney({
     { key: 'order', label: '4. Créer commande', tab: 'Ventes', done: hasOrder },
     { key: 'invoice', label: '5. Créer facture', tab: 'Annexe', done: hasInvoice },
     { key: 'delivery', label: '6. Livrer', tab: 'Livraisons', done: hasDelivery },
-    { key: 'payment', label: '7. Encaisser', tab: 'Ventes', done: hasEncaissement },
-    { key: 'whatsapp', label: 'Relance ou confirmation WhatsApp', tab: 'Clients', done: hasWhatsApp },
-    { key: 'receivable', label: 'Suivi créances', tab: 'Clients', done: hasReceivableFollowUp || hasPayment },
+    { key: 'payment', label: '7. Encaisser', module: 'finance_pilotage', tab: 'Réconciliation', done: hasEncaissement },
+    { key: 'whatsapp', label: '8. Première relance', tab: 'Relances', done: hasWhatsApp },
+    { key: 'receivable', label: '9. Suivi créances', tab: 'Clients', done: hasReceivableFollowUp || hasPayment },
   ];
 
   const completed = steps.filter((s) => s.done).length;

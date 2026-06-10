@@ -14,7 +14,7 @@ export default function CommercialStartupPanel({ journey = null, setTab, onNavig
 
   return (
     <section className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm">
-      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-800 flex items-center gap-2"><Rocket size={14} /> Démarrage Commercial</p>
+      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-800 flex items-center gap-2"><Rocket size={14} /> Mode démarrage</p>
       <h2 className="mt-1 text-xl font-black text-[#2f2415]">Votre activité commerciale est prête.</h2>
       <p className="mt-1 text-sm text-[#8a7456]">
         Progression :

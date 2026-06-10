@@ -12,7 +12,7 @@ export const COMMERCIAL_HEY_HORIZON_QUESTIONS = [
   { id: 'segment_ca', label: 'Segment le plus rentable', query: 'Quel segment client rapporte le plus ?', moduleId: 'commercial', tab: 'Clients' },
   { id: 'subscriptions_prep', label: 'Abonnements à préparer', query: 'Quels abonnements sont à préparer ?', moduleId: 'commercial', tab: 'Abonnements' },
   { id: 'low_margin', label: 'Marges faibles', query: 'Quelles ventes ont une marge faible ?', moduleId: 'commercial', tab: 'Ventes' },
-  { id: 'receivables', label: 'Créances', query: 'Quelles créances sont ouvertes ?', moduleId: 'commercial', tab: 'Clients' },
+  { id: 'receivables', label: 'Créances', query: 'Quelles créances sont ouvertes ?', moduleId: 'commercial', tab: 'Relances' },
 ];
 
 export function launchCommercialHeyHorizonQuestion({ questionId = '', onNavigate, onOpenAssistant } = {}) {
