@@ -41,6 +41,31 @@ test('Hey Horizon Finance — EMPTY_STATE_FINANCE_QA sur ferme vide', () => {
   assert.equal(borrow.summary, EMPTY_STATE_FINANCE_QA);
 });
 
+test('Hey Horizon Finance — format SITUATION / CAUSE / ACTION avec données', () => {
+  const answer = buildFinancePilotageAnswer('summary', {
+    salesOrders: [{ id: 'o1', montant_total: 80000, client_nom: 'Amadou' }],
+    payments: [{ id: 'p1', order_id: 'o1', montant: 80000 }],
+  });
+  assert.match(answer.summary, /^SITUATION/);
+  assert.match(answer.summary, /CAUSE/);
+  assert.match(answer.summary, /ACTION/);
+  assert.match(answer.summary, /cashNet|creancesReelles|payablesTotal|margeReelle/);
+});
+
+test('Hey Horizon Finance — relance prioritaire', () => {
+  const answer = buildFinancePilotageAnswer('receivables', {
+    salesOrders: [{ id: 'V1', montant_total: 30000, client_nom: 'Fatou' }],
+    payments: [],
+  });
+  assert.match(answer.action, /Relance prioritaire/i);
+  assert.match(answer.action, /Fatou/);
+});
+
+test('Hey Horizon Finance — détection relance et collision', () => {
+  assert.equal(detectFinancePilotageQuery('Génère une relance client'), 'recovery');
+  assert.equal(detectFinancePilotageQuery('collision financière 90 jours'), 'collision');
+});
+
 test('detectFinancePilotageQuery — emprunt et trésorerie', () => {
   assert.equal(detectFinancePilotageQuery('Combien puis-je emprunter ?'), 'borrow');
   assert.equal(detectFinancePilotageQuery('Ma trésorerie tiendra-t-elle 30 jours ?'), 'treasury_30');

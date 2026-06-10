@@ -5,7 +5,17 @@
 
 import { isFinanceStartupMode } from './financePilotageCore.js';
 
-export const EMPTY_STATE_FINANCE_QA = 'Je ne dispose pas encore de suffisamment de données financières. Commencez par enregistrer une dépense, une vente ou un paiement.';
+export const EMPTY_STATE_FINANCE_QA = `Je ne dispose pas encore de suffisamment de données financières.
+
+Commencez par enregistrer :
+
+• une première dépense
+ou
+• une première vente
+ou
+• un premier paiement
+
+afin que je puisse produire une analyse fiable.`;
 
 export const FINANCE_EMPTY_LABELS = Object.freeze({
   insufficient: 'Données insuffisantes',

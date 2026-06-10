@@ -647,4 +647,160 @@ Source ventes = Commercial ; Finance agrège pour CA et encaisse.
 
 ---
 
+# Audit P1 complet (missions 1–6)
+
+**Score global avant P1 :** ~78/100 (post-P0)  
+**Score global après P1 :** ~86/100 (gel V1 candidat)
+
+| Dimension | Avant | Après |
+|-----------|-------|-------|
+| Architecture | 72 | 82 |
+| Cohérence métier | 78 | 88 |
+| UX dirigeant | 65 | 84 |
+| Effet investisseur | 62 | 80 |
+
+---
+
+## Mission 1 — États vides intelligents
+
+### Anomalies identifiées (avant patch)
+
+| Écran / KPI | Problème | Correction |
+|-------------|----------|------------|
+| Résumé — Santé finance `32/100` | Score ERP UX sans flux financier | `Données insuffisantes` si pas de tx/vente/paiement |
+| Header module — Santé | Idem | Idem |
+| Situation exécutive — Risque trésorerie « Faible » | Sans historique | `Non calculable` |
+| Situation exécutive — Rentabilité « À surveiller » | Sans CA | `Non calculable` |
+| Qualité données — « satisfaisante » | Ferme vide | `En attente de données` |
+| Alertes — « situation sous contrôle » | Ferme vide | `En attente de données` |
+| Alertes financement (service dette) | Info sans données | Supprimées si `isFinanceStartupMode` |
+| Signaux métier KPI | Compteur 0 ambigu | `En attente` |
+
+### Fichiers patch
+
+- `src/utils/financeEmptyState.js` (nouveau)
+- `src/modules/finance/financeVisionHelpers.js`
+- `src/utils/financePilotageV2.js` (`buildExecutiveFinancialSituation`)
+- `src/utils/financePilotageV3.js` (`buildFinanceDataQuality`, `buildFinancingAlerts`)
+- `src/modules/finance/FinanceExecutiveSituationPanel.jsx`
+- `src/modules/finance/FinanceDataQualityPanel.jsx`
+- `src/modules/finance/FinanceAlertsPanel.jsx`
+- `src/modules/FinancePilotageRecoveredModule.jsx`
+
+### Tests
+
+`tests/unit/financeEmptyState.test.js`
+
+---
+
+## Mission 2 — Hey Horizon Finance (system prompt officiel)
+
+**Fichiers :** `heyHorizonFinancePrompt.js` (system prompt + `formatFinanceSCA`), `heyHorizonFinanceAnswers.js` (réponses rule-based).
+
+**Format obligatoire :** SITUATION / CAUSE / ACTION + `(Source ERP : …)`.
+
+**Questions implémentées :** trésorerie 30j, créances, dettes, emprunt, priorités du jour, résumé, documents banque, relance (SMS/WhatsApp/email), arbitre trésorerie, collision 30/60/90j, ROI investissements, rapprochement (confiance Élevé/Moyen/Faible).
+
+### `EMPTY_STATE_FINANCE_QA`
+
+> Je ne dispose pas encore de suffisamment de données financières. Commencez par enregistrer une dépense, une vente ou un paiement.
+
+### Implémentation
+
+- `detectFinancePilotageQuery` + `buildFinancePilotageAnswer` → `heyHorizonFinanceAnswers.js`
+- Intégration `processHeyHorizonCommand` (priorité avant brouillons terrain)
+- Bandeau explicatif `FinanceHeyHorizonStrip` en mode startup
+
+Questions couvertes : emprunt prudent, trésorerie 30j, créances, dettes semaine, documents banque, situation financière, risque trésorerie, rentabilité.
+
+---
+
+## Mission 3 — Composants dormants (audit, pas suppression auto)
+
+| Fichier | Références | Utilité | Action recommandée |
+|---------|------------|---------|-------------------|
+| `FinanceCreancesPanel.jsx` | 0 import | Doublon inline `CreancesPanel` | **SUPPRIMÉ** (commit P1) — garder suppression |
+| `FinanceDettesPanel.jsx` | 0 | Doublon inline `DettesPanel` | **SUPPRIMÉ** |
+| `FinanceRentabilitePanel.jsx` | 0 | Doublon inline `RentabilitePanel` | **SUPPRIMÉ** |
+| `ConsolidatedFinanceStrip.jsx` | 0 | Legacy synthèse | **SUPPRIMÉ** |
+| `FinanceConsolidationPanel.jsx` | 0 | Legacy consolidation UI | **SUPPRIMÉ** |
+| `finance/financeUi.jsx` | `FinanceMissingProofPanel` | Helpers UI partagés | **CONSERVER** |
+
+---
+
+## Mission 4 — Graphiques uniques
+
+| Source | Statut |
+|--------|--------|
+| `FinanceEvolutionPanel` | **Absent** (retiré P0) |
+| `ModuleGraphiquesTab` + `FinanceEvolution.jsx` | **Hub officiel** onglet Graphiques |
+| Doublons KPI graphiques Trésorerie | Aucun (P0) |
+
+**Plan fusion :** aucune fusion requise — une seule pipeline graphique Finance.
+
+---
+
+## Mission 5 — Idempotence finance
+
+| Workflow | Identifiant unique | Protection | Risque | Correction |
+|----------|-------------------|------------|--------|------------|
+| Vente | `TRX-PAY-*`, `TRX-CREANCE-*` | `exists` par id | Faible | OK |
+| Achat stock | `TRX-ACHAT-*` | id + idempotency key | Faible | OK |
+| Alimentation | `TRX-ALIM-{logId}` | `exists` | Faible | OK |
+| Culture récolte | `TRX-RECOLTE-{cultureId}` | skip commercial + void vente | Moyen → Faible | P1-5 |
+| Culture perte | `TRX-PERTE-CULT-*` | id date | Faible | OK |
+| Santé | `TRX-SANTE-{id}` | `financeIds.health` | Faible | OK |
+| Équipement | `TRX-EQP-*` | id déterministe | Faible | OK |
+| Fournisseur dette | `TRX-DETTE-FOUR-*` | id + canonical purchase | Faible | OK |
+| Fournisseur paiement | `TRX-PAY-FOUR-*` | `exists` | Faible | OK |
+| Saisie manuelle | `issue_key` | `findDuplicateFinanceTransaction` | Moyen → Faible | P1-4 |
+
+---
+
+## Mission 6 — Mode investisseur (Résumé)
+
+| Critère | Note avant | Note après | Commentaire |
+|---------|------------|------------|-------------|
+| Architecture | 72 | 82 | Panels exécutifs + empty states cohérents |
+| Cohérence métier | 78 | 88 | P0 vérités intactes ; pas de faux scores |
+| UX dirigeant | 65 | 84 | Lecture 30s crédible même ferme vide |
+| Effet investisseur | 62 | 80 | Demo honnête + exports PDF hub |
+
+---
+
+## Critère de gel Finance V1
+
+1. P0 vérités canoniques intactes (cashNet, creancesReelles, payablesTotal, CMUP, réconciliation unique).  
+2. P1 missions 1–6 validées en revue.  
+3. Tests : `financeEmptyState`, `financeP1`, `financeP0`, `financePilotageV1`, `financePilotageV3`, `dashboardMetrics`, `npm run build`.  
+4. Parité gel modules : Élevage V1, Cultures V1, Achats & Stock V1.  
+5. **P2 interdit** avant validation humaine explicite.
+
+---
+
+## Fichiers modifiés (tour P1 complet)
+
+| Fichier | Mission |
+|---------|---------|
+| `financeEmptyState.js` | M1, M2 |
+| `heyHorizonFinanceAnswers.js` | M2 |
+| `heyHorizonAssistantService.js` | M2 |
+| `financeVisionHelpers.js` | M1 |
+| `financePilotageV2.js` | M1 |
+| `financePilotageV3.js` | M1 |
+| `FinanceExecutiveSituationPanel.jsx` | M1, M6 |
+| `FinanceDataQualityPanel.jsx` | M1 |
+| `FinanceAlertsPanel.jsx` | M1 |
+| `FinanceHeyHorizonStrip.jsx` | M2 |
+| `FinancePilotageRecoveredModule.jsx` | M1, M6 |
+| `financeTransactionMeta.js` | M5 |
+| `cultureSideEffects.js` | M5 |
+| `saleSideEffects.js` | M5 |
+| `FinanceTransactionsOnly.jsx` | M5, M6 |
+| `globalProfitabilityService.js` | M4 (CA) |
+| `tests/unit/financeEmptyState.test.js` | M1, M2 |
+| `tests/unit/financeP1.test.js` | M4, M5 |
+
+---
+
 *Audit initial + corrections P0 (`cursor/finance-p0-ac42`) + P1 (`cursor/finance-p1-ac42`).*
