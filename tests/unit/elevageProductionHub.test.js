@@ -32,17 +32,19 @@ test('Production — carte "Stock œufs & tablettes" présente', () => {
   assert.match(productionHubSrc, /Stock œufs & tablettes/);
 });
 
-test('Production — sections métier équilibrées', () => {
-  assert.match(productionHubSrc, /Œufs & tablettes/);
-  assert.match(productionHubSrc, /Poulets de chair/);
-  assert.match(productionHubSrc, /Bovins \/ embouche/);
-  assert.match(productionHubSrc, /Transformation \/ viande/);
+test('Production — sections métier orientées rendement', () => {
+  assert.match(productionHubSrc, /Œufs & rendement ponte/);
+  assert.match(productionHubSrc, /Chair — rendement/);
+  assert.match(productionHubSrc, /Bovins — GMQ/);
+  assert.match(productionHubSrc, /Ovins/);
+  assert.match(productionHubSrc, /Caprins/);
+  assert.match(productionHubSrc, /Viande & transformation/);
 });
 
 test('Production — aliments non affichés comme production principale', () => {
   assert.doesNotMatch(productionHubSrc, /Aliments & emballages/);
   assert.doesNotMatch(productionHubSrc, /Stock aliment/);
-  assert.match(productionHubSrc, /intrants/);
+  assert.match(productionHubSrc, /Alimentation/);
 });
 
 test('navigateToEggStock — contexte Achats & Stock Stock', () => {
@@ -93,6 +95,28 @@ test('buildProductionHubSnapshot — agrégats chair et bovins', () => {
   assert.equal(snap.chair.activeLots, 1);
   assert.equal(snap.bovins.activeCount, 1);
   assert.ok(snap.transformation.recentCount >= 1);
+});
+
+test('buildProductionHubSnapshot — ovins et caprins au même niveau que bovins', () => {
+  const snap = buildProductionHubSnapshot({
+    lots: [],
+    animaux: [
+      { id: 'O1', type: 'Ovin', espece: 'ovin', name: 'Brebis', poids: 55, status: 'actif' },
+      { id: 'C1', type: 'Caprin', espece: 'caprin', name: 'Chèvre', poids: 40, status: 'actif' },
+    ],
+    productionLogs: [],
+    stocks: [],
+    feedLogs: [],
+    healthEvents: [],
+    transformationRows: [],
+    documents: [],
+    opportunities: [],
+    marginContext: {},
+  });
+  assert.equal(snap.ovins.activeCount, 1);
+  assert.equal(snap.caprins.activeCount, 1);
+  assert.ok(snap.ovins.hasData);
+  assert.ok(snap.caprins.hasData);
 });
 
 test('Élevage > Production — mode simulé stable', async () => {

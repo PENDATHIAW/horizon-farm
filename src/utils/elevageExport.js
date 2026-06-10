@@ -6,6 +6,8 @@ import { exportModuleReportPdf } from './moduleReportExports.js';
 import { buildElevageActivityPnl, formatActivityPnlRow } from './elevageActivityPnl.js';
 import { buildElevageCostAwareInsights } from './elevageIaInsights.js';
 import { fmtCurrency, fmtNumber } from './format.js';
+import { buildReproductionKpis } from './reproductionMetrics.js';
+import { buildCycleInvestorPipeline } from './cycleMetrics.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
@@ -47,6 +49,12 @@ export function buildElevageInvestorReport({
     .reduce((s, r) => s + Number(r.oeufs_produits || r.eggs_count || 0), 0);
   const mortality = arr(lots).reduce((s, l) => s + Number(l.mortality || l.morts || 0), 0);
   const feedCost = arr(feedLogs).reduce((s, r) => s + Number(r.montant_total || r.cout_total || 0), 0);
+  const reproduction = buildReproductionKpis({
+    animaux,
+    businessEvents,
+    periodStart: weekAgo,
+  });
+  const cyclesPipeline = buildCycleInvestorPipeline({ lots, animaux, horizonDays: 90 });
 
   return {
     title: 'Synthèse Élevage Horizon Farm',
@@ -60,9 +68,14 @@ export function buildElevageInvestorReport({
       `Coût alimentation : ${fmtCurrency(feedCost)}`,
       `Activités suivies : ${pnl.activities.length}`,
       `Alertes IA : ${insights.length}`,
+      `Femelles : ${reproduction.females}`,
+      `Gestantes : ${reproduction.gestantes}`,
+      `Naissances 7j : ${reproduction.birthEvents}`,
+      `Sorties cycles 90j : ${cyclesPipeline.totalUpcoming}`,
     ].join(' · '),
     pnl,
     insights: insights.slice(0, 10),
+    cyclesPipeline,
     kpis: {
       lots: lots.length,
       animaux: animaux.length,
@@ -71,6 +84,11 @@ export function buildElevageInvestorReport({
       feedCost,
       healthEvents: healthEvents.length,
       feedLogs: feedLogs.length,
+      reproductionFemales: reproduction.females,
+      reproductionGestantes: reproduction.gestantes,
+      reproductionBirths7d: reproduction.birthEvents,
+      cyclesUpcoming90d: cyclesPipeline.totalUpcoming,
+      cyclesLate: cyclesPipeline.lateCount,
     },
     rows: [
       ...pnl.activities.map((a) => ({
@@ -84,6 +102,12 @@ export function buildElevageInvestorReport({
         label: i.title,
         value: i.severity || 'info',
         detail: i.description || '',
+      })),
+      ...cyclesPipeline.upcomingExits.map((row) => ({
+        section: 'Pipeline cycles',
+        label: `${row.type} · ${row.label}`,
+        value: row.targetDate,
+        detail: `J+${row.cycleDays} · ${fmtNumber(row.quantity)} sujet(s)`,
       })),
     ],
   };
@@ -107,11 +131,26 @@ export function exportElevageInvestorPdf(report = {}, fileName = '') {
           ['Mortalité', fmtNumber(report.kpis?.mortality)],
           ['Coût alimentation', fmtCurrency(report.kpis?.feedCost)],
           ['Événements santé', String(report.kpis?.healthEvents ?? 0)],
+          ['Femelles reproductrices', String(report.kpis?.reproductionFemales ?? 0)],
+          ['Gestantes', String(report.kpis?.reproductionGestantes ?? 0)],
+          ['Naissances 7 j', fmtNumber(report.kpis?.reproductionBirths7d)],
+          ['Sorties cycles 90 j', fmtNumber(report.kpis?.cyclesUpcoming90d)],
+          ['Cycles en retard', fmtNumber(report.kpis?.cyclesLate)],
         ],
       },
       {
+        title: 'Prochaines sorties (cycles)',
+        columns: ['Entité', 'Type', 'Date cible', 'Quantité'],
+        rows: (report.cyclesPipeline?.upcomingExits || []).map((row) => [
+          row.label,
+          row.type,
+          row.targetDate,
+          fmtNumber(row.quantity),
+        ]),
+      },
+      {
         title: 'P&L par activité',
-        columns: ['Activité', 'Marge / statut', 'Fiabilité'],
+        columns: ['Activité', 'Marge brute technique / statut', 'Fiabilité'],
         rows: arr(report.pnl?.activities).map((a) => [a.label, formatActivityPnlRow(a), a.reliabilityLabel]),
       },
       {

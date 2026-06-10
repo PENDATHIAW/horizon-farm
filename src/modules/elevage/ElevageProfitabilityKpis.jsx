@@ -1,6 +1,7 @@
 import CollapsibleAdvancedSection from '../../components/CollapsibleAdvancedSection.jsx';
 import { fmtCurrency, fmtNumber } from '../../utils/format';
 import { buildPondeuseKpis, buildChairKpis, buildBovinKpis } from '../../utils/elevageActivityPnl.js';
+import { MARGIN_GROSS_DEFINITION, PRODUCTION_FINANCE_LABELS } from '../../utils/productionFinancialTruth.js';
 
 function KpiCard({ label, value, tone = 'neutral' }) {
   const cls = tone === 'good' ? 'text-emerald-700' : tone === 'warn' ? 'text-amber-700' : 'text-[#2f2415]';
@@ -52,7 +53,7 @@ export default function ElevageProfitabilityKpis({
         { label: 'Coût / tablette', value: k.costPerTablet ? fmtCurrency(k.costPerTablet) : '—' },
         { label: 'Œufs produits', value: fmtNumber(k.eggsProduced) },
         { label: 'Œufs vendables', value: fmtNumber(k.eggsSellable), tone: 'good' },
-        { label: 'Marge', value: k.reliable && k.margin != null ? fmtCurrency(k.margin) : 'Non fiable', tone: k.reliable ? 'good' : 'warn' },
+        { label: PRODUCTION_FINANCE_LABELS.marginGross, value: k.reliable && k.margin != null ? fmtCurrency(k.margin) : 'Non fiable', tone: k.reliable ? 'good' : 'warn' },
       ],
     };
   });
@@ -66,7 +67,7 @@ export default function ElevageProfitabilityKpis({
         { label: 'Coût / kg', value: k.costPerKg ? fmtCurrency(k.costPerKg) : '—' },
         { label: 'Poids moyen', value: k.avgWeight ? `${k.avgWeight} kg` : '—' },
         { label: 'Mortalité', value: k.mortalityRate != null ? `${fmtNumber(k.mortalityRate)}%` : fmtNumber(k.mortality), tone: k.mortalityRate > 4 ? 'warn' : 'good' },
-        { label: 'Marge', value: k.reliable && k.margin != null ? fmtCurrency(k.margin) : 'Non fiable', tone: k.reliable ? 'good' : 'warn' },
+        { label: PRODUCTION_FINANCE_LABELS.marginGross, value: k.reliable && k.margin != null ? fmtCurrency(k.margin) : 'Non fiable', tone: k.reliable ? 'good' : 'warn' },
       ],
     };
   });
@@ -80,7 +81,7 @@ export default function ElevageProfitabilityKpis({
         { label: 'Coût / kg vif', value: k.costPerKg ? fmtCurrency(k.costPerKg) : '—' },
         { label: 'GMQ', value: k.gmq ? `${fmtNumber(k.gmq)} g/j` : '—' },
         { label: 'Poids / cible', value: k.weight ? `${k.weight}${k.targetWeight ? ` / ${k.targetWeight}` : ''} kg` : '—', tone: k.readyToSell ? 'good' : 'neutral' },
-        { label: 'Marge', value: k.reliable && k.margin != null ? fmtCurrency(k.margin) : 'Non fiable', tone: k.reliable ? 'good' : 'warn' },
+        { label: PRODUCTION_FINANCE_LABELS.marginGross, value: k.reliable && k.margin != null ? fmtCurrency(k.margin) : 'Non fiable', tone: k.reliable ? 'good' : 'warn' },
       ],
     };
   });
@@ -91,7 +92,7 @@ export default function ElevageProfitabilityKpis({
     <CollapsibleAdvancedSection
       eyebrow="Rentabilité"
       title="KPI essentiels par activité"
-      description="Pondeuses, chair, bovins — détail repliable."
+      description={`Pondeuses, chair, bovins — ${MARGIN_GROSS_DEFINITION}. Détail repliable.`}
       open={open}
       onToggle={onToggle}
     >

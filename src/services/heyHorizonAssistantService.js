@@ -48,6 +48,7 @@ export const AUTO_OPEN_FORM_TYPES = new Set([
   'sale_record', 'egg_production', 'poultry_mortality', 'poultry_close', 'stock_purchase',
   'stock_movement', 'stock_critical_lookup', 'task_creation', 'finance_entry',
   'equipment_action', 'financing_file', 'culture_harvest', 'supplier_invoice',
+  'reproduction_saillie', 'reproduction_gestation', 'reproduction_mise_bas', 'reproduction_document',
 ]);
 
 const REFRESH_KEYS_BY_MODULE = {
@@ -69,6 +70,7 @@ const REFRESH_KEYS_BY_MODULE = {
   smartfarm: ['sensor_devices', 'camera_devices', 'alertes_center', 'taches', 'business_events'],
   equipements: ['equipements', 'taches', 'finances', 'documents', 'business_events'],
   rh: ['finances', 'taches', 'business_events'],
+  elevage: ['animaux', 'avicole', 'sante', 'alimentation_logs', 'production_oeufs_logs', 'business_events', 'alertes_center', 'documents'],
 };
 
 export const normalizeHeyHorizonText = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -83,7 +85,9 @@ export function shouldAutoOpenHeyHorizonForm(draft = {}) {
 
 export function openHeyHorizonForm(draft = {}, onNavigate) {
   if (!draft?.primary_module) return;
-  onNavigate?.(draft.primary_module);
+  const navTab = draft.navigation_tab || draft.draft_fields?.navigation_tab;
+  const navOpts = navTab ? { tab: navTab } : (draft.primary_module === 'elevage' && draft.form_type?.startsWith('reproduction_') ? { tab: 'Reproduction' } : undefined);
+  onNavigate?.(draft.primary_module, navOpts);
   window.setTimeout(() => {
     window.dispatchEvent(new CustomEvent('horizon-open-form', { detail: { module: draft.primary_module, draft } }));
   }, 220);
