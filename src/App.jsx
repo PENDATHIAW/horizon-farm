@@ -501,6 +501,10 @@ export default function App() {
       existingAlerts: rows(c.alertes_center),
       sante: rows(c.sante),
       productionLogs: rows(c.production_oeufs_logs),
+      tracabilite: rows(c.tracabilite),
+      onCreateTrace: c.tracabilite.create,
+      onUpdateTrace: c.tracabilite.update,
+      onRefreshTrace: c.tracabilite.refresh,
       ...shared,
     },
     finance_pilotage: {

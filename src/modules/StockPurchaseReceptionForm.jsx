@@ -66,6 +66,9 @@ export default function StockPurchaseReceptionForm({
   onUpdateSupplier,
   onUpdateFinanceTransaction,
   onUpdateAlert,
+  onCreateTrace,
+  onUpdateTrace,
+  existingTraces = [],
   onCreateStockMovement,
   onRefreshStockMovements,
   onRefresh,
@@ -206,6 +209,9 @@ export default function StockPurchaseReceptionForm({
         onUpdateSupplier,
         onUpdateFinanceTransaction,
         onUpdateAlert,
+        onCreateTrace,
+        onUpdateTrace,
+        existingTraces,
       });
       await Promise.allSettled([
         onRefresh?.(),

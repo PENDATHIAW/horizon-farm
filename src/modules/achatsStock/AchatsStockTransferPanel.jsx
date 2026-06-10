@@ -18,6 +18,9 @@ export default function AchatsStockTransferPanel({
   onCreateStockMovement,
   onCreateBusinessEvent,
   onRefreshStockMovements,
+  onCreateTrace,
+  onUpdateTrace,
+  existingTraces = [],
   existingMovements = [],
 }) {
   const [sourceFarmId, setSourceFarmId] = useState(farmScope?.farmId || accessibleFarms[0]?.id || '');
@@ -59,6 +62,9 @@ export default function AchatsStockTransferPanel({
           onCreateStockMovement,
           onCreateBusinessEvent,
           onRefreshStockMovements,
+          onCreateTrace,
+          onUpdateTrace,
+          existingTraces,
         },
         existingMovements,
       });

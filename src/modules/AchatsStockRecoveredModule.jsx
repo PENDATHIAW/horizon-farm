@@ -12,7 +12,6 @@ import AchatsStockExpiryPanel from './achatsStock/AchatsStockExpiryPanel.jsx';
 import AchatsStockTransferPanel from './achatsStock/AchatsStockTransferPanel.jsx';
 import AchatsStockDataQualityPanel from './achatsStock/AchatsStockDataQualityPanel.jsx';
 import StockProductionSourcesPanel from './achatsStock/StockProductionSourcesPanel.jsx';
-import StockFeedingElevageHint from './achatsStock/StockFeedingElevageHint.jsx';
 import StockNavigationContextBanner from './achatsStock/StockNavigationContextBanner.jsx';
 import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection.jsx';
 import { ACHATS_STOCK_STAT_GRID, AchatsStockKpi, AchatsStockSection } from './achatsStock/achatsStockUi.jsx';
@@ -140,7 +139,9 @@ export default function AchatsStockRecoveredModule(props) {
   const tasksCrud = useCrudModule('taches');
   const alertsCrud = useCrudModule('alertes_center');
   const documentsCrud = useCrudModule('documents');
+  const traceCrud = useCrudModule('tracabilite');
   const periodFiltered = Boolean(props.periodFiltered);
+  const traceRows = rowsOf(props.tracabilite, traceCrud, false);
   const stocks = rowsOf(props.stocks || props.rows, stockCrud, false);
   const suppliers = rowsOf(props.fournisseurs || props.suppliers, suppliersCrud, false);
   const transactions = rowsOf(props.transactions || props.finances, financesCrud, periodFiltered);
@@ -322,6 +323,10 @@ export default function AchatsStockRecoveredModule(props) {
     onNavigate: props.onNavigate,
     accessibleFarms: props.accessibleFarms,
     farmScope: props.farmScope,
+    onCreateTrace: props.onCreateTrace || traceCrud.create,
+    onUpdateTrace: props.onUpdateTrace || traceCrud.update,
+    onRefreshTrace: props.onRefreshTrace || traceCrud.refresh,
+    existingTraces: traceRows,
   };
 
   const supplierProps = {
@@ -392,7 +397,6 @@ export default function AchatsStockRecoveredModule(props) {
             onToggle={() => setStockAdvancedOpen((v) => !v)}
           >
             <StockProductionSourcesPanel rows={stocks} onNavigate={props.onNavigate} />
-            <StockFeedingElevageHint rows={stocks} lots={arr(props.lots)} animaux={arr(props.animaux)} onNavigate={props.onNavigate} />
             <AchatsStockTransferPanel
               stocks={stocks}
               accessibleFarms={props.accessibleFarms || []}
@@ -401,6 +405,9 @@ export default function AchatsStockRecoveredModule(props) {
               onCreateStockMovement={props.onCreateStockMovement || movementsCrud.create}
               onCreateBusinessEvent={props.onCreateBusinessEvent || eventsCrud.create}
               onRefreshStockMovements={props.onRefreshStockMovements || movementsCrud.refresh}
+              onCreateTrace={props.onCreateTrace || traceCrud.create}
+              onUpdateTrace={props.onUpdateTrace || traceCrud.update}
+              existingTraces={traceRows}
               existingMovements={stockMovements}
             />
           </CollapsibleAdvancedSection>
@@ -408,7 +415,7 @@ export default function AchatsStockRecoveredModule(props) {
       ) : tab === 'Achats' ? (
         <AchatsStockPurchasesPanel data={data} onNavigate={props.onNavigate} setTab={setTab} onRelance={relanceSupplier} busyId={busyId} />
       ) : tab === 'Fournisseurs' ? (
-        <FournisseursReadable {...supplierProps} />
+        <FournisseursReadable {...supplierProps} hideEvolutionSection />
       ) : tab === 'Mouvements' ? (
         <AchatsStockMovementsPanel data={data} onNavigate={props.onNavigate} setTab={setTab} accessibleFarms={props.accessibleFarms || []} />
       ) : tab === 'Annexe' ? (

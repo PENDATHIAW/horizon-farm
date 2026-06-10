@@ -168,5 +168,14 @@ export async function runStockLossSideEffects({
   const exists = arr(transactions).find((row) => clean(row.id) === clean(financeRow.id));
   if (!exists) await handlers.onCreateFinanceTransaction?.(financeRow);
   await syncFinanceSideEffects(exists || financeRow, { handlers });
+  await appendStockTraceStep({
+    stock,
+    eventType: 'perte_stock',
+    titre: 'Perte stock',
+    details: `${stockProductName(stock)} · ${num(qty)} ${stock.unite || ''}`,
+    montant: financeRow.montant,
+    date,
+    handlers,
+  });
   return financeRow;
 }
