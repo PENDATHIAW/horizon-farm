@@ -1,6 +1,7 @@
 import { BarChart3 } from 'lucide-react';
 import { fmtCurrency } from '../../utils/format';
 import { formatActivityPnlRow } from '../../utils/elevageActivityPnl.js';
+import { MARGIN_GROSS_DEFINITION, PRODUCTION_FINANCE_LABELS } from '../../utils/productionFinancialTruth.js';
 
 export default function ElevageActivityPnlPanel({ pnl = {}, onExport }) {
   const activities = pnl.activities || [];
@@ -17,7 +18,7 @@ export default function ElevageActivityPnlPanel({ pnl = {}, onExport }) {
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="text-[11px] font-black uppercase tracking-wide text-[#9a6b12] flex items-center gap-1"><BarChart3 size={14} /> P&L Élevage par activité</p>
-          <p className="text-xs text-[#8a7456] mt-1">Revenus, coûts alimentation, santé, mortalité — marge affichée uniquement si fiable.</p>
+          <p className="text-xs text-[#8a7456] mt-1">Revenus, coûts alimentation, santé, mortalité — {PRODUCTION_FINANCE_LABELS.marginGross} uniquement si fiable. {MARGIN_GROSS_DEFINITION}.</p>
         </div>
         {onExport ? (
           <button type="button" onClick={onExport} className="rounded-xl border border-[#d6c3a0] px-3 py-1.5 text-xs font-black text-[#2f2415]">Exporter rapport</button>
@@ -30,7 +31,7 @@ export default function ElevageActivityPnlPanel({ pnl = {}, onExport }) {
               <th className="py-2 pr-3">Activité</th>
               <th className="py-2 pr-3">Revenus</th>
               <th className="py-2 pr-3">Coûts</th>
-              <th className="py-2 pr-3">Marge</th>
+              <th className="py-2 pr-3">{PRODUCTION_FINANCE_LABELS.marginGross}</th>
               <th className="py-2">Fiabilité</th>
             </tr>
           </thead>
@@ -55,7 +56,7 @@ export default function ElevageActivityPnlPanel({ pnl = {}, onExport }) {
       {pnl.totals?.grossMargin != null ? (
         <p className="mt-3 text-xs text-[#8a7456]">
           Synthèse : revenus {fmtCurrency(pnl.totals.revenue)} · coûts {fmtCurrency(pnl.totals.totalCost)}
-          {pnl.totals.grossMargin != null ? ` · marge ${fmtCurrency(pnl.totals.grossMargin)}` : ''}
+          {pnl.totals.grossMargin != null ? ` · ${PRODUCTION_FINANCE_LABELS.marginGross.toLowerCase()} ${fmtCurrency(pnl.totals.grossMargin)}` : ''}
           {pnl.totals.reliableCount ? ` · ${pnl.totals.reliableCount} activité(s) fiable(s)` : ''}
         </p>
       ) : null}

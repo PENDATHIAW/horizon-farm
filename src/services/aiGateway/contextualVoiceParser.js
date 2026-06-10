@@ -2,7 +2,7 @@
  * Saisie vocale contextuelle — une phrase → un ou plusieurs brouillons à valider.
  */
 
-import { interpretHorizonCommand } from '../aiIntentEngine.js';
+import { interpretHorizonCommand, interpretHorizonAnimalBirthDraft } from '../aiIntentEngine.js';
 import {
   AI_DRAFT_SOURCES,
   createAiActionDraft,
@@ -94,8 +94,16 @@ function detectVoiceScenario(raw = '') {
     return 'isolation_health';
   }
   if (includesAny(text, ['ramass', 'tablette', 'oeuf', 'œuf', 'ponte'])) return 'egg_production';
+  if (includesAny(text, ['naissance', 'mise bas', 'veau', 'agneau', 'chevreau', 'portee', 'portée'])) return 'animal_birth';
+  if (includesAny(text, ['mort', 'decede', 'décédé', 'perdu', 'vole', 'volé']) && (hasAnimalId(raw) || includesAny(text, ['animal', 'bovin', 'vache', 'brebis', 'chevre', 'chèvre', 'embouche', 'ovin', 'caprin', 'boucle']))) return 'animal_loss';
+  if (includesAny(text, ['pese', 'pesé', 'pesee', 'poids', 'kilo']) && (hasAnimalId(raw) || includesAny(text, ['animal', 'bovin', 'vache', 'brebis', 'chevre', 'embouche', 'ovin', 'caprin']))) return 'animal_weighing';
   if (includesAny(text, ['vendu', 'vente', 'vendre', 'vends'])) return 'sale';
   return 'auto';
+}
+
+function hasAnimalId(raw = '') {
+  const text = String(raw || '').toUpperCase();
+  return /\b([A-Z]{2,6}[-_ ]?\d{1,6})\b/.test(text);
 }
 
 function buildFeedingLegacyDraft(rawInput = '', dataMap = {}) {
@@ -315,6 +323,10 @@ export function parseContextualVoicePhrase(phrase = '', dataMap = {}) {
     legacy = buildFeedingLegacyDraft(raw, dataMap);
   } else if (scenario === 'isolation_health') {
     legacy = buildIsolationHealthLegacy(raw, dataMap);
+  } else if (scenario === 'animal_birth') {
+    legacy = interpretHorizonAnimalBirthDraft(raw, dataMap);
+  } else if (['animal_weighing', 'animal_loss'].includes(scenario)) {
+    legacy = interpretHorizonCommand(raw, dataMap);
   } else {
     legacy = interpretHorizonCommand(raw, dataMap);
   }

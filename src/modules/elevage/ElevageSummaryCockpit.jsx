@@ -90,8 +90,16 @@ export default function ElevageSummaryCockpit({
         <p className="text-sm leading-relaxed text-[#7d6a4a]">{brief.attention}</p>
       </section>
 
+      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm md:hidden">
+        <h2 className="text-lg font-black text-[#2f2415]">Actions terrain</h2>
+        <p className="mt-2 text-sm leading-relaxed text-[#8a7456]">
+          Utilisez la <b>barre d&apos;actions rapide ci-dessous</b> pour alimentation, ponte, santé (formulaire officiel), mortalité, pesée et vente.
+        </p>
+      </section>
+
       <section className="hidden md:block rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
         <h2 className="text-lg font-black text-[#2f2415]">Actions terrain</h2>
+        <p className="mt-2 text-sm leading-relaxed text-[#8a7456]">Santé : formulaire complet sur l&apos;onglet Santé (intervention, coût, rappel, preuve).</p>
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           <ActionCard title="Distribution aliment" text="Workflow officiel — décrémente le stock." onClick={() => onOpenWorkflow?.('feeding')} />
           <ActionCard title="Ramassage œufs" text="Draft possible par voix — validation humaine." onClick={() => onOpenWorkflow?.('eggs')} />

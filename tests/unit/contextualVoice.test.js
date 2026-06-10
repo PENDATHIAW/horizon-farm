@@ -56,3 +56,26 @@ test('aucune exécution : brouillon principal requiert validation', () => {
   assert.equal(primary.required_validation, true);
   assert.notEqual(primary.user_validated, true);
 });
+
+test('naissance / mise bas — draft animal_birth sans exécution auto', () => {
+  const result = parseContextualVoicePhrase('Mise bas ce matin — agneau né', { animaux: [], lots });
+  assert.ok(result.drafts.some((d) => d.intent === 'animal_birth' || d.draft?.intent === 'animal_birth'));
+  const birth = result.drafts.find((d) => d.intent === 'animal_birth' || d.draft?.intent === 'animal_birth');
+  assert.equal(birth.required_validation, true);
+});
+
+test('pesée animal — draft animal_weighing', () => {
+  const result = parseContextualVoicePhrase('J\'ai pesé le bovin BOV002 à 420 kg', {
+    animaux: [{ id: 'BOV002', nom: 'Bovin' }],
+    lots,
+  });
+  assert.ok(result.drafts.some((d) => d.intent === 'animal_weighing' || d.draft?.intent === 'animal_weighing'));
+});
+
+test('mortalité animal — draft animal_loss', () => {
+  const result = parseContextualVoicePhrase('Le bovin BOV002 est mort', {
+    animaux: [{ id: 'BOV002', nom: 'Bovin' }],
+    lots,
+  });
+  assert.ok(result.drafts.some((d) => d.intent === 'animal_loss' || d.draft?.intent === 'animal_loss'));
+});

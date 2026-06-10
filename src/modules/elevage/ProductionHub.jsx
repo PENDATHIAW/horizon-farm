@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { fmtCurrency, fmtNumber, fmtPercent } from '../../utils/format';
 import { navigateToEggStock } from '../../utils/productionNavigation.js';
 import { diagnoseElevageEntity, pickDefaultDiagnosticTarget } from '../../utils/elevageLotDiagnostic.js';
+import { PRODUCTION_FINANCE_LABELS } from '../../utils/productionFinancialTruth.js';
 import { ELEVAGE_KPI_GRID, ElevageStatCard } from './elevageUi.jsx';
 
 function ActionCard({ title, text, onClick }) {
@@ -71,6 +72,8 @@ export default function ProductionHub({
   const eggs = snapshot.eggs || {};
   const chair = snapshot.chair || {};
   const bovins = snapshot.bovins || {};
+  const ovins = snapshot.ovins || {};
+  const caprins = snapshot.caprins || {};
   const transform = snapshot.transformation || {};
   const perf = snapshot.performance || {};
 
@@ -110,7 +113,7 @@ export default function ProductionHub({
       tone: perf.meatStockKg > 0 ? 'good' : 'warn',
     },
     {
-      label: 'Marge technique',
+      label: PRODUCTION_FINANCE_LABELS.marginGross,
       value: perf.technicalMarginLabel || '—',
       tone: perf.technicalMarginTotal > 0 ? 'good' : perf.technicalMarginTotal != null ? 'warn' : 'neutral',
     },
@@ -264,7 +267,7 @@ export default function ProductionHub({
                 {k.weight > 0 ? ` · ${k.weight} kg` : ''}
                 {k.targetWeight > 0 ? ` / cible ${k.targetWeight} kg` : ''}
                 {k.gmq ? ` · GMQ ${fmtNumber(k.gmq)} g/j` : ''}
-                {k.reliable && k.margin != null ? ` · marge ${fmtCurrency(k.margin)}` : ''}
+                {k.reliable && k.margin != null ? ` · ${PRODUCTION_FINANCE_LABELS.marginGross} ${fmtCurrency(k.margin)}` : ''}
               </li>
             ))}
           </ul>
@@ -277,6 +280,40 @@ export default function ProductionHub({
           <ActionCard key="bov-transform" title="Transformation viande" text="Abattage animal et stock." onClick={() => setTab('Transformation')} />
         </div>
       </CollapsibleBlock>
+
+      {ovins.hasData ? (
+        <CollapsibleBlock icon={Beef} title="Ovins — GMQ & rentabilité" intro="Brebis, agneaux — poids et marge technique.">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            {[
+              { label: 'Actifs', value: fmtNumber(ovins.activeCount) },
+              { label: 'Proches cible', value: fmtNumber(ovins.nearTargetCount), tone: ovins.nearTargetCount ? 'good' : 'warn' },
+              { label: 'Poids moyen', value: ovins.avgWeight > 0 ? `${ovins.avgWeight.toFixed(0)} kg` : '—', tone: ovins.avgWeight > 0 ? 'good' : 'warn' },
+            ].map((s) => (
+              <ElevageStatCard key={s.label} label={s.label} value={s.value} tone={s.tone || 'neutral'} />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <ActionCard key="ov-animaux" title="Registre ovins" text="Cheptel — onglet Animaux." onClick={() => setTab('Animaux')} />
+          </div>
+        </CollapsibleBlock>
+      ) : null}
+
+      {caprins.hasData ? (
+        <CollapsibleBlock icon={Beef} title="Caprins — GMQ & rentabilité" intro="Chèvres, chevreaux — poids et marge technique.">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            {[
+              { label: 'Actifs', value: fmtNumber(caprins.activeCount) },
+              { label: 'Proches cible', value: fmtNumber(caprins.nearTargetCount), tone: caprins.nearTargetCount ? 'good' : 'warn' },
+              { label: 'Poids moyen', value: caprins.avgWeight > 0 ? `${caprins.avgWeight.toFixed(0)} kg` : '—', tone: caprins.avgWeight > 0 ? 'good' : 'warn' },
+            ].map((s) => (
+              <ElevageStatCard key={s.label} label={s.label} value={s.value} tone={s.tone || 'neutral'} />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <ActionCard key="cap-animaux" title="Registre caprins" text="Cheptel — onglet Animaux." onClick={() => setTab('Animaux')} />
+          </div>
+        </CollapsibleBlock>
+      ) : null}
 
       <CollapsibleBlock
         icon={Factory}

@@ -5,7 +5,9 @@ import {
   buildChairKpis,
   buildPondeuseKpis,
   isBovinAnimal,
+  isCaprinAnimal,
   isChairLot,
+  isOvinAnimal,
   isPondeuseLot,
 } from './elevageActivityPnl.js';
 import { fmtCurrency } from './format.js';
@@ -70,6 +72,14 @@ export function buildProductionHubSnapshot({
   const activeBovins = arr(animaux).filter((a) => isBovinAnimal(a) && !isClosedAnimal(a));
   const bovinKpis = activeBovins.map((animal) => buildBovinKpis(animal, marginContext));
   const bovinsNearTarget = bovinKpis.filter((k) => k.readyToSell || (k.targetWeight > 0 && k.weight >= k.targetWeight * 0.9));
+
+  const activeOvins = arr(animaux).filter((a) => isOvinAnimal(a) && !isClosedAnimal(a));
+  const ovinKpis = activeOvins.map((animal) => buildBovinKpis(animal, marginContext));
+  const ovinsNearTarget = ovinKpis.filter((k) => k.readyToSell || (k.targetWeight > 0 && k.weight >= k.targetWeight * 0.9));
+
+  const activeCaprins = arr(animaux).filter((a) => isCaprinAnimal(a) && !isClosedAnimal(a));
+  const caprinKpis = activeCaprins.map((animal) => buildBovinKpis(animal, marginContext));
+  const caprinsNearTarget = caprinKpis.filter((k) => k.readyToSell || (k.targetWeight > 0 && k.weight >= k.targetWeight * 0.9));
 
   const transformRecent = arr(transformationRows)
     .filter(isTransformRow)
@@ -174,6 +184,26 @@ export function buildProductionHubSnapshot({
         return withW.length ? withW.reduce((s, k) => s + n(k.weight), 0) / withW.length : 0;
       })(),
       hasData: activeBovins.length > 0,
+    },
+    ovins: {
+      activeCount: activeOvins.length,
+      nearTargetCount: ovinsNearTarget.length,
+      nearTargetList: ovinsNearTarget.slice(0, 4),
+      avgWeight: (() => {
+        const withW = ovinKpis.filter((k) => k.weight > 0);
+        return withW.length ? withW.reduce((s, k) => s + n(k.weight), 0) / withW.length : 0;
+      })(),
+      hasData: activeOvins.length > 0,
+    },
+    caprins: {
+      activeCount: activeCaprins.length,
+      nearTargetCount: caprinsNearTarget.length,
+      nearTargetList: caprinsNearTarget.slice(0, 4),
+      avgWeight: (() => {
+        const withW = caprinKpis.filter((k) => k.weight > 0);
+        return withW.length ? withW.reduce((s, k) => s + n(k.weight), 0) / withW.length : 0;
+      })(),
+      hasData: activeCaprins.length > 0,
     },
     transformation: {
       recentCount: transformRecent.length,
