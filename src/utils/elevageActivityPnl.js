@@ -4,6 +4,7 @@
 
 import { calculateUnifiedAnimalCost, calculateUnifiedLotCost } from '../services/unifiedCostService.js';
 import { fmtCurrency, fmtNumber, fmtPercent } from './format.js';
+import { PRODUCTION_FINANCE_LABELS } from './productionFinancialTruth.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v) => Number(v || 0);
@@ -70,7 +71,7 @@ function buildActivityRow({
   else if (!reliable) reliabilityLabel = 'Non fiable';
 
   const reliabilityMessage = partial || !reliable
-    ? `Rentabilité partielle : ${missing.length ? `données manquantes (${missing.join(', ')})` : 'revenus ou coûts incomplets'}.`
+    ? `${PRODUCTION_FINANCE_LABELS.marginGross} partielle : ${missing.length ? `données manquantes (${missing.join(', ')})` : 'revenus ou coûts incomplets'}.`
     : '';
 
   return {
@@ -337,7 +338,7 @@ export function formatActivityPnlRow(row = {}) {
   if (row.reliable && row.grossMargin != null) {
     return `${fmtCurrency(row.grossMargin)} (${fmtPercent(row.marginRate)})`;
   }
-  return row.reliabilityMessage || 'Rentabilité partielle';
+  return row.reliabilityMessage || `${PRODUCTION_FINANCE_LABELS.marginGross} partielle`;
 }
 
 export function formatKpiValue(value, suffix = '') {

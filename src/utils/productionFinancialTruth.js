@@ -1,7 +1,10 @@
 import { fmtCurrency, fmtNumber, fmtPercent } from './format.js';
 
-/** Une seule vérité financière — moteur unifiedCostService (aligné Finance). */
+/** Une seule vérité financière Élevage — moteur unifiedCostService (aligné Finance). */
 export const PRODUCTION_FINANCE_SOURCE = 'Coût unifié ERP (alimentation + santé + achat) — même moteur que Finance & Rentabilité.';
+
+export const MARGIN_GROSS_DEFINITION_SHORT = 'Revenus − coût de production unifié ERP';
+export const MARGIN_GROSS_DEFINITION = `Marge brute technique = ${MARGIN_GROSS_DEFINITION_SHORT}`;
 
 export const PRODUCTION_FINANCE_LABELS = {
   costTotal: 'Coût de production unifié',
@@ -13,6 +16,8 @@ export const PRODUCTION_FINANCE_LABELS = {
   icPerAnimal: 'Coût unitaire animal (€)',
   partial: 'Données partielles — compléter alimentation / santé / vente',
 };
+
+export const ELEVAGE_FINANCE_LABELS = PRODUCTION_FINANCE_LABELS;
 
 export function formatUnifiedCost(value) {
   return value > 0 ? fmtCurrency(value) : '—';

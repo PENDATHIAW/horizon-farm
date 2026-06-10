@@ -63,6 +63,8 @@ export default function ProductionHub({
   const eggs = snapshot.eggs || {};
   const chair = snapshot.chair || {};
   const bovins = snapshot.bovins || {};
+  const ovins = snapshot.ovins || {};
+  const caprins = snapshot.caprins || {};
   const transform = snapshot.transformation || {};
 
   return (
@@ -213,6 +215,70 @@ export default function ProductionHub({
           <p className="text-sm text-[#8a7456]">Aucun bovin proche du poids cible.</p>
         )}
       </ProductionBlock>
+
+      {ovins.hasData ? (
+        <ProductionBlock
+          icon={Beef}
+          title="Ovins"
+          intro="Brebis, agneaux — poids, GMQ et proximité du poids cible."
+          stats={[
+            { label: 'Actifs', value: fmtNumber(ovins.activeCount) },
+            { label: 'Proches poids cible', value: fmtNumber(ovins.nearTargetCount), tone: ovins.nearTargetCount ? 'good' : 'warn' },
+            { label: 'Poids moyen', value: ovins.avgWeight > 0 ? `${ovins.avgWeight.toFixed(0)} kg` : '—' },
+          ]}
+          actions={[
+            <ActionCard key="ov-animaux" title="Voir animaux" text="Cheptel ovins, pesées et coûts." onClick={() => setTab('Animaux')} />,
+            ovins.nearTargetCount > 0 ? (
+              <ActionCard key="ov-sale" title="Préparer vente" text={`${ovins.nearTargetCount} animal(aux) proche(s) du poids cible.`} onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
+            ) : null,
+          ].filter(Boolean)}
+        >
+          {ovins.nearTargetList?.length ? (
+            <ul className="space-y-1 text-sm">
+              {ovins.nearTargetList.map((k) => (
+                <li key={k.id} className="rounded-lg border border-[#eadcc2] bg-[#fffdf8] px-3 py-2">
+                  <b>{k.name}</b>
+                  {k.weight > 0 ? ` · ${k.weight} kg` : ''}
+                  {k.targetWeight > 0 ? ` / cible ${k.targetWeight} kg` : ''}
+                  {k.reliable && k.margin != null ? ` · ${PRODUCTION_FINANCE_LABELS.marginGross} ${fmtCurrency(k.margin)}` : ''}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </ProductionBlock>
+      ) : null}
+
+      {caprins.hasData ? (
+        <ProductionBlock
+          icon={Beef}
+          title="Caprins"
+          intro="Chèvres, chevreaux — poids, GMQ et proximité du poids cible."
+          stats={[
+            { label: 'Actifs', value: fmtNumber(caprins.activeCount) },
+            { label: 'Proches poids cible', value: fmtNumber(caprins.nearTargetCount), tone: caprins.nearTargetCount ? 'good' : 'warn' },
+            { label: 'Poids moyen', value: caprins.avgWeight > 0 ? `${caprins.avgWeight.toFixed(0)} kg` : '—' },
+          ]}
+          actions={[
+            <ActionCard key="cap-animaux" title="Voir animaux" text="Cheptel caprins, pesées et coûts." onClick={() => setTab('Animaux')} />,
+            caprins.nearTargetCount > 0 ? (
+              <ActionCard key="cap-sale" title="Préparer vente" text={`${caprins.nearTargetCount} animal(aux) proche(s) du poids cible.`} onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
+            ) : null,
+          ].filter(Boolean)}
+        >
+          {caprins.nearTargetList?.length ? (
+            <ul className="space-y-1 text-sm">
+              {caprins.nearTargetList.map((k) => (
+                <li key={k.id} className="rounded-lg border border-[#eadcc2] bg-[#fffdf8] px-3 py-2">
+                  <b>{k.name}</b>
+                  {k.weight > 0 ? ` · ${k.weight} kg` : ''}
+                  {k.targetWeight > 0 ? ` / cible ${k.targetWeight} kg` : ''}
+                  {k.reliable && k.margin != null ? ` · ${PRODUCTION_FINANCE_LABELS.marginGross} ${fmtCurrency(k.margin)}` : ''}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </ProductionBlock>
+      ) : null}
 
       <ProductionBlock
         icon={Factory}

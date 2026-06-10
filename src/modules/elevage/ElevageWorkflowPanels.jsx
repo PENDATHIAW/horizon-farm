@@ -5,7 +5,6 @@ import { toNumber } from '../../utils/format.js';
 import {
   commitElevageEggProduction,
   commitElevageFeeding,
-  commitElevageHealth,
   commitElevageMortality,
   commitElevageTransformation,
   commitElevageWeighing,
@@ -99,13 +98,11 @@ export default function ElevageWorkflowPanels({
 }) {
   const [busy, setBusy] = useState(false);
   const [feeding, setFeeding] = useState({ date: today(), stock_id: feedStocks[0]?.id || '', lot_id: '', animal_id: '', quantite: '', notes: '' });
-  const [health, setHealth] = useState({ date: today(), lot_id: '', animal_id: '', nom: '', cout: '', stock_id: '', quantite_stock: '', date_rappel: '', delai_sanitaire_fin: '' });
   const [mortality, setMortality] = useState({ date: today(), lot_id: lots[0]?.id || '', quantite: '', notes: '' });
   const [eggs, setEggs] = useState({ date: today(), lot_id: pondeuseLots[0]?.id || '', oeufs_produits: '', oeufs_casses: '', packaging_stock_id: '', packaging_qty: '' });
   const [transform, setTransform] = useState({ date: today(), lot_id: lots[0]?.id || '', kind: 'pret_vente', notes: '' });
   const [weighing, setWeighing] = useState({ date: today(), lot_id: lots[0]?.id || '', animal_id: '', poids: '', unite: 'kg', notes: '' });
 
-  const medStocks = useMemo(() => arr(context.stocks).filter((r) => /vaccin|medic|médic|antibio|vitamin/i.test(`${r.produit || ''} ${r.categorie || ''}`)), [context.stocks]);
   const packagingStocks = useMemo(() => arr(context.stocks).filter((r) => /emballage|alveole|alvéole|tablette|plateau|carton|caisse/i.test(`${r.produit || ''} ${r.nom || ''} ${r.categorie || ''}`)), [context.stocks]);
 
   const run = async (fn) => {
@@ -149,21 +146,6 @@ export default function ElevageWorkflowPanels({
         </Field>
         <Field label="Quantité"><input type="number" min="0" className={inputCls} value={feeding.quantite} onChange={(e) => setFeeding({ ...feeding, quantite: e.target.value })} required /></Field>
         <Field label="Notes"><input className={inputCls} value={feeding.notes} onChange={(e) => setFeeding({ ...feeding, notes: e.target.value })} /></Field>
-      </Modal>
-
-      <Modal open={activeModal === 'health'} title="Soin / vaccin — Élevage" onClose={onClose} busy={busy} onSubmit={() => run(() => commitElevageHealth({
-        form: { ...health, id: makeId('VAC'), cout: num(health.cout), quantite_stock: num(health.quantite_stock) },
-        context,
-        handlers,
-      })).then(() => toast.success('Soin enregistré'))}>
-        <Field label="Date"><input type="date" className={inputCls} value={health.date} onChange={(e) => setHealth({ ...health, date: e.target.value })} /></Field>
-        <Field label="Intitulé"><input className={inputCls} value={health.nom} onChange={(e) => setHealth({ ...health, nom: e.target.value })} required /></Field>
-        <Field label="Lot"><select className={inputCls} value={health.lot_id} onChange={(e) => setHealth({ ...health, lot_id: e.target.value })}><option value="">—</option>{lots.map((l) => <option key={l.id} value={l.id}>{l.name || l.id}</option>)}</select></Field>
-        <Field label="Coût (FCFA)"><input type="number" className={inputCls} value={health.cout} onChange={(e) => setHealth({ ...health, cout: e.target.value })} /></Field>
-        <Field label="Produit stock"><select className={inputCls} value={health.stock_id} onChange={(e) => setHealth({ ...health, stock_id: e.target.value })}><option value="">—</option>{medStocks.map((s) => <option key={s.id} value={s.id}>{s.produit}</option>)}</select></Field>
-        <Field label="Qté produit"><input type="number" className={inputCls} value={health.quantite_stock} onChange={(e) => setHealth({ ...health, quantite_stock: e.target.value })} /></Field>
-        <Field label="Date rappel"><input type="date" className={inputCls} value={health.date_rappel} onChange={(e) => setHealth({ ...health, date_rappel: e.target.value })} /></Field>
-        <Field label="Fin délai sanitaire"><input type="date" className={inputCls} value={health.delai_sanitaire_fin} onChange={(e) => setHealth({ ...health, delai_sanitaire_fin: e.target.value })} /></Field>
       </Modal>
 
       <Modal open={activeModal === 'mortality'} title="Mortalité — Élevage" onClose={onClose} busy={busy} onSubmit={() => run(() => commitElevageMortality({

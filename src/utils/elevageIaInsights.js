@@ -54,7 +54,7 @@ export function buildElevageCostAwareInsights({
         insights.push(insight(`feed-high-${lot.id}`, `Coût alimentaire élevé — ${lot.name || lot.id}`, `Alimentation = ${Math.round(feedShare)}% du coût total (alim. + santé inclus).`, 'warning', 'Vérifier ration et IC'));
       }
     } else if (!unified.costComplete) {
-      insights.push(insight(`margin-unreliable-${lot.id}`, `Marge non fiable — ${lot.name || lot.nom || lot.id}`, 'Coût complet indisponible : renseigner alimentation et santé avant décision.', 'info'));
+      insights.push(insight(`margin-unreliable-${lot.id}`, `Marge brute technique non fiable — ${lot.name || lot.nom || lot.id}`, 'Coût complet indisponible : renseigner alimentation et santé avant décision.', 'info'));
     }
   });
 
@@ -84,7 +84,7 @@ export function buildElevageCostAwareInsights({
       insights.push(insight(`animal-ready-${animal.id}`, `Animal proche poids cible — ${animal.name || animal.nom || animal.id}`, `${weight} kg / cible ${target || '—'} kg.`, 'info', 'Préparer vente'));
     }
     if (!unified.costComplete && n(animal.purchase_cost ?? animal.prix_achat) > 0) {
-      insights.push(insight(`animal-cost-${animal.id}`, `Coût incomplet — ${animal.name || animal.nom || animal.id}`, 'Alimentation ou santé manquante pour une marge fiable.', 'info'));
+      insights.push(insight(`animal-cost-${animal.id}`, `Coût incomplet — ${animal.name || animal.nom || animal.id}`, 'Alimentation ou santé manquante pour une marge brute technique fiable.', 'info'));
     }
   });
 

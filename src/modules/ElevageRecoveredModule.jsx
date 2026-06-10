@@ -9,6 +9,7 @@ import useCrudModule from '../hooks/useCrudModule';
 import { emitHorizonForm } from '../services/formModalManager';
 import { applyOneClickRecommendation } from '../services/heyHorizonRecommendationActions.js';
 import { fmtNumber } from '../utils/format';
+import { MARGIN_GROSS_DEFINITION, PRODUCTION_FINANCE_LABELS } from '../utils/productionFinancialTruth.js';
 import { commitElevageEggProduction } from '../utils/elevageWorkflow.js';
 import { aggregateSummaryLayingRate, formatOfficialLayingRate } from '../utils/elevageLayingRate.js';
 import { rowsOf } from '../utils/moduleRows';
@@ -43,6 +44,11 @@ const lotName = (row = {}) => lower(`${row.type || ''} ${row.type_lot || ''} ${r
 const isPondeuse = (row = {}) => lotName(row).includes('pondeuse') || lotName(row).includes('ponte') || lotName(row).includes('oeuf') || lotName(row).includes('œuf');
 const isChair = (row = {}) => lotName(row).includes('chair') || lotName(row).includes('broiler');
 const isHealthLate = (row = {}) => ['retard', 'en_retard', 'a_faire_retard', 'overdue'].includes(lower(row.statut || row.status || row.etat));
+const isBirthLikeEvent = (row = {}) => /naissance|mise bas|veau|agneau|chevreau/.test(lower(`${row.event_type || ''} ${row.title || ''} ${row.description || ''}`));
+const isGestanteAnimal = (row = {}) =>
+  /gestante|gestation|mise bas prevue|saillie confirm|en gestation/.test(
+    lower(`${row.statut_reproduction || ''} ${row.reproduction_status || ''} ${row.statut || ''} ${row.notes || ''}`),
+  );
 const today = () => new Date().toISOString().slice(0, 10);
 
 function Stat({ label, value, tone = 'neutral' }) {
@@ -90,8 +96,8 @@ function RentabilitySection({ lotMargins = [], onNavigate }) {
   if (!lotMargins.length) return null;
   return (
     <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
-      <div className="mb-4 flex items-center justify-between"><h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Zap size={20} /> Rentabilité lots</h2><button type="button" onClick={() => onNavigate?.('objectifs_croissance')} className="rounded-xl border border-[#d6c3a0] px-3 py-1.5 text-xs font-black">Vision</button></div>
-      <p className="mb-3 text-xs text-[#8a7456]">Marge affichée uniquement si poussins, alimentation et vaccins sont renseignés.</p>
+      <div className="mb-4 flex items-center justify-between"><h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Zap size={20} /> {PRODUCTION_FINANCE_LABELS.marginGross} — lots</h2><button type="button" onClick={() => onNavigate?.('objectifs_croissance')} className="rounded-xl border border-[#d6c3a0] px-3 py-1.5 text-xs font-black">Vision</button></div>
+      <p className="mb-3 text-xs text-[#8a7456]">{MARGIN_GROSS_DEFINITION}. {PRODUCTION_FINANCE_LABELS.marginNote}. Affichée uniquement si coûts complets (alimentation, santé, revenus fiche).</p>
       {lotMargins.slice(0, 8).map((row) => (
         <LogRow key={row.id} title={row.name} detail={row.reliable ? `Coûts + revenus OK` : `Manque : ${row.missing.join(', ')}`} value={formatMargin(row)} />
       ))}
@@ -123,9 +129,15 @@ function Summary({
       open={profitabilityOpen}
       onToggle={onToggleProfitability}
     />
+    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm md:hidden">
+      <h2 className="text-lg font-black text-[#2f2415]">Actions terrain</h2>
+      <p className="mt-2 text-sm leading-relaxed text-[#8a7456]">
+        Utilisez la <b>barre d&apos;actions rapide ci-dessous</b> pour alimentation, ponte, santé (onglet officiel), mortalité, pesée et vente.
+      </p>
+    </section>
     <section className="hidden md:block rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
       <h2 className="text-lg font-black text-[#2f2415]">Actions terrain</h2>
-      <p className="mt-2 text-sm leading-relaxed text-[#8a7456]">Saisies fiables avec impacts stock, finance et traçabilité.</p>
+      <p className="mt-2 text-sm leading-relaxed text-[#8a7456]">Saisies fiables avec impacts stock, finance et traçabilité. Santé : formulaire complet sur l&apos;onglet Santé.</p>
       <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
         <ActionCard title="Enregistrer alimentation" text="Distribution liée au stock et au lot." onClick={() => onOpenWorkflow?.('feeding')} />
         <ActionCard title="Enregistrer ponte" text="Ramassage œufs avec entrée stock si configurée." onClick={() => onOpenWorkflow?.('eggs')} />
@@ -158,6 +170,9 @@ function Summary({
 }
 function TransformationHub({ data, setTab, onNavigate, onOpenWorkflow, animalBridgeProps, avicoleBridgeProps }) {
   const salesCount = data.transformationSalesCount ?? data.transformationRows?.filter((r) => r.kind === 'vente').length ?? 0;
+  const scrollToAbattage = () => {
+    document.getElementById('elevage-animal-slaughter-bridge')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   return (
     <div className="space-y-5">
       <BusinessHub
@@ -171,38 +186,73 @@ function TransformationHub({ data, setTab, onNavigate, onOpenWorkflow, animalBri
         ]}
       >
         <ActionCard title="+ Mortalité lot avicole" text="Workflow officiel — effectif, alertes, perte finance." onClick={() => onOpenWorkflow?.('mortality')} />
-        <ActionCard title="+ Sortie / abattage animal" text="Abattage → stock viande (section ci-dessous)." onClick={() => setTab('Animaux')} />
+        <ActionCard title="+ Sortie / abattage animal" text="Journal d’abattage animal → stock viande (section ci-dessous)." onClick={scrollToAbattage} />
         <ActionCard title="+ Clôturer lot" text="Réforme, prêt vente ou abattage lot." onClick={() => onOpenWorkflow?.('transform')} />
         <ActionCard title="Commercial — ventes" text="Créer commande liée animal / lot." onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
         <ActionCard title="Lots à vendre" text={`${data.lotsToSell.length} lot(s) matures.`} onClick={() => setTab('Avicole')} />
       </BusinessHub>
       <ElevageTransformationJournal rows={data.transformationRows || []} onOpenCommercial={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
-      {animalBridgeProps ? <AnimalSlaughterStockBridge {...animalBridgeProps} /> : null}
+      {animalBridgeProps ? (
+        <div id="elevage-animal-slaughter-bridge">
+          <AnimalSlaughterStockBridge {...animalBridgeProps} />
+        </div>
+      ) : null}
       {avicoleBridgeProps ? <AvicoleTransformationBridge {...avicoleBridgeProps} /> : null}
     </div>
   );
 }
 function FeedingHub({ data, setTab, onNavigate, onOpenWorkflow }) {
   const recent = data.feedLogs.slice(0, 8);
-  return <BusinessHub title="Alimentation" intro="Distributions et consommations — workflow officiel vers stock_movements." stats={[{ label: 'Sorties aliment', value: fmtNumber(data.feedLogs.length) }, { label: 'Coût cumulé', value: `${Math.round(data.feedCost).toLocaleString('fr-FR')} F`, tone: 'warn' }, { label: 'Stock aliment', value: fmtNumber(data.feedStocks.length), tone: data.feedStocks.length ? 'good' : 'warn' }, { label: 'Prévisions IA', value: fmtNumber(data.healthPredictions.length), tone: data.healthPredictions.length ? 'warn' : 'good' }]} extra={recent.length ? <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><h3 className="font-black text-[#2f2415]">Dernières distributions</h3>{recent.map((row) => <LogRow key={row.id || row.date} title={String(row.date || row.created_at || '—').slice(0, 10)} detail={row.produit || row.lot_nom || row.animal_id || 'Aliment'} value={`${fmtNumber(row.quantite || row.quantity || 0)} u.`} />)}</section> : null}><ActionCard title="+ Distribution aliment" text="Workflow officiel — stock, finance, alertes." onClick={() => onOpenWorkflow?.('feeding')} /><ActionCard title="Acheter aliment" text="Réapprovisionnement Achats & Stock." onClick={() => onNavigate?.('achats_stock')} /><ActionCard title="Avicole" text="Historique consommation lots." onClick={() => setTab('Avicole')} /></BusinessHub>;
+  return <BusinessHub title="Alimentation" intro="Distributions et consommations — workflow officiel vers stock_movements." stats={[{ label: 'Sorties aliment', value: fmtNumber(data.feedLogs.length) }, { label: 'Coût cumulé', value: `${Math.round(data.feedCost).toLocaleString('fr-FR')} F`, tone: 'warn' }, { label: 'Stock aliment', value: fmtNumber(data.feedStocks.length), tone: data.feedStocks.length ? 'good' : 'warn' }, { label: 'Alertes santé liées', value: fmtNumber(data.healthPredictions.length), tone: data.healthPredictions.length ? 'warn' : 'good' }]} extra={recent.length ? <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><h3 className="font-black text-[#2f2415]">Dernières distributions</h3>{recent.map((row) => <LogRow key={row.id || row.date} title={String(row.date || row.created_at || '—').slice(0, 10)} detail={row.produit || row.lot_nom || row.animal_id || 'Aliment'} value={`${fmtNumber(row.quantite || row.quantity || 0)} u.`} />)}</section> : null}><ActionCard title="+ Distribution aliment" text="Workflow officiel — stock, finance, alertes." onClick={() => onOpenWorkflow?.('feeding')} /><ActionCard title="Acheter aliment" text="Réapprovisionnement Achats & Stock." onClick={() => onNavigate?.('achats_stock')} /><ActionCard title="Avicole" text="Historique consommation lots." onClick={() => setTab('Avicole')} /></BusinessHub>;
 }
 function ReproductionHub({ data, setTab }) {
   return (
-    <BusinessHub
-      title="Reproduction"
-      intro="Saillies, gestations, mises bas et naissances — branchées sur les fiches Animaux existantes (mode naissance / reproduction interne)."
-      stats={[
-        { label: 'Femelles', value: fmtNumber(data.females) },
-        { label: 'Naissances', value: fmtNumber(data.birthLikeEvents), tone: 'good' },
-        { label: 'Événements', value: fmtNumber(data.livestockEvents.length) },
-        { label: 'À suivre', value: fmtNumber(data.females) > data.birthLikeEvents ? data.females - data.birthLikeEvents : 0, tone: 'warn' },
-      ]}
-    >
-      <ActionCard title="+ Naissance / mise bas" text="Ouvre la fiche animal en mode naissance sur la ferme avec mère et portée." onClick={() => emitHorizonForm('animaux', 'animal_create', 'Naissance / mise bas', { date: today(), mode_acquisition: 'naissance_ferme' })} />
-      <ActionCard title="+ Reproduction interne" text="Enregistrer un animal issu de reproduction interne avec lien mère/père." onClick={() => emitHorizonForm('animaux', 'animal_create', 'Reproduction interne', { date: today(), mode_acquisition: 'reproduction_interne' })} />
-      <ActionCard title="Voir femelles reproductrices" text="Consulter statut reproduction, mère, père et notes sur les fiches Animaux." onClick={() => setTab('Animaux')} />
-      <ActionCard title="Historique naissances" text="Événements métier naissance / mise bas / portée déjà enregistrés." onClick={() => setTab('Animaux')} />
-    </BusinessHub>
+    <div className="space-y-5">
+      <BusinessHub
+        title="Reproduction"
+        intro="Saillies, gestations, mises bas et naissances — branchées sur les fiches Animaux existantes (mode naissance / reproduction interne)."
+        stats={[
+          { label: 'Femelles', value: fmtNumber(data.females) },
+          { label: 'Naissances (événements)', value: fmtNumber(data.birthLikeEvents), tone: 'good' },
+          { label: 'Femelles gestantes', value: fmtNumber(data.gestantesCount), tone: data.gestantesCount ? 'warn' : 'good' },
+          { label: 'Événements élevage', value: fmtNumber(data.livestockEvents.length) },
+        ]}
+      >
+        <ActionCard title="+ Naissance / mise bas" text="Ouvre la fiche animal en mode naissance sur la ferme avec mère et portée." onClick={() => emitHorizonForm('animaux', 'animal_create', 'Naissance / mise bas', { date: today(), mode_acquisition: 'naissance_ferme' })} />
+        <ActionCard title="+ Reproduction interne" text="Enregistrer un animal issu de reproduction interne avec lien mère/père." onClick={() => emitHorizonForm('animaux', 'animal_create', 'Reproduction interne', { date: today(), mode_acquisition: 'reproduction_interne' })} />
+        <ActionCard title="Femelles reproductrices" text="Consulter statut reproduction, mère, père et notes sur les fiches Animaux." onClick={() => setTab('Animaux')} />
+      </BusinessHub>
+      {data.gestantesList?.length ? (
+        <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+          <h3 className="font-black text-[#2f2415]">Gestations en cours</h3>
+          <ul className="mt-3 space-y-2 text-sm">
+            {data.gestantesList.map((a) => (
+              <li key={a.id} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                <b>{a.name || a.nom || a.id}</b>
+                {a.statut_reproduction || a.reproduction_status ? ` · ${a.statut_reproduction || a.reproduction_status}` : ''}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      {data.recentBirthEvents?.length ? (
+        <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+          <h3 className="font-black text-[#2f2415]">Naissances récentes</h3>
+          <ul className="mt-3 space-y-1 text-sm">
+            {data.recentBirthEvents.map((row) => (
+              <LogRow
+                key={row.id}
+                title={String(row.event_date || row.date || '—').slice(0, 10)}
+                detail={row.title || row.event_type || 'Naissance'}
+                value=""
+              />
+            ))}
+          </ul>
+        </section>
+      ) : (
+        <p className="text-sm text-[#8a7456] rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2">Aucune naissance récente enregistrée — utilisez « Naissance / mise bas ».</p>
+      )}
+    </div>
   );
 }
 
@@ -287,7 +337,10 @@ export default function ElevageRecoveredModule(props) {
       healthLate: health.filter(isHealthLate).length,
       feedStocks: stocks.filter((row) => /aliment|feed|provende|son|mais|maïs|foin|fourrage/.test(lower(`${row.produit || row.name || row.nom || ''} ${row.categorie || row.category || ''}`))),
       females: animals.filter((row) => ['femelle', 'female', 'vache', 'brebis', 'chevre', 'chèvre'].some((x) => lower(`${row.sexe || ''} ${row.type || ''} ${row.espece || ''}`).includes(x))).length,
-      birthLikeEvents: businessEvents.filter((row) => /naissance|mise bas|veau|agneau|chevreau/.test(lower(`${row.event_type || ''} ${row.title || ''} ${row.description || ''}`))).length,
+      birthLikeEvents: businessEvents.filter(isBirthLikeEvent).length,
+      recentBirthEvents: businessEvents.filter(isBirthLikeEvent).slice(0, 6),
+      gestantesList: animals.filter((a) => !isClosedAnimal(a) && isGestanteAnimal(a)).slice(0, 8),
+      gestantesCount: animals.filter((a) => !isClosedAnimal(a) && isGestanteAnimal(a)).length,
       livestockEvents: businessEvents.filter((row) => /animal|avicole|elevage|élevage|sante|santé/.test(lower(`${row.module_source || ''} ${row.event_type || ''} ${row.title || ''}`))),
       eggs7d, feedCost, recentMortality, lotsToSell,
       lotMargins, reliableMargins, unreliableMargins,
@@ -389,7 +442,13 @@ export default function ElevageRecoveredModule(props) {
     return result;
   }, [workflowContext, elevageHandlers, refreshAfterWorkflow]);
 
-  const openWorkflow = useCallback((modal) => setActiveModal(modal), []);
+  const openWorkflow = useCallback((modal) => {
+    if (modal === 'health') {
+      setTab('Santé');
+      return;
+    }
+    setActiveModal(modal);
+  }, []);
   const closeWorkflow = useCallback(() => setActiveModal(null), []);
 
   const startupProgress = useMemo(() => buildElevageStartupProgress({

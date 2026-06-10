@@ -21,6 +21,9 @@ import AnimalWeightCurve from '../components/AnimalWeightCurve.jsx';
 import { buildAnimalWeighingProfile, isAnimalLocked, addDaysIso, WEIGHING_INTERVAL_DAYS } from '../utils/animalWeighing.js';
 import { recommendAnimalSalePrice } from '../services/salePricingEngine.js';
 import SalePricingSummaryCard from '../components/SalePricingSummaryCard.jsx';
+import { PRODUCTION_FINANCE_LABELS } from '../utils/productionFinancialTruth.js';
+
+const MARGIN_GROSS_LABEL = PRODUCTION_FINANCE_LABELS.marginGross;
 
 const arr = (v) => Array.isArray(v) ? v : [];
 const today = () => new Date().toISOString().slice(0, 10);
@@ -270,7 +273,7 @@ function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vacci
 
     <SalePricingSummaryCard variant="animal" salePricing={salePricing} onOpenFinances={() => setTab('finances')} />
 
-    <FicheTabsBar tabs={[{ id: 'identite', label: 'Identité' }, { id: 'croissance', label: 'Croissance' }, { id: 'finances', label: 'Finances & marge' }, { id: 'historique', label: 'Documents & historique' }]} active={tab} onChange={setTab} />
+    <FicheTabsBar tabs={[{ id: 'identite', label: 'Identité' }, { id: 'croissance', label: 'Croissance' }, { id: 'finances', label: `Finances & ${MARGIN_GROSS_LABEL.toLowerCase()}` }, { id: 'historique', label: 'Documents & historique' }]} active={tab} onChange={setTab} />
 
     {tab === 'identite' ? (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -295,9 +298,9 @@ function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vacci
     ) : null}
 
     {tab === 'finances' ? (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-4"><p className="font-black text-red-800 mb-1">Coût réel animal et marge</p><p className="text-sm text-red-700 mb-3">Achat, alimentation, santé, frais directs, Finance, événements de charge et ventes liées à cette fiche.</p>{costs.warnings.length ? <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {costs.warnings.join(' ')}</div> : null}<div className="grid grid-cols-2 lg:grid-cols-4 gap-2">{[['Prix achat', costs.achat], ['Alimentation/coût lié', costs.alimentation], ['Soins/vaccins liés', costs.sante], ['Autres frais', costs.autres], ['Événements de charge', costs.evenements], ['Finance liée', costs.finance], ['Coût cumulé', costs.total], [saleLabel, costs.sale], ['Prix recommandé (moteur unifié)', salePricing.recommendedPrice || salePrice(animal) || costs.sale],
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-4"><p className="font-black text-red-800 mb-1">Coût réel animal et {MARGIN_GROSS_LABEL.toLowerCase()}</p><p className="text-sm text-red-700 mb-3">Achat, alimentation, santé, frais directs, Finance, événements de charge et ventes liées à cette fiche.</p>{costs.warnings.length ? <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {costs.warnings.join(' ')}</div> : null}<div className="grid grid-cols-2 lg:grid-cols-4 gap-2">{[['Prix achat', costs.achat], ['Alimentation/coût lié', costs.alimentation], ['Soins/vaccins liés', costs.sante], ['Autres frais', costs.autres], ['Événements de charge', costs.evenements], ['Finance liée', costs.finance], ['Coût cumulé', costs.total], [saleLabel, costs.sale], ['Prix recommandé (moteur unifié)', salePricing.recommendedPrice || salePrice(animal) || costs.sale],
               ['Plancher acceptable', salePricing.minimumPrice],
-              ['Valeur estimée', salePrice(animal) || costs.sale], ['Marge', costs.marge], ['Payé', costs.paid], ['Reste à encaisser', costs.remaining], ['Commandes liées', costs.salesCount], ['Coût/kg', g.current > 0 ? costs.total / g.current : 0]].map(([label, value]) => <div key={label} className="rounded-xl bg-white border border-red-100 p-3"><p className="text-xs text-[#8a7456]">{label}</p><p className={`font-black mt-1 ${label === 'Marge' && value < 0 ? 'text-red-600' : 'text-[#2f2415]'}`}>{label === 'Commandes liées' ? fmtNumber(value || 0) : fmtCurrency(value || 0)}</p>{label === saleLabel ? <p className="mt-1 text-[11px] text-[#8a7456]">{costs.saleSource}</p> : null}</div>)}</div></div>
+              ['Valeur estimée', salePrice(animal) || costs.sale], [MARGIN_GROSS_LABEL, costs.marge], ['Payé', costs.paid], ['Reste à encaisser', costs.remaining], ['Commandes liées', costs.salesCount], ['Coût/kg', g.current > 0 ? costs.total / g.current : 0]].map(([label, value]) => <div key={label} className="rounded-xl bg-white border border-red-100 p-3"><p className="text-xs text-[#8a7456]">{label}</p><p className={`font-black mt-1 ${label === MARGIN_GROSS_LABEL && value < 0 ? 'text-red-600' : 'text-[#2f2415]'}`}>{label === 'Commandes liées' ? fmtNumber(value || 0) : fmtCurrency(value || 0)}</p>{label === saleLabel ? <p className="mt-1 text-[11px] text-[#8a7456]">{costs.saleSource}</p> : null}</div>)}</div></div>
     ) : null}
 
     {tab === 'historique' ? (

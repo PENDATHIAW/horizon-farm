@@ -111,7 +111,7 @@ export function exportElevageInvestorPdf(report = {}, fileName = '') {
       },
       {
         title: 'P&L par activité',
-        columns: ['Activité', 'Marge / statut', 'Fiabilité'],
+        columns: ['Activité', 'Marge brute technique / statut', 'Fiabilité'],
         rows: arr(report.pnl?.activities).map((a) => [a.label, formatActivityPnlRow(a), a.reliabilityLabel]),
       },
       {
