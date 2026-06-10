@@ -305,7 +305,13 @@ function AnimalDetailModal({ open, onClose, animal, alimentationLogs = [], vacci
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">{[['Poids entrée', entryWeightOf(animal) ? `${fmtNumber(entryWeightOf(animal))} kg` : 'Non renseigné'], ['Poids actuel', g.current ? `${fmtNumber(g.current)} kg` : 'Non renseigné'], ['Objectif', g.target ? `${fmtNumber(g.target)} kg` : 'À renseigner'], ['Progression', `${g.progress}%`], ['Prêt à vendre', g.status === 'pret' ? 'Oui' : 'Non']].map(([label, value]) => <div key={label} className="rounded-2xl bg-white/10 border border-white/10 p-3"><p className="text-xs text-[#f4e6c8]">{label}</p><p className="font-black text-white mt-1">{value}</p></div>)}</div>
     </div>
 
-    <SalePricingSummaryCard variant="animal" salePricing={salePricing} onOpenFinances={() => setTab('finances')} />
+    <SalePricingSummaryCard
+      variant="animal"
+      salePricing={salePricing}
+      marginGross={costs.marge}
+      marginSource={costs.saleSource}
+      onOpenFinances={() => setTab('finances')}
+    />
 
     <FicheTabsBar tabs={[{ id: 'identite', label: 'Identité' }, { id: 'croissance', label: 'Croissance' }, { id: 'finances', label: `Finances & ${MARGIN_GROSS_LABEL.toLowerCase()}` }, { id: 'historique', label: 'Documents & historique' }]} active={tab} onChange={setTab} />
 
