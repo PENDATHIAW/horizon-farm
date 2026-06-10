@@ -1,4 +1,5 @@
 import { syncFinanceSideEffects } from '../services/erpInterconnectionEngine';
+import { computeWeightedAverageCost } from './stockValuation.js';
 import { buildStockCriticalFollowUp, hasOpenStockReorderTask, stockProductName, stockQuantity } from './stockWorkflows';
 import { alertIds, documentIds, financeIds } from './sideEffectIds';
 import { attachIdempotency, buildIdempotencyKey, WORKFLOW_TYPES } from './workflowDedupe';
@@ -66,8 +67,12 @@ export function buildPurchaseDocumentRow({
   };
 }
 
-export function buildStockLossFinanceRow({ stock = {}, qty = 0, date = '', movementRef = '' } = {}) {
-  const value = num(qty) * num(stock.prixUnit ?? stock.prix_unitaire ?? stock.unit_price);
+export function buildStockLossFinanceRow({ stock = {}, qty = 0, date = '', movementRef = '', movements = [], transactions = [] } = {}) {
+  const valuation = computeWeightedAverageCost(stock, movements, transactions);
+  const unitCost = valuation.calculable && valuation.avgCost > 0
+    ? valuation.avgCost
+    : num(stock.prixUnit ?? stock.prix_unitaire ?? stock.unit_price);
+  const value = num(qty) * unitCost;
   if (value <= 0 || !stock.id) return null;
   return {
     id: financeIds.stockLoss(stock.id, movementRef || date || today()),
@@ -161,9 +166,17 @@ export async function runStockLossSideEffects({
   date = '',
   movementRef = '',
   transactions = [],
+  movements = [],
   handlers = {},
 } = {}) {
-  const financeRow = buildStockLossFinanceRow({ stock, qty, date, movementRef });
+  const financeRow = buildStockLossFinanceRow({
+    stock,
+    qty,
+    date,
+    movementRef,
+    movements: movements.length ? movements : handlers.stockMovements || [],
+    transactions,
+  });
   if (!financeRow) return null;
   const exists = arr(transactions).find((row) => clean(row.id) === clean(financeRow.id));
   if (!exists) await handlers.onCreateFinanceTransaction?.(financeRow);

@@ -72,7 +72,7 @@ export function computeGlobalProfitability({ transactions = [], salesOrders = []
     cultures: Math.max(manual.buckets.cultures || 0, detail.cultures || 0),
     stock_non_affecte: Math.max(manual.buckets.stock_non_affecte || 0, detail.stockAchats || 0, detail.alimentation || 0),
     sante_non_affectee: Math.max(manual.buckets.sante_non_affectee || 0, detail.sante || 0),
-    fournisseurs_achats: Math.max(manual.buckets.fournisseurs_achats || 0, detail.dettesFournisseurs || 0),
+    fournisseurs_achats: manual.buckets.fournisseurs_achats || 0,
     investissements: Math.max(manual.buckets.investissements || 0, detail.investissements || 0),
     equipements: Math.max(manual.buckets.equipements || 0, detail.equipements || 0),
     autres_charges: Math.max(manual.buckets.autres_charges || 0, detail.evenements || 0),
@@ -83,12 +83,11 @@ export function computeGlobalProfitability({ transactions = [], salesOrders = []
   addRow(rowsByBucket, 'cultures', detail.cultures, { source_module: 'consolidation_cultures' });
   addRow(rowsByBucket, 'stock_non_affecte', Math.max(detail.stockAchats || 0, detail.alimentation || 0), { source_module: 'consolidation_stock_alimentation' });
   addRow(rowsByBucket, 'sante_non_affectee', detail.sante, { source_module: 'consolidation_sante' });
-  addRow(rowsByBucket, 'fournisseurs_achats', detail.dettesFournisseurs, { source_module: 'consolidation_fournisseurs' });
   addRow(rowsByBucket, 'investissements', detail.investissements, { source_module: 'consolidation_investissements' });
   addRow(rowsByBucket, 'equipements', detail.equipements, { source_module: 'consolidation_equipements' });
   addRow(rowsByBucket, 'autres_charges', detail.evenements, { source_module: 'consolidation_evenements' });
 
-  const caTotal = Math.max(finance.caConsolide || 0, arr(salesOrders).reduce((sum, sale) => sum + total(sale), 0), arr(payments).reduce((sum, payment) => sum + amount(payment), 0));
+  const caTotal = finance.caConsolide || 0;
   const encaisse = finance.cashEncaisse || 0;
   const directActivityCharges = (buckets.animaux || 0) + (buckets.avicole || 0) + (buckets.cultures || 0);
   const unallocatedOperationalCharges = (buckets.stock_non_affecte || 0) + (buckets.sante_non_affectee || 0);

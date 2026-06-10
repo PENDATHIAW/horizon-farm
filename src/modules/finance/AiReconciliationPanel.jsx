@@ -150,9 +150,9 @@ export default function AiReconciliationPanel({
       <div className="flex items-start gap-2">
         <Sparkles className="text-violet-700 shrink-0" size={22} />
         <div>
-          <h3 className="text-lg font-black text-[#2f2415]">Propositions IA — rapprochement</h3>
+          <h3 className="text-lg font-black text-[#2f2415]">Signaux métier — rapprochement</h3>
           <p className="text-sm text-[#8a7456]">
-            L’IA propose uniquement. Vous validez, puis l’ERP exécute via les workflows existants — aucune écriture directe.
+            Règles métier et suggestions. Vous validez, puis l’ERP exécute via les workflows existants — aucune écriture directe.
           </p>
         </div>
       </div>

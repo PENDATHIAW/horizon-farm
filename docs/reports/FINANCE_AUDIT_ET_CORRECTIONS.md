@@ -1,10 +1,10 @@
 # Finance & Pilotage — Audit complet (lecture seule)
 
 **Date :** 2026-06-09  
-**Branche audit :** `cursor/finance-audit-ac42`  
-**Base :** `main` (modules gelés : Élevage, Cultures, Achats & Stock V1 sur branche `cursor/achats-stock-p0-ac42`, non mergée)  
+**Branche P0 :** `cursor/finance-p0-ac42`  
+**Base :** `main`  
 **Objectif :** Faire de Finance la vérité économique unique de l'ERP  
-**Statut :** Audit seul — **aucune correction appliquée**
+**Statut :** Audit + **P0 appliqué** — P1 non commencé
 
 ---
 
@@ -18,8 +18,8 @@
 | Doublons / cohérence | 45/100 | KPI, marges, trésorerie, réconciliation en double |
 | Vérité canonique documentée | 60/100 | Intent clair dans `financePilotageCore`, pas appliqué partout |
 
-**Score global estimé : ~58/100**  
-**Verdict : NON GELÉ — audit terminé, corrections à planifier (P0 → P1 → P2)**
+**Score global estimé : ~58/100 → ~78/100 (après P0)**  
+**Verdict : P0 VALIDÉ — gel partiel V1 ; P1 requis pour parité modules gelés**
 
 Modules gelés en amont : Élevage ✅ · Cultures ✅ · Achats & Stock ✅ (V1 sur branche feature).
 
@@ -473,13 +473,94 @@ Source ventes = Commercial ; Finance agrège pour CA et encaisse.
 
 ---
 
-## Prochaine étape
+---
 
-1. Valider le plan P0 (priorités et définitions canoniques).  
-2. Exécuter P0 séquentiellement sur branche `cursor/finance-p0-ac42`.  
-3. Rapport de corrections dans ce fichier (section « Corrections appliquées », comme Achats & Stock).  
-4. Gel V1 Finance après P0 (+ P1 si exigé par parité modules).
+# Corrections P0 appliquées
+
+**Branche :** `cursor/finance-p0-ac42`  
+**Tests :** `npx vite-node tests/unit/financeP0.test.js` · `financePilotageV1.test.js` · `dashboardMetrics.test.js` — OK  
+**Build :** `npm run build` — OK
+
+## P0-1 — Trésorerie unique (`cashNet`)
+
+| Fichier | Avant | Après |
+|---------|-------|-------|
+| `FinancesV11.jsx` | 5 KPI doublons (encaisse, créances, charges, marge) | Section « Charges et marge réelle » seule ; trésorerie = `FinanceCashPilotPanel` |
+| `FinancesV11.jsx` | `FinanceEvolutionPanel` (flux mensuels) | Retiré de Trésorerie (onglet Graphiques) |
+| `FinancesV12.jsx` | `stockMovements` non passés au pilot | Props `stocks` + `stockMovements` → `FinanceCashPilotPanel` |
+
+**Vérité canonique :** `treasuryAvailable` = `consolidateFinance().cashNet` via `buildOfficialTreasuryView`.
+
+## P0-2 — Marge unique
+
+| Écran | Libellé | Formule |
+|-------|---------|---------|
+| Résumé / Trésorerie | Marge réelle | `margeReelle` = CA − charges engagées |
+| Rentabilité | Résultat opérationnel | `operatingResult` (`computeGlobalProfitability`) |
+| Rentabilité | Taux résultat opérationnel | `operatingResult / caTotal` |
+
+| Fichier | Changement |
+|---------|------------|
+| `FinancePilotageRecoveredModule.jsx` | « Rentabilité globale » → « Résultat opérationnel » |
+| `FinancesV11.jsx` | KPI « Marge » → « Marge réelle » dans `ProfitSummary` |
+| `globalProfitabilityService.js` | `caTotal` = `caConsolide` uniquement (plus max paiements) |
+
+## P0-3 — CMUP unique
+
+| Fichier | Changement |
+|---------|------------|
+| `financeConsolidationEngine.js` | `stockValue` = `summarizeStockValuation` ; achats via `computeWeightedAverageCost` |
+| `purchaseSideEffects.js` | `buildStockLossFinanceRow` utilise CMUP |
+| `App.jsx` / module Finance | `stockMovements` dans props et consolidation |
+
+## P0-4 — Créances / dettes uniques
+
+| Fichier | Changement |
+|---------|------------|
+| `financeConsolidationEngine.js` | `payablesTotal` = dettes fournisseur + charges impayées ; `isPaid` inclut `a_payer` |
+| `financePilotageCore.js` | `payables` = `payablesTotal` |
+| `FinancePilotageRecoveredModule.jsx` | `receivableAmount` / `payableAmount` = treasury canon ; liste créances sans doublon ventes |
+| `dashboardMetrics.js` | `receivable` = `creancesReelles` ; `payables` consolidés |
+
+## P0-5 — Dette fournisseur = passif
+
+| Fichier | Changement |
+|---------|------------|
+| `financeConsolidationEngine.js` | `dettesFournisseurs` exclues du `total` charges dérivées |
+| `globalProfitabilityService.js` | Bucket `fournisseurs_achats` sans injection dettes fiche |
+
+## P0-6 — Réconciliation unique
+
+| Action |
+|--------|
+| Supprimé `src/modules/FinanceReconciliationPanel.jsx` (legacy) |
+| Conservé `src/modules/finance/FinanceReconciliationPanel.jsx` |
+| Import mort retiré de `FinancesV12.jsx` |
+
+## P0-7 — IA honnête
+
+| Emplacement | Après |
+|-------------|-------|
+| `FinanceIaPanel` | « Signaux métier finance » |
+| Résumé KPI | « Signaux métier » |
+| Toast action | « Action métier créée » |
+
+## P0-8 — Dashboard aligné
+
+| KPI Dashboard | Moteur |
+|---------------|--------|
+| Trésorerie disponible | `consolidateFinance.cashNet` |
+| Créances | `creancesReelles` |
+| Encaisse / dépenses période | `computeFinancePeriodSummary` (flux période, pas trésorerie) |
 
 ---
 
-*Document généré en lecture seule — aucune modification de code métier sur cette branche.*
+## Prochaine étape
+
+1. Valider P0 en revue.  
+2. Exécuter P1 (graphiques uniques, composants dormants, idempotence).  
+3. Gel V1 Finance après P1 (parité Élevage / Cultures / Achats).
+
+---
+
+*Audit initial + corrections P0 — branche `cursor/finance-p0-ac42`.*

@@ -524,6 +524,7 @@ export default function App() {
       fournisseurs: rows(c.fournisseurs),
       clients: rows(c.clients),
       stocks: rows(c.stock),
+      stockMovements: rows(c.stock_movements),
       animaux: rows(c.animaux),
       lots: rows(c.avicole),
       cultures: rows(c.cultures),
