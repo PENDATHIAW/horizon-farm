@@ -15,7 +15,6 @@ import EditModal from '../modals/EditModal';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId, makeId } from '../utils/ids';
-import { alimentationFields as buildAlimentationFields, deriveAlimentationValues, normalizeAlimentationPayload } from '../utils/stockForms';
 import { runStockLossSideEffects } from '../utils/purchaseSideEffects';
 import {
   commitStockPurchaseWorkflow,
