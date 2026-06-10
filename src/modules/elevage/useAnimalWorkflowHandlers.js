@@ -15,6 +15,7 @@ const isClosedAnimal = (row = {}) => {
 };
 const isReadyForSale = (row = {}) => isSaleReady(row);
 const estimatedSaleAmount = (row = {}) => toNumber(row.prix_vente_reel ?? row.sale_price ?? row.prix_vente ?? row.prix_vente_estime_auto ?? row.prix_vente_estime ?? row.valeur_estimee ?? row.valeur_marche);
+const isBirthAcquisition = (row = {}) => ['naissance_ferme', 'reproduction_interne'].includes(String(row.mode_acquisition || '').toLowerCase());
 
 export function useAnimalWorkflowHandlers({ props, species = 'Bovin', opportunities = [], businessEventsCrud }) {
   const createOrReactivateSaleOpportunity = async (animal = {}, source = 'prêt à vendre') => {
@@ -56,7 +57,9 @@ export function useAnimalWorkflowHandlers({ props, species = 'Bovin', opportunit
     const restored = restoreSpeciesOnAnimalPayload(payload, species);
     await props.onCreate?.(restored);
     await createLossEvent({}, restored);
-    await createOrReactivateSaleOpportunity(restored, 'création animal prêt à vendre');
+    if (!isBirthAcquisition(restored)) {
+      await createOrReactivateSaleOpportunity(restored, 'création animal prêt à vendre');
+    }
   };
 
   const wrapUpdate = async (id, payload) => {

@@ -10,6 +10,7 @@ import { makeId } from '../utils/ids';
 import { saleOpportunityKey } from '../utils/saleReadiness';
 import { recommendAvicoleLotPrice } from '../services/salePricingEngine.js';
 import SalePricingSummaryCard from './SalePricingSummaryCard.jsx';
+import { buildAvicoleProposedSaleDisplay, PROPOSED_PRICE_MARGIN_LABEL, SALE_PRICE_HELP_AVICOLE } from '../utils/salePricePresentation.js';
 import { calculateLotMetrics } from '../utils/businessCalculations';
 import { buildAvicoleLotDecision } from '../services/avicoleDecisionEngine';
 import { computeAvicoleLivingTarget } from '../services/avicoleLivingTargets';
@@ -138,6 +139,7 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
   const gapEggsDay = toNumber(livingTarget.gapEggsDay || recentEggsDay - expectedEggsDay);
 
   const salePricing = recommendAvicoleLotPrice({ lot, alimentationLogs, productionLogs, marketPrices });
+  const proposed = buildAvicoleProposedSaleDisplay(salePricing, lot);
 
   const confirmOpportunity = async () => {
     if (!onCreateOpportunity && !onUpdateOpportunity) return toast.error('Création opportunité non disponible pour ce module');
@@ -160,6 +162,9 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
       <SalePricingSummaryCard
         variant="avicole_lot"
         salePricing={salePricing}
+        pricingBasis={proposed.pricingBasis}
+        marginOnProposed={proposed.marginOnProposed}
+        marginSource={proposed.marginSource}
         onOpenFinances={() => setTab('finances')}
       />
 
@@ -229,7 +234,7 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
       ) : null}
 
       {tab === 'finances' ? (
-        <Section title="Coûts, ventes et marge consolidés" note="Achat, alimentation, événements de charge, transactions Finance, commandes, paiements et marge du lot.">
+        <Section title="Coûts, ventes et marge consolidés" note={SALE_PRICE_HELP_AVICOLE}>
           {finance.warnings.length ? <div className="md:col-span-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><AlertTriangle size={15} className="inline" /> {finance.warnings.join(' ')}</div> : null}
           <Field label="Coût achat bande" value={fmtCurrency(finance.achat)} />
           <Field label="Alimentation calculée" value={fmtCurrency(finance.alimentation)} />
@@ -240,11 +245,13 @@ export default function AvicoleLotDetailsModal({ open, onClose, lot, productionL
           <Field label="Payé" value={fmtCurrency(finance.paid)} />
           <Field label="Reste à encaisser" value={fmtCurrency(finance.remaining)} danger={finance.remaining > 0} />
           <Field label="Commandes liées" value={fmtNumber(finance.ordersCount)} />
-          <Field label="Prix unitaire recommande" value={fmtCurrency(salePricing.recommendedUnitPrice)} />
-          <Field label="Prix total recommande" value={fmtCurrency(salePricing.recommendedTotalPrice)} />
-          <Field label="Plancher unitaire (cout)" value={fmtCurrency(salePricing.minimumUnitPrice)} />
+          <Field label="Prix proposé total (moteur)" value={fmtCurrency(proposed.proposedTotal)} />
+          <Field label="Prix proposé / sujet" value={fmtCurrency(proposed.proposedUnit)} />
+          <Field label="Base du calcul" value={proposed.pricingBasis || '—'} />
+          <Field label="Plancher unitaire (cout)" value={fmtCurrency(proposed.minimumUnit || salePricing.minimumUnitPrice)} />
           <Field label="Prix marche observe" value={salePricing.marketPrice ? fmtCurrency(salePricing.marketPrice) : 'Non renseigne'} />
-          <Field label="Marge lot" value={fmtCurrency(finance.margin)} danger={finance.margin < 0} />
+          <Field label={PROPOSED_PRICE_MARGIN_LABEL} value={proposed.marginOnProposed != null ? fmtCurrency(proposed.marginOnProposed) : '—'} />
+          <Field label="Marge consolidée (revenu fiche)" value={fmtCurrency(finance.margin)} danger={finance.margin < 0} />
           {salePricing.alerts?.length ? <div className="md:col-span-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{salePricing.alerts.join(' ')}</div> : null}
         </Section>
       ) : null}

@@ -85,7 +85,7 @@ Compte de test cree par SQL:
 ```text
 Email: penda@horizonfarm.app
 Login affiche: penda
-Mot de passe: Mariemediatta10#
+Mot de passe: 
 ```
 
 ## Tests rapides

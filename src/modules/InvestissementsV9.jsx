@@ -43,6 +43,7 @@ import FinancialPlanPanel from './FinancialPlanPanel.jsx';
 import InvestmentQualityControl from './InvestmentQualityControl.jsx';
 import BpLineActionsMenu, { useBpLineActionHandlers } from '../components/investments/BpLineActionsMenu.jsx';
 import { openDocumentProofFromTransaction } from '../utils/antiDuplicationGuard.js';
+import { mergeBpInvestmentLineSync, mergeBpRecurringCostSync, tagExcelImportLines } from '../utils/bpSyncProtection';
 import {
   auditBpLineLinkage,
   buildBpFinanceRepairPatch,
@@ -54,6 +55,13 @@ const low = (v = '') => String(v || '').toLowerCase().normalize('NFD').replace(/
 const isBp = (bp = {}) => String(bp.id || '') === HORIZON_FARM_BP_ID || low(bp.nom || bp.name || bp.title).includes('horizon farm');
 const isArchived = (r = {}) => ['annule', 'annulé', 'archive', 'archivé'].includes(low(r.statut || r.status));
 const key = (r = {}) => low(r.designation || r.name || r.nom || r.title || r.id);
+
+function isPendingBpLine(line = {}) {
+  const status = normalizeBpLineStatus(line);
+  if ([BP_LINE_STATUS.ANNULE, BP_LINE_STATUS.REMPLACE, BP_LINE_STATUS.BLOQUE, BP_LINE_STATUS.CONCRETISE].includes(status)) return false;
+  if (line.asset_id || line.asset_created_at) return false;
+  return Boolean(buildBpLineConcretizationRoute(line)) && bpLineAmount(line) > 0;
+}
 const money = (v) => fmtCurrency(Number(v || 0));
 const totalLine = (r = {}) => bpLineAmount(r);
 const monthly = (r = {}) => toNumber(r.montant_mensuel || r.amount || r.montant);
@@ -99,13 +107,20 @@ function Table({ rows, columns }) {
 
 function HelpSteps() {
   return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#5c4a32] space-y-3">
-    <p className="font-black text-[#2f2415]">Comment ça marche ?</p>
-    <ol className="space-y-2 list-decimal list-inside leading-relaxed">
-      <li><b>Prévu</b> — le BP dit ce que tu comptes acheter (ex. 3000 pondeuses).</li>
-      <li><b>Concrétiser</b> — quand tu le fais vraiment, clique le bouton : l’ERP t’ouvre le bon module (Avicole, Animaux…) avec la fiche déjà remplie.</li>
-      <li><b>Suivi</b> — une fois validé, la ligne passe en « concrétisé » et les montants prévu / fait / reste se mettent à jour.</li>
-    </ol>
-    <p className="text-xs text-[#8a7456]">Tu peux aussi marquer une ligne « annulée » si tu renonces à cette dépense.</p>
+    <p className="font-black text-[#2f2415]">Comment lire ces lignes ?</p>
+    <ul className="space-y-2 text-xs leading-relaxed">
+      <li><b>Lignes issues du BP / Excel</b> — contenu importé depuis votre fichier ou le BP intégré Horizon Farm. Jamais supprimé automatiquement.</li>
+      <li><b>Lignes synchronisées en base</b> — copie actionnable dans Supabase (id réel, pas <code>off-*</code>). Nécessaire pour Concrétiser.</li>
+      <li><b>Aperçu non synchronisé</b> (<code>off-*</code>) — lecture seule jusqu’à sync explicite (bouton Concrétiser ou Resynchroniser).</li>
+    </ul>
+    <p className="font-black text-[#2f2415]">Actions disponibles</p>
+    <ul className="space-y-1 text-xs leading-relaxed">
+      <li><b>Concrétiser</b> — transforme la ligne en action concrète dans le module cible (Avicole, Stock…).</li>
+      <li><b>Modifier</b> — ajuste la ligne actionnable (pas la source Excel sans confirmation).</li>
+      <li><b>Reporter</b> — conserve la trace, change le statut, exclut des projections actives.</li>
+      <li><b>Annuler</b> — conserve la trace, exclut des projections actives.</li>
+    </ul>
+    <p className="text-[11px] text-[#8a7456]">Aucune synchronisation automatique au chargement — utilisez « Resynchroniser le BP officiel » pour une mise à jour visible.</p>
   </div>;
 }
 
@@ -114,7 +129,7 @@ async function syncBp(props, { silent = false, force = false, payload: externalP
     const existing = arr(props.businessPlans).find(isBp);
     if (existing?.id && !force && !externalPayload && arr(props.bpInvestmentLines).some((r) => String(r.business_plan_id) === String(existing.id))) {
       if (!silent) toast.success('Plan déjà chargé');
-      return;
+      return { planId: existing.id, syncedLines: arr(props.bpInvestmentLines).filter((r) => String(r.business_plan_id) === String(existing.id)) };
     }
     const planBase = externalPayload?.sourceBp
       ? {
@@ -134,16 +149,23 @@ async function syncBp(props, { silent = false, force = false, payload: externalP
     const currentCosts = arr(props.bpRecurringCosts).filter((r) => String(r.business_plan_id) === String(planId));
     const currentProj = arr(props.bpRevenueProjections).filter((r) => String(r.business_plan_id) === String(planId));
     const currentFunding = arr(props.bpFundingSources).filter((r) => String(r.business_plan_id) === String(planId));
+    const syncedLineByKey = new Map();
 
     for (const official of payload.investmentLines.filter((line) => isInvestissementsActionableLine(line))) {
       const found = currentLines.find((r) => key(r) === key(official));
-      const patch = { ...official, total: totalLine(official), statut: found?.statut || BP_LINE_STATUS.A_CONCRETISER, display_in_investissements: true };
-      if (found?.id) await props.onUpdateBpInvestmentLine?.(found.id, patch);
-      else await props.onCreateBpInvestmentLine?.(buildHorizonFarmBpLine(official, planId));
+      const patch = mergeBpInvestmentLineSync(official, found);
+      if (found?.id) {
+        await props.onUpdateBpInvestmentLine?.(found.id, patch);
+        syncedLineByKey.set(key(official), { ...found, ...patch, id: found.id, business_plan_id: planId });
+      } else {
+        const created = await props.onCreateBpInvestmentLine?.(buildHorizonFarmBpLine(official, planId));
+        const row = created?.id ? { ...patch, ...created, business_plan_id: planId } : { ...patch, id: created?.id, business_plan_id: planId };
+        if (row?.id) syncedLineByKey.set(key(official), row);
+      }
     }
     for (const official of payload.recurringCosts) {
       const found = currentCosts.find((r) => key(r) === key(official));
-      const patch = { ...official, frequence: 'mensuelle', statut: found?.statut || BP_LINE_STATUS.A_CONCRETISER, display_in_investissements: false };
+      const patch = mergeBpRecurringCostSync(official, found);
       if (found?.id) await props.onUpdateBpRecurringCost?.(found.id, patch);
       else await props.onCreateBpRecurringCost?.(buildHorizonFarmMonthlyCost(official, planId));
     }
@@ -165,8 +187,14 @@ async function syncBp(props, { silent = false, force = false, payload: externalP
       props.onRefreshBpFundingSources?.(),
     ]);
     if (!silent) toast.success('BP importé et réparti par onglet xlsx');
+    return {
+      planId,
+      syncedLines: [...syncedLineByKey.values()],
+      resolveLine: (line) => syncedLineByKey.get(key(line)) || null,
+    };
   } catch (e) {
     if (!silent) toast.error(e.message || 'Rechargement impossible');
+    throw e;
   }
 }
 
@@ -234,9 +262,11 @@ export default function InvestissementsV9(props) {
 
   const totals = useMemo(() => computeBpInvestmentTotals(lines), [lines]);
   const costTotals = useMemo(() => computeBpCostTotals(costs), [costs]);
-  const pendingLines = useMemo(() => lines.filter((line) => canConcretizeBpLine(line) && buildBpLineConcretizationRoute(line)), [lines]);
+  const pendingLines = useMemo(() => lines.filter(isPendingBpLine), [lines]);
   const pendingCosts = useMemo(() => costs.filter((cost) => canConcretizeBpCost(cost) && buildBpCostConcretizationRoute(cost)), [costs]);
+  const linesNeedDbSync = useMemo(() => lines.some((line) => !isBpLineEditable(line)), [lines]);
   const costsNeedDbSync = useMemo(() => costs.some((cost) => !isBpCostEditable(cost)), [costs]);
+  const dbLinesCount = dbLines.length;
   const dbCostsCount = dedupe(arr(props.bpRecurringCosts).filter((r) => String(r.business_plan_id || planId) === String(planId))).length;
   const monthCosts = costs.reduce((s, r) => s + monthly(r), 0);
   const annualRevenue = projections.reduce((s, r) => s + revenue(r), 0) || HORIZON_FARM_OFFICIAL_BP.revenue.annualTotal;
@@ -255,12 +285,8 @@ export default function InvestissementsV9(props) {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    if (seedAttempted.current) return;
     seedAttempted.current = true;
-    if (!plan || !dbLines.length || !dedupe(arr(props.bpRecurringCosts).filter((r) => String(r.business_plan_id || planId) === String(planId))).length) {
-      syncBp(props, { silent: true });
-    }
-  }, [plan, dbLines.length, planId, props.bpRecurringCosts]);
+  }, []);
 
   useEffect(() => {
     const onLine = (event) => finalizeBpLineCompletion(event.detail || {}, props);
@@ -273,12 +299,38 @@ export default function InvestissementsV9(props) {
     };
   }, [props]);
 
-  const openConcretization = (line) => {
-    const result = launchBpLineConcretization(line, { onNavigate: props.onNavigate });
-    if (!result.ok) return toast.error('Cette ligne ne peut pas encore être ouverte dans un module.');
-    const route = buildBpLineConcretizationRoute(line);
-    const mod = route?.navigate?.module;
-    toast.success(`Ouverture ${MODULE_LABELS[mod] || mod || 'module'}…`);
+  const ensureEditableInvestmentLine = async (line) => {
+    if (isBpLineEditable(line)) return line;
+    const syncResult = await syncBp(props, { force: true });
+    const synced = syncResult?.resolveLine?.(line)
+      || arr(props.bpInvestmentLines).find((row) => key(row) === key(line));
+    if (!synced?.id || String(synced.id).startsWith('off-')) {
+      throw new Error('Synchronisation BP requise — réessayez ou cliquez « Resynchroniser le BP officiel ».');
+    }
+    return synced;
+  };
+
+  const ensureEditableCostLine = async (cost) => {
+    if (isBpCostEditable(cost)) return cost;
+    await syncBp(props, { force: true });
+    const synced = arr(props.bpRecurringCosts).find((row) => key(row) === key(cost));
+    if (!synced?.id || String(synced.id).startsWith('cost-')) {
+      throw new Error('Synchronisation BP requise pour les charges.');
+    }
+    return synced;
+  };
+
+  const openConcretization = async (line) => {
+    try {
+      const target = await ensureEditableInvestmentLine(line);
+      const result = launchBpLineConcretization(target, { onNavigate: props.onNavigate });
+      if (!result.ok) return toast.error('Cette ligne ne peut pas encore être ouverte dans un module.');
+      const route = buildBpLineConcretizationRoute(target);
+      const mod = route?.navigate?.module;
+      toast.success(`Ouverture ${MODULE_LABELS[mod] || mod || 'module'}…`);
+    } catch (error) {
+      toast.error(error.message || 'Synchronisation BP impossible — vérifiez votre connexion.');
+    }
   };
 
   const importExcelFile = async (file) => {
@@ -286,8 +338,13 @@ export default function InvestissementsV9(props) {
     try {
       const buffer = await file.arrayBuffer();
       const imported = buildBpImportFromExcel(buffer, planId, file.name);
-      await syncBp(props, { force: true, payload: imported });
-      toast.success(`Fichier ${file.name} — ${imported.parsed?.counts?.startupLines ?? imported.investmentLines?.length ?? 0} lignes démarrage parsées, répartition ERP appliquée.`);
+      const taggedPayload = {
+        ...imported,
+        investmentLines: tagExcelImportLines(imported.investmentLines || [], file.name),
+        recurringCosts: tagExcelImportLines(imported.recurringCosts || [], file.name),
+      };
+      await syncBp(props, { force: true, payload: taggedPayload });
+      toast.success(`Fichier ${file.name} importé — les lignes Excel source sont conservées (${taggedPayload.investmentLines?.length ?? 0} investissements).`);
     } catch (error) {
       toast.error(error.message || 'Import Excel impossible');
     }
@@ -327,7 +384,7 @@ export default function InvestissementsV9(props) {
     }
   };
 
-  const handleLineAction = useBpLineActionHandlers({
+  const dispatchLineAction = useBpLineActionHandlers({
     onConcretize: (line, ctx) => {
       if (ctx.kind === 'cost') openCostConcretization(line);
       else openConcretization(line);
@@ -353,6 +410,24 @@ export default function InvestissementsV9(props) {
       navigateToLinkedOperation(line, { onNavigate: props.onNavigate, kind: ctx.kind });
     },
   });
+
+  const handleLineAction = async (actionId, ctx = {}) => {
+    const kind = ctx.kind || 'investment';
+    const syncActions = new Set(['concretize', 'complete', 'edit', 'postpone', 'cancel']);
+    const needsSync = kind === 'cost' ? !isBpCostEditable(ctx.line) : !isBpLineEditable(ctx.line);
+    if (needsSync && syncActions.has(actionId)) {
+      try {
+        const synced = kind === 'cost'
+          ? await ensureEditableCostLine(ctx.line)
+          : await ensureEditableInvestmentLine(ctx.line);
+        dispatchLineAction(actionId, { ...ctx, line: synced });
+      } catch (error) {
+        toast.error(error.message || 'Action impossible');
+      }
+      return;
+    }
+    dispatchLineAction(actionId, ctx);
+  };
 
   const brokenLinks = useMemo(() => {
     const rows = [
@@ -424,13 +499,14 @@ export default function InvestissementsV9(props) {
       },
     },
     {
-      label: '',
+      label: 'Action',
       render: (r) => (
         <BpLineActionsMenu
           line={r}
           kind="investment"
           transactions={transactions}
           onAction={handleLineAction}
+          allowPreviewActions={!isBpLineEditable(r) && isPendingBpLine(r)}
         />
       ),
     },
@@ -450,9 +526,11 @@ export default function InvestissementsV9(props) {
         <div>
           <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Business Plan</p>
           <h2 className="mt-1 text-2xl font-black text-[#2f2415]">{plan?.nom || HORIZON_FARM_BP_NAME}</h2>
-          <p className="mt-1 text-sm text-[#8a7456]">Lignes d’investissement actionnables uniquement — le reste du BP est réparti vers Finance, RH, Commercial, Objectifs…</p>
+          <p className="mt-1 text-sm text-[#8a7456]">Lignes d’investissement actionnables — source BP/Excel conservée, sync explicite uniquement.</p>
         </div>
         <div className="flex flex-col gap-2 sm:items-end">
+          {!dbLinesCount ? <p className="text-xs font-bold text-amber-800 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 max-w-xs text-right">Aperçu BP intégré — cliquez Resynchroniser ou Concrétiser pour créer les lignes en base.</p> : null}
+          {plan?.source_document ? <p className="text-xs text-emerald-800 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 max-w-xs text-right">Source Excel : {plan.source_document}</p> : null}
           <button type="button" onClick={() => syncBp(props, { force: true })} className="rounded-2xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white"><RefreshCw size={14} className="inline" /> Resynchroniser le BP officiel</button>
           <button type="button" onClick={() => setShowExcelImport((v) => !v)} className="text-xs font-bold text-[#8a7456] underline-offset-2 hover:underline">
             {showExcelImport ? 'Masquer import Excel' : 'Autre fichier Excel (optionnel)'}
@@ -487,6 +565,7 @@ export default function InvestissementsV9(props) {
         {pendingLines.length > 6 ? <p className="text-xs text-[#8a7456]">+ {pendingLines.length - 6} autre(s) ligne(s) dans l’onglet Mes investissements.</p> : null}
       </div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><CheckCircle2 size={16} className="inline" /> Rien en attente — toutes les lignes éligibles sont traitées ou annulées.</div>}
       {costsNeedDbSync ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><b>Charges BP :</b> resynchronisez le plan pour activer les boutons Concrétiser sur les charges ({dbCostsCount ? `${dbCostsCount} en base` : 'aperçu seul'}).</div> : null}
+      {linesNeedDbSync ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><b>Investissements BP :</b> lignes en aperçu intégré — cliquez <b>Concrétiser</b> sur une ligne (sync automatique) ou « Resynchroniser le BP officiel » ({dbLinesCount ? `${dbLinesCount} en base` : 'aucune en base'}).</div> : null}
       {pendingCosts.length ? <div className="space-y-2">
         <p className="text-sm font-black text-[#2f2415]">Charges à concrétiser ({pendingCosts.length})</p>
         {pendingCosts.slice(0, 4).map((cost) => <button type="button" key={cost.id} onClick={() => openCostConcretization(cost)} className="flex w-full items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-left hover:border-sky-400">
@@ -536,6 +615,7 @@ export default function InvestissementsV9(props) {
 
     {tab === 'budget' ? <Section icon={Coins} title="Mes investissements" subtitle="Besoins de démarrage, équipements, stock initial, trésorerie de départ — lignes actionnables à concrétiser.">
       <HelpSteps />
+      {linesNeedDbSync ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><b>Aperçu BP :</b> les boutons <b>Concrétiser</b> synchronisent le plan puis ouvrent le module cible ({dbLinesCount ? `${dbLinesCount} ligne(s) déjà en base` : 'aucune ligne en base pour l’instant'}).</div> : null}
       <Table rows={lines} columns={lineColumns} />
     </Section> : null}
 

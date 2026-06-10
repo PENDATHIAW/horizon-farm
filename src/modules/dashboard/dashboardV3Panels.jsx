@@ -1,7 +1,8 @@
-import { ArrowRight, LineChart, Mic, MicOff, Presentation, TrendingDown, TrendingUp, Volume2, X } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowRight, LineChart, MicOff, Presentation, TrendingDown, TrendingUp, Volume2, X } from 'lucide-react';
 import { launchHeyHorizonAssistant } from '../../utils/dashboardHeyHorizon.js';
 import { fmtCurrency, fmtNumber } from '../../utils/format';
-import { buildDashboardVoiceBriefText, isSpeechSynthesisSupported } from './dashboardV3.js';
+import { buildDashboardVoiceBriefText } from './dashboardV3.js';
 
 function trendClass(trend = 'stable') {
   if (trend === 'up') return 'text-emerald-700 bg-emerald-50 border-emerald-200';
@@ -145,13 +146,33 @@ export function DashboardHeyHorizonQuickAskStrip({
   questions = [],
   onOpenAssistant,
   onNavigate,
+  maxVisible = 3,
+  compact = false,
 }) {
+  const [expanded, setExpanded] = useState(false);
   if (!questions.length) return null;
+  const visible = expanded ? questions : questions.slice(0, maxVisible);
+  const hiddenCount = Math.max(0, questions.length - maxVisible);
+
   return (
-    <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
-      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#9a6b12]">Hey Horizon — questions rapides</p>
+    <section className={`rounded-2xl border border-[#d6c3a0] bg-white shadow-sm ${compact ? 'p-3' : 'p-4'}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#9a6b12]">Hey Horizon</p>
+        <button
+          type="button"
+          onClick={() => launchHeyHorizonAssistant({
+            query: 'Que dois-je faire en priorité aujourd\'hui ?',
+            sourceLabel: 'Dashboard',
+            onOpenAssistant,
+            onNavigate,
+          })}
+          className="min-h-[40px] rounded-xl bg-[#2f2415] px-3 py-1.5 text-xs font-black text-white"
+        >
+          Demander à Hey Horizon
+        </button>
+      </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        {questions.map((item) => (
+        {visible.map((item) => (
           <button
             key={item.id}
             type="button"
@@ -161,12 +182,17 @@ export function DashboardHeyHorizonQuickAskStrip({
               onOpenAssistant,
               onNavigate,
             })}
-            className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-left text-xs font-black text-[#2f2415] hover:border-[#22c55e]"
+            className="min-h-[40px] rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-left text-xs font-black text-[#2f2415] hover:border-[#22c55e]"
           >
             {item.question}
           </button>
         ))}
       </div>
+      {hiddenCount > 0 && !expanded ? (
+        <button type="button" onClick={() => setExpanded(true)} className="mt-2 text-xs font-black text-[#9a6b12]">
+          + {hiddenCount} question{hiddenCount > 1 ? 's' : ''} supplémentaire{hiddenCount > 1 ? 's' : ''}
+        </button>
+      ) : null}
     </section>
   );
 }
@@ -305,4 +331,3 @@ export function DashboardFarmLocationPremiumCard({ card = null }) {
   );
 }
 
-export { isSpeechSynthesisSupported };

@@ -39,7 +39,7 @@ export async function processContextualVoiceInput({
 }
 
 export function getValidatableDrafts(result = {}) {
-  return arr(result.drafts).filter(
+  return arr(result?.drafts).filter(
     (d) => d.meta?.role !== 'chain' && d.status !== 'chain_info' && d.required_validation !== false,
   );
 }

@@ -8,6 +8,7 @@ import { financeIds } from './sideEffectIds';
 import { enrichFinanceWithOrderFarmId } from './commercialFarmScope.js';
 import { isStockableSourceType } from './commercialStockValidation.js';
 import { planStockMovementFromSaleLine } from './stockMovementBridge.js';
+import { movementAlreadyExists, persistStockMovement } from '../services/stockMovementHelpers.js';
 import { makeId } from './ids';
 import { toNumber } from './format';
 
@@ -167,7 +168,31 @@ export async function applySourceImpactFromSale({
   if (!patchPlan?.id) return null;
 
   if (patchPlan.module === 'stock') {
+    const beforeQty = num(sourceRow?.quantite ?? sourceRow?.quantity ?? sourceRow?.stock);
     await handlers.onUpdateStock?.(patchPlan.id, patchPlan.patch);
+    const afterQty = num(patchPlan.patch?.quantite ?? patchPlan.patch?.quantity ?? (beforeQty - num(quantity)));
+    if (handlers.onCreateStockMovement) {
+      const movementRef = `sale:${clean(orderId)}:stock:${clean(patchPlan.id)}`;
+      const dedupeKey = `stock-mvt:${movementRef}`;
+      if (!movementAlreadyExists(handlers.existingStockMovements, dedupeKey)) {
+        await persistStockMovement({
+          before: { id: patchPlan.id, quantite: beforeQty },
+          after: { id: patchPlan.id, ...sourceRow, ...patchPlan.patch, quantite: afterQty, quantity: afterQty },
+          patch: {
+            last_movement_type: 'sortie',
+            source_module: 'ventes',
+            source_record_id: orderId,
+            movement_ref: movementRef,
+            dedupe_key: dedupeKey,
+            created_from: 'sale_side_effects',
+            notes: `Vente Commercial ${orderId}`,
+            farm_id: patchPlan.patch?.farm_id,
+          },
+          handlers,
+          existingMovements: handlers.existingStockMovements,
+        });
+      }
+    }
     const cultureId = sourceRow?.culture_id || (String(sourceRow?.source_module || '').includes('culture') ? sourceRow?.source_id || sourceRow?.related_id : null);
     if (cultureId) {
       const cultureRow = arr(cultures).find((row) => String(row.id) === String(cultureId)) || { id: cultureId };

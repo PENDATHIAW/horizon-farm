@@ -3,6 +3,11 @@ import { buildStructuredFarmImpact } from '../services/erpInterconnectionRules';
 import { documentIds, eventIds, financeIds } from './sideEffectIds';
 import { attachIdempotency, buildIdempotencyKey, findByRecordId, WORKFLOW_TYPES } from './workflowDedupe';
 import { toNumber } from './format';
+import {
+  buildHealthConsumptionMovementPayload,
+  HEALTH_CONSUMPTION_GAP_MESSAGE,
+  persistConsumptionMovement,
+} from './stockConsumptionBridge.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();
@@ -110,6 +115,53 @@ export async function runHealthSideEffects({
   }
 
   return { healthId, cost: financeAmount };
+}
+
+/** Persiste consommation stock santé vers stock_movements (idempotent). */
+export async function runHealthStockConsumptionSideEffects({
+  healthRecord = {},
+  stock = {},
+  qty = 0,
+  beforeQty = 0,
+  afterQty = 0,
+  handlers = {},
+} = {}) {
+  const stockId = clean(stock.id || healthRecord.stock_id);
+  const usedQty = num(qty || healthRecord.quantite_utilisee);
+  const wantsStock = clean(healthRecord.product_source) === 'stock' || Boolean(stockId);
+
+  if (!stockId || usedQty <= 0) {
+    if (wantsStock && usedQty > 0) return { gap: HEALTH_CONSUMPTION_GAP_MESSAGE };
+    return null;
+  }
+  if (!handlers.onCreateStockMovement) return null;
+
+  const payload = buildHealthConsumptionMovementPayload({
+    healthRecord,
+    stock,
+    qty: usedQty,
+    beforeQty,
+    afterQty,
+    farmId: stock.farm_id || healthRecord.farm_id,
+  });
+  if (!payload) return null;
+
+  await persistConsumptionMovement({
+    before: { id: stock.id, quantite: beforeQty },
+    after: { id: stock.id, quantite: afterQty, unite: stock.unite || stock.unit, farm_id: payload.farm_id },
+    patch: {
+      source_module: payload.source_module,
+      source_record_id: payload.source_record_id,
+      movement_ref: payload.movement_ref,
+      dedupe_key: payload.dedupe_key,
+      notes: payload.notes,
+    },
+    payload,
+    handlers,
+    existingMovements: handlers.existingStockMovements || [],
+  });
+
+  return { movement: payload };
 }
 
 export async function runBiosecuritySideEffects({

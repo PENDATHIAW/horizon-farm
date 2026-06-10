@@ -8,7 +8,7 @@ const arr = (value) => Array.isArray(value) ? value : [];
 const lower = (value) => String(value || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const num = (value) => toNumber(value);
 const logQty = (log = {}) => num(log.quantite ?? log.quantity ?? log.qty ?? log.amount);
-const logCost = (log = {}) => num(log.cout_total ?? log.total_cost ?? log.montant ?? log.amount ?? log.cost ?? 0);
+const logCost = (log = {}) => num(log.montant_total ?? log.cout_total ?? log.total_cost ?? log.montant ?? log.amount ?? log.cost ?? 0);
 const logUnitPrice = (log = {}) => num(log.prix_unitaire ?? log.unit_price ?? log.price ?? 0);
 const animalIdOfLog = (log = {}) => log.animal_id || log.entity_id || log.related_id || log.source_record_id;
 const lotIdOfLog = (log = {}) => log.lot_id || log.entity_id || log.related_id || log.source_record_id;

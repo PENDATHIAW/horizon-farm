@@ -9,6 +9,43 @@ function toneClass(tone = 'neutral') {
   return 'text-[#2f2415]';
 }
 
+export function DashboardAllFarmsCompactPanel({ context = null, onExpand, onManageFarms }) {
+  if (!context?.activeFarmCount || context.activeFarmCount <= 1) return null;
+  const { totals, avgExploitationScore, bestFarm, riskiestFarm } = context;
+
+  return (
+    <section className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-800">Groupe</p>
+          <h2 className="mt-0.5 text-base font-black text-[#2f2415]">
+            {context.activeFarmCount} ferme(s) · score {avgExploitationScore}/100
+          </h2>
+          <p className="mt-1 text-xs text-[#6b8a6b]">
+            CA {fmtCurrency(totals.ca)} · Trésorerie {fmtCurrency(totals.cashNet)}
+          </p>
+          <div className="mt-2 space-y-1 text-xs text-[#6b8a6b]">
+            {bestFarm ? <p>Meilleure : <b className="text-[#2f2415]">{bestFarm.name}</b> ({bestFarm.exploitationScore}/100)</p> : null}
+            {riskiestFarm ? <p>À risque : <b className="text-[#2f2415]">{riskiestFarm.name}</b> ({riskiestFarm.alerts} alerte(s))</p> : null}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {onExpand ? (
+            <button type="button" onClick={onExpand} className="rounded-xl border border-emerald-300 bg-white px-3 py-1.5 text-xs font-black text-emerald-800">
+              Voir comparaison détaillée
+            </button>
+          ) : null}
+          {onManageFarms ? (
+            <button type="button" onClick={onManageFarms} className="rounded-xl border border-emerald-300 bg-white px-3 py-1.5 text-xs font-black text-emerald-800">
+              Gérer les fermes
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function DashboardAllFarmsPanel({ context = null, onNavigate, onManageFarms }) {
   if (!context?.activeFarmCount || context.activeFarmCount <= 1) return null;
   const { totals, avgExploitationScore, avgInvestorScore, comparisonRows, bestFarm, riskiestFarm } = context;
@@ -54,7 +91,7 @@ export function DashboardAllFarmsPanel({ context = null, onNavigate, onManageFar
   );
 }
 
-export function FarmComparisonTable({ rows = [], onNavigate, className = '' }) {
+export function FarmComparisonTable({ rows = [], className = '' }) {
   if (!rows.length) return null;
   return (
     <div className={`overflow-x-auto rounded-2xl border border-[#eadcc2] bg-white ${className}`}>

@@ -1,6 +1,8 @@
 import { addDays, addMonths } from '../utils/decisionFormFields';
 import { avicoleActiveCount, avicoleInitialCount } from '../utils/avicoleMetrics';
 import { computeChairLivingTarget, computePondeuseLivingTarget } from './avicoleLivingTargets';
+import { resolveElevageThresholds } from '../utils/elevageThresholds.js';
+import { computeLotOfficialLayingRate } from '../utils/elevageLayingRate.js';
 
 const num = (value = 0) => Number(value || 0);
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -45,33 +47,37 @@ export function buildBroilerLotDecision(lot = {}) {
   const mortalityRate = mortalityRateOf(lot);
   const closedByLoss = isLotClosedByLoss(lot);
   const commerciallyClosed = isCommerciallyClosedLot(lot);
-  const sickOrRisk = health.includes('malade') || health.includes('critique') || health.includes('surveiller') || mortalityRate >= 5;
+  const thresholds = resolveElevageThresholds();
+  const sickOrRisk = health.includes('malade') || health.includes('critique') || health.includes('surveiller') || mortalityRate >= thresholds.mortalityAlertPct;
   const reminderDate = commerciallyClosed ? '' : addReminderDay(living.nextWeighingDate);
   let decision = living.action || 'Continuer croissance et suivre alimentation.';
   let priority = ['pret_vente', 'retard_croissance', 'pesee_due'].includes(living.status) ? 'haute' : 'moyenne';
   if (commerciallyClosed) { decision = closedDecisionFor(lot, 'chair'); priority = closedByLoss ? 'haute' : 'basse'; }
   else if (closedByLoss) { decision = 'Lot clôturé en perte : arrêter les charges actives, conserver l’historique et analyser la cause avant relance.'; priority = 'haute'; }
-  else if (mortalityRate >= 5) { decision = 'Morts élevés dans le lot : contrôler santé, eau, alimentation et reporter la vente recommandée.'; priority = 'haute'; }
-  else if (mortalityRate >= 3) { decision = 'Morts à surveiller : vérifier conditions du lot avant décision commerciale.'; priority = 'moyenne'; }
+  else if (mortalityRate >= thresholds.mortalityCriticalPct) { decision = 'Morts élevés dans le lot : contrôler santé, eau, alimentation et reporter la vente recommandée.'; priority = 'haute'; }
+  else if (mortalityRate >= thresholds.mortalityAlertPct) { decision = 'Morts à surveiller : vérifier conditions du lot avant décision commerciale.'; priority = 'moyenne'; }
   else if (sickOrRisk) { decision = 'Lot à risque : contrôler santé, mortalité et alimentation.'; priority = 'haute'; }
   return { type: 'chair', ageDays: living.currentAge || ageDays(lot), activeCount: activeCount(lot), weight: living.currentWeight || latestWeight(lot), targetWeight: living.livingTarget || targetWeight(lot), initialTargetWeight: living.defaultTargetWeight || targetWeight(lot), livingTargetWeight: living.livingTarget || targetWeight(lot), projectedWeight: commerciallyClosed ? 0 : living.projectedWeight, nextWeighingDate: commerciallyClosed ? '' : living.nextWeighingDate, reminderWeighingDate: reminderDate, expectedWeight: commerciallyClosed ? '' : (living.projectedWeight || living.livingTarget), frequency: commerciallyClosed ? 0 : living.frequency, mortalityRate, realGainPerDay: living.realGainPerDay, adaptiveGainPerDay: living.adaptiveGainPerDay, status: commerciallyClosed ? (closedByLoss ? 'cloture_perte' : 'cloture') : living.status, progress: commerciallyClosed || closedByLoss ? 0 : living.progress, decision, priority };
 }
 
 export function buildLayerLotDecision(lot = {}, productionLogs = []) {
   const living = computePondeuseLivingTarget(lot, productionLogs);
+  const official = computeLotOfficialLayingRate(lot, productionLogs);
   const start = lot.date_debut || lot.entry_date || today();
   const commerciallyClosed = isCommerciallyClosedLot(lot);
   const reformStart = commerciallyClosed ? '' : (lot.date_debut_reforme_recommandee || addMonths(start, living.reformStartMonths || 17));
   const reformTarget = commerciallyClosed ? '' : (lot.date_reforme_cible || addMonths(start, living.reformTargetMonths || 18));
   const mortalityRate = mortalityRateOf(lot);
+  const thresholds = resolveElevageThresholds();
   const closedByLoss = isLotClosedByLoss(lot);
   let priority = ['baisse_ponte', 'ramassage_manquant', 'casses_elevees', 'preparer_reforme', 'reforme_cible'].includes(living.status) ? 'haute' : 'moyenne';
   let decision = living.action;
+  const layingRate = official.calculable ? official.rate : living.realLayingPct;
   if (commerciallyClosed) { decision = closedDecisionFor(lot, 'pondeuse'); priority = closedByLoss ? 'haute' : 'basse'; }
   else if (closedByLoss) { decision = 'Lot pondeuses clôturé en perte : arrêter les charges actives, conserver l’historique et analyser la cause avant nouvelle bande.'; priority = 'haute'; }
-  else if (mortalityRate >= 5) { decision = 'Morts élevés dans les pondeuses : vérifier santé, eau, aliment et impact sur objectif ponte vivant.'; priority = 'haute'; }
-  else if (mortalityRate >= 3) { decision = 'Morts à surveiller dans le lot pondeuses : contrôler rapidement les conditions du bâtiment.'; priority = 'moyenne'; }
-  return { type: 'pondeuse', ageMonths: living.months || ageMonths(lot), activeCount: commerciallyClosed ? 0 : definedNumber(living.active, activeCount(lot)), avgEggsDay: commerciallyClosed ? 0 : Math.round(living.recentDailyEggs || 0), expectedEggsDay: commerciallyClosed ? 0 : living.expectedEggsDay || 0, layingRate: commerciallyClosed ? 0 : living.realLayingPct || 0, objectiveInitial: living.objectiveInitial || 80, objectiveLivingPct: commerciallyClosed ? 0 : living.livingObjectivePct || 0, objectiveAgePct: commerciallyClosed ? 0 : living.ageExpectedPct || 0, gapEggsDay: commerciallyClosed ? 0 : living.gapEggsDay || 0, reformStart, reformTarget, mortalityRate, status: commerciallyClosed ? (closedByLoss ? 'cloture_perte' : 'cloture') : living.status, decision, priority };
+  else if (mortalityRate >= thresholds.mortalityCriticalPct) { decision = 'Morts élevés dans les pondeuses : vérifier santé, eau, aliment et impact sur objectif ponte vivant.'; priority = 'haute'; }
+  else if (mortalityRate >= thresholds.mortalityAlertPct) { decision = 'Morts à surveiller dans le lot pondeuses : contrôler rapidement les conditions du bâtiment.'; priority = 'moyenne'; }
+  return { type: 'pondeuse', ageMonths: living.months || ageMonths(lot), activeCount: commerciallyClosed ? 0 : definedNumber(living.active, activeCount(lot)), avgEggsDay: commerciallyClosed ? 0 : Math.round(living.recentDailyEggs || 0), expectedEggsDay: commerciallyClosed ? 0 : living.expectedEggsDay || 0, layingRate: commerciallyClosed ? 0 : layingRate || 0, layingRateCalculable: official.calculable, layingRateLabel: official.label, objectiveInitial: living.objectiveInitial || 80, objectiveLivingPct: commerciallyClosed ? 0 : living.livingObjectivePct || 0, objectiveAgePct: commerciallyClosed ? 0 : living.ageExpectedPct || 0, gapEggsDay: commerciallyClosed ? 0 : living.gapEggsDay || 0, reformStart, reformTarget, mortalityRate, status: commerciallyClosed ? (closedByLoss ? 'cloture_perte' : 'cloture') : living.status, decision, priority };
 }
 
 export function buildAvicoleLotDecision(lot = {}, productionLogs = []) {

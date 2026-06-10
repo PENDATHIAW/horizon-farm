@@ -1,5 +1,5 @@
 import { AlertTriangle, Calendar, CheckCircle2, Download, Edit, Eye, Leaf, Plus, RefreshCw, Sprout, Trash2, TrendingUp } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import ActionIconButton from '../components/ActionIconButton';
 import Badge from '../components/Badge';
@@ -109,8 +109,45 @@ function SummaryCard({ title, rows = [], empty, render, tone = 'neutral' }) {
   return <div className={`rounded-2xl border p-4 ${cls}`}><p className="font-black text-[#2f2415]">{title}</p><div className="mt-3 space-y-2 text-sm">{rows.length ? rows.map((row) => <div key={row.id} className="rounded-xl bg-white/60 px-3 py-2">{render(row)}</div>) : <div className="rounded-xl bg-white/60 px-3 py-2">{empty}</div>}</div></div>;
 }
 
-export default function CulturesV3({ rows = [], stocks = [], opportunities = [], loading, onCreate, onUpdate, onDelete, onRefresh, onCreateOpportunity, onUpdateOpportunity, onRefreshOpportunities, onUpdateStock, onRefreshStock, onCreateBusinessEvent, onRefreshBusinessEvents }) {
-  const [tab, setTab] = useState('Vue d’ensemble');
+export default function CulturesV3({
+  rows = [],
+  stocks = [],
+  stockMovements = [],
+  opportunities = [],
+  loading,
+  onCreate,
+  onUpdate,
+  onDelete,
+  onRefresh,
+  onCreateOpportunity,
+  onUpdateOpportunity,
+  onRefreshOpportunities,
+  onUpdateStock,
+  onRefreshStock,
+  onCreateStockMovement,
+  onRefreshStockMovements,
+  onCreateBusinessEvent,
+  onRefreshBusinessEvents,
+  initialTab,
+  embeddedMode = false,
+  showWorkflowBridge = true,
+  showSaleBridge = true,
+  hideHarvestActions = false,
+}) {
+  const [tab, setTab] = useState(() => {
+    const tabs = ['Vue d\u2019ensemble', 'Cultures', 'Parcelles', 'Campagnes', 'Performance'];
+    const t = String(initialTab || '').trim();
+    return tabs.includes(t) ? t : 'Vue d\u2019ensemble';
+  });
+  useEffect(() => {
+    if (!initialTab) return;
+    const tabs = ['Vue d\u2019ensemble', 'Cultures', 'Parcelles', 'Campagnes', 'Performance'];
+    const t = String(initialTab).trim();
+    if (tabs.includes(t)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- navigation pilotée par props.initialTab
+      setTab(t);
+    }
+  }, [initialTab]);
   const [selected, setSelected] = useState(null);
   const [modal, setModal] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -179,11 +216,11 @@ export default function CulturesV3({ rows = [], stocks = [], opportunities = [],
   ];
 
   return <div className="space-y-6">
-    <SectionHeader title="Cultures, Parcelles & Campagnes" sub="Sol, eau, rendement, récoltes, marge et décisions IA" actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter culture</Btn></>} />
-    <CulturesWorkflowBridge rows={realRows} onUpdate={onUpdate} onRefresh={onRefresh} />
-    <CulturesSaleOpportunityBridge rows={realRows} opportunities={opportunities} onUpdate={onUpdate} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} />
+    <SectionHeader title={embeddedMode ? 'Registre parcelles & cultures' : 'Cultures, Parcelles & Campagnes'} sub="Sol, eau, rendement, stade et décisions IA — récoltes et intrants dans leurs onglets dédiés." actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter culture</Btn></>} />
+    {showWorkflowBridge ? <CulturesWorkflowBridge rows={realRows} onUpdate={onUpdate} onRefresh={onRefresh} /> : null}
+    {showSaleBridge ? <CulturesSaleOpportunityBridge rows={realRows} opportunities={opportunities} onUpdate={onUpdate} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} /> : null}
     <div className="flex flex-wrap gap-2">{tabs.map((item) => <button type="button" key={item} onClick={() => setTab(item)} className={`rounded-xl border px-4 py-2 text-sm font-semibold ${tab === item ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}>{item}</button>)}</div>
-    <CulturesTabActionsBridge tab={tab} rows={rows} stocks={stocks} opportunities={opportunities} onCreate={onCreate} onUpdate={onUpdate} onDelete={onDelete} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onUpdateStock={onUpdateStock} onRefreshStock={onRefreshStock} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} />
+    <CulturesTabActionsBridge tab={tab} rows={rows} stocks={stocks} stockMovements={stockMovements} opportunities={opportunities} onCreate={onCreate} onUpdate={onUpdate} onDelete={onDelete} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onUpdateStock={onUpdateStock} onRefreshStock={onRefreshStock} onCreateStockMovement={onCreateStockMovement} onRefreshStockMovements={onRefreshStockMovements} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} hideHarvestActions={hideHarvestActions} />
     <div className="grid grid-cols-2 lg:grid-cols-6 gap-4"><KpiCard icon={Sprout} label="Cultures" value={realRows.length} /><KpiCard icon={Leaf} label="Surface" value={`${fmtNumber(analytics.totalSurface)} m²`} /><KpiCard icon={TrendingUp} label="Revenu" value={fmtCurrency(analytics.totalRevenue)} /><KpiCard icon={TrendingUp} label="Marge" value={fmtCurrency(analytics.totalMargin)} /><KpiCard icon={AlertTriangle} label="Risques IA" value={analytics.risks} /><KpiCard icon={Calendar} label="Récoltes prêtes" value={analytics.readyForSale} /></div>
     {tab === 'Vue d’ensemble' ? <OperationalSummary analytics={analytics} realRows={realRows} /> : null}
     {['Vue d’ensemble', 'Cultures'].includes(tab) ? <DataTable title="Cultures" rows={realRows} columns={cultureColumns} loading={loading} initialSortKey="nom" searchPlaceholder="Rechercher culture, parcelle, campagne..." /> : null}

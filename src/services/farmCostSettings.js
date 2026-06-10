@@ -22,6 +22,12 @@ export const DEFAULT_FARM_COST_SETTINGS = {
     at1_7: 3500,
     at2_0: 4000,
   },
+  elevageThresholds: {
+    mortalityAlertPct: 4,
+    mortalityCriticalPct: 8,
+    eggBreakAlertPct: 8,
+    lowLayingPct: 65,
+  },
   /** Prix de vente suggérés élevage (FCFA/kg) — utilisés si la fiche animal n'a pas de prix/kg. */
   animalSalePricePerKg: {
     default: 3000,

@@ -1,4 +1,4 @@
-import { ArrowRight, Bot, Lightbulb, Link2, Sparkles } from 'lucide-react';
+import { Bot, Lightbulb, Link2, Sparkles } from 'lucide-react';
 import Btn from '../../components/Btn.jsx';
 import { coherenceRowTab } from './achatsStockMetrics.js';
 

@@ -1,6 +1,7 @@
 import { getAnimalSalePricePerKg, getFarmCostSettings, resolveAnimalSpeciesKey } from './farmCostSettings.js';
 import { calculateUnifiedAnimalCost, calculateUnifiedLotCost } from './unifiedCostService.js';
 import { calculateAnimalSalePricing, getAnimalSaleReadiness } from '../utils/animalSalePricing.js';
+import { describeAnimalProposedPriceBasis, describeAvicoleProposedPriceBasis } from '../utils/salePricePresentation.js';
 import { toNumber } from '../utils/format';
 
 const clean = (value) => String(value || '').trim().toLowerCase();
@@ -50,6 +51,7 @@ export function recommendAnimalSalePrice({ animal, alimentationLogs = [], vaccin
     entityType: 'animal',
     speciesKey,
     configuredPricePerKg,
+    effectiveWeight,
     totalCost: unified.totalCost,
     recommendedPrice: recommended,
     minimumPrice: pricing.minimumAcceptablePrice,
@@ -59,6 +61,12 @@ export function recommendAnimalSalePrice({ animal, alimentationLogs = [], vaccin
     marketPrice: market?.price || null,
     readiness,
     pricing,
+    pricingBasis: describeAnimalProposedPriceBasis({
+      recommendedPrice: recommended,
+      configuredPricePerKg,
+      marketPrice: market?.price || null,
+      pricing,
+    }),
     alerts,
   };
 }
@@ -88,6 +96,13 @@ export function recommendAvicoleLotPrice({ lot, alimentationLogs = [], productio
     marginRate: unified.totalCost > 0 ? (margin / unified.totalCost) * 100 : 0,
     costSource: unified.costSource,
     marketPrice: market?.price || null,
+    pricingBasis: describeAvicoleProposedPriceBasis({
+      recommendedUnitPrice: recommendedUnit,
+      recommendedTotalPrice: recommendedTotal,
+      totalCost: unified.totalCost,
+      marginRate: unified.totalCost > 0 ? (margin / unified.totalCost) * 100 : 0,
+      marketPrice: market?.price || null,
+    }, lot),
     alerts: margin < 0 ? ['Prix recommandé sous le coût total — ne pas vendre sans ajuster.'] : margin < unified.totalCost * (settings.defaultTargetMarginPct / 100) ? ['Marge sous objectif paramétré.'] : [],
   };
 }

@@ -53,7 +53,7 @@ export default function StockFeedingCostPlanner({ rows = [], animaux = [], lots 
   const dailyKg = Math.max(0, toNumber(form.dailyKg));
   const sacKg = Math.max(1, toNumber(form.sacKg));
   const plan = calculateFeedingPlan({ stock: selectedStock, subjects, days, dailyKg, sacKg });
-  const { totalKg, totalCost, costPerSubject, costPerSubjectDay, availableKg, coverageDays, missingKg, sacsNeeded } = plan;
+  const { totalKg, totalCost, costPerSubject, costPerSubjectDay, availableKg, coverageDays, missingKg, sacsNeeded, pricePerKg } = plan;
   const missingSacs = missingKg / sacKg;
   const targetHistory = useMemo(() => {
     if (!selectedTarget?.id) return [];

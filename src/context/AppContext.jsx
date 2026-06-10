@@ -160,9 +160,11 @@ const buildUpdateEvents = (moduleKey, previousRow, record) => {
   return events;
 };
 
-export function AppProvider({ children }) {
+export function AppProvider({ children, initialDataMap = null }) {
   const { session, loading: authLoading } = useAuth();
-  const [dataMap, setDataMap] = useState(initialData);
+  const [dataMap, setDataMap] = useState(() => (
+    initialDataMap ? { ...emptyInitialData(), ...initialDataMap } : initialData
+  ));
   const [loadingMap, setLoadingMap] = useState({});
   const [errorMap, setErrorMap] = useState({});
   const setModuleLoading = useCallback((moduleKey, value) => setLoadingMap((prev) => ({ ...prev, [moduleKey]: value })), []);
