@@ -87,6 +87,7 @@ export function computeGlobalProfitability({ transactions = [], salesOrders = []
   addRow(rowsByBucket, 'equipements', detail.equipements, { source_module: 'consolidation_equipements' });
   addRow(rowsByBucket, 'autres_charges', detail.evenements, { source_module: 'consolidation_evenements' });
 
+  // P1-3 — CA officiel = caConsolide uniquement (pas payments, pas Math.max, pas fallback).
   const caTotal = finance.caConsolide || 0;
   const encaisse = finance.cashEncaisse || 0;
   const directActivityCharges = (buckets.animaux || 0) + (buckets.avicole || 0) + (buckets.cultures || 0);

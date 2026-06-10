@@ -20,9 +20,14 @@ const WORKFLOW_SOURCES = new Set([
   'stock_purchase_workflow',
   'purchase_side_effects',
   'payment_side_effects',
+  'feeding_side_effects',
+  'culture_side_effects',
+  'supplier_side_effects',
   'erp_interconnection',
   'workflow',
 ]);
+
+const VOID_STATUSES = new Set(['annule', 'annulé', 'cancelled', 'void', 'voided']);
 
 const AUTOMATIC_SOURCES = new Set([
   'automatique',
@@ -177,4 +182,41 @@ export function splitTreasuryTransactions(transactions = []) {
     else automatic.push(row);
   });
   return { automatic, manualException };
+}
+
+export function isVoidFinanceTransaction(row = {}) {
+  return VOID_STATUSES.has(lower(row.statut || row.status || '')) || row.voided === true;
+}
+
+/**
+ * Détecte une écriture finance déjà présente (id déterministe, issue_key ou couple source).
+ * Une opération métier = une seule écriture active.
+ */
+export function findDuplicateFinanceTransaction(row = {}, transactions = []) {
+  const id = clean(row.id);
+  const issueKey = clean(row.issue_key);
+  const sourceModule = lower(row.source_module);
+  const sourceRecordId = clean(row.source_record_id);
+  const type = lower(row.type || row.transaction_type || '');
+
+  return arr(transactions).find((existing) => {
+    if (isVoidFinanceTransaction(existing)) return false;
+    if (id && clean(existing.id) === id) return true;
+    if (issueKey && clean(existing.issue_key) === issueKey) return true;
+    if (
+      sourceModule
+      && sourceRecordId
+      && lower(existing.source_module) === sourceModule
+      && clean(existing.source_record_id) === sourceRecordId
+      && type
+      && lower(existing.type || existing.transaction_type || '') === type
+    ) {
+      return true;
+    }
+    return false;
+  }) || null;
+}
+
+export function financeTransactionWouldDuplicate(row = {}, transactions = []) {
+  return Boolean(findDuplicateFinanceTransaction(row, transactions));
 }

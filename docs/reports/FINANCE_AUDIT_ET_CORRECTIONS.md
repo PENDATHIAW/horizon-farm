@@ -2,9 +2,10 @@
 
 **Date :** 2026-06-09  
 **Branche P0 :** `cursor/finance-p0-ac42`  
+**Branche P1 :** `cursor/finance-p1-ac42`  
 **Base :** `main`  
 **Objectif :** Faire de Finance la vérité économique unique de l'ERP  
-**Statut :** Audit + **P0 appliqué** — P1 non commencé
+**Statut :** Audit + **P0 appliqué** + **P1 appliqué** — validation gel V1 requise avant P2
 
 ---
 
@@ -557,10 +558,93 @@ Source ventes = Commercial ; Finance agrège pour CA et encaisse.
 
 ## Prochaine étape
 
-1. Valider P0 en revue.  
-2. Exécuter P1 (graphiques uniques, composants dormants, idempotence).  
-3. Gel V1 Finance après P1 (parité Élevage / Cultures / Achats).
+1. Valider P0 + P1 en revue.  
+2. Gel V1 Finance après validation P1 (parité Élevage / Cultures / Achats).  
+3. P2 uniquement après gel V1 validé.
 
 ---
 
-*Audit initial + corrections P0 — branche `cursor/finance-p0-ac42`.*
+# Corrections P1 appliquées
+
+**Branche :** `cursor/finance-p1-ac42`  
+**Tests :** `npx vite-node tests/unit/financeP1.test.js` · `financeP0.test.js` · `financePilotageV1.test.js` · `dashboardMetrics.test.js`  
+**Build :** `npm run build`
+
+## P1-1 — Composants dormants
+
+| Fichier | Utilisé | Action |
+|---------|---------|--------|
+| `finance/FinanceCreancesPanel.jsx` | Non (0 import) | **SUPPRIMER** |
+| `finance/FinanceDettesPanel.jsx` | Non (0 import) | **SUPPRIMER** |
+| `finance/FinanceRentabilitePanel.jsx` | Non (0 import) | **SUPPRIMER** |
+| `ConsolidatedFinanceStrip.jsx` | Non (0 import) | **SUPPRIMER** |
+| `FinanceConsolidationPanel.jsx` | Non (0 import) | **SUPPRIMER** |
+| `finance/financeUi.jsx` | Oui (`FinanceMissingProofPanel`) | **CONSERVER** |
+
+**Impact ERP :** aucun runtime — UI active = `FinancePilotageRecoveredModule` (onglets Créances/Dettes/Rentabilité inline).
+
+## P1-2 — Graphiques uniques
+
+| Composant | Statut | Vérité graphique |
+|-----------|--------|------------------|
+| `FinanceEvolutionPanel` | Absent du repo (retiré P0) | — |
+| `ModuleGraphiquesTab` (`finance_pilotage`) | Actif onglet Graphiques | **Hub unique** |
+| `FinanceEvolution.jsx` | Rendu par `ModuleGraphiquesTab` | CA / cash / dépenses 6 mois |
+| `InvestissementsEvolution` | Idem onglet Graphiques | Investissements |
+
+**KPI doublons retirés :** flux mensuels hors Trésorerie (P0).  
+**Datasets :** `transactions` + `payments` + `salesOrders` — pas de second pipeline graphique Finance.
+
+## P1-3 — CA canonique
+
+| Champ | Règle |
+|-------|-------|
+| `caTotal` | `finance.caConsolide` uniquement |
+| `payments` / `cashEncaisse` | Trésorerie encaissée, pas CA |
+| `Math.max` sur CA | Interdit |
+
+**Fichier :** `globalProfitabilityService.js` lignes 90–91 (commentaire + test P1).
+
+## P1-4 — Idempotence ERP
+
+| Workflow | Risque | Solution |
+|----------|--------|----------|
+| Vente (`saleSideEffects`) | Double TRX-PAY / TRX-CREANCE | IDs `financeIds` + check `exists` par id |
+| Alimentation (`feedingSideEffects`) | Double TRX-ALIM | `financeIds.feeding(logId)` |
+| Culture récolte (`cultureSideEffects`) | Double TRX-RECOLTE | Id déterministe + skip commercial P1-5 |
+| Culture perte | Double TRX-PERTE | Id par culture+date |
+| Achat stock (`purchaseSideEffects`) | Double TRX-ACHAT | `financeIds.purchase` + idempotency key |
+| Fournisseur (`supplierSideEffects`) | Double dette/paiement | `financeIds.supplierDebt` / `supplierPayment` |
+| Saisie manuelle (`FinanceTransactionsOnly`) | Doublon source métier | `findDuplicateFinanceTransaction` avant create |
+
+**Fichiers :** `financeTransactionMeta.js` (`findDuplicateFinanceTransaction`, `financeTransactionWouldDuplicate`), `FinanceTransactionsOnly.jsx`.
+
+## P1-5 — Cultures (récolte + vente)
+
+**Règle canonique :** récolte commerciale (stock/opportunité ouverte, `vendable`) → **pas** d'écriture `TRX-RECOLTE-{cultureId}`. Revenu = vente Commercial uniquement. Si `TRX-RECOLTE` existait, annulation à la vente (`voidCultureHarvestFinanceOnSale`).
+
+**Fichiers :** `cultureSideEffects.js` (`shouldSkipHarvestFinanceForCommercialPath`), `saleSideEffects.js` (`voidCultureHarvestFinanceOnSale`).
+
+## P1-6 — Exports
+
+| Hub | Contenu | Format |
+|-----|---------|--------|
+| **Officiel** | `FinanceExportsPanel` (Résumé + Financement) | PDF synthèse, échéancier, remboursement, financement |
+| **Lignes manuelles** | `FinanceTransactionsOnly` | CSV / Excel / PDF — libellé « Export lignes manuelles » |
+| Rapprochement / autres modules | Hors hub Finance officiel | — |
+
+## P1-7 — Multi-fermes
+
+| Zone | Scope |
+|------|-------|
+| `App.jsx` | `applyFarmScopeToProps` / `applyFarmScopeToDataMap` sur `finance_pilotage` |
+| Dashboard / trésorerie / rentabilité | Données pré-filtrées avant `consolidateFinance` |
+| `FinanceMultiFarmPanel` | Agrégats par ferme (Résumé) |
+| Échéancier / aging | `showFarmInSchedule` si plusieurs fermes actives |
+| `consolidateFinance` | Ne filtre pas `farm_id` en interne — filtrage amont obligatoire |
+
+**Verdict P1 :** composants dormants supprimés, graphiques unifiés, CA canonique testé, idempotence renforcée, cultures sans double revenu, exports cartographiés, multi-fermes documenté. **Gel V1 prêt pour validation humaine.**
+
+---
+
+*Audit initial + corrections P0 (`cursor/finance-p0-ac42`) + P1 (`cursor/finance-p1-ac42`).*
