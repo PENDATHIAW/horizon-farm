@@ -11,7 +11,6 @@ import useAutomationSettings from '../hooks/useAutomationSettings';
 import useCrudModule from '../hooks/useCrudModule';
 import CreateModal from '../modals/CreateModal';
 import DeleteModal from '../modals/DeleteModal';
-import DetailsModal from '../modals/DetailsModal';
 import EditModal from '../modals/EditModal';
 import { buildClientSegmentation, buildClientSegment } from '../services/clientSegmentationEngine';
 import { buildClientSalesSummary as buildClientSalesSummaryFromWorkflows, canDeleteClient } from '../utils/clientWorkflows';

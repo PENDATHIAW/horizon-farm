@@ -9,6 +9,7 @@ import { paidForOrder, remainingForOrder } from '../utils/salesStatuses';
 import { isDelivered, isSaleClosed, linkedPaymentsForOrders, saleAmount } from './commercial/commercialMetrics.js';
 import SalesFollowUpPanel from './SalesFollowUpPanel.jsx';
 import SalesWorkflowHealth from './SalesWorkflowHealth.jsx';
+import CommercialSaleRepairPanel from './commercial/CommercialSaleRepairPanel.jsx';
 import { SaleModal } from './VentesTerrainV3.jsx';
 
 const today = () => new Date().toISOString().slice(0, 10);
