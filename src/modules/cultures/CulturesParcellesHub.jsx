@@ -8,8 +8,6 @@ export default function CulturesParcellesHub(props) {
       embeddedMode
       showWorkflowBridge={false}
       showSaleBridge={false}
-      hideHarvestActions
-      initialTab="Cultures"
     />
   );
 }

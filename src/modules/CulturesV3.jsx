@@ -64,8 +64,8 @@ const CULTURE_FIELDS = [
   { key: 'rendement_attendu', label: 'Rendement attendu Horizon', type: 'number' },
   { key: 'rendement_reel', label: 'Rendement réel', type: 'number' },
   { key: 'quantite_prevue', label: 'Quantité prévue', type: 'number' },
-  { key: 'quantite_recoltee', label: 'Quantité récoltée', type: 'number' },
-  { key: 'quantite_disponible', label: 'Quantité disponible', type: 'number' },
+  { key: 'quantite_recoltee', label: 'Quantité récoltée (onglet Récoltes)', type: 'readonly' },
+  { key: 'quantite_disponible', label: 'Quantité disponible (calculée)', type: 'readonly' },
   { key: 'unite_recolte', label: 'Unité récolte', type: 'text' },
   { key: 'prix_vente_unitaire', label: 'Prix vente unitaire', type: 'number' },
   { key: 'marche_cible', label: 'Marché / débouché cible', type: 'text' },
@@ -132,7 +132,6 @@ export default function CulturesV3({
   embeddedMode = false,
   showWorkflowBridge = true,
   showSaleBridge = true,
-  hideHarvestActions = false,
 }) {
   const [tab, setTab] = useState(() => {
     const tabs = ['Vue d\u2019ensemble', 'Cultures', 'Parcelles', 'Campagnes', 'Performance'];
@@ -176,7 +175,8 @@ export default function CulturesV3({
   const submitEdit = async (payload) => {
     if (!selected) return;
     if (['vendue', 'vendu', 'perdu', 'sinistre'].includes(String(selected.statut || selected.status || '').toLowerCase())) return toast.error('Fiche culture verrouillée');
-    try { setSaving(true); await onUpdate?.(selected.id, applyCultureDecisionDefaults(payload, selected)); toast.success('Fiche modifiée · décision recalculée'); setModal(null); } catch (error) { toast.error(error.message || 'Modification impossible'); } finally { setSaving(false); }
+    const { quantite_recoltee, quantite_disponible, production_reelle, ...safePayload } = payload;
+    try { setSaving(true); await onUpdate?.(selected.id, applyCultureDecisionDefaults(safePayload, selected)); toast.success('Fiche modifiée · décision recalculée'); setModal(null); } catch (error) { toast.error(error.message || 'Modification impossible'); } finally { setSaving(false); }
   };
   const submitDelete = async () => {
     if (!selected) return;
@@ -216,19 +216,24 @@ export default function CulturesV3({
   ];
 
   return <div className="space-y-6">
-    <SectionHeader title={embeddedMode ? 'Registre parcelles & cultures' : 'Cultures, Parcelles & Campagnes'} sub="Sol, eau, rendement, stade et décisions IA — récoltes et intrants dans leurs onglets dédiés." actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter culture</Btn></>} />
+    <SectionHeader title={embeddedMode ? 'Registre parcelles & cultures' : 'Cultures, Parcelles & Campagnes'} sub={embeddedMode ? 'Lecture et navigation — récoltes, intrants, pertes et ventes dans leurs onglets dédiés.' : 'Sol, eau, rendement, stade et décisions IA — récoltes et intrants dans leurs onglets dédiés.'} actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter culture</Btn></>} />
     {showWorkflowBridge ? <CulturesWorkflowBridge rows={realRows} onUpdate={onUpdate} onRefresh={onRefresh} /> : null}
     {showSaleBridge ? <CulturesSaleOpportunityBridge rows={realRows} opportunities={opportunities} onUpdate={onUpdate} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} /> : null}
-    <div className="flex flex-wrap gap-2">{tabs.map((item) => <button type="button" key={item} onClick={() => setTab(item)} className={`rounded-xl border px-4 py-2 text-sm font-semibold ${tab === item ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}>{item}</button>)}</div>
-    <CulturesTabActionsBridge tab={tab} rows={rows} stocks={stocks} stockMovements={stockMovements} opportunities={opportunities} onCreate={onCreate} onUpdate={onUpdate} onDelete={onDelete} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onUpdateStock={onUpdateStock} onRefreshStock={onRefreshStock} onCreateStockMovement={onCreateStockMovement} onRefreshStockMovements={onRefreshStockMovements} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} hideHarvestActions={hideHarvestActions} />
+    {embeddedMode ? null : <div className="flex flex-wrap gap-2">{tabs.map((item) => <button type="button" key={item} onClick={() => setTab(item)} className={`rounded-xl border px-4 py-2 text-sm font-semibold ${tab === item ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}>{item}</button>)}</div>}
+    {embeddedMode ? null : <CulturesTabActionsBridge tab={tab} rows={rows} stocks={stocks} stockMovements={stockMovements} onCreate={onCreate} onUpdate={onUpdate} onDelete={onDelete} onRefresh={onRefresh} onUpdateStock={onUpdateStock} onRefreshStock={onRefreshStock} onCreateStockMovement={onCreateStockMovement} onRefreshStockMovements={onRefreshStockMovements} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} />}
     <div className="grid grid-cols-2 lg:grid-cols-6 gap-4"><KpiCard icon={Sprout} label="Cultures" value={realRows.length} /><KpiCard icon={Leaf} label="Surface" value={`${fmtNumber(analytics.totalSurface)} m²`} /><KpiCard icon={TrendingUp} label="Revenu" value={fmtCurrency(analytics.totalRevenue)} /><KpiCard icon={TrendingUp} label="Marge" value={fmtCurrency(analytics.totalMargin)} /><KpiCard icon={AlertTriangle} label="Risques IA" value={analytics.risks} /><KpiCard icon={Calendar} label="Récoltes prêtes" value={analytics.readyForSale} /></div>
-    {tab === 'Vue d’ensemble' ? <OperationalSummary analytics={analytics} realRows={realRows} /> : null}
-    {['Vue d’ensemble', 'Cultures'].includes(tab) ? <DataTable title="Cultures" rows={realRows} columns={cultureColumns} loading={loading} initialSortKey="nom" searchPlaceholder="Rechercher culture, parcelle, campagne..." /> : null}
-    {tab === 'Performance' ? <DataTable title="Performance cultures" rows={performanceRows} columns={cultureColumns} loading={loading} initialSortKey="nom" searchPlaceholder="Rechercher performance..." /> : null}
-    {tab === 'Parcelles' ? <DataTable title="Parcelles" rows={parcelles} columns={aggregateColumns} loading={loading} initialSortKey="nom" /> : null}
-    {tab === 'Campagnes' ? <DataTable title="Campagnes" rows={campagnes} columns={aggregateColumns} loading={loading} initialSortKey="nom" /> : null}
+    {embeddedMode ? <>
+      <DataTable title="Cultures" rows={realRows} columns={cultureColumns} loading={loading} initialSortKey="nom" searchPlaceholder="Rechercher culture, parcelle, campagne..." />
+      <DataTable title="Parcelles" rows={parcelles} columns={aggregateColumns} loading={loading} initialSortKey="nom" />
+    </> : <>
+      {tab === 'Vue d’ensemble' ? <OperationalSummary analytics={analytics} realRows={realRows} /> : null}
+      {['Vue d’ensemble', 'Cultures'].includes(tab) ? <DataTable title="Cultures" rows={realRows} columns={cultureColumns} loading={loading} initialSortKey="nom" searchPlaceholder="Rechercher culture, parcelle, campagne..." /> : null}
+      {tab === 'Performance' ? <DataTable title="Performance cultures" rows={performanceRows} columns={cultureColumns} loading={loading} initialSortKey="nom" searchPlaceholder="Rechercher performance..." /> : null}
+      {tab === 'Parcelles' ? <DataTable title="Parcelles" rows={parcelles} columns={aggregateColumns} loading={loading} initialSortKey="nom" /> : null}
+      {tab === 'Campagnes' ? <DataTable title="Campagnes" rows={campagnes} columns={aggregateColumns} loading={loading} initialSortKey="nom" /> : null}
+    </>}
     <CultureFicheModal open={modal === 'details'} onClose={() => setModal(null)} culture={selected ? { ...selected, cout_total_calcule: costOf(selected), revenu_calcule: revenueOf(selected), marge_calculee: marginOf(selected), score_sante_calcule: healthOf(selected), horizon_decision: selected.horizon_decision || buildCultureDecisionProfile(selected) } : selected} />
-    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={CULTURE_FIELDS} initialValues={applyCultureDecisionDefaults({ id: generateSequentialId('cultures', rows), record_type: 'culture', statut: 'planifiee', localisation: 'Thiès / Médina Fall', date_debut_campagne: today(), unite_surface: 'm²', unite_recolte: 'kg' })} autoId={() => generateSequentialId('cultures', rows)} loading={saving} title="Ajouter culture" submitLabel="Ajouter" />
+    <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={CULTURE_FIELDS} initialValues={applyCultureDecisionDefaults({ id: generateSequentialId('cultures', rows), record_type: 'culture', statut: 'planifiee', localisation: '', date_debut_campagne: today(), unite_surface: 'm²', unite_recolte: 'kg' })} autoId={() => generateSequentialId('cultures', rows)} loading={saving} title="Ajouter culture" submitLabel="Ajouter" />
     <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={CULTURE_FIELDS} initialValues={selected || {}} loading={saving} title="Modifier fiche" submitLabel="Enregistrer" />
     <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected?.nom || selected?.id || ''} loading={saving} />
   </div>;

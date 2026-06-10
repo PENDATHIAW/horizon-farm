@@ -63,8 +63,24 @@ export default function CulturesRecoveredModule(props) {
     clients: arr(props.clients),
   };
 
+  const refreshWorkflow = async () => {
+    await Promise.allSettled([
+      culturesCrud.refresh?.(),
+      stockCrud.refresh?.(),
+      opportunitiesCrud.refresh?.(),
+      eventsCrud.refresh?.(),
+      financesCrud.refresh?.(),
+      salesCrud.refresh?.(),
+      paymentsCrud.refresh?.(),
+    ]);
+  };
+
+  const onUpdateCultureOnly = async (id, payload) => {
+    await (props.onUpdate || culturesCrud.update)?.(id, payload);
+  };
+
   const workflowHandlers = {
-    onUpdateCulture: props.onUpdate || culturesCrud.update,
+    onUpdateCulture: onUpdateCultureOnly,
     onCreateHarvestRecord: props.onCreateBusinessEvent || eventsCrud.create,
     onCreateStock: props.onCreateStock || stockCrud.create,
     onUpdateStock: props.onUpdateStock || stockCrud.update,
@@ -76,18 +92,6 @@ export default function CulturesRecoveredModule(props) {
     onCreateOrder: props.onCreateOrder || salesCrud.create,
     onCreatePayment: props.onCreatePayment || paymentsCrud.create,
     onCreateInvoice: props.onCreateInvoice,
-  };
-
-  const refreshWorkflow = async () => {
-    await Promise.allSettled([
-      culturesCrud.refresh?.(),
-      stockCrud.refresh?.(),
-      opportunitiesCrud.refresh?.(),
-      eventsCrud.refresh?.(),
-      financesCrud.refresh?.(),
-      salesCrud.refresh?.(),
-      paymentsCrud.refresh?.(),
-    ]);
   };
 
   const syncHarvest = async (before = {}, after = {}, source = 'fiche culture') => {
@@ -118,8 +122,18 @@ export default function CulturesRecoveredModule(props) {
 
   const onUpdate = async (id, payload) => {
     const before = rows.find((row) => String(row.id) === String(id)) || {};
+    await onUpdateCultureOnly(id, payload);
+    if (payload.side_effects_managed || payload.derniere_recolte_id || payload.last_harvest_at) {
+      await refreshWorkflow();
+      return;
+    }
+    const saleOnlyKeys = new Set(['vendable', 'pret_a_la_vente', 'ready_for_sale', 'sale_ready', 'sale_ready_confirmed_at', 'last_sale_opportunity_at', 'updated_at']);
+    const patchKeys = Object.keys(payload).filter((key) => key !== 'id');
+    if (patchKeys.length > 0 && patchKeys.every((key) => saleOnlyKeys.has(key))) {
+      await refreshWorkflow();
+      return;
+    }
     const after = { ...before, ...payload, id };
-    await (props.onUpdate || culturesCrud.update)?.(id, payload);
     await syncHarvest(before, after, 'modification culture');
   };
 
@@ -152,6 +166,8 @@ export default function CulturesRecoveredModule(props) {
     onRefreshStockMovements: props.onRefreshStockMovements,
     onNavigate: props.onNavigate,
     meteo,
+    transactions,
+    activeFarm: props.activeFarm,
   };
 
   const dataMap = useMemo(() => ({
@@ -178,6 +194,7 @@ export default function CulturesRecoveredModule(props) {
       dataMap={dataMap}
       onNavigate={props.onNavigate}
       onCreateBusinessEvent={eventsCrud.create}
+      onCreateStock={workflowHandlers.onCreateStock}
       onUpdateStock={stockCrud.update}
       onRefresh={refreshWorkflow}
     />
@@ -192,6 +209,7 @@ export default function CulturesRecoveredModule(props) {
   ) : tab === 'Récoltes' ? (
     <CulturesRecoltesHub
       rows={rows}
+      stocks={stocks}
       context={workflowContext}
       handlers={workflowHandlers}
       onSuccess={refreshWorkflow}
@@ -203,11 +221,19 @@ export default function CulturesRecoveredModule(props) {
       onRefreshOpportunities={sharedV3Props.onRefreshOpportunities}
       onCreateBusinessEvent={workflowHandlers.onCreateBusinessEvent}
       onRefreshBusinessEvents={sharedV3Props.onRefreshBusinessEvents}
+      onNavigate={props.onNavigate}
     />
   ) : tab === 'Transformation' ? (
-    <CulturesTransformationHub onNavigate={props.onNavigate} />
+    <CulturesTransformationHub
+      rows={rows}
+      stocks={stocks}
+      context={workflowContext}
+      handlers={workflowHandlers}
+      onSuccess={refreshWorkflow}
+      onNavigate={props.onNavigate}
+    />
   ) : tab === 'Économie circulaire' ? (
-    <CulturesEconomieHub stocks={stocks} salesOrders={salesOrders} rows={rows} businessEvents={businessEvents} dataMap={dataMap} />
+    <CulturesEconomieHub stocks={stocks} salesOrders={salesOrders} rows={rows} businessEvents={businessEvents} dataMap={dataMap} onNavigate={props.onNavigate} />
   ) : tab === 'Annexe' ? (
     <CulturesAnnexeTab documents={documents} onNavigate={props.onNavigate} />
   ) : tab === 'Graphiques' ? (

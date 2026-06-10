@@ -80,6 +80,9 @@ export default function CulturesHarvestPanel({
         <div className="md:col-span-1"><Field label="Frais récolte"><input type="number" className={inputCls} value={form.frais_recolte} onChange={(e) => update('frais_recolte', e.target.value)} /></Field></div>
         <div className="md:col-span-1"><Field label="Transport"><input type="number" className={inputCls} value={form.frais_transport} onChange={(e) => update('frais_transport', e.target.value)} /></Field></div>
         <div className="md:col-span-1"><Field label="Conditionnement"><input type="number" className={inputCls} value={form.frais_conditionnement} onChange={(e) => update('frais_conditionnement', e.target.value)} /></Field></div>
+        <div className="md:col-span-1"><Field label="Main d&apos;œuvre"><input type="number" className={inputCls} value={form.frais_main_oeuvre} onChange={(e) => update('frais_main_oeuvre', e.target.value)} /></Field></div>
+        <div className="md:col-span-1"><Field label="Autres frais"><input type="number" className={inputCls} value={form.autres_frais} onChange={(e) => update('autres_frais', e.target.value)} /></Field></div>
+        <div className="md:col-span-2"><Field label="Notes"><input className={inputCls} value={form.notes} onChange={(e) => update('notes', e.target.value)} placeholder="Observations terrain" /></Field></div>
         <div className="md:col-span-2 flex items-end"><button type="submit" disabled={workflowBusy} className="w-full rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{workflowBusy ? '…' : 'Enregistrer la récolte'}</button></div>
       </form>
       <p className="text-sm text-[#7d6a4a]">Coût de revient estimé : <b>{unitCost ? fmtCurrency(unitCost) : '—'}</b> / {form.unite} · frais saisis : <b>{fmtNumber(extra)} F</b></p>

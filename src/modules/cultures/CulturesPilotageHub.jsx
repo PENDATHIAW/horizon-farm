@@ -32,6 +32,7 @@ export default function CulturesPilotageHub({
   dataMap = {},
   onNavigate,
   onCreateBusinessEvent,
+  onCreateStock,
   onUpdateStock,
   onRefresh,
 }) {
@@ -54,9 +55,9 @@ export default function CulturesPilotageHub({
   return (
     <div className="space-y-5">
       <section className="rounded-3xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
-        <p className="flex items-center gap-2 font-black"><BrainCircuit size={16} /> Brief Assistant Cultures</p>
+        <p className="flex items-center gap-2 font-black"><BrainCircuit size={16} /> Brief décision terrain</p>
         <p className="mt-2">{iaBrief}</p>
-        <p className="mt-1 text-xs text-sky-800">Lecture seule — aucune donnée stockée ici.</p>
+        <p className="mt-1 text-xs text-sky-800">Règles métier locales — lecture seule, aucune donnée stockée ici.</p>
       </section>
 
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
@@ -77,6 +78,7 @@ export default function CulturesPilotageHub({
         transactions={transactions}
         salesOrders={salesOrders}
         onCreateBusinessEvent={onCreateBusinessEvent}
+        onCreateStock={onCreateStock}
         onUpdateStock={onUpdateStock}
         onRefresh={onRefresh}
       />

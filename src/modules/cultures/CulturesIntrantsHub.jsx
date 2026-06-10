@@ -17,7 +17,7 @@ export default function CulturesIntrantsHub(props) {
         </div>
         <CultureInputsWeatherPanel stocks={props.stocks} meteo={meteo} weatherLoading={liveWeatherLoading} onNavigate={props.onNavigate} />
       </section>
-      <CulturesTabActionsBridge {...props} tab="Intrants" actionsMode="input" />
+      <CulturesTabActionsBridge {...props} tab="Intrants & Météo" actionsMode="input" />
     </div>
   );
 }

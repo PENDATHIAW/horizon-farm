@@ -4,8 +4,10 @@ import {
   commitCultureHarvest,
   commitCultureExpense,
   commitCultureStockSale,
+  commitCultureTransformation,
   computeCultureSaleAmounts,
   validateCultureHarvestForm,
+  validateCultureTransformationForm,
   runCultureScenario,
 } from '../../src/utils/culturesWorkflow.js';
 import { buildCulturesGapRows } from '../../src/utils/culturesIntegrity.js';
@@ -183,6 +185,44 @@ test('runCultureScenario produces culture margin after harvest and sales', async
     payments: state.payments,
   });
   assert.ok(Array.isArray(gaps));
+});
+
+test('validateCultureTransformationForm requires stock and quantities', () => {
+  assert.match(validateCultureTransformationForm({}), /Stock matière première/);
+  assert.match(validateCultureTransformationForm({ source_stock_id: 'S1', quantite: 5 }), /produit transformé/);
+});
+
+test('commitCultureTransformation exits source and creates finished stock', async () => {
+  const state = {
+    stocks: [{ id: 'STK-1', produit: 'Récolte Tomates', quantite: 100, unite: 'kg', culture_id: 'C1', prix_unitaire: 200 }],
+    events: [],
+    finances: [],
+  };
+  const handlers = {
+    onUpdateStock: async (id, patch) => {
+      const i = state.stocks.findIndex((s) => s.id === id);
+      state.stocks[i] = { ...state.stocks[i], ...patch };
+    },
+    onCreateStock: async (row) => { state.stocks.push(row); },
+    onCreateBusinessEvent: async (row) => { state.events.push(row); },
+    onCreateFinanceTransaction: async (row) => { state.finances.push(row); },
+  };
+  const result = await commitCultureTransformation({
+    form: {
+      source_stock_id: 'STK-1',
+      quantite: 40,
+      produit_fini: 'Concentré tomate',
+      quantite_produit_fini: 10,
+      cout_transformation: 5000,
+      date: '2026-06-09',
+    },
+    context: state,
+    handlers,
+  });
+  assert.equal(result.ok, true);
+  assert.equal(stockQty(state.stocks.find((s) => s.id === 'STK-1')), 60);
+  assert.ok(state.stocks.some((s) => s.produit === 'Concentré tomate'));
+  assert.equal(state.finances.length, 1);
 });
 
 function num(value) {
