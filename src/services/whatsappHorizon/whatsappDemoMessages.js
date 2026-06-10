@@ -33,6 +33,12 @@ export const WHATSAPP_DEMO_MESSAGES = [
     module: 'Commercial',
     text: "J'ai livré 10 poulets à la supérette du coin.",
   },
+  {
+    id: 'demo-hotel-terminus',
+    label: 'Commande Hôtel Terminus (investisseur)',
+    module: 'Commercial',
+    text: 'Bonjour, ici Hôtel Terminus. Je commande 50 plateaux d\'œufs et 30 kg de poulets. Facturez-moi, paiement par virement.',
+  },
 ];
 
 export default WHATSAPP_DEMO_MESSAGES;

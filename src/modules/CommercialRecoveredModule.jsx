@@ -28,6 +28,7 @@ import { buildScheduledRelanceRows } from '../utils/commercialScheduledRelances.
 import { buildCommercialDeliveryQueue } from '../utils/commercialDeliveries.js';
 import { readAllCommercialSubscriptions, subscriptionsToPrepare } from '../utils/commercialSubscriptions.js';
 import { buildCommercialStartupJourney, isCommercialStartupMode } from '../utils/commercialStartup.js';
+import { buildAutoCommercialOpportunities } from '../utils/commercialAutoOpportunities.js';
 import { buildWhatsAppLogPayload, WHATSAPP_STATUSES } from '../utils/whatsappCommercial.js';
 import { listSellableStocks } from '../utils/sellableStock.js';
 import { rowsOf, allRows } from '../utils/moduleRows';
@@ -335,6 +336,29 @@ export default function CommercialRecoveredModule(props) {
       sellableStocks,
       receivable,
     });
+    const autoOpportunities = buildAutoCommercialOpportunities({
+      stocks: stockRows,
+      cultures: culturesRows,
+      lots: lotsRows,
+      animaux: animauxRows,
+      salesOrders: snapshotOrders,
+    });
+    const marginContext = {
+      lots: lotsRows,
+      animaux: animauxRows,
+      cultures: culturesRows,
+      stocks: stockRows,
+      alimentationLogs: rowsOf(props.alimentationLogs, alimentationCrud, pf),
+      productionLogs: rowsOf(props.productionLogs, productionCrud, pf),
+      vaccins: rowsOf(props.vaccins || props.sante, santeCrud, pf),
+      businessEvents: rowsOf(props.businessEvents, eventsCrud, pf),
+      payments: snapshotPayments,
+      transactions: transactionRows,
+    };
+    const chartOptions = {
+      businessPlans: rowsOf(props.businessPlans, businessPlansCrud, false),
+      rows: snapshotOrders,
+    };
     return {
       orders: periodOrders,
       ordersAll: snapshotOrders,
@@ -379,6 +403,9 @@ export default function CommercialRecoveredModule(props) {
       healthScore: healthSnap.score,
       healthFindings: healthSnap.findings,
       healthPredictions: healthSnap.predictions,
+      autoOpportunities,
+      marginContext,
+      chartOptions,
     };
   }, [
     orders, ordersAll, payments, paymentsAll, deliveriesAll, invoicesAll, clients, opportunities,
@@ -519,15 +546,45 @@ export default function CommercialRecoveredModule(props) {
       {tab === 'Relances' ? (
         <CommercialScheduledRelancesPanel
           rows={data.relanceRows}
+          clients={clients}
           onCreateTask={workflowHandlers.onCreateTask}
           onRefreshTasks={props.onRefreshTasks || tasksCrud.refresh}
           onOpenClient={openClientTab}
           onPrepareWhatsApp={prepareRelanceWhatsApp}
         />
       ) : null}
-      {tab === 'Opportunités' ? <CommercialOpportunitiesPanel opportunities={data.openOpportunities} clients={clients} salesOrders={data.orders} setTab={setTab} onWhatsAppLog={logOpportunityWhatsApp} onConvertSale={convertOpportunityToSale} /> : null}
+      {tab === 'Opportunités' ? (
+        <CommercialOpportunitiesPanel
+          opportunities={data.openOpportunities}
+          autoOpportunities={data.autoOpportunities}
+          clients={clients}
+          stocks={stockRows}
+          cultures={culturesRows}
+          lots={lotsRows}
+          animaux={animauxRows}
+          salesOrders={data.orders}
+          setTab={setTab}
+          onWhatsAppLog={logOpportunityWhatsApp}
+          onConvertSale={convertOpportunityToSale}
+          onUpdateLot={workflowHandlers.onUpdateLot || props.onUpdateLot || lotsCrud.update}
+          onRefreshLots={props.onRefreshLots || lotsCrud.refresh}
+          onUpdateAnimal={props.onUpdateAnimal || animalsCrud.update}
+          onRefreshAnimals={props.onRefreshAnimals || animalsCrud.refresh}
+          onCreateOpportunity={props.onCreateOpportunity || opportunitiesCrud.create}
+          onUpdateOpportunity={props.onUpdateOpportunity || opportunitiesCrud.update}
+          onRefreshOpportunities={props.onRefreshOpportunities || opportunitiesCrud.refresh}
+          onCreateBusinessEvent={workflowHandlers.onCreateBusinessEvent}
+          onRefreshBusinessEvents={props.onRefreshBusinessEvents || eventsCrud.refresh}
+        />
+      ) : null}
       {tab === 'Pilotage' ? (
-        <CommercialPilotagePanel data={data} setTab={setTab} periodLabel={props.periodLabel} />
+        <CommercialPilotagePanel
+          data={data}
+          setTab={setTab}
+          periodLabel={props.periodLabel}
+          marginContext={data.marginContext}
+          chartOptions={data.chartOptions}
+        />
       ) : null}
       {tab === 'Annexe' ? (
         <CommercialAnnexeTab

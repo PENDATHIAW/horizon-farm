@@ -5,11 +5,12 @@ import SmartPieChart from '../../components/charts/SmartPieChart.jsx';
 import { buildCommercialChartDataset } from './commercialChartMetrics.js';
 import { applyCommercialChartFilters, buildCommercialFilterOptions } from './commercialChartFilters.js';
 import CommercialChartFiltersBar from './CommercialChartFiltersBar.jsx';
+import CommercialChartInsightBar from './CommercialChartInsightBar.jsx';
 import { activityStartSourceLabel } from '../../utils/activityYear.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
-function ChartSection({ title, question, children }) {
+function ChartSection({ title, question, chartDataset, insightIds = [], children }) {
   return (
     <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm space-y-4">
       <div>
@@ -17,6 +18,12 @@ function ChartSection({ title, question, children }) {
         {question ? <p className="mt-1 text-sm font-semibold text-[#9a6b12]">{question}</p> : null}
       </div>
       {children}
+      {chartDataset ? (
+        <CommercialChartInsightBar
+          chartDataset={chartDataset}
+          filterIds={insightIds}
+        />
+      ) : null}
     </section>
   );
 }
@@ -81,7 +88,7 @@ export default function CommercialEvolution(props) {
         </p>
       ) : null}
 
-      <ChartSection title="1 · Performance & marge" question="Est-ce que je gagne de l'argent, et où ?">
+      <ChartSection title="1 · Performance & marge" question="Est-ce que je gagne de l'argent, et où ?" chartDataset={data} insightIds={['ca-up', 'ca-down', 'margin-down', 'activity-margin']}>
         <ChartsGrid>
           <SmartEvolutionChart
             moduleName="Commercial"
@@ -144,7 +151,7 @@ export default function CommercialEvolution(props) {
         </ChartsGrid>
       </ChartSection>
 
-      <ChartSection title="3 · Atteinte CA" question="Suis-je dans le plan ?">
+      <ChartSection title="3 · Atteinte CA" question="Suis-je dans le plan ?" chartDataset={data} insightIds={['target-month']}>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <AttainmentKpi label="Mois en cours" {...data.kpis.month} />
           <AttainmentKpi label="Période ERP" {...data.kpis.period} />

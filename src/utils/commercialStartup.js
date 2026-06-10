@@ -42,14 +42,20 @@ export function buildCommercialStartupJourney({
   const hasWhatsApp = arr(whatsappLogs).some((l) => ['envoye_manuel', 'ouvert', 'sent_manual'].includes(String(l.status || '').toLowerCase()));
   const hasReceivableFollowUp = num(receivable) > 0;
 
+  const hasOrder = sales.length > 0;
+  const hasDelivery = sales.some((o) => ['livre', 'livré', 'livree', 'delivered', 'recupere', 'récupéré'].includes(String(o.statut_livraison || o.delivery_status || '').toLowerCase()));
+  const hasEncaissement = hasPayment;
+
   const steps = [
-    { key: 'client', label: 'Créer le premier client', tab: 'Clients', done: hasClient },
-    { key: 'product', label: 'Ajouter ou publier un produit vendable', module: 'achats_stock', tab: 'Stock', done: hasSellable },
-    { key: 'quote', label: 'Créer un devis ou une commande', tab: 'Ventes', done: hasQuote || hasSale },
-    { key: 'payment', label: 'Enregistrer un paiement', tab: 'Ventes', done: hasPayment },
-    { key: 'invoice', label: 'Générer une facture', tab: 'Annexe', done: hasInvoice },
-    { key: 'whatsapp', label: 'Envoyer une relance ou confirmation WhatsApp', tab: 'Clients', done: hasWhatsApp },
-    { key: 'receivable', label: 'Consulter les créances', tab: 'Clients', done: hasReceivableFollowUp || hasPayment },
+    { key: 'client', label: '1. Créer client', tab: 'Clients', done: hasClient },
+    { key: 'product', label: '2. Publier produit vendable', module: 'achats_stock', tab: 'Stock', done: hasSellable },
+    { key: 'quote', label: '3. Créer devis', tab: 'Ventes', done: hasQuote },
+    { key: 'order', label: '4. Créer commande', tab: 'Ventes', done: hasOrder },
+    { key: 'invoice', label: '5. Créer facture', tab: 'Annexe', done: hasInvoice },
+    { key: 'delivery', label: '6. Livrer', tab: 'Livraisons', done: hasDelivery },
+    { key: 'payment', label: '7. Encaisser', tab: 'Ventes', done: hasEncaissement },
+    { key: 'whatsapp', label: 'Relance ou confirmation WhatsApp', tab: 'Clients', done: hasWhatsApp },
+    { key: 'receivable', label: 'Suivi créances', tab: 'Clients', done: hasReceivableFollowUp || hasPayment },
   ];
 
   const completed = steps.filter((s) => s.done).length;

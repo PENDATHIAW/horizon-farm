@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase.js';
 import { interpretHorizonCommand, updateHorizonDraft } from './aiIntentEngine.js';
 import { detectStrategicQuery } from './heyHorizonStrategicAnswers.js';
 import { detectProductionQuestion } from './productionStrategicAnswers.js';
+import { detectCommercialPilotageQuery, buildCommercialPilotageAnswer } from './heyHorizonCommercialAnswers.js';
 import { saveLocalRecommendation } from './aiRecommendationsService.js';
 import { interpretVoiceCommand } from './voiceCommands.js';
 import { enhanceHeyHorizonQuestion, isHeyHorizonLlmEnabled, normalizeLlmDraft } from './heyHorizonLlmService.js';
@@ -255,6 +256,35 @@ export function processHeyHorizonCommand(rawText = '', { dataMap = {}, currentDr
       },
       `Question production : ${PRODUCTION_LABELS[productionType] || 'analyse bandes'}. `,
     );
+  }
+  const commercialType = detectCommercialPilotageQuery(rawText);
+  if (commercialType) {
+    const answer = buildCommercialPilotageAnswer(commercialType, dataMap);
+    const journalEntry = {
+      type: 'commercial_pilotage',
+      text: rawText,
+      module: 'commercial',
+      confidence_score: answer.confidence,
+      action: answer.title,
+      source_engine: 'commercial_rules',
+    };
+    saveLocalRecommendation(journalEntry);
+    return {
+      kind: 'strategic',
+      strategic: {
+        type: answer.type,
+        title: answer.title,
+        summary: answer.summary,
+        rows: answer.rows,
+        route: answer.route,
+        tab: answer.tab,
+        confidence: answer.confidence,
+      },
+      draft: null,
+      assistantText: answer.summary,
+      journalEntry,
+      source: 'commercial_rules',
+    };
   }
   const strategicType = detectStrategicQuery(rawText);
   if (strategicType) {
