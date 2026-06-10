@@ -7,10 +7,10 @@ export default function CulturesSanteHub(props) {
   return (
     <div className="space-y-5">
       <section className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        <b>Santé & protection</b> — maladies, ravageurs, stress hydrique, traitements phytosanitaires.
+        <b>Santé & protection</b> — maladies, ravageurs, stress hydrique. Déclarez les pertes et créez les suivis terrain ci-dessous.
       </section>
       <CulturesWorkflowBridge rows={realRows} onUpdate={props.onUpdate} onRefresh={props.onRefresh} />
-      <CulturesTabActionsBridge {...props} tab="Santé" actionsMode="loss" />
+      <CulturesTabActionsBridge {...props} tab="Santé & Protection" actionsMode="loss" />
     </div>
   );
 }

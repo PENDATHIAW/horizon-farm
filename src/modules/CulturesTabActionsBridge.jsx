@@ -1,8 +1,8 @@
 import { AlertTriangle, Edit, Leaf, Plus, Sprout, Trash2, TrendingUp } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { buildCultureInputUsageWorkflow, buildCultureLossWorkflow } from '../utils/cultureWorkflows.js';
-import { runCultureInputSideEffects } from '../utils/cultureSideEffects.js';
+import { buildCultureInputUsageWorkflow } from '../utils/cultureWorkflows.js';
+import { runCultureInputSideEffects, runCultureLossSideEffects } from '../utils/cultureSideEffects.js';
 import { fmtNumber, toNumber } from '../utils/format';
 import { generateSequentialId, makeId } from '../utils/ids';
 
@@ -43,6 +43,8 @@ export default function CulturesTabActionsBridge({
   onRefreshStockMovements,
   onCreateBusinessEvent,
   onRefreshBusinessEvents,
+  onCreateFinanceTransaction,
+  transactions = [],
   actionsMode = 'all',
 }) {
   const [modal, setModal] = useState('');
@@ -99,14 +101,26 @@ export default function CulturesTabActionsBridge({
   };
   const saveLoss = async () => {
     const culture = realCultures.find((row) => row.id === values.culture_id);
-    const workflow = buildCultureLossWorkflow({ culture, qty: values.quantite_perdue, unitPrice: values.prix_unitaire, reason: values.raison || 'Perte déclarée', date: values.date || today() });
-    if (!workflow) return toast.error('Choisis une culture et une quantité perdue');
+    if (!culture) return toast.error('Choisis une culture');
+    const qty = toNumber(values.quantite_perdue);
+    if (qty <= 0) return toast.error('Quantité perdue invalide');
     try {
       setSaving(true);
-      await onUpdate?.(culture.id, workflow.culturePatch);
-      await onCreateBusinessEvent?.(workflow.event);
+      await runCultureLossSideEffects({
+        culture,
+        qty,
+        unitPrice: values.prix_unitaire,
+        reason: values.raison || 'Perte déclarée',
+        date: values.date || today(),
+        transactions,
+        handlers: {
+          onUpdateCulture: onUpdate,
+          onCreateBusinessEvent,
+          onCreateFinanceTransaction,
+        },
+      });
       await Promise.allSettled([onRefresh?.(), onRefreshBusinessEvents?.()]);
-      toast.success('Perte enregistrée et tracée');
+      toast.success('Perte enregistrée — Finance et traçabilité à jour');
       setModal('');
     } catch (error) {
       toast.error(error.message || 'Déclaration perte impossible');
@@ -129,6 +143,8 @@ export default function CulturesTabActionsBridge({
   const showInputOnly = actionsMode === 'input';
   const showLossOnly = actionsMode === 'loss';
 
-  return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4"><div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Actions {tab}</p><h3 className="font-black text-[#2f2415]">Fiches et actions liées à l’onglet</h3></div><div className="text-xs text-[#8a7456]">{realCultures.length} cultures · {parcelles.length} parcelles · {campagnes.length} campagnes · {performances.length} performances</div></div>{showMain ? <div className="grid grid-cols-1 md:grid-cols-3 gap-2"><ActionCard icon={Plus} title="Nouvelle culture" desc="Créer une culture liée à une parcelle et une campagne. Récolte, intrants et pertes : onglets dédiés." onClick={() => openModal('culture', { unite_surface: 'm²', statut: 'planifiee', date_debut_campagne: today() })} /></div> : null}{showInputOnly ? <div className="grid grid-cols-1 md:grid-cols-2 gap-2"><ActionCard icon={Leaf} title="Utiliser intrant" desc="Semences, engrais, phyto ou irrigation — stock décrémenté, coût culture mis à jour." onClick={() => openModal('input', { date: today(), motif: 'Application intrant culture' })} /></div> : null}{showLossOnly ? <div className="grid grid-cols-1 md:grid-cols-2 gap-2"><ActionCard icon={AlertTriangle} title="Déclarer perte / sinistre" desc="Maladie, ravageur ou stress — traçabilité et valeur perdue." onClick={() => openModal('loss', { date: today() })} /></div> : null}{showParcelles ? <div className="grid grid-cols-1 md:grid-cols-3 gap-2"><ActionCard icon={Leaf} title="Nouvelle parcelle" desc="Créer une fiche parcelle sans devoir créer une culture complète." onClick={() => openModal('parcelle', { unite_surface: 'm²', statut: 'actif' })} /></div> : null}{showCampagnes ? <div className="grid grid-cols-1 md:grid-cols-3 gap-2"><ActionCard icon={Sprout} title="Nouvelle campagne" desc="Créer une fiche campagne avec budget et dates." onClick={() => openModal('campagne', { date_debut_campagne: today(), statut: 'planifiee' })} /></div> : null}{showPerformance ? <div className="grid grid-cols-1 md:grid-cols-3 gap-2"><ActionCard icon={TrendingUp} title="Nouvelle performance" desc="Ajouter une analyse performance manuelle ou corrective." onClick={() => openModal('performance')} /></div> : null}{showParcelles && parcelles.length ? <SupportList rows={parcelles} onEdit={(row) => openModal('edit', row)} onDelete={deleteSupport} /> : null}{showCampagnes && campagnes.length ? <SupportList rows={campagnes} onEdit={(row) => openModal('edit', row)} onDelete={deleteSupport} /> : null}{showPerformance && performances.length ? <SupportList rows={performances} onEdit={(row) => openModal('edit', row)} onDelete={deleteSupport} /> : null}{modal === 'culture' ? <Modal title="Nouvelle culture" values={values} setValues={setValues} fields={cultureFields} onClose={() => setModal('')} onSubmit={createCulture} saving={saving} /> : null}{modal === 'parcelle' ? <Modal title="Nouvelle parcelle" values={values} setValues={setValues} fields={parcelleFields} onClose={() => setModal('')} onSubmit={() => createSupport('parcelle')} saving={saving} /> : null}{modal === 'campagne' ? <Modal title="Nouvelle campagne" values={values} setValues={setValues} fields={campagneFields} onClose={() => setModal('')} onSubmit={() => createSupport('campagne')} saving={saving} /> : null}{modal === 'performance' ? <Modal title="Nouvelle performance" values={values} setValues={setValues} fields={performanceFields} onClose={() => setModal('')} onSubmit={() => createSupport('performance')} saving={saving} /> : null}{modal === 'input' ? <Modal title="Utiliser intrant" values={values} setValues={setValues} fields={inputFields} onClose={() => setModal('')} onSubmit={saveInputUsage} saving={saving} /> : null}{modal === 'loss' ? <Modal title="Déclarer perte culture" values={values} setValues={setValues} fields={lossFields} onClose={() => setModal('')} onSubmit={saveLoss} saving={saving} /> : null}{modal === 'edit' ? <Modal title="Modifier fiche" values={values} setValues={setValues} fields={recordType(values) === 'performance' ? performanceFields : recordType(values) === 'campagne' ? campagneFields : parcelleFields} onClose={() => setModal('')} onSubmit={updateSupport} saving={saving} /> : null}</div>;
+  const sectionTab = showInputOnly ? 'Intrants & Météo' : showLossOnly ? 'Santé & Protection' : tab;
+
+  return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4"><div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Actions {sectionTab}</p><h3 className="font-black text-[#2f2415]">Fiches et actions liées à l’onglet</h3></div><div className="text-xs text-[#8a7456]">{realCultures.length} cultures · {parcelles.length} parcelles · {campagnes.length} campagnes · {performances.length} performances</div></div>{showMain ? <div className="grid grid-cols-1 md:grid-cols-3 gap-2"><ActionCard icon={Plus} title="Nouvelle culture" desc="Créer une culture liée à une parcelle et une campagne. Récolte, intrants et pertes : onglets dédiés." onClick={() => openModal('culture', { unite_surface: 'm²', statut: 'planifiee', date_debut_campagne: today() })} /></div> : null}{showInputOnly ? <div className="grid grid-cols-1 md:grid-cols-2 gap-2"><ActionCard icon={Leaf} title="Utiliser intrant" desc="Semences, engrais, phyto ou irrigation — stock décrémenté, coût culture mis à jour." onClick={() => openModal('input', { date: today(), motif: 'Application intrant culture' })} /></div> : null}{showLossOnly ? <div className="grid grid-cols-1 md:grid-cols-2 gap-2"><ActionCard icon={AlertTriangle} title="Déclarer perte / sinistre" desc="Maladie, ravageur ou stress — traçabilité et valeur perdue." onClick={() => openModal('loss', { date: today() })} /></div> : null}{showParcelles ? <div className="grid grid-cols-1 md:grid-cols-3 gap-2"><ActionCard icon={Leaf} title="Nouvelle parcelle" desc="Créer une fiche parcelle sans devoir créer une culture complète." onClick={() => openModal('parcelle', { unite_surface: 'm²', statut: 'actif' })} /></div> : null}{showCampagnes ? <div className="grid grid-cols-1 md:grid-cols-3 gap-2"><ActionCard icon={Sprout} title="Nouvelle campagne" desc="Créer une fiche campagne avec budget et dates." onClick={() => openModal('campagne', { date_debut_campagne: today(), statut: 'planifiee' })} /></div> : null}{showPerformance ? <div className="grid grid-cols-1 md:grid-cols-3 gap-2"><ActionCard icon={TrendingUp} title="Nouvelle performance" desc="Ajouter une analyse performance manuelle ou corrective." onClick={() => openModal('performance')} /></div> : null}{showParcelles && parcelles.length ? <SupportList rows={parcelles} onEdit={(row) => openModal('edit', row)} onDelete={deleteSupport} /> : null}{showCampagnes && campagnes.length ? <SupportList rows={campagnes} onEdit={(row) => openModal('edit', row)} onDelete={deleteSupport} /> : null}{showPerformance && performances.length ? <SupportList rows={performances} onEdit={(row) => openModal('edit', row)} onDelete={deleteSupport} /> : null}{modal === 'culture' ? <Modal title="Nouvelle culture" values={values} setValues={setValues} fields={cultureFields} onClose={() => setModal('')} onSubmit={createCulture} saving={saving} /> : null}{modal === 'parcelle' ? <Modal title="Nouvelle parcelle" values={values} setValues={setValues} fields={parcelleFields} onClose={() => setModal('')} onSubmit={() => createSupport('parcelle')} saving={saving} /> : null}{modal === 'campagne' ? <Modal title="Nouvelle campagne" values={values} setValues={setValues} fields={campagneFields} onClose={() => setModal('')} onSubmit={() => createSupport('campagne')} saving={saving} /> : null}{modal === 'performance' ? <Modal title="Nouvelle performance" values={values} setValues={setValues} fields={performanceFields} onClose={() => setModal('')} onSubmit={() => createSupport('performance')} saving={saving} /> : null}{modal === 'input' ? <Modal title="Utiliser intrant" values={values} setValues={setValues} fields={inputFields} onClose={() => setModal('')} onSubmit={saveInputUsage} saving={saving} /> : null}{modal === 'loss' ? <Modal title="Déclarer perte culture" values={values} setValues={setValues} fields={lossFields} onClose={() => setModal('')} onSubmit={saveLoss} saving={saving} /> : null}{modal === 'edit' ? <Modal title="Modifier fiche" values={values} setValues={setValues} fields={recordType(values) === 'performance' ? performanceFields : recordType(values) === 'campagne' ? campagneFields : parcelleFields} onClose={() => setModal('')} onSubmit={updateSupport} saving={saving} /> : null}</div>;
 }
 function SupportList({ rows, onEdit, onDelete }) { return <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">{rows.map((row) => <div key={row.id} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3"><p className="font-bold text-[#2f2415]">{row.nom || row.id}</p><p className="text-xs text-[#8a7456] mt-1">{row.parcelle || row.campagne || row.statut || recordType(row)}</p><div className="flex gap-3 mt-3"><button type="button" className="text-xs font-bold text-amber-700" onClick={() => onEdit(row)}><Edit size={13} className="inline" /> Modifier</button><button type="button" className="text-xs font-bold text-red-600" onClick={() => onDelete(row)}><Trash2 size={13} className="inline" /> Supprimer</button></div></div>)}</div>; }

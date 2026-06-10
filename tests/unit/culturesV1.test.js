@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-import { MODULE_TARGET_TABS } from '../../src/config/horizonVision.config.js';
+import { MODULE_TARGET_TABS, MODULE_AUDIT_ORDER } from '../../src/config/horizonVision.config.js';
 import { resolveCulturesTab } from '../../src/utils/culturesNavigation.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -16,6 +16,10 @@ const parcellesHub = readFileSync(join(root, 'src/modules/cultures/CulturesParce
 const santeHub = readFileSync(join(root, 'src/modules/cultures/CulturesSanteHub.jsx'), 'utf8');
 const recoltesHub = readFileSync(join(root, 'src/modules/cultures/CulturesRecoltesHub.jsx'), 'utf8');
 const intrantsHub = readFileSync(join(root, 'src/modules/cultures/CulturesIntrantsHub.jsx'), 'utf8');
+const harvestPanel = readFileSync(join(root, 'src/modules/cultures/CulturesHarvestPanel.jsx'), 'utf8');
+const transformPanel = readFileSync(join(root, 'src/modules/cultures/CulturesTransformationPanel.jsx'), 'utf8');
+const transformHub = readFileSync(join(root, 'src/modules/cultures/CulturesTransformationHub.jsx'), 'utf8');
+const healthPanel = readFileSync(join(root, 'src/modules/CultureOperationalHealthPanel.jsx'), 'utf8');
 
 test('Cultures V1 — 10 onglets cible dans horizonVision', () => {
   const tabs = MODULE_TARGET_TABS.cultures;
@@ -24,6 +28,7 @@ test('Cultures V1 — 10 onglets cible dans horizonVision', () => {
   assert.ok(tabs.includes('Récoltes'));
   assert.ok(tabs.includes('Transformation'));
   assert.ok(tabs.includes('Économie circulaire'));
+  assert.ok(MODULE_AUDIT_ORDER.includes('cultures'));
 });
 
 test('Cultures V1 — navigation legacy mappée', () => {
@@ -45,14 +50,14 @@ test('CulturesWorkflowBridge — pas de récolte prompt (workflow officiel Réco
   assert.doesNotMatch(workflowBridge, /stockCrud/);
 });
 
-test('P0-1 — récolte unique via commitCultureHarvest (pas saveHarvest)', () => {
+test('Récolte unique — commitCultureHarvest, pas saveHarvest', () => {
   assert.doesNotMatch(tabActionsBridge, /saveHarvest/);
   assert.doesNotMatch(tabActionsBridge, /Ajouter récolte/);
-  assert.match(recoltesHub, /commitCultureHarvest/);
-  assert.match(recoltesHub, /CulturesHarvestPanel/);
+  assert.match(harvestPanel, /commitCultureHarvest/);
+  assert.match(recovered, /derniere_recolte_id/);
 });
 
-test('P0-2 — intrants uniquement via Intrants & Météo', () => {
+test('Intrants uniquement via Intrants & Météo', () => {
   assert.match(intrantsHub, /actionsMode="input"/);
   assert.doesNotMatch(parcellesHub, /actionsMode/);
   assert.match(culturesV3, /embeddedMode \? null : <CulturesTabActionsBridge/);
@@ -60,26 +65,46 @@ test('P0-2 — intrants uniquement via Intrants & Météo', () => {
   assert.doesNotMatch(showMain, /Utiliser intrant/);
 });
 
-test('P0-3 — pertes uniquement via Santé & Protection', () => {
+test('Pertes via Santé avec Finance (runCultureLossSideEffects)', () => {
   assert.match(santeHub, /actionsMode="loss"/);
+  assert.match(tabActionsBridge, /runCultureLossSideEffects/);
   const showMain = tabActionsBridge.match(/\{showMain \?[\s\S]*?\} : null\}\{showInputOnly/)?.[0] || '';
   assert.doesNotMatch(showMain, /Déclarer perte/);
 });
 
-test('P0-4 — opportunités uniquement via Récoltes', () => {
+test('Opportunités uniquement via Récoltes', () => {
   assert.doesNotMatch(tabActionsBridge, /Confirmer vendable/);
   assert.doesNotMatch(tabActionsBridge, /createOpportunity/);
   assert.match(recoltesHub, /CulturesSaleOpportunityBridge/);
 });
 
-test('P0-5 — pas de promesse caméra IA non implémentée', () => {
+test('Pas de promesse caméra IA', () => {
   assert.doesNotMatch(santeHub, /Diagnostic caméra IA/);
   assert.doesNotMatch(santeHub, /caméra/);
 });
 
-test('P0-6 — mode intégré Parcelles sans sous-onglets V3', () => {
+test('Mode intégré Parcelles sans sous-onglets V3', () => {
   assert.match(parcellesHub, /embeddedMode/);
   assert.match(culturesV3, /embeddedMode \? null : <div className="flex flex-wrap gap-2"/);
   assert.match(culturesV3, /embeddedMode \? <>\s*<DataTable title="Cultures"/s);
   assert.match(culturesV3, /<DataTable title="Parcelles"/);
+});
+
+test('Transformation — workflow réel commitCultureTransformation', () => {
+  assert.match(transformPanel, /commitCultureTransformation/);
+  assert.match(transformHub, /CulturesTransformationPanel/);
+  assert.match(recoltesHub, /CulturesTransformationPanel/);
+  assert.match(readFileSync(join(root, 'src/utils/culturesWorkflow.js'), 'utf8'), /export async function commitCultureTransformation/);
+});
+
+test('Navigation ERP — IDs modules valides', () => {
+  assert.match(healthPanel, /achats_stock/);
+  assert.match(healthPanel, /commercial/);
+  assert.doesNotMatch(healthPanel, /onNavigate\?\.\('stock'\)/);
+  assert.doesNotMatch(healthPanel, /onNavigate\?\.\('ventes'\)/);
+});
+
+test('Champs récolte verrouillés en édition fiche', () => {
+  assert.match(culturesV3, /quantite_recoltee.*readonly/s);
+  assert.match(culturesV3, /quantite_disponible.*readonly/s);
 });

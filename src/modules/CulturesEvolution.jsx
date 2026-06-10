@@ -83,7 +83,7 @@ export default function CulturesEvolution({ rows = [], onNavigate }) {
   const totalMargin = realRows.reduce((sum, row) => sum + margin(row), 0);
   const risks = realRows.filter(isRisk).length;
   const avgYield = totalSurface > 0 ? totalHarvest / totalSurface : 0;
-  const priority = risks > 0 ? { module: 'cultures', label: 'Traiter les cultures à risque', icon: AlertTriangle } : { module: 'ventes', label: 'Valoriser les récoltes', icon: TrendingUp };
+  const priority = risks > 0 ? { module: 'cultures', tab: 'Santé & Protection', label: 'Traiter les cultures à risque', icon: AlertTriangle } : { module: 'commercial', tab: 'Opportunités', label: 'Valoriser les récoltes', icon: TrendingUp };
   const PriorityIcon = priority.icon;
   const interpretation = risks > 0 ? `${fmtNumber(risks)} culture(s) ou campagne(s) à risque.` : totalHarvest > 0 ? `Récoltes suivies : ${fmtNumber(totalHarvest)} unité(s) récoltées.` : 'Compléter les récoltes et coûts pour calculer les rendements.';
 
@@ -91,7 +91,7 @@ export default function CulturesEvolution({ rows = [], onNavigate }) {
     <div className="bg-white border border-[#d6c3a0] rounded-2xl p-4">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-start gap-3"><div className="w-10 h-10 rounded-xl bg-[#fff3d8] text-[#9a6b12] flex items-center justify-center"><Sprout size={18} /></div><div><p className="font-black text-[#2f2415]">Évolution Cultures interactive</p><p className="text-xs text-[#8a7456] mt-1">Coûts, CA, marge, récoltes, rendement, pertes et risques par mois.</p></div></div>
-        <button type="button" onClick={() => onNavigate?.(priority.module)} className="hidden md:inline-flex items-center gap-2 rounded-xl bg-[#c9a96a] px-3 py-2 text-sm font-bold text-white hover:bg-[#b6975f]"><PriorityIcon size={15} />{priority.label}</button>
+        <button type="button" onClick={() => onNavigate?.(priority.module, priority.tab ? { tab: priority.tab } : undefined)} className="inline-flex items-center gap-2 rounded-xl bg-[#c9a96a] px-3 py-2 text-sm font-bold text-white hover:bg-[#b6975f]"><PriorityIcon size={15} />{priority.label}</button>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
         <SmallMetric label="Cultures" value={fmtNumber(realRows.length)} hint="fiches réelles" />
@@ -108,6 +108,6 @@ export default function CulturesEvolution({ rows = [], onNavigate }) {
     <SmartEvolutionChart title="Cultures — performance opérationnelle" subtitle="Surface, récoltes, pertes, cultures à risque et taux de réussite par mois." months={labels(monthly)} leftUnit="" rightUnit="%" series={[{ name: 'Surface suivie', type: 'bar', data: values(monthly, 'surface') }, { name: 'Quantité récoltée', type: 'bar', data: values(monthly, 'recolte') }, { name: 'Pertes', type: 'bar', data: values(monthly, 'pertes') }, { name: 'Cultures à risque', type: 'bar', data: values(monthly, 'risques') }, { name: 'Taux perte', type: 'line', axis: 'right', unit: '%', data: values(monthly, 'taux_perte') }, { name: 'Taux réussite', type: 'line', axis: 'right', unit: '%', data: values(monthly, 'taux_reussite') }]} />
 
     <div className="bg-[#fffdf8] border border-[#d6c3a0] rounded-2xl p-4 text-sm text-[#7d6a4a] flex items-start gap-3"><TrendingUp size={18} className="text-[#9a6b12] mt-0.5" /><div><b className="text-[#2f2415]">Interprétation :</b> {interpretation}</div></div>
-    <div className={`${risks ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'} border rounded-2xl p-4 text-sm flex items-start justify-between gap-3`}><div className="flex items-start gap-2"><PriorityIcon size={18} className="mt-0.5" /><div><b>Action recommandée :</b> {priority.label}.</div></div><button type="button" onClick={() => onNavigate?.(priority.module)} className="shrink-0 rounded-xl bg-white/70 border border-current/10 px-3 py-1.5 text-xs font-bold">Ouvrir</button></div>
+    <div className={`${risks ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'} border rounded-2xl p-4 text-sm flex items-start justify-between gap-3`}><div className="flex items-start gap-2"><PriorityIcon size={18} className="mt-0.5" /><div><b>Action recommandée :</b> {priority.label}.</div></div><button type="button" onClick={() => onNavigate?.(priority.module, priority.tab ? { tab: priority.tab } : undefined)} className="shrink-0 rounded-xl bg-white/70 border border-current/10 px-3 py-1.5 text-xs font-bold">Ouvrir</button></div>
   </div>;
 }

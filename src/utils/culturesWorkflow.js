@@ -233,6 +233,7 @@ export async function commitCultureHarvest({ form = {}, context = {}, handlers =
         source_module: 'cultures',
         source_record_id: cultureId,
         stock_key: cultureStockKey(after),
+        farm_id: culture.farm_id || form.farm_id || after.farm_id,
         side_effects_managed: true,
       };
 
@@ -552,6 +553,106 @@ export async function commitCultureStockSale({ form = {}, context = {}, handlers
   });
 
   return { ok: true, orderId, issueKey: records.issueKey, paid, remaining };
+}
+
+export function validateCultureTransformationForm(form = {}) {
+  if (!clean(form.source_stock_id)) return 'Stock matière première obligatoire.';
+  const qty = num(form.quantite);
+  if (qty <= 0) return 'Quantité à transformer obligatoire.';
+  if (!clean(form.produit_fini)) return 'Nom produit transformé obligatoire.';
+  if (num(form.quantite_produit_fini) <= 0) return 'Quantité produit fini obligatoire.';
+  return '';
+}
+
+/** Matière première récoltée → produit transformé en stock (sortie + entrée + coût). */
+export async function commitCultureTransformation({ form = {}, context = {}, handlers = {} } = {}) {
+  const err = validateCultureTransformationForm(form);
+  if (err) throw new Error(err);
+
+  const sourceStock = arr(context.stocks).find((s) => clean(s.id) === clean(form.source_stock_id));
+  if (!sourceStock) throw new Error('Stock matière première introuvable');
+
+  const qty = num(form.quantite);
+  if (qty > stockQuantity(sourceStock)) {
+    throw new Error(`Stock insuffisant : ${stockQuantity(sourceStock)} ${sourceStock.unite || ''}`);
+  }
+
+  const date = form.date || today();
+  const transformId = clean(form.id) || makeId('TRANS-CULT');
+  const issueKey = buildCultureIssueKey('transformation', transformId);
+  const transformCost = num(form.cout_transformation);
+  const outQty = num(form.quantite_produit_fini);
+  const productName = clean(form.produit_fini);
+  const unit = clean(form.unite_produit_fini || sourceStock.unite || 'kg');
+  const cultureId = clean(form.culture_id || sourceStock.culture_id);
+  const farmId = sourceStock.farm_id || form.farm_id;
+  const sourceUnitCost = num(sourceStock.cout_revient_unitaire || sourceStock.prix_unitaire || stockUnitPrice(sourceStock));
+  const unitCost = outQty > 0 ? ((sourceUnitCost * qty) + transformCost) / outQty : sourceUnitCost;
+
+  const exitMovement = applyStockMovement(sourceStock, {
+    type: 'sortie',
+    qty,
+    motif: `Transformation → ${productName}`,
+    date,
+  });
+  await handlers.onUpdateStock?.(sourceStock.id, exitMovement.stock);
+
+  const finishedPayload = {
+    id: clean(form.finished_stock_id) || makeId('STK'),
+    produit: productName,
+    name: productName,
+    categorie: 'Produit transformé culture',
+    category: 'produit_transforme_culture',
+    quantite: outQty,
+    unite: unit,
+    cout_revient_unitaire: unitCost,
+    prix_unitaire: num(form.prix_vente_unitaire) || unitCost,
+    source_module: 'cultures',
+    source_type: 'transformation',
+    culture_id: cultureId || undefined,
+    linked_transform_id: transformId,
+    farm_id: farmId,
+    issue_key: buildCultureIssueKey('transformation', transformId, 'stock'),
+    side_effects_managed: true,
+    notes: form.notes || `Transformé depuis ${sourceStock.produit || sourceStock.id}`,
+    date_entree: date,
+    disponible_commercial: true,
+    is_sellable: true,
+    vendable: true,
+  };
+
+  await handlers.onCreateStock?.(finishedPayload);
+
+  await handlers.onCreateBusinessEvent?.({
+    id: transformId,
+    event_type: 'transformation_culture',
+    module_source: 'cultures',
+    entity_type: 'culture',
+    entity_id: cultureId || sourceStock.id,
+    title: `Transformation · ${productName}`,
+    description: `${qty} → ${outQty} ${unit}${transformCost > 0 ? ` · coût ${transformCost} FCFA` : ''}`,
+    event_date: date,
+    quantite: outQty,
+    issue_key: issueKey,
+    side_effects_managed: true,
+  });
+
+  if (transformCost > 0 && handlers.onCreateFinanceTransaction) {
+    await handlers.onCreateFinanceTransaction({
+      id: makeId('TRX'),
+      type: 'sortie',
+      libelle: `Transformation culture · ${productName}`,
+      montant: transformCost,
+      date,
+      categorie: 'Transformation cultures',
+      module_lie: 'cultures',
+      related_id: cultureId || sourceStock.id,
+      issue_key: buildCultureIssueKey('transformation', transformId, 'finance'),
+      side_effects_managed: true,
+    });
+  }
+
+  return { ok: true, transformId, issueKey, finishedStockId: finishedPayload.id };
 }
 
 /** Scénario intégré récolte → vente payée / crédit → marge. */
