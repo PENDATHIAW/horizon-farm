@@ -3,6 +3,7 @@ import {
   buildCultureHarvestWorkflow,
   buildCultureInputUsageWorkflow,
   buildCultureLossWorkflow,
+  cultureAvailableQty,
   cultureHarvestQty,
   cultureUnitPrice,
 } from './cultureWorkflows';
@@ -15,8 +16,22 @@ import {
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();
+const lower = (value) => clean(value).toLowerCase();
 const today = () => new Date().toISOString().slice(0, 10);
 const num = (value) => toNumber(value);
+
+/**
+ * Règle canonique P1-5 : récolte commerciale → revenu à la vente uniquement.
+ * Pas d'écriture finance « récolte » si voie commerciale (stock/opportunité ouverte).
+ */
+export function shouldSkipHarvestFinanceForCommercialPath({ after = {}, workflow = {} } = {}) {
+  const saleQty = cultureAvailableQty(after);
+  if (saleQty > 0) return true;
+  const oppStatus = lower(workflow?.opportunity?.statut || workflow?.opportunity?.status || '');
+  if (oppStatus === 'ouverte' || oppStatus === 'open') return true;
+  if (after.vendable || after.pret_a_la_vente || after.ready_for_sale || after.sale_ready) return true;
+  return false;
+}
 
 export function buildCultureHarvestFinanceRow({ culture = {}, amount = 0, date = '' } = {}) {
   const value = num(amount);
@@ -68,7 +83,8 @@ export async function runCultureHarvestSideEffects({
 
   const qty = cultureHarvestQty(after);
   const amount = num(cultureUnitPrice(after)) * qty;
-  if (amount > 0) {
+  const skipHarvestFinance = shouldSkipHarvestFinanceForCommercialPath({ after, workflow });
+  if (amount > 0 && !skipHarvestFinance) {
     const financeRow = buildCultureHarvestFinanceRow({ culture: after, amount, date });
     if (financeRow) {
       const exists = arr(transactions).find((row) => clean(row.id) === clean(financeRow.id));

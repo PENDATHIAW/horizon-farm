@@ -8,6 +8,7 @@ import {
   buildFinanceSchedule,
   buildOfficialTreasuryView,
   buildProfitabilityView,
+  isFinanceStartupMode,
   TREASURY_LABELS,
 } from './financePilotageCore.js';
 import { buildFinanceReconciliationRows } from './financeReconciliation.js';
@@ -182,6 +183,32 @@ export function buildPayablesAging(props = {}, options = {}) {
 }
 
 export function buildExecutiveFinancialSituation(props = {}, options = {}) {
+  if (isFinanceStartupMode(props)) {
+    const treasury = buildOfficialTreasuryView(props);
+    return {
+      labels: TREASURY_LABELS,
+      treasuryAvailable: treasury.treasuryAvailable,
+      receivables: treasury.receivables,
+      payables: treasury.payables,
+      expectedInflows: 0,
+      expectedOutflows: 0,
+      realMargin: treasury.realMargin,
+      marginRate: null,
+      marginRateReliable: false,
+      netPosition: treasury.netPosition,
+      isProfitable: false,
+      treasuryRisk: null,
+      forecastReady: false,
+      insufficientData: true,
+      profitabilityReady: false,
+      priorityAction: {
+        label: 'En attente de données financières',
+        detail: 'Enregistrez une vente, un paiement ou une dépense pour activer la lecture dirigeant.',
+        tab: 'Trésorerie',
+      },
+    };
+  }
+
   const treasury = buildOfficialTreasuryView(props);
   const schedule = buildFinanceSchedule(props, options);
   const profitability = buildProfitabilityView(props);
@@ -247,7 +274,9 @@ export function buildExecutiveFinancialSituation(props = {}, options = {}) {
     marginRateReliable: treasury.marginRate > 0 || profitability.ready,
     netPosition: treasury.netPosition,
     isProfitable: profitability.ready ? profitability.profit.operatingResult >= 0 : treasury.realMargin >= 0,
-    treasuryRisk: forecast.risk,
+    treasuryRisk: forecast.ready ? forecast.risk : null,
+    forecastReady: forecast.ready,
+    insufficientData: false,
     priorityAction,
     profitabilityReady: profitability.ready,
   };

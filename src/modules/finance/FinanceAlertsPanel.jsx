@@ -1,10 +1,12 @@
 import { AlertTriangle } from 'lucide-react';
 
-export default function FinanceAlertsPanel({ alerts = [], onNavigateTab }) {
+export default function FinanceAlertsPanel({ alerts = [], onNavigateTab, insufficientData = false }) {
   if (!alerts.length) {
     return (
-      <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-        Aucune alerte financière urgente — situation sous contrôle.
+      <section className={`rounded-2xl border p-4 text-sm ${insufficientData ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
+        {insufficientData
+          ? 'En attente de données — aucune alerte financière tant qu\'aucun flux n\'est enregistré.'
+          : 'Aucune alerte financière urgente — situation sous contrôle.'}
       </section>
     );
   }

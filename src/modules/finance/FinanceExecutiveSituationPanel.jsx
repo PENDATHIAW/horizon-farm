@@ -1,6 +1,7 @@
 import { Landmark } from 'lucide-react';
 import { fmtCurrency } from '../../utils/format';
 import { TREASURY_LABELS } from '../../utils/financePilotageCore.js';
+import { FINANCE_EMPTY_LABELS, formatTreasuryRiskLabel, treasuryRiskTone } from '../../utils/financeEmptyState.js';
 
 function Stat({ label, value, tone = 'neutral' }) {
   const cls = tone === 'good' ? 'text-emerald-600' : tone === 'warn' ? 'text-amber-600' : tone === 'bad' ? 'text-red-600' : 'text-[#2f2415]';
@@ -34,13 +35,17 @@ export default function FinanceExecutiveSituationPanel({ situation = null, onNav
         <Stat label={TREASURY_LABELS.realMargin} value={fmtCurrency(situation.realMargin)} tone={situation.realMargin >= 0 ? 'good' : 'bad'} />
         <Stat
           label="Taux de marge"
-          value={situation.marginRateReliable && situation.marginRate != null ? `${situation.marginRate} %` : '—'}
-          tone={situation.isProfitable ? 'good' : 'warn'}
+          value={situation.insufficientData || !situation.marginRateReliable
+            ? FINANCE_EMPTY_LABELS.notCalculable
+            : `${situation.marginRate} %`}
+          tone={situation.insufficientData || !situation.marginRateReliable ? 'neutral' : situation.isProfitable ? 'good' : 'warn'}
         />
         <Stat
           label="Rentabilité"
-          value={situation.isProfitable ? 'Oui' : 'À surveiller'}
-          tone={situation.isProfitable ? 'good' : 'bad'}
+          value={situation.insufficientData || !situation.profitabilityReady
+            ? FINANCE_EMPTY_LABELS.notCalculable
+            : situation.isProfitable ? 'Oui' : 'À surveiller'}
+          tone={situation.insufficientData || !situation.profitabilityReady ? 'neutral' : situation.isProfitable ? 'good' : 'bad'}
         />
       </div>
 
@@ -56,15 +61,13 @@ export default function FinanceExecutiveSituationPanel({ situation = null, onNav
         </button>
       ) : null}
 
-      {situation.treasuryRisk ? (
-        <p className="mt-3 text-sm text-[#8a7456]">
-          Risque de tension trésorerie :
-          {' '}
-          <span className={situation.treasuryRisk === 'high' ? 'font-black text-red-600' : situation.treasuryRisk === 'medium' ? 'font-black text-amber-600' : 'font-black text-emerald-700'}>
-            {situation.treasuryRisk === 'high' ? 'Élevé' : situation.treasuryRisk === 'medium' ? 'Moyen' : 'Faible'}
-          </span>
-        </p>
-      ) : null}
+      <p className="mt-3 text-sm text-[#8a7456]">
+        Risque de tension trésorerie :
+        {' '}
+        <span className={`font-black ${treasuryRiskTone({ forecastReady: situation.forecastReady, risk: situation.treasuryRisk }) === 'bad' ? 'text-red-600' : treasuryRiskTone({ forecastReady: situation.forecastReady, risk: situation.treasuryRisk }) === 'warn' ? 'text-amber-600' : treasuryRiskTone({ forecastReady: situation.forecastReady, risk: situation.treasuryRisk }) === 'good' ? 'text-emerald-700' : 'text-[#8a7456]'}`}>
+          {formatTreasuryRiskLabel({ forecastReady: situation.forecastReady, risk: situation.treasuryRisk })}
+        </span>
+      </p>
     </section>
   );
 }

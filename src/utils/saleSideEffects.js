@@ -20,6 +20,53 @@ const clean = (value) => String(value || '').trim();
 const lower = (value) => clean(value).toLowerCase();
 const today = () => new Date().toISOString().slice(0, 10);
 
+/** Annule l'écriture TRX-RECOLTE si une vente culture enregistre le revenu canonique. */
+export async function voidCultureHarvestFinanceOnSale({
+  cultureId = '',
+  transactions = [],
+  handlers = {},
+} = {}) {
+  const targetCultureId = clean(cultureId);
+  if (!targetCultureId) return null;
+  const harvestId = financeIds.cultureHarvest(targetCultureId);
+  const row = arr(transactions).find((trx) => clean(trx.id) === clean(harvestId));
+  if (!row) return null;
+  if (handlers.onDeleteFinanceTransaction) {
+    await handlers.onDeleteFinanceTransaction(harvestId);
+    return { voided: true, id: harvestId, method: 'delete' };
+  }
+  if (handlers.onUpdateFinanceTransaction) {
+    await handlers.onUpdateFinanceTransaction(harvestId, {
+      statut: 'annule',
+      montant: 0,
+      amount: 0,
+      voided: true,
+      void_reason: 'vente_culture_canonique',
+    });
+    return { voided: true, id: harvestId, method: 'annule' };
+  }
+  return null;
+}
+
+function collectCultureIdsFromSaleLines(lines = [], stocks = [], cultures = []) {
+  const ids = new Set();
+  arr(lines).forEach((item) => {
+    const sourceType = lower(item.source_type || '');
+    const sourceId = clean(item.source_id || '');
+    if (sourceType === 'culture' && sourceId) ids.add(sourceId);
+    if (sourceType === 'stock' && sourceId) {
+      const stockRow = arr(stocks).find((row) => clean(row.id) === sourceId);
+      const cultureId = clean(stockRow?.culture_id || stockRow?.source_id || '');
+      if (cultureId && String(stockRow?.source_module || '').includes('culture')) ids.add(cultureId);
+    }
+  });
+  arr(cultures).forEach((row) => {
+    const linked = arr(lines).some((item) => clean(item.source_id) === clean(row.id) && lower(item.source_type) === 'culture');
+    if (linked && row.id) ids.add(clean(row.id));
+  });
+  return [...ids];
+}
+
 /** Ligne finance créance liée à une commande. */
 export function findReceivableFinanceForOrder(orderId = '', transactions = []) {
   const target = clean(orderId);
@@ -506,6 +553,11 @@ export async function runNewSaleSideEffects({
         source_impact_lines: impact.applied.length,
       });
     }
+  }
+
+  const cultureIds = collectCultureIdsFromSaleLines(lines, stocks, cultures);
+  for (const cultureId of cultureIds) {
+    await voidCultureHarvestFinanceOnSale({ cultureId, transactions, handlers });
   }
 
   if (paid > 0 && paymentId) {

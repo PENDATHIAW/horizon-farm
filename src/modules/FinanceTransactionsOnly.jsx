@@ -17,6 +17,7 @@ import { generateSequentialId } from '../utils/ids';
 import {
   classifyOperationalChargeRedirect,
   enrichFinanceTransaction,
+  financeTransactionWouldDuplicate,
   isManualExceptionFinanceTransaction,
   ORIGIN_TYPES,
 } from '../utils/financeTransactionMeta';
@@ -135,10 +136,10 @@ export default function FinanceTransactionsOnly({
   };
 
   const doExports = () => {
-    exportToCsv({ rows: validRows, fileName: 'transactions-finances.csv' });
-    exportToExcel({ rows: validRows, fileName: 'finances-horizon-farm.xlsx', sheetName: 'Transactions' });
-    exportToPdf({ rows: validRows, title: 'Transactions financières Horizon Farm', fileName: 'transactions-finances.pdf' });
-    toast.success('Exports finances générés');
+    exportToCsv({ rows: validRows, fileName: 'lignes-finance-manuelles.csv' });
+    exportToExcel({ rows: validRows, fileName: 'lignes-finance-manuelles.xlsx', sheetName: 'Manuelles' });
+    exportToPdf({ rows: validRows, title: 'Lignes finance manuelles — Horizon Farm', fileName: 'lignes-finance-manuelles.pdf' });
+    toast.success('Export lignes manuelles généré (hub PDF officiel : Résumé / Financement)');
   };
 
   const columns = [
@@ -181,7 +182,7 @@ export default function FinanceTransactionsOnly({
       <div className="flex flex-wrap gap-2">
         <Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Actualiser</Btn>
         <Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter argent reçu/dépensé</Btn>
-        <Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn>
+        <Btn icon={Download} variant="outline" small onClick={doExports}>Export lignes manuelles</Btn>
       </div>
     </div>
     <DataTable title="Lignes finance" rows={validRows} columns={columns} loading={loading} initialSortKey="date" searchPlaceholder="Rechercher libellé, catégorie, activité..." />
@@ -190,10 +191,16 @@ export default function FinanceTransactionsOnly({
       open={modal === 'create'}
       onClose={() => setModal(null)}
       onSubmit={(payload) => save(
-        () => onCreate?.(enrichFinanceTransaction(
-          { ...payload, statut: payload.statut || 'paye' },
-          { origin_type: ORIGIN_TYPES.MANUAL, source_module: 'finances', source_record_id: payload.id || '' },
-        )),
+        async () => {
+          const enriched = enrichFinanceTransaction(
+            { ...payload, statut: payload.statut || 'paye' },
+            { origin_type: ORIGIN_TYPES.MANUAL, source_module: 'finances', source_record_id: payload.id || '' },
+          );
+          if (financeTransactionWouldDuplicate(enriched, rows)) {
+            throw new Error('Écriture finance déjà existante (id ou source métier). Vérifiez la trésorerie ou le module source.');
+          }
+          await onCreate?.(enriched);
+        },
         'Ligne finance exceptionnelle ajoutée',
         payload,
       )}

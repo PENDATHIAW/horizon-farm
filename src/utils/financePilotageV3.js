@@ -18,6 +18,7 @@ import {
 } from './financePilotageV2.js';
 import {
   buildFinancePilotageInput,
+  isFinanceStartupMode,
   buildFinanceSchedule,
   buildOfficialTreasuryView,
   buildProfitabilityView,
@@ -225,6 +226,17 @@ function hasDueDate(row = {}) {
 }
 
 export function buildFinanceDataQuality(props = {}, options = {}) {
+  if (isFinanceStartupMode(props)) {
+    return {
+      score: null,
+      issues: [],
+      issueCount: 0,
+      summary: 'En attente de données — enregistrez une vente, un paiement ou une dépense.',
+      empty: true,
+      insufficientData: true,
+    };
+  }
+
   const input = buildFinancePilotageInput(props);
   const reconciliation = buildFinanceReconciliationView(props, options);
   const missingProof = aggregateMissingProofTransactions(input.transactions);
@@ -338,6 +350,8 @@ export function buildFinanceDataQuality(props = {}, options = {}) {
 }
 
 export function buildFinancingAlerts(props = {}, options = {}, context = {}) {
+  if (isFinanceStartupMode(props)) return [];
+
   const capacity = context.enhancedCapacity || buildEnhancedRepaymentCapacity(props, options, context.loanParams);
   const dataQuality = context.dataQuality || buildFinanceDataQuality(props, options);
   const financing = context.financing || buildFinancingView(props, options);

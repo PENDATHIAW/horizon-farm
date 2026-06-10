@@ -11,10 +11,26 @@ const isUnpaid = (r = {}) => ['impaye', 'impayé', 'partiel', 'a_payer', 'à pay
 const remainingOf = (order = {}, payments = []) => Math.max(0, n(order.montant_total ?? order.total ?? order.amount) - n(order.montant_paye ?? order.paid_amount) - arr(payments).filter((p) => String(p.order_id || p.sale_id) === String(order.id)).reduce((s, p) => s + amount(p), 0));
 
 export function buildFinanceHealthSnapshot({ transactions = [], salesOrders = [], payments = [], investments = [], stocks = [] }) {
+  const hasFinanceSignal = arr(transactions).some((row) => amount(row) > 0)
+    || arr(salesOrders).some((row) => n(row.montant_total ?? row.total ?? row.amount) > 0)
+    || arr(payments).some((row) => amount(row) > 0);
+
+  if (!hasFinanceSignal) {
+    return {
+      score: null,
+      insufficientData: true,
+      findings: [],
+      predictions: [],
+      risks: [],
+      message: 'Données insuffisantes',
+    };
+  }
+
   const data = { finances: transactions, transactions, sales_orders: salesOrders, payments, investissements: investments, stock: stocks };
   const health = runErpHealthEngine(data);
   return {
     score: health.score,
+    insufficientData: false,
     findings: health.findings.filter((f) => f.module === 'finance_pilotage' || f.category === 'rentabilite'),
     predictions: health.predictions.filter((p) => p.module === 'finance_pilotage'),
     risks: health.risks.filter((r) => r.domain === 'financier' || r.module === 'finance_pilotage'),

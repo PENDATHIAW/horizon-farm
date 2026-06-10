@@ -45,6 +45,7 @@ import {
   buildPayablesAging,
   buildReceivablesAging,
 } from '../utils/financePilotageV2.js';
+import { formatFinanceHealthScore, financeHealthTone } from '../utils/financeEmptyState.js';
 import {
   buildAdvancedMultiFarmContext,
   buildFinanceAlertsV3,
@@ -231,20 +232,20 @@ function Summary({
       <FinanceDemoBanner demo={financeDemo} />
       <FinanceExecutiveSituationPanel situation={executiveSituation} onNavigateTab={setTab} />
       <FinanceDataQualityPanel dataQuality={dataQuality} onNavigateTab={setTab} />
-      <FinanceAlertsPanel alerts={financeAlerts} onNavigateTab={setTab} />
+      <FinanceAlertsPanel alerts={financeAlerts} onNavigateTab={setTab} insufficientData={startupMode} />
       <FinanceMultiFarmPanel multiFarm={multiFarm} />
       {startupMode ? <FinanceStartupPanel journey={startupJourney} onNavigate={onNavigate} setTab={setTab} /> : null}
-      <FinanceHeyHorizonStrip questions={heyHorizonQuestions} onNavigate={onNavigate} onOpenAssistant={onOpenAssistant} />
+      <FinanceHeyHorizonStrip questions={heyHorizonQuestions} onNavigate={onNavigate} onOpenAssistant={onOpenAssistant} insufficientData={startupMode} />
       <FinanceExportsPanel exportPayload={directExports || exportPayload} directOnly />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-8">
-        <Stat label="Santé finance" value={`${data.healthScore}/100`} tone={data.healthScore >= 75 ? 'good' : 'warn'} />
+        <Stat label="Santé finance" value={formatFinanceHealthScore({ score: data.healthScore, insufficientData: data.healthInsufficient })} tone={financeHealthTone({ score: data.healthScore, insufficientData: data.healthInsufficient })} />
         <Stat label={TREASURY_LABELS.treasuryAvailable} value={fmtCurrency(data.treasuryAvailable)} tone={data.treasuryAvailable >= 0 ? 'good' : 'bad'} />
         <Stat label={TREASURY_LABELS.receivables} value={fmtCurrency(data.receivableAmount)} tone={data.receivableAmount ? 'warn' : 'good'} />
         <Stat label={TREASURY_LABELS.payables} value={fmtCurrency(data.payableAmount)} tone={data.payableAmount ? 'warn' : 'good'} />
         <Stat label={TREASURY_LABELS.netPosition} value={fmtCurrency(data.netPosition)} tone={data.netPosition >= 0 ? 'good' : 'bad'} />
         <Stat label={TREASURY_LABELS.realMargin} value={fmtCurrency(data.realMargin)} tone={data.realMargin >= 0 ? 'good' : 'bad'} />
         <Stat label="Sans preuve" value={fmtNumber(data.missingProof)} tone={data.missingProof ? 'warn' : 'good'} />
-        <Stat label="Signaux métier" value={fmtNumber(data.healthFindings.length)} tone={data.healthFindings.length ? 'warn' : 'good'} />
+        <Stat label="Signaux métier" value={data.healthInsufficient ? 'En attente' : fmtNumber(data.healthFindings.length)} tone={data.healthInsufficient ? 'neutral' : data.healthFindings.length ? 'warn' : 'good'} />
       </div>
       <FinanceIaPanel findings={data.healthFindings} predictions={data.healthPredictions} onApply={onApply} busyId={busyId} onNavigate={onNavigate} />
       <MissingProofPanel items={data.missingProofItems} setTab={setTab} />
@@ -406,6 +407,7 @@ export default function FinancePilotageRecoveredModule(props) {
       supplierDebt,
       profitAlerts,
       healthScore: healthSnap.score,
+      healthInsufficient: healthSnap.insufficientData === true,
       healthFindings: healthSnap.findings,
       healthPredictions: healthSnap.predictions,
       coherenceRows,
@@ -638,7 +640,7 @@ export default function FinancePilotageRecoveredModule(props) {
             <p className="mt-1 text-sm text-[#8a7456]">Trésorerie, créances, dettes — signaux métier, preuves et rentabilité.</p>
             {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
           </div>
-          <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div>
+          <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé </span><b className={data.healthInsufficient ? 'text-[#8a7456]' : data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{formatFinanceHealthScore({ score: data.healthScore, insufficientData: data.healthInsufficient })}</b></div>
         </div>
       </section>
       <Tabs active={tab} onChange={setTab} />
