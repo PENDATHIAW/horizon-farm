@@ -1,10 +1,22 @@
+import { useEffect, useMemo, useState } from 'react';
+import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
+import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
+import useLiveWeather from '../hooks/useLiveWeather';
 import { rowsOf } from '../utils/moduleRows';
-import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
+import { resolveCulturesTab } from '../utils/culturesNavigation.js';
+import { buildCulturesChartNarratives } from '../utils/culturesChartNarratives.js';
 import { runCultureHarvestSideEffects } from '../utils/cultureSideEffects';
-import CulturesV4 from './CulturesV4.jsx';
-import CulturesHarvestPanel from './cultures/CulturesHarvestPanel.jsx';
-import CulturesRepairPanel from './cultures/CulturesRepairPanel.jsx';
+import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
+import CulturesAnnexeTab from './cultures/CulturesAnnexeTab.jsx';
+import CulturesCyclesHub from './cultures/CulturesCyclesHub.jsx';
+import CulturesEconomieHub from './cultures/CulturesEconomieHub.jsx';
+import CulturesIntrantsHub from './cultures/CulturesIntrantsHub.jsx';
+import CulturesParcellesHub from './cultures/CulturesParcellesHub.jsx';
+import CulturesPilotageHub from './cultures/CulturesPilotageHub.jsx';
+import CulturesRecoltesHub from './cultures/CulturesRecoltesHub.jsx';
+import CulturesSanteHub from './cultures/CulturesSanteHub.jsx';
+import CulturesTransformationHub from './cultures/CulturesTransformationHub.jsx';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 
@@ -18,6 +30,15 @@ export default function CulturesRecoveredModule(props) {
   const salesCrud = useCrudModule('sales_orders');
   const paymentsCrud = useCrudModule('payments');
   const deliveriesCrud = useCrudModule('deliveries');
+  const documentsCrud = useCrudModule('documents');
+  const movementsCrud = useCrudModule('stock_movements');
+  const { weather: liveMeteo } = useLiveWeather();
+
+  const [tab, setTab] = useState(() => resolveCulturesTab(props.initialTab));
+
+  useEffect(() => {
+    if (props.initialTab) setTab(resolveCulturesTab(props.initialTab));
+  }, [props.initialTab]);
 
   const rows = rowsOf(props.rows || props.cultures, culturesCrud, periodFiltered);
   const stocks = rowsOf(props.stocks, stockCrud, false);
@@ -25,6 +46,11 @@ export default function CulturesRecoveredModule(props) {
   const businessEvents = rowsOf(props.businessEvents, eventsCrud, periodFiltered);
   const transactions = rowsOf(props.transactions || props.finances, financesCrud, periodFiltered);
   const salesOrders = rowsOf(props.salesOrders, salesCrud, periodFiltered);
+  const payments = rowsOf(props.payments, paymentsCrud, periodFiltered);
+  const deliveriesList = rowsOf(props.deliveriesList || props.deliveries, deliveriesCrud, periodFiltered);
+  const documents = rowsOf(props.documents, documentsCrud, periodFiltered);
+  const stockMovements = rowsOf(props.stockMovements, movementsCrud, false);
+  const meteo = props.meteo || liveMeteo;
 
   const workflowContext = {
     cultures: rows,
@@ -33,7 +59,7 @@ export default function CulturesRecoveredModule(props) {
     transactions,
     businessEvents,
     salesOrders,
-    payments: rowsOf(props.payments, paymentsCrud, periodFiltered),
+    payments: payments,
     clients: arr(props.clients),
   };
 
@@ -63,15 +89,6 @@ export default function CulturesRecoveredModule(props) {
       paymentsCrud.refresh?.(),
     ]);
   };
-
-  const harvestPanel = (
-    <CulturesHarvestPanel
-      rows={rows}
-      context={workflowContext}
-      handlers={workflowHandlers}
-      onSuccess={refreshWorkflow}
-    />
-  );
 
   const syncHarvest = async (before = {}, after = {}, source = 'fiche culture') => {
     await runCultureHarvestSideEffects({
@@ -106,51 +123,126 @@ export default function CulturesRecoveredModule(props) {
     await syncHarvest(before, after, 'modification culture');
   };
 
-  return (
-    <div className="space-y-6">
-      <CulturesRepairPanel
+  const sharedV3Props = {
+    rows,
+    stocks,
+    stockMovements,
+    opportunities,
+    transactions,
+    salesOrders,
+    payments,
+    deliveriesList,
+    businessEvents,
+    onCreate,
+    onUpdate,
+    onDelete: props.onDelete || culturesCrud.remove,
+    onRefresh: props.onRefresh || culturesCrud.refresh,
+    onCreateStock: workflowHandlers.onCreateStock,
+    onUpdateStock: workflowHandlers.onUpdateStock,
+    onRefreshStock: props.onRefreshStock || stockCrud.refresh,
+    onRefreshStocks: props.onRefreshStocks || stockCrud.refresh,
+    onCreateOpportunity: workflowHandlers.onCreateOpportunity,
+    onUpdateOpportunity: workflowHandlers.onUpdateOpportunity,
+    onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh,
+    onCreateBusinessEvent: workflowHandlers.onCreateBusinessEvent,
+    onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh,
+    onCreateFinanceTransaction: workflowHandlers.onCreateFinanceTransaction,
+    onRefreshFinances: props.onRefreshFinances || financesCrud.refresh,
+    onCreateStockMovement: props.onCreateStockMovement,
+    onRefreshStockMovements: props.onRefreshStockMovements,
+    onNavigate: props.onNavigate,
+    meteo,
+  };
+
+  const dataMap = useMemo(() => ({
+    sales_orders: salesOrders,
+    payments,
+    finances: transactions,
+    cultures: rows,
+    stock: stocks,
+    stocks,
+    meteo,
+  }), [salesOrders, payments, transactions, rows, stocks, meteo]);
+
+  const chartNarratives = useMemo(() => buildCulturesChartNarratives(rows), [rows]);
+
+  const content = tab === 'Pilotage' ? (
+    <CulturesPilotageHub
+      rows={rows}
+      stocks={stocks}
+      salesOrders={salesOrders}
+      businessEvents={businessEvents}
+      transactions={transactions}
+      opportunities={opportunities}
+      meteo={meteo}
+      dataMap={dataMap}
+      onNavigate={props.onNavigate}
+      onCreateBusinessEvent={eventsCrud.create}
+      onUpdateStock={stockCrud.update}
+      onRefresh={refreshWorkflow}
+    />
+  ) : tab === 'Cycles' ? (
+    <CulturesCyclesHub rows={rows} salesOrders={salesOrders} deliveries={deliveriesList} businessEvents={businessEvents} onNavigate={props.onNavigate} />
+  ) : tab === 'Parcelles & Cultures' ? (
+    <CulturesParcellesHub {...sharedV3Props} />
+  ) : tab === 'Intrants & Météo' ? (
+    <CulturesIntrantsHub {...sharedV3Props} />
+  ) : tab === 'Santé & Protection' ? (
+    <CulturesSanteHub {...sharedV3Props} />
+  ) : tab === 'Récoltes' ? (
+    <CulturesRecoltesHub
+      rows={rows}
+      context={workflowContext}
+      handlers={workflowHandlers}
+      onSuccess={refreshWorkflow}
+      opportunities={opportunities}
+      onUpdate={onUpdate}
+      onRefresh={sharedV3Props.onRefresh}
+      onCreateOpportunity={workflowHandlers.onCreateOpportunity}
+      onUpdateOpportunity={workflowHandlers.onUpdateOpportunity}
+      onRefreshOpportunities={sharedV3Props.onRefreshOpportunities}
+      onCreateBusinessEvent={workflowHandlers.onCreateBusinessEvent}
+      onRefreshBusinessEvents={sharedV3Props.onRefreshBusinessEvents}
+    />
+  ) : tab === 'Transformation' ? (
+    <CulturesTransformationHub onNavigate={props.onNavigate} />
+  ) : tab === 'Économie circulaire' ? (
+    <CulturesEconomieHub stocks={stocks} salesOrders={salesOrders} rows={rows} businessEvents={businessEvents} dataMap={dataMap} />
+  ) : tab === 'Annexe' ? (
+    <CulturesAnnexeTab documents={documents} onNavigate={props.onNavigate} />
+  ) : tab === 'Graphiques' ? (
+  <div className="space-y-4">
+      {chartNarratives.length ? (
+        <section className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-2">
+          <h2 className="text-sm font-black text-[#2f2415]">Lecture des courbes</h2>
+          {chartNarratives.map((line) => <p key={line} className="text-sm text-[#7d6a4a]">{line}</p>)}
+        </section>
+      ) : null}
+      <ModuleGraphiquesTab
+        moduleId="cultures"
+        periodFiltered={periodFiltered}
+        periodScope={props.periodScope}
+        periodLabel={props.periodLabel}
         cultures={rows}
-        stocks={stocks}
-        businessEvents={businessEvents}
-        transactions={transactions}
         salesOrders={salesOrders}
-        onCreateBusinessEvent={eventsCrud.create}
-        onUpdateStock={stockCrud.update}
-        onRefresh={refreshWorkflow}
+        payments={payments}
+        transactions={transactions}
+        stocks={stocks}
+        onNavigate={props.onNavigate}
       />
+    </div>
+  ) : null;
+
+  return (
+    <div className="space-y-6 cultures-v1-root">
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
         <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p>
         <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Cultures</h1>
-        <p className="mt-1 text-sm text-[#8a7456]">Parcelles, intrants, récoltes, stock vendable, ventes Commercial et rentabilité.</p>
+        <p className="mt-1 text-sm text-[#8a7456]">Parcelles, intrants, récoltes, transformation et rentabilité — centre métier sans double saisie Stock / Commercial / Finance.</p>
         {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
       </section>
-      <CulturesV4
-        {...props}
-        harvestPanel={harvestPanel}
-        rows={rows}
-        stocks={stocks}
-        opportunities={opportunities}
-        transactions={transactions}
-        salesOrders={salesOrders}
-        payments={rowsOf(props.payments, paymentsCrud, periodFiltered)}
-        deliveriesList={rowsOf(props.deliveriesList || props.deliveries, deliveriesCrud, periodFiltered)}
-        businessEvents={businessEvents}
-        onCreate={onCreate}
-        onUpdate={onUpdate}
-        onDelete={props.onDelete || culturesCrud.remove}
-        onRefresh={props.onRefresh || culturesCrud.refresh}
-        onCreateStock={workflowHandlers.onCreateStock}
-        onUpdateStock={workflowHandlers.onUpdateStock}
-        onRefreshStock={props.onRefreshStock || stockCrud.refresh}
-        onRefreshStocks={props.onRefreshStocks || stockCrud.refresh}
-        onCreateOpportunity={workflowHandlers.onCreateOpportunity}
-        onUpdateOpportunity={workflowHandlers.onUpdateOpportunity}
-        onRefreshOpportunities={props.onRefreshOpportunities || opportunitiesCrud.refresh}
-        onCreateBusinessEvent={workflowHandlers.onCreateBusinessEvent}
-        onRefreshBusinessEvents={props.onRefreshBusinessEvents || eventsCrud.refresh}
-        onCreateFinanceTransaction={workflowHandlers.onCreateFinanceTransaction}
-        onRefreshFinances={props.onRefreshFinances || financesCrud.refresh}
-      />
+      <ModuleTabsBar moduleId="cultures" active={tab} onChange={setTab} activeFarm={props.activeFarm} />
+      {content}
     </div>
   );
 }
