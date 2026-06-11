@@ -1,4 +1,4 @@
-import { Send } from 'lucide-react';
+import { CheckCheck, Mic, Send, Smile } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import HeyHorizonDraftSummary from '../components/HeyHorizonDraftSummary.jsx';
@@ -14,6 +14,7 @@ import { normalizeAgriculturalText } from '../services/assistantUniversalIntents
 import { processContextualVoiceInput } from '../services/aiGateway/contextualVoiceService.js';
 import { enrichAssistantDataMap } from '../utils/assistantDataMap.js';
 import { HORIZON } from './assistant/horizonDesignTokens.js';
+import HorizonPhoneShell from './assistant/HorizonPhoneShell.jsx';
 import HorizonStructuredMessage from './assistant/HorizonStructuredMessage.jsx';
 
 function displayNameFromUser(user = {}) {
@@ -25,6 +26,10 @@ function displayNameFromUser(user = {}) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+function messageTime() {
+  return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+}
+
 function ChatBubble({ message }) {
   const isUser = message.role === 'user';
   const structured = !isUser && !message.isWelcome
@@ -34,24 +39,31 @@ function ChatBubble({ message }) {
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`${isUser ? 'max-w-[min(85%,520px)]' : 'max-w-[min(92%,640px)]'} px-5 py-4`}
+        className={`max-w-[min(88%,520px)] px-3.5 py-2 text-[15px] leading-relaxed shadow-sm ${
+          isUser
+            ? 'rounded-2xl rounded-tr-md'
+            : 'rounded-2xl rounded-tl-md border border-black/5'
+        }`}
         style={{
           background: isUser ? HORIZON.userBubble : HORIZON.assistantBubble,
           color: isUser ? HORIZON.userBubbleText : HORIZON.text,
-          borderRadius: HORIZON.radiusBubble,
-          border: isUser ? 'none' : `1px solid ${HORIZON.border}`,
-          boxShadow: isUser ? HORIZON.shadowSm : HORIZON.shadow,
         }}
       >
         {isUser ? (
-          <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{message.text}</p>
+          <p className="whitespace-pre-wrap">{message.text}</p>
         ) : message.isWelcome ? (
-          <p className="text-[15px] leading-relaxed whitespace-pre-wrap" style={{ color: HORIZON.text }}>
-            {message.text}
-          </p>
+          <p className="whitespace-pre-wrap">{message.text}</p>
         ) : (
           <HorizonStructuredMessage text={message.text} structured={structured} />
         )}
+        <div
+          className={`mt-1 flex items-center justify-end gap-1 text-[11px] ${
+            isUser ? 'text-[#5d7364]' : 'text-[#8a8a8a]'
+          }`}
+        >
+          <span>{message.time || messageTime()}</span>
+          {isUser ? <CheckCheck size={14} className="text-[#4fc3f7]" /> : null}
+        </div>
       </div>
     </div>
   );
@@ -61,14 +73,8 @@ function ChatDraftBlock({ draft, isValidating, onValidate, onCancel }) {
   return (
     <div className="flex justify-start">
       <div
-        className="w-full max-w-[min(92%,640px)] px-5 py-5"
-        style={{
-          background: HORIZON.assistantBubble,
-          borderRadius: HORIZON.radiusBubble,
-          border: `1px solid ${HORIZON.border}`,
-          boxShadow: HORIZON.shadow,
-          color: HORIZON.text,
-        }}
+        className="w-full max-w-[min(92%,520px)] rounded-2xl rounded-tl-md border border-black/5 px-4 py-4 shadow-sm"
+        style={{ background: HORIZON.assistantBubble, color: HORIZON.text }}
       >
         <HeyHorizonDraftSummary draft={draft} variant="inline" />
         <HorizonDraftPanel
@@ -96,14 +102,8 @@ function ThinkingBubble() {
   return (
     <div className="flex justify-start">
       <div
-        className="px-5 py-4 text-sm"
-        style={{
-          background: HORIZON.assistantBubble,
-          borderRadius: HORIZON.radiusBubble,
-          border: `1px solid ${HORIZON.border}`,
-          boxShadow: HORIZON.shadowSm,
-          color: HORIZON.textMuted,
-        }}
+        className="rounded-2xl rounded-tl-md border border-black/5 px-4 py-3 text-sm shadow-sm"
+        style={{ background: HORIZON.assistantBubble, color: HORIZON.textMuted }}
       >
         Un instant…
       </div>
@@ -111,28 +111,23 @@ function ThinkingBubble() {
   );
 }
 
-function FarmHeader({ header }) {
-  if (!header) return null;
+function PhoneHeader({ header, displayName }) {
   return (
-    <header
-      className="shrink-0 px-6 py-8 sm:px-10"
-      style={{ borderBottom: `1px solid ${HORIZON.border}`, background: HORIZON.bg }}
-    >
-      <div className="mx-auto w-full" style={{ maxWidth: HORIZON.maxChatWidth }}>
-        <div className="flex items-center gap-2.5">
-          <span className="text-[26px] leading-none" aria-hidden="true">{header.brandEmoji || '🌿'}</span>
-          <h1 className="text-[26px] font-semibold tracking-tight" style={{ color: HORIZON.primary }}>
-            {header.brandName || header.farmName || 'Horizon'}
-          </h1>
-        </div>
-        <p className="mt-2 text-[17px] font-medium tracking-tight" style={{ color: HORIZON.text }}>
-          {header.tagline || 'Parlez à votre ferme'}
-        </p>
-        <p className="mt-2 text-sm" style={{ color: HORIZON.textMuted }}>
-          {header.statsLine}
-        </p>
+    <div className="flex items-center gap-3">
+      <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full bg-white text-xl ring-2 ring-white/15">
+        <span aria-hidden="true">{header?.brandEmoji || '🌿'}</span>
       </div>
-    </header>
+      <div className="min-w-0 flex-1">
+        <h1 className="truncate text-[19px] font-bold tracking-tight">
+          {header?.brandName || 'Horizon'}
+        </h1>
+        <p className="truncate text-sm text-white/85">
+          {header?.tagline || 'Parlez à votre ferme'}
+          {header?.statsLine ? ` · ${header.statsLine}` : ''}
+        </p>
+        <p className="truncate text-xs text-white/65">{displayName} · en ligne</p>
+      </div>
+    </div>
   );
 }
 
@@ -222,7 +217,7 @@ export default function HeyHorizonModule({
   );
 
   const welcomeMessage = useMemo(
-    () => buildAssistantWelcomeMessage(displayName, secretaryProps),
+    () => ({ ...buildAssistantWelcomeMessage(displayName, secretaryProps), time: messageTime() }),
     [displayName, secretaryProps],
   );
 
@@ -248,7 +243,13 @@ export default function HeyHorizonModule({
   } = useHeyHorizonCommand({ dataMap: enrichedDataMap, onNavigate, allowWeakDraft: true, onCreateBusinessEvent });
 
   const appendMessage = useCallback((role, text, extra = {}) => {
-    setMessages((prev) => [...prev, { id: `${Date.now()}-${prev.length}`, role, text, ...extra }]);
+    setMessages((prev) => [...prev, {
+      id: `${Date.now()}-${prev.length}`,
+      role,
+      text,
+      time: messageTime(),
+      ...extra,
+    }]);
   }, []);
 
   const scrollToBottom = useCallback(() => {
@@ -357,46 +358,25 @@ export default function HeyHorizonModule({
   };
 
   const busy = voiceBusy || isProcessing;
+  const canSend = command.trim().length > 0 && !busy;
 
   return (
-    <div
-      className="flex min-h-[calc(100vh-8rem)] flex-col"
-      style={{ background: HORIZON.bg }}
-    >
-      <FarmHeader header={farmHeader} />
-
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto px-6 py-8 sm:px-10">
-          <div className="mx-auto flex flex-col gap-6" style={{ maxWidth: HORIZON.maxChatWidth }}>
-            {messages.map((message) => (
-              <ChatBubble key={message.id} message={message} />
-            ))}
-
-            {busy && !draft ? <ThinkingBubble /> : null}
-
-            {draft ? (
-              <ChatDraftBlock
-                draft={draft}
-                isValidating={isValidating}
-                onValidate={handleValidate}
-                onCancel={handleCancel}
-              />
-            ) : null}
-
-            <div ref={chatEndRef} />
-          </div>
-        </div>
-
-        <footer className="shrink-0 px-6 pb-8 pt-2 sm:px-10">
-          <form
-            className="mx-auto flex items-center gap-3"
-            style={{ maxWidth: HORIZON.maxChatWidth }}
-            onSubmit={(event) => {
-              event.preventDefault();
-              handleSubmit();
-            }}
+    <HorizonPhoneShell
+      header={<PhoneHeader header={farmHeader} displayName={displayName} />}
+      footer={(
+        <form
+          className="flex items-center gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleSubmit();
+          }}
+        >
+          <label className="sr-only" htmlFor="horizon-chat-input">Parlez à votre ferme</label>
+          <div
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-full px-3 py-2 shadow-sm"
+            style={{ background: HORIZON.surface }}
           >
-            <label className="sr-only" htmlFor="horizon-chat-input">Parlez à votre ferme</label>
+            <Smile size={22} className="shrink-0 text-[#7d8580]" aria-hidden="true" />
             <textarea
               id="horizon-chat-input"
               value={command}
@@ -410,31 +390,47 @@ export default function HeyHorizonModule({
               rows={1}
               placeholder="Parlez à votre ferme..."
               disabled={busy}
-              className="min-h-[56px] flex-1 resize-none px-6 py-4 text-[15px] outline-none transition-shadow disabled:opacity-50"
-              style={{
-                background: HORIZON.surface,
-                border: `1px solid ${HORIZON.border}`,
-                borderRadius: HORIZON.radiusInput,
-                color: HORIZON.text,
-                boxShadow: HORIZON.shadowInput,
-              }}
+              className="max-h-28 min-h-[24px] min-w-0 flex-1 resize-none bg-transparent text-[15px] outline-none placeholder:text-[#8b948f] disabled:opacity-50"
+              style={{ color: HORIZON.text }}
             />
-            <button
-              type="submit"
-              disabled={busy || !command.trim()}
-              className="flex h-14 w-14 shrink-0 items-center justify-center text-white transition-opacity disabled:opacity-35"
-              style={{
-                background: HORIZON.primary,
-                borderRadius: HORIZON.radiusInput,
-                boxShadow: HORIZON.shadow,
-              }}
-              aria-label="Envoyer"
-            >
-              <Send size={20} />
-            </button>
-          </form>
-        </footer>
+          </div>
+          <button
+            type="submit"
+            disabled={busy || !canSend}
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-full text-white shadow-lg transition-opacity disabled:opacity-40"
+            style={{ background: canSend ? HORIZON.sendButton : HORIZON.primary }}
+            aria-label={canSend ? 'Envoyer' : 'Micro'}
+          >
+            {canSend ? <Send size={20} /> : <Mic size={22} />}
+          </button>
+        </form>
+      )}
+    >
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
+        <div
+          className="mx-auto w-fit rounded-xl px-4 py-2 text-center text-xs font-semibold shadow-sm"
+          style={{ background: '#FFF4CF', color: '#5F5333' }}
+        >
+          Parlez à votre ferme — données ERP en direct
+        </div>
+
+        {messages.map((message) => (
+          <ChatBubble key={message.id} message={message} />
+        ))}
+
+        {busy && !draft ? <ThinkingBubble /> : null}
+
+        {draft ? (
+          <ChatDraftBlock
+            draft={draft}
+            isValidating={isValidating}
+            onValidate={handleValidate}
+            onCancel={handleCancel}
+          />
+        ) : null}
+
+        <div ref={chatEndRef} />
       </div>
-    </div>
+    </HorizonPhoneShell>
   );
 }

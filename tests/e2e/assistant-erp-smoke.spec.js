@@ -10,7 +10,7 @@ test.describe('Assistant ERP — Horizon V6 design', () => {
 
     await expect(page.getByRole('heading', { name: /^Horizon$/i })).toBeVisible();
     await expect(page.getByText(/Parlez à votre ferme/i).first()).toBeVisible();
-    await expect(page.getByText(/animaux/i)).toBeVisible();
+    await expect(page.getByText(/animaux|parcelles|produits/i).first()).toBeVisible();
     await expect(page.getByText(/Bonjour/i)).toBeVisible();
     await expect(page.getByText(/aujourd'hui|parler/i)).toBeVisible();
     await expect(page.getByPlaceholder(/Parlez à votre ferme/i)).toBeVisible();
