@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import { createConversationContext } from '../services/assistantConversationContext.js';
 import toast from 'react-hot-toast';
 import { useAppData } from '../context/AppContext';
 import {
@@ -22,6 +23,7 @@ export default function useHeyHorizonCommand({
   const [isValidating, setIsValidating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastSource, setLastSource] = useState('rules');
+  const conversationContextRef = useRef(createConversationContext());
 
   const runCommand = useCallback(async (rawText = '', options = {}) => {
     const text = String(rawText || '').trim();
@@ -33,7 +35,11 @@ export default function useHeyHorizonCommand({
         currentDraft: options.mergeDraft ? draft : null,
         allowWeakDraft,
         forceLlm: options.forceLlm ?? forceLlm,
+        conversationContext: conversationContextRef.current,
       });
+      if (result?.conversationContext) {
+        conversationContextRef.current = result.conversationContext;
+      }
       setLastSource(result.source || 'rules');
       if (result.kind === 'redirect_pilotage') {
         setStrategic(null);

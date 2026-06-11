@@ -6,7 +6,8 @@ import { detectFinancePilotageQuery, buildFinancePilotageAnswer } from './heyHor
 import { detectProductionQuestion } from './productionStrategicAnswers.js';
 import { detectCommercialPilotageQuery, buildCommercialPilotageAnswer } from './heyHorizonCommercialAnswers.js';
 import { detectInvestorQuery, buildInvestorPilotageAnswer } from './assistantInvestorAnswers.js';
-import { formatStrategicHorizonAnswer, formatDraftAssistantText } from './assistantResponseFormatter.js';
+import { formatStrategicHorizonAnswer, formatDraftAssistantText, formatCompactHorizonAnswer } from './assistantResponseFormatter.js';
+import { routeNaturalLanguageQuery } from './assistantLanguageRouter.js';
 import { saveLocalRecommendation } from './aiRecommendationsService.js';
 import { interpretVoiceCommand } from './voiceCommands.js';
 import { enhanceHeyHorizonQuestion, isHeyHorizonLlmEnabled, normalizeLlmDraft } from './heyHorizonLlmService.js';
@@ -238,11 +239,42 @@ export function updateHeyHorizonDraftField(currentDraft, key, value) {
  * Traite une commande Hey Horizon (stratégique ou brouillon).
  * Retourne { kind: 'strategic'|'draft'|'empty'|'error', strategic, draft, assistantText, journalEntry }
  */
-export function processHeyHorizonCommand(rawText = '', { dataMap = {}, currentDraft = null, allowWeakDraft = false } = {}) {
+export function processHeyHorizonCommand(rawText = '', { dataMap = {}, currentDraft = null, allowWeakDraft = false, conversationContext = null } = {}) {
   const cleaned = normalizeHeyHorizonText(rawText);
   if (!cleaned) {
     return { kind: 'empty', assistantText: 'Je suis prêt. Dis-moi l’action à faire : vaccin, vente, stock, œufs, tâche…' };
   }
+
+  const naturalLanguage = routeNaturalLanguageQuery(rawText, { dataMap, conversationContext });
+  if (naturalLanguage?.handled && naturalLanguage.answer) {
+    const journalEntry = {
+      type: 'agricultural_qa',
+      text: rawText,
+      module: 'assistant_erp',
+      confidence_score: naturalLanguage.answer.confidence || 90,
+      action: naturalLanguage.answer.title,
+      source_engine: naturalLanguage.source || 'universal_language_v4',
+    };
+    saveLocalRecommendation(journalEntry);
+    return {
+      kind: 'strategic',
+      strategic: {
+        ...naturalLanguage.answer,
+        type: 'agricultural_qa',
+        summary: naturalLanguage.assistantText,
+      },
+      draft: null,
+      assistantText: naturalLanguage.assistantText || formatCompactHorizonAnswer(naturalLanguage.answer),
+      journalEntry,
+      source: naturalLanguage.source || 'universal_language_v4',
+      conversationContext: naturalLanguage.updatedContext,
+      intents: naturalLanguage.intents,
+    };
+  }
+  if (naturalLanguage?.declarerIntent) {
+    // Laisser le flux brouillon traiter la déclaration terrain.
+  }
+
   const financeQueryType = detectFinancePilotageQuery(rawText);
   if (financeQueryType) {
     const strategic = buildFinancePilotageAnswer(financeQueryType, dataMap);

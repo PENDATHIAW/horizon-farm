@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { goToModule, login } from './helpers.js';
 
-test.describe('Assistant ERP — Horizon V3 secrétaire', () => {
+test.describe('Assistant ERP — Horizon V4 langage naturel', () => {
   test.setTimeout(120_000);
 
   test('module secrétaire agricole', async ({ page }) => {

@@ -34,6 +34,51 @@ export function formatHorizonAnswer({
   return lines.join('\n').trim();
 }
 
+/** Réponse agricole compacte — maximum 5 lignes (SCA + source). */
+export function formatCompactHorizonAnswer(answer = {}) {
+  if (!answer) return '';
+  if (answer.summary && typeof answer.summary === 'string' && /Situation/i.test(answer.summary)) {
+    return compactStructuredText(answer.summary);
+  }
+  const block = formatHorizonAnswer({
+    situation: answer.situation,
+    cause: answer.cause,
+    action: answer.action,
+    sources: answer.sources || [],
+  });
+  return compactStructuredText(block);
+}
+
+function compactStructuredText(text = '') {
+  const lines = String(text || '').split('\n').map((line) => line.trim()).filter(Boolean);
+  const compact = [];
+  let section = null;
+
+  for (const line of lines) {
+    const lower = line.toLowerCase().replace(/:$/, '');
+    if (['situation', 'cause', 'action', 'source erp'].includes(lower)) {
+      section = lower;
+      continue;
+    }
+    if (!section) continue;
+    if (section === 'source erp') {
+      compact.push(`Source ERP : ${line}`);
+      break;
+    }
+    compact.push(`${section.charAt(0).toUpperCase()}${section.slice(1)} : ${line}`);
+    if (compact.length >= 4) break;
+  }
+
+  if (compact.length < 4) {
+    const parsed = parseHorizonStructuredText(text);
+    if (parsed) {
+      return formatCompactHorizonAnswer(parsed);
+    }
+  }
+
+  return compact.slice(0, 5).join('\n');
+}
+
 /** Parse un texte formaté Horizon en sections structurées. */
 export function parseHorizonStructuredText(text = '') {
   if (text && typeof text === 'object') {
