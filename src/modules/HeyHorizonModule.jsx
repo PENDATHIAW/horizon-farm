@@ -34,16 +34,21 @@ function ChatBubble({ message }) {
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        className="max-w-[92%] rounded-2xl px-4 py-3"
+        className={`${isUser ? 'max-w-[min(85%,520px)]' : 'max-w-[min(92%,640px)]'} px-5 py-4`}
         style={{
           background: isUser ? HORIZON.userBubble : HORIZON.assistantBubble,
           color: isUser ? HORIZON.userBubbleText : HORIZON.text,
-          border: `1px solid ${HORIZON.border}`,
-          boxShadow: HORIZON.shadow,
+          borderRadius: HORIZON.radiusBubble,
+          border: isUser ? 'none' : `1px solid ${HORIZON.border}`,
+          boxShadow: isUser ? HORIZON.shadowSm : HORIZON.shadow,
         }}
       >
-        {isUser || message.isWelcome ? (
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.text}</p>
+        {isUser ? (
+          <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{message.text}</p>
+        ) : message.isWelcome ? (
+          <p className="text-[15px] leading-relaxed whitespace-pre-wrap" style={{ color: HORIZON.text }}>
+            {message.text}
+          </p>
         ) : (
           <HorizonStructuredMessage text={message.text} structured={structured} />
         )}
@@ -56,9 +61,10 @@ function ChatDraftBlock({ draft, isValidating, onValidate, onCancel }) {
   return (
     <div className="flex justify-start">
       <div
-        className="w-full max-w-[92%] rounded-2xl px-4 py-4"
+        className="w-full max-w-[min(92%,640px)] px-5 py-5"
         style={{
           background: HORIZON.assistantBubble,
+          borderRadius: HORIZON.radiusBubble,
           border: `1px solid ${HORIZON.border}`,
           boxShadow: HORIZON.shadow,
           color: HORIZON.text,
@@ -90,10 +96,12 @@ function ThinkingBubble() {
   return (
     <div className="flex justify-start">
       <div
-        className="rounded-2xl px-4 py-3 text-sm"
+        className="px-5 py-4 text-sm"
         style={{
           background: HORIZON.assistantBubble,
+          borderRadius: HORIZON.radiusBubble,
           border: `1px solid ${HORIZON.border}`,
+          boxShadow: HORIZON.shadowSm,
           color: HORIZON.textMuted,
         }}
       >
@@ -107,18 +115,23 @@ function FarmHeader({ header }) {
   if (!header) return null;
   return (
     <header
-      className="shrink-0 px-6 py-4"
-      style={{ borderBottom: `1px solid ${HORIZON.border}`, background: HORIZON.surface }}
+      className="shrink-0 px-6 py-8 sm:px-10"
+      style={{ borderBottom: `1px solid ${HORIZON.border}`, background: HORIZON.bg }}
     >
-      <h1 className="text-lg font-semibold tracking-tight" style={{ color: HORIZON.primary }}>
-        {header.farmName}
-      </h1>
-      <p className="mt-1 text-sm leading-snug" style={{ color: HORIZON.text }}>
-        {header.statsLine}
-      </p>
-      <p className="mt-0.5 text-xs" style={{ color: HORIZON.textMuted }}>
-        {header.lastActivityLine}
-      </p>
+      <div className="mx-auto w-full" style={{ maxWidth: HORIZON.maxChatWidth }}>
+        <div className="flex items-center gap-2.5">
+          <span className="text-[26px] leading-none" aria-hidden="true">{header.brandEmoji || '🌿'}</span>
+          <h1 className="text-[26px] font-semibold tracking-tight" style={{ color: HORIZON.primary }}>
+            {header.brandName || header.farmName || 'Horizon'}
+          </h1>
+        </div>
+        <p className="mt-2 text-[17px] font-medium tracking-tight" style={{ color: HORIZON.text }}>
+          {header.tagline || 'Parlez à votre ferme'}
+        </p>
+        <p className="mt-2 text-sm" style={{ color: HORIZON.textMuted }}>
+          {header.statsLine}
+        </p>
+      </div>
     </header>
   );
 }
@@ -347,75 +360,81 @@ export default function HeyHorizonModule({
 
   return (
     <div
-      className="flex h-[calc(100vh-8rem)] min-h-[520px] flex-col"
+      className="flex min-h-[calc(100vh-8rem)] flex-col"
       style={{ background: HORIZON.bg }}
     >
       <FarmHeader header={farmHeader} />
 
-      <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
-        <div className="mx-auto flex max-w-2xl flex-col gap-3">
-          {messages.map((message) => (
-            <ChatBubble key={message.id} message={message} />
-          ))}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto px-6 py-8 sm:px-10">
+          <div className="mx-auto flex flex-col gap-6" style={{ maxWidth: HORIZON.maxChatWidth }}>
+            {messages.map((message) => (
+              <ChatBubble key={message.id} message={message} />
+            ))}
 
-          {busy && !draft ? <ThinkingBubble /> : null}
+            {busy && !draft ? <ThinkingBubble /> : null}
 
-          {draft ? (
-            <ChatDraftBlock
-              draft={draft}
-              isValidating={isValidating}
-              onValidate={handleValidate}
-              onCancel={handleCancel}
-            />
-          ) : null}
+            {draft ? (
+              <ChatDraftBlock
+                draft={draft}
+                isValidating={isValidating}
+                onValidate={handleValidate}
+                onCancel={handleCancel}
+              />
+            ) : null}
 
-          <div ref={chatEndRef} />
+            <div ref={chatEndRef} />
+          </div>
         </div>
-      </div>
 
-      <footer
-        className="shrink-0 px-4 py-4 sm:px-6"
-        style={{ borderTop: `1px solid ${HORIZON.border}`, background: HORIZON.surface }}
-      >
-        <form
-          className="mx-auto flex max-w-2xl items-end gap-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            handleSubmit();
-          }}
-        >
-          <label className="sr-only" htmlFor="horizon-chat-input">Parlez à votre ferme</label>
-          <textarea
-            id="horizon-chat-input"
-            value={command}
-            onChange={(event) => setCommand(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                handleSubmit();
-              }
+        <footer className="shrink-0 px-6 pb-8 pt-2 sm:px-10">
+          <form
+            className="mx-auto flex items-center gap-3"
+            style={{ maxWidth: HORIZON.maxChatWidth }}
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleSubmit();
             }}
-            rows={1}
-            placeholder="Parlez à votre ferme..."
-            disabled={busy}
-            className="min-h-[48px] flex-1 resize-none rounded-xl px-4 py-3 text-sm outline-none disabled:opacity-50"
-            style={{
-              background: HORIZON.surface,
-              border: `1px solid ${HORIZON.border}`,
-              color: HORIZON.text,
-            }}
-          />
-          <button
-            type="submit"
-            disabled={busy || !command.trim()}
-            className="flex h-[48px] w-[48px] shrink-0 items-center justify-center rounded-xl text-white disabled:opacity-40"
-            style={{ background: HORIZON.primary }}
-            aria-label="Envoyer"
           >
-            <Send size={18} />
-          </button>
-        </form>
-      </footer>
+            <label className="sr-only" htmlFor="horizon-chat-input">Parlez à votre ferme</label>
+            <textarea
+              id="horizon-chat-input"
+              value={command}
+              onChange={(event) => setCommand(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault();
+                  handleSubmit();
+                }
+              }}
+              rows={1}
+              placeholder="Parlez à votre ferme..."
+              disabled={busy}
+              className="min-h-[56px] flex-1 resize-none px-6 py-4 text-[15px] outline-none transition-shadow disabled:opacity-50"
+              style={{
+                background: HORIZON.surface,
+                border: `1px solid ${HORIZON.border}`,
+                borderRadius: HORIZON.radiusInput,
+                color: HORIZON.text,
+                boxShadow: HORIZON.shadowInput,
+              }}
+            />
+            <button
+              type="submit"
+              disabled={busy || !command.trim()}
+              className="flex h-14 w-14 shrink-0 items-center justify-center text-white transition-opacity disabled:opacity-35"
+              style={{
+                background: HORIZON.primary,
+                borderRadius: HORIZON.radiusInput,
+                boxShadow: HORIZON.shadow,
+              }}
+              aria-label="Envoyer"
+            >
+              <Send size={20} />
+            </button>
+          </form>
+        </footer>
+      </div>
     </div>
   );
 }

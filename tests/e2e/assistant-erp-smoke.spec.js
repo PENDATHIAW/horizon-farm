@@ -1,16 +1,16 @@
 import { expect, test } from '@playwright/test';
 import { goToModule, login } from './helpers.js';
 
-test.describe('Assistant ERP — Horizon V4 langage naturel', () => {
+test.describe('Assistant ERP — Horizon V6 design', () => {
   test.setTimeout(120_000);
 
   test('module secrétaire agricole', async ({ page }) => {
     await login(page);
     await goToModule(page, 'Assistant ERP');
 
-    await expect(page.getByText(/Ferme Horizon/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^Horizon$/i })).toBeVisible();
+    await expect(page.getByText(/Parlez à votre ferme/i).first()).toBeVisible();
     await expect(page.getByText(/animaux/i)).toBeVisible();
-    await expect(page.getByText(/Dernière activité/i)).toBeVisible();
     await expect(page.getByText(/Bonjour/i)).toBeVisible();
     await expect(page.getByText(/Aujourd'hui/i)).toBeVisible();
     await expect(page.getByPlaceholder(/Parlez à votre ferme/i)).toBeVisible();

@@ -88,8 +88,11 @@ export function buildAssistantFarmHeader(props = {}) {
   const lastRaw = journal.items?.[0]?.text || '';
 
   return {
-    farmName: 'Ferme Horizon',
-    statsLine: `${fmt(animals)} animaux · ${fmt(parcels)} parcelles · ${fmt(products)} produits en stock`,
+    brandName: 'Horizon',
+    brandEmoji: '🌿',
+    tagline: 'Parlez à votre ferme',
+    farmName: 'Horizon',
+    statsLine: `${fmt(animals)} animaux • ${fmt(parcels)} parcelles • ${fmt(products)} produits`,
     lastActivityLine: `Dernière activité : ${formatLastActivityLabel(lastRaw)}`,
   };
 }

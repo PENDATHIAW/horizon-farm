@@ -18,10 +18,11 @@ const baseProps = {
 
 test('buildAssistantFarmHeader returns farm context lines', () => {
   const header = buildAssistantFarmHeader(baseProps);
-  assert.equal(header.farmName, 'Ferme Horizon');
+  assert.equal(header.brandName, 'Horizon');
+  assert.equal(header.tagline, 'Parlez à votre ferme');
   assert.match(header.statsLine, /animaux/);
   assert.match(header.statsLine, /parcelles/);
-  assert.match(header.statsLine, /produits en stock/);
+  assert.match(header.statsLine, /produits/);
   assert.match(header.lastActivityLine, /Dernière activité/);
 });
 
