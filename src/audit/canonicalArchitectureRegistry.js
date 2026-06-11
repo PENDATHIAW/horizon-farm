@@ -157,6 +157,7 @@ export const EVENT_AUDIT_SUMMARY = {
     { id: 'STK-PREFIX', detail: 'stock-mvt: vs stock-movement: prefixes', severite: 'faible' },
   ],
   auditEngine: 'runErpTransversalAudit (erpTransversalAudit.js)',
+  executionAuditEngine: 'runCanonicalExecutionAudit (canonicalExecutionAudit.js)',
 };
 
 export const KPI_DUPLICATION_HOTSPOTS = [

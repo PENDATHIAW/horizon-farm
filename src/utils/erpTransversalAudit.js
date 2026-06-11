@@ -6,7 +6,6 @@
 import { findDuplicateFinanceTransaction } from './financeTransactionMeta.js';
 import { financeIds } from './sideEffectIds.js';
 import { remainingForOrder } from './salesStatuses.js';
-import { linkedPaymentsForOrders } from '../modules/commercial/commercialMetrics.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const clean = (v) => String(v || '').trim();
