@@ -19,7 +19,11 @@ import {
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
-/** CA commercial = sales_orders uniquement (pas payments ni finances). */
+/**
+ * CA commercial agrégé — moteur secondaire (Dashboard / financeur).
+ * @deprecated Pour le module Commercial et Hey Horizon : utiliser buildConsolidatedCommercialKpis.
+ * Conservé pour dashboard période et rapports financeur — ne pas étendre.
+ */
 export function computeCommercialKpis(orders = [], payments = [], periodScope = {}) {
   const sales = arr(orders);
   const ca = sales.reduce((sum, row) => sum + saleAmount(row), 0);
