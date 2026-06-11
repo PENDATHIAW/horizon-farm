@@ -8,6 +8,7 @@ import { classifyCompositeQuery } from './assistantMultiIntentMatrix.js';
 import { resolveFollowUp, updateConversationContext } from './assistantConversationContext.js';
 import { buildAgriculturalAnswer } from './assistantAgriculturalContext.js';
 import { formatCompactHorizonAnswer } from './assistantResponseFormatter.js';
+import { resolveFarmModuleNavigation } from './assistantFarmNavigation.js';
 
 /**
  * @typedef {import('./assistantConversationContext.js').ConversationContext} ConversationContext
@@ -39,6 +40,22 @@ function mergeAnswers(answers = []) {
 export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversationContext = null } = {}) {
   const query = String(text || '').trim();
   if (!query) return { handled: false };
+
+  const navigation = resolveFarmModuleNavigation(query);
+  if (navigation) {
+    return {
+      handled: true,
+      navigation,
+      assistantText: formatCompactHorizonAnswer({
+        situation: `J'ouvre ${navigation.label}.`,
+        cause: 'Vous avez demandé à accéder à cet espace.',
+        action: 'Consultez les données puis revenez à l\'assistant si besoin.',
+        sources: ['Navigation ERP'],
+        confidence: 96,
+      }),
+      source: 'farm_navigation_v4',
+    };
+  }
 
   let context = conversationContext;
   let workingQuery = query;

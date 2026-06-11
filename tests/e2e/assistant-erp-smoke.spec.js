@@ -23,6 +23,16 @@ test.describe('Assistant ERP — Horizon V4 langage naturel', () => {
     await expect(page.getByText(/Vous allez enregistrer|VALIDER|vente/i).first()).toBeVisible({ timeout: 15_000 });
   });
 
+  test('comprend une question stock en langage naturel', async ({ page }) => {
+    await login(page);
+    await goToModule(page, 'Assistant ERP');
+
+    const textarea = page.getByPlaceholder(/Parlez à votre ferme/i);
+    await textarea.fill("qu'est-ce qu'il me reste en magasin ?");
+    await page.getByRole('button', { name: /Envoyer/i }).click();
+    await expect(page.getByText(/Situation/i).first()).toBeVisible({ timeout: 15_000 });
+  });
+
   test('question production redirige vers Élevage Cycles', async ({ page }) => {
     await login(page);
     await goToModule(page, 'Assistant ERP');

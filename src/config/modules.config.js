@@ -19,7 +19,7 @@ export const MODULE_REGISTRY = {
   impact_business: { label: 'Investisseurs & Forums', icon: Handshake, group: 'pilotage', deprecated: true },
   investisseurs_forums: { label: 'Investisseurs & Forums', icon: Handshake, group: 'pilotage' },
   cultures: { label: 'Cultures', icon: Sprout, group: 'metier' },
-  rh: { label: 'RH & Équipe', icon: UserCog, group: 'operations' },
+  rh: { label: 'Opérations & Ressources', icon: UserCog, group: 'operations' },
   equipements: { label: 'Équipements', icon: Wrench, group: 'operations' },
   smartfarm: { label: 'Smart Farm', icon: Tractor, group: 'operations' },
   sync_activity: { label: 'Activité & Sync ERP', icon: Wifi, group: 'system' },
@@ -55,10 +55,13 @@ export const SALES_WORKFLOW_KEYS = [
 ];
 
 export const NAV_MODULE_ORDER = [
-  'dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance',
-  'elevage', 'commercial', 'achats_stock', 'finance_pilotage',
-  'activite_suivi', 'documents_rapports', 'investisseurs_forums',
-  'cultures', 'rh', 'equipements', 'smartfarm', 'sync_activity', 'gestion_systeme',
+  'dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance', 'investisseurs_forums',
+  'elevage', 'cultures',
+  'commercial', 'achats_stock',
+  'finance_pilotage',
+  'activite_suivi', 'documents_rapports',
+  'rh', 'equipements', 'smartfarm',
+  'sync_activity', 'gestion_systeme',
 ];
 
 export const ROUTE_TO_MODULE = {

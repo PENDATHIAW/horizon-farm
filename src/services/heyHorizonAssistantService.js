@@ -246,6 +246,14 @@ export function processHeyHorizonCommand(rawText = '', { dataMap = {}, currentDr
   }
 
   const naturalLanguage = routeNaturalLanguageQuery(rawText, { dataMap, conversationContext });
+  if (naturalLanguage?.handled && naturalLanguage.navigation) {
+    return {
+      kind: 'redirect_pilotage',
+      route: naturalLanguage.navigation.moduleId,
+      assistantText: naturalLanguage.assistantText,
+      source: naturalLanguage.source || 'farm_navigation_v4',
+    };
+  }
   if (naturalLanguage?.handled && naturalLanguage.answer) {
     const journalEntry = {
       type: 'agricultural_qa',

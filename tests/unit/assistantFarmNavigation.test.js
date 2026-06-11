@@ -1,0 +1,19 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  FARM_NAV_SECTIONS,
+  resolveFarmModuleNavigation,
+} from '../../src/services/assistantFarmNavigation.js';
+
+test('maps sidebar sections to module ids', () => {
+  assert.deepEqual(FARM_NAV_SECTIONS.pilotage.modules, [
+    'dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance', 'investisseurs_forums',
+  ]);
+  assert.deepEqual(FARM_NAV_SECTIONS.production.modules, ['elevage', 'cultures']);
+});
+
+test('resolves natural language module navigation', () => {
+  assert.equal(resolveFarmModuleNavigation('ouvre le commercial')?.moduleId, 'commercial');
+  assert.equal(resolveFarmModuleNavigation('va en élevage')?.moduleId, 'elevage');
+  assert.equal(resolveFarmModuleNavigation('montre finance et pilotage')?.moduleId, 'finance_pilotage');
+});
