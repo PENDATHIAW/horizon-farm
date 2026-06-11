@@ -69,5 +69,5 @@ test('resolves quel client after receivables context', () => {
     family: 'COMMERCIAL',
   });
   const follow = resolveFollowUp('quel client ?', ctx);
-  assert.equal(follow?.forcedIntent, 'receivable_detail');
+  assert.equal(follow?.forcedIntent, 'receivable_follow_up');
 });

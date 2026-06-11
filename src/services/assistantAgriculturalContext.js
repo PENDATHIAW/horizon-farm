@@ -18,7 +18,14 @@ import { buildCarnetDomainCards } from '../modules/dashboard/carnetHorizon.js';
 import { fmtCurrency } from '../utils/format.js';
 import { detectCommercialPilotageQuery, buildCommercialPilotageAnswer } from './heyHorizonCommercialAnswers.js';
 import { buildInvestorPilotageAnswer } from './assistantInvestorAnswers.js';
-import { buildFarmOverviewAnswer, buildAnnualOutlookAnswer } from './assistantFarmOverview.js';
+import { buildAnnualOutlookAnswer } from './assistantFarmOverview.js';
+import {
+  buildCommentVaLaFermeAnswer,
+  buildPrioritesDuJourAnswer,
+  buildObjectifStatusAnswer,
+  buildReceivableFollowUpAnswer,
+} from './assistantDirectorEngines.js';
+import { hasExploitableFarmData } from './assistantDirectorSnapshot.js';
 import { UNIVERSAL_INTENT_FAMILIES } from './assistantUniversalIntents.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
@@ -139,7 +146,9 @@ function stockQty(row = {}) {
  * Construit une réponse SCA compacte pour une intention universelle.
  * @returns {{ situation: string, cause: string, action: string, sources: string[], title: string, confidence: number } | null}
  */
-export function buildAgriculturalAnswer(intent = '', dataMap = {}) {
+export function buildAgriculturalAnswer(intent = '', dataMap = {}, options = {}) {
+  const conversationContext = options.conversationContext || null;
+  const query = options.query || '';
   if (!intent) return null;
 
   const snap = loadCanonicalSnapshot(dataMap);
@@ -160,6 +169,9 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}) {
 
   switch (intent) {
     case 'greeting':
+      if (hasExploitableFarmData(dataMap)) {
+        return buildCommentVaLaFermeAnswer(dataMap);
+      }
       return {
         title: 'Bonjour',
         situation: 'Bonjour — content de vous retrouver.',
@@ -168,6 +180,9 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}) {
         sources: [],
         confidence: 99,
       };
+
+    case 'receivable_follow_up':
+      return buildReceivableFollowUpAnswer(dataMap, conversationContext);
 
     case 'headcount_total':
       return {
@@ -455,13 +470,11 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}) {
       const receivable = n(commercialKpis.receivable);
       return {
         title: 'Ventes',
-        situation: `Vos ventes affichent ${fmtCurrency(ca)} sur la période, dont ${fmtCurrency(commercialKpis.collected)} déjà encaissés.`,
+        situation: `Vous avez réalisé ${fmtCurrency(ca)} de chiffre d'affaires.\n\nSur ce montant, ${fmtCurrency(commercialKpis.collected)} ont déjà été encaissés.`,
         cause: unpaid > 0
-          ? `Il reste ${unpaid} commande${unpaid > 1 ? 's' : ''} avec un solde à suivre.`
+          ? 'Il reste plusieurs factures ouvertes qui mériteraient une relance.'
           : 'Les encaissements suivent bien le rythme des ventes.',
-        action: receivable > 0
-          ? `Je repère ${unpaid || 'quelques'} créance${(unpaid || 0) > 1 ? 's' : ''} qui méritent une relance.`
-          : '',
+        action: receivable > 0 ? 'Je peux détailler les clients à relancer si vous voulez.' : '',
         sources: [],
         confidence: 92,
       };
@@ -494,7 +507,12 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}) {
       const commercialType = intent === 'relances' ? 'receivables' : (detectCommercialPilotageQuery(intent === 'receivables' ? 'clients à relancer' : 'créances') || 'receivables');
       const commercial = buildCommercialPilotageAnswer(commercialType, dataMap);
       if (commercial?.situation) {
-        return { ...commercial, sources: [] };
+        const top = commercial.meta?.topReceivable || null;
+        return {
+          ...commercial,
+          sources: [],
+          meta: top ? { topReceivable: top } : commercial.meta,
+        };
       }
       return {
         title: 'Créances',
@@ -514,19 +532,27 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}) {
     case 'top_product':
     case 'commercial_summary':
     case 'sell_today':
-    case 'today_priorities': {
+    case 'today_priorities':
+    case 'priorites_du_jour':
+      return buildPrioritesDuJourAnswer(dataMap);
+
+    case 'top_client':
+    case 'top_product':
+    case 'commercial_summary':
+    case 'sell_today': {
       const map = {
         top_client: 'top_clients',
         top_product: 'top_products',
         commercial_summary: 'summary',
         sell_today: 'sell_today',
-        today_priorities: 'today_actions',
         follow_up: 'receivables',
       };
       const type = map[intent];
       if (type) {
         const answer = buildCommercialPilotageAnswer(type, dataMap);
-        if (answer?.situation) return answer;
+        if (answer?.situation) {
+          return { ...answer, sources: [], meta: answer.meta };
+        }
       }
       break;
     }
@@ -691,7 +717,8 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}) {
     }
 
     case 'farm_overview':
-      return buildFarmOverviewAnswer(dataMap);
+    case 'comment_va_la_ferme':
+      return buildCommentVaLaFermeAnswer(dataMap);
 
     case 'annual_outlook':
       return buildAnnualOutlookAnswer(dataMap);
@@ -710,16 +737,8 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}) {
     case 'progress_status':
     case 'month_goal':
     case 'annual_goal':
-      return buildInvestorPilotageAnswer('growth_objectives', dataMap) || {
-        title: 'Objectifs',
-        situation: monthPct != null
-          ? `Objectif mensuel atteint à ${monthPct} % (${fmtCurrency(monthRealized)} / ${fmtCurrency(monthTarget)}).`
-          : `CA période ${fmtCurrency(ca)}.`,
-        cause: monthPct != null && monthPct < 80 ? 'Rythme commercial en retard sur l\'objectif.' : 'Suivi objectifs ERP.',
-        action: monthPct != null && monthPct < 80 ? 'Accélérez ventes et livraisons cette semaine.' : 'Maintenez le rythme actuel.',
-        sources: ['buildObjectifsCroissanceData'],
-        confidence: 90,
-      };
+    case 'objectif_status':
+      return buildObjectifStatusAnswer(dataMap, query);
 
     case 'farm_status':
     case 'investor_summary':

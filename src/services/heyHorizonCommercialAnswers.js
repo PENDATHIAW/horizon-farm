@@ -236,6 +236,14 @@ export function buildCommercialPilotageAnswer(type = 'summary', dataMap = {}) {
       })),
       route: 'commercial',
       tab: 'Relances',
+      meta: worst ? {
+        topReceivable: {
+          clientName: worst.name,
+          amount: worst.rest,
+          orderId: worst.id,
+          delayDays: worst.delayDays,
+        },
+      } : {},
     });
   }
 

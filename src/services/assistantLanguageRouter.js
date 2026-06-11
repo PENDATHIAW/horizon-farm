@@ -13,6 +13,11 @@ import { detectBusinessDomain } from './assistantDomainDetector.js';
 import { buildAssistantClarifyResponse } from './assistantClarifyResponse.js';
 import { buildConversationalNavigationReply } from './assistantConversationalNavigation.js';
 import { buildProgressiveChatPayload } from './assistantProgressiveResponse.js';
+import {
+  resolveDirectorIntent,
+  buildDirectorEngineAnswer,
+  DIRECTOR_INTENTS,
+} from './assistantDirectorEngines.js';
 
 /**
  * @typedef {import('./assistantConversationContext.js').ConversationContext} ConversationContext
@@ -22,17 +27,18 @@ function mergeAnswers(answers = []) {
   if (!answers.length) return null;
   if (answers.length === 1) return answers[0];
 
-  const situation = answers.map((a) => a.situation).filter(Boolean).join(' · ');
-  const cause = answers.map((a) => a.cause).filter(Boolean).join(' · ');
-  const action = answers.map((a) => a.action).filter(Boolean)[0] || 'Traitez chaque point dans l\'ordre indiqué.';
-  const sources = [...new Set(answers.flatMap((a) => a.sources || []))];
+  const situation = answers.map((a) => a.situation).filter(Boolean).join('\n\n');
+  const cause = answers.map((a) => a.cause).filter(Boolean).join(' ');
+  const action = answers.map((a) => a.action).filter(Boolean)[0] || '';
+  const meta = answers.find((a) => a.meta?.topReceivable)?.meta || answers[0]?.meta || null;
 
   return {
     title: 'Plusieurs sujets',
     situation,
     cause,
     action,
-    sources,
+    sources: [],
+    meta,
     confidence: Math.round(answers.reduce((sum, a) => sum + (a.confidence || 80), 0) / answers.length),
   };
 }
@@ -69,6 +75,37 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
     workingQuery = followUp.expandedQuery || query;
     forcedIntent = followUp.forcedIntent || null;
     forcedFamily = followUp.forcedFamily || null;
+  }
+
+  const directorIntent = forcedIntent === 'receivable_follow_up'
+    ? DIRECTOR_INTENTS.RECEIVABLE_FOLLOW_UP
+    : resolveDirectorIntent(query, context);
+  if (directorIntent) {
+    const directorAnswer = buildDirectorEngineAnswer(directorIntent, dataMap, context, query);
+    if (directorAnswer) {
+      const progressive = buildProgressiveChatPayload(directorAnswer);
+      const intentKey = directorAnswer.intent || directorIntent;
+      const familyMap = {
+        [DIRECTOR_INTENTS.COMMENT_VA_LA_FERME]: 'INVESTISSEUR',
+        [DIRECTOR_INTENTS.OBJECTIF_STATUS]: 'OBJECTIFS',
+        [DIRECTOR_INTENTS.PRIORITES_DU_JOUR]: 'DECISION',
+        [DIRECTOR_INTENTS.RECEIVABLE_FOLLOW_UP]: 'COMMERCIAL',
+      };
+      return {
+        handled: true,
+        answer: directorAnswer,
+        assistantText: progressive.text,
+        progressive,
+        updatedContext: updateConversationContext(context || {}, {
+          query,
+          intent: intentKey,
+          family: familyMap[directorIntent] || 'DECISION',
+          answerMeta: directorAnswer.meta,
+        }),
+        intents: [{ intent: intentKey, family: familyMap[directorIntent], label: directorAnswer.title }],
+        source: 'director_engine_v61',
+      };
+    }
   }
 
   const composite = classifyCompositeQuery(workingQuery);
@@ -110,7 +147,7 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
 
   const answers = [];
   for (const hit of intents.slice(0, 3)) {
-    const answer = buildAgriculturalAnswer(hit.intent, dataMap);
+    const answer = buildAgriculturalAnswer(hit.intent, dataMap, { conversationContext: context, query });
     if (answer) answers.push(answer);
   }
 
@@ -148,6 +185,7 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
     query,
     intent: primary.intent,
     family: primary.family,
+    answerMeta: merged?.meta,
   });
 
   return {

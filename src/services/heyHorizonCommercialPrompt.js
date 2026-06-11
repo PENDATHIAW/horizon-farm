@@ -68,5 +68,6 @@ export function buildCommercialAnswerPayload({
     confidence,
     insufficientData,
     ...extra,
+    meta: extra.meta || {},
   };
 }

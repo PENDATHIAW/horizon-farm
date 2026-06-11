@@ -16,7 +16,7 @@ const baseData = {
 test('buildFarmOverviewAnswer sounds like a farm director', () => {
   const answer = buildFarmOverviewAnswer(baseData);
   const text = formatConversationalHorizonAnswer(answer);
-  assert.match(text, /Dans l'ensemble la ferme se porte bien/i);
+  assert.match(text, /Dans l'ensemble, la ferme fonctionne correctement/i);
   assert.doesNotMatch(text, /Situation/i);
   assert.doesNotMatch(text, /buildConsolidatedCommercialKpis/i);
   assert.doesNotMatch(text, /—/);

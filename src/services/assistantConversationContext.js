@@ -1,6 +1,6 @@
 /**
- * ASSISTANT_CONVERSATION_CONTEXT — mémoire métier courte (V5).
- * Suites : espèces, traitements, finances, ventes, parcelles, clients, stocks.
+ * ASSISTANT_CONVERSATION_CONTEXT — mémoire métier V6.1.
+ * Suites : espèces, traitements, finances, ventes, parcelles, clients prioritaires.
  */
 
 import { normalizeAgriculturalText } from './assistantUniversalIntents.js';
@@ -20,6 +20,15 @@ const FOLLOW_UP_MARKERS = [
   /sous traitement/,
   /en traitement/,
 ];
+
+const RECEIVABLE_INTENTS = new Set([
+  'receivables',
+  'relances',
+  'creances',
+  'receivable_detail',
+  'receivable_follow_up',
+  'follow_up',
+]);
 
 const SPECIES_ALIASES = Object.freeze({
   bovins: ['bovin', 'bovins', 'vache', 'vaches', 'betail bovin'],
@@ -47,8 +56,6 @@ const DOMAIN_INTENT_SHORTCUTS = Object.freeze({
     rentable: 'resultat',
   },
   commercial: {
-    client: 'top_client',
-    clients: 'commercial_summary',
     produit: 'top_product',
     ventes: 'ventes',
     vente: 'ventes',
@@ -77,8 +84,6 @@ const DOMAIN_INTENT_SHORTCUTS = Object.freeze({
     poulets: 'headcount_poulets',
   },
   pilotage: {
-    objectifs: 'progress_status',
-    objectif: 'progress_status',
     rapports: 'documents_summary',
     documents: 'documents_summary',
     personnel: 'rh_personnel',
@@ -110,6 +115,12 @@ function matchDomainShortcut(domain, text) {
   return null;
 }
 
+function isClientFollowUpQuery(text = '') {
+  const q = normalizeAgriculturalText(text);
+  return /^(quel|quelle|lequel|laquelle)(s)?\s+(client|clients?)\??$/.test(q)
+    || /^(son nom|le nom|qui c est|c est qui)\??$/.test(q);
+}
+
 /**
  * @returns {import('./assistantConversationContext.js').ConversationContext}
  */
@@ -121,6 +132,9 @@ export function createConversationContext() {
     lastDomain: null,
     lastQuery: '',
     turnCount: 0,
+    memory: {
+      topReceivable: null,
+    },
   };
 }
 
@@ -132,21 +146,27 @@ export function resolveFollowUp(query = '', context = createConversationContext(
   const q = normalizeAgriculturalText(query);
   if (!q) return null;
 
-  const ultra = resolveUltraShortIntent(query);
-  if (ultra && (!context?.lastIntent || isFollowUp(q) || q.split(/\s+/).length <= 2)) {
+  if (isClientFollowUpQuery(query) && (
+    context?.memory?.topReceivable
+    || RECEIVABLE_INTENTS.has(context?.lastIntent)
+  )) {
     return {
       expandedQuery: query,
-      forcedIntent: ultra.intent,
-      forcedFamily: ultra.family,
+      forcedIntent: 'receivable_follow_up',
+      forcedFamily: 'COMMERCIAL',
     };
   }
 
-  if (/^quel(le)?s? client/.test(q) && ['receivables', 'relances', 'creances', 'receivable_detail', 'follow_up'].includes(context?.lastIntent)) {
-    return {
-      expandedQuery: 'qui me doit le plus',
-      forcedIntent: 'receivable_detail',
-      forcedFamily: 'COMMERCIAL',
-    };
+  const ultra = resolveUltraShortIntent(query);
+  if (ultra && !isClientFollowUpQuery(query)) {
+    const shortOk = !context?.lastIntent || isFollowUp(q) || q.split(/\s+/).length <= 2;
+    if (shortOk && ultra.intent !== 'top_client') {
+      return {
+        expandedQuery: query,
+        forcedIntent: ultra.intent,
+        forcedFamily: ultra.family,
+      };
+    }
   }
 
   if (!context?.lastIntent) return null;
@@ -224,10 +244,24 @@ export function resolveFollowUp(query = '', context = createConversationContext(
 /**
  * Met à jour le contexte après une interaction réussie.
  */
-export function updateConversationContext(context, { query = '', intent = null, family = null } = {}) {
-  const next = { ...context, turnCount: (context.turnCount || 0) + 1, lastQuery: query };
+export function updateConversationContext(context, {
+  query = '',
+  intent = null,
+  family = null,
+  answerMeta = null,
+} = {}) {
+  const next = {
+    ...context,
+    turnCount: (context.turnCount || 0) + 1,
+    lastQuery: query,
+    memory: { ...(context.memory || {}), topReceivable: context.memory?.topReceivable || null },
+  };
   if (intent) next.lastIntent = intent;
   if (family) next.lastFamily = family;
+
+  if (answerMeta?.topReceivable) {
+    next.memory.topReceivable = answerMeta.topReceivable;
+  }
 
   const species = detectSpecies(query);
   if (species) next.lastSpecies = species;
@@ -241,11 +275,11 @@ export function updateConversationContext(context, { query = '', intent = null, 
     next.lastDomain = 'stock';
   } else if (family === 'FINANCE' || intent?.includes('treasury') || intent === 'dettes' || intent === 'creances' || intent === 'resultat') {
     next.lastDomain = 'finance';
-  } else if (family === 'COMMERCIAL' || intent?.includes('client') || intent?.includes('ventes') || intent === 'receivables') {
+  } else if (family === 'COMMERCIAL' || intent?.includes('client') || intent?.includes('ventes') || RECEIVABLE_INTENTS.has(intent)) {
     next.lastDomain = 'commercial';
   } else if (family === 'CULTURES' || intent?.includes('parcel') || intent?.includes('culture') || intent?.includes('rendement')) {
     next.lastDomain = 'cultures';
-  } else if (intent?.includes('document') || intent?.includes('activity') || intent === 'today_priorities') {
+  } else if (intent?.includes('document') || intent?.includes('activity') || intent === 'today_priorities' || intent === 'priorites_du_jour' || intent === 'comment_va_la_ferme') {
     next.lastDomain = 'pilotage';
   } else if (intent?.includes('rh_') || intent?.includes('equipment') || intent?.includes('system') || intent?.includes('sync')) {
     next.lastDomain = 'pilotage';
