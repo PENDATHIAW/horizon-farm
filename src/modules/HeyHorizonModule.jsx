@@ -3,22 +3,32 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import HeyHorizonDraftSummary from '../components/HeyHorizonDraftSummary.jsx';
 import HorizonDraftPanel from '../components/HorizonDraftPanel.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import useHeyHorizonCommand from '../hooks/useHeyHorizonCommand.js';
+import {
+  buildAssistantFarmHeader,
+  buildAssistantWelcomeMessage,
+} from '../services/assistantFarmSecretary.js';
 import { formatStrategicHorizonAnswer, parseHorizonStructuredText } from '../services/assistantResponseFormatter.js';
 import { processContextualVoiceInput } from '../services/aiGateway/contextualVoiceService.js';
 import { enrichAssistantDataMap } from '../utils/assistantDataMap.js';
 import { HORIZON } from './assistant/horizonDesignTokens.js';
 import HorizonStructuredMessage from './assistant/HorizonStructuredMessage.jsx';
 
-const WELCOME_MESSAGE = {
-  id: 'welcome',
-  role: 'assistant',
-  text: 'Situation\nVotre exploitation est prête.\n\nCause\nHorizon centralise ventes, stocks, finances et actions terrain.\n\nAction\nDéclarez ou demandez : vente, récolte, trésorerie, priorités du jour.',
-};
+function displayNameFromUser(user = {}) {
+  const raw = user?.user_metadata?.name
+    || user?.user_metadata?.login
+    || user?.email?.split('@')[0]
+    || 'Exploitant';
+  const text = String(raw).trim();
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
 
 function ChatBubble({ message }) {
   const isUser = message.role === 'user';
-  const structured = !isUser ? (message.structured || parseHorizonStructuredText(message.text)) : null;
+  const structured = !isUser && !message.isWelcome
+    ? (message.structured || parseHorizonStructuredText(message.text))
+    : null;
 
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -26,12 +36,12 @@ function ChatBubble({ message }) {
         className="max-w-[92%] rounded-2xl px-4 py-3"
         style={{
           background: isUser ? HORIZON.userBubble : HORIZON.assistantBubble,
-          color: isUser ? '#FFFFFF' : HORIZON.text,
-          border: isUser ? 'none' : `1px solid ${HORIZON.border}`,
-          boxShadow: isUser ? HORIZON.shadow : HORIZON.shadow,
+          color: isUser ? HORIZON.userBubbleText : HORIZON.text,
+          border: `1px solid ${HORIZON.border}`,
+          boxShadow: HORIZON.shadow,
         }}
       >
-        {isUser ? (
+        {isUser || message.isWelcome ? (
           <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.text}</p>
         ) : (
           <HorizonStructuredMessage text={message.text} structured={structured} />
@@ -66,19 +76,53 @@ function ChatDraftBlock({ draft, isValidating, onValidate, onCancel }) {
   );
 }
 
+function FarmHeader({ header }) {
+  if (!header) return null;
+  return (
+    <header
+      className="shrink-0 px-6 py-4"
+      style={{ borderBottom: `1px solid ${HORIZON.border}`, background: HORIZON.surface }}
+    >
+      <h1 className="text-lg font-semibold tracking-tight" style={{ color: HORIZON.primary }}>
+        {header.farmName}
+      </h1>
+      <p className="mt-1 text-sm leading-snug" style={{ color: HORIZON.text }}>
+        {header.statsLine}
+      </p>
+      <p className="mt-0.5 text-xs" style={{ color: HORIZON.textMuted }}>
+        {header.lastActivityLine}
+      </p>
+    </header>
+  );
+}
+
 export default function HeyHorizonModule({
   dataMap = {},
   salesOrdersAll = [],
   paymentsAll = [],
   transactionsAll = [],
+  businessEvents = [],
+  businessEventsAll = [],
   periodFiltered = false,
   periodLabel = '',
   periodScope,
   onNavigate,
   onCreateBusinessEvent,
+  animaux,
+  cultures,
+  stocks,
+  clients,
+  lots,
+  lotsData,
+  vaccins,
+  sante,
+  taches,
+  alimentationLogs,
+  productionLogs,
 }) {
+  const { user } = useAuth();
+  const displayName = displayNameFromUser(user);
   const [command, setCommand] = useState('');
-  const [messages, setMessages] = useState([WELCOME_MESSAGE]);
   const [voiceBusy, setVoiceBusy] = useState(false);
   const chatEndRef = useRef(null);
 
@@ -93,6 +137,60 @@ export default function HeyHorizonModule({
     }),
     [dataMap, salesOrdersAll, paymentsAll, transactionsAll, periodFiltered, periodScope, periodLabel],
   );
+
+  const secretaryProps = useMemo(() => ({
+    dataMap: enrichedDataMap,
+    salesOrdersAll,
+    paymentsAll,
+    transactionsAll: transactionsAll,
+    businessEvents: businessEventsAll.length ? businessEventsAll : businessEvents,
+    animaux,
+    cultures,
+    stocks,
+    clients,
+    lots: lotsData || lots,
+    vaccins,
+    sante,
+    taches,
+    alimentationLogs,
+    productionLogs,
+    periodScope,
+  }), [
+    enrichedDataMap,
+    salesOrdersAll,
+    paymentsAll,
+    transactionsAll,
+    businessEvents,
+    businessEventsAll,
+    animaux,
+    cultures,
+    stocks,
+    clients,
+    lots,
+    lotsData,
+    vaccins,
+    sante,
+    taches,
+    alimentationLogs,
+    productionLogs,
+    periodScope,
+  ]);
+
+  const farmHeader = useMemo(
+    () => buildAssistantFarmHeader(secretaryProps),
+    [secretaryProps],
+  );
+
+  const welcomeMessage = useMemo(
+    () => buildAssistantWelcomeMessage(displayName, secretaryProps),
+    [displayName, secretaryProps],
+  );
+
+  const [messages, setMessages] = useState([welcomeMessage]);
+
+  useEffect(() => {
+    setMessages([welcomeMessage]);
+  }, [welcomeMessage]);
 
   const {
     draft,
@@ -156,21 +254,21 @@ export default function HeyHorizonModule({
       }
       const result = await runCommand(query, { autoOpenForm: false, navigateOnDraft: false });
       if (result?.kind === 'redirect_pilotage') {
-        appendMessage('assistant', result.assistantText || 'Module ouvert pour approfondir.');
+        appendMessage('assistant', result.assistantText || 'Je vous ouvre le bon module.');
         return;
       }
       if (result?.kind === 'strategic' || result?.kind === 'llm') {
-        const answerText = formatStrategicHorizonAnswer(result.strategic) || result.assistantText || 'Réponse indisponible.';
+        const answerText = formatStrategicHorizonAnswer(result.strategic) || result.assistantText || 'Je n\'ai pas assez de données pour répondre.';
         appendMessage('assistant', answerText, { structured: result.strategic });
         return;
       }
       if (result?.kind === 'draft') {
         return;
       }
-      appendMessage('assistant', result?.assistantText || 'Reformulez votre action ou question sur votre ferme.');
+      appendMessage('assistant', result?.assistantText || 'Reformulez votre demande sur la ferme.');
     } catch (error) {
       toast.error(error.message || 'Analyse impossible');
-      appendMessage('assistant', 'Une erreur est survenue. Réessayez ou précisez votre demande.');
+      appendMessage('assistant', 'Un problème est survenu. Réessayez en précisant l\'action ou la question.');
     } finally {
       setVoiceBusy(false);
     }
@@ -190,7 +288,7 @@ export default function HeyHorizonModule({
   const handleValidate = async () => {
     try {
       await validateDraft();
-      appendMessage('assistant', 'Action validée et enregistrée dans l\'ERP.');
+      appendMessage('assistant', 'C\'est enregistré dans le carnet de la ferme.');
       cancelDraft();
     } catch {
       // toast handled in hook
@@ -199,7 +297,7 @@ export default function HeyHorizonModule({
 
   const handleCancel = () => {
     cancelDraft();
-    appendMessage('assistant', 'Action annulée. Que souhaitez-vous faire sur votre ferme ?');
+    appendMessage('assistant', 'D\'accord, rien n\'a été enregistré. Que souhaitez-vous faire ?');
   };
 
   const busy = voiceBusy || isProcessing;
@@ -209,20 +307,10 @@ export default function HeyHorizonModule({
       className="flex h-[calc(100vh-8rem)] min-h-[520px] flex-col"
       style={{ background: HORIZON.bg }}
     >
-      <header
-        className="shrink-0 px-6 py-5"
-        style={{ borderBottom: `1px solid ${HORIZON.border}`, background: HORIZON.surface }}
-      >
-        <h1 className="text-xl font-semibold tracking-tight" style={{ color: HORIZON.primary }}>
-          Horizon
-        </h1>
-        <p className="mt-0.5 text-sm" style={{ color: HORIZON.textMuted }}>
-          Votre exploitation agricole
-        </p>
-      </header>
+      <FarmHeader header={farmHeader} />
 
       <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
-        <div className="mx-auto flex max-w-2xl flex-col gap-4">
+        <div className="mx-auto flex max-w-2xl flex-col gap-3">
           {messages.map((message) => (
             <ChatBubble key={message.id} message={message} />
           ))}

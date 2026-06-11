@@ -1,35 +1,37 @@
 import { parseHorizonStructuredText } from '../../services/assistantResponseFormatter.js';
 import { HORIZON } from './horizonDesignTokens.js';
 
-function SectionBlock({ label, children }) {
+function SectionLine({ label, children }) {
   if (!children) return null;
   return (
-    <div className="mt-3 first:mt-0">
-      <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: HORIZON.secondary }}>
+    <>
+      <p className="mt-2.5 first:mt-0 text-[13px] font-medium" style={{ color: HORIZON.primary }}>
         {label}
       </p>
-      <p className="mt-1 text-sm leading-relaxed" style={{ color: HORIZON.text }}>
+      <p className="mt-0.5 text-sm leading-snug" style={{ color: HORIZON.text }}>
         {children}
       </p>
-    </div>
+    </>
   );
 }
 
-/** Affiche Situation / Cause / Action / Source ERP — jamais en cartes */
+/** Réponses naturelles SCA — max ~6 lignes de contenu, jamais en cartes */
 export default function HorizonStructuredMessage({ text = '', structured = null }) {
   const parsed = structured?.situation || structured?.cause || structured?.action
     ? parseHorizonStructuredText(structured)
     : parseHorizonStructuredText(text);
+
   if (!parsed) {
     return <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: HORIZON.text }}>{text}</p>;
   }
+
   return (
-    <div>
-      <SectionBlock label="Situation">{parsed.situation}</SectionBlock>
-      <SectionBlock label="Cause">{parsed.cause}</SectionBlock>
-      <SectionBlock label="Action">{parsed.action}</SectionBlock>
+    <div className="text-sm">
+      <SectionLine label="Situation">{parsed.situation}</SectionLine>
+      <SectionLine label="Cause">{parsed.cause}</SectionLine>
+      <SectionLine label="Action">{parsed.action}</SectionLine>
       {parsed.sources ? (
-        <SectionBlock label="Source ERP">{parsed.sources}</SectionBlock>
+        <SectionLine label="Source ERP">{parsed.sources}</SectionLine>
       ) : null}
     </div>
   );

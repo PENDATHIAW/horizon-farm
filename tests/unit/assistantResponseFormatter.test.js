@@ -50,6 +50,6 @@ test('formatDraftAssistantText mentions validation', () => {
     ui: { title: 'Vente à valider' },
     draft_fields: { product_name: 'poulet', quantity: 10 },
   });
-  assert.match(text, /Résumé détecté/);
+  assert.match(text, /J'ai préparé/);
   assert.match(text, /validez/i);
 });

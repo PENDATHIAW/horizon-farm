@@ -105,10 +105,10 @@ export function formatDraftAssistantText(draft = {}) {
     fields.payment_amount ? `${fields.payment_amount} FCFA` : null,
   ].filter(Boolean).join(' · ');
   return formatHorizonAnswer({
-    situation: `Résumé détecté : ${action}${details ? ` — ${details}` : ''}.`,
-    cause: 'Phrase terrain interprétée par l\'assistant.',
-    action: 'Vérifiez le résumé ci-dessous puis validez pour enregistrer dans l\'ERP.',
-    sources: ['Assistant ERP → brouillon'],
+    situation: `J'ai préparé : ${action}${details ? ` (${details})` : ''}.`,
+    cause: 'C\'est ce que j\'ai compris de votre phrase.',
+    action: 'Vérifiez ci-dessous puis validez pour enregistrer.',
+    sources: ['Carnet Horizon'],
   });
 }
 
