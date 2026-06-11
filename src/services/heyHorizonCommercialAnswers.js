@@ -15,6 +15,7 @@ import {
   buildCommercialAnswerPayload,
   CANONICAL_COMMERCIAL_SOURCES,
 } from './heyHorizonCommercialPrompt.js';
+import { resolveClientDisplayName, uniqueClientNames, dedupeProse } from './assistantEntityLabels.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v) => Number(v || 0);
@@ -71,7 +72,7 @@ function marginContext(props = {}) {
   };
 }
 
-function collectReceivableRows(orders = [], payments = []) {
+function collectReceivableRows(orders = [], payments = [], clients = []) {
   const ref = new Date().toISOString().slice(0, 10);
   return arr(orders).map((order) => {
     const rest = remainingForOrder(order, payments);
@@ -79,7 +80,8 @@ function collectReceivableRows(orders = [], payments = []) {
     const dueStr = String(due).slice(0, 10);
     const delayDays = dueStr ? Math.max(0, Math.round((new Date(ref) - new Date(dueStr)) / 86400000)) : 0;
     return {
-      name: order.client_nom || order.customer_name || 'Client',
+      ...order,
+      name: resolveClientDisplayName(order, clients),
       rest,
       id: order.id,
       delayDays,
@@ -208,26 +210,28 @@ export function buildCommercialPilotageAnswer(type = 'summary', dataMap = {}) {
   }
 
   if (type === 'receivables') {
-    const rows = collectReceivableRows(enriched, props.payments)
+    const rows = collectReceivableRows(enriched, props.payments, props.clients)
       .sort((a, b) => b.rest - a.rest || b.delayDays - a.delayDays)
       .slice(0, 8);
     const total = rows.reduce((s, r) => s + r.rest, 0);
     const worst = rows[0];
-    const others = rows.slice(1, 3).map((r) => r.name).filter(Boolean);
+    const sharePct = worst && total > 0 ? Math.round((worst.rest / total) * 100) : 0;
+    const otherNames = uniqueClientNames(rows.slice(1, 4), props.clients);
+    const actionText = worst
+      ? (otherNames.length
+        ? `Commencez par ${worst.name}${sharePct > 0 ? ` — cette créance représente ${sharePct} % du total en attente` : ''}, puis ${otherNames.slice(0, 2).join(' et ')}.`
+        : `Commencez par ${worst.name}${sharePct > 0 ? ` — cette créance représente ${sharePct} % du total en attente` : ''}.`)
+      : '';
     return buildCommercialAnswerPayload({
       type: 'commercial_receivables',
       title: 'Créances à relancer',
-      situation: rows.length
+      situation: dedupeProse(rows.length
         ? `Vous avez ${rows.length} client${rows.length > 1 ? 's' : ''} qui vous doivent encore ${fmtCurrency(total)} au total.`
-        : 'Aucun client ne vous doit d\'argent pour le moment.',
+        : 'Aucun client ne vous doit d\'argent pour le moment.'),
       cause: worst
-        ? `Le plus urgent est ${worst.name}, avec ${fmtCurrency(worst.rest)} sur la commande ${worst.id}${worst.delayDays > 0 ? `, en retard de ${worst.delayDays} jour${worst.delayDays > 1 ? 's' : ''}` : ''}.`
+        ? dedupeProse(`Le plus urgent est ${worst.name}, avec ${fmtCurrency(worst.rest)} sur la commande ${worst.id}${worst.delayDays > 0 ? `, en retard de ${worst.delayDays} jour${worst.delayDays > 1 ? 's' : ''}` : ''}.`)
         : '',
-      action: worst
-        ? (others.length
-          ? `Je commencerais par relancer ${worst.name}${others.length ? `, puis ${others.join(' et ')}` : ''}.`
-          : `Je vous suggère de relancer ${worst.name} aujourd'hui.`)
-        : '',
+      action: dedupeProse(actionText),
       sources: [],
       rows: rows.map((r) => ({
         label: r.name,

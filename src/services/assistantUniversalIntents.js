@@ -98,6 +98,7 @@ const FINANCE = [
   { intent: 'dettes', patterns: [/mes dettes/, /dette fournisseur/, /dettes fournisseurs/, /que dois.?je payer/, /fournisseur.*payer/], label: 'Dettes' },
   { intent: 'creances', patterns: [/mes creances/, /mes créances/, /argent a recuperer/, /argent à récupérer/], label: 'Créances' },
   { intent: 'resultat', patterns: [/resultat/, /résultat/, /benefice/, /bénéfice/, /rentabilite/, /rentabilité/, /marge reelle/, /marge réelle/], label: 'Résultat' },
+  { intent: 'money_leaks', patterns: [/perdre de l argent/, /fait perdre/, /fuite financiere/, /fuite d argent/, /detruit ma marge/, /postes de perte/, /ou je perds/, /où je perds/, /pertes financieres/], label: 'Fuites financières' },
 ];
 
 const OBJECTIFS = [

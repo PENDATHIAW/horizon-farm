@@ -94,6 +94,7 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
         [DIRECTOR_INTENTS.COMPARAISONS]: 'INVESTISSEUR',
         [DIRECTOR_INTENTS.RISQUES]: 'INVESTISSEUR',
         [DIRECTOR_INTENTS.OPPORTUNITES]: 'COMMERCIAL',
+        [DIRECTOR_INTENTS.MONEY_LEAKS]: 'FINANCE',
       };
       return {
         handled: true,

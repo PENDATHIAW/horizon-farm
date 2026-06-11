@@ -13,7 +13,9 @@ import {
   buildComparaisonsAnswer,
   buildRisquesAnswer,
   buildOpportunitesAnswer,
+  buildMoneyLeaksAnswer,
 } from './assistantFarmAdvisor.js';
+import { resolveCanonicalGoalProgress } from './assistantGoalProgress.js';
 
 const n = (v) => Number(v || 0);
 
@@ -26,6 +28,7 @@ export const DIRECTOR_INTENTS = Object.freeze({
   COMPARAISONS: 'farm_comparisons',
   RISQUES: 'farm_risks',
   OPPORTUNITES: 'farm_opportunities',
+  MONEY_LEAKS: 'money_leaks',
 });
 
 const CLIENT_FOLLOW_UP = /^(quel|quelle|lequel|laquelle)(s)?\s+(client|clients?)\??$/;
@@ -61,6 +64,9 @@ export function resolveDirectorIntent(query = '', conversationContext = null) {
   if (/opportunite|quoi vendre|que vendre|que puis je vendre|puis je vendre|ecouler/.test(q)) {
     return DIRECTOR_INTENTS.OPPORTUNITES;
   }
+  if (/perdre de l argent|fait perdre|fuite financiere|fuite d argent|detruit ma marge|postes de perte|ou je perds|où je perds|pertes financieres|je perds de l argent/.test(q)) {
+    return DIRECTOR_INTENTS.MONEY_LEAKS;
+  }
 
   if (/comment va (la ferme|l exploitation|mon exploitation)|situation globale|etat global/.test(q)) {
     return DIRECTOR_INTENTS.COMMENT_VA_LA_FERME;
@@ -68,7 +74,7 @@ export function resolveDirectorIntent(query = '', conversationContext = null) {
   if (/quelles priorit|quelle priorit|^priorites\?*$|^priorite\?*$|que faire aujourd|que dois je faire|par quoi commencer|urgences/.test(q)) {
     return DIRECTOR_INTENTS.PRIORITES_DU_JOUR;
   }
-  if (/objectif.*atteint|objectif mensuel|objectif annuel|suis je en avance|en avance sur l objectif|où j en suis|ou j en suis|avancement objectif/.test(q)) {
+  if (/objectif.*atteint|objectif mensuel|objectif annuel|suis je en avance|en avance ou en retard|avance ou en retard|en avance sur l objectif|où j en suis|ou j en suis|avancement objectif/.test(q)) {
     return DIRECTOR_INTENTS.OBJECTIF_STATUS;
   }
 
@@ -88,17 +94,22 @@ export function buildPrioritesDuJourAnswer(dataMap = {}) {
 /** OBJECTIF_STATUS — objectifs sans détour par les créances. */
 export function buildObjectifStatusAnswer(dataMap = {}, query = '') {
   const snap = buildDirectorSnapshot(dataMap);
+  const goals = resolveCanonicalGoalProgress(dataMap);
   const q = normalizeAgriculturalText(query);
   const {
-    monthTarget, monthRealized, monthPct, commercial, growth,
+    monthTarget, monthRealized, monthPct, commercial,
   } = snap;
+  const hasMonthlyGoal = goals.hasMonthlyGoal || monthTarget > 0;
+  const effectiveMonthPct = monthPct ?? goals.monthPct;
+  const effectiveMonthTarget = monthTarget || goals.monthTarget;
+  const effectiveMonthRealized = monthRealized || goals.monthRealized;
 
-  const annualTarget = n(growth?.annualTarget ?? growth?.objectifAnnuel);
-  const annualRealized = n(growth?.annualRealized ?? growth?.caAnnee ?? commercial.ca);
-  const annualPct = annualTarget > 0 ? Math.round((annualRealized / annualTarget) * 100) : null;
+  const annualTarget = goals.annualTarget;
+  const annualRealized = goals.annualRealized;
+  const annualPct = goals.annualPct;
 
   const focusAnnual = /annuel|annee|année|finir l annee/.test(q);
-  const focusAdvance = /en avance|en retard|avance|retard/.test(q);
+  const focusAdvance = /en avance|en retard|avance ou en retard|avance|retard/.test(q);
 
   let situation;
   let cause = '';
@@ -116,23 +127,23 @@ export function buildObjectifStatusAnswer(dataMap = {}, query = '') {
       cause = 'Vous progressez vers la cible annuelle.';
       action = 'Maintenez le rythme commercial actuel.';
     }
-  } else if (monthTarget > 0 && monthPct != null) {
-    situation = `Votre objectif mensuel est atteint à ${monthPct} % (${fmtCurrency(monthRealized)} sur ${fmtCurrency(monthTarget)}).`;
+  } else if (hasMonthlyGoal && effectiveMonthPct != null) {
+    situation = `Votre objectif mensuel est atteint à ${effectiveMonthPct} % (${fmtCurrency(effectiveMonthRealized)} sur ${fmtCurrency(effectiveMonthTarget)}).`;
     if (focusAdvance) {
-      if (monthPct >= 100) {
+      if (effectiveMonthPct >= 100) {
         cause = 'Vous êtes en avance sur l\'objectif du mois.';
         action = 'Vous pouvez sécuriser les encaissements et préparer la suite.';
-      } else if (monthPct < 50) {
+      } else if (effectiveMonthPct < 50) {
         cause = 'Vous êtes en retard sur l\'objectif du mois.';
         action = 'Accélérez ventes et livraisons cette semaine.';
       } else {
-        cause = 'Vous progressez vers la cible mensuelle.';
+        cause = 'Vous progressez vers la cible mensuelle, sans être encore en avance.';
         action = 'Quelques ventes supplémentaires vous mettraient sur la bonne trajectoire.';
       }
-    } else if (monthPct < 50) {
+    } else if (effectiveMonthPct < 50) {
       cause = 'Le rythme commercial reste en retard sur la cible du mois.';
       action = 'Accélérez ventes et livraisons cette semaine.';
-    } else if (monthPct >= 100) {
+    } else if (effectiveMonthPct >= 100) {
       cause = 'L\'objectif mensuel est déjà atteint.';
       action = 'Consolidez le résultat et préparez le mois suivant.';
     } else {
@@ -141,8 +152,8 @@ export function buildObjectifStatusAnswer(dataMap = {}, query = '') {
     }
   } else {
     situation = `Le chiffre d'affaires de la période est de ${fmtCurrency(commercial.ca)}.`;
-    cause = 'Aucun objectif mensuel chiffré n\'est configuré pour comparer l\'avancement.';
-    action = 'Définissez un objectif mensuel pour suivre votre progression.';
+    cause = 'Je n\'ai pas encore de cible mensuelle comparable sur cette période.';
+    action = 'Vérifiez l\'objectif dans Objectifs & Croissance pour activer le suivi d\'avancement.';
   }
 
   return {
@@ -206,6 +217,8 @@ export function buildDirectorEngineAnswer(intent = '', dataMap = {}, conversatio
       return buildRisquesAnswer(dataMap);
     case DIRECTOR_INTENTS.OPPORTUNITES:
       return buildOpportunitesAnswer(dataMap);
+    case DIRECTOR_INTENTS.MONEY_LEAKS:
+      return buildMoneyLeaksAnswer(dataMap);
     default:
       return null;
   }

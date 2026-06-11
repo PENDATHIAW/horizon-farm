@@ -6,6 +6,7 @@ import {
   buildRisquesAnswer,
   buildOpportunitesAnswer,
   buildTendancesAnswer,
+  buildMoneyLeaksAnswer,
 } from '../../src/services/assistantFarmAdvisor.js';
 import { resolveDirectorIntent, DIRECTOR_INTENTS } from '../../src/services/assistantDirectorEngines.js';
 
@@ -54,7 +55,7 @@ test('collectRiskSignals ranks treasury and receivables', () => {
 test('collectPriorityActions returns top 3 ranked actions', () => {
   const priorities = collectPriorityActions(baseSnap);
   assert.equal(priorities.length, 3);
-  assert.match(priorities[0].text, /créance/i);
+  assert.match(priorities[0].text, /Commencez par Client A|créance/i);
 });
 
 test('buildRisquesAnswer uses conversational tone not ERP', () => {
@@ -75,6 +76,27 @@ test('resolveDirectorIntent detects V7 advisory questions', () => {
   assert.equal(resolveDirectorIntent('comment évolue la situation ?'), DIRECTOR_INTENTS.TENDANCES);
   assert.equal(resolveDirectorIntent('par rapport au mois dernier ?'), DIRECTOR_INTENTS.COMPARAISONS);
   assert.equal(resolveDirectorIntent('quoi vendre cette semaine ?'), DIRECTOR_INTENTS.OPPORTUNITES);
+});
+
+test('buildMoneyLeaksAnswer focuses on business impact not treasury summary', () => {
+  const answer = buildMoneyLeaksAnswer({
+    salesOrdersAll: [{
+      id: 'HF-CMD-010',
+      client_id: 'c1',
+      montant_total: 1490000,
+      statut: 'ouverte',
+      date: new Date().toISOString().slice(0, 10),
+    }],
+    paymentsAll: [],
+    clients: [{ id: 'c1', nom: 'Grossiste Dakar Œufs' }],
+    stocks: [],
+    animaux: [],
+    lots: [],
+    cultures: [],
+  });
+  assert.match(answer.situation, /fuite financière|principale perte/i);
+  assert.match(answer.situation, /créances|attente/i);
+  assert.doesNotMatch(answer.situation, /Trésorerie disponible/i);
 });
 
 test('buildTendancesAnswer weaves trend into prose', () => {

@@ -2,6 +2,8 @@
  * Ton conversationnel Horizon V7 — directeur d'exploitation, zéro jargon ERP.
  */
 
+import { dedupeProse } from './assistantEntityLabels.js';
+
 const TECHNICAL_PATTERNS = [
   /\bcompute\w*/gi,
   /\bconsolidate\w*/gi,
@@ -99,7 +101,7 @@ function softenSituation(situation = '') {
   s = ensurePeriod(stripTechnicalLeaks(s));
   if (!s) return '';
   if (/^bonjour — je suis là pour suivre votre exploitation/i.test(s)) return '';
-  return s.charAt(0).toUpperCase() + s.slice(1);
+  return dedupeProse(s.charAt(0).toUpperCase() + s.slice(1));
 }
 
 function softenCause(cause = '') {

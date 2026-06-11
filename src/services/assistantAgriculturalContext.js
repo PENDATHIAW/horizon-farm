@@ -30,7 +30,9 @@ import {
   buildComparaisonsAnswer,
   buildRisquesAnswer,
   buildOpportunitesAnswer,
+  buildMoneyLeaksAnswer,
 } from './assistantFarmAdvisor.js';
+import { resolveCanonicalGoalProgress } from './assistantGoalProgress.js';
 import { hasExploitableFarmData } from './assistantDirectorSnapshot.js';
 import { UNIVERSAL_INTENT_FAMILIES } from './assistantUniversalIntents.js';
 
@@ -166,9 +168,10 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}, options = {})
   const payables = n(finance.payablesTotal ?? finance.dettesFournisseurs);
   const margin = n(finance.margeReelle);
   const ca = n(commercialKpis.ca ?? finance.caConsolide);
-  const monthTarget = n(growth?.monthlyTarget ?? growth?.objectifMois);
-  const monthRealized = n(growth?.monthlyRealized ?? growth?.caMois);
-  const monthPct = monthTarget > 0 ? Math.round((monthRealized / monthTarget) * 100) : null;
+  const goalProgress = resolveCanonicalGoalProgress(dataMap);
+  const monthTarget = goalProgress.monthTarget;
+  const monthRealized = goalProgress.monthRealized;
+  const monthPct = goalProgress.monthPct;
 
   const elevageAlerts = arr(carnetCards).find((c) => /elevage|élevage/i.test(c.domain || c.title || ''));
   const cultureAlerts = arr(carnetCards).find((c) => /culture/i.test(c.domain || c.title || ''));
@@ -551,6 +554,9 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}, options = {})
     case 'farm_risks':
     case 'main_risk':
       return buildRisquesAnswer(dataMap);
+
+    case 'money_leaks':
+      return buildMoneyLeaksAnswer(dataMap);
 
     case 'top_client':
     case 'top_product':

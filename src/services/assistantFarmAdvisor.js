@@ -5,25 +5,23 @@
  */
 
 import { fmtCurrency } from '../utils/format.js';
-import { buildTemporalComparisons, buildExploitationDynamics } from '../modules/dashboard/dashboardV3.js';
 import { buildAutoCommercialOpportunities } from '../utils/commercialAutoOpportunities.js';
-import { buildDirectorSnapshot } from './assistantDirectorSnapshot.js';
+import { summarizeSalesMargins } from '../utils/salesMarginEngine.js';
+import { enrichCommercialOrders } from '../modules/commercial/commercialMetrics.js';
+import { buildDirectorSnapshot, propsFromDataMap } from './assistantDirectorSnapshot.js';
+import { dedupeProse, isGenericEntityLabel, resolveLotLabel, resolveProductName } from './assistantEntityLabels.js';
 
 const n = (v) => Number(v || 0);
 const arr = (v) => (Array.isArray(v) ? v : []);
 
 const URGENCY_WEIGHT = { critique: 100, haute: 85, moyenne: 60, normal: 40 };
 
-function buildSummaryFromSnap(snap = {}) {
-  const { commercial, finance, stockSummary, elevageAlerts } = snap;
+function finalizeAnswer(answer = {}) {
   return {
-    ca: n(commercial?.ca),
-    encaisse: n(commercial?.collected),
-    receivable: n(commercial?.receivable),
-    cashNet: n(finance?.cashNet),
-    stockSummary,
-    alertesOuvertes: elevageAlerts?.length || 0,
-    startupMode: false,
+    ...answer,
+    situation: dedupeProse(answer.situation || ''),
+    cause: dedupeProse(answer.cause || ''),
+    action: dedupeProse(answer.action || ''),
   };
 }
 
@@ -110,19 +108,13 @@ export function collectTrendSignals(snap = {}) {
     });
   }
 
-  const month = arr(comparisons).find((row) => row.key === 'month' && row.ready);
-  if (month) {
-    const sales = month.metrics.find((m) => m.id === 'sales');
-    const collections = month.metrics.find((m) => m.id === 'collections');
+  if (!dynamics?.ready) {
+    const month = arr(comparisons).find((row) => row.key === 'month' && row.ready);
+    const sales = month?.metrics?.find((m) => m.id === 'sales');
     if (sales?.trend === 'up' && sales.current > 0) {
-      signals.push({ metric: 'ventes', trend: 'up', delta: sales.delta, label: 'Ventes en hausse sur le mois' });
+      signals.push({ metric: 'ventes', trend: 'up', label: 'Vos ventes progressent par rapport au mois dernier.' });
     } else if (sales?.trend === 'down' && sales.previous > 0) {
-      signals.push({ metric: 'ventes', trend: 'down', delta: sales.delta, label: 'Ventes en baisse sur le mois' });
-    }
-    if (collections?.trend === 'up' && collections.current > 0) {
-      signals.push({ metric: 'encaissements', trend: 'up', label: 'Encaissements en progression' });
-    } else if (collections?.trend === 'down' && collections.previous > 0) {
-      signals.push({ metric: 'encaissements', trend: 'down', label: 'Encaissements en recul' });
+      signals.push({ metric: 'ventes', trend: 'down', label: 'Vos ventes reculent par rapport au mois dernier.' });
     }
   }
 
@@ -156,7 +148,7 @@ export function collectComparisonSignals(snap = {}) {
 export function collectOpportunitySignals(snap = {}) {
   return arr(snap.opportunities)
     .map((opp) => ({
-      title: opp.title || opp.product_name || 'Produit disponible',
+      title: resolveProductName(opp, opp.title || opp.libelle) || opp.title || 'une production disponible',
       value: n(opp.estimated_value),
       urgency: opp.urgency || 'normal',
       reason: opp.reason || '',
@@ -176,16 +168,21 @@ export function collectPriorityActions(snap = {}) {
   const candidates = [];
 
   if (receivableTotal > 0) {
+    const top = receivableRows?.[0];
+    const share = top?.amount > 0 ? Math.round((top.amount / receivableTotal) * 100) : 0;
+    const topName = top?.clientName && !isGenericEntityLabel(top.clientName) ? top.clientName : null;
     candidates.push({
       impact: 100 + Math.min(receivableTotal / 100000, 20),
-      text: `Relancer les ${receivableCount} créance${receivableCount > 1 ? 's' : ''} en attente (${fmtCurrency(receivableTotal)})`,
+      text: topName
+        ? `Commencez par ${topName}${share > 0 ? ` — cette créance représente ${share} % du total en attente (${fmtCurrency(top.amount)})` : ''}`
+        : `Relancer les ${receivableCount} créance${receivableCount > 1 ? 's' : ''} en attente (${fmtCurrency(receivableTotal)})`,
     });
   }
   if (arr(elevageAlerts).length > 0) {
     const lotLabel = elevageAlerts[0]?.text || 'le lot sous surveillance';
     candidates.push({
       impact: 85,
-      text: `Contrôler ${lotLabel.toLowerCase().includes('lot') ? lotLabel : 'le lot sous surveillance'}`,
+      text: `Contrôler ${String(lotLabel).toLowerCase().includes('lot') ? lotLabel : 'le lot sous surveillance'}`,
     });
   }
   if (monthPct != null && monthPct < 80) {
@@ -239,15 +236,20 @@ export function buildFarmAdvisoryBundle(dataMap = {}) {
 function trendSentence(signals = []) {
   const dynamic = signals.find((s) => s.label);
   if (dynamic?.label) {
-    const reasons = arr(dynamic.reasons).slice(0, 2);
+    const reasons = [...new Set(arr(dynamic.reasons).map((r) => String(r).trim()).filter(Boolean))].slice(0, 2);
     if (reasons.length) {
-      return `Sur ${dynamic.periodLabel?.toLowerCase() || 'la période récente'}, l'exploitation est ${dynamic.label.toLowerCase()} : ${reasons.join(', ').toLowerCase()}.`;
+      const period = dynamic.periodLabel?.toLowerCase() || 'la période récente';
+      const status = dynamic.label.toLowerCase();
+      const reasonText = reasons.join(', ').toLowerCase();
+      if (reasonText.includes(status)) {
+        return dedupeProse(`Sur ${period}, ${reasonText}.`);
+      }
+      return dedupeProse(`Sur ${period}, l'exploitation est ${status} : ${reasonText}.`);
     }
-    return `La dynamique récente est ${dynamic.label.toLowerCase()}.`;
+    return dedupeProse(`La dynamique récente est ${dynamic.label.toLowerCase()}.`);
   }
-  const sales = signals.find((s) => s.metric === 'ventes');
-  if (sales?.trend === 'up') return 'Vos ventes progressent par rapport au mois dernier.';
-  if (sales?.trend === 'down') return 'Vos ventes reculent par rapport au mois dernier — il faudrait relancer l\'activité commerciale.';
+  const metric = signals.find((s) => s.label && !s.reasons);
+  if (metric?.label) return dedupeProse(metric.label);
   return '';
 }
 
@@ -376,7 +378,7 @@ export function buildTendancesAnswer(dataMap = {}) {
   }
 
   const mainRisk = bundle.risks[0];
-  return {
+  return finalizeAnswer({
     title: 'Tendances',
     intent: 'farm_trends',
     situation: paragraphs.join('\n\n'),
@@ -387,7 +389,7 @@ export function buildTendancesAnswer(dataMap = {}) {
     sources: [],
     confidence: 93,
     meta: {},
-  };
+  });
 }
 
 export function buildComparaisonsAnswer(dataMap = {}) {
@@ -395,7 +397,7 @@ export function buildComparaisonsAnswer(dataMap = {}) {
   const lines = comparisonSentences(bundle.comparisons);
 
   if (!lines.length) {
-    return {
+    return finalizeAnswer({
       title: 'Comparaisons',
       intent: 'farm_comparisons',
       situation: 'Je n\'ai pas encore assez de recul pour comparer deux périodes de façon fiable.',
@@ -404,10 +406,10 @@ export function buildComparaisonsAnswer(dataMap = {}) {
       sources: [],
       confidence: 70,
       meta: {},
-    };
+    });
   }
 
-  return {
+  return finalizeAnswer({
     title: 'Comparaisons',
     intent: 'farm_comparisons',
     situation: lines.join('\n\n'),
@@ -420,13 +422,13 @@ export function buildComparaisonsAnswer(dataMap = {}) {
     sources: [],
     confidence: 92,
     meta: {},
-  };
+  });
 }
 
 export function buildRisquesAnswer(dataMap = {}) {
   const bundle = buildFarmAdvisoryBundle(dataMap);
   const { situation, cause, action } = riskSentences(bundle.risks);
-  return {
+  return finalizeAnswer({
     title: 'Risques',
     intent: 'farm_risks',
     situation,
@@ -435,13 +437,13 @@ export function buildRisquesAnswer(dataMap = {}) {
     sources: [],
     confidence: bundle.risks.length ? 94 : 88,
     meta: {},
-  };
+  });
 }
 
 export function buildOpportunitesAnswer(dataMap = {}) {
   const bundle = buildFarmAdvisoryBundle(dataMap);
   const { situation, cause, action } = opportunitySentences(bundle.opportunities);
-  return {
+  return finalizeAnswer({
     title: 'Opportunités',
     intent: 'farm_opportunities',
     situation,
@@ -450,7 +452,124 @@ export function buildOpportunitesAnswer(dataMap = {}) {
     sources: [],
     confidence: bundle.opportunities.length ? 93 : 75,
     meta: {},
-  };
+  });
+}
+
+export function collectMoneyLeakSignals(dataMap = {}) {
+  const snap = buildDirectorSnapshot(dataMap);
+  const props = propsFromDataMap(dataMap);
+  const leaks = [];
+  const receivable = n(snap.commercial?.receivable);
+
+  if (receivable > 0) {
+    leaks.push({
+      level: 100,
+      label: 'Créances en attente',
+      text: `${fmtCurrency(receivable)} restent en attente de paiement`,
+      impact: 'Tant que ces montants ne sont pas recouvrés, ils limitent votre trésorerie et votre capacité d\'investissement.',
+    });
+  }
+
+  const mortalityLots = arr(props.lots)
+    .map((lot) => ({
+      label: resolveLotLabel(lot, null),
+      losses: n(lot.mortalite ?? lot.mortalité ?? lot.morts ?? lot.deaths ?? lot.pertes),
+    }))
+    .filter((row) => row.losses > 0 && row.label)
+    .sort((a, b) => b.losses - a.losses);
+  if (mortalityLots[0]) {
+    leaks.push({
+      level: 88,
+      label: 'Mortalités',
+      text: `${mortalityLots[0].losses} perte(s) signalée(s) sur ${mortalityLots[0].label}`,
+      impact: 'Chaque perte réduit directement votre production vendable et votre marge.',
+    });
+  }
+
+  const surcoutRows = [
+    ...arr(snap.growth?.zootechnie?.croissance),
+    ...arr(snap.growth?.zootechnie?.pondeuses),
+  ].filter((row) => row.tone === 'bad' && n(row.surcout) > 0);
+  if (surcoutRows[0]) {
+    const label = resolveLotLabel(surcoutRows[0], surcoutRows[0].label || surcoutRows[0].lotLabel);
+    leaks.push({
+      level: 82,
+      label: 'Intrants coûteux',
+      text: `Surcoût estimé sur ${label || 'un lot'} : ${fmtCurrency(surcoutRows[0].surcout)}`,
+      impact: 'La conduite d\'élevage consomme plus d\'aliment que prévu.',
+    });
+  }
+
+  const enriched = enrichCommercialOrders(props.salesOrdersAll, {
+    deliveries: props.deliveries,
+    invoices: props.invoices,
+  });
+  const margins = summarizeSalesMargins(enriched, {
+    lots: props.lots,
+    animaux: props.animaux,
+    cultures: props.cultures,
+    stocks: props.stocks,
+    payments: props.paymentsAll,
+    transactions: props.transactionsAll,
+  });
+  const weakProduct = arr(margins?.products || margins?.rows)
+    .filter((row) => n(row.margin ?? row.marge_directe) < 0)[0];
+  if (weakProduct) {
+    const productName = resolveProductName(weakProduct, weakProduct.name || weakProduct.product_name);
+    leaks.push({
+      level: 76,
+      label: 'Produit peu rentable',
+      text: `${productName || 'Un produit'} génère une marge négative`,
+      impact: 'Revoir le prix de vente ou le coût de production sur ce poste.',
+    });
+  }
+
+  return { leaks: [...leaks].sort((a, b) => b.level - a.level), snap };
+}
+
+/** Fuites financières — impact métier, pas situation de trésorerie brute. */
+export function buildMoneyLeaksAnswer(dataMap = {}) {
+  const { leaks, snap } = collectMoneyLeakSignals(dataMap);
+
+  if (!leaks.length) {
+    return finalizeAnswer({
+      title: 'Pertes financières',
+      intent: 'money_leaks',
+      situation: 'Je ne vois pas de fuite financière majeure dans vos données actuelles.',
+      cause: 'Les créances, mortalités et marges restent dans une zone acceptable.',
+      action: 'Continuez à suivre encaissements et coûts de production chaque semaine.',
+      sources: [],
+      confidence: 82,
+      meta: {},
+    });
+  }
+
+  const main = leaks[0];
+  const top3 = leaks.slice(0, 3);
+  const situation = main.label === 'Créances en attente'
+    ? `Aujourd'hui, votre principale fuite financière vient des créances non encaissées.\n\n${main.text}.`
+    : `Aujourd'hui, ce qui vous fait le plus perdre de l'argent, c'est ${main.label.toLowerCase()} : ${main.text}.`;
+
+  const cause = top3.length > 1
+    ? `Vos ${top3.length} principaux postes de perte sont :\n\n${top3.map((item, index) => `${index + 1}. ${item.label}`).join('\n')}`
+    : main.impact;
+
+  const topClient = snap.topReceivable;
+  let action = main.impact;
+  if (main.label === 'Créances en attente' && topClient?.clientName && !isGenericEntityLabel(topClient.clientName)) {
+    action = `Commencez par relancer ${topClient.clientName} sur la commande ${topClient.orderId}.`;
+  }
+
+  return finalizeAnswer({
+    title: 'Pertes financières',
+    intent: 'money_leaks',
+    situation,
+    cause,
+    action,
+    sources: [],
+    confidence: 95,
+    meta: snap.topReceivable ? { topReceivable: snap.topReceivable } : {},
+  });
 }
 
 export function buildPrioritesConseilAnswer(dataMap = {}) {
@@ -462,7 +581,7 @@ export function buildPrioritesConseilAnswer(dataMap = {}) {
     ? `${trend}\n\nAujourd'hui je vous conseille :`
     : 'Aujourd\'hui je vous conseille :';
 
-  return {
+  return finalizeAnswer({
     title: 'Priorités du jour',
     intent: 'priorites_du_jour',
     situation: `${intro}\n\n${lines.join('\n\n')}`,
@@ -480,7 +599,7 @@ export function buildPrioritesConseilAnswer(dataMap = {}) {
         delayDays: bundle.snap.topReceivable.delayDays,
       },
     } : {},
-  };
+  });
 }
 
 export function buildCommentVaLaFermeConseilAnswer(dataMap = {}) {
@@ -528,7 +647,7 @@ export function buildCommentVaLaFermeConseilAnswer(dataMap = {}) {
     action = topOpp.recommendation || `Je regarderais l'opportunité « ${topOpp.title} ».`;
   }
 
-  return {
+  return finalizeAnswer({
     title: 'Vue ferme',
     intent: 'comment_va_la_ferme',
     situation: paragraphs.join('\n\n'),
@@ -546,7 +665,7 @@ export function buildCommentVaLaFermeConseilAnswer(dataMap = {}) {
         delayDays: snap.topReceivable.delayDays,
       },
     } : {},
-  };
+  });
 }
 
 export default {
@@ -563,4 +682,6 @@ export default {
   buildOpportunitesAnswer,
   buildPrioritesConseilAnswer,
   buildCommentVaLaFermeConseilAnswer,
+  collectMoneyLeakSignals,
+  buildMoneyLeaksAnswer,
 };

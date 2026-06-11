@@ -13,6 +13,8 @@ import { remainingForOrder } from '../utils/salesStatuses.js';
 import { buildCommercialRelanceRows } from '../utils/commercialRelances.js';
 import { buildTemporalComparisons, buildExploitationDynamics } from '../modules/dashboard/dashboardV3.js';
 import { buildAutoCommercialOpportunities } from '../utils/commercialAutoOpportunities.js';
+import { resolveClientDisplayName } from './assistantEntityLabels.js';
+import { resolveCanonicalGoalProgress } from './assistantGoalProgress.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v) => Number(v || 0);
@@ -50,7 +52,7 @@ export function collectTopReceivableRows(dataMap = {}, limit = 8) {
     const dueStr = String(due).slice(0, 10);
     const delayDays = dueStr ? Math.max(0, Math.round((new Date(ref) - new Date(dueStr)) / 86400000)) : 0;
     return {
-      clientName: order.client_nom || order.customer_name || 'Client',
+      clientName: resolveClientDisplayName(order, props.clients),
       amount: rest,
       orderId: order.id,
       delayDays,
@@ -93,9 +95,10 @@ export function buildDirectorSnapshot(dataMap = {}) {
     payments: props.paymentsAll,
   });
 
-  const monthTarget = n(growth?.monthlyTarget ?? growth?.objectifMois);
-  const monthRealized = n(growth?.monthlyRealized ?? growth?.caMois ?? commercial.ca);
-  const monthPct = monthTarget > 0 ? Math.round((monthRealized / monthTarget) * 100) : null;
+  const goalProgress = resolveCanonicalGoalProgress(dataMap);
+  const monthTarget = goalProgress.monthTarget;
+  const monthRealized = goalProgress.monthRealized;
+  const monthPct = goalProgress.monthPct;
 
   const elevageCard = arr(carnetCards).find((card) => card.id === 'elevage');
   const elevageAlerts = elevageCard?.alerts || [];
