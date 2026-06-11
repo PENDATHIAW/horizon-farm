@@ -1,31 +1,67 @@
-import { CheckCircle2 } from 'lucide-react';
 import { heyHorizonModuleLabel } from '../services/heyHorizonAssistantService.js';
+import { HORIZON } from '../modules/assistant/horizonDesignTokens.js';
 
-export default function HeyHorizonDraftSummary({ draft }) {
+const STOCK_MODULES = new Set(['stock', 'achats_stock', 'cultures', 'avicole', 'elevage']);
+const COMMERCIAL_MODULES = new Set(['commercial', 'ventes', 'clients', 'sales_orders']);
+const FINANCE_MODULES = new Set(['finances', 'finance_pilotage', 'payments', 'comptabilite', 'fournisseurs']);
+const TRACE_MODULES = new Set(['tracabilite', 'documents', 'centre_ia', 'business_events']);
+
+function buildImpactFlags(modules = []) {
+  const keys = new Set(modules);
+  return [
+    { label: 'Stock', active: [...keys].some((m) => STOCK_MODULES.has(m)) },
+    { label: 'Commercial', active: [...keys].some((m) => COMMERCIAL_MODULES.has(m)) },
+    { label: 'Finance', active: [...keys].some((m) => FINANCE_MODULES.has(m)) },
+    { label: 'Traçabilité', active: [...keys].some((m) => TRACE_MODULES.has(m)) || modules.length > 0 },
+  ];
+}
+
+export default function HeyHorizonDraftSummary({ draft, variant = 'inline' }) {
   if (!draft || draft.status === 'unsupported' || draft.status === 'wake_only') return null;
   const fields = draft.draft_fields || {};
   const missing = draft.missing_fields || [];
-  const impacted = (draft.impacted_modules || []).map(heyHorizonModuleLabel).filter(Boolean);
-  const action = draft.intent_label || draft.intent || draft.action || 'Action ERP';
+  const action = draft.intent_label || draft.ui?.title || draft.intent || 'Action détectée';
+  const impacts = buildImpactFlags(draft.impacted_modules || []);
+  const details = [
+    fields.product_name || fields.culture_name,
+    fields.quantity ? `${fields.quantity} ${fields.unit || ''}`.trim() : null,
+    fields.client_name || fields.supplier_name,
+    fields.payment_amount ? `${fields.payment_amount} FCFA` : null,
+    fields.date || fields.event_date,
+  ].filter(Boolean).join(' · ');
+
+  const isInline = variant === 'inline';
+
   return (
-    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-      <p className="flex items-center gap-2 font-black"><CheckCircle2 size={15} /> Ce que Horizon a compris</p>
-      <div className="mt-2 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
-        <span><b>Action :</b> {action}</span>
-        <span><b>Espace :</b> {heyHorizonModuleLabel(draft.primary_module)}</span>
-        {fields.entity_id || fields.target_id || fields.source_id || fields.animal_id ? (
-          <span><b>Cible :</b> {fields.entity_id || fields.target_id || fields.source_id || fields.animal_id}</span>
-        ) : null}
-        {fields.date || fields.event_date ? (
-          <span><b>Date :</b> {fields.date || fields.event_date}</span>
-        ) : null}
-        {impacted.length ? (
-          <span className="sm:col-span-2"><b>Impacts :</b> {impacted.join(', ')}</span>
-        ) : null}
+    <div
+      className={isInline ? 'text-sm' : 'rounded-2xl border p-4 text-sm'}
+      style={isInline ? { color: HORIZON.text } : { borderColor: HORIZON.border, background: HORIZON.surface, color: HORIZON.text }}
+    >
+      <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: HORIZON.secondary }}>
+        Résumé détecté
+      </p>
+      <p className="mt-2 font-medium leading-relaxed">{action}</p>
+      {details ? <p className="mt-1 text-xs leading-relaxed" style={{ color: HORIZON.textMuted }}>{details}</p> : null}
+      <p className="mt-1 text-xs" style={{ color: HORIZON.textMuted }}>
+        {heyHorizonModuleLabel(draft.primary_module)}
+      </p>
+
+      <div className="mt-4">
+        <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: HORIZON.secondary }}>
+          Impacts
+        </p>
+        <ul className="mt-2 space-y-1">
+          {impacts.map((item) => (
+            <li key={item.label} className="text-sm" style={{ color: item.active ? HORIZON.text : HORIZON.textMuted }}>
+              {item.active ? '✓' : '○'} {item.label}
+            </li>
+          ))}
+        </ul>
       </div>
+
       {missing.length ? (
-        <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          <b>À compléter :</b> {missing.join(', ')}
+        <p className="mt-3 text-xs leading-relaxed" style={{ color: HORIZON.textMuted }}>
+          À compléter : {missing.join(', ')}
         </p>
       ) : null}
     </div>
