@@ -1,32 +1,25 @@
 /**
- * Ton conversationnel Horizon — réponses naturelles, comme un directeur d'exploitation.
- * Transforme Situation / Cause / Action en prose fluide (sans labels visibles).
+ * Ton conversationnel Horizon V7 — directeur d'exploitation, zéro jargon ERP.
  */
 
-const SOURCE_LABELS = Object.freeze({
-  computefarmheadcount: 'Élevage',
-  buildcarnetdomaincards: 'Carnet Horizon',
-  buildconsolidatedcommercialkpis: 'Commercial',
-  consolidatefinance: 'Finance',
-  consolidatfinance: 'Finance',
-  summarizesalesmargins: 'Commercial',
-  buildobjectifscroissancedata: 'Objectifs & Croissance',
-  computeculturesummary: 'Cultures',
-  computestocksummary: 'Achats & Stock',
-  animaux: 'Élevage',
-  avicole: 'Élevage',
-  sante: 'Élevage',
-  stocks: 'Stock',
-  finances: 'Finance',
-  documents: 'Documents',
-  business_events: 'Activité',
-  fournisseurs: 'Achats',
-  taches: 'Ressources',
-  equipements: 'Équipements',
-  horizon: 'Horizon',
-  navigationerp: 'Navigation',
-  carnethorizon: 'Carnet Horizon',
-});
+const TECHNICAL_PATTERNS = [
+  /\bcompute\w*/gi,
+  /\bconsolidate\w*/gi,
+  /\bbuild\w+\([^)]*\)/gi,
+  /\bbuild[A-Z]\w+/g,
+  /\bsummarize\w*/gi,
+  /\bERP\b/g,
+  /\bSource ERP\b/gi,
+  /\(\)\./g,
+  /\.js\b/gi,
+  /\bmoteur\b/gi,
+  /\bengine\b/gi,
+  /\bcanonical\b/gi,
+  /\bfiches?\s+ERP\b/gi,
+  /\bdonnées?\s+ERP\b/gi,
+  /\bmodule\b/gi,
+  /\bnavigation\s+erp\b/gi,
+];
 
 function clean(value = '') {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -52,110 +45,84 @@ function isRedundant(cause = '', situation = '') {
   return false;
 }
 
-function normalizeSituation(situation = '') {
-  const s = ensurePeriod(situation);
-  if (!s) return '';
+/** Supprime toute fuite technique visible par l'utilisateur. */
+export function stripTechnicalLeaks(text = '') {
+  let out = String(text || '');
+  for (const pattern of TECHNICAL_PATTERNS) {
+    out = out.replace(pattern, '');
+  }
+  out = out.replace(/\s*—\s*$/g, '');
+  out = out.replace(/\n\n—\s*[^\n]+/g, '');
+  out = out.replace(/\s{2,}/g, ' ').trim();
+  return out;
+}
 
-  if (/^(vous avez|il y a|on compte|actuellement|pour l instant|au total|ca |trésorerie|aucun|pas de|peu de|\d)/i.test(s)) {
+function softenSituation(situation = '') {
+  const s = ensurePeriod(stripTechnicalLeaks(situation));
+  if (!s) return '';
+  if (/^(dans l ensemble|vous avez|il y a|on compte|actuellement|au total|bonjour|aucun|pas de)/i.test(s)) {
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
-  if (/^horizon /i.test(s)) return s;
-  return `Pour l'instant, ${lowerFirst(s)}`;
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function normalizeCause(cause = '') {
-  const c = ensurePeriod(cause);
+function softenCause(cause = '') {
+  const c = stripTechnicalLeaks(cause);
   if (!c) return '';
-
-  if (/^(c est|il s agit|aucun|pas de|peu de|données|donnees|niveaux|comptage|effectifs|synthèse|synthese)/i.test(c)) {
-    return c.charAt(0).toUpperCase() + c.slice(1);
+  const cleaned = ensurePeriod(c);
+  if (/^(les ventes|le stock|les créances|les creances|parmi eux|c est|il y a|aucun)/i.test(cleaned)) {
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
   }
-  if (/^\d/.test(c)) {
-    return c.charAt(0).toUpperCase() + c.slice(1);
+  if (/fiches|comptage|données|donnees|issus|synthèse|synthese/i.test(cleaned)) {
+    return '';
   }
-  return `C'est surtout parce que ${lowerFirst(c)}`;
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
 
-function normalizeAction(action = '') {
-  const a = clean(action);
+function softenAction(action = '') {
+  const a = stripTechnicalLeaks(action);
   if (!a) return '';
-
   const lower = a.toLowerCase();
-  if (/^(mon conseil|je vous conseille|pour la suite|n hésitez pas)/i.test(a)) {
-    return ensurePeriod(a);
+  if (/ouvrez|consultez|ouvre|module|élevage →|finance →/i.test(a)) {
+    return '';
   }
-  if (/^(consultez|ouvrez|ouvre|demandez|posez)/i.test(a)) {
-    return ensurePeriod(`Mon conseil : ${lowerFirst(a)}`);
+  if (/relanc|surveill|prioris|planif|accélér|acceler|reporter|vérifi|verifi|garder|œil|oeil|maintenir|sécuris|securis/i.test(lower)) {
+    return ensurePeriod(a.charAt(0).toUpperCase() + a.slice(1));
   }
-  if (/surveill|relanc|prioris|planif|accélér|acceler|reporter|vérifi|verifi|trait|sécuris|securis|maintenir|poursuiv|renforcer|compléter|completer|étudiez|etudiez|confirmez|reformulez|décrivez|decrivez/i.test(lower)) {
-    return ensurePeriod(`Je vous conseille de ${lowerFirst(a.replace(/^de /i, ''))}`);
+  if (/aucune action|calme|stable|normes|contrôle|controle/i.test(lower)) {
+    return '';
   }
-  if (/aucune action|rien n a|pas d action|exploitation calme|sous contrôle|sous controle|dans les normes|stable/i.test(lower)) {
-    return ensurePeriod(`Pour la suite, ${lowerFirst(a)}`);
-  }
-  return ensurePeriod(`Pour la suite, ${lowerFirst(a)}`);
-}
-
-export function humanizeSources(sources = []) {
-  const list = Array.isArray(sources) ? sources : String(sources || '').split(/[·,]/);
-  const labels = new Set();
-
-  for (const raw of list) {
-    const key = clean(raw).toLowerCase().replace(/[()]/g, '');
-    if (!key) continue;
-
-    const normalized = key.replace(/[^a-z0-9_]/g, '');
-    let matched = false;
-    for (const [needle, label] of Object.entries(SOURCE_LABELS)) {
-      if (normalized.includes(needle) || key.includes(needle)) {
-        labels.add(label);
-        matched = true;
-        break;
-      }
-    }
-    if (!matched && !/\.js|engine|build|compute|consolidate/i.test(key)) {
-      labels.add(clean(raw));
-    }
-  }
-
-  return [...labels].slice(0, 2).join(' · ');
+  return ensurePeriod(a.charAt(0).toUpperCase() + a.slice(1));
 }
 
 /**
- * Transforme une réponse SCA en texte conversationnel.
- * @returns {{ prose: string, displayText: string, situation: string, cause: string, action: string, sources: string }}
+ * Transforme SCA interne en prose humaine — jamais de sources visibles.
  */
 export function toConversationalAnswer({
   situation = '',
   cause = '',
   action = '',
-  sources = [],
   title = '',
 } = {}) {
   const sentences = [];
-  const sit = normalizeSituation(situation);
-  const cau = normalizeCause(cause);
-  const act = normalizeAction(action);
+  const sit = softenSituation(situation);
+  const cau = softenCause(cause);
+  const act = softenAction(action);
 
   if (sit) sentences.push(sit);
   if (cau && !isRedundant(cau, sit)) sentences.push(cau);
-  if (act && !isRedundant(act, `${sit} ${cau}`)) sentences.push(act);
+  if (act && !isRedundant(act, sentences.join(' '))) sentences.push(act);
 
-  let prose = sentences.join(' ').replace(/\s+/g, ' ').trim();
-  if (!prose && title) prose = ensurePeriod(title);
-
-  const sourceLabel = humanizeSources(sources);
-  const displayText = sourceLabel
-    ? `${prose}\n\n— ${sourceLabel}`
-    : prose;
+  let prose = stripTechnicalLeaks(sentences.join(' '));
+  if (!prose && title) prose = ensurePeriod(stripTechnicalLeaks(title));
 
   return {
     prose,
-    displayText,
+    displayText: prose,
     situation: clean(situation),
     cause: clean(cause),
     action: clean(action),
-    sources: sourceLabel,
+    sources: '',
   };
 }
 

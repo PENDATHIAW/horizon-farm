@@ -26,10 +26,11 @@ test('buildAssistantFarmHeader returns farm context lines', () => {
   assert.match(header.lastActivityLine, /Dernière activité/);
 });
 
-test('buildAssistantWelcomeMessage greets with today bullets', () => {
+test('buildAssistantWelcomeMessage greets conversationally', () => {
   const welcome = buildAssistantWelcomeMessage('Penda', baseProps);
   assert.match(welcome.text, /Bonjour Penda/);
-  assert.match(welcome.text, /aujourd'hui|calme/i);
-  assert.match(welcome.text, /parle|faire/i);
+  assert.match(welcome.text, /ferme|exploitation/i);
+  assert.match(welcome.text, /parle/i);
+  assert.doesNotMatch(welcome.text, /^•/m);
   assert.equal(welcome.isWelcome, true);
 });

@@ -11,6 +11,8 @@ import { formatCompactHorizonAnswer } from './assistantResponseFormatter.js';
 import { resolveFarmModuleNavigation } from './assistantFarmNavigation.js';
 import { detectBusinessDomain } from './assistantDomainDetector.js';
 import { buildAssistantClarifyResponse } from './assistantClarifyResponse.js';
+import { buildConversationalNavigationReply } from './assistantConversationalNavigation.js';
+import { buildProgressiveChatPayload } from './assistantProgressiveResponse.js';
 
 /**
  * @typedef {import('./assistantConversationContext.js').ConversationContext} ConversationContext
@@ -45,17 +47,15 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
 
   const navigation = resolveFarmModuleNavigation(query);
   if (navigation) {
+    const navAnswer = buildConversationalNavigationReply(navigation.moduleId);
+    const progressive = buildProgressiveChatPayload(navAnswer);
     return {
       handled: true,
       navigation,
-      assistantText: formatCompactHorizonAnswer({
-        situation: `J'ouvre ${navigation.label} pour vous.`,
-        cause: 'Vous m\'avez demandé d\'y accéder.',
-        action: 'Parcourez les données tranquillement, puis revenez me parler si besoin.',
-        sources: ['Navigation ERP'],
-        confidence: 96,
-      }),
-      source: 'farm_navigation_v4',
+      answer: navAnswer,
+      assistantText: progressive.text,
+      progressive,
+      source: 'farm_navigation_v7',
     };
   }
 
@@ -95,12 +95,14 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
   if (!intents.length) {
     const clarify = buildAssistantClarifyResponse(query, dataMap);
     if (clarify?.answer) {
+      const progressive = buildProgressiveChatPayload(clarify.answer);
       return {
         handled: true,
         answer: clarify.answer,
-        assistantText: formatCompactHorizonAnswer(clarify.answer),
+        assistantText: progressive.text || formatCompactHorizonAnswer(clarify.answer),
+        progressive,
         updatedContext: updateConversationContext(context || {}, { query, intent: clarify.proposedIntent }),
-        source: 'assistant_clarify_v6',
+        source: 'assistant_clarify_v7',
       };
     }
     return { handled: false };
@@ -115,18 +117,19 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
   if (!answers.length) {
     const clarify = buildAssistantClarifyResponse(query, dataMap);
     if (clarify?.answer) {
-      const assistantText = formatCompactHorizonAnswer(clarify.answer);
+      const progressive = buildProgressiveChatPayload(clarify.answer);
       return {
         handled: true,
         answer: clarify.answer,
-        assistantText,
+        assistantText: progressive.text || formatCompactHorizonAnswer(clarify.answer),
+        progressive,
         updatedContext: updateConversationContext(context || {}, {
           query,
           intent: clarify.proposedIntent || null,
           family: intents[0]?.family || null,
         }),
         intents,
-        source: 'assistant_clarify_v6',
+        source: 'assistant_clarify_v7',
       };
     }
     return { handled: false, intents };
@@ -138,7 +141,7 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
     merged.domain = domain.domain;
     merged.moduleId = domain.moduleId;
   }
-  const assistantText = formatCompactHorizonAnswer(merged);
+  const progressive = buildProgressiveChatPayload(merged);
   const primary = intents[0];
 
   const updatedContext = updateConversationContext(context || {}, {
@@ -150,11 +153,12 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
   return {
     handled: true,
     answer: merged,
-    assistantText,
+    assistantText: progressive.text,
+    progressive,
     updatedContext,
     intents,
     domain,
-    source: 'universal_language_v5',
+    source: 'universal_language_v7',
   };
 }
 

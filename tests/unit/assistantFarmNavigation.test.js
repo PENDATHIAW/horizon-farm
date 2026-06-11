@@ -15,5 +15,9 @@ test('maps sidebar sections to module ids', () => {
 test('resolves natural language module navigation', () => {
   assert.equal(resolveFarmModuleNavigation('ouvre le commercial')?.moduleId, 'commercial');
   assert.equal(resolveFarmModuleNavigation('va en élevage')?.moduleId, 'elevage');
-  assert.equal(resolveFarmModuleNavigation('montre finance et pilotage')?.moduleId, 'finance_pilotage');
+  assert.equal(resolveFarmModuleNavigation('montre mes ventes')?.moduleId, 'commercial');
+  assert.equal(resolveFarmModuleNavigation('montre mes animaux')?.moduleId, 'elevage');
+  assert.equal(resolveFarmModuleNavigation('ouvre les objectifs')?.moduleId, 'objectifs_croissance');
+  assert.equal(resolveFarmModuleNavigation('va dans les cultures')?.moduleId, 'cultures');
+  assert.equal(resolveFarmModuleNavigation('combien de ventes ce mois'), null);
 });

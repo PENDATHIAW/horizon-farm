@@ -1,20 +1,22 @@
-import { CheckCheck, Mic, Send, Smile } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import HeyHorizonDraftSummary from '../components/HeyHorizonDraftSummary.jsx';
 import HorizonDraftPanel from '../components/HorizonDraftPanel.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import useHeyHorizonCommand from '../hooks/useHeyHorizonCommand.js';
-import {
-  buildAssistantFarmHeader,
-  buildAssistantWelcomeMessage,
-} from '../services/assistantFarmSecretary.js';
-import { formatStrategicHorizonAnswer, parseHorizonStructuredText } from '../services/assistantResponseFormatter.js';
+import { buildAssistantWelcomeMessage } from '../services/assistantFarmSecretary.js';
+import { isDetailFollowUp } from '../services/assistantProgressiveResponse.js';
+import { formatStrategicHorizonAnswer, stripTechnicalLeaks } from '../services/assistantResponseFormatter.js';
 import { normalizeAgriculturalText } from '../services/assistantUniversalIntents.js';
 import { processContextualVoiceInput } from '../services/aiGateway/contextualVoiceService.js';
 import { enrichAssistantDataMap } from '../utils/assistantDataMap.js';
-import { HORIZON } from './assistant/horizonDesignTokens.js';
-import HorizonPhoneShell from './assistant/HorizonPhoneShell.jsx';
+import { HORIZON_DESIGN as D } from './assistant/horizonDesignTokens.js';
+import HorizonPhoneShell, {
+  HorizonAssistantBubble,
+  HorizonChatComposer,
+  HorizonPhoneHeader,
+  HorizonUserBubble,
+} from './assistant/HorizonPhoneShell.jsx';
 import HorizonStructuredMessage from './assistant/HorizonStructuredMessage.jsx';
 
 function displayNameFromUser(user = {}) {
@@ -30,62 +32,18 @@ function messageTime() {
   return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 
-function ChatBubble({ message }) {
-  const isUser = message.role === 'user';
-  const structured = !isUser && !message.isWelcome
-    ? (message.structured || parseHorizonStructuredText(message.text))
-    : null;
-
-  return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className={`max-w-[min(88%,520px)] px-3.5 py-2 text-[15px] leading-relaxed shadow-sm ${
-          isUser
-            ? 'rounded-2xl rounded-tr-md'
-            : 'rounded-2xl rounded-tl-md border border-black/5'
-        }`}
-        style={{
-          background: isUser ? HORIZON.userBubble : HORIZON.assistantBubble,
-          color: isUser ? HORIZON.userBubbleText : HORIZON.text,
-        }}
-      >
-        {isUser ? (
-          <p className="whitespace-pre-wrap">{message.text}</p>
-        ) : message.isWelcome ? (
-          <p className="whitespace-pre-wrap">{message.text}</p>
-        ) : (
-          <HorizonStructuredMessage text={message.text} structured={structured} />
-        )}
-        <div
-          className={`mt-1 flex items-center justify-end gap-1 text-[11px] ${
-            isUser ? 'text-[#5d7364]' : 'text-[#8a8a8a]'
-          }`}
-        >
-          <span>{message.time || messageTime()}</span>
-          {isUser ? <CheckCheck size={14} className="text-[#4fc3f7]" /> : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function ChatDraftBlock({ draft, isValidating, onValidate, onCancel }) {
   return (
-    <div className="flex justify-start">
-      <div
-        className="w-full max-w-[min(92%,520px)] rounded-2xl rounded-tl-md border border-black/5 px-4 py-4 shadow-sm"
-        style={{ background: HORIZON.assistantBubble, color: HORIZON.text }}
-      >
-        <HeyHorizonDraftSummary draft={draft} variant="inline" />
-        <HorizonDraftPanel
-          draft={draft}
-          variant="inline"
-          isValidating={isValidating}
-          onValidate={onValidate}
-          onCancel={onCancel}
-        />
-      </div>
-    </div>
+    <HorizonAssistantBubble>
+      <HeyHorizonDraftSummary draft={draft} variant="inline" />
+      <HorizonDraftPanel
+        draft={draft}
+        variant="inline"
+        isValidating={isValidating}
+        onValidate={onValidate}
+        onCancel={onCancel}
+      />
+    </HorizonAssistantBubble>
   );
 }
 
@@ -100,34 +58,21 @@ function isBusinessQuestion(text = '') {
 
 function ThinkingBubble() {
   return (
-    <div className="flex justify-start">
-      <div
-        className="rounded-2xl rounded-tl-md border border-black/5 px-4 py-3 text-sm shadow-sm"
-        style={{ background: HORIZON.assistantBubble, color: HORIZON.textMuted }}
-      >
-        Un instant…
-      </div>
-    </div>
+    <HorizonAssistantBubble>
+      <span style={{ color: D.textMuted }}>Un instant…</span>
+    </HorizonAssistantBubble>
   );
 }
 
-function PhoneHeader({ header, displayName }) {
+function renderAssistantContent(message) {
+  if (message.isWelcome || message.plain) {
+    return <span className="whitespace-pre-wrap">{message.text}</span>;
+  }
   return (
-    <div className="flex items-center gap-3">
-      <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full bg-white text-xl ring-2 ring-white/15">
-        <span aria-hidden="true">{header?.brandEmoji || '🌿'}</span>
-      </div>
-      <div className="min-w-0 flex-1">
-        <h1 className="truncate text-[19px] font-bold tracking-tight">
-          {header?.brandName || 'Horizon'}
-        </h1>
-        <p className="truncate text-sm text-white/85">
-          {header?.tagline || 'Parlez à votre ferme'}
-          {header?.statsLine ? ` · ${header.statsLine}` : ''}
-        </p>
-        <p className="truncate text-xs text-white/65">{displayName} · en ligne</p>
-      </div>
-    </div>
+    <HorizonStructuredMessage
+      text={message.text}
+      structured={message.structured}
+    />
   );
 }
 
@@ -160,6 +105,8 @@ export default function HeyHorizonModule({
   const [command, setCommand] = useState('');
   const [voiceBusy, setVoiceBusy] = useState(false);
   const chatEndRef = useRef(null);
+  const pendingProgressiveRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const enrichedDataMap = useMemo(
     () => enrichAssistantDataMap(dataMap, {
@@ -177,7 +124,7 @@ export default function HeyHorizonModule({
     dataMap: enrichedDataMap,
     salesOrdersAll,
     paymentsAll,
-    transactionsAll: transactionsAll,
+    transactionsAll,
     businessEvents: businessEventsAll.length ? businessEventsAll : businessEvents,
     animaux,
     cultures,
@@ -211,11 +158,6 @@ export default function HeyHorizonModule({
     periodScope,
   ]);
 
-  const farmHeader = useMemo(
-    () => buildAssistantFarmHeader(secretaryProps),
-    [secretaryProps],
-  );
-
   const welcomeMessage = useMemo(
     () => ({ ...buildAssistantWelcomeMessage(displayName, secretaryProps), time: messageTime() }),
     [displayName, secretaryProps],
@@ -243,10 +185,11 @@ export default function HeyHorizonModule({
   } = useHeyHorizonCommand({ dataMap: enrichedDataMap, onNavigate, allowWeakDraft: true, onCreateBusinessEvent });
 
   const appendMessage = useCallback((role, text, extra = {}) => {
+    const cleanText = stripTechnicalLeaks(String(text || ''));
     setMessages((prev) => [...prev, {
       id: `${Date.now()}-${prev.length}`,
       role,
-      text,
+      text: cleanText,
       time: messageTime(),
       ...extra,
     }]);
@@ -263,6 +206,17 @@ export default function HeyHorizonModule({
   const handleSubmit = useCallback(async (text = command) => {
     const query = String(text || '').trim();
     if (!query || voiceBusy || isProcessing) return;
+
+    if (isDetailFollowUp(query) && pendingProgressiveRef.current?.fullText) {
+      setCommand('');
+      appendMessage('user', query);
+      appendMessage('assistant', pendingProgressiveRef.current.fullText, {
+        structured: pendingProgressiveRef.current.structured,
+      });
+      pendingProgressiveRef.current = null;
+      return;
+    }
+
     setCommand('');
     appendMessage('user', query);
     setVoiceBusy(true);
@@ -296,7 +250,7 @@ export default function HeyHorizonModule({
           return;
         }
         if (parsed.clarify && !parsed.drafts?.length) {
-          appendMessage('assistant', parsed.clarify);
+          appendMessage('assistant', parsed.clarify, { plain: true });
           return;
         }
       }
@@ -306,12 +260,26 @@ export default function HeyHorizonModule({
         appendMessage('assistant', 'Je n\'ai pas bien saisi. Reformulez en une phrase simple — par exemple « mes ventes » ou « combien de bovins ».');
         return;
       }
+
+      if (result.progressive?.hasDetail) {
+        pendingProgressiveRef.current = {
+          fullText: result.progressive.fullText,
+          structured: result.strategic || result.answer,
+        };
+      } else {
+        pendingProgressiveRef.current = null;
+      }
+
       if (result.kind === 'redirect_pilotage') {
-        appendMessage('assistant', result.assistantText || 'Je vous ouvre le bon espace.');
+        appendMessage('assistant', result.assistantText || 'Très bien, je vous y emmène.');
         return;
       }
       if (result.kind === 'strategic' || result.kind === 'llm' || result.kind === 'fallback') {
-        const answerText = formatStrategicHorizonAnswer(result.strategic) || result.assistantText || 'Je n\'ai pas assez de données pour répondre.';
+        const answerText = stripTechnicalLeaks(
+          result.assistantText
+          || formatStrategicHorizonAnswer(result.strategic)
+          || 'Je n\'ai pas assez de données pour répondre.',
+        );
         appendMessage('assistant', answerText, { structured: result.strategic });
         return;
       }
@@ -357,65 +325,37 @@ export default function HeyHorizonModule({
     appendMessage('assistant', 'D\'accord, je n\'ai rien enregistré. On continue — que voulez-vous faire ?');
   };
 
+  const handleAttach = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleMic = () => {
+    toast('Micro bientôt disponible — écrivez votre message pour l\'instant.');
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    toast.success(`Pièce jointe « ${file.name} » reçue.`);
+    event.target.value = '';
+  };
+
   const busy = voiceBusy || isProcessing;
-  const canSend = command.trim().length > 0 && !busy;
 
   return (
-    <HorizonPhoneShell
-      header={<PhoneHeader header={farmHeader} displayName={displayName} />}
-      footer={(
-        <form
-          className="flex items-center gap-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            handleSubmit();
-          }}
-        >
-          <label className="sr-only" htmlFor="horizon-chat-input">Parlez à votre ferme</label>
-          <div
-            className="flex min-w-0 flex-1 items-center gap-2 rounded-full px-3 py-2 shadow-sm"
-            style={{ background: HORIZON.surface }}
-          >
-            <Smile size={22} className="shrink-0 text-[#7d8580]" aria-hidden="true" />
-            <textarea
-              id="horizon-chat-input"
-              value={command}
-              onChange={(event) => setCommand(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && !event.shiftKey) {
-                  event.preventDefault();
-                  handleSubmit();
-                }
-              }}
-              rows={1}
-              placeholder="Parlez à votre ferme..."
-              disabled={busy}
-              className="max-h-28 min-h-[24px] min-w-0 flex-1 resize-none bg-transparent text-[15px] outline-none placeholder:text-[#8b948f] disabled:opacity-50"
-              style={{ color: HORIZON.text }}
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={busy || !canSend}
-            className="grid h-12 w-12 shrink-0 place-items-center rounded-full text-white shadow-lg transition-opacity disabled:opacity-40"
-            style={{ background: canSend ? HORIZON.sendButton : HORIZON.primary }}
-            aria-label={canSend ? 'Envoyer' : 'Micro'}
-          >
-            {canSend ? <Send size={20} /> : <Mic size={22} />}
-          </button>
-        </form>
-      )}
-    >
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
-        <div
-          className="mx-auto w-fit rounded-xl px-4 py-2 text-center text-xs font-semibold shadow-sm"
-          style={{ background: '#FFF4CF', color: '#5F5333' }}
-        >
-          Parlez à votre ferme — données ERP en direct
-        </div>
-
+    <HorizonPhoneShell>
+      <HorizonPhoneHeader />
+      <div className="min-h-0 flex-1 overflow-y-auto py-3">
         {messages.map((message) => (
-          <ChatBubble key={message.id} message={message} />
+          message.role === 'user' ? (
+            <HorizonUserBubble key={message.id} time={message.time}>
+              {message.text}
+            </HorizonUserBubble>
+          ) : (
+            <HorizonAssistantBubble key={message.id} time={message.time}>
+              {renderAssistantContent(message)}
+            </HorizonAssistantBubble>
+          )
         ))}
 
         {busy && !draft ? <ThinkingBubble /> : null}
@@ -429,8 +369,26 @@ export default function HeyHorizonModule({
           />
         ) : null}
 
-        <div ref={chatEndRef} />
+        <div ref={chatEndRef} className="h-1" />
       </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept="image/*,.pdf,.doc,.docx"
+        onChange={handleFileChange}
+      />
+
+      <HorizonChatComposer
+        value={command}
+        onChange={setCommand}
+        onSubmit={() => handleSubmit()}
+        onAttach={handleAttach}
+        onMic={handleMic}
+        disabled={busy}
+        placeholder="Parlez à votre ferme..."
+      />
     </HorizonPhoneShell>
   );
 }

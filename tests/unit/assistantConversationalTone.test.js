@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { toConversationalAnswer } from '../../src/services/assistantConversationalTone.js';
+import { toConversationalAnswer, stripTechnicalLeaks } from '../../src/services/assistantConversationalTone.js';
 import {
   formatConversationalHorizonAnswer,
   formatCompactHorizonAnswer,
@@ -18,7 +18,13 @@ test('toConversationalAnswer weaves SCA into natural prose', () => {
   assert.match(result.prose, /traitement/);
   assert.doesNotMatch(result.prose, /Situation/i);
   assert.doesNotMatch(result.prose, /^Cause/i);
-  assert.match(result.displayText, /Élevage/);
+  assert.doesNotMatch(result.prose, /computeFarmHeadcount/);
+});
+
+test('stripTechnicalLeaks removes engine names', () => {
+  const text = stripTechnicalLeaks('CA stable — consolidateFinance · buildDashboardSummary');
+  assert.doesNotMatch(text, /consolidateFinance/);
+  assert.doesNotMatch(text, /buildDashboardSummary/);
 });
 
 test('formatCompactHorizonAnswer avoids visible SCA labels', () => {
@@ -30,6 +36,7 @@ test('formatCompactHorizonAnswer avoids visible SCA labels', () => {
   });
   assert.doesNotMatch(text, /^Situation\s*:/m);
   assert.match(text, /CA|relanc|créances|commandes/i);
+  assert.doesNotMatch(text, /buildConsolidatedCommercialKpis/);
 });
 
 test('formatStrategicHorizonAnswer stays conversational', () => {
@@ -41,7 +48,7 @@ test('formatStrategicHorizonAnswer stays conversational', () => {
   });
   assert.doesNotMatch(text, /^Situation/m);
   assert.match(text, /Trésorerie positive/);
-  assert.match(text, /Finance/);
+  assert.doesNotMatch(text, /consolidateFinance/);
 });
 
 test('formatDraftAssistantText sounds human', () => {

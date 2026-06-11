@@ -1,4 +1,6 @@
-import { toConversationalAnswer } from './assistantConversationalTone.js';
+import { toConversationalAnswer, stripTechnicalLeaks } from './assistantConversationalTone.js';
+
+export { stripTechnicalLeaks };
 
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
@@ -45,10 +47,9 @@ export function formatConversationalHorizonAnswer(answer = {}) {
     situation: answer.situation,
     cause: answer.cause,
     action: answer.action,
-    sources: answer.sources || [],
     title: answer.title,
   });
-  return conversational.displayText || conversational.prose;
+  return stripTechnicalLeaks(conversational.prose || conversational.displayText || '');
 }
 
 /** Réponse agricole compacte — ton conversationnel (plus de labels Situation/Cause). */
@@ -162,10 +163,9 @@ export function formatDraftAssistantText(draft = {}) {
     fields.payment_amount ? `${fields.payment_amount} FCFA` : null,
   ].filter(Boolean).join(', ');
   return formatConversationalHorizonAnswer({
-    situation: `D'accord — j'ai préparé ${action}${details ? ` (${details})` : ''}.`,
-    cause: 'C\'est ce que j\'ai compris de votre phrase.',
-    action: 'Jetez un œil au récapitulatif ci-dessous, puis validez si tout est bon.',
-    sources: ['Carnet Horizon'],
+    situation: `D'accord — j'ai noté ${action}${details ? ` (${details})` : ''}.`,
+    cause: '',
+    action: 'Vérifiez le récapitulatif ci-dessous et confirmez si tout est correct.',
   });
 }
 

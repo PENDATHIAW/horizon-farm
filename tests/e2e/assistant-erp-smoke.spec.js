@@ -1,21 +1,21 @@
 import { expect, test } from '@playwright/test';
 import { goToModule, login } from './helpers.js';
 
-test.describe('Assistant ERP — Horizon V6 design', () => {
+test.describe('Assistant ERP — Horizon Chat Native V7', () => {
   test.setTimeout(120_000);
 
-  test('module secrétaire agricole', async ({ page }) => {
+  test('module chat natif Horizon', async ({ page }) => {
     await login(page);
     await goToModule(page, 'Assistant ERP');
 
-    await expect(page.getByRole('heading', { name: /^Horizon$/i })).toBeVisible();
-    await expect(page.getByText(/Parlez à votre ferme/i).first()).toBeVisible();
-    await expect(page.getByText(/animaux|parcelles|produits/i).first()).toBeVisible();
+    await expect(page.getByText(/^Horizon$/).first()).toBeVisible();
+    await expect(page.getByText(/Connecté à votre exploitation/i).first()).toBeVisible();
     await expect(page.getByText(/Bonjour/i)).toBeVisible();
-    await expect(page.getByText(/aujourd'hui|parler/i)).toBeVisible();
+    await expect(page.getByText(/parler/i)).toBeVisible();
     await expect(page.getByPlaceholder(/Parlez à votre ferme/i)).toBeVisible();
     await expect(page.getByText(/Hey Horizon/i)).toHaveCount(0);
-    await expect(page.getByText(/Votre exploitation agricole/i)).toHaveCount(0);
+    await expect(page.getByText(/données ERP/i)).toHaveCount(0);
+    await expect(page.getByText(/animaux • .*parcelles/i)).toHaveCount(0);
 
     const textarea = page.getByPlaceholder(/Parlez à votre ferme/i);
     await textarea.fill('Créer une vente de 5 poulets');

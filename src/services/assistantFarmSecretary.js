@@ -97,10 +97,10 @@ export function buildAssistantFarmHeader(props = {}) {
   };
 }
 
-/** Message d'accueil conversationnel avant toute saisie utilisateur. */
+/** Message d'accueil conversationnel — ton directeur d'exploitation, zéro liste ERP. */
 export function buildAssistantWelcomeMessage(displayName = 'Exploitant', props = {}) {
   const { summary, secretaryProps } = buildAssistantSecretaryContext(props);
-  const bullets = [];
+  const firstName = String(displayName || 'Exploitant').trim().split(/\s+/)[0];
 
   const commercialKpis = buildConsolidatedCommercialKpis({
     orders: secretaryProps.salesOrdersAll,
@@ -108,53 +108,37 @@ export function buildAssistantWelcomeMessage(displayName = 'Exploitant', props =
     clients: secretaryProps.clients,
   });
   const followUpCount = n(commercialKpis.unpaidOrders);
-  if (followUpCount > 0) {
-    bullets.push(`${followUpCount} client${followUpCount > 1 ? 's' : ''} à relancer`);
-  }
 
   const cards = buildCarnetDomainCards(summary, secretaryProps);
   const elevageAlerts = cards.find((card) => card.id === 'elevage')?.alerts || [];
   const cultureAlerts = cards.find((card) => card.id === 'cultures')?.alerts || [];
-  if (elevageAlerts.length > 0) {
-    bullets.push(`${elevageAlerts.length} lot${elevageAlerts.length > 1 ? 's' : ''} à surveiller`);
-  } else if (cultureAlerts.length > 0) {
-    const parcelAlert = cultureAlerts[0].text.match(/(\d+)/);
-    const count = parcelAlert ? parcelAlert[1] : '1';
-    bullets.push(`${count} parcelle${Number(count) > 1 ? 's' : ''} à surveiller`);
+
+  const sentences = [`Bonjour ${firstName}.`];
+
+  if (!followUpCount && !elevageAlerts.length && !cultureAlerts.length) {
+    sentences.push('Dans l\'ensemble, l\'exploitation est plutôt calme aujourd\'hui.');
+  } else {
+    sentences.push('Dans l\'ensemble, la ferme se tient bien.');
+    if (followUpCount > 0) {
+      sentences.push(
+        `J'ai repéré ${followUpCount} créance${followUpCount > 1 ? 's' : ''} qui mériterai${followUpCount > 1 ? 'ent' : 't'} une relance.`,
+      );
+    }
+    if (elevageAlerts.length > 0) {
+      sentences.push(
+        `${elevageAlerts.length} lot${elevageAlerts.length > 1 ? 's' : ''} mérite${elevageAlerts.length > 1 ? 'nt' : ''} un œil cette semaine.`,
+      );
+    } else if (cultureAlerts.length > 0) {
+      sentences.push('Une parcelle demande un peu d\'attention côté cultures.');
+    }
   }
 
-  const monthTarget = n(summary.goal?.periodTarget);
-  const monthRealized = n(commercialKpis.ca);
-  const attainment = monthTarget > 0
-    ? Math.round((monthRealized / monthTarget) * 100)
-    : n(summary.goal?.periodAttainment);
-  if (attainment > 0) {
-    bullets.push(`objectif mensuel atteint à ${attainment} %`);
-  }
-
-  if (!bullets.length) {
-    bullets.push('exploitation calme aujourd\'hui');
-  }
-
-  const firstName = String(displayName || 'Exploitant').trim().split(/\s+/)[0];
-  const intro = bullets.length === 1 && bullets[0].includes('calme')
-    ? `Bonjour ${firstName} — exploitation plutôt calme aujourd'hui.`
-    : `Bonjour ${firstName}. Voici ce qui retient mon attention aujourd'hui :`;
-
-  const lines = bullets[0]?.includes('calme') && bullets.length === 1
-    ? [intro, '', 'De quoi voulez-vous qu\'on parle ?']
-    : [
-      intro,
-      '',
-      ...bullets.slice(0, 3).map((item) => `• ${item.charAt(0).toUpperCase()}${item.slice(1)}`),
-      '',
-      'De quoi voulez-vous qu\'on parle ?',
-    ];
+  sentences.push('De quoi voulez-vous qu\'on parle ?');
 
   return {
     id: 'welcome',
     role: 'assistant',
-    text: lines.join('\n'),
+    text: sentences.join('\n\n'),
     isWelcome: true,
   };
 }

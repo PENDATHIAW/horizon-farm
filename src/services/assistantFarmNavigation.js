@@ -50,8 +50,21 @@ const MODULE_ALIASES = Object.entries(MODULE_REGISTRY).flatMap(([id, meta]) => {
 });
 
 const OPEN_PATTERNS = [
-  /^(?:ouvre|ouvrir|va dans|va en|montre|affiche|accede a|accède à|aller a|aller à|je veux)\s+/,
+  /^(?:ouvre|ouvrir|va dans|va en|aller dans|aller en|accede a|accède à|je veux voir)\s+/,
 ];
+
+const SHOW_NAV_ALIASES = [
+  { pattern: /^(?:montre(?: moi)?|affiche(?: moi)?)\s+(?:mes|mon|ma)\s+ventes/, moduleId: 'commercial' },
+  { pattern: /^(?:montre(?: moi)?|affiche(?: moi)?)\s+(?:mes|mon|ma)\s+animaux/, moduleId: 'elevage' },
+  { pattern: /^(?:montre(?: moi)?|affiche(?: moi)?)\s+(?:mes|mon|ma)\s+cultures/, moduleId: 'cultures' },
+  { pattern: /^(?:montre(?: moi)?|affiche(?: moi)?)\s+(?:mes|mon|ma)\s+rapports/, moduleId: 'documents_rapports' },
+  { pattern: /^(?:montre|affiche)\s+(?:les|mes)\s+rapports/, moduleId: 'documents_rapports' },
+  { pattern: /^(?:ouvre|ouvrir)\s+(?:les|mes)\s+objectifs/, moduleId: 'objectifs_croissance' },
+  { pattern: /^(?:va|aller)\s+(?:dans|en|vers)\s+(?:les|mes)\s+cultures/, moduleId: 'cultures' },
+];
+
+/** Demandes de données chiffrées — rester dans le chat. */
+const DATA_SHOW_PATTERN = /^(?:montre(?: moi)?|affiche(?: moi)?|donne(?: moi)?)\s+(?:mes|mon|ma|le|la|les|moi)\s+(?:ventes|stock|tresorerie|cheptel|bovins)/;
 
 /**
  * Résout une demande d'ouverture de module (« ouvre le commercial »).
@@ -62,8 +75,24 @@ export function resolveFarmModuleNavigation(text = '') {
   const q = normalizeAgriculturalText(raw);
   if (!q) return null;
 
-  const isOpen = OPEN_PATTERNS.some((pattern) => pattern.test(q));
-  if (!isOpen && !/module\b/.test(q)) return null;
+  if (/^(combien|quel|quelle|comment|qui|vais je)/.test(q)) return null;
+
+  for (const entry of SHOW_NAV_ALIASES) {
+    if (entry.pattern.test(q)) {
+      const section = Object.entries(FARM_NAV_SECTIONS).find(([, cfg]) => cfg.modules.includes(entry.moduleId))?.[0];
+      return {
+        moduleId: entry.moduleId,
+        label: MODULE_REGISTRY[entry.moduleId]?.label || entry.moduleId,
+        section,
+      };
+    }
+  }
+
+  if (DATA_SHOW_PATTERN.test(q)) return null;
+
+  const isOpen = OPEN_PATTERNS.some((pattern) => pattern.test(q))
+    || /^(?:va|aller)\s+(?:dans|en|vers)\s+/.test(q);
+  if (!isOpen && !/^(?:ouvre|ouvrir)\s+/.test(q) && !/module\b/.test(q)) return null;
 
   const stripped = q.replace(OPEN_PATTERNS[0], '').replace(/^le |^la |^les |^l |^module /, '').trim();
   const target = stripped || q;

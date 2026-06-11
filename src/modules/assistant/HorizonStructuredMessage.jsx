@@ -1,10 +1,11 @@
+import React from 'react';
+import { HORIZON_DESIGN as D } from './horizonDesignTokens.js';
 import {
   formatConversationalHorizonAnswer,
   parseHorizonStructuredText,
 } from '../../services/assistantResponseFormatter.js';
-import { HORIZON } from './horizonDesignTokens.js';
 
-/** Réponses conversationnelles — prose naturelle, sans labels SCA visibles */
+/** Réponses conversationnelles — prose naturelle, zéro source technique. */
 export default function HorizonStructuredMessage({ text = '', structured = null }) {
   const parsed = structured?.situation || structured?.cause || structured?.action
     ? parseHorizonStructuredText(structured)
@@ -14,18 +15,24 @@ export default function HorizonStructuredMessage({ text = '', structured = null 
     ? formatConversationalHorizonAnswer(parsed)
     : cleanDisplayText(text);
 
-  const [body, sourceLine] = splitSourceFootnote(displayText);
+  const paragraphs = String(displayText || '')
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  if (!paragraphs.length) return null;
 
   return (
-    <div>
-      <p className="text-[15px] leading-relaxed whitespace-pre-wrap" style={{ color: HORIZON.text }}>
-        {body}
-      </p>
-      {sourceLine ? (
-        <p className="mt-3 text-[13px] leading-snug" style={{ color: HORIZON.textMuted }}>
-          {sourceLine}
+    <div className="space-y-2">
+      {paragraphs.map((paragraph, index) => (
+        <p
+          key={index}
+          className="text-[15px] leading-relaxed whitespace-pre-wrap"
+          style={{ color: D.assistantBubbleText }}
+        >
+          {paragraph}
         </p>
-      ) : null}
+      ))}
     </div>
   );
 }
@@ -38,10 +45,4 @@ function cleanDisplayText(value = '') {
     if (parsed) return formatConversationalHorizonAnswer(parsed);
   }
   return raw;
-}
-
-function splitSourceFootnote(text = '') {
-  const parts = String(text || '').split(/\n\n— /);
-  if (parts.length < 2) return [text, ''];
-  return [parts[0].trim(), `— ${parts.slice(1).join('\n\n— ').trim()}`];
 }

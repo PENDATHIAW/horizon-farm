@@ -6,7 +6,9 @@ import { detectFinancePilotageQuery, buildFinancePilotageAnswer } from './heyHor
 import { detectProductionQuestion } from './productionStrategicAnswers.js';
 import { detectCommercialPilotageQuery, buildCommercialPilotageAnswer } from './heyHorizonCommercialAnswers.js';
 import { detectInvestorQuery, buildInvestorPilotageAnswer } from './assistantInvestorAnswers.js';
-import { formatStrategicHorizonAnswer, formatDraftAssistantText, formatCompactHorizonAnswer } from './assistantResponseFormatter.js';
+import { formatStrategicHorizonAnswer, formatDraftAssistantText, formatCompactHorizonAnswer, stripTechnicalLeaks } from './assistantResponseFormatter.js';
+import { buildProgressiveChatPayload } from './assistantProgressiveResponse.js';
+import { buildConversationalNavigationReply } from './assistantConversationalNavigation.js';
 import { routeNaturalLanguageQuery } from './assistantLanguageRouter.js';
 import { saveLocalRecommendation } from './aiRecommendationsService.js';
 import { interpretVoiceCommand } from './voiceCommands.js';
@@ -201,19 +203,21 @@ const PRODUCTION_LABELS = {
 };
 
 function buildPilotageRedirect({ module, tab, productionQuestion, label }, prefix = '') {
-  const where = `${label}${tab ? ` → ${tab}` : ''}`;
+  const navAnswer = buildConversationalNavigationReply(module);
+  const progressive = buildProgressiveChatPayload(navAnswer);
   const result = {
     kind: 'redirect_pilotage',
     route: module,
     tab,
     productionQuestion,
-    assistantText: `${prefix}Ouvre ${where}. Hey Horizon reste pour les actions terrain : vente, vaccin, stock, tâche…`,
+    assistantText: stripTechnicalLeaks(`${prefix}${progressive.text || navAnswer.situation}`),
+    progressive,
   };
   saveLocalRecommendation({
     type: 'redirect_pilotage',
     text: prefix.trim(),
     module,
-    action: where,
+    action: label || module,
     source_engine: 'rules',
   });
   return result;
@@ -291,18 +295,21 @@ export function processHeyHorizonCommand(rawText = '', { dataMap = {}, currentDr
     return {
       kind: 'redirect_pilotage',
       route: naturalLanguage.navigation.moduleId,
+      tab: naturalLanguage.navigation.tab,
       assistantText: naturalLanguage.assistantText,
-      source: naturalLanguage.source || 'farm_navigation_v4',
+      progressive: naturalLanguage.progressive,
+      source: naturalLanguage.source || 'farm_navigation_v7',
     };
   }
   if (naturalLanguage?.handled && naturalLanguage.answer) {
+    const progressive = naturalLanguage.progressive || buildProgressiveChatPayload(naturalLanguage.answer);
     const journalEntry = {
       type: 'agricultural_qa',
       text: rawText,
       module: 'assistant_erp',
       confidence_score: naturalLanguage.answer.confidence || 90,
       action: naturalLanguage.answer.title,
-      source_engine: naturalLanguage.source || 'universal_language_v4',
+      source_engine: naturalLanguage.source || 'universal_language_v7',
     };
     saveLocalRecommendation(journalEntry);
     return {
@@ -310,12 +317,13 @@ export function processHeyHorizonCommand(rawText = '', { dataMap = {}, currentDr
       strategic: {
         ...naturalLanguage.answer,
         type: 'agricultural_qa',
-        summary: naturalLanguage.assistantText,
+        summary: progressive.text,
       },
       draft: null,
-      assistantText: naturalLanguage.assistantText || formatCompactHorizonAnswer(naturalLanguage.answer),
+      assistantText: progressive.text || formatCompactHorizonAnswer(naturalLanguage.answer),
+      progressive,
       journalEntry,
-      source: naturalLanguage.source || 'universal_language_v4',
+      source: naturalLanguage.source || 'universal_language_v7',
       conversationContext: naturalLanguage.updatedContext,
       intents: naturalLanguage.intents,
     };
