@@ -5,6 +5,8 @@ import { detectStrategicQuery } from './heyHorizonStrategicAnswers.js';
 import { detectFinancePilotageQuery, buildFinancePilotageAnswer } from './heyHorizonFinanceAnswers.js';
 import { detectProductionQuestion } from './productionStrategicAnswers.js';
 import { detectCommercialPilotageQuery, buildCommercialPilotageAnswer } from './heyHorizonCommercialAnswers.js';
+import { detectInvestorQuery, buildInvestorPilotageAnswer } from './assistantInvestorAnswers.js';
+import { formatStrategicHorizonAnswer, formatDraftAssistantText } from './assistantResponseFormatter.js';
 import { saveLocalRecommendation } from './aiRecommendationsService.js';
 import { interpretVoiceCommand } from './voiceCommands.js';
 import { enhanceHeyHorizonQuestion, isHeyHorizonLlmEnabled, normalizeLlmDraft } from './heyHorizonLlmService.js';
@@ -105,19 +107,14 @@ export function isWeakHeyHorizonDraft(draft = {}, text = '') {
 export function buildHeyHorizonAssistantText(draft) {
   if (!draft || draft.status === 'unsupported' || draft.status === 'wake_only') return null;
   const missing = draft.missing_fields || [];
-  const impacted = (draft.impacted_modules || []).map(heyHorizonModuleLabel).join(', ');
-  if (draft.form_type === 'health_action') {
-    return missing.length
-      ? `J’ai compris : fiche santé à préparer. Il manque ${missing.join(', ')}.`
-      : `J’ai compris : fiche ${draft.draft_fields?.action_type || 'santé'} pour ${draft.draft_fields?.target_id || draft.draft_fields?.animal_id}. J’ouvre la fiche préremplie.`;
-  }
+  const base = formatDraftAssistantText(draft);
   if (missing.length) {
-    return `J’ai compris l’action. Il reste ${missing.length} champ(s) à compléter. Modules concernés : ${impacted || heyHorizonModuleLabel(draft.primary_module)}.`;
+    return `${base}\n\nÀ compléter : ${missing.join(', ')}.`;
   }
   if (draft.next_required_form) {
-    return `J’ai compris, mais un formulaire lié est requis : ${draft.next_required_form.title}.`;
+    return `${base}\n\nFormulaire lié requis : ${draft.next_required_form.title}.`;
   }
-  return `Action prête. J’ouvre la fiche préremplie dans ${heyHorizonModuleLabel(draft.primary_module)}.`;
+  return base;
 }
 
 export function buildHeyHorizonRefreshKeys(result = {}, draft = {}) {
@@ -259,9 +256,12 @@ export function processHeyHorizonCommand(rawText = '', { dataMap = {}, currentDr
     });
     return {
       kind: 'strategic',
-      strategic,
+      strategic: {
+        ...strategic,
+        summary: formatStrategicHorizonAnswer(strategic),
+      },
       draft: null,
-      assistantText: strategic.summary,
+      assistantText: formatStrategicHorizonAnswer(strategic),
       journalEntry: {
         type: 'finance_qa',
         text: rawText,
@@ -300,16 +300,41 @@ export function processHeyHorizonCommand(rawText = '', { dataMap = {}, currentDr
       strategic: {
         type: answer.type,
         title: answer.title,
-        summary: answer.summary,
+        summary: formatStrategicHorizonAnswer(answer),
+        situation: answer.situation,
+        cause: answer.cause,
+        action: answer.action,
+        sources: answer.sources,
         rows: answer.rows,
         route: answer.route,
         tab: answer.tab,
         confidence: answer.confidence,
       },
       draft: null,
-      assistantText: answer.summary,
+      assistantText: formatStrategicHorizonAnswer(answer),
       journalEntry,
       source: 'commercial_rules',
+    };
+  }
+  const investorType = detectInvestorQuery(rawText);
+  if (investorType) {
+    const answer = buildInvestorPilotageAnswer(investorType, dataMap);
+    const journalEntry = {
+      type: 'investor_pilotage',
+      text: rawText,
+      module: answer.route,
+      confidence_score: answer.confidence,
+      action: answer.title,
+      source_engine: 'canonical_investor',
+    };
+    saveLocalRecommendation(journalEntry);
+    return {
+      kind: 'strategic',
+      strategic: answer,
+      draft: null,
+      assistantText: answer.summary,
+      journalEntry,
+      source: 'canonical_investor',
     };
   }
   const strategicType = detectStrategicQuery(rawText);
