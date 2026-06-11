@@ -52,3 +52,17 @@ test('exports universal intent families', () => {
   assert.ok(ASSISTANT_UNIVERSAL_INTENTS[UNIVERSAL_INTENT_FAMILIES.ELEVAGE]);
   assert.ok(ASSISTANT_UNIVERSAL_INTENTS[UNIVERSAL_INTENT_FAMILIES.STOCK].length >= 4);
 });
+
+test('recognizes mes ventes, mes animaux, mes lots, quoi vendre', () => {
+  assert.equal(classifyUniversalIntent('mes ventes').intent, 'ventes');
+  assert.equal(classifyUniversalIntent('mes animaux').intent, 'my_animals');
+  assert.equal(classifyUniversalIntent('mes lots').intent, 'lots_overview');
+  assert.equal(classifyUniversalIntent('quoi vendre').intent, 'sell_today');
+});
+
+test('recognizes ultra-short domain tokens', () => {
+  for (const phrase of ['ventes', 'stock', 'bovins', 'objectifs', 'tresorerie']) {
+    const hit = classifyUniversalIntent(phrase);
+    assert.ok(hit, `expected intent for: ${phrase}`);
+  }
+});

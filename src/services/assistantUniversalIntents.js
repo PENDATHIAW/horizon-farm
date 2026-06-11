@@ -5,6 +5,7 @@
 
 import { classifyBySemanticPhrases } from './assistantSemanticMatcher.js';
 import { SEMANTIC_INTENT_CATALOG } from './assistantBusinessQuestions.js';
+import { resolveUltraShortIntent } from './assistantUltraShortIntents.js';
 
 export const UNIVERSAL_INTENT_FAMILIES = Object.freeze({
   SALUTATION: 'SALUTATION',
@@ -41,13 +42,15 @@ const SALUTATION = [
 ];
 
 const ELEVAGE = [
-  { intent: 'headcount_total', patterns: [/combien d.?animaux/, /nombre d.?animaux/, /effectif total/, /combien ai.?je d.?animaux/], label: 'Effectif total' },
-  { intent: 'headcount_bovins', patterns: [/combien de bovins/, /nombre de bovins/, /combien de vaches/, /et des bovins/, /et les bovins/, /bovins?\b.*combien/], label: 'Bovins' },
+  { intent: 'my_animals', patterns: [/^mes animaux\b/, /^mon cheptel\b/, /^animaux\?*$/, /j.?ai combien d.?animaux/], label: 'Mes animaux' },
+  { intent: 'lots_overview', patterns: [/^mes lots\b/, /^mes bandes\b/, /^lots\?*$/, /quels sont mes lots/], label: 'Mes lots' },
+  { intent: 'headcount_total', patterns: [/combien d.?animaux/, /nombre d.?animaux/, /effectif total/, /combien ai.?je d.?animaux/, /combien de tetes/, /combien de têtes/], label: 'Effectif total' },
+  { intent: 'headcount_bovins', patterns: [/combien de bovins/, /nombre de bovins/, /combien de vaches/, /et des bovins/, /et les bovins/, /bovins?\b.*combien/, /^bovins?\?*$/, /^mes bovins\b/], label: 'Bovins' },
   { intent: 'headcount_poulets', patterns: [/combien de poulets/, /nombre de poulets/, /combien ai.?je de poulets/, /et des poulets/, /et les poulets/, /poulets?\b.*combien/], label: 'Poulets' },
   { intent: 'headcount_pondeuses', patterns: [/combien de pondeuses/, /nombre de pondeuses/, /effectif pondeuses/], label: 'Pondeuses' },
   { intent: 'lots_sick', patterns: [/lots? malades/, /lots? sont malades/, /bandes? malades/, /elevage.*malade/], label: 'Lots malades' },
   { intent: 'lot_mortality', patterns: [/lot.*perd/, /mortalite.*lot/, /mortalité.*lot/, /plus de mortalite/, /plus de mortalité/], label: 'Mortalité lot' },
-  { intent: 'headcount_ovins', patterns: [/combien de moutons/, /combien d.?ovins/, /et des ovins/, /et les moutons/], label: 'Ovins' },
+  { intent: 'headcount_ovins', patterns: [/combien de moutons/, /combien d.?ovins/, /et des ovins/, /et les ovins/, /et les moutons/, /^ovins?\?*$/, /^mes ovins\b/], label: 'Ovins' },
   { intent: 'headcount_caprins', patterns: [/combien de chevres/, /combien de chèvres/, /combien de caprins/, /et des caprins/], label: 'Caprins' },
   { intent: 'elevage_status', patterns: [/etat de l.?elevage/, /état de l.?élevage/, /situation elevage/, /situation élevage/, /comment va l.?elevage/], label: 'État élevage' },
   { intent: 'lots_surveillance', patterns: [/lots? a surveiller/, /lots? à surveiller/, /bandes? a surveiller/, /bandes? à surveiller/, /quel lot surveiller/], label: 'Lots à surveiller' },
@@ -65,7 +68,9 @@ const CULTURES = [
 ];
 
 const STOCK = [
-  { intent: 'stock_overview', patterns: [/^mon stock\b/, /etat du stock/, /état du stock/, /etat stock/, /mon inventaire/, /^inventaire\b/, /montre.*stock/, /situation stock/], label: 'État du stock' },
+  { intent: 'stock_overview', patterns: [/^mon stock\b/, /^stock\?*$/, /etat du stock/, /état du stock/, /etat stock/, /mon inventaire/, /^inventaire\b/, /montre.*stock/, /situation stock/], label: 'État du stock' },
+  { intent: 'purchases_overview', patterns: [/^mes achats\b/, /achats recents/, /derniers achats/], label: 'Achats' },
+  { intent: 'suppliers_overview', patterns: [/^mes fournisseurs\b/, /^fournisseurs\?*$/, /fournisseurs actifs/], label: 'Fournisseurs' },
   { intent: 'stock_remain', patterns: [/qu.?est.?ce qu.?il (me )?reste/, /qu.?ai.?je en magasin/, /j.?ai quoi en magasin/, /produits restants/, /qu.?est.?ce qui est disponible/, /produits disponibles/, /il reste quoi/], label: 'Produits restants' },
   { intent: 'stock_aliment', patterns: [/stock d.?aliment/, /combien.*aliment/, /reste.*aliment/, /assez.*aliment/, /aliment.*reste/, /aliment.*stock/], label: 'Stock aliment' },
   { intent: 'stock_maiz', patterns: [/assez de mais/, /assez de maïs/, /stock.*mais/, /stock.*maïs/, /mais.*finir/, /maïs.*finir/], label: 'Stock maïs' },
@@ -75,7 +80,9 @@ const STOCK = [
 ];
 
 const COMMERCIAL = [
-  { intent: 'ventes', patterns: [/mes ventes/, /ventes du/, /chiffre.*vente/, /ca\b/, /chiffre d.?affaires/], label: 'Ventes' },
+  { intent: 'ventes', patterns: [/^mes ventes\b/, /^ventes\?*$/, /^ca\?*$/, /ventes du/, /chiffre.*vente/, /ca\b/, /chiffre d.?affaires/], label: 'Ventes' },
+  { intent: 'orders_overview', patterns: [/^mes commandes\b/, /commandes en cours/, /commandes ouvertes/], label: 'Commandes' },
+  { intent: 'deliveries_overview', patterns: [/^mes livraisons\b/, /livraisons en attente/, /livraisons du jour/], label: 'Livraisons' },
   { intent: 'top_client', patterns: [/meilleur client/, /top client/, /client.*important/, /client.*strategique/], label: 'Meilleur client' },
   { intent: 'top_product', patterns: [/meilleur produit/, /top produit/, /produit.*vedette/, /vend.*mieux/, /vend le mieux/], label: 'Meilleur produit' },
   { intent: 'receivables', patterns: [/me doivent/, /doivent de l.?argent/, /creances?/, /créances?/, /impaye/, /impayé/, /qui me doit/, /clients?.*doit/], label: 'Créances clients' },
@@ -85,14 +92,15 @@ const COMMERCIAL = [
 ];
 
 const FINANCE = [
-  { intent: 'treasury', patterns: [/tresorerie/, /trésorerie/, /combien j.?ai\b/, /ou en est l.?argent/, /argent disponible/, /situation financiere/, /situation financière/, /combien en caisse/, /combien.*banque/, /liquidite/, /liquidité/, /ma caisse/], label: 'Trésorerie' },
+  { intent: 'treasury', patterns: [/^tresorerie\?*$/, /tresorerie/, /trésorerie/, /combien j.?ai\b/, /ou en est l.?argent/, /argent disponible/, /situation financiere/, /situation financière/, /combien en caisse/, /combien.*banque/, /liquidite/, /liquidité/, /ma caisse/], label: 'Trésorerie' },
+  { intent: 'charges_overview', patterns: [/^mes charges\b/, /charges exploitation/, /depenses exploitation/], label: 'Charges' },
   { intent: 'dettes', patterns: [/mes dettes/, /dette fournisseur/, /dettes fournisseurs/, /que dois.?je payer/, /fournisseur.*payer/], label: 'Dettes' },
   { intent: 'creances', patterns: [/mes creances/, /mes créances/, /argent a recuperer/, /argent à récupérer/], label: 'Créances' },
   { intent: 'resultat', patterns: [/resultat/, /résultat/, /benefice/, /bénéfice/, /rentabilite/, /rentabilité/, /marge reelle/, /marge réelle/], label: 'Résultat' },
 ];
 
 const OBJECTIFS = [
-  { intent: 'progress_status', patterns: [/ou j.?en suis/, /où j.?en suis/, /atteinte mensuelle/, /atteinte annuelle/, /objectif du mois/, /objectif mensuel/, /objectif de l.?annee/, /objectif de l.?année/, /avancement objectif/], label: 'Avancement objectifs' },
+  { intent: 'progress_status', patterns: [/^objectifs?\?*$/, /^mes objectifs\b/, /ou j.?en suis/, /où j.?en suis/, /atteinte mensuelle/, /atteinte annuelle/, /objectif du mois/, /objectif mensuel/, /objectif de l.?annee/, /objectif de l.?année/, /avancement objectif/], label: 'Avancement objectifs' },
   { intent: 'month_goal', patterns: [/objectif.*mois/, /cible.*mois/], label: 'Objectif mois' },
   { intent: 'annual_goal', patterns: [/objectif.*annuel/, /objectif.*annee/, /objectif.*année/], label: 'Objectif année' },
   { intent: 'annual_outlook', patterns: [/vais.?je atteindre/, /atteindre mon objectif annuel/, /objectif annuel atteignable/, /finir l.?annee/], label: 'Projection annuelle' },
@@ -100,15 +108,24 @@ const OBJECTIFS = [
 
 const DECISION = [
   { intent: 'today_priorities', patterns: [/que faire aujourd/, /que dois.?je faire/, /priorites/, /priorités/, /urgences/, /aujourd.?hui\b.*faire/], label: 'Priorités du jour' },
-  { intent: 'sell_today', patterns: [/que vendre/, /vendre aujourd/, /que puis.?je.*vendre/, /puis.?je.*vendre/, /leur vendre/, /vendre pour ameliorer/, /vendre pour améliorer/], label: 'Que vendre' },
+  { intent: 'sell_today', patterns: [/^quoi vendre\b/, /^que vendre\b/, /que vendre cette/, /vendre aujourd/, /que puis.?je.*vendre/, /puis.?je.*vendre/, /leur vendre/, /vendre pour ameliorer/, /vendre pour améliorer/], label: 'Que vendre' },
   { intent: 'follow_up', patterns: [/qui relancer/, /relancer.*client/, /relances? du jour/], label: 'Relances' },
+  { intent: 'documents_summary', patterns: [/^rapports\?*$/, /^documents\?*$/, /quels documents/, /documents generes/, /documents générés/, /mes rapports/], label: 'Documents' },
+  { intent: 'activity_journal', patterns: [/^journal\?*$/, /^activite\?*$/, /activites recentes/, /activités récentes/, /historique recent/], label: 'Journal' },
+  { intent: 'rh_personnel', patterns: [/^personnel\?*$/, /^equipes\?*$/, /mes equipes/, /effectif personnel/, /ressources humaines/], label: 'Personnel' },
+  { intent: 'equipment_overview', patterns: [/mes equipements/, /tracteurs/, /maintenance equipement/, /etat equipements/], label: 'Équipements' },
+  { intent: 'sync_status', patterns: [/synchronisations/, /sync erp/, /integrite donnees/, /integrité données/], label: 'Synchronisation' },
+  { intent: 'system_overview', patterns: [/utilisateurs systeme/, /roles permissions/, /parametres systeme/, /gestion du systeme/], label: 'Administration' },
 ];
 
 const INVESTISSEUR = [
   { intent: 'farm_overview', patterns: [/comment va la ferme/, /comment va l.?exploitation/, /comment va mon exploitation/, /situation globale/], label: 'Vue ferme' },
   { intent: 'farm_status', patterns: [/etat.*exploitation/, /état.*exploitation/, /situation.*ferme/, /resume.*exploitation/, /résumé.*exploitation/, /performance.*ferme/], label: 'État exploitation' },
   { intent: 'profitability', patterns: [/rentabilite/, /rentabilité/, /performance financiere/, /performance financière/], label: 'Rentabilité' },
-  { intent: 'growth', patterns: [/croissance/, /business plan/, /\bbp\b/], label: 'Croissance' },
+  { intent: 'growth', patterns: [/croissance.*bonne/, /la croissance/, /business plan/, /\bbp\b/], label: 'Croissance' },
+  { intent: 'ca_progress', patterns: [/ca progresse/, /chiffre.*progresse/, /ventes progressent/], label: 'Progression CA' },
+  { intent: 'main_risk', patterns: [/principal risque/, /risque principal/, /plus gros risque/, /quel risque/], label: 'Risque principal' },
+  { intent: 'investment_capacity', patterns: [/puis.?je investir/, /investir maintenant/, /capacite investissement/, /financement possible/], label: 'Investissement' },
   { intent: 'investor_summary', patterns: [/investisseur/, /financeur/, /dossier.*banque/, /resume pour invest/, /résumé pour invest/], label: 'Résumé investisseur' },
 ];
 
@@ -197,6 +214,9 @@ export function classifyUniversalIntent(text = '', { minScore = 0.04, semanticMi
     ? matchFamily(q, UNIVERSAL_INTENT_FAMILIES.DECLARER, FAMILY_ENTRIES[UNIVERSAL_INTENT_FAMILIES.DECLARER])
     : null;
   if (declarerHit && declarerHit.score >= minScore) return declarerHit;
+
+  const ultraShort = resolveUltraShortIntent(text);
+  if (ultraShort) return ultraShort;
 
   let regexBest = null;
   for (const family of FAMILY_ORDER) {

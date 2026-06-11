@@ -10,6 +10,7 @@ import { buildAgriculturalAnswer } from './assistantAgriculturalContext.js';
 import { formatCompactHorizonAnswer } from './assistantResponseFormatter.js';
 import { resolveFarmModuleNavigation } from './assistantFarmNavigation.js';
 import { detectBusinessDomain } from './assistantDomainDetector.js';
+import { buildAssistantClarifyResponse } from './assistantClarifyResponse.js';
 
 /**
  * @typedef {import('./assistantConversationContext.js').ConversationContext} ConversationContext
@@ -91,7 +92,19 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
     }
   }
 
-  if (!intents.length) return { handled: false };
+  if (!intents.length) {
+    const clarify = buildAssistantClarifyResponse(query, dataMap);
+    if (clarify?.answer) {
+      return {
+        handled: true,
+        answer: clarify.answer,
+        assistantText: formatCompactHorizonAnswer(clarify.answer),
+        updatedContext: updateConversationContext(context || {}, { query, intent: clarify.proposedIntent }),
+        source: 'assistant_clarify_v6',
+      };
+    }
+    return { handled: false };
+  }
 
   const answers = [];
   for (const hit of intents.slice(0, 3)) {
@@ -99,7 +112,25 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
     if (answer) answers.push(answer);
   }
 
-  if (!answers.length) return { handled: false, intents };
+  if (!answers.length) {
+    const clarify = buildAssistantClarifyResponse(query, dataMap);
+    if (clarify?.answer) {
+      const assistantText = formatCompactHorizonAnswer(clarify.answer);
+      return {
+        handled: true,
+        answer: clarify.answer,
+        assistantText,
+        updatedContext: updateConversationContext(context || {}, {
+          query,
+          intent: clarify.proposedIntent || null,
+          family: intents[0]?.family || null,
+        }),
+        intents,
+        source: 'assistant_clarify_v6',
+      };
+    }
+    return { handled: false, intents };
+  }
 
   const merged = mergeAnswers(answers);
   const domain = detectBusinessDomain(workingQuery);

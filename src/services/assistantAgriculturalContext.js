@@ -181,13 +181,41 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}) {
 
     case 'headcount_bovins': {
       const bovins = countBovins(props.animaux);
+      const treated = countUnderTreatment(props.animaux, props.sante, 'bovin');
       return {
         title: 'Bovins',
-        situation: `${fmt(bovins)} bovins actifs.`,
-        cause: 'Comptage des fiches animaux bovins non clôturées.',
-        action: bovins > 0 ? 'Consultez Élevage pour le détail par animal.' : 'Aucun bovin actif enregistré.',
-        sources: ['computeFarmHeadcount', 'animaux'],
+        situation: `${fmt(bovins)} bovins.`,
+        cause: treated.length
+          ? `${fmt(treated.length)} sont actuellement sous traitement.`
+          : 'Comptage des fiches animaux bovins actifs.',
+        action: treated.length
+          ? 'Surveillez les animaux sous traitement cette semaine.'
+          : (bovins > 0 ? 'Consultez Élevage pour le détail par animal.' : 'Aucun bovin actif enregistré.'),
+        sources: ['computeFarmHeadcount', 'animaux', 'sante'],
         confidence: 92,
+      };
+    }
+
+    case 'my_animals':
+      return {
+        title: 'Cheptel',
+        situation: `${fmt(headcount.total)} animaux · ${fmt(headcount.activeLots)} lots actifs.`,
+        cause: `${fmt(headcount.activeAnimals)} fiches animaux · ${fmt(headcount.activeAvicole)} avicoles.`,
+        action: elevageAlerts?.action || 'Posez une question sur une espèce : bovins, ovins, poulets…',
+        sources: ['computeFarmHeadcount', 'buildCarnetDomainCards'],
+        confidence: 94,
+      };
+
+    case 'lots_overview': {
+      const activeLots = arr(props.lots).filter((lot) => !['termine', 'terminé', 'clos', 'clôturé', 'archive'].includes(lower(lot.statut || lot.status)));
+      const names = activeLots.slice(0, 5).map((l) => l.name || l.nom || l.id).join(', ');
+      return {
+        title: 'Lots',
+        situation: `${fmt(activeLots.length)} lot(s) actif(s)${names ? ` : ${names}` : ''}.`,
+        cause: `${fmt(headcount.effectifChair)} chair · ${fmt(headcount.effectifPondeuses)} pondeuses en cours.`,
+        action: elevageAlerts?.headline || 'Demandez « quel lot surveiller » pour les alertes.',
+        sources: ['computeFarmHeadcount', 'avicole'],
+        confidence: 91,
       };
     }
 
@@ -492,6 +520,145 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}) {
       if (answer?.situation) return answer;
       break;
     }
+
+    case 'orders_overview': {
+      const open = arr(props.salesOrdersAll).filter((row) => !['livree', 'livrée', 'payee', 'payée', 'annulee', 'annulée'].includes(lower(row.statut || row.status)));
+      const total = open.reduce((sum, row) => sum + n(row.total ?? row.montant_total ?? row.total_amount), 0);
+      return {
+        title: 'Commandes',
+        situation: `${fmt(open.length)} commande(s) en cours · ${fmtCurrency(total)}.`,
+        cause: `${fmt(commercialKpis.unpaidOrders || 0)} commande(s) avec solde client.`,
+        action: open.length ? 'Priorisez livraisons et encaissements sur les commandes ouvertes.' : 'Aucune commande ouverte — prospectez vos clients réguliers.',
+        sources: ['buildConsolidatedCommercialKpis'],
+        confidence: 89,
+      };
+    }
+
+    case 'deliveries_overview': {
+      const pending = arr(props.deliveries).filter((row) => !['livree', 'livrée', 'termine', 'terminé'].includes(lower(row.statut || row.status)));
+      return {
+        title: 'Livraisons',
+        situation: `${fmt(pending.length)} livraison(s) en attente.`,
+        cause: `${fmt(arr(props.deliveries).length)} livraison(s) enregistrée(s) sur la période.`,
+        action: pending.length ? 'Planifiez les tournées sur les livraisons en retard.' : 'Aucune livraison en attente.',
+        sources: ['deliveries', 'buildConsolidatedCommercialKpis'],
+        confidence: 86,
+      };
+    }
+
+    case 'purchases_overview': {
+      const purchases = arr(props.businessEvents).filter((row) => /achat|reception|réception|stock/i.test(String(row.event_type || row.title || '')));
+      return {
+        title: 'Achats',
+        situation: `${fmt(purchases.length)} mouvement(s) achat/réception récent(s).`,
+        cause: `${fmt(stockSummary.availableProducts)} produits en stock · valeur ${fmtCurrency(stockSummary.stockValue)}.`,
+        action: stockSummary.lowStockCount > 0 ? 'Complétez les achats sur les références sous seuil.' : 'Achats sous contrôle.',
+        sources: ['computeStockSummary', 'business_events'],
+        confidence: 84,
+      };
+    }
+
+    case 'suppliers_overview': {
+      const suppliers = arr(dataMap.fournisseurs || dataMap.suppliers);
+      return {
+        title: 'Fournisseurs',
+        situation: `${fmt(suppliers.length)} fournisseur(s) référencé(s).`,
+        cause: payables > 0 ? `Dettes fournisseurs ${fmtCurrency(payables)}.` : 'Pas de dette fournisseur ouverte signalée.',
+        action: payables > treasury ? 'Arbitrez les paiements fournisseurs cette semaine.' : 'Relations fournisseurs stables.',
+        sources: ['fournisseurs', 'consolidateFinance'],
+        confidence: 85,
+      };
+    }
+
+    case 'charges_overview':
+      return {
+        title: 'Charges',
+        situation: `Charges et sorties : dettes ${fmtCurrency(payables)} · marge ${fmtCurrency(margin)}.`,
+        cause: `CA ${fmtCurrency(ca)} sur la période.`,
+        action: margin < 0 ? 'Identifiez les postes de charges les plus lourds dans Finance.' : 'Charges maîtrisées par rapport au CA.',
+        sources: ['consolidateFinance'],
+        confidence: 88,
+      };
+
+    case 'documents_summary': {
+      const docs = arr(dataMap.documents);
+      const reports = arr(dataMap.rapports || dataMap.reports);
+      const total = docs.length + reports.length;
+      return {
+        title: 'Documents',
+        situation: `${fmt(total)} document(s) et rapport(s) enregistré(s).`,
+        cause: 'Archives ERP Documents & Rapports.',
+        action: total ? 'Ouvrez Documents & Rapports pour exporter ou consulter.' : 'Générez un rapport depuis le module concerné.',
+        sources: ['documents'],
+        confidence: 82,
+      };
+    }
+
+    case 'activity_journal': {
+      const events = arr(props.businessEvents).slice(0, 5);
+      const preview = events.map((e) => e.title || e.event_type).filter(Boolean).slice(0, 3).join(', ');
+      return {
+        title: 'Journal',
+        situation: `${fmt(arr(props.businessEvents).length)} événement(s) récent(s)${preview ? ` : ${preview}` : ''}.`,
+        cause: 'Historique Activité & Suivi ERP.',
+        action: 'Consultez Activité & Suivi pour le journal complet.',
+        sources: ['business_events', 'buildCarnetDomainCards'],
+        confidence: 87,
+      };
+    }
+
+    case 'rh_personnel': {
+      const tasks = arr(props.taches).filter((t) => /rh|personnel|equipe|équipe/i.test(String(t.module || t.categorie || t.title || '')));
+      return {
+        title: 'Personnel',
+        situation: `${fmt(tasks.length)} tâche(s) liée(s) aux équipes · ${fmt(arr(props.taches).length)} tâches ouvertes au total.`,
+        cause: 'Données Opérations & Ressources ERP.',
+        action: 'Ouvrez Opérations & Ressources pour le planning équipes.',
+        sources: ['taches'],
+        confidence: 80,
+      };
+    }
+
+    case 'equipment_overview': {
+      const equipment = arr(dataMap.equipements || dataMap.equipment);
+      const maint = equipment.filter((row) => /maintenance|panne|alerte/i.test(lower(row.statut || row.status || row.etat)));
+      return {
+        title: 'Équipements',
+        situation: `${fmt(equipment.length)} équipement(s)${maint.length ? ` · ${maint.length} en maintenance/alerte` : ''}.`,
+        cause: 'Parc matériel ERP.',
+        action: maint.length ? 'Traitez les maintenances en retard.' : 'Parc équipements stable.',
+        sources: ['equipements'],
+        confidence: 81,
+      };
+    }
+
+    case 'sync_status':
+      return {
+        title: 'Synchronisation',
+        situation: 'État de synchronisation consultable dans Activité & Sync ERP.',
+        cause: 'Intégrité des flux terrain → ERP.',
+        action: 'Ouvrez Activité & Sync pour l\'historique des synchronisations.',
+        sources: ['sync_activity'],
+        confidence: 78,
+      };
+
+    case 'system_overview':
+      return {
+        title: 'Administration',
+        situation: 'Paramètres, utilisateurs et rôles dans Gestion du système.',
+        cause: 'Configuration ERP.',
+        action: 'Ouvrez Gestion du système pour les permissions.',
+        sources: ['gestion_systeme'],
+        confidence: 78,
+      };
+
+    case 'ca_progress':
+    case 'main_risk':
+    case 'investment_capacity':
+      return buildInvestorPilotageAnswer(
+        intent === 'ca_progress' ? 'ca_progress' : (intent === 'main_risk' ? 'main_risk' : 'investment_capacity'),
+        dataMap,
+      );
 
     case 'ventes_today': {
       const todayKey = new Date().toISOString().slice(0, 10);

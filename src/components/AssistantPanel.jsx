@@ -109,7 +109,7 @@ export default function AssistantPanel({ open, onClose, dataMap, onNavigate, onC
     setIsThinking(true);
     window.setTimeout(() => setIsThinking(false), 700);
     const result = await runCommand(cleaned, { mergeDraft: Boolean(draft), autoOpenForm: true, navigateOnDraft: true });
-    const assistantText = result?.assistantText || 'Je n’ai pas assez compris. Choisis une action rapide ou précise : vente, vaccin, stock, œufs, tâche, dépense.';
+    const assistantText = result?.assistantText || 'Je n\'ai pas encore saisi votre demande. Décrivez en une phrase : ventes, stock, animaux, trésorerie, objectifs…';
     setMessages((prev) => [...prev, { role: 'user', text: cleaned }, { role: 'assistant', text: assistantText }]);
     if (result?.kind === 'redirect_pilotage') {
       // Navigation handled in useHeyHorizonCommand

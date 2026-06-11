@@ -28,6 +28,11 @@ const MODULE_ENGINES = Object.freeze({
   investisseurs_forums: ['consolidateFinance', 'buildConsolidatedCommercialKpis', 'summarizeSalesMargins', 'buildObjectifsCroissanceData'],
   centre_ia: ['buildCarnetDomainCards'],
   activite_suivi: ['buildCarnetDomainCards'],
+  documents_rapports: ['business_events'],
+  rh: ['taches'],
+  sync_activity: ['buildCarnetDomainCards'],
+  gestion_systeme: [],
+  assistant_erp: ['buildCarnetDomainCards'],
 });
 
 function coverageStatus(moduleId) {

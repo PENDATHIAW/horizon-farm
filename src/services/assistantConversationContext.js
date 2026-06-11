@@ -4,6 +4,7 @@
  */
 
 import { normalizeAgriculturalText } from './assistantUniversalIntents.js';
+import { resolveUltraShortIntent } from './assistantUltraShortIntents.js';
 
 const FOLLOW_UP_MARKERS = [
   /^et\b/,
@@ -47,9 +48,13 @@ const DOMAIN_INTENT_SHORTCUTS = Object.freeze({
   },
   commercial: {
     client: 'top_client',
+    clients: 'commercial_summary',
     produit: 'top_product',
-    ventes: 'ventes_today',
+    ventes: 'ventes',
+    vente: 'ventes',
     relance: 'relances',
+    commandes: 'orders_overview',
+    livraisons: 'deliveries_overview',
   },
   stock: {
     aliment: 'stock_aliment',
@@ -64,6 +69,21 @@ const DOMAIN_INTENT_SHORTCUTS = Object.freeze({
     traitement: 'animals_under_treatment',
     malade: 'lots_sick',
     mortalite: 'lot_mortality',
+    lots: 'lots_overview',
+    lot: 'lots_overview',
+    animaux: 'my_animals',
+    bovins: 'headcount_bovins',
+    ovins: 'headcount_ovins',
+    poulets: 'headcount_poulets',
+  },
+  pilotage: {
+    objectifs: 'progress_status',
+    objectif: 'progress_status',
+    rapports: 'documents_summary',
+    documents: 'documents_summary',
+    personnel: 'rh_personnel',
+    activite: 'activity_journal',
+    journal: 'activity_journal',
   },
 });
 
@@ -110,7 +130,18 @@ export function createConversationContext() {
  */
 export function resolveFollowUp(query = '', context = createConversationContext()) {
   const q = normalizeAgriculturalText(query);
-  if (!q || !context?.lastIntent) return null;
+  if (!q) return null;
+
+  const ultra = resolveUltraShortIntent(query);
+  if (ultra && (!context?.lastIntent || isFollowUp(q) || q.split(/\s+/).length <= 2)) {
+    return {
+      expandedQuery: query,
+      forcedIntent: ultra.intent,
+      forcedFamily: ultra.family,
+    };
+  }
+
+  if (!context?.lastIntent) return null;
   if (!isFollowUp(q) && q.split(/\s+/).length > 4) return null;
 
   const species = detectSpecies(q);
@@ -165,6 +196,7 @@ export function resolveFollowUp(query = '', context = createConversationContext(
         stock: 'STOCK',
         cultures: 'CULTURES',
         elevage: 'ELEVAGE',
+        pilotage: 'DECISION',
       };
       return {
         expandedQuery: `${context.lastQuery} ${query}`,
@@ -205,6 +237,10 @@ export function updateConversationContext(context, { query = '', intent = null, 
     next.lastDomain = 'commercial';
   } else if (family === 'CULTURES' || intent?.includes('parcel') || intent?.includes('culture') || intent?.includes('rendement')) {
     next.lastDomain = 'cultures';
+  } else if (intent?.includes('document') || intent?.includes('activity') || intent === 'today_priorities') {
+    next.lastDomain = 'pilotage';
+  } else if (intent?.includes('rh_') || intent?.includes('equipment') || intent?.includes('system') || intent?.includes('sync')) {
+    next.lastDomain = 'pilotage';
   }
 
   return next;

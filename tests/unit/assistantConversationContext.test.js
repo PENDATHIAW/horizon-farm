@@ -43,3 +43,20 @@ test('ignores non follow-up without context', () => {
   const ctx = createConversationContext();
   assert.equal(resolveFollowUp('combien de bovins ?', ctx), null);
 });
+
+test('resolves ovins follow-up after bovins question', () => {
+  let ctx = createConversationContext();
+  ctx = updateConversationContext(ctx, {
+    query: 'combien de bovins ?',
+    intent: 'headcount_bovins',
+    family: 'ELEVAGE',
+  });
+  const follow = resolveFollowUp('et les ovins ?', ctx);
+  assert.equal(follow?.forcedIntent, 'headcount_ovins');
+});
+
+test('resolves ultra-short ventes without prior context', () => {
+  const ctx = createConversationContext();
+  const follow = resolveFollowUp('ventes ?', ctx);
+  assert.equal(follow?.forcedIntent, 'ventes');
+});

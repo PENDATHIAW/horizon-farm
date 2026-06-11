@@ -23,6 +23,10 @@ export function detectInvestorQuery(text = '') {
   if (/objectif|croissance|bp|business plan/.test(q)) return 'growth_objectives';
   if (/investisseur|financeur|dossier.*banque/.test(q)) return 'investor_room';
   if (/tresorerie|trésorerie|liquidite/.test(q) && q.length < 50) return 'treasury';
+  if (/principal risque|risque principal|plus gros risque/.test(q)) return 'main_risk';
+  if (/puis.?je investir|investir maintenant|capacite investissement/.test(q)) return 'investment_capacity';
+  if (/ca progresse|chiffre.*progresse|ventes progressent/.test(q)) return 'ca_progress';
+  if (/comment va l.?exploitation|comment va la ferme/.test(q)) return 'farm_status';
   return null;
 }
 
@@ -116,6 +120,45 @@ export function buildInvestorPilotageAnswer(type = 'farm_status', dataMap = {}) 
       action = 'Ouvrir Investisseurs & Forums pour le dossier complet ou exporter le rapport financeur.';
       sources = ['consolidateFinance', 'buildConsolidatedCommercialKpis', 'summarizeSalesMargins', 'buildObjectifsCroissanceData'];
       title = 'Vue investisseur';
+      break;
+    case 'ca_progress': {
+      const annualTarget = n(growth?.annualTarget ?? growth?.objectifAnnuel);
+      const annualRealized = n(growth?.annualRealized ?? growth?.caAnnee ?? ca);
+      const pct = annualTarget > 0 ? Math.round((annualRealized / annualTarget) * 100) : null;
+      situation = pct != null
+        ? `CA annuel à ${pct} % (${fmtCurrency(annualRealized)} / ${fmtCurrency(annualTarget)}).`
+        : `CA période ${fmtCurrency(ca)} · Encaissé ${fmtCurrency(collected)}.`;
+      cause = pct != null && pct < 80 ? 'Rythme commercial en retard sur l\'objectif annuel.' : 'Progression commerciale suivie via les ventes ERP.';
+      action = receivables > 0 ? 'Accélérez ventes et relances pour soutenir le CA.' : 'Maintenez le rythme commercial actuel.';
+      sources = ['buildConsolidatedCommercialKpis', 'buildObjectifsCroissanceData'];
+      title = 'Progression CA';
+      break;
+    }
+    case 'main_risk': {
+      const risks = [];
+      if (treasury < 0) risks.push('trésorerie négative');
+      if (receivables > treasury * 2) risks.push('créances élevées');
+      if (payables > treasury) risks.push('dettes fournisseurs supérieures à la trésorerie');
+      if (monthTarget > 0 && monthRealized < monthTarget * 0.7) risks.push('objectif mensuel en retard');
+      situation = risks.length
+        ? `Principal risque : ${risks[0]}.`
+        : `Exploitation stable — CA ${fmtCurrency(ca)} · Trésorerie ${fmtCurrency(treasury)}.`;
+      cause = risks.length > 1 ? `Autres points de vigilance : ${risks.slice(1).join(', ')}.` : 'Analyse consolidateFinance + objectifs.';
+      action = risks.length ? 'Traitez le risque prioritaire cette semaine avant d\'investir.' : 'Poursuivez le pilotage habituel.';
+      sources = ['consolidateFinance', 'buildObjectifsCroissanceData', 'buildConsolidatedCommercialKpis'];
+      title = 'Risque principal';
+      break;
+    }
+    case 'investment_capacity':
+      situation = `Trésorerie ${fmtCurrency(treasury)} · Marge ${fmtCurrency(margin)} · Dettes ${fmtCurrency(payables)}.`;
+      cause = treasury > payables && margin > 0
+        ? 'Capacité d\'investissement favorable sur la base des moteurs canoniques.'
+        : 'Trésorerie ou marge insuffisante pour un investissement immédiat.';
+      action = treasury > payables && margin > 0
+        ? 'Étudiez un investissement ciblé dans Investissements ou Objectifs & Croissance.'
+        : 'Sécurisez trésorerie et créances avant d\'investir.';
+      sources = ['consolidateFinance', 'buildObjectifsCroissanceData'];
+      title = 'Capacité d\'investissement';
       break;
   default:
       situation = `CA ${fmtCurrency(ca)} · Trésorerie ${fmtCurrency(treasury)} · Créances ${fmtCurrency(receivables)}.`;

@@ -81,11 +81,20 @@ export function scoreSemanticSimilarity(query = '', reference = '') {
  * Classe une requête contre une liste d'entrées { intent, family, label, phrases[] }.
  */
 export function classifyBySemanticPhrases(query = '', entries = [], { minScore = 0.28 } = {}) {
+  const queryTokens = tokenizeAgriculturalText(query);
+  const effectiveMin = queryTokens.length <= 1 ? Math.min(minScore, 0.18) : minScore;
+
   let best = null;
   for (const entry of entries) {
     for (const phrase of entry.phrases || []) {
-      const score = scoreSemanticSimilarity(query, phrase);
-      if (score >= minScore && (!best || score > best.score)) {
+      let score = scoreSemanticSimilarity(query, phrase);
+      if (queryTokens.length === 1) {
+        const phraseTokens = tokenizeAgriculturalText(phrase);
+        if (phraseTokens.includes(queryTokens[0]) || phraseTokens.some((t) => t.startsWith(queryTokens[0]))) {
+          score = Math.max(score, 0.35);
+        }
+      }
+      if (score >= effectiveMin && (!best || score > best.score)) {
         best = {
           family: entry.family,
           intent: entry.intent,

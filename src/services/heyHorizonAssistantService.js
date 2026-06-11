@@ -11,6 +11,47 @@ import { routeNaturalLanguageQuery } from './assistantLanguageRouter.js';
 import { saveLocalRecommendation } from './aiRecommendationsService.js';
 import { interpretVoiceCommand } from './voiceCommands.js';
 import { enhanceHeyHorizonQuestion, isHeyHorizonLlmEnabled, normalizeLlmDraft } from './heyHorizonLlmService.js';
+import { buildAssistantClarifyResponse } from './assistantClarifyResponse.js';
+import { updateConversationContext } from './assistantConversationContext.js';
+
+function buildGracefulFallback(rawText, dataMap, conversationContext) {
+  const clarify = buildAssistantClarifyResponse(rawText, dataMap);
+  if (clarify?.answer) {
+    return {
+      kind: 'strategic',
+      strategic: {
+        ...clarify.answer,
+        type: 'assistant_clarify',
+        summary: formatCompactHorizonAnswer(clarify.answer),
+      },
+      draft: null,
+      assistantText: formatCompactHorizonAnswer(clarify.answer),
+      conversationContext: updateConversationContext(conversationContext || {}, {
+        query: rawText,
+        intent: clarify.proposedIntent || null,
+      }),
+      source: 'assistant_clarify_v6',
+      llmCandidate: true,
+    };
+  }
+  return {
+    kind: 'strategic',
+    strategic: {
+      title: 'Précision',
+      situation: 'Je n\'ai pas encore saisi votre demande.',
+      cause: 'Formulation trop vague pour l\'instant.',
+      action: 'Décrivez en une phrase : ventes, stock, animaux, trésorerie, objectifs…',
+      sources: ['Horizon'],
+      confidence: 50,
+      type: 'assistant_clarify',
+      summary: 'Décrivez en une phrase ce que vous cherchez : ventes, stock, animaux, trésorerie ou objectifs.',
+    },
+    draft: null,
+    assistantText: 'Je n\'ai pas encore saisi votre demande. Décrivez en une phrase : ventes, stock, animaux, trésorerie, objectifs…',
+    source: 'assistant_clarify_v6',
+    llmCandidate: true,
+  };
+}
 
 export const HEY_HORIZON_MODULE_LABELS = {
   dashboard: 'Accueil',
@@ -401,13 +442,7 @@ export function processHeyHorizonCommand(rawText = '', { dataMap = {}, currentDr
         source: 'voice_commands',
       };
     }
-    return {
-      kind: 'error',
-      draft: null,
-      assistantText: fallback.answer || 'Commande non reconnue. Essaie une action rapide ou précise.',
-      fallbackModule: fallback.moduleKey,
-      llmCandidate: true,
-    };
+    return buildGracefulFallback(rawText, dataMap, conversationContext);
   }
   const weak = !allowWeakDraft && isWeakHeyHorizonDraft(nextDraft, rawText);
   const draftText = weak ? null : buildHeyHorizonAssistantText(nextDraft);
@@ -422,13 +457,7 @@ export function processHeyHorizonCommand(rawText = '', { dataMap = {}, currentDr
         source: 'voice_commands',
       };
     }
-    return {
-      kind: 'error',
-      draft: null,
-      assistantText: fallback.answer || 'Je n’ai pas assez compris. Précise vente, vaccin, stock, œufs, tâche ou dépense.',
-      fallbackModule: fallback.moduleKey,
-      llmCandidate: true,
-    };
+    return buildGracefulFallback(rawText, dataMap, conversationContext);
   }
   const journalEntry = {
     type: 'draft',
