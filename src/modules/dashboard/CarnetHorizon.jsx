@@ -13,23 +13,23 @@ function ProgressBar({ value = 0 }) {
 
 function DomainCard({ card }) {
   return (
-    <article className="carnet-domain-card flex min-h-[168px] flex-col rounded-xl border border-emerald-900 bg-emerald-700 p-3 shadow-sm">
+    <article className="carnet-domain-card flex min-h-[168px] flex-col rounded-xl border border-emerald-200/50 bg-emerald-400/10 p-3 shadow-[0_1px_0_rgba(34,197,94,0.06)]">
       <div className="flex items-center gap-1.5">
         <span className="text-base leading-none" aria-hidden="true">{card.icon}</span>
-        <p className="text-[10px] font-black tracking-wide text-emerald-100">{card.title}</p>
+        <p className="text-[10px] font-black tracking-wide text-emerald-800/80">{card.title}</p>
       </div>
-      <p className="mt-2 text-sm font-black leading-tight text-white">{card.headline}</p>
+      <p className="mt-2 text-sm font-black leading-tight text-[#2f2415]">{card.headline}</p>
       <ul className="mt-2 flex-1 space-y-0.5">
         {card.lines.map((line, index) => (
-          <li key={`${card.id}-line-${index}`} className="text-[11px] leading-snug text-emerald-50">
+          <li key={`${card.id}-line-${index}`} className="text-[11px] leading-snug text-[#5c4d38]">
             • {line.text}
           </li>
         ))}
       </ul>
       {card.alerts?.length ? (
-        <ul className="mt-2 space-y-0.5 border-t border-emerald-600 pt-2">
+        <ul className="mt-2 space-y-0.5 border-t border-emerald-200/40 pt-2">
           {card.alerts.map((alert, index) => (
-            <li key={`${card.id}-alert-${index}`} className="text-[10px] font-semibold leading-snug text-amber-200">
+            <li key={`${card.id}-alert-${index}`} className="text-[10px] font-semibold leading-snug text-amber-800">
               ⚠ {alert.text}
             </li>
           ))}
