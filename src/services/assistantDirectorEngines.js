@@ -1,11 +1,19 @@
 /**
- * Moteurs dirigeant V6.1 — réponses de directeur d'exploitation.
- * COMMENT_VA_LA_FERME · PRIORITÉS_DU_JOUR · OBJECTIF_STATUS · QUESTION_DE_SUIVI
+ * Moteurs dirigeant V6.1 + Conseiller V7.
+ * COMMENT_VA_LA_FERME · PRIORITÉS · OBJECTIFS · SUIVI · TENDANCES · COMPARAISONS · RISQUES · OPPORTUNITÉS
  */
 
 import { normalizeAgriculturalText } from './assistantUniversalIntents.js';
 import { fmtCurrency } from '../utils/format.js';
 import { buildDirectorSnapshot } from './assistantDirectorSnapshot.js';
+import {
+  buildCommentVaLaFermeConseilAnswer,
+  buildPrioritesConseilAnswer,
+  buildTendancesAnswer,
+  buildComparaisonsAnswer,
+  buildRisquesAnswer,
+  buildOpportunitesAnswer,
+} from './assistantFarmAdvisor.js';
 
 const n = (v) => Number(v || 0);
 
@@ -14,13 +22,17 @@ export const DIRECTOR_INTENTS = Object.freeze({
   PRIORITES_DU_JOUR: 'priorites_du_jour',
   OBJECTIF_STATUS: 'objectif_status',
   RECEIVABLE_FOLLOW_UP: 'receivable_follow_up',
+  TENDANCES: 'farm_trends',
+  COMPARAISONS: 'farm_comparisons',
+  RISQUES: 'farm_risks',
+  OPPORTUNITES: 'farm_opportunities',
 });
 
 const CLIENT_FOLLOW_UP = /^(quel|quelle|lequel|laquelle)(s)?\s+(client|clients?)\??$/;
 const NAME_FOLLOW_UP = /^(son nom|le nom|qui c est|c est qui)\??$/;
 
 /**
- * Détecte une intention dirigeant (prioritaire sur salutations / créances génériques).
+ * Détecte une intention dirigeant / conseiller (prioritaire sur salutations / créances génériques).
  */
 export function resolveDirectorIntent(query = '', conversationContext = null) {
   const q = normalizeAgriculturalText(query);
@@ -37,6 +49,19 @@ export function resolveDirectorIntent(query = '', conversationContext = null) {
     return DIRECTOR_INTENTS.RECEIVABLE_FOLLOW_UP;
   }
 
+  if (/comment evolue|evolution exploitation|tendance|dynamique exploitation|en hausse ou en baisse/.test(q)) {
+    return DIRECTOR_INTENTS.TENDANCES;
+  }
+  if (/compar|par rapport au mois|par rapport a la semaine|versus|vs mois|semaine precedente|mois precedent|mois dernier/.test(q)) {
+    return DIRECTOR_INTENTS.COMPARAISONS;
+  }
+  if (/quels risques|mes risques|principal risque|risque principal|plus gros risque|quel risque|points de vigilance/.test(q)) {
+    return DIRECTOR_INTENTS.RISQUES;
+  }
+  if (/opportunite|quoi vendre|que vendre|que puis je vendre|puis je vendre|ecouler/.test(q)) {
+    return DIRECTOR_INTENTS.OPPORTUNITES;
+  }
+
   if (/comment va (la ferme|l exploitation|mon exploitation)|situation globale|etat global/.test(q)) {
     return DIRECTOR_INTENTS.COMMENT_VA_LA_FERME;
   }
@@ -50,139 +75,14 @@ export function resolveDirectorIntent(query = '', conversationContext = null) {
   return null;
 }
 
-/** COMMENT_VA_LA_FERME — synthèse multi-domaines. */
+/** COMMENT_VA_LA_FERME — synthèse conseil multi-domaines. */
 export function buildCommentVaLaFermeAnswer(dataMap = {}) {
-  const snap = buildDirectorSnapshot(dataMap);
-  const {
-    commercial, stockSummary, receivableRows, monthPct, elevageAlerts,
-  } = snap;
-
-  const ca = n(commercial.ca);
-  const receivableCount = receivableRows.length || n(commercial.unpaidOrders);
-  const lowStock = n(stockSummary.lowStockCount);
-  const lotWatch = elevageAlerts.length > 0;
-
-  const paragraphs = ['Dans l\'ensemble, la ferme fonctionne correctement.'];
-
-  if (ca > 0) {
-    paragraphs.push(`Le chiffre d'affaires atteint actuellement ${fmtCurrency(ca)}.`);
-  }
-
-  if (lowStock === 0) {
-    paragraphs.push('Les stocks sont disponibles sans rupture.');
-  } else {
-    paragraphs.push(`${lowStock} produit${lowStock > 1 ? 's' : ''} approche${lowStock > 1 ? 'nt' : ''} d'un seuil bas — à surveiller.`);
-  }
-
-  if (receivableCount > 0 && lotWatch) {
-    paragraphs.push(`J'ai identifié ${receivableCount} créance${receivableCount > 1 ? 's' : ''} à suivre et un lot qui mérite une surveillance particulière.`);
-  } else if (receivableCount > 0) {
-    paragraphs.push(`J'ai identifié ${receivableCount} créance${receivableCount > 1 ? 's' : ''} à suivre.`);
-  } else if (lotWatch) {
-    paragraphs.push('Un lot mérite une surveillance particulière cette semaine.');
-  }
-
-  if (monthPct != null) {
-    paragraphs.push(`L'objectif mensuel est atteint à ${monthPct} %.`);
-  }
-
-  return {
-    title: 'Vue ferme',
-    intent: DIRECTOR_INTENTS.COMMENT_VA_LA_FERME,
-    situation: paragraphs.join('\n\n'),
-    cause: '',
-    action: receivableCount > 0 ? 'Si vous voulez, je peux détailler le client le plus urgent.' : '',
-    sources: [],
-    confidence: 96,
-    meta: {
-      topReceivable: snap.topReceivable ? {
-        clientName: snap.topReceivable.clientName,
-        amount: snap.topReceivable.amount,
-        orderId: snap.topReceivable.orderId,
-        delayDays: snap.topReceivable.delayDays,
-      } : null,
-    },
-  };
+  return buildCommentVaLaFermeConseilAnswer(dataMap);
 }
 
-/** PRIORITÉS_DU_JOUR — top 3 actions classées par impact. */
+/** PRIORITÉS_DU_JOUR — top 3 actions classées par impact + tendance. */
 export function buildPrioritesDuJourAnswer(dataMap = {}) {
-  const snap = buildDirectorSnapshot(dataMap);
-  const { commercial, receivableRows, monthPct, elevageAlerts, relanceRows, stockSummary } = snap;
-
-  const receivableTotal = n(commercial.receivable);
-  const receivableCount = receivableRows.length || n(commercial.unpaidOrders);
-  const candidates = [];
-
-  if (receivableTotal > 0) {
-    candidates.push({
-      impact: 100 + Math.min(receivableTotal / 100000, 20),
-      text: `Relancer les ${receivableCount} créance${receivableCount > 1 ? 's' : ''} en attente (${fmtCurrency(receivableTotal)})`,
-    });
-  }
-
-  if (elevageAlerts.length > 0) {
-    const lotLabel = elevageAlerts[0]?.text || 'le lot sous surveillance';
-    candidates.push({
-      impact: 85,
-      text: `Contrôler ${lotLabel.toLowerCase().includes('lot') ? lotLabel : 'le lot sous surveillance'}`,
-    });
-  }
-
-  if (monthPct != null && monthPct < 80) {
-    candidates.push({
-      impact: 95 - monthPct,
-      text: `Accélérer les ventes car l'objectif mensuel n'est atteint qu'à ${monthPct} %`,
-    });
-  }
-
-  if (relanceRows.length > 0 && candidates.length < 3) {
-    const urgent = relanceRows.find((row) => row.priority === 'Urgent') || relanceRows[0];
-    if (urgent?.clientName) {
-      candidates.push({
-        impact: 70,
-        text: `Relancer ${urgent.clientName}`,
-      });
-    }
-  }
-
-  if (n(stockSummary.lowStockCount) > 0 && candidates.length < 3) {
-    candidates.push({
-      impact: 60,
-      text: `Réapprovisionner ${stockSummary.lowStockCount} produit${stockSummary.lowStockCount > 1 ? 's' : ''} sous seuil`,
-    });
-  }
-
-  if (!candidates.length) {
-    candidates.push({
-      impact: 50,
-      text: 'Publier vos disponibilités et contacter un client régulier',
-    });
-  }
-
-  const top3 = [...candidates]
-    .sort((a, b) => b.impact - a.impact)
-    .slice(0, 3);
-
-  const lines = top3.map((item, index) => `${index + 1}. ${item.text}`);
-
-  return {
-    title: 'Priorités du jour',
-    intent: DIRECTOR_INTENTS.PRIORITES_DU_JOUR,
-    situation: `Aujourd'hui je vous conseille :\n\n${lines.join('\n\n')}`,
-    cause: '',
-    action: '',
-    sources: [],
-    confidence: 95,
-    meta: {
-      topReceivable: snap.topReceivable ? {
-        clientName: snap.topReceivable.clientName,
-        amount: snap.topReceivable.amount,
-        orderId: snap.topReceivable.orderId,
-        delayDays: snap.topReceivable.delayDays,
-      } : null,
-    },
-  };
+  return buildPrioritesConseilAnswer(dataMap);
 }
 
 /** OBJECTIF_STATUS — objectifs sans détour par les créances. */
@@ -298,6 +198,14 @@ export function buildDirectorEngineAnswer(intent = '', dataMap = {}, conversatio
       return buildObjectifStatusAnswer(dataMap, query);
     case DIRECTOR_INTENTS.RECEIVABLE_FOLLOW_UP:
       return buildReceivableFollowUpAnswer(dataMap, conversationContext);
+    case DIRECTOR_INTENTS.TENDANCES:
+      return buildTendancesAnswer(dataMap);
+    case DIRECTOR_INTENTS.COMPARAISONS:
+      return buildComparaisonsAnswer(dataMap);
+    case DIRECTOR_INTENTS.RISQUES:
+      return buildRisquesAnswer(dataMap);
+    case DIRECTOR_INTENTS.OPPORTUNITES:
+      return buildOpportunitesAnswer(dataMap);
     default:
       return null;
   }

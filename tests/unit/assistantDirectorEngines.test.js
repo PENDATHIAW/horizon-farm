@@ -17,6 +17,7 @@ test('detects director intents before universal routing', () => {
   assert.equal(resolveDirectorIntent('comment va la ferme ?'), DIRECTOR_INTENTS.COMMENT_VA_LA_FERME);
   assert.equal(resolveDirectorIntent('quelles priorités ?'), DIRECTOR_INTENTS.PRIORITES_DU_JOUR);
   assert.equal(resolveDirectorIntent('objectif atteint ?'), DIRECTOR_INTENTS.OBJECTIF_STATUS);
+  assert.equal(resolveDirectorIntent('quels risques ?'), DIRECTOR_INTENTS.RISQUES);
   assert.equal(
     resolveDirectorIntent('quel client ?', { lastIntent: 'receivables' }),
     DIRECTOR_INTENTS.RECEIVABLE_FOLLOW_UP,

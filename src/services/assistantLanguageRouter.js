@@ -90,6 +90,10 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
         [DIRECTOR_INTENTS.OBJECTIF_STATUS]: 'OBJECTIFS',
         [DIRECTOR_INTENTS.PRIORITES_DU_JOUR]: 'DECISION',
         [DIRECTOR_INTENTS.RECEIVABLE_FOLLOW_UP]: 'COMMERCIAL',
+        [DIRECTOR_INTENTS.TENDANCES]: 'INVESTISSEUR',
+        [DIRECTOR_INTENTS.COMPARAISONS]: 'INVESTISSEUR',
+        [DIRECTOR_INTENTS.RISQUES]: 'INVESTISSEUR',
+        [DIRECTOR_INTENTS.OPPORTUNITES]: 'COMMERCIAL',
       };
       return {
         handled: true,
@@ -103,7 +107,7 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
           answerMeta: directorAnswer.meta,
         }),
         intents: [{ intent: intentKey, family: familyMap[directorIntent], label: directorAnswer.title }],
-        source: 'director_engine_v61',
+        source: 'farm_advisor_v7',
       };
     }
   }

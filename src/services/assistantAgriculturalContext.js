@@ -25,6 +25,12 @@ import {
   buildObjectifStatusAnswer,
   buildReceivableFollowUpAnswer,
 } from './assistantDirectorEngines.js';
+import {
+  buildTendancesAnswer,
+  buildComparaisonsAnswer,
+  buildRisquesAnswer,
+  buildOpportunitesAnswer,
+} from './assistantFarmAdvisor.js';
 import { hasExploitableFarmData } from './assistantDirectorSnapshot.js';
 import { UNIVERSAL_INTENT_FAMILIES } from './assistantUniversalIntents.js';
 
@@ -528,24 +534,31 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}, options = {})
       };
     }
 
-    case 'top_client':
-    case 'top_product':
-    case 'commercial_summary':
-    case 'sell_today':
     case 'today_priorities':
     case 'priorites_du_jour':
       return buildPrioritesDuJourAnswer(dataMap);
 
+    case 'sell_today':
+    case 'farm_opportunities':
+      return buildOpportunitesAnswer(dataMap);
+
+    case 'farm_trends':
+      return buildTendancesAnswer(dataMap);
+
+    case 'farm_comparisons':
+      return buildComparaisonsAnswer(dataMap);
+
+    case 'farm_risks':
+    case 'main_risk':
+      return buildRisquesAnswer(dataMap);
+
     case 'top_client':
     case 'top_product':
-    case 'commercial_summary':
-    case 'sell_today': {
+    case 'commercial_summary': {
       const map = {
         top_client: 'top_clients',
         top_product: 'top_products',
         commercial_summary: 'summary',
-        sell_today: 'sell_today',
-        follow_up: 'receivables',
       };
       const type = map[intent];
       if (type) {
@@ -695,12 +708,10 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}, options = {})
       };
 
     case 'ca_progress':
-    case 'main_risk':
+      return buildTendancesAnswer(dataMap);
+
     case 'investment_capacity':
-      return buildInvestorPilotageAnswer(
-        intent === 'ca_progress' ? 'ca_progress' : (intent === 'main_risk' ? 'main_risk' : 'investment_capacity'),
-        dataMap,
-      );
+      return buildInvestorPilotageAnswer('investment_capacity', dataMap);
 
     case 'ventes_today': {
       const todayKey = new Date().toISOString().slice(0, 10);
@@ -741,10 +752,14 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}, options = {})
       return buildObjectifStatusAnswer(dataMap, query);
 
     case 'farm_status':
+      return hasExploitableFarmData(dataMap)
+        ? buildCommentVaLaFermeAnswer(dataMap)
+        : buildInvestorPilotageAnswer('farm_status', dataMap);
+
     case 'investor_summary':
     case 'growth':
       return buildInvestorPilotageAnswer(
-        intent === 'growth' ? 'growth_objectives' : (intent === 'investor_summary' ? 'investor_room' : 'farm_status'),
+        intent === 'growth' ? 'growth_objectives' : 'investor_room',
         dataMap,
       );
 

@@ -11,6 +11,8 @@ import { buildCarnetDomainCards } from '../modules/dashboard/carnetHorizon.js';
 import { receivableFromOrders, enrichCommercialOrders } from '../modules/commercial/commercialMetrics.js';
 import { remainingForOrder } from '../utils/salesStatuses.js';
 import { buildCommercialRelanceRows } from '../utils/commercialRelances.js';
+import { buildTemporalComparisons, buildExploitationDynamics } from '../modules/dashboard/dashboardV3.js';
+import { buildAutoCommercialOpportunities } from '../utils/commercialAutoOpportunities.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v) => Number(v || 0);
@@ -29,6 +31,8 @@ export function propsFromDataMap(dataMap = {}) {
     invoices: arr(dataMap.invoices),
     businessPlans: arr(dataMap.business_plans || dataMap.businessPlans),
     businessEvents: arr(dataMap.business_events || dataMap.businessEvents),
+    productionLogs: arr(dataMap.productionLogs || dataMap.production_logs),
+    alertes: arr(dataMap.alertes || dataMap.alerts),
     periodScope: dataMap.periodScope,
   };
 }
@@ -96,6 +100,25 @@ export function buildDirectorSnapshot(dataMap = {}) {
   const elevageCard = arr(carnetCards).find((card) => card.id === 'elevage');
   const elevageAlerts = elevageCard?.alerts || [];
 
+  const comparisons = buildTemporalComparisons(props);
+  const summaryForDynamics = {
+    ca: n(commercial.ca),
+    encaisse: n(commercial.collected),
+    receivable: n(commercial.receivable),
+    cashNet: n(finance.cashNet),
+    stockSummary,
+    alertesOuvertes: elevageAlerts.length + n(stockSummary.lowStockCount),
+    startupMode: false,
+  };
+  const dynamics = buildExploitationDynamics(summaryForDynamics, comparisons, props);
+  const opportunities = buildAutoCommercialOpportunities({
+    stocks: props.stocks,
+    cultures: props.cultures,
+    lots: props.lots,
+    animaux: props.animaux,
+    salesOrders: props.salesOrdersAll,
+  });
+
   return {
     props,
     finance,
@@ -111,6 +134,9 @@ export function buildDirectorSnapshot(dataMap = {}) {
     monthRealized,
     monthPct,
     elevageAlerts,
+    comparisons,
+    dynamics,
+    opportunities,
     topReceivable: receivableRows[0] || null,
     hasFarmData: n(commercial.ca) > 0
       || props.animaux.length > 0

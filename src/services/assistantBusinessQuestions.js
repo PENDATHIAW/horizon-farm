@@ -33,6 +33,10 @@ export const MODULE_BUSINESS_QUESTIONS = Object.freeze({
   dashboard: [
     q(F.DECISION, 'today_priorities', 'Priorités', ['que dois-je faire aujourd hui', 'par quoi commencer', 'que faire aujourd hui'], ['priorités du jour', 'urgences exploitation'], []),
     q(F.INVESTISSEUR, 'farm_overview', 'Vue ferme', ['comment va la ferme', 'comment va mon exploitation', 'situation globale', 'comment va l exploitation'], ['état global exploitation', 'synthèse ferme'], ['performance globale ferme']),
+    q(F.INVESTISSEUR, 'farm_trends', 'Tendances', ['comment evolue', 'tendance exploitation', 'dynamique'], ['évolution activité'], []),
+    q(F.INVESTISSEUR, 'farm_comparisons', 'Comparaisons', ['par rapport au mois dernier', 'comparaison mois'], ['évolution vs période précédente'], []),
+    q(F.INVESTISSEUR, 'farm_risks', 'Risques', ['quels risques', 'mes risques', 'points de vigilance'], ['analyse risques'], []),
+    q(F.COMMERCIAL, 'farm_opportunities', 'Opportunités', ['opportunites vente', 'quoi vendre'], ['opportunités commerciales'], []),
   ],
   assistant_erp: [
     q(F.SALUTATION, 'greeting', 'Accueil', ['bonjour', 'salut', 'coucou'], [], []),
