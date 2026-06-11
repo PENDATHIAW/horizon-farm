@@ -162,10 +162,10 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}) {
     case 'greeting':
       return {
         title: 'Bonjour',
-        situation: 'Bonjour — je suis là pour suivre votre exploitation avec vous.',
-        cause: 'Vos données de ferme sont à jour.',
-        action: 'Posez-moi une question ou décrivez ce qui vient de se passer sur le terrain.',
-        sources: ['Carnet Horizon'],
+        situation: 'Bonjour — content de vous retrouver.',
+        cause: '',
+        action: 'De quoi voulez-vous qu\'on parle ?',
+        sources: [],
         confidence: 99,
       };
 
@@ -450,15 +450,22 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}) {
       };
     }
 
-    case 'ventes':
+    case 'ventes': {
+      const unpaid = n(commercialKpis.unpaidOrders || commercialKpis.openOrders || 0);
+      const receivable = n(commercialKpis.receivable);
       return {
         title: 'Ventes',
-        situation: `CA ${fmtCurrency(ca)} · Encaissé ${fmtCurrency(commercialKpis.collected)}.`,
-        cause: `${fmt(commercialKpis.unpaidOrders || commercialKpis.openOrders || 0)} commande(s) avec solde.`,
-        action: n(commercialKpis.receivable) > 0 ? 'Relancez les créances prioritaires.' : 'Poursuivez le rythme commercial.',
-        sources: ['buildConsolidatedCommercialKpis'],
+        situation: `Vos ventes affichent ${fmtCurrency(ca)} sur la période, dont ${fmtCurrency(commercialKpis.collected)} déjà encaissés.`,
+        cause: unpaid > 0
+          ? `Il reste ${unpaid} commande${unpaid > 1 ? 's' : ''} avec un solde à suivre.`
+          : 'Les encaissements suivent bien le rythme des ventes.',
+        action: receivable > 0
+          ? `Je repère ${unpaid || 'quelques'} créance${(unpaid || 0) > 1 ? 's' : ''} qui méritent une relance.`
+          : '',
+        sources: [],
         confidence: 92,
       };
+    }
 
     case 'treasury':
       return buildInvestorPilotageAnswer('treasury', dataMap) || {
@@ -482,16 +489,23 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}) {
 
     case 'creances':
     case 'receivables':
-    case 'relances': {
+    case 'relances':
+    case 'receivable_detail': {
       const commercialType = intent === 'relances' ? 'receivables' : (detectCommercialPilotageQuery(intent === 'receivables' ? 'clients à relancer' : 'créances') || 'receivables');
       const commercial = buildCommercialPilotageAnswer(commercialType, dataMap);
-      if (commercial?.situation) return commercial;
+      if (commercial?.situation) {
+        return { ...commercial, sources: [] };
+      }
       return {
         title: 'Créances',
-        situation: `Créances clients ${fmtCurrency(receivables)}.`,
-        cause: `${fmt(commercialKpis.unpaidOrders || 0)} commande(s) impayée(s).`,
-        action: receivables > 0 ? 'Relancez les clients en retard.' : 'Pas de créance ouverte.',
-        sources: ['consolidateFinance', 'buildConsolidatedCommercialKpis'],
+        situation: receivables > 0
+          ? `Vous avez encore ${fmtCurrency(receivables)} à récupérer auprès de vos clients.`
+          : 'Aucun client ne vous doit d\'argent pour le moment.',
+        cause: n(commercialKpis.unpaidOrders || 0) > 0
+          ? `${commercialKpis.unpaidOrders} commande${commercialKpis.unpaidOrders > 1 ? 's' : ''} restent partiellement impayées.`
+          : '',
+        action: receivables > 0 ? 'Je peux détailler le client le plus urgent si vous voulez.' : '',
+        sources: [],
         confidence: 91,
       };
     }

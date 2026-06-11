@@ -60,3 +60,14 @@ test('resolves ultra-short ventes without prior context', () => {
   const follow = resolveFollowUp('ventes ?', ctx);
   assert.equal(follow?.forcedIntent, 'ventes');
 });
+
+test('resolves quel client after receivables context', () => {
+  let ctx = createConversationContext();
+  ctx = updateConversationContext(ctx, {
+    query: 'qui me doit de l\'argent ?',
+    intent: 'receivables',
+    family: 'COMMERCIAL',
+  });
+  const follow = resolveFollowUp('quel client ?', ctx);
+  assert.equal(follow?.forcedIntent, 'receivable_detail');
+});

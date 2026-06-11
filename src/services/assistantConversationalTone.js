@@ -8,6 +8,7 @@ const TECHNICAL_PATTERNS = [
   /\bbuild\w+\([^)]*\)/gi,
   /\bbuild[A-Z]\w+/g,
   /\bsummarize\w*/gi,
+  /\breceivableFromOrders\b/gi,
   /\bERP\b/g,
   /\bSource ERP\b/gi,
   /\(\)\./g,
@@ -19,16 +20,13 @@ const TECHNICAL_PATTERNS = [
   /\bdonnées?\s+ERP\b/gi,
   /\bmodule\b/gi,
   /\bnavigation\s+erp\b/gi,
+  /\bJe vous conseille de\s+/gi,
+  /\bMon conseil\s*:\s*/gi,
+  /\bPour l'instant,\s*bonjour\b/gi,
 ];
 
 function clean(value = '') {
   return String(value || '').replace(/\s+/g, ' ').trim();
-}
-
-function lowerFirst(value = '') {
-  const text = clean(value);
-  if (!text) return '';
-  return text.charAt(0).toLowerCase() + text.slice(1);
 }
 
 function ensurePeriod(value = '') {
@@ -45,51 +43,93 @@ function isRedundant(cause = '', situation = '') {
   return false;
 }
 
+function humanizeDotSeparated(text = '') {
+  const parts = String(text || '')
+    .split(/\s*·\s*/)
+    .map((part) => clean(part))
+    .filter(Boolean);
+  if (parts.length <= 1) return clean(text);
+  return parts.map((part, index) => {
+    const sentence = ensurePeriod(part);
+    return index === 0 ? sentence.charAt(0).toUpperCase() + sentence.slice(1) : sentence.charAt(0).toUpperCase() + sentence.slice(1);
+  }).join(' ');
+}
+
+function humanizeNumberedList(text = '') {
+  const raw = String(text || '').trim();
+  if (!/^\d+\.\s/m.test(raw)) return raw;
+  const items = raw
+    .split(/\n+/)
+    .map((line) => line.replace(/^\d+\.\s*/, '').trim())
+    .filter(Boolean);
+  if (items.length <= 1) return raw;
+  const lead = ensurePeriod(items[0]);
+  const rest = items.slice(1).map((item) => ensurePeriod(item.charAt(0).toLowerCase() + item.slice(1)));
+  return [lead, ...rest].join(' ');
+}
+
+function humanizeErpPhrasing(text = '') {
+  let out = String(text || '');
+  out = out.replace(/\b(\d+)\s*créance\(s\)/gi, (_, n) => `${n} créance${Number(n) > 1 ? 's' : ''}`);
+  out = out.replace(/\b(\d+)\s*commande\(s\)/gi, (_, n) => `${n} commande${Number(n) > 1 ? 's' : ''}`);
+  out = out.replace(/\bJ\+(\d+)\b/g, 'depuis $1 jour(s)');
+  out = out.replace(/\bpriorité\s+Client\b/gi, 'un client prioritaire');
+  out = out.replace(/\bC'est surtout parce que\s+/gi, '');
+  out = out.replace(/\bLecture consolidée des moteurs ERP[^.]*\.?/gi, '');
+  out = out.replace(/\bSynthèse créances, relances et opportunités\.?/gi, '');
+  return clean(out);
+}
+
 /** Supprime toute fuite technique visible par l'utilisateur. */
 export function stripTechnicalLeaks(text = '') {
   let out = String(text || '');
+  out = out.replace(/\n\n—\s*[^\n]+/g, '');
+  out = out.replace(/\n—\s*[^\n]+/g, '');
+  out = out.replace(/\s—\s*(Commercial|Horizon|Finance|Élevage|receivableFromOrders|[\w]+From\w+)\s*$/gi, '');
   for (const pattern of TECHNICAL_PATTERNS) {
     out = out.replace(pattern, '');
   }
-  out = out.replace(/\s*—\s*$/g, '');
-  out = out.replace(/\n\n—\s*[^\n]+/g, '');
   out = out.replace(/\s{2,}/g, ' ').trim();
   return out;
 }
 
 function softenSituation(situation = '') {
-  const s = ensurePeriod(stripTechnicalLeaks(situation));
+  let s = humanizeNumberedList(humanizeDotSeparated(situation));
+  s = humanizeErpPhrasing(s);
+  s = ensurePeriod(stripTechnicalLeaks(s));
   if (!s) return '';
-  if (/^(dans l ensemble|vous avez|il y a|on compte|actuellement|au total|bonjour|aucun|pas de)/i.test(s)) {
-    return s.charAt(0).toUpperCase() + s.slice(1);
-  }
+  if (/^bonjour — je suis là pour suivre votre exploitation/i.test(s)) return '';
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function softenCause(cause = '') {
-  const c = stripTechnicalLeaks(cause);
+  let c = humanizeDotSeparated(cause);
+  c = humanizeErpPhrasing(c);
+  c = stripTechnicalLeaks(c);
   if (!c) return '';
   const cleaned = ensurePeriod(c);
-  if (/^(les ventes|le stock|les créances|les creances|parmi eux|c est|il y a|aucun)/i.test(cleaned)) {
-    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-  }
-  if (/fiches|comptage|données|donnees|issus|synthèse|synthese/i.test(cleaned)) {
+  if (/fiches|comptage|données|donnees|issus|synthèse|synthese|moteurs|erp/i.test(cleaned)) {
     return '';
   }
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
 
 function softenAction(action = '') {
-  const a = stripTechnicalLeaks(action);
+  let a = humanizeErpPhrasing(action);
+  a = stripTechnicalLeaks(a);
   if (!a) return '';
   const lower = a.toLowerCase();
-  if (/ouvrez|consultez|ouvre|module|élevage →|finance →/i.test(a)) {
+  if (/ouvrez|consultez|ouvre|module|élevage →|finance →|commercial →/i.test(a)) {
     return '';
   }
-  if (/relanc|surveill|prioris|planif|accélér|acceler|reporter|vérifi|verifi|garder|œil|oeil|maintenir|sécuris|securis/i.test(lower)) {
-    return ensurePeriod(a.charAt(0).toUpperCase() + a.slice(1));
+  if (/relanc|surveill|prioris|planif|accélér|acceler|reporter|vérifi|verifi|garder|œil|oeil|maintenir|sécuris|securis|suggère/i.test(lower)) {
+    let sentence = a.charAt(0).toUpperCase() + a.slice(1);
+    if (!/^je /i.test(sentence)) {
+      sentence = `Je vous suggère de ${sentence.charAt(0).toLowerCase() + sentence.slice(1)}`;
+    }
+    return ensurePeriod(sentence);
   }
-  if (/aucune action|calme|stable|normes|contrôle|controle/i.test(lower)) {
+  if (/aucune action|calme|stable|normes|contrôle|controle|posez-moi une question/i.test(lower)) {
     return '';
   }
   return ensurePeriod(a.charAt(0).toUpperCase() + a.slice(1));

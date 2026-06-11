@@ -23,7 +23,7 @@ function InlineDraftActions({ draft, onValidate, onCancel, isValidating = false 
         className="rounded-lg px-4 py-2 text-xs font-semibold tracking-wide text-white disabled:opacity-40"
         style={{ background: HORIZON.primary }}
       >
-        {isValidating ? 'VALIDATION…' : 'VALIDER'}
+        {isValidating ? 'Confirmation…' : 'Confirmer'}
       </button>
       <button
         type="button"
@@ -32,7 +32,7 @@ function InlineDraftActions({ draft, onValidate, onCancel, isValidating = false 
         className="rounded-lg border px-4 py-2 text-xs font-semibold tracking-wide disabled:opacity-40"
         style={{ borderColor: HORIZON.border, color: HORIZON.text, background: HORIZON.surface }}
       >
-        ANNULER
+        Annuler
       </button>
     </div>
   );

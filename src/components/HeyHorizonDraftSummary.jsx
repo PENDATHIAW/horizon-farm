@@ -6,33 +6,38 @@ export default function HeyHorizonDraftSummary({ draft, variant = 'inline' }) {
   const missing = draft.missing_fields || [];
   const { recordLines, consequenceLines } = buildHumanDraftConfirmation(draft);
   const isInline = variant === 'inline';
+  const actionLabel = draft.ui?.title || draft.intent_label || 'cette action';
 
   return (
     <div
       className={isInline ? 'text-sm' : 'rounded-2xl border p-4 text-sm'}
       style={isInline ? { color: HORIZON.text } : { borderColor: HORIZON.border, background: HORIZON.surface, color: HORIZON.text }}
     >
-      <p className="text-[13px] font-medium" style={{ color: HORIZON.primary }}>
-        Vous allez enregistrer :
+      <p className="text-[15px] leading-relaxed">
+        D'accord — je prépare {actionLabel.toLowerCase().startsWith('l') ? actionLabel.toLowerCase() : `l'enregistrement : ${actionLabel.toLowerCase()}`}.
       </p>
-      <ul className="mt-2 space-y-1">
-        {recordLines.map((line) => (
-          <li key={line} className="text-sm leading-snug">• {line}</li>
-        ))}
-      </ul>
 
-      <p className="mt-4 text-[13px] font-medium" style={{ color: HORIZON.primary }}>
-        Conséquences :
+      {recordLines.length ? (
+        <ul className="mt-3 space-y-1.5">
+          {recordLines.map((line) => (
+            <li key={line} className="text-[15px] leading-snug">{line}</li>
+          ))}
+        </ul>
+      ) : null}
+
+      {consequenceLines.length ? (
+        <p className="mt-3 text-[14px] leading-relaxed" style={{ color: HORIZON.textMuted }}>
+          {consequenceLines.join(' · ')}
+        </p>
+      ) : null}
+
+      <p className="mt-3 text-[14px] leading-relaxed" style={{ color: HORIZON.textMuted }}>
+        Vérifiez ci-dessous et confirmez si tout est correct.
       </p>
-      <ul className="mt-2 space-y-1">
-        {consequenceLines.map((line) => (
-          <li key={line} className="text-sm leading-snug" style={{ color: HORIZON.textMuted }}>• {line}</li>
-        ))}
-      </ul>
 
       {missing.length ? (
-        <p className="mt-3 text-xs leading-relaxed" style={{ color: HORIZON.textMuted }}>
-          Il manque encore : {missing.join(', ')}
+        <p className="mt-2 text-xs leading-relaxed" style={{ color: HORIZON.textMuted }}>
+          Il me manque encore : {missing.join(', ')}
         </p>
       ) : null}
     </div>

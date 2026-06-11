@@ -20,7 +20,7 @@ test.describe('Assistant ERP — Horizon Chat Native V7', () => {
     const textarea = page.getByPlaceholder(/Parlez à votre ferme/i);
     await textarea.fill('Créer une vente de 5 poulets');
     await page.getByRole('button', { name: /Envoyer/i }).click();
-    await expect(page.getByText(/Vous allez enregistrer|VALIDER|vente/i).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/je prépare|Confirmer|vente/i).first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('comprend une question stock en langage naturel', async ({ page }) => {

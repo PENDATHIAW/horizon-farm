@@ -3,6 +3,8 @@
  * Vérités canoniques : KPI via buildConsolidatedCommercialKpis, créances via receivableFromOrders.
  */
 
+import { formatConversationalHorizonAnswer } from './assistantResponseFormatter.js';
+
 export const HEY_HORIZON_COMMERCIAL_SYSTEM_PROMPT = `
 Tu es Hey Horizon Commercial, l'assistant commercial officiel de l'ERP Horizon Farm.
 Ton rôle est d'aider le dirigeant à vendre, encaisser et relancer efficacement.
@@ -50,7 +52,8 @@ export function buildCommercialAnswerPayload({
   insufficientData = false,
   extra = {},
 } = {}) {
-  const summary = formatCommercialSCA({ situation, cause, action, sources });
+  const displaySources = [];
+  const summary = formatConversationalHorizonAnswer({ situation, cause, action });
   return {
     type,
     title,
@@ -58,7 +61,7 @@ export function buildCommercialAnswerPayload({
     situation,
     cause,
     action,
-    sources,
+    sources: displaySources,
     rows,
     route,
     tab,

@@ -38,7 +38,7 @@ const DECLARER = [
 ];
 
 const SALUTATION = [
-  { intent: 'greeting', patterns: [/^bonjour\b/, /^salut\b/, /^bonsoir\b/, /^coucou\b/, /^hello\b/, /ca va\b/, /ça va\b/, /comment va/, /comment allez/, /comment va la ferme/], label: 'Salutation' },
+  { intent: 'greeting', patterns: [/^bonjour\b/, /^salut\b/, /^bonsoir\b/, /^coucou\b/, /^hello\b/, /^ca va\?*$/, /^ça va\?*$/], label: 'Salutation' },
 ];
 
 const ELEVAGE = [
@@ -86,6 +86,7 @@ const COMMERCIAL = [
   { intent: 'top_client', patterns: [/meilleur client/, /top client/, /client.*important/, /client.*strategique/], label: 'Meilleur client' },
   { intent: 'top_product', patterns: [/meilleur produit/, /top produit/, /produit.*vedette/, /vend.*mieux/, /vend le mieux/], label: 'Meilleur produit' },
   { intent: 'receivables', patterns: [/me doivent/, /doivent de l.?argent/, /creances?/, /créances?/, /impaye/, /impayé/, /qui me doit/, /clients?.*doit/], label: 'Créances clients' },
+  { intent: 'receivable_detail', patterns: [/^quel client/, /^quelle cliente/, /^quel(le)?s? clients?/, /^lequel/, /^laquelle/], label: 'Détail créance' },
   { intent: 'relances', patterns: [/relancer/, /clients? a relancer/, /clients? à relancer/, /qui relancer/], label: 'Clients à relancer' },
   { intent: 'commercial_summary', patterns: [/resume commercial/, /résumé commercial/, /situation commercial/, /ma situation commercial/], label: 'Situation commerciale' },
   { intent: 'ventes_today', patterns: [/ventes aujourd/, /vendu aujourd/, /ventes du jour/], label: 'Ventes du jour' },
@@ -100,14 +101,14 @@ const FINANCE = [
 ];
 
 const OBJECTIFS = [
-  { intent: 'progress_status', patterns: [/^objectifs?\?*$/, /^mes objectifs\b/, /ou j.?en suis/, /où j.?en suis/, /atteinte mensuelle/, /atteinte annuelle/, /objectif du mois/, /objectif mensuel/, /objectif de l.?annee/, /objectif de l.?année/, /avancement objectif/], label: 'Avancement objectifs' },
+  { intent: 'progress_status', patterns: [/^objectifs?\?*$/, /^mes objectifs\b/, /ou j.?en suis/, /où j.?en suis/, /atteinte mensuelle/, /atteinte annuelle/, /objectif du mois/, /objectif mensuel/, /objectif de l.?annee/, /objectif de l.?année/, /avancement objectif/, /objectif.*atteint/], label: 'Avancement objectifs' },
   { intent: 'month_goal', patterns: [/objectif.*mois/, /cible.*mois/], label: 'Objectif mois' },
   { intent: 'annual_goal', patterns: [/objectif.*annuel/, /objectif.*annee/, /objectif.*année/], label: 'Objectif année' },
   { intent: 'annual_outlook', patterns: [/vais.?je atteindre/, /atteindre mon objectif annuel/, /objectif annuel atteignable/, /finir l.?annee/], label: 'Projection annuelle' },
 ];
 
 const DECISION = [
-  { intent: 'today_priorities', patterns: [/que faire aujourd/, /que dois.?je faire/, /priorites/, /priorités/, /urgences/, /aujourd.?hui\b.*faire/], label: 'Priorités du jour' },
+  { intent: 'today_priorities', patterns: [/que faire aujourd/, /que dois.?je faire/, /quelles priorit/, /quelle priorit/, /^priorites\?*$/, /^priorités\?*$/, /urgences/, /aujourd.?hui\b.*faire/], label: 'Priorités du jour' },
   { intent: 'sell_today', patterns: [/^quoi vendre\b/, /^que vendre\b/, /que vendre cette/, /vendre aujourd/, /que puis.?je.*vendre/, /puis.?je.*vendre/, /leur vendre/, /vendre pour ameliorer/, /vendre pour améliorer/], label: 'Que vendre' },
   { intent: 'follow_up', patterns: [/qui relancer/, /relancer.*client/, /relances? du jour/], label: 'Relances' },
   { intent: 'documents_summary', patterns: [/^rapports\?*$/, /^documents\?*$/, /quels documents/, /documents generes/, /documents générés/, /mes rapports/], label: 'Documents' },

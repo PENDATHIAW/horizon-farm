@@ -141,6 +141,14 @@ export function resolveFollowUp(query = '', context = createConversationContext(
     };
   }
 
+  if (/^quel(le)?s? client/.test(q) && ['receivables', 'relances', 'creances', 'receivable_detail', 'follow_up'].includes(context?.lastIntent)) {
+    return {
+      expandedQuery: 'qui me doit le plus',
+      forcedIntent: 'receivable_detail',
+      forcedFamily: 'COMMERCIAL',
+    };
+  }
+
   if (!context?.lastIntent) return null;
   if (!isFollowUp(q) && q.split(/\s+/).length > 4) return null;
 

@@ -213,19 +213,26 @@ export function buildCommercialPilotageAnswer(type = 'summary', dataMap = {}) {
       .slice(0, 8);
     const total = rows.reduce((s, r) => s + r.rest, 0);
     const worst = rows[0];
+    const others = rows.slice(1, 3).map((r) => r.name).filter(Boolean);
     return buildCommercialAnswerPayload({
       type: 'commercial_receivables',
       title: 'Créances à relancer',
       situation: rows.length
-        ? `${rows.length} créance(s) · ${fmtCurrency(total)} · priorité ${worst?.name} (${fmtCurrency(worst?.rest)}, J+${worst?.delayDays})`
-        : 'Aucune créance ouverte',
-      cause: worst?.delayDays > 7 ? 'Retards de paiement clients' : 'Échéances à venir',
-      action: worst ? `Relancer ${worst.name} — commande ${worst.id}` : 'Continuer la collecte',
-      sources: [SRC.receivable],
+        ? `Vous avez ${rows.length} client${rows.length > 1 ? 's' : ''} qui vous doivent encore ${fmtCurrency(total)} au total.`
+        : 'Aucun client ne vous doit d\'argent pour le moment.',
+      cause: worst
+        ? `Le plus urgent est ${worst.name}, avec ${fmtCurrency(worst.rest)} sur la commande ${worst.id}${worst.delayDays > 0 ? `, en retard de ${worst.delayDays} jour${worst.delayDays > 1 ? 's' : ''}` : ''}.`
+        : '',
+      action: worst
+        ? (others.length
+          ? `Je commencerais par relancer ${worst.name}${others.length ? `, puis ${others.join(' et ')}` : ''}.`
+          : `Je vous suggère de relancer ${worst.name} aujourd'hui.`)
+        : '',
+      sources: [],
       rows: rows.map((r) => ({
         label: r.name,
         value: fmtCurrency(r.rest),
-        detail: `J+${r.delayDays} · ${r.id}`,
+        detail: `${r.id}`,
       })),
       route: 'commercial',
       tab: 'Relances',
@@ -263,13 +270,17 @@ export function buildCommercialPilotageAnswer(type = 'summary', dataMap = {}) {
 
   if (type === 'today_actions') {
     const actions = buildTodayActions(props, kpis, relanceRows);
+    const lead = actions[0] || 'Publier vos disponibilités et contacter un client régulier';
+    const follow = actions.slice(1);
     return buildCommercialAnswerPayload({
       type: 'commercial_today',
-      title: 'Actions commerciales du jour',
-      situation: actions.map((a, i) => `${i + 1}. ${a}`).join('\n'),
-      cause: 'Synthèse créances, relances et opportunités',
-      action: actions[0] || 'Ouvrir Commercial → Résumé',
-      sources: [SRC.receivable, 'buildAutoCommercialOpportunities', 'buildCommercialRelanceRows'],
+      title: 'Priorités du jour',
+      situation: `Aujourd'hui, je commencerais par ${lead.charAt(0).toLowerCase() + lead.slice(1)}.`,
+      cause: follow.length
+        ? `Ensuite : ${follow.map((item) => item.charAt(0).toLowerCase() + item.slice(1)).join(', puis ')}.`
+        : '',
+      action: '',
+      sources: [],
       rows: actions.map((a, i) => ({ label: `Action ${i + 1}`, value: a })),
       route: 'commercial',
       tab: 'Résumé',
