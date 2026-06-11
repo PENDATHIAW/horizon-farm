@@ -49,9 +49,9 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
       handled: true,
       navigation,
       assistantText: formatCompactHorizonAnswer({
-        situation: `J'ouvre ${navigation.label}.`,
-        cause: 'Vous avez demandé à accéder à cet espace.',
-        action: 'Consultez les données puis revenez à l\'assistant si besoin.',
+        situation: `J'ouvre ${navigation.label} pour vous.`,
+        cause: 'Vous m\'avez demandé d\'y accéder.',
+        action: 'Parcourez les données tranquillement, puis revenez me parler si besoin.',
         sources: ['Navigation ERP'],
         confidence: 96,
       }),

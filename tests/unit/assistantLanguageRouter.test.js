@@ -19,7 +19,7 @@ const emptyDataMap = {
 test('handles greeting in natural language', () => {
   const result = routeNaturalLanguageQuery('bonjour', { dataMap: emptyDataMap });
   assert.equal(result.handled, true);
-  assert.match(result.assistantText || '', /Situation/i);
+  assert.match(result.assistantText || '', /bonjour|exploitation|ferme/i);
 });
 
 test('handles stock question without commands', () => {

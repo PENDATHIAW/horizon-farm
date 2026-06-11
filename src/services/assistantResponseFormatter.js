@@ -1,3 +1,5 @@
+import { toConversationalAnswer } from './assistantConversationalTone.js';
+
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 export function shortenAssistantAnswer(answer = '', maxLength = 220) {
@@ -34,19 +36,32 @@ export function formatHorizonAnswer({
   return lines.join('\n').trim();
 }
 
-/** Réponse agricole compacte — maximum 5 lignes (SCA + source). */
-export function formatCompactHorizonAnswer(answer = {}) {
+/** Réponse conversationnelle — prose naturelle à partir du SCA interne. */
+export function formatConversationalHorizonAnswer(answer = {}) {
   if (!answer) return '';
-  if (answer.summary && typeof answer.summary === 'string' && /Situation/i.test(answer.summary)) {
-    return compactStructuredText(answer.summary);
-  }
-  const block = formatHorizonAnswer({
+  if (answer.conversationalText) return answer.conversationalText;
+  if (answer.displayText) return answer.displayText;
+  const conversational = toConversationalAnswer({
     situation: answer.situation,
     cause: answer.cause,
     action: answer.action,
     sources: answer.sources || [],
+    title: answer.title,
   });
-  return compactStructuredText(block);
+  return conversational.displayText || conversational.prose;
+}
+
+/** Réponse agricole compacte — ton conversationnel (plus de labels Situation/Cause). */
+export function formatCompactHorizonAnswer(answer = {}) {
+  if (!answer) return '';
+  if (answer.summary && typeof answer.summary === 'string' && !/Situation\s*:/i.test(answer.summary)) {
+    return String(answer.summary).trim();
+  }
+  if (answer.summary && /Situation/i.test(answer.summary)) {
+    const parsed = parseHorizonStructuredText(answer.summary);
+    if (parsed) return formatConversationalHorizonAnswer(parsed);
+  }
+  return formatConversationalHorizonAnswer(answer);
 }
 
 function compactStructuredText(text = '') {
@@ -126,33 +141,30 @@ export function parseHorizonStructuredText(text = '') {
  */
 export function formatStrategicHorizonAnswer(answer = {}) {
   if (!answer) return '';
-  if (answer.situation && answer.cause && answer.action) {
-    return formatHorizonAnswer({
-      situation: answer.situation,
-      cause: answer.cause,
-      action: answer.action,
-      sources: answer.sources || [],
-    });
+  if (answer.situation || answer.cause || answer.action) {
+    return formatConversationalHorizonAnswer(answer);
   }
   if (answer.summary && /Situation\s*:/i.test(answer.summary)) {
+    const parsed = parseHorizonStructuredText(answer.summary);
+    if (parsed) return formatConversationalHorizonAnswer(parsed);
     return answer.summary;
   }
-  return shortenAssistantAnswer(answer.summary || answer.assistantText || '', 600);
+  return shortenAssistantAnswer(answer.summary || answer.assistantText || answer.conversationalText || '', 600);
 }
 
 export function formatDraftAssistantText(draft = {}) {
-  const action = draft.intent_label || draft.ui?.title || draft.intent || 'Action détectée';
+  const action = draft.intent_label || draft.ui?.title || draft.intent || 'cette action';
   const fields = draft.draft_fields || {};
   const details = [
     fields.product_name || fields.culture_name,
     fields.quantity ? `${fields.quantity} ${fields.unit || ''}`.trim() : null,
     fields.client_name || fields.supplier_name,
     fields.payment_amount ? `${fields.payment_amount} FCFA` : null,
-  ].filter(Boolean).join(' · ');
-  return formatHorizonAnswer({
-    situation: `J'ai préparé : ${action}${details ? ` (${details})` : ''}.`,
+  ].filter(Boolean).join(', ');
+  return formatConversationalHorizonAnswer({
+    situation: `D'accord — j'ai préparé ${action}${details ? ` (${details})` : ''}.`,
     cause: 'C\'est ce que j\'ai compris de votre phrase.',
-    action: 'Vérifiez ci-dessous puis validez pour enregistrer.',
+    action: 'Jetez un œil au récapitulatif ci-dessous, puis validez si tout est bon.',
     sources: ['Carnet Horizon'],
   });
 }

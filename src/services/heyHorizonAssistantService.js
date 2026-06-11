@@ -283,7 +283,7 @@ export function updateHeyHorizonDraftField(currentDraft, key, value) {
 export function processHeyHorizonCommand(rawText = '', { dataMap = {}, currentDraft = null, allowWeakDraft = false, conversationContext = null } = {}) {
   const cleaned = normalizeHeyHorizonText(rawText);
   if (!cleaned) {
-    return { kind: 'empty', assistantText: 'Je suis prêt. Dis-moi l’action à faire : vaccin, vente, stock, œufs, tâche…' };
+    return { kind: 'empty', assistantText: 'Je suis là. Dites-moi ce qui se passe sur la ferme — une vente, un stock, vos animaux, la trésorerie…' };
   }
 
   const naturalLanguage = routeNaturalLanguageQuery(rawText, { dataMap, conversationContext });
@@ -429,7 +429,7 @@ export function processHeyHorizonCommand(rawText = '', { dataMap = {}, currentDr
     ? updateHorizonDraft(currentDraft, rawText, dataMap)
     : interpretHorizonCommand(rawText, dataMap);
   if (nextDraft?.status === 'wake_only') {
-    return { kind: 'empty', assistantText: 'Je suis prêt. Quelle action veux-tu faire ?' };
+    return { kind: 'empty', assistantText: 'Je vous écoute. Qu\'est-ce qu\'on fait sur la ferme ?' };
   }
   if (nextDraft?.status === 'unsupported') {
     const fallback = interpretVoiceCommand(rawText, dataMap);

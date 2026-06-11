@@ -137,14 +137,19 @@ export function buildAssistantWelcomeMessage(displayName = 'Exploitant', props =
   }
 
   const firstName = String(displayName || 'Exploitant').trim().split(/\s+/)[0];
-  const lines = [
-    `Bonjour ${firstName}.`,
-    '',
-    'Aujourd\'hui :',
-    ...bullets.slice(0, 3).map((item) => `• ${item.charAt(0).toUpperCase()}${item.slice(1)}`),
-    '',
-    'Que souhaitez-vous faire ?',
-  ];
+  const intro = bullets.length === 1 && bullets[0].includes('calme')
+    ? `Bonjour ${firstName} — exploitation plutôt calme aujourd'hui.`
+    : `Bonjour ${firstName}. Voici ce qui retient mon attention aujourd'hui :`;
+
+  const lines = bullets[0]?.includes('calme') && bullets.length === 1
+    ? [intro, '', 'De quoi voulez-vous qu\'on parle ?']
+    : [
+      intro,
+      '',
+      ...bullets.slice(0, 3).map((item) => `• ${item.charAt(0).toUpperCase()}${item.slice(1)}`),
+      '',
+      'De quoi voulez-vous qu\'on parle ?',
+    ];
 
   return {
     id: 'welcome',

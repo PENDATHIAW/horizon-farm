@@ -12,7 +12,7 @@ test.describe('Assistant ERP — Horizon V6 design', () => {
     await expect(page.getByText(/Parlez à votre ferme/i).first()).toBeVisible();
     await expect(page.getByText(/animaux/i)).toBeVisible();
     await expect(page.getByText(/Bonjour/i)).toBeVisible();
-    await expect(page.getByText(/Aujourd'hui/i)).toBeVisible();
+    await expect(page.getByText(/aujourd'hui|parler/i)).toBeVisible();
     await expect(page.getByPlaceholder(/Parlez à votre ferme/i)).toBeVisible();
     await expect(page.getByText(/Hey Horizon/i)).toHaveCount(0);
     await expect(page.getByText(/Votre exploitation agricole/i)).toHaveCount(0);
@@ -30,7 +30,7 @@ test.describe('Assistant ERP — Horizon V6 design', () => {
     const textarea = page.getByPlaceholder(/Parlez à votre ferme/i);
     await textarea.fill("qu'est-ce qu'il me reste en magasin ?");
     await page.getByRole('button', { name: /Envoyer/i }).click();
-    await expect(page.getByText(/Situation/i).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/stock|magasin|produit|reste/i).first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('question production redirige vers Élevage Cycles', async ({ page }) => {

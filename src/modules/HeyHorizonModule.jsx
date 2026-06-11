@@ -105,7 +105,7 @@ function ThinkingBubble() {
           color: HORIZON.textMuted,
         }}
       >
-        Horizon réfléchit…
+        Un instant…
       </div>
     </div>
   );
@@ -302,7 +302,7 @@ export default function HeyHorizonModule({
 
       const result = await runCommand(query, { autoOpenForm: false, navigateOnDraft: false });
       if (!result) {
-        appendMessage('assistant', 'Je n\'ai pas pu traiter votre demande. Reformulez en une phrase simple.');
+        appendMessage('assistant', 'Je n\'ai pas bien saisi. Reformulez en une phrase simple — par exemple « mes ventes » ou « combien de bovins ».');
         return;
       }
       if (result.kind === 'redirect_pilotage') {
@@ -344,7 +344,7 @@ export default function HeyHorizonModule({
   const handleValidate = async () => {
     try {
       await validateDraft();
-      appendMessage('assistant', 'C\'est enregistré dans le carnet de la ferme.');
+      appendMessage('assistant', 'C\'est noté — tout est enregistré dans le carnet de la ferme.');
       cancelDraft();
     } catch {
       // toast handled in hook
@@ -353,7 +353,7 @@ export default function HeyHorizonModule({
 
   const handleCancel = () => {
     cancelDraft();
-    appendMessage('assistant', 'D\'accord, rien n\'a été enregistré. Que souhaitez-vous faire ?');
+    appendMessage('assistant', 'D\'accord, je n\'ai rien enregistré. On continue — que voulez-vous faire ?');
   };
 
   const busy = voiceBusy || isProcessing;

@@ -162,9 +162,9 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}) {
     case 'greeting':
       return {
         title: 'Bonjour',
-        situation: 'Horizon est prêt à suivre votre exploitation.',
-        cause: 'Les données ERP sont chargées.',
-        action: 'Posez une question ou décrivez une action terrain.',
+        situation: 'Bonjour — je suis là pour suivre votre exploitation avec vous.',
+        cause: 'Vos données de ferme sont à jour.',
+        action: 'Posez-moi une question ou décrivez ce qui vient de se passer sur le terrain.',
         sources: ['Carnet Horizon'],
         confidence: 99,
       };
@@ -184,13 +184,15 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}) {
       const treated = countUnderTreatment(props.animaux, props.sante, 'bovin');
       return {
         title: 'Bovins',
-        situation: `${fmt(bovins)} bovins.`,
+        situation: bovins > 0
+          ? `Vous avez ${fmt(bovins)} bovins sur l'exploitation.`
+          : 'Je ne vois aucun bovin actif enregistré pour le moment.',
         cause: treated.length
-          ? `${fmt(treated.length)} sont actuellement sous traitement.`
-          : 'Comptage des fiches animaux bovins actifs.',
+          ? `${fmt(treated.length)} d'entre eux suivent encore un traitement.`
+          : (bovins > 0 ? 'Le cheptel bovin est suivi dans vos fiches animaux.' : 'Les fiches animaux ne remontent pas encore de bovins actifs.'),
         action: treated.length
-          ? 'Surveillez les animaux sous traitement cette semaine.'
-          : (bovins > 0 ? 'Consultez Élevage pour le détail par animal.' : 'Aucun bovin actif enregistré.'),
+          ? 'Gardez un œil sur les animaux sous traitement cette semaine.'
+          : (bovins > 0 ? 'Si un mouvement vient d\'avoir lieu, pensez à mettre à jour les fiches.' : 'Commencez par enregistrer vos bovins dans Élevage.'),
         sources: ['computeFarmHeadcount', 'animaux', 'sante'],
         confidence: 92,
       };

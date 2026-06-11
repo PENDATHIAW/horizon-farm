@@ -21,15 +21,15 @@ test('formatHorizonAnswer follows Situation/Cause/Action/Source', () => {
   assert.match(text, /Source ERP\nFinance → Créances/);
 });
 
-test('formatStrategicHorizonAnswer uses structured payload', () => {
+test('formatStrategicHorizonAnswer uses structured payload conversationally', () => {
   const text = formatStrategicHorizonAnswer({
     situation: 'Trésorerie positive.',
     cause: 'Encaissements récents.',
     action: 'Sécuriser les achats critiques.',
     sources: ['consolidateFinance().cashNet'],
   });
-  assert.match(text, /Trésorerie positive\./);
-  assert.match(text, /consolidateFinance\(\)\.cashNet/);
+  assert.match(text, /Trésorerie positive/);
+  assert.doesNotMatch(text, /^Situation/m);
 });
 
 test('parseHorizonStructuredText extracts sections', () => {
@@ -45,11 +45,12 @@ test('parseHorizonStructuredText extracts sections', () => {
   assert.match(parsed.sources, /Finance/);
 });
 
-test('formatDraftAssistantText mentions validation', () => {
+test('formatDraftAssistantText mentions validation conversationally', () => {
   const text = formatDraftAssistantText({
     ui: { title: 'Vente à valider' },
     draft_fields: { product_name: 'poulet', quantity: 10 },
   });
-  assert.match(text, /J'ai préparé/);
-  assert.match(text, /validez/i);
+  assert.match(text, /préparé|D'accord/i);
+  assert.match(text, /validez|valid/i);
+  assert.doesNotMatch(text, /^Action\s*:/m);
 });

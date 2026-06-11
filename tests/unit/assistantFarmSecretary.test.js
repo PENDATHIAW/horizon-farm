@@ -29,7 +29,7 @@ test('buildAssistantFarmHeader returns farm context lines', () => {
 test('buildAssistantWelcomeMessage greets with today bullets', () => {
   const welcome = buildAssistantWelcomeMessage('Penda', baseProps);
   assert.match(welcome.text, /Bonjour Penda/);
-  assert.match(welcome.text, /Aujourd'hui/);
-  assert.match(welcome.text, /Que souhaitez-vous faire/);
+  assert.match(welcome.text, /aujourd'hui|calme/i);
+  assert.match(welcome.text, /parle|faire/i);
   assert.equal(welcome.isWelcome, true);
 });
