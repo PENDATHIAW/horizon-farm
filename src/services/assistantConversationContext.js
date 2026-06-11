@@ -1,6 +1,6 @@
 /**
- * ASSISTANT_CONVERSATION_CONTEXT — mémoire courte pour suites conversationnelles.
- * Ex. « combien de poulets ? » puis « et des bovins ? » ou « lesquels sont sous traitement ? »
+ * ASSISTANT_CONVERSATION_CONTEXT — mémoire métier courte (V5).
+ * Suites : espèces, traitements, finances, ventes, parcelles, clients, stocks.
  */
 
 import { normalizeAgriculturalText } from './assistantUniversalIntents.js';
@@ -22,28 +22,48 @@ const FOLLOW_UP_MARKERS = [
 
 const SPECIES_ALIASES = Object.freeze({
   bovins: ['bovin', 'bovins', 'vache', 'vaches', 'betail bovin'],
-  poulets: ['poulet', 'poulets', 'avicole', 'chair', 'pondeuse', 'pondeuses'],
+  poulets: ['poulet', 'poulets', 'avicole', 'chair'],
+  pondeuses: ['pondeuse', 'pondeuses'],
   ovins: ['ovin', 'ovins', 'mouton', 'moutons'],
   caprins: ['caprin', 'caprins', 'chevre', 'chèvre', 'chevres', 'chèvres'],
-  animaux: ['animal', 'animaux', 'effectif', 'cheptel'],
+  animaux: ['animal', 'animaux', 'effectif', 'cheptel', 'tetes', 'têtes'],
 });
 
 const INTENT_BY_SPECIES = Object.freeze({
   bovins: 'headcount_bovins',
   poulets: 'headcount_poulets',
+  pondeuses: 'headcount_pondeuses',
   ovins: 'headcount_ovins',
   caprins: 'headcount_caprins',
   animaux: 'headcount_total',
 });
 
-const DOMAIN_FOLLOW_UPS = Object.freeze({
-  elevage: {
-    markers: [/et des /, /et les /, /combien/],
-    defaultFamily: 'ELEVAGE',
+const DOMAIN_INTENT_SHORTCUTS = Object.freeze({
+  finance: {
+    dettes: 'dettes',
+    creances: 'creances',
+    tresorerie: 'treasury',
+    rentable: 'resultat',
+  },
+  commercial: {
+    client: 'top_client',
+    produit: 'top_product',
+    ventes: 'ventes_today',
+    relance: 'relances',
   },
   stock: {
-    markers: [/et l.?aliment/, /et le stock/, /et les produits/],
-    defaultFamily: 'STOCK',
+    aliment: 'stock_aliment',
+    rupture: 'stock_ruptures',
+    reste: 'stock_remain',
+  },
+  cultures: {
+    parcelle: 'parcelles_status',
+    rendement: 'rendement',
+  },
+  elevage: {
+    traitement: 'animals_under_treatment',
+    malade: 'lots_sick',
+    mortalite: 'lot_mortality',
   },
 });
 
@@ -58,6 +78,16 @@ function detectSpecies(text) {
 function isFollowUp(text) {
   const q = normalizeAgriculturalText(text);
   return FOLLOW_UP_MARKERS.some((marker) => marker.test(q));
+}
+
+function matchDomainShortcut(domain, text) {
+  const shortcuts = DOMAIN_INTENT_SHORTCUTS[domain];
+  if (!shortcuts) return null;
+  const q = normalizeAgriculturalText(text);
+  for (const [needle, intent] of Object.entries(shortcuts)) {
+    if (q.includes(needle)) return intent;
+  }
+  return null;
 }
 
 /**
@@ -75,19 +105,36 @@ export function createConversationContext() {
 }
 
 /**
- * Résout une suite conversationnelle en enrichissant la requête ou en forçant l'intention.
+ * Résout une suite conversationnelle.
  * @returns {{ expandedQuery: string, forcedIntent?: string, forcedFamily?: string } | null}
  */
 export function resolveFollowUp(query = '', context = createConversationContext()) {
   const q = normalizeAgriculturalText(query);
   if (!q || !context?.lastIntent) return null;
-  if (!isFollowUp(q)) return null;
+  if (!isFollowUp(q) && q.split(/\s+/).length > 4) return null;
 
   const species = detectSpecies(q);
   if (species && INTENT_BY_SPECIES[species]) {
+    const treatment = /sous traitement|en traitement/.test(q);
+    if (treatment) {
+      return {
+        expandedQuery: `quels ${species} sont sous traitement`,
+        forcedIntent: 'animals_under_treatment',
+        forcedFamily: 'ELEVAGE',
+      };
+    }
     return {
-      expandedQuery: query,
+      expandedQuery: `combien de ${species}`,
       forcedIntent: INTENT_BY_SPECIES[species],
+      forcedFamily: 'ELEVAGE',
+    };
+  }
+
+  if (/^et sous traitement|^sous traitement|^en traitement/.test(q)) {
+    const label = context.lastSpecies || 'animaux';
+    return {
+      expandedQuery: `quels ${label} sont sous traitement`,
+      forcedIntent: 'animals_under_treatment',
       forcedFamily: 'ELEVAGE',
     };
   }
@@ -109,21 +156,26 @@ export function resolveFollowUp(query = '', context = createConversationContext(
     }
   }
 
-  if (/^et\b/.test(q) && context.lastFamily === 'ELEVAGE' && context.lastSpecies) {
-    const nextSpecies = Object.keys(SPECIES_ALIASES).find((key) => key !== context.lastSpecies && SPECIES_ALIASES[key].some((a) => q.includes(a)));
-    if (nextSpecies) {
+  if (context.lastDomain) {
+    const shortcut = matchDomainShortcut(context.lastDomain, q);
+    if (shortcut) {
+      const familyMap = {
+        finance: 'FINANCE',
+        commercial: 'COMMERCIAL',
+        stock: 'STOCK',
+        cultures: 'CULTURES',
+        elevage: 'ELEVAGE',
+      };
       return {
-        expandedQuery: query,
-        forcedIntent: INTENT_BY_SPECIES[nextSpecies],
-        forcedFamily: 'ELEVAGE',
+        expandedQuery: `${context.lastQuery} ${query}`,
+        forcedIntent: shortcut,
+        forcedFamily: familyMap[context.lastDomain] || context.lastFamily,
       };
     }
   }
 
-  for (const [domain, config] of Object.entries(DOMAIN_FOLLOW_UPS)) {
-    if (context.lastDomain === domain && config.markers.some((m) => m.test(q))) {
-      return { expandedQuery: `${context.lastQuery} ${query}`, forcedFamily: config.defaultFamily };
-    }
+  if (/^et\b/.test(q) && context.lastIntent) {
+    return { expandedQuery: `${context.lastQuery} ${query}` };
   }
 
   return { expandedQuery: `${context.lastQuery} ${query}` };
@@ -143,14 +195,16 @@ export function updateConversationContext(context, { query = '', intent = null, 
     next.lastSpecies = intent.replace('headcount_', '');
   }
 
-  if (family === 'ELEVAGE' || intent?.includes('headcount') || intent?.includes('elevage')) {
+  if (family === 'ELEVAGE' || intent?.includes('headcount') || intent?.includes('elevage') || intent?.includes('lot')) {
     next.lastDomain = 'elevage';
   } else if (family === 'STOCK' || intent?.includes('stock')) {
     next.lastDomain = 'stock';
-  } else if (family === 'FINANCE' || intent?.includes('treasury')) {
+  } else if (family === 'FINANCE' || intent?.includes('treasury') || intent === 'dettes' || intent === 'creances' || intent === 'resultat') {
     next.lastDomain = 'finance';
-  } else if (family === 'COMMERCIAL') {
+  } else if (family === 'COMMERCIAL' || intent?.includes('client') || intent?.includes('ventes') || intent === 'receivables') {
     next.lastDomain = 'commercial';
+  } else if (family === 'CULTURES' || intent?.includes('parcel') || intent?.includes('culture') || intent?.includes('rendement')) {
+    next.lastDomain = 'cultures';
   }
 
   return next;

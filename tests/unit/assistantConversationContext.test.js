@@ -28,6 +28,17 @@ test('resolves treatment follow-up for bovins context', () => {
   assert.equal(follow?.forcedIntent, 'animals_under_treatment');
 });
 
+test('resolves et sous traitement after poulets', () => {
+  let ctx = createConversationContext();
+  ctx = updateConversationContext(ctx, {
+    query: 'combien de poulets ?',
+    intent: 'headcount_poulets',
+    family: 'ELEVAGE',
+  });
+  const follow = resolveFollowUp('et sous traitement ?', ctx);
+  assert.equal(follow?.forcedIntent, 'animals_under_treatment');
+});
+
 test('ignores non follow-up without context', () => {
   const ctx = createConversationContext();
   assert.equal(resolveFollowUp('combien de bovins ?', ctx), null);

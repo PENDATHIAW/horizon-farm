@@ -10,6 +10,7 @@ import {
   buildAssistantWelcomeMessage,
 } from '../services/assistantFarmSecretary.js';
 import { formatStrategicHorizonAnswer, parseHorizonStructuredText } from '../services/assistantResponseFormatter.js';
+import { normalizeAgriculturalText } from '../services/assistantUniversalIntents.js';
 import { processContextualVoiceInput } from '../services/aiGateway/contextualVoiceService.js';
 import { enrichAssistantDataMap } from '../utils/assistantDataMap.js';
 import { HORIZON } from './assistant/horizonDesignTokens.js';
@@ -71,6 +72,32 @@ function ChatDraftBlock({ draft, isValidating, onValidate, onCancel }) {
           onValidate={onValidate}
           onCancel={onCancel}
         />
+      </div>
+    </div>
+  );
+}
+
+function isBusinessQuestion(text = '') {
+  const q = normalizeAgriculturalText(text);
+  const trimmed = String(text || '').trim();
+  if (trimmed.endsWith('?')) return true;
+  return /^(combien|quel|quelle|quels|quelles|qui|comment|est ce|ou |vais je|que dois|ai je|montre|donne)/.test(q)
+    || /comment va/.test(q)
+    || /(me doit|doivent|reste|stock|tresorerie|objectif|rentable|ferme|magasin|aliment)/.test(q);
+}
+
+function ThinkingBubble() {
+  return (
+    <div className="flex justify-start">
+      <div
+        className="rounded-2xl px-4 py-3 text-sm"
+        style={{
+          background: HORIZON.assistantBubble,
+          border: `1px solid ${HORIZON.border}`,
+          color: HORIZON.textMuted,
+        }}
+      >
+        Horizon réfléchit…
       </div>
     </div>
   );
@@ -186,10 +213,15 @@ export default function HeyHorizonModule({
     [displayName, secretaryProps],
   );
 
-  const [messages, setMessages] = useState([welcomeMessage]);
+  const [messages, setMessages] = useState([]);
 
   useEffect(() => {
-    setMessages([welcomeMessage]);
+    setMessages((prev) => {
+      const conversation = prev.filter((message) => !message.isWelcome);
+      if (!conversation.length && !prev.length) return [welcomeMessage];
+      if (prev.some((message) => message.isWelcome)) return [welcomeMessage, ...conversation];
+      return [welcomeMessage, ...prev];
+    });
   }, [welcomeMessage]);
 
   const {
@@ -221,51 +253,62 @@ export default function HeyHorizonModule({
     appendMessage('user', query);
     setVoiceBusy(true);
     try {
-      const parsed = await processContextualVoiceInput({
-        phrase: query,
-        dataMap: enrichedDataMap,
-        handlers: { onCreateBusinessEvent },
-      });
-      if (parsed.drafts?.length) {
-        const primary = parsed.primaryDraft;
-        if (primary?.draft?.legacy_hey) {
-          loadDraft(primary.draft.legacy_hey);
-        } else if (primary) {
-          loadDraft({
-            status: primary.status,
-            intent: primary.intent,
-            confidence: primary.confidence,
-            raw_input: query,
-            primary_module: primary.draft?.primary_module,
-            form_type: primary.draft?.form_type,
-            draft_fields: primary.draft?.fields || primary.draft?.draft_fields || {},
-            missing_fields: primary.missing_fields || [],
-            warnings: primary.warnings || [],
-            requires_validation: true,
-            impacted_modules: primary.draft?.impacted_modules || [],
-            ui: primary.draft?.ui,
-          });
+      if (!isBusinessQuestion(query)) {
+        const parsed = await processContextualVoiceInput({
+          phrase: query,
+          dataMap: enrichedDataMap,
+          handlers: { onCreateBusinessEvent },
+        });
+        if (parsed.drafts?.length) {
+          const primary = parsed.primaryDraft;
+          if (primary?.draft?.legacy_hey) {
+            loadDraft(primary.draft.legacy_hey);
+          } else if (primary) {
+            loadDraft({
+              status: primary.status,
+              intent: primary.intent,
+              confidence: primary.confidence,
+              raw_input: query,
+              primary_module: primary.draft?.primary_module,
+              form_type: primary.draft?.form_type,
+              draft_fields: primary.draft?.fields || primary.draft?.draft_fields || {},
+              missing_fields: primary.missing_fields || [],
+              warnings: primary.warnings || [],
+              requires_validation: true,
+              impacted_modules: primary.draft?.impacted_modules || [],
+              ui: primary.draft?.ui,
+            });
+          }
+          return;
         }
-        return;
+        if (parsed.clarify && !parsed.drafts?.length) {
+          appendMessage('assistant', parsed.clarify);
+          return;
+        }
       }
-      if (parsed.clarify && !parsed.drafts?.length) {
-        appendMessage('assistant', parsed.clarify);
-        return;
-      }
+
       const result = await runCommand(query, { autoOpenForm: false, navigateOnDraft: false });
-      if (result?.kind === 'redirect_pilotage') {
-        appendMessage('assistant', result.assistantText || 'Je vous ouvre le bon module.');
+      if (!result) {
+        appendMessage('assistant', 'Je n\'ai pas pu traiter votre demande. Reformulez en une phrase simple.');
         return;
       }
-      if (result?.kind === 'strategic' || result?.kind === 'llm') {
+      if (result.kind === 'redirect_pilotage') {
+        appendMessage('assistant', result.assistantText || 'Je vous ouvre le bon espace.');
+        return;
+      }
+      if (result.kind === 'strategic' || result.kind === 'llm' || result.kind === 'fallback') {
         const answerText = formatStrategicHorizonAnswer(result.strategic) || result.assistantText || 'Je n\'ai pas assez de données pour répondre.';
         appendMessage('assistant', answerText, { structured: result.strategic });
         return;
       }
-      if (result?.kind === 'draft') {
+      if (result.kind === 'draft') {
         return;
       }
-      appendMessage('assistant', result?.assistantText || 'Reformulez votre demande sur la ferme.');
+      if (result.kind === 'error' || result.kind === 'empty') {
+        appendMessage('assistant', result.assistantText || 'Reformulez votre demande sur la ferme.');
+        return;
+      }
+      appendMessage('assistant', result.assistantText || 'Reformulez votre demande sur la ferme.');
     } catch (error) {
       toast.error(error.message || 'Analyse impossible');
       appendMessage('assistant', 'Un problème est survenu. Réessayez en précisant l\'action ou la question.');
@@ -314,6 +357,8 @@ export default function HeyHorizonModule({
           {messages.map((message) => (
             <ChatBubble key={message.id} message={message} />
           ))}
+
+          {busy && !draft ? <ThinkingBubble /> : null}
 
           {draft ? (
             <ChatDraftBlock

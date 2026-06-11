@@ -17,7 +17,8 @@ import {
 import { buildCarnetDomainCards } from '../modules/dashboard/carnetHorizon.js';
 import { fmtCurrency } from '../utils/format.js';
 import { detectCommercialPilotageQuery, buildCommercialPilotageAnswer } from './heyHorizonCommercialAnswers.js';
-import { detectInvestorQuery, buildInvestorPilotageAnswer } from './assistantInvestorAnswers.js';
+import { buildInvestorPilotageAnswer } from './assistantInvestorAnswers.js';
+import { buildFarmOverviewAnswer, buildAnnualOutlookAnswer } from './assistantFarmOverview.js';
 import { UNIVERSAL_INTENT_FAMILIES } from './assistantUniversalIntents.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
@@ -200,6 +201,52 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}) {
         confidence: 95,
       };
 
+    case 'headcount_pondeuses':
+      return {
+        title: 'Pondeuses',
+        situation: `${fmt(headcount.effectifPondeuses)} pondeuses actives.`,
+        cause: `${fmt(headcount.activeLotsPondeuses)} lot(s) pondeuses en cours.`,
+        action: 'Suivez ponte et alimentation dans Élevage.',
+        sources: ['computeFarmHeadcount'],
+        confidence: 94,
+      };
+
+    case 'lots_sick': {
+      const sickLots = arr(props.lots).filter((lot) => /alerte|malad|sante|santé|critique|surveill/i.test(lower(lot.status || lot.statut || lot.health_status || lot.alert_level || '')));
+      const names = sickLots.slice(0, 4).map((l) => l.name || l.nom || l.id).join(', ');
+      return {
+        title: 'Lots malades',
+        situation: sickLots.length
+          ? `${sickLots.length} lot(s) en alerte${names ? ` : ${names}` : ''}.`
+          : 'Aucun lot en alerte sanitaire signalé.',
+        cause: elevageAlerts?.headline || 'Statuts lots et carnet élevage.',
+        action: sickLots.length ? 'Contrôlez santé et biosecurité sur ces lots.' : 'Poursuivez le protocole sanitaire habituel.',
+        sources: ['buildCarnetDomainCards', 'avicole'],
+        confidence: 86,
+      };
+    }
+
+    case 'lot_mortality': {
+      const ranked = arr(props.lots)
+        .map((lot) => ({
+          name: lot.name || lot.nom || lot.id,
+          mortality: n(lot.mortalite ?? lot.mortalité ?? lot.morts ?? lot.deaths ?? lot.pertes),
+        }))
+        .filter((row) => row.mortality > 0)
+        .sort((a, b) => b.mortality - a.mortality);
+      const top = ranked[0];
+      return {
+        title: 'Mortalité',
+        situation: top
+          ? `Lot le plus touché : ${top.name} (${fmt(top.mortality)} pertes signalées).`
+          : 'Aucune mortalité significative enregistrée sur les lots actifs.',
+        cause: 'Mouvements mortalité ERP / fiches lots.',
+        action: top ? `Analyser causes sur ${top.name} et ajuster conduite.` : 'Maintenir la surveillance zootechnique.',
+        sources: ['avicole', 'buildCarnetDomainCards'],
+        confidence: 84,
+      };
+    }
+
     case 'headcount_ovins':
     case 'headcount_caprins': {
       const label = intent === 'headcount_ovins' ? 'ovins' : 'caprins';
@@ -285,6 +332,30 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}) {
         confidence: 85,
       };
 
+    case 'parcel_best':
+      return {
+        title: 'Parcelles',
+        situation: cultureAlerts?.headline || `${fmt(cultureSummary.parcelCount)} parcelles · ${fmt(cultureSummary.activeCultures)} cultures actives.`,
+        cause: 'Comparaison issue du carnet cultures et fiches parcelles.',
+        action: 'Ouvrez Cultures pour le détail par parcelle.',
+        sources: ['computeCultureSummary', 'buildCarnetDomainCards'],
+        confidence: 82,
+      };
+
+    case 'culture_profit': {
+      const top = arr(snap.margins?.products || snap.margins?.rows)[0];
+      return {
+        title: 'Culture rentable',
+        situation: top?.name
+          ? `Meilleure contribution ventes : ${top.name}${top.margin != null ? ` (marge ${fmtCurrency(top.margin)})` : ''}.`
+          : `${fmt(cultureSummary.activeCultures)} cultures actives — détail marge dans Cultures.`,
+        cause: 'Marges consolidées depuis les ventes ERP.',
+        action: 'Renforcez les cultures les plus rentables cette saison.',
+        sources: ['summarizeSalesMargins', 'computeCultureSummary'],
+        confidence: 83,
+      };
+    }
+
     case 'stock_overview':
     case 'stock_remain':
       return {
@@ -333,6 +404,21 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}) {
         sources: ['stocks'],
         confidence: 80,
       };
+
+    case 'stock_sellable': {
+      const sellable = arr(props.stocks).filter((row) => stockQty(row) > 0).slice(0, 6);
+      const labels = sellable.map((row) => row.nom || row.name || row.produit).join(', ');
+      return {
+        title: 'À vendre',
+        situation: sellable.length
+          ? `${fmt(sellable.length)} produit(s) vendables en stock${labels ? ` : ${labels}` : ''}.`
+          : 'Peu de produits disponibles à la vente immédiate.',
+        cause: 'Quantités stock ERP > 0.',
+        action: 'Priorisez les produits périssables ou à forte marge.',
+        sources: ['computeStockSummary', 'stocks'],
+        confidence: 88,
+      };
+    }
 
     case 'ventes':
       return {
@@ -406,6 +492,26 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}) {
       if (answer?.situation) return answer;
       break;
     }
+
+    case 'ventes_today': {
+      const todayKey = new Date().toISOString().slice(0, 10);
+      const todayOrders = arr(props.salesOrdersAll).filter((row) => String(row.date || row.date_commande || row.created_at).slice(0, 10) === todayKey);
+      const total = todayOrders.reduce((sum, row) => sum + n(row.total ?? row.montant_total ?? row.total_amount), 0);
+      return {
+        title: 'Ventes du jour',
+        situation: `${fmt(todayOrders.length)} vente(s) aujourd'hui · ${fmtCurrency(total)}.`,
+        cause: 'Commandes datées du jour dans le commercial ERP.',
+        action: todayOrders.length ? 'Reliez livraisons et encaissements sur ces ventes.' : 'Aucune vente enregistrée — pensez aux clients du jour.',
+        sources: ['buildConsolidatedCommercialKpis'],
+        confidence: 90,
+      };
+    }
+
+    case 'farm_overview':
+      return buildFarmOverviewAnswer(dataMap);
+
+    case 'annual_outlook':
+      return buildAnnualOutlookAnswer(dataMap);
 
     case 'resultat':
     case 'profitability':

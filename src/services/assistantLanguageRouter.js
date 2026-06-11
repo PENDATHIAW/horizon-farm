@@ -9,6 +9,7 @@ import { resolveFollowUp, updateConversationContext } from './assistantConversat
 import { buildAgriculturalAnswer } from './assistantAgriculturalContext.js';
 import { formatCompactHorizonAnswer } from './assistantResponseFormatter.js';
 import { resolveFarmModuleNavigation } from './assistantFarmNavigation.js';
+import { detectBusinessDomain } from './assistantDomainDetector.js';
 
 /**
  * @typedef {import('./assistantConversationContext.js').ConversationContext} ConversationContext
@@ -101,6 +102,11 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
   if (!answers.length) return { handled: false, intents };
 
   const merged = mergeAnswers(answers);
+  const domain = detectBusinessDomain(workingQuery);
+  if (domain && merged) {
+    merged.domain = domain.domain;
+    merged.moduleId = domain.moduleId;
+  }
   const assistantText = formatCompactHorizonAnswer(merged);
   const primary = intents[0];
 
@@ -116,7 +122,8 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
     assistantText,
     updatedContext,
     intents,
-    source: 'universal_language_v4',
+    domain,
+    source: 'universal_language_v5',
   };
 }
 
