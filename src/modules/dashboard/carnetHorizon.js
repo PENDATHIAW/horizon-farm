@@ -1,24 +1,32 @@
 /**
- * Carnet Horizon V2 — agrégation lecture seule, anti-bruit, moteurs canoniques.
+ * Carnet Horizon — version dirigeant agricole.
+ * Agrégation lecture seule via moteurs canoniques existants.
  */
 
 import { fmtCurrency } from '../../utils/format.js';
 import { buildConsolidatedCommercialKpis } from '../../utils/commercialKpiConsolidated.js';
+import { buildObjectifsCroissanceData } from '../../services/objectifsGrowthEngine.js';
 import { rowDateValue } from '../../utils/periodScope.js';
+import { isBovinAnimal, isCaprinAnimal, isOvinAnimal } from '../../utils/elevageActivityPnl.js';
+import { buildExpirySnapshot } from '../../utils/stockExpiry.js';
 
-export const CARNET_JOURNAL_LIMIT = 5;
+export const CARNET_JOURNAL_LIMIT = 10;
 export const CARNET_ATTENTION_LIMIT = 4;
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const n = (value) => Number(value || 0);
 const lower = (value) => String(value || '').trim().toLowerCase();
 const money = (row = {}) => n(row.montant ?? row.amount ?? row.total ?? row.montant_paye ?? row.paid_amount);
+const fmt = (value = 0) => n(value).toLocaleString('fr-FR');
+
+const CLOSED_ANIMAL_WORDS = ['vendu', 'mort', 'vole', 'volé', 'perdu', 'abattu', 'cloture', 'clôture', 'sorti'];
+const isClosedAnimal = (row = {}) => CLOSED_ANIMAL_WORDS.some((word) => lower(row.status || row.statut).includes(word));
 
 /** Tâches / événements IA, BP, investisseur — exclus de l'accueil. */
-const HOME_NOISE_RE = /\b(business\s*plan|\bbp\b|financement\s*bancaire|investisseur|investissement|financeur|pondeuses?\s*bp|bovins?\s*bp|caprins?\s*bp|stratég|objectif\s*(mensuel|annuel)|orphan|rapprocher|justificatif|document\s*manquant|sync\s*erp|capteur|smart\s*farm|météo|whatsapp|démo|demo|dossier\s*invest|achat\s*\d{3,}|terinus|hôtel\s*terminus|one-?click|recommandation\s*ia|hey\s*horizon)\b/i;
-const HOME_NOISE_EVENT_RE = /bp_|business_plan|investor|financing|strategic|growth_goal|objectif|assistant|recommendation/i;
+const HOME_NOISE_RE = /\b(business\s*plan|\bbp\b|financement\s*bancaire|investisseur|investissement|financeur|pondeuses?\s*bp|bovins?\s*bp|caprins?\s*bp|apport\s*promoteur|stratég|objectif\s*(mensuel|annuel)|orphan|rapprocher|justificatif|document\s*manquant|sync\s*erp|capteur|smart\s*farm|météo|whatsapp|démo|demo|dossier\s*invest|achat\s*\d{3,}|terinus|hôtel\s*terminus|one-?click|recommandation\s*ia|hey\s*horizon|tâche\s*ia|tache\s*ia|promoteur)\b/i;
+const HOME_NOISE_EVENT_RE = /bp_|business_plan|investor|financing|strategic|growth_goal|objectif|assistant|recommendation|promoteur|financement/i;
 
-const AGRICULTURAL_EVENT_RE = /vente|livraison|recolte|récolte|paiement|encaisse|vaccin|soin|stock|aliment|oeuf|œuf|ponte|culture|parcelle|maintenance|entretien|réception|reception|sortie_stock|alimentation|mortalité|mortalite|naissance|abattage|traitement/i;
+const TERRAIN_EVENT_RE = /vente|livraison|recolte|récolte|paiement|encaisse|mortalit|mortalité|naissance|reception_stock|réception|sortie_stock|vaccin|soin|transformation|abattage|alimentation|production|oeuf|œuf|ponte|traitement/i;
 
 export function isHomeNoiseText(text = '') {
   const value = lower(text);
@@ -30,7 +38,7 @@ export function isAgriculturalHomeEvent(event = {}) {
   const blob = lower(`${event.title || ''} ${event.description || ''} ${event.event_type || ''} ${event.module_source || ''}`);
   if (isHomeNoiseText(blob)) return false;
   if (HOME_NOISE_EVENT_RE.test(blob)) return false;
-  return AGRICULTURAL_EVENT_RE.test(blob);
+  return TERRAIN_EVENT_RE.test(blob);
 }
 
 function startOfToday() {
@@ -55,16 +63,6 @@ function isToday(value) {
   const date = parseDate(value);
   if (!date) return false;
   return date >= startOfToday() && date <= endOfToday();
-}
-
-function isTomorrow(value) {
-  const date = parseDate(value);
-  if (!date) return false;
-  const tomorrow = new Date(startOfToday());
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const endTomorrow = new Date(tomorrow);
-  endTomorrow.setHours(23, 59, 59, 999);
-  return date >= tomorrow && date <= endTomorrow;
 }
 
 const stockQty = (row = {}) => n(row.quantite ?? row.quantity ?? row.stock);
@@ -94,60 +92,224 @@ function cultureRecordType(row = {}) {
   return lower(row.record_type || row.type_fiche || 'culture');
 }
 
-function countHarvestInProgress(cultures = []) {
-  return arr(cultures).filter((row) => {
-    if (cultureRecordType(row) !== 'culture') return false;
-    const status = lower(row.statut || row.status);
-    return status.includes('recolte') || status.includes('récolte') || row.commercial_ready || row.pret_vente;
-  }).length;
+function countActiveSpecies(animaux = [], predicate) {
+  return arr(animaux).filter((row) => !isClosedAnimal(row) && predicate(row)).length;
 }
 
-function countHarvestToday(cultures = []) {
-  return arr(cultures).filter((row) => {
-    if (cultureRecordType(row) !== 'culture') return false;
-    return isToday(row.date_recolte_reelle || row.date_recolte) && n(row.quantite_recoltee ?? row.recolte) > 0;
-  }).length;
+function buildSpeciesBreakdown(head = {}, animaux = []) {
+  const lines = [];
+  const pondeuses = n(head.effectifPondeuses);
+  const chair = n(head.effectifChair);
+  const bovins = countActiveSpecies(animaux, isBovinAnimal);
+  const ovins = countActiveSpecies(animaux, isOvinAnimal);
+  const caprins = countActiveSpecies(animaux, isCaprinAnimal);
+
+  if (pondeuses > 0) lines.push({ text: `${fmt(pondeuses)} pondeuses` });
+  if (chair > 0) lines.push({ text: `${fmt(chair)} poulets chair` });
+  if (bovins > 0) lines.push({ text: `${fmt(bovins)} bovins` });
+  if (ovins > 0) lines.push({ text: `${fmt(ovins)} ovins` });
+  if (caprins > 0) lines.push({ text: `${fmt(caprins)} caprins` });
+
+  const total = pondeuses + chair + n(head.effectifAvicoleOther) + bovins + ovins + caprins;
+  return { total, lines };
 }
 
-function countVaccinLotsDue(sante = []) {
-  return arr(sante).filter((row) => ['retard', 'a faire', 'à faire', 'a_faire', 'en retard'].some((term) => lower(row.statut || row.status).includes(term))).length;
+function countMortalitiesToday(props = {}) {
+  const fromEvents = arr(props.businessEvents || props.business_events)
+    .filter((row) => isToday(row.event_date || row.date || row.created_at))
+    .filter((row) => /mortalit|mortalité|mort\b/i.test(`${row.event_type || ''} ${row.title || ''}`))
+    .length;
+  const fromTasks = arr(props.taches)
+    .filter((row) => isToday(row.date || row.created_at || row.updated_at))
+    .filter((row) => /mortalit|mortalité/i.test(`${row.titre || row.title || ''}`))
+    .length;
+  return fromEvents + fromTasks;
+}
+
+function countLotsUnderTreatment(props = {}) {
+  return arr(props.vaccins || props.sante)
+    .filter((row) => ['en cours', 'traitement', 'a faire', 'à faire', 'retard'].some((term) => lower(row.statut || row.status).includes(term)))
+    .length;
+}
+
+function topCultureNames(cultures = [], limit = 3) {
+  const counts = new Map();
+  arr(cultures)
+    .filter((row) => cultureRecordType(row) === 'culture')
+    .filter((row) => !['termine', 'terminé', 'perdu', 'archive', 'archivé'].includes(lower(row.statut || row.status)))
+    .forEach((row) => {
+      const name = String(row.culture || row.nom || row.type || '').trim();
+      if (!name) return;
+      counts.set(name, (counts.get(name) || 0) + 1);
+    });
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([name]) => name);
+}
+
+function countParcelsToWatch(cultures = []) {
+  return arr(cultures)
+    .filter((row) => cultureRecordType(row) === 'parcelle' || cultureRecordType(row) === 'culture')
+    .filter((row) => ['alerte', 'surveiller', 'stress', 'risque'].some((term) => lower(row.statut || row.status || row.notes).includes(term)))
+    .length;
 }
 
 function countStockRuptures(stocks = []) {
   return arr(stocks).filter((row) => stockQty(row) <= 0 && stockThreshold(row) > 0).length;
 }
 
-function countStockLow(stocks = [], stockSummary = {}) {
-  return n(stockSummary.lowStockCount) || arr(stocks).filter((row) => stockThreshold(row) > 0 && stockQty(row) <= stockThreshold(row)).length;
+function countStockLocations(stocks = []) {
+  const locations = new Set();
+  arr(stocks).forEach((row) => {
+    const loc = String(row.emplacement || row.location || row.zone || '').trim();
+    if (loc) locations.add(lower(loc));
+  });
+  return locations.size;
 }
 
-function formatElevageValue(head = {}) {
-  const lots = n(head.activeLots);
-  const bovins = n(head.activeAnimals);
-  if (lots > 0) {
-    return lots === 1 ? '1 bande active' : `${lots} bandes actives`;
-  }
-  if (bovins > 0) {
-    return bovins === 1 ? '1 tête' : `${bovins.toLocaleString('fr-FR')} têtes`;
-  }
-  if (n(head.activeAvicole) > 0) {
-    const parts = [];
-    if (n(head.effectifPondeuses) > 0) parts.push(`${n(head.effectifPondeuses).toLocaleString('fr-FR')} pondeuses`);
-    if (n(head.effectifChair) > 0) parts.push(`${n(head.effectifChair).toLocaleString('fr-FR')} chair`);
-    return parts.join(' · ') || 'Cheptel avicole';
-  }
-  return 'À renseigner';
+function countDlcAlerts(stocks = []) {
+  const snapshot = buildExpirySnapshot(stocks);
+  return snapshot.soon.length + snapshot.expired.length;
 }
 
-function formatElevageDetail(head = {}, alertCount = 0) {
-  if (alertCount > 0) return `${alertCount} alerte${alertCount > 1 ? 's' : ''}`;
-  if (n(head.total) > 0) return 'Santé bonne';
-  return 'À renseigner';
+function commercialInput(props = {}, periodScope = {}) {
+  return {
+    orders: arr(props.salesOrdersAll?.length ? props.salesOrdersAll : props.salesOrders),
+    payments: arr(props.paymentsAll?.length ? props.paymentsAll : props.payments),
+    clients: arr(props.clients),
+    periodScope,
+  };
+}
+
+/** Section 1 — Cartes domaine dirigeant. */
+export function buildCarnetDomainCards(summary = {}, props = {}) {
+  const head = summary.headcount || {};
+  const culture = summary.cultureSummary || {};
+  const stocks = arr(props.stocks);
+  const animaux = arr(props.animaux);
+  const species = buildSpeciesBreakdown(head, animaux);
+  const mortalities = countMortalitiesToday(props);
+  const underTreatment = countLotsUnderTreatment(props);
+  const topCultures = topCultureNames(props.cultures);
+  const parcelsWatch = countParcelsToWatch(props.cultures);
+  const ruptures = countStockRuptures(stocks);
+  const dlcAlerts = countDlcAlerts(stocks);
+  const productCount = n(summary.stockSummary?.totalProducts) || stocks.length;
+  const locationCount = countStockLocations(stocks);
+  const hectares = Math.round((n(culture.surfaceM2) / 10000) * 10) / 10;
+
+  const elevageAlerts = [];
+  if (mortalities > 0) elevageAlerts.push({ text: `${mortalities} mortalité${mortalities > 1 ? 's' : ''} aujourd'hui` });
+  if (underTreatment > 0) elevageAlerts.push({ text: `${underTreatment} lot${underTreatment > 1 ? 's' : ''} sous traitement` });
+  const vaccinLate = arr(props.vaccins || props.sante)
+    .filter((row) => ['retard', 'a faire', 'à faire'].some((term) => lower(row.statut || row.status).includes(term))).length;
+  if (vaccinLate > 0 && !underTreatment) elevageAlerts.push({ text: `${vaccinLate} soin${vaccinLate > 1 ? 's' : ''} à planifier` });
+
+  const cultureAlerts = [];
+  if (parcelsWatch > 0) cultureAlerts.push({ text: `${parcelsWatch} parcelle${parcelsWatch > 1 ? 's' : ''} à surveiller` });
+
+  const stockAlerts = [];
+  if (ruptures > 0) stockAlerts.push({ text: `${ruptures} rupture${ruptures > 1 ? 's' : ''}` });
+  if (dlcAlerts > 0) stockAlerts.push({ text: `${dlcAlerts} DLC proche${dlcAlerts > 1 ? 's' : ''}` });
+
+  const cultureLines = [
+    { text: `${fmt(culture.parcelCount || 0)} parcelles actives` },
+  ];
+  if (hectares > 0) cultureLines.push({ text: `${fmt(hectares)} hectares exploités` });
+  topCultures.forEach((name) => cultureLines.push({ text: name }));
+
+  const stockLines = [
+    { text: `${fmt(productCount)} produits` },
+    { text: locationCount > 0 ? `${fmt(locationCount)} emplacements` : 'Emplacements à renseigner' },
+  ];
+
+  const financeLines = [
+    { text: `Trésorerie nette : ${fmtCurrency(summary.cashNet)}` },
+    { text: `Créances : ${fmtCurrency(summary.receivable)}` },
+    { text: `Dettes : ${fmtCurrency(summary.payables)}` },
+  ];
+
+  return [
+    {
+      id: 'elevage',
+      icon: '🐓',
+      title: 'ÉLEVAGE',
+      headline: species.total > 0 ? `${fmt(species.total)} têtes` : 'À renseigner',
+      lines: species.lines.length ? species.lines : [{ text: 'Aucun effectif enregistré' }],
+      alerts: elevageAlerts,
+    },
+    {
+      id: 'cultures',
+      icon: '🌾',
+      title: 'CULTURES',
+      headline: culture.hasData ? `${fmt(culture.parcelCount)} parcelles` : 'À configurer',
+      lines: cultureLines,
+      alerts: cultureAlerts,
+    },
+    {
+      id: 'stocks',
+      icon: '📦',
+      title: 'STOCK',
+      headline: `${fmt(productCount)} produits`,
+      lines: stockLines,
+      alerts: stockAlerts,
+    },
+    {
+      id: 'finances',
+      icon: '💰',
+      title: 'FINANCE',
+      headline: fmtCurrency(summary.cashNet),
+      lines: financeLines.slice(1),
+      alerts: [],
+    },
+  ];
+}
+
+/** Section 2 — Objectifs CA (canonique commercial + croissance). */
+export function buildCarnetObjectifs(summary = {}, props = {}) {
+  const periodScope = summary.periodScope || props.periodScope || {};
+  const commercialKpis = buildConsolidatedCommercialKpis(commercialInput(props, periodScope));
+  const growth = buildObjectifsCroissanceData({
+    lots: props.lotsData || props.lots,
+    animaux: props.animaux,
+    productionLogs: props.productionLogs,
+    alimentationLogs: props.alimentationLogs,
+    sante: props.vaccins || props.sante,
+    cultures: props.cultures,
+    stocks: props.stocks,
+    transactions: props.transactionsAll || props.transactions,
+    salesOrders: props.salesOrdersAll || props.salesOrders,
+    marketPrices: props.marketPrices,
+  });
+  const goal = summary.goal || {};
+  const monthTarget = n(goal.periodTarget);
+  const monthRealized = n(commercialKpis.ca);
+  const monthAttainment = n(goal.periodAttainment) || (monthTarget > 0 ? Math.round((monthRealized / monthTarget) * 100) : 0);
+  const yearTarget = n(goal.annualTarget);
+  const yearRealized = n(goal.annualRealized);
+  const yearAttainment = n(goal.annualAttainment) || (yearTarget > 0 ? Math.round((yearRealized / yearTarget) * 100) : 0);
+
+  return {
+    month: {
+      label: 'CA MOIS',
+      realized: monthRealized,
+      target: monthTarget,
+      attainment: monthAttainment,
+    },
+    year: {
+      label: 'CA ANNÉE',
+      realized: yearRealized,
+      target: yearTarget,
+      attainment: yearAttainment,
+    },
+    growthAlertCount: n(growth.alertCounts?.zootechnie) + n(growth.alertCounts?.economie),
+  };
 }
 
 function shortenJournalLabel(text = '') {
   const raw = String(text || '').trim();
-  if (!raw) return 'Événement terrain';
+  if (!raw || isHomeNoiseText(raw)) return null;
   const saleRef = raw.match(/\b(HF-\d+|VTE-\d+|CMD-\d+)\b/i);
   if (saleRef) return `Vente ${saleRef[1].toUpperCase()}`;
   if (/livraison/i.test(raw)) {
@@ -158,183 +320,31 @@ function shortenJournalLabel(text = '') {
     const crop = raw.match(/recolte\s+(.+?)(?:\s*:|\s·|$)/i) || raw.match(/récolte\s+(.+?)(?:\s*:|\s·|$)/i);
     return crop ? `Récolte ${crop[1].trim().slice(0, 20)}` : 'Récolte enregistrée';
   }
+  if (/mortalit|mortalité/i.test(raw)) return raw.length > 36 ? 'Mortalité enregistrée' : raw;
+  if (/naissance/i.test(raw)) return raw.length > 36 ? 'Naissance enregistrée' : raw;
   if (/paiement/i.test(raw)) return raw.length > 42 ? 'Paiement reçu' : raw;
-  if (/vaccin/i.test(raw)) {
+  if (/vaccin|soin/i.test(raw)) {
     const lot = raw.match(/lot\s+([A-Z0-9-]+)/i);
-    return lot ? `Vaccination lot ${lot[1]}` : 'Vaccination prévue';
+    return lot ? `Vaccination lot ${lot[1]}` : 'Soin enregistré';
   }
+  if (/réception|reception/i.test(raw)) return raw.length > 40 ? 'Réception stock' : raw;
+  if (/transformation|abattage/i.test(raw)) return raw.length > 40 ? 'Transformation enregistrée' : raw;
   return raw.length > 40 ? `${raw.slice(0, 37)}…` : raw;
 }
 
-function formatJournalFromEvent(event = {}) {
-  const title = shortenJournalLabel(event.title || event.description);
-  return { icon: '✓', text: title };
+function journalEntry(text, at = 0) {
+  const label = shortenJournalLabel(text);
+  if (!label) return null;
+  return { icon: '✓', text: label, at };
 }
 
-function formatJournalFromProduction(row = {}) {
-  const eggs = n(row.oeufs_produits ?? row.eggs_count ?? row.quantite);
-  if (eggs <= 0) return null;
-  return { icon: '✓', text: `${eggs.toLocaleString('fr-FR')} œufs enregistrés` };
-}
-
-function formatJournalFromPayment(row = {}) {
-  const amount = money(row);
-  if (amount <= 0) return null;
-  return { icon: '✓', text: `Paiement reçu : ${fmtCurrency(amount)}` };
-}
-
-function formatJournalFromHarvest(row = {}) {
-  const name = row.culture || row.nom || row.type || 'culture';
-  return { icon: '✓', text: `Récolte ${name}` };
-}
-
-function formatJournalFromSale(order = {}) {
-  const ref = order.reference || order.numero || order.order_number || order.id;
-  const label = order.product_name || order.produit || order.client_label || '';
-  if (ref) return { icon: '✓', text: `Vente ${String(ref).slice(0, 16)}` };
-  if (label) return { icon: '✓', text: `Vente ${label}`.slice(0, 36) };
-  return null;
-}
-
-function formatJournalFromDelivery(row = {}) {
-  const dest = row.destination || row.client_label || row.lieu || row.reference;
-  return { icon: '✓', text: dest ? `Livraison ${String(dest).slice(0, 24)}` : 'Livraison effectuée' };
-}
-
-function collectAgriculturalActions(summary = {}, props = {}) {
-  const actions = [];
-  const seen = new Set();
-
-  const push = (text, domain) => {
-    if (!text || isHomeNoiseText(text) || seen.has(lower(text))) return;
-    seen.add(lower(text));
-    actions.push({ text, domain });
-  };
-
-  arr(summary.actions)
-    .filter((action) => !['smart', 'sync', 'document'].includes(action.iconKey))
-    .filter((action) => !isHomeNoiseText(`${action.title} ${action.detail}`))
-    .forEach((action) => push(action.title, action.moduleKey || 'terrain'));
-
-  const vaccinLots = countVaccinLotsDue(props.vaccins || props.sante);
-  if (vaccinLots > 0) push(vaccinLots === 1 ? '1 lot à vacciner' : `${vaccinLots} lots à vacciner`, 'elevage');
-
-  const commercialKpis = buildConsolidatedCommercialKpis({
-    orders: arr(props.salesOrdersAll?.length ? props.salesOrdersAll : props.salesOrders),
-    payments: arr(props.paymentsAll?.length ? props.paymentsAll : props.payments),
-    clients: arr(props.clients),
-  });
-  if (commercialKpis.unpaidOrders > 0 && n(summary.receivable) > 0) {
-    push(commercialKpis.unpaidOrders === 1 ? '1 créance en retard' : `${commercialKpis.unpaidOrders} créances à suivre`, 'finance');
-  }
-
-  const feedDays = alimentDaysLeft(props.stocks, props.alimentationLogs);
-  if (feedDays != null && feedDays <= 7) {
-    push(feedDays <= 3 ? 'Stock aliment faible' : `Aliment : ${feedDays} jour(s) restants`, 'stocks');
-  } else {
-    const low = countStockLow(props.stocks, summary.stockSummary);
-    if (low > 0) push(low === 1 ? '1 stock sous seuil' : `${low} stocks faibles`, 'stocks');
-  }
-
-  const harvestTomorrow = arr(props.cultures).filter((row) => cultureRecordType(row) === 'culture' && isTomorrow(row.date_recolte_prevue)).length;
-  if (harvestTomorrow > 0) {
-    push(harvestTomorrow === 1 ? 'Récolte prévue demain' : `${harvestTomorrow} récoltes demain`, 'cultures');
-  }
-
-  return actions;
-}
-
-/** Cartes domaine compactes — lecture immédiate, alertes intégrées. */
-export function buildCarnetDomainCards(summary = {}, props = {}) {
-  const head = summary.headcount || {};
-  const culture = summary.cultureSummary || {};
-  const stock = summary.stockSummary || {};
-  const stocks = arr(props.stocks);
-  const actions = collectAgriculturalActions(summary, props);
-
-  const elevageAlerts = actions.filter((a) => a.domain === 'elevage' || /vaccin|soin|bande|aliment/i.test(a.text)).length
-    + countVaccinLotsDue(props.vaccins || props.sante);
-  const cultureAlerts = actions.filter((a) => a.domain === 'cultures' || /récolte|recolte|parcelle/i.test(a.text)).length;
-  const stockAlerts = actions.filter((a) => a.domain === 'stocks' || a.domain === 'achats_stock' || /stock|aliment|rupture/i.test(a.text)).length
-    || countStockLow(stocks, stock);
-  const financeAlerts = actions.filter((a) => a.domain === 'finance' || a.domain === 'commercial' || /créance|creance|impay/i.test(a.text)).length;
-
-  const commercialKpis = buildConsolidatedCommercialKpis({
-    orders: arr(props.salesOrdersAll?.length ? props.salesOrdersAll : props.salesOrders),
-    payments: arr(props.paymentsAll?.length ? props.paymentsAll : props.payments),
-    clients: arr(props.clients),
-  });
-
-  const ruptures = countStockRuptures(stocks);
-  const lowStock = countStockLow(stocks, stock);
-  const harvestToday = countHarvestToday(props.cultures);
-  const harvestActive = countHarvestInProgress(props.cultures);
-  const receivableCount = commercialKpis.unpaidOrders || 0;
-
-  let stockValue = 'Normaux';
-  if (ruptures > 0) stockValue = ruptures === 1 ? '1 rupture' : `${ruptures} ruptures`;
-  else if (lowStock > 0) stockValue = lowStock === 1 ? '1 stock faible' : `${lowStock} stocks faibles`;
-
-  let stockDetail = 'Inventaire suivi';
-  if (ruptures > 0 && lowStock > 0) stockDetail = `${ruptures} rupture(s) · ${lowStock} faible(s)`;
-  else if (lowStock > 0) stockDetail = `${lowStock} sous seuil`;
-
-  let financeValue = receivableCount > 0
-    ? (receivableCount === 1 ? '1 créance à suivre' : `${receivableCount} créances à suivre`)
-    : (summary.cashNet < 0 ? 'Trésorerie tendue' : 'Situation stable');
-  let financeDetail = summary.cashNet >= 0 ? 'Encaissements suivis' : 'Attention trésorerie';
-
-  const parcelCount = n(culture.parcelCount);
-  let cultureValue = culture.hasData
-    ? `${parcelCount} parcelle${parcelCount > 1 ? 's' : ''}`
-    : 'À configurer';
-  let cultureDetail = harvestToday > 0
-    ? `${harvestToday} récolte${harvestToday > 1 ? 's' : ''} aujourd'hui`
-    : (harvestActive > 0 ? `${harvestActive} en récolte` : 'Suivi actif');
-
-  return [
-    {
-      id: 'elevage',
-      icon: '🐔',
-      label: 'Élevage',
-      value: formatElevageValue(head),
-      detail: formatElevageDetail(head, elevageAlerts),
-      alerts: elevageAlerts,
-    },
-    {
-      id: 'cultures',
-      icon: '🌾',
-      label: 'Cultures',
-      value: cultureValue,
-      detail: cultureDetail,
-      alerts: cultureAlerts,
-    },
-    {
-      id: 'stocks',
-      icon: '📦',
-      label: 'Stock',
-      value: stockValue,
-      detail: stockDetail,
-      alerts: stockAlerts,
-    },
-    {
-      id: 'finances',
-      icon: '💰',
-      label: 'Finance',
-      value: financeValue,
-      detail: financeDetail,
-      alerts: financeAlerts,
-    },
-  ];
-}
-
-/** Journal du jour — max 5, événements agricoles uniquement. */
+/** Section 4 — Journal terrain (max 10, récent → ancien). */
 export function buildCarnetTodayJournal(props = {}, { limit = CARNET_JOURNAL_LIMIT } = {}) {
   const entries = [];
   const seen = new Set();
 
   const push = (entry) => {
-    if (!entry?.text || isHomeNoiseText(entry.text)) return;
+    if (!entry?.text) return;
     const key = lower(entry.text);
     if (seen.has(key)) return;
     seen.add(key);
@@ -342,136 +352,130 @@ export function buildCarnetTodayJournal(props = {}, { limit = CARNET_JOURNAL_LIM
   };
 
   arr(props.businessEvents || props.business_events)
-    .filter((row) => isToday(row.event_date || row.date || row.created_at))
     .filter(isAgriculturalHomeEvent)
-    .sort((a, b) => {
-      const da = parseDate(rowDateValue(a))?.getTime() || 0;
-      const db = parseDate(rowDateValue(b))?.getTime() || 0;
-      return db - da;
-    })
-    .forEach((row) => push(formatJournalFromEvent(row)));
-
-  arr(props.salesOrdersAll || props.salesOrders)
-    .filter((row) => isToday(row.date || row.date_commande || row.created_at))
     .forEach((row) => {
-      const line = formatJournalFromSale(row);
-      if (line) push(line);
+      const at = parseDate(rowDateValue(row))?.getTime() || 0;
+      const line = journalEntry(row.title || row.description, at);
+      if (line) push({ ...line, at });
     });
 
-  arr(props.deliveries || props.deliveriesList)
-    ?.filter((row) => isToday(row.date || row.date_livraison || row.created_at))
-    .forEach((row) => push(formatJournalFromDelivery(row)));
+  arr(props.salesOrdersAll || props.salesOrders).forEach((row) => {
+    const at = parseDate(row.date || row.date_commande || row.created_at)?.getTime() || 0;
+    const ref = row.reference || row.numero || row.order_number || row.id;
+    const line = journalEntry(ref ? `Vente ${ref}` : `Vente ${row.product_name || row.produit || ''}`, at);
+    if (line) push({ ...line, at });
+  });
 
-  arr(props.productionLogs)
-    .filter((row) => isToday(row.date || row.date_production || row.created_at))
-    .forEach((row) => {
-      const line = formatJournalFromProduction(row);
-      if (line) push(line);
-    });
+  arr(props.deliveries || props.deliveriesList).forEach((row) => {
+    const at = parseDate(row.date || row.date_livraison || row.created_at)?.getTime() || 0;
+    const dest = row.destination || row.client_label || row.lieu || row.reference;
+    const line = journalEntry(dest ? `Livraison ${dest}` : 'Livraison effectuée', at);
+    if (line) push({ ...line, at });
+  });
 
-  arr(props.paymentsAll || props.payments)
-    .filter((row) => isToday(row.date_paiement || row.date || row.created_at))
-    .forEach((row) => {
-      const line = formatJournalFromPayment(row);
-      if (line) push(line);
-    });
+  arr(props.productionLogs).forEach((row) => {
+    const eggs = n(row.oeufs_produits ?? row.eggs_count ?? row.quantite);
+    if (eggs <= 0) return;
+    const at = parseDate(row.date || row.date_production || row.created_at)?.getTime() || 0;
+    push({ icon: '✓', text: `${fmt(eggs)} œufs enregistrés`, at });
+  });
 
-  arr(props.cultures)
-    .filter((row) => isToday(row.date_recolte_reelle || row.date_recolte) && n(row.quantite_recoltee ?? row.recolte) >= 0)
-    .forEach((row) => push(formatJournalFromHarvest(row)));
+  arr(props.paymentsAll || props.payments).forEach((row) => {
+    const amount = money(row);
+    if (amount <= 0) return;
+    const at = parseDate(row.date_paiement || row.date || row.created_at)?.getTime() || 0;
+    push({ icon: '✓', text: `Paiement reçu : ${fmtCurrency(amount)}`, at });
+  });
 
-  arr(props.vaccins || props.sante)
-    .filter((row) => isToday(row.date_prevue || row.date || row.created_at))
-    .filter((row) => !['fait', 'done', 'termine', 'terminé'].includes(lower(row.statut || row.status)))
-    .forEach((row) => {
-      const lot = row.lot_label || row.lot_id || row.lot || 'terrain';
-      push({ icon: '✓', text: `Vaccination lot ${String(lot).slice(0, 12)}` });
-    });
+  arr(props.cultures).forEach((row) => {
+    if (n(row.quantite_recoltee ?? row.recolte) < 0) return;
+    const name = row.culture || row.nom || row.type;
+    if (!name) return;
+    const at = parseDate(row.date_recolte_reelle || row.date_recolte || row.updated_at)?.getTime() || 0;
+    push({ icon: '✓', text: `Récolte ${name}`, at });
+  });
+
+  entries.sort((a, b) => n(b.at) - n(a.at));
 
   const totalCount = entries.length;
-
-  if (!entries.length) {
-    return { items: [{ icon: '·', text: 'Rien de notable aujourd\'hui' }], totalCount: 0, hasMore: false };
+  if (!totalCount) {
+    return { items: [{ icon: '·', text: 'Aucun événement terrain récent' }], totalCount: 0, hasMore: false };
   }
 
   return {
-    items: entries.slice(0, limit),
+    items: entries.slice(0, limit).map(({ icon, text }) => ({ icon, text })),
     totalCount,
     hasMore: totalCount > limit,
   };
 }
 
-/** @deprecated V2 — alertes intégrées aux cartes domaine. */
-export function buildCarnetAttentionItems(summary = {}, priorities = [], props = {}) {
-  return collectAgriculturalActions(summary, props)
-    .slice(0, CARNET_ATTENTION_LIMIT)
-    .map((item) => ({ text: item.text }));
-}
-
-/** @deprecated V2 — utiliser buildCarnetDomainCards. */
-export function buildCarnetExploitationState(summary = {}, props = {}) {
-  return buildCarnetDomainCards(summary, props);
-}
-
-/** Un seul conseil — texte court, sans liste. */
+/** Section 3 — Conseil (situation · cause · action). */
 export function buildCarnetConseil(summary = {}, priorities = [], props = {}) {
   const feedDays = alimentDaysLeft(props.stocks, props.alimentationLogs);
   const feedName = feedProductName(props.stocks);
+  const commercialKpis = buildConsolidatedCommercialKpis(commercialInput(props, summary.periodScope));
 
   if (feedDays != null && feedDays <= 7) {
-    const product = /maïs|mais/i.test(feedName) ? 'maïs' : (/aliment/i.test(feedName) ? "d'aliment" : `de ${feedName.toLowerCase()}`);
+    const product = /maïs|mais/i.test(feedName) ? 'maïs' : (/aliment/i.test(feedName) ? "d'aliment" : feedName.toLowerCase());
     return {
       title: 'Conseil Horizon',
-      text: `Le stock ${product} couvre encore ${feedDays} jour${feedDays > 1 ? 's' : ''}. Planifiez un réapprovisionnement.`,
+      situation: `Le stock de ${product} est bas.`,
+      cause: `Couverture estimée : ${feedDays} jour${feedDays > 1 ? 's' : ''}.`,
+      action: 'Planifiez un réapprovisionnement cette semaine.',
     };
   }
 
-  const low = countStockLow(props.stocks, summary.stockSummary);
-  if (low > 0) {
-    return {
-      title: 'Conseil Horizon',
-      text: `${low} produit${low > 1 ? 's' : ''} sous le seuil — anticipez les achats intrants cette semaine.`,
-    };
-  }
-
-  const commercialKpis = buildConsolidatedCommercialKpis({
-    orders: arr(props.salesOrdersAll?.length ? props.salesOrdersAll : props.salesOrders),
-    payments: arr(props.paymentsAll?.length ? props.paymentsAll : props.payments),
-    clients: arr(props.clients),
-  });
   if (commercialKpis.unpaidOrders > 0 && n(summary.receivable) > 0) {
     return {
       title: 'Conseil Horizon',
-      text: `${commercialKpis.unpaidOrders} créance${commercialKpis.unpaidOrders > 1 ? 's' : ''} à relancer — commencez par les clients les plus en retard.`,
+      situation: `${commercialKpis.unpaidOrders} créance${commercialKpis.unpaidOrders > 1 ? 's' : ''} ouverte${commercialKpis.unpaidOrders > 1 ? 's' : ''}.`,
+      cause: `${fmtCurrency(summary.receivable)} restent à encaisser.`,
+      action: 'Relancez les clients les plus en retard depuis Commercial.',
     };
   }
 
   if (summary.cashNet < 0) {
     return {
       title: 'Conseil Horizon',
-      text: 'La trésorerie est tendue : priorisez les encaissements avant les dépenses non urgentes.',
+      situation: 'La trésorerie est sous pression.',
+      cause: 'Les sorties dépassent les encaissements récents.',
+      action: 'Priorisez les encaissements avant les dépenses non urgentes.',
     };
   }
 
   if (summary.startupMode) {
     return {
       title: 'Conseil Horizon',
-      text: 'Votre carnet se remplit au fil des saisies — commencez par une bande, une parcelle ou une vente.',
+      situation: 'L\'exploitation démarre.',
+      cause: 'Peu de données terrain enregistrées.',
+      action: 'Commencez par une bande, une parcelle ou une première vente.',
     };
   }
 
   return {
     title: 'Conseil Horizon',
-    text: 'L\'exploitation est calme aujourd\'hui — consultez les modules pour agir au bon moment.',
+    situation: 'L\'exploitation est calme.',
+    cause: 'Aucune alerte critique sur les domaines suivis.',
+    action: 'Consultez les modules pour agir au bon moment.',
   };
 }
 
-/** Vue Carnet Horizon V2 — layout anti-scroll. */
+export function buildCarnetAttentionItems(summary = {}, _priorities = [], props = {}) {
+  const cards = buildCarnetDomainCards(summary, props);
+  return cards
+    .flatMap((card) => card.alerts.map((alert) => ({ text: alert.text })))
+    .slice(0, CARNET_ATTENTION_LIMIT);
+}
+
+export function buildCarnetExploitationState(summary = {}, props = {}) {
+  return buildCarnetDomainCards(summary, props);
+}
+
 export function buildCarnetHorizonView({ summary = {}, priorities = [], props = {} } = {}) {
-  const journal = buildCarnetTodayJournal(props);
   return {
     domains: buildCarnetDomainCards(summary, props),
-    journal,
+    objectifs: buildCarnetObjectifs(summary, props),
     conseil: buildCarnetConseil(summary, priorities, props),
+    journal: buildCarnetTodayJournal(props),
   };
 }
