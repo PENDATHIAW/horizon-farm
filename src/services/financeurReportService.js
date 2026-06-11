@@ -13,6 +13,11 @@ const stockValue = (rows = []) => arr(rows).reduce((sum, row) => {
   return sum + (row.valeur_stock != null ? Number(row.valeur_stock) : qty * price);
 }, 0);
 
+/**
+ * @deprecated KPI financeur — préférer buildConsolidatedCommercialKpis pour CA/encaissé.
+ * Conservé pour compatibilité exports PDF investisseur.
+ * @see canonicalExecutionRegistry KPI_ENFORCEMENT_MATRIX
+ */
 function buildFinanceurKpis(data = {}, periodScope = {}) {
   const salesOrders = arr(data.sales_orders || data.salesOrders);
   const payments = arr(data.payments);
