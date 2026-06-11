@@ -1,16 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { readPeriodScope } from '../utils/periodScope';
 import { getDashboardHealthReport } from './dashboard/dashboardHealthCache';
 import { buildDashboardSummary } from './dashboard/dashboardMetrics';
 import { buildDashboardPriorities } from './dashboard/dashboardPilotage';
-import { dashboardGreeting } from './dashboard/dashboardGreeting';
 import { buildCarnetHorizonView } from './dashboard/carnetHorizon';
 import CarnetHorizon, { CarnetHorizonHeader } from './dashboard/CarnetHorizon.jsx';
 
 const firstValue = (...values) => values.find((value) => value !== undefined && value !== null && String(value).trim() !== '');
-const formatDateTime = () => new Intl.DateTimeFormat('fr-FR', {
-  weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
-}).format(new Date());
 
 function farmLocationOf(props = {}) {
   const farm = props.farm || props.ferme || props.farmProfile || props.farm_profile || {};
@@ -77,21 +73,9 @@ export default function DashboardV2(props) {
     fournisseurs,
     periodScope: periodScopeProp,
     periodLabel,
-    user,
-    displayUser,
-    userName,
-    username,
   } = props;
 
   const periodScope = periodScopeProp || readPeriodScope();
-  const dateTime = useMemo(() => formatDateTime(), []);
-  const greetingProps = useMemo(() => ({
-    user,
-    displayUser,
-    userName,
-    username,
-  }), [user, displayUser, userName, username]);
-  const greeting = useMemo(() => dashboardGreeting(greetingProps), [greetingProps]);
 
   const healthData = useMemo(
     () => buildHealthData({
@@ -212,15 +196,20 @@ export default function DashboardV2(props) {
     [summary, priorities, pilotageProps],
   );
 
+  const navigate = (moduleKey, options) => {
+    if (typeof props.onNavigate !== 'function') return;
+    if (options?.tab) props.onNavigate(moduleKey, options);
+    else props.onNavigate(moduleKey);
+  };
+
   return (
-    <div className="space-y-5 dashboard-carnet-root">
+    <div className="space-y-3 dashboard-carnet-v2-root">
       <CarnetHorizonHeader
-        greeting={greeting || `Bonjour ${displayUserOf(props)}`}
+        displayName={displayUserOf(props)}
         location={farmLocationOf(props)}
-        dateTime={dateTime}
         periodLabel={periodLabel}
       />
-      <CarnetHorizon carnet={carnet} />
+      <CarnetHorizon carnet={carnet} onNavigate={navigate} />
     </div>
   );
 }
