@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { applyOneClickRecommendation } from '../services/heyHorizonRecommendationActions.js';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import useCrudModule from '../hooks/useCrudModule';
 import { buildSaleFormFromOpportunity } from '../utils/saleFormDraft';
@@ -46,12 +47,13 @@ import CommercialScheduledRelancesPanel from './commercial/CommercialScheduledRe
 import CommercialPilotagePanel from './commercial/CommercialPilotagePanel.jsx';
 import CommercialMobileToolbar from './commercial/CommercialMobileToolbar.jsx';
 import CommercialStartupPanel from './commercial/CommercialStartupPanel.jsx';
+import CommercialInsightPanel from './commercial/CommercialInsightPanel.jsx';
 import VentesV5 from './VentesV5.jsx';
 import ClientsReadable from './ClientsReadable';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
-function Summary({ data, setTab, onNewSale, onNavigate, onOpenClient }) {
+function Summary({ data, setTab, onNewSale, onNavigate, onOpenClient, onApplyFinding, busyId }) {
   const todos = data.summaryTodos.slice(0, 6);
   const kpis = data.consolidatedKpis;
   const showStartup = data.startupJourney?.isEmpty || (data.startupJourney?.completed ?? 0) < 3;
@@ -72,6 +74,16 @@ function Summary({ data, setTab, onNewSale, onNavigate, onOpenClient }) {
       </div>
 
       <CommercialQuickActions setTab={setTab} onNewSale={onNewSale} />
+
+      <CommercialInsightPanel
+        findings={data.healthFindings}
+        predictions={data.healthPredictions}
+        coherenceRows={data.coherenceRows}
+        onApplyFinding={onApplyFinding}
+        onNavigate={onNavigate}
+        setTab={setTab}
+        busyId={busyId}
+      />
 
       <CommercialQuotesPanel
         orders={data.ordersAll}
@@ -150,6 +162,7 @@ function Summary({ data, setTab, onNewSale, onNavigate, onOpenClient }) {
 export default function CommercialRecoveredModule(props) {
   const [tab, setTab] = useState(() => resolveCommercialTab(props.initialTab));
   const [pendingSaleDraft, setPendingSaleDraft] = useState(null);
+  const [busyId, setBusyId] = useState(null);
 
   useEffect(() => {
     if (props.initialTab) setTab(resolveCommercialTab(props.initialTab));
@@ -262,8 +275,10 @@ export default function CommercialRecoveredModule(props) {
     onUpdateClient: props.onUpdateClient || clientsCrud.update,
     onCreateClient: props.onCreateClient || clientsCrud.create,
     onCreateTask: props.onCreateTask || tasksCrud.create,
+    onUpdateTask: props.onUpdateTask || tasksCrud.update,
+    onUpdateOrder: props.onUpdate || ordersCrud.update,
     onRefreshWorkflow: refreshWorkflow,
-  }), [props.onCreate, props.onCreateItem, props.onUpdate, props.onCreateDelivery, props.onCreateInvoice, props.onCreateDocument, props.onCreatePayment, props.onCreateBusinessEvent, props.onUpdateDelivery, props.onUpdateClient, props.onCreateClient, props.onCreateTask, refreshWorkflow]);
+  }), [props.onCreate, props.onCreateItem, props.onUpdate, props.onCreateDelivery, props.onCreateInvoice, props.onCreateDocument, props.onCreatePayment, props.onCreateBusinessEvent, props.onUpdateDelivery, props.onUpdateClient, props.onCreateClient, props.onCreateTask, props.onUpdateTask, refreshWorkflow]);
 
   const data = useMemo(() => {
     const enrichOpts = { deliveries: deliveriesAll, invoices: invoicesAll };
@@ -415,6 +430,28 @@ export default function CommercialRecoveredModule(props) {
     setTab('Ventes');
   };
 
+  const insightActionHandlers = useMemo(() => ({
+    onNavigate: props.onNavigate,
+    onCreateTask: workflowHandlers.onCreateTask,
+    onCreateAlert: props.onCreateAlert || alertsCrud.create,
+    onCreateBusinessEvent: workflowHandlers.onCreateBusinessEvent,
+    existingTasks: taskRows,
+    existingAlerts: alertRows,
+  }), [props.onNavigate, props.onCreateAlert, workflowHandlers, taskRows, alertRows]);
+
+  const applyFinding = async (finding) => {
+    setBusyId(finding.id);
+    try {
+      const result = await applyOneClickRecommendation(finding, insightActionHandlers);
+      if (result.createdTasks || result.createdAlerts) toast.success('Action créée');
+      else toast.success('Module ouvert');
+    } catch (err) {
+      toast.error(err?.message || 'Action impossible');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const traceRows = allRows(props.tracabiliteAll, traceCrud).length ? allRows(props.tracabiliteAll, traceCrud) : rowsOf(props.tracabilite, traceCrud, pf);
   const salesProps = { embedded: true, rows: data.orders, clients, initialSaleDraft: pendingSaleDraft, onConsumeSaleDraft: () => setPendingSaleDraft(null), orderItems: orderItemRows, deliveriesList: deliveriesAll.length ? deliveriesAll : rowsOf(props.deliveries, deliveriesCrud, pf), invoicesList: rowsOf(props.invoices, invoicesCrud, pf), paymentsList: paymentsAll, payments: paymentsAll, opportunities, tasks: rowsOf(props.tasks || props.existingTasks, tasksCrud, false), existingTasks: rowsOf(props.existingTasks || props.tasks, tasksCrud, false), animaux: animauxRows, lots: lotsRows, cultures: culturesRows, stocks: stockRows, alimentationLogs: rowsOf(props.alimentationLogs, alimentationCrud, pf), productionLogs: rowsOf(props.productionLogs, productionCrud, pf), vaccins: rowsOf(props.vaccins || props.sante, santeCrud, pf), transactions: transactionRows, businessEvents: rowsOf(props.businessEvents, eventsCrud, pf), documents: documentsRows, alertes: alertRows, farmScope: props.farmScope, accessibleFarms: props.accessibleFarms, activeFarm: props.activeFarm, onCreate: workflowHandlers.onCreateOrder, onUpdate: workflowHandlers.onUpdateOrder, onDelete: props.onDelete || ordersCrud.remove, onRefresh: props.onRefresh || ordersCrud.refresh, onCreateItem: workflowHandlers.onCreateItem, onUpdateItem: props.onUpdateItem || itemsCrud.update, onDeleteItem: props.onDeleteItem || itemsCrud.remove, onCreateDelivery: workflowHandlers.onCreateDelivery, onUpdateDelivery: props.onUpdateDelivery || deliveriesCrud.update, onDeleteDelivery: props.onDeleteDelivery || deliveriesCrud.remove, onRefreshDeliveries: props.onRefreshDeliveries || deliveriesCrud.refresh, onCreateInvoice: workflowHandlers.onCreateInvoice, onUpdateInvoice: props.onUpdateInvoice || invoicesCrud.update, onDeleteInvoice: props.onDeleteInvoice || invoicesCrud.remove, onRefreshInvoices: props.onRefreshInvoices || invoicesCrud.refresh, onCreatePayment: workflowHandlers.onCreatePayment, onUpdatePayment: props.onUpdatePayment || paymentsCrud.update, onDeletePayment: props.onDeletePayment || paymentsCrud.remove, onRefreshPayments: props.onRefreshPayments || paymentsCrud.refresh, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onDeleteOpportunity: props.onDeleteOpportunity || opportunitiesCrud.remove, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, onUpdateAnimal: props.onUpdateAnimal || animalsCrud.update, onRefreshAnimals: props.onRefreshAnimals || animalsCrud.refresh, onUpdateLot: props.onUpdateLot || lotsCrud.update, onRefreshLots: props.onRefreshLots || lotsCrud.refresh, onUpdateCulture: props.onUpdateCulture || culturesCrud.update, onRefreshCultures: props.onRefreshCultures || culturesCrud.refresh, onUpdateStock: props.onUpdateStock || stockCrud.update, onRefreshStocks: props.onRefreshStocks || stockCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onUpdateFinanceTransaction: props.onUpdateFinanceTransaction || financesCrud.update, onDeleteFinanceTransaction: props.onDeleteFinanceTransaction || financesCrud.remove, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateTrace: props.onCreateTrace || traceCrud.create, onUpdateTrace: props.onUpdateTrace || traceCrud.update, onRefreshTrace: props.onRefreshTrace || traceCrud.refresh, traces: traceRows, onCreateBusinessEvent: workflowHandlers.onCreateBusinessEvent, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onCreateDocument: workflowHandlers.onCreateDocument, onUpdateDocument: props.onUpdateDocument || docsCrud.update, onDeleteDocument: props.onDeleteDocument || docsCrud.remove, onRefreshDocuments: props.onRefreshDocuments || docsCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onUpdateAlert: props.onUpdateAlert || alertsCrud.update, onDeleteAlert: props.onDeleteAlert || alertsCrud.remove, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onDeleteTask: props.onDeleteTask || tasksCrud.remove, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onUpdateClient: props.onUpdateClient || clientsCrud.update, onRefreshClients: props.onRefreshClients || clientsCrud.refresh, onRefreshWorkflow: refreshWorkflow, onNavigate: props.onNavigate };
   const clientProps = { embedded: true, rows: clients, salesOrders: enrichCommercialOrders(ordersAll, { deliveries: deliveriesAll, invoices: invoicesAll }), payments: paymentsAll, opportunities: data.openOpportunities, transactions: transactionRows, whatsappLogs: whatsappLogRows, onCreateWhatsappLog: whatsappLogsCrud.create, onUpdateWhatsappLog: whatsappLogsCrud.update, onRefreshWhatsappLogs: whatsappLogsCrud.refresh, onCreate: props.onCreateClient || clientsCrud.create, onUpdate: props.onUpdateClient || clientsCrud.update, onDelete: props.onDeleteClient || clientsCrud.remove, onRefresh: props.onRefreshClients || clientsCrud.refresh, onNavigate: props.onNavigate };
@@ -500,6 +537,8 @@ export default function CommercialRecoveredModule(props) {
           onNewSale={openNewSale}
           onNavigate={props.onNavigate}
           onOpenClient={openClientTab}
+          onApplyFinding={applyFinding}
+          busyId={busyId}
         />
       ) : null}
       {tab === 'Ventes' ? <VentesV5 {...salesProps} /> : null}
@@ -525,9 +564,17 @@ export default function CommercialRecoveredModule(props) {
           orders={data.ordersAll}
           clients={clients}
           documents={documentsRows}
+          payments={paymentsAll}
+          invoices={invoicesAll}
+          tasks={taskRows}
           onUpdateDelivery={workflowHandlers.onUpdateDelivery}
           onCreateDocument={workflowHandlers.onCreateDocument}
+          onUpdateOrder={workflowHandlers.onUpdateOrder}
+          onCreateDelivery={workflowHandlers.onCreateDelivery}
+          onCreateTask={workflowHandlers.onCreateTask}
+          onUpdateTask={workflowHandlers.onUpdateTask}
           onRefreshWorkflow={refreshWorkflow}
+          setTab={setTab}
         />
       ) : null}
       {tab === 'Abonnements' ? (

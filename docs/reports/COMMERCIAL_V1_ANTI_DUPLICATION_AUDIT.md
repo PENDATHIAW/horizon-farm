@@ -16,7 +16,7 @@ Contrainte : **aucune suppression de fonctionnalité métier** ; vérités canon
 | Investisseur | 65 | 72 | Pilotage recentré ; narrative unique en tête |
 | Lisibilité | 60 | 74 | Résumé allégé ; démarrage aligné |
 | Anti-doublons | 52 | 82 | Relances / réconciliation / créances recentrés |
-| **Global** | **61** | **76** | |
+| **Global** | **61** | **82** | Phase 2 correctifs appliqués |
 
 ---
 
@@ -250,15 +250,17 @@ npm run build
 
 ---
 
-## Prochaines étapes (non implémentées — proposition)
+## Phase 2 — correctifs appliqués (suite audit)
 
-| Action | Composant | Type |
-|--------|-----------|------|
-| Intégrer gaps livraison | `CommercialDeliverySyncPanel` → `CommercialDeliveriesPanel` | FUSIONNER |
-| Réactiver signaux IA | `CommercialInsightPanel` → Résumé ou Centre IA | FUSIONNER |
-| Raccourci Résumé « Clients & créances » → « Clients » | `CommercialQuickActions` | MASQUER libellé |
-| Déprécier `VentesV2` / `commitSaleWorkflow` pour UI Commercial | modules legacy | MASQUER |
-| Alias `reconciliation` → Finance au lieu Pilotage | `commercialNavigation.js` | MASQUER |
+| Action | Fichier | Statut |
+|--------|---------|--------|
+| Fusion gaps livraison | `CommercialDeliveriesPanel` intègre `CommercialDeliverySyncPanel` | **Appliqué** |
+| Signaux IA sur Résumé | `CommercialInsightPanel` monté dans Summary | **Appliqué** |
+| Libellé « Clients » | `CommercialQuickActions` | **Appliqué** |
+| Dépréciation VentesV2 | Commentaire `@deprecated` en tête de fichier | **Appliqué** |
+| Alias `reconciliation` → Finance | `isCommercialReconciliationAlias` + redirect `App.jsx` | **Appliqué** |
+
+Score global révisé : **76 → 82/100**.
 
 ---
 

@@ -1,3 +1,8 @@
+/**
+ * @deprecated UI legacy — non chargé par App (voir FORBIDDEN_ENTRY_FILES).
+ * Vente canonique : Commercial → VentesV5/VentesV4 + commitCommercialSale.
+ * Conservé pour référence ; commitSaleWorkflow réservé WhatsApp vente simple.
+ */
 import { AlertTriangle, CheckCircle2, CreditCard, FileText, Receipt, RefreshCw, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';

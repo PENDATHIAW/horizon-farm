@@ -45,7 +45,6 @@ const tabAliases = {
   relances: 'Relances',
   relance: 'Relances',
   pilotage: 'Pilotage',
-  reconciliation: 'Pilotage',
   opportunites: 'Opportunités',
   opportunities: 'Opportunités',
   graphiques: 'Graphiques',
@@ -80,9 +79,15 @@ export function resolveAchatsStockTab(value = '') {
   return tabAliases[lower(tab)] || 'Résumé';
 }
 
+/** Alias commercial → redirection module Finance (réconciliation canonique). */
+export function isCommercialReconciliationAlias(value = '') {
+  return lower(value) === 'reconciliation';
+}
+
 export function resolveCommercialTab(value = '') {
   const tab = String(value || '').trim();
   if (COMMERCIAL_TABS.includes(tab)) return tab;
+  if (isCommercialReconciliationAlias(tab)) return 'Résumé';
   return tabAliases[lower(tab)] || 'Résumé';
 }
 

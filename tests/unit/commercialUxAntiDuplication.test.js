@@ -3,7 +3,11 @@ import assert from 'node:assert/strict';
 
 import { buildCommercialStartupJourney } from '../../src/utils/commercialStartup.js';
 import { COMMERCIAL_HEY_HORIZON_QUESTIONS } from '../../src/utils/commercialHeyHorizon.js';
-import { COMMERCIAL_TABS } from '../../src/utils/commercialNavigation.js';
+import {
+  COMMERCIAL_TABS,
+  isCommercialReconciliationAlias,
+  resolveCommercialTab,
+} from '../../src/utils/commercialNavigation.js';
 
 test('parcours démarrage — encaissement pointe Finance Réconciliation', () => {
   const journey = buildCommercialStartupJourney({ clients: [{ id: 'C1', nom: 'Test' }] });
@@ -26,4 +30,10 @@ test('Hey Horizon créances pointe Relances (pas doublon Clients)', () => {
 test('navigation commercial — un onglet principal par domaine métier', () => {
   const required = ['Résumé', 'Ventes', 'Clients', 'Livraisons', 'Relances', 'Opportunités', 'Pilotage', 'Graphiques'];
   required.forEach((tab) => assert.ok(COMMERCIAL_TABS.includes(tab), `onglet ${tab}`));
+});
+
+test('alias reconciliation ne pointe plus vers Pilotage commercial', () => {
+  assert.equal(isCommercialReconciliationAlias('reconciliation'), true);
+  assert.equal(resolveCommercialTab('reconciliation'), 'Résumé');
+  assert.equal(resolveCommercialTab('Pilotage'), 'Pilotage');
 });

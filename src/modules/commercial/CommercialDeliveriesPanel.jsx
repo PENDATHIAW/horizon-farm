@@ -7,6 +7,7 @@ import {
   deliveryProofMessage,
   DELIVERY_STATUS_LABELS,
 } from '../../utils/commercialDeliveries.js';
+import CommercialDeliverySyncPanel from '../CommercialDeliverySyncPanel.jsx';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 
@@ -15,9 +16,17 @@ export default function CommercialDeliveriesPanel({
   orders = [],
   clients = [],
   documents = [],
+  payments = [],
+  invoices = [],
+  tasks = [],
   onUpdateDelivery,
   onCreateDocument,
+  onUpdateOrder,
+  onCreateDelivery,
+  onCreateTask,
+  onUpdateTask,
   onRefreshWorkflow,
+  setTab,
 }) {
   const queue = buildCommercialDeliveryQueue({ deliveries, orders, clients, documents });
 
@@ -90,6 +99,20 @@ export default function CommercialDeliveriesPanel({
 
   return (
     <div className="space-y-4">
+      <CommercialDeliverySyncPanel
+        orders={orders}
+        payments={payments}
+        deliveries={deliveries}
+        invoices={invoices}
+        tasks={tasks}
+        onUpdateOrder={onUpdateOrder}
+        onCreateDelivery={onCreateDelivery}
+        onUpdateDelivery={onUpdateDelivery}
+        onCreateTask={onCreateTask}
+        onUpdateTask={onUpdateTask}
+        onRefreshWorkflow={onRefreshWorkflow}
+        setTab={setTab}
+      />
       <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4">
         <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><Truck size={14} /> Livraisons terrain</p>
         <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
