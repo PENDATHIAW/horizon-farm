@@ -7,10 +7,13 @@ import { Btn, DataRow, DataTable, Empty, Pill, Section, TabIntro, VisionKpi, ris
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
-export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, existingTasks = [], existingAlerts = [], strategicPlan = {} }) {
+export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, existingTasks = [], existingAlerts = [], strategicPlan = {}, urgentOnly = false }) {
   const engineRisks = arr(data.engineRisks);
-  const risks = arr(data.risks);
-  const criticalCount = risks.filter((r) => r.tone === 'bad').length;
+  const allRisks = arr(data.risks);
+  const risks = urgentOnly
+    ? allRisks.filter((r) => r.tone === 'bad' || /critique|élevé|eleve|urgent/i.test(String(r.severity || '')))
+    : allRisks;
+  const criticalCount = allRisks.filter((r) => r.tone === 'bad').length;
   const financeExposure = Math.max(0, -(data.treasuryResult ?? data.balance)) + (data.receivable || 0);
 
   const riskHandlers = {
@@ -43,17 +46,21 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
   return (
     <div className="space-y-5">
       <TabIntro
-        title="Registre des risques"
-        detail="Matrice IA + risques opérationnels détectés sur alertes, stock, élevage, trésorerie et documents."
+        title={urgentOnly ? 'Urgences terrain & risques critiques' : 'Registre des risques'}
+        detail={urgentOnly
+          ? 'Ventes urgentes, stock aliment, BFR et risques critiques — le registre complet reste dans Activité & Suivi.'
+          : 'Matrice IA + risques opérationnels détectés sur alertes, stock, élevage, trésorerie et documents.'}
         action={onNavigate ? <Btn onClick={() => onNavigate('activite_suivi', { tab: 'Alertes' })}>Centre alertes</Btn> : null}
       />
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
-        <VisionKpi label="Risques ouverts" value={fmtNumber(risks.length)} tone={risks.length ? 'warn' : 'good'} />
-        <VisionKpi label="Critiques / élevés" value={fmtNumber(criticalCount)} tone={criticalCount ? 'bad' : 'good'} onClick={() => setTab?.('À traiter')} />
-        <VisionKpi label="Signaux IA" value={fmtNumber(engineRisks.length)} tone={engineRisks.length ? 'warn' : 'good'} />
-        <VisionKpi label="Exposition finance" value={fmtCurrency(financeExposure)} tone={financeExposure ? 'warn' : 'good'} onClick={() => onNavigate?.('finance_pilotage', { tab: 'Trésorerie' })} />
-        <VisionKpi label="Preuves manquantes" value={fmtNumber(data.missingProof)} tone={data.missingProof ? 'warn' : 'good'} onClick={() => onNavigate?.('documents_rapports', { tab: 'Preuves' })} />
-      </div>
+      {!urgentOnly ? (
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+          <VisionKpi label="Risques ouverts" value={fmtNumber(allRisks.length)} tone={allRisks.length ? 'warn' : 'good'} />
+          <VisionKpi label="Critiques / élevés" value={fmtNumber(criticalCount)} tone={criticalCount ? 'bad' : 'good'} onClick={() => setTab?.('Urgences & risques')} />
+          <VisionKpi label="Signaux IA" value={fmtNumber(engineRisks.length)} tone={engineRisks.length ? 'warn' : 'good'} />
+          <VisionKpi label="Exposition finance" value={fmtCurrency(financeExposure)} tone={financeExposure ? 'warn' : 'good'} onClick={() => onNavigate?.('finance_pilotage', { tab: 'Trésorerie' })} />
+          <VisionKpi label="Preuves manquantes" value={fmtNumber(data.missingProof)} tone={data.missingProof ? 'warn' : 'good'} onClick={() => onNavigate?.('documents_rapports', { tab: 'Preuves' })} />
+        </div>
+      ) : null}
 
       {strategicPlan.sellNow?.length ? (
         <Section icon={TrendingDown} title="Urgences vente — QUAND VENDRE">
@@ -101,7 +108,7 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
           />
         </Section>
       ) : null}
-      {engineRisks.length ? (
+      {!urgentOnly && engineRisks.length ? (
         <Section icon={ShieldAlert} title="Matrice risques IA">
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
             {engineRisks.map((r) => (
@@ -118,7 +125,7 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
           </div>
         </Section>
       ) : null}
-      <Section icon={ShieldAlert} title="Risques opérationnels">
+      <Section icon={ShieldAlert} title={urgentOnly ? 'Risques critiques' : 'Risques opérationnels'}>
         {risks.length ? (
           <DataTable columns={['Domaine · Sujet', 'Cause & impact', 'Gravité', 'Actions']}>
             {risks.map((r) => (
@@ -138,7 +145,7 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
               />
             ))}
           </DataTable>
-        ) : <Empty>Aucun risque majeur détecté sur la ferme.</Empty>}
+        ) : <Empty>{urgentOnly ? 'Aucune urgence critique détectée — consultez Croissance ou Saisons pour anticiper.' : 'Aucun risque majeur détecté sur la ferme.'}</Empty>}
       </Section>
     </div>
   );

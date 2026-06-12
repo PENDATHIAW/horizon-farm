@@ -30,7 +30,7 @@ test('buildCentreDecisionAnswer — priorités avec lien centre', () => {
 test('buildCentreDecisionAnswer — risque principal', () => {
   const answer = buildCentreDecisionAnswer('main_risk', mockDataMap);
   assert.ok(answer);
-  assert.equal(answer.tab, 'Risques');
+  assert.equal(answer.tab, 'Urgences & risques');
 });
 
 test('buildCentreDecisionAnswer — recommandations centre', () => {

@@ -5,15 +5,10 @@ import HeyHorizonQuickAsk from '../../components/HeyHorizonQuickAsk.jsx';
 import { MODULE_TARGET_TABS } from '../../config/horizonVision.config.js';
 import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine.js';
 import { buildStrategicDecisionPlan } from '../../services/strategicDecisionEngine.js';
-import { buildVisionBadges } from '../vision/visionMetrics.js';
 import { buildVisionData } from '../vision/visionUtils';
-import VisionPrioritiesTab from '../vision/VisionPrioritiesTab.jsx';
-import VisionCyclesTab from '../vision/VisionCyclesTab.jsx';
-import VisionRisksTab from '../vision/VisionRisksTab.jsx';
-import CentreRecommandationsTab from './CentreRecommandationsTab.jsx';
-import CentreHistoriqueTab from './CentreHistoriqueTab.jsx';
-import VisionDecisionGraphiquesTab from '../vision/VisionDecisionGraphiquesTab.jsx';
-import DecisionAnnexeTab from './DecisionAnnexeTab.jsx';
+import CentreUrgencesTab from './CentreUrgencesTab.jsx';
+import CentreCroissanceTab from './CentreCroissanceTab.jsx';
+import CentreSaisonsTab from './CentreSaisonsTab.jsx';
 import PilotageSettingsPanel from './PilotageSettingsPanel.jsx';
 import { mergePilotageIntoDataMap } from '../../services/pilotageSettingsService.js';
 import { syncStrategicAlertsToCenter } from '../../services/strategicAlertBridge.js';
@@ -37,20 +32,22 @@ const EMPTY_STRATEGIC_PLAN = {
 const TAB_IDS = MODULE_TARGET_TABS.centre_ia;
 
 const TAB_ALIASES = {
-  Graphiques: 'Graphiques',
-  Annexe: 'Annexe',
-  Opportunités: 'Cycles',
-  'Opportunités & cycles': 'Cycles',
-  Recommandations: 'Recommandations',
-  Historique: 'Historique',
-  'À traiter': 'À traiter',
-  Risques: 'Risques',
-  Cycles: 'Cycles',
-  /** Legacy — ancien onglet « Efficacité » (Objectifs / Vision) */
-  Efficacité: 'À traiter',
-  'Efficacité Technique': 'Recommandations',
-  Priorités: 'À traiter',
-  'Priorités & risques': 'À traiter',
+  'Urgences & risques': 'Urgences & risques',
+  'Croissance & opportunités': 'Croissance & opportunités',
+  'Saisons & marchés': 'Saisons & marchés',
+  Graphiques: 'Croissance & opportunités',
+  Annexe: 'Saisons & marchés',
+  Opportunités: 'Croissance & opportunités',
+  'Opportunités & cycles': 'Croissance & opportunités',
+  Recommandations: 'Croissance & opportunités',
+  Historique: 'Saisons & marchés',
+  'À traiter': 'Urgences & risques',
+  Risques: 'Urgences & risques',
+  Cycles: 'Saisons & marchés',
+  Efficacité: 'Urgences & risques',
+  'Efficacité Technique': 'Croissance & opportunités',
+  Priorités: 'Urgences & risques',
+  'Priorités & risques': 'Urgences & risques',
 };
 
 function resolveTab(initial) {
@@ -59,7 +56,7 @@ function resolveTab(initial) {
   return TAB_IDS[0];
 }
 
-/** Centre décisionnel : priorités, recommandations, cycles (QUAND lancer), risques (QUAND vendre), historique. */
+/** Centre décisionnel — 3 onglets : urgences terrain, croissance, saisons & marchés. */
 export default function CentreDecisionModule({
   dataMap = {},
   onNavigate,
@@ -69,12 +66,14 @@ export default function CentreDecisionModule({
   meteo,
   ...props
 }) {
-  const [tab, setTab] = useState(() => resolveTab(initialTab));
+  const [tab, setTabState] = useState(() => resolveTab(initialTab));
   const [pilotageVersion, setPilotageVersion] = useState(0);
   const syncedPlanRef = useRef('');
 
+  const setTab = (next) => setTabState(resolveTab(next));
+
   useEffect(() => {
-    setTab(resolveTab(initialTab));
+    setTabState(resolveTab(initialTab));
   }, [initialTab]);
 
   const visionProps = useMemo(() => ({ ...props, dataMap, moduleId: 'centre_ia', meteo }), [props, dataMap, meteo]);
@@ -86,8 +85,6 @@ export default function CentreDecisionModule({
       return { priorities: [], risks: [], predictions: [], healthScore: 0 };
     }
   }, [visionProps]);
-  const badges = useMemo(() => buildVisionBadges(data, 'centre_ia'), [data]);
-
   const enrichedDataMap = useMemo(() => mergePilotageIntoDataMap({
     ...dataMap,
     animaux: props.animaux || dataMap.animaux,
@@ -153,97 +150,81 @@ export default function CentreDecisionModule({
     }).catch(() => undefined);
   }, [strategicPlan, props.onCreateAlert, props.onRefreshAlertes, props.existingAlerts]);
 
-  const tabBadges = useMemo(() => ({
-    ...badges.tabs,
-    Cycles: (strategicPlan.launch?.alerts?.length || 0) + (strategicPlan.launch?.cycleDecisions?.filter((d) => d.priority === 'critique').length || 0),
-    Risques: (strategicPlan.sellNow?.length || 0) + (strategicPlan.stockAudit?.alerts?.length || 0) + (strategicPlan.bfr?.blocked ? 1 : 0),
-  }), [badges.tabs, strategicPlan]);
+  const urgentCount = (strategicPlan.sellNow?.length || 0)
+    + (strategicPlan.stockAudit?.alerts?.length || 0)
+    + (strategicPlan.bfr?.blocked ? 1 : 0)
+    + (data.priorities?.length || 0);
 
-  const priorityProps = {
-    data,
-    moduleId: 'centre_ia',
-    setTab,
-    onNavigate,
-    onCreateTask: props.onCreateTask,
-    onCreateAlert: props.onCreateAlert,
-    onUpdateAlert: props.onUpdateAlert,
-    onCreateBusinessEvent: props.onCreateBusinessEvent,
-    onRefreshTasks: props.onRefreshTasks,
-    onRefreshAlertes: props.onRefreshAlertes,
-    existingTasks: props.existingTasks,
-    existingAlerts: props.existingAlerts,
-  };
+  const tabBadges = useMemo(() => ({
+    'Urgences & risques': urgentCount,
+    'Croissance & opportunités': (decisionPlan.commercialRecommendations?.length || 0)
+      + (decisionPlan.recommendations?.filter((r) => r.should_recommend_investment || r.technical_rule).length || 0),
+    'Saisons & marchés': (strategicPlan.launch?.alerts?.length || 0)
+      + (strategicPlan.launch?.cycleDecisions?.filter((d) => d.priority === 'critique').length || 0)
+      + (strategicPlan.sanitary?.filter((s) => s.blocking).length || 0),
+  }), [decisionPlan, strategicPlan, urgentCount]);
 
   const risksData = useMemo(() => ({
     ...data,
     risks: [...(data.risks || []), ...(strategicPlan.risks || [])],
   }), [data, strategicPlan.risks]);
 
-  const content = tab === 'À traiter'
-    ? <VisionPrioritiesTab {...priorityProps} />
-    : tab === 'Recommandations'
+  const content = tab === 'Urgences & risques'
+    ? (
+      <CentreUrgencesTab
+        data={data}
+        risksData={risksData}
+        strategicPlan={strategicPlan}
+        setTab={setTab}
+        onNavigate={onNavigate}
+        onCreateTask={props.onCreateTask}
+        onCreateAlert={props.onCreateAlert}
+        onUpdateAlert={props.onUpdateAlert}
+        onCreateBusinessEvent={props.onCreateBusinessEvent}
+        onRefreshTasks={props.onRefreshTasks}
+        onRefreshAlertes={props.onRefreshAlertes}
+        existingTasks={props.existingTasks}
+        existingAlerts={props.existingAlerts}
+      />
+    )
+    : tab === 'Croissance & opportunités'
       ? (
-        <CentreRecommandationsTab
+        <CentreCroissanceTab
           plan={decisionPlan}
+          dataMap={enrichedDataMap}
           onNavigate={onNavigate}
           onSwitchTab={setTab}
+          lots={props.lots}
+          animaux={props.animaux}
+          cultures={props.cultures}
+          transactions={props.transactionsAll || props.transactions}
+          stocks={props.stocks}
+          alimentationLogs={props.alimentationLogs}
+          productionLogs={props.productionLogs}
+          salesOrders={props.salesOrdersAll || props.salesOrders}
+          payments={props.paymentsAll || props.payments}
+          sante={props.sante}
+          businessEvents={props.businessEvents}
+          fournisseurs={props.fournisseurs}
+          marketPrices={props.marketPrices}
         />
       )
-      : tab === 'Cycles'
-        ? (
-          <VisionCyclesTab
-            dataMap={enrichedDataMap}
-            lots={props.lots}
-            animaux={props.animaux}
-            productionLogs={props.productionLogs}
-            strategicPlan={strategicPlan}
-            onNavigate={onNavigate}
-            onCreateTask={props.onCreateTask}
-            onCreateAlert={props.onCreateAlert}
-            onRefreshTasks={props.onRefreshTasks}
-            onRefreshAlertes={props.onRefreshAlertes}
-            existingTasks={props.existingTasks}
-            existingAlerts={props.existingAlerts}
-          />
-        )
-        : tab === 'Risques'
-          ? (
-            <VisionRisksTab
-              data={risksData}
-              strategicPlan={strategicPlan}
-              setTab={setTab}
-              onNavigate={onNavigate}
-              onCreateTask={props.onCreateTask}
-              onRefreshTasks={props.onRefreshTasks}
-              onCreateAlert={props.onCreateAlert}
-              onRefreshAlertes={props.onRefreshAlertes}
-              existingTasks={props.existingTasks}
-              existingAlerts={props.existingAlerts}
-            />
-          )
-          : tab === 'Graphiques'
-            ? (
-              <VisionDecisionGraphiquesTab
-                lots={props.lots}
-                animaux={props.animaux}
-                cultures={props.cultures}
-                clients={props.clients}
-                transactions={props.transactionsAll || props.transactions}
-                stocks={props.stocks}
-                alimentationLogs={props.alimentationLogs}
-                productionLogs={props.productionLogs}
-                salesOrders={props.salesOrdersAll || props.salesOrders}
-                payments={props.paymentsAll || props.payments}
-                sante={props.sante}
-                businessEvents={props.businessEvents}
-                fournisseurs={props.fournisseurs}
-                marketPrices={props.marketPrices}
-                onNavigate={onNavigate}
-              />
-            )
-            : tab === 'Annexe'
-              ? <DecisionAnnexeTab moduleLabel="Centre décisionnel" moduleId="centre_ia" dataMap={enrichedDataMap} onNavigate={onNavigate} />
-              : <CentreHistoriqueTab dataMap={enrichedDataMap} onNavigate={onNavigate} />;
+      : (
+        <CentreSaisonsTab
+          dataMap={enrichedDataMap}
+          lots={props.lots}
+          animaux={props.animaux}
+          productionLogs={props.productionLogs}
+          strategicPlan={strategicPlan}
+          onNavigate={onNavigate}
+          onCreateTask={props.onCreateTask}
+          onCreateAlert={props.onCreateAlert}
+          onRefreshTasks={props.onRefreshTasks}
+          onRefreshAlertes={props.onRefreshAlertes}
+          existingTasks={props.existingTasks}
+          existingAlerts={props.existingAlerts}
+        />
+      );
 
   return (
     <div className="space-y-6">
@@ -253,7 +234,7 @@ export default function CentreDecisionModule({
             <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Intelligence décisionnelle</p>
             <h1 className="mt-1 text-3xl font-black text-[#2f2415]">Centre décisionnel</h1>
             <p className="mt-2 text-sm text-[#8a7456] max-w-3xl">
-              7 onglets : priorités · recommandations · cycles · risques · historique · graphiques · annexe (méthode & calculs).
+              3 onglets : urgences & risques terrain · croissance & opportunités · saisons & marchés (cycles, fêtes, lancement).
             </p>
             <HeyHorizonQuickAsk moduleKey="centre_ia" onNavigate={onNavigate} onOpenAssistant={onOpenAssistant} className="mt-2" />
             {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
@@ -308,7 +289,7 @@ export default function CentreDecisionModule({
           </button>
         ) : null}
       </div>
-      <ModuleTabsBar moduleId="centre_ia" active={tab} onChange={(next) => setTab(resolveTab(next))} tabBadges={tabBadges} />
+      <ModuleTabsBar moduleId="centre_ia" active={tab} onChange={setTab} tabBadges={tabBadges} />
       {content}
     </div>
   );

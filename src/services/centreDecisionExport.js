@@ -83,6 +83,9 @@ function riskRows(data = {}, strategicPlan = {}) {
 }
 
 const TAB_EXPORT_MAP = {
+  'Urgences & risques': 'risks',
+  'Croissance & opportunités': 'recommendations',
+  'Saisons & marchés': 'cycles',
   'À traiter': 'priorities',
   Recommandations: 'recommendations',
   Cycles: 'cycles',

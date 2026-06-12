@@ -45,8 +45,8 @@ function buildCentreRecommendationsAnswer(dataMap = {}, options = {}) {
     : 'Peu de recommandations automatiques pour l\'instant — les objectifs et stocks guident encore la journée.';
 
   const action = strategicLines[0]
-    ? `${strategicLines[0]} Ouvrez le Centre décisionnel → Recommandations pour le détail.`
-    : 'Ouvrez le Centre décisionnel → Recommandations pour valider les actions.';
+    ? `${strategicLines[0]} Ouvrez le Centre décisionnel → Croissance & opportunités pour le détail.`
+    : 'Ouvrez le Centre décisionnel → Croissance & opportunités pour valider les actions.';
 
   return withCentreMeta({
     title: 'Recommandations',
@@ -58,7 +58,7 @@ function buildCentreRecommendationsAnswer(dataMap = {}, options = {}) {
     action,
     sources: ['buildDecisionCenterPlan', 'buildStrategicDecisionPlan'],
     confidence: recs.length ? 91 : 78,
-  }, 'Recommandations');
+  }, 'Croissance & opportunités');
 }
 
 function buildCentreCyclesAnswer(dataMap = {}, options = {}) {
@@ -68,7 +68,7 @@ function buildCentreCyclesAnswer(dataMap = {}, options = {}) {
 
   const situation = pick
     ? `${pick.recommendation || pick.title}${pick.timing ? ` (${pick.timing})` : ''}.`
-    : 'Aucun signal de cycle urgent — consultez l\'onglet Cycles pour le calendrier complet.';
+    : 'Aucun signal de cycle urgent — consultez l\'onglet Saisons & marchés pour le calendrier complet.';
 
   const bfrBlock = arr(strategic.recommendations).find((row) => row.category === 'bfr');
   const cause = bfrBlock
@@ -80,10 +80,10 @@ function buildCentreCyclesAnswer(dataMap = {}, options = {}) {
     intent: 'centre_cycles',
     situation,
     cause,
-    action: 'Dites « vas-y » pour le plan complet ou ouvrez Centre décisionnel → Cycles.',
+    action: 'Dites « vas-y » pour le plan complet ou ouvrez Centre décisionnel → Saisons & marchés.',
     sources: ['buildStrategicDecisionPlan'],
     confidence: pick ? 90 : 76,
-  }, 'Cycles');
+  }, 'Saisons & marchés');
 }
 
 function buildCentreActivityAnswer(dataMap = {}) {
@@ -101,7 +101,7 @@ function buildCentreActivityAnswer(dataMap = {}) {
     action: 'Je peux résumer les priorités du jour si vous voulez.',
     sources: ['business_events'],
     confidence: 86,
-  }, 'Historique');
+  }, 'Saisons & marchés');
 }
 
 function fmt(v) {
@@ -109,17 +109,17 @@ function fmt(v) {
 }
 
 const INTENT_HANDLERS = Object.freeze({
-  today_priorities: (dm, opt) => withCentreMeta(buildPrioritesConseilAnswer(dm), 'À traiter'),
-  priorites_du_jour: (dm, opt) => withCentreMeta(buildPrioritesConseilAnswer(dm), 'À traiter'),
-  farm_overview: (dm, opt) => withCentreMeta(buildCommentVaLaFermeConseilAnswer(dm), 'À traiter'),
-  comment_va_la_ferme: (dm, opt) => withCentreMeta(buildCommentVaLaFermeConseilAnswer(dm), 'À traiter'),
-  farm_status: (dm, opt) => withCentreMeta(buildCommentVaLaFermeConseilAnswer(dm), 'À traiter'),
-  main_risk: (dm) => withCentreMeta(buildRisquesAnswer(dm), 'Risques'),
-  farm_risks: (dm) => withCentreMeta(buildRisquesAnswer(dm), 'Risques'),
-  farm_opportunities: (dm) => withCentreMeta(buildOpportunitesAnswer(dm), 'Recommandations'),
+  today_priorities: (dm, opt) => withCentreMeta(buildPrioritesConseilAnswer(dm), 'Urgences & risques'),
+  priorites_du_jour: (dm, opt) => withCentreMeta(buildPrioritesConseilAnswer(dm), 'Urgences & risques'),
+  farm_overview: (dm, opt) => withCentreMeta(buildCommentVaLaFermeConseilAnswer(dm), 'Urgences & risques'),
+  comment_va_la_ferme: (dm, opt) => withCentreMeta(buildCommentVaLaFermeConseilAnswer(dm), 'Urgences & risques'),
+  farm_status: (dm, opt) => withCentreMeta(buildCommentVaLaFermeConseilAnswer(dm), 'Urgences & risques'),
+  main_risk: (dm) => withCentreMeta(buildRisquesAnswer(dm), 'Urgences & risques'),
+  farm_risks: (dm) => withCentreMeta(buildRisquesAnswer(dm), 'Urgences & risques'),
+  farm_opportunities: (dm) => withCentreMeta(buildOpportunitesAnswer(dm), 'Croissance & opportunités'),
   centre_recommendations: buildCentreRecommendationsAnswer,
   centre_cycles: buildCentreCyclesAnswer,
-  centre_opportunities: (dm) => withCentreMeta(buildOpportunitesAnswer(dm), 'Recommandations'),
+  centre_opportunities: (dm) => withCentreMeta(buildOpportunitesAnswer(dm), 'Croissance & opportunités'),
   activity_journal: buildCentreActivityAnswer,
 });
 

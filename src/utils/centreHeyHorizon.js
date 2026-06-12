@@ -3,12 +3,12 @@
  */
 
 export const CENTRE_HEY_HORIZON_QUESTIONS = [
-  { id: 'priorities', label: 'Priorités du jour', query: 'Que dois-je faire aujourd hui ?', moduleId: 'centre_ia', tab: 'À traiter' },
-  { id: 'main_risk', label: 'Risque principal', query: 'Quel est le principal risque ?', moduleId: 'centre_ia', tab: 'Risques' },
-  { id: 'recommendations', label: 'Recommandations', query: 'Quelles recommandations pour la ferme ?', moduleId: 'centre_ia', tab: 'Recommandations' },
-  { id: 'cycles', label: 'Cycles / lancement', query: 'Quand lancer une nouvelle bande ?', moduleId: 'centre_ia', tab: 'Cycles' },
-  { id: 'opportunities', label: 'Opportunités', query: 'Quelles opportunités de vente ?', moduleId: 'centre_ia', tab: 'Recommandations' },
-  { id: 'farm_status', label: 'Comment va la ferme', query: 'Comment va la ferme ?', moduleId: 'centre_ia', tab: 'À traiter' },
+  { id: 'priorities', label: 'Priorités du jour', query: 'Que dois-je faire aujourd hui ?', moduleId: 'centre_ia', tab: 'Urgences & risques' },
+  { id: 'main_risk', label: 'Risque principal', query: 'Quel est le principal risque ?', moduleId: 'centre_ia', tab: 'Urgences & risques' },
+  { id: 'recommendations', label: 'Recommandations', query: 'Quelles recommandations pour la ferme ?', moduleId: 'centre_ia', tab: 'Croissance & opportunités' },
+  { id: 'cycles', label: 'Cycles / lancement', query: 'Quand lancer une nouvelle bande ?', moduleId: 'centre_ia', tab: 'Saisons & marchés' },
+  { id: 'opportunities', label: 'Opportunités', query: 'Quelles opportunités de vente ?', moduleId: 'centre_ia', tab: 'Croissance & opportunités' },
+  { id: 'farm_status', label: 'Comment va la ferme', query: 'Comment va la ferme ?', moduleId: 'centre_ia', tab: 'Urgences & risques' },
 ];
 
 export function launchCentreHeyHorizonQuestion({ questionId = '', onNavigate, onOpenAssistant } = {}) {

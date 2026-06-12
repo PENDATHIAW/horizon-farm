@@ -12,8 +12,16 @@ const TAB_ALIASES = {
   Plans: 'Flux & Équilibres',
   Financeurs: 'Flux & Équilibres',
   Graphiques: 'Recommandations',
-  Opportunités: 'Cycles',
-  'Opportunités & cycles': 'Cycles',
+  Opportunités: 'Croissance & opportunités',
+  'Opportunités & cycles': 'Croissance & opportunités',
+  'À traiter': 'Urgences & risques',
+  Priorités: 'Urgences & risques',
+  'Priorités & risques': 'Urgences & risques',
+  Recommandations: 'Croissance & opportunités',
+  Risques: 'Urgences & risques',
+  Cycles: 'Saisons & marchés',
+  Historique: 'Saisons & marchés',
+  Annexe: 'Saisons & marchés',
 };
 
 const STRATEGIC_TABS = new Set([
@@ -26,12 +34,22 @@ const STRATEGIC_TABS = new Set([
   'Plans',
   'Financeurs',
 ]);
-const OPERATIONAL_TABS = new Set(['À traiter', 'Recommandations', 'Risques', 'Cycles', 'Historique', 'Opportunités']);
+const OPERATIONAL_TABS = new Set([
+  'Urgences & risques',
+  'Croissance & opportunités',
+  'Saisons & marchés',
+  'À traiter',
+  'Recommandations',
+  'Risques',
+  'Cycles',
+  'Historique',
+  'Opportunités',
+]);
 
 /** Onglet demandé → onglet valide pour ce module, ou redirection vers le module jumeau. */
 export function resolveVisionTab(moduleId, requestedTab, onNavigate) {
   const tabs = MODULE_TARGET_TABS[moduleId] || [];
-  const fallback = tabs[0] || 'À traiter';
+  const fallback = tabs[0] || 'Urgences & risques';
   const mapped = requestedTab ? (TAB_ALIASES[requestedTab] || requestedTab) : null;
   if (!mapped || tabs.includes(mapped)) {
     return mapped && tabs.includes(mapped) ? mapped : fallback;
@@ -57,11 +75,14 @@ export function openVisionPriority(item = {}, moduleId = 'centre_ia', { setTab, 
     return;
   }
   if (mappedTab && OPERATIONAL_TABS.has(mappedTab)) {
+    const resolvedTab = TAB_ALIASES[mappedTab] || mappedTab;
     const localTabs = MODULE_TARGET_TABS[moduleId] || [];
-    if (localTabs.includes(mappedTab)) {
+    if (localTabs.includes(resolvedTab)) {
+      setTab?.(resolvedTab);
+    } else if (localTabs.includes(mappedTab)) {
       setTab?.(mappedTab);
     } else {
-      onNavigate?.('centre_ia', { tab: mappedTab });
+      onNavigate?.('centre_ia', { tab: resolvedTab });
     }
     return;
   }
@@ -80,10 +101,11 @@ export function buildVisionBadges(data = {}, moduleId = 'centre_ia') {
 
   const tabs = {};
   if (moduleId === 'centre_ia') {
-    if (treatCount > 0) tabs['À traiter'] = treatCount;
-    if (risksCount > 0) tabs.Risques = criticalRisks || risksCount;
+    const urgentBadge = treatCount + criticalRisks;
+    if (urgentBadge > 0) tabs['Urgences & risques'] = urgentBadge;
     const cycleSignals = n(data.criticalStockCount) + n(data.openAlertsCount);
-    if (cycleSignals > 0) tabs.Cycles = cycleSignals;
+    if (cycleSignals > 0) tabs['Saisons & marchés'] = cycleSignals;
+    if (openOpportunities.length > 0) tabs['Croissance & opportunités'] = openOpportunities.length;
   } else {
     if (unreliableMargins > 0) tabs['Rentabilité Lot & Cycle'] = unreliableMargins;
     if (predictionsCount > 0) tabs['Efficacité Technique'] = predictionsCount;

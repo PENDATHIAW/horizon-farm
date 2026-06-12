@@ -55,7 +55,7 @@ for (const moduleId of CRITICAL) {
     assert.ok(loader, `missing entry for ${moduleId}`);
     const mod = await loader();
     const Component = mod.default;
-    const extra = moduleId === 'centre_ia' ? { initialTab: 'À traiter' } : {};
+    const extra = moduleId === 'centre_ia' ? { initialTab: 'Urgences & risques' } : {};
     const html = renderToString(React.createElement(Component, { ...baseProps, ...extra }));
     assert.ok(html.length > 20, `${moduleId} rendered empty`);
   });

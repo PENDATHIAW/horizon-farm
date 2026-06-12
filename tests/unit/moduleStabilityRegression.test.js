@@ -61,7 +61,7 @@ const TAB_OVERRIDES = {
   commercial: { initialTab: 'Résumé' },
   achats_stock: { initialTab: 'Stock' },
   elevage: { initialTab: 'Résumé' },
-  centre_ia: { initialTab: 'À traiter' },
+  centre_ia: { initialTab: 'Urgences & risques' },
   activite_suivi: { initialTab: 'Résumé' },
   gestion_systeme: { initialTab: 'Vue admin' },
 };

@@ -14,7 +14,7 @@ export const MODULE_TARGET_TABS = {
   dashboard: ['Résumé', 'Graphiques'],
   assistant_erp: ['Hey Horizon'],
   objectifs_croissance: ['Rentabilité Lot & Cycle', 'Efficacité Technique', 'Flux & Équilibres', 'Maraîchage & Diversification', 'Annexe', 'Graphiques'],
-  centre_ia: ['À traiter', 'Recommandations', 'Cycles', 'Risques', 'Historique', 'Annexe', 'Graphiques'],
+  centre_ia: ['Urgences & risques', 'Croissance & opportunités', 'Saisons & marchés'],
   elevage: ['Résumé', 'Cycles', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Annexe', 'Graphiques'],
   commercial: ['Résumé', 'Ventes', 'Clients', 'Livraisons', 'Abonnements', 'Relances', 'Opportunités', 'Pilotage', 'Annexe', 'Graphiques'],
   achats_stock: ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Annexe', 'Graphiques'],

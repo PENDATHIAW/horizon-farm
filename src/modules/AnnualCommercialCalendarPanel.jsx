@@ -19,7 +19,7 @@ export default function AnnualCommercialCalendarPanel({ dataMap = {} }) {
           <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><CalendarDays size={15} /> Calendrier commercial annuel</p>
           <h3 className="text-xl font-black text-[#2f2415] mt-1">Référence saisonnière — ventes toute l&apos;année</h3>
           <p className="text-sm text-[#8a7456] mt-1">
-            Document de référence (pas une file d&apos;actions). Les décisions de lancement et fêtes à venir sont dans l&apos;onglet Cycles.
+            Document de référence (pas une file d&apos;actions). Les décisions de lancement et fêtes à venir sont dans l&apos;onglet Saisons & marchés.
           </p>
           {upcoming.length ? (
             <p className="text-xs text-[#9a6b12] font-black mt-2">

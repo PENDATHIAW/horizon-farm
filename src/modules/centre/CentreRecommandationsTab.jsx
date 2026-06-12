@@ -20,9 +20,9 @@ export default function CentreRecommandationsTab({
           <p className="text-sm text-[#8a7456] mt-1">
             Ici : uniquement écarts de chiffre d&apos;affaires, clients et couverture de la demande.
             Pour <b>lancer une bande</b> ou le <b>vide sanitaire</b> → onglet{' '}
-            <button type="button" onClick={() => onSwitchTab?.('Cycles')} className="font-black text-[#9a6b12] underline">Cycles</button>.
+            <button type="button" onClick={() => onSwitchTab?.('Saisons & marchés')} className="font-black text-[#9a6b12] underline">Saisons & marchés</button>.
             Pour <b>vendre un lot en urgence</b> → onglet{' '}
-            <button type="button" onClick={() => onSwitchTab?.('Risques')} className="font-black text-[#9a6b12] underline">Risques</button>.
+            <button type="button" onClick={() => onSwitchTab?.('Urgences & risques')} className="font-black text-[#9a6b12] underline">Urgences & risques</button>.
           </p>
         </div>
 
@@ -41,9 +41,9 @@ export default function CentreRecommandationsTab({
 
       <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-xs text-[#7d6a4a]">
         Les fêtes à venir (Magal, Gamou, fin d&apos;année…) et les dates limites de lancement sont dans l&apos;onglet{' '}
-        <button type="button" onClick={() => onSwitchTab?.('Cycles')} className="font-black text-[#9a6b12] underline">Cycles</button>.
-        Le calendrier saisonnier détaillé est dans{' '}
-        <button type="button" onClick={() => onSwitchTab?.('Historique')} className="font-black text-[#9a6b12] underline">Historique</button>.
+        <button type="button" onClick={() => onSwitchTab?.('Saisons & marchés')} className="font-black text-[#9a6b12] underline">Saisons & marchés</button>.
+        Le suivi ROI des décisions est dans{' '}
+        <button type="button" onClick={() => onSwitchTab?.('Croissance & opportunités')} className="font-black text-[#9a6b12] underline">Croissance & opportunités</button>.
       </div>
     </div>
   );
