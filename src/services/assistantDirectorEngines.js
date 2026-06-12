@@ -4,6 +4,7 @@
  */
 
 import { normalizeAgriculturalText } from './assistantUniversalIntents.js';
+import { isAffirmativeFollowUp } from './assistantProgressiveResponse.js';
 import { fmtCurrency } from '../utils/format.js';
 import { buildDirectorSnapshot } from './assistantDirectorSnapshot.js';
 import {
@@ -42,6 +43,12 @@ export function resolveDirectorIntent(query = '', conversationContext = null) {
   if (!q) return null;
 
   const memory = conversationContext?.memory || {};
+  if (isAffirmativeFollowUp(query) && (
+    memory.topReceivable
+    || conversationContext?.pendingFollowUp === 'receivable_detail'
+  )) {
+    return DIRECTOR_INTENTS.RECEIVABLE_FOLLOW_UP;
+  }
   if (memory.topReceivable && (CLIENT_FOLLOW_UP.test(q) || NAME_FOLLOW_UP.test(q))) {
     return DIRECTOR_INTENTS.RECEIVABLE_FOLLOW_UP;
   }

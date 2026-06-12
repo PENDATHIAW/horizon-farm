@@ -221,7 +221,7 @@ function matchFamily(text, family, entries) {
  * Classifie une phrase dans la matrice universelle.
  * @returns {UniversalIntentMatch | null}
  */
-export function classifyUniversalIntent(text = '', { minScore = 0.04, semanticMinScore = 0.26 } = {}) {
+export function classifyUniversalIntent(text = '', { minScore = 0.04, semanticMinScore = 0.21 } = {}) {
   const q = normalizeAgriculturalText(text);
   if (!q) return null;
 

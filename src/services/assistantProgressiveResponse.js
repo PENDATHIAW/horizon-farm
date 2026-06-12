@@ -7,13 +7,19 @@ import { formatConversationalHorizonAnswer, stripTechnicalLeaks } from './assist
 const DETAIL_CHAR_THRESHOLD = 260;
 const SUMMARY_MAX_SENTENCES = 2;
 
-const DETAIL_YES = /^(oui|yes|ok|d accord|detail|détail|vas y|go|continue|suite|plus|elaborer|en savoir)/i;
+const AFFIRMATIVE_FOLLOW_UP = /^(oui|yes|ok|d accord|d'accord|detail|détail|detaille|détaille|vas[- ]?y|allez[- ]?y|go|continue|suite|plus|elaborer|en savoir|precise|précise|montre|montrez)\b/i;
 
-export function isDetailFollowUp(text = '') {
+export function isAffirmativeFollowUp(text = '') {
   const q = String(text || '').trim().toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-  return DETAIL_YES.test(q) || /^donne(?:z)? (?:moi )?le detail/.test(q);
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/['']/g, "'");
+  return AFFIRMATIVE_FOLLOW_UP.test(q) || /^donne(?:z)? (?:moi )?(?:le )?detail/.test(q);
+}
+
+/** @deprecated alias — préférer isAffirmativeFollowUp */
+export function isDetailFollowUp(text = '') {
+  return isAffirmativeFollowUp(text);
 }
 
 /**

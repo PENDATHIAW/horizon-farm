@@ -8,6 +8,7 @@ import {
   UNIVERSAL_INTENT_FAMILIES,
 } from './assistantUniversalIntents.js';
 import { resolveUltraShortIntent } from './assistantUltraShortIntents.js';
+import { isAffirmativeFollowUp } from './assistantProgressiveResponse.js';
 
 export function isDeclarativeVoiceCommand(text = '') {
   const trimmed = String(text || '').trim();
@@ -22,6 +23,7 @@ export function isDeclarativeVoiceCommand(text = '') {
 /** Salutations, météo, ultra-courts et questions métier → routeur assistant ERP. */
 export function shouldRouteToAssistant(text = '') {
   if (isDeclarativeVoiceCommand(text)) return false;
+  if (isAffirmativeFollowUp(text)) return true;
   const trimmed = String(text || '').trim();
   if (trimmed.endsWith('?')) return true;
   if (resolveUltraShortIntent(text)) return true;

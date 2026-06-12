@@ -71,3 +71,23 @@ test('resolves quel client after receivables context', () => {
   const follow = resolveFollowUp('quel client ?', ctx);
   assert.equal(follow?.forcedIntent, 'receivable_follow_up');
 });
+
+test('resolves vas y after bonjour with receivable offer in memory', () => {
+  let ctx = createConversationContext();
+  ctx = updateConversationContext(ctx, {
+    query: 'bonjour',
+    intent: 'greeting',
+    family: 'SALUTATION',
+    answerMeta: {
+      topReceivable: {
+        clientName: 'Grossiste Dakar Œufs',
+        amount: 500000,
+        orderId: 'HF-CMD-010',
+        delayDays: 12,
+      },
+    },
+  });
+  assert.equal(ctx.pendingFollowUp, 'receivable_detail');
+  const follow = resolveFollowUp('vas y', ctx);
+  assert.equal(follow?.forcedIntent, 'receivable_follow_up');
+});

@@ -5,6 +5,7 @@
 
 import { normalizeAgriculturalText } from './assistantUniversalIntents.js';
 import { resolveUltraShortIntent } from './assistantUltraShortIntents.js';
+import { isAffirmativeFollowUp } from './assistantProgressiveResponse.js';
 
 const FOLLOW_UP_MARKERS = [
   /^et\b/,
@@ -135,6 +136,8 @@ export function createConversationContext() {
     memory: {
       topReceivable: null,
     },
+    /** Suite proposée : receivable_detail · progressive_detail */
+    pendingFollowUp: null,
   };
 }
 
@@ -157,6 +160,19 @@ export function resolveFollowUp(query = '', context = createConversationContext(
     };
   }
 
+  if (isAffirmativeFollowUp(query) && (
+    context?.pendingFollowUp === 'receivable_detail'
+    || context?.memory?.topReceivable
+    || (RECEIVABLE_INTENTS.has(context?.lastIntent) && context?.memory?.topReceivable)
+    || ['comment_va_la_ferme', 'greeting', 'farm_overview'].includes(context?.lastIntent) && context?.memory?.topReceivable
+  )) {
+    return {
+      expandedQuery: query,
+      forcedIntent: 'receivable_follow_up',
+      forcedFamily: 'COMMERCIAL',
+    };
+  }
+
   const ultra = resolveUltraShortIntent(query);
   if (ultra && !isClientFollowUpQuery(query)) {
     const shortOk = !context?.lastIntent || isFollowUp(q) || q.split(/\s+/).length <= 2;
@@ -170,6 +186,7 @@ export function resolveFollowUp(query = '', context = createConversationContext(
   }
 
   if (!context?.lastIntent) return null;
+  if (isAffirmativeFollowUp(query)) return null;
   if (!isFollowUp(q) && q.split(/\s+/).length > 4) return null;
 
   const species = detectSpecies(q);
@@ -261,6 +278,11 @@ export function updateConversationContext(context, {
 
   if (answerMeta?.topReceivable) {
     next.memory.topReceivable = answerMeta.topReceivable;
+    next.pendingFollowUp = 'receivable_detail';
+  }
+
+  if (intent === 'receivable_follow_up' || intent === 'receivable_detail') {
+    next.pendingFollowUp = null;
   }
 
   const species = detectSpecies(query);

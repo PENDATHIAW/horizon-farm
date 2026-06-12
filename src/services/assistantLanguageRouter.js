@@ -4,6 +4,8 @@
  */
 
 import { classifyUniversalIntent, isQuestionIntent, UNIVERSAL_INTENT_FAMILIES } from './assistantUniversalIntents.js';
+import { classifyBySemanticPhrases } from './assistantSemanticMatcher.js';
+import { SEMANTIC_INTENT_CATALOG } from './assistantBusinessQuestions.js';
 import { classifyCompositeQuery } from './assistantMultiIntentMatrix.js';
 import { resolveFollowUp, updateConversationContext } from './assistantConversationContext.js';
 import { buildAgriculturalAnswer } from './assistantAgriculturalContext.js';
@@ -131,6 +133,17 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
     if (single && isQuestionIntent(single)) intents = [{ ...single, segment: workingQuery }];
     else if (single?.family === UNIVERSAL_INTENT_FAMILIES.DECLARER) {
       return { handled: false, declarerIntent: single };
+    } else if (!single) {
+      const semantic = classifyBySemanticPhrases(workingQuery, SEMANTIC_INTENT_CATALOG, { minScore: 0.17 });
+      if (semantic) {
+        intents = [{
+          family: semantic.family,
+          intent: semantic.intent,
+          label: semantic.label,
+          score: semantic.score,
+          segment: workingQuery,
+        }];
+      }
     }
   }
 
