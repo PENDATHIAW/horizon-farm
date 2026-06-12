@@ -11,11 +11,38 @@ const valueLabel = (value) => { if (value === null || value === undefined || val
 const draftTargetModule = (draft = {}) => draft.primary_module || draft.target_module || (draft.impacted_modules || [])[0] || 'dashboard';
 const formTitle = (draft = {}) => draft.form_type === 'health_action' ? `Ouvrir fiche ${draft.draft_fields?.action_type === 'deparasitage' ? 'déparasitage' : draft.draft_fields?.action_type === 'soin' ? 'soin' : 'vaccination'}` : draft.form_type === 'sale_record' ? 'Ouvrir vente guidée' : draft.form_type?.startsWith('animal_') ? 'Ouvrir fiche animal' : `Modifier dans ${moduleLabel(draftTargetModule(draft))}`;
 
-function InlineDraftActions({ draft, onValidate, onCancel, isValidating = false }) {
+function InlineDraftActions({
+  draft,
+  onValidate,
+  onCancel,
+  isValidating = false,
+  onCompletionChoice,
+}) {
   const missing = draft.missing_fields || [];
-  const hasBlockingMissing = missing.length > 0;
+  const completion = draft.documentCompletion;
+  const awaitingCompletion = completion?.awaitingReply;
+  const hasBlockingMissing = missing.length > 0 || awaitingCompletion;
+  const choices = completion?.choices || [];
+
   return (
-    <div className="mt-4 flex flex-wrap gap-2">
+    <div className="mt-4 space-y-3">
+      {choices.length ? (
+        <div className="flex flex-wrap gap-2">
+          {choices.map((choice) => (
+            <button
+              key={choice.id}
+              type="button"
+              disabled={isValidating}
+              onClick={() => onCompletionChoice?.(choice)}
+              className="rounded-lg border px-3 py-2 text-xs font-semibold tracking-wide disabled:opacity-40"
+              style={{ borderColor: HORIZON.border, color: HORIZON.text, background: HORIZON.surface }}
+            >
+              {choice.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      <div className="flex flex-wrap gap-2">
       <button
         type="button"
         disabled={hasBlockingMissing || isValidating}
@@ -23,7 +50,7 @@ function InlineDraftActions({ draft, onValidate, onCancel, isValidating = false 
         className="rounded-lg px-4 py-2 text-xs font-semibold tracking-wide text-white disabled:opacity-40"
         style={{ background: HORIZON.primary }}
       >
-        {isValidating ? 'Confirmation…' : 'Confirmer'}
+        {isValidating ? 'Confirmation…' : (completion ? 'VALIDER' : 'Confirmer')}
       </button>
       <button
         type="button"
@@ -34,6 +61,7 @@ function InlineDraftActions({ draft, onValidate, onCancel, isValidating = false 
       >
         Annuler
       </button>
+      </div>
     </div>
   );
 }
@@ -123,12 +151,21 @@ export default function HorizonDraftPanel({
   onValidate,
   onCancel,
   onOpenModule,
+  onCompletionChoice,
   variant = 'full',
   isValidating = false,
 }) {
   if (!draft || !draft.intent || draft.status === 'unsupported' || draft.status === 'wake_only') return null;
   if (variant === 'inline') {
-    return <InlineDraftActions draft={draft} onValidate={onValidate} onCancel={onCancel} isValidating={isValidating} />;
+    return (
+      <InlineDraftActions
+        draft={draft}
+        onValidate={onValidate}
+        onCancel={onCancel}
+        isValidating={isValidating}
+        onCompletionChoice={onCompletionChoice}
+      />
+    );
   }
   return (
     <FullDraftPanel

@@ -5,10 +5,16 @@ import HorizonDraftPanel from '../components/HorizonDraftPanel.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import useHeyHorizonCommand from '../hooks/useHeyHorizonCommand.js';
 import { buildAssistantWelcomeMessage } from '../services/assistantFarmSecretary.js';
+import {
+  analyzeDocumentForCompletion,
+  applyDocumentCompletionChoice,
+  applyDocumentCompletionReply,
+} from '../services/assistantDocumentCompletion.js';
 import { isDetailFollowUp } from '../services/assistantProgressiveResponse.js';
 import { formatStrategicHorizonAnswer, stripTechnicalLeaks } from '../services/assistantResponseFormatter.js';
 import { shouldRouteToAssistant } from '../services/assistantChatRouting.js';
 import { processContextualVoiceInput } from '../services/aiGateway/contextualVoiceService.js';
+import { extractTextFromDocument } from '../services/aiGateway/documentTextExtraction.js';
 import { enrichAssistantDataMap } from '../utils/assistantDataMap.js';
 import { HORIZON_DESIGN as D } from './assistant/horizonDesignTokens.js';
 import HorizonPhoneShell, {
@@ -33,7 +39,7 @@ function messageTime() {
   return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 
-function ChatDraftBlock({ draft, isValidating, onValidate, onCancel }) {
+function ChatDraftBlock({ draft, isValidating, onValidate, onCancel, onCompletionChoice }) {
   return (
     <HorizonAssistantBubble>
       <HeyHorizonDraftSummary draft={draft} variant="inline" />
@@ -43,6 +49,7 @@ function ChatDraftBlock({ draft, isValidating, onValidate, onCancel }) {
         isValidating={isValidating}
         onValidate={onValidate}
         onCancel={onCancel}
+        onCompletionChoice={onCompletionChoice}
       />
     </HorizonAssistantBubble>
   );
@@ -175,6 +182,7 @@ export default function HeyHorizonModule({
     cancelDraft,
     validateDraft,
     loadDraft,
+    setDraft,
   } = useHeyHorizonCommand({ dataMap: enrichedDataMap, onNavigate, allowWeakDraft: true, onCreateBusinessEvent });
 
   const appendMessage = useCallback((role, text, extra = {}) => {
@@ -225,6 +233,15 @@ export default function HeyHorizonModule({
     scrollToBottom(true);
     setVoiceBusy(true);
     try {
+      if (draft?.documentCompletion?.awaitingReply) {
+        const result = applyDocumentCompletionReply(draft, query, enrichedDataMap);
+        if (result.draft) {
+          setDraft(result.draft);
+          appendMessage('assistant', result.assistantText || 'Merci, je complète le brouillon.', { plain: true });
+        }
+        return;
+      }
+
       if (!shouldRouteToAssistant(query)) {
         const parsed = await processContextualVoiceInput({
           phrase: query,
@@ -301,7 +318,7 @@ export default function HeyHorizonModule({
     } finally {
       setVoiceBusy(false);
     }
-  }, [appendMessage, command, enrichedDataMap, isProcessing, loadDraft, onCreateBusinessEvent, runCommand, voiceBusy]);
+  }, [appendMessage, command, draft, enrichedDataMap, isProcessing, loadDraft, onCreateBusinessEvent, runCommand, setDraft, voiceBusy]);
 
   useEffect(() => {
     const handler = (event) => {
@@ -337,11 +354,41 @@ export default function HeyHorizonModule({
     toast('Micro bientôt disponible — écrivez votre message pour l\'instant.');
   };
 
-  const handleFileChange = (event) => {
+  const handleCompletionChoice = useCallback((choice) => {
+    if (!draft?.documentCompletion) return;
+    const result = applyDocumentCompletionChoice(draft, choice, enrichedDataMap);
+    if (result.draft) {
+      setDraft(result.draft);
+      appendMessage('assistant', result.assistantText || 'Choix enregistré.', { plain: true });
+    }
+  }, [appendMessage, draft, enrichedDataMap, setDraft]);
+
+  const handleFileChange = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    toast.success(`Pièce jointe « ${file.name} » reçue.`);
     event.target.value = '';
+    stickToBottomRef.current = true;
+    setVoiceBusy(true);
+    try {
+      appendMessage('user', `Document : ${file.name}`);
+      const extraction = await extractTextFromDocument(file);
+      if (!extraction.text) {
+        appendMessage('assistant', extraction.hint || 'Je n\'ai pas pu lire ce document. Collez le texte de la facture ou envoyez une photo plus nette.');
+        return;
+      }
+      const analysis = analyzeDocumentForCompletion(extraction.text, enrichedDataMap);
+      if (!analysis.ok || !analysis.draft) {
+        appendMessage('assistant', analysis.assistantText || 'Document non reconnu.');
+        return;
+      }
+      loadDraft(analysis.draft);
+      appendMessage('assistant', analysis.assistantText, { plain: true });
+    } catch (error) {
+      toast.error(error.message || 'Analyse document impossible');
+      appendMessage('assistant', 'Je n\'ai pas pu analyser ce document. Décrivez l\'achat ou la vente en une phrase.');
+    } finally {
+      setVoiceBusy(false);
+    }
   };
 
   const busy = voiceBusy || isProcessing;
@@ -370,6 +417,7 @@ export default function HeyHorizonModule({
             isValidating={isValidating}
             onValidate={handleValidate}
             onCancel={handleCancel}
+            onCompletionChoice={handleCompletionChoice}
           />
         ) : null}
 
