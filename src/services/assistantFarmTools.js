@@ -1,6 +1,5 @@
 /**
- * PHASE B — Outils métier ERP pour l'agent Hey Horizon.
- * 5 domaines prioritaires : créances, stock, élevage, trésorerie, priorités du jour.
+ * PHASE B étendue — Outils métier par module ERP (15 domaines).
  */
 
 import { normalizeAgriculturalText, classifyUniversalIntent, isQuestionIntent } from './assistantUniversalIntents.js';
@@ -17,80 +16,209 @@ const n = (v) => Number(v || 0);
 
 export const FARM_TOOL_IDS = Object.freeze({
   RECEIVABLES: 'get_receivables',
+  COMMERCIAL: 'get_commercial_status',
   STOCK: 'get_stock_status',
   ELEVAGE: 'get_elevage_status',
+  CULTURES: 'get_cultures_status',
+  METEO: 'get_meteo_status',
   TREASURY: 'get_treasury',
+  OBJECTIFS: 'get_objectifs_status',
   PRIORITIES: 'get_daily_priorities',
+  DOCUMENTS: 'get_documents_activity',
+  RH: 'get_rh_operations',
+  INVESTOR: 'get_investor_insights',
+  ADMIN: 'get_admin_status',
 });
 
-/** Catalogue exposé au LLM et au routeur. */
+const DIRECTOR_BY_INTENT = Object.freeze({
+  farm_trends: DIRECTOR_INTENTS.TENDANCES,
+  farm_comparisons: DIRECTOR_INTENTS.COMPARAISONS,
+  farm_risks: DIRECTOR_INTENTS.RISQUES,
+  main_risk: DIRECTOR_INTENTS.RISQUES,
+  farm_opportunities: DIRECTOR_INTENTS.OPPORTUNITES,
+  money_leaks: DIRECTOR_INTENTS.MONEY_LEAKS,
+  comment_va_la_ferme: DIRECTOR_INTENTS.COMMENT_VA_LA_FERME,
+  farm_overview: DIRECTOR_INTENTS.COMMENT_VA_LA_FERME,
+  farm_status: DIRECTOR_INTENTS.COMMENT_VA_LA_FERME,
+  progress_status: DIRECTOR_INTENTS.OBJECTIF_STATUS,
+  annual_outlook: DIRECTOR_INTENTS.OBJECTIF_STATUS,
+  objectif_status: DIRECTOR_INTENTS.OBJECTIF_STATUS,
+  priorites_du_jour: DIRECTOR_INTENTS.PRIORITES_DU_JOUR,
+  today_priorities: DIRECTOR_INTENTS.PRIORITES_DU_JOUR,
+});
+
+/** Catalogue complet — aligné sur MODULE_BUSINESS_QUESTIONS. */
 export const FARM_TOOL_CATALOG = Object.freeze([
   {
     id: FARM_TOOL_IDS.RECEIVABLES,
-    label: 'Créances et relances clients',
-    description: 'Qui doit de l\'argent, montants impayés, clients à relancer',
-    intents: ['receivables', 'relances', 'creances', 'receivable_follow_up', 'follow_up'],
-    patterns: [
-      /creance|créance|impaye|impayé|relance|me doit|doivent.*argent|qui me doit|clients?.*doit/i,
-    ],
+    label: 'Créances et relances',
+    description: 'Clients débiteurs, impayés, relances à faire',
     moduleKey: 'commercial',
+    intents: ['receivables', 'relances', 'creances', 'receivable_follow_up', 'follow_up', 'receivable_detail'],
+    patterns: [/creance|créance|impaye|impayé|relance|me doit|doivent.*argent|qui me doit|clients?.*doit|argent a recuperer/i],
+  },
+  {
+    id: FARM_TOOL_IDS.COMMERCIAL,
+    label: 'Commercial et ventes',
+    description: 'CA, ventes, commandes, livraisons, meilleur client/produit, opportunités',
+    moduleKey: 'commercial',
+    intents: [
+      'ventes', 'top_client', 'top_product', 'commercial_summary', 'ventes_today',
+      'orders_overview', 'deliveries_overview', 'sell_today', 'farm_opportunities', 'ca_progress',
+    ],
+    patterns: [
+      /ventes?|chiffre d.?affaires|\bca\b|commandes?|livraisons?|meilleur client|meilleur produit|produit.*vend|commercial|opportunite|opportunité|quoi vendre|que vendre/i,
+    ],
   },
   {
     id: FARM_TOOL_IDS.STOCK,
-    label: 'Stock et ruptures',
-    description: 'Niveaux de stock, ruptures, aliments, seuils critiques',
-    intents: ['stock_ruptures', 'stock_remain', 'stock_aliment', 'stock_critical_lookup', 'top_product'],
-    patterns: [
-      /stock|rupture|aliment|intrant|seuil|reste.*stock|quantite.*stock/i,
-    ],
+    label: 'Stock et achats',
+    description: 'Inventaire, ruptures, aliments, DLC, achats, fournisseurs',
     moduleKey: 'stock',
+    intents: [
+      'stock_overview', 'stock_remain', 'stock_aliment', 'stock_maiz', 'stock_ruptures',
+      'stock_dlc', 'stock_sellable', 'purchases_overview', 'suppliers_overview', 'stock_critical_lookup',
+    ],
+    patterns: [
+      /stock|rupture|magasin|inventaire|aliment|intrant|dlc|peremption|péremotion|achats?|fournisseurs?|seuil|manque de/i,
+    ],
   },
   {
     id: FARM_TOOL_IDS.ELEVAGE,
-    label: 'Élevage et lots',
-    description: 'Cheptel, lots actifs, animaux malades, sous traitement, mortalité',
+    label: 'Élevage',
+    description: 'Cheptel, lots, espèces, traitements, mortalité, surveillance',
+    moduleKey: 'elevage',
     intents: [
-      'lots_overview', 'lots_sick', 'lot_mortality', 'animals_under_treatment',
-      'headcount_total', 'headcount_bovins', 'headcount_poulets', 'my_animals',
+      'my_animals', 'lots_overview', 'lots_sick', 'lot_mortality', 'animals_under_treatment',
+      'lots_surveillance', 'elevage_status', 'headcount_total', 'headcount_bovins', 'headcount_poulets',
+      'headcount_pondeuses', 'headcount_ovins', 'headcount_caprins',
     ],
     patterns: [
-      /elevage|élevage|lot|cheptel|bovin|ovin|poulet|pondeuse|avicole|malade|traitement|mortalite|mortalité|animaux/i,
+      /elevage|élevage|cheptel|lot|bande|bovin|ovin|caprin|poulet|pondeuse|avicole|malade|traitement|mortalite|mortalité|animaux|vache|mouton|chevre|chèvre|surveiller/i,
     ],
-    moduleKey: 'elevage',
+  },
+  {
+    id: FARM_TOOL_IDS.CULTURES,
+    label: 'Cultures et parcelles',
+    description: 'Parcelles, rendements, récoltes, campagnes, cultures en difficulté',
+    moduleKey: 'cultures',
+    intents: [
+      'parcelles_status', 'rendement', 'recoltes', 'campagnes', 'cultures_difficulte',
+      'parcel_best', 'culture_profit',
+    ],
+    patterns: [
+      /parcelle|culture|recolte|récolte|rendement|campagne|saison agricole|tomate|oignon|mais|maïs|difficulte|difficulté/i,
+    ],
+  },
+  {
+    id: FARM_TOOL_IDS.METEO,
+    label: 'Météo',
+    description: 'Conditions actuelles, risques météo, prévisions',
+    moduleKey: 'cultures',
+    intents: ['weather_now', 'weather_risk', 'weather_forecast'],
+    patterns: [/meteo|météo|pluie|pleuvoir|temperature|température|vent|humidite|humidité|temps qu il fait/i],
   },
   {
     id: FARM_TOOL_IDS.TREASURY,
-    label: 'Trésorerie et finances',
-    description: 'Cash disponible, dettes, résultat, situation financière',
-    intents: ['treasury', 'dettes', 'resultat', 'money_leaks'],
-    patterns: [
-      /tresorerie|trésorerie|caisse|liquidite|liquidité|combien j.?ai|argent disponible|dettes?|resultat|résultat|marge/i,
-    ],
+    label: 'Finance et trésorerie',
+    description: 'Trésorerie, dettes, charges, rentabilité, fuites financières',
     moduleKey: 'finance_pilotage',
+    intents: [
+      'treasury', 'dettes', 'creances', 'resultat', 'charges_overview', 'money_leaks',
+      'profitability', 'investment_capacity',
+    ],
+    patterns: [
+      /tresorerie|trésorerie|caisse|liquidite|liquidité|combien j.?ai|argent disponible|dettes?|resultat|résultat|marge|rentab|charges?|depenses?|dépenses?|perdre de l argent|fuite/i,
+    ],
+  },
+  {
+    id: FARM_TOOL_IDS.OBJECTIFS,
+    label: 'Objectifs et croissance',
+    description: 'Avancement objectifs mensuels/annuels, projections',
+    moduleKey: 'objectifs_croissance',
+    intents: ['progress_status', 'annual_outlook', 'month_goal', 'annual_goal', 'objectif_status'],
+    patterns: [/objectif|atteindre|cible|avancement|projection|ecart|écart|finir l annee|finir l année/i],
   },
   {
     id: FARM_TOOL_IDS.PRIORITIES,
-    label: 'Priorités du jour',
-    description: 'Que faire aujourd\'hui, urgences, vue synthétique exploitation',
-    intents: ['today_priorities', 'priorites_du_jour', 'comment_va_la_ferme', 'farm_overview'],
-    patterns: [
-      /priorite|priorité|que faire|urgence|aujourd.?hui|comment va (la ferme|l exploitation)|situation globale|par quoi commencer/i,
-    ],
+    label: 'Priorités et pilotage',
+    description: 'Urgences du jour, journal d\'activité, que faire',
     moduleKey: 'centre_ia',
+    intents: [
+      'today_priorities', 'priorites_du_jour', 'comment_va_la_ferme', 'farm_overview',
+      'farm_status', 'activity_journal',
+    ],
+    patterns: [
+      /priorite|priorité|que faire|urgence|aujourd.?hui|par quoi commencer|comment va (la ferme|l exploitation)|situation globale|journal|activite recente|activité récente/i,
+    ],
+  },
+  {
+    id: FARM_TOOL_IDS.DOCUMENTS,
+    label: 'Documents et rapports',
+    description: 'Rapports générés, exports, documents exploitation',
+    moduleKey: 'documents_rapports',
+    intents: ['documents_summary'],
+    patterns: [/rapports?|documents?|exports?|justificatif|preuve|generes|générés/i],
+  },
+  {
+    id: FARM_TOOL_IDS.RH,
+    label: 'RH et équipements',
+    description: 'Personnel, équipes, tracteurs, maintenance matériel',
+    moduleKey: 'rh',
+    intents: ['rh_personnel', 'equipment_overview', 'equipment_action'],
+    patterns: [/personnel|equipes?|équipes?|employe|employé|tracteur|equipement|équipement|maintenance|panne|ressources humaines/i],
+  },
+  {
+    id: FARM_TOOL_IDS.INVESTOR,
+    label: 'Investisseur et performance',
+    description: 'Vue financeur, croissance, risques, tendances, comparaisons',
+    moduleKey: 'investisseurs_forums',
+    intents: [
+      'investor_summary', 'growth', 'ca_progress', 'investment_capacity', 'main_risk',
+      'farm_trends', 'farm_comparisons', 'farm_risks',
+    ],
+    patterns: [
+      /investisseur|financeur|banque|dossier|croissance|performance|tendance|compar|versus|vs mois|risque principal|vigilance/i,
+    ],
+  },
+  {
+    id: FARM_TOOL_IDS.ADMIN,
+    label: 'Système et synchronisation',
+    description: 'Sync ERP, intégrité données, administration',
+    moduleKey: 'gestion_systeme',
+    intents: ['sync_status', 'system_overview'],
+    patterns: [/synchronis|sync erp|integrite|intégrité|utilisateurs?|permissions?|parametres|paramètres|administration/i],
   },
 ]);
 
 const DEFAULT_INTENT_BY_TOOL = Object.freeze({
   [FARM_TOOL_IDS.RECEIVABLES]: 'receivables',
-  [FARM_TOOL_IDS.STOCK]: 'stock_ruptures',
+  [FARM_TOOL_IDS.COMMERCIAL]: 'ventes',
+  [FARM_TOOL_IDS.STOCK]: 'stock_overview',
   [FARM_TOOL_IDS.ELEVAGE]: 'lots_overview',
+  [FARM_TOOL_IDS.CULTURES]: 'parcelles_status',
+  [FARM_TOOL_IDS.METEO]: 'weather_now',
   [FARM_TOOL_IDS.TREASURY]: 'treasury',
+  [FARM_TOOL_IDS.OBJECTIFS]: 'progress_status',
   [FARM_TOOL_IDS.PRIORITIES]: 'priorites_du_jour',
+  [FARM_TOOL_IDS.DOCUMENTS]: 'documents_summary',
+  [FARM_TOOL_IDS.RH]: 'rh_personnel',
+  [FARM_TOOL_IDS.INVESTOR]: 'investor_summary',
+  [FARM_TOOL_IDS.ADMIN]: 'sync_status',
 });
+
+function resolveToolIntent(toolId, query = '', forcedIntent = null) {
+  if (forcedIntent) return forcedIntent;
+  const universal = classifyUniversalIntent(query);
+  const tool = FARM_TOOL_CATALOG.find((t) => t.id === toolId);
+  if (universal && isQuestionIntent(universal) && tool?.intents.includes(universal.intent)) {
+    return universal.intent;
+  }
+  return DEFAULT_INTENT_BY_TOOL[toolId];
+}
 
 /**
  * Route une question vers un outil métier.
- * @returns {{ toolId: string, intent?: string, confidence: number, label?: string } | null}
  */
 export function routeFarmTool(question = '', dataMap = {}) {
   const q = normalizeAgriculturalText(question);
@@ -118,11 +246,11 @@ export function routeFarmTool(question = '', dataMap = {}) {
       if (pattern.test(q)) hits += 1;
     }
     if (!hits) continue;
-    const confidence = Math.min(0.92, 0.55 + hits * 0.12);
+    const confidence = Math.min(0.9, 0.52 + hits * 0.1);
     if (!best || confidence > best.confidence) {
       best = {
         toolId: tool.id,
-        intent: DEFAULT_INTENT_BY_TOOL[tool.id],
+        intent: resolveToolIntent(tool.id, question),
         confidence,
         label: tool.label,
         moduleKey: tool.moduleKey,
@@ -132,31 +260,32 @@ export function routeFarmTool(question = '', dataMap = {}) {
   return best;
 }
 
+function buildAnswerForIntent(intent, dataMap, options = {}) {
+  const directorKey = DIRECTOR_BY_INTENT[intent];
+  if (directorKey) {
+    const answer = buildDirectorEngineAnswer(
+      directorKey,
+      dataMap,
+      options.conversationContext,
+      options.query,
+    );
+    if (answer) return answer;
+  }
+  return buildAgriculturalAnswer(intent, dataMap, {
+    conversationContext: options.conversationContext,
+    query: options.query,
+  });
+}
+
 /**
- * Exécute un outil et retourne réponse structurée + données brutes.
+ * Exécute un outil et retourne réponse structurée.
  */
 export function executeFarmTool(toolId = '', dataMap = {}, options = {}) {
   const { conversationContext = null, query = '', intent: forcedIntent = null } = options;
-
-  if (toolId === FARM_TOOL_IDS.PRIORITIES) {
-    const directorIntent = /comment va|situation globale|etat global/i.test(normalizeAgriculturalText(query))
-      ? DIRECTOR_INTENTS.COMMENT_VA_LA_FERME
-      : DIRECTOR_INTENTS.PRIORITES_DU_JOUR;
-    const answer = buildDirectorEngineAnswer(directorIntent, dataMap, conversationContext, query);
-    if (!answer) return null;
-    return {
-      toolId,
-      intent: directorIntent,
-      answer,
-      summary: formatCompactHorizonAnswer(answer),
-      moduleKey: 'centre_ia',
-    };
-  }
-
-  const intent = forcedIntent || DEFAULT_INTENT_BY_TOOL[toolId];
+  const intent = resolveToolIntent(toolId, query, forcedIntent);
   if (!intent) return null;
 
-  const answer = buildAgriculturalAnswer(intent, dataMap, { conversationContext, query });
+  const answer = buildAnswerForIntent(intent, dataMap, { conversationContext, query });
   if (!answer) return null;
 
   const tool = FARM_TOOL_CATALOG.find((t) => t.id === toolId);
@@ -170,7 +299,7 @@ export function executeFarmTool(toolId = '', dataMap = {}, options = {}) {
 }
 
 /**
- * Extrait un snapshot léger pour le LLM (sans tout le dataMap).
+ * Snapshot léger pour le LLM routeur.
  */
 export function buildFarmToolContextSummary(dataMap = {}) {
   const snap = buildDirectorSnapshot(dataMap);
@@ -180,13 +309,22 @@ export function buildFarmToolContextSummary(dataMap = {}) {
       : '0 FCFA',
     creances_count: arr(snap.receivableRows).length,
     top_client: snap.topReceivable?.clientName || null,
+    ca_label: `${Math.round(n(snap.commercial?.ca)).toLocaleString('fr-FR')} FCFA`,
     treasury_label: `${Math.round(n(snap.finance?.cashNet)).toLocaleString('fr-FR')} FCFA`,
     stock_critique: n(snap.stockSummary?.lowStockCount),
+    parcelles: n(snap.cultureSummary?.activeCount || snap.props?.cultures?.length),
     lots_actifs: n(snap.headcount?.activeLots),
     animaux_total: n(snap.headcount?.total),
+    objectif_mois_pct: snap.monthPct,
     alertes_elevage: arr(snap.elevageAlerts).length,
+    documents_count: arr(snap.props?.documents).length,
     has_farm_data: snap.hasFarmData,
   };
+}
+
+/** Liste des intents couverts par les outils (pour tests). */
+export function allToolIntents() {
+  return [...new Set(FARM_TOOL_CATALOG.flatMap((t) => t.intents))];
 }
 
 export default {
@@ -195,4 +333,6 @@ export default {
   routeFarmTool,
   executeFarmTool,
   buildFarmToolContextSummary,
+  allToolIntents,
+  resolveToolIntent,
 };

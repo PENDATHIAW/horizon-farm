@@ -16,6 +16,8 @@ const INTENT_ALIASES = Object.freeze({
   relances: ['relances', 'follow_up'],
   stock_sellable: ['stock_sellable', 'sell_today'],
   today_priorities: ['today_priorities', 'activity_journal'],
+  ventes_today: ['ventes_today', 'ventes'],
+  farm_trends: ['farm_trends', 'ca_progress'],
 });
 
 function acceptsIntent(expected, actual) {

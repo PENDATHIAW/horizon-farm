@@ -46,6 +46,21 @@ test('route priorités vers get_daily_priorities', () => {
   assert.equal(route?.toolId, FARM_TOOL_IDS.PRIORITIES);
 });
 
+test('route commercial vers get_commercial_status', () => {
+  const route = routeFarmTool('mes commandes en cours', dm);
+  assert.equal(route?.toolId, FARM_TOOL_IDS.COMMERCIAL);
+});
+
+test('route cultures vers get_cultures_status', () => {
+  const route = routeFarmTool('etat des parcelles', dm);
+  assert.equal(route?.toolId, FARM_TOOL_IDS.CULTURES);
+});
+
+test('route météo vers get_meteo_status', () => {
+  const route = routeFarmTool('meteo demain', dm);
+  assert.equal(route?.toolId, FARM_TOOL_IDS.METEO);
+});
+
 test('executeFarmTool retourne une réponse structurée', () => {
   const result = executeFarmTool(FARM_TOOL_IDS.TREASURY, dm, { query: 'trésorerie' });
   assert.ok(result?.answer?.situation);

@@ -32,10 +32,18 @@ export function queryFarmToolAgent(question = '', {
   const progressive = buildProgressiveChatPayload(result.answer);
   const familyMap = {
     get_receivables: 'COMMERCIAL',
+    get_commercial_status: 'COMMERCIAL',
     get_stock_status: 'STOCK',
     get_elevage_status: 'ELEVAGE',
+    get_cultures_status: 'CULTURES',
+    get_meteo_status: 'METEO',
     get_treasury: 'FINANCE',
+    get_objectifs_status: 'OBJECTIFS',
     get_daily_priorities: 'DECISION',
+    get_documents_activity: 'DECISION',
+    get_rh_operations: 'DECISION',
+    get_investor_insights: 'INVESTISSEUR',
+    get_admin_status: 'DECISION',
   };
 
   const updatedContext = updateConversationContext(conversationContext || {}, {
