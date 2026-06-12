@@ -124,10 +124,11 @@ function softenAction(action = '') {
   if (/ouvrez|consultez|ouvre|module|élevage →|finance →|commercial →/i.test(a)) {
     return '';
   }
-  if (/relanc|surveill|prioris|planif|accélér|acceler|reporter|vérifi|verifi|garder|œil|oeil|maintenir|sécuris|securis|suggère/i.test(lower)) {
+  if (/relanc|surveill|prioris|planif|accélér|acceler|reporter|vérifi|verifi|garder|œil|oeil|maintenir|maintenez|sécuris|securis|consolidez|commencez|contactez|publiez|saisissez|bonne dynamique/i.test(lower)) {
     let sentence = a.charAt(0).toUpperCase() + a.slice(1);
-    if (!/^je /i.test(sentence)) {
-      sentence = `Je vous suggère de ${sentence.charAt(0).toLowerCase() + sentence.slice(1)}`;
+    if (/^je /i.test(sentence)) return ensurePeriod(sentence);
+    if (/^(commencez|relancez|maintenez|accélérez|accelerez|planifiez|publiez|contactez|consolidez|arbitrez|vérifiez|verifiez|saisissez|bonne)/i.test(sentence)) {
+      return ensurePeriod(`Je vous suggère : ${sentence.charAt(0).toLowerCase() + sentence.slice(1)}`);
     }
     return ensurePeriod(sentence);
   }

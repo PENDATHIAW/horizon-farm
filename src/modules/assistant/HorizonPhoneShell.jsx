@@ -1,26 +1,37 @@
 import React from 'react';
 import { HORIZON_DESIGN as D } from './horizonDesignTokens.js';
 
+const LOGO_WATERMARK = '/brand-logo-transparent.svg';
+
 /**
- * Horizon Chat Native V7 — coque premium responsive (mobile, tablette, desktop).
+ * Horizon Chat — coque iPhone 17 Pro Max (430×932) avec logo en filigrane.
  */
 export default function HorizonPhoneShell({ children, className = '' }) {
   return (
     <div
-      className={`horizon-phone-shell flex min-h-0 w-full flex-1 flex-col overflow-hidden ${className}`}
+      className={`horizon-device-stage flex min-h-0 w-full flex-1 items-center justify-center ${className}`}
       style={{
         fontFamily: D.fontFamily,
-        background: D.pageBg,
-        color: D.text,
+        background: 'linear-gradient(165deg, #EEF5F1 0%, #D8E8DF 100%)',
+        padding: 'max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left))',
       }}
     >
       <div
-        className="mx-auto flex h-full min-h-0 w-full max-w-[720px] flex-1 flex-col overflow-hidden md:my-4 md:max-h-[min(920px,calc(100vh-2rem))] md:rounded-[28px] md:border md:shadow-md"
+        className="horizon-iphone-17 relative flex h-full w-full max-w-[430px] flex-col overflow-hidden"
         style={{
+          maxHeight: 'min(932px, calc(100vh - 1.5rem))',
+          minHeight: 'min(720px, calc(100vh - 1.5rem))',
+          borderRadius: '55px',
+          border: '11px solid #1A1A1A',
+          boxShadow: '0 32px 80px rgba(15, 36, 25, 0.28), inset 0 0 0 1px rgba(255,255,255,0.08)',
           background: D.surface,
-          borderColor: D.borderSoft,
         }}
       >
+        <div
+          className="pointer-events-none absolute left-1/2 top-2 z-20 h-[30px] w-[126px] -translate-x-1/2 rounded-full"
+          style={{ background: '#0A0A0A' }}
+          aria-hidden
+        />
         {children}
       </div>
     </div>
@@ -30,22 +41,19 @@ export default function HorizonPhoneShell({ children, className = '' }) {
 export function HorizonPhoneHeader() {
   return (
     <header
-      className="flex shrink-0 items-center gap-3 border-b px-4 py-3.5 md:px-5"
+      className="relative z-10 flex shrink-0 items-center gap-3 border-b px-4 pb-3 pt-10 md:px-5"
       style={{
         borderColor: D.borderSoft,
-        background: D.surface,
+        background: 'rgba(255, 255, 255, 0.92)',
+        backdropFilter: 'blur(12px)',
       }}
     >
-      <div
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg font-semibold shadow-sm"
-        style={{
-          background: `linear-gradient(145deg, ${D.accent} 0%, ${D.accentDeep} 100%)`,
-          color: '#fff',
-        }}
+      <img
+        src="/brand-logo-transparent.svg"
+        alt=""
+        className="h-10 w-auto shrink-0 object-contain"
         aria-hidden
-      >
-        H
-      </div>
+      />
       <div className="min-w-0 flex-1">
         <p className="truncate text-[17px] font-semibold leading-tight" style={{ color: D.text }}>
           Horizon
@@ -63,13 +71,40 @@ export function HorizonPhoneHeader() {
   );
 }
 
+/** Zone de discussion avec logo Horizon en arrière-plan. */
+export function HorizonChatCanvas({ children, className = '' }) {
+  return (
+    <div className={`relative min-h-0 flex-1 overflow-hidden ${className}`}>
+      <div
+        className="pointer-events-none absolute inset-0 flex items-center justify-center"
+        aria-hidden
+      >
+        <img
+          src={LOGO_WATERMARK}
+          alt=""
+          className="max-h-[42%] w-[72%] object-contain opacity-[0.07]"
+          style={{ filter: 'saturate(0.85)' }}
+        />
+      </div>
+      <div
+        className="relative z-[1] h-full overflow-y-auto py-3"
+        style={{
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(244,248,246,0.35) 100%)',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export function HorizonUserBubble({ children, time }) {
   return (
     <div className="flex justify-end px-3 py-1 md:px-4">
       <div
         className="max-w-[88%] rounded-[18px] rounded-br-[6px] px-4 py-2.5 text-[15px] leading-relaxed shadow-sm"
         style={{
-          background: D.userBubble,
+          background: `linear-gradient(145deg, ${D.accent} 0%, ${D.accentDeep} 100%)`,
           color: D.userBubbleText,
           boxShadow: D.shadowBubble,
         }}
@@ -87,9 +122,9 @@ export function HorizonAssistantBubble({ children, time }) {
   return (
     <div className="flex justify-start px-3 py-1 md:px-4">
       <div
-        className="max-w-[88%] rounded-[18px] rounded-bl-[6px] border px-4 py-2.5 text-[15px] leading-relaxed"
+        className="max-w-[88%] rounded-[18px] rounded-bl-[6px] border px-4 py-2.5 text-[15px] leading-relaxed backdrop-blur-sm"
         style={{
-          background: D.assistantBubble,
+          background: 'rgba(255, 255, 255, 0.94)',
           color: D.assistantBubbleText,
           borderColor: D.borderSoft,
           boxShadow: D.shadowBubble,
@@ -124,10 +159,11 @@ export function HorizonChatComposer({
 
   return (
     <div
-      className="shrink-0 border-t px-3 py-3 md:px-4"
+      className="relative z-10 shrink-0 border-t px-3 py-3 md:px-4"
       style={{
         borderColor: D.borderSoft,
-        background: D.surface,
+        background: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(12px)',
         paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)',
       }}
     >

@@ -13,6 +13,7 @@ import { enrichAssistantDataMap } from '../utils/assistantDataMap.js';
 import { HORIZON_DESIGN as D } from './assistant/horizonDesignTokens.js';
 import HorizonPhoneShell, {
   HorizonAssistantBubble,
+  HorizonChatCanvas,
   HorizonChatComposer,
   HorizonPhoneHeader,
   HorizonUserBubble,
@@ -345,7 +346,7 @@ export default function HeyHorizonModule({
   return (
     <HorizonPhoneShell>
       <HorizonPhoneHeader />
-      <div className="min-h-0 flex-1 overflow-y-auto py-3">
+      <HorizonChatCanvas>
         {messages.map((message) => (
           message.role === 'user' ? (
             <HorizonUserBubble key={message.id} time={message.time}>
@@ -370,7 +371,7 @@ export default function HeyHorizonModule({
         ) : null}
 
         <div ref={chatEndRef} className="h-1" />
-      </div>
+      </HorizonChatCanvas>
 
       <input
         ref={fileInputRef}

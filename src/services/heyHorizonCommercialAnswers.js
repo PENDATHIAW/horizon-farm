@@ -216,7 +216,8 @@ export function buildCommercialPilotageAnswer(type = 'summary', dataMap = {}) {
     const total = rows.reduce((s, r) => s + r.rest, 0);
     const worst = rows[0];
     const sharePct = worst && total > 0 ? Math.round((worst.rest / total) * 100) : 0;
-    const otherNames = uniqueClientNames(rows.slice(1, 4), props.clients);
+    const otherNames = uniqueClientNames(rows.slice(1, 8), props.clients)
+      .filter((name) => name !== worst.name);
     const actionText = worst
       ? (otherNames.length
         ? `Commencez par ${worst.name}${sharePct > 0 ? ` — cette créance représente ${sharePct} % du total en attente` : ''}, puis ${otherNames.slice(0, 2).join(' et ')}.`

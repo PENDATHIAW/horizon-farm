@@ -240,8 +240,13 @@ function trendSentence(signals = []) {
     if (reasons.length) {
       const period = dynamic.periodLabel?.toLowerCase() || 'la période récente';
       const status = dynamic.label.toLowerCase();
-      const reasonText = reasons.join(', ').toLowerCase();
-      if (reasonText.includes(status)) {
+      const cleanedReasons = reasons
+        .map((r) => String(r).trim())
+        .filter((r) => r && !/^(en hausse|en baisse|stable|en progression|en recul)$/i.test(r));
+      const reasonText = (cleanedReasons.length ? cleanedReasons : reasons)
+        .join(', ')
+        .toLowerCase();
+      if (/en hausse|en baisse|en progression|en recul|stable/.test(reasonText)) {
         return dedupeProse(`Sur ${period}, ${reasonText}.`);
       }
       return dedupeProse(`Sur ${period}, l'exploitation est ${status} : ${reasonText}.`);
