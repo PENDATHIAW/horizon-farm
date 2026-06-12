@@ -8,7 +8,7 @@ import { HORIZON_OFFICIAL_LOGO } from './horizonBrandAssets.js';
 export default function HorizonPhoneShell({ children, className = '' }) {
   return (
     <div
-      className={`horizon-device-stage flex min-h-0 w-full flex-1 items-center justify-center ${className}`}
+      className={`horizon-device-stage flex h-full min-h-0 w-full flex-1 items-center justify-center ${className}`}
       style={{
         fontFamily: D.fontFamily,
         background: 'linear-gradient(165deg, #EEF5F1 0%, #D8E8DF 100%)',
@@ -70,9 +70,9 @@ export function HorizonPhoneHeader() {
 }
 
 /** Zone de discussion avec logo Horizon en arrière-plan. */
-export function HorizonChatCanvas({ children, className = '' }) {
+export function HorizonChatCanvas({ children, className = '', scrollRef, onScroll }) {
   return (
-    <div className={`relative min-h-0 flex-1 overflow-hidden ${className}`}>
+    <div className={`relative flex min-h-0 flex-1 flex-col overflow-hidden ${className}`}>
       <div
         className="pointer-events-none absolute inset-0 flex items-center justify-center"
         aria-hidden
@@ -85,9 +85,12 @@ export function HorizonChatCanvas({ children, className = '' }) {
         />
       </div>
       <div
-        className="relative z-[1] h-full overflow-y-auto py-3"
+        ref={scrollRef}
+        onScroll={onScroll}
+        className="relative z-[1] min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain py-3"
         style={{
           background: 'linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(244,248,246,0.35) 100%)',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         {children}

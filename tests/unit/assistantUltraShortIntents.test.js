@@ -17,6 +17,12 @@ const ultraCases = [
   ['mes animaux', 'my_animals', 'ELEVAGE'],
   ['mes lots', 'lots_overview', 'ELEVAGE'],
   ['quoi vendre', 'sell_today', 'DECISION'],
+  ['bonjour', 'greeting', 'SALUTATION'],
+  ['salut', 'greeting', 'SALUTATION'],
+  ['coucou', 'greeting', 'SALUTATION'],
+  ['hello', 'greeting', 'SALUTATION'],
+  ['meteo', 'weather_now', 'METEO'],
+  ['météo', 'weather_now', 'METEO'],
 ];
 
 for (const [query, intent, family] of ultraCases) {

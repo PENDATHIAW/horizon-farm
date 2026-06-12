@@ -7,7 +7,8 @@ import useHeyHorizonCommand from '../hooks/useHeyHorizonCommand.js';
 import { buildAssistantWelcomeMessage } from '../services/assistantFarmSecretary.js';
 import { isDetailFollowUp } from '../services/assistantProgressiveResponse.js';
 import { formatStrategicHorizonAnswer, stripTechnicalLeaks } from '../services/assistantResponseFormatter.js';
-import { normalizeAgriculturalText } from '../services/assistantUniversalIntents.js';
+import { classifyUniversalIntent, normalizeAgriculturalText, UNIVERSAL_INTENT_FAMILIES } from '../services/assistantUniversalIntents.js';
+import { resolveUltraShortIntent } from '../services/assistantUltraShortIntents.js';
 import { processContextualVoiceInput } from '../services/aiGateway/contextualVoiceService.js';
 import { enrichAssistantDataMap } from '../utils/assistantDataMap.js';
 import { HORIZON_DESIGN as D } from './assistant/horizonDesignTokens.js';
@@ -48,13 +49,25 @@ function ChatDraftBlock({ draft, isValidating, onValidate, onCancel }) {
   );
 }
 
-function isBusinessQuestion(text = '') {
+function isDeclarativeVoiceCommand(text = '') {
+  const trimmed = String(text || '').trim();
+  if (trimmed.endsWith('?')) return false;
   const q = normalizeAgriculturalText(text);
+  const hit = classifyUniversalIntent(text);
+  if (hit?.family === UNIVERSAL_INTENT_FAMILIES.DECLARER) return true;
+  return /^(j ai|jai |enregistre|declarer|nouveau )/.test(q) || /j.?ai vendu|vendu ce/.test(q);
+}
+
+/** Salutations, météo, ultra-courts et questions métier → routeur assistant ERP. */
+function shouldRouteToAssistant(text = '') {
+  if (isDeclarativeVoiceCommand(text)) return false;
   const trimmed = String(text || '').trim();
   if (trimmed.endsWith('?')) return true;
-  return /^(combien|quel|quelle|quels|quelles|qui|comment|est ce|ou |vais je|que dois|ai je|montre|donne)/.test(q)
-    || /comment va/.test(q)
-    || /(me doit|doivent|reste|stock|tresorerie|objectif|rentable|ferme|magasin|aliment)/.test(q);
+  if (resolveUltraShortIntent(text)) return true;
+  const hit = classifyUniversalIntent(text);
+  if (!hit) return false;
+  if (hit.family === UNIVERSAL_INTENT_FAMILIES.DECLARER) return false;
+  return true;
 }
 
 function ThinkingBubble() {
@@ -105,7 +118,8 @@ export default function HeyHorizonModule({
   const displayName = displayNameFromUser(user);
   const [command, setCommand] = useState('');
   const [voiceBusy, setVoiceBusy] = useState(false);
-  const chatEndRef = useRef(null);
+  const chatScrollRef = useRef(null);
+  const stickToBottomRef = useRef(true);
   const pendingProgressiveRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -196,8 +210,17 @@ export default function HeyHorizonModule({
     }]);
   }, []);
 
-  const scrollToBottom = useCallback(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = useCallback((force = false) => {
+    const el = chatScrollRef.current;
+    if (!el || (!force && !stickToBottomRef.current)) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: force ? 'smooth' : 'auto' });
+  }, []);
+
+  const handleChatScroll = useCallback(() => {
+    const el = chatScrollRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    stickToBottomRef.current = distanceFromBottom < 96;
   }, []);
 
   useEffect(() => {
@@ -220,9 +243,11 @@ export default function HeyHorizonModule({
 
     setCommand('');
     appendMessage('user', query);
+    stickToBottomRef.current = true;
+    scrollToBottom(true);
     setVoiceBusy(true);
     try {
-      if (!isBusinessQuestion(query)) {
+      if (!shouldRouteToAssistant(query)) {
         const parsed = await processContextualVoiceInput({
           phrase: query,
           dataMap: enrichedDataMap,
@@ -346,7 +371,7 @@ export default function HeyHorizonModule({
   return (
     <HorizonPhoneShell>
       <HorizonPhoneHeader />
-      <HorizonChatCanvas>
+      <HorizonChatCanvas scrollRef={chatScrollRef} onScroll={handleChatScroll}>
         {messages.map((message) => (
           message.role === 'user' ? (
             <HorizonUserBubble key={message.id} time={message.time}>
@@ -370,7 +395,7 @@ export default function HeyHorizonModule({
           />
         ) : null}
 
-        <div ref={chatEndRef} className="h-1" />
+        <div className="h-2 shrink-0" aria-hidden />
       </HorizonChatCanvas>
 
       <input

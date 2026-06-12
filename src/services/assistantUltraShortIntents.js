@@ -48,6 +48,12 @@ const ULTRA_SHORT_MAP = Object.freeze({
   aliment: { intent: 'stock_aliment', family: 'STOCK', label: 'Aliment' },
   activite: { intent: 'activity_journal', family: 'DECISION', label: 'Activité' },
   journal: { intent: 'activity_journal', family: 'DECISION', label: 'Journal' },
+  meteo: { intent: 'weather_now', family: 'METEO', label: 'Météo' },
+  bonjour: { intent: 'greeting', family: 'SALUTATION', label: 'Bonjour' },
+  salut: { intent: 'greeting', family: 'SALUTATION', label: 'Salut' },
+  coucou: { intent: 'greeting', family: 'SALUTATION', label: 'Coucou' },
+  bonsoir: { intent: 'greeting', family: 'SALUTATION', label: 'Bonsoir' },
+  hello: { intent: 'greeting', family: 'SALUTATION', label: 'Hello' },
 });
 
 const POSSESSIVE_MAP = Object.freeze({
