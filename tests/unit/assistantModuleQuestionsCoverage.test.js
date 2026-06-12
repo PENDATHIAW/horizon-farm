@@ -9,6 +9,7 @@ const INTENT_ALIASES = Object.freeze({
   farm_overview: ['farm_status', 'farm_overview'],
   farm_opportunities: ['farm_opportunities', 'sell_today'],
   main_risk: ['main_risk', 'farm_risks', 'investor_summary'],
+  progress_status: ['progress_status', 'month_goal', 'objectif_status', 'annual_goal'],
   annual_outlook: ['annual_outlook', 'annual_goal', 'progress_status'],
   growth: ['growth', 'farm_trends'],
   ca_progress: ['ca_progress', 'ventes', 'farm_trends'],

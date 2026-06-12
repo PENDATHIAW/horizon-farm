@@ -5,6 +5,7 @@ import HorizonDraftPanel from '../components/HorizonDraftPanel.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import useHeyHorizonCommand from '../hooks/useHeyHorizonCommand.js';
 import { buildAssistantWelcomeMessage } from '../services/assistantFarmSecretary.js';
+import { fetchLlmStatus } from '../services/heyHorizonLlmService.js';
 import {
   analyzeDocumentForCompletion,
   applyDocumentCompletionChoice,
@@ -164,6 +165,19 @@ export default function HeyHorizonModule({
   );
 
   const [messages, setMessages] = useState([]);
+  const [llmStatus, setLlmStatus] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchLlmStatus()
+      .then((status) => {
+        if (active) setLlmStatus(status);
+      })
+      .catch(() => {
+        if (active) setLlmStatus({ configured: false, llm_available: false });
+      });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     setMessages((prev) => {
@@ -396,6 +410,14 @@ export default function HeyHorizonModule({
   return (
     <HorizonPhoneShell>
       <HorizonPhoneHeader />
+      {llmStatus && !llmStatus.configured ? (
+        <div
+          className="mx-4 mb-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900"
+          role="status"
+        >
+          Formulations très libres : ajoutez <b>OPENAI_API_KEY</b> sur Vercel (Production) puis redéployez.
+        </div>
+      ) : null}
       <HorizonChatCanvas scrollRef={chatScrollRef} onScroll={handleChatScroll}>
         {messages.map((message) => (
           message.role === 'user' ? (

@@ -5,6 +5,7 @@ import summaryHandler from '../../lib/server/assistant/summary.js';
 import validateHandler from '../../lib/server/assistant/validate.js';
 import documentOcrHandler from '../../lib/server/assistant/documentOcr.js';
 import agentHandler from '../../lib/server/assistant/agent.js';
+import llmStatusHandler from '../../lib/server/assistant/llmStatus.js';
 
 const HANDLERS = {
   ask: askHandler,
@@ -14,6 +15,7 @@ const HANDLERS = {
   validate: validateHandler,
   agent: agentHandler,
   'document-ocr': documentOcrHandler,
+  'llm-status': llmStatusHandler,
 };
 
 export default async function handler(req, res) {

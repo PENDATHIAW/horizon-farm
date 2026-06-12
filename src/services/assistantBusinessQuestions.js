@@ -3,6 +3,8 @@
  * Porte d'entrée universelle Horizon Farm V6 — couverture ≥ 95 % par domaine.
  */
 
+import { mergeTerrainPhrasesIntoCatalog } from './assistantTerrainPhrases.js';
+
 /** Familles alignées sur UNIVERSAL_INTENT_FAMILIES (évite import circulaire). */
 const F = Object.freeze({
   SALUTATION: 'SALUTATION',
@@ -29,8 +31,8 @@ function q(family, intent, label, farmer = [], manager = [], investor = []) {
   };
 }
 
-/** Questions par module ERP (lecture seule). */
-export const MODULE_BUSINESS_QUESTIONS = Object.freeze({
+/** Questions par module ERP (lecture seule) — base catalogue. */
+const BASE_MODULE_BUSINESS_QUESTIONS = Object.freeze({
   dashboard: [
     q(F.DECISION, 'today_priorities', 'Priorités', ['que dois-je faire aujourd hui', 'par quoi commencer', 'que faire aujourd hui', 'c est quoi l urgence', 'par quoi je commence', 'quoi traiter en premier'], ['priorités du jour', 'urgences exploitation', 'plan du jour', 'feuille de route'], []),
     q(F.INVESTISSEUR, 'farm_overview', 'Vue ferme', ['comment va la ferme', 'comment va mon exploitation', 'situation globale', 'comment va l exploitation', 'etat de la ferme', 'resume de la ferme', 'bilan rapide'], ['état global exploitation', 'synthèse ferme', 'vue d ensemble'], ['performance globale ferme']),
@@ -133,6 +135,11 @@ export const MODULE_BUSINESS_QUESTIONS = Object.freeze({
     q(F.DECISION, 'system_overview', 'Administration', ['utilisateurs', 'roles permissions', 'parametres systeme', 'gestion systeme', 'config erp'], [], []),
   ],
 });
+
+/** Catalogue fusionné avec phrases WhatsApp / terrain exploitants. */
+export const MODULE_BUSINESS_QUESTIONS = Object.freeze(
+  mergeTerrainPhrasesIntoCatalog(BASE_MODULE_BUSINESS_QUESTIONS),
+);
 
 /** Liste aplatie pour le matcher sémantique. */
 export const SEMANTIC_INTENT_CATALOG = Object.freeze(

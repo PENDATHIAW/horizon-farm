@@ -10,6 +10,21 @@ export function isHeyHorizonLlmForced() {
   return LLM_MODE === 'on';
 }
 
+/** Statut clé OpenAI côté serveur (Vercel). */
+export async function fetchLlmStatus() {
+  const response = await fetch('/api/assistant/llm-status');
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.ok) {
+    return {
+      ok: false,
+      configured: false,
+      llm_available: false,
+      error: payload.error || 'Statut LLM indisponible',
+    };
+  }
+  return payload;
+}
+
 /** Appelle /api/assistant/enhance (règles serveur + LLM optionnel). */
 export async function enhanceHeyHorizonQuestion(question = '', dataMap = {}, { forceLlm = false } = {}) {
   const { data: sessionData } = await supabase.auth.getSession();

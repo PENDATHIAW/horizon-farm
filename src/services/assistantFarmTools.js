@@ -10,6 +10,7 @@ import {
 } from './assistantDirectorEngines.js';
 import { buildDirectorSnapshot } from './assistantDirectorSnapshot.js';
 import { formatCompactHorizonAnswer } from './assistantResponseFormatter.js';
+import { enrichTerrainAnswer } from './assistantTerrainAnswers.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v) => Number(v || 0);
@@ -67,7 +68,7 @@ export const FARM_TOOL_CATALOG = Object.freeze([
       'orders_overview', 'deliveries_overview', 'sell_today', 'farm_opportunities', 'ca_progress',
     ],
     patterns: [
-      /ventes?|chiffre d.?affaires|\bca\b|commandes?|livraisons?|meilleur client|meilleur produit|produit.*vend|commercial|opportunite|opportunité|quoi vendre|que vendre/i,
+      /ventes?|chiffre d.?affaires|\bca\b|commandes?|livraisons?|meilleur client|meilleur produit|produit.*vend|commercial|opportunite|opportunité|quoi vendre|que vendre|orange money|superette|encaisse/i,
     ],
   },
   {
@@ -80,7 +81,7 @@ export const FARM_TOOL_CATALOG = Object.freeze([
       'stock_dlc', 'stock_sellable', 'purchases_overview', 'suppliers_overview', 'stock_critical_lookup',
     ],
     patterns: [
-      /stock|rupture|magasin|inventaire|aliment|intrant|dlc|peremption|péremotion|achats?|fournisseurs?|seuil|manque de/i,
+      /stock|rupture|magasin|inventaire|aliment|intrant|dlc|peremption|péremotion|achats?|fournisseurs?|seuil|manque de|provende|provender|sacs d aliment/i,
     ],
   },
   {
@@ -94,7 +95,7 @@ export const FARM_TOOL_CATALOG = Object.freeze([
       'headcount_pondeuses', 'headcount_ovins', 'headcount_caprins',
     ],
     patterns: [
-      /elevage|élevage|cheptel|lot|bande|bovin|ovin|caprin|poulet|pondeuse|avicole|malade|traitement|mortalite|mortalité|animaux|vache|mouton|chevre|chèvre|surveiller/i,
+      /elevage|élevage|cheptel|lot|bande|bovin|ovin|caprin|poulet|pondeuse|avicole|malade|traitement|mortalite|mortalité|animaux|vache|mouton|chevre|chèvre|surveiller|lot chair|bande chair|cale|perte.*poulet/i,
     ],
   },
   {
@@ -128,7 +129,7 @@ export const FARM_TOOL_CATALOG = Object.freeze([
       'profitability', 'investment_capacity',
     ],
     patterns: [
-      /tresorerie|trésorerie|caisse|liquidite|liquidité|combien j.?ai|argent disponible|dettes?|resultat|résultat|marge|rentab|charges?|depenses?|dépenses?|perdre de l argent|fuite/i,
+      /tresorerie|trésorerie|treso|tréso|caisse|liquidite|liquidité|combien j.?ai|argent disponible|dettes?|resultat|résultat|marge|rentab|charges?|depenses?|dépenses?|perdre de l argent|fuite/i,
     ],
   },
   {
@@ -263,13 +264,15 @@ export function routeFarmTool(question = '', dataMap = {}) {
 function buildAnswerForIntent(intent, dataMap, options = {}) {
   const directorKey = DIRECTOR_BY_INTENT[intent];
   if (directorKey) {
-    const answer = buildDirectorEngineAnswer(
+    const directorAnswer = buildDirectorEngineAnswer(
       directorKey,
       dataMap,
       options.conversationContext,
       options.query,
     );
-    if (answer) return answer;
+    if (directorAnswer) {
+      return enrichTerrainAnswer(directorAnswer, intent, dataMap, options);
+    }
   }
   return buildAgriculturalAnswer(intent, dataMap, {
     conversationContext: options.conversationContext,

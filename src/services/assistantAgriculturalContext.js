@@ -151,11 +151,13 @@ function stockQty(row = {}) {
   return n(row.quantite ?? row.quantity ?? row.stock);
 }
 
+import { enrichTerrainAnswer } from './assistantTerrainAnswers.js';
+
 /**
  * Construit une réponse SCA compacte pour une intention universelle.
  * @returns {{ situation: string, cause: string, action: string, sources: string[], title: string, confidence: number } | null}
  */
-export function buildAgriculturalAnswer(intent = '', dataMap = {}, options = {}) {
+function buildAgriculturalAnswerCore(intent = '', dataMap = {}, options = {}) {
   const conversationContext = options.conversationContext || null;
   const query = options.query || '';
   if (!intent) return null;
@@ -780,6 +782,11 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}, options = {})
   }
 
   return null;
+}
+
+export function buildAgriculturalAnswer(intent = '', dataMap = {}, options = {}) {
+  const raw = buildAgriculturalAnswerCore(intent, dataMap, options);
+  return enrichTerrainAnswer(raw, intent, dataMap, options);
 }
 
 /** Familles couvertes par le lecteur agricole. */
