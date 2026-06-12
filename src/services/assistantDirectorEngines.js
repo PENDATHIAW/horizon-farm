@@ -43,11 +43,23 @@ export function resolveDirectorIntent(query = '', conversationContext = null) {
   if (!q) return null;
 
   const memory = conversationContext?.memory || {};
-  if (isAffirmativeFollowUp(query) && (
-    memory.topReceivable
-    || conversationContext?.pendingFollowUp === 'receivable_detail'
-  )) {
+  const pending = conversationContext?.pendingFollowUp;
+  const pendingReceivable = pending?.kind === 'intent' && pending.intent === 'receivable_follow_up';
+  if (isAffirmativeFollowUp(query) && (memory.topReceivable || pendingReceivable)) {
     return DIRECTOR_INTENTS.RECEIVABLE_FOLLOW_UP;
+  }
+  if (isAffirmativeFollowUp(query) && pending?.kind === 'intent' && pending.intent) {
+    const map = {
+      priorites_du_jour: DIRECTOR_INTENTS.PRIORITES_DU_JOUR,
+      objectif_status: DIRECTOR_INTENTS.OBJECTIF_STATUS,
+      farm_risks: DIRECTOR_INTENTS.RISQUES,
+      farm_opportunities: DIRECTOR_INTENTS.OPPORTUNITES,
+      farm_trends: DIRECTOR_INTENTS.TENDANCES,
+      farm_comparisons: DIRECTOR_INTENTS.COMPARAISONS,
+      money_leaks: DIRECTOR_INTENTS.MONEY_LEAKS,
+      comment_va_la_ferme: DIRECTOR_INTENTS.COMMENT_VA_LA_FERME,
+    };
+    if (map[pending.intent]) return map[pending.intent];
   }
   if (memory.topReceivable && (CLIENT_FOLLOW_UP.test(q) || NAME_FOLLOW_UP.test(q))) {
     return DIRECTOR_INTENTS.RECEIVABLE_FOLLOW_UP;

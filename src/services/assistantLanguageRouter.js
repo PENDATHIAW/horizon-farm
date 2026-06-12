@@ -20,6 +20,19 @@ import {
   buildDirectorEngineAnswer,
   DIRECTOR_INTENTS,
 } from './assistantDirectorEngines.js';
+import { resolveAffirmativeOffer } from './assistantConversationOffers.js';
+
+const FORCED_TO_DIRECTOR = Object.freeze({
+  receivable_follow_up: DIRECTOR_INTENTS.RECEIVABLE_FOLLOW_UP,
+  priorites_du_jour: DIRECTOR_INTENTS.PRIORITES_DU_JOUR,
+  objectif_status: DIRECTOR_INTENTS.OBJECTIF_STATUS,
+  farm_risks: DIRECTOR_INTENTS.RISQUES,
+  farm_opportunities: DIRECTOR_INTENTS.OPPORTUNITES,
+  farm_trends: DIRECTOR_INTENTS.TENDANCES,
+  farm_comparisons: DIRECTOR_INTENTS.COMPARAISONS,
+  money_leaks: DIRECTOR_INTENTS.MONEY_LEAKS,
+  comment_va_la_ferme: DIRECTOR_INTENTS.COMMENT_VA_LA_FERME,
+});
 
 /**
  * @typedef {import('./assistantConversationContext.js').ConversationContext} ConversationContext
@@ -72,6 +85,31 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
   let forcedIntent = null;
   let forcedFamily = null;
 
+  const affirmativeOffer = context ? resolveAffirmativeOffer(query, context) : null;
+  if (affirmativeOffer?.type === 'text') {
+    const detailAnswer = {
+      title: affirmativeOffer.label || 'Détail',
+      situation: affirmativeOffer.text,
+      cause: '',
+      action: '',
+      sources: ['Horizon'],
+      confidence: 96,
+      intent: 'progressive_detail',
+    };
+    return {
+      handled: true,
+      answer: detailAnswer,
+      assistantText: affirmativeOffer.text,
+      progressive: { text: affirmativeOffer.text, fullText: affirmativeOffer.text, hasDetail: false },
+      updatedContext: updateConversationContext(context || {}, {
+        query,
+        intent: 'progressive_detail',
+        answer: detailAnswer,
+      }),
+      source: 'conversation_offer_v8',
+    };
+  }
+
   const followUp = context ? resolveFollowUp(query, context) : null;
   if (followUp) {
     workingQuery = followUp.expandedQuery || query;
@@ -79,9 +117,8 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
     forcedFamily = followUp.forcedFamily || null;
   }
 
-  const directorIntent = forcedIntent === 'receivable_follow_up'
-    ? DIRECTOR_INTENTS.RECEIVABLE_FOLLOW_UP
-    : resolveDirectorIntent(query, context);
+  const directorIntent = (forcedIntent && FORCED_TO_DIRECTOR[forcedIntent])
+    || resolveDirectorIntent(query, context);
   if (directorIntent) {
     const directorAnswer = buildDirectorEngineAnswer(directorIntent, dataMap, context, query);
     if (directorAnswer) {
@@ -108,6 +145,8 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
           intent: intentKey,
           family: familyMap[directorIntent] || 'DECISION',
           answerMeta: directorAnswer.meta,
+          answer: directorAnswer,
+          progressiveFullText: progressive.fullText,
         }),
         intents: [{ intent: intentKey, family: familyMap[directorIntent], label: directorAnswer.title }],
         source: 'farm_advisor_v7',
@@ -204,6 +243,8 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
     intent: primary.intent,
     family: primary.family,
     answerMeta: merged?.meta,
+    answer: merged,
+    progressiveFullText: progressive.fullText,
   });
 
   return {

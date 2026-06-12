@@ -6,6 +6,7 @@
 import { normalizeAgriculturalText } from './assistantUniversalIntents.js';
 import { resolveUltraShortIntent } from './assistantUltraShortIntents.js';
 import { isAffirmativeFollowUp } from './assistantProgressiveResponse.js';
+import { buildPendingFollowUp, resolveAffirmativeOffer } from './assistantConversationOffers.js';
 
 const FOLLOW_UP_MARKERS = [
   /^et\b/,
@@ -136,7 +137,7 @@ export function createConversationContext() {
     memory: {
       topReceivable: null,
     },
-    /** Suite proposée : receivable_detail · progressive_detail */
+    /** Offre en attente (intent métier ou texte progressif complet) */
     pendingFollowUp: null,
   };
 }
@@ -160,16 +161,12 @@ export function resolveFollowUp(query = '', context = createConversationContext(
     };
   }
 
-  if (isAffirmativeFollowUp(query) && (
-    context?.pendingFollowUp === 'receivable_detail'
-    || context?.memory?.topReceivable
-    || (RECEIVABLE_INTENTS.has(context?.lastIntent) && context?.memory?.topReceivable)
-    || ['comment_va_la_ferme', 'greeting', 'farm_overview'].includes(context?.lastIntent) && context?.memory?.topReceivable
-  )) {
+  const affirmative = resolveAffirmativeOffer(query, context);
+  if (affirmative?.type === 'intent') {
     return {
       expandedQuery: query,
-      forcedIntent: 'receivable_follow_up',
-      forcedFamily: 'COMMERCIAL',
+      forcedIntent: affirmative.intent,
+      forcedFamily: familyForIntent(affirmative.intent),
     };
   }
 
@@ -261,11 +258,32 @@ export function resolveFollowUp(query = '', context = createConversationContext(
 /**
  * Met à jour le contexte après une interaction réussie.
  */
+function familyForIntent(intent = '') {
+  const map = {
+    receivable_follow_up: 'COMMERCIAL',
+    relances: 'COMMERCIAL',
+    receivables: 'COMMERCIAL',
+    priorites_du_jour: 'DECISION',
+    today_priorities: 'DECISION',
+    objectif_status: 'OBJECTIFS',
+    progress_status: 'OBJECTIFS',
+    farm_risks: 'INVESTISSEUR',
+    farm_opportunities: 'COMMERCIAL',
+    farm_trends: 'INVESTISSEUR',
+    farm_comparisons: 'INVESTISSEUR',
+    comment_va_la_ferme: 'INVESTISSEUR',
+    money_leaks: 'FINANCE',
+  };
+  return map[intent] || 'DECISION';
+}
+
 export function updateConversationContext(context, {
   query = '',
   intent = null,
   family = null,
   answerMeta = null,
+  answer = null,
+  progressiveFullText = '',
 } = {}) {
   const next = {
     ...context,
@@ -278,11 +296,17 @@ export function updateConversationContext(context, {
 
   if (answerMeta?.topReceivable) {
     next.memory.topReceivable = answerMeta.topReceivable;
-    next.pendingFollowUp = 'receivable_detail';
   }
 
-  if (intent === 'receivable_follow_up' || intent === 'receivable_detail') {
+  const fulfilledOffer = resolveAffirmativeOffer(query, context);
+  if (fulfilledOffer) {
     next.pendingFollowUp = null;
+  } else {
+    const pending = buildPendingFollowUp(
+      answer || { meta: answerMeta, intent, action: answer?.action, situation: answer?.situation, title: answer?.title },
+      progressiveFullText,
+    );
+    if (pending) next.pendingFollowUp = pending;
   }
 
   const species = detectSpecies(query);
