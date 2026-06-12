@@ -14,6 +14,7 @@ const F = Object.freeze({
   OBJECTIFS: 'OBJECTIFS',
   DECISION: 'DECISION',
   INVESTISSEUR: 'INVESTISSEUR',
+  METEO: 'METEO',
 });
 
 function q(family, intent, label, farmer = [], manager = [], investor = []) {
@@ -73,6 +74,9 @@ export const MODULE_BUSINESS_QUESTIONS = Object.freeze({
     q(F.ELEVAGE, 'stock_aliment', 'Alimentation', ['combien me reste t il d aliment', 'reste aliment', 'alimentation lots'], [], []),
   ],
   cultures: [
+    q(F.METEO, 'weather_now', 'Météo', ['quelle est la meteo', 'quelle est la météo', 'meteo aujourd hui', 'météo aujourd hui', 'il fait quel temps', 'temps qu il fait', 'temperature actuelle', 'température actuelle'], [], []),
+    q(F.METEO, 'weather_risk', 'Risques météo', ['risque meteo', 'risque météo', 'alerte meteo', 'alerte météo', 'meteo elevage', 'météo élevage', 'conditions meteo', 'conditions météo'], [], []),
+    q(F.METEO, 'weather_forecast', 'Prévisions', ['previsions meteo', 'prévisions météo', 'va t il pleuvoir', 'pleuvra t il', 'meteo demain', 'météo demain'], [], []),
     q(F.CULTURES, 'parcel_best', 'Meilleure parcelle', ['quelle parcelle performe le mieux', 'meilleure parcelle', 'parcelle la plus rentable'], [], []),
     q(F.CULTURES, 'recoltes', 'Récoltes', ['que puis-je récolter', 'quoi récolter maintenant', 'récoltes possibles', 'recoltes'], [], []),
     q(F.CULTURES, 'rendement', 'Rendement', ['quel rendement cette saison', 'rendement cultures', 'productivité parcelles', 'rendements'], [], []),

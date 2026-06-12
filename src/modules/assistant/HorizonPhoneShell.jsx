@@ -1,7 +1,6 @@
 import React from 'react';
 import { HORIZON_DESIGN as D } from './horizonDesignTokens.js';
-
-const LOGO_WATERMARK = '/brand-logo-transparent.svg';
+import { HORIZON_OFFICIAL_LOGO } from './horizonBrandAssets.js';
 
 /**
  * Horizon Chat — coque iPhone 17 Pro Max (430×932) avec logo en filigrane.
@@ -49,10 +48,9 @@ export function HorizonPhoneHeader() {
       }}
     >
       <img
-        src="/brand-logo-transparent.svg"
-        alt=""
-        className="h-10 w-auto shrink-0 object-contain"
-        aria-hidden
+        src={HORIZON_OFFICIAL_LOGO.header}
+        alt={HORIZON_OFFICIAL_LOGO.alt}
+        className="h-11 w-auto shrink-0 object-contain"
       />
       <div className="min-w-0 flex-1">
         <p className="truncate text-[17px] font-semibold leading-tight" style={{ color: D.text }}>
@@ -80,10 +78,10 @@ export function HorizonChatCanvas({ children, className = '' }) {
         aria-hidden
       >
         <img
-          src={LOGO_WATERMARK}
+          src={HORIZON_OFFICIAL_LOGO.watermark}
           alt=""
-          className="max-h-[42%] w-[72%] object-contain opacity-[0.07]"
-          style={{ filter: 'saturate(0.85)' }}
+          className="max-h-[48%] w-[78%] object-contain opacity-[0.09]"
+          style={{ filter: 'saturate(0.92)' }}
         />
       </div>
       <div

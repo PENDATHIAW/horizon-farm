@@ -17,6 +17,7 @@ export const UNIVERSAL_INTENT_FAMILIES = Object.freeze({
   OBJECTIFS: 'OBJECTIFS',
   DECISION: 'DECISION',
   INVESTISSEUR: 'INVESTISSEUR',
+  METEO: 'METEO',
   DECLARER: 'DECLARER',
 });
 
@@ -55,6 +56,12 @@ const ELEVAGE = [
   { intent: 'elevage_status', patterns: [/etat de l.?elevage/, /état de l.?élevage/, /situation elevage/, /situation élevage/, /comment va l.?elevage/], label: 'État élevage' },
   { intent: 'lots_surveillance', patterns: [/lots? a surveiller/, /lots? à surveiller/, /bandes? a surveiller/, /bandes? à surveiller/, /quel lot surveiller/], label: 'Lots à surveiller' },
   { intent: 'animals_under_treatment', patterns: [/sous traitement/, /en traitement/, /lesquels.*traitement/, /quelles?.*traitement/, /animaux.*soin/, /bovins?.*traitement/], label: 'Animaux sous traitement' },
+];
+
+const METEO = [
+  { intent: 'weather_now', patterns: [/^meteo\?*$/, /^météo\?*$/, /quelle est la meteo/, /quelle est la météo/, /meteo aujourd/, /météo aujourd/, /il fait quel temps/, /temps qu il fait/, /temperature actuelle/, /température actuelle/, /quel temps/], label: 'Météo actuelle' },
+  { intent: 'weather_risk', patterns: [/risque meteo/, /risque météo/, /alerte meteo/, /alerte météo/, /meteo elevage/, /météo élevage/, /meteo culture/, /météo culture/, /conditions meteo/, /conditions météo/], label: 'Risques météo' },
+  { intent: 'weather_forecast', patterns: [/prevision meteo/, /prévision météo/, /previsions meteo/, /prévisions météo/, /va t il pleuvoir/, /pleuvra t il/, /meteo demain/, /météo demain/], label: 'Prévisions météo' },
 ];
 
 const CULTURES = [
@@ -139,6 +146,7 @@ const FAMILY_ORDER = [
   UNIVERSAL_INTENT_FAMILIES.SALUTATION,
   UNIVERSAL_INTENT_FAMILIES.DECLARER,
   UNIVERSAL_INTENT_FAMILIES.DECISION,
+  UNIVERSAL_INTENT_FAMILIES.METEO,
   UNIVERSAL_INTENT_FAMILIES.INVESTISSEUR,
   UNIVERSAL_INTENT_FAMILIES.OBJECTIFS,
   UNIVERSAL_INTENT_FAMILIES.FINANCE,
@@ -151,6 +159,7 @@ const FAMILY_ORDER = [
 const FAMILY_ENTRIES = Object.freeze({
   [UNIVERSAL_INTENT_FAMILIES.SALUTATION]: SALUTATION,
   [UNIVERSAL_INTENT_FAMILIES.ELEVAGE]: ELEVAGE,
+  [UNIVERSAL_INTENT_FAMILIES.METEO]: METEO,
   [UNIVERSAL_INTENT_FAMILIES.CULTURES]: CULTURES,
   [UNIVERSAL_INTENT_FAMILIES.STOCK]: STOCK,
   [UNIVERSAL_INTENT_FAMILIES.COMMERCIAL]: COMMERCIAL,

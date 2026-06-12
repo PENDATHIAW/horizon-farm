@@ -35,6 +35,7 @@ import {
 import { resolveCanonicalGoalProgress } from './assistantGoalProgress.js';
 import { hasExploitableFarmData } from './assistantDirectorSnapshot.js';
 import { UNIVERSAL_INTENT_FAMILIES } from './assistantUniversalIntents.js';
+import { buildWeatherAnswer } from './assistantWeatherAnswer.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v) => Number(v || 0);
@@ -692,6 +693,11 @@ export function buildAgriculturalAnswer(intent = '', dataMap = {}, options = {})
         confidence: 81,
       };
     }
+
+    case 'weather_now':
+    case 'weather_risk':
+    case 'weather_forecast':
+      return buildWeatherAnswer(intent, dataMap);
 
     case 'sync_status':
       return {
