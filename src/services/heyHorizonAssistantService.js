@@ -13,6 +13,7 @@ import { routeNaturalLanguageQuery } from './assistantLanguageRouter.js';
 import { saveLocalRecommendation } from './aiRecommendationsService.js';
 import { interpretVoiceCommand } from './voiceCommands.js';
 import { enhanceHeyHorizonQuestion, isHeyHorizonLlmEnabled, normalizeLlmDraft } from './heyHorizonLlmService.js';
+import { queryFarmAgentAsync } from './heyHorizonAgentService.js';
 import { buildAssistantClarifyResponse } from './assistantClarifyResponse.js';
 import { updateConversationContext } from './assistantConversationContext.js';
 
@@ -490,6 +491,50 @@ export function processHeyHorizonCommand(rawText = '', { dataMap = {}, currentDr
  */
 export async function processHeyHorizonCommandAsync(rawText = '', options = {}) {
   const base = processHeyHorizonCommand(rawText, options);
+
+  const canTryAgent = base.kind !== 'draft'
+    && base.kind !== 'redirect_pilotage'
+    && (base.llmCandidate || base.kind === 'empty' || base.kind === 'fallback' || options.forceLlm);
+
+  if (canTryAgent) {
+    try {
+      const agent = await queryFarmAgentAsync(rawText, {
+        dataMap: options.dataMap || {},
+        conversationContext: options.conversationContext,
+        forceLlm: options.forceLlm,
+      });
+      if (agent.handled && agent.answer) {
+        const progressive = agent.progressive || buildProgressiveChatPayload(agent.answer);
+        const journalEntry = {
+          type: 'farm_tool_agent',
+          text: rawText,
+          module: agent.moduleKey || 'assistant_erp',
+          confidence_score: Math.round((agent.confidence || 0.85) * 100),
+          action: agent.toolId || agent.answer.title,
+          source_engine: agent.source || 'farm_tool_agent_v9',
+        };
+        saveLocalRecommendation(journalEntry);
+        return {
+          kind: agent.llmEnhanced ? 'llm' : 'strategic',
+          strategic: {
+            ...agent.answer,
+            type: 'agricultural_qa',
+            summary: progressive.text,
+          },
+          draft: null,
+          assistantText: progressive.text || agent.assistantText,
+          progressive,
+          journalEntry,
+          source: agent.source || 'farm_tool_agent_v9',
+          conversationContext: agent.updatedContext || options.conversationContext,
+          llmEnhanced: Boolean(agent.llmEnhanced),
+        };
+      }
+    } catch {
+      // continue vers enhance LLM
+    }
+  }
+
   const shouldTryLlm = isHeyHorizonLlmEnabled()
     && (base.llmCandidate || options.forceLlm)
     && base.kind !== 'draft'

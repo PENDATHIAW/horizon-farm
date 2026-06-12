@@ -4,6 +4,7 @@ import intentHandler from '../../lib/server/assistant/intent.js';
 import summaryHandler from '../../lib/server/assistant/summary.js';
 import validateHandler from '../../lib/server/assistant/validate.js';
 import documentOcrHandler from '../../lib/server/assistant/documentOcr.js';
+import agentHandler from '../../lib/server/assistant/agent.js';
 
 const HANDLERS = {
   ask: askHandler,
@@ -11,6 +12,7 @@ const HANDLERS = {
   intent: intentHandler,
   summary: summaryHandler,
   validate: validateHandler,
+  agent: agentHandler,
   'document-ocr': documentOcrHandler,
 };
 

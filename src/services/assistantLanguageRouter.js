@@ -20,7 +20,7 @@ import {
   buildDirectorEngineAnswer,
   DIRECTOR_INTENTS,
 } from './assistantDirectorEngines.js';
-import { resolveAffirmativeOffer } from './assistantConversationOffers.js';
+import { queryFarmToolAgent } from './assistantFarmToolAgent.js';
 
 const FORCED_TO_DIRECTOR = Object.freeze({
   receivable_follow_up: DIRECTOR_INTENTS.RECEIVABLE_FOLLOW_UP,
@@ -187,6 +187,19 @@ export function routeNaturalLanguageQuery(text = '', { dataMap = {}, conversatio
   }
 
   if (!intents.length) {
+    const toolAgent = queryFarmToolAgent(workingQuery, { dataMap, conversationContext: context });
+    if (toolAgent.handled && toolAgent.answer) {
+      return {
+        handled: true,
+        answer: toolAgent.answer,
+        assistantText: toolAgent.assistantText,
+        progressive: toolAgent.progressive,
+        updatedContext: toolAgent.updatedContext,
+        intents: toolAgent.intents,
+        source: toolAgent.source || 'farm_tool_agent_v9',
+      };
+    }
+
     const clarify = buildAssistantClarifyResponse(query, dataMap);
     if (clarify?.answer) {
       const progressive = buildProgressiveChatPayload(clarify.answer);

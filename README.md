@@ -22,7 +22,12 @@ VITE_SUPABASE_ANON_KEY=votre_cle_anon_supabase
 1. Pousser sur GitHub
 2. Importer sur [vercel.com](https://vercel.com) — Framework : Vite
 3. Ajouter les variables d'environnement : `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY`
-4. **Hey Horizon LLM (optionnel)** : ajouter `OPENAI_API_KEY` (ou `HEY_HORIZON_LLM_API_KEY`) côté serveur — jamais en `VITE_*`. Garder `VITE_HEY_HORIZON_LLM=auto`.
+4. **Hey Horizon IA (prod)** :
+   - Build : `VITE_HEY_HORIZON_LLM=auto` (déjà dans CI)
+   - Serveur Vercel : `OPENAI_API_KEY` ou `HEY_HORIZON_LLM_API_KEY` (Environment → Production)
+   - Optionnel : `HEY_HORIZON_LLM_MODEL=gpt-4o-mini`
+   - Sans clé API : l'agent à outils (créances, stock, élevage, trésorerie, priorités) fonctionne via règles locales
+   - Avec clé API : routage LLM + synthèse conversationnelle sur `/api/assistant/agent` et `/api/assistant/enhance`
 5. Déployer → URL publique disponible
 
 Le fichier `vercel.json` gère le SPA routing (rechargements de page sans 404).
