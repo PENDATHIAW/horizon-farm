@@ -20,6 +20,7 @@ import {
   buildDirectorEngineAnswer,
   DIRECTOR_INTENTS,
 } from './assistantDirectorEngines.js';
+import { resolveAffirmativeOffer } from './assistantConversationOffers.js';
 import { queryFarmToolAgent } from './assistantFarmToolAgent.js';
 
 const FORCED_TO_DIRECTOR = Object.freeze({
