@@ -11,6 +11,7 @@ import {
 import { buildDirectorSnapshot } from './assistantDirectorSnapshot.js';
 import { formatCompactHorizonAnswer } from './assistantResponseFormatter.js';
 import { enrichTerrainAnswer } from './assistantTerrainAnswers.js';
+import { buildCentreDecisionAnswer } from './assistantCentreDecisionAnswers.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v) => Number(v || 0);
@@ -46,6 +47,8 @@ const DIRECTOR_BY_INTENT = Object.freeze({
   objectif_status: DIRECTOR_INTENTS.OBJECTIF_STATUS,
   priorites_du_jour: DIRECTOR_INTENTS.PRIORITES_DU_JOUR,
   today_priorities: DIRECTOR_INTENTS.PRIORITES_DU_JOUR,
+  centre_recommendations: DIRECTOR_INTENTS.PRIORITES_DU_JOUR,
+  centre_cycles: DIRECTOR_INTENTS.PRIORITES_DU_JOUR,
 });
 
 /** Catalogue complet — aligné sur MODULE_BUSINESS_QUESTIONS. */
@@ -147,10 +150,11 @@ export const FARM_TOOL_CATALOG = Object.freeze([
     moduleKey: 'centre_ia',
     intents: [
       'today_priorities', 'priorites_du_jour', 'comment_va_la_ferme', 'farm_overview',
-      'farm_status', 'activity_journal',
+      'farm_status', 'activity_journal', 'main_risk', 'farm_risks', 'farm_opportunities',
+      'centre_recommendations', 'centre_cycles', 'centre_opportunities',
     ],
     patterns: [
-      /priorite|priorité|que faire|urgence|aujourd.?hui|par quoi commencer|comment va (la ferme|l exploitation)|situation globale|journal|activite recente|activité récente/i,
+      /priorite|priorité|que faire|urgence|aujourd.?hui|par quoi commencer|comment va (la ferme|l exploitation)|situation globale|journal|activite recente|activité récente|centre decisionnel|cerveau ferme|recommandation.*ferme|quand lancer|nouvelle bande|cycles avicoles|risque principal|principal risque/i,
     ],
   },
   {
@@ -262,6 +266,9 @@ export function routeFarmTool(question = '', dataMap = {}) {
 }
 
 function buildAnswerForIntent(intent, dataMap, options = {}) {
+  const centreFirst = buildCentreDecisionAnswer(intent, dataMap, options);
+  if (centreFirst) return centreFirst;
+
   const directorKey = DIRECTOR_BY_INTENT[intent];
   if (directorKey) {
     const directorAnswer = buildDirectorEngineAnswer(

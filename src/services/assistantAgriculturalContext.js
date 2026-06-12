@@ -152,6 +152,14 @@ function stockQty(row = {}) {
 }
 
 import { enrichTerrainAnswer } from './assistantTerrainAnswers.js';
+import { buildCentreDecisionAnswer } from './assistantCentreDecisionAnswers.js';
+
+const CENTRE_LINKED_INTENTS = new Set([
+  'today_priorities', 'priorites_du_jour', 'main_risk', 'farm_risks',
+  'farm_opportunities', 'centre_recommendations', 'centre_cycles',
+  'centre_opportunities', 'activity_journal', 'farm_overview',
+  'comment_va_la_ferme', 'farm_status',
+]);
 
 /**
  * Construit une réponse SCA compacte pour une intention universelle.
@@ -178,6 +186,11 @@ function buildAgriculturalAnswerCore(intent = '', dataMap = {}, options = {}) {
 
   const elevageAlerts = arr(carnetCards).find((c) => /elevage|élevage/i.test(c.domain || c.title || ''));
   const cultureAlerts = arr(carnetCards).find((c) => /culture/i.test(c.domain || c.title || ''));
+
+  if (CENTRE_LINKED_INTENTS.has(intent)) {
+    const centreAnswer = buildCentreDecisionAnswer(intent, dataMap, options);
+    if (centreAnswer) return centreAnswer;
+  }
 
   switch (intent) {
     case 'greeting':
@@ -563,11 +576,15 @@ function buildAgriculturalAnswerCore(intent = '', dataMap = {}, options = {}) {
 
     case 'top_client':
     case 'top_product':
+    case 'quotes_pending':
+    case 'deliveries_today':
     case 'commercial_summary': {
       const map = {
         top_client: 'top_clients',
         top_product: 'top_products',
         commercial_summary: 'summary',
+        quotes_pending: 'quotes_pending',
+        deliveries_today: 'deliveries_today',
       };
       const type = map[intent];
       if (type) {
@@ -648,13 +665,18 @@ function buildAgriculturalAnswerCore(intent = '', dataMap = {}, options = {}) {
       const docs = arr(dataMap.documents);
       const reports = arr(dataMap.rapports || dataMap.reports);
       const total = docs.length + reports.length;
+      const recent = docs.slice(0, 3).map((d) => d.nom || d.title || d.type).filter(Boolean);
       return {
         title: 'Documents',
-        situation: `${fmt(total)} document(s) et rapport(s) enregistré(s).`,
-        cause: 'Archives ERP Documents & Rapports.',
-        action: total ? 'Ouvrez Documents & Rapports pour exporter ou consulter.' : 'Générez un rapport depuis le module concerné.',
+        situation: total
+          ? `${fmt(total)} document(s) et rapport(s)${recent.length ? ` — derniers : ${recent.join(', ')}` : ''}.`
+          : 'Aucun document exporté récemment.',
+        cause: 'Archives Documents & Rapports + exports Centre décisionnel.',
+        action: total
+          ? 'Centre décisionnel → exports ou Documents & Rapports pour télécharger.'
+          : 'Générez un rapport depuis Commercial, Finance ou le Centre décisionnel.',
         sources: ['documents'],
-        confidence: 82,
+        confidence: 84,
       };
     }
 
@@ -673,13 +695,15 @@ function buildAgriculturalAnswerCore(intent = '', dataMap = {}, options = {}) {
 
     case 'rh_personnel': {
       const tasks = arr(props.taches).filter((t) => /rh|personnel|equipe|équipe/i.test(String(t.module || t.categorie || t.title || '')));
+      const open = arr(props.taches).filter((t) => !['termine', 'terminé', 'clos', 'done'].includes(lower(t.statut || t.status)));
+      const preview = tasks.slice(0, 2).map((t) => t.title || t.nom).filter(Boolean);
       return {
         title: 'Personnel',
-        situation: `${fmt(tasks.length)} tâche(s) liée(s) aux équipes · ${fmt(arr(props.taches).length)} tâches ouvertes au total.`,
-        cause: 'Données Opérations & Ressources ERP.',
-        action: 'Ouvrez Opérations & Ressources pour le planning équipes.',
+        situation: `${fmt(open.length)} tâche(s) ouverte(s) sur l'exploitation${preview.length ? ` — équipes : ${preview.join(', ')}` : ''}.`,
+        cause: tasks.length ? `${fmt(tasks.length)} tâche(s) liée(s) au personnel terrain.` : 'Peu de tâches RH saisies — suivi via Opérations & Ressources.',
+        action: open.length ? 'Priorisez les tâches équipe avant les sorties terrain.' : 'Planifiez les équipes dans Opérations & Ressources.',
         sources: ['taches'],
-        confidence: 80,
+        confidence: 82,
       };
     }
 

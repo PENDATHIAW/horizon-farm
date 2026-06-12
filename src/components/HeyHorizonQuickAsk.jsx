@@ -1,6 +1,7 @@
 import { Bot } from 'lucide-react';
 import { launchProductionQuestion } from '../utils/productionNavigation.js';
 import { commercialHeyHorizonPresets, launchCommercialHeyHorizonQuestion } from '../utils/commercialHeyHorizon.js';
+import { centreHeyHorizonPresets, launchCentreHeyHorizonQuestion } from '../utils/centreHeyHorizon.js';
 
 const PRESETS = {
   commercial: commercialHeyHorizonPresets(),
@@ -8,6 +9,7 @@ const PRESETS = {
     { label: 'Nouvelle bande', questionId: 'new_layer_band', moduleId: 'elevage' },
     { label: 'Bande chair', questionId: 'new_chair_band', moduleId: 'elevage' },
   ],
+  centre_ia: centreHeyHorizonPresets(),
 };
 
 export default function HeyHorizonQuickAsk({
@@ -28,6 +30,10 @@ export default function HeyHorizonQuickAsk({
           key={item.id || item.label}
           type="button"
           onClick={() => {
+            if (moduleKey === 'centre_ia' && item.query) {
+              launchCentreHeyHorizonQuestion({ questionId: item.id, onNavigate, onOpenAssistant });
+              return;
+            }
             if (moduleKey === 'commercial' && item.query) {
               launchCommercialHeyHorizonQuestion({ questionId: item.id, onNavigate, onOpenAssistant });
               return;

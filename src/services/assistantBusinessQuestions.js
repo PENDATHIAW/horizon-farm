@@ -47,6 +47,9 @@ const BASE_MODULE_BUSINESS_QUESTIONS = Object.freeze({
   centre_ia: [
     q(F.DECISION, 'today_priorities', 'Décisions', ['qu est ce qui est urgent', 'que traiter en priorité', 'risques a traiter', 'centre decisionnel', 'cerveau ferme'], ['décisions prioritaires', 'risques à traiter'], []),
     q(F.INVESTISSEUR, 'main_risk', 'Risques', ['quel est le principal risque', 'risque principal', 'plus gros risque', 'alerte critique'], ['risques exploitation'], ['principal risque financier']),
+    q(F.DECISION, 'centre_recommendations', 'Recommandations', ['recommandations ferme', 'que me conseille le centre', 'axes prioritaires exploitation', 'recommandations du jour'], ['recommandations centre'], []),
+    q(F.DECISION, 'centre_cycles', 'Cycles', ['quand lancer une bande', 'quand lancer une nouvelle bande', 'timing lancement poulets', 'cycles avicoles', 'lancer lot chair'], ['calendrier cycles'], []),
+    q(F.COMMERCIAL, 'farm_opportunities', 'Opportunités', ['opportunites vente centre', 'que vendre maintenant strategique'], [], []),
   ],
   objectifs_croissance: [
     q(F.OBJECTIFS, 'progress_status', 'Avancement', ['où j en suis sur mes objectifs', 'avancement objectif', 'objectifs', 'mes objectifs', 'ecart objectif', 'pourcentage objectif'], ['écart objectif mensuel', 'atteinte objectif'], ['projection objectifs']),
@@ -97,6 +100,8 @@ const BASE_MODULE_BUSINESS_QUESTIONS = Object.freeze({
     q(F.COMMERCIAL, 'commercial_summary', 'Situation commerciale', ['situation commerciale', 'resume commercial', 'mes clients', 'bilan commercial'], [], []),
     q(F.COMMERCIAL, 'orders_overview', 'Commandes', ['mes commandes', 'commandes en cours', 'commandes ouvertes', 'commandes a traiter'], [], []),
     q(F.COMMERCIAL, 'deliveries_overview', 'Livraisons', ['mes livraisons', 'livraisons en attente', 'livraisons du jour', 'livraisons prevues'], [], []),
+    q(F.COMMERCIAL, 'quotes_pending', 'Devis', ['devis en attente', 'quels devis ouverts', 'devis en cours', 'propositions clients'], [], []),
+    q(F.COMMERCIAL, 'deliveries_today', 'Livraisons jour', ['livraisons a faire aujourd hui', 'commandes a livrer aujourd hui', 'livraisons du jour terrain'], [], []),
     q(F.DECISION, 'sell_today', 'Que vendre', ['que vendre', 'quoi vendre', 'que vendre cette semaine', 'que puis je leur vendre', 'quoi ecouler'], [], []),
   ],
   achats_stock: [

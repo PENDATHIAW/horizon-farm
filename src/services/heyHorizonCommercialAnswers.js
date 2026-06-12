@@ -29,6 +29,8 @@ export function detectCommercialPilotageQuery(text = '') {
 
   if (/resume.*commercial|situation commercial|resumer.*commercial|ma situation commercial/.test(q)) return 'summary';
   if (/meilleur.*produit|top produit|produit.*vedette|vend.*mieux/.test(q)) return 'top_products';
+  if (/devis en attente|quels devis|devis ouvert|devis en cours/.test(q)) return 'quotes_pending';
+  if (/livraisons du jour|commandes a livrer|doivent etre livrees|livrer aujourd/.test(q)) return 'deliveries_today';
   if (/meilleur.*client|top client|client.*strategique/.test(q)) return 'top_clients';
   if (/creance.*relancer|relancer.*client|quelles creances|clients.*relancer/.test(q)) return 'receivables';
   if (/vendre.*aujourd|que dois.*vendre|opportunite/.test(q)) return 'sell_today';
@@ -297,6 +299,60 @@ export function buildCommercialPilotageAnswer(type = 'summary', dataMap = {}) {
       rows: actions.map((a, i) => ({ label: `Action ${i + 1}`, value: a })),
       route: 'commercial',
       tab: 'Résumé',
+    });
+  }
+
+  if (type === 'quotes_pending') {
+    const pending = enriched.filter((row) => {
+      const status = low(row.statut || row.status || row.etat || '');
+      return /devis|quote|proposition/.test(status) && !/accept|valide|paye|payé|clos|termine/.test(status);
+    });
+    const labels = pending.slice(0, 4).map((row) => row.client_nom || row.client_name || row.id).filter(Boolean);
+    return buildCommercialAnswerPayload({
+      type: 'quotes_pending',
+      title: 'Devis en attente',
+      situation: pending.length
+        ? `${pending.length} devis ou proposition(s) en attente${labels.length ? ` : ${labels.join(', ')}` : ''}.`
+        : 'Aucun devis en attente détecté sur les commandes ouvertes.',
+      cause: 'Commandes au statut devis / proposition non finalisées.',
+      action: pending.length ? 'Relancez ou convertissez les devis prioritaires dans Commercial → Ventes.' : 'Publiez une nouvelle offre si le pipe est vide.',
+      sources: ['buildConsolidatedCommercialKpis'],
+      rows: pending.slice(0, 5).map((row) => ({
+        label: row.client_nom || row.client_name || 'Client',
+        value: fmtCurrency(row.total ?? row.montant_total),
+      })),
+      route: 'commercial',
+      tab: 'Ventes',
+    });
+  }
+
+  if (type === 'deliveries_today') {
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const pendingDeliveries = arr(props.deliveries).filter((row) => {
+      const date = String(row.date || row.date_livraison || row.scheduled_at || '').slice(0, 10);
+      const status = low(row.statut || row.status || '');
+      return (date === todayKey || !date) && !/livre|livrée|delivered|termine|terminé/.test(status);
+    });
+    const orderPending = enriched.filter((row) => {
+      const status = low(row.statut || row.status || '');
+      return /commande|confirm|pret|prêt|a livrer/.test(status) && n(row.reste_a_livrer ?? row.quantity_remaining) > 0;
+    });
+    const count = pendingDeliveries.length || orderPending.length;
+    return buildCommercialAnswerPayload({
+      type: 'deliveries_today',
+      title: 'Livraisons du jour',
+      situation: count
+        ? `${count} livraison(s) ou commande(s) à traiter aujourd'hui.`
+        : 'Aucune livraison urgente signalée pour aujourd\'hui.',
+      cause: 'Livraisons planifiées et commandes non totalement livrées.',
+      action: count ? 'Préparez les livraisons du jour dans Commercial → Livraisons.' : 'Contactez les clients réguliers pour remplir la journée.',
+      sources: ['buildConsolidatedCommercialKpis'],
+      rows: pendingDeliveries.slice(0, 4).map((row) => ({
+        label: row.client_nom || row.client_name || 'Livraison',
+        value: row.produit || row.product_name || '—',
+      })),
+      route: 'commercial',
+      tab: 'Livraisons',
     });
   }
 

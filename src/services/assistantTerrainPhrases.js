@@ -370,6 +370,65 @@ export const TERRAIN_PHRASE_BUNDLES = Object.freeze([
     ],
   },
   {
+    module: 'centre_ia',
+    family: F.DECISION,
+    intent: 'today_priorities',
+    phrases: [
+      'centre decisionnel priorites',
+      'cerveau ferme que faire',
+      'a traiter aujourd hui centre',
+      'plan du jour centre decisionnel',
+    ],
+  },
+  {
+    module: 'centre_ia',
+    family: F.INVESTISSEUR,
+    intent: 'main_risk',
+    phrases: [
+      'risque principal centre',
+      'alerte critique ferme',
+      'plus gros risque exploitation',
+    ],
+  },
+  {
+    module: 'centre_ia',
+    family: F.DECISION,
+    intent: 'centre_recommendations',
+    phrases: [
+      'recommandations du centre',
+      'conseils centre decisionnel',
+      'que me conseille horizon pilotage',
+    ],
+  },
+  {
+    module: 'centre_ia',
+    family: F.DECISION,
+    intent: 'centre_cycles',
+    phrases: [
+      'quand lancer la bande',
+      'lancer nouvelle bande chair',
+      'timing bande avicole',
+    ],
+  },
+  {
+    module: 'commercial',
+    family: F.COMMERCIAL,
+    intent: 'quotes_pending',
+    phrases: [
+      'devis en attente terrain',
+      'quels devis pas signes',
+    ],
+  },
+  {
+    module: 'commercial',
+    family: F.COMMERCIAL,
+    intent: 'deliveries_today',
+    phrases: [
+      'livraisons a faire aujourd hui',
+      'commandes a livrer ce matin',
+    ],
+  },
+  {
     module: 'documents_rapports',
     family: F.DECISION,
     intent: 'documents_summary',

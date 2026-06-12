@@ -19,6 +19,10 @@ const INTENT_ALIASES = Object.freeze({
   today_priorities: ['today_priorities', 'activity_journal'],
   ventes_today: ['ventes_today', 'ventes'],
   farm_trends: ['farm_trends', 'ca_progress'],
+  centre_recommendations: ['centre_recommendations', 'today_priorities', 'farm_opportunities'],
+  centre_cycles: ['centre_cycles', 'lots_overview'],
+  quotes_pending: ['quotes_pending', 'orders_overview'],
+  deliveries_today: ['deliveries_today', 'deliveries_overview', 'ventes_today'],
 });
 
 function acceptsIntent(expected, actual) {

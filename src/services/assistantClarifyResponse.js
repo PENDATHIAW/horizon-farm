@@ -1,6 +1,5 @@
 /**
- * Réponses de clarification — jamais « Commande non reconnue ».
- * Comprendre · demander une précision · proposer ce qui a été compris.
+ * Clarification guidée — choix explicites pour formulations ambiguës.
  */
 
 import { classifyBySemanticPhrases } from './assistantSemanticMatcher.js';
@@ -16,7 +15,43 @@ const DOMAIN_HINTS = Object.freeze({
   stock: 'Par exemple : « stock », « qu\'est-ce qu\'il me reste en magasin ? » ou « ruptures »',
   finance: 'Par exemple : « trésorerie », « suis-je rentable ? » ou « mes dettes »',
   pilotage: 'Par exemple : « comment va la ferme ? », « que dois-je faire aujourd\'hui ? » ou « objectifs »',
+  centre: 'Par exemple : « priorités du jour », « risque principal », « recommandations » ou « quand lancer une bande ? »',
 });
+
+/** Phrases ultra-courtes → suggestions cliquables (texte). */
+const GUIDED_CHOICES = Object.freeze([
+  {
+    test: (t) => /^(client|clients)$/i.test(t.trim()),
+    choices: ['Qui me doit de l\'argent ?', 'Meilleur client', 'Clients à relancer'],
+    domain: 'commercial',
+  },
+  {
+    test: (t) => /^(stock|magasin)$/i.test(t.trim()),
+    choices: ['Mon stock', 'Ruptures stock', 'Combien de sacs d\'aliment ?'],
+    domain: 'stock',
+  },
+  {
+    test: (t) => /^(objectif|objectifs)$/i.test(t.trim()),
+    choices: ['Où j\'en suis sur mes objectifs ?', 'Objectif annuel atteignable ?'],
+    domain: 'pilotage',
+  },
+  {
+    test: (t) => /^(centre|pilotage|decision)$/i.test(t.trim()),
+    choices: ['Que faire aujourd\'hui ?', 'Risque principal', 'Recommandations ferme'],
+    domain: 'centre',
+  },
+  {
+    test: (t) => /^(vente|ventes)$/i.test(t.trim()),
+    choices: ['Mes ventes', 'Ventes du jour', 'Qui n\'a pas payé ?'],
+    domain: 'commercial',
+  },
+]);
+
+function buildGuidedAction(choices = []) {
+  if (!choices.length) return '';
+  const numbered = choices.map((c, i) => `${i + 1}. ${c}`).join(' · ');
+  return `Choisissez ou reformulez : ${numbered}`;
+}
 
 /**
  * Tente une réponse partielle (seuil sémantique bas) ou une clarification guidée.
@@ -25,6 +60,22 @@ const DOMAIN_HINTS = Object.freeze({
 export function buildAssistantClarifyResponse(query = '', dataMap = {}) {
   const text = String(query || '').trim();
   if (!text) return null;
+
+  const guided = GUIDED_CHOICES.find((row) => row.test(text));
+  if (guided) {
+    const hint = DOMAIN_HINTS[guided.domain] || DOMAIN_HINTS.pilotage;
+    return {
+      answer: {
+        title: 'Précision',
+        situation: 'Je peux vous aider sur plusieurs sujets proches.',
+        cause: 'Mot seul — précisez ce que vous cherchez.',
+        action: buildGuidedAction(guided.choices),
+        sources: ['Horizon'],
+        confidence: 58,
+      },
+      assistantText: buildGuidedAction(guided.choices),
+    };
+  }
 
   const ultra = resolveUltraShortIntent(text);
   if (ultra) {
@@ -58,7 +109,7 @@ export function buildAssistantClarifyResponse(query = '', dataMap = {}) {
   }
 
   const domain = detectBusinessDomain(text);
-  const domainKey = domain?.domain || 'pilotage';
+  const domainKey = domain?.domain === 'centre_ia' ? 'centre' : (domain?.domain || 'pilotage');
   const hint = DOMAIN_HINTS[domainKey] || DOMAIN_HINTS.pilotage;
 
   return {
