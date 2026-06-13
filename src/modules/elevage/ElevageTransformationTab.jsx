@@ -79,10 +79,13 @@ export default function ElevageTransformationTab({
         </div>
         <div className="flex flex-wrap gap-2">
           <ActionBtn icon={Beef} label="+ Transformation" primary onClick={() => openForm({ transformType: 'abattage' })} />
-          <ActionBtn icon={Skull} label="Mortalité lot" onClick={() => onOpenWorkflow?.('mortality')} />
-          <ActionBtn icon={Drumstick} label="Clôturer lot" onClick={() => onOpenWorkflow?.('transform')} />
+          <ActionBtn icon={Skull} label="Mortalité" onClick={() => openForm({ transformType: 'mortalite_lot', source_type: 'lot_avicole' })} />
+          <ActionBtn icon={Drumstick} label="Réforme / sortie lot" onClick={() => openForm({ transformType: 'reforme', source_type: 'lot_avicole' })} />
           <ActionBtn icon={ShoppingCart} label="Préparer vente" onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
         </div>
+        <p className="text-xs text-[#8a7456]">
+          <b>Mortalité</b> = perte (lot avicole ou animal via le type du formulaire). <b>Réforme / sortie</b> = abattage ou réforme avec stock ou vente — pas une « clôture » vague.
+        </p>
       </section>
 
       {showForm && transformationFormProps ? (

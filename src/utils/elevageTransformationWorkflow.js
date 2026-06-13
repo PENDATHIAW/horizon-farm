@@ -6,7 +6,7 @@ import { makeId } from './ids.js';
 import { toNumber } from './format.js';
 import { buildMeatStockPayload } from '../services/livestockStockBridge.js';
 import { calculateUnifiedAnimalCost, calculateUnifiedLotCost } from '../services/unifiedCostService.js';
-import { avicoleActiveCount } from './avicoleMetrics.js';
+import { avicoleActiveCount, avicoleDeadCount } from './avicoleMetrics.js';
 import { applyStockMovement, stockQuantity } from './stockWorkflows.js';
 import {
   blockSanitaryAction,
@@ -28,7 +28,8 @@ const today = () => new Date().toISOString().slice(0, 10);
 export const TRANSFORM_TYPES = [
   { value: 'abattage', label: 'Abattage — carcasse / stock viande' },
   { value: 'reforme', label: 'Réforme — sortie cheptel / lot' },
-  { value: 'mortalite_lot', label: 'Mortalité lot avicole (perte)' },
+  { value: 'mortalite_lot', label: 'Mortalité lot / bande (avicole)' },
+  { value: 'mortalite_animal', label: 'Mortalité animal individuel (perte)' },
   { value: 'sortie_vente_vivant', label: 'Sortie vente vivant (pas de stock carcasse)' },
   { value: 'transformation_viande', label: 'Découpe / conditionnement viande' },
   { value: 'autre', label: 'Autre sortie / conversion' },
@@ -51,11 +52,18 @@ export const TRANSFORM_TYPE_PROFILES = {
     defaults: { destination: 'stock', create_stock: true, produit_fini_type: 'viande_fraiche' },
   },
   mortalite_lot: {
-    hint: 'Mortalité lot — perte financière, pas de produit fini ni stock viande.',
+    hint: 'Mortalité sur une bande avicole — effectif perdu, perte financière, pas de stock viande.',
     sources: ['lot_avicole'],
     lotScope: 'all',
     show: { effectif: true, poids_vif: false, poids_carcasse: false, rendement: false, pertes: true, frais_abattage: false, frais_decoupe: false, frais_emballage: false, frais_transport: false, autres_frais: true, produit_fini: false, stock_fields: false, proof: false },
     defaults: { destination: 'perte', create_stock: false, source_type: 'lot_avicole' },
+  },
+  mortalite_animal: {
+    hint: 'Décès d’un animal (bovin, ovin, caprin…) — perte financière, pas de produit fini ni stock.',
+    sources: ['animal'],
+    lotScope: 'all',
+    show: { effectif: false, poids_vif: false, poids_carcasse: false, rendement: false, pertes: true, frais_abattage: false, frais_decoupe: false, frais_emballage: false, frais_transport: false, autres_frais: true, produit_fini: false, stock_fields: false, proof: false },
+    defaults: { destination: 'perte', create_stock: false, source_type: 'animal' },
   },
   sortie_vente_vivant: {
     hint: 'Vente vivant — pas de carcasse ni stock produit fini ici (préparer vente Commercial).',
@@ -283,8 +291,14 @@ export function validateOfficialTransformationForm(form = {}) {
   if (profile.show.poids_carcasse && form.destination !== 'perte' && form.create_stock && qty <= 0) {
     return 'Poids carcasse / produit fini obligatoire pour ce type.';
   }
+  if (form.transform_type === 'mortalite_lot' && !clean(form.lot_id)) {
+    return 'Lot avicole obligatoire pour mortalité de bande.';
+  }
   if (form.transform_type === 'mortalite_lot' && !num(form.effectif) && !num(form.pertes)) {
     return 'Effectif ou montant de perte obligatoire pour mortalité lot.';
+  }
+  if (form.transform_type === 'mortalite_animal' && !clean(form.animal_id)) {
+    return 'Animal obligatoire pour mortalité individuelle.';
   }
   if (form.sanitary_override && !clean(form.sanitary_override_reason)) {
     return 'Justification obligatoire pour une dérogation sanitaire.';
@@ -414,6 +428,27 @@ export async function commitOfficialTransformation({
   if (handlers.onCreateBusinessEvent) await handlers.onCreateBusinessEvent(eventPayload);
 
   if (lotId && handlers.onUpdateLot) {
+    if (transformType === 'mortalite_lot') {
+      const qty = Math.max(1, num(form.effectif) || 1);
+      const prevDead = avicoleDeadCount(lot);
+      const newDead = prevDead + qty;
+      const prevActive = avicoleActiveCount(lot);
+      const nextActive = Math.max(0, prevActive - qty);
+      const lossUnit = num(lot.prix_unitaire_sujet ?? lot.unit_cost ?? lot.cout_unitaire_poussin);
+      const economicLoss = num(form.pertes) || qty * lossUnit;
+      await handlers.onUpdateLot(lotId, {
+        mortality: newDead,
+        morts: newDead,
+        current_count: nextActive,
+        effectif_actuel: nextActive,
+        last_event_date: date,
+        last_health_note: clean(form.notes) || 'Mortalité lot',
+        status: nextActive === 0 ? 'perdu_mortalite' : (lot.status || 'actif'),
+        statut: nextActive === 0 ? 'perdu_mortalite' : (lot.statut || 'actif'),
+        valeur_perte_estimee: num(lot.valeur_perte_estimee) + economicLoss,
+        perte_estimee: num(lot.valeur_perte_estimee) + economicLoss,
+      });
+    } else {
     const nextActive = Math.max(0, avicoleActiveCount(lot) - (effectif || avicoleActiveCount(lot)));
     const statusMap = { abattage: 'abattu', reforme: 'reforme', sortie_vente_vivant: 'pret_vente', pret_vente: 'pret_vente' };
     const status = statusMap[transformType] || form.statut_lot || 'pret_vente';
@@ -432,9 +467,19 @@ export async function commitOfficialTransformation({
       last_slaughter_date: date,
       cout_revient_viande_kg: costing.costPerKg,
     });
+    }
   }
 
   if (animalId && handlers.onUpdateAnimal) {
+    if (transformType === 'mortalite_animal') {
+      await handlers.onUpdateAnimal(animalId, {
+        status: 'mort',
+        statut: 'mort',
+        date_sortie: date,
+        date_deces: date,
+        cause_deces: clean(form.notes) || '',
+      });
+    } else {
     const animalStatus = transformType === 'abattage' || transformType === 'reforme' ? 'abattu' : 'pret_vente';
     await handlers.onUpdateAnimal(animalId, {
       status: animalStatus,
@@ -445,6 +490,39 @@ export async function commitOfficialTransformation({
       produit_stock: produitNom,
       cout_revient_viande_kg: costing.costPerKg,
     });
+    }
+  }
+
+  if ((transformType === 'mortalite_lot' || transformType === 'mortalite_animal') && handlers.onCreateFinanceTransaction) {
+    let economicLoss = num(form.pertes);
+    if (!economicLoss && lot) {
+      const qty = Math.max(1, num(form.effectif) || 1);
+      economicLoss = qty * num(lot.prix_unitaire_sujet ?? lot.unit_cost ?? lot.cout_unitaire_poussin);
+    }
+    if (!economicLoss && animal) {
+      economicLoss = num(animal.cout_achat ?? animal.purchase_cost ?? animal.prix_achat ?? animal.cout_acquisition);
+    }
+    if (economicLoss > 0) {
+      const financeId = `TRX-MORT-${transformType}-${lotId || animalId}-${date}`;
+      const exists = arr(context.transactions).some((t) => clean(t.id) === financeId);
+      if (!exists) {
+        await handlers.onCreateFinanceTransaction(stampElevageLogFarmId({
+          id: financeId,
+          type: 'sortie',
+          libelle: `Perte mortalité ${animal ? (animal.name || animal.nom || animalId) : (lot?.name || lot?.nom || lotId)}`,
+          montant: economicLoss,
+          amount: economicLoss,
+          date,
+          categorie: 'Pertes',
+          activite: lotId ? 'avicole' : 'elevage',
+          module_lie: 'elevage',
+          source_module: 'elevage',
+          source_record_id: lotId || animalId,
+          issue_key: issueKey,
+          side_effects_managed: true,
+        }, farmId));
+      }
+    }
   }
 
   let stockId = '';
