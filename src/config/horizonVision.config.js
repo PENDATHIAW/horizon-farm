@@ -16,7 +16,7 @@ export const MODULE_TARGET_TABS = {
   objectifs_croissance: ['Suivi du Business Plan', 'Efficacité Technique & Zootechnique', 'Simulateur Sandbox', 'Sécurisation des Flux'],
   centre_ia: ['Urgences & risques', 'Croissance & opportunités', 'Saisons & marchés'],
   elevage: ['Lots & bandes', 'Cycles & Reproduction', 'Santé', 'Transformation'],
-  commercial: ['Ventes', 'Clients & créances', 'Livraisons'],
+  commercial: ['Ventes', 'Opportunités', 'Clients & créances', 'Livraisons', 'Abonnements', 'Pilotage'],
   achats_stock: ['Inventaire', 'Réceptions & achats', 'Fournisseurs & dettes'],
   finance_pilotage: ['Résumé', 'Trésorerie', 'Créances', 'Dettes', 'Échéancier', 'Financement', 'Réconciliation', 'Investissements', 'Rentabilité', 'Annexe', 'Graphiques'],
   activite_suivi: ['Résumé', 'Alertes', 'Tâches', 'Traçabilité', 'Graphiques'],

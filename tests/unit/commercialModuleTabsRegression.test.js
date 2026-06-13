@@ -29,7 +29,7 @@ const baseProps = {
 };
 
 const COMMERCIAL_TABS = [
-  'Ventes', 'Clients & créances', 'Livraisons',
+  'Ventes', 'Opportunités', 'Clients & créances', 'Livraisons', 'Abonnements', 'Pilotage',
 ];
 
 for (const tab of COMMERCIAL_TABS) {

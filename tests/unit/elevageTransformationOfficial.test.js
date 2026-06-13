@@ -19,20 +19,22 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const readSrc = (rel) => readFileSync(join(__dirname, '..', '..', rel), 'utf8');
 
 describe('elevageTransformationOfficial — canal officiel', () => {
-  it('TransformationHub monte TransformationOfficialForm, pas les bridges', () => {
-    const src = readSrc('src/modules/ElevageRecoveredModule.jsx');
-    assert.match(src, /TransformationOfficialForm/);
-    assert.doesNotMatch(src, /AnimalSlaughterStockBridge/);
-    assert.doesNotMatch(src, /AvicoleTransformationBridge/);
+  it('Élevage monte ElevageTransformationTab avec formulaire officiel, pas bridges directs', () => {
+    const elevage = readSrc('src/modules/ElevageRecoveredModule.jsx');
+    const tab = readSrc('src/modules/elevage/ElevageTransformationTab.jsx');
+    assert.match(elevage, /ElevageTransformationTab/);
+    assert.doesNotMatch(elevage, /AnimalSlaughterStockBridge/);
+    assert.doesNotMatch(elevage, /AvicoleTransformationBridge/);
+    assert.match(tab, /TransformationOfficialForm/);
     assert.equal(TRANSFORMATION_FORM_ID, 'elevage-transformation-official-form');
   });
 
-  it('Animaux et Avicole préparent sans bridge stock direct', () => {
+  it('Animaux et Avicole sans bridge abattage/transformation direct', () => {
     const animaux = readSrc('src/modules/AnimauxV2.jsx');
     const avicole = readSrc('src/modules/AvicoleV10.jsx');
-    assert.match(animaux, /PrepareTransformationPanel/);
     assert.doesNotMatch(animaux, /AnimalSlaughterStockBridge/);
-    assert.match(avicole, /PrepareTransformationPanel/);
+    assert.doesNotMatch(animaux, /AvicoleTransformationBridge/);
+    assert.doesNotMatch(avicole, /AnimalSlaughterStockBridge/);
     assert.doesNotMatch(avicole, /AvicoleTransformationBridge/);
   });
 

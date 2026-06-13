@@ -55,7 +55,7 @@ const ELEVAGE_TAB_ALIASES = {
 
 const ELEVAGE_LOTS_SUBVIEW_KEYS = new Set(['Avicole', 'avicole', 'Animaux', 'animaux']);
 export const ACHATS_STOCK_TABS = ['Inventaire', 'Réceptions & achats', 'Fournisseurs & dettes'];
-export const COMMERCIAL_TABS = ['Ventes', 'Clients & créances', 'Livraisons'];
+export const COMMERCIAL_TABS = ['Ventes', 'Opportunités', 'Clients & créances', 'Livraisons', 'Abonnements', 'Pilotage'];
 
 const ACHATS_STOCK_TAB_ALIASES = {
   Résumé: 'Inventaire',
@@ -81,8 +81,8 @@ const ACHATS_STOCK_TAB_ALIASES = {
 };
 
 const COMMERCIAL_TAB_ALIASES = {
-  Résumé: 'Ventes',
-  resume: 'Ventes',
+  Résumé: 'Pilotage',
+  resume: 'Pilotage',
   Ventes: 'Ventes',
   ventes: 'Ventes',
   Clients: 'Clients & créances',
@@ -93,17 +93,20 @@ const COMMERCIAL_TAB_ALIASES = {
   Livraisons: 'Livraisons',
   livraisons: 'Livraisons',
   livraison: 'Livraisons',
-  Abonnements: 'Livraisons',
-  abonnements: 'Livraisons',
-  abonnement: 'Livraisons',
+  Abonnements: 'Abonnements',
+  abonnements: 'Abonnements',
+  abonnement: 'Abonnements',
   Relances: 'Clients & créances',
   relances: 'Clients & créances',
   relance: 'Clients & créances',
-  Opportunités: 'Ventes',
-  opportunites: 'Ventes',
-  opportunities: 'Ventes',
-  Pilotage: 'Ventes',
-  pilotage: 'Ventes',
+  Opportunités: 'Opportunités',
+  opportunites: 'Opportunités',
+  opportunities: 'Opportunités',
+  Abonnements: 'Abonnements',
+  abonnements: 'Abonnements',
+  abonnement: 'Abonnements',
+  Pilotage: 'Pilotage',
+  pilotage: 'Pilotage',
   Annexe: 'Ventes',
   annexe: 'Ventes',
   Graphiques: 'Ventes',

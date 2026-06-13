@@ -77,6 +77,16 @@ const CULTURE_FIELDS = [
   { key: 'notes', label: 'Notes', type: 'text', fullWidth: true },
 ];
 
+const PARCELLE_FIELDS = [
+  { key: 'nom', label: 'Nom parcelle', type: 'text', required: true },
+  { key: 'parcelle_code', label: 'Code parcelle', type: 'text' },
+  { key: 'parcelle_nom', label: 'Libellé terrain', type: 'text' },
+  { key: 'surface_exploitable', label: 'Surface exploitable (m²)', type: 'number' },
+  { key: 'localisation', label: 'Localisation / GPS', type: 'text' },
+  { key: 'type_sol', label: 'Type de sol', type: 'text' },
+  { key: 'notes', label: 'Notes', type: 'text', fullWidth: true },
+];
+
 function aggregate(rows, keyFn) {
   const map = new Map();
   rows.forEach((row) => {
@@ -172,6 +182,33 @@ export default function CulturesV3({
   const submitCreate = async (payload) => {
     try { setSaving(true); await onCreate?.({ ...applyCultureDecisionDefaults(payload), record_type: 'culture' }); toast.success('Culture ajoutée · décision Horizon proposée'); setModal(null); } catch (error) { toast.error(error.message || 'Création impossible'); } finally { setSaving(false); }
   };
+  const submitCreateParcelle = async (payload) => {
+    try {
+      setSaving(true);
+      const nom = payload.nom || payload.parcelle_nom || payload.parcelle_code || 'Parcelle';
+      await onCreate?.({
+        id: generateSequentialId('cultures', rows),
+        record_type: 'parcelle',
+        type_fiche: 'parcelle',
+        statut: 'active',
+        nom,
+        parcelle: nom,
+        parcelle_nom: payload.parcelle_nom || nom,
+        parcelle_code: payload.parcelle_code || '',
+        surface_exploitable: payload.surface_exploitable || payload.surface || 0,
+        localisation: payload.localisation || '',
+        type_sol: payload.type_sol || '',
+        notes: payload.notes || '',
+        unite_surface: 'm²',
+      });
+      toast.success('Parcelle enregistrée');
+      setModal(null);
+    } catch (error) {
+      toast.error(error.message || 'Création parcelle impossible');
+    } finally {
+      setSaving(false);
+    }
+  };
   const submitEdit = async (payload) => {
     if (!selected) return;
     if (['vendue', 'vendu', 'perdu', 'sinistre'].includes(String(selected.statut || selected.status || '').toLowerCase())) return toast.error('Fiche culture verrouillée');
@@ -216,7 +253,7 @@ export default function CulturesV3({
   ];
 
   return <div className="space-y-6">
-    <SectionHeader title={embeddedMode ? 'Registre parcelles & cultures' : 'Cultures, Parcelles & Campagnes'} sub={embeddedMode ? 'Lecture et navigation — récoltes, intrants, pertes et ventes dans leurs onglets dédiés.' : 'Sol, eau, rendement, stade et décisions IA — récoltes et intrants dans leurs onglets dédiés.'} actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter culture</Btn></>} />
+    <SectionHeader title={embeddedMode ? 'Registre parcelles & cultures' : 'Cultures, Parcelles & Campagnes'} sub={embeddedMode ? 'Lecture et navigation — récoltes, intrants, pertes et ventes dans leurs onglets dédiés.' : 'Sol, eau, rendement, stade et décisions IA — récoltes et intrants dans leurs onglets dédiés.'} actions={<><Btn icon={RefreshCw} variant="outline" small onClick={onRefresh}>Refresh</Btn><Btn icon={Download} variant="outline" small onClick={doExports}>Exporter</Btn><Btn icon={Plus} variant="outline" small onClick={() => setModal('create_parcelle')}>Ajouter parcelle</Btn><Btn icon={Plus} small onClick={() => setModal('create')}>Ajouter culture</Btn></>} />
     {showWorkflowBridge ? <CulturesWorkflowBridge rows={realRows} onUpdate={onUpdate} onRefresh={onRefresh} /> : null}
     {showSaleBridge ? <CulturesSaleOpportunityBridge rows={realRows} opportunities={opportunities} onUpdate={onUpdate} onRefresh={onRefresh} onCreateOpportunity={onCreateOpportunity} onUpdateOpportunity={onUpdateOpportunity} onRefreshOpportunities={onRefreshOpportunities} onCreateBusinessEvent={onCreateBusinessEvent} onRefreshBusinessEvents={onRefreshBusinessEvents} /> : null}
     {embeddedMode ? null : <div className="flex flex-wrap gap-2">{tabs.map((item) => <button type="button" key={item} onClick={() => setTab(item)} className={`rounded-xl border px-4 py-2 text-sm font-semibold ${tab === item ? 'bg-[#2f2415] text-white border-[#2f2415]' : 'bg-white text-[#8a7456] border-[#d6c3a0]'}`}>{item}</button>)}</div>}
@@ -234,6 +271,7 @@ export default function CulturesV3({
     </>}
     <CultureFicheModal open={modal === 'details'} onClose={() => setModal(null)} culture={selected ? { ...selected, cout_total_calcule: costOf(selected), revenu_calcule: revenueOf(selected), marge_calculee: marginOf(selected), score_sante_calcule: healthOf(selected), horizon_decision: selected.horizon_decision || buildCultureDecisionProfile(selected) } : selected} />
     <CreateModal open={modal === 'create'} onClose={() => setModal(null)} onSubmit={submitCreate} fields={CULTURE_FIELDS} initialValues={applyCultureDecisionDefaults({ id: generateSequentialId('cultures', rows), record_type: 'culture', statut: 'planifiee', localisation: '', date_debut_campagne: today(), unite_surface: 'm²', unite_recolte: 'kg' })} autoId={() => generateSequentialId('cultures', rows)} loading={saving} title="Ajouter culture" submitLabel="Ajouter" />
+    <CreateModal open={modal === 'create_parcelle'} onClose={() => setModal(null)} onSubmit={submitCreateParcelle} fields={PARCELLE_FIELDS} initialValues={{ nom: '', parcelle_code: '', parcelle_nom: '', surface_exploitable: '', localisation: '', type_sol: '', notes: '' }} autoId={() => generateSequentialId('cultures', rows)} loading={saving} title="Ajouter parcelle" submitLabel="Enregistrer parcelle" />
     <EditModal open={modal === 'edit'} onClose={() => setModal(null)} onSubmit={submitEdit} fields={CULTURE_FIELDS} initialValues={selected || {}} loading={saving} title="Modifier fiche" submitLabel="Enregistrer" />
     <DeleteModal open={modal === 'delete'} onClose={() => setModal(null)} onConfirm={submitDelete} itemLabel={selected?.nom || selected?.id || ''} loading={saving} />
   </div>;

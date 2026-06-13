@@ -349,6 +349,11 @@ export default function AchatsStockRecoveredModule(props) {
     onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh,
     onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create,
     onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh,
+    onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create,
+    onUpdateFinanceTransaction: props.onUpdateFinanceTransaction || financesCrud.update,
+    onCreateDocument: props.onCreateDocument || documentsCrud.create,
+    onUpdateTask: props.onUpdateTask || tasksCrud.update,
+    onUpdateAlert: props.onUpdateAlert || alertsCrud.update,
     onNavigate: props.onNavigate,
   };
 

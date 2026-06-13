@@ -86,7 +86,7 @@ function SupplierDecisionPanel({ summary }) {
   );
 }
 
-export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loading, onCreate, onUpdate, onDelete, onRefresh, onUpdateStock, onRefreshStock, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, onCreateBusinessEvent, onRefreshBusinessEvents, onNavigate, hideEvolution = false }) {
+export default function Fournisseurs({ rows = [], stocks = [], tasks = [], finances = [], transactions = [], documents = [], loading, onCreate, onUpdate, onDelete, onRefresh, onUpdateStock, onRefreshStock, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, onCreateBusinessEvent, onRefreshBusinessEvents, onCreateFinanceTransaction, onUpdateFinanceTransaction, onCreateDocument, onUpdateTask, onUpdateAlert, onNavigate, hideEvolution = false }) {
   const [selected, setSelected] = useState(null);
   const [modal, setModal] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -102,19 +102,28 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loadi
   const stockRows = stocks.length ? stocks : stockCrud.rows;
   const taskRows = tasks.length ? tasks : tachesCrud.rows;
   const alertRows = alertesCrud.rows || [];
-  const supplierDecisionSummary = useMemo(() => buildSupplierDecisionSummary(rows, { stocks: stockRows, finances: financesCrud.rows }), [rows, stockRows, financesCrud.rows]);
+  const financeRows = useMemo(() => {
+    const propRows = (finances?.length ? finances : transactions) || [];
+    const crudRows = financesCrud.rows || [];
+    if (!propRows.length) return crudRows;
+    if (!crudRows.length) return propRows;
+    const seen = new Set(crudRows.map((r) => String(r.id)));
+    return [...crudRows, ...propRows.filter((r) => !seen.has(String(r.id)))];
+  }, [finances, transactions, financesCrud.rows]);
+  const documentRows = documents.length ? documents : documentsCrud.rows;
 
-  const summaryFor = (supplier) => buildSupplierSummary(supplier, stockRows, financesCrud.rows, documentsCrud.rows);
-  const profileFor = (supplier) => buildSupplierDecisionProfile(supplier, { stocks: stockRows, finances: financesCrud.rows });
+  const summaryFor = (supplier) => buildSupplierSummary(supplier, stockRows, financeRows, documentRows);
+  const profileFor = (supplier) => buildSupplierDecisionProfile(supplier, { stocks: stockRows, finances: financeRows });
   const metricsFor = (supplier) => {
     const metrics = calculateSupplierMetrics(supplier);
     const summary = summaryFor(supplier);
     const profile = profileFor(supplier);
     return { ...metrics, dettes: summary.dettes, livraisons: summary.livraisons, ...profile };
   };
-  const totalDettes = useMemo(() => rows.reduce((sum, supplier) => sum + summaryFor(supplier).dettes, 0), [rows, stockRows, financesCrud.rows]);
+  const totalDettes = useMemo(() => rows.reduce((sum, supplier) => sum + summaryFor(supplier).dettes, 0), [rows, stockRows, financeRows]);
   const totalAchats = useMemo(() => rows.reduce((sum, supplier) => sum + summaryFor(supplier).achatsStock, 0), [rows, stockRows]);
-  const fournisseursDette = useMemo(() => rows.filter((supplier) => summaryFor(supplier).dettes > 0), [rows, stockRows, financesCrud.rows]);
+  const fournisseursDette = useMemo(() => rows.filter((supplier) => summaryFor(supplier).dettes > 0), [rows, stockRows, financeRows]);
+  const supplierDecisionSummary = useMemo(() => buildSupplierDecisionSummary(rows, { stocks: stockRows, finances: financeRows }), [rows, stockRows, financeRows]);
   const noteMoyenne = useMemo(() => {
     if (!rows.length) return '0.0';
     return (rows.reduce((sum, supplier) => sum + calculateSupplierMetrics(supplier).note, 0) / rows.length).toFixed(1);
@@ -182,7 +191,12 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loadi
 
   const paySupplierDebt = async (supplier) => {
     const summary = summaryFor(supplier);
-    if (summary.dettes <= 0) return toast.success('Aucune dette fournisseur');
+    if (summary.dettes <= 0) {
+      toast.success('Aucune dette fournisseur', { duration: 4000 });
+      return;
+    }
+    const label = `${supplierName(supplier)} · ${fmtCurrency(summary.dettes)}`;
+    if (typeof window !== 'undefined' && !window.confirm(`Enregistrer le paiement fournisseur pour ${label} ?`)) return;
     try {
       setSaving(true);
       await runSupplierPaymentSideEffects({
@@ -191,24 +205,30 @@ export default function Fournisseurs({ rows = [], stocks = [], tasks = [], loadi
         openDebtTransactions: summary.finances.filter(isOpenSupplierDebt),
         date: today(),
         paymentRef: today(),
-        transactions: financesCrud.rows || [],
+        transactions: financeRows,
         tasks: taskRows,
         alertes: alertRows,
         handlers: {
-          onCreateFinanceTransaction: financesCrud.create,
-          onUpdateFinanceTransaction: financesCrud.update,
-          onCreateDocument: documentsCrud.create,
+          onCreateFinanceTransaction: onCreateFinanceTransaction || financesCrud.create,
+          onUpdateFinanceTransaction: onUpdateFinanceTransaction || financesCrud.update,
+          onCreateDocument: onCreateDocument || documentsCrud.create,
           onUpdateSupplier: onUpdate,
           onCreateBusinessEvent: onCreateBusinessEvent || eventsCrud.create,
           onUpdateTask: onUpdateTask || tachesCrud.update,
           onUpdateAlert: onUpdateAlert || alertesCrud.update,
-          existingDocuments: documentsCrud.rows || [],
         },
       });
-      await Promise.allSettled([financesCrud.refresh?.(), documentsCrud.refresh?.(), (onRefreshBusinessEvents || eventsCrud.refresh)?.(), onRefresh?.(), (onRefreshTasks || tachesCrud.refresh)?.(), (onRefreshAlertes || alertesCrud.refresh)?.()]);
-      toast.success('Paiement fournisseur enregistré');
+      await Promise.allSettled([
+        financesCrud.refresh?.(),
+        documentsCrud.refresh?.(),
+        (onRefreshBusinessEvents || eventsCrud.refresh)?.(),
+        onRefresh?.(),
+        (onRefreshTasks || tachesCrud.refresh)?.(),
+        (onRefreshAlertes || alertesCrud.refresh)?.(),
+      ]);
+      toast.success(`Paiement enregistré — ${label}`, { duration: 5000 });
     } catch (error) {
-      toast.error(error.message || 'Paiement fournisseur impossible');
+      toast.error(error.message || 'Paiement fournisseur impossible — vérifiez Finance & dettes ouvertes', { duration: 6000 });
     } finally {
       setSaving(false);
     }

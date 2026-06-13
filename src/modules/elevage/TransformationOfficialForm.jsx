@@ -12,6 +12,7 @@ import {
   commitOfficialTransformation,
   computeCarcassYield,
   computeTransformationCosting,
+  getTransformTypeProfile,
   PRODUIT_FINI_TYPES,
   TRANSFORM_TYPES,
   validateOfficialTransformationForm,
@@ -109,6 +110,26 @@ export default function TransformationOfficialForm(props) {
   const [lastResult, setLastResult] = useState(null);
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  const applyTypeDefaults = (type) => {
+    const p = getTransformTypeProfile(type);
+    setForm((prev) => ({
+      ...prev,
+      transform_type: type,
+      source_type: p.defaults.source_type || (p.sources.includes('lot_avicole') && !p.sources.includes('animal') ? 'lot_avicole' : prev.source_type),
+      destination: p.defaults.destination ?? prev.destination,
+      create_stock: p.defaults.create_stock ?? prev.create_stock,
+      produit_fini_type: p.defaults.produit_fini_type || prev.produit_fini_type,
+      animal_id: p.defaults.source_type === 'lot_avicole' ? '' : prev.animal_id,
+    }));
+  };
+
+  const profile = useMemo(() => getTransformTypeProfile(form.transform_type), [form.transform_type]);
+  const lotOptions = profile.lotScope === 'chair' ? chairLots : lots;
+  const sourceOptions = [
+    profile.sources.includes('animal') ? { value: 'animal', label: 'Animal individuel' } : null,
+    profile.sources.includes('lot_avicole') ? { value: 'lot_avicole', label: 'Lot avicole / bande' } : null,
+  ].filter(Boolean);
 
   useEffect(() => {
     if (!props.transformationDraft) return;
@@ -235,20 +256,21 @@ export default function TransformationOfficialForm(props) {
         </div>
       ) : null}
 
+      <p className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm text-[#7d6a4a]">{profile.hint}</p>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Field label="Date"><Input type="date" value={form.date} onChange={(v) => update('date', v)} /></Field>
-        <Field label="Type"><Select value={form.transform_type} onChange={(v) => update('transform_type', v)} options={TRANSFORM_TYPES} /></Field>
+        <Field label="Type">
+          <Select value={form.transform_type} onChange={(v) => applyTypeDefaults(v)} options={TRANSFORM_TYPES} />
+        </Field>
         <Field label="Source">
           <Select
             value={form.source_type}
             onChange={(v) => update('source_type', v)}
-            options={[
-              { value: 'animal', label: 'Animal individuel' },
-              { value: 'lot_avicole', label: 'Lot avicole / bande' },
-            ]}
+            options={sourceOptions}
           />
         </Field>
-        {form.source_type === 'animal' ? (
+        {form.source_type === 'animal' && profile.sources.includes('animal') ? (
           <Field label="Animal">
             <Select
               value={form.animal_id || ''}
@@ -256,46 +278,73 @@ export default function TransformationOfficialForm(props) {
               options={[{ value: '', label: '—' }, ...animals.map((a) => ({ value: a.id, label: `${a.type || 'Animal'} · ${a.name || a.tag || a.id}` }))]}
             />
           </Field>
-        ) : (
+        ) : null}
+        {form.source_type === 'lot_avicole' && profile.sources.includes('lot_avicole') ? (
           <Field label="Lot avicole">
             <Select
               value={form.lot_id || ''}
               onChange={(v) => update('lot_id', v)}
-              options={[{ value: '', label: '—' }, ...chairLots.map((l) => ({ value: l.id, label: `${l.name || l.nom || l.id} · ${avicoleActiveCount(l)} actifs` }))]}
+              options={[{ value: '', label: '—' }, ...lotOptions.map((l) => ({ value: l.id, label: `${l.name || l.nom || l.id} · ${avicoleActiveCount(l)} actifs` }))]}
             />
           </Field>
-        )}
-        {form.source_type === 'lot_avicole' ? (
+        ) : null}
+        {profile.show.effectif && form.source_type === 'lot_avicole' ? (
           <Field label="Effectif / sujets"><Input type="number" value={form.effectif} onChange={(v) => update('effectif', v)} /></Field>
         ) : null}
-        <Field label="Poids vif (kg)"><Input type="number" value={form.poids_vif} onChange={(v) => update('poids_vif', v)} /></Field>
-        <Field label="Poids carcasse / produit fini (kg)"><Input type="number" value={form.poids_carcasse} onChange={(v) => update('poids_carcasse', v)} /></Field>
-        <Field label="Rendement carcasse"><div className="rounded-lg border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm">{rendement != null ? `${rendement} %` : '—'}</div></Field>
-        <Field label="Pertes (F)"><Input type="number" value={form.pertes} onChange={(v) => update('pertes', v)} /></Field>
-        <Field label="Frais abattage"><Input type="number" value={form.frais_abattage} onChange={(v) => update('frais_abattage', v)} /></Field>
-        <Field label="Frais découpe"><Input type="number" value={form.frais_decoupe} onChange={(v) => update('frais_decoupe', v)} /></Field>
-        <Field label="Emballage"><Input type="number" value={form.frais_emballage} onChange={(v) => update('frais_emballage', v)} /></Field>
-        <Field label="Transport"><Input type="number" value={form.frais_transport} onChange={(v) => update('frais_transport', v)} /></Field>
-        <Field label="Autres frais"><Input type="number" value={form.autres_frais} onChange={(v) => update('autres_frais', v)} /></Field>
-        <Field label="Produit fini"><Select value={form.produit_fini_type} onChange={(v) => update('produit_fini_type', v)} options={PRODUIT_FINI_TYPES} /></Field>
-        <Field label="Nom produit stock"><Input value={form.produit_fini_nom} onChange={(v) => update('produit_fini_nom', v)} placeholder="Auto si vide" /></Field>
-        <Field label="Unité"><Input value={form.unite} onChange={(v) => update('unite', v)} /></Field>
-        <Field label="Emplacement"><Input value={form.emplacement} onChange={(v) => update('emplacement', v)} /></Field>
-        <Field label="DLC"><Input type="date" value={form.dlc} onChange={(v) => update('dlc', v)} /></Field>
-        <Field label="Destination">
-          <Select
-            value={form.destination}
-            onChange={(v) => update('destination', v)}
-            options={[
-              { value: 'stock', label: 'Stock viande' },
-              { value: 'vente_directe', label: 'Réservé vente' },
-              { value: 'perte', label: 'Perte — pas de stock' },
-            ]}
-          />
-        </Field>
+        {profile.show.poids_vif ? (
+          <Field label="Poids vif (kg)"><Input type="number" value={form.poids_vif} onChange={(v) => update('poids_vif', v)} /></Field>
+        ) : null}
+        {profile.show.poids_carcasse ? (
+          <Field label="Poids carcasse / produit fini (kg)"><Input type="number" value={form.poids_carcasse} onChange={(v) => update('poids_carcasse', v)} /></Field>
+        ) : null}
+        {profile.show.rendement ? (
+          <Field label="Rendement carcasse"><div className="rounded-lg border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 text-sm">{rendement != null ? `${rendement} %` : '—'}</div></Field>
+        ) : null}
+        {profile.show.pertes ? (
+          <Field label="Pertes (F)"><Input type="number" value={form.pertes} onChange={(v) => update('pertes', v)} /></Field>
+        ) : null}
+        {profile.show.frais_abattage ? (
+          <Field label="Frais abattage"><Input type="number" value={form.frais_abattage} onChange={(v) => update('frais_abattage', v)} /></Field>
+        ) : null}
+        {profile.show.frais_decoupe ? (
+          <Field label="Frais découpe"><Input type="number" value={form.frais_decoupe} onChange={(v) => update('frais_decoupe', v)} /></Field>
+        ) : null}
+        {profile.show.frais_emballage ? (
+          <Field label="Emballage"><Input type="number" value={form.frais_emballage} onChange={(v) => update('frais_emballage', v)} /></Field>
+        ) : null}
+        {profile.show.frais_transport ? (
+          <Field label="Transport"><Input type="number" value={form.frais_transport} onChange={(v) => update('frais_transport', v)} /></Field>
+        ) : null}
+        {profile.show.autres_frais ? (
+          <Field label="Autres frais"><Input type="number" value={form.autres_frais} onChange={(v) => update('autres_frais', v)} /></Field>
+        ) : null}
+        {profile.show.produit_fini ? (
+          <Field label="Produit fini"><Select value={form.produit_fini_type} onChange={(v) => update('produit_fini_type', v)} options={PRODUIT_FINI_TYPES} /></Field>
+        ) : null}
+        {profile.show.stock_fields ? (
+          <>
+            <Field label="Nom produit stock"><Input value={form.produit_fini_nom} onChange={(v) => update('produit_fini_nom', v)} placeholder="Auto si vide" /></Field>
+            <Field label="Unité"><Input value={form.unite} onChange={(v) => update('unite', v)} /></Field>
+            <Field label="Emplacement"><Input value={form.emplacement} onChange={(v) => update('emplacement', v)} /></Field>
+            <Field label="DLC"><Input type="date" value={form.dlc} onChange={(v) => update('dlc', v)} /></Field>
+            <Field label="Destination">
+              <Select
+                value={form.destination}
+                onChange={(v) => update('destination', v)}
+                options={[
+                  { value: 'stock', label: 'Stock viande' },
+                  { value: 'vente_directe', label: 'Réservé vente' },
+                  { value: 'perte', label: 'Perte — pas de stock' },
+                ]}
+              />
+            </Field>
+          </>
+        ) : null}
         <Field label="Responsable"><Input value={form.responsable} onChange={(v) => update('responsable', v)} /></Field>
         <Field label="Notes" className="md:col-span-2"><Input value={form.notes} onChange={(v) => update('notes', v)} /></Field>
-        <div className="md:col-span-3"><ProofInput form={form} onChange={(patch) => setForm((p) => ({ ...p, ...patch }))} /></div>
+        {profile.show.proof ? (
+          <div className="md:col-span-3"><ProofInput form={form} onChange={(patch) => setForm((p) => ({ ...p, ...patch }))} /></div>
+        ) : null}
       </div>
 
       <div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a] space-y-1">
@@ -311,7 +360,7 @@ export default function TransformationOfficialForm(props) {
       </div>
 
       <label className="flex items-start gap-2 text-sm">
-        <input type="checkbox" checked={form.create_stock} onChange={(e) => update('create_stock', e.target.checked)} className="mt-1" />
+        <input type="checkbox" checked={form.create_stock} onChange={(e) => update('create_stock', e.target.checked)} className="mt-1" disabled={!profile.show.stock_fields} />
         <span>Créer / mettre à jour le stock produit fini après validation (confirmation requise)</span>
       </label>
       <label className="flex items-start gap-2 text-sm">

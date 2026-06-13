@@ -26,9 +26,9 @@ test('resolveAchatsStockTab — aliases legacy', () => {
 test('resolveCommercialTab — aliases legacy', () => {
   assert.equal(resolveCommercialTab('Clients'), 'Clients & créances');
   assert.equal(resolveCommercialTab('Relances'), 'Clients & créances');
-  assert.equal(resolveCommercialTab('Opportunités'), 'Ventes');
-  assert.equal(resolveCommercialTab('Résumé'), 'Ventes');
-  assert.equal(resolveCommercialTab('Abonnements'), 'Livraisons');
+  assert.equal(resolveCommercialTab('Opportunités'), 'Opportunités');
+  assert.equal(resolveCommercialTab('Résumé'), 'Pilotage');
+  assert.equal(resolveCommercialTab('Abonnements'), 'Abonnements');
 });
 
 test('resolveCulturesTab — aliases legacy', () => {
