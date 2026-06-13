@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Audit complet — Finance & Pilotage — Horizon Farm ERP</title>
+  <style>
+    :root { --ink: #2f2415; --muted: #8a7456; --border: #eadcc2; --bg: #fffdf8; --accent: #9a6b12; --good: #047857; --warn: #b45309; --bad: #b91c1c; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: var(--ink); background: #f5f0e8; margin: 0; line-height: 1.5; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 20px 48px; }
+    header { background: var(--ink); color: #fffdf8; padding: 28px 24px; border-radius: 16px; margin-bottom: 24px; }
+    header h1 { margin: 0 0 8px; font-size: 1.5rem; }
+    header p { margin: 0; opacity: 0.85; font-size: 0.95rem; }
+    .score { display: inline-block; margin-top: 12px; padding: 6px 14px; background: rgba(255,253,248,0.15); border-radius: 999px; font-weight: 700; }
+    section { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; }
+    h2 { font-size: 1.1rem; margin: 0 0 12px; color: var(--accent); }
+    p { margin: 0 0 10px; color: var(--muted); font-size: 0.95rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 8px; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: var(--bg); font-weight: 700; }
+    ul { margin: 8px 0 0; padding-left: 1.25rem; }
+    li { margin-bottom: 6px; font-size: 0.92rem; }
+    .tag { display: inline-block; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; margin-right: 4px; }
+    .tag-p0 { background: #fee2e2; color: var(--bad); }
+    .tag-p1 { background: #ffedd5; color: var(--warn); }
+    .tag-p2 { background: #fef9c3; color: #854d0e; }
+    footer { text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 24px; }
+    code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Audit complet — Finance & Pilotage</h1>
+      <p>FinancePilotageRecoveredModule.jsx · 11 onglets · Audit lecture seule · 9 juin 2026</p>
+      <span class="score">Score global estimé : 72 / 100 (post-P0/P1)</span>
+    </header>
+
+    <section>
+      <h2>Synthèse exécutive</h2>
+      <p>Module pivot de l’ERP : trésorerie consolidée, créances/dettes, échéancier, financement, réconciliation, investissements et rentabilité. Architecture en couches (consolidation → Core V1 → V2 → V3). P0/P1 documentés et appliqués ; gel V1 en attente de validation humaine.</p>
+      <ul>
+        <li>Entrée : <code>FinancePilotageModule.jsx</code> → <code>FinancePilotageRecoveredModule.jsx</code> (~732 lignes)</li>
+        <li>Vérité métier : <code>financeConsolidationEngine.js</code> + <code>financePilotageCore.js</code></li>
+        <li>Trésorerie : chaîne <code>FinancesV12</code> → <code>FinancesV11</code> + CRUD manuel</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Onglets cibles (11)</h2>
+      <table>
+        <thead><tr><th>Onglet</th><th>Score est.</th><th>Contenu principal</th></tr></thead>
+        <tbody>
+          <tr><td>Résumé</td><td>58/100</td><td>10+ panneaux : KPI, IA, multi-fermes, exports, cohérence, preuves manquantes</td></tr>
+          <tr><td>Trésorerie</td><td>70/100</td><td>FinanceCashPilotPanel, BP health, V11 charges + FinanceTransactionsOnly</td></tr>
+          <tr><td>Créances</td><td>65/100</td><td>CreancesPanel → navigation Commercial</td></tr>
+          <tr><td>Dettes</td><td>65/100</td><td>DettesPanel → navigation Achats & Stock</td></tr>
+          <tr><td>Échéancier</td><td>68/100</td><td>Schedule + aging + cash-flow forecast</td></tr>
+          <tr><td>Financement</td><td>66/100</td><td>Simulateur, capacité de remboursement, exports</td></tr>
+          <tr><td>Réconciliation</td><td>72/100</td><td>FinanceReconciliationPanel + IA réconciliation (canonique)</td></tr>
+          <tr><td>Investissements</td><td>74/100</td><td>InvestissementsV9 + BP concretization</td></tr>
+          <tr><td>Rentabilité</td><td>67/100</td><td>RentabilitePanel + ProfitabilityStatement (lecture)</td></tr>
+          <tr><td>Annexe</td><td>60/100</td><td>FinanceAnnexePanel</td></tr>
+          <tr><td>Graphiques</td><td>65/100</td><td>ModuleGraphiquesTab → FinanceEvolution</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Fichiers clés</h2>
+      <table>
+        <thead><tr><th>Catégorie</th><th>Chemin</th></tr></thead>
+        <tbody>
+          <tr><td>Entrée</td><td><code>src/modules/FinancePilotageModule.jsx</code>, <code>FinancePilotageRecoveredModule.jsx</code></td></tr>
+          <tr><td>Trésorerie</td><td><code>FinancesV12.jsx</code>, <code>FinancesV11.jsx</code>, <code>FinanceCashPilotPanel.jsx</code></td></tr>
+          <tr><td>Engines</td><td><code>financeConsolidationEngine.js</code>, <code>financePilotageCore/V2/V3.js</code></td></tr>
+          <tr><td>Panneaux</td><td><code>src/modules/finance/*</code> (23 fichiers)</td></tr>
+          <tr><td>Config</td><td><code>horizonVision.config.js</code>, <code>commercialNavigation.js</code> (FINANCE_TABS)</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Interconnexions</h2>
+      <ul>
+        <li><strong>Entrées</strong> : Commercial (ventes/encaissements), Achats & Stock (achats), Élevage, Cultures, RH, Documents</li>
+        <li><strong>Sorties</strong> : Commercial Clients/Ventes, Achats Fournisseurs, Documents preuves, Objectifs BP, Dashboard KPIs</li>
+        <li><strong>Anti-duplication</strong> : ventes créées uniquement dans Commercial ; Finance = encaissements et consolidation</li>
+        <li>Flows INTERCONNECTIONS : vente, achat, mortalité, récolte_culture, transformation_culture</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Points forts</h2>
+      <ul>
+        <li>Stack de calcul documentée avec <code>TREASURY_LABELS</code> et <code>consolidateFinance()</code></li>
+        <li>11 onglets couvrant le cycle financier complet de la ferme</li>
+        <li>11 fichiers de tests unitaires dédiés + matrice stabilité (11×4 modes)</li>
+        <li>Réconciliation canonique (plus de doublon avec Commercial)</li>
+        <li>Hey Horizon : strip finance + answers service avec empty-state honnête</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Faiblesses & dette technique</h2>
+      <ul>
+        <li>Orchestrateur monolithique : 25 hooks CRUD + routing inline</li>
+        <li>Pile legacy <code>FinancesV2</code>–<code>V10</code> encore dans le repo (P2)</li>
+        <li>Composants dormants : FinanceTreasuryView, FinanceInsightPanel, FinanceMissingProofPanel</li>
+        <li>Deux marges cognitives : « Marge réelle » vs « Résultat opérationnel »</li>
+        <li>Onglet Trésorerie : scroll long (bandeau + BP + compta + charges + CRUD)</li>
+        <li>Aliases navigation incomplets : écheancier, financement, reconciliation</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Problèmes UX</h2>
+      <table>
+        <thead><tr><th>Sévérité</th><th>Problème</th></tr></thead>
+        <tbody>
+          <tr><td>Moyenne</td><td>Trésorerie : trop de bandeaux avant la saisie — où agir ?</td></tr>
+          <tr><td>Moyenne</td><td>Créances vs Commercial Clients : double lecture créances commandes vs écritures</td></tr>
+          <tr><td>Moyenne</td><td>Résumé dense pour nouvelle ferme (mitigé par FinanceStartupPanel)</td></tr>
+          <tr><td>Faible</td><td>Libellés « workflows récupérés » = langage legacy</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Tests</h2>
+      <p>financePilotageV1/V2/V3.test.js, financeP0/P1.test.js, financeEmptyState, heyHorizonFinance, financeurReport, investissementsFinanceTab, moduleTabsStability (11 onglets).</p>
+    </section>
+
+    <section>
+      <h2>Priorités recommandées</h2>
+      <ul>
+        <li><span class="tag tag-p2">P2</span> Archiver FinancesV2–V10 après grep zéro import</li>
+        <li><span class="tag tag-p2">P2</span> Sous-onglets Trésorerie : Pilotage / Saisie / Santé comptable</li>
+        <li><span class="tag tag-p1">P1</span> Hook <code>useFinancePilotageData</code> pour testabilité</li>
+        <li><span class="tag tag-p1">P1</span> Glossary persistant marge réelle vs résultat opérationnel</li>
+        <li><span class="tag tag-p2">P2</span> Aliases navigation : écheancier, financement, réconciliation</li>
+      </ul>
+    </section>
+
+    <footer>Horizon Farm ERP — Vision 2026–2027 · Document généré pour archivage local</footer>
+  </div>
+</body>
+</html>

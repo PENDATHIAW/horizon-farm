@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Audit complet — Activité & Sync ERP — Horizon Farm ERP</title>
+  <style>
+    :root { --ink: #2f2415; --muted: #8a7456; --border: #eadcc2; --bg: #fffdf8; --accent: #9a6b12; --good: #047857; --warn: #b45309; --bad: #b91c1c; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: var(--ink); background: #f5f0e8; margin: 0; line-height: 1.5; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 20px 48px; }
+    header { background: var(--ink); color: #fffdf8; padding: 28px 24px; border-radius: 16px; margin-bottom: 24px; }
+    header h1 { margin: 0 0 8px; font-size: 1.5rem; }
+    header p { margin: 0; opacity: 0.85; font-size: 0.95rem; }
+    .score { display: inline-block; margin-top: 12px; padding: 6px 14px; background: rgba(255,253,248,0.15); border-radius: 999px; font-weight: 700; }
+    section { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; }
+    h2 { font-size: 1.1rem; margin: 0 0 12px; color: var(--accent); }
+    p { margin: 0 0 10px; color: var(--muted); font-size: 0.95rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 8px; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: var(--bg); font-weight: 700; }
+    ul { margin: 8px 0 0; padding-left: 1.25rem; }
+    li { margin-bottom: 6px; font-size: 0.92rem; }
+    .tag { display: inline-block; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; margin-right: 4px; }
+    .tag-p0 { background: #fee2e2; color: var(--bad); }
+    .tag-p1 { background: #ffedd5; color: var(--warn); }
+    footer { text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 24px; }
+    code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Audit complet — Activité & Sync ERP</h1>
+      <p>moduleId: sync_activity · SyncActivityCenter.jsx · page unique · 9 juin 2026</p>
+      <span class="score">Score UX : non noté (module système)</span>
+    </header>
+
+    <section>
+      <h2>Synthèse exécutive</h2>
+      <p>Centre admin/opérateur : audit interconnexions cross-modules, sync online/offline, journal audit_logs. <strong>Pas d’onglets</strong> — 3 sections en scroll vertical. Fichier monolithique (~204 lignes) mélangeant QA, sync et logs.</p>
+      <ul>
+        <li>Entrée : <code>SyncActivityCenter.jsx</code> (canonique)</li>
+        <li>Aliases : <code>sync</code>, <code>audit_logs</code> → même composant</li>
+        <li>Enfants : <code>Sync.jsx</code>, <code>AuditLogs.jsx</code></li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Structure (3 sections — pas d’onglets)</h2>
+      <table>
+        <thead><tr><th>Section</th><th>Composant</th><th>Fonction</th></tr></thead>
+        <tbody>
+          <tr><td>Vérifications importantes</td><td>InterconnectionAudit (inline)</td><td>Cartes flux, tableau issues (max 40), guided repair, exceptions justifiées</td></tr>
+          <tr><td>Connexion & envoi</td><td>Sync.jsx</td><td>Online/offline, flush queue, stats modules, mode simulation</td></tr>
+          <tr><td>Activité récente</td><td>AuditLogs.jsx</td><td>KPI, timeline, GenericCrudModule audit_logs</td></tr>
+        </tbody>
+      </table>
+      <p>Absent de MODULE_TAB_MATRIX et CRITICAL_MODULES (pas de test stabilité dédié).</p>
+    </section>
+
+    <section>
+      <h2>Utils & services</h2>
+      <table>
+        <thead><tr><th>Fichier</th><th>Rôle</th></tr></thead>
+        <tbody>
+          <tr><td><code>interconnectionAudit.js</code></td><td>Règles audit flux métier</td></tr>
+          <tr><td><code>interconnectionMatrix.js</code></td><td>Matrice modules</td></tr>
+          <tr><td><code>syncGuidedRepairActions.js</code></td><td>5 scénarios repair (vente→finance, stock, doc orphelin…)</td></tr>
+          <tr><td><code>syncAuditWorkflows.js</code></td><td>Workflows audit sync</td></tr>
+          <tr><td><code>justifiedExceptionStore.js</code></td><td>Exceptions justifiées + lien Gestion système</td></tr>
+          <tr><td><code>offlineQueueService.js</code></td><td>Queue offline flush</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Écart props App.jsx <span class="tag tag-p0">P0</span></h2>
+      <p><code>syncActivityProps</code> omet des handlers requis par <code>syncGuidedRepairActions.js</code> :</p>
+      <ul>
+        <li>onCreateFinanceTransaction, onUpdateFinanceTransaction</li>
+        <li>onUpdatePayment, onUpdateDocument, onUpdateStock, onCreateStock</li>
+        <li>onUpdateAlimentation, onUpdateAlert, onUpdateTask</li>
+      </ul>
+      <p>Impact : réparations guidées partielles ou fallback alerte/tâche générique.</p>
+    </section>
+
+    <section>
+      <h2>Points forts</h2>
+      <ul>
+        <li>Audit interconnexions lisible (titres français, flux métier)</li>
+        <li>5 scénarios guided repair avec business_events traçables</li>
+        <li>Workflow exceptions justifiées (audit trail admin)</li>
+        <li>CSS mobile (.sync-activity-mobile)</li>
+        <li><code>syncGuidedRepairActions.test.js</code> sur utils</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Faiblesses</h2>
+      <ul>
+        <li>Monolithe UI + logique repair dans un fichier</li>
+        <li>Handlers repair incomplets depuis App.jsx</li>
+        <li>Pas de navigation par onglets — long scroll admin</li>
+        <li>Table issues 6 colonnes, cap 40 lignes sans pagination</li>
+        <li>Routes legacy dans SYNC_ISSUE_ROUTES (ventes, stock vs commercial, achats_stock)</li>
+        <li>Sync.jsx simulation peut brouiller état offline réel</li>
+        <li>Non inclus stability regression</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Problèmes UX</h2>
+      <table>
+        <thead><tr><th>Sévérité</th><th>Problème</th></tr></thead>
+        <tbody>
+          <tr><td>Élevée</td><td>Guided repair : handlers finance/stock manquants</td></tr>
+          <tr><td>Moyenne</td><td>Pas de tabs : audit QA + sync op + logs mélangés</td></tr>
+          <tr><td>Moyenne</td><td>Table dense mobile (6 colonnes)</td></tr>
+          <tr><td>Moyenne</td><td>Audience mixte : QA admin dans nav principale</td></tr>
+          <tr><td>Faible</td><td>Mode simulation queue offline</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Tests</h2>
+      <p>syncGuidedRepairActions.test.js (classify + catalog), moduleEntryPoints (canonical path), E2E simulated-business-workflows (repair tasks). <strong>Manque</strong> : render test SyncActivityCenter, stabilité onglets.</p>
+    </section>
+
+    <section>
+      <h2>Priorités</h2>
+      <ul>
+        <li><span class="tag tag-p0">P0</span> Compléter syncActivityProps (finance, stock, alimentation, alert/task updates)</li>
+        <li><span class="tag tag-p1">P1</span> 3 sections onglets : Vérifications | Sync | Journal</li>
+        <li><span class="tag tag-p1">P1</span> Ajouter à CRITICAL_MODULES + test render</li>
+        <li><span class="tag tag-p1">P1</span> Pagination / filtre critique sur tableau issues</li>
+        <li><span class="tag tag-p2">P2</span> Routes canoniques commercial / achats_stock / activite_suivi</li>
+        <li><span class="tag tag-p2">P2</span> Extraire InterconnectionAudit dans fichier dédié</li>
+      </ul>
+    </section>
+
+    <footer>Horizon Farm ERP — Vision 2026–2027 · Document généré pour archivage local</footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Audit complet — Opérations & Ressources — Horizon Farm ERP</title>
+  <style>
+    :root { --ink: #2f2415; --muted: #8a7456; --border: #eadcc2; --bg: #fffdf8; --accent: #9a6b12; --good: #047857; --warn: #b45309; --bad: #b91c1c; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: var(--ink); background: #f5f0e8; margin: 0; line-height: 1.5; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 20px 48px; }
+    header { background: var(--ink); color: #fffdf8; padding: 28px 24px; border-radius: 16px; margin-bottom: 24px; }
+    header h1 { margin: 0 0 8px; font-size: 1.5rem; }
+    header p { margin: 0; opacity: 0.85; font-size: 0.95rem; }
+    .score { display: inline-block; margin-top: 12px; padding: 6px 14px; background: rgba(255,253,248,0.15); border-radius: 999px; font-weight: 700; }
+    section { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; }
+    h2 { font-size: 1.1rem; margin: 0 0 12px; color: var(--accent); }
+    p { margin: 0 0 10px; color: var(--muted); font-size: 0.95rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 8px; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: var(--bg); font-weight: 700; }
+    ul { margin: 8px 0 0; padding-left: 1.25rem; }
+    li { margin-bottom: 6px; font-size: 0.92rem; }
+    .tag { display: inline-block; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; margin-right: 4px; }
+    .tag-p0 { background: #fee2e2; color: var(--bad); }
+    .tag-p1 { background: #ffedd5; color: var(--warn); }
+    footer { text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 24px; }
+    code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Audit complet — Opérations & Ressources</h1>
+      <p>moduleId: rh · OperationsRessourcesRecoveredModule.jsx · 7 onglets · 9 juin 2026</p>
+      <span class="score">Score global estimé : 72 / 100</span>
+    </header>
+
+    <section>
+      <h2>Synthèse exécutive</h2>
+      <p>Hub opérations : équipements, maintenance, affectations RH, coûts paie→finance, documents. Chaîne d’entrée triple re-export (<code>RHV2</code> → <code>OperationsRessourcesModule</code> → <code>RecoveredModule</code>). Workflow paie bout-en-bout testé ; modèle RH dual localStorage + Supabase.</p>
+      <ul>
+        <li>Label nav : « Opérations & Ressources » (<code>modules.config.js</code>)</li>
+        <li>Implémentation : <code>OperationsRessourcesRecoveredModule.jsx</code> (~378 lignes)</li>
+        <li>Embedded : EquipementsV3, RHPeopleTeams, RhPayrollFinanceSyncPanel, SmartFarmEmbed</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Onglets (7)</h2>
+      <table>
+        <thead><tr><th>Onglet</th><th>Contenu</th></tr></thead>
+        <tbody>
+          <tr><td>Résumé</td><td>8 KPI, IA surveillance, queue maintenance, cohérence, actions rapides</td></tr>
+          <tr><td>Équipements</td><td>EquipementsV3 CRUD complet</td></tr>
+          <tr><td>Maintenance</td><td>ModuleListHub + SmartFarmEmbed (capteurs/caméras offline)</td></tr>
+          <tr><td>Affectations</td><td>RHPeopleTeams — personnes, équipes, paie inline</td></tr>
+          <tr><td>Coûts</td><td>RhPayrollFinanceSyncPanel + hub coûts</td></tr>
+          <tr><td>Documents</td><td>Liste documents filtrée RH</td></tr>
+          <tr><td>Graphiques</td><td>ModuleGraphiquesTab (fallback défaut)</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Fichiers clés</h2>
+      <table>
+        <thead><tr><th>Catégorie</th><th>Chemin</th></tr></thead>
+        <tbody>
+          <tr><td>Entrée</td><td><code>RHV2.jsx</code>, <code>OperationsRessourcesRecoveredModule.jsx</code></td></tr>
+          <tr><td>Vision helpers</td><td><code>src/modules/rh/rhVisionHelpers.js</code></td></tr>
+          <tr><td>Workflows</td><td><code>ressourcesWorkflow.js</code>, <code>ressourcesIntegrity.js</code>, <code>rhWorkflows.js</code>, <code>rhDirectory.js</code></td></tr>
+          <tr><td>Service paie</td><td><code>rhPayrollFinanceSyncService.js</code></td></tr>
+          <tr><td>Navigation</td><td><code>RH_TABS</code>, <code>resolveRhTab()</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Données & persistance</h2>
+      <ul>
+        <li>CRUD : rh, equipements, sensor_devices, camera_devices, taches, alertes, finances, documents, business_events</li>
+        <li><strong>localStorage</strong> : <code>horizon_farm_rh_directory_v1</code> (personnes/équipes via rhDirectory.js)</li>
+        <li>Risque : divergence annuaire local vs lignes Supabase CRUD</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Interconnexions</h2>
+      <ul>
+        <li>Finance : RhPayrollFinanceSyncPanel → transactions finances</li>
+        <li>Smart Farm : embed capteurs dans Maintenance (doublon module smartfarm)</li>
+        <li>Activité : tâches maintenance, alertes équipement</li>
+        <li>Documents : onglet Documents RH</li>
+        <li>Assistant : couverture ~15% (navigation seule — ASSISTANT_COVERAGE_GAPS)</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Points forts</h2>
+      <ul>
+        <li>Hub unifié équipements + RH + Smart Farm + finance</li>
+        <li>Workflow paie idempotent (personne → finance → document → event)</li>
+        <li>Queue maintenance : équipements à risque sans tâche ouverte</li>
+        <li><code>ressourcesWorkflow.test.js</code> + E2E payroll/absence</li>
+        <li>Inclus CRITICAL_MODULES (stability regression)</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Faiblesses</h2>
+      <ul>
+        <li>Triple re-export obscurcit l’entrée canonique</li>
+        <li>Dual modèle RH localStorage vs serveur</li>
+        <li>RHPeopleTeams monolithique (~80 lignes JSX inline)</li>
+        <li>SmartFarmEmbed duplique module smartfarm</li>
+        <li>Pas de badges onglets (maintenance / cohérence)</li>
+        <li>confirm() natif pour delete/paie</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Problèmes UX</h2>
+      <table>
+        <thead><tr><th>Sévérité</th><th>Problème</th></tr></thead>
+        <tbody>
+          <tr><td>Moyenne</td><td>Résumé : 8 KPI + 3 panneaux IA + 6 boutons rapides</td></tr>
+          <tr><td>Moyenne</td><td>Maintenance : embed Smart Farm vs module dédié</td></tr>
+          <tr><td>Moyenne</td><td>Annuaire RH localStorage peut diverger du serveur</td></tr>
+          <tr><td>Faible</td><td>Assistant ne lit pas les données RH métier</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Tests</h2>
+      <p>ressourcesWorkflow.test.js, workflowIdempotency (rhWorkflows), roadmapCompletion (payroll gaps), moduleStabilityRegression, moduleTabTestHarness (7 onglets), E2E simulated-business-workflows (payroll).</p>
+    </section>
+
+    <section>
+      <h2>Priorités</h2>
+      <ul>
+        <li><span class="tag tag-p0">P0</span> Source unique RH Supabase ; localStorage = cache</li>
+        <li><span class="tag tag-p1">P1</span> Badges onglets Maintenance / Coûts</li>
+        <li><span class="tag tag-p1">P1</span> Découper RHPeopleTeams (PersonForm, TeamForm, PayrollActions)</li>
+        <li><span class="tag tag-p2">P2</span> Lien Smart Farm au lieu d’embed complet</li>
+        <li><span class="tag tag-p2">P2</span> assistantFarmTools reader RH</li>
+      </ul>
+    </section>
+
+    <footer>Horizon Farm ERP — Vision 2026–2027 · Document généré pour archivage local</footer>
+  </div>
+</body>
+</html>

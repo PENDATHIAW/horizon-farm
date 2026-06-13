@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Audit complet — Documents & Rapports — Horizon Farm ERP</title>
+  <style>
+    :root { --ink: #2f2415; --muted: #8a7456; --border: #eadcc2; --bg: #fffdf8; --accent: #9a6b12; --good: #047857; --warn: #b45309; --bad: #b91c1c; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: var(--ink); background: #f5f0e8; margin: 0; line-height: 1.5; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 20px 48px; }
+    header { background: var(--ink); color: #fffdf8; padding: 28px 24px; border-radius: 16px; margin-bottom: 24px; }
+    header h1 { margin: 0 0 8px; font-size: 1.5rem; }
+    header p { margin: 0; opacity: 0.85; font-size: 0.95rem; }
+    .score { display: inline-block; margin-top: 12px; padding: 6px 14px; background: rgba(255,253,248,0.15); border-radius: 999px; font-weight: 700; }
+    section { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; }
+    h2 { font-size: 1.1rem; margin: 0 0 12px; color: var(--accent); }
+    p { margin: 0 0 10px; color: var(--muted); font-size: 0.95rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 8px; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: var(--bg); font-weight: 700; }
+    ul { margin: 8px 0 0; padding-left: 1.25rem; }
+    li { margin-bottom: 6px; font-size: 0.92rem; }
+    .tag { display: inline-block; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
+    .tag-high { background: #fee2e2; color: var(--bad); }
+    footer { text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 24px; }
+    code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Audit complet — Documents & Rapports</h1>
+      <p>DocumentsRapportsModule.jsx · 7 onglets · ~335 lignes · Audit lecture seule · 9 juin 2026</p>
+      <span class="score">Score global estimé : 68 / 100</span>
+    </header>
+
+    <section>
+      <h2>Synthèse exécutive</h2>
+      <p>Module unifié documents + rapports + preuves + exports financeur. Entrée monolithique avec 7 onglets inline. Workflow de liaison document (<code>commitDocumentLink</code>) et détection orphelins opérationnels ; panneaux avancés (scanner OCR, bridge, gap repair) <strong>non montés</strong> dans l’UI principale.</p>
+      <ul>
+        <li>Entrée : <code>DocumentsRapportsModule.jsx</code> (pas de RecoveredModule)</li>
+        <li>Helpers : <code>documentsVisionHelpers.js</code>, <code>documentsOrphanSyncService.js</code></li>
+        <li>Aliases legacy : <code>documents</code>, <code>rapports</code> → <code>documents_rapports</code></li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Onglets (7)</h2>
+      <table>
+        <thead><tr><th>Onglet</th><th>Fonction</th></tr></thead>
+        <tbody>
+          <tr><td>Résumé</td><td>8 KPI, IA surveillance, orphan sync, cohérence, priorités, quick paths</td></tr>
+          <tr><td>Bibliothèque</td><td>Recherche, liste (24 max), panneau détail — lecture seule</td></tr>
+          <tr><td>Preuves</td><td>Preuves manquantes, création tâche, nav Finance</td></tr>
+          <tr><td>Rapports</td><td>Docs rapport + couverture modules</td></tr>
+          <tr><td>Exports</td><td>CTA PDF financeur, compteurs par domaine</td></tr>
+          <tr><td>Modèles</td><td>Liste templates ou 4 modèles hardcodés</td></tr>
+          <tr><td>Graphiques</td><td>FinanceEvolution + ClientsEvolution</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Composants non câblés <span class="tag tag-high">GAP</span></h2>
+      <ul>
+        <li><code>DocumentsWorkflowBridge.jsx</code></li>
+        <li><code>DocumentsLinkPanel.jsx</code></li>
+        <li><code>DocumentsGapRepairPanel.jsx</code></li>
+        <li><code>DocumentScannerPanel.jsx</code></li>
+        <li><code>InvoiceOcrIntelligentPanel.jsx</code></li>
+      </ul>
+      <p>Utils <code>documentsWorkflow.js</code> et gateway IA prêts — UX liaison/OCR absente du module principal.</p>
+    </section>
+
+    <section>
+      <h2>Fichiers & utils</h2>
+      <table>
+        <thead><tr><th>Fichier</th><th>Rôle</th></tr></thead>
+        <tbody>
+          <tr><td><code>documentsVisionHelpers.js</code></td><td>Health snapshot, cohérence, missing proof</td></tr>
+          <tr><td><code>documentsWorkflow.js</code></td><td>commitDocumentLink, orphan, scenarios</td></tr>
+          <tr><td><code>documentsIntegrity.js</code></td><td>buildDocumentsGapRows</td></tr>
+          <tr><td><code>documentWorkflows.js</code></td><td>Proof follow-up, side effects</td></tr>
+          <tr><td><code>financeurReportService.js</code></td><td>PDF financeur (Exports)</td></tr>
+          <tr><td><code>DocumentsOrphanSyncPanel.jsx</code></td><td>Monté sur Résumé</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Interconnexions</h2>
+      <ul>
+        <li>Navigation entrante : Dashboard, Finance (preuves), Centre/Objectifs (Exports), Commercial/Finance Annexe</li>
+        <li><code>visionNavigation.js</code> défaut → onglet Preuves</li>
+        <li>Tables : documents, rapports, finances, sales_orders, payments, business_events</li>
+        <li>Anti-duplication : upload preuve → Bibliothèque Documents (pas Finance/Activité)</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Écarts config</h2>
+      <ul>
+        <li><code>annexeModuleConfig</code> preset défini mais pas d’onglet Annexe dans MODULE_TARGET_TABS</li>
+        <li><code>annexeTabsConfig.test.js</code> peut échouer sur cette incohérence</li>
+        <li><code>resolveDocumentsTab</code> : pas d’aliases bibliotheque, preuves, modeles</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Tests</h2>
+      <p><code>documentsWorkflow.test.js</code> (6), <code>moduleTabsStability</code> (7×4), <code>roadmapServices</code> (orphans), <code>financeurReport.test.js</code>, E2E journeys (proof follow-up).</p>
+    </section>
+
+    <section>
+      <h2>Priorités</h2>
+      <ul>
+        <li><span class="tag tag-high">P0</span> Monter WorkflowBridge + LinkPanel + GapRepair sur Bibliothèque/Preuves</li>
+        <li><span class="tag tag-high">P0</span> Câbler Scanner + OCR invoice (gateway déjà prêt)</li>
+        <li>P1 — Résoudre Annexe config vs UI</li>
+        <li>P2 — Bibliothèque éditable (liaison inline)</li>
+        <li>P2 — Aliases navigation français normalisés</li>
+      </ul>
+    </section>
+
+    <footer>Horizon Farm ERP — Vision 2026–2027 · Document généré pour archivage local</footer>
+  </div>
+</body>
+</html>

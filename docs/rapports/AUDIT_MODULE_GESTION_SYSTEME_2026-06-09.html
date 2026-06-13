@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Audit complet — Gestion du système — Horizon Farm ERP</title>
+  <style>
+    :root { --ink: #2f2415; --muted: #8a7456; --border: #eadcc2; --bg: #fffdf8; --accent: #9a6b12; --good: #047857; --warn: #b45309; --bad: #b91c1c; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: var(--ink); background: #f5f0e8; margin: 0; line-height: 1.5; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 20px 48px; }
+    header { background: var(--ink); color: #fffdf8; padding: 28px 24px; border-radius: 16px; margin-bottom: 24px; }
+    header h1 { margin: 0 0 8px; font-size: 1.5rem; }
+    header p { margin: 0; opacity: 0.85; font-size: 0.95rem; }
+    .score { display: inline-block; margin-top: 12px; padding: 6px 14px; background: rgba(255,253,248,0.15); border-radius: 999px; font-weight: 700; }
+    section { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; }
+    h2 { font-size: 1.1rem; margin: 0 0 12px; color: var(--accent); }
+    p { margin: 0 0 10px; color: var(--muted); font-size: 0.95rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 8px; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: var(--bg); font-weight: 700; }
+    ul { margin: 8px 0 0; padding-left: 1.25rem; }
+    li { margin-bottom: 6px; font-size: 0.92rem; }
+    .tag { display: inline-block; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; margin-right: 4px; }
+    .tag-p0 { background: #fee2e2; color: var(--bad); }
+    .tag-p1 { background: #ffedd5; color: var(--warn); }
+    footer { text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 24px; }
+    code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Audit complet — Gestion du système</h1>
+      <p>GestionSystemeUnified.jsx · 8 onglets · Audit lecture seule · 9 juin 2026</p>
+      <span class="score">Score global estimé : 76 / 100</span>
+    </header>
+
+    <section>
+      <h2>Synthèse exécutive</h2>
+      <p>Cockpit admin : vue système, fermes multi-tenant, sécurité RBAC, sauvegardes, réinitialisation, audit qualité. Entrée <code>GestionSystemeV2.jsx</code> → <code>GestionSystemeUnified.jsx</code> (~184 lignes). Score UX le plus élevé des modules système.</p>
+      <ul>
+        <li>systemScore = vision audit + ERP health</li>
+        <li>Fermes : FarmsManagementPanel + FarmCreationWizard (fonctionnel)</li>
+        <li>Navigation contrôlée : <code>gestionSystemeTab</code> dans App.jsx</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Onglets (8)</h2>
+      <table>
+        <thead><tr><th>Onglet</th><th>Contenu</th><th>Maturité</th></tr></thead>
+        <tbody>
+          <tr><td>Vue admin</td><td>8 KPI, SystemIaPanel, PriorityModules, checks, raccourcis</td><td>Élevée</td></tr>
+          <tr><td>Utilisateurs</td><td>Résumé read-only + ActionNote placeholder</td><td><strong>Placeholder</strong></td></tr>
+          <tr><td>Fermes</td><td>FarmsManagementPanel, wizard création, comparaison</td><td>Élevée</td></tr>
+          <tr><td>Paramètres</td><td>Profil ferme read-only (nom, lieu, devise)</td><td>Partielle</td></tr>
+          <tr><td>Sécurité</td><td>SystemAccessAuditPanel + résumé RBAC</td><td>Moyenne</td></tr>
+          <tr><td>Sauvegardes</td><td>Statut sync, refresh/flush — pas backup réel</td><td><strong>Placeholder</strong></td></tr>
+          <tr><td>Réinitialisation</td><td>ResetDataSection, confirmation typée, clearAllData</td><td>Fonctionnel (risque)</td></tr>
+          <tr><td>Audit</td><td>WorkflowQuality + VisionModuleAudit + Exceptions + log tail</td><td>Élevée</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Fichiers clés</h2>
+      <table>
+        <thead><tr><th>Catégorie</th><th>Chemin</th></tr></thead>
+        <tbody>
+          <tr><td>Entrée</td><td><code>GestionSystemeV2.jsx</code>, <code>GestionSystemeUnified.jsx</code></td></tr>
+          <tr><td>Helpers</td><td><code>gestionSysteme/gestionSystemeVisionHelpers.js</code></td></tr>
+          <tr><td>Fermes</td><td><code>farms/FarmsManagementPanel.jsx</code>, <code>FarmCreationWizard.jsx</code></td></tr>
+          <tr><td>Audit</td><td><code>VisionModuleAuditPanel.jsx</code>, <code>WorkflowQualityPanel.jsx</code>, <code>JustifiedExceptionsAuditPanel.jsx</code></td></tr>
+          <tr><td>Accès</td><td><code>systemAccessWorkflows.js</code>, <code>SystemAccessAuditPanel.jsx</code></td></tr>
+          <tr><td>Services</td><td><code>visionModuleAuditEngine.js</code>, <code>farmsService.js</code>, <code>erpHealthEngine.js</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Points forts</h2>
+      <ul>
+        <li>Cockpit admin structuré avec 8 onglets ModuleTabsBar</li>
+        <li>Gestion fermes multi-tenant opérationnelle (create/edit/archive)</li>
+        <li>RBAC UI avec canPerformSystemAction + badge read-only</li>
+        <li>Onglet Audit agrège vision + workflow quality + exceptions justifiées</li>
+        <li>Reset avec confirmation typée + gate canManage</li>
+        <li>CRITICAL_MODULES stability regression</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Faiblesses & placeholders</h2>
+      <ul>
+        <li><strong>Utilisateurs</strong> : pas de CRUD, invitations, édition rôles</li>
+        <li><strong>Paramètres</strong> : non branchés comme source de vérité ferme</li>
+        <li><strong>Sauvegardes</strong> : refresh/flush seulement — pas export/import backup</li>
+        <li>Confirmation reset incohérente : « SUPPRIMER LES DONNEES » vs « EFFACER » (autres UIs)</li>
+        <li>SystemAccessAuditPanel : 7 modules seulement (pas full MODULE_REGISTRY)</li>
+        <li>RBAC serveur « à renforcer » (copie UI)</li>
+        <li>clearAllData : marquage localStorage + bulk delete — irréversible</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Problèmes UX</h2>
+      <table>
+        <thead><tr><th>Sévérité</th><th>Problème</th></tr></thead>
+        <tbody>
+          <tr><td>Élevée</td><td>Onglet Utilisateurs non fonctionnel</td></tr>
+          <tr><td>Moyenne</td><td>Paramètres ferme en lecture seule</td></tr>
+          <tr><td>Moyenne</td><td>Sauvegardes sans vraie stratégie backup/restore</td></tr>
+          <tr><td>Moyenne</td><td>Token confirmation reset divergent</td></tr>
+          <tr><td>Faible</td><td>Onglet Audit empilé (3 panneaux + logs)</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Interconnexions</h2>
+      <ul>
+        <li>Sync ERP : exceptions justifiées → lien Gestion système Audit</li>
+        <li>VisionModuleAuditEngine : couverture tous modules MODULE_TARGET_TABS</li>
+        <li>Farm scope : farmsService, farmConsolidation, applyPeriodScope</li>
+        <li>Simulated data mode : uiPreferences.setSimulatedDataMode</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Tests</h2>
+      <p>moduleStabilityRegression (CRITICAL, Vue admin), moduleEntryPoints, moduleTabTestHarness (8 onglets), E2E systemAccessWorkflows, roadmap-completion (source read).</p>
+    </section>
+
+    <section>
+      <h2>Priorités</h2>
+      <ul>
+        <li><span class="tag tag-p0">P0</span> CRUD Utilisateurs : invite, rôles, permissions modules</li>
+        <li><span class="tag tag-p1">P1</span> Paramètres → farmsService / farmCostSettings canonique</li>
+        <li><span class="tag tag-p1">P1</span> Unifier token reset (EFFACER) sur toutes les UIs</li>
+        <li><span class="tag tag-p1">P1</span> Backup export/import ou intégration Supabase</li>
+        <li><span class="tag tag-p2">P2</span> Matrice accès complète MODULE_REGISTRY</li>
+        <li><span class="tag tag-p2">P2</span> Badges onglet Audit (bad/warn counts)</li>
+      </ul>
+    </section>
+
+    <footer>Horizon Farm ERP — Vision 2026–2027 · Document généré pour archivage local</footer>
+  </div>
+</body>
+</html>

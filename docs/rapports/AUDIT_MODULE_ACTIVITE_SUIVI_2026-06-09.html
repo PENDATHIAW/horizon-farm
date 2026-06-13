@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Audit complet — Activité & Suivi — Horizon Farm ERP</title>
+  <style>
+    :root { --ink: #2f2415; --muted: #8a7456; --border: #eadcc2; --bg: #fffdf8; --accent: #9a6b12; --good: #047857; --warn: #b45309; --bad: #b91c1c; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: var(--ink); background: #f5f0e8; margin: 0; line-height: 1.5; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 20px 48px; }
+    header { background: var(--ink); color: #fffdf8; padding: 28px 24px; border-radius: 16px; margin-bottom: 24px; }
+    header h1 { margin: 0 0 8px; font-size: 1.5rem; }
+    header p { margin: 0; opacity: 0.85; font-size: 0.95rem; }
+    .score { display: inline-block; margin-top: 12px; padding: 6px 14px; background: rgba(255,253,248,0.15); border-radius: 999px; font-weight: 700; }
+    section { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; }
+    h2 { font-size: 1.1rem; margin: 0 0 12px; color: var(--accent); }
+    p { margin: 0 0 10px; color: var(--muted); font-size: 0.95rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 8px; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: var(--bg); font-weight: 700; }
+    ul { margin: 8px 0 0; padding-left: 1.25rem; }
+    li { margin-bottom: 6px; font-size: 0.92rem; }
+    .tag { display: inline-block; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; margin-right: 4px; }
+    .tag-p0 { background: #fee2e2; color: var(--bad); }
+    .tag-p1 { background: #ffedd5; color: var(--warn); }
+    footer { text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 24px; }
+    code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Audit complet — Activité & Suivi</h1>
+      <p>ActiviteSuiviRecoveredModule.jsx · 5 onglets · Audit lecture seule · 9 juin 2026</p>
+      <span class="score">Score global estimé : 76 / 100</span>
+    </header>
+
+    <section>
+      <h2>Synthèse exécutive</h2>
+      <p>Hub opérationnel : alertes, tâches et traçabilité consolidés (routes legacy <code>alertes</code>, <code>taches</code>, <code>tracabilite</code>). Backend workflow solide (issue_key, gaps, push dedup) ; UI partiellement migrée — bibliothèque de composants <code>activiteSuivi/</code> non montée.</p>
+      <ul>
+        <li>Entrée : <code>ActiviteSuiviModule.jsx</code> → <code>ActiviteSuiviRecoveredModule.jsx</code></li>
+        <li>Workflow : <code>activiteSuiviWorkflow.js</code>, <code>activiteSuiviIntegrity.js</code></li>
+        <li>Surfaces : AlertesCenterV3, TachesV3, TracabiliteV2</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Onglets (5)</h2>
+      <table>
+        <thead><tr><th>Onglet</th><th>Composant</th><th>Commentaire</th></tr></thead>
+        <tbody>
+          <tr><td>Résumé</td><td>Summary inline</td><td>8 KPI + IA + bridge alerte↔tâche + priorités + cohérence + charge modules</td></tr>
+          <tr><td>Alertes</td><td>AlertesCenterV3</td><td>CRUD, dedup, sync bidirectionnelle alerte↔tâche</td></tr>
+          <tr><td>Tâches</td><td>TachesV3</td><td>Hey Horizon drafts, routines, CRUD technique</td></tr>
+          <tr><td>Traçabilité</td><td>TracabiliteV2</td><td>business_events + audit_logs, couverture traces</td></tr>
+          <tr><td>Graphiques</td><td>ModuleGraphiquesTab</td><td>Évolution tâches uniquement (pas alertes)</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Écart config</strong> : <code>annexeModuleConfig</code> et test <code>annexeTabsConfig</code> attendent un onglet Annexe — absent de MODULE_TARGET_TABS.</p>
+    </section>
+
+    <section>
+      <h2>Composants non montés (orphans)</h2>
+      <ul>
+        <li><code>ActiviteSuiviInsightPanel.jsx</code></li>
+        <li><code>ActiviteSuiviPriorityPanel.jsx</code></li>
+        <li><code>ActiviteSuiviModuleBreakdownPanel.jsx</code> (avec navigation module)</li>
+        <li><code>ActiviteWorkflowBridge.jsx</code> + problem fiches (Chantier 8)</li>
+        <li><code>activiteSuiviUi.jsx</code>, <code>activiteSuiviMetrics.js</code></li>
+      </ul>
+      <p>Le Résumé réimplémente inline des panneaux que ces fichiers fournissent déjà.</p>
+    </section>
+
+    <section>
+      <h2>Interconnexions</h2>
+      <ul>
+        <li><strong>Sources</strong> : Dashboard (today actions), Centre IA (redirect alertes), Assistant ERP, Hey Horizon recommendations</li>
+        <li><strong>Anti-duplication</strong> : alertes Centre IA → Activité Alertes ; upload docs → Documents Bibliothèque</li>
+        <li><strong>CRUD</strong> : alertes_center, taches, tracabilite, business_events, audit_logs + contexte métier (animaux, stock, cultures…)</li>
+        <li>Flows : vente, achat, soin, alimentation, maintenance, objectif, récolte, mortalité</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Points forts</h2>
+      <ul>
+        <li>Hub clair alertes + tâches + traçabilité en une navigation</li>
+        <li><code>activiteSuiviWorkflow.test.js</code> : 7 tests workflow, issue_key, gaps</li>
+        <li>Sync bidirectionnelle alerte↔tâche (AlertesCenterV3 + AlertTaskBridgePanel)</li>
+        <li>Score UX interne ~76/100 (au-dessus Finance/Élevage Résumé)</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Faiblesses</h2>
+      <ul>
+        <li>Double implémentation : inline Résumé vs composants <code>activiteSuivi/*</code> non câblés</li>
+        <li>Problem fiches / issue_key invisible pour l’utilisateur</li>
+        <li>Pas de badges onglets (compteurs alertes/tâches ouverts)</li>
+        <li>Statuts ouverts/fermés fragmentés entre 4 fichiers</li>
+        <li>ActionTraceHealth dupliqué Tâches + Traçabilité</li>
+        <li>Tests UI / visionHelpers absents</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Problèmes UX</h2>
+      <table>
+        <thead><tr><th>Sévérité</th><th>Problème</th></tr></thead>
+        <tbody>
+          <tr><td>Moyenne</td><td>Résumé saturé : 8 tuiles + 3 panneaux IA/bridge/cohérence</td></tr>
+          <tr><td>Moyenne</td><td>Breakdown modules sans « Ouvrir module » (panel extrait non utilisé)</td></tr>
+          <tr><td>Moyenne</td><td>Graphiques = tâches seules, pas volume alertes</td></tr>
+          <tr><td>Faible</td><td>CTAs hétérogènes : Créer tâche / Corriger / Traiter / Voir</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Priorités recommandées</h2>
+      <ul>
+        <li><span class="tag tag-p0">P0</span> Monter InsightPanel, PriorityPanel, ModuleBreakdownPanel, WorkflowBridge sur Résumé</li>
+        <li><span class="tag tag-p1">P1</span> Résoudre drift Annexe (onglet ou nettoyage config)</li>
+        <li><span class="tag tag-p1">P1</span> Centraliser isOpenAlert / isOpenTask ; badges onglets</li>
+        <li><span class="tag tag-p2">P2</span> Fusionner bridge + cohérence + priorités → « À traiter maintenant »</li>
+      </ul>
+    </section>
+
+    <footer>Horizon Farm ERP — Vision 2026–2027 · Document généré pour archivage local</footer>
+  </div>
+</body>
+</html>
