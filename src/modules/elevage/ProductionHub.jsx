@@ -68,6 +68,8 @@ export default function ProductionHub({
   setTab,
   onNavigate,
   onOpenWorkflow,
+  contextView = 'all',
+  placement = 'inline',
 }) {
   const eggs = snapshot.eggs || {};
   const chair = snapshot.chair || {};
@@ -86,7 +88,7 @@ export default function ProductionHub({
     setDiagnostic(diagnoseElevageEntity(pick.entity, { lots, marginContext }));
   };
 
-  const heroKpis = [
+  const heroKpisAll = [
     {
       label: 'Œufs vendables (7 j)',
       value: fmtNumber(perf.sellableEggs7d ?? eggs.sellable7d),
@@ -119,7 +121,13 @@ export default function ProductionHub({
     },
   ];
 
-  return (
+  const heroKpis = contextView === 'avicole'
+    ? heroKpisAll.filter((k) => /œuf|casse|IC chair/i.test(k.label))
+    : contextView === 'animaux'
+      ? heroKpisAll.filter((k) => /GMQ|viande|marge/i.test(k.label))
+      : heroKpisAll;
+
+  const hubBody = (
     <div className="space-y-5 production-hub-mobile">
       <style>{`
         @media (max-width: 640px) {
@@ -163,11 +171,13 @@ export default function ProductionHub({
         ) : null}
       </section>
 
+      {(contextView === 'all' || contextView === 'avicole') ? (
+        <>
       <CollapsibleBlock
         icon={Egg}
         title="Œufs & rendement ponte"
         intro="Ramassages, casses, coût/œuf et taux de ponte — pas le registre pondeuses."
-        defaultOpen
+        defaultOpen={placement !== 'footer'}
       >
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           {[
@@ -202,10 +212,13 @@ export default function ProductionHub({
           {eggs.eggOpportunities ? (
             <ActionCard key="egg-sales" title="Ventes œufs / tablettes" text={`${eggs.eggOpportunities} opportunité(s) Commercial.`} onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} />
           ) : null}
-          <ActionCard key="avicole-pondeuses" title="Registre pondeuses" text="Lots et effectifs — onglet Avicole." onClick={() => setTab('Avicole')} />
+          <ActionCard key="avicole-pondeuses" title="Registre pondeuses" text="Lots et effectifs — vue Avicole." onClick={() => setTab('avicole')} />
         </div>
       </CollapsibleBlock>
+        </>
+      ) : null}
 
+      {(contextView === 'all' || contextView === 'avicole') ? (
       <CollapsibleBlock
         icon={Drumstick}
         title="Chair — rendement & IC"
@@ -234,14 +247,17 @@ export default function ProductionHub({
           </ul>
         ) : null}
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <ActionCard key="chair-lots" title="Registre lots chair" text="Fiches Avicole — effectifs, pesées." onClick={() => setTab('Avicole')} />
+          <ActionCard key="chair-lots" title="Registre lots chair" text="Fiches Avicole — effectifs, pesées." onClick={() => setTab('avicole')} />
           {chair.readyLots > 0 ? (
             <ActionCard key="chair-sale" title="Préparer vente" text={`${chair.readyLots} lot(s) prêt(s).`} onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
           ) : null}
           <ActionCard key="chair-transform" title="Transformation viande" text="Abattage avicole et stock." onClick={() => setTab('Transformation')} />
         </div>
       </CollapsibleBlock>
+      ) : null}
 
+      {(contextView === 'all' || contextView === 'animaux') ? (
+        <>
       <CollapsibleBlock
         icon={Beef}
         title="Bovins — GMQ & rentabilité"
@@ -273,7 +289,7 @@ export default function ProductionHub({
           </ul>
         ) : null}
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <ActionCard key="bov-animaux" title="Registre bovins" text="Cheptel, pesées — onglet Animaux." onClick={() => setTab('Animaux')} />
+          <ActionCard key="bov-animaux" title="Registre bovins" text="Cheptel, pesées — vue Animaux." onClick={() => setTab('animaux')} />
           {bovins.nearTargetCount > 0 ? (
             <ActionCard key="bov-sale" title="Préparer vente" text={`${bovins.nearTargetCount} animal(aux) proche(s) cible.`} onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
           ) : null}
@@ -293,7 +309,7 @@ export default function ProductionHub({
             ))}
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <ActionCard key="ov-animaux" title="Registre ovins" text="Cheptel — onglet Animaux." onClick={() => setTab('Animaux')} />
+            <ActionCard key="ov-animaux" title="Registre ovins" text="Cheptel — vue Animaux." onClick={() => setTab('animaux')} />
           </div>
         </CollapsibleBlock>
       ) : null}
@@ -310,11 +326,14 @@ export default function ProductionHub({
             ))}
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <ActionCard key="cap-animaux" title="Registre caprins" text="Cheptel — onglet Animaux." onClick={() => setTab('Animaux')} />
+            <ActionCard key="cap-animaux" title="Registre caprins" text="Cheptel — vue Animaux." onClick={() => setTab('animaux')} />
           </div>
         </CollapsibleBlock>
       ) : null}
+        </>
+      ) : null}
 
+      {contextView === 'all' ? (
       <CollapsibleBlock
         icon={Factory}
         title="Viande & transformation"
@@ -352,6 +371,20 @@ export default function ProductionHub({
           ) : null}
         </div>
       </CollapsibleBlock>
+      ) : null}
     </div>
   );
+
+  if (placement === 'footer') {
+    return (
+      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">
+          Performances & rendements (analyse complémentaire)
+        </summary>
+        <div className="mt-4">{hubBody}</div>
+      </details>
+    );
+  }
+
+  return hubBody;
 }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
-import { fmtCurrency, fmtNumber } from '../utils/format';
+import { fmtNumber } from '../utils/format';
 import { aggregateSummaryLayingRate, formatOfficialLayingRate } from '../utils/elevageLayingRate.js';
 import { rowsOf } from '../utils/moduleRows';
 import { shouldHandleProductionQuestionEvent } from '../utils/elevageCyclesNavigation.js';
@@ -19,15 +19,11 @@ import ElevageMobileToolbar from './elevage/ElevageMobileToolbar.jsx';
 import { buildProductionHubSnapshot } from '../utils/productionHubMetrics.js';
 import { buildElevageActivityPnl, isBovinAnimal, isChairLot, isPondeuseLot } from '../utils/elevageActivityPnl.js';
 import { buildElevageCostAwareInsights } from '../utils/elevageIaInsights.js';
-import { buildElevageTransformationRows } from '../utils/elevageTransformationJournal.js';
-import ElevageTransformationJournal from '../components/ElevageTransformationJournal.jsx';
-import TransformationOfficialForm from './elevage/TransformationOfficialForm.jsx';
+import ElevageTransformationTab from './elevage/ElevageTransformationTab.jsx';
 import {
   openElevageTransformationForm,
   scrollToTransformationForm,
 } from '../utils/elevageTransformationNavigation.js';
-import AnimalSlaughterStockBridge from './AnimalSlaughterStockBridge.jsx';
-import AvicoleTransformationBridge from './AvicoleTransformationBridge.jsx';
 import SanteV8 from './SanteV8';
 import SanitaryWithdrawalBanner from './elevage/SanitaryWithdrawalBanner.jsx';
 import {
@@ -46,7 +42,7 @@ import {
 } from '../utils/elevageReproductionNavigation.js';
 import { buildReproductionKpis } from '../utils/reproductionMetrics.js';
 import { evaluateElevageHealthBlocks, buildSanitaryAlertsPanel } from '../utils/elevageHealthBlocks.js';
-import { buildTransformationCostBreakdown } from '../utils/elevageTransformationCost.js';
+import { buildElevageTransformationRows } from '../utils/elevageTransformationJournal.js';
 import ElevageLotsBandesTab from './elevage/ElevageLotsBandesTab.jsx';
 import ElevageCyclesReproductionTab from './elevage/ElevageCyclesReproductionTab.jsx';
 
@@ -63,10 +59,6 @@ const isGestanteAnimal = (row = {}) =>
   );
 const today = () => new Date().toISOString().slice(0, 10);
 
-function Stat({ label, value, tone = 'neutral' }) {
-  const cls = tone === 'good' ? 'text-emerald-600' : tone === 'warn' ? 'text-amber-600' : tone === 'bad' ? 'text-red-600' : 'text-[#2f2415]';
-  return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">{label}</p><p className={`mt-1 text-xl font-black ${cls}`}>{value}</p></div>;
-}
 function Tabs({ active, onChange, activeFarm }) {
   return (
     <div className="space-y-2">
@@ -74,66 +66,7 @@ function Tabs({ active, onChange, activeFarm }) {
     </div>
   );
 }
-function ActionCard({ title, text, onClick }) { return <button type="button" onClick={onClick} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left transition hover:bg-[#dcfce7]"><b className="text-[#2f2415]">{title}</b><p className="mt-1 text-sm text-[#8a7456]">{text}</p></button>; }
-function BusinessHub({ title, intro, stats, children, extra }) { return <div className="space-y-5"><div className="grid grid-cols-2 gap-3 xl:grid-cols-4">{stats.map((s) => <Stat key={s.label} {...s} />)}</div>{extra}<section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><h2 className="text-lg font-black text-[#2f2415]">{title}</h2><p className="mt-2 text-sm leading-relaxed text-[#8a7456]">{intro}</p><div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">{children}</div></section></div>; }
-function TransformationHub({ data, setTab, onNavigate, onOpenWorkflow, onPrepareTransformation, transformationFormProps, animalBridgeProps, avicoleBridgeProps, healthBlocks }) {
-  const salesCount = data.transformationSalesCount ?? data.transformationRows?.filter((r) => r.kind === 'vente').length ?? 0;
-  const sampleAnimal = data.animals?.find((a) => !isClosedAnimal(a));
-  const costSample = sampleAnimal
-    ? buildTransformationCostBreakdown(sampleAnimal, data.marginContext || {}, 'animal')
-    : null;
-  const prepareSale = () => onNavigate?.('commercial', { tab: 'Ventes', contextMessage: 'Préparation vente depuis Transformation — validation humaine obligatoire.' });
-  const scrollToAbattage = () => {
-    document.getElementById('elevage-animal-slaughter-bridge')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
 
-  return (
-    <div className="space-y-5">
-      {healthBlocks?.blocked ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
-          <b>Transformation / vente bloquée (sanitaire)</b>
-          <p className="mt-1 text-xs">{healthBlocks.messages.join(' ')}</p>
-        </div>
-      ) : null}
-      {costSample?.total > 0 ? (
-        <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
-          <h3 className="text-sm font-black text-[#2f2415]">Coût de revient (exemple animal)</h3>
-          <p className="mt-1 text-lg font-black text-emerald-700">{costSample.totalLabel}</p>
-          <ul className="mt-2 text-xs text-[#8a7456] space-y-1">
-            {costSample.lines.map((l) => (
-              <li key={l.label}>{l.label} : {fmtCurrency(l.value)}</li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-      <BusinessHub
-        title="Transformation"
-        intro="Canal officiel abattage / conversion vivant → produit fini. Journal, coût de revient et stock viande après validation."
-        stats={[
-          { label: 'Ventes journalisées', value: fmtNumber(salesCount), tone: salesCount ? 'good' : 'warn' },
-          { label: 'Animaux sortis', value: fmtNumber(data.closedAnimals) },
-          { label: 'Mortalité lots', value: fmtNumber(data.recentMortality), tone: data.recentMortality ? 'warn' : 'good' },
-          { label: 'Lignes journal', value: fmtNumber(data.transformationRows?.length || 0) },
-        ]}
-      >
-        <ActionCard title="+ Nouvelle transformation" text="Formulaire officiel — abattage, réforme, produit fini." onClick={() => onPrepareTransformation?.({ transformType: 'abattage' })} />
-        <ActionCard title="+ Mortalité lot avicole" text="Workflow officiel — effectif, alertes, perte finance." onClick={() => onOpenWorkflow?.('mortality')} />
-        <ActionCard title="+ Sortie / abattage animal" text="Journal d’abattage animal → stock viande (section ci-dessous)." onClick={scrollToAbattage} />
-        <ActionCard title="+ Clôturer lot" text="Réforme, prêt vente ou abattage lot." onClick={() => onOpenWorkflow?.('transform')} />
-        <ActionCard title="Préparer vente" text="Ouvre Commercial pré-rempli — jamais vente auto." onClick={prepareSale} />
-        <ActionCard title="Lots à vendre" text={`${data.lotsToSell.length} lot(s) matures.`} onClick={() => setTab('Lots & bandes')} />
-      </BusinessHub>
-      {transformationFormProps ? <TransformationOfficialForm {...transformationFormProps} /> : null}
-      <ElevageTransformationJournal rows={data.transformationRows || []} onOpenCommercial={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
-      {animalBridgeProps ? (
-        <div id="elevage-animal-slaughter-bridge">
-          <AnimalSlaughterStockBridge {...animalBridgeProps} />
-        </div>
-      ) : null}
-      {avicoleBridgeProps ? <AvicoleTransformationBridge {...avicoleBridgeProps} /> : null}
-    </div>
-  );
-}
 export default function ElevageRecoveredModule(props) {
   const [tab, setTabState] = useState(() => resolveElevageTab(props.initialTab));
   const [lotsSubview, setLotsSubview] = useState(() => resolveElevageLotsSubview(props.initialTab) || 'avicole');
@@ -603,7 +536,7 @@ export default function ElevageRecoveredModule(props) {
   ) : tab === 'Santé' ? (
     <SanteV8 {...healthProps} healthBlocks={evaluateElevageHealthBlocks({ healthRows: health })} sanitaryAlerts={buildSanitaryAlertsPanel(health)} />
   ) : tab === 'Transformation' ? (
-    <TransformationHub
+    <ElevageTransformationTab
       data={data}
       setTab={setTab}
       onNavigate={guardedNavigate}
@@ -613,6 +546,7 @@ export default function ElevageRecoveredModule(props) {
       animalBridgeProps={animalProps}
       avicoleBridgeProps={avicoleProps}
       healthBlocks={evaluateElevageHealthBlocks({ healthRows: health })}
+      hasTransformationDraft={Boolean(transformationDraft)}
     />
   ) : (
     <ElevageLotsBandesTab

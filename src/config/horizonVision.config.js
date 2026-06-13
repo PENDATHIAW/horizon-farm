@@ -16,8 +16,8 @@ export const MODULE_TARGET_TABS = {
   objectifs_croissance: ['Suivi du Business Plan', 'Efficacité Technique & Zootechnique', 'Simulateur Sandbox', 'Sécurisation des Flux'],
   centre_ia: ['Urgences & risques', 'Croissance & opportunités', 'Saisons & marchés'],
   elevage: ['Lots & bandes', 'Cycles & Reproduction', 'Santé', 'Transformation'],
-  commercial: ['Résumé', 'Ventes', 'Clients', 'Livraisons', 'Abonnements', 'Relances', 'Opportunités', 'Pilotage', 'Annexe', 'Graphiques'],
-  achats_stock: ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Annexe', 'Graphiques'],
+  commercial: ['Ventes', 'Clients & créances', 'Livraisons'],
+  achats_stock: ['Inventaire', 'Réceptions & achats', 'Fournisseurs & dettes'],
   finance_pilotage: ['Résumé', 'Trésorerie', 'Créances', 'Dettes', 'Échéancier', 'Financement', 'Réconciliation', 'Investissements', 'Rentabilité', 'Annexe', 'Graphiques'],
   activite_suivi: ['Résumé', 'Alertes', 'Tâches', 'Traçabilité', 'Graphiques'],
   documents_rapports: ['Résumé', 'Bibliothèque', 'Preuves', 'Rapports', 'Exports', 'Modèles', 'Graphiques'],
@@ -25,16 +25,9 @@ export const MODULE_TARGET_TABS = {
   gestion_systeme: ['Vue admin', 'Utilisateurs', 'Fermes', 'Paramètres', 'Sécurité', 'Sauvegardes', 'Réinitialisation', 'Audit'],
   smartfarm: ['Résumé', 'Capteurs', 'Caméras', 'Annexe', 'Graphiques'],
   cultures: [
-    'Pilotage',
-    'Cycles',
-    'Parcelles & Cultures',
-    'Intrants & Météo',
-    'Santé & Protection',
+    'Parcelles & campagnes',
     'Récoltes',
-    'Transformation',
     'Économie circulaire',
-    'Annexe',
-    'Graphiques',
   ],
 };
 

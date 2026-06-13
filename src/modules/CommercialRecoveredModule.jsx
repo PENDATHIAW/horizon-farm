@@ -160,7 +160,8 @@ function Summary({ data, setTab, onNewSale, onNavigate, onOpenClient, onApplyFin
 }
 
 export default function CommercialRecoveredModule(props) {
-  const [tab, setTab] = useState(() => resolveCommercialTab(props.initialTab));
+  const [tab, setTabRaw] = useState(() => resolveCommercialTab(props.initialTab));
+  const setTab = (value) => setTabRaw(resolveCommercialTab(value));
   const [pendingSaleDraft, setPendingSaleDraft] = useState(null);
   const [busyId, setBusyId] = useState(null);
 
@@ -519,30 +520,97 @@ export default function CommercialRecoveredModule(props) {
 
   const todoBadge = data.todoCount;
   const tabBadges = {
-    Ventes: data.openSalesCount,
-    Clients: data.clientsDebtCount,
-    Livraisons: data.deliveryQueue?.late?.length || 0,
-    Abonnements: data.subscriptionsDue?.length || 0,
-    Relances: data.relanceRows?.length || 0,
-    Opportunités: data.openOpportunities.length,
+    Ventes: (data.openSalesCount || 0) + data.openOpportunities.length,
+    'Clients & créances': data.clientsDebtCount + (data.relanceRows?.length || 0),
+    Livraisons: (data.deliveryQueue?.late?.length || 0) + (data.subscriptionsDue?.length || 0),
   };
 
   return (
     <div className="space-y-4">
       <CommercialModuleHeader tab={tab} setTab={setTab} healthScore={data.healthScore} periodLabel={props.periodLabel} onNavigate={props.onNavigate} onOpenAssistant={props.onOpenAssistant} badges={{ receivable: data.receivable, todo: todoBadge, tabs: tabBadges }} />
-      {tab === 'Résumé' ? (
-        <Summary
-          data={data}
-          setTab={setTab}
-          onNewSale={openNewSale}
-          onNavigate={props.onNavigate}
-          onOpenClient={openClientTab}
-          onApplyFinding={applyFinding}
-          busyId={busyId}
-        />
+      {tab === 'Ventes' ? (
+        <div className="space-y-4">
+          <Summary
+            data={data}
+            setTab={setTab}
+            onNewSale={openNewSale}
+            onNavigate={props.onNavigate}
+            onOpenClient={openClientTab}
+            onApplyFinding={applyFinding}
+            busyId={busyId}
+          />
+          <VentesV5 {...salesProps} />
+          <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+            <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Opportunités ({fmtNumber(data.openOpportunities.length)})</summary>
+            <div className="mt-3">
+              <CommercialOpportunitiesPanel
+                opportunities={data.openOpportunities}
+                autoOpportunities={data.autoOpportunities}
+                clients={clients}
+                stocks={stockRows}
+                cultures={culturesRows}
+                lots={lotsRows}
+                animaux={animauxRows}
+                salesOrders={data.orders}
+                setTab={setTab}
+                onWhatsAppLog={logOpportunityWhatsApp}
+                onConvertSale={convertOpportunityToSale}
+                onUpdateLot={workflowHandlers.onUpdateLot || props.onUpdateLot || lotsCrud.update}
+                onRefreshLots={props.onRefreshLots || lotsCrud.refresh}
+                onUpdateAnimal={props.onUpdateAnimal || animalsCrud.update}
+                onRefreshAnimals={props.onRefreshAnimals || animalsCrud.refresh}
+                onCreateOpportunity={props.onCreateOpportunity || opportunitiesCrud.create}
+                onUpdateOpportunity={props.onUpdateOpportunity || opportunitiesCrud.update}
+                onRefreshOpportunities={props.onRefreshOpportunities || opportunitiesCrud.refresh}
+                onCreateBusinessEvent={workflowHandlers.onCreateBusinessEvent}
+                onRefreshBusinessEvents={props.onRefreshBusinessEvents || eventsCrud.refresh}
+              />
+            </div>
+          </details>
+          <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+            <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Pilotage & analyses</summary>
+            <div className="mt-3 space-y-4">
+              <CommercialPilotagePanel
+                data={data}
+                setTab={setTab}
+                periodLabel={props.periodLabel}
+                marginContext={data.marginContext}
+                chartOptions={data.chartOptions}
+              />
+              <CommercialAnnexeTab
+                documents={documentsRows}
+                orders={enrichCommercialOrders(ordersAll, { deliveries: deliveriesAll, invoices: invoicesAll })}
+                invoices={invoicesAll}
+                deliveries={deliveriesAll}
+                clients={clients}
+                onNavigate={props.onNavigate}
+              />
+              <ModuleGraphiquesTab
+                moduleId="commercial"
+                salesOrders={enrichCommercialOrders(ordersAll, { deliveries: deliveriesAll, invoices: invoicesAll })}
+                payments={paymentsAll}
+                opportunities={opportunities}
+                clients={clients}
+                lots={rowsOf(props.lots, lotsCrud, false)}
+                animaux={rowsOf(props.animals || props.animaux, animalsCrud, false)}
+                cultures={rowsOf(props.cultures, culturesCrud, false)}
+                stocks={rowsOf(props.stocks, stockCrud, false)}
+                alimentationLogs={rowsOf(props.alimentationLogs, alimentationCrud, pf)}
+                productionLogs={rowsOf(props.productionLogs, productionCrud, pf)}
+                vaccins={rowsOf(props.vaccins || props.sante, santeCrud, pf)}
+                businessEvents={rowsOf(props.businessEvents, eventsCrud, pf)}
+                transactions={rowsOf(props.transactions, financesCrud, pf)}
+                businessPlans={rowsOf(props.businessPlans, businessPlansCrud, false)}
+                investissements={rowsOf(props.investissements, investissementsCrud, false)}
+                periodScope={props.periodScope}
+                periodFiltered={periodFiltered}
+                onNavigate={props.onNavigate}
+              />
+            </div>
+          </details>
+        </div>
       ) : null}
-      {tab === 'Ventes' ? <VentesV5 {...salesProps} /> : null}
-      {tab === 'Clients' ? (
+      {tab === 'Clients & créances' ? (
         <div className="space-y-4">
           <ClientsReadable {...clientProps} />
           <CommercialSegmentsPanel clients={clients} orders={data.ordersAll} payments={data.paymentsAll} relanceRows={data.relanceRows} />
@@ -556,117 +624,49 @@ export default function CommercialRecoveredModule(props) {
             onNewQuote={() => setTab('Ventes')}
             {...panelCommon}
           />
+          <CommercialScheduledRelancesPanel
+            rows={data.relanceRows}
+            clients={clients}
+            onCreateTask={workflowHandlers.onCreateTask}
+            onRefreshTasks={props.onRefreshTasks || tasksCrud.refresh}
+            onOpenClient={openClientTab}
+            onPrepareWhatsApp={prepareRelanceWhatsApp}
+          />
         </div>
       ) : null}
       {tab === 'Livraisons' ? (
-        <CommercialDeliveriesPanel
-          deliveries={deliveriesAll}
-          orders={data.ordersAll}
-          clients={clients}
-          documents={documentsRows}
-          payments={paymentsAll}
-          invoices={invoicesAll}
-          tasks={taskRows}
-          onUpdateDelivery={workflowHandlers.onUpdateDelivery}
-          onCreateDocument={workflowHandlers.onCreateDocument}
-          onUpdateOrder={workflowHandlers.onUpdateOrder}
-          onCreateDelivery={workflowHandlers.onCreateDelivery}
-          onCreateTask={workflowHandlers.onCreateTask}
-          onUpdateTask={workflowHandlers.onUpdateTask}
-          onRefreshWorkflow={refreshWorkflow}
-          setTab={setTab}
-        />
-      ) : null}
-      {tab === 'Abonnements' ? (
-        <CommercialSubscriptionsPanel
-          clients={clients}
-          onUpdateClient={workflowHandlers.onUpdateClient}
-          onNewSale={openNewSale}
-          activeFarm={props.activeFarm}
-        />
-      ) : null}
-      {tab === 'Relances' ? (
-        <CommercialScheduledRelancesPanel
-          rows={data.relanceRows}
-          clients={clients}
-          onCreateTask={workflowHandlers.onCreateTask}
-          onRefreshTasks={props.onRefreshTasks || tasksCrud.refresh}
-          onOpenClient={openClientTab}
-          onPrepareWhatsApp={prepareRelanceWhatsApp}
-        />
-      ) : null}
-      {tab === 'Opportunités' ? (
-        <CommercialOpportunitiesPanel
-          opportunities={data.openOpportunities}
-          autoOpportunities={data.autoOpportunities}
-          clients={clients}
-          stocks={stockRows}
-          cultures={culturesRows}
-          lots={lotsRows}
-          animaux={animauxRows}
-          salesOrders={data.orders}
-          setTab={setTab}
-          onWhatsAppLog={logOpportunityWhatsApp}
-          onConvertSale={convertOpportunityToSale}
-          onUpdateLot={workflowHandlers.onUpdateLot || props.onUpdateLot || lotsCrud.update}
-          onRefreshLots={props.onRefreshLots || lotsCrud.refresh}
-          onUpdateAnimal={props.onUpdateAnimal || animalsCrud.update}
-          onRefreshAnimals={props.onRefreshAnimals || animalsCrud.refresh}
-          onCreateOpportunity={props.onCreateOpportunity || opportunitiesCrud.create}
-          onUpdateOpportunity={props.onUpdateOpportunity || opportunitiesCrud.update}
-          onRefreshOpportunities={props.onRefreshOpportunities || opportunitiesCrud.refresh}
-          onCreateBusinessEvent={workflowHandlers.onCreateBusinessEvent}
-          onRefreshBusinessEvents={props.onRefreshBusinessEvents || eventsCrud.refresh}
-        />
-      ) : null}
-      {tab === 'Pilotage' ? (
-        <CommercialPilotagePanel
-          data={data}
-          setTab={setTab}
-          periodLabel={props.periodLabel}
-          marginContext={data.marginContext}
-          chartOptions={data.chartOptions}
-        />
-      ) : null}
-      {tab === 'Annexe' ? (
-        <CommercialAnnexeTab
-          documents={documentsRows}
-          orders={enrichCommercialOrders(ordersAll, { deliveries: deliveriesAll, invoices: invoicesAll })}
-          invoices={invoicesAll}
-          deliveries={deliveriesAll}
-          clients={clients}
-          onNavigate={props.onNavigate}
-        />
-      ) : null}
-      {tab === 'Graphiques' ? (
-        <ModuleGraphiquesTab
-          moduleId="commercial"
-          salesOrders={enrichCommercialOrders(ordersAll, { deliveries: deliveriesAll, invoices: invoicesAll })}
-          payments={paymentsAll}
-          opportunities={opportunities}
-          clients={clients}
-          lots={rowsOf(props.lots, lotsCrud, false)}
-          animaux={rowsOf(props.animals || props.animaux, animalsCrud, false)}
-          cultures={rowsOf(props.cultures, culturesCrud, false)}
-          stocks={rowsOf(props.stocks, stockCrud, false)}
-          alimentationLogs={rowsOf(props.alimentationLogs, alimentationCrud, pf)}
-          productionLogs={rowsOf(props.productionLogs, productionCrud, pf)}
-          vaccins={rowsOf(props.vaccins || props.sante, santeCrud, pf)}
-          businessEvents={rowsOf(props.businessEvents, eventsCrud, pf)}
-          transactions={rowsOf(props.transactions, financesCrud, pf)}
-          businessPlans={rowsOf(props.businessPlans, businessPlansCrud, false)}
-          investissements={rowsOf(props.investissements, investissementsCrud, false)}
-          periodScope={props.periodScope}
-          periodFiltered={periodFiltered}
-          onNavigate={props.onNavigate}
-        />
+        <div className="space-y-4">
+          <CommercialDeliveriesPanel
+            deliveries={deliveriesAll}
+            orders={data.ordersAll}
+            clients={clients}
+            documents={documentsRows}
+            payments={paymentsAll}
+            invoices={invoicesAll}
+            tasks={taskRows}
+            onUpdateDelivery={workflowHandlers.onUpdateDelivery}
+            onCreateDocument={workflowHandlers.onCreateDocument}
+            onUpdateOrder={workflowHandlers.onUpdateOrder}
+            onCreateDelivery={workflowHandlers.onCreateDelivery}
+            onCreateTask={workflowHandlers.onCreateTask}
+            onUpdateTask={workflowHandlers.onUpdateTask}
+            onRefreshWorkflow={refreshWorkflow}
+            setTab={setTab}
+          />
+          <CommercialSubscriptionsPanel
+            clients={clients}
+            onUpdateClient={workflowHandlers.onUpdateClient}
+            onNewSale={openNewSale}
+            activeFarm={props.activeFarm}
+          />
+        </div>
       ) : null}
       <CommercialMobileToolbar
         onNewSale={() => openNewSale()}
         setTab={setTab}
         onCollect={() => setTab('Ventes')}
         onDeliver={() => setTab('Livraisons')}
-        onRelance={() => setTab('Relances')}
+        onRelance={() => setTab('Clients & créances')}
       />
     </div>
   );

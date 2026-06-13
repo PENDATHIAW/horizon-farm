@@ -54,8 +54,63 @@ const ELEVAGE_TAB_ALIASES = {
 };
 
 const ELEVAGE_LOTS_SUBVIEW_KEYS = new Set(['Avicole', 'avicole', 'Animaux', 'animaux']);
-export const ACHATS_STOCK_TABS = ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Annexe', 'Graphiques'];
-export const COMMERCIAL_TABS = ['Résumé', 'Ventes', 'Clients', 'Livraisons', 'Abonnements', 'Relances', 'Opportunités', 'Pilotage', 'Annexe', 'Graphiques'];
+export const ACHATS_STOCK_TABS = ['Inventaire', 'Réceptions & achats', 'Fournisseurs & dettes'];
+export const COMMERCIAL_TABS = ['Ventes', 'Clients & créances', 'Livraisons'];
+
+const ACHATS_STOCK_TAB_ALIASES = {
+  Résumé: 'Inventaire',
+  resume: 'Inventaire',
+  Stock: 'Inventaire',
+  stock: 'Inventaire',
+  Inventaire: 'Inventaire',
+  inventaire: 'Inventaire',
+  Achats: 'Réceptions & achats',
+  achats: 'Réceptions & achats',
+  'Réceptions & achats': 'Réceptions & achats',
+  'Receptions & achats': 'Réceptions & achats',
+  receptions: 'Réceptions & achats',
+  Fournisseurs: 'Fournisseurs & dettes',
+  fournisseurs: 'Fournisseurs & dettes',
+  'Fournisseurs & dettes': 'Fournisseurs & dettes',
+  Mouvements: 'Inventaire',
+  mouvements: 'Inventaire',
+  Annexe: 'Inventaire',
+  annexe: 'Inventaire',
+  Graphiques: 'Inventaire',
+  graphiques: 'Inventaire',
+};
+
+const COMMERCIAL_TAB_ALIASES = {
+  Résumé: 'Ventes',
+  resume: 'Ventes',
+  Ventes: 'Ventes',
+  ventes: 'Ventes',
+  Clients: 'Clients & créances',
+  clients: 'Clients & créances',
+  'Clients & créances': 'Clients & créances',
+  'Clients & creances': 'Clients & créances',
+  creances: 'Clients & créances',
+  Livraisons: 'Livraisons',
+  livraisons: 'Livraisons',
+  livraison: 'Livraisons',
+  Abonnements: 'Livraisons',
+  abonnements: 'Livraisons',
+  abonnement: 'Livraisons',
+  Relances: 'Clients & créances',
+  relances: 'Clients & créances',
+  relance: 'Clients & créances',
+  Opportunités: 'Ventes',
+  opportunites: 'Ventes',
+  opportunities: 'Ventes',
+  Pilotage: 'Ventes',
+  pilotage: 'Ventes',
+  Annexe: 'Ventes',
+  annexe: 'Ventes',
+  Graphiques: 'Ventes',
+  graphiques: 'Ventes',
+  devis: 'Ventes',
+  prospects: 'Clients & créances',
+};
 export const ACTIVITE_SUIVI_TABS = ['Résumé', 'Alertes', 'Tâches', 'Traçabilité', 'Graphiques'];
 export const FINANCE_TABS = ['Résumé', 'Trésorerie', 'Créances', 'Dettes', 'Échéancier', 'Financement', 'Réconciliation', 'Investissements', 'Rentabilité', 'Annexe', 'Graphiques'];
 
@@ -118,7 +173,9 @@ export function resolveElevageTab(value = '') {
 export function resolveAchatsStockTab(value = '') {
   const tab = String(value || '').trim();
   if (ACHATS_STOCK_TABS.includes(tab)) return tab;
-  return tabAliases[lower(tab)] || 'Résumé';
+  const fromAlias = ACHATS_STOCK_TAB_ALIASES[tab] || ACHATS_STOCK_TAB_ALIASES[lower(tab)];
+  if (fromAlias) return fromAlias;
+  return tabAliases[lower(tab)] || 'Inventaire';
 }
 
 /** Alias commercial → redirection module Finance (réconciliation canonique). */
@@ -129,8 +186,10 @@ export function isCommercialReconciliationAlias(value = '') {
 export function resolveCommercialTab(value = '') {
   const tab = String(value || '').trim();
   if (COMMERCIAL_TABS.includes(tab)) return tab;
-  if (isCommercialReconciliationAlias(tab)) return 'Résumé';
-  return tabAliases[lower(tab)] || 'Résumé';
+  if (isCommercialReconciliationAlias(tab)) return 'Ventes';
+  const fromAlias = COMMERCIAL_TAB_ALIASES[tab] || COMMERCIAL_TAB_ALIASES[lower(tab)];
+  if (fromAlias) return fromAlias;
+  return tabAliases[lower(tab)] || 'Ventes';
 }
 
 export function resolveFinanceTab(value = '') {
@@ -148,7 +207,38 @@ export function resolveActiviteSuiviTab(value = '') {
 export const DOCUMENTS_RAPPORTS_TABS = ['Résumé', 'Bibliothèque', 'Preuves', 'Rapports', 'Exports', 'Modèles', 'Graphiques'];
 export const RH_TABS = ['Résumé', 'Équipements', 'Maintenance', 'Affectations', 'Coûts', 'Documents', 'Graphiques'];
 export const SMARTFARM_TABS = ['Résumé', 'Capteurs', 'Caméras', 'Annexe', 'Graphiques'];
-export const CULTURES_TABS = ['Vue d\u2019ensemble', 'Cultures', 'Parcelles', 'Campagnes', 'Performance'];
+export const CULTURES_TABS = ['Parcelles & campagnes', 'Récoltes', 'Économie circulaire'];
+
+const CULTURES_TAB_ALIASES = {
+  Pilotage: 'Parcelles & campagnes',
+  pilotage: 'Parcelles & campagnes',
+  Cycles: 'Parcelles & campagnes',
+  cycles: 'Parcelles & campagnes',
+  'Parcelles & Cultures': 'Parcelles & campagnes',
+  'Parcelles & campagnes': 'Parcelles & campagnes',
+  parcelles: 'Parcelles & campagnes',
+  'Intrants & Météo': 'Parcelles & campagnes',
+  intrants: 'Parcelles & campagnes',
+  'Santé & Protection': 'Parcelles & campagnes',
+  sante: 'Parcelles & campagnes',
+  Récoltes: 'Récoltes',
+  recoltes: 'Récoltes',
+  Transformation: 'Récoltes',
+  transformation: 'Récoltes',
+  'Économie circulaire': 'Économie circulaire',
+  economie: 'Économie circulaire',
+  Annexe: 'Parcelles & campagnes',
+  annexe: 'Parcelles & campagnes',
+  Graphiques: 'Économie circulaire',
+  graphiques: 'Économie circulaire',
+  'Vue d’ensemble': 'Parcelles & campagnes',
+  'Vue d\'ensemble': 'Parcelles & campagnes',
+  Résumé: 'Parcelles & campagnes',
+  resume: 'Parcelles & campagnes',
+  Cultures: 'Parcelles & campagnes',
+  Campagnes: 'Parcelles & campagnes',
+  Performance: 'Économie circulaire',
+};
 export const DASHBOARD_TABS = ['Résumé', 'Graphiques'];
 export const INVESTISSEURS_TABS = ['room', 'preparation', 'dossier', 'library', 'crm', 'preview', 'export', 'history', 'demo'];
 
@@ -173,8 +263,10 @@ export function resolveSmartFarmTab(value = '') {
 export function resolveCulturesTab(value = '') {
   const tab = String(value || '').trim();
   if (CULTURES_TABS.includes(tab)) return tab;
-  if (lower(tab) === 'resume') return 'Vue d\u2019ensemble';
-  return tabAliases[lower(tab)] || 'Vue d\u2019ensemble';
+  const fromAlias = CULTURES_TAB_ALIASES[tab] || CULTURES_TAB_ALIASES[lower(tab)];
+  if (fromAlias) return fromAlias;
+  if (lower(tab) === 'resume') return 'Parcelles & campagnes';
+  return tabAliases[lower(tab)] || 'Parcelles & campagnes';
 }
 
 export function resolveDashboardTab(value = '') {

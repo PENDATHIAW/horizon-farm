@@ -23,6 +23,7 @@ import {
 } from '../utils/stockPurchaseWorkflow.js';
 import { computeWeightedAverageCost, summarizeStockValuation } from '../utils/stockValuation.js';
 import { applyStockMovement, buildStockCriticalFollowUp, hasOpenStockReorderTask } from '../utils/stockWorkflows';
+import { alimentationFields, deriveAlimentationValues } from '../utils/stockForms.js';
 import StockFlowPanel from './StockFlowPanel.jsx';
 import StockReorderTasksBridge from './StockReorderTasksBridge.jsx';
 import StockStatusPanel from './StockStatusPanel.jsx';
@@ -134,7 +135,7 @@ export default function StocksV3({ rows = [], alimentationLogs = [], animaux = [
   );
   const critiques = useMemo(() => rows.filter((product) => stockMetrics(product, stockMovements, transactions).critical), [rows, stockMovements, transactions]);
   const stockFormFields = useMemo(() => stockFields(fournisseurs), [fournisseurs]);
-  const alimFormFields = useMemo(() => buildAlimentationFields({ stocks: rows, animaux, lots, fournisseurs, isFood }), [rows, animaux, lots, fournisseurs]);
+  const alimFormFields = useMemo(() => alimentationFields({ stocks: rows, animaux, lots, fournisseurs, isFood }), [rows, animaux, lots, fournisseurs]);
   const deriveAlimValues = useMemo(() => deriveAlimentationValues({ stocks: rows, fournisseurs }), [rows, fournisseurs]);
   const stripManualPrice = (payload = {}) => {
     const next = { ...payload };

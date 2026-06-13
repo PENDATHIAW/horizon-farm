@@ -34,7 +34,8 @@ export default function CulturesRecoveredModule(props) {
   const movementsCrud = useCrudModule('stock_movements');
   const { weather: liveMeteo } = useLiveWeather();
 
-  const [tab, setTab] = useState(() => resolveCulturesTab(props.initialTab));
+  const [tab, setTabRaw] = useState(() => resolveCulturesTab(props.initialTab));
+  const setTab = (value) => setTabRaw(resolveCulturesTab(value));
 
   useEffect(() => {
     if (props.initialTab) setTab(resolveCulturesTab(props.initialTab));
@@ -182,82 +183,109 @@ export default function CulturesRecoveredModule(props) {
 
   const chartNarratives = useMemo(() => buildCulturesChartNarratives(rows), [rows]);
 
-  const content = tab === 'Pilotage' ? (
-    <CulturesPilotageHub
-      rows={rows}
-      stocks={stocks}
-      salesOrders={salesOrders}
-      businessEvents={businessEvents}
-      transactions={transactions}
-      opportunities={opportunities}
-      meteo={meteo}
-      dataMap={dataMap}
-      onNavigate={props.onNavigate}
-      onCreateBusinessEvent={eventsCrud.create}
-      onCreateStock={workflowHandlers.onCreateStock}
-      onUpdateStock={stockCrud.update}
-      onRefresh={refreshWorkflow}
-    />
-  ) : tab === 'Cycles' ? (
-    <CulturesCyclesHub rows={rows} salesOrders={salesOrders} deliveries={deliveriesList} businessEvents={businessEvents} onNavigate={props.onNavigate} />
-  ) : tab === 'Parcelles & Cultures' ? (
-    <CulturesParcellesHub {...sharedV3Props} />
-  ) : tab === 'Intrants & Météo' ? (
-    <CulturesIntrantsHub {...sharedV3Props} />
-  ) : tab === 'Santé & Protection' ? (
-    <CulturesSanteHub {...sharedV3Props} />
-  ) : tab === 'Récoltes' ? (
-    <CulturesRecoltesHub
-      rows={rows}
-      stocks={stocks}
-      context={workflowContext}
-      handlers={workflowHandlers}
-      onSuccess={refreshWorkflow}
-      opportunities={opportunities}
-      onUpdate={onUpdate}
-      onRefresh={sharedV3Props.onRefresh}
-      onCreateOpportunity={workflowHandlers.onCreateOpportunity}
-      onUpdateOpportunity={workflowHandlers.onUpdateOpportunity}
-      onRefreshOpportunities={sharedV3Props.onRefreshOpportunities}
-      onCreateBusinessEvent={workflowHandlers.onCreateBusinessEvent}
-      onRefreshBusinessEvents={sharedV3Props.onRefreshBusinessEvents}
-      onNavigate={props.onNavigate}
-    />
-  ) : tab === 'Transformation' ? (
-    <CulturesTransformationHub
-      rows={rows}
-      stocks={stocks}
-      context={workflowContext}
-      handlers={workflowHandlers}
-      onSuccess={refreshWorkflow}
-      onNavigate={props.onNavigate}
-    />
-  ) : tab === 'Économie circulaire' ? (
-    <CulturesEconomieHub stocks={stocks} salesOrders={salesOrders} rows={rows} businessEvents={businessEvents} dataMap={dataMap} onNavigate={props.onNavigate} />
-  ) : tab === 'Annexe' ? (
-    <CulturesAnnexeTab documents={documents} onNavigate={props.onNavigate} />
-  ) : tab === 'Graphiques' ? (
-  <div className="space-y-4">
-      {chartNarratives.length ? (
-        <section className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-2">
-          <h2 className="text-sm font-black text-[#2f2415]">Lecture des courbes</h2>
-          {chartNarratives.map((line) => <p key={line} className="text-sm text-[#7d6a4a]">{line}</p>)}
-        </section>
-      ) : null}
-      <ModuleGraphiquesTab
-        moduleId="cultures"
-        periodFiltered={periodFiltered}
-        periodScope={props.periodScope}
-        periodLabel={props.periodLabel}
-        cultures={rows}
-        salesOrders={salesOrders}
-        payments={payments}
-        transactions={transactions}
+  const content = tab === 'Parcelles & campagnes' ? (
+    <div className="space-y-4">
+      <CulturesPilotageHub
+        rows={rows}
         stocks={stocks}
+        salesOrders={salesOrders}
+        businessEvents={businessEvents}
+        transactions={transactions}
+        opportunities={opportunities}
+        meteo={meteo}
+        dataMap={dataMap}
+        onNavigate={props.onNavigate}
+        onCreateBusinessEvent={eventsCrud.create}
+        onCreateStock={workflowHandlers.onCreateStock}
+        onUpdateStock={stockCrud.update}
+        onRefresh={refreshWorkflow}
+      />
+      <CulturesParcellesHub {...sharedV3Props} />
+      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Intrants & météo</summary>
+        <div className="mt-3">
+          <CulturesIntrantsHub {...sharedV3Props} />
+        </div>
+      </details>
+      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Santé & protection</summary>
+        <div className="mt-3">
+          <CulturesSanteHub {...sharedV3Props} />
+        </div>
+      </details>
+      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Cycles & campagnes</summary>
+        <div className="mt-3">
+          <CulturesCyclesHub rows={rows} salesOrders={salesOrders} deliveries={deliveriesList} businessEvents={businessEvents} onNavigate={props.onNavigate} />
+        </div>
+      </details>
+      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Annexe documents</summary>
+        <div className="mt-3">
+          <CulturesAnnexeTab documents={documents} onNavigate={props.onNavigate} />
+        </div>
+      </details>
+    </div>
+  ) : tab === 'Récoltes' ? (
+    <div className="space-y-4">
+      <CulturesRecoltesHub
+        rows={rows}
+        stocks={stocks}
+        context={workflowContext}
+        handlers={workflowHandlers}
+        onSuccess={refreshWorkflow}
+        opportunities={opportunities}
+        onUpdate={onUpdate}
+        onRefresh={sharedV3Props.onRefresh}
+        onCreateOpportunity={workflowHandlers.onCreateOpportunity}
+        onUpdateOpportunity={workflowHandlers.onUpdateOpportunity}
+        onRefreshOpportunities={sharedV3Props.onRefreshOpportunities}
+        onCreateBusinessEvent={workflowHandlers.onCreateBusinessEvent}
+        onRefreshBusinessEvents={sharedV3Props.onRefreshBusinessEvents}
         onNavigate={props.onNavigate}
       />
+      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Transformation cultures</summary>
+        <div className="mt-3">
+          <CulturesTransformationHub
+            rows={rows}
+            stocks={stocks}
+            context={workflowContext}
+            handlers={workflowHandlers}
+            onSuccess={refreshWorkflow}
+            onNavigate={props.onNavigate}
+          />
+        </div>
+      </details>
     </div>
-  ) : null;
+  ) : (
+    <div className="space-y-4">
+      <CulturesEconomieHub stocks={stocks} salesOrders={salesOrders} rows={rows} businessEvents={businessEvents} dataMap={dataMap} onNavigate={props.onNavigate} />
+      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Graphiques & courbes</summary>
+        <div className="mt-3 space-y-4">
+          {chartNarratives.length ? (
+            <section className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 space-y-2">
+              <h2 className="text-sm font-black text-[#2f2415]">Lecture des courbes</h2>
+              {chartNarratives.map((line) => <p key={line} className="text-sm text-[#7d6a4a]">{line}</p>)}
+            </section>
+          ) : null}
+          <ModuleGraphiquesTab
+            moduleId="cultures"
+            periodFiltered={periodFiltered}
+            periodScope={props.periodScope}
+            periodLabel={props.periodLabel}
+            cultures={rows}
+            salesOrders={salesOrders}
+            payments={payments}
+            transactions={transactions}
+            stocks={stocks}
+            onNavigate={props.onNavigate}
+          />
+        </div>
+      </details>
+    </div>
+  );
 
   return (
     <div className="space-y-6 cultures-v1-root">

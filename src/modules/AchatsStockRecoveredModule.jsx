@@ -117,7 +117,8 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate, onMarkE
 }
 
 export default function AchatsStockRecoveredModule(props) {
-  const [tab, setTab] = useState(() => resolveAchatsStockTab(props.initialTab));
+  const [tab, setTabRaw] = useState(() => resolveAchatsStockTab(props.initialTab));
+  const setTab = (value) => setTabRaw(resolveAchatsStockTab(value));
   const [busyId, setBusyId] = useState(null);
   const [stockAdvancedOpen, setStockAdvancedOpen] = useState(false);
 
@@ -368,18 +369,7 @@ export default function AchatsStockRecoveredModule(props) {
         </div>
       </section>
       <Tabs active={tab} onChange={setTab} />
-      {tab === 'Résumé' ? (
-        <Summary
-          data={data}
-          setTab={setTab}
-          onApply={applyFinding}
-          onRelance={relanceSupplier}
-          busyId={busyId}
-          onNavigate={props.onNavigate}
-          onMarkExpiry={handleExpiryAction}
-          showStartup={data.startupMode}
-        />
-      ) : tab === 'Stock' ? (
+      {tab === 'Inventaire' ? (
         <div className="space-y-4">
           <StockNavigationContextBanner
             stockContext={props.stockNavigationContext?.stockContext}
@@ -411,17 +401,36 @@ export default function AchatsStockRecoveredModule(props) {
               existingMovements={stockMovements}
             />
           </CollapsibleAdvancedSection>
+          <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+            <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Mouvements ledger</summary>
+            <div className="mt-3">
+              <AchatsStockMovementsPanel data={data} onNavigate={props.onNavigate} setTab={setTab} accessibleFarms={props.accessibleFarms || []} />
+            </div>
+          </details>
+          <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+            <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Annexe & graphiques</summary>
+            <div className="mt-3 space-y-4">
+              <AchatsStockAnnexeTab documents={documents} onNavigate={props.onNavigate} />
+              <ModuleGraphiquesTab moduleId="achats_stock" periodFiltered={periodFiltered} stocks={stocks} alimentationLogs={feedLogs} fournisseurs={suppliers} transactions={transactions} onNavigate={props.onNavigate} />
+            </div>
+          </details>
         </div>
-      ) : tab === 'Achats' ? (
-        <AchatsStockPurchasesPanel data={data} onNavigate={props.onNavigate} setTab={setTab} onRelance={relanceSupplier} busyId={busyId} />
-      ) : tab === 'Fournisseurs' ? (
-        <FournisseursReadable {...supplierProps} hideEvolutionSection />
-      ) : tab === 'Mouvements' ? (
-        <AchatsStockMovementsPanel data={data} onNavigate={props.onNavigate} setTab={setTab} accessibleFarms={props.accessibleFarms || []} />
-      ) : tab === 'Annexe' ? (
-        <AchatsStockAnnexeTab documents={documents} onNavigate={props.onNavigate} />
+      ) : tab === 'Réceptions & achats' ? (
+        <div className="space-y-4">
+          <Summary
+            data={data}
+            setTab={setTab}
+            onApply={applyFinding}
+            onRelance={relanceSupplier}
+            busyId={busyId}
+            onNavigate={props.onNavigate}
+            onMarkExpiry={handleExpiryAction}
+            showStartup={data.startupMode}
+          />
+          <AchatsStockPurchasesPanel data={data} onNavigate={props.onNavigate} setTab={setTab} onRelance={relanceSupplier} busyId={busyId} />
+        </div>
       ) : (
-        <ModuleGraphiquesTab moduleId="achats_stock" periodFiltered={periodFiltered} stocks={stocks} alimentationLogs={feedLogs} fournisseurs={suppliers} transactions={transactions} onNavigate={props.onNavigate} />
+        <FournisseursReadable {...supplierProps} hideEvolutionSection />
       )}
     </div>
   );

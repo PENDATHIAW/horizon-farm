@@ -29,8 +29,7 @@ const baseProps = {
 };
 
 const COMMERCIAL_TABS = [
-  'Résumé', 'Ventes', 'Clients', 'Livraisons', 'Abonnements',
-  'Relances', 'Opportunités', 'Pilotage', 'Annexe', 'Graphiques',
+  'Ventes', 'Clients & créances', 'Livraisons',
 ];
 
 for (const tab of COMMERCIAL_TABS) {
