@@ -44,4 +44,5 @@ test('hey horizon centre presets use valid tabs', () => {
   CENTRE_HEY_HORIZON_QUESTIONS.forEach((item) => {
     assert.ok(TAB_IDS.includes(resolveTab(item.tab)), `invalid tab for ${item.id}: ${item.tab}`);
   });
+  assert.equal(CENTRE_HEY_HORIZON_QUESTIONS.length, 3);
 });

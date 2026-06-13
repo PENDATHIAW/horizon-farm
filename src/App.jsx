@@ -33,6 +33,7 @@ import { farmsService, getDefaultFarmRecord } from './services/farmsService';
 import { formatFarmScopeLabel, normalizeFarmScope, resolveFarmContext } from './utils/farmScope';
 import { enrichAssistantDataMap } from './utils/assistantDataMap.js';
 import { mergeDemoFarms } from './utils/farmDemoMode.js';
+import { scheduleHeyHorizonQuery } from './utils/openHeyHorizonAssistant.js';
 import { clearPeriodFilterCache } from './utils/periodFilterCache';
 import { formatPeriodScopeLabel, isAllTimeScope, normalizePeriodScope } from './utils/periodScope';
 import LoginPage from './pages/LoginPage';
@@ -57,6 +58,7 @@ export default function App() {
   const [culturesTab, setCulturesTab] = useState('Pilotage');
   const [gestionSystemeTab, setGestionSystemeTab] = useState('Vue admin');
   const [farmsPanelAction, setFarmsPanelAction] = useState(null);
+  const openAssistantRef = useRef(() => {});
   const navigateModule = useCallback((moduleId, options = {}) => {
     const tab = options?.tab || options?.commercialTab || options?.elevageTab || options?.achatsStockTab || options?.financeTab;
     const resolved = resolveRouteModule(moduleId);
@@ -136,6 +138,9 @@ export default function App() {
           }));
         }, 320);
       }
+      if (options?.heyHorizonQuery) {
+        window.setTimeout(() => openAssistantRef.current?.(options.heyHorizonQuery), 400);
+      }
       trackNavOpen(resolved);
       setActiveState(resolved);
       return;
@@ -146,6 +151,13 @@ export default function App() {
   const setActive = navigateModule;
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const openAssistantWithQuery = useCallback((query) => {
+    setAssistantOpen(true);
+    scheduleHeyHorizonQuery(query, 180);
+  }, []);
+  useEffect(() => {
+    openAssistantRef.current = openAssistantWithQuery;
+  }, [openAssistantWithQuery]);
   const { user, loading: authLoading, signOut, canAccess } = useAuth();
   const { dataMap, refreshModule, flushOfflineQueue } = useAppData();
   const { online, lastOnlineAt } = useOnlineStatus();
@@ -317,7 +329,7 @@ export default function App() {
   const actionTraceShared = composeActionTraceShared(c, online);
   const internalResourcesShared = composeInternalResources(c);
   return {
-    dashboard: { user, dataFingerprint: crudFingerprint, lotsData: rows(c.avicole), animaux: rows(c.animaux), vaccins: rows(c.sante), stocks: rows(c.stock), clients: rows(c.clients), fournisseurs: rows(c.fournisseurs), cultures: rows(c.cultures), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), documents: rows(c.documents), alimentationLogs: rows(c.alimentation_logs), productionLogs: rows(c.production_oeufs_logs), opportunities: rows(c.sales_opportunities), businessPlans: rows(c.business_plans), investissements: rows(c.investissements), taches: rows(c.taches), alertes: rows(c.alertes_center), equipements: rows(c.equipements), sensorDevices: rows(c.sensor_devices), cameraDevices: rows(c.camera_devices), businessEvents: rows(c.business_events), meteo: liveMeteo, weatherLoading, onNavigate: setActive, onRefresh: refreshAll, onOpenAssistant: () => setAssistantOpen(true), onManageFarms: handleManageFarms, farmComparisonData },
+    dashboard: { user, dataFingerprint: crudFingerprint, lotsData: rows(c.avicole), animaux: rows(c.animaux), vaccins: rows(c.sante), stocks: rows(c.stock), clients: rows(c.clients), fournisseurs: rows(c.fournisseurs), cultures: rows(c.cultures), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), documents: rows(c.documents), alimentationLogs: rows(c.alimentation_logs), productionLogs: rows(c.production_oeufs_logs), opportunities: rows(c.sales_opportunities), businessPlans: rows(c.business_plans), investissements: rows(c.investissements), taches: rows(c.taches), alertes: rows(c.alertes_center), equipements: rows(c.equipements), sensorDevices: rows(c.sensor_devices), cameraDevices: rows(c.camera_devices), businessEvents: rows(c.business_events), meteo: liveMeteo, weatherLoading, onNavigate: setActive, onRefresh: refreshAll, onOpenAssistant: openAssistantWithQuery, onManageFarms: handleManageFarms, farmComparisonData },
     assistant_erp: {
       dataMap: decisionDataMapRaw,
       salesOrders: rows(c.sales_orders),
@@ -327,7 +339,7 @@ export default function App() {
       transactions: rows(c.finances),
       transactionsAll: rows(c.finances),
       onNavigate: setActive,
-      onOpenAssistant: () => setAssistantOpen(true),
+      onOpenAssistant: openAssistantWithQuery,
       onCreateTask: c.taches.create,
       onCreateAlert: c.alertes_center.create,
       onUpdateAlert: c.alertes_center.update,
@@ -363,7 +375,7 @@ export default function App() {
       existingAlerts: rows(c.alertes_center),
       businessEvents: rows(c.business_events),
       businessEventsAll: rows(c.business_events),
-    }, centre_ia: { initialTab: centreTab, animaux: rows(c.animaux), lots: rows(c.avicole), cultures: rows(c.cultures), stocks: rows(c.stock), clients: rows(c.clients), alertes: rows(c.alertes_center), taches: rows(c.taches), documents: rows(c.documents), opportunities: rows(c.sales_opportunities), businessPlans: rows(c.business_plans), investissements: rows(c.investissements), productionLogs: rows(c.production_oeufs_logs), alimentationLogs: rows(c.alimentation_logs), marketPrices: dataMap.market_prices || [], marketCalendarEvents: dataMap.market_calendar_events || [], salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), smartfarmEvents: dataMap.smartfarm_events || [], sensors: rows(c.sensor_devices), cameras: rows(c.camera_devices), meteo: liveMeteo, dataMap: decisionDataMapRaw, onNavigate: setActive, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onOpenAssistant: () => setAssistantOpen(true), existingTasks: rows(c.taches), existingAlerts: rows(c.alertes_center) }, objectifs_croissance: { initialTab: objectifsTab, dataMap: decisionDataMapRaw, animaux: rows(c.animaux), lots: rows(c.avicole), productionLogs: rows(c.production_oeufs_logs), cultures: rows(c.cultures), stocks: rows(c.stock), clients: rows(c.clients), alertes: rows(c.alertes_center), taches: rows(c.taches), documents: rows(c.documents), opportunities: rows(c.sales_opportunities), businessPlans: rows(c.business_plans), investissements: rows(c.investissements), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), onNavigate: setActive, onCreateBusinessPlan: c.business_plans.create, onRefreshBusinessPlans: c.business_plans.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, existingTasks: rows(c.taches), existingAlerts: rows(c.alertes_center) },
+    }, centre_ia: { initialTab: centreTab, animaux: rows(c.animaux), lots: rows(c.avicole), cultures: rows(c.cultures), stocks: rows(c.stock), clients: rows(c.clients), alertes: rows(c.alertes_center), taches: rows(c.taches), documents: rows(c.documents), opportunities: rows(c.sales_opportunities), businessPlans: rows(c.business_plans), investissements: rows(c.investissements), productionLogs: rows(c.production_oeufs_logs), alimentationLogs: rows(c.alimentation_logs), marketPrices: dataMap.market_prices || [], marketCalendarEvents: dataMap.market_calendar_events || [], salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), smartfarmEvents: dataMap.smartfarm_events || [], sensors: rows(c.sensor_devices), cameras: rows(c.camera_devices), meteo: liveMeteo, dataMap: decisionDataMapRaw, onNavigate: setActive, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onOpenAssistant: openAssistantWithQuery, existingTasks: rows(c.taches), existingAlerts: rows(c.alertes_center) }, objectifs_croissance: { initialTab: objectifsTab, dataMap: decisionDataMapRaw, animaux: rows(c.animaux), lots: rows(c.avicole), productionLogs: rows(c.production_oeufs_logs), cultures: rows(c.cultures), stocks: rows(c.stock), clients: rows(c.clients), alertes: rows(c.alertes_center), taches: rows(c.taches), documents: rows(c.documents), opportunities: rows(c.sales_opportunities), businessPlans: rows(c.business_plans), investissements: rows(c.investissements), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), onNavigate: setActive, onCreateBusinessPlan: c.business_plans.create, onRefreshBusinessPlans: c.business_plans.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, existingTasks: rows(c.taches), existingAlerts: rows(c.alertes_center) },
     elevage: {
       initialTab: elevageTab,
       animaux: rows(c.animaux),
@@ -375,7 +387,7 @@ export default function App() {
       productionLogs: rows(c.production_oeufs_logs),
       stockMovements: rows(c.stock_movements),
       onNavigate: setActive,
-      onOpenAssistant: () => setAssistantOpen(true),
+      onOpenAssistant: openAssistantWithQuery,
       onCreateTask: c.taches.create,
       onCreateAlert: c.alertes_center.create,
       onUpdateAlert: c.alertes_center.update,
@@ -416,7 +428,7 @@ export default function App() {
       documents: rows(c.documents),
       alertes: rows(c.alertes_center),
       onNavigate: navigateModule,
-      onOpenAssistant: () => setAssistantOpen(true),
+      onOpenAssistant: openAssistantWithQuery,
       onRefreshWorkflow: refreshSalesWorkflowFn,
       onCreate: c.sales_orders.create,
       onUpdate: c.sales_orders.update,
@@ -543,7 +555,7 @@ export default function App() {
       productionLogs: rows(c.production_oeufs_logs),
       businessEvents: rows(c.business_events),
       onNavigate: navigateModule,
-      onOpenAssistant: () => setAssistantOpen(true),
+      onOpenAssistant: openAssistantWithQuery,
       onCreateTask: c.taches.create,
       onCreateAlert: c.alertes_center.create,
       onUpdateAlert: c.alertes_center.update,
@@ -689,7 +701,7 @@ export default function App() {
     sync: syncActivityProps,
     sync_activity: syncActivityProps,
   };
-  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, culturesTab, achatsStockTab, achatsStockContext, financeTab, gestionSystemeTab, farmsPanelAction, accessibleFarms, effectiveAccessibleFarms, refreshAccessibleFarms, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue, handleManageFarms, farmComparisonData]);
+  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, culturesTab, achatsStockTab, achatsStockContext, financeTab, gestionSystemeTab, farmsPanelAction, accessibleFarms, effectiveAccessibleFarms, refreshAccessibleFarms, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue, handleManageFarms, farmComparisonData, openAssistantWithQuery]);
 
   const activeModuleProps = useMemo(
     () => applyFarmScopeToProps(
@@ -732,7 +744,7 @@ export default function App() {
 
   return <>
     <ProductionUpdateBanner />
-    <AppLayout navItems={navItems} active={resolvedActive} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => setAssistantOpen(true)} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange} farmScope={normalizeFarmScope(farmScope, effectiveAccessibleFarms)} accessibleFarms={effectiveAccessibleFarms} onFarmScopeChange={handleFarmScopeChange} activeFarm={activeFarm} onManageFarms={handleManageFarms}>
+    <AppLayout navItems={navItems} active={resolvedActive} onNavigate={setActive} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} user={user} signOut={signOut} online={online} notifs={notifs} weather={liveMeteo} weatherLoading={weatherLoading} weatherSource={weatherSource} onOpenAssistant={() => openAssistantWithQuery()} periodScope={periodScope} onPeriodScopeChange={handlePeriodScopeChange} farmScope={normalizeFarmScope(farmScope, effectiveAccessibleFarms)} accessibleFarms={effectiveAccessibleFarms} onFarmScopeChange={handleFarmScopeChange} activeFarm={activeFarm} onManageFarms={handleManageFarms}>
     <FarmActivityNotice message={activeModuleProps.farmActivityNotice} farmName={activeFarm?.name} actionLabel={activeModuleProps.farmActivityNoticeDetail?.actionLabel} onAction={activeModuleProps.farmActivityNoticeDetail ? handleFarmActivityAction : undefined} />
     <ErrorBoundary moduleName={activeModuleLabel} resetKey={resolvedActive} onBackToDashboard={() => setActive('dashboard')}><Suspense fallback={<div className="rounded-3xl border border-[#d6c3a0] bg-white p-6 text-[#8a7456]">Chargement du module...</div>}><ActiveModule {...activeModuleProps} periodLabel={periodLabel} farmScopeLabel={formatFarmScopeLabel(farmScope, effectiveAccessibleFarms)} /></Suspense></ErrorBoundary>
     <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} dataMap={scopedAssistantDataMap} onNavigate={setActive} onCreateBusinessEvent={c.business_events.create} />

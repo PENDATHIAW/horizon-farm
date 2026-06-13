@@ -39,10 +39,10 @@ test('buildCentreDecisionAnswer — recommandations centre', () => {
   assert.match(answer.situation || '', /recommand|axe|centre/i);
 });
 
-test('centreHeyHorizonPresets exposes 6 quick asks', () => {
+test('centreHeyHorizonPresets exposes 3 tab-aligned shortcuts', () => {
   const presets = centreHeyHorizonPresets();
-  assert.equal(presets.length, 6);
-  assert.ok(presets.some((p) => p.id === 'main_risk'));
+  assert.equal(presets.length, 3);
+  assert.ok(presets.some((p) => p.id === 'urgences'));
 });
 
 test('clarify guides ambiguous single-word queries', () => {

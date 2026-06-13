@@ -31,7 +31,7 @@ export default function HeyHorizonQuickAsk({
           type="button"
           onClick={() => {
             if (moduleKey === 'centre_ia' && item.query) {
-              launchCentreHeyHorizonQuestion({ questionId: item.id, onNavigate, onOpenAssistant });
+              launchCentreHeyHorizonQuestion({ questionId: item.id, onNavigate, onOpenAssistant, mode: 'tab' });
               return;
             }
             if (moduleKey === 'commercial' && item.query) {

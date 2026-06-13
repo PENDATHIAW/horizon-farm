@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
-import HeyHorizonQuickAsk from '../../components/HeyHorizonQuickAsk.jsx';
+import { Bot } from 'lucide-react';
 import { MODULE_TARGET_TABS } from '../../config/horizonVision.config.js';
 import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine.js';
 import { buildStrategicDecisionPlan } from '../../services/strategicDecisionEngine.js';
@@ -236,7 +236,15 @@ export default function CentreDecisionModule({
             <p className="mt-2 text-sm text-[#8a7456] max-w-2xl">
               Urgences · croissance · saisons — chaque onglet a un rôle distinct, sans doublon.
             </p>
-            <HeyHorizonQuickAsk moduleKey="centre_ia" onNavigate={onNavigate} onOpenAssistant={onOpenAssistant} className="mt-2" />
+            {onOpenAssistant ? (
+              <button
+                type="button"
+                onClick={() => onOpenAssistant('Comment va la ferme ?')}
+                className="mt-2 inline-flex items-center gap-1.5 text-xs font-black text-[#9a6b12] hover:underline"
+              >
+                <Bot size={14} /> Question à Hey Horizon (vocal ou texte)
+              </button>
+            ) : null}
             {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
