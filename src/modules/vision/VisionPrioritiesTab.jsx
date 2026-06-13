@@ -6,7 +6,6 @@ import { buildObjectiveActionTask } from '../../utils/objectivesWorkflows';
 import { fmtCurrency } from '../../utils/format';
 import { openVisionPriority } from './visionMetrics.js';
 import { navigateVisionFinding, navigateVisionPriority as navFromItem } from './visionNavigation.js';
-import VisionDecisionEnginePanels from './VisionDecisionEnginePanels.jsx';
 import { Btn, DataRow, DataTable, Empty, Section, TabIntro, VISION_TABLE_COLS, VisionKpi } from './visionUtils';
 
 const COMPACT_LIMIT = 5;
