@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Audit complet — Module Commercial — Horizon Farm ERP</title>
+  <style>
+    :root { --ink: #2f2415; --muted: #8a7456; --border: #eadcc2; --bg: #fffdf8; --accent: #9a6b12; --good: #047857; --warn: #b45309; --bad: #b91c1c; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: var(--ink); background: #f5f0e8; margin: 0; line-height: 1.5; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 20px 48px; }
+    header { background: var(--ink); color: #fffdf8; padding: 28px 24px; border-radius: 16px; margin-bottom: 24px; }
+    header h1 { margin: 0 0 8px; font-size: 1.5rem; }
+    header p { margin: 0; opacity: 0.85; font-size: 0.95rem; }
+    .score { display: inline-block; margin-top: 12px; padding: 6px 14px; background: rgba(255,253,248,0.15); border-radius: 999px; font-weight: 700; }
+    section { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; }
+    h2 { font-size: 1.1rem; margin: 0 0 12px; color: var(--accent); }
+    p { margin: 0 0 10px; color: var(--muted); font-size: 0.95rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 8px; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: var(--bg); font-weight: 700; }
+    ul { margin: 8px 0 0; padding-left: 1.25rem; }
+    li { margin-bottom: 6px; font-size: 0.92rem; }
+    footer { text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 24px; }
+    code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Audit complet — Module Commercial</h1>
+      <p>CommercialRecoveredModule.jsx · 10 onglets · Audit lecture seule · 9 juin 2026</p>
+      <span class="score">Score global : 61 / 100</span>
+    </header>
+    <section><h2>Synthèse exécutive</h2><p>Module le plus complet du cycle vente (opportunité → commande → livraison → paiement → facture). Résumé encore trop chargé. Registre anti-duplication bien aligné (vente uniquement ici).</p><ul><li>Orchestrateur : CommercialRecoveredModule.jsx (~673 lignes)</li><li>Ventes : VentesV5 embedded — workflow commercialSaleWorkflow</li><li>Clients : ClientsReadable + segments, prospects, relances WhatsApp</li></ul></section>
+<section><h2>Onglets cibles</h2><table><thead><tr><th>Élément</th><th>Statut / score</th><th>Commentaire</th></tr></thead><tbody><tr><td>Résumé</td><td>48/100</td><td>6 KPI + quotes + reconciliation + insight + todos — surcharge</td></tr><tr><td>Ventes</td><td>72/100</td><td>VentesV5 — chemin canonique vente</td></tr><tr><td>Clients</td><td>65/100</td><td>Fiches, créances, segments, prospects</td></tr><tr><td>Livraisons</td><td>64/100</td><td>Queue livraisons, sync documents</td></tr><tr><td>Abonnements</td><td>60/100</td><td>Subscriptions panel</td></tr><tr><td>Relances</td><td>63/100</td><td>Scheduled relances + WhatsApp prep</td></tr><tr><td>Opportunités</td><td>68/100</td><td>Auto-opportunités stock/cultures/lots + conversion vente</td></tr><tr><td>Pilotage</td><td>58/100</td><td>Marges, graphiques — doublon partiel Résumé/Graphiques</td></tr><tr><td>Annexe</td><td>52/100</td><td>Documents commercial</td></tr><tr><td>Graphiques</td><td>55/100</td><td>ModuleGraphiquesTab riche</td></tr></tbody></table></section>
+<section><h2>Header &amp; navigation</h2><p>CommercialModuleHeader : score santé + badges créances/todos sur tous onglets. CommercialMobileToolbar sticky (4 actions).</p><ul><li>horizon-open-form listener pour sale_record → Ventes</li><li>Tab badges dynamiques (Ventes, Clients, Livraisons, etc.)</li></ul></section>
+<section><h2>Doublons (registre anti-duplication)</h2><table><thead><tr><th>Élément</th><th>Statut / score</th><th>Commentaire</th></tr></thead><tbody><tr><td>Création vente</td><td>Commercial Ventes</td><td>Source de vérité — OK</td></tr><tr><td>Encaissements</td><td>Finance</td><td>Redirect — pas création vente en Finance</td></tr><tr><td>CA / objectifs</td><td>Objectifs, Dashboard, Centre</td><td>Lecture croisée — vigilance</td></tr><tr><td>Stock vendable</td><td>Achats Stock</td><td>Publication via sellableStock — OK</td></tr></tbody></table></section>
+<section><h2>Workflows</h2><ul><li>buildSaleFormFromOpportunity — conversion opportunité → vente</li><li>commercialScheduledRelances — relances programmées</li><li>commercialDeliverySync — livraisons / documents</li><li>WhatsApp logs — préparation message, pas envoi auto</li></ul></section>
+<section><h2>Tests</h2><p>12+ fichiers commercial*.test.js — workflows vente, relances, anti-duplication UX.</p></section>
+<section><h2>Priorités</h2><ul><li>P0 — Résumé : retirer CommercialQuotesPanel et ReconciliationPanel du Résumé (déplacer Ventes/Pilotage)</li><li>P1 — Fusionner teaser Relances (Résumé) avec onglet Relances seul</li><li>P2 — Pilotage vs Graphiques : un seul point graphiques avancés</li><li>P2 — Réduire props salesProps (ligne monolithique) — maintenance</li></ul></section>
+<section><h2>Points forts</h2><ul><li>Cycle vente bout-en-bout le plus mature de l'ERP</li><li>Opportunités auto depuis stock/cultures/élevage</li><li>commercialUxAntiDuplication.test.js — garde-fous</li></ul></section>
+    <footer>Horizon Farm ERP — Vision 2026–2027 · Document généré pour archivage local</footer>
+  </div>
+</body>
+</html>

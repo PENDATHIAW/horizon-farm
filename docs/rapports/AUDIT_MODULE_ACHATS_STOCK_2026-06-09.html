@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Audit complet — Module Achats &amp; Stock — Horizon Farm ERP</title>
+  <style>
+    :root { --ink: #2f2415; --muted: #8a7456; --border: #eadcc2; --bg: #fffdf8; --accent: #9a6b12; --good: #047857; --warn: #b45309; --bad: #b91c1c; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: var(--ink); background: #f5f0e8; margin: 0; line-height: 1.5; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 20px 48px; }
+    header { background: var(--ink); color: #fffdf8; padding: 28px 24px; border-radius: 16px; margin-bottom: 24px; }
+    header h1 { margin: 0 0 8px; font-size: 1.5rem; }
+    header p { margin: 0; opacity: 0.85; font-size: 0.95rem; }
+    .score { display: inline-block; margin-top: 12px; padding: 6px 14px; background: rgba(255,253,248,0.15); border-radius: 999px; font-weight: 700; }
+    section { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; }
+    h2 { font-size: 1.1rem; margin: 0 0 12px; color: var(--accent); }
+    p { margin: 0 0 10px; color: var(--muted); font-size: 0.95rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 8px; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: var(--bg); font-weight: 700; }
+    ul { margin: 8px 0 0; padding-left: 1.25rem; }
+    li { margin-bottom: 6px; font-size: 0.92rem; }
+    footer { text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 24px; }
+    code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Audit complet — Module Achats &amp; Stock</h1>
+      <p>AchatsStockRecoveredModule.jsx · 7 onglets · Audit lecture seule · 9 juin 2026</p>
+      <span class="score">Score global : 63 / 100</span>
+    </header>
+    <section><h2>Synthèse exécutive</h2><p>Module V3 digestible : Résumé = KPI + actions ; détail en onglets. StocksV5 canonique pour CRUD stock. Mouvements = ledger lecture. Bon alignement anti-duplication achats.</p><ul><li>Orchestrateur : AchatsStockRecoveredModule.jsx (~428 lignes)</li><li>Stock UI : StocksV5 (ne pas supprimer V2–V5 historiques)</li><li>Réception : emitHorizonForm stock_purchase — chemin canonique</li></ul></section>
+<section><h2>Onglets cibles</h2><table><thead><tr><th>Élément</th><th>Statut / score</th><th>Commentaire</th></tr></thead><tbody><tr><td>Résumé</td><td>62/100</td><td>6 KPI cliquables + parcours rapide + accordéon analyse — bien calibré V3</td></tr><tr><td>Stock</td><td>70/100</td><td>StocksV5 + transferts/sources repliables</td></tr><tr><td>Achats</td><td>65/100</td><td>AchatsStockPurchasesPanel — à payer, preuves</td></tr><tr><td>Fournisseurs</td><td>64/100</td><td>FournisseursReadable (dettes complètes)</td></tr><tr><td>Mouvements</td><td>66/100</td><td>Ledger stock_movements — readonly saisie</td></tr><tr><td>Annexe</td><td>50/100</td><td>Documents achats/stock</td></tr><tr><td>Graphiques</td><td>52/100</td><td>ModuleGraphiquesTab</td></tr></tbody></table></section>
+<section><h2>Header</h2><p>Score santé stock /100 sur tous onglets — même pattern Élevage/Achats. Pas de mobile toolbar dédiée (moins critique que Commercial).</p></section>
+<section><h2>Doublons (documentés ACHATS_STOCK_LEGACY_NOTES)</h2><table><thead><tr><th>Élément</th><th>Statut / score</th><th>Commentaire</th></tr></thead><tbody><tr><td>Saisie stock</td><td>Stock onglet</td><td>Mouvements = historique readonly — OK</td></tr><tr><td>Dettes fournisseurs</td><td>Fournisseurs</td><td>Aperçu compact en Résumé — volontaire</td></tr><tr><td>Charge vs achat</td><td>Finance</td><td>Redirect registry charge_vs_stock</td></tr><tr><td>Alimentation élevage</td><td>Élevage workflow</td><td>StockFeedingElevageHint — renvoi OK</td></tr></tbody></table></section>
+<section><h2>Workflows &amp; données</h2><ul><li>stockPurchaseWorkflow — réception → stock + finance</li><li>stock_movements + farm_id (migration 20260604120000 requise prod)</li><li>buildExpiryLossPatch — péremption depuis Résumé</li><li>createSupplierFollowUpTask — relance fournisseur</li><li>CONSUMPTION_GAPS documentés (santé sans stock_id, emballages œufs)</li></ul></section>
+<section><h2>Interconnexions</h2><table><thead><tr><th>Élément</th><th>Statut / score</th><th>Commentaire</th></tr></thead><tbody><tr><td>Élevage</td><td>Sorties aliment via workflow élevage</td><td>OK</td></tr><tr><td>Commercial</td><td>Lien Opportunités depuis Résumé</td><td>OK</td></tr><tr><td>Cultures</td><td>Stock récolte via cultures side effects</td><td>OK</td></tr><tr><td>Finance</td><td>Achats → transactions</td><td>OK</td></tr></tbody></table></section>
+<section><h2>Tests</h2><p>achatsStockV1–V3, stockPurchaseWorkflow — couverture achats et ledger.</p></section>
+<section><h2>Priorités</h2><ul><li>P1 — Vérifier migration stock_movements en prod (farm_id, dedupe_key)</li><li>P2 — Header score → lien onglet Stock uniquement</li><li>P2 — Unifier CMUP affichage Résumé vs Stock</li><li>P3 — Mobile toolbar rapide (réception, mouvement)</li></ul></section>
+<section><h2>Points forts</h2><ul><li>Digestibilité V3 exemplaire (KPI Résumé + détail onglets)</li><li>StocksV5 stable, panels V3 branchés et documentés</li><li>Qualité données (AchatsStockDataQualityPanel)</li><li>Transferts inter-fermes</li></ul></section>
+    <footer>Horizon Farm ERP — Vision 2026–2027 · Document généré pour archivage local</footer>
+  </div>
+</body>
+</html>

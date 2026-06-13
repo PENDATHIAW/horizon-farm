@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Audit complet — Module Cultures — Horizon Farm ERP</title>
+  <style>
+    :root { --ink: #2f2415; --muted: #8a7456; --border: #eadcc2; --bg: #fffdf8; --accent: #9a6b12; --good: #047857; --warn: #b45309; --bad: #b91c1c; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: var(--ink); background: #f5f0e8; margin: 0; line-height: 1.5; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 20px 48px; }
+    header { background: var(--ink); color: #fffdf8; padding: 28px 24px; border-radius: 16px; margin-bottom: 24px; }
+    header h1 { margin: 0 0 8px; font-size: 1.5rem; }
+    header p { margin: 0; opacity: 0.85; font-size: 0.95rem; }
+    .score { display: inline-block; margin-top: 12px; padding: 6px 14px; background: rgba(255,253,248,0.15); border-radius: 999px; font-weight: 700; }
+    section { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; }
+    h2 { font-size: 1.1rem; margin: 0 0 12px; color: var(--accent); }
+    p { margin: 0 0 10px; color: var(--muted); font-size: 0.95rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 8px; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: var(--bg); font-weight: 700; }
+    ul { margin: 8px 0 0; padding-left: 1.25rem; }
+    li { margin-bottom: 6px; font-size: 0.92rem; }
+    footer { text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 24px; }
+    code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Audit complet — Module Cultures</h1>
+      <p>CulturesRecoveredModule.jsx · 10 onglets · Audit lecture seule · 9 juin 2026</p>
+      <span class="score">Score global : 58 / 100</span>
+    </header>
+    <section><h2>Synthèse exécutive</h2><p>Module bien structuré en hubs V3 avec workflows récolte → stock → opportunité. Charge : 10 onglets et recoupements Dashboard / Objectifs / Commercial sur le pilotage.</p><ul><li>Point d'entrée canonique : CulturesRecoveredModule.jsx (274 lignes orchestrateur)</li><li>Workflows : culturesWorkflow.js, commitCultureHarvest, runCultureHarvestSideEffects</li><li>Legacy : CulturesV2–V5, bridges orphelins (voir CULTURES_LEGACY_NOTES.md)</li></ul></section>
+<section><h2>Onglets cibles</h2><table><thead><tr><th>Élément</th><th>Statut / score</th><th>Commentaire</th></tr></thead><tbody><tr><td>Pilotage</td><td>58/100</td><td>KPI + brief IA + ObjectivePerformanceCard + repair — doublon Objectifs/Dashboard</td></tr><tr><td>Cycles</td><td>52/100</td><td>CulturesCyclesHub — calendrier campagnes, lien Centre Saisons</td></tr><tr><td>Parcelles &amp; Cultures</td><td>65/100</td><td>CRUD fiches, parcelles, campagnes — hub principal</td></tr><tr><td>Intrants &amp; Météo</td><td>60/100</td><td>Intrants, météo live, coûts semences/engrais</td></tr><tr><td>Santé &amp; Protection</td><td>58/100</td><td>Traitements phytosanitaires, alertes</td></tr><tr><td>Récoltes</td><td>66/100</td><td>Workflow récolte officiel, side effects stock/commercial</td></tr><tr><td>Transformation</td><td>62/100</td><td>Hub transformation + workflows</td></tr><tr><td>Économie circulaire</td><td>55/100</td><td>Lien fumier / NPK — aligné Objectifs sandbox</td></tr><tr><td>Annexe</td><td>50/100</td><td>Documents cultures</td></tr><tr><td>Graphiques</td><td>52/100</td><td>ModuleGraphiquesTab + narratives</td></tr></tbody></table></section>
+<section><h2>Architecture</h2><p>Pas de header score permanent (bon). Header fixe titre + période. Contenu uniquement dans l'onglet actif.</p><ul><li>syncHarvest sur create/update culture — boucle récolte automatique</li><li>Objectifs sandbox « Lancer campagne » crée culture via onCreateCulture</li></ul></section>
+<section><h2>Doublons inter-modules</h2><table><thead><tr><th>Élément</th><th>Statut / score</th><th>Commentaire</th></tr></thead><tbody><tr><td>CA cultures</td><td>Commercial Ventes / Objectifs BP</td><td>Récolte → opportunité auto</td></tr><tr><td>Stock récolte</td><td>Achats &amp; Stock</td><td>Création stock via side effects — canon OK</td></tr><tr><td>Objectif cultures</td><td>Objectifs + Dashboard</td><td>ObjectivePerformanceCard dans Pilotage</td></tr><tr><td>Cycles maraîchage</td><td>Centre Saisons + Objectifs Sandbox</td><td>Économie circulaire partielle</td></tr></tbody></table></section>
+<section><h2>Tests</h2><p>culturesWorkflow.test.js, culturesV1.test.js — couverture workflows récolte bonne.</p><ul><li>Gap : tests intégration 10 onglets navigation</li><li>Gap : campagne Objectifs → Cultures E2E</li></ul></section>
+<section><h2>Priorités</h2><ul><li>P1 — Alléger Pilotage (retirer ObjectivePerformanceCard ou lien seul)</li><li>P1 — Réduire à 6–7 onglets visibles (grouper Intrants+Santé, Transformation+Économie)</li><li>P2 — Nettoyer legacy CulturesV2/V4 si grep confirme zéro import</li><li>P2 — Documenter entité parcelle vs culture (record_type)</li></ul></section>
+<section><h2>Points forts</h2><ul><li>Workflow récolte → stock → opportunité sans double saisie</li><li>Hubs modulaires (Parcelles, Récoltes, Intrants) clairs</li><li>Économie circulaire présente (différenciant vs AgriPilot)</li></ul></section>
+    <footer>Horizon Farm ERP — Vision 2026–2027 · Document généré pour archivage local</footer>
+  </div>
+</body>
+</html>
