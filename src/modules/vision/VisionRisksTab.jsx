@@ -7,12 +7,26 @@ import { Btn, DataRow, DataTable, Empty, Pill, Section, TabIntro, VisionKpi, ris
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
-export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, existingTasks = [], existingAlerts = [], strategicPlan = {}, urgentOnly = false }) {
+function dedupeRisks(rows = [], limit = 3) {
+  const seen = new Set();
+  const out = [];
+  for (const row of rows) {
+    const key = String(row.title || '').trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(row);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, existingTasks = [], existingAlerts = [], strategicPlan = {}, urgentOnly = false, compact = false }) {
   const engineRisks = arr(data.engineRisks);
   const allRisks = arr(data.risks);
-  const risks = urgentOnly
+  const filteredRisks = urgentOnly
     ? allRisks.filter((r) => r.tone === 'bad' || /critique|élevé|eleve|urgent/i.test(String(r.severity || '')))
     : allRisks;
+  const risks = compact ? dedupeRisks(filteredRisks, 3) : filteredRisks;
   const criticalCount = allRisks.filter((r) => r.tone === 'bad').length;
   const financeExposure = Math.max(0, -(data.treasuryResult ?? data.balance)) + (data.receivable || 0);
 
@@ -43,15 +57,34 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
   const createAlertFromRisk = (risk) => runPriorityAlertAction(riskToItem(risk), riskHandlers);
   const createTaskFromRisk = (risk) => runPriorityTaskAction(riskToItem(risk), riskHandlers);
 
+  const sellNowItems = compact ? arr(strategicPlan.sellNow).slice(0, 2) : arr(strategicPlan.sellNow);
+  const stockItems = compact ? arr(strategicPlan.stockAudit?.alerts).slice(0, 1) : arr(strategicPlan.stockAudit?.alerts);
+  const showBfr = strategicPlan.bfr?.blocked;
+  const hasStrategicBlock = showBfr || sellNowItems.length || stockItems.length;
+  const hasRiskRows = risks.length > 0;
+
+  if (compact && urgentOnly && !hasStrategicBlock && !hasRiskRows) return null;
+
   return (
-    <div className="space-y-5">
-      <TabIntro
-        title={urgentOnly ? 'Urgences terrain & risques critiques' : 'Registre des risques'}
-        detail={urgentOnly
-          ? 'Ventes urgentes, stock aliment, BFR et risques critiques — le registre complet reste dans Activité & Suivi.'
-          : 'Matrice IA + risques opérationnels détectés sur alertes, stock, élevage, trésorerie et documents.'}
-        action={onNavigate ? <Btn onClick={() => onNavigate('activite_suivi', { tab: 'Alertes' })}>Centre alertes</Btn> : null}
-      />
+    <div className={compact ? 'space-y-4' : 'space-y-5'}>
+      {!compact ? (
+        <TabIntro
+          title={urgentOnly ? 'Urgences terrain & risques critiques' : 'Registre des risques'}
+          detail={urgentOnly
+            ? 'Ventes urgentes, stock aliment, BFR et risques critiques — le registre complet reste dans Activité & Suivi.'
+            : 'Matrice IA + risques opérationnels détectés sur alertes, stock, élevage, trésorerie et documents.'}
+          action={onNavigate ? <Btn onClick={() => onNavigate('activite_suivi', { tab: 'Alertes' })}>Centre alertes</Btn> : null}
+        />
+      ) : (
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-black uppercase tracking-widest text-[#9a6b12]">Blocages & risques critiques</p>
+          {onNavigate ? (
+            <button type="button" onClick={() => onNavigate('activite_suivi', { tab: 'Alertes' })} className="text-xs font-black text-[#9a6b12] underline">
+              Toutes les alertes
+            </button>
+          ) : null}
+        </div>
+      )}
       {!urgentOnly ? (
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
           <VisionKpi label="Risques ouverts" value={fmtNumber(allRisks.length)} tone={allRisks.length ? 'warn' : 'good'} />
@@ -62,10 +95,10 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
         </div>
       ) : null}
 
-      {strategicPlan.sellNow?.length ? (
-        <Section icon={TrendingDown} title="Urgences vente — QUAND VENDRE">
+      {sellNowItems.length ? (
+        <Section icon={TrendingDown} title={compact ? 'Ventes urgentes' : 'Urgences vente — QUAND VENDRE'}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {strategicPlan.sellNow.map((item) => (
+            {sellNowItems.map((item) => (
               <StrategicDecisionCard
                 key={item.id}
                 item={{ ...item, title: item.title || item.status, category: 'sell_now' }}
@@ -79,10 +112,10 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
           </div>
         </Section>
       ) : null}
-      {strategicPlan.stockAudit?.alerts?.length ? (
-        <Section icon={Package} title="Audit stock aliment">
+      {stockItems.length ? (
+        <Section icon={Package} title={compact ? 'Stock aliment' : 'Audit stock aliment'}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {strategicPlan.stockAudit.alerts.map((item) => (
+            {stockItems.map((item) => (
               <StrategicDecisionCard
                 key={item.id}
                 item={{ ...item, title: `Surconsommation ${item.building}`, message: item.message, category: 'stock_audit', module: 'achats_stock', navTab: 'Stock' }}
@@ -96,8 +129,8 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
           </div>
         </Section>
       ) : null}
-      {strategicPlan.bfr?.blocked ? (
-        <Section icon={Wallet} title="Blocage BFR — trésorerie">
+      {showBfr ? (
+        <Section icon={Wallet} title={compact ? 'Trésorerie — lancement bloqué' : 'Blocage BFR — trésorerie'}>
           <StrategicDecisionCard
             item={{ id: 'bfr-block', title: 'Lancement suspendu', message: strategicPlan.bfr.message, priority: 'critique', category: 'bfr', module: 'finance_pilotage', navTab: 'Trésorerie', coveragePct: strategicPlan.bfr.coveragePct }}
             onNavigate={onNavigate}
@@ -125,9 +158,9 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
           </div>
         </Section>
       ) : null}
-      <Section icon={ShieldAlert} title={urgentOnly ? 'Risques critiques' : 'Risques opérationnels'}>
-        {risks.length ? (
-          <DataTable columns={['Domaine · Sujet', 'Cause & impact', 'Gravité', 'Actions']}>
+      {hasRiskRows ? (
+      <Section icon={ShieldAlert} title={urgentOnly ? (compact ? 'Autres risques' : 'Risques critiques') : 'Risques opérationnels'}>
+        <DataTable columns={['Domaine · Sujet', 'Cause & impact', 'Gravité', 'Actions']}>
             {risks.map((r) => (
               <DataRow
                 key={r.id}
@@ -145,8 +178,8 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
               />
             ))}
           </DataTable>
-        ) : <Empty>{urgentOnly ? 'Aucune urgence critique détectée — consultez Croissance ou Saisons pour anticiper.' : 'Aucun risque majeur détecté sur la ferme.'}</Empty>}
       </Section>
+      ) : null}
     </div>
   );
 }
