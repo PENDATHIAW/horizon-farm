@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Audit — Documents & Rapports — Horizon Farm ERP</title>
+  <style>
+    :root { --ink: #2f2415; --muted: #8a7456; --border: #eadcc2; --bg: #fffdf8; --accent: #9a6b12; }
+    body { font-family: system-ui, sans-serif; color: var(--ink); background: #f5f0e8; margin: 0; line-height: 1.5; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 20px 48px; }
+    header { background: var(--ink); color: #fffdf8; padding: 28px 24px; border-radius: 16px; margin-bottom: 24px; }
+    section { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; }
+    h2 { color: var(--accent); font-size: 1.1rem; }
+    p, li { color: var(--muted); font-size: 0.92rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; }
+    .tag-p0 { background: #fee2e2; color: #b91c1c; font-size: 0.75rem; padding: 2px 8px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Audit complet — Documents & Rapports</h1>
+      <p>Rubrique sidebar · moduleId <code>documents_rapports</code> · refresh 10 juin 2026</p>
+      <p><strong>Score : 68 / 100</strong></p>
+    </header>
+    <section>
+      <h2>Synthèse</h2>
+      <p>Entrée unique <code>DocumentsRapportsModule.jsx</code> (~335 lignes). Bibliothèque, preuves, rapports, exports financeur, modèles. Pas de RecoveredModule wrapper.</p>
+    </section>
+    <section>
+      <h2>Onglets (7)</h2>
+      <table>
+        <tr><th>Onglet</th><th>Contenu</th></tr>
+        <tr><td>Résumé</td><td>8 KPI + IA + orphan sync</td></tr>
+        <tr><td>Bibliothèque</td><td>Liste documents (limite 24)</td></tr>
+        <tr><td>Preuves</td><td>Preuves manquantes Finance/ventes</td></tr>
+        <tr><td>Rapports</td><td>Rapports générés</td></tr>
+        <tr><td>Exports</td><td>Exports financeur</td></tr>
+        <tr><td>Modèles</td><td>Templates documents</td></tr>
+        <tr><td>Graphiques</td><td>ModuleGraphiquesTab</td></tr>
+      </table>
+    </section>
+    <section>
+      <h2>Mobile money & preuves</h2>
+      <p>Reçus Wave/Orange Money : pas de flux OCR dédié MM ; scanner générique (<code>DocumentScannerPanel</code>) non câblé. <span class="tag-p0">P0</span> Captures reçus MM → Preuves avec lien paiement <code>reference</code>.</p>
+    </section>
+    <section>
+      <h2>Composants non câblés</h2>
+      <p>DocumentsWorkflowBridge, LinkPanel, GapRepairPanel, DocumentScannerPanel, InvoiceOcrIntelligentPanel.</p>
+    </section>
+    <section>
+      <h2>Tests</h2>
+      <p>documentsWorkflow.test.js, documentScanner.test.js, financeurReport.test.js, moduleTabsStability 7×4.</p>
+    </section>
+    <section>
+      <h2>Priorités</h2>
+      <ul>
+        <li><span class="tag-p0">P0</span> Monter WorkflowBridge + Scanner/OCR sur Preuves</li>
+        <li>P1 : liaison document ↔ transaction guidée</li>
+        <li>P2 : drift Annexe config vs MODULE_TARGET_TABS</li>
+      </ul>
+    </section>
+    <footer>Horizon Farm ERP — 10 juin 2026</footer>
+  </div>
+</body>
+</html>

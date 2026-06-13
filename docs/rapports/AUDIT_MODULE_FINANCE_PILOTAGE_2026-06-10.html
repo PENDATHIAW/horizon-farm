@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Audit complet — Finance & Pilotage — Horizon Farm ERP</title>
+  <style>
+    :root { --ink: #2f2415; --muted: #8a7456; --border: #eadcc2; --bg: #fffdf8; --accent: #9a6b12; --good: #047857; --warn: #b45309; --bad: #b91c1c; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; color: var(--ink); background: #f5f0e8; margin: 0; line-height: 1.5; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 20px 48px; }
+    header { background: var(--ink); color: #fffdf8; padding: 28px 24px; border-radius: 16px; margin-bottom: 24px; }
+    header h1 { margin: 0 0 8px; font-size: 1.5rem; }
+    header p { margin: 0; opacity: 0.85; font-size: 0.95rem; }
+    .score { display: inline-block; margin-top: 12px; padding: 6px 14px; background: rgba(255,253,248,0.15); border-radius: 999px; font-weight: 700; }
+    section { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; }
+    h2 { font-size: 1.1rem; margin: 0 0 12px; color: var(--accent); }
+    p { margin: 0 0 10px; color: var(--muted); font-size: 0.95rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 8px; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: var(--bg); font-weight: 700; }
+    ul { margin: 8px 0 0; padding-left: 1.25rem; }
+    li { margin-bottom: 6px; font-size: 0.92rem; }
+    .tag { display: inline-block; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; margin-right: 4px; }
+    .tag-p0 { background: #fee2e2; color: var(--bad); }
+    .tag-p1 { background: #ffedd5; color: var(--warn); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Audit complet — Finance & Pilotage</h1>
+      <p>Rubrique sidebar FINANCE · moduleId <code>finance_pilotage</code> · refresh 10 juin 2026</p>
+      <span class="score">Score global : 74 / 100 (+2 Wave/OM encaissements)</span>
+    </header>
+
+    <section>
+      <h2>Synthèse</h2>
+      <p>Pivot financier ERP : trésorerie, créances, dettes, échéancier, financement, réconciliation, investissements, rentabilité. Entrée <code>FinancePilotageModule.jsx</code> → <code>FinancePilotageRecoveredModule.jsx</code>. Vérité calcul : <code>financeConsolidationEngine.js</code>, <code>financePilotageCore/V2/V3.js</code>.</p>
+      <p><strong>Nouveau (juin 2026)</strong> : encaissements Wave / Orange Money depuis Commercial alimentent Finance via <code>recordSalePayment</code> + <code>financeSyncService.js</code> ; comptes trésorerie <code>TRES-WAVE</code>, <code>TRES-OM</code> dans <code>accounting.js</code>. API <code>/api/mobile-money/*</code> pour liens de paiement et webhook.</p>
+    </section>
+
+    <section>
+      <h2>Onglets (11)</h2>
+      <table>
+        <thead><tr><th>Onglet</th><th>Score</th><th>Contenu</th></tr></thead>
+        <tbody>
+          <tr><td>Résumé</td><td>58</td><td>KPI consolidés, IA, multi-fermes, exports, cohérence</td></tr>
+          <tr><td>Trésorerie</td><td>72</td><td>FinancesV12/V11, FinanceCashPilotPanel, CRUD transactions</td></tr>
+          <tr><td>Créances</td><td>66</td><td>CreancesPanel → Commercial Clients</td></tr>
+          <tr><td>Dettes</td><td>67</td><td>DettesPanel → Achats Fournisseurs</td></tr>
+          <tr><td>Échéancier</td><td>68</td><td>Schedule, aging, cash-flow</td></tr>
+          <tr><td>Financement</td><td>66</td><td>Simulateur, capacité remboursement</td></tr>
+          <tr><td>Réconciliation</td><td>74</td><td>FinanceReconciliationPanel (canonique)</td></tr>
+          <tr><td>Investissements</td><td>75</td><td>InvestissementsV9, BP</td></tr>
+          <tr><td>Rentabilité</td><td>68</td><td>RentabilitePanel, ProfitabilityStatement</td></tr>
+          <tr><td>Annexe</td><td>60</td><td>FinanceAnnexePanel</td></tr>
+          <tr><td>Graphiques</td><td>66</td><td>ModuleGraphiquesTab, FinanceEvolution</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Mobile money (Wave / OM)</h2>
+      <ul>
+        <li>Mapping moyens : <code>financeSyncService.js</code> (wave, orange_money, om)</li>
+        <li>Pas encore de panneau « Trésorerie mobile » dédié dans ce module</li>
+        <li>Encaissements MM créés par Commercial → ligne Finance automatique</li>
+        <li>Objectifs BP : <code>ObjectifsBpSuiviTab.jsx</code> compare CA encaissé Wave/OM</li>
+        <li><span class="tag tag-p1">P1</span> Widget réconciliation encaissements MM vs relevés Wave/OM</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Interconnexions</h2>
+      <ul>
+        <li><strong>Entrées</strong> : Commercial (ventes, paiements MM), Achats, Élevage, Cultures, RH paie, Documents preuves</li>
+        <li><strong>Sorties</strong> : Commercial créances, Achats dettes fournisseurs, Documents, Objectifs, Dashboard</li>
+        <li>Flows INTERCONNECTIONS : vente, achat, mortalité, récolte_culture, transformation_culture</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Tests</h2>
+      <p>11 fichiers unitaires (financePilotage*, financeP0/P1), <code>moduleTabsStability</code> 11×4 modes, <code>mobileMoneyPayment.test.js</code> (sync indirecte).</p>
+    </section>
+
+    <section>
+      <h2>Priorités</h2>
+      <ul>
+        <li><span class="tag tag-p0">P0</span> Réduire scroll Trésorerie (sections repliables)</li>
+        <li><span class="tag tag-p1">P1</span> Panneau trésorerie mobile Wave/OM dans Résumé ou Trésorerie</li>
+        <li><span class="tag tag-p1">P1</span> Aliases nav : écheancier, financement, réconciliation</li>
+        <li><span class="tag tag-p2">P2</span> Décommission FinancesV2–V10 legacy</li>
+      </ul>
+    </section>
+
+    <footer>Horizon Farm ERP — Finance & Pilotage — 10 juin 2026</footer>
+  </div>
+</body>
+</html>

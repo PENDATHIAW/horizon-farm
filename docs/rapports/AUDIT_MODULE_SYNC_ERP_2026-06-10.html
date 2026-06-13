@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Audit — Activité & Sync ERP — Horizon Farm ERP</title>
+  <style>
+    :root { --ink: #2f2415; --muted: #8a7456; --border: #eadcc2; --bg: #fffdf8; --accent: #9a6b12; }
+    body { font-family: system-ui, sans-serif; color: var(--ink); background: #f5f0e8; margin: 0; line-height: 1.5; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 20px 48px; }
+    header { background: var(--ink); color: #fffdf8; padding: 28px 24px; border-radius: 16px; margin-bottom: 24px; }
+    section { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; }
+    h2 { color: var(--accent); }
+    p, li { color: var(--muted); font-size: 0.92rem; }
+    .tag-p0 { background: #fee2e2; color: #b91c1c; font-size: 0.75rem; padding: 2px 8px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Audit complet — Activité & Sync ERP</h1>
+      <p>Rubrique ADMINISTRATION · moduleId <code>sync_activity</code> · refresh 10 juin 2026</p>
+      <p><strong>Score : N/A (module QA / système)</strong></p>
+    </header>
+    <section>
+      <h2>Structure</h2>
+      <p>Pas d’onglets ModuleTabsBar — page unique <code>SyncActivityCenter.jsx</code> (~204 lignes) avec 3 sections scroll : (1) Audit interconnexions, (2) Sync connexion, (3) Journal activité. Aliases <code>sync</code>, <code>audit_logs</code>.</p>
+    </section>
+    <section>
+      <h2>Composants</h2>
+      <ul>
+        <li>InterconnectionAudit (inline)</li>
+        <li>Sync.jsx, AuditLogs.jsx</li>
+        <li>JustifiedExceptionModal.jsx</li>
+        <li>Utils : interconnectionAudit.js, syncGuidedRepairActions.js, syncAuditWorkflows.js</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Mobile money & interconnexions</h2>
+      <p>Flux vente→finance doit couvrir paiements Wave/OM via <code>recordSalePayment</code>. Audit interconnexions doit vérifier paiements <code>en_attente_mobile</code> vs Finance. <span class="tag-p0">P0</span> Étendre matrice audit pour statut MM pending.</p>
+    </section>
+    <section>
+      <h2>P0 connu</h2>
+      <p><code>syncActivityProps</code> dans App.jsx incomplet — handlers finance/document/stock manquants pour guided repair complet.</p>
+      <p>Hors MODULE_TAB_MATRIX et CRITICAL_MODULES regression.</p>
+    </section>
+    <section>
+      <h2>Tests</h2>
+      <p>syncGuidedRepairActions.test.js ; pas de render test module ; E2E partiel simulated-business-workflows.</p>
+    </section>
+    <section>
+      <h2>Priorités</h2>
+      <ul>
+        <li><span class="tag-p0">P0</span> Compléter props App.jsx pour réparations guidées</li>
+        <li>P1 : structurer 3 onglets (Vérifications | Sync | Journal)</li>
+        <li>P1 : ajouter à moduleTabsStability / CRITICAL_MODULES</li>
+      </ul>
+    </section>
+    <footer>Horizon Farm ERP — 10 juin 2026</footer>
+  </div>
+</body>
+</html>

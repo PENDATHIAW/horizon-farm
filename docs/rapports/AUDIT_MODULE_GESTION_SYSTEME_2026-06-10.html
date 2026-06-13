@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Audit — Gestion du système — Horizon Farm ERP</title>
+  <style>
+    :root { --ink: #2f2415; --muted: #8a7456; --border: #eadcc2; --bg: #fffdf8; --accent: #9a6b12; }
+    body { font-family: system-ui, sans-serif; color: var(--ink); background: #f5f0e8; margin: 0; line-height: 1.5; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 20px 48px; }
+    header { background: var(--ink); color: #fffdf8; padding: 28px 24px; border-radius: 16px; margin-bottom: 24px; }
+    section { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; }
+    h2 { color: var(--accent); }
+    p, li { color: var(--muted); font-size: 0.92rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; }
+    .tag-p0 { background: #fee2e2; color: #b91c1c; font-size: 0.75rem; padding: 2px 8px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Audit complet — Gestion du système</h1>
+      <p>Rubrique ADMINISTRATION · moduleId <code>gestion_systeme</code> · refresh 10 juin 2026</p>
+      <p><strong>Score : 76 / 100</strong></p>
+    </header>
+    <section>
+      <h2>Synthèse</h2>
+      <p><code>GestionSystemeV2.jsx</code> → <code>GestionSystemeUnified.jsx</code> (~184 lignes). Cockpit admin : fermes multi-tenant, vision audit modules, exceptions justifiées, reset données, accès.</p>
+    </section>
+    <section>
+      <h2>Onglets (8)</h2>
+      <table>
+        <tr><th>Onglet</th><th>Contenu</th></tr>
+        <tr><td>Vue admin</td><td>Dashboard admin + scores</td></tr>
+        <tr><td>Utilisateurs</td><td>Placeholder — CRUD non fonctionnel</td></tr>
+        <tr><td>Fermes</td><td>FarmsManagementPanel</td></tr>
+        <tr><td>Paramètres</td><td>Lecture seule ferme</td></tr>
+        <tr><td>Sécurité</td><td>SystemAccessAuditPanel</td></tr>
+        <tr><td>Sauvegardes</td><td>Boutons sans stratégie restore</td></tr>
+        <tr><td>Réinitialisation</td><td>ResetDataSection protégé RBAC</td></tr>
+        <tr><td>Audit</td><td>VisionModuleAudit + WorkflowQuality + Exceptions</td></tr>
+      </table>
+    </section>
+    <section>
+      <h2>Mobile money (config)</h2>
+      <p>Clés API Wave/OM doivent être configurées dans Vercel (pas dans UI admin aujourd’hui). <span class="tag-p0">P0</span> Section Paramètres : statut MM (sandbox / prod), webhook URL <code>/api/mobile-money/webhook</code>.</p>
+    </section>
+    <section>
+      <h2>Interconnexions</h2>
+      <ul>
+        <li>Vision audit tous modules ERP</li>
+        <li>Exceptions justifiées liées Sync ERP</li>
+        <li>Reset touche toutes collections sauf dashboard/sync</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Tests</h2>
+      <p>moduleStabilityRegression CRITICAL (Vue admin), moduleTabsStability 8×4. Pas de tests CRUD utilisateurs.</p>
+    </section>
+    <section>
+      <h2>Priorités</h2>
+      <ul>
+        <li><span class="tag-p0">P0</span> CRUD Utilisateurs fonctionnel</li>
+        <li>P1 : UI config mobile money + webhooks</li>
+        <li>P1 : Sauvegardes avec export/import réel</li>
+      </ul>
+    </section>
+    <footer>Horizon Farm ERP — 10 juin 2026</footer>
+  </div>
+</body>
+</html>

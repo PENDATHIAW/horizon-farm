@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Audit — Activité & Suivi — Horizon Farm ERP</title>
+  <style>
+    :root { --ink: #2f2415; --muted: #8a7456; --border: #eadcc2; --bg: #fffdf8; --accent: #9a6b12; }
+    body { font-family: system-ui, sans-serif; color: var(--ink); background: #f5f0e8; margin: 0; line-height: 1.5; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px 20px 48px; }
+    header { background: var(--ink); color: #fffdf8; padding: 28px 24px; border-radius: 16px; margin-bottom: 24px; }
+    section { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; margin-bottom: 16px; }
+    h2 { font-size: 1.1rem; margin: 0 0 12px; color: var(--accent); }
+    p, li { color: var(--muted); font-size: 0.92rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; }
+    th { background: var(--bg); }
+    .tag-p0 { background: #fee2e2; color: #b91c1c; font-size: 0.75rem; padding: 2px 8px; border-radius: 6px; }
+    .tag-p1 { background: #ffedd5; color: #b45309; font-size: 0.75rem; padding: 2px 8px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Audit complet — Activité & Suivi</h1>
+      <p>Rubrique SUIVI · moduleId <code>activite_suivi</code> · refresh 10 juin 2026</p>
+      <p><strong>Score : 76 / 100</strong></p>
+    </header>
+    <section>
+      <h2>Synthèse</h2>
+      <p>Hub opérationnel alertes, tâches, traçabilité. Entrée <code>ActiviteSuiviModule.jsx</code> → <code>ActiviteSuiviRecoveredModule.jsx</code> (~255 lignes). Routes legacy <code>alertes</code>, <code>taches</code>, <code>tracabilite</code> redirigent ici.</p>
+    </section>
+    <section>
+      <h2>Onglets (5)</h2>
+      <table>
+        <tr><th>Onglet</th><th>Composant</th></tr>
+        <tr><td>Résumé</td><td>Summary inline + KPI workflow</td></tr>
+        <tr><td>Alertes</td><td>AlertesCenterV3.jsx</td></tr>
+        <tr><td>Tâches</td><td>TachesV3.jsx</td></tr>
+        <tr><td>Traçabilité</td><td>TracabiliteV2.jsx</td></tr>
+        <tr><td>Graphiques</td><td>ModuleGraphiquesTab (tâches)</td></tr>
+      </table>
+    </section>
+    <section>
+      <h2>Composants dormants (P0)</h2>
+      <p><code>src/modules/activiteSuivi/</code> : InsightPanel, PriorityPanel, ModuleBreakdownPanel, WorkflowBridge, GapRepairPanel, ProblemFichePanel — non montés dans RecoveredModule.</p>
+    </section>
+    <section>
+      <h2>Interconnexions</h2>
+      <ul>
+        <li>Recevoir alertes/tâches de tous modules métier + Centre IA + Assistant</li>
+        <li>Paiements MM en attente pourraient créer tâche « Vérifier encaissement » (non automatisé)</li>
+        <li>Sync ERP audit interconnexions pointe vers alertes/tâches ici</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Tests</h2>
+      <p><code>activiteSuiviWorkflow.test.js</code> (7 scénarios), moduleTabsStability 5×4, moduleStabilityRegression CRITICAL.</p>
+    </section>
+    <section>
+      <h2>Priorités</h2>
+      <ul>
+        <li><span class="tag-p0">P0</span> Monter panneaux activiteSuivi/* sur Résumé</li>
+        <li><span class="tag-p1">P1</span> Badges compteurs sur onglets Alertes/Tâches</li>
+        <li><span class="tag-p1">P1</span> Résoudre drift config Annexe (absent de MODULE_TARGET_TABS)</li>
+      </ul>
+    </section>
+    <footer>Horizon Farm ERP — 10 juin 2026</footer>
+  </div>
+</body>
+</html>
