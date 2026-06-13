@@ -7,11 +7,16 @@ const low = (v) => String(v || '').toLowerCase();
 const isClosedGoal = (row = {}) => ['termine', 'terminé', 'closed', 'clos', 'done'].includes(low(row.status || row.statut || row.state));
 
 const TAB_ALIASES = {
-  Performance: 'Rentabilité Lot & Cycle',
-  Prévisions: 'Efficacité Technique',
-  Plans: 'Flux & Équilibres',
-  Financeurs: 'Flux & Équilibres',
-  Graphiques: 'Recommandations',
+  Performance: 'Suivi du Business Plan',
+  Prévisions: 'Efficacité Technique & Zootechnique',
+  Plans: 'Sécurisation des Flux',
+  Financeurs: 'Sécurisation des Flux',
+  Graphiques: 'Suivi du Business Plan',
+  Annexe: 'Suivi du Business Plan',
+  'Rentabilité Lot & Cycle': 'Suivi du Business Plan',
+  'Efficacité Technique': 'Efficacité Technique & Zootechnique',
+  'Flux & Équilibres': 'Sécurisation des Flux',
+  'Maraîchage & Diversification': 'Simulateur Sandbox',
   Opportunités: 'Croissance & opportunités',
   'Opportunités & cycles': 'Croissance & opportunités',
   'À traiter': 'Urgences & risques',
@@ -25,6 +30,10 @@ const TAB_ALIASES = {
 };
 
 const STRATEGIC_TABS = new Set([
+  'Suivi du Business Plan',
+  'Efficacité Technique & Zootechnique',
+  'Simulateur Sandbox',
+  'Sécurisation des Flux',
   'Rentabilité Lot & Cycle',
   'Efficacité Technique',
   'Flux & Équilibres',
@@ -107,10 +116,10 @@ export function buildVisionBadges(data = {}, moduleId = 'centre_ia') {
     if (cycleSignals > 0) tabs['Saisons & marchés'] = cycleSignals;
     if (openOpportunities.length > 0) tabs['Croissance & opportunités'] = openOpportunities.length;
   } else {
-    if (unreliableMargins > 0) tabs['Rentabilité Lot & Cycle'] = unreliableMargins;
-    if (predictionsCount > 0) tabs['Efficacité Technique'] = predictionsCount;
-    if (openPlans > 0) tabs['Flux & Équilibres'] = openPlans;
-    if (missingProof > 0) tabs['Maraîchage & Diversification'] = missingProof;
+    if (unreliableMargins > 0) tabs['Efficacité Technique & Zootechnique'] = unreliableMargins;
+    if (predictionsCount > 0) tabs['Efficacité Technique & Zootechnique'] = (tabs['Efficacité Technique & Zootechnique'] || 0) + predictionsCount;
+    if (openPlans > 0) tabs['Sécurisation des Flux'] = openPlans;
+    if (missingProof > 0) tabs['Simulateur Sandbox'] = missingProof;
   }
 
   return { tabs, treatCount, risksCount, openOpportunities: openOpportunities.length };

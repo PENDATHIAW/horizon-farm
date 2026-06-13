@@ -13,7 +13,7 @@ export const HORIZON_MISSION = [
 export const MODULE_TARGET_TABS = {
   dashboard: ['Résumé', 'Graphiques'],
   assistant_erp: ['Hey Horizon'],
-  objectifs_croissance: ['Rentabilité Lot & Cycle', 'Efficacité Technique', 'Flux & Équilibres', 'Maraîchage & Diversification', 'Annexe', 'Graphiques'],
+  objectifs_croissance: ['Suivi du Business Plan', 'Efficacité Technique & Zootechnique', 'Simulateur Sandbox', 'Sécurisation des Flux'],
   centre_ia: ['Urgences & risques', 'Croissance & opportunités', 'Saisons & marchés'],
   elevage: ['Résumé', 'Cycles', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Annexe', 'Graphiques'],
   commercial: ['Résumé', 'Ventes', 'Clients', 'Livraisons', 'Abonnements', 'Relances', 'Opportunités', 'Pilotage', 'Annexe', 'Graphiques'],

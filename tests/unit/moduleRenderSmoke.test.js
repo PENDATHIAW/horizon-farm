@@ -42,7 +42,7 @@ const baseProps = {
 for (const [name, Component, extra = {}] of [
   ['DashboardV2', DashboardV2, {}],
   ['CentreIA', CentreIA, { initialTab: 'À traiter' }],
-  ['ObjectifsCroissanceV2', ObjectifsCroissanceV2, { initialTab: 'Rentabilité Lot & Cycle' }],
+  ['ObjectifsCroissanceV2', ObjectifsCroissanceV2, { initialTab: 'Suivi du Business Plan' }],
 ]) {
   test(`render smoke (SSR): ${name}`, () => {
     const html = renderToString(React.createElement(Component, { ...baseProps, ...extra }));

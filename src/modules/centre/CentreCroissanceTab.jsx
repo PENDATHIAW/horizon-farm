@@ -60,7 +60,7 @@ export default function CentreCroissanceTab({
             </span>
           ))}
           {onNavigate ? (
-            <button type="button" onClick={() => onNavigate('objectifs_croissance', { tab: 'Rentabilité Lot & Cycle' })} className="text-xs font-black text-[#9a6b12] underline">
+            <button type="button" onClick={() => onNavigate('objectifs_croissance', { tab: 'Suivi du Business Plan' })} className="text-xs font-black text-[#9a6b12] underline">
               Objectifs →
             </button>
           ) : null}

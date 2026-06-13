@@ -4,8 +4,6 @@ import { MODULE_TARGET_TABS } from '../../src/config/horizonVision.config.js';
 
 const MODULES_WITH_ANNEXE = [
   'dashboard',
-  'objectifs_croissance',
-  'centre_ia',
   'elevage',
   'commercial',
   'achats_stock',

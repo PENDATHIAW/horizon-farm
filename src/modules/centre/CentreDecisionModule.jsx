@@ -256,7 +256,7 @@ export default function CentreDecisionModule({
               <span className="text-[#8a7456]">ITH </span>
               <b>{strategicPlan.ith ?? '—'}</b>
             </span>
-            <button type="button" onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Rentabilité Lot & Cycle' })} className="rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-xs font-black text-[#9a6b12] hover:bg-[#dcfce7]">
+            <button type="button" onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Suivi du Business Plan' })} className="rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-xs font-black text-[#9a6b12] hover:bg-[#dcfce7]">
               Objectifs →
             </button>
             <Btn

@@ -3,23 +3,15 @@ import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import { MODULE_TARGET_TABS } from '../../config/horizonVision.config.js';
 import { buildLotAnalyticsPlan } from '../../services/objectifsDecision/lotAnalyticsEngine.js';
-import RentabiliteLotCycleTab from './RentabiliteLotCycleTab.jsx';
-import EfficaciteTechniqueTab from './EfficaciteTechniqueTab.jsx';
-import FluxEquilibresTab from './FluxEquilibresTab.jsx';
-import MaraichageDiversificationTab from './MaraichageDiversificationTab.jsx';
-import CrossAnalyticsSections from './CrossAnalyticsSections.jsx';
 import Btn from '../../components/Btn.jsx';
 import { mergePilotageIntoDataMap } from '../../services/pilotageSettingsService.js';
 import { exportObjectifsAnalyticsExcel, exportObjectifsAnalyticsCsv } from '../../services/objectifsDecision/objectifsAnalyticsExport.js';
 import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine.js';
-import ObjectifsActivitesPanel from './ObjectifsActivitesPanel.jsx';
-import ObjectiveDecisionSummary from '../ObjectiveDecisionSummary.jsx';
-import ObjectiveSupplyPanel from './ObjectiveSupplyPanel.jsx';
-import PilotageContextStrip from '../centre/PilotageContextStrip.jsx';
-import ObjectifsGraphiquesTab from './ObjectifsGraphiquesTab.jsx';
-import DecisionAnnexeTab from '../centre/DecisionAnnexeTab.jsx';
+import ObjectifsBpSuiviTab from './ObjectifsBpSuiviTab.jsx';
+import ObjectifsTechniqueTab from './ObjectifsTechniqueTab.jsx';
+import ObjectifsSandboxTab from './ObjectifsSandboxTab.jsx';
+import ObjectifsFluxTab from './ObjectifsFluxTab.jsx';
 import { buildObjectifsDecisionPlan } from '../../services/objectifsDecision/objectifsDecisionEngine.js';
-
 
 const EMPTY_ANALYTICS = {
   rentability: { lots: [], suppliers: [] },
@@ -32,19 +24,23 @@ const EMPTY_ANALYTICS = {
 const TAB_IDS = MODULE_TARGET_TABS.objectifs_croissance;
 
 const TAB_ALIASES = {
-  Performance: 'Rentabilité Lot & Cycle',
-  Prévisions: 'Efficacité Technique',
-  Plans: 'Flux & Équilibres',
-  Financeurs: 'Flux & Équilibres',
-  'Objectifs & Écarts': 'Rentabilité Lot & Cycle',
-  'Croissance économique & Capacités': 'Efficacité Technique',
-  'Tableau de bord graphique': 'Graphiques',
-  Graphiques: 'Graphiques',
-  Annexe: 'Annexe',
-  'Rentabilité Lot & Cycle': 'Rentabilité Lot & Cycle',
-  'Efficacité Technique': 'Efficacité Technique',
-  'Flux & Équilibres': 'Flux & Équilibres',
-  'Maraîchage & Diversification': 'Maraîchage & Diversification',
+  Performance: 'Suivi du Business Plan',
+  Prévisions: 'Efficacité Technique & Zootechnique',
+  Plans: 'Sécurisation des Flux',
+  Financeurs: 'Sécurisation des Flux',
+  'Objectifs & Écarts': 'Suivi du Business Plan',
+  'Croissance économique & Capacités': 'Efficacité Technique & Zootechnique',
+  'Tableau de bord graphique': 'Suivi du Business Plan',
+  Graphiques: 'Suivi du Business Plan',
+  Annexe: 'Suivi du Business Plan',
+  'Rentabilité Lot & Cycle': 'Suivi du Business Plan',
+  'Efficacité Technique': 'Efficacité Technique & Zootechnique',
+  'Flux & Équilibres': 'Sécurisation des Flux',
+  'Maraîchage & Diversification': 'Simulateur Sandbox',
+  'Suivi du Business Plan': 'Suivi du Business Plan',
+  'Efficacité Technique & Zootechnique': 'Efficacité Technique & Zootechnique',
+  'Simulateur Sandbox': 'Simulateur Sandbox',
+  'Sécurisation des Flux': 'Sécurisation des Flux',
 };
 
 function resolveTab(initial) {
@@ -55,12 +51,21 @@ function resolveTab(initial) {
   return TAB_IDS[0];
 }
 
+function csvKeyForTab(tab) {
+  if (tab === 'Efficacité Technique & Zootechnique') return 'technique';
+  if (tab === 'Sécurisation des Flux') return 'flux';
+  if (tab === 'Simulateur Sandbox') return 'maraichage';
+  return 'rentabilite';
+}
+
 export default function ObjectifsDecisionModule({
   dataMap = {},
   onNavigate,
   initialTab,
   periodLabel = '',
   meteo,
+  onCreateCulture,
+  onRefreshCultures,
   ...props
 }) {
   const [tab, setTab] = useState(() => resolveTab(initialTab));
@@ -83,6 +88,7 @@ export default function ObjectifsDecisionModule({
     stocks: props.stocks || dataMap.stocks,
     sales_orders: props.salesOrdersAll || props.salesOrders || dataMap.sales_orders,
     finances: props.transactionsAll || props.transactions || dataMap.finances,
+    payments: props.paymentsAll || props.payments || dataMap.payments,
     meteo: meteo || dataMap.meteo,
     growth_settings: dataMap.growth_settings || {},
   }), [dataMap, props, meteo]);
@@ -95,6 +101,7 @@ export default function ObjectifsDecisionModule({
       return EMPTY_ANALYTICS;
     }
   }, [enrichedDataMap, meteo]);
+
   const growthPlan = useMemo(() => {
     try {
       return buildDecisionCenterPlan(enrichedDataMap);
@@ -103,6 +110,7 @@ export default function ObjectifsDecisionModule({
       return { goals: { activities: [] }, recommendations: [] };
     }
   }, [enrichedDataMap]);
+
   const objectifsChartPlan = useMemo(() => {
     try {
       return buildObjectifsDecisionPlan(enrichedDataMap, { currentTemp: meteo?.temperature ?? meteo?.temp });
@@ -113,58 +121,63 @@ export default function ObjectifsDecisionModule({
   }, [enrichedDataMap, meteo]);
 
   const tabBadges = useMemo(() => ({
-    'Efficacité Technique': (analytics.technical?.thermalAlerts?.length || 0)
+    'Efficacité Technique & Zootechnique': (analytics.technical?.thermalAlerts?.length || 0)
       + (analytics.technical?.rows?.filter((r) => r.ponteAlert || r.icAlert || r.gmqAlert).length || 0),
-    'Flux & Équilibres': (analytics.flux?.sanitaryAlerts?.length || 0) + (analytics.flux?.feedAlert ? 1 : 0),
+    'Sécurisation des Flux': (analytics.flux?.sanitaryAlerts?.length || 0) + (analytics.flux?.feedAlert ? 1 : 0),
   }), [analytics]);
 
-  const content = tab === 'Rentabilité Lot & Cycle'
-    ? <RentabiliteLotCycleTab analytics={analytics} onNavigate={onNavigate} />
-    : tab === 'Efficacité Technique'
-      ? <EfficaciteTechniqueTab analytics={analytics} onNavigate={onNavigate} />
-      : tab === 'Flux & Équilibres'
-        ? <FluxEquilibresTab analytics={analytics} onNavigate={onNavigate} />
-        : tab === 'Graphiques'
-          ? <ObjectifsGraphiquesTab plan={objectifsChartPlan} />
-          : tab === 'Annexe'
-            ? <DecisionAnnexeTab moduleLabel="Objectifs & Croissance" moduleId="objectifs_croissance" dataMap={enrichedDataMap} onNavigate={onNavigate} />
-            : <MaraichageDiversificationTab analytics={analytics} />;
+  const content = tab === 'Suivi du Business Plan'
+    ? (
+      <ObjectifsBpSuiviTab
+        plan={growthPlan}
+        dataMap={enrichedDataMap}
+        chartPlan={objectifsChartPlan}
+        onNavigate={onNavigate}
+      />
+    )
+    : tab === 'Efficacité Technique & Zootechnique'
+      ? <ObjectifsTechniqueTab analytics={analytics} onNavigate={onNavigate} />
+      : tab === 'Simulateur Sandbox'
+        ? (
+          <ObjectifsSandboxTab
+            analytics={analytics}
+            onNavigate={onNavigate}
+            onCreateCulture={onCreateCulture}
+            onRefreshCultures={onRefreshCultures}
+          />
+        )
+        : <ObjectifsFluxTab dataMap={enrichedDataMap} analytics={analytics} onNavigate={onNavigate} />;
 
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-6 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Pilotage analytique</p>
+            <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Stratégie long terme</p>
             <h1 className="mt-1 text-3xl font-black text-[#2f2415]">Objectifs & Croissance</h1>
             <p className="mt-2 text-sm text-[#8a7456] max-w-3xl">
-              Tableaux de croisement production × comptabilité × stock — exportables vers Excel. Les graphiques restent sous votre contrôle (TCD / exports ERP).
+              Business Plan, efficacité zootechnique, économie circulaire et sécurisation des flux — 4 vues analytiques sans doublon avec le Centre décisionnel.
             </p>
             {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
           </div>
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap gap-2">
-            <Btn variant="outline" onClick={() => exportObjectifsAnalyticsExcel(analytics)}>Exporter Excel</Btn>
-            <Btn variant="outline" onClick={() => exportObjectifsAnalyticsCsv(analytics, tab === 'Rentabilité Lot & Cycle' ? 'rentabilite' : tab === 'Efficacité Technique' ? 'technique' : tab === 'Flux & Équilibres' ? 'flux' : 'maraichage')}>Exporter CSV (onglet)</Btn>
-          </div>
-            <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'À traiter' })} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-left text-sm hover:bg-[#dcfce7]">
-              <span className="text-[#8a7456]">Actions & recommandations → </span><b>Centre décisionnel</b>
+              <Btn variant="outline" onClick={() => exportObjectifsAnalyticsExcel(analytics)}>Exporter Excel</Btn>
+              <Btn variant="outline" onClick={() => exportObjectifsAnalyticsCsv(analytics, csvKeyForTab(tab))}>Exporter CSV (onglet)</Btn>
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigate?.('centre_ia', { tab: 'Croissance & opportunités' })}
+              className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-left text-sm hover:bg-[#dcfce7]"
+            >
+              <span className="text-[#8a7456]">Actions du jour → </span><b>Centre décisionnel</b>
             </button>
           </div>
         </div>
       </section>
 
-      <PilotageContextStrip dataMap={enrichedDataMap} onNavigate={onNavigate} />
-
-      <div className="space-y-5">
-        <ObjectifsActivitesPanel plan={growthPlan} onNavigate={onNavigate} />
-        <ObjectiveDecisionSummary plan={growthPlan} onNavigate={onNavigate} />
-        <ObjectiveSupplyPanel dataMap={enrichedDataMap} onNavigate={onNavigate} />
-      </div>
-
       <ModuleTabsBar moduleId="objectifs_croissance" active={tab} onChange={(next) => setTab(resolveTab(next))} tabBadges={tabBadges} />
       {content}
-      <CrossAnalyticsSections cross={analytics.cross} />
     </div>
   );
 }

@@ -16,7 +16,7 @@ const rules = [
   { pattern: /trésorerie|finances?|encaissement|factures?|bfr|couverture trésorerie/i, module: 'finance_pilotage', tab: 'Trésorerie', label: 'Finances → Trésorerie' },
   { pattern: /créances?|encaiss/i, module: 'finance_pilotage', tab: 'Créances', label: 'Finances → Créances' },
   { pattern: /rentabilité finance|investissement/i, module: 'finance_pilotage', tab: 'Rentabilité', label: 'Finances → Rentabilité' },
-  { pattern: /objectifs|business plan|plan officiel/i, module: 'objectifs_croissance', tab: 'Rentabilité Lot & Cycle', label: 'Objectifs & Croissance' },
+  { pattern: /objectifs|business plan|plan officiel/i, module: 'objectifs_croissance', tab: 'Suivi du Business Plan', label: 'Objectifs & Croissance' },
   { pattern: /centre.*cycles|calendrier.*centre|fêtes du mois/i, module: 'centre_ia', tab: 'Cycles', label: 'Centre → Cycles' },
   { pattern: /paramètres pilotage|pilotage|réglages/i, module: 'centre_ia', tab: 'Annexe', label: 'Centre → Paramètres (bandeau pilotage)' },
   { pattern: /prix marché|catalogue prix/i, module: 'commercial', tab: 'Ventes', label: 'Commercial → Prix / ventes' },

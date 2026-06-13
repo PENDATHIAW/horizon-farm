@@ -4,21 +4,20 @@ import { MODULE_TARGET_TABS } from '../../src/config/horizonVision.config.js';
 import { ACTIVITE_SUIVI_TABS, resolveActiviteSuiviTab } from '../../src/utils/commercialNavigation.js';
 
 describe('Module access fixes — config onglets', () => {
-  it('centre_ia inclut Recommandations, Historique et Annexe', () => {
+  it('centre_ia exposes 3 target tabs', () => {
     const tabs = MODULE_TARGET_TABS.centre_ia;
-    assert.ok(tabs.includes('Recommandations'));
-    assert.ok(tabs.includes('Historique'));
-    assert.ok(tabs.includes('Annexe'));
-    assert.ok(tabs.indexOf('Annexe') < tabs.indexOf('Graphiques'));
+    assert.ok(tabs.includes('Urgences & risques'));
+    assert.ok(tabs.includes('Croissance & opportunités'));
+    assert.ok(tabs.includes('Saisons & marchés'));
   });
 
-  it('objectifs_croissance aligné sur les vrais onglets analytiques', () => {
+  it('objectifs_croissance aligné sur 4 onglets stratégiques', () => {
     const tabs = MODULE_TARGET_TABS.objectifs_croissance;
-    assert.ok(tabs.includes('Rentabilité Lot & Cycle'));
-    assert.ok(tabs.includes('Efficacité Technique'));
-    assert.ok(tabs.includes('Flux & Équilibres'));
-    assert.ok(tabs.includes('Maraîchage & Diversification'));
-    assert.ok(tabs.includes('Annexe'));
+    assert.ok(tabs.includes('Suivi du Business Plan'));
+    assert.ok(tabs.includes('Efficacité Technique & Zootechnique'));
+    assert.ok(tabs.includes('Simulateur Sandbox'));
+    assert.ok(tabs.includes('Sécurisation des Flux'));
+    assert.equal(tabs.length, 4);
   });
 
   it('ACTIVITE_SUIVI_TABS défini et résolu', () => {
