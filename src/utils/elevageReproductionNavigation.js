@@ -62,7 +62,7 @@ export function openElevageReproductionForm({
     porteeSize: context.portee_size || context.porteeSize,
   });
   setReproductionDraft?.(draft);
-  setTab?.('Reproduction');
+  setTab?.('Cycles & Reproduction');
   if (typeof onAfterOpen === 'function') {
     window.setTimeout(() => onAfterOpen(draft), 320);
   }

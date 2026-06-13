@@ -1,32 +1,24 @@
-import { BrainCircuit, HeartPulse, Zap } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import ElevageAnnexeVault from './elevage/ElevageAnnexeVault.jsx';
-import ElevageSummaryCockpit from './elevage/ElevageSummaryCockpit.jsx';
-import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
-import { emitHorizonForm } from '../services/formModalManager';
-import { applyOneClickRecommendation } from '../services/heyHorizonRecommendationActions.js';
 import { fmtCurrency, fmtNumber } from '../utils/format';
-import { MARGIN_GROSS_DEFINITION, PRODUCTION_FINANCE_LABELS } from '../utils/productionFinancialTruth.js';
-import { commitElevageEggProduction } from '../utils/elevageWorkflow.js';
 import { aggregateSummaryLayingRate, formatOfficialLayingRate } from '../utils/elevageLayingRate.js';
 import { rowsOf } from '../utils/moduleRows';
-import ElevageCyclesPanel from './elevage/ElevageCyclesPanel.jsx';
 import { shouldHandleProductionQuestionEvent } from '../utils/elevageCyclesNavigation.js';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import HeyHorizonQuickAsk from '../components/HeyHorizonQuickAsk.jsx';
-import { resolveElevageTab, navigateForIaFinding } from '../utils/commercialNavigation';
-import { buildElevageHealthSnapshot, computeLotMargin, computeAnimalMargin, formatMargin } from './elevage/elevageVisionHelpers.js';
+import {
+  resolveElevageTab,
+  resolveElevageLotsSubview,
+} from '../utils/commercialNavigation';
+import { buildElevageHealthSnapshot } from './elevage/elevageVisionHelpers.js';
 import { buildElevageStartupProgress, isElevageStartupMode } from './elevage/elevageStartupHelpers.js';
 import ElevageWorkflowPanels, { buildElevageHandlers, useElevageWorkflowContext } from './elevage/ElevageWorkflowPanels.jsx';
 import ElevageMobileToolbar from './elevage/ElevageMobileToolbar.jsx';
-import ProductionHub from './elevage/ProductionHub.jsx';
 import { buildProductionHubSnapshot } from '../utils/productionHubMetrics.js';
 import { buildElevageActivityPnl, isBovinAnimal, isChairLot, isPondeuseLot } from '../utils/elevageActivityPnl.js';
 import { buildElevageCostAwareInsights } from '../utils/elevageIaInsights.js';
-import { buildElevageInvestorReport, exportElevageInvestorPdf } from '../utils/elevageExport.js';
 import { buildElevageTransformationRows } from '../utils/elevageTransformationJournal.js';
 import ElevageTransformationJournal from '../components/ElevageTransformationJournal.jsx';
 import TransformationOfficialForm from './elevage/TransformationOfficialForm.jsx';
@@ -36,8 +28,6 @@ import {
 } from '../utils/elevageTransformationNavigation.js';
 import AnimalSlaughterStockBridge from './AnimalSlaughterStockBridge.jsx';
 import AvicoleTransformationBridge from './AvicoleTransformationBridge.jsx';
-import AnimauxV2 from './AnimauxV2';
-import AvicoleV10 from './AvicoleV10';
 import SanteV8 from './SanteV8';
 import SanitaryWithdrawalBanner from './elevage/SanitaryWithdrawalBanner.jsx';
 import {
@@ -52,10 +42,13 @@ import {
 import {
   openElevageReproductionForm,
   scrollToReproductionWorkflowForm,
+  buildReproductionWorkflowDraft,
 } from '../utils/elevageReproductionNavigation.js';
 import { buildReproductionKpis } from '../utils/reproductionMetrics.js';
 import { evaluateElevageHealthBlocks, buildSanitaryAlertsPanel } from '../utils/elevageHealthBlocks.js';
 import { buildTransformationCostBreakdown } from '../utils/elevageTransformationCost.js';
+import ElevageLotsBandesTab from './elevage/ElevageLotsBandesTab.jsx';
+import ElevageCyclesReproductionTab from './elevage/ElevageCyclesReproductionTab.jsx';
 
 const lower = (value) => String(value || '').toLowerCase();
 const isClosedAnimal = (row = {}) => ['vendu', 'mort', 'vole', 'volé', 'perdu', 'abattu', 'cloture', 'clôture', 'sorti'].some((word) => lower(row.status || row.statut).includes(word));
@@ -82,121 +75,7 @@ function Tabs({ active, onChange, activeFarm }) {
   );
 }
 function ActionCard({ title, text, onClick }) { return <button type="button" onClick={onClick} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left transition hover:bg-[#dcfce7]"><b className="text-[#2f2415]">{title}</b><p className="mt-1 text-sm text-[#8a7456]">{text}</p></button>; }
-function LogRow({ title, detail, value }) {
-  return <div className="grid grid-cols-1 gap-1 border-b border-[#eadcc2]/70 py-3 last:border-b-0 md:grid-cols-[1fr_auto] md:items-center"><div><b className="text-sm text-[#2f2415]">{title}</b><p className="text-xs text-[#8a7456]">{detail}</p></div><span className="text-xs font-black text-[#8a7456]">{value}</span></div>;
-}
-function ElevageIaPanel({ findings = [], predictions = [], onApply, busyId, onNavigate }) {
-  if (!findings.length && !predictions.length) return null;
-  return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
-      <h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><BrainCircuit size={20} /> Surveillance IA élevage</h2>
-      <p className="mt-1 text-sm text-[#8a7456]">Cohérence mortalité/effectif, ponte/stock, rentabilité lots — détecté automatiquement.</p>
-      <div className="mt-4 space-y-2">
-        {findings.slice(0, 6).map((f) => (
-          <div key={f.id} className="flex flex-col gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 sm:flex-row sm:items-center sm:justify-between">
-            <div><b className="text-sm text-[#2f2415]">{f.title}</b><p className="text-xs text-amber-800">{f.recommended_action || f.description}</p></div>
-            <div className="flex gap-2">
-              <button type="button" onClick={() => navigateForIaFinding(f, onNavigate)} className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-xs font-black">Voir</button>
-              <button type="button" disabled={busyId === f.id} onClick={() => onApply?.(f)} className="rounded-lg bg-[#22c55e] px-2 py-1 text-xs font-black text-[#052e16] disabled:opacity-50">{busyId === f.id ? '…' : 'Appliquer'}</button>
-            </div>
-          </div>
-        ))}
-        {predictions.slice(0, 3).map((p) => (
-          <div key={p.id} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm">
-            <b className="text-[#2f2415]">{p.title}</b>
-            <p className="text-xs text-[#8a7456]">{p.description}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-function RentabilitySection({ lotMargins = [], onNavigate }) {
-  if (!lotMargins.length) return null;
-  return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
-      <div className="mb-4 flex items-center justify-between"><h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Zap size={20} /> {PRODUCTION_FINANCE_LABELS.marginGross} — lots</h2><button type="button" onClick={() => onNavigate?.('objectifs_croissance')} className="rounded-xl border border-[#d6c3a0] px-3 py-1.5 text-xs font-black">Vision</button></div>
-      <p className="mb-3 text-xs text-[#8a7456]">{MARGIN_GROSS_DEFINITION}. {PRODUCTION_FINANCE_LABELS.marginNote}. Affichée uniquement si coûts complets (alimentation, santé, revenus fiche).</p>
-      {lotMargins.slice(0, 8).map((row) => (
-        <LogRow key={row.id} title={row.name} detail={row.reliable ? `Coûts + revenus OK` : `Manque : ${row.missing.join(', ')}`} value={formatMargin(row)} />
-      ))}
-    </section>
-  );
-}
 function BusinessHub({ title, intro, stats, children, extra }) { return <div className="space-y-5"><div className="grid grid-cols-2 gap-3 xl:grid-cols-4">{stats.map((s) => <Stat key={s.label} {...s} />)}</div>{extra}<section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><h2 className="text-lg font-black text-[#2f2415]">{title}</h2><p className="mt-2 text-sm leading-relaxed text-[#8a7456]">{intro}</p><div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">{children}</div></section></div>; }
-function FeedingHub({ data, setTab, onNavigate, onOpenWorkflow }) {
-  const recent = data.feedLogs.slice(0, 8);
-  return (
-    <BusinessHub
-      title="Alimentation"
-      intro="Distributions et consommations — workflow officiel vers stock_movements."
-      stats={[
-        { label: 'Sorties aliment', value: fmtNumber(data.feedLogs.length) },
-        { label: 'Coût cumulé', value: `${Math.round(data.feedCost).toLocaleString('fr-FR')} F`, tone: 'warn' },
-        { label: 'Stock aliment', value: fmtNumber(data.feedStocks.length), tone: data.feedStocks.length ? 'good' : 'warn' },
-        { label: 'Alertes santé liées', value: fmtNumber(data.healthPredictions.length), tone: data.healthPredictions.length ? 'warn' : 'good' },
-      ]}
-      extra={recent.length ? (
-        <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
-          <h3 className="font-black text-[#2f2415]">Dernières distributions</h3>
-          {recent.map((row) => (
-            <LogRow key={row.id || row.date} title={String(row.date || row.created_at || '—').slice(0, 10)} detail={row.produit || row.lot_nom || row.animal_id || 'Aliment'} value={`${fmtNumber(row.quantite || row.quantity || 0)} u.`} />
-          ))}
-        </section>
-      ) : null}
-    >
-      <ActionCard title="+ Distribution aliment" text="Workflow officiel — stock, finance, alertes." onClick={() => onOpenWorkflow?.('feeding')} />
-      <ActionCard title="Acheter aliment" text="Réapprovisionnement Achats & Stock." onClick={() => onNavigate?.('achats_stock')} />
-      <ActionCard title="Avicole" text="Historique consommation lots." onClick={() => setTab('Avicole')} />
-    </BusinessHub>
-  );
-}
-function ReproductionHub({ data, setTab, onOpenReproductionWorkflow }) {
-  return (
-    <div className="space-y-5">
-      <BusinessHub
-        title="Reproduction"
-        intro="Saillies, gestations, mises bas et naissances — workflows officiels avec validation humaine."
-        stats={[
-          { label: 'Femelles', value: fmtNumber(data.females) },
-          { label: 'Naissances (événements)', value: fmtNumber(data.birthLikeEvents), tone: 'good' },
-          { label: 'Femelles gestantes', value: fmtNumber(data.gestantesCount), tone: data.gestantesCount ? 'warn' : 'good' },
-          { label: 'Événements élevage', value: fmtNumber(data.livestockEvents.length) },
-        ]}
-      >
-        <ActionCard title="+ Saillie" text="Workflow reproduction officiel." onClick={() => onOpenReproductionWorkflow?.('saillie')} />
-        <ActionCard title="+ Gestation" text="Déclaration gestation — validation requise." onClick={() => onOpenReproductionWorkflow?.('gestation')} />
-        <ActionCard title="+ Mise bas / naissance" text="Portée et naissance — validation requise." onClick={() => onOpenReproductionWorkflow?.('mise_bas')} />
-        <ActionCard title="Femelles reproductrices" text="Statut reproduction sur les fiches Animaux." onClick={() => setTab('Animaux')} />
-      </BusinessHub>
-      {data.gestantesList?.length ? (
-        <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
-          <h3 className="font-black text-[#2f2415]">Gestations en cours</h3>
-          <ul className="mt-3 space-y-2 text-sm">
-            {data.gestantesList.map((a) => (
-              <li key={a.id} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-                <b>{a.name || a.nom || a.id}</b>
-                {a.statut_reproduction || a.reproduction_status ? ` · ${a.statut_reproduction || a.reproduction_status}` : ''}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-      {data.recentBirthEvents?.length ? (
-        <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
-          <h3 className="font-black text-[#2f2415]">Naissances récentes</h3>
-          <ul className="mt-3 space-y-1 text-sm">
-            {data.recentBirthEvents.map((row) => (
-              <LogRow key={row.id} title={String(row.event_date || row.date || '—').slice(0, 10)} detail={row.title || row.event_type || 'Naissance'} value="" />
-            ))}
-          </ul>
-        </section>
-      ) : (
-        <p className="text-sm text-[#8a7456] rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2">Aucune naissance récente — utilisez « Mise bas / naissance ».</p>
-      )}
-    </div>
-  );
-}
 function TransformationHub({ data, setTab, onNavigate, onOpenWorkflow, onPrepareTransformation, transformationFormProps, animalBridgeProps, avicoleBridgeProps, healthBlocks }) {
   const salesCount = data.transformationSalesCount ?? data.transformationRows?.filter((r) => r.kind === 'vente').length ?? 0;
   const sampleAnimal = data.animals?.find((a) => !isClosedAnimal(a));
@@ -242,7 +121,7 @@ function TransformationHub({ data, setTab, onNavigate, onOpenWorkflow, onPrepare
         <ActionCard title="+ Sortie / abattage animal" text="Journal d’abattage animal → stock viande (section ci-dessous)." onClick={scrollToAbattage} />
         <ActionCard title="+ Clôturer lot" text="Réforme, prêt vente ou abattage lot." onClick={() => onOpenWorkflow?.('transform')} />
         <ActionCard title="Préparer vente" text="Ouvre Commercial pré-rempli — jamais vente auto." onClick={prepareSale} />
-        <ActionCard title="Lots à vendre" text={`${data.lotsToSell.length} lot(s) matures.`} onClick={() => setTab('Avicole')} />
+        <ActionCard title="Lots à vendre" text={`${data.lotsToSell.length} lot(s) matures.`} onClick={() => setTab('Lots & bandes')} />
       </BusinessHub>
       {transformationFormProps ? <TransformationOfficialForm {...transformationFormProps} /> : null}
       <ElevageTransformationJournal rows={data.transformationRows || []} onOpenCommercial={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
@@ -256,18 +135,26 @@ function TransformationHub({ data, setTab, onNavigate, onOpenWorkflow, onPrepare
   );
 }
 export default function ElevageRecoveredModule(props) {
-  const [tab, setTab] = useState(() => resolveElevageTab(props.initialTab));
-  const [busyId, setBusyId] = useState(null);
+  const [tab, setTabState] = useState(() => resolveElevageTab(props.initialTab));
+  const [lotsSubview, setLotsSubview] = useState(() => resolveElevageLotsSubview(props.initialTab) || 'avicole');
   const [activeModal, setActiveModal] = useState(null);
   const [healthDraft, setHealthDraft] = useState(null);
   const [transformationDraft, setTransformationDraft] = useState(null);
   const [reproductionHorizonDraft, setReproductionHorizonDraft] = useState(null);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [profitabilityOpen, setProfitabilityOpen] = useState(false);
   const [cyclesProductionQuestion, setCyclesProductionQuestion] = useState(null);
 
+  const setTab = useCallback((next) => {
+    const sub = resolveElevageLotsSubview(next);
+    if (sub) setLotsSubview(sub);
+    setTabState(resolveElevageTab(next));
+  }, []);
+
   useEffect(() => {
-    if (props.initialTab) setTab(resolveElevageTab(props.initialTab));
+    if (props.initialTab) {
+      const sub = resolveElevageLotsSubview(props.initialTab);
+      if (sub) setLotsSubview(sub);
+      setTabState(resolveElevageTab(props.initialTab));
+    }
   }, [props.initialTab]);
 
   useEffect(() => {
@@ -275,13 +162,13 @@ export default function ElevageRecoveredModule(props) {
       const detail = event.detail || {};
       if (!shouldHandleProductionQuestionEvent(detail)) return;
       if (detail.moduleId === 'elevage' || !detail.moduleId) {
-        setTab('Cycles');
+        setTab('Cycles & Reproduction');
         if (detail.questionId) setCyclesProductionQuestion(detail.questionId);
       }
     };
     window.addEventListener('horizon-production-question', handler);
     return () => window.removeEventListener('horizon-production-question', handler);
-  }, []);
+  }, [setTab]);
 
   useEffect(() => {
     const handler = (event) => {
@@ -301,7 +188,7 @@ export default function ElevageRecoveredModule(props) {
       ].includes(formType);
       if (!isReproModule && !isBirthCreation && !isReproWorkflow) return;
       setReproductionHorizonDraft(draft);
-      setTab('Reproduction');
+      setTab('Cycles & Reproduction');
       window.setTimeout(() => {
         if (isReproWorkflow || isReproModule) scrollToReproductionWorkflowForm();
         else document.getElementById('hey-horizon-animal-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -309,7 +196,7 @@ export default function ElevageRecoveredModule(props) {
     };
     window.addEventListener('horizon-open-form', handler);
     return () => window.removeEventListener('horizon-open-form', handler);
-  }, []);
+  }, [setTab]);
   const animauxCrud = useCrudModule('animaux');
   const avicoleCrud = useCrudModule('avicole');
   const santeCrud = useCrudModule('sante');
@@ -350,13 +237,6 @@ export default function ElevageRecoveredModule(props) {
     const recentMortality = lots.reduce((s, lot) => s + Number(lot.mortality || 0), 0) + businessEvents.filter((row) => /mort|perte|deces|décès/.test(lower(`${row.event_type || ''} ${row.title || ''}`))).length;
     const lotsToSell = lots.filter((row) => ['pret_vente', 'prêt vente', 'a_vendre', 'à vendre', 'maturite', 'maturité'].some((x) => lower(`${row.status || ''} ${row.statut || ''} ${row.notes || ''}`).includes(x)));
     const marginContext = { feedLogs, alimentationLogs: feedLogs, productionLogs, healthEvents: health, businessEvents, vaccins: health };
-    const lotMargins = [...lots.map((lot) => computeLotMargin(lot, marginContext)), ...animals.filter((a) => !isClosedAnimal(a)).slice(0, 5).map((animal) => computeAnimalMargin(animal, marginContext))].sort((a, b) => {
-      if (a.reliable && !b.reliable) return -1;
-      if (!a.reliable && b.reliable) return 1;
-      return (a.margin ?? 0) - (b.margin ?? 0);
-    });
-    const reliableMargins = lotMargins.filter((r) => r.reliable).length;
-    const unreliableMargins = lotMargins.filter((r) => !r.reliable).length;
     const healthSnap = buildElevageHealthSnapshot({ animaux: animals, lots, feedLogs, productionLogs, stocks, sante: health });
     const layingSummary = aggregateSummaryLayingRate(lots, productionLogs, 7);
     const activityPnl = buildElevageActivityPnl({
@@ -393,7 +273,6 @@ export default function ElevageRecoveredModule(props) {
       reproduction,
       livestockEvents: businessEvents.filter((row) => /animal|avicole|elevage|élevage|sante|santé/.test(lower(`${row.module_source || ''} ${row.event_type || ''} ${row.title || ''}`))),
       eggs7d, feedCost, recentMortality, lotsToSell,
-      lotMargins, reliableMargins, unreliableMargins,
       healthScore: healthSnap.score,
       healthFindings: healthSnap.findings,
       transformationRows: (() => {
@@ -512,7 +391,7 @@ export default function ElevageRecoveredModule(props) {
         toast.success('Transformation — formulaire officiel ouvert');
       },
     });
-  }, []);
+  }, [setTab]);
 
   const onOpenReproductionWorkflow = useCallback((workflow = 'gestation', context = {}) => {
     openElevageReproductionForm({
@@ -525,7 +404,7 @@ export default function ElevageRecoveredModule(props) {
         toast.success('Reproduction — workflow officiel ouvert');
       },
     });
-  }, []);
+  }, [setTab]);
 
   const openWorkflowModal = useCallback((modal) => {
     setActiveModal(modal);
@@ -610,28 +489,6 @@ export default function ElevageRecoveredModule(props) {
 
   const pondeuseLots = useMemo(() => lots.filter(isPondeuse), [lots]);
 
-  const actionHandlers = {
-    onNavigate: guardedNavigate,
-    onCreateTask: props.onCreateTask || tasksCrud.create,
-    onCreateAlert: props.onCreateAlert || alertsCrud.create,
-    onUpdateAlert: props.onUpdateAlert || alertsCrud.update,
-    onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create,
-    existingTasks: rowsOf(props.existingTasks, tasksCrud),
-    existingAlerts: rowsOf(props.existingAlerts, alertsCrud),
-  };
-  const applyFinding = async (finding) => {
-    setBusyId(finding.id);
-    try {
-      const result = await applyOneClickRecommendation(finding, actionHandlers);
-      if (result.createdTasks || result.createdAlerts) toast.success('Action IA créée');
-      else toast.success('Module ouvert');
-    } catch (e) {
-      toast.error(e.message || 'Erreur');
-    } finally {
-      setBusyId(null);
-    }
-  };
-
   const shared = { onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create, onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh, onNavigate: guardedNavigate, onPrepareTransformation };
 
   const transformationHandlers = {
@@ -679,73 +536,72 @@ export default function ElevageRecoveredModule(props) {
     [props.dataMap, animals, lots, productionLogs, feedLogs, stocks, salesOrders, props.transactions, financesCrud, periodFiltered, health],
   );
 
-  const content = tab === 'Cycles' ? (
-    <ElevageCyclesPanel
-      dataMap={cyclesDataMap}
-      lots={lots}
-      animaux={animals}
-      productionLogs={productionLogs}
-      alertes={rowsOf(props.alertes, alertsCrud, false)}
-      onNavigate={guardedNavigate}
-      setTab={setTab}
-      farmScopeLabel={props.farmScopeLabel}
-      farmScope={props.farmScope}
-      farmFiltered={props.farmFiltered}
-      initialProductionQuestion={cyclesProductionQuestion}
-      meteo={props.meteo}
-    />
-  ) : tab === 'Résumé' ? (
-    <ElevageSummaryCockpit
-      data={data}
-      setTab={setTab}
-      onApply={applyFinding}
-      busyId={busyId}
-      onNavigate={guardedNavigate}
-      onOpenWorkflow={openWorkflow}
+  const reproductionFormProps = {
+    draft: reproductionHorizonDraft || buildReproductionWorkflowDraft({ workflow: 'gestation' }),
+    animaux: animals,
+    documents: rowsOf(props.documents, documentsCrud, periodFiltered),
+    onUpdateAnimal: props.onUpdateAnimal || animauxCrud.update,
+    onCreateAnimal: props.onCreateAnimal || animauxCrud.create,
+    onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create,
+    onCreateDocument: props.onCreateDocument || documentsCrud.create,
+    onCreateAlert: props.onCreateAlert || alertsCrud.create,
+    onRefresh: refreshAfterWorkflow,
+    onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh,
+    onRefreshDocuments: props.onRefreshDocuments || documentsCrud.refresh,
+    onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh,
+    onClose: clearReproductionDraft,
+    onOpenBirthDraft: (ctx) => {
+      setLotsSubview('animaux');
+      setTab('Lots & bandes');
+      window.setTimeout(() => {
+        document.getElementById('hey-horizon-animal-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 120);
+      if (ctx?.animalId) toast.success('Fiche jeune — complétez la création animal');
+    },
+  };
+
+  const content = tab === 'Lots & bandes' ? (
+    <ElevageLotsBandesTab
+      initialSubview={lotsSubview}
+      avicoleProps={avicoleProps}
+      animalProps={animalProps}
+      productionHubProps={{
+        snapshot: data.productionSnapshot,
+        lots,
+        animaux: animals,
+        marginContext: data.marginContext,
+        onNavigate: guardedNavigate,
+        onOpenWorkflow: openWorkflow,
+      }}
       showStartup={showStartup}
       startupProgress={startupProgress}
-      advancedOpen={advancedOpen}
-      onToggleAdvanced={() => setAdvancedOpen((v) => !v)}
-      profitabilityOpen={profitabilityOpen}
-      onToggleProfitability={() => setProfitabilityOpen((v) => !v)}
-      onExport={() => {
-        const report = buildElevageInvestorReport({
-          lots,
-          animaux: animals,
-          feedLogs,
-          productionLogs,
-          healthEvents: health,
-          stocks,
-          businessEvents,
-          salesOrders,
-          findings: data.healthFindings,
-          periodLabel: props.periodLabel,
-          farmLabel: props.activeFarm?.name,
-        });
-        exportElevageInvestorPdf(report);
-        toast.success('Rapport Élevage généré');
-      }}
-      findingsPanel={
-        <>
-          <ElevageIaPanel findings={data.healthFindings} predictions={data.healthPredictions} onApply={applyFinding} busyId={busyId} onNavigate={props.onNavigate} />
-          <RentabilitySection lotMargins={data.lotMargins} onNavigate={props.onNavigate} />
-        </>
-      }
-    />
-  ) : tab === 'Animaux' ? <AnimauxV2 {...animalProps} /> : tab === 'Avicole' ? <AvicoleV10 {...avicoleProps} /> : tab === 'Alimentation' ? (
-    <FeedingHub data={data} setTab={setTab} onNavigate={guardedNavigate} onOpenWorkflow={openWorkflow} />
-  ) : tab === 'Santé' ? <SanteV8 {...healthProps} healthBlocks={evaluateElevageHealthBlocks({ healthRows: health })} sanitaryAlerts={buildSanitaryAlertsPanel(health)} /> : tab === 'Reproduction' ? (
-    <ReproductionHub data={data} setTab={setTab} onOpenReproductionWorkflow={onOpenReproductionWorkflow} />
-  ) : tab === 'Production' ? (
-    <ProductionHub
-      snapshot={data.productionSnapshot}
-      lots={lots}
-      animaux={animals}
-      marginContext={data.marginContext}
-      setTab={setTab}
       onNavigate={guardedNavigate}
       onOpenWorkflow={openWorkflow}
+      onSetTab={setTab}
     />
+  ) : tab === 'Cycles & Reproduction' ? (
+    <ElevageCyclesReproductionTab
+      cyclesPanelProps={{
+        dataMap: cyclesDataMap,
+        lots,
+        animaux: animals,
+        productionLogs,
+        alertes: rowsOf(props.alertes, alertsCrud, false),
+        onNavigate: guardedNavigate,
+        setTab,
+        farmScopeLabel: props.farmScopeLabel,
+        farmScope: props.farmScope,
+        farmFiltered: props.farmFiltered,
+        initialProductionQuestion: cyclesProductionQuestion,
+        meteo: props.meteo,
+      }}
+      reproductionData={data}
+      reproductionFormProps={reproductionFormProps}
+      onOpenReproductionWorkflow={onOpenReproductionWorkflow}
+      onNavigate={guardedNavigate}
+    />
+  ) : tab === 'Santé' ? (
+    <SanteV8 {...healthProps} healthBlocks={evaluateElevageHealthBlocks({ healthRows: health })} sanitaryAlerts={buildSanitaryAlertsPanel(health)} />
   ) : tab === 'Transformation' ? (
     <TransformationHub
       data={data}
@@ -758,29 +614,29 @@ export default function ElevageRecoveredModule(props) {
       avicoleBridgeProps={avicoleProps}
       healthBlocks={evaluateElevageHealthBlocks({ healthRows: health })}
     />
-  ) : tab === 'Annexe' ? (
-    <ElevageAnnexeVault
-      documents={rowsOf(props.documents, documentsCrud, periodFiltered)}
-      animaux={animals}
-      lots={lots}
-      onNavigate={guardedNavigate}
-    />
   ) : (
-    <ModuleGraphiquesTab
-      moduleId="elevage"
-      periodFiltered={periodFiltered}
-      lots={lots}
-      animaux={animals}
-      productionLogs={productionLogs}
-      alimentationLogs={feedLogs}
-      transactions={rowsOf(props.transactions, financesCrud, periodFiltered)}
-      salesOrders={salesOrders}
+    <ElevageLotsBandesTab
+      initialSubview={lotsSubview}
+      avicoleProps={avicoleProps}
+      animalProps={animalProps}
+      productionHubProps={{
+        snapshot: data.productionSnapshot,
+        lots,
+        animaux: animals,
+        marginContext: data.marginContext,
+        onNavigate: guardedNavigate,
+        onOpenWorkflow: openWorkflow,
+      }}
+      showStartup={showStartup}
+      startupProgress={startupProgress}
       onNavigate={guardedNavigate}
+      onOpenWorkflow={openWorkflow}
+      onSetTab={setTab}
     />
   );
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Élevage</h1><p className="mt-1 text-sm text-[#8a7456]">Animaux, avicole, alimentation, santé, reproduction, transformation — IA proactive et rentabilité fiable.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}<HeyHorizonQuickAsk moduleKey="elevage" onNavigate={guardedNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" /></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé module </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div></div></section>
+      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Élevage</h1><p className="mt-1 text-sm text-[#8a7456]">Lots & bandes, cycles & reproduction, santé et transformation — 4 onglets métier.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}<HeyHorizonQuickAsk moduleKey="elevage" onNavigate={guardedNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" /></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé module </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div></div></section>
       <Tabs active={tab} onChange={setTab} activeFarm={props.activeFarm} />
       {findActiveWithdrawals(health).length ? <SanitaryWithdrawalBanner healthRows={health} /> : null}
       {content}

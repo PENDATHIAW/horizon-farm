@@ -35,8 +35,8 @@ export function buildElevageStartupProgress({
   const hasCommercial = arr(opportunities).length > 0 || arr(salesOrders).length > 0;
 
   const steps = [
-    { id: 'lot', label: 'Créer un premier lot', done: hasLot, tab: 'Avicole' },
-    { id: 'animal', label: 'Ajouter un animal ou une bande', done: hasAnimal || hasLot, tab: 'Animaux' },
+    { id: 'lot', label: 'Créer un premier lot', done: hasLot, tab: 'Lots & bandes' },
+    { id: 'animal', label: 'Ajouter un animal ou une bande', done: hasAnimal || hasLot, tab: 'Lots & bandes' },
     { id: 'feed_stock', label: 'Rattacher un stock d\'aliment', done: hasFeedStock, navigate: 'achats_stock' },
     { id: 'feeding', label: 'Enregistrer une première alimentation', done: hasFeeding, modal: 'feeding' },
     { id: 'health', label: 'Enregistrer une première santé / vaccination', done: hasHealth, modal: 'health' },

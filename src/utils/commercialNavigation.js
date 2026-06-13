@@ -21,7 +21,39 @@ export function moduleForSaleSource(order = {}) {
   return { module: 'commercial', label: 'Commercial', tab: 'Ventes' };
 }
 
-export const ELEVAGE_TABS = ['Résumé', 'Cycles', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Annexe', 'Graphiques'];
+export const ELEVAGE_TABS = ['Lots & bandes', 'Cycles & Reproduction', 'Santé', 'Transformation'];
+
+const ELEVAGE_TAB_ALIASES = {
+  Résumé: 'Lots & bandes',
+  resume: 'Lots & bandes',
+  Cycles: 'Cycles & Reproduction',
+  cycles: 'Cycles & Reproduction',
+  cycle: 'Cycles & Reproduction',
+  'Cycles & Reproduction': 'Cycles & Reproduction',
+  Animaux: 'Lots & bandes',
+  animaux: 'Lots & bandes',
+  Avicole: 'Lots & bandes',
+  avicole: 'Lots & bandes',
+  Alimentation: 'Lots & bandes',
+  alimentation: 'Lots & bandes',
+  Production: 'Lots & bandes',
+  production: 'Lots & bandes',
+  Reproduction: 'Cycles & Reproduction',
+  reproduction: 'Cycles & Reproduction',
+  Santé: 'Santé',
+  Sante: 'Santé',
+  sante: 'Santé',
+  Transformation: 'Transformation',
+  transformation: 'Transformation',
+  Annexe: 'Lots & bandes',
+  annexe: 'Lots & bandes',
+  Graphiques: 'Lots & bandes',
+  graphiques: 'Lots & bandes',
+  bandes: 'Lots & bandes',
+  'Lots & bandes': 'Lots & bandes',
+};
+
+const ELEVAGE_LOTS_SUBVIEW_KEYS = new Set(['Avicole', 'avicole', 'Animaux', 'animaux']);
 export const ACHATS_STOCK_TABS = ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Annexe', 'Graphiques'];
 export const COMMERCIAL_TABS = ['Résumé', 'Ventes', 'Clients', 'Livraisons', 'Abonnements', 'Relances', 'Opportunités', 'Pilotage', 'Annexe', 'Graphiques'];
 export const ACTIVITE_SUIVI_TABS = ['Résumé', 'Alertes', 'Tâches', 'Traçabilité', 'Graphiques'];
@@ -48,9 +80,7 @@ const tabAliases = {
   opportunites: 'Opportunités',
   opportunities: 'Opportunités',
   graphiques: 'Graphiques',
-  cycles: 'Cycles',
-  cycle: 'Cycles',
-  bandes: 'Cycles',
+  bandes: 'Lots & bandes',
   resume: 'Résumé',
   creances: 'Créances',
   dettes: 'Dettes',
@@ -67,10 +97,22 @@ const tabAliases = {
   suivi: 'Résumé',
 };
 
+export function resolveElevageLotsSubview(value = '') {
+  const tab = String(value || '').trim();
+  if (tab === 'Avicole' || lower(tab) === 'avicole') return 'avicole';
+  if (tab === 'Animaux' || lower(tab) === 'animaux') return 'animaux';
+  if (ELEVAGE_LOTS_SUBVIEW_KEYS.has(tab)) return lower(tab);
+  return null;
+}
+
 export function resolveElevageTab(value = '') {
   const tab = String(value || '').trim();
   if (ELEVAGE_TABS.includes(tab)) return tab;
-  return tabAliases[lower(tab)] || 'Résumé';
+  const fromElevage = ELEVAGE_TAB_ALIASES[tab] || ELEVAGE_TAB_ALIASES[lower(tab)];
+  if (fromElevage) return fromElevage;
+  const fromGeneric = tabAliases[lower(tab)];
+  if (fromGeneric && ELEVAGE_TABS.includes(fromGeneric)) return fromGeneric;
+  return 'Lots & bandes';
 }
 
 export function resolveAchatsStockTab(value = '') {
@@ -181,8 +223,8 @@ const SEARCH_KEY_TO_MODULE = {
   finances: { module: 'finance_pilotage', tab: 'Trésorerie' },
   stock: { module: 'achats_stock', tab: 'Stock' },
   fournisseurs: { module: 'achats_stock', tab: 'Fournisseurs' },
-  animaux: { module: 'elevage', tab: 'Animaux' },
-  avicole: { module: 'elevage', tab: 'Avicole' },
+  animaux: { module: 'elevage', tab: 'Lots & bandes' },
+  avicole: { module: 'elevage', tab: 'Lots & bandes' },
   sante: { module: 'elevage', tab: 'Santé' },
   alimentation_logs: { module: 'achats_stock', tab: 'Mouvements' },
   taches: { module: 'activite_suivi', tab: null },
@@ -217,7 +259,7 @@ export function navigationOptionsForFinding(finding = {}) {
     return { module, tab: resolveFinanceTab(explicitTab || defaultTabForLegacyModule(rawModule) || 'Créances') };
   }
   if (module === 'elevage') {
-    return { module, tab: resolveElevageTab(explicitTab || defaultTabForLegacyModule(rawModule) || 'Résumé') };
+    return { module, tab: resolveElevageTab(explicitTab || defaultTabForLegacyModule(rawModule) || 'Lots & bandes') };
   }
   if (module === 'achats_stock') {
     return { module, tab: resolveAchatsStockTab(explicitTab || defaultTabForLegacyModule(rawModule) || 'Résumé') };
@@ -242,7 +284,7 @@ export function navigateForIaFinding(finding = {}, onNavigate) {
     return;
   }
   if (module === 'elevage') {
-    onNavigate('elevage', { tab: resolveElevageTab(finding.tab || 'Résumé') });
+    onNavigate('elevage', { tab: resolveElevageTab(finding.tab || 'Lots & bandes') });
     return;
   }
   onNavigate(module || 'elevage');

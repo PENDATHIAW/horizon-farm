@@ -18,8 +18,8 @@ export function openElevageCyclesWithQuestion({
   setTab,
   onNavigate,
 } = {}) {
-  if (setTab) setTab('Cycles');
-  if (onNavigate) onNavigate('elevage', { tab: 'Cycles', productionQuestion: questionId });
+  if (setTab) setTab('Cycles & Reproduction');
+  if (onNavigate) onNavigate('elevage', { tab: 'Cycles & Reproduction', productionQuestion: questionId });
   const schedule = typeof root.setTimeout === 'function' ? root.setTimeout : (fn) => fn();
   schedule(() => dispatchCyclesProductionQuestion(questionId, 'elevage'), 280);
 }

@@ -61,5 +61,5 @@ test('Matrice modules couverte', () => {
   assert.ok(criticalModuleIds().length >= 14);
   assert.equal(MODULE_TAB_MATRIX.commercial.length, 10);
   assert.equal(MODULE_TAB_MATRIX.achats_stock.length, 7);
-  assert.equal(MODULE_TAB_MATRIX.elevage.length, 11);
+  assert.equal(MODULE_TAB_MATRIX.elevage.length, 4);
 });

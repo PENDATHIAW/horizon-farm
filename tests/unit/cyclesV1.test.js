@@ -145,9 +145,9 @@ test('productionQuestion navigation helpers', () => {
     setTab: (tab) => { navigated = tab; },
     onNavigate: () => {},
   });
-  assert.equal(navigated, 'Cycles');
+  assert.equal(navigated, 'Cycles & Reproduction');
 });
 
-test('elevage Cycles tab mounts without regression', async () => {
-  await assertModuleTabStable('elevage', 'Cycles', buildSimulatedProps());
+test('elevage Cycles & Reproduction tab mounts without regression', async () => {
+  await assertModuleTabStable('elevage', 'Cycles & Reproduction', buildSimulatedProps());
 });

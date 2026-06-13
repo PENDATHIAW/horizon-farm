@@ -4,7 +4,6 @@ import ProductionQuestionsPanel from '../../components/ProductionQuestionsPanel.
 import { emitHorizonForm } from '../../services/formModalManager';
 import { buildStrategicDecisionPlan } from '../../services/strategicDecisionEngine.js';
 import { getNextFestivals, festivalLabelList } from '../../services/marketEventCalendar.js';
-import ProductionCycleDecisionPanel from '../ProductionCycleDecisionPanel.jsx';
 import { fmtNumber } from '../../utils/format';
 import {
   buildCycleAlertsForPanel,
@@ -19,7 +18,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const TYPE_META = {
   chair: { label: 'Poulets chair', icon: Drumstick, action: 'Préparer vente chair (J+40)', tab: 'Transformation' },
   bovins: { label: 'Bovin / embouche', icon: Beef, action: 'Préparer vente ou renouvellement (J+90)', tab: 'Transformation' },
-  pondeuses: { label: 'Pondeuses', icon: Egg, action: 'Surveiller ponte et réforme (J+510)', tab: 'Production' },
+  pondeuses: { label: 'Pondeuses', icon: Egg, action: 'Surveiller ponte et réforme (J+510)', tab: 'Lots & bandes' },
 };
 
 function CycleStatusBadge({ targetDate }) {
@@ -204,11 +203,11 @@ export default function ElevageCyclesPanel({
       return;
     }
     if (module === 'avicole' && setTab) {
-      setTab('Avicole');
+      setTab('Lots & bandes');
       return;
     }
     if (module === 'animaux' && setTab) {
-      setTab('Animaux');
+      setTab('Lots & bandes');
       return;
     }
     onNavigate?.(module, opts);
@@ -247,10 +246,10 @@ export default function ElevageCyclesPanel({
           {onNavigate ? (
             <button
               type="button"
-              onClick={() => onNavigate('centre_ia', { tab: 'Cycles' })}
+              onClick={() => onNavigate('centre_ia', { tab: 'Saisons & marchés' })}
               className="shrink-0 rounded-xl border border-[#d6c3a0] bg-[#fffdf8] px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]"
             >
-              Centre décisionnel → Stratégie cycles
+              Centre décisionnel → Saisons & marchés
             </button>
           ) : null}
         </div>
@@ -309,10 +308,10 @@ export default function ElevageCyclesPanel({
           {onNavigate ? (
             <button
               type="button"
-              onClick={() => onNavigate('centre_ia', { tab: 'Cycles' })}
+              onClick={() => onNavigate('centre_ia', { tab: 'Saisons & marchés' })}
               className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white"
             >
-              Ouvrir la stratégie complète (Centre IA)
+              Ouvrir Saisons & marchés (Centre IA)
             </button>
           ) : null}
         </div>
@@ -325,7 +324,7 @@ export default function ElevageCyclesPanel({
             title="Planifier lot chair"
             text="Ouvre Avicole avec formulaire lot chair pré-rempli — pas de double création."
             onClick={() => {
-              setTab?.('Avicole');
+              setTab?.('Lots & bandes');
               window.setTimeout(() => {
                 emitHorizonForm('avicole', 'lot_create', 'Planifier bande chair', { type_lot: 'chair', date_entree: today(), planning_only: true });
               }, 120);
@@ -336,7 +335,7 @@ export default function ElevageCyclesPanel({
             title="Planifier bande pondeuse"
             text="Ouvre Avicole avec bande pondeuse pré-remplie."
             onClick={() => {
-              setTab?.('Avicole');
+              setTab?.('Lots & bandes');
               window.setTimeout(() => {
                 emitHorizonForm('avicole', 'lot_create', 'Planifier bande pondeuse', { type_lot: 'pondeuse', date_entree: today(), planning_only: true });
               }, 120);
@@ -347,7 +346,7 @@ export default function ElevageCyclesPanel({
             title="Planifier embouche"
             text="Ouvre Animaux — fiche bovin avec date d'entrée J+90."
             onClick={() => {
-              setTab?.('Animaux');
+              setTab?.('Lots & bandes');
               window.setTimeout(() => {
                 emitHorizonForm('animaux', 'animal_create', 'Planifier embouche', { date: today(), espece: 'Bovin', planning_only: true });
               }, 120);
@@ -402,20 +401,6 @@ export default function ElevageCyclesPanel({
         dataMap={{ ...enrichedDataMap, lots: activeLots, animaux: activeAnimals, productionLogs }}
         onNavigate={cycleNavigate}
       />
-
-      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <summary className="cursor-pointer font-black text-[#2f2415] text-sm">Calendrier détaillé des lots (J+40 chair, J+90 bovins…)</summary>
-        <div className="mt-4">
-          <ProductionCycleDecisionPanel
-            dataMap={enrichedDataMap}
-            lots={activeLots}
-            animaux={activeAnimals}
-            productionLogs={productionLogs}
-            onNavigate={cycleNavigate}
-            embedInElevage
-          />
-        </div>
-      </details>
     </div>
   );
 }

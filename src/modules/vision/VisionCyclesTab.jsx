@@ -36,7 +36,7 @@ export default function VisionCyclesTab({
               <p className="text-xs uppercase tracking-widest text-[#9a6b12] font-black">Cycles de production</p>
               <h3 className="text-lg font-black text-[#2f2415] mt-1">Quand lancer une bande</h3>
             </div>
-            {onNavigate ? <Btn onClick={() => onNavigate('elevage', { tab: 'Cycles' })}>Élevage → Cycles</Btn> : null}
+            {onNavigate ? <Btn onClick={() => onNavigate('elevage', { tab: 'Cycles & Reproduction' })}>Élevage → Cycles</Btn> : null}
           </div>
         </>
       ) : (

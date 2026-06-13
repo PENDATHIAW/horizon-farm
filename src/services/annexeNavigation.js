@@ -1,13 +1,13 @@
 /** Résout un libellé « Où le trouver » vers module + onglet ERP (navigation 1 clic). */
 
 const rules = [
-  { pattern: /avicole|bande|poussin|chair|pondeuse|lot/i, module: 'elevage', tab: 'Avicole', label: 'Élevage → Avicole' },
-  { pattern: /animaux|embouche|bovin|bête|taureau|broutard/i, module: 'elevage', tab: 'Animaux', label: 'Élevage → Animaux' },
-  { pattern: /alimentation|distribution|ration/i, module: 'elevage', tab: 'Alimentation', label: 'Élevage → Alimentation' },
-  { pattern: /production|ponte|comptage.*œuf|œuf/i, module: 'elevage', tab: 'Production', label: 'Élevage → Production' },
+  { pattern: /avicole|bande|poussin|chair|pondeuse|lot/i, module: 'elevage', tab: 'Lots & bandes', label: 'Élevage → Lots & bandes' },
+  { pattern: /animaux|embouche|bovin|bête|taureau|broutard/i, module: 'elevage', tab: 'Lots & bandes', label: 'Élevage → Lots & bandes' },
+  { pattern: /alimentation|distribution|ration/i, module: 'elevage', tab: 'Lots & bandes', label: 'Élevage → Alimentation (Lots & bandes)' },
+  { pattern: /production|ponte|comptage.*œuf|œuf/i, module: 'elevage', tab: 'Lots & bandes', label: 'Élevage → Production (Lots & bandes)' },
   { pattern: /santé|vaccin|vétérinaire|véto/i, module: 'elevage', tab: 'Santé', label: 'Élevage → Santé' },
   { pattern: /transformation|incub|couvoir|poussin d/i, module: 'elevage', tab: 'Transformation', label: 'Élevage → Transformation' },
-  { pattern: /cycle.*élevage|cycles/i, module: 'elevage', tab: 'Cycles', label: 'Élevage → Cycles' },
+  { pattern: /cycle.*élevage|cycles/i, module: 'elevage', tab: 'Cycles & Reproduction', label: 'Élevage → Cycles & Reproduction' },
   { pattern: /module stock|stock(?!.*mouvement)|silo/i, module: 'achats_stock', tab: 'Stock', label: 'Achats & Stock → Stock' },
   { pattern: /achats|fournisseur|intrant|maïs|soja/i, module: 'achats_stock', tab: 'Achats', label: 'Achats & Stock → Achats' },
   { pattern: /mouvement stock/i, module: 'achats_stock', tab: 'Mouvements', label: 'Achats & Stock → Mouvements' },
@@ -20,7 +20,7 @@ const rules = [
   { pattern: /centre.*cycles|calendrier.*centre|fêtes du mois/i, module: 'centre_ia', tab: 'Cycles', label: 'Centre → Cycles' },
   { pattern: /paramètres pilotage|pilotage|réglages/i, module: 'centre_ia', tab: 'Annexe', label: 'Centre → Paramètres (bandeau pilotage)' },
   { pattern: /prix marché|catalogue prix/i, module: 'commercial', tab: 'Ventes', label: 'Commercial → Prix / ventes' },
-  { pattern: /maraîchage|cultures?|parcelle/i, module: 'elevage', tab: 'Cycles', label: 'Élevage → Cycles (diversification)' },
+  { pattern: /maraîchage|cultures?|parcelle/i, module: 'elevage', tab: 'Cycles & Reproduction', label: 'Élevage → Cycles (diversification)' },
   { pattern: /météo/i, module: 'dashboard', tab: 'Résumé', label: 'Tableau de bord' },
 ];
 
