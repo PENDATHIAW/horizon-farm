@@ -2,6 +2,7 @@ import { ShieldAlert, TrendingDown, Package, Wallet } from 'lucide-react';
 import { fmtCurrency, fmtNumber } from '../../utils/format';
 import { navigateVisionRisk } from './visionNavigation.js';
 import { runPriorityAlertAction, runPriorityTaskAction } from './visionPriorityActions.js';
+import { filterByExcludedTitles } from '../centre/centreContentUtils.js';
 import StrategicDecisionCard from '../centre/StrategicDecisionCard.jsx';
 import { Btn, DataRow, DataTable, Empty, Pill, Section, TabIntro, VisionKpi, riskLevelLabel } from './visionUtils';
 
@@ -20,13 +21,16 @@ function dedupeRisks(rows = [], limit = 3) {
   return out;
 }
 
-export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, existingTasks = [], existingAlerts = [], strategicPlan = {}, urgentOnly = false, compact = false }) {
+export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreateTask, onRefreshTasks, onCreateAlert, onRefreshAlertes, existingTasks = [], existingAlerts = [], strategicPlan = {}, urgentOnly = false, compact = false, excludeTitleKeys = [] }) {
   const engineRisks = arr(data.engineRisks);
   const allRisks = arr(data.risks);
   const filteredRisks = urgentOnly
     ? allRisks.filter((r) => r.tone === 'bad' || /critique|élevé|eleve|urgent/i.test(String(r.severity || '')))
     : allRisks;
-  const risks = compact ? dedupeRisks(filteredRisks, 3) : filteredRisks;
+  const risksAfterExclude = excludeTitleKeys.length
+    ? filterByExcludedTitles(filteredRisks, excludeTitleKeys)
+    : filteredRisks;
+  const risks = compact ? dedupeRisks(risksAfterExclude, 3) : risksAfterExclude;
   const criticalCount = allRisks.filter((r) => r.tone === 'bad').length;
   const financeExposure = Math.max(0, -(data.treasuryResult ?? data.balance)) + (data.receivable || 0);
 
@@ -57,9 +61,14 @@ export default function VisionRisksTab({ data = {}, onNavigate, setTab, onCreate
   const createAlertFromRisk = (risk) => runPriorityAlertAction(riskToItem(risk), riskHandlers);
   const createTaskFromRisk = (risk) => runPriorityTaskAction(riskToItem(risk), riskHandlers);
 
-  const sellNowItems = compact ? arr(strategicPlan.sellNow).slice(0, 2) : arr(strategicPlan.sellNow);
-  const stockItems = compact ? arr(strategicPlan.stockAudit?.alerts).slice(0, 1) : arr(strategicPlan.stockAudit?.alerts);
-  const showBfr = strategicPlan.bfr?.blocked;
+  const bfrExcluded = excludeTitleKeys.some((key) => /lancement|trésorerie|treasury|bfr/i.test(key));
+  const sellNowItems = compact
+    ? filterByExcludedTitles(arr(strategicPlan.sellNow), excludeTitleKeys).slice(0, 2)
+    : arr(strategicPlan.sellNow);
+  const stockItems = compact
+    ? filterByExcludedTitles(arr(strategicPlan.stockAudit?.alerts), excludeTitleKeys).slice(0, 1)
+    : arr(strategicPlan.stockAudit?.alerts);
+  const showBfr = strategicPlan.bfr?.blocked && (!compact || !bfrExcluded);
   const hasStrategicBlock = showBfr || sellNowItems.length || stockItems.length;
   const hasRiskRows = risks.length > 0;
 

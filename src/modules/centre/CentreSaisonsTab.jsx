@@ -22,48 +22,31 @@ function AccordionSection({ title, detail, open, onToggle, children }) {
 }
 
 function UpcomingMarketEventsPanel({ dataMap = {} }) {
-  const refDate = new Date();
-  const upcoming = getUpcomingMarketEvents(refDate, dataMap, { horizonDays: 400 }).slice(0, 8);
+  const upcoming = getUpcomingMarketEvents(new Date(), dataMap, { horizonDays: 400 }).slice(0, 4);
 
   return (
-    <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm space-y-3">
-      <div>
-        <p className="text-xs uppercase tracking-widest text-[#9a6b12] font-black flex items-center gap-2">
-          <CalendarDays size={15} /> Fêtes & marchés à venir
-        </p>
-        <h3 className="text-lg font-black text-[#2f2415] mt-1">Guide saisons — fenêtres commerciales</h3>
-        <p className="text-sm text-[#8a7456] mt-1">
-          Magal, Gamou, fin d&apos;année et foires locales — dates pivot pour lancer ou vendre avant chaque pic.
-        </p>
-      </div>
+    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-4 shadow-sm space-y-3">
+      <p className="text-xs uppercase tracking-widest text-[#9a6b12] font-black flex items-center gap-2">
+        <CalendarDays size={15} /> Prochaines fêtes & marchés
+      </p>
       {upcoming.length ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {upcoming.map((event) => (
-            <article key={event.id || `${event.label}-${event.date}`} className="rounded-2xl border border-[#eadcc2] bg-white p-4">
-              <div className="flex items-start justify-between gap-2">
-                <p className="font-black text-[#2f2415] text-sm">{event.label}</p>
-                <span className="shrink-0 rounded-full bg-[#2f2415] px-2 py-0.5 text-[10px] font-black text-white">
-                  {event.date ? toDateInput(event.date) : '—'}
-                </span>
-              </div>
-              {event.activities?.length ? (
-                <p className="mt-2 text-xs text-[#7d6a4a]">Activités : {event.activities.join(' · ')}</p>
-              ) : null}
-              {event.note ? <p className="mt-1 text-xs text-[#8a7456] leading-relaxed">{event.note}</p> : null}
+            <article key={event.id || `${event.label}-${event.date}`} className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2 flex items-center justify-between gap-2">
+              <p className="font-black text-[#2f2415] text-sm">{event.label}</p>
+              <span className="shrink-0 text-[10px] font-black text-[#8a7456]">{event.date ? toDateInput(event.date) : '—'}</span>
             </article>
           ))}
         </div>
       ) : (
-        <p className="text-sm text-[#8a7456] rounded-xl border border-[#eadcc2] bg-white p-4">
-          Aucune fête majeure dans les 12 prochains mois — le calendrier annuel ci-dessous reste la référence.
-        </p>
+        <p className="text-sm text-[#8a7456]">Aucune fête majeure à venir — consultez le calendrier annuel ci-dessous.</p>
       )}
     </section>
   );
 }
 
 /**
- * Guide saisons & marchés — cycles de lancement, calendrier commercial, méthode & calculs.
+ * Saisons & marchés — fêtes, dates pivot, vide sanitaire (sans urgences ni ROI).
  */
 export default function CentreSaisonsTab({
   dataMap = {},
@@ -79,10 +62,11 @@ export default function CentreSaisonsTab({
   existingTasks = [],
   existingAlerts = [],
 }) {
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [annexeOpen, setAnnexeOpen] = useState(false);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <UpcomingMarketEventsPanel dataMap={dataMap} />
       <VisionCyclesTab
         dataMap={dataMap}
@@ -97,11 +81,20 @@ export default function CentreSaisonsTab({
         onRefreshAlertes={onRefreshAlertes}
         existingTasks={existingTasks}
         existingAlerts={existingAlerts}
+        compact
+        hideBfr
       />
-      <AnnualCommercialCalendarPanel dataMap={dataMap} />
       <AccordionSection
-        title="Annexe — méthode & calculs"
-        detail="Formules ITH, BFR, dates pivot et sources des moteurs décisionnels."
+        title="Calendrier annuel"
+        detail="Référence saisonnière par mois — lecture, pas une file d'actions."
+        open={calendarOpen}
+        onToggle={() => setCalendarOpen((v) => !v)}
+      >
+        <AnnualCommercialCalendarPanel dataMap={dataMap} compact hideUpcoming />
+      </AccordionSection>
+      <AccordionSection
+        title="Méthode & calculs"
+        detail="ITH, BFR, dates pivot."
         open={annexeOpen}
         onToggle={() => setAnnexeOpen((v) => !v)}
       >

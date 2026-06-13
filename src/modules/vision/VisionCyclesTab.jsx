@@ -2,9 +2,7 @@ import { CalendarRange, Thermometer, AlertTriangle } from 'lucide-react';
 import ProductionCycleDecisionPanel from '../ProductionCycleDecisionPanel.jsx';
 import StrategicDecisionCard from '../centre/StrategicDecisionCard.jsx';
 import SanitaryVacuumPanel from '../centre/SanitaryVacuumPanel.jsx';
-import { fmtNumber } from '../../utils/format';
-import { getNextFestivals, festivalLabelList } from '../../services/marketEventCalendar.js';
-import { Btn, Section, TabIntro, VisionKpi } from './visionUtils';
+import { Btn, Section } from './visionUtils';
 
 export default function VisionCyclesTab({
   dataMap = {},
@@ -19,68 +17,67 @@ export default function VisionCyclesTab({
   onRefreshAlertes,
   existingTasks = [],
   existingAlerts = [],
+  compact = false,
+  hideBfr = false,
 }) {
-  const launchDecisions = (strategicPlan.launch?.cycleDecisions || []).filter((d) => d.type !== 'stress_thermique' || d.priority === 'haute');
+  const launchDecisions = (strategicPlan.launch?.cycleDecisions || [])
+    .filter((d) => d.type !== 'stress_thermique' || d.priority === 'haute');
   const heatDecision = strategicPlan.launch?.cycleDecisions?.find((d) => d.type === 'stress_thermique');
-  const bfr = strategicPlan.bfr || {};
   const sanitary = strategicPlan.sanitary || [];
-  const upcomingFestivals = getNextFestivals(new Date(), dataMap, 5);
-  const festivalLine = festivalLabelList(upcomingFestivals).join(', ') || 'Magal, Gamou, fin d\'année';
+  const pivotDecisions = launchDecisions.filter((d) => d.eventLabel);
+  const pivotSlice = compact ? pivotDecisions.slice(0, 4) : pivotDecisions;
 
   return (
-    <div className="space-y-5">
-      <TabIntro
-        title="Cycles — QUAND LANCER une bande"
-        detail={`Prochaines fêtes : ${festivalLine}. Chaque fête couvre bœufs, chair et œufs — dates pivot, trésorerie, chaleur et vide sanitaire.`}
-        action={onNavigate ? <Btn onClick={() => onNavigate('elevage', { tab: 'Cycles' })}>Élevage → Cycles</Btn> : null}
-      />
+    <div className={compact ? 'space-y-4' : 'space-y-5'}>
+      {!compact ? (
+        <>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-[#9a6b12] font-black">Cycles de production</p>
+              <h3 className="text-lg font-black text-[#2f2415] mt-1">Quand lancer une bande</h3>
+            </div>
+            {onNavigate ? <Btn onClick={() => onNavigate('elevage', { tab: 'Cycles' })}>Élevage → Cycles</Btn> : null}
+          </div>
+        </>
+      ) : (
+        <p className="text-xs font-black uppercase tracking-widest text-[#9a6b12]">Dates pivot & lancement</p>
+      )}
 
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <VisionKpi label="Dates pivot marché" value={fmtNumber(launchDecisions.filter((d) => d.eventLabel).length)} tone={launchDecisions.some((d) => d.priority === 'critique') ? 'bad' : 'good'} />
-        <VisionKpi label="ITH actuel" value={strategicPlan.ith ?? '—'} tone={(strategicPlan.ith ?? 0) >= 29 ? 'bad' : 'good'} />
-        <VisionKpi label="Couverture BFR" value={bfr.coveragePct != null ? `${bfr.coveragePct}%` : '—'} tone={bfr.blocked ? 'bad' : 'good'} />
-        <VisionKpi label="Blocages vide sanitaire" value={fmtNumber(sanitary.filter((s) => s.blocking).length)} tone={sanitary.some((s) => s.blocking) ? 'bad' : 'good'} />
-      </div>
-
-      {bfr.blocked ? (
-        <div className="rounded-2xl border border-red-400 bg-red-50 p-4 text-sm text-red-800">
+      {!hideBfr && strategicPlan.bfr?.blocked ? (
+        <div className="rounded-2xl border border-red-400 bg-red-50 p-3 text-sm text-red-800">
           <p className="font-black flex items-center gap-2"><AlertTriangle size={16} /> Lancement suspendu — trésorerie</p>
-          <p className="mt-1">{bfr.message}</p>
+          <p className="mt-1 text-xs">{strategicPlan.bfr.message}</p>
         </div>
       ) : null}
 
-      {launchDecisions.filter((d) => d.eventLabel).length ? (
-        <Section icon={CalendarRange} title="1. Calendrier marché — date limite de mise en place">
-          <p className="text-xs text-[#8a7456] mb-3">Préparer bœufs, poulets de chair et œufs avant chaque fête — une date pivot par produit.</p>
+      {pivotSlice.length ? (
+        <Section icon={CalendarRange} title={compact ? 'Dates limites par fête' : 'Calendrier marché — date limite de mise en place'}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {launchDecisions.filter((d) => d.eventLabel).map((d) => (
+            {pivotSlice.map((d) => (
               <StrategicDecisionCard key={d.id} item={d} onNavigate={onNavigate} onCreateTask={onCreateTask} onCreateAlert={onCreateAlert} onRefreshTasks={onRefreshTasks} onRefreshAlertes={onRefreshAlertes} existingTasks={existingTasks} existingAlerts={existingAlerts} />
             ))}
           </div>
         </Section>
       ) : null}
 
-      <Section icon={AlertTriangle} title="2. Vide sanitaire & historique pathologique">
+      <Section icon={AlertTriangle} title={compact ? 'Vide sanitaire' : 'Vide sanitaire & historique pathologique'}>
         <SanitaryVacuumPanel alerts={sanitary} onNavigate={onNavigate} onCreateTask={onCreateTask} onCreateAlert={onCreateAlert} onRefreshTasks={onRefreshTasks} onRefreshAlertes={onRefreshAlertes} existingTasks={existingTasks} existingAlerts={existingAlerts} />
       </Section>
 
-      {heatDecision ? (
-        <Section icon={Thermometer} title="3. Chaleur & ITH — ajuster le lancement">
+      {!compact && heatDecision ? (
+        <Section icon={Thermometer} title="Chaleur & ITH">
           <StrategicDecisionCard item={heatDecision} onNavigate={onNavigate} onCreateTask={onCreateTask} onCreateAlert={onCreateAlert} onRefreshTasks={onRefreshTasks} onRefreshAlertes={onRefreshAlertes} existingTasks={existingTasks} existingAlerts={existingAlerts} />
         </Section>
       ) : null}
 
-      {strategicPlan.scissors ? (
-        <Section icon={Thermometer} title="4. Effet ciseau — stocker les intrants">
+      {!compact && strategicPlan.scissors ? (
+        <Section icon={Thermometer} title="Effet ciseau — stocker les intrants">
           <StrategicDecisionCard item={{ ...strategicPlan.scissors, title: 'Achat groupé recommandé' }} onNavigate={onNavigate} onCreateTask={onCreateTask} onCreateAlert={onCreateAlert} onRefreshTasks={onRefreshTasks} onRefreshAlertes={onRefreshAlertes} existingTasks={existingTasks} existingAlerts={existingAlerts} />
         </Section>
       ) : null}
 
-      {strategicPlan.transformation ? (
-        <Section icon={CalendarRange} title="5. Arbitrage transformation — œuf ou poussin ?">
-          <p className="text-xs text-[#8a7456] mb-3">
-            Compare la marge nette tablette d&apos;œufs vs poussin d&apos;un jour (électricité incubateur incluse).
-          </p>
+      {!compact && strategicPlan.transformation ? (
+        <Section icon={CalendarRange} title="Arbitrage transformation">
           <StrategicDecisionCard
             item={{ ...strategicPlan.transformation, title: 'Incubation vs vente directe', category: 'transformation', module: 'elevage', navTab: 'Transformation' }}
             onNavigate={onNavigate}
@@ -95,7 +92,7 @@ export default function VisionCyclesTab({
       ) : null}
 
       <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-        <summary className="cursor-pointer font-black text-[#2f2415] text-sm">Calendrier détaillé des lots (J+40 chair, J+90 bovins…)</summary>
+        <summary className="cursor-pointer font-black text-[#2f2415] text-sm">Calendrier détaillé des lots (J+40, J+90…)</summary>
         <div className="mt-4">
           <ProductionCycleDecisionPanel
             dataMap={dataMap}

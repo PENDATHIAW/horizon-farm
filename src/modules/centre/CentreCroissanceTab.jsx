@@ -7,34 +7,6 @@ import { fmtCurrency, fmtNumber } from '../../utils/format';
 
 const GROWTH_ACTIVITIES = ['oeufs', 'poulets_chair', 'bovins'];
 
-function ActivityGoalCard({ row = {}, onNavigate }) {
-  const attainment = Number(row.attainment || 0);
-  const tone = attainment >= 100 ? 'border-emerald-200 bg-emerald-50' : attainment >= 60 ? 'border-amber-200 bg-amber-50' : 'border-red-200 bg-red-50';
-
-  return (
-    <article className={`rounded-2xl border p-4 ${tone}`}>
-      <div className="flex items-start justify-between gap-2">
-        <p className="font-black text-[#2f2415] text-sm">{row.label || row.activity}</p>
-        <span className="rounded-full border border-current px-2 py-0.5 text-[10px] font-black uppercase">{attainment}%</span>
-      </div>
-      <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-[#7d6a4a]">
-        <span>Objectif : <b>{fmtCurrency(row.target)}</b></span>
-        <span>Réalisé : <b>{fmtCurrency(row.realized)}</b></span>
-        <span>Reste : <b>{fmtCurrency(row.remaining)}</b></span>
-      </div>
-      {onNavigate && row.activity === 'oeufs' ? (
-        <button type="button" onClick={() => onNavigate('elevage', { tab: 'Avicole' })} className="mt-2 text-xs font-black text-[#9a6b12] underline">Élevage → Avicole</button>
-      ) : null}
-      {onNavigate && row.activity === 'poulets_chair' ? (
-        <button type="button" onClick={() => onNavigate('elevage', { tab: 'Cycles' })} className="mt-2 text-xs font-black text-[#9a6b12] underline">Élevage → Cycles chair</button>
-      ) : null}
-      {onNavigate && row.activity === 'bovins' ? (
-        <button type="button" onClick={() => onNavigate('elevage', { tab: 'Animaux' })} className="mt-2 text-xs font-black text-[#9a6b12] underline">Élevage → Animaux</button>
-      ) : null}
-    </article>
-  );
-}
-
 function AccordionSection({ title, detail, open, onToggle, children }) {
   return (
     <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] shadow-sm">
@@ -51,13 +23,12 @@ function AccordionSection({ title, detail, open, onToggle, children }) {
 }
 
 /**
- * Moteur de croissance & opportunités — recommandations, objectifs par activité, ROI historique, graphiques.
+ * Croissance & opportunités — objectifs, recommandations, ROI (sans calendrier ni urgences).
  */
 export default function CentreCroissanceTab({
   plan = {},
   dataMap = {},
   onNavigate,
-  onSwitchTab,
   lots,
   animaux,
   cultures,
@@ -73,52 +44,36 @@ export default function CentreCroissanceTab({
   marketPrices,
 }) {
   const [graphOpen, setGraphOpen] = useState(false);
-  const activities = (plan.goals?.activities || []).filter((row) => GROWTH_ACTIVITIES.includes(row.activity));
   const globalGoal = plan.goals?.global;
+  const activities = (plan.goals?.activities || []).filter((row) => GROWTH_ACTIVITIES.includes(row.activity));
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {globalGoal ? (
-        <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-widest text-[#9a6b12] font-black">Objectif mois</p>
-          <div className="mt-2 flex flex-wrap items-end gap-4">
-            <div>
-              <p className="text-2xl font-black text-[#2f2415]">{fmtNumber(globalGoal.attainment || 0)}%</p>
-              <p className="text-xs text-[#8a7456]">atteint · reste {fmtCurrency(globalGoal.remaining)}</p>
-            </div>
-            <div className="text-sm text-[#7d6a4a]">
-              CA mois <b>{fmtCurrency(globalGoal.realized)}</b> / {fmtCurrency(globalGoal.monthTarget)}
-            </div>
-            {onNavigate ? (
-              <button type="button" onClick={() => onNavigate('objectifs_croissance', { tab: 'Rentabilité Lot & Cycle' })} className="text-xs font-black text-[#9a6b12] underline">
-                Objectifs & Croissance →
-              </button>
-            ) : null}
-          </div>
+        <section className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 shadow-sm flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+          <span className="font-black text-[#2f2415]">Objectif mois {fmtNumber(globalGoal.attainment || 0)}%</span>
+          <span className="text-[#7d6a4a]">CA <b>{fmtCurrency(globalGoal.realized)}</b> / {fmtCurrency(globalGoal.monthTarget)}</span>
+          <span className="text-[#7d6a4a]">Reste <b>{fmtCurrency(globalGoal.remaining)}</b></span>
+          {activities.map((row) => (
+            <span key={row.activity} className="text-xs text-[#8a7456]">
+              {row.label || row.activity} <b className="text-[#2f2415]">{row.attainment || 0}%</b>
+            </span>
+          ))}
+          {onNavigate ? (
+            <button type="button" onClick={() => onNavigate('objectifs_croissance', { tab: 'Rentabilité Lot & Cycle' })} className="text-xs font-black text-[#9a6b12] underline">
+              Objectifs →
+            </button>
+          ) : null}
         </section>
       ) : null}
 
-      {activities.length ? (
-        <section className="space-y-3">
-          <div>
-            <p className="text-xs uppercase tracking-widest text-[#9a6b12] font-black">Fiches activité</p>
-            <h3 className="text-lg font-black text-[#2f2415] mt-1">Œufs · chair · bovins</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {activities.map((row) => (
-              <ActivityGoalCard key={row.activity} row={row} onNavigate={onNavigate} />
-            ))}
-          </div>
-        </section>
-      ) : null}
+      <CentreRecommandationsTab plan={plan} onNavigate={onNavigate} />
 
-      <CentreRecommandationsTab plan={plan} onNavigate={onNavigate} onSwitchTab={onSwitchTab} />
-
-      <DecisionHistoryPanel dataMap={dataMap} onNavigate={onNavigate} />
+      <DecisionHistoryPanel dataMap={dataMap} onNavigate={onNavigate} compact />
 
       <AccordionSection
-        title="Graphiques décisionnels"
-        detail="Courbes production, marge et signaux — optionnel, pour creuser une recommandation."
+        title="Graphiques"
+        detail="Optionnel — production, marge et signaux."
         open={graphOpen}
         onToggle={() => setGraphOpen((v) => !v)}
       >

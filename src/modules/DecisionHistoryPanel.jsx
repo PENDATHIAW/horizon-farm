@@ -1,4 +1,5 @@
 import { BarChart2, CheckCircle2, Clock3, FileText, TrendingDown, TrendingUp } from 'lucide-react';
+import { useState } from 'react';
 import Btn from '../components/Btn';
 import { buildDecisionHistory, decisionStatuses, explainDecisionNonProfitability } from '../services/decisionHistoryEngine';
 import { fmtCurrency } from '../utils/format';
@@ -86,10 +87,42 @@ function MobileDecisionCard({ decision }) {
   </article>;
 }
 
-export default function DecisionHistoryPanel({ dataMap = {}, onNavigate }) {
+export default function DecisionHistoryPanel({ dataMap = {}, onNavigate, compact = false }) {
   const history = buildDecisionHistory(dataMap);
   const totals = history.totals;
-  const latest = history.decisions.slice(0, 8);
+  const latest = history.decisions.slice(0, compact ? 4 : 8);
+  const [open, setOpen] = useState(false);
+
+  if (compact) {
+    return (
+      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-4 shadow-sm space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs uppercase tracking-widest text-[#9a6b12] font-black">ROI des décisions</p>
+          <button type="button" onClick={() => onNavigate?.('impact_business')} className="text-xs font-black text-[#9a6b12] underline">
+            Impact ERP →
+          </button>
+        </div>
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+          <Mini icon={FileText} label="Suivies" value={totals.recommended} />
+          <Mini icon={TrendingUp} label="Rentables" value={totals.profitable} tone="good" />
+          <Mini icon={TrendingDown} label="Non rentables" value={totals.notProfitable} tone="bad" />
+          <Mini icon={BarChart2} label="CA IA" value={`${totals.contributionRate}%`} tone={totals.contributionRate > 0 ? 'good' : 'neutral'} />
+        </div>
+        {latest.length ? (
+          <button type="button" onClick={() => setOpen((v) => !v)} className="text-xs font-black text-[#9a6b12] underline">
+            {open ? 'Masquer le détail' : `Voir ${latest.length} dernière(s) décision(s)`}
+          </button>
+        ) : (
+          <p className="text-sm text-[#8a7456]">Aucune décision historisée pour l&apos;instant.</p>
+        )}
+        {open && latest.length ? (
+          <div className="space-y-2">
+            {latest.map((decision) => <MobileDecisionCard key={decision.id || decision.recommendation_id} decision={decision} />)}
+          </div>
+        ) : null}
+      </section>
+    );
+  }
 
   return (
     <div className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm space-y-4">

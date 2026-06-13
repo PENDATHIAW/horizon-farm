@@ -233,62 +233,63 @@ export default function CentreDecisionModule({
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Intelligence décisionnelle</p>
             <h1 className="mt-1 text-3xl font-black text-[#2f2415]">Centre décisionnel</h1>
-            <p className="mt-2 text-sm text-[#8a7456] max-w-3xl">
-              3 onglets : urgences & risques terrain · croissance & opportunités · saisons & marchés (cycles, fêtes, lancement).
+            <p className="mt-2 text-sm text-[#8a7456] max-w-2xl">
+              Urgences · croissance · saisons — chaque onglet a un rôle distinct, sans doublon.
             </p>
             <HeyHorizonQuickAsk moduleKey="centre_ia" onNavigate={onNavigate} onOpenAssistant={onOpenAssistant} className="mt-2" />
             {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
           </div>
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap gap-2">
-              <Btn
-                variant="outline"
-                onClick={() => {
-                  exportCentreDecisionExcel({ data, decisionPlan, strategicPlan });
-                  toast.success('Export Excel Centre décisionnel généré');
-                }}
-              >
-                Exporter Excel
-              </Btn>
-              <Btn
-                variant="outline"
-                onClick={() => {
-                  exportCentreDecisionCsv({ data, decisionPlan, strategicPlan }, tab);
-                  toast.success(`Export CSV — onglet ${tab}`);
-                }}
-              >
-                Exporter CSV (onglet)
-              </Btn>
-            </div>
-            <div className="rounded-2xl border border-[#eadcc2] bg-white px-4 py-3 text-sm">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="rounded-xl border border-[#eadcc2] bg-white px-3 py-2">
               <span className="text-[#8a7456]">Urgences vente </span>
-              <b className="text-[#2f2415]">{strategicPlan.sellNow?.length || 0}</b>
-            </div>
-            <div className="rounded-2xl border border-[#eadcc2] bg-white px-4 py-3 text-sm">
-              <span className="text-[#8a7456]">ITH actuel </span>
-              <b className="text-[#2f2415]">{strategicPlan.ith ?? '—'}</b>
-            </div>
-            <button type="button" onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Rentabilité Lot & Cycle' })} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-left text-sm hover:bg-[#dcfce7]">
-              <span className="text-[#8a7456]">Croisements analytiques → </span><b>Objectifs & Croissance</b>
+              <b>{strategicPlan.sellNow?.length || 0}</b>
+            </span>
+            <span className="rounded-xl border border-[#eadcc2] bg-white px-3 py-2">
+              <span className="text-[#8a7456]">ITH </span>
+              <b>{strategicPlan.ith ?? '—'}</b>
+            </span>
+            <button type="button" onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Rentabilité Lot & Cycle' })} className="rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-xs font-black text-[#9a6b12] hover:bg-[#dcfce7]">
+              Objectifs →
             </button>
+            <Btn
+              variant="outline"
+              onClick={() => {
+                exportCentreDecisionExcel({ data, decisionPlan, strategicPlan });
+                toast.success('Export Excel Centre décisionnel généré');
+              }}
+            >
+              Excel
+            </Btn>
+            <Btn
+              variant="outline"
+              onClick={() => {
+                exportCentreDecisionCsv({ data, decisionPlan, strategicPlan }, tab);
+                toast.success(`Export CSV — onglet ${tab}`);
+              }}
+            >
+              CSV
+            </Btn>
           </div>
         </div>
       </section>
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
-        <div className="flex-1">
-          <PilotageSettingsPanel clients={props.clients || dataMap.clients} onChange={() => setPilotageVersion((v) => v + 1)} />
+      <details className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] px-4 py-3">
+        <summary className="cursor-pointer text-sm font-black text-[#2f2415]">Paramètres pilotage (clients, fêtes)</summary>
+        <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-start">
+          <div className="flex-1">
+            <PilotageSettingsPanel clients={props.clients || dataMap.clients} onChange={() => setPilotageVersion((v) => v + 1)} />
+          </div>
+          {props.onCreateAlert ? (
+            <button
+              type="button"
+              onClick={() => syncStrategicAlertsToCenter({ strategicPlan, existingAlerts: props.existingAlerts, onCreateAlert: props.onCreateAlert, onRefreshAlertes: props.onRefreshAlertes }).catch(() => undefined)}
+              className="shrink-0 rounded-xl border border-[#d6c3a0] bg-white px-4 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]"
+            >
+              Pousser alertes critiques
+            </button>
+          ) : null}
         </div>
-        {props.onCreateAlert ? (
-          <button
-            type="button"
-            onClick={() => syncStrategicAlertsToCenter({ strategicPlan, existingAlerts: props.existingAlerts, onCreateAlert: props.onCreateAlert, onRefreshAlertes: props.onRefreshAlertes }).catch(() => undefined)}
-            className="shrink-0 rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-sm font-black text-[#2f2415] hover:bg-[#dcfce7]"
-          >
-            Pousser alertes critiques
-          </button>
-        ) : null}
-      </div>
+      </details>
       <ModuleTabsBar moduleId="centre_ia" active={tab} onChange={setTab} tabBadges={tabBadges} />
       {content}
     </div>

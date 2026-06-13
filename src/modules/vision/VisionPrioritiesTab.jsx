@@ -56,6 +56,10 @@ export default function VisionPrioritiesTab({
     () => dedupeByTitle(data.priorities.filter((p) => !p.isEngine), compact ? COMPACT_LIMIT : 12),
     [data.priorities, compact],
   );
+  const compactRows = useMemo(
+    () => dedupeByTitle(data.priorities, COMPACT_LIMIT),
+    [data.priorities, compact],
+  );
   const openOpps = data.openOpportunities?.length ?? 0;
   const totalPriorities = data.priorities?.length || 0;
   const healthLabel = formatHealthLabel(data);
@@ -147,53 +151,33 @@ export default function VisionPrioritiesTab({
           ) : null}
         </section>
 
-        {engineRows.length ? (
-          <Section icon={BrainCircuit} title="À faire maintenant (IA)">
+        {compactRows.length ? (
+          <Section icon={BrainCircuit} title="Actions prioritaires">
             <DataTable columns={VISION_TABLE_COLS}>
-              {engineRows.map((r) => (
+              {compactRows.map((r) => (
                 <DataRow
                   key={r.id}
                   title={r.title}
                   detail={r.detail}
-                  status="IA"
+                  status={r.isEngine ? 'IA' : (r.value || 'Terrain')}
                   tone={r.tone}
-                  onClick={() => navigateVisionFinding(onNavigate, r.finding)}
+                  onClick={() => r.isEngine ? navigateVisionFinding(onNavigate, r.finding) : openVisionPriority(r, moduleId, { setTab, onNavigate })}
                   actions={<>
-                    <button type="button" disabled={busyId === r.id} onClick={() => applyFinding(r)} className="rounded-lg bg-[#22c55e] px-2 py-1 text-xs font-black text-[#052e16] disabled:opacity-50">
-                      {busyId === r.id ? '…' : 'Appliquer'}
-                    </button>
-                    <button type="button" onClick={() => navigateVisionFinding(onNavigate, r.finding)} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Ouvrir</button>
+                    {r.isEngine ? (
+                      <button type="button" disabled={busyId === r.id} onClick={() => applyFinding(r)} className="rounded-lg bg-[#22c55e] px-2 py-1 text-xs font-black text-[#052e16] disabled:opacity-50">
+                        {busyId === r.id ? '…' : 'Appliquer'}
+                      </button>
+                    ) : null}
+                    <button type="button" onClick={() => r.isEngine ? navigateVisionFinding(onNavigate, r.finding) : navFromItem(onNavigate, r)} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Ouvrir</button>
+                    {!r.isEngine && onCreateTask ? <button type="button" onClick={() => createTask(r)} className="rounded-lg border border-emerald-300 px-2 py-1 text-xs font-black text-emerald-700">Tâche</button> : null}
                   </>}
                 />
               ))}
             </DataTable>
           </Section>
-        ) : null}
-
-        {manualRows.length ? (
-          <Section icon={AlertTriangle} title="Alertes & tâches terrain">
-            <DataTable columns={VISION_TABLE_COLS}>
-              {manualRows.map((r) => (
-                <DataRow
-                  key={r.id}
-                  title={r.title}
-                  detail={r.detail}
-                  status={r.value}
-                  tone={r.tone}
-                  onClick={() => openVisionPriority(r, moduleId, { setTab, onNavigate })}
-                  actions={<>
-                    <button type="button" onClick={() => navFromItem(onNavigate, r)} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Ouvrir</button>
-                    {onCreateTask ? <button type="button" onClick={() => createTask(r)} className="rounded-lg border border-emerald-300 px-2 py-1 text-xs font-black text-emerald-700">Tâche</button> : null}
-                  </>}
-                />
-              ))}
-            </DataTable>
-          </Section>
-        ) : null}
-
-        {!engineRows.length && !manualRows.length ? (
+        ) : (
           <Empty>Aucune urgence prioritaire — consultez Croissance ou Saisons pour anticiper.</Empty>
-        ) : null}
+        )}
       </div>
     );
   }
