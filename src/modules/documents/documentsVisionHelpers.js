@@ -119,3 +119,35 @@ export function aggregateMissingProofItems(transactions = [], documents = []) {
     }))
     .sort((a, b) => b.amount - a.amount);
 }
+
+const moduleHint = (row = {}) => low(`${row.module_lie || ''} ${row.source_module || ''} ${row.categorie || ''} ${row.libelle || ''} ${row.module_source || ''}`);
+
+export function buildDocumentsDomainCoverage({ documents = [], transactions = [], gaps = [] } = {}) {
+  const trxFinance = arr(transactions).filter((trx) => moduleHint(trx).match(/finance|vente|client|paiement|charge|achat|fournisseur/) || amount(trx) > 0);
+  const trxElevage = arr(transactions).filter((trx) => moduleHint(trx).match(/elevage|avicole|animal|sante|soin|veterinaire/));
+  const trxCultures = arr(transactions).filter((trx) => moduleHint(trx).match(/culture|recolte|parcelle|intrant/));
+  const docsElevage = arr(documents).filter((d) => moduleHint(d).match(/elevage|avicole|animal|sante/));
+  const docsCultures = arr(documents).filter((d) => moduleHint(d).match(/culture|recolte|parcelle/));
+  const docsFinance = arr(documents).filter((d) => moduleHint(d).match(/finance|facture|paiement|vente/) || /preuve|facture|paiement/.test(low(`${d.type || d.categorie || ''} ${d.title || d.nom || ''}`)));
+
+  const proofRate = (trxRows, docRows) => {
+    const pool = trxRows.length ? trxRows : docRows;
+    if (!pool.length) return 100;
+    const ok = pool.filter((row) => {
+      if (trxRows.length) {
+        const linked = arr(documents).some((d) => String(d.transaction_id || d.source_record_id || d.related_id) === String(row.id));
+        return hasProof(row) || linked;
+      }
+      return Boolean(row.file_url || row.url || row.transaction_id || row.source_record_id);
+    });
+    return Math.round((ok.length / pool.length) * 100);
+  };
+
+  const gapCount = (pattern) => arr(gaps).filter((g) => pattern.test(low(`${g.title || ''} ${g.detail || ''} ${g.issue_key || ''}`))).length;
+
+  return [
+    { key: 'finance', label: 'Finance', pct: proofRate(trxFinance, docsFinance), gaps: gapCount(/finance|transaction|preuve|facture/) },
+    { key: 'elevage', label: 'Élevage', pct: proofRate(trxElevage, docsElevage), gaps: gapCount(/elevage|avicole|animal|sante/) },
+    { key: 'cultures', label: 'Cultures', pct: proofRate(trxCultures, docsCultures), gaps: gapCount(/culture|recolte|parcelle/) },
+  ];
+}

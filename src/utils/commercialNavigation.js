@@ -272,7 +272,31 @@ export function resolveActiviteSuiviTab(value = '') {
   return tabAliases[lower(tab)] || 'Résumé';
 }
 
-export const DOCUMENTS_RAPPORTS_TABS = ['Résumé', 'Bibliothèque', 'Preuves', 'Rapports', 'Exports', 'Modèles', 'Graphiques'];
+export const DOCUMENTS_RAPPORTS_TABS = ['Centre de contrôle', 'Gestionnaire & OCR', 'Rapprochement & preuves', 'Rapports & exports'];
+
+const DOCUMENTS_TAB_ALIASES = {
+  'Centre de contrôle': 'Centre de contrôle',
+  controle: 'Centre de contrôle',
+  Résumé: 'Centre de contrôle',
+  resume: 'Centre de contrôle',
+  'Gestionnaire & OCR': 'Gestionnaire & OCR',
+  gestionnaire: 'Gestionnaire & OCR',
+  ocr: 'Gestionnaire & OCR',
+  Bibliothèque: 'Gestionnaire & OCR',
+  bibliotheque: 'Gestionnaire & OCR',
+  Modèles: 'Gestionnaire & OCR',
+  modeles: 'Gestionnaire & OCR',
+  'Rapprochement & preuves': 'Rapprochement & preuves',
+  rapprochement: 'Rapprochement & preuves',
+  Preuves: 'Rapprochement & preuves',
+  preuves: 'Rapprochement & preuves',
+  'Rapports & exports': 'Rapports & exports',
+  rapports: 'Rapports & exports',
+  Exports: 'Rapports & exports',
+  exports: 'Rapports & exports',
+  Graphiques: 'Rapports & exports',
+  graphiques: 'Rapports & exports',
+};
 export const RH_TABS = ['Résumé', 'Équipements', 'Maintenance', 'Affectations', 'Coûts', 'Documents', 'Graphiques'];
 export const SMARTFARM_TABS = ['Résumé', 'Capteurs', 'Caméras', 'Annexe', 'Graphiques'];
 export const CULTURES_TABS = ['Parcelles & campagnes', 'Récoltes', 'Économie circulaire'];
@@ -313,7 +337,14 @@ export const INVESTISSEURS_TABS = ['room', 'preparation', 'dossier', 'library', 
 export function resolveDocumentsTab(value = '') {
   const tab = String(value || '').trim();
   if (DOCUMENTS_RAPPORTS_TABS.includes(tab)) return tab;
-  return tabAliases[lower(tab)] || 'Résumé';
+  const fromAlias = DOCUMENTS_TAB_ALIASES[tab] || DOCUMENTS_TAB_ALIASES[lower(tab)];
+  if (fromAlias) return fromAlias;
+  return 'Centre de contrôle';
+}
+
+export function resolveDocumentsNavigation(value = '') {
+  const raw = String(value || '').trim();
+  return { tab: resolveDocumentsTab(raw) };
 }
 
 export function resolveRhTab(value = '') {
