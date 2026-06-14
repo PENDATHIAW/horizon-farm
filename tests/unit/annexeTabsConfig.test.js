@@ -7,7 +7,6 @@ const MODULES_WITH_ANNEXE = [
   'elevage',
   'commercial',
   'achats_stock',
-  'finance_pilotage',
   'activite_suivi',
   'documents_rapports',
   'smartfarm',
@@ -23,8 +22,8 @@ for (const moduleId of MODULES_WITH_ANNEXE) {
   });
 }
 
-test('finance_pilotage inclut Échéancier avant Investissements', () => {
+test('finance_pilotage — 5 onglets avec Pilotage (échéancier, investissements, annexe)', () => {
   const tabs = MODULE_TARGET_TABS.finance_pilotage;
-  assert.ok(tabs.includes('Échéancier'));
-  assert.ok(tabs.indexOf('Échéancier') < tabs.indexOf('Investissements'));
+  assert.equal(tabs.length, 5);
+  assert.deepEqual(tabs, ['Résumé', 'Trésorerie', 'Créances & dettes', 'Pilotage', 'Graphiques']);
 });

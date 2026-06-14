@@ -18,7 +18,7 @@ export const MODULE_TARGET_TABS = {
   elevage: ['Lots & bandes', 'Cycles & Reproduction', 'Santé', 'Transformation'],
   commercial: ['Ventes', 'Opportunités', 'Clients & créances', 'Livraisons', 'Abonnements', 'Pilotage'],
   achats_stock: ['Inventaire', 'Réceptions & achats', 'Fournisseurs & dettes'],
-  finance_pilotage: ['Résumé', 'Trésorerie', 'Créances', 'Dettes', 'Échéancier', 'Financement', 'Réconciliation', 'Investissements', 'Rentabilité', 'Annexe', 'Graphiques'],
+  finance_pilotage: ['Résumé', 'Trésorerie', 'Créances & dettes', 'Pilotage', 'Graphiques'],
   activite_suivi: ['Résumé', 'Alertes', 'Tâches', 'Traçabilité', 'Graphiques'],
   documents_rapports: ['Résumé', 'Bibliothèque', 'Preuves', 'Rapports', 'Exports', 'Modèles', 'Graphiques'],
   rh: ['Résumé', 'Équipements', 'Maintenance', 'Affectations', 'Coûts', 'Documents', 'Graphiques'],

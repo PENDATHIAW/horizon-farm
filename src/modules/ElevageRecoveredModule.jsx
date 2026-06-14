@@ -71,6 +71,7 @@ export default function ElevageRecoveredModule(props) {
   const [tab, setTabState] = useState(() => resolveElevageTab(props.initialTab));
   const [lotsSubview, setLotsSubview] = useState(() => resolveElevageLotsSubview(props.initialTab) || 'avicole');
   const [activeModal, setActiveModal] = useState(null);
+  const [workflowScope, setWorkflowScope] = useState(() => resolveElevageLotsSubview(props.initialTab) || 'avicole');
   const [healthDraft, setHealthDraft] = useState(null);
   const [transformationDraft, setTransformationDraft] = useState(null);
   const [reproductionHorizonDraft, setReproductionHorizonDraft] = useState(null);
@@ -370,6 +371,12 @@ export default function ElevageRecoveredModule(props) {
   }, [health, props.onNavigate, confirmSanitaryOverride]);
 
   const openWorkflow = useCallback((modal, context = {}) => {
+    const scope = context.scope || lotsSubview || 'avicole';
+    if (modal === 'eggs' && scope === 'animaux') {
+      toast.error('Le ramassage œufs est réservé aux lots pondeuses (onglet Avicole & lots).');
+      return;
+    }
+    setWorkflowScope(scope);
     if (modal === 'health') {
       openElevageHealthForm({
         setTab,
@@ -398,7 +405,7 @@ export default function ElevageRecoveredModule(props) {
       return;
     }
     openWorkflowModal(modal);
-  }, [onPrepareTransformation, openWorkflowModal]);
+  }, [onPrepareTransformation, openWorkflowModal, lotsSubview, setTab, setHealthDraft]);
   const closeWorkflow = useCallback(() => setActiveModal(null), []);
 
   const startupProgress = useMemo(() => buildElevageStartupProgress({
@@ -511,6 +518,10 @@ export default function ElevageRecoveredModule(props) {
       onNavigate={guardedNavigate}
       onOpenWorkflow={openWorkflow}
       onSetTab={setTab}
+      onLotsSubviewChange={(sub) => {
+        setLotsSubview(sub);
+        setWorkflowScope(sub);
+      }}
     />
   ) : tab === 'Cycles & Reproduction' ? (
     <ElevageCyclesReproductionTab
@@ -566,6 +577,10 @@ export default function ElevageRecoveredModule(props) {
       onNavigate={guardedNavigate}
       onOpenWorkflow={openWorkflow}
       onSetTab={setTab}
+      onLotsSubviewChange={(sub) => {
+        setLotsSubview(sub);
+        setWorkflowScope(sub);
+      }}
     />
   );
   return (
@@ -583,9 +598,10 @@ export default function ElevageRecoveredModule(props) {
         lots={lots}
         animaux={animals}
         pondeuseLots={pondeuseLots}
+        scope={workflowScope}
         onSuccess={refreshAfterWorkflow}
       />
-      <ElevageMobileToolbar onOpenWorkflow={openWorkflow} onNavigate={guardedNavigate} />
+      <ElevageMobileToolbar scope={lotsSubview} onOpenWorkflow={openWorkflow} onNavigate={guardedNavigate} />
     </div>
   );
 }

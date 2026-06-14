@@ -7,7 +7,7 @@ import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
 import { emitHorizonForm } from '../services/formModalManager';
 import { applyOneClickRecommendation } from '../services/heyHorizonRecommendationActions.js';
-import { navigationOptionsForFinding, resolveFinanceTab } from '../utils/commercialNavigation';
+import { navigationOptionsForFinding, resolveFinanceTab, resolveFinanceNavigation } from '../utils/commercialNavigation';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { aggregateMissingProofTransactions, buildFinanceCoherenceRows, buildFinanceHealthSnapshot } from './finance/financeVisionHelpers.js';
 import { rowsOf, allRows } from '../utils/moduleRows';
@@ -36,6 +36,8 @@ import {
 } from '../utils/financePilotageCore.js';
 import FinanceDemoBanner from './finance/FinanceDemoBanner.jsx';
 import FinanceDataQualityPanel from './finance/FinanceDataQualityPanel.jsx';
+import FinanceInsightPanel from './finance/FinanceInsightPanel.jsx';
+import FinanceMissingProofPanel from './finance/FinanceMissingProofPanel.jsx';
 import {
   buildCashFlowForecast,
   buildExecutiveFinancialSituation,
@@ -73,6 +75,23 @@ const remainingOf = (order = {}, payments = []) => Math.max(0, n(order.montant_t
 function Stat({ label, value, tone = 'neutral' }) {
   const cls = tone === 'good' ? 'text-emerald-600' : tone === 'warn' ? 'text-amber-600' : tone === 'bad' ? 'text-red-600' : 'text-[#2f2415]';
   return <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs text-[#8a7456]">{label}</p><p className={`mt-1 text-xl font-black ${cls}`}>{value}</p></div>;
+}
+
+function FinanceInnerTabs({ tabs = [], active, onChange }) {
+  return (
+    <div className="flex flex-wrap gap-2 rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-2">
+      {tabs.map(({ key, label }) => (
+        <button
+          key={key}
+          type="button"
+          onClick={() => onChange?.(key)}
+          className={`rounded-xl px-3 py-2 text-xs font-black ${active === key ? 'bg-[#2f2415] text-white' : 'text-[#2f2415] hover:bg-white'}`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
 }
 const hasProof = (r = {}) => Boolean(r.document_id || r.proof_url || r.justificatif_id || r.file_url || r.url);
 
@@ -211,7 +230,7 @@ function RentabilitePanel({ profitability = null, consolidationProps = {} }) {
 }
 function Summary({
   data,
-  setTab,
+  navigateFinance,
   onApply,
   busyId,
   onNavigate,
@@ -230,11 +249,11 @@ function Summary({
   return (
     <div className="space-y-5">
       <FinanceDemoBanner demo={financeDemo} />
-      <FinanceExecutiveSituationPanel situation={executiveSituation} onNavigateTab={setTab} />
-      <FinanceDataQualityPanel dataQuality={dataQuality} onNavigateTab={setTab} />
-      <FinanceAlertsPanel alerts={financeAlerts} onNavigateTab={setTab} insufficientData={startupMode} />
+      <FinanceExecutiveSituationPanel situation={executiveSituation} onNavigateTab={navigateFinance} />
+      <FinanceDataQualityPanel dataQuality={dataQuality} onNavigateTab={navigateFinance} />
+      <FinanceAlertsPanel alerts={financeAlerts} onNavigateTab={navigateFinance} insufficientData={startupMode} />
       <FinanceMultiFarmPanel multiFarm={multiFarm} />
-      {startupMode ? <FinanceStartupPanel journey={startupJourney} onNavigate={onNavigate} setTab={setTab} /> : null}
+      {startupMode ? <FinanceStartupPanel journey={startupJourney} onNavigate={onNavigate} setTab={navigateFinance} /> : null}
       <FinanceHeyHorizonStrip questions={heyHorizonQuestions} onNavigate={onNavigate} onOpenAssistant={onOpenAssistant} insufficientData={startupMode} />
       <FinanceExportsPanel exportPayload={directExports || exportPayload} directOnly />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-8">
@@ -247,20 +266,26 @@ function Summary({
         <Stat label="Sans preuve" value={fmtNumber(data.missingProof)} tone={data.missingProof ? 'warn' : 'good'} />
         <Stat label="Signaux métier" value={data.healthInsufficient ? 'En attente' : fmtNumber(data.healthFindings.length)} tone={data.healthInsufficient ? 'neutral' : data.healthFindings.length ? 'warn' : 'good'} />
       </div>
-      <FinanceIaPanel findings={data.healthFindings} predictions={data.healthPredictions} onApply={onApply} busyId={busyId} onNavigate={onNavigate} />
-      <MissingProofPanel items={data.missingProofItems} setTab={setTab} />
-      <CoherencePanel rows={data.coherenceRows} onApply={onApply} busyId={busyId} setTab={setTab} />
+      <FinanceInsightPanel
+        findings={data.healthFindings}
+        predictions={data.healthPredictions}
+        coherenceRows={data.coherenceRows}
+        onApplyFinding={onApply}
+        onNavigate={onNavigate}
+        setTab={navigateFinance}
+        busyId={busyId}
+      />
+      <FinanceMissingProofPanel items={data.missingProofItems} />
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
         <h2 className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><BarChart3 size={20} /> Workflows financiers récupérés</h2>
         <p className="mt-2 text-sm leading-relaxed text-[#8a7456]">Finance & Pilotage remet les anciens moteurs : saisie finance Hey Horizon, trésorerie, santé comptable, preuves, business plan, paiement d'investissement, création d'actifs, documents et événements métier.</p>
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
-          <button type="button" onClick={() => { emitHorizonForm('finances', 'finance_entry', 'Nouvelle écriture', { date: new Date().toISOString().slice(0, 10) }); setTab('Trésorerie'); }} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">+ Écriture</b><p className="mt-1 text-sm text-[#8a7456]">Recette ou dépense avec preuve.</p></button>
-          <button type="button" onClick={() => setTab('Trésorerie')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Trésorerie</b><p className="mt-1 text-sm text-[#8a7456]">Recettes, dépenses, preuves.</p></button>
-          <button type="button" onClick={() => setTab('Créances')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Créances</b><p className="mt-1 text-sm text-[#8a7456]">Restes à encaisser.</p></button>
-          <button type="button" onClick={() => setTab('Dettes')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Dettes</b><p className="mt-1 text-sm text-[#8a7456]">Charges à payer.</p></button>
-          <button type="button" onClick={() => setTab('Échéancier')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Échéancier</b><p className="mt-1 text-sm text-[#8a7456]">Encaissements et paiements à venir.</p></button>
-          <button type="button" onClick={() => setTab('Investissements')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Investissements</b><p className="mt-1 text-sm text-[#8a7456]">Budget et actifs.</p></button>
-          <button type="button" onClick={() => setTab('Rentabilité')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Rentabilité</b><p className="mt-1 text-sm text-[#8a7456]">Marges et alertes ERP.</p></button>
+          <button type="button" onClick={() => { emitHorizonForm('finances', 'finance_entry', 'Nouvelle écriture', { date: new Date().toISOString().slice(0, 10) }); navigateFinance('Trésorerie'); }} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">+ Écriture</b><p className="mt-1 text-sm text-[#8a7456]">Recette ou dépense avec preuve.</p></button>
+          <button type="button" onClick={() => navigateFinance('Trésorerie')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Trésorerie</b><p className="mt-1 text-sm text-[#8a7456]">Recettes, dépenses, preuves.</p></button>
+          <button type="button" onClick={() => navigateFinance('Créances')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Créances & dettes</b><p className="mt-1 text-sm text-[#8a7456]">Restes à encaisser et à payer.</p></button>
+          <button type="button" onClick={() => navigateFinance('Échéancier')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Échéancier</b><p className="mt-1 text-sm text-[#8a7456]">Encaissements et paiements à venir.</p></button>
+          <button type="button" onClick={() => navigateFinance('Investissements')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Investissements</b><p className="mt-1 text-sm text-[#8a7456]">Budget et actifs.</p></button>
+          <button type="button" onClick={() => navigateFinance('Rentabilité')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Rentabilité</b><p className="mt-1 text-sm text-[#8a7456]">Marges et alertes ERP.</p></button>
         </div>
       </section>
     </div>
@@ -268,12 +293,27 @@ function Summary({
 }
 
 export default function FinancePilotageRecoveredModule(props) {
-  const [tab, setTab] = useState(() => resolveFinanceTab(props.initialTab));
+  const initialNav = resolveFinanceNavigation(props.initialTab);
+  const [tab, setTab] = useState(() => initialNav.tab || resolveFinanceTab(props.initialTab));
+  const [treasurySubview, setTreasurySubview] = useState(() => initialNav.treasurySubview || 'saisie');
+  const [pilotageSubview, setPilotageSubview] = useState(() => initialNav.pilotageSubview || 'echeancier');
   const [busyId, setBusyId] = useState(null);
   const [simulatorParams, setSimulatorParams] = useState(() => readFinanceSimulatorParams());
 
+  const navigateFinance = (target = '') => {
+    const nav = resolveFinanceNavigation(target);
+    setTab(nav.tab);
+    if (nav.treasurySubview) setTreasurySubview(nav.treasurySubview);
+    if (nav.pilotageSubview) setPilotageSubview(nav.pilotageSubview);
+  };
+
   useEffect(() => {
-    if (props.initialTab) setTab(resolveFinanceTab(props.initialTab));
+    if (props.initialTab) {
+      const nav = resolveFinanceNavigation(props.initialTab);
+      setTab(nav.tab);
+      if (nav.treasurySubview) setTreasurySubview(nav.treasurySubview);
+      if (nav.pilotageSubview) setPilotageSubview(nav.pilotageSubview);
+    }
   }, [props.initialTab]);
   const financesCrud = useCrudModule('finances');
   const investmentsCrud = useCrudModule('investissements');
@@ -529,7 +569,7 @@ export default function FinancePilotageRecoveredModule(props) {
       else {
         toast.success('Module ouvert');
         const target = navigationOptionsForFinding(finding);
-        if (target.module === 'finance_pilotage') setTab(target.tab || 'Trésorerie');
+        if (target.module === 'finance_pilotage') navigateFinance(target.tab || 'Trésorerie');
       }
     } catch (e) {
       toast.error(e.message || 'Erreur');
@@ -647,7 +687,7 @@ export default function FinancePilotageRecoveredModule(props) {
       {tab === 'Résumé' ? (
         <Summary
           data={data}
-          setTab={setTab}
+          navigateFinance={navigateFinance}
           onApply={applyFinding}
           busyId={busyId}
           onNavigate={props.onNavigate}
@@ -664,52 +704,80 @@ export default function FinancePilotageRecoveredModule(props) {
           onOpenAssistant={props.onOpenAssistant}
         />
       ) : tab === 'Trésorerie' ? (
-        <FinancesV12 {...financeProps} />
-      ) : tab === 'Créances' ? (
-        <CreancesPanel data={data} onNavigate={props.onNavigate} />
-      ) : tab === 'Dettes' ? (
-        <DettesPanel data={data} onNavigate={props.onNavigate} />
-      ) : tab === 'Échéancier' ? (
-        <div className="space-y-5">
-          <FinanceSchedulePanel schedule={schedule} showFarm={showFarmInSchedule} />
-          <FinanceAgingPanel receivablesAging={receivablesAging} payablesAging={payablesAging} showFarm={showFarmInSchedule} />
-          <FinanceCashFlowForecastPanel forecast={cashFlowForecast} />
-        </div>
-      ) : tab === 'Financement' ? (
-        <div className="space-y-5">
-          <FinanceDemoBanner demo={financeDemo} />
-          <FinanceFinancingPanel
-            financing={financingView}
-            simulator={financingSimulator}
-            directExports={directExports}
-            onNavigate={props.onNavigate}
-            onSimulatorParamsChange={setSimulatorParams}
+        <div className="space-y-4">
+          <FinanceInnerTabs
+            tabs={[
+              { key: 'saisie', label: 'Saisie & flux' },
+              { key: 'reconciliation', label: 'Réconciliation' },
+            ]}
+            active={treasurySubview}
+            onChange={setTreasurySubview}
           />
+          {treasurySubview === 'reconciliation' ? (
+            <FinanceReconciliationPanel
+              reconciliationView={reconciliationView}
+              transactions={transactions}
+              payments={paymentsAll.length ? paymentsAll : payments}
+              salesOrders={salesOrdersAll.length ? salesOrdersAll : salesOrders}
+              stocks={stocks}
+              onCreateFinanceTransaction={props.onCreateFinanceTransaction || financesCrud.create}
+              onRefreshFinances={props.onRefreshFinances || financesCrud.refresh}
+              onNavigate={props.onNavigate}
+              setTab={navigateFinance}
+            />
+          ) : (
+            <FinancesV12 {...financeProps} />
+          )}
         </div>
-      ) : tab === 'Réconciliation' ? (
-        <FinanceReconciliationPanel
-          reconciliationView={reconciliationView}
-          transactions={transactions}
-          payments={paymentsAll.length ? paymentsAll : payments}
-          salesOrders={salesOrdersAll.length ? salesOrdersAll : salesOrders}
-          stocks={stocks}
-          onCreateFinanceTransaction={props.onCreateFinanceTransaction || financesCrud.create}
-          onRefreshFinances={props.onRefreshFinances || financesCrud.refresh}
-          onNavigate={props.onNavigate}
-          setTab={setTab}
-        />
-      ) : tab === 'Investissements' ? (
-        <InvestissementsV9 {...investmentProps} />
-      ) : tab === 'Rentabilité' ? (
-        <RentabilitePanel profitability={profitability} consolidationProps={consolidationProps} />
-      ) : tab === 'Annexe' ? (
-        <FinanceAnnexePanel documents={financeProps.documents} onNavigate={props.onNavigate} />
+      ) : tab === 'Créances & dettes' ? (
+        <div className="space-y-5">
+          <CreancesPanel data={data} onNavigate={props.onNavigate} />
+          <DettesPanel data={data} onNavigate={props.onNavigate} />
+        </div>
+      ) : tab === 'Pilotage' ? (
+        <div className="space-y-4">
+          <FinanceInnerTabs
+            tabs={[
+              { key: 'echeancier', label: 'Échéancier' },
+              { key: 'financement', label: 'Financement' },
+              { key: 'investissements', label: 'Investissements' },
+              { key: 'rentabilite', label: 'Rentabilité' },
+              { key: 'annexe', label: 'Annexe' },
+            ]}
+            active={pilotageSubview}
+            onChange={setPilotageSubview}
+          />
+          {pilotageSubview === 'echeancier' ? (
+            <div className="space-y-5">
+              <FinanceSchedulePanel schedule={schedule} showFarm={showFarmInSchedule} />
+              <FinanceAgingPanel receivablesAging={receivablesAging} payablesAging={payablesAging} showFarm={showFarmInSchedule} />
+              <FinanceCashFlowForecastPanel forecast={cashFlowForecast} />
+            </div>
+          ) : pilotageSubview === 'financement' ? (
+            <div className="space-y-5">
+              <FinanceDemoBanner demo={financeDemo} />
+              <FinanceFinancingPanel
+                financing={financingView}
+                simulator={financingSimulator}
+                directExports={directExports}
+                onNavigate={props.onNavigate}
+                onSimulatorParamsChange={setSimulatorParams}
+              />
+            </div>
+          ) : pilotageSubview === 'investissements' ? (
+            <InvestissementsV9 {...investmentProps} />
+          ) : pilotageSubview === 'rentabilite' ? (
+            <RentabilitePanel profitability={profitability} consolidationProps={consolidationProps} />
+          ) : (
+            <FinanceAnnexePanel documents={financeProps.documents} onNavigate={props.onNavigate} />
+          )}
+        </div>
       ) : tab === 'Graphiques' ? (
         <ModuleGraphiquesTab moduleId="finance_pilotage" transactions={transactions} payments={payments} salesOrders={salesOrders} investissements={investments} businessPlans={businessPlans} onNavigate={props.onNavigate} />
       ) : (
         <Summary
           data={data}
-          setTab={setTab}
+          navigateFinance={navigateFinance}
           onApply={applyFinding}
           busyId={busyId}
           onNavigate={props.onNavigate}

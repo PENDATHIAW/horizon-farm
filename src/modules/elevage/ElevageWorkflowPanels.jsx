@@ -94,8 +94,11 @@ export default function ElevageWorkflowPanels({
   lots = [],
   animaux = [],
   pondeuseLots = [],
+  scope = 'avicole',
   onSuccess,
 }) {
+  const isAnimaux = scope === 'animaux';
+  const isAvicole = !isAnimaux;
   const [busy, setBusy] = useState(false);
   const [feeding, setFeeding] = useState({ date: today(), stock_id: feedStocks[0]?.id || '', lot_id: '', animal_id: '', quantite: '', notes: '' });
   const [mortality, setMortality] = useState({ date: today(), lot_id: lots[0]?.id || '', quantite: '', notes: '' });
@@ -120,7 +123,7 @@ export default function ElevageWorkflowPanels({
 
   return (
     <>
-      <Modal open={activeModal === 'feeding'} title="Distribution aliment — Élevage" onClose={onClose} busy={busy} onSubmit={() => run(() => commitElevageFeeding({
+      <Modal open={activeModal === 'feeding'} title={isAnimaux ? 'Distribution aliment — Cheptel' : 'Distribution aliment — Lots avicoles'} onClose={onClose} busy={busy} onSubmit={() => run(() => commitElevageFeeding({
         form: { ...feeding, id: makeId('ALIM'), quantite: num(feeding.quantite) },
         context,
         handlers,
@@ -132,18 +135,29 @@ export default function ElevageWorkflowPanels({
             {feedStocks.map((s) => <option key={s.id} value={s.id}>{s.produit || s.nom} ({s.quantite} {s.unite})</option>)}
           </select>
         </Field>
-        <Field label="Lot avicole">
-          <select className={inputCls} value={feeding.lot_id} onChange={(e) => setFeeding({ ...feeding, lot_id: e.target.value, animal_id: '' })}>
-            <option value="">—</option>
-            {lots.map((l) => <option key={l.id} value={l.id}>{l.name || l.nom || l.id}</option>)}
-          </select>
-        </Field>
-        <Field label="Animal">
-          <select className={inputCls} value={feeding.animal_id} onChange={(e) => setFeeding({ ...feeding, animal_id: e.target.value, lot_id: '' })}>
-            <option value="">—</option>
-            {animaux.map((a) => <option key={a.id} value={a.id}>{a.nom || a.name || a.id}</option>)}
-          </select>
-        </Field>
+        {isAvicole ? (
+          <Field label="Lot avicole / bande">
+            <select className={inputCls} value={feeding.lot_id} onChange={(e) => setFeeding({ ...feeding, lot_id: e.target.value, animal_id: '' })}>
+              <option value="">—</option>
+              {lots.map((l) => <option key={l.id} value={l.id}>{l.name || l.nom || l.id}</option>)}
+            </select>
+          </Field>
+        ) : null}
+        {isAnimaux ? (
+          <Field label="Animal (obligatoire)">
+            <select className={inputCls} value={feeding.animal_id} onChange={(e) => setFeeding({ ...feeding, animal_id: e.target.value, lot_id: '' })} required>
+              <option value="">Choisir…</option>
+              {animaux.map((a) => <option key={a.id} value={a.id}>{a.nom || a.name || a.id}</option>)}
+            </select>
+          </Field>
+        ) : (
+          <Field label="Animal (optionnel)">
+            <select className={inputCls} value={feeding.animal_id} onChange={(e) => setFeeding({ ...feeding, animal_id: e.target.value, lot_id: '' })}>
+              <option value="">—</option>
+              {animaux.map((a) => <option key={a.id} value={a.id}>{a.nom || a.name || a.id}</option>)}
+            </select>
+          </Field>
+        )}
         <Field label="Quantité"><input type="number" min="0" className={inputCls} value={feeding.quantite} onChange={(e) => setFeeding({ ...feeding, quantite: e.target.value })} required /></Field>
         <Field label="Notes"><input className={inputCls} value={feeding.notes} onChange={(e) => setFeeding({ ...feeding, notes: e.target.value })} /></Field>
       </Modal>
@@ -195,7 +209,7 @@ export default function ElevageWorkflowPanels({
         <Field label="Notes"><input className={inputCls} value={transform.notes} onChange={(e) => setTransform({ ...transform, notes: e.target.value })} /></Field>
       </Modal>
 
-      <Modal open={activeModal === 'weighing'} title="Pesée — Élevage" onClose={onClose} busy={busy} onSubmit={() => run(() => commitElevageWeighing({
+      <Modal open={activeModal === 'weighing'} title={isAnimaux ? 'Pesée — Animal' : 'Pesée — Lot ou animal'} onClose={onClose} busy={busy} onSubmit={() => run(() => commitElevageWeighing({
         form: { ...weighing, id: makeId('PES'), poids: num(weighing.poids) },
         context,
         handlers,
@@ -207,14 +221,16 @@ export default function ElevageWorkflowPanels({
         }
       }))}>
         <Field label="Date"><input type="date" className={inputCls} value={weighing.date} onChange={(e) => setWeighing({ ...weighing, date: e.target.value })} /></Field>
-        <Field label="Lot avicole">
-          <select className={inputCls} value={weighing.lot_id} onChange={(e) => setWeighing({ ...weighing, lot_id: e.target.value, animal_id: '' })}>
-            <option value="">—</option>
-            {lots.map((l) => <option key={l.id} value={l.id}>{l.name || l.nom || l.id}</option>)}
-          </select>
-        </Field>
-        <Field label="Animal">
-          <select className={inputCls} value={weighing.animal_id} onChange={(e) => setWeighing({ ...weighing, animal_id: e.target.value, lot_id: '' })}>
+        {isAvicole ? (
+          <Field label="Lot avicole">
+            <select className={inputCls} value={weighing.lot_id} onChange={(e) => setWeighing({ ...weighing, lot_id: e.target.value, animal_id: '' })}>
+              <option value="">—</option>
+              {lots.map((l) => <option key={l.id} value={l.id}>{l.name || l.nom || l.id}</option>)}
+            </select>
+          </Field>
+        ) : null}
+        <Field label={isAnimaux ? 'Animal (obligatoire)' : 'Animal (optionnel)'}>
+          <select className={inputCls} value={weighing.animal_id} onChange={(e) => setWeighing({ ...weighing, animal_id: e.target.value, lot_id: '' })} required={isAnimaux}>
             <option value="">—</option>
             {animaux.map((a) => <option key={a.id} value={a.id}>{a.nom || a.name || a.id}</option>)}
           </select>

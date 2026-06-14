@@ -133,10 +133,13 @@ test('isFinanceStartupMode — aucune donnée financière', () => {
   }), false);
 });
 
-test('resolveFinanceTab — onglet Échéancier', () => {
-  assert.equal(resolveFinanceTab('Échéancier'), 'Échéancier');
-  assert.ok(FINANCE_TABS.includes('Échéancier'));
-  assert.ok(MODULE_TARGET_TABS.finance_pilotage.includes('Échéancier'));
+test('resolveFinanceTab — aliases anciens onglets vers structure 5 onglets', () => {
+  assert.equal(resolveFinanceTab('Échéancier'), 'Pilotage');
+  assert.equal(resolveFinanceTab('Investissements'), 'Pilotage');
+  assert.equal(resolveFinanceTab('Réconciliation'), 'Trésorerie');
+  assert.equal(resolveFinanceTab('Créances'), 'Créances & dettes');
+  assert.ok(FINANCE_TABS.includes('Pilotage'));
+  assert.ok(MODULE_TARGET_TABS.finance_pilotage.includes('Pilotage'));
 });
 
 test('applyFarmScopeToProps finance_pilotage — filtre farm_id si activé', () => {

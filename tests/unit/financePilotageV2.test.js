@@ -194,12 +194,11 @@ test('buildFinanceHeyHorizonQuestions — questions multi-fermes', () => {
   assert.ok(multi.length > mono.length);
 });
 
-test('resolveFinanceTab — onglets Financement et Réconciliation V2', () => {
-  assert.equal(resolveFinanceTab('Financement'), 'Financement');
-  assert.equal(resolveFinanceTab('Réconciliation'), 'Réconciliation');
-  assert.ok(FINANCE_TABS.includes('Financement'));
-  assert.ok(FINANCE_TABS.includes('Réconciliation'));
-  assert.ok(MODULE_TARGET_TABS.finance_pilotage.includes('Financement'));
+test('resolveFinanceTab — aliases Financement et Réconciliation vers 5 onglets', () => {
+  assert.equal(resolveFinanceTab('Financement'), 'Pilotage');
+  assert.equal(resolveFinanceTab('Réconciliation'), 'Trésorerie');
+  assert.ok(FINANCE_TABS.includes('Pilotage'));
+  assert.ok(MODULE_TARGET_TABS.finance_pilotage.includes('Trésorerie'));
 });
 
 test('non-régression — lignes sans farm_id visibles en aging', () => {

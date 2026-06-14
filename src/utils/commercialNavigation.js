@@ -115,7 +115,55 @@ const COMMERCIAL_TAB_ALIASES = {
   prospects: 'Clients & créances',
 };
 export const ACTIVITE_SUIVI_TABS = ['Résumé', 'Alertes', 'Tâches', 'Traçabilité', 'Graphiques'];
-export const FINANCE_TABS = ['Résumé', 'Trésorerie', 'Créances', 'Dettes', 'Échéancier', 'Financement', 'Réconciliation', 'Investissements', 'Rentabilité', 'Annexe', 'Graphiques'];
+export const FINANCE_TABS = ['Résumé', 'Trésorerie', 'Créances & dettes', 'Pilotage', 'Graphiques'];
+export const FINANCE_TREASURY_SUBVIEWS = ['saisie', 'reconciliation'];
+export const FINANCE_PILOTAGE_SUBVIEWS = ['echeancier', 'financement', 'investissements', 'rentabilite', 'annexe'];
+
+const FINANCE_TAB_ALIASES = {
+  Résumé: 'Résumé',
+  resume: 'Résumé',
+  Cockpit: 'Résumé',
+  cockpit: 'Résumé',
+  Trésorerie: 'Trésorerie',
+  tresorerie: 'Trésorerie',
+  finances: 'Trésorerie',
+  Créances: 'Créances & dettes',
+  creances: 'Créances & dettes',
+  Dettes: 'Créances & dettes',
+  dettes: 'Créances & dettes',
+  'Créances & dettes': 'Créances & dettes',
+  Échéancier: 'Pilotage',
+  echeancier: 'Pilotage',
+  Financement: 'Pilotage',
+  financement: 'Pilotage',
+  Investissements: 'Pilotage',
+  investissements: 'Pilotage',
+  Rentabilité: 'Pilotage',
+  rentabilite: 'Pilotage',
+  Réconciliation: 'Trésorerie',
+  reconciliation: 'Trésorerie',
+  Annexe: 'Pilotage',
+  annexe: 'Pilotage',
+  Graphiques: 'Graphiques',
+  graphiques: 'Graphiques',
+  Pilotage: 'Pilotage',
+  pilotage: 'Pilotage',
+};
+
+const FINANCE_SUBVIEW_ALIASES = {
+  réconciliation: 'reconciliation',
+  reconciliation: 'reconciliation',
+  saisie: 'saisie',
+  flux: 'saisie',
+  échéancier: 'echeancier',
+  echeancier: 'echeancier',
+  financement: 'financement',
+  investissements: 'investissements',
+  investissement: 'investissements',
+  rentabilité: 'rentabilite',
+  rentabilite: 'rentabilite',
+  annexe: 'annexe',
+};
 
 const tabAliases = {
   avicole: 'Avicole',
@@ -198,7 +246,24 @@ export function resolveCommercialTab(value = '') {
 export function resolveFinanceTab(value = '') {
   const tab = String(value || '').trim();
   if (FINANCE_TABS.includes(tab)) return tab;
-  return tabAliases[lower(tab)] || 'Résumé';
+  const fromAlias = FINANCE_TAB_ALIASES[tab] || FINANCE_TAB_ALIASES[lower(tab)];
+  if (fromAlias) return fromAlias;
+  return 'Résumé';
+}
+
+/** Résout onglet principal + sous-vue Trésorerie / Pilotage pour deep-links (anciens onglets inclus). */
+export function resolveFinanceNavigation(value = '') {
+  const raw = String(value || '').trim();
+  const tab = resolveFinanceTab(raw);
+  const key = lower(raw);
+  const subKey = FINANCE_SUBVIEW_ALIASES[key] || key;
+  let treasurySubview = null;
+  let pilotageSubview = null;
+
+  if (subKey === 'reconciliation') treasurySubview = 'reconciliation';
+  if (FINANCE_PILOTAGE_SUBVIEWS.includes(subKey)) pilotageSubview = subKey;
+
+  return { tab, treasurySubview, pilotageSubview };
 }
 
 export function resolveActiviteSuiviTab(value = '') {
