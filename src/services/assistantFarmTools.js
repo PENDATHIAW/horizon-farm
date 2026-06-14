@@ -170,8 +170,8 @@ export const FARM_TOOL_CATALOG = Object.freeze([
     label: 'RH et équipements',
     description: 'Personnel, équipes, tracteurs, maintenance matériel',
     moduleKey: 'rh',
-    intents: ['rh_personnel', 'equipment_overview', 'equipment_action'],
-    patterns: [/personnel|equipes?|équipes?|employe|employé|tracteur|equipement|équipement|maintenance|panne|ressources humaines/i],
+    intents: ['rh_personnel', 'equipment_overview', 'equipment_action', 'rh_staff_availability'],
+    patterns: [/personnel|equipes?|équipes?|employe|employé|tracteur|equipement|équipement|maintenance|panne|ressources humaines|disponible.*maintenance|qui.*maintenance|maintenance.*tracteur/i],
   },
   {
     id: FARM_TOOL_IDS.INVESTOR,

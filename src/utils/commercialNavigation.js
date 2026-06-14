@@ -324,7 +324,35 @@ const DOCUMENTS_TAB_ALIASES = {
   Graphiques: 'Rapports & exports',
   graphiques: 'Rapports & exports',
 };
-export const RH_TABS = ['Résumé', 'Équipements', 'Maintenance', 'Affectations', 'Coûts', 'Documents', 'Graphiques'];
+export const RH_TABS = ['Cockpit RH & Maintenance', 'Personnel & Paie', 'Parc Matériel & Maintenance', 'Registres & Analyses'];
+
+const RH_TAB_ALIASES = {
+  'Cockpit RH & Maintenance': 'Cockpit RH & Maintenance',
+  cockpit: 'Cockpit RH & Maintenance',
+  Résumé: 'Cockpit RH & Maintenance',
+  resume: 'Cockpit RH & Maintenance',
+  'Personnel & Paie': 'Personnel & Paie',
+  personnel: 'Personnel & Paie',
+  paie: 'Personnel & Paie',
+  Affectations: 'Personnel & Paie',
+  affectations: 'Personnel & Paie',
+  Coûts: 'Personnel & Paie',
+  couts: 'Personnel & Paie',
+  cout: 'Personnel & Paie',
+  'Parc Matériel & Maintenance': 'Parc Matériel & Maintenance',
+  parc: 'Parc Matériel & Maintenance',
+  Équipements: 'Parc Matériel & Maintenance',
+  equipements: 'Parc Matériel & Maintenance',
+  Maintenance: 'Parc Matériel & Maintenance',
+  maintenance: 'Parc Matériel & Maintenance',
+  'Registres & Analyses': 'Registres & Analyses',
+  registres: 'Registres & Analyses',
+  Documents: 'Registres & Analyses',
+  documents: 'Registres & Analyses',
+  Graphiques: 'Registres & Analyses',
+  graphiques: 'Registres & Analyses',
+  analyses: 'Registres & Analyses',
+};
 export const SMARTFARM_TABS = ['Résumé', 'Capteurs', 'Caméras', 'Annexe', 'Graphiques'];
 export const CULTURES_TABS = ['Parcelles & campagnes', 'Récoltes', 'Économie circulaire'];
 
@@ -377,7 +405,15 @@ export function resolveDocumentsNavigation(value = '') {
 export function resolveRhTab(value = '') {
   const tab = String(value || '').trim();
   if (RH_TABS.includes(tab)) return tab;
-  return tabAliases[lower(tab)] || 'Résumé';
+  const fromAlias = RH_TAB_ALIASES[tab] || RH_TAB_ALIASES[lower(tab)];
+  if (fromAlias) return fromAlias;
+  if (lower(tab) === 'resume') return 'Cockpit RH & Maintenance';
+  return 'Cockpit RH & Maintenance';
+}
+
+export function resolveRhNavigation(value = '') {
+  const raw = String(value || '').trim();
+  return { tab: resolveRhTab(raw) };
 }
 
 export function resolveSmartFarmTab(value = '') {

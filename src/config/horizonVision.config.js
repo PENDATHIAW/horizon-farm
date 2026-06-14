@@ -21,7 +21,7 @@ export const MODULE_TARGET_TABS = {
   finance_pilotage: ['Résumé', 'Trésorerie', 'Créances & dettes', 'Pilotage', 'Graphiques'],
   activite_suivi: ['Cockpit & décisions', 'À traiter maintenant', 'Registre & traçabilité', 'Performance & analytique'],
   documents_rapports: ['Centre de contrôle', 'Gestionnaire & OCR', 'Rapprochement & preuves', 'Rapports & exports'],
-  rh: ['Résumé', 'Équipements', 'Maintenance', 'Affectations', 'Coûts', 'Documents', 'Graphiques'],
+  rh: ['Cockpit RH & Maintenance', 'Personnel & Paie', 'Parc Matériel & Maintenance', 'Registres & Analyses'],
   gestion_systeme: ['Vue admin', 'Utilisateurs', 'Fermes', 'Paramètres', 'Sécurité', 'Sauvegardes', 'Réinitialisation', 'Audit'],
   smartfarm: ['Résumé', 'Capteurs', 'Caméras', 'Annexe', 'Graphiques'],
   cultures: [

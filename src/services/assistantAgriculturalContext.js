@@ -694,16 +694,43 @@ function buildAgriculturalAnswerCore(intent = '', dataMap = {}, options = {}) {
     }
 
     case 'rh_personnel': {
+      const team = arr(props.rh || props.equipe || dataMap.rh || dataMap.equipe);
+      const active = team.filter((p) => ['actif', 'active'].includes(String(p.statut || p.status || '').toLowerCase()));
+      const query = lower(options.query || '');
+      const wantsMaintenance = /maintenance|tracteur|equipement|équipement|panne|materiel|matériel|disponible/.test(query);
+      const maintenanceStaff = active.filter((p) => {
+        const mods = arr(p.modules);
+        const role = lower(p.role || p.fonction || '');
+        return mods.includes('equipements') || mods.includes('smartfarm') || /maintenance|technique|ouvrier/.test(role);
+      });
+      const preview = active.slice(0, 4).map((p) => p.nom || p.name).filter(Boolean);
+      if (wantsMaintenance && maintenanceStaff.length) {
+        const names = maintenanceStaff.map((p) => `${p.nom || p.name} (${p.role || p.fonction || 'équipe'})`).slice(0, 5);
+        return {
+          title: 'Personnel maintenance',
+          situation: `${fmt(maintenanceStaff.length)} personne(s) avec accès équipements / Smart Farm : ${names.join(', ')}.`,
+          cause: 'Annuaire RH — modules equipements, smartfarm ou rôles terrain technique.',
+          action: 'Assignez la tâche maintenance depuis Personnel & Paie ou créez une tâche sur le parc matériel.',
+          sources: ['rh', 'equipements'],
+          confidence: 88,
+        };
+      }
       const tasks = arr(props.taches).filter((t) => /rh|personnel|equipe|équipe/i.test(String(t.module || t.categorie || t.title || '')));
       const open = arr(props.taches).filter((t) => !['termine', 'terminé', 'clos', 'done'].includes(lower(t.statut || t.status)));
-      const preview = tasks.slice(0, 2).map((t) => t.title || t.nom).filter(Boolean);
+      const taskPreview = tasks.slice(0, 2).map((t) => t.title || t.nom).filter(Boolean);
       return {
         title: 'Personnel',
-        situation: `${fmt(open.length)} tâche(s) ouverte(s) sur l'exploitation${preview.length ? ` — équipes : ${preview.join(', ')}` : ''}.`,
-        cause: tasks.length ? `${fmt(tasks.length)} tâche(s) liée(s) au personnel terrain.` : 'Peu de tâches RH saisies — suivi via Opérations & Ressources.',
-        action: open.length ? 'Priorisez les tâches équipe avant les sorties terrain.' : 'Planifiez les équipes dans Opérations & Ressources.',
-        sources: ['taches'],
-        confidence: 82,
+        situation: active.length
+          ? `${fmt(active.length)} personne(s) active(s)${preview.length ? ` : ${preview.join(', ')}` : ''}.`
+          : `${fmt(open.length)} tâche(s) ouverte(s) sur l'exploitation${taskPreview.length ? ` — ${taskPreview.join(', ')}` : ''}.`,
+        cause: team.length
+          ? 'Annuaire RH synchronisé (cloud ou cache de secours).'
+          : tasks.length ? `${fmt(tasks.length)} tâche(s) liée(s) au personnel terrain.` : 'Peu de données RH — complétez l’annuaire dans Personnel & Paie.',
+        action: wantsMaintenance
+          ? 'Vérifiez les modules assignés (equipements, smartfarm) pour chaque membre.'
+          : open.length ? 'Priorisez les tâches équipe avant les sorties terrain.' : 'Planifiez les équipes dans Personnel & Paie.',
+        sources: ['rh', 'taches'],
+        confidence: team.length ? 88 : 82,
       };
     }
 

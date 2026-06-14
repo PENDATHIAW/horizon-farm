@@ -11,6 +11,7 @@ import { buildRhAbsenceFollowUp, buildRhAssignedTask, runRhPayrollSideEffects } 
 import RHCostCenterPanel from './RHCostCenterPanel.jsx';
 import { createImpactJournal, finalizeImpactJournal, IMPACT_KEYS, instrumentHandlers, markImpactCreated, markImpactNa, OPERATION_EXPECTATIONS, OPERATION_TYPES } from '../utils/workflowImpactJournal';
 import { showWorkflowImpactToast } from '../utils/workflowImpactToast';
+import RhConfirmBanner from './rh/components/RhConfirmBanner.jsx';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const newPerson = () => ({ id: `RH-${Date.now().toString(36).toUpperCase()}`, nom: '', role: 'Ouvrier ferme', fonction: 'Ouvrier polyvalent', statut: 'actif', equipe_id: 'TEAM-FERME', modules: ['avicole', 'stock'], phone: '', whatsapp: '', salaire_mensuel: 0, prime_mensuelle: 0, avance_mois: 0, date_entree: today() });
@@ -38,6 +39,7 @@ export default function RHPeopleTeams({ onRefresh, onCreateFinanceTransaction, o
   const [directory, setDirectory] = useState(() => { const d = getRhDirectory(); return { people: (d.people || []).map(normPerson), teams: (d.teams || RH_TEAMS).map(normTeam) }; });
   const [person, setPerson] = useState(null);
   const [team, setTeam] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
   const people = directory.people.map(normPerson);
   const teams = directory.teams.map(normTeam);
   const active = people.filter((p) => ['actif', 'active'].includes(String(p.statut || '').toLowerCase()));
@@ -50,14 +52,84 @@ export default function RHPeopleTeams({ onRefresh, onCreateFinanceTransaction, o
   const toggleTeamModule = (key) => setTeam((prev) => { const list = Array.isArray(prev.modules) ? prev.modules : []; return { ...prev, modules: list.includes(key) ? list.filter((x) => x !== key) : [...list, key] }; });
   const savePerson = () => { if (!String(person?.nom || '').trim()) return toast.error('Nom obligatoire'); const payload = normPerson({ ...person, salaire_mensuel: toNumber(person.salaire_mensuel), prime_mensuelle: toNumber(person.prime_mensuelle), avance_mois: toNumber(person.avance_mois), updated_at: new Date().toISOString() }); const exists = people.some((p) => p.id === payload.id); persist(exists ? people.map((p) => p.id === payload.id ? payload : p) : [...people, { ...payload, created_at: new Date().toISOString() }], teams); setPerson(null); toast.success(exists ? 'Fiche RH mise à jour' : 'RH ajoutée'); };
   const saveTeam = () => { if (!String(team?.name || '').trim()) return toast.error('Nom équipe obligatoire'); const payload = normTeam({ ...team, updated_at: new Date().toISOString() }); const exists = teams.some((t) => t.id === payload.id); persist(people, exists ? teams.map((t) => t.id === payload.id ? payload : t) : [...teams, { ...payload, created_at: new Date().toISOString() }]); setTeam(null); toast.success(exists ? 'Équipe mise à jour' : 'Équipe ajoutée'); };
-  const removePerson = (p) => { if (p.id === 'RH-PENDA') return toast.error('Compte propriétaire protégé'); if (!window.confirm(`Supprimer ${p.nom} ?`)) return; persist(people.filter((x) => x.id !== p.id), teams); toast.success('RH supprimée'); };
-  const removeTeam = (t) => { if (['TEAM-FERME', 'TEAM-AVICOLE', 'TEAM-CULTURES', 'TEAM-STOCK', 'TEAM-COMMERCIAL'].includes(t.id)) return toast.error('Équipe par défaut protégée'); if (people.some((p) => p.equipe_id === t.id)) return toast.error('Équipe utilisée par une RH'); if (!window.confirm(`Supprimer ${t.name} ?`)) return; persist(people, teams.filter((x) => x.id !== t.id)); toast.success('Équipe supprimée'); };
-  const pay = async (p) => { const m = payroll(p); if (m.net <= 0) return toast.error('Aucun net à payer'); if (!window.confirm(`Enregistrer ${fmtCurrency(m.net)} pour ${p.nom} ?`)) return; const result = await submit(`rh-pay:${p.id}:${today().slice(0, 7)}`, async () => { const journal = createImpactJournal(OPERATION_TYPES.PAIE, `rh-pay-${p.id}-${today().slice(0, 7)}`); const tracked = instrumentHandlers({ onCreateFinanceTransaction, onCreateDocument, onCreateBusinessEvent }, journal); const payrollResult = await runRhPayrollSideEffects({ person: p, teams, amount: m.net, date: today(), transactions, documents, handlers: { ...tracked, onUpdatePerson: (_, patch) => persist(people.map((x) => x.id === p.id ? { ...x, ...patch } : x), teams) } }); if (payrollResult.skipped) return payrollResult; markImpactNa(journal, IMPACT_KEYS.TASK_ALERT, 'Aucune tâche RH supplémentaire'); persist(people.map((x) => x.id === p.id ? { ...x, ...payrollResult.workflow.personPatch } : x), teams); await Promise.allSettled([onRefreshFinances?.(), onRefreshDocuments?.(), onRefreshBusinessEvents?.(), onRefresh?.()]); showWorkflowImpactToast(finalizeImpactJournal(journal, OPERATION_EXPECTATIONS[OPERATION_TYPES.PAIE])); return payrollResult; }); if (result?.skipped && result.reason === 'in_flight') return; if (result?.result?.skipped) return toast.success('Paie déjà enregistrée pour cette période'); toast.success('Paie enregistrée'); };
+  const removePerson = (p) => {
+    if (p.id === 'RH-PENDA') return toast.error('Compte propriétaire protégé');
+    setConfirmAction({
+      type: 'removePerson',
+      payload: p,
+      title: `Supprimer ${p.nom} ?`,
+      message: 'La fiche sera retirée de l’annuaire RH.',
+      tone: 'danger',
+    });
+  };
+  const removeTeam = (t) => {
+    if (['TEAM-FERME', 'TEAM-AVICOLE', 'TEAM-CULTURES', 'TEAM-STOCK', 'TEAM-COMMERCIAL'].includes(t.id)) return toast.error('Équipe par défaut protégée');
+    if (people.some((p) => p.equipe_id === t.id)) return toast.error('Équipe utilisée par une RH');
+    setConfirmAction({
+      type: 'removeTeam',
+      payload: t,
+      title: `Supprimer ${t.name} ?`,
+      message: 'L’équipe sera retirée de l’organisation.',
+      tone: 'danger',
+    });
+  };
+  const pay = async (p) => {
+    const m = payroll(p);
+    if (m.net <= 0) return toast.error('Aucun net à payer');
+    setConfirmAction({
+      type: 'pay',
+      payload: p,
+      title: `Enregistrer la paie de ${p.nom}`,
+      message: `Net à payer : ${fmtCurrency(m.net)}`,
+      tone: 'warn',
+    });
+  };
+  const runConfirmedAction = async () => {
+    if (!confirmAction) return;
+    const { type, payload: p } = confirmAction;
+    setConfirmAction(null);
+    if (type === 'removePerson') {
+      persist(people.filter((x) => x.id !== p.id), teams);
+      toast.success('RH supprimée');
+      return;
+    }
+    if (type === 'removeTeam') {
+      persist(people, teams.filter((x) => x.id !== p.id));
+      toast.success('Équipe supprimée');
+      return;
+    }
+    if (type === 'pay') {
+      const m = payroll(p);
+      const result = await submit(`rh-pay:${p.id}:${today().slice(0, 7)}`, async () => {
+        const journal = createImpactJournal(OPERATION_TYPES.PAIE, `rh-pay-${p.id}-${today().slice(0, 7)}`);
+        const tracked = instrumentHandlers({ onCreateFinanceTransaction, onCreateDocument, onCreateBusinessEvent }, journal);
+        const payrollResult = await runRhPayrollSideEffects({ person: p, teams, amount: m.net, date: today(), transactions, documents, handlers: { ...tracked, onUpdatePerson: (_, patch) => persist(people.map((x) => x.id === p.id ? { ...x, ...patch } : x), teams) } });
+        if (payrollResult.skipped) return payrollResult;
+        markImpactNa(journal, IMPACT_KEYS.TASK_ALERT, 'Aucune tâche RH supplémentaire');
+        persist(people.map((x) => x.id === p.id ? { ...x, ...payrollResult.workflow.personPatch } : x), teams);
+        await Promise.allSettled([onRefreshFinances?.(), onRefreshDocuments?.(), onRefreshBusinessEvents?.(), onRefresh?.()]);
+        showWorkflowImpactToast(finalizeImpactJournal(journal, OPERATION_EXPECTATIONS[OPERATION_TYPES.PAIE]));
+        return payrollResult;
+      });
+      if (result?.skipped && result.reason === 'in_flight') return;
+      if (result?.result?.skipped) return toast.success('Paie déjà enregistrée pour cette période');
+      toast.success('Paie enregistrée');
+    }
+  };
   const markAbsence = async (p) => { try { const workflow = buildRhAbsenceFollowUp({ person: p, date: today(), reason: 'Absence déclarée depuis RH.' }); if (workflow.task) await onCreateTask?.(workflow.task); await onCreateBusinessEvent?.(workflow.event); persist(people.map((x) => x.id === p.id ? { ...x, ...workflow.personPatch } : x), teams); await Promise.allSettled([onRefreshTasks?.(), onRefreshBusinessEvents?.(), onRefresh?.()]); toast.success('Absence signalée et tâche créée'); } catch (error) { toast.error(error.message || 'Absence impossible'); } };
   const assignDailyTask = async (p) => { try { const workflow = buildRhAssignedTask({ person: p, module: (p.modules || [])[0] || 'taches', title: `Action terrain du jour · ${p.nom || p.id}`, dueDate: today(), priority: 'moyenne', notes: 'Tâche assignée depuis RH & Équipe.' }); await onCreateTask?.(workflow.task); await onCreateBusinessEvent?.(workflow.event); await Promise.allSettled([onRefreshTasks?.(), onRefreshBusinessEvents?.()]); toast.success('Tâche assignée'); } catch (error) { toast.error(error.message || 'Assignation impossible'); } };
   const changeRole = (role) => setPerson((prev) => ({ ...prev, role, equipe_id: prev.equipe_id || teamFor(role), modules: prev.modules?.length ? prev.modules : modulesFor(role) }));
 
   return <div className="space-y-6 rh-mobile-structured">
+    <RhConfirmBanner
+      open={Boolean(confirmAction)}
+      title={confirmAction?.title}
+      message={confirmAction?.message}
+      tone={confirmAction?.tone}
+      confirmLabel={confirmAction?.type === 'pay' ? 'Enregistrer la paie' : 'Confirmer'}
+      onConfirm={runConfirmedAction}
+      onCancel={() => setConfirmAction(null)}
+    />
     <style>{`@media (max-width: 640px){.rh-mobile-structured .rounded-2xl{border-radius:18px}.rh-mobile-structured table{font-size:12px}.rh-mobile-structured th,.rh-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.rh-mobile-structured .text-2xl{font-size:1.35rem}.rh-mobile-structured .grid{gap:.75rem}.rh-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
 
     <ModuleSection icon={Users} title="Synthèse RH" subtitle="Personnes, équipes actives, masse salariale et actions rapides.">
