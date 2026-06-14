@@ -19,7 +19,7 @@ export const MODULE_TARGET_TABS = {
   commercial: ['Ventes', 'Opportunités', 'Clients & créances', 'Livraisons', 'Abonnements', 'Pilotage'],
   achats_stock: ['Inventaire', 'Réceptions & achats', 'Fournisseurs & dettes'],
   finance_pilotage: ['Résumé', 'Trésorerie', 'Créances & dettes', 'Pilotage', 'Graphiques'],
-  activite_suivi: ['Résumé', 'Alertes', 'Tâches', 'Traçabilité', 'Graphiques'],
+  activite_suivi: ['Cockpit & décisions', 'À traiter maintenant', 'Registre & traçabilité', 'Performance & analytique'],
   documents_rapports: ['Centre de contrôle', 'Gestionnaire & OCR', 'Rapprochement & preuves', 'Rapports & exports'],
   rh: ['Résumé', 'Équipements', 'Maintenance', 'Affectations', 'Coûts', 'Documents', 'Graphiques'],
   gestion_systeme: ['Vue admin', 'Utilisateurs', 'Fermes', 'Paramètres', 'Sécurité', 'Sauvegardes', 'Réinitialisation', 'Audit'],

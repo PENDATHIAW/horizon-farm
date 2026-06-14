@@ -114,7 +114,28 @@ const COMMERCIAL_TAB_ALIASES = {
   devis: 'Ventes',
   prospects: 'Clients & créances',
 };
-export const ACTIVITE_SUIVI_TABS = ['Résumé', 'Alertes', 'Tâches', 'Traçabilité', 'Graphiques'];
+export const ACTIVITE_SUIVI_TABS = ['Cockpit & décisions', 'À traiter maintenant', 'Registre & traçabilité', 'Performance & analytique'];
+
+const ACTIVITE_SUIVI_TAB_ALIASES = {
+  'Cockpit & décisions': 'Cockpit & décisions',
+  cockpit: 'Cockpit & décisions',
+  Résumé: 'Cockpit & décisions',
+  resume: 'Cockpit & décisions',
+  'À traiter maintenant': 'À traiter maintenant',
+  actions: 'À traiter maintenant',
+  Alertes: 'À traiter maintenant',
+  alertes: 'À traiter maintenant',
+  Tâches: 'À traiter maintenant',
+  taches: 'À traiter maintenant',
+  'Registre & traçabilité': 'Registre & traçabilité',
+  registre: 'Registre & traçabilité',
+  Traçabilité: 'Registre & traçabilité',
+  tracabilite: 'Registre & traçabilité',
+  'Performance & analytique': 'Performance & analytique',
+  stats: 'Performance & analytique',
+  Graphiques: 'Performance & analytique',
+  graphiques: 'Performance & analytique',
+};
 export const FINANCE_TABS = ['Résumé', 'Trésorerie', 'Créances & dettes', 'Pilotage', 'Graphiques'];
 export const FINANCE_TREASURY_SUBVIEWS = ['saisie', 'reconciliation'];
 export const FINANCE_PILOTAGE_SUBVIEWS = ['echeancier', 'financement', 'investissements', 'rentabilite', 'annexe'];
@@ -269,7 +290,13 @@ export function resolveFinanceNavigation(value = '') {
 export function resolveActiviteSuiviTab(value = '') {
   const tab = String(value || '').trim();
   if (ACTIVITE_SUIVI_TABS.includes(tab)) return tab;
-  return tabAliases[lower(tab)] || 'Résumé';
+  const fromAlias = ACTIVITE_SUIVI_TAB_ALIASES[tab] || ACTIVITE_SUIVI_TAB_ALIASES[lower(tab)];
+  if (fromAlias) return fromAlias;
+  return 'Cockpit & décisions';
+}
+
+export function resolveActiviteSuiviNavigation(value = '') {
+  return { tab: resolveActiviteSuiviTab(value) };
 }
 
 export const DOCUMENTS_RAPPORTS_TABS = ['Centre de contrôle', 'Gestionnaire & OCR', 'Rapprochement & preuves', 'Rapports & exports'];

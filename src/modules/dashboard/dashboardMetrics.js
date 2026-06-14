@@ -561,7 +561,7 @@ export const DASHBOARD_MODULES = [
   { id: 'commercial', label: 'Commercial', hint: 'Ventes · clients', tab: 'Résumé' },
   { id: 'achats_stock', label: 'Achats & Stock', hint: 'Inventaire · fournisseurs', tab: 'Résumé' },
   { id: 'finance_pilotage', label: 'Finance', hint: 'Trésorerie · créances', tab: 'Résumé' },
-  { id: 'activite_suivi', label: 'Activité', hint: 'Tâches · alertes', tab: 'Résumé' },
+  { id: 'activite_suivi', label: 'Activité', hint: 'Tâches · alertes', tab: 'Cockpit & décisions' },
   { id: 'centre_ia', label: 'Décisions', hint: 'Urgences · croissance', tab: 'Urgences & risques' },
   { id: 'objectifs_croissance', label: 'Vision', hint: 'Objectifs · financeurs', tab: 'Performance' },
 ];

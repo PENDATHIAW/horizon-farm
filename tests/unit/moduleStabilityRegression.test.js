@@ -62,7 +62,7 @@ const TAB_OVERRIDES = {
   achats_stock: { initialTab: 'Stock' },
   elevage: { initialTab: 'Résumé' },
   centre_ia: { initialTab: 'Urgences & risques' },
-  activite_suivi: { initialTab: 'Résumé' },
+  activite_suivi: { initialTab: 'Cockpit & décisions' },
   gestion_systeme: { initialTab: 'Vue admin' },
 };
 

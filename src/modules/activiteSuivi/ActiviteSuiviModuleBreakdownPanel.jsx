@@ -13,14 +13,14 @@ const MODULE_LABELS = {
 };
 
 const NAV_FOR = {
-  commercial: ['commercial', { tab: 'Résumé' }],
+  commercial: ['commercial', { tab: 'Pilotage' }],
   finance_pilotage: ['finance_pilotage', { tab: 'Résumé' }],
   finances: ['finance_pilotage', { tab: 'Trésorerie' }],
-  elevage: ['elevage', { tab: 'Résumé' }],
-  achats_stock: ['achats_stock', { tab: 'Résumé' }],
-  stock: ['achats_stock', { tab: 'Stock' }],
-  animaux: ['elevage', { tab: 'Animaux' }],
-  avicole: ['elevage', { tab: 'Avicole' }],
+  elevage: ['elevage', { tab: 'Lots & bandes' }],
+  achats_stock: ['achats_stock', { tab: 'Inventaire' }],
+  stock: ['achats_stock', { tab: 'Inventaire' }],
+  animaux: ['elevage', { tab: 'Lots & bandes' }],
+  avicole: ['elevage', { tab: 'Lots & bandes' }],
 };
 
 export default function ActiviteSuiviModuleBreakdownPanel({ breakdown = [], onNavigate }) {

@@ -8,7 +8,7 @@ export function buildActiviteSummaryTodos({ priorityQueue = [], coherenceRows = 
       id: item.id,
       title: item.title,
       detail: `${item.detail || '—'} · ${item.severity}`,
-      tab: item.kind === 'alerte' ? 'Alertes' : 'Tâches',
+      tab: item.kind === 'alerte' ? 'À traiter maintenant' : 'À traiter maintenant',
       kind: item.kind,
       sourceId: item.sourceId,
     });
@@ -23,7 +23,7 @@ export function buildActiviteSummaryTodos({ priorityQueue = [], coherenceRows = 
         id: row.id,
         title: row.title,
         detail: row.detail || 'Sans tâche liée',
-        tab: 'Alertes',
+        tab: 'À traiter maintenant',
         kind: 'alerte',
         sourceId: row.alertId,
       });
@@ -38,7 +38,7 @@ export function buildActiviteSummaryTodos({ priorityQueue = [], coherenceRows = 
         id: row.id,
         title: row.title,
         detail: row.detail,
-        tab: 'Tâches',
+        tab: 'À traiter maintenant',
         kind: 'tache',
         sourceId: row.taskId,
       });
@@ -48,8 +48,7 @@ export function buildActiviteSummaryTodos({ priorityQueue = [], coherenceRows = 
 }
 
 export function coherenceRowTab(row = {}) {
-  if (row.type === 'alerte') return 'Alertes';
-  return 'Tâches';
+  return 'À traiter maintenant';
 }
 
 export function uniqueTodoCount(todos = []) {

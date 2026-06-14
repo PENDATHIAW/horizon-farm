@@ -1,29 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MODULE_TARGET_TABS } from '../../src/config/horizonVision.config.js';
+import { annexePresetForModule } from '../../src/services/annexeModuleConfig.js';
 
-const MODULES_WITH_ANNEXE = [
-  'dashboard',
-  'elevage',
-  'commercial',
-  'achats_stock',
-  'activite_suivi',
-  'documents_rapports',
-  'smartfarm',
-];
+test('smartfarm — onglet Annexe dans la barre module', () => {
+  const tabs = MODULE_TARGET_TABS.smartfarm || [];
+  assert.ok(tabs.includes('Annexe'));
+  assert.ok(tabs.indexOf('Annexe') < tabs.indexOf('Graphiques'));
+});
 
-for (const moduleId of MODULES_WITH_ANNEXE) {
-  test(`onglet Annexe présent pour ${moduleId}`, () => {
-    const tabs = MODULE_TARGET_TABS[moduleId] || [];
-    assert.ok(tabs.includes('Annexe'), `${moduleId} doit inclure l'onglet Annexe (tabs=${tabs.join(', ')})`);
-    if (moduleId !== 'dashboard') {
-      assert.ok(tabs.indexOf('Annexe') < tabs.indexOf('Graphiques'), `${moduleId}: Annexe doit précéder Graphiques`);
-    }
-  });
-}
-
-test('finance_pilotage — 5 onglets avec Pilotage (échéancier, investissements, annexe)', () => {
+test('finance_pilotage — 5 onglets avec Pilotage', () => {
   const tabs = MODULE_TARGET_TABS.finance_pilotage;
   assert.equal(tabs.length, 5);
   assert.deepEqual(tabs, ['Résumé', 'Trésorerie', 'Créances & dettes', 'Pilotage', 'Graphiques']);
+});
+
+test('activite_suivi — 4 onglets sans onglet Annexe dédié', () => {
+  const tabs = MODULE_TARGET_TABS.activite_suivi;
+  assert.equal(tabs.length, 4);
+  assert.ok(tabs.includes('À traiter maintenant'));
+  assert.ok(!tabs.includes('Annexe'));
+  assert.ok(annexePresetForModule('activite_suivi'));
+});
+
+test('documents_rapports — 4 onglets sans onglet Annexe dédié', () => {
+  const tabs = MODULE_TARGET_TABS.documents_rapports;
+  assert.equal(tabs.length, 4);
+  assert.ok(!tabs.includes('Annexe'));
+  assert.ok(annexePresetForModule('documents_rapports'));
 });

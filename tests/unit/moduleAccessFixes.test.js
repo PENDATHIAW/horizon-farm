@@ -22,7 +22,8 @@ describe('Module access fixes — config onglets', () => {
 
   it('ACTIVITE_SUIVI_TABS défini et résolu', () => {
     assert.ok(Array.isArray(ACTIVITE_SUIVI_TABS));
-    assert.equal(resolveActiviteSuiviTab('alertes'), 'Alertes');
-    assert.equal(resolveActiviteSuiviTab('taches'), 'Tâches');
+    assert.equal(resolveActiviteSuiviTab('alertes'), 'À traiter maintenant');
+    assert.equal(resolveActiviteSuiviTab('taches'), 'À traiter maintenant');
+    assert.equal(resolveActiviteSuiviTab('Résumé'), 'Cockpit & décisions');
   });
 });

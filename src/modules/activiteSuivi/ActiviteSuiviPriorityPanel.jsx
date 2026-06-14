@@ -20,7 +20,7 @@ export default function ActiviteSuiviPriorityPanel({ items = [], kind = 'all', o
           <div key={item.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
-              onClick={() => setTab?.(item.kind === 'alerte' ? 'Alertes' : 'Tâches')}
+              onClick={() => setTab?.(item.kind === 'alerte' ? 'À traiter maintenant' : 'À traiter maintenant')}
               className="text-left min-w-0"
             >
               <p className="font-black text-[#2f2415] flex items-center gap-2 break-words">
@@ -43,7 +43,7 @@ export default function ActiviteSuiviPriorityPanel({ items = [], kind = 'all', o
             ) : (
               <button
                 type="button"
-                onClick={() => setTab?.('Tâches')}
+                onClick={() => setTab?.('À traiter maintenant')}
                 className="shrink-0 rounded-lg border border-[#d6c3a0] bg-white px-3 py-1.5 text-xs font-black text-[#2f2415]"
               >
                 Traiter
