@@ -11,12 +11,38 @@ function ProgressBar({ value = 0 }) {
   );
 }
 
-function DomainCard({ card }) {
+function ScopeKpiBadge({ label }) {
+  if (!label) return null;
+  const toneCls = label === 'Période'
+    ? 'border-sky-200 bg-sky-50 text-sky-800'
+    : 'border-violet-200 bg-violet-50 text-violet-800';
   return (
-    <article className="carnet-domain-card flex min-h-[168px] flex-col rounded-xl border border-emerald-200/50 bg-emerald-400/10 p-3 shadow-[0_1px_0_rgba(34,197,94,0.06)]">
-      <div className="flex items-center gap-1.5">
-        <span className="text-base leading-none" aria-hidden="true">{card.icon}</span>
-        <p className="text-[10px] font-black tracking-wide text-emerald-800/80">{card.title}</p>
+    <span className={`inline-flex rounded-full border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide ${toneCls}`}>
+      {label}
+    </span>
+  );
+}
+
+function DomainCard({ card, onNavigate }) {
+  const clickable = Boolean(card.navigate && onNavigate);
+  const Tag = clickable ? 'button' : 'article';
+  const handleClick = () => {
+    if (!clickable) return;
+    onNavigate(card.navigate.module, { tab: card.navigate.tab });
+  };
+
+  return (
+    <Tag
+      type={clickable ? 'button' : undefined}
+      onClick={clickable ? handleClick : undefined}
+      className={`carnet-domain-card flex min-h-[168px] flex-col rounded-xl border border-emerald-200/50 bg-emerald-400/10 p-3 text-left shadow-[0_1px_0_rgba(34,197,94,0.06)] ${clickable ? 'cursor-pointer transition hover:border-emerald-300 hover:bg-emerald-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600' : ''}`}
+    >
+      <div className="flex items-center justify-between gap-1.5">
+        <div className="flex items-center gap-1.5">
+          <span className="text-base leading-none" aria-hidden="true">{card.icon}</span>
+          <p className="text-[10px] font-black tracking-wide text-emerald-800/80">{card.title}</p>
+        </div>
+        <ScopeKpiBadge label={card.scopeLabel} />
       </div>
       <p className="mt-2 text-sm font-black leading-tight text-[#2f2415]">{card.headline}</p>
       <ul className="mt-2 flex-1 space-y-0.5">
@@ -35,14 +61,31 @@ function DomainCard({ card }) {
           ))}
         </ul>
       ) : null}
-    </article>
+      {clickable ? (
+        <p className="mt-2 text-[10px] font-black text-emerald-800/70">Ouvrir le module →</p>
+      ) : null}
+    </Tag>
   );
 }
 
-function ObjectifBlock({ block }) {
+function ObjectifBlock({ block, onNavigate }) {
+  const clickable = Boolean(block.navigate && onNavigate);
+  const Tag = clickable ? 'button' : 'div';
+  const handleClick = () => {
+    if (!clickable) return;
+    onNavigate(block.navigate.module, { tab: block.navigate.tab });
+  };
+
   return (
-    <div className="min-w-0 flex-1 rounded-lg border border-[#efe6d6] bg-white/60 p-3">
-      <p className="text-[10px] font-black uppercase tracking-wide text-[#8a7456]">{block.label}</p>
+    <Tag
+      type={clickable ? 'button' : undefined}
+      onClick={clickable ? handleClick : undefined}
+      className={`min-w-0 flex-1 rounded-lg border border-[#efe6d6] bg-white/60 p-3 text-left ${clickable ? 'cursor-pointer transition hover:border-[#d9c9a8] hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9a6b12]' : ''}`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[10px] font-black uppercase tracking-wide text-[#8a7456]">{block.label}</p>
+        <ScopeKpiBadge label={block.scopeLabel} />
+      </div>
       <p className="mt-1 text-xs font-black text-[#2f2415]">
         {fmtCurrency(block.realized)}
         <span className="font-medium text-[#8a7456]"> / {fmtCurrency(block.target)}</span>
@@ -51,7 +94,7 @@ function ObjectifBlock({ block }) {
         <ProgressBar value={block.attainment} />
       </div>
       <p className="mt-1 text-[10px] font-semibold text-[#9a6b12]">{block.attainment} % atteint</p>
-    </div>
+    </Tag>
   );
 }
 
@@ -97,7 +140,7 @@ export default function CarnetHorizon({ carnet, onNavigate }) {
 
       <div className="grid grid-cols-2 gap-2 xl:grid-cols-4 xl:gap-2.5">
         {(carnet.domains || []).map((card) => (
-          <DomainCard key={card.id} card={card} />
+          <DomainCard key={card.id} card={card} onNavigate={onNavigate} />
         ))}
       </div>
 
@@ -105,8 +148,8 @@ export default function CarnetHorizon({ carnet, onNavigate }) {
         <section className="rounded-xl border border-[#e5dcc8] bg-[#fffdf8] px-3 py-2.5">
           <h2 className="mb-2 text-[10px] font-black uppercase tracking-wide text-[#8a7456]">Objectifs de l&apos;exploitation</h2>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <ObjectifBlock block={carnet.objectifs.month} />
-            <ObjectifBlock block={carnet.objectifs.year} />
+            <ObjectifBlock block={carnet.objectifs.month} onNavigate={onNavigate} />
+            <ObjectifBlock block={carnet.objectifs.year} onNavigate={onNavigate} />
           </div>
         </section>
       ) : null}

@@ -565,11 +565,11 @@ export const DASHBOARD_MODULE_LABELS = {
 };
 
 export const DASHBOARD_MODULES = [
-  { id: 'elevage', label: 'Élevage', hint: 'Animaux · lots · santé', tab: 'Résumé' },
-  { id: 'commercial', label: 'Commercial', hint: 'Ventes · clients', tab: 'Résumé' },
-  { id: 'achats_stock', label: 'Achats & Stock', hint: 'Inventaire · fournisseurs', tab: 'Résumé' },
+  { id: 'elevage', label: 'Élevage', hint: 'Animaux · lots · santé', tab: 'Lots & bandes' },
+  { id: 'commercial', label: 'Commercial', hint: 'Ventes · clients', tab: 'Pilotage' },
+  { id: 'achats_stock', label: 'Achats & Stock', hint: 'Inventaire · fournisseurs', tab: 'Inventaire' },
   { id: 'finance_pilotage', label: 'Finance', hint: 'Trésorerie · créances', tab: 'Résumé' },
   { id: 'activite_suivi', label: 'Activité', hint: 'Tâches · alertes', tab: 'Cockpit & décisions' },
   { id: 'centre_ia', label: 'Décisions', hint: 'Urgences · croissance', tab: 'Urgences & risques' },
-  { id: 'objectifs_croissance', label: 'Vision', hint: 'Objectifs · financeurs', tab: 'Performance' },
+  { id: 'objectifs_croissance', label: 'Vision', hint: 'Objectifs · financeurs', tab: 'Suivi du Business Plan' },
 ];

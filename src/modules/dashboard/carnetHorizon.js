@@ -13,6 +13,14 @@ import { buildExpirySnapshot } from '../../utils/stockExpiry.js';
 export const CARNET_JOURNAL_LIMIT = 10;
 export const CARNET_ATTENTION_LIMIT = 4;
 
+/** Navigation canonique depuis les cartes domaine du Carnet Horizon. */
+export const CARNET_DOMAIN_NAVIGATION = {
+  elevage: { module: 'elevage', tab: 'Lots & bandes' },
+  cultures: { module: 'cultures', tab: 'Parcelles & campagnes' },
+  stocks: { module: 'achats_stock', tab: 'Inventaire' },
+  finances: { module: 'finance_pilotage', tab: 'Résumé' },
+};
+
 const arr = (value) => (Array.isArray(value) ? value : []);
 const n = (value) => Number(value || 0);
 const lower = (value) => String(value || '').trim().toLowerCase();
@@ -241,6 +249,8 @@ export function buildCarnetDomainCards(summary = {}, props = {}) {
       headline: species.total > 0 ? `${fmt(species.total)} têtes` : 'À renseigner',
       lines: species.lines.length ? species.lines : [{ text: 'Aucun effectif enregistré' }],
       alerts: elevageAlerts,
+      navigate: CARNET_DOMAIN_NAVIGATION.elevage,
+      scopeLabel: 'Cumul',
     },
     {
       id: 'cultures',
@@ -249,6 +259,8 @@ export function buildCarnetDomainCards(summary = {}, props = {}) {
       headline: culture.hasData ? `${fmt(culture.parcelCount)} parcelles` : 'À configurer',
       lines: cultureLines,
       alerts: cultureAlerts,
+      navigate: CARNET_DOMAIN_NAVIGATION.cultures,
+      scopeLabel: 'Cumul',
     },
     {
       id: 'stocks',
@@ -257,6 +269,8 @@ export function buildCarnetDomainCards(summary = {}, props = {}) {
       headline: `${fmt(productCount)} produits`,
       lines: stockLines,
       alerts: stockAlerts,
+      navigate: CARNET_DOMAIN_NAVIGATION.stocks,
+      scopeLabel: 'Cumul',
     },
     {
       id: 'finances',
@@ -265,6 +279,8 @@ export function buildCarnetDomainCards(summary = {}, props = {}) {
       headline: fmtCurrency(summary.cashNet),
       lines: financeLines.slice(1),
       alerts: [],
+      navigate: CARNET_DOMAIN_NAVIGATION.finances,
+      scopeLabel: 'Cumul',
     },
   ];
 }
@@ -299,12 +315,16 @@ export function buildCarnetObjectifs(summary = {}, props = {}) {
       realized: monthRealized,
       target: monthTarget,
       attainment: monthAttainment,
+      scopeLabel: 'Période',
+      navigate: { module: 'commercial', tab: 'Pilotage' },
     },
     year: {
       label: 'CA ANNÉE',
       realized: yearRealized,
       target: yearTarget,
       attainment: yearAttainment,
+      scopeLabel: 'Cumul',
+      navigate: { module: 'objectifs_croissance', tab: 'Suivi du Business Plan' },
     },
     growthAlertCount: n(growth.alertCounts?.zootechnie) + n(growth.alertCounts?.economie),
   };

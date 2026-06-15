@@ -71,7 +71,7 @@ export function buildDashboardPriorities(summary = {}, props = {}, health = {}) 
         : `${salesAll.filter((o) => remainingForOrder(o, paymentsAll) > 0).length} créance(s) à relancer`,
       detail: `${fmtCurrency(summary.receivable)} restant à encaisser`,
       moduleKey: 'commercial',
-      tab: 'Clients',
+      tab: 'Clients & créances',
       action: { moduleKey: 'commercial', category: 'Argent' },
     });
   }
@@ -86,7 +86,7 @@ export function buildDashboardPriorities(summary = {}, props = {}, health = {}) 
       title: debts.length > 1 ? `${debts.length} dettes fournisseurs à régler` : `Dette fournisseur : ${debts[0]?.name || '—'}`,
       detail: `${fmtCurrency(debtTotal)} reste à payer`,
       moduleKey: 'finance_pilotage',
-      tab: 'Dettes',
+      tab: 'Créances & dettes',
       action: { moduleKey: 'finance_pilotage', category: 'Argent' },
     });
   }
@@ -101,7 +101,7 @@ export function buildDashboardPriorities(summary = {}, props = {}, health = {}) 
       title: `Stock aliment estimé inférieur à ${feedDays} jour(s)`,
       detail: 'Réapprovisionner avant rupture',
       moduleKey: 'achats_stock',
-      tab: 'Stock',
+      tab: 'Inventaire',
       action: { moduleKey: 'achats_stock', category: 'Stock' },
     });
   } else if (lowStock > 0) {
@@ -112,7 +112,7 @@ export function buildDashboardPriorities(summary = {}, props = {}, health = {}) 
       title: `${lowStock} produit(s) sous le seuil`,
       detail: 'Réapprovisionner les intrants critiques',
       moduleKey: 'achats_stock',
-      tab: 'Stock',
+      tab: 'Inventaire',
       action: { moduleKey: 'achats_stock', category: 'Stock' },
     });
   }
@@ -127,7 +127,7 @@ export function buildDashboardPriorities(summary = {}, props = {}, health = {}) 
       title: `Objectif mensuel atteint à ${attainment} %`,
       detail: `Reste ${fmtCurrency(summary.goal?.periodRemaining ?? Math.max(0, periodTarget - n(summary.goal?.periodRealized)))}`,
       moduleKey: 'objectifs_croissance',
-      tab: 'Performance',
+      tab: 'Suivi du Business Plan',
       action: { moduleKey: 'objectifs_croissance', category: 'Objectifs' },
     });
   }
@@ -142,7 +142,7 @@ export function buildDashboardPriorities(summary = {}, props = {}, health = {}) 
       title: `${openAlerts.length} alerte(s) importante(s) à traiter`,
       detail: openAlerts[0]?.title || openAlerts[0]?.message || 'Consulter Activité & Suivi',
       moduleKey: 'activite_suivi',
-      tab: 'Alertes',
+      tab: 'À traiter maintenant',
       action: { moduleKey: 'activite_suivi', category: 'Urgences terrain' },
     });
   } else if (criticalFindings.length) {
@@ -153,7 +153,7 @@ export function buildDashboardPriorities(summary = {}, props = {}, health = {}) 
       title: criticalFindings[0].title,
       detail: criticalFindings[0].recommended_action || criticalFindings[0].description || 'Voir le détail ERP',
       moduleKey: criticalFindings[0].module || 'centre_ia',
-      tab: 'À traiter',
+      tab: 'Urgences & risques',
       finding: criticalFindings[0],
       action: { moduleKey: criticalFindings[0].module || 'centre_ia', category: 'Pilotage' },
     });
@@ -170,7 +170,7 @@ export function buildDashboardPriorities(summary = {}, props = {}, health = {}) 
       title: `${orphanPayments.length} paiement(s) restent à rapprocher`,
       detail: 'Vérifier les ventes liées',
       moduleKey: 'sync_activity',
-      tab: 'Résumé',
+      tab: 'Vérifications',
       action: { moduleKey: 'sync_activity', category: 'Contrôle ERP' },
     });
   }
@@ -242,7 +242,7 @@ const STARTUP_STEPS = [
     label: 'Configuration initiale',
     hint: 'Stock, parcelles ou objectifs',
     module: 'achats_stock',
-    tab: 'Stock',
+    tab: 'Inventaire',
     done: (props) => arr(props.stocks).some((row) => stockQty(row) > 0)
       || arr(props.cultures).length > 0
       || arr(props.businessPlans).length > 0,
@@ -253,7 +253,7 @@ const STARTUP_STEPS = [
     label: 'Premiers animaux',
     hint: 'Bande avicole ou cheptel bovin',
     module: 'elevage',
-    tab: 'Résumé',
+    tab: 'Lots & bandes',
     done: (props) => arr(props.animaux).length > 0 || arr(props.lotsData || props.lots).length > 0,
   },
   {
@@ -262,7 +262,7 @@ const STARTUP_STEPS = [
     label: 'Première production',
     hint: 'Ramassage ou production enregistrée',
     module: 'elevage',
-    tab: 'Production',
+    tab: 'Lots & bandes',
     done: (props) => arr(props.productionLogs).some((row) => n(row.oeufs_produits ?? row.eggs_count ?? row.quantite) > 0),
   },
   {
@@ -280,7 +280,7 @@ const STARTUP_STEPS = [
     label: 'Premier encaissement',
     hint: 'Tracer un paiement reçu',
     module: 'commercial',
-    tab: 'Clients',
+    tab: 'Clients & créances',
     done: (props) => arr(props.paymentsAll || props.payments).some((row) => paid(row) > 0),
   },
   {

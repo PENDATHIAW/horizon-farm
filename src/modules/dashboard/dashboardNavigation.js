@@ -2,12 +2,12 @@ import { navigationOptionsForFinding, resolveRouteModule } from '../../utils/com
 
 const ACTION_TABS = {
   money: { module: 'commercial', tab: 'Ventes' },
-  alert: { module: 'activite_suivi', tab: 'Alertes' },
-  stock: { module: 'achats_stock', tab: 'Stock' },
+  alert: { module: 'activite_suivi', tab: 'À traiter maintenant' },
+  stock: { module: 'achats_stock', tab: 'Inventaire' },
   health: { module: 'elevage', tab: 'Santé' },
   smart: { module: 'smartfarm' },
-  task: { module: 'activite_suivi', tab: 'Tâches' },
-  document: { module: 'documents_rapports', tab: 'Preuves' },
+  task: { module: 'activite_suivi', tab: 'À traiter maintenant' },
+  document: { module: 'documents_rapports', tab: 'Rapprochement & preuves' },
   sync: { module: 'sync_activity' },
 };
 
