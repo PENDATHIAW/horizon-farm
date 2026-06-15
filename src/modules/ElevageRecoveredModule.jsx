@@ -1,4 +1,4 @@
-import { BrainCircuit, HeartPulse, Zap } from 'lucide-react';
+import { BrainCircuit, Zap } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection.jsx';
@@ -12,7 +12,7 @@ import { fmtNumber } from '../utils/format';
 import { commitElevageEggProduction } from '../utils/elevageWorkflow.js';
 import { aggregateSummaryLayingRate, formatOfficialLayingRate } from '../utils/elevageLayingRate.js';
 import { rowsOf } from '../utils/moduleRows';
-import VisionCyclesTab from './vision/VisionCyclesTab.jsx';
+import ElevageCyclesPanel from './elevage/ElevageCyclesPanel.jsx';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import { resolveElevageTab, navigateForIaFinding } from '../utils/commercialNavigation';
 import { buildElevageHealthSnapshot, computeLotMargin, computeAnimalMargin, formatMargin } from './elevage/elevageVisionHelpers.js';
@@ -152,7 +152,6 @@ function Summary({
       <ElevageIaPanel findings={data.healthFindings} predictions={data.healthPredictions} onApply={onApply} busyId={busyId} onNavigate={onNavigate} />
       <RentabilitySection lotMargins={data.lotMargins} onNavigate={onNavigate} />
     </CollapsibleAdvancedSection>
-    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><h2 className="text-lg font-black text-[#2f2415]">Parcours métier</h2><p className="mt-2 text-sm leading-relaxed text-[#8a7456]">Production, transformation, alimentation, reproduction et santé — sans dupliquer Animaux/Avicole.</p><div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6"><ActionCard title="Cycles & bandes" text="Quand lancer, réformer, vendre." onClick={() => setTab('Cycles')} /><ActionCard title="Production" text="Œufs, ponte, rendements." onClick={() => setTab('Production')} /><ActionCard title="Transformation" text="Abattage, réforme, mortalité." onClick={() => setTab('Transformation')} /><ActionCard title="Alimentation" text="Distribution et consommation." onClick={() => setTab('Alimentation')} /><ActionCard title="Reproduction" text="Naissances et gestations." onClick={() => setTab('Reproduction')} /><ActionCard title="Santé" text="Soins, vaccins, alertes." onClick={() => setTab('Santé')} /></div></section>
   </div>;
 }
 function TransformationHub({ data, setTab, onNavigate, onOpenWorkflow, animalBridgeProps, avicoleBridgeProps }) {
@@ -170,7 +169,7 @@ function TransformationHub({ data, setTab, onNavigate, onOpenWorkflow, animalBri
         ]}
       >
         <ActionCard title="+ Mortalité lot avicole" text="Workflow officiel — effectif, alertes, perte finance." onClick={() => onOpenWorkflow?.('mortality')} />
-        <ActionCard title="+ Sortie / abattage animal" text="Abattage → stock viande (section ci-dessous)." onClick={() => setTab('Animaux')} />
+        <ActionCard title="+ Sortie / abattage animal" text="Abattage → stock viande (workflow incident)." onClick={() => emitHorizonForm('animaux', 'animal_loss', 'Sortie / abattage animal', { date: today() })} />
         <ActionCard title="+ Clôturer lot" text="Réforme, prêt vente ou abattage lot." onClick={() => onOpenWorkflow?.('transform')} />
         <ActionCard title="Commercial — ventes" text="Créer commande liée animal / lot." onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
         <ActionCard title="Lots à vendre" text={`${data.lotsToSell.length} lot(s) matures.`} onClick={() => setTab('Avicole')} />
@@ -206,15 +205,28 @@ function ReproductionHub({ data, setTab }) {
 }
 
 export default function ElevageRecoveredModule(props) {
-  const [tab, setTab] = useState(() => resolveElevageTab(props.initialTab));
+  const controlled = Boolean(props.onTabChange);
+  const [internalTab, setInternalTab] = useState(() => resolveElevageTab(props.initialTab || 'Résumé'));
+  const tab = controlled
+    ? resolveElevageTab(props.initialTab || 'Résumé')
+    : internalTab;
+  const setTab = useCallback((value) => {
+    const resolved = resolveElevageTab(value);
+    if (controlled) {
+      props.onTabChange?.(resolved);
+      return;
+    }
+    setInternalTab(resolved);
+  }, [controlled, props.onTabChange]);
   const [busyId, setBusyId] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [profitabilityOpen, setProfitabilityOpen] = useState(false);
 
   useEffect(() => {
-    if (props.initialTab) setTab(resolveElevageTab(props.initialTab));
-  }, [props.initialTab]);
+    if (controlled || !props.initialTab) return;
+    setInternalTab(resolveElevageTab(props.initialTab));
+  }, [controlled, props.initialTab]);
   const animauxCrud = useCrudModule('animaux');
   const avicoleCrud = useCrudModule('avicole');
   const santeCrud = useCrudModule('sante');
@@ -439,12 +451,13 @@ export default function ElevageRecoveredModule(props) {
   const avicoleProps = { rows: lots, transactions: rowsOf(props.transactions, financesCrud, periodFiltered), alimentationLogs: feedLogs, productionLogs, stocks, stockMovements, opportunities, businessEvents, onCreate: props.onCreateLot || avicoleCrud.create, onUpdate: props.onUpdateLot || avicoleCrud.update, onDelete: props.onDeleteLot || avicoleCrud.remove, onRefresh: props.onRefreshLots || avicoleCrud.refresh, onCreateProduction: props.onCreateProduction || productionCrud.create, onUpdateProduction: props.onUpdateProduction || productionCrud.update, onDeleteProduction: props.onDeleteProduction || productionCrud.remove, onRefreshProduction: props.onRefreshProduction || productionCrud.refresh, onCommitEggProduction: commitEggProduction, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, onUpdateStock: props.onUpdateStock || stockCrud.update, onCreateStockMovement: props.onCreateStockMovement || movementsCrud.create, onRefreshStockMovements: props.onRefreshStockMovements || movementsCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, ...shared };
   const healthProps = { rows: health, vets: rowsOf(props.veterinaires, vetsCrud, false), animaux: animals, lots, stocks, transactions: rowsOf(props.transactions, financesCrud, periodFiltered), documents: rowsOf(props.documents, documentsCrud, periodFiltered), tasks: rowsOf(props.tasks, tasksCrud, false), alertes: rowsOf(props.alertes, alertsCrud, false), onCreate: props.onCreateHealth || santeCrud.create, onUpdate: props.onUpdateHealth || santeCrud.update, onDelete: props.onDeleteHealth || santeCrud.remove, onRefresh: props.onRefreshHealth || santeCrud.refresh, onCreateVet: props.onCreateVet || vetsCrud.create, onUpdateVet: props.onUpdateVet || vetsCrud.update, onDeleteVet: props.onDeleteVet || vetsCrud.remove, onRefreshVets: props.onRefreshVets || vetsCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onUpdateAlert: props.onUpdateAlert || alertsCrud.update, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateDocument: props.onCreateDocument || documentsCrud.create, onRefreshDocuments: props.onRefreshDocuments || documentsCrud.refresh, onNavigate: props.onNavigate };
   const content = tab === 'Cycles' ? (
-    <VisionCyclesTab
+    <ElevageCyclesPanel
       dataMap={{ ...props.dataMap, animaux: animals, lots, production_oeufs_logs: productionLogs, alimentation_logs: feedLogs, stock: stocks }}
       lots={lots}
       animaux={animals}
       productionLogs={productionLogs}
       onNavigate={props.onNavigate}
+      setTab={setTab}
     />
   ) : tab === 'Résumé' ? (
     <Summary
@@ -492,7 +505,7 @@ export default function ElevageRecoveredModule(props) {
       ) : tab === 'Transformation' ? <TransformationHub data={data} setTab={setTab} onNavigate={props.onNavigate} onOpenWorkflow={openWorkflow} animalBridgeProps={animalProps} avicoleBridgeProps={avicoleProps} /> : tab === 'Annexe' ? <ModuleAnnexeTab moduleId="elevage" onNavigate={props.onNavigate} /> : <ModuleGraphiquesTab moduleId="elevage" periodFiltered={periodFiltered} lots={lots} animaux={animals} productionLogs={productionLogs} alimentationLogs={feedLogs} transactions={rowsOf(props.transactions, financesCrud, periodFiltered)} salesOrders={salesOrders} onNavigate={props.onNavigate} />;
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Élevage</h1><p className="mt-1 text-sm text-[#8a7456]">Animaux, avicole, alimentation, santé, reproduction, transformation — IA proactive et rentabilité fiable.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}</div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé module </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div></div></section>
+      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Élevage</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Production animale</h1><p className="mt-1 text-sm text-[#8a7456]">Animaux, avicole, alimentation, santé, reproduction, transformation — IA proactive et rentabilité fiable.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}</div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé module </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div></div></section>
       <Tabs active={tab} onChange={setTab} activeFarm={props.activeFarm} />
       {content}
       <ElevageWorkflowPanels

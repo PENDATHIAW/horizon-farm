@@ -11,8 +11,8 @@ const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v) => Number(v || 0);
 const lower = (v) => String(v || '').toLowerCase();
 
-function insight(id, title, description, severity = 'info', action = '') {
-  return { id, title, description, severity, recommended_action: action, module: 'elevage' };
+function insight(id, title, description, severity = 'info', action = '', tab = 'Résumé') {
+  return { id, title, description, severity, recommended_action: action, module: 'elevage', tab };
 }
 
 export function buildElevageCostAwareInsights({
@@ -40,18 +40,19 @@ export function buildElevageCostAwareInsights({
         `Taux ${rate.rate}% sous le seuil. Vérifier aliment, stress thermique et santé.`,
         'warning',
         'Ouvrir Production / Santé',
+        'Production',
       ));
     }
     const broken = arr(productionLogs).filter((l) => String(l.lot_id) === String(lot.id));
     const totalEggs = broken.reduce((s, l) => s + n(l.oeufs_produits), 0);
     const brokenEggs = broken.reduce((s, l) => s + n(l.oeufs_casses), 0);
     if (totalEggs > 0 && shouldAlertEggBreak((brokenEggs / totalEggs) * 100)) {
-      insights.push(insight(`egg-break-${lot.id}`, `Casse œufs élevée — ${lot.name || lot.id}`, `${Math.round((brokenEggs / totalEggs) * 100)}% de casse sur la période.`, 'warning'));
+      insights.push(insight(`egg-break-${lot.id}`, `Casse œufs élevée — ${lot.name || lot.id}`, `${Math.round((brokenEggs / totalEggs) * 100)}% de casse sur la période.`, 'warning', '', 'Production'));
     }
     if (unified.feedingCost > 0 && unified.healthCost > 0 && unified.totalCost > 0) {
       const feedShare = (unified.feedingCost / unified.totalCost) * 100;
       if (feedShare > 75) {
-        insights.push(insight(`feed-high-${lot.id}`, `Coût alimentaire élevé — ${lot.name || lot.id}`, `Alimentation = ${Math.round(feedShare)}% du coût total (alim. + santé inclus).`, 'warning', 'Vérifier ration et IC'));
+        insights.push(insight(`feed-high-${lot.id}`, `Coût alimentaire élevé — ${lot.name || lot.id}`, `Alimentation = ${Math.round(feedShare)}% du coût total (alim. + santé inclus).`, 'warning', 'Vérifier ration et IC', 'Alimentation'));
       }
     } else if (!unified.costComplete) {
       insights.push(insight(`margin-unreliable-${lot.id}`, `Marge non fiable — ${lot.name || lot.nom || lot.id}`, 'Coût complet indisponible : renseigner alimentation et santé avant décision.', 'info'));
@@ -64,15 +65,15 @@ export function buildElevageCostAwareInsights({
     const mortRate = init > 0 ? (mort / init) * 100 : 0;
     const sev = mortalityAlertSeverity(mortRate);
     if (sev) {
-      insights.push(insight(`mortality-${lot.id}`, `Mortalité ${sev} — ${lot.name || lot.nom || lot.id}`, `${mortRate.toFixed(1)}% — seuil dépassé.`, sev === 'critique' ? 'critique' : 'warning'));
+      insights.push(insight(`mortality-${lot.id}`, `Mortalité ${sev} — ${lot.name || lot.nom || lot.id}`, `${mortRate.toFixed(1)}% — seuil dépassé.`, sev === 'critique' ? 'critique' : 'warning', '', 'Transformation'));
     }
     const weight = n(lot.weight_avg ?? lot.poids_moyen);
     const target = n(lot.poids_cible ?? lot.poids_objectif ?? 1.5);
     if (weight > 0 && target > 0 && weight < target * 0.85 && n(lot.age_days) > 28) {
-      insights.push(insight(`growth-delay-${lot.id}`, `Retard de croissance — ${lot.name || lot.nom || lot.id}`, `Poids moyen ${weight} kg vs cible ${target} kg.`, 'warning'));
+      insights.push(insight(`growth-delay-${lot.id}`, `Retard de croissance — ${lot.name || lot.nom || lot.id}`, `Poids moyen ${weight} kg vs cible ${target} kg.`, 'warning', '', 'Avicole'));
     }
     if (lot.ready_to_sell || lower(lot.status || lot.statut).includes('pret_vente')) {
-      insights.push(insight(`ready-sell-${lot.id}`, `Lot prêt à vendre — ${lot.name || lot.nom || lot.id}`, 'Effectif et poids proches de l\'objectif — préparer vente Commercial.', 'info', 'Commercial > Ventes'));
+      insights.push(insight(`ready-sell-${lot.id}`, `Lot prêt à vendre — ${lot.name || lot.nom || lot.id}`, 'Effectif et poids proches de l\'objectif — préparer vente Commercial.', 'info', 'Commercial > Ventes', 'Transformation'));
     }
   });
 
@@ -81,7 +82,7 @@ export function buildElevageCostAwareInsights({
     const weight = n(animal.poids);
     const target = n(animal.poids_cible ?? animal.poids_objectif);
     if (animal.ready_to_sell || (target > 0 && weight >= target * 0.95)) {
-      insights.push(insight(`animal-ready-${animal.id}`, `Animal proche poids cible — ${animal.name || animal.nom || animal.id}`, `${weight} kg / cible ${target || '—'} kg.`, 'info', 'Préparer vente'));
+      insights.push(insight(`animal-ready-${animal.id}`, `Animal proche poids cible — ${animal.name || animal.nom || animal.id}`, `${weight} kg / cible ${target || '—'} kg.`, 'info', 'Préparer vente', 'Transformation'));
     }
     if (!unified.costComplete && n(animal.purchase_cost ?? animal.prix_achat) > 0) {
       insights.push(insight(`animal-cost-${animal.id}`, `Coût incomplet — ${animal.name || animal.nom || animal.id}`, 'Alimentation ou santé manquante pour une marge fiable.', 'info'));
@@ -99,12 +100,12 @@ export function buildElevageCostAwareInsights({
 
   const healthLate = arr(healthEvents).filter((h) => ['retard', 'en_retard', 'a_faire_retard', 'overdue'].includes(lower(h.statut || h.status)));
   if (healthLate.length) {
-    insights.push(insight('health-late', `${healthLate.length} soin(s) en retard`, 'Vaccins ou traitements à planifier rapidement.', 'warning', 'Onglet Santé'));
+    insights.push(insight('health-late', `${healthLate.length} soin(s) en retard`, 'Vaccins ou traitements à planifier rapidement.', 'warning', 'Onglet Santé', 'Santé'));
   }
 
   const mortalityValue = [...arr(lots), ...arr(animaux)].reduce((s, r) => s + mortalityCostOf(r), 0);
   if (mortalityValue > 0) {
-    insights.push(insight('mortality-cost', 'Pertes mortalité enregistrées', `Valeur estimée ${Math.round(mortalityValue).toLocaleString('fr-FR')} F — vérifier causes et assurances.`, 'info'));
+    insights.push(insight('mortality-cost', 'Pertes mortalité enregistrées', `Valeur estimée ${Math.round(mortalityValue).toLocaleString('fr-FR')} F — vérifier causes et assurances.`, 'info', '', 'Transformation'));
   }
 
   const seen = new Set(insights.map((i) => i.id));
