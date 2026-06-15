@@ -23,7 +23,40 @@ export function moduleForSaleSource(order = {}) {
 
 export const ELEVAGE_TABS = ['Résumé', 'Cycles', 'Animaux', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Production', 'Transformation', 'Annexe', 'Graphiques'];
 export const ACHATS_STOCK_TABS = ['Résumé', 'Stock', 'Achats', 'Fournisseurs', 'Mouvements', 'Annexe', 'Graphiques'];
-export const COMMERCIAL_TABS = ['Résumé', 'Ventes', 'Clients', 'Livraisons', 'Abonnements', 'Relances', 'Opportunités', 'Pilotage', 'Annexe', 'Graphiques'];
+export const COMMERCIAL_TABS = ['Ventes', 'Opportunités', 'Clients & créances', 'Livraisons', 'Abonnements', 'Pilotage'];
+
+const COMMERCIAL_TAB_ALIASES = {
+  Résumé: 'Pilotage',
+  resume: 'Pilotage',
+  Ventes: 'Ventes',
+  ventes: 'Ventes',
+  Clients: 'Clients & créances',
+  clients: 'Clients & créances',
+  'Clients & créances': 'Clients & créances',
+  'Clients & creances': 'Clients & créances',
+  creances: 'Clients & créances',
+  Livraisons: 'Livraisons',
+  livraisons: 'Livraisons',
+  livraison: 'Livraisons',
+  Abonnements: 'Abonnements',
+  abonnements: 'Abonnements',
+  abonnement: 'Abonnements',
+  Relances: 'Clients & créances',
+  relances: 'Clients & créances',
+  relance: 'Clients & créances',
+  Opportunités: 'Opportunités',
+  opportunites: 'Opportunités',
+  opportunities: 'Opportunités',
+  Pilotage: 'Pilotage',
+  pilotage: 'Pilotage',
+  reconciliation: 'Pilotage',
+  Annexe: 'Pilotage',
+  annexe: 'Pilotage',
+  Graphiques: 'Pilotage',
+  graphiques: 'Pilotage',
+  devis: 'Ventes',
+  prospects: 'Clients & créances',
+};
 export const ACTIVITE_SUIVI_TABS = ['Résumé', 'Alertes', 'Tâches', 'Traçabilité', 'Graphiques'];
 export const FINANCE_TABS = ['Résumé', 'Trésorerie', 'Créances', 'Dettes', 'Échéancier', 'Financement', 'Réconciliation', 'Investissements', 'Rentabilité', 'Annexe', 'Graphiques'];
 
@@ -36,14 +69,14 @@ const tabAliases = {
   mouvements: 'Mouvements',
   ventes: 'Ventes',
   devis: 'Ventes',
-  clients: 'Clients',
-  prospects: 'Clients',
+  clients: 'Clients & créances',
+  prospects: 'Clients & créances',
   livraisons: 'Livraisons',
   livraison: 'Livraisons',
   abonnements: 'Abonnements',
   abonnement: 'Abonnements',
-  relances: 'Relances',
-  relance: 'Relances',
+  relances: 'Clients & créances',
+  relance: 'Clients & créances',
   pilotage: 'Pilotage',
   reconciliation: 'Pilotage',
   opportunites: 'Opportunités',
@@ -83,7 +116,7 @@ export function resolveAchatsStockTab(value = '') {
 export function resolveCommercialTab(value = '') {
   const tab = String(value || '').trim();
   if (COMMERCIAL_TABS.includes(tab)) return tab;
-  return tabAliases[lower(tab)] || 'Résumé';
+  return COMMERCIAL_TAB_ALIASES[tab] || COMMERCIAL_TAB_ALIASES[lower(tab)] || tabAliases[lower(tab)] || 'Pilotage';
 }
 
 export function resolveFinanceTab(value = '') {
@@ -149,7 +182,7 @@ export function resolveRouteModule(moduleId = '') {
 
 /** Onglet par défaut quand on entre via un alias legacy. */
 export function defaultTabForLegacyModule(moduleId = '') {
-  if (moduleId === 'clients') return 'Clients';
+  if (moduleId === 'clients') return 'Clients & créances';
   if (moduleId === 'ventes' || moduleId === 'sales_orders') return 'Ventes';
   if (moduleId === 'sales_opportunities') return 'Opportunités';
   if (moduleId === 'animaux') return 'Animaux';
@@ -171,7 +204,7 @@ const SEARCH_KEY_TO_MODULE = {
   sales_opportunities: { module: 'commercial', tab: 'Opportunités' },
   invoices: { module: 'commercial', tab: 'Ventes' },
   deliveries: { module: 'commercial', tab: 'Livraisons' },
-  clients: { module: 'commercial', tab: 'Clients' },
+  clients: { module: 'commercial', tab: 'Clients & créances' },
   payments: { module: 'finance_pilotage', tab: 'Créances' },
   finances: { module: 'finance_pilotage', tab: 'Trésorerie' },
   stock: { module: 'achats_stock', tab: 'Stock' },
@@ -205,7 +238,7 @@ export function navigationOptionsForFinding(finding = {}) {
 
   if (module === 'commercial') {
     const tab = explicitTab
-      || (String(finding.title || '').toLowerCase().includes('relancer') ? 'Clients' : 'Ventes');
+      || (String(finding.title || '').toLowerCase().includes('relancer') ? 'Clients & créances' : 'Ventes');
     return { module, tab: resolveCommercialTab(tab) };
   }
   if (module === 'finance_pilotage') {

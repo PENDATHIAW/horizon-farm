@@ -176,7 +176,7 @@ for (const tab of COMMERCIAL_TABS) {
   });
 }
 
-test('Commercial simulated mode — actions principales visibles (Résumé)', async () => {
+test('Commercial simulated mode — actions principales visibles (Pilotage)', async () => {
   await withSimulatedMode(true, async () => {
     const dataMap = await loadSimulatedDataMap();
     const mod = await import('../../src/modules/CommercialModule.jsx');
@@ -188,7 +188,7 @@ test('Commercial simulated mode — actions principales visibles (Résumé)', as
         React.createElement(
           AppProvider,
           { initialDataMap: dataMap },
-          React.createElement(mod.default, { ...buildPropsFromSeed(), initialTab: 'Résumé' }),
+          React.createElement(mod.default, { ...buildPropsFromSeed(), initialTab: 'Pilotage' }),
         ),
       ),
     );

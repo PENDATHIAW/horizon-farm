@@ -21,8 +21,8 @@ export function CommercialQuickActions({ setTab, onNewSale }) {
       </button>
       <button type="button" onClick={() => setTab('Ventes')} className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">Devis & ventes</button>
       <button type="button" onClick={() => setTab('Livraisons')} className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">Livraisons</button>
-      <button type="button" onClick={() => setTab('Clients')} className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">Clients & créances</button>
-      <button type="button" onClick={() => setTab('Relances')} className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">Relances</button>
+      <button type="button" onClick={() => setTab('Clients & créances')} className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">Clients & créances</button>
+      <button type="button" onClick={() => setTab('Clients & créances')} className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">Relances</button>
     </div>
   );
 }
@@ -74,7 +74,7 @@ export function CommercialTopClients({ rows = [], setTab, subtitle = 'Par chiffr
           <h2 className="text-sm font-black text-[#2f2415]">Top clients</h2>
           <p className="text-[11px] text-[#8a7456]">{subtitle}</p>
         </div>
-        <button type="button" onClick={() => setTab('Clients')} className="inline-flex items-center gap-1 text-xs font-black text-[#9a6b12]">Voir tout <ArrowRight size={14} /></button>
+        <button type="button" onClick={() => setTab('Clients & créances')} className="inline-flex items-center gap-1 text-xs font-black text-[#9a6b12]">Voir tout <ArrowRight size={14} /></button>
       </div>
       <div className="space-y-2">
         {rows.map((row) => (

@@ -46,7 +46,7 @@ const crudRowsMap = (c) => Object.fromEntries(CRUD_KEYS.map((key) => [key, rows(
 
 export default function App() {
   const [active, setActiveState] = useState('dashboard');
-  const [commercialTab, setCommercialTab] = useState('Résumé');
+  const [commercialTab, setCommercialTab] = useState('Pilotage');
   const [elevageTab, setElevageTab] = useState('Résumé');
   const [centreTab, setCentreTab] = useState('À traiter');
   const [objectifsTab, setObjectifsTab] = useState('Rentabilité Lot & Cycle');
@@ -64,7 +64,7 @@ export default function App() {
     }
 
     if (resolved === 'commercial') {
-      setCommercialTab(resolveCommercialTab(tab || defaultTabForLegacyModule(moduleId) || 'Résumé'));
+      setCommercialTab(resolveCommercialTab(tab || defaultTabForLegacyModule(moduleId) || 'Pilotage'));
       trackNavOpen('commercial');
       setActiveState('commercial');
       return;
@@ -371,6 +371,7 @@ export default function App() {
     },
     commercial: {
       initialTab: commercialTab,
+      onTabChange: (nextTab) => setCommercialTab(resolveCommercialTab(nextTab)),
       clients: rows(c.clients),
       salesOrders: rows(c.sales_orders),
       salesOrdersAll: rows(c.sales_orders),
