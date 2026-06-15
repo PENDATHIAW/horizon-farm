@@ -4,6 +4,7 @@ import { avicoleHasActiveBirds } from '../../utils/avicoleMetrics';
 import { emitHorizonForm } from '../../services/formModalManager';
 import AnimalSlaughterStockBridge from '../AnimalSlaughterStockBridge.jsx';
 import AvicoleTransformationBridge from '../AvicoleTransformationBridge.jsx';
+import ElevageTransformationJournal from '../../components/ElevageTransformationJournal.jsx';
 import HeyHorizonAnimalCard from '../HeyHorizonAnimalCard.jsx';
 import HeyHorizonAvicoleCard from '../HeyHorizonAvicoleCard.jsx';
 import { ELEVAGE_ACTION_GRID, ELEVAGE_STAT_GRID, ElevageActionCard, ElevageSection, ElevageStatCard } from './elevageUi.jsx';
@@ -76,6 +77,11 @@ export default function ElevageTransformationPanel({ data, setTab, animalProps, 
         onRefresh={avicoleProps.onRefresh}
         onCreateBusinessEvent={avicoleProps.onCreateBusinessEvent}
         onRefreshBusinessEvents={avicoleProps.onRefreshBusinessEvents}
+      />
+
+      <ElevageTransformationJournal
+        rows={data.transformationRows || []}
+        onOpenCommercial={() => animalProps.onNavigate?.('commercial', { tab: 'Ventes' })}
       />
 
       <ElevageSection title="Accès rapide">

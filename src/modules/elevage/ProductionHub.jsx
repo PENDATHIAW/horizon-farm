@@ -164,7 +164,6 @@ export default function ProductionHub({
           chair.readyLots > 0 ? (
             <ActionCard key="chair-sale" title="Préparer vente" text={`${chair.readyLots} lot(s) prêt(s) ou proche(s) de la vente.`} onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
           ) : null,
-          <ActionCard key="chair-transform" title="Voir transformation" text="Abattage avicole et stock viande." onClick={() => setTab('Transformation')} />,
         ].filter(Boolean)}
       >
         {chair.readyList?.length ? (
@@ -194,7 +193,6 @@ export default function ProductionHub({
           bovins.nearTargetCount > 0 ? (
             <ActionCard key="bov-sale" title="Préparer vente" text={`${bovins.nearTargetCount} animal(aux) proche(s) du poids cible.`} onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
           ) : null,
-          <ActionCard key="bov-transform" title="Voir transformation" text="Abattage animal et stock viande." onClick={() => setTab('Transformation')} />,
         ].filter(Boolean)}
       >
         {bovins.nearTargetList?.length ? (

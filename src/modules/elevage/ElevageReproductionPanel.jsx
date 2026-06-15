@@ -2,7 +2,7 @@ import { Beef } from 'lucide-react';
 import { emitHorizonForm } from '../../services/formModalManager';
 import { fmtNumber } from '../../utils/format';
 import HeyHorizonAnimalCard from '../HeyHorizonAnimalCard.jsx';
-import { ELEVAGE_ACTION_GRID, ELEVAGE_STAT_GRID, ElevageActionCard, ElevageSection, ElevageStatCard } from './elevageUi.jsx';
+import { ELEVAGE_ACTION_GRID, ELEVAGE_STAT_GRID, ElevageActionCard, ElevageLogRow, ElevageSection, ElevageStatCard } from './elevageUi.jsx';
 import { useAnimalWorkflowHandlers } from './useAnimalWorkflowHandlers.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -59,6 +59,24 @@ export default function ElevageReproductionPanel({ data, setTab, animalProps, ho
           />
         </div>
       ) : null}
+
+      <ElevageSection
+        title="Historique naissances"
+        subtitle="Événements métier naissance, mise bas et portée déjà enregistrés."
+      >
+        {data.birthEvents?.length ? (
+          data.birthEvents.map((row) => (
+            <ElevageLogRow
+              key={row.id || `${row.event_type}-${row.title}`}
+              title={row.title || row.event_type || 'Naissance'}
+              detail={row.description || row.module_source || '—'}
+              value={String(row.date || row.created_at || '—').slice(0, 10)}
+            />
+          ))
+        ) : (
+          <p className="text-sm text-[#8a7456]">Aucune naissance enregistrée — utilisez les actions ci-dessus.</p>
+        )}
+      </ElevageSection>
     </div>
   );
 }
