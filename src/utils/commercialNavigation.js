@@ -135,6 +135,10 @@ const ACTIVITE_SUIVI_TAB_ALIASES = {
   stats: 'Performance & analytique',
   Graphiques: 'Performance & analytique',
   graphiques: 'Performance & analytique',
+  Annexe: 'Performance & analytique',
+  annexe: 'Performance & analytique',
+  Pilotage: 'Performance & analytique',
+  pilotage: 'Performance & analytique',
 };
 export const FINANCE_TABS = ['Résumé', 'Trésorerie', 'Créances & dettes', 'Pilotage', 'Graphiques'];
 export const FINANCE_TREASURY_SUBVIEWS = ['saisie', 'reconciliation'];
@@ -380,6 +384,24 @@ const SMARTFARM_TAB_ALIASES = {
   Annexe: 'Objets connectés',
   annexe: 'Objets connectés',
 };
+export const SYNC_ACTIVITY_TABS = ['Vérifications', 'Connexion & envoi', 'Journal d\'activité'];
+
+const SYNC_ACTIVITY_TAB_ALIASES = {
+  Vérifications: 'Vérifications',
+  verifications: 'Vérifications',
+  audit: 'Vérifications',
+  Résumé: 'Vérifications',
+  resume: 'Vérifications',
+  'Connexion & envoi': 'Connexion & envoi',
+  connexion: 'Connexion & envoi',
+  sync: 'Connexion & envoi',
+  offline: 'Connexion & envoi',
+  'Journal d\'activité': 'Journal d\'activité',
+  journal: 'Journal d\'activité',
+  historique: 'Journal d\'activité',
+  activite: 'Journal d\'activité',
+  audit_logs: 'Journal d\'activité',
+};
 export const CULTURES_TABS = ['Parcelles & campagnes', 'Récoltes', 'Économie circulaire'];
 
 const CULTURES_TAB_ALIASES = {
@@ -440,6 +462,18 @@ export function resolveRhTab(value = '') {
 export function resolveRhNavigation(value = '') {
   const raw = String(value || '').trim();
   return { tab: resolveRhTab(raw) };
+}
+
+export function resolveSyncActivityTab(value = '') {
+  const tab = String(value || '').trim();
+  if (SYNC_ACTIVITY_TABS.includes(tab)) return tab;
+  const fromAlias = SYNC_ACTIVITY_TAB_ALIASES[tab] || SYNC_ACTIVITY_TAB_ALIASES[lower(tab)];
+  if (fromAlias) return fromAlias;
+  return 'Vérifications';
+}
+
+export function resolveSyncActivityNavigation(value = '') {
+  return { tab: resolveSyncActivityTab(value) };
 }
 
 export function resolveSmartFarmTab(value = '') {

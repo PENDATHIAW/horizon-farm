@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import { MODULE_TARGET_TABS } from '../../src/config/horizonVision.config.js';
 import { annexePresetForModule } from '../../src/services/annexeModuleConfig.js';
 
-test('smartfarm — onglet Annexe dans la barre module', () => {
+test('smartfarm — 3 onglets télémétrie sans onglet Annexe dédié', () => {
   const tabs = MODULE_TARGET_TABS.smartfarm || [];
-  assert.ok(tabs.includes('Annexe'));
-  assert.ok(tabs.indexOf('Annexe') < tabs.indexOf('Graphiques'));
+  assert.equal(tabs.length, 3);
+  assert.ok(!tabs.includes('Annexe'));
+  assert.ok(annexePresetForModule('smartfarm'));
 });
 
 test('finance_pilotage — 5 onglets avec Pilotage', () => {

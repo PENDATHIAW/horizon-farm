@@ -10,13 +10,10 @@ import ATraiterMaintenantTab from './activiteSuivi/tabs/ATraiterMaintenantTab.js
 import RegistreTracabiliteTab from './activiteSuivi/tabs/RegistreTracabiliteTab.jsx';
 import PerformanceAnalytiqueTab from './activiteSuivi/tabs/PerformanceAnalytiqueTab.jsx';
 
-function Tabs({ active, onChange, badgeCount = 0 }) {
+function Tabs({ active, onChange, tabBadges = {} }) {
   return (
     <div className="space-y-2">
-      <ModuleTabsBar moduleId="activite_suivi" active={active} onChange={onChange} />
-      {badgeCount > 0 && active !== 'À traiter maintenant' ? (
-        <p className="text-xs font-bold text-amber-700">{badgeCount} élément(s) à traiter — onglet « À traiter maintenant ».</p>
-      ) : null}
+      <ModuleTabsBar moduleId="activite_suivi" active={active} onChange={onChange} tabBadges={tabBadges} />
     </div>
   );
 }
@@ -134,7 +131,14 @@ export default function ActiviteSuiviRecoveredModule(props) {
           </div>
         </div>
       </section>
-      <Tabs active={tab} onChange={setTab} badgeCount={data.counts.openTotal} />
+      <Tabs
+        active={tab}
+        onChange={setTab}
+        tabBadges={{
+          'À traiter maintenant': data.counts.openTotal,
+          'Cockpit & décisions': data.criticalAlerts.length,
+        }}
+      />
       {content}
     </div>
   );
