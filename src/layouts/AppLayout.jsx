@@ -22,17 +22,19 @@ const NAV_GROUPS = [
   { key: 'commerce', label: 'Commerce', ids: ['commercial', 'achats_stock'] },
   { key: 'finance', label: 'Finance', ids: ['finance_pilotage'] },
   { key: 'suivi', label: 'Suivi', ids: ['activite_suivi', 'documents_rapports'] },
-  { key: 'ressources', label: 'Ressources', ids: ['rh', 'equipements', 'smartfarm'] },
+  { key: 'ressources', label: 'Ressources', ids: ['rh', 'equipements'] },
+  { key: 'iot', label: 'Terrain & IoT', ids: ['smartfarm'] },
   { key: 'administration', label: 'Administration', ids: ['sync', 'sync_activity', 'audit_logs', 'gestion_systeme'] },
 ];
 
 function collapseNavItems(navItems = []) {
-  const opsIds = new Set(['rh', 'equipements', 'smartfarm']);
+  const opsIds = new Set(['rh', 'equipements']);
   const opsItems = navItems.filter((item) => opsIds.has(item.id));
-  const collapsed = navItems.filter((item) => !['equipements', 'smartfarm'].includes(item.id));
+  const collapsed = navItems.filter((item) => item.id !== 'equipements');
   return collapsed.map((item) => {
     if (item.id === 'centre_ia') return { ...item, label: 'Centre décisionnel' };
     if (item.id === 'rh') return { ...item, label: 'Opérations & Ressources', icon: UserCog, hasAlert: opsItems.some((entry) => entry.hasAlert) };
+    if (item.id === 'smartfarm') return { ...item, label: 'Smart Farm' };
     return item;
   });
 }

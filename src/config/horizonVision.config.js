@@ -23,7 +23,7 @@ export const MODULE_TARGET_TABS = {
   documents_rapports: ['Centre de contrôle', 'Gestionnaire & OCR', 'Rapprochement & preuves', 'Rapports & exports'],
   rh: ['Cockpit RH & Maintenance', 'Personnel & Paie', 'Parc Matériel & Maintenance', 'Registres & Analyses'],
   gestion_systeme: ['Vue admin', 'Utilisateurs', 'Fermes', 'Paramètres', 'Sécurité', 'Sauvegardes', 'Réinitialisation', 'Audit'],
-  smartfarm: ['Résumé', 'Capteurs', 'Caméras', 'Annexe', 'Graphiques'],
+  smartfarm: ['Objets connectés', 'Flux temps réel', 'Automatisation'],
   cultures: [
     'Parcelles & campagnes',
     'Récoltes',

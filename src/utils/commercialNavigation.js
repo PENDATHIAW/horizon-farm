@@ -353,7 +353,33 @@ const RH_TAB_ALIASES = {
   graphiques: 'Registres & Analyses',
   analyses: 'Registres & Analyses',
 };
-export const SMARTFARM_TABS = ['Résumé', 'Capteurs', 'Caméras', 'Annexe', 'Graphiques'];
+export const SMARTFARM_TABS = ['Objets connectés', 'Flux temps réel', 'Automatisation'];
+
+const SMARTFARM_TAB_ALIASES = {
+  'Objets connectés': 'Objets connectés',
+  objets: 'Objets connectés',
+  devices: 'Objets connectés',
+  device: 'Objets connectés',
+  Résumé: 'Objets connectés',
+  resume: 'Objets connectés',
+  Capteurs: 'Objets connectés',
+  capteurs: 'Objets connectés',
+  Caméras: 'Objets connectés',
+  cameras: 'Objets connectés',
+  caméras: 'Objets connectés',
+  'Flux temps réel': 'Flux temps réel',
+  flux: 'Flux temps réel',
+  telemetry: 'Flux temps réel',
+  telemetrie: 'Flux temps réel',
+  Graphiques: 'Flux temps réel',
+  graphiques: 'Flux temps réel',
+  Automatisation: 'Automatisation',
+  automation: 'Automatisation',
+  automatisation: 'Automatisation',
+  rules: 'Automatisation',
+  Annexe: 'Objets connectés',
+  annexe: 'Objets connectés',
+};
 export const CULTURES_TABS = ['Parcelles & campagnes', 'Récoltes', 'Économie circulaire'];
 
 const CULTURES_TAB_ALIASES = {
@@ -419,7 +445,15 @@ export function resolveRhNavigation(value = '') {
 export function resolveSmartFarmTab(value = '') {
   const tab = String(value || '').trim();
   if (SMARTFARM_TABS.includes(tab)) return tab;
-  return tabAliases[lower(tab)] || 'Résumé';
+  const fromAlias = SMARTFARM_TAB_ALIASES[tab] || SMARTFARM_TAB_ALIASES[lower(tab)];
+  if (fromAlias) return fromAlias;
+  if (lower(tab) === 'resume') return 'Objets connectés';
+  return 'Objets connectés';
+}
+
+export function resolveSmartFarmNavigation(value = '') {
+  const raw = String(value || '').trim();
+  return { tab: resolveSmartFarmTab(raw) };
 }
 
 export function resolveCulturesTab(value = '') {

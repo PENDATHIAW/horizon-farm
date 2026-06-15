@@ -1,1 +1,1 @@
-export { default } from './smartfarm/SmartFarmRecoveredModule.jsx';
+export { default } from './smartfarm/SmartFarmTelemetry.jsx';
