@@ -404,7 +404,7 @@ export default function App() {
     },
     commercial: {
       initialTab: commercialTab,
-      onTabChange: setCommercialTab,
+      onTabChange: (nextTab) => setCommercialTab(resolveCommercialTab(nextTab)),
       clients: rows(c.clients),
       salesOrders: rows(c.sales_orders),
       salesOrdersAll: rows(c.sales_orders),

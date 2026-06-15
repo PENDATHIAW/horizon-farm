@@ -15,14 +15,6 @@ setupTestStorage();
 
 const ERROR_PATTERN = /ERREUR MODULE|is not defined|useAppData must be used|cannot read properties of undefined|useApp must be used/i;
 
-const ACTION_MARKERS = [
-  /nouvelle vente/i,
-  /client/i,
-  /opportunit/i,
-  /livraison/i,
-  /relance/i,
-];
-
 async function loadSimulatedDataMap() {
   return withSimulatedMode(true, async () => {
     const {
@@ -176,25 +168,38 @@ for (const tab of COMMERCIAL_TABS) {
   });
 }
 
-test('Commercial simulated mode — actions principales visibles (Résumé)', async () => {
+test('Commercial simulated mode — actions principales visibles (Pilotage)', async () => {
   await withSimulatedMode(true, async () => {
     const dataMap = await loadSimulatedDataMap();
     const mod = await import('../../src/modules/CommercialModule.jsx');
 
-    const html = renderToString(
+    const pilotageHtml = renderToString(
       React.createElement(
         AuthProvider,
         null,
         React.createElement(
           AppProvider,
           { initialDataMap: dataMap },
-          React.createElement(mod.default, { ...buildPropsFromSeed(), initialTab: 'Résumé' }),
+          React.createElement(mod.default, { ...buildPropsFromSeed(), initialTab: 'Pilotage' }),
         ),
       ),
     );
 
-    ACTION_MARKERS.forEach((pattern) => {
-      assert.match(html, pattern, `Action attendue absente: ${pattern}`);
+    const ventesHtml = renderToString(
+      React.createElement(
+        AuthProvider,
+        null,
+        React.createElement(
+          AppProvider,
+          { initialDataMap: dataMap },
+          React.createElement(mod.default, { ...buildPropsFromSeed(), initialTab: 'Ventes' }),
+        ),
+      ),
+    );
+
+    [/client/i, /opportunit/i, /livraison/i, /relance/i].forEach((pattern) => {
+      assert.match(pilotageHtml, pattern, `Pilotage — action attendue absente: ${pattern}`);
     });
+    assert.match(ventesHtml, /nouvelle vente/i, 'Ventes — bouton Nouvelle vente attendu');
   });
 });

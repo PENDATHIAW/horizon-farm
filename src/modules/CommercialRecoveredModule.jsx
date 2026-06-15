@@ -8,6 +8,7 @@ import { buildSaleFormFromOpportunity } from '../utils/saleFormDraft';
 import { resolveCommercialTab } from '../utils/commercialNavigation';
 import { makeId } from '../utils/ids';
 import { fmtCurrency, fmtNumber } from '../utils/format';
+import { isSimulatedDataModeEnabled } from '../utils/uiPreferences.js';
 import { buildCommercialHealthSnapshot } from './commercial/commercialVisionHelpers.js';
 import {
   aggregateClientReceivables,
@@ -57,11 +58,19 @@ function Summary({ data, setTab, onNavigate, onApplyFinding, busyId }) {
   const todos = data.summaryTodos.slice(0, 6);
   const kpis = data.consolidatedKpis;
   const showStartup = data.startupMode;
+  const simulatedMode = isSimulatedDataModeEnabled();
 
   return (
     <div className="space-y-5">
       {showStartup ? (
-        <CommercialStartupPanel journey={data.startupJourney} setTab={setTab} onNavigate={onNavigate} />
+        <>
+          {!simulatedMode ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              Aucune donnée commerciale chargée. Activez <strong>Données simulées</strong> dans Paramètres (⚙️) pour afficher le scénario Horizon Farm, ou saisissez vos premiers clients et ventes.
+            </div>
+          ) : null}
+          <CommercialStartupPanel journey={data.startupJourney} setTab={setTab} onNavigate={onNavigate} />
+        </>
       ) : null}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
@@ -131,19 +140,26 @@ function Summary({ data, setTab, onNavigate, onApplyFinding, busyId }) {
 }
 
 export default function CommercialRecoveredModule(props) {
-  const [tab, setTabRaw] = useState(() => resolveCommercialTab(props.initialTab));
+  const controlled = Boolean(props.onTabChange);
+  const [internalTab, setInternalTab] = useState(() => resolveCommercialTab(props.initialTab || 'Pilotage'));
+  const tab = controlled
+    ? resolveCommercialTab(props.initialTab || 'Pilotage')
+    : internalTab;
   const setTab = useCallback((value) => {
     const resolved = resolveCommercialTab(value);
-    setTabRaw(resolved);
-    props.onTabChange?.(resolved);
-  }, [props.onTabChange]);
+    if (controlled) {
+      props.onTabChange?.(resolved);
+      return;
+    }
+    setInternalTab(resolved);
+  }, [controlled, props.onTabChange]);
   const [pendingSaleDraft, setPendingSaleDraft] = useState(null);
   const [busyId, setBusyId] = useState(null);
 
   useEffect(() => {
-    if (!props.initialTab) return;
-    setTabRaw(resolveCommercialTab(props.initialTab));
-  }, [props.initialTab]);
+    if (controlled || !props.initialTab) return;
+    setInternalTab(resolveCommercialTab(props.initialTab));
+  }, [controlled, props.initialTab]);
 
   useEffect(() => {
     const handler = (event) => {
@@ -156,7 +172,7 @@ export default function CommercialRecoveredModule(props) {
     };
     window.addEventListener('horizon-open-form', handler);
     return () => window.removeEventListener('horizon-open-form', handler);
-  }, []);
+  }, [setTab]);
   const ordersCrud = useCrudModule('sales_orders');
   const itemsCrud = useCrudModule('sales_order_items');
   const deliveriesCrud = useCrudModule('deliveries');

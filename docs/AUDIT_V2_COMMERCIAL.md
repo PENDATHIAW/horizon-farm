@@ -77,8 +77,9 @@
 | C9 | `App.jsx` default `commercialTab` = Résumé | **Pilotage** |
 | C10 | Pilotage surchargé (QuickActions, devis, réco, checklist hors démarrage) | QuickActions retiré ; devis/réco en `<details>` ; checklist uniquement si `startupMode` |
 | C11 | Ventes : barre QuickActions + doublon « Nouvelle vente » | Un seul bouton dans la barre VentesV4 ; QuickActions retiré |
-| C12 | Onglet Clients & créances inaccessible (désync `commercialTab` App ↔ module) | `onTabChange` + `useEffect` sans reset ; alias `Clients` → canonique |
+| C12 | Onglet Clients & créances inaccessible (désync `commercialTab` App ↔ module) | Onglet **entièrement contrôlé** par App (`onTabChange`) — plus de reset au refresh CRUD |
 | C13 | Export investisseur toujours visible | Repliable dans `<details>` |
+| C14 | KPI à 0 sans données — mode simulé non activé | Bandeau d'aide dans Pilotage si `startupMode` + données réelles vides |
 
 ---
 
