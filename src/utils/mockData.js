@@ -123,6 +123,7 @@ export const moduleSeedMap = {
   production_oeufs_logs: productionOeufsLogsSeed,
   sensor_devices: sensorDevicesSeed,
   camera_devices: cameraDevicesSeed,
+  smartfarm_events: [],
   business_plans: horizonFarmSimulationSeed.business_plans || [],
   bp_investment_lines: bpInvestmentLinesSeed,
   bp_recurring_costs: bpRecurringCostsSeed,

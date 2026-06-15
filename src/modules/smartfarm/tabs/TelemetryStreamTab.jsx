@@ -1,4 +1,4 @@
-import { Activity, RefreshCw } from 'lucide-react';
+import { Activity, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import SmartEvolutionChart from '../../../components/charts/SmartEvolutionChart.jsx';
 import { fmtNumber } from '../../../utils/format.js';
@@ -48,11 +48,19 @@ function liveSensorSeries(sensors = []) {
   };
 }
 
-export default function TelemetryStreamTab({ data, handlers }) {
+export default function TelemetryStreamTab({ data, handlers, realtime }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const events = data.smartfarmEvents;
   const series = useMemo(() => bucketEventsByHour(events), [events, refreshKey]);
   const live = useMemo(() => liveSensorSeries(data.sensors), [data.sensors]);
+  const connected = data.realtimeConnected ?? realtime?.connected;
+  const lastPulse = data.lastPulse ?? realtime?.lastPulse;
+
+  const refreshFlux = async () => {
+    setRefreshKey((k) => k + 1);
+    await realtime?.refreshEvents?.();
+    await handlers.onRefreshSmartfarmEvents?.();
+  };
 
   const hasChart = series.labels.length > 1 && (series.temp.some(Boolean) || series.humidity.some(Boolean) || series.soil.some(Boolean));
 
@@ -85,10 +93,24 @@ export default function TelemetryStreamTab({ data, handlers }) {
         </div>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-xs font-bold">
+          {connected ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800">
+              <Wifi size={14} /> Realtime connecté
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-800">
+              <WifiOff size={14} /> Realtime en attente
+            </span>
+          )}
+          {lastPulse ? (
+            <span className="text-[#8a7456]">Dernier signal · {String(lastPulse).slice(0, 19).replace('T', ' ')}</span>
+          ) : null}
+        </div>
         <button
           type="button"
-          onClick={() => setRefreshKey((k) => k + 1)}
+          onClick={refreshFlux}
           className="inline-flex items-center gap-2 rounded-lg border border-[#d6c3a0] bg-white px-3 py-2 text-xs font-black text-[#2f2415]"
         >
           <RefreshCw size={14} /> Rafraîchir le flux

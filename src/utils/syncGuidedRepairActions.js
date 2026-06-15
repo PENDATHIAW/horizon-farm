@@ -20,6 +20,7 @@ export const GUIDED_REPAIR_SCENARIOS = {
   ORPHAN_DOCUMENT: 'orphan_document',
   FEEDING_NO_STOCK_EXIT: 'feeding_no_stock_exit',
   ALERT_COMPLETED_TASK: 'alert_completed_task',
+  ORPHAN_TELEMETRY: 'orphan_telemetry',
 };
 
 const ACTION_CATALOG = {
@@ -48,6 +49,11 @@ const ACTION_CATALOG = {
     { id: 'reopen_task', label: 'Rouvrir tâche' },
     { id: 'mark_manual_followup', label: 'Marquer suivi manuel' },
   ],
+  [GUIDED_REPAIR_SCENARIOS.ORPHAN_TELEMETRY]: [
+    { id: 'link_existing_device', label: 'Lier objet existant' },
+    { id: 'create_device_from_event', label: 'Créer objet depuis événement' },
+    { id: 'mark_gateway_event', label: 'Marquer passerelle externe' },
+  ],
 };
 
 export function classifySyncIssue(issue = {}) {
@@ -68,6 +74,9 @@ export function classifySyncIssue(issue = {}) {
   }
   if (module === 'alertes_center' && (message.includes('tâche terminée') || message.includes('tache terminee') || (message.includes('tâche') && message.includes('terminée')) || (message.includes('tache') && message.includes('terminee')))) {
     return GUIDED_REPAIR_SCENARIOS.ALERT_COMPLETED_TASK;
+  }
+  if (module === 'smartfarm_events' && (message.includes('introuvable') || message.includes('aucun objet') || message.includes('aucune objet'))) {
+    return GUIDED_REPAIR_SCENARIOS.ORPHAN_TELEMETRY;
   }
   return null;
 }
@@ -105,6 +114,12 @@ function actionAvailable(actionId, issue, props = {}) {
       return Boolean(props.onUpdateTask);
     case 'mark_manual_followup':
       return Boolean(props.onUpdateAlert);
+    case 'link_existing_device':
+      return Boolean(props.onUpdateSmartfarmEvent) && (arr(dataMap.sensor_devices).length > 0 || arr(dataMap.camera_devices).length > 0);
+    case 'create_device_from_event':
+      return Boolean(props.onCreateSensor || props.onCreateCamera) && Boolean(props.onUpdateSmartfarmEvent);
+    case 'mark_gateway_event':
+      return Boolean(props.onUpdateSmartfarmEvent);
     default:
       return false;
   }
@@ -145,6 +160,10 @@ function findAlert(dataMap, id) {
 
 function findTask(dataMap, id) {
   return arr(dataMap.taches).find((row) => clean(row.id) === clean(id));
+}
+
+function findSmartfarmEvent(dataMap, id) {
+  return arr(dataMap.smartfarm_events).find((row) => clean(row.id) === clean(id));
 }
 
 function buildFinanceFromPayment(payment, order) {
@@ -425,6 +444,72 @@ export async function executeGuidedRepairAction(issue = {}, actionId = '', props
       });
       await props.onRefreshAlertes?.();
       return 'Suivi manuel enregistré';
+    }
+  }
+
+  if (scenario === GUIDED_REPAIR_SCENARIOS.ORPHAN_TELEMETRY) {
+    const event = findSmartfarmEvent(dataMap, issue.row_id);
+    if (!event) throw new Error('Événement IoT introuvable');
+    const sensors = arr(dataMap.sensor_devices);
+    const cameras = arr(dataMap.camera_devices);
+    if (actionId === 'link_existing_device') {
+      const device = sensors[0] || cameras[0];
+      if (!device?.id) throw new Error('Aucun objet connecté disponible');
+      await props.onUpdateSmartfarmEvent?.(event.id, {
+        device_id: device.id,
+        device_type: sensors[0] ? 'sensor' : 'camera',
+        notes: `${event.notes || ''} · Lié à ${device.id}`.trim(),
+      });
+      await props.onRefreshSmartfarmEvents?.();
+      return 'Événement lié à un objet existant';
+    }
+    if (actionId === 'create_device_from_event') {
+      const deviceId = clean(event.device_id || issue.linked_id) || makeId('SENS');
+      const isCamera = lower(event.device_type || '').includes('cam') || lower(event.event_type || '').includes('intrusion');
+      if (isCamera && props.onCreateCamera) {
+        await props.onCreateCamera?.({
+          id: deviceId,
+          name: event.message || `Caméra ${deviceId}`,
+          zone: event.zone || 'terrain',
+          type: event.event_type || 'IP',
+          status: 'online',
+          source_type: 'reel',
+          module_lie: 'smartfarm',
+          notes: `Créée depuis événement ${event.id}`,
+        });
+        await props.onRefreshCameras?.();
+      } else {
+        await props.onCreateSensor?.({
+          id: deviceId,
+          name: event.message || `Capteur ${deviceId}`,
+          type: event.event_type || 'temperature',
+          zone: event.zone || 'terrain',
+          status: 'online',
+          source_type: 'reel',
+          module_lie: 'smartfarm',
+          value: event.event_value,
+          notes: `Créé depuis événement ${event.id}`,
+        });
+        await props.onRefreshSensors?.();
+      }
+      await props.onUpdateSmartfarmEvent?.(event.id, {
+        device_id: deviceId,
+        device_type: isCamera ? 'camera' : 'sensor',
+        handled: true,
+        handled_at: now(),
+      });
+      await props.onRefreshSmartfarmEvents?.();
+      return 'Objet créé depuis l’événement IoT';
+    }
+    if (actionId === 'mark_gateway_event') {
+      await props.onUpdateSmartfarmEvent?.(event.id, {
+        handled: true,
+        handled_at: now(),
+        external_gateway: true,
+        notes: `${event.notes || event.message || ''} · Passerelle externe (sans device local)`.trim(),
+      });
+      await props.onRefreshSmartfarmEvents?.();
+      return 'Événement marqué passerelle externe';
     }
   }
 

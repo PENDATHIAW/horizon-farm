@@ -24,7 +24,7 @@ export default function SmartFarmTelemetry(props) {
   const initialNav = resolveSmartFarmNavigation(props.initialTab);
   const [tab, setTab] = useState(() => initialNav.tab || resolveSmartFarmTab(props.initialTab));
 
-  const { data, handlers, sensorProps, cameraProps } = useSmartFarmTelemetry(props);
+  const { data, handlers, sensorProps, cameraProps, realtime } = useSmartFarmTelemetry(props);
 
   const navigateSmartFarm = (target = '') => {
     const nav = resolveSmartFarmNavigation(target);
@@ -47,7 +47,7 @@ export default function SmartFarmTelemetry(props) {
       navigateSmartFarm={navigateSmartFarm}
     />
   ) : tab === 'Flux temps réel' ? (
-    <TelemetryStreamTab data={data} handlers={handlers} />
+    <TelemetryStreamTab data={data} handlers={handlers} realtime={realtime} />
   ) : tab === 'Automatisation' ? (
     <EdgeAutomationTab handlers={handlers} />
   ) : (

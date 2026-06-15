@@ -1,4 +1,31 @@
 const today = () => new Date().toISOString().slice(0, 10);
+const arr = (value) => (Array.isArray(value) ? value : []);
+
+export const SYNC_ISSUE_DOMAINS = {
+  TOUTES: 'toutes',
+  IOT: 'iot',
+  FINANCE: 'finance',
+};
+
+const FINANCE_FLOWS = new Set(['sales_finance', 'stock_supply_finance', 'health_stock_finance', 'investment_profitability', 'sales_stock_sources']);
+
+export function filterSyncIssuesByDomain(issues = [], domain = SYNC_ISSUE_DOMAINS.TOUTES) {
+  if (!domain || domain === SYNC_ISSUE_DOMAINS.TOUTES) return arr(issues);
+  return arr(issues).filter((issue) => {
+    const flow = issue.flow || '';
+    const module = String(issue.module || '').toLowerCase();
+    if (domain === SYNC_ISSUE_DOMAINS.IOT) {
+      return flow === 'smartfarm_alerts_tasks'
+        || module === 'smartfarm_events'
+        || module === 'sensor_devices'
+        || module === 'camera_devices';
+    }
+    if (domain === SYNC_ISSUE_DOMAINS.FINANCE) {
+      return FINANCE_FLOWS.has(flow);
+    }
+    return true;
+  });
+}
 
 export const SYNC_ISSUE_ROUTES = {
   payments: 'ventes',
@@ -14,6 +41,9 @@ export const SYNC_ISSUE_ROUTES = {
   sante: 'sante',
   finances: 'finances',
   business_events: 'tracabilite',
+  smartfarm_events: 'smartfarm',
+  sensor_devices: 'smartfarm',
+  camera_devices: 'smartfarm',
 };
 
 export function routeForSyncIssue(issue = {}) {
@@ -40,7 +70,9 @@ export function syncIssueReadableTitle(issue = {}) {
     .replace('Un document n’est lié à aucune dépense, vente ou paiement.', 'Document orphelin.')
     .replace('Une dépense stockable n’a pas encore d’entrée stock associée.', 'Dépense stockable sans entrée stock.')
     .replace('Une alimentation n’a pas encore de sortie stock enregistrée.', 'Alimentation sans sortie stock.')
-    .replace('Une alerte reste ouverte alors que la tâche associée est terminée.', 'Alerte avec tâche terminée.');
+    .replace('Une alerte reste ouverte alors que la tâche associée est terminée.', 'Alerte avec tâche terminée.')
+    .replace('Un événement IoT n’est lié à aucun objet connecté.', 'Événement IoT sans objet.')
+    .replace('Un événement IoT référence un capteur ou caméra introuvable.', 'Événement IoT orphelin.');
 }
 
 export function buildSyncRepairTask(issue = {}, options = {}) {

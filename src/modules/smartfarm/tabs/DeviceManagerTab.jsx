@@ -1,12 +1,11 @@
 import { Battery, Camera, Plus, QrCode, Radio, Signal, Wifi } from 'lucide-react';
 import { useState } from 'react';
-import toast from 'react-hot-toast';
 import GenericCrudModule from '../../../components/GenericCrudModule.jsx';
 import { MODULE_FORM_FIELDS } from '../../../utils/constants.js';
 import { fmtNumber } from '../../../utils/format.js';
-import { generateSequentialId } from '../../../utils/ids.js';
 import SmartFarmSafetyBridge from '../../SmartFarmSafetyBridge.jsx';
 import SmartFarmZoneOverview from '../../SmartFarmZoneOverview.jsx';
+import SmartFarmQrPairingModal from '../components/SmartFarmQrPairingModal.jsx';
 import { SMART_DEVICE_FAMILIES } from '../smartFarmTelemetryCatalog.js';
 import { isSmartFarmDeviceCritical, smartDeviceLabel } from '../../../utils/smartFarmWorkflows.js';
 
@@ -66,26 +65,10 @@ export default function DeviceManagerTab({
   navigateSmartFarm,
 }) {
   const [detail, setDetail] = useState(null);
+  const [qrOpen, setQrOpen] = useState(false);
 
   const quickPair = async () => {
-    try {
-      const id = generateSequentialId('sensor_devices', data.sensors);
-      await handlers.onCreateSensor?.({
-        id,
-        name: `Sonde ${id}`,
-        type: 'temperature',
-        zone: 'terrain',
-        status: 'simulation',
-        source_type: 'reel',
-        module_lie: 'smartfarm',
-        battery_level: 100,
-      });
-      await handlers.onRefreshSensors?.();
-      toast.success('Sonde ajoutée — complétez la fiche ou scannez le QR terrain');
-      navigateSmartFarm?.('Objets connectés');
-    } catch (e) {
-      toast.error(e.message || 'Appairage impossible');
-    }
+    setQrOpen(true);
   };
 
   const devices = [
@@ -210,6 +193,17 @@ export default function DeviceManagerTab({
           kpis={[]}
         />
       ) : null}
+
+      <SmartFarmQrPairingModal
+        open={qrOpen}
+        onClose={() => setQrOpen(false)}
+        sensors={data.sensors}
+        cameras={data.cameras}
+        onCreateSensor={handlers.onCreateSensor}
+        onCreateCamera={handlers.onCreateCamera}
+        onRefreshSensors={handlers.onRefreshSensors}
+        onRefreshCameras={handlers.onRefreshCameras}
+      />
     </div>
   );
 }

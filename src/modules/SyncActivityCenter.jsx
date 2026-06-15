@@ -16,7 +16,7 @@ import {
   markJustifiedException,
   readJustifiedExceptions,
 } from '../utils/justifiedExceptionStore.js';
-import { buildSyncRepairTask, routeForSyncIssue, syncIssueActionLabel, syncIssueReadableTitle } from '../utils/syncAuditWorkflows';
+import { buildSyncRepairTask, routeForSyncIssue, syncIssueActionLabel, syncIssueReadableTitle, filterSyncIssuesByDomain, SYNC_ISSUE_DOMAINS } from '../utils/syncAuditWorkflows';
 import { executeGuidedRepairAction, getGuidedRepairActions } from '../utils/syncGuidedRepairActions.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -142,12 +142,14 @@ function InterconnectionAudit(props) {
   const { dataMap = {} } = props;
   const { user } = useAuth();
   const [exceptionVersion, setExceptionVersion] = useState(0);
+  const [domainFilter, setDomainFilter] = useState(SYNC_ISSUE_DOMAINS.TOUTES);
   const [pendingIssue, setPendingIssue] = useState(null);
   const [savingException, setSavingException] = useState(false);
   const audit = auditErpInterconnections(dataMap);
   const justifiedRows = useMemo(() => readJustifiedExceptions(), [exceptionVersion]);
   const activeJustifiedCount = useMemo(() => justifiedRows.filter((row) => row.active !== false && row.type_exception === JUSTIFIED_EXCEPTION_TYPES.INTERCONNECTION).length, [justifiedRows]);
-  const visibleIssues = useMemo(() => filterJustifiedIssues(audit.issues, issueKey), [audit.issues, exceptionVersion]);
+  const domainFilteredIssues = useMemo(() => filterSyncIssuesByDomain(audit.issues, domainFilter), [audit.issues, domainFilter]);
+  const visibleIssues = useMemo(() => filterJustifiedIssues(domainFilteredIssues, issueKey), [domainFilteredIssues, exceptionVersion]);
   const visibleAudit = { ...audit, issues: visibleIssues, issueCount: visibleIssues.length, criticalCount: visibleIssues.filter((issue) => issue.severity === 'critical').length };
 
   useEffect(() => {
@@ -183,6 +185,22 @@ function InterconnectionAudit(props) {
   };
 
   return <ModuleSection icon={GitBranch} title="Vérifications importantes" subtitle="Un résumé simple des points qui demandent ton attention.">
+    <div className="flex flex-wrap gap-2">
+      {[
+        { key: SYNC_ISSUE_DOMAINS.TOUTES, label: 'Toutes' },
+        { key: SYNC_ISSUE_DOMAINS.IOT, label: 'IoT' },
+        { key: SYNC_ISSUE_DOMAINS.FINANCE, label: 'Finance' },
+      ].map((item) => (
+        <button
+          key={item.key}
+          type="button"
+          onClick={() => setDomainFilter(item.key)}
+          className={`rounded-full border px-3 py-1 text-xs font-black ${domainFilter === item.key ? 'border-[#2f2415] bg-[#2f2415] text-white' : 'border-[#d6c3a0] bg-white text-[#2f2415]'}`}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
     <div className="grid grid-cols-1 md:grid-cols-4 gap-3"><div className={`rounded-2xl border p-4 ${visibleAudit.issueCount === 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}><p className="text-xs uppercase tracking-wide text-[#8a7456]">État général</p><p className={`mt-2 text-xl font-black ${visibleAudit.issueCount === 0 ? 'text-emerald-700' : 'text-amber-800'}`}>{visibleAudit.issueCount === 0 ? 'Tout va bien' : 'À revoir'}</p></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs uppercase tracking-wide text-[#8a7456]">Vérifications</p><p className="mt-2 text-xl font-black text-[#2f2415]">{audit.flows.length}</p></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4"><p className="text-xs uppercase tracking-wide text-[#8a7456]">À regarder</p><p className="mt-2 text-xl font-black text-[#2f2415]">{visibleAudit.issueCount}</p></div><div className="rounded-2xl border border-red-100 bg-red-50 p-4"><p className="text-xs uppercase tracking-wide text-red-700">Urgents</p><p className="mt-2 text-xl font-black text-red-700">{visibleAudit.criticalCount}</p></div></div>
     {activeJustifiedCount ? <div className="flex items-center justify-between gap-3 rounded-2xl border border-violet-200 bg-violet-50 p-3 text-sm text-violet-800"><span><ShieldCheck size={14} className="inline" /> {activeJustifiedCount} exception(s) justifiée(s) masquée(s) des alertes actives (visible dans l’audit système).</span><button type="button" onClick={() => props.onNavigate?.('gestion_systeme')} className="rounded-full border border-violet-300 bg-white px-3 py-1 text-xs font-bold text-violet-800">Voir audit</button></div> : null}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">{audit.flows.map((flow) => <FlowCard key={flow.id} flow={flow} />)}</div>

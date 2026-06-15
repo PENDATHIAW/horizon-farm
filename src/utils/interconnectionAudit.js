@@ -33,6 +33,8 @@ function existsInKnownTargets(id, module, sets) {
   if (module.includes('tache')) return sets.taches.has(id);
   if (module.includes('sante') || module.includes('santé')) return sets.sante.has(id);
   if (module.includes('document')) return sets.documents.has(id);
+  if (module.includes('sensor') || module.includes('capteur')) return sets.sensor_devices.has(id);
+  if (module.includes('camera')) return sets.camera_devices.has(id);
   return Object.values(sets).some((set) => set.has(id));
 }
 
@@ -133,15 +135,57 @@ function auditDocuments(dataMap, issues) {
   arr(dataMap.documents).forEach((document) => { const target = clean(document.entity_id || document.related_id || document.target_id || document.order_id || document.transaction_id); if (target && !knownIds.has(target)) pushIssue(issues, { module: 'documents', row_id: document.id, linked_id: target, flow: 'documents_traceability', message: 'Un document est lié à un élément qui n’existe plus.' }); });
 }
 
+function auditIoTTelemetry(dataMap, issues) {
+  const sensorIds = idSet(dataMap.sensor_devices);
+  const cameraIds = idSet(dataMap.camera_devices);
+  arr(dataMap.smartfarm_events).forEach((event) => {
+    const deviceId = clean(event.device_id);
+    if (!deviceId) {
+      pushIssue(issues, {
+        module: 'smartfarm_events',
+        row_id: event.id,
+        flow: 'smartfarm_alerts_tasks',
+        scenario: 'orphan_telemetry',
+        message: 'Un événement IoT n’est lié à aucun objet connecté.',
+      });
+      return;
+    }
+    if (!sensorIds.has(deviceId) && !cameraIds.has(deviceId)) {
+      pushIssue(issues, {
+        severity: 'critical',
+        module: 'smartfarm_events',
+        row_id: event.id,
+        linked_id: deviceId,
+        flow: 'smartfarm_alerts_tasks',
+        scenario: 'orphan_telemetry',
+        message: 'Un événement IoT référence un capteur ou caméra introuvable.',
+      });
+    }
+  });
+}
+
 export function auditErpInterconnections(dataMap = {}) {
-  const sets = { animaux: idSet(dataMap.animaux), avicole: idSet(dataMap.avicole), stock: idSet(dataMap.stock), cultures: idSet(dataMap.cultures), sales_orders: idSet(dataMap.sales_orders), finances: idSet(dataMap.finances), alertes_center: idSet(dataMap.alertes_center), taches: idSet(dataMap.taches), sante: idSet(dataMap.sante), documents: idSet(dataMap.documents) };
+  const sets = {
+    animaux: idSet(dataMap.animaux),
+    avicole: idSet(dataMap.avicole),
+    stock: idSet(dataMap.stock),
+    cultures: idSet(dataMap.cultures),
+    sales_orders: idSet(dataMap.sales_orders),
+    finances: idSet(dataMap.finances),
+    alertes_center: idSet(dataMap.alertes_center),
+    taches: idSet(dataMap.taches),
+    sante: idSet(dataMap.sante),
+    documents: idSet(dataMap.documents),
+    sensor_devices: idSet(dataMap.sensor_devices),
+    camera_devices: idSet(dataMap.camera_devices),
+  };
   const issues = [];
   const checkRows = (moduleKey, rows) => { arr(rows).forEach((row) => { const id = linkId(row); const module = moduleOf(row); if (!id) return; if (!existsInKnownTargets(id, module, sets)) pushIssue(issues, { module: moduleKey, row_id: row.id, linked_id: id, linked_module: module || 'inconnu', message: 'Un élément est lié à une donnée qui n’existe plus.' }); }); };
   checkRows('sante', dataMap.sante); checkRows('alertes_center', dataMap.alertes_center); checkRows('taches', dataMap.taches); checkRows('documents', dataMap.documents); checkRows('business_events', dataMap.business_events); checkRows('alimentation_logs', dataMap.alimentation_logs); checkRows('production_oeufs_logs', dataMap.production_oeufs_logs); checkRows('sales_orders', dataMap.sales_orders); checkRows('payments', dataMap.payments); checkRows('invoices', dataMap.invoices);
   const duplicatePayments = new Map();
   arr(dataMap.payments).filter((payment) => !isCancelled(payment)).forEach((payment) => { const key = `${saleIdOf(payment)}:${paymentAmount(payment)}:${clean(payment.date_paiement || payment.date)}`; duplicatePayments.set(key, (duplicatePayments.get(key) || 0) + 1); });
   duplicatePayments.forEach((count, key) => { if (count > 1) pushIssue(issues, { severity: 'critical', module: 'payments', row_id: key, flow: 'sales_finance', message: `Un paiement semble être enregistré plusieurs fois (${count} fois).` }); });
-  auditSalesWorkflow(dataMap, issues); auditOpportunities(dataMap, issues); auditHealthAndStock(dataMap, issues); auditStockSupply(dataMap, issues); auditAlertsTasks(dataMap, issues); auditDocuments(dataMap, issues);
+  auditSalesWorkflow(dataMap, issues); auditOpportunities(dataMap, issues); auditHealthAndStock(dataMap, issues); auditStockSupply(dataMap, issues); auditAlertsTasks(dataMap, issues); auditDocuments(dataMap, issues); auditIoTTelemetry(dataMap, issues);
   const flows = summarizeMatrixCoverage(dataMap, issues);
   return { ok: issues.length === 0, issues, flows, issueCount: issues.length, criticalCount: issues.filter((issue) => issue.severity === 'critical').length, warningCount: issues.filter((issue) => issue.severity !== 'critical').length };
 }

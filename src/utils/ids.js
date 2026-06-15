@@ -39,6 +39,7 @@ const modulePrefixMap = {
   sensor_devices: 'SENS',
   sensor_readings: 'READ',
   camera_devices: 'CAM',
+  smartfarm_events: 'SFEV',
 };
 
 const getPrefix = (moduleKey, values = {}) => {
