@@ -2,10 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { AlertTriangle, CheckCircle2, GitBranch, History, ShieldCheck, Wifi, Wrench } from 'lucide-react';
 import JustifiedExceptionModal from '../components/workflow/JustifiedExceptionModal.jsx';
+import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import AuditLogs from './AuditLogs.jsx';
 import Sync from './Sync.jsx';
 import { auditErpInterconnections } from '../utils/interconnectionAudit';
+import { resolveSyncActivityTab } from '../utils/commercialNavigation.js';
+import { readOfflineQueue } from '../services/offlineQueueService.js';
 import {
   buildInterconnectionIssueKey,
   JUSTIFIED_EXCEPTION_TYPES,
@@ -217,5 +220,58 @@ function InterconnectionAudit(props) {
 }
 
 export default function SyncActivityCenter(props) {
-  return <div className="space-y-6 sync-activity-mobile"><style>{`@media (max-width: 640px){.sync-activity-mobile .rounded-2xl{border-radius:18px}.sync-activity-mobile table{font-size:12px}.sync-activity-mobile th,.sync-activity-mobile td{padding-left:10px!important;padding-right:10px!important}.sync-activity-mobile .text-2xl{font-size:1.35rem}.sync-activity-mobile .grid{gap:.75rem}.sync-activity-mobile .overflow-x-auto{max-width:100vw}}`}</style><InterconnectionAudit {...props} /><ModuleSection icon={Wifi} title="Connexion & envoi" subtitle="Sauvegarde, connexion et actions en attente."><Sync {...props} embedded /></ModuleSection><ModuleSection icon={History} title="Activité récente" subtitle="Historique des actions importantes."><AuditLogs rows={props.auditLogs || []} loading={props.auditLoading} onRefresh={props.onRefreshAuditLogs} onNavigate={props.onNavigate} /></ModuleSection></div>;
+  const [tab, setTab] = useState(() => resolveSyncActivityTab(props.initialTab));
+  const [exceptionVersion, setExceptionVersion] = useState(0);
+
+  useEffect(() => {
+    if (props.initialTab) setTab(resolveSyncActivityTab(props.initialTab));
+  }, [props.initialTab]);
+
+  useEffect(() => {
+    const refresh = () => setExceptionVersion((v) => v + 1);
+    window.addEventListener('horizon-farm-justified-exceptions-changed', refresh);
+    return () => window.removeEventListener('horizon-farm-justified-exceptions-changed', refresh);
+  }, []);
+
+  const auditSnapshot = useMemo(() => auditErpInterconnections(props.dataMap || {}), [props.dataMap]);
+  const verificationBadge = useMemo(
+    () => filterJustifiedIssues(auditSnapshot.issues, issueKey).length,
+    [auditSnapshot.issues, exceptionVersion],
+  );
+  const connexionBadge = useMemo(() => {
+    const pending = readOfflineQueue().filter((item) => item.status === 'pending').length;
+    return pending + (props.online === false ? 1 : 0);
+  }, [props.online, exceptionVersion]);
+
+  const tabBadges = {
+    Vérifications: verificationBadge,
+    'Connexion & envoi': connexionBadge > 0 ? connexionBadge : 0,
+  };
+
+  const content = tab === 'Connexion & envoi' ? (
+    <ModuleSection icon={Wifi} title="Connexion & envoi" subtitle="Sauvegarde, connexion et actions en attente.">
+      <Sync {...props} embedded />
+    </ModuleSection>
+  ) : tab === 'Journal d\'activité' ? (
+    <ModuleSection icon={History} title="Activité récente" subtitle="Historique des actions importantes.">
+      <AuditLogs rows={props.auditLogs || []} loading={props.auditLoading} onRefresh={props.onRefreshAuditLogs} onNavigate={props.onNavigate} />
+    </ModuleSection>
+  ) : (
+    <InterconnectionAudit {...props} />
+  );
+
+  return (
+    <div className="space-y-6 sync-activity-mobile">
+      <style>{`@media (max-width: 640px){.sync-activity-mobile .rounded-2xl{border-radius:18px}.sync-activity-mobile table{font-size:12px}.sync-activity-mobile th,.sync-activity-mobile td{padding-left:10px!important;padding-right:10px!important}.sync-activity-mobile .text-2xl{font-size:1.35rem}.sync-activity-mobile .grid{gap:.75rem}.sync-activity-mobile .overflow-x-auto{max-width:100vw}}`}</style>
+      <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-[#9a6b12]">Administration</p>
+          <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Activité & Sync ERP</h1>
+          <p className="mt-1 text-sm text-[#8a7456]">Vérifications inter-modules, connexion terrain et journal d’activité.</p>
+        </div>
+      </section>
+      <ModuleTabsBar moduleId="sync_activity" active={tab} onChange={setTab} tabBadges={tabBadges} />
+      {content}
+    </div>
+  );
 }

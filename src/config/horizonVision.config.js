@@ -24,6 +24,7 @@ export const MODULE_TARGET_TABS = {
   rh: ['Cockpit RH & Maintenance', 'Personnel & Paie', 'Parc Matériel & Maintenance', 'Registres & Analyses'],
   gestion_systeme: ['Vue admin', 'Utilisateurs', 'Fermes', 'Paramètres', 'Sécurité', 'Sauvegardes', 'Réinitialisation', 'Audit'],
   smartfarm: ['Objets connectés', 'Flux temps réel', 'Automatisation'],
+  sync_activity: ['Vérifications', 'Connexion & envoi', 'Journal d\'activité'],
   cultures: [
     'Parcelles & campagnes',
     'Récoltes',

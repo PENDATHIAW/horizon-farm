@@ -147,6 +147,8 @@ export function useOperationsRessources(props = {}) {
       payroll,
       pendingMaintenanceCount,
       staffCount: team.length,
+      personnelBadgeCount: coherenceRows.filter((row) => row.type === 'affectation').length,
+      registresBadgeCount: coherenceRows.filter((row) => row.type !== 'maintenance' && row.type !== 'affectation').length,
     };
   }, [team, equipment, sensors, cameras, documents, transactions, tasks, alertes, allDocuments]);
 

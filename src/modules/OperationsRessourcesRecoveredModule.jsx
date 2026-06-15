@@ -10,16 +10,10 @@ import PersonnelPaieTab from './rh/tabs/PersonnelPaieTab.jsx';
 import ParcMaterielMaintTab from './rh/tabs/ParcMaterielMaintTab.jsx';
 import RegistresAnalysesTab from './rh/tabs/RegistresAnalysesTab.jsx';
 
-function Tabs({ active, onChange, staffBadge = 0, maintBadge = 0 }) {
+function Tabs({ active, onChange, tabBadges = {} }) {
   return (
     <div className="space-y-2">
-      <ModuleTabsBar moduleId="rh" active={active} onChange={onChange} />
-      {(staffBadge > 0 || maintBadge > 0) && active === 'Cockpit RH & Maintenance' ? (
-        <p className="text-xs font-bold text-amber-700">
-          {staffBadge > 0 ? `${staffBadge} personne(s) · ` : ''}
-          {maintBadge > 0 ? `${maintBadge} maintenance(s) à traiter` : ''}
-        </p>
-      ) : null}
+      <ModuleTabsBar moduleId="rh" active={active} onChange={onChange} tabBadges={tabBadges} />
     </div>
   );
 }
@@ -158,8 +152,11 @@ export default function OperationsRessourcesRecoveredModule(props) {
       <Tabs
         active={tab}
         onChange={setTab}
-        staffBadge={data.staffCount}
-        maintBadge={data.pendingMaintenanceCount}
+        tabBadges={{
+          'Parc Matériel & Maintenance': data.pendingMaintenanceCount,
+          'Personnel & Paie': data.personnelBadgeCount,
+          'Registres & Analyses': data.registresBadgeCount,
+        }}
       />
       {content}
     </div>

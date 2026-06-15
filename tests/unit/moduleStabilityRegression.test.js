@@ -54,6 +54,7 @@ const CRITICAL_MODULES = [
   'gestion_systeme',
   'centre_ia',
   'activite_suivi',
+  'sync_activity',
 ];
 
 const TAB_OVERRIDES = {
@@ -63,6 +64,7 @@ const TAB_OVERRIDES = {
   elevage: { initialTab: 'Résumé' },
   centre_ia: { initialTab: 'Urgences & risques' },
   activite_suivi: { initialTab: 'Cockpit & décisions' },
+  sync_activity: { initialTab: 'Vérifications' },
   gestion_systeme: { initialTab: 'Vue admin' },
 };
 

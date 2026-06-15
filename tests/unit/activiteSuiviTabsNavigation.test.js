@@ -15,4 +15,6 @@ test('resolveActiviteSuiviTab — aliases anciens onglets', () => {
   assert.equal(resolveActiviteSuiviTab('Traçabilité'), 'Registre & traçabilité');
   assert.equal(resolveActiviteSuiviTab('Graphiques'), 'Performance & analytique');
   assert.equal(resolveActiviteSuiviNavigation('Alertes').tab, 'À traiter maintenant');
+  assert.equal(resolveActiviteSuiviTab('Annexe'), 'Performance & analytique');
+  assert.equal(resolveActiviteSuiviTab('Pilotage'), 'Performance & analytique');
 });
