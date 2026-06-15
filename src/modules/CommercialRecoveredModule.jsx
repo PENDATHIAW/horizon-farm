@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { applyOneClickRecommendation } from '../services/heyHorizonRecommendationActions.js';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
+import MarginGlossaryPanel from '../components/MarginGlossaryPanel.jsx';
 import useCrudModule from '../hooks/useCrudModule';
 import { buildSaleFormFromOpportunity } from '../utils/saleFormDraft';
 import { resolveCommercialTab } from '../utils/commercialNavigation';
@@ -644,6 +645,7 @@ export default function CommercialRecoveredModule(props) {
             marginContext={data.marginContext}
             chartOptions={data.chartOptions}
           />
+          <MarginGlossaryPanel />
           <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
             <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Annexe & graphiques</summary>
             <div className="mt-3 space-y-4">

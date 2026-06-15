@@ -28,7 +28,7 @@ Document de référence pour la reprise module par module (sidebar réelle), le 
 | Production | Élevage | 4 + sous-vue Avicole/Animaux | OK | Reproduction montée (Cycles & Reproduction) ; charge UX |
 | Production | Cultures | 3 + sous-sections | Partiel | Pilotage dense ; legacy V2/V4 |
 | Commerce | Commercial | 6 | OK | KPI header sensible période (corrigé) ; Résumé = onglet Ventes dense |
-| Commerce | Achats & Stock | 3 | OK | CMUP canonique ; bypass StocksV4 à fermer |
+| Commerce | Achats & Stock | 3 | OK | CMUP canonique ; bypass StocksV4 Hey Horizon fermé (juin 2026) |
 | Finance | Finance & Pilotage | 5 + sous-vues | OK | **Cumul** vs sélecteur période global |
 | Suivi | Activité & Suivi | 4 | OK | Panneaux Insight/Bridge montés |
 | Suivi | Documents & Rapports | 4 | OK | OCR/Bridge montés sur onglets |
@@ -95,12 +95,12 @@ Document de référence pour la reprise module par module (sidebar réelle), le 
 - [x] Carnet CA mois / période
 - [x] Commercial KPI période
 - [x] Stock valeur CMUP Accueil
-- [ ] Badge « Cumul ferme » sur Finance Résumé
-- [ ] Glossaire marge (vente / réelle / opérationnel)
+- [x] Badge « Cumul ferme » sur Finance Résumé
+- [x] Glossaire marge (vente / réelle / opérationnel)
 
 ### Phase B — Fermer bypass
-- [ ] VentesV2 → `recordSalePayment`
-- [ ] StocksV4 → `commitStockPurchaseWorkflow`
+- [x] VentesV2 sync finances → `recordSalePayment`
+- [x] StocksV4 Hey Horizon réception → `commitStockPurchaseWorkflow`
 - [ ] Réduire doublons événements AppContext
 
 ### Phase C — Automatisation défaut
@@ -141,7 +141,7 @@ Activer dans **Paramètres** → permet de voir :
 
 - Multiplicité des moteurs « marge » et « CA » sans libellé clair.
 - Finance toujours cumul vs reste de l’ERP filtré par période.
-- Routes legacy encore accessibles.
+- Chemins legacy encore accessibles (VentesV2 audit sync corrigé).
 - Double stockage RH.
 
 ---

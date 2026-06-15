@@ -12,6 +12,7 @@ import { fmtCurrency, fmtNumber } from '../utils/format';
 import { aggregateMissingProofTransactions, buildFinanceCoherenceRows, buildFinanceHealthSnapshot } from './finance/financeVisionHelpers.js';
 import { rowsOf, allRows } from '../utils/moduleRows';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
+import MarginGlossaryPanel from '../components/MarginGlossaryPanel.jsx';
 import FinancesV12 from './FinancesV12';
 import InvestissementsV9 from './InvestissementsV9';
 import ProfitabilityStatement from './ProfitabilityStatement.jsx';
@@ -224,6 +225,7 @@ function RentabilitePanel({ profitability = null, consolidationProps = {} }) {
           <Stat label="Charges structure" value={fmtCurrency(profit.structureCharges)} tone="warn" />
         </div>
       </section>
+      <MarginGlossaryPanel />
       <ProfitabilityStatement {...consolidationProps} />
     </div>
   );

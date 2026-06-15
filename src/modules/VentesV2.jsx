@@ -25,10 +25,6 @@ import {
   paidForOrder,
   remainingForOrder,
 } from '../utils/salesStatuses';
-import {
-  getFinanceActivityFromSale,
-  getFinanceCategoryFromSale,
-} from '../services/financeSyncService';
 import SalesDeliveryControl from './SalesDeliveryControl.jsx';
 import SalesOpportunitiesBridge from './SalesOpportunitiesBridge.jsx';
 import SalesQualityControl from './SalesQualityControl.jsx';
@@ -64,38 +60,6 @@ const paymentMethods = [
   { value: 'virement', label: 'Virement' },
   { value: 'cheque', label: 'Chèque' },
 ];
-
-function buildFinanceFromPayment({ payment, order }) {
-  const amount = paymentAmount(payment);
-  const date = paymentDate(payment);
-  const method = payment.moyen_paiement || payment.mode_paiement || order.moyen_paiement || 'non_precise';
-  return {
-    id: makeId('TRX'),
-    type: 'entree',
-    libelle: `Encaissement ${order.product_name || order.libelle || order.id}`,
-    montant: amount,
-    amount,
-    date,
-    categorie: getFinanceCategoryFromSale(order),
-    module_lie: 'ventes',
-    related_id: order.id,
-    vente_id: order.id,
-    order_id: order.id,
-    sale_id: order.id,
-    activite: getFinanceActivityFromSale(order),
-    client_id: order.client_id || payment.client_id || '',
-    statut: 'paye',
-    source_module: 'ventes',
-    source_record_id: order.id,
-    source_type: order.source_type || order.type_vente || order.product_type,
-    source_id: order.source_id || order.product_id || order.entity_id,
-    invoice_id: payment.invoice_id || order.invoice_id || '',
-    payment_id: payment.id,
-    moyen_paiement: method,
-    mode_paiement: method,
-    notes: `Synchronisé depuis le paiement ${payment.id}`,
-  };
-}
 
 async function secureSale(order, props, setPreview) {
   const payments = arr(props.paymentsList || props.payments);
@@ -558,7 +522,28 @@ function PaymentFinanceAuditPanel(props) {
       transactions,
     });
     if (existing) return;
-    await props.onCreateFinanceTransaction?.(buildFinanceFromPayment({ payment, order }));
+    await recordSalePayment({
+      sale: order,
+      requestedAmount: amount,
+      payments,
+      transactions,
+      clients: props.clients,
+      salesOrders: props.rows,
+      paymentMethod: payment.moyen_paiement || payment.mode_paiement || 'especes',
+      paymentDate: paymentDate(payment),
+      paymentId: payment.id,
+      alertes: props.alertes,
+      tasks: props.tasks || props.existingTasks,
+      handlers: {
+        onCreatePayment: props.onCreatePayment,
+        onCreateFinanceTransaction: props.onCreateFinanceTransaction,
+        onUpdateFinanceTransaction: props.onUpdateFinanceTransaction,
+        onUpdateOrder: props.onUpdate,
+        onUpdateClient: props.onUpdateClient,
+        onUpdateAlert: props.onUpdateAlert,
+        onUpdateTask: props.onUpdateTask,
+      },
+    });
   };
 
   const syncAll = async () => {

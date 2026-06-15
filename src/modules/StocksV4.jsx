@@ -8,6 +8,11 @@ import StockOperationalHealthPanel from './StockOperationalHealthPanel.jsx';
 import StockPurchaseReceptionForm from './StockPurchaseReceptionForm.jsx';
 import StockFeedingElevageHint from './achatsStock/StockFeedingElevageHint.jsx';
 import StocksV3 from './StocksV3.jsx';
+import {
+  commitStockPurchaseWorkflow,
+  PAYMENT_STATUS,
+  prepareStockPurchaseWorkflow,
+} from '../utils/stockPurchaseWorkflow.js';
 
 const lower = (value) => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const today = () => new Date().toISOString().slice(0, 10);
@@ -52,7 +57,32 @@ function CollapsibleSection({ icon: Icon, title, subtitle, defaultOpen = false, 
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm overflow-hidden"><button type="button" onClick={() => setOpen((value) => !value)} className="flex min-h-[64px] w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-[#fffdf8]"><span><span className="flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</span>{subtitle ? <span className="mt-1 block text-sm text-[#8a7456]">{subtitle}</span> : null}</span><ChevronDown size={20} className={`shrink-0 text-[#8a7456] transition-transform ${open ? 'rotate-180' : ''}`} /></button>{open ? <div className="border-t border-[#eadcc2] p-5">{children}</div> : null}</section>;
 }
 
-function HeyHorizonStockCard({ draft, rows, onUpdate, onCreateFinanceTransaction, onCreateBusinessEvent, onNavigate, onRefresh, onRefreshBusinessEvents, onRefreshFinances, onClose }) {
+function HeyHorizonStockCard({
+  draft,
+  rows,
+  fournisseurs = [],
+  transactions = [],
+  documents = [],
+  alertes = [],
+  taches = [],
+  stockMovements = [],
+  existingTraces = [],
+  onUpdate,
+  onCreateFinanceTransaction,
+  onCreateDocument,
+  onCreateBusinessEvent,
+  onCreateTask,
+  onCreateAlert,
+  onCreateStockMovement,
+  onRefreshStockMovements,
+  onCreateTrace,
+  onUpdateTrace,
+  onNavigate,
+  onRefresh,
+  onRefreshBusinessEvents,
+  onRefreshFinances,
+  onClose,
+}) {
   const fields = draft?.draft_fields || {};
   const initialType = inferMovementType(draft);
   const initialStock = useMemo(() => findStock(rows, fields.product_name, fields.product_id), [rows, fields.product_name, fields.product_id]);
@@ -81,6 +111,58 @@ function HeyHorizonStockCard({ draft, rows, onUpdate, onCreateFinanceTransaction
     }
     try {
       setSaving(true);
+      if (movementType === 'reception' && amount > 0) {
+        const preview = prepareStockPurchaseWorkflow({
+          id: stock.id,
+          stock_id: stock.id,
+          produit: productLabel(stock),
+          quantite: qty,
+          quantite_recue: qty,
+          prix_unitaire: toNumber(unitPrice),
+          statut_paiement: PAYMENT_STATUS.PAYE,
+          date,
+          notes: note || 'Réception stock Hey Horizon',
+        }, {
+          stocks: rows,
+          suppliers: fournisseurs,
+          transactions,
+          stock_movements: stockMovements,
+          documents,
+          workflows: [],
+        });
+        await commitStockPurchaseWorkflow(preview, {
+          context: {
+            stocks: rows,
+            transactions,
+            tasks: taches,
+            alertes,
+            documents,
+            stock_movements: stockMovements,
+          },
+          existingDocuments: documents,
+          existingAlerts: alertes,
+          existingStockMovements: stockMovements,
+          onUpdateStock: (id, patch) => onUpdate?.(id, {
+            ...patch,
+            last_movement_label: `${movementTitle(movementType)} · ${productLabel(stock)}`,
+          }),
+          onCreateFinanceTransaction,
+          onCreateDocument,
+          onCreateBusinessEvent,
+          onCreateTask,
+          onCreateAlert,
+          onCreateStockMovement,
+          onRefreshStockMovements,
+          onCreateTrace,
+          onUpdateTrace,
+          existingTraces,
+        });
+        await Promise.allSettled([onRefresh?.(), onRefreshBusinessEvents?.(), onRefreshFinances?.()]);
+        toast.success(`${movementTitle(movementType)} enregistré depuis Hey Horizon`);
+        onClose?.();
+        return;
+      }
+
       const movementId = makeId('MVT');
       const trxId = amount > 0 && movementType === 'reception' ? makeId('TRX') : '';
       await onUpdate?.(stock.id, {
@@ -154,5 +236,5 @@ export default function StocksV4(props) {
     await props.onRefreshBusinessEvents?.();
   }, [props]);
 
-  return <div className="space-y-6 stock-mobile-structured"><style>{`@media (max-width: 640px){.stock-mobile-structured .rounded-2xl{border-radius:18px}.stock-mobile-structured table{font-size:12px}.stock-mobile-structured th,.stock-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.stock-mobile-structured .text-2xl{font-size:1.35rem}.stock-mobile-structured .grid{gap:.75rem}.stock-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>{purchaseDraft ? <StockPurchaseReceptionForm initialDraft={purchaseDraft} title={purchaseDraft.intent_label || 'Réception achat stock'} stocks={props.rows || []} fournisseurs={props.fournisseurs || []} transactions={props.transactions || []} documents={props.documents || []} alertes={props.alertes || []} taches={props.taches || []} animaux={props.animaux || []} lots={props.lots || []} cultures={props.cultures || []} onClose={() => setPurchaseDraft(null)} onCreateStock={props.onCreate} onUpdateStock={props.onUpdate} onCreateFinanceTransaction={props.onCreateFinanceTransaction} onCreateDocument={props.onCreateDocument} onCreateBusinessEvent={props.onCreateBusinessEvent} onUpdateSupplier={props.onUpdateSupplier} onUpdateFinanceTransaction={props.onUpdateFinanceTransaction} onUpdateAlert={props.onUpdateAlert} onCreateTrace={props.onCreateTrace} onUpdateTrace={props.onUpdateTrace} existingTraces={props.existingTraces} onRefresh={props.onRefresh} onRefreshFinances={props.onRefreshFinances} onRefreshSuppliers={props.onRefreshSuppliers} onRefreshBusinessEvents={props.onRefreshBusinessEvents} /> : null}{horizonDraft ? <div id="hey-horizon-stock-card"><HeyHorizonStockCard draft={horizonDraft} rows={props.rows || []} onUpdate={updateWithLossHistory} onCreateFinanceTransaction={props.onCreateFinanceTransaction} onCreateBusinessEvent={props.onCreateBusinessEvent} onNavigate={props.onNavigate} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onRefreshFinances={props.onRefreshFinances} onClose={() => setHorizonDraft(null)} /></div> : null}<StockOperationalHealthPanel rows={props.rows || []} alimentationLogs={props.alimentationLogs || []} onNavigate={props.onNavigate} /><ModuleSection icon={Package} title="Stock courant" subtitle="Produits, quantités, seuils, entrées, sorties et pertes suivies."><StocksV3 {...props} onUpdate={updateWithLossHistory} onOpenPurchaseReception={openPurchase} /></ModuleSection><ModuleSection icon={Utensils} title="Alimentation" subtitle="Écriture canonique : Élevage › Alimentation (simulateur sans écriture stock)."><StockFeedingElevageHint rows={props.rows || []} lots={props.lots || []} animaux={props.animaux || []} onNavigate={props.onNavigate} /></ModuleSection></div>;
+  return <div className="space-y-6 stock-mobile-structured"><style>{`@media (max-width: 640px){.stock-mobile-structured .rounded-2xl{border-radius:18px}.stock-mobile-structured table{font-size:12px}.stock-mobile-structured th,.stock-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.stock-mobile-structured .text-2xl{font-size:1.35rem}.stock-mobile-structured .grid{gap:.75rem}.stock-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>{purchaseDraft ? <StockPurchaseReceptionForm initialDraft={purchaseDraft} title={purchaseDraft.intent_label || 'Réception achat stock'} stocks={props.rows || []} fournisseurs={props.fournisseurs || []} transactions={props.transactions || []} documents={props.documents || []} alertes={props.alertes || []} taches={props.taches || []} animaux={props.animaux || []} lots={props.lots || []} cultures={props.cultures || []} onClose={() => setPurchaseDraft(null)} onCreateStock={props.onCreate} onUpdateStock={props.onUpdate} onCreateFinanceTransaction={props.onCreateFinanceTransaction} onCreateDocument={props.onCreateDocument} onCreateBusinessEvent={props.onCreateBusinessEvent} onUpdateSupplier={props.onUpdateSupplier} onUpdateFinanceTransaction={props.onUpdateFinanceTransaction} onUpdateAlert={props.onUpdateAlert} onCreateTrace={props.onCreateTrace} onUpdateTrace={props.onUpdateTrace} existingTraces={props.existingTraces} onRefresh={props.onRefresh} onRefreshFinances={props.onRefreshFinances} onRefreshSuppliers={props.onRefreshSuppliers} onRefreshBusinessEvents={props.onRefreshBusinessEvents} /> : null}{horizonDraft ? <div id="hey-horizon-stock-card"><HeyHorizonStockCard draft={horizonDraft} rows={props.rows || []} fournisseurs={props.fournisseurs || []} transactions={props.transactions || []} documents={props.documents || []} alertes={props.alertes || []} taches={props.taches || []} stockMovements={props.stockMovements || []} existingTraces={props.existingTraces || []} onUpdate={updateWithLossHistory} onCreateFinanceTransaction={props.onCreateFinanceTransaction} onCreateDocument={props.onCreateDocument} onCreateBusinessEvent={props.onCreateBusinessEvent} onCreateTask={props.onCreateTask} onCreateAlert={props.onCreateAlert} onCreateStockMovement={props.onCreateStockMovement} onRefreshStockMovements={props.onRefreshStockMovements} onCreateTrace={props.onCreateTrace} onUpdateTrace={props.onUpdateTrace} onNavigate={props.onNavigate} onRefresh={props.onRefresh} onRefreshBusinessEvents={props.onRefreshBusinessEvents} onRefreshFinances={props.onRefreshFinances} onClose={() => setHorizonDraft(null)} /></div> : null}<StockOperationalHealthPanel rows={props.rows || []} alimentationLogs={props.alimentationLogs || []} onNavigate={props.onNavigate} /><ModuleSection icon={Package} title="Stock courant" subtitle="Produits, quantités, seuils, entrées, sorties et pertes suivies."><StocksV3 {...props} onUpdate={updateWithLossHistory} onOpenPurchaseReception={openPurchase} /></ModuleSection><ModuleSection icon={Utensils} title="Alimentation" subtitle="Écriture canonique : Élevage › Alimentation (simulateur sans écriture stock)."><StockFeedingElevageHint rows={props.rows || []} lots={props.lots || []} animaux={props.animaux || []} onNavigate={props.onNavigate} /></ModuleSection></div>;
 }
