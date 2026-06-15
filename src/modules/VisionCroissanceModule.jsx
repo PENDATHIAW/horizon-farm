@@ -9,7 +9,6 @@ import VisionPlansTab from './vision/VisionPlansTab';
 import VisionPrioritiesTab from './vision/VisionPrioritiesTab';
 import VisionRisksTab from './vision/VisionRisksTab';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
-import HeyHorizonQuickAsk from '../components/HeyHorizonQuickAsk.jsx';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import { MODULE_TARGET_TABS } from '../config/horizonVision.config.js';
@@ -119,7 +118,6 @@ export default function VisionCroissanceModule(props) {
             <h1 className="mt-1 text-3xl font-black text-[#2f2415]">{copy.title}</h1>
             <p className="mt-2 text-sm text-[#8a7456] max-w-3xl">{copy.subtitle}</p>
             {moduleId === 'centre_ia' ? (
-              <HeyHorizonQuickAsk moduleKey="centre_ia" onNavigate={onNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" />
             ) : null}
             {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
           </div>

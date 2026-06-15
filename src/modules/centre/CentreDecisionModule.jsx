@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
-import HeyHorizonQuickAsk from '../../components/HeyHorizonQuickAsk.jsx';
 import { MODULE_TARGET_TABS } from '../../config/horizonVision.config.js';
 import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine.js';
 import { buildStrategicDecisionPlan } from '../../services/strategicDecisionEngine.js';
@@ -255,7 +254,6 @@ export default function CentreDecisionModule({
             <p className="mt-2 text-sm text-[#8a7456] max-w-3xl">
               7 onglets : priorités · recommandations · cycles · risques · historique · graphiques · annexe (méthode & calculs).
             </p>
-            <HeyHorizonQuickAsk moduleKey="centre_ia" onNavigate={onNavigate} onOpenAssistant={onOpenAssistant} className="mt-2" />
             {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
           </div>
           <div className="flex flex-col gap-2">

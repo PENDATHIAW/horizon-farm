@@ -2,7 +2,6 @@ import { Radio, Tractor } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import GenericCrudModule from '../../components/GenericCrudModule.jsx';
-import HeyHorizonQuickAsk from '../../components/HeyHorizonQuickAsk.jsx';
 import ModuleAnnexeTab from '../../components/module/ModuleAnnexeTab.jsx';
 import ModuleGraphiquesTab from '../../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
@@ -210,7 +209,6 @@ export default function SmartFarmRecoveredModule(props) {
             <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Capteurs, caméras & météo</h1>
             <p className="mt-1 text-sm text-[#8a7456]">Surveillance terrain connectée — alertes automatiques vers Activité & Centre décisionnel.</p>
             {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
-            <HeyHorizonQuickAsk moduleKey="smartfarm" onNavigate={props.onNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" />
           </div>
           <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm">
             <span className="text-[#8a7456]">Signaux critiques </span>

@@ -26,7 +26,6 @@ import FinanceMultiFarmPanel from './finance/FinanceMultiFarmPanel.jsx';
 import FinanceFinancingPanel from './finance/FinanceFinancingPanel.jsx';
 import FinanceReconciliationPanel from './finance/FinanceReconciliationPanel.jsx';
 import FinanceExportsPanel from './finance/FinanceExportsPanel.jsx';
-import FinanceHeyHorizonStrip from './finance/FinanceHeyHorizonStrip.jsx';
 import {
   buildFinanceSchedule,
   buildOfficialTreasuryView,
@@ -51,7 +50,6 @@ import {
   buildFinanceDataQuality,
   buildFinanceDemoPresentation,
   buildFinanceDirectExports,
-  buildFinanceHeyHorizonQuestionsV3,
   buildFinancingSimulator,
   buildFinancingViewV3,
   readFinanceSimulatorParams,
@@ -218,7 +216,6 @@ function Summary({
   financeAlerts = [],
   multiFarm = null,
   startupJourney = null,
-  heyHorizonQuestions = [],
   exportPayload = null,
   directExports = null,
   dataQuality = null,
@@ -233,7 +230,6 @@ function Summary({
       <FinanceAlertsPanel alerts={financeAlerts} onNavigateTab={setTab} />
       <FinanceMultiFarmPanel multiFarm={multiFarm} />
       {startupMode ? <FinanceStartupPanel journey={startupJourney} onNavigate={onNavigate} setTab={setTab} /> : null}
-      <FinanceHeyHorizonStrip questions={heyHorizonQuestions} onNavigate={onNavigate} onOpenAssistant={onOpenAssistant} />
       <FinanceExportsPanel exportPayload={directExports || exportPayload} directOnly />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-8">
         <Stat label="Santé finance" value={`${data.healthScore}/100`} tone={data.healthScore >= 75 ? 'good' : 'warn'} />
@@ -472,10 +468,6 @@ export default function FinancePilotageRecoveredModule(props) {
     () => buildFinanceDirectExports(financingPropsBundle, v3Options),
     [financingPropsBundle, v3Options],
   );
-  const heyHorizonQuestions = useMemo(
-    () => buildFinanceHeyHorizonQuestionsV3(v2Options),
-    [v2Options],
-  );
   const showFarmInSchedule = (props.accessibleFarms || []).filter((farm) => farm.status !== 'archived').length > 1
     || props.farmScope?.mode === 'all';
   const actionHandlers = {
@@ -621,7 +613,6 @@ export default function FinancePilotageRecoveredModule(props) {
           financeAlerts={financeAlerts}
           multiFarm={multiFarm}
           startupJourney={startupJourney}
-          heyHorizonQuestions={heyHorizonQuestions}
           exportPayload={exportPayload}
           directExports={directExports}
           dataQuality={dataQuality}
@@ -683,7 +674,6 @@ export default function FinancePilotageRecoveredModule(props) {
           financeAlerts={financeAlerts}
           multiFarm={multiFarm}
           startupJourney={startupJourney}
-          heyHorizonQuestions={heyHorizonQuestions}
           exportPayload={exportPayload}
           directExports={directExports}
           dataQuality={dataQuality}

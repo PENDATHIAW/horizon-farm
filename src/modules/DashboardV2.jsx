@@ -84,7 +84,6 @@ import {
   DashboardPremiumBriefPanel,
   DashboardTemporalComparisonPanel,
   DashboardDynamicsScorePanel,
-  DashboardHeyHorizonQuickAskStrip,
   DashboardPresentationOverlay,
   DashboardFarmLocationPremiumCard,
 } from './dashboard/dashboardV3Panels.jsx';
@@ -374,9 +373,6 @@ function Summary({
         {briefPanel}
         <DashboardStartupPanel onNavigate={navigate} journey={pilotage.startupJourney} />
         <DashboardPrioritiesPanel priorities={pilotage.priorities} onOpen={onOpenPriority} />
-        {v3?.quickQuestions?.length ? (
-          <DashboardHeyHorizonQuickAskStrip questions={v3.quickQuestions} onOpenAssistant={onOpenAssistant} onNavigate={navigate} />
-        ) : null}
         <DashboardNarrativePanel narrative={pilotage.narrative} />
         <DashboardFarmOverviewPanel overview={pilotage.farmOverview} onNavigate={navigate} />
         <DashboardQuickActions onNavigate={navigate} />
@@ -526,23 +522,14 @@ function Summary({
         <DashboardInvestorStrip investor={pilotage.investor} onNavigate={navigate} />
       </CollapsibleAdvancedSection>
 
-      {(v3?.quickQuestions?.length || heyHorizonSuggestions.length) ? (
+      {heyHorizonSuggestions.length ? (
         <CollapsibleAdvancedSection
           eyebrow="Assistant"
           title="Hey Horizon"
-          description="Questions rapides et suggestions de pilotage."
+          description="Suggestions de pilotage."
           open={heyHorizonOpen}
           onToggle={() => setHeyHorizonOpen((value) => !value)}
         >
-          {v3?.quickQuestions?.length ? (
-            <DashboardHeyHorizonQuickAskStrip
-              questions={v3.quickQuestions}
-              onOpenAssistant={onOpenAssistant}
-              onNavigate={navigate}
-              maxVisible={3}
-              compact
-            />
-          ) : null}
           <DashboardHeyHorizonStrip suggestions={heyHorizonSuggestions} onNavigate={navigate} />
         </CollapsibleAdvancedSection>
       ) : null}

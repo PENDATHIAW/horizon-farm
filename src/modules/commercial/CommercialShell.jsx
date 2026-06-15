@@ -42,7 +42,6 @@ export function CommercialTodoRow({ title, detail, actionLabel, onAction, onOpen
 }
 
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
-import HeyHorizonQuickAsk from '../../components/HeyHorizonQuickAsk.jsx';
 
 export function CommercialModuleHeader({ tab, setTab, healthScore, badges = {}, periodLabel = '', onNavigate, onOpenAssistant }) {
   return (
@@ -52,7 +51,6 @@ export function CommercialModuleHeader({ tab, setTab, healthScore, badges = {}, 
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#9a6b12]">Commercial</p>
           <h1 className="text-2xl font-black text-[#2f2415]">Ventes & clients</h1>
           {periodLabel ? <div className="mt-2"><PeriodScopeBadge label={periodLabel} /></div> : null}
-          <HeyHorizonQuickAsk moduleKey="commercial" onNavigate={onNavigate} onOpenAssistant={onOpenAssistant} className="mt-2" />
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className={`rounded-full border px-3 py-1 text-xs font-black ${healthScore >= 75 ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>Santé {healthScore}/100</span>
