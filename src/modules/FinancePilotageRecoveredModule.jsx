@@ -741,9 +741,19 @@ export default function FinancePilotageRecoveredModule(props) {
           )}
         </div>
       ) : tab === 'Créances & dettes' ? (
-        <div className="space-y-5">
-          <CreancesPanel data={data} onNavigate={props.onNavigate} />
-          <DettesPanel data={data} onNavigate={props.onNavigate} />
+        <div className="space-y-4">
+          <details className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm" open>
+            <summary className="cursor-pointer px-5 py-4 font-black text-[#2f2415]">Créances clients</summary>
+            <div className="border-t border-[#eadcc2] p-4">
+              <CreancesPanel data={data} onNavigate={props.onNavigate} />
+            </div>
+          </details>
+          <details className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm">
+            <summary className="cursor-pointer px-5 py-4 font-black text-[#2f2415]">Dettes fournisseurs</summary>
+            <div className="border-t border-[#eadcc2] p-4">
+              <DettesPanel data={data} onNavigate={props.onNavigate} />
+            </div>
+          </details>
         </div>
       ) : tab === 'Pilotage' ? (
         <div className="space-y-4">

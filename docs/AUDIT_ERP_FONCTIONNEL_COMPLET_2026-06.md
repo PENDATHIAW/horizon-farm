@@ -32,7 +32,7 @@ Document de référence pour la reprise module par module (sidebar réelle), le 
 | Finance | Finance & Pilotage | 5 + sous-vues | OK | **Cumul** vs sélecteur période global |
 | Suivi | Activité & Suivi | 4 | OK | Panneaux Insight/Bridge montés |
 | Suivi | Documents & Rapports | 4 | OK | OCR/Bridge montés sur onglets |
-| Ressources | Opérations & Ressources | 4 | OK | Équipements intégrés ; RH localStorage vs Supabase |
+| Ressources | Opérations & Ressources | 4 | OK | Équipements intégrés ; RH sync Supabase + local |
 | Ressources | Smart Farm | 3 | OK | Realtime + QR + alertes IoT |
 | Admin | Activité & Sync ERP | 3 | OK | Audit + réparation guidée |
 | Admin | Gestion système | 8 | Partiel | CRUD utilisateurs incomplet |
@@ -50,7 +50,7 @@ Document de référence pour la reprise module par module (sidebar réelle), le 
 | Alimentation | `type_cible` lot → champs lot uniquement | OK workflows |
 | Santé | Animal vs lot | OK |
 | Documents lien | Type entité filtre cibles | Partiel — panneau lien sur Rapprochement |
-| Tâches / alertes | `module_lie` + `entity_id` | Partiel — pas toujours pré-rempli |
+| Tâches / alertes | `module_lie` + `entity_id` | OK — `EntityLinkedSelect` sur tâches terrain |
 | Finance saisie | Catégorie stockable → stock | Réparation guidée Sync |
 
 **Recommandation** : composant `EntityLinkedSelect` (module → liste filtrée) sur tous les `GenericCrudModule` à champs `lot_id`, `animal_id`, `culture_id`.
@@ -101,16 +101,16 @@ Document de référence pour la reprise module par module (sidebar réelle), le 
 ### Phase B — Fermer bypass
 - [x] VentesV2 sync finances → `recordSalePayment`
 - [x] StocksV4 Hey Horizon réception → `commitStockPurchaseWorkflow`
-- [ ] Réduire doublons événements AppContext
+- [x] Réduire doublons événements AppContext (`appContextEventGuard`)
 
 ### Phase C — Automatisation défaut
-- [ ] Tâche auto si alerte critique sans action (paramètre ferme)
-- [ ] Relance : option envoi auto WhatsApp (opt-in)
-- [ ] RH : unifier annuaire Supabase
+- [x] Tâche auto si alerte critique (paramètre ferme + AlertesCenter)
+- [x] Relance : option envoi auto WhatsApp (opt-in via automation_settings)
+- [x] RH : annuaire sync Supabase (`farm_rh_directory`)
 
 ### Phase D — UX allègement
 - [ ] Commercial Ventes : alléger cartes (devis/réco déjà sur onglets)
-- [ ] Finance Trésorerie : sections repliables
+- [x] Finance Trésorerie : sections repliables (Créances & dettes)
 - [ ] Dashboard : restaurer onglets ou aligner config
 
 ### Phase E — Livrables utilisateur

@@ -1,13 +1,14 @@
 import { supabase } from '../lib/supabase';
 
 const STORAGE_KEY = 'horizon-farm-automation-settings';
+const arr = (value) => (Array.isArray(value) ? value : []);
 
 export const defaultAutomationSettings = [
   {
     id: 'relances_clients',
     key: 'relances_clients',
     label: 'Relances clients',
-    description: 'Rappel commandes en attente',
+    description: 'Prépare les messages WhatsApp de relance (envoi manuel depuis Commercial)',
     enabled: true,
     category: 'whatsapp',
     frequency: 'quotidien',
@@ -47,17 +48,33 @@ export const defaultAutomationSettings = [
     message_template: 'Offre Horizon Farm pour grossistes: {offre}.',
     audience: 'grossistes',
   },
+  {
+    id: 'taches_alertes_critiques',
+    key: 'taches_alertes_critiques',
+    label: 'Tâches auto — alertes critiques',
+    description: 'Crée une tâche terrain dès qu’une alerte critique ou urgence est enregistrée',
+    enabled: true,
+    category: 'terrain',
+    frequency: 'immediat',
+    message_template: '',
+    audience: 'equipe_ferme',
+  },
 ];
+
+export function isAutomationEnabled(settings = [], key = '') {
+  const row = arr(settings).find((item) => item.key === key);
+  return row ? row.enabled !== false : defaultAutomationSettings.find((item) => item.key === key)?.enabled !== false;
+}
 
 export const automationSettingsService = {
   async getAll() {
-    const { data, error } = await supabase.from('automation_settings').select('*').eq('category', 'whatsapp');
+    const { data, error } = await supabase.from('automation_settings').select('*');
     if (error) {
       const cached = localStorage.getItem(STORAGE_KEY);
       if (cached) return JSON.parse(cached);
       return defaultAutomationSettings;
     }
-    return data || [];
+    return data?.length ? data : defaultAutomationSettings;
   },
 
   async upsert(setting) {

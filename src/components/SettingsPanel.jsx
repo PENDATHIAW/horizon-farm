@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { applyUiSettingsToDocument, DEFAULT_UI_SETTINGS, isDemoModeEnabled, readUiSettings, setDemoMode, UI_SETTINGS_KEY, writeUiSettings } from '../utils/uiPreferences';
 import { JUSTIFIED_EXCEPTION_STORAGE_KEY, LEGACY_IGNORED_INTERCONNECTION_KEY } from '../utils/justifiedExceptionRules.js';
+import useAutomationSettings from '../hooks/useAutomationSettings.js';
 
 function removeMatchingLocalStorage(prefixes = []) {
   if (typeof localStorage === 'undefined') return 0;
@@ -21,6 +22,7 @@ function Segmented({ value, onChange, options }) { return <div className="inline
 export default function SettingsPanel({ open, onClose, user, displayUser, online, meteo = {}, weatherSource, sidebarOpen, setSidebarOpen, setActive, onSignOut }) {
   const [settings, setSettings] = useState(readUiSettings);
   const [demoEnabled, setDemoEnabled] = useState(() => isDemoModeEnabled());
+  const { settings: automationSettings, toggle: toggleAutomation, loading: automationLoading } = useAutomationSettings();
 
   useEffect(() => {
     writeUiSettings(settings);
@@ -57,6 +59,15 @@ export default function SettingsPanel({ open, onClose, user, displayUser, online
       <SettingRow icon={Layers} title="Niveau de détail" description={settings.complexity === 'simple' ? 'Vue simple : l’essentiel d’abord.' : 'Vue détaillée : plus de graphiques et de contrôles.'}><Segmented value={settings.complexity} onChange={(value) => updateSetting('complexity', value)} options={[{ value: 'simple', label: 'Simple' }, { value: 'expert', label: 'Détaillé' }]} /></SettingRow>
       <SettingRow icon={Eye} title="Menu latéral" description="Afficher le menu large ou compact."><Toggle checked={!sidebarOpen} onChange={() => setSidebarOpen?.(!sidebarOpen)} /></SettingRow>
       <SettingRow icon={Database} title="Données affichées" description={demoEnabled ? 'Données simulées : l’ERP peut afficher/créer des données de test cohérentes pour comprendre et tester les modules.' : 'Données réelles : seules les données réellement saisies sont affichées.'}><Segmented value={demoEnabled ? 'simulated' : 'real'} onChange={(value) => toggleDemo(value === 'simulated')} options={[{ value: 'real', label: 'Réelles' }, { value: 'simulated', label: 'Simulées' }]} /></SettingRow>
+      <div className="rounded-xl border border-[#e7d9be] bg-[#fffdf8] p-3 space-y-2">
+        <p className="text-sm font-black text-[#2f2415]">Automatisations ferme</p>
+        <p className="text-xs text-[#8a7456]">Relances WhatsApp préparées et tâches auto sur alertes critiques.</p>
+        {automationLoading ? <p className="text-xs text-[#8a7456]">Chargement…</p> : automationSettings.map((row) => (
+          <SettingRow key={row.key} icon={Bell} title={row.label} description={row.description}>
+            <Toggle checked={row.enabled !== false} onChange={() => toggleAutomation(row.key)} />
+          </SettingRow>
+        ))}
+      </div>
       <SettingRow icon={Sun} title="Affichage" description="Confort pour plus d’air, compact pour moins de scroll."><Select value={settings.density} onChange={(value) => updateSetting('density', value)} options={[{ value: 'comfortable', label: 'Confort' }, { value: 'compact', label: 'Compact' }]} /></SettingRow>
       <SettingRow icon={online ? Wifi : WifiOff} title="Connexion" description={online ? 'Connecté.' : 'Hors ligne : les actions seront gardées en attente.'}><span className={`rounded-full px-2 py-1 text-xs font-black ${online ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>{online ? 'OK' : 'Hors ligne'}</span></SettingRow>
       <SettingRow icon={Sun} title="Météo terrain" description={`${weatherLabel}.`} />

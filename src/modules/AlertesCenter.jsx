@@ -13,6 +13,9 @@ import { fmtCurrency } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
 import { getResponsibleOptions, resolveResponsibleLabel } from '../utils/rhDirectory';
 import { buildTaskFromAlert } from '../utils/taskWorkflows';
+import { ensureCriticalAlertTask, isCriticalAlert } from '../utils/criticalAlertAutomation.js';
+import { isAutomationEnabled } from '../services/automationSettingsService.js';
+import useAutomationSettings from '../hooks/useAutomationSettings.js';
 import IssueProblemFichePanel from './IssueProblemFichePanel.jsx';
 
 const ALERT_CONFIG_KEY = 'horizon_farm_alert_config_v1';
@@ -23,7 +26,7 @@ const MODULE_BADGE = { animaux: 'bg-amber-100 text-amber-700', avicole: 'bg-yell
 const MODULE_LABELS = { animaux: 'Animaux', avicole: 'Avicole', cultures: 'Cultures', stock: 'Stock', finances: 'Finances', clients: 'Clients', fournisseurs: 'Fournisseurs', smartfarm: 'Smart Farm', equipements: 'Équipements', sante: 'Santé', ventes: 'Ventes', documents: 'Documents', taches: 'Tâches', business_events: 'Historique métier', audit_logs: 'Journal activité', alertes_center: 'Alertes', autre: 'Autre' };
 const MODULE_TARGETS = { animal: 'animaux', animaux: 'animaux', lot_avicole: 'avicole', avicole: 'avicole', stock: 'stock', culture: 'cultures', cultures: 'cultures', transaction: 'finances', finances: 'finances', client: 'clients', fournisseur: 'fournisseurs', sensor: 'smartfarm', equipement: 'equipements' };
 const AUTO_SEND_SEVERITIES = ['critique', 'urgence'];
-const defaultConfig = { autoWhatsApp: true, defaultRecipient: 'OWNER', ownerName: 'Penda Thiaw', ownerWhatsapp: '', notifyOwnerOnUrgency: true };
+const defaultConfig = { autoWhatsApp: true, autoTaskOnCritical: true, defaultRecipient: 'OWNER', ownerName: 'Penda Thiaw', ownerWhatsapp: '', notifyOwnerOnUrgency: true };
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const clean = (value) => String(value || '').trim();
@@ -67,6 +70,9 @@ export default function AlertesCenter({ alertes = [], taches = [], businessEvent
   const [saving, setSaving] = useState(false);
   const [sendingId, setSendingId] = useState('');
   const [config, setConfig] = useState(loadConfig);
+  const { settings: automationSettings } = useAutomationSettings();
+  const autoTaskEnabled = config.autoTaskOnCritical !== false && isAutomationEnabled(automationSettings, 'taches_alertes_critiques');
+  const syncedAutoAlertsRef = useRef(new Set());
   const readyToastKeyRef = useRef('');
   const responsibleOptions = useMemo(() => [{ value: 'OWNER', label: `${config.ownerName || 'Propriétaire'} · WhatsApp propriétaire` }, ...getResponsibleOptions({ moduleKey: '' })], [config.ownerName]);
   const formContext = useMemo(() => ({ animaux, lots, stocks, cultures, transactions, clients, fournisseurs, equipements, sensorDevices }), [animaux, lots, stocks, cultures, transactions, clients, fournisseurs, equipements, sensorDevices]);
@@ -105,8 +111,30 @@ export default function AlertesCenter({ alertes = [], taches = [], businessEvent
     await onCreateTask({ ...workflow.task, alert_id: alert.id, assigned_to: alert.responsable || workflow.task.assigned_to, created_from: 'alerte_creation' });
     await onRefreshTasks?.();
   };
-  const submitCreate = async (payload) => { try { setSaving(true); const normalized = normalizeAlertPayload(payload, formContext); const alertPayload = { ...normalized, responsable_label: recipientLabel(normalized.responsable, config), status: 'nouvelle', alert_dedupe_key: alertKey(normalized), created_at: new Date().toISOString() }; await onCreate(alertPayload); await createTaskFromAlert(alertPayload); await onRefresh?.(); toast.success(normalized.task_intent === 'a_creer' ? 'Alerte et tâche créées' : 'Alerte créée'); setModal(null); } catch { toast.error('Création alerte impossible'); } finally { setSaving(false); } };
+  const submitCreate = async (payload) => { try { setSaving(true); const normalized = normalizeAlertPayload(payload, formContext); const alertPayload = { ...normalized, responsable_label: recipientLabel(normalized.responsable, config), status: 'nouvelle', alert_dedupe_key: alertKey(normalized), created_at: new Date().toISOString(), task_intent: normalized.create_task === 'oui' || (autoTaskEnabled && isCriticalAlert(normalized)) ? 'a_creer' : '' }; await onCreate(alertPayload); if (alertPayload.task_intent === 'a_creer') { if (isCriticalAlert(alertPayload)) await ensureCriticalAlertTask(alertPayload, { existingTasks: taches, onCreateTask, onUpdateAlert: onUpdate }); else await createTaskFromAlert(alertPayload); } await onRefresh?.(); await onRefreshTasks?.(); toast.success(alertPayload.task_intent === 'a_creer' ? 'Alerte et tâche créées' : 'Alerte créée'); setModal(null); } catch { toast.error('Création alerte impossible'); } finally { setSaving(false); } };
   const persistAutoIfNeeded = async (alerte, patch = {}) => { if (!alerte.isAuto) { await onUpdate?.(alerte.id, patch); return alerte.id; } const id = generateSequentialId('alertes', alertes); await onCreate?.({ ...alerte, ...patch, id, isAuto: false, alert_dedupe_key: alertKey(alerte), responsable_label: recipientLabel(alerte.responsable, config), created_at: alerte.created_at || new Date().toISOString() }); return id; };
+
+  useEffect(() => {
+    if (!autoTaskEnabled || !onCreate) return undefined;
+    let cancelled = false;
+    const run = async () => {
+      for (const alert of autoAlerts.filter(isCriticalAlert).slice(0, 5)) {
+        const key = alert.id || alertKey(alert);
+        if (cancelled || syncedAutoAlertsRef.current.has(key)) continue;
+        syncedAutoAlertsRef.current.add(key);
+        try {
+          const id = await persistAutoIfNeeded({ ...alert, task_intent: 'a_creer' }, { status: 'nouvelle' });
+          await ensureCriticalAlertTask({ ...alert, id }, { existingTasks: taches, onCreateTask, onUpdateAlert: onUpdate });
+          await onRefreshTasks?.();
+          await onRefresh?.();
+        } catch {
+          syncedAutoAlertsRef.current.delete(key);
+        }
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [autoAlerts, autoTaskEnabled, onCreate, onCreateTask, onUpdate, onRefresh, onRefreshTasks, taches]);
   const handleMarkRead = async (alerte) => { try { await persistAutoIfNeeded(alerte, { status: 'lue' }); await onRefresh?.(); toast.success('Marquée comme lue'); } catch { toast.error('Mise à jour impossible'); } };
   const handleTraiter = async (alerte) => { try { await persistAutoIfNeeded(alerte, { status: 'traitee', treated_at: new Date().toISOString() }); await onRefresh?.(); toast.success('Alerte traitée'); } catch { toast.error('Traitement impossible'); } };
   const handleResoudre = async (alerte) => { try { await persistAutoIfNeeded(alerte, { status: 'resolue', resolved_at: new Date().toISOString() }); await onRefresh?.(); toast.success('Alerte résolue'); } catch { toast.error('Résolution impossible'); } };
