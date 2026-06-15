@@ -8,11 +8,13 @@ export default function CommercialPilotagePanel({
   data = {},
   setTab,
   periodLabel = '',
+  periodFiltered = false,
   marginContext = {},
   chartOptions = {},
 }) {
+  const pilotageOrders = periodFiltered ? (data.orders || data.ordersAll) : data.ordersAll;
   const report = buildCommercialInvestorReport({
-    orders: data.ordersAll,
+    orders: pilotageOrders,
     payments: data.paymentsAll,
     clients: data.clients,
     deliveries: data.deliveries,
@@ -22,7 +24,7 @@ export default function CommercialPilotagePanel({
   });
 
   const pilotage = buildCommercialPilotageBundle({
-    orders: data.ordersAll,
+    orders: pilotageOrders,
     payments: data.paymentsAll,
     clients: data.clients,
     marginContext,
@@ -96,7 +98,7 @@ export default function CommercialPilotagePanel({
             <button
               key={row.id}
               type="button"
-              onClick={() => setTab?.('Clients')}
+              onClick={() => setTab?.('Clients & créances')}
               className="flex w-full flex-wrap items-center justify-between gap-2 rounded-xl border border-[#eadcc2] px-3 py-2 text-left text-sm hover:bg-[#fffdf8]"
             >
               <span className="font-bold text-[#2f2415]">{row.name}</span>
@@ -119,7 +121,7 @@ export default function CommercialPilotagePanel({
         </div>
       </section>
       <p className="text-xs text-[#8a7456]">
-        Écarts de réconciliation : consultez l&apos;onglet Résumé (panneau dédié) ou Finance → Réconciliation.
+        Écarts de réconciliation : consultez le panneau ci-dessus (Pilotage) ou Finance → Réconciliation.
       </p>
     </div>
   );

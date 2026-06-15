@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Btn from '../components/Btn';
 import EntityLinkedSelect from '../components/EntityLinkedSelect.jsx';
+import VoiceInput from '../components/VoiceInput.jsx';
 import BaseModal from './BaseModal';
 import { uploadImage } from '../services/storageService';
 

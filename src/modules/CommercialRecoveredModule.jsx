@@ -66,12 +66,12 @@ function Summary({ data, setTab, onNewSale, onNavigate, onOpenClient, onApplyFin
       ) : null}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-6">
-        <CommercialKpi label="CA" value={fmtCurrency(kpis?.ca ?? data.collected)} tone="good" onClick={() => setTab('Graphiques')} />
-        <CommercialKpi label="Encaissé" value={fmtCurrency(kpis?.collected ?? data.collected)} tone="good" onClick={() => setTab('Graphiques')} />
-        <CommercialKpi label="Créances" value={fmtCurrency(kpis?.receivable ?? data.receivable)} tone={(kpis?.receivable ?? data.receivable) ? 'warn' : 'good'} onClick={() => setTab('Clients')} />
+        <CommercialKpi label="CA" value={fmtCurrency(kpis?.ca ?? data.collected)} tone="good" onClick={() => setTab('Pilotage')} />
+        <CommercialKpi label="Encaissé" value={fmtCurrency(kpis?.collected ?? data.collected)} tone="good" onClick={() => setTab('Pilotage')} />
+        <CommercialKpi label="Créances" value={fmtCurrency(kpis?.receivable ?? data.receivable)} tone={(kpis?.receivable ?? data.receivable) ? 'warn' : 'good'} onClick={() => setTab('Clients & créances')} />
         <CommercialKpi label="Commandes ouvertes" value={fmtNumber(kpis?.openOrders ?? data.openSalesCount)} tone={(kpis?.openOrders ?? data.openSalesCount) ? 'warn' : 'good'} onClick={() => setTab('Ventes')} />
-        <CommercialKpi label="Clients actifs" value={fmtNumber(kpis?.activeClients ?? 0)} tone="good" onClick={() => setTab('Clients')} />
-        <CommercialKpi label="Panier moyen" value={fmtCurrency(kpis?.basketAvg ?? 0)} tone="good" onClick={() => setTab('Graphiques')} />
+        <CommercialKpi label="Clients actifs" value={fmtNumber(kpis?.activeClients ?? 0)} tone="good" onClick={() => setTab('Clients & créances')} />
+        <CommercialKpi label="Panier moyen" value={fmtCurrency(kpis?.basketAvg ?? 0)} tone="good" onClick={() => setTab('Pilotage')} />
       </div>
 
       <CommercialQuickActions setTab={setTab} onNewSale={onNewSale} />
@@ -147,7 +147,7 @@ function Summary({ data, setTab, onNewSale, onNavigate, onOpenClient, onApplyFin
 
         <div className="lg:col-span-2 space-y-4">
           {data.receivable > 0 ? (
-            <button type="button" onClick={() => setTab('Clients')} className="w-full rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left hover:bg-amber-100/80">
+            <button type="button" onClick={() => setTab('Clients & créances')} className="w-full rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left hover:bg-amber-100/80">
               <p className="text-[11px] font-bold uppercase tracking-wide text-amber-800">Créances clients</p>
               <p className="mt-1 text-2xl font-black text-amber-900">{fmtCurrency(data.receivable)}</p>
               <p className="mt-1 text-xs text-amber-800">{data.clientsDebtCount} client(s) à relancer</p>
@@ -381,7 +381,13 @@ export default function CommercialRecoveredModule(props) {
     const chartOptions = {
       businessPlans: rowsOf(props.businessPlans, businessPlansCrud, false),
       rows: snapshotOrders,
+      periodScope: props.periodScope,
+      periodFiltered: Boolean(props.periodFiltered),
+      monthKeys: props.periodScope?.monthKeys,
     };
+    const displayReceivable = props.periodFiltered
+      ? headlineKpis.receivable
+      : receivable;
     return {
       orders: periodOrders,
       ordersAll: snapshotOrders,
@@ -415,7 +421,9 @@ export default function CommercialRecoveredModule(props) {
         sellableStocks,
       }),
       openSalesCount: openSalesCountVal,
-      receivable,
+      receivable: displayReceivable,
+      receivableAll: receivable,
+      periodFiltered: Boolean(props.periodFiltered),
       collected,
       topClients,
       openOpportunities,
@@ -548,7 +556,7 @@ export default function CommercialRecoveredModule(props) {
       cultures={culturesRows}
       lots={lotsRows}
       animaux={animauxRows}
-      salesOrders={data.orders}
+      salesOrders={data.ordersAll}
       setTab={setTab}
       onWhatsAppLog={logOpportunityWhatsApp}
       onConvertSale={convertOpportunityToSale}
@@ -566,7 +574,7 @@ export default function CommercialRecoveredModule(props) {
 
   return (
     <div className="space-y-4">
-      <CommercialModuleHeader tab={tab} setTab={setTab} healthScore={data.healthScore} periodLabel={props.periodLabel} onNavigate={props.onNavigate} onOpenAssistant={props.onOpenAssistant} badges={{ receivable: data.receivable, todo: todoBadge, tabs: tabBadges }} />
+      <CommercialModuleHeader tab={tab} setTab={setTab} healthScore={data.healthScore} periodLabel={props.periodLabel} periodFiltered={periodFiltered} onNavigate={props.onNavigate} onOpenAssistant={props.onOpenAssistant} badges={{ receivable: data.receivable, receivableAll: data.receivableAll, todo: todoBadge, tabs: tabBadges }} />
       {tab === 'Ventes' ? (
         <div className="space-y-4">
           <CommercialQuickActions setTab={setTab} onNewSale={openNewSale} />
@@ -642,6 +650,7 @@ export default function CommercialRecoveredModule(props) {
             data={data}
             setTab={setTab}
             periodLabel={props.periodLabel}
+            periodFiltered={periodFiltered}
             marginContext={data.marginContext}
             chartOptions={data.chartOptions}
           />

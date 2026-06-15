@@ -47,15 +47,15 @@ export function buildCommercialStartupJourney({
   const hasEncaissement = hasPayment;
 
   const steps = [
-    { key: 'client', label: '1. Créer client', tab: 'Clients', done: hasClient },
-    { key: 'product', label: '2. Publier produit vendable', module: 'achats_stock', tab: 'Stock', done: hasSellable },
+    { key: 'client', label: '1. Créer client', tab: 'Clients & créances', done: hasClient },
+    { key: 'product', label: '2. Publier produit vendable', module: 'achats_stock', tab: 'Inventaire', done: hasSellable },
     { key: 'quote', label: '3. Créer devis', tab: 'Ventes', done: hasQuote },
     { key: 'order', label: '4. Créer commande', tab: 'Ventes', done: hasOrder },
-    { key: 'invoice', label: '5. Créer facture', tab: 'Annexe', done: hasInvoice },
+    { key: 'invoice', label: '5. Créer facture', tab: 'Pilotage', done: hasInvoice },
     { key: 'delivery', label: '6. Livrer', tab: 'Livraisons', done: hasDelivery },
     { key: 'payment', label: '7. Encaisser', module: 'finance_pilotage', tab: 'Réconciliation', done: hasEncaissement },
-    { key: 'whatsapp', label: '8. Première relance', tab: 'Relances', done: hasWhatsApp },
-    { key: 'receivable', label: '9. Suivi créances', tab: 'Clients', done: hasReceivableFollowUp || hasPayment },
+    { key: 'whatsapp', label: '8. Première relance', tab: 'Clients & créances', done: hasWhatsApp },
+    { key: 'receivable', label: '9. Suivi créances', tab: 'Clients & créances', done: hasReceivableFollowUp || hasPayment },
   ];
 
   const completed = steps.filter((s) => s.done).length;

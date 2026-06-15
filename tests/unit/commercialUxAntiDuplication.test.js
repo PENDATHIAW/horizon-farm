@@ -16,24 +16,25 @@ test('parcours démarrage — encaissement pointe Finance Réconciliation', () =
   assert.equal(payment.tab, 'Réconciliation');
 });
 
-test('parcours démarrage — relance pointe onglet Relances', () => {
+test('parcours démarrage — relance pointe Clients & créances', () => {
   const journey = buildCommercialStartupJourney({});
   const relance = journey.steps.find((s) => s.key === 'whatsapp');
-  assert.equal(relance.tab, 'Relances');
+  assert.equal(relance.tab, 'Clients & créances');
 });
 
-test('Hey Horizon créances pointe Relances (pas doublon Clients)', () => {
+test('Hey Horizon créances pointe Clients & créances', () => {
   const item = COMMERCIAL_HEY_HORIZON_QUESTIONS.find((q) => q.id === 'receivables');
-  assert.equal(item.tab, 'Relances');
+  assert.equal(item.tab, 'Clients & créances');
 });
 
-test('navigation commercial — un onglet principal par domaine métier', () => {
-  const required = ['Résumé', 'Ventes', 'Clients', 'Livraisons', 'Relances', 'Opportunités', 'Pilotage', 'Graphiques'];
+test('navigation commercial — 6 onglets canoniques', () => {
+  const required = ['Ventes', 'Opportunités', 'Clients & créances', 'Livraisons', 'Abonnements', 'Pilotage'];
+  assert.equal(COMMERCIAL_TABS.length, 6);
   required.forEach((tab) => assert.ok(COMMERCIAL_TABS.includes(tab), `onglet ${tab}`));
 });
 
-test('alias reconciliation ne pointe plus vers Pilotage commercial', () => {
+test('alias reconciliation détecté — redirect Finance géré par App', () => {
   assert.equal(isCommercialReconciliationAlias('reconciliation'), true);
-  assert.equal(resolveCommercialTab('reconciliation'), 'Résumé');
   assert.equal(resolveCommercialTab('Pilotage'), 'Pilotage');
+  assert.equal(resolveCommercialTab('Clients & créances'), 'Clients & créances');
 });

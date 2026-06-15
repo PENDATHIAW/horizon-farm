@@ -48,7 +48,7 @@ const crudRowsMap = (c) => Object.fromEntries(CRUD_KEYS.map((key) => [key, rows(
 
 export default function App() {
   const [active, setActiveState] = useState('dashboard');
-  const [commercialTab, setCommercialTab] = useState('Résumé');
+  const [commercialTab, setCommercialTab] = useState('Pilotage');
   const [elevageTab, setElevageTab] = useState('Résumé');
   const [centreTab, setCentreTab] = useState('Urgences & risques');
   const [objectifsTab, setObjectifsTab] = useState('Suivi du Business Plan');

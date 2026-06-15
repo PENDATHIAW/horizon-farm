@@ -9,7 +9,7 @@ import { saleAmount, linkedPaymentsForOrders } from '../modules/commercial/comme
 import { buildClientSegment } from '../services/clientSegmentationEngine.js';
 import { computePurchaseFrequency } from '../services/clientSegmentationEngine.js';
 import { isQuoteOrder } from './commercialQuoteWorkflow.js';
-import { buildMonthlyTargetAttainment } from '../modules/commercial/commercialChartMetrics.js';
+import { buildAttainmentKpis } from '../modules/commercial/commercialChartMetrics.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const n = (v) => Number(v || 0);
@@ -81,7 +81,7 @@ export function buildStrategicClients(clients = [], orders = [], payments = [], 
 
 /** Objectifs mensuels : réalisé, restant, projection fin de mois. */
 export function buildCommercialObjectivesView(orders = [], chartOptions = {}) {
-  const attainment = buildMonthlyTargetAttainment(orders, chartOptions);
+  const attainment = buildAttainmentKpis(orders, chartOptions);
   const month = attainment.month || {};
   const actual = n(month.actual);
   const target = n(month.target);
@@ -103,7 +103,7 @@ export function buildCommercialObjectivesView(orders = [], chartOptions = {}) {
     projectionLinear,
     projectionMethod,
     onTrack: projectionLinear >= target,
-    source: 'buildMonthlyTargetAttainment',
+    source: 'buildAttainmentKpis',
   };
 }
 
