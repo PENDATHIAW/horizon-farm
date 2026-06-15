@@ -12,6 +12,7 @@ import {
   monthTargetForKey,
   resolveActivityYearContext,
 } from '../../utils/activityYear.js';
+import { summarizeStockValuation } from '../../utils/stockValuation.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const lower = (value) => String(value || '').trim().toLowerCase();
@@ -480,6 +481,13 @@ export function buildDashboardSummary(props = {}, periodScope = {}) {
   const startupMode = isDashboardStartupMode(props);
   const stockBas = stocks.filter(isCriticalStock).length;
   const stockSummary = computeStockSummary(stocks);
+  const stockValuation = summarizeStockValuation(stocks, arr(props.stockMovements), transactionsAll);
+  if (stockValuation?.totalValue > 0) {
+    stockSummary.stockValue = stockValuation.totalValue;
+    stockSummary.valuationMethod = 'cmup';
+  } else {
+    stockSummary.valuationMethod = 'fiche';
+  }
   const tachesOuvertes = filterRealOpenTasks(taches).length;
   const alertesOuvertes = alertes.filter(isOpenAlert).length;
   const headcount = computeFarmHeadcount({ animaux, lots, cultures });

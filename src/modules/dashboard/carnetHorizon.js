@@ -6,7 +6,7 @@
 import { fmtCurrency } from '../../utils/format.js';
 import { buildConsolidatedCommercialKpis } from '../../utils/commercialKpiConsolidated.js';
 import { buildObjectifsCroissanceData } from '../../services/objectifsGrowthEngine.js';
-import { rowDateValue } from '../../utils/periodScope.js';
+import { filterRowsByPeriodScope, normalizePeriodScope, rowDateValue } from '../../utils/periodScope.js';
 import { isBovinAnimal, isCaprinAnimal, isOvinAnimal } from '../../utils/elevageActivityPnl.js';
 import { buildExpirySnapshot } from '../../utils/stockExpiry.js';
 
@@ -174,9 +174,12 @@ function countDlcAlerts(stocks = []) {
 }
 
 function commercialInput(props = {}, periodScope = {}) {
+  const scope = normalizePeriodScope(periodScope);
+  const ordersAll = arr(props.salesOrdersAll?.length ? props.salesOrdersAll : props.salesOrders);
+  const paymentsAll = arr(props.paymentsAll?.length ? props.paymentsAll : props.payments);
   return {
-    orders: arr(props.salesOrdersAll?.length ? props.salesOrdersAll : props.salesOrders),
-    payments: arr(props.paymentsAll?.length ? props.paymentsAll : props.payments),
+    orders: filterRowsByPeriodScope(ordersAll, scope),
+    payments: paymentsAll,
     clients: arr(props.clients),
     periodScope,
   };
@@ -284,7 +287,7 @@ export function buildCarnetObjectifs(summary = {}, props = {}) {
   });
   const goal = summary.goal || {};
   const monthTarget = n(goal.periodTarget);
-  const monthRealized = n(commercialKpis.ca);
+  const monthRealized = n(goal.periodRealized) || n(commercialKpis.ca);
   const monthAttainment = n(goal.periodAttainment) || (monthTarget > 0 ? Math.round((monthRealized / monthTarget) * 100) : 0);
   const yearTarget = n(goal.annualTarget);
   const yearRealized = n(goal.annualRealized);

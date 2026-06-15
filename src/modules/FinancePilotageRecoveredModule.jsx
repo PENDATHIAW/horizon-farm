@@ -678,7 +678,16 @@ export default function FinancePilotageRecoveredModule(props) {
             <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Pilotage</p>
             <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Finance & Pilotage</h1>
             <p className="mt-1 text-sm text-[#8a7456]">Trésorerie, créances, dettes — signaux métier, preuves et rentabilité.</p>
-            {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
+            {props.periodLabel ? (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <PeriodScopeBadge label={props.periodLabel} />
+                <span className="rounded-full border border-[#eadcc2] bg-[#fffdf8] px-2 py-0.5 text-[11px] font-bold text-[#8a7456]">
+                  Trésorerie & créances : cumul ferme (hors filtre période)
+                </span>
+              </div>
+            ) : (
+              <p className="mt-2 text-xs font-bold text-[#8a7456]">Trésorerie & créances : cumul ferme</p>
+            )}
           </div>
           <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé </span><b className={data.healthInsufficient ? 'text-[#8a7456]' : data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{formatFinanceHealthScore({ score: data.healthScore, insufficientData: data.healthInsufficient })}</b></div>
         </div>

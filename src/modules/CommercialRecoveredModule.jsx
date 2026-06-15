@@ -311,6 +311,16 @@ export default function CommercialRecoveredModule(props) {
       invoices: invoicesAll,
       periodScope: props.periodScope,
     });
+    const headlineKpis = props.periodFiltered
+      ? buildConsolidatedCommercialKpis({
+        orders: periodOrders,
+        payments: snapshotPayments,
+        clients,
+        deliveries: deliveriesAll,
+        invoices: invoicesAll,
+        periodScope: props.periodScope,
+      })
+      : consolidatedKpis;
     const reconciliationRows = buildCommercialReconciliationRows({
       orders: snapshotOrders,
       items: orderItemRows,
@@ -386,7 +396,8 @@ export default function CommercialRecoveredModule(props) {
       accessibleFarms: props.accessibleFarms,
       activeFarm: props.activeFarm,
       handlers: workflowHandlers,
-      consolidatedKpis,
+      consolidatedKpis: headlineKpis,
+      consolidatedKpisAll: consolidatedKpis,
       reconciliationRows,
       relanceRows,
       deliveryQueue,

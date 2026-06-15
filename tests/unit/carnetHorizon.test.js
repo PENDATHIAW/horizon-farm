@@ -82,6 +82,7 @@ test('buildCarnetObjectifs — CA mois et année', () => {
     {
       goal: {
         periodTarget: 1000000,
+        periodRealized: 750000,
         periodAttainment: 75,
         annualTarget: 12000000,
         annualRealized: 6000000,
@@ -102,8 +103,8 @@ test('buildCarnetObjectifs — CA mois et année', () => {
   );
 
   assert.equal(objectifs.month.label, 'CA MOIS');
+  assert.equal(objectifs.month.realized, 750000);
   assert.equal(objectifs.year.label, 'CA ANNÉE');
-  assert.ok(objectifs.month.realized >= 0);
   assert.equal(objectifs.year.attainment, 50);
 });
 
