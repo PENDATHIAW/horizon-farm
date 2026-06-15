@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { applyOneClickRecommendation } from '../services/heyHorizonRecommendationActions.js';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
@@ -34,12 +34,11 @@ import { buildAutoCommercialOpportunities } from '../utils/commercialAutoOpportu
 import { buildWhatsAppLogPayload, WHATSAPP_STATUSES } from '../utils/whatsappCommercial.js';
 import { listSellableStocks } from '../utils/sellableStock.js';
 import { rowsOf, allRows } from '../utils/moduleRows';
-import { CommercialKpi, CommercialModuleHeader, CommercialQuickActions, CommercialTodoRow, CommercialTopClients } from './commercial/CommercialShell.jsx';
+import { CommercialKpi, CommercialModuleHeader, CommercialTodoRow, CommercialTopClients } from './commercial/CommercialShell.jsx';
 import CommercialAnnexeTab from './commercial/CommercialAnnexeTab.jsx';
 import CommercialOpportunitiesPanel from './commercial/CommercialOpportunitiesPanel.jsx';
 import CommercialQuotesPanel from './commercial/CommercialQuotesPanel.jsx';
 import CommercialReconciliationPanel from './commercial/CommercialReconciliationPanel.jsx';
-import CommercialRelancesTeaser from './commercial/CommercialRelancesTeaser.jsx';
 import CommercialDeliveriesPanel from './commercial/CommercialDeliveriesPanel.jsx';
 import CommercialSubscriptionsPanel from './commercial/CommercialSubscriptionsPanel.jsx';
 import CommercialProspectsPanel from './commercial/CommercialProspectsPanel.jsx';
@@ -54,10 +53,10 @@ import ClientsReadable from './ClientsReadable';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
-function Summary({ data, setTab, onNewSale, onNavigate, onOpenClient, onApplyFinding, busyId }) {
+function Summary({ data, setTab, onNavigate, onApplyFinding, busyId }) {
   const todos = data.summaryTodos.slice(0, 6);
   const kpis = data.consolidatedKpis;
-  const showStartup = data.startupJourney?.isEmpty || (data.startupJourney?.completed ?? 0) < 3;
+  const showStartup = data.startupMode;
 
   return (
     <div className="space-y-5">
@@ -65,7 +64,7 @@ function Summary({ data, setTab, onNewSale, onNavigate, onOpenClient, onApplyFin
         <CommercialStartupPanel journey={data.startupJourney} setTab={setTab} onNavigate={onNavigate} />
       ) : null}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
         <CommercialKpi label="CA" value={fmtCurrency(kpis?.ca ?? data.collected)} tone="good" onClick={() => setTab('Pilotage')} />
         <CommercialKpi label="Encaissé" value={fmtCurrency(kpis?.collected ?? data.collected)} tone="good" onClick={() => setTab('Pilotage')} />
         <CommercialKpi label="Créances" value={fmtCurrency(kpis?.receivable ?? data.receivable)} tone={(kpis?.receivable ?? data.receivable) ? 'warn' : 'good'} onClick={() => setTab('Clients & créances')} />
@@ -73,8 +72,7 @@ function Summary({ data, setTab, onNewSale, onNavigate, onOpenClient, onApplyFin
         <CommercialKpi label="Clients actifs" value={fmtNumber(kpis?.activeClients ?? 0)} tone="good" onClick={() => setTab('Clients & créances')} />
         <CommercialKpi label="Panier moyen" value={fmtCurrency(kpis?.basketAvg ?? 0)} tone="good" onClick={() => setTab('Pilotage')} />
       </div>
-
-      <CommercialQuickActions setTab={setTab} onNewSale={onNewSale} />
+      <p className="text-[11px] font-semibold text-[#8a7456]">KPI période active · cliquer pour ouvrir le détail</p>
 
       <CommercialInsightPanel
         findings={data.healthFindings}
@@ -85,34 +83,6 @@ function Summary({ data, setTab, onNewSale, onNavigate, onOpenClient, onApplyFin
         setTab={setTab}
         busyId={busyId}
       />
-
-      <CommercialQuotesPanel
-        orders={data.ordersAll}
-        orderItems={data.orderItems}
-        clients={data.clients}
-        onCreateOrder={data.handlers.onCreateOrder}
-        onCreateItem={data.handlers.onCreateItem}
-        onUpdateOrder={data.handlers.onUpdateOrder}
-        onCreateDelivery={data.handlers.onCreateDelivery}
-        onCreateInvoice={data.handlers.onCreateInvoice}
-        onCreateDocument={data.handlers.onCreateDocument}
-        onCreatePayment={data.handlers.onCreatePayment}
-        onCreateBusinessEvent={data.handlers.onCreateBusinessEvent}
-        onRefreshWorkflow={data.handlers.onRefreshWorkflow}
-        farmScope={data.farmScope}
-        accessibleFarms={data.accessibleFarms}
-        activeFarm={data.activeFarm}
-        stocks={data.stocks}
-        lots={data.lots}
-        cultures={data.cultures}
-        animaux={data.animaux}
-        payments={data.paymentsAll}
-        transactions={data.transactions}
-      />
-
-      <CommercialReconciliationPanel rows={data.reconciliationRows} setTab={setTab} />
-
-      <CommercialRelancesTeaser rows={data.relanceRows} setTab={setTab} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <section className="lg:col-span-3 rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
@@ -162,12 +132,17 @@ function Summary({ data, setTab, onNewSale, onNavigate, onOpenClient, onApplyFin
 
 export default function CommercialRecoveredModule(props) {
   const [tab, setTabRaw] = useState(() => resolveCommercialTab(props.initialTab));
-  const setTab = (value) => setTabRaw(resolveCommercialTab(value));
+  const setTab = useCallback((value) => {
+    const resolved = resolveCommercialTab(value);
+    setTabRaw(resolved);
+    props.onTabChange?.(resolved);
+  }, [props.onTabChange]);
   const [pendingSaleDraft, setPendingSaleDraft] = useState(null);
   const [busyId, setBusyId] = useState(null);
 
   useEffect(() => {
-    if (props.initialTab) setTab(resolveCommercialTab(props.initialTab));
+    if (!props.initialTab) return;
+    setTabRaw(resolveCommercialTab(props.initialTab));
   }, [props.initialTab]);
 
   useEffect(() => {
@@ -511,11 +486,11 @@ export default function CommercialRecoveredModule(props) {
     });
     await whatsappLogsCrud.create?.(payload);
     await whatsappLogsCrud.refresh?.();
-    setTab('Clients');
+    setTab('Clients & créances');
     toast.success('Message préparé — confirmez l\'envoi depuis la fiche client');
   };
 
-  const openClientTab = () => setTab('Clients');
+  const openClientTab = () => setTab('Clients & créances');
 
   const convertOpportunityToSale = async (opportunity, client) => {
     const formDraft = buildSaleFormFromOpportunity(
@@ -576,10 +551,7 @@ export default function CommercialRecoveredModule(props) {
     <div className="space-y-4">
       <CommercialModuleHeader tab={tab} setTab={setTab} healthScore={data.healthScore} periodLabel={props.periodLabel} periodFiltered={periodFiltered} onNavigate={props.onNavigate} onOpenAssistant={props.onOpenAssistant} badges={{ receivable: data.receivable, receivableAll: data.receivableAll, todo: todoBadge, tabs: tabBadges }} />
       {tab === 'Ventes' ? (
-        <div className="space-y-4">
-          <CommercialQuickActions setTab={setTab} onNewSale={openNewSale} />
-          <VentesV5 {...salesProps} />
-        </div>
+        <VentesV5 {...salesProps} />
       ) : null}
       {tab === 'Opportunités' ? (
         <div className="space-y-4">{opportunitiesPanel}</div>
@@ -640,12 +612,39 @@ export default function CommercialRecoveredModule(props) {
           <Summary
             data={data}
             setTab={setTab}
-            onNewSale={openNewSale}
             onNavigate={props.onNavigate}
-            onOpenClient={openClientTab}
             onApplyFinding={applyFinding}
             busyId={busyId}
           />
+          <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+            <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Devis & réconciliation (avancé)</summary>
+            <div className="mt-3 space-y-4">
+              <CommercialQuotesPanel
+                orders={data.ordersAll}
+                orderItems={data.orderItems}
+                clients={data.clients}
+                onCreateOrder={data.handlers.onCreateOrder}
+                onCreateItem={data.handlers.onCreateItem}
+                onUpdateOrder={data.handlers.onUpdateOrder}
+                onCreateDelivery={data.handlers.onCreateDelivery}
+                onCreateInvoice={data.handlers.onCreateInvoice}
+                onCreateDocument={data.handlers.onCreateDocument}
+                onCreatePayment={data.handlers.onCreatePayment}
+                onCreateBusinessEvent={data.handlers.onCreateBusinessEvent}
+                onRefreshWorkflow={data.handlers.onRefreshWorkflow}
+                farmScope={data.farmScope}
+                accessibleFarms={data.accessibleFarms}
+                activeFarm={data.activeFarm}
+                stocks={data.stocks}
+                lots={data.lots}
+                cultures={data.cultures}
+                animaux={data.animaux}
+                payments={data.paymentsAll}
+                transactions={data.transactions}
+              />
+              <CommercialReconciliationPanel rows={data.reconciliationRows} setTab={setTab} />
+            </div>
+          </details>
           <CommercialPilotagePanel
             data={data}
             setTab={setTab}

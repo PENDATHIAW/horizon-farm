@@ -110,18 +110,18 @@ export default function CommercialPilotagePanel({
       </section>
 
       <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Preuve commerciale / investisseur</p>
-            <p className="text-sm text-[#8a7456] mt-1">{report.summary}</p>
+        <details>
+          <summary className="cursor-pointer text-xs font-black uppercase tracking-widest text-[#8a7456]">Preuve commerciale / investisseur</summary>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-[#8a7456]">{report.summary}</p>
+            <button type="button" onClick={exportPdf} className="rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white">
+              Exporter PDF investisseur
+            </button>
           </div>
-          <button type="button" onClick={exportPdf} className="rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white">
-            Exporter PDF investisseur
-          </button>
-        </div>
+        </details>
       </section>
       <p className="text-xs text-[#8a7456]">
-        Écarts de réconciliation : consultez le panneau ci-dessus (Pilotage) ou Finance → Réconciliation.
+        Écarts de réconciliation : Finance → Réconciliation · Devis : onglet Ventes
       </p>
     </div>
   );

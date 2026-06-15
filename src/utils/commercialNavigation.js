@@ -273,7 +273,13 @@ export function resolveCommercialTab(value = '') {
   if (isCommercialReconciliationAlias(tab)) return 'Ventes';
   const fromAlias = COMMERCIAL_TAB_ALIASES[tab] || COMMERCIAL_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
-  return tabAliases[lower(tab)] || 'Ventes';
+  const legacy = tabAliases[lower(tab)];
+  if (legacy) {
+    const fromLegacy = COMMERCIAL_TAB_ALIASES[legacy] || COMMERCIAL_TAB_ALIASES[lower(legacy)];
+    if (fromLegacy) return fromLegacy;
+    if (COMMERCIAL_TABS.includes(legacy)) return legacy;
+  }
+  return 'Ventes';
 }
 
 export function resolveFinanceTab(value = '') {
@@ -527,7 +533,7 @@ export function resolveRouteModule(moduleId = '') {
 
 /** Onglet par défaut quand on entre via un alias legacy. */
 export function defaultTabForLegacyModule(moduleId = '') {
-  if (moduleId === 'clients') return 'Clients';
+  if (moduleId === 'clients') return 'Clients & créances';
   if (moduleId === 'ventes' || moduleId === 'sales_orders') return 'Ventes';
   if (moduleId === 'sales_opportunities') return 'Opportunités';
   if (moduleId === 'animaux') return 'Animaux';

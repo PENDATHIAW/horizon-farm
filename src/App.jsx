@@ -74,7 +74,7 @@ export default function App() {
         setActiveState('finance_pilotage');
         return;
       }
-      setCommercialTab(resolveCommercialTab(tab || defaultTabForLegacyModule(moduleId) || 'Résumé'));
+      setCommercialTab(resolveCommercialTab(tab || defaultTabForLegacyModule(moduleId) || 'Pilotage'));
       trackNavOpen('commercial');
       setActiveState('commercial');
       return;
@@ -404,6 +404,7 @@ export default function App() {
     },
     commercial: {
       initialTab: commercialTab,
+      onTabChange: setCommercialTab,
       clients: rows(c.clients),
       salesOrders: rows(c.sales_orders),
       salesOrdersAll: rows(c.sales_orders),

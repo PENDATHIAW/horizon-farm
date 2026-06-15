@@ -75,21 +75,37 @@
 | C7 | Pilotage ignorait filtre période | `periodFiltered` propagé |
 | C8 | Tests `commercialUxAntiDuplication` — modèle 10 onglets | Alignés sur 6 onglets |
 | C9 | `App.jsx` default `commercialTab` = Résumé | **Pilotage** |
+| C10 | Pilotage surchargé (QuickActions, devis, réco, checklist hors démarrage) | QuickActions retiré ; devis/réco en `<details>` ; checklist uniquement si `startupMode` |
+| C11 | Ventes : barre QuickActions + doublon « Nouvelle vente » | Un seul bouton dans la barre VentesV4 ; QuickActions retiré |
+| C12 | Onglet Clients & créances inaccessible (désync `commercialTab` App ↔ module) | `onTabChange` + `useEffect` sans reset ; alias `Clients` → canonique |
+| C13 | Export investisseur toujours visible | Repliable dans `<details>` |
 
 ---
 
-## 5. Anomalies ouvertes
+## 5. Structure cible après nettoyage (v2.1)
+
+| Onglet | Contenu principal | Éléments retirés / déplacés |
+|--------|-------------------|----------------------------|
+| **Ventes** | Barre Enregistrer / À traiter / Suivi & marges + 1× Nouvelle vente | QuickActions, second bouton Nouvelle vente |
+| **Opportunités** | Panel opportunités + auto-opportunités | — |
+| **Clients & créances** | Fiches clients, segments, prospects, relances | — |
+| **Livraisons** | File livraisons | — |
+| **Abonnements** | Abonnements récurrents | — |
+| **Pilotage** | KPI, insight, todos, top clients, objectifs/marges | QuickActions ; devis/réco en annexe ; graphiques en `<details>` ; checklist si démarrage seulement |
+
+---
+
+## 6. Anomalies ouvertes
 
 | # | Anomalie | Priorité |
 |---|----------|----------|
-| O1 | Devis + réconciliation encore dans Summary Pilotage (cible : Ventes / lien Finance) | Moyenne |
-| O2 | Badges onglets (commandes ouvertes) restent en cumul même avec filtre période | Basse |
-| O3 | `resolveCommercialTab('reconciliation')` → Ventes (redirect Finance uniquement via `App.navigateModule`) | Basse — documenté |
-| O4 | Rapport HTML `AUDIT_MODULE_COMMERCIAL_2026-06-09.html` — 10 onglets obsolètes | Basse |
+| O1 | Badges onglets (commandes ouvertes) restent en cumul même avec filtre période | Basse |
+| O2 | `resolveCommercialTab('reconciliation')` → Ventes (redirect Finance uniquement via `App.navigateModule`) | Basse — documenté |
+| O3 | Rapport HTML `AUDIT_MODULE_COMMERCIAL_2026-06-09.html` — 10 onglets obsolètes | Basse |
 
 ---
 
-## 6. Fichiers modifiés
+## 7. Fichiers modifiés
 
 - `src/utils/commercialPilotageMetrics.js`
 - `src/modules/CommercialRecoveredModule.jsx`
@@ -100,11 +116,12 @@
 - `src/utils/commercialStartup.js`
 - `src/App.jsx`
 - `tests/unit/commercialUxAntiDuplication.test.js`
-- `tests/unit/commercialAudit.test.js`
+- `src/modules/VentesV4.jsx`
+- `src/utils/commercialNavigation.js`
 
 ---
 
-## 7. Vérification
+## 8. Vérification
 
 ```bash
 npm run build
@@ -115,6 +132,6 @@ npx vite-node tests/unit/commercialModuleTabsRegression.test.js
 
 ---
 
-## 8. Prochaine étape audit v2
+## 9. Prochaine étape audit v2
 
 Module **Finance** (5 onglets + sous-vues Trésorerie / Pilotage).
