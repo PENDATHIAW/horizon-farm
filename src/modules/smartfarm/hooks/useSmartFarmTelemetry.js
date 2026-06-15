@@ -5,6 +5,7 @@ import { syncSmartFarmCriticalSignals } from '../../../services/smartFarmAlertSy
 import { syncSmartFarmEventSignals } from '../../../services/smartFarmEventAlertSync.js';
 import { isSmartFarmDeviceCritical } from '../../../utils/smartFarmWorkflows.js';
 import { countSmartFarmCriticalDevices } from '../../../services/smartFarmAlertSync.js';
+import { useSmartFarmRealtime } from './useSmartFarmRealtime.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 
@@ -14,6 +15,7 @@ export function useSmartFarmTelemetry(props = {}) {
   const tasksCrud = useCrudModule('taches');
   const alertsCrud = useCrudModule('alertes_center');
   const eventsCrud = useCrudModule('business_events');
+  const smartfarmEventsCrud = useCrudModule('smartfarm_events');
 
   const sensors = rowsOf(props.sensors, sensorCrud, false);
   const cameras = rowsOf(props.cameras, cameraCrud, false);
@@ -36,8 +38,21 @@ export function useSmartFarmTelemetry(props = {}) {
     onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh,
     onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create,
     onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh,
+    onCreateSmartfarmEvent: props.onCreateSmartfarmEvent || smartfarmEventsCrud.create,
+    onUpdateSmartfarmEvent: props.onUpdateSmartfarmEvent || smartfarmEventsCrud.update,
+    onRefreshSmartfarmEvents: props.onRefreshSmartfarmEvents || smartfarmEventsCrud.refresh,
     onNavigate: props.onNavigate,
-  }), [props, sensorCrud, cameraCrud, tasksCrud, alertsCrud, eventsCrud]);
+  }), [props, sensorCrud, cameraCrud, tasksCrud, alertsCrud, eventsCrud, smartfarmEventsCrud]);
+
+  const realtime = useSmartFarmRealtime({
+    enabled: props.online !== false,
+    seedEvents: smartfarmEvents,
+    onRefreshSensors: handlers.onRefreshSensors,
+    onRefreshCameras: handlers.onRefreshCameras,
+    onRefreshEvents: handlers.onRefreshSmartfarmEvents,
+  });
+
+  const mergedEvents = realtime.liveEvents.length ? realtime.liveEvents : smartfarmEvents;
 
   useEffect(() => {
     let cancelled = false;
@@ -55,7 +70,7 @@ export function useSmartFarmTelemetry(props = {}) {
           onRefreshBusinessEvents: h.onRefreshBusinessEvents,
         });
         const eventResult = await syncSmartFarmEventSignals({
-          events: smartfarmEvents,
+          events: mergedEvents,
           alertes,
           onCreateAlert: h.onCreateAlert,
           onCreateBusinessEvent: h.onCreateBusinessEvent,
@@ -71,7 +86,7 @@ export function useSmartFarmTelemetry(props = {}) {
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- sync sur changement de parc / événements
-  }, [sensors.length, cameras.length, smartfarmEvents.length, sensors.map((s) => s.id).join(','), cameras.map((c) => c.id).join(',')]);
+  }, [sensors.length, cameras.length, mergedEvents.length, sensors.map((s) => s.id).join(','), cameras.map((c) => c.id).join(',')]);
 
   const data = useMemo(() => {
     const zones = new Set([
@@ -79,7 +94,7 @@ export function useSmartFarmTelemetry(props = {}) {
       ...cameras.map((c) => c.zone || c.location || 'Zone'),
     ]);
     const criticalDevices = [...sensors, ...cameras].filter(isSmartFarmDeviceCritical);
-    const recentEvents = [...smartfarmEvents]
+    const recentEvents = [...mergedEvents]
       .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))
       .slice(0, 100);
 
@@ -93,8 +108,10 @@ export function useSmartFarmTelemetry(props = {}) {
       zoneCount: zones.size,
       online: props.online !== false,
       meteo: props.meteo,
+      realtimeConnected: realtime.connected,
+      lastPulse: realtime.lastPulse,
     };
-  }, [sensors, cameras, tasks, alertes, smartfarmEvents, props.online, props.meteo]);
+  }, [sensors, cameras, tasks, alertes, mergedEvents, props.online, props.meteo, realtime.connected, realtime.lastPulse]);
 
   const sensorProps = {
     rows: sensors,
@@ -121,6 +138,7 @@ export function useSmartFarmTelemetry(props = {}) {
     handlers,
     sensorProps,
     cameraProps,
-    crud: { sensorCrud, cameraCrud, tasksCrud, alertsCrud, eventsCrud },
+    realtime,
+    crud: { sensorCrud, cameraCrud, tasksCrud, alertsCrud, eventsCrud, smartfarmEventsCrud },
   };
 }

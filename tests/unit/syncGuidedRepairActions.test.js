@@ -27,15 +27,20 @@ const baseProps = {
   onUpdateAlimentation: () => {},
   onUpdateAlert: () => {},
   onUpdateTask: () => {},
+  onUpdateSmartfarmEvent: () => {},
+  onRefreshSmartfarmEvents: () => {},
+  onCreateSensor: () => {},
+  onRefreshSensors: () => {},
 };
 
-test('classifySyncIssue détecte les 5 scénarios principaux', () => {
+test('classifySyncIssue détecte les 6 scénarios principaux', () => {
   assert.equal(classifySyncIssue({ scenario: 'paid_sale_no_finance' }), GUIDED_REPAIR_SCENARIOS.PAID_SALE_NO_FINANCE);
   assert.equal(classifySyncIssue({ module: 'finances', message: 'Une dépense stockable n’a pas encore d’entrée stock associée.' }), GUIDED_REPAIR_SCENARIOS.STOCKABLE_EXPENSE_NO_STOCK);
   assert.equal(classifySyncIssue({ module: 'payments', message: 'Un encaissement de vente n’apparaît pas encore dans les finances.' }), GUIDED_REPAIR_SCENARIOS.PAID_SALE_NO_FINANCE);
   assert.equal(classifySyncIssue({ module: 'documents', message: 'Un document n’est lié à aucune dépense, vente ou paiement.' }), GUIDED_REPAIR_SCENARIOS.ORPHAN_DOCUMENT);
   assert.equal(classifySyncIssue({ module: 'alimentation_logs', message: 'Une alimentation n’a pas encore de sortie stock enregistrée.' }), GUIDED_REPAIR_SCENARIOS.FEEDING_NO_STOCK_EXIT);
   assert.equal(classifySyncIssue({ module: 'alertes_center', message: 'Une alerte reste ouverte alors que la tâche associée est terminée.' }), GUIDED_REPAIR_SCENARIOS.ALERT_COMPLETED_TASK);
+  assert.equal(classifySyncIssue({ module: 'smartfarm_events', message: 'Un événement IoT référence un capteur ou caméra introuvable.' }), GUIDED_REPAIR_SCENARIOS.ORPHAN_TELEMETRY);
 });
 
 test('getGuidedRepairActions retourne au maximum 3 actions disponibles', () => {
@@ -48,4 +53,19 @@ test('getGuidedRepairActions retourne au maximum 3 actions disponibles', () => {
 
 test('getGuidedRepairActions retourne une liste vide sans scénario reconnu', () => {
   assert.deepEqual(getGuidedRepairActions({ module: 'unknown', message: 'Autre problème' }, baseProps), []);
+});
+
+test('getGuidedRepairActions — orphan telemetry', () => {
+  const issue = { module: 'smartfarm_events', row_id: 'SFEV-1', linked_id: 'GHOST', message: 'Un événement IoT référence un capteur ou caméra introuvable.' };
+  const props = {
+    ...baseProps,
+    dataMap: {
+      ...baseProps.dataMap,
+      smartfarm_events: [{ id: 'SFEV-1', device_id: 'GHOST' }],
+      sensor_devices: [{ id: 'SENS-1' }],
+    },
+  };
+  const actions = getGuidedRepairActions(issue, props);
+  assert.ok(actions.length > 0);
+  assert.ok(actions.some((action) => action.id === 'link_existing_device'));
 });
