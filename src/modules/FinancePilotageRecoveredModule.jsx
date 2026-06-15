@@ -110,7 +110,7 @@ function FinanceIaPanel({ findings = [], predictions = [], onApply, busyId, onNa
             <div><b className="text-sm text-[#2f2415]">{f.title}</b><p className="text-xs text-amber-800">{f.recommended_action || f.description}</p></div>
             <div className="flex gap-2">
               {f.module === 'commercial' ? (
-                <button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Clients' })} className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-xs font-black">Commercial</button>
+                <button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Clients & créances' })} className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-xs font-black">Commercial</button>
               ) : (
                 <button type="button" onClick={() => onNavigate?.('documents_rapports')} className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-xs font-black">Documents</button>
               )}
@@ -268,6 +268,9 @@ function Summary({
         <Stat label="Sans preuve" value={fmtNumber(data.missingProof)} tone={data.missingProof ? 'warn' : 'good'} />
         <Stat label="Signaux métier" value={data.healthInsufficient ? 'En attente' : fmtNumber(data.healthFindings.length)} tone={data.healthInsufficient ? 'neutral' : data.healthFindings.length ? 'warn' : 'good'} />
       </div>
+      <p className="text-[11px] font-semibold text-[#8a7456]">
+        KPI trésorerie & créances : cumul ferme · liste Trésorerie : période active si filtre
+      </p>
       <FinanceInsightPanel
         findings={data.healthFindings}
         predictions={data.healthPredictions}
@@ -360,6 +363,7 @@ export default function FinancePilotageRecoveredModule(props) {
   const clients = rowsOf(props.clients, clientsCrud, periodFiltered);
   const suppliers = rowsOf(props.fournisseurs, suppliersCrud, periodFiltered);
   const transactions = rowsOf(props.transactions || props.finances || props.rows, financesCrud, periodFiltered);
+  const transactionsAll = allRows(props.transactionsAll || props.transactions || props.finances || props.rows, financesCrud);
   const investments = rowsOf(props.investissements, investmentsCrud, periodFiltered);
   const businessPlans = rowsOf(props.businessPlans, businessPlansCrud, periodFiltered);
   const tasks = rowsOf(props.taches, tasksCrud, periodFiltered);
@@ -378,10 +382,10 @@ export default function FinancePilotageRecoveredModule(props) {
     fournisseurs: suppliers,
     investissements: investments,
     businessEvents,
-    transactionsAll: transactions,
+    transactionsAll,
     salesOrdersAll: salesOrdersAll.length ? salesOrdersAll : salesOrders,
     paymentsAll: paymentsAll.length ? paymentsAll : payments,
-  }), [transactions, salesOrders, salesOrdersAll, payments, paymentsAll, animaux, lots, cultures, stocks, stockMovements, sante, alimentationLogs, productionLogs, suppliers, investments, businessEvents]);
+  }), [transactions, transactionsAll, salesOrders, salesOrdersAll, payments, paymentsAll, animaux, lots, cultures, stocks, stockMovements, sante, alimentationLogs, productionLogs, suppliers, investments, businessEvents]);
 
   const data = useMemo(() => {
     const treasury = buildOfficialTreasuryView(consolidationProps);

@@ -69,7 +69,7 @@ export default function App() {
 
     if (resolved === 'commercial') {
       if (isCommercialReconciliationAlias(tab)) {
-        setFinanceTab(resolveFinanceTab('Réconciliation'));
+        setFinanceTab('Réconciliation');
         trackNavOpen('finance_pilotage');
         setActiveState('finance_pilotage');
         return;
@@ -108,7 +108,7 @@ export default function App() {
       return;
     }
     if (resolved === 'finance_pilotage') {
-      setFinanceTab(resolveFinanceTab(tab || defaultTabForLegacyModule(moduleId) || 'Résumé'));
+      setFinanceTab(tab || defaultTabForLegacyModule(moduleId) || 'Résumé');
       trackNavOpen('finance_pilotage');
       setActiveState('finance_pilotage');
       return;

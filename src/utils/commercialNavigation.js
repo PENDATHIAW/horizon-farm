@@ -152,6 +152,10 @@ const FINANCE_TAB_ALIASES = {
   Trésorerie: 'Trésorerie',
   tresorerie: 'Trésorerie',
   finances: 'Trésorerie',
+  Dépenses: 'Trésorerie',
+  depenses: 'Trésorerie',
+  Dépense: 'Trésorerie',
+  depense: 'Trésorerie',
   Créances: 'Créances & dettes',
   creances: 'Créances & dettes',
   Dettes: 'Créances & dettes',
@@ -180,6 +184,10 @@ const FINANCE_SUBVIEW_ALIASES = {
   reconciliation: 'reconciliation',
   saisie: 'saisie',
   flux: 'saisie',
+  depenses: 'saisie',
+  depense: 'saisie',
+  dépenses: 'saisie',
+  dépense: 'saisie',
   échéancier: 'echeancier',
   echeancier: 'echeancier',
   financement: 'financement',
@@ -286,6 +294,7 @@ export function resolveFinanceNavigation(value = '') {
   let pilotageSubview = null;
 
   if (subKey === 'reconciliation') treasurySubview = 'reconciliation';
+  if (subKey === 'saisie') treasurySubview = 'saisie';
   if (FINANCE_PILOTAGE_SUBVIEWS.includes(subKey)) pilotageSubview = subKey;
 
   return { tab, treasurySubview, pilotageSubview };

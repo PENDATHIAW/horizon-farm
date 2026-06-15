@@ -10,11 +10,11 @@ const toneCls = (severity = '') => {
 };
 
 const MODULE_LINKS = [
-  { key: 'commercial', label: 'Commercial', tab: 'Ventes', hint: 'Encaissements, livraisons, créances clients' },
-  { key: 'achats_stock', label: 'Achats & Stock', tab: 'Fournisseurs', hint: 'Dettes fournisseurs, achats' },
+  { key: 'commercial', label: 'Commercial', tab: 'Clients & créances', hint: 'Encaissements, livraisons, créances clients' },
+  { key: 'achats_stock', label: 'Achats & Stock', tab: 'Fournisseurs & dettes', hint: 'Dettes fournisseurs, achats' },
   { key: 'documents_rapports', label: 'Documents', hint: 'Justificatifs et pièces comptables' },
-  { key: 'objectifs_croissance', label: 'Objectifs', tab: 'Financeurs', hint: 'Plans, financements, rentabilité' },
-  { key: 'centre_ia', label: 'Centre IA', tab: 'Performance', hint: 'Analyses financières globales' },
+  { key: 'objectifs_croissance', label: 'Objectifs', tab: 'Suivi du Business Plan', hint: 'Plans, financements, rentabilité' },
+  { key: 'centre_ia', label: 'Centre IA', tab: 'Urgences & risques', hint: 'Analyses financières globales' },
 ];
 
 export default function FinanceInsightPanel({
@@ -45,7 +45,7 @@ export default function FinanceInsightPanel({
         </div>
         <button
           type="button"
-          onClick={() => onNavigate?.('centre_ia', { tab: 'Performance' })}
+          onClick={() => onNavigate?.('centre_ia', { tab: 'Urgences & risques' })}
           className="text-xs font-black text-[#9a6b12] underline"
         >
           Centre décisionnel →
@@ -67,7 +67,7 @@ export default function FinanceInsightPanel({
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {finding.module === 'commercial' ? (
-                    <Btn variant="outline" small onClick={() => onNavigate?.('commercial', { tab: 'Clients' })}>
+                    <Btn variant="outline" small onClick={() => onNavigate?.('commercial', { tab: 'Clients & créances' })}>
                       Commercial
                     </Btn>
                   ) : null}
