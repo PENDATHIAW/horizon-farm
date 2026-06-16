@@ -57,7 +57,9 @@ export const TASK_CHECKLIST_TEMPLATES = {
 const titleTemplate = (key) => TASK_TITLE_TEMPLATES.find((item) => item.value === key);
 const checklistText = (key) => arr(TASK_CHECKLIST_TEMPLATES[key]).join('\n');
 
-export function taskFields() {
+import { resolveEntityLinkedFields } from '../components/EntityLinkedSelect.jsx';
+
+export function taskFields(context = {}) {
   const directory = getRhDirectory();
   const people = arr(directory.people).filter((person) => String(person.statut || 'actif').toLowerCase() === 'actif');
   const assignees = people.length
@@ -65,7 +67,8 @@ export function taskFields() {
     : getResponsibleOptions('taches');
   return [
     { key: 'id', label: 'ID', type: 'text', required: true },
-    { key: 'module_lie', label: 'Module lié', type: 'select', options: RH_MODULES.map((module) => ({ value: module.key, label: module.label })) },
+    { key: 'module_lie', label: 'Module lié', type: 'select', clearOnChange: ['entity_id', 'related_id'], options: RH_MODULES.map((module) => ({ value: module.key, label: module.label })) },
+    { key: 'entity_linked', label: 'Fiche liée (lot, animal, culture…)', type: 'entity_linked', fullWidth: true, context },
     { key: 'title_template', label: 'Modèle de tâche', type: 'select', options: TASK_TITLE_TEMPLATES.map(({ value, label }) => ({ value, label })), emptyLabel: 'Choisir un modèle ou tâche libre' },
     { key: 'title', label: 'Titre libre ou ajusté', type: 'text', required: true },
     { key: 'assigned_to', label: 'Responsable', type: 'select', options: assignees, emptyLabel: 'Aucun responsable RH actif' },
@@ -79,7 +82,7 @@ export function taskFields() {
     ] },
     { key: 'priority', label: 'Priorité', type: 'select', options: TASK_PRIORITIES },
     { key: 'status', label: 'Statut', type: 'select', options: TASK_STATUSES },
-    { key: 'related_id', label: 'ID fiche liée', type: 'text' },
+    { key: 'related_id', label: 'ID fiche liée (manuel)', type: 'text', showWhen: (form) => !form.entity_id },
     { key: 'checklist', label: 'Checklist automatique ou ajustée', type: 'textarea', fullWidth: true, rows: 5 },
     { key: 'notes', label: 'Notes', type: 'textarea', fullWidth: true, rows: 3 },
   ];
@@ -94,7 +97,7 @@ export function normalizeTaskPayload(payload = {}) {
   const checklist = clean(payload.checklist) || checklistText(payload.title_template);
   const title = clean(payload.title) || template?.title || 'Nouvelle tâche';
   const normalizedChecklist = normalizeTaskChecklist(checklist, title).join('\n');
-  return {
+  return resolveEntityLinkedFields({
     ...payload,
     title,
     module_lie: payload.module_lie || template?.module || 'taches',
@@ -105,5 +108,5 @@ export function normalizeTaskPayload(payload = {}) {
     priority: payload.priority || 'normale',
     checklist: normalizedChecklist,
     source_module: payload.source_module || payload.module_lie || template?.module || 'taches',
-  };
+  });
 }

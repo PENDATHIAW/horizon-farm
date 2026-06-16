@@ -139,7 +139,6 @@ export default function VentesV4(props) {
             <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Ventes</p>
             <h2 className="text-2xl font-black text-[#2f2415]">Enregistrer & suivre</h2>
           </div>
-          <button type="button" onClick={openNewSale} className="min-h-[44px] rounded-2xl bg-[#2f2415] px-5 py-3 text-sm font-black text-white"><CreditCard size={16} className="inline mr-1" /> Nouvelle vente</button>
         </div>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
@@ -148,7 +147,7 @@ export default function VentesV4(props) {
             {item.label}{item.key === 'todo' && openCount > 0 ? ` (${openCount})` : ''}
           </button>
         ))}
-        <button type="button" onClick={openNewSale} className="ml-auto min-h-[40px] rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white"><CreditCard size={14} className="inline mr-1" /> Nouvelle vente</button>
+        <button type="button" onClick={openNewSale} className={`${embedded ? 'ml-auto' : ''} min-h-[40px] rounded-xl bg-[#2f2415] px-4 py-2 text-xs font-black text-white`}><CreditCard size={14} className="inline mr-1" /> Nouvelle vente</button>
       </div>
     </div>
 

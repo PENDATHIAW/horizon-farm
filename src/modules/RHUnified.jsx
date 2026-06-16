@@ -6,7 +6,7 @@ import KpiCard from '../components/KpiCard';
 import SectionHeader from '../components/SectionHeader';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
-import { getRhDirectory, RH_MODULES, RH_ROLES, RH_TEAMS, saveRhDirectory } from '../utils/rhDirectory';
+import { getRhDirectory, RH_MODULES, RH_ROLES, RH_TEAMS, saveRhDirectory, loadRhDirectoryFromCloud } from '../utils/rhDirectory';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const blank = () => ({ id: `RH-${Date.now().toString(36).toUpperCase()}`, nom: '', role: 'Ouvrier ferme', fonction: 'Ouvrier polyvalent', statut: 'actif', equipe_id: 'TEAM-FERME', modules: ['avicole', 'stock'], phone: '', whatsapp: '', salaire_mensuel: 0, prime_mensuelle: 0, avance_mois: 0, date_entree: today() });
@@ -31,7 +31,7 @@ export default function RHUnified({ onRefresh, onCreateFinanceTransaction, onRef
   const active = people.filter((p) => ['actif', 'active'].includes(String(p.statut || '').toLowerCase()));
   const totals = active.reduce((acc, p) => { const m = money(p); return { brut: acc.brut + m.brut, avance: acc.avance + m.avance, net: acc.net + m.net }; }, { brut: 0, avance: 0, net: 0 });
 
-  useEffect(() => { const sync = () => { const d = getRhDirectory(); setDirectory({ ...d, teams: d.teams || RH_TEAMS, people: (d.people || []).map(norm) }); }; window.addEventListener('horizon-farm-rh-updated', sync); return () => window.removeEventListener('horizon-farm-rh-updated', sync); }, []);
+  useEffect(() => { const sync = () => { const d = getRhDirectory(); setDirectory({ ...d, teams: d.teams || RH_TEAMS, people: (d.people || []).map(norm) }); }; void loadRhDirectoryFromCloud().then(sync).catch(sync); window.addEventListener('horizon-farm-rh-updated', sync); return () => window.removeEventListener('horizon-farm-rh-updated', sync); }, []);
   const persist = (nextPeople) => { const next = saveRhDirectory({ ...directory, people: nextPeople.map(norm), teams }); setDirectory(next); };
   const reset = () => { setSelectedId(''); setForm(blank()); };
   const edit = (p) => { const n = norm(p); setSelectedId(n.id); setForm(n); };

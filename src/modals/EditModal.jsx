@@ -1,7 +1,8 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useMemo, useState } from 'react';
 import Btn from '../components/Btn';
-import VoiceInput from '../components/VoiceInput';
+import EntityLinkedSelect from '../components/EntityLinkedSelect.jsx';
+import VoiceInput from '../components/VoiceInput.jsx';
 import BaseModal from './BaseModal';
 import { uploadImage } from '../services/storageService';
 
@@ -114,7 +115,21 @@ export default function EditModal({ open, onClose, onSubmit, fields = [], initia
           {fields.filter((field) => isVisible(field, form)).map((field) => {
             const options = field.type === 'select' ? resolveOptions(field, form) : [];
             const selectDisabled = field.type === 'select' && options.length === 0;
-            return field.type === 'section' ? (
+            return field.type === 'entity_linked' ? (
+              <EntityLinkedSelect
+                key={field.key || 'entity_linked'}
+                moduleValue={form.module_lie || form.module_source || ''}
+                entityValue={form.entity_id || form.related_id || ''}
+                context={field.context || {}}
+                moduleLabel={field.moduleLabel || 'Module lié'}
+                entityLabel={field.entityLabel || 'Entité liée'}
+                onModuleChange={(value) => handleChange('module_lie', value, { ...field, clearOnChange: ['entity_id', 'related_id', 'lot_id', 'animal_id', 'culture_id', 'stock_id', 'client_id'] })}
+                onEntityChange={(value) => {
+                  handleChange('entity_id', value, field);
+                  handleChange('related_id', value, field);
+                }}
+              />
+            ) : field.type === 'section' ? (
               <div key={field.key || field.label} className="md:col-span-2 pt-2">
                 <div className="rounded-xl bg-[#2f2415] text-[#f8f5ef] px-4 py-2 text-sm font-bold">{field.label}</div>
                 {showSectionDescriptions && field.description ? <p className="text-xs text-[#8a7456] mt-1">{field.description}</p> : null}

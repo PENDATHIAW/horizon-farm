@@ -21,8 +21,7 @@ export function CommercialQuickActions({ setTab, onNewSale }) {
       </button>
       <button type="button" onClick={() => setTab('Ventes')} className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">Devis & ventes</button>
       <button type="button" onClick={() => setTab('Livraisons')} className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">Livraisons</button>
-      <button type="button" onClick={() => setTab('Clients')} className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">Clients</button>
-      <button type="button" onClick={() => setTab('Relances')} className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">Relances</button>
+      <button type="button" onClick={() => setTab('Clients & créances')} className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">Clients & créances</button>
     </div>
   );
 }
@@ -44,7 +43,7 @@ export function CommercialTodoRow({ title, detail, actionLabel, onAction, onOpen
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import HeyHorizonQuickAsk from '../../components/HeyHorizonQuickAsk.jsx';
 
-export function CommercialModuleHeader({ tab, setTab, healthScore, badges = {}, periodLabel = '', onNavigate, onOpenAssistant }) {
+export function CommercialModuleHeader({ tab, setTab, healthScore, badges = {}, periodLabel = '', periodFiltered = false, onNavigate, onOpenAssistant }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -56,7 +55,12 @@ export function CommercialModuleHeader({ tab, setTab, healthScore, badges = {}, 
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className={`rounded-full border px-3 py-1 text-xs font-black ${healthScore >= 75 ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>Santé {healthScore}/100</span>
-          {badges.receivable > 0 ? <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-800">Créances {fmtCurrency(badges.receivable)}</span> : null}
+          {badges.receivable > 0 ? (
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-800">
+              Créances {fmtCurrency(badges.receivable)}
+              {periodFiltered ? ' · période' : ''}
+            </span>
+          ) : null}
           {badges.todo > 0 ? <span className="rounded-full border border-[#eadcc2] bg-white px-3 py-1 text-xs font-black text-[#2f2415]">{badges.todo} à traiter</span> : null}
         </div>
       </div>
@@ -74,7 +78,7 @@ export function CommercialTopClients({ rows = [], setTab, subtitle = 'Par chiffr
           <h2 className="text-sm font-black text-[#2f2415]">Top clients</h2>
           <p className="text-[11px] text-[#8a7456]">{subtitle}</p>
         </div>
-        <button type="button" onClick={() => setTab('Clients')} className="inline-flex items-center gap-1 text-xs font-black text-[#9a6b12]">Voir tout <ArrowRight size={14} /></button>
+        <button type="button" onClick={() => setTab('Clients & créances')} className="inline-flex items-center gap-1 text-xs font-black text-[#9a6b12]">Voir tout <ArrowRight size={14} /></button>
       </div>
       <div className="space-y-2">
         {rows.map((row) => (

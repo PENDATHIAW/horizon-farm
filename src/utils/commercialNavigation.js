@@ -152,6 +152,10 @@ const FINANCE_TAB_ALIASES = {
   Trésorerie: 'Trésorerie',
   tresorerie: 'Trésorerie',
   finances: 'Trésorerie',
+  Dépenses: 'Trésorerie',
+  depenses: 'Trésorerie',
+  Dépense: 'Trésorerie',
+  depense: 'Trésorerie',
   Créances: 'Créances & dettes',
   creances: 'Créances & dettes',
   Dettes: 'Créances & dettes',
@@ -180,6 +184,10 @@ const FINANCE_SUBVIEW_ALIASES = {
   reconciliation: 'reconciliation',
   saisie: 'saisie',
   flux: 'saisie',
+  depenses: 'saisie',
+  depense: 'saisie',
+  dépenses: 'saisie',
+  dépense: 'saisie',
   échéancier: 'echeancier',
   echeancier: 'echeancier',
   financement: 'financement',
@@ -265,7 +273,13 @@ export function resolveCommercialTab(value = '') {
   if (isCommercialReconciliationAlias(tab)) return 'Ventes';
   const fromAlias = COMMERCIAL_TAB_ALIASES[tab] || COMMERCIAL_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
-  return tabAliases[lower(tab)] || 'Ventes';
+  const legacy = tabAliases[lower(tab)];
+  if (legacy) {
+    const fromLegacy = COMMERCIAL_TAB_ALIASES[legacy] || COMMERCIAL_TAB_ALIASES[lower(legacy)];
+    if (fromLegacy) return fromLegacy;
+    if (COMMERCIAL_TABS.includes(legacy)) return legacy;
+  }
+  return 'Ventes';
 }
 
 export function resolveFinanceTab(value = '') {
@@ -286,6 +300,7 @@ export function resolveFinanceNavigation(value = '') {
   let pilotageSubview = null;
 
   if (subKey === 'reconciliation') treasurySubview = 'reconciliation';
+  if (subKey === 'saisie') treasurySubview = 'saisie';
   if (FINANCE_PILOTAGE_SUBVIEWS.includes(subKey)) pilotageSubview = subKey;
 
   return { tab, treasurySubview, pilotageSubview };
@@ -518,7 +533,7 @@ export function resolveRouteModule(moduleId = '') {
 
 /** Onglet par défaut quand on entre via un alias legacy. */
 export function defaultTabForLegacyModule(moduleId = '') {
-  if (moduleId === 'clients') return 'Clients';
+  if (moduleId === 'clients') return 'Clients & créances';
   if (moduleId === 'ventes' || moduleId === 'sales_orders') return 'Ventes';
   if (moduleId === 'sales_opportunities') return 'Opportunités';
   if (moduleId === 'animaux') return 'Animaux';

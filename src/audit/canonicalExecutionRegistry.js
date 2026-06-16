@@ -30,7 +30,7 @@ export const WORKFLOW_ENFORCEMENT_REPORT = [
   { workflow: 'recordSalePayment', fichier: 'src/services/whatsappHorizon/whatsappDraftService.js', appelant: 'WhatsApp SALE_PAYMENT', kind: 'canonical', risque: 'faible', note: '' },
   { workflow: 'recordSalePayment', fichier: 'src/services/aiGateway/documentScannerExecute.js', appelant: 'OCR encaissement', kind: 'canonical', risque: 'faible', note: '' },
 
-  { workflow: 'recordSalePayment', fichier: 'src/modules/VentesV2.jsx', appelant: 'buildFinanceFromPayment direct', kind: 'bypass', risque: 'élevé', note: 'onCreateFinanceTransaction sans recordSalePayment (l.561)' },
+  { workflow: 'recordSalePayment', fichier: 'src/modules/VentesV2.jsx', appelant: 'PaymentFinanceAuditPanel sync', kind: 'canonical', risque: 'faible', note: 'Synchronisation paiements ↔ finances' },
 
   // —— confirmSaleDelivery ——
   { workflow: 'confirmSaleDelivery', fichier: 'src/modules/VentesV4.jsx', appelant: 'VentesV4', kind: 'canonical', risque: 'faible', note: '' },
@@ -46,7 +46,7 @@ export const WORKFLOW_ENFORCEMENT_REPORT = [
   { workflow: 'commitStockPurchaseWorkflow', fichier: 'src/services/aiGateway/documentScannerExecute.js', appelant: 'OCR facture stock', kind: 'canonical', risque: 'faible', note: '' },
 
   { workflow: 'commitPurchaseWorkflow', fichier: 'src/services/whatsappHorizon/whatsappDraftService.js', appelant: 'WhatsApp PURCHASE', kind: 'legacy', risque: 'moyen', note: 'Pas ledger mouvements' },
-  { workflow: 'commitStockPurchaseWorkflow', fichier: 'src/modules/StocksV4.jsx', appelant: 'HeyHorizonStockCard réception', kind: 'bypass', risque: 'élevé', note: 'onCreateFinanceTransaction + onUpdate stock direct' },
+  { workflow: 'commitStockPurchaseWorkflow', fichier: 'src/modules/StocksV4.jsx', appelant: 'HeyHorizonStockCard réception', kind: 'canonical', risque: 'faible', note: 'Réception avec montant via workflow canonique' },
   { workflow: 'commitStockPurchaseWorkflow', fichier: 'src/utils/purchaseSideEffects.js', appelant: 'purchaseSideEffects', kind: 'parallel', risque: 'moyen', note: 'onCreateFinanceTransaction hors workflow canonique' },
 
   // —— Finance : consolidateFinance (lecture seule — pas de bypass écriture) ——

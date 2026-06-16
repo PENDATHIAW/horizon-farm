@@ -22,6 +22,7 @@ export const ERP_REAL_SCHEMA = {
   audit_logs: ['id','actor','action','module','record_id','device','metadata','owner_user_id','created_at','updated_at'],
   automation_settings: ['id','key','label','description','enabled','category','frequency','message_template','audience','last_run_at','next_run_at','history','owner_user_id','created_at','updated_at'],
   farm_cost_settings: ['id','settings','owner_user_id','created_at','updated_at'],
+  farm_rh_directory: ['id','directory','owner_user_id','created_at','updated_at'],
   bp_funding_sources: ['id','business_plan_id','source_type','nom_source','montant','taux_interet_pct','duree_remboursement_mois','date_obtention','conditions','statut','notes','owner_user_id','created_at','updated_at'],
   bp_investment_lines: ['id','business_plan_id','designation','categorie','quantite','unite','prix_unitaire','total','ordre','notes','owner_user_id','created_at','updated_at'],
   bp_lines_history: ['id','business_plan_id','line_table','line_id','old_value','new_value','reason','changed_by','owner_user_id','created_at','updated_at'],

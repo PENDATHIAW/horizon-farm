@@ -12,7 +12,14 @@ export default function Taches(props) {
         moduleKey="taches"
         title="Tâches terrain"
         sub="Actions quotidiennes, rappels, routines et suivi de l’équipe"
-        fields={taskFields()}
+        fields={taskFields({
+          lots: props.lots || [],
+          animaux: props.animaux || props.animals || [],
+          cultures: props.cultures || [],
+          stocks: props.stocks || [],
+          clients: props.clients || [],
+          sensorDevices: props.sensorDevices || [],
+        })}
         columns={['id', 'title', 'module_lie', 'assigned_to', 'due_date', 'priority', 'status']}
         initialValues={taskInitialValues(rows)}
         beforeCreate={normalizeTaskPayload}

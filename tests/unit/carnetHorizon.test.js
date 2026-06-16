@@ -10,6 +10,7 @@ import {
   isHomeNoiseText,
   isAgriculturalHomeEvent,
   CARNET_JOURNAL_LIMIT,
+  CARNET_DOMAIN_NAVIGATION,
 } from '../../src/modules/dashboard/carnetHorizon.js';
 import { buildDashboardSummary } from '../../src/modules/dashboard/dashboardMetrics.js';
 import { buildDashboardPriorities } from '../../src/modules/dashboard/dashboardPilotage.js';
@@ -71,6 +72,11 @@ test('buildCarnetDomainCards — détail espèces et finance', () => {
   const finance = cards.find((c) => c.id === 'finances');
   assert.ok(finance.lines.some((l) => l.text.includes('Créances')));
   assert.ok(finance.lines.some((l) => l.text.includes('Dettes')));
+  assert.equal(finance.navigate.module, CARNET_DOMAIN_NAVIGATION.finances.module);
+  assert.equal(finance.scopeLabel, 'Cumul');
+
+  const elevageNav = cards.find((c) => c.id === 'elevage');
+  assert.equal(elevageNav.navigate.tab, 'Lots & bandes');
 
   const cultures = cards.find((c) => c.id === 'cultures');
   assert.ok(cultures.lines.some((l) => /hectare/i.test(l.text)));
@@ -82,6 +88,7 @@ test('buildCarnetObjectifs — CA mois et année', () => {
     {
       goal: {
         periodTarget: 1000000,
+        periodRealized: 750000,
         periodAttainment: 75,
         annualTarget: 12000000,
         annualRealized: 6000000,
@@ -102,9 +109,12 @@ test('buildCarnetObjectifs — CA mois et année', () => {
   );
 
   assert.equal(objectifs.month.label, 'CA MOIS');
+  assert.equal(objectifs.month.realized, 750000);
+  assert.equal(objectifs.month.scopeLabel, 'Période');
+  assert.equal(objectifs.month.navigate.module, 'commercial');
   assert.equal(objectifs.year.label, 'CA ANNÉE');
-  assert.ok(objectifs.month.realized >= 0);
   assert.equal(objectifs.year.attainment, 50);
+  assert.equal(objectifs.year.scopeLabel, 'Cumul');
 });
 
 test('buildCarnetTodayJournal — max 10, sans bruit IA', () => {

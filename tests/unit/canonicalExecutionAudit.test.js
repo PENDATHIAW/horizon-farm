@@ -90,9 +90,10 @@ test('runCanonicalExecutionAudit retourne scores par domaine', () => {
   assert.ok(audit.kpi.matrix.length > 0);
 });
 
-test('registre WORKFLOW_ENFORCEMENT_REPORT contient bypass documentés', () => {
-  const bypass = getWorkflowEnforcementByKind('bypass');
-  assert.ok(bypass.length >= 2);
+test('registre WORKFLOW_ENFORCEMENT_REPORT contient chemins à risque documentés', () => {
+  const parallel = getWorkflowEnforcementByKind('parallel');
+  const legacy = getWorkflowEnforcementByKind('legacy');
+  assert.ok(parallel.length + legacy.length >= 2);
   assert.ok(WORKFLOW_ENFORCEMENT_REPORT.some((r) => r.workflow === 'commitCommercialSale'));
 });
 

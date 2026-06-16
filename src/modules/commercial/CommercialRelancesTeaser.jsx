@@ -11,7 +11,7 @@ export default function CommercialRelancesTeaser({ rows = [], setTab }) {
   return (
     <button
       type="button"
-      onClick={() => setTab?.('Relances')}
+      onClick={() => setTab?.('Clients & créances')}
       className="w-full rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-left hover:bg-amber-100/80 transition"
     >
       <p className="text-[11px] font-black uppercase tracking-wide text-amber-900 flex items-center gap-2">
@@ -23,7 +23,7 @@ export default function CommercialRelancesTeaser({ rows = [], setTab }) {
       </p>
       <p className="mt-1 text-xs text-amber-800">
         {urgent ? `${urgent} prioritaire(s) — ` : ''}
-        Ouvrir l&apos;onglet Relances pour WhatsApp, SMS et planification
+        Ouvrir Clients & créances pour WhatsApp, SMS et planification
       </p>
     </button>
   );

@@ -12,6 +12,7 @@ import { fmtCurrency, fmtNumber } from '../utils/format';
 import { aggregateMissingProofTransactions, buildFinanceCoherenceRows, buildFinanceHealthSnapshot } from './finance/financeVisionHelpers.js';
 import { rowsOf, allRows } from '../utils/moduleRows';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
+import MarginGlossaryPanel from '../components/MarginGlossaryPanel.jsx';
 import FinancesV12 from './FinancesV12';
 import InvestissementsV9 from './InvestissementsV9';
 import ProfitabilityStatement from './ProfitabilityStatement.jsx';
@@ -109,7 +110,7 @@ function FinanceIaPanel({ findings = [], predictions = [], onApply, busyId, onNa
             <div><b className="text-sm text-[#2f2415]">{f.title}</b><p className="text-xs text-amber-800">{f.recommended_action || f.description}</p></div>
             <div className="flex gap-2">
               {f.module === 'commercial' ? (
-                <button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Clients' })} className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-xs font-black">Commercial</button>
+                <button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Clients & créances' })} className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-xs font-black">Commercial</button>
               ) : (
                 <button type="button" onClick={() => onNavigate?.('documents_rapports')} className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-xs font-black">Documents</button>
               )}
@@ -224,6 +225,7 @@ function RentabilitePanel({ profitability = null, consolidationProps = {} }) {
           <Stat label="Charges structure" value={fmtCurrency(profit.structureCharges)} tone="warn" />
         </div>
       </section>
+      <MarginGlossaryPanel />
       <ProfitabilityStatement {...consolidationProps} />
     </div>
   );
@@ -266,6 +268,9 @@ function Summary({
         <Stat label="Sans preuve" value={fmtNumber(data.missingProof)} tone={data.missingProof ? 'warn' : 'good'} />
         <Stat label="Signaux métier" value={data.healthInsufficient ? 'En attente' : fmtNumber(data.healthFindings.length)} tone={data.healthInsufficient ? 'neutral' : data.healthFindings.length ? 'warn' : 'good'} />
       </div>
+      <p className="text-[11px] font-semibold text-[#8a7456]">
+        KPI trésorerie & créances : cumul ferme · liste Trésorerie : période active si filtre
+      </p>
       <FinanceInsightPanel
         findings={data.healthFindings}
         predictions={data.healthPredictions}
@@ -358,6 +363,7 @@ export default function FinancePilotageRecoveredModule(props) {
   const clients = rowsOf(props.clients, clientsCrud, periodFiltered);
   const suppliers = rowsOf(props.fournisseurs, suppliersCrud, periodFiltered);
   const transactions = rowsOf(props.transactions || props.finances || props.rows, financesCrud, periodFiltered);
+  const transactionsAll = allRows(props.transactionsAll || props.transactions || props.finances || props.rows, financesCrud);
   const investments = rowsOf(props.investissements, investmentsCrud, periodFiltered);
   const businessPlans = rowsOf(props.businessPlans, businessPlansCrud, periodFiltered);
   const tasks = rowsOf(props.taches, tasksCrud, periodFiltered);
@@ -376,10 +382,10 @@ export default function FinancePilotageRecoveredModule(props) {
     fournisseurs: suppliers,
     investissements: investments,
     businessEvents,
-    transactionsAll: transactions,
+    transactionsAll,
     salesOrdersAll: salesOrdersAll.length ? salesOrdersAll : salesOrders,
     paymentsAll: paymentsAll.length ? paymentsAll : payments,
-  }), [transactions, salesOrders, salesOrdersAll, payments, paymentsAll, animaux, lots, cultures, stocks, stockMovements, sante, alimentationLogs, productionLogs, suppliers, investments, businessEvents]);
+  }), [transactions, transactionsAll, salesOrders, salesOrdersAll, payments, paymentsAll, animaux, lots, cultures, stocks, stockMovements, sante, alimentationLogs, productionLogs, suppliers, investments, businessEvents]);
 
   const data = useMemo(() => {
     const treasury = buildOfficialTreasuryView(consolidationProps);
@@ -678,7 +684,16 @@ export default function FinancePilotageRecoveredModule(props) {
             <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Pilotage</p>
             <h1 className="mt-1 text-2xl font-black text-[#2f2415]">Finance & Pilotage</h1>
             <p className="mt-1 text-sm text-[#8a7456]">Trésorerie, créances, dettes — signaux métier, preuves et rentabilité.</p>
-            {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
+            {props.periodLabel ? (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <PeriodScopeBadge label={props.periodLabel} />
+                <span className="rounded-full border border-[#eadcc2] bg-[#fffdf8] px-2 py-0.5 text-[11px] font-bold text-[#8a7456]">
+                  Trésorerie & créances : cumul ferme (hors filtre période)
+                </span>
+              </div>
+            ) : (
+              <p className="mt-2 text-xs font-bold text-[#8a7456]">Trésorerie & créances : cumul ferme</p>
+            )}
           </div>
           <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé </span><b className={data.healthInsufficient ? 'text-[#8a7456]' : data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{formatFinanceHealthScore({ score: data.healthScore, insufficientData: data.healthInsufficient })}</b></div>
         </div>
@@ -730,9 +745,19 @@ export default function FinancePilotageRecoveredModule(props) {
           )}
         </div>
       ) : tab === 'Créances & dettes' ? (
-        <div className="space-y-5">
-          <CreancesPanel data={data} onNavigate={props.onNavigate} />
-          <DettesPanel data={data} onNavigate={props.onNavigate} />
+        <div className="space-y-4">
+          <details className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm" open>
+            <summary className="cursor-pointer px-5 py-4 font-black text-[#2f2415]">Créances clients</summary>
+            <div className="border-t border-[#eadcc2] p-4">
+              <CreancesPanel data={data} onNavigate={props.onNavigate} />
+            </div>
+          </details>
+          <details className="rounded-3xl border border-[#d6c3a0] bg-white shadow-sm">
+            <summary className="cursor-pointer px-5 py-4 font-black text-[#2f2415]">Dettes fournisseurs</summary>
+            <div className="border-t border-[#eadcc2] p-4">
+              <DettesPanel data={data} onNavigate={props.onNavigate} />
+            </div>
+          </details>
         </div>
       ) : tab === 'Pilotage' ? (
         <div className="space-y-4">

@@ -4,7 +4,7 @@ import { buildConsolidatedCommercialKpis } from '../../src/utils/commercialKpiCo
 import { buildCommercialSaleGapRows } from '../../src/utils/commercialSaleIntegrity.js';
 import { buildCommercialReconciliationRows } from '../../src/utils/commercialReconciliation.js';
 import { mergeCommercialOpportunities } from '../../src/utils/commercialAutoOpportunities.js';
-import { buildCommercialPilotageBundle } from '../../src/utils/commercialPilotageMetrics.js';
+import { buildCommercialPilotageBundle, buildCommercialObjectivesView } from '../../src/utils/commercialPilotageMetrics.js';
 
 describe('Commercial audit V1 — cohérence métier', () => {
   it('KPI consolidés : une seule source CA / créances', () => {
@@ -37,6 +37,18 @@ describe('Commercial audit V1 — cohérence métier', () => {
     assert.equal(merged[0].title, 'Manuel');
   });
 
+  it('objectifs commercial — buildAttainmentKpis expose mois courant', () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const view = buildCommercialObjectivesView(
+      [{ id: 'O1', montant_total: 25000, date: today }],
+      {},
+    );
+    assert.equal(view.source, 'buildAttainmentKpis');
+    assert.ok(typeof view.actual === 'number');
+    assert.ok(typeof view.target === 'number');
+    assert.ok(typeof view.attainment === 'number');
+  });
+
   it('pilotage marge produit cite summarizeSalesMargins', () => {
     const bundle = buildCommercialPilotageBundle({
       orders: [{ id: 'O1', product_name: 'Poulet', montant_total: 20000, quantity: 10, marge_directe: 5000, margin_reliable: true, chiffre_affaires: 20000, cout_revient: 15000 }],
@@ -45,7 +57,7 @@ describe('Commercial audit V1 — cohérence métier', () => {
       marginContext: {},
     });
     assert.ok(Array.isArray(bundle.topProducts));
-    assert.ok(bundle.objectives.source === 'buildMonthlyTargetAttainment');
+    assert.ok(bundle.objectives.source === 'buildAttainmentKpis');
   });
 
   it('écarts vente sans lignes détectés', () => {

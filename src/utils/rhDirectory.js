@@ -104,11 +104,21 @@ export function getRhDirectory() {
   }
 }
 
+export async function loadRhDirectoryFromCloud() {
+  try {
+    const { rhDirectoryService } = await import('../services/rhDirectoryService.js');
+    return rhDirectoryService.load();
+  } catch {
+    return getRhDirectory();
+  }
+}
+
 export function saveRhDirectory(directory) {
   if (typeof window === 'undefined') return directory;
   const next = { people: Array.isArray(directory.people) ? directory.people : RH_DEFAULT_PEOPLE, teams: Array.isArray(directory.teams) ? directory.teams : RH_TEAMS, updated_at: new Date().toISOString() };
   window.localStorage.setItem(RH_STORAGE_KEY, JSON.stringify(next));
   window.dispatchEvent(new CustomEvent('horizon-farm-rh-updated', { detail: next }));
+  void import('../services/rhDirectoryService.js').then(({ rhDirectoryService }) => rhDirectoryService.save(next)).catch(() => undefined);
   return next;
 }
 

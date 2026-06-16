@@ -27,7 +27,7 @@ export function DashboardQuickActions({ onNavigate }) {
       <button type="button" onClick={() => onNavigate?.('finance_pilotage', { tab: 'Trésorerie' })} className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">
         Trésorerie
       </button>
-      <button type="button" onClick={() => onNavigate?.('achats_stock', { tab: 'Stock' })} className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">
+      <button type="button" onClick={() => onNavigate?.('achats_stock', { tab: 'Inventaire' })} className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">
         Stock
       </button>
       <button type="button" onClick={() => onNavigate?.('assistant_erp')} className="min-h-[44px] rounded-xl border border-[#eadcc2] bg-white px-4 py-2 text-sm font-black text-[#2f2415]">
@@ -72,11 +72,11 @@ export function DashboardKpi({ label, value, tone = 'neutral', onClick, detail, 
 }
 
 const STARTUP_CHECKLIST = [
-  { id: 'stock', label: 'Configurer le stock initial', module: 'achats_stock', tab: 'Stock' },
-  { id: 'bande', label: 'Créer la première bande', module: 'elevage', tab: 'Cycles' },
-  { id: 'animaux', label: 'Ajouter les premiers animaux', module: 'elevage', tab: 'Résumé' },
+  { id: 'stock', label: 'Configurer le stock initial', module: 'achats_stock', tab: 'Inventaire' },
+  { id: 'bande', label: 'Créer la première bande', module: 'elevage', tab: 'Cycles & Reproduction' },
+  { id: 'animaux', label: 'Ajouter les premiers animaux', module: 'elevage', tab: 'Lots & bandes' },
   { id: 'vente', label: 'Enregistrer la première vente', module: 'commercial', tab: 'Ventes' },
-  { id: 'objectifs', label: 'Configurer les objectifs', module: 'objectifs_croissance', tab: 'Performance' },
+  { id: 'objectifs', label: 'Configurer les objectifs', module: 'objectifs_croissance', tab: 'Suivi du Business Plan' },
 ];
 
 export function DashboardStartupPanel({ onNavigate, journey = null }) {
@@ -208,9 +208,9 @@ export function DashboardFarmOverviewPanel({ overview = {}, onNavigate }) {
   const cards = [overview.aviculture, overview.bovins, overview.cultures].filter(Boolean);
   if (!cards.length) return null;
   const navMap = {
-    aviculture: ['elevage', { tab: 'Résumé' }],
-    bovins: ['elevage', { tab: 'Animaux' }],
-    cultures: ['cultures', { tab: 'Résumé' }],
+    aviculture: ['elevage', { tab: 'Lots & bandes' }],
+    bovins: ['elevage', { tab: 'Lots & bandes' }],
+    cultures: ['cultures', { tab: 'Parcelles & campagnes' }],
   };
   return (
     <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
@@ -218,7 +218,7 @@ export function DashboardFarmOverviewPanel({ overview = {}, onNavigate }) {
       <h2 className="mt-1 text-lg font-black text-[#2f2415]">Aviculture · Bovins · Cultures</h2>
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         {cards.map((card) => {
-          const [module, opts] = navMap[card === overview.aviculture ? 'aviculture' : card === overview.bovins ? 'bovins' : 'cultures'] || ['elevage', { tab: 'Résumé' }];
+          const [module, opts] = navMap[card === overview.aviculture ? 'aviculture' : card === overview.bovins ? 'bovins' : 'cultures'] || ['elevage', { tab: 'Lots & bandes' }];
           const value = card === overview.aviculture
             ? `${Number(card.birds || 0).toLocaleString('fr-FR')} sujet(s)`
             : card === overview.bovins
@@ -269,7 +269,7 @@ export function DashboardExploitationScorePanel({ exploitation = {}, onNavigate 
           Points faibles : {exploitation.weakPoints.join(' · ')}
         </p>
       ) : null}
-      <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'À traiter' })} className="mt-3 text-xs font-black text-[#9a6b12]">
+      <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'Urgences & risques' })} className="mt-3 text-xs font-black text-[#9a6b12]">
         Détail pilotage IA →
       </button>
     </section>
@@ -292,7 +292,7 @@ export function DashboardInvestorCompactStrip({ investor = {}, onNavigate, onExp
         ) : null}
         <button
           type="button"
-          onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Financeurs' })}
+          onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Sécurisation des Flux' })}
           className="min-h-[40px] rounded-xl bg-[#2f2415] px-3 py-1.5 text-xs font-black text-white"
         >
           Investisseurs &amp; Forums
@@ -317,7 +317,7 @@ export function DashboardExploitationScoreCompact({ exploitation = {}, onNavigat
         </div>
         <p className="text-3xl font-black">{score}/100</p>
       </div>
-      <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'À traiter' })} className="mt-2 text-xs font-black underline opacity-80">
+      <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'Urgences & risques' })} className="mt-2 text-xs font-black underline opacity-80">
         Détail pilotage →
       </button>
     </section>
@@ -343,7 +343,7 @@ export function DashboardInvestorStrip({ investor = {}, onNavigate }) {
         </div>
         <button
           type="button"
-          onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Financeurs' })}
+          onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Sécurisation des Flux' })}
           className="min-h-[44px] shrink-0 rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white"
         >
           Préparer le dossier
@@ -428,7 +428,7 @@ export function DashboardModuleHeader({
             ) : null}
             <button
               type="button"
-              onClick={() => onNavigate?.('centre_ia', { tab: 'À traiter' })}
+              onClick={() => onNavigate?.('centre_ia', { tab: 'Urgences & risques' })}
               className="inline-flex items-center gap-1 rounded-full border border-[#d6c3a0] bg-[#dcfce7] px-3 py-1.5 text-xs font-black text-[#14532d]"
             >
               <Target size={13} />
@@ -497,7 +497,7 @@ export function DashboardHeyHorizonStrip({ suggestions = [], onNavigate }) {
         </div>
         <button
           type="button"
-          onClick={() => onNavigate?.('elevage', { tab: 'Cycles' })}
+          onClick={() => onNavigate?.('elevage', { tab: 'Cycles & Reproduction' })}
           className="text-xs font-black text-emerald-900"
         >
           Élevage → Cycles →
@@ -765,7 +765,7 @@ export function DashboardHealthStrip({ health = {}, onOpenFinding, onNavigate })
           <BrainCircuit size={16} className="text-[#9a6b12]" />
           <h2 className="text-sm font-black text-[#2f2415]">Pilotage IA (détail)</h2>
         </div>
-        <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'À traiter' })} className="text-xs font-black text-[#9a6b12]">
+        <button type="button" onClick={() => onNavigate?.('centre_ia', { tab: 'Urgences & risques' })} className="text-xs font-black text-[#9a6b12]">
           Vision →
         </button>
       </div>
