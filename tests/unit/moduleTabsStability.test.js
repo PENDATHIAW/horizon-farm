@@ -46,8 +46,14 @@ test('Achats & Stock — onglets critiques', async () => {
 });
 
 test('Élevage — onglets critiques', async () => {
-  for (const tab of ['Avicole', 'Alimentation', 'Santé', 'Production', 'Cycles']) {
+  for (const tab of ['Lots & bandes', 'Cycles & Reproduction', 'Santé', 'Transformation']) {
     await assertModuleTabStable('elevage', tab, buildSimulatedProps());
+  }
+});
+
+test('Cultures — onglets critiques avec données simulées', async () => {
+  for (const tab of ['Parcelles & campagnes', 'Récoltes', 'Économie circulaire']) {
+    await assertModuleTabStable('cultures', tab, buildSimulatedProps());
   }
 });
 

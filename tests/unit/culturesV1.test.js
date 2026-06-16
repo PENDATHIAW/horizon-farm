@@ -21,20 +21,19 @@ const transformPanel = readFileSync(join(root, 'src/modules/cultures/CulturesTra
 const transformHub = readFileSync(join(root, 'src/modules/cultures/CulturesTransformationHub.jsx'), 'utf8');
 const healthPanel = readFileSync(join(root, 'src/modules/CultureOperationalHealthPanel.jsx'), 'utf8');
 
-test('Cultures V1 — 10 onglets cible dans horizonVision', () => {
+test('Cultures V1 — 3 onglets cible dans horizonVision', () => {
   const tabs = MODULE_TARGET_TABS.cultures;
-  assert.equal(tabs.length, 10);
-  assert.ok(tabs.includes('Pilotage'));
-  assert.ok(tabs.includes('Récoltes'));
-  assert.ok(tabs.includes('Transformation'));
-  assert.ok(tabs.includes('Économie circulaire'));
+  assert.equal(tabs.length, 3);
+  assert.deepEqual(tabs, ['Parcelles & campagnes', 'Récoltes', 'Économie circulaire']);
   assert.ok(MODULE_AUDIT_ORDER.includes('cultures'));
 });
 
 test('Cultures V1 — navigation legacy mappée', () => {
-  assert.equal(resolveCulturesTab('Résumé'), 'Pilotage');
-  assert.equal(resolveCulturesTab('Parcelles'), 'Parcelles & Cultures');
-  assert.equal(resolveCulturesTab('Campagnes'), 'Cycles');
+  assert.equal(resolveCulturesTab('Résumé'), 'Parcelles & campagnes');
+  assert.equal(resolveCulturesTab('Pilotage'), 'Parcelles & campagnes');
+  assert.equal(resolveCulturesTab('Parcelles'), 'Parcelles & campagnes');
+  assert.equal(resolveCulturesTab('Transformation'), 'Récoltes');
+  assert.equal(resolveCulturesTab('Graphiques'), 'Économie circulaire');
 });
 
 test('CulturesRecoveredModule — shell ModuleTabsBar + hubs', () => {

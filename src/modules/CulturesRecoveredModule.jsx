@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
@@ -21,6 +21,25 @@ import CulturesTransformationHub from './cultures/CulturesTransformationHub.jsx'
 const arr = (value) => (Array.isArray(value) ? value : []);
 
 export default function CulturesRecoveredModule(props) {
+  const controlled = Boolean(props.onTabChange);
+  const [internalTab, setInternalTab] = useState(() => resolveCulturesTab(props.initialTab || 'Parcelles & campagnes'));
+  const tab = controlled
+    ? resolveCulturesTab(props.initialTab || 'Parcelles & campagnes')
+    : internalTab;
+  const setTab = useCallback((value) => {
+    const resolved = resolveCulturesTab(value);
+    if (controlled) {
+      props.onTabChange?.(resolved);
+      return;
+    }
+    setInternalTab(resolved);
+  }, [controlled, props.onTabChange]);
+
+  useEffect(() => {
+    if (controlled || !props.initialTab) return;
+    setInternalTab(resolveCulturesTab(props.initialTab));
+  }, [controlled, props.initialTab]);
+
   const periodFiltered = Boolean(props.periodFiltered);
   const culturesCrud = useCrudModule('cultures');
   const stockCrud = useCrudModule('stock');
@@ -33,13 +52,6 @@ export default function CulturesRecoveredModule(props) {
   const documentsCrud = useCrudModule('documents');
   const movementsCrud = useCrudModule('stock_movements');
   const { weather: liveMeteo } = useLiveWeather();
-
-  const [tab, setTabRaw] = useState(() => resolveCulturesTab(props.initialTab));
-  const setTab = (value) => setTabRaw(resolveCulturesTab(value));
-
-  useEffect(() => {
-    if (props.initialTab) setTab(resolveCulturesTab(props.initialTab));
-  }, [props.initialTab]);
 
   const rows = rowsOf(props.rows || props.cultures, culturesCrud, periodFiltered);
   const stocks = rowsOf(props.stocks, stockCrud, false);
