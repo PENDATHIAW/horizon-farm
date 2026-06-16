@@ -1,8 +1,16 @@
 import { Beef, Drumstick, Egg, Factory } from 'lucide-react';
+import { useMemo } from 'react';
+import useCrudModule from '../../hooks/useCrudModule';
+import { avicoleHasActiveBirds } from '../../utils/avicoleMetrics';
 import { fmtCurrency, fmtNumber } from '../../utils/format';
 import { navigateToEggStock } from '../../utils/productionNavigation.js';
 import { PRODUCTION_FINANCE_LABELS, PRODUCTION_FINANCE_SOURCE } from '../../utils/productionFinancialTruth.js';
+import AvicoleJournalsBridge from '../AvicoleJournalsBridge.jsx';
+import HeyHorizonAnimalCard from '../HeyHorizonAnimalCard.jsx';
+import HeyHorizonAvicoleCard from '../HeyHorizonAvicoleCard.jsx';
 import ProductionDiagnosticPanel from './ProductionDiagnosticPanel.jsx';
+import { useAnimalWorkflowHandlers } from './useAnimalWorkflowHandlers.js';
+import { useAvicoleWorkflowHandlers } from './useAvicoleWorkflowHandlers.js';
 
 function ActionCard({ title, text, onClick }) {
   return (
@@ -59,11 +67,32 @@ export default function ProductionHub({
   setTab,
   onNavigate,
   onOpenWorkflow,
+  horizonDraft,
+  onCloseDraft,
+  animalProps,
+  avicoleProps,
 }) {
   const eggs = snapshot.eggs || {};
   const chair = snapshot.chair || {};
   const bovins = snapshot.bovins || {};
   const transform = snapshot.transformation || {};
+
+  const activeLots = useMemo(
+    () => (avicoleProps?.rows || lots || []).filter(avicoleHasActiveBirds),
+    [avicoleProps?.rows, lots],
+  );
+  const stockCrud = useCrudModule('stock');
+  const { wrapUpdate } = useAnimalWorkflowHandlers({
+    props: animalProps || {},
+    species: 'Bovin',
+    opportunities: avicoleProps?.opportunities || [],
+  });
+  const { createOrReactivateEggOpportunity } = useAvicoleWorkflowHandlers({
+    props: avicoleProps || {},
+    opportunities: avicoleProps?.opportunities || [],
+  });
+  const showAnimalWeighing = horizonDraft?.form_type === 'animal_weighing';
+  const showEggProduction = horizonDraft?.form_type === 'egg_production';
 
   return (
     <div className="space-y-5 production-hub-mobile">
@@ -72,6 +101,40 @@ export default function ProductionHub({
           .production-hub-mobile .grid { gap: 0.75rem; }
         }
       `}</style>
+
+      {showAnimalWeighing && animalProps ? (
+        <div id="hey-horizon-animal-card">
+          <HeyHorizonAnimalCard
+            draft={horizonDraft}
+            rows={animalProps.rows || []}
+            species="Bovin"
+            onCreate={animalProps.onCreate}
+            onUpdate={wrapUpdate}
+            onCreateBusinessEvent={animalProps.onCreateBusinessEvent}
+            onRefresh={animalProps.onRefresh}
+            onRefreshBusinessEvents={animalProps.onRefreshBusinessEvents}
+            onClose={onCloseDraft}
+          />
+        </div>
+      ) : null}
+
+      {showEggProduction && avicoleProps ? (
+        <div id="hey-horizon-avicole-card">
+          <HeyHorizonAvicoleCard
+            draft={horizonDraft}
+            rows={activeLots}
+            stockCrud={stockCrud}
+            onUpdate={avicoleProps.onUpdate}
+            onCreateProduction={avicoleProps.onCreateProduction}
+            onRefreshProduction={avicoleProps.onRefreshProduction}
+            onCreateBusinessEvent={avicoleProps.onCreateBusinessEvent}
+            onRefresh={avicoleProps.onRefresh}
+            onRefreshBusinessEvents={avicoleProps.onRefreshBusinessEvents}
+            onClose={onCloseDraft}
+            onCreateEggOpportunity={createOrReactivateEggOpportunity}
+          />
+        </div>
+      ) : null}
 
       <section className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm">
         <h2 className="text-lg font-black text-[#2f2415]">Production animale</h2>
@@ -244,6 +307,18 @@ export default function ProductionHub({
           </ul>
         ) : null}
       </ProductionBlock>
+
+      {avicoleProps ? (
+        <AvicoleJournalsBridge
+          rows={activeLots}
+          productionLogs={avicoleProps.productionLogs || []}
+          businessEvents={avicoleProps.businessEvents || []}
+          onCreateProduction={avicoleProps.onCreateProduction}
+          onUpdateProduction={avicoleProps.onUpdateProduction}
+          onDeleteProduction={avicoleProps.onDeleteProduction}
+          onRefreshProduction={avicoleProps.onRefreshProduction}
+        />
+      ) : null}
     </div>
   );
 }

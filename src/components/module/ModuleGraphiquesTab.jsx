@@ -83,8 +83,26 @@ export default function ModuleGraphiquesTab({ moduleId, periodFiltered, ...props
     case 'elevage':
       return withChartPeriod((
         <div className="space-y-4">
-          <AvicoleEvolution rows={arr(props.lots)} productionLogs={arr(props.productionLogs)} alimentationLogs={arr(props.alimentationLogs)} transactions={arr(props.transactions)} onNavigate={onNavigate} />
-          <AnimauxEvolution rows={arr(props.animaux)} alimentationLogs={arr(props.alimentationLogs)} salesOrders={arr(props.salesOrders)} payments={arr(props.payments)} onNavigate={onNavigate} />
+          <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
+            <h2 className="text-sm font-black text-[#2f2415]">Graphiques Élevage</h2>
+            <p className="mt-1 text-xs text-[#8a7456]">
+              Évolution des lots avicoles et du cheptel — compléter avec l&apos;onglet <b>Cycles</b> pour les échéances J+40 / J+90 et <b>Production</b> pour le détail œufs / chair / viande.
+            </p>
+          </section>
+          <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
+            <h2 className="text-sm font-black text-[#2f2415]">Production avicole</h2>
+            <p className="mt-1 text-xs text-[#8a7456]">Pontes, alimentation et lots — croiser avec Santé et Alimentation.</p>
+            <div className="mt-3">
+              <AvicoleEvolution rows={arr(props.lots)} productionLogs={arr(props.productionLogs)} alimentationLogs={arr(props.alimentationLogs)} transactions={arr(props.transactions)} onNavigate={onNavigate} />
+            </div>
+          </section>
+          <section className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm">
+            <h2 className="text-sm font-black text-[#2f2415]">Cheptel animaux</h2>
+            <p className="mt-1 text-xs text-[#8a7456]">Bovins, ovins, caprins — ventes et alimentation liées.</p>
+            <div className="mt-3">
+              <AnimauxEvolution rows={arr(props.animaux)} alimentationLogs={arr(props.alimentationLogs)} salesOrders={arr(props.salesOrders)} payments={arr(props.payments)} onNavigate={onNavigate} />
+            </div>
+          </section>
         </div>
       ), periodFiltered);
     case 'commercial':

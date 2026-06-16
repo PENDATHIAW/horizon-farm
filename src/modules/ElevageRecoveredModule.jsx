@@ -119,6 +119,15 @@ function Summary({
       open={profitabilityOpen}
       onToggle={onToggleProfitability}
     />
+    <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
+      <h2 className="text-lg font-black text-[#2f2415]">Parcours rapide</h2>
+      <p className="mt-2 text-sm leading-relaxed text-[#8a7456]">Accès direct aux vues opérationnelles du module.</p>
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <ActionCard title="Cycles & échéances" text="Bandes chair, bovins J+90, réforme pondeuses." onClick={() => setTab('Cycles')} />
+        <ActionCard title="Production détaillée" text="Œufs, chair, bovins et transformation viande." onClick={() => setTab('Production')} />
+        <ActionCard title="Graphiques" text="Évolution avicole et cheptel sur la période." onClick={() => setTab('Graphiques')} />
+      </div>
+    </section>
     <section className="hidden md:block rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm">
       <h2 className="text-lg font-black text-[#2f2415]">Actions terrain</h2>
       <p className="mt-2 text-sm leading-relaxed text-[#8a7456]">Saisies fiables avec impacts stock, finance et traçabilité.</p>
@@ -198,9 +207,16 @@ export default function ElevageRecoveredModule(props) {
           setHorizonDraft(draft);
         }
       }
-      if (module === 'avicole' && ['poultry_mortality', 'poultry_close'].includes(draft.form_type)) {
-        setTab('Transformation');
-        setHorizonDraft(draft);
+      if (module === 'avicole') {
+        if (draft.form_type === 'egg_production') {
+          setTab('Production');
+          setHorizonDraft(draft);
+          return;
+        }
+        if (['poultry_mortality', 'poultry_close'].includes(draft.form_type)) {
+          setTab('Transformation');
+          setHorizonDraft(draft);
+        }
       }
     };
     window.addEventListener('horizon-open-form', handler);
@@ -500,17 +516,21 @@ export default function ElevageRecoveredModule(props) {
       onCloseDraft={() => setHorizonDraft(null)}
     />
   ) : tab === 'Production' ? (
-        <ProductionHub
-          snapshot={data.productionSnapshot}
-          lots={lots}
-          animaux={animals}
-          marginContext={data.marginContext}
-          transformationRows={data.transformationRows}
-          setTab={setTab}
-          onNavigate={props.onNavigate}
-          onOpenWorkflow={openWorkflow}
-        />
-      ) : tab === 'Transformation' ? (
+    <ProductionHub
+      snapshot={data.productionSnapshot}
+      lots={lots}
+      animaux={animals}
+      marginContext={data.marginContext}
+      transformationRows={data.transformationRows}
+      setTab={setTab}
+      onNavigate={props.onNavigate}
+      onOpenWorkflow={openWorkflow}
+      horizonDraft={horizonDraft}
+      onCloseDraft={() => setHorizonDraft(null)}
+      animalProps={animalProps}
+      avicoleProps={avicoleProps}
+    />
+  ) : tab === 'Transformation' ? (
     <ElevageTransformationPanel
       data={data}
       setTab={setTab}

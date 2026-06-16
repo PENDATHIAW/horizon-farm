@@ -18,19 +18,23 @@ Document de référence pour éviter les imports obsolètes sans suppression bru
 
 **Règle :** tout nouveau code Élevage doit passer par `ElevageRecoveredModule` ou les utilitaires V3 ci-dessus.
 
+## Panels dédiés (montés dans `ElevageRecoveredModule`)
+
+| Fichier | Onglet | Rôle |
+|---------|--------|------|
+| `ElevageAlimentationPanel.jsx` | Alimentation | Distributions, stock aliment, workflow feeding |
+| `ElevageReproductionPanel.jsx` | Reproduction | Naissances, historique `birthEvents` |
+| `ElevageTransformationPanel.jsx` | Transformation | Journal, bridges abattage |
+| `ElevageCyclesPanel.jsx` | Cycles | Échéances, questions production, décisions cycle |
+| `ProductionHub.jsx` | Production | Œufs, chair, bovins, viande + brouillons Hey Horizon |
+
 ## Panels orphelins (non montés — NE PAS MODIFIER sans vérifier)
 
-Ces fichiers existent dans `src/modules/elevage/` mais ne sont **pas** importés par `ElevageRecoveredModule` :
-
-| Fichier | Statut | Remplacé par |
-|---------|--------|--------------|
-| `ElevageAlimentationPanel.jsx` | Orphelin | Hub inline `FeedingHub` dans `ElevageRecoveredModule` |
+| Fichier | Statut | Notes |
+|---------|--------|-------|
 | `ElevageRepairPanel.jsx` | Orphelin | Workflows + intégrité ERP |
-| `ElevageProductionPanel.jsx` | Orphelin | Hub inline `ProductionHub` |
-| `ElevageCyclesPanel.jsx` | Orphelin | `VisionCyclesTab` |
+| `ElevageProductionPanel.jsx` | Orphelin | Remplacé par `ProductionHub` + brouillons intégrés |
 | `ElevageSantePanel.jsx` | Orphelin | `SanteV8` direct |
-| `ElevageReproductionPanel.jsx` | Orphelin | Hub inline `ReproductionHub` |
-| `ElevageTransformationPanel.jsx` | Orphelin | Hub inline `TransformationHub` + bridges |
 | `ElevageFeedingDistribution.jsx` | Orphelin | `ElevageWorkflowPanels` (modal feeding) |
 
 **Règle :** ne pas étendre ces panels. Si une fonctionnalité est demandée, l'implémenter dans le module canonique ou un utilitaire V3.

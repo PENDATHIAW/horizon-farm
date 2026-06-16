@@ -181,7 +181,7 @@ export default function ElevageCyclesPanel({
             text="Enregistrer un animal avec date d'entrée pour le cycle J+90."
             onClick={() => emitHorizonForm('animaux', 'animal_create', 'Nouveau bovin', { date: today(), espece: 'Bovin' })}
           />
-          <ElevageActionCard icon={ShoppingCart} title="Préparer vente" text="Opportunités et commandes commerciales." onClick={() => onNavigate?.('ventes')} />
+          <ElevageActionCard icon={ShoppingCart} title="Préparer vente" text="Opportunités et commandes commerciales." onClick={() => onNavigate?.('commercial', { tab: 'Ventes' })} />
           <ElevageActionCard icon={Bird} title="Fiches Avicole" text={`${broilers.length} chair · ${layers.length} pondeuses actives.`} onClick={() => setTab?.('Avicole')} />
           <ElevageActionCard icon={Beef} title="Fiches Animaux" text={`${activeAnimals.length} tête(s) suivie(s).`} onClick={() => setTab?.('Animaux')} />
         </div>

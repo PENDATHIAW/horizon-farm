@@ -46,7 +46,7 @@ test('Achats & Stock — onglets critiques', async () => {
 });
 
 test('Élevage — onglets critiques', async () => {
-  for (const tab of ['Avicole', 'Alimentation', 'Santé', 'Production', 'Cycles']) {
+  for (const tab of ['Résumé', 'Cycles', 'Production', 'Graphiques', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Transformation']) {
     await assertModuleTabStable('elevage', tab, buildSimulatedProps());
   }
 });

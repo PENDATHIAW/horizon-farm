@@ -71,6 +71,13 @@ export default function App() {
     }
     if (resolved === 'elevage') {
       setElevageTab(resolveElevageTab(tab || defaultTabForLegacyModule(moduleId) || 'Résumé'));
+      if (options?.productionQuestion) {
+        window.setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('horizon-production-question', {
+            detail: { questionId: options.productionQuestion, moduleId: 'elevage' },
+          }));
+        }, 320);
+      }
       trackNavOpen('elevage');
       setActiveState('elevage');
       return;
