@@ -8,11 +8,45 @@ const MODULE_LABELS = {
   achats_stock: 'Achats & Stock',
   commercial: 'Commercial',
   dashboard: 'Accueil',
+  smartfarm: 'Smart Farm',
+};
+
+const ANNEXE_QUICK_LINKS = {
+  elevage: [
+    { label: 'Cycles & échéances', module: 'elevage', tab: 'Cycles' },
+    { label: 'Alimentation', module: 'elevage', tab: 'Alimentation' },
+    { label: 'Production détaillée', module: 'elevage', tab: 'Production' },
+    { label: 'Cheptel Animaux', module: 'elevage', tab: 'Animaux' },
+    { label: 'Rentabilité Finance', module: 'finance_pilotage', tab: 'Rentabilité' },
+  ],
+  finance_pilotage: [
+    { label: 'Élevage — Résumé', module: 'elevage', tab: 'Résumé' },
+    { label: 'Commercial — Pilotage', module: 'commercial', tab: 'Pilotage' },
+    { label: 'Achats & Stock', module: 'achats_stock', tab: 'Stock' },
+  ],
+  achats_stock: [
+    { label: 'Élevage — Alimentation', module: 'elevage', tab: 'Alimentation' },
+    { label: 'Élevage — Production œufs', module: 'elevage', tab: 'Production' },
+    { label: 'Finance — Trésorerie', module: 'finance_pilotage', tab: 'Trésorerie' },
+  ],
+  smartfarm: [
+    { label: 'Élevage — Cycles', module: 'elevage', tab: 'Cycles' },
+    { label: 'Activité & alertes', module: 'activite_suivi', tab: 'Alertes' },
+  ],
+  commercial: [
+    { label: 'Clients & créances', module: 'commercial', tab: 'Clients & créances' },
+    { label: 'Finance — Créances', module: 'finance_pilotage', tab: 'Créances' },
+  ],
+  dashboard: [
+    { label: 'Élevage', module: 'elevage', tab: 'Résumé' },
+    { label: 'Commercial', module: 'commercial', tab: 'Pilotage' },
+  ],
 };
 
 /** Onglet Annexe — paramètres coûts + formules unifiées par module. */
 export default function ModuleAnnexeTab({ moduleId = 'elevage', onNavigate }) {
   const label = MODULE_LABELS[moduleId] || 'Module ERP';
+  const quickLinks = ANNEXE_QUICK_LINKS[moduleId] || ANNEXE_QUICK_LINKS.elevage;
 
   return (
     <div className="space-y-5">
@@ -37,10 +71,18 @@ export default function ModuleAnnexeTab({ moduleId = 'elevage', onNavigate }) {
           <li><b className="text-[#2f2415]">Finance :</b> max(coûts champs fiche, moteur unifié logs) pour animaux et avicole — anti double comptage avec trésorerie.</li>
           <li><b className="text-[#2f2415]">Vente :</b> marge = CA − coût direct (via salesMarginEngine → costEngine).</li>
         </ul>
-        {onNavigate ? (
+        {onNavigate && quickLinks.length ? (
           <div className="flex flex-wrap gap-2 pt-1">
-            <button type="button" onClick={() => onNavigate('elevage', { tab: 'Animaux' })} className="rounded-lg border border-[#d6c3a0] bg-white px-3 py-1.5 text-xs font-black text-emerald-800 hover:bg-emerald-50">Voir Animaux</button>
-            <button type="button" onClick={() => onNavigate('finance_pilotage', { tab: 'Rentabilité' })} className="rounded-lg border border-[#d6c3a0] bg-white px-3 py-1.5 text-xs font-black text-emerald-800 hover:bg-emerald-50">Rentabilité Finance</button>
+            {quickLinks.map((link) => (
+              <button
+                key={`${link.module}-${link.tab}`}
+                type="button"
+                onClick={() => onNavigate(link.module, link.tab ? { tab: link.tab } : undefined)}
+                className="rounded-lg border border-[#d6c3a0] bg-white px-3 py-1.5 text-xs font-black text-emerald-800 hover:bg-emerald-50"
+              >
+                {link.label}
+              </button>
+            ))}
           </div>
         ) : null}
       </section>

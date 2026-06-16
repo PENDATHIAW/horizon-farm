@@ -58,3 +58,9 @@ test('Production — CTA transformation unique dans bloc dédié', () => {
   assert.doesNotMatch(bovinsBlock, /Voir transformation/);
   assert.match(productionHubSrc, /Transformation \/ viande[\s\S]*Voir transformation/);
 });
+
+test('Annexe Élevage — liens contextuels Cycles et Production', () => {
+  const annexeSrc = readFileSync(join(root, 'src/components/module/ModuleAnnexeTab.jsx'), 'utf8');
+  assert.match(annexeSrc, /elevage:[\s\S]*Cycles & échéances/);
+  assert.match(annexeSrc, /Production détaillée/);
+});

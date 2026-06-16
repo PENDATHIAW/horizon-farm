@@ -365,10 +365,11 @@ describe('Commercial V3 — navigation & Hey Horizon', () => {
   it('onglets Commercial V3 avec aliases', () => {
     assert.ok(COMMERCIAL_TABS.includes('Livraisons'));
     assert.ok(COMMERCIAL_TABS.includes('Abonnements'));
-    assert.ok(COMMERCIAL_TABS.includes('Relances'));
+    assert.ok(COMMERCIAL_TABS.includes('Clients & créances'));
     assert.ok(COMMERCIAL_TABS.includes('Pilotage'));
     assert.equal(resolveCommercialTab('devis'), 'Ventes');
-    assert.equal(resolveCommercialTab('prospects'), 'Clients');
+    assert.equal(resolveCommercialTab('prospects'), 'Clients & créances');
+    assert.equal(resolveCommercialTab('relances'), 'Clients & créances');
     assert.equal(resolveCommercialTab('reconciliation'), 'Pilotage');
     assert.equal(resolveCommercialTab('livraisons'), 'Livraisons');
   });

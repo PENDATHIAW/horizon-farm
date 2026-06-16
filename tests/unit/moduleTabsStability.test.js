@@ -33,7 +33,7 @@ for (const moduleId of criticalModuleIds()) {
 }
 
 test('Commercial — onglets critiques avec données simulées', async () => {
-  const tabs = ['Clients', 'Opportunités', 'Ventes', 'Annexe', 'Graphiques'];
+  const tabs = ['Ventes', 'Opportunités', 'Clients & créances', 'Livraisons', 'Abonnements', 'Pilotage'];
   for (const tab of tabs) {
     await assertModuleTabStable('commercial', tab, buildSimulatedProps());
   }
@@ -46,7 +46,7 @@ test('Achats & Stock — onglets critiques', async () => {
 });
 
 test('Élevage — onglets critiques', async () => {
-  for (const tab of ['Résumé', 'Cycles', 'Production', 'Graphiques', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Transformation']) {
+  for (const tab of ['Résumé', 'Cycles', 'Production', 'Graphiques', 'Annexe', 'Avicole', 'Alimentation', 'Santé', 'Reproduction', 'Transformation']) {
     await assertModuleTabStable('elevage', tab, buildSimulatedProps());
   }
 });
@@ -59,7 +59,7 @@ test('Finance — onglet Investissements', async () => {
 
 test('Matrice modules couverte', () => {
   assert.ok(criticalModuleIds().length >= 14);
-  assert.equal(MODULE_TAB_MATRIX.commercial.length, 10);
+  assert.equal(MODULE_TAB_MATRIX.commercial.length, 6);
   assert.equal(MODULE_TAB_MATRIX.achats_stock.length, 7);
   assert.equal(MODULE_TAB_MATRIX.elevage.length, 11);
 });
