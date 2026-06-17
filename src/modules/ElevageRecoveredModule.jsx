@@ -68,7 +68,11 @@ function Tabs({ active, onChange, activeFarm }) {
 }
 
 export default function ElevageRecoveredModule(props) {
-  const [tab, setTabState] = useState(() => resolveElevageTab(props.initialTab));
+  const controlled = Boolean(props.onTabChange);
+  const [internalTab, setInternalTab] = useState(() => resolveElevageTab(props.initialTab || 'Lots & bandes'));
+  const tab = controlled
+    ? resolveElevageTab(props.initialTab || 'Lots & bandes')
+    : internalTab;
   const [lotsSubview, setLotsSubview] = useState(() => resolveElevageLotsSubview(props.initialTab) || 'avicole');
   const [activeModal, setActiveModal] = useState(null);
   const [workflowScope, setWorkflowScope] = useState(() => resolveElevageLotsSubview(props.initialTab) || 'avicole');
@@ -77,19 +81,30 @@ export default function ElevageRecoveredModule(props) {
   const [reproductionHorizonDraft, setReproductionHorizonDraft] = useState(null);
   const [cyclesProductionQuestion, setCyclesProductionQuestion] = useState(null);
 
+  const applyElevageNavigation = useCallback((value) => {
+    const sub = resolveElevageLotsSubview(value);
+    if (sub) {
+      setLotsSubview(sub);
+      setWorkflowScope(sub);
+    }
+    const resolved = resolveElevageTab(value);
+    if (controlled) props.onTabChange?.(resolved);
+    else setInternalTab(resolved);
+  }, [controlled, props.onTabChange]);
+
   const setTab = useCallback((next) => {
-    const sub = resolveElevageLotsSubview(next);
-    if (sub) setLotsSubview(sub);
-    setTabState(resolveElevageTab(next));
-  }, []);
+    applyElevageNavigation(next);
+  }, [applyElevageNavigation]);
 
   useEffect(() => {
-    if (props.initialTab) {
-      const sub = resolveElevageLotsSubview(props.initialTab);
-      if (sub) setLotsSubview(sub);
-      setTabState(resolveElevageTab(props.initialTab));
+    if (!props.initialTab) return;
+    const sub = resolveElevageLotsSubview(props.initialTab);
+    if (sub) {
+      setLotsSubview(sub);
+      setWorkflowScope(sub);
     }
-  }, [props.initialTab]);
+    if (!controlled) setInternalTab(resolveElevageTab(props.initialTab));
+  }, [controlled, props.initialTab]);
 
   useEffect(() => {
     const handler = (event) => {

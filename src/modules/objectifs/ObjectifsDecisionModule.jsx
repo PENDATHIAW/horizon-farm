@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import { MODULE_TARGET_TABS } from '../../config/horizonVision.config.js';
+import { resolveObjectifsTab } from '../../utils/commercialNavigation.js';
 import { buildLotAnalyticsPlan } from '../../services/objectifsDecision/lotAnalyticsEngine.js';
 import Btn from '../../components/Btn.jsx';
 import { mergePilotageIntoDataMap } from '../../services/pilotageSettingsService.js';
@@ -23,34 +24,6 @@ const EMPTY_ANALYTICS = {
 
 const TAB_IDS = MODULE_TARGET_TABS.objectifs_croissance;
 
-const TAB_ALIASES = {
-  Performance: 'Suivi du Business Plan',
-  Prévisions: 'Efficacité Technique & Zootechnique',
-  Plans: 'Sécurisation des Flux',
-  Financeurs: 'Sécurisation des Flux',
-  'Objectifs & Écarts': 'Suivi du Business Plan',
-  'Croissance économique & Capacités': 'Efficacité Technique & Zootechnique',
-  'Tableau de bord graphique': 'Suivi du Business Plan',
-  Graphiques: 'Suivi du Business Plan',
-  Annexe: 'Suivi du Business Plan',
-  'Rentabilité Lot & Cycle': 'Suivi du Business Plan',
-  'Efficacité Technique': 'Efficacité Technique & Zootechnique',
-  'Flux & Équilibres': 'Sécurisation des Flux',
-  'Maraîchage & Diversification': 'Simulateur Sandbox',
-  'Suivi du Business Plan': 'Suivi du Business Plan',
-  'Efficacité Technique & Zootechnique': 'Efficacité Technique & Zootechnique',
-  'Simulateur Sandbox': 'Simulateur Sandbox',
-  'Sécurisation des Flux': 'Sécurisation des Flux',
-};
-
-function resolveTab(initial) {
-  const raw = String(initial || '').trim();
-  if (!raw) return TAB_IDS[0];
-  const mapped = TAB_ALIASES[raw] || raw;
-  if (TAB_IDS.includes(mapped)) return mapped;
-  return TAB_IDS[0];
-}
-
 function csvKeyForTab(tab) {
   if (tab === 'Efficacité Technique & Zootechnique') return 'technique';
   if (tab === 'Sécurisation des Flux') return 'flux';
@@ -62,17 +35,26 @@ export default function ObjectifsDecisionModule({
   dataMap = {},
   onNavigate,
   initialTab,
+  onTabChange,
   periodLabel = '',
   meteo,
   onCreateCulture,
   onRefreshCultures,
   ...props
 }) {
-  const [tab, setTab] = useState(() => resolveTab(initialTab));
+  const controlled = Boolean(onTabChange);
+  const [internalTab, setInternalTab] = useState(() => resolveObjectifsTab(initialTab));
+  const tab = controlled ? resolveObjectifsTab(initialTab) : internalTab;
+  const setTab = useCallback((value) => {
+    const resolved = resolveObjectifsTab(value);
+    if (controlled) onTabChange?.(resolved);
+    else setInternalTab(resolved);
+  }, [controlled, onTabChange]);
 
   useEffect(() => {
-    setTab(resolveTab(initialTab));
-  }, [initialTab]);
+    if (controlled || !initialTab) return;
+    setInternalTab(resolveObjectifsTab(initialTab));
+  }, [controlled, initialTab]);
 
   const enrichedDataMap = useMemo(() => mergePilotageIntoDataMap({
     ...dataMap,

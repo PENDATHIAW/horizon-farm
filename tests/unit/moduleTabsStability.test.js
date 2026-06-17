@@ -87,11 +87,25 @@ test('RH — onglets critiques', async () => {
   }
 });
 
+test('Objectifs & Croissance — onglets critiques', async () => {
+  for (const tab of ['Suivi du Business Plan', 'Efficacité Technique & Zootechnique', 'Simulateur Sandbox', 'Sécurisation des Flux']) {
+    await assertModuleTabStable('objectifs_croissance', tab, buildSimulatedProps());
+  }
+});
+
+test('Centre décisionnel — onglets critiques', async () => {
+  for (const tab of ['Urgences & risques', 'Croissance & opportunités', 'Saisons & marchés']) {
+    await assertModuleTabStable('centre_ia', tab, buildSimulatedProps());
+  }
+});
+
 test('Matrice modules couverte', () => {
   assert.ok(criticalModuleIds().length >= 14);
   assert.equal(MODULE_TAB_MATRIX.commercial.length, 6);
   assert.equal(MODULE_TAB_MATRIX.achats_stock.length, 3);
   assert.equal(MODULE_TAB_MATRIX.elevage.length, 4);
   assert.equal(MODULE_TAB_MATRIX.cultures.length, 3);
+  assert.equal(MODULE_TAB_MATRIX.objectifs_croissance.length, 4);
+  assert.equal(MODULE_TAB_MATRIX.centre_ia.length, 3);
   assert.equal(MODULE_TAB_MATRIX.sync_activity.length, 3);
 });

@@ -16,6 +16,8 @@ import {
   SYNC_ACTIVITY_TABS,
   CULTURES_TABS,
   DASHBOARD_TABS,
+  OBJECTIFS_TABS,
+  CENTRE_IA_TABS,
   INVESTISSEURS_TABS,
 } from '../../../src/utils/commercialNavigation.js';
 import { SIMULATED_DATA_MODE_KEY } from '../../../src/utils/uiPreferences.js';
@@ -38,7 +40,8 @@ export const MODULE_TAB_MATRIX = {
   sync_activity: SYNC_ACTIVITY_TABS,
   gestion_systeme: MODULE_TARGET_TABS.gestion_systeme,
   activite_suivi: ACTIVITE_SUIVI_TABS,
-  centre_ia: MODULE_TARGET_TABS.centre_ia,
+  centre_ia: CENTRE_IA_TABS,
+  objectifs_croissance: OBJECTIFS_TABS,
 };
 
 export function setupTestStorage() {

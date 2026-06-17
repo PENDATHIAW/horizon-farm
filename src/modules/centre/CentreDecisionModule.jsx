@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import { Bot } from 'lucide-react';
 import { MODULE_TARGET_TABS } from '../../config/horizonVision.config.js';
+import { resolveCentreTab } from '../../utils/commercialNavigation.js';
 import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine.js';
 import { buildStrategicDecisionPlan } from '../../services/strategicDecisionEngine.js';
 import { buildVisionData } from '../vision/visionUtils';
@@ -31,50 +32,32 @@ const EMPTY_STRATEGIC_PLAN = {
 
 const TAB_IDS = MODULE_TARGET_TABS.centre_ia;
 
-const TAB_ALIASES = {
-  'Urgences & risques': 'Urgences & risques',
-  'Croissance & opportunités': 'Croissance & opportunités',
-  'Saisons & marchés': 'Saisons & marchés',
-  Graphiques: 'Croissance & opportunités',
-  Annexe: 'Saisons & marchés',
-  Opportunités: 'Croissance & opportunités',
-  'Opportunités & cycles': 'Croissance & opportunités',
-  Recommandations: 'Croissance & opportunités',
-  Historique: 'Saisons & marchés',
-  'À traiter': 'Urgences & risques',
-  Risques: 'Urgences & risques',
-  Cycles: 'Saisons & marchés',
-  Efficacité: 'Urgences & risques',
-  'Efficacité Technique': 'Croissance & opportunités',
-  Priorités: 'Urgences & risques',
-  'Priorités & risques': 'Urgences & risques',
-};
-
-function resolveTab(initial) {
-  const mapped = initial ? (TAB_ALIASES[initial] || initial) : null;
-  if (mapped && TAB_IDS.includes(mapped)) return mapped;
-  return TAB_IDS[0];
-}
-
 /** Centre décisionnel — 3 onglets : urgences terrain, croissance, saisons & marchés. */
 export default function CentreDecisionModule({
   dataMap = {},
   onNavigate,
   initialTab,
+  onTabChange,
   periodLabel = '',
   onOpenAssistant,
   meteo,
   ...props
 }) {
-  const [tab, setTabState] = useState(() => resolveTab(initialTab));
+  const controlled = Boolean(onTabChange);
+  const [internalTab, setInternalTab] = useState(() => resolveCentreTab(initialTab));
+  const tab = controlled ? resolveCentreTab(initialTab) : internalTab;
+  const setTab = useCallback((next) => {
+    const resolved = resolveCentreTab(next);
+    if (controlled) onTabChange?.(resolved);
+    else setInternalTab(resolved);
+  }, [controlled, onTabChange]);
   const [pilotageVersion, setPilotageVersion] = useState(0);
   const syncedPlanRef = useRef('');
 
-  const setTab = (next) => setTabState(resolveTab(next));
-
   useEffect(() => {
-    setTabState(resolveTab(initialTab));
-  }, [initialTab]);
+    if (controlled || !initialTab) return;
+    setInternalTab(resolveCentreTab(initialTab));
+  }, [controlled, initialTab]);
 
   const visionProps = useMemo(() => ({ ...props, dataMap, moduleId: 'centre_ia', meteo }), [props, dataMap, meteo]);
   const data = useMemo(() => {

@@ -345,6 +345,51 @@ const DOCUMENTS_TAB_ALIASES = {
 };
 export const RH_TABS = ['Cockpit RH & Maintenance', 'Personnel & Paie', 'Parc Matériel & Maintenance', 'Registres & Analyses'];
 
+export const OBJECTIFS_TABS = ['Suivi du Business Plan', 'Efficacité Technique & Zootechnique', 'Simulateur Sandbox', 'Sécurisation des Flux'];
+
+const OBJECTIFS_TAB_ALIASES = {
+  Performance: 'Suivi du Business Plan',
+  Prévisions: 'Efficacité Technique & Zootechnique',
+  Plans: 'Sécurisation des Flux',
+  Financeurs: 'Sécurisation des Flux',
+  'Objectifs & Écarts': 'Suivi du Business Plan',
+  'Croissance économique & Capacités': 'Efficacité Technique & Zootechnique',
+  'Tableau de bord graphique': 'Suivi du Business Plan',
+  Graphiques: 'Suivi du Business Plan',
+  Annexe: 'Suivi du Business Plan',
+  'Rentabilité Lot & Cycle': 'Suivi du Business Plan',
+  'Efficacité Technique': 'Efficacité Technique & Zootechnique',
+  'Flux & Équilibres': 'Sécurisation des Flux',
+  'Maraîchage & Diversification': 'Simulateur Sandbox',
+  'Suivi du Business Plan': 'Suivi du Business Plan',
+  'Efficacité Technique & Zootechnique': 'Efficacité Technique & Zootechnique',
+  'Simulateur Sandbox': 'Simulateur Sandbox',
+  'Sécurisation des Flux': 'Sécurisation des Flux',
+};
+
+export const CENTRE_IA_TABS = ['Urgences & risques', 'Croissance & opportunités', 'Saisons & marchés'];
+
+const CENTRE_IA_TAB_ALIASES = {
+  'Urgences & risques': 'Urgences & risques',
+  'Croissance & opportunités': 'Croissance & opportunités',
+  'Saisons & marchés': 'Saisons & marchés',
+  Graphiques: 'Croissance & opportunités',
+  Annexe: 'Saisons & marchés',
+  Opportunités: 'Croissance & opportunités',
+  'Opportunités & cycles': 'Croissance & opportunités',
+  Recommandations: 'Croissance & opportunités',
+  Historique: 'Saisons & marchés',
+  'À traiter': 'Urgences & risques',
+  Risques: 'Urgences & risques',
+  Cycles: 'Saisons & marchés',
+  Efficacité: 'Urgences & risques',
+  'Efficacité Technique': 'Croissance & opportunités',
+  Priorités: 'Urgences & risques',
+  'Priorités & risques': 'Urgences & risques',
+  Résumé: 'Urgences & risques',
+  resume: 'Urgences & risques',
+};
+
 const RH_TAB_ALIASES = {
   'Cockpit RH & Maintenance': 'Cockpit RH & Maintenance',
   cockpit: 'Cockpit RH & Maintenance',
@@ -477,6 +522,22 @@ export function resolveRhTab(value = '') {
 export function resolveRhNavigation(value = '') {
   const raw = String(value || '').trim();
   return { tab: resolveRhTab(raw) };
+}
+
+export function resolveObjectifsTab(value = '') {
+  const tab = String(value || '').trim();
+  if (OBJECTIFS_TABS.includes(tab)) return tab;
+  const fromAlias = OBJECTIFS_TAB_ALIASES[tab] || OBJECTIFS_TAB_ALIASES[lower(tab)];
+  if (fromAlias) return fromAlias;
+  return OBJECTIFS_TABS[0];
+}
+
+export function resolveCentreTab(value = '') {
+  const tab = String(value || '').trim();
+  if (CENTRE_IA_TABS.includes(tab)) return tab;
+  const fromAlias = CENTRE_IA_TAB_ALIASES[tab] || CENTRE_IA_TAB_ALIASES[lower(tab)];
+  if (fromAlias) return fromAlias;
+  return CENTRE_IA_TABS[0];
 }
 
 export function resolveSyncActivityTab(value = '') {
