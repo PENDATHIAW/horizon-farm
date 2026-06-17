@@ -1,59 +1,47 @@
-# Pitch Horizon Farm — présentation client
+# Pitch Horizon Farm — fichiers client
 
-## Présentation prête à projeter
+## Fichiers à télécharger (PDF & PowerPoint)
 
-Ouvrez dans le navigateur (en local ou en production) :
+| Fichier | Emplacement | Usage |
+|---------|-------------|--------|
+| **PDF** | [`docs/pitch/PITCH_HORIZON_FARM.pdf`](PITCH_HORIZON_FARM.pdf) | Envoi par e-mail, impression, lecture |
+| **PowerPoint** | [`docs/pitch/PITCH_HORIZON_FARM.pptx`](PITCH_HORIZON_FARM.pptx) | Présentation modifiable dans PowerPoint / Google Slides / LibreOffice |
+| **HTML interactif** | [`/pitch-horizon-farm.html`](../../public/pitch-horizon-farm.html) | Présentation navigateur (flèches, plein écran) |
 
-**[/pitch-horizon-farm.html](/pitch-horizon-farm.html)**
+Copies publiques (après build / déploiement) :
+- `/PITCH_HORIZON_FARM.pdf`
+- `/PITCH_HORIZON_FARM.pptx`
 
-Fichier source : `public/pitch-horizon-farm.html`
-
-### Charte graphique appliquée
-
-| Élément | Valeur |
-|---------|--------|
-| Vert hero | `#052e16` |
-| Vert accent | `#22c55e` / `#15803d` |
-| Or Horizon | `#9a6b12` / `#b8954a` / `#e8a317` |
-| Fond carnet | `#fffdf8` |
-| Texte | `#2f2415` |
-| Logo | `horizon-farm-logo-transparent.png` |
-| Typographies | Fraunces (titres) + DM Sans (corps) |
-
-### Navigation
-
-| Touche | Action |
-|--------|--------|
-| `→` `Espace` | Slide suivante |
-| `←` | Slide précédente |
-| `F` | Plein écran |
-| `P` | Imprimer / exporter PDF |
-| Clic gauche / droit | Navigation (zones 35 % / 65 %) |
-
-### Contenu — 14 slides
+## Contenu — 14 slides
 
 1. Couverture — logo & tagline « De la terre à l'horizon »
 2. Le constat — 5 freins
-3. Vision — exploitation lisible en 10 secondes
-4. Solution — 7 piliers + flux interconnecté
-5. Accueil dirigeant — mock cartes + capteurs
-6. Hey Horizon — conversation terrain
-7. Smart Farm — capteurs TC & alertes
-8. Scénario démo — matinée type
-9. Bénéfices — graphiques
-10. Cibles — personas
-11. Déploiement — 3 phases
-12. Objections — réponses
+3. Vision
+4. Solution — 7 piliers
+5. Accueil dirigeant + capteurs
+6. Hey Horizon
+7. Smart Farm
+8. Scénario démo
+9. Bénéfices
+10. Cibles
+11. Déploiement
+12. Objections
 13. Différenciation
 14. Appel à l'action
 
-### Export PDF
+## Charte graphique
 
-1. Ouvrir la présentation
-2. Touche `P` ou menu Imprimer
-3. Destination : **Enregistrer en PDF**
-4. Marges : aucune · Arrière-plans : activés
+- Vert hero `#052e16` · Accent `#22c55e` · Or `#9a6b12`
+- Fond carnet `#fffdf8` · Logo officiel Horizon Farm
 
-### Texte de support
+## Régénérer les fichiers
 
-Le script détaillé et les notes orateur sont dans [PITCH_HORIZON_FARM.md](../PITCH_HORIZON_FARM.md).
+```bash
+npm run pitch:generate
+```
+
+Génère `docs/pitch/PITCH_HORIZON_FARM.pdf` et `.pptx` à partir du HTML `public/pitch-horizon-farm.html`.
+
+## Script orateur (texte)
+
+Notes détaillées pour l'oral : [`../PITCH_HORIZON_FARM.md`](../PITCH_HORIZON_FARM.md)

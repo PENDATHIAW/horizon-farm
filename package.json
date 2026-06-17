@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "pitch:generate": "node scripts/generate-pitch-assets.mjs",
     "test:e2e": "playwright test",
     "test:e2e:workflows": "PLAYWRIGHT_SKIP_WEBSERVER=1 playwright test tests/e2e/simulated-business-workflows.spec.js",
     "test:e2e:smoke": "playwright test tests/e2e/assistant-erp-smoke.spec.js tests/e2e/decision-center-smoke.spec.js",
@@ -84,6 +85,7 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
     "pg": "^8.21.0",
+    "pptxgenjs": "^4.0.1",
     "tailwindcss": "^4.2.4",
     "vite": "^8.0.10"
   }

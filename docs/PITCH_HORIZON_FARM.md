@@ -1,6 +1,11 @@
 # Horizon Farm — Pitch client
 
-> **Présentation visuelle prête à projeter :** ouvrez [`/pitch-horizon-farm.html`](/pitch-horizon-farm.html) dans le navigateur (14 slides, charte graphique Horizon Farm, export PDF). Voir [docs/pitch/README.md](pitch/README.md).
+> **Fichiers prêts à présenter :**
+> - **PDF :** [docs/pitch/PITCH_HORIZON_FARM.pdf](pitch/PITCH_HORIZON_FARM.pdf)
+> - **PowerPoint :** [docs/pitch/PITCH_HORIZON_FARM.pptx](pitch/PITCH_HORIZON_FARM.pptx)
+> - **HTML interactif :** [/pitch-horizon-farm.html](/pitch-horizon-farm.html)
+>
+> Régénérer : `npm run pitch:generate` · Voir [docs/pitch/README.md](pitch/README.md)
 
 **Durée cible :** 10–15 minutes  
 **Public :** exploitants, coopératives, investisseurs agricoles, partenaires techniques terrain
