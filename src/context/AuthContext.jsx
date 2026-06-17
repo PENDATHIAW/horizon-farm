@@ -2,7 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { ROUTE_TO_MODULE } from '../config/modules.config';
 import { supabase } from '../lib/supabase';
-import { DEMO_MODE_KEY, SIMULATED_DATA_MODE_KEY, setSimulatedDataMode } from '../utils/uiPreferences';
+import { applyDefaultDataModeForRole } from '../utils/uiPreferences';
 
 const AuthContext = createContext(null);
 
@@ -126,14 +126,6 @@ const fallbackProfile = (user, defaults = {}) => ({
   permissions: defaults.permissions || {},
   source: 'auth_fallback',
 });
-
-const applyDefaultDataModeForRole = (role) => {
-  if (typeof window === 'undefined') return;
-  const hasManualChoice = window.localStorage.getItem(SIMULATED_DATA_MODE_KEY) !== null || window.localStorage.getItem(DEMO_MODE_KEY) !== null;
-  if (hasManualChoice) return;
-  // Par défaut : données simulées pour démo / formation (y compris admin et manager).
-  setSimulatedDataMode(true);
-};
 
 async function upsertProfile(user, defaults = {}) {
   if (!user?.id) return null;

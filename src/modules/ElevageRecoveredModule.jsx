@@ -8,6 +8,8 @@ import { rowsOf } from '../utils/moduleRows';
 import { shouldHandleProductionQuestionEvent } from '../utils/elevageCyclesNavigation.js';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
 import HeyHorizonQuickAsk from '../components/HeyHorizonQuickAsk.jsx';
+import ModuleProjectionsStrip from '../components/module/ModuleProjectionsStrip.jsx';
+import { buildElevageModuleProjections } from '../utils/moduleProjections.js';
 import {
   resolveElevageTab,
   resolveElevageLotsSubview,
@@ -256,6 +258,10 @@ export default function ElevageRecoveredModule(props) {
         documents: rowsOf(props.documents, documentsCrud, periodFiltered),
         opportunities,
         marginContext: { feedLogs, alimentationLogs: feedLogs, productionLogs, healthEvents: health, businessEvents },
+      }),
+      moduleProjections: buildElevageModuleProjections({
+        productionLogs,
+        lots,
       }),
     };
   }, [animals, lots, health, productionLogs, feedLogs, stocks, opportunities, salesOrders, businessEvents, props.payments, props.documents, props.periodStart, paymentsCrud, documentsCrud, periodFiltered]);
@@ -601,6 +607,7 @@ export default function ElevageRecoveredModule(props) {
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Production</p><h1 className="mt-1 text-2xl font-black text-[#2f2415]">Élevage</h1><p className="mt-1 text-sm text-[#8a7456]">Lots & bandes, cycles & reproduction, santé et transformation — 4 onglets métier.</p>{props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}<HeyHorizonQuickAsk moduleKey="elevage" onNavigate={guardedNavigate} onOpenAssistant={props.onOpenAssistant} className="mt-2" /></div><div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé module </span><b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b></div></div></section>
+      <ModuleProjectionsStrip projections={data.moduleProjections} onNavigate={guardedNavigate} />
       <Tabs active={tab} onChange={setTab} activeFarm={props.activeFarm} />
       {findActiveWithdrawals(health).length ? <SanitaryWithdrawalBanner healthRows={health} /> : null}
       {content}

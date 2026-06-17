@@ -49,6 +49,8 @@ import CommercialPilotagePanel from './commercial/CommercialPilotagePanel.jsx';
 import CommercialMobileToolbar from './commercial/CommercialMobileToolbar.jsx';
 import CommercialStartupPanel from './commercial/CommercialStartupPanel.jsx';
 import CommercialInsightPanel from './commercial/CommercialInsightPanel.jsx';
+import ModuleProjectionsStrip from '../components/module/ModuleProjectionsStrip.jsx';
+import { buildCommercialModuleProjections } from '../utils/moduleProjections.js';
 import VentesV5 from './VentesV5.jsx';
 import ClientsReadable from './ClientsReadable';
 
@@ -82,6 +84,11 @@ function Summary({ data, setTab, onNavigate, onApplyFinding, busyId }) {
         <CommercialKpi label="Panier moyen" value={fmtCurrency(kpis?.basketAvg ?? 0)} tone="good" onClick={() => setTab('Pilotage')} />
       </div>
       <p className="text-[11px] font-semibold text-[#8a7456]">KPI période active · cliquer pour ouvrir le détail</p>
+
+      <ModuleProjectionsStrip
+        projections={data.moduleProjections}
+        onNavigate={onNavigate}
+      />
 
       <CommercialInsightPanel
         findings={data.healthFindings}
@@ -429,6 +436,10 @@ export default function CommercialRecoveredModule(props) {
       autoOpportunities,
       marginContext,
       chartOptions,
+      moduleProjections: buildCommercialModuleProjections({
+        salesOrdersAll: snapshotOrders,
+        salesOrders: periodOrders,
+      }, props.periodScope),
     };
   }, [
     orders, ordersAll, payments, paymentsAll, deliveriesAll, invoicesAll, clients, opportunities,

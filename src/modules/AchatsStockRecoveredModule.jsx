@@ -22,6 +22,8 @@ import { applyOneClickRecommendation, createSupplierFollowUpTask } from '../serv
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { rowsOf } from '../utils/moduleRows';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
+import ModuleProjectionsStrip from '../components/module/ModuleProjectionsStrip.jsx';
+import { buildStockModuleProjections } from '../utils/moduleProjections.js';
 import { buildExpirySnapshot, buildExpiryLossPatch } from '../utils/stockExpiry.js';
 import { summarizeStockValuation } from '../utils/stockValuation.js';
 import { buildStockDataQualitySnapshot } from '../utils/stockDataQuality.js';
@@ -79,6 +81,11 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate, onMarkE
           <AchatsStockKpi label="Péremption" value={fmtNumber(data.expiry?.soon?.length || 0)} tone={data.expiry?.soon?.length ? 'warn' : 'good'} onClick={() => setTab('Stock')} />
         </div>
       </AchatsStockSection>
+
+      <ModuleProjectionsStrip
+        projections={data.moduleProjections}
+        onNavigate={onNavigate}
+      />
 
       <AchatsStockSection title="Parcours rapide" subtitle="Actions terrain les plus fréquentes.">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -227,6 +234,12 @@ export default function AchatsStockRecoveredModule(props) {
       coherenceRows,
       supplierDebts,
       dataQuality,
+      moduleProjections: buildStockModuleProjections({
+        stocks,
+        lowStock,
+        debt: suppliers.reduce((s, r) => s + supplierDebt(r), 0),
+        expirySoon: expiry?.soon?.length || 0,
+      }),
     };
   }, [stocks, suppliers, transactions, feedLogs, businessEvents, stockMovements, documents, santeRecords, productionLogs, props.farmScope, props.accessibleFarms]);
 
@@ -381,6 +394,10 @@ export default function AchatsStockRecoveredModule(props) {
           </div>
         </div>
       </section>
+      <ModuleProjectionsStrip
+        projections={data.moduleProjections}
+        onNavigate={props.onNavigate}
+      />
       <Tabs active={tab} onChange={setTab} />
       {tab === 'Inventaire' ? (
         <div className="space-y-4">

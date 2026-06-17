@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AppProvider, useAppData as useRawAppData } from './AppContext.jsx';
 import { filterDataMapDeleted } from '../utils/deletedRecords';
 import { horizonFarmSimulationSeed } from '../utils/horizonFarmSimulationSeed';
@@ -25,9 +25,15 @@ function filterSeedRows(dataMap = {}) {
 
 export function useAppData() {
   const ctx = useRawAppData();
+  const [dataModeTick, setDataModeTick] = useState(0);
+  useEffect(() => {
+    const handler = () => setDataModeTick((tick) => tick + 1);
+    window.addEventListener('horizon-farm-data-mode-changed', handler);
+    return () => window.removeEventListener('horizon-farm-data-mode-changed', handler);
+  }, []);
   const filteredDataMap = useMemo(
     () => filterSeedRows(filterDataMapDeleted(ctx?.dataMap || {})),
-    [ctx?.dataMap],
+    [ctx?.dataMap, dataModeTick],
   );
   return useMemo(() => ({ ...ctx, rawDataMap: ctx?.dataMap || {}, dataMap: filteredDataMap }), [ctx, filteredDataMap]);
 }

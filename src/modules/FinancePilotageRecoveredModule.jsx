@@ -28,6 +28,8 @@ import FinanceFinancingPanel from './finance/FinanceFinancingPanel.jsx';
 import FinanceReconciliationPanel from './finance/FinanceReconciliationPanel.jsx';
 import FinanceExportsPanel from './finance/FinanceExportsPanel.jsx';
 import FinanceHeyHorizonStrip from './finance/FinanceHeyHorizonStrip.jsx';
+import ModuleProjectionsStrip from '../components/module/ModuleProjectionsStrip.jsx';
+import { buildFinanceModuleProjections } from '../utils/moduleProjections.js';
 import {
   buildFinanceSchedule,
   buildOfficialTreasuryView,
@@ -247,11 +249,13 @@ function Summary({
   dataQuality = null,
   financeDemo = null,
   onOpenAssistant,
+  moduleProjections = null,
 }) {
   return (
     <div className="space-y-5">
       <FinanceDemoBanner demo={financeDemo} />
       <FinanceExecutiveSituationPanel situation={executiveSituation} onNavigateTab={navigateFinance} />
+      <ModuleProjectionsStrip projections={moduleProjections} onNavigate={onNavigate} />
       <FinanceDataQualityPanel dataQuality={dataQuality} onNavigateTab={navigateFinance} />
       <FinanceAlertsPanel alerts={financeAlerts} onNavigateTab={navigateFinance} insufficientData={startupMode} />
       <FinanceMultiFarmPanel multiFarm={multiFarm} />
@@ -477,6 +481,21 @@ export default function FinancePilotageRecoveredModule(props) {
       treasuryWarnings: treasury.warnings,
     };
   }, [consolidationProps, transactions, investments, salesOrders, salesOrdersAll, payments, paymentsAll, clients, suppliers, tasks, stocks]);
+  const financeModuleProjections = useMemo(() => {
+    const treasury = buildOfficialTreasuryView(consolidationProps);
+    return buildFinanceModuleProjections({
+      salesOrdersAll: salesOrdersAll.length ? salesOrdersAll : salesOrders,
+      salesOrders,
+      paymentsAll: paymentsAll.length ? paymentsAll : payments,
+      payments,
+      transactionsAll: transactionsAll.length ? transactionsAll : transactions,
+      transactions,
+      finances: transactions,
+      bpRecurringCosts: rowsOf(props.bpRecurringCosts, bpRecurringCostsCrud),
+      clients,
+      receivable: treasury.receivables,
+    });
+  }, [consolidationProps, transactions, transactionsAll, salesOrders, salesOrdersAll, payments, paymentsAll, clients, props.bpRecurringCosts, bpRecurringCostsCrud]);
   const startupMode = useMemo(() => isFinanceStartupMode(consolidationProps), [consolidationProps]);
   const profitability = useMemo(() => buildProfitabilityView(consolidationProps), [consolidationProps]);
   const v2Options = useMemo(() => ({
@@ -734,6 +753,7 @@ export default function FinancePilotageRecoveredModule(props) {
           dataQuality={dataQuality}
           financeDemo={financeDemo}
           onOpenAssistant={props.onOpenAssistant}
+          moduleProjections={financeModuleProjections}
         />
       ) : tab === 'Trésorerie' ? (
         <div className="space-y-4">
@@ -834,6 +854,7 @@ export default function FinancePilotageRecoveredModule(props) {
           dataQuality={dataQuality}
           financeDemo={financeDemo}
           onOpenAssistant={props.onOpenAssistant}
+          moduleProjections={financeModuleProjections}
         />
       )}
     </div>

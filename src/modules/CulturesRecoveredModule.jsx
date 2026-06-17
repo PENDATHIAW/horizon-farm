@@ -17,6 +17,8 @@ import CulturesPilotageHub from './cultures/CulturesPilotageHub.jsx';
 import CulturesRecoltesHub from './cultures/CulturesRecoltesHub.jsx';
 import CulturesSanteHub from './cultures/CulturesSanteHub.jsx';
 import CulturesTransformationHub from './cultures/CulturesTransformationHub.jsx';
+import ModuleProjectionsStrip from '../components/module/ModuleProjectionsStrip.jsx';
+import { buildCulturesModuleProjections } from '../utils/moduleProjections.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 
@@ -194,9 +196,14 @@ export default function CulturesRecoveredModule(props) {
   }), [salesOrders, payments, transactions, rows, stocks, meteo]);
 
   const chartNarratives = useMemo(() => buildCulturesChartNarratives(rows), [rows]);
+  const culturesModuleProjections = useMemo(
+    () => buildCulturesModuleProjections({ cultures: rows }),
+    [rows],
+  );
 
   const content = tab === 'Parcelles & campagnes' ? (
     <div className="space-y-4">
+      <ModuleProjectionsStrip projections={culturesModuleProjections} onNavigate={props.onNavigate} />
       <CulturesPilotageHub
         rows={rows}
         stocks={stocks}

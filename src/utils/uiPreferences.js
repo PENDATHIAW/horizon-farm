@@ -4,6 +4,8 @@ import { clearSimulatedSeedTombstones } from '../utils/deletedRecords.js';
 export const UI_SETTINGS_KEY = 'horizon_farm_ui_settings';
 export const SIMULATED_DATA_MODE_KEY = 'horizon_farm_show_simulated_data';
 export const DEMO_MODE_KEY = 'horizon_farm_show_demo_data'; // legacy compatibility
+/** Choix explicite utilisateur : 'simulated' | 'real' (persiste même en mode réel). */
+export const DATA_MODE_CHOICE_KEY = 'horizon_farm_data_mode_choice';
 
 export const DEFAULT_UI_SETTINGS = {
   density: 'comfortable',
@@ -33,6 +35,17 @@ export function writeUiSettings(settings = {}) {
   window.localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify(normalizeUiSettings(settings)));
 }
 
+export function getDataModeChoice() {
+  if (typeof window === 'undefined') return null;
+  const raw = window.localStorage.getItem(DATA_MODE_CHOICE_KEY);
+  if (raw === 'simulated' || raw === 'real') return raw;
+  return null;
+}
+
+export function hasExplicitDataModeChoice() {
+  return getDataModeChoice() !== null;
+}
+
 export function isSimulatedDataModeEnabled() {
   const storage = typeof window !== 'undefined' ? window.localStorage : globalThis.localStorage;
   if (!storage) return false;
@@ -59,6 +72,7 @@ export function isSimulatedDataModeEnabled() {
 
 export function setSimulatedDataMode(enabled) {
   if (typeof window === 'undefined') return;
+  window.localStorage.setItem(DATA_MODE_CHOICE_KEY, enabled ? 'simulated' : 'real');
   if (enabled) {
     window.localStorage.setItem(SIMULATED_DATA_MODE_KEY, '1');
     window.localStorage.setItem(DEMO_MODE_KEY, '1');
@@ -67,8 +81,18 @@ export function setSimulatedDataMode(enabled) {
   } else {
     window.localStorage.removeItem(SIMULATED_DATA_MODE_KEY);
     window.localStorage.removeItem(DEMO_MODE_KEY);
+    resetSimulatedModeCache();
   }
   window.dispatchEvent(new CustomEvent('horizon-farm-data-mode-changed', { detail: { simulated: Boolean(enabled) } }));
+}
+
+export function applyDefaultDataModeForRole(role) {
+  if (typeof window === 'undefined') return;
+  if (hasExplicitDataModeChoice()) return;
+
+  const normalized = String(role || '').toLowerCase();
+  const defaultSimulated = normalized !== 'admin' && normalized !== 'manager';
+  setSimulatedDataMode(defaultSimulated);
 }
 
 export function isDemoModeEnabled() {

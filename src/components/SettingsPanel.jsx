@@ -30,6 +30,12 @@ export default function SettingsPanel({ open, onClose, user, displayUser, online
     window.dispatchEvent(new CustomEvent('horizon-farm-ui-settings-changed', { detail: settings }));
   }, [settings]);
 
+  useEffect(() => {
+    const syncDataMode = () => setDemoEnabled(isDemoModeEnabled());
+    window.addEventListener('horizon-farm-data-mode-changed', syncDataMode);
+    return () => window.removeEventListener('horizon-farm-data-mode-changed', syncDataMode);
+  }, []);
+
   const role = user?.user_metadata?.role || 'profil';
   const weatherLabel = useMemo(() => {
     if (!meteo) return 'Météo indisponible';
