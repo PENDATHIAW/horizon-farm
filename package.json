@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "pitch:generate": "node scripts/generate-pitch-assets.mjs",
+    "guide:generate": "node scripts/generate-guide-pdf.mjs",
     "test:e2e": "playwright test",
     "test:e2e:workflows": "PLAYWRIGHT_SKIP_WEBSERVER=1 playwright test tests/e2e/simulated-business-workflows.spec.js",
     "test:e2e:smoke": "playwright test tests/e2e/assistant-erp-smoke.spec.js tests/e2e/decision-center-smoke.spec.js",

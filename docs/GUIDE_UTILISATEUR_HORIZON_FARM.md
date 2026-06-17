@@ -1,5 +1,8 @@
 # Guide utilisateur Horizon Farm
 
+> **PDF prêt à imprimer ou envoyer :** [GUIDE_UTILISATEUR_HORIZON_FARM.pdf](GUIDE_UTILISATEUR_HORIZON_FARM.pdf)  
+> Régénérer : `npm run guide:generate` · HTML source : `/guide-utilisateur-horizon-farm.html`
+
 **Version :** juin 2026  
 **Public :** exploitants agricoles, responsables d’exploitation, chefs d’équipe terrain
 

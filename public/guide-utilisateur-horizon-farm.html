@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Guide utilisateur Horizon Farm</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --hero: #052e16;
+      --accent: #22c55e;
+      --accent-strong: #15803d;
+      --gold: #9a6b12;
+      --gold-light: #b8954a;
+      --surface: #fffdf8;
+      --border: #eadcc2;
+      --text: #2f2415;
+      --muted: #8a7456;
+    }
+
+    @page {
+      size: A4;
+      margin: 18mm 16mm 22mm 16mm;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.55;
+      color: var(--text);
+      background: white;
+    }
+
+    .cover {
+      page-break-after: always;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 3rem 2rem;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(34,197,94,0.12), transparent 60%),
+        linear-gradient(180deg, #f6faf6 0%, var(--surface) 100%);
+    }
+
+    .cover img { height: 100px; margin-bottom: 2rem; }
+    .cover .badge {
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1rem;
+    }
+    .cover h1 {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 2.4rem;
+      color: var(--hero);
+      margin-bottom: 0.75rem;
+    }
+    .cover .subtitle {
+      font-size: 1.05rem;
+      color: var(--muted);
+      max-width: 32ch;
+      margin-bottom: 2rem;
+    }
+    .cover .meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      padding-top: 1.5rem;
+      margin-top: 1rem;
+    }
+    .cover .tagline {
+      margin-top: 1.5rem;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--accent-strong);
+    }
+
+    .toc-page {
+      page-break-after: always;
+      padding: 2rem 0;
+    }
+    .toc-page h2 {
+      font-family: 'Fraunces', serif;
+      font-size: 1.5rem;
+      color: var(--hero);
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 3px solid var(--accent);
+    }
+    .toc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.35rem 2rem;
+    }
+    .toc-item {
+      display: flex;
+      gap: 0.65rem;
+      align-items: baseline;
+      padding: 0.4rem 0;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 0.88rem;
+      border-bottom: 1px dotted var(--border);
+    }
+    .toc-num {
+      font-weight: 800;
+      color: var(--accent-strong);
+      min-width: 1.5rem;
+    }
+
+    .content { padding: 0; }
+
+    .doc-title { display: none; }
+
+    h2 {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--hero);
+      margin: 1.75rem 0 0.75rem;
+      padding: 0.5rem 0 0.5rem 0.75rem;
+      border-left: 4px solid var(--accent);
+      page-break-after: avoid;
+    }
+
+    h2:first-of-type { margin-top: 0; }
+
+    h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin: 1.1rem 0 0.45rem;
+      page-break-after: avoid;
+    }
+
+    p {
+      margin: 0.45rem 0;
+      color: var(--text);
+    }
+
+    ul {
+      margin: 0.4rem 0 0.65rem 1.25rem;
+      padding: 0;
+    }
+    li {
+      margin: 0.25rem 0;
+      padding-left: 0.25rem;
+    }
+    li::marker { color: var(--accent-strong); }
+
+    .numbered {
+      display: flex;
+      gap: 0.65rem;
+      align-items: flex-start;
+      margin: 0.35rem 0;
+    }
+    .numbered .num {
+      flex-shrink: 0;
+      width: 1.4rem;
+      height: 1.4rem;
+      border-radius: 50%;
+      background: var(--hero);
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 0.1rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.65rem 0 1rem;
+      font-size: 0.85rem;
+      page-break-inside: avoid;
+    }
+    th {
+      background: var(--hero);
+      color: white;
+      font-weight: 700;
+      text-align: left;
+      padding: 0.5rem 0.65rem;
+    }
+    th:first-child { border-radius: 0.4rem 0 0 0; }
+    th:last-child { border-radius: 0 0.4rem 0 0; }
+    td {
+      padding: 0.45rem 0.65rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: #f8fbf8; }
+
+    strong { color: var(--hero); font-weight: 700; }
+    code {
+      font-size: 0.85em;
+      background: #f0f7f0;
+      padding: 0.1rem 0.35rem;
+      border-radius: 0.25rem;
+      color: var(--accent-strong);
+    }
+
+    hr.section-break {
+      border: none;
+      height: 0;
+      margin: 0;
+      page-break-before: always;
+    }
+
+    .page-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 12mm;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16mm;
+      font-size: 7pt;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      background: white;
+    }
+
+    @media print {
+      .cover { min-height: 257mm; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <section class="cover">
+    <img src="/horizon-farm-logo-transparent.png" alt="Horizon Farm" />
+    <p class="badge">Documentation officielle</p>
+    <h1>Guide utilisateur</h1>
+    <p class="subtitle">Piloter votre exploitation au quotidien — élevage, cultures, stock, ventes, finances et capteurs.</p>
+    <p class="meta">Version juin 2026 · Exploitants agricoles, responsables d'exploitation, équipes terrain</p>
+    <p class="tagline">De la terre à l'horizon</p>
+  </section>
+
+  <section class="toc-page">
+    <h2>Sommaire</h2>
+    <div class="toc-grid"><a href="#1-qu-est-ce-qu-horizon-farm" class="toc-item"><span class="toc-num">1</span><span>Qu’est-ce qu’Horizon Farm ?</span></a>
+<a href="#2-premiers-pas" class="toc-item"><span class="toc-num">2</span><span>Premiers pas</span></a>
+<a href="#3-accueil-le-carnet-du-dirigeant" class="toc-item"><span class="toc-num">3</span><span>Accueil — le carnet du dirigeant</span></a>
+<a href="#4-élevage" class="toc-item"><span class="toc-num">4</span><span>Élevage</span></a>
+<a href="#5-cultures" class="toc-item"><span class="toc-num">5</span><span>Cultures</span></a>
+<a href="#6-achats-stock" class="toc-item"><span class="toc-num">6</span><span>Achats &amp; Stock</span></a>
+<a href="#7-commercial" class="toc-item"><span class="toc-num">7</span><span>Commercial</span></a>
+<a href="#8-finance-pilotage" class="toc-item"><span class="toc-num">8</span><span>Finance &amp; Pilotage</span></a>
+<a href="#9-activité-suivi" class="toc-item"><span class="toc-num">9</span><span>Activité &amp; Suivi</span></a>
+<a href="#10-smart-farm-capteurs-caméras" class="toc-item"><span class="toc-num">10</span><span>Smart Farm (capteurs &amp; caméras)</span></a>
+<a href="#11-hey-horizon-l-assistant" class="toc-item"><span class="toc-num">11</span><span>Hey Horizon — l’assistant</span></a>
+<a href="#12-documents-rapports" class="toc-item"><span class="toc-num">12</span><span>Documents &amp; rapports</span></a>
+<a href="#13-gestion-système" class="toc-item"><span class="toc-num">13</span><span>Gestion système</span></a>
+<a href="#14-multi-fermes-et-période" class="toc-item"><span class="toc-num">14</span><span>Multi-fermes et période</span></a>
+<a href="#15-résolution-de-problèmes" class="toc-item"><span class="toc-num">15</span><span>Résolution de problèmes</span></a>
+<a href="#16-glossaire-métier-non-technique" class="toc-item"><span class="toc-num">16</span><span>Glossaire métier (non technique)</span></a>
+<a href="#17-contacts-et-évolution" class="toc-item"><span class="toc-num">17</span><span>Contacts et évolution</span></a></div>
+  </section>
+
+  <main class="content">
+    <h1 class="doc-title">Guide utilisateur Horizon Farm</h1>
+<p>&gt; <strong>PDF prêt à imprimer ou envoyer :</strong> [GUIDE_UTILISATEUR_HORIZON_FARM.pdf](GUIDE_UTILISATEUR_HORIZON_FARM.pdf)</p>
+<p>&gt; Régénérer : <code>npm run guide:generate</code> · HTML source : <code>/guide-utilisateur-horizon-farm.html</code></p>
+<p><strong>Version :</strong> juin 2026</p>
+<p><strong>Public :</strong> exploitants agricoles, responsables d’exploitation, chefs d’équipe terrain</p>
+<hr class="section-break" />
+<h2 id="1-qu-est-ce-qu-horizon-farm">1. Qu’est-ce qu’Horizon Farm ?</h2>
+<p>Horizon Farm est un <strong>ERP agricole</strong> conçu pour piloter une exploitation au quotidien : élevage, cultures, stock, ventes, finances et suivi terrain. L’application regroupe vos données en un seul endroit et vous aide à <strong>voir l’essentiel</strong>, <strong>agir au bon moment</strong> et <strong>garder la traçabilité</strong>.</p>
+<p>Trois principes guident l’interface :</p>
+<ul>
+<li><strong>Terrain d’abord</strong> — ce qui compte pour la ferme (effectifs, récoltes, ventes, alertes) est visible sans jargon technique.</li>
+<li><strong>Un seul fil conducteur</strong> — une vente met à jour le stock, la trésorerie et l’activité ; un achat aliment met à jour les dettes fournisseurs.</li>
+<li><strong>Validation avant action</strong> — l’assistant Hey Horizon prépare les enregistrements ; vous validez avant que rien ne soit écrit.</li>
+</ul>
+<hr class="section-break" />
+<h2 id="2-premiers-pas">2. Premiers pas</h2>
+<h3>2.1 Connexion et profil</h3>
+<p class="numbered"><span class="num">1</span>Ouvrez Horizon Farm depuis votre navigateur ou l’application installée (PWA).</p>
+<p class="numbered"><span class="num">2</span>Connectez-vous avec votre compte.</p>
+<p class="numbered"><span class="num">3</span>Vérifiez la <strong>ferme active</strong> en haut de l’écran (sélecteur de ferme si vous gérez plusieurs sites).</p>
+<p class="numbered"><span class="num">4</span>Choisissez la <strong>période</strong> (mois en cours, trimestre, année) pour les indicateurs filtrés.</p>
+<h3>2.2 Mode démonstration</h3>
+<p>Dans <strong>Gestion système → Paramètres</strong>, vous pouvez activer le <strong>mode données simulées</strong> pour explorer l’application avec un jeu d’exemple réaliste (bandes avicoles, parcelles, ventes, capteurs). Idéal pour la formation ou une présentation client.</p>
+<h3>2.3 Navigation générale</h3>
+<table><thead><tr><th>Zone</th><th>Rôle</th></tr></thead><tbody><tr><td><strong>Accueil</strong></td><td>Vue dirigeant : état global, capteurs, objectifs, conseil, journal</td></tr><tr><td><strong>Élevage</strong></td><td>Lots, animaux, alimentation, santé, reproduction, transformation</td></tr><tr><td><strong>Cultures</strong></td><td>Parcelles, campagnes, récoltes, intrants</td></tr><tr><td><strong>Achats &amp; Stock</strong></td><td>Inventaire, réceptions, mouvements, fournisseurs</td></tr><tr><td><strong>Commercial</strong></td><td>Ventes, clients, livraisons, encaissements</td></tr><tr><td><strong>Finance &amp; Pilotage</strong></td><td>Trésorerie, créances, dettes, rentabilité</td></tr><tr><td><strong>Activité &amp; Suivi</strong></td><td>Cockpit, actions à traiter, traçabilité, performance</td></tr><tr><td><strong>Smart Farm</strong></td><td>Capteurs, caméras, flux temps réel, automatisation</td></tr><tr><td><strong>Hey Horizon</strong></td><td>Assistant conversationnel (vente, achat, alerte, question métier)</td></tr></tbody></table>
+<hr class="section-break" />
+<h2 id="3-accueil-le-carnet-du-dirigeant">3. Accueil — le carnet du dirigeant</h2>
+<p>L’accueil est votre <strong>tableau de bord terrain</strong>. Il affiche :</p>
+<h3>3.1 Cartes domaine (sans icônes décoratives)</h3>
+<ul>
+<li><strong>Élevage</strong> — effectifs par espèce (pondeuses, chair, bovins…), mortalités du jour, lots sous traitement.</li>
+<li><strong>Cultures</strong> — parcelles actives, surfaces, cultures principales, parcelles à surveiller.</li>
+<li><strong>Stock</strong> — nombre de produits, emplacements, ruptures, DLC proches.</li>
+<li><strong>Finance</strong> — trésorerie nette, créances, dettes.</li>
+</ul>
+<p>Cliquez sur une carte pour ouvrir le module correspondant.</p>
+<h3>3.2 Bandeau capteurs &amp; terrain</h3>
+<p>Résumé <strong>Smart Farm</strong> sur l’accueil :</p>
+<ul>
+<li>Température, humidité air et sol (selon capteurs connectés).</li>
+<li>Nombre de capteurs en ligne / hors ligne.</li>
+<li>Alertes seuils dépassés.</li>
+<li>Lien direct vers <strong>Smart Farm → Flux temps réel</strong>.</li>
+</ul>
+<h3>3.3 Objectifs de l’exploitation</h3>
+<ul>
+<li><strong>CA mois</strong> — réalisé vs objectif du mois.</li>
+<li><strong>CA année</strong> — cumul annuel vs objectif.</li>
+</ul>
+<h3>3.4 Conseil Horizon</h3>
+<p>Message structuré : <strong>Situation → Cause → Action</strong> (ex. stock d’aliment bas, créances à relancer).</p>
+<h3>3.5 Journal d’exploitation</h3>
+<p>Les 10 derniers événements terrain (ventes, livraisons, récoltes, paiements, soins…) sans bruit administratif (BP, investisseur, tâches internes).</p>
+<hr class="section-break" />
+<h2 id="4-élevage">4. Élevage</h2>
+<h3>4.1 Onglets principaux</h3>
+<table><thead><tr><th>Onglet</th><th>Usage</th></tr></thead><tbody><tr><td>Lots &amp; bandes</td><td>Poulets chair, pondeuses, cycles avicoles</td></tr><tr><td>Animaux</td><td>Bovins, ovins, caprins, fiches individuelles</td></tr><tr><td>Alimentation</td><td>Distributions, consommation, lien stock</td></tr><tr><td>Santé</td><td>Vaccins, traitements, rappels</td></tr><tr><td>Reproduction</td><td>Saillies, gestations, naissances</td></tr><tr><td>Transformation</td><td>Abattage, découpe, lien commercial</td></tr></tbody></table>
+<h3>4.2 Saisies courantes</h3>
+<ul>
+<li><strong>Mortalité</strong> — depuis la fiche lot ou via Hey Horizon (« 5 poulets morts lot A »).</li>
+<li><strong>Production d’œufs</strong> — saisie journalière ou ramassage.</li>
+<li><strong>Pesée</strong> — suivi courbe de croissance et aide à la décision vente.</li>
+<li><strong>Alimentation</strong> — sortie stock automatique si configurée.</li>
+</ul>
+<h3>4.3 Bonnes pratiques</h3>
+<ul>
+<li>Clôturer les lots vendus ou terminés pour des indicateurs fiables.</li>
+<li>Renseigner le vétérinaire et les dates de rappel sanitaire.</li>
+<li>Utiliser la <strong>transformation</strong> pour lier abattage → stock viande → vente.</li>
+</ul>
+<hr class="section-break" />
+<h2 id="5-cultures">5. Cultures</h2>
+<h3>5.1 Parcelles &amp; campagnes</h3>
+<p>Créez une <strong>parcelle</strong> (surface, culture, statut) puis suivez les opérations : semis, traitements, récolte.</p>
+<h3>5.2 Récolte</h3>
+<p>Une récolte enregistrée :</p>
+<ul>
+<li>Met à jour la parcelle.</li>
+<li>Peut alimenter le stock (grains, légumes…).</li>
+<li>Apparaît dans le journal d’accueil et la traçabilité.</li>
+</ul>
+<h3>5.3 Lien Smart Farm</h3>
+<p>Humidité sol et température parcelle : consultez <strong>Smart Farm</strong> ou le bandeau capteurs sur l’accueil.</p>
+<hr class="section-break" />
+<h2 id="6-achats-stock">6. Achats &amp; Stock</h2>
+<h3>6.1 Parcours type</h3>
+<p class="numbered"><span class="num">1</span><strong>Réception</strong> — entrée stock + lien fournisseur + dette si à crédit.</p>
+<p class="numbered"><span class="num">2</span><strong>Inventaire</strong> — vue quantités, seuils, emplacements.</p>
+<p class="numbered"><span class="num">3</span><strong>Mouvements</strong> — journal des entrées/sorties (lecture seule ; saisies dans Stock).</p>
+<p class="numbered"><span class="num">4</span><strong>Fournisseurs</strong> — dettes, relances, historique achats.</p>
+<h3>6.2 Alertes stock</h3>
+<ul>
+<li>Rupture (quantité ≤ 0 avec seuil défini).</li>
+<li>Sous seuil (réapprovisionnement).</li>
+<li>DLC proche ou dépassée.</li>
+</ul>
+<h3>6.3 Mouvements — vocabulaire</h3>
+<ul>
+<li><strong>Journal</strong> — mouvements officiels enregistrés par l’application.</li>
+<li><strong>Historique</strong> — anciennes traces (alimentation, événements antérieurs).</li>
+</ul>
+<hr class="section-break" />
+<h2 id="7-commercial">7. Commercial</h2>
+<h3>7.1 Vente complète</h3>
+<p class="numbered"><span class="num">1</span>Créer une <strong>commande</strong> (client, produits, prix).</p>
+<p class="numbered"><span class="num">2</span>Enregistrer une <strong>livraison</strong> si nécessaire.</p>
+<p class="numbered"><span class="num">3</span>Encaisser le <strong>paiement</strong> (espèces, mobile money, virement).</p>
+<p class="numbered"><span class="num">4</span>Vérifier la <strong>marge</strong> sur la fiche vente.</p>
+<h3>7.2 Clients &amp; créances</h3>
+<p>Le module Commercial et l’accueil Finance affichent les montants restant à encaisser. Relancez depuis Commercial ou via message WhatsApp préparé (selon configuration).</p>
+<h3>7.3 Opportunités</h3>
+<p>Propositions de vente issues des stocks disponibles ou des recommandations (lots prêts à vendre, œufs en surplus…).</p>
+<hr class="section-break" />
+<h2 id="8-finance-pilotage">8. Finance &amp; Pilotage</h2>
+<h3>8.1 Résumé</h3>
+<ul>
+<li>Trésorerie (entrées − sorties récentes).</li>
+<li>Créances clients.</li>
+<li>Dettes fournisseurs et charges.</li>
+</ul>
+<h3>8.2 Rentabilité</h3>
+<p>Consolidation des coûts élevage + cultures + charges. Les paramètres de coût (rations, prix aliment) se règlent dans l’onglet <strong>Annexe</strong> des modules concernés.</p>
+<h3>8.3 Investissements</h3>
+<p>Suivi des immobilisations et amortissements (selon données renseignées).</p>
+<hr class="section-break" />
+<h2 id="9-activité-suivi">9. Activité &amp; Suivi</h2>
+<p>Quatre onglets :</p>
+<table><thead><tr><th>Onglet</th><th>Contenu</th></tr></thead><tbody><tr><td><strong>Cockpit &amp; décisions</strong></td><td>Vue synthèse, alertes critiques, actions recommandées</td></tr><tr><td><strong>À traiter maintenant</strong></td><td>Tâches ouvertes, alertes à résoudre, file de traitement</td></tr><tr><td><strong>Registre &amp; traçabilité</strong></td><td>Historique des opérations liées</td></tr><tr><td><strong>Performance &amp; analytique</strong></td><td>Graphiques, tendances, suivi dans le temps</td></tr></tbody></table>
+<p><strong>Astuce :</strong> si l’onglet « À traiter maintenant » ne s’ouvre pas depuis un lien externe, cliquez directement sur l’onglet dans la barre du module — la navigation interne est prioritaire.</p>
+<hr class="section-break" />
+<h2 id="10-smart-farm-capteurs-caméras">10. Smart Farm (capteurs &amp; caméras)</h2>
+<h3>10.1 Flux temps réel</h3>
+<ul>
+<li>Dernières mesures : température (TC), humidité, sol.</li>
+<li>Événements capteurs (seuils, offline, intrusion…).</li>
+<li>Statut en ligne / hors ligne.</li>
+</ul>
+<h3>10.2 Gestion des équipements</h3>
+<p>Enregistrement des capteurs, caméras, zones (poulailler, serre, magasin…).</p>
+<h3>10.3 Automatisation</h3>
+<p>Règles du type « Si température trop haute → alerte + tâche ventilation ». Les commandes matérielles (vannes, ventilateurs) arrivent progressivement ; les <strong>alertes et tâches</strong> sont déjà actives.</p>
+<hr class="section-break" />
+<h2 id="11-hey-horizon-l-assistant">11. Hey Horizon — l’assistant</h2>
+<h3>11.1 Ce que vous pouvez dire</h3>
+<ul>
+<li>« J’ai vendu 20 tablettes d’œufs à 70 000 FCFA »</li>
+<li>« Réception de 10 sacs d’aliment chez AgroFeed »</li>
+<li>« 3 poulets morts dans le lot B12 »</li>
+<li>« Quel est mon stock de maïs ? »</li>
+</ul>
+<h3>11.2 Workflow</h3>
+<p class="numbered"><span class="num">1</span>Vous formulez votre besoin (texte ou vocal si disponible).</p>
+<p class="numbered"><span class="num">2</span>L’assistant prépare un <strong>brouillon</strong> (vente, achat, tâche…).</p>
+<p class="numbered"><span class="num">3</span>Vous <strong>vérifiez et validez</strong>.</p>
+<p class="numbered"><span class="num">4</span>L’enregistrement est créé dans le bon module.</p>
+<p>Aucune écriture sans votre confirmation.</p>
+<hr class="section-break" />
+<h2 id="12-documents-rapports">12. Documents &amp; rapports</h2>
+<ul>
+<li><strong>Centre de contrôle</strong> — état des pièces justificatives.</li>
+<li><strong>Gestionnaire &amp; OCR</strong> — import et lecture de factures / reçus.</li>
+<li><strong>Rapprochement</strong> — rapprocher paiements et preuves.</li>
+<li><strong>Rapports &amp; exports</strong> — synthèses pour banque, partenaires, saison.</li>
+</ul>
+<hr class="section-break" />
+<h2 id="13-gestion-système">13. Gestion système</h2>
+<p>Réservé aux administrateurs :</p>
+<ul>
+<li><strong>Fermes</strong> — création, comparaison multi-sites.</li>
+<li><strong>Utilisateurs</strong> — rôles et accès (évolution en cours).</li>
+<li><strong>Paramètres</strong> — devise, unités, mode démo.</li>
+<li><strong>Sécurité</strong> — journal d’audit.</li>
+<li><strong>Sauvegardes</strong> — actualiser les données, synchronisation hors ligne.</li>
+</ul>
+<hr class="section-break" />
+<h2 id="14-multi-fermes-et-période">14. Multi-fermes et période</h2>
+<ul>
+<li><strong>Ferme unique</strong> — tous les indicateurs concernent ce site.</li>
+<li><strong>Toutes les fermes</strong> — cumul (accueil affiche souvent « Cumul »).</li>
+<li><strong>Période</strong> — filtre ventes, finances et certains graphiques.</li>
+</ul>
+<hr class="section-break" />
+<h2 id="15-résolution-de-problèmes">15. Résolution de problèmes</h2>
+<table><thead><tr><th>Problème</th><th>Piste</th></tr></thead><tbody><tr><td>Chiffres à zéro en mode démo</td><td>Vérifier que le mode données simulées est activé ; actualiser les données</td></tr><tr><td>Module qui ne charge pas</td><td>Recharger la page ; vider le cache navigateur</td></tr><tr><td>Onglet qui ne change pas</td><td>Cliquer l’onglet dans la barre du module</td></tr><tr><td>Capteurs absents sur l’accueil</td><td>Vérifier Smart Farm → équipements enregistrés</td></tr><tr><td>Écart de marge / coût</td><td>Vérifier Annexe → rations et prix aliment par défaut</td></tr></tbody></table>
+<hr class="section-break" />
+<h2 id="16-glossaire-métier-non-technique">16. Glossaire métier (non technique)</h2>
+<table><thead><tr><th>Terme</th><th>Signification</th></tr></thead><tbody><tr><td><strong>Lot / bande</strong></td><td>Groupe d’animaux géré ensemble (ex. poulets chair)</td></tr><tr><td><strong>CMUP</strong></td><td>Coût moyen unitaire pondéré du stock</td></tr><tr><td><strong>Créance</strong></td><td>Argent que un client vous doit encore</td></tr><tr><td><strong>DLC</strong></td><td>Date limite de consommation (péremption)</td></tr><tr><td><strong>Traçabilité</strong></td><td>Retrouver l’historique d’un produit ou lot</td></tr><tr><td><strong>Trésorerie nette</strong></td><td>Solde disponible après entrées et sorties récentes</td></tr></tbody></table>
+<hr class="section-break" />
+<h2 id="17-contacts-et-évolution">17. Contacts et évolution</h2>
+<p>Horizon Farm évolue régulièrement (nouveaux modules, capteurs, automatisation). Pour une démo personnalisée ou un déploiement sur votre exploitation, contactez votre interlocuteur Horizon Farm.</p>
+<p><strong>Bonne gestion.</strong></p>
+  </main>
+
+</body>
+</html>
