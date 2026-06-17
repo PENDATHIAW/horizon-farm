@@ -10,35 +10,21 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fraunces:wght@600;700;800&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --hf-hero: #052e16;
-      --hf-accent: #22c55e;
-      --hf-accent-strong: #15803d;
-      --hf-gold: #9a6b12;
-      --hf-sun: #e8a317;
-      --hf-bg: #f6faf6;
-      --hf-surface: #fffdf8;
-      --hf-border: #eadcc2;
-      --hf-text: #2f2415;
-      --hf-muted: #8a7456;
+      --hf-hero: #052e16; --hf-accent: #22c55e; --hf-accent-strong: #15803d;
+      --hf-gold: #9a6b12; --hf-sun: #e8a317; --hf-bg: #f6faf6; --hf-surface: #fffdf8;
+      --hf-border: #eadcc2; --hf-text: #2f2415; --hf-muted: #8a7456;
       --shadow: 0 20px 50px rgba(5, 46, 22, 0.1);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'DM Sans', system-ui, sans-serif;
-      color: var(--hf-text);
-      background: var(--hf-bg);
-      line-height: 1.5;
-    }
+    body { font-family: 'DM Sans', system-ui, sans-serif; color: var(--hf-text); background: var(--hf-bg); line-height: 1.5; }
     a { color: var(--hf-accent-strong); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
     .header {
       position: sticky; top: 0; z-index: 50;
       display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-      padding: 0.85rem 1.5rem;
-      background: rgba(5, 46, 22, 0.95);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(34, 197, 94, 0.2);
+      padding: 0.85rem 1.5rem; background: rgba(5, 46, 22, 0.95);
+      backdrop-filter: blur(10px); border-bottom: 1px solid rgba(34, 197, 94, 0.2);
     }
     .header img { height: 40px; }
     .header nav { display: flex; gap: 1rem; flex-wrap: wrap; }
@@ -47,33 +33,23 @@
 
     .hero {
       padding: 3rem 1.5rem 2.5rem;
-      background:
-        radial-gradient(ellipse 70% 50% at 90% 0%, rgba(34,197,94,0.15), transparent),
+      background: radial-gradient(ellipse 70% 50% at 90% 0%, rgba(34,197,94,0.15), transparent),
         linear-gradient(165deg, #041a0d, var(--hf-hero));
-      color: #ecfdf5;
-      text-align: center;
+      color: #ecfdf5; text-align: center;
     }
-    .hero h1 {
-      font-family: 'Fraunces', serif;
-      font-size: clamp(2rem, 5vw, 3rem);
-      margin-bottom: 0.75rem;
-    }
-    .hero p { color: #a7d4b5; max-width: 52ch; margin: 0 auto 1.5rem; }
+    .hero h1 { font-family: 'Fraunces', serif; font-size: clamp(2rem, 5vw, 3rem); margin-bottom: 0.75rem; }
+    .hero p { color: #a7d4b5; max-width: 58ch; margin: 0 auto 1.5rem; }
     .hero-btns { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+
     .btn {
       display: inline-block; padding: 0.75rem 1.5rem; border-radius: 2rem;
       font-weight: 700; font-size: 0.9rem; border: none; cursor: pointer;
       transition: transform 0.15s, box-shadow 0.15s;
     }
     .btn:hover { transform: translateY(-1px); }
-    .btn--primary {
-      background: linear-gradient(135deg, var(--hf-accent), var(--hf-accent-strong));
-      color: white; box-shadow: 0 8px 24px rgba(34,197,94,0.35);
-    }
-    .btn--ghost {
-      background: rgba(255,255,255,0.1); color: #dcfce7;
-      border: 1px solid rgba(255,255,255,0.25);
-    }
+    .btn--primary { background: linear-gradient(135deg, var(--hf-accent), var(--hf-accent-strong)); color: white; box-shadow: 0 8px 24px rgba(34,197,94,0.35); }
+    .btn--ghost { background: rgba(255,255,255,0.1); color: #dcfce7; border: 1px solid rgba(255,255,255,0.25); }
+    .btn--outline { background: white; color: var(--hf-text); border: 1px solid var(--hf-border); }
 
     .tabs {
       display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;
@@ -81,102 +57,105 @@
     }
     .tab {
       padding: 0.6rem 1.1rem; border-radius: 2rem; border: 1px solid var(--hf-border);
-      background: white; font-weight: 600; font-size: 0.85rem; cursor: pointer;
-      color: var(--hf-muted);
+      background: white; font-weight: 600; font-size: 0.85rem; cursor: pointer; color: var(--hf-muted);
     }
-    .tab.active {
-      background: var(--hf-hero); color: white; border-color: var(--hf-hero);
-    }
+    .tab.active { background: var(--hf-hero); color: white; border-color: var(--hf-hero); }
 
     .panel { display: none; max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
     .panel.active { display: block; }
-
-    .section-title {
-      font-family: 'Fraunces', serif;
-      font-size: 1.5rem; margin-bottom: 0.35rem; color: var(--hf-hero);
-    }
+    .section-title { font-family: 'Fraunces', serif; font-size: 1.5rem; margin-bottom: 0.35rem; color: var(--hf-hero); }
     .section-sub { color: var(--hf-muted); font-size: 0.9rem; margin-bottom: 1.25rem; }
 
-    .module-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 0.85rem;
-    }
+    .module-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.85rem; }
     .module-card {
       background: white; border: 1px solid var(--hf-border); border-radius: 1rem;
       padding: 1rem; cursor: pointer; transition: box-shadow 0.2s, border-color 0.2s;
     }
-    .module-card:hover, .module-card.selected {
-      border-color: var(--hf-accent);
-      box-shadow: var(--shadow);
-    }
-    .module-card .group {
-      font-size: 0.65rem; font-weight: 800; letter-spacing: 0.12em;
-      text-transform: uppercase; color: var(--hf-accent-strong); margin-bottom: 0.35rem;
-    }
+    .module-card:hover, .module-card.selected { border-color: var(--hf-accent); box-shadow: var(--shadow); }
+    .module-card .group { font-size: 0.65rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--hf-accent-strong); margin-bottom: 0.35rem; }
     .module-card h3 { font-size: 0.95rem; margin-bottom: 0.35rem; }
     .module-card p { font-size: 0.78rem; color: var(--hf-muted); }
 
     .detail-panel {
-      margin-top: 1.25rem; padding: 1.5rem;
-      background: white; border: 1px solid var(--hf-border); border-radius: 1.1rem;
-      box-shadow: var(--shadow); display: none;
+      margin-top: 1.25rem; padding: 1.5rem; background: white;
+      border: 1px solid var(--hf-border); border-radius: 1.1rem; box-shadow: var(--shadow); display: none;
     }
     .detail-panel.visible { display: block; }
     .detail-panel h3 { font-family: 'Fraunces', serif; font-size: 1.25rem; margin-bottom: 0.75rem; }
     .feature-list { list-style: none; display: grid; gap: 0.5rem; }
-    .feature-list li {
-      padding: 0.6rem 0.85rem; background: #f0fdf4; border-radius: 0.6rem;
-      font-size: 0.85rem; border-left: 3px solid var(--hf-accent);
+    .feature-list li { padding: 0.6rem 0.85rem; background: #f0fdf4; border-radius: 0.6rem; font-size: 0.85rem; border-left: 3px solid var(--hf-accent); }
+
+    .scenario-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem; }
+    .scenario-card {
+      padding: 1rem; border-radius: 0.85rem; border: 2px solid var(--hf-border);
+      background: white; cursor: pointer; text-align: left; transition: border-color 0.2s;
     }
+    .scenario-card:hover, .scenario-card.active { border-color: var(--hf-accent); background: #f0fdf4; }
+    .scenario-card .icon { font-size: 1.5rem; margin-bottom: 0.35rem; }
+    .scenario-card strong { display: block; font-size: 0.9rem; margin-bottom: 0.2rem; }
+    .scenario-card span { font-size: 0.75rem; color: var(--hf-muted); }
 
-    .tour-layout { display: grid; grid-template-columns: 280px 1fr; gap: 1.25rem; }
+    .tour-layout { display: grid; grid-template-columns: 260px 1fr; gap: 1.25rem; }
     @media (max-width: 800px) { .tour-layout { grid-template-columns: 1fr; } }
-
     .tour-steps { display: flex; flex-direction: column; gap: 0.5rem; }
     .tour-step-btn {
-      text-align: left; padding: 0.75rem 1rem; border-radius: 0.75rem;
-      border: 1px solid var(--hf-border); background: white; cursor: pointer;
-      font-size: 0.85rem; font-weight: 600;
+      text-align: left; padding: 0.7rem 0.9rem; border-radius: 0.75rem;
+      border: 1px solid var(--hf-border); background: white; cursor: pointer; font-size: 0.82rem; font-weight: 600;
     }
     .tour-step-btn.active { background: var(--hf-hero); color: white; border-color: var(--hf-hero); }
     .tour-step-btn.done { border-color: var(--hf-accent); }
-
     .tour-screen {
       background: white; border: 1px solid var(--hf-border); border-radius: 1.1rem;
-      padding: 1.5rem; min-height: 380px; box-shadow: var(--shadow);
+      padding: 1.5rem; min-height: 360px; box-shadow: var(--shadow);
     }
-    .tour-screen .mock-bar {
-      display: flex; gap: 0.5rem; margin-bottom: 1rem; padding-bottom: 0.75rem;
-      border-bottom: 1px solid var(--hf-border);
-    }
-    .mock-bar span {
-      padding: 0.35rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600;
-      background: #f3f4f6; color: var(--hf-muted);
-    }
+    .mock-bar { display: flex; gap: 0.5rem; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--hf-border); flex-wrap: wrap; }
+    .mock-bar span { padding: 0.35rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600; background: #f3f4f6; color: var(--hf-muted); }
     .mock-bar span.on { background: #dcfce7; color: var(--hf-accent-strong); }
 
     .domain-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; margin: 1rem 0; }
-    .domain-card {
-      padding: 0.85rem; border-radius: 0.75rem;
-      background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.35);
-    }
+    .domain-card { padding: 0.85rem; border-radius: 0.75rem; background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.35); }
     .domain-card .label { font-size: 0.65rem; font-weight: 800; color: var(--hf-accent-strong); letter-spacing: 0.1em; }
     .domain-card .val { font-family: 'Fraunces', serif; font-size: 1.2rem; font-weight: 700; }
 
     .chat-demo { background: #f3f4f6; border-radius: 1rem; padding: 1rem; margin-top: 1rem; }
-    .bubble { padding: 0.75rem 1rem; border-radius: 1rem; font-size: 0.85rem; max-width: 90%; margin-bottom: 0.5rem; }
+    .bubble { padding: 0.75rem 1rem; border-radius: 1rem; font-size: 0.85rem; max-width: 95%; margin-bottom: 0.5rem; }
     .bubble--user { background: var(--hf-hero); color: white; margin-left: auto; }
     .bubble--bot { background: white; border: 1px solid var(--hf-border); }
 
-    .impact-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem;
-      margin-top: 1rem;
+    .sim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    @media (max-width: 700px) { .sim-grid { grid-template-columns: 1fr; } }
+    .sim-form, .sim-result {
+      background: white; border: 1px solid var(--hf-border); border-radius: 1rem; padding: 1.25rem;
     }
-    .impact-card {
-      text-align: center; padding: 1rem; background: white; border-radius: 0.85rem;
-      border: 1px solid var(--hf-border);
+    .sim-form label { display: block; font-size: 0.8rem; font-weight: 600; margin: 0.75rem 0 0.35rem; color: var(--hf-muted); }
+    .sim-form input, .sim-form select {
+      width: 100%; padding: 0.6rem 0.85rem; border: 1px solid var(--hf-border);
+      border-radius: 0.6rem; font-family: inherit; font-size: 0.9rem;
     }
+    .sim-result h4 { font-family: 'Fraunces', serif; margin-bottom: 0.75rem; }
+    .sim-line {
+      display: flex; justify-content: space-between; padding: 0.5rem 0;
+      border-bottom: 1px solid #f3f4f6; font-size: 0.85rem;
+    }
+    .sim-line strong { color: var(--hf-accent-strong); }
+
+    .flow-grid { display: grid; gap: 0.75rem; }
+    .flow-item {
+      display: grid; grid-template-columns: 140px 1fr; gap: 1rem; align-items: center;
+      padding: 1rem; background: white; border: 1px solid var(--hf-border); border-radius: 0.85rem;
+      cursor: pointer; transition: border-color 0.2s, background 0.2s;
+    }
+    .flow-item:hover, .flow-item.active { border-color: var(--hf-accent); background: #f0fdf4; }
+    .flow-item .trigger { font-weight: 700; font-size: 0.85rem; color: var(--hf-hero); }
+    .flow-item .effects { font-size: 0.82rem; color: var(--hf-muted); }
+    .flow-detail {
+      margin-top: 1rem; padding: 1.25rem; background: white;
+      border: 2px solid var(--hf-accent); border-radius: 1rem; display: none;
+    }
+    .flow-detail.visible { display: block; }
+
+    .impact-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem; margin-top: 1rem; }
+    .impact-card { text-align: center; padding: 1rem; background: white; border-radius: 0.85rem; border: 1px solid var(--hf-border); }
     .impact-card strong { display: block; font-family: 'Fraunces', serif; font-size: 1.4rem; color: var(--hf-accent-strong); }
 
     .footer-cta {
@@ -188,11 +167,10 @@
     .footer-cta p { color: #a7d4b5; margin-bottom: 1.25rem; }
 
     .flow-arrow { color: var(--hf-gold); font-weight: 800; margin: 0 0.25rem; }
-    .alert-box {
-      padding: 0.75rem 1rem; background: #fef3c7; border-radius: 0.6rem;
-      color: #92400e; font-size: 0.85rem; font-weight: 600; margin-top: 0.75rem;
-    }
-    .tour-nav { display: flex; gap: 0.75rem; margin-top: 1.25rem; justify-content: flex-end; }
+    .alert-box { padding: 0.75rem 1rem; background: #fef3c7; border-radius: 0.6rem; color: #92400e; font-size: 0.85rem; font-weight: 600; margin-top: 0.75rem; }
+    .success-box { padding: 0.75rem 1rem; background: #f0fdf4; border-radius: 0.6rem; color: #15803d; font-size: 0.85rem; font-weight: 600; margin-top: 0.75rem; border: 1px solid rgba(34,197,94,0.35); }
+    .tour-nav { display: flex; gap: 0.75rem; margin-top: 1.25rem; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+    .tour-nav .progress-text { font-size: 0.8rem; color: var(--hf-muted); font-weight: 600; }
   </style>
 </head>
 <body>
@@ -207,46 +185,83 @@
   </header>
 
   <section class="hero">
-    <p style="font-size:0.7rem;font-weight:800;letter-spacing:0.25em;text-transform:uppercase;color:#b8954a;">Démo interactive · 17 modules</p>
-    <h1>Découvrez Horizon Farm en 10 minutes</h1>
-    <p>Explorez chaque module de l'ERP agricole, suivez une matinée type à la ferme, et voyez comment élevage, stock, finance et capteurs se connectent automatiquement.</p>
+    <p style="font-size:0.7rem;font-weight:800;letter-spacing:0.25em;text-transform:uppercase;color:#b8954a;">Démo interactive · 17 modules · 8 parcours</p>
+    <h1>Découvrez Horizon Farm en profondeur</h1>
+    <p>8 scénarios guidés, exploration de tous les modules, simulateur vente/stock et carte d'interconnexion — pour comprendre comment l'ERP relie terrain, finance et capteurs.</p>
     <div class="hero-btns">
-      <button class="btn btn--primary" onclick="showPanel('tour'); startTour(0)">Lancer le parcours guidé</button>
-      <button class="btn btn--ghost" onclick="showPanel('modules')">Explorer les 17 modules</button>
+      <button class="btn btn--primary" onclick="showPanel('tour'); selectScenario(0)">Parcours guidés</button>
+      <button class="btn btn--ghost" onclick="showPanel('simulator')">Simulateur vente</button>
+      <button class="btn btn--ghost" onclick="showPanel('flow')">Interconnexion</button>
     </div>
   </section>
 
   <div class="tabs">
-    <button class="tab active" data-panel="modules" onclick="showPanel('modules')">Modules</button>
-    <button class="tab" data-panel="tour" onclick="showPanel('tour')">Parcours guidé</button>
-    <button class="tab" data-panel="impact" onclick="showPanel('impact')">Pourquoi s'abonner</button>
+    <button class="tab" data-panel="modules" onclick="showPanel('modules')">Modules</button>
+    <button class="tab active" data-panel="tour" onclick="showPanel('tour')">Parcours guidés</button>
+    <button class="tab" data-panel="simulator" onclick="showPanel('simulator')">Simulateur</button>
+    <button class="tab" data-panel="flow" onclick="showPanel('flow')">Interconnexion</button>
+    <button class="tab" data-panel="impact" onclick="showPanel('impact')">Abonnement</button>
   </div>
 
-  <!-- MODULES -->
-  <section class="panel active" id="panel-modules">
+  <section class="panel" id="panel-modules">
     <h2 class="section-title">Les 17 modules Horizon Farm</h2>
-    <p class="section-sub">Cliquez sur un module pour voir ses fonctionnalités principales et onglets.</p>
+    <p class="section-sub">Cliquez sur un module pour voir ses fonctionnalités. Chaque module est relié aux autres automatiquement.</p>
     <div class="module-grid" id="module-grid"></div>
     <div class="detail-panel" id="module-detail"></div>
   </section>
 
-  <!-- TOUR -->
-  <section class="panel" id="panel-tour">
-    <h2 class="section-title">Parcours guidé — Matinée type</h2>
-    <p class="section-sub">5 étapes : de l'accueil dirigeant au journal de fin de journée.</p>
+  <section class="panel active" id="panel-tour">
+    <h2 class="section-title">8 parcours guidés</h2>
+    <p class="section-sub">Choisissez un scénario métier — chaque parcours montre les modules concernés et les effets en chaîne.</p>
+    <div class="scenario-grid" id="scenario-grid"></div>
     <div class="tour-layout">
       <div class="tour-steps" id="tour-steps"></div>
       <div>
         <div class="tour-screen" id="tour-screen"></div>
         <div class="tour-nav">
-          <button class="btn btn--ghost" style="color:var(--hf-text);border:1px solid var(--hf-border);" onclick="prevTour()">← Précédent</button>
-          <button class="btn btn--primary" onclick="nextTour()">Suivant →</button>
+          <span class="progress-text" id="tour-progress"></span>
+          <div style="display:flex;gap:0.75rem;">
+            <button class="btn btn--outline" onclick="prevTour()">← Précédent</button>
+            <button class="btn btn--primary" onclick="nextTour()">Suivant →</button>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- IMPACT -->
+  <section class="panel" id="panel-simulator">
+    <h2 class="section-title">Simulateur — Vente & impacts</h2>
+    <p class="section-sub">Saisissez une vente fictive et voyez en temps réel comment Horizon Farm met à jour stock, trésorerie et marge.</p>
+    <div class="sim-grid">
+      <div class="sim-form">
+        <label>Produit</label>
+        <select id="sim-product" onchange="runSimulator()">
+          <option value="oeufs">Tablettes d'œufs (stock: 120)</option>
+          <option value="poulet">Poulets chair (stock: 85)</option>
+          <option value="tomates">Caisses tomates (stock: 40)</option>
+        </select>
+        <label>Quantité</label>
+        <input type="number" id="sim-qty" value="20" min="1" oninput="runSimulator()" />
+        <label>Prix unitaire (FCFA)</label>
+        <input type="number" id="sim-price" value="3500" min="100" oninput="runSimulator()" />
+        <label>Mode paiement</label>
+        <select id="sim-pay" onchange="runSimulator()">
+          <option value="cash">Comptant (Orange Money)</option>
+          <option value="credit">À crédit (15 jours)</option>
+        </select>
+        <button class="btn btn--primary" style="margin-top:1.25rem;width:100%;" onclick="runSimulator()">Calculer les impacts</button>
+      </div>
+      <div class="sim-result" id="sim-result"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-flow">
+    <h2 class="section-title">Carte d'interconnexion</h2>
+    <p class="section-sub">Cliquez sur une action terrain pour voir tous les modules mis à jour automatiquement — sans double saisie.</p>
+    <div class="flow-grid" id="flow-grid"></div>
+    <div class="flow-detail" id="flow-detail"></div>
+  </section>
+
   <section class="panel" id="panel-impact">
     <h2 class="section-title">Pourquoi s'abonner ?</h2>
     <p class="section-sub">Un seul abonnement remplace plusieurs outils et évite les pertes évitables.</p>
@@ -294,104 +309,260 @@
       { group: 'Admin', name: 'Gestion du système', desc: 'Paramètres ferme', features: ['Multi-fermes et utilisateurs', 'Rôles et permissions', 'Paramètres métier', 'Sécurité et sauvegardes', 'Mode démonstration'] },
     ];
 
-    const TOUR = [
+    const SCENARIOS = [
       {
-        title: '08h00 — Accueil dirigeant',
-        html: `<div class="mock-bar"><span class="on">Accueil</span><span>Élevage</span><span>Commercial</span><span>Smart Farm</span></div>
-          <p><strong>Bonjour, voici votre exploitation ce matin.</strong></p>
-          <div class="domain-cards">
-            <div class="domain-card"><div class="label">ÉLEVAGE</div><div class="val">4 300 têtes</div><div style="font-size:0.75rem;color:var(--hf-muted)">4 lots actifs</div></div>
-            <div class="domain-card"><div class="label">CULTURES</div><div class="val">12 parcelles</div><div style="font-size:0.75rem;color:var(--hf-muted)">8,5 ha</div></div>
-            <div class="domain-card"><div class="label">STOCK</div><div class="val">47 produits</div><div style="font-size:0.75rem;color:#b45309">⚠ Rupture aliment</div></div>
-            <div class="domain-card"><div class="label">FINANCE</div><div class="val">2,4 M FCFA</div><div style="font-size:0.75rem;color:var(--hf-muted)">Trésorerie</div></div>
-          </div>
-          <div class="alert-box">Capteurs : 28°C poulailler · 62% humidité · 2 capteurs en ligne</div>`
+        id: 'matinee', icon: '🌅', title: 'Matinée type', desc: 'Journée complète dirigeant',
+        steps: [
+          { title: '08h00 — Accueil', html: `<div class="mock-bar"><span class="on">Accueil</span><span>Élevage</span><span>Commercial</span></div>
+            <p><strong>Bonjour, voici votre exploitation.</strong></p>
+            <div class="domain-cards">
+              <div class="domain-card"><div class="label">ÉLEVAGE</div><div class="val">4 300 têtes</div></div>
+              <div class="domain-card"><div class="label">STOCK</div><div class="val">47 produits</div><div style="font-size:0.75rem;color:#b45309">⚠ Rupture aliment</div></div>
+              <div class="domain-card"><div class="label">FINANCE</div><div class="val">2,4 M FCFA</div></div>
+              <div class="domain-card"><div class="label">CAPTEURS</div><div class="val">28°C</div></div>
+            </div>` },
+          { title: '08h15 — Assistant', html: `<div class="mock-bar"><span class="on">Assistant</span><span>Stock</span></div>
+            <div class="chat-demo">
+              <div class="bubble bubble--user">Réception 20 sacs aliment AgroFeed, 480 000 FCFA crédit 15j.</div>
+              <div class="bubble bubble--bot"><strong>Brouillon réception</strong><br/>Stock +20 · Dette fournisseur · ✓ Valider</div>
+            </div>
+            <div class="success-box">Alerte rupture aliment levée sur l'Accueil</div>` },
+          { title: '09h00 — Vente', html: `<div class="mock-bar"><span class="on">Commercial</span><span>Finance</span></div>
+            <p>Vente 20 tablettes œufs · 70 000 FCFA · Orange Money</p>
+            <p style="font-size:0.85rem;margin-top:0.5rem;">Vente <span class="flow-arrow">→</span> Stock <span class="flow-arrow">→</span> Trésorerie <span class="flow-arrow">→</span> Marge +12 400 FCFA</p>` },
+          { title: '10h30 — Smart Farm', html: `<div class="mock-bar"><span class="on">Smart Farm</span><span>Activité</span></div>
+            <p style="font-size:2rem;font-family:Fraunces,serif;font-weight:700;color:#b45309;">32°C</p>
+            <div class="alert-box">→ Tâche « Vérifier ventilation » dans À traiter maintenant</div>` },
+          { title: '18h00 — Journal', html: `<div class="mock-bar"><span class="on">Activité & Suivi</span></div>
+            <p><strong>12 événements tracés</strong> : réception, vente, alerte, mortalité, OCR…</p>
+            <p style="font-size:0.85rem;color:var(--hf-muted);margin-top:0.5rem;">Export PDF prêt pour banque ou investisseur.</p>` },
+        ],
       },
       {
-        title: '08h15 — Hey Horizon (réception)',
-        html: `<div class="mock-bar"><span>Accueil</span><span class="on">Assistant</span><span>Stock</span></div>
-          <p>Vous dictez ou tapez une phrase terrain — Horizon prépare le brouillon.</p>
-          <div class="chat-demo">
-            <div class="bubble bubble--user">Réception 20 sacs aliment AgroFeed, 480 000 FCFA, à crédit 15 jours.</div>
-            <div class="bubble bubble--bot"><strong>Brouillon réception stock</strong><br/>20 sacs · Fournisseur AgroFeed · 480 000 FCFA · Dette 15j<br/><br/>→ Stock +24% aliment · Dette fournisseur créée<br/><br/>✓ Valider & enregistrer</div>
-          </div>
-          <p style="margin-top:1rem;font-size:0.85rem;color:var(--hf-muted);">Après validation : inventaire et dette mis à jour. Alerte rupture disparaît sur l'Accueil.</p>`
+        id: 'vente', icon: '🛒', title: 'Vente complète', desc: 'Commande → livraison → paiement',
+        steps: [
+          { title: '1 — Commande client', html: `<div class="mock-bar"><span class="on">Commercial</span></div>
+            <p><strong>Restaurant Le Palmier</strong> — 50 tablettes œufs · 175 000 FCFA</p>
+            <p style="font-size:0.85rem;color:var(--hf-muted);">Statut : commande confirmée · livraison demain 7h</p>` },
+          { title: '2 — Préparation stock', html: `<div class="mock-bar"><span>Commercial</span><span class="on">Stock</span></div>
+            <p>Réservation automatique : −50 tablettes du stock œufs</p>
+            <div class="alert-box">Stock restant : 70 tablettes (seuil alerte : 30)</div>` },
+          { title: '3 — Livraison', html: `<div class="mock-bar"><span class="on">Commercial</span><span>Activité</span></div>
+            <p>Livraison effectuée · Bon de livraison signé · Traçabilité lot #PON-2026-04</p>` },
+          { title: '4 — Encaissement', html: `<div class="mock-bar"><span>Commercial</span><span class="on">Finance</span></div>
+            <p>Paiement Orange Money reçu · 175 000 FCFA</p>
+            <div class="success-box">Trésorerie +175 000 · Créance soldée · Marge nette : +48 200 FCFA</div>` },
+          { title: '5 — Relance WhatsApp', html: `<div class="mock-bar"><span class="on">Commercial</span></div>
+            <p>Pour un client à crédit : relance automatique J+7 via template WhatsApp</p>
+            <p style="font-size:0.85rem;color:var(--hf-muted);">Créances visibles sur Accueil et Finance en temps réel.</p>` },
+        ],
       },
       {
-        title: '09h00 — Commercial (vente)',
-        html: `<div class="mock-bar"><span>Accueil</span><span class="on">Commercial</span><span>Finance</span></div>
-          <p><strong>Vente restaurant Le Palmier</strong> — 20 tablettes œufs · 70 000 FCFA</p>
-          <p style="margin:0.75rem 0;font-size:0.9rem;">Flux automatique :</p>
-          <p style="font-size:0.85rem;">Vente <span class="flow-arrow">→</span> Sortie stock œufs <span class="flow-arrow">→</span> Encaissement Orange Money <span class="flow-arrow">→</span> Marge +12 400 FCFA</p>
-          <div style="margin-top:1rem;padding:1rem;background:#f0fdf4;border-radius:0.75rem;">
-            <strong style="color:var(--hf-accent-strong);">Résultat immédiat</strong>
-            <p style="font-size:0.85rem;margin-top:0.35rem;">Trésorerie +70 000 · Stock œufs −20 · Traçabilité enregistrée · Client créance soldée</p>
-          </div>`
+        id: 'elevage', icon: '🐓', title: 'Suivi élevage', desc: 'Mortalité, santé, lots',
+        steps: [
+          { title: '1 — Saisie mortalité', html: `<div class="mock-bar"><span class="on">Élevage</span></div>
+            <p>Lot PON-2026-04 : <strong>12 mortalités</strong> ce matin (cause : chaleur)</p>
+            <p style="font-size:0.85rem;">Effectif mis à jour : 4 288 têtes (−12)</p>` },
+          { title: '2 — Impact Accueil', html: `<div class="mock-bar"><span class="on">Accueil</span></div>
+            <p>Carte Élevage actualisée · Taux mortalité 7j : 0,28%</p>
+            <div class="alert-box">Conseil : vérifier ventilation Poulailler A (lien Smart Farm)</div>` },
+          { title: '3 — Traitement vétérinaire', html: `<div class="mock-bar"><span class="on">Élevage</span><span>Santé</span></div>
+            <p>Vaccination lot prévue · Rappel dans Activité & Suivi</p>
+            <p style="font-size:0.85rem;">Sortie stock vaccin enregistrée automatiquement</p>` },
+          { title: '4 — Centre décisionnel', html: `<div class="mock-bar"><span class="on">Centre décisionnel</span></div>
+            <p><strong>Urgence zootechnique</strong> : mortalité + chaleur capteur = action prioritaire</p>
+            <p style="font-size:0.85rem;">Export CSV pour réunion équipe</p>` },
+        ],
       },
       {
-        title: '10h30 — Smart Farm (alerte)',
-        html: `<div class="mock-bar"><span>Accueil</span><span class="on">Smart Farm</span><span>Activité</span></div>
-          <p><strong>Alerte chaleur — Poulailler A</strong></p>
-          <p style="font-size:2rem;font-family:Fraunces,serif;font-weight:700;color:#b45309;margin:0.5rem 0;">32°C</p>
-          <p style="font-size:0.85rem;">Seuil max 30°C dépassé depuis 8 minutes.</p>
-          <div class="alert-box">→ Tâche créée dans Activité & Suivi « À traiter maintenant » : Vérifier ventilation Poulailler A</div>
-          <p style="margin-top:1rem;font-size:0.85rem;color:var(--hf-muted);">Règle Si… Alors… : possibilité d'activer ventilation automatique (module Smart Farm).</p>`
+        id: 'cultures', icon: '🌱', title: 'Récolte cultures', desc: 'Parcelle → stock → vente',
+        steps: [
+          { title: '1 — Récolte parcelle', html: `<div class="mock-bar"><span class="on">Cultures</span></div>
+            <p>Parcelle Tomates Nord · <strong>120 caisses</strong> récoltées · 2,4 t/ha</p>` },
+          { title: '2 — Entrée stock', html: `<div class="mock-bar"><span>Cultures</span><span class="on">Stock</span></div>
+            <p>Produit « Tomates fraîches » +120 caisses · DLC J+5</p>
+            <div class="success-box">Disponible immédiatement pour Commercial</div>` },
+          { title: '3 — Vente marché', html: `<div class="mock-bar"><span class="on">Commercial</span></div>
+            <p>Vente grossiste : 80 caisses · 240 000 FCFA · marge parcelle visible</p>` },
+          { title: '4 — Économie circulaire', html: `<div class="mock-bar"><span class="on">Cultures</span><span>Élevage</span></div>
+            <p>Fumier poulailler → compost parcelle · Lien élevage ↔ cultures tracé</p>` },
+        ],
       },
       {
-        title: '18h00 — Journal & traçabilité',
-        html: `<div class="mock-bar"><span class="on">Activité & Suivi</span><span>Documents</span><span>Sync ERP</span></div>
-          <p><strong>12 événements tracés automatiquement aujourd'hui :</strong></p>
-          <ul style="margin-top:0.75rem;font-size:0.85rem;padding-left:1.25rem;">
-            <li>Réception aliment (Stock + Dette)</li>
-            <li>Vente restaurant + encaissement</li>
-            <li>Alerte capteur + tâche ventilation</li>
-            <li>Mise à jour effectifs élevage</li>
-            <li>3 mouvements stock internes</li>
-            <li>Rapprochement OCR facture fournisseur</li>
-          </ul>
-          <p style="margin-top:1rem;font-size:0.85rem;color:var(--hf-muted);">Tout est interconnecté — rien à ressaisir. Export PDF disponible pour banque ou investisseur.</p>`
+        id: 'finance', icon: '💰', title: 'Fin de mois', desc: 'Trésorerie et créances',
+        steps: [
+          { title: '1 — Résumé exécutif', html: `<div class="mock-bar"><span class="on">Finance</span></div>
+            <div class="domain-cards">
+              <div class="domain-card"><div class="label">TRÉSORERIE</div><div class="val">2,4 M</div></div>
+              <div class="domain-card"><div class="label">CRÉANCES</div><div class="val">890 K</div></div>
+              <div class="domain-card"><div class="label">DETTES</div><div class="val">1,1 M</div></div>
+              <div class="domain-card"><div class="label">SANTÉ ERP</div><div class="val">82/100</div></div>
+            </div>` },
+          { title: '2 — Réconciliation', html: `<div class="mock-bar"><span class="on">Finance</span><span>Documents</span></div>
+            <p>12 paiements à rapprocher · OCR facture fournisseur → charge validée</p>` },
+          { title: '3 — Prévision 30j', html: `<div class="mock-bar"><span class="on">Finance</span></div>
+            <p>Échéancier dettes fournisseurs · Encaissements clients attendus</p>
+            <div class="alert-box">Point bas trésorerie prévu J+18 : planifier apport</div>` },
+          { title: '4 — Rentabilité', html: `<div class="mock-bar"><span class="on">Finance</span><span>Objectifs</span></div>
+            <p>Aviculture : +18% marge · Maraîchage : +12% · Coût unifié élevage + cultures</p>` },
+        ],
+      },
+      {
+        id: 'investisseur', icon: '📈', title: 'Dossier banque', desc: 'Investisseurs & Forums',
+        steps: [
+          { title: '1 — Investor Room', html: `<div class="mock-bar"><span class="on">Investisseurs</span></div>
+            <p>KPIs ERP live : CA 12 mois, marge, effectifs, traçabilité ventes</p>
+            <p style="font-size:0.85rem;">Données issues des modules — pas de ressaisie</p>` },
+          { title: '2 — Dossier 9 sections', html: `<div class="mock-bar"><span class="on">Investisseurs</span></div>
+            <p>Présentation · Marché · Production · Finances · Risques · Annexes…</p>
+            <p style="font-size:0.85rem;">Éditable section par section</p>` },
+          { title: '3 — Export PDF', html: `<div class="mock-bar"><span class="on">Documents</span></div>
+            <p>Export PDF banque/ONG · Mise en page professionnelle</p>
+            <div class="success-box">Historique envoi enregistré dans CRM investisseurs</div>` },
+          { title: '4 — Data Room', html: `<div class="mock-bar"><span class="on">Investisseurs</span></div>
+            <p>Documents partagés : BP, états financiers, preuves traçabilité</p>` },
+        ],
+      },
+      {
+        id: 'ocr', icon: '📄', title: 'OCR facture', desc: 'Documents & rapprochement',
+        steps: [
+          { title: '1 — Scan facture', html: `<div class="mock-bar"><span class="on">Documents</span></div>
+            <p>Photo facture AgroFeed · OCR extrait : 480 000 FCFA · 20 sacs aliment</p>` },
+          { title: '2 — Brouillon Hey Horizon', html: `<div class="mock-bar"><span class="on">Assistant</span></div>
+            <div class="chat-demo">
+              <div class="bubble bubble--bot"><strong>Facture détectée</strong><br/>Fournisseur AgroFeed · 480 000 FCFA<br/>→ Lier à réception stock du 08/06 ?</div>
+            </div>` },
+          { title: '3 — Rapprochement', html: `<div class="mock-bar"><span>Documents</span><span class="on">Finance</span></div>
+            <p>Preuve rapprochée à l'écriture dette fournisseur · Statut : validé</p>` },
+          { title: '4 — Audit Sync ERP', html: `<div class="mock-bar"><span class="on">Sync ERP</span></div>
+            <p>Santé ERP : aucune incohérence · Journal : OCR + réception + dette liés</p>` },
+        ],
+      },
+      {
+        id: 'offline', icon: '📡', title: 'Mode hors ligne', desc: 'Terrain sans réseau',
+        steps: [
+          { title: '1 — Saisie terrain', html: `<div class="mock-bar"><span class="on">Assistant</span></div>
+            <p>Connexion faible · Saisie locale : « 8 mortalités lot chair B »</p>
+            <div class="alert-box">Mode hors ligne actif — données en attente de sync</div>` },
+          { title: '2 — File d\'attente', html: `<div class="mock-bar"><span class="on">Sync ERP</span></div>
+            <p>3 opérations en attente : mortalité, vente, réception</p>` },
+          { title: '3 — Synchronisation', html: `<div class="mock-bar"><span class="on">Sync ERP</span></div>
+            <p>Retour réseau · Sync automatique · Élevage, Stock, Activité mis à jour</p>
+            <div class="success-box">Aucun doublon · Résolution conflits guidée si besoin</div>` },
+          { title: '4 — Accueil actualisé', html: `<div class="mock-bar"><span class="on">Accueil</span></div>
+            <p>Cartes domaine et journal reflètent les saisies terrain synchronisées</p>` },
+        ],
       },
     ];
 
+    const FLOWS = [
+      { trigger: 'Vente Commercial', effects: 'Sortie stock · Entrée trésorerie ou créance · Traçabilité · Marge', detail: 'Une vente dans Commercial déclenche automatiquement la sortie de stock (CMUP recalculé), l\'écriture financière (comptant ou créance), l\'enregistrement traçabilité lot→client, et le calcul de marge. L\'Accueil et Finance sont mis à jour sans ressaisie.' },
+      { trigger: 'Réception Stock', effects: 'Inventaire + · Dette fournisseur · Alerte seuil levée', detail: 'Réception via Stock ou Hey Horizon : quantités ajoutées, CMUP mis à jour, dette fournisseur créée si à crédit. Si le produit était en rupture, l\'alerte disparaît de l\'Accueil.' },
+      { trigger: 'Mortalité Élevage', effects: 'Effectif − · Alerte zootechnique · Accueil', detail: 'Chaque saisie mortalité met à jour l\'effectif du lot, alimente les indicateurs du Centre décisionnel si seuil dépassé, et actualise la carte Élevage sur l\'Accueil.' },
+      { trigger: 'Capteur Smart Farm', effects: 'Alerte · Tâche Activité · Bandeau Accueil', detail: 'Seuil dépassé (température, humidité, intrusion) → notification, tâche dans « À traiter maintenant », valeur affichée sur le bandeau capteurs de l\'Accueil.' },
+      { trigger: 'OCR Document', effects: 'Charge Finance · Preuve liée · Audit', detail: 'Scan facture/reçu → extraction OCR → brouillon Hey Horizon → validation → écriture Finance avec preuve rapprochée dans Documents & Rapports.' },
+      { trigger: 'Récolte Cultures', effects: 'Stock + · Rendement parcelle · Commercial', detail: 'Récolte saisie dans Cultures → entrée stock produit · rendement calculé · produit disponible à la vente dans Commercial.' },
+      { trigger: 'Paiement client', effects: 'Trésorerie + · Créance − · Relance stop', detail: 'Encaissement (Orange Money, espèces…) solde la créance, augmente la trésorerie, met à jour Finance et la carte Finance sur l\'Accueil.' },
+    ];
+
+    const PRODUCTS = {
+      oeufs: { name: "Tablettes d'œufs", stock: 120, cost: 2100 },
+      poulet: { name: 'Poulets chair', stock: 85, cost: 3200 },
+      tomates: { name: 'Caisses tomates', stock: 40, cost: 1800 },
+    };
+
+    let scenarioIndex = 0;
     let tourIndex = 0;
-    let selectedModule = null;
 
     function renderModules() {
-      const grid = document.getElementById('module-grid');
-      grid.innerHTML = MODULES.map((m, i) => `
-        <div class="module-card" data-idx="${i}" onclick="selectModule(${i})">
-          <div class="group">${m.group}</div>
-          <h3>${m.name}</h3>
-          <p>${m.desc}</p>
+      document.getElementById('module-grid').innerHTML = MODULES.map((m, i) => `
+        <div class="module-card" onclick="selectModule(${i})">
+          <div class="group">${m.group}</div><h3>${m.name}</h3><p>${m.desc}</p>
         </div>`).join('');
     }
 
     function selectModule(i) {
-      selectedModule = MODULES[i];
+      const m = MODULES[i];
       document.querySelectorAll('.module-card').forEach((c, j) => c.classList.toggle('selected', j === i));
       const panel = document.getElementById('module-detail');
       panel.classList.add('visible');
-      panel.innerHTML = `
-        <h3>${selectedModule.name}</h3>
-        <p style="color:var(--hf-muted);margin-bottom:1rem;">${selectedModule.desc} · ${selectedModule.group}</p>
-        <ul class="feature-list">${selectedModule.features.map(f => `<li>${f}</li>`).join('')}</ul>
-        <p style="margin-top:1rem;font-size:0.85rem;"><a href="/">Ouvrir ce module dans l'ERP →</a></p>`;
-      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      panel.innerHTML = `<h3>${m.name}</h3><p style="color:var(--hf-muted);margin-bottom:1rem;">${m.desc} · ${m.group}</p>
+        <ul class="feature-list">${m.features.map(f => `<li>${f}</li>`).join('')}</ul>
+        <p style="margin-top:1rem;font-size:0.85rem;"><a href="/">Ouvrir dans l'ERP →</a></p>`;
     }
 
-    function renderTourSteps() {
-      document.getElementById('tour-steps').innerHTML = TOUR.map((t, i) => `
-        <button class="tour-step-btn${i === tourIndex ? ' active' : ''}${i < tourIndex ? ' done' : ''}" onclick="startTour(${i})">${t.title}</button>`).join('');
+    function renderScenarios() {
+      document.getElementById('scenario-grid').innerHTML = SCENARIOS.map((s, i) => `
+        <button class="scenario-card${i === scenarioIndex ? ' active' : ''}" onclick="selectScenario(${i})">
+          <div class="icon">${s.icon}</div><strong>${s.title}</strong><span>${s.desc}</span>
+        </button>`).join('');
     }
 
-    function renderTourScreen() {
-      document.getElementById('tour-screen').innerHTML = `<h3 style="font-family:Fraunces,serif;margin-bottom:1rem;">${TOUR[tourIndex].title}</h3>${TOUR[tourIndex].html}`;
-      renderTourSteps();
+    function selectScenario(i) {
+      scenarioIndex = i;
+      tourIndex = 0;
+      renderScenarios();
+      renderTour();
     }
 
-    function startTour(i) { tourIndex = i; renderTourScreen(); }
-    function nextTour() { if (tourIndex < TOUR.length - 1) { tourIndex++; renderTourScreen(); } }
-    function prevTour() { if (tourIndex > 0) { tourIndex--; renderTourScreen(); } }
+    function renderTour() {
+      const scenario = SCENARIOS[scenarioIndex];
+      const steps = scenario.steps;
+      document.getElementById('tour-steps').innerHTML = steps.map((s, i) => `
+        <button class="tour-step-btn${i === tourIndex ? ' active' : ''}${i < tourIndex ? ' done' : ''}" onclick="goTourStep(${i})">${s.title}</button>`).join('');
+      document.getElementById('tour-screen').innerHTML = `<h3 style="font-family:Fraunces,serif;margin-bottom:1rem;">${scenario.title} — ${steps[tourIndex].title}</h3>${steps[tourIndex].html}`;
+      document.getElementById('tour-progress').textContent = `Étape ${tourIndex + 1} / ${steps.length}`;
+    }
+
+    function goTourStep(i) { tourIndex = i; renderTour(); }
+    function nextTour() {
+      const steps = SCENARIOS[scenarioIndex].steps;
+      if (tourIndex < steps.length - 1) { tourIndex++; renderTour(); }
+    }
+    function prevTour() {
+      if (tourIndex > 0) { tourIndex--; renderTour(); }
+    }
+
+    function runSimulator() {
+      const key = document.getElementById('sim-product').value;
+      const qty = Math.max(1, parseInt(document.getElementById('sim-qty').value, 10) || 1);
+      const price = Math.max(100, parseInt(document.getElementById('sim-price').value, 10) || 100);
+      const pay = document.getElementById('sim-pay').value;
+      const p = PRODUCTS[key];
+      const total = qty * price;
+      const cost = qty * p.cost;
+      const margin = total - cost;
+      const stockAfter = p.stock - qty;
+      const stockWarn = stockAfter < 30 ? '<div class="alert-box">⚠ Seuil stock bas atteint — alerte Accueil</div>' : '';
+
+      document.getElementById('sim-result').innerHTML = `
+        <h4>Résultat simulation</h4>
+        <div class="sim-line"><span>Produit</span><span>${p.name}</span></div>
+        <div class="sim-line"><span>Chiffre d'affaires</span><strong>${total.toLocaleString('fr-FR')} FCFA</strong></div>
+        <div class="sim-line"><span>Coût (CMUP)</span><span>${cost.toLocaleString('fr-FR')} FCFA</span></div>
+        <div class="sim-line"><span>Marge nette</span><strong>+${margin.toLocaleString('fr-FR')} FCFA</strong></div>
+        <div class="sim-line"><span>Stock après vente</span><span>${stockAfter} unités</span></div>
+        <div class="sim-line"><span>Trésorerie</span><span>${pay === 'cash' ? '+' + total.toLocaleString('fr-FR') + ' FCFA' : 'Créance +' + total.toLocaleString('fr-FR')}</span></div>
+        <div class="sim-line"><span>Modules mis à jour</span><span>Commercial · Stock · Finance · Activité</span></div>
+        ${stockWarn}
+        <div class="success-box" style="margin-top:1rem;">Traçabilité enregistrée · Visible sur Accueil en 10 secondes</div>`;
+    }
+
+    function renderFlows() {
+      document.getElementById('flow-grid').innerHTML = FLOWS.map((f, i) => `
+        <div class="flow-item" onclick="showFlow(${i})">
+          <div class="trigger">${f.trigger}</div>
+          <div class="effects">${f.effects}</div>
+        </div>`).join('');
+    }
+
+    function showFlow(i) {
+      document.querySelectorAll('.flow-item').forEach((el, j) => el.classList.toggle('active', j === i));
+      const f = FLOWS[i];
+      const detail = document.getElementById('flow-detail');
+      detail.classList.add('visible');
+      detail.innerHTML = `<h3 style="font-family:Fraunces,serif;margin-bottom:0.5rem;">${f.trigger}</h3><p>${f.detail}</p>`;
+    }
 
     function showPanel(id) {
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -400,7 +571,10 @@
     }
 
     renderModules();
-    renderTourScreen();
+    renderScenarios();
+    renderTour();
+    renderFlows();
+    runSimulator();
     selectModule(0);
   </script>
 </body>
