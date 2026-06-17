@@ -46,7 +46,7 @@ export default function AchatsStockPurchasesPanel({ data, setTab, onNavigate, on
       </div>
 
       {ops.recentReceptions?.length ? (
-        <AchatsStockSection title="Réceptions récentes" subtitle="Dernières entrées ledger stock_movements.">
+        <AchatsStockSection title="Réceptions récentes" subtitle="Dernières entrées enregistrées au stock.">
           <div className="divide-y divide-[#eadcc2]/60">
             {ops.recentReceptions.map((row) => (
               <AchatsStockTodoRow

@@ -32,7 +32,7 @@ function buildLedgerRows(stockMovements = [], stocks = []) {
       detail: `${SOURCE_LABELS[row.source_module] || row.source_module || 'stock'} · ${kind || row.notes || 'Mouvement'}`,
       quantite: row.quantity,
       type: row.movement_type,
-      source: 'ledger',
+      source: 'journal',
       farmId: row.farm_id || '',
       stockId: row.stock_id,
       sourceModule: row.source_module || '',
@@ -46,10 +46,10 @@ function buildLegacyRows(feedLogs = [], stockEvents = []) {
     id: row.id || `${row.date}-${row.produit || row.libelle}`,
     date: row.date || row.created_at,
     title: row.produit || row.name || row.libelle || row.title || 'Mouvement',
-    detail: `${row.type || row.categorie || row.event_type || 'Stock'} · legacy`,
+    detail: `${row.type || row.categorie || row.event_type || 'Stock'} · historique`,
     quantite: row.quantite ?? row.quantity,
     type: row.type || row.event_type,
-    source: 'legacy',
+    source: 'historique',
     farmId: row.farm_id || '',
     stockId: row.stock_id || '',
     sourceModule: row.source_module || row.module_source || '',
@@ -96,7 +96,7 @@ export default function AchatsStockMovementsPanel({ data, onNavigate, setTab, ac
       <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
         <b>Lecture seule</b> — les saisies (réception, sortie, perte) se font dans l&apos;onglet <b>Stock</b>.
       </div>
-      <AchatsStockSection title="Où agir ?" subtitle="Ledger stock_movements prioritaire · événements legacy distingués.">
+      <AchatsStockSection title="Où agir ?" subtitle="Mouvements enregistrés en priorité · historique distingué.">
         <div className={ACHATS_STOCK_ACTION_GRID}>
           <AchatsStockActionCard icon={PackageCheck} title="Stock & mouvements" text="Entrées, sorties, pertes et valorisation inventaire." onClick={() => setTab?.('Stock')} />
           <AchatsStockActionCard icon={Beef} title="Élevage → Alimentation" text="Distributions aliment liées aux animaux et lots avicoles." onClick={() => onNavigate?.('elevage', { tab: 'Alimentation' })} />
@@ -118,7 +118,7 @@ export default function AchatsStockMovementsPanel({ data, onNavigate, setTab, ac
             <span className="font-black text-[#8a7456]">Ferme</span>
             <select value={farmFilter} onChange={(e) => setFarmFilter(e.target.value)} className="mt-1 w-full rounded-lg border border-[#eadcc2] px-2 py-1.5 text-xs">
               <option value="">Toutes</option>
-              <option value="__none">Sans farm_id</option>
+              <option value="__none">Sans ferme</option>
               {accessibleFarms.map((farm) => (
                 <option key={farm.id} value={farm.id}>{farm.name || farm.id}</option>
               ))}
@@ -137,8 +137,8 @@ export default function AchatsStockMovementsPanel({ data, onNavigate, setTab, ac
             <span className="font-black text-[#8a7456]">Source</span>
             <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className="mt-1 w-full rounded-lg border border-[#eadcc2] px-2 py-1.5 text-xs">
               <option value="">Toutes</option>
-              <option value="ledger">Ledger</option>
-              <option value="legacy">Legacy</option>
+              <option value="journal">Journal</option>
+              <option value="historique">Historique</option>
               <option value="ventes">Commercial</option>
               <option value="alimentation">Alimentation</option>
               <option value="cultures">Cultures</option>
@@ -151,26 +151,26 @@ export default function AchatsStockMovementsPanel({ data, onNavigate, setTab, ac
         </div>
         <label className="flex items-center gap-2 text-xs text-[#8a7456]">
           <input type="checkbox" checked={showLegacy} onChange={(e) => setShowLegacy(e.target.checked)} />
-          <Filter size={12} /> Afficher événements legacy (alimentation_logs, business_events)
+          Afficher l’historique (alimentation et événements antérieurs)
         </label>
         {withoutFarm > 0 ? (
-          <p className="text-xs text-amber-700">{withoutFarm} mouvement(s) ledger sans farm_id (historique).</p>
+          <p className="text-xs text-amber-700">{withoutFarm} mouvement(s) sans ferme renseignée (historique).</p>
         ) : null}
       </AchatsStockSection>
 
       <ModuleListHub
         title="Mouvements stock & consommations"
-        intro={`Ledger : ${ledgerCount} · Legacy : ${legacyCount} · Types : entrées, sorties, ventes, consommations (${MOVEMENT_SOURCE_TYPES.FEEDING}), cultures (${MOVEMENT_SOURCE_TYPES.CULTURE}).`}
+        intro={`Journal : ${ledgerCount} · Historique : ${legacyCount} · Types : entrées, sorties, ventes, consommations et cultures.`}
         stats={[
           { label: 'Affichés', value: fmtNumber(movements.length) },
-          { label: 'Ledger', value: fmtNumber(ledgerCount) },
+          { label: 'Journal', value: fmtNumber(ledgerCount) },
           { label: 'Sous seuil', value: fmtNumber(data.lowStock?.length || 0), tone: data.lowStock?.length ? 'warn' : 'good' },
           { label: 'Valeur stock', value: fmtCurrency(data.stockValue) },
         ]}
         rows={movements.map((row) => ({
           id: `${row.source}-${row.id}`,
           title: row.title,
-          detail: `${String(row.date || '—').slice(0, 10)} · ${row.detail}${row.source === 'legacy' ? ' · legacy' : ''}`,
+          detail: `${String(row.date || '—').slice(0, 10)} · ${row.detail}${row.source === 'historique' ? ' · historique' : ''}`,
           value: row.quantite != null ? `${row.quantite} u.` : undefined,
           module: 'achats_stock',
           tab: 'Mouvements',

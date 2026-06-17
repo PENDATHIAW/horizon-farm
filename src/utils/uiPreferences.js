@@ -1,3 +1,6 @@
+import { resetSimulatedModeCache } from '../utils/simulatedModeStorage.js';
+import { clearSimulatedSeedTombstones } from '../utils/deletedRecords.js';
+
 export const UI_SETTINGS_KEY = 'horizon_farm_ui_settings';
 export const SIMULATED_DATA_MODE_KEY = 'horizon_farm_show_simulated_data';
 export const DEMO_MODE_KEY = 'horizon_farm_show_demo_data'; // legacy compatibility
@@ -54,6 +57,8 @@ export function setSimulatedDataMode(enabled) {
   if (enabled) {
     window.localStorage.setItem(SIMULATED_DATA_MODE_KEY, '1');
     window.localStorage.setItem(DEMO_MODE_KEY, '1');
+    resetSimulatedModeCache();
+    clearSimulatedSeedTombstones();
   } else {
     window.localStorage.removeItem(SIMULATED_DATA_MODE_KEY);
     window.localStorage.removeItem(DEMO_MODE_KEY);

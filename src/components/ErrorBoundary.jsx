@@ -50,7 +50,7 @@ export default class ErrorBoundary extends Component {
           <h2 className="mt-2 text-2xl font-black text-[#2f2415]">Le module {moduleName} a rencontré une erreur</h2>
           <p className="mt-2 text-sm text-[#7d6a4a]">
             {chunkError
-              ? 'Horizon Farm a détecté un mélange de fichiers JS (cache PWA ou preview Vercel obsolète). Purgez le cache puis rechargez.'
+              ? 'Horizon Farm a détecté une version obsolète de l’application (cache navigateur). Purgez le cache puis rechargez.'
               : 'Horizon Farm évite la page blanche. Tu peux revenir au tableau de bord ou recharger ce module.'}
           </p>
 

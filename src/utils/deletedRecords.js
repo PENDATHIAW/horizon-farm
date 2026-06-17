@@ -115,3 +115,21 @@ export function filterDeletedRows(moduleKey, rows) {
 export function filterDataMapDeleted(dataMap = {}) {
   return Object.fromEntries(Object.entries(dataMap || {}).map(([key, rows]) => [key, filterDeletedRows(key, rows)]));
 }
+
+const SIMULATED_SEED_MODULE_KEYS = [
+  'animaux', 'avicole', 'lots', 'sante', 'veterinaires', 'finances', 'investissements', 'stock', 'stocks',
+  'clients', 'fournisseurs', 'tracabilite', 'cultures', 'ventes', 'documents', 'taches', 'rapports', 'equipements',
+  'audit_logs', 'alimentation_logs', 'production_oeufs_logs', 'sensor_devices', 'camera_devices', 'business_events',
+  'alertes_center', 'whatsapp_templates', 'whatsapp_logs', 'sales_orders', 'sales_order_items', 'deliveries',
+  'invoices', 'payments', 'sales_opportunities', 'business_plans', 'bp_investment_lines', 'bp_recurring_costs',
+  'bp_revenue_projections', 'bp_funding_sources', 'bp_links', 'bp_risks', 'price_catalog', 'bp_versions', 'bp_lines_history',
+];
+
+/** Efface les masquages locaux des données de démonstration lors de l’activation du mode simulé. */
+export function clearSimulatedSeedTombstones() {
+  if (typeof window === 'undefined') return;
+  SIMULATED_SEED_MODULE_KEYS.forEach((moduleKey) => {
+    safeWriteJson(tombstoneKey(moduleKey), []);
+    safeWriteJson(tombstoneMetaKey(moduleKey), {});
+  });
+}

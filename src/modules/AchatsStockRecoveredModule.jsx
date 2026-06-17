@@ -84,7 +84,7 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate, onMarkE
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <button type="button" onClick={() => { emitHorizonForm('stock', 'stock_purchase', 'Réception stock', { date: new Date().toISOString().slice(0, 10) }); setTab('Stock'); }} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">+ Réception</b><p className="mt-1 text-sm text-[#8a7456]">Chemin canonique achat.</p></button>
           <button type="button" onClick={() => setTab('Achats')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Achats</b><p className="mt-1 text-sm text-[#8a7456]">À payer, preuves, réappro.</p></button>
-          <button type="button" onClick={() => setTab('Mouvements')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Mouvements</b><p className="mt-1 text-sm text-[#8a7456]">Ledger + filtres.</p></button>
+          <button type="button" onClick={() => setTab('Mouvements')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Mouvements</b><p className="mt-1 text-sm text-[#8a7456]">Journal et filtres.</p></button>
           <button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">Commercial</b><p className="mt-1 text-sm text-[#8a7456]">Vendre stock disponible.</p></button>
         </div>
       </AchatsStockSection>
@@ -94,7 +94,7 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate, onMarkE
       <CollapsibleAdvancedSection
         eyebrow="Analyse avancée"
         title="Détails stock & cohérence"
-        description={`Signaux métier, seuils, dettes, péremption · ${fmtNumber(data.stockMovements.length)} mouvements ledger · CMUP ${data.valuation?.calculableCount || 0}/${data.valuation?.totalCount || 0}`}
+        description={`Signaux métier, seuils, dettes, péremption · ${fmtNumber(data.stockMovements.length)} mouvements enregistrés · CMUP ${data.valuation?.calculableCount || 0}/${data.valuation?.totalCount || 0}`}
         open={advancedOpen}
         onToggle={() => setAdvancedOpen((v) => !v)}
       >
@@ -415,7 +415,7 @@ export default function AchatsStockRecoveredModule(props) {
             />
           </CollapsibleAdvancedSection>
           <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
-            <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Mouvements ledger</summary>
+            <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Mouvements enregistrés</summary>
             <div className="mt-3">
               <AchatsStockMovementsPanel data={data} onNavigate={props.onNavigate} setTab={setTab} accessibleFarms={props.accessibleFarms || []} />
             </div>
