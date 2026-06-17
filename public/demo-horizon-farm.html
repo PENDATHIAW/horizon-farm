@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Horizon Farm — Démo interactive</title>
+  <link rel="icon" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fraunces:wght@600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --hf-hero: #052e16;
+      --hf-accent: #22c55e;
+      --hf-accent-strong: #15803d;
+      --hf-gold: #9a6b12;
+      --hf-sun: #e8a317;
+      --hf-bg: #f6faf6;
+      --hf-surface: #fffdf8;
+      --hf-border: #eadcc2;
+      --hf-text: #2f2415;
+      --hf-muted: #8a7456;
+      --shadow: 0 20px 50px rgba(5, 46, 22, 0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      color: var(--hf-text);
+      background: var(--hf-bg);
+      line-height: 1.5;
+    }
+    a { color: var(--hf-accent-strong); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .header {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      padding: 0.85rem 1.5rem;
+      background: rgba(5, 46, 22, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(34, 197, 94, 0.2);
+    }
+    .header img { height: 40px; }
+    .header nav { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .header nav a { color: #dcfce7; font-size: 0.85rem; font-weight: 600; }
+    .header nav a:hover { color: var(--hf-accent); text-decoration: none; }
+
+    .hero {
+      padding: 3rem 1.5rem 2.5rem;
+      background:
+        radial-gradient(ellipse 70% 50% at 90% 0%, rgba(34,197,94,0.15), transparent),
+        linear-gradient(165deg, #041a0d, var(--hf-hero));
+      color: #ecfdf5;
+      text-align: center;
+    }
+    .hero h1 {
+      font-family: 'Fraunces', serif;
+      font-size: clamp(2rem, 5vw, 3rem);
+      margin-bottom: 0.75rem;
+    }
+    .hero p { color: #a7d4b5; max-width: 52ch; margin: 0 auto 1.5rem; }
+    .hero-btns { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-block; padding: 0.75rem 1.5rem; border-radius: 2rem;
+      font-weight: 700; font-size: 0.9rem; border: none; cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn--primary {
+      background: linear-gradient(135deg, var(--hf-accent), var(--hf-accent-strong));
+      color: white; box-shadow: 0 8px 24px rgba(34,197,94,0.35);
+    }
+    .btn--ghost {
+      background: rgba(255,255,255,0.1); color: #dcfce7;
+      border: 1px solid rgba(255,255,255,0.25);
+    }
+
+    .tabs {
+      display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;
+      padding: 1.25rem 1.5rem 0; max-width: 1100px; margin: 0 auto;
+    }
+    .tab {
+      padding: 0.6rem 1.1rem; border-radius: 2rem; border: 1px solid var(--hf-border);
+      background: white; font-weight: 600; font-size: 0.85rem; cursor: pointer;
+      color: var(--hf-muted);
+    }
+    .tab.active {
+      background: var(--hf-hero); color: white; border-color: var(--hf-hero);
+    }
+
+    .panel { display: none; max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+    .panel.active { display: block; }
+
+    .section-title {
+      font-family: 'Fraunces', serif;
+      font-size: 1.5rem; margin-bottom: 0.35rem; color: var(--hf-hero);
+    }
+    .section-sub { color: var(--hf-muted); font-size: 0.9rem; margin-bottom: 1.25rem; }
+
+    .module-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 0.85rem;
+    }
+    .module-card {
+      background: white; border: 1px solid var(--hf-border); border-radius: 1rem;
+      padding: 1rem; cursor: pointer; transition: box-shadow 0.2s, border-color 0.2s;
+    }
+    .module-card:hover, .module-card.selected {
+      border-color: var(--hf-accent);
+      box-shadow: var(--shadow);
+    }
+    .module-card .group {
+      font-size: 0.65rem; font-weight: 800; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--hf-accent-strong); margin-bottom: 0.35rem;
+    }
+    .module-card h3 { font-size: 0.95rem; margin-bottom: 0.35rem; }
+    .module-card p { font-size: 0.78rem; color: var(--hf-muted); }
+
+    .detail-panel {
+      margin-top: 1.25rem; padding: 1.5rem;
+      background: white; border: 1px solid var(--hf-border); border-radius: 1.1rem;
+      box-shadow: var(--shadow); display: none;
+    }
+    .detail-panel.visible { display: block; }
+    .detail-panel h3 { font-family: 'Fraunces', serif; font-size: 1.25rem; margin-bottom: 0.75rem; }
+    .feature-list { list-style: none; display: grid; gap: 0.5rem; }
+    .feature-list li {
+      padding: 0.6rem 0.85rem; background: #f0fdf4; border-radius: 0.6rem;
+      font-size: 0.85rem; border-left: 3px solid var(--hf-accent);
+    }
+
+    .tour-layout { display: grid; grid-template-columns: 280px 1fr; gap: 1.25rem; }
+    @media (max-width: 800px) { .tour-layout { grid-template-columns: 1fr; } }
+
+    .tour-steps { display: flex; flex-direction: column; gap: 0.5rem; }
+    .tour-step-btn {
+      text-align: left; padding: 0.75rem 1rem; border-radius: 0.75rem;
+      border: 1px solid var(--hf-border); background: white; cursor: pointer;
+      font-size: 0.85rem; font-weight: 600;
+    }
+    .tour-step-btn.active { background: var(--hf-hero); color: white; border-color: var(--hf-hero); }
+    .tour-step-btn.done { border-color: var(--hf-accent); }
+
+    .tour-screen {
+      background: white; border: 1px solid var(--hf-border); border-radius: 1.1rem;
+      padding: 1.5rem; min-height: 380px; box-shadow: var(--shadow);
+    }
+    .tour-screen .mock-bar {
+      display: flex; gap: 0.5rem; margin-bottom: 1rem; padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--hf-border);
+    }
+    .mock-bar span {
+      padding: 0.35rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600;
+      background: #f3f4f6; color: var(--hf-muted);
+    }
+    .mock-bar span.on { background: #dcfce7; color: var(--hf-accent-strong); }
+
+    .domain-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; margin: 1rem 0; }
+    .domain-card {
+      padding: 0.85rem; border-radius: 0.75rem;
+      background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.35);
+    }
+    .domain-card .label { font-size: 0.65rem; font-weight: 800; color: var(--hf-accent-strong); letter-spacing: 0.1em; }
+    .domain-card .val { font-family: 'Fraunces', serif; font-size: 1.2rem; font-weight: 700; }
+
+    .chat-demo { background: #f3f4f6; border-radius: 1rem; padding: 1rem; margin-top: 1rem; }
+    .bubble { padding: 0.75rem 1rem; border-radius: 1rem; font-size: 0.85rem; max-width: 90%; margin-bottom: 0.5rem; }
+    .bubble--user { background: var(--hf-hero); color: white; margin-left: auto; }
+    .bubble--bot { background: white; border: 1px solid var(--hf-border); }
+
+    .impact-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    .impact-card {
+      text-align: center; padding: 1rem; background: white; border-radius: 0.85rem;
+      border: 1px solid var(--hf-border);
+    }
+    .impact-card strong { display: block; font-family: 'Fraunces', serif; font-size: 1.4rem; color: var(--hf-accent-strong); }
+
+    .footer-cta {
+      margin: 2rem 1.5rem 3rem; padding: 2.5rem;
+      background: linear-gradient(135deg, var(--hf-hero), #0a2818);
+      border-radius: 1.25rem; text-align: center; color: #ecfdf5;
+    }
+    .footer-cta h2 { font-family: 'Fraunces', serif; margin-bottom: 0.75rem; }
+    .footer-cta p { color: #a7d4b5; margin-bottom: 1.25rem; }
+
+    .flow-arrow { color: var(--hf-gold); font-weight: 800; margin: 0 0.25rem; }
+    .alert-box {
+      padding: 0.75rem 1rem; background: #fef3c7; border-radius: 0.6rem;
+      color: #92400e; font-size: 0.85rem; font-weight: 600; margin-top: 0.75rem;
+    }
+    .tour-nav { display: flex; gap: 0.75rem; margin-top: 1.25rem; justify-content: flex-end; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <a href="/"><img src="/horizon-farm-logo-transparent.png" alt="Horizon Farm" /></a>
+    <nav>
+      <a href="/pitch-horizon-farm.html">Pitch</a>
+      <a href="/GUIDE_UTILISATEUR_HORIZON_FARM.pdf">Guide PDF</a>
+      <a href="/guide-utilisateur-horizon-farm.html">Guide web</a>
+      <a href="/">Ouvrir l'ERP</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <p style="font-size:0.7rem;font-weight:800;letter-spacing:0.25em;text-transform:uppercase;color:#b8954a;">Démo interactive · 17 modules</p>
+    <h1>Découvrez Horizon Farm en 10 minutes</h1>
+    <p>Explorez chaque module de l'ERP agricole, suivez une matinée type à la ferme, et voyez comment élevage, stock, finance et capteurs se connectent automatiquement.</p>
+    <div class="hero-btns">
+      <button class="btn btn--primary" onclick="showPanel('tour'); startTour(0)">Lancer le parcours guidé</button>
+      <button class="btn btn--ghost" onclick="showPanel('modules')">Explorer les 17 modules</button>
+    </div>
+  </section>
+
+  <div class="tabs">
+    <button class="tab active" data-panel="modules" onclick="showPanel('modules')">Modules</button>
+    <button class="tab" data-panel="tour" onclick="showPanel('tour')">Parcours guidé</button>
+    <button class="tab" data-panel="impact" onclick="showPanel('impact')">Pourquoi s'abonner</button>
+  </div>
+
+  <!-- MODULES -->
+  <section class="panel active" id="panel-modules">
+    <h2 class="section-title">Les 17 modules Horizon Farm</h2>
+    <p class="section-sub">Cliquez sur un module pour voir ses fonctionnalités principales et onglets.</p>
+    <div class="module-grid" id="module-grid"></div>
+    <div class="detail-panel" id="module-detail"></div>
+  </section>
+
+  <!-- TOUR -->
+  <section class="panel" id="panel-tour">
+    <h2 class="section-title">Parcours guidé — Matinée type</h2>
+    <p class="section-sub">5 étapes : de l'accueil dirigeant au journal de fin de journée.</p>
+    <div class="tour-layout">
+      <div class="tour-steps" id="tour-steps"></div>
+      <div>
+        <div class="tour-screen" id="tour-screen"></div>
+        <div class="tour-nav">
+          <button class="btn btn--ghost" style="color:var(--hf-text);border:1px solid var(--hf-border);" onclick="prevTour()">← Précédent</button>
+          <button class="btn btn--primary" onclick="nextTour()">Suivant →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- IMPACT -->
+  <section class="panel" id="panel-impact">
+    <h2 class="section-title">Pourquoi s'abonner ?</h2>
+    <p class="section-sub">Un seul abonnement remplace plusieurs outils et évite les pertes évitables.</p>
+    <div class="impact-grid">
+      <div class="impact-card"><strong>−50%</strong><span>temps de saisie</span></div>
+      <div class="impact-card"><strong>+100%</strong><span>visibilité trésorerie</span></div>
+      <div class="impact-card"><strong>−30%</strong><span>ruptures stock</span></div>
+      <div class="impact-card"><strong>24/7</strong><span>surveillance capteurs</span></div>
+      <div class="impact-card"><strong>17</strong><span>modules intégrés</span></div>
+      <div class="impact-card"><strong>1 clic</strong><span>marge par vente</span></div>
+    </div>
+    <div style="margin-top:1.5rem;padding:1.25rem;background:white;border-radius:1rem;border:1px solid var(--hf-border);">
+      <h3 style="font-family:Fraunces,serif;margin-bottom:0.75rem;">Formules</h3>
+      <p><strong>Essentiel</strong> — Élevage ou Cultures + Stock + Commercial + Accueil</p>
+      <p style="margin-top:0.5rem;"><strong>Pro</strong> — + Finance, Smart Farm, Assistant, Activité & Suivi</p>
+      <p style="margin-top:0.5rem;"><strong>Groupe</strong> — + Multi-fermes, Investisseurs, Sync ERP, accompagnement</p>
+    </div>
+  </section>
+
+  <section class="footer-cta">
+    <h2>Prêt à piloter votre exploitation autrement ?</h2>
+    <p>Essai 30 jours · Accompagnement déploiement · Guide PDF inclus</p>
+    <a class="btn btn--primary" href="mailto:contact@horizon-farm.app?subject=Démo%20Horizon%20Farm">Réserver ma démo gratuite</a>
+    <p style="margin-top:1rem;font-size:0.85rem;"><a href="/pitch-horizon-farm.html" style="color:#86efac;">Voir le pitch complet →</a></p>
+  </section>
+
+  <script>
+    const MODULES = [
+      { group: 'Pilotage', name: 'Accueil', desc: 'Tableau de bord dirigeant', features: ['Cartes Élevage, Cultures, Stock, Finance', 'Bandeau capteurs Smart Farm temps réel', 'Objectifs CA et conseil actionnable', 'Journal terrain du jour', 'Navigation 1-clic vers chaque domaine'] },
+      { group: 'Pilotage', name: 'Assistant ERP', desc: 'Hey Horizon — IA terrain', features: ['Saisie en langage naturel (texte ou vocal)', 'Brouillon → validation avant écriture', 'OCR factures et reçus', 'Routage auto vers Commercial, Stock, Finance', 'Disponible globalement dans l\'ERP'] },
+      { group: 'Pilotage', name: 'Centre décisionnel', desc: 'Décider avant la perte', features: ['Urgences & risques cross-modules', 'Croissance & opportunités commerciales', 'Saisons & marchés (calendrier, prix)', 'Exports CSV pour réunions', 'Actions 1-clic vers modules concernés'] },
+      { group: 'Pilotage', name: 'Objectifs & Croissance', desc: 'BP et simulateur', features: ['Business Plan éditable', 'Objectifs zootechniques et CA', 'Simulateur de scénarios', 'Suivi écarts prévu vs réalisé', 'Lien Investisseurs & Forums'] },
+      { group: 'Pilotage', name: 'Investisseurs & Forums', desc: 'Financement et dossiers', features: ['Investor Room KPIs live', 'Dossier banque/ONG 9 sections', 'CRM investisseurs et Data Room', 'Exports PDF professionnels', 'Historique envois et relances'] },
+      { group: 'Production', name: 'Élevage', desc: 'Avicole et animaux', features: ['Lots chair/pondeuses, effectifs', 'Bovins, ovins, caprins', 'Santé, reproduction, mortalité', 'Production œufs, pesée, alimentation', 'Transformation et traçabilité lots'] },
+      { group: 'Production', name: 'Cultures', desc: 'Parcelles et récoltes', features: ['Parcelles et campagnes agricoles', 'Récoltes → stock et commercial', 'Économie circulaire (fumier, compost)', 'Lien élevage ↔ cultures', 'Suivi rendements par parcelle'] },
+      { group: 'Commerce', name: 'Commercial', desc: 'Ventes et clients', features: ['Commandes, livraisons, facturation', 'Encaissements et créances', 'Marge visible par vente', 'Abonnements clients récurrents', 'Relances WhatsApp intégrées'] },
+      { group: 'Commerce', name: 'Achats & Stock', desc: 'Inventaire et fournisseurs', features: ['Inventaire multi-emplacements', 'CMUP, seuils, DLC, ruptures', 'Réceptions et sorties automatiques', 'Achats fournisseurs et dettes', 'Alertes stock bas sur Accueil'] },
+      { group: 'Finance', name: 'Finance & Pilotage', desc: 'Trésorerie et rentabilité', features: ['Résumé exécutif trésorerie', 'Créances, dettes, réconciliation', 'Prévision trésorerie et échéancier', 'Investissements & BP', 'Rentabilité multi-activités'] },
+      { group: 'Suivi', name: 'Activité & Suivi', desc: 'Cockpit opérationnel', features: ['Onglet « À traiter maintenant »', 'Registre traçabilité complet', 'Performance et indicateurs', 'Cockpit alertes cross-modules', 'Historique actions terrain'] },
+      { group: 'Suivi', name: 'Documents & Rapports', desc: 'OCR et preuves', features: ['Scan factures et reçus (OCR)', 'Rapprochement preuves ↔ écritures', 'Exports rapports PDF/CSV', 'Archivage documents ferme', 'Preuves pour banques et audits'] },
+      { group: 'Ressources', name: 'Opérations & Ressources', desc: 'RH et matériel', features: ['Gestion équipe et paie', 'Parc matériel et équipements', 'Maintenance planifiée', 'Accès module Équipements', 'Coûts main-d\'œuvre liés aux activités'] },
+      { group: 'Ressources', name: 'Équipements', desc: 'Parc et maintenance', features: ['Inventaire machines et outils', 'Planning maintenance préventive', 'Historique pannes et réparations', 'Coûts liés aux activités', 'Accessible via Opérations & Ressources'] },
+      { group: 'Terrain', name: 'Smart Farm', desc: 'Capteurs et IoT', features: ['Température, humidité, sol', 'Caméras intrusion', 'Alertes → Activité & Suivi', 'Bandeau temps réel sur Accueil', 'Règles Si… Alors… automatisation'] },
+      { group: 'Admin', name: 'Activité & Sync ERP', desc: 'Cohérence données', features: ['Audit santé ERP', 'Réparations guidées incohérences', 'Mode hors ligne + sync', 'Journal synchronisation', 'Traçabilité modifications'] },
+      { group: 'Admin', name: 'Gestion du système', desc: 'Paramètres ferme', features: ['Multi-fermes et utilisateurs', 'Rôles et permissions', 'Paramètres métier', 'Sécurité et sauvegardes', 'Mode démonstration'] },
+    ];
+
+    const TOUR = [
+      {
+        title: '08h00 — Accueil dirigeant',
+        html: `<div class="mock-bar"><span class="on">Accueil</span><span>Élevage</span><span>Commercial</span><span>Smart Farm</span></div>
+          <p><strong>Bonjour, voici votre exploitation ce matin.</strong></p>
+          <div class="domain-cards">
+            <div class="domain-card"><div class="label">ÉLEVAGE</div><div class="val">4 300 têtes</div><div style="font-size:0.75rem;color:var(--hf-muted)">4 lots actifs</div></div>
+            <div class="domain-card"><div class="label">CULTURES</div><div class="val">12 parcelles</div><div style="font-size:0.75rem;color:var(--hf-muted)">8,5 ha</div></div>
+            <div class="domain-card"><div class="label">STOCK</div><div class="val">47 produits</div><div style="font-size:0.75rem;color:#b45309">⚠ Rupture aliment</div></div>
+            <div class="domain-card"><div class="label">FINANCE</div><div class="val">2,4 M FCFA</div><div style="font-size:0.75rem;color:var(--hf-muted)">Trésorerie</div></div>
+          </div>
+          <div class="alert-box">Capteurs : 28°C poulailler · 62% humidité · 2 capteurs en ligne</div>`
+      },
+      {
+        title: '08h15 — Hey Horizon (réception)',
+        html: `<div class="mock-bar"><span>Accueil</span><span class="on">Assistant</span><span>Stock</span></div>
+          <p>Vous dictez ou tapez une phrase terrain — Horizon prépare le brouillon.</p>
+          <div class="chat-demo">
+            <div class="bubble bubble--user">Réception 20 sacs aliment AgroFeed, 480 000 FCFA, à crédit 15 jours.</div>
+            <div class="bubble bubble--bot"><strong>Brouillon réception stock</strong><br/>20 sacs · Fournisseur AgroFeed · 480 000 FCFA · Dette 15j<br/><br/>→ Stock +24% aliment · Dette fournisseur créée<br/><br/>✓ Valider & enregistrer</div>
+          </div>
+          <p style="margin-top:1rem;font-size:0.85rem;color:var(--hf-muted);">Après validation : inventaire et dette mis à jour. Alerte rupture disparaît sur l'Accueil.</p>`
+      },
+      {
+        title: '09h00 — Commercial (vente)',
+        html: `<div class="mock-bar"><span>Accueil</span><span class="on">Commercial</span><span>Finance</span></div>
+          <p><strong>Vente restaurant Le Palmier</strong> — 20 tablettes œufs · 70 000 FCFA</p>
+          <p style="margin:0.75rem 0;font-size:0.9rem;">Flux automatique :</p>
+          <p style="font-size:0.85rem;">Vente <span class="flow-arrow">→</span> Sortie stock œufs <span class="flow-arrow">→</span> Encaissement Orange Money <span class="flow-arrow">→</span> Marge +12 400 FCFA</p>
+          <div style="margin-top:1rem;padding:1rem;background:#f0fdf4;border-radius:0.75rem;">
+            <strong style="color:var(--hf-accent-strong);">Résultat immédiat</strong>
+            <p style="font-size:0.85rem;margin-top:0.35rem;">Trésorerie +70 000 · Stock œufs −20 · Traçabilité enregistrée · Client créance soldée</p>
+          </div>`
+      },
+      {
+        title: '10h30 — Smart Farm (alerte)',
+        html: `<div class="mock-bar"><span>Accueil</span><span class="on">Smart Farm</span><span>Activité</span></div>
+          <p><strong>Alerte chaleur — Poulailler A</strong></p>
+          <p style="font-size:2rem;font-family:Fraunces,serif;font-weight:700;color:#b45309;margin:0.5rem 0;">32°C</p>
+          <p style="font-size:0.85rem;">Seuil max 30°C dépassé depuis 8 minutes.</p>
+          <div class="alert-box">→ Tâche créée dans Activité & Suivi « À traiter maintenant » : Vérifier ventilation Poulailler A</div>
+          <p style="margin-top:1rem;font-size:0.85rem;color:var(--hf-muted);">Règle Si… Alors… : possibilité d'activer ventilation automatique (module Smart Farm).</p>`
+      },
+      {
+        title: '18h00 — Journal & traçabilité',
+        html: `<div class="mock-bar"><span class="on">Activité & Suivi</span><span>Documents</span><span>Sync ERP</span></div>
+          <p><strong>12 événements tracés automatiquement aujourd'hui :</strong></p>
+          <ul style="margin-top:0.75rem;font-size:0.85rem;padding-left:1.25rem;">
+            <li>Réception aliment (Stock + Dette)</li>
+            <li>Vente restaurant + encaissement</li>
+            <li>Alerte capteur + tâche ventilation</li>
+            <li>Mise à jour effectifs élevage</li>
+            <li>3 mouvements stock internes</li>
+            <li>Rapprochement OCR facture fournisseur</li>
+          </ul>
+          <p style="margin-top:1rem;font-size:0.85rem;color:var(--hf-muted);">Tout est interconnecté — rien à ressaisir. Export PDF disponible pour banque ou investisseur.</p>`
+      },
+    ];
+
+    let tourIndex = 0;
+    let selectedModule = null;
+
+    function renderModules() {
+      const grid = document.getElementById('module-grid');
+      grid.innerHTML = MODULES.map((m, i) => `
+        <div class="module-card" data-idx="${i}" onclick="selectModule(${i})">
+          <div class="group">${m.group}</div>
+          <h3>${m.name}</h3>
+          <p>${m.desc}</p>
+        </div>`).join('');
+    }
+
+    function selectModule(i) {
+      selectedModule = MODULES[i];
+      document.querySelectorAll('.module-card').forEach((c, j) => c.classList.toggle('selected', j === i));
+      const panel = document.getElementById('module-detail');
+      panel.classList.add('visible');
+      panel.innerHTML = `
+        <h3>${selectedModule.name}</h3>
+        <p style="color:var(--hf-muted);margin-bottom:1rem;">${selectedModule.desc} · ${selectedModule.group}</p>
+        <ul class="feature-list">${selectedModule.features.map(f => `<li>${f}</li>`).join('')}</ul>
+        <p style="margin-top:1rem;font-size:0.85rem;"><a href="/">Ouvrir ce module dans l'ERP →</a></p>`;
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function renderTourSteps() {
+      document.getElementById('tour-steps').innerHTML = TOUR.map((t, i) => `
+        <button class="tour-step-btn${i === tourIndex ? ' active' : ''}${i < tourIndex ? ' done' : ''}" onclick="startTour(${i})">${t.title}</button>`).join('');
+    }
+
+    function renderTourScreen() {
+      document.getElementById('tour-screen').innerHTML = `<h3 style="font-family:Fraunces,serif;margin-bottom:1rem;">${TOUR[tourIndex].title}</h3>${TOUR[tourIndex].html}`;
+      renderTourSteps();
+    }
+
+    function startTour(i) { tourIndex = i; renderTourScreen(); }
+    function nextTour() { if (tourIndex < TOUR.length - 1) { tourIndex++; renderTourScreen(); } }
+    function prevTour() { if (tourIndex > 0) { tourIndex--; renderTourScreen(); } }
+
+    function showPanel(id) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.panel === id));
+      document.getElementById('panel-' + id).classList.add('active');
+    }
+
+    renderModules();
+    renderTourScreen();
+    selectModule(0);
+  </script>
+</body>
+</html>

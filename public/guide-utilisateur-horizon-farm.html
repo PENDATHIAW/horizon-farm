@@ -253,217 +253,510 @@
 
   <section class="toc-page">
     <h2>Sommaire</h2>
-    <div class="toc-grid"><a href="#1-qu-est-ce-qu-horizon-farm" class="toc-item"><span class="toc-num">1</span><span>Qu’est-ce qu’Horizon Farm ?</span></a>
+    <div class="toc-grid"><a href="#1-vue-d-ensemble" class="toc-item"><span class="toc-num">1</span><span>Vue d'ensemble</span></a>
 <a href="#2-premiers-pas" class="toc-item"><span class="toc-num">2</span><span>Premiers pas</span></a>
-<a href="#3-accueil-le-carnet-du-dirigeant" class="toc-item"><span class="toc-num">3</span><span>Accueil — le carnet du dirigeant</span></a>
-<a href="#4-élevage" class="toc-item"><span class="toc-num">4</span><span>Élevage</span></a>
-<a href="#5-cultures" class="toc-item"><span class="toc-num">5</span><span>Cultures</span></a>
-<a href="#6-achats-stock" class="toc-item"><span class="toc-num">6</span><span>Achats &amp; Stock</span></a>
-<a href="#7-commercial" class="toc-item"><span class="toc-num">7</span><span>Commercial</span></a>
-<a href="#8-finance-pilotage" class="toc-item"><span class="toc-num">8</span><span>Finance &amp; Pilotage</span></a>
-<a href="#9-activité-suivi" class="toc-item"><span class="toc-num">9</span><span>Activité &amp; Suivi</span></a>
-<a href="#10-smart-farm-capteurs-caméras" class="toc-item"><span class="toc-num">10</span><span>Smart Farm (capteurs &amp; caméras)</span></a>
-<a href="#11-hey-horizon-l-assistant" class="toc-item"><span class="toc-num">11</span><span>Hey Horizon — l’assistant</span></a>
-<a href="#12-documents-rapports" class="toc-item"><span class="toc-num">12</span><span>Documents &amp; rapports</span></a>
-<a href="#13-gestion-système" class="toc-item"><span class="toc-num">13</span><span>Gestion système</span></a>
-<a href="#14-multi-fermes-et-période" class="toc-item"><span class="toc-num">14</span><span>Multi-fermes et période</span></a>
-<a href="#15-résolution-de-problèmes" class="toc-item"><span class="toc-num">15</span><span>Résolution de problèmes</span></a>
-<a href="#16-glossaire-métier-non-technique" class="toc-item"><span class="toc-num">16</span><span>Glossaire métier (non technique)</span></a>
-<a href="#17-contacts-et-évolution" class="toc-item"><span class="toc-num">17</span><span>Contacts et évolution</span></a></div>
+<a href="#3-accueil" class="toc-item"><span class="toc-num">3</span><span>Accueil</span></a>
+<a href="#4-assistant-erp-hey-horizon" class="toc-item"><span class="toc-num">4</span><span>Assistant ERP (Hey Horizon)</span></a>
+<a href="#5-centre-décisionnel" class="toc-item"><span class="toc-num">5</span><span>Centre décisionnel</span></a>
+<a href="#6-objectifs-croissance" class="toc-item"><span class="toc-num">6</span><span>Objectifs &amp; Croissance</span></a>
+<a href="#7-élevage" class="toc-item"><span class="toc-num">7</span><span>Élevage</span></a>
+<a href="#8-cultures" class="toc-item"><span class="toc-num">8</span><span>Cultures</span></a>
+<a href="#9-commercial" class="toc-item"><span class="toc-num">9</span><span>Commercial</span></a>
+<a href="#10-achats-stock" class="toc-item"><span class="toc-num">10</span><span>Achats &amp; Stock</span></a>
+<a href="#11-finance-pilotage" class="toc-item"><span class="toc-num">11</span><span>Finance &amp; Pilotage</span></a>
+<a href="#12-activité-suivi" class="toc-item"><span class="toc-num">12</span><span>Activité &amp; Suivi</span></a>
+<a href="#13-documents-rapports" class="toc-item"><span class="toc-num">13</span><span>Documents &amp; Rapports</span></a>
+<a href="#14-opérations-ressources" class="toc-item"><span class="toc-num">14</span><span>Opérations &amp; Ressources</span></a>
+<a href="#15-smart-farm" class="toc-item"><span class="toc-num">15</span><span>Smart Farm</span></a>
+<a href="#16-investisseurs-forums" class="toc-item"><span class="toc-num">16</span><span>Investisseurs &amp; Forums</span></a>
+<a href="#17-activité-sync-erp" class="toc-item"><span class="toc-num">17</span><span>Activité &amp; Sync ERP</span></a>
+<a href="#18-gestion-du-système" class="toc-item"><span class="toc-num">18</span><span>Gestion du système</span></a>
+<a href="#19-fonctionnalités-transverses" class="toc-item"><span class="toc-num">19</span><span>Fonctionnalités transverses</span></a>
+<a href="#20-workflows-métier-pas-à-pas" class="toc-item"><span class="toc-num">20</span><span>Workflows métier pas à pas</span></a>
+<a href="#21-résolution-de-problèmes" class="toc-item"><span class="toc-num">21</span><span>Résolution de problèmes</span></a>
+<a href="#22-glossaire" class="toc-item"><span class="toc-num">22</span><span>Glossaire</span></a></div>
   </section>
 
   <main class="content">
-    <h1 class="doc-title">Guide utilisateur Horizon Farm</h1>
-<p>&gt; <strong>PDF prêt à imprimer ou envoyer :</strong> [GUIDE_UTILISATEUR_HORIZON_FARM.pdf](GUIDE_UTILISATEUR_HORIZON_FARM.pdf)</p>
-<p>&gt; Régénérer : <code>npm run guide:generate</code> · HTML source : <code>/guide-utilisateur-horizon-farm.html</code></p>
+    <h1 class="doc-title">Guide utilisateur Horizon Farm — Édition complète</h1>
+<p>&gt; <strong>PDF :</strong> [GUIDE_UTILISATEUR_HORIZON_FARM.pdf](GUIDE_UTILISATEUR_HORIZON_FARM.pdf) · Régénérer : <code>npm run guide:generate</code></p>
 <p><strong>Version :</strong> juin 2026</p>
-<p><strong>Public :</strong> exploitants agricoles, responsables d’exploitation, chefs d’équipe terrain</p>
+<p><strong>Public :</strong> exploitants, dirigeants, chefs d'équipe, comptables terrain, formateurs</p>
 <hr class="section-break" />
-<h2 id="1-qu-est-ce-qu-horizon-farm">1. Qu’est-ce qu’Horizon Farm ?</h2>
-<p>Horizon Farm est un <strong>ERP agricole</strong> conçu pour piloter une exploitation au quotidien : élevage, cultures, stock, ventes, finances et suivi terrain. L’application regroupe vos données en un seul endroit et vous aide à <strong>voir l’essentiel</strong>, <strong>agir au bon moment</strong> et <strong>garder la traçabilité</strong>.</p>
-<p>Trois principes guident l’interface :</p>
+<h2 id="sommaire">Sommaire</h2>
+<p class="numbered"><span class="num">1</span>[Vue d'ensemble](#1-vue-densemble)</p>
+<p class="numbered"><span class="num">2</span>[Premiers pas](#2-premiers-pas)</p>
+<p class="numbered"><span class="num">3</span>[Accueil](#3-accueil)</p>
+<p class="numbered"><span class="num">4</span>[Assistant ERP (Hey Horizon)](#4-assistant-erp-hey-horizon)</p>
+<p class="numbered"><span class="num">5</span>[Centre décisionnel](#5-centre-décisionnel)</p>
+<p class="numbered"><span class="num">6</span>[Objectifs &amp; Croissance](#6-objectifs--croissance)</p>
+<p class="numbered"><span class="num">7</span>[Élevage](#7-élevage)</p>
+<p class="numbered"><span class="num">8</span>[Cultures](#8-cultures)</p>
+<p class="numbered"><span class="num">9</span>[Commercial](#9-commercial)</p>
+<p class="numbered"><span class="num">10</span>[Achats &amp; Stock](#10-achats--stock)</p>
+<p class="numbered"><span class="num">11</span>[Finance &amp; Pilotage](#11-finance--pilotage)</p>
+<p class="numbered"><span class="num">12</span>[Activité &amp; Suivi](#12-activité--suivi)</p>
+<p class="numbered"><span class="num">13</span>[Documents &amp; Rapports](#13-documents--rapports)</p>
+<p class="numbered"><span class="num">14</span>[Opérations &amp; Ressources](#14-opérations--ressources)</p>
+<p class="numbered"><span class="num">15</span>[Smart Farm](#15-smart-farm)</p>
+<p class="numbered"><span class="num">16</span>[Investisseurs &amp; Forums](#16-investisseurs--forums)</p>
+<p class="numbered"><span class="num">17</span>[Activité &amp; Sync ERP](#17-activité--sync-erp)</p>
+<p class="numbered"><span class="num">18</span>[Gestion du système](#18-gestion-du-système)</p>
+<p class="numbered"><span class="num">19</span>[Fonctionnalités transverses](#19-fonctionnalités-transverses)</p>
+<p class="numbered"><span class="num">20</span>[Workflows métier pas à pas](#20-workflows-métier-pas-à-pas)</p>
+<p class="numbered"><span class="num">21</span>[Résolution de problèmes](#21-résolution-de-problèmes)</p>
+<p class="numbered"><span class="num">22</span>[Glossaire](#22-glossaire)</p>
+<hr class="section-break" />
+<h2 id="1-vue-d-ensemble">1. Vue d'ensemble</h2>
+<p>Horizon Farm est un <strong>ERP agricole intégré</strong> : une seule application pour piloter l'élevage, les cultures, les stocks, les ventes, la finance, les capteurs connectés, la traçabilité et la préparation investisseur.</p>
+<h3>1.1 Les 17 modules de navigation</h3>
+<table><thead><tr><th>Groupe</th><th>Module</th><th>Rôle principal</th></tr></thead><tbody><tr><td>Pilotage</td><td><strong>Accueil</strong></td><td>Tableau de bord dirigeant</td></tr><tr><td>Pilotage</td><td><strong>Assistant ERP</strong></td><td>Hey Horizon — saisie et questions en langage naturel</td></tr><tr><td>Pilotage</td><td><strong>Centre décisionnel</strong></td><td>Urgences, opportunités, saisons &amp; marchés</td></tr><tr><td>Pilotage</td><td><strong>Objectifs &amp; Croissance</strong></td><td>Business Plan, zootechnie, simulateur</td></tr><tr><td>Pilotage</td><td><strong>Investisseurs &amp; Forums</strong></td><td>Dossier banque/ONG, CRM investisseurs</td></tr><tr><td>Production</td><td><strong>Élevage</strong></td><td>Lots, animaux, santé, reproduction, transformation</td></tr><tr><td>Production</td><td><strong>Cultures</strong></td><td>Parcelles, récoltes, économie circulaire</td></tr><tr><td>Commerce</td><td><strong>Commercial</strong></td><td>Ventes, clients, livraisons, abonnements</td></tr><tr><td>Commerce</td><td><strong>Achats &amp; Stock</strong></td><td>Inventaire, achats, fournisseurs</td></tr><tr><td>Finance</td><td><strong>Finance &amp; Pilotage</strong></td><td>Trésorerie, créances, investissements, rentabilité</td></tr><tr><td>Suivi</td><td><strong>Activité &amp; Suivi</strong></td><td>Cockpit, à traiter, traçabilité, performance</td></tr><tr><td>Suivi</td><td><strong>Documents &amp; Rapports</strong></td><td>OCR, preuves, exports</td></tr><tr><td>Ressources</td><td><strong>Opérations &amp; Ressources</strong></td><td>RH, paie, parc matériel, maintenance</td></tr><tr><td>Terrain</td><td><strong>Smart Farm</strong></td><td>Capteurs, caméras, automatisation</td></tr><tr><td>Admin</td><td><strong>Activité &amp; Sync ERP</strong></td><td>Cohérence données, hors ligne, journal</td></tr><tr><td>Admin</td><td><strong>Gestion du système</strong></td><td>Fermes, utilisateurs, paramètres, sécurité</td></tr></tbody></table>
+<h3>1.2 Principes directeurs</h3>
 <ul>
-<li><strong>Terrain d’abord</strong> — ce qui compte pour la ferme (effectifs, récoltes, ventes, alertes) est visible sans jargon technique.</li>
-<li><strong>Un seul fil conducteur</strong> — une vente met à jour le stock, la trésorerie et l’activité ; un achat aliment met à jour les dettes fournisseurs.</li>
-<li><strong>Validation avant action</strong> — l’assistant Hey Horizon prépare les enregistrements ; vous validez avant que rien ne soit écrit.</li>
+<li><strong>Terrain d'abord</strong> — indicateurs et actions compréhensibles sans jargon technique.</li>
+<li><strong>Un seul fil</strong> — une vente met à jour stock, trésorerie et activité ; un achat met à jour dettes et inventaire.</li>
+<li><strong>Validation avant écriture</strong> — l'assistant prépare, vous validez.</li>
+<li><strong>Interconnexion</strong> — le moteur de santé ERP détecte les incohérences et propose des réparations.</li>
 </ul>
 <hr class="section-break" />
 <h2 id="2-premiers-pas">2. Premiers pas</h2>
-<h3>2.1 Connexion et profil</h3>
-<p class="numbered"><span class="num">1</span>Ouvrez Horizon Farm depuis votre navigateur ou l’application installée (PWA).</p>
+<h3>2.1 Connexion</h3>
+<p class="numbered"><span class="num">1</span>Ouvrez Horizon Farm (navigateur ou application installée PWA).</p>
 <p class="numbered"><span class="num">2</span>Connectez-vous avec votre compte.</p>
-<p class="numbered"><span class="num">3</span>Vérifiez la <strong>ferme active</strong> en haut de l’écran (sélecteur de ferme si vous gérez plusieurs sites).</p>
-<p class="numbered"><span class="num">4</span>Choisissez la <strong>période</strong> (mois en cours, trimestre, année) pour les indicateurs filtrés.</p>
+<p class="numbered"><span class="num">3</span>Vérifiez le <strong>sélecteur de ferme</strong> (en-tête) si vous gérez plusieurs sites.</p>
+<p class="numbered"><span class="num">4</span>Choisissez la <strong>période</strong> (mois, trimestre, année) pour filtrer ventes et finances.</p>
 <h3>2.2 Mode démonstration</h3>
-<p>Dans <strong>Gestion système → Paramètres</strong>, vous pouvez activer le <strong>mode données simulées</strong> pour explorer l’application avec un jeu d’exemple réaliste (bandes avicoles, parcelles, ventes, capteurs). Idéal pour la formation ou une présentation client.</p>
-<h3>2.3 Navigation générale</h3>
-<table><thead><tr><th>Zone</th><th>Rôle</th></tr></thead><tbody><tr><td><strong>Accueil</strong></td><td>Vue dirigeant : état global, capteurs, objectifs, conseil, journal</td></tr><tr><td><strong>Élevage</strong></td><td>Lots, animaux, alimentation, santé, reproduction, transformation</td></tr><tr><td><strong>Cultures</strong></td><td>Parcelles, campagnes, récoltes, intrants</td></tr><tr><td><strong>Achats &amp; Stock</strong></td><td>Inventaire, réceptions, mouvements, fournisseurs</td></tr><tr><td><strong>Commercial</strong></td><td>Ventes, clients, livraisons, encaissements</td></tr><tr><td><strong>Finance &amp; Pilotage</strong></td><td>Trésorerie, créances, dettes, rentabilité</td></tr><tr><td><strong>Activité &amp; Suivi</strong></td><td>Cockpit, actions à traiter, traçabilité, performance</td></tr><tr><td><strong>Smart Farm</strong></td><td>Capteurs, caméras, flux temps réel, automatisation</td></tr><tr><td><strong>Hey Horizon</strong></td><td>Assistant conversationnel (vente, achat, alerte, question métier)</td></tr></tbody></table>
+<p><strong>Gestion du système → Paramètres</strong> : activez le <strong>mode données simulées</strong> pour explorer avec un jeu réaliste (bandes avicoles, parcelles, ventes, capteurs, BP). Idéal formation et démo client.</p>
+<h3>2.3 Navigation</h3>
+<ul>
+<li><strong>Menu latéral</strong> — accès aux 17 modules, regroupés par thème.</li>
+<li><strong>Hey Horizon flottant</strong> — panneau assistant accessible depuis n'importe quelle page.</li>
+<li><strong>Recherche vocale</strong> — barre de recherche en en-tête.</li>
+<li><strong>Météo</strong> — indicateur météo live (en-tête), utilisé par Cultures et Centre décisionnel.</li>
+</ul>
+<h3>2.4 Multi-fermes et période</h3>
+<ul>
+<li><strong>Ferme unique</strong> — tous les KPI concernent ce site.</li>
+<li><strong>Toutes les fermes</strong> — cumul groupe (accueil affiche souvent « Cumul »).</li>
+<li><strong>Période</strong> — filtre ventes, finances, graphiques ; badge visible sur les modules concernés.</li>
+</ul>
 <hr class="section-break" />
-<h2 id="3-accueil-le-carnet-du-dirigeant">3. Accueil — le carnet du dirigeant</h2>
-<p>L’accueil est votre <strong>tableau de bord terrain</strong>. Il affiche :</p>
-<h3>3.1 Cartes domaine (sans icônes décoratives)</h3>
-<ul>
-<li><strong>Élevage</strong> — effectifs par espèce (pondeuses, chair, bovins…), mortalités du jour, lots sous traitement.</li>
-<li><strong>Cultures</strong> — parcelles actives, surfaces, cultures principales, parcelles à surveiller.</li>
-<li><strong>Stock</strong> — nombre de produits, emplacements, ruptures, DLC proches.</li>
-<li><strong>Finance</strong> — trésorerie nette, créances, dettes.</li>
-</ul>
-<p>Cliquez sur une carte pour ouvrir le module correspondant.</p>
+<h2 id="3-accueil">3. Accueil</h2>
+<p>Le <strong>Carnet Horizon</strong> est le tableau de bord du dirigeant.</p>
+<h3>3.1 Cartes domaine</h3>
+<table><thead><tr><th>Carte</th><th>Informations</th><th>Action</th></tr></thead><tbody><tr><td><strong>Élevage</strong></td><td>Effectifs par espèce, mortalités du jour, lots sous traitement</td><td>Ouvre Élevage → Lots &amp; bandes</td></tr><tr><td><strong>Cultures</strong></td><td>Parcelles actives, hectares, cultures principales</td><td>Ouvre Cultures</td></tr><tr><td><strong>Stock</strong></td><td>Produits, emplacements, ruptures, DLC</td><td>Ouvre Achats &amp; Stock → Inventaire</td></tr><tr><td><strong>Finance</strong></td><td>Trésorerie nette, créances, dettes</td><td>Ouvre Finance → Résumé</td></tr></tbody></table>
 <h3>3.2 Bandeau capteurs &amp; terrain</h3>
-<p>Résumé <strong>Smart Farm</strong> sur l’accueil :</p>
+<p>Température, humidité air/sol, capteurs en ligne/hors ligne, alertes seuils. Lien vers <strong>Smart Farm → Flux temps réel</strong>.</p>
+<h3>3.3 Objectifs CA</h3>
 <ul>
-<li>Température, humidité air et sol (selon capteurs connectés).</li>
-<li>Nombre de capteurs en ligne / hors ligne.</li>
-<li>Alertes seuils dépassés.</li>
-<li>Lien direct vers <strong>Smart Farm → Flux temps réel</strong>.</li>
-</ul>
-<h3>3.3 Objectifs de l’exploitation</h3>
-<ul>
-<li><strong>CA mois</strong> — réalisé vs objectif du mois.</li>
+<li><strong>CA mois</strong> — réalisé vs objectif.</li>
 <li><strong>CA année</strong> — cumul annuel vs objectif.</li>
 </ul>
 <h3>3.4 Conseil Horizon</h3>
-<p>Message structuré : <strong>Situation → Cause → Action</strong> (ex. stock d’aliment bas, créances à relancer).</p>
-<h3>3.5 Journal d’exploitation</h3>
-<p>Les 10 derniers événements terrain (ventes, livraisons, récoltes, paiements, soins…) sans bruit administratif (BP, investisseur, tâches internes).</p>
+<p>Message <strong>Situation → Cause → Action</strong> (ex. stock aliment bas, créances à relancer).</p>
+<h3>3.5 Journal d'exploitation</h3>
+<p>10 derniers événements terrain (ventes, livraisons, récoltes, paiements, soins) sans bruit administratif.</p>
 <hr class="section-break" />
-<h2 id="4-élevage">4. Élevage</h2>
-<h3>4.1 Onglets principaux</h3>
-<table><thead><tr><th>Onglet</th><th>Usage</th></tr></thead><tbody><tr><td>Lots &amp; bandes</td><td>Poulets chair, pondeuses, cycles avicoles</td></tr><tr><td>Animaux</td><td>Bovins, ovins, caprins, fiches individuelles</td></tr><tr><td>Alimentation</td><td>Distributions, consommation, lien stock</td></tr><tr><td>Santé</td><td>Vaccins, traitements, rappels</td></tr><tr><td>Reproduction</td><td>Saillies, gestations, naissances</td></tr><tr><td>Transformation</td><td>Abattage, découpe, lien commercial</td></tr></tbody></table>
-<h3>4.2 Saisies courantes</h3>
+<h2 id="4-assistant-erp-hey-horizon">4. Assistant ERP (Hey Horizon)</h2>
+<p>Module dédié + panneau global sur toutes les pages.</p>
+<h3>4.1 Ce que vous pouvez faire</h3>
 <ul>
-<li><strong>Mortalité</strong> — depuis la fiche lot ou via Hey Horizon (« 5 poulets morts lot A »).</li>
-<li><strong>Production d’œufs</strong> — saisie journalière ou ramassage.</li>
-<li><strong>Pesée</strong> — suivi courbe de croissance et aide à la décision vente.</li>
-<li><strong>Alimentation</strong> — sortie stock automatique si configurée.</li>
+<li>Enregistrer une <strong>vente</strong>, <strong>achat</strong>, <strong>mortalité</strong>, <strong>production œufs</strong>, <strong>récolte</strong>.</li>
+<li>Poser des questions : « Quel est mon stock de maïs ? », « Combien de créances ouvertes ? »</li>
+<li>Importer un <strong>document</strong> (facture, reçu) pour pré-remplir une fiche.</li>
+<li>Utiliser la <strong>voix</strong> (si micro activé) : « Hey Horizon… »</li>
 </ul>
-<h3>4.3 Bonnes pratiques</h3>
+<h3>4.2 Workflow obligatoire</h3>
+<p class="numbered"><span class="num">1</span>Vous formulez (texte ou vocal).</p>
+<p class="numbered"><span class="num">2</span>L'assistant prépare un <strong>brouillon</strong>.</p>
+<p class="numbered"><span class="num">3</span>Vous <strong>vérifiez</strong> montants, client, produit, date.</p>
+<p class="numbered"><span class="num">4</span>Vous <strong>validez</strong> → enregistrement dans le module cible.</p>
+<p><strong>Aucune écriture sans confirmation.</strong></p>
+<h3>4.3 Exemples de phrases</h3>
 <ul>
-<li>Clôturer les lots vendus ou terminés pour des indicateurs fiables.</li>
-<li>Renseigner le vétérinaire et les dates de rappel sanitaire.</li>
-<li>Utiliser la <strong>transformation</strong> pour lier abattage → stock viande → vente.</li>
-</ul>
-<hr class="section-break" />
-<h2 id="5-cultures">5. Cultures</h2>
-<h3>5.1 Parcelles &amp; campagnes</h3>
-<p>Créez une <strong>parcelle</strong> (surface, culture, statut) puis suivez les opérations : semis, traitements, récolte.</p>
-<h3>5.2 Récolte</h3>
-<p>Une récolte enregistrée :</p>
-<ul>
-<li>Met à jour la parcelle.</li>
-<li>Peut alimenter le stock (grains, légumes…).</li>
-<li>Apparaît dans le journal d’accueil et la traçabilité.</li>
-</ul>
-<h3>5.3 Lien Smart Farm</h3>
-<p>Humidité sol et température parcelle : consultez <strong>Smart Farm</strong> ou le bandeau capteurs sur l’accueil.</p>
-<hr class="section-break" />
-<h2 id="6-achats-stock">6. Achats &amp; Stock</h2>
-<h3>6.1 Parcours type</h3>
-<p class="numbered"><span class="num">1</span><strong>Réception</strong> — entrée stock + lien fournisseur + dette si à crédit.</p>
-<p class="numbered"><span class="num">2</span><strong>Inventaire</strong> — vue quantités, seuils, emplacements.</p>
-<p class="numbered"><span class="num">3</span><strong>Mouvements</strong> — journal des entrées/sorties (lecture seule ; saisies dans Stock).</p>
-<p class="numbered"><span class="num">4</span><strong>Fournisseurs</strong> — dettes, relances, historique achats.</p>
-<h3>6.2 Alertes stock</h3>
-<ul>
-<li>Rupture (quantité ≤ 0 avec seuil défini).</li>
-<li>Sous seuil (réapprovisionnement).</li>
-<li>DLC proche ou dépassée.</li>
-</ul>
-<h3>6.3 Mouvements — vocabulaire</h3>
-<ul>
-<li><strong>Journal</strong> — mouvements officiels enregistrés par l’application.</li>
-<li><strong>Historique</strong> — anciennes traces (alimentation, événements antérieurs).</li>
+<li>« J'ai vendu 20 tablettes d'œufs à 70 000 FCFA, payé Orange Money. »</li>
+<li>« Réception 10 sacs aliment chez AgroFeed à 24 000 le sac. »</li>
+<li>« 3 poulets morts lot B12 ce matin. »</li>
+<li>« Planifier vaccination lot chair semaine prochaine. »</li>
 </ul>
 <hr class="section-break" />
-<h2 id="7-commercial">7. Commercial</h2>
-<h3>7.1 Vente complète</h3>
-<p class="numbered"><span class="num">1</span>Créer une <strong>commande</strong> (client, produits, prix).</p>
-<p class="numbered"><span class="num">2</span>Enregistrer une <strong>livraison</strong> si nécessaire.</p>
-<p class="numbered"><span class="num">3</span>Encaisser le <strong>paiement</strong> (espèces, mobile money, virement).</p>
-<p class="numbered"><span class="num">4</span>Vérifier la <strong>marge</strong> sur la fiche vente.</p>
-<h3>7.2 Clients &amp; créances</h3>
-<p>Le module Commercial et l’accueil Finance affichent les montants restant à encaisser. Relancez depuis Commercial ou via message WhatsApp préparé (selon configuration).</p>
-<h3>7.3 Opportunités</h3>
-<p>Propositions de vente issues des stocks disponibles ou des recommandations (lots prêts à vendre, œufs en surplus…).</p>
-<hr class="section-break" />
-<h2 id="8-finance-pilotage">8. Finance &amp; Pilotage</h2>
-<h3>8.1 Résumé</h3>
+<h2 id="5-centre-décisionnel">5. Centre décisionnel</h2>
+<p>Pilotage stratégique quotidien — <strong>3 onglets</strong>.</p>
+<h3>5.1 Urgences &amp; risques</h3>
 <ul>
-<li>Trésorerie (entrées − sorties récentes).</li>
-<li>Créances clients.</li>
-<li>Dettes fournisseurs et charges.</li>
+<li>Alertes critiques cross-modules (stock, sanitaire, trésorerie, cohérence).</li>
+<li>Actions recommandées en un clic (tâche, alerte, navigation module).</li>
+<li>Score santé et priorités du jour.</li>
 </ul>
-<h3>8.2 Rentabilité</h3>
-<p>Consolidation des coûts élevage + cultures + charges. Les paramètres de coût (rations, prix aliment) se règlent dans l’onglet <strong>Annexe</strong> des modules concernés.</p>
-<h3>8.3 Investissements</h3>
-<p>Suivi des immobilisations et amortissements (selon données renseignées).</p>
-<hr class="section-break" />
-<h2 id="9-activité-suivi">9. Activité &amp; Suivi</h2>
-<p>Quatre onglets :</p>
-<table><thead><tr><th>Onglet</th><th>Contenu</th></tr></thead><tbody><tr><td><strong>Cockpit &amp; décisions</strong></td><td>Vue synthèse, alertes critiques, actions recommandées</td></tr><tr><td><strong>À traiter maintenant</strong></td><td>Tâches ouvertes, alertes à résoudre, file de traitement</td></tr><tr><td><strong>Registre &amp; traçabilité</strong></td><td>Historique des opérations liées</td></tr><tr><td><strong>Performance &amp; analytique</strong></td><td>Graphiques, tendances, suivi dans le temps</td></tr></tbody></table>
-<p><strong>Astuce :</strong> si l’onglet « À traiter maintenant » ne s’ouvre pas depuis un lien externe, cliquez directement sur l’onglet dans la barre du module — la navigation interne est prioritaire.</p>
-<hr class="section-break" />
-<h2 id="10-smart-farm-capteurs-caméras">10. Smart Farm (capteurs &amp; caméras)</h2>
-<h3>10.1 Flux temps réel</h3>
+<h3>5.2 Croissance &amp; opportunités</h3>
 <ul>
-<li>Dernières mesures : température (TC), humidité, sol.</li>
-<li>Événements capteurs (seuils, offline, intrusion…).</li>
-<li>Statut en ligne / hors ligne.</li>
+<li>Opportunités de vente (stock dispo, lots prêts, surplus récolte).</li>
+<li>Recommandations IA métier avec validation.</li>
+<li>Lien Objectifs &amp; Croissance et Commercial.</li>
 </ul>
-<h3>10.2 Gestion des équipements</h3>
-<p>Enregistrement des capteurs, caméras, zones (poulailler, serre, magasin…).</p>
-<h3>10.3 Automatisation</h3>
-<p>Règles du type « Si température trop haute → alerte + tâche ventilation ». Les commandes matérielles (vannes, ventilateurs) arrivent progressivement ; les <strong>alertes et tâches</strong> sont déjà actives.</p>
-<hr class="section-break" />
-<h2 id="11-hey-horizon-l-assistant">11. Hey Horizon — l’assistant</h2>
-<h3>11.1 Ce que vous pouvez dire</h3>
+<h3>5.3 Saisons &amp; marchés</h3>
 <ul>
-<li>« J’ai vendu 20 tablettes d’œufs à 70 000 FCFA »</li>
-<li>« Réception de 10 sacs d’aliment chez AgroFeed »</li>
-<li>« 3 poulets morts dans le lot B12 »</li>
-<li>« Quel est mon stock de maïs ? »</li>
+<li>Calendrier marchés et saisons.</li>
+<li>Prix marché de référence.</li>
+<li>Contexte météo pour décisions cultures/élevage.</li>
 </ul>
-<h3>11.2 Workflow</h3>
-<p class="numbered"><span class="num">1</span>Vous formulez votre besoin (texte ou vocal si disponible).</p>
-<p class="numbered"><span class="num">2</span>L’assistant prépare un <strong>brouillon</strong> (vente, achat, tâche…).</p>
-<p class="numbered"><span class="num">3</span>Vous <strong>vérifiez et validez</strong>.</p>
-<p class="numbered"><span class="num">4</span>L’enregistrement est créé dans le bon module.</p>
-<p>Aucune écriture sans votre confirmation.</p>
+<h3>5.4 Exports</h3>
+<p>Export CSV/Excel des décisions et priorités pour réunion d'équipe.</p>
 <hr class="section-break" />
-<h2 id="12-documents-rapports">12. Documents &amp; rapports</h2>
+<h2 id="6-objectifs-croissance">6. Objectifs &amp; Croissance</h2>
+<p>Suivi du Business Plan et performance technique — <strong>4 onglets</strong>.</p>
+<h3>6.1 Suivi du Business Plan</h3>
 <ul>
-<li><strong>Centre de contrôle</strong> — état des pièces justificatives.</li>
-<li><strong>Gestionnaire &amp; OCR</strong> — import et lecture de factures / reçus.</li>
-<li><strong>Rapprochement</strong> — rapprocher paiements et preuves.</li>
-<li><strong>Rapports &amp; exports</strong> — synthèses pour banque, partenaires, saison.</li>
+<li>Objectifs CA mensuels et annuels vs réalisé.</li>
+<li>Projections revenus BP.</li>
+<li>Écarts et rattrapage.</li>
+</ul>
+<h3>6.2 Efficacité Technique &amp; Zootechnique</h3>
+<ul>
+<li>Analytics lots : mortalité, thermique, occupation, production.</li>
+<li>Indicateurs par activité (chair, ponte, bovins…).</li>
+<li>Alertes zootechniques.</li>
+</ul>
+<h3>6.3 Simulateur Sandbox</h3>
+<ul>
+<li>Simulation maraîchage, diversification, nouvelles activités.</li>
+<li>Scénarios « et si » sans modifier les données réelles.</li>
+</ul>
+<h3>6.4 Sécurisation des Flux</h3>
+<ul>
+<li>Trésorerie, dettes, alertes sanitaires consolidées.</li>
+<li>Vue risques trésorerie à 30/90 jours.</li>
 </ul>
 <hr class="section-break" />
-<h2 id="13-gestion-système">13. Gestion système</h2>
-<p>Réservé aux administrateurs :</p>
+<h2 id="7-élevage">7. Élevage</h2>
+<p>Module unifié avicole + animaux + santé — <strong>4 onglets</strong>.</p>
+<h3>7.1 Lots &amp; bandes</h3>
+<p><strong>Sous-vues : Avicole | Animaux</strong></p>
+<table><thead><tr><th>Activité</th><th>Actions</th></tr></thead><tbody><tr><td><strong>Avicole</strong></td><td>Créer lot chair/pondeuses, saisir production œufs, mortalité, pesée, clôturer lot</td></tr><tr><td><strong>Animaux</strong></td><td>Fiches bovins/ovins/caprins, pesées, statut, lien vétérinaire</td></tr><tr><td><strong>Alimentation</strong></td><td>Distributions, consommation, sortie stock automatique</td></tr><tr><td><strong>Production</strong></td><td>Hub production : œufs, taux ponte, courbes croissance</td></tr></tbody></table>
+<p><strong>Saisies courantes :</strong> mortalité, ramassage œufs, pesée, alimentation journalière.</p>
+<h3>7.2 Cycles &amp; Reproduction</h3>
 <ul>
-<li><strong>Fermes</strong> — création, comparaison multi-sites.</li>
-<li><strong>Utilisateurs</strong> — rôles et accès (évolution en cours).</li>
-<li><strong>Paramètres</strong> — devise, unités, mode démo.</li>
-<li><strong>Sécurité</strong> — journal d’audit.</li>
-<li><strong>Sauvegardes</strong> — actualiser les données, synchronisation hors ligne.</li>
+<li>Saillies, gestations, naissances.</li>
+<li>Calendrier reproduction.</li>
+<li>Lien effectifs Accueil.</li>
+</ul>
+<h3>7.3 Santé</h3>
+<ul>
+<li>Vaccins, traitements, retraits sanitaires.</li>
+<li>Rappels et lots « sous traitement ».</li>
+<li>Alertes retard sanitaire → Activité &amp; Suivi.</li>
+</ul>
+<h3>7.4 Transformation</h3>
+<ul>
+<li>Abattage, découpe, lien stock viande.</li>
+<li>Pont vers Commercial pour vente.</li>
+<li>Journal transformation.</li>
+</ul>
+<h3>7.5 Bonnes pratiques</h3>
+<ul>
+<li>Clôturer les lots terminés pour KPI fiables.</li>
+<li>Renseigner vétérinaire et dates rappel.</li>
+<li>Utiliser Hey Horizon pour saisies terrain rapides.</li>
 </ul>
 <hr class="section-break" />
-<h2 id="14-multi-fermes-et-période">14. Multi-fermes et période</h2>
+<h2 id="8-cultures">8. Cultures</h2>
+<p><strong>3 onglets</strong> + hubs internes.</p>
+<h3>8.1 Parcelles &amp; campagnes</h3>
 <ul>
-<li><strong>Ferme unique</strong> — tous les indicateurs concernent ce site.</li>
-<li><strong>Toutes les fermes</strong> — cumul (accueil affiche souvent « Cumul »).</li>
-<li><strong>Période</strong> — filtre ventes, finances et certains graphiques.</li>
+<li>Créer parcelle (surface, culture, statut, campagne).</li>
+<li>Opérations : semis, traitements, intrants.</li>
+<li>Pilotage parcelles à surveiller.</li>
+<li>Lien météo et capteurs sol (Smart Farm).</li>
+</ul>
+<h3>8.2 Récoltes</h3>
+<ul>
+<li>Enregistrer récolte (quantité, date, qualité).</li>
+<li>Alimentation stock (grains, légumes…).</li>
+<li>Apparition journal Accueil et traçabilité.</li>
+<li>Opportunités vente surplus → Commercial.</li>
+</ul>
+<h3>8.3 Économie circulaire</h3>
+<ul>
+<li>Valorisation fumier, compost.</li>
+<li>Lien élevage ↔ cultures (intrants organiques).</li>
+<li>Charges et revenus annexes.</li>
 </ul>
 <hr class="section-break" />
-<h2 id="15-résolution-de-problèmes">15. Résolution de problèmes</h2>
-<table><thead><tr><th>Problème</th><th>Piste</th></tr></thead><tbody><tr><td>Chiffres à zéro en mode démo</td><td>Vérifier que le mode données simulées est activé ; actualiser les données</td></tr><tr><td>Module qui ne charge pas</td><td>Recharger la page ; vider le cache navigateur</td></tr><tr><td>Onglet qui ne change pas</td><td>Cliquer l’onglet dans la barre du module</td></tr><tr><td>Capteurs absents sur l’accueil</td><td>Vérifier Smart Farm → équipements enregistrés</td></tr><tr><td>Écart de marge / coût</td><td>Vérifier Annexe → rations et prix aliment par défaut</td></tr></tbody></table>
+<h2 id="9-commercial">9. Commercial</h2>
+<p><strong>6 onglets</strong> — cycle vente complet.</p>
+<h3>9.1 Ventes</h3>
+<p class="numbered"><span class="num">1</span>Créer <strong>commande</strong> (client, produits, prix, marge visible).</p>
+<p class="numbered"><span class="num">2</span><strong>Livraison</strong> si nécessaire.</p>
+<p class="numbered"><span class="num">3</span><strong>Facture</strong> et <strong>paiement</strong> (espèces, mobile money, virement).</p>
+<p class="numbered"><span class="num">4</span>Effets automatiques : sortie stock, entrée trésorerie, créance soldée.</p>
+<h3>9.2 Opportunités</h3>
+<ul>
+<li>Propositions auto : stock disponible, lots prêts à vendre, œufs surplus.</li>
+<li>Conversion opportunité → commande en un clic.</li>
+</ul>
+<h3>9.3 Clients &amp; créances</h3>
+<ul>
+<li>Fichier clients, historique commandes.</li>
+<li>Créances ouvertes, montants dus.</li>
+<li><strong>Relances</strong> et préparation message <strong>WhatsApp</strong> (selon config).</li>
+</ul>
+<h3>9.4 Livraisons</h3>
+<ul>
+<li>Planning livraisons, statuts, lien commandes.</li>
+<li>Preuve livraison → Documents.</li>
+</ul>
+<h3>9.5 Abonnements</h3>
+<ul>
+<li>Ventes récurrentes (client régulier, livraison hebdomadaire).</li>
+<li>Suivi échéances abonnement.</li>
+</ul>
+<h3>9.6 Pilotage</h3>
+<ul>
+<li>KPI : CA période, encaissé, impayés, panier moyen.</li>
+<li>Cohérence avec Finance et Stock.</li>
+<li>Mode données simulées pour formation.</li>
+</ul>
 <hr class="section-break" />
-<h2 id="16-glossaire-métier-non-technique">16. Glossaire métier (non technique)</h2>
-<table><thead><tr><th>Terme</th><th>Signification</th></tr></thead><tbody><tr><td><strong>Lot / bande</strong></td><td>Groupe d’animaux géré ensemble (ex. poulets chair)</td></tr><tr><td><strong>CMUP</strong></td><td>Coût moyen unitaire pondéré du stock</td></tr><tr><td><strong>Créance</strong></td><td>Argent que un client vous doit encore</td></tr><tr><td><strong>DLC</strong></td><td>Date limite de consommation (péremption)</td></tr><tr><td><strong>Traçabilité</strong></td><td>Retrouver l’historique d’un produit ou lot</td></tr><tr><td><strong>Trésorerie nette</strong></td><td>Solde disponible après entrées et sorties récentes</td></tr></tbody></table>
+<h2 id="10-achats-stock">10. Achats &amp; Stock</h2>
+<p><strong>3 onglets</strong> principaux + vues détaillées.</p>
+<h3>10.1 Inventaire</h3>
+<ul>
+<li>Produits, quantités, emplacements, seuils.</li>
+<li><strong>CMUP</strong> (coût moyen unitaire pondéré).</li>
+<li>Alertes : rupture, sous-seuil, <strong>DLC</strong> proche/dépassée.</li>
+<li>Transferts inter-fermes.</li>
+</ul>
+<h3>10.2 Réceptions &amp; achats</h3>
+<ul>
+<li>Réception marchandise → entrée stock.</li>
+<li>Lien fournisseur, dette si à crédit.</li>
+<li>Chemin canonique depuis Hey Horizon ou formulaire Stock.</li>
+</ul>
+<h3>10.3 Fournisseurs &amp; dettes</h3>
+<ul>
+<li>Fichier fournisseurs.</li>
+<li>Dettes ouvertes, échéances.</li>
+<li>Relances fournisseur.</li>
+</ul>
+<h3>10.4 Mouvements (lecture)</h3>
+<ul>
+<li>Journal entrées/sorties/consommations.</li>
+<li>Filtres période, ferme, type, source.</li>
+<li>Distinction <strong>Journal</strong> (officiel) vs <strong>Historique</strong> (traces antérieures).</li>
+</ul>
+<h3>10.5 Liens métier</h3>
+<ul>
+<li>Alimentation élevage → sortie stock aliment.</li>
+<li>Vente commercial → sortie stock produit.</li>
+<li>Récolte cultures → entrée stock.</li>
+</ul>
 <hr class="section-break" />
-<h2 id="17-contacts-et-évolution">17. Contacts et évolution</h2>
-<p>Horizon Farm évolue régulièrement (nouveaux modules, capteurs, automatisation). Pour une démo personnalisée ou un déploiement sur votre exploitation, contactez votre interlocuteur Horizon Farm.</p>
-<p><strong>Bonne gestion.</strong></p>
+<h2 id="11-finance-pilotage">11. Finance &amp; Pilotage</h2>
+<p><strong>5 onglets</strong> + sous-vues.</p>
+<h3>11.1 Résumé</h3>
+<ul>
+<li>Trésorerie nette, créances, dettes.</li>
+<li>Score santé exploitation.</li>
+<li>Synthèse exécutive dirigeant.</li>
+</ul>
+<h3>11.2 Trésorerie</h3>
+<ul>
+<li>Flux entrées/sorties.</li>
+<li><strong>Réconciliation</strong> paiements (lien Documents).</li>
+<li>Prévision trésorerie.</li>
+</ul>
+<h3>11.3 Créances &amp; dettes</h3>
+<ul>
+<li>Consolidation clients (Commercial) et fournisseurs (Achats).</li>
+<li>Âge des créances, priorités encaissement.</li>
+</ul>
+<h3>11.4 Pilotage (sous-vues)</h3>
+<table><thead><tr><th>Sous-vue</th><th>Contenu</th></tr></thead><tbody><tr><td><strong>Échéancier</strong></td><td>Échéances charges et encaissements</td></tr><tr><td><strong>Financement</strong></td><td>Simulateur financement, besoins</td></tr><tr><td><strong>Investissements</strong></td><td>Lignes BP, immobilisations, concrétisation</td></tr><tr><td><strong>Rentabilité</strong></td><td>Marge par activité élevage/cultures</td></tr><tr><td><strong>Annexe</strong></td><td>Rations, prix aliment par défaut (coût unifié)</td></tr></tbody></table>
+<h3>11.5 Graphiques</h3>
+<ul>
+<li>Évolution CA, charges, trésorerie.</li>
+<li>Comparaisons périodes.</li>
+</ul>
+<h3>11.6 Investissements &amp; BP</h3>
+<ul>
+<li>Lignes investissement : prévu, en cours, concrétisé, reporté.</li>
+<li>Actions : <strong>Concrétiser</strong>, Modifier, Reporter, Annuler.</li>
+<li>Charges récurrentes BP, sources financement, risques.</li>
+</ul>
+<hr class="section-break" />
+<h2 id="12-activité-suivi">12. Activité &amp; Suivi</h2>
+<p><strong>4 onglets</strong> — fusion alertes, tâches, traçabilité.</p>
+<h3>12.1 Cockpit &amp; décisions</h3>
+<ul>
+<li>Vue synthèse : santé /100, alertes critiques.</li>
+<li>Recommandations avec application en un clic.</li>
+<li>Navigation vers module source.</li>
+</ul>
+<h3>12.2 À traiter maintenant</h3>
+<ul>
+<li>File unifiée : tâches ouvertes, alertes, actions commerciales.</li>
+<li>Traitement, résolution, création tâche de suivi.</li>
+<li><strong>Astuce :</strong> cliquer l'onglet dans la barre du module si un lien externe ne répond pas.</li>
+</ul>
+<h3>12.3 Registre &amp; traçabilité</h3>
+<ul>
+<li>Chaîne lot → transformation → vente → paiement.</li>
+<li>Historique opérations par entité.</li>
+<li>Export pour contrôle qualité / certification.</li>
+</ul>
+<h3>12.4 Performance &amp; analytique</h3>
+<ul>
+<li>Graphiques tendances alertes, tâches, activité.</li>
+<li>Suivi dans le temps par module.</li>
+</ul>
+<hr class="section-break" />
+<h2 id="13-documents-rapports">13. Documents &amp; Rapports</h2>
+<p><strong>4 onglets</strong>.</p>
+<h3>13.1 Centre de contrôle</h3>
+<ul>
+<li>État pièces justificatives (factures, reçus, bons).</li>
+<li>Pièces manquantes → tâche automatique.</li>
+</ul>
+<h3>13.2 Gestionnaire &amp; OCR</h3>
+<ul>
+<li>Import PDF/image facture ou reçu.</li>
+<li><strong>Lecture intelligente</strong> (montant, date, fournisseur).</li>
+<li>Lien achat ou charge finance.</li>
+</ul>
+<h3>13.3 Rapprochement &amp; preuves</h3>
+<ul>
+<li>Associer paiement ↔ justificatif.</li>
+<li>Lever écarts comptables.</li>
+</ul>
+<h3>13.4 Rapports &amp; exports</h3>
+<ul>
+<li>Synthèses saison, banque, partenaires.</li>
+<li>Exports PDF/Excel selon module.</li>
+</ul>
+<hr class="section-break" />
+<h2 id="14-opérations-ressources">14. Opérations &amp; Ressources</h2>
+<p><strong>4 onglets</strong> (inclut ancien module Équipements).</p>
+<h3>14.1 Cockpit RH &amp; Maintenance</h3>
+<ul>
+<li>Effectifs, coûts main-d'œuvre.</li>
+<li>Maintenances ouvertes, retards.</li>
+</ul>
+<h3>14.2 Personnel &amp; Paie</h3>
+<ul>
+<li>Fiches personnel, affectations terrain.</li>
+<li>Salaires, primes, périodes.</li>
+</ul>
+<h3>14.3 Parc Matériel &amp; Maintenance</h3>
+<ul>
+<li>Machines, outillage, véhicules.</li>
+<li>Plan maintenance, tâches liées.</li>
+<li>Pont <strong>Smart Farm</strong> (capteurs sur équipements).</li>
+</ul>
+<h3>14.4 Registres &amp; Analyses</h3>
+<ul>
+<li>Registres RH réglementaires.</li>
+<li>Analyses coût/main-d'œuvre par activité.</li>
+</ul>
+<hr class="section-break" />
+<h2 id="15-smart-farm">15. Smart Farm</h2>
+<p><strong>3 onglets</strong> — IoT agricole.</p>
+<h3>15.1 Objets connectés</h3>
+<ul>
+<li>Enregistrer capteurs (température TC, humidité, sol, porte…).</li>
+<li>Caméras par zone (poulailler, serre, magasin).</li>
+<li>Protocoles et statut online/offline.</li>
+</ul>
+<h3>15.2 Flux temps réel</h3>
+<ul>
+<li>Dernières mesures et événements.</li>
+<li>Historique signaux capteurs.</li>
+<li>Alimente bandeau <strong>Accueil</strong>.</li>
+</ul>
+<h3>15.3 Automatisation</h3>
+<ul>
+<li>Règles : « Si température &gt; seuil → alerte + tâche ventilation ».</li>
+<li>Catalogue alertes : chaleur poulailler, sol sec, intrusion, batterie faible.</li>
+<li>Scénarios irrigation/ventilation (commandes matériel à venir).</li>
+<li>Notifications vers <strong>Activité &amp; Suivi</strong>.</li>
+</ul>
+<hr class="section-break" />
+<h2 id="16-investisseurs-forums">16. Investisseurs &amp; Forums</h2>
+<p>Module levée de fonds et dossiers partenaires — <strong>9 vues</strong>.</p>
+<table><thead><tr><th>Vue</th><th>Usage</th></tr></thead><tbody><tr><td><strong>Investor Room</strong></td><td>KPIs ERP, vision, score readiness</td></tr><tr><td><strong>Préparation</strong></td><td>Checklist dossier complet</td></tr><tr><td><strong>Dossier</strong></td><td>9 sections éditables (résumé, chiffres, impact, risques, IA…)</td></tr><tr><td><strong>Data Room</strong></td><td>Bibliothèque documents investisseur</td></tr><tr><td><strong>CRM</strong></td><td>Suivi investisseurs, contacts, relances</td></tr><tr><td><strong>Aperçu dossier</strong></td><td>Prévisualisation avant export</td></tr><tr><td><strong>Exports PDF</strong></td><td>Packs banque, ONG, salon agricole</td></tr><tr><td><strong>Historique</strong></td><td>Versions et envois</td></tr><tr><td><strong>Démo investisseur</strong></td><td>WhatsApp terrain, OCR facture, simulateur</td></tr></tbody></table>
+<hr class="section-break" />
+<h2 id="17-activité-sync-erp">17. Activité &amp; Sync ERP</h2>
+<p><strong>3 onglets</strong> — santé technique des données.</p>
+<h3>17.1 Vérifications</h3>
+<ul>
+<li>Audit interconnexions (vente sans stock, paiement sans preuve…).</li>
+<li>Score cohérence ERP.</li>
+<li><strong>Réparations guidées</strong> en un clic.</li>
+</ul>
+<h3>17.2 Connexion &amp; envoi</h3>
+<ul>
+<li>État en ligne / hors ligne.</li>
+<li>File d'attente synchronisation.</li>
+<li>Forcer envoi données locales.</li>
+</ul>
+<h3>17.3 Journal d'activité</h3>
+<ul>
+<li>Logs audit métier.</li>
+<li>Historique actions utilisateurs et système.</li>
+</ul>
+<hr class="section-break" />
+<h2 id="18-gestion-du-système">18. Gestion du système</h2>
+<p><strong>8 onglets</strong> — administration.</p>
+<table><thead><tr><th>Onglet</th><th>Fonctions</th></tr></thead><tbody><tr><td><strong>Vue admin</strong></td><td>Santé système, modules, actions rapides</td></tr><tr><td><strong>Utilisateurs</strong></td><td>Comptes, rôles (évolution)</td></tr><tr><td><strong>Fermes</strong></td><td>Création sites, comparaison multi-fermes</td></tr><tr><td><strong>Paramètres</strong></td><td>Devise, unités, <strong>mode données simulées</strong></td></tr><tr><td><strong>Sécurité</strong></td><td>Accès, audit connexions</td></tr><tr><td><strong>Sauvegardes</strong></td><td>Actualiser données, sync hors ligne</td></tr><tr><td><strong>Réinitialisation</strong></td><td>Remise à zéro (protégée)</td></tr><tr><td><strong>Audit</strong></td><td>Audit vision ERP module par module</td></tr></tbody></table>
+<hr class="section-break" />
+<h2 id="19-fonctionnalités-transverses">19. Fonctionnalités transverses</h2>
+<table><thead><tr><th>Fonctionnalité</th><th>Description</th></tr></thead><tbody><tr><td><strong>Hey Horizon global</strong></td><td>Panneau assistant sur toutes les pages</td></tr><tr><td><strong>Quick Ask</strong></td><td>Raccourcis contextuels dans modules (Élevage, etc.)</td></tr><tr><td><strong>Multi-ferme</strong></td><td>Sélecteur ferme + cumul groupe</td></tr><tr><td><strong>Période globale</strong></td><td>Filtre temporel cohérent</td></tr><tr><td><strong>Mode démo</strong></td><td>Données simulées réalistes</td></tr><tr><td><strong>WhatsApp</strong></td><td>Relances clients, alertes, démo investisseur</td></tr><tr><td><strong>OCR documents</strong></td><td>Factures, reçus, pièces jointes</td></tr><tr><td><strong>Hors ligne</strong></td><td>Saisie terrain, sync au retour réseau</td></tr><tr><td><strong>Météo live</strong></td><td>Contexte décisionnel</td></tr><tr><td><strong>Coût unifié</strong></td><td>Même calcul coût Animaux, Avicole, Ventes, Finance</td></tr><tr><td><strong>Marge vente</strong></td><td>CA − coût direct sur chaque vente</td></tr><tr><td><strong>Santé ERP</strong></td><td>Score /100 sur Accueil, Finance, Gestion</td></tr><tr><td><strong>PWA</strong></td><td>Installation sur téléphone comme application</td></tr></tbody></table>
+<hr class="section-break" />
+<h2 id="20-workflows-métier-pas-à-pas">20. Workflows métier pas à pas</h2>
+<h3>20.1 Vente complète (œufs)</h3>
+<p class="numbered"><span class="num">1</span><strong>Commercial → Ventes</strong> : nouvelle commande client restaurant.</p>
+<p class="numbered"><span class="num">2</span>Ajouter produits, vérifier <strong>marge</strong>.</p>
+<p class="numbered"><span class="num">3</span><strong>Livraison</strong> si nécessaire.</p>
+<p class="numbered"><span class="num">4</span><strong>Paiement</strong> Orange Money → trésorerie mise à jour.</p>
+<p class="numbered"><span class="num">5</span>Stock œufs décrémenté automatiquement.</p>
+<p class="numbered"><span class="num">6</span>Événement dans <strong>Journal Accueil</strong> et <strong>Traçabilité</strong>.</p>
+<p>*Alternative : Hey Horizon en une phrase → valider brouillon.*</p>
+<h3>20.2 Réception aliment</h3>
+<p class="numbered"><span class="num">1</span><strong>Achats &amp; Stock</strong> ou Hey Horizon : réception fournisseur.</p>
+<p class="numbered"><span class="num">2</span>Quantité, prix, lien fournisseur.</p>
+<p class="numbered"><span class="num">3</span>Stock aliment augmenté, <strong>dette fournisseur</strong> si crédit.</p>
+<p class="numbered"><span class="num">4</span>Alerte rupture levée si seuil repassé.</p>
+<h3>20.3 Mortalité lot avicole</h3>
+<p class="numbered"><span class="num">1</span><strong>Élevage → Lots &amp; bandes</strong> ou Hey Horizon.</p>
+<p class="numbered"><span class="num">2</span>Saisir mortalité (nombre, lot, date).</p>
+<p class="numbered"><span class="num">3</span>Effectif Accueil mis à jour.</p>
+<p class="numbered"><span class="num">4</span>Alerte si seuil zootechnique dépassé → Centre décisionnel.</p>
+<h3>20.4 Récolte maraîchage</h3>
+<p class="numbered"><span class="num">1</span><strong>Cultures → Récoltes</strong> : culture, quantité, qualité.</p>
+<p class="numbered"><span class="num">2</span>Option entrée stock.</p>
+<p class="numbered"><span class="num">3</span>Opportunité vente si surplus → Commercial.</p>
+<h3>20.5 Alerte capteur chaleur</h3>
+<p class="numbered"><span class="num">1</span><strong>Smart Farm</strong> détecte température haute.</p>
+<p class="numbered"><span class="num">2</span>Alerte + tâche dans <strong>Activité &amp; Suivi → À traiter</strong>.</p>
+<p class="numbered"><span class="num">3</span>Action terrain ventilation.</p>
+<p class="numbered"><span class="num">4</span>Clôture tâche après résolution.</p>
+<h3>20.6 Dossier investisseur</h3>
+<p class="numbered"><span class="num">1</span><strong>Investisseurs &amp; Forums → Dossier</strong> : compléter sections.</p>
+<p class="numbered"><span class="num">2</span><strong>Exports PDF</strong> : pack banque.</p>
+<p class="numbered"><span class="num">3</span><strong>CRM</strong> : suivi contacts investisseurs.</p>
+<h3>20.7 Réparation incohérence ERP</h3>
+<p class="numbered"><span class="num">1</span><strong>Activité &amp; Sync ERP → Vérifications</strong>.</p>
+<p class="numbered"><span class="num">2</span>Lire diagnostic (ex. vente sans mouvement stock).</p>
+<p class="numbered"><span class="num">3</span>Cliquer <strong>réparation guidée</strong>.</p>
+<p class="numbered"><span class="num">4</span>Vérifier résultat dans module concerné.</p>
+<hr class="section-break" />
+<h2 id="21-résolution-de-problèmes">21. Résolution de problèmes</h2>
+<table><thead><tr><th>Problème</th><th>Solution</th></tr></thead><tbody><tr><td>Chiffres à zéro en démo</td><td>Activer mode données simulées ; Actualiser les données</td></tr><tr><td>Module ne charge pas</td><td>Recharger page ; vider cache navigateur</td></tr><tr><td>Onglet ne change pas</td><td>Cliquer onglet dans barre du module</td></tr><tr><td>Capteurs absents Accueil</td><td>Smart Farm → enregistrer équipements</td></tr><tr><td>Écart marge / coût</td><td>Finance/Élevage → Annexe : rations et prix aliment</td></tr><tr><td>Créance fantôme</td><td>Sync ERP → Vérifications → réparation</td></tr><tr><td>OCR échoue</td><td>Photo nette, réessayer ; saisie manuelle</td></tr><tr><td>Hors ligne bloqué</td><td>Sync ERP → Connexion &amp; envoi</td></tr></tbody></table>
+<hr class="section-break" />
+<h2 id="22-glossaire">22. Glossaire</h2>
+<table><thead><tr><th>Terme</th><th>Définition</th></tr></thead><tbody><tr><td><strong>Lot / bande</strong></td><td>Groupe d'animaux géré ensemble</td></tr><tr><td><strong>CMUP</strong></td><td>Coût moyen unitaire pondéré du stock</td></tr><tr><td><strong>Créance</strong></td><td>Montant dû par un client</td></tr><tr><td><strong>DLC</strong></td><td>Date limite de consommation</td></tr><tr><td><strong>BP</strong></td><td>Business Plan (prévisionnel)</td></tr><tr><td><strong>Traçabilité</strong></td><td>Historique lot → client → paiement</td></tr><tr><td><strong>Trésorerie nette</strong></td><td>Solde après entrées et sorties récentes</td></tr><tr><td><strong>Zootechnie</strong></td><td>Performance technique élevage (mortalité, ponte, poids)</td></tr><tr><td><strong>OCR</strong></td><td>Lecture automatique de documents papier/PDF</td></tr><tr><td><strong>PWA</strong></td><td>Application web installable sur téléphone</td></tr></tbody></table>
+<hr class="section-break" />
+<p><strong>Horizon Farm — De la terre à l'horizon.</strong></p>
+<p>Pour démo personnalisée : contact@horizon-farm.app</p>
   </main>
 
 </body>

@@ -3,9 +3,9 @@
 > **Fichiers prêts à présenter :**
 > - **PDF :** [docs/pitch/PITCH_HORIZON_FARM.pdf](pitch/PITCH_HORIZON_FARM.pdf)
 > - **PowerPoint :** [docs/pitch/PITCH_HORIZON_FARM.pptx](pitch/PITCH_HORIZON_FARM.pptx)
-> - **HTML interactif :** [/pitch-horizon-farm.html](/pitch-horizon-farm.html)
->
-> Régénérer : `npm run pitch:generate` · Voir [docs/pitch/README.md](pitch/README.md)
+> - **HTML interactif :** [/pitch-horizon-farm.html](/pitch-horizon-farm.html) (22 slides)
+> - **Démo interactive :** [/demo-horizon-farm.html](/demo-horizon-farm.html)
+> - **Guide complet :** [GUIDE_UTILISATEUR_HORIZON_FARM.pdf](GUIDE_UTILISATEUR_HORIZON_FARM.pdf)
 
 **Durée cible :** 10–15 minutes  
 **Public :** exploitants, coopératives, investisseurs agricoles, partenaires techniques terrain
@@ -46,7 +46,32 @@ Horizon Farm est un **ERP agricole complet**, pensé pour le terrain :
 | **Hey Horizon** | « J’ai vendu 15 caisses à 45 000 » → brouillon prêt à valider |
 | **Activité & Suivi** | File « à traiter », traçabilité, performance |
 
-**Différenciateur clé :** tout est interconnecté. Une vente met à jour le stock et la caisse ; une mortalité alimente les alertes ; un capteur hors ligne crée une tâche maintenance.
+**Différenciateur clé :** tout est interconnecté. Une vente met à jour le stock et la caisse ; une mortalité alimente les alertes ; un capteur hors seuil crée une tâche maintenance.
+
+### Les 17 modules en détail (pitch 22 slides)
+
+| Module | Message client |
+|--------|----------------|
+| **Accueil** | 4 cartes domaine + capteurs live + conseil du jour |
+| **Assistant ERP** | Phrase terrain → brouillon → validation (vocal, OCR) |
+| **Centre décisionnel** | Urgences, opportunités, saisons & marchés |
+| **Objectifs & Croissance** | BP, simulateur, objectifs zootechniques |
+| **Investisseurs & Forums** | Dossier banque, KPIs live, Data Room |
+| **Élevage** | Lots avicoles, animaux, santé, reproduction |
+| **Cultures** | Parcelles, récoltes, économie circulaire |
+| **Commercial** | Vente → livraison → paiement → marge |
+| **Achats & Stock** | Inventaire, seuils, DLC, fournisseurs |
+| **Finance & Pilotage** | Trésorerie, créances, BP investissements |
+| **Activité & Suivi** | À traiter maintenant, traçabilité, performance |
+| **Documents & Rapports** | OCR factures, preuves, exports |
+| **Opérations & Ressources** | RH, paie, parc matériel |
+| **Smart Farm** | Capteurs TC, alertes auto, règles Si… Alors… |
+| **Activité & Sync ERP** | Audit cohérence, hors ligne, journal |
+| **Gestion du système** | Multi-fermes, utilisateurs, paramètres |
+
+**Formules abonnement :** Essentiel (cœur métier) · Pro (+ Finance, IoT, assistant) · Groupe (+ multi-fermes, investisseurs).
+
+**Démo interactive :** orientez le client vers [/demo-horizon-farm.html](/demo-horizon-farm.html) pour un parcours guidé autonome.
 
 ---
 

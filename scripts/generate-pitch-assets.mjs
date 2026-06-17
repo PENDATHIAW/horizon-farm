@@ -7,6 +7,8 @@ import pptxgen from 'pptxgenjs';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
+import { SLIDES } from './pitch-slides-data.mjs';
+import { generatePitchHtml } from './generate-pitch-html.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -31,152 +33,6 @@ const BRAND = {
 };
 
 fs.mkdirSync(OUT_DIR, { recursive: true });
-
-const SLIDES = [
-  {
-    layout: 'cover',
-    kicker: 'ERP agricole intégré',
-    title: "De la terre\nà l'horizon",
-    body: 'Pilotez élevage, cultures, stock, ventes et finances — avec capteurs connectés et un assistant qui parle votre langue du terrain.',
-    footer: 'Pitch client · 2026',
-    dark: true,
-  },
-  {
-    kicker: 'Le constat',
-    title: 'Cinq freins qui coûtent cher',
-    bullets: [
-      'Données dispersées — carnets, WhatsApp, tableurs qui ne se parlent pas.',
-      'Décisions tardives — rupture d\'aliment, mortalité : on réagit trop tard.',
-      'Trésorerie opaque — difficile de savoir ce qui est vraiment encaissé.',
-      'Traçabilité faible — banques et clients demandent des preuves introuvables.',
-      'Outils inadaptés — ERP génériques ou gadgets sans métier agricole.',
-    ],
-    note: 'Résultat : pertes, marges floues, croissance difficile à financer.',
-  },
-  {
-    kicker: 'Notre vision',
-    title: 'Une exploitation lisible en dix secondes',
-    quote: '« Vous ouvrez l\'app le matin : effectifs, stock critique, trésorerie, capteurs, et la première action à faire — sans jargon, sans dix fichiers Excel. »',
-    dark: true,
-  },
-  {
-    kicker: 'La solution',
-    title: 'Sept piliers, un seul flux',
-    bullets: [
-      'Accueil dirigeant — état global, capteurs, conseil actionnable',
-      'Élevage & cultures — lots, animaux, parcelles, récoltes',
-      'Stock & achats — réceptions, seuils, DLC, fournisseurs',
-      'Commercial — vente → livraison → encaissement → marge',
-      'Finance — trésorerie, créances, rentabilité',
-      'Smart Farm — capteurs TC, caméras, alertes automatiques',
-      'Hey Horizon — phrase terrain → brouillon validé',
-    ],
-    footer: 'Vente → Stock → Trésorerie → Activité & Suivi',
-  },
-  {
-    kicker: 'Accueil',
-    title: 'Le carnet du dirigeant',
-    twoCol: [
-      ['ÉLEVAGE', '4 300 têtes', '4 000 pondeuses · 300 chair'],
-      ['CULTURES', '12 parcelles', '8,5 ha exploités'],
-      ['STOCK', '47 produits', '⚠ Rupture aliment'],
-      ['FINANCE', '2,4 M FCFA', 'Créances · Dettes'],
-    ],
-    highlight: 'CAPTEURS : 28°C · Humidité 62 % · 2 capteurs en ligne',
-  },
-  {
-    kicker: 'Hey Horizon',
-    title: "L'assistant qui comprend le terrain",
-    body: 'Pas de formulaire compliqué : vous parlez, Horizon prépare, vous validez. Aucune écriture sans votre accord.',
-    chat: [
-      { role: 'user', text: "J'ai vendu 20 tablettes d'œufs à 70 000 FCFA, payé Orange Money." },
-      { role: 'bot', text: 'Brouillon vente · 20 tablettes · 70 000 FCFA · Paiement reçu\n→ Valider & enregistrer' },
-    ],
-    dark: true,
-  },
-  {
-    kicker: 'Smart Farm',
-    title: 'Capteurs & alertes automatiques',
-    bullets: [
-      'Chaleur poulailler — ventilation planifiée avant pertes',
-      'Sol sec — irrigation et suivi parcelle',
-      'Intrusion nocturne — notification immédiate',
-    ],
-    metrics: [
-      { label: 'Poulailler A', value: '28°C' },
-      { label: 'Serre tomates', value: '18% sol' },
-    ],
-    alert: 'Chaleur détectée → tâche ventilation créée',
-  },
-  {
-    kicker: 'Scénario démo',
-    title: 'Une matinée type à la ferme',
-    timeline: [
-      ['08h00 — Accueil', 'Cartes domaine, capteurs 28°C, conseil stock aliment bas.'],
-      ['08h15 — Hey Horizon', '« Réception 20 sacs aliment AgroFeed 480 000 F » → validation.'],
-      ['09h00 — Commercial', 'Vente restaurant, encaissement Orange Money, marge visible.'],
-      ['10h30 — Smart Farm', 'Alerte chaleur → Activité & Suivi « À traiter maintenant ».'],
-      ['Soir — Journal', 'Vente, réception, paiement, soin : tout est tracé.'],
-    ],
-  },
-  {
-    kicker: 'Impact',
-    title: 'Bénéfices mesurables',
-    bars: [
-      { label: 'Temps de saisie', value: '−50%' },
-      { label: 'Visibilité trésorerie', value: '+100%' },
-      { label: 'Ruptures stock', value: '−30%' },
-      { label: 'Surveillance capteurs', value: '24/7' },
-      { label: 'Marge par vente', value: '1 clic' },
-    ],
-    dark: true,
-  },
-  {
-    kicker: 'Cibles',
-    title: 'Pour qui ?',
-    personas: [
-      ['Aviculteur', 'Chair, ponte, lots, œufs'],
-      ['Éleveur', 'Bovins, ovins, caprins'],
-      ['Maraîcher', 'Parcelles, irrigation, capteurs'],
-      ['Mixte', 'Élevage + cultures'],
-      ['Coopérative', 'Multi-producteurs'],
-      ['Investisseur', 'Traçabilité, indicateurs'],
-    ],
-  },
-  {
-    kicker: 'Accompagnement',
-    title: 'Trois phases de déploiement',
-    phases: [
-      ['1 · Découverte', 'Compte démo, modules prioritaires, 5 saisies quotidiennes à digitaliser.'],
-      ['2 · Pilote', 'Configuration ferme, formation, capteurs pilote, point hebdo.'],
-      ['3 · Généralisation', 'Multi-fermes, rapports banque, Smart Farm, mobile money.'],
-    ],
-  },
-  {
-    kicker: 'Objections',
-    title: 'On nous dit souvent…',
-    bullets: [
-      '« Mon équipe n\'est pas digital » → Hey Horizon : phrases simples. Accueil sans formation longue.',
-      '« J\'ai déjà Excel » → Excel ne relie pas vente, stock et capteurs.',
-      '« La connexion est mauvaise » → Saisie hors ligne, sync au retour réseau.',
-    ],
-  },
-  {
-    kicker: 'Pourquoi Horizon Farm',
-    title: "Pas un gadget.\nUn copilote d'exploitation.",
-    quote: 'ERP métier + capteurs + assistant terrain — interconnectés. Ce que vous saisissez le matin éclaire votre décision du soir.',
-    dark: true,
-  },
-  {
-    layout: 'cta',
-    kicker: 'Prochaine étape',
-    title: 'Prêt à piloter votre exploitation autrement ?',
-    body: 'Essai guidé 30 minutes · Pilote 30 jours · Plan de déploiement personnalisé',
-    cta: 'Demander une démo',
-    email: 'contact@horizon-farm.app',
-    footer: "Horizon Farm — De la terre à l'horizon",
-  },
-];
 
 function addBrandHeader(slide, pptx, slideNum, dark = false) {
   if (fs.existsSync(LOGO)) {
@@ -455,6 +311,7 @@ async function generatePdf() {
 
 async function main() {
   console.log('Génération pitch Horizon Farm…');
+  generatePitchHtml();
   await generatePptx();
   await generatePdf();
 

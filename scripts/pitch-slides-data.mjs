@@ -1,0 +1,228 @@
+/** Données slides pitch — source unique pour HTML, PDF et PPTX */
+export const SLIDES = [
+  {
+    layout: 'cover',
+    kicker: 'ERP agricole intégré · 17 modules',
+    title: "De la terre\nà l'horizon",
+    body: 'L\'unique plateforme qui relie élevage, cultures, stock, ventes, finance, capteurs IoT, assistant IA, BP investisseur et traçabilité — pour piloter et faire croître votre exploitation.',
+    footer: 'Pitch commercial · 2026',
+    dark: true,
+  },
+  {
+    kicker: 'Le constat',
+    title: 'Cinq freins qui coûtent cher',
+    bullets: [
+      'Données dispersées — carnets, WhatsApp, tableurs qui ne se parlent pas.',
+      'Décisions tardives — rupture d\'aliment, mortalité : on réagit trop tard.',
+      'Trésorerie opaque — difficile de savoir ce qui est vraiment encaissé.',
+      'Traçabilité faible — banques et clients demandent des preuves introuvables.',
+      'Outils inadaptés — ERP génériques ou gadgets sans métier agricole.',
+    ],
+    note: 'Résultat : pertes évitables, marges inconnues, croissance impossible à financer.',
+  },
+  {
+    kicker: 'Notre promesse',
+    title: 'Une exploitation lisible en 10 secondes',
+    quote: '« Ouvrez Horizon Farm le matin : effectifs, stock critique, trésorerie, capteurs, première action à faire — sans dix fichiers Excel ni jargon technique. »',
+    dark: true,
+  },
+  {
+    kicker: 'La plateforme',
+    title: '17 modules interconnectés',
+    bullets: [
+      'Pilotage : Accueil, Assistant, Centre décisionnel, Objectifs & Croissance, Investisseurs',
+      'Production : Élevage (avicole + animaux), Cultures (parcelles + récoltes)',
+      'Commerce : Commercial (ventes, abonnements), Achats & Stock',
+      'Finance : Trésorerie, investissements BP, rentabilité multi-activités',
+      'Suivi : Activité & Suivi, Documents OCR, Sync ERP',
+      'Terrain : Smart Farm capteurs, Opérations & Ressources (RH, matériel)',
+    ],
+    footer: 'Un abonnement = toute la chaîne de valeur agricole',
+  },
+  {
+    kicker: 'Accueil',
+    title: 'Le carnet du dirigeant',
+    twoCol: [
+      ['ÉLEVAGE', '4 300 têtes', 'Mortalités · lots sous traitement'],
+      ['CULTURES', '12 parcelles', '8,5 ha · parcelles à surveiller'],
+      ['STOCK', '47 produits', '⚠ Rupture aliment · DLC'],
+      ['FINANCE', '2,4 M FCFA', 'Créances · Dettes · Trésorerie'],
+    ],
+    highlight: 'CAPTEURS LIVE : 28°C poulailler · 62 % humidité · 2 capteurs en ligne',
+  },
+  {
+    kicker: 'Hey Horizon',
+    title: 'Assistant IA — zéro formation lourde',
+    body: 'Phrase terrain → brouillon → validation. Vocal, OCR facture, routage automatique vers le bon module.',
+    chat: [
+      { role: 'user', text: "J'ai vendu 20 tablettes d'œufs à 70 000 FCFA, payé Orange Money." },
+      { role: 'bot', text: 'Brouillon vente · 20 tablettes · 70 000 FCFA · Stock + Trésorerie\n→ Valider & enregistrer' },
+    ],
+    dark: true,
+  },
+  {
+    kicker: 'Centre décisionnel',
+    title: 'Décider avant la perte',
+    bullets: [
+      'Urgences & risques — alertes cross-modules, actions 1-clic',
+      'Croissance & opportunités — vendre au bon moment, lots prêts',
+      'Saisons & marchés — calendrier, prix marché, météo',
+      'Exports CSV pour réunions d\'équipe et comité de direction',
+    ],
+  },
+  {
+    kicker: 'Élevage & Cultures',
+    title: 'Production terrain couverte',
+    bullets: [
+      'Élevage : lots chair/pondeuses, bovins/ovins, santé, reproduction, transformation',
+      'Production œufs, mortalité, pesée, alimentation liée au stock',
+      'Cultures : parcelles, campagnes, récoltes → stock et commercial',
+      'Économie circulaire : fumier, compost, lien élevage ↔ cultures',
+    ],
+  },
+  {
+    kicker: 'Commercial & Stock',
+    title: 'De la commande à la marge',
+    bullets: [
+      'Vente → livraison → paiement → marge visible immédiatement',
+      'Clients, créances, relances WhatsApp, abonnements récurrents',
+      'Inventaire multi-emplacements, CMUP, seuils, DLC, ruptures',
+      'Achats fournisseurs, dettes, réceptions en un flux',
+    ],
+  },
+  {
+    kicker: 'Finance & Pilotage',
+    title: 'Trésorerie et rentabilité réelles',
+    bullets: [
+      'Résumé exécutif : trésorerie, créances, dettes, score santé',
+      'Réconciliation paiements, prévision trésorerie, échéancier',
+      'Investissements & Business Plan : concrétiser, reporter, suivre',
+      'Rentabilité par activité — coût unifié élevage + cultures',
+    ],
+  },
+  {
+    kicker: 'Smart Farm',
+    title: 'Capteurs TC & automatisation',
+    bullets: [
+      'Température poulailler, humidité serre/sol, caméras intrusion',
+      'Alertes automatiques → tâches Activité & Suivi',
+      'Bandeau temps réel sur l\'Accueil dirigeant',
+      'Règles Si… Alors… : ventilation, irrigation, sécurité',
+    ],
+    metrics: [
+      { label: 'Poulailler A', value: '28°C' },
+      { label: 'Serre', value: '18% sol' },
+    ],
+    alert: 'Seuil dépassé → action terrain en minutes, pas en jours',
+  },
+  {
+    kicker: 'Suivi & conformité',
+    title: 'Traçabilité et preuves',
+    bullets: [
+      'Activité & Suivi : cockpit, file « à traiter », registre traçabilité',
+      'Documents & OCR : factures, reçus, rapprochement preuves',
+      'Sync ERP : audit cohérence, réparations guidées, hors ligne',
+      'Opérations & Ressources : RH, paie, parc matériel, maintenance',
+    ],
+    dark: true,
+  },
+  {
+    kicker: 'Investisseurs & Forums',
+    title: 'Financer votre croissance',
+    bullets: [
+      'Investor Room : KPIs ERP live pour banques et investisseurs',
+      'Dossier éditable 9 sections + exports PDF banque/ONG',
+      'CRM investisseurs, Data Room, historique envois',
+      'Démo investisseur intégrée (WhatsApp, OCR, simulateur)',
+    ],
+  },
+  {
+    kicker: 'Interconnexion',
+    title: 'Tout se parle — rien en double',
+    timeline: [
+      ['Vente Commercial', '→ sortie stock + entrée trésorerie + traçabilité'],
+      ['Réception Stock', '→ dette fournisseur + inventaire + alerte seuil'],
+      ['Mortalité Élevage', '→ effectif Accueil + alerte zootechnique'],
+      ['Capteur Smart Farm', '→ tâche Activité & Suivi + notification'],
+      ['OCR Document', '→ charge Finance + preuve rapprochée'],
+    ],
+  },
+  {
+    kicker: 'Scénario démo',
+    title: 'Une matinée type à la ferme',
+    timeline: [
+      ['08h00', 'Accueil : 4 300 têtes, rupture aliment, 28°C capteurs'],
+      ['08h15', 'Hey Horizon : réception aliment validée en 30 secondes'],
+      ['09h00', 'Commercial : vente restaurant, marge + encaissement mobile money'],
+      ['10h30', 'Smart Farm : alerte chaleur → ventilation planifiée'],
+      ['18h00', 'Journal : 12 événements terrain tracés automatiquement'],
+    ],
+  },
+  {
+    kicker: 'ROI abonnement',
+    title: 'Pourquoi s\'abonner à Horizon Farm ?',
+    bars: [
+      { label: 'Temps saisie', value: '−50%' },
+      { label: 'Visibilité cash', value: '+100%' },
+      { label: 'Ruptures évitées', value: '−30%' },
+      { label: 'Surveillance', value: '24/7' },
+      { label: 'Marge/vente', value: 'Temps réel' },
+    ],
+    dark: true,
+  },
+  {
+    kicker: 'Pour qui',
+    title: 'Une solution, tous les profils',
+    personas: [
+      ['Aviculteur', 'Chair, ponte, œufs, lots'],
+      ['Éleveur', 'Bovins, ovins, caprins'],
+      ['Maraîcher', 'Parcelles, irrigation IoT'],
+      ['Mixte', 'Élevage + cultures'],
+      ['Coopérative', 'Multi-fermes, groupe'],
+      ['Investisseur', 'Dossier, KPIs, traçabilité'],
+    ],
+  },
+  {
+    kicker: 'Offres',
+    title: 'Formules d\'abonnement',
+    phases: [
+      ['Essentiel', 'Élevage ou Cultures + Stock + Commercial + Accueil'],
+      ['Pro', '+ Finance, Smart Farm, Assistant, Activité & Suivi, multi-utilisateurs'],
+      ['Groupe', '+ Multi-fermes, Investisseurs, Sync ERP, accompagnement dédié'],
+    ],
+  },
+  {
+    kicker: 'Déploiement',
+    title: 'Accompagnement inclus',
+    phases: [
+      ['1 · Découverte', 'Démo interactive, compte simulé, identification 5 saisies clés'],
+      ['2 · Pilote 30 j', 'Configuration, formation équipe, capteurs pilote, support hebdo'],
+      ['3 · Généralisation', 'Multi-sites, rapports banque, automatisation, WhatsApp'],
+    ],
+  },
+  {
+    kicker: 'Objections',
+    title: 'On nous dit souvent…',
+    bullets: [
+      '« Pas digital » → Hey Horizon parle votre langue. Accueil lisible sans manuel.',
+      '« J\'ai Excel » → Excel ne relie pas vente, stock, capteurs et BP investisseur.',
+      '« Connexion faible » → Mode hors ligne + synchronisation automatique.',
+      '« Trop cher » → Un outil remplace 5 logiciels + évite une perte de bande.',
+    ],
+  },
+  {
+    kicker: 'Différenciation',
+    title: "Le seul ERP pensé\npour l'agriculture africaine",
+    quote: 'Pas un tableur amélioré. Pas un gadget capteur isolé. Un copilote d\'exploitation complet — terrain, finance, IoT et investisseur.',
+    dark: true,
+  },
+  {
+    layout: 'cta',
+    kicker: 'Passez à l\'action',
+    title: 'Essayez Horizon Farm dès maintenant',
+    body: 'Démo interactive · Essai 30 jours · Accompagnement déploiement · Guide PDF inclus',
+    cta: 'Réserver ma démo gratuite',
+    email: 'contact@horizon-farm.app · /demo-horizon-farm.html',
+    footer: "Horizon Farm — De la terre à l'horizon",
+  },
+];
