@@ -70,7 +70,7 @@ export const SMART_DEVICE_FAMILIES = [
   },
   {
     key: 'passerelle',
-    label: 'Passerelle / gateway',
+    label: 'Passerelle capteurs',
     sensorType: 'autre',
     zones: ['ferme'],
     protocols: ['Ethernet', '4G', 'Wi-Fi'],

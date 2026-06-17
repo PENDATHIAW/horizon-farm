@@ -11,8 +11,6 @@ const LOGIN_ALIASES = {
 };
 const PROFILES_TABLE_ENABLED = import.meta.env.VITE_ENABLE_PROFILES_TABLE === 'true';
 
-const DEFAULT_SIMULATED_ROLES = ['visiteur', 'employe', 'veterinaire', 'comptable'];
-
 const LEGACY_KEYS_BY_GRAND_MODULE = Object.entries(ROUTE_TO_MODULE).reduce((acc, [legacy, grand]) => {
   if (!acc[grand]) acc[grand] = [];
   acc[grand].push(legacy);
@@ -133,7 +131,8 @@ const applyDefaultDataModeForRole = (role) => {
   if (typeof window === 'undefined') return;
   const hasManualChoice = window.localStorage.getItem(SIMULATED_DATA_MODE_KEY) !== null || window.localStorage.getItem(DEMO_MODE_KEY) !== null;
   if (hasManualChoice) return;
-  setSimulatedDataMode(DEFAULT_SIMULATED_ROLES.includes(role));
+  // Par défaut : données simulées pour démo / formation (y compris admin et manager).
+  setSimulatedDataMode(true);
 };
 
 async function upsertProfile(user, defaults = {}) {

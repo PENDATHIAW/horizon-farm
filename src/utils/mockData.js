@@ -96,7 +96,7 @@ export const meteoData = buildWeatherAnalysis({
   updatedAt: new Date().toISOString(),
 });
 
-export const moduleSeedMap = {
+const buildModuleSeedMap = () => ({
   ...horizonFarmSimulationSeed,
   dashboard: horizonFarmSimulationSeed.dashboard || [],
   animaux: animauxSeed,
@@ -144,4 +144,11 @@ export const moduleSeedMap = {
   price_catalog: horizonFarmSimulationSeed.price_catalog || [],
   bp_versions: horizonFarmSimulationSeed.bp_versions || [],
   bp_lines_history: horizonFarmSimulationSeed.bp_lines_history || [],
-};
+});
+
+/** Copie figée — ne jamais muter (utilisée par le mode données simulées). */
+export const moduleSeedMap = Object.freeze(buildModuleSeedMap());
+
+export function getModuleSeedRows(moduleKey) {
+  return JSON.parse(JSON.stringify(moduleSeedMap[moduleKey] || []));
+}

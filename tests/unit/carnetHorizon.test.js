@@ -8,6 +8,7 @@ import {
   buildCarnetConseil,
   buildCarnetSensorStrip,
   buildCarnetHorizonView,
+  buildCarnetProjections,
   isHomeNoiseText,
   isAgriculturalHomeEvent,
   CARNET_JOURNAL_LIMIT,
