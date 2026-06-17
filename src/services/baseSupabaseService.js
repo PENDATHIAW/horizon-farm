@@ -1,39 +1,21 @@
 import { supabase } from '../lib/supabase.js';
-import { moduleSeedMap } from '../utils/mockData.js';
+import { getModuleSeedRows } from '../utils/mockData.js';
 import { normalizeByModule, normalizePayloadBeforeSave } from '../utils/normalize.js';
 import { safeLocalStorageSetJson } from '../utils/safeLocalStorage.js';
 import { isSimulatedDataModeEnabled } from '../utils/uiPreferences.js';
 import { enrichLinkedFields } from './issueLinkingService.js';
 
-const SIMULATION_SEED_VERSION = 'horizon-farm-bp-financeur-m8-v5';
-const SIMULATION_VERSION_KEY = 'horizon_simulated_seed_version';
-
-const clonedModuleSeedMap = JSON.parse(JSON.stringify(moduleSeedMap || {}));
-Object.keys(moduleSeedMap || {}).forEach((key) => { moduleSeedMap[key] = []; });
+import {
+  resetSimulatedLocalStateIfNeeded,
+  simulatedDeletedKey,
+  simulatedStorageKey,
+} from '../utils/simulatedModeStorage.js';
 
 const tableModuleMap = {
   transactions: 'finances', tasks: 'taches', reports: 'rapports', equipment: 'equipements', animals: 'animaux', lots: 'avicole', vaccins: 'sante', veterinaires: 'veterinaires', finances: 'finances', investments: 'investissements', business_plans: 'business_plans', bp_investment_lines: 'bp_investment_lines', bp_recurring_costs: 'bp_recurring_costs', bp_revenue_projections: 'bp_revenue_projections', bp_funding_sources: 'bp_funding_sources', bp_links: 'bp_links', bp_risks: 'bp_risks', price_catalog: 'price_catalog', bp_versions: 'bp_versions', bp_lines_history: 'bp_lines_history', stocks: 'stock', stock: 'stock', clients: 'clients', fournisseurs: 'fournisseurs', tracabilite: 'tracabilite', cultures: 'cultures', ventes: 'ventes', documents: 'documents', taches: 'taches', rapports: 'rapports', equipements: 'equipements', audit_logs: 'audit_logs', alimentation_logs: 'alimentation_logs', production_oeufs_logs: 'production_oeufs_logs', sensor_devices: 'sensor_devices', camera_devices: 'camera_devices', business_events: 'business_events', alertes_center: 'alertes_center', whatsapp_templates: 'whatsapp_templates', whatsapp_logs: 'whatsapp_logs', sales_orders: 'sales_orders', sales_order_items: 'sales_order_items', deliveries: 'deliveries', invoices: 'invoices', payments: 'payments', sales_opportunities: 'sales_opportunities',
 };
 
-const simulatedStorageKey = (table) => `horizon_simulated_rows:${table}`;
-const simulatedDeletedKey = (table) => `horizon_simulated_deleted:${table}`;
 const realDeletedKey = (table) => `horizon_real_deleted:${table}`;
-
-const resetSimulatedLocalStateIfNeeded = () => {
-  if (typeof localStorage === 'undefined') return;
-  try {
-    const currentVersion = localStorage.getItem(SIMULATION_VERSION_KEY);
-    if (currentVersion === SIMULATION_SEED_VERSION) return;
-    const tables = new Set([...Object.keys(tableModuleMap), ...Object.values(tableModuleMap)]);
-    tables.forEach((table) => {
-      localStorage.removeItem(simulatedStorageKey(table));
-      localStorage.removeItem(simulatedDeletedKey(table));
-    });
-    localStorage.setItem(SIMULATION_VERSION_KEY, SIMULATION_SEED_VERSION);
-  } catch {
-    // Local storage may be blocked. In that case, keep serving seed rows directly.
-  }
-};
 
 const safeJson = (key, fallback) => {
   if (typeof localStorage === 'undefined') return fallback;
@@ -41,8 +23,9 @@ const safeJson = (key, fallback) => {
 };
 const seedRowsForTable = (table) => {
   const moduleKey = tableModuleMap[table] || table;
-  return JSON.parse(JSON.stringify(clonedModuleSeedMap[moduleKey] || []));
+  return getModuleSeedRows(moduleKey);
 };
+
 /** Ne conserve que les lignes créées/modifiées localement — pas la copie complète du seed. */
 const readSimulatedRows = (table) => {
   const seedById = new Map(seedRowsForTable(table).map((row) => [String(row.id), row]));

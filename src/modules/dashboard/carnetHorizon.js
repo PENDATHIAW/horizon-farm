@@ -10,6 +10,8 @@ import { filterRowsByPeriodScope, normalizePeriodScope, rowDateValue } from '../
 import { isBovinAnimal, isCaprinAnimal, isOvinAnimal } from '../../utils/elevageActivityPnl.js';
 import { buildExpirySnapshot } from '../../utils/stockExpiry.js';
 import { buildSensorDashboardSummary } from '../../utils/smartFarmSensorSummary.js';
+import { buildCommercialObjectivesView } from '../../utils/commercialPilotageMetrics.js';
+import { buildCashFlowForecast } from '../../utils/financePilotageV2.js';
 
 export const CARNET_JOURNAL_LIMIT = 10;
 export const CARNET_ATTENTION_LIMIT = 4;
@@ -328,6 +330,122 @@ export function buildCarnetObjectifs(summary = {}, props = {}) {
   };
 }
 
+/**
+ * Projections pilotage dirigeant — CA, trésorerie, stock, production.
+ * Indicateurs choisis pour anticiper les décisions terrain (pas de ressaisie).
+ */
+export function buildCarnetProjections(summary = {}, props = {}) {
+  const periodScope = summary.periodScope || props.periodScope || {};
+  const scope = normalizePeriodScope(periodScope);
+  const ordersAll = arr(props.salesOrdersAll?.length ? props.salesOrdersAll : props.salesOrders);
+  const ordersPeriod = filterRowsByPeriodScope(ordersAll, scope);
+  const objectives = buildCommercialObjectivesView(ordersPeriod, {
+    monthTarget: summary.goal?.periodTarget,
+  });
+
+  const forecast = buildCashFlowForecast({
+    salesOrders: ordersAll,
+    payments: props.paymentsAll || props.payments,
+    transactions: props.transactionsAll || props.transactions,
+    finances: props.transactionsAll || props.transactions,
+    bpRecurringCosts: props.bpRecurringCosts,
+    clients: props.clients,
+  });
+
+  const stocks = arr(props.stocks);
+  const ruptures = countStockRuptures(stocks);
+
+  const prodLogs = arr(props.productionLogs);
+  const weekAgo = Date.now() - 7 * 86400000;
+  const eggsWeek = prodLogs
+    .filter((row) => {
+      const t = parseDate(rowDateValue(row))?.getTime() || 0;
+      return t >= weekAgo;
+    })
+    .reduce((sum, row) => sum + n(row.oeufs_produits ?? row.eggs_count ?? row.quantite), 0);
+  const eggsDailyAvg = eggsWeek > 0 ? Math.round(eggsWeek / 7) : 0;
+  const eggsMonthProjection = eggsDailyAvg * 30;
+
+  const receivable = n(summary.receivable);
+  const items = [];
+
+  if (objectives.projectionEndOfMonth > 0 || objectives.actual > 0) {
+    items.push({
+      id: 'ca-projection',
+      label: 'CA fin de mois (proj.)',
+      value: objectives.projectionEndOfMonth,
+      format: 'currency',
+      hint: objectives.onTrack ? 'Sur la bonne voie' : 'Sous l\'objectif mensuel',
+      tone: objectives.onTrack ? 'good' : 'warn',
+      navigate: { module: 'commercial', tab: 'Pilotage' },
+    });
+  }
+
+  const goal = summary.goal || {};
+  const remaining = Math.max(0, n(goal.periodTarget) - n(objectives.actual));
+  if (n(goal.periodTarget) > 0 && remaining > 0) {
+    items.push({
+      id: 'ca-remaining',
+      label: 'CA restant (objectif)',
+      value: remaining,
+      format: 'currency',
+      hint: `${objectives.attainment}% de l'objectif atteint`,
+      tone: objectives.attainment >= 80 ? 'good' : 'warn',
+      navigate: { module: 'objectifs_croissance', tab: 'Suivi du Business Plan' },
+    });
+  }
+
+  if (forecast.ready && forecast.projection30 != null) {
+    items.push({
+      id: 'treasury-30',
+      label: 'Trésorerie J+30',
+      value: forecast.projection30,
+      format: 'currency',
+      hint: forecast.riskLabel || 'Prévision échéancier',
+      tone: forecast.risk === 'high' ? 'warn' : forecast.risk === 'medium' ? 'neutral' : 'good',
+      navigate: { module: 'finance_pilotage', tab: 'Trésorerie' },
+    });
+  }
+
+  if (receivable > 0) {
+    items.push({
+      id: 'receivables',
+      label: 'Créances à encaisser',
+      value: receivable,
+      format: 'currency',
+      hint: 'Encaissements attendus',
+      tone: 'neutral',
+      navigate: { module: 'finance_pilotage', tab: 'Créances & dettes' },
+    });
+  }
+
+  if (ruptures > 0) {
+    items.push({
+      id: 'stock-rupture',
+      label: 'Ruptures stock',
+      value: ruptures,
+      format: 'count',
+      hint: 'Réapprovisionner en priorité',
+      tone: 'warn',
+      navigate: { module: 'achats_stock', tab: 'Inventaire' },
+    });
+  }
+
+  if (eggsMonthProjection > 0) {
+    items.push({
+      id: 'eggs-projection',
+      label: 'Œufs (proj. 30 j)',
+      value: eggsMonthProjection,
+      format: 'units',
+      hint: `Moyenne ${eggsDailyAvg.toLocaleString('fr-FR')} / jour`,
+      tone: 'neutral',
+      navigate: { module: 'elevage', tab: 'Production œufs' },
+    });
+  }
+
+  return { items, hasData: items.length > 0 };
+}
+
 function shortenJournalLabel(text = '') {
   const raw = String(text || '').trim();
   if (!raw || isHomeNoiseText(raw)) return null;
@@ -513,6 +631,7 @@ export function buildCarnetHorizonView({ summary = {}, priorities = [], props = 
     domains: buildCarnetDomainCards(summary, props),
     capteurs: buildCarnetSensorStrip(props),
     objectifs: buildCarnetObjectifs(summary, props),
+    projections: buildCarnetProjections(summary, props),
     conseil: buildCarnetConseil(summary, priorities, props),
     journal: buildCarnetTodayJournal(props),
   };

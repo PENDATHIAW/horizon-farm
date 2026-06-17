@@ -65,6 +65,33 @@ function DomainCard({ card, onNavigate }) {
   );
 }
 
+function ProjectionCard({ item, onNavigate }) {
+  const clickable = Boolean(item.navigate && onNavigate);
+  const Tag = clickable ? 'button' : 'div';
+  const toneCls = item.tone === 'warn'
+    ? 'border-amber-200 bg-amber-50/80'
+    : item.tone === 'good'
+      ? 'border-emerald-200 bg-emerald-50/80'
+      : 'border-[#efe6d6] bg-white/70';
+  const valueText = item.format === 'currency'
+    ? fmtCurrency(item.value)
+    : item.format === 'count'
+      ? String(item.value)
+      : `${Number(item.value).toLocaleString('fr-FR')}`;
+
+  return (
+    <Tag
+      type={clickable ? 'button' : undefined}
+      onClick={clickable ? () => onNavigate(item.navigate.module, { tab: item.navigate.tab }) : undefined}
+      className={`rounded-lg border p-2.5 text-left ${toneCls} ${clickable ? 'cursor-pointer transition hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9a6b12]' : ''}`}
+    >
+      <p className="text-[9px] font-black uppercase tracking-wide text-[#8a7456]">{item.label}</p>
+      <p className="mt-0.5 text-sm font-black text-[#2f2415]">{valueText}</p>
+      {item.hint ? <p className="mt-0.5 text-[10px] font-medium text-[#8a7456]">{item.hint}</p> : null}
+    </Tag>
+  );
+}
+
 function ObjectifBlock({ block, onNavigate }) {
   const clickable = Boolean(block.navigate && onNavigate);
   const Tag = clickable ? 'button' : 'div';
@@ -151,6 +178,17 @@ export default function CarnetHorizon({ carnet, onNavigate }) {
           <div className="flex flex-col gap-2 sm:flex-row">
             <ObjectifBlock block={carnet.objectifs.month} onNavigate={onNavigate} />
             <ObjectifBlock block={carnet.objectifs.year} onNavigate={onNavigate} />
+          </div>
+        </section>
+      ) : null}
+
+      {carnet.projections?.hasData ? (
+        <section className="rounded-xl border border-[#e5dcc8] bg-[#faf6ee] px-3 py-2.5">
+          <h2 className="mb-2 text-[10px] font-black uppercase tracking-wide text-[#8a7456]">Projections & pilotage</h2>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+            {(carnet.projections.items || []).map((item) => (
+              <ProjectionCard key={item.id} item={item} onNavigate={onNavigate} />
+            ))}
           </div>
         </section>
       ) : null}

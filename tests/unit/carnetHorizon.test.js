@@ -8,6 +8,7 @@ import {
   buildCarnetConseil,
   buildCarnetSensorStrip,
   buildCarnetHorizonView,
+  buildCarnetProjections,
   isHomeNoiseText,
   isAgriculturalHomeEvent,
   CARNET_JOURNAL_LIMIT,
@@ -224,4 +225,31 @@ test('buildCarnetAttentionItems — alertes terrain uniquement', () => {
   );
   assert.ok(items.length > 0);
   assert.ok(items.every((item) => !isHomeNoiseText(item.text)));
+});
+
+test('buildCarnetProjections — CA et trésorerie projetés', () => {
+  const now = new Date();
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const projections = buildCarnetProjections(
+    {
+      receivable: 50000,
+      goal: { periodTarget: 500000, periodRealized: 120000 },
+      periodScope: { mode: 'month', monthKey: month },
+    },
+    {
+      salesOrders: [
+        { id: '1', date: `${month}-05`, montant: 80000, montant_total: 80000 },
+        { id: '2', date: `${month}-10`, montant: 40000, montant_total: 40000 },
+      ],
+      payments: [{ id: 'p1', montant: 30000, date: `${month}-08` }],
+      transactions: [{ id: 'f1', type: 'entree', montant: 100000 }],
+      stocks: [{ produit: 'Aliment', quantite: 0, seuil: 5 }],
+      productionLogs: [
+        { oeufs_produits: 700, date: new Date().toISOString().slice(0, 10) },
+      ],
+    },
+  );
+  assert.equal(projections.hasData, true);
+  assert.ok(projections.items.some((i) => i.id === 'ca-projection'));
+  assert.ok(projections.items.some((i) => i.id === 'stock-rupture'));
 });
