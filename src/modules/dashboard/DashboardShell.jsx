@@ -419,7 +419,7 @@ export function DashboardModuleHeader({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span className={`rounded-full border px-3 py-1 text-xs font-black ${healthScore >= 75 ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : healthScore >= 50 ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-red-200 bg-red-50 text-red-700'}`}>
-              Santé ERP {healthScore}/100
+              Santé exploitation {healthScore}/100
             </span>
             {badges.todo > 0 ? (
               <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-800">

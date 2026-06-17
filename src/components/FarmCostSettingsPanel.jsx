@@ -72,7 +72,7 @@ export default function FarmCostSettingsPanel({ compact = false }) {
           <h3 className="mt-1 text-lg font-black text-[#2f2415]">Rations et prix par défaut</h3>
           <p className="mt-1 text-sm text-[#8a7456]">Ces réglages alimentent Animaux, Avicole, Ventes et Finance avec le même coût total partout.</p>
           <p className="mt-2 flex items-center gap-2 text-xs">
-            {synced ? <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 font-bold text-emerald-800"><Cloud size={12} /> Synchronisé Supabase</span> : <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 font-bold text-amber-800"><CloudOff size={12} /> Mode local uniquement</span>}
+            {synced ? <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 font-bold text-emerald-800"><Cloud size={12} /> Synchronisé en ligne</span> : <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 font-bold text-amber-800"><CloudOff size={12} /> Mode local uniquement</span>}
             {loading ? <span className="text-[#8a7456]">Chargement…</span> : null}
           </p>
           <p className="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">{UNIFIED_COST_FORMULA}</p>

@@ -164,7 +164,7 @@ export default function WhatsAppHorizonDemoPanel({
           WhatsApp Horizon — démo interne
         </p>
         <p className="mt-1 text-sm text-[#8a7456]">
-          Simule un message WhatsApp/Telegram → brouillon IA (AI Gateway) → validation → workflow métier. Aucune écriture sans confirmation.
+          Simule un message WhatsApp reçu → brouillon préparé → validation → enregistrement métier. Aucune écriture sans confirmation.
         </p>
       </div>
 

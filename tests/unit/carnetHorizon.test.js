@@ -6,6 +6,7 @@ import {
   buildCarnetDomainCards,
   buildCarnetObjectifs,
   buildCarnetConseil,
+  buildCarnetSensorStrip,
   buildCarnetHorizonView,
   isHomeNoiseText,
   isAgriculturalHomeEvent,
@@ -13,7 +14,7 @@ import {
   CARNET_DOMAIN_NAVIGATION,
 } from '../../src/modules/dashboard/carnetHorizon.js';
 import { buildDashboardSummary } from '../../src/modules/dashboard/dashboardMetrics.js';
-import { buildDashboardPriorities } from '../../src/modules/dashboard/dashboardPilotage.js';
+import { buildSensorDashboardSummary } from '../../src/utils/smartFarmSensorSummary.js';
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -177,6 +178,35 @@ test('buildCarnetHorizonView — sections dirigeant', () => {
   assert.ok(carnet.objectifs?.month);
   assert.ok(carnet.conseil?.action);
   assert.ok(Array.isArray(carnet.journal.items));
+  assert.ok(carnet.capteurs);
+  assert.equal(carnet.capteurs.navigate.module, 'smartfarm');
+});
+
+test('buildCarnetSensorStrip — température et alertes capteurs', () => {
+  const strip = buildCarnetSensorStrip({
+    sensorDevices: [
+      { id: 'tc1', type: 'temperature', name: 'Poulailler A', value: 28, status: 'online' },
+      { id: 'hum1', type: 'humidite', name: 'Serre', value: 62, status: 'online' },
+    ],
+    cameraDevices: [{ id: 'cam1' }],
+    meteo: { temp: 30 },
+  });
+  assert.ok(strip.headline.includes('28'));
+  assert.ok(strip.lines.some((l) => /Température/i.test(l.text)));
+  assert.equal(strip.navigate.tab, 'Flux temps réel');
+});
+
+test('buildSensorDashboardSummary — sans capteur utilise météo', () => {
+  const summary = buildSensorDashboardSummary([], [], { temp: 31 });
+  assert.equal(summary.tempDisplay, 31);
+  assert.equal(summary.headline, '31°C');
+});
+
+test('buildCarnetDomainCards — pas d’icône emoji sur les cartes', () => {
+  const cards = buildCarnetDomainCards({ cashNet: 0, headcount: {}, cultureSummary: {}, stockSummary: {} }, { stocks: [], animaux: [], cultures: [] });
+  cards.forEach((card) => {
+    assert.equal(card.icon, undefined);
+  });
 });
 
 test('buildCarnetAttentionItems — alertes terrain uniquement', () => {

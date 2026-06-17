@@ -415,7 +415,7 @@ export default function HeyHorizonModule({
           className="mx-4 mb-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900"
           role="status"
         >
-          Formulations très libres : ajoutez <b>OPENAI_API_KEY</b> sur Vercel (Production) puis redéployez.
+          L’assistant vocal avancé sera bientôt disponible. En attendant, décrivez simplement votre besoin (vente, achat, alerte…).
         </div>
       ) : null}
       <HorizonChatCanvas scrollRef={chatScrollRef} onScroll={handleChatScroll}>

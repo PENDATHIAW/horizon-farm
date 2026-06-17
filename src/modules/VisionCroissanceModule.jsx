@@ -124,7 +124,7 @@ export default function VisionCroissanceModule(props) {
             {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
           </div>
           <div className="flex flex-col gap-2">
-            <div className="rounded-2xl border border-[#eadcc2] bg-white px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé ERP </span><b className="text-[#2f2415]">{data.healthScore ?? data.globalScore}/100</b></div>
+            <div className="rounded-2xl border border-[#eadcc2] bg-white px-4 py-3 text-sm"><span className="text-[#8a7456]">Santé exploitation </span><b className="text-[#2f2415]">{data.healthScore ?? data.globalScore}/100</b></div>
             {moduleId === 'centre_ia' && onNavigate ? (
               <button type="button" onClick={() => onNavigate('objectifs_croissance', { tab: 'Performance' })} className="rounded-2xl border border-[#d6c3a0] bg-white px-4 py-3 text-left text-sm text-[#2f2415] hover:bg-[#dcfce7]">
                 <span className="text-[#8a7456]">Pilotage long terme → </span><b>Objectifs & Croissance</b>
@@ -135,7 +135,7 @@ export default function VisionCroissanceModule(props) {
                 <span className="text-[#8a7456]">Actions du jour → </span><b>Centre décisionnel</b>
               </button>
             ) : null}
-            {aiCount > 0 ? <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"><b>{aiCount}</b> signal(aux) IA — actions one-click dans À traiter.{persistedCount !== null ? <span className="block mt-1 text-xs text-amber-700">{persistedCount} sync. Supabase.</span> : null}</div> : persistedCount !== null && persistedCount > 0 ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"><b>{persistedCount}</b> recommandation(s) synchronisée(s).</div> : null}
+            {aiCount > 0 ? <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"><b>{aiCount}</b> signal(aux) à traiter — actions rapides dans Activité & Suivi.{persistedCount !== null ? <span className="block mt-1 text-xs text-amber-700">{persistedCount} enregistré(s) sur le cloud.</span> : null}</div> : persistedCount !== null && persistedCount > 0 ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"><b>{persistedCount}</b> recommandation(s) synchronisée(s).</div> : null}
           </div>
         </div>
       </section>

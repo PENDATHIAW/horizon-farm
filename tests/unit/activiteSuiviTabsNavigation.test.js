@@ -11,6 +11,8 @@ test('activite_suivi — 4 onglets canoniques', () => {
 test('resolveActiviteSuiviTab — aliases anciens onglets', () => {
   assert.equal(resolveActiviteSuiviTab('Résumé'), 'Cockpit & décisions');
   assert.equal(resolveActiviteSuiviTab('Alertes'), 'À traiter maintenant');
+  assert.equal(resolveActiviteSuiviTab('A traiter maintenant'), 'À traiter maintenant');
+  assert.equal(resolveActiviteSuiviTab('À traiter maintenant'), 'À traiter maintenant');
   assert.equal(resolveActiviteSuiviTab('Tâches'), 'À traiter maintenant');
   assert.equal(resolveActiviteSuiviTab('Traçabilité'), 'Registre & traçabilité');
   assert.equal(resolveActiviteSuiviTab('Graphiques'), 'Performance & analytique');

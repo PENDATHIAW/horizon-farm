@@ -85,6 +85,7 @@ export const SMART_ALERT_RULE_CATALOG = [
     id: 'temp_high_avicole',
     label: 'Chaleur poulailler',
     trigger: 'temperature > seuil_max (zone avicole)',
+    triggerLabel: 'température poulailler au-dessus du seuil',
     severity: 'warning',
     actions: ['alerte_center', 'tache_ventilation', 'whatsapp_optionnel'],
     targetModule: 'elevage',
@@ -93,6 +94,7 @@ export const SMART_ALERT_RULE_CATALOG = [
     id: 'humidity_soil_low',
     label: 'Sol sec — irrigation',
     trigger: 'humidite_sol < 18% pendant 2h',
+    triggerLabel: 'humidité du sol inférieure à 18 % pendant 2 h',
     severity: 'warning',
     actions: ['alerte_center', 'tache_irrigation', 'vanne_on_si_automatise'],
     targetModule: 'cultures',
@@ -101,6 +103,7 @@ export const SMART_ALERT_RULE_CATALOG = [
     id: 'sensor_offline',
     label: 'Capteur hors ligne',
     trigger: 'status offline ou last_seen > 30 min',
+    triggerLabel: 'capteur hors ligne depuis plus de 30 min',
     severity: 'warning',
     actions: ['alerte_center', 'tache_maintenance', 'equipements'],
     targetModule: 'rh',
@@ -109,6 +112,7 @@ export const SMART_ALERT_RULE_CATALOG = [
     id: 'battery_low',
     label: 'Batterie faible',
     trigger: 'battery_level <= 20%',
+    triggerLabel: 'niveau de batterie inférieur ou égal à 20 %',
     severity: 'info',
     actions: ['alerte_center', 'tache_remplacement_batterie'],
     targetModule: 'smartfarm',
@@ -117,14 +121,16 @@ export const SMART_ALERT_RULE_CATALOG = [
     id: 'human_detected',
     label: 'Intrusion / humain détecté',
     trigger: 'event_type humain_detecte ou intrusion',
+    triggerLabel: 'mouvement ou intrusion détectée',
     severity: 'urgence',
     actions: ['alerte_center', 'tache_securite', 'notification_immediate'],
     targetModule: 'smartfarm',
   },
   {
     id: 'camera_offline',
-    label: 'Caméra offline',
+    label: 'Caméra hors ligne',
     trigger: 'event_type camera_offline ou status offline',
+    triggerLabel: 'caméra hors ligne',
     severity: 'warning',
     actions: ['alerte_center', 'tache_maintenance'],
     targetModule: 'smartfarm',
@@ -133,6 +139,7 @@ export const SMART_ALERT_RULE_CATALOG = [
     id: 'door_open_stock',
     label: 'Porte magasin ouverte',
     trigger: 'capteur porte OPEN hors plage horaire',
+    triggerLabel: 'porte ouverte en dehors des horaires autorisés',
     severity: 'warning',
     actions: ['alerte_center', 'tache_securite'],
     targetModule: 'achats_stock',
@@ -141,13 +148,36 @@ export const SMART_ALERT_RULE_CATALOG = [
     id: 'water_leak',
     label: 'Fuite ou surconsommation eau',
     trigger: 'débit eau anormal vs baseline',
+    triggerLabel: 'consommation d’eau anormale',
     severity: 'haute',
     actions: ['alerte_center', 'tache_maintenance', 'finances_charge'],
     targetModule: 'finance_pilotage',
   },
 ];
 
-/** Modèles de règles Si… Alors… (P2 — exécution edge). */
+const SMART_ACTION_LABELS = {
+  alerte_center: 'créer une alerte',
+  tache_ventilation: 'planifier une ventilation',
+  tache_irrigation: 'planifier une irrigation',
+  tache_maintenance: 'créer une tâche de maintenance',
+  tache_remplacement_batterie: 'prévoir le remplacement de batterie',
+  tache_securite: 'alerter l’équipe sécurité',
+  whatsapp_optionnel: 'proposer une relance WhatsApp',
+  vanne_on_si_automatise: 'ouvrir la vanne si automatisée',
+  equipements: 'mettre à jour les équipements',
+  notification_immediate: 'envoyer une notification immédiate',
+  finances_charge: 'enregistrer une charge',
+};
+
+export function formatSmartFarmAction(actionKey = '') {
+  return SMART_ACTION_LABELS[actionKey] || String(actionKey || '').replace(/_/g, ' ');
+}
+
+export function formatSmartFarmTrigger(rule = {}) {
+  return rule.triggerLabel || String(rule.trigger || '').replace(/_/g, ' ');
+}
+
+/** Modèles de scénarios Si… Alors… (commande matériel à venir). */
 export const SMART_AUTOMATION_TEMPLATES = [
   {
     id: 'irrigation_soil',

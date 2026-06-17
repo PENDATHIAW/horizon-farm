@@ -38,10 +38,7 @@ function DomainCard({ card, onNavigate }) {
       className={`carnet-domain-card flex min-h-[168px] flex-col rounded-xl border border-emerald-200/50 bg-emerald-400/10 p-3 text-left shadow-[0_1px_0_rgba(34,197,94,0.06)] ${clickable ? 'cursor-pointer transition hover:border-emerald-300 hover:bg-emerald-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600' : ''}`}
     >
       <div className="flex items-center justify-between gap-1.5">
-        <div className="flex items-center gap-1.5">
-          <span className="text-base leading-none" aria-hidden="true">{card.icon}</span>
-          <p className="text-[10px] font-black tracking-wide text-emerald-800/80">{card.title}</p>
-        </div>
+        <p className="text-[10px] font-black tracking-wide text-emerald-800/80">{card.title}</p>
         <ScopeKpiBadge label={card.scopeLabel} />
       </div>
       <p className="mt-2 text-sm font-black leading-tight text-[#2f2415]">{card.headline}</p>
@@ -143,6 +140,10 @@ export default function CarnetHorizon({ carnet, onNavigate }) {
           <DomainCard key={card.id} card={card} onNavigate={onNavigate} />
         ))}
       </div>
+
+      {carnet.capteurs ? (
+        <DomainCard key={carnet.capteurs.id} card={carnet.capteurs} onNavigate={onNavigate} />
+      ) : null}
 
       {carnet.objectifs ? (
         <section className="rounded-xl border border-[#e5dcc8] bg-[#fffdf8] px-3 py-2.5">

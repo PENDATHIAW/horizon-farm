@@ -20,7 +20,7 @@ export default function ModuleAnnexeTab({ moduleId = 'elevage', onNavigate }) {
         <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><BookOpen size={15} /> Annexe — {label}</p>
         <h2 className="mt-1 text-xl font-black text-[#2f2415]">Un seul coût affiché partout</h2>
         <p className="mt-1 text-sm text-[#8a7456]">
-          Animaux, lots avicoles, fiches, opportunités de vente et consolidation Finance utilisent le même moteur (<code className="text-xs">costEngine</code> via <code className="text-xs">unifiedCostService</code>).
+          Animaux, lots avicoles, fiches, opportunités de vente et consolidation Finance utilisent le même calcul de coût.
           Modifiez les rations et prix par défaut ci-dessous pour éviter les écarts de caisse.
         </p>
       </section>
@@ -35,7 +35,7 @@ export default function ModuleAnnexeTab({ moduleId = 'elevage', onNavigate }) {
           <li><b className="text-[#2f2415]">Lot chair :</b> poussins + alimentation + santé + emballage/transport si renseignés.</li>
           <li><b className="text-[#2f2415]">Lot ponte :</b> amortissement sujets + alimentation période + santé + emballage/transport ; coût / œuf et / tablette.</li>
           <li><b className="text-[#2f2415]">Finance :</b> max(coûts champs fiche, moteur unifié logs) pour animaux et avicole — anti double comptage avec trésorerie.</li>
-          <li><b className="text-[#2f2415]">Vente :</b> marge = CA − coût direct (via salesMarginEngine → costEngine).</li>
+          <li><b className="text-[#2f2415]">Vente :</b> marge = chiffre d’affaires − coût direct.</li>
         </ul>
         {onNavigate ? (
           <div className="flex flex-wrap gap-2 pt-1">

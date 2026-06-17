@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import { applyOneClickRecommendation, createAlertResolutionTask } from '../services/heyHorizonRecommendationActions.js';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
-import { resolveActiviteSuiviTab, resolveActiviteSuiviNavigation } from '../utils/commercialNavigation.js';
+import { resolveActiviteSuiviTab } from '../utils/commercialNavigation.js';
 import { useActiviteSuivi } from './activiteSuivi/hooks/useActiviteSuivi.js';
 import CockpitDecisionsTab from './activiteSuivi/tabs/CockpitDecisionsTab.jsx';
 import ATraiterMaintenantTab from './activiteSuivi/tabs/ATraiterMaintenantTab.jsx';
@@ -20,32 +20,34 @@ function Tabs({ active, onChange, tabBadges = {} }) {
 
 export default function ActiviteSuiviRecoveredModule(props) {
   const controlled = Boolean(props.onTabChange);
-  const bootstrapNav = resolveActiviteSuiviNavigation(props.initialTab || 'Cockpit & décisions');
-  const [internalTab, setInternalTab] = useState(() => bootstrapNav.tab || resolveActiviteSuiviTab(props.initialTab || 'Cockpit & décisions'));
+  const defaultTab = 'Cockpit & décisions';
+  const [internalTab, setInternalTab] = useState(() => resolveActiviteSuiviTab(props.initialTab || defaultTab));
+  const [pendingTab, setPendingTab] = useState(null);
+  const resolvedFromParent = resolveActiviteSuiviTab(props.initialTab || defaultTab);
   const tab = controlled
-    ? resolveActiviteSuiviTab(props.initialTab || 'Cockpit & décisions')
+    ? resolveActiviteSuiviTab(pendingTab || resolvedFromParent)
     : internalTab;
   const [busyId, setBusyId] = useState(null);
 
-  const applyActiviteNavigation = useCallback((nav) => {
-    const resolvedTab = nav.tab || resolveActiviteSuiviTab(props.initialTab || 'Cockpit & décisions');
-    if (controlled) props.onTabChange?.(resolvedTab);
-    else setInternalTab(resolvedTab);
-  }, [controlled, props.onTabChange, props.initialTab]);
-
-  const navigateActivite = useCallback((target = '') => {
-    applyActiviteNavigation(resolveActiviteSuiviNavigation(target));
-  }, [applyActiviteNavigation]);
-
   const setTab = useCallback((value) => {
-    applyActiviteNavigation(resolveActiviteSuiviNavigation(value));
-  }, [applyActiviteNavigation]);
+    const resolved = resolveActiviteSuiviTab(value);
+    if (controlled) {
+      setPendingTab(resolved);
+      props.onTabChange?.(resolved);
+      return;
+    }
+    setInternalTab(resolved);
+  }, [controlled, props.onTabChange]);
 
   useEffect(() => {
-    if (!props.initialTab) return;
-    const nav = resolveActiviteSuiviNavigation(props.initialTab);
-    if (!controlled) setInternalTab(nav.tab);
-  }, [controlled, props.initialTab]);
+    if (!controlled) {
+      if (props.initialTab) setInternalTab(resolveActiviteSuiviTab(props.initialTab));
+      return;
+    }
+    if (pendingTab && pendingTab === resolvedFromParent) setPendingTab(null);
+  }, [controlled, props.initialTab, pendingTab, resolvedFromParent]);
+
+  const navigateActivite = setTab;
 
   const {
     data,
@@ -64,7 +66,7 @@ export default function ActiviteSuiviRecoveredModule(props) {
     setBusyId(finding.id);
     try {
       const result = await applyOneClickRecommendation(finding, actionHandlers);
-      if (result.createdTasks || result.createdAlerts) toast.success('Tâche IA créée');
+      if (result.createdTasks || result.createdAlerts) toast.success('Action créée');
       else {
         toast.success('Onglet ouvert');
         navigateActivite('À traiter maintenant');

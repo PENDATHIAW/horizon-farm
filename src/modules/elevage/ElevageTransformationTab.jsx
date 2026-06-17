@@ -102,7 +102,7 @@ export default function ElevageTransformationTab({
       </details>
 
       <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4" open={legacyOpen} onToggle={(e) => setLegacyOpen(e.currentTarget.open)}>
-        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Workflows complémentaires (legacy)</summary>
+        <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Workflows complémentaires (historique)</summary>
         <p className="mt-2 text-xs text-[#8a7456]">Bridges historiques — préférez le formulaire officiel ci-dessus.</p>
         <div className="mt-3 space-y-4">
           {animalBridgeProps ? (

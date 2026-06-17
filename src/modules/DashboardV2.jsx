@@ -71,6 +71,10 @@ export default function DashboardV2(props) {
     ferme,
     clients,
     fournisseurs,
+    sensorDevices,
+    sensors,
+    cameraDevices,
+    cameras,
     periodScope: periodScopeProp,
     periodLabel,
   } = props;
@@ -147,6 +151,9 @@ export default function DashboardV2(props) {
     ferme,
     clients,
     businessEvents,
+    sensorDevices: sensorDevices || sensors,
+    cameraDevices: cameraDevices || cameras,
+    meteo,
   }), [
     salesOrders,
     salesOrdersAll,
@@ -172,6 +179,11 @@ export default function DashboardV2(props) {
     ferme,
     clients,
     businessEvents,
+    sensorDevices,
+    sensors,
+    cameraDevices,
+    cameras,
+    meteo,
   ]);
 
   const summary = useMemo(

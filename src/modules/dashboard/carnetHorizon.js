@@ -9,6 +9,7 @@ import { buildObjectifsCroissanceData } from '../../services/objectifsGrowthEngi
 import { filterRowsByPeriodScope, normalizePeriodScope, rowDateValue } from '../../utils/periodScope.js';
 import { isBovinAnimal, isCaprinAnimal, isOvinAnimal } from '../../utils/elevageActivityPnl.js';
 import { buildExpirySnapshot } from '../../utils/stockExpiry.js';
+import { buildSensorDashboardSummary } from '../../utils/smartFarmSensorSummary.js';
 
 export const CARNET_JOURNAL_LIMIT = 10;
 export const CARNET_ATTENTION_LIMIT = 4;
@@ -19,6 +20,7 @@ export const CARNET_DOMAIN_NAVIGATION = {
   cultures: { module: 'cultures', tab: 'Parcelles & campagnes' },
   stocks: { module: 'achats_stock', tab: 'Inventaire' },
   finances: { module: 'finance_pilotage', tab: 'Résumé' },
+  capteurs: { module: 'smartfarm', tab: 'Flux temps réel' },
 };
 
 const arr = (value) => (Array.isArray(value) ? value : []);
@@ -244,7 +246,6 @@ export function buildCarnetDomainCards(summary = {}, props = {}) {
   return [
     {
       id: 'elevage',
-      icon: '🐓',
       title: 'ÉLEVAGE',
       headline: species.total > 0 ? `${fmt(species.total)} têtes` : 'À renseigner',
       lines: species.lines.length ? species.lines : [{ text: 'Aucun effectif enregistré' }],
@@ -254,7 +255,6 @@ export function buildCarnetDomainCards(summary = {}, props = {}) {
     },
     {
       id: 'cultures',
-      icon: '🌾',
       title: 'CULTURES',
       headline: culture.hasData ? `${fmt(culture.parcelCount)} parcelles` : 'À configurer',
       lines: cultureLines,
@@ -264,7 +264,6 @@ export function buildCarnetDomainCards(summary = {}, props = {}) {
     },
     {
       id: 'stocks',
-      icon: '📦',
       title: 'STOCK',
       headline: `${fmt(productCount)} produits`,
       lines: stockLines,
@@ -274,7 +273,6 @@ export function buildCarnetDomainCards(summary = {}, props = {}) {
     },
     {
       id: 'finances',
-      icon: '💰',
       title: 'FINANCE',
       headline: fmtCurrency(summary.cashNet),
       lines: financeLines.slice(1),
@@ -494,9 +492,26 @@ export function buildCarnetExploitationState(summary = {}, props = {}) {
   return buildCarnetDomainCards(summary, props);
 }
 
+export function buildCarnetSensorStrip(props = {}) {
+  const sensors = arr(props.sensorDevices || props.sensors);
+  const cameras = arr(props.cameraDevices || props.cameras);
+  const summary = buildSensorDashboardSummary(sensors, cameras, props.meteo || props.weather);
+  return {
+    id: 'capteurs',
+    title: 'CAPTEURS & TERRAIN',
+    headline: summary.headline,
+    lines: summary.lines,
+    alerts: summary.alerts,
+    navigate: CARNET_DOMAIN_NAVIGATION.capteurs,
+    scopeLabel: summary.hasData ? 'Temps réel' : 'À configurer',
+    summary,
+  };
+}
+
 export function buildCarnetHorizonView({ summary = {}, priorities = [], props = {} } = {}) {
   return {
     domains: buildCarnetDomainCards(summary, props),
+    capteurs: buildCarnetSensorStrip(props),
     objectifs: buildCarnetObjectifs(summary, props),
     conseil: buildCarnetConseil(summary, priorities, props),
     journal: buildCarnetTodayJournal(props),

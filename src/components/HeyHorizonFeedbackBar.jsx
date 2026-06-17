@@ -25,7 +25,7 @@ export default function HeyHorizonFeedbackBar({
   return (
     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#eadcc2]/70 pt-3">
       <span className="text-xs text-[#8a7456]">
-        {source === 'llm' ? 'Réponse IA (LLM)' : 'Réponse règles métier'}
+        {source === 'llm' ? 'Réponse assistant' : 'Réponse règles métier'}
         {confidence != null ? ` · ${confidence}%` : ''}
       </span>
       <button type="button" onClick={() => submit('up')} className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-black text-emerald-800">

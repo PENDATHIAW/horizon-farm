@@ -146,7 +146,7 @@ export default function TelemetryStreamTab({ data, handlers, realtime }) {
               <span className="text-xs font-bold text-[#7d6a4a]">{String(ev.created_at || '').slice(0, 19).replace('T', ' ')}</span>
             </div>
           )) : (
-            <p className="text-sm text-[#8a7456]">Aucun événement — les trames capteurs apparaîtront ici (Supabase Realtime ou gateway).</p>
+            <p className="text-sm text-[#8a7456]">Aucun événement — les signaux capteurs apparaîtront ici dès qu’ils seront reçus.</p>
           )}
         </div>
       </section>
