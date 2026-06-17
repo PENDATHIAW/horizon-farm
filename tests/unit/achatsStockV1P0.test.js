@@ -36,9 +36,13 @@ test('P0-01 — filterAchatsStockAnnexeDocuments — factures et preuves stock',
   assert.equal(docs.length, 2);
 });
 
-test('P0-01 — resolveAchatsStockTab Annexe distinct de Graphiques', () => {
-  assert.equal(resolveAchatsStockTab('Annexe'), 'Annexe');
-  assert.equal(resolveAchatsStockTab('Graphiques'), 'Graphiques');
+test('P0-01 — resolveAchatsStockTab alias legacy vers 3 onglets canoniques', () => {
+  assert.equal(resolveAchatsStockTab('Résumé'), 'Inventaire');
+  assert.equal(resolveAchatsStockTab('Stock'), 'Inventaire');
+  assert.equal(resolveAchatsStockTab('Annexe'), 'Inventaire');
+  assert.equal(resolveAchatsStockTab('Graphiques'), 'Inventaire');
+  assert.equal(resolveAchatsStockTab('Achats'), 'Réceptions & achats');
+  assert.equal(resolveAchatsStockTab('Fournisseurs'), 'Fournisseurs & dettes');
 });
 
 test('P0-02 — buildStockMovementPayload réception achat', () => {

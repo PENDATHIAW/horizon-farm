@@ -52,7 +52,7 @@ export default function App() {
   const [elevageTab, setElevageTab] = useState('Résumé');
   const [centreTab, setCentreTab] = useState('Urgences & risques');
   const [objectifsTab, setObjectifsTab] = useState('Suivi du Business Plan');
-  const [achatsStockTab, setAchatsStockTab] = useState('Résumé');
+  const [achatsStockTab, setAchatsStockTab] = useState('Inventaire');
   const [achatsStockContext, setAchatsStockContext] = useState(null);
   const [financeTab, setFinanceTab] = useState('Résumé');
   const [culturesTab, setCulturesTab] = useState('Parcelles & campagnes');
@@ -93,7 +93,7 @@ export default function App() {
       return;
     }
     if (resolved === 'achats_stock') {
-      setAchatsStockTab(resolveAchatsStockTab(tab || defaultTabForLegacyModule(moduleId) || 'Résumé'));
+      setAchatsStockTab(resolveAchatsStockTab(tab || defaultTabForLegacyModule(moduleId) || 'Inventaire'));
       if (options.stockContext || options.searchContext || options.contextMessage) {
         setAchatsStockContext({
           stockContext: options.stockContext || null,
@@ -480,6 +480,7 @@ export default function App() {
     },
     achats_stock: {
       initialTab: achatsStockTab,
+      onTabChange: (nextTab) => setAchatsStockTab(resolveAchatsStockTab(nextTab)),
       stockNavigationContext: achatsStockContext,
       onClearStockNavigationContext: () => setAchatsStockContext(null),
       stocks: rows(c.stock),

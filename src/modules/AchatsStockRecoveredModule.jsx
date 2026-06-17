@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import AchatsStockAnnexeTab from './achatsStock/AchatsStockAnnexeTab.jsx';
@@ -117,18 +117,26 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate, onMarkE
 }
 
 export default function AchatsStockRecoveredModule(props) {
-  const [tab, setTabRaw] = useState(() => resolveAchatsStockTab(props.initialTab));
-  const setTab = (value) => setTabRaw(resolveAchatsStockTab(value));
+  const controlled = Boolean(props.onTabChange);
+  const [internalTab, setInternalTab] = useState(() => resolveAchatsStockTab(props.initialTab || 'Inventaire'));
+  const tab = controlled
+    ? resolveAchatsStockTab(props.initialTab || 'Inventaire')
+    : internalTab;
+  const setTab = useCallback((value) => {
+    const resolved = resolveAchatsStockTab(value);
+    if (controlled) {
+      props.onTabChange?.(resolved);
+      return;
+    }
+    setInternalTab(resolved);
+  }, [controlled, props.onTabChange]);
   const [busyId, setBusyId] = useState(null);
   const [stockAdvancedOpen, setStockAdvancedOpen] = useState(false);
 
-  // Sync navigation externe (même pattern que Commercial / Élevage)
   useEffect(() => {
-    if (props.initialTab) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- navigation pilotée par props.initialTab
-      setTab(resolveAchatsStockTab(props.initialTab));
-    }
-  }, [props.initialTab]);
+    if (controlled || !props.initialTab) return;
+    setInternalTab(resolveAchatsStockTab(props.initialTab));
+  }, [controlled, props.initialTab]);
 
   const stockCrud = useCrudModule('stock');
   const suppliersCrud = useCrudModule('fournisseurs');
