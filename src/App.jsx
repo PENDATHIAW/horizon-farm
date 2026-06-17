@@ -108,7 +108,7 @@ export default function App() {
       return;
     }
     if (resolved === 'finance_pilotage') {
-      setFinanceTab(tab || defaultTabForLegacyModule(moduleId) || 'Résumé');
+      setFinanceTab(resolveFinanceTab(tab || defaultTabForLegacyModule(moduleId) || 'Résumé'));
       trackNavOpen('finance_pilotage');
       setActiveState('finance_pilotage');
       return;
@@ -528,6 +528,7 @@ export default function App() {
     },
     finance_pilotage: {
       initialTab: financeTab,
+      onTabChange: (nextTab) => setFinanceTab(resolveFinanceTab(nextTab)),
       transactions: rows(c.finances),
       transactionsAll: rows(c.finances),
       finances: rows(c.finances),

@@ -46,12 +46,18 @@ test('Achats & Stock — onglets critiques', async () => {
 });
 
 test('Élevage — onglets critiques', async () => {
-  for (const tab of ['Avicole', 'Alimentation', 'Santé', 'Production', 'Cycles']) {
+  for (const tab of ['Lots & bandes', 'Cycles & Reproduction', 'Santé', 'Transformation']) {
     await assertModuleTabStable('elevage', tab, buildSimulatedProps());
   }
 });
 
-test('Finance — onglet Investissements', async () => {
+test('Finance — onglets critiques avec données simulées', async () => {
+  for (const tab of ['Résumé', 'Trésorerie', 'Créances & dettes', 'Pilotage', 'Graphiques']) {
+    await assertModuleTabStable('finance_pilotage', tab, buildSimulatedProps());
+  }
+});
+
+test('Finance — deep-link Investissements (alias Pilotage)', async () => {
   await assertModuleTabStable('finance_pilotage', 'Investissements', buildSimulatedProps({
     bpInvestmentLines: [{ id: 'bp1', business_plan_id: 'BP-HF', designation: 'Abreuvoir', montant_prevu: 250000, statut: 'a_concretiser', display_in_investissements: true }],
   }));

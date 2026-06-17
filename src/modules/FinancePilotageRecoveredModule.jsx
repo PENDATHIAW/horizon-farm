@@ -1,5 +1,5 @@
 import { BarChart3, BrainCircuit, PiggyBank, Wallet, Zap } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleListHub from '../components/module/ModuleListHub.jsx';
@@ -298,28 +298,45 @@ function Summary({
 }
 
 export default function FinancePilotageRecoveredModule(props) {
-  const initialNav = resolveFinanceNavigation(props.initialTab);
-  const [tab, setTab] = useState(() => initialNav.tab || resolveFinanceTab(props.initialTab));
-  const [treasurySubview, setTreasurySubview] = useState(() => initialNav.treasurySubview || 'saisie');
-  const [pilotageSubview, setPilotageSubview] = useState(() => initialNav.pilotageSubview || 'echeancier');
+  const controlled = Boolean(props.onTabChange);
+  const bootstrapNav = resolveFinanceNavigation(props.initialTab || 'Résumé');
+  const [internalTab, setInternalTab] = useState(() => bootstrapNav.tab || resolveFinanceTab(props.initialTab || 'Résumé'));
+  const [treasurySubview, setTreasurySubview] = useState(() => bootstrapNav.treasurySubview || 'saisie');
+  const [pilotageSubview, setPilotageSubview] = useState(() => bootstrapNav.pilotageSubview || 'echeancier');
   const [busyId, setBusyId] = useState(null);
   const [simulatorParams, setSimulatorParams] = useState(() => readFinanceSimulatorParams());
 
-  const navigateFinance = (target = '') => {
-    const nav = resolveFinanceNavigation(target);
-    setTab(nav.tab);
+  const tab = controlled
+    ? resolveFinanceTab(props.initialTab || 'Résumé')
+    : internalTab;
+
+  const applyFinanceNavigation = useCallback((nav) => {
+    const resolvedTab = nav.tab || resolveFinanceTab(props.initialTab || 'Résumé');
+    if (controlled) {
+      props.onTabChange?.(resolvedTab);
+    } else {
+      setInternalTab(resolvedTab);
+    }
     if (nav.treasurySubview) setTreasurySubview(nav.treasurySubview);
     if (nav.pilotageSubview) setPilotageSubview(nav.pilotageSubview);
-  };
+  }, [controlled, props.onTabChange, props.initialTab]);
+
+  const navigateFinance = useCallback((target = '') => {
+    applyFinanceNavigation(resolveFinanceNavigation(target));
+  }, [applyFinanceNavigation]);
+
+  const setTab = useCallback((value) => {
+    applyFinanceNavigation(resolveFinanceNavigation(value));
+  }, [applyFinanceNavigation]);
 
   useEffect(() => {
-    if (props.initialTab) {
-      const nav = resolveFinanceNavigation(props.initialTab);
-      setTab(nav.tab);
-      if (nav.treasurySubview) setTreasurySubview(nav.treasurySubview);
-      if (nav.pilotageSubview) setPilotageSubview(nav.pilotageSubview);
-    }
-  }, [props.initialTab]);
+    if (!props.initialTab) return;
+    const nav = resolveFinanceNavigation(props.initialTab);
+    if (!controlled) setInternalTab(nav.tab);
+    if (nav.treasurySubview) setTreasurySubview(nav.treasurySubview);
+    if (nav.pilotageSubview) setPilotageSubview(nav.pilotageSubview);
+  }, [controlled, props.initialTab]);
+
   const financesCrud = useCrudModule('finances');
   const investmentsCrud = useCrudModule('investissements');
   const businessPlansCrud = useCrudModule('business_plans');
