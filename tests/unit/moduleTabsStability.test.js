@@ -69,6 +69,24 @@ test('Finance — deep-link Investissements (alias Pilotage)', async () => {
   }));
 });
 
+test('Activité & Suivi — onglets critiques', async () => {
+  for (const tab of ['Cockpit & décisions', 'À traiter maintenant', 'Registre & traçabilité', 'Performance & analytique']) {
+    await assertModuleTabStable('activite_suivi', tab, buildSimulatedProps());
+  }
+});
+
+test('Documents & Rapports — onglets critiques', async () => {
+  for (const tab of ['Centre de contrôle', 'Gestionnaire & OCR', 'Rapprochement & preuves', 'Rapports & exports']) {
+    await assertModuleTabStable('documents_rapports', tab, buildSimulatedProps());
+  }
+});
+
+test('RH — onglets critiques', async () => {
+  for (const tab of ['Cockpit RH & Maintenance', 'Personnel & Paie', 'Parc Matériel & Maintenance', 'Registres & Analyses']) {
+    await assertModuleTabStable('rh', tab, buildSimulatedProps());
+  }
+});
+
 test('Matrice modules couverte', () => {
   assert.ok(criticalModuleIds().length >= 14);
   assert.equal(MODULE_TAB_MATRIX.commercial.length, 6);

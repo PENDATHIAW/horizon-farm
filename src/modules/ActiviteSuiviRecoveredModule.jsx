@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import { applyOneClickRecommendation, createAlertResolutionTask } from '../services/heyHorizonRecommendationActions.js';
@@ -19,9 +19,33 @@ function Tabs({ active, onChange, tabBadges = {} }) {
 }
 
 export default function ActiviteSuiviRecoveredModule(props) {
-  const initialNav = resolveActiviteSuiviNavigation(props.initialTab);
-  const [tab, setTab] = useState(() => initialNav.tab || resolveActiviteSuiviTab(props.initialTab));
+  const controlled = Boolean(props.onTabChange);
+  const bootstrapNav = resolveActiviteSuiviNavigation(props.initialTab || 'Cockpit & décisions');
+  const [internalTab, setInternalTab] = useState(() => bootstrapNav.tab || resolveActiviteSuiviTab(props.initialTab || 'Cockpit & décisions'));
+  const tab = controlled
+    ? resolveActiviteSuiviTab(props.initialTab || 'Cockpit & décisions')
+    : internalTab;
   const [busyId, setBusyId] = useState(null);
+
+  const applyActiviteNavigation = useCallback((nav) => {
+    const resolvedTab = nav.tab || resolveActiviteSuiviTab(props.initialTab || 'Cockpit & décisions');
+    if (controlled) props.onTabChange?.(resolvedTab);
+    else setInternalTab(resolvedTab);
+  }, [controlled, props.onTabChange, props.initialTab]);
+
+  const navigateActivite = useCallback((target = '') => {
+    applyActiviteNavigation(resolveActiviteSuiviNavigation(target));
+  }, [applyActiviteNavigation]);
+
+  const setTab = useCallback((value) => {
+    applyActiviteNavigation(resolveActiviteSuiviNavigation(value));
+  }, [applyActiviteNavigation]);
+
+  useEffect(() => {
+    if (!props.initialTab) return;
+    const nav = resolveActiviteSuiviNavigation(props.initialTab);
+    if (!controlled) setInternalTab(nav.tab);
+  }, [controlled, props.initialTab]);
 
   const {
     data,
@@ -35,18 +59,6 @@ export default function ActiviteSuiviRecoveredModule(props) {
     refresh,
     crud,
   } = useActiviteSuivi(props);
-
-  const navigateActivite = (target = '') => {
-    const nav = resolveActiviteSuiviNavigation(target);
-    setTab(nav.tab);
-  };
-
-  useEffect(() => {
-    if (props.initialTab) {
-      const nav = resolveActiviteSuiviNavigation(props.initialTab);
-      setTab(nav.tab);
-    }
-  }, [props.initialTab]);
 
   const applyFinding = async (finding) => {
     setBusyId(finding.id);

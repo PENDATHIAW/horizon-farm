@@ -7,7 +7,7 @@ import { scheduleErpHealthEngine, scheduleErpHealthOnCriticalChange } from './se
 import { trackNavOpen } from './services/erpRules/surveillanceUxRules.js';
 import { composeActionTraceShared, composeDecisionDataMap, composeInternalResources, composeReportData } from './services/moduleDataComposer';
 import { refreshAllModules, refreshSalesWorkflow } from './services/workflowRefresh';
-import { resolveCommercialTab, resolveElevageTab, resolveAchatsStockTab, resolveFinanceTab, resolveRouteModule, defaultTabForLegacyModule, isCommercialReconciliationAlias } from './utils/commercialNavigation';
+import { resolveCommercialTab, resolveElevageTab, resolveAchatsStockTab, resolveFinanceTab, resolveActiviteSuiviTab, resolveDocumentsTab, resolveRhTab, resolveRouteModule, defaultTabForLegacyModule, isCommercialReconciliationAlias } from './utils/commercialNavigation';
 import { resolveCulturesTab } from './utils/culturesNavigation.js';
 import { farmCostSettingsService } from './services/farmCostSettingsService';
 import { pruneHeavyLocalStorage } from './utils/safeLocalStorage';
@@ -56,11 +56,14 @@ export default function App() {
   const [achatsStockContext, setAchatsStockContext] = useState(null);
   const [financeTab, setFinanceTab] = useState('Résumé');
   const [culturesTab, setCulturesTab] = useState('Parcelles & campagnes');
+  const [activiteSuiviTab, setActiviteSuiviTab] = useState('Cockpit & décisions');
+  const [documentsRapportsTab, setDocumentsRapportsTab] = useState('Centre de contrôle');
+  const [rhTab, setRhTab] = useState('Cockpit RH & Maintenance');
   const [gestionSystemeTab, setGestionSystemeTab] = useState('Vue admin');
   const [farmsPanelAction, setFarmsPanelAction] = useState(null);
   const openAssistantRef = useRef(() => {});
   const navigateModule = useCallback((moduleId, options = {}) => {
-    const tab = options?.tab || options?.commercialTab || options?.elevageTab || options?.achatsStockTab || options?.financeTab || options?.culturesTab;
+    const tab = options?.tab || options?.commercialTab || options?.elevageTab || options?.achatsStockTab || options?.financeTab || options?.culturesTab || options?.activiteSuiviTab || options?.documentsRapportsTab || options?.rhTab;
     const resolved = resolveRouteModule(moduleId);
 
     if (resolved !== 'achats_stock') {
@@ -117,6 +120,24 @@ export default function App() {
       setCulturesTab(resolveCulturesTab(tab || defaultTabForLegacyModule(moduleId) || 'Parcelles & campagnes'));
       trackNavOpen('cultures');
       setActiveState('cultures');
+      return;
+    }
+    if (resolved === 'activite_suivi') {
+      setActiviteSuiviTab(resolveActiviteSuiviTab(tab || defaultTabForLegacyModule(moduleId) || 'Cockpit & décisions'));
+      trackNavOpen('activite_suivi');
+      setActiveState('activite_suivi');
+      return;
+    }
+    if (resolved === 'documents_rapports') {
+      setDocumentsRapportsTab(resolveDocumentsTab(tab || defaultTabForLegacyModule(moduleId) || 'Centre de contrôle'));
+      trackNavOpen('documents_rapports');
+      setActiveState('documents_rapports');
+      return;
+    }
+    if (resolved === 'rh') {
+      setRhTab(resolveRhTab(tab || defaultTabForLegacyModule(moduleId) || 'Cockpit RH & Maintenance'));
+      trackNavOpen('rh');
+      setActiveState('rh');
       return;
     }
     if (resolved === 'gestion_systeme') {
@@ -584,6 +605,8 @@ export default function App() {
       existingAlerts: rows(c.alertes_center),
     },
     activite_suivi: {
+      initialTab: activiteSuiviTab,
+      onTabChange: (nextTab) => setActiviteSuiviTab(resolveActiviteSuiviTab(nextTab)),
       alertes: rows(c.alertes_center),
       taches: rows(c.taches),
       tasks: rows(c.taches),
@@ -606,6 +629,8 @@ export default function App() {
       existingAlerts: rows(c.alertes_center),
     },
     documents_rapports: {
+      initialTab: documentsRapportsTab,
+      onTabChange: (nextTab) => setDocumentsRapportsTab(resolveDocumentsTab(nextTab)),
       documents: rows(c.documents),
       rapports: rows(c.rapports),
       reports: rows(c.rapports),
@@ -651,6 +676,8 @@ export default function App() {
     taches: { ...base('taches'), ...actionTraceShared, alertes: rows(c.alertes_center), animaux: rows(c.animaux), lots: rows(c.avicole), stocks: rows(c.stock), sensorDevices: rows(c.sensor_devices), onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, ...shared },
     rh: {
       ...internalResourcesShared,
+      initialTab: rhTab,
+      onTabChange: (nextTab) => setRhTab(resolveRhTab(nextTab)),
       alertes: rows(c.alertes_center),
       onNavigate: setActive,
       onRefresh: refreshAll,
@@ -704,7 +731,7 @@ export default function App() {
     sync: syncActivityProps,
     sync_activity: syncActivityProps,
   };
-  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, culturesTab, achatsStockTab, achatsStockContext, financeTab, gestionSystemeTab, farmsPanelAction, accessibleFarms, effectiveAccessibleFarms, refreshAccessibleFarms, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue, handleManageFarms, farmComparisonData, openAssistantWithQuery]);
+  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, culturesTab, achatsStockTab, achatsStockContext, financeTab, activiteSuiviTab, documentsRapportsTab, rhTab, gestionSystemeTab, farmsPanelAction, accessibleFarms, effectiveAccessibleFarms, refreshAccessibleFarms, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue, handleManageFarms, farmComparisonData, openAssistantWithQuery]);
 
   const activeModuleProps = useMemo(
     () => applyFarmScopeToProps(
@@ -712,7 +739,7 @@ export default function App() {
       farmScope,
       { accessibleFarms: effectiveAccessibleFarms, activeFarm, moduleId: resolveActiveModuleId(active) },
     ),
-    [moduleProps, active, periodScopeKey, crudFingerprint, commercialTab, elevageTab, culturesTab, achatsStockTab, financeTab, centreTab, objectifsTab, periodScope, farmScope, effectiveAccessibleFarms, activeFarm],
+    [moduleProps, active, periodScopeKey, crudFingerprint, commercialTab, elevageTab, culturesTab, achatsStockTab, financeTab, activiteSuiviTab, documentsRapportsTab, rhTab, centreTab, objectifsTab, periodScope, farmScope, effectiveAccessibleFarms, activeFarm],
   );
   const scopedAssistantDataMap = useMemo(
     () => {

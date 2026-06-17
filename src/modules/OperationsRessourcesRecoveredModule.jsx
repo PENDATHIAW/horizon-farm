@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
@@ -19,9 +19,33 @@ function Tabs({ active, onChange, tabBadges = {} }) {
 }
 
 export default function OperationsRessourcesRecoveredModule(props) {
-  const initialNav = resolveRhNavigation(props.initialTab);
-  const [tab, setTab] = useState(() => initialNav.tab || resolveRhTab(props.initialTab));
+  const controlled = Boolean(props.onTabChange);
+  const bootstrapNav = resolveRhNavigation(props.initialTab || 'Cockpit RH & Maintenance');
+  const [internalTab, setInternalTab] = useState(() => bootstrapNav.tab || resolveRhTab(props.initialTab || 'Cockpit RH & Maintenance'));
+  const tab = controlled
+    ? resolveRhTab(props.initialTab || 'Cockpit RH & Maintenance')
+    : internalTab;
   const [busyId, setBusyId] = useState(null);
+
+  const applyRhNavigation = useCallback((nav) => {
+    const resolvedTab = nav.tab || resolveRhTab(props.initialTab || 'Cockpit RH & Maintenance');
+    if (controlled) props.onTabChange?.(resolvedTab);
+    else setInternalTab(resolvedTab);
+  }, [controlled, props.onTabChange, props.initialTab]);
+
+  const navigateRh = useCallback((target = '') => {
+    applyRhNavigation(resolveRhNavigation(target));
+  }, [applyRhNavigation]);
+
+  const setTab = useCallback((value) => {
+    applyRhNavigation(resolveRhNavigation(value));
+  }, [applyRhNavigation]);
+
+  useEffect(() => {
+    if (!props.initialTab) return;
+    const nav = resolveRhNavigation(props.initialTab);
+    if (!controlled) setInternalTab(nav.tab);
+  }, [controlled, props.initialTab]);
 
   const {
     data,
@@ -30,18 +54,6 @@ export default function OperationsRessourcesRecoveredModule(props) {
     actionHandlers,
     loading,
   } = useOperationsRessources(props);
-
-  const navigateRh = (target = '') => {
-    const nav = resolveRhNavigation(target);
-    setTab(nav.tab);
-  };
-
-  useEffect(() => {
-    if (props.initialTab) {
-      const nav = resolveRhNavigation(props.initialTab);
-      setTab(nav.tab);
-    }
-  }, [props.initialTab]);
 
   const applyFinding = async (finding) => {
     setBusyId(finding.id);

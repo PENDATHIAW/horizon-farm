@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import { applyOneClickRecommendation, createMissingProofTask } from '../services/heyHorizonRecommendationActions.js';
@@ -17,9 +17,33 @@ function Tabs({ active, onChange }) {
 }
 
 export default function DocumentsRapportsModule(props) {
-  const initialNav = resolveDocumentsNavigation(props.initialTab);
-  const [tab, setTab] = useState(() => initialNav.tab || resolveDocumentsTab(props.initialTab));
+  const controlled = Boolean(props.onTabChange);
+  const bootstrapNav = resolveDocumentsNavigation(props.initialTab || 'Centre de contrôle');
+  const [internalTab, setInternalTab] = useState(() => bootstrapNav.tab || resolveDocumentsTab(props.initialTab || 'Centre de contrôle'));
+  const tab = controlled
+    ? resolveDocumentsTab(props.initialTab || 'Centre de contrôle')
+    : internalTab;
   const [busyId, setBusyId] = useState(null);
+
+  const applyDocumentsNavigation = useCallback((nav) => {
+    const resolvedTab = nav.tab || resolveDocumentsTab(props.initialTab || 'Centre de contrôle');
+    if (controlled) props.onTabChange?.(resolvedTab);
+    else setInternalTab(resolvedTab);
+  }, [controlled, props.onTabChange, props.initialTab]);
+
+  const navigateDocuments = useCallback((target = '') => {
+    applyDocumentsNavigation(resolveDocumentsNavigation(target));
+  }, [applyDocumentsNavigation]);
+
+  const setTab = useCallback((value) => {
+    applyDocumentsNavigation(resolveDocumentsNavigation(value));
+  }, [applyDocumentsNavigation]);
+
+  useEffect(() => {
+    if (!props.initialTab) return;
+    const nav = resolveDocumentsNavigation(props.initialTab);
+    if (!controlled) setInternalTab(nav.tab);
+  }, [controlled, props.initialTab]);
 
   const {
     data,
@@ -29,18 +53,6 @@ export default function DocumentsRapportsModule(props) {
     scannerContext,
     refresh,
   } = useDocumentsRapports(props);
-
-  const navigateDocuments = (target = '') => {
-    const nav = resolveDocumentsNavigation(target);
-    setTab(nav.tab);
-  };
-
-  useEffect(() => {
-    if (props.initialTab) {
-      const nav = resolveDocumentsNavigation(props.initialTab);
-      setTab(nav.tab);
-    }
-  }, [props.initialTab]);
 
   const applyFinding = async (finding) => {
     setBusyId(finding.id);
