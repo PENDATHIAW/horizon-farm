@@ -1,37 +1,7 @@
-import { Droplets, Leaf, ShieldCheck, Sparkles, Sun } from "lucide-react"
+import { Droplets, Leaf, ShieldCheck, Sparkles, Sun } from 'lucide-react'
+import { useLocale } from '../context/LocaleContext'
 
-const benefits = [
-  {
-    icon: Droplets,
-    fr: "Nourrit intensément",
-    en: "Nourishes deeply",
-  },
-  {
-    icon: Sparkles,
-    fr: "Clarifie le teint",
-    en: "Clarifies complexion",
-  },
-  {
-    icon: Sun,
-    fr: "Ravive l'éclat naturel",
-    en: "Revives natural glow",
-  },
-  {
-    icon: ShieldCheck,
-    fr: "Convient à tous types de peau",
-    en: "Suitable for all skin types",
-  },
-  {
-    icon: Leaf,
-    fr: "Sans parabène, sans silicone",
-    en: "Paraben free, silicone free",
-  },
-  {
-    flag: true,
-    fr: "Fabriqué au Sénégal",
-    en: "Made in Senegal",
-  },
-]
+const benefitIcons = [Droplets, Sparkles, Sun, ShieldCheck, Leaf, null]
 
 function SenegalFlag() {
   return (
@@ -43,23 +13,23 @@ function SenegalFlag() {
   )
 }
 
-export default function BenefitsBar({ className = "" }) {
+export default function BenefitsBar({ className = '' }) {
+  const { locale, t } = useLocale()
+
   return (
-    <section className={`border-y border-cream-dark bg-white-warm py-8 ${className}`}>
+    <section className={`border-y border-cream-dark bg-white-warm py-8 dark:border-neutral-800 dark:bg-neutral-950 ${className}`}>
       <div className="mx-auto grid max-w-6xl gap-6 px-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-3 xl:grid-cols-6">
-        {benefits.map((item) => {
-          const Icon = item.icon
+        {t.benefits.map((item, index) => {
+          const Icon = benefitIcons[index]
+          const label = item[locale]
           return (
-            <div key={item.fr} className="flex flex-col items-center gap-2 text-center">
-              {item.flag ? (
-                <SenegalFlag />
+            <div key={label} className="flex flex-col items-center gap-2 text-center">
+              {Icon ? (
+                <Icon className="h-6 w-6 text-tg-green" strokeWidth={1.5} />
               ) : (
-                <Icon className="h-6 w-6 text-tallow-deep" strokeWidth={1.5} />
+                <SenegalFlag />
               )}
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-earth">{item.fr}</p>
-                <p className="text-[0.65rem] text-earth-soft">{item.en}</p>
-              </div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-earth dark:text-neutral-200">{label}</p>
             </div>
           )
         })}
