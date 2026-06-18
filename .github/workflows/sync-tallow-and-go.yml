@@ -1,0 +1,33 @@
+name: Sync to tallow-and-go
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - cursor/tallow-and-go-site-0711
+    paths:
+      - sites/tallow-and-go/**
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync sites/tallow-and-go → PENDATHIAW/tallow-and-go
+        env:
+          PAT: ${{ secrets.TALLOW_AND_GO_PAT }}
+        run: |
+          if [ -z "$PAT" ]; then
+            echo "Secret TALLOW_AND_GO_PAT manquant — ajoutez un PAT avec accès repo sur tallow-and-go"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          cd sites/tallow-and-go
+          git init
+          git checkout -B main
+          git add -A
+          git commit -m "sync: mise à jour depuis horizon-farm"
+          git remote add target "https://x-access-token:${PAT}@github.com/PENDATHIAW/tallow-and-go.git"
+          git push target main --force
