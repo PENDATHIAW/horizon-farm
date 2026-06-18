@@ -20,9 +20,9 @@ export const products = [
     size: "250 ml · 8.45 fl.oz",
     badge: null,
     description:
-      "Gommage fouetté clarifiant, texture légère pour révéler l'éclat naturel.",
+      "Gommage fouetté clarifiant en pot carré à couvercle plat — format d'origine de la gamme.",
     benefits: ["Clarifie", "Exfolie en douceur", "Teint lumineux"],
-    packaging: "jar",
+    packaging: "square-jar-flat-lid",
   },
   {
     id: "shiny",
@@ -33,8 +33,9 @@ export const products = [
     size: "500 ml · 16.9 fl.oz",
     badge: "Best-seller",
     description:
-      "Lait corporel éclat, nourrit intensément et ravive la luminosité de la peau.",
+      "Lait corporel éclat en flacon haut rectangulaire à couvercle disque — format repensé.",
     benefits: ["Corps", "Hydratation", "Éclat naturel"],
+    packaging: "tall-bottle-disc-cap",
   },
   {
     id: "noor",
@@ -45,9 +46,9 @@ export const products = [
     size: "250 ml · 8.45 fl.oz",
     badge: null,
     description:
-      "Soin nuit réparateur en texture fouettée, récupération intensive pendant le sommeil.",
+      "Soin nuit réparateur en pot carré à couvercle disque épais — texture fouettée.",
     benefits: ["Nuit", "Réparation", "Peau reposée"],
-    packaging: "bottle",
+    packaging: "square-jar-disc-cap",
   },
   {
     id: "soft-kiss",

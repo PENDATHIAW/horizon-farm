@@ -26,22 +26,22 @@ export default function Story() {
             Notre histoire
           </p>
           <h2 className="mt-2 font-display text-4xl font-semibold text-earth sm:text-5xl">
-            Du terrain à votre peau
+            De l&apos;embouche bovine à votre peau
           </h2>
           <div className="mt-6 space-y-4 text-lg leading-relaxed text-earth-soft">
             <p>
-              Tallow & Go est né d&apos;une conviction simple : les soins les plus efficaces sont
-              souvent les plus simples. Le suif, longtemps oublié, revient comme une alternative
-              naturelle aux formules surchargées.
+              Tallow & Go est la continuité naturelle de notre projet d&apos;élevage : la graisse de
+              bœuf provient directement de nos embouches bovines, valorisée puis purifiée pour
+              nourrir la peau avec un ingrédient proche de sa composition lipidique naturelle.
             </p>
             <p>
-              Nous formulons chaque produit en petites séries, testons les textures sur des peaux
-              réelles, et privilégions des circuits courts — du fournisseur au pot final.
+              Du troupeau au soin, nous maîtrisons la chaîne — élevage, extraction, formulation
+              artisanale au Sénégal. Chaque produit porte cette trace : un suif sincere, sans
+              détour, sans formule surchargée.
             </p>
             <p>
-              <strong className="font-semibold text-earth">Tallow and Go</strong>, c&apos;est l&apos;idée
-              d&apos;un soin prêt à l&apos;emploi, nomade et sincère — à emporter partout, pour toute la
-              famille.
+              <strong className="font-semibold text-earth">Tallow & Go</strong>, c&apos;est l&apos;élevage
+              qui devient soin — prêt à l&apos;emploi, nomade et sincère, pour toute la famille.
             </p>
           </div>
         </div>

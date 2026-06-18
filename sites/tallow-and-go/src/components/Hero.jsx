@@ -15,8 +15,8 @@ export default function Hero() {
             <span className="block italic text-tallow-deep">prête à partir.</span>
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-earth-soft">
-            Tallow & Go propose des soins artisanaux, formulés avec peu d&apos;ingrédients et
-            beaucoup d&apos;intention — pour nourrir, protéger et respecter votre peau au quotidien.
+            Suif purifié issu de nos embouches bovines, formulé artisanalement au Sénégal — pour
+            nourrir, clarifier et faire rayonner votre peau au quotidien.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a
@@ -43,8 +43,8 @@ export default function Hero() {
               <dd className="font-display text-2xl font-semibold text-earth">Main</dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wider text-earth-soft">Origine</dt>
-              <dd className="font-display text-2xl font-semibold text-earth">Locale</dd>
+              <dt className="text-xs uppercase tracking-wider text-earth-soft">Suif</dt>
+              <dd className="font-display text-2xl font-semibold text-earth">Embouches</dd>
             </div>
           </dl>
         </div>
