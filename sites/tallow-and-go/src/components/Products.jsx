@@ -17,7 +17,7 @@ export default function Products() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {products.map((product) => (
             <article
               key={product.id}
@@ -53,17 +53,19 @@ export default function Products() {
                 </ul>
                 <div className="mt-auto flex items-end justify-between pt-6">
                   <div>
-                    <p className="font-display text-3xl font-semibold text-earth">
-                      {product.price}
-                      {product.currency}
-                    </p>
+                    {product.price ? (
+                      <p className="font-display text-3xl font-semibold text-earth">
+                        {product.price}
+                        {product.currency}
+                      </p>
+                    ) : null}
                     <p className="text-xs text-earth-soft">{product.size}</p>
                   </div>
                   <button
                     type="button"
                     className="rounded-full bg-earth px-4 py-2 text-sm font-semibold text-cream transition group-hover:bg-tallow-deep"
                   >
-                    Ajouter
+                    Commander
                   </button>
                 </div>
               </div>

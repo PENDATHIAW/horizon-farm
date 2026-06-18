@@ -52,34 +52,12 @@ export default function Hero() {
         <div className="relative">
           <div className="absolute -left-6 top-8 h-40 w-40 rounded-full bg-blush/60 blur-2xl" />
           <div className="absolute -right-4 bottom-0 h-48 w-48 rounded-full bg-sage/20 blur-3xl" />
-          <div className="relative overflow-hidden rounded-[2rem] border border-cream-dark bg-gradient-to-br from-white-warm via-cream to-blush/40 p-8 shadow-[0_30px_80px_rgba(61,41,20,0.12)]">
-            <div className="mb-6 flex items-center justify-between">
-              <span className="rounded-full bg-earth px-3 py-1 text-xs font-semibold uppercase tracking-wider text-cream">
-                Collection 2026
-              </span>
-              <span className="text-sm font-medium text-earth-soft">100 % naturel</span>
-            </div>
-            <div className="space-y-4">
-              <div className="rounded-2xl bg-white-warm/90 p-5 ring-1 ring-cream-dark">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-tallow-deep">
-                  Signature
-                </p>
-                <p className="mt-1 font-display text-3xl font-semibold text-earth">Baume Universel</p>
-                <p className="mt-2 text-sm text-earth-soft">
-                  Texture fondante, fini non gras, parfum discret d&apos;huiles essentielles douces.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl bg-earth p-4 text-cream">
-                  <p className="text-xs uppercase tracking-wider text-cream/70">Peaux</p>
-                  <p className="mt-1 font-medium">Sèches & sensibles</p>
-                </div>
-                <div className="rounded-2xl bg-sage/90 p-4 text-white">
-                  <p className="text-xs uppercase tracking-wider text-white/75">Usage</p>
-                  <p className="mt-1 font-medium">Corps, visage, lèvres</p>
-                </div>
-              </div>
-            </div>
+          <div className="relative overflow-hidden rounded-[2rem] border border-cream-dark bg-white-warm shadow-[0_30px_80px_rgba(61,41,20,0.12)]">
+            <img
+              src="/tallow-and-go-lineup-final.png"
+              alt="Gamme Tallow & Go — SAFA, AURA, SHINY, NOOR, SOFT KISS"
+              className="h-auto w-full object-cover"
+            />
           </div>
         </div>
       </div>
