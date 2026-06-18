@@ -1,0 +1,125 @@
+{
+  "meta": {
+    "title": "Audit formulaires, champs et boutons",
+    "date": "2026-06-18",
+    "scope": "Horizon Farm ERP — formulaires CRUD, workflows inline, modals, settings, assistant",
+    "method": "revue code + registre MODULE_FORM_FIELDS + formSimulationScenarios + audits existants"
+  },
+  "inventory": {
+    "module_form_fields_keys": 36,
+    "form_simulation_modules": 8,
+    "edit_modal_field_types": ["text", "number", "date", "email", "select", "checkbox", "textarea", "image", "readonly", "section", "entity_linked"],
+    "canonical_workflow_form_ids": [
+      "elevage-health-intervention-form",
+      "elevage-transformation-official-form",
+      "stock-purchase-reception-form"
+    ]
+  },
+  "coverage_gap": {
+    "modules_with_simulation_scenarios": ["Ventes", "Santé", "Animaux", "Avicole", "Cultures", "Stock", "Finances", "Documents"],
+    "modules_without_simulation_scenarios": [
+      "RH", "Équipements", "Gestion système", "Business Plan", "Investissements",
+      "Alertes", "Tâches", "Smart Farm", "Hey Horizon drafts", "Commercial abonnements",
+      "Achats réception", "Fermes wizard"
+    ]
+  },
+  "findings": [
+    {
+      "id": "FORM-P0-001",
+      "priority": "P0",
+      "title": "Double schéma Santé — legacy vs SanteV6",
+      "files": ["src/utils/constants.js", "src/modules/Sante.jsx", "src/modules/SanteV6.jsx"],
+      "description": "MODULE_FORM_FIELDS.sante = 8 champs vaccin simples ; audit et SanteV6 exigent formulaire adaptatif (vaccination/soin/déparasitage/visite).",
+      "recommendation": "Déprécier Sante.jsx + constants.sante ou router tout vers SanteV6 ; un seul point d'entrée santé."
+    },
+    {
+      "id": "FORM-P0-002",
+      "priority": "P0",
+      "title": "Parallèle ventes / sales_orders",
+      "files": ["src/utils/constants.js", "src/modules/VentesV4.jsx", "src/modules/CommercialRecoveredModule.jsx"],
+      "description": "Champs ventes (produit/quantite/montant) vs sales_orders (statuts commande/paiement/livraison) — risque double saisie.",
+      "recommendation": "Documenter flux canonique Commercial ; masquer legacy ventes si sales_orders actif."
+    },
+    {
+      "id": "FORM-P0-003",
+      "priority": "P0",
+      "title": "horizon-open-form — écouteurs partiels",
+      "files": ["src/services/formModalManager.js", "src/modules/ElevageRecoveredModule.jsx", "docs/rapports/AUDIT_ONGLET_REPRODUCTION_ELEVAGE_2026-06-09.md"],
+      "description": "Reproduction émet horizon-open-form mais listener concentré sur Animaux/Commercial — formulaire peut ne pas s'ouvrir.",
+      "recommendation": "Listener global dans App ou module parent Élevage ; tester reproduction → formulaire."
+    },
+    {
+      "id": "FORM-P1-001",
+      "priority": "P1",
+      "title": "EditModal — bouton Enregistrer type=button",
+      "files": ["src/modals/EditModal.jsx", "src/components/Btn.jsx"],
+      "description": "Submit via onClick sur Btn (défaut type=button) plutôt que type=submit — Enter dans champ ne soumet pas toujours.",
+      "recommendation": "Btn submitLabel avec type=submit ou form attribute."
+    },
+    {
+      "id": "FORM-P1-002",
+      "priority": "P1",
+      "title": "client_id texte sur animaux vendus",
+      "files": ["src/utils/constants.js"],
+      "description": "Champ client_id type text quand status=vendu — pas entity_linked/select.",
+      "recommendation": "entity_linked ou select clients avec recherche."
+    },
+    {
+      "id": "FORM-P1-003",
+      "priority": "P1",
+      "title": "module_lie incohérent (text vs select)",
+      "files": ["src/utils/constants.js", "src/utils/formFieldGovernance.js"],
+      "description": "finances/sensor_devices = select module ; taches/erp_documents = text libre.",
+      "recommendation": "Harmoniser via formFieldGovernance ou entity_linked sur tous modules transverses."
+    },
+    {
+      "id": "FORM-P1-004",
+      "priority": "P1",
+      "title": "Alimentation — double définition champs",
+      "files": ["src/utils/constants.js", "src/utils/stockForms.js"],
+      "description": "alimentation_logs dans constants vs alimentationFields() enrichi.",
+      "recommendation": "Une source : stockForms ou constants + governance."
+    },
+    {
+      "id": "FORM-P1-005",
+      "priority": "P1",
+      "title": "Gestion système — formulaires/boutons incomplets",
+      "files": ["src/modules/GestionSystemeUnified.jsx", "docs/rapports/AUDIT_MODULE_GESTION_SYSTEME_2026-06-10.html"],
+      "description": "Onglet Utilisateurs placeholder ; sauvegardes sans restore ; inline sans <form>.",
+      "recommendation": "P0 module admin : CRUD users ou masquer ; restore backup ou désactiver bouton."
+    },
+    {
+      "id": "FORM-P2-001",
+      "priority": "P2",
+      "title": "formSimulationScenarios — couverture 8/36 modules",
+      "files": ["src/audit/formSimulationScenarios.js"],
+      "description": "Scénarios manuels riches mais pas RH, alertes, tâches, BP, smart farm.",
+      "recommendation": "Étendre scénarios ou lier à tests unitaires par workflow."
+    },
+    {
+      "id": "FORM-P2-002",
+      "priority": "P2",
+      "title": "surveillanceUxRules dead-button heuristique",
+      "files": ["src/services/erpRules/surveillanceUxRules.js"],
+      "description": "Scan DOM onclick — faux négatifs React, faux positifs décoratif.",
+      "recommendation": "Tests composants + data-action sur boutons métier."
+    },
+    {
+      "id": "FORM-P2-003",
+      "priority": "P2",
+      "title": "Formulaires très longs sans progressive disclosure",
+      "files": ["src/utils/constants.js"],
+      "description": "animaux 77 champs, avicole 46 — fatigue utilisateur terrain.",
+      "recommendation": "Wizard ou onglets dans EditModal pour fiches longues."
+    }
+  ],
+  "test_matrix": [
+    { "module": "Commercial / Ventes", "automated": "commercialV3.test.js", "manual": "VENTES-001, VENTES-002", "status": "partiel" },
+    { "module": "Santé V6", "automated": "elevageHealthTerrain.test.js", "manual": "SANTE-001, SANTE-002", "status": "partiel" },
+    { "module": "Élevage transformation", "automated": "elevageTransformationOfficial.test.js", "manual": "—", "status": "ok" },
+    { "module": "Cultures workflow", "automated": "culturesWorkflow.test.js", "manual": "CULTURES-001", "status": "partiel" },
+    { "module": "RH / Ressources", "automated": "ressourcesWorkflow.test.js", "manual": "—", "status": "partiel" },
+    { "module": "Registre champs", "automated": "formsAuditRegistry.test.js", "manual": "—", "status": "nouveau" },
+    { "module": "Centre fêtes actions", "automated": "centreFeteActions.test.js", "manual": "—", "status": "ok" }
+  ]
+}
