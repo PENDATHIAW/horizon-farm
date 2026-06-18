@@ -200,6 +200,7 @@ export default function CentreDecisionModule({
           productionLogs={props.productionLogs}
           strategicPlan={strategicPlan}
           onNavigate={onNavigate}
+          setTab={setTab}
           onCreateTask={props.onCreateTask}
           onCreateAlert={props.onCreateAlert}
           onRefreshTasks={props.onRefreshTasks}

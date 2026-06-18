@@ -345,8 +345,8 @@ export function evaluateLaunchTimingDecisions(dataMap = {}, options = {}) {
       priority: worst,
       category: 'launch_timing',
       module: 'centre_decisionnel',
-      navModule: 'centre_ia',
-      navTab: 'Cycles',
+      navModule: 'elevage',
+      navTab: 'Cycles & Reproduction',
       openLabel: 'Voir calendrier',
       message: `Pour ${event.label}, vendre bœufs, poulets et œufs : ${lineMessages.join(' · ')}`,
     };
