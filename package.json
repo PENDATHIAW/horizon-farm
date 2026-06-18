@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "pitch:generate": "node scripts/generate-pitch-assets.mjs",
+    "dossier:generate": "node scripts/generate-horizon-farm-dossier.mjs",
     "guide:generate": "node scripts/generate-guide-pdf.mjs",
     "test:e2e": "playwright test",
     "test:e2e:workflows": "PLAYWRIGHT_SKIP_WEBSERVER=1 playwright test tests/e2e/simulated-business-workflows.spec.js",
