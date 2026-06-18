@@ -15,7 +15,7 @@
     p { margin-bottom: 0.65rem; }
     ul { margin: 0.4rem 0 0.8rem 1.2rem; }
     li { margin-bottom: 0.35rem; }
-    .page { width: 210mm; min-height: 297mm; padding: 18mm 20mm 22mm; page-break-after: always; position: relative; background: #fffdf8; }
+    .page { width: 210mm; height: 297mm; min-height: 297mm; max-height: 297mm; padding: 18mm 20mm 22mm; page-break-after: always; break-after: page; position: relative; background: #fffdf8; overflow: hidden; box-sizing: border-box; }
     .page:last-child { page-break-after: auto; }
     .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; padding-bottom: 0.5rem; border-bottom: 1px solid #d4c4a8; }
     .logo-mini svg { height: 36px; width: auto; }
@@ -330,6 +330,33 @@
 </div>
       <span class="page-num">09</span>
     </header>
+    <p class="kicker">Technologie</p>
+    <h2>Plateforme ERP — 17 modules</h2>
+    <div class="page-body">
+<div class="three-col">
+  <div class="card"><h3>Pilotage</h3><ul><li>Accueil &amp; carnet</li><li>Assistant IA Hey Horizon</li><li>Centre décisionnel</li><li>Objectifs &amp; croissance</li><li>Investisseurs</li></ul></div>
+  <div class="card"><h3>Production</h3><ul><li>Élevage avicole</li><li>Animaux &amp; bovins</li><li>Santé &amp; reproduction</li><li>Cultures &amp; parcelles</li><li>Transformation</li></ul></div>
+  <div class="card"><h3>Commerce</h3><ul><li>Ventes &amp; clients</li><li>Abonnements</li><li>Achats &amp; stock</li><li>Trésabilité</li><li>Documents OCR</li></ul></div>
+</div>
+<div class="three-col" style="margin-top:0.6rem">
+  <div class="card"><h3>Finance</h3><ul><li>Trésorerie live</li><li>BP investisseur</li><li>Rentabilité activités</li><li>Réconciliation</li><li>Exports financeurs</li></ul></div>
+  <div class="card"><h3>Terrain</h3><ul><li>Smart Farm IoT</li><li>Capteurs poulailler</li><li>RH &amp; équipes</li><li>Opérations</li><li>Sync ERP</li></ul></div>
+  <div class="card"><h3>Valeur</h3><ul><li>10 secondes pour décider</li><li>Alertes proactives</li><li>Crédibilité banques</li><li>Zéro Excel dispersé</li><li>Scalable multi-fermes</li></ul></div>
+</div></div>
+    <footer class="page-footer">Horizon Farm · Dossier investisseur 2026 · Confidentiel</footer>
+  </section>
+
+<section class="page">
+    <header class="page-header">
+      <div class="logo-mini"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" fill="none">
+  <circle cx="160" cy="38" r="22" fill="#E8A317"/>
+  <path d="M118 52h84v4c-28 18-56 18-84 0v-4z" fill="#2D5016"/>
+  <path d="M100 56c20 14 40 20 60 20s40-6 60-20l-8 28H108l-8-28z" fill="#3D7A1E"/>
+  <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
+</svg>
+</div>
+      <span class="page-num">10</span>
+    </header>
     <p class="kicker">Production animale</p>
     <h2>Pôle Embouche Bovine</h2>
     <div class="page-body">
@@ -362,7 +389,41 @@
   <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
 </svg>
 </div>
-      <span class="page-num">10</span>
+      <span class="page-num">11</span>
+    </header>
+    <p class="kicker">Finance A1</p>
+    <h2>Détail charges & structure de coûts</h2>
+    <div class="page-body">
+<table>
+  <tr><th>Charge variable</th><th>Annuel</th></tr>
+  <tr><td>Aliments pondeuses</td><td>38 880 000 FCFA</td></tr>
+  <tr><td>Aliments chair</td><td>19 440 000 FCFA</td></tr>
+  <tr><td>Achat bovins</td><td>15 000 000 FCFA</td></tr>
+  <tr><td>Cartons poussins chair</td><td>12 288 000 FCFA</td></tr>
+  <tr><td>Aliments bœufs</td><td>2 400 000 FCFA</td></tr>
+  <tr><td>Litière &amp; divers</td><td>2 688 000 FCFA</td></tr>
+  <tr><th>Total charges variables</th><th>91 776 000 FCFA</th></tr>
+</table>
+<table>
+  <tr><th>Charge fixe / masse salariale</th><th>Annuel</th></tr>
+  <tr><td>Loyers (3 sites)</td><td>5 400 000 FCFA</td></tr>
+  <tr><td>Salaires équipe terrain</td><td>3 840 000 FCFA</td></tr>
+  <tr><td>Coordination projet</td><td>7 200 000 FCFA</td></tr>
+  <tr><th>Total fixes + salaires A1</th><th>17 040 000 FCFA</th></tr>
+</table></div>
+    <footer class="page-footer">Horizon Farm · Dossier investisseur 2026 · Confidentiel</footer>
+  </section>
+
+<section class="page">
+    <header class="page-header">
+      <div class="logo-mini"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" fill="none">
+  <circle cx="160" cy="38" r="22" fill="#E8A317"/>
+  <path d="M118 52h84v4c-28 18-56 18-84 0v-4z" fill="#2D5016"/>
+  <path d="M100 56c20 14 40 20 60 20s40-6 60-20l-8 28H108l-8-28z" fill="#3D7A1E"/>
+  <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
+</svg>
+</div>
+      <span class="page-num">12</span>
     </header>
     <p class="kicker">Élevage pondeuses & chair</p>
     <h2>Pôle Aviculture & Production d'œufs</h2>
@@ -390,7 +451,35 @@
   <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
 </svg>
 </div>
-      <span class="page-num">11</span>
+      <span class="page-num">13</span>
+    </header>
+    <p class="kicker">Flux mensuels</p>
+    <h2>Calendrier de trésorerie — Année 1</h2>
+    <div class="page-body">
+<p>Le plan de trésorerie officiel montre une montée progressive jusqu'à <strong>28,5 M FCFA</strong> cumulés en fin d'année 1.</p>
+<table style="font-size:8pt">
+  <tr><th>Mois</th><th>Encaissements</th><th>Décaissements</th><th>Solde mensuel</th><th>Trésorerie cumulée</th></tr>
+  <tr><td>M1</td><td>26,3 M</td><td>23,4 M</td><td>+2,9 M</td><td>2,9 M</td></tr>
+  <tr><td>M2</td><td>2,7 M</td><td>3,2 M</td><td>-0,5 M</td><td>2,4 M</td></tr>
+  <tr><td>M3–M4</td><td>~6,2 M</td><td>~5,5 M</td><td>+0,7 M</td><td>3,8 M</td></tr>
+  <tr><td>M5</td><td>9,7 M</td><td>7,8 M</td><td>+1,9 M</td><td>5,7 M</td></tr>
+  <tr><td>M6</td><td>12,7 M</td><td>9,8 M</td><td>+2,9 M</td><td>8,6 M</td></tr>
+  <tr><td>M7–M12</td><td>~14 M</td><td>~10,7 M</td><td>+3,3 M</td><td>28,5 M</td></tr>
+</table>
+<p><em>Source : Plan financier prévisionnel Horizon Farm — onglet Plan financier à imprimer.</em></p></div>
+    <footer class="page-footer">Horizon Farm · Dossier investisseur 2026 · Confidentiel</footer>
+  </section>
+
+<section class="page">
+    <header class="page-header">
+      <div class="logo-mini"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" fill="none">
+  <circle cx="160" cy="38" r="22" fill="#E8A317"/>
+  <path d="M118 52h84v4c-28 18-56 18-84 0v-4z" fill="#2D5016"/>
+  <path d="M100 56c20 14 40 20 60 20s40-6 60-20l-8 28H108l-8-28z" fill="#3D7A1E"/>
+  <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
+</svg>
+</div>
+      <span class="page-num">14</span>
     </header>
     <p class="kicker">Valorisation</p>
     <h2>Pôle Transformation Alimentaire</h2>
@@ -428,7 +517,7 @@
   <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
 </svg>
 </div>
-      <span class="page-num">12</span>
+      <span class="page-num">15</span>
     </header>
     <p class="kicker">Marque sœur</p>
     <h2>Pôle Cosmétique — Tallow & Go</h2>
@@ -456,7 +545,34 @@
   <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
 </svg>
 </div>
-      <span class="page-num">13</span>
+      <span class="page-num">16</span>
+    </header>
+    <p class="kicker">Branding premium</p>
+    <h2>Identité visuelle Tallow & Go</h2>
+    <div class="page-body">
+<div class="product-sheet" style="text-align:center;padding:2rem">
+  <div class="product-monogram" style="font-size:48pt">TG</div>
+  <h3 style="font-size:20pt;letter-spacing:0.15em">TALLOW &amp; GO</h3>
+  <p>Nourrir • Clarifier • Rayonner</p>
+  <p style="color:#5c5c5c">Nourish • Clarify • Glow</p>
+  <div class="cover-rule" style="margin:1.5rem auto"></div>
+  <p>Powered by purified beef tallow</p>
+  <p><strong>Fabriqué au Sénégal</strong></p>
+</div>
+<p>Packaging ivoire mat, typographie serif élégante, monogramme TG embossé sur le savon SAFAA. Gamme complète en coffret premium pour distribution hôtellerie, spas et retail sélectif.</p></div>
+    <footer class="page-footer">Horizon Farm · Dossier investisseur 2026 · Confidentiel</footer>
+  </section>
+
+<section class="page">
+    <header class="page-header">
+      <div class="logo-mini"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" fill="none">
+  <circle cx="160" cy="38" r="22" fill="#E8A317"/>
+  <path d="M118 52h84v4c-28 18-56 18-84 0v-4z" fill="#2D5016"/>
+  <path d="M100 56c20 14 40 20 60 20s40-6 60-20l-8 28H108l-8-28z" fill="#3D7A1E"/>
+  <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
+</svg>
+</div>
+      <span class="page-num">17</span>
     </header>
     <p class="kicker">Ingrédient signature</p>
     <h2>Pourquoi le Beef Tallow ?</h2>
@@ -497,7 +613,36 @@
   <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
 </svg>
 </div>
-      <span class="page-num">14</span>
+      <span class="page-num">18</span>
+    </header>
+    <p class="kicker">Fiche technique gamme</p>
+    <h2>Composition & bienfaits — Synthèse</h2>
+    <div class="page-body">
+<table style="font-size:8.5pt">
+  <tr><th>Produit</th><th>Ingrédient clé</th><th>Bienfait principal</th></tr>
+  <tr><td>SAFAA</td><td>Charbon actif · Neem · Lait</td><td>Purifie en profondeur</td></tr>
+  <tr><td>AURA</td><td>Charbon · Sucre fin · Nigelle</td><td>Exfolie &amp; clarifie</td></tr>
+  <tr><td>SHINY</td><td>Carotte · Hibiscus · Niacinamide</td><td>Éclat &amp; hydration</td></tr>
+  <tr><td>NOOR</td><td>Moringa · Réglisse · Vitamine E</td><td>Réparation nocturne</td></tr>
+  <tr><td>SOFT KISS</td><td>Ricin · Cire d'abeille · Karité</td><td>Lèvres nourries</td></tr>
+</table>
+<div class="highlight-box">
+  <h3>Positionnement marché</h3>
+  <p style="margin:0">Segment clean beauty premium · Prix accessible luxe · Origine traçable Sénégal · Export diaspora &amp; marchés occidentaux (tendance tallow skincare)</p>
+</div></div>
+    <footer class="page-footer">Horizon Farm · Dossier investisseur 2026 · Confidentiel</footer>
+  </section>
+
+<section class="page">
+    <header class="page-header">
+      <div class="logo-mini"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" fill="none">
+  <circle cx="160" cy="38" r="22" fill="#E8A317"/>
+  <path d="M118 52h84v4c-28 18-56 18-84 0v-4z" fill="#2D5016"/>
+  <path d="M100 56c20 14 40 20 60 20s40-6 60-20l-8 28H108l-8-28z" fill="#3D7A1E"/>
+  <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
+</svg>
+</div>
+      <span class="page-num">19</span>
     </header>
     <p class="kicker">5 soins essentiels</p>
     <h2>Gamme Tallow & Go — Vue d'ensemble</h2>
@@ -527,7 +672,7 @@
   <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
 </svg>
 </div>
-      <span class="page-num">18</span>
+      <span class="page-num">20</span>
     </header>
     <p class="kicker">Gamme Tallow & Go · Purifying Tallow Bar</p>
     <h2>SAFAA</h2>
@@ -561,7 +706,7 @@
   <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
 </svg>
 </div>
-      <span class="page-num">19</span>
+      <span class="page-num">21</span>
     </header>
     <p class="kicker">Gamme Tallow & Go · Clarifying Whipped Polish</p>
     <h2>AURA</h2>
@@ -595,7 +740,7 @@
   <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
 </svg>
 </div>
-      <span class="page-num">20</span>
+      <span class="page-num">22</span>
     </header>
     <p class="kicker">Gamme Tallow & Go · Radiance Face & Body Milk</p>
     <h2>SHINY</h2>
@@ -629,7 +774,7 @@
   <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
 </svg>
 </div>
-      <span class="page-num">21</span>
+      <span class="page-num">23</span>
     </header>
     <p class="kicker">Gamme Tallow & Go · Overnight Recovery Whip</p>
     <h2>NOOR</h2>
@@ -663,7 +808,7 @@
   <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
 </svg>
 </div>
-      <span class="page-num">22</span>
+      <span class="page-num">24</span>
     </header>
     <p class="kicker">Gamme Tallow & Go · Nourishing Lip Veil</p>
     <h2>SOFT KISS</h2>
@@ -699,7 +844,7 @@
   <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
 </svg>
 </div>
-      <span class="page-num">24</span>
+      <span class="page-num">25</span>
     </header>
     <p class="kicker">Intégration verticale</p>
     <h2>Synergies Horizon Farm & Tallow & Go</h2>
@@ -728,7 +873,7 @@
   <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
 </svg>
 </div>
-      <span class="page-num">25</span>
+      <span class="page-num">26</span>
     </header>
     <p class="kicker">Schéma global</p>
     <h2>Chaîne de valeur intégrée</h2>
@@ -767,7 +912,7 @@
   <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
 </svg>
 </div>
-      <span class="page-num">26</span>
+      <span class="page-num">27</span>
     </header>
     <p class="kicker">Contribution territoriale</p>
     <h2>Impact économique & social</h2>
@@ -811,7 +956,7 @@
   <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
 </svg>
 </div>
-      <span class="page-num">27</span>
+      <span class="page-num">28</span>
     </header>
     <p class="kicker">Plan 5 ans</p>
     <h2>Prévisions financières</h2>
@@ -870,7 +1015,36 @@
   <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
 </svg>
 </div>
-      <span class="page-num">28</span>
+      <span class="page-num">29</span>
+    </header>
+    <p class="kicker">Projection</p>
+    <h2>Capacité autofinancement & scénarios</h2>
+    <div class="page-body">
+<div class="stat-grid">
+  <div class="stat-card"><div class="val">22,9 M FCFA</div><div class="lbl">CAF Année 1</div></div>
+  <div class="stat-card"><div class="val">56,6 M FCFA</div><div class="lbl">CAF Année 5</div></div>
+  <div class="stat-card"><div class="val">×2,3</div><div class="lbl">Croissance CAF</div></div>
+</div>
+<p>La capacité d'autofinancement progresse régulièrement, permettant de réinvestir dans l'extension Tallow &amp; Go, la transformation alimentaire et l'ERP sans dilution excessive.</p>
+<h3>Scénarios d'extension (post A1)</h3>
+<ul>
+  <li><strong>Cosmétique</strong> — unité formulation + export : +15–25 % marge groupe</li>
+  <li><strong>Transformation</strong> — chambre froide &amp; découpe : sécurisation écoulement viande</li>
+  <li><strong>Digital</strong> — licence ERP autres exploitations : revenus récurrents</li>
+</ul></div>
+    <footer class="page-footer">Horizon Farm · Dossier investisseur 2026 · Confidentiel</footer>
+  </section>
+
+<section class="page">
+    <header class="page-header">
+      <div class="logo-mini"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" fill="none">
+  <circle cx="160" cy="38" r="22" fill="#E8A317"/>
+  <path d="M118 52h84v4c-28 18-56 18-84 0v-4z" fill="#2D5016"/>
+  <path d="M100 56c20 14 40 20 60 20s40-6 60-20l-8 28H108l-8-28z" fill="#3D7A1E"/>
+  <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
+</svg>
+</div>
+      <span class="page-num">30</span>
     </header>
     <p class="kicker">Gestion proactive</p>
     <h2>Analyse des risques</h2>
@@ -895,7 +1069,7 @@
   <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
 </svg>
 </div>
-      <span class="page-num">29</span>
+      <span class="page-num">31</span>
     </header>
     <p class="kicker">2026 — 2030</p>
     <h2>Feuille de route sur 5 ans</h2>
@@ -915,7 +1089,7 @@
   <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
 </svg>
 </div>
-      <span class="page-num">30</span>
+      <span class="page-num">32</span>
     </header>
     <p class="kicker">Structure financière</p>
     <h2>Besoins de financement</h2>
@@ -946,7 +1120,7 @@
   <text x="160" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#1a3d0f">HORIZON FARM</text>
 </svg>
 </div>
-      <span class="page-num">31</span>
+      <span class="page-num">33</span>
     </header>
     <p class="kicker">Horizon Farm</p>
     <h2>Conclusion</h2>

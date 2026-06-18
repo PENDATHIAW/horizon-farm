@@ -160,7 +160,7 @@ function buildHtml() {
 
   const productPages = TALLOW_PRODUCTS.map((p, i) =>
     page(
-      18 + i,
+      20 + i,
       p.name,
       `Gamme Tallow & Go · ${p.en}`,
       `<div class="product-sheet">
@@ -203,7 +203,7 @@ function buildHtml() {
     p { margin-bottom: 0.65rem; }
     ul { margin: 0.4rem 0 0.8rem 1.2rem; }
     li { margin-bottom: 0.35rem; }
-    .page { width: 210mm; min-height: 297mm; padding: 18mm 20mm 22mm; page-break-after: always; position: relative; background: ${BRAND.ivory}; }
+    .page { width: 210mm; height: 297mm; min-height: 297mm; max-height: 297mm; padding: 18mm 20mm 22mm; page-break-after: always; break-after: page; position: relative; background: ${BRAND.ivory}; overflow: hidden; box-sizing: border-box; }
     .page:last-child { page-break-after: auto; }
     .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; padding-bottom: 0.5rem; border-bottom: 1px solid ${BRAND.border}; }
     .logo-mini svg { height: 36px; width: auto; }
@@ -384,7 +384,19 @@ ${page(8, 'Présentation complète du projet', 'Horizon Farm', `
 <p>Pilotage (Accueil, Assistant IA, Centre décisionnel), Production (Élevage, Cultures), Commerce (Ventes, Achats &amp; Stock), Finance (Trésorerie, BP investisseur), Terrain (Capteurs Smart Farm, RH).</p>
 <p class="quote">${IDENTITY.tagline}</p>`)}
 
-${page(9, 'Pôle Embouche Bovine', 'Production animale', `
+${page(9, 'Plateforme ERP — 17 modules', 'Technologie', `
+<div class="three-col">
+  <div class="card"><h3>Pilotage</h3><ul><li>Accueil &amp; carnet</li><li>Assistant IA Hey Horizon</li><li>Centre décisionnel</li><li>Objectifs &amp; croissance</li><li>Investisseurs</li></ul></div>
+  <div class="card"><h3>Production</h3><ul><li>Élevage avicole</li><li>Animaux &amp; bovins</li><li>Santé &amp; reproduction</li><li>Cultures &amp; parcelles</li><li>Transformation</li></ul></div>
+  <div class="card"><h3>Commerce</h3><ul><li>Ventes &amp; clients</li><li>Abonnements</li><li>Achats &amp; stock</li><li>Trésabilité</li><li>Documents OCR</li></ul></div>
+</div>
+<div class="three-col" style="margin-top:0.6rem">
+  <div class="card"><h3>Finance</h3><ul><li>Trésorerie live</li><li>BP investisseur</li><li>Rentabilité activités</li><li>Réconciliation</li><li>Exports financeurs</li></ul></div>
+  <div class="card"><h3>Terrain</h3><ul><li>Smart Farm IoT</li><li>Capteurs poulailler</li><li>RH &amp; équipes</li><li>Opérations</li><li>Sync ERP</li></ul></div>
+  <div class="card"><h3>Valeur</h3><ul><li>10 secondes pour décider</li><li>Alertes proactives</li><li>Crédibilité banques</li><li>Zéro Excel dispersé</li><li>Scalable multi-fermes</li></ul></div>
+</div>`)}
+
+${page(10, 'Pôle Embouche Bovine', 'Production animale', `
 <h3>Modèle économique</h3>
 <p>Cycle d'embouche de <strong>90 jours</strong> : achat à 300 000 FCFA, vente à 700 000 FCFA — marge brute de 400 000 FCFA par tête.</p>
 <table>
@@ -403,7 +415,26 @@ ${page(9, 'Pôle Embouche Bovine', 'Production animale', `
   <li>Fumier vendu comme co-produit agricole</li>
 </ul>`)}
 
-${page(10, 'Pôle Aviculture & Production d\'œufs', 'Élevage pondeuses & chair', `
+${page(11, 'Détail charges & structure de coûts', 'Finance A1', `
+<table>
+  <tr><th>Charge variable</th><th>Annuel</th></tr>
+  <tr><td>Aliments pondeuses</td><td>${fmtFcfa(38_880_000)}</td></tr>
+  <tr><td>Aliments chair</td><td>${fmtFcfa(19_440_000)}</td></tr>
+  <tr><td>Achat bovins</td><td>${fmtFcfa(15_000_000)}</td></tr>
+  <tr><td>Cartons poussins chair</td><td>${fmtFcfa(12_288_000)}</td></tr>
+  <tr><td>Aliments bœufs</td><td>${fmtFcfa(2_400_000)}</td></tr>
+  <tr><td>Litière &amp; divers</td><td>${fmtFcfa(2_688_000)}</td></tr>
+  <tr><th>Total charges variables</th><th>${fmtFcfa(91_776_000)}</th></tr>
+</table>
+<table>
+  <tr><th>Charge fixe / masse salariale</th><th>Annuel</th></tr>
+  <tr><td>Loyers (3 sites)</td><td>${fmtFcfa(5_400_000)}</td></tr>
+  <tr><td>Salaires équipe terrain</td><td>${fmtFcfa(3_840_000)}</td></tr>
+  <tr><td>Coordination projet</td><td>${fmtFcfa(7_200_000)}</td></tr>
+  <tr><th>Total fixes + salaires A1</th><th>${fmtFcfa(17_040_000)}</th></tr>
+</table>`)}
+
+${page(12, 'Pôle Aviculture & Production d\'œufs', 'Élevage pondeuses & chair', `
 <h3>Production d'œufs — 3 000 pondeuses</h3>
 <p>Lancement avec 3 000 poussins pondeuses (900 FCFA/sujet). Production d'œufs sous tablettes de 30, vendues 2 200 FCFA l'unité.</p>
 <table>
@@ -416,7 +447,20 @@ ${page(10, 'Pôle Aviculture & Production d\'œufs', 'Élevage pondeuses & chair
 <h3>Phase 2 — Filière laitière</h3>
 <p>La structuration actuelle pose les bases zootéchniques et commerciales pour une extension future vers la production laitière et sa transformation (yaourt, fromage), en synergie avec le pôle bovin.</p>`)}
 
-${page(11, 'Pôle Transformation Alimentaire', 'Valorisation', `
+${page(13, 'Calendrier de trésorerie — Année 1', 'Flux mensuels', `
+<p>Le plan de trésorerie officiel montre une montée progressive jusqu'à <strong>${fmtM(FINANCE.cashEndY1)}</strong> cumulés en fin d'année 1.</p>
+<table style="font-size:8pt">
+  <tr><th>Mois</th><th>Encaissements</th><th>Décaissements</th><th>Solde mensuel</th><th>Trésorerie cumulée</th></tr>
+  <tr><td>M1</td><td>26,3 M</td><td>23,4 M</td><td>+2,9 M</td><td>2,9 M</td></tr>
+  <tr><td>M2</td><td>2,7 M</td><td>3,2 M</td><td>-0,5 M</td><td>2,4 M</td></tr>
+  <tr><td>M3–M4</td><td>~6,2 M</td><td>~5,5 M</td><td>+0,7 M</td><td>3,8 M</td></tr>
+  <tr><td>M5</td><td>9,7 M</td><td>7,8 M</td><td>+1,9 M</td><td>5,7 M</td></tr>
+  <tr><td>M6</td><td>12,7 M</td><td>9,8 M</td><td>+2,9 M</td><td>8,6 M</td></tr>
+  <tr><td>M7–M12</td><td>~14 M</td><td>~10,7 M</td><td>+3,3 M</td><td>28,5 M</td></tr>
+</table>
+<p><em>Source : Plan financier prévisionnel Horizon Farm — onglet Plan financier à imprimer.</em></p>`)}
+
+${page(14, 'Pôle Transformation Alimentaire', 'Valorisation', `
 <p>La transformation alimentaire couvre le conditionnement, la conservation et la commercialisation des productions animales.</p>
 <div class="two-col">
   <div class="card">
@@ -439,7 +483,7 @@ ${page(11, 'Pôle Transformation Alimentaire', 'Valorisation', `
   </div>
 </div>`)}
 
-${page(12, 'Pôle Cosmétique — Tallow & Go', 'Marque sœur', `
+${page(15, 'Pôle Cosmétique — Tallow & Go', 'Marque sœur', `
 <div class="highlight-box">
   <h3>Tallow &amp; Go</h3>
   <p style="margin:0">Cosmétiques naturels au suif purifié · Fabriqués au Sénégal · Nourrir · Clarifier · Rayonner</p>
@@ -452,7 +496,19 @@ ${page(12, 'Pôle Cosmétique — Tallow & Go', 'Marque sœur', `
 </div>
 <p>Positionnement : cosmétique clean beauty, sans parabène ni silicone, adaptée à tous types de peau — marchés local, diaspora et export.</p>`)}
 
-${page(13, 'Pourquoi le Beef Tallow ?', 'Ingrédient signature', `
+${page(16, 'Identité visuelle Tallow & Go', 'Branding premium', `
+<div class="product-sheet" style="text-align:center;padding:2rem">
+  <div class="product-monogram" style="font-size:48pt">TG</div>
+  <h3 style="font-size:20pt;letter-spacing:0.15em">TALLOW &amp; GO</h3>
+  <p>Nourrir • Clarifier • Rayonner</p>
+  <p style="color:${BRAND.muted}">Nourish • Clarify • Glow</p>
+  <div class="cover-rule" style="margin:1.5rem auto"></div>
+  <p>Powered by purified beef tallow</p>
+  <p><strong>Fabriqué au Sénégal</strong></p>
+</div>
+<p>Packaging ivoire mat, typographie serif élégante, monogramme TG embossé sur le savon SAFAA. Gamme complète en coffret premium pour distribution hôtellerie, spas et retail sélectif.</p>`)}
+
+${page(17, 'Pourquoi le Beef Tallow ?', 'Ingrédient signature', `
 <h3>Un ingrédient ancestral, redevenu essentiel</h3>
 <p>Le suif de bœuf (beef tallow) est composé d'acides gras proches de la structure lipidique de la peau humaine — ce qui explique son efficacité en nutrition cutanée profonde.</p>
 <div class="two-col">
@@ -478,7 +534,21 @@ ${page(13, 'Pourquoi le Beef Tallow ?', 'Ingrédient signature', `
 </div>
 <p class="quote">Du troupeau à la peau — une chaîne courte, transparente et vertueuse.</p>`)}
 
-${page(14, 'Gamme Tallow & Go — Vue d\'ensemble', '5 soins essentiels', `
+${page(18, 'Composition & bienfaits — Synthèse', 'Fiche technique gamme', `
+<table style="font-size:8.5pt">
+  <tr><th>Produit</th><th>Ingrédient clé</th><th>Bienfait principal</th></tr>
+  <tr><td>SAFAA</td><td>Charbon actif · Neem · Lait</td><td>Purifie en profondeur</td></tr>
+  <tr><td>AURA</td><td>Charbon · Sucre fin · Nigelle</td><td>Exfolie &amp; clarifie</td></tr>
+  <tr><td>SHINY</td><td>Carotte · Hibiscus · Niacinamide</td><td>Éclat &amp; hydration</td></tr>
+  <tr><td>NOOR</td><td>Moringa · Réglisse · Vitamine E</td><td>Réparation nocturne</td></tr>
+  <tr><td>SOFT KISS</td><td>Ricin · Cire d'abeille · Karité</td><td>Lèvres nourries</td></tr>
+</table>
+<div class="highlight-box">
+  <h3>Positionnement marché</h3>
+  <p style="margin:0">Segment clean beauty premium · Prix accessible luxe · Origine traçable Sénégal · Export diaspora &amp; marchés occidentaux (tendance tallow skincare)</p>
+</div>`)}
+
+${page(19, 'Gamme Tallow & Go — Vue d\'ensemble', '5 soins essentiels', `
 <p>La gamme couvre les rituels clés : nettoyage, exfoliation, hydratation jour, réparation nuit, soin lèvres.</p>
 <table>
   <tr><th>Produit</th><th>Format</th><th>Rôle</th></tr>
@@ -495,7 +565,7 @@ ${page(14, 'Gamme Tallow & Go — Vue d\'ensemble', '5 soins essentiels', `
 
 ${productPages}
 
-${page(24, 'Synergies Horizon Farm & Tallow & Go', 'Intégration verticale', `
+${page(25, 'Synergies Horizon Farm & Tallow & Go', 'Intégration verticale', `
 <div class="value-chain">
   <div class="vc-step"><strong>Embouche</strong>Bovins Horizon</div>
   <div class="vc-step"><strong>Extraction</strong>Suif purifié</div>
@@ -509,7 +579,7 @@ ${page(24, 'Synergies Horizon Farm & Tallow & Go', 'Intégration verticale', `
   <li><strong>ERP commun</strong> — stocks suif, coûts de production, marges par produit suivis dans Horizon Farm</li>
 </ul>`)}
 
-${page(25, 'Chaîne de valeur intégrée', 'Schéma global', `
+${page(26, 'Chaîne de valeur intégrée', 'Schéma global', `
 <div class="chart-wrap">
   <svg viewBox="0 0 500 200" xmlns="http://www.w3.org/2000/svg" class="chart-svg">
     <rect x="10" y="70" width="90" height="60" rx="8" fill="${BRAND.green}"/>
@@ -533,7 +603,7 @@ ${page(25, 'Chaîne de valeur intégrée', 'Schéma global', `
 </div>
 <p>Chaque maillon est instrumenté : effectifs, stocks, coûts, ventes et trésorerie consolidés en temps réel.</p>`)}
 
-${page(26, 'Impact économique & social', 'Contribution territoriale', `
+${page(27, 'Impact économique & social', 'Contribution territoriale', `
 <div class="two-col">
   <div>
     <h3>Impact économique</h3>
@@ -562,7 +632,7 @@ ${page(26, 'Impact économique & social', 'Contribution territoriale', `
 </table>
 <p>Masse salariale annuelle : <strong>${fmtFcfa(11_040_000)}</strong> (hors charges)</p>`)}
 
-${page(27, 'Prévisions financières', 'Plan 5 ans', `
+${page(28, 'Prévisions financières', 'Plan 5 ans', `
 <div class="two-col">
   <div class="chart-wrap"><h4>Chiffre d'affaires</h4>${revChart}</div>
   <div class="chart-wrap"><h4>Résultat net</h4>${resultChart}</div>
@@ -578,7 +648,21 @@ ${page(27, 'Prévisions financières', 'Plan 5 ans', `
 </div>
 <p><em>Source : Plan financier prévisionnel Horizon Farm (Excel officiel). Projections à réconcilier avec la stratégie opérationnelle validée.</em></p>`)}
 
-${page(28, 'Analyse des risques', 'Gestion proactive', `
+${page(29, 'Capacité autofinancement & scénarios', 'Projection', `
+<div class="stat-grid">
+  <div class="stat-card"><div class="val">${fmtM(FINANCE.resultY5[0])}</div><div class="lbl">CAF Année 1</div></div>
+  <div class="stat-card"><div class="val">${fmtM(FINANCE.resultY5[4])}</div><div class="lbl">CAF Année 5</div></div>
+  <div class="stat-card"><div class="val">×2,3</div><div class="lbl">Croissance CAF</div></div>
+</div>
+<p>La capacité d'autofinancement progresse régulièrement, permettant de réinvestir dans l'extension Tallow &amp; Go, la transformation alimentaire et l'ERP sans dilution excessive.</p>
+<h3>Scénarios d'extension (post A1)</h3>
+<ul>
+  <li><strong>Cosmétique</strong> — unité formulation + export : +15–25 % marge groupe</li>
+  <li><strong>Transformation</strong> — chambre froide &amp; découpe : sécurisation écoulement viande</li>
+  <li><strong>Digital</strong> — licence ERP autres exploitations : revenus récurrents</li>
+</ul>`)}
+
+${page(30, 'Analyse des risques', 'Gestion proactive', `
 <table>
   <tr><th>Risque</th><th>Niveau</th><th>Mitigation</th></tr>
   ${RISKS.map((r) => `<tr><td>${r.risk}</td><td class="${r.level === 'Élevé' ? 'risk-high' : 'risk-med'}">${r.level}</td><td>${r.mitigation}</td></tr>`).join('')}
@@ -588,12 +672,12 @@ ${page(28, 'Analyse des risques', 'Gestion proactive', `
   <p style="margin:0">L'ERP Horizon Farm transforme la gestion des risques en pilotage préventif : alertes stock, suivi mortalité, trésorerie prévisionnelle, traçabilité pour financeurs.</p>
 </div>`)}
 
-${page(29, 'Feuille de route sur 5 ans', '2026 — 2030', `
+${page(31, 'Feuille de route sur 5 ans', '2026 — 2030', `
 <div class="timeline">
   ${ROADMAP.map((r) => `<div class="timeline-item"><div class="timeline-year">${r.year} · ${r.phase}</div><ul>${r.items.map((i) => `<li>${i}</li>`).join('')}</ul></div>`).join('')}
 </div>`)}
 
-${page(30, 'Besoins de financement', 'Structure financière', `
+${page(32, 'Besoins de financement', 'Structure financière', `
 <h3>Investissement initial</h3>
 <table>
   <tr><th>Poste</th><th>Montant</th></tr>
@@ -609,7 +693,7 @@ ${page(30, 'Besoins de financement', 'Structure financière', `
   <div class="stat-card"><div class="val">30 j</div><div class="lbl">Dette fournisseur</div></div>
 </div>`)}
 
-${page(31, 'Conclusion', 'Horizon Farm', `
+${page(33, 'Conclusion', 'Horizon Farm', `
 <p class="quote">Horizon Farm n'est pas une ferme de plus — c'est une chaîne de valeur intégrée, pilotée par la data, ancrée au Sénégal et ouverte sur l'Afrique de l'Ouest.</p>
 <p>De l'œuf à la tablette cosmétique, chaque flux est produit, tracé et valorisé. Tallow &amp; Go apporte la touche premium qui transforme un co-produit agricole en marque exportable.</p>
 <div class="highlight-box">
@@ -634,14 +718,18 @@ async function generatePdf(htmlPath) {
   const browser = await chromium.launch();
   const page = await browser.newPage();
   await page.goto(`file://${htmlPath}`, { waitUntil: 'networkidle' });
+  await page.emulateMedia({ media: 'print' });
   await page.pdf({
     path: PDF_OUT,
     format: 'A4',
     printBackground: true,
+    preferCSSPageSize: true,
     margin: { top: '0', right: '0', bottom: '0', left: '0' },
   });
   await browser.close();
   fs.copyFileSync(PDF_OUT, PDF_PUBLIC);
+  const pages = fs.readFileSync(PDF_OUT).toString('latin1').match(/\/Type\s*\/Page[^s]/g);
+  console.log(`  Pages PDF: ~${pages?.length ?? '?'}`);
 }
 
 const html = buildHtml();
