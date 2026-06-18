@@ -54,6 +54,7 @@ export function isSimulatedDataModeEnabled() {
     : null;
   if (params?.get('simulated') === '1' || params?.get('demo') === '1') {
     const wasOff = storage.getItem(SIMULATED_DATA_MODE_KEY) !== '1';
+    storage.setItem(DATA_MODE_CHOICE_KEY, 'simulated');
     storage.setItem(SIMULATED_DATA_MODE_KEY, '1');
     storage.setItem(DEMO_MODE_KEY, '1');
     if (wasOff) {
@@ -63,6 +64,7 @@ export function isSimulatedDataModeEnabled() {
     return true;
   }
   if (params?.get('simulated') === '0' || params?.get('demo') === '0') {
+    storage.setItem(DATA_MODE_CHOICE_KEY, 'real');
     storage.removeItem(SIMULATED_DATA_MODE_KEY);
     storage.removeItem(DEMO_MODE_KEY);
     return false;

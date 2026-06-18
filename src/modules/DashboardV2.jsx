@@ -1,10 +1,12 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { readPeriodScope } from '../utils/periodScope';
+import { isSimulatedDataModeEnabled } from '../utils/uiPreferences.js';
 import { getDashboardHealthReport } from './dashboard/dashboardHealthCache';
 import { buildDashboardSummary } from './dashboard/dashboardMetrics';
 import { buildDashboardPriorities } from './dashboard/dashboardPilotage';
 import { buildCarnetHorizonView } from './dashboard/carnetHorizon';
 import CarnetHorizon, { CarnetHorizonHeader } from './dashboard/CarnetHorizon.jsx';
+import DashboardDataModeBanner from './dashboard/DashboardDataModeBanner.jsx';
 
 const firstValue = (...values) => values.find((value) => value !== undefined && value !== null && String(value).trim() !== '');
 
@@ -80,6 +82,13 @@ export default function DashboardV2(props) {
   } = props;
 
   const periodScope = periodScopeProp || readPeriodScope();
+  const [simulatedMode, setSimulatedMode] = useState(() => isSimulatedDataModeEnabled());
+
+  useEffect(() => {
+    const sync = () => setSimulatedMode(isSimulatedDataModeEnabled());
+    window.addEventListener('horizon-farm-data-mode-changed', sync);
+    return () => window.removeEventListener('horizon-farm-data-mode-changed', sync);
+  }, []);
 
   const healthData = useMemo(
     () => buildHealthData({
@@ -221,7 +230,12 @@ export default function DashboardV2(props) {
         location={farmLocationOf(props)}
         periodLabel={periodLabel}
       />
-      <CarnetHorizon carnet={carnet} onNavigate={navigate} />
+      <DashboardDataModeBanner
+        simulated={simulatedMode}
+        startupMode={summary.startupMode}
+        onEnabled={() => setSimulatedMode(true)}
+      />
+      <CarnetHorizon carnet={carnet} onNavigate={navigate} simulatedMode={simulatedMode} />
     </div>
   );
 }

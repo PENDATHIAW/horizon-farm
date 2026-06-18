@@ -54,6 +54,7 @@ import {
 import { whatsappLogsService, whatsappTemplatesService } from '../services/whatsappService';
 import { stockMovementsCrud } from '../services/stockMovementsService';
 import { supabase } from '../lib/supabase';
+import { normalizeByModule } from '../utils/normalize.js';
 import { clearOfflineQueue, enqueueOfflineMutation, isBrowserOffline, readOfflineQueue, saveOfflineQueue } from '../services/offlineQueueService';
 
 const AppDataContext = createContext(null);
@@ -201,8 +202,10 @@ export function AppProvider({ children, initialDataMap = null }) {
     Object.keys(serviceMap).forEach((moduleKey) => refreshModule(moduleKey));
   }, [refreshModule]);
 
-  const refreshAllModulesImmediate = useCallback(() => {
-    Object.keys(serviceMap).forEach((moduleKey) => refreshModule(moduleKey, { immediate: true }));
+  const refreshAllModulesImmediate = useCallback(async () => {
+    await Promise.allSettled(
+      Object.keys(serviceMap).map((moduleKey) => refreshModule(moduleKey, { immediate: true })),
+    );
   }, [refreshModule]);
 
   const appendAnimalTraceStep = useCallback(async (animal, step) => { if (!animal?.id || !step) return; try { const traceId = `TRA-${animal.id}`; const traces = await tracabiliteService.getAll(); const existing = traces.find((trace) => trace.id === traceId || String(trace.animal || '').includes(animal.id)); if (existing) { const etapes = Array.isArray(existing.etapes) ? existing.etapes : []; const alreadyExists = etapes.some((item) => item.event_type === step.event_type && item.date === step.date && item.titre === step.titre); if (!alreadyExists) await tracabiliteService.update(existing.id, { etapes: [...etapes, step] }); } else { await tracabiliteService.create({ id: traceId, animal: getAnimalDisplayName(animal), type: animal.type || '', etapes: [step], margeFinale: 0, roi: 0 }); } await refreshModule('tracabilite'); } catch (error) { console.warn('Trace animal non enregistree', error.message); } }, [refreshModule]);
@@ -210,7 +213,19 @@ export function AppProvider({ children, initialDataMap = null }) {
   const emitBusinessEvents = useCallback((events = [], moduleKey = '', record = {}) => { const filtered = filterAppContextBusinessEvents(events, moduleKey, record); const validEvents = filtered.filter((event) => event?.event_type && event?.title); if (validEvents.length === 0) return; markLocalWrite('business_events'); void Promise.allSettled(validEvents.map((event) => createBusinessEvent(event))).then(() => refreshModule('business_events')).catch((error) => { console.warn('Evenements metier non enregistres', error.message); }); }, [markLocalWrite, refreshModule]);
 
   useEffect(() => { if (authLoading || !session) return; refreshAllModules(); }, [authLoading, session, refreshAllModules]);
-  useEffect(() => { if (authLoading || !session) return undefined; const handler = () => { setDataMap(emptyInitialData()); refreshAllModulesImmediate(); }; window.addEventListener('horizon-farm-data-mode-changed', handler); window.addEventListener('storage', handler); return () => { window.removeEventListener('horizon-farm-data-mode-changed', handler); window.removeEventListener('storage', handler); }; }, [authLoading, session, refreshAllModulesImmediate]);
+  useEffect(() => {
+    if (authLoading || !session) return undefined;
+    const handler = () => {
+      setDataMap(emptyInitialData());
+      void refreshAllModulesImmediate();
+    };
+    window.addEventListener('horizon-farm-data-mode-changed', handler);
+    window.addEventListener('storage', handler);
+    return () => {
+      window.removeEventListener('horizon-farm-data-mode-changed', handler);
+      window.removeEventListener('storage', handler);
+    };
+  }, [authLoading, session, refreshAllModulesImmediate]);
 
   useEffect(() => { if (authLoading || !session) return undefined; const channel = supabase.channel('horizon-farm-realtime'); Object.entries(MODULE_CONFIG).filter(([, config]) => config.table).forEach(([moduleKey, config]) => { channel.on('postgres_changes', { event: '*', schema: 'public', table: config.table }, () => { if (refreshScheduler.shouldSuppressRealtime(moduleKey)) return; refreshModule(moduleKey); }); }); channel.subscribe(); return () => { supabase.removeChannel(channel); }; }, [authLoading, session, refreshModule, refreshScheduler]);
 

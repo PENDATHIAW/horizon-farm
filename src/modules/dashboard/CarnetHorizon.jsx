@@ -142,23 +142,18 @@ export function CarnetHorizonHeader({
   );
 }
 
-export default function CarnetHorizon({ carnet, onNavigate }) {
+export default function CarnetHorizon({ carnet, onNavigate, simulatedMode = false }) {
   if (!carnet) return null;
 
   const journalItems = carnet.journal?.items || [];
+  const showProjectionsEmpty = !carnet.projections?.hasData && (carnet.startupMode || !simulatedMode);
 
   return (
-    <div className="carnet-dirigeant-root space-y-2.5">
+    <div className="carnet-dirigeant-root space-y-3">
       <style>{`
         .carnet-dirigeant-root {
-          max-height: calc(100vh - 9rem);
-          overflow: hidden;
-        }
-        @media (max-width: 1023px) {
-          .carnet-dirigeant-root {
-            max-height: none;
-            overflow: visible;
-          }
+          max-height: none;
+          overflow: visible;
         }
       `}</style>
 
@@ -174,7 +169,8 @@ export default function CarnetHorizon({ carnet, onNavigate }) {
 
       {carnet.objectifs ? (
         <section className="rounded-xl border border-[#e5dcc8] bg-[#fffdf8] px-3 py-2.5">
-          <h2 className="mb-2 text-[10px] font-black uppercase tracking-wide text-[#8a7456]">Objectifs de l&apos;exploitation</h2>
+          <h2 className="mb-0.5 text-[10px] font-black uppercase tracking-wide text-[#8a7456]">Objectifs de l&apos;exploitation</h2>
+          <p className="mb-2 text-[10px] text-[#8a7456]">Réalisé = ventes de la période · Objectif = Business Plan Horizon Farm</p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <ObjectifBlock block={carnet.objectifs.month} onNavigate={onNavigate} />
             <ObjectifBlock block={carnet.objectifs.year} onNavigate={onNavigate} />
@@ -184,7 +180,10 @@ export default function CarnetHorizon({ carnet, onNavigate }) {
 
       {carnet.projections?.hasData ? (
         <section className="rounded-xl border border-[#e5dcc8] bg-[#faf6ee] px-3 py-2.5">
-          <h2 className="mb-2 text-[10px] font-black uppercase tracking-wide text-[#8a7456]">Projections & pilotage</h2>
+          <h2 className="text-[10px] font-black uppercase tracking-wide text-[#8a7456]">Projections & pilotage</h2>
+          <p className="mb-2 mt-0.5 text-[10px] leading-snug text-[#8a7456]">
+            Anticipation à 30 jours — CA, trésorerie, créances et stock. Cliquez une carte pour ouvrir le module.
+          </p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
             {(carnet.projections.items || []).map((item) => (
               <ProjectionCard key={item.id} item={item} onNavigate={onNavigate} />
@@ -193,18 +192,32 @@ export default function CarnetHorizon({ carnet, onNavigate }) {
         </section>
       ) : null}
 
-      <section className="rounded-xl border border-[#e5dcc8] bg-[#faf6ee] px-3 py-2.5">
-        <p className="text-[10px] font-black uppercase tracking-wide text-[#9a6b12]">💡 {carnet.conseil?.title || 'Conseil Horizon'}</p>
-        <div className="mt-1.5 space-y-0.5 text-[11px] leading-snug text-[#2f2415]">
+      {showProjectionsEmpty ? (
+        <section className="rounded-xl border border-dashed border-[#d6c3a0] bg-[#fffdf8] px-3 py-3">
+          <h2 className="text-[10px] font-black uppercase tracking-wide text-[#8a7456]">Projections & pilotage</h2>
+          <p className="mt-1 text-xs leading-relaxed text-[#5c4d38]">
+            {simulatedMode
+              ? 'Pas encore assez de ventes ou de production pour calculer des projections. Enregistrez une vente ou une production d\'œufs.'
+              : 'Activez Données simulées (Paramètres ⚙️) pour voir les projections du scénario Horizon Farm, ou saisissez vos premières données réelles.'}
+          </p>
+        </section>
+      ) : null}
+
+      <section className="rounded-xl border border-[#e5dcc8] bg-[#faf6ee] px-3 py-3">
+        <p className="text-[10px] font-black uppercase tracking-wide text-[#9a6b12]">Conseil Horizon</p>
+        <div className="mt-2 space-y-1.5 text-xs leading-relaxed text-[#2f2415]">
           <p><span className="font-black text-[#8a7456]">Situation —</span> {carnet.conseil?.situation || carnet.conseil?.text}</p>
-          {carnet.conseil?.cause ? <p><span className="font-black text-[#8a7456]">Cause —</span> {carnet.conseil.cause}</p> : null}
-          {carnet.conseil?.action ? <p><span className="font-black text-[#8a7456]">Action —</span> {carnet.conseil.action}</p> : null}
+          {carnet.conseil?.cause ? <p><span className="font-black text-[#8a7456]">Pourquoi —</span> {carnet.conseil.cause}</p> : null}
+          {carnet.conseil?.action ? <p><span className="font-black text-emerald-800">À faire —</span> {carnet.conseil.action}</p> : null}
         </div>
       </section>
 
-      <section className="rounded-xl border border-[#e5dcc8] bg-[#fffdf8] px-3 py-2.5">
-        <div className="mb-1.5 flex items-center justify-between gap-2">
-          <h2 className="text-[10px] font-black uppercase tracking-wide text-[#8a7456]">Journal d&apos;exploitation</h2>
+      <section className="rounded-xl border border-[#e5dcc8] bg-[#fffdf8] px-3 py-3">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div>
+            <h2 className="text-[10px] font-black uppercase tracking-wide text-[#8a7456]">Journal d&apos;exploitation</h2>
+            <p className="mt-0.5 text-[10px] text-[#8a7456]">Derniers événements terrain du jour</p>
+          </div>
           {onNavigate ? (
             <button
               type="button"

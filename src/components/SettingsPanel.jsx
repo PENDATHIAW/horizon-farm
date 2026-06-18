@@ -48,7 +48,11 @@ export default function SettingsPanel({ open, onClose, user, displayUser, online
 
   const updateSetting = (key, value) => setSettings((prev) => ({ ...prev, [key]: value }));
   const navigate = (moduleKey) => { setActive?.(moduleKey); onClose?.(); };
-  const toggleDemo = (value) => { setDemoMode(value); setDemoEnabled(value); toast.success(value ? 'Données simulées activées' : 'Données réelles activées'); };
+  const toggleDemo = (value) => {
+    setDemoMode(value);
+    setDemoEnabled(value);
+    toast.success(value ? 'Données simulées activées — rechargement des modules…' : 'Données réelles activées — scénario de démo masqué');
+  };
   const clearLocalSuppressionCache = () => {
     if (!window.confirm('Nettoyer les éléments gardés seulement sur cet appareil ? Cela ne supprime aucune donnée de la ferme.')) return;
     const count = removeMatchingLocalStorage(['horizon_farm_deleted_ids:', 'horizon_farm_deleted_records:', IGNORED_AUDIT_KEY]);

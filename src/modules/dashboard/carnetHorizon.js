@@ -585,9 +585,9 @@ export function buildCarnetConseil(summary = {}, priorities = [], props = {}) {
   if (summary.startupMode) {
     return {
       title: 'Conseil Horizon',
-      situation: 'L\'exploitation démarre.',
-      cause: 'Peu de données terrain enregistrées.',
-      action: 'Commencez par une bande, une parcelle ou une première vente.',
+      situation: 'Peu de données terrain visibles sur l\'Accueil.',
+      cause: 'Soit l\'exploitation démarre, soit le mode « Données réelles » est actif sans saisie.',
+      action: 'Activez Données simulées dans Paramètres (⚙️) pour le scénario Horizon Farm, ou enregistrez une vente / un lot.',
     };
   }
 
@@ -634,5 +634,6 @@ export function buildCarnetHorizonView({ summary = {}, priorities = [], props = 
     projections: buildCarnetProjections(summary, props),
     conseil: buildCarnetConseil(summary, priorities, props),
     journal: buildCarnetTodayJournal(props),
+    startupMode: Boolean(summary.startupMode),
   };
 }
