@@ -1,46 +1,56 @@
 # Tallow & Go
 
-Site vitrine e-commerce pour **Tallow & Go** — cosmétiques naturels au suif.
+Site vitrine e-commerce pour **Tallow & Go** — cosmétiques au suif purifié, issu des embouches bovines du projet d'élevage, formulés au Sénégal.
 
-Stack : React · Vite · Tailwind CSS · Supabase · Vercel (comme Horizon Farm).
+**Stack :** React · Vite · Tailwind CSS · Supabase · Vercel
 
-## Démarrage rapide
+## Démarrage local
 
 ```bash
 npm install
-cp .env.example .env.local   # renseigner Supabase
+cp .env.example .env.local
 npm run dev
 ```
 
+## Créer le dépôt GitHub
+
+Le token Cloud Agent ne peut pas créer de repo. Depuis ce dossier, avec **vos** identifiants :
+
+```bash
+chmod +x scripts/bootstrap-github.sh
+./scripts/bootstrap-github.sh PENDATHIAW
+```
+
+Ou manuellement :
+
+1. Créer un repo vide `tallow-and-go` sur GitHub
+2. `git init -b main && git add -A && git commit -m "Initial commit"`
+3. `git remote add origin https://github.com/PENDATHIAW/tallow-and-go.git`
+4. `git push -u origin main`
+
 ## Supabase
 
-1. Créer un **nouveau projet** Supabase (séparé d'Horizon Farm).
-2. Exécuter `supabase/schema.sql` dans l'éditeur SQL.
-3. Copier l'URL et la clé `anon` dans `.env.local`.
+1. Créer un **nouveau projet** Supabase (séparé d'Horizon Farm)
+2. Exécuter `supabase/schema.sql`
+3. Variables : `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
 
-## Déploiement Vercel
+## Vercel
 
-1. Importer le repo GitHub `pendathiaw/tallow-and-go`.
-2. Framework : Vite (détecté automatiquement).
-3. Ajouter les variables `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY`.
+1. Importer le repo `tallow-and-go`
+2. Framework : Vite (auto-détecté)
+3. Ajouter les variables d'environnement Supabase
 
 ## Structure
 
-- `src/components/` — sections de la page d'accueil
-- `src/data/products.js` — catalogue statique (en attendant Supabase)
-- `supabase/schema.sql` — produits + newsletter
-
-## Créer le repo GitHub
-
-Si le dépôt n'existe pas encore :
-
-```bash
-gh repo create pendathiaw/tallow-and-go --public --source=. --remote=origin --push
+```
+src/components/   # Header, Hero, Products, BenefitsBar…
+src/data/         # Catalogue produits + chaîne de valeur
+supabase/         # Schéma SQL
+public/           # Assets (logo, visuel gamme)
 ```
 
-Ou créer le repo manuellement sur GitHub, puis :
+## Prochaines étapes
 
-```bash
-git remote add origin https://github.com/pendathiaw/tallow-and-go.git
-git push -u origin main
-```
+- [ ] Photos packaging haute résolution
+- [ ] Connexion catalogue Supabase dynamique
+- [ ] Commande WhatsApp / panier / paiement

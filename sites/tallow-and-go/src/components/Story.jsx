@@ -1,48 +1,43 @@
+import { chainSteps } from "../data/products"
+
 export default function Story() {
   return (
-    <section id="histoire" className="bg-cream py-20">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:items-center">
-        <div className="order-2 lg:order-1">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-4">
-              <div className="h-44 rounded-[1.5rem] bg-gradient-to-br from-blush to-tallow/40" />
-              <div className="h-28 rounded-[1.5rem] bg-earth p-5 text-cream">
-                <p className="text-xs uppercase tracking-wider text-cream/70">Depuis</p>
-                <p className="font-display text-3xl font-semibold">2026</p>
-              </div>
-            </div>
-            <div className="space-y-4 pt-8">
-              <div className="h-28 rounded-[1.5rem] bg-sage/85 p-5 text-white">
-                <p className="text-xs uppercase tracking-wider text-white/75">Valeurs</p>
-                <p className="mt-1 font-medium">Nature · Transparence · Efficacité</p>
-              </div>
-              <div className="h-44 rounded-[1.5rem] bg-gradient-to-br from-cream-dark to-white-warm ring-1 ring-cream-dark" />
+    <section id="histoire" className="bg-[#ebe3d6] py-20">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-tallow-deep">
+              Notre histoire
+            </p>
+            <h2 className="mt-2 font-display text-4xl font-semibold text-earth sm:text-5xl">
+              L&apos;élevage qui devient soin
+            </h2>
+            <div className="mt-6 space-y-4 text-lg leading-relaxed text-earth-soft">
+              <p>
+                Tallow & Go est la continuité naturelle de notre activité d&apos;élevage. La graisse
+                de bœuf issue de nos embouches bovines est valorisée, purifiée, puis transformée en
+                soins qui respectent la peau.
+              </p>
+              <p>
+                C&apos;est la même exigence que sur la ferme : qualité, traçabilité, respect du
+                vivant — appliquée cette fois à la cosmétique naturelle.
+              </p>
             </div>
           </div>
-        </div>
 
-        <div className="order-1 lg:order-2">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-tallow-deep">
-            Notre histoire
-          </p>
-          <h2 className="mt-2 font-display text-4xl font-semibold text-earth sm:text-5xl">
-            De l&apos;embouche bovine à votre peau
-          </h2>
-          <div className="mt-6 space-y-4 text-lg leading-relaxed text-earth-soft">
-            <p>
-              Tallow & Go est la continuité naturelle de notre projet d&apos;élevage : la graisse de
-              bœuf provient directement de nos embouches bovines, valorisée puis purifiée pour
-              nourrir la peau avec un ingrédient proche de sa composition lipidique naturelle.
-            </p>
-            <p>
-              Du troupeau au soin, nous maîtrisons la chaîne — élevage, extraction, formulation
-              artisanale au Sénégal. Chaque produit porte cette trace : un suif sincere, sans
-              détour, sans formule surchargée.
-            </p>
-            <p>
-              <strong className="font-semibold text-earth">Tallow & Go</strong>, c&apos;est l&apos;élevage
-              qui devient soin — prêt à l&apos;emploi, nomade et sincère, pour toute la famille.
-            </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {chainSteps.map((item) => (
+              <div
+                key={item.step}
+                className="rounded-2xl border border-cream-dark bg-white-warm p-5"
+              >
+                <span className="font-display text-3xl font-semibold text-tallow-deep">
+                  {item.step}
+                </span>
+                <h3 className="mt-2 font-display text-xl font-semibold text-earth">{item.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-earth-soft">{item.text}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>

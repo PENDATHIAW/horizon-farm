@@ -1,4 +1,5 @@
 import Commitments from "./components/Commitments"
+import BenefitsBar from "./components/BenefitsBar"
 import Contact from "./components/Contact"
 import Footer from "./components/Footer"
 import Header from "./components/Header"
@@ -12,6 +13,7 @@ export default function App() {
       <Header />
       <main>
         <Hero />
+        <BenefitsBar />
         <Products />
         <Commitments />
         <Story />

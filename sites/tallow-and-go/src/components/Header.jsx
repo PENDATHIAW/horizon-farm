@@ -1,4 +1,4 @@
-import { Leaf, Menu, ShoppingBag, X } from "lucide-react"
+import { Menu, ShoppingBag, X } from "lucide-react"
 import { useState } from "react"
 
 const links = [
@@ -12,18 +12,16 @@ export default function Header() {
   const [open, setOpen] = useState(false)
 
   return (
-    <header className="sticky top-0 z-50 border-b border-cream-dark/80 bg-white-warm/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-cream-dark/80 bg-white-warm/95 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-        <a href="#" className="group flex items-center gap-2.5">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-earth text-cream shadow-sm">
-            <Leaf className="h-5 w-5" strokeWidth={1.75} />
-          </span>
+        <a href="#" className="flex items-center gap-3">
+          <img src="/brand-logo.svg" alt="" className="h-9 w-9 text-earth" />
           <span>
-            <span className="block font-display text-xl font-semibold leading-none tracking-tight text-earth">
+            <span className="block font-display text-xl font-semibold leading-none tracking-wide text-earth">
               Tallow & Go
             </span>
-            <span className="text-[0.65rem] font-medium uppercase tracking-[0.2em] text-tallow-deep">
-              Naturel · Artisanal
+            <span className="text-[0.6rem] font-medium uppercase tracking-[0.22em] text-tallow-deep">
+              Suif purifié · Sénégal
             </span>
           </span>
         </a>
@@ -33,7 +31,7 @@ export default function Header() {
             <a
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-earth-soft transition hover:text-tallow-deep"
+              className="text-sm font-medium text-earth-soft transition hover:text-earth"
             >
               {link.label}
             </a>
@@ -73,16 +71,6 @@ export default function Header() {
                 </a>
               </li>
             ))}
-            <li>
-              <a
-                href="#produits"
-                className="inline-flex items-center gap-2 rounded-full bg-earth px-4 py-2 text-sm font-semibold text-cream"
-                onClick={() => setOpen(false)}
-              >
-                <ShoppingBag className="h-4 w-4" />
-                Commander
-              </a>
-            </li>
           </ul>
         </nav>
       ) : null}
