@@ -1,8 +1,10 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
 @theme {
   --font-display: "Cormorant Garamond", Georgia, serif;
-  --font-body: "Outfit", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
 
   --color-cream: #f7f2ea;
   --color-cream-dark: #ebe3d6;
@@ -13,6 +15,13 @@
   --color-sage: #7d8b6f;
   --color-blush: #e8cfc0;
   --color-white-warm: #fffdf9;
+
+  --color-tg-green: #234a34;
+  --color-tg-green-light: #2d5e44;
+  --color-tg-ivory: #faf8f4;
+  --color-tg-cream: #f3ece2;
+  --color-tg-gold: #c4a35a;
+  --color-tg-earth: #3d2914;
 }
 
 @layer base {
@@ -21,11 +30,19 @@
   }
 
   body {
-    @apply bg-cream text-earth font-body antialiased;
+    @apply bg-tg-ivory text-earth font-body antialiased transition-colors duration-500;
+  }
+
+  [data-theme="dark"] body {
+    @apply bg-neutral-950 text-neutral-100;
   }
 
   ::selection {
     @apply bg-tallow/30 text-earth;
+  }
+
+  [data-theme="dark"] ::selection {
+    @apply bg-tg-gold/30 text-neutral-100;
   }
 }
 
@@ -37,4 +54,65 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  .section-padding {
+    @apply px-5 py-24 sm:px-8 lg:px-12 lg:py-32;
+  }
+
+  .reveal {
+    animation: reveal 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  .reveal-d1 {
+    animation-delay: 0.12s;
+  }
+
+  .reveal-d2 {
+    animation-delay: 0.24s;
+  }
+
+  .glass {
+    @apply border border-white/25 bg-white/75 backdrop-blur-xl;
+  }
+
+  [data-theme="dark"] .glass {
+    @apply border-neutral-800 bg-neutral-900/75;
+  }
+}
+
+@keyframes reveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-overlay {
+  background: linear-gradient(
+    180deg,
+    rgba(250, 248, 244, 0.05) 0%,
+    rgba(35, 74, 52, 0.55) 50%,
+    rgba(26, 56, 40, 0.92) 100%
+  );
+}
+
+[data-theme="dark"] .hero-overlay {
+  background: linear-gradient(
+    180deg,
+    rgba(10, 10, 10, 0.2) 0%,
+    rgba(35, 74, 52, 0.65) 50%,
+    rgba(10, 10, 10, 0.95) 100%
+  );
+}
+
+.product-card:hover .product-shine {
+  opacity: 1;
+}
+
+.product-shine {
+  opacity: 0;
+  transition: opacity 0.5s;
+  background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.45) 50%, transparent 60%);
 }
