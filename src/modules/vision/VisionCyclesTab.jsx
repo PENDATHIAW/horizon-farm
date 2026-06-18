@@ -1,3 +1,4 @@
+import { useCallback, useRef } from 'react';
 import { CalendarRange, Thermometer, AlertTriangle } from 'lucide-react';
 import ProductionCycleDecisionPanel from '../ProductionCycleDecisionPanel.jsx';
 import StrategicDecisionCard from '../centre/StrategicDecisionCard.jsx';
@@ -17,9 +18,20 @@ export default function VisionCyclesTab({
   onRefreshAlertes,
   existingTasks = [],
   existingAlerts = [],
+  setTab,
   compact = false,
   hideBfr = false,
 }) {
+  const calendarDetailsRef = useRef(null);
+  const openProductionCalendar = useCallback(() => {
+    const node = calendarDetailsRef.current;
+    if (!node) {
+      onNavigate?.('elevage', { tab: 'Cycles & Reproduction' });
+      return;
+    }
+    node.open = true;
+    node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [onNavigate]);
   const launchDecisions = (strategicPlan.launch?.cycleDecisions || [])
     .filter((d) => d.type !== 'stress_thermique' || d.priority === 'haute');
   const heatDecision = strategicPlan.launch?.cycleDecisions?.find((d) => d.type === 'stress_thermique');
@@ -54,7 +66,19 @@ export default function VisionCyclesTab({
         <Section icon={CalendarRange} title={compact ? 'Dates limites par fête' : 'Calendrier marché — date limite de mise en place'}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {pivotSlice.map((d) => (
-              <StrategicDecisionCard key={d.id} item={d} onNavigate={onNavigate} onCreateTask={onCreateTask} onCreateAlert={onCreateAlert} onRefreshTasks={onRefreshTasks} onRefreshAlertes={onRefreshAlertes} existingTasks={existingTasks} existingAlerts={existingAlerts} />
+              <StrategicDecisionCard
+                key={d.id}
+                item={d}
+                onNavigate={onNavigate}
+                setTab={setTab}
+                onOpenProductionCalendar={openProductionCalendar}
+                onCreateTask={onCreateTask}
+                onCreateAlert={onCreateAlert}
+                onRefreshTasks={onRefreshTasks}
+                onRefreshAlertes={onRefreshAlertes}
+                existingTasks={existingTasks}
+                existingAlerts={existingAlerts}
+              />
             ))}
           </div>
         </Section>
@@ -91,7 +115,7 @@ export default function VisionCyclesTab({
         </Section>
       ) : null}
 
-      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+      <details ref={calendarDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
         <summary className="cursor-pointer font-black text-[#2f2415] text-sm">Calendrier détaillé des lots (J+40, J+90…)</summary>
         <div className="mt-4">
           <ProductionCycleDecisionPanel

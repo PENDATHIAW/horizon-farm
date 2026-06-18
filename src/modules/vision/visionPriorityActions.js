@@ -1,10 +1,12 @@
 import toast from 'react-hot-toast';
 import { generateSequentialId } from '../../utils/ids.js';
 import { resolveRouteModule } from '../../utils/commercialNavigation.js';
-import { buildTaskFromAlert } from '../../utils/taskWorkflows.js';
+import { buildTaskFromAlert, isAlertClosed, isTaskClosed, taskDedupeKey } from '../../utils/taskWorkflows.js';
 import { applyOneClickRecommendation } from '../../services/heyHorizonRecommendationActions.js';
 import { openVisionPriority } from './visionMetrics.js';
 import { navigateVisionFinding, navigateVisionPriority } from './visionNavigation.js';
+
+const arr = (value) => (Array.isArray(value) ? value : []);
 
 const MODULE_TO_TASK = {
   commercial: 'ventes',
@@ -39,6 +41,20 @@ const MODULE_TO_ALERT = {
 };
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+function findOpenTaskByDedupe(existingTasks = [], dedupeKey = '') {
+  if (!dedupeKey) return null;
+  return arr(existingTasks).find((task) => !isTaskClosed(task) && (
+    task.task_dedupe_key === dedupeKey || taskDedupeKey(task) === dedupeKey
+  )) || null;
+}
+
+function findOpenAlertByDedupe(existingAlerts = [], dedupeKey = '') {
+  if (!dedupeKey) return null;
+  return arr(existingAlerts).find((alert) => !isAlertClosed(alert) && (
+    alert.alert_dedupe_key === dedupeKey
+  )) || null;
+}
 
 function mapTaskModule(module = '') {
   const resolved = resolveRouteModule(String(module || '').trim());
@@ -84,10 +100,14 @@ export function buildTaskPayloadFromPriorityItem(item = {}, existingTasks = []) 
   }
   return {
     id: generateSequentialId('taches', existingTasks),
-    title: `Traiter : ${item.title}`,
+    title: (() => {
+      const label = item.title || item.detail || 'priorité';
+      if (/^(Traiter|Préparer|Risque)\s*:/i.test(label) || /^Préparer\s/i.test(label)) return label;
+      return `Traiter : ${label}`;
+    })(),
     module_lie: mapTaskModule(item.sourceModule || item.navModule),
-    entity_type: item.record?.entity_type || item.kind || 'priorite',
-    related_id: item.record?.entity_id || item.record?.id || item.id,
+    entity_type: item.record?.entity_type || item.kind || item.entity_type || 'priorite',
+    related_id: item.record?.entity_id || item.record?.id || item.entity_id || item.id,
     assigned_to: 'TEAM-FERME',
     due_date: today(),
     priority: severityFromItem(item) === 'critique' ? 'critique' : 'haute',
@@ -96,7 +116,7 @@ export function buildTaskPayloadFromPriorityItem(item = {}, existingTasks = []) 
     notes: item.detail || item.message || '',
     source_module: 'centre_decisionnel',
     source_record_id: item.id,
-    task_dedupe_key: `centre-priorite:${item.id}`,
+    task_dedupe_key: item.task_dedupe_key || `centre-priorite:${item.id}`,
     action_key: item.detail?.slice(0, 120) || item.title,
   };
 }
@@ -150,7 +170,7 @@ export function navigateFromPriorityItem(item = {}, { onNavigate, setTab, module
 }
 
 export async function runPriorityTaskAction(item, handlers = {}) {
-  const { onCreateTask, onRefreshTasks, existingTasks = [] } = handlers;
+  const { onCreateTask, onRefreshTasks, onNavigate, existingTasks = [] } = handlers;
   if (typeof onCreateTask !== 'function') {
     toast.error('Création de tâche indisponible');
     return false;
@@ -165,10 +185,17 @@ export async function runPriorityTaskAction(item, handlers = {}) {
     toast.error('Impossible de créer une tâche pour cet élément');
     return false;
   }
+  const existing = findOpenTaskByDedupe(existingTasks, payload.task_dedupe_key);
+  if (existing) {
+    toast.success('Tâche déjà planifiée — ouverture Activité & Suivi');
+    onNavigate?.('activite_suivi', { tab: 'À traiter maintenant' });
+    return true;
+  }
   try {
     await onCreateTask(payload);
     await onRefreshTasks?.();
-    toast.success('Tâche créée');
+    toast.success('Tâche créée — visible dans Activité & Suivi');
+    onNavigate?.('activite_suivi', { tab: 'À traiter maintenant' });
     return true;
   } catch (error) {
     toast.error(error?.message || 'Création de tâche impossible');
@@ -177,7 +204,7 @@ export async function runPriorityTaskAction(item, handlers = {}) {
 }
 
 export async function runPriorityAlertAction(item, handlers = {}) {
-  const { onCreateAlert, onRefreshAlertes, existingAlerts = [] } = handlers;
+  const { onCreateAlert, onRefreshAlertes, onNavigate, existingAlerts = [] } = handlers;
   if (typeof onCreateAlert !== 'function') {
     toast.error("Création d'alerte indisponible");
     return false;
@@ -192,10 +219,17 @@ export async function runPriorityAlertAction(item, handlers = {}) {
     toast.error("Impossible de créer une alerte pour cet élément");
     return false;
   }
+  const existing = findOpenAlertByDedupe(existingAlerts, payload.alert_dedupe_key);
+  if (existing) {
+    toast.success('Alerte déjà créée — ouverture Activité & Suivi');
+    onNavigate?.('activite_suivi', { tab: 'À traiter maintenant' });
+    return true;
+  }
   try {
     await onCreateAlert(payload);
     await onRefreshAlertes?.();
-    toast.success('Alerte créée');
+    toast.success('Alerte créée — visible dans Activité & Suivi');
+    onNavigate?.('activite_suivi', { tab: 'À traiter maintenant' });
     return true;
   } catch (error) {
     toast.error(error?.message || "Création d'alerte impossible");

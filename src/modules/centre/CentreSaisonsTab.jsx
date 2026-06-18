@@ -61,6 +61,7 @@ export default function CentreSaisonsTab({
   onRefreshAlertes,
   existingTasks = [],
   existingAlerts = [],
+  setTab,
 }) {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [annexeOpen, setAnnexeOpen] = useState(false);
@@ -75,6 +76,7 @@ export default function CentreSaisonsTab({
         productionLogs={productionLogs}
         strategicPlan={strategicPlan}
         onNavigate={onNavigate}
+        setTab={setTab}
         onCreateTask={onCreateTask}
         onCreateAlert={onCreateAlert}
         onRefreshTasks={onRefreshTasks}

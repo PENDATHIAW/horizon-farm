@@ -8,7 +8,18 @@ const toneClass = {
   orange: 'border-orange-300 bg-orange-50',
 };
 
-export function StrategicDecisionCard({ item, onNavigate, onCreateTask, onCreateAlert, onRefreshTasks, onRefreshAlertes, existingTasks = [], existingAlerts = [] }) {
+export function StrategicDecisionCard({
+  item,
+  onNavigate,
+  setTab,
+  onOpenProductionCalendar,
+  onCreateTask,
+  onCreateAlert,
+  onRefreshTasks,
+  onRefreshAlertes,
+  existingTasks = [],
+  existingAlerts = [],
+}) {
   const priority = item.priority || item.severity || 'moyenne';
   return (
     <article className={`rounded-2xl border p-4 space-y-2 ${toneClass[priority] || toneClass.moyenne}`}>
@@ -35,6 +46,8 @@ export function StrategicDecisionCard({ item, onNavigate, onCreateTask, onCreate
       <StrategicQuickActions
         item={item}
         onNavigate={onNavigate}
+        setTab={setTab}
+        onOpenProductionCalendar={onOpenProductionCalendar}
         onCreateTask={onCreateTask}
         onCreateAlert={onCreateAlert}
         onRefreshTasks={onRefreshTasks}
