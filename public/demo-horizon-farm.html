@@ -171,6 +171,59 @@
     .success-box { padding: 0.75rem 1rem; background: #f0fdf4; border-radius: 0.6rem; color: #15803d; font-size: 0.85rem; font-weight: 600; margin-top: 0.75rem; border: 1px solid rgba(34,197,94,0.35); }
     .tour-nav { display: flex; gap: 0.75rem; margin-top: 1.25rem; justify-content: space-between; align-items: center; flex-wrap: wrap; }
     .tour-nav .progress-text { font-size: 0.8rem; color: var(--hf-muted); font-weight: 600; }
+
+    .persona-bar {
+      max-width: 1100px; margin: -1rem auto 0; padding: 0 1.5rem 1rem;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;
+    }
+    .persona-card {
+      text-align: left; padding: 1rem 1.1rem; border-radius: 1rem;
+      border: 2px solid var(--hf-border); background: white; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .persona-card:hover, .persona-card.active { border-color: var(--hf-accent); box-shadow: var(--shadow); background: #f0fdf4; }
+    .persona-card .icon { font-size: 1.6rem; margin-bottom: 0.35rem; }
+    .persona-card strong { display: block; font-size: 0.95rem; margin-bottom: 0.2rem; }
+    .persona-card span { font-size: 0.78rem; color: var(--hf-muted); }
+
+    .shortcut-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .shortcut-btn {
+      padding: 0.5rem 0.95rem; border-radius: 2rem; border: 1px dashed var(--hf-accent);
+      background: #f0fdf4; font-size: 0.8rem; font-weight: 700; cursor: pointer; color: var(--hf-accent-strong);
+    }
+    .shortcut-btn:hover { background: #dcfce7; }
+
+    .erp-capture {
+      margin: 1rem 0; border-radius: 0.85rem; overflow: hidden;
+      border: 1px solid var(--hf-border); background: #f9fafb; position: relative;
+    }
+    .erp-capture img { width: 100%; display: block; }
+    .erp-capture-badge {
+      position: absolute; top: 0.6rem; right: 0.6rem;
+      padding: 0.25rem 0.6rem; border-radius: 1rem; font-size: 0.65rem; font-weight: 800;
+      background: rgba(5, 46, 22, 0.85); color: #86efac; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .erp-link-row { display: flex; gap: 0.65rem; flex-wrap: wrap; margin-top: 1rem; align-items: center; }
+    .btn--erp { background: #052e16; color: #dcfce7; font-size: 0.82rem; padding: 0.6rem 1.1rem; }
+    .btn--erp:hover { background: #0a2818; color: white; text-decoration: none; }
+    .btn--whatsapp { background: #25d366; color: white; box-shadow: 0 8px 24px rgba(37,211,102,0.35); }
+    .btn--whatsapp:hover { color: white; text-decoration: none; }
+
+    .roi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-top: 1.25rem; }
+    @media (max-width: 700px) { .roi-grid { grid-template-columns: 1fr; } }
+    .roi-form, .roi-result {
+      background: white; border: 1px solid var(--hf-border); border-radius: 1rem; padding: 1.25rem;
+    }
+    .roi-form label { display: block; font-size: 0.8rem; font-weight: 600; margin: 0.75rem 0 0.35rem; color: var(--hf-muted); }
+    .roi-form input, .roi-form select {
+      width: 100%; padding: 0.6rem 0.85rem; border: 1px solid var(--hf-border);
+      border-radius: 0.6rem; font-family: inherit; font-size: 0.9rem;
+    }
+    .roi-highlight {
+      margin-top: 1rem; padding: 1rem; border-radius: 0.85rem;
+      background: linear-gradient(135deg, #f0fdf4, #ecfdf5); border: 1px solid rgba(34,197,94,0.35);
+    }
+    .roi-highlight strong { font-family: Fraunces, serif; font-size: 1.6rem; color: var(--hf-accent-strong); }
+    .footer-cta .cta-row { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
   </style>
 </head>
 <body>
@@ -186,15 +239,17 @@
   </header>
 
   <section class="hero">
-    <p style="font-size:0.7rem;font-weight:800;letter-spacing:0.25em;text-transform:uppercase;color:#b8954a;">Démo interactive · 17 modules · 8 parcours</p>
+    <p style="font-size:0.7rem;font-weight:800;letter-spacing:0.25em;text-transform:uppercase;color:#b8954a;">Démo interactive · 3 profils · liens ERP directs</p>
     <h1>Découvrez Horizon Farm en profondeur</h1>
-    <p>8 scénarios guidés, exploration de tous les modules, simulateur vente/stock et carte d'interconnexion — pour comprendre comment l'ERP relie terrain, finance et capteurs.</p>
+    <p>Choisissez votre profil, suivez un parcours raccourci (5 étapes max) et ouvrez chaque écran dans l'ERP avec données simulées — sans ressaisie.</p>
     <div class="hero-btns">
-      <button class="btn btn--primary" onclick="showPanel('tour'); selectScenario(0)">Parcours guidés</button>
-      <button class="btn btn--ghost" onclick="showPanel('simulator')">Simulateur vente</button>
-      <button class="btn btn--ghost" onclick="showPanel('flow')">Interconnexion</button>
+      <button class="btn btn--primary" onclick="showPanel('tour'); selectPersona('exploitant')">Parcours guidés</button>
+      <a class="btn btn--whatsapp" href="#" id="hero-whatsapp" target="_blank" rel="noopener">WhatsApp — démo guidée</a>
+      <a class="btn btn--ghost" href="/?demo=1" style="text-decoration:none;">Essai ERP simulé</a>
     </div>
   </section>
+
+  <div class="persona-bar" id="persona-bar"></div>
 
   <div class="tabs">
     <button class="tab" data-panel="modules" onclick="showPanel('modules')">Modules</button>
@@ -212,8 +267,9 @@
   </section>
 
   <section class="panel active" id="panel-tour">
-    <h2 class="section-title">8 parcours guidés</h2>
-    <p class="section-sub">Choisissez un scénario métier — chaque parcours montre les modules concernés et les effets en chaîne.</p>
+    <h2 class="section-title">Parcours guidés par profil</h2>
+    <p class="section-sub" id="persona-sub">Profil exploitant — scénarios terrain, élevage, cultures et mode hors ligne.</p>
+    <div class="shortcut-row" id="shortcut-row"></div>
     <div class="scenario-grid" id="scenario-grid"></div>
     <div class="tour-layout">
       <div class="tour-steps" id="tour-steps"></div>
@@ -265,7 +321,7 @@
 
   <section class="panel" id="panel-impact">
     <h2 class="section-title">Pourquoi s'abonner ?</h2>
-    <p class="section-sub">Un seul abonnement remplace plusieurs outils et évite les pertes évitables.</p>
+    <p class="section-sub">Estimez votre retour sur investissement — un seul abonnement remplace plusieurs outils.</p>
     <div class="impact-grid">
       <div class="impact-card"><strong>−50%</strong><span>temps de saisie</span></div>
       <div class="impact-card"><strong>+100%</strong><span>visibilité trésorerie</span></div>
@@ -273,6 +329,29 @@
       <div class="impact-card"><strong>24/7</strong><span>surveillance capteurs</span></div>
       <div class="impact-card"><strong>17</strong><span>modules intégrés</span></div>
       <div class="impact-card"><strong>1 clic</strong><span>marge par vente</span></div>
+    </div>
+    <div class="roi-grid">
+      <div class="roi-form">
+        <h3 style="font-family:Fraunces,serif;margin-bottom:0.35rem;">Mini calculateur ROI</h3>
+        <p style="font-size:0.82rem;color:var(--hf-muted);margin-bottom:0.5rem;">Estimation mensuelle pour votre exploitation.</p>
+        <label>Effectif terrain (personnes)</label>
+        <input type="number" id="roi-staff" value="4" min="1" max="50" oninput="runRoi()" />
+        <label>Heures / semaine de saisie manuelle (avant ERP)</label>
+        <input type="number" id="roi-hours" value="12" min="1" max="80" oninput="runRoi()" />
+        <label>Coût horaire moyen (FCFA)</label>
+        <input type="number" id="roi-hourly" value="2500" min="500" step="100" oninput="runRoi()" />
+        <label>Ruptures stock / mois (estimation)</label>
+        <input type="number" id="roi-ruptures" value="2" min="0" max="20" oninput="runRoi()" />
+        <label>Coût moyen par rupture (FCFA)</label>
+        <input type="number" id="roi-rupture-cost" value="85000" min="0" step="1000" oninput="runRoi()" />
+        <label>Formule Horizon Farm</label>
+        <select id="roi-plan" onchange="runRoi()">
+          <option value="essentiel">Essentiel — 45 000 FCFA / mois</option>
+          <option value="pro" selected>Pro — 85 000 FCFA / mois</option>
+          <option value="groupe">Groupe — 145 000 FCFA / mois</option>
+        </select>
+      </div>
+      <div class="roi-result" id="roi-result"></div>
     </div>
     <div style="margin-top:1.5rem;padding:1.25rem;background:white;border-radius:1rem;border:1px solid var(--hf-border);">
       <h3 style="font-family:Fraunces,serif;margin-bottom:0.75rem;">Formules</h3>
@@ -285,12 +364,67 @@
   <section class="footer-cta">
     <h2>Prêt à piloter votre exploitation autrement ?</h2>
     <p>Essai 30 jours · Accompagnement déploiement · Guide PDF inclus</p>
-    <a class="btn btn--primary" href="mailto:contact@horizon-farm.app?subject=Démo%20Horizon%20Farm">Réserver ma démo gratuite</a>
-    <p style="margin-top:1rem;font-size:0.85rem;"><a href="/?demo=1" style="color:#86efac;">Ouvrir l'ERP avec données simulées →</a></p>
+    <div class="cta-row">
+      <a class="btn btn--whatsapp" href="#" id="footer-whatsapp" target="_blank" rel="noopener">WhatsApp — démo guidée</a>
+      <a class="btn btn--primary" href="/?demo=1">Essai guidé dans l'ERP</a>
+      <a class="btn btn--ghost" href="mailto:contact@horizon-farm.app?subject=Démo%20Horizon%20Farm" style="text-decoration:none;">Email</a>
+    </div>
+    <p style="margin-top:1rem;font-size:0.85rem;"><a href="/?demo=1&module=dashboard" style="color:#86efac;">Ouvrir l'Accueil avec données simulées →</a></p>
     <p style="margin-top:0.35rem;font-size:0.85rem;"><a href="/pitch-horizon-farm.html" style="color:#86efac;">Voir le pitch complet →</a></p>
   </section>
 
   <script>
+    const WHATSAPP_NUMBER = '221771110004';
+    const WHATSAPP_TEXT = encodeURIComponent('Bonjour, je souhaite une démo guidée Horizon Farm (profil : ');
+    const PLAN_COSTS = { essentiel: 45000, pro: 85000, groupe: 145000 };
+
+    function buildErpUrl({ module, tab, hey } = {}) {
+      const params = new URLSearchParams({ demo: '1' });
+      if (module) params.set('module', module);
+      if (tab) params.set('tab', tab);
+      if (hey) params.set('hey', hey);
+      return '/?' + params.toString();
+    }
+
+    function whatsAppHref(personaLabel) {
+      return `https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_TEXT}${encodeURIComponent(personaLabel || 'exploitant')}).`;
+    }
+
+    const PERSONAS = [
+      {
+        id: 'exploitant', icon: '🌾', title: 'Exploitant terrain',
+        desc: 'Pilotage quotidien, élevage, cultures, hors ligne.',
+        sub: 'Scénarios terrain : matinée type, élevage, cultures, mode hors ligne.',
+        scenarioIds: ['matinee', 'elevage', 'cultures', 'offline'],
+        shortcuts: [
+          { label: '⚡ Matinée express', scenarioId: 'matinee' },
+          { label: '🐓 Mortalité & capteurs', scenarioId: 'elevage' },
+          { label: '📡 Hors ligne terrain', scenarioId: 'offline' },
+        ],
+      },
+      {
+        id: 'commerce', icon: '💼', title: 'Commerce & finance',
+        desc: 'Ventes, trésorerie, OCR et stocks.',
+        sub: 'Scénarios commerce : vente complète, fin de mois, OCR facture.',
+        scenarioIds: ['vente', 'finance', 'ocr'],
+        shortcuts: [
+          { label: '⚡ Vente → encaissement', scenarioId: 'vente' },
+          { label: '💰 Trésorerie 30j', scenarioId: 'finance' },
+          { label: '📄 OCR fournisseur', scenarioId: 'ocr' },
+        ],
+      },
+      {
+        id: 'investisseur', icon: '🏦', title: 'Banque / investisseur',
+        desc: 'Dossier financement, KPIs live, exports PDF.',
+        sub: 'Vue financeur : dossier banque et pilotage financier.',
+        scenarioIds: ['investisseur', 'finance'],
+        shortcuts: [
+          { label: '⚡ Investor Room', scenarioId: 'investisseur' },
+          { label: '📊 Fin de mois CFO', scenarioId: 'finance' },
+        ],
+      },
+    ];
+
     const MODULES = [
       { group: 'Pilotage', name: 'Accueil', desc: 'Tableau de bord dirigeant', features: ['Cartes Élevage, Cultures, Stock, Finance', 'Bandeau capteurs Smart Farm temps réel', 'Objectifs CA et conseil actionnable', 'Journal terrain du jour', 'Navigation 1-clic vers chaque domaine'] },
       { group: 'Pilotage', name: 'Assistant ERP', desc: 'Hey Horizon — IA terrain', features: ['Saisie en langage naturel (texte ou vocal)', 'Brouillon → validation avant écriture', 'OCR factures et reçus', 'Routage auto vers Commercial, Stock, Finance', 'Disponible globalement dans l\'ERP'] },
@@ -315,7 +449,7 @@
       {
         id: 'matinee', icon: '🌅', title: 'Matinée type', desc: 'Journée complète dirigeant',
         steps: [
-          { title: '08h00 — Accueil', html: `<div class="mock-bar"><span class="on">Accueil</span><span>Élevage</span><span>Commercial</span></div>
+          { title: '08h00 — Accueil', screen: 'dashboard-accueil', erp: { module: 'dashboard' }, html: `<div class="mock-bar"><span class="on">Accueil</span><span>Élevage</span><span>Commercial</span></div>
             <p><strong>Bonjour, voici votre exploitation.</strong></p>
             <div class="domain-cards">
               <div class="domain-card"><div class="label">ÉLEVAGE</div><div class="val">4 300 têtes</div></div>
@@ -323,19 +457,19 @@
               <div class="domain-card"><div class="label">FINANCE</div><div class="val">2,4 M FCFA</div></div>
               <div class="domain-card"><div class="label">CAPTEURS</div><div class="val">28°C</div></div>
             </div>` },
-          { title: '08h15 — Assistant', html: `<div class="mock-bar"><span class="on">Assistant</span><span>Stock</span></div>
+          { title: '08h15 — Assistant', screen: 'assistant-terrain', erp: { module: 'assistant_erp', hey: 'Réception 20 sacs aliment' }, html: `<div class="mock-bar"><span class="on">Assistant</span><span>Stock</span></div>
             <div class="chat-demo">
               <div class="bubble bubble--user">Réception 20 sacs aliment AgroFeed, 480 000 FCFA crédit 15j.</div>
               <div class="bubble bubble--bot"><strong>Brouillon réception</strong><br/>Stock +20 · Dette fournisseur · ✓ Valider</div>
             </div>
             <div class="success-box">Alerte rupture aliment levée sur l'Accueil</div>` },
-          { title: '09h00 — Vente', html: `<div class="mock-bar"><span class="on">Commercial</span><span>Finance</span></div>
+          { title: '09h00 — Vente', screen: 'commercial-vente', erp: { module: 'commercial', tab: 'Ventes' }, html: `<div class="mock-bar"><span class="on">Commercial</span><span>Finance</span></div>
             <p>Vente 20 tablettes œufs · 70 000 FCFA · Orange Money</p>
             <p style="font-size:0.85rem;margin-top:0.5rem;">Vente <span class="flow-arrow">→</span> Stock <span class="flow-arrow">→</span> Trésorerie <span class="flow-arrow">→</span> Marge +12 400 FCFA</p>` },
-          { title: '10h30 — Smart Farm', html: `<div class="mock-bar"><span class="on">Smart Farm</span><span>Activité</span></div>
+          { title: '10h30 — Smart Farm', erp: { module: 'smartfarm' }, html: `<div class="mock-bar"><span class="on">Smart Farm</span><span>Activité</span></div>
             <p style="font-size:2rem;font-family:Fraunces,serif;font-weight:700;color:#b45309;">32°C</p>
             <div class="alert-box">→ Tâche « Vérifier ventilation » dans À traiter maintenant</div>` },
-          { title: '18h00 — Journal', html: `<div class="mock-bar"><span class="on">Activité & Suivi</span></div>
+          { title: '18h00 — Journal', erp: { module: 'activite_suivi', tab: 'Cockpit & décisions' }, html: `<div class="mock-bar"><span class="on">Activité & Suivi</span></div>
             <p><strong>12 événements tracés</strong> : réception, vente, alerte, mortalité, OCR…</p>
             <p style="font-size:0.85rem;color:var(--hf-muted);margin-top:0.5rem;">Export PDF prêt pour banque ou investisseur.</p>` },
         ],
@@ -343,18 +477,18 @@
       {
         id: 'vente', icon: '🛒', title: 'Vente complète', desc: 'Commande → livraison → paiement',
         steps: [
-          { title: '1 — Commande client', html: `<div class="mock-bar"><span class="on">Commercial</span></div>
+          { title: '1 — Commande client', screen: 'commercial-vente', erp: { module: 'commercial', tab: 'Ventes' }, html: `<div class="mock-bar"><span class="on">Commercial</span></div>
             <p><strong>Restaurant Le Palmier</strong> — 50 tablettes œufs · 175 000 FCFA</p>
             <p style="font-size:0.85rem;color:var(--hf-muted);">Statut : commande confirmée · livraison demain 7h</p>` },
-          { title: '2 — Préparation stock', html: `<div class="mock-bar"><span>Commercial</span><span class="on">Stock</span></div>
+          { title: '2 — Préparation stock', erp: { module: 'achats_stock', tab: 'Inventaire' }, html: `<div class="mock-bar"><span>Commercial</span><span class="on">Stock</span></div>
             <p>Réservation automatique : −50 tablettes du stock œufs</p>
             <div class="alert-box">Stock restant : 70 tablettes (seuil alerte : 30)</div>` },
-          { title: '3 — Livraison', html: `<div class="mock-bar"><span class="on">Commercial</span><span>Activité</span></div>
+          { title: '3 — Livraison', erp: { module: 'commercial', tab: 'Livraisons' }, html: `<div class="mock-bar"><span class="on">Commercial</span><span>Activité</span></div>
             <p>Livraison effectuée · Bon de livraison signé · Traçabilité lot #PON-2026-04</p>` },
-          { title: '4 — Encaissement', html: `<div class="mock-bar"><span>Commercial</span><span class="on">Finance</span></div>
+          { title: '4 — Encaissement', erp: { module: 'finance_pilotage', tab: 'Résumé' }, html: `<div class="mock-bar"><span>Commercial</span><span class="on">Finance</span></div>
             <p>Paiement Orange Money reçu · 175 000 FCFA</p>
             <div class="success-box">Trésorerie +175 000 · Créance soldée · Marge nette : +48 200 FCFA</div>` },
-          { title: '5 — Relance WhatsApp', html: `<div class="mock-bar"><span class="on">Commercial</span></div>
+          { title: '5 — Relance WhatsApp', erp: { module: 'commercial', tab: 'Clients & créances' }, html: `<div class="mock-bar"><span class="on">Commercial</span></div>
             <p>Pour un client à crédit : relance automatique J+7 via template WhatsApp</p>
             <p style="font-size:0.85rem;color:var(--hf-muted);">Créances visibles sur Accueil et Finance en temps réel.</p>` },
         ],
@@ -362,16 +496,16 @@
       {
         id: 'elevage', icon: '🐓', title: 'Suivi élevage', desc: 'Mortalité, santé, lots',
         steps: [
-          { title: '1 — Saisie mortalité', html: `<div class="mock-bar"><span class="on">Élevage</span></div>
+          { title: '1 — Saisie mortalité', screen: 'elevage-lots', erp: { module: 'elevage', tab: 'Lots & bandes' }, html: `<div class="mock-bar"><span class="on">Élevage</span></div>
             <p>Lot PON-2026-04 : <strong>12 mortalités</strong> ce matin (cause : chaleur)</p>
             <p style="font-size:0.85rem;">Effectif mis à jour : 4 288 têtes (−12)</p>` },
-          { title: '2 — Impact Accueil', html: `<div class="mock-bar"><span class="on">Accueil</span></div>
+          { title: '2 — Impact Accueil', screen: 'dashboard-accueil', erp: { module: 'dashboard' }, html: `<div class="mock-bar"><span class="on">Accueil</span></div>
             <p>Carte Élevage actualisée · Taux mortalité 7j : 0,28%</p>
             <div class="alert-box">Conseil : vérifier ventilation Poulailler A (lien Smart Farm)</div>` },
-          { title: '3 — Traitement vétérinaire', html: `<div class="mock-bar"><span class="on">Élevage</span><span>Santé</span></div>
+          { title: '3 — Traitement vétérinaire', erp: { module: 'elevage', tab: 'Santé' }, html: `<div class="mock-bar"><span class="on">Élevage</span><span>Santé</span></div>
             <p>Vaccination lot prévue · Rappel dans Activité & Suivi</p>
             <p style="font-size:0.85rem;">Sortie stock vaccin enregistrée automatiquement</p>` },
-          { title: '4 — Centre décisionnel', html: `<div class="mock-bar"><span class="on">Centre décisionnel</span></div>
+          { title: '4 — Centre décisionnel', erp: { module: 'centre_ia', tab: 'Urgences & risques' }, html: `<div class="mock-bar"><span class="on">Centre décisionnel</span></div>
             <p><strong>Urgence zootechnique</strong> : mortalité + chaleur capteur = action prioritaire</p>
             <p style="font-size:0.85rem;">Export CSV pour réunion équipe</p>` },
         ],
@@ -379,79 +513,79 @@
       {
         id: 'cultures', icon: '🌱', title: 'Récolte cultures', desc: 'Parcelle → stock → vente',
         steps: [
-          { title: '1 — Récolte parcelle', html: `<div class="mock-bar"><span class="on">Cultures</span></div>
+          { title: '1 — Récolte parcelle', erp: { module: 'cultures', tab: 'Parcelles & campagnes' }, html: `<div class="mock-bar"><span class="on">Cultures</span></div>
             <p>Parcelle Tomates Nord · <strong>120 caisses</strong> récoltées · 2,4 t/ha</p>` },
-          { title: '2 — Entrée stock', html: `<div class="mock-bar"><span>Cultures</span><span class="on">Stock</span></div>
+          { title: '2 — Entrée stock', erp: { module: 'achats_stock', tab: 'Inventaire' }, html: `<div class="mock-bar"><span>Cultures</span><span class="on">Stock</span></div>
             <p>Produit « Tomates fraîches » +120 caisses · DLC J+5</p>
             <div class="success-box">Disponible immédiatement pour Commercial</div>` },
-          { title: '3 — Vente marché', html: `<div class="mock-bar"><span class="on">Commercial</span></div>
+          { title: '3 — Vente marché', screen: 'commercial-vente', erp: { module: 'commercial', tab: 'Ventes' }, html: `<div class="mock-bar"><span class="on">Commercial</span></div>
             <p>Vente grossiste : 80 caisses · 240 000 FCFA · marge parcelle visible</p>` },
-          { title: '4 — Économie circulaire', html: `<div class="mock-bar"><span class="on">Cultures</span><span>Élevage</span></div>
+          { title: '4 — Économie circulaire', erp: { module: 'cultures' }, html: `<div class="mock-bar"><span class="on">Cultures</span><span>Élevage</span></div>
             <p>Fumier poulailler → compost parcelle · Lien élevage ↔ cultures tracé</p>` },
         ],
       },
       {
         id: 'finance', icon: '💰', title: 'Fin de mois', desc: 'Trésorerie et créances',
         steps: [
-          { title: '1 — Résumé exécutif', html: `<div class="mock-bar"><span class="on">Finance</span></div>
+          { title: '1 — Résumé exécutif', screen: 'finance-resume', erp: { module: 'finance_pilotage', tab: 'Résumé' }, html: `<div class="mock-bar"><span class="on">Finance</span></div>
             <div class="domain-cards">
               <div class="domain-card"><div class="label">TRÉSORERIE</div><div class="val">2,4 M</div></div>
               <div class="domain-card"><div class="label">CRÉANCES</div><div class="val">890 K</div></div>
               <div class="domain-card"><div class="label">DETTES</div><div class="val">1,1 M</div></div>
               <div class="domain-card"><div class="label">SANTÉ ERP</div><div class="val">82/100</div></div>
             </div>` },
-          { title: '2 — Réconciliation', html: `<div class="mock-bar"><span class="on">Finance</span><span>Documents</span></div>
+          { title: '2 — Réconciliation', erp: { module: 'finance_pilotage', tab: 'Réconciliation' }, html: `<div class="mock-bar"><span class="on">Finance</span><span>Documents</span></div>
             <p>12 paiements à rapprocher · OCR facture fournisseur → charge validée</p>` },
-          { title: '3 — Prévision 30j', html: `<div class="mock-bar"><span class="on">Finance</span></div>
+          { title: '3 — Prévision 30j', erp: { module: 'finance_pilotage', tab: 'Pilotage' }, html: `<div class="mock-bar"><span class="on">Finance</span></div>
             <p>Échéancier dettes fournisseurs · Encaissements clients attendus</p>
             <div class="alert-box">Point bas trésorerie prévu J+18 : planifier apport</div>` },
-          { title: '4 — Rentabilité', html: `<div class="mock-bar"><span class="on">Finance</span><span>Objectifs</span></div>
+          { title: '4 — Rentabilité', erp: { module: 'finance_pilotage', tab: 'Pilotage' }, html: `<div class="mock-bar"><span class="on">Finance</span><span>Objectifs</span></div>
             <p>Aviculture : +18% marge · Maraîchage : +12% · Coût unifié élevage + cultures</p>` },
         ],
       },
       {
         id: 'investisseur', icon: '📈', title: 'Dossier banque', desc: 'Investisseurs & Forums',
         steps: [
-          { title: '1 — Investor Room', html: `<div class="mock-bar"><span class="on">Investisseurs</span></div>
+          { title: '1 — Investor Room', screen: 'investisseurs-room', erp: { module: 'investisseurs_forums', tab: 'room' }, html: `<div class="mock-bar"><span class="on">Investisseurs</span></div>
             <p>KPIs ERP live : CA 12 mois, marge, effectifs, traçabilité ventes</p>
             <p style="font-size:0.85rem;">Données issues des modules — pas de ressaisie</p>` },
-          { title: '2 — Dossier 9 sections', html: `<div class="mock-bar"><span class="on">Investisseurs</span></div>
+          { title: '2 — Dossier 9 sections', erp: { module: 'investisseurs_forums', tab: 'dossier' }, html: `<div class="mock-bar"><span class="on">Investisseurs</span></div>
             <p>Présentation · Marché · Production · Finances · Risques · Annexes…</p>
             <p style="font-size:0.85rem;">Éditable section par section</p>` },
-          { title: '3 — Export PDF', html: `<div class="mock-bar"><span class="on">Documents</span></div>
+          { title: '3 — Export PDF', erp: { module: 'investisseurs_forums', tab: 'export' }, html: `<div class="mock-bar"><span class="on">Documents</span></div>
             <p>Export PDF banque/ONG · Mise en page professionnelle</p>
             <div class="success-box">Historique envoi enregistré dans CRM investisseurs</div>` },
-          { title: '4 — Data Room', html: `<div class="mock-bar"><span class="on">Investisseurs</span></div>
+          { title: '4 — Data Room', erp: { module: 'investisseurs_forums', tab: 'library' }, html: `<div class="mock-bar"><span class="on">Investisseurs</span></div>
             <p>Documents partagés : BP, états financiers, preuves traçabilité</p>` },
         ],
       },
       {
         id: 'ocr', icon: '📄', title: 'OCR facture', desc: 'Documents & rapprochement',
         steps: [
-          { title: '1 — Scan facture', html: `<div class="mock-bar"><span class="on">Documents</span></div>
+          { title: '1 — Scan facture', erp: { module: 'documents_rapports', tab: 'Centre de contrôle' }, html: `<div class="mock-bar"><span class="on">Documents</span></div>
             <p>Photo facture AgroFeed · OCR extrait : 480 000 FCFA · 20 sacs aliment</p>` },
-          { title: '2 — Brouillon Hey Horizon', html: `<div class="mock-bar"><span class="on">Assistant</span></div>
+          { title: '2 — Brouillon Hey Horizon', screen: 'assistant-terrain', erp: { module: 'assistant_erp' }, html: `<div class="mock-bar"><span class="on">Assistant</span></div>
             <div class="chat-demo">
               <div class="bubble bubble--bot"><strong>Facture détectée</strong><br/>Fournisseur AgroFeed · 480 000 FCFA<br/>→ Lier à réception stock du 08/06 ?</div>
             </div>` },
-          { title: '3 — Rapprochement', html: `<div class="mock-bar"><span>Documents</span><span class="on">Finance</span></div>
+          { title: '3 — Rapprochement', erp: { module: 'finance_pilotage', tab: 'Réconciliation' }, html: `<div class="mock-bar"><span>Documents</span><span class="on">Finance</span></div>
             <p>Preuve rapprochée à l'écriture dette fournisseur · Statut : validé</p>` },
-          { title: '4 — Audit Sync ERP', html: `<div class="mock-bar"><span class="on">Sync ERP</span></div>
+          { title: '4 — Audit Sync ERP', erp: { module: 'sync_activity' }, html: `<div class="mock-bar"><span class="on">Sync ERP</span></div>
             <p>Santé ERP : aucune incohérence · Journal : OCR + réception + dette liés</p>` },
         ],
       },
       {
         id: 'offline', icon: '📡', title: 'Mode hors ligne', desc: 'Terrain sans réseau',
         steps: [
-          { title: '1 — Saisie terrain', html: `<div class="mock-bar"><span class="on">Assistant</span></div>
+          { title: '1 — Saisie terrain', screen: 'assistant-terrain', erp: { module: 'assistant_erp', hey: '8 mortalités lot chair B' }, html: `<div class="mock-bar"><span class="on">Assistant</span></div>
             <p>Connexion faible · Saisie locale : « 8 mortalités lot chair B »</p>
             <div class="alert-box">Mode hors ligne actif — données en attente de sync</div>` },
-          { title: '2 — File d\'attente', html: `<div class="mock-bar"><span class="on">Sync ERP</span></div>
+          { title: '2 — File d\'attente', erp: { module: 'sync_activity' }, html: `<div class="mock-bar"><span class="on">Sync ERP</span></div>
             <p>3 opérations en attente : mortalité, vente, réception</p>` },
-          { title: '3 — Synchronisation', html: `<div class="mock-bar"><span class="on">Sync ERP</span></div>
+          { title: '3 — Synchronisation', erp: { module: 'sync_activity' }, html: `<div class="mock-bar"><span class="on">Sync ERP</span></div>
             <p>Retour réseau · Sync automatique · Élevage, Stock, Activité mis à jour</p>
             <div class="success-box">Aucun doublon · Résolution conflits guidée si besoin</div>` },
-          { title: '4 — Accueil actualisé', html: `<div class="mock-bar"><span class="on">Accueil</span></div>
+          { title: '4 — Accueil actualisé', screen: 'dashboard-accueil', erp: { module: 'dashboard' }, html: `<div class="mock-bar"><span class="on">Accueil</span></div>
             <p>Cartes domaine et journal reflètent les saisies terrain synchronisées</p>` },
         ],
       },
@@ -473,8 +607,95 @@
       tomates: { name: 'Caisses tomates', stock: 40, cost: 1800 },
     };
 
+    let personaId = 'exploitant';
     let scenarioIndex = 0;
     let tourIndex = 0;
+
+    function currentPersona() {
+      return PERSONAS.find((p) => p.id === personaId) || PERSONAS[0];
+    }
+
+    function filteredScenarios() {
+      const ids = currentPersona().scenarioIds;
+      return SCENARIOS.filter((s) => ids.includes(s.id));
+    }
+
+    function renderPersonas() {
+      document.getElementById('persona-bar').innerHTML = PERSONAS.map((p) => `
+        <button class="persona-card${p.id === personaId ? ' active' : ''}" onclick="selectPersona('${p.id}')">
+          <div class="icon">${p.icon}</div><strong>${p.title}</strong><span>${p.desc}</span>
+        </button>`).join('');
+      document.getElementById('persona-sub').textContent = currentPersona().sub;
+      const shortcuts = currentPersona().shortcuts || [];
+      document.getElementById('shortcut-row').innerHTML = shortcuts.map((s) => `
+        <button class="shortcut-btn" onclick="jumpShortcut('${s.scenarioId}')">${s.label}</button>`).join('');
+      const wa = whatsAppHref(currentPersona().title);
+      document.getElementById('hero-whatsapp').href = wa;
+      document.getElementById('footer-whatsapp').href = wa;
+    }
+
+    function selectPersona(id) {
+      personaId = id;
+      scenarioIndex = 0;
+      tourIndex = 0;
+      renderPersonas();
+      renderScenarios();
+      renderTour();
+    }
+
+    function jumpShortcut(scenarioId) {
+      const list = filteredScenarios();
+      const idx = list.findIndex((s) => s.id === scenarioId);
+      if (idx >= 0) selectScenario(idx);
+      showPanel('tour');
+    }
+
+    function stepCaptureHtml(step) {
+      if (!step.screen) return '';
+      return `<div class="erp-capture">
+        <img src="/demo/screens/${step.screen}.svg" alt="Capture ERP ${step.title}" loading="lazy" />
+        <span class="erp-capture-badge">Capture ERP simulée</span>
+      </div>`;
+    }
+
+    function stepErpHtml(step) {
+      if (!step.erp) return '';
+      const href = buildErpUrl(step.erp);
+      return `<div class="erp-link-row">
+        <a class="btn btn--erp" href="${href}" target="_blank" rel="noopener">Voir dans l'ERP →</a>
+        <span style="font-size:0.78rem;color:var(--hf-muted);">Données simulées · module ${step.erp.module}${step.erp.tab ? ' · ' + step.erp.tab : ''}</span>
+      </div>`;
+    }
+
+    function runRoi() {
+      const staff = Math.max(1, parseInt(document.getElementById('roi-staff').value, 10) || 1);
+      const hours = Math.max(1, parseFloat(document.getElementById('roi-hours').value) || 1);
+      const hourly = Math.max(500, parseInt(document.getElementById('roi-hourly').value, 10) || 500);
+      const ruptures = Math.max(0, parseInt(document.getElementById('roi-ruptures').value, 10) || 0);
+      const ruptureCost = Math.max(0, parseInt(document.getElementById('roi-rupture-cost').value, 10) || 0);
+      const plan = document.getElementById('roi-plan').value;
+      const subCost = PLAN_COSTS[plan] || PLAN_COSTS.pro;
+
+      const timeSavedHours = hours * 4.3 * 0.5;
+      const timeSavedFcfa = Math.round(timeSavedHours * hourly);
+      const ruptureSaved = Math.round(ruptures * ruptureCost * 0.3);
+      const totalGain = timeSavedFcfa + ruptureSaved;
+      const netRoi = totalGain - subCost;
+      const ratio = subCost > 0 ? (totalGain / subCost).toFixed(1) : '—';
+
+      document.getElementById('roi-result').innerHTML = `
+        <h4 style="font-family:Fraunces,serif;margin-bottom:0.75rem;">Estimation mensuelle</h4>
+        <div class="sim-line"><span>Temps saisie économisé (−50%)</span><strong>${timeSavedFcfa.toLocaleString('fr-FR')} FCFA</strong></div>
+        <div class="sim-line"><span>Ruptures évitées (−30%)</span><strong>${ruptureSaved.toLocaleString('fr-FR')} FCFA</strong></div>
+        <div class="sim-line"><span>Gain brut estimé</span><strong>${totalGain.toLocaleString('fr-FR')} FCFA</strong></div>
+        <div class="sim-line"><span>Abonnement ${plan}</span><span>−${subCost.toLocaleString('fr-FR')} FCFA</span></div>
+        <div class="roi-highlight">
+          <div style="font-size:0.85rem;color:var(--hf-muted);margin-bottom:0.35rem;">ROI net mensuel</div>
+          <strong>${netRoi >= 0 ? '+' : ''}${netRoi.toLocaleString('fr-FR')} FCFA</strong>
+          <div style="font-size:0.82rem;color:var(--hf-muted);margin-top:0.35rem;">Ratio gain/abonnement : ×${ratio}</div>
+        </div>
+        <a class="btn btn--primary" style="margin-top:1rem;display:inline-block;text-decoration:none;" href="/?demo=1">Tester avec données simulées</a>`;
+    }
 
     function renderModules() {
       document.getElementById('module-grid').innerHTML = MODULES.map((m, i) => `
@@ -494,9 +715,11 @@
     }
 
     function renderScenarios() {
-      document.getElementById('scenario-grid').innerHTML = SCENARIOS.map((s, i) => `
+      const list = filteredScenarios();
+      if (scenarioIndex >= list.length) scenarioIndex = 0;
+      document.getElementById('scenario-grid').innerHTML = list.map((s, i) => `
         <button class="scenario-card${i === scenarioIndex ? ' active' : ''}" onclick="selectScenario(${i})">
-          <div class="icon">${s.icon}</div><strong>${s.title}</strong><span>${s.desc}</span>
+          <div class="icon">${s.icon}</div><strong>${s.title}</strong><span>${s.desc} · ${s.steps.length} étapes</span>
         </button>`).join('');
     }
 
@@ -508,17 +731,24 @@
     }
 
     function renderTour() {
-      const scenario = SCENARIOS[scenarioIndex];
+      const list = filteredScenarios();
+      const scenario = list[scenarioIndex] || list[0];
+      if (!scenario) return;
       const steps = scenario.steps;
       document.getElementById('tour-steps').innerHTML = steps.map((s, i) => `
         <button class="tour-step-btn${i === tourIndex ? ' active' : ''}${i < tourIndex ? ' done' : ''}" onclick="goTourStep(${i})">${s.title}</button>`).join('');
-      document.getElementById('tour-screen').innerHTML = `<h3 style="font-family:Fraunces,serif;margin-bottom:1rem;">${scenario.title} — ${steps[tourIndex].title}</h3>${steps[tourIndex].html}`;
-      document.getElementById('tour-progress').textContent = `Étape ${tourIndex + 1} / ${steps.length}`;
+      const step = steps[tourIndex];
+      document.getElementById('tour-screen').innerHTML = `
+        <h3 style="font-family:Fraunces,serif;margin-bottom:1rem;">${scenario.title} — ${step.title}</h3>
+        ${stepCaptureHtml(step)}
+        ${step.html}
+        ${stepErpHtml(step)}`;
+      document.getElementById('tour-progress').textContent = `Étape ${tourIndex + 1} / ${steps.length} · Profil ${currentPersona().title}`;
     }
 
     function goTourStep(i) { tourIndex = i; renderTour(); }
     function nextTour() {
-      const steps = SCENARIOS[scenarioIndex].steps;
+      const steps = (filteredScenarios()[scenarioIndex] || filteredScenarios()[0])?.steps || [];
       if (tourIndex < steps.length - 1) { tourIndex++; renderTour(); }
     }
     function prevTour() {
@@ -573,11 +803,23 @@
     }
 
     renderModules();
+    renderPersonas();
     renderScenarios();
     renderTour();
     renderFlows();
     runSimulator();
+    runRoi();
     selectModule(0);
+
+    (function initFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const persona = params.get('persona');
+      if (persona && PERSONAS.some((p) => p.id === persona)) selectPersona(persona);
+      const scenario = params.get('scenario');
+      if (scenario) jumpShortcut(scenario);
+      const panel = params.get('panel');
+      if (panel) showPanel(panel);
+    })();
   </script>
 </body>
 </html>

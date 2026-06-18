@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-label="Investisseurs Horizon Farm">
+  <rect width="960" height="540" fill="#f6faf6"/>
+  <rect width="960" height="52" fill="#052e16"/>
+  <text x="24" y="33" fill="#dcfce7" font-family="system-ui,sans-serif" font-size="16" font-weight="700">Investisseurs  Investor Room</text>
+  <rect x="24" y="72" width="912" height="120" rx="14" fill="#fff" stroke="#22c55e" stroke-width="2"/>
+  <text x="40" y="108" fill="#2f2415" font-size="18" font-weight="700">Horizon Farm  KPIs ERP live</text>
+  <text x="40" y="138" fill="#8a7456" font-size="14">CA 12 mois · Marge · Effectifs · Traçabilité ventes</text>
+  <text x="40" y="168" fill="#15803d" font-size="13" font-weight="600">Score readiness dossier : 78/100</text>
+  <rect x="24" y="212" width="440" height="280" rx="12" fill="#fff" stroke="#eadcc2"/>
+  <text x="40" y="244" fill="#2f2415" font-size="14" font-weight="700">Dossier banque (9 sections)</text>
+  <text x="40" y="276" fill="#8a7456" font-size="13">Présentation · Marché · Production</text>
+  <text x="40" y="300" fill="#8a7456" font-size="13">Finances · Risques · Annexes</text>
+  <rect x="40" y="324" width="160" height="36" rx="18" fill="#22c55e"/>
+  <text x="72" y="347" fill="#fff" font-size="12" font-weight="700">Export PDF</text>
+  <rect x="496" y="212" width="440" height="280" rx="12" fill="#fff" stroke="#eadcc2"/>
+  <text x="512" y="244" fill="#2f2415" font-size="14" font-weight="700">Data Room</text>
+  <text x="512" y="276" fill="#8a7456" font-size="13">BP · États financiers · Preuves traçabilité</text>
+</svg>

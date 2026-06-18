@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-label="Assistant Hey Horizon">
+  <rect width="960" height="540" fill="#f6faf6"/>
+  <rect width="960" height="52" fill="#052e16"/>
+  <text x="24" y="33" fill="#dcfce7" font-family="system-ui,sans-serif" font-size="16" font-weight="700">Hey Horizon  Assistant ERP</text>
+  <rect x="24" y="72" width="912" height="448" rx="14" fill="#fff" stroke="#eadcc2"/>
+  <rect x="520" y="100" width="380" height="72" rx="16" fill="#052e16"/>
+  <text x="540" y="132" fill="#fff" font-size="14">Réception 20 sacs aliment AgroFeed,</text>
+  <text x="540" y="152" fill="#dcfce7" font-size="14">480 000 FCFA crédit 15j.</text>
+  <rect x="56" y="196" width="420" height="120" rx="16" fill="#f0fdf4" stroke="#22c55e"/>
+  <text x="76" y="226" fill="#15803d" font-size="14" font-weight="700">Brouillon réception</text>
+  <text x="76" y="252" fill="#2f2415" font-size="13">Stock +20 · Dette fournisseur</text>
+  <rect x="76" y="272" width="120" height="32" rx="16" fill="#22c55e"/>
+  <text x="104" y="293" fill="#fff" font-size="12" font-weight="700">Valider</text>
+  <text x="56" y="360" fill="#15803d" font-size="13" font-weight="600"> Alerte rupture aliment levée sur l'Accueil</text>
+</svg>

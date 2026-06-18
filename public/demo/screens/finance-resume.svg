@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-label="Finance Horizon Farm">
+  <rect width="960" height="540" fill="#f6faf6"/>
+  <rect width="960" height="52" fill="#052e16"/>
+  <text x="24" y="33" fill="#dcfce7" font-family="system-ui,sans-serif" font-size="16" font-weight="700">Finance  Résumé exécutif</text>
+  <rect x="24" y="72" width="210" height="100" rx="12" fill="#fff" stroke="#eadcc2"/>
+  <text x="40" y="100" fill="#15803d" font-size="11" font-weight="800">TRÉSORERIE</text>
+  <text x="40" y="140" fill="#2f2415" font-size="30" font-weight="700">2,4 M</text>
+  <rect x="252" y="72" width="210" height="100" rx="12" fill="#fff" stroke="#eadcc2"/>
+  <text x="268" y="100" fill="#15803d" font-size="11" font-weight="800">CRÉANCES</text>
+  <text x="268" y="140" fill="#2f2415" font-size="30" font-weight="700">890 K</text>
+  <rect x="480" y="72" width="210" height="100" rx="12" fill="#fff" stroke="#eadcc2"/>
+  <text x="496" y="100" fill="#15803d" font-size="11" font-weight="800">DETTES</text>
+  <text x="496" y="140" fill="#2f2415" font-size="30" font-weight="700">1,1 M</text>
+  <rect x="708" y="72" width="228" height="100" rx="12" fill="#fff" stroke="#eadcc2"/>
+  <text x="724" y="100" fill="#15803d" font-size="11" font-weight="800">SANTÉ ERP</text>
+  <text x="724" y="140" fill="#2f2415" font-size="30" font-weight="700">82/100</text>
+  <rect x="24" y="196" width="912" height="140" rx="12" fill="#fff" stroke="#eadcc2"/>
+  <text x="40" y="228" fill="#2f2415" font-size="15" font-weight="700">Prévision trésorerie 30 jours</text>
+  <path d="M40 300 H900" stroke="#e5e7eb" stroke-width="2"/>
+  <path d="M40 300 C180 260 300 280 420 250 S660 310 900 270" fill="none" stroke="#22c55e" stroke-width="3"/>
+  <text x="40" y="318" fill="#b45309" font-size="12">Point bas prévu J+18</text>
+</svg>

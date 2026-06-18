@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-label="Élevage Horizon Farm">
+  <rect width="960" height="540" fill="#f6faf6"/>
+  <rect width="960" height="52" fill="#052e16"/>
+  <text x="24" y="33" fill="#dcfce7" font-family="system-ui,sans-serif" font-size="16" font-weight="700">Élevage  Lots & bandes</text>
+  <rect x="24" y="72" width="280" height="420" rx="12" fill="#fff" stroke="#eadcc2"/>
+  <text x="40" y="104" fill="#2f2415" font-size="14" font-weight="700">Lot PON-2026-04</text>
+  <text x="40" y="132" fill="#8a7456" font-size="13">Pondeuses · 4 288 têtes</text>
+  <text x="40" y="168" fill="#b45309" font-size="13" font-weight="700">Mortalité 7j : 0,28%</text>
+  <rect x="40" y="188" width="200" height="8" rx="4" fill="#fee2e2"/><rect x="40" y="188" width="56" height="8" rx="4" fill="#ef4444"/>
+  <text x="40" y="230" fill="#15803d" font-size="12">Vaccination prévue J+3</text>
+  <rect x="324" y="72" width="612" height="200" rx="12" fill="#fff" stroke="#eadcc2"/>
+  <text x="340" y="104" fill="#2f2415" font-size="14" font-weight="700">Saisie mortalité</text>
+  <text x="340" y="140" fill="#2f2415" font-size="22" font-weight="700">12 mortalités</text>
+  <text x="340" y="170" fill="#8a7456" font-size="13">Cause : chaleur · ventilation à vérifier</text>
+  <rect x="324" y="292" width="612" height="200" rx="12" fill="#fef3c7" stroke="#f59e0b"/>
+  <text x="340" y="324" fill="#92400e" font-size="14" font-weight="700">Lien Smart Farm</text>
+  <text x="340" y="352" fill="#92400e" font-size="13">Poulailler A : 32°C  tâche ventilation créée</text>
+</svg>

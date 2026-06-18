@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-label="Commercial Horizon Farm">
+  <rect width="960" height="540" fill="#f6faf6"/>
+  <rect width="960" height="52" fill="#052e16"/>
+  <text x="24" y="33" fill="#dcfce7" font-family="system-ui,sans-serif" font-size="16" font-weight="700">Commercial  Ventes</text>
+  <rect x="24" y="72" width="912" height="44" rx="22" fill="#fff" stroke="#eadcc2"/>
+  <rect x="32" y="80" width="88" height="28" rx="14" fill="#dcfce7"/><text x="52" y="99" fill="#15803d" font-size="12" font-weight="700">Ventes</text>
+  <text x="140" y="99" fill="#8a7456" font-size="12">Clients</text><text x="220" y="99" fill="#8a7456" font-size="12">Livraisons</text>
+  <rect x="24" y="132" width="912" height="96" rx="12" fill="#fff" stroke="#22c55e" stroke-width="2"/>
+  <text x="40" y="162" fill="#2f2415" font-size="16" font-weight="700">Restaurant Le Palmier</text>
+  <text x="40" y="188" fill="#8a7456" font-size="14">50 tablettes Sufs · 175 000 FCFA · Orange Money</text>
+  <text x="40" y="212" fill="#15803d" font-size="13" font-weight="600">Marge nette +48 200 FCFA</text>
+  <rect x="24" y="248" width="440" height="120" rx="12" fill="#fff" stroke="#eadcc2"/>
+  <text x="40" y="278" fill="#2f2415" font-size="14" font-weight="700">Trésorerie du jour</text>
+  <text x="40" y="312" fill="#15803d" font-size="24" font-weight="700">+175 000</text>
+  <rect x="496" y="248" width="440" height="120" rx="12" fill="#fff" stroke="#eadcc2"/>
+  <text x="512" y="278" fill="#2f2415" font-size="14" font-weight="700">Créances clients</text>
+  <text x="512" y="312" fill="#b45309" font-size="24" font-weight="700">890 K FCFA</text>
+</svg>
