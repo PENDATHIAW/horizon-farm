@@ -1,0 +1,104 @@
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #10251a;
+  background: #f7f1e6;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; background: #f7f1e6; }
+a { color: inherit; text-decoration: none; }
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 18px clamp(20px, 5vw, 72px);
+  background: rgba(247, 241, 230, 0.88);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(35, 74, 52, 0.12);
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand span {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #234a34;
+  color: #f8efd9;
+  font-weight: 900;
+}
+.brand strong { font-size: 15px; letter-spacing: .04em; text-transform: uppercase; }
+.nav nav { display: flex; gap: 18px; font-size: 13px; font-weight: 700; color: #47614d; }
+
+main { overflow: hidden; }
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr);
+  gap: 40px;
+  align-items: center;
+  min-height: 78vh;
+  padding: clamp(42px, 7vw, 96px) clamp(20px, 5vw, 72px);
+  background:
+    radial-gradient(circle at 80% 10%, rgba(184, 149, 74, .18), transparent 30%),
+    linear-gradient(135deg, #f7f1e6 0%, #fdfaf3 48%, #e7efe4 100%);
+}
+.eyebrow { margin: 0 0 12px; color: #9a6b12; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; font-size: 12px; }
+h1 { margin: 0; font-size: clamp(42px, 8vw, 86px); line-height: .9; max-width: 920px; letter-spacing: -.06em; }
+h2 { margin: 0; font-size: clamp(28px, 4vw, 52px); line-height: 1; letter-spacing: -.04em; }
+h3 { margin: 0 0 8px; font-size: 20px; }
+.lead { max-width: 720px; color: #47614d; font-size: clamp(17px, 2vw, 22px); line-height: 1.55; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.primary, .secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  border-radius: 999px;
+  padding: 0 22px;
+  font-weight: 900;
+  border: 1px solid #234a34;
+}
+.primary { background: #234a34; color: #fff9ee; }
+.secondary { background: transparent; color: #234a34; }
+.heroCard {
+  border-radius: 34px;
+  padding: 32px;
+  background: #234a34;
+  color: #fff9ee;
+  box-shadow: 0 30px 80px rgba(35, 74, 52, .22);
+}
+.heroCard p { margin-top: 0; color: #d7bd78; font-weight: 900; text-transform: uppercase; letter-spacing: .14em; font-size: 12px; }
+.heroCard ul { padding-left: 18px; line-height: 1.9; color: #ecf2e8; }
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: rgba(35, 74, 52, .12);
+}
+.metrics div { padding: 28px clamp(20px, 5vw, 72px); background: #fffaf0; }
+.metrics strong { display: block; font-size: clamp(30px, 4vw, 52px); color: #234a34; }
+.metrics span { color: #6b725f; font-weight: 800; }
+.section { padding: clamp(56px, 8vw, 108px) clamp(20px, 5vw, 72px); }
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 30px; }
+.grid article { min-height: 210px; border: 1px solid rgba(35, 74, 52, .14); border-radius: 28px; padding: 24px; background: #fffaf0; }
+.grid p, .impact p, .investors p { color: #56664f; line-height: 1.65; font-size: 16px; }
+.split { display: grid; grid-template-columns: .8fr 1.2fr; gap: 40px; align-items: start; background: #234a34; color: #fff9ee; }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.steps div { border: 1px solid rgba(255, 255, 255, .2); border-radius: 20px; padding: 18px; background: rgba(255, 255, 255, .06); font-weight: 900; }
+.steps span { display: block; color: #d7bd78; margin-bottom: 16px; }
+.impact { background: #fffaf0; }
+.investors { background: linear-gradient(135deg, #10251a, #234a34); color: #fff9ee; }
+.investors p { color: #e7efe4; max-width: 760px; }
+footer { padding: 28px clamp(20px, 5vw, 72px); background: #10251a; color: #d6c3a0; font-weight: 700; }
+
+@media (max-width: 900px) {
+  .nav { align-items: flex-start; flex-direction: column; }
+  .nav nav { flex-wrap: wrap; }
+  .hero, .split { grid-template-columns: 1fr; }
+  .metrics, .grid, .steps { grid-template-columns: 1fr; }
+}
