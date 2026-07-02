@@ -17,7 +17,7 @@ export default function DashboardDataModeBanner({ simulated = false, startupMode
           <div>
             <p className="text-sm font-black text-amber-950">Mode données réelles — exploitation vide</p>
             <p className="mt-0.5 text-xs leading-relaxed text-amber-900">
-              Les cartes affichent 0 car aucune vente, stock ou production n&apos;est encore saisie. Pour voir le scénario complet Horizon Farm (lots, ventes, trésorerie), activez les données simulées dans Paramètres.
+              Les cartes affichent 0 car aucune vente, stock ou production n&apos;est encore saisie. Cliquez sur le bouton pour voir le scénario complet Horizon Farm : lots, ventes, stock et trésorerie.
             </p>
           </div>
         </div>
