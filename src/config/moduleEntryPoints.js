@@ -5,7 +5,7 @@
  * CANONICAL_MODULE_FILES — fichier réellement chargé (dernière version connue par famille).
  */
 export const CANONICAL_MODULE_FILES = {
-  dashboard: 'DashboardV2.jsx',
+  dashboard: 'dashboard/AccueilRefinedEntry.jsx',
   assistant_erp: 'AssistantERPV2.jsx',
   centre_ia: 'CentreIA.jsx',
   objectifs_croissance: 'ObjectifsCroissanceV2.jsx',
@@ -58,7 +58,7 @@ export const FORBIDDEN_ENTRY_FILES = [
 ];
 
 export const MODULE_ENTRY_POINTS = {
-  dashboard: () => import('../modules/DashboardV2.jsx'),
+  dashboard: () => import('../modules/dashboard/AccueilRefinedEntry.jsx'),
   assistant_erp: () => import('../modules/AssistantERPV2.jsx'),
   centre_ia: () => import('../modules/CentreIA.jsx'),
   objectifs_croissance: () => import('../modules/ObjectifsCroissanceV2.jsx'),
