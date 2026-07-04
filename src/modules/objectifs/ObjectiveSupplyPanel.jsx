@@ -74,9 +74,9 @@ export default function ObjectiveSupplyPanel({ dataMap = {}, onNavigate, compact
       ) : null}
 
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => onNavigate?.('clients')} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]">Clients</button>
-        <button type="button" onClick={() => onNavigate?.('fournisseurs')} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]">Fournisseurs</button>
-        <button type="button" onClick={() => onNavigate?.('achats_stock', { tab: 'Stock' })} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]">Stock</button>
+        <button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Clients & créances' })} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]">Clients & créances</button>
+        <button type="button" onClick={() => onNavigate?.('achats_stock', { tab: 'Fournisseurs & dettes' })} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]">Fournisseurs & dettes</button>
+        <button type="button" onClick={() => onNavigate?.('achats_stock', { tab: 'Inventaire' })} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]">Inventaire</button>
       </div>
     </section>
   );
