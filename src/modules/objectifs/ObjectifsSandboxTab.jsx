@@ -4,6 +4,7 @@ import { fmtCurrency, fmtNumber } from '../../utils/format';
 import { calculateBiomassValue } from '../../services/objectifsDecision/predictiveAnalysisEngine.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
+const CULTURES_TAB = 'Parcelles & campagnes';
 
 export default function ObjectifsSandboxTab({
   analytics = {},
@@ -27,7 +28,7 @@ export default function ObjectifsSandboxTab({
 
   const launchCampaign = async () => {
     if (!onCreateCulture) {
-      onNavigate?.('cultures', { tab: 'Parcelles & Cultures' });
+      onNavigate?.('cultures', { tab: CULTURES_TAB });
       return;
     }
     setLaunching(true);
@@ -57,7 +58,7 @@ export default function ObjectifsSandboxTab({
         notes: 'Intrants à 0 FCFA — fumier transféré depuis élevage (économie circulaire).',
       });
       await onRefreshCultures?.();
-      onNavigate?.('cultures', { tab: 'Parcelles & Cultures' });
+      onNavigate?.('cultures', { tab: CULTURES_TAB });
     } catch (error) {
       console.warn('[ObjectifsSandboxTab] launch campaign', error);
     } finally {
