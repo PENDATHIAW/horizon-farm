@@ -61,7 +61,7 @@ export default function RentabiliteLotCycleTab({ analytics = {}, onNavigate }) {
           ))}
           {!suppliers.length ? <p className="text-sm text-[#8a7456]">Renseignez le fournisseur sur les lots pour comparer.</p> : null}
         </div>
-        <button type="button" onClick={() => onNavigate?.('achats_stock', { tab: 'Fournisseurs' })} className="text-xs font-black text-[#9a6b12]">Voir fournisseurs →</button>
+        <button type="button" onClick={() => onNavigate?.('achats_stock', { tab: 'Fournisseurs & dettes' })} className="text-xs font-black text-[#9a6b12]">Voir fournisseurs →</button>
       </section>
     </div>
   );
