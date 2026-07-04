@@ -1,5 +1,5 @@
 import { fmtNumber } from '../../utils/format';
-import EfficaciteTechniqueTab from './EfficaciteTechniqueTab.jsx';
+import EfficaciteTechniqueTab from './EfficaciteTechniqueTabInterconnected.jsx';
 import RentabiliteLotCycleTab from './RentabiliteLotCycleTab.jsx';
 import CrossAnalyticsSections from './CrossAnalyticsSections.jsx';
 
