@@ -158,7 +158,7 @@ export default function ObjectifsDecisionModule({
         </div>
       </section>
 
-      <ModuleTabsBar moduleId="objectifs_croissance" active={tab} onChange={(next) => setTab(resolveTab(next))} tabBadges={tabBadges} />
+      <ModuleTabsBar moduleId="objectifs_croissance" active={tab} onChange={setTab} tabBadges={tabBadges} />
       {content}
     </div>
   );
