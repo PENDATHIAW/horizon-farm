@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { CalendarRange, Thermometer, AlertTriangle } from 'lucide-react';
 import ProductionCycleDecisionPanel from '../ProductionCycleDecisionPanel.jsx';
-import StrategicDecisionCard from '../centre/StrategicDecisionCard.jsx';
+import StrategicDecisionCard from '../centre/StrategicDecisionCardInterconnected.jsx';
 import SanitaryVacuumPanel from '../centre/SanitaryVacuumPanel.jsx';
 import { Btn, Section } from './visionUtils';
 
