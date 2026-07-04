@@ -218,7 +218,7 @@ export default function CentreDecisionModule({
             <p className="text-xs uppercase tracking-[0.25em] text-[#9a6b12] font-black">Intelligence décisionnelle</p>
             <h1 className="mt-1 text-3xl font-black text-[#2f2415]">Centre décisionnel</h1>
             <p className="mt-2 text-sm text-[#8a7456] max-w-2xl">
-              Urgences · croissance · saisons — chaque onglet a un rôle distinct, sans doublon.
+              Décidez quoi traiter maintenant, quoi développer et quoi anticiper selon les ventes, les risques, la trésorerie, les saisons et les marchés.
             </p>
             {onOpenAssistant ? (
               <button
@@ -233,8 +233,8 @@ export default function CentreDecisionModule({
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <span className="rounded-xl border border-[#eadcc2] bg-white px-3 py-2">
-              <span className="text-[#8a7456]">Urgences vente </span>
-              <b>{strategicPlan.sellNow?.length || 0}</b>
+              <span className="text-[#8a7456]">Actions critiques </span>
+              <b>{urgentCount}</b>
             </span>
             <span className="rounded-xl border border-[#eadcc2] bg-white px-3 py-2">
               <span className="text-[#8a7456]">ITH </span>
@@ -250,7 +250,7 @@ export default function CentreDecisionModule({
                 toast.success('Export Excel Centre décisionnel généré');
               }}
             >
-              Excel
+              Exporter Excel
             </Btn>
             <Btn
               variant="outline"
@@ -259,14 +259,14 @@ export default function CentreDecisionModule({
                 toast.success(`Export CSV — onglet ${tab}`);
               }}
             >
-              CSV
+              Exporter CSV
             </Btn>
           </div>
         </div>
       </section>
 
       <details className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] px-4 py-3">
-        <summary className="cursor-pointer text-sm font-black text-[#2f2415]">Paramètres pilotage (clients, fêtes)</summary>
+        <summary className="cursor-pointer text-sm font-black text-[#2f2415]">Paramètres de pilotage (clients, fêtes)</summary>
         <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-start">
           <div className="flex-1">
             <PilotageSettingsPanel clients={props.clients || dataMap.clients} onChange={() => setPilotageVersion((v) => v + 1)} />
@@ -277,7 +277,7 @@ export default function CentreDecisionModule({
               onClick={() => syncStrategicAlertsToCenter({ strategicPlan, existingAlerts: props.existingAlerts, onCreateAlert: props.onCreateAlert, onRefreshAlertes: props.onRefreshAlertes }).catch(() => undefined)}
               className="shrink-0 rounded-xl border border-[#d6c3a0] bg-white px-4 py-2 text-xs font-black text-[#2f2415] hover:bg-[#dcfce7]"
             >
-              Pousser alertes critiques
+              Synchroniser alertes critiques
             </button>
           ) : null}
         </div>
