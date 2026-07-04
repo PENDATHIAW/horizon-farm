@@ -57,7 +57,7 @@ export default function ObjectifsFluxTab({ dataMap = {}, analytics = {}, onNavig
         </p>
         <button
           type="button"
-          onClick={() => onNavigate?.('commercial', { tab: 'Clients' })}
+          onClick={() => onNavigate?.('commercial', { tab: 'Clients & créances' })}
           className="mt-3 rounded-xl border border-amber-300 bg-white px-4 py-2 text-xs font-black text-amber-900 hover:bg-amber-100"
         >
           Qualifier les clients prioritaires → Commercial
