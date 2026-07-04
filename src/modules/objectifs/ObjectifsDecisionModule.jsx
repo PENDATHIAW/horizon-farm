@@ -56,24 +56,28 @@ export default function ObjectifsDecisionModule({
     setInternalTab(resolveObjectifsTab(initialTab));
   }, [controlled, initialTab]);
 
-  const enrichedDataMap = useMemo(() => mergePilotageIntoDataMap({
-    ...dataMap,
-    animaux: props.animaux || dataMap.animaux,
-    avicole: props.lots || dataMap.avicole || dataMap.lots,
-    lots: props.lots || dataMap.avicole,
-    production_oeufs_logs: props.productionLogs || dataMap.production_oeufs_logs,
-    alimentation_logs: props.alimentationLogs || dataMap.alimentation_logs,
-    sante: props.sante || dataMap.sante,
-    clients: props.clients || dataMap.clients,
-    fournisseurs: props.fournisseurs || dataMap.fournisseurs,
-    stock: props.stocks || dataMap.stock,
-    stocks: props.stocks || dataMap.stocks,
-    sales_orders: props.salesOrdersAll || props.salesOrders || dataMap.sales_orders,
-    finances: props.transactionsAll || props.transactions || dataMap.finances,
-    payments: props.paymentsAll || props.payments || dataMap.payments,
-    meteo: meteo || dataMap.meteo,
-    growth_settings: dataMap.growth_settings || {},
-  }), [dataMap, props, meteo]);
+  const enrichedDataMap = useMemo(() => {
+    const lots = props.lots || dataMap.avicole || dataMap.lots;
+    const stockRows = props.stocks || dataMap.stock || dataMap.stocks;
+    return mergePilotageIntoDataMap({
+      ...dataMap,
+      animaux: props.animaux || dataMap.animaux,
+      avicole: lots,
+      lots,
+      production_oeufs_logs: props.productionLogs || dataMap.production_oeufs_logs,
+      alimentation_logs: props.alimentationLogs || dataMap.alimentation_logs,
+      sante: props.sante || dataMap.sante,
+      clients: props.clients || dataMap.clients,
+      fournisseurs: props.fournisseurs || dataMap.fournisseurs,
+      stock: stockRows,
+      stocks: stockRows,
+      sales_orders: props.salesOrdersAll || props.salesOrders || dataMap.sales_orders,
+      finances: props.transactionsAll || props.transactions || dataMap.finances,
+      payments: props.paymentsAll || props.payments || dataMap.payments,
+      meteo: meteo || dataMap.meteo,
+      growth_settings: dataMap.growth_settings || {},
+    });
+  }, [dataMap, props, meteo]);
 
   const analytics = useMemo(() => {
     try {
