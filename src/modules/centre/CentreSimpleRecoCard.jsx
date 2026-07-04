@@ -5,6 +5,18 @@ import { fmtCurrency } from '../../utils/format';
 export default function CentreSimpleRecoCard({ item, onNavigate }) {
   const isCommercial = !item.technical_rule && !item.strategic;
 
+  const openTarget = () => {
+    if (isCommercial) {
+      onNavigate?.('commercial', { tab: 'Pilotage' });
+      return;
+    }
+    if (item.activity === 'bovins') {
+      onNavigate?.('elevage', { tab: 'Lots & bandes' });
+      return;
+    }
+    onNavigate?.(item.source_module || 'elevage');
+  };
+
   return (
     <article className="rounded-2xl border border-[#eadcc2] bg-white p-4 space-y-2">
       <div className="flex items-start justify-between gap-2">
@@ -20,10 +32,10 @@ export default function CentreSimpleRecoCard({ item, onNavigate }) {
       <Btn
         small
         variant="outline"
-        onClick={() => onNavigate?.(isCommercial ? 'commercial' : (item.source_module || 'elevage'))}
+        onClick={openTarget}
         className="w-full"
       >
-        {isCommercial ? 'Voir Commercial' : item.activity === 'bovins' ? 'Voir Animaux' : 'Voir module source'}
+        {isCommercial ? 'Voir Pilotage commercial' : item.activity === 'bovins' ? 'Voir Élevage' : 'Voir module source'}
       </Btn>
     </article>
   );
