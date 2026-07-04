@@ -33,12 +33,21 @@ export const MODULE_TARGET_TABS = {
 };
 
 export const INTERCONNECTIONS = {
-  vente: ['commercial', 'finance_pilotage', 'documents_rapports', 'activite_suivi', 'objectifs_croissance'],
-  achat: ['achats_stock', 'finance_pilotage', 'documents_rapports', 'activite_suivi', 'objectifs_croissance'],
-  mortalite: ['elevage', 'finance_pilotage', 'objectifs_croissance', 'activite_suivi'],
-  ponte: ['elevage', 'achats_stock', 'commercial', 'objectifs_croissance'],
-  recolte_culture: ['cultures', 'achats_stock', 'commercial', 'finance_pilotage', 'activite_suivi'],
-  transformation_culture: ['cultures', 'achats_stock', 'finance_pilotage'],
+  vente: ['commercial', 'finance_pilotage', 'documents_rapports', 'activite_suivi', 'objectifs_croissance', 'centre_ia'],
+  creance_client: ['commercial', 'finance_pilotage', 'activite_suivi', 'documents_rapports', 'centre_ia'],
+  opportunite_commerciale: ['commercial', 'objectifs_croissance', 'centre_ia', 'activite_suivi'],
+  achat: ['achats_stock', 'finance_pilotage', 'documents_rapports', 'activite_suivi', 'objectifs_croissance', 'centre_ia'],
+  stock_rupture: ['achats_stock', 'elevage', 'commercial', 'finance_pilotage', 'activite_suivi', 'centre_ia'],
+  mortalite: ['elevage', 'finance_pilotage', 'objectifs_croissance', 'activite_suivi', 'centre_ia'],
+  sante_animale: ['elevage', 'achats_stock', 'finance_pilotage', 'activite_suivi', 'centre_ia'],
+  cycle_elevage: ['elevage', 'achats_stock', 'commercial', 'finance_pilotage', 'objectifs_croissance', 'centre_ia'],
+  ponte: ['elevage', 'achats_stock', 'commercial', 'objectifs_croissance', 'centre_ia'],
+  recolte_culture: ['cultures', 'achats_stock', 'commercial', 'finance_pilotage', 'activite_suivi', 'centre_ia'],
+  transformation_culture: ['cultures', 'achats_stock', 'finance_pilotage', 'commercial', 'centre_ia'],
+  tresorerie: ['finance_pilotage', 'commercial', 'achats_stock', 'objectifs_croissance', 'centre_ia'],
+  dossier_financeur: ['objectifs_croissance', 'finance_pilotage', 'documents_rapports', 'investisseurs_forums', 'centre_ia'],
+  tache_alerte: ['activite_suivi', 'centre_ia', 'assistant_erp'],
+  donnees_iot: ['smartfarm', 'elevage', 'achats_stock', 'centre_ia', 'activite_suivi'],
 };
 
 export const IA_ENGINES = [
@@ -52,6 +61,6 @@ export const DEV_RULES = {
 
 /** Ordre d'audit / correction module par module. */
 export const MODULE_AUDIT_ORDER = [
-  'dashboard', 'assistant_erp', 'objectifs_croissance', 'elevage', 'cultures', 'commercial',
-  'achats_stock', 'finance_pilotage', 'activite_suivi', 'documents_rapports', 'rh', 'gestion_systeme',
+  'dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance', 'elevage', 'cultures', 'commercial',
+  'achats_stock', 'finance_pilotage', 'activite_suivi', 'documents_rapports', 'rh', 'smartfarm', 'gestion_systeme',
 ];
