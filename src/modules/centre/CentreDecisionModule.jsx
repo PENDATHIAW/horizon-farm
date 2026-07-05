@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
-import { MODULE_TARGET_TABS } from '../../config/horizonVision.config.js';
+import { resolveCentreTab } from '../../utils/centreDecisionTabs.js';
 import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine.js';
 import { buildStrategicDecisionPlan } from '../../services/strategicDecisionEngine.js';
 import { buildVisionBadges } from '../vision/visionMetrics.js';
@@ -33,47 +33,28 @@ const EMPTY_STRATEGIC_PLAN = {
   ith: null,
 };
 
-const TAB_IDS = MODULE_TARGET_TABS.centre_ia;
-
-const TAB_ALIASES = {
-  Graphiques: 'Graphiques',
-  Annexe: 'Annexe',
-  Opportunités: 'Cycles',
-  'Opportunités & cycles': 'Cycles',
-  Recommandations: 'Recommandations',
-  Historique: 'Historique',
-  'À traiter': 'À traiter',
-  Risques: 'Risques',
-  Cycles: 'Cycles',
-  /** Legacy — ancien onglet « Efficacité » (Objectifs / Vision) */
-  Efficacité: 'À traiter',
-  'Efficacité Technique': 'Recommandations',
-  Priorités: 'À traiter',
-  'Priorités & risques': 'À traiter',
-};
-
-function resolveTab(initial) {
-  const mapped = initial ? (TAB_ALIASES[initial] || initial) : null;
-  if (mapped && TAB_IDS.includes(mapped)) return mapped;
-  return TAB_IDS[0];
-}
-
 /** Centre décisionnel : priorités, recommandations, cycles (QUAND lancer), risques (QUAND vendre), historique. */
 export default function CentreDecisionModule({
   dataMap = {},
   onNavigate,
+  onTabChange,
   initialTab,
   periodLabel = '',
   onOpenAssistant,
   meteo,
   ...props
 }) {
-  const [tab, setTab] = useState(() => resolveTab(initialTab));
+  const [tab, setTabState] = useState(() => resolveCentreTab(initialTab));
+  const setTab = useCallback((next) => {
+    const resolved = resolveCentreTab(next);
+    setTabState(resolved);
+    onTabChange?.(resolved);
+  }, [onTabChange]);
   const [pilotageVersion, setPilotageVersion] = useState(0);
   const syncedPlanRef = useRef('');
 
   useEffect(() => {
-    setTab(resolveTab(initialTab));
+    setTabState(resolveCentreTab(initialTab));
   }, [initialTab]);
 
   const visionProps = useMemo(() => ({ ...props, dataMap, moduleId: 'centre_ia', meteo }), [props, dataMap, meteo]);
@@ -306,7 +287,7 @@ export default function CentreDecisionModule({
           </button>
         ) : null}
       </div>
-      <ModuleTabsBar moduleId="centre_ia" active={tab} onChange={(next) => setTab(resolveTab(next))} tabBadges={tabBadges} />
+      <ModuleTabsBar moduleId="centre_ia" active={tab} onChange={setTab} tabBadges={tabBadges} />
       {content}
     </div>
   );

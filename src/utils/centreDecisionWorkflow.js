@@ -14,7 +14,7 @@ export const PILOTAGE_NAV_TARGETS = {
   health: { module: 'elevage', tab: 'Santé' },
   vente: { module: 'commercial', tab: 'Opportunités' },
   commercial: { module: 'commercial', tab: 'Opportunités' },
-  clients: { module: 'commercial', tab: 'Clients' },
+  clients: { module: 'commercial', tab: 'Clients & créances' },
   finance: { module: 'finance_pilotage', tab: 'Trésorerie' },
   finance_pilotage: { module: 'finance_pilotage', tab: 'Trésorerie' },
   documents: { module: 'documents_rapports', tab: 'Preuves' },

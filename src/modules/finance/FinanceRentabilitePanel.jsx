@@ -26,7 +26,7 @@ export default function FinanceRentabilitePanel({ data, onNavigate, setTab }) {
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => onNavigate?.('centre_ia', { tab: 'Performance' })}
+            onClick={() => onNavigate?.('centre_ia', { tab: 'Recommandations' })}
             className="inline-flex items-center gap-2 rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-2.5 text-sm font-black text-[#2f2415]"
           >
             {data.margin >= 0 ? <TrendingUp size={14} className="text-emerald-600" /> : <TrendingDown size={14} className="text-red-600" />}

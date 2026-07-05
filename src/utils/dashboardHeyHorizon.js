@@ -7,8 +7,8 @@ const PILOTAGE_ROUTES = {
   health: { module: 'elevage', tab: 'Santé', label: 'Soins à traiter' },
   task: { module: 'activite_suivi', tab: 'Tâches', label: 'Tâches du jour' },
   document: { module: 'documents_rapports', tab: 'Preuves', label: 'Preuves manquantes' },
-  smart: { module: 'centre_ia', tab: 'Rentabilité lots', label: 'Rentabilité lots' },
-  sync: { module: 'centre_ia', tab: 'Flux & stocks', label: 'Flux & stocks' },
+  smart: { module: 'objectifs_croissance', tab: 'Rentabilité Lot & Cycle', label: 'Rentabilité lots' },
+  sync: { module: 'centre_ia', tab: 'Risques', label: 'Flux & stocks' },
 };
 
 /** Suggestions Accueil → pilotage (objectifs, risques, cycles) — pas Hey Horizon. */
