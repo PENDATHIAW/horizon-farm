@@ -67,7 +67,7 @@ export default function FinanceInsightPanel({
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {finding.module === 'commercial' ? (
-                    <Btn variant="outline" small onClick={() => onNavigate?.('commercial', { tab: 'Clients' })}>
+                    <Btn variant="outline" small onClick={() => onNavigate?.('commercial', { tab: 'Clients & créances' })}>
                       Commercial
                     </Btn>
                   ) : null}

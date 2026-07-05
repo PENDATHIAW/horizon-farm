@@ -1,7 +1,7 @@
 import { interpretHorizonCommand } from '../services/aiIntentEngine.js';
 
 const PILOTAGE_ROUTES = {
-  money: { module: 'commercial', tab: 'Clients', label: 'Créances clients' },
+  money: { module: 'commercial', tab: 'Clients & créances', label: 'Créances clients' },
   alert: { module: 'centre_ia', tab: 'À traiter', label: 'Anomalies techniques' },
   stock: { module: 'achats_stock', tab: 'Stock', label: 'Stocks critiques' },
   health: { module: 'elevage', tab: 'Santé', label: 'Soins à traiter' },

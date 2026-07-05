@@ -1,4 +1,5 @@
 import { MODULE_TARGET_TABS } from '../../config/horizonVision.config.js';
+import { resolveCentreTab } from '../../utils/centreDecisionTabs.js';
 import { isOpportunityOpen } from '../commercial/commercialMetrics.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
@@ -59,9 +60,9 @@ export function openVisionPriority(item = {}, moduleId = 'centre_ia', { setTab, 
   if (mappedTab && OPERATIONAL_TABS.has(mappedTab)) {
     const localTabs = MODULE_TARGET_TABS[moduleId] || [];
     if (localTabs.includes(mappedTab)) {
-      setTab?.(mappedTab);
+      setTab?.(resolveCentreTab(mappedTab));
     } else {
-      onNavigate?.('centre_ia', { tab: mappedTab });
+      onNavigate?.('centre_ia', { tab: resolveCentreTab(mappedTab) });
     }
     return;
   }

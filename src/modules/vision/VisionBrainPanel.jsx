@@ -14,8 +14,8 @@ function pickBrainDecision(data = {}) {
       tone: 'bad',
       title: 'Sécuriser maintenant',
       detail: criticalRisk.title,
-      action: 'Voir efficacité',
-      target: { type: 'tab', tab: 'Efficacité' },
+      action: 'Voir risques',
+      target: { type: 'tab', tab: 'Risques' },
     };
   }
   if ((data.receivable || 0) > 0) {
@@ -24,7 +24,7 @@ function pickBrainDecision(data = {}) {
       title: 'Récupérer le cash',
       detail: `${fmtCurrency(data.receivable)} à encaisser chez les clients.`,
       action: 'Relancer clients',
-      target: { type: 'module', module: 'commercial', tab: 'Clients' },
+      target: { type: 'module', module: 'commercial', tab: 'Clients & créances' },
     };
   }
   if (treasury < 0) {
@@ -42,7 +42,7 @@ function pickBrainDecision(data = {}) {
       title: 'Traiter le signal prioritaire',
       detail: firstPriority.title,
       action: 'Voir priorité',
-      target: { type: 'tab', tab: firstPriority.tab || 'Rentabilité lots' },
+      target: { type: 'tab', tab: firstPriority.tab || 'À traiter' },
     };
   }
   if (firstOpportunity) {
@@ -51,7 +51,7 @@ function pickBrainDecision(data = {}) {
       title: 'Transformer une opportunité',
       detail: firstOpportunity.title || firstOpportunity.nom || 'Pipeline commercial ouvert.',
       action: 'Voir opportunités',
-      target: { type: 'tab', tab: 'Opportunités' },
+      target: { type: 'module', module: 'commercial', tab: 'Opportunités' },
     };
   }
   return {
@@ -97,7 +97,7 @@ export default function VisionBrainPanel({ data = {}, setTab, onNavigate }) {
       onNavigate?.(decision.target.module, { tab: decision.target.tab });
       return;
     }
-    setTab?.(decision.target?.tab || 'Rentabilité lots');
+    setTab?.(decision.target?.tab || 'À traiter');
   };
 
   return (
@@ -125,7 +125,7 @@ export default function VisionBrainPanel({ data = {}, setTab, onNavigate }) {
             detail={`Trésorerie ${fmtCurrency(treasury)}.`}
             tone={(data.receivable || 0) > 0 || treasury < 0 ? 'warn' : 'good'}
             action="Cash"
-            onClick={() => onNavigate?.('commercial', { tab: 'Clients' })}
+            onClick={() => onNavigate?.('commercial', { tab: 'Clients & créances' })}
           />
           <BrainLever
             icon={ShieldAlert}
@@ -133,8 +133,8 @@ export default function VisionBrainPanel({ data = {}, setTab, onNavigate }) {
             value={fmtNumber(arr(data.risks).length)}
             detail={`${criticalRisks} risque(s) critique(s), ${data.missingProof || 0} preuve(s) manquante(s).`}
             tone={criticalRisks ? 'bad' : arr(data.risks).length ? 'warn' : 'good'}
-            action="Efficacité"
-            onClick={() => setTab?.('Efficacité')}
+            action="Risques"
+            onClick={() => setTab?.('Risques')}
           />
           <BrainLever
             icon={Sprout}

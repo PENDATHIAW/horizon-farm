@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import { resolveCentreTab } from '../../utils/centreDecisionTabs.js';
@@ -51,7 +51,6 @@ export default function CentreDecisionModule({
     onTabChange?.(resolved);
   }, [onTabChange]);
   const [pilotageVersion, setPilotageVersion] = useState(0);
-  const syncedPlanRef = useRef('');
 
   useEffect(() => {
     setTabState(resolveCentreTab(initialTab));
@@ -114,24 +113,6 @@ export default function CentreDecisionModule({
       strategic: strategicPlan,
     };
   }, [enrichedDataMap, strategicPlan]);
-
-  useEffect(() => {
-    const signature = JSON.stringify({
-      sell: strategicPlan.sellNow?.length,
-      bfr: strategicPlan.bfr?.blocked,
-      sanitary: (strategicPlan.sanitary || []).filter((s) => s.blocking).length,
-      stock: strategicPlan.stockAudit?.alerts?.length,
-      launch: strategicPlan.launch?.alerts?.length,
-    });
-    if (!props.onCreateAlert || signature === syncedPlanRef.current) return;
-    syncedPlanRef.current = signature;
-    syncStrategicAlertsToCenter({
-      strategicPlan,
-      existingAlerts: props.existingAlerts,
-      onCreateAlert: props.onCreateAlert,
-      onRefreshAlertes: props.onRefreshAlertes,
-    }).catch(() => undefined);
-  }, [strategicPlan, props.onCreateAlert, props.onRefreshAlertes, props.existingAlerts]);
 
   const tabBadges = useMemo(() => ({
     ...badges.tabs,
@@ -239,6 +220,11 @@ export default function CentreDecisionModule({
           </div>
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap gap-2">
+              {onOpenAssistant ? (
+                <Btn variant="outline" onClick={() => onOpenAssistant()}>
+                  Hey Horizon
+                </Btn>
+              ) : null}
               <Btn
                 variant="outline"
                 onClick={() => {

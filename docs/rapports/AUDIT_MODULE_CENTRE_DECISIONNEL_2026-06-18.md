@@ -20,7 +20,7 @@
 | `PilotageSettingsPanel.jsx` | Réglages fêtes, VIP, ITH | Oui (bandeau permanent) |
 | `PilotageContextStrip.jsx` | Bandeau contexte (usage externe) | Non monté ici |
 | `DecisionAnnexeTab.jsx` | Méthode, formules, glossaire | Oui (`Annexe`) |
-| `CentreOpportunitesTab.jsx` | Opportunités + cycles (ancien assemblage) | **Non — fichier orphelin** |
+| `CentreOpportunitesTab.jsx` | Opportunités + cycles (ancien assemblage) | **Supprimé** (orphelin) |
 | `vision/VisionPrioritiesTab.jsx` | Priorités IA + terrain | Oui (`À traiter`) |
 | `vision/VisionCyclesTab.jsx` | QUAND lancer (fêtes, BFR, vide sanitaire) | Oui (`Cycles`) |
 | `vision/VisionRisksTab.jsx` | QUAND vendre, audit stock, matrice risques | Oui (`Risques`) |
@@ -60,7 +60,7 @@ Props injectées au module `centre_ia` :
 | `onCreateTask` / `onRefreshTasks` | `c.taches` | Création tâches réelles |
 | `onCreateAlert` / `onUpdateAlert` / `onRefreshAlertes` | `c.alertes_center` | Création alertes réelles |
 | `onCreateBusinessEvent` | `c.business_events` | Marquage « priorité traitée » |
-| `onOpenAssistant` | ouvre `AssistantPanel` | **Reçu mais non utilisé dans le module** |
+| `onOpenAssistant` | ouvre `AssistantPanel` | Bouton **Hey Horizon** dans l'en-tête |
 | `existingTasks`, `existingAlerts` | lignes CRUD | Déduplication |
 
 **Manques volontaires (pas de création directe depuis le Centre) :**
@@ -166,9 +166,11 @@ Props injectées au module `centre_ia` :
 | I5 | Moyenne | Pas de `onTabChange` sur `centre_ia` (désync état App vs module) | **Corrigé** |
 | I6 | Moyenne | `setTab` interne sans alias dans sous-composants | **Corrigé** (wrapper `resolveCentreTab`) |
 | I7 | Moyenne | KPI Créances → tab `Clients` au lieu de `Clients & créances` | **Corrigé** |
-| I8 | Basse | `CentreOpportunitesTab.jsx` orphelin (doublon VisionCycles + Commercial) | Documenté — pas supprimé |
-| I9 | Basse | `onOpenAssistant` passé mais jamais branché dans l'UI Centre | Ouvert — bouton assistant absent |
-| I10 | Basse | Sync auto alertes stratégiques au chargement (peut surprendre l'utilisateur) | Comportement voulu + bouton manuel |
+| I8 | Basse | `CentreOpportunitesTab.jsx` orphelin (doublon VisionCycles + Commercial) | **Corrigé** — fichier supprimé |
+| I9 | Basse | `onOpenAssistant` passé mais jamais branché dans l'UI Centre | **Corrigé** — bouton Hey Horizon |
+| I10 | Basse | Sync auto alertes stratégiques au chargement (peut surprendre l'utilisateur) | **Corrigé** — sync manuelle uniquement (bouton) |
+| I11 | Moyenne | Liens Commercial/Finance/Vision avec tabs legacy (`Opportunités`, `Efficacité`, `Clients`) | **Corrigé** |
+| I12 | Basse | `StrategicQuickActions` sans état busy (double-clic tâche/alerte) | **Corrigé** |
 
 ---
 
@@ -182,6 +184,12 @@ Props injectées au module `centre_ia` :
 6. **`FinanceInsightPanel.jsx`**, **`FinanceRentabilitePanel.jsx`** — lien Centre
 7. **`centreDecisionWorkflow.js`** — tab Clients alias
 8. **`tests/unit/centreDecisionTabs.test.js`** — non-régression alias
+9. **Bouton Hey Horizon** dans l'en-tête Centre décisionnel
+10. **Suppression sync auto** alertes stratégiques (bouton manuel conservé)
+11. **Suppression** `CentreOpportunitesTab.jsx` orphelin
+12. **Alignement navigation** Commercial, Finance, VisionFunding, VisionBrain, dashboardHeyHorizon
+13. **`navigateCentreTab`** helper + `visionMetrics` utilise `resolveCentreTab`
+14. **`StrategicQuickActions`** — état busy anti double-clic
 
 ---
 

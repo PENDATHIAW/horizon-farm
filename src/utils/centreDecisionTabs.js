@@ -33,3 +33,11 @@ export function resolveCentreTab(value = '') {
   if (CENTRE_IA_TABS.includes(mapped)) return mapped;
   return CENTRE_IA_TABS[0];
 }
+
+/** Navigation externe vers le Centre avec résolution d'onglet. */
+export function navigateCentreTab(onNavigate, tab = '') {
+  if (typeof onNavigate !== 'function') return resolveCentreTab(tab);
+  const resolved = resolveCentreTab(tab);
+  onNavigate('centre_ia', { tab: resolved });
+  return resolved;
+}

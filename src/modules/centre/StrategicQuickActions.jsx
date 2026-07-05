@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Btn from '../../components/Btn';
 import {
   navigateFromPriorityItem,
@@ -77,6 +78,7 @@ export default function StrategicQuickActions({
   existingTasks = [],
   existingAlerts = [],
 }) {
+  const [busy, setBusy] = useState(false);
   const priority = item.priority === 'critique' ? 'critique' : item.priority === 'haute' ? 'haute' : 'moyenne';
   const title = item.title || item.status || item.eventLabel || 'Décision stratégique';
   const message = item.message || item.recommendation || item.explanation || '';
@@ -130,13 +132,33 @@ export default function StrategicQuickActions({
   const openLabel = openTarget?.label
     || (item.entityType === 'animal' ? 'Ouvrir animal' : lotId ? 'Ouvrir bande' : building ? `Lots — ${building}` : 'Voir source');
 
+  const runTask = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await runPriorityTaskAction(queueItem, handlers);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runAlert = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await runPriorityAlertAction(queueItem, handlers);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="flex flex-wrap gap-2 pt-1">
       {onCreateTask ? (
-        <Btn small variant="outline" onClick={() => runPriorityTaskAction(queueItem, handlers)}>Créer tâche</Btn>
+        <Btn small variant="outline" disabled={busy} onClick={runTask}>Créer tâche</Btn>
       ) : null}
       {onCreateAlert ? (
-        <Btn small variant="outline" onClick={() => runPriorityAlertAction(queueItem, handlers)}>Créer alerte</Btn>
+        <Btn small variant="outline" disabled={busy} onClick={runAlert}>Créer alerte</Btn>
       ) : null}
       {onNavigate ? (
         <Btn small variant="outline" onClick={openSource}>{openLabel}</Btn>
