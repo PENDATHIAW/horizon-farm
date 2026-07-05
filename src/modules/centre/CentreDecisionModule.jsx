@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import { Bot } from 'lucide-react';
@@ -52,7 +52,6 @@ export default function CentreDecisionModule({
     else setInternalTab(resolved);
   }, [controlled, onTabChange]);
   const [pilotageVersion, setPilotageVersion] = useState(0);
-  const syncedPlanRef = useRef('');
 
   useEffect(() => {
     if (controlled || !initialTab) return;
@@ -114,24 +113,6 @@ export default function CentreDecisionModule({
       strategic: strategicPlan,
     };
   }, [enrichedDataMap, strategicPlan]);
-
-  useEffect(() => {
-    const signature = JSON.stringify({
-      sell: strategicPlan.sellNow?.length,
-      bfr: strategicPlan.bfr?.blocked,
-      sanitary: (strategicPlan.sanitary || []).filter((s) => s.blocking).length,
-      stock: strategicPlan.stockAudit?.alerts?.length,
-      launch: strategicPlan.launch?.alerts?.length,
-    });
-    if (!props.onCreateAlert || signature === syncedPlanRef.current) return;
-    syncedPlanRef.current = signature;
-    syncStrategicAlertsToCenter({
-      strategicPlan,
-      existingAlerts: props.existingAlerts,
-      onCreateAlert: props.onCreateAlert,
-      onRefreshAlertes: props.onRefreshAlertes,
-    }).catch(() => undefined);
-  }, [strategicPlan, props.onCreateAlert, props.onRefreshAlertes, props.existingAlerts]);
 
   const urgentCount = (strategicPlan.sellNow?.length || 0)
     + (strategicPlan.stockAudit?.alerts?.length || 0)

@@ -390,6 +390,9 @@ const CENTRE_IA_TAB_ALIASES = {
   'Efficacité Technique': 'Croissance & opportunités',
   Priorités: 'Urgences & risques',
   'Priorités & risques': 'Urgences & risques',
+  Performance: 'Croissance & opportunités',
+  'Rentabilité lots': 'Croissance & opportunités',
+  'Flux & stocks': 'Urgences & risques',
   Résumé: 'Urgences & risques',
   resume: 'Urgences & risques',
 };
@@ -542,6 +545,13 @@ export function resolveCentreTab(value = '') {
   const fromAlias = CENTRE_IA_TAB_ALIASES[tab] || CENTRE_IA_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
   return CENTRE_IA_TABS[0];
+}
+
+/** Navigation externe vers le Centre avec résolution d'onglet legacy. */
+export function navigateCentreTab(onNavigate, tab = '') {
+  const resolved = resolveCentreTab(tab);
+  if (typeof onNavigate === 'function') onNavigate('centre_ia', { tab: resolved });
+  return resolved;
 }
 
 export function resolveSyncActivityTab(value = '') {

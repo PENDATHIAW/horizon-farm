@@ -9,8 +9,12 @@ const LEGACY_ALIASES = {
   'À traiter': 'Urgences & risques',
   Risques: 'Urgences & risques',
   Priorités: 'Urgences & risques',
+  'Priorités & risques': 'Urgences & risques',
   Recommandations: 'Croissance & opportunités',
   Opportunités: 'Croissance & opportunités',
+  Performance: 'Croissance & opportunités',
+  'Rentabilité lots': 'Croissance & opportunités',
+  'Flux & stocks': 'Urgences & risques',
   Cycles: 'Saisons & marchés',
   Historique: 'Saisons & marchés',
   Annexe: 'Saisons & marchés',
@@ -45,4 +49,10 @@ test('hey horizon centre presets use valid tabs', () => {
     assert.ok(TAB_IDS.includes(resolveTab(item.tab)), `invalid tab for ${item.id}: ${item.tab}`);
   });
   assert.equal(CENTRE_HEY_HORIZON_QUESTIONS.length, 3);
+});
+
+test('alias Performance et Flux & stocks vers les 3 onglets', () => {
+  assert.equal(resolveTab('Performance'), 'Croissance & opportunités');
+  assert.equal(resolveTab('Rentabilité lots'), 'Croissance & opportunités');
+  assert.equal(resolveTab('Flux & stocks'), 'Urgences & risques');
 });
