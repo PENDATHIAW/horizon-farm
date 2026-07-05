@@ -258,6 +258,15 @@ export function resolveElevageTab(value = '') {
   return 'Lots & bandes';
 }
 
+/** Navigation externe — conserve Avicole/Animaux pour la sous-vue Lots & bandes. */
+export function navigateElevageTab(onNavigate, tab = '', options = {}) {
+  const raw = String(tab || '').trim() || 'Lots & bandes';
+  if (typeof onNavigate === 'function') {
+    onNavigate('elevage', { tab: raw, ...options });
+  }
+  return resolveElevageTab(raw);
+}
+
 export function resolveAchatsStockTab(value = '') {
   const tab = String(value || '').trim();
   if (ACHATS_STOCK_TABS.includes(tab)) return tab;
@@ -671,7 +680,7 @@ export function navigationOptionsForFinding(finding = {}) {
     return { module, tab: resolveFinanceTab(explicitTab || defaultTabForLegacyModule(rawModule) || 'Créances') };
   }
   if (module === 'elevage') {
-    return { module, tab: resolveElevageTab(explicitTab || defaultTabForLegacyModule(rawModule) || 'Lots & bandes') };
+    return { module, tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Lots & bandes' };
   }
   if (module === 'achats_stock') {
     return { module, tab: resolveAchatsStockTab(explicitTab || defaultTabForLegacyModule(rawModule) || 'Résumé') };
@@ -696,7 +705,7 @@ export function navigateForIaFinding(finding = {}, onNavigate) {
     return;
   }
   if (module === 'elevage') {
-    onNavigate('elevage', { tab: resolveElevageTab(finding.tab || 'Lots & bandes') });
+    onNavigate('elevage', { tab: finding.tab || 'Lots & bandes' });
     return;
   }
   onNavigate(module || 'elevage');

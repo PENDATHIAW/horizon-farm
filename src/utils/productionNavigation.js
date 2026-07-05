@@ -10,7 +10,7 @@ export function launchProductionQuestion({
   questionId,
   onNavigate,
 } = {}) {
-  onNavigate?.('elevage', { tab: 'Cycles', productionQuestion: questionId });
+  onNavigate?.('elevage', { tab: 'Cycles & Reproduction', productionQuestion: questionId });
   window.setTimeout(() => {
     window.dispatchEvent(new CustomEvent('horizon-production-question', {
       detail: { questionId, moduleId: 'elevage' },

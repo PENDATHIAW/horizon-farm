@@ -47,6 +47,7 @@ import { evaluateElevageHealthBlocks, buildSanitaryAlertsPanel } from '../utils/
 import { buildElevageTransformationRows } from '../utils/elevageTransformationJournal.js';
 import ElevageLotsBandesTab from './elevage/ElevageLotsBandesTab.jsx';
 import ElevageCyclesReproductionTab from './elevage/ElevageCyclesReproductionTab.jsx';
+import { commitElevageEggProduction } from '../utils/elevageWorkflow.js';
 
 const lower = (value) => String(value || '').toLowerCase();
 const isClosedAnimal = (row = {}) => ['vendu', 'mort', 'vole', 'volé', 'perdu', 'abattu', 'cloture', 'clôture', 'sorti'].some((word) => lower(row.status || row.statut).includes(word));

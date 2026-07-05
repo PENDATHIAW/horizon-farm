@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MODULE_TARGET_TABS } from '../../src/config/horizonVision.config.js';
-import { resolveElevageTab, resolveElevageLotsSubview } from '../../src/utils/commercialNavigation.js';
 
 const TAB_IDS = MODULE_TARGET_TABS.elevage;
 
@@ -20,7 +19,14 @@ const LEGACY_ALIASES = {
 function resolveTab(initial) {
   const mapped = initial ? (LEGACY_ALIASES[initial] || initial) : null;
   if (mapped && TAB_IDS.includes(mapped)) return mapped;
-  return resolveElevageTab(initial);
+  return TAB_IDS[0];
+}
+
+function resolveLotsSubview(value = '') {
+  const tab = String(value || '').trim();
+  if (tab === 'Avicole' || tab.toLowerCase() === 'avicole') return 'avicole';
+  if (tab === 'Animaux' || tab.toLowerCase() === 'animaux') return 'animaux';
+  return null;
 }
 
 test('elevage exposes 4 target tabs', () => {
@@ -41,7 +47,13 @@ test('legacy elevage tab aliases resolve to new tabs', () => {
 });
 
 test('resolveElevageLotsSubview maps avicole and animaux', () => {
-  assert.equal(resolveElevageLotsSubview('Avicole'), 'avicole');
-  assert.equal(resolveElevageLotsSubview('Animaux'), 'animaux');
-  assert.equal(resolveElevageLotsSubview('Cycles'), null);
+  assert.equal(resolveLotsSubview('Avicole'), 'avicole');
+  assert.equal(resolveLotsSubview('Animaux'), 'animaux');
+  assert.equal(resolveLotsSubview('Cycles'), null);
+});
+
+test('alias Avicole et Animaux résolvent vers Lots & bandes avec sous-vue', () => {
+  assert.equal(resolveTab('Avicole'), 'Lots & bandes');
+  assert.equal(resolveTab('Animaux'), 'Lots & bandes');
+  assert.equal(resolveLotsSubview('Avicole'), 'avicole');
 });

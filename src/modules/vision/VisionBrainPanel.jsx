@@ -143,7 +143,7 @@ export default function VisionBrainPanel({ data = {}, setTab, onNavigate }) {
             detail={`${fmtNumber(data.criticalStockCount || 0)} stock(s) sous seuil, cycles à piloter.`}
             tone={data.criticalStockCount ? 'warn' : 'neutral'}
             action="Cycles"
-            onClick={() => onNavigate?.('elevage', { tab: 'Cycles' })}
+            onClick={() => onNavigate?.('elevage', { tab: 'Cycles & Reproduction' })}
           />
           <BrainLever
             icon={TrendingUp}

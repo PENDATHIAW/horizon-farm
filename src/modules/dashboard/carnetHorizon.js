@@ -439,7 +439,7 @@ export function buildCarnetProjections(summary = {}, props = {}) {
       format: 'units',
       hint: `Moyenne ${eggsDailyAvg.toLocaleString('fr-FR')} / jour`,
       tone: 'neutral',
-      navigate: { module: 'elevage', tab: 'Production œufs' },
+      navigate: { module: 'elevage', tab: 'Avicole' },
     });
   }
 

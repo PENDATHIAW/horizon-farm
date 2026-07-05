@@ -86,7 +86,8 @@ export default function App() {
       return;
     }
     if (resolved === 'elevage') {
-      setElevageTab(resolveElevageTab(tab || defaultTabForLegacyModule(moduleId) || 'Lots & bandes'));
+      const rawTab = tab || defaultTabForLegacyModule(moduleId) || 'Lots & bandes';
+      setElevageTab(rawTab);
       if (options?.productionQuestion) {
         window.setTimeout(() => {
           window.dispatchEvent(new CustomEvent('horizon-production-question', {

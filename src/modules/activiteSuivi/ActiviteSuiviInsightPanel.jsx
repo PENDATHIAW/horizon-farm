@@ -12,7 +12,7 @@ const toneCls = (severity = '') => {
 const MODULE_LINKS = [
   { key: 'commercial', label: 'Commercial', tab: 'Ventes', hint: 'Relances, livraisons, encaissements' },
   { key: 'finance_pilotage', label: 'Finance', tab: 'Trésorerie', hint: 'Preuves, paiements, créances' },
-  { key: 'elevage', label: 'Élevage', tab: 'Cycles', hint: 'Bandes, santé, production' },
+  { key: 'elevage', label: 'Élevage', tab: 'Cycles & Reproduction', hint: 'Bandes, santé, production' },
   { key: 'achats_stock', label: 'Stock', tab: 'Stock', hint: 'Réappro, seuils, fournisseurs' },
   { key: 'centre_ia', label: 'Centre IA', tab: 'Risques', hint: 'Analyses et priorités globales' },
 ];

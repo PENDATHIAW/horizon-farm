@@ -188,7 +188,7 @@ const PILOTAGE_REDIRECTS = {
   month_goal: { module: 'objectifs_croissance', tab: 'Objectifs & Écarts Zootechniques', label: 'Objectifs & Croissance' },
   annual_goal: { module: 'objectifs_croissance', tab: 'Objectifs & Écarts Zootechniques', label: 'Objectifs & Croissance' },
   clients_debt: { module: 'commercial', tab: 'Clients', label: 'Commercial' },
-  lot_profitability: { module: 'elevage', tab: 'Cycles', productionQuestion: 'reform_lot', label: 'Élevage → Cycles' },
+  lot_profitability: { module: 'elevage', tab: 'Cycles & Reproduction', productionQuestion: 'reform_lot', label: 'Élevage → Cycles' },
   margin_drop: { module: 'finance_pilotage', tab: 'Rentabilité', label: 'Finance & Pilotage' },
   equipment_cost: { module: 'rh', tab: 'Coûts', label: 'Opérations & Ressources' },
   monthly_risks: { module: 'centre_ia', tab: 'Urgences & risques', label: 'Centre décisionnel' },
@@ -366,7 +366,7 @@ export function processHeyHorizonCommand(rawText = '', { dataMap = {}, currentDr
     return buildPilotageRedirect(
       {
         module: 'elevage',
-        tab: 'Cycles',
+        tab: 'Cycles & Reproduction',
         productionQuestion: productionType,
         label: 'Élevage → Cycles',
       },
