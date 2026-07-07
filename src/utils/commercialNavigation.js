@@ -510,6 +510,8 @@ const CULTURES_TAB_ALIASES = {
   annexe: 'Parcelles & campagnes',
   Graphiques: 'Économie circulaire',
   graphiques: 'Économie circulaire',
+  'Récoltes & stock': 'Récoltes',
+  'Récoltes et stock': 'Récoltes',
   'Vue d’ensemble': 'Parcelles & campagnes',
   'Vue d\'ensemble': 'Parcelles & campagnes',
   Résumé: 'Parcelles & campagnes',
@@ -619,6 +621,15 @@ export function resolveCulturesTab(value = '') {
   return tabAliases[lower(tab)] || 'Parcelles & campagnes';
 }
 
+/** Navigation externe — conserve alias section (Intrants, Transformation…) pour replis auto. */
+export function navigateCulturesTab(onNavigate, tab = '', options = {}) {
+  const raw = String(tab || '').trim() || 'Parcelles & campagnes';
+  if (typeof onNavigate === 'function') {
+    onNavigate('cultures', { tab: raw, ...options });
+  }
+  return resolveCulturesTab(raw);
+}
+
 export function resolveDashboardTab(value = '') {
   const tab = String(value || '').trim();
   if (DASHBOARD_TABS.includes(tab)) return tab;
@@ -669,6 +680,7 @@ const SEARCH_KEY_TO_MODULE = {
   fournisseurs: { module: 'achats_stock', tab: 'Fournisseurs' },
   animaux: { module: 'elevage', tab: 'Lots & bandes' },
   avicole: { module: 'elevage', tab: 'Lots & bandes' },
+  cultures: { module: 'cultures', tab: 'Parcelles & campagnes' },
   sante: { module: 'elevage', tab: 'Santé' },
   alimentation_logs: { module: 'achats_stock', tab: 'Mouvements' },
   taches: { module: 'activite_suivi', tab: null },
@@ -711,6 +723,12 @@ export function navigationOptionsForFinding(finding = {}) {
   if (module === 'achats_stock') {
     return { module, tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Stock' };
   }
+  if (module === 'cultures') {
+    return {
+      module,
+      tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Parcelles & campagnes',
+    };
+  }
   return { module, tab: explicitTab || null };
 }
 
@@ -732,6 +750,10 @@ export function navigateForIaFinding(finding = {}, onNavigate) {
   }
   if (module === 'elevage') {
     onNavigate('elevage', { tab: finding.tab || 'Lots & bandes' });
+    return;
+  }
+  if (module === 'cultures') {
+    onNavigate('cultures', { tab: finding.tab || 'Parcelles & campagnes' });
     return;
   }
   onNavigate(module || 'elevage');

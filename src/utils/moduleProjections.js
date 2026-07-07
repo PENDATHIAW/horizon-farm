@@ -253,7 +253,7 @@ export function buildCulturesModuleProjections(props = {}) {
       'count',
       'Préparer stock et commercial',
       'good',
-      { module: 'cultures', tab: 'Récoltes & stock' },
+      { module: 'cultures', tab: 'Récoltes' },
     ));
   }
 

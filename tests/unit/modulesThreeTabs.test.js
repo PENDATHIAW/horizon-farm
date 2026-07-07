@@ -35,5 +35,6 @@ test('resolveCulturesTab — aliases legacy', () => {
   assert.equal(resolveCulturesTab('Pilotage'), 'Parcelles & campagnes');
   assert.equal(resolveCulturesTab('Intrants & Météo'), 'Parcelles & campagnes');
   assert.equal(resolveCulturesTab('Transformation'), 'Récoltes');
+  assert.equal(resolveCulturesTab('Récoltes & stock'), 'Récoltes');
   assert.equal(resolveCulturesTab('Graphiques'), 'Économie circulaire');
 });

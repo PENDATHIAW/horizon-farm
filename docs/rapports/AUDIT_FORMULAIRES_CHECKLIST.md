@@ -88,7 +88,7 @@ Pour chaque module, lister :
 | Accueil | ✅ | N/A (lecture) | ✅ |
 | Finance | ✅ | Partiel | ✅ |
 | Achats & stock | ✅ | ✅ | ✅ |
-| Cultures | — | — | — |
+| Cultures | ✅ | ✅ | ✅ |
 | Activité & suivi | — | — | — |
 | Documents | — | — | — |
 | RH | — | — | — |

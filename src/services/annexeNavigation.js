@@ -20,7 +20,7 @@ const rules = [
   { pattern: /centre.*cycles|calendrier.*centre|fêtes du mois/i, module: 'centre_ia', tab: 'Cycles', label: 'Centre → Cycles' },
   { pattern: /paramètres pilotage|pilotage|réglages/i, module: 'centre_ia', tab: 'Annexe', label: 'Centre → Paramètres (bandeau pilotage)' },
   { pattern: /prix marché|catalogue prix/i, module: 'commercial', tab: 'Ventes', label: 'Commercial → Prix / ventes' },
-  { pattern: /maraîchage|cultures?|parcelle/i, module: 'elevage', tab: 'Cycles & Reproduction', label: 'Élevage → Cycles (diversification)' },
+  { pattern: /maraîchage|cultures?|parcelle/i, module: 'cultures', tab: 'Parcelles & campagnes', label: 'Cultures → Parcelles & campagnes' },
   { pattern: /météo/i, module: 'dashboard', tab: 'Résumé', label: 'Tableau de bord' },
 ];
 

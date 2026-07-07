@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
 import useLiveWeather from '../hooks/useLiveWeather';
 import { rowsOf } from '../utils/moduleRows';
-import { resolveCulturesTab } from '../utils/culturesNavigation.js';
+import { resolveCulturesSectionIntent, resolveCulturesTab } from '../utils/culturesNavigation.js';
 import { buildCulturesChartNarratives } from '../utils/culturesChartNarratives.js';
 import { runCultureHarvestSideEffects } from '../utils/cultureSideEffects';
 import PeriodScopeBadge from '../components/PeriodScopeBadge.jsx';
@@ -25,22 +25,56 @@ const arr = (value) => (Array.isArray(value) ? value : []);
 export default function CulturesRecoveredModule(props) {
   const controlled = Boolean(props.onTabChange);
   const [internalTab, setInternalTab] = useState(() => resolveCulturesTab(props.initialTab || 'Parcelles & campagnes'));
+  const [sectionIntent, setSectionIntent] = useState(() => resolveCulturesSectionIntent(props.initialTab).section);
+  const intrantsDetailsRef = useRef(null);
+  const santeDetailsRef = useRef(null);
+  const cyclesDetailsRef = useRef(null);
+  const annexeDetailsRef = useRef(null);
+  const transformationDetailsRef = useRef(null);
+  const graphiquesDetailsRef = useRef(null);
   const tab = controlled
     ? resolveCulturesTab(props.initialTab || 'Parcelles & campagnes')
     : internalTab;
+  const rememberSection = useCallback((value = '') => {
+    const { section } = resolveCulturesSectionIntent(value);
+    if (section) setSectionIntent(section);
+  }, []);
   const setTab = useCallback((value) => {
+    rememberSection(value);
     const resolved = resolveCulturesTab(value);
+    const raw = String(value || '').trim();
     if (controlled) {
-      props.onTabChange?.(resolved);
+      props.onTabChange?.(raw || resolved);
       return;
     }
     setInternalTab(resolved);
-  }, [controlled, props.onTabChange]);
+  }, [controlled, props.onTabChange, rememberSection]);
 
   useEffect(() => {
     if (controlled || !props.initialTab) return;
+    rememberSection(props.initialTab);
     setInternalTab(resolveCulturesTab(props.initialTab));
-  }, [controlled, props.initialTab]);
+  }, [controlled, props.initialTab, rememberSection]);
+
+  useEffect(() => {
+    if (!props.initialTab) return;
+    rememberSection(props.initialTab);
+  }, [props.initialTab, rememberSection]);
+
+  useEffect(() => {
+    const refBySection = {
+      intrants: intrantsDetailsRef,
+      sante: santeDetailsRef,
+      cycles: cyclesDetailsRef,
+      annexe: annexeDetailsRef,
+      transformation: transformationDetailsRef,
+      graphiques: graphiquesDetailsRef,
+    };
+    const target = refBySection[sectionIntent]?.current;
+    if (!target) return;
+    target.open = true;
+    window.setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+  }, [tab, sectionIntent]);
 
   const periodFiltered = Boolean(props.periodFiltered);
   const culturesCrud = useCrudModule('cultures');
@@ -220,25 +254,25 @@ export default function CulturesRecoveredModule(props) {
         onRefresh={refreshWorkflow}
       />
       <CulturesParcellesHub {...sharedV3Props} />
-      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+      <details ref={intrantsDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
         <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Intrants & météo</summary>
         <div className="mt-3">
           <CulturesIntrantsHub {...sharedV3Props} />
         </div>
       </details>
-      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+      <details ref={santeDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
         <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Santé & protection</summary>
         <div className="mt-3">
           <CulturesSanteHub {...sharedV3Props} />
         </div>
       </details>
-      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+      <details ref={cyclesDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
         <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Cycles & campagnes</summary>
         <div className="mt-3">
           <CulturesCyclesHub rows={rows} salesOrders={salesOrders} deliveries={deliveriesList} businessEvents={businessEvents} onNavigate={props.onNavigate} />
         </div>
       </details>
-      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+      <details ref={annexeDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
         <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Annexe documents</summary>
         <div className="mt-3">
           <CulturesAnnexeTab documents={documents} onNavigate={props.onNavigate} />
@@ -263,7 +297,7 @@ export default function CulturesRecoveredModule(props) {
         onRefreshBusinessEvents={sharedV3Props.onRefreshBusinessEvents}
         onNavigate={props.onNavigate}
       />
-      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+      <details ref={transformationDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
         <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Transformation cultures</summary>
         <div className="mt-3">
           <CulturesTransformationHub
@@ -280,7 +314,7 @@ export default function CulturesRecoveredModule(props) {
   ) : (
     <div className="space-y-4">
       <CulturesEconomieHub stocks={stocks} salesOrders={salesOrders} rows={rows} businessEvents={businessEvents} dataMap={dataMap} onNavigate={props.onNavigate} />
-      <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+      <details ref={graphiquesDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
         <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Graphiques & courbes</summary>
         <div className="mt-3 space-y-4">
           {chartNarratives.length ? (
