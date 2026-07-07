@@ -8,6 +8,8 @@ import {
   buildOrgaloopEffluentOpportunity,
   isEffluentProduct,
   isOrgaloopEffluentSale,
+  isOrgaloopChannelEnabled,
+  isOrgaloopHybridStrategy,
   ORGALOOP_EFFLUENT_OPPORTUNITY_TEMPLATE,
 } from './orgaloopEffluentChannel.js';
 
@@ -19,6 +21,10 @@ const now = () => new Date().toISOString();
 
 export function isOrgaloopEffluentPrimary() {
   return ORGALOOP_EFFLUENT_CHANNEL.strategy === 'vente_directe_orgaloop';
+}
+
+export function isOrgaloopHybridStrategyEnabled() {
+  return ORGALOOP_EFFLUENT_CHANNEL.strategy === 'hybride_surplus_orgaloop';
 }
 
 export function orgaloopOpportunityKey(stockId = '') {
@@ -52,7 +58,7 @@ function collectionEventType(profile = 'mixte') {
  * Remplace l'opportunité fumier générique par Orgaloop + events effluent.
  */
 export function enhanceManureWorkflowForOrgaloop(workflow, { profileMeta } = {}) {
-  if (!workflow || !isOrgaloopEffluentPrimary()) return workflow;
+  if (!workflow || !isOrgaloopChannelEnabled()) return workflow;
 
   const meta = profileMeta?.profile ? profileMeta : workflow.profile || {};
   const profile = meta.profile || 'mixte';
@@ -69,6 +75,7 @@ export function enhanceManureWorkflowForOrgaloop(workflow, { profileMeta } = {})
     profile,
     sacs: nextQty,
     stockId,
+    surplus: isOrgaloopHybridStrategy(),
   });
 
   const opportunity = {
@@ -93,7 +100,9 @@ export function enhanceManureWorkflowForOrgaloop(workflow, { profileMeta } = {})
     statut: 'ouverte',
     priority: 'moyenne',
     date: workflow.event?.date || today(),
-    notes: `${nextQty} sac(s) — publication directe ${platformName} · ${ORGALOOP_EFFLUENT_CHANNEL.strategyLabel}`,
+    notes: isOrgaloopHybridStrategy()
+      ? `${nextQty} sac(s) — fertilisation cultures prioritaire, surplus sur ${platformName}.`
+      : `${nextQty} sac(s) — publication directe ${platformName} · ${ORGALOOP_EFFLUENT_CHANNEL.strategyLabel}`,
     ...(workflow.opportunityExistingId ? { updated_at: now() } : { created_at: now() }),
   };
 
@@ -153,7 +162,7 @@ export async function ensureOrgaloopEffluentOpportunity({
   stockId = '',
   handlers = {},
 } = {}) {
-  if (!isOrgaloopEffluentPrimary() || !handlers.onCreateOpportunity) return null;
+  if (!isOrgaloopChannelEnabled() || !handlers.onCreateOpportunity) return null;
 
   const existing = findOrgaloopEffluentOpportunity(opportunities, stockId);
   if (existing?.id) return existing;
@@ -226,7 +235,7 @@ export async function emitOrgaloopEffluentSaleSideEffects({
   handlers = {},
   context = {},
 } = {}) {
-  if (!isOrgaloopEffluentPrimary() || !handlers.onCreateBusinessEvent) return { emitted: false };
+  if (!isOrgaloopChannelEnabled() || !handlers.onCreateBusinessEvent) return { emitted: false };
 
   const saleRow = {
     ...order,

@@ -39,8 +39,9 @@ export const VALORISATION_READINESS_THRESHOLDS = {
 /** Canal vente fumier/fientes — plateforme Orgaloop (conjoint). */
 export const ORGALOOP_EFFLUENT_CHANNEL = {
   platformName: 'Orgaloop',
-  strategy: 'vente_directe_orgaloop',
-  strategyLabel: 'Vente directe sur Orgaloop — pas de stockage long terme ni fertilisation interne prioritaire',
+  strategy: 'hybride_surplus_orgaloop',
+  strategyLabel: 'Priorité fertilisation cultures Horizon Farm — surplus vendu sur Orgaloop',
+  internalFertilizationPriority: true,
   saleChannelTags: ['orgaloop', 'plateforme conjoint', 'marketplace orgaloop'],
 };
 

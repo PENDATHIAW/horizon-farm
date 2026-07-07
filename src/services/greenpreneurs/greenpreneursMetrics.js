@@ -1,4 +1,5 @@
 import { DERFJ_GREENPRENEURS_PROFILE, ORGALOOP_EFFLUENT_CHANNEL } from '../../config/derfjGreenpreneurs.config.js';
+import { computeEffluentSurplusKg } from './orgaloopEffluentChannel.js';
 import { buildGreenpreneursReadinessScore } from './greenpreneursReadinessScore.js';
 import { computeCircularEconomyMetrics } from './circularEconomyMetrics.js';
 import { computeValorisationReadiness } from './valorisationReadinessEngine.js';
@@ -52,28 +53,22 @@ export function buildGreenpreneursCentreAlerts(metrics = {}) {
   const circular = metrics.circular || {};
   const valorisation = metrics.valorisation || {};
   const orgaloop = circular.orgaloop || {};
+  const orgaloopHybrid = circular.orgaloopHybrid ?? ORGALOOP_EFFLUENT_CHANNEL.strategy === 'hybride_surplus_orgaloop';
   const orgaloopPrimary = circular.orgaloopPrimary
     ?? ORGALOOP_EFFLUENT_CHANNEL.strategy === 'vente_directe_orgaloop';
   const platformName = orgaloop.platformName || ORGALOOP_EFFLUENT_CHANNEL.platformName;
 
-  const effluentDisponibleKg = Math.round(
-    (circular.fumierBovin?.availableKg || 0)
-    + (circular.fientesPondeuses?.availableKg || 0)
-    + (circular.compost?.availableKg || 0),
-  );
-  const effluentNonVenduKg = Math.max(0, effluentDisponibleKg - (orgaloop.soldKg || 0));
+  const effluentSurplusKg = circular.effluentSurplusKg ?? computeEffluentSurplusKg(circular);
 
-  if (orgaloopPrimary && effluentNonVenduKg > 100) {
+  if (orgaloopHybrid && circular.fumierBovin?.availableKg > 100 && circular.usedOnCulturesKg < circular.fumierBovin.availableKg * 0.2) {
     alerts.push({
-      id: 'gp-effluent-a-publier-orgaloop',
-      title: `Effluents à publier sur ${platformName}`,
-      detail: `~${effluentNonVenduKg} kg collectés — vente directe plateforme (pas de stock longue durée).`,
+      id: 'gp-fumier-priorite-cultures',
+      title: 'Fumier disponible — priorité fertilisation cultures',
+      detail: `${Math.round(circular.fumierBovin.availableKg)} kg — valoriser d'abord sur les parcelles Horizon Farm (argument DER/FJ agroécologie).`,
       severity: 'warn',
-      navigate: { module: 'commercial', tab: 'Opportunités' },
+      navigate: { module: 'cultures', tab: 'Économie circulaire' },
     });
-  }
-
-  if (!orgaloopPrimary && circular.fumierBovin?.availableKg > 100 && circular.usedOnCulturesKg < circular.fumierBovin.availableKg * 0.2) {
+  } else if (!orgaloopHybrid && !orgaloopPrimary && circular.fumierBovin?.availableKg > 100 && circular.usedOnCulturesKg < circular.fumierBovin.availableKg * 0.2) {
     alerts.push({
       id: 'gp-fumier-non-valorise',
       title: 'Fumier bovin disponible mais peu valorisé',
@@ -82,6 +77,25 @@ export function buildGreenpreneursCentreAlerts(metrics = {}) {
       navigate: { module: 'cultures', tab: 'Économie circulaire' },
     });
   }
+
+  if (orgaloopHybrid && effluentSurplusKg > 100) {
+    alerts.push({
+      id: 'gp-surplus-orgaloop',
+      title: `Surplus effluent — publier sur ${platformName}`,
+      detail: `~${effluentSurplusKg} kg au-delà des besoins cultures — vente surplus plateforme.`,
+      severity: 'info',
+      navigate: { module: 'commercial', tab: 'Opportunités' },
+    });
+  } else if (orgaloopPrimary && effluentSurplusKg > 100) {
+    alerts.push({
+      id: 'gp-effluent-a-publier-orgaloop',
+      title: `Effluents à publier sur ${platformName}`,
+      detail: `~${effluentSurplusKg} kg collectés — vente directe plateforme.`,
+      severity: 'warn',
+      navigate: { module: 'commercial', tab: 'Opportunités' },
+    });
+  }
+
   if (!orgaloopPrimary && circular.fertilisantStockKg > circular.usedOnCulturesKg * 2 && circular.fertilisantStockKg > 500) {
     alerts.push({
       id: 'gp-stock-fertilisant-eleve',
@@ -109,7 +123,7 @@ export function buildGreenpreneursCentreAlerts(metrics = {}) {
       navigate: { module: 'objectifs_croissance', tab: 'Suivi du Business Plan' },
     });
   }
-  if (orgaloopPrimary && orgaloop.soldKg > 0) {
+  if (orgaloop.soldKg > 0) {
     alerts.push({
       id: 'gp-orgaloop-ventes-trackees',
       title: `${platformName} — ventes effluents tracées`,

@@ -3,9 +3,8 @@ import {
   CIRCULAR_SIMULATION_MONTHLY_KG,
   CIRCULAR_STOCK_CATEGORIES,
   DERFJ_GREENPRENEURS_PROFILE,
-  ORGALOOP_EFFLUENT_CHANNEL,
 } from '../../config/derfjGreenpreneurs.config.js';
-import { computeOrgaloopEffluentMetrics } from './orgaloopEffluentChannel.js';
+import { computeOrgaloopEffluentMetrics, computeEffluentSurplusKg, isOrgaloopHybridStrategy } from './orgaloopEffluentChannel.js';
 import { computeManureFertilizerEconomy } from '../../utils/manureFertilizerEconomy.js';
 import { DEFAULT_ENGRAIS_SAC_PRICE_FCFA } from '../../utils/farmAgronomyConstants.js';
 import { toNumber } from '../../utils/format.js';
@@ -131,14 +130,23 @@ export function computeCircularEconomyMetrics(dataMap = {}, options = {}) {
     : sim.coproduits.osKg;
 
   const orgaloop = computeOrgaloopEffluentMetrics(dataMap);
-  const orgaloopPrimary = ORGALOOP_EFFLUENT_CHANNEL.strategy === 'vente_directe_orgaloop';
+  const orgaloopHybrid = isOrgaloopHybridStrategy();
+  const orgaloopPrimary = !orgaloopHybrid && orgaloop.isPrimaryChannel;
+  const effluentSurplusKg = computeEffluentSurplusKg({
+    fumierBovin: { availableKg: fumierKg },
+    fientesPondeuses: { availableKg: fientesKg },
+    compost: { availableKg: compostKg },
+    usedOnCulturesKg,
+    orgaloop,
+  });
 
   const circularityScore = Math.min(100, Math.round(
-    (orgaloopPrimary && orgaloop.soldKg > 0 ? 25 : parcellesFertilisees > 0 ? 25 : 0)
-    + (orgaloopPrimary && orgaloop.revenueFcfa > 0 ? 20 : usedOnCulturesKg > 0 ? 20 : 0)
-    + (orgaloopPrimary && orgaloop.soldKg > 0 ? 20 : engraisSavingsFcfa > 0 ? 20 : 0)
-    + (hasRealData ? 20 : 10)
-    + (fumierKg + fientesKg > 0 ? 15 : 0),
+    (parcellesFertilisees > 0 || usedOnCulturesKg > 0 ? 25 : 0)
+    + (orgaloop.soldKg > 0 ? 15 : 0)
+    + (usedOnCulturesKg > 0 ? 15 : 0)
+    + (engraisSavingsFcfa > 0 ? 20 : 0)
+    + (orgaloop.revenueFcfa > 0 ? 10 : 0)
+    + (hasRealData ? 15 : 8),
   ));
 
   const plannedCircularImpact = Math.round(
@@ -159,7 +167,9 @@ export function computeCircularEconomyMetrics(dataMap = {}, options = {}) {
     fertilisantStockKg,
     coproduits: { suifKg, osKg, sourceType },
     orgaloop,
+    orgaloopHybrid,
     orgaloopPrimary,
+    effluentSurplusKg,
     circularityScore,
     plannedVsRealized: {
       plannedSavingsFcfa: plannedCircularImpact,

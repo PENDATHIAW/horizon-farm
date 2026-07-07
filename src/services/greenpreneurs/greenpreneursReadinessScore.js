@@ -32,12 +32,12 @@ function calculateEnvironmentalScore(dataMap, circular) {
   if (circular.parcellesFertilisees > 0) {
     score += 6;
     signals.push('parcelles fertilisées');
-  } else if (circular.orgaloopPrimary && circular.orgaloop?.soldKg > 0) {
-    score += 6;
-    signals.push(`effluents vendus via ${circular.orgaloop.platformName || 'Orgaloop'}`);
   } else if (circular.hasRealData && circular.usedOnCulturesKg > 0) {
-    score += 4;
+    score += 5;
     signals.push('effluents utilisés sur cultures');
+  } else if (circular.orgaloop?.soldKg > 0) {
+    score += 4;
+    signals.push(`surplus vendu via ${circular.orgaloop.platformName || 'Orgaloop'}`);
   }
 
   const manure = computeManureFertilizerEconomy({
