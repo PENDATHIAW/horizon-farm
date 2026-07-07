@@ -1,4 +1,4 @@
-import { Beef, Drumstick, Egg, HeartPulse, Scale, ShoppingCart, Wheat } from 'lucide-react';
+import { Beef, Drumstick, Egg, HeartPulse, Scale, ShoppingCart, Skull, Wheat } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AnimauxV2 from '../AnimauxV2';
 import AvicoleV10 from '../AvicoleV10';
@@ -64,6 +64,7 @@ export default function ElevageLotsBandesTab({
     { key: 'eggs', icon: Egg, label: 'Ponte', onClick: () => openWorkflowScoped('eggs') },
     { key: 'health', icon: HeartPulse, label: 'Santé', onClick: () => onSetTab?.('Santé') },
     { key: 'weighing', icon: Scale, label: 'Pesée', onClick: () => openWorkflowScoped('weighing') },
+    { key: 'mortality', icon: Skull, label: 'Mortalité', onClick: () => openWorkflowScoped('mortality') },
     { key: 'sale', icon: ShoppingCart, label: 'Vente', onClick: () => onNavigate?.('commercial', { tab: 'Ventes' }) },
   ];
 

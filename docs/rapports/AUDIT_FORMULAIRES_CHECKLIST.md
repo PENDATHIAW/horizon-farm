@@ -81,9 +81,10 @@ Pour chaque module, lister :
 
 | Module | Navigation | Formulaires | Interconnexions |
 |--------|------------|-------------|-----------------|
-| Centre décisionnel | ✅ | À faire | Partiel |
-| Élevage | ✅ | À faire | Partiel |
-| Commercial | ✅ | ✅ (1ère passe) | Corrigé (vente, livraison, opportunité) |
+| Commercial | ✅ | ✅ | ✅ |
+| Centre décisionnel | ✅ | ✅ | ✅ |
+| Objectifs & croissance | ✅ | Partiel | ✅ |
+| Élevage | ✅ | ✅ | ✅ |
 | Finance | — | — | — |
 | Achats & stock | — | — | — |
 | Cultures | — | — | — |

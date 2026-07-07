@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
 import { Bot } from 'lucide-react';
-import { MODULE_TARGET_TABS } from '../../config/horizonVision.config.js';
 import { resolveCentreTab } from '../../utils/commercialNavigation.js';
 import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine.js';
 import { buildStrategicDecisionPlan } from '../../services/strategicDecisionEngine.js';
@@ -29,8 +28,6 @@ const EMPTY_STRATEGIC_PLAN = {
   risks: [],
   ith: null,
 };
-
-const TAB_IDS = MODULE_TARGET_TABS.centre_ia;
 
 /** Centre décisionnel — 3 onglets : urgences terrain, croissance, saisons & marchés. */
 export default function CentreDecisionModule({

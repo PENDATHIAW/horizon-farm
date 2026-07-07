@@ -20,7 +20,7 @@ function priorityRows(priorities = []) {
     'Que faire': item.whatToDo || item.detail,
     Priorité: item.priorityLabel,
     Module: item.sourceLabel,
-    Destination: item.targetTab || 'À traiter',
+    Destination: item.targetTab || 'Urgences & risques',
     Type: item.kind || '—',
   }));
 }
@@ -151,7 +151,7 @@ export function exportCentreDecisionExcel(payload = {}, fileName) {
   XLSX.writeFile(workbook, fileName || `centre-decisionnel-${today()}.xlsx`);
 }
 
-export function exportCentreDecisionCsv(payload = {}, activeTab = 'À traiter') {
+export function exportCentreDecisionCsv(payload = {}, activeTab = 'Urgences & risques') {
   const key = TAB_EXPORT_MAP[activeTab] || 'priorities';
   const rows = key === 'priorities'
     ? priorityRows(payload.data?.priorities || [])

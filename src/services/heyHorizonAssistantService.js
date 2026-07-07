@@ -185,8 +185,8 @@ export async function refreshHeyHorizonModules(refreshModule, result = {}, draft
 }
 
 const PILOTAGE_REDIRECTS = {
-  month_goal: { module: 'objectifs_croissance', tab: 'Objectifs & Écarts Zootechniques', label: 'Objectifs & Croissance' },
-  annual_goal: { module: 'objectifs_croissance', tab: 'Objectifs & Écarts Zootechniques', label: 'Objectifs & Croissance' },
+  month_goal: { module: 'objectifs_croissance', tab: 'Efficacité Technique & Zootechnique', label: 'Objectifs & Croissance' },
+  annual_goal: { module: 'objectifs_croissance', tab: 'Suivi du Business Plan', label: 'Objectifs & Croissance' },
   clients_debt: { module: 'commercial', tab: 'Clients & créances', label: 'Commercial' },
   lot_profitability: { module: 'elevage', tab: 'Cycles & Reproduction', productionQuestion: 'reform_lot', label: 'Élevage → Cycles' },
   margin_drop: { module: 'finance_pilotage', tab: 'Rentabilité', label: 'Finance & Pilotage' },

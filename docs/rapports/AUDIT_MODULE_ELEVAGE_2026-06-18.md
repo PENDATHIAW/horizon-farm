@@ -141,5 +141,17 @@ Alias legacy (`ELEVAGE_TAB_ALIASES`) : Résumé, Avicole, Animaux, Alimentation,
 ## Vérification
 
 ```bash
-node --test tests/unit/elevageDecisionTabs.test.js tests/unit/elevageProductionHub.test.js tests/unit/elevageVisionV1.test.js
+node --test tests/unit/elevageDecisionTabs.test.js tests/unit/elevageVisionAlign.test.js tests/unit/elevageProductionHub.test.js
 ```
+
+---
+
+## 9. Passe complète financeur (2026-06-18)
+
+| # | Correctif |
+|---|-----------|
+| F1 | Action **Mortalité** sur Lots & bandes (avicole) + toolbar mobile |
+| F2 | Transformation → **finance** : handlers `onCreateFinanceTransaction` + `transactions` context |
+| F3 | **Reproduction** : formulaire affiché uniquement après clic Saillie/Gestation/Mise bas |
+| F4 | Tests `elevageVisionAlign` alignés architecture actuelle |
+

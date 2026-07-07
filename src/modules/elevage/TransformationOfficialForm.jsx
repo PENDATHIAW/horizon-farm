@@ -196,6 +196,7 @@ export default function TransformationOfficialForm(props) {
           alimentationLogs: props.alimentationLogs,
           productionLogs: props.productionLogs,
           businessEvents: props.businessEvents,
+          transactions: props.transactions || [],
         },
         handlers: props.handlers || {},
       });

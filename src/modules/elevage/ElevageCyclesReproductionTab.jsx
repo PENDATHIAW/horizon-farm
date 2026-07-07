@@ -8,7 +8,7 @@ function ReproductionSummary({ data, onOpenReproductionWorkflow }) {
       <div>
         <p className="text-xs font-black uppercase tracking-widest text-[#9a6b12]">Reproduction</p>
         <h2 className="mt-1 text-lg font-black text-[#2f2415]">Saillies, gestations et mises bas</h2>
-        <p className="mt-1 text-sm text-[#8a7456]">Workflow officiel avec validation humaine — formulaire ci-dessous.</p>
+        <p className="mt-1 text-sm text-[#8a7456]">Workflow officiel — ouvrez Saillie, Gestation ou Mise bas ci-dessus.</p>
       </div>
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
@@ -72,7 +72,7 @@ export default function ElevageCyclesReproductionTab({
   return (
     <div className="space-y-5">
       <ReproductionSummary data={reproductionData} onOpenReproductionWorkflow={onOpenReproductionWorkflow} />
-      <ReproductionWorkflowForm {...reproductionFormProps} />
+      {reproductionFormProps?.draft ? <ReproductionWorkflowForm {...reproductionFormProps} /> : null}
       <ElevageCyclesPanel {...cyclesPanelProps} />
       <section className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-sm text-[#7d6a4a]">
         <p className="font-black text-[#2f2415] flex items-center gap-2">

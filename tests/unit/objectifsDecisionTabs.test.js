@@ -11,6 +11,8 @@ const LEGACY_ALIASES = {
   'Efficacité Technique': 'Efficacité Technique & Zootechnique',
   Plans: 'Sécurisation des Flux',
   Financeurs: 'Sécurisation des Flux',
+  Investisseurs: 'Sécurisation des Flux',
+  'Objectifs & Écarts Zootechniques': 'Efficacité Technique & Zootechnique',
   'Flux & Équilibres': 'Sécurisation des Flux',
   'Maraîchage & Diversification': 'Simulateur Sandbox',
   Graphiques: 'Suivi du Business Plan',

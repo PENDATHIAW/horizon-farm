@@ -19,10 +19,10 @@ export const PILOTAGE_NAV_TARGETS = {
   finance_pilotage: { module: 'finance_pilotage', tab: 'Trésorerie' },
   documents: { module: 'documents_rapports', tab: 'Preuves' },
   documents_rapports: { module: 'documents_rapports', tab: 'Preuves' },
-  financeur: { module: 'objectifs_croissance', tab: 'Financeurs' },
-  objectifs_croissance: { module: 'objectifs_croissance', tab: 'Financeurs' },
-  activite_suivi: { module: 'activite_suivi', tab: 'Alertes' },
-  centre_ia: { module: 'centre_ia', tab: 'À traiter' },
+  financeur: { module: 'investisseurs_forums', tab: 'Résumé' },
+  objectifs_croissance: { module: 'objectifs_croissance', tab: 'Suivi du Business Plan' },
+  activite_suivi: { module: 'activite_suivi', tab: 'À traiter maintenant' },
+  centre_ia: { module: 'centre_ia', tab: 'Urgences & risques' },
 };
 
 export function buildPilotageIssueKey(scope = 'item', id = '') {

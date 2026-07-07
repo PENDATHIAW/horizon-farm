@@ -371,7 +371,9 @@ const OBJECTIFS_TAB_ALIASES = {
   Prévisions: 'Efficacité Technique & Zootechnique',
   Plans: 'Sécurisation des Flux',
   Financeurs: 'Sécurisation des Flux',
+  Investisseurs: 'Sécurisation des Flux',
   'Objectifs & Écarts': 'Suivi du Business Plan',
+  'Objectifs & Écarts Zootechniques': 'Efficacité Technique & Zootechnique',
   'Croissance économique & Capacités': 'Efficacité Technique & Zootechnique',
   'Tableau de bord graphique': 'Suivi du Business Plan',
   Graphiques: 'Suivi du Business Plan',
@@ -552,6 +554,12 @@ export function resolveObjectifsTab(value = '') {
   const fromAlias = OBJECTIFS_TAB_ALIASES[tab] || OBJECTIFS_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
   return OBJECTIFS_TABS[0];
+}
+
+export function navigateObjectifsTab(onNavigate, tab = '') {
+  const resolved = resolveObjectifsTab(tab || 'Suivi du Business Plan');
+  if (typeof onNavigate === 'function') onNavigate('objectifs_croissance', { tab: resolved });
+  return resolved;
 }
 
 export function resolveCentreTab(value = '') {

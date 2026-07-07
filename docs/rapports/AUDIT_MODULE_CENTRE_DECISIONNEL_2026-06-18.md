@@ -27,5 +27,19 @@ Urgences & risques | Croissance & opportunités | Saisons & marchés
 ## Vérification
 
 ```bash
-node --test tests/unit/centreDecisionTabs.test.js tests/unit/centreObjectifsWorkflow.test.js
+node --test tests/unit/centreDecisionTabs.test.js tests/unit/centreObjectifsWorkflow.test.js tests/unit/centreContentUtils.test.js
 ```
+
+---
+
+## 9. Passe complète financeur (2026-06-18)
+
+| # | Correctif |
+|---|-----------|
+| D1 | Suppression orphelins `CentreHistoriqueTab`, `PilotageContextStrip`, `StrategicQuickActionsInterconnected` |
+| D2 | `PILOTAGE_NAV_TARGETS.centre_ia` → `Urgences & risques` |
+| D3 | Export CSV défaut + colonne Destination alignés |
+| D4 | Code mort `TAB_IDS` retiré de `CentreDecisionModule` |
+
+Formulaires : `PilotageSettingsPanel` (seuils, fêtes) — Valider/Réinitialiser fonctionnels. Sync alertes **manuelle** (volontaire).
+

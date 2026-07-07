@@ -5,6 +5,7 @@ const AVICOLE_ACTIONS = [
   { key: 'eggs', label: 'Ponte', icon: Egg, modal: 'eggs' },
   { key: 'health', label: 'Santé', icon: HeartPulse, modal: 'health' },
   { key: 'weighing', label: 'Pesée', icon: Scale, modal: 'weighing' },
+  { key: 'mortality', label: 'Mortalité', icon: Skull, modal: 'mortality' },
   { key: 'sale', label: 'Vente', icon: ShoppingCart, modal: 'sale' },
 ];
 

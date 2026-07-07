@@ -193,3 +193,9 @@ node --test tests/unit/commercialDecisionTabs.test.js tests/unit/modulesThreeTab
 2. Ventes → Encaisser / Livrer / Facture via `SaleActionModal`
 3. Clients → Nouveau prospect (formulaire) → Devis → Client actif
 4. Abonnement → Créer commande prévue → vente préremplie
+
+---
+
+## 10. Passe complète financeur (2026-06-18)
+
+Module validé navigation + formulaires + interconnexions (sections 7–9). Prêt pour démo financeur sur parcours vente / client / opportunité / livraison.

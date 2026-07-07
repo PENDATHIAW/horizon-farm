@@ -459,6 +459,8 @@ export default function ElevageRecoveredModule(props) {
     onCreateStockMovement: props.onCreateStockMovement || movementsCrud.create,
     onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create,
     onCreateDocument: props.onCreateDocument || documentsCrud.create,
+    onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create,
+    onUpdateFinanceTransaction: props.onUpdateFinanceTransaction || financesCrud.update,
     onUpdateLot: props.onUpdateLot || avicoleCrud.update,
     onUpdateAnimal: props.onUpdateAnimal || animauxCrud.update,
   };
@@ -473,6 +475,7 @@ export default function ElevageRecoveredModule(props) {
     alimentationLogs: feedLogs,
     productionLogs,
     businessEvents,
+    transactions: rowsOf(props.transactions, financesCrud, periodFiltered),
     handlers: transformationHandlers,
     onNavigate: guardedNavigate,
     onSuccess: refreshAfterWorkflow,
@@ -499,7 +502,7 @@ export default function ElevageRecoveredModule(props) {
   );
 
   const reproductionFormProps = {
-    draft: reproductionHorizonDraft || buildReproductionWorkflowDraft({ workflow: 'gestation' }),
+    draft: reproductionHorizonDraft,
     animaux: animals,
     documents: rowsOf(props.documents, documentsCrud, periodFiltered),
     onUpdateAnimal: props.onUpdateAnimal || animauxCrud.update,

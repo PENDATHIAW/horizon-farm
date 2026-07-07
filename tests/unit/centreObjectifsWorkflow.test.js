@@ -38,16 +38,16 @@ test('opportunité vente ouvre Commercial', () => {
   assert.deepEqual(calls[0], { module: 'commercial', tab: 'Opportunités' });
 });
 
-test('objectif financeur ouvre Documents/Exports ou Objectifs/Financeurs', () => {
+test('objectif financeur ouvre Documents ou Investisseurs & Forums', () => {
   const docs = resolveObjectifsNavigation('financeur_dossier');
   assert.equal(docs.module, 'documents_rapports');
-  assert.equal(docs.tab, 'Exports');
-  const objectifs = resolveObjectifsNavigation('financeurs');
-  assert.equal(objectifs.module, 'objectifs_croissance');
-  assert.equal(objectifs.tab, 'Financeurs');
+  assert.equal(docs.tab, 'Rapports & exports');
+  const investors = resolveObjectifsNavigation('financeurs');
+  assert.equal(investors.module, 'investisseurs_forums');
+  assert.equal(investors.tab, 'Résumé');
   const calls = [];
   navigateObjectifsTarget((module, opts) => calls.push({ module, tab: opts?.tab }), 'financeur_dossier');
-  assert.deepEqual(calls[0], { module: 'documents_rapports', tab: 'Exports' });
+  assert.deepEqual(calls[0], { module: 'documents_rapports', tab: 'Rapports & exports' });
 });
 
 test('one-click risque crée tâche/alerte avec source', () => {

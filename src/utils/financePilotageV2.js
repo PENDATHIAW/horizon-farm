@@ -457,8 +457,8 @@ export function buildFinancingView(props = {}, options = {}) {
     repayment,
     documents: financeDocs,
     documentCount: financeDocs.length,
-    investorsModule: 'objectifs_croissance',
-    investorsTab: 'Investisseurs',
+    investorsModule: 'investisseurs_forums',
+    investorsTab: 'Résumé',
   };
 }
 
