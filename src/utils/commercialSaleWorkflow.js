@@ -496,6 +496,20 @@ export async function commitCommercialSale(records, handlers = {}, context = {})
     await onCreateBusinessEvent?.(records.businessEvent);
   }
 
+  const oppId = clean(form.opportunity_id || records.order?.converted_opportunity_id || records.order?.opportunity_id);
+  const updateOpp = handlers.onUpdateOpportunity || context.sideEffectHandlers?.onUpdateOpportunity;
+  if (oppId && updateOpp && !oppId.startsWith('auto-opp-')) {
+    await updateOpp(oppId, {
+      status: 'gagnee',
+      statut: 'gagnee',
+      converted_order_id: records.order.id,
+      order_id: records.order.id,
+      converted_at: now(),
+      montant_final: records.order.montant_total,
+      closed_at: now(),
+    });
+  }
+
   await onRefreshWorkflow?.();
   return { orderId: records.order.id, issueKey: records.issueKey };
 }

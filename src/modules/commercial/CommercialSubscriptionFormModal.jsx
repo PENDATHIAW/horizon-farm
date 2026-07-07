@@ -9,6 +9,9 @@ import {
   hasDuplicateSubscription,
   validateSubscriptionForm,
 } from '../../utils/commercialSubscriptions.js';
+import { COMMERCIAL_UNIT_GROUPS, unitLabel } from '../../utils/commercialUnits.js';
+
+const SUBSCRIPTION_UNIT_OPTIONS = [...new Set(Object.values(COMMERCIAL_UNIT_GROUPS).flat())];
 
 const clientNameOf = (client = {}) => client.nom || client.name || client.id || 'Client';
 
@@ -154,14 +157,16 @@ export default function CommercialSubscriptionFormModal({
             </label>
             <label className="block space-y-1">
               <span className="text-xs font-black uppercase tracking-wide text-[#8a7456]">Unité</span>
-              <input
-                type="text"
+              <select
                 value={form.unit}
                 onChange={(event) => setField('unit', event.target.value)}
                 className="w-full rounded-xl border border-[#d6c3a0] bg-white px-3 py-2 text-sm"
-                placeholder="tablette, kg, tête…"
                 required
-              />
+              >
+                {SUBSCRIPTION_UNIT_OPTIONS.map((unit) => (
+                  <option key={unit} value={unit}>{unitLabel(unit)}</option>
+                ))}
+              </select>
             </label>
             <label className="block space-y-1">
               <span className="text-xs font-black uppercase tracking-wide text-[#8a7456]">Prix unitaire (FCFA)</span>

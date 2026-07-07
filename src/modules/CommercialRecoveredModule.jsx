@@ -493,8 +493,9 @@ export default function CommercialRecoveredModule(props) {
       status: WHATSAPP_STATUSES.PREPARE,
       logId: makeId('WALOG'),
     });
-    await whatsappLogsCrud.create?.(payload);
+    const created = await whatsappLogsCrud.create?.(payload);
     await whatsappLogsCrud.refresh?.();
+    return created?.id || payload.id || payload.logId;
   };
 
   const prepareRelanceWhatsApp = async (row) => {
@@ -520,24 +521,31 @@ export default function CommercialRecoveredModule(props) {
   const openClientTab = () => setTab('Clients & créances');
 
   const convertOpportunityToSale = async (opportunity, client) => {
+    let opp = { ...opportunity };
+    const rawId = String(opp.id || '');
+    if (rawId.startsWith('auto-opp-')) {
+      const newId = makeId('OPP');
+      const payload = {
+        ...opp,
+        id: newId,
+        title: opp.title || opp.libelle || 'Opportunité auto',
+        status: 'ouverte',
+        statut: 'ouverte',
+        client_id: client?.id || opp.client_id || '',
+        client_nom: client?.nom || client?.name || opp.client_nom || '',
+      };
+      await (props.onCreateOpportunity || opportunitiesCrud.create)?.(payload);
+      await opportunitiesCrud.refresh?.();
+      opp = payload;
+    }
     const formDraft = buildSaleFormFromOpportunity(
-      opportunity,
+      opp,
       { clients, lots: rowsOf(props.lots, lotsCrud), animaux: rowsOf(props.animals || props.animaux, animalsCrud), stocks: rowsOf(props.stocks, stockCrud), cultures: rowsOf(props.cultures, culturesCrud) },
       client,
     );
-    setPendingSaleDraft({ form_type: 'sale_record', intent_label: `Convertir: ${opportunity.title || opportunity.libelle || 'Opportunité'}`, ...formDraft });
+    setPendingSaleDraft({ form_type: 'sale_record', intent_label: `Convertir: ${opp.title || opp.libelle || 'Opportunité'}`, ...formDraft });
     setTab('Ventes');
-    if (opportunity.id) {
-      await (props.onUpdateOpportunity || opportunitiesCrud.update)?.(opportunity.id, {
-        status: 'en_conversion',
-        statut: 'en_conversion',
-        client_id: client?.id || opportunity.client_id || '',
-        client_nom: client?.nom || client?.name || opportunity.client_nom || '',
-        converted_at: new Date().toISOString(),
-      });
-      await opportunitiesCrud.refresh?.();
-    }
-    toast.success('Formulaire vente prérempli — complétez la vente pour clôturer l’opportunité');
+    toast.success('Formulaire vente prérempli — validez pour clôturer l\'opportunité');
   };
 
   const todoBadge = data.todoCount;

@@ -7,6 +7,7 @@ import {
   deliveryProofMessage,
   DELIVERY_STATUS_LABELS,
 } from '../../utils/commercialDeliveries.js';
+import { confirmSaleDelivery } from '../../utils/confirmSaleDelivery.js';
 import CommercialDeliverySyncPanel from '../CommercialDeliverySyncPanel.jsx';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
@@ -27,18 +28,37 @@ export default function CommercialDeliveriesPanel({
   onUpdateTask,
   onRefreshWorkflow,
   setTab,
+  payments = [],
 }) {
   const queue = buildCommercialDeliveryQueue({ deliveries, orders, clients, documents });
 
   const markDelivered = async (row) => {
-    await onUpdateDelivery?.(row.id, {
-      statut: 'livree',
-      status: 'livree',
-      delivery_status: 'livree',
-      date_reelle: new Date().toISOString().slice(0, 10),
-    });
-    toast.success('Livraison marquée livrée');
-    await onRefreshWorkflow?.();
+    const order = orders.find((item) => String(item.id) === String(row.orderId));
+    if (!order) {
+      toast.error('Commande introuvable');
+      return;
+    }
+    try {
+      const result = await confirmSaleDelivery({
+        sale: order,
+        deliveryStatus: 'livre',
+        deliveries,
+        payments,
+        tasks,
+        clientLabel: row.clientName,
+        handlers: {
+          onCreateDelivery,
+          onUpdateDelivery,
+          onUpdateOrder,
+          onCreateTask,
+          onUpdateTask,
+        },
+      });
+      toast.success(result.complete ? 'Livraison confirmée' : 'Livraison planifiée');
+      await onRefreshWorkflow?.();
+    } catch (error) {
+      toast.error(error.message || 'Confirmation livraison impossible');
+    }
   };
 
   const addProof = async (row) => {

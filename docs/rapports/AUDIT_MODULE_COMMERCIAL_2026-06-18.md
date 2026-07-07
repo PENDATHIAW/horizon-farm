@@ -159,3 +159,37 @@ Ventes | Opportunités | Clients & créances | Livraisons | Abonnements | Pilota
 ```bash
 node --test tests/unit/commercialDecisionTabs.test.js tests/unit/modulesThreeTabs.test.js tests/unit/commercialTabControl.test.js
 ```
+
+---
+
+## 9. Audit formulaires (passe financeur — 2026-06-18)
+
+### Formulaires principaux
+
+| Formulaire | Fichier | Selects / héritage | Valider / Annuler |
+|------------|---------|---------------------|-------------------|
+| Vente 5 étapes | `VentesTerrainV3.jsx` | Source, client, unité, livraison, paiement — préremplissage opportunité/abonnement | ✅ `commitCommercialSale` |
+| Action vente | `SaleActionModal.jsx` | Client en **select** (corrigé), paiement, livraison | ✅ |
+| Client CRUD | `Clients.jsx` | `type_client`, `statut`, `conditions_paiement` | ✅ |
+| Abonnement | `CommercialSubscriptionFormModal.jsx` | Client, fréquence, **unité en select** (corrigé) | ✅ |
+| Prospect | `CommercialProspectsPanel.jsx` | Formulaire inline (remplace `prompt`) | ✅ Annuler / Enregistrer |
+| Devis | `CommercialQuotesPanel.jsx` | **Sélecteur client** avant création | ✅ |
+
+### Correctifs formulaires / interconnexions
+
+| # | Problème | Correctif |
+|---|----------|-----------|
+| F1 | Opportunité `en_conversion` avant vente validée | Statut changé **à la validation** (`commitCommercialSale` → `gagnee`) |
+| F2 | Opportunités auto (`auto-opp-*`) non persistées | Création en base avant conversion |
+| F3 | Livraisons : patch statut seul | `confirmSaleDelivery` (sync commande + tâches) |
+| F4 | Modifier vente : client en texte libre | Select clients + `client_id` |
+| F5 | Devis toujours sur `clients[0]` | Select client dédié |
+| F6 | Prospect via `window.prompt` | Formulaire nom / tél / besoin |
+| F7 | WhatsApp opportunité sans log ID | Retour ID pour `ClientContactModal` |
+
+### Parcours démo recommandés
+
+1. Opportunité (DB) → Convertir → wizard prérempli → Valider → vérif finance + stock + opportunité gagnée
+2. Ventes → Encaisser / Livrer / Facture via `SaleActionModal`
+3. Clients → Nouveau prospect (formulaire) → Devis → Client actif
+4. Abonnement → Créer commande prévue → vente préremplie

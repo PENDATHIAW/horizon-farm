@@ -1,4 +1,5 @@
 import { FileText, Send, CheckCircle2, XCircle, ArrowRightCircle } from 'lucide-react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { fmtCurrency } from '../../utils/format';
 import {
@@ -38,9 +39,10 @@ export default function CommercialQuotesPanel({
   sideEffectHandlers = {},
 }) {
   const quotes = arr(orders).filter(isQuoteOrder);
+  const [quoteClientId, setQuoteClientId] = useState('');
 
   const createDraftQuote = async () => {
-    const client = clients[0];
+    const client = clients.find((row) => String(row.id) === String(quoteClientId)) || clients[0];
     if (!client) return toast.error('Créez d\'abord un client.');
     try {
       const { records } = prepareCommercialQuoteCommit({
@@ -118,7 +120,23 @@ export default function CommercialQuotesPanel({
           <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black flex items-center gap-2"><FileText size={14} /> Devis commerciaux</p>
           <p className="text-sm text-[#8a7456]">Devis → commande → facture · sans impact stock au stade devis</p>
         </div>
-        <button type="button" onClick={createDraftQuote} className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white">Nouveau devis</button>
+        <div className="flex flex-wrap items-center gap-2">
+          {clients.length ? (
+            <label className="flex items-center gap-2 text-xs font-bold text-[#8a7456]">
+              Client
+              <select
+                value={quoteClientId || clients[0]?.id || ''}
+                onChange={(event) => setQuoteClientId(event.target.value)}
+                className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-sm font-black text-[#2f2415]"
+              >
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>{client.nom || client.name || client.id}</option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          <button type="button" onClick={createDraftQuote} className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white">Nouveau devis</button>
+        </div>
       </div>
 
       {!quotes.length ? (

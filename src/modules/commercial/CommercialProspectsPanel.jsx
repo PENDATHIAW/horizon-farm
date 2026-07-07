@@ -1,4 +1,5 @@
 import { UserPlus, ArrowRightCircle, FileText } from 'lucide-react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { fmtCurrency } from '../../utils/format';
 import {
@@ -22,21 +23,32 @@ export default function CommercialProspectsPanel({
   onNewQuote,
 }) {
   const pipeline = buildProspectPipeline(clients);
+  const [prospectOpen, setProspectOpen] = useState(false);
+  const [prospectForm, setProspectForm] = useState({
+    name: '',
+    phone: '',
+    interest: 'Produits fermiers',
+    estimatedNeed: '50000',
+  });
 
   const createProspect = async () => {
-    const name = window.prompt('Nom du prospect');
-    if (!name) return;
+    if (!prospectForm.name.trim()) {
+      toast.error('Indiquez le nom du prospect');
+      return;
+    }
     const payload = buildProspectCreatePayload({
-      name,
-      phone: '',
+      name: prospectForm.name.trim(),
+      phone: prospectForm.phone.trim(),
       source: 'terrain',
-      interest: 'Produits fermiers',
-      estimatedNeed: 50000,
+      interest: prospectForm.interest.trim() || 'Produits fermiers',
+      estimatedNeed: Number(prospectForm.estimatedNeed) || 50000,
       probability: 60,
       nextAction: 'Premier contact',
       status: PROSPECT_STATUSES.HOT,
     });
     await onCreateClient?.(payload);
+    setProspectForm({ name: '', phone: '', interest: 'Produits fermiers', estimatedNeed: '50000' });
+    setProspectOpen(false);
     toast.success('Prospect créé');
   };
 
@@ -104,8 +116,35 @@ export default function CommercialProspectsPanel({
           <p className="text-xs uppercase tracking-widest text-[#8a7456] font-black">Prospects</p>
           <p className="text-sm text-[#8a7456]">Parcours prospect → devis → client sans table lourde.</p>
         </div>
-        <button type="button" onClick={createProspect} className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white"><UserPlus size={12} className="inline" /> Nouveau prospect</button>
+        <button type="button" onClick={() => setProspectOpen((open) => !open)} className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white"><UserPlus size={12} className="inline" /> Nouveau prospect</button>
       </section>
+      {prospectOpen ? (
+        <section className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4 space-y-3">
+          <p className="text-sm font-black text-[#2f2415]">Nouveau prospect</p>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <label className="block space-y-1">
+              <span className="text-xs font-bold text-[#8a7456]">Nom *</span>
+              <input type="text" value={prospectForm.name} onChange={(event) => setProspectForm((prev) => ({ ...prev, name: event.target.value }))} className="w-full rounded-xl border border-[#d6c3a0] px-3 py-2 text-sm" placeholder="Restaurant, grossiste…" />
+            </label>
+            <label className="block space-y-1">
+              <span className="text-xs font-bold text-[#8a7456]">Téléphone</span>
+              <input type="tel" value={prospectForm.phone} onChange={(event) => setProspectForm((prev) => ({ ...prev, phone: event.target.value }))} className="w-full rounded-xl border border-[#d6c3a0] px-3 py-2 text-sm" placeholder="+221…" />
+            </label>
+            <label className="block space-y-1 md:col-span-2">
+              <span className="text-xs font-bold text-[#8a7456]">Intérêt produit</span>
+              <input type="text" value={prospectForm.interest} onChange={(event) => setProspectForm((prev) => ({ ...prev, interest: event.target.value }))} className="w-full rounded-xl border border-[#d6c3a0] px-3 py-2 text-sm" />
+            </label>
+            <label className="block space-y-1">
+              <span className="text-xs font-bold text-[#8a7456]">Besoin estimé (FCFA)</span>
+              <input type="number" min="0" value={prospectForm.estimatedNeed} onChange={(event) => setProspectForm((prev) => ({ ...prev, estimatedNeed: event.target.value }))} className="w-full rounded-xl border border-[#d6c3a0] px-3 py-2 text-sm" />
+            </label>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setProspectOpen(false)} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black">Annuler</button>
+            <button type="button" onClick={createProspect} className="rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white">Enregistrer</button>
+          </div>
+        </section>
+      ) : null}
       <Block title="Prospects chauds" rows={pipeline.hot} tone="hot" />
       <Block title="À relancer" rows={pipeline.toFollowUp} />
       <Block title="Convertis" rows={pipeline.converted} />
