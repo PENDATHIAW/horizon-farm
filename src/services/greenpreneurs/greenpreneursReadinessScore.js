@@ -8,7 +8,7 @@ const clamp = (v, max) => Math.max(0, Math.min(max, Math.round(v)));
 const norm = (v = '') => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 const CIRCULAR_EVENTS = [
-  'effluent_produit', 'effluent_stocke', 'effluent_utilise_culture',
+  'effluent_produit', 'effluent_stocke', 'effluent_utilise_culture', 'effluent_vendu_orgaloop',
   'compost_produit', 'parcelle_fertilisee', 'engrais_chimique_evite',
   'fumier_collecte', 'entree_fumier',
 ];
@@ -32,6 +32,9 @@ function calculateEnvironmentalScore(dataMap, circular) {
   if (circular.parcellesFertilisees > 0) {
     score += 6;
     signals.push('parcelles fertilisées');
+  } else if (circular.orgaloopPrimary && circular.orgaloop?.soldKg > 0) {
+    score += 6;
+    signals.push(`effluents vendus via ${circular.orgaloop.platformName || 'Orgaloop'}`);
   } else if (circular.hasRealData && circular.usedOnCulturesKg > 0) {
     score += 4;
     signals.push('effluents utilisés sur cultures');

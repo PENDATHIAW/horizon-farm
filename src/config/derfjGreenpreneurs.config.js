@@ -36,11 +36,21 @@ export const VALORISATION_READINESS_THRESHOLDS = {
   pilote_possible: 74,
 };
 
+/** Canal vente fumier/fientes — plateforme Orgaloop (conjoint). */
+export const ORGALOOP_EFFLUENT_CHANNEL = {
+  platformName: 'Orgaloop',
+  strategy: 'vente_directe_orgaloop',
+  strategyLabel: 'Vente directe sur Orgaloop — pas de stockage long terme ni fertilisation interne prioritaire',
+  saleChannelTags: ['orgaloop', 'plateforme conjoint', 'marketplace orgaloop'],
+};
+
 /** Types business_events recommandés pour l'économie circulaire */
 export const CIRCULAR_BUSINESS_EVENT_TYPES = [
   'effluent_produit',
   'effluent_stocke',
   'effluent_utilise_culture',
+  'effluent_vendu_orgaloop',
+  'fumier_collecte',
   'compost_produit',
   'parcelle_fertilisee',
   'engrais_chimique_evite',

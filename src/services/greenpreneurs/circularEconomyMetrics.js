@@ -3,7 +3,9 @@ import {
   CIRCULAR_SIMULATION_MONTHLY_KG,
   CIRCULAR_STOCK_CATEGORIES,
   DERFJ_GREENPRENEURS_PROFILE,
+  ORGALOOP_EFFLUENT_CHANNEL,
 } from '../../config/derfjGreenpreneurs.config.js';
+import { computeOrgaloopEffluentMetrics } from './orgaloopEffluentChannel.js';
 import { computeManureFertilizerEconomy } from '../../utils/manureFertilizerEconomy.js';
 import { DEFAULT_ENGRAIS_SAC_PRICE_FCFA } from '../../utils/farmAgronomyConstants.js';
 import { toNumber } from '../../utils/format.js';
@@ -128,10 +130,13 @@ export function computeCircularEconomyMetrics(dataMap = {}, options = {}) {
     ? stockQtyByCategory(stocks, ['os']) + sumEventQty(eventsByTypes(events, ['os_collectes']))
     : sim.coproduits.osKg;
 
+  const orgaloop = computeOrgaloopEffluentMetrics(dataMap);
+  const orgaloopPrimary = ORGALOOP_EFFLUENT_CHANNEL.strategy === 'vente_directe_orgaloop';
+
   const circularityScore = Math.min(100, Math.round(
-    (parcellesFertilisees > 0 ? 25 : 0)
-    + (usedOnCulturesKg > 0 ? 20 : 0)
-    + (engraisSavingsFcfa > 0 ? 20 : 0)
+    (orgaloopPrimary && orgaloop.soldKg > 0 ? 25 : parcellesFertilisees > 0 ? 25 : 0)
+    + (orgaloopPrimary && orgaloop.revenueFcfa > 0 ? 20 : usedOnCulturesKg > 0 ? 20 : 0)
+    + (orgaloopPrimary && orgaloop.soldKg > 0 ? 20 : engraisSavingsFcfa > 0 ? 20 : 0)
     + (hasRealData ? 20 : 10)
     + (fumierKg + fientesKg > 0 ? 15 : 0),
   ));
@@ -153,6 +158,8 @@ export function computeCircularEconomyMetrics(dataMap = {}, options = {}) {
     engraisSavingsFcfa,
     fertilisantStockKg,
     coproduits: { suifKg, osKg, sourceType },
+    orgaloop,
+    orgaloopPrimary,
     circularityScore,
     plannedVsRealized: {
       plannedSavingsFcfa: plannedCircularImpact,

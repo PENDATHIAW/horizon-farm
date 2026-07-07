@@ -51,7 +51,7 @@ export default function CircularEconomyKpiPanel({
             <Recycle size={20} className="text-emerald-700" /> Boucle circulaire élevage ↔ cultures
           </p>
           <p className="text-sm text-[#8a7456] mt-1">
-            Fientes, litières et fumiers valorisés — pas des déchets.
+            Fientes, litières et fumiers valorisés — vente directe {circular.orgaloop?.platformName || 'Orgaloop'}.
           </p>
         </div>
         <SourceBadge label={circular.sourceLabel} />
@@ -61,12 +61,35 @@ export default function CircularEconomyKpiPanel({
         <KpiTile label="Fientes disponibles" value={`${fmtNumber(circular.fientesPondeuses.availableKg)} kg`} />
         <KpiTile label="Fumier bovin" value={`${fmtNumber(circular.fumierBovin.availableKg)} kg`} />
         <KpiTile label="Litière compostée" value={`${fmtNumber(circular.compost.availableKg)} kg`} />
-        <KpiTile label="Utilisé sur cultures" value={`${fmtNumber(circular.usedOnCulturesKg)} kg`} />
-        <KpiTile label="Parcelles fertilisées" value={fmtNumber(circular.parcellesFertilisees)} />
-        <KpiTile label="Économies engrais" value={fmtCurrency(circular.engraisSavingsFcfa)} />
+        {circular.orgaloopPrimary ? (
+          <KpiTile
+            label={`Vendu ${circular.orgaloop?.platformName || 'Orgaloop'}`}
+            value={`${fmtNumber(circular.orgaloop?.soldKg || 0)} kg`}
+            hint={circular.orgaloop?.revenueFcfa > 0 ? fmtCurrency(circular.orgaloop.revenueFcfa) : 'Canal principal'}
+          />
+        ) : (
+          <KpiTile label="Utilisé sur cultures" value={`${fmtNumber(circular.usedOnCulturesKg)} kg`} />
+        )}
+        {!circular.orgaloopPrimary ? (
+          <>
+            <KpiTile label="Parcelles fertilisées" value={fmtNumber(circular.parcellesFertilisees)} />
+            <KpiTile label="Économies engrais" value={fmtCurrency(circular.engraisSavingsFcfa)} />
+          </>
+        ) : (
+          <>
+            <KpiTile label="Ventes Orgaloop" value={fmtNumber(circular.orgaloop?.salesCount || 0)} hint={`${circular.orgaloop?.soldSacs || 0} sacs`} />
+            <KpiTile label="Encaissé Orgaloop" value={fmtCurrency(circular.orgaloop?.encaisseFcfa || circular.orgaloop?.revenueFcfa || 0)} />
+          </>
+        )}
         <KpiTile label="Stock fertilisant" value={`${fmtNumber(circular.fertilisantStockKg)} kg`} />
         <KpiTile label="Score circularité" value={`${circular.circularityScore}/100`} />
       </div>
+
+      {circular.orgaloopPrimary ? (
+        <p className="text-xs text-emerald-800 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+          <b>Stratégie {circular.orgaloop?.platformName} :</b> {circular.orgaloop?.strategyLabel || 'Vente directe plateforme'} — {circular.orgaloop?.advice}
+        </p>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-3">
         <KpiTile label="Suif (coproduit)" value={`${fmtNumber(circular.coproduits.suifKg)} kg`} hint="Phase 2 Tallow & Go" />

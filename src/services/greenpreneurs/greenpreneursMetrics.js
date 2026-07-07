@@ -1,4 +1,4 @@
-import { DERFJ_GREENPRENEURS_PROFILE } from '../../config/derfjGreenpreneurs.config.js';
+import { DERFJ_GREENPRENEURS_PROFILE, ORGALOOP_EFFLUENT_CHANNEL } from '../../config/derfjGreenpreneurs.config.js';
 import { buildGreenpreneursReadinessScore } from './greenpreneursReadinessScore.js';
 import { computeCircularEconomyMetrics } from './circularEconomyMetrics.js';
 import { computeValorisationReadiness } from './valorisationReadinessEngine.js';
@@ -51,8 +51,29 @@ export function buildGreenpreneursCentreAlerts(metrics = {}) {
   const alerts = [];
   const circular = metrics.circular || {};
   const valorisation = metrics.valorisation || {};
+  const orgaloop = circular.orgaloop || {};
+  const orgaloopPrimary = circular.orgaloopPrimary
+    ?? ORGALOOP_EFFLUENT_CHANNEL.strategy === 'vente_directe_orgaloop';
+  const platformName = orgaloop.platformName || ORGALOOP_EFFLUENT_CHANNEL.platformName;
 
-  if (circular.fumierBovin?.availableKg > 100 && circular.usedOnCulturesKg < circular.fumierBovin.availableKg * 0.2) {
+  const effluentDisponibleKg = Math.round(
+    (circular.fumierBovin?.availableKg || 0)
+    + (circular.fientesPondeuses?.availableKg || 0)
+    + (circular.compost?.availableKg || 0),
+  );
+  const effluentNonVenduKg = Math.max(0, effluentDisponibleKg - (orgaloop.soldKg || 0));
+
+  if (orgaloopPrimary && effluentNonVenduKg > 100) {
+    alerts.push({
+      id: 'gp-effluent-a-publier-orgaloop',
+      title: `Effluents à publier sur ${platformName}`,
+      detail: `~${effluentNonVenduKg} kg collectés — vente directe plateforme (pas de stock longue durée).`,
+      severity: 'warn',
+      navigate: { module: 'commercial', tab: 'Opportunités' },
+    });
+  }
+
+  if (!orgaloopPrimary && circular.fumierBovin?.availableKg > 100 && circular.usedOnCulturesKg < circular.fumierBovin.availableKg * 0.2) {
     alerts.push({
       id: 'gp-fumier-non-valorise',
       title: 'Fumier bovin disponible mais peu valorisé',
@@ -61,7 +82,7 @@ export function buildGreenpreneursCentreAlerts(metrics = {}) {
       navigate: { module: 'cultures', tab: 'Économie circulaire' },
     });
   }
-  if (circular.fertilisantStockKg > circular.usedOnCulturesKg * 2 && circular.fertilisantStockKg > 500) {
+  if (!orgaloopPrimary && circular.fertilisantStockKg > circular.usedOnCulturesKg * 2 && circular.fertilisantStockKg > 500) {
     alerts.push({
       id: 'gp-stock-fertilisant-eleve',
       title: 'Stock de fertilisant naturel élevé',
@@ -70,7 +91,7 @@ export function buildGreenpreneursCentreAlerts(metrics = {}) {
       navigate: { module: 'cultures', tab: 'Économie circulaire' },
     });
   }
-  if (circular.parcellesFertilisees === 0 && circular.fertilisantStockKg > 200) {
+  if (!orgaloopPrimary && circular.parcellesFertilisees === 0 && circular.fertilisantStockKg > 200) {
     alerts.push({
       id: 'gp-parcelle-non-fertilisee',
       title: 'Fertilisant disponible — parcelles non fertilisées',
@@ -79,13 +100,22 @@ export function buildGreenpreneursCentreAlerts(metrics = {}) {
       navigate: { module: 'cultures', tab: 'Économie circulaire' },
     });
   }
-  if (circular.engraisSavingsFcfa < 50000 && circular.hasRealData) {
+  if (!orgaloopPrimary && circular.engraisSavingsFcfa < 50000 && circular.hasRealData) {
     alerts.push({
       id: 'gp-economie-engrais-faible',
       title: 'Économie d\'engrais encore faible',
       detail: 'Tracer les flux fumier/fientes vers les cultures pour prouver l\'impact.',
       severity: 'info',
       navigate: { module: 'objectifs_croissance', tab: 'Suivi du Business Plan' },
+    });
+  }
+  if (orgaloopPrimary && orgaloop.soldKg > 0) {
+    alerts.push({
+      id: 'gp-orgaloop-ventes-trackees',
+      title: `${platformName} — ventes effluents tracées`,
+      detail: `${Math.round(orgaloop.soldKg)} kg vendus · ${orgaloop.revenueFcfa > 0 ? `${Math.round(orgaloop.revenueFcfa).toLocaleString('fr-FR')} FCFA` : 'revenu à renseigner'}.`,
+      severity: 'info',
+      navigate: { module: 'commercial', tab: 'Ventes' },
     });
   }
 

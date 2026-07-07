@@ -109,9 +109,10 @@ test('normalizeGreenpreneursDataMap — alias salesOrders et stocks', () => {
   assert.equal(map.avicole.length, 1);
 });
 
-test('centre alerts — fumier non valorisé', () => {
+test('centre alerts — fumier non valorisé (sans Orgaloop)', () => {
   const alerts = buildGreenpreneursCentreAlerts({
     circular: {
+      orgaloopPrimary: false,
       fumierBovin: { availableKg: 500 },
       usedOnCulturesKg: 0,
       parcellesFertilisees: 0,
