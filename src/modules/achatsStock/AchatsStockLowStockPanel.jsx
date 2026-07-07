@@ -1,5 +1,5 @@
 import { PackageCheck, Plus } from 'lucide-react';
-import { emitHorizonForm } from '../../services/formModalManager.js';
+import { openStockPurchaseForm } from '../../utils/achatsStockFormBridge.js';
 import { fmtNumber } from '../../utils/format.js';
 import { AchatsStockSection } from './achatsStockUi.jsx';
 
@@ -8,7 +8,7 @@ const qty = (r = {}) => n(r.quantite ?? r.quantity ?? r.stock);
 const threshold = (r = {}) => n(r.seuil ?? r.threshold ?? r.stock_min ?? r.minimum_stock);
 const label = (r = {}) => r.produit || r.name || r.nom || r.libelle || r.title || 'Produit';
 
-export default function AchatsStockLowStockPanel({ items = [], compact = false }) {
+export default function AchatsStockLowStockPanel({ items = [], compact = false, setTab }) {
   if (!items.length) return null;
 
   const today = new Date().toISOString().slice(0, 10);
@@ -34,7 +34,11 @@ export default function AchatsStockLowStockPanel({ items = [], compact = false }
               </div>
               <button
                 type="button"
-                onClick={() => emitHorizonForm('stock', 'stock_purchase', 'Réapprovisionner', { date: today, produit: label(row), stock_id: row.id })}
+                onClick={() => openStockPurchaseForm({
+                  setTab,
+                  intent_label: 'Réapprovisionner',
+                  draft_fields: { date: today, produit: label(row), stock_id: row.id },
+                })}
                 className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-[#22c55e] px-3 py-1.5 text-xs font-black text-[#052e16]"
               >
                 <Plus size={12} /> Réappro

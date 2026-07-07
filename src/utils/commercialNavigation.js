@@ -709,7 +709,7 @@ export function navigationOptionsForFinding(finding = {}) {
     return { module, tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Lots & bandes' };
   }
   if (module === 'achats_stock') {
-    return { module, tab: resolveAchatsStockTab(explicitTab || defaultTabForLegacyModule(rawModule) || 'Résumé') };
+    return { module, tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Stock' };
   }
   return { module, tab: explicitTab || null };
 }
@@ -727,7 +727,7 @@ export function navigateForIaFinding(finding = {}, onNavigate) {
     return;
   }
   if (module === 'achats_stock') {
-    onNavigate('achats_stock', { tab: resolveAchatsStockTab(finding.tab || 'Stock') });
+    onNavigate('achats_stock', { tab: finding.tab || 'Stock' });
     return;
   }
   if (module === 'elevage') {

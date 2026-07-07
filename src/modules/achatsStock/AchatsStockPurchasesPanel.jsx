@@ -1,6 +1,6 @@
 import { AlertTriangle, CreditCard, FileWarning, Plus, ShoppingBag, Truck } from 'lucide-react';
 import ModuleListHub from '../../components/module/ModuleListHub.jsx';
-import { emitHorizonForm } from '../../services/formModalManager.js';
+import { openStockPurchaseForm } from '../../utils/achatsStockFormBridge.js';
 import { fmtCurrency, fmtNumber } from '../../utils/format.js';
 import { AchatsStockSection, AchatsStockTodoRow } from './achatsStockUi.jsx';
 
@@ -18,20 +18,14 @@ export default function AchatsStockPurchasesPanel({ data, setTab, onNavigate, on
       <div className="flex flex-wrap justify-end gap-2">
         <button
           type="button"
-          onClick={() => {
-            emitHorizonForm('stock', 'stock_purchase', 'Nouvelle réception', { date: today });
-            setTab?.('Stock');
-          }}
+          onClick={() => openStockPurchaseForm({ setTab, intent_label: 'Nouvelle réception', draft_fields: { date: today } })}
           className="inline-flex items-center gap-1 rounded-xl bg-[#2f2415] px-3 py-2 text-xs font-black text-white"
         >
           <Plus size={14} /> Nouvelle réception
         </button>
         <button
           type="button"
-          onClick={() => {
-            emitHorizonForm('stock', 'stock_purchase', 'Ajouter preuve achat', { date: today });
-            setTab?.('Annexe');
-          }}
+          onClick={() => openStockPurchaseForm({ setTab, intent_label: 'Ajouter preuve achat', draft_fields: { date: today } })}
           className="inline-flex items-center gap-1 rounded-xl border border-[#eadcc2] bg-white px-3 py-2 text-xs font-black text-[#2f2415]"
         >
           <FileWarning size={14} /> Ajouter preuve
@@ -87,10 +81,11 @@ export default function AchatsStockPurchasesPanel({ data, setTab, onNavigate, on
                 detail={fmtCurrency(n(trx.montant ?? trx.amount))}
                 actionLabel="Preuve"
                 onOpen={() => setTab?.('Annexe')}
-                onAction={() => {
-                  emitHorizonForm('stock', 'stock_purchase', 'Ajouter preuve', { finance_id: trx.id, date: trx.date || today });
-                  setTab?.('Annexe');
-                }}
+                onAction={() => openStockPurchaseForm({
+                  setTab,
+                  intent_label: 'Ajouter preuve',
+                  draft_fields: { finance_id: trx.id, date: trx.date || today },
+                })}
               />
             ))}
           </div>
@@ -125,10 +120,11 @@ export default function AchatsStockPurchasesPanel({ data, setTab, onNavigate, on
                 detail={`${fmtNumber(n(row.quantite ?? row.quantity))} u. · seuil ${fmtNumber(n(row.seuil ?? row.threshold))}`}
                 actionLabel="Réappro"
                 onOpen={() => setTab?.('Stock')}
-                onAction={() => {
-                  emitHorizonForm('stock', 'stock_purchase', 'Réapprovisionner', { date: today, produit: label(row), stock_id: row.id });
-                  setTab?.('Stock');
-                }}
+                onAction={() => openStockPurchaseForm({
+                  setTab,
+                  intent_label: 'Réapprovisionner',
+                  draft_fields: { date: today, produit: label(row), stock_id: row.id },
+                })}
               />
             ))}
           </div>
@@ -149,10 +145,11 @@ export default function AchatsStockPurchasesPanel({ data, setTab, onNavigate, on
                 detail={`${trx.date || '—'} · ${fmtCurrency(n(trx.montant ?? trx.amount))}`}
                 actionLabel="Créer entrée"
                 onOpen={() => setTab?.('Stock')}
-                onAction={() => {
-                  emitHorizonForm('stock', 'stock_purchase', 'Réception stock', { date: trx.date || today, libelle: trx.libelle || trx.title, finance_id: trx.id });
-                  setTab?.('Stock');
-                }}
+                onAction={() => openStockPurchaseForm({
+                  setTab,
+                  intent_label: 'Réception stock',
+                  draft_fields: { date: trx.date || today, libelle: trx.libelle || trx.title, finance_id: trx.id },
+                })}
               />
             ))}
           </div>

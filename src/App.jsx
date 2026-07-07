@@ -100,7 +100,7 @@ export default function App() {
       return;
     }
     if (resolved === 'achats_stock') {
-      setAchatsStockTab(resolveAchatsStockTab(tab || defaultTabForLegacyModule(moduleId) || 'Inventaire'));
+      setAchatsStockTab(tab || defaultTabForLegacyModule(moduleId) || 'Inventaire');
       if (options.stockContext || options.searchContext || options.contextMessage) {
         setAchatsStockContext({
           stockContext: options.stockContext || null,
@@ -541,6 +541,10 @@ export default function App() {
       documents: rows(c.documents),
       animaux: rows(c.animaux),
       lots: rows(c.avicole),
+      opportunities: rows(c.sales_opportunities),
+      onCreateOpportunity: c.sales_opportunities.create,
+      onUpdateOpportunity: c.sales_opportunities.update,
+      onRefreshOpportunities: c.sales_opportunities.refresh,
       onNavigate: setActive,
       onCreateStock: c.stock.create,
       onUpdateStock: c.stock.update,
@@ -555,6 +559,7 @@ export default function App() {
       onRefreshDocuments: c.documents.refresh,
       onCreateSupplier: c.fournisseurs.create,
       onUpdateSupplier: c.fournisseurs.update,
+      onDeleteSupplier: c.fournisseurs.remove,
       onRefreshSuppliers: c.fournisseurs.refresh,
       onCreateTask: c.taches.create,
       onCreateAlert: c.alertes_center.create,

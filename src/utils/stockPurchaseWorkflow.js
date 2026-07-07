@@ -373,11 +373,11 @@ export async function commitStockPurchaseWorkflow(preview = {}, handlers = {}) {
   };
 
   if (records.is_create && handlers.onCreateStock) {
-    await handlers.onCreateStock({ ...stockPatch, side_effects_managed: true });
+    await handlers.onCreateStock({ ...stockPatch, side_effects_managed: true, skip_stock_movement_event: true });
   } else if (handlers.onUpdateStock) {
-    await handlers.onUpdateStock(stockPatch.id, { ...stockPatch, side_effects_managed: true });
+    await handlers.onUpdateStock(stockPatch.id, { ...stockPatch, side_effects_managed: true, skip_stock_movement_event: true });
   } else if (handlers.onCreateOrUpdateStock) {
-    await handlers.onCreateOrUpdateStock({ ...stockPatch, side_effects_managed: true });
+    await handlers.onCreateOrUpdateStock({ ...stockPatch, side_effects_managed: true, skip_stock_movement_event: true });
   }
 
   let linkedMovementEventId = '';

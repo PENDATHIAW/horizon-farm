@@ -87,7 +87,7 @@ Pour chaque module, lister :
 | Élevage | ✅ | ✅ | ✅ |
 | Accueil | ✅ | N/A (lecture) | ✅ |
 | Finance | ✅ | Partiel | ✅ |
-| Achats & stock | — | — | — |
+| Achats & stock | ✅ | ✅ | ✅ |
 | Cultures | — | — | — |
 | Activité & suivi | — | — | — |
 | Documents | — | — | — |

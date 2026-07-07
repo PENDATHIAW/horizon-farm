@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
 import AchatsStockAnnexeTab from './achatsStock/AchatsStockAnnexeTab.jsx';
@@ -17,7 +17,7 @@ import CollapsibleAdvancedSection from '../components/CollapsibleAdvancedSection
 import { ACHATS_STOCK_STAT_GRID, AchatsStockKpi, AchatsStockSection } from './achatsStock/achatsStockUi.jsx';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
-import { emitHorizonForm } from '../services/formModalManager';
+import { openStockPurchaseForm } from '../utils/achatsStockFormBridge.js';
 import { applyOneClickRecommendation, createSupplierFollowUpTask } from '../services/heyHorizonRecommendationActions.js';
 import { fmtCurrency, fmtNumber } from '../utils/format';
 import { rowsOf } from '../utils/moduleRows';
@@ -89,7 +89,7 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate, onMarkE
 
       <AchatsStockSection title="Parcours rapide" subtitle="Actions terrain les plus fréquentes.">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <button type="button" onClick={() => { emitHorizonForm('stock', 'stock_purchase', 'Réception stock', { date: new Date().toISOString().slice(0, 10) }); setTab('Stock'); }} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">+ Réception</b><p className="mt-1 text-sm text-[#8a7456]">Chemin canonique achat.</p></button>
+          <button type="button" onClick={() => openStockPurchaseForm({ setTab, intent_label: 'Réception stock', draft_fields: { date: new Date().toISOString().slice(0, 10) } })} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">+ Réception</b><p className="mt-1 text-sm text-[#8a7456]">Chemin canonique achat.</p></button>
           <button type="button" onClick={() => setTab('Achats')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Achats</b><p className="mt-1 text-sm text-[#8a7456]">À payer, preuves, réappro.</p></button>
           <button type="button" onClick={() => setTab('Mouvements')} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4 text-left"><b className="text-[#2f2415]">Mouvements</b><p className="mt-1 text-sm text-[#8a7456]">Journal et filtres.</p></button>
           <button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><b className="text-[#2f2415]">Commercial</b><p className="mt-1 text-sm text-[#8a7456]">Vendre stock disponible.</p></button>
@@ -114,7 +114,7 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate, onMarkE
           setTab={setTab}
           busyId={busyId}
         />
-        <AchatsStockLowStockPanel items={data.lowStock} compact />
+        <AchatsStockLowStockPanel items={data.lowStock} compact setTab={setTab} />
         <AchatsStockSupplierDebtsPanel suppliers={data.supplierDebts} onRelance={onRelance} busyId={busyId} />
         <AchatsStockExpiryPanel expiry={data.expiry} setTab={setTab} onNavigate={onNavigate} onMarkLoss={onMarkExpiry} busyId={busyId} />
         <AchatsStockDataQualityPanel snapshot={data.dataQuality} />
@@ -126,24 +126,44 @@ function Summary({ data, setTab, onApply, onRelance, busyId, onNavigate, onMarkE
 export default function AchatsStockRecoveredModule(props) {
   const controlled = Boolean(props.onTabChange);
   const [internalTab, setInternalTab] = useState(() => resolveAchatsStockTab(props.initialTab || 'Inventaire'));
+  const [inventaireSection, setInventaireSection] = useState(null);
+  const movementsDetailsRef = useRef(null);
+  const annexeDetailsRef = useRef(null);
   const tab = controlled
     ? resolveAchatsStockTab(props.initialTab || 'Inventaire')
     : internalTab;
+  const rememberInventaireSection = useCallback((value = '') => {
+    const rawKey = lower(String(value || '').trim());
+    if (['mouvements', 'annexe', 'graphiques'].includes(rawKey)) {
+      setInventaireSection(rawKey === 'graphiques' ? 'annexe' : rawKey);
+    }
+  }, []);
   const setTab = useCallback((value) => {
+    rememberInventaireSection(value);
     const resolved = resolveAchatsStockTab(value);
+    const raw = String(value || '').trim();
     if (controlled) {
-      props.onTabChange?.(resolved);
+      props.onTabChange?.(raw || resolved);
       return;
     }
     setInternalTab(resolved);
-  }, [controlled, props.onTabChange]);
+  }, [controlled, props.onTabChange, rememberInventaireSection]);
   const [busyId, setBusyId] = useState(null);
   const [stockAdvancedOpen, setStockAdvancedOpen] = useState(false);
 
   useEffect(() => {
-    if (controlled || !props.initialTab) return;
-    setInternalTab(resolveAchatsStockTab(props.initialTab));
-  }, [controlled, props.initialTab]);
+    if (!props.initialTab) return;
+    rememberInventaireSection(props.initialTab);
+    if (!controlled) setInternalTab(resolveAchatsStockTab(props.initialTab));
+  }, [controlled, props.initialTab, rememberInventaireSection]);
+
+  useEffect(() => {
+    if (tab !== 'Inventaire' || !inventaireSection) return;
+    const target = inventaireSection === 'mouvements' ? movementsDetailsRef.current : annexeDetailsRef.current;
+    if (!target) return;
+    target.open = true;
+    window.setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+  }, [tab, inventaireSection]);
 
   const stockCrud = useCrudModule('stock');
   const suppliersCrud = useCrudModule('fournisseurs');
@@ -389,8 +409,10 @@ export default function AchatsStockRecoveredModule(props) {
             {props.periodLabel ? <div className="mt-2"><PeriodScopeBadge label={props.periodLabel} /></div> : null}
           </div>
           <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-3 text-sm">
-            <span className="text-[#8a7456]">Santé </span>
-            <b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b>
+            <button type="button" onClick={() => setTab('Inventaire')} className="text-left">
+              <span className="text-[#8a7456]">Santé </span>
+              <b className={data.healthScore >= 75 ? 'text-emerald-700' : 'text-amber-700'}>{data.healthScore}/100</b>
+            </button>
           </div>
         </div>
       </section>
@@ -431,13 +453,13 @@ export default function AchatsStockRecoveredModule(props) {
               existingMovements={stockMovements}
             />
           </CollapsibleAdvancedSection>
-          <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+          <details ref={movementsDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
             <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Mouvements enregistrés</summary>
             <div className="mt-3">
               <AchatsStockMovementsPanel data={data} onNavigate={props.onNavigate} setTab={setTab} accessibleFarms={props.accessibleFarms || []} />
             </div>
           </details>
-          <details className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
+          <details ref={annexeDetailsRef} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-4">
             <summary className="cursor-pointer font-black text-sm text-[#2f2415]">Annexe & graphiques</summary>
             <div className="mt-3 space-y-4">
               <AchatsStockAnnexeTab documents={documents} onNavigate={props.onNavigate} />

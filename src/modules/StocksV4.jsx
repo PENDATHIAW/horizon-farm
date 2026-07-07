@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { clearBpPendingForm, readBpPendingForm } from '../utils/bpLineConcretization';
+import { clearStockPendingForm, readStockPendingForm } from '../utils/achatsStockFormBridge.js';
 import StockOperationalHealthPanel from './StockOperationalHealthPanel.jsx';
 import StockPurchaseReceptionForm from './StockPurchaseReceptionForm.jsx';
 import StockFeedingElevageHint from './achatsStock/StockFeedingElevageHint.jsx';
@@ -198,13 +199,14 @@ export default function StocksV4(props) {
   const [purchaseDraft, setPurchaseDraft] = useState(null);
   const openPurchase = (fields = {}) => setPurchaseDraft({ form_type: 'stock_purchase', intent_label: 'Réception achat stock', draft_fields: { date: today(), ...fields } });
   useEffect(() => {
-    const pending = readBpPendingForm();
+    const pending = readStockPendingForm() || readBpPendingForm();
     if (pending?.module === 'stock' && pending.form_type === 'stock_purchase') {
       setPurchaseDraft({
         form_type: pending.form_type,
         intent_label: pending.intent_label,
         draft_fields: pending.draft_fields,
       });
+      clearStockPendingForm();
       clearBpPendingForm();
     }
     const handler = (event) => {
@@ -213,6 +215,7 @@ export default function StocksV4(props) {
       if (draft.form_type === 'stock_purchase') {
         setPurchaseDraft(draft);
         setHorizonDraft(null);
+        clearStockPendingForm();
         clearBpPendingForm();
         return;
       }
