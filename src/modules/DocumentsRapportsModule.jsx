@@ -36,8 +36,14 @@ export default function DocumentsRapportsModule(props) {
   }, [applyDocumentsNavigation]);
 
   const setTab = useCallback((value) => {
-    applyDocumentsNavigation(resolveDocumentsNavigation(value));
-  }, [applyDocumentsNavigation]);
+    const raw = String(value || '').trim();
+    const nav = resolveDocumentsNavigation(value);
+    if (controlled) {
+      props.onTabChange?.(raw || nav.tab);
+      return;
+    }
+    setInternalTab(nav.tab);
+  }, [controlled, props.onTabChange]);
 
   useEffect(() => {
     if (!props.initialTab) return;

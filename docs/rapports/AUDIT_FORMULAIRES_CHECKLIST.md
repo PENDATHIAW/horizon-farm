@@ -89,7 +89,7 @@ Pour chaque module, lister :
 | Finance | ✅ | Partiel | ✅ |
 | Achats & stock | ✅ | ✅ | ✅ |
 | Cultures | ✅ | ✅ | ✅ |
-| Activité & suivi | — | — | — |
-| Documents | — | — | — |
-| RH | — | — | — |
+| Activité & suivi | ✅ | ✅ | ✅ |
+| Documents | ✅ | ✅ | ✅ |
+| RH | ✅ | ✅ | ✅ |
 | Objectifs | — | — | — |

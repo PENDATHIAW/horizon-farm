@@ -143,3 +143,34 @@ node --test tests/unit/culturesWorkflow.test.js tests/unit/culturesV1.test.js te
 | Formulaire récolte unique | ✅ |
 | Interconnexions stock / commercial / finance | ✅ |
 | Pas de prompt métier | ✅ |
+
+---
+
+## 9. Audit formulaires (passe financeur — 2026-06-18)
+
+### Formulaires principaux
+
+| Formulaire | Fichier | Selects / héritage | Valider / Annuler |
+|------------|---------|---------------------|-------------------|
+| Récolte terrain | `CulturesHarvestPanel` | Culture **select**, unité **select**, destination **select** | ✅ `commitCultureHarvest` + `useWorkflowSubmit` |
+| Transformation | `CulturesTransformationPanel` | Stock source **select**, unité produit fini **select** | ✅ `commitCultureTransformation` |
+| Intrants | `CulturesTabActionsBridge` (mode input) | Culture + intrant stock **select** | ✅ `runCultureInputSideEffects` |
+| Pertes | `CulturesTabActionsBridge` (mode loss) | Culture **select** | ✅ `runCultureLossSideEffects` + Finance |
+| Nouvelle culture | `CulturesTabActionsBridge` | Type **select** ; parcelle/campagne **select** si fiches existantes | ✅ Annuler / Enregistrer |
+| CRUD parcelle | `CulturesV3` embedded | Champs récolte **readonly** en édition | ✅ pas de double saisie |
+| Vente stock récolte | `commitCultureStockSale` | Client + stock **select** (workflow) | ✅ commande + paiement + finance |
+
+### Correctifs formulaires
+
+| # | Problème | Correctif |
+|---|----------|-----------|
+| F1 | Parcelle / campagne en texte libre malgré fiches existantes | **Select** depuis registre parcelles/campagnes |
+| F2 | Unité produit fini transformation en champ libre | **Select** (kg, sac, caisse, botte, litre) |
+| F3 | Deep-link Intrants sans ouverture section | Alias brut + `<details>` auto (section 7) |
+
+### Parcours démo recommandés
+
+1. Parcelles → Nouvelle culture (parcelle/campagne en liste) → Récoltes → Enregistrer récolte
+2. Intrants & météo → Utiliser intrant (culture + stock select) → vérif décrément stock
+3. Santé → Déclarer perte → vérif finance + event
+4. Transformation → stock récolte select → produit fini + vente commerciale

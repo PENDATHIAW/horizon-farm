@@ -127,19 +127,19 @@ export default function App() {
       return;
     }
     if (resolved === 'activite_suivi') {
-      setActiviteSuiviTab(resolveActiviteSuiviTab(tab || defaultTabForLegacyModule(moduleId) || 'Cockpit & décisions'));
+      setActiviteSuiviTab(tab || defaultTabForLegacyModule(moduleId) || 'Cockpit & décisions');
       trackNavOpen('activite_suivi');
       setActiveState('activite_suivi');
       return;
     }
     if (resolved === 'documents_rapports') {
-      setDocumentsRapportsTab(resolveDocumentsTab(tab || defaultTabForLegacyModule(moduleId) || 'Centre de contrôle'));
+      setDocumentsRapportsTab(tab || defaultTabForLegacyModule(moduleId) || 'Centre de contrôle');
       trackNavOpen('documents_rapports');
       setActiveState('documents_rapports');
       return;
     }
     if (resolved === 'rh') {
-      setRhTab(resolveRhTab(tab || defaultTabForLegacyModule(moduleId) || 'Cockpit RH & Maintenance'));
+      setRhTab(tab || defaultTabForLegacyModule(moduleId) || 'Cockpit RH & Maintenance');
       trackNavOpen('rh');
       setActiveState('rh');
       return;
@@ -636,7 +636,7 @@ export default function App() {
     },
     activite_suivi: {
       initialTab: activiteSuiviTab,
-      onTabChange: (nextTab) => setActiviteSuiviTab(resolveActiviteSuiviTab(nextTab)),
+      onTabChange: (nextTab) => setActiviteSuiviTab(nextTab),
       alertes: rows(c.alertes_center),
       taches: rows(c.taches),
       tasks: rows(c.taches),
@@ -660,7 +660,7 @@ export default function App() {
     },
     documents_rapports: {
       initialTab: documentsRapportsTab,
-      onTabChange: (nextTab) => setDocumentsRapportsTab(resolveDocumentsTab(nextTab)),
+      onTabChange: (nextTab) => setDocumentsRapportsTab(nextTab),
       documents: rows(c.documents),
       rapports: rows(c.rapports),
       reports: rows(c.rapports),
@@ -707,7 +707,7 @@ export default function App() {
     rh: {
       ...internalResourcesShared,
       initialTab: rhTab,
-      onTabChange: (nextTab) => setRhTab(resolveRhTab(nextTab)),
+      onTabChange: (nextTab) => setRhTab(nextTab),
       alertes: rows(c.alertes_center),
       onNavigate: setActive,
       onRefresh: refreshAll,

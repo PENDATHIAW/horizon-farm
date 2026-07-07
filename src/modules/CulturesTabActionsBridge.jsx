@@ -130,7 +130,30 @@ export default function CulturesTabActionsBridge({
   };
   const cultureOptions = realCultures.map((row) => ({ value: row.id, label: `${cultureName(row)} · ${parcelName(row)}` }));
   const stockOptions = inputStocks.map((row) => ({ value: row.id, label: `${stockName(row)} · ${fmtNumber(stockQty(row))} ${row.unite || ''}` }));
-  const cultureFields = [{ key: 'nom', label: 'Nom culture' }, { key: 'type', label: 'Type culture', type: 'select', options: ['Poivrons', 'Tomates', 'Oignons', 'Piments', 'Aubergines', 'Maraîchage', 'Céréales', 'Autre'] }, { key: 'parcelle', label: 'Parcelle' }, { key: 'campagne', label: 'Campagne' }, { key: 'surface', label: 'Surface', type: 'number' }, { key: 'unite_surface', label: 'Unité surface', type: 'select', options: ['m²', 'ha'] }, { key: 'date_debut_campagne', label: 'Début campagne', type: 'date' }, { key: 'date_recolte_prevue', label: 'Récolte prévue', type: 'date' }, { key: 'budget_prevu', label: 'Budget prévu', type: 'number' }, { key: 'notes', label: 'Notes', type: 'textarea', full: true }];
+  const parcelleOptions = parcelles.map((row) => ({
+    value: row.parcelle || row.nom || row.id,
+    label: parcelName(row),
+  }));
+  const campagneOptions = campagnes.map((row) => ({
+    value: row.campagne || row.nom || row.id,
+    label: campaignName(row),
+  }));
+  const cultureFields = [
+    { key: 'nom', label: 'Nom culture' },
+    { key: 'type', label: 'Type culture', type: 'select', options: ['Poivrons', 'Tomates', 'Oignons', 'Piments', 'Aubergines', 'Maraîchage', 'Céréales', 'Autre'] },
+    parcelleOptions.length
+      ? { key: 'parcelle', label: 'Parcelle', type: 'select', options: parcelleOptions }
+      : { key: 'parcelle', label: 'Parcelle' },
+    campagneOptions.length
+      ? { key: 'campagne', label: 'Campagne', type: 'select', options: campagneOptions }
+      : { key: 'campagne', label: 'Campagne' },
+    { key: 'surface', label: 'Surface', type: 'number' },
+    { key: 'unite_surface', label: 'Unité surface', type: 'select', options: ['m²', 'ha'] },
+    { key: 'date_debut_campagne', label: 'Début campagne', type: 'date' },
+    { key: 'date_recolte_prevue', label: 'Récolte prévue', type: 'date' },
+    { key: 'budget_prevu', label: 'Budget prévu', type: 'number' },
+    { key: 'notes', label: 'Notes', type: 'textarea', full: true },
+  ];
   const parcelleFields = [{ key: 'nom', label: 'Nom parcelle' }, { key: 'parcelle', label: 'Code / nom parcelle' }, { key: 'surface', label: 'Surface', type: 'number' }, { key: 'unite_surface', label: 'Unité', type: 'select', options: ['m²', 'ha'] }, { key: 'statut', label: 'Statut', type: 'select', options: ['actif', 'repos', 'occupe', 'a_preparer'] }, { key: 'notes', label: 'Notes', type: 'textarea', full: true }];
   const campagneFields = [{ key: 'nom', label: 'Nom campagne' }, { key: 'campagne', label: 'Campagne / saison' }, { key: 'date_debut_campagne', label: 'Début', type: 'date' }, { key: 'date_recolte_prevue', label: 'Récolte prévue', type: 'date' }, { key: 'budget_prevu', label: 'Budget prévu', type: 'number' }, { key: 'objectif_revenu', label: 'Objectif revenu', type: 'number' }, { key: 'statut', label: 'Statut', type: 'select', options: ['planifiee', 'en_cours', 'recolte', 'termine'] }, { key: 'notes', label: 'Notes', type: 'textarea', full: true }];
   const performanceFields = [{ key: 'nom', label: 'Titre performance' }, { key: 'campagne', label: 'Campagne' }, { key: 'revenu_reel', label: 'Revenu', type: 'number' }, { key: 'cout_total_reel', label: 'Coût', type: 'number' }, { key: 'marge_reelle', label: 'Marge', type: 'number' }, { key: 'score_sante', label: 'Score santé (%)', type: 'number' }, { key: 'notes', label: 'Analyse', type: 'textarea', full: true }];

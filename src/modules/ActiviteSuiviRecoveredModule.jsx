@@ -31,9 +31,10 @@ export default function ActiviteSuiviRecoveredModule(props) {
 
   const setTab = useCallback((value) => {
     const resolved = resolveActiviteSuiviTab(value);
+    const raw = String(value || '').trim();
     if (controlled) {
       setPendingTab(resolved);
-      props.onTabChange?.(resolved);
+      props.onTabChange?.(raw || resolved);
       return;
     }
     setInternalTab(resolved);

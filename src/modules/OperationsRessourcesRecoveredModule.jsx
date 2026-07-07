@@ -38,8 +38,14 @@ export default function OperationsRessourcesRecoveredModule(props) {
   }, [applyRhNavigation]);
 
   const setTab = useCallback((value) => {
-    applyRhNavigation(resolveRhNavigation(value));
-  }, [applyRhNavigation]);
+    const raw = String(value || '').trim();
+    const nav = resolveRhNavigation(value);
+    if (controlled) {
+      props.onTabChange?.(raw || nav.tab);
+      return;
+    }
+    setInternalTab(nav.tab);
+  }, [controlled, props.onTabChange]);
 
   useEffect(() => {
     if (!props.initialTab) return;

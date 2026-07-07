@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ACTIVITE_SUIVI_TABS, resolveActiviteSuiviTab, resolveActiviteSuiviNavigation } from '../../src/utils/commercialNavigation.js';
+import { ACTIVITE_SUIVI_TABS, resolveActiviteSuiviTab, resolveActiviteSuiviNavigation, navigateActiviteSuiviTab } from '../../src/utils/commercialNavigation.js';
 import { MODULE_TARGET_TABS } from '../../src/config/horizonVision.config.js';
 
 test('activite_suivi — 4 onglets canoniques', () => {
@@ -19,4 +19,11 @@ test('resolveActiviteSuiviTab — aliases anciens onglets', () => {
   assert.equal(resolveActiviteSuiviNavigation('Alertes').tab, 'À traiter maintenant');
   assert.equal(resolveActiviteSuiviTab('Annexe'), 'Performance & analytique');
   assert.equal(resolveActiviteSuiviTab('Pilotage'), 'Performance & analytique');
+});
+
+test('navigateActiviteSuiviTab — conserve alias brut', () => {
+  const calls = [];
+  const resolved = navigateActiviteSuiviTab((module, opts) => calls.push({ module, ...opts }), 'Alertes');
+  assert.equal(resolved, 'À traiter maintenant');
+  assert.deepEqual(calls, [{ module: 'activite_suivi', tab: 'Alertes' }]);
 });

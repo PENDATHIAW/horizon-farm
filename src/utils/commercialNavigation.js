@@ -337,6 +337,15 @@ export function resolveActiviteSuiviNavigation(value = '') {
   return { tab: resolveActiviteSuiviTab(value) };
 }
 
+/** Navigation externe — conserve alias legacy (Alertes, Traçabilité…). */
+export function navigateActiviteSuiviTab(onNavigate, tab = '', options = {}) {
+  const raw = String(tab || '').trim() || 'Cockpit & décisions';
+  if (typeof onNavigate === 'function') {
+    onNavigate('activite_suivi', { tab: raw, ...options });
+  }
+  return resolveActiviteSuiviTab(raw);
+}
+
 export const DOCUMENTS_RAPPORTS_TABS = ['Centre de contrôle', 'Gestionnaire & OCR', 'Rapprochement & preuves', 'Rapports & exports'];
 
 const DOCUMENTS_TAB_ALIASES = {
@@ -543,6 +552,15 @@ export function resolveDocumentsNavigation(value = '') {
   return { tab: resolveDocumentsTab(raw) };
 }
 
+/** Navigation externe — conserve alias legacy (Preuves, Rapports…). */
+export function navigateDocumentsTab(onNavigate, tab = '', options = {}) {
+  const raw = String(tab || '').trim() || 'Centre de contrôle';
+  if (typeof onNavigate === 'function') {
+    onNavigate('documents_rapports', { tab: raw, ...options });
+  }
+  return resolveDocumentsTab(raw);
+}
+
 export function resolveRhTab(value = '') {
   const tab = String(value || '').trim();
   if (RH_TABS.includes(tab)) return tab;
@@ -555,6 +573,15 @@ export function resolveRhTab(value = '') {
 export function resolveRhNavigation(value = '') {
   const raw = String(value || '').trim();
   return { tab: resolveRhTab(raw) };
+}
+
+/** Navigation externe — conserve alias legacy (Affectations, Équipements…). */
+export function navigateRhTab(onNavigate, tab = '', options = {}) {
+  const raw = String(tab || '').trim() || 'Cockpit RH & Maintenance';
+  if (typeof onNavigate === 'function') {
+    onNavigate('rh', { tab: raw, ...options });
+  }
+  return resolveRhTab(raw);
 }
 
 export function resolveObjectifsTab(value = '') {
@@ -729,6 +756,24 @@ export function navigationOptionsForFinding(finding = {}) {
       tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Parcelles & campagnes',
     };
   }
+  if (module === 'documents_rapports') {
+    return {
+      module,
+      tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Centre de contrôle',
+    };
+  }
+  if (module === 'activite_suivi') {
+    return {
+      module,
+      tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Cockpit & décisions',
+    };
+  }
+  if (module === 'rh') {
+    return {
+      module,
+      tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Cockpit RH & Maintenance',
+    };
+  }
   return { module, tab: explicitTab || null };
 }
 
@@ -754,6 +799,18 @@ export function navigateForIaFinding(finding = {}, onNavigate) {
   }
   if (module === 'cultures') {
     onNavigate('cultures', { tab: finding.tab || 'Parcelles & campagnes' });
+    return;
+  }
+  if (module === 'documents_rapports') {
+    onNavigate('documents_rapports', { tab: finding.tab || 'Rapprochement & preuves' });
+    return;
+  }
+  if (module === 'activite_suivi') {
+    onNavigate('activite_suivi', { tab: finding.tab || 'À traiter maintenant' });
+    return;
+  }
+  if (module === 'rh') {
+    onNavigate('rh', { tab: finding.tab || 'Cockpit RH & Maintenance' });
     return;
   }
   onNavigate(module || 'elevage');
