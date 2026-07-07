@@ -92,6 +92,17 @@ export default function DocumentsRapportsModule(props) {
     toast.success('Document traité — bibliothèque mise à jour');
   };
 
+  const greenpreneursExtras = {
+    taches: props.existingTasks || [],
+    alertes_center: props.existingAlerts || [],
+    sales_opportunities: props.opportunities || [],
+    bp_funding_sources: props.bpFundingSources || [],
+    bp_recurring_costs: props.bpRecurringCosts || [],
+    sensor_devices: props.sensorDevices || [],
+    camera_devices: props.cameraDevices || [],
+    smartfarm_events: props.smartfarmEvents || [],
+  };
+
   const content = tab === 'Centre de contrôle' ? (
     <CentreControleTab
       data={data}
@@ -101,6 +112,7 @@ export default function DocumentsRapportsModule(props) {
       busyId={busyId}
       onNavigate={props.onNavigate}
       actionHandlers={actionHandlers}
+      greenpreneursExtras={greenpreneursExtras}
     />
   ) : tab === 'Gestionnaire & OCR' ? (
     <GestionnaireOcrTab
@@ -126,6 +138,7 @@ export default function DocumentsRapportsModule(props) {
       data={data}
       periodFiltered={periodFiltered}
       onNavigate={props.onNavigate}
+      greenpreneursExtras={greenpreneursExtras}
     />
   ) : (
     <CentreControleTab

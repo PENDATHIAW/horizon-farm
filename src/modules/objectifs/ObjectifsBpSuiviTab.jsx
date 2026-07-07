@@ -1,5 +1,8 @@
 import { fmtCurrency, fmtNumber } from '../../utils/format';
 import { applyEncaissementsToGoals } from './objectifsBpEncaissements.js';
+import CircularEconomyKpiPanel from '../../components/greenpreneurs/CircularEconomyKpiPanel.jsx';
+import ValorisationPhaseAdvisor from '../../components/greenpreneurs/ValorisationPhaseAdvisor.jsx';
+import { isSimulatedDataModeEnabled } from '../../utils/uiPreferences.js';
 import ObjectifsGraphiquesTab from './ObjectifsGraphiquesTab.jsx';
 
 const MAIN_ACTIVITIES = [
@@ -101,6 +104,13 @@ export default function ObjectifsBpSuiviTab({
           Enregistrer un nettoyage → Élevage Santé
         </button>
       </section>
+
+      <ValorisationPhaseAdvisor dataMap={dataMap} />
+      <CircularEconomyKpiPanel
+        dataMap={dataMap}
+        simulatedMode={isSimulatedDataModeEnabled()}
+        showPlannedVsRealized
+      />
 
       <details className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 shadow-sm">
         <summary className="cursor-pointer text-sm font-black text-[#2f2415]">Graphiques objectifs (optionnel)</summary>

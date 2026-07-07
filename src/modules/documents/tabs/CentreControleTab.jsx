@@ -2,6 +2,8 @@ import { BrainCircuit, ClipboardList, FolderOpen, Zap } from 'lucide-react';
 import { fmtCurrency, fmtNumber } from '../../../utils/format';
 import { emitHorizonForm } from '../../../services/formModalManager';
 import DocumentsOrphanSyncPanel from '../../DocumentsOrphanSyncPanel.jsx';
+import GreenpreneursReadinessCard from '../../../components/greenpreneurs/GreenpreneursReadinessCard.jsx';
+import { isSimulatedDataModeEnabled } from '../../../utils/uiPreferences.js';
 import {
   Button,
   DomainGauge,
@@ -55,9 +57,34 @@ export default function CentreControleTab({
   busyId,
   onNavigate,
   actionHandlers,
+  greenpreneursExtras = {},
 }) {
+  const greenpreneursDataMap = {
+    documents: data.documents,
+    transactions: data.transactions,
+    finances: data.transactions,
+    sales_orders: data.salesOrders,
+    payments: data.payments,
+    stocks: data.stocks,
+    cultures: data.cultures,
+    animaux: data.animaux,
+    avicole: data.lots,
+    business_events: data.businessEvents,
+    clients: data.clients,
+    fournisseurs: data.fournisseurs,
+    business_plans: data.businessPlans,
+    investissements: data.investissements,
+    ...greenpreneursExtras,
+  };
+
   return (
     <div className="space-y-5">
+      <GreenpreneursReadinessCard
+        dataMap={greenpreneursDataMap}
+        simulatedMode={isSimulatedDataModeEnabled()}
+        compact
+        onNavigate={onNavigate}
+      />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Stat label="Santé docs" value={`${data.healthScore}/100`} tone={data.healthScore >= 75 ? 'good' : 'warn'} />
         <Stat label="Documents" value={fmtNumber(data.documents.length)} />

@@ -5,6 +5,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import useCrudModule from '../hooks/useCrudModule';
 import { HORIZON_FARM_OFFICIAL_BP } from '../services/horizonFarmOfficialBusinessPlan';
+import { computeGreenpreneursMetrics } from '../services/greenpreneurs/greenpreneursMetrics.js';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 
@@ -38,12 +39,14 @@ function buildSummary({ data, plan, lines, costs, projections, fundings, risks, 
   const funding = planFundings.reduce((s, row) => s + n(row.montant ?? row.amount ?? row.value ?? row.valeur), 0);
   const sales = arr(data.salesOrders || data.sales_orders).reduce((s, row) => s + n(row.montant_total ?? row.total ?? row.amount), 0);
   const payments = arr(data.payments).reduce((s, row) => s + n(row.montant_paye ?? row.montant ?? row.amount), 0);
-  return { financeur, customFinanceur, financeurLabel: financeurInfo(financeur, customFinanceur).label, planLines, planCosts, planProjections, planFundings, planRisks, investment, annualRevenue, monthlyCosts, funding, sales, payments, official, planName: plan?.nom || plan?.name || 'Business Plan Horizon Farm' };
+  return { financeur, customFinanceur, financeurLabel: financeurInfo(financeur, customFinanceur).label, planLines, planCosts, planProjections, planFundings, planRisks, investment, annualRevenue, monthlyCosts, funding, sales, payments, official, planName: plan?.nom || plan?.name || 'Business Plan Horizon Farm', greenpreneursData: data };
 }
 
 function buildDraft(summary) {
   const f = financeurInfo(summary.financeur, summary.customFinanceur);
   const derBlock = summary.financeur === 'DER' ? '\n\nPoints DER/FJ à valoriser : emplois directs, emplois femmes/jeunes, formalisation, sécurité alimentaire, impact local, formation, suivi trimestriel, transparence des dépenses et capacité de remboursement.' : '';
+  const gp = summary.financeur === 'DER' ? computeGreenpreneursMetrics(summary.greenpreneursData || {}) : null;
+  const greenpreneursBlock = gp ? `\n\nScore Greenpreneurs DER/FJ : ${gp.readiness.total}/100 (${gp.readiness.statusLabel}). Impact environnemental mesurable : ${gp.circular.engraisSavingsFcfa.toLocaleString('fr-FR')} FCFA d'économies engrais estimées, ${gp.circular.parcellesFertilisees} parcelle(s) fertilisée(s), ${gp.circular.fluxCount} flux circulaires suivis. Feuille de route : ${gp.valorisation.roadmapNote}` : '';
   const monthlyRepayment = Math.round(summary.investment / 36);
   return {
     executive: `Horizon Farm est une ferme intégrée portée par Penda THIAW. Le projet combine production d’œufs, poulets de chair, embouche bovine, cultures et commercialisation structurée. Le financement demandé vise les actifs productifs, les infrastructures, les équipements, les intrants et le fonds de roulement. Le dossier est préparé pour ${f.label}. ${f.angle}.${derBlock}`,
@@ -57,7 +60,7 @@ function buildDraft(summary) {
     gantt: 'Calendrier 12 mois : M1 installation, achats prioritaires et démarrage pondeuses/chair/bovins ; M2-M3 montée en charge et prospection clients ; M4 premières ventes bovins selon lots ; M5-M6 stabilisation encaissements et reporting ; M7-M12 optimisation des cycles, renouvellement, maintenance, consolidation clients et suivi financeur.',
     financials: `Prévisionnel : CA annuel BP ${money(summary.annualRevenue)}, charges mensuelles estimées ${money(summary.monthlyCosts)}, financement déjà identifié ${money(summary.funding)}. Pour un projet nouveau, présenter le prévisionnel, les hypothèses, le besoin en fonds de roulement et la capacité de remboursement plutôt que des états historiques inexistants.`,
     swot: 'SWOT — Forces : projet intégré, plusieurs sources de revenus, ERP de suivi, cycles connus. Faiblesses : besoin initial important, dépendance aliments/santé, besoin de formalisation. Opportunités : demande locale œufs/volaille/viande, accompagnement financeurs, emplois locaux. Menaces : maladies, hausse prix aliments, impayés, aléas climatiques ou rupture fournisseurs.',
-    impact: 'Impact attendu : création d’emplois, revenus agricoles locaux, sécurité alimentaire, formalisation, achats auprès de fournisseurs locaux, formation des personnes impliquées, suivi transparent grâce à l’ERP.',
+    impact: `Impact attendu : création d'emplois, revenus agricoles locaux, sécurité alimentaire, formalisation, achats auprès de fournisseurs locaux, formation des personnes impliquées, suivi transparent grâce à l'ERP.${greenpreneursBlock}`,
     reporting: `Reporting au financeur : tableau trimestriel avec ventes, encaissements, dépenses, justificatifs, stocks, mortalité, ponte, alimentation, tâches réalisées, alertes traitées, photos et commentaires. Ce reporting peut être extrait depuis l’ERP pour ${f.label}.`,
     risk: `${f.proof} Risques suivis : santé animale, rupture d’aliment, impayés clients, panne équipement, sous-chiffrage de devis. Réponses : biosécurité, seuils stock, relances, maintenance, devis et reporting.`,
     attachments: 'Pièces à joindre : devis/proformas, justificatif du site, pièce d’identité, documents administratifs, photos du site, captures ERP, prévisions financières, lettres de soutien, preuves de ventes ou clients si disponibles.',
@@ -72,7 +75,7 @@ function section(doc, title, body, y) {
   doc.setFontSize(13); doc.setTextColor(47, 36, 21); doc.text(title, 14, y); y += 7;
   doc.setFontSize(9.5); const lines = doc.splitTextToSize(clean(body), 182); doc.text(lines, 14, y); return y + lines.length * 4.8 + 7;
 }
-function exportPdf(summary, draft) {
+function exportPdf(summary, draft, options = {}) {
   const f = financeurInfo(summary.financeur, summary.customFinanceur);
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   doc.setFillColor(248, 245, 239); doc.rect(0, 0, 210, 297, 'F'); doc.setTextColor(47, 36, 21);
@@ -106,6 +109,11 @@ function exportPdf(summary, draft) {
   if (options.checklist?.length) {
     if (y > 220) { doc.addPage(); y = 24; }
     y = section(doc, 'Annexe — Checklist conformité', options.checklist.map((row) => `${row.ok ? 'OK' : 'À corriger'} · ${row.item} · ${row.value}`).join('\n'), y);
+  }
+  if (summary.financeur === 'DER' && summary.greenpreneursData) {
+    const gp = computeGreenpreneursMetrics(summary.greenpreneursData);
+    if (y > 210) { doc.addPage(); y = 24; }
+    y = section(doc, 'Annexe — Greenpreneurs DER/FJ', `Score ${gp.readiness.total}/100 — ${gp.readiness.statusLabel}. Économies engrais : ${money(gp.circular.engraisSavingsFcfa)}. Parcelles fertilisées : ${gp.circular.parcellesFertilisees}. Tallow & Go : ${gp.valorisation.phase2_tallow_go.score}/100 (${gp.valorisation.phase2_tallow_go.statusLabel}). BOVINIA : ${gp.valorisation.phase3_bovinia.score}/100 (${gp.valorisation.phase3_bovinia.statusLabel}). ${gp.valorisation.roadmapNote}`, y);
   }
   const pages = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pages; i += 1) { doc.setPage(i); doc.setFontSize(8); doc.setTextColor(125, 106, 74); doc.text(`Horizon Farm · dossier financement · ${i}/${pages}`, 105, 288, { align: 'center' }); }

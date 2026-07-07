@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Bot, Briefcase, Building2, CheckCircle2, Download, Eye, FileText, FolderOpen, Handshake, Heart,
-  History, Landmark, LayoutDashboard, Lightbulb, Pencil, Play, Save, ShieldAlert, Sparkles, Target, Trash2,
+  History, Landmark, LayoutDashboard, Lightbulb, Pencil, Play, Route, Save, ShieldAlert, Sparkles, Target, Trash2,
   TrendingUp, Users, X, Zap,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -27,6 +27,8 @@ import {
   mergeInvestorForumProfile,
 } from '../services/investorForums/mergeInvestorForumProfile.js';
 import { fmtCurrency } from '../utils/format.js';
+import GreenpreneursReadinessCard from '../components/greenpreneurs/GreenpreneursReadinessCard.jsx';
+import { isSimulatedDataModeEnabled } from '../utils/uiPreferences.js';
 import InvestisseurDemoPanel from './InvestisseurDemoPanel.jsx';
 import InvestorDossierLibrary from '../components/investorForums/InvestorDossierLibrary.jsx';
 import InvestorCrmPanel from '../components/investorForums/InvestorCrmPanel.jsx';
@@ -529,6 +531,17 @@ export default function InvestisseursForumsModule(props) {
 
       {mainTab === 'preparation' && (
         <div className="space-y-4">
+          <GreenpreneursReadinessCard
+            dataMap={props.dataMap || props}
+            simulatedMode={isSimulatedDataModeEnabled()}
+            onNavigate={props.onNavigate}
+          />
+          <Card title="Feuille de route progressive" icon={Route} className="border-emerald-200 bg-emerald-50/40">
+            <p className="text-sm text-[#2f2415]">
+              Horizon Farm dispose d&apos;une feuille de route progressive. Les phases futures de valorisation des coproduits bovins
+              (Tallow &amp; Go, BOVINIA) seront décidées à partir des données ERP, et non sur simple intuition.
+            </p>
+          </Card>
           <Card title={`Pourquoi ${readiness.score}/100 ?`} icon={Sparkles} className="border-[#d6c3a0]">
             <p className="text-sm">{readiness.explanation}</p>
             <p className="mt-2 text-sm">{readiness.summary}</p>

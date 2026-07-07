@@ -1,15 +1,56 @@
 import { BarChart3, Download } from 'lucide-react';
 import ModuleGraphiquesTab from '../../../components/module/ModuleGraphiquesTab.jsx';
+import CircularEconomyKpiPanel from '../../../components/greenpreneurs/CircularEconomyKpiPanel.jsx';
+import GreenpreneursReadinessCard from '../../../components/greenpreneurs/GreenpreneursReadinessCard.jsx';
+import { computeGreenpreneursMetrics } from '../../../services/greenpreneurs/greenpreneursMetrics.js';
 import { fmtNumber } from '../../../utils/format';
+import { isSimulatedDataModeEnabled } from '../../../utils/uiPreferences.js';
 import { Button, Empty, Field, Row, Section, labelOf, typeOf, dateOf, detailOf } from '../documentsModuleUi.jsx';
 
 export default function RapportsExportsTab({
   data,
   periodFiltered,
   onNavigate,
+  greenpreneursExtras = {},
 }) {
+  const greenpreneursDataMap = {
+    documents: data.documents,
+    transactions: data.transactions,
+    finances: data.transactions,
+    sales_orders: data.salesOrders,
+    payments: data.payments,
+    stocks: data.stocks,
+    cultures: data.cultures,
+    animaux: data.animaux,
+    avicole: data.lots,
+    business_events: data.businessEvents,
+    clients: data.clients,
+    fournisseurs: data.fournisseurs,
+    business_plans: data.businessPlans,
+    investissements: data.investissements,
+    ...greenpreneursExtras,
+  };
+  const gp = computeGreenpreneursMetrics(greenpreneursDataMap, { simulatedMode: isSimulatedDataModeEnabled() });
+
   return (
     <div className="space-y-5">
+      <GreenpreneursReadinessCard
+        dataMap={greenpreneursDataMap}
+        simulatedMode={isSimulatedDataModeEnabled()}
+        onNavigate={onNavigate}
+      />
+      <CircularEconomyKpiPanel
+        dataMap={greenpreneursDataMap}
+        simulatedMode={isSimulatedDataModeEnabled()}
+        compact
+      />
+      <Section icon={Download} title="Feuille de route data-driven (DER/FJ)">
+        <p className="text-sm text-[#8a7456] leading-relaxed">{gp.valorisation.roadmapNote}</p>
+        <p className="mt-2 text-sm text-[#2f2415]">
+          Tallow & Go : <b>{gp.valorisation.phase2_tallow_go.score}/100</b> ({gp.valorisation.phase2_tallow_go.statusLabel}) ·
+          BOVINIA : <b>{gp.valorisation.phase3_bovinia.score}/100</b> ({gp.valorisation.phase3_bovinia.statusLabel})
+        </p>
+      </Section>
       <Section icon={Download} title="Exports & dossier financeur">
         <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>

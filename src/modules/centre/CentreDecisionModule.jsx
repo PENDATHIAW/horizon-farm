@@ -146,6 +146,7 @@ export default function CentreDecisionModule({
         onRefreshAlertes={props.onRefreshAlertes}
         existingTasks={props.existingTasks}
         existingAlerts={props.existingAlerts}
+        enrichedDataMap={enrichedDataMap}
       />
     )
     : tab === 'Croissance & opportunités'
