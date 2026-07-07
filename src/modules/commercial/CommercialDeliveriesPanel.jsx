@@ -28,7 +28,6 @@ export default function CommercialDeliveriesPanel({
   onUpdateTask,
   onRefreshWorkflow,
   setTab,
-  payments = [],
 }) {
   const queue = buildCommercialDeliveryQueue({ deliveries, orders, clients, documents });
 

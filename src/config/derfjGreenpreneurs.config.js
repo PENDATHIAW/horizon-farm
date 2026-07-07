@@ -80,7 +80,11 @@ export const CIRCULAR_STOCK_CATEGORY_OPTIONS = [
   { value: 'transformation_test', label: 'Intrants transformation (test)' },
 ];
 
-/** Modèles opportunités phase future — Tallow & Go / BOVINIA */
+/** Si true, crée aussi des lignes stock suif/os (déconseillé avant phase 2 — risque péremption). */
+export const COPRODUCT_AUTO_STOCK_ENABLED = false;
+
+/** Jours conseillés avant transformation du suif brut (alerte métier). */
+export const SUIF_RAW_MAX_STORAGE_DAYS = 14;
 export const VALORISATION_OPPORTUNITY_TEMPLATES = {
   tallow_go: {
     title: 'Tallow & Go — test demande marché suif',

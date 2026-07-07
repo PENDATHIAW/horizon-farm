@@ -1,10 +1,16 @@
 /**
- * Flux coproduits bovins (suif, os) — événements ERP + stock + opportunités phase future.
+ * Flux coproduits bovins (suif, os) — traçabilité ERP + stock optionnel + opportunités phase future.
+ *
+ * Par défaut : on enregistre les quantités en business_events (preuve Greenpreneurs / Tallow & Go)
+ * SANS créer de stock suif/os — le suif brut se périme vite ; le stock n'est utile que quand
+ * la phase 2 (transformation / congélation) est prête.
  */
 import { makeId } from '../../utils/ids.js';
 import { toNumber } from '../../utils/format.js';
 import {
   CIRCULAR_SIMULATION_MONTHLY_KG,
+  COPRODUCT_AUTO_STOCK_ENABLED,
+  SUIF_RAW_MAX_STORAGE_DAYS,
   VALORISATION_OPPORTUNITY_TEMPLATES,
 } from '../../config/derfjGreenpreneurs.config.js';
 
@@ -13,6 +19,11 @@ const norm = (v = '') => String(v || '').toLowerCase().normalize('NFD').replace(
 const today = () => new Date().toISOString().slice(0, 10);
 
 const CLOSED_EXIT = ['vendu', 'abattu', 'sorti', 'cloture', 'clôture'];
+
+export const COPRODUCT_STORAGE_ADVICE = {
+  default: 'Traçabilité ERP seule — pas de stock suif/os auto (péremption). Congeler ou transformer avant phase 2.',
+  stockEnabled: `Stock coproduit créé — transformer ou congeler sous ${SUIF_RAW_MAX_STORAGE_DAYS} jours.`,
+};
 
 export function isBovinAnimal(animal = {}) {
   const text = norm(`${animal.espece || ''} ${animal.type || ''} ${animal.race || ''} ${animal.categorie || ''} ${animal.species || ''}`);
@@ -39,12 +50,25 @@ export function estimateBovinCoproductKg(animal = {}, overrides = {}) {
   return { suifKg, osKg, totalKg: Number((suifKg + osKg).toFixed(2)), sourceType: carcass > 0 ? 'erp_real' : 'simulation' };
 }
 
+/** Stock auto seulement si explicitement demandé ou config globale activée. */
+export function shouldCreateCoproductStock({ createCoproductStock, skipStock } = {}) {
+  if (skipStock === true) return false;
+  if (createCoproductStock === true) return true;
+  return COPRODUCT_AUTO_STOCK_ENABLED === true;
+}
+
 function eventAlreadyExists(events = [], animalId, eventType) {
   return arr(events).some((row) => String(row.entity_id) === String(animalId) && norm(row.event_type) === norm(eventType));
 }
 
 function stockKey(produit, sourceRecordId) {
   return `${norm(produit)}::${sourceRecordId}`;
+}
+
+function dlcFromToday(days = SUIF_RAW_MAX_STORAGE_DAYS) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 
 async function upsertCoproductStock({
@@ -73,6 +97,7 @@ async function upsertCoproductStock({
       last_movement_label: `Coproduit bovin · ${animalLabel}`,
       last_movement_qty: delta,
       last_movement_at: new Date().toISOString(),
+      date_peremption: dlcFromToday(),
     });
     return existing.id;
   }
@@ -89,7 +114,8 @@ async function upsertCoproductStock({
     source_type: 'coproduit_bovin',
     source_record_id: sourceRecordId,
     origine_label: animalLabel,
-    notes: 'Coproduit généré à la sortie bovin',
+    notes: `Coproduit sortie bovin — à transformer/congeler sous ${SUIF_RAW_MAX_STORAGE_DAYS}j (phase 2)`,
+    date_peremption: dlcFromToday(),
     farm_id: farmId || '',
   });
   return id;
@@ -137,7 +163,8 @@ export async function emitBovinCoproductSideEffects({
   issueKey = '',
   farmId = '',
   sourceType,
-  skipStock = false,
+  skipStock,
+  createCoproductStock = false,
   skipOpportunities = false,
 } = {}) {
   const id = animalId || animal.id;
@@ -162,6 +189,11 @@ export async function emitBovinCoproductSideEffects({
   const { suifKg, osKg, totalKg, sourceType: qtySource } = estimateBovinCoproductKg(animal);
   const resolvedSource = sourceType || qtySource;
   const animalLabel = animal.name || animal.nom || animal.boucle_numero || id;
+  const createStock = shouldCreateCoproductStock({ createCoproductStock, skipStock });
+
+  const traceNote = createStock
+    ? COPRODUCT_STORAGE_ADVICE.stockEnabled
+    : COPRODUCT_STORAGE_ADVICE.default;
 
   const emitOne = async (eventType, quantity, title) => {
     if (eventAlreadyExists(events, id, eventType)) return false;
@@ -174,7 +206,7 @@ export async function emitBovinCoproductSideEffects({
       related_id: relatedId,
       source_record_id: relatedId || id,
       title,
-      description: `${quantity} kg · ${animalLabel}`,
+      description: `${quantity} kg · ${animalLabel}. ${traceNote}`,
       quantity,
       unit: 'kg',
       event_date: date,
@@ -183,6 +215,7 @@ export async function emitBovinCoproductSideEffects({
       farm_id: farmId,
       source_type: resolvedSource,
       side_effects_managed: true,
+      storage_mode: createStock ? 'stock' : 'trace_only',
     });
     return true;
   };
@@ -194,7 +227,8 @@ export async function emitBovinCoproductSideEffects({
 
   if (!created.length) return { emitted: false, reason: 'already_emitted', suifKg, osKg };
 
-  if (!skipStock) {
+  let stockCreated = false;
+  if (createStock) {
     const stocks = context.stocks || [];
     await upsertCoproductStock({
       stocks,
@@ -218,6 +252,7 @@ export async function emitBovinCoproductSideEffects({
       animalLabel,
       farmId,
     });
+    stockCreated = true;
   }
 
   if (!skipOpportunities) {
@@ -229,5 +264,14 @@ export async function emitBovinCoproductSideEffects({
   }
 
   await onRefreshBusinessEvents?.();
-  return { emitted: true, created, suifKg, osKg, sourceType: resolvedSource };
+  return {
+    emitted: true,
+    created,
+    suifKg,
+    osKg,
+    sourceType: resolvedSource,
+    stockCreated,
+    storageAdvice: traceNote,
+    traceOnly: !stockCreated,
+  };
 }
