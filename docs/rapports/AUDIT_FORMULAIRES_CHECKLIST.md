@@ -85,6 +85,7 @@ Pour chaque module, lister :
 | Centre décisionnel | ✅ | ✅ | ✅ |
 | Objectifs & croissance | ✅ | Partiel | ✅ |
 | Élevage | ✅ | ✅ | ✅ |
+| Accueil | ✅ | N/A (lecture) | ✅ |
 | Finance | — | — | — |
 | Achats & stock | — | — | — |
 | Cultures | — | — | — |

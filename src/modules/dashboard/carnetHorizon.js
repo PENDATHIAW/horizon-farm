@@ -77,6 +77,13 @@ function isToday(value) {
   return date >= startOfToday() && date <= endOfToday();
 }
 
+function isTimestampToday(at = 0) {
+  if (!at) return false;
+  const date = new Date(at);
+  if (Number.isNaN(date.getTime())) return false;
+  return date >= startOfToday() && date <= endOfToday();
+}
+
 const stockQty = (row = {}) => n(row.quantite ?? row.quantity ?? row.stock);
 const stockThreshold = (row = {}) => n(row.seuil ?? row.threshold ?? row.stock_min);
 const isFeedStock = (row = {}) => /aliment|provende|intrant|granul|maïs|mais|soja|feed/i.test(`${row.produit || row.nom || row.name || ''} ${row.categorie || row.category || ''}`);
@@ -439,7 +446,7 @@ export function buildCarnetProjections(summary = {}, props = {}) {
       format: 'units',
       hint: `Moyenne ${eggsDailyAvg.toLocaleString('fr-FR')} / jour`,
       tone: 'neutral',
-      navigate: { module: 'elevage', tab: 'Avicole' },
+      navigate: { module: 'elevage', tab: 'Lots & bandes' },
     });
   }
 
@@ -493,7 +500,7 @@ export function buildCarnetTodayJournal(props = {}, { limit = CARNET_JOURNAL_LIM
   arr(props.businessEvents || props.business_events)
     .filter(isAgriculturalHomeEvent)
     .forEach((row) => {
-      const at = parseDate(rowDateValue(row))?.getTime() || 0;
+      const at = parseDate(row.event_date || row.date || row.created_at || rowDateValue(row))?.getTime() || 0;
       const line = journalEntry(row.title || row.description, at);
       if (line) push({ ...line, at });
     });
@@ -536,15 +543,23 @@ export function buildCarnetTodayJournal(props = {}, { limit = CARNET_JOURNAL_LIM
 
   entries.sort((a, b) => n(b.at) - n(a.at));
 
-  const totalCount = entries.length;
+  const todayEntries = entries.filter((row) => isTimestampToday(row.at));
+  const pool = todayEntries.length ? todayEntries : entries;
+  const totalCount = pool.length;
   if (!totalCount) {
-    return { items: [{ icon: '·', text: 'Aucun événement terrain récent' }], totalCount: 0, hasMore: false };
+    return {
+      items: [{ icon: '·', text: 'Aucun événement terrain aujourd\'hui' }],
+      totalCount: 0,
+      hasMore: false,
+      scope: 'today',
+    };
   }
 
   return {
-    items: entries.slice(0, limit).map(({ icon, text }) => ({ icon, text })),
+    items: pool.slice(0, limit).map(({ icon, text }) => ({ icon, text })),
     totalCount,
     hasMore: totalCount > limit,
+    scope: todayEntries.length ? 'today' : 'recent',
   };
 }
 
@@ -561,6 +576,7 @@ export function buildCarnetConseil(summary = {}, priorities = [], props = {}) {
       situation: `Le stock de ${product} est bas.`,
       cause: `Couverture estimée : ${feedDays} jour${feedDays > 1 ? 's' : ''}.`,
       action: 'Planifiez un réapprovisionnement cette semaine.',
+      navigate: { module: 'achats_stock', tab: 'Inventaire' },
     };
   }
 
@@ -570,6 +586,7 @@ export function buildCarnetConseil(summary = {}, priorities = [], props = {}) {
       situation: `${commercialKpis.unpaidOrders} créance${commercialKpis.unpaidOrders > 1 ? 's' : ''} ouverte${commercialKpis.unpaidOrders > 1 ? 's' : ''}.`,
       cause: `${fmtCurrency(summary.receivable)} restent à encaisser.`,
       action: 'Relancez les clients les plus en retard depuis Commercial.',
+      navigate: { module: 'commercial', tab: 'Clients & créances' },
     };
   }
 
@@ -579,6 +596,7 @@ export function buildCarnetConseil(summary = {}, priorities = [], props = {}) {
       situation: 'La trésorerie est sous pression.',
       cause: 'Les sorties dépassent les encaissements récents.',
       action: 'Priorisez les encaissements avant les dépenses non urgentes.',
+      navigate: { module: 'finance_pilotage', tab: 'Trésorerie' },
     };
   }
 
@@ -588,6 +606,18 @@ export function buildCarnetConseil(summary = {}, priorities = [], props = {}) {
       situation: 'Peu de données terrain visibles sur l\'Accueil.',
       cause: 'Soit l\'exploitation démarre, soit le mode « Données réelles » est actif sans saisie.',
       action: 'Activez Données simulées dans Paramètres (⚙️) pour le scénario Horizon Farm, ou enregistrez une vente / un lot.',
+      navigate: { module: 'gestion_systeme', tab: 'Paramètres' },
+    };
+  }
+
+  const topPriority = priorities.find((item) => item.moduleKey);
+  if (topPriority) {
+    return {
+      title: 'Conseil Horizon',
+      situation: topPriority.title,
+      cause: topPriority.detail || 'Priorité identifiée par le pilotage.',
+      action: 'Traitez cette action en priorité.',
+      navigate: { module: topPriority.moduleKey, tab: topPriority.tab },
     };
   }
 
@@ -596,6 +626,7 @@ export function buildCarnetConseil(summary = {}, priorities = [], props = {}) {
     situation: 'L\'exploitation est calme.',
     cause: 'Aucune alerte critique sur les domaines suivis.',
     action: 'Consultez les modules pour agir au bon moment.',
+    navigate: { module: 'centre_ia', tab: 'Urgences & risques' },
   };
 }
 
@@ -626,12 +657,14 @@ export function buildCarnetSensorStrip(props = {}) {
   };
 }
 
-export function buildCarnetHorizonView({ summary = {}, priorities = [], props = {} } = {}) {
+export function buildCarnetHorizonView({ summary = {}, priorities = [], investorReadiness = null, props = {} } = {}) {
   return {
     domains: buildCarnetDomainCards(summary, props),
     capteurs: buildCarnetSensorStrip(props),
     objectifs: buildCarnetObjectifs(summary, props),
     projections: buildCarnetProjections(summary, props),
+    priorities: arr(priorities).slice(0, 5),
+    investorReadiness,
     conseil: buildCarnetConseil(summary, priorities, props),
     journal: buildCarnetTodayJournal(props),
     startupMode: Boolean(summary.startupMode),

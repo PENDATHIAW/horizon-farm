@@ -92,6 +92,104 @@ function ProjectionCard({ item, onNavigate }) {
   );
 }
 
+function PriorityRow({ item, onNavigate }) {
+  const clickable = Boolean(item.moduleKey && onNavigate);
+  const toneCls = item.tone === 'red'
+    ? 'border-red-200 bg-red-50 hover:bg-red-100/70'
+    : 'border-amber-200 bg-amber-50 hover:bg-amber-100/70';
+  const Tag = clickable ? 'button' : 'div';
+  const handleClick = () => {
+    if (!clickable) return;
+    onNavigate(item.moduleKey, item.tab ? { tab: item.tab } : undefined);
+  };
+
+  return (
+    <Tag
+      type={clickable ? 'button' : undefined}
+      onClick={clickable ? handleClick : undefined}
+      className={`flex w-full items-start justify-between gap-2 rounded-lg border p-2.5 text-left ${toneCls} ${clickable ? 'cursor-pointer transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9a6b12]' : ''}`}
+    >
+      <span className="min-w-0">
+        <b className="text-xs text-[#2f2415]">{item.title}</b>
+        {item.detail ? <span className="mt-0.5 block text-[10px] text-[#5c4d38]">{item.detail}</span> : null}
+      </span>
+      {clickable ? <span className="shrink-0 text-[10px] font-black text-[#9a6b12]">→</span> : null}
+    </Tag>
+  );
+}
+
+function InvestorReadinessStrip({ investor, onNavigate }) {
+  if (!investor || investor.score == null) return null;
+  const score = investor.score ?? 0;
+  const toneCls = score >= 80
+    ? 'border-emerald-200 bg-emerald-50/80'
+    : score >= 55
+      ? 'border-amber-200 bg-amber-50/80'
+      : 'border-[#eadcc2] bg-[#fffdf8]';
+
+  return (
+    <section className={`rounded-xl border px-3 py-2.5 ${toneCls}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-wide text-[#9a6b12]">Préparation investisseur</p>
+          <p className="mt-0.5 text-sm font-black text-[#2f2415]">
+            {investor.label || 'Dossier'} — {score}/100
+          </p>
+          {investor.gaps?.length ? (
+            <p className="mt-0.5 text-[10px] text-[#8a7456]">À renforcer : {investor.gaps.join(' · ')}</p>
+          ) : null}
+        </div>
+        {onNavigate ? (
+          <button
+            type="button"
+            onClick={() => onNavigate('investisseurs_forums', { tab: 'Résumé' })}
+            className="shrink-0 rounded-lg bg-[#2f2415] px-3 py-1.5 text-[10px] font-black text-white"
+          >
+            Préparer le dossier
+          </button>
+        ) : null}
+      </div>
+      {investor.checks?.length ? (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {investor.checks.map((check) => (
+            <span
+              key={check.id}
+              className={`rounded-full border px-2 py-0.5 text-[9px] font-black ${check.ok ? 'border-emerald-200 bg-white text-emerald-800' : 'border-amber-200 bg-white text-amber-800'}`}
+            >
+              {check.ok ? '✓' : '○'} {check.label}
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function ConseilHorizonBlock({ conseil, onNavigate }) {
+  const clickable = Boolean(conseil?.navigate && onNavigate);
+  const Tag = clickable ? 'button' : 'section';
+  const handleClick = () => {
+    if (!clickable) return;
+    onNavigate(conseil.navigate.module, conseil.navigate.tab ? { tab: conseil.navigate.tab } : undefined);
+  };
+
+  return (
+    <Tag
+      type={clickable ? 'button' : undefined}
+      onClick={clickable ? handleClick : undefined}
+      className={`rounded-xl border border-[#e5dcc8] bg-[#faf6ee] px-3 py-3 text-left ${clickable ? 'cursor-pointer transition hover:border-[#d9c9a8] hover:bg-[#fffdf8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9a6b12]' : ''}`}
+    >
+      <p className="text-[10px] font-black uppercase tracking-wide text-[#9a6b12]">Conseil Horizon</p>
+      <div className="mt-2 space-y-1.5 text-xs leading-relaxed text-[#2f2415]">
+        <p><span className="font-black text-[#8a7456]">Situation —</span> {conseil?.situation || conseil?.text}</p>
+        {conseil?.cause ? <p><span className="font-black text-[#8a7456]">Pourquoi —</span> {conseil.cause}</p> : null}
+        {conseil?.action ? <p><span className="font-black text-emerald-800">À faire —</span> {conseil.action}</p> : null}
+      </div>
+      {clickable ? <p className="mt-2 text-[10px] font-black text-[#9a6b12]">Ouvrir le module →</p> : null}
+    </Tag>
+  );
+}
+
 function ObjectifBlock({ block, onNavigate }) {
   const clickable = Boolean(block.navigate && onNavigate);
   const Tag = clickable ? 'button' : 'div';
@@ -167,6 +265,27 @@ export default function CarnetHorizon({ carnet, onNavigate, simulatedMode = fals
         <DomainCard key={carnet.capteurs.id} card={carnet.capteurs} onNavigate={onNavigate} />
       ) : null}
 
+      {carnet.priorities?.length ? (
+        <section className="rounded-xl border border-[#e5dcc8] bg-white px-3 py-2.5">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div>
+              <h2 className="text-[10px] font-black uppercase tracking-wide text-[#9a6b12]">Mes priorités</h2>
+              <p className="mt-0.5 text-[10px] text-[#8a7456]">Actions dirigeant à traiter aujourd&apos;hui</p>
+            </div>
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-800">
+              {carnet.priorities.length}
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            {carnet.priorities.map((item) => (
+              <PriorityRow key={item.id} item={item} onNavigate={onNavigate} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <InvestorReadinessStrip investor={carnet.investorReadiness} onNavigate={onNavigate} />
+
       {carnet.objectifs ? (
         <section className="rounded-xl border border-[#e5dcc8] bg-[#fffdf8] px-3 py-2.5">
           <h2 className="mb-0.5 text-[10px] font-black uppercase tracking-wide text-[#8a7456]">Objectifs de l&apos;exploitation</h2>
@@ -203,20 +322,17 @@ export default function CarnetHorizon({ carnet, onNavigate, simulatedMode = fals
         </section>
       ) : null}
 
-      <section className="rounded-xl border border-[#e5dcc8] bg-[#faf6ee] px-3 py-3">
-        <p className="text-[10px] font-black uppercase tracking-wide text-[#9a6b12]">Conseil Horizon</p>
-        <div className="mt-2 space-y-1.5 text-xs leading-relaxed text-[#2f2415]">
-          <p><span className="font-black text-[#8a7456]">Situation —</span> {carnet.conseil?.situation || carnet.conseil?.text}</p>
-          {carnet.conseil?.cause ? <p><span className="font-black text-[#8a7456]">Pourquoi —</span> {carnet.conseil.cause}</p> : null}
-          {carnet.conseil?.action ? <p><span className="font-black text-emerald-800">À faire —</span> {carnet.conseil.action}</p> : null}
-        </div>
-      </section>
+      <ConseilHorizonBlock conseil={carnet.conseil} onNavigate={onNavigate} />
 
       <section className="rounded-xl border border-[#e5dcc8] bg-[#fffdf8] px-3 py-3">
         <div className="mb-2 flex items-center justify-between gap-2">
           <div>
             <h2 className="text-[10px] font-black uppercase tracking-wide text-[#8a7456]">Journal d&apos;exploitation</h2>
-            <p className="mt-0.5 text-[10px] text-[#8a7456]">Derniers événements terrain du jour</p>
+            <p className="mt-0.5 text-[10px] text-[#8a7456]">
+              {carnet.journal?.scope === 'recent'
+                ? 'Aucun événement aujourd\'hui — derniers événements terrain'
+                : 'Événements terrain du jour'}
+            </p>
           </div>
           {onNavigate ? (
             <button

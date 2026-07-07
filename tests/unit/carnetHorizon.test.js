@@ -227,6 +227,86 @@ test('buildCarnetAttentionItems — alertes terrain uniquement', () => {
   assert.ok(items.every((item) => !isHomeNoiseText(item.text)));
 });
 
+test('buildCarnetTodayJournal — priorise les événements du jour', () => {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayIso = yesterday.toISOString().slice(0, 10);
+  const journal = buildCarnetTodayJournal({
+    businessEvents: [
+      { id: 'old', title: 'Récolte maïs', event_date: yesterdayIso, module_source: 'cultures', event_type: 'recolte' },
+      { id: 'today', title: 'Récolte tomate', event_date: today, module_source: 'cultures', event_type: 'recolte' },
+    ],
+  });
+  assert.equal(journal.scope, 'today');
+  assert.ok(journal.items.some((row) => /tomate/i.test(row.text)));
+  assert.ok(journal.items.every((row) => !/maïs/i.test(row.text)));
+});
+
+test('buildCarnetConseil — navigation vers module métier', () => {
+  const conseil = buildCarnetConseil(
+    { cashNet: -1000, receivable: 0, resultat: -100 },
+    [],
+    { stocks: [], alimentationLogs: [] },
+  );
+  assert.equal(conseil.navigate.module, 'finance_pilotage');
+  assert.equal(conseil.navigate.tab, 'Trésorerie');
+});
+
+test('buildCarnetHorizonView — priorités et investisseur', () => {
+  const summary = buildDashboardSummary({
+    stocks: [],
+    animaux: [],
+    lotsData: [],
+    salesOrdersAll: [],
+    paymentsAll: [],
+    transactionsAll: [],
+    productionLogs: [],
+    cultures: [],
+    vaccins: [],
+    taches: [],
+    alertes: [],
+  });
+  const carnet = buildCarnetHorizonView({
+    summary,
+    priorities: [{ id: 'stock', title: 'Stock bas', moduleKey: 'achats_stock', tab: 'Inventaire', tone: 'amber' }],
+    investorReadiness: { score: 72, label: 'En progression', checks: [], gaps: [] },
+    props: { stocks: [], animaux: [], cultures: [], businessEvents: [] },
+  });
+  assert.equal(carnet.priorities.length, 1);
+  assert.equal(carnet.investorReadiness.score, 72);
+});
+
+test('buildCarnetProjections — œufs vers Lots & bandes', () => {
+  const now = new Date();
+  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const projections = buildCarnetProjections(
+    {
+      receivable: 50000,
+      goal: { periodTarget: 500000, periodRealized: 120000 },
+      periodScope: { mode: 'month', monthKey: month },
+    },
+    {
+      salesOrders: [
+        { id: '1', date: `${month}-05`, montant: 80000, montant_total: 80000 },
+        { id: '2', date: `${month}-10`, montant: 40000, montant_total: 40000 },
+      ],
+      payments: [{ id: 'p1', montant: 30000, date: `${month}-08` }],
+      transactions: [{ id: 'f1', type: 'entree', montant: 100000 }],
+      stocks: [{ produit: 'Aliment', quantite: 0, seuil: 5 }],
+      productionLogs: [
+        { oeufs_produits: 700, date: new Date().toISOString().slice(0, 10) },
+      ],
+    },
+  );
+  assert.equal(projections.hasData, true);
+  assert.ok(projections.items.some((i) => i.id === 'ca-projection'));
+  assert.ok(projections.items.some((i) => i.id === 'stock-rupture'));
+  const eggs = projections.items.find((i) => i.id === 'eggs-projection');
+  if (eggs) {
+    assert.equal(eggs.navigate.tab, 'Lots & bandes');
+  }
+});
+
 test('buildCarnetProjections — CA et trésorerie projetés', () => {
   const now = new Date();
   const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;

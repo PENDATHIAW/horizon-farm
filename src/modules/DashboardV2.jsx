@@ -3,7 +3,7 @@ import { readPeriodScope } from '../utils/periodScope';
 import { isSimulatedDataModeEnabled } from '../utils/uiPreferences.js';
 import { getDashboardHealthReport } from './dashboard/dashboardHealthCache';
 import { buildDashboardSummary } from './dashboard/dashboardMetrics';
-import { buildDashboardPriorities } from './dashboard/dashboardPilotage';
+import { buildDashboardPriorities, buildDashboardInvestorReadiness } from './dashboard/dashboardPilotage';
 import { buildCarnetHorizonView } from './dashboard/carnetHorizon';
 import CarnetHorizon, { CarnetHorizonHeader } from './dashboard/CarnetHorizon.jsx';
 import DashboardDataModeBanner from './dashboard/DashboardDataModeBanner.jsx';
@@ -77,6 +77,10 @@ export default function DashboardV2(props) {
     sensors,
     cameraDevices,
     cameras,
+    businessPlans,
+    investissements,
+    bpRecurringCosts,
+    deliveries,
     periodScope: periodScopeProp,
     periodLabel,
   } = props;
@@ -160,6 +164,10 @@ export default function DashboardV2(props) {
     ferme,
     clients,
     businessEvents,
+    businessPlans,
+    investissements,
+    bpRecurringCosts,
+    deliveries,
     sensorDevices: sensorDevices || sensors,
     cameraDevices: cameraDevices || cameras,
     meteo,
@@ -188,6 +196,10 @@ export default function DashboardV2(props) {
     ferme,
     clients,
     businessEvents,
+    businessPlans,
+    investissements,
+    bpRecurringCosts,
+    deliveries,
     sensorDevices,
     sensors,
     cameraDevices,
@@ -212,9 +224,14 @@ export default function DashboardV2(props) {
     [summary, pilotageProps, health],
   );
 
+  const investorReadiness = useMemo(
+    () => buildDashboardInvestorReadiness(pilotageProps),
+    [pilotageProps],
+  );
+
   const carnet = useMemo(
-    () => buildCarnetHorizonView({ summary, priorities, props: pilotageProps }),
-    [summary, priorities, pilotageProps],
+    () => buildCarnetHorizonView({ summary, priorities, investorReadiness, props: pilotageProps }),
+    [summary, priorities, investorReadiness, pilotageProps],
   );
 
   const navigate = (moduleKey, options) => {

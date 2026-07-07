@@ -44,7 +44,7 @@ test('modules critiques — versions les plus récentes', () => {
   assert.match(entryPointSource('equipements'), /EquipementsV3\.jsx$/);
   assert.match(entryPointSource('sync'), /SyncActivityCenter\.jsx$/);
   assert.match(entryPointSource('cultures'), /CulturesRecoveredModule\.jsx$/);
-  assert.match(entryPointSource('dashboard'), /DashboardV2\.jsx$/);
+  assert.match(entryPointSource('dashboard'), /AccueilRefinedEntry\.jsx$/);
   assert.match(entryPointSource('finances'), /FinancesV12\.jsx$/);
   assert.match(entryPointSource('investisseurs_forums'), /InvestisseursForumsModule\.jsx$/);
 });

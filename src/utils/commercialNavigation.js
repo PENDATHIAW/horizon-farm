@@ -518,7 +518,14 @@ const CULTURES_TAB_ALIASES = {
   Campagnes: 'Parcelles & campagnes',
   Performance: 'Économie circulaire',
 };
-export const DASHBOARD_TABS = ['Résumé', 'Graphiques'];
+export const DASHBOARD_TABS = ['Carnet Horizon'];
+export const DASHBOARD_TAB_ALIASES = {
+  Résumé: 'Carnet Horizon',
+  resume: 'Carnet Horizon',
+  Graphiques: 'Carnet Horizon',
+  graphiques: 'Carnet Horizon',
+  Carnet: 'Carnet Horizon',
+};
 export const INVESTISSEURS_TABS = ['room', 'preparation', 'dossier', 'library', 'crm', 'preview', 'export', 'history', 'demo'];
 
 export function resolveDocumentsTab(value = '') {
@@ -615,7 +622,9 @@ export function resolveCulturesTab(value = '') {
 export function resolveDashboardTab(value = '') {
   const tab = String(value || '').trim();
   if (DASHBOARD_TABS.includes(tab)) return tab;
-  return tabAliases[lower(tab)] || 'Résumé';
+  const fromAlias = DASHBOARD_TAB_ALIASES[tab] || DASHBOARD_TAB_ALIASES[lower(tab)];
+  if (fromAlias) return fromAlias;
+  return 'Carnet Horizon';
 }
 
 export function resolveInvestisseursTab(value = '') {
