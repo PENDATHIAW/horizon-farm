@@ -12,7 +12,7 @@ const rules = [
   { pattern: /achats|fournisseur|intrant|maïs|soja/i, module: 'achats_stock', tab: 'Achats', label: 'Achats & Stock → Achats' },
   { pattern: /mouvement stock/i, module: 'achats_stock', tab: 'Mouvements', label: 'Achats & Stock → Mouvements' },
   { pattern: /ventes?|commercial|commandes clients/i, module: 'commercial', tab: 'Ventes', label: 'Commercial → Ventes' },
-  { pattern: /clients?|vip/i, module: 'commercial', tab: 'Clients', label: 'Commercial → Clients' },
+  { pattern: /clients?|vip/i, module: 'commercial', tab: 'Clients & créances', label: 'Commercial → Clients & créances' },
   { pattern: /trésorerie|finances?|encaissement|factures?|bfr|couverture trésorerie/i, module: 'finance_pilotage', tab: 'Trésorerie', label: 'Finances → Trésorerie' },
   { pattern: /créances?|encaiss/i, module: 'finance_pilotage', tab: 'Créances', label: 'Finances → Créances' },
   { pattern: /rentabilité finance|investissement/i, module: 'finance_pilotage', tab: 'Rentabilité', label: 'Finances → Rentabilité' },

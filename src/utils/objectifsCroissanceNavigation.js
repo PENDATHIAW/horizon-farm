@@ -6,7 +6,7 @@ export const OBJECTIFS_NAV_TARGETS = {
   financeur_dossier: { module: 'documents_rapports', tab: 'Exports' },
   financeur_preuves: { module: 'documents_rapports', tab: 'Preuves' },
   financeur_chiffres: { module: 'finance_pilotage', tab: 'Rentabilité' },
-  commercial: { module: 'commercial', tab: 'Résumé' },
+  commercial: { module: 'commercial', tab: 'Pilotage' },
 };
 
 export function buildObjectifsIssueKey(scope = 'objectif', id = '') {

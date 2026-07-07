@@ -295,6 +295,12 @@ export function resolveCommercialTab(value = '') {
   return 'Ventes';
 }
 
+export function navigateCommercialTab(onNavigate, tab = '', options = {}) {
+  const resolved = resolveCommercialTab(tab || 'Pilotage');
+  if (typeof onNavigate === 'function') onNavigate('commercial', { tab: resolved, ...options });
+  return resolved;
+}
+
 export function resolveFinanceTab(value = '') {
   const tab = String(value || '').trim();
   if (FINANCE_TABS.includes(tab)) return tab;
@@ -639,7 +645,7 @@ const SEARCH_KEY_TO_MODULE = {
   sales_opportunities: { module: 'commercial', tab: 'Opportunités' },
   invoices: { module: 'commercial', tab: 'Ventes' },
   deliveries: { module: 'commercial', tab: 'Livraisons' },
-  clients: { module: 'commercial', tab: 'Clients' },
+  clients: { module: 'commercial', tab: 'Clients & créances' },
   payments: { module: 'finance_pilotage', tab: 'Créances' },
   finances: { module: 'finance_pilotage', tab: 'Trésorerie' },
   stock: { module: 'achats_stock', tab: 'Stock' },
@@ -673,7 +679,7 @@ export function navigationOptionsForFinding(finding = {}) {
 
   if (module === 'commercial') {
     const tab = explicitTab
-      || (String(finding.title || '').toLowerCase().includes('relancer') ? 'Clients' : 'Ventes');
+      || (String(finding.title || '').toLowerCase().includes('relancer') ? 'Clients & créances' : 'Ventes');
     return { module, tab: resolveCommercialTab(tab) };
   }
   if (module === 'finance_pilotage') {

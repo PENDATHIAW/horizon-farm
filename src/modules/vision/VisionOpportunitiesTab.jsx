@@ -61,7 +61,7 @@ export default function VisionOpportunitiesTab({
         <VisionKpi label="Pipeline ouvert" value={fmtCurrency(pipelineTotal)} tone={pipelineTotal ? 'good' : 'neutral'} onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} />
         <VisionKpi label="Opportunités actives" value={commercial.length} tone={commercial.length ? 'good' : 'neutral'} onClick={() => onNavigate?.('commercial', { tab: 'Opportunités' })} />
         <VisionKpi label="Suggestions IA" value={iaRows.length} tone={iaRows.length ? 'good' : 'neutral'} />
-        <VisionKpi label="Créances à convertir" value={fmtCurrency(data.receivable)} tone={data.receivable ? 'warn' : 'good'} onClick={() => onNavigate?.('commercial', { tab: 'Clients' })} />
+        <VisionKpi label="Créances à convertir" value={fmtCurrency(data.receivable)} tone={data.receivable ? 'warn' : 'good'} onClick={() => onNavigate?.('commercial', { tab: 'Clients & créances' })} />
       </div>
       {iaRows.length ? (
         <Section icon={TrendingUp} title="Opportunités suggérées par l'IA">
@@ -73,8 +73,8 @@ export default function VisionOpportunitiesTab({
                 detail={r.notes || 'Action recommandée'}
                 status={`${r.probability || '—'}%`}
                 tone="good"
-                onClick={() => navigateFromPilotageItem(onNavigate, { module: r.module || 'commercial', navTab: 'Résumé' })}
-                actions={<button type="button" onClick={() => navigateFromPilotageItem(onNavigate, { module: r.module || 'commercial', navTab: 'Résumé' })} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Voir module</button>}
+                onClick={() => navigateFromPilotageItem(onNavigate, { module: r.module || 'commercial', navTab: 'Pilotage' })}
+                actions={<button type="button" onClick={() => navigateFromPilotageItem(onNavigate, { module: r.module || 'commercial', navTab: 'Pilotage' })} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Voir module</button>}
               />
             ))}
           </DataTable>

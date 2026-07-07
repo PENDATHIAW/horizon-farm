@@ -172,7 +172,7 @@ function CreancesPanel({ data, onNavigate }) {
         title: row.title,
         detail: row.detail,
         value: fmtCurrency(row.amount),
-        onClick: () => onNavigate?.('commercial', { tab: 'Clients' }),
+        onClick: () => onNavigate?.('commercial', { tab: 'Clients & créances' }),
       }))}
       emptyLabel="Aucune créance ouverte."
       onNavigate={onNavigate}

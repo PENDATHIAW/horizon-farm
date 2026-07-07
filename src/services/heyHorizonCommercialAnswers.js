@@ -159,7 +159,7 @@ export function buildCommercialPilotageAnswer(type = 'summary', dataMap = {}) {
         { label: 'Panier moyen', value: fmtCurrency(kpis.basketAvg) },
       ],
       route: 'commercial',
-      tab: 'Résumé',
+      tab: 'Pilotage',
     });
   }
 
@@ -187,7 +187,7 @@ export function buildCommercialPilotageAnswer(type = 'summary', dataMap = {}) {
       sources: [SRC.ca, SRC.margin],
       rows: top.map((p) => ({ label: p.name, value: fmtCurrency(p.ca), detail: `Vol. ${p.volume}` })),
       route: 'commercial',
-      tab: 'Graphiques',
+      tab: 'Pilotage',
     });
   }
 
@@ -207,7 +207,7 @@ export function buildCommercialPilotageAnswer(type = 'summary', dataMap = {}) {
         detail: `${c.frequency} · marge ${fmtCurrency(c.margin)}`,
       })),
       route: 'commercial',
-      tab: 'Clients',
+      tab: 'Clients & créances',
     });
   }
 
@@ -242,7 +242,7 @@ export function buildCommercialPilotageAnswer(type = 'summary', dataMap = {}) {
         detail: `${r.id}`,
       })),
       route: 'commercial',
-      tab: 'Relances',
+      tab: 'Clients & créances',
       meta: worst ? {
         topReceivable: {
           clientName: worst.name,
@@ -298,7 +298,7 @@ export function buildCommercialPilotageAnswer(type = 'summary', dataMap = {}) {
       sources: [],
       rows: actions.map((a, i) => ({ label: `Action ${i + 1}`, value: a })),
       route: 'commercial',
-      tab: 'Résumé',
+      tab: 'Pilotage',
     });
   }
 

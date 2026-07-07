@@ -17,10 +17,10 @@ export default function VisionPerformanceTab({ data, moduleId, onNavigate }) {
         action={onNavigate ? <Btn onClick={() => onNavigate('finance_pilotage', { tab: 'Rentabilité' })}>Finance → Rentabilité</Btn> : null}
       />
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <VisionKpi label="Chiffre d'affaires" value={fmtCurrency(data.salesAmount)} tone="good" onClick={() => onNavigate?.('commercial', { tab: 'Résumé' })} />
+        <VisionKpi label="Chiffre d'affaires" value={fmtCurrency(data.salesAmount)} tone="good" onClick={() => onNavigate?.('commercial', { tab: 'Pilotage' })} />
         <VisionKpi label="Encaissements" value={fmtCurrency(encaisse)} tone="good" detail={data.periodFiltered ? 'Période' : 'Cumul'} onClick={() => onNavigate?.('finance_pilotage', { tab: 'Trésorerie' })} />
         <VisionKpi label="Résultat trésorerie" value={fmtCurrency(treasury)} tone={treasury >= 0 ? 'good' : 'bad'} onClick={() => onNavigate?.('finance_pilotage', { tab: 'Trésorerie' })} />
-        <VisionKpi label="Créances" value={fmtCurrency(data.receivable)} tone={data.receivable ? 'warn' : 'good'} onClick={() => onNavigate?.('commercial', { tab: 'Clients' })} />
+        <VisionKpi label="Créances" value={fmtCurrency(data.receivable)} tone={data.receivable ? 'warn' : 'good'} onClick={() => onNavigate?.('commercial', { tab: 'Clients & créances' })} />
       </div>
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
         <VisionKpi label="Charges" value={fmtCurrency(data.expenses)} tone="warn" />
@@ -35,7 +35,7 @@ export default function VisionPerformanceTab({ data, moduleId, onNavigate }) {
       ) : null}
       <Section icon={BarChart3} title="Lecture par domaine">
         <DataTable columns={['Domaine', 'Lecture', 'Statut', 'Actions']}>
-          <DataRow title="Commercial" detail={`${fmtNumber(data.sales.length)} vente(s) · ${fmtNumber(data.clients.length)} client(s) · CA ${fmtCurrency(data.salesAmount)}`} status={data.receivable ? 'Créances' : 'OK'} tone={data.receivable ? 'warn' : 'good'} onClick={() => onNavigate?.('commercial', { tab: 'Résumé' })} actions={<button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Clients' })} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Ouvrir</button>} />
+          <DataRow title="Commercial" detail={`${fmtNumber(data.sales.length)} vente(s) · ${fmtNumber(data.clients.length)} client(s) · CA ${fmtCurrency(data.salesAmount)}`} status={data.receivable ? 'Créances' : 'OK'} tone={data.receivable ? 'warn' : 'good'} onClick={() => onNavigate?.('commercial', { tab: 'Pilotage' })} actions={<button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Clients & créances' })} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Ouvrir</button>} />
           <DataRow title="Finance" detail={`Encaissé ${fmtCurrency(encaisse)} · charges ${fmtCurrency(data.expenses)} · résultat ${fmtCurrency(treasury)}`} status={treasury >= 0 ? 'Stable' : 'Tension'} tone={treasury >= 0 ? 'good' : 'bad'} onClick={() => onNavigate?.('finance_pilotage', { tab: 'Trésorerie' })} actions={<button type="button" onClick={() => onNavigate?.('finance_pilotage', { tab: 'Créances' })} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Créances</button>} />
           <DataRow title="Production" detail={`${fmtNumber(data.animaux.length)} animaux · ${fmtNumber(data.lots.length)} lots · stock valorisé ${fmtCurrency(data.stockValue)}`} status="Suivi" tone="good" onClick={() => onNavigate?.('elevage', { tab: 'Résumé' })} actions={<button type="button" onClick={() => onNavigate?.('achats_stock', { tab: 'Stock' })} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Stock</button>} />
           <DataRow title="Documents" detail={`${fmtNumber(data.missingProof)} opération(s) sans justificatif`} status={data.missingProof ? 'Preuves' : 'OK'} tone={data.missingProof ? 'warn' : 'good'} onClick={() => onNavigate?.('documents_rapports', { tab: 'Preuves' })} actions={<button type="button" onClick={() => onNavigate?.('objectifs_croissance', { tab: 'Financeurs' })} className="rounded-lg border border-[#d6c3a0] px-2 py-1 text-xs font-black">Financeurs</button>} />

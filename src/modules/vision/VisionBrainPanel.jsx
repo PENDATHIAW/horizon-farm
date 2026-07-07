@@ -24,7 +24,7 @@ function pickBrainDecision(data = {}) {
       title: 'Récupérer le cash',
       detail: `${fmtCurrency(data.receivable)} à encaisser chez les clients.`,
       action: 'Relancer clients',
-      target: { type: 'module', module: 'commercial', tab: 'Clients' },
+      target: { type: 'module', module: 'commercial', tab: 'Clients & créances' },
     };
   }
   if (treasury < 0) {
@@ -125,7 +125,7 @@ export default function VisionBrainPanel({ data = {}, setTab, onNavigate }) {
             detail={`Trésorerie ${fmtCurrency(treasury)}.`}
             tone={(data.receivable || 0) > 0 || treasury < 0 ? 'warn' : 'good'}
             action="Cash"
-            onClick={() => onNavigate?.('commercial', { tab: 'Clients' })}
+            onClick={() => onNavigate?.('commercial', { tab: 'Clients & créances' })}
           />
           <BrainLever
             icon={ShieldAlert}

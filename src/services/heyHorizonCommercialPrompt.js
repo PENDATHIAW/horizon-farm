@@ -47,7 +47,7 @@ export function buildCommercialAnswerPayload({
   sources = [],
   rows = [],
   route = 'commercial',
-  tab = 'Résumé',
+  tab = 'Pilotage',
   confidence = 90,
   insufficientData = false,
   extra = {},

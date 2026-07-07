@@ -50,7 +50,7 @@ export default function VisionObjectifsPanels({ plan, onNavigate }) {
           <div className="flex flex-wrap gap-2">
             {onNavigate ? (
               <>
-                <Btn onClick={() => onNavigate('commercial', { tab: 'Clients' })}>Clients & fidélisation</Btn>
+                <Btn onClick={() => onNavigate('commercial', { tab: 'Clients & créances' })}>Clients & fidélisation</Btn>
                 <Btn onClick={() => onNavigate('achats_stock', { tab: 'Fournisseurs' })}>Fournisseurs</Btn>
                 <Btn onClick={() => onNavigate('achats_stock', { tab: 'Stock' })}>Stock</Btn>
               </>

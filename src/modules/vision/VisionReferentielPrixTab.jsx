@@ -115,7 +115,7 @@ export default function VisionReferentielPrixTab(props) {
         </div>
         <DataTable columns={['Client', 'CA · commandes', 'Rentabilité proxy', 'Statut']}>
           {clientQuality.length ? clientQuality.slice(0, 8).map((row) => (
-            <DataRow key={row.client} title={row.client} detail={`${fmtCurrency(row.revenue)} · ${row.orders} commande(s)`} status={row.detail} tone={row.tone} onClick={() => props.onNavigate?.('commercial', { tab: 'Clients' })} />
+            <DataRow key={row.client} title={row.client} detail={`${fmtCurrency(row.revenue)} · ${row.orders} commande(s)`} status={row.detail} tone={row.tone} onClick={() => props.onNavigate?.('commercial', { tab: 'Clients & créances' })} />
           )) : <Empty>Ajoutez ventes liées clients pour comparer simplicité vs rentabilité.</Empty>}
         </DataTable>
       </Section>

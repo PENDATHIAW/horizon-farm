@@ -3,7 +3,7 @@ import { navigateForIaFinding } from '../../utils/commercialNavigation.js';
 /** Onglet par défaut lors d'une navigation depuis le Centre décisionnel. */
 export const VISION_MODULE_TABS = {
   activite_suivi: 'Alertes',
-  commercial: 'Résumé',
+  commercial: 'Pilotage',
   finance_pilotage: 'Trésorerie',
   achats_stock: 'Stock',
   elevage: 'Résumé',
@@ -28,7 +28,7 @@ export function navigateVisionRisk(onNavigate, risk = {}) {
   const module = risk.module || 'dashboard';
   let tab = risk.navTab || null;
   if (!tab) {
-    if (risk.id === 'receivable') tab = 'Clients';
+    if (risk.id === 'receivable') tab = 'Clients & créances';
     else if (risk.id === 'cash-negative') tab = 'Trésorerie';
     else if (risk.id === 'missing-proof') tab = 'Preuves';
     else if (module === 'activite_suivi') tab = risk.domain === 'Alerte' ? 'Alertes' : 'Tâches';
