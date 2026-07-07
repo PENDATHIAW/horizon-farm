@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { AlertTriangle, CheckCircle2, GitBranch, History, ShieldCheck, Wifi, Wrench } from 'lucide-react';
 import JustifiedExceptionModal from '../components/workflow/JustifiedExceptionModal.jsx';
@@ -220,12 +220,21 @@ function InterconnectionAudit(props) {
 }
 
 export default function SyncActivityCenter(props) {
-  const [tab, setTab] = useState(() => resolveSyncActivityTab(props.initialTab));
+  const controlled = Boolean(props.onTabChange);
+  const [internalTab, setInternalTab] = useState(() => resolveSyncActivityTab(props.initialTab));
+  const tab = controlled ? resolveSyncActivityTab(props.initialTab) : internalTab;
+  const setTab = useCallback((value) => {
+    const resolved = resolveSyncActivityTab(value);
+    const raw = String(value || '').trim();
+    if (controlled) props.onTabChange?.(raw || resolved);
+    else setInternalTab(resolved);
+  }, [controlled, props.onTabChange]);
   const [exceptionVersion, setExceptionVersion] = useState(0);
 
   useEffect(() => {
-    if (props.initialTab) setTab(resolveSyncActivityTab(props.initialTab));
-  }, [props.initialTab]);
+    if (!props.initialTab) return;
+    if (!controlled) setInternalTab(resolveSyncActivityTab(props.initialTab));
+  }, [controlled, props.initialTab]);
 
   useEffect(() => {
     const refresh = () => setExceptionVersion((v) => v + 1);

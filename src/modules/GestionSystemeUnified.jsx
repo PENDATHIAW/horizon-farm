@@ -14,6 +14,7 @@ import { setSimulatedDataMode } from '../utils/uiPreferences';
 import { applyPeriodScopeToDataMap } from '../utils/applyPeriodScope';
 import { isAllTimeScope } from '../utils/periodScope';
 import { canPerformSystemAction } from '../utils/systemAccessWorkflows';
+import { resolveGestionSystemeTab } from '../utils/commercialNavigation.js';
 import { buildGestionSystemeCoherenceRows, buildGestionSystemeSnapshot } from './gestionSysteme/gestionSystemeVisionHelpers.js';
 import FarmsManagementPanel from './farms/FarmsManagementPanel.jsx';
 import SystemAccessAuditPanel from './SystemAccessAuditPanel.jsx';
@@ -125,9 +126,15 @@ function ResetDataSection({ canManage, onClearAllData }) {
 export default function GestionSystemeUnified({ equipements = [], transactions = [], documents = [], tasks = [], alertes = [], businessEvents = [], businessEventsAll = [], auditLogs = [], auditLogsAll = [], users = [], profiles = [], farm = {}, ferme = {}, online = true, lastOnlineAt, onRefreshAll, onFlushOffline, onClearAllData, dataMap: visionDataMap = {}, periodScope, periodFiltered = false, periodLabel = '', onNavigate, onCreateTask, onCreateAlert, onUpdateAlert, onCreateBusinessEvent, existingTasks = [], existingAlerts = [], initialTab = 'Vue admin', onTabChange, accessibleFarms = [], onFarmsChanged, companyId = null, farmsPanelAction = null, farmComparisonData = null, onManageFarms }) {
   const { role, user } = useAuth();
   const { dataMap, deleteRecord } = useAppData();
-  const [internalTab, setInternalTab] = useState(initialTab || 'Vue admin');
-  const tab = onTabChange ? (initialTab || 'Vue admin') : internalTab;
-  const setTab = onTabChange || setInternalTab;
+  const controlled = Boolean(onTabChange);
+  const [internalTab, setInternalTab] = useState(() => resolveGestionSystemeTab(initialTab));
+  const tab = controlled ? resolveGestionSystemeTab(initialTab) : internalTab;
+  const setTab = useCallback((value) => {
+    const resolved = resolveGestionSystemeTab(value);
+    const raw = String(value || '').trim();
+    if (controlled) onTabChange?.(raw || resolved);
+    else setInternalTab(resolved);
+  }, [controlled, onTabChange]);
   const [busyId, setBusyId] = useState(null);
   const canManage = canPerformSystemAction(role, 'modifier');
   const farmInfo = farm || ferme || {};

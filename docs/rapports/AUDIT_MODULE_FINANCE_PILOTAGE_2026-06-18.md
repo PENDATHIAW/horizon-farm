@@ -63,15 +63,18 @@ Alias : `Réconciliation`, `Dépenses`, `Investissements`, `Rentabilité`, `Éch
 
 ---
 
-## 5. Formulaires (lecture audit)
+## 5. Formulaires (audit 2026-06-18)
 
-| Zone | Mécanisme |
-|------|-----------|
-| Nouvelle écriture | `emitHorizonForm('finances', 'finance_entry')` |
-| CRUD transactions | `FinanceTransactionsOnly` + modales |
-| Réconciliation | Création finance depuis paiement |
-| Investissements / BP | `InvestissementsV9` + CRUD BP |
-| Justificatifs manquants | `FinanceMissingProofPanel` → formulaire finance ou document |
+| Zone | Mécanisme | Statut |
+|------|-----------|--------|
+| Nouvelle écriture | `emitHorizonForm('finances', 'finance_entry')` | ✅ |
+| CRUD transactions manuelles | `FinanceTransactionsOnly` + modales | ✅ `governFormFields` + selects catégorie / client / fournisseur |
+| Hey Horizon finance | `FinancesV12` HeyHorizonFinanceCard | ✅ catégorie en **select** (registry) |
+| Réconciliation | Création finance depuis paiement | ✅ |
+| Investissements / BP | `InvestissementsV9` + CRUD BP | ✅ catégorie ligne en **select** |
+| Justificatifs manquants | `FinanceMissingProofPanel` → formulaire finance ou document | ✅ |
+
+Pas de `window.prompt` sur flux finance montés.
 
 ---
 
@@ -79,6 +82,7 @@ Alias : `Réconciliation`, `Dépenses`, `Investissements`, `Rentabilité`, `Éch
 
 ```bash
 npx vite-node tests/unit/financeNavigation.test.js
+npx vite-node tests/unit/financeFormsAudit.test.js
 npx vite-node tests/unit/financePilotageV1.test.js
 npx vite-node tests/unit/financeP0.test.js
 npx vite-node tests/unit/financeP1.test.js

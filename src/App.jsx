@@ -7,7 +7,7 @@ import { scheduleErpHealthEngine, scheduleErpHealthOnCriticalChange } from './se
 import { trackNavOpen } from './services/erpRules/surveillanceUxRules.js';
 import { composeActionTraceShared, composeDecisionDataMap, composeInternalResources, composeReportData } from './services/moduleDataComposer';
 import { refreshAllModules, refreshSalesWorkflow } from './services/workflowRefresh';
-import { resolveCommercialTab, resolveElevageTab, resolveAchatsStockTab, resolveFinanceTab, resolveActiviteSuiviTab, resolveDocumentsTab, resolveRhTab, resolveObjectifsTab, resolveCentreTab, resolveInvestisseursTab, resolveRouteModule, defaultTabForLegacyModule, isCommercialReconciliationAlias } from './utils/commercialNavigation';
+import { resolveCommercialTab, resolveElevageTab, resolveAchatsStockTab, resolveFinanceTab, resolveActiviteSuiviTab, resolveDocumentsTab, resolveRhTab, resolveObjectifsTab, resolveCentreTab, resolveRouteModule, defaultTabForLegacyModule, isCommercialReconciliationAlias } from './utils/commercialNavigation';
 import { parseErpDeepLinkFromSearch, stripErpDeepLinkParamsFromUrl } from './utils/erpDeepLink.js';
 import { resolveCulturesTab } from './utils/culturesNavigation.js';
 import { farmCostSettingsService } from './services/farmCostSettingsService';
@@ -62,6 +62,8 @@ export default function App() {
   const [rhTab, setRhTab] = useState('Cockpit RH & Maintenance');
   const [gestionSystemeTab, setGestionSystemeTab] = useState('Vue admin');
   const [investisseursTab, setInvestisseursTab] = useState('room');
+  const [smartfarmTab, setSmartfarmTab] = useState('Objets connectés');
+  const [syncActivityTab, setSyncActivityTab] = useState('Vérifications');
   const [farmsPanelAction, setFarmsPanelAction] = useState(null);
   const openAssistantRef = useRef(() => {});
   const deepLinkAppliedRef = useRef(false);
@@ -152,15 +154,27 @@ export default function App() {
       return;
     }
     if (resolved === 'investisseurs_forums') {
-      if (tab) setInvestisseursTab(resolveInvestisseursTab(tab));
+      if (tab) setInvestisseursTab(tab);
       trackNavOpen('investisseurs_forums');
       setActiveState('investisseurs_forums');
+      return;
+    }
+    if (resolved === 'smartfarm') {
+      if (tab) setSmartfarmTab(tab);
+      trackNavOpen('smartfarm');
+      setActiveState('smartfarm');
+      return;
+    }
+    if (resolved === 'sync_activity' || resolved === 'audit_logs' || resolved === 'sync') {
+      if (tab) setSyncActivityTab(tab);
+      trackNavOpen('sync_activity');
+      setActiveState('sync_activity');
       return;
     }
     if (resolved === 'centre_ia' || resolved === 'objectifs_croissance') {
       if (tab) {
         if (resolved === 'centre_ia') setCentreTab(resolveCentreTab(tab));
-        else setObjectifsTab(resolveObjectifsTab(tab));
+        else setObjectifsTab(tab || defaultTabForLegacyModule(moduleId) || 'Suivi du Business Plan');
       }
       if (options?.productionQuestion) {
         window.setTimeout(() => {
@@ -420,7 +434,7 @@ export default function App() {
       existingAlerts: rows(c.alertes_center),
       businessEvents: rows(c.business_events),
       businessEventsAll: rows(c.business_events),
-    }, centre_ia: { initialTab: centreTab, onTabChange: (nextTab) => setCentreTab(resolveCentreTab(nextTab)), animaux: rows(c.animaux), lots: rows(c.avicole), cultures: rows(c.cultures), stocks: rows(c.stock), clients: rows(c.clients), alertes: rows(c.alertes_center), taches: rows(c.taches), documents: rows(c.documents), opportunities: rows(c.sales_opportunities), businessPlans: rows(c.business_plans), investissements: rows(c.investissements), productionLogs: rows(c.production_oeufs_logs), alimentationLogs: rows(c.alimentation_logs), marketPrices: dataMap.market_prices || [], marketCalendarEvents: dataMap.market_calendar_events || [], salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), smartfarmEvents: dataMap.smartfarm_events || [], sensors: rows(c.sensor_devices), cameras: rows(c.camera_devices), meteo: liveMeteo, dataMap: decisionDataMapRaw, onNavigate: setActive, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onOpenAssistant: openAssistantWithQuery, existingTasks: rows(c.taches), existingAlerts: rows(c.alertes_center) }, objectifs_croissance: { initialTab: objectifsTab, onTabChange: (nextTab) => setObjectifsTab(resolveObjectifsTab(nextTab)), dataMap: decisionDataMapRaw, animaux: rows(c.animaux), lots: rows(c.avicole), productionLogs: rows(c.production_oeufs_logs), cultures: rows(c.cultures), stocks: rows(c.stock), clients: rows(c.clients), alertes: rows(c.alertes_center), taches: rows(c.taches), documents: rows(c.documents), opportunities: rows(c.sales_opportunities), businessPlans: rows(c.business_plans), investissements: rows(c.investissements), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), onNavigate: setActive, onCreateBusinessPlan: c.business_plans.create, onRefreshBusinessPlans: c.business_plans.refresh, onCreateCulture: c.cultures.create, onRefreshCultures: c.cultures.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, existingTasks: rows(c.taches), existingAlerts: rows(c.alertes_center) },
+    }, centre_ia: { initialTab: centreTab, onTabChange: (nextTab) => setCentreTab(resolveCentreTab(nextTab)), animaux: rows(c.animaux), lots: rows(c.avicole), cultures: rows(c.cultures), stocks: rows(c.stock), clients: rows(c.clients), alertes: rows(c.alertes_center), taches: rows(c.taches), documents: rows(c.documents), opportunities: rows(c.sales_opportunities), businessPlans: rows(c.business_plans), investissements: rows(c.investissements), productionLogs: rows(c.production_oeufs_logs), alimentationLogs: rows(c.alimentation_logs), marketPrices: dataMap.market_prices || [], marketCalendarEvents: dataMap.market_calendar_events || [], salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), smartfarmEvents: dataMap.smartfarm_events || [], sensors: rows(c.sensor_devices), cameras: rows(c.camera_devices), meteo: liveMeteo, dataMap: decisionDataMapRaw, onNavigate: setActive, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onOpenAssistant: openAssistantWithQuery, existingTasks: rows(c.taches), existingAlerts: rows(c.alertes_center) }, objectifs_croissance: { initialTab: objectifsTab, onTabChange: (nextTab) => setObjectifsTab(nextTab), dataMap: decisionDataMapRaw, animaux: rows(c.animaux), lots: rows(c.avicole), productionLogs: rows(c.production_oeufs_logs), cultures: rows(c.cultures), stocks: rows(c.stock), clients: rows(c.clients), alertes: rows(c.alertes_center), taches: rows(c.taches), documents: rows(c.documents), opportunities: rows(c.sales_opportunities), businessPlans: rows(c.business_plans), investissements: rows(c.investissements), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), onNavigate: setActive, onCreateBusinessPlan: c.business_plans.create, onRefreshBusinessPlans: c.business_plans.refresh, onCreateCulture: c.cultures.create, onRefreshCultures: c.cultures.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, existingTasks: rows(c.taches), existingAlerts: rows(c.alertes_center) },
     elevage: {
       initialTab: elevageTab,
       onTabChange: (nextTab) => setElevageTab(resolveElevageTab(nextTab)),
@@ -580,7 +594,7 @@ export default function App() {
     },
     finance_pilotage: {
       initialTab: financeTab,
-      onTabChange: (nextTab) => setFinanceTab(resolveFinanceTab(nextTab)),
+      onTabChange: (nextTab) => setFinanceTab(nextTab),
       transactions: rows(c.finances),
       transactionsAll: rows(c.finances),
       finances: rows(c.finances),
@@ -694,7 +708,7 @@ export default function App() {
     comptabilite: { transactions: rows(c.finances), finances: rows(c.finances), salesOrders: rows(c.sales_orders), payments: rows(c.payments), clients: rows(c.clients), fournisseurs: rows(c.fournisseurs), stocks: rows(c.stock), animaux: rows(c.animaux), lots: rows(c.avicole), cultures: rows(c.cultures), sante: rows(c.sante), investissements: rows(c.investissements), equipements: rows(c.equipements), documents: rows(c.documents), onRefreshFinances: c.finances.refresh, onNavigate: setActive },
     investissements: { ...base('investissements'), businessPlans: rows(c.business_plans), bpInvestmentLines: rows(c.bp_investment_lines), bpRecurringCosts: rows(c.bp_recurring_costs), bpRevenueProjections: rows(c.bp_revenue_projections), bpFundingSources: rows(c.bp_funding_sources), bpLinks: rows(c.bp_links), bpRisks: rows(c.bp_risks), transactions: rows(c.finances), lots: rows(c.avicole), animaux: rows(c.animaux), cultures: rows(c.cultures), onCreateBusinessPlan: c.business_plans.create, onUpdateBusinessPlan: c.business_plans.update, onDeleteBusinessPlan: c.business_plans.remove, onRefreshBusinessPlans: c.business_plans.refresh, ...bpCallbacks, onCreateFinanceTransaction: c.finances.create, onRefreshFinances: c.finances.refresh, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, onCreateLot: c.avicole.create, onRefreshLots: c.avicole.refresh, onCreateAnimal: c.animaux.create, onRefreshAnimals: c.animaux.refresh, onCreateCulture: c.cultures.create, onRefreshCultures: c.cultures.refresh, onCreateEquipement: c.equipements.create, onRefreshEquipements: c.equipements.refresh, onCreateStock: c.stock.create, onRefreshStock: c.stock.refresh, ...shared },
     impact_business: { animaux: rows(c.animaux), lots: rows(c.avicole), productionLogs: rows(c.production_oeufs_logs), sante: rows(c.sante), stocks: rows(c.stock), transactions: rows(c.finances), transactionsAll: rows(c.finances), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), alertes: rows(c.alertes_center), taches: rows(c.taches), documents: rows(c.documents), whatsappLogs: rows(c.whatsapp_logs), businessEvents: rows(c.business_events), businessEventsAll: rows(c.business_events), auditLogs: rows(c.audit_logs), auditLogsAll: rows(c.audit_logs), cultures: rows(c.cultures), clients: rows(c.clients), fournisseurs: rows(c.fournisseurs), investissements: rows(c.investissements), businessPlans: rows(c.business_plans), alimentationLogs: rows(c.alimentation_logs), onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, onCreateAlert: c.alertes_center.create, onRefreshAlertes: c.alertes_center.refresh, ...shared },
-    investisseurs_forums: { initialTab: investisseursTab, onTabChange: (nextTab) => setInvestisseursTab(resolveInvestisseursTab(nextTab)), dataMap: decisionDataMapRaw, crud: c, meteo: liveMeteo, documents: rows(c.documents), animaux: rows(c.animaux), lots: rows(c.avicole), cultures: rows(c.cultures), stocks: rows(c.stock), clients: rows(c.clients), fournisseurs: rows(c.fournisseurs), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), businessPlans: rows(c.business_plans), investissements: rows(c.investissements), businessEvents: rows(c.business_events), alertes: rows(c.alertes_center), onNavigate: setActive, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, ...shared },
+    investisseurs_forums: { initialTab: investisseursTab, onTabChange: (nextTab) => setInvestisseursTab(nextTab), dataMap: decisionDataMapRaw, crud: c, meteo: liveMeteo, documents: rows(c.documents), animaux: rows(c.animaux), lots: rows(c.avicole), cultures: rows(c.cultures), stocks: rows(c.stock), clients: rows(c.clients), fournisseurs: rows(c.fournisseurs), salesOrders: rows(c.sales_orders), salesOrdersAll: rows(c.sales_orders), payments: rows(c.payments), paymentsAll: rows(c.payments), transactions: rows(c.finances), transactionsAll: rows(c.finances), businessPlans: rows(c.business_plans), investissements: rows(c.investissements), businessEvents: rows(c.business_events), alertes: rows(c.alertes_center), onNavigate: setActive, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, ...shared },
     stock: { ...base('stock'), alimentationLogs: rows(c.alimentation_logs), animaux: rows(c.animaux), lots: rows(c.avicole), fournisseurs: rows(c.fournisseurs), opportunities: rows(c.sales_opportunities), taches: rows(c.taches), onCreateAlimentation: c.alimentation_logs.create, onUpdateAlimentation: c.alimentation_logs.update, onDeleteAlimentation: c.alimentation_logs.remove, onRefreshAlimentation: c.alimentation_logs.refresh, onCreateFinanceTransaction: c.finances.create, onRefreshFinances: c.finances.refresh, onCreateOpportunity: c.sales_opportunities.create, onUpdateOpportunity: c.sales_opportunities.update, onRefreshOpportunities: c.sales_opportunities.refresh, onCreateTask: c.taches.create, onUpdateTask: c.taches.update, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onRefreshAlertes: c.alertes_center.refresh, ...shared },
     clients: { ...base('clients'), salesOrders: rows(c.sales_orders), payments: rows(c.payments), transactions: rows(c.finances), onNavigate: setActive },
     fournisseurs: { ...base('fournisseurs'), stocks: rows(c.stock), tasks: rows(c.taches), transactions: rows(c.finances), finances: rows(c.finances), documents: rows(c.documents), onUpdateStock: c.stock.update, onRefreshStock: c.stock.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onRefreshAlertes: c.alertes_center.refresh, ...shared },
@@ -729,11 +743,43 @@ export default function App() {
     },
     rapports: { ...base('rapports'), data: reportData, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, ...shared },
     equipements: { ...base('equipements'), ...internalResourcesShared, tasks: rows(c.taches), alertes: rows(c.alertes_center), onCreateTask: c.taches.create, onUpdateTask: c.taches.update, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onUpdateAlert: c.alertes_center.update, onRefreshAlertes: c.alertes_center.refresh, onCreateFinanceTransaction: c.finances.create, onRefreshFinances: c.finances.refresh, onCreateDocument: c.documents.create, onRefreshDocuments: c.documents.refresh, ...shared },
-    audit_logs: syncActivityProps, smartfarm: { meteo: liveMeteo, online, smartfarmEvents: dataMap.smartfarm_events || [], sensors: rows(c.sensor_devices), cameras: rows(c.camera_devices), tasks: rows(c.taches), alertes: rows(c.alertes_center), dataMap, sensorLoading: c.sensor_devices.loading, cameraLoading: c.camera_devices.loading, onCreateSensor: c.sensor_devices.create, onUpdateSensor: c.sensor_devices.update, onDeleteSensor: c.sensor_devices.remove, onRefreshSensors: c.sensor_devices.refresh, onCreateCamera: c.camera_devices.create, onUpdateCamera: c.camera_devices.update, onDeleteCamera: c.camera_devices.remove, onRefreshCameras: c.camera_devices.refresh, onCreateSmartfarmEvent: c.smartfarm_events.create, onUpdateSmartfarmEvent: c.smartfarm_events.update, onRefreshSmartfarmEvents: c.smartfarm_events.refresh, onCreateTask: c.taches.create, onRefreshTasks: c.taches.refresh, onCreateAlert: c.alertes_center.create, onRefreshAlertes: c.alertes_center.refresh, onCreateBusinessEvent: c.business_events.create, onRefreshBusinessEvents: c.business_events.refresh, ...shared },
+    audit_logs: { ...syncActivityProps, initialTab: syncActivityTab, onTabChange: (nextTab) => setSyncActivityTab(nextTab) },
+    smartfarm: {
+      initialTab: smartfarmTab,
+      onTabChange: (nextTab) => setSmartfarmTab(nextTab),
+      meteo: liveMeteo,
+      online,
+      smartfarmEvents: dataMap.smartfarm_events || [],
+      sensors: rows(c.sensor_devices),
+      cameras: rows(c.camera_devices),
+      tasks: rows(c.taches),
+      alertes: rows(c.alertes_center),
+      dataMap,
+      sensorLoading: c.sensor_devices.loading,
+      cameraLoading: c.camera_devices.loading,
+      onCreateSensor: c.sensor_devices.create,
+      onUpdateSensor: c.sensor_devices.update,
+      onDeleteSensor: c.sensor_devices.remove,
+      onRefreshSensors: c.sensor_devices.refresh,
+      onCreateCamera: c.camera_devices.create,
+      onUpdateCamera: c.camera_devices.update,
+      onDeleteCamera: c.camera_devices.remove,
+      onRefreshCameras: c.camera_devices.refresh,
+      onCreateSmartfarmEvent: c.smartfarm_events.create,
+      onUpdateSmartfarmEvent: c.smartfarm_events.update,
+      onRefreshSmartfarmEvents: c.smartfarm_events.refresh,
+      onCreateTask: c.taches.create,
+      onRefreshTasks: c.taches.refresh,
+      onCreateAlert: c.alertes_center.create,
+      onRefreshAlertes: c.alertes_center.refresh,
+      onCreateBusinessEvent: c.business_events.create,
+      onRefreshBusinessEvents: c.business_events.refresh,
+      ...shared,
+    },
     gestion_systeme: {
       ...internalResourcesShared,
       initialTab: gestionSystemeTab,
-      onTabChange: setGestionSystemeTab,
+      onTabChange: (nextTab) => setGestionSystemeTab(nextTab),
       accessibleFarms: effectiveAccessibleFarms,
       companyId: user?.user_metadata?.company_id || user?.company_id || null,
       onFarmsChanged: refreshAccessibleFarms,
@@ -758,10 +804,10 @@ export default function App() {
       existingTasks: rows(c.taches),
       existingAlerts: rows(c.alertes_center),
     },
-    sync: syncActivityProps,
-    sync_activity: syncActivityProps,
+    sync: { ...syncActivityProps, initialTab: syncActivityTab, onTabChange: (nextTab) => setSyncActivityTab(nextTab) },
+    sync_activity: { ...syncActivityProps, initialTab: syncActivityTab, onTabChange: (nextTab) => setSyncActivityTab(nextTab) },
   };
-  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, culturesTab, achatsStockTab, achatsStockContext, financeTab, activiteSuiviTab, documentsRapportsTab, rhTab, gestionSystemeTab, investisseursTab, farmsPanelAction, accessibleFarms, effectiveAccessibleFarms, refreshAccessibleFarms, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue, handleManageFarms, farmComparisonData, openAssistantWithQuery]);
+  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, culturesTab, achatsStockTab, achatsStockContext, financeTab, activiteSuiviTab, documentsRapportsTab, rhTab, gestionSystemeTab, investisseursTab, smartfarmTab, syncActivityTab, farmsPanelAction, accessibleFarms, effectiveAccessibleFarms, refreshAccessibleFarms, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue, handleManageFarms, farmComparisonData, openAssistantWithQuery]);
 
   const activeModuleProps = useMemo(
     () => applyFarmScopeToProps(

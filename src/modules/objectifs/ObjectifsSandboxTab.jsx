@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Sprout } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { fmtCurrency, fmtNumber } from '../../utils/format';
 import { calculateBiomassValue } from '../../services/objectifsDecision/predictiveAnalysisEngine.js';
 
@@ -60,7 +61,7 @@ export default function ObjectifsSandboxTab({
       await onRefreshCultures?.();
       onNavigate?.('cultures', { tab: CULTURES_TAB });
     } catch (error) {
-      console.warn('[ObjectifsSandboxTab] launch campaign', error);
+      toast.error(error?.message || 'Impossible de lancer la campagne sandbox.');
     } finally {
       setLaunching(false);
     }

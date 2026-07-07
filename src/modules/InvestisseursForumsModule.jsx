@@ -182,13 +182,20 @@ function PreviewSection({ section }) {
 }
 
 export default function InvestisseursForumsModule(props) {
-  const [mainTab, setMainTab] = useState(() => resolveInvestisseursTab(props.initialTab));
+  const controlled = Boolean(props.onTabChange);
+  const [internalTab, setInternalTab] = useState(() => resolveInvestisseursTab(props.initialTab));
+  const mainTab = controlled ? resolveInvestisseursTab(props.initialTab) : internalTab;
+  const setMainTab = useCallback((value) => {
+    const resolved = resolveInvestisseursTab(value);
+    const raw = String(value || '').trim();
+    if (controlled) props.onTabChange?.(raw || resolved);
+    else setInternalTab(resolved);
+  }, [controlled, props.onTabChange]);
+
   useEffect(() => {
-    if (props.initialTab) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- navigation pilotée par props.initialTab
-      setMainTab(resolveInvestisseursTab(props.initialTab));
-    }
-  }, [props.initialTab]);
+    if (!props.initialTab) return;
+    if (!controlled) setInternalTab(resolveInvestisseursTab(props.initialTab));
+  }, [controlled, props.initialTab]);
   const [dossierSection, setDossierSection] = useState('project');
   const [audienceKey, setAudienceKey] = useState('investisseur_prive');
   const [editing, setEditing] = useState(false);

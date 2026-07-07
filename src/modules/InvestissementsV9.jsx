@@ -86,7 +86,18 @@ const MODULE_LABELS = {
 
 const INVESTMENT_EDIT_FIELDS = [
   { key: 'designation', label: 'Poste', type: 'text', required: true },
-  { key: 'categorie', label: 'Catégorie', type: 'text' },
+  {
+    key: 'categorie',
+    label: 'Catégorie',
+    type: 'select',
+    options: [
+      { value: 'cheptel', label: 'Cheptel' },
+      { value: 'infrastructure', label: 'Infrastructure' },
+      { value: 'materiel', label: 'Matériel' },
+      { value: 'terrain', label: 'Terrain' },
+      { value: 'autre', label: 'Autre' },
+    ],
+  },
   { key: 'quantite', label: 'Quantité', type: 'number' },
   { key: 'unite', label: 'Unité', type: 'text' },
   { key: 'prix_unitaire', label: 'Prix unitaire', type: 'number' },

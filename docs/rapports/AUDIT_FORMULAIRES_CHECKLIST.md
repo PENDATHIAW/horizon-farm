@@ -83,13 +83,17 @@ Pour chaque module, lister :
 |--------|------------|-------------|-----------------|
 | Commercial | ✅ | ✅ | ✅ |
 | Centre décisionnel | ✅ | ✅ | ✅ |
-| Objectifs & croissance | ✅ | Partiel | ✅ |
+| Objectifs & croissance | ✅ | ✅ | ✅ |
 | Élevage | ✅ | ✅ | ✅ |
 | Accueil | ✅ | N/A (lecture) | ✅ |
-| Finance | ✅ | Partiel | ✅ |
+| Finance | ✅ | ✅ | ✅ |
 | Achats & stock | ✅ | ✅ | ✅ |
 | Cultures | ✅ | ✅ | ✅ |
 | Activité & suivi | ✅ | ✅ | ✅ |
 | Documents | ✅ | ✅ | ✅ |
 | RH | ✅ | ✅ | ✅ |
-| Objectifs | — | — | — |
+| Investisseurs & forums | ✅ | ✅ | ✅ |
+| Smart Farm | ✅ | ✅ | ✅ |
+| Gestion système | ✅ | ✅ | ✅ |
+| Assistant ERP | N/A (panneau) | ✅ | ✅ |
+| Activité & Sync ERP | ✅ | ✅ | ✅ |

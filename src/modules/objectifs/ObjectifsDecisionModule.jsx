@@ -47,7 +47,8 @@ export default function ObjectifsDecisionModule({
   const tab = controlled ? resolveObjectifsTab(initialTab) : internalTab;
   const setTab = useCallback((value) => {
     const resolved = resolveObjectifsTab(value);
-    if (controlled) onTabChange?.(resolved);
+    const raw = String(value || '').trim();
+    if (controlled) onTabChange?.(raw || resolved);
     else setInternalTab(resolved);
   }, [controlled, onTabChange]);
 

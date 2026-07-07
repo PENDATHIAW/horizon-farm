@@ -19,13 +19,23 @@ Entrée : `ObjectifsCroissanceV2.jsx` → `ObjectifsDecisionModule.jsx`
 
 | Zone | Type | Statut |
 |------|------|--------|
-| Simulateur Sandbox (`npkPrice`, lancer campagne) | Input + bouton | ✅ Crée culture + navigue |
+| Simulateur Sandbox (`npkPrice`, lancer campagne) | Input number + bouton | ✅ Crée culture + navigue ; erreur via `toast.error` |
 | Autres onglets | Navigation / lecture | Analytique — pas de CRUD lourd |
 | Props `onCreateBusinessPlan` App.jsx | — | Non consommées (fallback CRUD si besoin futur) |
+| `BpWizard.jsx` | Wizard BP | Orphelin (non monté) — documenté |
 
 ---
 
-## 3. Correctifs passe complète (2026-06-18)
+## 3. Navigation (2026-06-18)
+
+| # | Problème | Correctif |
+|---|----------|-----------|
+| O7 | `App.jsx` résolvait l’onglet à l’entrée | **Corrigé** — alias brut conservé (`Graphiques`, etc.) |
+| O8 | `onTabChange` résolvait trop tôt | **Corrigé** — onglet brut remonté à `App` |
+
+---
+
+## 4. Correctifs passe complète (2026-06-18)
 
 | # | Problème | Correctif |
 |---|----------|-----------|
@@ -38,7 +48,7 @@ Entrée : `ObjectifsCroissanceV2.jsx` → `ObjectifsDecisionModule.jsx`
 
 ---
 
-## 4. Fichiers orphelins (dette documentée)
+## 5. Fichiers orphelins (dette documentée)
 
 `ObjectifsEcartsTab`, `CroissanceCapacitesTab`, `FluxEquilibresTab`, `MaraîchageDiversificationTab`, `ObjectifsActivitesPanel`, `ObjectifsCroissance.jsx`, `VisionCroissanceModule.jsx` — non montés.
 
@@ -47,5 +57,5 @@ Entrée : `ObjectifsCroissanceV2.jsx` → `ObjectifsDecisionModule.jsx`
 ## Vérification
 
 ```bash
-node --test tests/unit/objectifsDecisionTabs.test.js tests/unit/centreObjectifsWorkflow.test.js
+node --test tests/unit/objectifsDecisionTabs.test.js tests/unit/objectifsFormsAudit.test.js tests/unit/centreObjectifsWorkflow.test.js
 ```

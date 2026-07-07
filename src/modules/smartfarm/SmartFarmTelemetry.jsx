@@ -1,5 +1,5 @@
 import { Radio } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import HeyHorizonQuickAsk from '../../components/HeyHorizonQuickAsk.jsx';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
@@ -21,22 +21,29 @@ function Tabs({ active, onChange, criticalBadge = 0 }) {
 }
 
 export default function SmartFarmTelemetry(props) {
+  const controlled = Boolean(props.onTabChange);
   const initialNav = resolveSmartFarmNavigation(props.initialTab);
-  const [tab, setTab] = useState(() => initialNav.tab || resolveSmartFarmTab(props.initialTab));
+  const [internalTab, setInternalTab] = useState(() => initialNav.tab || resolveSmartFarmTab(props.initialTab));
+  const tab = controlled ? resolveSmartFarmTab(props.initialTab) : internalTab;
 
   const { data, handlers, sensorProps, cameraProps, realtime } = useSmartFarmTelemetry(props);
 
-  const navigateSmartFarm = (target = '') => {
-    const nav = resolveSmartFarmNavigation(target);
-    setTab(nav.tab);
-  };
+  const setTab = useCallback((value) => {
+    const resolved = resolveSmartFarmTab(value);
+    const raw = String(value || '').trim();
+    if (controlled) props.onTabChange?.(raw || resolved);
+    else setInternalTab(resolved);
+  }, [controlled, props.onTabChange]);
+
+  const navigateSmartFarm = useCallback((target = '') => {
+    setTab(target);
+  }, [setTab]);
 
   useEffect(() => {
-    if (props.initialTab) {
-      const nav = resolveSmartFarmNavigation(props.initialTab);
-      setTab(nav.tab);
-    }
-  }, [props.initialTab]);
+    if (!props.initialTab) return;
+    const nav = resolveSmartFarmNavigation(props.initialTab);
+    if (!controlled) setInternalTab(nav.tab);
+  }, [controlled, props.initialTab]);
 
   const content = tab === 'Objets connectés' ? (
     <DeviceManagerTab

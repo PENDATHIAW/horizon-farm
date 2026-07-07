@@ -277,6 +277,28 @@ export default function FinancePilotageRecoveredModule(props) {
     applyFinanceNavigation(resolveFinanceNavigation(target), target);
   }, [applyFinanceNavigation]);
 
+  const TREASURY_SUBVIEW_ALIASES = {
+    saisie: 'Trésorerie',
+    reconciliation: 'Réconciliation',
+  };
+  const PILOTAGE_SUBVIEW_ALIASES = {
+    echeancier: 'Échéancier',
+    financement: 'Financement',
+    investissements: 'Investissements',
+    rentabilite: 'Rentabilité',
+    annexe: 'Annexe',
+  };
+
+  const handleTreasurySubview = useCallback((key) => {
+    setTreasurySubview(key);
+    if (controlled) props.onTabChange?.(TREASURY_SUBVIEW_ALIASES[key] || 'Trésorerie');
+  }, [controlled, props.onTabChange]);
+
+  const handlePilotageSubview = useCallback((key) => {
+    setPilotageSubview(key);
+    if (controlled) props.onTabChange?.(PILOTAGE_SUBVIEW_ALIASES[key] || 'Pilotage');
+  }, [controlled, props.onTabChange]);
+
   const setTab = useCallback((value) => {
     applyFinanceNavigation(resolveFinanceNavigation(value), value);
   }, [applyFinanceNavigation]);
@@ -711,7 +733,7 @@ export default function FinancePilotageRecoveredModule(props) {
               { key: 'reconciliation', label: 'Réconciliation' },
             ]}
             active={treasurySubview}
-            onChange={setTreasurySubview}
+            onChange={handleTreasurySubview}
           />
           {treasurySubview === 'reconciliation' ? (
             <FinanceReconciliationPanel
@@ -755,7 +777,7 @@ export default function FinancePilotageRecoveredModule(props) {
               { key: 'annexe', label: 'Annexe' },
             ]}
             active={pilotageSubview}
-            onChange={setPilotageSubview}
+            onChange={handlePilotageSubview}
           />
           {pilotageSubview === 'echeancier' ? (
             <div className="space-y-5">

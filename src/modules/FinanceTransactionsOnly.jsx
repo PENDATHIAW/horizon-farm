@@ -11,6 +11,7 @@ import DetailsModal from '../modals/DetailsModal';
 import EditModal from '../modals/EditModal';
 import { emitHorizonForm } from '../services/formModalManager';
 import { MODULE_FORM_FIELDS } from '../utils/constants';
+import { governFormFields } from '../utils/formFieldGovernance';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { fmtCurrency, toNumber } from '../utils/format';
 import { generateSequentialId } from '../utils/ids';
@@ -59,10 +60,26 @@ function detectActivity(row = {}) {
   return isIn(row) ? 'autres_revenus' : 'autres_charges';
 }
 
-function buildFields(businessPlans = []) {
+function buildFields(businessPlans = [], clients = [], fournisseurs = []) {
   const bpOptions = arr(businessPlans).map((bp) => ({ value: bp.id, label: bp.nom || bp.name || bp.id }));
-  return (MODULE_FORM_FIELDS.finances || []).map((field) => {
-    if (field.key === 'business_plan_id' && bpOptions.length) return { ...field, type: 'select', options: [{ value: '', label: '— Aucun —' }, ...bpOptions] };
+  const clientOptions = arr(clients).map((client) => ({
+    value: client.id,
+    label: client.nom || client.raison_sociale || client.id,
+  }));
+  const supplierOptions = arr(fournisseurs).map((fournisseur) => ({
+    value: fournisseur.id,
+    label: fournisseur.nom || fournisseur.raison_sociale || fournisseur.id,
+  }));
+  return governFormFields('finances', MODULE_FORM_FIELDS.finances || []).map((field) => {
+    if (field.key === 'business_plan_id' && bpOptions.length) {
+      return { ...field, type: 'select', options: [{ value: '', label: '— Aucun —' }, ...bpOptions] };
+    }
+    if (field.key === 'client_id' && clientOptions.length) {
+      return { ...field, type: 'select', options: [{ value: '', label: '— Aucun —' }, ...clientOptions] };
+    }
+    if (field.key === 'fournisseur_id' && supplierOptions.length) {
+      return { ...field, type: 'select', options: [{ value: '', label: '— Aucun —' }, ...supplierOptions] };
+    }
     return field;
   });
 }
@@ -89,13 +106,18 @@ export default function FinanceTransactionsOnly({
   onDelete,
   onRefresh,
   businessPlans = [],
+  clients = [],
+  fournisseurs = [],
   onNavigate,
 }) {
   const [selected, setSelected] = useState(null);
   const [modal, setModal] = useState(null);
   const [saving, setSaving] = useState(false);
   const validRows = useMemo(() => arr(rows).filter((row) => hasAmount(row) && isManualExceptionFinanceTransaction(row)), [rows]);
-  const financeFormFields = useMemo(() => buildFields(businessPlans), [businessPlans]);
+  const financeFormFields = useMemo(
+    () => buildFields(businessPlans, clients, fournisseurs),
+    [businessPlans, clients, fournisseurs],
+  );
 
   const guardOperationalCharge = (payload) => {
     const redirect = classifyOperationalChargeRedirect(payload);

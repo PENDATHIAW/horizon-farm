@@ -325,6 +325,15 @@ export function resolveFinanceNavigation(value = '') {
   return { tab, treasurySubview, pilotageSubview };
 }
 
+/** Navigation externe — conserve alias sous-vues (Réconciliation, Investissements…). */
+export function navigateFinanceTab(onNavigate, tab = '', options = {}) {
+  const raw = String(tab || '').trim() || 'Résumé';
+  if (typeof onNavigate === 'function') {
+    onNavigate('finance_pilotage', { tab: raw, ...options });
+  }
+  return resolveFinanceTab(raw);
+}
+
 export function resolveActiviteSuiviTab(value = '') {
   const tab = String(value || '').trim();
   if (ACTIVITE_SUIVI_TABS.includes(tab)) return tab;
@@ -539,6 +548,61 @@ export const DASHBOARD_TAB_ALIASES = {
 };
 export const INVESTISSEURS_TABS = ['room', 'preparation', 'dossier', 'library', 'crm', 'preview', 'export', 'history', 'demo'];
 
+const INVESTISSEURS_TAB_ALIASES = {
+  room: 'room',
+  'Investor Room': 'room',
+  preparation: 'preparation',
+  Préparation: 'preparation',
+  Preparation: 'preparation',
+  dossier: 'dossier',
+  Dossier: 'dossier',
+  library: 'library',
+  'Data Room': 'library',
+  crm: 'crm',
+  CRM: 'crm',
+  preview: 'preview',
+  'Aperçu dossier': 'preview',
+  export: 'export',
+  'Exports PDF': 'export',
+  history: 'history',
+  Historique: 'history',
+  demo: 'demo',
+  'Démo investisseur': 'demo',
+  Résumé: 'room',
+  resume: 'room',
+  financeurs: 'preparation',
+  Financeurs: 'preparation',
+};
+
+export const GESTION_SYSTEME_TABS = ['Vue admin', 'Utilisateurs', 'Fermes', 'Paramètres', 'Sécurité', 'Sauvegardes', 'Réinitialisation', 'Audit'];
+
+const GESTION_SYSTEME_TAB_ALIASES = {
+  'Vue admin': 'Vue admin',
+  admin: 'Vue admin',
+  Résumé: 'Vue admin',
+  resume: 'Vue admin',
+  Utilisateurs: 'Utilisateurs',
+  utilisateurs: 'Utilisateurs',
+  users: 'Utilisateurs',
+  Fermes: 'Fermes',
+  fermes: 'Fermes',
+  farms: 'Fermes',
+  Paramètres: 'Paramètres',
+  parametres: 'Paramètres',
+  settings: 'Paramètres',
+  Sécurité: 'Sécurité',
+  securite: 'Sécurité',
+  security: 'Sécurité',
+  Sauvegardes: 'Sauvegardes',
+  sauvegardes: 'Sauvegardes',
+  backup: 'Sauvegardes',
+  Réinitialisation: 'Réinitialisation',
+  reinitialisation: 'Réinitialisation',
+  reset: 'Réinitialisation',
+  Audit: 'Audit',
+  audit: 'Audit',
+};
+
 export function resolveDocumentsTab(value = '') {
   const tab = String(value || '').trim();
   if (DOCUMENTS_RAPPORTS_TABS.includes(tab)) return tab;
@@ -592,10 +656,12 @@ export function resolveObjectifsTab(value = '') {
   return OBJECTIFS_TABS[0];
 }
 
-export function navigateObjectifsTab(onNavigate, tab = '') {
-  const resolved = resolveObjectifsTab(tab || 'Suivi du Business Plan');
-  if (typeof onNavigate === 'function') onNavigate('objectifs_croissance', { tab: resolved });
-  return resolved;
+export function navigateObjectifsTab(onNavigate, tab = '', options = {}) {
+  const raw = String(tab || '').trim() || 'Suivi du Business Plan';
+  if (typeof onNavigate === 'function') {
+    onNavigate('objectifs_croissance', { tab: raw, ...options });
+  }
+  return resolveObjectifsTab(raw);
 }
 
 export function resolveCentreTab(value = '') {
@@ -625,6 +691,15 @@ export function resolveSyncActivityNavigation(value = '') {
   return { tab: resolveSyncActivityTab(value) };
 }
 
+/** Navigation externe — conserve alias legacy (audit, sync…). */
+export function navigateSyncActivityTab(onNavigate, tab = '', options = {}) {
+  const raw = String(tab || '').trim() || 'Vérifications';
+  if (typeof onNavigate === 'function') {
+    onNavigate('sync_activity', { tab: raw, ...options });
+  }
+  return resolveSyncActivityTab(raw);
+}
+
 export function resolveSmartFarmTab(value = '') {
   const tab = String(value || '').trim();
   if (SMARTFARM_TABS.includes(tab)) return tab;
@@ -637,6 +712,36 @@ export function resolveSmartFarmTab(value = '') {
 export function resolveSmartFarmNavigation(value = '') {
   const raw = String(value || '').trim();
   return { tab: resolveSmartFarmTab(raw) };
+}
+
+/** Navigation externe — conserve alias legacy (Capteurs, flux…). */
+export function navigateSmartFarmTab(onNavigate, tab = '', options = {}) {
+  const raw = String(tab || '').trim() || 'Objets connectés';
+  if (typeof onNavigate === 'function') {
+    onNavigate('smartfarm', { tab: raw, ...options });
+  }
+  return resolveSmartFarmTab(raw);
+}
+
+export function resolveGestionSystemeTab(value = '') {
+  const tab = String(value || '').trim();
+  if (GESTION_SYSTEME_TABS.includes(tab)) return tab;
+  const fromAlias = GESTION_SYSTEME_TAB_ALIASES[tab] || GESTION_SYSTEME_TAB_ALIASES[lower(tab)];
+  if (fromAlias) return fromAlias;
+  return 'Vue admin';
+}
+
+export function resolveGestionSystemeNavigation(value = '') {
+  return { tab: resolveGestionSystemeTab(value) };
+}
+
+/** Navigation externe — conserve alias legacy (Paramètres, Audit…). */
+export function navigateGestionSystemeTab(onNavigate, tab = '', options = {}) {
+  const raw = String(tab || '').trim() || 'Vue admin';
+  if (typeof onNavigate === 'function') {
+    onNavigate('gestion_systeme', { tab: raw, ...options });
+  }
+  return resolveGestionSystemeTab(raw);
 }
 
 export function resolveCulturesTab(value = '') {
@@ -668,7 +773,18 @@ export function resolveDashboardTab(value = '') {
 export function resolveInvestisseursTab(value = '') {
   const tab = String(value || '').trim();
   if (INVESTISSEURS_TABS.includes(tab)) return tab;
+  const fromAlias = INVESTISSEURS_TAB_ALIASES[tab] || INVESTISSEURS_TAB_ALIASES[lower(tab)];
+  if (fromAlias) return fromAlias;
   return tabAliases[lower(tab)] || 'room';
+}
+
+/** Navigation externe — conserve alias legacy (Préparation, Data Room…). */
+export function navigateInvestisseursTab(onNavigate, tab = '', options = {}) {
+  const raw = String(tab || '').trim() || 'room';
+  if (typeof onNavigate === 'function') {
+    onNavigate('investisseurs_forums', { tab: raw, ...options });
+  }
+  return resolveInvestisseursTab(raw);
 }
 
 /** Résout un identifiant legacy (ventes, finances, stock…) vers le grand module ERP. */
@@ -691,6 +807,8 @@ export function defaultTabForLegacyModule(moduleId = '') {
   if (moduleId === 'payments') return 'Créances';
   if (moduleId === 'invoices') return 'Ventes';
   if (moduleId === 'deliveries') return 'Livraisons';
+  if (moduleId === 'audit_logs' || moduleId === 'sync') return 'Vérifications';
+  if (moduleId === 'investisseurs_forums' || moduleId === 'financeurs') return 'Préparation';
   return null;
 }
 
@@ -774,6 +892,36 @@ export function navigationOptionsForFinding(finding = {}) {
       tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Cockpit RH & Maintenance',
     };
   }
+  if (module === 'objectifs_croissance') {
+    return {
+      module,
+      tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Suivi du Business Plan',
+    };
+  }
+  if (module === 'investisseurs_forums') {
+    return {
+      module,
+      tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'room',
+    };
+  }
+  if (module === 'smartfarm') {
+    return {
+      module,
+      tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Objets connectés',
+    };
+  }
+  if (module === 'sync_activity' || module === 'audit_logs' || module === 'sync') {
+    return {
+      module: 'sync_activity',
+      tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Vérifications',
+    };
+  }
+  if (module === 'gestion_systeme') {
+    return {
+      module,
+      tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Vue admin',
+    };
+  }
   return { module, tab: explicitTab || null };
 }
 
@@ -811,6 +959,26 @@ export function navigateForIaFinding(finding = {}, onNavigate) {
   }
   if (module === 'rh') {
     onNavigate('rh', { tab: finding.tab || 'Cockpit RH & Maintenance' });
+    return;
+  }
+  if (module === 'objectifs_croissance') {
+    onNavigate('objectifs_croissance', { tab: finding.tab || 'Suivi du Business Plan' });
+    return;
+  }
+  if (module === 'investisseurs_forums') {
+    onNavigate('investisseurs_forums', { tab: finding.tab || 'room' });
+    return;
+  }
+  if (module === 'smartfarm') {
+    onNavigate('smartfarm', { tab: finding.tab || 'Objets connectés' });
+    return;
+  }
+  if (module === 'sync_activity' || module === 'audit_logs' || module === 'sync') {
+    onNavigate('sync_activity', { tab: finding.tab || 'Vérifications' });
+    return;
+  }
+  if (module === 'gestion_systeme') {
+    onNavigate('gestion_systeme', { tab: finding.tab || 'Vue admin' });
     return;
   }
   onNavigate(module || 'elevage');
