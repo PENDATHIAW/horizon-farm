@@ -86,7 +86,7 @@ Pour chaque module, lister :
 | Objectifs & croissance | ✅ | Partiel | ✅ |
 | Élevage | ✅ | ✅ | ✅ |
 | Accueil | ✅ | N/A (lecture) | ✅ |
-| Finance | — | — | — |
+| Finance | ✅ | Partiel | ✅ |
 | Achats & stock | — | — | — |
 | Cultures | — | — | — |
 | Activité & suivi | — | — | — |

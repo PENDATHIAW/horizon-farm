@@ -1,4 +1,4 @@
-import { BarChart3, BrainCircuit, PiggyBank, Wallet, Zap } from 'lucide-react';
+import { BarChart3, PiggyBank, Wallet } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ModuleGraphiquesTab from '../components/module/ModuleGraphiquesTab.jsx';
@@ -100,58 +100,6 @@ const hasProof = (r = {}) => Boolean(r.document_id || r.proof_url || r.justifica
 
 function Section({ icon: Icon, title, children }) {
   return <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 shadow-sm"><h2 className="mb-4 flex items-center gap-2 text-lg font-black text-[#2f2415]"><Icon size={20} /> {title}</h2>{children}</section>;
-}
-function FinanceIaPanel({ findings = [], predictions = [], onApply, busyId, onNavigate }) {
-  if (!findings.length && !predictions.length) return null;
-  return (
-    <Section icon={BrainCircuit} title="Signaux métier finance">
-      <p className="mb-3 text-sm text-[#8a7456]">Trésorerie, preuves, créances, dettes et rentabilité croisées avec le reste de l'ERP.</p>
-      <div className="space-y-2">
-        {findings.slice(0, 6).map((f) => (
-          <div key={f.id} className="flex flex-col gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 sm:flex-row sm:items-center sm:justify-between">
-            <div><b className="text-sm text-[#2f2415]">{f.title}</b><p className="text-xs text-amber-800">{f.recommended_action || f.description}</p></div>
-            <div className="flex gap-2">
-              {f.module === 'commercial' ? (
-                <button type="button" onClick={() => onNavigate?.('commercial', { tab: 'Clients & créances' })} className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-xs font-black">Commercial</button>
-              ) : (
-                <button type="button" onClick={() => onNavigate?.('documents_rapports')} className="rounded-lg border border-[#d6c3a0] bg-white px-2 py-1 text-xs font-black">Documents</button>
-              )}
-              <button type="button" disabled={busyId === f.id} onClick={() => onApply?.(f)} className="rounded-lg bg-[#22c55e] px-2 py-1 text-xs font-black text-[#052e16] disabled:opacity-50">{busyId === f.id ? '…' : f.auto_action === 'create_task' ? 'Créer tâche' : f.auto_action === 'create_alert' ? 'Créer alerte' : 'Appliquer'}</button>
-            </div>
-          </div>
-        ))}
-        {predictions.slice(0, 2).map((p) => (
-          <div key={p.id} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm"><b>{p.title}</b><p className="text-xs text-[#8a7456]">{p.description}</p></div>
-        ))}
-      </div>
-    </Section>
-  );
-}
-function CoherencePanel({ rows = [], onApply, busyId, setTab }) {
-  if (!rows.length) return null;
-  return (
-    <Section icon={Zap} title="Incohérences à traiter">
-      {rows.slice(0, 8).map((row) => (
-        <div key={row.id} className="flex flex-col gap-2 border-b border-[#eadcc2]/70 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
-          <button type="button" onClick={() => setTab(row.type === 'creance' ? 'Créances' : 'Trésorerie')} className="text-left"><b className="text-[#2f2415]">{row.title}</b><p className="text-xs text-[#8a7456]">{row.detail}</p></button>
-          <button type="button" disabled={busyId === row.id} onClick={() => row.finding && onApply?.(row.finding)} className="rounded-lg border border-emerald-300 px-2 py-1 text-xs font-black text-emerald-700 disabled:opacity-50">{busyId === row.id ? '…' : 'Corriger'}</button>
-        </div>
-      ))}
-    </Section>
-  );
-}
-function MissingProofPanel({ items = [], setTab }) {
-  if (!items.length) return null;
-  return (
-    <Section icon={Wallet} title="Transactions sans justificatif">
-      {items.slice(0, 6).map((row) => (
-        <button key={row.id} type="button" onClick={() => setTab('Trésorerie')} className="flex w-full items-center justify-between border-b border-[#eadcc2]/70 py-3 text-left last:border-b-0 hover:bg-[#fffdf8]">
-          <span><b className="text-[#2f2415]">{row.title}</b><p className="text-xs text-[#8a7456]">{String(row.date || '—').slice(0, 10)}</p></span>
-          <span className="text-sm font-black text-amber-700">{fmtCurrency(row.amount)}</span>
-        </button>
-      ))}
-    </Section>
-  );
 }
 function Tabs({ active, onChange }) {
   return <ModuleTabsBar moduleId="finance_pilotage" active={active} onChange={onChange} />;
@@ -314,10 +262,10 @@ export default function FinancePilotageRecoveredModule(props) {
     ? resolveFinanceTab(props.initialTab || 'Résumé')
     : internalTab;
 
-  const applyFinanceNavigation = useCallback((nav) => {
+  const applyFinanceNavigation = useCallback((nav, rawTarget = '') => {
     const resolvedTab = nav.tab || resolveFinanceTab(props.initialTab || 'Résumé');
     if (controlled) {
-      props.onTabChange?.(resolvedTab);
+      props.onTabChange?.(rawTarget || resolvedTab);
     } else {
       setInternalTab(resolvedTab);
     }
@@ -326,11 +274,11 @@ export default function FinancePilotageRecoveredModule(props) {
   }, [controlled, props.onTabChange, props.initialTab]);
 
   const navigateFinance = useCallback((target = '') => {
-    applyFinanceNavigation(resolveFinanceNavigation(target));
+    applyFinanceNavigation(resolveFinanceNavigation(target), target);
   }, [applyFinanceNavigation]);
 
   const setTab = useCallback((value) => {
-    applyFinanceNavigation(resolveFinanceNavigation(value));
+    applyFinanceNavigation(resolveFinanceNavigation(value), value);
   }, [applyFinanceNavigation]);
 
   useEffect(() => {
@@ -385,8 +333,8 @@ export default function FinancePilotageRecoveredModule(props) {
   const suppliers = rowsOf(props.fournisseurs, suppliersCrud, periodFiltered);
   const transactions = rowsOf(props.transactions || props.finances || props.rows, financesCrud, periodFiltered);
   const transactionsAll = allRows(props.transactionsAll || props.transactions || props.finances || props.rows, financesCrud);
-  const investments = rowsOf(props.investissements, investmentsCrud, periodFiltered);
-  const businessPlans = rowsOf(props.businessPlans, businessPlansCrud, periodFiltered);
+  const investments = rowsOf(props.investissements, investmentsCrud, false);
+  const businessPlans = rowsOf(props.businessPlans, businessPlansCrud, false);
   const tasks = rowsOf(props.taches, tasksCrud, periodFiltered);
   const consolidationProps = useMemo(() => ({
     transactions,

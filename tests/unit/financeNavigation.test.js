@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildOfficialTreasuryView } from '../../src/utils/financePilotageCore.js';
-import { resolveFinanceNavigation, resolveFinanceTab } from '../../src/utils/commercialNavigation.js';
+import { resolveFinanceNavigation, resolveFinanceTab, navigationOptionsForFinding } from '../../src/utils/commercialNavigation.js';
 
 test('resolveFinanceNavigation — Réconciliation ouvre sous-vue trésorerie', () => {
   const nav = resolveFinanceNavigation('Réconciliation');
@@ -31,6 +31,14 @@ test('resolveFinanceNavigation — Dépenses ouvre Trésorerie saisie', () => {
 test('resolveFinanceTab — 5 onglets canoniques', () => {
   assert.equal(resolveFinanceTab('Créances'), 'Créances & dettes');
   assert.equal(resolveFinanceTab('Échéancier'), 'Pilotage');
+});
+
+test('navigationOptionsForFinding — conserve l’alias finance pour sous-vues', () => {
+  const nav = navigationOptionsForFinding({ module: 'finance_pilotage', tab: 'Investissements' });
+  assert.equal(nav.module, 'finance_pilotage');
+  assert.equal(nav.tab, 'Investissements');
+  const resolved = resolveFinanceNavigation(nav.tab);
+  assert.equal(resolved.pilotageSubview, 'investissements');
 });
 
 test('buildOfficialTreasuryView — transactionsAll préserve le cumul', () => {

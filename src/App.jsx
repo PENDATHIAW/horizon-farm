@@ -115,7 +115,7 @@ export default function App() {
       return;
     }
     if (resolved === 'finance_pilotage') {
-      setFinanceTab(resolveFinanceTab(tab || defaultTabForLegacyModule(moduleId) || 'Résumé'));
+      setFinanceTab(tab || defaultTabForLegacyModule(moduleId) || 'Résumé');
       trackNavOpen('finance_pilotage');
       setActiveState('finance_pilotage');
       return;

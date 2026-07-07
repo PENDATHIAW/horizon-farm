@@ -700,7 +700,10 @@ export function navigationOptionsForFinding(finding = {}) {
     return { module, tab: resolveCommercialTab(tab) };
   }
   if (module === 'finance_pilotage') {
-    return { module, tab: resolveFinanceTab(explicitTab || defaultTabForLegacyModule(rawModule) || 'Créances') };
+    return {
+      module,
+      tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Créances',
+    };
   }
   if (module === 'elevage') {
     return { module, tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Lots & bandes' };
@@ -720,7 +723,7 @@ export function navigateForIaFinding(finding = {}, onNavigate) {
     return;
   }
   if (module === 'finance_pilotage') {
-    onNavigate('finance_pilotage', { tab: resolveFinanceTab(finding.tab || 'Créances') });
+    onNavigate('finance_pilotage', { tab: finding.tab || 'Créances' });
     return;
   }
   if (module === 'achats_stock') {

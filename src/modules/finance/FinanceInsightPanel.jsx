@@ -37,7 +37,7 @@ export default function FinanceInsightPanel({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-[11px] font-black uppercase tracking-wide text-[#9a6b12] flex items-center gap-1">
-            <Bot size={14} /> Pilotage IA finance
+            <Bot size={14} /> Signaux métier finance
           </p>
           <p className="text-sm text-[#8a7456] mt-1">
             Signaux terrain — synthèse trésorerie, rentabilité et risques sur Centre décisionnel.
