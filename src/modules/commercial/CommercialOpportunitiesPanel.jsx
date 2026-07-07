@@ -11,6 +11,7 @@ import { matchOpportunityToClients, opportunityMessageForClient } from './commer
 import { mergeCommercialOpportunities, formatOpportunityUrgencyLabel } from '../../utils/commercialAutoOpportunities.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
+const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 const urgencyTone = (urgency = '') => {
   if (urgency === 'critique') return 'bg-red-100 text-red-900 border-red-200';
@@ -36,6 +37,9 @@ function OpportunityCard({ row, match, onConvert, onContactClient, onContactAll 
               ) : null}
               {row.auto_generated ? (
                 <span className="rounded-full border border-[#eadcc2] px-2 py-0.5 text-[10px] font-black text-[#8a7456]">Auto</span>
+              ) : null}
+              {norm(row.phase || row.statut_activite).includes('phase_future') || norm(row.activity_type).includes('valorisation') ? (
+                <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-black text-violet-800">Phase future</span>
               ) : null}
             </div>
             <p className="mt-1 text-sm font-bold text-[#9a6b12]">{match.label}</p>

@@ -64,9 +64,9 @@ const stockMetrics = (row = {}, movements = [], transactions = []) => {
   };
 };
 
-const STOCK_CATEGORIES = [
-  { value: 'aliment_betail', label: 'Aliment bétail' }, { value: 'aliment_avicole', label: 'Aliment avicole' }, { value: 'semences', label: 'Semences' }, { value: 'engrais', label: 'Engrais / fertilisants' }, { value: 'phytosanitaire', label: 'Produits phytosanitaires' }, { value: 'vaccin', label: 'Vaccins' }, { value: 'medicament', label: 'Médicaments / soins' }, { value: 'materiel', label: 'Matériel / consommables' }, { value: 'emballage', label: 'Emballages' }, { value: 'recolte', label: 'Produits récoltés' }, { value: 'carburant', label: 'Carburant / énergie' }, { value: 'autre', label: 'Autre' },
-];
+import { STOCK_CATEGORY_OPTIONS } from '../utils/stockCategoryOptions.js';
+
+const STOCK_CATEGORIES = STOCK_CATEGORY_OPTIONS;
 const STATUS_OPTIONS = [
   { value: 'ok', label: 'OK / disponible' }, { value: 'en_attente_fournisseur', label: 'En attente fournisseur' }, { value: 'en_attente_livraison', label: 'En attente livraison' }, { value: 'recu_a_controler', label: 'Reçu à contrôler' }, { value: 'non_conforme', label: 'Non conforme' }, { value: 'a_retourner', label: 'À retourner' }, { value: 'retourne', label: 'Retourné fournisseur' }, { value: 'bloque', label: 'Bloqué / quarantaine' }, { value: 'perime', label: 'Périmé' }, { value: 'reserve', label: 'Réservé' }, { value: 'epuise', label: 'Épuisé' },
 ];

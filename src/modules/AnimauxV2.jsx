@@ -13,6 +13,7 @@ import DirectChargesBridge from './DirectChargesBridge.jsx';
 import LifecycleHistoryPanel from './LifecycleHistoryPanel.jsx';
 import AnimalScanBar from '../components/elevage/AnimalScanBar.jsx';
 import { calculateUnifiedAnimalCost } from '../services/unifiedCostService.js';
+import { becameBovinCoproductExit, emitBovinCoproductSideEffects } from '../services/greenpreneurs/bovinCoproductWorkflow.js';
 import { fmtCurrency } from '../utils/format';
 
 const toNumber = (value = 0) => Number(value || 0);
@@ -201,6 +202,31 @@ export default function AnimauxV2(props) {
     await props.onUpdate?.(id, restored);
     await createLossEvent(before, after);
     if (!isReadyForSale(before) && isReadyForSale(after)) await createOrReactivateSaleOpportunity(after, 'animal marqué prêt à vendre');
+    if (becameBovinCoproductExit(before, after)) {
+      try {
+        await emitBovinCoproductSideEffects({
+          animal: after,
+          animalId: id,
+          handlers: {
+            onCreateBusinessEvent: props.onCreateBusinessEvent || businessEventsCrud.create,
+            onCreateStock: props.onCreateStock,
+            onUpdateStock: props.onUpdateStock,
+            onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create,
+            onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh,
+            onRefreshBusinessEvents: props.onRefreshBusinessEvents || businessEventsCrud.refresh,
+          },
+          context: {
+            businessEvents,
+            opportunities,
+            stocks: props.stocks || [],
+          },
+          relatedId: id,
+          date: after.date_sortie || today(),
+        });
+      } catch (error) {
+        console.warn('[AnimauxV2] coproduits bovins non enregistrés', error);
+      }
+    }
   };
   const dataMap = { sales_orders: salesOrders, salesOrders, payments, finances: transactions, transactions, animaux: activeSpeciesRows };
   const selectedActivity = speciesActivityMap[species] || 'bovins';

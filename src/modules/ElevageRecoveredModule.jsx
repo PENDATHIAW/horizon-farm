@@ -458,11 +458,14 @@ export default function ElevageRecoveredModule(props) {
     onUpdateStock: props.onUpdateStock || stockCrud.update,
     onCreateStockMovement: props.onCreateStockMovement || movementsCrud.create,
     onCreateBusinessEvent: props.onCreateBusinessEvent || eventsCrud.create,
+    onRefreshBusinessEvents: props.onRefreshBusinessEvents || eventsCrud.refresh,
     onCreateDocument: props.onCreateDocument || documentsCrud.create,
     onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create,
     onUpdateFinanceTransaction: props.onUpdateFinanceTransaction || financesCrud.update,
     onUpdateLot: props.onUpdateLot || avicoleCrud.update,
     onUpdateAnimal: props.onUpdateAnimal || animauxCrud.update,
+    onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create,
+    onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh,
   };
 
   const transformationFormProps = {
@@ -475,6 +478,7 @@ export default function ElevageRecoveredModule(props) {
     alimentationLogs: feedLogs,
     productionLogs,
     businessEvents,
+    opportunities,
     transactions: rowsOf(props.transactions, financesCrud, periodFiltered),
     handlers: transformationHandlers,
     onNavigate: guardedNavigate,

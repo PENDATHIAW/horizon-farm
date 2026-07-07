@@ -18,6 +18,7 @@ import {
   ELEVAGE_DOMAINS,
 } from './elevageWorkflow.js';
 import { resolveElevageLogFarmId, stampElevageLogFarmId } from './elevageFarmScope.js';
+import { emitBovinCoproductSideEffects, isBovinAnimal } from '../services/greenpreneurs/bovinCoproductWorkflow.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();
@@ -490,6 +491,31 @@ export async function commitOfficialTransformation({
       produit_stock: produitNom,
       cout_revient_viande_kg: costing.costPerKg,
     });
+
+    if (isBovinAnimal(animal) && (transformType === 'abattage' || transformType === 'reforme')) {
+      await emitBovinCoproductSideEffects({
+        animal: { ...animal, poids_carcasse: poidsCarcasse || animal?.poids_carcasse },
+        animalId,
+        date,
+        handlers: {
+          onCreateBusinessEvent: handlers.onCreateBusinessEvent,
+          onCreateStock: handlers.onCreateStock,
+          onUpdateStock: handlers.onUpdateStock,
+          onCreateOpportunity: handlers.onCreateOpportunity,
+          onRefreshOpportunities: handlers.onRefreshOpportunities,
+          onRefreshBusinessEvents: handlers.onRefreshBusinessEvents,
+        },
+        context: {
+          stocks: context.stocks || [],
+          businessEvents: context.businessEvents || [],
+          opportunities: context.opportunities || [],
+        },
+        relatedId: transformId,
+        issueKey,
+        farmId,
+        sourceType: 'erp_real',
+      });
+    }
     }
   }
 

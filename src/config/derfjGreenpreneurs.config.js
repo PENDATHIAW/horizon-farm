@@ -68,3 +68,42 @@ export const CIRCULAR_SIMULATION_MONTHLY_KG = {
   suif_par_bovin: 12,
   os_par_bovin: 18,
 };
+
+/** Options stock UI — catégories circulaires / coproduits */
+export const CIRCULAR_STOCK_CATEGORY_OPTIONS = [
+  { value: 'effluent', label: 'Effluent (fientes / litière)' },
+  { value: 'fertilisant_naturel', label: 'Fertilisant naturel / compost' },
+  { value: 'fumier', label: 'Fumier' },
+  { value: 'coproduit_bovin', label: 'Coproduit bovin (générique)' },
+  { value: 'suif', label: 'Suif brut' },
+  { value: 'os', label: 'Os bovins' },
+  { value: 'transformation_test', label: 'Intrants transformation (test)' },
+];
+
+/** Modèles opportunités phase future — Tallow & Go / BOVINIA */
+export const VALORISATION_OPPORTUNITY_TEMPLATES = {
+  tallow_go: {
+    title: 'Tallow & Go — test demande marché suif',
+    opportunity_type: 'valorisation_coproduit',
+    source_type: 'libre',
+    phase: 'phase_future',
+    statut_activite: 'phase_future',
+    activity_type: 'valorisation_coproduits',
+    notes: 'Pilote cosmétique / beurre corporel — prospection clients',
+    match: 'tallow',
+    created_from: 'greenpreneurs_valorisation_tallow',
+    estimated_value: 0,
+  },
+  bovinia: {
+    title: 'BOVINIA — nutrition os déshydraté',
+    opportunity_type: 'valorisation_coproduit',
+    source_type: 'libre',
+    phase: 'phase_future',
+    statut_activite: 'phase_future',
+    activity_type: 'valorisation_coproduits',
+    notes: 'Demande marché collagène / bien-être animal',
+    match: 'bovinia',
+    created_from: 'greenpreneurs_valorisation_bovinia',
+    estimated_value: 0,
+  },
+};

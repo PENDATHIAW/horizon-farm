@@ -1,7 +1,9 @@
+import { CIRCULAR_STOCK_CATEGORIES } from '../config/derfjGreenpreneurs.config.js';
+
 const PAYMENT_OPTIONS = ['Cash', 'Banque', 'Wave', 'Orange Money', 'Free Money', 'Carte bancaire'];
 const MODULE_OPTIONS = ['animaux', 'avicole', 'cultures', 'stock', 'finances', 'ventes', 'clients', 'fournisseurs', 'sante', 'documents', 'taches', 'equipements', 'smartfarm', 'rh', 'autre'];
 const UNIT_OPTIONS = ['kg', 'sac', 'carton', 'plateau', 'tete', 'unite', 'litre', 'botte', 'caisse', 'm2', 'hectare'];
-const STOCK_CATEGORY_OPTIONS = ['aliment_betail', 'aliment_volaille', 'semence', 'engrais', 'traitement', 'pharmacie', 'emballage', 'materiel', 'produit_fini', 'carburant', 'autre'];
+const STOCK_CATEGORY_OPTIONS = ['aliment_betail', 'aliment_volaille', 'semence', 'engrais', 'traitement', 'pharmacie', 'emballage', 'materiel', 'produit_fini', 'carburant', 'autre', ...CIRCULAR_STOCK_CATEGORIES];
 const CLIENT_TYPE_OPTIONS = ['particulier', 'restaurant', 'boutique', 'grossiste', 'revendeur', 'institution', 'partenaire', 'autre'];
 const SUPPLIER_CATEGORY_OPTIONS = ['aliments', 'poussins', 'animaux', 'intrants_cultures', 'veterinaire', 'transport', 'equipements', 'energie', 'services', 'autre'];
 const ENTITY_TYPE_OPTIONS = ['animal', 'lot_avicole', 'culture', 'stock', 'transaction', 'vente', 'client', 'fournisseur', 'document', 'equipement', 'tache', 'alerte', 'autre'];
