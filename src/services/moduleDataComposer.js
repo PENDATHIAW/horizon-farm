@@ -72,6 +72,10 @@ export function composeReportData(crud = {}) {
     taches: rows(crud.taches),
     alertes: rows(crud.alertes_center),
     equipements: rows(crud.equipements),
+    business_events: rows(crud.business_events),
+    businessEvents: rows(crud.business_events),
+    sales_opportunities: rows(crud.sales_opportunities),
+    opportunities: rows(crud.sales_opportunities),
   };
 }
 

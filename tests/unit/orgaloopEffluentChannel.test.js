@@ -9,6 +9,12 @@ import {
   buildOrgaloopEffluentOpportunity,
   ORGALOOP_EFFLUENT_OPPORTUNITY_TEMPLATE,
 } from '../../src/services/greenpreneurs/orgaloopEffluentChannel.js';
+import {
+  ensureOrgaloopEffluentOpportunity,
+  enhanceManureWorkflowForOrgaloop,
+  emitOrgaloopEffluentSaleSideEffects,
+  isOrgaloopEffluentOpportunity,
+} from '../../src/services/greenpreneurs/orgaloopEffluentWorkflow.js';
 import { computeCircularEconomyMetrics } from '../../src/services/greenpreneurs/circularEconomyMetrics.js';
 import { buildGreenpreneursCentreAlerts } from '../../src/services/greenpreneurs/greenpreneursMetrics.js';
 
@@ -78,6 +84,52 @@ test('circular economy — inclut orgaloop et score vente plateforme', () => {
   assert.equal(circular.orgaloopPrimary, true);
   assert.ok(circular.orgaloop.soldKg > 0);
   assert.ok(circular.circularityScore >= 60);
+});
+
+test('enhanceManureWorkflowForOrgaloop — opportunité plateforme', () => {
+  const base = {
+    stockId: 'st1',
+    profile: { profile: 'bovins', label: 'Fumier bœufs' },
+    stock: { quantite: 10, prix_unitaire: 5000 },
+    event: { fumier_sacs: 3, date: '2026-06-09', source_id: 'int1' },
+    opportunity: { id: 'opp1' },
+  };
+  const enhanced = enhanceManureWorkflowForOrgaloop(base, { profileMeta: { profile: 'bovins' } });
+  assert.equal(enhanced.orgaloopEnhanced, true);
+  assert.equal(enhanced.opportunity.canal, 'orgaloop');
+  assert.ok(enhanced.extraEvents?.length === 1);
+  assert.equal(enhanced.extraEvents[0].event_type, 'fumier_collecte');
+});
+
+test('isOrgaloopEffluentOpportunity — détecte pipeline', () => {
+  assert.equal(isOrgaloopEffluentOpportunity({ activity_type: 'effluent_orgaloop' }), true);
+  assert.equal(isOrgaloopEffluentOpportunity({ canal: 'orgaloop' }), true);
+  assert.equal(isOrgaloopEffluentOpportunity({ activity_type: 'oeufs' }), false);
+});
+
+test('emitOrgaloopEffluentSaleSideEffects — event vente', async () => {
+  const created = [];
+  const result = await emitOrgaloopEffluentSaleSideEffects({
+    order: { id: 'ord1', product_name: 'Fumier bovin', quantity: 4, unit: 'sac', montant_total: 20000, date: '2026-06-09' },
+    items: [],
+    form: { canal: 'orgaloop' },
+    handlers: {
+      onCreateBusinessEvent: async (evt) => { created.push(evt); },
+    },
+    context: { business_events: [] },
+  });
+  assert.equal(result.emitted, true);
+  assert.equal(created[0].event_type, 'effluent_vendu_orgaloop');
+  assert.equal(created[0].canal, 'orgaloop');
+});
+
+test('ensureOrgaloopEffluentOpportunity — idempotent', async () => {
+  const existing = [{ id: 'o1', opportunity_key: 'orgaloop-effluent:libre:2026-06-09', canal: 'orgaloop', created_from: 'orgaloop_effluent_channel' }];
+  const created = await ensureOrgaloopEffluentOpportunity({
+    opportunities: existing,
+    handlers: { onCreateOpportunity: async () => { throw new Error('should not create'); } },
+  });
+  assert.equal(created.id, 'o1');
 });
 
 test('centre alerts — Orgaloop remplace alerte fertilisation', () => {

@@ -46,7 +46,15 @@ function buildDraft(summary) {
   const f = financeurInfo(summary.financeur, summary.customFinanceur);
   const derBlock = summary.financeur === 'DER' ? '\n\nPoints DER/FJ à valoriser : emplois directs, emplois femmes/jeunes, formalisation, sécurité alimentaire, impact local, formation, suivi trimestriel, transparence des dépenses et capacité de remboursement.' : '';
   const gp = summary.financeur === 'DER' ? computeGreenpreneursMetrics(summary.greenpreneursData || {}) : null;
-  const greenpreneursBlock = gp ? `\n\nScore Greenpreneurs DER/FJ : ${gp.readiness.total}/100 (${gp.readiness.statusLabel}). Impact environnemental mesurable : ${gp.circular.engraisSavingsFcfa.toLocaleString('fr-FR')} FCFA d'économies engrais estimées, ${gp.circular.parcellesFertilisees} parcelle(s) fertilisée(s), ${gp.circular.fluxCount} flux circulaires suivis. Feuille de route : ${gp.valorisation.roadmapNote}` : '';
+  const greenpreneursBlock = gp ? (() => {
+    const orgaloop = gp.circular.orgaloop || {};
+    const orgaloopLine = gp.circular.orgaloopPrimary && orgaloop.soldKg > 0
+      ? ` Valorisation ${orgaloop.platformName || 'Orgaloop'} : ${Math.round(orgaloop.soldKg)} kg vendus (${orgaloop.revenueFcfa?.toLocaleString('fr-FR') || 0} FCFA).`
+      : gp.circular.orgaloopPrimary
+        ? ` Effluents (fumier/fientes) : vente directe plateforme ${orgaloop.platformName || 'Orgaloop'}.`
+        : '';
+    return `\n\nScore Greenpreneurs DER/FJ : ${gp.readiness.total}/100 (${gp.readiness.statusLabel}).${orgaloopLine} Impact environnemental : ${gp.circular.engraisSavingsFcfa.toLocaleString('fr-FR')} FCFA d'économies engrais estimées, ${gp.circular.parcellesFertilisees} parcelle(s) fertilisée(s), ${gp.circular.fluxCount} flux circulaires suivis. Feuille de route : ${gp.valorisation.roadmapNote}`;
+  })() : '';
   const monthlyRepayment = Math.round(summary.investment / 36);
   return {
     executive: `Horizon Farm est une ferme intégrée portée par Penda THIAW. Le projet combine production d’œufs, poulets de chair, embouche bovine, cultures et commercialisation structurée. Le financement demandé vise les actifs productifs, les infrastructures, les équipements, les intrants et le fonds de roulement. Le dossier est préparé pour ${f.label}. ${f.angle}.${derBlock}`,
@@ -112,8 +120,12 @@ function exportPdf(summary, draft, options = {}) {
   }
   if (summary.financeur === 'DER' && summary.greenpreneursData) {
     const gp = computeGreenpreneursMetrics(summary.greenpreneursData);
+    const orgaloop = gp.circular.orgaloop || {};
+    const orgaloopAnnex = gp.circular.orgaloopPrimary
+      ? ` Canal ${orgaloop.platformName || 'Orgaloop'} : ${Math.round(orgaloop.soldKg || 0)} kg vendus, ${money(orgaloop.revenueFcfa || 0)} CA, ${orgaloop.salesCount || 0} vente(s). Stratégie : vente directe effluents (pas de stockage long terme).`
+      : '';
     if (y > 210) { doc.addPage(); y = 24; }
-    y = section(doc, 'Annexe — Greenpreneurs DER/FJ', `Score ${gp.readiness.total}/100 — ${gp.readiness.statusLabel}. Économies engrais : ${money(gp.circular.engraisSavingsFcfa)}. Parcelles fertilisées : ${gp.circular.parcellesFertilisees}. Tallow & Go : ${gp.valorisation.phase2_tallow_go.score}/100 (${gp.valorisation.phase2_tallow_go.statusLabel}). BOVINIA : ${gp.valorisation.phase3_bovinia.score}/100 (${gp.valorisation.phase3_bovinia.statusLabel}). ${gp.valorisation.roadmapNote}`, y);
+    y = section(doc, 'Annexe — Greenpreneurs DER/FJ', `Score ${gp.readiness.total}/100 — ${gp.readiness.statusLabel}.${orgaloopAnnex} Économies engrais : ${money(gp.circular.engraisSavingsFcfa)}. Parcelles fertilisées : ${gp.circular.parcellesFertilisees}. Tallow & Go : ${gp.valorisation.phase2_tallow_go.score}/100 (${gp.valorisation.phase2_tallow_go.statusLabel}). BOVINIA : ${gp.valorisation.phase3_bovinia.score}/100 (${gp.valorisation.phase3_bovinia.statusLabel}). ${gp.valorisation.roadmapNote}`, y);
   }
   const pages = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pages; i += 1) { doc.setPage(i); doc.setFontSize(8); doc.setTextColor(125, 106, 74); doc.text(`Horizon Farm · dossier financement · ${i}/${pages}`, 105, 288, { align: 'center' }); }

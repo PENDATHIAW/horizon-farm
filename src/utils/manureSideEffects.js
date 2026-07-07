@@ -1,4 +1,7 @@
 import { buildManureCollectionWorkflow, resolveManureProfile } from './manureWorkflows';
+import { enhanceManureWorkflowForOrgaloop } from '../services/greenpreneurs/orgaloopEffluentWorkflow.js';
+
+const arr = (value) => (Array.isArray(value) ? value : []);
 
 export async function runManureCollectionSideEffects({
   intervention = {},
@@ -12,7 +15,7 @@ export async function runManureCollectionSideEffects({
   handlers = {},
 } = {}) {
   const profileMeta = resolveManureProfile(target, lots, animaux);
-  const workflow = buildManureCollectionWorkflow({
+  let workflow = buildManureCollectionWorkflow({
     intervention,
     target,
     sacs,
@@ -22,6 +25,8 @@ export async function runManureCollectionSideEffects({
     date,
   });
   if (!workflow) return null;
+
+  workflow = enhanceManureWorkflowForOrgaloop(workflow, { profileMeta });
 
   if (workflow.stockExistingId) {
     await handlers.onUpdateStock?.(workflow.stockExistingId, workflow.stock);
@@ -37,6 +42,13 @@ export async function runManureCollectionSideEffects({
 
   if (workflow.event && handlers.onCreateBusinessEvent) {
     await handlers.onCreateBusinessEvent({ ...workflow.event, side_effects_managed: true });
+  }
+
+  for (const extraEvent of arr(workflow.extraEvents)) {
+    if (extraEvent && handlers.onCreateBusinessEvent) {
+      // eslint-disable-next-line no-await-in-loop
+      await handlers.onCreateBusinessEvent({ ...extraEvent, side_effects_managed: true });
+    }
   }
 
   return workflow;

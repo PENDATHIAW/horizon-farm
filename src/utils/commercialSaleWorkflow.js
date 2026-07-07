@@ -14,6 +14,7 @@ import {
   resolveCommercialSaleFarmId,
 } from './commercialFarmScope.js';
 import { validateSaleStockAvailability } from './commercialStockValidation.js';
+import { emitOrgaloopEffluentSaleSideEffects } from '../services/greenpreneurs/orgaloopEffluentWorkflow.js';
 
 const arr = (value) => (Array.isArray(value) ? value : []);
 const clean = (value) => String(value || '').trim();
@@ -217,6 +218,9 @@ export function buildCommercialSaleRecords({
     notes: form.notes || null,
     opportunity_id: form.opportunity_id || '',
     converted_opportunity_id: form.opportunity_id || '',
+    canal: clean(form.canal || form.channel || ''),
+    channel: clean(form.canal || form.channel || ''),
+    marketplace: clean(form.marketplace || ''),
     created_from: 'commercial_sale_workflow',
     side_effects_managed: true,
     issue_key: issueKey,
@@ -495,6 +499,17 @@ export async function commitCommercialSale(records, handlers = {}, context = {})
   if (records.businessEvent) {
     await onCreateBusinessEvent?.(records.businessEvent);
   }
+
+  await emitOrgaloopEffluentSaleSideEffects({
+    order: records.order,
+    items: records.items,
+    form,
+    handlers: { onCreateBusinessEvent, onRefreshBusinessEvents: handlers.onRefreshBusinessEvents || context.sideEffectHandlers?.onRefreshBusinessEvents },
+    context: {
+      businessEvents: context.businessEvents || context.business_events,
+      ...context,
+    },
+  });
 
   const oppId = clean(form.opportunity_id || records.order?.converted_opportunity_id || records.order?.opportunity_id);
   const updateOpp = handlers.onUpdateOpportunity || context.sideEffectHandlers?.onUpdateOpportunity;

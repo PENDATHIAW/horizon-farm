@@ -54,12 +54,17 @@ export function buildSaleFormFromDraft(draft = {}, props = {}) {
     invoice_issued: fields.invoice_issued !== false,
     notes: draft.raw_input || fields.notes || fields.reason || '',
     opportunity_id: fields.opportunity_id || draft.opportunity_id || '',
+    canal: fields.canal || fields.channel || '',
+    marketplace: fields.marketplace || '',
   };
 }
 
 export function buildSaleFormFromOpportunity(opportunity = {}, props = {}, client = null) {
   const qty = Math.max(1, num(opportunity.quantity || 1));
   const total = num(opportunity.estimated_value || opportunity.montant_estime || 0);
+  const isOrgaloop = String(opportunity.canal || opportunity.marketplace || opportunity.statut_activite || '').toLowerCase().includes('orgaloop')
+    || String(opportunity.activity_type || '').includes('effluent_orgaloop')
+    || String(opportunity.created_from || '').includes('orgaloop');
   return buildSaleFormFromDraft({
     opportunity_id: opportunity.id,
     draft_fields: {
@@ -68,12 +73,14 @@ export function buildSaleFormFromOpportunity(opportunity = {}, props = {}, clien
       source_type: opportunity.source_type || '',
       product_name: opportunity.title || opportunity.libelle || opportunity.product_name || 'Opportunité',
       quantity: qty,
-      unit: opportunity.unit || 'unité',
+      unit: opportunity.unit || opportunity.unite || 'sac',
       unit_price: total > 0 ? Math.round(total / qty) : 0,
       client_id: client?.id || opportunity.client_id || '',
       client_name: client?.nom || client?.name || opportunity.client_nom || opportunity.customer_name || '',
       date: today(),
       notes: opportunity.reason || opportunity.notes || '',
+      canal: isOrgaloop ? 'orgaloop' : (opportunity.canal || ''),
+      marketplace: isOrgaloop ? 'orgaloop' : (opportunity.marketplace || ''),
     },
     raw_input: opportunity.reason || opportunity.notes || '',
   }, props);

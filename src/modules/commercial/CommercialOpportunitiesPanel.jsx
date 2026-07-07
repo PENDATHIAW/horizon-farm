@@ -1,4 +1,4 @@
-import { Lightbulb, MessageCircle, Phone, ShoppingCart } from 'lucide-react';
+import { Lightbulb, MessageCircle, Phone, ShoppingCart, Store } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Btn from '../../components/Btn';
@@ -9,6 +9,12 @@ import CommercialSaleReadinessPanel from './CommercialSaleReadinessPanel.jsx';
 import SellableStockPublicationBridge from './SellableStockPublicationBridge.jsx';
 import { matchOpportunityToClients, opportunityMessageForClient } from './commercialOpportunityMatching.js';
 import { mergeCommercialOpportunities, formatOpportunityUrgencyLabel } from '../../utils/commercialAutoOpportunities.js';
+import {
+  ensureOrgaloopEffluentOpportunity,
+  isOrgaloopEffluentOpportunity,
+  markEffluentPublishedOnOrgaloop,
+} from '../../services/greenpreneurs/orgaloopEffluentWorkflow.js';
+import { ORGALOOP_EFFLUENT_CHANNEL } from '../../config/derfjGreenpreneurs.config.js';
 
 const arr = (v) => (Array.isArray(v) ? v : []);
 const norm = (value = '') => String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -19,9 +25,11 @@ const urgencyTone = (urgency = '') => {
   return 'bg-sky-50 text-sky-900 border-sky-200';
 };
 
-function OpportunityCard({ row, match, onConvert, onContactClient, onContactAll }) {
+function OpportunityCard({ row, match, onConvert, onContactClient, onContactAll, onPublishOrgaloop }) {
   const amount = saleAmount(row) || row.estimated_value || row.montant_estime || 0;
   const qty = row.quantity ?? row.quantite;
+  const orgaloopOpp = isOrgaloopEffluentOpportunity(row);
+  const published = Boolean(row.published_on_orgaloop_at) || norm(row.statut) === 'en_cours';
   return (
     <article className="rounded-2xl border border-[#d6c3a0] bg-white p-4 shadow-sm space-y-3">
       <div className="flex items-start justify-between gap-2">
@@ -41,6 +49,9 @@ function OpportunityCard({ row, match, onConvert, onContactClient, onContactAll 
               {norm(row.phase || row.statut_activite).includes('phase_future') || norm(row.activity_type).includes('valorisation') ? (
                 <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-black text-violet-800">Phase future</span>
               ) : null}
+              {orgaloopOpp ? (
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-800">{ORGALOOP_EFFLUENT_CHANNEL.platformName}</span>
+              ) : null}
             </div>
             <p className="mt-1 text-sm font-bold text-[#9a6b12]">{match.label}</p>
             {qty ? <p className="text-xs text-[#8a7456]">Qté {qty} {row.unit || ''}</p> : null}
@@ -58,6 +69,9 @@ function OpportunityCard({ row, match, onConvert, onContactClient, onContactAll 
           </>
         ) : match.clients.length ? (
           <Btn variant="whatsapp" small icon={MessageCircle} onClick={() => onContactAll(row, match.clients)}>Proposer aux clients</Btn>
+        ) : null}
+        {orgaloopOpp && !published ? (
+          <Btn variant="outline" small icon={Store} onClick={() => onPublishOrgaloop(row)}>Publier sur Orgaloop</Btn>
         ) : null}
         <Btn variant="amber" small icon={ShoppingCart} onClick={() => onConvert(row, match.clients[0])}>Convertir en vente</Btn>
       </div>
@@ -141,6 +155,38 @@ export default function CommercialOpportunitiesPanel({
     });
   };
 
+  const createOrgaloopOpportunity = async () => {
+    try {
+      await ensureOrgaloopEffluentOpportunity({
+        opportunities,
+        handlers: {
+          onCreateOpportunity,
+          onRefreshOpportunities,
+        },
+      });
+      toast.success(`Opportunité ${ORGALOOP_EFFLUENT_CHANNEL.platformName} créée`);
+    } catch (error) {
+      toast.error(error.message || 'Création impossible');
+    }
+  };
+
+  const publishOnOrgaloop = async (opportunity) => {
+    try {
+      await markEffluentPublishedOnOrgaloop({
+        opportunity,
+        handlers: {
+          onUpdateOpportunity,
+          onCreateBusinessEvent,
+          onRefreshOpportunities,
+          onRefreshBusinessEvents,
+        },
+      });
+      toast.success(`Marqué comme publié sur ${ORGALOOP_EFFLUENT_CHANNEL.platformName}`);
+    } catch (error) {
+      toast.error(error.message || 'Publication impossible');
+    }
+  };
+
   return (
     <div className="space-y-4">
       <CommercialSaleReadinessPanel
@@ -171,7 +217,10 @@ export default function CommercialOpportunitiesPanel({
           <p className="text-2xl font-black text-[#2f2415]">{fmtCurrency(pipeline)}</p>
           <p className="text-sm text-[#8a7456]">{mergedOpportunities.length} opportunité(s) · stock, cultures, élevage — clients ciblés automatiquement</p>
         </div>
-        <button type="button" onClick={openDirectSale} className="min-h-[44px] rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white">+ Vente directe</button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={openDirectSale} className="min-h-[44px] rounded-xl bg-[#2f2415] px-4 py-2 text-sm font-black text-white">+ Vente directe</button>
+          <button type="button" onClick={createOrgaloopOpportunity} className="min-h-[44px] rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-900">+ Fumier/fientes Orgaloop</button>
+        </div>
       </div>
 
       {enriched.length ? (
@@ -184,6 +233,7 @@ export default function CommercialOpportunitiesPanel({
               onConvert={convertOpportunity}
               onContactClient={openContact}
               onContactAll={openContactAll}
+              onPublishOrgaloop={publishOnOrgaloop}
             />
           ))}
         </div>
