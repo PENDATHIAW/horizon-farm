@@ -122,7 +122,7 @@ function exportPdf(summary, draft, options = {}) {
     const gp = computeGreenpreneursMetrics(summary.greenpreneursData);
     const orgaloop = gp.circular.orgaloop || {};
     const orgaloopAnnex = gp.circular.orgaloopHybrid || gp.circular.orgaloopPrimary
-      ? ` Stratégie hybride : fertilisation cultures prioritaire. Surplus ${orgaloop.platformName || 'Orgaloop'} : ${Math.round(orgaloop.soldKg || 0)} kg, ${money(orgaloop.revenueFcfa || 0)} CA, ${orgaloop.salesCount || 0} vente(s). Parcelles fertilisées : ${gp.circular.parcellesFertilisees}. Utilisé cultures : ${Math.round(gp.circular.usedOnCulturesKg || 0)} kg.`
+      ? ` Stratégie hybride : fertilisation cultures prioritaire. Surplus ${orgaloop.platformName || 'Orgaloop'} : ${Math.round(orgaloop.soldKg || 0)} kg, ${money(orgaloop.revenueFcfa || 0)} CA, ${orgaloop.salesCount || 0} vente(s). Parcelles fertilisées : ${gp.circular.parcellesFertilisees}. Utilisé cultures : ${Math.round(gp.circular.usedOnCulturesKg || 0)} kg.${gp.circular.effluentSurplusKg > 0 ? ` Surplus effluent restant : ${Math.round(gp.circular.effluentSurplusKg)} kg.` : ''}`
       : '';
     if (y > 210) { doc.addPage(); y = 24; }
     y = section(doc, 'Annexe — Greenpreneurs DER/FJ', `Score ${gp.readiness.total}/100 — ${gp.readiness.statusLabel}.${orgaloopAnnex} Économies engrais : ${money(gp.circular.engraisSavingsFcfa)}. Parcelles fertilisées : ${gp.circular.parcellesFertilisees}. Tallow & Go : ${gp.valorisation.phase2_tallow_go.score}/100 (${gp.valorisation.phase2_tallow_go.statusLabel}). BOVINIA : ${gp.valorisation.phase3_bovinia.score}/100 (${gp.valorisation.phase3_bovinia.statusLabel}). ${gp.valorisation.roadmapNote}`, y);
