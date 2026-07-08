@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Truck, CheckCircle2, Clock, AlertTriangle, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
+import QuickInputModal from '../../components/QuickInputModal.jsx';
 import { fmtCurrency } from '../../utils/format';
 import {
   buildCommercialDeliveryQueue,
@@ -30,6 +32,9 @@ export default function CommercialDeliveriesPanel({
   setTab,
 }) {
   const queue = buildCommercialDeliveryQueue({ deliveries, orders, clients, documents });
+  const [proofTarget, setProofTarget] = useState(null);
+  const [proofNote, setProofNote] = useState('');
+  const [proofSaving, setProofSaving] = useState(false);
 
   const markDelivered = async (row) => {
     const order = orders.find((item) => String(item.id) === String(row.orderId));
@@ -60,24 +65,46 @@ export default function CommercialDeliveriesPanel({
     }
   };
 
-  const addProof = async (row) => {
-    const note = window.prompt('Note / preuve livraison (signature texte, confirmation...)');
-    if (note == null) return;
-    const patch = buildDeliveryProofPatch({ note, clientConfirmed: true });
-    await onUpdateDelivery?.(row.id, patch);
-    if (onCreateDocument) {
-      await onCreateDocument({
-        title: `Preuve livraison ${row.orderId}`,
-        document_category: 'preuve_livraison',
-        module_source: 'commercial',
-        entity_id: row.orderId,
-        order_id: row.orderId,
-        related_id: row.orderId,
-        notes: note,
-      });
+  const openProofModal = (row) => {
+    setProofTarget(row);
+    setProofNote('');
+  };
+
+  const closeProofModal = () => {
+    if (proofSaving) return;
+    setProofTarget(null);
+    setProofNote('');
+  };
+
+  const submitProof = async () => {
+    if (!proofTarget || !proofNote.trim()) {
+      toast.error('Note / preuve obligatoire');
+      return;
     }
-    toast.success('Preuve enregistrée');
-    await onRefreshWorkflow?.();
+    try {
+      setProofSaving(true);
+      const note = proofNote.trim();
+      const patch = buildDeliveryProofPatch({ note, clientConfirmed: true });
+      await onUpdateDelivery?.(proofTarget.id, patch);
+      if (onCreateDocument) {
+        await onCreateDocument({
+          title: `Preuve livraison ${proofTarget.orderId}`,
+          document_category: 'preuve_livraison',
+          module_source: 'commercial',
+          entity_id: proofTarget.orderId,
+          order_id: proofTarget.orderId,
+          related_id: proofTarget.orderId,
+          notes: note,
+        });
+      }
+      toast.success('Preuve enregistrée');
+      await onRefreshWorkflow?.();
+      closeProofModal();
+    } catch (error) {
+      toast.error(error?.message || 'Preuve impossible');
+    } finally {
+      setProofSaving(false);
+    }
   };
 
   const Section = ({ title, rows, tone = 'neutral' }) => {
@@ -105,7 +132,7 @@ export default function CommercialDeliveriesPanel({
                     Marquer livrée
                   </button>
                 ) : null}
-                <button type="button" onClick={() => addProof(row)} className="rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-black text-sky-800">
+                <button type="button" onClick={() => openProofModal(row)} className="rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-black text-sky-800">
                   Ajouter preuve
                 </button>
               </div>
@@ -150,6 +177,20 @@ export default function CommercialDeliveriesPanel({
       {!queue.all.length ? (
         <p className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-4 py-6 text-center text-sm text-[#8a7456]">Aucune livraison enregistrée — créez une vente avec livraison.</p>
       ) : null}
+
+      <QuickInputModal
+        open={Boolean(proofTarget)}
+        title="Preuve livraison"
+        description={proofTarget ? `${proofTarget.orderId} · ${proofTarget.clientName}` : ''}
+        label="Note / preuve (signature texte, confirmation…)"
+        type="textarea"
+        value={proofNote}
+        onChange={setProofNote}
+        submitLabel="Enregistrer la preuve"
+        onClose={closeProofModal}
+        onSubmit={submitProof}
+        busy={proofSaving}
+      />
     </div>
   );
 }

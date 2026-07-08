@@ -1,3 +1,8 @@
+/**
+ * Wizard Business Plan — composant legacy non monté dans l’arbre React actuel.
+ * Entrée BP officielle : Objectifs & Croissance → Suivi du Business Plan + InvestissementsV9.
+ * Conservé pour réutilisation future via `onCreateBusinessPlan` (App.jsx).
+ */
 import { ChevronLeft, ChevronRight, Plus, Trash2, Wand2 } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';

@@ -2,6 +2,7 @@ import { AlertTriangle, Camera, ShieldCheck, Upload } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import Btn from '../../components/Btn';
+import QuickInputModal from '../../components/QuickInputModal.jsx';
 import {
   blockSanitaryAction,
   findActiveWithdrawals,
@@ -108,6 +109,8 @@ export default function TransformationOfficialForm(props) {
   });
   const [saving, setSaving] = useState(false);
   const [lastResult, setLastResult] = useState(null);
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const [overrideReason, setOverrideReason] = useState('');
 
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -223,15 +226,18 @@ export default function TransformationOfficialForm(props) {
   };
 
   const requestOverride = () => {
-    const reason = typeof window !== 'undefined'
-      ? window.prompt('Justification obligatoire pour dérogation sanitaire :', form.sanitary_override_reason || '')
-      : '';
-    if (!reason?.trim()) {
+    setOverrideReason(form.sanitary_override_reason || '');
+    setOverrideOpen(true);
+  };
+
+  const submitOverride = () => {
+    if (!overrideReason.trim()) {
       toast.error('Justification obligatoire');
       return;
     }
     update('sanitary_override', true);
-    update('sanitary_override_reason', reason.trim());
+    update('sanitary_override_reason', overrideReason.trim());
+    setOverrideOpen(false);
     toast('Dérogation sanitaire enregistrée — sera tracée à la validation', { icon: '⚠️' });
   };
 
@@ -391,6 +397,18 @@ export default function TransformationOfficialForm(props) {
           {saving ? 'Validation…' : 'Valider transformation'}
         </Btn>
       </div>
+      <QuickInputModal
+        open={overrideOpen}
+        title="Dérogation sanitaire"
+        description="Justification obligatoire — sera tracée à la validation."
+        label="Motif de dérogation"
+        type="textarea"
+        value={overrideReason}
+        onChange={setOverrideReason}
+        submitLabel="Confirmer la dérogation"
+        onClose={() => setOverrideOpen(false)}
+        onSubmit={submitOverride}
+      />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { CheckCircle2, ChevronDown, ChevronUp, ClipboardCheck, ExternalLink, Eye, ShieldAlert } from 'lucide-react';
+import QuickInputModal from '../QuickInputModal.jsx';
 import toast from 'react-hot-toast';
 import {
   auditWorkflowQuality,
@@ -125,6 +126,8 @@ function WorkflowRow({ result, expanded, onToggle, onNavigate, onManualValidate 
 export default function WorkflowQualityPanel({ dataMap = {}, onNavigate }) {
   const [manualVersion, setManualVersion] = useState(0);
   const [expandedId, setExpandedId] = useState(null);
+  const [validateTarget, setValidateTarget] = useState(null);
+  const [validateNote, setValidateNote] = useState('');
 
   const manualChecks = useMemo(() => {
     void manualVersion;
@@ -138,10 +141,16 @@ export default function WorkflowQualityPanel({ dataMap = {}, onNavigate }) {
   const score = useMemo(() => computeWorkflowQualityScore(results), [results]);
 
   const handleManualValidate = (result) => {
-    const note = window.prompt(`Note optionnelle pour « ${result.title} »`, result.details || '');
-    if (note === null) return;
-    markWorkflowQualityManual(result.id, note);
+    setValidateTarget(result);
+    setValidateNote(result.details || '');
+  };
+
+  const submitManualValidate = () => {
+    if (!validateTarget) return;
+    markWorkflowQualityManual(validateTarget.id, validateNote);
     setManualVersion((value) => value + 1);
+    setValidateTarget(null);
+    setValidateNote('');
     toast.success('Flux marqué comme validé manuellement');
   };
 
@@ -190,6 +199,18 @@ export default function WorkflowQualityPanel({ dataMap = {}, onNavigate }) {
           />
         ))}
       </div>
+      <QuickInputModal
+        open={Boolean(validateTarget)}
+        title={validateTarget ? `Valider « ${validateTarget.title} »` : 'Valider le flux'}
+        label="Note optionnelle"
+        type="textarea"
+        value={validateNote}
+        onChange={setValidateNote}
+        required={false}
+        submitLabel="Marquer validé"
+        onClose={() => { setValidateTarget(null); setValidateNote(''); }}
+        onSubmit={submitManualValidate}
+      />
     </section>
   );
 }

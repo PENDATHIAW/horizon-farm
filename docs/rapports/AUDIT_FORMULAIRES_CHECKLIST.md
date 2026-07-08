@@ -97,3 +97,4 @@ Pour chaque module, lister :
 | Gestion système | ✅ | ✅ | ✅ |
 | Assistant ERP | N/A (panneau) | ✅ | ✅ |
 | Activité & Sync ERP | ✅ | ✅ | ✅ |
+| Écarts transverses (`window.prompt`) | — | ✅ | — |

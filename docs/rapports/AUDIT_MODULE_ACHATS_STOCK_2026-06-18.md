@@ -86,4 +86,6 @@ node --test tests/unit/stockPurchaseWorkflow.test.js
 
 - Migration prod `stock_movements` (`farm_id`, `dedupe_key`) — à confirmer en déploiement
 - `CONSUMPTION_GAPS` santé / emballages œufs (traçabilité partielle)
-- Archivage `StocksV2.jsx`, `StockLossFinanceBridge.jsx`
+- Archivage `StocksV2.jsx`
+- `StockLossFinanceBridge.jsx` — **non monté** ; modales corrigées si réactivation
+- `StockFlowPanel.jsx` — legacy StocksV3/V5 ; prompts remplacés par `QuickInputModal` (voir audit transversal)

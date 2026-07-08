@@ -1,5 +1,7 @@
 import { AlertTriangle, ArrowDownUp, CheckCircle2, PackagePlus, Receipt, Truck } from 'lucide-react';
+import { useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import QuickInputModal from '../components/QuickInputModal.jsx';
 import useCrudModule from '../hooks/useCrudModule';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
@@ -20,25 +22,11 @@ function stockMetrics(row = {}) {
 function supplierId(row = {}) { return row.fournisseur_id || row.supplier_id || row.fournisseur || ''; }
 function supplierName(supplier = {}) { return supplier.nom || supplier.name || supplier.id || 'fournisseur'; }
 
-function askQty(row, title, fallback = 1) {
-  const raw = window.prompt(`${title}\nProduit: ${row.produit || row.id}\nUnité: ${row.unite || 'unité'}\nQuantité à saisir:`, String(Math.max(1, Math.round(fallback || 1))));
-  if (raw === null) return null;
-  const qty = toNumber(raw);
-  if (qty <= 0) {
-    toast.error('Quantité invalide');
-    return null;
-  }
-  return qty;
-}
-
-function askReceiptMode(row, amount) {
-  if (amount <= 0) return 'no_cost';
-  const raw = window.prompt(`Réception ${row.produit || row.id}\nCoût estimé: ${fmtCurrency(amount)}\n1 = payé maintenant\n2 = dette fournisseur\n3 = sans paiement`, supplierId(row) ? '2' : '1');
-  if (raw === null) return null;
-  if (raw === '2') return 'supplier_debt';
-  if (raw === '3') return 'no_cost';
-  return 'paid_now';
-}
+const RECEIPT_MODE_OPTIONS = [
+  { value: 'paid_now', label: 'Payé maintenant' },
+  { value: 'supplier_debt', label: 'Dette fournisseur' },
+  { value: 'no_cost', label: 'Sans paiement' },
+];
 
 function movementLabel(type) {
   if (type === 'entree') return 'réception';
@@ -130,13 +118,12 @@ async function createSupplierDebt(row, amount, props) {
   });
 }
 
-async function receiveCritical(row, props, quantityFromCaller = null) {
+async function receiveCritical(row, props, quantityFromCaller = null, receiptModeFromCaller = null) {
   const metrics = stockMetrics(row);
-  const qty = quantityFromCaller || askQty(row, 'Réception stock', metrics.suggestedOrderQty || toNumber(row.seuil) || 1);
+  const qty = quantityFromCaller;
   if (!qty) return;
   const amount = qty * unitPrice(row);
-  const mode = askReceiptMode(row, amount);
-  if (!mode) return;
+  const mode = receiptModeFromCaller || (amount <= 0 ? 'no_cost' : (supplierId(row) ? 'supplier_debt' : 'paid_now'));
   await stockMove({ row, type: 'entree', qty, props, extra: { statut: mode === 'supplier_debt' ? 'recu_a_controler' : 'ok', stock_status: mode === 'supplier_debt' ? 'recu_a_controler' : 'ok', last_receipt_mode: mode, last_receipt_amount: amount, date_derniere_reception: today() } });
   await createReceiptDocument(row, qty, amount, mode, props);
   if (mode === 'paid_now' && amount > 0) {
@@ -168,17 +155,87 @@ export default function StockFlowPanel(props) {
   const alertesCrud = useCrudModule('alertes_center');
   const tachesCrud = useCrudModule('taches');
   const connectedProps = { ...props, documentsCrud, fournisseursCrud, alertesCrud, tachesCrud };
+  const pendingRef = useRef(null);
+  const [flowModal, setFlowModal] = useState(null);
+  const [modalValue, setModalValue] = useState('');
+
   const critiques = rows.filter((row) => stockMetrics(row).critical).slice(0, 6);
   const totalValue = rows.reduce((sum, row) => sum + stockMetrics(row).value, 0);
   const lastMoves = rows.filter((row) => row.last_movement_type).slice(0, 5);
 
+  const closeModal = () => {
+    setFlowModal(null);
+    setModalValue('');
+    pendingRef.current = null;
+  };
+
+  const openQtyModal = (row, title, fallback, onConfirm) => {
+    pendingRef.current = onConfirm;
+    setFlowModal({ kind: 'qty', title, row, description: `${row.produit || row.id} · ${row.unite || 'unité'}` });
+    setModalValue(String(Math.max(1, Math.round(fallback || 1))));
+  };
+
+  const openReceiptModeModal = (row, qty, amount, onConfirm) => {
+    pendingRef.current = onConfirm;
+    const defaultMode = amount <= 0 ? 'no_cost' : (supplierId(row) ? 'supplier_debt' : 'paid_now');
+    setFlowModal({
+      kind: 'receipt_mode',
+      title: 'Mode de paiement réception',
+      row,
+      qty,
+      amount,
+      description: `${row.produit || row.id} · ${fmtNumber(qty)} ${row.unite || ''} · ${fmtCurrency(amount)}`,
+    });
+    setModalValue(defaultMode);
+  };
+
+  const submitModal = async () => {
+    if (!flowModal) return;
+    if (flowModal.kind === 'qty') {
+      const qty = toNumber(modalValue);
+      if (qty <= 0) {
+        toast.error('Quantité invalide');
+        return;
+      }
+      const onConfirm = pendingRef.current;
+      closeModal();
+      await onConfirm?.(qty);
+      return;
+    }
+    if (flowModal.kind === 'receipt_mode') {
+      const onConfirm = pendingRef.current;
+      const mode = modalValue;
+      closeModal();
+      await onConfirm?.(mode);
+    }
+  };
+
+  const startReceive = (row, quantityFromCaller = null) => {
+    const metrics = stockMetrics(row);
+    const proceed = async (qty) => {
+      const amount = qty * unitPrice(row);
+      if (amount <= 0) {
+        await receiveCritical(row, connectedProps, qty, 'no_cost');
+        return;
+      }
+      openReceiptModeModal(row, qty, amount, async (mode) => {
+        await receiveCritical(row, connectedProps, qty, mode);
+      });
+    };
+    if (quantityFromCaller) proceed(quantityFromCaller);
+    else openQtyModal(row, 'Réception stock', metrics.suggestedOrderQty || toNumber(row.seuil) || 1, proceed);
+  };
+
   const doMove = (row, type) => {
     const title = type === 'entree' ? 'Réception stock' : type === 'sortie' ? 'Utilisation / sortie stock' : 'Déclarer une perte';
-    const qty = askQty(row, title, 1);
-    if (!qty) return;
-    if (type !== 'entree' && qty > toNumber(row.quantite)) return toast.error(`Stock insuffisant : ${fmtNumber(row.quantite)} ${row.unite || ''} disponible(s)`);
-    if (type === 'entree') receiveCritical(row, connectedProps, qty);
-    else stockMove({ row, type, qty, props: connectedProps });
+    openQtyModal(row, title, 1, async (qty) => {
+      if (type !== 'entree' && qty > toNumber(row.quantite)) {
+        toast.error(`Stock insuffisant : ${fmtNumber(row.quantite)} ${row.unite || ''} disponible(s)`);
+        return;
+      }
+      if (type === 'entree') await startReceive(row, qty);
+      else await stockMove({ row, type, qty, props: connectedProps });
+    });
   };
 
   return (
@@ -200,7 +257,7 @@ export default function StockFlowPanel(props) {
             <div key={row.id} className="rounded-xl border border-red-200 bg-red-50/50 p-3">
               <p className="font-black text-[#2f2415]"><AlertTriangle size={14} className="inline text-red-500" /> {row.produit}</p>
               <p className="text-xs text-[#8a7456] mt-1">Stock {fmtNumber(row.quantite)} / seuil {fmtNumber(row.seuil)} {row.unite || ''}</p>
-              <button type="button" className="mt-3 text-sm font-bold text-emerald-700" onClick={() => receiveCritical(row, connectedProps)}><Truck size={14} className="inline" /> Réceptionner</button>
+              <button type="button" className="mt-3 text-sm font-bold text-emerald-700" onClick={() => startReceive(row)}><Truck size={14} className="inline" /> Réceptionner</button>
             </div>
           ))}
         </div>
@@ -223,6 +280,22 @@ export default function StockFlowPanel(props) {
       </div>
 
       {lastMoves.length ? <p className="text-xs text-[#8a7456]">Derniers mouvements visibles dans les fiches stock.</p> : null}
+
+      <QuickInputModal
+        open={Boolean(flowModal)}
+        title={flowModal?.title || ''}
+        description={flowModal?.description || ''}
+        label={flowModal?.kind === 'receipt_mode' ? 'Mode de paiement' : 'Quantité'}
+        type={flowModal?.kind === 'receipt_mode' ? 'select' : 'number'}
+        options={flowModal?.kind === 'receipt_mode' ? RECEIPT_MODE_OPTIONS : []}
+        value={modalValue}
+        onChange={setModalValue}
+        min={flowModal?.kind === 'qty' ? 1 : undefined}
+        step={flowModal?.kind === 'qty' ? 1 : undefined}
+        submitLabel="Confirmer"
+        onClose={closeModal}
+        onSubmit={submitModal}
+      />
     </div>
   );
 }
