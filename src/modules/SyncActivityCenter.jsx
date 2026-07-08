@@ -19,7 +19,7 @@ import {
   markJustifiedException,
   readJustifiedExceptions,
 } from '../utils/justifiedExceptionStore.js';
-import { buildSyncRepairTask, routeForSyncIssue, syncIssueActionLabel, syncIssueReadableTitle, filterSyncIssuesByDomain, SYNC_ISSUE_DOMAINS } from '../utils/syncAuditWorkflows';
+import { buildSyncRepairTask, routeForSyncIssue, tabForSyncIssue, syncIssueActionLabel, syncIssueReadableTitle, filterSyncIssuesByDomain, SYNC_ISSUE_DOMAINS } from '../utils/syncAuditWorkflows';
 import { executeGuidedRepairAction, getGuidedRepairActions } from '../utils/syncGuidedRepairActions.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -136,7 +136,7 @@ function IssueActions({ issue, props, onJustify }) {
         <Wrench size={12} className="inline" /> {busy === 'fallback' ? 'Action...' : fallbackLabel}
       </button>
     )}
-    <button type="button" onClick={() => props.onNavigate?.(routeForSyncIssue(issue))} className="rounded-full border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-black text-sky-700">Ouvrir source</button>
+    <button type="button" onClick={() => props.onNavigate?.(routeForSyncIssue(issue), tabForSyncIssue(issue) ? { tab: tabForSyncIssue(issue) } : undefined)} className="rounded-full border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-black text-sky-700">Ouvrir source</button>
     <button type="button" disabled={Boolean(busy)} onClick={() => onJustify?.(issue)} className="rounded-full border border-violet-200 bg-violet-50 px-2 py-1 text-[11px] font-black text-violet-700 disabled:opacity-40"><ShieldCheck size={12} className="inline" /> Exception justifiée</button>
   </div>;
 }
