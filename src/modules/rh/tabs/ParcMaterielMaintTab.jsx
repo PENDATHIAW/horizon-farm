@@ -44,8 +44,9 @@ export default function ParcMaterielMaintTab({
         </p>
         <button
           type="button"
-          onClick={onNavigateToSmartFarm}
-          className="rounded bg-[#2f2415] px-4 py-2 text-xs font-bold text-white hover:opacity-90"
+          onClick={() => onNavigateToSmartFarm?.()}
+          disabled={typeof onNavigateToSmartFarm !== 'function'}
+          className="rounded bg-[#2f2415] px-4 py-2 text-xs font-bold text-white hover:opacity-90 disabled:opacity-40"
         >
           Ouvrir la console Smart Farm
         </button>
