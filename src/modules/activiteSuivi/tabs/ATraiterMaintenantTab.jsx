@@ -18,8 +18,11 @@ export default function ATraiterMaintenantTab({
       />
       <AlertesCenterV3
         {...shared}
+        rows={shared.alertes}
+        onCreate={shared.onCreateAlert}
         onUpdate={shared.onUpdateAlert}
         onRefresh={shared.onRefreshAlertes}
+        onCreateTask={shared.onCreateTask}
         onUpdateTask={shared.onUpdateTask}
         onRefreshTasks={shared.onRefreshTasks}
         tasks={shared.tasks}
