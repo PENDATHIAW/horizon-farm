@@ -52,13 +52,20 @@ export default function RapportsExportsTab({
         </p>
       </Section>
       <Section icon={Download} title="Exports & dossier financeur">
-        <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-emerald-300 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="font-black text-emerald-900">Dossier financeur PDF</p>
+            <p className="font-black text-emerald-900">Note descriptive DER/FJ Greenpreneurs</p>
+            <p className="text-sm text-emerald-800">15 sections officielles (promoteur, projet, marché, financier, SWOT, risques, calendrier) — PDF prêt à soumettre.</p>
+          </div>
+          <Button primary onClick={() => onNavigate?.('investisseurs_forums', { tab: 'derfj_note' })}>Générer Note DER/FJ</Button>
+        </div>
+        <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-black text-emerald-900">Dossier financeur multi-cible</p>
             <p className="text-sm text-emerald-800">DER, FONGIP, BNDE, CNCAS — actifs, production, CA, rentabilité, risques et prévisions.</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button primary onClick={() => onNavigate?.('investisseurs_forums', { tab: 'export' })}>Générer pack investisseur</Button>
+            <Button onClick={() => onNavigate?.('investisseurs_forums', { tab: 'export' })}>Pack investisseur</Button>
             <Button onClick={() => onNavigate?.('rapports')}>Dossier financeur (legacy)</Button>
           </div>
         </div>
