@@ -98,7 +98,7 @@ export default function DecisionHistoryPanel({ dataMap = {}, onNavigate, compact
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-4 shadow-sm space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs uppercase tracking-widest text-[#9a6b12] font-black">ROI des décisions</p>
-          <button type="button" onClick={() => onNavigate?.('impact_business')} className="text-xs font-black text-[#9a6b12] underline">
+          <button type="button" onClick={() => onNavigate?.('investisseurs_forums')} className="text-xs font-black text-[#9a6b12] underline">
             Impact ERP →
           </button>
         </div>
@@ -132,7 +132,7 @@ export default function DecisionHistoryPanel({ dataMap = {}, onNavigate, compact
           <h3 className="text-xl font-black text-[#2f2415] mt-1">Recommandations suivies jusqu’à la rentabilité réelle</h3>
           <p className="text-sm text-[#8a7456] mt-1">Une recommandation n’est pas jugée rentable au départ. Horizon suit les actions ouvertes, l’exécution, les dépenses, le CA réel, puis le bilan.</p>
         </div>
-        <Btn small onClick={() => onNavigate?.('impact_business')}>Voir Impact & Valeur ERP</Btn>
+        <Btn small onClick={() => onNavigate?.('investisseurs_forums')}>Voir Impact & Valeur ERP</Btn>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">

@@ -59,6 +59,10 @@ export default function InvestorCrmPanel() {
   };
 
   const handleSave = async () => {
+    if (!String(draft.name || '').trim()) {
+      toast.error('Le nom du contact est obligatoire');
+      return;
+    }
     setBusy(true);
     try {
       await saveInvestorForumContact({ ...draft, id: editingId || undefined });

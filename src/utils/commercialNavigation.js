@@ -750,7 +750,9 @@ export function resolveCulturesTab(value = '') {
   const fromAlias = CULTURES_TAB_ALIASES[tab] || CULTURES_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
   if (lower(tab) === 'resume') return 'Parcelles & campagnes';
-  return tabAliases[lower(tab)] || 'Parcelles & campagnes';
+  const legacy = tabAliases[lower(tab)];
+  if (legacy && CULTURES_TABS.includes(legacy)) return legacy;
+  return 'Parcelles & campagnes';
 }
 
 /** Navigation externe — conserve alias section (Intrants, Transformation…) pour replis auto. */
@@ -775,7 +777,9 @@ export function resolveInvestisseursTab(value = '') {
   if (INVESTISSEURS_TABS.includes(tab)) return tab;
   const fromAlias = INVESTISSEURS_TAB_ALIASES[tab] || INVESTISSEURS_TAB_ALIASES[lower(tab)];
   if (fromAlias) return fromAlias;
-  return tabAliases[lower(tab)] || 'room';
+  const legacy = tabAliases[lower(tab)];
+  if (legacy && INVESTISSEURS_TABS.includes(legacy)) return legacy;
+  return 'room';
 }
 
 /** Navigation externe — conserve alias legacy (Préparation, Data Room…). */
