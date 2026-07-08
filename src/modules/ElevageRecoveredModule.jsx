@@ -308,6 +308,7 @@ export default function ElevageRecoveredModule(props) {
     onCreateDocument: props.onCreateDocument || documentsCrud.create,
     onCreateProduction: props.onCreateProduction || productionCrud.create,
     onCreateWeightRecord: props.onCreateWeightRecord,
+    onNavigate: props.onNavigate,
   });
 
   const refreshAfterWorkflow = useCallback(async () => {

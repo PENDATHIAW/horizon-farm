@@ -81,6 +81,7 @@ export function buildElevageHandlers(props = {}) {
     onCreateDocument: props.onCreateDocument,
     onCreateProduction: props.onCreateProduction,
     onCreateWeightRecord: props.onCreateWeightRecord,
+    onNavigate: props.onNavigate,
   };
 }
 
@@ -195,7 +196,7 @@ export default function ElevageWorkflowPanels({
         <p className="text-xs text-[#8a7456]">Pour tracer les emballages, rattacher un article stock emballage à cette production.</p>
       </Modal>
 
-      <Modal open={activeModal === 'transform'} title="Transformation — canal officiel" onClose={onClose} busy={busy} onSubmit={() => { onClose(); toast('Ouvrez Élevage → Transformation pour le formulaire officiel (stock viande après validation explicite).'); }}>
+      <Modal open={activeModal === 'transform'} title="Transformation — canal officiel" onClose={onClose} busy={busy} submitLabel="Ouvrir Transformation" onSubmit={() => { onClose(); handlers?.onNavigate?.('elevage', { tab: 'Transformation' }); toast('Ouvrez Élevage → Transformation pour le formulaire officiel (stock viande après validation explicite).'); }}>
         <p className="text-sm text-[#8a7456] mb-3">L&apos;abattage et la conversion vivant → produit fini passent par l&apos;onglet <b>Transformation</b>. Cette entrée légère évite une double saisie sans créer le stock viande.</p>
         <Field label="Date"><input type="date" className={inputCls} value={transform.date} onChange={(e) => setTransform({ ...transform, date: e.target.value })} /></Field>
         <Field label="Type">
