@@ -11,30 +11,32 @@ export {
   enrichCommercialOrders,
 } from '../../modules/commercial/commercialMetrics.js';
 
-import {
-  collectedFromOrders,
-  receivableFromOrders,
-  saleAmount,
-} from '../../modules/commercial/commercialMetrics.js';
-
-const arr = (v) => (Array.isArray(v) ? v : []);
+import { buildConsolidatedCommercialKpis } from '../../utils/commercialKpiConsolidated.js';
 
 /**
- * CA commercial agrégé — moteur secondaire (Dashboard / financeur).
- * @deprecated Pour le module Commercial et Hey Horizon : utiliser buildConsolidatedCommercialKpis.
- * Conservé pour dashboard période et rapports financeur — ne pas étendre.
+ * CA commercial agrégé — délégation directe sur `buildConsolidatedCommercialKpis`.
+ * Garantit la même définition (devis exclus, statut annulé exclu, anti double-count paiement)
+ * pour Dashboard, financeur et pilotage secondaire.
  */
-export function computeCommercialKpis(orders = [], payments = [], periodScope = {}) {
-  const sales = arr(orders);
-  const ca = sales.reduce((sum, row) => sum + saleAmount(row), 0);
-  const collected = collectedFromOrders(sales, payments);
-  const receivable = receivableFromOrders(sales, payments);
-  return {
-    ca,
-    collected,
-    receivable,
-    orderCount: sales.length,
+export function computeCommercialKpis(orders = [], payments = [], periodScope = {}, extras = {}) {
+  const kpis = buildConsolidatedCommercialKpis({
+    orders,
+    payments,
+    clients: extras.clients || [],
+    deliveries: extras.deliveries || [],
+    invoices: extras.invoices || [],
     periodScope,
-    sources: { ca: 'sales_orders', collected: 'payments', receivable: 'sales_orders+payments' },
+  });
+  return {
+    ca: kpis.ca,
+    collected: kpis.collected,
+    receivable: kpis.receivable,
+    orderCount: kpis.orderCount,
+    periodScope,
+    sources: {
+      ca: 'buildConsolidatedCommercialKpis',
+      collected: 'buildConsolidatedCommercialKpis',
+      receivable: 'buildConsolidatedCommercialKpis',
+    },
   };
 }
