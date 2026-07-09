@@ -54,6 +54,8 @@ export default function AgriFeedsModule(props) {
     deliveries: arr(props.deliveries ?? props.dataMap?.deliveries ?? crudRows(props.crud, 'deliveries')),
     alertes_center: arr(props.alertes ?? props.dataMap?.alertes_center ?? crudRows(props.crud, 'alertes_center')),
     business_events: arr(props.businessEvents ?? props.dataMap?.business_events ?? crudRows(props.crud, 'business_events')),
+    rapports: arr(props.rapports ?? props.dataMap?.rapports ?? crudRows(props.crud, 'rapports')),
+    audit_logs: arr(props.auditLogs ?? props.dataMap?.audit_logs ?? crudRows(props.crud, 'audit_logs')),
     production_oeufs_logs: arr(props.productionLogs ?? props.dataMap?.production_oeufs_logs ?? crudRows(props.crud, 'production_oeufs_logs')),
     feed_raw_materials: arr(props.feedRawMaterials ?? props.dataMap?.feed_raw_materials ?? crudRows(props.crud, 'feed_raw_materials')),
     feed_raw_batches: arr(props.feedRawBatches ?? props.dataMap?.feed_raw_batches ?? crudRows(props.crud, 'feed_raw_batches')),
@@ -95,6 +97,8 @@ export default function AgriFeedsModule(props) {
     onCreateSaleOrder: props.onCreateSaleOrder || props.crud?.sales_orders?.create,
     onCreateSaleOrderItem: props.onCreateSaleOrderItem || props.crud?.sales_order_items?.create,
     onUpdateClient: props.onUpdateClient || props.crud?.clients?.update,
+    onCreateReport: props.onCreateReport || props.crud?.rapports?.create,
+    onCreateAuditLog: props.onCreateAuditLog || props.crud?.audit_logs?.create,
     stocks: arr(props.stocks ?? crudRows(props.crud, 'stock')),
   };
 
@@ -129,7 +133,9 @@ export default function AgriFeedsModule(props) {
         <TrialsComparisonTab dataMap={dataMap} {...workflowHandlers} />
       ) : null}
       {tab === 'Commercial' ? <CommercialTab dataMap={dataMap} {...workflowHandlers} /> : null}
-      {tab === 'Qualité & reporting' ? <QualityReportingTab dataMap={dataMap} /> : null}
+      {tab === 'Qualité & reporting' ? (
+        <QualityReportingTab dataMap={dataMap} {...workflowHandlers} userRole={props.userRole || props.role || 'manager'} />
+      ) : null}
     </div>
   );
 }
