@@ -110,6 +110,8 @@ Le reporting AGRI FEEDS construit une synthèse financeur à partir des données
 
 Les actions sensibles sont encadrées par une matrice de permissions : validation humaine d’un essai, passage en `commercializable`, clôture d’OF, vente, génération de rapport et consultation des décisions sensibles.
 
+Les profils opérationnels ajoutés côté authentification sont : `responsable_agri_feeds`, `technicien_elevage`, `commercial`, `finance` et `lecteur_financeur`.
+
 La génération d’un rapport crée :
 
 - une ligne `reports` de type `agri_feeds_financeur` ;
@@ -162,6 +164,7 @@ L’objectif est de pouvoir expliquer à un financeur ou à la promotrice : ce q
 - Service `agriFeedsReportingService.js` : rapport financeur, qualité, traçabilité, permissions, audit
 - Onglet **Qualité & reporting** enrichi : synthèse financeur, KPI, lecture de gestion, permissions sensibles
 - Génération de rapport : `reports` + `audit_logs` + événement de gestion
+- Rôles opérationnels AGRI FEEDS ajoutés au contexte d’authentification
 - Tests unitaires `agriFeedsStep6.test.js`
 - Smoke E2E `agri-feeds-smoke.spec.js`
 
