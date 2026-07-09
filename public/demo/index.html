@@ -3,39 +3,60 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Horizon Farm ERP — Visite guidée</title>
+    <title>Horizon Farm ERP — Visite guidée investisseurs</title>
     <meta name="robots" content="noindex" />
     <style>
       :root {
         --green: #22c55e;
+        --green-dark: #166534;
         --dark: #052e16;
         --brown: #2f2415;
         --muted: #6b8a6b;
         --sand: #fffdf8;
+        --cream: #f8f1e4;
         --border: #d6c3a0;
+        --line: #eadcc2;
         --soft: #f6faf6;
+        --red: #991b1b;
+        --amber: #92400e;
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: linear-gradient(180deg, #f6faf6 0%, #fffdf8 100%);
+        background: linear-gradient(180deg, #f6faf6 0%, #fffdf8 48%, #f8f1e4 100%);
         color: var(--dark);
       }
       a { color: inherit; }
-      .shell { max-width: 1180px; margin: 0 auto; padding: 32px 18px 56px; }
-      .hero {
+      .shell { max-width: 1220px; margin: 0 auto; padding: 32px 18px 58px; }
+      .hero,
+      .panel,
+      .screen,
+      .card,
+      .metric,
+      .module-card,
+      .story-card,
+      .flow-card {
         border: 1px solid var(--border);
-        border-radius: 34px;
         background: white;
-        padding: 32px;
-        box-shadow: 0 24px 70px rgba(5, 46, 22, 0.08);
+        box-shadow: 0 24px 70px rgba(5, 46, 22, 0.07);
+      }
+      .hero { border-radius: 34px; padding: 32px; position: relative; overflow: hidden; }
+      .hero::after {
+        content: "";
+        position: absolute;
+        width: 340px;
+        height: 340px;
+        right: -140px;
+        top: -160px;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(34,197,94,.22), transparent 66%);
       }
       .badge {
         display: inline-flex;
         border: 1px solid #bbf7d0;
         background: #f0fdf4;
-        color: #166534;
+        color: var(--green-dark);
         border-radius: 999px;
         padding: 8px 12px;
         font-size: 12px;
@@ -43,11 +64,12 @@
         letter-spacing: .08em;
         text-transform: uppercase;
       }
-      h1 { margin: 16px 0 10px; font-size: clamp(34px, 6vw, 70px); line-height: .95; letter-spacing: -0.06em; }
-      h2 { margin: 0 0 12px; font-size: 24px; letter-spacing: -0.03em; }
-      p { line-height: 1.65; }
-      .lead { color: var(--muted); max-width: 760px; font-size: 17px; }
-      .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+      h1 { margin: 16px 0 10px; font-size: clamp(36px, 6.5vw, 76px); line-height: .92; letter-spacing: -0.07em; max-width: 880px; }
+      h2 { margin: 0 0 12px; font-size: 26px; letter-spacing: -0.035em; }
+      h3 { margin: 0 0 8px; font-size: 18px; letter-spacing: -0.025em; color: var(--brown); }
+      p { line-height: 1.65; margin: 0; }
+      .lead { color: var(--muted); max-width: 820px; font-size: 17px; }
+      .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; position: relative; z-index: 1; }
       .btn {
         border: 0;
         border-radius: 16px;
@@ -61,162 +83,328 @@
       }
       .btn.primary { background: var(--green); color: var(--dark); }
       .btn.secondary { background: var(--sand); border: 1px solid var(--border); color: var(--brown); }
-      .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
-      .card, .panel {
-        border: 1px solid var(--border);
-        border-radius: 24px;
-        background: white;
-        padding: 18px;
-      }
-      .card small { display: block; color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: .08em; font-size: 10px; }
+      .hero-grid { display: grid; grid-template-columns: 1.4fr .9fr; gap: 18px; margin-top: 22px; position: relative; z-index: 1; }
+      .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .metric { border-radius: 22px; padding: 16px; box-shadow: none; }
+      .metric small,
+      .card small { display: block; color: var(--muted); font-weight: 900; text-transform: uppercase; letter-spacing: .08em; font-size: 10px; }
+      .metric strong,
       .card strong { display: block; margin-top: 6px; font-size: 22px; color: var(--brown); }
-      .section { margin-top: 22px; }
-      .tour { display: grid; grid-template-columns: 290px 1fr; gap: 18px; align-items: start; }
+      .section { margin-top: 24px; }
+      .section-title { display: flex; align-items: end; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+      .section-title p { color: var(--muted); max-width: 780px; }
+      .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+      .card, .panel { border-radius: 24px; padding: 18px; box-shadow: none; }
+      .tour { display: grid; grid-template-columns: 305px 1fr; gap: 18px; align-items: start; }
       .steps { position: sticky; top: 16px; display: grid; gap: 8px; }
       .step-btn {
         width: 100%; border: 1px solid #d1e5d1; background: white; color: var(--muted);
-        border-radius: 16px; padding: 12px; text-align: left; cursor: pointer; font-weight: 800;
+        border-radius: 16px; padding: 13px 12px; text-align: left; cursor: pointer; font-weight: 850;
       }
       .step-btn.active { background: #dcfce7; color: var(--dark); border-color: var(--green); }
       .screen {
-        min-height: 430px;
-        border: 1px solid var(--border);
-        border-radius: 28px;
+        min-height: 620px;
+        border-radius: 30px;
         background: var(--sand);
-        padding: 22px;
+        padding: 24px;
         overflow: hidden;
       }
-      .screen-header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; border-bottom: 1px solid #eadcc2; padding-bottom: 16px; margin-bottom: 16px; }
-      .pill { border: 1px solid #bbf7d0; background: #f0fdf4; color: #166534; border-radius: 999px; padding: 6px 10px; font-size: 11px; font-weight: 900; }
+      .screen-header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; border-bottom: 1px solid var(--line); padding-bottom: 16px; margin-bottom: 16px; }
+      .pill { border: 1px solid #bbf7d0; background: #f0fdf4; color: var(--green-dark); border-radius: 999px; padding: 6px 10px; font-size: 11px; font-weight: 900; white-space: nowrap; }
       .mini-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-      .mini { border: 1px solid #eadcc2; background: white; border-radius: 18px; padding: 14px; }
+      .mini { border: 1px solid var(--line); background: white; border-radius: 18px; padding: 14px; }
       .mini b { display: block; color: var(--brown); margin-bottom: 4px; }
       .mini span { color: var(--muted); font-size: 13px; line-height: 1.5; }
       .timeline { display: grid; gap: 10px; margin-top: 14px; }
       .line { border-left: 4px solid var(--green); background: white; border-radius: 14px; padding: 12px 14px; color: var(--brown); }
-      .note { border: 1px solid #fde68a; background: #fffbeb; color: #92400e; border-radius: 18px; padding: 14px; font-size: 14px; }
+      .line small { display: block; color: var(--muted); margin-top: 3px; }
+      .decision-box { margin-top: 14px; border: 1px solid #bbf7d0; background: #f0fdf4; border-radius: 18px; padding: 14px; color: #14532d; }
+      .table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 18px; background: white; margin-top: 14px; }
+      .table th, .table td { border-bottom: 1px solid var(--line); text-align: left; padding: 10px; font-size: 13px; }
+      .table th { color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-size: 10px; background: #fffdf8; }
+      .module-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+      .module-card { border-radius: 22px; padding: 16px; box-shadow: none; }
+      .module-card p { color: var(--muted); font-size: 13px; }
+      .story-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+      .story-card, .flow-card { border-radius: 24px; padding: 18px; box-shadow: none; }
+      .flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+      .flow-card { text-align: center; background: var(--sand); }
+      .flow-card b { color: var(--brown); display: block; margin-bottom: 6px; }
+      .flow-card span { color: var(--muted); font-size: 12px; }
+      .note { border: 1px solid #fde68a; background: #fffbeb; color: var(--amber); border-radius: 18px; padding: 14px; font-size: 14px; }
       .footer { margin-top: 22px; color: var(--muted); font-size: 13px; text-align: center; }
-      @media (max-width: 860px) {
-        .grid { grid-template-columns: 1fr; }
-        .tour { grid-template-columns: 1fr; }
+      @media (max-width: 980px) {
+        .hero-grid, .tour, .story-grid { grid-template-columns: 1fr; }
         .steps { position: static; }
-        .mini-grid { grid-template-columns: 1fr; }
-        .hero { padding: 24px; }
+        .grid, .module-grid, .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+      @media (max-width: 620px) {
+        .shell { padding: 18px 12px 42px; }
+        .hero { padding: 22px; }
+        .grid, .module-grid, .flow, .metrics, .mini-grid { grid-template-columns: 1fr; }
+        .screen-header { display: block; }
+        .pill { margin-top: 10px; display: inline-flex; }
       }
     </style>
   </head>
   <body>
     <main class="shell">
       <section class="hero">
-        <span class="badge">Visite guidée sans connexion</span>
-        <h1>Horizon Farm ERP</h1>
+        <span class="badge">Horizon Farm — système de pilotage</span>
+        <h1>Une ferme verte suivie comme une entreprise moderne.</h1>
         <p class="lead">
-          Démonstration publique de l’ERP Horizon Farm : pilotage agricole, centre décisionnel,
-          traçabilité, finance, ventes, stock, élevage, AGRI FEEDS et aide à la décision pour les extensions futures.
+          Cette visite présente l’ERP Horizon Farm : un outil conçu pour relier l’exploitation agricole,
+          la donnée terrain, les coûts, les stocks, les ventes, les alertes et les décisions de croissance.
         </p>
         <div class="actions">
-          <button class="btn primary" onclick="scrollToTour()">Commencer la visite</button>
-          <a class="btn secondary" href="#points-forts">Voir les points forts</a>
+          <button class="btn primary" onclick="scrollToTour()">Commencer la visite guidée</button>
+          <a class="btn secondary" href="#architecture">Voir l’architecture ERP</a>
+          <a class="btn secondary" href="#investisseurs">Lecture investisseurs</a>
         </div>
-        <div class="grid" id="points-forts">
-          <div class="card"><small>Vision</small><strong>Ferme intégrée</strong><p>Élevage, cultures, stock, finances et ventes connectés.</p></div>
-          <div class="card"><small>Décision</small><strong>IA assistée</strong><p>L’ERP signale les écarts, les risques et les priorités. L’humain valide.</p></div>
-          <div class="card"><small>Évolution</small><strong>Phases mesurées</strong><p>AGRI FEEDS puis extensions futures seulement si les données le justifient.</p></div>
+        <div class="hero-grid">
+          <div class="grid" id="points-forts">
+            <div class="card"><small>Projet</small><strong>Horizon Farm</strong><p>Ferme intégrée : aviculture, bovins, maraîchage, eau, énergie solaire et circularité.</p></div>
+            <div class="card"><small>Innovation</small><strong>ERP + décision</strong><p>Le système transforme les opérations quotidiennes en données exploitables.</p></div>
+            <div class="card"><small>Croissance</small><strong>Phases sécurisées</strong><p>Chaque extension est lancée seulement si les indicateurs le justifient.</p></div>
+          </div>
+          <div class="metrics">
+            <div class="metric"><small>Phase 1</small><strong>Ferme</strong><p>Production et référence terrain.</p></div>
+            <div class="metric"><small>Phase 2</small><strong>AGRI FEEDS</strong><p>Aliments animaux testés.</p></div>
+            <div class="metric"><small>Phase 3</small><strong>Extensions</strong><p>BOVINIA et tallow & go.</p></div>
+            <div class="metric"><small>Principe</small><strong>Validation</strong><p>L’humain décide, l’ERP documente.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="architecture">
+        <div class="section-title">
+          <div>
+            <h2>Architecture de l’ERP</h2>
+            <p>Chaque module répond à une question simple : que se passe-t-il, combien cela coûte, quel est le risque, et quelle décision prendre ?</p>
+          </div>
+        </div>
+        <div class="module-grid">
+          <div class="module-card"><h3>Accueil</h3><p>Vue globale, météo terrain, alertes, indicateurs rapides et actions prioritaires.</p></div>
+          <div class="module-card"><h3>Centre décisionnel</h3><p>Analyse des risques, opportunités, écarts et recommandations validées humainement.</p></div>
+          <div class="module-card"><h3>AGRI FEEDS</h3><p>Référence Phase 1, formulations, production pilote, essais, QC et ventes progressives.</p></div>
+          <div class="module-card"><h3>Élevage</h3><p>Lots, bandes, santé animale, mortalité, ponte, croissance et alimentation.</p></div>
+          <div class="module-card"><h3>Cultures</h3><p>Parcelles, campagnes, récoltes, fertilisation naturelle et usage de l’eau.</p></div>
+          <div class="module-card"><h3>Commercial</h3><p>Ventes, clients, créances, relances, livraisons et performance commerciale.</p></div>
+          <div class="module-card"><h3>Achats & Stock</h3><p>Intrants, fournisseurs, inventaire, mouvements, ruptures et coûts d’achat.</p></div>
+          <div class="module-card"><h3>Finance & Reporting</h3><p>Trésorerie, marges, dettes, créances, rapports financeurs et preuves de gestion.</p></div>
         </div>
       </section>
 
       <section class="section tour" id="tour">
         <nav class="steps" aria-label="Étapes de la visite">
-          <button class="step-btn active" data-step="0">1. Tableau de bord</button>
-          <button class="step-btn" data-step="1">2. Centre décisionnel</button>
-          <button class="step-btn" data-step="2">3. Élevage & production</button>
-          <button class="step-btn" data-step="3">4. AGRI FEEDS</button>
-          <button class="step-btn" data-step="4">5. Finance & reporting</button>
-          <button class="step-btn" data-step="5">6. Extensions futures</button>
+          <button class="step-btn active" data-step="0">1. Vue investisseur</button>
+          <button class="step-btn" data-step="1">2. Tableau de bord</button>
+          <button class="step-btn" data-step="2">3. Centre décisionnel</button>
+          <button class="step-btn" data-step="3">4. Élevage & cultures</button>
+          <button class="step-btn" data-step="4">5. AGRI FEEDS</button>
+          <button class="step-btn" data-step="5">6. Commercial & stock</button>
+          <button class="step-btn" data-step="6">7. Finance & rapports</button>
+          <button class="step-btn" data-step="7">8. Extensions futures</button>
+          <button class="step-btn" data-step="8">9. Impact & gouvernance</button>
         </nav>
         <article class="screen" id="screen"></article>
       </section>
 
-      <section class="section panel">
-        <h2>Ce que cette démo montre</h2>
-        <p>
-          Cette page ne donne pas accès aux données privées de l’exploitation. Elle présente seulement le fonctionnement,
-          la logique métier et les bénéfices de l’ERP pour les partenaires, financeurs, conseillers ou visiteurs.
-        </p>
-        <div class="note">
-          Pour une démonstration complète avec données réelles, il faut utiliser l’espace ERP sécurisé avec identifiant et mot de passe.
+      <section class="section" id="investisseurs">
+        <div class="section-title">
+          <div>
+            <h2>Lecture investisseurs</h2>
+            <p>La valeur de l’ERP n’est pas seulement technique : il réduit l’incertitude, documente les décisions et montre la capacité de gestion du projet.</p>
+          </div>
+        </div>
+        <div class="story-grid">
+          <div class="story-card">
+            <h3>Ce que l’investisseur comprend vite</h3>
+            <p>L’exploitation n’avance pas à l’intuition seule. Les décisions de production, d’achat, de vente, d’extension et de remboursement s’appuient sur des données suivies dans le temps.</p>
+          </div>
+          <div class="story-card">
+            <h3>Ce que l’ERP prouve</h3>
+            <p>Stocks, coûts, mortalité, ponte, ventes, créances, marges, alertes et reporting peuvent être suivis, comparés et présentés avec des preuves.</p>
+          </div>
+          <div class="story-card">
+            <h3>Ce que l’ERP évite</h3>
+            <p>Lancement trop rapide d’une nouvelle phase, vente d’une formule non testée, rupture de stock, manque de traçabilité ou décisions non documentées.</p>
+          </div>
+          <div class="story-card">
+            <h3>Ce que l’ERP prépare</h3>
+            <p>Une ferme capable de grandir par étapes : Phase 1 production, Phase 2 AGRI FEEDS, puis extensions futures uniquement si les données le permettent.</p>
+          </div>
         </div>
       </section>
 
-      <p class="footer">Horizon Farm ERP — démo publique. Aucun identifiant requis.</p>
+      <section class="section panel">
+        <h2>Parcours de croissance</h2>
+        <div class="flow">
+          <div class="flow-card"><b>1. Produire</b><span>Œufs, poulets, bovins, cultures.</span></div>
+          <div class="flow-card"><b>2. Mesurer</b><span>Coûts, stocks, ventes, risques.</span></div>
+          <div class="flow-card"><b>3. Comparer</b><span>Prévisionnel, réel, marge, performance.</span></div>
+          <div class="flow-card"><b>4. Décider</b><span>Actions, priorités, extensions.</span></div>
+          <div class="flow-card"><b>5. Reporter</b><span>Financeur, équipe, audit interne.</span></div>
+        </div>
+      </section>
     </main>
 
     <script>
       const steps = [
         {
-          title: 'Tableau de bord de pilotage',
-          badge: 'Vue globale',
-          intro: 'Le tableau de bord donne une vision rapide de la ferme : production, stock, ventes, alertes et météo terrain.',
+          title: 'Vue investisseur : pourquoi cet ERP compte',
+          badge: 'Vision projet',
+          intro: 'Horizon Farm ERP montre que la ferme sera pilotée avec méthode : chaque activité génère des données, chaque donnée éclaire une décision, chaque décision peut être documentée.',
           cards: [
-            ['Production', 'Œufs, poulets, bovins et cultures suivis en temps réel.'],
-            ['Alertes', 'Stock bas, mortalité, créances, tâches urgentes et risques terrain.'],
-            ['Décisions', 'Priorités proposées pour éviter les pertes et améliorer la marge.'],
-            ['Traçabilité', 'Chaque activité laisse une preuve exploitable pour le reporting.'],
+            ['Maîtrise des risques', 'Alertes sur mortalité, stock critique, dettes, créances, écarts de coûts et retards opérationnels.'],
+            ['Capacité de remboursement', 'Suivi de la trésorerie, des marges par activité et du poids réel des charges.'],
+            ['Croissance progressive', 'Aucune phase future ne doit être lancée sans données suffisantes, validation humaine et marge acceptable.'],
+            ['Reporting crédible', 'Le projet peut produire des rapports compréhensibles pour financeurs et partenaires.'],
+          ],
+          lines: [
+            ['Ce que l’ERP apporte', 'Une preuve de gestion, pas seulement un tableau de bord décoratif.'],
+            ['Ce que l’investisseur voit', 'Une promotrice capable de suivre ses indicateurs et de justifier ses décisions.'],
+            ['Ce que le projet évite', 'Une croissance trop rapide, mal documentée ou non rentable.'],
+          ],
+          table: [
+            ['Question investisseur', 'Réponse apportée par l’ERP'],
+            ['Les coûts sont-ils suivis ?', 'Oui : achat, stock, consommation, coût par lot, marge.'],
+            ['Les risques sont-ils visibles ?', 'Oui : alertes et priorités opérationnelles.'],
+            ['Les extensions sont-elles maîtrisées ?', 'Oui : elles passent par des portes de décision.'],
+          ],
+        },
+        {
+          title: 'Tableau de bord opérationnel',
+          badge: 'Vue globale',
+          intro: 'Le tableau de bord donne une lecture immédiate de la ferme : production, stock, ventes, trésorerie, tâches et météo terrain.',
+          cards: [
+            ['Production', 'Œufs, poulets, bovins et cultures suivis par période.'],
+            ['Alertes', 'Stock bas, mortalité, tâches urgentes, créances et anomalies.'],
+            ['Priorités', 'Actions à traiter maintenant pour éviter pertes et retards.'],
+            ['Météo terrain', 'Suivi utile pour eau, chaleur, ventilation et cultures.'],
+          ],
+          lines: [
+            ['Exemple', 'Si un stock d’aliment passe sous le seuil, l’ERP oriente vers Achats & Stock.'],
+            ['Exemple', 'Si une mortalité augmente, l’ERP rapproche Élevage, Santé et Centre décisionnel.'],
+            ['Résultat', 'La promotrice ne découvre pas les problèmes trop tard.'],
           ],
         },
         {
           title: 'Centre décisionnel',
-          badge: 'IA assistée',
-          intro: 'Le centre décisionnel ne remplace pas la promotrice. Il aide à voir plus vite les écarts et les actions à prioriser.',
+          badge: 'Décision assistée',
+          intro: 'Le centre décisionnel transforme les données en points d’attention : risques, opportunités, écarts et actions à documenter.',
           cards: [
-            ['Risques', 'Charges anormales, mortalité, rupture, retard de paiement.'],
-            ['Opportunités', 'Produits à pousser, lots performants, clients à relancer.'],
-            ['Saisons', 'Suivi des cycles agricoles, marché, météo et disponibilité eau.'],
-            ['Validation humaine', 'L’IA propose, la décision finale reste humaine.'],
+            ['Risques', 'Charges anormales, mortalité, rupture, retard client, baisse de marge.'],
+            ['Opportunités', 'Lots performants, clients à relancer, produits à pousser.'],
+            ['Écarts', 'Comparaison entre prévu et réel : coûts, ventes, production, marges.'],
+            ['Validation humaine', 'L’ERP propose, la promotrice décide et documente.'],
+          ],
+          lines: [
+            ['Lecture', 'Le centre décisionnel n’est pas une vitrine IA : il sert à mieux gérer la ferme.'],
+            ['Règle', 'Une recommandation doit être explicable et liée aux données disponibles.'],
+            ['Valeur', 'Moins de décisions improvisées, plus de décisions documentées.'],
           ],
         },
         {
-          title: 'Élevage & production',
+          title: 'Élevage, cultures et circularité',
           badge: 'Cœur métier',
-          intro: 'L’ERP relie les lots, l’alimentation, la santé, la ponte, les ventes et les coûts pour connaître la vraie performance.',
+          intro: 'Le cœur de l’ERP reste agricole : suivre les animaux, les cultures, l’alimentation, la santé et la valorisation des matières organiques.',
           cards: [
-            ['Poulets de chair', 'Suivi bandes, mortalité, poids, aliment consommé et marge.'],
-            ['Pondeuses', 'Ponte, plateaux, coûts alimentaires et rentabilité.'],
-            ['Bovins', 'Embouche, alimentation, suivi sanitaire et valeur de sortie.'],
-            ['Cultures', 'Maraîchage, fertilisation organique et usage de l’eau.'],
+            ['Poulets de chair', 'Bandes, effectifs, mortalité, poids, alimentation, ventes et marge.'],
+            ['Pondeuses', 'Ponte, plateaux, alimentation, baisse de performance et rentabilité.'],
+            ['Bovins', 'Embouche, suivi sanitaire, coût alimentaire et valeur de sortie.'],
+            ['Cultures', 'Parcelles, récoltes, fertilisation naturelle, eau et rendement.'],
+          ],
+          lines: [
+            ['Lien circulaire', 'Les effluents organiques servent à fertiliser naturellement les cultures.'],
+            ['Lien coût', 'L’alimentation est suivie comme un poste sensible pour l’élevage.'],
+            ['Lien traçabilité', 'Chaque lot peut être relié à ses dépenses, ventes et performances.'],
           ],
         },
         {
-          title: 'AGRI FEEDS',
-          badge: 'Phase 2 mesurée',
-          intro: 'AGRI FEEDS n’est lancé que si les données Phase 1 sont suffisantes : coûts alimentaires, performances, fournisseurs et tests internes.',
+          title: 'AGRI FEEDS : Phase 2 contrôlée',
+          badge: 'Aliments animaux',
+          intro: 'AGRI FEEDS est la phase qui sécurise le poste alimentaire. L’ERP oblige à tester, comparer et valider avant toute vente progressive.',
           cards: [
-            ['Référence Phase 1', 'Comparer les aliments du marché avec les futures formules internes.'],
-            ['Production pilote', 'Formules, matières premières, ordres de fabrication, QC et lots finis.'],
-            ['Essais internes', 'KPI animaux, comparaison Phase 1 et validation humaine.'],
-            ['Vente progressive', 'Uniquement sur formules commercialisables et lots contrôlés.'],
+            ['Référence Phase 1', 'Prix/kg, fournisseurs, quantités consommées, mortalité, croissance, ponte et marge.'],
+            ['Production pilote', 'Matières premières, formules, ordres de fabrication, lots finis et QC.'],
+            ['Essais internes', 'Comparaison avec les aliments du marché sur les propres animaux Horizon Farm.'],
+            ['Vente progressive', 'Uniquement si la formule est testée, contrôlée, validée et commercialisable.'],
+          ],
+          lines: [
+            ['Porte 1', 'Aucune formule vendue sans test interne.'],
+            ['Porte 2', 'Aucun lot vendu sans contrôle qualité.'],
+            ['Porte 3', 'Aucune décision finale sans validation humaine.'],
+          ],
+          table: [
+            ['Mode', 'Objectif'],
+            ['Référence', 'Acheter les aliments du marché et mesurer la performance.'],
+            ['Pilote interne', 'Produire de petites quantités et tester sur la ferme.'],
+            ['Vente progressive', 'Vendre seulement les formules validées.'],
           ],
         },
         {
-          title: 'Finance & reporting',
+          title: 'Commercial, stock et clients',
+          badge: 'Recettes',
+          intro: 'L’ERP relie ventes, stock, clients, créances et livraisons pour comprendre ce qui rapporte réellement.',
+          cards: [
+            ['Ventes', 'Œufs, poulets, bovins, cultures et plus tard AGRI FEEDS.'],
+            ['Stock', 'Entrées, sorties, seuils critiques, mouvements et valorisation.'],
+            ['Clients', 'Créances, relances, historique d’achat et réachat.'],
+            ['Marge', 'Calcul du résultat par activité et par lot.'],
+          ],
+          lines: [
+            ['Exemple', 'Une vente non totalement payée devient une créance à suivre.'],
+            ['Exemple', 'Une sortie de stock alimente la finance et la marge.'],
+            ['Résultat', 'La ferme garde une vision claire des recettes et des restes à encaisser.'],
+          ],
+        },
+        {
+          title: 'Finance, reporting et audit',
           badge: 'Suivi financeur',
-          intro: 'Les données opérationnelles alimentent les finances, les rapports et la capacité à expliquer la performance du projet.',
+          intro: 'Les financeurs ont besoin de preuves : l’ERP organise les chiffres, les décisions et les rapports de suivi.',
           cards: [
-            ['Trésorerie', 'Encaissements, dépenses, dettes, créances et reste à payer.'],
-            ['Marge', 'Analyse par lot, activité et produit vendu.'],
-            ['Rapports', 'Synthèses lisibles pour financeurs, partenaires et suivi interne.'],
-            ['Audit', 'Historique des décisions et actions sensibles documentées.'],
+            ['Trésorerie', 'Encaissements, dépenses, dettes, créances et fonds de roulement.'],
+            ['Budget', 'Comparaison entre dépenses prévues, dépenses réelles et écarts.'],
+            ['Rapports', 'Synthèses pour comité, financeur, équipe et suivi interne.'],
+            ['Audit', 'Historique des décisions sensibles, validations et événements de gestion.'],
+          ],
+          lines: [
+            ['Lecture financeur', 'Le projet peut expliquer où va l’argent et ce qu’il produit.'],
+            ['Lecture gestion', 'Les charges anormales et les marges faibles deviennent visibles.'],
+            ['Lecture remboursement', 'La capacité de remboursement se suit dans le temps.'],
           ],
         },
         {
           title: 'Extensions futures : BOVINIA et tallow & go',
-          badge: 'Aide à la décision',
-          intro: 'Ces marques ne doivent pas devenir des modules séparés au départ. L’ERP aide seulement à décider quand les lancer.',
+          badge: 'Décision de lancement',
+          intro: 'BOVINIA et tallow & go ne sont pas des modules opérationnels séparés. L’ERP aide seulement à décider quand ces activités pourront être lancées.',
           cards: [
             ['BOVINIA', 'Lancement si matière première, transformation, coût par stick, qualité et ventes pilotes sont validés.'],
-            ['tallow & go', 'Lancement si suif, formulation, stabilité, packaging, marge et conformité sont maîtrisés.'],
-            ['Pas de confusion', 'La ferme et AGRI FEEDS restent les modules opérationnels principaux.'],
+            ['tallow & go', 'Lancement si suif, formulation, stabilité, packaging, conformité et marge sont maîtrisés.'],
+            ['Pas de dispersion', 'La ferme et AGRI FEEDS restent les priorités opérationnelles.'],
             ['Décision progressive', 'Chaque extension doit être justifiée par les données réelles de Horizon Farm.'],
+          ],
+          lines: [
+            ['Signal positif', 'Matière disponible, qualité stable, coût maîtrisé, demande client observée.'],
+            ['Signal bloquant', 'Coût trop élevé, qualité incertaine, traçabilité insuffisante ou marge faible.'],
+            ['Décision', 'Lancer, reporter, retester ou abandonner temporairement.'],
+          ],
+        },
+        {
+          title: 'Impact, gouvernance et crédibilité',
+          badge: 'Projet durable',
+          intro: 'L’ERP soutient la promesse du projet : produire localement, gérer les ressources, créer des emplois et documenter l’impact.',
+          cards: [
+            ['Emploi', 'Suivi des besoins opérationnels et montée progressive de l’équipe.'],
+            ['Ressources', 'Eau, énergie, intrants, effluents organiques et sols.'],
+            ['Impact', 'Production locale, circuits courts, réduction des pertes et valorisation circulaire.'],
+            ['Gouvernance', 'Rôles, permissions, rapports, audit et validation humaine.'],
+          ],
+          lines: [
+            ['Court terme', 'Mettre en place la ferme et suivre les premiers cycles.'],
+            ['Moyen terme', 'Stabiliser AGRI FEEDS avec des tests internes.'],
+            ['Long terme', 'Lancer les extensions uniquement quand elles sont prêtes.'],
           ],
         },
       ];
@@ -226,6 +414,12 @@
 
       function renderStep(index) {
         const step = steps[index];
+        const table = step.table ? `
+          <table class="table">
+            <thead><tr><th>${step.table[0][0]}</th><th>${step.table[0][1]}</th></tr></thead>
+            <tbody>${step.table.slice(1).map(row => `<tr><td>${row[0]}</td><td>${row[1]}</td></tr>`).join('')}</tbody>
+          </table>
+        ` : '';
         screen.innerHTML = `
           <div class="screen-header">
             <div>
@@ -238,10 +432,10 @@
             ${step.cards.map(([title, text]) => `<div class="mini"><b>${title}</b><span>${text}</span></div>`).join('')}
           </div>
           <div class="timeline">
-            <div class="line">Collecter les données terrain.</div>
-            <div class="line">Comparer avec les objectifs, coûts et performances.</div>
-            <div class="line">Proposer une action, puis faire valider humainement.</div>
+            ${step.lines.map(([title, text]) => `<div class="line"><b>${title}</b><small>${text}</small></div>`).join('')}
           </div>
+          ${table}
+          <div class="decision-box"><b>Lecture Horizon Farm</b><br />Ce module sert à transformer le terrain en décisions concrètes, traçables et justifiables.</div>
         `;
         buttons.forEach((btn) => btn.classList.toggle('active', Number(btn.dataset.step) === index));
       }
