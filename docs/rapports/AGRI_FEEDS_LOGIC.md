@@ -79,6 +79,31 @@ La vente est **bloquée** si l’une de ces portes est fausse :
 - une validation humaine (essai clôturé + `reviewed_by_human` ou formule validée) ;  
 - une formule au statut `commercializable`.  
 
+### Vente AGRI FEEDS
+
+La vente progressive réutilise les tables existantes : `clients`, `sales_orders`, `sales_order_items`, `stock`, `stock_movements`, `finances`, `alertes_center` et `business_events`.
+
+Une vente AGRI FEEDS est autorisée uniquement si :
+
+- le lot fini est actif ;
+- le lot est destiné à `commercial_sale` ;
+- la formule liée est `commercializable` ;
+- le QC minimum du lot fini est enregistré ;
+- la quantité demandée est disponible ;
+- la sortie stock et le mouvement commercial peuvent être tracés.
+
+Le workflow de vente calcule :
+
+- montant total ;
+- montant encaissé ;
+- reste à payer ;
+- marge estimée ;
+- quantité restante sur le lot fini ;
+- signal stock bas si nécessaire ;
+- mise à jour du client pour le suivi des réachats.
+
+Les retours clients et réclamations sont enregistrés en `business_events`. Une réclamation crée une alerte qualité afin de vérifier le lot, rappeler le client et documenter l’action corrective.
+
 
 ## Étapes livrées
 
@@ -111,7 +136,14 @@ La vente est **bloquée** si l’une de ces portes est fausse :
 - Alerte automatique si l’IA propose l’abandon
 - UI onglet **Tests & comparaison** opérationnelle
 
+### Étape 5
+- Workflow commercial AGRI FEEDS : vente uniquement sur lots issus de formules `commercializable` avec QC minimum
+- Réutilisation du commercial existant : `sales_orders`, `sales_order_items`, `clients`, `stock`, `finances`
+- Calcul automatique : total, reste à payer, marge estimée, sortie stock, stock bas
+- Suivi client : dernier achat, volume habituel, score de réachat, clients à relancer
+- Retours clients / réclamations via `business_events` + alerte qualité si réclamation
+- Onglet **Commercial** opérationnel : vente, KPI, réachats, points d’attention Centre/Assistant
+
 ## Étapes suivantes
 
-5. Commercial + alertes + Centre + Assistant  
-6. Reporting + permissions avancées + audit + tests E2E  
+6. Reporting + permissions avancées + audit + tests E2E
