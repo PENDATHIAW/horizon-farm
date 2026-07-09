@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Copy, FlaskConical, Plus } from 'lucide-react';
 import {
   FORMULA_STATUSES,
   TARGET_SPECIES,
@@ -166,9 +165,7 @@ export default function FormulationsTab({
   return (
     <div className="space-y-4">
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-2">
-        <p className="text-lg font-black text-[#2f2415] flex items-center gap-2">
-          <FlaskConical size={20} /> Formulations
-        </p>
+        <p className="text-lg font-black text-[#2f2415]">Formulations</p>
         <p className="text-sm text-[#8a7456] leading-relaxed max-w-3xl">
           Créez des formules, calculez le coût théorique, suivez le cycle de vie.
           La commercialisation reste bloquée sans test, coût réel et validation humaine.
@@ -180,9 +177,7 @@ export default function FormulationsTab({
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <form onSubmit={saveFormula} className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415] flex items-center gap-2">
-            <Plus size={16} /> Nouvelle formule
-          </p>
+          <p className="font-black text-[#2f2415]">Nouvelle formule</p>
           <label className="block space-y-1">
             <span className="text-xs font-bold text-[#8a7456]">Nom</span>
             <input
@@ -322,8 +317,8 @@ export default function FormulationsTab({
                 <button type="button" disabled={busy} onClick={() => changeStatus('to_improve')} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black">À améliorer</button>
                 <button type="button" disabled={busy} onClick={() => changeStatus('internally_validated')} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black">Validée interne</button>
                 <button type="button" disabled={busy} onClick={() => changeStatus('commercializable')} className="rounded-xl bg-[#22c55e] px-3 py-2 text-xs font-black text-[#052e16]">Commercialisable</button>
-                <button type="button" disabled={busy} onClick={duplicateActiveVersion} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black inline-flex items-center gap-1">
-                  <Copy size={12} /> Dupliquer version
+                <button type="button" disabled={busy} onClick={duplicateActiveVersion} className="rounded-xl border border-[#d6c3a0] px-3 py-2 text-xs font-black">
+                  Dupliquer version
                 </button>
               </div>
             </>
