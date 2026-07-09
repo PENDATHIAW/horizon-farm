@@ -50,6 +50,7 @@ export const CRUD_KEYS = [
   'payments', 'sales_opportunities', 'stock_movements',
   'feed_raw_materials', 'feed_raw_batches', 'feed_formulas', 'feed_formula_versions',
   'feed_formula_ingredients', 'feed_facility_zones',
+  'feed_production_orders', 'feed_finished_batches', 'feed_quality_checks',
 ];
 
 export const SALES_WORKFLOW_KEYS = [

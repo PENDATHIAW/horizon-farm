@@ -55,9 +55,12 @@ import { whatsappLogsService, whatsappTemplatesService } from '../services/whats
 import { stockMovementsCrud } from '../services/stockMovementsService';
 import {
   feedFacilityZonesService,
+  feedFinishedBatchesService,
   feedFormulaIngredientsService,
   feedFormulaVersionsService,
   feedFormulasService,
+  feedProductionOrdersService,
+  feedQualityChecksService,
   feedRawBatchesService,
   feedRawMaterialsService,
 } from '../services/agriFeedsService';
@@ -117,6 +120,9 @@ const serviceMap = {
   feed_formula_versions: feedFormulaVersionsService,
   feed_formula_ingredients: feedFormulaIngredientsService,
   feed_facility_zones: feedFacilityZonesService,
+  feed_production_orders: feedProductionOrdersService,
+  feed_finished_batches: feedFinishedBatchesService,
+  feed_quality_checks: feedQualityChecksService,
 };
 
 const clone = (value) => JSON.parse(JSON.stringify(value || []));

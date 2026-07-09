@@ -52,9 +52,15 @@ Propose (analyse, suggestion, point d’attention, décision proposée).
 - Formulations + coût théorique + cycle de vie + garde-fou commercialisable
 - UI onglets **Matières & fournisseurs** et **Formulations**
 
+### Étape 3
+- Tables : `feed_production_orders`, `feed_finished_batches`, `feed_quality_checks`
+- Workflow OF : FIFO matières acceptées, consommation stock, coût théorique
+- Clôture OF : quantité réelle, QC obligatoire, coût réel, lot fini, stock PF, QR public (sans recette)
+- Alerte si écart coût réel / théorique > seuil
+- UI onglet **Production**
+
 ## Étapes suivantes
 
-3. OF + lots + stock PF + QR  
 4. Essais + comparaison complète  
 5. Commercial + alertes + Centre + Assistant  
 6. Reporting + permissions avancées + audit + tests E2E  

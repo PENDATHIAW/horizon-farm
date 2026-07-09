@@ -55,14 +55,15 @@ export default function AgriFeedsModule(props) {
     feed_formula_ingredients: arr(props.feedFormulaIngredients ?? props.dataMap?.feed_formula_ingredients),
     feed_facility_zones: arr(props.feedFacilityZones ?? props.dataMap?.feed_facility_zones),
     feed_trials: arr(props.dataMap?.feed_trials),
-    feed_production_orders: arr(props.dataMap?.feed_production_orders),
-    feed_finished_batches: arr(props.dataMap?.feed_finished_batches),
-    feed_quality_checks: arr(props.dataMap?.feed_quality_checks),
+    feed_production_orders: arr(props.feedProductionOrders ?? props.dataMap?.feed_production_orders),
+    feed_finished_batches: arr(props.feedFinishedBatches ?? props.dataMap?.feed_finished_batches),
+    feed_quality_checks: arr(props.feedQualityChecks ?? props.dataMap?.feed_quality_checks),
   }), [props]);
 
   const workflowHandlers = {
     onCreateFeedRawMaterial: props.onCreateFeedRawMaterial,
     onCreateFeedRawBatch: props.onCreateFeedRawBatch,
+    onUpdateFeedRawBatch: props.onUpdateFeedRawBatch,
     onCreateStock: props.onCreateStock,
     onUpdateStock: props.onUpdateStock,
     onCreateStockMovement: props.onCreateStockMovement,
@@ -74,6 +75,10 @@ export default function AgriFeedsModule(props) {
     onUpdateFeedFormula: props.onUpdateFeedFormula,
     onCreateFeedFormulaVersion: props.onCreateFeedFormulaVersion,
     onCreateFeedFormulaIngredient: props.onCreateFeedFormulaIngredient,
+    onCreateFeedProductionOrder: props.onCreateFeedProductionOrder,
+    onUpdateFeedProductionOrder: props.onUpdateFeedProductionOrder,
+    onCreateFeedFinishedBatch: props.onCreateFeedFinishedBatch,
+    onCreateFeedQualityCheck: props.onCreateFeedQualityCheck,
     stocks: arr(props.stocks),
   };
 
@@ -101,7 +106,9 @@ export default function AgriFeedsModule(props) {
       {tab === 'Formulations' ? (
         <FormulationsTab dataMap={dataMap} {...workflowHandlers} />
       ) : null}
-      {tab === 'Production' ? <ProductionTab dataMap={dataMap} /> : null}
+      {tab === 'Production' ? (
+        <ProductionTab dataMap={dataMap} {...workflowHandlers} />
+      ) : null}
       {tab === 'Tests & comparaison' ? <TrialsComparisonTab dataMap={dataMap} /> : null}
       {tab === 'Commercial' ? <CommercialTab dataMap={dataMap} /> : null}
       {tab === 'Qualité & reporting' ? <QualityReportingTab dataMap={dataMap} /> : null}

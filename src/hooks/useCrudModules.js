@@ -47,6 +47,9 @@ export default function useCrudModules() {
   const feed_formula_versions = useCrudModule('feed_formula_versions');
   const feed_formula_ingredients = useCrudModule('feed_formula_ingredients');
   const feed_facility_zones = useCrudModule('feed_facility_zones');
+  const feed_production_orders = useCrudModule('feed_production_orders');
+  const feed_finished_batches = useCrudModule('feed_finished_batches');
+  const feed_quality_checks = useCrudModule('feed_quality_checks');
 
   return useMemo(() => ({
     animaux,
@@ -94,6 +97,9 @@ export default function useCrudModules() {
     feed_formula_versions,
     feed_formula_ingredients,
     feed_facility_zones,
+    feed_production_orders,
+    feed_finished_batches,
+    feed_quality_checks,
   }), [
     animaux,
     avicole,
@@ -140,5 +146,8 @@ export default function useCrudModules() {
     feed_formula_versions,
     feed_formula_ingredients,
     feed_facility_zones,
+    feed_production_orders,
+    feed_finished_batches,
+    feed_quality_checks,
   ]);
 }
