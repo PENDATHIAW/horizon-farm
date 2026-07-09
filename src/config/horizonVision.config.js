@@ -24,6 +24,7 @@ export const MODULE_TARGET_TABS = {
     'Commercial',
     'Qualité & reporting',
   ],
+  agri_feeds_bovinia: ['Pilotage BOVINIA', 'Gamme', 'Traçabilité', 'Roadmap', 'Conformité'],
   objectifs_croissance: ['Suivi du Business Plan', 'Efficacité Technique & Zootechnique', 'Simulateur Sandbox', 'Sécurisation des Flux'],
   elevage: ['Lots & bandes', 'Cycles & Reproduction', 'Santé', 'Transformation'],
   commercial: ['Ventes', 'Opportunités', 'Clients & créances', 'Livraisons', 'Abonnements', 'Pilotage'],
@@ -62,6 +63,8 @@ export const INTERCONNECTIONS = {
   agri_feeds_production: ['agri_feeds', 'achats_stock', 'elevage', 'finance_pilotage', 'activite_suivi', 'centre_ia'],
   agri_feeds_trial: ['agri_feeds', 'elevage', 'objectifs_croissance', 'centre_ia', 'activite_suivi'],
   agri_feeds_sale: ['agri_feeds', 'commercial', 'finance_pilotage', 'achats_stock', 'centre_ia'],
+  bovinia_traceability: ['agri_feeds_bovinia', 'elevage', 'achats_stock', 'documents_rapports', 'centre_ia'],
+  bovinia_sales: ['agri_feeds_bovinia', 'commercial', 'finance_pilotage', 'documents_rapports', 'centre_ia'],
 };
 
 export const IA_ENGINES = [
@@ -75,6 +78,6 @@ export const DEV_RULES = {
 
 /** Ordre d'audit / correction module par module. */
 export const MODULE_AUDIT_ORDER = [
-  'dashboard', 'assistant_erp', 'centre_ia', 'agri_feeds', 'objectifs_croissance', 'elevage', 'cultures', 'commercial',
+  'dashboard', 'assistant_erp', 'centre_ia', 'agri_feeds', 'agri_feeds_bovinia', 'objectifs_croissance', 'elevage', 'cultures', 'commercial',
   'achats_stock', 'finance_pilotage', 'activite_suivi', 'documents_rapports', 'rh', 'smartfarm', 'gestion_systeme',
 ];
