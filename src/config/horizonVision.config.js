@@ -13,9 +13,7 @@ export const HORIZON_MISSION = [
 export const MODULE_TARGET_TABS = {
   dashboard: ['Carnet Horizon'],
   assistant_erp: ['Hey Horizon'],
-  objectifs_croissance: ['Suivi du Business Plan', 'Efficacité Technique & Zootechnique', 'Simulateur Sandbox', 'Sécurisation des Flux'],
   centre_ia: ['Urgences & risques', 'Croissance & opportunités', 'Saisons & marchés'],
-  elevage: ['Lots & bandes', 'Cycles & Reproduction', 'Santé', 'Transformation'],
   agri_feeds: [
     'Tableau de bord',
     'Référence Phase 1',
@@ -26,6 +24,8 @@ export const MODULE_TARGET_TABS = {
     'Commercial',
     'Qualité & reporting',
   ],
+  objectifs_croissance: ['Suivi du Business Plan', 'Efficacité Technique & Zootechnique', 'Simulateur Sandbox', 'Sécurisation des Flux'],
+  elevage: ['Lots & bandes', 'Cycles & Reproduction', 'Santé', 'Transformation'],
   commercial: ['Ventes', 'Opportunités', 'Clients & créances', 'Livraisons', 'Abonnements', 'Pilotage'],
   achats_stock: ['Inventaire', 'Réceptions & achats', 'Fournisseurs & dettes'],
   finance_pilotage: ['Résumé', 'Trésorerie', 'Créances & dettes', 'Pilotage', 'Graphiques'],
@@ -75,6 +75,6 @@ export const DEV_RULES = {
 
 /** Ordre d'audit / correction module par module. */
 export const MODULE_AUDIT_ORDER = [
-  'dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance', 'elevage', 'agri_feeds', 'cultures', 'commercial',
+  'dashboard', 'assistant_erp', 'centre_ia', 'agri_feeds', 'objectifs_croissance', 'elevage', 'cultures', 'commercial',
   'achats_stock', 'finance_pilotage', 'activite_suivi', 'documents_rapports', 'rh', 'smartfarm', 'gestion_systeme',
 ];
