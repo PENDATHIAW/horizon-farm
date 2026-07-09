@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { BarChart3, GitCompareArrows } from 'lucide-react';
 import {
   buildPhase1FeedBenchmark,
   compareMarketFeedToAgriFeedsFormula,
@@ -46,9 +45,7 @@ export default function Phase1BenchmarkTab({ dataMap = {} }) {
   return (
     <div className="space-y-4">
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5">
-        <p className="text-lg font-black text-[#2f2415] flex items-center gap-2">
-          <BarChart3 size={20} /> Référence alimentation Phase 1
-        </p>
+        <p className="text-lg font-black text-[#2f2415]">Référence alimentation Phase 1</p>
         <p className="text-sm text-[#8a7456] mt-1 leading-relaxed max-w-3xl">
           Historique des aliments achetés sur le marché et consommés par les animaux Horizon Farm.
           Cette base servira de comparaison lorsque AGRI FEEDS produira ses propres formules.
@@ -131,9 +128,7 @@ export default function Phase1BenchmarkTab({ dataMap = {} }) {
       )}
 
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-        <p className="font-black text-[#2f2415] flex items-center gap-2">
-          <GitCompareArrows size={18} /> Comparer avec une formule AGRI FEEDS
-        </p>
+        <p className="font-black text-[#2f2415]">Comparer avec une formule AGRI FEEDS</p>
         <p className="text-sm text-[#8a7456]">
           Choisissez un lot de référence et, si disponible, une version de formule.
           Sans test interne clôturé, la comparaison reste partielle.
