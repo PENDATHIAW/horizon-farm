@@ -1,15 +1,17 @@
 import {
-  BarChart3, Beef, Bell, Bot, BrainCircuit, Calculator, ClipboardList, DollarSign,
-  FolderOpen, Goal, Handshake, LayoutDashboard, PiggyBank, Settings, ShoppingCart,
-  Sprout, Sun, Tractor, UserCog, Warehouse, Wifi, Wrench,
+  Beef, Bot, BrainCircuit, ClipboardList, DollarSign, FolderOpen, Goal,
+  Handshake, LayoutDashboard, Settings, ShoppingCart, Sprout, Tractor,
+  UserCog, Warehouse, Wifi, Wrench,
 } from 'lucide-react';
+
+const NoIcon = () => null;
 
 /** Registre central des modules ERP — routes, labels, regroupements. */
 export const MODULE_REGISTRY = {
   dashboard: { label: 'Accueil', icon: LayoutDashboard, group: 'core' },
   assistant_erp: { label: 'Assistant ERP', icon: Bot, group: 'core' },
   centre_ia: { label: 'Centre décisionnel', icon: BrainCircuit, group: 'pilotage' },
-  agri_feeds: { label: 'AGRI FEEDS', icon: null, group: 'pilotage' },
+  agri_feeds: { label: 'AGRI FEEDS', icon: NoIcon, group: 'pilotage' },
   objectifs_croissance: { label: 'Objectifs & Croissance', icon: Goal, group: 'pilotage' },
   elevage: { label: 'Élevage', icon: Beef, group: 'metier' },
   commercial: { label: 'Commercial', icon: ShoppingCart, group: 'metier' },
