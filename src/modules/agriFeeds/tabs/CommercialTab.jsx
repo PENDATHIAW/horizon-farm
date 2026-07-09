@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Repeat2, ShoppingBag, Users } from 'lucide-react';
 import {
   buildAgriFeedsCommercialDecisionCards,
   buildRepurchaseSuggestions,
@@ -151,9 +150,7 @@ export default function CommercialTab({
   return (
     <div className="space-y-4">
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-2">
-        <p className="text-lg font-black text-[#2f2415] flex items-center gap-2">
-          <ShoppingBag size={20} /> Commercial AGRI FEEDS
-        </p>
+        <p className="text-lg font-black text-[#2f2415]">Commercial AGRI FEEDS</p>
         <p className="text-sm text-[#8a7456] leading-relaxed max-w-3xl">
           Vente progressive uniquement sur lots issus de formules commercialisables, avec QC minimum,
           traçabilité, sortie stock, mouvement financier, suivi client et signaux de réachat.
@@ -188,9 +185,7 @@ export default function CommercialTab({
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <form onSubmit={submitSale} className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415] flex items-center gap-2">
-            <CheckCircle2 size={16} /> Enregistrer une vente validée
-          </p>
+          <p className="font-black text-[#2f2415]">Enregistrer une vente validée</p>
           <label className="block space-y-1">
             <span className="text-xs font-bold text-[#8a7456]">Client éleveur</span>
             <select
@@ -287,9 +282,7 @@ export default function CommercialTab({
         </form>
 
         <form onSubmit={submitFeedback} className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415] flex items-center gap-2">
-            <Users size={16} /> Retour client / réclamation
-          </p>
+          <p className="font-black text-[#2f2415]">Retour client / réclamation</p>
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-1">
               <span className="text-xs font-bold text-[#8a7456]">Satisfaction / 5</span>
@@ -333,9 +326,7 @@ export default function CommercialTab({
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415] flex items-center gap-2">
-            <Repeat2 size={16} /> Réachats à suivre
-          </p>
+          <p className="font-black text-[#2f2415]">Réachats à suivre</p>
           {relances.length ? relances.map((row) => (
             <div key={row.client.id} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm">
               <p className="font-bold text-[#2f2415]">{clientLabel(row.client)}</p>
@@ -345,9 +336,7 @@ export default function CommercialTab({
         </section>
 
         <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415] flex items-center gap-2">
-            <AlertTriangle size={16} /> Centre & assistant
-          </p>
+          <p className="font-black text-[#2f2415]">Centre & assistant</p>
           {decisionCards.length ? decisionCards.map((card) => (
             <div key={card.title} className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm">
               <p className="font-bold text-[#2f2415]">{card.title}</p>
