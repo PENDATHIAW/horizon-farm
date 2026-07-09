@@ -12,7 +12,6 @@ export const MODULE_REGISTRY = {
   assistant_erp: { label: 'Assistant ERP', icon: Bot, group: 'core' },
   centre_ia: { label: 'Centre décisionnel', icon: BrainCircuit, group: 'pilotage' },
   agri_feeds: { label: 'AGRI FEEDS', icon: noIcon, group: 'pilotage' },
-  agri_feeds_bovinia: { label: 'BOVINIA', icon: noIcon, group: 'pilotage' },
   objectifs_croissance: { label: 'Objectifs & Croissance', icon: Goal, group: 'pilotage' },
   elevage: { label: 'Élevage', icon: Beef, group: 'metier' },
   commercial: { label: 'Commercial', icon: ShoppingCart, group: 'metier' },
@@ -38,7 +37,7 @@ export const ADVANCED_MODULE_IDS = [
 ];
 
 export const GRAND_MODULE_IDS = [
-  'centre_ia', 'agri_feeds', 'agri_feeds_bovinia', 'objectifs_croissance', 'elevage', 'commercial',
+  'centre_ia', 'agri_feeds', 'objectifs_croissance', 'elevage', 'commercial',
   'achats_stock', 'finance_pilotage', 'activite_suivi', 'documents_rapports',
 ];
 
@@ -63,7 +62,7 @@ export const SALES_WORKFLOW_KEYS = [
 ];
 
 export const NAV_MODULE_ORDER = [
-  'dashboard', 'assistant_erp', 'centre_ia', 'agri_feeds', 'agri_feeds_bovinia', 'objectifs_croissance', 'investisseurs_forums',
+  'dashboard', 'assistant_erp', 'centre_ia', 'agri_feeds', 'objectifs_croissance', 'investisseurs_forums',
   'elevage', 'cultures',
   'commercial', 'achats_stock',
   'finance_pilotage',
@@ -73,7 +72,6 @@ export const NAV_MODULE_ORDER = [
 ];
 
 export const ROUTE_TO_MODULE = {
-  bovinia: 'agri_feeds_bovinia',
   ventes: 'commercial',
   stock: 'achats_stock',
   animaux: 'elevage',
