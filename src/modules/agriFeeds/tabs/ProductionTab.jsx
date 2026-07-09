@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Factory, PackageCheck, Play, QrCode } from 'lucide-react';
 import { PACKAGE_SIZES } from '../../../config/agriFeeds.config.js';
 import {
   prepareProductionOrder,
@@ -190,9 +189,7 @@ export default function ProductionTab({
   return (
     <div className="space-y-4">
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-2">
-        <p className="text-lg font-black text-[#2f2415] flex items-center gap-2">
-          <Factory size={20} /> Production
-        </p>
+        <p className="text-lg font-black text-[#2f2415]">Production</p>
         <p className="text-sm text-[#8a7456] leading-relaxed max-w-3xl">
           Ordres de fabrication avec consommation FIFO des matières, lots produits finis,
           stock PF et QR public (sans recette complète). QC obligatoire avant clôture.
@@ -204,9 +201,7 @@ export default function ProductionTab({
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <form onSubmit={createOrder} className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415] flex items-center gap-2">
-            <Play size={16} /> Nouvel ordre de fabrication
-          </p>
+          <p className="font-black text-[#2f2415]">Nouvel ordre de fabrication</p>
           <label className="block space-y-1">
             <span className="text-xs font-bold text-[#8a7456]">Version de formule</span>
             <select
@@ -311,9 +306,7 @@ export default function ProductionTab({
         </form>
 
         <form onSubmit={closeOrder} className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415] flex items-center gap-2">
-            <PackageCheck size={16} /> Clôturer un OF
-          </p>
+          <p className="font-black text-[#2f2415]">Clôturer un OF</p>
           <label className="block space-y-1">
             <span className="text-xs font-bold text-[#8a7456]">OF ouvert</span>
             <select
@@ -452,9 +445,7 @@ export default function ProductionTab({
       </section>
 
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-        <p className="font-black text-[#2f2415] flex items-center gap-2">
-          <QrCode size={16} /> Lots produits finis ({finished.length})
-        </p>
+        <p className="font-black text-[#2f2415]">Lots produits finis ({finished.length})</p>
         {finished.length ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {finished
@@ -478,9 +469,9 @@ export default function ProductionTab({
                       href={batch.qr_code_url}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-bold text-[#2f2415] underline"
+                      className="inline-flex items-center text-xs font-bold text-[#2f2415] underline"
                     >
-                      <QrCode size={12} /> Voir QR public
+                      Voir QR public
                     </a>
                   ) : null}
                 </article>
