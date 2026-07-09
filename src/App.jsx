@@ -43,7 +43,7 @@ import LoginPage from './pages/LoginPage';
 const MODULES = Object.fromEntries(
   Object.entries(MODULE_ENTRY_POINTS).map(([id, loader]) => [id, lazy(() => lazyWithRetry(loader))]),
 );
-const CRUD_KEYS = ['animaux','avicole','sante','veterinaires','finances','investissements','business_plans','bp_investment_lines','bp_recurring_costs','bp_revenue_projections','bp_funding_sources','bp_links','bp_risks','stock','stock_movements','clients','fournisseurs','tracabilite','cultures','documents','taches','rapports','equipements','audit_logs','alimentation_logs','production_oeufs_logs','sensor_devices','camera_devices','business_events','alertes_center','whatsapp_templates','whatsapp_logs','sales_orders','sales_order_items','deliveries','invoices','payments','sales_opportunities'];
+const CRUD_KEYS = ['animaux','avicole','sante','veterinaires','finances','investissements','business_plans','bp_investment_lines','bp_recurring_costs','bp_revenue_projections','bp_funding_sources','bp_links','bp_risks','stock','stock_movements','clients','fournisseurs','tracabilite','cultures','documents','taches','rapports','equipements','audit_logs','alimentation_logs','production_oeufs_logs','sensor_devices','camera_devices','business_events','alertes_center','whatsapp_templates','whatsapp_logs','sales_orders','sales_order_items','deliveries','invoices','payments','sales_opportunities','feed_raw_materials','feed_raw_batches','feed_formulas','feed_formula_versions','feed_formula_ingredients','feed_facility_zones'];
 const rows = (crud) => crud?.rows || [];
 const arr = (value) => (Array.isArray(value) ? value : []);
 const crudRowsMap = (c) => Object.fromEntries(CRUD_KEYS.map((key) => [key, rows(c[key])]));
@@ -474,6 +474,7 @@ export default function App() {
       initialTab: agriFeedsTab,
       onTabChange: (nextTab) => setAgriFeedsTab(resolveAgriFeedsTab(nextTab)),
       dataMap: decisionDataMapRaw,
+      crud: c,
       animaux: rows(c.animaux),
       lots: rows(c.avicole),
       stocks: rows(c.stock),
@@ -483,6 +484,34 @@ export default function App() {
       productionLogs: rows(c.production_oeufs_logs),
       transactions: rows(c.finances),
       salesOrders: rows(c.sales_orders),
+      feedRawMaterials: rows(c.feed_raw_materials),
+      feedRawBatches: rows(c.feed_raw_batches),
+      feedFormulas: rows(c.feed_formulas),
+      feedFormulaVersions: rows(c.feed_formula_versions),
+      feedFormulaIngredients: rows(c.feed_formula_ingredients),
+      feedFacilityZones: rows(c.feed_facility_zones),
+      onCreateFeedRawMaterial: c.feed_raw_materials.create,
+      onUpdateFeedRawMaterial: c.feed_raw_materials.update,
+      onRefreshFeedRawMaterials: c.feed_raw_materials.refresh,
+      onCreateFeedRawBatch: c.feed_raw_batches.create,
+      onUpdateFeedRawBatch: c.feed_raw_batches.update,
+      onRefreshFeedRawBatches: c.feed_raw_batches.refresh,
+      onCreateFeedFormula: c.feed_formulas.create,
+      onUpdateFeedFormula: c.feed_formulas.update,
+      onRefreshFeedFormulas: c.feed_formulas.refresh,
+      onCreateFeedFormulaVersion: c.feed_formula_versions.create,
+      onUpdateFeedFormulaVersion: c.feed_formula_versions.update,
+      onRefreshFeedFormulaVersions: c.feed_formula_versions.refresh,
+      onCreateFeedFormulaIngredient: c.feed_formula_ingredients.create,
+      onRefreshFeedFormulaIngredients: c.feed_formula_ingredients.refresh,
+      onCreateStock: c.stock.create,
+      onUpdateStock: c.stock.update,
+      onRefreshStock: c.stock.refresh,
+      onCreateStockMovement: c.stock_movements.create,
+      onCreateFinanceTransaction: c.finances.create,
+      onUpdateSupplier: c.fournisseurs.update,
+      onCreateBusinessEvent: c.business_events.create,
+      onCreateAlert: c.alertes_center.create,
       onNavigate: setActive,
       onOpenAssistant: openAssistantWithQuery,
     },

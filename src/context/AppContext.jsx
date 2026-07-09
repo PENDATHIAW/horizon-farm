@@ -53,6 +53,14 @@ import {
 } from '../services/salesService';
 import { whatsappLogsService, whatsappTemplatesService } from '../services/whatsappService';
 import { stockMovementsCrud } from '../services/stockMovementsService';
+import {
+  feedFacilityZonesService,
+  feedFormulaIngredientsService,
+  feedFormulaVersionsService,
+  feedFormulasService,
+  feedRawBatchesService,
+  feedRawMaterialsService,
+} from '../services/agriFeedsService';
 import { supabase } from '../lib/supabase';
 import { normalizeByModule } from '../utils/normalize.js';
 import { clearOfflineQueue, enqueueOfflineMutation, isBrowserOffline, readOfflineQueue, saveOfflineQueue } from '../services/offlineQueueService';
@@ -103,6 +111,12 @@ const serviceMap = {
   payments: paymentsService,
   sales_opportunities: salesOpportunitiesService,
   stock_movements: stockMovementsCrud,
+  feed_raw_materials: feedRawMaterialsService,
+  feed_raw_batches: feedRawBatchesService,
+  feed_formulas: feedFormulasService,
+  feed_formula_versions: feedFormulaVersionsService,
+  feed_formula_ingredients: feedFormulaIngredientsService,
+  feed_facility_zones: feedFacilityZonesService,
 };
 
 const clone = (value) => JSON.parse(JSON.stringify(value || []));

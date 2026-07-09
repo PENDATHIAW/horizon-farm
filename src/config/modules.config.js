@@ -48,6 +48,8 @@ export const CRUD_KEYS = [
   'camera_devices', 'business_events', 'alertes_center', 'whatsapp_templates',
   'whatsapp_logs', 'sales_orders', 'sales_order_items', 'deliveries', 'invoices',
   'payments', 'sales_opportunities', 'stock_movements',
+  'feed_raw_materials', 'feed_raw_batches', 'feed_formulas', 'feed_formula_versions',
+  'feed_formula_ingredients', 'feed_facility_zones',
 ];
 
 export const SALES_WORKFLOW_KEYS = [

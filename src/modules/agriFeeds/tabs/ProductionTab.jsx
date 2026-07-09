@@ -8,8 +8,8 @@ export default function ProductionTab() {
         <Factory size={20} /> Production
       </p>
       <p className="text-sm text-[#8a7456] leading-relaxed max-w-2xl">
-        Ordres de fabrication, lots produits, stock produits finis et QR de traçabilité
-        seront livrés à l’étape 3. La production reste fermée en Mode Référence.
+        Les matières et formules sont prêtes (étape 2). Ordres de fabrication, lots produits,
+        stock produits finis et QR seront livrés à l’étape 3.
       </p>
     </section>
   );

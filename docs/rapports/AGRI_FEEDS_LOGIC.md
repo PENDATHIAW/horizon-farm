@@ -37,18 +37,24 @@ Par lot / animal : fournisseur, type aliment, prix/kg, quantité, coût total, c
 Propose (analyse, suggestion, point d’attention, décision proposée).  
 **L’humain valide.** Aucune commercialisation automatique.
 
-## Étape livrée (1)
+## Étapes livrées
 
+### Étape 1
 - Module `agri_feeds` + 8 onglets
 - Readiness Mode 1 / 2A / 2B
 - Benchmark Phase 1
 - Zones site prévues
-- Coquilles UI pour matières, formules, production, tests, commercial
+
+### Étape 2
+- Tables : `feed_raw_materials`, `feed_raw_batches`, `feed_formulas`, `feed_formula_versions`, `feed_formula_ingredients`
+- Enrichissement `fournisseurs` (`supplier_type`, scores, délais…) et `alimentation_logs` (`feed_source`…)
+- Workflow réception MP → stock + QC + finance + alerte si rejet
+- Formulations + coût théorique + cycle de vie + garde-fou commercialisable
+- UI onglets **Matières & fournisseurs** et **Formulations**
 
 ## Étapes suivantes
 
-2. MP + QC + formulations + coûts  
 3. OF + lots + stock PF + QR  
-4. Essais + cycle de vie  
+4. Essais + comparaison complète  
 5. Commercial + alertes + Centre + Assistant  
 6. Reporting + permissions avancées + audit + tests E2E  

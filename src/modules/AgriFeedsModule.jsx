@@ -48,15 +48,34 @@ export default function AgriFeedsModule(props) {
     clients: arr(props.clients ?? props.dataMap?.clients),
     sales_orders: arr(props.salesOrders ?? props.dataMap?.sales_orders),
     production_oeufs_logs: arr(props.productionLogs ?? props.dataMap?.production_oeufs_logs),
-    feed_formulas: arr(props.dataMap?.feed_formulas),
-    feed_formula_versions: arr(props.dataMap?.feed_formula_versions),
-    feed_raw_materials: arr(props.dataMap?.feed_raw_materials),
-    feed_raw_batches: arr(props.dataMap?.feed_raw_batches),
+    feed_raw_materials: arr(props.feedRawMaterials ?? props.dataMap?.feed_raw_materials),
+    feed_raw_batches: arr(props.feedRawBatches ?? props.dataMap?.feed_raw_batches),
+    feed_formulas: arr(props.feedFormulas ?? props.dataMap?.feed_formulas),
+    feed_formula_versions: arr(props.feedFormulaVersions ?? props.dataMap?.feed_formula_versions),
+    feed_formula_ingredients: arr(props.feedFormulaIngredients ?? props.dataMap?.feed_formula_ingredients),
+    feed_facility_zones: arr(props.feedFacilityZones ?? props.dataMap?.feed_facility_zones),
+    feed_trials: arr(props.dataMap?.feed_trials),
     feed_production_orders: arr(props.dataMap?.feed_production_orders),
     feed_finished_batches: arr(props.dataMap?.feed_finished_batches),
-    feed_trials: arr(props.dataMap?.feed_trials),
-    feed_facility_zones: arr(props.dataMap?.feed_facility_zones),
+    feed_quality_checks: arr(props.dataMap?.feed_quality_checks),
   }), [props]);
+
+  const workflowHandlers = {
+    onCreateFeedRawMaterial: props.onCreateFeedRawMaterial,
+    onCreateFeedRawBatch: props.onCreateFeedRawBatch,
+    onCreateStock: props.onCreateStock,
+    onUpdateStock: props.onUpdateStock,
+    onCreateStockMovement: props.onCreateStockMovement,
+    onCreateFinanceTransaction: props.onCreateFinanceTransaction,
+    onUpdateSupplier: props.onUpdateSupplier,
+    onCreateBusinessEvent: props.onCreateBusinessEvent,
+    onCreateAlert: props.onCreateAlert,
+    onCreateFeedFormula: props.onCreateFeedFormula,
+    onUpdateFeedFormula: props.onUpdateFeedFormula,
+    onCreateFeedFormulaVersion: props.onCreateFeedFormulaVersion,
+    onCreateFeedFormulaIngredient: props.onCreateFeedFormulaIngredient,
+    stocks: arr(props.stocks),
+  };
 
   return (
     <div className="space-y-4">
@@ -76,8 +95,12 @@ export default function AgriFeedsModule(props) {
         <AgriFeedsDashboardTab dataMap={dataMap} onNavigateTab={setTab} />
       ) : null}
       {tab === 'Référence Phase 1' ? <Phase1BenchmarkTab dataMap={dataMap} /> : null}
-      {tab === 'Matières & fournisseurs' ? <MaterialsSuppliersTab dataMap={dataMap} /> : null}
-      {tab === 'Formulations' ? <FormulationsTab dataMap={dataMap} /> : null}
+      {tab === 'Matières & fournisseurs' ? (
+        <MaterialsSuppliersTab dataMap={dataMap} {...workflowHandlers} />
+      ) : null}
+      {tab === 'Formulations' ? (
+        <FormulationsTab dataMap={dataMap} {...workflowHandlers} />
+      ) : null}
       {tab === 'Production' ? <ProductionTab dataMap={dataMap} /> : null}
       {tab === 'Tests & comparaison' ? <TrialsComparisonTab dataMap={dataMap} /> : null}
       {tab === 'Commercial' ? <CommercialTab dataMap={dataMap} /> : null}
