@@ -23,6 +23,9 @@ export function moduleForSaleSource(order = {}) {
 
 export const ELEVAGE_TABS = ['Lots & bandes', 'Cycles & Reproduction', 'Santé', 'Transformation'];
 
+export { AGRI_FEEDS_TABS } from './agriFeedsNavigation.js';
+export { resolveAgriFeedsTab } from './agriFeedsNavigation.js';
+
 const ELEVAGE_TAB_ALIASES = {
   Résumé: 'Lots & bandes',
   resume: 'Lots & bandes',
@@ -872,6 +875,12 @@ export function navigationOptionsForFinding(finding = {}) {
     return {
       module,
       tab: explicitTab || defaultTabForLegacyModule(rawModule) || 'Parcelles & campagnes',
+    };
+  }
+  if (module === 'agri_feeds') {
+    return {
+      module,
+      tab: explicitTab || 'Tableau de bord',
     };
   }
   if (module === 'documents_rapports') {

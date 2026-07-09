@@ -10,6 +10,7 @@ export const FARM_ACTIVITY_TYPES = Object.freeze([
   { key: 'maraichage', label: 'Maraîchage' },
   { key: 'fourrage', label: 'Fourrage' },
   { key: 'transformation', label: 'Transformation' },
+  { key: 'agri_feeds', label: 'AGRI FEEDS (aliments animaux)' },
   { key: 'commercialisation', label: 'Commercialisation' },
   { key: 'stockage', label: 'Stockage' },
   { key: 'smart_farm', label: 'Smart Farm' },
@@ -34,6 +35,7 @@ export const FARM_COMMON_MODULES = Object.freeze([
 /** Modules adaptatifs selon activity_type. */
 export const FARM_ADAPTIVE_MODULES = Object.freeze([
   'elevage',
+  'agri_feeds',
   'cultures',
   'smartfarm',
   'rh',
@@ -92,6 +94,21 @@ const ACTIVITY_MODULE_RULES = Object.freeze({
   smart_farm: {
     enableModules: ['smartfarm', 'equipements'],
     enableTabs: { smartfarm: ['Capteurs', 'Caméras', 'Alertes terrain'] },
+  },
+  agri_feeds: {
+    enableModules: ['agri_feeds', 'elevage', 'achats_stock'],
+    enableTabs: {
+      agri_feeds: [
+        'Tableau de bord',
+        'Référence Phase 1',
+        'Matières & fournisseurs',
+        'Formulations',
+        'Production',
+        'Tests & comparaison',
+        'Commercial',
+        'Qualité & reporting',
+      ],
+    },
   },
   mixte: {
     enableModules: FARM_ADAPTIVE_MODULES,

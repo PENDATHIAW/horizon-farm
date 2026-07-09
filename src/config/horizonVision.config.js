@@ -16,6 +16,16 @@ export const MODULE_TARGET_TABS = {
   objectifs_croissance: ['Suivi du Business Plan', 'Efficacité Technique & Zootechnique', 'Simulateur Sandbox', 'Sécurisation des Flux'],
   centre_ia: ['Urgences & risques', 'Croissance & opportunités', 'Saisons & marchés'],
   elevage: ['Lots & bandes', 'Cycles & Reproduction', 'Santé', 'Transformation'],
+  agri_feeds: [
+    'Tableau de bord',
+    'Référence Phase 1',
+    'Matières & fournisseurs',
+    'Formulations',
+    'Production',
+    'Tests & comparaison',
+    'Commercial',
+    'Qualité & reporting',
+  ],
   commercial: ['Ventes', 'Opportunités', 'Clients & créances', 'Livraisons', 'Abonnements', 'Pilotage'],
   achats_stock: ['Inventaire', 'Réceptions & achats', 'Fournisseurs & dettes'],
   finance_pilotage: ['Résumé', 'Trésorerie', 'Créances & dettes', 'Pilotage', 'Graphiques'],
@@ -48,6 +58,10 @@ export const INTERCONNECTIONS = {
   dossier_financeur: ['objectifs_croissance', 'finance_pilotage', 'documents_rapports', 'investisseurs_forums', 'centre_ia'],
   tache_alerte: ['activite_suivi', 'centre_ia', 'assistant_erp'],
   donnees_iot: ['smartfarm', 'elevage', 'achats_stock', 'centre_ia', 'activite_suivi'],
+  agri_feeds_reference: ['agri_feeds', 'elevage', 'achats_stock', 'finance_pilotage', 'centre_ia'],
+  agri_feeds_production: ['agri_feeds', 'achats_stock', 'elevage', 'finance_pilotage', 'activite_suivi', 'centre_ia'],
+  agri_feeds_trial: ['agri_feeds', 'elevage', 'objectifs_croissance', 'centre_ia', 'activite_suivi'],
+  agri_feeds_sale: ['agri_feeds', 'commercial', 'finance_pilotage', 'achats_stock', 'centre_ia'],
 };
 
 export const IA_ENGINES = [
@@ -61,6 +75,6 @@ export const DEV_RULES = {
 
 /** Ordre d'audit / correction module par module. */
 export const MODULE_AUDIT_ORDER = [
-  'dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance', 'elevage', 'cultures', 'commercial',
+  'dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance', 'elevage', 'agri_feeds', 'cultures', 'commercial',
   'achats_stock', 'finance_pilotage', 'activite_suivi', 'documents_rapports', 'rh', 'smartfarm', 'gestion_systeme',
 ];

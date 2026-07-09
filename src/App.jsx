@@ -10,6 +10,7 @@ import { refreshAllModules, refreshSalesWorkflow } from './services/workflowRefr
 import { resolveCommercialTab, resolveElevageTab, resolveAchatsStockTab, resolveFinanceTab, resolveActiviteSuiviTab, resolveDocumentsTab, resolveRhTab, resolveObjectifsTab, resolveCentreTab, resolveRouteModule, defaultTabForLegacyModule, isCommercialReconciliationAlias } from './utils/commercialNavigation';
 import { parseErpDeepLinkFromSearch, stripErpDeepLinkParamsFromUrl } from './utils/erpDeepLink.js';
 import { resolveCulturesTab } from './utils/culturesNavigation.js';
+import { resolveAgriFeedsTab } from './utils/agriFeedsNavigation.js';
 import { farmCostSettingsService } from './services/farmCostSettingsService';
 import { pruneHeavyLocalStorage } from './utils/safeLocalStorage';
 import { archiveHealthMirrorTasks, findHealthMirrorTasksToArchive } from './utils/pruneHealthMirrorTasks.js';
@@ -57,6 +58,7 @@ export default function App() {
   const [achatsStockContext, setAchatsStockContext] = useState(null);
   const [financeTab, setFinanceTab] = useState('Résumé');
   const [culturesTab, setCulturesTab] = useState('Parcelles & campagnes');
+  const [agriFeedsTab, setAgriFeedsTab] = useState('Tableau de bord');
   const [activiteSuiviTab, setActiviteSuiviTab] = useState('Cockpit & décisions');
   const [documentsRapportsTab, setDocumentsRapportsTab] = useState('Centre de contrôle');
   const [rhTab, setRhTab] = useState('Cockpit RH & Maintenance');
@@ -68,7 +70,7 @@ export default function App() {
   const openAssistantRef = useRef(() => {});
   const deepLinkAppliedRef = useRef(false);
   const navigateModule = useCallback((moduleId, options = {}) => {
-    const tab = options?.tab || options?.commercialTab || options?.elevageTab || options?.achatsStockTab || options?.financeTab || options?.culturesTab || options?.activiteSuiviTab || options?.documentsRapportsTab || options?.rhTab;
+    const tab = options?.tab || options?.commercialTab || options?.elevageTab || options?.achatsStockTab || options?.financeTab || options?.culturesTab || options?.agriFeedsTab || options?.activiteSuiviTab || options?.documentsRapportsTab || options?.rhTab;
     const resolved = resolveRouteModule(moduleId);
 
     if (resolved !== 'achats_stock') {
@@ -126,6 +128,12 @@ export default function App() {
       setCulturesTab(tab || defaultTabForLegacyModule(moduleId) || 'Parcelles & campagnes');
       trackNavOpen('cultures');
       setActiveState('cultures');
+      return;
+    }
+    if (resolved === 'agri_feeds') {
+      setAgriFeedsTab(resolveAgriFeedsTab(tab || 'Tableau de bord'));
+      trackNavOpen('agri_feeds');
+      setActiveState('agri_feeds');
       return;
     }
     if (resolved === 'activite_suivi') {
@@ -461,6 +469,22 @@ export default function App() {
       onRefreshAlertes: c.alertes_center.refresh,
       existingTasks: rows(c.taches),
       existingAlerts: rows(c.alertes_center),
+    },
+    agri_feeds: {
+      initialTab: agriFeedsTab,
+      onTabChange: (nextTab) => setAgriFeedsTab(resolveAgriFeedsTab(nextTab)),
+      dataMap: decisionDataMapRaw,
+      animaux: rows(c.animaux),
+      lots: rows(c.avicole),
+      stocks: rows(c.stock),
+      fournisseurs: rows(c.fournisseurs),
+      clients: rows(c.clients),
+      alimentationLogs: rows(c.alimentation_logs),
+      productionLogs: rows(c.production_oeufs_logs),
+      transactions: rows(c.finances),
+      salesOrders: rows(c.sales_orders),
+      onNavigate: setActive,
+      onOpenAssistant: openAssistantWithQuery,
     },
     commercial: {
       initialTab: commercialTab,
@@ -807,7 +831,7 @@ export default function App() {
     sync: { ...syncActivityProps, initialTab: syncActivityTab, onTabChange: (nextTab) => setSyncActivityTab(nextTab) },
     sync_activity: { ...syncActivityProps, initialTab: syncActivityTab, onTabChange: (nextTab) => setSyncActivityTab(nextTab) },
   };
-  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, culturesTab, achatsStockTab, achatsStockContext, financeTab, activiteSuiviTab, documentsRapportsTab, rhTab, gestionSystemeTab, investisseursTab, smartfarmTab, syncActivityTab, farmsPanelAction, accessibleFarms, effectiveAccessibleFarms, refreshAccessibleFarms, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue, handleManageFarms, farmComparisonData, openAssistantWithQuery]);
+  }, [c, user, liveMeteo, decisionDataMapRaw, crudFingerprint, centreTab, objectifsTab, commercialTab, elevageTab, agriFeedsTab, culturesTab, achatsStockTab, achatsStockContext, financeTab, activiteSuiviTab, documentsRapportsTab, rhTab, gestionSystemeTab, investisseursTab, smartfarmTab, syncActivityTab, farmsPanelAction, accessibleFarms, effectiveAccessibleFarms, refreshAccessibleFarms, online, lastOnlineAt, dataMap, refreshAll, refreshSalesWorkflowFn, navigateModule, setActive, flushOfflineQueue, handleManageFarms, farmComparisonData, openAssistantWithQuery]);
 
   const activeModuleProps = useMemo(
     () => applyFarmScopeToProps(
@@ -815,7 +839,7 @@ export default function App() {
       farmScope,
       { accessibleFarms: effectiveAccessibleFarms, activeFarm, moduleId: resolveActiveModuleId(active) },
     ),
-    [moduleProps, active, periodScopeKey, crudFingerprint, commercialTab, elevageTab, culturesTab, achatsStockTab, financeTab, activiteSuiviTab, documentsRapportsTab, rhTab, centreTab, objectifsTab, periodScope, farmScope, effectiveAccessibleFarms, activeFarm],
+    [moduleProps, active, periodScopeKey, crudFingerprint, commercialTab, elevageTab, agriFeedsTab, culturesTab, achatsStockTab, financeTab, activiteSuiviTab, documentsRapportsTab, rhTab, centreTab, objectifsTab, periodScope, farmScope, effectiveAccessibleFarms, activeFarm],
   );
   const scopedAssistantDataMap = useMemo(
     () => {

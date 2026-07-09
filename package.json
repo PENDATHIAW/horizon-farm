@@ -30,6 +30,7 @@
     "test:unit:elevage": "npx vite-node tests/unit/elevageBroilerScenario.test.js && npx vite-node tests/unit/elevageV1.test.js && npx vite-node tests/unit/elevageV2.test.js && npx vite-node tests/unit/elevageV3.test.js",
     "test:unit:elevage-v3": "npx vite-node tests/unit/elevageV3.test.js",
     "test:unit:cultures": "node --test tests/unit/culturesWorkflow.test.js",
+    "test:unit:agri-feeds": "npx vite-node tests/unit/agriFeedsStep1.test.js",
     "test:unit:documents": "node --test tests/unit/documentsWorkflow.test.js",
     "test:unit:activite": "node --test tests/unit/activiteSuiviWorkflow.test.js",
     "test:unit:centre": "node --test tests/unit/centreObjectifsWorkflow.test.js",

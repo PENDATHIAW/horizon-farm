@@ -1,7 +1,7 @@
 import {
   BarChart3, Beef, Bell, Bot, BrainCircuit, Calculator, ClipboardList, DollarSign,
   FolderOpen, Goal, Handshake, LayoutDashboard, PiggyBank, Settings, ShoppingCart,
-  Sprout, Sun, Tractor, UserCog, Warehouse, Wifi, Wrench,
+  Sprout, Sun, Tractor, UserCog, Warehouse, Wheat, Wifi, Wrench,
 } from 'lucide-react';
 
 /** Registre central des modules ERP — routes, labels, regroupements. */
@@ -11,6 +11,7 @@ export const MODULE_REGISTRY = {
   centre_ia: { label: 'Centre décisionnel', icon: BrainCircuit, group: 'pilotage' },
   objectifs_croissance: { label: 'Objectifs & Croissance', icon: Goal, group: 'pilotage' },
   elevage: { label: 'Élevage', icon: Beef, group: 'metier' },
+  agri_feeds: { label: 'AGRI FEEDS', icon: Wheat, group: 'metier' },
   commercial: { label: 'Commercial', icon: ShoppingCart, group: 'metier' },
   achats_stock: { label: 'Achats & Stock', icon: Warehouse, group: 'metier' },
   finance_pilotage: { label: 'Finance & Pilotage', icon: DollarSign, group: 'metier' },
@@ -34,7 +35,7 @@ export const ADVANCED_MODULE_IDS = [
 ];
 
 export const GRAND_MODULE_IDS = [
-  'elevage', 'commercial', 'achats_stock', 'finance_pilotage',
+  'elevage', 'agri_feeds', 'commercial', 'achats_stock', 'finance_pilotage',
   'activite_suivi', 'documents_rapports', 'objectifs_croissance', 'centre_ia',
 ];
 
@@ -56,7 +57,7 @@ export const SALES_WORKFLOW_KEYS = [
 
 export const NAV_MODULE_ORDER = [
   'dashboard', 'assistant_erp', 'centre_ia', 'objectifs_croissance', 'investisseurs_forums',
-  'elevage', 'cultures',
+  'elevage', 'agri_feeds', 'cultures',
   'commercial', 'achats_stock',
   'finance_pilotage',
   'activite_suivi', 'documents_rapports',

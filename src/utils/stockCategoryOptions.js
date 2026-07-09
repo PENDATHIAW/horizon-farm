@@ -1,4 +1,5 @@
 import { CIRCULAR_STOCK_CATEGORY_OPTIONS } from '../config/derfjGreenpreneurs.config.js';
+import { FEED_STOCK_CATEGORIES } from '../config/agriFeeds.config.js';
 
 /** Catégories stock de base (hors circulaire). */
 export const BASE_STOCK_CATEGORY_OPTIONS = [
@@ -16,10 +17,14 @@ export const BASE_STOCK_CATEGORY_OPTIONS = [
   { value: 'autre', label: 'Autre' },
 ];
 
-/** Liste complète pour formulaires stock (base + économie circulaire). */
+/** Liste complète pour formulaires stock (base + AGRI FEEDS + économie circulaire). */
 export function getStockCategoryOptions() {
   const seen = new Set();
-  return [...BASE_STOCK_CATEGORY_OPTIONS, ...CIRCULAR_STOCK_CATEGORY_OPTIONS].filter((row) => {
+  return [
+    ...BASE_STOCK_CATEGORY_OPTIONS,
+    ...FEED_STOCK_CATEGORIES,
+    ...CIRCULAR_STOCK_CATEGORY_OPTIONS,
+  ].filter((row) => {
     if (seen.has(row.value)) return false;
     seen.add(row.value);
     return true;
