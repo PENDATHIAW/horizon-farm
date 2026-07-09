@@ -104,6 +104,20 @@ Le workflow de vente calcule :
 
 Les retours clients et réclamations sont enregistrés en `business_events`. Une réclamation crée une alerte qualité afin de vérifier le lot, rappeler le client et documenter l’action corrective.
 
+### Reporting, permissions et audit
+
+Le reporting AGRI FEEDS construit une synthèse financeur à partir des données ERP existantes : readiness, production, essais, comparaisons, QC, traçabilité, ventes, créances, marge estimée et actions prioritaires.
+
+Les actions sensibles sont encadrées par une matrice de permissions : validation humaine d’un essai, passage en `commercializable`, clôture d’OF, vente, génération de rapport et consultation des décisions sensibles.
+
+La génération d’un rapport crée :
+
+- une ligne `reports` de type `agri_feeds_financeur` ;
+- une ligne `audit_logs` rattachée au module AGRI FEEDS ;
+- un événement de gestion pour garder la trace de la décision.
+
+L’objectif est de pouvoir expliquer à un financeur ou à la promotrice : ce qui a été produit, testé, validé, vendu, encaissé, réclamé et surveillé.
+
 
 ## Étapes livrées
 
@@ -144,6 +158,13 @@ Les retours clients et réclamations sont enregistrés en `business_events`. Une
 - Retours clients / réclamations via `business_events` + alerte qualité si réclamation
 - Onglet **Commercial** opérationnel : vente, KPI, réachats, points d’attention Centre/Assistant
 
-## Étapes suivantes
+### Étape 6
+- Service `agriFeedsReportingService.js` : rapport financeur, qualité, traçabilité, permissions, audit
+- Onglet **Qualité & reporting** enrichi : synthèse financeur, KPI, lecture de gestion, permissions sensibles
+- Génération de rapport : `reports` + `audit_logs` + événement de gestion
+- Tests unitaires `agriFeedsStep6.test.js`
+- Smoke E2E `agri-feeds-smoke.spec.js`
 
-6. Reporting + permissions avancées + audit + tests E2E
+## Étape suivante possible
+
+7. Assistant IA dédié AGRI FEEDS : intentions naturelles, analyse mensuelle, relances commerciales et synthèses financeur automatisées.
