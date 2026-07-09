@@ -37,6 +37,49 @@ Par lot / animal : fournisseur, type aliment, prix/kg, quantité, coût total, c
 Propose (analyse, suggestion, point d’attention, décision proposée).  
 **L’humain valide.** Aucune commercialisation automatique.
 
+## Moteur `agriFeedsReadinessEngine`
+
+Le moteur ne répond **jamais** simplement « prêt / pas prêt ». Chaque appel retourne :
+
+- `readiness_score` sur 100 ;
+- `recommendedMode` (REFERENCE / PILOT_INTERNAL / PROGRESSIVE_SALES) ;
+- `blockers` critiques ;
+- `warnings` ;
+- `data_used` (données ERP utilisées) ;
+- `data_missing` (collections/champs manquants) ;
+- `priority_actions` proposées ;
+- `human_validation_required: true` + `ai_disclaimer` (l’IA propose, l’humain décide) ;
+- `per_mode` (score + met + missing + blockers/warnings pour chaque phase) ;
+- `pilot_breakdown` (12 critères Phase 2A) ;
+- `sales_gates` (6 portes Phase 2B).
+
+### Phase 2A — Production pilote interne (12 critères pondérés / 100)
+
+1. Qualité & volume des données historiques Phase 1 (cap 12)  
+2. Stabilité sanitaire (cap 10)  
+3. Indice de consommation (cap 8)  
+4. Coût alimentaire suivi (cap 8)  
+5. Marges observées (cap 8)  
+6. Trésorerie (cap 8)  
+7. Créances & dettes (cap 6)  
+8. Disponibilité de l’eau (cap 6)  
+9. État du site AGRI FEEDS (cap 8)  
+10. Fournisseurs matières premières (cap 8)  
+11. Encadrement technique (cap 8)  
+12. Alertes critiques ouvertes (cap 10)  
+
+### Phase 2B — Vente progressive (portes strictes)
+
+La vente est **bloquée** si l’une de ces portes est fausse :
+
+- au moins une formule testée ;  
+- un coût réel de production calculé ;  
+- une comparaison avec la référence Phase 1 ;  
+- au moins un contrôle qualité `feed_quality_checks` enregistré ;  
+- une validation humaine (essai clôturé + `reviewed_by_human` ou formule validée) ;  
+- une formule au statut `commercializable`.  
+
+
 ## Étapes livrées
 
 ### Étape 1

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { AlertTriangle, CheckCircle2, Compass, Layers3 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Compass, Layers3, ShieldAlert, UserCheck } from 'lucide-react';
 import { computeAgriFeedsReadiness, normalizeAgriFeedsDataMap } from '../../../services/agriFeeds/agriFeedsReadinessEngine.js';
 import { buildPhase1FeedBenchmark } from '../../../services/agriFeeds/phase1FeedBenchmarkEngine.js';
 import { facilityZonesSummary } from '../../../services/agriFeeds/facilityZonesService.js';
@@ -62,15 +62,81 @@ export default function AgriFeedsDashboardTab({ dataMap = {}, onNavigateTab }) {
               : <p className="text-xs mt-1 text-rose-900/80">Aucun bloqueur critique.</p>}
           </div>
         </div>
-        {readiness.next_actions.length ? (
+        {readiness.priority_actions?.length ? (
           <div className="mt-4 rounded-2xl border border-[#eadcc2] bg-white p-3">
-            <p className="text-[10px] font-black uppercase text-[#8a7456]">Action proposée</p>
-            {readiness.next_actions.map((item) => (
+            <p className="text-[10px] font-black uppercase text-[#8a7456]">Actions prioritaires proposées</p>
+            {readiness.priority_actions.map((item) => (
               <p key={item} className="text-sm mt-1 text-[#2f2415]">→ {item}</p>
             ))}
           </div>
         ) : null}
+
+        {readiness.warnings?.length ? (
+          <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-3">
+            <p className="text-[10px] font-black uppercase text-amber-900 flex items-center gap-1">
+              <ShieldAlert size={12} /> Warnings
+            </p>
+            {readiness.warnings.map((w) => (
+              <p key={w} className="text-xs mt-1 text-amber-950">! {w}</p>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="mt-3 rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-3 flex items-start gap-2">
+          <UserCheck size={16} className="text-[#2f2415] mt-[2px]" />
+          <div>
+            <p className="text-xs font-black text-[#2f2415]">Validation humaine requise</p>
+            <p className="text-xs text-[#8a7456] leading-relaxed">
+              {readiness.ai_disclaimer || 'L’IA propose. L’humain valide.'}
+            </p>
+          </div>
+        </div>
       </section>
+
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {['REFERENCE', 'PILOT_INTERNAL', 'PROGRESSIVE_SALES'].map((key) => {
+          const info = readiness.per_mode?.[key];
+          if (!info) return null;
+          const recommended = readiness.recommendedMode === key;
+          return (
+            <div
+              key={key}
+              className={`rounded-2xl border p-3 ${recommended ? 'border-emerald-400 bg-emerald-50/70' : 'border-[#eadcc2] bg-white'}`}
+            >
+              <p className="text-[10px] font-black uppercase text-[#8a7456]">
+                {recommended ? 'Mode recommandé' : 'Mode'}
+              </p>
+              <p className="text-sm font-black text-[#2f2415]">{info.label}</p>
+              <p className="text-xs text-[#8a7456]">Score {info.score}/100</p>
+              {info.blockers?.length ? (
+                <p className="text-xs mt-1 text-rose-900">{info.blockers.length} bloqueur(s)</p>
+              ) : null}
+              {info.warnings?.length ? (
+                <p className="text-xs mt-1 text-amber-900">{info.warnings.length} warning(s)</p>
+              ) : null}
+            </div>
+          );
+        })}
+      </section>
+
+      {readiness.per_mode?.PROGRESSIVE_SALES?.gates ? (
+        <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5">
+          <p className="font-black text-[#2f2415] flex items-center gap-2">
+            <ShieldAlert size={18} /> Portes Phase 2B — Vente progressive
+          </p>
+          <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+            {Object.entries(readiness.per_mode.PROGRESSIVE_SALES.gates).map(([key, ok]) => (
+              <div
+                key={key}
+                className={`rounded-xl border px-3 py-2 text-xs flex items-center gap-2 ${ok ? 'border-emerald-200 bg-emerald-50/60 text-emerald-950' : 'border-rose-200 bg-rose-50/50 text-rose-950'}`}
+              >
+                {ok ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
+                <span>{readiness.per_mode.PROGRESSIVE_SALES.gateLabels?.[key] || key}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card
