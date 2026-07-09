@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Wheat } from 'lucide-react';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import { resolveAgriFeedsTab } from '../utils/agriFeedsNavigation.js';
 import AgriFeedsDashboardTab from './agriFeeds/tabs/AgriFeedsDashboardTab.jsx';
@@ -105,9 +104,7 @@ export default function AgriFeedsModule(props) {
   return (
     <div className="space-y-4">
       <header className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5">
-        <p className="text-xl font-black text-[#2f2415] flex items-center gap-2">
-          <Wheat size={22} /> AGRI FEEDS
-        </p>
+        <p className="text-xl font-black text-[#2f2415]">AGRI FEEDS</p>
         <p className="text-sm text-[#8a7456] mt-1 max-w-3xl leading-relaxed">
           Production d’aliments animaux pilotée par la donnée — Phase 2 de Horizon Farm.
           La Phase 1 construit d’abord la référence à partir des aliments du marché.
