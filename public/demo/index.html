@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Horizon Farm ERP — Visite guidée</title>
+    <meta name="robots" content="noindex" />
+    <style>
+      :root {
+        --green: #22c55e;
+        --dark: #052e16;
+        --brown: #2f2415;
+        --muted: #6b8a6b;
+        --sand: #fffdf8;
+        --border: #d6c3a0;
+        --soft: #f6faf6;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: linear-gradient(180deg, #f6faf6 0%, #fffdf8 100%);
+        color: var(--dark);
+      }
+      a { color: inherit; }
+      .shell { max-width: 1180px; margin: 0 auto; padding: 32px 18px 56px; }
+      .hero {
+        border: 1px solid var(--border);
+        border-radius: 34px;
+        background: white;
+        padding: 32px;
+        box-shadow: 0 24px 70px rgba(5, 46, 22, 0.08);
+      }
+      .badge {
+        display: inline-flex;
+        border: 1px solid #bbf7d0;
+        background: #f0fdf4;
+        color: #166534;
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+      }
+      h1 { margin: 16px 0 10px; font-size: clamp(34px, 6vw, 70px); line-height: .95; letter-spacing: -0.06em; }
+      h2 { margin: 0 0 12px; font-size: 24px; letter-spacing: -0.03em; }
+      p { line-height: 1.65; }
+      .lead { color: var(--muted); max-width: 760px; font-size: 17px; }
+      .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+      .btn {
+        border: 0;
+        border-radius: 16px;
+        padding: 13px 18px;
+        font-weight: 900;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .btn.primary { background: var(--green); color: var(--dark); }
+      .btn.secondary { background: var(--sand); border: 1px solid var(--border); color: var(--brown); }
+      .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+      .card, .panel {
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        background: white;
+        padding: 18px;
+      }
+      .card small { display: block; color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: .08em; font-size: 10px; }
+      .card strong { display: block; margin-top: 6px; font-size: 22px; color: var(--brown); }
+      .section { margin-top: 22px; }
+      .tour { display: grid; grid-template-columns: 290px 1fr; gap: 18px; align-items: start; }
+      .steps { position: sticky; top: 16px; display: grid; gap: 8px; }
+      .step-btn {
+        width: 100%; border: 1px solid #d1e5d1; background: white; color: var(--muted);
+        border-radius: 16px; padding: 12px; text-align: left; cursor: pointer; font-weight: 800;
+      }
+      .step-btn.active { background: #dcfce7; color: var(--dark); border-color: var(--green); }
+      .screen {
+        min-height: 430px;
+        border: 1px solid var(--border);
+        border-radius: 28px;
+        background: var(--sand);
+        padding: 22px;
+        overflow: hidden;
+      }
+      .screen-header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; border-bottom: 1px solid #eadcc2; padding-bottom: 16px; margin-bottom: 16px; }
+      .pill { border: 1px solid #bbf7d0; background: #f0fdf4; color: #166534; border-radius: 999px; padding: 6px 10px; font-size: 11px; font-weight: 900; }
+      .mini-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .mini { border: 1px solid #eadcc2; background: white; border-radius: 18px; padding: 14px; }
+      .mini b { display: block; color: var(--brown); margin-bottom: 4px; }
+      .mini span { color: var(--muted); font-size: 13px; line-height: 1.5; }
+      .timeline { display: grid; gap: 10px; margin-top: 14px; }
+      .line { border-left: 4px solid var(--green); background: white; border-radius: 14px; padding: 12px 14px; color: var(--brown); }
+      .note { border: 1px solid #fde68a; background: #fffbeb; color: #92400e; border-radius: 18px; padding: 14px; font-size: 14px; }
+      .footer { margin-top: 22px; color: var(--muted); font-size: 13px; text-align: center; }
+      @media (max-width: 860px) {
+        .grid { grid-template-columns: 1fr; }
+        .tour { grid-template-columns: 1fr; }
+        .steps { position: static; }
+        .mini-grid { grid-template-columns: 1fr; }
+        .hero { padding: 24px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <span class="badge">Visite guidée sans connexion</span>
+        <h1>Horizon Farm ERP</h1>
+        <p class="lead">
+          Démonstration publique de l’ERP Horizon Farm : pilotage agricole, centre décisionnel,
+          traçabilité, finance, ventes, stock, élevage, AGRI FEEDS et aide à la décision pour les extensions futures.
+        </p>
+        <div class="actions">
+          <button class="btn primary" onclick="scrollToTour()">Commencer la visite</button>
+          <a class="btn secondary" href="#points-forts">Voir les points forts</a>
+        </div>
+        <div class="grid" id="points-forts">
+          <div class="card"><small>Vision</small><strong>Ferme intégrée</strong><p>Élevage, cultures, stock, finances et ventes connectés.</p></div>
+          <div class="card"><small>Décision</small><strong>IA assistée</strong><p>L’ERP signale les écarts, les risques et les priorités. L’humain valide.</p></div>
+          <div class="card"><small>Évolution</small><strong>Phases mesurées</strong><p>AGRI FEEDS puis extensions futures seulement si les données le justifient.</p></div>
+        </div>
+      </section>
+
+      <section class="section tour" id="tour">
+        <nav class="steps" aria-label="Étapes de la visite">
+          <button class="step-btn active" data-step="0">1. Tableau de bord</button>
+          <button class="step-btn" data-step="1">2. Centre décisionnel</button>
+          <button class="step-btn" data-step="2">3. Élevage & production</button>
+          <button class="step-btn" data-step="3">4. AGRI FEEDS</button>
+          <button class="step-btn" data-step="4">5. Finance & reporting</button>
+          <button class="step-btn" data-step="5">6. Extensions futures</button>
+        </nav>
+        <article class="screen" id="screen"></article>
+      </section>
+
+      <section class="section panel">
+        <h2>Ce que cette démo montre</h2>
+        <p>
+          Cette page ne donne pas accès aux données privées de l’exploitation. Elle présente seulement le fonctionnement,
+          la logique métier et les bénéfices de l’ERP pour les partenaires, financeurs, conseillers ou visiteurs.
+        </p>
+        <div class="note">
+          Pour une démonstration complète avec données réelles, il faut utiliser l’espace ERP sécurisé avec identifiant et mot de passe.
+        </div>
+      </section>
+
+      <p class="footer">Horizon Farm ERP — démo publique. Aucun identifiant requis.</p>
+    </main>
+
+    <script>
+      const steps = [
+        {
+          title: 'Tableau de bord de pilotage',
+          badge: 'Vue globale',
+          intro: 'Le tableau de bord donne une vision rapide de la ferme : production, stock, ventes, alertes et météo terrain.',
+          cards: [
+            ['Production', 'Œufs, poulets, bovins et cultures suivis en temps réel.'],
+            ['Alertes', 'Stock bas, mortalité, créances, tâches urgentes et risques terrain.'],
+            ['Décisions', 'Priorités proposées pour éviter les pertes et améliorer la marge.'],
+            ['Traçabilité', 'Chaque activité laisse une preuve exploitable pour le reporting.'],
+          ],
+        },
+        {
+          title: 'Centre décisionnel',
+          badge: 'IA assistée',
+          intro: 'Le centre décisionnel ne remplace pas la promotrice. Il aide à voir plus vite les écarts et les actions à prioriser.',
+          cards: [
+            ['Risques', 'Charges anormales, mortalité, rupture, retard de paiement.'],
+            ['Opportunités', 'Produits à pousser, lots performants, clients à relancer.'],
+            ['Saisons', 'Suivi des cycles agricoles, marché, météo et disponibilité eau.'],
+            ['Validation humaine', 'L’IA propose, la décision finale reste humaine.'],
+          ],
+        },
+        {
+          title: 'Élevage & production',
+          badge: 'Cœur métier',
+          intro: 'L’ERP relie les lots, l’alimentation, la santé, la ponte, les ventes et les coûts pour connaître la vraie performance.',
+          cards: [
+            ['Poulets de chair', 'Suivi bandes, mortalité, poids, aliment consommé et marge.'],
+            ['Pondeuses', 'Ponte, plateaux, coûts alimentaires et rentabilité.'],
+            ['Bovins', 'Embouche, alimentation, suivi sanitaire et valeur de sortie.'],
+            ['Cultures', 'Maraîchage, fertilisation organique et usage de l’eau.'],
+          ],
+        },
+        {
+          title: 'AGRI FEEDS',
+          badge: 'Phase 2 mesurée',
+          intro: 'AGRI FEEDS n’est lancé que si les données Phase 1 sont suffisantes : coûts alimentaires, performances, fournisseurs et tests internes.',
+          cards: [
+            ['Référence Phase 1', 'Comparer les aliments du marché avec les futures formules internes.'],
+            ['Production pilote', 'Formules, matières premières, ordres de fabrication, QC et lots finis.'],
+            ['Essais internes', 'KPI animaux, comparaison Phase 1 et validation humaine.'],
+            ['Vente progressive', 'Uniquement sur formules commercialisables et lots contrôlés.'],
+          ],
+        },
+        {
+          title: 'Finance & reporting',
+          badge: 'Suivi financeur',
+          intro: 'Les données opérationnelles alimentent les finances, les rapports et la capacité à expliquer la performance du projet.',
+          cards: [
+            ['Trésorerie', 'Encaissements, dépenses, dettes, créances et reste à payer.'],
+            ['Marge', 'Analyse par lot, activité et produit vendu.'],
+            ['Rapports', 'Synthèses lisibles pour financeurs, partenaires et suivi interne.'],
+            ['Audit', 'Historique des décisions et actions sensibles documentées.'],
+          ],
+        },
+        {
+          title: 'Extensions futures : BOVINIA et tallow & go',
+          badge: 'Aide à la décision',
+          intro: 'Ces marques ne doivent pas devenir des modules séparés au départ. L’ERP aide seulement à décider quand les lancer.',
+          cards: [
+            ['BOVINIA', 'Lancement si matière première, transformation, coût par stick, qualité et ventes pilotes sont validés.'],
+            ['tallow & go', 'Lancement si suif, formulation, stabilité, packaging, marge et conformité sont maîtrisés.'],
+            ['Pas de confusion', 'La ferme et AGRI FEEDS restent les modules opérationnels principaux.'],
+            ['Décision progressive', 'Chaque extension doit être justifiée par les données réelles de Horizon Farm.'],
+          ],
+        },
+      ];
+
+      const screen = document.getElementById('screen');
+      const buttons = [...document.querySelectorAll('.step-btn')];
+
+      function renderStep(index) {
+        const step = steps[index];
+        screen.innerHTML = `
+          <div class="screen-header">
+            <div>
+              <h2>${step.title}</h2>
+              <p>${step.intro}</p>
+            </div>
+            <span class="pill">${step.badge}</span>
+          </div>
+          <div class="mini-grid">
+            ${step.cards.map(([title, text]) => `<div class="mini"><b>${title}</b><span>${text}</span></div>`).join('')}
+          </div>
+          <div class="timeline">
+            <div class="line">Collecter les données terrain.</div>
+            <div class="line">Comparer avec les objectifs, coûts et performances.</div>
+            <div class="line">Proposer une action, puis faire valider humainement.</div>
+          </div>
+        `;
+        buttons.forEach((btn) => btn.classList.toggle('active', Number(btn.dataset.step) === index));
+      }
+
+      buttons.forEach((btn) => btn.addEventListener('click', () => renderStep(Number(btn.dataset.step))));
+      function scrollToTour() { document.getElementById('tour').scrollIntoView({ behavior: 'smooth' }); }
+      renderStep(0);
+    </script>
+  </body>
+</html>
