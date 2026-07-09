@@ -11,7 +11,6 @@ export const CANONICAL_MODULE_FILES = {
   objectifs_croissance: 'ObjectifsCroissanceV2.jsx',
   elevage: 'ElevageModule.jsx',
   agri_feeds: 'AgriFeedsModule.jsx',
-  agri_feeds_bovinia: 'BoviniaModule.jsx',
   commercial: 'CommercialModule.jsx',
   achats_stock: 'AchatsStockModule.jsx',
   finance_pilotage: 'FinancePilotageModule.jsx',
@@ -66,7 +65,6 @@ export const MODULE_ENTRY_POINTS = {
   objectifs_croissance: () => import('../modules/ObjectifsCroissanceV2.jsx'),
   elevage: () => import('../modules/ElevageModule.jsx'),
   agri_feeds: () => import('../modules/AgriFeedsModule.jsx'),
-  agri_feeds_bovinia: () => import('../modules/BoviniaModule.jsx'),
   commercial: () => import('../modules/CommercialModule.jsx'),
   achats_stock: () => import('../modules/AchatsStockModule.jsx'),
   finance_pilotage: () => import('../modules/FinancePilotageModule.jsx'),
@@ -103,7 +101,6 @@ export const MODULE_ENTRY_POINTS = {
 /** Routes historiques → module actif (navigation + chargement). */
 export const DEPRECATED_MODULE_ALIASES = {
   impact_business: 'investisseurs_forums',
-  bovinia: 'agri_feeds_bovinia',
 };
 
 export function resolveActiveModuleId(moduleId = '') {
