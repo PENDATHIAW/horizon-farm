@@ -47,6 +47,13 @@ const controlPoints = [
   'Ventes pilotes, retours clients, réachats et réclamations',
 ];
 
+const connections = [
+  ['Élevage', 'Origine matière et coproduits', 'elevage', 'Transformation'],
+  ['Achats & Stock', 'Intrants, emballages, sticks', 'achats_stock', 'Inventaire'],
+  ['Commercial', 'Ventes pilotes et retours', 'commercial', 'Ventes'],
+  ['Documents', 'Conformité, fiches, preuves', 'documents_rapports', 'Centre de contrôle'],
+];
+
 function Section({ title, children }) {
   return (
     <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
@@ -66,11 +73,30 @@ function Card({ title, value, hint }) {
   );
 }
 
-export default function BoviniaModule({ onNavigate } = {}) {
-  const openModule = (moduleId, tab) => {
-    if (typeof onNavigate === 'function') onNavigate(moduleId, tab ? { tab } : {});
-  };
+function ConnectionCard({ title, hint, moduleId, tab, onNavigate }) {
+  const content = (
+    <>
+      <p className="font-black text-[#2f2415]">{title}</p>
+      <p className="mt-1 text-xs text-[#8a7456]">{hint}</p>
+    </>
+  );
 
+  if (typeof onNavigate !== 'function') {
+    return <div className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4 text-left">{content}</div>;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => onNavigate(moduleId, tab ? { tab } : {})}
+      className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4 text-left hover:bg-[#f8f1e4]"
+    >
+      {content}
+    </button>
+  );
+}
+
+export default function BoviniaModule({ onNavigate } = {}) {
   return (
     <div className="space-y-4">
       <header className="rounded-3xl border border-[#d6c3a0] bg-[#fffdf8] p-5 space-y-2">
@@ -133,38 +159,16 @@ export default function BoviniaModule({ onNavigate } = {}) {
 
       <Section title="Connexions avec les modules existants">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <button
-            type="button"
-            onClick={() => openModule('elevage', 'Transformation')}
-            className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4 text-left hover:bg-[#f8f1e4]"
-          >
-            <p className="font-black text-[#2f2415]">Élevage</p>
-            <p className="mt-1 text-xs text-[#8a7456]">Origine matière et coproduits</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => openModule('achats_stock', 'Inventaire')}
-            className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4 text-left hover:bg-[#f8f1e4]"
-          >
-            <p className="font-black text-[#2f2415]">Achats & Stock</p>
-            <p className="mt-1 text-xs text-[#8a7456]">Intrants, emballages, sticks</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => openModule('commercial', 'Ventes')}
-            className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4 text-left hover:bg-[#f8f1e4]"
-          >
-            <p className="font-black text-[#2f2415]">Commercial</p>
-            <p className="mt-1 text-xs text-[#8a7456]">Ventes pilotes et retours</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => openModule('documents_rapports', 'Centre de contrôle')}
-            className="rounded-2xl border border-[#d6c3a0] bg-[#fffdf8] p-4 text-left hover:bg-[#f8f1e4]"
-          >
-            <p className="font-black text-[#2f2415]">Documents</p>
-            <p className="mt-1 text-xs text-[#8a7456]">Conformité, fiches, preuves</p>
-          </button>
+          {connections.map(([title, hint, moduleId, tab]) => (
+            <ConnectionCard
+              key={title}
+              title={title}
+              hint={hint}
+              moduleId={moduleId}
+              tab={tab}
+              onNavigate={onNavigate}
+            />
+          ))}
         </div>
       </Section>
     </div>
