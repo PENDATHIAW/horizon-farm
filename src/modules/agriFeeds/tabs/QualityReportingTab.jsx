@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { ClipboardCheck, FileText, LockKeyhole, MapPinned, ShieldCheck } from 'lucide-react';
 import { facilityZonesSummary, labelZoneStatus, labelZoneType } from '../../../services/agriFeeds/facilityZonesService.js';
 import { normalizeAgriFeedsDataMap } from '../../../services/agriFeeds/agriFeedsReadinessEngine.js';
 import {
@@ -40,9 +39,7 @@ export default function QualityReportingTab({
   return (
     <div className="space-y-4">
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-2">
-        <p className="text-lg font-black text-[#2f2415] flex items-center gap-2">
-          <MapPinned size={20} /> Infrastructures — zones AGRI FEEDS prévues
-        </p>
+        <p className="text-lg font-black text-[#2f2415]">Infrastructures — zones AGRI FEEDS prévues</p>
         <p className="text-sm text-[#8a7456] leading-relaxed max-w-3xl">
           Dès la Phase 1, ces espaces sont réservés sur le site. L’activation opérationnelle se fait selon la préparation réelle du site et le passage en Phase 2.
         </p>
@@ -68,9 +65,7 @@ export default function QualityReportingTab({
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="font-black text-[#2f2415] flex items-center gap-2">
-              <FileText size={18} /> Reporting financeur AGRI FEEDS
-            </p>
+            <p className="font-black text-[#2f2415]">Reporting financeur AGRI FEEDS</p>
             <p className="text-sm text-[#8a7456] leading-relaxed max-w-3xl mt-1">
               Synthèse lisible pour suivre readiness, production, qualité, traçabilité, ventes, créances et actions prioritaires.
             </p>
@@ -110,9 +105,7 @@ export default function QualityReportingTab({
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415] flex items-center gap-2">
-            <ShieldCheck size={18} /> Qualité & traçabilité
-          </p>
+          <p className="font-black text-[#2f2415]">Qualité & traçabilité</p>
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-[#eadcc2] bg-[#fffdf8] p-3">
               <p className="text-xs font-bold text-[#8a7456]">Contrôles qualité</p>
@@ -134,9 +127,7 @@ export default function QualityReportingTab({
         </section>
 
         <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415] flex items-center gap-2">
-            <LockKeyhole size={18} /> Permissions sensibles
-          </p>
+          <p className="font-black text-[#2f2415]">Permissions sensibles</p>
           <p className="text-sm text-[#8a7456] leading-relaxed">
             Les actions critiques restent réservées aux profils autorisés. Les décisions importantes nécessitent une validation humaine.
           </p>
@@ -152,9 +143,7 @@ export default function QualityReportingTab({
       </div>
 
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-2">
-        <p className="font-black text-[#2f2415] flex items-center gap-2">
-          <ClipboardCheck size={18} /> Suivi des décisions
-        </p>
+        <p className="font-black text-[#2f2415]">Suivi des décisions</p>
         <p className="text-sm text-[#8a7456] leading-relaxed max-w-3xl">
           Les rapports, validations, ventes, réclamations et actions sensibles doivent rester documentés pour faciliter le contrôle interne, le reporting financeur et la traçabilité des décisions.
         </p>
