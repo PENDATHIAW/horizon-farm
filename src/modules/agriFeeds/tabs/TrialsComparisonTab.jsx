@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, ClipboardCheck, FlaskConical, ShieldCheck, TestTubes, UserCheck, XCircle } from 'lucide-react';
 import { TRIAL_DECISIONS } from '../../../config/agriFeeds.config.js';
 import {
   prepareTrial,
@@ -96,12 +95,11 @@ export default function TrialsComparisonTab({
 
   const livePreview = useMemo(() => {
     if (!openForm.formula_version_id || !openForm.animal_lot_id) return null;
-    const comparison = compareMarketFeedToAgriFeedsFormula({
+    return compareMarketFeedToAgriFeedsFormula({
       dataMap,
       animalLotId: openForm.animal_lot_id,
       formulaVersionId: openForm.formula_version_id,
     });
-    return comparison;
   }, [openForm.formula_version_id, openForm.animal_lot_id, dataMap]);
 
   const openTrial = async (e) => {
@@ -209,9 +207,7 @@ export default function TrialsComparisonTab({
   return (
     <div className="space-y-4">
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-2">
-        <p className="text-lg font-black text-[#2f2415] flex items-center gap-2">
-          <TestTubes size={20} /> Tests & comparaison
-        </p>
+        <p className="text-lg font-black text-[#2f2415]">Tests & comparaison</p>
         <p className="text-sm text-[#8a7456] leading-relaxed max-w-3xl">
           Essais internes sur animaux Horizon Farm, comparaison formalisée avec la référence
           Phase 1, et validation humaine explicite. L’IA propose une décision — la décision
@@ -224,9 +220,7 @@ export default function TrialsComparisonTab({
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <form onSubmit={openTrial} className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415] flex items-center gap-2">
-            <FlaskConical size={16} /> Ouvrir un essai
-          </p>
+          <p className="font-black text-[#2f2415]">Ouvrir un essai</p>
           <label className="block space-y-1">
             <span className="text-xs font-bold text-[#8a7456]">Version de formule</span>
             <select
@@ -331,9 +325,7 @@ export default function TrialsComparisonTab({
         </form>
 
         <form onSubmit={closeTrial} className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415] flex items-center gap-2">
-            <ClipboardCheck size={16} /> Clôturer un essai
-          </p>
+          <p className="font-black text-[#2f2415]">Clôturer un essai</p>
           <label className="block space-y-1">
             <span className="text-xs font-bold text-[#8a7456]">Essai en cours</span>
             <select
@@ -458,9 +450,7 @@ export default function TrialsComparisonTab({
 
       {awaitingHuman.length ? (
         <section className="rounded-3xl border border-amber-300 bg-amber-50/60 p-5 space-y-3">
-          <p className="font-black text-amber-950 flex items-center gap-2">
-            <UserCheck size={16} /> Validation humaine requise ({awaitingHuman.length})
-          </p>
+          <p className="font-black text-amber-950">Validation humaine requise ({awaitingHuman.length})</p>
           {awaitingHuman.map((t) => {
             const comp = comparisons.find((c) => String(c.trial_id) === String(t.id));
             const proposal = proposeTrialDecision({ trial: t, comparison: comp ? { status: comp.overall_status, comparison: comp.metrics } : null });
@@ -491,9 +481,7 @@ export default function TrialsComparisonTab({
       ) : null}
 
       <form onSubmit={validateTrial} className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-        <p className="font-black text-[#2f2415] flex items-center gap-2">
-          <ShieldCheck size={16} /> Validation humaine
-        </p>
+        <p className="font-black text-[#2f2415]">Validation humaine</p>
         <p className="text-xs text-[#8a7456] leading-relaxed max-w-2xl">
           L’IA propose une décision à partir des KPI et de la comparaison Phase 1.
           Vous devez la confirmer, la corriger et signer.
@@ -583,12 +571,12 @@ export default function TrialsComparisonTab({
                         Comparaison Phase 1 — {comp.overall_message} ({comp.favorable_count} favorables, {comp.worse_count} moins performants)
                       </p>
                     ) : null}
-                    <p className="text-xs mt-1 flex items-center gap-1">
-                      {t.reviewed_by_human ? (
-                        <><CheckCircle2 size={12} /> Validé par {t.reviewed_by} — décision : {DECISION_LABEL[t.decision] || t.decision || '—'}</>
-                      ) : t.status === 'closed' ? (
-                        <><XCircle size={12} /> En attente de validation humaine</>
-                      ) : null}
+                    <p className="text-xs mt-1">
+                      {t.reviewed_by_human
+                        ? `✓ Validé par ${t.reviewed_by} — décision : ${DECISION_LABEL[t.decision] || t.decision || '—'}`
+                        : t.status === 'closed'
+                          ? '! En attente de validation humaine'
+                          : ''}
                     </p>
                   </article>
                 );
