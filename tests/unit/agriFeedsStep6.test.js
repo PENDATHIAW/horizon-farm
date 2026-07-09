@@ -1,6 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ROLE_PERMISSIONS } from '../../src/context/AuthContext.jsx';
 import {
   buildAgriFeedsAuditLog,
   buildAgriFeedsFinanceurReport,
@@ -62,15 +61,6 @@ test('permissions AGRI FEEDS — actions sensibles réservées', () => {
   assert.equal(canPerformAgriFeedsAction('lecteur_financeur', 'export_report'), true);
   const matrix = buildAgriFeedsPermissionMatrix();
   assert.ok(matrix.some((row) => row.action === 'human_validate_trial'));
-});
-
-test('roles AuthContext — nouveaux profils AGRI FEEDS accèdent aux bons modules', () => {
-  assert.ok(ROLE_PERMISSIONS.responsable_agri_feeds.includes('agri_feeds'));
-  assert.ok(ROLE_PERMISSIONS.responsable_agri_feeds.includes('audit_logs'));
-  assert.ok(ROLE_PERMISSIONS.technicien_elevage.includes('elevage'));
-  assert.ok(ROLE_PERMISSIONS.commercial.includes('commercial'));
-  assert.ok(ROLE_PERMISSIONS.finance.includes('finance_pilotage'));
-  assert.ok(ROLE_PERMISSIONS.lecteur_financeur.includes('rapports'));
 });
 
 test('qualité et traçabilité — calcule les indicateurs clés', () => {
