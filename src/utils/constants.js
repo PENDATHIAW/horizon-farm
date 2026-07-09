@@ -625,7 +625,7 @@ export const MODULE_FORM_FIELDS = {
   documents: [
     { key: 'id', label: 'ID', type: 'text', required: true },
     { key: 'title', label: 'Titre', type: 'text', required: true },
-    { key: 'document_category', label: 'Categorie', type: 'select', options: ['facture', 'recu', 'ordonnance', 'certificat', 'contrat', 'bon_livraison', 'photo', 'rapport', 'note_descriptive_derfj', 'dossier_financement', 'business_plan', 'preuve_apport', 'cni', 'certificat_residence', 'devis_proforma', 'autre'] },
+    { key: 'document_category', label: 'Categorie', type: 'select', options: ['facture', 'recu', 'ordonnance', 'certificat', 'contrat', 'bon_livraison', 'photo', 'rapport', 'autre'] },
     { key: 'file_url', label: 'Fichier', type: 'image' },
     { key: 'file_type', label: 'Type fichier', type: 'select', options: ['pdf', 'image', 'word', 'excel', 'autre'] },
     { key: 'module_source', label: 'Module', type: 'select', options: ['animaux', 'avicole', 'cultures', 'stock', 'finances', 'ventes', 'sante', 'fournisseurs', 'clients', 'autre'] },

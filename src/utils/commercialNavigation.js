@@ -546,7 +546,7 @@ export const DASHBOARD_TAB_ALIASES = {
   graphiques: 'Carnet Horizon',
   Carnet: 'Carnet Horizon',
 };
-export const INVESTISSEURS_TABS = ['room', 'preparation', 'derfj_note', 'dossier', 'library', 'crm', 'preview', 'export', 'history', 'demo'];
+export const INVESTISSEURS_TABS = ['room', 'preparation', 'dossier', 'library', 'crm', 'preview', 'export', 'history', 'demo'];
 
 const INVESTISSEURS_TAB_ALIASES = {
   room: 'room',
@@ -554,10 +554,6 @@ const INVESTISSEURS_TAB_ALIASES = {
   preparation: 'preparation',
   Préparation: 'preparation',
   Preparation: 'preparation',
-  derfj_note: 'derfj_note',
-  'Note DER/FJ': 'derfj_note',
-  'Note descriptive': 'derfj_note',
-  note_descriptive: 'derfj_note',
   dossier: 'dossier',
   Dossier: 'dossier',
   library: 'library',
@@ -576,8 +572,6 @@ const INVESTISSEURS_TAB_ALIASES = {
   resume: 'room',
   financeurs: 'preparation',
   Financeurs: 'preparation',
-  derfj: 'derfj_note',
-  'DER/FJ': 'derfj_note',
 };
 
 export const GESTION_SYSTEME_TABS = ['Vue admin', 'Utilisateurs', 'Fermes', 'Paramètres', 'Sécurité', 'Sauvegardes', 'Réinitialisation', 'Audit'];

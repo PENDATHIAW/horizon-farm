@@ -32,7 +32,6 @@ import { isSimulatedDataModeEnabled } from '../utils/uiPreferences.js';
 import InvestisseurDemoPanel from './InvestisseurDemoPanel.jsx';
 import InvestorDossierLibrary from '../components/investorForums/InvestorDossierLibrary.jsx';
 import InvestorCrmPanel from '../components/investorForums/InvestorCrmPanel.jsx';
-import DerfjNoteDescriptiveTab from '../components/investorForums/DerfjNoteDescriptiveTab.jsx';
 import {
   InvestorFounderSection,
   InvestorKpiSection,
@@ -49,7 +48,6 @@ import { applyInvestorRoomDefaults } from '../services/investorForums/investorRo
 const MAIN_TABS = [
   { id: 'room', label: 'Investor Room', icon: LayoutDashboard },
   { id: 'preparation', label: 'Préparation', icon: CheckCircle2 },
-  { id: 'derfj_note', label: 'Note DER/FJ', icon: ShieldAlert },
   { id: 'dossier', label: 'Dossier', icon: FileText },
   { id: 'library', label: 'Data Room', icon: FolderOpen },
   { id: 'crm', label: 'CRM', icon: Users },
@@ -844,23 +842,6 @@ export default function InvestisseursForumsModule(props) {
             </div>
           )}
         </Card>
-      )}
-
-      {mainTab === 'derfj_note' && (
-        <DerfjNoteDescriptiveTab
-          data={{
-            ...(props.dataMap || props),
-            greenpreneurs: {
-              readiness,
-              circular: profile.circular,
-              valorisation: profile.valorisation,
-            },
-          }}
-          onCreateDocument={props.onCreateDocument}
-          onRefreshDocuments={props.onRefreshDocuments}
-          onCreateBusinessEvent={props.onCreateBusinessEvent}
-          onRefreshBusinessEvents={props.onRefreshBusinessEvents}
-        />
       )}
 
       {mainTab === 'demo' && (

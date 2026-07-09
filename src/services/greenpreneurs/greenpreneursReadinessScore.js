@@ -159,12 +159,11 @@ function calculateSocialScore(dataMap) {
 function calculateDossierScore(dataMap) {
   const docs = arr(dataMap.documents);
   const checks = [
-    { id: 'note', label: 'note descriptive DER/FJ', patterns: ['note descriptive', 'note_descriptive', 'derfj', 'der/fj', 'greenpreneurs'] },
+    { id: 'note', label: 'note descriptive', patterns: ['note', 'descriptif', 'memoire', 'mémoire', 'projet'] },
     { id: 'cni', label: 'CNI', patterns: ['cni', 'identite', 'identité', 'carte nationale'] },
-    { id: 'residence', label: 'certificat résidence', patterns: ['residence', 'résidence', 'domicile', 'certificat_residence'] },
+    { id: 'residence', label: 'certificat résidence', patterns: ['residence', 'résidence', 'domicile', 'certificat'] },
     { id: 'captures', label: 'captures ERP', patterns: ['capture', 'erp', 'ecran', 'écran', 'screenshot'] },
-    { id: 'budget', label: 'budget indicatif', patterns: ['budget', 'previsionnel', 'prévisionnel', 'devis', 'business plan', 'business_plan', 'devis_proforma'] },
-    { id: 'apport', label: 'preuve apport personnel', patterns: ['apport', 'preuve_apport', 'attestation bancaire'] },
+    { id: 'budget', label: 'budget indicatif', patterns: ['budget', 'previsionnel', 'prévisionnel', 'devis', 'business plan', 'bp'] },
   ];
 
   const signals = [];
@@ -172,7 +171,7 @@ function calculateDossierScore(dataMap) {
   checks.forEach((check) => {
     const ok = docs.some((d) => docMatches(d, check.patterns));
     if (ok) {
-      score += Math.max(1, Math.floor(10 / checks.length));
+      score += 2;
       signals.push(check.label);
     }
   });
