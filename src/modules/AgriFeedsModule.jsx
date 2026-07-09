@@ -54,7 +54,8 @@ export default function AgriFeedsModule(props) {
     feed_formula_versions: arr(props.feedFormulaVersions ?? props.dataMap?.feed_formula_versions),
     feed_formula_ingredients: arr(props.feedFormulaIngredients ?? props.dataMap?.feed_formula_ingredients),
     feed_facility_zones: arr(props.feedFacilityZones ?? props.dataMap?.feed_facility_zones),
-    feed_trials: arr(props.dataMap?.feed_trials),
+    feed_trials: arr(props.feedTrials ?? props.dataMap?.feed_trials),
+    feed_phase1_comparisons: arr(props.feedPhase1Comparisons ?? props.dataMap?.feed_phase1_comparisons),
     feed_production_orders: arr(props.feedProductionOrders ?? props.dataMap?.feed_production_orders),
     feed_finished_batches: arr(props.feedFinishedBatches ?? props.dataMap?.feed_finished_batches),
     feed_quality_checks: arr(props.feedQualityChecks ?? props.dataMap?.feed_quality_checks),
@@ -79,6 +80,10 @@ export default function AgriFeedsModule(props) {
     onUpdateFeedProductionOrder: props.onUpdateFeedProductionOrder,
     onCreateFeedFinishedBatch: props.onCreateFeedFinishedBatch,
     onCreateFeedQualityCheck: props.onCreateFeedQualityCheck,
+    onCreateFeedTrial: props.onCreateFeedTrial,
+    onUpdateFeedTrial: props.onUpdateFeedTrial,
+    onCreateFeedPhase1Comparison: props.onCreateFeedPhase1Comparison,
+    onUpdateFeedPhase1Comparison: props.onUpdateFeedPhase1Comparison,
     stocks: arr(props.stocks),
   };
 
@@ -109,7 +114,9 @@ export default function AgriFeedsModule(props) {
       {tab === 'Production' ? (
         <ProductionTab dataMap={dataMap} {...workflowHandlers} />
       ) : null}
-      {tab === 'Tests & comparaison' ? <TrialsComparisonTab dataMap={dataMap} /> : null}
+      {tab === 'Tests & comparaison' ? (
+        <TrialsComparisonTab dataMap={dataMap} {...workflowHandlers} />
+      ) : null}
       {tab === 'Commercial' ? <CommercialTab dataMap={dataMap} /> : null}
       {tab === 'Qualité & reporting' ? <QualityReportingTab dataMap={dataMap} /> : null}
     </div>

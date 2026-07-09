@@ -102,8 +102,16 @@ La vente est **bloquée** si l’une de ces portes est fausse :
 - Alerte si écart coût réel / théorique > seuil
 - UI onglet **Production**
 
+### Étape 4
+- Tables : `feed_trials`, `feed_phase1_comparisons`
+- Workflow essai : ouverture (formule × lot × lot fini) → clôture (KPI : IC, mortalité, coût / sujet, coût / plateau, coût / kg gain, marge)
+- Comparaison Phase 1 formalisée et persistée (`feed_phase1_comparisons`)
+- Décision proposée par IA (validate / improve / retest / abandon) — jamais appliquée seule
+- Validation humaine explicite (nom du validateur + décision + justification) → alimente les portes Phase 2B (`humanValidation`, `phase1Comparison`)
+- Alerte automatique si l’IA propose l’abandon
+- UI onglet **Tests & comparaison** opérationnelle
+
 ## Étapes suivantes
 
-4. Essais + comparaison complète  
 5. Commercial + alertes + Centre + Assistant  
 6. Reporting + permissions avancées + audit + tests E2E  

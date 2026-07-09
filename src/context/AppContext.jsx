@@ -59,10 +59,12 @@ import {
   feedFormulaIngredientsService,
   feedFormulaVersionsService,
   feedFormulasService,
+  feedPhase1ComparisonsService,
   feedProductionOrdersService,
   feedQualityChecksService,
   feedRawBatchesService,
   feedRawMaterialsService,
+  feedTrialsService,
 } from '../services/agriFeedsService';
 import { supabase } from '../lib/supabase';
 import { normalizeByModule } from '../utils/normalize.js';
@@ -123,6 +125,8 @@ const serviceMap = {
   feed_production_orders: feedProductionOrdersService,
   feed_finished_batches: feedFinishedBatchesService,
   feed_quality_checks: feedQualityChecksService,
+  feed_trials: feedTrialsService,
+  feed_phase1_comparisons: feedPhase1ComparisonsService,
 };
 
 const clone = (value) => JSON.parse(JSON.stringify(value || []));

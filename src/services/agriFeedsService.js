@@ -9,3 +9,5 @@ export const feedFacilityZonesService = createSupabaseCrudService('feed_facility
 export const feedProductionOrdersService = createSupabaseCrudService('feed_production_orders');
 export const feedFinishedBatchesService = createSupabaseCrudService('feed_finished_batches');
 export const feedQualityChecksService = createSupabaseCrudService('feed_quality_checks');
+export const feedTrialsService = createSupabaseCrudService('feed_trials');
+export const feedPhase1ComparisonsService = createSupabaseCrudService('feed_phase1_comparisons');

@@ -50,6 +50,8 @@ export default function useCrudModules() {
   const feed_production_orders = useCrudModule('feed_production_orders');
   const feed_finished_batches = useCrudModule('feed_finished_batches');
   const feed_quality_checks = useCrudModule('feed_quality_checks');
+  const feed_trials = useCrudModule('feed_trials');
+  const feed_phase1_comparisons = useCrudModule('feed_phase1_comparisons');
 
   return useMemo(() => ({
     animaux,
@@ -100,6 +102,8 @@ export default function useCrudModules() {
     feed_production_orders,
     feed_finished_batches,
     feed_quality_checks,
+    feed_trials,
+    feed_phase1_comparisons,
   }), [
     animaux,
     avicole,
@@ -149,5 +153,7 @@ export default function useCrudModules() {
     feed_production_orders,
     feed_finished_batches,
     feed_quality_checks,
+    feed_trials,
+    feed_phase1_comparisons,
   ]);
 }
