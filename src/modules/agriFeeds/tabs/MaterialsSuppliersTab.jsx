@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Package, Plus, Truck } from 'lucide-react';
 import {
   RAW_MATERIAL_CATEGORIES,
   QUALITY_STATUSES,
@@ -172,11 +171,9 @@ export default function MaterialsSuppliersTab({
   return (
     <div className="space-y-4">
       <section className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-2">
-        <p className="text-lg font-black text-[#2f2415] flex items-center gap-2">
-          <Package size={20} /> Matières & fournisseurs
-        </p>
+        <p className="text-lg font-black text-[#2f2415]">Matières & fournisseurs</p>
         <p className="text-sm text-[#8a7456] leading-relaxed max-w-3xl">
-          Catalogue matières premières, réception avec contrôle qualité, et hints fournisseur
+          Catalogue matières premières, réception avec contrôle qualité, et repères fournisseur
           (dernier prix, matières habituelles). Les fournisseurs restent ceux du module Achats & Stock.
         </p>
         {message ? (
@@ -186,9 +183,7 @@ export default function MaterialsSuppliersTab({
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <form onSubmit={saveMaterial} className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415] flex items-center gap-2">
-            <Plus size={16} /> Nouvelle matière première
-          </p>
+          <p className="font-black text-[#2f2415]">Nouvelle matière première</p>
           <label className="block space-y-1">
             <span className="text-xs font-bold text-[#8a7456]">Nom</span>
             <input
@@ -248,9 +243,7 @@ export default function MaterialsSuppliersTab({
         </form>
 
         <form onSubmit={saveReception} className="rounded-3xl border border-[#d6c3a0] bg-white p-5 space-y-3">
-          <p className="font-black text-[#2f2415] flex items-center gap-2">
-            <Truck size={16} /> Réception + contrôle qualité
-          </p>
+          <p className="font-black text-[#2f2415]">Réception + contrôle qualité</p>
 
           <label className="block space-y-1">
             <span className="text-xs font-bold text-[#8a7456]">Fournisseur</span>
