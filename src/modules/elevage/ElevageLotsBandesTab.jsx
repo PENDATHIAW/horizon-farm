@@ -1,4 +1,4 @@
-import { Beef, Drumstick, Egg, HeartPulse, Scale, ShoppingCart, Skull, Wheat } from 'lucide-react';
+import { Beef, Drumstick, Egg, HeartPulse, Scale, ShoppingCart, ShieldCheck, Skull, Wheat } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AnimauxV2 from '../AnimauxV2';
 import AvicoleV10 from '../AvicoleV10';
@@ -62,6 +62,7 @@ export default function ElevageLotsBandesTab({
   const avicoleActions = [
     { key: 'feeding', icon: Wheat, label: 'Aliment', primary: true, onClick: () => openWorkflowScoped('feeding') },
     { key: 'eggs', icon: Egg, label: 'Ponte', onClick: () => openWorkflowScoped('eggs') },
+    { key: 'biosecurity', icon: ShieldCheck, label: 'Biosécu.', onClick: () => openWorkflowScoped('biosecurity') },
     { key: 'health', icon: HeartPulse, label: 'Santé', onClick: () => onSetTab?.('Santé') },
     { key: 'weighing', icon: Scale, label: 'Pesée', onClick: () => openWorkflowScoped('weighing') },
     { key: 'mortality', icon: Skull, label: 'Mortalité', onClick: () => openWorkflowScoped('mortality') },
@@ -70,6 +71,7 @@ export default function ElevageLotsBandesTab({
 
   const animauxActions = [
     { key: 'feeding', icon: Wheat, label: 'Aliment', primary: true, onClick: () => openWorkflowScoped('feeding') },
+    { key: 'biosecurity', icon: ShieldCheck, label: 'Biosécu.', onClick: () => openWorkflowScoped('biosecurity') },
     { key: 'health', icon: HeartPulse, label: 'Santé', onClick: () => onSetTab?.('Santé') },
     { key: 'weighing', icon: Scale, label: 'Pesée', onClick: () => openWorkflowScoped('weighing') },
     { key: 'sale', icon: ShoppingCart, label: 'Vente', onClick: () => onNavigate?.('commercial', { tab: 'Ventes' }) },
