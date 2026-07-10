@@ -3,304 +3,90 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Horizon Farm ERP — Démo investisseur</title>
+    <title>Horizon Farm ERP — Démo maître</title>
     <meta name="robots" content="noindex" />
     <style>
-      :root {
-        --bg: #f7f2e8;
-        --paper: #fffdf8;
-        --white: #ffffff;
-        --green: #22c55e;
-        --green-dark: #14532d;
-        --brown: #2f2415;
-        --muted: #76664f;
-        --line: #eadcc2;
-        --soft: #f0fdf4;
-        --amber: #92400e;
-        --shadow: 0 24px 70px rgba(47, 36, 21, 0.08);
-      }
-      * { box-sizing: border-box; }
-      body {
-        margin: 0;
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: radial-gradient(circle at top left, #dcfce7 0, transparent 30%), var(--bg);
-        color: var(--brown);
-      }
-      .shell { max-width: 1180px; margin: 0 auto; padding: 26px 16px 54px; }
-      .hero, .section, .story, .rail { border: 1px solid var(--line); background: rgba(255,253,248,.95); box-shadow: var(--shadow); }
-      .hero { border-radius: 34px; padding: 34px; }
-      .hero-layout { display: grid; grid-template-columns: 1.1fr .9fr; gap: 24px; align-items: center; }
-      .eyebrow { display: inline-flex; padding: 8px 12px; border-radius: 999px; background: var(--soft); color: var(--green-dark); border: 1px solid #bbf7d0; font-weight: 900; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
-      h1 { margin: 18px 0 12px; font-size: clamp(36px, 6vw, 76px); line-height: .92; letter-spacing: -.07em; }
-      h2 { margin: 0; font-size: clamp(24px, 3vw, 38px); letter-spacing: -.04em; }
-      h3 { margin: 0 0 6px; }
-      p { line-height: 1.62; }
-      .lead { color: var(--muted); font-size: 18px; max-width: 730px; }
-      .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
-      .btn, .control { border: 0; border-radius: 16px; padding: 13px 18px; font-weight: 900; cursor: pointer; text-decoration: none; color: var(--brown); background: var(--white); border: 1px solid var(--line); }
-      .btn.primary, .control.next { background: var(--green); border-color: var(--green); color: #052e16; }
-      .hero-metrics, .grid, .proofs, .kpis { display: grid; gap: 12px; }
-      .hero-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .metric, .tile, .proof, .kpi, .alert-item, .filiere { border: 1px solid var(--line); border-radius: 20px; background: var(--white); padding: 15px; }
-      small { display: block; color: var(--muted); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
-      .metric strong, .proof b, .kpi b { display: block; margin-top: 5px; font-size: 22px; }
-      .section { margin-top: 18px; border-radius: 28px; padding: 24px; }
-      .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
-      .section-head p { margin: 0; color: var(--muted); max-width: 720px; }
-      .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .tile { min-height: 132px; }
-      .tile p { margin-bottom: 0; color: var(--muted); }
-      .deck { display: grid; grid-template-columns: 280px 1fr; gap: 16px; margin-top: 18px; }
-      .rail { border-radius: 26px; padding: 14px; align-self: start; position: sticky; top: 14px; }
-      .rail-title { font-weight: 950; margin: 4px 8px 12px; color: var(--green-dark); }
-      .step-btn { width: 100%; border: 1px solid transparent; background: transparent; color: var(--muted); border-radius: 15px; padding: 12px; text-align: left; cursor: pointer; font-weight: 850; }
-      .step-btn.active { background: var(--soft); color: var(--green-dark); border-color: #bbf7d0; }
-      .story { min-height: 640px; border-radius: 30px; overflow: hidden; }
-      .progress { height: 8px; background: #eee2cd; }
-      .progress span { display: block; height: 100%; width: 0; background: var(--green); transition: width .25s ease; }
-      .story-inner { padding: 28px; }
-      .story-top { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; border-bottom: 1px solid var(--line); padding-bottom: 18px; margin-bottom: 18px; }
-      .story-intro { color: var(--muted); margin-bottom: 0; }
-      .pill { white-space: nowrap; border: 1px solid #bbf7d0; background: var(--soft); color: var(--green-dark); border-radius: 999px; padding: 7px 11px; font-size: 11px; font-weight: 950; }
-      .proofs { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 14px; }
-      .mock { border: 1px solid var(--line); border-radius: 26px; background: var(--white); padding: 18px; }
-      .mock-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 14px; }
-      .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-      .alert { margin-top: 12px; border: 1px solid #fde68a; background: #fffbeb; color: var(--amber); border-radius: 18px; padding: 13px; font-weight: 800; }
-      .alerts-wall, .filieres { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
-      .alert-item b { display: block; font-size: 13px; line-height: 1.45; }
-      .filiere strong { display: block; font-size: 18px; }
-      .filiere span { color: var(--muted); }
-      .filiere p { margin: 6px 0 0; font-weight: 900; }
-      .table-wrap { overflow-x: auto; margin-top: 12px; border-radius: 18px; border: 1px solid var(--line); }
-      table { width: 100%; border-collapse: collapse; background: var(--white); }
-      th, td { padding: 10px; border-bottom: 1px solid var(--line); text-align: left; font-size: 13px; }
-      th { color: var(--muted); text-transform: uppercase; font-size: 10px; letter-spacing: .08em; }
-      .decision { margin-top: 14px; border-left: 5px solid var(--green); background: var(--soft); border-radius: 18px; padding: 15px; color: var(--green-dark); font-weight: 850; }
-      .controls { display: flex; justify-content: space-between; gap: 10px; padding: 0 28px 28px; }
-      .closing { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-      .closing-card { background: var(--white); border: 1px solid var(--line); border-radius: 22px; padding: 18px; }
-      .closing-card span { display: inline-grid; place-items: center; width: 30px; height: 30px; background: var(--soft); border-radius: 999px; color: var(--green-dark); font-weight: 950; margin-bottom: 10px; }
-      @media (max-width: 920px) { .hero-layout, .deck { grid-template-columns: 1fr; } .rail { position: static; } .grid, .hero-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-      @media (max-width: 640px) { .shell { padding: 14px 10px 36px; } .hero, .section, .story-inner { padding: 20px; } .grid, .hero-metrics, .proofs, .kpis, .alerts-wall, .filieres, .closing { grid-template-columns: 1fr; } .story-top { display: block; } .pill { display: inline-flex; margin-top: 12px; } }
+      :root{--bg:#f6f0e4;--paper:#fffdf8;--white:#fff;--green:#22c55e;--dark:#12351d;--brown:#2f2415;--muted:#76664f;--line:#eadcc2;--soft:#f0fdf4;--amber:#92400e;--shadow:0 26px 80px rgba(47,36,21,.10)}
+      *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 10% 0%,#dcfce7 0,#f6f0e4 28%,#fffdf8 100%);color:var(--dark);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.shell{max-width:1180px;margin:0 auto;padding:28px 18px 56px}.hero{background:linear-gradient(135deg,#fffdf8 0%,#fff 60%,#ecfdf5 100%);border:1px solid var(--line);border-radius:34px;box-shadow:var(--shadow);padding:34px}.hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:22px;align-items:center}.eyebrow{display:inline-flex;background:#dcfce7;color:#14532d;border:1px solid #bbf7d0;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.09em}h1{margin:18px 0 10px;color:var(--brown);font-size:clamp(38px,6vw,72px);line-height:.94;letter-spacing:-.06em}h2{margin:0 0 8px;color:var(--brown);font-size:28px;letter-spacing:-.035em}h3{margin:0 0 7px;color:var(--brown)}p{line-height:1.62}.lead{font-size:18px;color:var(--muted);max-width:760px}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}.btn,.control,.audience-btn{border:1px solid var(--line);border-radius:15px;background:#fff;color:var(--brown);padding:12px 16px;font-weight:900;cursor:pointer;text-decoration:none}.btn.primary,.control.next,.audience-btn.active{background:var(--green);border-color:var(--green);color:#08310f}.hero-card{display:grid;gap:12px}.metric,.movement,.domain,.proof,.kpi,.mini,.closing-card,.profile-card{background:var(--white);border:1px solid var(--line);border-radius:22px;padding:16px;box-shadow:0 15px 35px rgba(47,36,21,.05)}.metric small,.proof small,.kpi small,.domain small{display:block;color:var(--muted);font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}.metric strong,.proof b,.kpi b{display:block;margin-top:5px;color:var(--brown);font-size:22px}.section{margin-top:22px}.section-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-end;margin-bottom:12px}.section-head p{margin:0;color:var(--muted);max-width:760px}.movements{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.movement span{display:inline-flex;width:34px;height:34px;align-items:center;justify-content:center;border-radius:12px;background:#dcfce7;color:#14532d;font-weight:950;margin-bottom:10px}.domains{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.domain{box-shadow:none;padding:12px}.domain b{color:var(--brown);font-size:14px}.audience{display:flex;gap:10px;flex-wrap:wrap}.deck{display:grid;grid-template-columns:290px 1fr;gap:18px;margin-top:22px}.rail{position:sticky;top:14px;align-self:start;background:rgba(255,253,248,.88);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:26px;padding:12px;box-shadow:var(--shadow)}.rail-title{font-size:12px;color:var(--muted);font-weight:950;text-transform:uppercase;letter-spacing:.09em;margin:4px 4px 10px}.step-btn{width:100%;border:0;border-radius:14px;background:transparent;color:var(--muted);text-align:left;padding:10px 11px;font-weight:850;cursor:pointer}.step-btn.active{background:#dcfce7;color:#14532d}.story{min-height:640px;background:var(--white);border:1px solid var(--line);border-radius:30px;box-shadow:var(--shadow);overflow:hidden}.progress{height:8px;background:#f2e6d0}.progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,#22c55e,#86efac);transition:.25s}.story-inner{padding:26px}.story-top{display:flex;justify-content:space-between;gap:14px;border-bottom:1px solid var(--line);padding-bottom:16px}.story-intro{color:var(--muted);margin-bottom:0}.pill{display:inline-flex;align-items:center;border-radius:999px;background:#f0fdf4;border:1px solid #bbf7d0;color:#14532d;padding:6px 10px;font-size:11px;font-weight:950;white-space:nowrap}.proofs,.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}.mock{margin-top:16px;background:var(--paper);border:1px solid var(--line);border-radius:24px;padding:16px}.mock-head{display:flex;justify-content:space-between;gap:10px;align-items:start;margin-bottom:12px}.mock-head small{color:var(--muted);font-weight:850}.cascade,.alerts-wall,.trace,.profiles,.filieres{display:grid;gap:10px;margin-top:12px}.cascade{grid-template-columns:repeat(4,1fr)}.cascade div,.alert-item,.trace div,.filiere{border:1px solid var(--line);background:#fff;border-radius:16px;padding:12px}.cascade small,.alert-item small,.trace small,.filiere span{display:block;color:var(--muted);font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em}.cascade b,.alert-item b,.trace b,.filiere strong{display:block;color:var(--brown);margin-top:3px}.alerts-wall{grid-template-columns:repeat(2,1fr)}.alert-box,.decision{margin-top:14px;border:1px solid #fde68a;background:#fffbeb;color:var(--amber);border-radius:18px;padding:13px;font-weight:800}.decision{border-color:#bbf7d0;background:#f0fdf4;color:#14532d}.table-wrap{overflow:auto;margin-top:12px;border-radius:18px;border:1px solid var(--line)}table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}th{color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-size:10px;background:#fffdf8}.filieres{grid-template-columns:repeat(4,1fr)}.profiles{grid-template-columns:repeat(3,1fr)}.profile-card{box-shadow:none}.controls{display:flex;justify-content:space-between;padding:16px 26px 26px}.closing{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.closing-card span{display:inline-flex;width:34px;height:34px;align-items:center;justify-content:center;border-radius:12px;background:#dcfce7;color:#14532d;font-weight:950;margin-bottom:10px}@media(max-width:980px){.hero-grid,.deck{grid-template-columns:1fr}.rail{position:static}.movements,.closing,.domains,.proofs,.kpis,.cascade,.alerts-wall,.filieres,.profiles{grid-template-columns:1fr 1fr}}@media(max-width:640px){.shell{padding:14px 10px 40px}.hero{padding:22px;border-radius:26px}.story-inner{padding:18px}.story-top{display:block}.pill{margin-top:10px}.movements,.closing,.domains,.proofs,.kpis,.cascade,.alerts-wall,.filieres,.profiles{grid-template-columns:1fr}.controls{padding:12px 18px 20px}}
     </style>
   </head>
   <body>
     <main class="shell">
       <section class="hero">
-        <div class="hero-layout">
+        <div class="hero-grid">
           <div>
-            <span class="eyebrow">Démo investisseur</span>
-            <h1>Du terrain au rapport financeur.</h1>
-            <p class="lead">
-              Horizon Farm ERP ne se limite pas aux alertes. La démo montre comment la ferme planifie,
-              produit, achète, stocke, vend, encaisse, calcule ses marges, trace sa circularité et rend compte.
-            </p>
-            <div class="actions">
-              <button class="btn primary" onclick="scrollToDeck()">Lancer la démo</button>
-              <a class="btn" href="#capacites">Voir les capacités ERP</a>
-            </div>
+            <span class="eyebrow">Démo maître Horizon Farm ERP</span>
+            <h1>Une journée de ferme, suivie de bout en bout.</h1>
+            <p class="lead">Cette visite ne montre pas seulement des alertes. Elle fait vivre une journée Horizon Farm : les saisies terrain, leurs effets en cascade, la marge réelle, la traçabilité, les vues par profil, le rapport financeur et le passage à l’échelle.</p>
+            <div class="actions"><button class="btn primary" onclick="scrollToDeck()">Lancer la visite</button><a class="btn" href="#mouvements">Voir la logique</a></div>
           </div>
-          <div class="hero-metrics">
-            <div class="metric"><small>Production</small><strong>4 filières</strong><p>Chair, œufs, bovins, maraîchage.</p></div>
-            <div class="metric"><small>Gestion</small><strong>Stocks & achats</strong><p>Intrants, fournisseurs, seuils et coûts.</p></div>
-            <div class="metric"><small>Finance</small><strong>Marge réelle</strong><p>Par lot, filière et période.</p></div>
-            <div class="metric"><small>Suivi</small><strong>Rapport</strong><p>Activité, trésorerie, écarts et décisions.</p></div>
+          <div class="hero-card">
+            <div class="metric"><small>Socle</small><strong>4 gestes terrain</strong><p>Aliment, ponte, vente, transfert organique.</p></div>
+            <div class="metric"><small>Preuve</small><strong>3 clics</strong><p>De la vente au lot, puis au fournisseur d’aliment.</p></div>
+            <div class="metric"><small>Finance</small><strong>412 000 FCFA</strong><p>Marge réelle du lot B, expliquée poste par poste.</p></div>
           </div>
         </div>
       </section>
 
-      <section class="section" id="capacites">
-        <div class="section-head">
-          <h2>Ce que l’ERP met en avant</h2>
-          <p>La démonstration présente un système de gestion complet : l’alerte est seulement une partie du pilotage.</p>
+      <section class="section" id="mouvements">
+        <div class="section-head"><div><h2>La trame : tourner, comprendre, rendre compte</h2><p>La démo suit trois mouvements. Les domaines de l’ERP apparaissent naturellement, au moment où ils servent l’histoire.</p></div></div>
+        <div class="movements">
+          <article class="movement"><span>1</span><h3>La ferme tourne</h3><p>Les opérations du matin sont saisies simplement et mettent à jour stocks, coûts, ventes, trésorerie et indicateurs verts.</p></article>
+          <article class="movement"><span>2</span><h3>La ferme comprend</h3><p>Les données expliquent les écarts, la marge, la traçabilité et les décisions correctives.</p></article>
+          <article class="movement"><span>3</span><h3>La ferme rend compte</h3><p>Les profils, rapports et phases de croissance transforment l’ERP en outil de confiance.</p></article>
         </div>
-        <div class="grid">
-          <article class="tile"><h3>Produire</h3><p>Suivre les lots, les bandes, les bœufs, les parcelles, les tâches et les responsables.</p></article>
-          <article class="tile"><h3>Maîtriser les intrants</h3><p>Contrôler les stocks, achats, consommations, ruptures possibles et prix fournisseurs.</p></article>
-          <article class="tile"><h3>Comprendre la marge</h3><p>Relier ventes, coûts, mortalité, poids, ponte, créances et encaissements.</p></article>
-          <article class="tile"><h3>Vendre & encaisser</h3><p>Suivre clients, commandes, livraisons, restes à payer et relances commerciales.</p></article>
-          <article class="tile"><h3>Prouver la circularité</h3><p>Tracer les transferts organiques, les parcelles fertilisées et l’usage de l’eau.</p></article>
-          <article class="tile"><h3>Préparer la croissance</h3><p>Décider AGRI FEEDS et les extensions futures uniquement avec des données suffisantes.</p></article>
+      </section>
+
+      <section class="section">
+        <div class="section-head"><div><h2>Les 10 domaines sont couverts</h2><p>Ils ne sont pas présentés comme un catalogue de modules, mais comme les pièces d’un même système.</p></div></div>
+        <div class="domains">
+          <div class="domain"><small>1</small><b>Pilotage global</b></div><div class="domain"><small>2</small><b>Production animale</b></div><div class="domain"><small>3</small><b>Production végétale</b></div><div class="domain"><small>4</small><b>Achats & stocks</b></div><div class="domain"><small>5</small><b>Ventes & clients</b></div><div class="domain"><small>6</small><b>Finance</b></div><div class="domain"><small>7</small><b>Traçabilité</b></div><div class="domain"><small>8</small><b>Économie circulaire</b></div><div class="domain"><small>9</small><b>AGRI FEEDS</b></div><div class="domain"><small>10</small><b>Reporting</b></div>
         </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head"><div><h2>Adapter le discours</h2><p>La même démo peut être racontée à un financeur ou à un futur client exploitant.</p></div><div class="audience"><button class="audience-btn active" data-audience="investor">Investisseur</button><button class="audience-btn" data-audience="client">Exploitant</button></div></div>
       </section>
 
       <section class="deck" id="deck">
         <nav class="rail" aria-label="Étapes de la démo">
           <div class="rail-title">Parcours guidé</div>
-          <button class="step-btn active" data-step="0">1. Vue ferme</button>
-          <button class="step-btn" data-step="1">2. Production</button>
-          <button class="step-btn" data-step="2">3. Stocks & achats</button>
-          <button class="step-btn" data-step="3">4. Ventes & créances</button>
-          <button class="step-btn" data-step="4">5. Marge réelle</button>
-          <button class="step-btn" data-step="5">6. Traçabilité verte</button>
-          <button class="step-btn" data-step="6">7. Centre décisionnel</button>
-          <button class="step-btn" data-step="7">8. AGRI FEEDS</button>
-          <button class="step-btn" data-step="8">9. Rapport financeur</button>
+          <button class="step-btn active" data-step="0">0. Accroche</button><button class="step-btn" data-step="1">1. Priorités</button><button class="step-btn" data-step="2">2. Aliment</button><button class="step-btn" data-step="3">3. Ponte</button><button class="step-btn" data-step="4">4. Vente</button><button class="step-btn" data-step="5">5. Effluents</button><button class="step-btn" data-step="6">6. Points à traiter</button><button class="step-btn" data-step="7">7. Boucle fermée</button><button class="step-btn" data-step="8">8. Marge lot</button><button class="step-btn" data-step="9">9. Multi-filières</button><button class="step-btn" data-step="10">10. Traçabilité</button><button class="step-btn" data-step="11">11. Simulation</button><button class="step-btn" data-step="12">12. Profils</button><button class="step-btn" data-step="13">13. Rapport</button><button class="step-btn" data-step="14">14. AGRI FEEDS</button><button class="step-btn" data-step="15">15. Clôture</button>
         </nav>
-        <article class="story">
-          <div class="progress"><span id="progressBar"></span></div>
-          <div id="storyContent"></div>
-          <div class="controls">
-            <button class="control" id="prevBtn">← Précédent</button>
-            <button class="control next" id="nextBtn">Suivant →</button>
-          </div>
-        </article>
+        <article class="story"><div class="progress"><span id="progressBar"></span></div><div id="storyContent"></div><div class="controls"><button class="control" id="prevBtn">← Précédent</button><button class="control next" id="nextBtn">Suivant →</button></div></article>
       </section>
 
       <section class="section">
-        <div class="section-head">
-          <h2>Ce que l’investisseur retient</h2>
-          <p>Horizon Farm présente une exploitation organisée : les activités sont suivies, les coûts sont reliés aux ventes, et les rapports sortent des opérations quotidiennes.</p>
-        </div>
-        <div class="closing">
-          <article class="closing-card"><span>✓</span><h3>Une ferme pilotée</h3><p>Production, intrants, ventes, trésorerie et marges se lisent dans un même système.</p></article>
-          <article class="closing-card"><span>✓</span><h3>Une croissance maîtrisée</h3><p>AGRI FEEDS, BOVINIA et tallow & go avancent seulement si les données le justifient.</p></article>
-        </div>
+        <div class="section-head"><div><h2>Les moments forts à protéger</h2><p>Si la présentation est coupée, ces preuves doivent rester visibles.</p></div></div>
+        <div class="closing"><article class="closing-card"><span>1</span><h3>Effets en cascade</h3><p>Une saisie terrain met à jour plusieurs vues sans ressaisie.</p></article><article class="closing-card"><span>2</span><h3>Marge expliquée</h3><p>Prévu, réel et écarts sont lisibles poste par poste.</p></article><article class="closing-card"><span>3</span><h3>Traçabilité en 3 clics</h3><p>De la vente au fournisseur d’aliment, toute l’histoire est retrouvée.</p></article></div>
       </section>
     </main>
 
     <script>
-      const steps = [
-        {
-          title: 'Vue ferme : comprendre le modèle intégré',
-          badge: 'Vue globale',
-          intro: 'La démo commence par une lecture simple de la ferme : quatre filières, plusieurs cycles de revenus, des stocks, des ventes, une trésorerie et des décisions à suivre.',
-          proofs: [['Filières', '4'], ['Vue', 'Production + finance'], ['Objectif', 'Pilotage complet']],
-          mockTitle: 'Tableau de bord Horizon Farm',
-          kpis: [['Œufs du jour', '42 plateaux'], ['Poulets', 'Lot B'], ['Bœufs', '2 sorties prévues'], ['Trésorerie', '3,8 M FCFA']],
-          decision: 'Message : l’ERP présente d’abord une ferme intégrée, pas seulement une liste d’alertes.',
-        },
-        {
-          title: 'Production : suivre les activités terrain',
-          badge: 'Opérations',
-          intro: 'Chaque activité possède une fiche de suivi : lot de chair, bande de pondeuses, bœuf en embouche ou parcelle maraîchère. Les données terrain deviennent exploitables.',
-          proofs: [['Lot B', '500 sujets'], ['Mortalité', '3,2%'], ['Poids moyen', '1,85 kg']],
-          mockTitle: 'Fiche production — Lot B',
-          kpis: [['Mise en place', 'Jour 1'], ['Vaccins', 'À jour'], ['Pesées', '3 relevés'], ['Statut', 'En cours']],
-          decision: 'Preuve : les opérations ne restent pas dans des carnets séparés ; elles deviennent un historique de production.',
-        },
-        {
-          title: 'Stocks & achats : maîtriser les intrants',
-          badge: 'Gestion',
-          intro: 'L’ERP relie les achats, les fournisseurs, les stocks restants, les seuils de commande et la consommation réelle par activité.',
-          proofs: [['Aliment chair', '1 180 kg'], ['Stock ponte', '6 jours'], ['Fournisseurs', '3 suivis']],
-          mockTitle: 'Stocks et approvisionnements',
-          kpis: [['Aliment chair', 'OK'], ['Aliment ponte', 'À commander'], ['Intrants culture', 'Suivis'], ['Prix sac', 'Comparé']],
-          alert: 'Point de gestion : aliment ponte à 6 jours restants. Commande à planifier avant rupture.',
-          decision: 'Message : l’investisseur voit que les intrants, souvent premier poste de charge, sont suivis avant de peser sur la marge.',
-        },
-        {
-          title: 'Ventes & créances : relier production et encaissement',
-          badge: 'Commercial',
-          intro: 'La production ne suffit pas. L’ERP suit aussi les clients, commandes, livraisons, encaissements, restes à payer et relances.',
-          proofs: [['Ventes Lot B', '1 156 000'], ['Créances', '180 000'], ['Livraisons', 'Suivies']],
-          mockTitle: 'Suivi commercial',
-          kpis: [['Client', 'Demi-grossiste'], ['Prix', '2 500/kg'], ['Paiement', 'Partiel'], ['Relance', 'Prévue']],
-          alert: 'Créance à relancer : 180 000 FCFA. La vente est suivie jusqu’à l’encaissement.',
-          decision: 'Preuve : le système ne s’arrête pas à produire ; il suit le cash qui revient dans l’exploitation.',
-        },
-        {
-          title: 'Marge réelle : comprendre ce qui rapporte',
-          badge: 'Finance',
-          intro: 'L’écran de marge explique si le lot a gagné de l’argent, pourquoi l’écart existe, puis élargit la lecture aux autres filières.',
-          proofs: [['Marge prévue', '450 000'], ['Marge réelle', '412 000'], ['Écart', '-8%']],
-          mockTitle: 'Compte de résultat du Lot B',
-          kpis: [['Ventes', '1 156 000'], ['Aliment', '512 000'], ['Autres coûts', '232 000'], ['Marge', '412 000']],
-          table: [['Poste', 'Prévu', 'Réel', 'Écart'], ['Aliment', '474 000', '512 000', '-38 000'], ['Mortalité', '4%', '3,2%', 'Favorable'], ['Marge lot', '450 000', '412 000', '-8%']],
-          filieres: [['Chair', 'Lot B', 'marge réelle'], ['Œufs', 'Ponte 1', 'plateaux + marge'], ['Embouche', 'Bœuf n°07', 'coût/tête'], ['Maraîchage', 'Tomates', 'marge parcelle']],
-          decision: 'Phrase pivot : quatre filières, quatre cycles de revenus, et aucune ne porte seule le remboursement.',
-        },
-        {
-          title: 'Traçabilité verte : prouver la circularité',
-          badge: 'Durabilité',
-          intro: 'La ferme verte est suivie avec des preuves : origine des matières organiques, destination vers parcelles, quantités, dates et effet sur les intrants.',
-          proofs: [['Transfert', '200 kg'], ['Origine', 'Poulailler 1'], ['Destination', 'Tomates']],
-          mockTitle: 'Transfert organique enregistré',
-          kpis: [['Date', '14 juin'], ['Parcelle', 'Tomates'], ['Intrants', 'Réduits'], ['Irrigation', 'Goutte-à-goutte']],
-          decision: 'Message : quand Horizon Farm parle de circularité, elle peut montrer les mouvements et les économies associées.',
-        },
-        {
-          title: 'Centre décisionnel : classer les priorités',
-          badge: 'Priorités',
-          intro: 'Le centre décisionnel intervient comme une synthèse : il classe les points à traiter, estime leur impact et garde la décision finale documentée.',
-          proofs: [['Points actifs', '6'], ['Urgences', 'Classées'], ['Impact', 'Estimé']],
-          mockTitle: 'Points de vigilance',
-          kpis: [['Lot B', '+12% aliment'], ['Ponte', '-3 points'], ['Stock ponte', '6 jours'], ['Eau tomates', 'À vérifier']],
-          alerts: [['Élevage chair', 'Consommation aliment au-dessus de la référence.'], ['Pondeuses', 'Baisse de ponte à contrôler.'], ['Embouche', 'Gain de poids sous objectif.'], ['Commercial', 'Créance à relancer.']],
-          decision: 'Message : l’alerte n’est pas le produit principal ; elle sert à transformer les données suivies en priorités de gestion.',
-        },
-        {
-          title: 'AGRI FEEDS : décider la Phase 2 avec méthode',
-          badge: 'Croissance',
-          intro: 'AGRI FEEDS est présenté comme une phase conditionnelle : il faut d’abord construire la référence Phase 1, tester les formules et comparer aux aliments du marché.',
-          proofs: [['Référence', '62/100'], ['Pilote', '38/100'], ['Vente', '12/100']],
-          mockTitle: 'Readiness AGRI FEEDS',
-          kpis: [['Marché', 'À comparer'], ['Formules', 'À tester'], ['Qualité', 'Obligatoire'], ['Vente', 'Fermée']],
-          alert: 'Décision : continuer à collecter les données Phase 1 avant production commerciale.',
-          decision: 'Message : l’ERP aide à ne pas lancer une nouvelle phase sur une intuition, mais sur des preuves.',
-        },
-        {
-          title: 'Rapport financeur : rendre compte clairement',
-          badge: 'Reporting',
-          intro: 'La conclusion montre ce qu’un financeur peut lire : activité, ventes, coûts, créances, trésorerie, marges, écarts expliqués et décisions documentées.',
-          proofs: [['Marge Lot B', '412 000'], ['Créances', '180 000'], ['Rapport', 'Prêt']],
-          mockTitle: 'Rapport financeur — synthèse mensuelle',
-          kpis: [['Activité', 'Lots + filières'], ['Finance', 'Marge + cash'], ['Gestion', 'Stocks + ventes'], ['Preuves', 'Historique']],
-          decision: 'Phrase de clôture : vous ne financez pas seulement une promesse agricole ; vous financez une exploitation capable de rendre compte.',
-        },
+      const audiences={investor:{label:'Lecture investisseur',closing:'Le financeur voit comment les opérations produisent des chiffres, comment les écarts sont expliqués et comment le projet rend compte.'},client:{label:'Lecture exploitant',closing:'L’exploitant voit où sa ferme gagne ou perd de l’argent, sans transformer ses équipes en comptables.'}};
+      const steps=[
+        {t:'Accroche : faire vivre une journée Horizon Farm',b:'Ouverture',i:'La visite montre une journée complète : la ferme travaille, les données naissent du terrain, puis elles servent à comprendre la marge, la traçabilité et le reporting.',p:[['Durée cible','10 minutes'],['Trame','3 mouvements'],['Publics','Financeur / exploitant']],m:'Promesse de démo',k:[['Ferme','en activité'],['Données','terrain'],['Preuves','chiffrées'],['Rapport','prêt']],d:'Phrase : je vais vous montrer comment la ferme tourne au quotidien, comment l’outil explique les écarts et comment il rend compte.'},
+        {t:'Le matin : priorités du jour',b:'Pilotage global',i:'Chaque matin, les tâches et priorités sont visibles : production attendue, vaccination, pesées, livraison client et points à traiter.',p:[['Tâches','datées'],['Responsables','assignés'],['Vue','jour']],m:'Tableau de bord — priorités du jour',k:[['Vaccination','Lot C'],['Pesée bovins','Aujourd’hui'],['Livraison','Œufs'],['Points actifs','2']],d:'Preuve : personne ne commence la journée en cherchant quoi faire ; l’équipe voit les tâches prévues.'},
+        {t:'Réception d’aliment : achats, stock et coûts',b:'Saisie terrain 1',i:'Une réception d’aliment est enregistrée : fournisseur, quantité, prix au sac. La saisie alimente immédiatement plusieurs parties de l’ERP.',p:[['Réception','20 sacs'],['Fournisseur','Suivi'],['Prix','historisé']],m:'Réception aliment',k:[['Stock','mis à jour'],['Dépense','finance'],['Coût lot','affecté'],['AGRI FEEDS','référence']],c:[['Stock','+20 sacs disponibles'],['Finance','dépense enregistrée'],['Lots','coût d’aliment actualisé'],['Référence','prix historisé']],d:'Message : la donnée ne vient pas d’un rapport manuel ; elle naît d’un geste simple du terrain.'},
+        {t:'Ponte du jour : production animale',b:'Saisie terrain 2',i:'La production d’œufs est saisie par bâtiment. Le stock disponible, le taux de ponte et la courbe de production se mettent à jour.',p:[['Ponte','42 plateaux'],['Bâtiment','Ponte 1'],['Taux','recalculé']],m:'Ponte du jour',k:[['Plateaux','42'],['Stock œufs','disponible'],['Courbe','alimentée'],['Tendance','suivie']],c:[['Production','plateaux ajoutés'],['Stock','œufs disponibles'],['Performance','taux de ponte'],['Historique','courbe par jour']],d:'Message : l’ERP suit la production réelle, pas seulement les ventes.'},
+        {t:'Vente d’œufs : client, livraison et encaissement',b:'Saisie terrain 3',i:'La vente relie client, quantité, prix, facture, encaissement ou créance. La production devient du cash suivi.',p:[['Client','Boulangerie X'],['Créance','180 000'],['Livraison','préparée']],m:'Suivi commercial',k:[['Facture','créée'],['Encaissement','partiel'],['Créance','à relancer'],['Historique','client']],c:[['Commercial','vente enregistrée'],['Finance','trésorerie ajustée'],['Client','historique enrichi'],['Relance','prévue']],d:'Preuve : le système ne s’arrête pas à produire ; il suit ce qui entre réellement dans la caisse.'},
+        {t:'Transfert d’effluents : culture et circularité',b:'Saisie terrain 4',i:'Un transfert organique est enregistré du poulailler vers une parcelle. La fertilisation naturelle devient une donnée tracée.',p:[['Quantité','200 kg'],['Origine','Poulailler 1'],['Destination','Tomates']],m:'Transfert organique enregistré',k:[['Date','14 juin'],['Parcelle','Tomates'],['Intrants','réduits'],['Eau','goutte-à-goutte']],c:[['Traçabilité','origine + destination'],['Culture','coût parcelle'],['Vert','économie intrants'],['Reporting','preuve durable']],d:'Message : la ferme verte se prouve par des mouvements enregistrés, pas par une phrase.'},
+        {t:'Points à traiter : toute la ferme visible',b:'Synthèse',i:'Les points à traiter sont variés : animaux, stock, client, eau. Ils ne remplacent pas la gestion ; ils la résument.',p:[['Points actifs','6'],['Filières','4'],['Impact','classé']],m:'Centre de priorités',k:[['Lot B','aliment +12%'],['Ponte','-3 points'],['Stock ponte','6 jours'],['Eau tomates','à vérifier']],a:[['Chair','Lot B : consommation d’aliment au-dessus de la référence.'],['Pondeuses','Bâtiment 1 : taux de ponte en baisse.'],['Embouche','Bœuf n°07 : gain de poids sous objectif.'],['Stock','Aliment ponte : 6 jours restants.'],['Commercial','Créance client à relancer.'],['Eau','Parcelle tomates : consommation inhabituelle.']],d:'Message : ce n’est pas un ERP qui fait seulement des alertes ; c’est une ferme suivie, dont les priorités deviennent visibles.'},
+        {t:'Boucle fermée : détecter, agir, vérifier',b:'Décision',i:'Un écart du lot B est traité jusqu’au résultat : vérification eau, mangeoires, pesée d’un échantillon, puis contrôle cinq jours plus tard.',p:[['Impact','-70 000'],['Tâches','assignées'],['Résultat','vérifié']],m:'Alerte Lot B — suivi correctif',k:[['Action 1','eau'],['Action 2','mangeoires'],['Action 3','pesée'],['J+5','normalisé']],x:'État J+5 : tâches clôturées, consommation revenue sur la courbe, décision archivée.',d:'Message : l’outil ne s’arrête pas au signal ; il garde la trace de l’action et du résultat.'},
+        {t:'Vie du lot B : marge réelle',b:'Finance',i:'Le lot est suivi depuis la mise en place jusqu’à la vente. L’écran final montre la marge réelle et l’écart avec le prévisionnel.',p:[['Sujets','500'],['Mortalité','3,2%'],['Marge réelle','412 000']],m:'Compte de résultat du Lot B',k:[['Ventes','1 156 000'],['Aliment','512 000'],['Autres coûts','232 000'],['Marge','412 000']],table:[['Poste','Prévu','Réel','Écart'],['Aliment','474 000','512 000','-38 000'],['Mortalité','4%','3,2%','Favorable'],['Marge lot','450 000','412 000','-8%']],d:'Question clé : ce lot précis a-t-il gagné de l’argent, et pourquoi ? Ici la réponse existe poste par poste.'},
+        {t:'Pivot multi-filières : le modèle intégré',b:'4 filières',i:'Le même raisonnement existe pour les poulets, les œufs, l’embouche bovine et les cultures.',p:[['Chair','lot'],['Œufs','plateaux'],['Bovins','coût/tête']],m:'Vue marge par filière',k:[['Chair','Lot B'],['Œufs','Ponte 1'],['Embouche','Bœuf n°07'],['Maraîchage','Tomates']],f:[['Chair','Lot B','marge réelle'],['Œufs','Ponte 1','marge par plateau'],['Embouche','Bœuf n°07','coût par tête'],['Maraîchage','Tomates','marge parcelle']],d:'Phrase pivot : quatre filières, quatre cycles de revenus, aucune ne porte seule le remboursement.'},
+        {t:'Traçabilité en trois clics : de la vente au fournisseur',b:'Preuve forte',i:'Depuis une vente d’œufs, on remonte au lot, à l’aliment consommé, puis au fournisseur et au prix d’achat.',p:[['Départ','vente'],['Arrivée','fournisseur'],['Clics','3']],m:'Chaîne de traçabilité',k:[['Vente','Boulangerie X'],['Lot','Ponte 1'],['Aliment','Ponte'],['Fournisseur','référencé']],tr:[['1','Vente livrée au client'],['2','Lot / bâtiment de production'],['3','Aliment consommé'],['4','Fournisseur et prix']],d:'Moment fort : chaque franc encaissé peut raconter d’où il vient. Pour un financeur, c’est de la transparence ; pour un acheteur, de la confiance.'},
+        {t:'Simulation : préparer l’extension avant d’agir',b:'Projection',i:'Avant d’augmenter une bande, l’ERP simule les besoins d’aliment, le stock, la trésorerie et le risque sur le cycle.',p:[['Scénario','500 → 750'],['Besoin','aliment'],['Cash','projeté']],m:'Simulation d’extension',k:[['Sujets','750'],['Stock requis','calculé'],['Trésorerie','projetée'],['Seuil','soutenable']],d:'Message : la croissance se prépare avec une simulation, puis se confirme avec les chiffres réels.'},
+        {t:'Vues par profil : chacun voit ce qui le concerne',b:'Contrôle',i:'La même base sert trois vues : promotrice, équipe terrain et financeur. Les droits évitent de tout exposer à tout le monde.',p:[['Promotrice','vue complète'],['Équipe','tâches'],['Financeur','rapport']],m:'Accès par profil',k:[['Promotrice','tout'],['Équipe','saisie'],['Financeur','suivi'],['Droits','maîtrisés']],profiles:[['Promotrice','Toutes les filières, finances, décisions.'],['Équipe','Tâches du jour et saisies terrain, sans finances.'],['Financeur','Activité, coûts, marges, écarts et décisions.']],d:'Message : l’ERP parle à chacun dans sa langue, avec le bon niveau d’accès.'},
+        {t:'Rapport financeur : rendre compte sans refaire le travail',b:'Reporting',i:'Le rapport mensuel rassemble activité par filière, dépenses, recettes, marges, écarts, utilisation du financement et décisions documentées.',p:[['Rapport','mensuel'],['Écarts','expliqués'],['Financement','suivi']],m:'Rapport financeur — synthèse mensuelle',k:[['Activité','filières'],['Finance','cash + marges'],['Écarts','commentés'],['Décisions','historique']],d:'Phrase : le rapport sort des opérations quotidiennes. Le financeur ne finance pas une promesse isolée, il suit une exploitation qui rend compte.'},
+        {t:'AGRI FEEDS : passage à l’échelle discipliné',b:'Phase 2',i:'AGRI FEEDS est lancé seulement si la référence Phase 1 prouve que les formules internes font mieux que le marché.',p:[['Référence','Phase 1'],['Tests','internes'],['Vente','progressive']],m:'Readiness AGRI FEEDS',k:[['Prix marché','comparés'],['Formules','à tester'],['Qualité','à valider'],['Vente','fermée']],d:'Message : les nouvelles valorisations avancent avec des critères chiffrés, pas avec de l’ambition seule.'},
+        {t:'Clôture : le message à laisser',b:'Final',i:'La démonstration doit laisser une idée simple : Horizon Farm est une ferme qui travaille, mesure, explique et rend compte.',p:[['Ferme','tourne'],['Données','expliquent'],['Rapport','rassure']],m:'Résumé final',k:[['Travail','capturé'],['Marge','prouvée'],['Traçabilité','visible'],['Croissance','maîtrisée']],d:'Phrase de clôture : une ferme qui tourne, un outil qui aide à comprendre, un projet qui rend des comptes. C’est ça, Horizon Farm.'}
       ];
-
-      let current = 0;
-      const storyContent = document.getElementById('storyContent');
-      const progressBar = document.getElementById('progressBar');
-      const buttons = [...document.querySelectorAll('.step-btn')];
-      const prevBtn = document.getElementById('prevBtn');
-      const nextBtn = document.getElementById('nextBtn');
-
-      function renderTable(table) {
-        if (!table?.length) return '';
-        const [head, ...rows] = table;
-        return `<div class="table-wrap"><table><thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
-      }
-      function renderAlerts(alerts) {
-        if (!alerts?.length) return '';
-        return `<div class="alerts-wall">${alerts.map(([label, text]) => `<div class="alert-item"><small>${label}</small><b>${text}</b></div>`).join('')}</div>`;
-      }
-      function renderFilieres(filieres) {
-        if (!filieres?.length) return '';
-        return `<div class="filieres">${filieres.map(([name, ref, value]) => `<div class="filiere"><strong>${name}</strong><span>${ref}</span><p>${value}</p></div>`).join('')}</div>`;
-      }
-      function render(index) {
-        current = index;
-        const step = steps[index];
-        progressBar.style.width = `${((index + 1) / steps.length) * 100}%`;
-        storyContent.innerHTML = `
-          <div class="story-inner">
-            <div class="story-top">
-              <div><h2>${step.title}</h2><p class="story-intro">${step.intro}</p></div>
-              <span class="pill">${step.badge}</span>
-            </div>
-            <div class="proofs">${step.proofs.map(([label, value]) => `<div class="proof"><small>${label}</small><b>${value}</b></div>`).join('')}</div>
-            <div class="mock">
-              <div class="mock-head"><h3>${step.mockTitle}</h3><small>Données de présentation</small></div>
-              <div class="kpis">${step.kpis.map(([label, value]) => `<div class="kpi"><small>${label}</small><b>${value}</b></div>`).join('')}</div>
-              ${renderAlerts(step.alerts)}
-              ${step.alert ? `<div class="alert">${step.alert}</div>` : ''}
-              ${renderTable(step.table)}
-              ${renderFilieres(step.filieres)}
-            </div>
-            <div class="decision">${step.decision}</div>
-          </div>`;
-        buttons.forEach((btn) => btn.classList.toggle('active', Number(btn.dataset.step) === index));
-        prevBtn.disabled = index === 0;
-        nextBtn.textContent = index === steps.length - 1 ? 'Revoir depuis le début →' : 'Suivant →';
-      }
-      buttons.forEach((btn) => btn.addEventListener('click', () => render(Number(btn.dataset.step))));
-      prevBtn.addEventListener('click', () => render(Math.max(0, current - 1)));
-      nextBtn.addEventListener('click', () => render(current === steps.length - 1 ? 0 : current + 1));
-      function scrollToDeck() { document.getElementById('deck').scrollIntoView({ behavior: 'smooth' }); }
-      render(0);
+      let current=0,audience='investor';const storyContent=document.getElementById('storyContent'),progressBar=document.getElementById('progressBar'),buttons=[...document.querySelectorAll('.step-btn')],prevBtn=document.getElementById('prevBtn'),nextBtn=document.getElementById('nextBtn'),audienceBtns=[...document.querySelectorAll('.audience-btn')];
+      function table(t){if(!t)return'';const[h,...r]=t;return`<div class="table-wrap"><table><thead><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${r.map(row=>`<tr>${row.map(x=>`<td>${x}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}
+      function list(cls,items){if(!items)return'';return`<div class="${cls}">${items.map(([a,b,c])=>cls==='filieres'?`<div class="filiere"><strong>${a}</strong><span>${b}</span><p>${c}</p></div>`:cls==='profiles'?`<div class="profile-card"><h3>${a}</h3><p>${b}</p></div>`:`<div><small>${a}</small><b>${b}</b>${c?`<p>${c}</p>`:''}</div>`).join('')}</div>`}
+      function render(i){current=i;const s=steps[i];progressBar.style.width=`${((i+1)/steps.length)*100}%`;storyContent.innerHTML=`<div class="story-inner"><div class="story-top"><div><h2>${s.t}</h2><p class="story-intro">${s.i}</p></div><span class="pill">${s.b}</span></div><div class="proofs">${s.p.map(([l,v])=>`<div class="proof"><small>${l}</small><b>${v}</b></div>`).join('')}</div><div class="mock"><div class="mock-head"><h3>${s.m}</h3><small>Données fictives cohérentes</small></div><div class="kpis">${s.k.map(([l,v])=>`<div class="kpi"><small>${l}</small><b>${v}</b></div>`).join('')}</div>${list('cascade',s.c)}${list('alerts-wall',s.a)}${s.x?`<div class="alert-box">${s.x}</div>`:''}${table(s.table)}${list('filieres',s.f)}${list('trace',s.tr)}${list('profiles',s.profiles)}</div><div class="decision"><b>${audiences[audience].label}</b> — ${s.d}<br><span>${audiences[audience].closing}</span></div></div>`;buttons.forEach(btn=>btn.classList.toggle('active',Number(btn.dataset.step)===i));prevBtn.disabled=i===0;nextBtn.textContent=i===steps.length-1?'Revoir depuis le début →':'Suivant →'}
+      buttons.forEach(btn=>btn.addEventListener('click',()=>render(Number(btn.dataset.step))));prevBtn.addEventListener('click',()=>render(Math.max(0,current-1)));nextBtn.addEventListener('click',()=>render(current===steps.length-1?0:current+1));audienceBtns.forEach(btn=>btn.addEventListener('click',()=>{audience=btn.dataset.audience;audienceBtns.forEach(b=>b.classList.toggle('active',b===btn));render(current)}));function scrollToDeck(){document.getElementById('deck').scrollIntoView({behavior:'smooth'})}render(0);
     </script>
   </body>
 </html>
