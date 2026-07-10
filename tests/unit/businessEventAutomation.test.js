@@ -27,6 +27,7 @@ test('événements métier — couverture complète des workflows', () => {
   assert.equal(audit.total >= 25, true);
   assert.equal(audit.ids.includes('biosecurity_cleaning'), true);
   assert.equal(audit.ids.includes('monthly_financier_report'), true);
+  assert.equal(audit.ids.includes('smartfarm_signal'), true);
 });
 
 test('validation — refuse un événement incomplet', () => {
@@ -61,19 +62,87 @@ test('biosécurité — bloque une matière suspecte envoyée vers culture', () 
   assert.equal(plan.operations.some((op) => op.type === 'alert.create'), true);
 });
 
-test('distribution aliment — détecte le stock insuffisant', () => {
-  const derived = computeBusinessEventDerivedMetrics('feed_distribution', {
+test('distribution aliment — détecte le stock insuffisant et prépare la sortie stock', () => {
+  const payload = {
     date: '2026-07-10',
     target_type: 'lot_avicole',
     target_id: 'LOT-B',
     quantity: 120,
     feed_stock_id: 'STK-ALIMENT',
-  }, {
-    stock: [{ id: 'STK-ALIMENT', quantite: 80 }],
-  });
+  };
+  const dataMap = { stock: [{ id: 'STK-ALIMENT', quantite: 80 }] };
+  const derived = computeBusinessEventDerivedMetrics('feed_distribution', payload, dataMap);
   assert.equal(derived.stock_available_before, 80);
   assert.equal(derived.stock_after_distribution, -40);
   assert.equal(derived.stock_insufficient, true);
+
+  const plan = buildBusinessEventAutomationPlan('feed_distribution', payload, dataMap);
+  assert.equal(plan.operations.some((op) => op.type === 'stock_movement.create'), true);
+  assert.equal(plan.operations.some((op) => op.type === 'alert.create'), true);
+});
+
+test('vente œufs — crée vente, ligne, sortie stock, paiement et finance', () => {
+  const plan = buildBusinessEventAutomationPlan('egg_sale', {
+    date: '2026-07-10',
+    client_id: 'CLI-001',
+    quantity_trays: 42,
+    unit_price: 2500,
+    stock_id: 'STK-OEUFS',
+    payment_status: 'paye',
+    payment_method: 'cash',
+  });
+  assert.equal(plan.ok, true);
+  assert.equal(plan.derived.amount, 105000);
+  assert.equal(plan.operations.some((op) => op.type === 'sales_order.create'), true);
+  assert.equal(plan.operations.some((op) => op.type === 'sales_order_item.create'), true);
+  assert.equal(plan.operations.some((op) => op.type === 'stock_movement.create'), true);
+  assert.equal(plan.operations.some((op) => op.type === 'payment.create'), true);
+  assert.equal(plan.operations.some((op) => op.type === 'finance.create'), true);
+});
+
+test('ponte du jour — prépare une entrée stock œufs', () => {
+  const plan = buildBusinessEventAutomationPlan('egg_production', {
+    date: '2026-07-10',
+    building_id: 'PONDEUSES-1',
+    trays_count: 38,
+  });
+  assert.equal(plan.ok, true);
+  assert.equal(plan.operations.some((op) => op.type === 'stock_movement.create' && op.payload.movement_type === 'entree_ponte_jour'), true);
+});
+
+test('récolte et vente maraîchère — connecte culture, stock et commercial', () => {
+  const harvest = buildBusinessEventAutomationPlan('crop_harvest', {
+    date: '2026-07-10',
+    parcel_id: 'PARCELLE-TOMATE',
+    crop_type: 'Tomate',
+    quantity_kg: 180,
+  });
+  assert.equal(harvest.ok, true);
+  assert.equal(harvest.operations.some((op) => op.type === 'stock.create' && op.payload.categorie === 'produit_fini_culture'), true);
+
+  const sale = buildBusinessEventAutomationPlan('crop_sale', {
+    date: '2026-07-10',
+    client_id: 'CLI-002',
+    parcel_or_stock_id: 'STK-TOMATE',
+    quantity_kg: 50,
+    unit_price: 800,
+    payment_status: 'partiel',
+    paid_amount: 20000,
+  });
+  assert.equal(sale.ok, true);
+  assert.equal(sale.derived.amount, 40000);
+  assert.equal(sale.derived.remaining_amount, 20000);
+  assert.equal(sale.operations.some((op) => op.type === 'sales_order.create'), true);
+});
+
+test('rapport financeur — crée un brouillon de rapport relié aux opérations', () => {
+  const plan = buildBusinessEventAutomationPlan('monthly_financier_report', {
+    period: '2026-07',
+    generated_by: 'Penda',
+    data_cutoff_date: '2026-07-31',
+  });
+  assert.equal(plan.ok, true);
+  assert.equal(plan.operations.some((op) => op.type === 'report.create'), true);
 });
 
 test('commit — exécute les handlers disponibles et laisse les autres opérations traçables', async () => {
