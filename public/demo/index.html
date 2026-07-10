@@ -7,158 +7,147 @@
     <meta name="robots" content="noindex" />
     <style>
       :root {
+        --bg: #f7f2e8;
+        --paper: #fffdf8;
+        --white: #ffffff;
         --green: #22c55e;
         --green-dark: #14532d;
-        --dark: #052e16;
         --brown: #2f2415;
-        --muted: #6b8a6b;
-        --sand: #fffdf8;
-        --border: #d6c3a0;
+        --muted: #7d6b54;
         --line: #eadcc2;
-        --soft: #f6faf6;
+        --soft: #f0fdf4;
         --amber: #92400e;
-        --rose: #9f1239;
+        --shadow: 0 24px 70px rgba(47, 36, 21, 0.08);
       }
       * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
       body {
         margin: 0;
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: linear-gradient(180deg, #f6faf6 0%, #fffdf8 100%);
-        color: var(--dark);
+        background: radial-gradient(circle at top left, #e9f8e9 0, var(--bg) 34%, #fffdf8 100%);
+        color: var(--brown);
       }
-      a { color: inherit; }
-      .shell { max-width: 1180px; margin: 0 auto; padding: 32px 18px 56px; }
-      .hero, .panel, .screen, .card, .mock, .story-card, .flow-card {
-        border: 1px solid var(--border);
-        background: white;
-        box-shadow: 0 22px 55px rgba(5, 46, 22, 0.06);
-      }
-      .hero { border-radius: 34px; padding: 32px; }
-      .badge, .pill {
-        display: inline-flex;
-        border: 1px solid #bbf7d0;
-        background: #f0fdf4;
-        color: var(--green-dark);
-        border-radius: 999px;
-        padding: 8px 12px;
-        font-size: 12px;
-        font-weight: 900;
-        letter-spacing: .06em;
-        text-transform: uppercase;
-      }
-      h1 { margin: 16px 0 10px; font-size: clamp(34px, 6vw, 68px); line-height: .96; letter-spacing: -0.06em; color: var(--brown); }
-      h2 { margin: 0 0 12px; font-size: 25px; letter-spacing: -0.03em; color: var(--brown); }
-      h3 { margin: 0 0 8px; color: var(--brown); }
+      .page { max-width: 1160px; margin: 0 auto; padding: 28px 18px 48px; }
+      .hero, .section, .deck, .mock-screen { border: 1px solid var(--line); background: rgba(255, 255, 255, .92); border-radius: 32px; box-shadow: var(--shadow); }
+      .hero { padding: clamp(24px, 4vw, 44px); display: grid; grid-template-columns: 1.15fr .85fr; gap: 28px; align-items: center; }
+      .eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; background: var(--soft); color: var(--green-dark); font-size: 12px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+      h1 { margin: 18px 0 14px; font-size: clamp(38px, 6.5vw, 76px); line-height: .92; letter-spacing: -0.07em; }
+      h2 { margin: 0; font-size: clamp(26px, 3vw, 38px); line-height: 1.05; letter-spacing: -0.04em; }
+      h3 { margin: 0 0 8px; font-size: 18px; }
       p { line-height: 1.65; }
-      .lead { color: var(--muted); max-width: 860px; font-size: 17px; }
-      .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
-      .btn {
-        border: 0;
-        border-radius: 16px;
-        padding: 13px 18px;
-        font-weight: 900;
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .btn.primary { background: var(--green); color: var(--dark); }
-      .btn.secondary { background: var(--sand); border: 1px solid var(--border); color: var(--brown); }
-      .hero-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 18px; margin-top: 18px; }
-      .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-      .card { border-radius: 24px; padding: 18px; background: var(--sand); box-shadow: none; }
-      .card small, .metric small { display: block; color: var(--muted); font-weight: 900; text-transform: uppercase; letter-spacing: .08em; font-size: 10px; }
-      .card strong, .metric strong { display: block; margin-top: 6px; font-size: 22px; color: var(--brown); }
-      .metrics { display: grid; gap: 12px; }
-      .metric { border: 1px solid var(--line); border-radius: 22px; padding: 16px; background: white; }
-      .section { margin-top: 24px; }
-      .section-title { display: flex; justify-content: space-between; gap: 18px; align-items: flex-end; margin-bottom: 14px; }
-      .section-title p { color: var(--muted); margin: 0; max-width: 800px; }
-      .tour { display: grid; grid-template-columns: 305px 1fr; gap: 18px; align-items: start; }
-      .steps { position: sticky; top: 16px; display: grid; gap: 8px; }
-      .step-btn {
-        width: 100%; border: 1px solid #d1e5d1; background: white; color: var(--muted);
-        border-radius: 16px; padding: 12px; text-align: left; cursor: pointer; font-weight: 850;
-      }
-      .step-btn.active { background: #dcfce7; color: var(--dark); border-color: var(--green); }
-      .screen { min-height: 560px; border-radius: 28px; background: var(--sand); padding: 22px; overflow: hidden; }
-      .screen-header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; border-bottom: 1px solid var(--line); padding-bottom: 16px; margin-bottom: 16px; }
-      .pill { padding: 6px 10px; font-size: 11px; white-space: nowrap; }
-      .mini-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-      .mini { border: 1px solid var(--line); background: white; border-radius: 18px; padding: 14px; }
-      .mini b { display: block; color: var(--brown); margin-bottom: 4px; }
-      .mini span { color: var(--muted); font-size: 13px; line-height: 1.5; }
-      .mock { margin-top: 14px; border-radius: 24px; padding: 16px; box-shadow: none; }
-      .mock-title { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 10px; margin-bottom: 12px; }
-      .mock-title small { color: var(--muted); font-weight: 900; }
-      .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-      .kpi { border: 1px solid var(--line); border-radius: 16px; padding: 11px; background: var(--sand); }
-      .kpi small { display: block; color: var(--muted); font-size: 10px; font-weight: 900; text-transform: uppercase; }
-      .kpi b { color: var(--brown); font-size: 18px; display: block; margin-top: 4px; }
-      .alert { border: 1px solid #fecdd3; background: #fff1f2; color: var(--rose); border-radius: 18px; padding: 13px; margin-top: 12px; }
-      .decision-box { margin-top: 14px; border: 1px solid #bbf7d0; background: #f0fdf4; border-radius: 18px; padding: 14px; color: #14532d; }
-      .timeline { display: grid; gap: 10px; margin-top: 14px; }
-      .line { border-left: 4px solid var(--green); background: white; border-radius: 14px; padding: 12px 14px; color: var(--brown); }
-      .line small { display: block; color: var(--muted); margin-top: 3px; }
-      .table { width: 100%; border-collapse: collapse; border-radius: 18px; overflow: hidden; background: white; margin-top: 14px; }
-      .table th, .table td { border-bottom: 1px solid var(--line); text-align: left; padding: 10px; font-size: 13px; }
-      .table th { color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-size: 10px; background: #fffdf8; }
-      .story-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-      .story-card, .flow-card { border-radius: 24px; padding: 18px; box-shadow: none; }
-      .flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
-      .flow-card { text-align: center; background: var(--sand); }
-      .flow-card b { color: var(--brown); display: block; margin-bottom: 6px; }
-      .flow-card span { color: var(--muted); font-size: 12px; }
-      .note { border: 1px solid #fde68a; background: #fffbeb; color: var(--amber); border-radius: 18px; padding: 14px; font-size: 14px; }
-      @media (max-width: 980px) {
-        .hero-grid, .tour, .story-grid { grid-template-columns: 1fr; }
-        .steps { position: static; }
-        .grid, .flow, .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .lead { color: var(--muted); font-size: 18px; max-width: 720px; }
+      .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+      .btn { border: 0; border-radius: 16px; padding: 14px 18px; font-weight: 900; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+      .btn.primary { background: var(--green); color: #052e16; }
+      .btn.secondary { background: var(--paper); color: var(--brown); border: 1px solid var(--line); }
+      .summary-card { background: var(--brown); color: white; border-radius: 28px; padding: 24px; }
+      .summary-card h3 { color: white; }
+      .summary-card p { color: rgba(255,255,255,.74); margin-bottom: 18px; }
+      .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .summary-kpi { border: 1px solid rgba(255,255,255,.16); border-radius: 18px; padding: 14px; background: rgba(255,255,255,.08); }
+      .summary-kpi small { display: block; color: rgba(255,255,255,.58); font-weight: 800; text-transform: uppercase; letter-spacing: .08em; font-size: 10px; }
+      .summary-kpi strong { display: block; margin-top: 6px; font-size: 22px; }
+      .section { padding: 26px; margin-top: 20px; }
+      .section-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-end; margin-bottom: 18px; }
+      .section-head p { color: var(--muted); margin: 8px 0 0; max-width: 720px; }
+      .principles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+      .principle { border: 1px solid var(--line); background: var(--paper); border-radius: 22px; padding: 18px; }
+      .principle span { display: inline-flex; width: 30px; height: 30px; align-items: center; justify-content: center; border-radius: 50%; background: var(--soft); color: var(--green-dark); font-weight: 900; margin-bottom: 12px; }
+      .principle p { color: var(--muted); font-size: 14px; margin-bottom: 0; }
+      .deck { margin-top: 20px; padding: 18px; display: grid; grid-template-columns: 300px 1fr; gap: 18px; }
+      .rail { display: grid; gap: 8px; align-content: start; position: sticky; top: 16px; }
+      .rail-title { padding: 12px 4px 8px; color: var(--muted); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .1em; }
+      .step-btn { border: 1px solid var(--line); background: white; color: var(--muted); border-radius: 17px; padding: 13px 14px; text-align: left; cursor: pointer; font-weight: 850; transition: .18s ease; }
+      .step-btn.active { border-color: var(--green); background: var(--soft); color: var(--green-dark); transform: translateX(2px); }
+      .story { background: var(--paper); border: 1px solid var(--line); border-radius: 26px; padding: clamp(18px, 3vw, 30px); min-height: 610px; }
+      .story-top { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; margin-bottom: 18px; }
+      .pill { background: var(--soft); color: var(--green-dark); border: 1px solid #bbf7d0; border-radius: 999px; padding: 7px 11px; font-size: 11px; font-weight: 900; white-space: nowrap; text-transform: uppercase; letter-spacing: .08em; }
+      .story-intro { color: var(--muted); font-size: 17px; max-width: 760px; }
+      .proof-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 18px 0; }
+      .proof { background: white; border: 1px solid var(--line); border-radius: 18px; padding: 16px; }
+      .proof small { display: block; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 900; }
+      .proof strong { display: block; margin-top: 7px; font-size: 24px; }
+      .mock-screen { box-shadow: none; border-radius: 24px; padding: 18px; background: white; }
+      .mock-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 14px; }
+      .mock-head small { color: var(--muted); font-weight: 800; }
+      .mock-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+      .mock-kpi { border: 1px solid var(--line); background: var(--paper); border-radius: 16px; padding: 12px; }
+      .mock-kpi small { display: block; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 900; }
+      .mock-kpi b { display: block; margin-top: 6px; font-size: 18px; }
+      .alert { margin-top: 14px; border-radius: 17px; border: 1px solid #fde68a; background: #fffbeb; color: var(--amber); padding: 14px; font-weight: 800; }
+      .decision { margin-top: 14px; border-left: 5px solid var(--green); background: var(--soft); border-radius: 16px; padding: 14px; color: var(--green-dark); }
+      .mini-table { width: 100%; border-collapse: collapse; margin-top: 14px; overflow: hidden; border-radius: 16px; }
+      .mini-table th, .mini-table td { border-bottom: 1px solid var(--line); padding: 10px; text-align: left; font-size: 13px; background: white; }
+      .mini-table th { background: var(--paper); color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+      .controls { display: flex; justify-content: space-between; gap: 12px; margin-top: 18px; }
+      .control { border: 1px solid var(--line); background: white; border-radius: 15px; padding: 12px 15px; font-weight: 900; cursor: pointer; color: var(--brown); }
+      .control.next { background: var(--green); color: #052e16; border-color: var(--green); }
+      .progress { height: 8px; background: #efe3cb; border-radius: 999px; overflow: hidden; margin-bottom: 18px; }
+      .progress span { display: block; height: 100%; width: 12.5%; background: var(--green); border-radius: inherit; transition: .2s ease; }
+      .closing { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+      .closing .principle { background: white; }
+      @media (max-width: 900px) {
+        .hero, .deck, .closing { grid-template-columns: 1fr; }
+        .rail { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .rail-title { grid-column: 1 / -1; }
+        .principles, .proof-row { grid-template-columns: 1fr; }
+        .story { min-height: auto; }
       }
       @media (max-width: 620px) {
-        .shell { padding: 18px 12px 42px; }
-        .hero { padding: 22px; }
-        .grid, .flow, .metrics, .mini-grid, .kpis { grid-template-columns: 1fr; }
-        .screen-header, .mock-title { display: block; }
-        .pill { margin-top: 10px; }
+        .page { padding: 18px 12px 40px; }
+        .summary-grid, .mock-grid, .rail { grid-template-columns: 1fr; }
+        .hero, .section, .deck { border-radius: 24px; }
+        .story-top, .mock-head, .section-head { display: block; }
+        .pill { display: inline-flex; margin-top: 10px; }
       }
     </style>
   </head>
   <body>
-    <main class="shell">
+    <main class="page">
       <section class="hero">
-        <span class="badge">Parcours investisseur</span>
-        <h1>Suivre un lot, comprendre la ferme, sécuriser la décision.</h1>
-        <p class="lead">
-          Cette visite suit un lot de poulets de chair depuis la mise en place jusqu’à la marge finale.
-          Le récit montre comment Horizon Farm relie terrain, coûts, ventes, alertes, IA encadrée, économie circulaire,
-          AGRI FEEDS et reporting financeur dans un même système de pilotage.
-        </p>
-        <div class="actions">
-          <button class="btn primary" onclick="scrollToTour()">Lancer le fil rouge</button>
-          <a class="btn secondary" href="#investisseurs">Lecture investisseurs</a>
-          <a class="btn secondary" href="#parcours">Parcours de croissance</a>
+        <div>
+          <span class="eyebrow">Parcours investisseur · 8 minutes</span>
+          <h1>Un lot. Une alerte. Une marge prouvée.</h1>
+          <p class="lead">
+            Cette démo suit un lot de poulets de chair de la mise en place jusqu’au rapport financeur.
+            L’objectif est simple : montrer comment Horizon Farm détecte un risque tôt, documente la décision et prouve la marge réelle.
+          </p>
+          <div class="actions">
+            <button class="btn primary" onclick="scrollToDeck()">Commencer la démo</button>
+            <a class="btn secondary" href="#principes">Lire l’idée en 30 secondes</a>
+          </div>
         </div>
-        <div class="hero-grid">
-          <div class="grid">
-            <div class="card"><small>Fil rouge</small><strong>Lot B</strong><p>500 poulets suivis depuis le démarrage jusqu’à la marge réelle.</p></div>
-            <div class="card"><small>Moment fort</small><strong>Alerte anticipée</strong><p>L’ERP détecte un écart de consommation avant qu’il ne devienne une perte.</p></div>
-            <div class="card"><small>Conclusion</small><strong>Rapport financeur</strong><p>Les chiffres réels, les écarts et les décisions sont documentés.</p></div>
+        <aside class="summary-card">
+          <h3>Scénario de démonstration</h3>
+          <p>Les chiffres sont fictifs, mais cohérents. Ils servent à montrer la logique de gestion, sans exposer de données privées.</p>
+          <div class="summary-grid">
+            <div class="summary-kpi"><small>Lot suivi</small><strong>Lot B</strong></div>
+            <div class="summary-kpi"><small>Volume</small><strong>500 sujets</strong></div>
+            <div class="summary-kpi"><small>Alerte</small><strong>+12%</strong></div>
+            <div class="summary-kpi"><small>Marge simulée</small><strong>412k FCFA</strong></div>
           </div>
-          <div class="metrics">
-            <div class="metric"><small>Lot fictif</small><strong>500 sujets</strong><p>Données de démonstration cohérentes.</p></div>
-            <div class="metric"><small>Alerte</small><strong>+12%</strong><p>Surconsommation d’aliment détectée.</p></div>
-            <div class="metric"><small>Impact</small><strong>-70 000 FCFA</strong><p>Marge menacée si rien ne change.</p></div>
-            <div class="metric"><small>Principe</small><strong>Validation humaine</strong><p>L’aide à la décision ne remplace pas la promotrice.</p></div>
+        </aside>
+      </section>
+
+      <section class="section" id="principes">
+        <div class="section-head">
+          <div>
+            <h2>La démo ne liste plus les modules. Elle raconte une preuve.</h2>
+            <p>Chaque écran porte un seul message : détecter, comprendre, corriger, puis rendre compte.</p>
           </div>
+        </div>
+        <div class="principles">
+          <article class="principle"><span>1</span><h3>Voir le risque avant la perte</h3><p>Une surconsommation d’aliment est repérée avant la vente du lot.</p></article>
+          <article class="principle"><span>2</span><h3>Relier terrain et finance</h3><p>Aliment, mortalité, pesées, vente et encaissement parlent du même lot.</p></article>
+          <article class="principle"><span>3</span><h3>Rassurer le financeur</h3><p>Les écarts sont expliqués avec des chiffres et une décision documentée.</p></article>
         </div>
       </section>
 
-      <section class="section tour" id="tour">
-        <nav class="steps" aria-label="Étapes de la visite">
+      <section class="deck" id="deck">
+        <nav class="rail" aria-label="Étapes de la démo">
+          <div class="rail-title">Fil rouge</div>
           <button class="step-btn active" data-step="0">1. Accroche</button>
-          <button class="step-btn" data-step="1">2. Alerte & IA</button>
+          <button class="step-btn" data-step="1">2. Alerte IA</button>
           <button class="step-btn" data-step="2">3. Vie du lot</button>
           <button class="step-btn" data-step="3">4. Marge réelle</button>
           <button class="step-btn" data-step="4">5. Boucle verte</button>
@@ -166,32 +155,26 @@
           <button class="step-btn" data-step="6">7. Rapport financeur</button>
           <button class="step-btn" data-step="7">8. Extensions futures</button>
         </nav>
-        <article class="screen" id="screen"></article>
+        <article class="story">
+          <div class="progress"><span id="progressBar"></span></div>
+          <div id="storyContent"></div>
+          <div class="controls">
+            <button class="control" id="prevBtn">← Précédent</button>
+            <button class="control next" id="nextBtn">Suivant →</button>
+          </div>
+        </article>
       </section>
 
-      <section class="section" id="investisseurs">
-        <div class="section-title">
+      <section class="section">
+        <div class="section-head">
           <div>
-            <h2>Ce que l’investisseur doit retenir</h2>
-            <p>La valeur de l’ERP n’est pas la liste des modules. Sa valeur est de prouver que l’exploitation peut mesurer, expliquer et corriger avant qu’un problème ne coûte trop cher.</p>
+            <h2>Message final pour l’investisseur</h2>
+            <p>Horizon Farm ne présente pas seulement un projet agricole. Elle présente une manière de suivre l’argent, d’anticiper les risques et de piloter la croissance.</p>
           </div>
         </div>
-        <div class="story-grid">
-          <div class="story-card"><h3>Une histoire, pas une liste</h3><p>La visite suit un lot précis. L’élevage, le stock, la finance, le commercial et le centre décisionnel apparaissent naturellement, au service d’un résultat : la marge.</p></div>
-          <div class="story-card"><h3>Un risque rendu visible</h3><p>La surconsommation d’aliment est détectée, chiffrée et transformée en action : vérifier l’eau, les mangeoires, le gaspillage et la croissance réelle.</p></div>
-          <div class="story-card"><h3>Une IA sobre et crédible</h3><p>Elle détecte, compare et propose. La décision finale reste humaine et enregistrée avec sa justification.</p></div>
-          <div class="story-card"><h3>Un reporting qui rassure</h3><p>Le financeur voit les hypothèses, les chiffres observés, les écarts et les actions prises, sans attendre un rapport manuel.</p></div>
-        </div>
-      </section>
-
-      <section class="section panel" id="parcours">
-        <h2>Parcours de croissance</h2>
-        <div class="flow">
-          <div class="flow-card"><b>1. Produire</b><span>Œufs, poulets, bovins, cultures.</span></div>
-          <div class="flow-card"><b>2. Mesurer</b><span>Coûts, stocks, ventes, risques.</span></div>
-          <div class="flow-card"><b>3. Comparer</b><span>Prévisionnel, réel, marge, performance.</span></div>
-          <div class="flow-card"><b>4. Décider</b><span>IA assistée, validation humaine.</span></div>
-          <div class="flow-card"><b>5. Reporter</b><span>Financeur, équipe, audit interne.</span></div>
+        <div class="closing">
+          <article class="principle"><span>✓</span><h3>La donnée protège la marge</h3><p>Les écarts sont visibles avant qu’ils ne deviennent des pertes définitives.</p></article>
+          <article class="principle"><span>✓</span><h3>La croissance reste disciplinée</h3><p>AGRI FEEDS, BOVINIA et tallow & go avancent seulement si les indicateurs le justifient.</p></article>
         </div>
       </section>
     </main>
@@ -202,192 +185,126 @@
           title: 'Accroche : le problème à résoudre',
           badge: '30 secondes',
           intro: 'Dans beaucoup de fermes, on découvre qu’un lot a perdu de l’argent le jour où il est vendu. Horizon Farm ERP montre l’écart avant qu’il ne devienne une perte définitive.',
-          cards: [
-            ['Question centrale', 'Ce lot précis gagne-t-il de l’argent, et pourquoi ?'],
-            ['Promesse de la visite', 'Suivre un lot de poulets de chair, de la mise en place à la marge finale.'],
-            ['Angle investisseur', 'Comprendre comment les risques sont détectés et comment l’argent est suivi.'],
-            ['Donnée clé', 'Lot B : 500 sujets, suivi alimentation, santé, ventes et marge.'],
-          ],
-          mock: {
-            title: 'Scénario présenté',
-            kpis: [['Lot', 'B — chair'], ['Sujets', '500'], ['Objectif marge', '450 000 FCFA'], ['Statut', 'En suivi']],
-            alert: '',
-          },
-          lines: [
-            ['Message à retenir', 'Le système ne raconte pas seulement ce que la ferme fait. Il montre si l’activité crée réellement de la marge.'],
-          ],
+          proofs: [['Lot', 'B — chair'], ['Sujets', '500'], ['Objectif marge', '450 000 FCFA']],
+          mockTitle: 'Scénario présenté',
+          kpis: [['Démarrage', 'Jour 1'], ['Statut', 'En suivi'], ['Donnée clé', 'Aliment + santé'], ['But', 'Marge prouvée']],
+          decision: 'Message : ce système ne raconte pas seulement ce que la ferme fait. Il montre si l’activité crée réellement de la marge.',
         },
         {
-          title: 'Tableau de bord et centre décisionnel',
-          badge: 'IA encadrée',
-          intro: 'Le tableau de bord hiérarchise les urgences. Ici, l’écart de consommation d’aliment est détecté tôt et transformé en vérifications concrètes.',
-          cards: [
-            ['Alerte active', 'Lot B : consommation aliment +12 % au-dessus de la courbe depuis 4 jours.'],
-            ['Impact estimé', 'Si l’écart persiste, la marge peut passer de 450 000 à 380 000 FCFA.'],
-            ['Actions proposées', 'Vérifier abreuvement, gaspillage aux mangeoires, pesée échantillon.'],
-            ['Gouvernance', 'L’IA propose, l’humain valide et documente la décision.'],
-          ],
-          mock: {
-            title: 'Alerte Centre décisionnel',
-            kpis: [['Production jour', '42 plateaux'], ['Trésorerie', '3,8 M FCFA'], ['Alertes', '3 actives'], ['Lot B', '+12 % aliment']],
-            alert: 'Point d’attention : surconsommation aliment sur Lot B. Impact marge estimé : -70 000 FCFA si aucune action n’est prise.',
-          },
-          lines: [
-            ['Décision enregistrée', 'Contrôle mangeoires et abreuvement demandé aujourd’hui, pesée d’un échantillon avant le soir.'],
-          ],
+          title: 'Alerte IA : voir le risque assez tôt',
+          badge: 'Aide à la décision',
+          intro: 'Le centre décisionnel repère une consommation d’aliment anormale sur le lot B. L’IA propose des vérifications ; la décision reste humaine et documentée.',
+          proofs: [['Alerte', '+12% aliment'], ['Durée', '4 jours'], ['Impact', '-70 000 FCFA']],
+          mockTitle: 'Centre décisionnel — alerte active',
+          kpis: [['Production jour', '42 plateaux'], ['Trésorerie', '3,8 M'], ['Alertes', '3 actives'], ['Lot B', '+12%']],
+          alert: 'Surconsommation détectée : vérifier abreuvement, gaspillage aux mangeoires et peser un échantillon.',
+          decision: 'Décision enregistrée : contrôle mangeoires + abreuvement aujourd’hui, pesée d’un échantillon avant le soir.',
         },
         {
-          title: 'La vie du lot : chaque franc rattaché à une activité',
+          title: 'Vie du lot : tout est relié au même dossier',
           badge: 'Fil rouge',
-          intro: 'Le lot de poulets devient une unité de suivi : poussins, aliment, santé, mortalité, poids, vente et encaissement sont reliés au même dossier.',
-          cards: [
-            ['Mise en place', '500 sujets, fournisseur, date, coût d’achat et responsable du lot.'],
-            ['Alimentation', 'Sacs consommés, prix au kilogramme et évolution face à la courbe de référence.'],
-            ['Santé', 'Vaccinations, mortalité, observations terrain et tâches correctives.'],
-            ['Pesées', 'Poids moyen comparé à l’objectif avant la vente.'],
-          ],
-          mock: {
-            title: 'Fiche Lot B — poulets de chair',
-            kpis: [['Mortalité', '3,2 %'], ['Aliment', '1 180 kg'], ['Poids moyen', '1,85 kg'], ['Jours', '31/45']],
-            alert: '',
-          },
-          lines: [
-            ['Preuve opérationnelle', 'Le stock, l’élevage et la finance parlent du même lot, pas de fichiers séparés.'],
-          ],
+          intro: 'La fiche du lot rassemble la mise en place, l’alimentation, la santé, la mortalité, les pesées et la vente. On ne cherche plus les chiffres dans plusieurs fichiers.',
+          proofs: [['Mortalité', '3,2%'], ['Aliment', '1 180 kg'], ['Poids moyen', '1,85 kg']],
+          mockTitle: 'Fiche Lot B — poulets de chair',
+          kpis: [['Sujets départ', '500'], ['Jours', '31/45'], ['Vaccins', 'À jour'], ['Pesées', '3 relevés']],
+          decision: 'Preuve : stock, élevage, santé et finance parlent du même lot.',
         },
         {
-          title: 'Marge réelle : prévisionnel vs observé',
-          badge: 'Preuve financeur',
-          intro: 'L’écran décisif n’est pas décoratif : il explique si le lot a gagné de l’argent et pourquoi l’écart existe.',
-          cards: [
-            ['Marge prévue', '450 000 FCFA selon les hypothèses de départ.'],
-            ['Marge réelle simulée', '412 000 FCFA après vente et coûts observés.'],
-            ['Écart', '-8 % vs prévisionnel, expliqué par aliment et prix de vente.'],
-            ['Lecture utile', 'L’investisseur voit la performance réelle, pas seulement le chiffre d’affaires.'],
-          ],
-          mock: {
-            title: 'Compte de résultat du Lot B',
-            kpis: [['Ventes', '1 156 000'], ['Coût aliment', '512 000'], ['Autres coûts', '232 000'], ['Marge', '412 000']],
-            alert: 'Écart principal : aliment +38 000 FCFA vs prévisionnel. Prix de vente inférieur de 20 FCFA/kg vs hypothèse.',
-          },
-          table: [
-            ['Poste', 'Prévu', 'Réel', 'Écart'],
-            ['Aliment', '474 000', '512 000', '-38 000'],
-            ['Mortalité', '4 %', '3,2 %', '+ favorable'],
-            ['Marge lot', '450 000', '412 000', '-8 %'],
-          ],
+          title: 'Marge réelle : la preuve qui compte',
+          badge: 'Financeur',
+          intro: 'L’écran final explique si le lot a gagné de l’argent et pourquoi la marge réelle diffère de la marge prévue.',
+          proofs: [['Marge prévue', '450 000'], ['Marge réelle', '412 000'], ['Écart', '-8%']],
+          mockTitle: 'Compte de résultat du Lot B',
+          kpis: [['Ventes', '1 156 000'], ['Aliment', '512 000'], ['Autres coûts', '232 000'], ['Marge', '412 000']],
+          alert: 'Écart principal : aliment +38 000 FCFA vs prévisionnel. Prix de vente inférieur de 20 FCFA/kg.',
+          table: [['Poste', 'Prévu', 'Réel', 'Écart'], ['Aliment', '474 000', '512 000', '-38 000'], ['Mortalité', '4%', '3,2%', 'Favorable'], ['Marge lot', '450 000', '412 000', '-8%']],
         },
         {
-          title: 'Boucle verte : l’économie circulaire prouvée',
-          badge: 'Traçabilité verte',
-          intro: 'La circularité n’est pas seulement un discours. Les transferts de matières organiques vers les parcelles sont enregistrés et reliés à l’usage des intrants.',
-          cards: [
-            ['Transfert tracé', '200 kg de fientes : poulailler 1 vers parcelle tomates.'],
-            ['Parcelle', 'Date, quantité, origine et destination conservées dans l’ERP.'],
-            ['Économie', 'Réduction d’achats d’intrants et meilleure lecture des coûts de culture.'],
-            ['Ressource eau', 'Suivi des parcelles et irrigation goutte-à-goutte.'],
-          ],
-          mock: {
-            title: 'Transfert organique enregistré',
-            kpis: [['Quantité', '200 kg'], ['Origine', 'Poulailler 1'], ['Destination', 'Tomates'], ['Date', '14 juin']],
-            alert: '',
-          },
-          lines: [
-            ['Phrase clé', 'Quand la ferme dit qu’elle est verte, elle peut le prouver ligne par ligne.'],
-          ],
+          title: 'Boucle verte : la circularité se prouve',
+          badge: 'Traçabilité',
+          intro: 'La fertilisation naturelle n’est pas un slogan : les transferts de matières organiques vers les parcelles sont enregistrés avec origine, quantité et destination.',
+          proofs: [['Transfert', '200 kg'], ['Origine', 'Poulailler 1'], ['Destination', 'Tomates']],
+          mockTitle: 'Transfert organique enregistré',
+          kpis: [['Date', '14 juin'], ['Parcelle', 'Tomates'], ['Intrants', 'Réduits'], ['Irrigation', 'Goutte-à-goutte']],
+          decision: 'Phrase clé : quand la ferme dit qu’elle est verte, elle peut le prouver ligne par ligne.',
         },
         {
           title: 'AGRI FEEDS : discipline avant ambition',
           badge: 'Phase 2',
           intro: 'L’aliment est le premier poste de charge. AGRI FEEDS ne démarre pas comme un pari : il démarre quand les données Phase 1 prouvent que les conditions sont réunies.',
-          cards: [
-            ['Référence Phase 1', 'Prix des aliments du marché, coût par sujet, par plateau et par bœuf.'],
-            ['Formules pilotes', 'Matières premières, versions de formules, coût théorique et qualité.'],
-            ['Tests internes', 'Comparaison sur les animaux de la ferme avant toute vente.'],
-            ['Vente progressive', 'Uniquement après validation humaine et contrôle qualité.'],
-          ],
-          mock: {
-            title: 'Readiness AGRI FEEDS',
-            kpis: [['Référence', '62/100'], ['Pilote', '38/100'], ['Vente', '12/100'], ['Statut', 'Pas encore']],
-            alert: 'Décision : continuer à collecter les données Phase 1 avant production commerciale.',
-          },
-          lines: [
-            ['Message clé', 'L’ERP devient le juge de paix : si les chiffres ne justifient pas la phase, on ne la lance pas.'],
-          ],
+          proofs: [['Référence', '62/100'], ['Pilote', '38/100'], ['Vente', '12/100']],
+          mockTitle: 'Readiness AGRI FEEDS',
+          kpis: [['Marché', 'À comparer'], ['Formules', 'À tester'], ['QC', 'Obligatoire'], ['Vente', 'Fermée']],
+          alert: 'Décision : continuer à collecter les données Phase 1 avant production commerciale.',
+          decision: 'L’ERP devient le juge de paix : si les chiffres ne justifient pas la phase, on ne la lance pas.',
         },
         {
-          title: 'Reporting financeur : rendre des comptes sans attendre',
+          title: 'Rapport financeur : rendre compte sans attendre',
           badge: 'Conclusion',
-          intro: 'La démo se termine sur ce que le financeur veut voir : les estimations de départ, les chiffres observés, les écarts et les décisions prises.',
-          cards: [
-            ['Activité', 'Lots, ventes, productions, cultures et tâches suivis sur la période.'],
-            ['Finance', 'Dépenses, recettes, dettes, créances, marges et trésorerie.'],
-            ['Risques', 'Alertes ouvertes, alertes traitées et décisions documentées.'],
-            ['Preuves', 'Le rapport sort des opérations quotidiennes, pas d’une narration inventée après coup.'],
-          ],
-          mock: {
-            title: 'Rapport financeur — synthèse mensuelle',
-            kpis: [['Chiffre suivi', 'Lots + ventes'], ['Marge Lot B', '412 000'], ['Alertes traitées', '7/9'], ['Créances', '180 000']],
-            alert: '',
-          },
-          lines: [
-            ['Phrase de clôture', 'Vous ne financez pas une promesse : vous financez un système qui rend des comptes.'],
-          ],
+          intro: 'Le financeur voit les estimations de départ, les chiffres observés, les écarts, les alertes traitées et les décisions prises.',
+          proofs: [['Marge Lot B', '412 000'], ['Alertes traitées', '7/9'], ['Créances', '180 000']],
+          mockTitle: 'Rapport financeur — synthèse mensuelle',
+          kpis: [['Activité', 'Lots + ventes'], ['Finance', 'Marge + cash'], ['Risques', 'Alertes'], ['Preuves', 'Historique']],
+          decision: 'Phrase de clôture : vous ne financez pas une promesse, vous financez un système qui rend des comptes.',
         },
         {
-          title: 'Extensions futures : BOVINIA et tallow & go',
+          title: 'Extensions futures : vision large, lancement prudent',
           badge: 'Sous conditions',
-          intro: 'Ces deux valorisations ne sont pas des modules opérationnels séparés. Elles prouvent la discipline du projet : elles ne viendront que si les chiffres le justifient.',
-          cards: [
-            ['BOVINIA', 'Matière disponible, qualité, rendement, coût par stick, conformité et tests marché.'],
-            ['tallow & go', 'Suif disponible, stabilité, formulation, packaging, marge et retours clients.'],
-            ['Pas de dispersion', 'Priorité à la ferme puis AGRI FEEDS. Les extensions restent conditionnelles.'],
-            ['Validation', 'La décision de lancement dépend des données réelles observées dans l’ERP.'],
-          ],
-          mock: {
-            title: 'Portes de décision — extensions',
-            kpis: [['Matière', 'À mesurer'], ['Qualité', 'À valider'], ['Marge', 'À prouver'], ['Marché', 'Pilote']],
-            alert: 'Aucune extension ne démarre sans matière traçable, coût maîtrisé, conformité et test marché.',
-          },
-          lines: [
-            ['Message final', 'La vision est large, mais le lancement reste discipliné. La donnée décide du bon moment.'],
-          ],
+          intro: 'BOVINIA et tallow & go ne sont pas des modules séparés au départ. Ce sont des valorisations futures, déclenchées seulement si la matière, la qualité, le coût, la conformité et le marché sont validés.',
+          proofs: [['BOVINIA', 'À valider'], ['tallow & go', 'À valider'], ['Priorité', 'Ferme + AGRI FEEDS']],
+          mockTitle: 'Portes de décision — extensions',
+          kpis: [['Matière', 'À mesurer'], ['Qualité', 'À valider'], ['Marge', 'À prouver'], ['Marché', 'Pilote']],
+          alert: 'Aucune extension ne démarre sans matière traçable, coût maîtrisé, conformité et test marché.',
+          decision: 'Message final : la vision est large, mais la donnée décide du bon moment.',
         },
       ];
 
-      const screen = document.getElementById('screen');
+      const content = document.getElementById('storyContent');
       const buttons = [...document.querySelectorAll('.step-btn')];
-      function renderTable(table) {
-        if (!table?.length) return '';
+      const progressBar = document.getElementById('progressBar');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      let current = 0;
+
+      function tableHtml(table) {
+        if (!table) return '';
         const [head, ...rows] = table;
-        return `<table class="table"><thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+        return `<table class="mini-table"><thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
       }
-      function renderMock(mock) {
-        if (!mock) return '';
-        return `<div class="mock"><div class="mock-title"><h3>${mock.title}</h3><small>Données de présentation</small></div><div class="kpis">${mock.kpis.map(([label, value]) => `<div class="kpi"><small>${label}</small><b>${value}</b></div>`).join('')}</div>${mock.alert ? `<div class="alert">${mock.alert}</div>` : ''}</div>`;
-      }
-      function renderStep(index) {
+
+      function render(index) {
+        current = index;
         const step = steps[index];
-        screen.innerHTML = `
-          <div class="screen-header">
+        content.innerHTML = `
+          <div class="story-top">
             <div>
               <h2>${step.title}</h2>
-              <p>${step.intro}</p>
+              <p class="story-intro">${step.intro}</p>
             </div>
             <span class="pill">${step.badge}</span>
           </div>
-          <div class="mini-grid">
-            ${step.cards.map(([title, text]) => `<div class="mini"><b>${title}</b><span>${text}</span></div>`).join('')}
+          <div class="proof-row">
+            ${step.proofs.map(([label, value]) => `<div class="proof"><small>${label}</small><strong>${value}</strong></div>`).join('')}
           </div>
-          ${renderMock(step.mock)}
-          ${renderTable(step.table)}
-          ${step.lines?.length ? `<div class="timeline">${step.lines.map(([title, text]) => `<div class="line"><b>${title}</b><small>${text}</small></div>`).join('')}</div>` : ''}
+          <div class="mock-screen">
+            <div class="mock-head"><h3>${step.mockTitle}</h3><small>Données de démonstration</small></div>
+            <div class="mock-grid">${step.kpis.map(([label, value]) => `<div class="mock-kpi"><small>${label}</small><b>${value}</b></div>`).join('')}</div>
+            ${step.alert ? `<div class="alert">${step.alert}</div>` : ''}
+            ${tableHtml(step.table)}
+            ${step.decision ? `<div class="decision">${step.decision}</div>` : ''}
+          </div>
         `;
         buttons.forEach((btn) => btn.classList.toggle('active', Number(btn.dataset.step) === index));
+        progressBar.style.width = `${((index + 1) / steps.length) * 100}%`;
+        prevBtn.disabled = index === 0;
+        nextBtn.textContent = index === steps.length - 1 ? 'Revenir au début ↺' : 'Suivant →';
       }
-      buttons.forEach((btn) => btn.addEventListener('click', () => renderStep(Number(btn.dataset.step))));
-      function scrollToTour() { document.getElementById('tour').scrollIntoView({ behavior: 'smooth' }); }
-      renderStep(0);
+
+      buttons.forEach((btn) => btn.addEventListener('click', () => render(Number(btn.dataset.step))));
+      prevBtn.addEventListener('click', () => render(Math.max(0, current - 1)));
+      nextBtn.addEventListener('click', () => render(current === steps.length - 1 ? 0 : current + 1));
+      function scrollToDeck() { document.getElementById('deck').scrollIntoView({ behavior: 'smooth' }); }
+      render(0);
     </script>
   </body>
 </html>
