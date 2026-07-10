@@ -1,8 +1,9 @@
-import { Wheat, Egg, HeartPulse, Skull, Scale, ShoppingCart } from 'lucide-react';
+import { Wheat, Egg, HeartPulse, Skull, Scale, ShoppingCart, ShieldCheck } from 'lucide-react';
 
 const AVICOLE_ACTIONS = [
   { key: 'feeding', label: 'Aliment', icon: Wheat, modal: 'feeding', primary: true },
   { key: 'eggs', label: 'Ponte', icon: Egg, modal: 'eggs' },
+  { key: 'biosecurity', label: 'Biosécu.', icon: ShieldCheck, modal: 'biosecurity' },
   { key: 'health', label: 'Santé', icon: HeartPulse, modal: 'health' },
   { key: 'weighing', label: 'Pesée', icon: Scale, modal: 'weighing' },
   { key: 'mortality', label: 'Mortalité', icon: Skull, modal: 'mortality' },
@@ -11,6 +12,7 @@ const AVICOLE_ACTIONS = [
 
 const ANIMAUX_ACTIONS = [
   { key: 'feeding', label: 'Aliment', icon: Wheat, modal: 'feeding', primary: true },
+  { key: 'biosecurity', label: 'Biosécu.', icon: ShieldCheck, modal: 'biosecurity' },
   { key: 'health', label: 'Santé', icon: HeartPulse, modal: 'health' },
   { key: 'weighing', label: 'Pesée', icon: Scale, modal: 'weighing' },
   { key: 'sale', label: 'Vente', icon: ShoppingCart, modal: 'sale' },
