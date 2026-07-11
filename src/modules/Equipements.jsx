@@ -2,6 +2,8 @@ import { AlertTriangle, BarChart3, Fuel, Settings, Wrench, Zap } from 'lucide-re
 import GenericCrudModule from '../components/GenericCrudModule';
 import { MODULE_FORM_FIELDS } from '../utils/constants';
 import { fmtCurrency } from '../utils/format';
+import { buildEquipmentPurchaseWorkflow } from '../utils/equipmentWorkflows.js';
+import { dispatchBpLineCompleted } from '../utils/bpLineConcretization.js';
 import EquipementsMaintenanceBridge from './EquipementsMaintenanceBridge.jsx';
 import EquipementsQuickActionsBridge from './EquipementsQuickActionsBridge.jsx';
 import EquipementsSmartFarmBridge from './EquipementsSmartFarmBridge.jsx';
@@ -15,6 +17,42 @@ function ModuleSection({ icon: Icon, title, subtitle, children }) {
 export default function Equipements(props) {
   const rows = props.rows || [];
   const fuel = rows.reduce((sum, row) => sum + Number(row.fuel_cost || 0), 0);
+  const handleCreateEquipment = async (payload) => {
+    const supplier = (props.fournisseurs || props.suppliers || []).find((row) => String(row.id) === String(payload.fournisseur_id || payload.supplier_id)) || {};
+    const fundingSource = (props.bpFundingSources || []).find((row) => String(row.id) === String(payload.funding_source_id || payload.financement_id)) || {};
+    const workflow = buildEquipmentPurchaseWorkflow({
+      payload,
+      supplier,
+      fundingSource,
+      date: payload.date_achat || payload.purchase_date || new Date().toISOString().slice(0, 10),
+    });
+    await props.onCreate?.(workflow.equipment);
+    if (workflow.financeTransaction) await props.onCreateFinanceTransaction?.(workflow.financeTransaction);
+    if (workflow.document) await props.onCreateDocument?.(workflow.document);
+    if (workflow.maintenanceTask) await props.onCreateTask?.(workflow.maintenanceTask);
+    if (workflow.alert) await props.onCreateAlert?.(workflow.alert);
+    await props.onCreateBusinessEvent?.({ ...workflow.event, linked_task_id: workflow.maintenanceTask?.id || '' });
+    if (payload.bp_line_id) {
+      dispatchBpLineCompleted({
+        bp_line_id: payload.bp_line_id,
+        assetModule: 'equipements',
+        assetId: workflow.equipment.id,
+        amount: workflow.financeTransaction?.montant || workflow.equipment.purchase_cost || 0,
+        date: workflow.equipment.date_achat,
+        source: 'equipment_purchase',
+        issue_key: workflow.event.issue_key,
+      });
+    }
+    await Promise.allSettled([
+      props.onRefresh?.(),
+      props.onRefreshFinances?.(),
+      props.onRefreshDocuments?.(),
+      props.onRefreshTasks?.(),
+      props.onRefreshAlertes?.(),
+      props.onRefreshBusinessEvents?.(),
+    ]);
+  };
+
   return (
     <div className="space-y-6 equipements-mobile-structured">
       <style>{`@media (max-width: 640px){.equipements-mobile-structured .rounded-2xl{border-radius:18px}.equipements-mobile-structured table{font-size:12px}.equipements-mobile-structured th,.equipements-mobile-structured td{padding-left:10px!important;padding-right:10px!important}.equipements-mobile-structured .text-2xl{font-size:1.35rem}.equipements-mobile-structured .grid{gap:.75rem}.equipements-mobile-structured .overflow-x-auto{max-width:100vw}}`}</style>
@@ -58,6 +96,7 @@ export default function Equipements(props) {
           fields={MODULE_FORM_FIELDS.equipements}
           columns={['id', 'name', 'type', 'status', 'purchase_cost', 'maintenance_due', 'fuel_cost']}
           initialValues={{ status: 'operationnel', type: 'machine', purchase_cost: 0, maintenance_cost: 0, fuel_cost: 0 }}
+          onCreate={handleCreateEquipment}
           addLabel="Ajouter équipement"
           exportTitle="Équipements Horizon Farm"
           kpis={[

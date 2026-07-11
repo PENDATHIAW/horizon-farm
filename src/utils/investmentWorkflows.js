@@ -5,6 +5,12 @@ const today = () => new Date().toISOString().slice(0, 10);
 const now = () => new Date().toISOString();
 const clean = (value = '') => String(value || '').trim();
 const lower = (value = '') => clean(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const addDays = (date = today(), days = 0) => {
+  const d = new Date(date || today());
+  if (Number.isNaN(d.getTime())) return today();
+  d.setDate(d.getDate() + Number(days || 0));
+  return d.toISOString().slice(0, 10);
+};
 
 export const investmentLabel = (line = {}) => line.designation || line.libelle || line.nom || line.name || line.title || line.id || 'Investissement';
 export const investmentAmount = (line = {}) => toNumber(line.montant_reel ?? line.total ?? line.montant ?? line.amount ?? toNumber(line.quantite) * toNumber(line.prix_unitaire));
@@ -117,7 +123,7 @@ export function buildInvestmentAssetWorkflow(line = {}, options = {}) {
   if (kind === 'avicole') {
     const lotType = lower(label).includes('chair') || lower(label).includes('poulet') ? 'Chair' : 'Pondeuse';
     const id = makeId(lotType === 'Chair' ? 'LOTCH' : 'LOTP');
-    payloads = [{ id, name: `${id} ${lotType}`, type: lotType, activity: lotType, status: 'actif', health_status: 'sain', initial_count: qty, current_count: qty, mortality: 0, malades: 0, entry_date: date, date_entree: date, date_debut: date, purchase_cost: unitCost * qty, ...base }];
+    payloads = [{ id, name: `${id} ${lotType}`, type: lotType, activity: lotType, status: lotType === 'Chair' ? 'en_croissance' : 'actif', health_status: 'sain', initial_count: qty, current_count: qty, effectif_actuel: qty, mortality: 0, malades: 0, entry_date: date, date_entree: date, date_debut: date, date_fin_prevue: lotType === 'Chair' ? addDays(date, 45) : '', date_objectif_vente: lotType === 'Chair' ? addDays(date, 45) : '', poids_objectif: lotType === 'Chair' ? 1.8 : '', besoin_aliment_previsionnel_kg: lotType === 'Chair' ? Math.round(qty * 4.5) : '', purchase_cost: unitCost * qty, cout_poussins: unitCost * qty, ...base }];
   }
   if (kind === 'animal') {
     const animalType = lower(label).includes('mouton') ? 'Ovin' : lower(label).includes('chevre') || lower(label).includes('chèvre') ? 'Caprin' : 'Bovin';
@@ -129,11 +135,13 @@ export function buildInvestmentAssetWorkflow(line = {}, options = {}) {
   }
   if (kind === 'culture') {
     const id = makeId('CULT');
-    payloads = [{ id, nom: lower(label).includes('poivron') ? 'Poivrons' : label, type: lower(label).includes('poivron') ? 'Poivrons' : label, parcelle: 'À préciser', campagne: `BP ${line.business_plan_id || ''}`.trim(), statut: 'planifiee', date_debut_campagne: date, date_semis: date, surface: toNumber(line.quantite) || 0, unite_surface: line.unite || 'm²', budget_prevu: investmentAmount(line), ...base }];
+    const surface = toNumber(line.quantite) || 0;
+    payloads = [{ id, nom: lower(label).includes('poivron') ? 'Poivrons' : label, type: lower(label).includes('poivron') ? 'Poivrons' : label, parcelle: 'À préciser', campagne: `BP ${line.business_plan_id || ''}`.trim(), statut: 'planifiee', date_debut_campagne: date, date_semis: date, date_recolte_estimee: addDays(date, 90), surface, unite_surface: line.unite || 'm²', budget_prevu: investmentAmount(line), cout_initial: investmentAmount(line), rendement_cible: surface > 0 ? Math.round(surface * 12000) : 0, ...base }];
   }
   if (kind === 'equipement') {
     module = 'equipements';
-    payloads = [{ id: makeId('EQP'), nom: label, name: label, categorie: line.categorie || 'Équipement agricole', status: 'actif', statut: 'actif', date_achat: date, valeur: investmentAmount(line), cout_achat: investmentAmount(line), ...base }];
+    const value = investmentAmount(line);
+    payloads = [{ id: makeId('EQP'), nom: label, name: label, categorie: line.categorie || 'Équipement agricole', status: 'operationnel', statut: 'operationnel', date_achat: date, purchase_date: date, date_mise_en_service: date, maintenance_due: addDays(date, 90), prochaine_maintenance: addDays(date, 90), valeur: value, cout_achat: value, purchase_cost: value, duree_amortissement_mois: 60, amortissement_mensuel: Math.round(value / 60), cout_fixe_mensuel: Math.round(value / 60), ...base }];
   }
   if (kind === 'stock') {
     module = 'stock';

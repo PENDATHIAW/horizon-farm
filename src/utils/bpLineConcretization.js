@@ -1,5 +1,6 @@
 import { emitHorizonForm } from '../services/formModalManager.js';
 import { toNumber } from './format.js';
+import { makeId } from './ids.js';
 import { investmentAmount, investmentAssetKind, investmentLabel, buildInvestmentRealizationWorkflow } from './investmentWorkflows.js';
 
 export const BP_LINE_COMPLETED_EVENT = 'horizon-bp-line-completed';
@@ -511,6 +512,7 @@ export function buildBpLineConcretizationRoute(line = {}) {
   if (kind === 'avicole') {
     const isChair = lower(label).includes('chair') || lower(label).includes('poulet');
     const lotType = isChair ? 'Chair' : 'Pondeuse';
+    const cycleDays = isChair ? 45 : 150;
     return {
       navigate: { module: 'elevage', tab: 'Avicole' },
       form: {
@@ -528,6 +530,11 @@ export function buildBpLineConcretizationRoute(line = {}) {
           date_debut: date,
           date_entree: date,
           entry_date: date,
+          duree_cycle_valeur: cycleDays,
+          duree_cycle_unite: 'jours',
+          date_fin_prevue: isChair ? (() => { const d = new Date(date); d.setDate(d.getDate() + cycleDays); return d.toISOString().slice(0, 10); })() : '',
+          poids_objectif: isChair ? 1.8 : '',
+          besoin_aliment_previsionnel_kg: isChair ? Math.round(qty * 4.5) : '',
           name: label,
         },
       },
@@ -573,6 +580,9 @@ export function buildBpLineConcretizationRoute(line = {}) {
           surface: toNumber(line.quantite) || 0,
           unite_surface: line.unite || 'm²',
           budget_prevu: total,
+          cout_initial: total,
+          rendement_cible: toNumber(line.quantite) ? Math.round(toNumber(line.quantite) * 12000) : 0,
+          date_recolte_estimee: (() => { const d = new Date(date); d.setDate(d.getDate() + 90); return d.toISOString().slice(0, 10); })(),
           statut: 'planifiee',
           date_debut_campagne: date,
           date_semis: date,
@@ -618,6 +628,10 @@ export function buildBpLineConcretizationRoute(line = {}) {
           valeur: total,
           cout_achat: total,
           date_achat: date,
+          date_mise_en_service: date,
+          maintenance_due: (() => { const d = new Date(date); d.setDate(d.getDate() + 90); return d.toISOString().slice(0, 10); })(),
+          duree_amortissement_mois: 60,
+          amortissement_mensuel: Math.round(total / 60),
         },
       },
     };
@@ -732,6 +746,114 @@ export function buildBpLineCompletionWorkflow(line = {}, result = {}) {
       event_type: 'bp_ligne_concretisee',
       title: `BP concrétisé · ${investmentLabel(line)}`,
       description: `${amount} FCFA · actif ${assetModule || 'n/a'} ${assetId || ''}`.trim(),
+    },
+  };
+}
+
+export function buildFundingUsageWorkflow({
+  fundingSource = {},
+  budgetLine = {},
+  expense = {},
+  documents = [],
+  date = today(),
+} = {}) {
+  const sourceId = fundingSource.id || expense.funding_source_id || '';
+  const lineId = budgetLine.id || expense.bp_line_id || expense.bp_cost_id || '';
+  const amountUsed = toNumber(expense.montant ?? expense.amount ?? budgetLine.montant_reel ?? budgetLine.montant_paye);
+  const sourceAmount = toNumber(fundingSource.montant ?? fundingSource.amount ?? fundingSource.total);
+  const alreadyUsed = toNumber(fundingSource.montant_utilise ?? fundingSource.used_amount);
+  const nextUsed = alreadyUsed + amountUsed;
+  const remaining = Math.max(0, sourceAmount - nextUsed);
+  const planned = bpLineAmount(budgetLine) || bpCostPlannedAmount(budgetLine);
+  const proofId = expense.proof_document_id || expense.document_id || '';
+  const hasProof = Boolean(proofId) || documents.some((doc) => String(doc.id) === String(proofId) || String(doc.related_id || doc.entity_id) === String(expense.id || lineId));
+  const missingCategory = !expense.categorie && !budgetLine.categorie;
+  const overBudget = planned > 0 && amountUsed > planned + 0.5;
+  const issueKey = `funding-usage:${sourceId || 'source'}:${lineId || 'line'}`;
+  const financeId = expense.id || makeId('TRX');
+
+  return {
+    fundingPatch: sourceId ? {
+      montant_utilise: nextUsed,
+      used_amount: nextUsed,
+      reste_disponible: remaining,
+      remaining_amount: remaining,
+      last_usage_at: date,
+      last_usage_line_id: lineId,
+    } : null,
+    budgetLinePatch: lineId ? {
+      montant_reel: amountUsed,
+      montant_paye: amountUsed,
+      reste_a_realiser: Math.max(0, planned - amountUsed),
+      funding_source_id: sourceId,
+      linked_finance_transaction_id: financeId,
+      proof_document_id: proofId,
+      statut: amountUsed >= planned && planned > 0 ? BP_LINE_STATUS.CONCRETISE : BP_LINE_STATUS.CONCRETISE_PARTIEL,
+      status: amountUsed >= planned && planned > 0 ? BP_LINE_STATUS.CONCRETISE : BP_LINE_STATUS.CONCRETISE_PARTIEL,
+      ecart_budget: planned > 0 ? amountUsed - planned : 0,
+      report_financeur_required: true,
+    } : null,
+    financeTransaction: {
+      id: financeId,
+      type: 'sortie',
+      transaction_type: 'sortie',
+      libelle: expense.libelle || `Usage financement ${bpCostLabel(budgetLine) || investmentLabel(budgetLine)}`,
+      montant: amountUsed,
+      amount: amountUsed,
+      date,
+      categorie: expense.categorie || budgetLine.categorie || '',
+      module_lie: expense.module_lie || budgetLine.module_cible || 'investissements',
+      related_id: expense.related_id || lineId,
+      source_module: 'investissements',
+      source_record_id: lineId,
+      business_plan_id: budgetLine.business_plan_id || fundingSource.business_plan_id || '',
+      funding_source_id: sourceId,
+      proof_document_id: proofId,
+      statut: 'paye',
+      status: 'paye',
+      cash_effect: true,
+    },
+    alert: (missingCategory || !hasProof || overBudget) ? {
+      id: makeId('ALT'),
+      title: overBudget ? 'Dépense au-dessus du budget' : !hasProof ? 'Justificatif financement manquant' : 'Catégorie financement manquante',
+      message: [
+        missingCategory ? 'Catégorie à renseigner.' : '',
+        !hasProof ? 'Justificatif requis pour le rapport financeur.' : '',
+        overBudget ? `Dépense ${amountUsed} FCFA > budget ${planned} FCFA.` : '',
+      ].filter(Boolean).join(' '),
+      module_source: 'investissements',
+      entity_type: 'bp_line',
+      entity_id: lineId,
+      severity: overBudget ? 'haute' : 'warning',
+      status: 'nouvelle',
+      alert_dedupe_key: `${issueKey}:alert`,
+    } : null,
+    reportEntry: {
+      funding_source_id: sourceId,
+      budget_line_id: lineId,
+      expense_id: financeId,
+      amount_used: amountUsed,
+      remaining_amount: remaining,
+      proof_document_id: proofId,
+      filiere: expense.filiere || budgetLine.filiere || budgetLine.activity_type || '',
+      linked_activity_id: expense.related_id || budgetLine.linked_record_id || '',
+      budget_gap: planned > 0 ? amountUsed - planned : 0,
+    },
+    event: {
+      id: makeId('EVT'),
+      event_type: 'funding_usage',
+      type_evenement: 'funding_usage',
+      module_source: 'investissements',
+      entity_type: 'bp_line',
+      entity_id: lineId,
+      title: `Usage financement · ${bpCostLabel(budgetLine) || investmentLabel(budgetLine)}`,
+      description: `${amountUsed} FCFA utilisés · reste source ${remaining} FCFA`,
+      event_date: date,
+      severity: (missingCategory || !hasProof || overBudget) ? 'warning' : 'info',
+      amount: amountUsed,
+      linked_transaction_id: financeId,
+      issue_key: issueKey,
+      saisies_evitees: 6,
     },
   };
 }

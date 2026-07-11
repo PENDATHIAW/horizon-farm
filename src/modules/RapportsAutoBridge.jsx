@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { exportToCsv, exportToExcel, exportToPdf } from '../utils/export';
 import { fmtCurrency, fmtNumber, toNumber } from '../utils/format';
-import { buildReportGenerationWorkflow, buildReportScheduleTask, reportKey } from '../utils/reportWorkflows';
+import { buildMonthlyFinancierReportWorkflow, buildReportGenerationWorkflow, buildReportScheduleTask, reportKey } from '../utils/reportWorkflows';
 
 const arr = (value) => Array.isArray(value) ? value : [];
 const now = () => new Date().toISOString();
@@ -41,7 +41,7 @@ function reportContent(data = {}) {
 }
 function existingReport(rows = [], type, period) { const key = reportKey(type, period); return arr(rows).find((row) => clean(row.report_key) === key || (clean(row.report_type) === type && clean(row.period) === period)); }
 
-export default function RapportsAutoBridge({ rows = [], data = {}, onCreate, onUpdate, onRefresh, onCreateDocument, onRefreshDocuments, onCreateBusinessEvent, onRefreshBusinessEvents, onCreateTask, onRefreshTasks }) {
+export default function RapportsAutoBridge({ rows = [], data = {}, onCreate, onUpdate, onRefresh, onCreateDocument, onRefreshDocuments, onCreateBusinessEvent, onRefreshBusinessEvents, onCreateTask, onRefreshTasks, onCreateAuditLog, onRefreshAuditLogs }) {
   const [saving, setSaving] = useState('');
   const period = monthKey();
   const content = useMemo(() => reportContent(data), [data]);
@@ -49,7 +49,44 @@ export default function RapportsAutoBridge({ rows = [], data = {}, onCreate, onU
   const weekly = existingReport(rows, 'hebdo_erp', today());
   const exportRows = useMemo(() => [{ date: today(), ventes: content.sales, encaissements: content.paid, reste_a_encaisser: content.receivables, stock_valeur: content.stockValue, stock_sous_seuil: content.stockCritical, animaux: content.animals, animaux_malades: content.sickAnimals, avicole_actifs: content.avicoleActive, lots_a_surveiller: content.avicoleRisk, cultures: content.cultures, revenu_cultures: content.cultureRevenue, entrees: content.financeIn, sorties: content.financeOut, marge: content.margin, taches_ouvertes: content.tasks, alertes_urgentes: content.critical, synthese: content.summary }], [content]);
   const exportReport = (format) => { const base = `rapport-ferme-${today()}`; if (format === 'csv') exportToCsv({ rows: exportRows, fileName: `${base}.csv` }); if (format === 'excel') exportToExcel({ rows: exportRows, fileName: `${base}.xlsx`, sheetName: 'Rapport ferme' }); if (format === 'pdf') exportToPdf({ rows: exportRows, columns: ['date', 'ventes', 'encaissements', 'reste_a_encaisser', 'stock_sous_seuil', 'marge', 'taches_ouvertes', 'alertes_urgentes'], title: 'Rapport Horizon Farm', fileName: `${base}.pdf` }); toast.success(`Rapport exporté en ${format.toUpperCase()}`); };
-  const generate = async (type, selectedPeriod) => { try { setSaving(type); const existing = existingReport(rows, type, selectedPeriod); const workflow = buildReportGenerationWorkflow({ existing, type, period: selectedPeriod, content, date: today() }); if (existing?.id && onUpdate) await onUpdate(existing.id, workflow.reportPayload); else await onCreate?.(workflow.reportPayload); await onCreateDocument?.(workflow.document); await onCreateBusinessEvent?.(workflow.event); await Promise.allSettled([onRefresh?.(), onRefreshDocuments?.(), onRefreshBusinessEvents?.()]); toast.success(existing ? 'Rapport mis à jour' : 'Rapport généré'); } catch { toast.error('Génération rapport impossible'); } finally { setSaving(''); } };
+  const generate = async (type, selectedPeriod) => {
+    try {
+      setSaving(type);
+      const existing = existingReport(rows, type, selectedPeriod);
+      const monthlyFinancier = type === 'mensuel_erp'
+        ? buildMonthlyFinancierReportWorkflow({ dataMap: data, existing, period: selectedPeriod, humanValidated: false, date: today() })
+        : null;
+      const workflow = monthlyFinancier
+        ? {
+          ...monthlyFinancier,
+          reportPayload: {
+            ...monthlyFinancier.reportPayload,
+            report_type: type,
+            financeur_report_type: 'mensuel_financeur',
+            report_key: reportKey(type, selectedPeriod),
+          },
+        }
+        : buildReportGenerationWorkflow({ existing, type, period: selectedPeriod, content, date: today() });
+      if (existing?.id && onUpdate) await onUpdate(existing.id, workflow.reportPayload);
+      else await onCreate?.(workflow.reportPayload);
+      await onCreateDocument?.(workflow.document);
+      if (workflow.validationTask) await onCreateTask?.(workflow.validationTask);
+      if (workflow.auditLog) await onCreateAuditLog?.(workflow.auditLog);
+      await onCreateBusinessEvent?.(workflow.event);
+      await Promise.allSettled([
+        onRefresh?.(),
+        onRefreshDocuments?.(),
+        onRefreshTasks?.(),
+        onRefreshAuditLogs?.(),
+        onRefreshBusinessEvents?.(),
+      ]);
+      toast.success(existing ? 'Rapport mis à jour' : 'Rapport généré');
+    } catch {
+      toast.error('Génération rapport impossible');
+    } finally {
+      setSaving('');
+    }
+  };
   const scheduleTask = async (type, selectedPeriod) => { try { setSaving(`schedule-${type}`); const report = existingReport(rows, type, selectedPeriod) || { id: '', title: type === 'mensuel_erp' ? `Rapport mensuel ${selectedPeriod}` : `Rapport hebdo ${selectedPeriod}` }; await onCreateTask?.(buildReportScheduleTask({ report, type, period: selectedPeriod, dueDate: today() })); await onRefreshTasks?.(); toast.success('Tâche de préparation créée'); } catch { toast.error('Programmation impossible'); } finally { setSaving(''); } };
   return <div className="rounded-2xl border border-[#d6c3a0] bg-white p-5 space-y-4"><div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-[#8a7456]">Rapports automatiques</p><h3 className="font-black text-[#2f2415]">Synthèse prête à générer</h3><p className="text-sm text-[#8a7456] mt-1">Les informations de ventes, finances, stock, santé, cultures, animaux, avicole, tâches et alertes sont rassemblées ici.</p></div><div className="grid grid-cols-2 gap-2 text-sm"><div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2"><BarChart2 size={14} className="inline" /> {fmtCurrency(content.sales)}</div><div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] px-3 py-2"><FileText size={14} className="inline" /> {fmtCurrency(content.margin)}</div></div></div><div className="grid grid-cols-1 md:grid-cols-4 gap-2"><Metric label="Ventes" value={fmtCurrency(content.sales)} /><Metric label="Encaissements" value={fmtCurrency(content.paid)} /><Metric label="Stock sous seuil" value={content.stockCritical} /><Metric label="Marge estimée" value={fmtCurrency(content.margin)} /></div><div className="rounded-xl border border-[#eadcc2] bg-[#fffdf8] p-3 text-sm text-[#7d6a4a] whitespace-pre-line">{content.summary}</div><div className="flex flex-wrap gap-2"><button type="button" disabled={saving === 'hebdo_erp'} className="rounded-xl bg-[#c9a96a] px-4 py-2 text-sm font-bold text-white disabled:opacity-60" onClick={() => generate('hebdo_erp', today())}>{saving === 'hebdo_erp' ? <RefreshCw size={14} className="inline animate-spin" /> : <CheckCircle2 size={14} className="inline" />} {weekly ? 'Mettre à jour hebdo' : 'Générer hebdo'}</button><button type="button" disabled={saving === 'mensuel_erp'} className="rounded-xl border border-[#d6c3a0] px-4 py-2 text-sm font-bold text-[#2f2415] disabled:opacity-60" onClick={() => generate('mensuel_erp', period)}>{saving === 'mensuel_erp' ? <RefreshCw size={14} className="inline animate-spin" /> : <FileText size={14} className="inline" />} {monthly ? 'Mettre à jour mensuel' : 'Générer mensuel'}</button><button type="button" disabled={saving === 'schedule-mensuel_erp'} className="rounded-xl border border-[#d6c3a0] px-4 py-2 text-sm font-bold text-[#2f2415] disabled:opacity-60" onClick={() => scheduleTask('mensuel_erp', period)}>Programmer tâche</button><button type="button" className="rounded-xl border border-[#d6c3a0] px-4 py-2 text-sm font-bold text-[#2f2415]" onClick={() => exportReport('pdf')}><Download size={14} className="inline" /> Exporter PDF</button><button type="button" className="rounded-xl border border-[#d6c3a0] px-4 py-2 text-sm font-bold text-[#2f2415]" onClick={() => exportReport('excel')}>Excel</button><button type="button" className="rounded-xl border border-[#d6c3a0] px-4 py-2 text-sm font-bold text-[#2f2415]" onClick={() => exportReport('csv')}>CSV</button></div></div>;
 }

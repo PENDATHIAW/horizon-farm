@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, BarChart3, Bird, CheckCircle2, ChevronDown, ClipboardList, Drumstick, Egg, Info, PackageCheck, X } from 'lucide-react';
+import { BarChart3, Bird, CheckCircle2, ChevronDown, ClipboardList, Drumstick, Egg, Info, PackageCheck, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import MiniMetricCard from '../components/MiniMetricCard.jsx';
 import ObjectivePerformanceCard from '../components/ObjectivePerformanceCard.jsx';
@@ -7,6 +7,8 @@ import { buildAvicoleLotDecision } from '../services/avicoleDecisionEngine';
 import { fmtNumber } from '../utils/format';
 import { makeId } from '../utils/ids';
 import { avicoleActiveCount, avicoleHasActiveBirds } from '../utils/avicoleMetrics';
+import { buildBroilerLotStartWorkflow } from '../utils/elevageWorkflow.js';
+import { dispatchBpLineCompleted } from '../utils/bpLineConcretization.js';
 import { mergeSaleReadiness, saleOpportunityKey, shouldSyncSaleOpportunity } from '../utils/saleReadiness';
 import AvicoleBase from './AvicoleBase.jsx';
 import AvicoleCycleHealthPanel from './AvicoleCycleHealthPanel.jsx';
@@ -123,7 +125,7 @@ export default function AvicoleV10(props) {
   const [activity, setActivity] = useState('pondeuse');
   const [horizonDraft, setHorizonDraft] = useState(null);
   const rows = uniqueRowsById(props.rows || []);
-  const productionLogs = props.productionLogs || [];
+  const productionLogs = useMemo(() => props.productionLogs || [], [props.productionLogs]);
   const salesOrders = props.salesOrders || [];
   const payments = props.payments || [];
   const transactions = props.transactions || [];
@@ -176,7 +178,7 @@ export default function AvicoleV10(props) {
     await props.onRefreshOpportunities?.();
   };
 
-  const createMortalityEvent = async (before = {}, after = {}, source = 'modification lot avicole') => {
+  const createMortalityEvent = async (before = {}, after = {}) => {
     const mortalityIncreased = mortalityOf(after) > mortalityOf(before);
     const valueIncreased = lossValueOf(after) > lossValueOf(before);
     const becameClosed = !isLossClosedLot(before) && isLossClosedLot(after);
@@ -190,6 +192,44 @@ export default function AvicoleV10(props) {
 
   const wrappedCreate = async (payload) => {
     const prepared = mergeSaleReadiness({}, payload);
+    const broilerLot = isChair(prepared) || activity === 'chair';
+    if (broilerLot) {
+      const workflow = buildBroilerLotStartWorkflow({
+        lot: prepared,
+        lots: props.rows || [],
+        batiments: props.batiments || props.buildings || [],
+        fournisseurs: props.fournisseurs || props.suppliers || [],
+        date: prepared.date_debut || prepared.date_entree || today(),
+      });
+      if (workflow.blocked) throw new Error(workflow.blockingReasons.join(', ') || 'Démarrage lot chair bloqué');
+      await props.onCreate?.(workflow.lot);
+      for (const task of workflow.tasks || []) {
+        await props.onCreateTask?.(task);
+      }
+      if (workflow.financeTransaction) await props.onCreateFinanceTransaction?.(workflow.financeTransaction);
+      if (workflow.alert) await props.onCreateAlert?.(workflow.alert);
+      await props.onCreateBusinessEvent?.(workflow.event);
+      if (prepared.bp_line_id) {
+        dispatchBpLineCompleted({
+          bp_line_id: prepared.bp_line_id,
+          assetModule: 'avicole',
+          assetId: workflow.lot.id,
+          amount: workflow.reporting?.cout_initial || workflow.financeTransaction?.montant || 0,
+          date: workflow.lot.date_debut,
+          source: 'lot_chair_create',
+          issue_key: workflow.event.issue_key,
+        });
+      }
+      await Promise.allSettled([
+        props.onRefresh?.(),
+        props.onRefreshTasks?.(),
+        props.onRefreshAlertes?.(),
+        props.onRefreshFinances?.(),
+        props.onRefreshBusinessEvents?.(),
+      ]);
+      if (shouldSyncSaleOpportunity({}, workflow.lot)) await createOrReactivateLotOpportunity(workflow.lot, 'création lot prêt à vendre');
+      return;
+    }
     await props.onCreate?.(prepared);
     await createMortalityEvent({}, prepared, 'création lot avicole');
     if (shouldSyncSaleOpportunity({}, prepared)) await createOrReactivateLotOpportunity(prepared, 'création lot prêt à vendre');

@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, CheckCircle2, Coins, Edit3, FileSpreadsheet, RefreshCw, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CheckCircle2, Coins, FileSpreadsheet, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import EditModal from '../modals/EditModal';
@@ -18,9 +18,9 @@ import {
   buildBpCostConcretizationRoute,
   buildBpLineConcretizationRoute,
   buildBpLineCompletionWorkflow,
+  buildFundingUsageWorkflow,
   buildBpLineStatusPatch,
   canConcretizeBpCost,
-  canConcretizeBpLine,
   computeBpCostTotals,
   computeBpInvestmentTotals,
   isBpCostEditable,
@@ -66,8 +66,37 @@ const money = (v) => fmtCurrency(Number(v || 0));
 const totalLine = (r = {}) => bpLineAmount(r);
 const monthly = (r = {}) => toNumber(r.montant_mensuel || r.amount || r.montant);
 const revenue = (r = {}) => toNumber(r.ca_estime || r.revenue || r.montant);
-const charges = (r = {}) => toNumber(r.charges_estimees || r.charges);
 const dedupe = (rows = []) => [...arr(rows).filter((r) => !isArchived(r)).reduce((m, r) => m.set(key(r), r), new Map()).values()];
+
+function resolveFundingSourceForExpense(props = {}, line = {}, detail = {}) {
+  const explicitId = detail.funding_source_id || detail.financement_id || line.funding_source_id || line.financement_id;
+  const sources = arr(props.bpFundingSources);
+  return sources.find((source) => String(source.id) === String(explicitId))
+    || sources.find((source) => String(source.business_plan_id || '') === String(line.business_plan_id || ''))
+    || sources[0]
+    || {};
+}
+
+function buildFundingUsageForCompletion(props = {}, line = {}, detail = {}, workflow = {}, kind = 'investment') {
+  if (!workflow.financeTransaction) return null;
+  const fundingSource = resolveFundingSourceForExpense(props, line, detail);
+  return buildFundingUsageWorkflow({
+    fundingSource,
+    budgetLine: line,
+    expense: {
+      ...workflow.financeTransaction,
+      id: workflow.financeTransaction.id,
+      bp_line_id: kind === 'investment' ? line.id : '',
+      bp_cost_id: kind === 'cost' ? line.id : '',
+      funding_source_id: fundingSource.id || workflow.financeTransaction.funding_source_id || '',
+      proof_document_id: workflow.proofDocument?.id || line.proof_document_id || detail.proof_document_id || '',
+      related_id: workflow.financeTransaction.related_id || line.id,
+      filiere: detail.filiere || line.filiere || line.activity_type || '',
+    },
+    documents: arr(props.documents),
+    date: detail.date || workflow.financeTransaction.date,
+  });
+}
 
 const MODULE_LABELS = {
   avicole: 'Élevage / Avicole',
@@ -213,22 +242,38 @@ async function finalizeBpCostCompletion(detail, props) {
   const cost = arr(props.bpRecurringCosts).find((row) => String(row.id) === String(detail?.bp_line_id || detail?.bp_cost_id));
   if (!cost?.id) return;
   const workflow = buildBpCostCompletionWorkflow(cost, detail);
+  const fundingUsage = buildFundingUsageForCompletion(props, cost, detail, workflow, 'cost');
+  const financeTransaction = fundingUsage?.financeTransaction
+    ? { ...workflow.financeTransaction, ...fundingUsage.financeTransaction, libelle: workflow.financeTransaction?.libelle || fundingUsage.financeTransaction.libelle }
+    : workflow.financeTransaction;
+  const linePatch = {
+    ...workflow.linePatch,
+    ...(fundingUsage?.budgetLinePatch || {}),
+    funding_usage_report: fundingUsage?.reportEntry || cost.funding_usage_report,
+  };
   try {
-    if (workflow.financeTransaction && !cost.linked_finance_transaction_id) {
-      await props.onCreateFinanceTransaction?.(workflow.financeTransaction);
+    if (financeTransaction && !cost.linked_finance_transaction_id) {
+      await props.onCreateFinanceTransaction?.(financeTransaction);
     }
     if (workflow.proofDocument && !cost.proof_document_id) {
       await props.onCreateDocument?.(workflow.proofDocument);
     }
-    await props.onUpdateBpRecurringCost?.(cost.id, workflow.linePatch);
+    if (fundingUsage?.fundingPatch && fundingUsage.reportEntry?.funding_source_id) {
+      await props.onUpdateBpFundingSource?.(fundingUsage.reportEntry.funding_source_id, fundingUsage.fundingPatch);
+    }
+    if (fundingUsage?.alert) await props.onCreateAlert?.(fundingUsage.alert);
+    await props.onUpdateBpRecurringCost?.(cost.id, linePatch);
     if (workflow.event?.title) await props.onCreateBusinessEvent?.(workflow.event);
+    if (fundingUsage?.event?.title) await props.onCreateBusinessEvent?.(fundingUsage.event);
     await Promise.allSettled([
       props.onRefreshFinances?.(),
       props.onRefreshDocuments?.(),
       props.onRefreshBpRecurringCosts?.(),
+      props.onRefreshBpFundingSources?.(),
+      props.onRefreshAlertes?.(),
       props.onRefreshBusinessEvents?.(),
     ]);
-    const merged = { ...cost, ...workflow.linePatch };
+    const merged = { ...cost, ...linePatch };
     const audit = auditBpLineLinkage(merged, { kind: 'cost' });
     if (audit.linkageIssue) toast.error(audit.linkageMessage || 'Opération créée mais non liée — réparer la liaison.', { duration: 6000 });
     else toast.success(`Charge enregistrée · ${bpCostLabel(cost)}`);
@@ -241,13 +286,34 @@ async function finalizeBpLineCompletion(detail, props) {
   const line = arr(props.bpInvestmentLines).find((row) => String(row.id) === String(detail?.bp_line_id));
   if (!line?.id) return;
   const workflow = buildBpLineCompletionWorkflow(line, detail);
+  const fundingUsage = buildFundingUsageForCompletion(props, line, detail, workflow, 'investment');
+  const financeTransaction = fundingUsage?.financeTransaction
+    ? { ...workflow.financeTransaction, ...fundingUsage.financeTransaction, libelle: workflow.financeTransaction?.libelle || fundingUsage.financeTransaction.libelle }
+    : workflow.financeTransaction;
+  const linePatch = {
+    ...workflow.linePatch,
+    ...(fundingUsage?.budgetLinePatch || {}),
+    funding_usage_report: fundingUsage?.reportEntry || line.funding_usage_report,
+  };
   try {
-    if (workflow.financeTransaction && !line.linked_finance_transaction_id) await props.onCreateFinanceTransaction?.(workflow.financeTransaction);
+    if (financeTransaction && !line.linked_finance_transaction_id) await props.onCreateFinanceTransaction?.(financeTransaction);
     if (workflow.proofDocument && !line.proof_document_id) await props.onCreateDocument?.(workflow.proofDocument);
-    await props.onUpdateBpInvestmentLine?.(line.id, workflow.linePatch);
+    if (fundingUsage?.fundingPatch && fundingUsage.reportEntry?.funding_source_id) {
+      await props.onUpdateBpFundingSource?.(fundingUsage.reportEntry.funding_source_id, fundingUsage.fundingPatch);
+    }
+    if (fundingUsage?.alert) await props.onCreateAlert?.(fundingUsage.alert);
+    await props.onUpdateBpInvestmentLine?.(line.id, linePatch);
     if (workflow.event?.title) await props.onCreateBusinessEvent?.(workflow.event);
-    await Promise.allSettled([props.onRefreshFinances?.(), props.onRefreshDocuments?.(), props.onRefreshBpInvestmentLines?.(), props.onRefreshBusinessEvents?.()]);
-    const merged = { ...line, ...workflow.linePatch };
+    if (fundingUsage?.event?.title) await props.onCreateBusinessEvent?.(fundingUsage.event);
+    await Promise.allSettled([
+      props.onRefreshFinances?.(),
+      props.onRefreshDocuments?.(),
+      props.onRefreshBpInvestmentLines?.(),
+      props.onRefreshBpFundingSources?.(),
+      props.onRefreshAlertes?.(),
+      props.onRefreshBusinessEvents?.(),
+    ]);
+    const merged = { ...line, ...linePatch };
     const audit = auditBpLineLinkage(merged, { kind: 'investment' });
     if (audit.linkageIssue) toast.error(audit.linkageMessage || 'Opération créée mais non liée — réparer la liaison.', { duration: 6000 });
     else toast.success(`C’est fait · ${investmentLabel(line)}`);

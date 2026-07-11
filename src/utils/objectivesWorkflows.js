@@ -79,3 +79,75 @@ export function buildObjectiveActionTask(objective = {}, options = {}) {
   };
   return { status, task, event, sourceModule: module };
 }
+
+export function buildGrowthObjectiveWorkflow(objective = {}, context = {}) {
+  const activity = objective.activity || 'global';
+  const label = objective.label || objective.title || activity;
+  const sourceModule = moduleForObjective(activity);
+  const current = n(objective.current ?? objective.realized ?? objective.realise);
+  const target = n(objective.target ?? objective.cible);
+  const status = buildObjectiveStatus({ ...objective, realized: current, target });
+  const stockNeed = Math.max(0, n(objective.stock_need ?? objective.besoin_stock));
+  const cashNeed = Math.max(0, n(objective.cash_need ?? objective.besoin_cash));
+  const capacityNeed = Math.max(0, n(objective.capacity_need ?? objective.besoin_capacite));
+  const availableStock = n(context.availableStock ?? context.stockDisponible);
+  const availableCash = n(context.availableCash ?? context.cashDisponible);
+  const availableCapacity = n(context.availableCapacity ?? context.capaciteDisponible);
+  const simulation = {
+    activity,
+    current,
+    target,
+    remaining: status.remaining,
+    attainment: status.attainment,
+    stock_need: stockNeed,
+    cash_need: cashNeed,
+    capacity_need: capacityNeed,
+    available_stock: availableStock,
+    available_cash: availableCash,
+    available_capacity: availableCapacity,
+    projected_sales: n(objective.projected_sales ?? objective.ca_prevu ?? objective.target),
+    hr_need: n(objective.hr_need ?? objective.besoin_rh),
+  };
+  const unsustainable = [
+    stockNeed > 0 && availableStock > 0 && stockNeed > availableStock ? 'stock insuffisant' : '',
+    cashNeed > 0 && availableCash > 0 && cashNeed > availableCash ? 'cash insuffisant' : '',
+    capacityNeed > 0 && availableCapacity > 0 && capacityNeed > availableCapacity ? 'capacité insuffisante' : '',
+  ].filter(Boolean);
+  const base = buildObjectiveActionTask({ ...objective, realized: current, target }, { date: objective.date || today(), dueDate: objective.echeance || objective.due_date || today() });
+  return {
+    status,
+    progress: {
+      current,
+      target,
+      attainment: status.attainment,
+      remaining: status.remaining,
+      source_indicator: objective.source_indicator || objective.indicateur_source || sourceModule,
+      deadline: objective.echeance || objective.due_date || '',
+    },
+    task: status.key === 'atteint' ? null : {
+      ...base.task,
+      notes: `${base.task.notes} Besoin stock ${stockNeed}, cash ${cashNeed}, capacité ${capacityNeed}.`,
+      simulation,
+    },
+    alert: unsustainable.length ? {
+      id: `ALT-OBJ-${activity}-${objective.date || today()}`,
+      title: `Croissance non soutenable · ${label}`,
+      message: unsustainable.join(', '),
+      module_source: 'objectifs_croissance',
+      entity_type: 'objectif',
+      entity_id: activity,
+      severity: 'haute',
+      status: 'nouvelle',
+      alert_dedupe_key: `objective-unsustainable:${activity}`,
+    } : null,
+    event: {
+      ...base.event,
+      event_type: 'growth_objective',
+      type_evenement: 'growth_objective',
+      description: `${label}: ${status.attainment}% · reste ${status.remaining}. ${unsustainable.join(', ')}`,
+      simulation,
+    },
+    simulation,
+    sourceModule,
+  };
+}

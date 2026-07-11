@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import ModuleTabsBar from '../components/module/ModuleTabsBar.jsx';
 import useCrudModule from '../hooks/useCrudModule';
-import { fmtNumber } from '../utils/format';
 import { aggregateSummaryLayingRate, formatOfficialLayingRate } from '../utils/elevageLayingRate.js';
 import { rowsOf } from '../utils/moduleRows';
 import { shouldHandleProductionQuestionEvent } from '../utils/elevageCyclesNavigation.js';
@@ -40,7 +39,6 @@ import {
 import {
   openElevageReproductionForm,
   scrollToReproductionWorkflowForm,
-  buildReproductionWorkflowDraft,
 } from '../utils/elevageReproductionNavigation.js';
 import { buildReproductionKpis } from '../utils/reproductionMetrics.js';
 import { evaluateElevageHealthBlocks, buildSanitaryAlertsPanel } from '../utils/elevageHealthBlocks.js';
@@ -60,8 +58,6 @@ const isGestanteAnimal = (row = {}) =>
   /gestante|gestation|mise bas prevue|saillie confirm|en gestation/.test(
     lower(`${row.statut_reproduction || ''} ${row.reproduction_status || ''} ${row.statut || ''} ${row.notes || ''}`),
   );
-const today = () => new Date().toISOString().slice(0, 10);
-
 function Tabs({ active, onChange, activeFarm }) {
   return (
     <div className="space-y-2">
@@ -83,6 +79,7 @@ export default function ElevageRecoveredModule(props) {
   const [transformationDraft, setTransformationDraft] = useState(null);
   const [reproductionHorizonDraft, setReproductionHorizonDraft] = useState(null);
   const [cyclesProductionQuestion, setCyclesProductionQuestion] = useState(null);
+  const [weekAgoReference] = useState(() => new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10));
 
   const applyElevageNavigation = useCallback((value) => {
     const sub = resolveElevageLotsSubview(value);
@@ -93,7 +90,7 @@ export default function ElevageRecoveredModule(props) {
     const resolved = resolveElevageTab(value);
     if (controlled) props.onTabChange?.(resolved);
     else setInternalTab(resolved);
-  }, [controlled, props.onTabChange]);
+  }, [controlled, props]);
 
   const setTab = useCallback((next) => {
     applyElevageNavigation(next);
@@ -101,12 +98,14 @@ export default function ElevageRecoveredModule(props) {
 
   useEffect(() => {
     if (!props.initialTab) return;
-    const sub = resolveElevageLotsSubview(props.initialTab);
-    if (sub) {
-      setLotsSubview(sub);
-      setWorkflowScope(sub);
-    }
-    if (!controlled) setInternalTab(resolveElevageTab(props.initialTab));
+    queueMicrotask(() => {
+      const sub = resolveElevageLotsSubview(props.initialTab);
+      if (sub) {
+        setLotsSubview(sub);
+        setWorkflowScope(sub);
+      }
+      if (!controlled) setInternalTab(resolveElevageTab(props.initialTab));
+    });
   }, [controlled, props.initialTab]);
 
   useEffect(() => {
@@ -188,7 +187,7 @@ export default function ElevageRecoveredModule(props) {
   const salesOrders = rowsOf(props.salesOrders, salesCrud, periodFiltered);
   const businessEvents = rowsOf(props.businessEvents, eventsCrud, periodFiltered);
   const data = useMemo(() => {
-    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+    const weekAgo = props.periodStart || weekAgoReference;
     const reproduction = buildReproductionKpis({
       animaux: animals,
       businessEvents,
@@ -275,7 +274,7 @@ export default function ElevageRecoveredModule(props) {
         lots,
       }),
     };
-  }, [animals, lots, health, productionLogs, feedLogs, stocks, opportunities, salesOrders, businessEvents, props.payments, props.documents, props.periodStart, paymentsCrud, documentsCrud, periodFiltered]);
+  }, [animals, lots, health, productionLogs, feedLogs, stocks, opportunities, salesOrders, businessEvents, props.payments, props.documents, props.periodStart, weekAgoReference, paymentsCrud, documentsCrud, periodFiltered]);
 
   const workflowContext = useElevageWorkflowContext({
     lots,
@@ -401,7 +400,7 @@ export default function ElevageRecoveredModule(props) {
       }
     }
     props.onNavigate?.(module, opts);
-  }, [health, props.onNavigate, confirmSanitaryOverride]);
+  }, [health, props, confirmSanitaryOverride]);
 
   const openWorkflow = useCallback((modal, context = {}) => {
     const scope = context.scope || lotsSubview || 'avicole';
@@ -496,7 +495,7 @@ export default function ElevageRecoveredModule(props) {
     onSuccess: refreshAfterWorkflow,
   };
   const animalProps = { rows: animals, alimentationLogs: feedLogs, vaccins: health, salesOrders, payments: rowsOf(props.payments, paymentsCrud, periodFiltered), opportunities, businessEvents, onCreate: props.onCreateAnimal || animauxCrud.create, onUpdate: props.onUpdateAnimal || animauxCrud.update, onDelete: props.onDeleteAnimal || animauxCrud.remove, onRefresh: props.onRefreshAnimals || animauxCrud.refresh, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, ...shared };
-  const avicoleProps = { rows: lots, transactions: rowsOf(props.transactions, financesCrud, periodFiltered), alimentationLogs: feedLogs, productionLogs, stocks, stockMovements, opportunities, businessEvents, onCreate: props.onCreateLot || avicoleCrud.create, onUpdate: props.onUpdateLot || avicoleCrud.update, onDelete: props.onDeleteLot || avicoleCrud.remove, onRefresh: props.onRefreshLots || avicoleCrud.refresh, onCreateProduction: props.onCreateProduction || productionCrud.create, onUpdateProduction: props.onUpdateProduction || productionCrud.update, onDeleteProduction: props.onDeleteProduction || productionCrud.remove, onRefreshProduction: props.onRefreshProduction || productionCrud.refresh, onCommitEggProduction: commitEggProduction, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, onUpdateStock: props.onUpdateStock || stockCrud.update, onCreateStockMovement: props.onCreateStockMovement || movementsCrud.create, onRefreshStockMovements: props.onRefreshStockMovements || movementsCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, ...shared };
+  const avicoleProps = { rows: lots, transactions: rowsOf(props.transactions, financesCrud, periodFiltered), fournisseurs: rowsOf(props.fournisseurs, null, false), documents: rowsOf(props.documents, documentsCrud, periodFiltered), tasks: rowsOf(props.tasks || props.taches, tasksCrud, periodFiltered), alertes: rowsOf(props.alertes, alertsCrud, periodFiltered), alimentationLogs: feedLogs, productionLogs, stocks, stockMovements, opportunities, businessEvents, onCreate: props.onCreateLot || avicoleCrud.create, onUpdate: props.onUpdateLot || avicoleCrud.update, onDelete: props.onDeleteLot || avicoleCrud.remove, onRefresh: props.onRefreshLots || avicoleCrud.refresh, onCreateProduction: props.onCreateProduction || productionCrud.create, onUpdateProduction: props.onUpdateProduction || productionCrud.update, onDeleteProduction: props.onDeleteProduction || productionCrud.remove, onRefreshProduction: props.onRefreshProduction || productionCrud.refresh, onCommitEggProduction: commitEggProduction, onCreateOpportunity: props.onCreateOpportunity || opportunitiesCrud.create, onUpdateOpportunity: props.onUpdateOpportunity || opportunitiesCrud.update, onRefreshOpportunities: props.onRefreshOpportunities || opportunitiesCrud.refresh, onUpdateStock: props.onUpdateStock || stockCrud.update, onCreateStockMovement: props.onCreateStockMovement || movementsCrud.create, onRefreshStockMovements: props.onRefreshStockMovements || movementsCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateDocument: props.onCreateDocument || documentsCrud.create, onRefreshDocuments: props.onRefreshDocuments || documentsCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, existingTasks: props.existingTasks || rowsOf(props.tasks || props.taches, tasksCrud, periodFiltered), existingAlerts: props.existingAlerts || rowsOf(props.alertes, alertsCrud, periodFiltered), ...shared };
   const healthProps = { rows: health, vets: rowsOf(props.veterinaires, vetsCrud, false), animaux: animals, lots, stocks, transactions: rowsOf(props.transactions, financesCrud, periodFiltered), documents: rowsOf(props.documents, documentsCrud, periodFiltered), tasks: rowsOf(props.tasks, tasksCrud, false), alertes: rowsOf(props.alertes, alertsCrud, false), healthDraft, onClearHealthDraft: clearHealthDraft, onCreate: props.onCreateHealth || santeCrud.create, onUpdate: props.onUpdateHealth || santeCrud.update, onDelete: props.onDeleteHealth || santeCrud.remove, onRefresh: props.onRefreshHealth || santeCrud.refresh, onCreateVet: props.onCreateVet || vetsCrud.create, onUpdateVet: props.onUpdateVet || vetsCrud.update, onDeleteVet: props.onDeleteVet || vetsCrud.remove, onRefreshVets: props.onRefreshVets || vetsCrud.refresh, onCreateTask: props.onCreateTask || tasksCrud.create, onUpdateTask: props.onUpdateTask || tasksCrud.update, onRefreshTasks: props.onRefreshTasks || tasksCrud.refresh, onCreateAlert: props.onCreateAlert || alertsCrud.create, onUpdateAlert: props.onUpdateAlert || alertsCrud.update, onRefreshAlertes: props.onRefreshAlertes || alertsCrud.refresh, onCreateFinanceTransaction: props.onCreateFinanceTransaction || financesCrud.create, onRefreshFinances: props.onRefreshFinances || financesCrud.refresh, onCreateDocument: props.onCreateDocument || documentsCrud.create, onRefreshDocuments: props.onRefreshDocuments || documentsCrud.refresh, onNavigate: guardedNavigate };
   const cyclesDataMap = useMemo(
     () => ({

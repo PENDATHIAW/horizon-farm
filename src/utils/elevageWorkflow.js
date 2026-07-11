@@ -46,6 +46,12 @@ const lower = (value) => clean(value).toLowerCase();
 const num = (value) => toNumber(value);
 const today = () => new Date().toISOString().slice(0, 10);
 const EGGS_PER_TABLET = 30;
+const DAY_MS = 86400000;
+const BROILER_DEFAULT_CYCLE_DAYS = 45;
+const BROILER_FEED_KG_PER_SUBJECT = 4.5;
+const BROILER_TARGET_WEIGHT_KG = 1.8;
+const BOVINE_WEIGHING_STALE_DAYS = 30;
+const BROILER_CLOSED_STATUSES = ['vendu', 'cloture', 'clôturé', 'archive', 'archivé', 'perdu_mortalite', 'termine', 'terminé', 'abattu', 'reforme'];
 
 export const ELEVAGE_DOMAINS = {
   FEEDING: 'alimentation',
@@ -63,6 +69,223 @@ export function buildElevageIssueKey(domain = '', recordId = '', suffix = '') {
   const id = clean(recordId) || 'record';
   const tail = clean(suffix);
   return tail ? `elevage:${d}:${id}:${tail}` : `elevage:${d}:${id}`;
+}
+
+const addDays = (date = today(), days = 0) => {
+  const base = new Date(date || today());
+  if (Number.isNaN(base.getTime())) return today();
+  base.setDate(base.getDate() + Number(days || 0));
+  return base.toISOString().slice(0, 10);
+};
+
+const daysBetween = (start = today(), end = today()) => {
+  const a = new Date(start || today());
+  const b = new Date(end || today());
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return 0;
+  return Math.max(0, Math.round((b - a) / DAY_MS));
+};
+
+export function buildBroilerLotStartWorkflow({
+  lot = {},
+  lots = [],
+  batiments = [],
+  fournisseurs = [],
+  date = today(),
+} = {}) {
+  const lotId = clean(lot.id) || makeId('LOTCH');
+  const startDate = lot.date_debut || lot.date_entree || date;
+  const initialCount = num(lot.initial_count ?? lot.effectif_initial ?? lot.quantite);
+  const unitCost = num(lot.prix_unitaire_sujet ?? lot.cout_unitaire_poussin);
+  const purchaseCost = num(lot.cout_total_achat ?? lot.purchase_cost ?? lot.cout_poussins) || unitCost * initialCount;
+  const cycleDays = num(lot.duree_cycle_valeur) || BROILER_DEFAULT_CYCLE_DAYS;
+  const saleDate = lot.date_fin_prevue || lot.date_objectif_vente || addDays(startDate, cycleDays);
+  const buildingId = clean(lot.batiment_id || lot.building_id) || (arr(batiments).length === 1 ? clean(batiments[0].id) : '');
+  const supplierId = clean(lot.fournisseur_id || lot.supplier_id) || (arr(fournisseurs).length === 1 ? clean(fournisseurs[0].id) : '');
+  const feedNeedKg = num(lot.besoin_aliment_previsionnel_kg ?? lot.feed_need_kg) || Math.round(initialCount * BROILER_FEED_KG_PER_SUBJECT);
+  const targetWeight = num(lot.poids_objectif ?? lot.target_weight) || BROILER_TARGET_WEIGHT_KG;
+  const expectedRevenue = num(lot.prix_vente_prevu ?? lot.expected_revenue);
+  const expectedMargin = expectedRevenue > 0 ? expectedRevenue - purchaseCost : num(lot.marge_previsionnelle);
+  const issueKey = buildElevageIssueKey('broiler_lot_start', lotId, startDate);
+  const activeInSameBuilding = buildingId ? arr(lots).find((existing) => {
+    if (clean(existing.id) === lotId) return false;
+    const sameBuilding = clean(existing.batiment_id || existing.building_id) === buildingId;
+    if (!sameBuilding) return false;
+    const status = lower(existing.status || existing.statut);
+    return !BROILER_CLOSED_STATUSES.includes(status) && avicoleActiveCount(existing) > 0;
+  }) : null;
+  const missing = [
+    initialCount > 0 ? '' : 'effectif initial',
+    buildingId ? '' : 'bâtiment',
+    purchaseCost > 0 ? '' : 'coût initial',
+    supplierId ? '' : 'fournisseur',
+  ].filter(Boolean);
+  const blockingReasons = [
+    activeInSameBuilding ? `bâtiment déjà occupé par ${activeInSameBuilding.name || activeInSameBuilding.nom || activeInSameBuilding.id}` : '',
+  ].filter(Boolean);
+  const vaccinationDates = [
+    { label: 'Vaccin démarrage', due: addDays(startDate, 7) },
+    { label: 'Rappel vaccin chair', due: addDays(startDate, 14) },
+  ];
+  const weighingDates = [7, 14, 21, 28, 35].map((day) => ({
+    label: `Pesée J+${day}`,
+    due: addDays(startDate, day),
+  }));
+
+  const lotPayload = {
+    ...lot,
+    id: lotId,
+    type: 'Chair',
+    type_lot: 'chair',
+    status: lot.status || 'en_croissance',
+    statut: lot.statut || lot.status || 'en_croissance',
+    initial_count: initialCount,
+    current_count: initialCount,
+    effectif_actuel: initialCount,
+    batiment_id: buildingId,
+    building_id: buildingId,
+    fournisseur_id: supplierId,
+    supplier_id: supplierId,
+    cout_poussins: purchaseCost,
+    purchase_cost: purchaseCost,
+    prix_unitaire_sujet: initialCount > 0 ? Math.round(purchaseCost / initialCount) : unitCost,
+    besoin_aliment_previsionnel_kg: feedNeedKg,
+    feed_need_kg: feedNeedKg,
+    date_debut: startDate,
+    date_entree: lot.date_entree || startDate,
+    date_fin_prevue: saleDate,
+    date_objectif_vente: saleDate,
+    duree_cycle_valeur: cycleDays,
+    duree_cycle_unite: 'jours',
+    poids_objectif: targetWeight,
+    calendrier_vaccination: vaccinationDates,
+    calendrier_pesee: weighingDates,
+    reporting_lot_ready: missing.length === 0,
+    marge_previsionnelle: expectedMargin,
+    batiment_capacity_reserved: Boolean(buildingId),
+    batiment_capacity_reserved_at: startDate,
+    broiler_start_status: blockingReasons.length ? 'bloque' : 'valide',
+    objective_impact: {
+      expected_sale_date: saleDate,
+      expected_margin: expectedMargin,
+      feed_need_kg: feedNeedKg,
+      target_weight_kg: targetWeight,
+    },
+    source_module: lot.source_module || 'avicole',
+    issue_key: issueKey,
+  };
+
+  const taskBase = {
+    module_lie: 'avicole',
+    source_module: 'avicole',
+    source_record_id: lotId,
+    related_id: lotId,
+    status: 'a_faire',
+  };
+  const tasks = [
+    {
+      id: makeId('TSK'),
+      ...taskBase,
+      title: `Démarrer lot chair ${lot.name || lot.nom || lotId}`,
+      due_date: startDate,
+      priority: missing.length ? 'haute' : 'moyenne',
+      task_dedupe_key: `${issueKey}:demarrage`,
+      checklist: 'Confirmer bâtiment; Confirmer fournisseur; Vérifier eau/chauffage; Démarrer suivi alimentation; Programmer vaccins et pesées',
+    },
+    ...vaccinationDates.map((item) => ({
+      id: makeId('TSK'),
+      ...taskBase,
+      title: item.label,
+      due_date: item.due,
+      priority: 'haute',
+      task_dedupe_key: `${issueKey}:vaccin:${item.due}`,
+      checklist: 'Préparer vaccin; Enregistrer soin; Joindre preuve si disponible',
+    })),
+    ...weighingDates.map((item) => ({
+      id: makeId('TSK'),
+      ...taskBase,
+      title: item.label,
+      due_date: item.due,
+      priority: 'moyenne',
+      task_dedupe_key: `${issueKey}:pesee:${item.due}`,
+      checklist: 'Peser échantillon; Enregistrer GMQ; Comparer objectif',
+    })),
+  ];
+
+  const financeTransaction = purchaseCost > 0 ? {
+    id: makeId('TRX'),
+    type: 'sortie',
+    transaction_type: 'sortie',
+    libelle: `Démarrage lot chair ${lot.name || lotId}`,
+    montant: purchaseCost,
+    amount: purchaseCost,
+    date: startDate,
+    categorie: 'Cheptel avicole',
+    module_lie: 'avicole',
+    related_id: lotId,
+    source_module: 'avicole',
+    source_record_id: lotId,
+    fournisseur_id: supplierId,
+    statut: 'paye',
+    status: 'paye',
+    cash_effect: true,
+  } : null;
+
+  return {
+    lot: lotPayload,
+    tasks,
+    financeTransaction,
+    blocked: blockingReasons.length > 0,
+    blockingReasons,
+    alert: missing.length || blockingReasons.length ? {
+      id: makeId('ALT'),
+      title: blockingReasons.length ? `Démarrage lot chair bloqué: ${lot.name || lotId}` : `Lot chair incomplet: ${lot.name || lotId}`,
+      message: blockingReasons.length ? blockingReasons.join(', ') : `Données à compléter: ${missing.join(', ')}`,
+      module_source: 'avicole',
+      entity_type: 'lot_avicole',
+      entity_id: lotId,
+      severity: blockingReasons.length ? 'haute' : 'warning',
+      status: 'nouvelle',
+      alert_dedupe_key: `${issueKey}:${blockingReasons.length ? 'blocked' : 'missing'}`,
+    } : null,
+    capacityPatch: buildingId ? {
+      id: buildingId,
+      lot_actif_id: lotId,
+      reserved_lot_id: lotId,
+      capacity_status: 'occupe',
+      capacity_reserved_at: startDate,
+    } : null,
+    event: {
+      id: makeId('EVT'),
+      event_type: 'broiler_lot_start',
+      type_evenement: 'broiler_lot_start',
+      module_source: 'avicole',
+      entity_type: 'lot_avicole',
+      entity_id: lotId,
+      title: `Démarrage lot chair · ${lot.name || lotId}`,
+      description: `${initialCount} sujet(s) · besoin aliment ${feedNeedKg} kg · vente estimée ${saleDate}`,
+      event_date: startDate,
+      severity: missing.length || blockingReasons.length ? 'warning' : 'info',
+      amount: purchaseCost,
+      linked_task_count: tasks.length,
+      issue_key: issueKey,
+      blocking_reasons: blockingReasons,
+      saisies_evitees: 8,
+    },
+    reporting: {
+      lot_id: lotId,
+      effectif_initial: initialCount,
+      batiment_id: buildingId,
+      fournisseur_id: supplierId,
+      cout_initial: purchaseCost,
+      besoin_aliment_previsionnel_kg: feedNeedKg,
+      date_vente_estimee: saleDate,
+      marge_previsionnelle: expectedMargin,
+      capacity_reserved: Boolean(buildingId),
+      objectives_impact: lotPayload.objective_impact,
+      missing_fields: missing,
+      blocking_reasons: blockingReasons,
+    },
+  };
 }
 
 export function tabletsFromEggs(eggCount = 0) {
@@ -838,11 +1061,43 @@ export async function commitElevageWeighing({ form = {}, context = {}, handlers 
   }
 
   let targetWeight = null;
+  let metrics = {
+    previousWeight: 0,
+    previousDate: '',
+    daysSincePrevious: 0,
+    gmq: 0,
+    targetGmq: num(form.objectif_gmq ?? form.target_gmq),
+    costPerKgGained: 0,
+    feedCostCumulative: 0,
+    estimatedExitDate: '',
+    forecastMargin: 0,
+    performanceLow: false,
+    staleBeforeWeighing: false,
+  };
   if (lotId && handlers.onUpdateLot) {
     const lot = arr(context.lots).find((row) => clean(row.id) === lotId);
     if (lot) {
       targetWeight = num(lot.poids_objectif_vente ?? lot.target_weight ?? lot.objectif_poids_moyen);
       const history = arr(lot.weight_history || lot.historique_poids || lot.pesees);
+      const previous = history[history.length - 1] || null;
+      metrics.previousWeight = num(previous?.poids ?? previous?.weight ?? lot.poids_moyen_actuel ?? lot.weight_avg);
+      metrics.previousDate = previous?.date || lot.date_derniere_pesee || lot.last_weighing_date || '';
+      metrics.daysSincePrevious = metrics.previousDate ? Math.max(1, daysBetween(metrics.previousDate, date)) : 0;
+      metrics.gmq = metrics.previousWeight > 0 && metrics.daysSincePrevious > 0
+        ? Number(((weight - metrics.previousWeight) / metrics.daysSincePrevious).toFixed(3))
+        : 0;
+      metrics.targetGmq = metrics.targetGmq || num(lot.objectif_gmq ?? lot.target_gmq) || (lower(lot.type).includes('chair') ? 0.045 : 0);
+      metrics.staleBeforeWeighing = metrics.daysSincePrevious > BOVINE_WEIGHING_STALE_DAYS;
+      metrics.performanceLow = metrics.targetGmq > 0 && metrics.gmq > 0 && metrics.gmq < metrics.targetGmq * 0.8;
+      const entryWeight = num(lot.poids_initial ?? lot.starting_weight_avg ?? history[0]?.poids ?? history[0]?.weight);
+      const gained = Math.max(0, weight - entryWeight);
+      metrics.feedCostCumulative = num(lot.cout_aliment ?? lot.feed_cost ?? lot.cout_alimentaire_cumule);
+      const totalCost = num(lot.purchase_cost ?? lot.cout_poussins) + metrics.feedCostCumulative + num(lot.frais_sante ?? lot.health_cost) + num(lot.autres_frais);
+      metrics.costPerKgGained = gained > 0 ? Math.round(totalCost / gained) : 0;
+      const remaining = targetWeight > 0 ? Math.max(0, targetWeight - weight) : 0;
+      metrics.estimatedExitDate = remaining > 0 && metrics.gmq > 0 ? addDays(date, Math.ceil(remaining / metrics.gmq)) : (remaining <= 0 && targetWeight > 0 ? date : '');
+      const expectedSale = num(lot.prix_vente_prevu ?? lot.valeur_vente_estimee);
+      metrics.forecastMargin = expectedSale > 0 ? expectedSale - totalCost : num(lot.marge_previsionnelle);
       const nextHistory = [...history, { date, poids: weight, weight, note: comment }];
       await handlers.onUpdateLot(lotId, {
         poids_moyen_actuel: weight,
@@ -853,6 +1108,14 @@ export async function commitElevageWeighing({ form = {}, context = {}, handlers 
         last_weighing_date: date,
         weight_history: nextHistory,
         historique_poids: nextHistory,
+        gmq: metrics.gmq,
+        gain_moyen_quotidien: metrics.gmq,
+        objectif_gmq: metrics.targetGmq,
+        cout_par_kg_gagne: metrics.costPerKgGained,
+        cout_alimentaire_cumule: metrics.feedCostCumulative,
+        date_sortie_estimee: metrics.estimatedExitDate,
+        date_objectif_vente: metrics.estimatedExitDate || lot.date_objectif_vente,
+        marge_previsionnelle: metrics.forecastMargin,
       });
     }
   }
@@ -862,6 +1125,25 @@ export async function commitElevageWeighing({ form = {}, context = {}, handlers 
     if (animal) {
       targetWeight = num(animal.poids_objectif ?? animal.target_weight ?? animal.poids_vente_cible);
       const history = arr(animal.weight_history || animal.historique_poids || animal.pesees);
+      const previous = history[history.length - 1] || null;
+      const entryWeight = num(animal.poids_entree ?? animal.weight_entry ?? animal.poids_initial ?? history[0]?.poids ?? history[0]?.weight);
+      metrics.previousWeight = num(previous?.poids ?? previous?.weight ?? animal.poids_actuel ?? animal.poids ?? animal.weight);
+      metrics.previousDate = previous?.date || animal.date_derniere_pesee || animal.last_weighing_date || animal.date_entree_ferme || animal.date_achat || '';
+      metrics.daysSincePrevious = metrics.previousDate ? Math.max(1, daysBetween(metrics.previousDate, date)) : 0;
+      metrics.gmq = metrics.previousWeight > 0 && metrics.daysSincePrevious > 0
+        ? Number(((weight - metrics.previousWeight) / metrics.daysSincePrevious).toFixed(3))
+        : 0;
+      metrics.targetGmq = metrics.targetGmq || num(animal.objectif_gmq ?? animal.target_gmq) || 0.8;
+      metrics.staleBeforeWeighing = metrics.daysSincePrevious > BOVINE_WEIGHING_STALE_DAYS;
+      metrics.performanceLow = metrics.targetGmq > 0 && metrics.gmq > 0 && metrics.gmq < metrics.targetGmq * 0.8;
+      const gained = Math.max(0, weight - entryWeight);
+      metrics.feedCostCumulative = num(animal.feed_cost ?? animal.alimentation ?? animal.cout_alimentaire_cumule);
+      const totalCost = num(animal.purchase_cost ?? animal.cout_achat ?? animal.prix_achat) + metrics.feedCostCumulative + num(animal.health_cost ?? animal.frais_sante) + num(animal.autres_frais);
+      metrics.costPerKgGained = gained > 0 ? Math.round(totalCost / gained) : 0;
+      const remaining = targetWeight > 0 ? Math.max(0, targetWeight - weight) : 0;
+      metrics.estimatedExitDate = remaining > 0 && metrics.gmq > 0 ? addDays(date, Math.ceil(remaining / metrics.gmq)) : (remaining <= 0 && targetWeight > 0 ? date : '');
+      const expectedSale = num(animal.prix_vente_estime ?? animal.sale_price ?? animal.prix_vente_prevu);
+      metrics.forecastMargin = expectedSale > 0 ? expectedSale - totalCost : num(animal.marge_previsionnelle);
       const nextHistory = [...history, { date, poids: weight, weight, note: comment }];
       await handlers.onUpdateAnimal(animalId, {
         poids: weight,
@@ -870,13 +1152,68 @@ export async function commitElevageWeighing({ form = {}, context = {}, handlers 
         date_derniere_pesee: date,
         weight_history: nextHistory,
         historique_poids: nextHistory,
+        gmq: metrics.gmq,
+        gain_moyen_quotidien: metrics.gmq,
+        objectif_gmq: metrics.targetGmq,
+        cout_par_kg_gagne: metrics.costPerKgGained,
+        cout_alimentaire_cumule: metrics.feedCostCumulative,
+        date_sortie_estimee: metrics.estimatedExitDate,
+        date_objectif_vente: metrics.estimatedExitDate || animal.date_objectif_vente,
+        marge_previsionnelle: metrics.forecastMargin,
       });
     }
   }
 
+  const followUpTargetId = lotId || animalId;
+  if (followUpTargetId && metrics.performanceLow && handlers.onCreateTask) {
+    await handlers.onCreateTask({
+      id: makeId('TSK'),
+      title: `Performance poids faible · ${followUpTargetId}`,
+      module_lie: lotId ? 'avicole' : 'animaux',
+      source_module: 'elevage',
+      source_record_id: followUpTargetId,
+      related_id: followUpTargetId,
+      task_dedupe_key: `${issueKey}:gmq-faible`,
+      due_date: addDays(date, 1),
+      priority: 'haute',
+      status: 'a_faire',
+      checklist: 'Revoir ration; Vérifier santé; Contrôler coût/kg; Programmer prochaine pesée',
+      notes: `GMQ ${metrics.gmq} kg/j sous objectif ${metrics.targetGmq} kg/j.`,
+    });
+  }
+
+  if (followUpTargetId && metrics.staleBeforeWeighing && handlers.onCreateAlert) {
+    await handlers.onCreateAlert({
+      id: makeId('ALT'),
+      title: `Pesée trop ancienne · ${followUpTargetId}`,
+      message: `${metrics.daysSincePrevious} jours depuis la précédente pesée. Suivi croissance à sécuriser.`,
+      module_source: 'elevage',
+      entity_type: lotId ? 'lot_avicole' : 'animal',
+      entity_id: followUpTargetId,
+      severity: 'warning',
+      status: 'nouvelle',
+      alert_dedupe_key: `${issueKey}:retard-pesee`,
+    });
+  }
+
+  if (followUpTargetId && metrics.performanceLow && handlers.onCreateAlert) {
+    await handlers.onCreateAlert({
+      id: makeId('ALT'),
+      title: `Gain insuffisant · ${followUpTargetId}`,
+      message: `GMQ ${metrics.gmq} kg/j sous objectif ${metrics.targetGmq} kg/j. Ration, santé et coût alimentaire à contrôler.`,
+      module_source: 'elevage',
+      entity_type: lotId ? 'lot_avicole' : 'animal',
+      entity_id: followUpTargetId,
+      severity: 'haute',
+      status: 'nouvelle',
+      alert_dedupe_key: `${issueKey}:gmq-faible`,
+    });
+  }
+
   await handlers.onCreateBusinessEvent?.({
     id: makeId('EVT'),
-    event_type: 'pesee_elevage',
+    event_type: animalId ? 'bovine_weighing' : 'pesee_elevage',
+    type_evenement: animalId ? 'bovine_weighing' : 'pesee_elevage',
     module_source: 'elevage',
     entity_type: lotId ? 'lot_avicole' : 'animal',
     entity_id: lotId || animalId,
@@ -884,6 +1221,12 @@ export async function commitElevageWeighing({ form = {}, context = {}, handlers 
     description: comment || (targetWeight ? `Cible ${targetWeight} ${unit}` : ''),
     event_date: date,
     quantity: weight,
+    gmq: metrics.gmq,
+    objectif_gmq: metrics.targetGmq,
+    cout_par_kg_gagne: metrics.costPerKgGained,
+    cout_alimentaire_cumule: metrics.feedCostCumulative,
+    date_sortie_estimee: metrics.estimatedExitDate,
+    marge_previsionnelle: metrics.forecastMargin,
     issue_key: issueKey,
     farm_id: farmId,
     side_effects_managed: true,
@@ -896,6 +1239,7 @@ export async function commitElevageWeighing({ form = {}, context = {}, handlers 
     weight,
     unit,
     targetWeight,
+    ...metrics,
     onTarget: targetWeight > 0 ? weight >= targetWeight * 0.95 : null,
   };
 }

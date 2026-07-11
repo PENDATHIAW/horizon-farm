@@ -1,18 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ModuleTabsBar from '../../components/module/ModuleTabsBar.jsx';
 import PeriodScopeBadge from '../../components/PeriodScopeBadge.jsx';
-import { MODULE_TARGET_TABS } from '../../config/horizonVision.config.js';
 import { resolveObjectifsTab } from '../../utils/commercialNavigation.js';
 import { buildLotAnalyticsPlan } from '../../services/objectifsDecision/lotAnalyticsEngine.js';
 import Btn from '../../components/Btn.jsx';
 import { mergePilotageIntoDataMap } from '../../services/pilotageSettingsService.js';
 import { exportObjectifsAnalyticsExcel, exportObjectifsAnalyticsCsv } from '../../services/objectifsDecision/objectifsAnalyticsExport.js';
 import { buildDecisionCenterPlan } from '../../services/growthDecisionEngine.js';
+import { buildGrowthObjectiveWorkflow } from '../../utils/objectivesWorkflows.js';
 import ObjectifsBpSuiviTab from './ObjectifsBpSuiviTab.jsx';
 import ObjectifsTechniqueTab from './ObjectifsTechniqueTab.jsx';
 import ObjectifsSandboxTab from './ObjectifsSandboxTab.jsx';
 import ObjectifsFluxTab from './ObjectifsFluxTab.jsx';
 import { buildObjectifsDecisionPlan } from '../../services/objectifsDecision/objectifsDecisionEngine.js';
+
+const arr = (value) => (Array.isArray(value) ? value : []);
+const n = (value) => Number(value || 0);
 
 const EMPTY_ANALYTICS = {
   rentability: { lots: [], suppliers: [] },
@@ -21,8 +24,6 @@ const EMPTY_ANALYTICS = {
   maraichage: { cultures: [], biomass: null },
   cross: {},
 };
-
-const TAB_IDS = MODULE_TARGET_TABS.objectifs_croissance;
 
 function csvKeyForTab(tab) {
   if (tab === 'Efficacité Technique & Zootechnique') return 'technique';
@@ -54,7 +55,7 @@ export default function ObjectifsDecisionModule({
 
   useEffect(() => {
     if (controlled || !initialTab) return;
-    setInternalTab(resolveObjectifsTab(initialTab));
+    queueMicrotask(() => setInternalTab(resolveObjectifsTab(initialTab)));
   }, [controlled, initialTab]);
 
   const enrichedDataMap = useMemo(() => {
@@ -98,6 +99,52 @@ export default function ObjectifsDecisionModule({
     }
   }, [enrichedDataMap]);
 
+  const growthObjectiveContext = useMemo(() => {
+    const stocks = arr(enrichedDataMap.stock || enrichedDataMap.stocks);
+    const finances = arr(enrichedDataMap.finances || enrichedDataMap.transactions);
+    const lots = arr(enrichedDataMap.avicole || enrichedDataMap.lots);
+    const animals = arr(enrichedDataMap.animaux);
+    const availableStock = stocks.reduce((sum, row) => sum + n(row.quantite ?? row.quantity), 0);
+    const availableCash = finances.reduce((sum, row) => {
+      const type = String(row.type || row.transaction_type || '').toLowerCase();
+      const amount = n(row.montant ?? row.amount);
+      return type.includes('sortie') ? sum - amount : sum + amount;
+    }, 0);
+    const availableCapacity = lots.reduce((sum, row) => sum + n(row.current_count ?? row.effectif_actuel), 0) + animals.length;
+    return { availableStock, availableCash, availableCapacity };
+  }, [enrichedDataMap]);
+
+  const growthObjectiveWorkflows = useMemo(
+    () => arr(growthPlan?.goals?.activities).map((objective) => buildGrowthObjectiveWorkflow(objective, growthObjectiveContext)),
+    [growthPlan, growthObjectiveContext],
+  );
+
+  const emittedGrowthObjectiveKeys = useRef(new Set());
+
+  useEffect(() => {
+    const existingTasks = new Set(arr(props.existingTasks || props.taches).map((task) => String(task.task_dedupe_key || task.issue_key || '')));
+    const existingAlerts = new Set(arr(props.existingAlerts || props.alertes).map((alert) => String(alert.alert_dedupe_key || alert.issue_key || '')));
+    const run = async () => {
+      for (const workflow of growthObjectiveWorkflows) {
+        const activity = workflow?.simulation?.activity || workflow?.progress?.source_indicator || 'global';
+        const key = `growth-objective:${activity}`;
+        if (emittedGrowthObjectiveKeys.current.has(key)) continue;
+        emittedGrowthObjectiveKeys.current.add(key);
+        if (workflow.task && !existingTasks.has(String(workflow.task.task_dedupe_key || ''))) await props.onCreateTask?.(workflow.task);
+        if (workflow.alert && !existingAlerts.has(String(workflow.alert.alert_dedupe_key || ''))) await props.onCreateAlert?.(workflow.alert);
+        if (workflow.event) await props.onCreateBusinessEvent?.({ ...workflow.event, issue_key: key });
+      }
+      if (growthObjectiveWorkflows.length) {
+        await Promise.allSettled([
+          props.onRefreshTasks?.(),
+          props.onRefreshAlertes?.(),
+          props.onRefreshBusinessEvents?.(),
+        ]);
+      }
+    };
+    void run();
+  }, [growthObjectiveWorkflows, props]);
+
   const objectifsChartPlan = useMemo(() => {
     try {
       return buildObjectifsDecisionPlan(enrichedDataMap, { currentTemp: meteo?.temperature ?? meteo?.temp });
@@ -119,6 +166,7 @@ export default function ObjectifsDecisionModule({
         plan={growthPlan}
         dataMap={enrichedDataMap}
         chartPlan={objectifsChartPlan}
+        growthObjectiveWorkflows={growthObjectiveWorkflows}
         onNavigate={onNavigate}
       />
     )

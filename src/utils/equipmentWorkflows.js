@@ -150,3 +150,137 @@ export function buildEquipmentRepairWorkflow({ equipment = {}, task = null, aler
     },
   };
 }
+
+export function buildEquipmentPurchaseWorkflow({
+  payload = {},
+  supplier = {},
+  fundingSource = {},
+  date = today(),
+} = {}) {
+  const label = equipmentLabel(payload);
+  const equipmentId = clean(payload.id) || makeId('EQP');
+  const amountValue = amount(payload.purchase_cost ?? payload.cout_achat ?? payload.valeur ?? payload.montant);
+  const supplierId = clean(payload.fournisseur_id || payload.supplier_id || supplier.id);
+  const fundingId = clean(payload.funding_source_id || payload.financement_id || fundingSource.id);
+  const maintenanceDays = amount(payload.maintenance_interval_days ?? payload.frequence_maintenance_jours) || 90;
+  const serviceDate = payload.date_mise_en_service || payload.service_date || date;
+  const nextMaintenance = payload.maintenance_due || payload.prochaine_maintenance || (() => {
+    const d = new Date(serviceDate);
+    if (Number.isNaN(d.getTime())) return date;
+    d.setDate(d.getDate() + maintenanceDays);
+    return d.toISOString().slice(0, 10);
+  })();
+  const usefulLifeMonths = amount(payload.duree_amortissement_mois ?? payload.useful_life_months) || 60;
+  const monthlyAmortization = usefulLifeMonths > 0 ? Math.round(amountValue / usefulLifeMonths) : 0;
+  const trxId = amountValue > 0 ? makeId('TRX') : '';
+  const docId = makeId('DOC');
+  const issueKey = `equipment-purchase:${equipmentId}`;
+
+  return {
+    equipment: {
+      id: equipmentId,
+      name: label,
+      nom: label,
+      type: payload.type || payload.categorie || 'machine',
+      categorie: payload.categorie || payload.type || 'Équipement agricole',
+      status: 'operationnel',
+      statut: 'operationnel',
+      purchase_date: payload.purchase_date || payload.date_achat || date,
+      date_achat: payload.date_achat || payload.purchase_date || date,
+      purchase_cost: amountValue,
+      cout_achat: amountValue,
+      valeur: amountValue,
+      fournisseur_id: supplierId,
+      supplier_id: supplierId,
+      date_mise_en_service: serviceDate,
+      service_date: serviceDate,
+      maintenance_due: nextMaintenance,
+      prochaine_maintenance: nextMaintenance,
+      financement_id: fundingId,
+      funding_source_id: fundingId,
+      amortissement_mensuel: monthlyAmortization,
+      monthly_amortization: monthlyAmortization,
+      cout_fixe_mensuel: monthlyAmortization,
+      source_module: payload.source_module || 'equipements',
+      source_record_id: payload.source_record_id || equipmentId,
+      issue_key: issueKey,
+    },
+    financeTransaction: amountValue > 0 ? {
+      id: trxId,
+      type: 'sortie',
+      transaction_type: 'sortie',
+      libelle: `Achat équipement ${label}`,
+      montant: amountValue,
+      amount: amountValue,
+      date,
+      categorie: 'Investissements',
+      module_lie: 'equipements',
+      related_id: equipmentId,
+      source_module: 'equipements',
+      source_record_id: equipmentId,
+      fournisseur_id: supplierId,
+      funding_source_id: fundingId,
+      statut: 'paye',
+      status: 'paye',
+      cash_effect: true,
+      proof_document_id: docId,
+    } : null,
+    document: {
+      id: docId,
+      title: `Justificatif achat ${label}`,
+      document_category: 'facture_equipement',
+      module_source: 'equipements',
+      entity_type: 'equipement',
+      entity_id: equipmentId,
+      related_id: equipmentId,
+      transaction_id: trxId,
+      montant: amountValue,
+      date,
+      status: payload.justificatif_url || payload.proof_url ? 'fourni' : 'manquant',
+      verification_status: payload.justificatif_url || payload.proof_url ? 'a_verifier' : 'preuve_manquante',
+      file_url: payload.justificatif_url || payload.proof_url || '',
+      issue_key: issueKey,
+    },
+    maintenanceTask: {
+      id: makeId('TSK'),
+      title: `Planifier maintenance ${label}`,
+      module_lie: 'equipements',
+      source_module: 'equipements',
+      source_record_id: equipmentId,
+      related_id: equipmentId,
+      task_dedupe_key: `${issueKey}:maintenance`,
+      due_date: nextMaintenance,
+      priority: 'moyenne',
+      status: 'a_faire',
+      checklist: 'Vérifier mise en service; Contrôler garantie; Programmer maintenance; Archiver facture',
+    },
+    alert: payload.justificatif_url || payload.proof_url ? null : {
+      id: makeId('ALT'),
+      title: `Justificatif achat manquant · ${label}`,
+      message: 'Facture ou reçu requis pour valider l’achat équipement et le reporting financeur.',
+      module_source: 'equipements',
+      entity_type: 'equipement',
+      entity_id: equipmentId,
+      severity: 'warning',
+      status: 'nouvelle',
+      alert_dedupe_key: `${issueKey}:preuve-manquante`,
+    },
+    event: {
+      id: makeId('EVT'),
+      event_type: 'equipment_purchase',
+      type_evenement: 'equipment_purchase',
+      module_source: 'equipements',
+      entity_type: 'equipement',
+      entity_id: equipmentId,
+      title: `Achat équipement · ${label}`,
+      description: `${amountValue} FCFA · mise en service ${serviceDate} · maintenance ${nextMaintenance}`,
+      event_date: date,
+      severity: payload.justificatif_url || payload.proof_url ? 'info' : 'warning',
+      amount: amountValue,
+      linked_transaction_id: trxId,
+      linked_document_id: docId,
+      linked_task_id: '',
+      saisies_evitees: 7,
+    },
+  };
+}
